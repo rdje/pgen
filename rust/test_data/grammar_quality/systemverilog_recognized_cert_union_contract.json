@@ -12,11 +12,11 @@
     "library_text:sv_2017",
     "systemverilog_parseable_file:sv_2017"
   ],
-  "expected_total": 1304,
-  "expected_proof": 1,
-  "expected_canonical_witness": 1283,
+  "expected_total": 1324,
+  "expected_proof": 2,
+  "expected_canonical_witness": 1302,
   "expected_canonical_unknown": 20,
-  "expected_union_witness": 1302,
+  "expected_union_witness": 1321,
   "expected_union_unknown": 1,
   "expected_union_residual_rules": ["context_member_method_call"],
   "done_rule": "SV is recognized fully_certified when the multi-config certificate-coverage union UNKNOWN reaches 0. Until then the recognized fully_certified-accounting basis is the sound multi-config union (expected_union_unknown), whose residual rule set must equal expected_union_residual_rules exactly (order-insensitive) and be deterministic (byte-identical) across all declared seeds, with sample_parse_failures=0; the canonical single-config accounting (expected_canonical_unknown) is recorded alongside. The union is sound by construction: a rule is credited only when some config POSITIVELY covers it (a proof or a witness), never merely because a profile leaves the rule out of its universe."

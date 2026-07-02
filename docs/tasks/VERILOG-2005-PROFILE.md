@@ -330,18 +330,55 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   `1304→1324` after `.4.1`'s 3 + `.4.2`'s 10 accounted new rules — canonical `1324/2/1302`,
   union witness `1321`.)
 
-- ID: `VERILOG-2005-PROFILE.5` — **frontier**: re-baseline the `sv_cert_recognized_union_gate`
-  count pins (`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`),
-  RED on COUNTS only since the `SV-AST-SHAPE-FIDELITY` campaign: pinned
-  `expected_total=1304 / proof=1 / canonical_witness=1283 / union_witness=1302` vs actual
-  `1324 / 2 / 1302 / 1321` (semantic invariants INTACT throughout: canonical `UNKNOWN=20`, union
-  `UNKNOWN=1`, residual `["context_member_method_call"]`, `spf=0`, deterministic seeds 0/7/42).
-  Root cause git-traced in `.2` Findings (contract pinned at `5d8801d6`/release `1.0.151`;
-  `SV-0014`→`SV-0020` + the `.4.1` 3 + `.4.2` 10 named-lift rules landed without re-baselining).
-  Scope: update the count pins + the contract-version/provenance note; re-run the gate to GREEN;
-  one concern per commit (no other edits).
+- ID: `VERILOG-2005-PROFILE.5`
+  Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0010`) — re-baselined the
+  `sv_cert_recognized_union_gate` count pins
+  (`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`), which had
+  been RED on COUNTS only since the `SV-AST-SHAPE-FIDELITY` campaign: pinned
+  `expected_total=1304 / proof=1 / canonical_witness=1283 / union_witness=1302` → actual
+  `1324 / 2 / 1302 / 1321` (semantic invariants INTACT throughout and UNCHANGED by this
+  re-baseline: canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual
+  `["context_member_method_call"]`, `spf=0`, deterministic seeds 0/7/42). Root cause git-traced in
+  `.2` Findings (contract pinned at `5d8801d6`/release `1.0.151`; `SV-0014`→`SV-0020` + the
+  `.4.1` 3 + `.4.2` 10 named-lift rules landed without re-baselining — every one of the +20 rules
+  individually accounted in its landing leaf's cert verification, so the new pins re-state
+  already-proven totals, not new claims). Executed: 4 count pins updated (nothing else in the
+  contract touched — same schema, same seeds, same union configs, same done_rule);
+  `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate` re-run fresh → **GREEN**;
+  stale-number mentions in `docs/book/src/grammar-wellformedness.md` + the SV integration
+  contract's trust statement updated in lockstep (each annotated with the re-baseline provenance).
+  One concern per commit — no other edits. NOTE (follow-up, not this leaf): the union-gate script
+  retains its own ~5 GB `focus_systemverilog` stage log per run (the phenomenon `.4.3` fixed in
+  the conformance gate); port the `prune_log` helper to it under its owning surface
+  (`GRAMMAR-WELLFORMED.H.12.8.5.2`) — the scratch log was deleted manually this session.
 
-- ID: `VERILOG-2005-PROFILE.6` — proposed (not started): ratchet the `verilog_2005` profiled
+## Acceptance Checklist (`.5`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — `sv_cert_recognized_union_gate` RED on counts at HEAD (session
+  #17's fresh run + this session's re-read of its `union_gate.txt`): `canonical total=1324
+  (expected 1304)` + proof/witness drift, while `canonical UNKNOWN=20`, `union UNKNOWN=1`,
+  residual `["context_member_method_call"]` all MATCHED (counts-only drift).
+- [x] **ROOT CAUSE (WHY + WHERE)** — git-traced (`.2` Findings): contract pinned at `5d8801d6`
+  (release `1.0.151`); the `SV-0014`→`SV-0020` named-lifts (`1.0.152`→`1.0.158`, +7 rules) and
+  the `verilog_2005` campaign's accounted rules (`.4.1` +3, `.4.2` +10) landed without
+  re-baselining the count pins — a stale-pin lockstep gap, not a cert regression (every added
+  rule witnessed/proven in its landing leaf).
+- [x] **FIX** — the 4 count pins in `systemverilog_recognized_cert_union_contract.json`
+  (`1304→1324`, `1→2`, `1283→1302`, `1302→1321`); zero semantic-pin changes.
+- [x] **ADDRESSED (verified)** — `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate`
+  RED→**GREEN**: `recognized_basis_green: true`, `unmet_criteria_count: 0`, canonical
+  `1324/2/1302/UNKNOWN=20/spf=0`, union `witness=1321 UNKNOWN=1`, residual
+  `["context_member_method_call"]`, byte-identical across seeds 0/7/42
+  (`rust/target/sv_cert_recognized_union_gate/summary.{txt,json}`).
+- [x] **NO REGRESSION** — contract-pin-only change (no grammar / Rust / generated /
+  shape-manifest edit): the gate re-ran the real cert oracle fresh at seeds 0/7/42 with `spf=0`
+  and the semantic invariants byte-identical to every recorded run since `-0147`;
+  `mdbook_docs_gate` GREEN after the book edit; clippy N/A.
+- [x] **LOCKSTEP** — book `grammar-wellformedness.md` + SV integration-contract trust statement
+  re-baselined with provenance notes; tree + `docs/TASK_TREE.md` frontier advanced; LIVE dialect
+  block left-to-close updated; CHANGES / DEVELOPMENT_NOTES / MEMORY.
+
+- ID: `VERILOG-2005-PROFILE.6` — **frontier** (proposed): ratchet the `verilog_2005` profiled
   cert-coverage baseline. Adjudicate the 310-UNKNOWN residual tools-first (the 3-step protocol):
   the 277 NO-reach-path candidates are expected profile-unreachable SV-only surface (adjudicate a
   sample against the oracle + the gate census; candidates for per-profile `proof` accounting
@@ -1005,7 +1042,19 @@ proof).
   `mdbook_docs_gate` + `systemverilog_parser_book_gate` GREEN post-lockstep. No grammar / Rust /
   generated / shape-manifest change (docs + test-data + shell + Makefile only).
 
+- 2026-07-02 (`.5`, RE-BASELINE — full verification): see "Acceptance Checklist (`.5`)". Headlines:
+  4 count pins updated (`1304→1324`, `1→2`, `1283→1302`, `1302→1321`; semantic pins untouched);
+  `sv_cert_recognized_union_gate` re-run fresh end-to-end → GREEN (`recognized_basis_green: true`,
+  `unmet_criteria_count: 0`, seeds 0/7/42 byte-identical, `spf=0`); book + contract stale-number
+  mentions re-baselined with provenance notes; `mdbook_docs_gate` GREEN.
+
 ## Commit Log
+
+- 2026-07-02 (`.5`, RE-BASELINE, `PGEN-VERILOG-2005-PROFILE-0010`): `sv_cert_recognized_union_gate`
+  count pins re-baselined `1304/1/1283/1302` → `1324/2/1302/1321` (counts-only stale-pin gap from
+  the `SV-0014`→`SV-0020` + `.4.1`/`.4.2` named-lift campaigns; semantic invariants unchanged);
+  gate RED→GREEN; book/contract lockstep. Frontier → `.6` (proposed profiled-cert ratchet) or the
+  `SV-0021`..`SV-0024` fix leaves via PNT.
 
 - 2026-07-02 (`.4.3`, CLOSURE, `PGEN-VERILOG-2005-PROFILE-0009`): corpus promoted (46 tracked
   files), repo-standard `verilog_2005_conformance_gate` landed (contract JSON + script + Makefile
@@ -1061,6 +1110,16 @@ proof).
   concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
+
+- 2026-07-02: `.5` DONE (`PGEN-VERILOG-2005-PROFILE-0010`, RE-BASELINE — contract-pin +
+  docs only) — the `sv_cert_recognized_union_gate` count pins re-baselined to the proven actuals
+  (`total 1304→1324`, `proof 1→2`, `canonical witness 1283→1302`, `union witness 1302→1321`);
+  the gate is GREEN again end-to-end (semantic invariants byte-identical: canonical `UNKNOWN=20`,
+  union `UNKNOWN=1`, residual `context_member_method_call`, `spf=0`, seeds 0/7/42). The
+  counts-only drift was the stale-pin lockstep gap opened by the `SV-0014`→`SV-0020` and
+  `verilog_2005` named-lift campaigns (+20 accounted rules), git-traced in `.2` Findings. Book +
+  SV-contract stale mentions updated with provenance. Frontier → `.6` (proposed) / defect fix
+  leaves via PNT. SV family status UNCHANGED (`Mostly Done`).
 
 - 2026-07-02: `.4.3` DONE (`PGEN-VERILOG-2005-PROFILE-0009`, CLOSURE — gate/test-data/docs, no
   code-classified change) — the profile's machine-checkable closure surface landed: 46-file

@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0010 (VERILOG-2005-PROFILE.5): `sv_cert_recognized_union_gate` count pins re-baselined `1304/1/1283/1302`→`1324/2/1302/1321` — gate RED→GREEN — RE-BASELINE (contract-pin + docs only)
+
+Same session (#18, 2026-07-02), immediately after `.4.3` per the PNT loop. **Contract-pin-only change** (no grammar / Rust / generated / shape-manifest edit).
+
+- **The counts-only drift closed:** the gate had been RED on counts since the `SV-AST-SHAPE-FIDELITY` campaign — pinned `expected_total=1304 / proof=1 / canonical_witness=1283 / union_witness=1302` (baselined at `5d8801d6`, release `1.0.151`) vs actual `1324 / 2 / 1302 / 1321` after the `SV-0014`→`SV-0020` named-lifts (+7 rules) and the `verilog_2005` campaign's accounted rules (`.4.1` +3, `.4.2` +10). Every added rule was individually witnessed/proven in its landing leaf's cert verification, so the new pins re-state already-proven totals — a stale-pin lockstep gap, not a cert regression (root cause git-traced in the tree's `.2` Findings).
+- **4 pins updated, nothing else** (same schema/seeds/union-configs/done_rule; semantic pins untouched). `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate` re-run fresh end-to-end → **GREEN**: `recognized_basis_green: true`, `unmet_criteria_count: 0`, canonical `total=1324 proof=2 witness=1302 UNKNOWN=20 spf=0`, union `witness=1321 UNKNOWN=1`, residual `["context_member_method_call"]`, byte-identical across seeds 0/7/42.
+- **Lockstep:** `docs/book/src/grammar-wellformedness.md` (the recognized-basis section's pinned numbers) + the SV integration contract's trust statement re-baselined, each with an in-place provenance note; `mdbook_docs_gate` GREEN; tree (`.5` done + enforced checklist; frontier → `.6` proposed / `SV-0021..24` via PNT) + `docs/TASK_TREE.md` + LIVE dialect block + MEMORY. **No parser status row changed** (SystemVerilog `Mostly Done`; the union `UNKNOWN=1→0` flip remains owned by `GRAMMAR-WELLFORMED.H.12.8.3.2`).
+- Follow-up noted (own surface): port the `.4.3` `prune_log` helper to `sv_cert_recognized_union_gate.sh` (it retains a ~5 GB `focus_systemverilog` stage log per run; this run's scratch log deleted manually).
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0009 (VERILOG-2005-PROFILE.4.3): closure surface landed — corpus promoted + repo-standard `verilog_2005_conformance_gate` + profiled cert baseline + downstream-contract write-up; LIVE promoted to `Mostly Done` — CLOSURE (gate/test-data/docs; no grammar/Rust change)
 
 Fresh session (#18, 2026-07-02). **CLOSURE slice — zero grammar / Rust-source / generated / shape-manifest edits** (test-data + shell gate + Makefile + docs only); the `sv_2017`/`sv_2023`/`verilog_2005` parser behavior is inert by construction.

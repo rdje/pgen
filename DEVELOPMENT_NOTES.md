@@ -1,4 +1,8 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0010 — union-gate count re-baseline (VERILOG-2005-PROFILE.5; contract-pin + docs only)
+
+Session #18 (same session as `.4.3`, PNT continuation). The standing counts-only drift in `sv_cert_recognized_union_gate` closed: 4 pins in `systemverilog_recognized_cert_union_contract.json` updated to the proven actuals (`total 1304→1324`, `proof 1→2`, `canonical_witness 1283→1302`, `union_witness 1302→1321`); zero semantic-pin changes. Fresh end-to-end gate run GREEN (`recognized_basis_green: true`, seeds 0/7/42 byte-identical, `spf=0`; canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_member_method_call` — all unchanged). WHY+WHERE was already git-traced in the tree's `.2` Findings: contract pinned at `5d8801d6`/`1.0.151`; the `SV-0014`→`SV-0020` (+7 rules) and `verilog_2005` `.4.1` (+3) / `.4.2` (+10) named-lift campaigns each accounted their new rules in their own cert verifications but never re-baselined this contract. Lockstep: `grammar-wellformedness.md` + SV-contract trust statement re-pinned with provenance notes; `mdbook_docs_gate` GREEN. Ops follow-up noted: the union-gate script retains a ~5 GB `focus_systemverilog` stage log per run — port `.4.3`'s `prune_log` helper under its owning surface; this run's scratch log deleted manually (disk doctrine).
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0009 — `verilog_2005` closure surface: corpus promotion + conformance gate + profiled cert baseline (VERILOG-2005-PROFILE.4.3; CLOSURE, no code-classified change)
 
 Fresh session #18. Full mandated startup read (core docs read directly + book/roadmap-continuity Explore digests), then the `.4.3` frontier executed.

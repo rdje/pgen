@@ -2,8 +2,8 @@
 
 Last updated: 2026-06-02 (**ACTIVE: `MEMORY-ARCH` tree CLOSED — durable harness-agnostic agent-memory architecture adopted with full E1–E4 enforcement (`PGEN-MEMORY-ARCH-0001..0006`); all 54 durable `~/.claude` records migrated into tracked `docs/decisions/`, root `MEMORY.md` demoted to a bounded 23-line resume pointer, gates proven to bite. SV-EXH-PROOF `.6` was CONFIRMED green earlier this session (`-0113`, cached-mode `sv_parser_family_status_gate` exit 0 / both families pass) — the May-31 "open re-verify" item is RESOLVED.**) **SV status (updated 2026-06-04):** `systemverilog main parser` honestly `Mostly Done` — the ONE short Done-criterion is `focused_replay_target_debt_zero`; the closed-loop residual is now a best-known **97** (canonical gate `PGEN-SV-EXH-PROOF-0149`, exit 0), down the full arc ~2660 → 888 (.7.2 steering plateau) → 753 (.7.4.4 Purdom) → 273 (.7.4.5 budget) → **97 (.7.4.6.3 derivation-directed CONSTRUCTION)**. The "literal-0 needs a non-steering mechanism" call (old `.7.2.21`) was RIGHT and is now ANSWERED: construction (not steering) is that mechanism; the −791 from 888 confirms it. Residual measured **105** (`PGEN-SV-EXH-PROOF-0153`, 2026-06-05) — within the ±~25 run-to-run noise band (runs: 97/89/105/120). **`.7.4.6.7` LANDED:** the shadowing lint proved 25 ordered-choice branches DEAD (exact duplicates); all 25 removed from `systemverilog.ebnf` → `ordered_choice_shadowing 25→0`, grammar fully lint-clean, parse-neutral (SV external corpus 14/14, lib 652/0, realistic 730/730). This is a NECESSARY literal-0 prerequisite (a permanently-uncoverable dead branch can never be driven to 0) + a grammar-correctness cleanup. The de-dup did NOT move the noisy measured residual — which pinned the DEEPER blocker: the residual METRIC was NON-DETERMINISTIC (±~25, from the generator's WALL-CLOCK timeout). **RESOLVED `GRAMMAR-WELLFORMED.B1` (`PGEN-GRAMMAR-WELLFORMED-0005`, 2026-06-05): replaced the wall-clock generation deadline (`Instant::now`) with a DETERMINISTIC step-counter budget → the canonical gate now reports closed_loop_replay_targets_total = 84 IDENTICAL across two independent runs (the ±25 wobble of 97/89/105/120 is GONE; proven by construction + empirically). The literal-0 metric is now SIGNAL, not noise — the constructive half of the well-formedness duality can be driven + measured deterministically.** Earlier hypotheses (generation-difficulty; pre/post-LR phantom) both DISPROVEN by source-trace (`.7.4.6.6`). SV external corpus 14/14; realistic corpus 730/730; release 1.0.136 (schema 3).
 
-**Dialect profiles (updated 2026-07-02, `VERILOG-2005-PROFILE.4.3`, `Mostly Done` — PROMOTED from
-`In Progress`):** the strict `verilog_2005` (IEEE 1364-2005) parsing profile on the SystemVerilog
+**Dialect profiles (updated 2026-07-02, `VERILOG-2005-PROFILE.5`, `Mostly Done` — PROMOTED from
+`In Progress` at `.4.3`):** the strict `verilog_2005` (IEEE 1364-2005) parsing profile on the SystemVerilog
 grammar (embedding API `1.3.0`; `GrammarProfile::Verilog2005` + aliases `1364-2005`/`ieee1364-2005`)
 now has its **repo-standard machine-checkable conformance surface**:
 `make -C rust SHELL=/bin/bash verilog_2005_conformance_gate`
@@ -27,10 +27,13 @@ baseline (`1.2.0`→`1.3.0`) is corrected. **Why `Mostly Done`, not `Done`:** th
 curated corpus (tracker rule: curated lists cannot earn `Done`), and the ledgered `SV-0024`
 (un-braced multi-identifier port expressions accept under EVERY profile) is a known plausible gap in
 the strict-subset claim — `module m (interconnect w);` in the bare non-ANSI form still accepts under
-`verilog_2005` until `SV-0024` lands (the corpus pins the ANSI form). Left to close: `SV-0021`..
-`SV-0024` fix leaves, the `sv_cert_recognized_union_gate` count re-baseline (leaf `.5`, pinned
-`1304/1/1283+1302` vs actual `1324/2/1302+1321`), and the profiled-cert baseline ratchet (leaf
-`.6`). SV family closure status is UNCHANGED (`Mostly Done`); no SV release bump (`sv_2017`/
+`verilog_2005` until `SV-0024` lands (the corpus pins the ANSI form). The
+`sv_cert_recognized_union_gate` count re-baseline LANDED as leaf `.5` (2026-07-02, `-0010`): pins
+`1304/1/1283/1302`→`1324/2/1302/1321`, gate RED→GREEN fresh end-to-end (semantic invariants
+byte-identical — canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_member_method_call`,
+`spf=0`, seeds 0/7/42; the counts-only drift was the stale-pin lockstep gap from the
+SV-AST-SHAPE-FIDELITY + verilog_2005 named-lift campaigns). Left to close: `SV-0021`..`SV-0024`
+fix leaves and the profiled-cert baseline ratchet (leaf `.6`, proposed). SV family closure status is UNCHANGED (`Mostly Done`); no SV release bump (`sv_2017`/
 `sv_2023` behavior invariant — this leaf adds only test-data/gate/doc surfaces, zero grammar/Rust
 source change). Note: the SV figures in the paragraph above are from the 1.0.136 era; the current
 SV parser release is `1.0.158` / schema `13` (see per-parser book + `MEMORY.md`).
