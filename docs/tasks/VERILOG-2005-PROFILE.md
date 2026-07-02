@@ -479,19 +479,46 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     (restoration verified). The lift diffs are recorded verbatim in the Findings for replay once
     `.6.3.1` restores the witness.
 
-  - ID: `VERILOG-2005-PROFILE.6.3.1` — **frontier** (pending): INVESTIGATION leaf
-    (engine-side WHY+WHERE, parser-agnostic surface — `stimuli_generator.rs` store-aware
-    name-prelude): why does the armed prelude for `has_fact(property_name, $body)` render a
-    SEQUENCE scaffold (`package \foo; sequence \foo; … endsequence endpackage …`) instead of the
-    SOLE `property_name` producer `declared_property_identifier` (grammar `:4401` — the only
-    `@emit_fact { kind: property_name }` site), 48/48 forced samples, once the top-level branch
-    structure shifts? Same anomaly visible pre-existing: the probe targeting
-    `declared_property_identifier` ITSELF renders a sequence scaffold at HEAD. Suspect surface:
-    `compute_name_prelude` / `reach_hops(body_rule, producer)` / the PASS-1
-    `reach_path_renders_unsatisfiable_gate` skip (`stimuli_generator.rs:3051..`), or the forced
-    sub-plan directives being overridden during render. Deliverable: tool-named WHY+WHERE (trace
-    the prelude arming + sub-plan directives for this target), then the fix under the owning
-    engine surface (own leaf; general, parser-agnostic per doctrine). `.6.3` replays after it.
+  - ID: `VERILOG-2005-PROFILE.6.3.1` — Status: `done` (2026-07-02, session #20, ZERO code —
+    INVESTIGATION leaf, engine-side WHY+WHERE, tools-first): the witness-routing anomaly is
+    **fully tool-named** (see "`.6.3.1` Findings"). WHY = the armed name-prelude's INJECTED
+    construct must derive the producer's host `property_declaration` INCLUDING its deep
+    mandatory sibling `property_spec`; the per-target witness budget never accounts for the
+    prelude sub-path (tier-1 = `reach_prefix + min_subtree[target]`; tier-2 adds
+    `max_offpath_mandatory_sibling_depth` over the MAIN hop chain only), so the forced
+    `property_declaration` branch dies with `Stimuli generation depth exceeded max_depth=64
+    while expanding rule 'number'`; `generate_or`'s forced-first-with-fallback then silently
+    selects `sequence_declaration`, and the injection loop accepts ANY `Ok` render without
+    verifying the armed `(kind, family)` fact was emitted — the prelude emits `sequence_name`
+    instead of `property_name`. WHERE = `rust/src/ast_pipeline/stimuli_generator.rs`: injection
+    loop in `generate_quantified` (`:9880-9913`, no fact-kind integrity), forced-order fallback
+    in `generate_or` (`:8540-8555` ordering, `:8896..` Err fallback), budget tiers in
+    `run_plannable_witness_pass` (`:4089-4101` tier-1, `:4210-4221` tier-2 via
+    `max_offpath_mandatory_sibling_depth` `:6626` — main-chain-only). HEAD survives only because
+    the main chain's host `property_declaration` self-emits `property_name` (s1
+    `declared_property_identifier`) and the replay echoes it; the `.6.3` lifts re-roll the BFS
+    to the top-level `bind` route (no property host on path) → the gate depends entirely on the
+    wrong-kind prelude → 48/48 (= 4 attempts × 2 tiers × 2 entry-configs × 3 seeds). The direct
+    `declared_property_identifier` probe is the control: NO prelude armed (0 spec lines), tier-1
+    fails with the SAME depth error ×4 → tier-2 (deep sibling IS on the main chain there)
+    rescues it — working as designed. Fix commissioned as `.6.3.2`.
+
+  - ID: `VERILOG-2005-PROFILE.6.3.2` — **frontier** (pending): CODE leaf (ENGINE fix,
+    general/parser-agnostic — `stimuli_generator.rs`): make the armed name-prelude honor its
+    semantic contract ("the injected iteration exists to emit one fact of the armed
+    `(kind, family)`"). Design (from the `.6.3.1` evidence): in the `generate_quantified`
+    prelude-injection loop, after each injected render (and on a depth-exceeded `Err`), verify
+    via the gen store (`store_name_for_gate(arm)`) that a matching fact now exists; when the
+    check fails, RETRY that injected iteration ONCE under a fresh depth budget measured from the
+    injection depth (`depth + max_depth`, the proven H.4.2 constructive-reach pattern), and only
+    then fall to the existing `failed` path. Strictly additive: count-preludes
+    (`name_gate=None`) and every injection that already emits the right fact are byte-identical;
+    the retry fires only where the prelude was already broken (never witnessed anything real).
+    Keyed on the armed `NameGateArm` (structural), never a rule name. Verification: canonical SV
+    cert `1326/2/1304/20` + union `1323/1` at seeds 0/7/42 (must not regress; witness sample for
+    `known_unscoped_property_identifier` should now carry a PROPERTY prelude), `verilog_2005`
+    gate pins `1138/2/817/319`, 6 fully-certified grammars byte-identical (passes inert),
+    ast_shape_contract GREEN, clippy clean. `.6.3` replays after it.
 
   - ID: `VERILOG-2005-PROFILE.6.4` — pending: RATCHET leaf — witness the 6 class-D in-profile
     rules (`simple_identifier_no_scope`, `scope_free_identifier`, `ps_identifier` via the
@@ -616,6 +643,62 @@ All evidence from the 3-step protocol on HEAD binaries (release `1.0.158`, schem
 - **Restoration verified after revert:** grammar/contract/corpus back to the `.6.2` state;
   regen + both binaries rebuilt; canonical cert back to `1326/2/1304/20` and `verilog_2005` cert
   back to `1138/2/817/319` (seed 0), 150/150 matrix — see the Verification Log.
+
+## `.6.3.1` Findings (tools-first, 2026-07-02 — the engine witness-routing anomaly, WHY+WHERE)
+
+All evidence from HEAD binaries (release `1.0.158`, schema `13`), canonical config: profile
+`sv_2017`, entry `systemverilog_file`, `--count 40 --seed 0`. Baseline reproduced byte-identical
+first (`CERTIFICATE-COVERAGE: … total=1326 proof=2 witness=1304 UNKNOWN=20 spf=0 prf=0`;
+`known_unscoped_property_identifier` NOT in the UNKNOWN list at HEAD). Decisive run =
+`PGEN_TRACE_VERBOSITY=debug PGEN_CERT_COVERAGE_DEBUG_PROBES=1 PGEN_REACH_PATH_DUMP=1 …
+--report-certificate-coverage …` piped through a scoped grep (name-prelude / semantic-prelude /
+`assertion_item_declaration` / probe / reach-path lines).
+
+- **The prelude arms CORRECTLY** (`stimuli_generator.rs:3138` spec trace):
+  `STORE-AWARE-GEN.4b name-prelude spec: gated_rule='known_unscoped_property_identifier'
+  kind='property_name' family=None producer='declared_property_identifier' clean_path=true
+  site=('source_text','root') body='source_text_item'` — producer selection is right (the sole
+  `property_name` emitter), site/body are right.
+- **The injected render dies on DEPTH, then silently degrades family** (trace, injected
+  construct): `Reach-plan branch forcing: rule='assertion_item_declaration' path='root'
+  forced_local=0 forced_global=0` (property branch correctly forced first) →
+  `OR branch failed: rule='assertion_item_declaration' path='root' branch=0
+  reason=Stimuli generation depth exceeded max_depth=64 while expanding rule 'number'` →
+  `Selected OR branch: … branch=1 output_len=38` (= `sequence\foo ;6309.412_E+39endsequence`).
+  The injection loop (`generate_quantified` `:9880-9913`) accepts the `Ok` render with NO check
+  that the armed `(kind, family)` fact was emitted → the prelude registers `sequence_name`, not
+  `property_name`.
+- **Why HEAD still witnesses (the accidental rescue):** the MAIN chain hosts the target inside
+  `property_declaration` (hop `("property_declaration","root/s5")` → `property_spec` → … →
+  `property_instance` → `ps_or_hierarchical_property_identifier o1`), whose own s1
+  `declared_property_identifier` self-emits `property_name=\foo_0`; the replay echoes it
+  (`C2 semantic-prelude replay: rule='known_unscoped_property_identifier' depth=39
+  render='\foo_0 '`) → `[plannable-probe] … parsed=true witnessed_target=true
+  sample="sequence\foo ;6309.412_E+39endsequence property\foo_0 ;\foo_0 endproperty"`. The
+  wrong-family prelude is dead weight at HEAD; the host supplies the fact.
+- **Why the `.6.3` lifts break it:** the lifts re-roll the BFS shortest path to the top-level
+  `bind` route (`bind → checker_instantiation → property_actual_arg → … → property_instance`,
+  per the `.6.3` reach dump) — NO `property_declaration` host on path → the gate depends
+  entirely on the injected prelude → wrong-kind fact every time → 48/48
+  `parsed=true witnessed_target=false` (= 4 attempts × 2 tiers × 2 entry-configs × 3 seeds).
+- **Control (direct probe of the producer, same run):** `declared_property_identifier` has NO
+  prelude armed (0 spec lines in its segment — it is excluded from `gen_name_gate` as a
+  self-satisfying producer, `compute_name_gates` `:7039-7043`). Tier-1 (budget 64): 4× the SAME
+  `OR branch failed … max_depth=64 … rule 'number'` → falls to sequence →
+  `witnessed_target=false` ×4. Tier-2 (deep mandatory off-path sibling `property_spec` IS on
+  the MAIN chain at `("property_declaration","root/s1")`) → `Selected OR branch: … branch=0` →
+  `property\foo ;2737.2682endproperty` → witnessed. Tier-2 works when the deep sibling is
+  visible to `max_offpath_mandatory_sibling_depth(entry, target)` (`:6626`); the PRELUDE
+  sub-path's siblings are invisible to it — that is the budget blind spot.
+- **Mechanism summary (the defect, engine, parser-agnostic):** (1) per-target witness budgets
+  (tier-1 `:4089-4101`, tier-2 `:4210-4221`) never cover the armed prelude's injected construct
+  (producer-host + its mandatory siblings, here `property_spec`'s ~25-level expression chain to
+  `number`); (2) `generate_or`'s forced-first-with-fallback (`:8540-8555`, Err path `:8896..`)
+  plus the integrity-blind injection loop (`:9880-9913`) convert that depth failure into a
+  SILENT wrong-family prelude instead of a visible prelude failure. Blast radius of the fix =
+  armed name-preludes only (99 spec lines / 10 distinct gated rules in the canonical run).
+- **Fix leaf:** `.6.3.2` (integrity check + depth-fresh retry at the injection site). `.6.3`
+  replays after it.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -1321,7 +1404,40 @@ proof).
   150/150, `.6.2` locks REJECT, SV-0026 top-level probes back to known-open ACCEPT, reverted
   rules absent from the regenerated parser (grep 0).
 
+- 2026-07-02 (`.6.3.1`, INVESTIGATION — engine WHY+WHERE, ZERO code): baseline reproduced
+  byte-identical first (canonical `1326/2/1304/20 spf=0 prf=0`, seed 0, HEAD binaries;
+  `known_unscoped_property_identifier` witnessed at HEAD). Decisive evidence from ONE scoped
+  debug-trace cert run (`PGEN_TRACE_VERBOSITY=debug PGEN_CERT_COVERAGE_DEBUG_PROBES=1
+  PGEN_REACH_PATH_DUMP=1 … --report-certificate-coverage --grammar-profile sv_2017
+  --entry-rule systemverilog_file --count 40 --seed 0`, stderr+stdout piped through a scoped
+  grep — no multi-GB artifact): (1) prelude spec line proves CORRECT arming
+  (`gated_rule='known_unscoped_property_identifier' kind='property_name'
+  producer='declared_property_identifier' clean_path=true site=('source_text','root')`);
+  (2) injected render: `Reach-plan branch forcing … forced_local=0` →
+  `OR branch failed: rule='assertion_item_declaration' … branch=0 reason=Stimuli generation
+  depth exceeded max_depth=64 while expanding rule 'number'` → `Selected OR branch: … branch=1`
+  (the sequence fallback) — the tool-named WHY; (3) replay line
+  `C2 semantic-prelude replay: … render='\foo_0 '` + the witness sample
+  `"sequence\foo ;…endsequence property\foo_0 ;\foo_0 endproperty"` prove the HEAD witness is
+  earned by the MAIN-chain self-emitting host, not the prelude; (4) control: the direct
+  `declared_property_identifier` probe has NO prelude armed (0 spec lines), fails tier-1 4× with
+  the SAME depth error, and IS rescued by tier-2 (`Selected OR branch: … branch=0`,
+  `property\foo ;2737.2682endproperty`, witnessed) — the budget blind spot is specific to the
+  PRELUDE sub-path. Arming census for fix blast-radius: 99 `name-prelude spec` lines across 10
+  distinct gated rules in the canonical run. No grammar / code / generated / release change.
+
 ## Commit Log
+
+- 2026-07-02 (`.6.3.1` INVESTIGATION, `PGEN-VERILOG-2005-PROFILE-0014`): the engine
+  witness-routing anomaly fully tool-named (ZERO code) — the armed name-prelude's injected
+  construct is invisible to both per-target depth-budget tiers, so the forced
+  `property_declaration` branch dies (`depth exceeded max_depth=64 … rule 'number'`) and the
+  forced-first-with-fallback Or + the integrity-blind injection loop silently degrade the
+  prelude to a `sequence_declaration` (wrong fact kind); HEAD witnesses only via the main
+  chain's self-emitting host, which the `.6.3` lifts route away from. Control probe (producer
+  direct, no prelude) fails tier-1 identically and IS rescued by tier-2 — the blind spot is
+  the PRELUDE sub-path. Fix leaf `.6.3.2` spawned (integrity check + depth-fresh retry at the
+  injection site, general/parser-agnostic). Frontier → `.6.3.2`.
 
 - 2026-07-02 (`.6.3` CHECKPOINT, `PGEN-VERILOG-2005-PROFILE-0013`): SV-0026 second carrier found
   (`source_text_item` direct top-level `localparam`/`parameter` branches) + `SV-0028` ledgered
