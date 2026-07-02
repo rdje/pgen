@@ -76,6 +76,7 @@ Primary sources:
 - still one of the deepest proof surfaces in the repository
 - main parser remains an active closure target
 - preprocessor parser is tracked as done
+- the SV grammar is **dialect-profiled**: alongside the two IEEE 1800 SystemVerilog profiles (`sv_2017`, `sv_2023`) it now also carries a strict **`verilog_2005`** (IEEE 1364-2005 Verilog) profile, selected the same way (`--profile verilog_2005`, aliases `1364-2005` / `ieee1364-2005`; embedding API `1.3.0`). Because Verilog-2005 is a syntactic subset of IEEE 1800, the profile *rides the `sv_2017` baseline* of the shared core constructs and gates the SystemVerilog-only surface out: e.g. `module m; endmodule` parses under `--profile verilog_2005` while `class C; endclass` is **rejected** (still accepted under `sv_2017` / `sv_2023`). The strict subset enforcement is being hardened incrementally (tree `VERILOG-2005-PROFILE`); the SV parser book's public-API page lists the current profile strings
 - the retained focused adapter-backed `sv_2017` and `sv_2023` direct probes now both accept `179/179` targeted samples with `0` parser rejections on the current narrow `timeunits_declaration` plus `line_comment` seam
 - the next retained focused replay slice now also uses parser-proven branch-local sample steering rather than regex-only hinting:
   - `sv_2017`: `180/181` accepted, `1` parser rejection, `319/2613` targets resolved in the retained 200-attempt loop

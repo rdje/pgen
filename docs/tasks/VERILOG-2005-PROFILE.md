@@ -128,6 +128,28 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     (`module m; endmodule`) **PARSES** under `verilog_2005`/`sv_2017`/`sv_2023` (rc=0); aliases
     `ieee1364-2005`/`1364-2005` normalize correctly. Acceptance checklist enforced (code leaf):
     ROOT CAUSE / ADDRESSED / NO REGRESSION — see the "Acceptance Checklist (`.2`)" section.
+
+- ID: `VERILOG-2005-PROFILE.2.1`
+  Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0004`) — LOCKSTEP leaf, **PURE-DOCS
+  (main platform mdBook + tracker docs only; NO `grammars|rust/src|generated|ast_shape_contract`
+  change → not a code change per the mechanical classifier)**. Closes the main-platform-book drift
+  the `.2` lockstep omitted: `.2` updated the SV *sub-book* + `EMBEDDING_API_CONTRACT.md`, but the
+  top-level `docs/book/` never mentioned the now-live `verilog_2005` profile nor the embedding API
+  `1.3.0` surface — a HIGH/MEDIUM drift found in the fresh-session startup mdBook currency audit
+  (a book↔codebase drift is a tracked correctness defect per the no-drift doctrine). Scope:
+  - `docs/book/src/parser-families.md` (SystemVerilog section): add the `verilog_2005` (IEEE
+    1364-2005) dialect-profile bullet — rides the `sv_2017` baseline of shared core constructs,
+    rejects the SV-only surface (`module m; endmodule` accepts / `class C; endclass` rejects under
+    `--profile verilog_2005`), incrementally hardening under tree `VERILOG-2005-PROFILE`.
+  - `docs/book/src/embedding-and-downstream-integration.md` (Embedding API section): state the
+    current API version `1.3.0` + the family→profile list (SV: `sv_2017`/`sv_2023`/`verilog_2005`;
+    VHDL: `vhdl_1076_2019`; regex: `regex_default`), pointing at `EMBEDDING_API_CONTRACT.md` as the
+    authoritative versioned list. Values confirmed tools-first from `rust/src/embedding_api.rs`
+    (`EMBEDDING_API_VERSION`@29; `GrammarProfile::as_str`@230-234; `systemverilog_profiles`@412-414).
+  - Proof: `make -C rust SHELL=/bin/bash mdbook_docs_gate` GREEN (book builds). No oracle re-run
+    needed (no code/grammar/generated change; the 6 fully-certified grammars + SV inert by
+    construction; clippy N/A). Full COMMIT.md lockstep (tree + TASK_TREE + LIVE + CHANGES +
+    DEVELOPMENT_NOTES + MEMORY). SV family status UNCHANGED (`Mostly Done`).
 - ID: `VERILOG-2005-PROFILE.3` … (subsequent implementation leaves, one family/cluster per leaf,
   in the order fixed by "`.1` Findings → Implementation order"). Whole-rule gates first (cascade
   automatically, low-risk), then the bare-keyword **branch-lift** gates (shape-preserving, each
@@ -443,9 +465,25 @@ proof).
   clippy source clean; realistic corpus 239/239 non-preprocessor under sv_2017. Regenerated SV only
   (other 6 grammars byte-identical). Pre-existing `sv_cert_recognized_union_gate` count-drift
   discovered + git-traced (not this slice; follow-up leaf recommended).
+- 2026-07-02 (`.2.1`, PURE-DOCS book lockstep): `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  GREEN (`mdbook_build` pass) after adding the `verilog_2005` profile bullet to
+  `docs/book/src/parser-families.md` (SystemVerilog section) and the "Current API surface"
+  subsection (version `1.3.0` + family→profile list) to
+  `docs/book/src/embedding-and-downstream-integration.md`. Documented values confirmed tools-first
+  from `rust/src/embedding_api.rs` (`EMBEDDING_API_VERSION="1.3.0"`@29; `GrammarProfile::as_str`
+  `sv_2017`/`sv_2023`/`verilog_2005`/`vhdl_1076_2019`/`regex_default`@230-234; SV
+  `systemverilog_profiles` vec@412-414). No code/grammar/generated change ⇒ no oracle re-run
+  (cert / corpus / the 6 fully-certified grammars inert by construction; clippy N/A).
 
 ## Commit Log
 
+- 2026-07-02 (`.2.1`, PURE-DOCS book lockstep, `PGEN-VERILOG-2005-PROFILE-0004`): closed the
+  main-platform-book drift `.2` omitted (found in the fresh-session startup mdBook currency audit) —
+  the top-level `docs/book/` now documents the live `verilog_2005` profile (in `parser-families.md`)
+  and the embedding API `1.3.0` surface + family→profile list (in
+  `embedding-and-downstream-integration.md`, pointing at `EMBEDDING_API_CONTRACT.md` as authoritative).
+  `mdbook_docs_gate` GREEN. No `grammars|rust/src|generated|ast_shape_contract` change → not a code
+  change; SV family status UNCHANGED (`Mostly Done`). Frontier stays `.3`.
 - 2026-07-02 (`.2`, tools-first CODE): confirmed BEFORE-state via `parseability_probe --parse`:
   `class C; endclass` and `module m; endmodule` BOTH rejected at pos 0 under `--profile verilog_2005`
   (empty language). Root cause pinned by `--trace-rules systemverilog_file` (`module_declaration`
@@ -488,3 +526,11 @@ proof).
   embedding tests, clippy, realistic corpus). Discovered the pre-existing `sv_cert_recognized_union_gate`
   count-drift (SV-AST-SHAPE-FIDELITY lockstep debt) — flagged for a follow-up leaf. Frontier → `.3`
   (extend baseline admission + SV-only gates per-family).
+- 2026-07-02: `.2.1` DONE (`PGEN-VERILOG-2005-PROFILE-0004`, PURE-DOCS book lockstep) — closed the
+  main-platform-book drift the `.2` lockstep omitted (found in the fresh-session startup mdBook
+  currency audit): `docs/book/src/parser-families.md` now documents the `verilog_2005` dialect
+  profile in the SystemVerilog section, and `docs/book/src/embedding-and-downstream-integration.md`
+  now states the embedding API version `1.3.0` + the family→profile list (SV
+  `sv_2017`/`sv_2023`/`verilog_2005`; VHDL `vhdl_1076_2019`; regex `regex_default`), deferring the
+  authoritative versioned list to `EMBEDDING_API_CONTRACT.md`. `mdbook_docs_gate` GREEN; no
+  code/grammar/generated change; SV family status UNCHANGED (`Mostly Done`). Frontier stays `.3`.

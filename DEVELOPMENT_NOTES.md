@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0004 — main-platform-mdBook lockstep for the `verilog_2005` profile + embedding API `1.3.0` (VERILOG-2005-PROFILE.2.1; PURE-DOCS)
+
+Fresh session #15 (2026-07-02), bounded PNT. Leaf `VERILOG-2005-PROFILE.2.1` (book-lockstep leaf; task-tree-owned first). PURE-DOCS — top-level `docs/book/` + tracker docs only; NOT a code change per the mechanical classifier (`grammars|rust/src|generated|ast_shape_contract`).
+
+**Root cause / WHY+WHERE (from the mandated startup read).** The fresh-session mdBook currency audit (README ramp-up item #2) found the top-level platform book silent about the `verilog_2005` profile shipped in `.2` and about the embedding API `1.3.0` surface: `docs/book/src/parser-families.md` never mentioned the new profile, and `docs/book/src/embedding-and-downstream-integration.md` stated neither the API version nor the supported profiles. The `.2` LOCKSTEP box had updated the SV sub-book + `EMBEDDING_API_CONTRACT.md` but not the top-level book. Under the no-drift doctrine (the book is the user's only window; book↔codebase drift is a tracked correctness defect), this is a real lockstep gap.
+
+**Fix.** Documented the profile in the SV family section of `parser-families.md` (rides the `sv_2017` baseline; `module m; endmodule` accepts / `class C; endclass` rejects under `--profile verilog_2005`; incrementally hardening under tree `VERILOG-2005-PROFILE`) and added a "Current API surface" subsection to `embedding-and-downstream-integration.md` (version `1.3.0`; SV `sv_2017`/`sv_2023`/`verilog_2005`, VHDL `vhdl_1076_2019`, regex `regex_default`; authoritative list = `EMBEDDING_API_CONTRACT.md`). Values confirmed tools-first from `rust/src/embedding_api.rs` (`EMBEDDING_API_VERSION`@29; `GrammarProfile::as_str`@230-234; `systemverilog_profiles`@412-414).
+
+**Verified.** `make -C rust SHELL=/bin/bash mdbook_docs_gate` GREEN. No code/grammar/generated change → cert / external corpus / the 6 fully-certified grammars + SV inert by construction; clippy N/A. Frontier stays `.3`; SV family status UNCHANGED (`Mostly Done`).
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0003 — register the `verilog_2005` (IEEE 1364-2005) profile end-to-end + first SV-only gate (VERILOG-2005-PROFILE.2; CODE)
 
 Fresh session #14 (2026-07-02), bounded PNT. Leaf `VERILOG-2005-PROFILE.2` (first CODE leaf of the tree; task-tree-owned; acceptance checklist earned).

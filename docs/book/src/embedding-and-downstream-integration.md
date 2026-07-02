@@ -24,6 +24,22 @@ This matters especially for:
 - AST dump availability,
 - release-version metadata.
 
+### Current API surface
+
+The embedding API version is **`1.3.0`**. The supported grammar families and their selectable
+profile strings are:
+
+- **SystemVerilog** — `sv_2017`, `sv_2023`, and the strict **`verilog_2005`** (IEEE 1364-2005 Verilog
+  subset) profile;
+- **VHDL** — `vhdl_1076_2019`;
+- **regex** — `regex_default` (the regex grammar also has a CLI-only `relaxed` opt-out profile, which
+  the embedding API deliberately does not expose).
+
+The authoritative, versioned list — accepted aliases (e.g. `2017` / `ieee1800-2017`, `1364-2005` /
+`ieee1364-2005`), the full profile matrix, the diagnostics shape, and the per-family release/schema
+metadata — is `rust/docs/EMBEDDING_API_CONTRACT.md`. Treat that contract (not this prose) as the
+source of truth for exact version and profile values.
+
 ## Linter-Oriented Downstream Surfaces
 
 One downstream direction now tracked explicitly is linter enablement. The idea is not that PGEN should become a linter by itself. The idea is that PGEN should be able to hand downstream tools a stronger front-end product than "just a parse tree."
