@@ -352,6 +352,14 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   the conformance gate); port the `prune_log` helper to it under its owning surface
   (`GRAMMAR-WELLFORMED.H.12.8.5.2`) — the scratch log was deleted manually this session.
 
+## Acceptance Checklist (`.6.3`, enforced)
+- [x] **REPRODUCE / ISSUE** — `SV-0026` at HEAD pre-fix: `printf 'wire w;\n' | parseability_probe --parse systemverilog /dev/stdin --profile verilog_2005` → ACCEPTS (likewise `reg r;`, `localparam p = 1;`, `parameter p = 1;`); IEEE 1364-2005 A.1.2 allows only module/UDP/config at top level. Two carriers (ledger row).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `.6.1`/`.6.3` findings: `description`'s SV `$unit` `package_item` alternative + `source_text_item`'s direct top-level `local_parameter_declaration semi`/`parameter_declaration semi` alternatives are active under `verilog_2005` (un-gated shared-core branches; reach chain + AST dumps named both accepting paths; the `.2` baseline-admission wave admitted them un-audited).
+- [x] **FIX** — grammar tier (the `.4.2` shape-preserving named-lift idiom): `description_unit_item_sv_only` + `source_text_item_unit_sv_only`, both `@profiles: ["sv_2017","sv_2023"]`, PEG order preserved, parents reference them as bare pass-through alternatives. Replay of the `.6.3`-recorded diffs, landable only after the `.6.3.2` engine fix.
+- [x] **ADDRESSED (verified)** — 12/12 probes: all 4 top-level forms ACCEPT→REJECT under `verilog_2005`, ACCEPT unchanged under `sv_2017`/`sv_2023`; conformance matrix 150→162 checks / 0 mismatches (4 new reject-locks); lint `profile_orphans=0` rc 0 (census 1448→1450); regenerated parser carries both gated rules (grep 49 sites).
+- [x] **NO REGRESSION** — THE decisive former blocker now green: canonical `sv_2017` cert `total=1328 proof=2 witness=1306 UNKNOWN=20 spf=0` at seeds 0/7/42, residual 20-rule set md5-identical to pre-lift (`known_unscoped_property_identifier` witnessed — the `.6.3.1` collateral gone); `sv_cert_recognized_union_gate` GREEN fresh (`unmet_criteria_count: 0`; canonical 20 / union `1325/1` / residual exact); `verilog_2005_conformance_gate` GREEN fresh (`gate_green: true`, cert `1138/2/809/327` seeds 0/7/42); `ast_shape_contract_gate` 18/18; `mdbook_docs_gate` ✅; clippy source strict-clean (generated debt pre-existing). Contract count pins re-baselined in the SAME commit (union `1326/2/1304/1323`→`1328/2/1306/1325`; v2005 `817/319`→`809/327` + 4 corpus rows).
+- [x] **LOCKSTEP** — ledger `SV-0026`→`Released` (both-carrier fix record); SV integration contract (trust posture, matrix 162, cert pins, honest boundary — open waivers now `SV-0024`/`SV-0028`); book `parser-families.md` (pins + fixed-leak narrative; mdbook gate ✅); LIVE dialect block + session-#20 note; both contract JSONs with provenance; tree + `docs/TASK_TREE.md` frontier → `.6.4`. Release/schema unchanged (`1.0.158`/13 — SV-profile behavior byte-invariant).
+
 ## Acceptance Checklist (`.6.3.2`, enforced)
 - [x] **REPRODUCE / ISSUE** — `.6.3.1` evidence: `[plannable-probe] rule='known_unscoped_property_identifier' … sample="sequence\foo ;…endsequence property\foo_0 ;…"` (wrong-family prelude at HEAD); post-lift 48/48 `parsed=true witnessed_target=false` (canonical `UNKNOWN` 20→21, union 1→2 — the `.6.3` blocker).
 - [x] **ROOT CAUSE (WHY + WHERE)** — tool-named in `.6.3.1`: `OR branch failed: rule='assertion_item_declaration' path='root' branch=0 reason=Stimuli generation depth exceeded max_depth=64 while expanding rule 'number'` → `Selected OR branch: … branch=1` (silent sequence fallback) inside the injected prelude render; injection loop `generate_quantified:9880-9913` accepts any `Ok` with no armed-fact check; budgets `run_plannable_witness_pass:4089/4210` + `max_offpath_mandatory_sibling_depth:6626` never cover the prelude sub-path.
@@ -468,12 +476,19 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     Release/schema unchanged (`1.0.158`/13 — SV-profile behavior + AST byte-invariant, 12/12
     dumps). See Acceptance Checklist (`.6.2`).
 
-  - ID: `VERILOG-2005-PROFILE.6.3` — **frontier** Status: `pending` (UNBLOCKED 2026-07-02 by
-    `.6.3.2` — the engine name-prelude is now integrity-checked + depth-fresh-retried, so the
-    `known_unscoped_property_identifier` witness no longer depends on the accidental
-    self-emitting host the lifts route away from; REPLAY the recorded lift diffs below and
-    re-earn all locks incl. the canonical/union pins. Original blocked-checkpoint record
-    `PGEN-VERILOG-2005-PROFILE-0013`): CODE leaf — fix `SV-0026`. The fix was
+  - ID: `VERILOG-2005-PROFILE.6.3` — Status: `done` (2026-07-02, session #20,
+    `PGEN-VERILOG-2005-PROFILE-0016` — REPLAYED on the `.6.3.2`-fixed engine and LANDED;
+    `SV-0026` → `Released`): the recorded two-lift diffs applied verbatim; lint 0 orphans
+    (census 1450); 12/12 probes (4 top-level forms × 3 profiles) flip exactly; canonical cert
+    `1328/2/1306/UNKNOWN=20 spf=0` seeds 0/7/42 with the 20-rule residual set md5-identical to
+    the pre-lift baseline — the `.6.3.1` collateral is GONE (the carrier-diversification pass's
+    prelude now declares a PROPERTY per the `.6.3.2` integrity fix); union gate GREEN with
+    re-pins earned (`1328/2/1306/20`, union `1325/1`, residual `context_member_method_call`);
+    conformance gate GREEN 162/0 (4 new reject-locks: `top_level_{wire,reg,localparam,parameter}`)
+    with cert re-pinned `817/319`→`809/327` (NO-reach 287→294 — honest leak-fix direction);
+    shape 18/18; mdbook; clippy. Ledger/contract/book/LIVE lockstepped. Release/schema unchanged
+    (`1.0.158`/13). See "Acceptance Checklist (`.6.3`)". Original blocked-checkpoint record
+    `PGEN-VERILOG-2005-PROFILE-0013` retained below: CODE leaf — fix `SV-0026`. The fix was
     BUILT and PARSE-VERIFIED this session, then **REVERTED** because it cannot earn NO-REGRESSION
     yet (see `.6.3` Findings): (a) a SECOND carrier was found tools-first — `source_text_item`
     carries direct top-level `local_parameter_declaration semi` / `parameter_declaration semi`
@@ -540,7 +555,7 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     (identical failure on the pre-change binary — spun off as `CERT-GEN-BUDGET.3`). See
     "Acceptance Checklist (`.6.3.2`)". `.6.3` is UNBLOCKED — replay next.
 
-  - ID: `VERILOG-2005-PROFILE.6.4` — pending: RATCHET leaf — witness the 6 class-D in-profile
+  - ID: `VERILOG-2005-PROFILE.6.4` — **frontier** pending: RATCHET leaf — witness the 6 class-D in-profile
     rules (`simple_identifier_no_scope`, `scope_free_identifier`, `ps_identifier` via the
     `wire #foo w;` delay-identifier route; `hierarchical_tf_identifier` via `top.f(1);`;
     `identifier_list` via the `randomize(a,b)` plain-call route; `scalar_constant` via specify
@@ -1446,6 +1461,23 @@ proof).
   PRELUDE sub-path. Arming census for fix blast-radius: 99 `name-prelude spec` lines across 10
   distinct gated rules in the canonical run. No grammar / code / generated / release change.
 
+- 2026-07-02 (`.6.3` REPLAY, CODE — full verification): recorded diffs applied byte-verbatim
+  (idiom cross-checked against `primary_literal_sv_only`); lint rc 0 / `profile_orphans=0` /
+  census 1450; regen + BOTH binaries rebuilt fresh-mtime (stale-binary trap avoided); generated
+  parser carries both rules (grep 49); 12/12 parse probes flip exactly (4 forms × 3 profiles);
+  canonical cert seeds 0/7/42 all `1328/2/1306/20 spf=0` with residual md5 `9fe92e99…` =
+  pre-lift baseline md5 (set-identical — the decisive former-blocker check); the witnessing
+  sample for `known_unscoped_property_identifier` is
+  `program p(input logic a);property\foo ;…endproperty assert property(\foo );endprogram`
+  (carrier-diversification pass; the prelude declares a PROPERTY — the `.6.3.2` fix in action);
+  `verilog_2005` cert seeds 0/7/42 all `1138/2/809/327 spf=0` (matches the `-0013` pre-revert
+  record byte-for-byte); union gate GREEN fresh after re-pin (measured union witness 1325 =
+  predicted +2); conformance gate GREEN fresh after re-pin (162 checks / 0 mismatches / 2
+  aliases / cert deterministic); `ast_shape_contract_gate` 18/18; `mdbook_docs_gate` ✅ (after
+  the book edits); `clippy_on_rust_change` ✅ (source strict-clean; generated-stage debt
+  pre-existing, all in `generated/systemverilog_parser.rs`); union-gate 4.9 GB regen log pruned
+  post-pass.
+
 - 2026-07-02 (`.6.3.2`, CODE — engine fix, full verification): symptom flip MEASURED — the
   `known_unscoped_property_identifier` probe sample now renders a PROPERTY prelude
   (`property\foo ;215.8_40endproperty property\foo_0 ;\foo_0 endproperty`); canonical cert
@@ -1464,6 +1496,15 @@ proof).
   regen log pruned post-pass (the `H.12.8.5.2` `prune_log` port remains open).
 
 ## Commit Log
+
+- 2026-07-02 (`.6.3` CODE — the replay, `PGEN-VERILOG-2005-PROFILE-0016`): `SV-0026` CLOSED
+  (`Released`) — the recorded two-lift diffs (`description_unit_item_sv_only`,
+  `source_text_item_unit_sv_only`) landed cleanly on the `.6.3.2`-fixed engine: 12/12 probes,
+  lint 0 orphans (census 1450), canonical cert `1328/2/1306/20` with the residual set
+  md5-identical to pre-lift at seeds 0/7/42 (the former collateral GONE), union gate re-pinned +
+  GREEN (`1325/1`), conformance gate re-pinned + GREEN (162/0; cert `809/327`), shape 18/18,
+  mdbook, clippy. Ledger/contract/book/LIVE lockstep. Release/schema unchanged. Frontier →
+  `.6.4`.
 
 - 2026-07-02 (`.6.3.2` CODE, `PGEN-VERILOG-2005-PROFILE-0015`): armed name-prelude fact-kind
   INTEGRITY + depth-fresh retry landed in `stimuli_generator.rs` (`ReachPrelude.sub_hops`,

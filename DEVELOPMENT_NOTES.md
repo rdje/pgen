@@ -1,4 +1,8 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0016 — the `.6.3` replay: a checkpoint-with-verbatim-diffs makes a blocked fix a fast, low-risk replay
+
+Session #20. The `SV-0026` landing that was reverted at `-0013` replayed start-to-green quickly because the checkpoint had recorded (a) the exact lift diffs, (b) the expected post-lift numbers (`1138/2/809/327` — reproduced byte-for-byte at all three seeds), and (c) the precise collateral signature to watch (the canonical residual set). Worth keeping as the standard for any signoff-blocked revert. Mechanism notes: (1) the decisive check is the residual **set** (md5 of the DUMP_ALL list), not the headline — the headline moves legitimately with accounted-rule count changes (+2 lifts); the set must not; (2) the witnessing sample for the formerly-lost rule shows the `.6.3.2` integrity fix working in the wild (`program p(…);property\foo ;…endproperty assert property(\foo );…` — a property-declaring prelude on a diversified carrier); (3) both contract re-pins were MEASURED before pinning (the v2005 cert run directly at 3 seeds; the union witness read off the gate's actuals) — no assumed counts; (4) the conformance gate re-run independently earned the new 162-check matrix including the 4 reject-locks.
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0015 — `.6.3.2` fix mechanics: prelude integrity is a STORE check, and the retry budget is tier-2's measure pointed at the sub-path
 
 Session #20. Implementation notes worth keeping beyond the tree record:

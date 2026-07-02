@@ -35,25 +35,28 @@ baseline (`1.2.0`→`1.3.0`) is corrected. **Why `Mostly Done`, not `Done`:** th
 curated corpus (tracker rule: curated lists cannot earn `Done`), and TWO OPEN ledgered leaks bound
 the strict-subset claim: `SV-0024` (un-braced multi-identifier port expressions accept under EVERY
 profile — `module m (interconnect w);` in the bare non-ANSI form still accepts under
-`verilog_2005` until it lands; the corpus pins the ANSI form) and `SV-0026` (SystemVerilog's
-`$unit` top-level surface active: bare `wire w;` / `reg r;` outside any module accept under
-`verilog_2005`; fix leaf `.6.3` = the new frontier). The sibling leaks found by the `.6.1`
-adjudication are FIXED (`.6.2`, 2026-07-02): `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay
-forms) and `SV-0027` (`10ns` / `'0` expression literals) now REJECT under `verilog_2005` via
-shape-preserving gated lifts (`delay_value_sv_only`, `primary_literal_sv_only`), with 4 corpus
-reject-locks and SV-profile ASTs byte-invariant. The
+`verilog_2005` until it lands; the corpus pins the ANSI form) and `SV-0028` (a stray top-level
+`;` accepts under every profile). ALL THREE profile-boundary leaks found by the `.6.1`
+adjudication are now FIXED: `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay forms) and
+`SV-0027` (`10ns` / `'0` expression literals) at `.6.2`, and `SV-0026` — the widest, the SV
+`$unit` top-level surface — at `.6.3` (2026-07-02, `-0016`): BOTH carriers gated via
+shape-preserving lifts (`description_unit_item_sv_only`, `source_text_item_unit_sv_only`), so
+bare top-level `wire w;` / `reg r;` / `localparam p = 1;` / `parameter p = 1;` REJECT under
+`verilog_2005` (4 more corpus reject-locks; matrix 162 checks; profiled cert re-pinned
+`817/319`→`809/327`, NO-reach 287→294 — the honest leak-fix direction; SV-profile ASTs
+byte-invariant; landing required the `.6.3.1`/`.6.3.2` engine name-prelude integrity fix first,
+after which the recognized-union invariant HELD). The
 `sv_cert_recognized_union_gate` count re-baseline LANDED as leaf `.5` (2026-07-02, `-0010`): pins
 `1304/1/1283/1302`→`1324/2/1302/1321`, gate RED→GREEN fresh end-to-end (semantic invariants
 byte-identical — canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_member_method_call`,
-`spf=0`, seeds 0/7/42; the counts-only drift was the stale-pin lockstep gap from the
-SV-AST-SHAPE-FIDELITY + verilog_2005 named-lift campaigns; re-pinned again at `.6.2` for the +2
-lifted rules: `1326/2/1304/1323`, UNKNOWN invariants unchanged). Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0026` fix leaves and the ratchet/design leaves `.6.3`–`.6.5`
-(frontier `.6.3` = the `SV-0026` `$unit` gate). SV family closure status is UNCHANGED
+`spf=0`, seeds 0/7/42; re-pinned again at `.6.2` for the +2
+lifted rules — `1326/2/1304/1323` — and at `.6.3` for the +2 `$unit` lifts —
+`1328/2/1306/1325` — UNKNOWN invariants unchanged throughout). Left to close: the OPEN
+`SV-0021`..`SV-0024` + `SV-0028` fix leaves and the ratchet/design leaves `.6.4`–`.6.5`
+(frontier `.6.4` = the class-D witness ratchet). SV family closure status is UNCHANGED
 (`Mostly Done`); no SV release bump (`sv_2017`/
-`sv_2023` behavior invariant — this leaf adds only test-data/gate/doc surfaces, zero grammar/Rust
-source change). Note: the SV figures in the paragraph above are from the 1.0.136 era; the current
-SV parser release is `1.0.158` / schema `13` (see per-parser book + `MEMORY.md`).
+`sv_2023` behavior invariant). Note: the SV figures in the paragraph above are from the 1.0.136
+era; the current SV parser release is `1.0.158` / schema `13` (see per-parser book + `MEMORY.md`).
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -81,6 +84,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-07-02, session #20): **✅ `VERILOG-2005-PROFILE.6.3` LANDED (`PGEN-VERILOG-2005-PROFILE-0016`, CODE — grammar-only) — `SV-0026`, the widest `verilog_2005` subset-boundary leak (the SV `$unit` top-level surface), is CLOSED (`Released`); the recorded lift diffs replayed cleanly on the `.6.3.2`-fixed engine and the recognized-union invariant HELD.** Both carriers gated via shape-preserving lifts (`description_unit_item_sv_only` for `description`'s `package_item` alternative; `source_text_item_unit_sv_only` for `source_text_item`'s direct top-level `localparam`/`parameter` alternatives; both `["sv_2017","sv_2023"]`, PEG order preserved, census 1448→1450, lint 0 orphans): `wire w;` / `reg r;` / `localparam p = 1;` / `parameter p = 1;` at top level all ACCEPT→REJECT under `verilog_2005`, ACCEPT unchanged under `sv_2017`/`sv_2023` (12/12 probes). THE decisive check that blocked the first attempt now PASSES: canonical `sv_2017` cert `total=1328 proof=2 witness=1306 UNKNOWN=20 spf=0` at seeds 0/7/42 with the 20-rule residual set **md5-identical to the pre-lift baseline** (`known_unscoped_property_identifier` keeps its witness — the carrier-diversification pass now hosts a PROPERTY-declaring prelude thanks to the `.6.3.2` integrity fix). Gates GREEN fresh with re-pins earned: `sv_cert_recognized_union_gate` (`1328/2/1306/20` canonical, union `1325/1`, residual `context_member_method_call`), `verilog_2005_conformance_gate` (162 checks/0 mismatches incl. the 4 new reject-locks; cert re-pinned `817/319`→`809/327`, NO-reach 287→294 — the honest leak-fix direction), `ast_shape_contract_gate` 18/18, `mdbook_docs_gate`, clippy. Ledger `SV-0026`→`Released`; SV integration contract + book `parser-families.md` + dialect block lockstepped. Release/schema unchanged (`1.0.158`/13). **NO STATUS ROW CHANGE** — dialect block stays `Mostly Done` (remaining waivers: the all-profile `SV-0024`/`SV-0028`); SystemVerilog `Mostly Done`. Frontier → `.6.4` (class-D witness ratchet); PNT alternate `CERT-GEN-BUDGET.3`.
 
 Tracker note (2026-07-02, session #20): **🔧 `VERILOG-2005-PROFILE.6.3.2` LANDED (`PGEN-VERILOG-2005-PROFILE-0015`, CODE — engine, `stimuli_generator.rs` only) — the armed name-prelude now enforces its fact-kind contract, unblocking the `SV-0026` fix replay.** The `.6.3.1`-named defect is closed with a two-part mechanism: after each injected prelude render the generator verifies a fact of the armed `(kind, family)` exists in the generation-time store (`store_name_for_gate`); on failure (or a render error) it rolls the attempt back and retries ONCE under a depth-fresh budget sized by the prelude SUB-path's deepest mandatory off-path sibling (the tier-2 measure applied to the surface the per-target budget tiers cannot see), failing loudly (`Armed name-prelude integrity failure`) rather than handing the gate an unusable store. Measured: the `known_unscoped_property_identifier` witness sample flipped from a wrong-family `sequence \foo …` prelude to a **property** prelude — the witness no longer depends on the accidental self-emitting host that the `.6.3` lifts route away from. No-regression earned fresh: canonical cert `1326/2/1304/UNKNOWN=20 spf=0` **byte-identical** (headline + full residual + NO-reach lists) at seeds 0/7/42; `sv_cert_recognized_union_gate` + `verilog_2005_conformance_gate` + `ast_shape_contract_gate` (18/18) + `mdbook_docs_gate` + clippy all GREEN; count-preludes and already-correct injections byte-identical by construction. Book lockstep: the semantic-prelude ladder in `grammar-wellformedness.md` gained the prelude-integrity increment. **Side discovery, spun off + tracked:** the rtl_const_expr canonical cert (depth 32) fails at HEAD on the deterministic step budget — a git-stash A/B proved it PRE-EXISTS this fix (intervening drift since `CERT-GEN-BUDGET.2`'s 2026-06-25 calibration) → `CERT-GEN-BUDGET` REOPENED with investigation leaf `.3` (a fully-certified-6 proof surface is RED until restored; the other five are green). **NO STATUS ROW CHANGE** — dialect block stays `Mostly Done`; SystemVerilog `Mostly Done`; the 6 fully-certified grammars' Done rows stand on their landed proofs, with the rtl_const_expr cert-surface regression tracked as CERT-GEN-BUDGET.3. Frontier → `.6.3` (replay the recorded lifts).
 

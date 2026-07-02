@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0016 (VERILOG-2005-PROFILE.6.3): `SV-0026` CLOSED (`Released`) — the SV `$unit` top-level surface is gated under `verilog_2005`; the recorded lifts replayed cleanly on the `.6.3.2`-fixed engine and the recognized-union invariant HELD
+
+Same session (#20), PNT continuation from `.6.3.2`. **Grammar-only CODE leaf** (2 lifts; zero Rust-source change; release/schema unchanged `1.0.158`/13).
+
+- **The fix (the `.6.3`-recorded diffs, byte-verbatim):** `description`'s SV `$unit` `package_item` alternative lifted into `description_unit_item_sv_only`, and `source_text_item`'s direct top-level `localparam`/`parameter` alternatives lifted into `source_text_item_unit_sv_only` — both `@profiles: ["sv_2017","sv_2023"]`, PEG order preserved (the `.4.2` idiom). Census 1448→1450; lint `profile_orphans=0` rc 0.
+- **Verified:** top-level `wire w;` / `reg r;` / `localparam p = 1;` / `parameter p = 1;` ACCEPT→REJECT under `verilog_2005`, ACCEPT unchanged under `sv_2017`/`sv_2023` (12/12 probes); 4 new corpus reject-locks (matrix 150→162, 0 mismatches).
+- **THE decisive former blocker now green:** canonical `sv_2017` cert `total=1328 proof=2 witness=1306 UNKNOWN=20 spf=0` at seeds 0/7/42 with the 20-rule residual set **md5-identical to the pre-lift baseline** — `known_unscoped_property_identifier` keeps its witness (its carrier-diversification sample now hosts a PROPERTY-declaring prelude, the `.6.3.2` integrity fix in action). The first attempt's `UNKNOWN 20→21` collateral is gone.
+- **Oracles GREEN fresh with re-pins earned in the same commit:** `sv_cert_recognized_union_gate` (`1326/2/1304/1323`→`1328/2/1306/1325`; canonical `UNKNOWN=20`, union `1`, residual `context_member_method_call` — invariants byte-identical); `verilog_2005_conformance_gate` (cert `817/319`→`809/327`, the 8 leak-earned false witnesses dropped, NO-reach 287→294 — honest direction); `ast_shape_contract_gate` 18/18; `mdbook_docs_gate`; clippy source strict-clean.
+- **Lockstep:** ledger `SV-0026`→`Released` (both-carrier record incl. the revert/unblock history); SV integration contract (trust posture — open waivers now the all-profile `SV-0024`/`SV-0028`; matrix 162; cert pins; union pins provenance); book `parser-families.md`; LIVE dialect block + session note; tree + `docs/TASK_TREE.md` frontier → `.6.4`.
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0015 (VERILOG-2005-PROFILE.6.3.2): armed name-prelude fact-kind INTEGRITY + depth-fresh retry landed (engine, parser-agnostic) — the `.6.3` blocker mechanism is fixed; `.6.3` UNBLOCKED; side discovery `CERT-GEN-BUDGET.3` (pre-existing rtl_const_expr cert timeout)
 
 Same session (#20), PNT continuation from `.6.3.1`. **CODE leaf — `rust/src/ast_pipeline/stimuli_generator.rs` only** (no grammar / generated / release / schema change; the generated parsers are byte-untouched).

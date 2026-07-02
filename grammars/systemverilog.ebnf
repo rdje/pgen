@@ -219,9 +219,12 @@ parseable_source_item := semi
 
 @branch_policy: priority_first
 @priority: [24, 16, 16, 12, 10, 8, 4]
+@profiles: ["sv_2017", "sv_2023"]
+source_text_item_unit_sv_only := local_parameter_declaration semi -> {kind: "local_parameter_declaration", body: $1}
+                               | parameter_declaration semi       -> {kind: "parameter_declaration", body: $1}
+
 source_text_item := description                       -> {kind: "description", body: $1}
-                  | local_parameter_declaration semi  -> {kind: "local_parameter_declaration", body: $1}
-                  | parameter_declaration semi        -> {kind: "parameter_declaration", body: $1}
+                  | source_text_item_unit_sv_only
                   | package_import_declaration         -> {kind: "package_import_declaration", body: $1}
                   | timeunits_declaration              -> {kind: "timeunits_declaration", body: $1}
                   | compiler_directive                 -> {kind: "compiler_directive", body: $1}
@@ -1884,12 +1887,15 @@ delayed_data := terminal_identifier                                            -
 delayed_reference := terminal_identifier                                       -> {kind: "simple",    name: $1}
                    | terminal_identifier ( constant_mintypmax_expression )?    -> {kind: "with_expr", name: $1, expr: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
+description_unit_item_sv_only := attribute_instance* package_item -> {kind: "package_item", attributes: $1, body: $2}
+
 description := module_declaration                 -> {kind: "module_declaration", body: $1}
              | udp_declaration                    -> {kind: "udp_declaration", body: $1}
              | interface_declaration              -> {kind: "interface_declaration", body: $1}
              | program_declaration                -> {kind: "program_declaration", body: $1}
              | package_declaration                -> {kind: "package_declaration", body: $1}
-             | attribute_instance* package_item   -> {kind: "package_item", attributes: $1, body: $2}
+             | description_unit_item_sv_only
              | attribute_instance* bind_directive -> {kind: "bind_directive", attributes: $1, body: $2}
              | config_declaration                 -> {kind: "config_declaration", body: $1}
 

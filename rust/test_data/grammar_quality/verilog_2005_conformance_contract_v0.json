@@ -38,11 +38,11 @@
     ],
     "expected_total": 1138,
     "expected_proof": 2,
-    "expected_witness": 817,
-    "expected_unknown": 319,
+    "expected_witness": 809,
+    "expected_unknown": 327,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
-    "baseline_note": "BASELINE pins, not a closure claim: under the strict subset profile the gated SV-only surface is profile-unreachable (the cert run itself classifies 287 of the 319 UNKNOWN as NO-reach-path dead-rule candidates under verilog_2005) — the expected posture per the tree's .1 D4 closure bar. Re-pinned 826/310 -> 817/319 at VERILOG-2005-PROFILE.6.2 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0012): the SV-0025/SV-0027 leak fixes removed the 9 FALSE witnesses that had been earned through the leaked SV-only surface (time_literal, time_unit, unbased_unsized_literal, and the 6 time-unit keyword tokens) — witness dropping on a leak fix is the honest direction, and kw_n_1step itself moved from reachable-through-the-leak to NO-reach. Ratcheting the genuine remainder is its own follow-up work; drift in EITHER direction fails this gate and requires a re-baselined contract in the same commit."
+    "baseline_note": "BASELINE pins, not a closure claim: under the strict subset profile the gated SV-only surface is profile-unreachable (the cert run itself classifies 287 of the 319 UNKNOWN as NO-reach-path dead-rule candidates under verilog_2005) \u2014 the expected posture per the tree's .1 D4 closure bar. Re-pinned 826/310 -> 817/319 at VERILOG-2005-PROFILE.6.2 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0012), then 817/319 -> 809/327 at VERILOG-2005-PROFILE.6.3 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0016: the SV-0026 $unit-surface gates made the top-level SV-only unit items profile-unreachable, dropping the witnesses previously earned through that leak; NO-reach 287 -> 294 - same honest direction as the .6.2 re-pin). Earlier .6.2 provenance: the SV-0025/SV-0027 leak fixes removed the 9 FALSE witnesses that had been earned through the leaked SV-only surface (time_literal, time_unit, unbased_unsized_literal, and the 6 time-unit keyword tokens) \u2014 witness dropping on a leak fix is the honest direction, and kw_n_1step itself moved from reachable-through-the-leak to NO-reach. Ratcheting the genuine remainder is its own follow-up work; drift in EITHER direction fails this gate and requires a re-baselined contract in the same commit."
   },
   "cases": [
     {
@@ -253,7 +253,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "`-> #5 e;` is legal in NEITHER dialect per the LRMs, but currently ACCEPTS under sv_2017/sv_2023 (SV-0023 mis-encoding of the `->>` delay form onto `->`); the sv-side `accept` rows record that defect posture — re-adjudicate when SV-0023 lands. verilog_2005 REJECT via the `event_trigger_control_sv_only` gate."
+      "note": "`-> #5 e;` is legal in NEITHER dialect per the LRMs, but currently ACCEPTS under sv_2017/sv_2023 (SV-0023 mis-encoding of the `->>` delay form onto `->`); the sv-side `accept` rows record that defect posture \u2014 re-adjudicate when SV-0023 lands. verilog_2005 REJECT via the `event_trigger_control_sv_only` gate."
     },
     {
       "file": "reject/expr_time_literal.sv",
@@ -271,7 +271,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "An unbased-unsized literal (`'0`, IEEE 1800 §5.7.1) does not exist in IEEE 1364-2005. Second `SV-0027` reject-lock (the `unbased_unsized_literal` sibling branch of the same `primary_literal_sv_only` lift)."
+      "note": "An unbased-unsized literal (`'0`, IEEE 1800 \u00a75.7.1) does not exist in IEEE 1364-2005. Second `SV-0027` reject-lock (the `unbased_unsized_literal` sibling branch of the same `primary_literal_sv_only` lift)."
     },
     {
       "file": "reject/final_block.sv",
@@ -461,6 +461,38 @@
         "sv_2023": "accept"
       },
       "note": "Uses the `else`-action form task enables cannot take; a plain `wait_order (a, b);` is a legal 1364-2005 task enable (see the accept corpus)."
+    },
+    {
+      "file": "reject/top_level_wire.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/top_level_reg.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/top_level_localparam.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/top_level_parameter.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
     }
   ]
 }
