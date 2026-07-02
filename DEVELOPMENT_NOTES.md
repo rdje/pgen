@@ -1,4 +1,13 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-SV-DOLLAR-LRM-FIDELITY-0001 — designing a token-literal fix: probe the matrix, prove the non-collision, slice by risk class
+
+Session #21. Design-leaf notes worth keeping:
+
+- **A literal fix is only "trivial" after the collision audit.** The 12 timing-check literals are safe to swap precisely because two structural facts were PROVEN, not assumed: `specify_item` admits no generic system-TF route (so the new `$setup` cannot be stolen inside specify), and the keyword tokens have no referencing site outside the timing-check rules (so procedural `$setup(…)` keeps lexing via `system_tf_identifier`). The same fix for `$root`/`$unit` is NOT safe on those grounds — `system_tf_identifier` matches them as prefixes in expression contexts, and PEG ordered-choice COMMIT (a succeeded choice is never re-entered when the outer sequence fails) means the steal can survive the literal fix or, worse, flip accepts to rejects. Hence the risk-class slicing: swap-only wave, shape wave, collision wave.
+- **Prefix-merge digit loss generalizes — audit by SHAPE, not by instance.** Once `scalar_constant` showed `1'b0|1'b1` collapsed to a digit-less `1'b`, grepping for the digit-less tokens' OTHER referencing sites (`kw_n_1_tick_b`/`kw_n_1_tick_B`) immediately surfaced `init_val` — the same loss, worse consequence (UDP `initial q = 1'b0;` rejects outright, no expression-branch rescue). The mechanical move "who else references the defective token" is cheaper and more complete than re-deriving each LRM rule.
+- **Check the CURRENT standard's BNF before calling an arg-shape a defect.** `$width(clk, 1)` rejecting looked like another fidelity bug (1364-2005 has the threshold optional) — but the 1800-2017 section-31 BNF makes `threshold` MANDATORY, and our SV grammar tracks 1800. Recorded as a v2005-profile nuance, not a defect; one grep of the tracked LRM txt settled it.
+- **Rename-vs-repin tension:** the `kw_*_<sha1(literal)[:8]>` convention argues for renaming tokens when literals change, but pinned cert residual/NO-reach lists are NAME lists — renames destroy exactly the set-diff signal the no-regression proofs use. Literals change, names stay; the mismatch is documented debt. (Wave-2's NEW tokens follow the convention.)
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0017 — how a witness-ratchet leaf turned into an LRM-fidelity defect family: reading the forced samples as evidence
 
 Session #21. Three transferable lessons from the `.6.4` adjudication:

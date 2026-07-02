@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-07-02 - PGEN-SV-DOLLAR-LRM-FIDELITY-0001 (SV-DOLLAR-LRM-FIDELITY.1): the `SV-0029`/`SV-0030` fix fully designed tools-first — complete per-token probe matrix, wave-1 collision-freedom proven, `SV-0030` second site (`init_val`) found, waves re-sliced by risk class
+
+Same session (#21), PNT continuation from the `.6.4` discovery. **DESIGN/AUDIT leaf — ZERO code change** (tree + ledger/contract/book extensions + continuity docs).
+
+- **Probe matrix (all on HEAD, 3 profiles):** 12/12 timing checks LITERAL-ONLY (LRM spelling REJECT / mangled ACCEPT under both dialects; bodies faithful to IEEE 1800-2017 A.7.5.1 — `$width`'s mandatory `threshold` verified against `docs/systemverilog/2017/txt/section-31-timing-checks.txt:71-72`, so the threshold-less form correctly rejects in BOTH spellings); `$unit::y` + module-level `$fatal;`/`$error;`/`$warning;`/`$info;` LRM-REJ / mangled-ACC ×3 profiles; bare `x = $;` REJ / `x = sv_dollar;` ACC ×3; `$root` ACCEPTS in both spellings everywhere but the LRM spelling mis-routes (`kind:"system_tf"`).
+- **Wave-1 collision audit CLEAN:** `specify_item` (`:4934`) has NO generic system-TF alternative and the 12 keyword tokens are referenced ONLY by the timing-check rules (`:5074-5107`) — fixing the literals cannot re-route procedural `$setup(…)` (stays `system_tf_identifier`).
+- **New finding 1 — live v2005 leak:** the mangled severity spellings ACCEPT under `verilog_2005` TODAY (hosts `elaboration_system_task_sv_2017`/`severity_system_task_sv_2023` ride the v2005-admitted `module_common_item_sv_2017`) → wave 3 must pair literal fixes with `["sv_2017","sv_2023"]` gates.
+- **New finding 2 — `SV-0030` SECOND site:** UDP `init_val` (`:2429`) lost the same prefix-merge digits — probes: `initial q = 1'b0;`/`1'b1;` REJECT (LRM spellings!), `initial q = 1'b;` ACCEPTS (nonsense), `1'bx`/`1` ACCEPT — a directly user-visible under/over-acceptance pair on sequential-UDP initializers. Ledger row + contract + book extended.
+- **Wave-3 hazard named:** PEG ordered-choice COMMIT (`system_tf_identifier` matches `$root`/`$unit` prefixes; a committed choice never re-enters on outer failure) — literal fixes alone may be inert or flip accept→reject; per-site order proofs required.
+- **Decisions:** waves re-sliced by risk class (`.2` = 12 literals, collision-free, release bump; `.3` = SV-0030 digits + eq-branch de-shadow, schema bump; `.4` = SV-only group + gates); token literals change but NAMES stay (sha1-suffix mismatch = accepted cosmetic debt; preserves pinned-list set-comparability — verified convention: hash = sha1(literal)[:8]).
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0017 (VERILOG-2005-PROFILE.6.4): class-D witness ratchet ADJUDICATED not-earnable; MAJOR discovery — 19 `sv_dollar_*` keyword tokens carry mangled literals instead of the LRM `$*` spellings (`SV-0029`/`SV-0030` ledgered; new fix tree `SV-DOLLAR-LRM-FIDELITY`)
 
 Fresh session (#21), PNT continuation after the full mandated startup read. **INVESTIGATION leaf — ZERO code change** (tree + new tree + ledger + contract + book + continuity docs only).
