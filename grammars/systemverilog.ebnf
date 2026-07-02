@@ -357,7 +357,14 @@ simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/ !scope_resolution
 escaped_identifier := trivia /\\[!-~]+/
                    -> $2
 
-reserved_non_keyword_identifier := trivia /(?:parameter|localparam|type|context|pure|import|export|typedef|module|package|interface|program|class|checker|function|task|property|sequence|generate|modport|clocking|enum|struct|union|bit|logic|reg|byte|shortint|int|longint|integer|time|shortreal|real|realtime|string|chandle|event|signed|unsigned|void|endchecker|endclass|endfunction|endinterface|endmodule|endpackage|endprogram|endproperty|endsequence|endtask|begin|end|if|else|case|casez|casex|endcase|for|foreach|forever|repeat|while|do|wait|wait_order|disable|return|break|continue|fork|join|join_any|join_none|assert|assume|expect|randcase|randsequence)\b/
+@profiles: ["sv_2017", "sv_2023"]
+reserved_non_keyword_identifier_sv := trivia /(?:parameter|localparam|type|context|pure|import|export|typedef|module|package|interface|program|class|checker|function|task|property|sequence|generate|modport|clocking|enum|struct|union|bit|logic|reg|byte|shortint|int|longint|integer|time|shortreal|real|realtime|string|chandle|event|signed|unsigned|void|endchecker|endclass|endfunction|endinterface|endmodule|endpackage|endprogram|endproperty|endsequence|endtask|begin|end|if|else|case|casez|casex|endcase|for|foreach|forever|repeat|while|do|wait|wait_order|disable|return|break|continue|fork|join|join_any|join_none|assert|assume|expect|randcase|randsequence)\b/
+
+@profiles: ["verilog_2005"]
+reserved_non_keyword_identifier_v2005 := trivia /(?:always|and|assign|automatic|begin|buf|bufif0|bufif1|case|casex|casez|cell|cmos|config|deassign|default|defparam|design|disable|edge|else|end|endcase|endconfig|endfunction|endgenerate|endmodule|endprimitive|endspecify|endtable|endtask|event|for|force|forever|fork|function|generate|genvar|highz0|highz1|if|ifnone|incdir|include|initial|inout|input|instance|integer|join|large|liblist|library|localparam|macromodule|medium|module|nand|negedge|nmos|nor|noshowcancelled|not|notif0|notif1|or|output|parameter|pmos|posedge|primitive|pull0|pull1|pulldown|pullup|pulsestyle_onevent|pulsestyle_ondetect|rcmos|real|realtime|reg|release|repeat|rnmos|rpmos|rtran|rtranif0|rtranif1|scalared|showcancelled|signed|small|specify|specparam|strong0|strong1|supply0|supply1|table|task|time|tran|tranif0|tranif1|tri|tri0|tri1|triand|trior|trireg|unsigned|use|uwire|vectored|wait|wand|weak0|weak1|while|wire|wor|xnor|xor)\b/
+
+reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv
+                                | reserved_non_keyword_identifier_v2005
 
 @branch_policy: priority_first
 scope_free_identifier := simple_identifier_no_scope                -> {body: $1}
@@ -513,6 +520,7 @@ anonymous_program_item_sv_2023 := task_declaration              -> {kind: "task"
                                 | class_constructor_declaration -> {kind: "class_constructor",   body: $1}
                                 | semi                          -> {kind: "semi"}
 
+@profiles: ["sv_2017", "sv_2023"]
 anonymous_program_item := anonymous_program_item_sv_2017 -> {kind: "sv_2017", body: $1}
                         | anonymous_program_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -544,12 +552,15 @@ array_range_expression := expression                                    -> {kind
                         | expression plus colon expression               -> {kind: "plus_indexed",     base: $1, width: $4}
                         | expression minus colon expression              -> {kind: "minus_indexed",    base: $1, width: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 assert_property_statement := kw_assert_64b5daad kw_property_269fe373 lparen property_spec rparen action_block
                           -> {spec: $4, action: $6}
 
+@profiles: ["sv_2017", "sv_2023"]
 assertion_item := concurrent_assertion_item            -> {kind: "concurrent",            body: $1}
                | deferred_immediate_assertion_item     -> {kind: "deferred_immediate",    body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 assertion_item_declaration := property_declaration -> {kind: "property", body: $1}
                             | sequence_declaration -> {kind: "sequence", body: $1}
                             | let_declaration      -> {kind: "let",      body: $1}
@@ -560,6 +571,7 @@ assertion_variable_declaration := var_data_type list_of_variable_decl_assignment
 # POST-SV-AUDIT.2.4b Cat-A: shared record rule for the named
 # assignment-pattern entries (used by every assignment_pattern named
 # branch); the branch becomes a clean flat {name,pattern} record list.
+@profiles: ["sv_2017", "sv_2023"]
 assignment_pattern_entry := member_identifier colon pattern -> {name: $1, pattern: $3}
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
                    -> {exprs: [$3, $4::2*]}
@@ -587,6 +599,7 @@ assignment_pattern_variable_lvalue := tick lbrace variable_lvalue ( comma variab
 associative_dimension := lbrack data_type rbrack    -> {kind: "data_type", body: $2}
                        | lbrack star rbrack          -> {kind: "wildcard"}
 
+@profiles: ["sv_2017", "sv_2023"]
 assume_property_statement := kw_assume_661e458e kw_property_269fe373 lparen property_spec rparen action_block
                           -> {spec: $4, action: $6}
 
@@ -611,6 +624,7 @@ binary_module_path_operator := equal                -> {kind: "equal"}
                             | reduction_xnor_alt  -> {kind: "reduction_xnor_alt"}
                             | reduction_xnor      -> {kind: "reduction_xnor"}
 
+@profiles: ["sv_2017", "sv_2023"]
 bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instance_list )? bind_instantiation semi
                     -> {kind: "scoped", target_scope: $2, instances: $3, instantiation: $4}
                | kw_bind_6bdd4db9 bind_target_instance bind_instantiation semi
@@ -698,7 +712,7 @@ block_item_declaration := attribute_instance* block_data_declaration
                         | attribute_instance* let_declaration
                                     -> {kind: "let",               attributes: $1, body: $2}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 block_data_declaration_sv_2017 := @probe_sample: "int a;" ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi
                                -> {const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
                                | @probe_sample: "typedef int t;" type_declaration
@@ -718,7 +732,7 @@ block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( 
 block_data_declaration := block_data_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                         | block_data_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 blocking_assignment_sv_2017 := @probe_sample: "a = #1 1" variable_lvalue assign delay_or_event_control expression
                                   -> {kind: "delay_assign",      lvalue: $1, delay: $3, value: $4}
                              | nonrange_variable_lvalue assign dynamic_array_new
@@ -757,6 +771,7 @@ boolean_abbrev_sv_2023 := consecutive_repetition       -> {kind: "consecutive", 
                         | nonconsecutive_repetition    -> {kind: "non_consecutive",  body: $1}
                         | goto_repetition              -> {kind: "goto",             body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 boolean_abbrev := boolean_abbrev_sv_2017 -> {kind: "sv_2017", body: $1}
                 | boolean_abbrev_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -786,6 +801,7 @@ case_inside_item_sv_2023 := range_list colon statement_or_null
                           | kw_default_7505d64a ( colon )? statement_or_null
                                  -> {kind: "default",    body: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 case_inside_item := case_inside_item_sv_2017 -> {kind: "sv_2017", body: $1}
                   | case_inside_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -801,6 +817,7 @@ case_keyword := kw_case_6406510c  -> {kind: "case"}
               | kw_casez_b8fbe0e1 -> {kind: "casez"}
               | kw_casex_b31a7350 -> {kind: "casex"}
 
+@profiles: ["sv_2017", "sv_2023"]
 case_pattern_item := pattern ( logical_and3 expression )? colon statement_or_null
                           -> {kind: "pattern", pattern: $1, condition: $2, body: $4}
                    | kw_default_7505d64a ( colon )? statement_or_null
@@ -829,6 +846,7 @@ charge_strength := lparen kw_small_89f6229a rparen   -> {kind: "small"}
                  | lparen kw_medium_20af4186 rparen  -> {kind: "medium"}
                  | lparen kw_large_5296d5cc rparen   -> {kind: "large"}
 
+@profiles: ["sv_2017", "sv_2023"]
 checker_declaration := kw_checker_29e5b9a8 declared_checker_identifier ( lparen ( checker_port_list )? rparen )? semi ( attribute_instance* checker_or_generate_item )* kw_endchecker_cd5c3b65 ( colon checker_identifier )?
                     -> {name: $2, ports: $3, items: $5, end_label: $7}
 
@@ -844,6 +862,7 @@ checker_generate_item_sv_2023 := loop_generate_construct                 -> {kin
                                 | generate_region                        -> {kind: "region",                 body: $1}
                                 | elaboration_severity_system_task       -> {kind: "elaboration_severity",   body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 checker_generate_item := checker_generate_item_sv_2017 -> {kind: "sv_2017", body: $1}
                        | checker_generate_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -907,6 +926,7 @@ checker_port_item := attribute_instance* ( checker_port_direction )? property_fo
 checker_port_list := checker_port_item ( comma checker_port_item )*
                   -> [$1, $2::2*]
 
+@profiles: ["sv_2017", "sv_2023"]
 class_constraint := constraint_prototype   -> {kind: "prototype",   body: $1}
                   | constraint_declaration -> {kind: "declaration", body: $1}
 
@@ -937,6 +957,7 @@ class_constructor_declaration_sv_2023 := kw_function_c218e39e ( class_scope )? k
 class_constructor_super_args := kw_default_7505d64a  -> {kind: "default"}
                               | list_of_arguments    -> {kind: "args",    body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 class_constructor_declaration := class_constructor_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                                | class_constructor_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -948,6 +969,7 @@ class_constructor_prototype_sv_2017 := kw_function_c218e39e kw_new_c2a6b03f ( lp
 class_constructor_prototype_sv_2023 := kw_function_c218e39e kw_new_c2a6b03f ( lparen ( class_constructor_arg_list )? rparen )? semi
                                     -> {ports: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 class_constructor_prototype := class_constructor_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
                              | class_constructor_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -994,6 +1016,7 @@ class_item_sv_2023 := attribute_instance* class_property              -> {kind: 
                     | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
                     | semi                                            -> {kind: "semi"}
 
+@profiles: ["sv_2017", "sv_2023"]
 class_item := class_item_sv_2017 -> {kind: "sv_2017", body: $1}
             | class_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1127,6 +1150,7 @@ class_variable_identifier := variable_identifier
 clocking_decl_assign := signal_identifier ( assign expression )?
                      -> {name: $1, value: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 clocking_declaration := @sample: "clocking cb @(posedge clk); endclocking : cb" ( kw_default_7505d64a )? kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi clocking_item* kw_endclocking_c1e6d71f ( colon clocking_identifier )?
                      -> {default_keyword: $1, name: $3, event: $4, items: $6, end_label: $8}
                       | @sample: "global clocking cb @(posedge clk); endclocking : cb" kw_global_9027cc5a kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi kw_endclocking_c1e6d71f ( colon clocking_identifier )?
@@ -1140,6 +1164,7 @@ clocking_direction := kw_input_140f86aa ( clocking_skew )?
                     | kw_inout_c900aaa9
                             -> {kind: "inout"}
 
+@profiles: ["sv_2017", "sv_2023"]
 clocking_drive := clockvar_expression less_equal ( cycle_delay )? expression
                -> {lvalue: $1, cycle_delay: $3, value: $4}
 
@@ -1154,6 +1179,7 @@ clocking_event_sv_2023 := at_sign ps_identifier             -> {kind: "ps",     
                         | at_sign lparen event_expression rparen
                                                             -> {kind: "expression",   body: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 clocking_event := clocking_event_sv_2017 -> {kind: "sv_2017", body: $1}
                 | clocking_event_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1192,6 +1218,7 @@ combinational_entry := level_input_list colon output_symbol semi
 concatenation := lbrace expression ( comma expression )* rbrace
               -> [$2, $3::2*]
 
+@profiles: ["sv_2017", "sv_2023"]
 concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_statement
                                   -> {kind: "statement",             label: $1, body: $2}
                            | checker_instantiation
@@ -1203,6 +1230,7 @@ concurrent_assertion_statement := assert_property_statement   -> {kind: "assert_
                                 | cover_sequence_statement    -> {kind: "cover_sequence",    body: $1}
                                 | restrict_property_statement -> {kind: "restrict_property", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 cond_pattern := expression_base kw_matches_9f3e9242 pattern
              -> {expression: $1, pattern: $3}
 
@@ -1317,7 +1345,7 @@ constant_param_expression := constant_mintypmax_expression -> {kind: "mintypmax"
 constant_part_select_range := constant_range          -> {kind: "range",         body: $1}
                             | constant_indexed_range  -> {kind: "indexed_range", body: $1}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 constant_primary_sv_2017 := primary_literal
                                   -> {kind: "literal",          body: $1}
                           | ps_parameter_identifier constant_select
@@ -1403,6 +1431,7 @@ constant_select_tail := lbrack constant_part_select_range rbrack
                       | constant_bit_select ( lbrack constant_part_select_range rbrack )?
                               -> {kind: "bit_select", bits: $1, range: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 constraint_block := lbrace constraint_block_item* rbrace
                  -> {items: $2}
 
@@ -1419,6 +1448,7 @@ constraint_declaration_sv_2017 := ( kw_static_a381562a )? kw_constraint_9f454fd4
 constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? constraint_identifier constraint_block
                                 -> {static_keyword: $1, dynamic_override: $3, name: $4, block: $5}
 
+@profiles: ["sv_2017", "sv_2023"]
 constraint_declaration := constraint_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                         | constraint_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1445,6 +1475,7 @@ constraint_primary_sv_2017 := ( implicit_class_handle dot | class_scope )? hiera
 constraint_primary_sv_2023 := ( implicit_class_handle dot | class_scope )? hierarchical_identifier select ( lparen rparen )?
                            -> {scope: $1, name: $2, select: $3, call: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 constraint_primary := constraint_primary_sv_2017 -> {kind: "sv_2017", body: $1}
                     | constraint_primary_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1456,6 +1487,7 @@ constraint_prototype_sv_2017 := ( constraint_prototype_qualifier )? ( kw_static_
 constraint_prototype_sv_2023 := ( constraint_prototype_qualifier )? ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? constraint_identifier semi
                              -> {qualifier: $1, static_keyword: $2, dynamic_override: $4, name: $5}
 
+@profiles: ["sv_2017", "sv_2023"]
 constraint_prototype := constraint_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
                       | constraint_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1476,6 +1508,7 @@ controlled_reference_event := controlled_timing_check_event
 controlled_timing_check_event := timing_check_event_control specify_terminal_descriptor ( logical_and3 timing_check_condition )?
                               -> {control: $1, descriptor: $2, condition: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 cover_cross := ( cross_identifier colon )? kw_cross_ac4280ba list_of_cross_items ( kw_iff_ee1c009e lparen expression rparen )? cross_body
             -> {label: $1, items: $3, condition: $4, body: $5}
 
@@ -1484,6 +1517,7 @@ cover_point := ( ( data_type_or_implicit )? cover_point_identifier colon )? kw_c
 
 cover_point_identifier := identifier
 
+@profiles: ["sv_2017", "sv_2023"]
 cover_property_statement := kw_cover_a28100fa kw_property_269fe373 lparen property_spec rparen statement_or_null
                          -> {spec: $4, statement: $6}
 
@@ -1513,6 +1547,7 @@ covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d declared_covergroup_ide
                                 | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
                                         -> {kind: "extends", parent: $3, items: $6, end_label: $8}
 
+@profiles: ["sv_2017", "sv_2023"]
 covergroup_declaration := covergroup_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                         | covergroup_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1525,6 +1560,7 @@ covergroup_identifier := declaration_identifier
 @predicate: { name: has_fact, args: [type_name, $body], phase: post }
 declared_covergroup_identifier := covergroup_identifier -> { body: $1.body }
 
+@profiles: ["sv_2017", "sv_2023"]
 covergroup_range_list := covergroup_value_range ( comma covergroup_value_range )*
                       -> [$1, $2::2*]
 
@@ -1539,6 +1575,7 @@ covergroup_value_range_sv_2023 := covergroup_expression                         
                                 | lbrack ( covergroup_expression colon kw_dollar ) rbrack                -> {kind: "dollar_hi",  body: $2}
                                 | lbrack ( covergroup_expression plus slash minus covergroup_expression ) rbrack -> {kind: "tolerance",  body: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 covergroup_value_range := covergroup_value_range_sv_2017 -> {kind: "sv_2017", body: $1}
                         | covergroup_value_range_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1552,6 +1589,7 @@ cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace -> {kind: "block",
 cross_body_sv_2023 := lbrace cross_body_item* rbrace -> {kind: "block", items: $2}
                     | semi                            -> {kind: "empty"}
 
+@profiles: ["sv_2017", "sv_2023"]
 cross_body := cross_body_sv_2017 -> {kind: "sv_2017", body: $1}
             | cross_body_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1563,6 +1601,7 @@ cross_body_item_sv_2017 := kw_function_declaraton_06b7ed29  -> {kind: "function_
 cross_body_item_sv_2023 := function_declaration              -> {kind: "function_decl",        body: $1}
                          | bins_selection_or_option semi     -> {kind: "selection_or_option",  body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 cross_body_item := cross_body_item_sv_2017 -> {kind: "sv_2017", body: $1}
                  | cross_body_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -1593,7 +1632,7 @@ cycle_delay_range := kw_token_93ac8946 constant_primary
                   | kw_token_9768502a
                             -> {kind: "token_9768502a"}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
                          | type_declaration
@@ -1785,9 +1824,11 @@ deferred_immediate_assert_statement := kw_assert_64b5daad hash kw_n_0_b6589fc6 l
                                      | kw_assert_64b5daad kw_final_d594c2cc lparen expression rparen action_block
                                             -> {kind: "final",      expression: $4, action: $6}
 
+@profiles: ["sv_2017", "sv_2023"]
 deferred_immediate_assertion_item := ( block_identifier colon )? deferred_immediate_assertion_statement
                                   -> {label: $1, body: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 deferred_immediate_assertion_statement := deferred_immediate_assert_statement -> {kind: "assert", body: $1}
                                         | deferred_immediate_assume_statement -> {kind: "assume", body: $1}
                                         | deferred_immediate_cover_statement  -> {kind: "cover",  body: $1}
@@ -1805,7 +1846,7 @@ deferred_immediate_cover_statement := kw_cover_a28100fa hash kw_n_0_b6589fc6 lpa
 defparam_assignment := hierarchical_parameter_identifier assign constant_mintypmax_expression
                     -> {name: $1, value: $3}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 delay_sv_2017 := @probe_sample: "#1" hash delay_value                                                                                                  -> {kind: "value", body: $2}
               | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen                              -> {kind: "triple_optional", first: $3, rest: $4}
               | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen                                                              -> {kind: "pair_optional", first: $3, second: $4}
@@ -1866,9 +1907,11 @@ dist_item_sv_2023 := value_range ( dist_weight )?
                    | kw_default_7505d64a colon slash expression
                           -> {kind: "default", weight: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 dist_item := dist_item_sv_2017 -> {kind: "sv_2017", body: $1}
            | dist_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 dist_list := dist_item ( comma dist_item )*
           -> [$1, $2::2*]
 
@@ -1878,9 +1921,11 @@ dist_weight := colon assign expression -> {kind: "equal",       weight: $3}
 dpi_function_import_property := kw_context_ec2727b3 -> {kind: "context"}
                               | kw_pure_afe003f1    -> {kind: "pure"}
 
+@profiles: ["sv_2017", "sv_2023"]
 dpi_function_proto := function_prototype
                    -> {body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 dpi_import_export := kw_import_62fdfbd5 dpi_spec_string ( dpi_function_import_property )? ( c_identifier assign )? dpi_function_proto semi
                             -> {kind: "import_function", spec: $2, property: $3, c_alias: $4, proto: $5}
                   | kw_import_62fdfbd5 dpi_spec_string ( dpi_task_import_property )? ( c_identifier assign )? dpi_task_proto semi
@@ -1896,6 +1941,7 @@ dpi_spec_string := trivia /"DPI-C"/   -> {kind: "DPI-C"}
 dpi_task_import_property := kw_context_ec2727b3
                          -> {kind: "context"}
 
+@profiles: ["sv_2017", "sv_2023"]
 dpi_task_proto := task_prototype
                -> {body: $1}
 
@@ -2013,7 +2059,7 @@ error_limit_value := limit_value
 event_based_flag := constant_expression
                  -> {body: $1}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 event_control_sv_2017 := at_sign hierarchical_event_identifier        -> {kind: "event",       body: $2}
                        | at_sign lparen event_expression rparen        -> {kind: "expression",  body: $3}
                        | at_sign star                                  -> {kind: "wildcard"}
@@ -2038,7 +2084,7 @@ event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e ex
 event_expression := event_expression_primary ( ( kw_or_1758356d | comma ) event_expression_primary )*
                  -> [$1, $2::2*]
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 event_trigger_sv_2017 := implies hierarchical_event_identifier semi
                               -> {kind: "non_blocking", name: $2}
                        | implies ( delay_or_event_control )? hierarchical_event_identifier semi
@@ -2053,6 +2099,7 @@ event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select s
 event_trigger := event_trigger_sv_2017 -> {kind: "sv_2017", body: $1}
                | event_trigger_sv_2023 -> {kind: "sv_2023", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen action_block
                           -> {spec: $3, action: $5}
 
@@ -2088,14 +2135,17 @@ extern_constraint_declaration_sv_2017 := ( kw_static_a381562a )? kw_constraint_9
 extern_constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? class_scope constraint_identifier constraint_block
                                       -> {static_keyword: $1, dynamic_override: $3, scope: $4, name: $5, body: $6}
 
+@profiles: ["sv_2017", "sv_2023"]
 extern_constraint_declaration := extern_constraint_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                                | extern_constraint_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 extern_tf_declaration := kw_extern_bf1ee311 method_prototype semi
                                   -> {kind: "method",   prototype: $2}
                        | kw_extern_bf1ee311 kw_forkjoin_91d67e81 task_prototype semi
                                   -> {kind: "forkjoin", prototype: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 final_construct := kw_final_d594c2cc function_statement
                 -> {body: $2}
 
@@ -2141,7 +2191,7 @@ forward_type_sv_2023 := kw_enum_e338e8e3                            -> {kind: "e
 forward_type := forward_type_sv_2023
              -> {body: $1}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 full_edge_sensitive_path_description_sv_2017 := lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow lparen list_of_path_outputs ( polarity_operator )? colon data_source_expression rparen rparen
                                              -> {edge: $2, inputs: $3, in_polarity: $4, outputs: $7, out_polarity: $8, data_source: $10}
 
@@ -2166,7 +2216,7 @@ function_body_declaration := @sample: "int f; endfunction : f" function_data_typ
 function_data_type_or_implicit := data_type_or_void   -> {kind: "data_type", body: $1}
                                 | implicit_data_type  -> {kind: "implicit",  body: $1}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 function_declaration_sv_2017 := kw_function_c218e39e ( lifetime )? function_body_declaration
                              -> {lifetime: $2, body: $3}
 
@@ -2187,6 +2237,7 @@ function_prototype_sv_2017 := kw_function_c218e39e data_type_or_void function_id
 function_prototype_sv_2023 := kw_function_c218e39e ( dynamic_override_specifiers )? data_type_or_void function_identifier ( lparen ( tf_port_list )? rparen )?
                            -> {dynamic_override: $2, return_type: $3, name: $4, ports: $5}
 
+@profiles: ["sv_2017", "sv_2023"]
 function_prototype := function_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
                     | function_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -2201,7 +2252,7 @@ function_subroutine_call := call_primary
                           | ( kw_std_55ec981f scope_resolution )? randomize_call
                                   -> {kind: "randomize",    std_prefix: $1, body: $2}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 gate_instantiation_sv_2017 := cmos_switchtype ( delay )? cmos_switch_instance ( comma cmos_switch_instance )* semi
                                    -> {kind: "cmos",     switchtype: $1, delay: $2, instances: [$3, $4::2*]}
                             | enable_gatetype ( drive_strength )? ( delay )? enable_gate_instance ( comma enable_gate_instance )* semi
@@ -2319,6 +2370,7 @@ if_generate_construct := kw_if_958f57f5 lparen constant_expression rparen genera
 if_generate_else_clause := kw_else_ae050f5b if_generate_construct -> {kind: "elseif",     body: $2}
                          | kw_else_ae050f5b generate_block        -> {kind: "else_block", body: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 immediate_assertion_statement := simple_immediate_assertion_statement   -> {kind: "simple",   body: $1}
                                | deferred_immediate_assertion_statement -> {kind: "deferred", body: $1}
 
@@ -2332,6 +2384,7 @@ implicit_data_type := ( signing )? packed_dimension*
 import_export := kw_import_62fdfbd5 -> {kind: "import"}
                | kw_export_51713409 -> {kind: "export"}
 
+@profiles: ["sv_2017", "sv_2023"]
 inc_or_dec_expression := inc_or_dec_operator attribute_instance* variable_lvalue
                               -> {kind: "prefix",  op: $1, attributes: $2, lvalue: $3}
                        | variable_lvalue attribute_instance* inc_or_dec_operator
@@ -2420,6 +2473,7 @@ inside_expression_sv_2017 := expression_base kw_inside_fcc53788 lbrace open_rang
 inside_expression_sv_2023 := expression_base kw_inside_fcc53788 lbrace range_list rbrace
                           -> {expr: $1, ranges: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 inside_expression := inside_expression_sv_2017 -> {kind: "sv_2017", body: $1}
                    | inside_expression_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -2431,10 +2485,13 @@ inst_name := topmodule_identifier ( dot instance_identifier )*
 
 instance_identifier := identifier
 
-integer_atom_type := kw_byte_8cf1783f     -> {kind: "byte"}
-                   | kw_shortint_131a0f0d -> {kind: "shortint"}
-                   | kw_int_46f8ab7c      -> {kind: "int"}
-                   | kw_longint_30bcfc87  -> {kind: "longint"}
+@profiles: ["sv_2017", "sv_2023"]
+integer_atom_type_sv_only := kw_byte_8cf1783f     -> {kind: "byte"}
+                           | kw_shortint_131a0f0d -> {kind: "shortint"}
+                           | kw_int_46f8ab7c      -> {kind: "int"}
+                           | kw_longint_30bcfc87  -> {kind: "longint"}
+
+integer_atom_type := integer_atom_type_sv_only
                    | kw_integer_1178cafb  -> {kind: "integer"}
                    | kw_time_714eea0f     -> {kind: "time"}
 
@@ -2446,6 +2503,7 @@ integer_covergroup_expression_sv_2017 := covergroup_expression
 integer_covergroup_expression_sv_2023 := covergroup_expression -> {kind: "expression", body: $1}
                                        | kw_dollar             -> {kind: "dollar"}
 
+@profiles: ["sv_2017", "sv_2023"]
 integer_covergroup_expression := integer_covergroup_expression_sv_2017 -> {kind: "sv_2017", body: $1}
                                | integer_covergroup_expression_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -2459,6 +2517,7 @@ integer_vector_type := kw_bit_026e996a   -> {kind: "bit"}
 interface_ansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )? interface_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
                       -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
+@profiles: ["sv_2017", "sv_2023"]
 interface_class_declaration := kw_interface_5ea2d81a kw_class_8d767bf5 declared_interface_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 interface_class_type ( comma interface_class_type )* )? semi interface_class_item* kw_endclass_b43ac277 ( colon class_identifier )?
                             -> {name: $3, parameters: $4, extends: $5, items: $7, end_label: $9}
 
@@ -2468,6 +2527,7 @@ interface_class_item := type_declaration                            -> {kind: "t
                       | parameter_declaration semi                  -> {kind: "parameter",               body: $1}
                       | semi                                        -> {kind: "semi"}
 
+@profiles: ["sv_2017", "sv_2023"]
 interface_class_method := kw_pure_afe003f1 kw_virtual_af84d91f method_prototype semi
                        -> {prototype: $3}
 
@@ -2512,6 +2572,7 @@ interface_declaration_sv_2023 := interface_ansi_header ( timeunits_declaration )
                               | kw_extern_bf1ee311 interface_ansi_header
                                   -> {kind: "extern_ansi", header: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 interface_declaration := interface_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                        | interface_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -2555,6 +2616,7 @@ join_keyword := kw_join_c455b38e      -> {kind: "join"}
               | kw_join_any_24358a7a  -> {kind: "join_any"}
               | kw_join_none_4454a7a6 -> {kind: "join_none"}
 
+@profiles: ["sv_2017", "sv_2023"]
 jump_statement := kw_return_63143b6f ( expression )? semi -> {kind: "return",   value: $2}
                 | kw_break_4f9cac8d semi                   -> {kind: "break"}
                 | kw_continue_eee0bbba semi                -> {kind: "continue"}
@@ -2562,6 +2624,7 @@ jump_statement := kw_return_63143b6f ( expression )? semi -> {kind: "return",   
 let_actual_arg := expression
                -> {body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
                 -> {name: $2, ports: $3, value: $5}
 
@@ -2698,13 +2761,13 @@ list_of_net_decl_assignments := net_decl_assignment ( comma net_decl_assignment 
 list_of_param_assignments := param_assignment ( comma param_assignment )*
                           -> [$1, $2::2*]
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
                                               -> {kind: "ordered", items: [$1, $2::2*]}
                                        | named_parameter_assignment ( comma named_parameter_assignment )*
                                               -> {kind: "named",   items: [$1, $2::2*]}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 list_of_parameter_assignments := list_of_parameter_assignments_sv_2017
                               -> {body: $1}
 
@@ -2755,6 +2818,7 @@ tf_variable_identifier_decl := port_identifier variable_dimension* ( assign expr
 list_of_tf_variable_identifiers := tf_variable_identifier_decl ( comma tf_variable_identifier_decl )*
                                 -> [$1, $2::2*]
 
+@profiles: ["sv_2017", "sv_2023"]
 list_of_type_assignments := type_assignment ( !( comma kw_type_d0a3e7f8 ) comma type_assignment )*
                          -> [$1, $2::2*]
 
@@ -2776,7 +2840,7 @@ list_of_variable_port_identifiers := variable_port_identifier_decl ( comma varia
                                   -> [$1, $2::2*]
 
 @branch_policy: priority_first
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 local_parameter_declaration_sv_2017 := kw_localparam_7829ee69 list_of_param_assignments
                                               -> {kind: "implicit",  items: $2}
                                      | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments
@@ -2908,6 +2972,7 @@ method_call_receiver_sv_2023 := primary_literal                                 
                               | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
                                                                                                                         -> {kind: "null_class", local_n48: $5, prefix: $6}
 
+@profiles: ["sv_2017", "sv_2023"]
 method_call_receiver := method_call_receiver_sv_2017 -> {kind: "sv_2017", body: $1}
                       | method_call_receiver_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -3010,6 +3075,7 @@ call_primary := context_member_method_call          -> {kind: "context_member_me
 
 method_identifier := declaration_identifier
 
+@profiles: ["sv_2017", "sv_2023"]
 method_prototype := task_prototype     -> {kind: "task",     body: $1}
                   | function_prototype -> {kind: "function", body: $1}
 
@@ -3024,6 +3090,7 @@ mintypmax_expression := expression
 modport_clocking_declaration := kw_clocking_4d22041d clocking_identifier
                              -> {name: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 modport_declaration := kw_modport_1cf85849 modport_item ( comma modport_item )* semi
                     -> {items: [$2, $3::2*]}
 
@@ -3049,7 +3116,7 @@ modport_tf_ports_declaration := import_export modport_tf_port ( comma modport_tf
 module_ansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
                    -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 module_common_item_sv_2017 := module_or_generate_item_declaration -> {kind: "module_or_generate_item_declaration", body: $1}
                             | interface_instantiation             -> {kind: "interface_instantiation",             body: $1}
                             | program_instantiation               -> {kind: "program_instantiation",               body: $1}
@@ -3221,6 +3288,7 @@ named_checker_port_connection_sv_2023 := attribute_instance* dot formal_port_ide
                                        | attribute_instance* dot star
                                                 -> {kind: "wildcard", attributes: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 named_checker_port_connection := named_checker_port_connection_sv_2017 -> {kind: "sv_2017", body: $1}
                                | named_checker_port_connection_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -3230,7 +3298,7 @@ named_parameter_assignment := dot parameter_identifier lparen ( param_expression
 named_argument := dot identifier lparen ( expression )? rparen
                -> {name: $2, value: $4}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 named_port_connection_sv_2017 := attribute_instance* dot port_identifier ( lparen ( expression )? rparen )?
                                         -> {kind: "named",    attributes: $1, name: $3, value: $4}
                                | attribute_instance* dot_star
@@ -3250,6 +3318,7 @@ ncontrol_terminal := expression
 
 # POST-SV-AUDIT.2.4a Cat-A: single-token `assign` separator list of
 # aliased net_lvalues → clean flat list (drop the `=` separators).
+@profiles: ["sv_2017", "sv_2023"]
 net_alias := kw_alias_cdb6fdbe net_lvalue assign net_lvalue ( assign net_lvalue )* semi
           -> {lvalues: [$2, $4, $5::2*]}
 
@@ -3259,7 +3328,7 @@ net_assignment := net_lvalue assign expression
 net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
                     -> {name: $1, dims: $2, init: $3}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
                                 -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
                          # SV-PARSE-STRICT.2: a user net-type identifier must be a KNOWN declared type/nettype (sound store-gate via `checked_nettype_identifier`).
@@ -3304,7 +3373,7 @@ net_lvalue := ps_or_hierarchical_net_identifier constant_select
 net_port_header := ( port_direction )? net_port_type
                 -> {direction: $1, port_type: $2}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 net_port_type_sv_2017 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
                        | net_type_identifier                              -> {kind: "identifier",   name: $1}
                        | kw_interconnect_c8ec83f5 implicit_data_type      -> {kind: "interconnect", data_type: $2}
@@ -3558,6 +3627,7 @@ output_terminal := net_lvalue
 # supported `$a.b` walking), so the directive references the nested field
 # directly and the workaround field is removed from the SV shape.
 @export_to_library: { kind: package, name_from: $name.body }
+@profiles: ["sv_2017", "sv_2023"]
 package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? declared_package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
                     -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
 
@@ -3576,6 +3646,7 @@ package_identifier := declaration_identifier
 @emit_fact: { kind: package_name, name: $body }
 declared_package_identifier := package_identifier -> { body: $1.body }
 
+@profiles: ["sv_2017", "sv_2023"]
 package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma package_import_item )* semi
                             -> {items: [$2, $3::2*]}
 
@@ -3605,7 +3676,7 @@ package_item := package_or_generate_item_declaration -> {kind: "declaration",   
              | timeunits_declaration                 -> {kind: "timeunits",          body: $1}
 
 @branch_policy: priority_first
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 # SV-EXH-PROOF.3.3.4.b.6.2.15 — priority_first on the 14-branch
 # package_or_generate_item_declaration_sv_2017 alternation. Default
 # longest_match runs all 14 branches and picks the longest match —
@@ -3666,7 +3737,7 @@ packed_dimension := lbrack constant_range rbrack    -> {kind: "range",    body: 
 par_block := kw_fork_3f673f2a ( colon block_identifier )? block_item_declaration* statement_or_null* join_keyword ( colon block_identifier )?
           -> {label: $2, declarations: $3, statements: $4, join: $5, end_label: $6}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 parallel_edge_sensitive_path_description_sv_2017 := lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies lparen specify_output_terminal_descriptor ( polarity_operator )? colon data_source_expression rparen rparen
                                                   -> {edge: $2, input: $3, in_polarity: $4, output: $7, out_polarity: $8, data_source: $10}
 
@@ -3682,7 +3753,7 @@ parallel_edge_sensitive_path_description := parallel_edge_sensitive_path_descrip
 parallel_path_description := lparen specify_input_terminal_descriptor ( polarity_operator )? sequence_implies specify_output_terminal_descriptor rparen
                           -> {input: $2, polarity: $3, output: $5}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 param_assignment_sv_2017 := declared_parameter_identifier unpacked_dimension* assign constant_param_expression
                                   -> {kind: "with_default", name: $1, dims: $2, value: $4}
                           | declared_parameter_identifier unpacked_dimension*
@@ -3702,7 +3773,7 @@ param_expression := mintypmax_expression -> {kind: "mintypmax", body: $1}
                   | kw_dollar            -> {kind: "dollar"}
 
 @branch_policy: priority_first
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 parameter_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments
                                         -> {kind: "implicit", items: $2}
                                | kw_parameter_b75381f0 data_type_or_implicit list_of_param_assignments
@@ -3732,7 +3803,7 @@ parameter_override := kw_defparam_83d3c70e list_of_defparam_assignments semi
                    -> {items: $2}
 
 @branch_policy: priority_first
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 parameter_port_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments
                                               -> {kind: "parameter",            items: $2}
                                     | kw_localparam_7829ee69 list_of_param_assignments
@@ -3764,9 +3835,11 @@ parameter_port_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assign
 parameter_port_declaration := parameter_port_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                             | parameter_port_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 mixed_string_parameter_port_list := kw_type_d0a3e7f8 type_assignment ( !( comma kw_string_ecb25204 ) comma type_assignment )* comma kw_string_ecb25204 list_of_param_assignments ( comma parameter_port_declaration )*
                                  -> {first_type: $2, type_tail: $3, string_list: $6, decl_tail: $7}
 
+@profiles: ["sv_2017", "sv_2023"]
 mixed_parameter_port_list := kw_type_d0a3e7f8 list_of_type_assignments comma parameter_port_declaration ( comma parameter_port_declaration )*
                           -> {types: $2, first_decl: $4, decl_tail: $5}
 
@@ -3783,7 +3856,7 @@ parameter_port_list := hash lparen mixed_string_parameter_port_list rparen
                      | hash lparen rparen
                               -> {kind: "empty"}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen
                                    -> {params: $3}
 
@@ -3849,6 +3922,7 @@ pattern_sv_2023 := lparen pattern rparen
                 | tick lbrace assignment_pattern_entry ( comma assignment_pattern_entry )* rbrace
                         -> {kind: "named",            entries: [$3, $4::2*]}
 
+@profiles: ["sv_2017", "sv_2023"]
 pattern := pattern_sv_2017 -> {kind: "sv_2017", body: $1}
          | pattern_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -3889,7 +3963,7 @@ port_identifier := declaration_identifier
 port_reference := port_identifier constant_select
                -> {name: $1, select: $2}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 primary_sv_2017 := @probe_sample: "1" primary_literal
                         -> {kind: "literal",            body: $1}
                  | call_primary
@@ -3983,6 +4057,7 @@ primary_literal := number                  -> {kind: "number",                bo
                  | unbased_unsized_literal -> {kind: "unbased_unsized_literal", body: $1}
                  | string_literal          -> {kind: "string_literal",        body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 procedural_assertion_statement := concurrent_assertion_statement -> {kind: "concurrent",             body: $1}
                                 | immediate_assertion_statement  -> {kind: "immediate",              body: $1}
                                 | checker_instantiation          -> {kind: "checker_instantiation",  body: $1}
@@ -4057,6 +4132,7 @@ program_declaration_sv_2023 := @sample: "program p(a); endprogram" program_nonan
                              | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
                                  -> {kind: "extern_ansi", header: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 program_declaration := @sample: "program p; endprogram" program_declaration_sv_2017
                               -> {kind: "sv_2017", body: $1}
                      | @sample: "program p; endprogram" program_declaration_sv_2023
@@ -4074,6 +4150,7 @@ program_generate_item_sv_2023 := loop_generate_construct                -> {kind
                                 | generate_region                      -> {kind: "region",                body: $1}
                                 | elaboration_severity_system_task     -> {kind: "elaboration_severity",  body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 program_generate_item := program_generate_item_sv_2017 -> {kind: "sv_2017", body: $1}
                        | program_generate_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4089,13 +4166,16 @@ program_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
 program_nonansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
                        -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
+@profiles: ["sv_2017", "sv_2023"]
 property_actual_arg := property_expr        -> {kind: "property_expr",   body: $1}
                      | sequence_actual_arg  -> {kind: "sequence_actual", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 property_case_item := @probe_sample: "1: 1;" expression_or_dist ( comma expression_or_dist )* colon property_expr semi
                    -> {expressions: [$1, $2::2*], body: $4}
                     | @probe_sample: "default: 1;" kw_default_7505d64a ( colon )? property_expr semi
 
+@profiles: ["sv_2017", "sv_2023"]
 property_declaration := kw_property_269fe373 declared_property_identifier ( lparen ( property_port_list )? rparen )? semi assertion_variable_declaration* property_spec ( semi )? kw_endproperty_6594321c ( colon property_identifier )?
                      -> {name: $2, ports: $3, declarations: $5, spec: $6, end_label: $9}
 
@@ -4273,6 +4353,7 @@ prop_primary_sv_2023 := sequence_expr
                        | clocking_event property_expr
                               -> {kind: "clocking",            event: $1, body: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 property_expr := property_expr_sv_2017 -> {kind: "sv_2017", body: $1}
                | property_expr_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4306,6 +4387,7 @@ property_port_list := property_port_item ( comma property_port_item )*
 property_qualifier := random_qualifier     -> {kind: "random",                body: $1}
                     | class_item_qualifier  -> {kind: "class_item_qualifier", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 property_spec := ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lparen expression_or_dist rparen )? property_expr
               -> {clocking: $1, disable_iff: $2, body: $3}
 
@@ -4377,6 +4459,7 @@ ps_type_identifier_sv_2017 := ( kw_local_939bb46a scope_resolution kw_n_43_0286d
 ps_type_identifier_sv_2023 := ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe | non_typedef_package_scope | class_scope )? type_identifier
                            -> {scope: $1, name: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 ps_type_identifier := ps_type_identifier_sv_2017 -> {body: $1}
                    | ps_type_identifier_sv_2023 -> {body: $1}
 
@@ -4415,6 +4498,7 @@ queue_dimension := lbrack kw_dollar ( colon constant_expression )? rbrack
 randcase_item := expression colon statement_or_null
               -> {weight: $1, body: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 randcase_statement := kw_randcase_89bbd045 randcase_item randcase_item* kw_endcase_a27a6786
                    -> {items: {first: $2, rest: $3}}
 
@@ -4432,6 +4516,7 @@ randsequence_statement_sv_2017 := kw_randsequence_8b92cf8f lparen ( production_i
 randsequence_statement_sv_2023 := kw_randsequence_8b92cf8f lparen ( rs_production_identifier )? rparen rs_production rs_production* kw_endsequence_241830d7
                                -> {start: $3, productions: {first: $5, rest: $6}}
 
+@profiles: ["sv_2017", "sv_2023"]
 randsequence_statement := randsequence_statement_sv_2017 -> {kind: "sv_2017", body: $1}
                         | randsequence_statement_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4461,9 +4546,11 @@ remain_active_flag := constant_mintypmax_expression
 repeat_range := covergroup_expression                                -> {kind: "single", body: $1}
               | covergroup_expression colon covergroup_expression    -> {kind: "range",  lo: $1, hi: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 restrict_property_statement := kw_restrict_ee1e5b88 kw_property_269fe373 lparen property_spec rparen semi
                             -> {spec: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 rs_case := kw_case_6406510c lparen case_expression rparen rs_case_item rs_case_item* kw_endcase_a27a6786
         -> {expr: $3, items: {first: $5, rest: $6}}
 
@@ -4479,6 +4566,7 @@ rs_case_item_sv_2023 := case_item_expression ( comma case_item_expression )* col
                       | kw_default_7505d64a ( colon )? rs_production_item semi
                              -> {kind: "default",   body: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 rs_case_item := rs_case_item_sv_2017 -> {kind: "sv_2017", body: $1}
               | rs_case_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4493,6 +4581,7 @@ rs_if_else_sv_2017 := kw_if_958f57f5 lparen expression rparen production_item ( 
 rs_if_else_sv_2023 := kw_if_958f57f5 lparen expression rparen rs_production_item ( kw_else_ae050f5b rs_production_item )?
                    -> {condition: $3, then_body: $5, else_body: $6}
 
+@profiles: ["sv_2017", "sv_2023"]
 rs_if_else := rs_if_else_sv_2017 -> {kind: "sv_2017", body: $1}
             | rs_if_else_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4510,6 +4599,7 @@ rs_prod_sv_2023 := rs_production_item -> {kind: "production_item", body: $1}
                  | rs_repeat          -> {kind: "repeat",          body: $1}
                  | rs_case            -> {kind: "case",            body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 rs_prod := rs_prod_sv_2017 -> {kind: "sv_2017", body: $1}
          | rs_prod_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4547,6 +4637,7 @@ rs_production_list_sv_2023 := rs_prod rs_prod*
                             | kw_rand_52400560 kw_join_c455b38e ( lparen expression rparen )? rs_production_item rs_production_item rs_production_item*
                                    -> {kind: "rand_join",   join_count: $3, items: {first: $4, second: $5, rest: $6}}
 
+@profiles: ["sv_2017", "sv_2023"]
 rs_production_list := rs_production_list_sv_2017 -> {kind: "sv_2017", body: $1}
                     | rs_production_list_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4558,6 +4649,7 @@ rs_repeat_sv_2017 := kw_repeat_c0ac4842 lparen expression rparen production_item
 rs_repeat_sv_2023 := kw_repeat_c0ac4842 lparen expression rparen rs_production_item
                   -> {count: $3, body: $5}
 
+@profiles: ["sv_2017", "sv_2023"]
 rs_repeat := rs_repeat_sv_2017 -> {kind: "sv_2017", body: $1}
            | rs_repeat_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4569,6 +4661,7 @@ rs_rule_sv_2017 := rs_production_list ( colon assign weight_specification ( rs_c
 rs_rule_sv_2023 := rs_production_list ( colon assign rs_weight_specification ( rs_code_block )? )?
                 -> {productions: $1, weight: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 rs_rule := rs_rule_sv_2017 -> {kind: "sv_2017", body: $1}
          | rs_rule_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -4641,9 +4734,11 @@ sequence_actual_arg_sv_2023 := event_expression -> {kind: "event_expression", bo
                              | sequence_expr    -> {kind: "sequence_expr",   body: $1}
                              | kw_dollar        -> {kind: "dollar"}
 
+@profiles: ["sv_2017", "sv_2023"]
 sequence_actual_arg := sequence_actual_arg_sv_2017 -> {kind: "sv_2017", body: $1}
                      | sequence_actual_arg_sv_2023 -> {kind: "sv_2023", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 sequence_declaration := kw_sequence_92504616 declared_sequence_identifier ( lparen ( sequence_port_list )? rparen )? semi assertion_variable_declaration* sequence_expr ( semi )? kw_endsequence_241830d7 ( colon sequence_identifier )?
                      -> {name: $2, ports: $3, declarations: $5, body: $6, end_label: $9}
 
@@ -4763,6 +4858,7 @@ signing := kw_signed_07235a80   -> {kind: "signed"}
 simple_immediate_assert_statement := kw_assert_64b5daad lparen expression rparen action_block
                                   -> {condition: $3, action: $5}
 
+@profiles: ["sv_2017", "sv_2023"]
 simple_immediate_assertion_statement := simple_immediate_assert_statement -> {kind: "assert", body: $1}
                                       | simple_immediate_assume_statement -> {kind: "assume", body: $1}
                                       | simple_immediate_cover_statement  -> {kind: "cover",  body: $1}
@@ -4786,6 +4882,7 @@ simple_type := integer_type            -> {kind: "integer",         body: $1}
 slice_size := simple_type         -> {kind: "simple_type",         body: $1}
             | constant_expression -> {kind: "constant_expression", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 solve_before_list := constraint_primary ( comma constraint_primary )*
                   -> [$1, $2::2*]
 
@@ -4833,7 +4930,7 @@ state_dependent_path_declaration := kw_if_958f57f5 lparen module_path_expression
 statement := ( block_identifier colon !colon )? attribute_instance* statement_item
           -> {label: $1, attributes: $2, body: $3}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 statement_item_sv_2017 := blocking_assignment semi                  -> {kind: "blocking_assignment",              body: $1}
                         | nonblocking_assignment semi               -> {kind: "nonblocking_assignment",           body: $1}
                         | procedural_continuous_assignment semi     -> {kind: "procedural_continuous_assignment", body: $1}
@@ -4915,6 +5012,7 @@ struct_union_sv_2023 := kw_struct_d118e5a3                       -> {kind: "stru
 union_modifier := kw_soft_eb74f2cb   -> {kind: "soft"}
                 | kw_tagged_8e1ec218 -> {kind: "tagged"}
 
+@profiles: ["sv_2017", "sv_2023"]
 struct_union := struct_union_sv_2017 -> {kind: "sv_2017", body: $1}
               | struct_union_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -5022,6 +5120,7 @@ tagged_union_expression_sv_2017 := kw_tagged_8e1ec218 member_identifier ( expres
 tagged_union_expression_sv_2023 := kw_tagged_8e1ec218 member_identifier ( primary )?
                                 -> {name: $2, value: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 tagged_union_expression := tagged_union_expression_sv_2017 -> {kind: "sv_2017", body: $1}
                          | tagged_union_expression_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -5031,7 +5130,7 @@ task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_
                        | ( interface_identifier dot | class_scope ) task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                        | ( interface_identifier dot | class_scope ) task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 task_declaration_sv_2017 := kw_task_7fbb727d ( lifetime )? task_body_declaration
                          -> {lifetime: $2, body: $3}
 
@@ -5052,6 +5151,7 @@ task_prototype_sv_2017 := kw_task_7fbb727d task_identifier ( lparen ( tf_port_li
 task_prototype_sv_2023 := kw_task_7fbb727d ( dynamic_override_specifiers )? task_identifier ( lparen ( tf_port_list )? rparen )?
                        -> {dynamic_override: $2, name: $3, ports: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 task_prototype := task_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
                 | task_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -5081,7 +5181,7 @@ tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
 tf_port_declaration := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit list_of_tf_variable_identifiers semi
                     -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, items: $5}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 tf_port_direction_sv_2017 := port_direction                       -> {kind: "port_direction", body: $1}
                            | kw_const_b42f3f6f kw_ref_69449f99    -> {kind: "const_ref"}
 
@@ -5119,6 +5219,7 @@ timecheck_condition := mintypmax_expression
 timestamp_condition := mintypmax_expression
                     -> {body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 timeunits_declaration := kw_timeunit_57f78b2f time_literal ( timeunit_separator_slash time_literal )? semi
                                 -> {kind: "timeunit",                        unit: $2, precision: $3}
                        | kw_timeprecision_628f1cfc time_literal semi
@@ -5149,9 +5250,11 @@ timing_check_limit := expression
 
 topmodule_identifier := declaration_identifier
 
+@profiles: ["sv_2017", "sv_2023"]
 trans_item := covergroup_range_list
            -> {body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
 trans_list := lparen trans_set rparen ( comma lparen trans_set rparen )*
            -> [$2, $4::3*]
 
@@ -5160,11 +5263,13 @@ trans_list := lparen trans_set rparen ( comma lparen trans_set rparen )*
 // LRM brackets (was bare `( star repeat_range )?` etc., which a greedy `expression` in `trans_item`
 // shadowed: it parsed `a*b` as one multiplication, REJECTING valid `(1[*2])` and never witnessing
 // `repeat_range`). The brackets make the operator unambiguous, so `(1*2)` is a `simple` multiply item.
+@profiles: ["sv_2017", "sv_2023"]
 trans_range_list := trans_item                                       -> {kind: "simple",  body: $1}
                   | trans_item lbrack star repeat_range rbrack        -> {kind: "star",    body: $1, range: $4}
                   | trans_item lbrack implies repeat_range rbrack     -> {kind: "implies", body: $1, range: $4}
                   | trans_item lbrack assign repeat_range rbrack      -> {kind: "assign",  body: $1, range: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 trans_set := trans_range_list ( sequence_implies trans_range_list )*
           -> [$1, $2::2*]
 
@@ -5198,6 +5303,7 @@ type_assignment_sv_2017 := !kw_type_d0a3e7f8 declared_type_parameter_identifier 
 type_assignment_sv_2023 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type_or_incomplete_class_scoped_type )?
                         -> {name: $1, value: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 type_assignment := type_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
                  | type_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -5285,6 +5391,7 @@ forward_type_keyword := kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a0
 # rule has 6 branches; default longest_match runs all 12 = pathological
 # under uvm's heavily-nested-parameterized-class typedefs.
 @branch_policy: priority_first
+@profiles: ["sv_2017", "sv_2023"]
 type_declaration := type_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                   | type_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -5327,6 +5434,7 @@ type_reference_sv_2023 := kw_type_d0a3e7f8 lparen expression rparen
                         | kw_type_d0a3e7f8 lparen data_type_or_incomplete_class_scoped_type rparen
                                -> {kind: "data_type_or_incomplete_class", body: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
 type_reference := type_reference_sv_2017 -> {kind: "sv_2017", body: $1}
                 | type_reference_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -5348,7 +5456,7 @@ udp_ansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier
 udp_body := combinational_body -> {kind: "combinational", body: $1}
          | sequential_body    -> {kind: "sequential",    body: $1}
 
-@profiles: ["sv_2017"]
+@profiles: ["sv_2017", "verilog_2005"]
 udp_declaration_sv_2017 := udp_nonansi_declaration udp_port_declaration udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
                             -> {kind: "nonansi", header: $1, port_decls: {first: $2, rest: $3}, body: $4, end_label: $6}
                          | udp_ansi_declaration udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
@@ -5433,6 +5541,7 @@ unary_operator := plus                  -> {kind: "plus"}
                 | reduction_xnor        -> {kind: "reduction_xnor"}
                 | reduction_xnor_alt    -> {kind: "reduction_xnor_alt"}
 
+@profiles: ["sv_2017", "sv_2023"]
 unique_priority := kw_unique_58037c00   -> {kind: "unique"}
                 | kw_priority_3345867e -> {kind: "priority"}
 
@@ -5444,6 +5553,7 @@ uniqueness_constraint_sv_2017 := kw_unique_58037c00 open_range_list*
 uniqueness_constraint_sv_2023 := kw_unique_58037c00 range_list*
                               -> {ranges: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
 uniqueness_constraint := uniqueness_constraint_sv_2017 -> {kind: "sv_2017", body: $1}
                        | uniqueness_constraint_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -5495,6 +5605,7 @@ value_range_sv_2023 := expression                                               
                      | lbrack expression colon kw_dollar rbrack                          -> {kind: "dollar_hi",  lo: $2}
                      | lbrack expression plus slash minus expression rbrack              -> {kind: "tolerance",  center: $2, tol: $6}
 
+@profiles: ["sv_2017", "sv_2023"]
 value_range := value_range_sv_2017 -> {kind: "sv_2017", body: $1}
              | value_range_sv_2023 -> {kind: "sv_2023", body: $1}
 

@@ -220,6 +220,57 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     - The orphan detector's "DERIVED minimal fix" always suggests GATING — correct for SV-only, WRONG for
       core (a core orphan is fixed by ADMITTING its children). Judge by the oracle, not the hint.
 
+- ID: `VERILOG-2005-PROFILE.4.1`
+  Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0007`) — CODE leaf: **built the `verilog_2005`
+  profile to wellformedness COHERENCE (orphans 170→0, `--lint-grammar` rc 1→0 — closes the `.2`
+  regression) + profile-faithful keyword reservation** (clusters (a)+(b)+(d) of the `.4` plan; cluster
+  (c) branch-lifts remain → `.4.2`). Grammar-directive-only surgery + 3 shape-preserving named rules;
+  NO engine change. As executed (see "`.4.1` Findings" + "Acceptance Checklist (`.4.1`)"):
+  - (a) ADMITS — 28 more `["sv_2017"]`→`["sv_2017","verilog_2005"]` (29 total with `.2`): the 18
+    oracle-confirmed + 8 refactoring candidates from the `.4` classification (each RE-verified against
+    `verilog_2005_lrm_extracted.ebnf` before edit) + the `list_of_parameter_assignments` base umbrella
+    + `package_or_generate_item_declaration_sv_2017` (mis-named shared-core declarations dispatcher —
+    adjudicated ADMIT against the detector's gate-hint; its SV-only children are individually gated).
+  - (b) GATES — 103 new `["sv_2017","sv_2023"]`: 77 orphan-adjudicated rules across 3 lint iterations
+    (170→75→35→3→0; every batch oracle-checked, all absent) + 25 LEAK rules invisible to the orphan
+    detector (SV-only entry rules whose children are all core-satisfiable): `package_declaration`,
+    `package_import_declaration`, `modport_declaration`, `interface_class_declaration`,
+    `sequence_declaration`, `constraint_block`, `bind_directive`, `jump_statement`,
+    `inc_or_dec_expression`, `final_construct`, `procedural_assertion_statement`,
+    `immediate_assertion_statement`, `simple/deferred_immediate_assertion_statement`(+`_item`),
+    `assertion_item`(+`_declaration`), `concurrent_assertion_item`, `net_alias`, `randcase_statement`,
+    `timeunits_declaration`, `clocking_drive`, `dpi_import_export`, `let_declaration`,
+    `checker_declaration`, `case_pattern_item`, `unique_priority`.
+  - (d) KEYWORD RE-ADMISSION — the `.1` D2 split verbatim: `reserved_non_keyword_identifier :=
+    reserved_non_keyword_identifier_sv | reserved_non_keyword_identifier_v2005`; `_sv` = the original
+    curated regex gated `["sv_2017","sv_2023"]`; `_v2005` = the FULL IEEE 1364-2005 Annex B set
+    (124 keywords, extracted mechanically from
+    `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md`) gated `["verilog_2005"]`.
+    Set algebra re-verified mechanically: 33 stay reserved / 48 un-reserved (exactly the D2 lists) /
+    ~91 newly reserved under `verilog_2005` (`initial`, `always`, `assign`, `and`, …).
+  - Named-lift `integer_atom_type_sv_only` (byte/shortint/int/longint; gate moved onto it) — corrects
+    a `.1` D1-table error: the SV `integer_atom_type` has SIX branches; `integer`/`time` are
+    Verilog-2005 core and stay in the un-gated umbrella (shape-preserving; found when the realistic
+    accept-corpus module over-rejected at `integer i;`).
+
+- ID: `VERILOG-2005-PROFILE.4.2` (next frontier) — CODE leaf: **cluster (c) branch-lifts** for the
+  bare-keyword SV-only alternatives inside core rules, per the `integer_atom_type_sv_only` idiom
+  (shape-preserving named-lift + gate; AST-verified each): `always_keyword`
+  (`always_comb`/`always_latch`/`always_ff`), `loop_statement` (`do…while`, `foreach`),
+  `integer_vector_type` (`bit`/`logic`), `non_integer_type` (`shortreal`), `net_port_type`
+  `interconnect` branch, `event_trigger` `->>` branch, `tf_port_direction` `const ref` branch,
+  `wait_statement` SV-only forms. Closure evidence: the deferred reject cases (`always_comb`,
+  `do…while`, `logic x;` as a TYPE) REJECT under `verilog_2005`, and `wire logic;` (net named `logic`)
+  ACCEPTS — the `.4.1`-diagnosed PEG-commit over-rejection resolves once `logic`-as-type is gated.
+  Must keep `--lint-grammar` at 0 orphans + the standing non-increase rule.
+
+- ID: `VERILOG-2005-PROFILE.4.3` — closure leaf: promote the scratch conformance corpus into
+  `rust/test_data/grammar_quality/` + a repo-standard `verilog_2005` gate (accept set + reject set +
+  the 0-orphan lint lock), a profiled cert-coverage baseline (`--grammar-profile verilog_2005`), the
+  downstream SV integration-contract full `verilog_2005` write-up, and the LIVE promotion decision.
+  (The `sv_cert_recognized_union_gate` count re-baseline stays its OWN leaf per `.4`; drift now
+  `1304→1314` after `.4.1`'s 3 accounted new rules.)
+
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
 ### Deliverable 3 — gating mechanism (RESOLVED; this is the load-bearing finding)
@@ -391,6 +442,85 @@ Recommend a separate task-tree leaf to re-baseline the union contract counts (it
 verification), not folded here (one concern per commit; a cert-oracle re-baseline deserves its own
 proof).
 
+## `.4.1` Findings (tools-first, 2026-07-02)
+
+- **The reserved-word lookahead is a PARTIAL curated list — gated constructs re-parse as
+  identifier-built constructs.** The pre-`.4.1` `reserved_non_keyword_identifier` regex (`:360`)
+  omits `initial`/`always`/`assign`/… Under `verilog_2005` (assertions gated), `initial assert (1);`
+  re-parsed as a **module_instantiation** — module type `initial`, instance `assert` — proven by
+  `--parse-dump-ast-pretty` (the `.4.1` leak repro). Masked under `sv_2017` only because the
+  keyword-led construct wins the PEG ordered choice first. The D2 split fixes BOTH keyword axes: the
+  full Annex B set is reserved under `verilog_2005` (no identifier re-parse of gated constructs) and
+  the 48 SV-only words become legal identifiers.
+- **Task-enable re-reading (spec-derived corpus expectations, not fix-mirrors).** With `assert`/
+  `return` legally un-reserved, `initial assert (1);` and bare `return;` are **syntactically valid
+  IEEE 1364-2005** — task enables of tasks named `assert`/`return`. AST-verified: the accepted parse
+  is `initial_construct` → `subroutine_call` (NOT the old instantiation leak). The reject corpus
+  therefore uses non-reinterpretable forms (`assert (1) else $error(…)` — task enables take no action
+  block; `return x;` — task enables take no bare argument), per
+  [[feedback_corpus_expected_from_spec_not_fix]].
+- **`wire logic;` PEG-commit over-rejection (deferred to `.4.2`, mechanism pinned):**
+  `data_type_or_implicit` COMMITS to the un-gated `logic`-as-data-type branch (cluster (c) residual);
+  the completed sub-rule cannot be re-asked for its implicit alternative, so `wire logic;` (net named
+  `logic`, legal 1364-2005) rejects until `.4.2` gates the `bit`/`logic` type branches under
+  `verilog_2005`. `reg bit;` / `integer int;` / `wire [3:0] class;` all ACCEPT (no type-keyword
+  collision on their paths).
+- **Two PRE-EXISTING sv_2017 defects found by the corpus (ledgered `SV-0021`/`SV-0022`, own fix
+  leaves):** (1) mixed untyped→typed ANSI ports (`module m (input a, output reg b);` rejects,
+  `furthest_position=25`; typed→typed and untyped→untyped accept); (2) `bind_directive`'s trailing
+  `semi` (`:621`) duplicates the `semi` already consumed by `module_instantiation` (`:3174`) — the
+  spec-valid single-`;` `bind` can never parse and the invalid `;;` form ACCEPTS (mechanism confirmed
+  both ways). Proven pre-existing: this slice's grammar diff is directive-only (all changed/added
+  lists still include `sv_2017`, so `sv_2017` rule activation is invariant).
+- **uvm triage-gate posture on this 24 GB host (NOT a slice regression):** the 4 uvm rows of
+  `sv_external_corpus_triage_gate` classify as `parse_fail` via the PARSE-TERMINATION.4 resource
+  guard (debug probe + `ulimit -v` at 70% of host RAM); the compat rows are a CASCADE (the capped
+  `--lib-out` uvm_pkg bootstrap dies → compat's first `uvm_object_registry` reference is
+  store-unresolvable). Decisive A/B on the gate's own preprocessed uvm_pkg with the release probe:
+  HEAD `15.66 GB` peak RSS / `58.9 s` vs slice `15.75 GB` / `62.8 s` (**+0.6 % RSS**); the slice
+  parser COMPLETED `parse_full` under both `sv_2017` and `sv_2023` uncapped, and a HEAD single-case
+  run was ALSO ambient-killed — environment-dependent host posture, documented in the gate script
+  itself ("uvm cases may hit this cap on a small host — that is the HONEST state").
+
+## Acceptance Checklist (`.4.1`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — `ast_pipeline grammars/systemverilog.ebnf --lint-grammar` at HEAD:
+  `Error: grammar 'systemverilog' has 170 profile-orphan rule(s)`, rc=1 (the `.2`/`.3` recorded
+  wellformedness regression); plus the `.3` leak observation (`package p; endpackage` PARSED under
+  `--profile verilog_2005`) re-confirmed and extended (`initial assert (1);` parsed as a module
+  instantiation — AST dump cited in Findings).
+- [x] **ROOT CAUSE (WHY + WHERE)** — the orphan detector names each present-but-unsatisfiable rule +
+  profile (`[error] … rule 'X' is present under profile 'verilog_2005' but is NOT satisfiable there`,
+  ANNOTATION-COMPOSITION.4); the leak axis pinned by `--parse-dump-ast-pretty` (module_instantiation
+  with identifier-matched `initial`/`assert`) + the PARTIAL reserved regex at
+  `grammars/systemverilog.ebnf:360`; the over-rejection axis pinned by `furthest_position` bisection
+  (`integer i;` → the 6-branch `integer_atom_type` whole-rule gate error).
+- [x] **FIX** — declarative grammar-only (fix-hierarchy tier: grammar; NO engine primitive): 28
+  baseline admits + 103 SV-only gates + the D2 profile-split reserved lookahead + the
+  `integer_atom_type_sv_only` shape-preserving named-lift.
+- [x] **ADDRESSED (verified)** — `--lint-grammar` `verilog_2005` orphans **170 → 0**, exit rc
+  **1 → 0**; conformance corpus: ACCEPT 10/10 checks (module_min / realistic parameterized counter /
+  generate+genvar+localparam file × 3 profiles each, + keywords-as-identifiers under `verilog_2005`)
+  and REJECT **19/19** SV-only files under `verilog_2005` while ACCEPTING under `sv_2017`
+  (`bind_dir` waived to v2005-REJECT-only per pre-existing `SV-0022`); aliases
+  `ieee1364-2005`/`1364-2005` normalize.
+- [x] **NO REGRESSION** — cert seeds 0/7/42 (`sv_2017`, entry `systemverilog_file`, count 40):
+  `total=1314 proof=2 witness=1292 UNKNOWN=20 (spf=0, prf=0)` DETERMINISTIC, canonical 20-rule
+  residual IDENTICAL (19 `no_path` + `context_member_method_call`), zero newly-unknown — the
+  `+2 total / +1 proof / +1 witness` are exactly the 3 new named rules (`_sv` = negation-only proof;
+  `_v2005` profile-excluded from the sv_2017 universe; `integer_atom_type_sv_only` witnessed);
+  `sv_cert_recognized_union_gate` semantic invariants INTACT (canonical `UNKNOWN=20`, union
+  `UNKNOWN=1`, residual `["context_member_method_call"]`, union witness `1311`) with the count drift
+  pre-existing (pinned `1304`, now `1314` — re-baseline leaf per `.4`); `ast_shape_contract_gate`
+  18/18; embedding_api tests 51/0; realistic corpus `239` accepts / `126` directive-file fails
+  (= the `.2` baseline exactly); lint warnings byte-identical to baseline (8 A2-backlog);
+  uvm A/B `+0.6 %` RSS (Findings); clippy source clean (`clippy_on_rust_change`); only SV
+  regenerated (`focus_systemverilog`) — the other 6 generated parsers untouched on disk.
+- [x] **LOCKSTEP** — main-platform book `parser-families.md` + SV book `glossary.md` updated to the
+  coherence state (`mdbook_docs_gate` + `systemverilog_parser_book_gate` both GREEN, regenerated
+  tracked HTML staged); bug ledger `SV-0021`/`SV-0022` rows added; CHANGES / DEVELOPMENT_NOTES /
+  MEMORY / LIVE_ACHIEVEMENT_STATUS updated; tree + `docs/TASK_TREE.md` frontier → `.4.2`.
+
 ## Acceptance Checklist (`.2`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — `parseability_probe --parse systemverilog {class_min,module_min}.sv
@@ -488,6 +618,21 @@ proof).
   full focus (fresh-session discipline) — NOT abandoned; the candidate classification + lint-iterate
   recipe are recorded in the `.4` leaf so the fresh session verifies rather than re-derives them.
 
+- 2026-07-02 (`.4.1`): **prefer an existing NAMED SV-only rule over a branch-lift.** `unique_priority`
+  and `case_pattern_item` exist as named rules, so whole-rule gates cover the `unique`/`priority`
+  qualifiers and `case…matches` arms — two fewer branch-lifts than the `.1` D1 plan anticipated.
+- 2026-07-02 (`.4.1`): **corpus expected-values derive from IEEE 1364-2005 SYNTAX, not from
+  "SV-shaped input must reject".** With the D2 un-reserve landed, `initial assert (1);` and bare
+  `return;` are legal 1364-2005 task enables and the profile correctly ACCEPTS them (AST-verified
+  `subroutine_call`); the reject corpus uses non-reinterpretable forms. Applies
+  [[feedback_corpus_expected_from_spec_not_fix]] to the profile boundary.
+- 2026-07-02 (`.4.1`): **keep the D2 umbrella split as designed; the "memo-lean" double-negation
+  alternative is NOT pursued.** The A/B measurement (HEAD `15.66 GB`/`58.9 s` vs slice
+  `15.75 GB`/`62.8 s` on the gate's preprocessed uvm_pkg) shows the umbrella costs ~0.6 % RSS — no
+  tool-backed need for a redesign ([[feedback_no_codebase_change_without_tool_backed_facts]]).
+  (Generated-code fact recorded: the profile guard fires BEFORE `memoized_call`, so an off-profile
+  rule call is near-free and leaves no memo row.)
+
 ## Open Questions
 
 - ~~Exact default-profile-membership semantics of an UN-annotated rule~~ — **RESOLVED (`.1`)**:
@@ -568,7 +713,26 @@ proof).
   `package_declaration` reachable from `source_text_item`); `interface`/`program` already reject
   (profile-split dispatch). No grammar/code/generated change lands (all trial edits reverted).
 
+- 2026-07-02 (`.4.1`, CODE — full verification): see "Acceptance Checklist (`.4.1`)" for the earned
+  boxes. Headlines: `--lint-grammar` `verilog_2005` orphans 170→0 / rc 1→0 across 4 adjudicated edit
+  batches (each batch oracle-checked against `verilog_2005_lrm_extracted.ebnf`; warnings byte-identical
+  throughout); conformance corpus ACCEPT 10/10 checks + REJECT 19/19; cert seeds 0/7/42
+  `UNKNOWN=20`/`spf=0` deterministic with the identical canonical residual and the 3 new rules
+  accounted (`+2 total/+1 proof/+1 witness`); union-gate semantic invariants intact (counts drift
+  pre-existing → re-baseline leaf); `ast_shape_contract_gate` 18/18; embedding_api 51/0; realistic
+  corpus 239/126 (= `.2` baseline); uvm A/B `+0.6 %` RSS (HEAD↔slice, gate-preprocessed uvm_pkg,
+  release probe); both book gates GREEN; clippy source clean. Two pre-existing sv_2017 defects
+  discovered + ledgered (`SV-0021` mixed untyped→typed ANSI ports; `SV-0022` bind double-`semi`).
+
 ## Commit Log
+
+- 2026-07-02 (`.4.1`, CODE, `PGEN-VERILOG-2005-PROFILE-0007`): built the `verilog_2005` profile to
+  wellformedness coherence — 28 baseline admits + 103 SV-only gates + the D2 profile-split reserved
+  lookahead (full Annex B under `verilog_2005`; the 48 SV-only words un-reserved) + the
+  `integer_atom_type_sv_only` named-lift (fixing the `.1` six-branch table error). Orphans 170→0,
+  lint rc 1→0 (closes the `.2` regression). Conformance corpus accept/reject proven both ways;
+  no-regression suite green (cert/shape/embedding/realistic/clippy; uvm A/B ≈ equal). Frontier →
+  `.4.2` (branch-lifts).
 
 - 2026-07-02 (`.3`, INVESTIGATION, PURE-DOCS, `PGEN-VERILOG-2005-PROFILE-0005`): tools-first
   `--lint-grammar` run exposed the `verilog_2005` profile-orphan wellformedness debt (HEAD/`.2`: 170
@@ -603,6 +767,17 @@ proof).
   concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
+
+- 2026-07-02: `.4.1` DONE (`PGEN-VERILOG-2005-PROFILE-0007`, CODE) — the build-to-coherence campaign's
+  whole-rule + keyword axes landed: `verilog_2005` profile-orphans 170→0 (`--lint-grammar` rc 1→0,
+  closing the `.2` wellformedness regression), 28 core baseline admissions + 103 SV-only whole-rule
+  gates + the D2 profile-split reserved lookahead (full IEEE 1364-2005 Annex B reserved under
+  `verilog_2005`; the 48 SV-only reserved words legal as identifiers) + the shape-preserving
+  `integer_atom_type_sv_only` lift (`integer`/`time` stay core). Accept/reject proven both ways on a
+  22-file conformance corpus; full no-regression green; two pre-existing sv_2017 defects found +
+  ledgered (`SV-0021`/`SV-0022`). SV family status UNCHANGED (`Mostly Done`). Frontier → `.4.2`
+  (cluster (c) branch-lifts: `always_comb/latch/ff`, `do…while`/`foreach`, `bit`/`logic`,
+  `shortreal`, `interconnect`, `->>`).
 
 - 2026-07-01: Tree created to scope a strict `verilog_2005` (IEEE 1364-2005) parsing profile on
   the SV grammar; `.1` design leaf opened with the source-material inventory + the
