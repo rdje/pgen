@@ -36,13 +36,13 @@
       7,
       42
     ],
-    "expected_total": 1138,
+    "expected_total": 1147,
     "expected_proof": 2,
-    "expected_witness": 809,
-    "expected_unknown": 327,
+    "expected_witness": 819,
+    "expected_unknown": 326,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
-    "baseline_note": "BASELINE pins, not a closure claim: under the strict subset profile the gated SV-only surface is profile-unreachable (the cert run itself classifies 287 of the 319 UNKNOWN as NO-reach-path dead-rule candidates under verilog_2005) — the expected posture per the tree's .1 D4 closure bar. Re-pinned 826/310 -> 817/319 at VERILOG-2005-PROFILE.6.2 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0012), then 817/319 -> 809/327 at VERILOG-2005-PROFILE.6.3 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0016: the SV-0026 $unit-surface gates made the top-level SV-only unit items profile-unreachable, dropping the witnesses previously earned through that leak; NO-reach 287 -> 294 - same honest direction as the .6.2 re-pin). Earlier .6.2 provenance: the SV-0025/SV-0027 leak fixes removed the 9 FALSE witnesses that had been earned through the leaked SV-only surface (time_literal, time_unit, unbased_unsized_literal, and the 6 time-unit keyword tokens) — witness dropping on a leak fix is the honest direction, and kw_n_1step itself moved from reachable-through-the-leak to NO-reach. Ratcheting the genuine remainder is its own follow-up work; drift in EITHER direction fails this gate and requires a re-baselined contract in the same commit."
+    "baseline_note": "BASELINE pins, not a closure claim: under the strict subset profile the gated SV-only surface is profile-unreachable (the cert run itself classifies 294 of the 326 UNKNOWN as NO-reach-path dead-rule candidates under verilog_2005) — the expected posture per the tree's .1 D4 closure bar. Re-pinned 826/310 -> 817/319 at VERILOG-2005-PROFILE.6.2 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0012), then 817/319 -> 809/327 at VERILOG-2005-PROFILE.6.3, then 1138/809/327 -> 1147/819/326 at SV-DOLLAR-LRM-FIDELITY.3 (2026-07-02, PGEN-SV-DOLLAR-LRM-FIDELITY-0003: the SV-0030 digit/eq-branch restoration adds 9 profile-agnostic rules — 8 digit tokens + 3 compare-lhs rules minus the 2 removed digit-less tokens — all witnessed, and scalar_constant itself leaves the UNKNOWN residual, set-diff-proven as the ONLY residual change with the 294-rule NO-reach list set-identical; the .6.4-adjudicated class-D witness now genuinely earned) (VERILOG-2005-PROFILE.6.3 provenance: the SV-0026 $unit-surface gates the SV-0026 $unit-surface gates made the top-level SV-only unit items profile-unreachable, dropping the witnesses previously earned through that leak; NO-reach 287 -> 294 - same honest direction as the .6.2 re-pin). Earlier .6.2 provenance: the SV-0025/SV-0027 leak fixes removed the 9 FALSE witnesses that had been earned through the leaked SV-only surface (time_literal, time_unit, unbased_unsized_literal, and the 6 time-unit keyword tokens) — witness dropping on a leak fix is the honest direction, and kw_n_1step itself moved from reachable-through-the-leak to NO-reach. Ratcheting the genuine remainder is its own follow-up work; drift in EITHER direction fails this gate and requires a re-baselined contract in the same commit."
   },
   "cases": [
     {
@@ -511,6 +511,42 @@
         "sv_2023": "reject"
       },
       "note": "The mangled non-language spelling `sv_dollar_setup(...)` must REJECT everywhere — the SV-0029 wave-1 reject-lock pinning that the pre-fix over-acceptance stays closed."
+    },
+    {
+      "file": "accept/udp_init_val_digits.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "The IEEE UDP init_val digit alternatives 1'b0 / 1'b1 (1364-2005 / 1800-2017 A.5.1) — the SV-0030 second-site accept-lock (SV-DOLLAR-LRM-FIDELITY.3): before that fix the digit-less \"1'b\" token prefix-stole the spelling and `initial q = 1'b0;` REJECTED under every profile."
+    },
+    {
+      "file": "reject/udp_init_val_digitless.v",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "reject",
+        "sv_2023": "reject"
+      },
+      "note": "The digit-less non-language text `initial q = 1'b;` must REJECT everywhere — the SV-0030 reject-lock pinning that the pre-fix over-acceptance stays closed."
+    },
+    {
+      "file": "accept/timing_check_eq_scalar_constant.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "The IEEE scalar timing-check compare forms (== / === / != / !== against scalar_constant, 1364-2005 / 1800-2017 A.7.5.3) plus the `e == 1'b0 && f` flat-fallback form — the SV-0030 accept-lock (SV-DOLLAR-LRM-FIDELITY.3): acceptance was never lost, but the compare forms now emit the typed eq/case_eq/ne/case_ne shapes instead of a flat expression, and the !binary_operator follow-guard keeps operator-continued conditions on the flat branch."
+    },
+    {
+      "file": "reject/timing_check_eq_digitless.v",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "reject",
+        "sv_2023": "reject"
+      },
+      "note": "`e == 1'b` (digit-less rhs) is neither a scalar_constant nor an expression — REJECT everywhere, before and after the SV-0030 fix."
     }
   ]
 }

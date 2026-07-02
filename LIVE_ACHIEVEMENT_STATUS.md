@@ -52,15 +52,16 @@ byte-identical — canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_
 `spf=0`, seeds 0/7/42; re-pinned again at `.6.2` for the +2
 lifted rules — `1326/2/1304/1323` — and at `.6.3` for the +2 `$unit` lifts —
 `1328/2/1306/1325` — UNKNOWN invariants unchanged throughout). Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` fix leaves, the NEW all-profile LRM-fidelity family
-`SV-0029`/`SV-0030` (the mangled `sv_dollar_*` token literals + the `scalar_constant` digit
-loss — fix tree `SV-DOLLAR-LRM-FIDELITY`, found by the `.6.4` adjudication which also proved
-the class-D ratchet not-earnable: trio already witnessed, `identifier_list` reclassified D→B,
-`hierarchical_tf_identifier` is `$root`-mandatory SV-only surface), and the design leaf `.6.5`
+`SV-0021`..`SV-0024` + `SV-0028` fix leaves, the `SV-0029` wave-3 remainder (the SV-only
+`$root`/`$unit`/severity/bare-`$` tokens — fix tree `SV-DOLLAR-LRM-FIDELITY`, leaf `.4`;
+waves 1–2 are FIXED: the 12 timing-check `$` spellings at `1.0.159` and the full `SV-0030`
+digit/compare restoration at `1.0.160`, which also EARNED the formerly-blocked
+`verilog_2005` `scalar_constant` witness — the one class-D ratchet the `.6.4` adjudication
+had classified as blocked-on-SV-0030), and the design leaf `.6.5`
 (per-profile proof accounting). SV family closure status is UNCHANGED
 (`Mostly Done`); no SV release bump (`sv_2017`/
 `sv_2023` behavior invariant). Note: the SV figures in the paragraph above are from the 1.0.136
-era; the current SV parser release is `1.0.158` / schema `13` (see per-parser book + `MEMORY.md`).
+era; the current SV parser release is `1.0.160` / schema `14` (see per-parser book + `MEMORY.md`).
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -88,6 +89,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-07-03, session #22): **✅ `SV-DOLLAR-LRM-FIDELITY.3` LANDED (`PGEN-SV-DOLLAR-LRM-FIDELITY-0003`, CODE — grammar + shape-test dispatch; SV release `1.0.159`→`1.0.160`, schema `13`→`14`) — `SV-0030` CLOSED at BOTH sites.** The LRM digit alternatives are restored (ten IEEE A.7.5.3 forms at `scalar_constant`, ten A.5.1 forms at UDP `init_val` — 8 new `\b`-guarded sha1-named tokens, digit-less `1'b`/`1'B` removed): **sequential-UDP initializers `initial q = 1'b0;`/`1'b1;` flipped REJECT→ACCEPT under every profile** and the digit-less nonsense flipped ACCEPT→REJECT. The specify timing-check compare branches are REACHABLE for the first time — the `.1`-sketched reorder was tool-proven INERT (the greedy full-`expression` lhs eats `== 1'b0` itself), so the landed design is compare-branches-first over a NEW precedence-restricted lhs (`scalar_timing_check_compare_lhs`; operator tier = only IEEE Table 11-2 rows 3–7) with `!binary_operator`/`!tick` follow-guards — `e == 1'b0` now emits `{kind:"eq", lhs, rhs}` while `e == 1'b0 && f` / `a & b == 1'b0` keep their precedence-correct flat parses BYTE-IDENTICALLY (9 guard probes cmp-proven). NO-REGRESSION: canonical cert `1337/2/1315/UNKNOWN=20 spf=0` seeds 0/7/42 with the 20-rule residual SET-IDENTICAL (total +9 = the exact census delta, every new rule witnessed); `verilog_2005` cert `1147/2/819/326` — set-diff-proven sole change = **`scalar_constant` LEAVES the UNKNOWN residual** (the `.6.4`-adjudicated blocked witness EARNED; NO-reach 294 set-identical); conformance gate GREEN **180 checks/0 mismatches** (60 cases incl. 4 new SV-0030 locks); union gate GREEN re-pinned (`1337/2/1315/20`, union `1334/1`, residual `context_member_method_call`); shape 18/18 (25 samples, 4 new incl. the compare-lhs revert guard); external corpus green; clippy source strict-clean; the 6 fully-certified grammars untouched (SV-only regen). Ledger `SV-0030` → `Released`; contract `1.0.160`/schema-14 highlights; both books lockstep (incl. correcting the top book's stale "162 checks"). **NO STATUS ROW CHANGE** — SystemVerilog `Mostly Done`; dialect block `Mostly Done`; the 6 fully-certified grammars `Done`. Frontier → `.4` (wave 3: the SV-only `$` group + `verilog_2005` gates + per-site PEG-order proofs).
 
 Tracker note (2026-07-02, session #21): **✅ `SV-DOLLAR-LRM-FIDELITY.2` LANDED (`PGEN-SV-DOLLAR-LRM-FIDELITY-0002`, CODE — grammar-only; SV release `1.0.158`→`1.0.159`, schema `13` unchanged) — `SV-0029` wave 1 FIXED: the 12 specify timing-check keyword tokens now carry their IEEE `$` spellings.** LRM timing checks (`$setup(d, posedge clk, 1);` and the 11 siblings — core IEEE 1364-2005 §15 / 1800-2017 §31 surface) flipped REJECT→**ACCEPT** under `sv_2017`, `sv_2023`, AND `verilog_2005` (12/12), and the mangled nonsense spellings flipped ACCEPT→**REJECT** (12/12); procedural system-TF calls proven unaffected (collision-free per the `.1` audit) and the wave-3 tokens byte-unchanged (wave isolation). NO-REGRESSION earned fresh with **pins EXACT everywhere — zero re-pins**: canonical cert `1328/2/1306/UNKNOWN=20 spf=0` seeds 0/7/42 with the 20-rule residual SET-IDENTICAL to the pre-fix union-gate log; `sv_cert_recognized_union_gate` GREEN (canonical 20 / union 1 / `context_member_method_call`); `verilog_2005_conformance_gate` GREEN — **168 checks/0 mismatches** including the 2 new regression locks (`accept/specify_timing_checks.v`, `reject/specify_timing_check_mangled.v`), lint 0 orphans, cert `1138/2/809/327` deterministic (count-neutral witness re-route); `ast_shape_contract` 18/18; external corpus green; clippy source strict-clean; the 6 fully-certified grammars untouched (mtime-audited SV-only regen). Ledger `SV-0029` → `Fix In Progress` (12 of 19 tokens fixed; remaining = `$root`/`$unit`/severity/bare-`$`, leaf `.4`); contract `1.0.159` highlights; SV parser book changelog/schema rows; top book narrative. **NO STATUS ROW CHANGE** — SystemVerilog `Mostly Done`; dialect block `Mostly Done`; the 6 fully-certified grammars `Done`. Frontier → `.3` (wave 2: `SV-0030` digit restoration + eq-branch de-shadow, schema-bump wave).
 

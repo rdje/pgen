@@ -283,6 +283,28 @@ binary_operator := plus                     -> {kind: "plus"}
                  | implies                  -> {kind: "implies"}
                  | iff_arrow                -> {kind: "iff_arrow"}
 
+# (SV-0030 fix, SV-DOLLAR-LRM-FIDELITY.3): the binary operators that bind TIGHTER
+# than the equality family (IEEE 1800-2017 Table 11-2 precedence rows 3-7: power,
+# mul/div/mod, add/sub, shifts, relational). Used only by
+# scalar_timing_check_compare_chain so the compare-form lhs stops before any
+# equality/bitwise/logical operator. Alternatives keep binary_operator's relative
+# order and per-branch kinds so chain `rest` items are shape-identical to
+# expression_base's.
+binary_operator_above_equality := plus                     -> {kind: "plus"}
+                               | minus                    -> {kind: "minus"}
+                               | star                     -> {kind: "star"}
+                               | slash                    -> {kind: "slash"}
+                               | percent                  -> {kind: "percent"}
+                               | power                    -> {kind: "power"}
+                               | less_than                -> {kind: "less_than"}
+                               | less_equal               -> {kind: "less_equal"}
+                               | greater_than             -> {kind: "greater_than"}
+                               | greater_equal            -> {kind: "greater_equal"}
+                               | shift_right              -> {kind: "shift_right"}
+                               | shift_left               -> {kind: "shift_left"}
+                               | arithmetic_shift_right   -> {kind: "arithmetic_shift_right"}
+                               | arithmetic_shift_left    -> {kind: "arithmetic_shift_left"}
+
 assignment_operator := assign                          -> {kind: "assign"}
                      | plus_assign                     -> {kind: "plus_assign"}
                      | minus_assign                    -> {kind: "minus_assign"}
@@ -2426,10 +2448,12 @@ index_variable_identifier := identifier
 indexed_range := expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
                | expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
 
-init_val := kw_n_1_tick_b_f4c81681  -> {kind: "1'b"}
+init_val := kw_n_1_tick_b0_cc597d72 -> {kind: "1'b0"}
+         | kw_n_1_tick_b1_a5c2b78e -> {kind: "1'b1"}
          | kw_n_1_tick_bx_ab9cb068 -> {kind: "1'bx"}
          | kw_n_1_tick_bX_70a6d618 -> {kind: "1'bX"}
-         | kw_n_1_tick_B_9f69eb32  -> {kind: "1'B"}
+         | kw_n_1_tick_B0_720c4a9c -> {kind: "1'B0"}
+         | kw_n_1_tick_B1_afad66cc -> {kind: "1'B1"}
          | kw_n_1_tick_Bx_0a99de19 -> {kind: "1'Bx"}
          | kw_n_1_tick_BX_874bf116 -> {kind: "1'BX"}
          | kw_n_1_356a192b         -> {kind: "1"}
@@ -4710,19 +4734,49 @@ rs_weight_specification_sv_2023 := integral_number          -> {kind: "number", 
 rs_weight_specification := rs_weight_specification_sv_2023
                         -> {body: $1}
 
-scalar_constant := kw_n_1_tick_b_f4c81681 -> {kind: "1'b"}
-                | kw_n_1_tick_B_9f69eb32 -> {kind: "1'B"}
-                | tick kw_b_e9d71f5e     -> {kind: "'b"}
-                | tick kw_B_ae4f281d     -> {kind: "'B"}
-                | kw_n_1_356a192b        -> {kind: "1"}
-                | kw_n_0_b6589fc6        -> {kind: "0"}
+# (SV-0030 fix, SV-DOLLAR-LRM-FIDELITY.3): scalar_constant carries the ten IEEE
+# 1364-2005 / 1800-2017 A.7.5.3 alternatives (1'b0 | 1'b1 | 1'B0 | 1'B1 | 'b0 | 'b1 |
+# 'B0 | 'B1 | 1 | 0). The bare 1/0 branches carry a !tick follow-guard so a rhs like
+# 1'bx / 1'b01 (not a scalar_constant) falls back to the flat bare-expression branch
+# of scalar_timing_check_condition instead of committing a partial match.
+scalar_constant := kw_n_1_tick_b0_cc597d72 -> {kind: "1'b0"}
+                | kw_n_1_tick_b1_a5c2b78e -> {kind: "1'b1"}
+                | kw_n_1_tick_B0_720c4a9c -> {kind: "1'B0"}
+                | kw_n_1_tick_B1_afad66cc -> {kind: "1'B1"}
+                | kw_tick_b0_624cb09b     -> {kind: "'b0"}
+                | kw_tick_b1_1c5be368     -> {kind: "'b1"}
+                | kw_tick_B0_f33e35dd     -> {kind: "'B0"}
+                | kw_tick_B1_230dd583     -> {kind: "'B1"}
+                | kw_n_1_356a192b !tick   -> {kind: "1"}
+                | kw_n_0_b6589fc6 !tick   -> {kind: "0"}
 
-scalar_timing_check_condition := expression                                    -> {kind: "expression", body: $1}
-                               | tilde expression                              -> {kind: "not",        body: $2}
-                               | expression equal scalar_constant              -> {kind: "eq",         lhs: $1, rhs: $3}
-                               | expression case_equal scalar_constant         -> {kind: "case_eq",    lhs: $1, rhs: $3}
-                               | expression not_equal scalar_constant          -> {kind: "ne",         lhs: $1, rhs: $3}
-                               | expression case_not_equal scalar_constant     -> {kind: "case_ne",    lhs: $1, rhs: $3}
+# (SV-0030 fix, SV-DOLLAR-LRM-FIDELITY.3): the compare-form lhs. A full `expression`
+# lhs is PEG-greedy — its operand chain consumes `== scalar_constant` itself, so the
+# eq/case_eq/ne/case_ne branches below could never match. This chain reuses
+# expression_operand but restricts the operator tier to the operators that bind
+# TIGHTER than equality (IEEE 1800-2017 Table 11-2), so the lhs stops exactly where
+# the LRM compare form begins and `a & b == 1'b0` (where == binds tighter than &)
+# still falls back to the precedence-correct flat expression parse.
+scalar_timing_check_compare_chain := expression_operand ( binary_operator_above_equality attribute_instance* expression_operand )*
+                                  -> {kind: "operand_chain", first: $1, rest: $2}
+
+scalar_timing_check_compare_lhs := scalar_timing_check_compare_chain
+                                -> {kind: "base", body: $1}
+
+# (SV-0030 fix, SV-DOLLAR-LRM-FIDELITY.3): the IEEE compare forms precede the bare
+# expression branch (they are language-redundant with it, so they must win the PEG
+# ordered choice to ever emit their typed shapes). Each carries a !binary_operator
+# follow-guard: if anything expression-continuable follows the scalar_constant
+# (e.g. `e == 1'b0 && f`), the compare branch withdraws and the flat expression
+# branch consumes the whole condition exactly as before. The tilde branch stays
+# after `expression` deliberately: promoting it would mis-associate `~e && f` as
+# ~(e && f); the flat parse is the precedence-correct AST for those inputs.
+scalar_timing_check_condition := scalar_timing_check_compare_lhs equal scalar_constant !binary_operator          -> {kind: "eq",      lhs: $1, rhs: $3}
+                               | scalar_timing_check_compare_lhs case_equal scalar_constant !binary_operator     -> {kind: "case_eq", lhs: $1, rhs: $3}
+                               | scalar_timing_check_compare_lhs not_equal scalar_constant !binary_operator      -> {kind: "ne",      lhs: $1, rhs: $3}
+                               | scalar_timing_check_compare_lhs case_not_equal scalar_constant !binary_operator -> {kind: "case_ne", lhs: $1, rhs: $3}
+                               | expression                                                                      -> {kind: "expression", body: $1}
+                               | tilde expression                                                                -> {kind: "not",        body: $2}
 
 select := ( ( dot member_identifier !lparen bit_select )* dot member_identifier !lparen )? ( select_tail )?
        -> {member_chain: $1, tail: $2}
@@ -6057,15 +6111,25 @@ kw_n_10_b1d57811 := trivia /10\b/
 
 kw_n_1_356a192b := trivia /1\b/
 
-kw_n_1_tick_BX_874bf116 := trivia "1'BX"
+# (SV-0030 fix, SV-DOLLAR-LRM-FIDELITY.3): the LRM scalar_constant / init_val digit
+# alternatives had been prefix-merged into digit-less "1'b" / "1'B" tokens, so the
+# IEEE spellings 1'b0 / 1'b1 / 1'B0 / 1'B1 REJECTED while the truncated "1'b" text
+# ACCEPTED. The four digit-carrying tokens below restore the IEEE alternatives
+# (regex \b so 1'b01 / 1'b0x are NOT prefix-stolen); the digit-less tokens were
+# removed with their last referencing sites (init_val, scalar_constant).
+kw_n_1_tick_B0_720c4a9c := trivia /1'B0\b/
 
-kw_n_1_tick_B_9f69eb32 := trivia "1'B"
+kw_n_1_tick_B1_afad66cc := trivia /1'B1\b/
+
+kw_n_1_tick_BX_874bf116 := trivia "1'BX"
 
 kw_n_1_tick_Bx_0a99de19 := trivia "1'Bx"
 
-kw_n_1_tick_bX_70a6d618 := trivia "1'bX"
+kw_n_1_tick_b0_cc597d72 := trivia /1'b0\b/
 
-kw_n_1_tick_b_f4c81681 := trivia "1'b"
+kw_n_1_tick_b1_a5c2b78e := trivia /1'b1\b/
+
+kw_n_1_tick_bX_70a6d618 := trivia "1'bX"
 
 kw_n_1_tick_bx_ab9cb068 := trivia "1'bx"
 
@@ -6298,6 +6362,17 @@ kw_table_c3ee137d := trivia /table\b/
 kw_tagged_8e1ec218 := trivia /tagged\b/
 
 kw_task_7fbb727d := trivia /task\b/
+
+# (SV-0030 fix, SV-DOLLAR-LRM-FIDELITY.3): the unsized IEEE scalar_constant
+# alternatives 'b0 / 'b1 / 'B0 / 'B1 (previously realized digit-less as
+# `tick kw_b` / `tick kw_B`, accepting bare 'b / 'B).
+kw_tick_B0_f33e35dd := trivia /'B0\b/
+
+kw_tick_B1_230dd583 := trivia /'B1\b/
+
+kw_tick_b0_624cb09b := trivia /'b0\b/
+
+kw_tick_b1_1c5be368 := trivia /'b1\b/
 
 kw_this_c2543fff := trivia /this\b/
 

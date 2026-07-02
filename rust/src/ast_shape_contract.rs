@@ -1112,6 +1112,29 @@ mod tests {
                 "class_scoped_call_prefix" => parser
                     .parse_class_scoped_call_prefix()
                     .map_err(|err| err.to_string()),
+                // SV-DOLLAR-LRM-FIDELITY.3 (ledger SV-0030): lock the restored IEEE
+                // digit alternatives + the de-shadowed timing-check compare forms.
+                // `scalar_constant`/`init_val` had been prefix-merged into digit-less
+                // "1'b"/"1'B" tokens (the LRM `1'b0` REJECTED, truncated `1'b`
+                // ACCEPTED); the eq/case_eq/ne/case_ne branches of
+                // `scalar_timing_check_condition` were doubly dead (ordered after the
+                // bare-expression branch AND their greedy full-`expression` lhs
+                // consumed `== 1'b0` itself), so `e == 1'b0` emitted a flat
+                // `{kind:"expression"}`. `scalar_timing_check_compare_lhs` is the
+                // reachability keystone + compile-time revert guard — its restricted
+                // operator tier (binary_operator_above_equality) is what lets the
+                // compare branches match at all; removing it fails
+                // `parse_scalar_timing_check_compare_lhs()` to compile.
+                "scalar_constant" => parser
+                    .parse_scalar_constant()
+                    .map_err(|err| err.to_string()),
+                "init_val" => parser.parse_init_val().map_err(|err| err.to_string()),
+                "scalar_timing_check_condition" => parser
+                    .parse_scalar_timing_check_condition()
+                    .map_err(|err| err.to_string()),
+                "scalar_timing_check_compare_lhs" => parser
+                    .parse_scalar_timing_check_compare_lhs()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

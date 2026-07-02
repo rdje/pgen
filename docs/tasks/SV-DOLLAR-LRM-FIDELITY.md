@@ -8,7 +8,7 @@
   family; sibling of `SV-COVERGROUP-FIDELITY` / `SV-SVA-PROPERTY-FIDELITY` /
   `SV-AST-SHAPE-FIDELITY`)
 - Created: `2026-07-02`
-- Last updated: `2026-07-02`
+- Last updated: `2026-07-03`
 - Owner: repo-local workflow
 - Origin: discovered tools-first during `VERILOG-2005-PROFILE.6.4`
   (`PGEN-VERILOG-2005-PROFILE-0017`) — see that tree's "`.6.4` Findings" for the full
@@ -133,14 +133,31 @@ canonicalization (`tools/extract_systemverilog_lrm_profiles.py:315`, `$name` →
   fully-certified grammars byte-identical by construction (SV-only regen). Ledger `SV-0029` →
   `Fix In Progress` (12 of 19 tokens fixed; wave 3 = `$root`/`$unit`/severity/bare-`$`).
 
-- ID: `SV-DOLLAR-LRM-FIDELITY.3` — proposed: CODE leaf, wave 2 (`SV-0030`, both sites):
-  restore the LRM digits — `scalar_constant` (`:4713`) to the ten 1364-2005/1800 alternatives
-  and `init_val` (`:2429`) to the ten UDP alternatives (new `1'b0`/`1'b1`/`1'B0`/`1'B1` tokens,
-  sha1-of-literal names; the digit-less `1'b`/`1'B` tokens are removed with their last
-  referencing sites) + reorder `scalar_timing_check_condition` (`:4720`) so the
-  eq/case_eq/ne/case_ne branches precede the bare-`expression` branch. SHAPE-AFFECTING:
-  `e == 1'b0` in a timing-check condition moves from flat `kind:"expression"` to `kind:"eq"`
-  ⇒ schema bump + shape-contract samples + book/contract lockstep.
+- ID: `SV-DOLLAR-LRM-FIDELITY.3` — Status: `done` (2026-07-02/03, session #22,
+  `PGEN-SV-DOLLAR-LRM-FIDELITY-0003`, CODE — grammar + shape-test dispatch arms, SV release
+  `1.0.159`→`1.0.160`, schema `13`→`14`): wave 2 LANDED, `SV-0030` CLOSED at BOTH sites.
+  **Design discovery (tools-first):** the `.1`-sketched "reorder the eq branches first" is
+  INSUFFICIENT alone — the compare branches' lhs is the full `expression`, whose PEG-greedy
+  operand chain (`expression_operand ( binary_operator … )*`, `binary_operator` includes
+  `equal`) consumes `== 1'b0` ITSELF, so the branch can never match regardless of order
+  (AST-dump-proven: `e == 1'b0` parsed with ZERO `kind:"eq"` nodes). The landed design:
+  (a) the ten IEEE digit alternatives restored at `scalar_constant` + `init_val` via 8 new
+  `\b`-guarded sha1-named tokens (`kw_n_1_tick_b0_cc597d72` … `kw_tick_B1_230dd583`; the
+  digit-less `1'b`/`1'B` tokens removed with their last sites; the `'b`/`'B` forms — formerly
+  `tick kw_b` — now whole `\b`-guarded tokens; `kw_b`/`kw_B` stay for `level_symbol`);
+  (b) `!tick` follow-guards on scalar_constant's bare `1`/`0` branches (else `e == 1'bx` /
+  `e == 1'b01` would commit a partial rhs and flip ACCEPT→REJECT);
+  (c) the compare branches ordered FIRST with a NEW precedence-restricted lhs
+  (`scalar_timing_check_compare_lhs` → `scalar_timing_check_compare_chain` whose operator
+  tier `binary_operator_above_equality` = only IEEE 1800-2017 Table 11-2 rows 3–7, i.e. the
+  operators binding TIGHTER than equality) + a trailing `!binary_operator` follow-guard per
+  branch — so `e == 1'b0` emits `{kind:"eq", lhs, rhs}` with an expression-shaped lhs, while
+  `e == 1'b0 && f` (guard) and `a & b == 1'b0` (`==` binds tighter than `&`; lhs chain stops
+  at `&`) keep the precedence-correct flat parse BYTE-IDENTICALLY;
+  (d) the `tilde expression` branch deliberately stays AFTER `expression` (adjudicated:
+  promoting it would mis-associate `~e && f` as `~(e && f)` — the flat parse is the
+  precedence-correct AST; the LRM language is unaffected since `~expr ⊆ expression`).
+  Verified per the enforced checklist below; ledger `SV-0030` → `Released`.
 
 - ID: `SV-DOLLAR-LRM-FIDELITY.4` — proposed: CODE leaf, wave 3 (`SV-0029` SV-only group):
   `$root` (2 sites) / `$unit` (`package_scope:3760`) / the 4 elaboration-severity tokens /
@@ -156,8 +173,66 @@ canonicalization (`tools/extract_systemverilog_lrm_profiles.py:315`, `$name` →
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-DOLLAR-LRM-FIDELITY.3` | `pending` | wave 2 (`SV-0030` digits + reorder) is shape-affecting (schema bump) — lands after the `.2` literal wave so each re-pin has one cause |
-| 2 | `SV-DOLLAR-LRM-FIDELITY.4` | `pending` | wave 3 (SV-only group) needs per-site PEG-order proofs + `verilog_2005` gates — the most delicate slice, last |
+| 1 | `SV-DOLLAR-LRM-FIDELITY.4` | `pending` | wave 3 (SV-only group `$root`/`$unit`/severity/bare-`$`) needs per-site PEG-order proofs + `verilog_2005` gates — the most delicate slice, last |
+
+## Acceptance Checklist (`.3`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — fresh HEAD (release `1.0.159`) probe matrix, both `sv_2017` AND
+  `verilog_2005`: UDP `initial q = 1'b0;` REJ (`furthest_position=67`) / `1'b1` REJ /
+  nonsense `1'b` ACC / `1'bx` ACC / `1` ACC (site 2); `e == 1'b0` in a specify condition ACC
+  but with ZERO `kind:"eq"` nodes in the AST dump (flat `kind:"expression"`; site 1 shape
+  loss); `e == 1'b` REJ at the outer sequence. Entry-rule isolation
+  (`--entry-rule scalar_constant`): LRM `1'b0` REJ at position 3 (the digit-less token
+  consumed `1'b` and left `0`), nonsense `1'b` ACC. Ledger `SV-0030`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — three tool-named mechanisms: (1) digit-less prefix
+  tokens `kw_n_1_tick_b_f4c81681 := trivia "1'b"` (`grammars/systemverilog.ebnf:6068`, twin
+  `:6062`) referenced by `init_val:2429` + `scalar_constant:4713` — the entry-rule probe
+  above pins the 3-byte partial consume; (2) `scalar_timing_check_condition:4720` listed
+  bare `expression` FIRST (PEG commit); (3) the deeper starvation: the compare branches' own
+  greedy `expression` lhs consumes `== 1'b0` into its operand chain (`expression_base:315`
+  chain star with `equal ∈ binary_operator:256`), proven by the ops-chain engine probe
+  (`a ** b`/`a << b`/`a ==? b` all ACC ⇒ group-failure choice re-entry, so ONLY a
+  lhs-tier restriction can stop the chain before `==`) — a pure reorder is INERT.
+- [x] **FIX** — GRAMMAR tier + the shape-test dispatch arms (no engine change):
+  `grammars/systemverilog.ebnf` — the ten IEEE alternatives at both sites (8 new `\b` tokens,
+  2 removed), `!tick` guards, compare-first ordering with
+  `scalar_timing_check_compare_lhs`/`_chain` + `binary_operator_above_equality` (14
+  higher-than-equality operators, binary_operator's relative order) + `!binary_operator`
+  follow-guards; `rust/src/ast_shape_contract.rs` — 4 new `rule_under_test` dispatch arms.
+  Census 1450→1459 (net +9); regen + both binaries rebuilt.
+- [x] **ADDRESSED (verified)** — UDP `1'b0`/`1'b1` REJECT→**ACCEPT** + `1'b`
+  ACCEPT→**REJECT** under BOTH dialects; `e == 1'b0` now emits exactly 1
+  `{kind:"eq", lhs:{kind:"base", body:{kind:"operand_chain",…}}, rhs:{kind:"1'b0"}}` node
+  (AST-dump-proven; `===`→`case_eq`, `!=`→`ne`, `'b0` rhs OK); entry-rule isolation FLIPPED
+  (`1'b0` ACC / `1'b` REJ, `furthest_position=1`); ALL 9 fallback-guard probes
+  (`e == 1'b0 && f`, `d & e == 1'b0`, `e == 2'b01`, `e == 1'b01`, `e == 1'bx`, `~e`,
+  `udp 1'bx`, `udp 1`, ops-chain) **byte-identical ASTs** pre↔post (cmp).
+- [x] **NO REGRESSION** — canonical cert `CERTIFICATE-COVERAGE: … total=1337 proof=2
+  witness=1315 UNKNOWN=20 (spf=0, prf=0)` seeds 0/7/42 with the 20-rule residual
+  SET-IDENTICAL pre↔post (python set-compare per seed: `pre==post: True`; total +9 = exactly
+  the census delta, witness +9 = every new rule/token witnessed); `verilog_2005` cert
+  `1147/2/819/326` — the sole residual change is `scalar_constant` LEAVING the UNKNOWN set
+  (set-diff: pre-only=`{scalar_constant}`, post-only=∅; NO-reach 294 set-identical — the
+  `.6.4` class-D witness now genuinely earned); `verilog_2005_conformance_gate` GREEN
+  (`gate_green: true`, 180 checks/0 mismatches — 60 cases incl. the 4 new SV-0030 locks —
+  lint orphans=0, cert pins earned at seeds 0/7/42); `sv_cert_recognized_union_gate` GREEN
+  re-pinned (`1337/2/1315/20`, union `1334/1`, residual `context_member_method_call`, seeds
+  0/7/42); `ast_shape_contract_gate` 18/18 (25 SV samples incl. the 4 new);
+  `sv_external_corpus_triage_gate` green (`primary_parse_failure_profile: <none>`);
+  `--lint-grammar` rc 0 (1459 rules, all error classes 0, `always_matches=8` pin unchanged,
+  `profile_orphans=0`); `clippy_on_rust_change` rc 0 (source strict-clean; the generated-stage
+  177 `eq_op` errors are the documented pre-existing const-fold codegen debt —
+  `"priority_first" == "priority_first"` sites — non-strict stage, zero hits in
+  `ast_shape_contract.rs`); the other 9 generated parsers mtime-untouched ⇒ the 6
+  fully-certified grammars byte-identical by construction.
+- [x] **LOCKSTEP** — ledger `SV-0030` → `Released` (fix + verification record); SV
+  integration contract → `1.0.160`/schema `14` (identity, schema-bump paragraph, highlights
+  section, boundary bullets, release-stream note); SV parser book (`schema-versioning` row
+  14 + intro chain, `changelog-index` 1.0.160 entry) + book gate; top-level book
+  `parser-families.md` (corpus/cert numbers — incl. correcting the stale pre-`.2` "162
+  checks" — SV-0030 → FIXED narrative, four-open-defects roster); conformance contract +4
+  case rows + cert re-pin + NO-reach note 294-of-326; union contract re-pin; shape manifest
+  +4 samples; tree + `docs/TASK_TREE.md`; MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE.
 
 ## Acceptance Checklist (`.2`, enforced)
 
@@ -278,6 +353,23 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
   pinned residual/NO-reach name lists and destroy the set-diff no-regression signal; the
   sha1-of-literal hash-suffix mismatch is accepted, documented cosmetic debt (wave-2's NEW
   tokens do follow the convention).
+- `2026-07-02/03` (`.3`): the compare-branch lhs is a NEW precedence-restricted chain, not the
+  full `expression` — tool-proven necessary (the greedy expression lhs consumes `== 1'b0`
+  itself; a pure reorder is inert). The operator tier (`binary_operator_above_equality`)
+  admits exactly the IEEE 1800-2017 Table 11-2 operators binding TIGHTER than equality, so
+  the eq shape is only emitted where it is the precedence-correct reading; a trailing
+  `!binary_operator` follow-guard withdraws the compare branch whenever the flat expression
+  branch would have consumed more (`e == 1'b0 && f`) — fallback proven byte-identical on 9
+  guard probes.
+- `2026-07-02/03` (`.3`): new digit tokens are `\b`-guarded REGEXES (not plain strings) so
+  `1'b01`/`1'b0x` are not prefix-stolen; scalar_constant's bare `1`/`0` branches carry
+  `!tick` follow-guards (else `e == 1'bx` would flip ACCEPT→REJECT via a committed partial
+  rhs). `init_val` needs no such guards (rejection of `1'd0`-style continuations is
+  LRM-correct there).
+- `2026-07-02/03` (`.3`): the `tilde expression` branch stays shadowed (after `expression`)
+  DELIBERATELY — promoting it would mis-associate `~e && f` as `~(e && f)`; the flat parse is
+  the precedence-correct AST and `~expr ⊆ expression` keeps the language identical. Recorded
+  as adjudicated, not an oversight.
 
 ## Open Questions
 
@@ -304,6 +396,7 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
 | `2026-07-02` | (origin) | the `VERILOG-2005-PROFILE.6.4` probe matrix (LRM-vs-mangled × profiles) | recorded in that tree's `.6.4` Findings + Verification Log |
 | `2026-07-02` | `.1` | 12 timing checks × {LRM, mangled} × {sv_2017, verilog_2005} = 26 probes (incl. the two `width_min` controls); `$unit`/severity×4/bare-`$`/`$root`×2 × {LRM, mangled} × 3 profiles; UDP `init_val` × 5 digit forms × 2 profiles; `specify_item` alternatives read; severity-host profile-admission cross-checked against the `man_sev_fatal` v2005=ACC probe; `$width` BNF verified in `section-31-timing-checks.txt`; sha1 naming convention verified on 3 samples | all recorded in "`.1` Findings"; zero code |
 | `2026-07-02` | `.2` | lint (1450 rules, 0 error classes, `profile_orphans=0`, `always_matches=8` unchanged, rc 0); regen + both binaries rebuilt fresh-mtime; generated-parser literal audit (`\$setup\b` present, rule names unchanged); AFTER matrix: 12/12 LRM ACC + 12/12 mangled REJ (both dialects) + width_min REJ + 3 procedural controls ACC + 8 wave-3 probes unchanged; canonical cert 3 seeds `1328/2/1306/20 spf=0` + residual set-compare vs pre-fix union log `pre==post: True`; union gate GREEN; conformance gate GREEN 168/0 + cert pins EXACT `1138/2/809/327`; shape 18/18; external corpus green; clippy rc 0; other 9 generated parsers mtime-untouched | all green — pins exact, zero re-pins |
+| `2026-07-02/03` | `.3` | BEFORE matrix (17 probes × 2 profiles) + pre-fix AST dumps (10) + pre-fix cert DUMP_ALL baselines (canonical seeds 0/7/42 + v2005 seed 0) captured BEFORE any edit; lint post-edit (1459 rules, all error classes 0, `always_matches=8`, `profile_orphans=0`, rc 0); regen + both binaries rebuilt; AFTER matrix (UDP digits REJ→ACC ×2 forms ×2 profiles, `1'b` ACC→REJ ×2 profiles, 9 fallback probes ACC with byte-identical ASTs, `e == 1'b` stays REJ); eq/case_eq/ne/'b0 shape dumps (1 `kind:"eq"` node, correct lhs/rhs nesting); entry-rule isolation flip; canonical cert 3 seeds `1337/2/1315/20 spf=0` residual set-identical; v2005 cert `1147/2/819/326` set-diff = `scalar_constant` ratchet only, NO-reach 294 set-identical; conformance gate GREEN 180/0 (60 cases, 4 new locks) + cert pins earned 3 seeds; union gate GREEN re-pinned `1337/2/1315/20` + union `1334/1`; shape gate 18/18 (25 samples, 4 new + 4 dispatch arms); external corpus triage green; clippy rc 0 source-clean (generated-stage debt pre-existing, 0 hits in changed source); other 9 generated parsers mtime-untouched | all green — canonical residual set-identical; v2005 witness ratchet honest (+`scalar_constant`); 3 contract re-pins each with the one `.3` cause |
 
 ## Commit Log
 
@@ -312,6 +405,7 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
 | (origin) | `PGEN-VERILOG-2005-PROFILE-0017` (`VERILOG-2005-PROFILE.6.4`) | discovery + ledger rows `SV-0029`/`SV-0030`; zero code |
 | `.1` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0001` (`SV-DOLLAR-LRM-FIDELITY.1`) | design/audit closed; wave plan re-sliced `.2` literals / `.3` SV-0030 / `.4` SV-only; `SV-0030` extended with the `init_val` site; zero code |
 | `.2` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0002` (`SV-DOLLAR-LRM-FIDELITY.2`) | wave 1 LANDED — 12 timing-check literals `sv_dollar_X`→`$X`; release `1.0.159` (schema 13 unchanged); all gates green, pins exact; ledger `SV-0029` → `Fix In Progress` |
+| `.3` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0003` (`SV-DOLLAR-LRM-FIDELITY.3`) | wave 2 LANDED — `SV-0030` CLOSED both sites (ten IEEE digit alternatives at `scalar_constant`+`init_val`; compare branches made reachable via the precedence-restricted lhs + follow-guards); release `1.0.160`, schema `13`→`14`; canonical residual set-identical, v2005 `scalar_constant` witness ratchet earned; ledger `SV-0030` → `Released` |
 
 ## Changelog
 
@@ -320,3 +414,5 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
   `.2` (wave 1, the 12 timing-check literals).
 - `2026-07-02`: `.2` wave 1 landed (`PGEN-SV-DOLLAR-LRM-FIDELITY-0002`, release `1.0.159`);
   frontier → `.3` (wave 2, `SV-0030` digits + reorder).
+- `2026-07-03`: `.3` wave 2 landed (`PGEN-SV-DOLLAR-LRM-FIDELITY-0003`, release `1.0.160`,
+  schema `14`); `SV-0030` `Released`; frontier → `.4` (wave 3, the SV-only group).

@@ -470,6 +470,73 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-SV-AST-SHAPE-FIDELITY-0008 / SV-AST-SHAPE-FIDELITY.2.7: the class-scoped-call root lock (candidate #21). Parses \"pkg::C::\" AS class_scoped_call_prefix; realizes the typed {head, params, scope_chain} object — head now the clean scoped_class_scoped_call_prefix_identifier {scope, name}, params/scope_chain now the clean empty arrays [], formerly the corrupted params:<invalid_sequence_access>, scope_chain:<invalid_sequence_access> inline-alt-$1 mis-recursion (the self-annotated scoped branch's {scope,name} re-recursed the rule's own {head:$1, params:$2, scope_chain:$4} annotation onto the branch result). pkg::C::foo() (a package-class-scoped static method call, reachable in statement + assignment-RHS context) was previously uncovered by any shape-contract sample; the un-lifted twin of class_scope_type (.2.3)."
+  },
+  {
+   "name": "scalar_constant_lrm_digits",
+   "input": "1'b0",
+   "rule_under_test": "scalar_constant",
+   "declared_annotation": "{kind: \"1'b0\"} (first of the ten IEEE A.7.5.3 alternatives 1'b0|1'b1|1'B0|1'B1|'b0|'b1|'B0|'B1|1|0)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "1'b0"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0003 / SV-DOLLAR-LRM-FIDELITY.3: the SV-0030 scalar_constant digit-restoration lock. Parses \"1'b0\" AS scalar_constant; realizes {kind: \"1'b0\"}. Pre-fix the rule carried digit-less prefix tokens (kind \"1'b\" matched the truncated text 1'b and the IEEE spelling 1'b0 REJECTED at position 3, entry-rule-isolation-proven). If the digit tokens regress to prefixes, this parse fails (the \\b-guarded token no longer consumes the whole input) and the kind value changes."
+  },
+  {
+   "name": "init_val_lrm_digits",
+   "input": "1'b0",
+   "rule_under_test": "init_val",
+   "declared_annotation": "{kind: \"1'b0\"} (first of the ten IEEE A.5.1 UDP alternatives 1'b0|1'b1|1'bx|1'bX|1'B0|1'B1|1'Bx|1'BX|1|0)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "1'b0"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0003 / SV-DOLLAR-LRM-FIDELITY.3: the SV-0030 second-site (UDP init_val) digit-restoration lock. Parses \"1'b0\" AS init_val; realizes {kind: \"1'b0\"}. Pre-fix `initial q = 1'b0;` REJECTED in a sequential UDP while the truncated `initial q = 1'b;` ACCEPTED (probe matrix, both sv_2017 and verilog_2005); the x-forms (1'bx/1'bX/1'Bx/1'BX) were never affected and are unchanged."
+  },
+  {
+   "name": "scalar_timing_check_condition_eq",
+   "input": "e == 1'b0",
+   "rule_under_test": "scalar_timing_check_condition",
+   "declared_annotation": "{kind: \"eq\", lhs: $1, rhs: $3} (compare branch: scalar_timing_check_compare_lhs equal scalar_constant !binary_operator)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "lhs",
+    "rhs"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "eq"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0003 / SV-DOLLAR-LRM-FIDELITY.3: the SV-0030 eq-branch de-shadow lock. Parses \"e == 1'b0\" AS scalar_timing_check_condition; realizes the typed {kind:\"eq\", lhs, rhs} compare shape (lhs = the expression-shaped {kind:\"base\", body:{kind:\"operand_chain\",...}} from scalar_timing_check_compare_lhs; rhs = {kind:\"1'b0\"}). Pre-fix the eq/case_eq/ne/case_ne branches were doubly dead: ordered AFTER the bare-expression branch AND their greedy full-`expression` lhs consumed `== 1'b0` into its own operand chain, so `e == 1'b0` emitted a flat {kind:\"expression\"} (AST-dump-proven, zero eq nodes). If the branch order or the restricted lhs regresses, the kind value here reverts to \"expression\" and the lhs/rhs keys vanish. The !binary_operator follow-guard keeps `e == 1'b0 && f` on the flat branch (byte-identical pre/post, probe-proven)."
+  },
+  {
+   "name": "scalar_timing_check_compare_lhs_base",
+   "input": "e",
+   "rule_under_test": "scalar_timing_check_compare_lhs",
+   "declared_annotation": "{kind: \"base\", body: $1} over scalar_timing_check_compare_chain -> {kind: \"operand_chain\", first: $1, rest: $2}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "body"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "base"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0003 / SV-DOLLAR-LRM-FIDELITY.3: the compare-lhs shape lock. Parses \"e\" AS scalar_timing_check_compare_lhs; realizes {kind:\"base\", body:{kind:\"operand_chain\",...}} — deliberately byte-shape-identical to the expression rule's base alternative so eq-consumers can treat lhs as an expression node. The chain's operator tier is binary_operator_above_equality (IEEE 1800-2017 Table 11-2 rows 3-7 only), which is what makes the eq branches reachable at all in PEG (a full-expression lhs greedily consumes the == itself) while `a & b == 1'b0` (== binds tighter than &) still falls back to the precedence-correct flat parse."
   }
  ]
 }
