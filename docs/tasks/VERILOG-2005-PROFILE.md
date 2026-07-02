@@ -378,13 +378,123 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   re-baselined with provenance notes; tree + `docs/TASK_TREE.md` frontier advanced; LIVE dialect
   block left-to-close updated; CHANGES / DEVELOPMENT_NOTES / MEMORY.
 
-- ID: `VERILOG-2005-PROFILE.6` — **frontier** (proposed): ratchet the `verilog_2005` profiled
-  cert-coverage baseline. Adjudicate the 310-UNKNOWN residual tools-first (the 3-step protocol):
-  the 277 NO-reach-path candidates are expected profile-unreachable SV-only surface (adjudicate a
-  sample against the oracle + the gate census; candidates for per-profile `proof` accounting
+- ID: `VERILOG-2005-PROFILE.6` — **frontier** (active umbrella, 2026-07-02 session #19): ratchet
+  the `verilog_2005` profiled cert-coverage baseline (pinned `1138/2/826/310/spf=0`). Adjudicate
+  the 310-UNKNOWN residual tools-first (the 3-step protocol): the 277 NO-reach-path candidates are
+  expected profile-unreachable SV-only surface (candidates for per-profile `proof` accounting
   rather than `UNKNOWN` — an engine-accounting question, own design pass), and the ~33 genuine
   reach/witness gaps under the profile are the ratchet targets. Every improvement re-baselines
   `verilog_2005_conformance_contract_v0.json` in the same commit.
+
+  - ID: `VERILOG-2005-PROFILE.6.1` — Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0011`)
+    — INVESTIGATION leaf (adjudication, ZERO code change): the full 310-UNKNOWN profiled residual
+    is now classified with named tool evidence (see `.6.1` Findings below). Headline: the pinned
+    baseline reproduced byte-for-byte (`1138/2/826/310/spf=0`); 33 genuine-gap candidates =
+    310 − 277 NO-reach-path; every one of the 33 adjudicated via `[plannable-probe]` verdicts +
+    reach-path dumps + parse probes + a scoped `--trace-rules` predicate trace into five
+    mechanism classes (A store-gated SV-only use-sites ×17, B spurious-reach-through-gated-
+    siblings ×8, C **two confirmed profile LEAKS** — ledgered `SV-0025` (`delay_value` `1step`/
+    `time_literal` un-gated) + `SV-0026` (`description → package_item` `$unit` surface active) —
+    ×1 rule, D in-profile witnessable ratchet targets ×6, E known canonical residual ×1).
+    Fix-leaf plan spawned as `.6.2`–`.6.5`.
+
+  - ID: `VERILOG-2005-PROFILE.6.2` — **frontier** (pending): CODE leaf — fix `SV-0025`:
+    branch-lift `delay_value`'s two SV-only alternatives (`1step`, `time_literal`) into a gated
+    `delay_value_sv_only` (`["sv_2017","sv_2023"]`), shape-preserving per the `.4.2` idiom; add
+    `wire #1step w;` / `wire #10ns w;` reject rows to the conformance corpus; re-baseline the
+    contract in the same commit. Acceptance: ACCEPT→REJECT flips under `verilog_2005`; `sv_2017`
+    ACCEPT unchanged; `--lint-grammar` `verilog_2005` orphans stay 0; cert seeds 0/7/42
+    deterministic, `spf=0`; SV canonical/union cert untouched or accounted.
+
+  - ID: `VERILOG-2005-PROFILE.6.3` — pending: CODE leaf — fix `SV-0026`: gate `description`'s
+    SV `$unit` compilation-unit alternative(s) out of `verilog_2005` (branch-lift or whole-rule
+    gate per the `.1` D4 preference), keeping module/UDP/config; add top-level-declaration reject
+    rows to the corpus. EXPECT cert-baseline movement (many `.6.1` probe scaffolds parse through
+    this leaked surface) — re-baseline `verilog_2005_conformance_contract_v0.json` cert pins in
+    the same commit. Same acceptance template as `.6.2`.
+
+  - ID: `VERILOG-2005-PROFILE.6.4` — pending: RATCHET leaf — witness the 6 class-D in-profile
+    rules (`simple_identifier_no_scope`, `scope_free_identifier`, `ps_identifier` via the
+    `wire #foo w;` delay-identifier route; `hierarchical_tf_identifier` via `top.f(1);`;
+    `identifier_list` via the `randomize(a,b)` plain-call route; `scalar_constant` via specify
+    timing checks) under the `verilog_2005` cert. Note the `scalar_constant` sub-finding: its
+    forced sample is doubly blocked (off-profile `input logic a` scaffold + a malformed `1'b`
+    binary literal missing its digit) — both mechanisms need their own WHY+WHERE before any fix.
+    UNKNOWN 310 → ≤304 target; re-baseline the contract in the same commit as each improvement.
+
+  - ID: `VERILOG-2005-PROFILE.6.5` — proposed: DESIGN leaf (engine-accounting) — per-profile
+    `proof` accounting for (i) the 277 NO-reach-path profile-gated rules, (ii) class-A store-gated
+    use-sites whose fact producers are profile-gated (semantically unsatisfiable — the reach map
+    cannot see it), and (iii) class-B spurious reach paths (the BFS treats a profile-gated
+    MANDATORY sequence element as skippable — e.g. `kw_packed` "reachable" through `data_type`'s
+    struct branch whose head `struct_union` is gated, while `kw_struct` itself is correctly
+    NO-reach). All three are engine design questions (parser-agnostic), not `verilog_2005`
+    grammar work; the leaf decides whether they become `proof` entries or stay documented
+    `UNKNOWN` posture.
+
+## `.6.1` Findings (tools-first, 2026-07-02 — the 310-UNKNOWN adjudication)
+
+All evidence from the 3-step protocol on HEAD binaries (release `1.0.158`, schema `13`), profile
+`verilog_2005`, entry `systemverilog_file`, `--count 40`:
+
+- **Step 0 (`PGEN_CERT_COVERAGE_DUMP_ALL=1`, seed 0):** headline byte-identical to the contract
+  pins — `total=1138 proof=2 witness=826 UNKNOWN=310 (spf=0, prf=0)`; 277 named NO-reach-path
+  dead-rule candidates; set difference = 33 genuine-gap candidates.
+- **Step 1 (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1`):** 18/33 `parsed=false`, 15/33
+  `parsed=true witnessed_target=false`; only 4/33 forced samples carry the off-profile
+  `input logic a` scaffold (a witness-planner profile-awareness gap, noted for `.6.4`/`.6.5`).
+- **Step 2 (`PGEN_REACH_PATH_DUMP=1` + scoped `--trace-rules` + parse/AST probes):** every
+  candidate's mechanism named. Representative predicate trace (class A):
+  `🚫 Rule 'checked_type_identifier' rejected by post predicate 'has_fact [type_name, "\foo"]'`
+  with `↪ NEGATIVE: 3 facts of kind 'type_name' exist (none matched)` — under `verilog_2005` the
+  `typedef` producers are profile-gated, so `type_name` facts are unproducible by construction.
+
+**The classification (33 = 17 A + 8 B + 1 C + 6 D + 1 E):**
+
+- **A — store-gated SV-only use-sites, producers profile-gated (17; unwitnessable by design):**
+  typedef-fact family ×5 (`known_unscoped_block_type_identifier`,
+  `known_unscoped_data_type_identifier`, `known_unscoped_block_class_type`,
+  `provisional_unscoped_block_class_type`, `checked_type_identifier`); class-scope family ×7
+  (`known_unscoped_class_scope_{class,interface_class,type_parameter}_identifier`,
+  `known_unscoped_class_scoped_call_{class,interface_class,type_parameter}_identifier`,
+  `class_scoped_tf_call`); covergroup ×2 (`known_unscoped_covergroup_type_identifier`,
+  `known_unscoped_block_covergroup_identifier`); `known_unscoped_let_identifier`;
+  `known_unscoped_sequence_identifier`; `checked_nettype_identifier`. Mechanism = the Step-2
+  predicate trace above (fact kinds `type_name`/class/covergroup/let/sequence/nettype have no
+  active producer under the profile). Accounting question → `.6.5`.
+- **B — spurious reach paths through gated mandatory siblings (8; semantically dead):**
+  `kw_packed`, `kw_rand`, `kw_randc`, `random_qualifier`, `struct_union_member` (reach hops
+  route through `data_type`'s struct branch whose MANDATORY head `struct_union` is profile-gated
+  — proven by `kw_struct`/`kw_union` being correctly NO-reach in the 277); `kw_type`
+  (`localparam type …` branch — parse probe `module m; localparam type T = reg; endmodule`
+  REJECTS, so unsatisfiable); `kw_inside`, `kw_matches` (reachable keyword PREFIX of
+  `case_statement` branches whose gated arm rules make the branch unsatisfiable — probes
+  `case (y) inside 0: …` and `case (y) matches 0: …` both REJECT). Reach-map soundness note →
+  `.6.5` (iii).
+- **C — confirmed profile LEAKS (over-acceptance defects; ledgered):** `kw_n_1step` — the reach
+  path was REAL: `wire #1step w;` ACCEPTS under `verilog_2005` (AST names
+  `net_declaration_sv_2017 → delay_control → delay_value` with `kind:"step"`); the sibling
+  `time_literal` branch leaks too (`wire #10ns w;` ACCEPTS). Ledgered **`SV-0025`** → fix leaf
+  `.6.2`. The adjudication also exposed **`SV-0026`** (not itself one of the 33): top-level
+  `wire w;` / `reg r;` ACCEPT via `description → package_item` (`$unit` surface; IEEE 1364-2005
+  A.1.2 allows only module/UDP/config) → fix leaf `.6.3`. Both forms correctly ACCEPT under
+  `sv_2017` (legal IEEE 1800), so both leaks are `verilog_2005`-only.
+- **D — in-profile witnessable ratchet targets (6):** `simple_identifier_no_scope`,
+  `scope_free_identifier`, `ps_identifier` (probe `module m; wire #foo w; endmodule` ACCEPTS —
+  the delay-identifier route is in-profile; the planner had routed them through the store-gated
+  NETTYPE-headed `net_declaration` branch instead, sample `\foo #foo\foo ;` `parsed=false`);
+  `hierarchical_tf_identifier` (probe `module m; initial top.f(1); endmodule` ACCEPTS —
+  hierarchical task enables are legal 1364-2005); `identifier_list` (reached via
+  `randomize_call`; probe `x = randomize(a);` ACCEPTS under `verilog_2005` — spec-correct, since
+  `randomize` is NOT a reserved word in 1364-2005 and this is a plain function call; the SV-only
+  `with {…}` form correctly REJECTS); `scalar_constant` (specify timing checks are core
+  1364-2005 surface; forced sample doubly blocked — off-profile scaffold + malformed `1'b`
+  literal). Ratchet leaf `.6.4`.
+- **E — known canonical residual (1):** `context_member_method_call` — the same single union
+  residual as under `sv_2017`; owned by `GRAMMAR-WELLFORMED.H.12.8.3.2`, NOT this tree.
+- **The 277:** spot-checked consistent with profile-unreachable-by-design (SV-only roots and
+  their `kw_*` tokens whose every referencing rule is gated; e.g. `kw_typedef`, `kw_struct`,
+  `kw_class` all correctly NO-reach). Per-profile `proof` accounting → `.6.5`.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -1048,7 +1158,28 @@ proof).
   `unmet_criteria_count: 0`, seeds 0/7/42 byte-identical, `spf=0`); book + contract stale-number
   mentions re-baselined with provenance notes; `mdbook_docs_gate` GREEN.
 
+- 2026-07-02 (`.6.1`, INVESTIGATION — adjudication verification, ZERO code change): Step 0
+  `PGEN_CERT_COVERAGE_DUMP_ALL=1` seed-0 reproduced the contract pins byte-for-byte
+  (`total=1138 proof=2 witness=826 UNKNOWN=310 spf=0 prf=0`; 277 NO-reach-path named); Step 1
+  `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` gave per-rule verdicts for all 33 genuine-gap candidates
+  (18 `parsed=false`, 15 `parsed=true witnessed_target=false`); Step 2 `PGEN_REACH_PATH_DUMP=1`
+  named every reach chain, and the scoped `--trace-rules known_unscoped_data_type_identifier`
+  debug trace produced the class-A predicate rejection
+  (`🚫 … rejected by post predicate 'has_fact [type_name, "\foo"]'`). Leak adjudication by
+  parse-probe matrix under `verilog_2005` vs `sv_2017`: `wire #1step w;` ACCEPT/ACCEPT (leak →
+  `SV-0025`), `wire #10ns w;` ACCEPT/ACCEPT (same row), top-level `wire w;` + `reg r;`
+  ACCEPT/ACCEPT (leak → `SV-0026`, AST names `description → package_item`); benign probes:
+  `case…inside`, `case…matches`, `localparam type`, `randomize(a) with {…}` all REJECT under
+  `verilog_2005`; in-profile witnessability probes: `wire #foo w;`, `top.f(1);`,
+  `x = randomize(a);` all ACCEPT under `verilog_2005` (positive control `wire #10 w;` ACCEPT).
+
 ## Commit Log
+
+- 2026-07-02 (`.6.1`, INVESTIGATION, `PGEN-VERILOG-2005-PROFILE-0011`): 310-UNKNOWN profiled
+  residual fully adjudicated tools-first into 5 mechanism classes (17 store-gated SV-only
+  use-sites + 8 spurious-reach + 2 confirmed LEAKS ledgered `SV-0025`/`SV-0026` + 6 in-profile
+  ratchet targets + 1 canonical residual); fix leaves `.6.2`–`.6.5` spawned; ledger + book +
+  SV-contract + LIVE lockstep. ZERO code change. Frontier → `.6.2` (SV-0025 fix).
 
 - 2026-07-02 (`.5`, RE-BASELINE, `PGEN-VERILOG-2005-PROFILE-0010`): `sv_cert_recognized_union_gate`
   count pins re-baselined `1304/1/1283/1302` → `1324/2/1302/1321` (counts-only stale-pin gap from
@@ -1110,6 +1241,17 @@ proof).
   concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
+
+- 2026-07-02: `.6.1` DONE (`PGEN-VERILOG-2005-PROFILE-0011`, INVESTIGATION — adjudication +
+  ledger/docs only, ZERO code change) — the `verilog_2005` profiled-cert 310-UNKNOWN residual is
+  fully adjudicated tools-first (3-step protocol + reach-path dumps + parse/AST probes + a scoped
+  predicate trace): 33 genuine-gap candidates classified into 5 mechanism classes (see `.6.1`
+  Findings). TWO strict-subset over-acceptance LEAKS confirmed and ledgered — `SV-0025`
+  (`delay_value` `1step`/`time_literal` branches un-gated: `wire #1step w;` / `wire #10ns w;`
+  ACCEPT under `verilog_2005`) and `SV-0026` (`description → package_item` `$unit` surface
+  active: top-level `wire w;` / `reg r;` ACCEPT). Fix/ratchet/design leaves `.6.2`–`.6.5`
+  spawned; frontier → `.6.2`. SV family status UNCHANGED (`Mostly Done`); LIVE dialect block
+  left-to-close extended with the two new ledger rows.
 
 - 2026-07-02: `.5` DONE (`PGEN-VERILOG-2005-PROFILE-0010`, RE-BASELINE — contract-pin +
   docs only) — the `sv_cert_recognized_union_gate` count pins re-baselined to the proven actuals
