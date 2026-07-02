@@ -2,29 +2,38 @@
 
 Last updated: 2026-06-02 (**ACTIVE: `MEMORY-ARCH` tree CLOSED — durable harness-agnostic agent-memory architecture adopted with full E1–E4 enforcement (`PGEN-MEMORY-ARCH-0001..0006`); all 54 durable `~/.claude` records migrated into tracked `docs/decisions/`, root `MEMORY.md` demoted to a bounded 23-line resume pointer, gates proven to bite. SV-EXH-PROOF `.6` was CONFIRMED green earlier this session (`-0113`, cached-mode `sv_parser_family_status_gate` exit 0 / both families pass) — the May-31 "open re-verify" item is RESOLVED.**) **SV status (updated 2026-06-04):** `systemverilog main parser` honestly `Mostly Done` — the ONE short Done-criterion is `focused_replay_target_debt_zero`; the closed-loop residual is now a best-known **97** (canonical gate `PGEN-SV-EXH-PROOF-0149`, exit 0), down the full arc ~2660 → 888 (.7.2 steering plateau) → 753 (.7.4.4 Purdom) → 273 (.7.4.5 budget) → **97 (.7.4.6.3 derivation-directed CONSTRUCTION)**. The "literal-0 needs a non-steering mechanism" call (old `.7.2.21`) was RIGHT and is now ANSWERED: construction (not steering) is that mechanism; the −791 from 888 confirms it. Residual measured **105** (`PGEN-SV-EXH-PROOF-0153`, 2026-06-05) — within the ±~25 run-to-run noise band (runs: 97/89/105/120). **`.7.4.6.7` LANDED:** the shadowing lint proved 25 ordered-choice branches DEAD (exact duplicates); all 25 removed from `systemverilog.ebnf` → `ordered_choice_shadowing 25→0`, grammar fully lint-clean, parse-neutral (SV external corpus 14/14, lib 652/0, realistic 730/730). This is a NECESSARY literal-0 prerequisite (a permanently-uncoverable dead branch can never be driven to 0) + a grammar-correctness cleanup. The de-dup did NOT move the noisy measured residual — which pinned the DEEPER blocker: the residual METRIC was NON-DETERMINISTIC (±~25, from the generator's WALL-CLOCK timeout). **RESOLVED `GRAMMAR-WELLFORMED.B1` (`PGEN-GRAMMAR-WELLFORMED-0005`, 2026-06-05): replaced the wall-clock generation deadline (`Instant::now`) with a DETERMINISTIC step-counter budget → the canonical gate now reports closed_loop_replay_targets_total = 84 IDENTICAL across two independent runs (the ±25 wobble of 97/89/105/120 is GONE; proven by construction + empirically). The literal-0 metric is now SIGNAL, not noise — the constructive half of the well-formedness duality can be driven + measured deterministically.** Earlier hypotheses (generation-difficulty; pre/post-LR phantom) both DISPROVEN by source-trace (`.7.4.6.6`). SV external corpus 14/14; realistic corpus 730/730; release 1.0.136 (schema 3).
 
-**Dialect profiles (updated 2026-07-02, `VERILOG-2005-PROFILE.4.2`, `In Progress`):** the strict
-`verilog_2005` (IEEE 1364-2005) parsing profile on the SystemVerilog grammar (embedding API `1.3.0`;
-`GrammarProfile::Verilog2005` + aliases `1364-2005`/`ieee1364-2005`) is built to **wellformedness
-COHERENCE** (`--lint-grammar`: **0 `verilog_2005` profile-orphans**, held through `.4.2`) and its
-**bare-keyword SV-only surface is now gated too**. Landed by `.4.1`: 28 core baseline admissions, 103
-SV-only whole-rule gates, and the profile-split reserved lookahead (full IEEE 1364-2005 Annex B
-reserved under `verilog_2005`; the 48 SV-only reserved words parse as identifiers). Landed by `.4.2`:
-10 shape-preserving `_sv_only` named-lifts + the `interface_port_header` whole-rule leak gate, so
-`always_comb/latch/ff`, `do…while`/`foreach`, `bit`/`logic`/`shortreal` types, `interconnect`
-(port + declaration), `ref`/`const ref` directions, `wait fork;`/`wait_order(…)`, the delayed
-event-trigger form, and interface-typed ports all REJECT under `verilog_2005` while `sv_2017`/`sv_2023`
-ASTs stay byte-identical; the `wire logic;` over-rejection is CLOSED. Proven on the (`.4.1` 22-file +
-`.4.2` 23-file) conformance corpus with the full no-regression suite green (cert seeds 0/7/42
-`total=1324 UNKNOWN=20` deterministic, shape-contract 18/18, embedding 51/0, realistic corpus 239,
-external corpus non-uvm 10/10, clippy). Four PRE-EXISTING all-profile SV grammar defects are ledgered
-open with their own fix leaves (`SV-0021` mixed untyped→typed ANSI ports, `SV-0022` bind double-`semi`,
-`SV-0023` event-trigger `->>`/delay LRM complex, `SV-0024` un-braced multi-identifier port
-expressions). Remaining closure (tree `VERILOG-2005-PROFILE`, frontier `.4.3`): corpus promotion into
-`rust/test_data/grammar_quality/` + a repo-standard `verilog_2005` gate + a profiled cert baseline +
-the downstream SV-contract write-up. SV family closure status is UNCHANGED (`Mostly Done`); no SV
-release bump (`sv_2017`/`sv_2023` behavior proven invariant). Note: the SV figures in the paragraph
-above are from the 1.0.136 era; the current SV parser release is `1.0.158` / schema `13` (see
-per-parser book + `MEMORY.md`).
+**Dialect profiles (updated 2026-07-02, `VERILOG-2005-PROFILE.4.3`, `Mostly Done` — PROMOTED from
+`In Progress`):** the strict `verilog_2005` (IEEE 1364-2005) parsing profile on the SystemVerilog
+grammar (embedding API `1.3.0`; `GrammarProfile::Verilog2005` + aliases `1364-2005`/`ieee1364-2005`)
+now has its **repo-standard machine-checkable conformance surface**:
+`make -C rust SHELL=/bin/bash verilog_2005_conformance_gate`
+(script `rust/scripts/verilog_2005_conformance_gate.sh`, tracked contract
+`rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json`, corpus promoted from the
+`.4.1`/`.4.2` scratch sets into `rust/test_data/grammar_quality/verilog_2005_conformance/` — 12
+accept + 34 reject files). The gate asserts, against the pinned contract: (1) the **0
+`verilog_2005` profile-orphan `--lint-grammar` lock** (the `.3` standing sub-rule, mechanized);
+(2) the **full 3-profile accept/reject matrix** (138 file×profile checks — every Verilog-2005
+accept file parses under `verilog_2005`, every SV-only reject file rejects under `verilog_2005`
+while still parsing under `sv_2017`/`sv_2023`, incl. the spec-adjudicated divergences:
+`keywords_as_identifiers.v`/`wire_logic.v` correctly REJECT under the SV profiles, `bind_dir.sv`
+carries the `SV-0022` all-profile waiver) + 2 profile-alias normalization checks; (3) the **profiled
+cert-coverage BASELINE** `--grammar-profile verilog_2005`: `total=1138 proof=2 witness=826
+UNKNOWN=310 (sample_parse_failures=0)` deterministic at seeds 0/7/42 — a baseline pin, not a closure
+claim (the cert run itself classifies 277 of the 310 as NO-reach-path dead-rule candidates under the
+profile, i.e. the gated SV-only surface being profile-unreachable BY DESIGN; ratcheting the
+remainder is owned by follow-up leaf `.6`). The downstream SV integration-contract full
+`verilog_2005` write-up (deferred from `.2`) is landed, and the contract's stale embedding-API
+baseline (`1.2.0`→`1.3.0`) is corrected. **Why `Mostly Done`, not `Done`:** the proof surface is a
+curated corpus (tracker rule: curated lists cannot earn `Done`), and the ledgered `SV-0024`
+(un-braced multi-identifier port expressions accept under EVERY profile) is a known plausible gap in
+the strict-subset claim — `module m (interconnect w);` in the bare non-ANSI form still accepts under
+`verilog_2005` until `SV-0024` lands (the corpus pins the ANSI form). Left to close: `SV-0021`..
+`SV-0024` fix leaves, the `sv_cert_recognized_union_gate` count re-baseline (leaf `.5`, pinned
+`1304/1/1283+1302` vs actual `1324/2/1302+1321`), and the profiled-cert baseline ratchet (leaf
+`.6`). SV family closure status is UNCHANGED (`Mostly Done`); no SV release bump (`sv_2017`/
+`sv_2023` behavior invariant — this leaf adds only test-data/gate/doc surfaces, zero grammar/Rust
+source change). Note: the SV figures in the paragraph above are from the 1.0.136 era; the current
+SV parser release is `1.0.158` / schema `13` (see per-parser book + `MEMORY.md`).
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:

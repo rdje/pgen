@@ -86,7 +86,7 @@ parseability_probe --parse systemverilog file.sv --profile 2017
 parseability_probe --parse systemverilog file.sv --profile 2023
 ```
 
-For SystemVerilog, the recognized profile names are `2017`, `ieee1800-2017`, `ieee_1800_2017`, `2023`, `ieee1800-2023`, `ieee_1800_2023`. Other grammars may define their own profile names.
+For SystemVerilog, the recognized profile names are `2017`, `ieee1800-2017`, `ieee_1800_2017`, `2023`, `ieee1800-2023`, `ieee_1800_2023`, and — for the strict IEEE 1364-2005 (Verilog) subset dialect profile — `verilog_2005`, `1364-2005`, `ieee1364-2005`, `ieee_1364_2005`. Other grammars may define their own profile names.
 
 ### Parse from an alternate entry rule (`--entry-rule`)
 

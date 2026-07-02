@@ -1,0 +1,430 @@
+{
+  "family": "systemverilog",
+  "gate": "verilog_2005_conformance_gate",
+  "version": 1,
+  "description": "Repo-standard IEEE 1364-2005 conformance surface for the strict verilog_2005 dialect profile on grammars/systemverilog.ebnf: (1) the curated accept/reject corpus matrix across all three SV dialect profiles, (2) the 0-profile-orphan wellformedness lint lock, (3) the profiled certificate-coverage baseline, deterministic across seeds. Owned by task tree VERILOG-2005-PROFILE (leaf .4.3).",
+  "grammar_file": "grammars/systemverilog.ebnf",
+  "corpus_dir": "test_data/grammar_quality/verilog_2005_conformance",
+  "profiles": [
+    "verilog_2005",
+    "sv_2017",
+    "sv_2023"
+  ],
+  "alias_checks": [
+    {
+      "file": "accept/module_min.v",
+      "profile_alias": "ieee1364-2005",
+      "expect": "accept"
+    },
+    {
+      "file": "reject/class.sv",
+      "profile_alias": "1364-2005",
+      "expect": "reject"
+    }
+  ],
+  "lint": {
+    "expected_exit_code": 0,
+    "orphan_profile": "verilog_2005",
+    "expected_profile_orphans": 0
+  },
+  "cert": {
+    "entry_rule": "systemverilog_file",
+    "grammar_profile": "verilog_2005",
+    "samples": 40,
+    "seeds": [
+      0,
+      7,
+      42
+    ],
+    "expected_total": 1138,
+    "expected_proof": 2,
+    "expected_witness": 826,
+    "expected_unknown": 310,
+    "expected_sample_parse_failures": 0,
+    "expected_proof_reverify_failures": 0,
+    "baseline_note": "BASELINE pins, not a closure claim: under the strict subset profile the gated SV-only surface is profile-unreachable (the cert run itself classifies 277 of the 310 UNKNOWN as NO-reach-path dead-rule candidates under verilog_2005) — the expected posture per the tree's .1 D4 closure bar. Ratcheting the baseline down is its own follow-up work; drift in EITHER direction fails this gate and requires a re-baselined contract in the same commit."
+  },
+  "cases": [
+    {
+      "file": "accept/always_plain.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "accept/event_trigger.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "`-> e;` is the legal IEEE 1364-2005 event trigger."
+    },
+    {
+      "file": "accept/generate_param.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "accept/keywords_as_identifiers.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "reject",
+        "sv_2023": "reject"
+      },
+      "note": "The ~48 SV-only reserved words (`bit`, `int`, `class`, ...) are legal IEEE 1364-2005 identifiers (the D2 un-reserve axis); the sv_2017/sv_2023 `reject` rows are spec-correct because those words ARE reserved there. `initial assert (1);` is a legal 1364-2005 task enable of a task named `assert`."
+    },
+    {
+      "file": "accept/loops_core.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "accept/module_min.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "The minimal module; also the alias-normalization accept probe."
+    },
+    {
+      "file": "accept/real_types.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "accept/realistic_counter.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "accept/task_ports.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "accept/wait_order_task_enable.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "Legal 1364-2005 task enable of a user task named `wait_order` (un-reserved under the profile)."
+    },
+    {
+      "file": "accept/wait_stmt.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "accept/wire_logic.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "reject",
+        "sv_2023": "reject"
+      },
+      "note": "A net named `logic` is legal IEEE 1364-2005; `logic` is a reserved word under the SV profiles (spec-correct rejects there). Regression lock for the `.4.1` over-rejection closed in `.4.2`."
+    },
+    {
+      "file": "reject/alias_net.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/always_comb.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/always_ff.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/always_latch.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/bind_dir.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "reject",
+        "sv_2023": "reject"
+      },
+      "note": "SV-0022 waiver: the spec-valid single-semi `bind` never parses under ANY profile (pre-existing double-`semi` grammar defect), so the sv_2017/sv_2023 rows are also `reject`; re-adjudicate to `accept` when SV-0022 lands. The verilog_2005 `reject` remains the profile-correct expectation either way."
+    },
+    {
+      "file": "reject/bit_var.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/class.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "The first SV-only family gated (`.2`); also the alias-normalization reject probe."
+    },
+    {
+      "file": "reject/const_ref.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/covergroup.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/do_while.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/event_trigger_delay.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "`-> #5 e;` is legal in NEITHER dialect per the LRMs, but currently ACCEPTS under sv_2017/sv_2023 (SV-0023 mis-encoding of the `->>` delay form onto `->`); the sv-side `accept` rows record that defect posture — re-adjudicate when SV-0023 lands. verilog_2005 REJECT via the `event_trigger_control_sv_only` gate."
+    },
+    {
+      "file": "reject/final_block.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/foreach_stmt.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "Statement-body `foreach` form (non-reinterpretable as any 1364-2005 construct)."
+    },
+    {
+      "file": "reject/immediate_assert.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "Uses the non-reinterpretable `assert (1) else $error(...)` action-block form: a bare `initial assert (1);` is a legal 1364-2005 task enable (see the accept corpus), per feedback_corpus_expected_from_spec_not_fix."
+    },
+    {
+      "file": "reject/import_pkg.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/incdec.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/int_decl.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/interconnect_decl.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/interconnect_port.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "Pinned on the ANSI form `input interconnect w` until SV-0024 (un-braced non-ANSI `port_expression` list over-acceptance, `module m (a b);`) lands."
+    },
+    {
+      "file": "reject/interface.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/jump_return.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "Uses `return x;` (argument form): a bare `return;` is a legal 1364-2005 task enable of a task named `return`, per feedback_corpus_expected_from_spec_not_fix."
+    },
+    {
+      "file": "reject/logic_var.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/modport.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/package.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/program.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/property.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/randcase.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/ref_dir.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/shortreal_var.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/timeunit.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/typedef.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/unique_case.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/wait_fork.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      }
+    },
+    {
+      "file": "reject/wait_order_else.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "Uses the `else`-action form task enables cannot take; a plain `wait_order (a, b);` is a legal 1364-2005 task enable (see the accept corpus)."
+    }
+  ]
+}

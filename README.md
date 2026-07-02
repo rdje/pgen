@@ -185,6 +185,9 @@ PGEN is a production-focused parser and stimuli generator platform.
     - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=16 PGEN_SV_STIMULI_QUALITY_TARGET_GENERATION_TIMEOUT_MS=5 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - helper probes still use their separate maintained budget surface:
     - `PGEN_SV_STIMULI_QUALITY_TARGET_HELPER_TIMEOUT_MS=<ms>`
+- Verilog-2005 dialect-profile conformance gate:
+  - `make -C rust SHELL=/bin/bash verilog_2005_conformance_gate`
+  - asserts the strict `verilog_2005` (IEEE 1364-2005) profile surface against the tracked contract `rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json`: the `--lint-grammar` 0-profile-orphan lock, the curated accept/reject corpus matrix across `verilog_2005`/`sv_2017`/`sv_2023`, and the profiled certificate-coverage baseline (deterministic across seeds 0/7/42)
 - VHDL quality gate:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
   - the default gate-local Rust build cache under `rust/target/vhdl_stimuli_quality_gate/cargo_target` is pruned automatically when the gate exits; the retained evidence remains in `work/` and `logs/`

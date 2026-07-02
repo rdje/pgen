@@ -465,6 +465,7 @@ help:
 	@echo "  sv_external_corpus_triage_gate - Run deterministic external SystemVerilog corpus preprocess/parse triage over tracked SV/UVM sources"
 	@echo "  sv_formal_exhaustive_closure_gate - Compute the explicit SV exhaustive-closure proof surface status from family-status and external-corpus sidecars"
 	@echo "  sv_cert_recognized_union_gate - Lock the recognized SV multi-config certificate-coverage UNION accounting basis (canonical + union UNKNOWN + residual, deterministic across seeds)"
+	@echo "  verilog_2005_conformance_gate - Enforce the strict verilog_2005 (IEEE 1364-2005) profile conformance surface (corpus accept/reject matrix, 0-profile-orphan lint lock, profiled cert baseline)"
 	@echo "  regex_parser_family_contract_gate - Enforce combined contract for the current regex family proof surfaces"
 	@echo "  regex_broader_corpus_proof_gate - Run deterministic broader regex corpus proof over the checked-in regex stress corpus"
 	@echo "  regex_pcre2_textsafe_corpus_gate - Normalize canonical PCRE2 testdata into a conservative text-safe slice and measure generated regex parser acceptance"
@@ -1140,6 +1141,12 @@ sv_cert_recognized_union_gate:
 	@echo "🧪 Running SV recognized certificate-coverage union gate..."
 	cd $(RUST_DIR) && ./scripts/sv_cert_recognized_union_gate.sh
 	@echo "✅ SV recognized certificate-coverage union gate passed."
+
+.PHONY: verilog_2005_conformance_gate
+verilog_2005_conformance_gate:
+	@echo "🧪 Running verilog_2005 (IEEE 1364-2005) conformance gate..."
+	cd $(RUST_DIR) && ./scripts/verilog_2005_conformance_gate.sh
+	@echo "✅ verilog_2005 conformance gate passed."
 
 .PHONY: sv_preprocessor_formal_exhaustive_closure_gate
 sv_preprocessor_formal_exhaustive_closure_gate:

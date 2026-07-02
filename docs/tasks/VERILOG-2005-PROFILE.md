@@ -287,13 +287,67 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     (own fix leaf, behavior-tightening all profiles). The conformance corpus pins the interconnect
     PORT reject case on the ANSI form `module m (input interconnect w);` until SV-0024 lands.
 
-- ID: `VERILOG-2005-PROFILE.4.3` — closure leaf: promote the scratch conformance corpus into
-  `rust/test_data/grammar_quality/` + a repo-standard `verilog_2005` gate (accept set + reject set +
-  the 0-orphan lint lock), a profiled cert-coverage baseline (`--grammar-profile verilog_2005`), the
-  downstream SV integration-contract full `verilog_2005` write-up, and the LIVE promotion decision.
-  (The `sv_cert_recognized_union_gate` count re-baseline stays its OWN leaf per `.4`; drift now
+- ID: `VERILOG-2005-PROFILE.4.3`
+  Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0009`) — CLOSURE leaf (gate/test-data/docs
+  only; NO `grammars|rust/src|generated|ast_shape_contract` change — zero grammar or Rust-source
+  edits). As executed (see "`.4.3` Findings" + "Acceptance Checklist (`.4.3`)"):
+  - **Corpus promoted**: the `.4.1`/`.4.2` scratch conformance sets (recovered from the prior
+    sessions' `/private/tmp` scratchpads before they could be wiped) now live tracked at
+    `rust/test_data/grammar_quality/verilog_2005_conformance/{accept,reject}/` — **12 accept + 34
+    reject files** (the union of the `.4.1` 4-accept/19-reject and `.4.2` 8-accept/15-reject sets).
+  - **Repo-standard gate**: `make -C rust SHELL=/bin/bash verilog_2005_conformance_gate` →
+    `rust/scripts/verilog_2005_conformance_gate.sh` asserting the tracked contract
+    `rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json` (the
+    `sv_cert_recognized_union_gate` template): (1) the `--lint-grammar` **0 `verilog_2005`
+    profile-orphan lock** (mechanizes the `.3` standing sub-rule — headline `profile_orphans=` AND
+    the per-rule orphan-error line count must both equal 0, lint rc must equal 0); (2) the **full
+    per-file × per-profile accept/reject matrix** — 138 checks (every case × every profile in its
+    expectation map) + 2 profile-alias normalization probes (`ieee1364-2005` accept,
+    `1364-2005` reject); (3) the **profiled cert-coverage baseline** (below), all fields pinned,
+    determinism asserted across seeds. Emits `summary.txt`/`summary.json` under
+    `rust/target/verilog_2005_conformance_gate/`.
+  - **Profiled cert baseline measured + pinned** (`--grammar-profile verilog_2005 --entry-rule
+    systemverilog_file --count 40`): `total=1138 proof=2 witness=826 UNKNOWN=310
+    (sample_parse_failures=0, proof_reverify_failures=0)`, byte-identical headline at seeds 0/7/42.
+    Honest read (recorded in the contract's `baseline_note`): 277 of the 310 UNKNOWN are
+    NO-reach-path dead-rule candidates UNDER THIS PROFILE — the gated SV-only surface being
+    profile-unreachable BY DESIGN (the `.1` D4 "expected and acceptable" posture) — so the pin is a
+    regression lock + ratchet floor, NOT a closure claim; the genuine-remainder ratchet is leaf `.6`.
+  - **Downstream contract write-up** (deferred from `.2`): full § "Dialect Profile —
+    `verilog_2005`" in `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
+    (selection surface, reliance surface, honest boundary `SV-0021`..`SV-0024`, support boundary);
+    identity block gains the `verilog_2005` host profile + corrects the STALE embedding-API
+    baseline `1.2.0`→`1.3.0` (a `.2`-era lockstep gap found during this leaf).
+  - **LIVE promotion decision**: dialect-profiles block `In Progress` → **`Mostly Done`** — NOT
+    `Done`, per the tracker's own rules: the proof surface is a curated corpus (rule: curated lists
+    cannot earn `Done`) and the ledgered `SV-0024` is a known plausible leak in the strict-subset
+    claim (bare `module m (interconnect w);` still accepts under `verilog_2005`).
+  - Book lockstep: main book `parser-families.md` (gate + baseline + honest read),
+    `parseability-probe-debug.md` (the `verilog_2005` alias set was MISSING from the recognized
+    profile-names list — drift found in the `.4.3` startup book audit), SV parser book
+    `glossary.md`; README standard-commands gains the gate.
+  (The `sv_cert_recognized_union_gate` count re-baseline stays its OWN leaf — now `.5`; drift
   `1304→1324` after `.4.1`'s 3 + `.4.2`'s 10 accounted new rules — canonical `1324/2/1302`,
   union witness `1321`.)
+
+- ID: `VERILOG-2005-PROFILE.5` — **frontier**: re-baseline the `sv_cert_recognized_union_gate`
+  count pins (`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`),
+  RED on COUNTS only since the `SV-AST-SHAPE-FIDELITY` campaign: pinned
+  `expected_total=1304 / proof=1 / canonical_witness=1283 / union_witness=1302` vs actual
+  `1324 / 2 / 1302 / 1321` (semantic invariants INTACT throughout: canonical `UNKNOWN=20`, union
+  `UNKNOWN=1`, residual `["context_member_method_call"]`, `spf=0`, deterministic seeds 0/7/42).
+  Root cause git-traced in `.2` Findings (contract pinned at `5d8801d6`/release `1.0.151`;
+  `SV-0014`→`SV-0020` + the `.4.1` 3 + `.4.2` 10 named-lift rules landed without re-baselining).
+  Scope: update the count pins + the contract-version/provenance note; re-run the gate to GREEN;
+  one concern per commit (no other edits).
+
+- ID: `VERILOG-2005-PROFILE.6` — proposed (not started): ratchet the `verilog_2005` profiled
+  cert-coverage baseline. Adjudicate the 310-UNKNOWN residual tools-first (the 3-step protocol):
+  the 277 NO-reach-path candidates are expected profile-unreachable SV-only surface (adjudicate a
+  sample against the oracle + the gate census; candidates for per-profile `proof` accounting
+  rather than `UNKNOWN` — an engine-accounting question, own design pass), and the ~33 genuine
+  reach/witness gaps under the profile are the ratchet targets. Every improvement re-baselines
+  `verilog_2005_conformance_contract_v0.json` in the same commit.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -543,6 +597,67 @@ proof).
   pins (1304/1/1283+1302) remain the pre-existing stale-pin drift — now 1324/2/1302+1321 — owned by
   the standing re-baseline leaf (per `.4`).
 
+## `.4.3` Findings (tools-first, 2026-07-02)
+
+- **The scratch corpora survived, and the fresh matrix reproduces the recorded adjudications
+  EXACTLY.** Both prior sessions' scratchpads were still present under
+  `/private/tmp/claude-501/…/scratchpad/`; the 46 corpus files were backed up, promoted, and the
+  full 46-file × 3-profile probe matrix re-measured on the HEAD binaries: 12/12 accepts under
+  `verilog_2005`; 34/34 rejects under `verilog_2005`; every reject still ACCEPTS under
+  `sv_2017`/`sv_2023` except `bind_dir.sv` (the ledgered `SV-0022` all-profile waiver, exactly as
+  recorded); `keywords_as_identifiers.v` + `wire_logic.v` REJECT under the SV profiles
+  (spec-correct — those words are reserved in IEEE 1800). Zero surprises vs the `.4.1`/`.4.2`
+  checklists — the promoted contract pins measured behavior, not aspiration.
+- **The profiled cert baseline is deterministic and self-explaining.** Three independent runs
+  (seeds 0/7/42) produced byte-identical headlines: `total=1138 proof=2 witness=826 UNKNOWN=310
+  (spf=0, prf=0)`. The run's own diagnostics classify 277/310 as `NO reach path from the entry`
+  dead-rule candidates — under a strict-subset profile that IS the design (SV-only rules gated out
+  of `verilog_2005` remain in the census but are correctly unreachable), matching the `.1` D4
+  prediction "SV-only rules become unreachable/proof under the profile — expected and acceptable".
+  The `total` drop `1324→1138` (sv_2017 vs verilog_2005 active-universe) is the gated surface.
+- **A `.2`-era lockstep gap surfaced and closed**: the SV integration contract still declared
+  embedding-API baseline `1.2.0` (the `.2` slice bumped the API to `1.3.0` and updated
+  `EMBEDDING_API_CONTRACT.md` + the SV book, but not this contract's identity block — the full
+  contract write-up had been deferred to `.4.3`, so the stale line rode along). Corrected with the
+  write-up; the correction is annotated in-place in the contract.
+- **Gate-log disk hygiene**: the `focus_systemverilog` regen stage streams a ~5 GB stdout log; the
+  gate now prunes any successful-or-failed stage log above 10 MB down to its last 2000 lines (the
+  failure-triage tail is what matters; the repo's disk-space doctrine forbids retaining
+  multi-GB scratch logs). Same posture as `ci_workflow_local_gate`'s successful-run cleanup.
+
+## Acceptance Checklist (`.4.3`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — the `.4.3` gap at HEAD: conformance corpus existed ONLY in wipeable
+  `/private/tmp` session scratchpads (46 files located + backed up tools-first); NO repo-standard
+  `verilog_2005` gate target existed (`make -C rust … verilog_2005_conformance_gate` was an
+  unknown target); the profiled cert baseline had never been measured; the SV integration contract
+  had ZERO `verilog_2005` mentions (grep-verified) and a stale `1.2.0` embedding-API baseline.
+- [x] **ROOT CAUSE (WHY + WHERE)** — not a defect leaf: the closure surfaces were EXPLICITLY
+  deferred here by design (`.2` Decisions: contract write-up deferred to the closure leaf; `.4`
+  plan: corpus/gate/baseline = the `.4.3` band). The one genuine drift (stale `1.2.0`) is
+  pinned to the `.2` lockstep having updated `EMBEDDING_API_CONTRACT.md` + SV book but not the SV
+  integration contract's identity block.
+- [x] **FIX** — closure artifacts, no grammar/engine change (fix-hierarchy tier: N/A — test-data +
+  gate + docs): 46-file tracked corpus + contract JSON (138-cell matrix, every cell measured, notes
+  spec-derived) + gate script (lint lock / matrix / alias probes / cert pins + determinism) +
+  Makefile target + contract § + LIVE promotion + book/README lockstep.
+- [x] **ADDRESSED (verified)** — `make -C rust SHELL=/bin/bash verilog_2005_conformance_gate`
+  **GREEN end-to-end** (gate_green=true, unmet_criteria_count=0): lint rc=0 with 0 `verilog_2005`
+  orphans (headline + per-rule line count both asserted), corpus 138/138 file×profile checks with 0
+  mismatches, 2/2 alias probes, cert `1138/2/826/310/spf=0` byte-identical across seeds 0/7/42
+  (`rust/target/verilog_2005_conformance_gate/summary.{txt,json}`).
+- [x] **NO REGRESSION** — zero grammar / Rust-source / generated / shape-manifest change in this
+  leaf (docs + test-data + shell + Makefile only), so the parser oracles are INERT BY CONSTRUCTION;
+  the gate itself re-ran the heavy oracles fresh on HEAD binaries: cert seeds 0/7/42 deterministic
+  `spf=0`, lint rc=0 warnings unchanged (8 A2-backlog), 138-check corpus matrix green;
+  `mdbook_docs_gate` + `systemverilog_parser_book_gate` GREEN after the book edits; clippy N/A
+  (no Rust change).
+- [x] **LOCKSTEP** — SV integration contract (full profile §, identity block, trust statement);
+  LIVE dialect block (`In Progress`→`Mostly Done` + why-not-Done); main book `parser-families.md`
+  + `parseability-probe-debug.md` (alias-list drift closed); SV parser book `glossary.md` (+ gate
+  rebuild); README standard commands; CHANGES / DEVELOPMENT_NOTES / MEMORY; tree +
+  `docs/TASK_TREE.md` frontier → `.5`.
+
 ## Acceptance Checklist (`.4.2`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — HEAD-binary probe matrix over the authored `.4.2` corpus:
@@ -761,6 +876,23 @@ proof).
   swapped `kind` labels, array-trigger selects) is `SV-0023`'s own fix leaf — one concern per
   commit, per the `.4.1` `SV-0021`/`SV-0022` precedent.
 
+- 2026-07-02 (`.4.3`): **LIVE promotion = `Mostly Done`, deliberately NOT `Done`.** Two
+  tracker-rule-grounded reasons: (1) the proof surface is a curated corpus, and the tracker forbids
+  `Done` on curated/manual construct lists where grammar-derived exhaustiveness is expected (the
+  grammar-derived surface here would be profiled-cert witness parity — leaf `.6`); (2) `SV-0024` is
+  a KNOWN plausible leak in the strict-subset claim (bare `module m (interconnect w);` accepts under
+  `verilog_2005` at HEAD). Signoff honesty over promotion optics.
+- 2026-07-02 (`.4.3`): **contract expectations pin MEASURED behavior with ledgered waivers named
+  in-row** — every non-obvious matrix cell carries its spec-derivation or defect-waiver note
+  (`SV-0022` bind reject-everywhere, `SV-0023` sv-side delay-form accepts, `SV-0024` ANSI-form pin,
+  keyword-reservation divergences). When a ledgered defect lands, the gate FAILS by design and the
+  contract row is re-adjudicated in the fixing commit — the waiver can never silently outlive its
+  defect.
+- 2026-07-02 (`.4.3`): **bulky gate stage-logs are pruned, not retained** — any stage log over
+  10 MB keeps only its last 2000 lines (success AND failure; the triage tail is what the gate's own
+  failure path prints). The `focus_systemverilog` stage otherwise retains ~5 GB per run, violating
+  the disk-space doctrine.
+
 ## Open Questions
 
 - ~~Exact default-profile-membership semantics of an UN-annotated rule~~ — **RESOLVED (`.1`)**:
@@ -863,7 +995,24 @@ proof).
   SV-only regen; release/schema unchanged (`1.0.158`/13). Two pre-existing defects ledgered
   (`SV-0023` event-trigger complex; `SV-0024` un-braced `port_expression`).
 
+- 2026-07-02 (`.4.3`, CLOSURE — full verification): see "Acceptance Checklist (`.4.3`)" for the
+  earned boxes. Headlines: 46-file corpus matrix re-measured on HEAD binaries BEFORE pinning
+  (12 accept + 34 reject under `verilog_2005`; per-profile divergences exactly as adjudicated in
+  `.4.1`/`.4.2`); profiled cert `--grammar-profile verilog_2005` measured 3× (seeds 0/7/42):
+  `total=1138 proof=2 witness=826 UNKNOWN=310 spf=0 prf=0` byte-identical (277/310 self-classified
+  NO-reach-path under the profile); `verilog_2005_conformance_gate` GREEN end-to-end
+  (lint lock + 138/138 matrix + 2/2 aliases + cert pins + determinism);
+  `mdbook_docs_gate` + `systemverilog_parser_book_gate` GREEN post-lockstep. No grammar / Rust /
+  generated / shape-manifest change (docs + test-data + shell + Makefile only).
+
 ## Commit Log
+
+- 2026-07-02 (`.4.3`, CLOSURE, `PGEN-VERILOG-2005-PROFILE-0009`): corpus promoted (46 tracked
+  files), repo-standard `verilog_2005_conformance_gate` landed (contract JSON + script + Makefile
+  target; lint lock + 138-check matrix + alias probes + profiled cert baseline pins, deterministic
+  seeds 0/7/42), downstream SV-contract full `verilog_2005` write-up (+ stale `1.2.0`→`1.3.0`
+  embedding-baseline fix), LIVE `In Progress`→`Mostly Done`, book/README lockstep. Frontier →
+  `.5` (union-gate count re-baseline).
 
 - 2026-07-02 (`.4.2`, CODE, `PGEN-VERILOG-2005-PROFILE-0008`): cluster (c) branch-lifts — 10
   shape-preserving `_sv_only` named-lifts (always/loop/vector-type/non-integer-type/interconnect
@@ -912,6 +1061,20 @@ proof).
   concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
+
+- 2026-07-02: `.4.3` DONE (`PGEN-VERILOG-2005-PROFILE-0009`, CLOSURE — gate/test-data/docs, no
+  code-classified change) — the profile's machine-checkable closure surface landed: 46-file
+  conformance corpus promoted into `rust/test_data/grammar_quality/verilog_2005_conformance/`;
+  repo-standard `verilog_2005_conformance_gate` (tracked contract + script + Makefile target)
+  locking the 0-orphan lint invariant, the 138-check 3-profile accept/reject matrix (+2 alias
+  probes), and the newly measured profiled cert baseline `total=1138 proof=2 witness=826
+  UNKNOWN=310 spf=0` (deterministic seeds 0/7/42; 277/310 = profile-unreachable-by-design SV-only
+  surface); downstream SV integration-contract full `verilog_2005` write-up + stale embedding-API
+  baseline `1.2.0`→`1.3.0` corrected; LIVE dialect block PROMOTED `In Progress`→`Mostly Done`
+  (deliberately not `Done`: curated-corpus proof + the `SV-0024` known leak); main-book /
+  probe-book alias-list / SV-book / README lockstep. SV family status UNCHANGED (`Mostly Done`).
+  Frontier → `.5` (the `sv_cert_recognized_union_gate` count re-baseline); `.6` proposed
+  (profiled-cert baseline ratchet).
 
 - 2026-07-02: `.4.2` DONE (`PGEN-VERILOG-2005-PROFILE-0008`, CODE) — cluster (c) branch-lifts
   landed: 10 shape-preserving `_sv_only` named-lifts + the `interface_port_header` leak gate make
