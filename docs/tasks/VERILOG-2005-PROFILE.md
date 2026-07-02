@@ -555,14 +555,27 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     (identical failure on the pre-change binary — spun off as `CERT-GEN-BUDGET.3`). See
     "Acceptance Checklist (`.6.3.2`)". `.6.3` is UNBLOCKED — replay next.
 
-  - ID: `VERILOG-2005-PROFILE.6.4` — **frontier** pending: RATCHET leaf — witness the 6 class-D in-profile
-    rules (`simple_identifier_no_scope`, `scope_free_identifier`, `ps_identifier` via the
-    `wire #foo w;` delay-identifier route; `hierarchical_tf_identifier` via `top.f(1);`;
-    `identifier_list` via the `randomize(a,b)` plain-call route; `scalar_constant` via specify
-    timing checks) under the `verilog_2005` cert. Note the `scalar_constant` sub-finding: its
-    forced sample is doubly blocked (off-profile `input logic a` scaffold + a malformed `1'b`
-    binary literal missing its digit) — both mechanisms need their own WHY+WHERE before any fix.
-    UNKNOWN 310 → ≤304 target; re-baseline the contract in the same commit as each improvement.
+  - ID: `VERILOG-2005-PROFILE.6.4` — Status: `done` (2026-07-02, session #21,
+    `PGEN-VERILOG-2005-PROFILE-0017`, ZERO code — INVESTIGATION/ADJUDICATION leaf, tools-first):
+    the class-D ratchet as scoped is **not earnable**; the 6 targets fully re-adjudicated on the
+    HEAD (post-`.6.3`) grammar/binaries (see "`.6.4` Findings"). (a) The identifier TRIO
+    (`simple_identifier_no_scope`, `scope_free_identifier`, `ps_identifier`) is **already
+    witnessed** — the `.6.3.2` carrier-diversification pass rescues them through the in-profile
+    `module m(a,b);` carrier (`[carrier-div-probe] … parsed=true witnessed_target=true`); the
+    pinned `809/327` baseline already contains those witnesses, so no delta is available from
+    them. (b) `identifier_list` RECLASSIFIED class D→B: its SOLE reference sits inside
+    `randomize_call`'s `with`-clause whose MANDATORY tail `constraint_block` is
+    `@profiles ["sv_2017","sv_2023"]`-gated (`grammars/systemverilog.ebnf:4544`/`:1441`) —
+    semantically unreachable under `verilog_2005`; the `.6.1` `randomize(a,b)` probe exercised
+    `variable_identifier_list`, a different rule. → `.6.5` accounting. (c)
+    `hierarchical_tf_identifier` RECLASSIFIED: its sole production MANDATES the `$root.` prefix
+    (`:2372`); the `.6.1` `top.f(1)` probe never exercised it, and `$root` is SV-only → post-fix
+    it is gated SV-only surface (class A-like), not a v2005 ratchet target. (d) `scalar_constant`
+    BLOCKED on two tool-named grammar defects (digit-loss + PEG shadowing; ledgered `SV-0030`).
+    MAJOR side discovery, ledgered + spawned: the **19 `kw_sv_dollar_*` keyword tokens match the
+    literal text `sv_dollar_*` instead of the LRM `$*` spellings** (`SV-0029`; new tree
+    `SV-DOLLAR-LRM-FIDELITY`). `verilog_2005` cert UNKNOWN stays `327` (= pins, headline
+    reproduced byte-identical at seed 0); no code/grammar/generated change.
 
   - ID: `VERILOG-2005-PROFILE.6.5` — proposed: DESIGN leaf (engine-accounting) — per-profile
     `proof` accounting for (i) the 277 NO-reach-path profile-gated rules, (ii) class-A store-gated
@@ -734,6 +747,80 @@ first (`CERTIFICATE-COVERAGE: … total=1326 proof=2 witness=1304 UNKNOWN=20 spf
   armed name-preludes only (99 spec lines / 10 distinct gated rules in the canonical run).
 - **Fix leaf:** `.6.3.2` (integrity check + depth-fresh retry at the injection site). `.6.3`
   replays after it.
+
+## `.6.4` Findings (tools-first, 2026-07-02 — the class-D ratchet re-adjudication)
+
+All evidence from HEAD binaries (SV release `1.0.158`, schema `13`), grammar at the `.6.3`
+state (census 1450), profile `verilog_2005`, entry `systemverilog_file`, `--count 40 --seed 0`:
+`PGEN_CERT_COVERAGE_DUMP_ALL=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 … --report-certificate-coverage …`.
+Headline reproduced the contract pins byte-for-byte:
+`CERTIFICATE-COVERAGE: … total=1138 proof=2 witness=809 UNKNOWN=327 (sample_parse_failures=0,
+proof_reverify_failures=0)`.
+
+- **The identifier trio is ALREADY WITNESSED** (`simple_identifier_no_scope`,
+  `scope_free_identifier`, `ps_identifier` are NOT in the 327-rule UNKNOWN dump). Every
+  plannable/target-own/store-free probe still fails on the off-profile
+  `module m(input logic a);` carrier (the `module_ansi_header` rule-level `@sample` at
+  `grammars/systemverilog.ebnf:3137` — `logic` is SV-only), but the `.6.3.2`-era
+  carrier-diversification pass re-rolls the header and lands each of the three:
+  `[carrier-div-probe] rule='simple_identifier_no_scope' parsed=true witnessed_target=true
+  sample="module m(a,b);\foo #foo(\foo ,1.9E07);endmodule"` (same shape for the other two).
+  The `.6.3` re-pin (`809/327`) already counts these witnesses — the leaf's stale
+  `UNKNOWN 310→≤304` target text predated `.6.2`/`.6.3`.
+- **`identifier_list` is class B, not D** (misclassification in `.6.1`): grep proves its SOLE
+  reference is `randomize_call`'s `with`-clause (`:4544` —
+  `kw_with ( lparen ( identifier_list )? rparen )? constraint_block`), and the MANDATORY tail
+  `constraint_block` (`:1441`) is `@profiles: ["sv_2017","sv_2023"]`-gated — any sample carrying
+  `identifier_list` must also render a `constraint_block`, unsatisfiable under `verilog_2005`
+  (consistent with `.6.1`'s own "the SV-only `with {…}` form correctly REJECTS" probe). The
+  `.6.1` class-D justification (`x = randomize(a);` ACCEPTS) exercised
+  `variable_identifier_list` (`:5679`), a different rule. Probes: plannable/store-free forced
+  samples all degenerate to `module m; endmodule` (`parsed=true witnessed_target=false` — the
+  planner cannot render the gated tail). → per-profile accounting is `.6.5` scope.
+- **`hierarchical_tf_identifier` is `$root`-mandatory, not in-profile**: the rule (`:2372`) is
+  `kw_sv_dollar_root_f65f0e67 dot ( identifier constant_bit_select dot )* callable_identifier` —
+  the `$root.` anchor is MANDATORY. The `.6.1` class-D probe `module m; initial top.f(1);
+  endmodule` never touches this rule (no `$root.`). AST-dump control: `$root.top.f(1);` under
+  `sv_2017` parses with `kind:"system_tf"` only (zero `hierarchical`/`root` kinds) — `$root` is
+  consumed by the generic `system_tf_identifier` token (`:449`), never this rule. Since `$root`
+  is SV-only (no counterpart in IEEE 1364-2005), the rule belongs to the gated SV-only surface
+  once `SV-0029` is fixed. Witness probes: `parsed=true witnessed_target=false` on the
+  non-scaffold carrier-div forms (mis-routed through `hierarchical_identifier`'s OPTIONAL
+  `$root.` prefix, `:2356`), `parsed=false` elsewhere (scaffold).
+- **`scalar_constant` is blocked on two grammar defects (`SV-0030`)**: (1) EXTRACTION DIGIT
+  LOSS — IEEE 1364-2005/1800 `scalar_constant ::= 1'b0 | 1'b1 | 1'B0 | 1'B1 | 'b0 | 'b1 | 'B0 |
+  'B1 | 1 | 0` (faithfully present in `grammars/systemverilog_2017_lrm_extracted.ebnf:951`);
+  the active rule (`:4713`) lost every trailing digit (`kw_n_1_tick_b_f4c81681 := trivia "1'b"`,
+  `:6068`). (2) PEG SHADOWING — `scalar_timing_check_condition` (`:4720`) lists bare
+  `expression` FIRST, so the `expression equal scalar_constant` branches can never win:
+  probe `$…(d &&& e == 1'b0, …)` ACCEPTS via the bare-expression branch (LRM spelling never
+  reaches `scalar_constant`), probe `… e == 1'b, …` REJECTS at the outer sequence (the committed
+  bare-`expression` choice consumes `e`, then `==` breaks the sequence). Generator forced
+  samples render `==1'b` (duality with the defective grammar) and correctly `parsed=false`.
+  The rule is covered on the `sv_2017` side only through the recognized-UNION lane (union
+  `UNKNOWN=1` = `context_member_method_call` only). No honest v2005 witness exists until
+  `SV-0030` lands (order the eq/ne branches before bare `expression` + restore the digits).
+- **MAJOR side discovery — the `sv_dollar_*` mangled-literal token family (`SV-0029`, new tree
+  `SV-DOLLAR-LRM-FIDELITY`):** 19 keyword tokens (`grammars/systemverilog.ebnf:6248-6284`)
+  match the literal TEXT `sv_dollar_*` instead of the LRM `$*` spellings (e.g.
+  `kw_sv_dollar_setup_b58bdaae := trivia /sv_dollar_setup\b/`). Provenance: the extracted LRM
+  snapshots carry the true `$` spellings (zero `sv_dollar` matches in BOTH
+  `systemverilog_2017_lrm_extracted.ebnf` and `verilog_2005_lrm_extracted.ebnf`); the mangling
+  entered via the profiled-synthesis name canonicalization
+  (`tools/extract_systemverilog_lrm_profiles.py:315` — `$name` → `sv_dollar_name`, correct for
+  RULE NAMES, leaked into the keyword-token LITERALS). No pre-parse rewrite exists anywhere
+  (`grep -rn "sv_dollar" rust/src/` → zero hits), so the defect is live in the released parser.
+  Probes (parseability_probe, `sv_2017` unless noted): LRM `$setup(d, posedge clk, 1);` in
+  specify REJECTS (`furthest_position=26`) and also REJECTS under `verilog_2005` (timing checks
+  are CORE 1364-2005 §15 surface); nonsense `sv_dollar_setup(…)` ACCEPTS; LRM `$unit::y`
+  REJECTS / `sv_dollar_unit::y` ACCEPTS; LRM module-level `$fatal;` (IEEE 1800 §20.11
+  elaboration severity task) REJECTS / `sv_dollar_fatal;` ACCEPTS; `$root.top.f(1);` ACCEPTS
+  but mis-routed (`kind:"system_tf"`). Affected surfaces: 12 specify timing checks
+  (`system_timing_check`, `:5095+`), `$root` (`:2356`/`:2372`), `$unit` (`:3762`), the 4
+  elaboration/severity tasks (`:2019+`/`:4871+`), the bare `$` primary (`:2976`/`:2993`/
+  `:4026`/`:4081`). External-corpus 14/14 never exercised these spellings (no timing checks /
+  `$unit::` / module-level severity tasks in the corpus), which is why the family stayed
+  invisible.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -1495,7 +1582,40 @@ proof).
   2026-06-25 A/B) → `CERT-GEN-BUDGET.3` spawned; not caused by this leaf. Union-gate 4.9 GB
   regen log pruned post-pass (the `H.12.8.5.2` `prune_log` port remains open).
 
+- 2026-07-02 (`.6.4`, INVESTIGATION/ADJUDICATION — ZERO code): baseline reproduced
+  byte-identical first (`1138/2/809/327 spf=0 prf=0`, seed 0, HEAD binaries, full
+  `PGEN_CERT_COVERAGE_DUMP_ALL=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1` run). Trio verdicts: NOT in
+  the 327-list; `[carrier-div-probe] … parsed=true witnessed_target=true` through the
+  `module m(a,b);` carrier for all three (every earlier pass still `parsed=false` on the
+  `module m(input logic a);` `@sample` scaffold, `systemverilog.ebnf:3137`). `identifier_list`:
+  grep = sole reference inside `randomize_call`'s with-clause (`:4544`) with MANDATORY gated
+  tail `constraint_block` (`:1441`, `@profiles ["sv_2017","sv_2023"]`) → class B; forced samples
+  degenerate to `module m; endmodule` (`parsed=true witnessed_target=false`).
+  `hierarchical_tf_identifier`: rule text `:2372` mandates `kw_sv_dollar_root … dot`; AST-dump
+  control `$root.top.f(1);` under `sv_2017` → `kind:"system_tf"` only (mis-routed; zero
+  hierarchical/root kinds). `scalar_constant`: probes `e == 1'b0` ACCEPT-via-expression /
+  `e == 1'b` REJECT prove the eq-branches PEG-shadowed + the digit loss vs
+  `systemverilog_2017_lrm_extracted.ebnf:951`. `SV-0029` family probes (all
+  `parseability_probe`): LRM `$setup(…)` REJECT under `sv_2017` (`furthest_position=26`) AND
+  under `verilog_2005`; mangled `sv_dollar_setup(…)` ACCEPT; `$unit::y` REJECT /
+  `sv_dollar_unit::y` ACCEPT; module-level `$fatal;` REJECT / `sv_dollar_fatal;` ACCEPT.
+  Provenance: zero `sv_dollar` in both extracted LRM snapshots; mangling site
+  `tools/extract_systemverilog_lrm_profiles.py:315`; zero `sv_dollar` hits in `rust/src/`
+  (no pre-parse rewrite). No grammar / code / generated / release change.
+
 ## Commit Log
+
+- 2026-07-02 (`.6.4` INVESTIGATION, `PGEN-VERILOG-2005-PROFILE-0017`): the class-D witness
+  ratchet ADJUDICATED — no earnable `verilog_2005` UNKNOWN delta (ZERO code): the identifier
+  trio is already witnessed inside the `809/327` pins (rescued by the `.6.3.2`
+  carrier-diversification through the in-profile `module m(a,b);` carrier); `identifier_list`
+  reclassified D→B (gated mandatory `constraint_block` tail); `hierarchical_tf_identifier` is
+  `$root`-mandatory SV-only surface (the `.6.1` `top.f(1)` probe never exercised it);
+  `scalar_constant` blocked on the new `SV-0030` (digit loss + PEG shadowing). MAJOR side
+  discovery ledgered `SV-0029`: 19 `kw_sv_dollar_*` tokens match mangled `sv_dollar_*` literals
+  instead of the LRM `$*` spellings (LRM `$setup`/`$unit::`/module-level-`$fatal` REJECT;
+  nonsense spellings ACCEPT; `$root.` mis-routed) → new fix tree `SV-DOLLAR-LRM-FIDELITY`.
+  Frontier → `SV-DOLLAR-LRM-FIDELITY.1` (design) then back here (`.6.5` remains proposed).
 
 - 2026-07-02 (`.6.3` CODE — the replay, `PGEN-VERILOG-2005-PROFILE-0016`): `SV-0026` CLOSED
   (`Released`) — the recorded two-lift diffs (`description_unit_item_sv_only`,

@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0017 — how a witness-ratchet leaf turned into an LRM-fidelity defect family: reading the forced samples as evidence
+
+Session #21. Three transferable lessons from the `.6.4` adjudication:
+
+- **The forced witness samples ARE evidence about the grammar, not just the generator.** The probe line's `sample="…sv_dollar_setup(\foo &&&…==1'b,…)"` looked like generator garbage; taking it seriously (gen⟷parse duality: the generator emits what the grammar SAYS) surfaced that the grammar itself demands the literal text `sv_dollar_setup` and a digit-less `1'b`. Every "malformed" forced sample deserves the question: malformed per the LRM, or FAITHFUL to a defective grammar? Here it was both classes at once — the scaffold blockage (off-profile `@sample`) was generator-routing, the `sv_dollar_*`/`1'b` text was grammar-fidelity.
+- **Falsify the "deliberate transform" hypothesis before ledgering an extraction artifact.** The mangled literals COULD have been fine if a pre-parse rewrite (`$root` → `sv_dollar_root`) existed anywhere in the pipeline — one grep over `rust/src/` (0 hits) + the `$`-faithful extracted snapshots + the probe pair (LRM spelling REJECT / mangled spelling ACCEPT) closed that escape hatch in three tool calls. The provenance pin (`canonicalize_rule_name` at `tools/extract_systemverilog_lrm_profiles.py:315` — correct for rule NAMES, leaked into token LITERALS) tells the fix tree exactly what class of token to audit: every `kw_*` whose regex/literal was derived from a `$`-mangled name.
+- **A stale ratchet target is itself a finding.** The leaf's "6 class-D targets, 310→≤304" was written from `.6.1`-era data; two grammar waves and one engine fix later, half the targets were already witnessed and two were misclassified. Re-running the SAME protocol before acting (baseline byte-reproduced first) prevented "fixing" already-fixed rules — the same discipline as CERT-GEN-BUDGET.3's re-derive-the-claim-from-scratch. Corollary now recorded in the tree: ratchet leaves must restate their target list from a FRESH run at execution time, not from the spawning record.
+
 ## 2026-07-02 - PGEN-CERT-GEN-BUDGET-0003 — anatomy of a phantom regression: how a mislabeled invocation in a task record fabricated a "RED proof surface"
 
 Session #20. The `.3` "regression" is a textbook case for two standing disciplines, worth the write-up:
