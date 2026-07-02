@@ -495,10 +495,13 @@ action_block := statement_or_null
 always_construct := always_keyword statement
                  -> {keyword: $1, body: $2}
 
-always_keyword := kw_always_6656018a       -> {kind: "always"}
-                | kw_always_comb_a1f2a86b  -> {kind: "always_comb"}
-                | kw_always_latch_23c99af9 -> {kind: "always_latch"}
-                | kw_always_ff_3c7a051e    -> {kind: "always_ff"}
+@profiles: ["sv_2017", "sv_2023"]
+always_keyword_sv_only := kw_always_comb_a1f2a86b  -> {kind: "always_comb"}
+                        | kw_always_latch_23c99af9 -> {kind: "always_latch"}
+                        | kw_always_ff_3c7a051e    -> {kind: "always_ff"}
+
+always_keyword := kw_always_6656018a -> {kind: "always"}
+                | always_keyword_sv_only
 
 anonymous_program := kw_program_81d9aeea semi anonymous_program_item* kw_endprogram_6b609b1f
                   -> {items: $3}
@@ -2084,11 +2087,14 @@ event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e ex
 event_expression := event_expression_primary ( ( kw_or_1758356d | comma ) event_expression_primary )*
                  -> [$1, $2::2*]
 
+@profiles: ["sv_2017"]
+event_trigger_control_sv_only := implies ( delay_or_event_control )? hierarchical_event_identifier semi
+                              -> {kind: "blocking",     control: $2, name: $3}
+
 @profiles: ["sv_2017", "verilog_2005"]
 event_trigger_sv_2017 := implies hierarchical_event_identifier semi
                               -> {kind: "non_blocking", name: $2}
-                       | implies ( delay_or_event_control )? hierarchical_event_identifier semi
-                              -> {kind: "blocking",     control: $2, name: $3}
+                       | event_trigger_control_sv_only
 
 @profiles: ["sv_2023"]
 event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select semi
@@ -2510,9 +2516,12 @@ integer_covergroup_expression := integer_covergroup_expression_sv_2017 -> {kind:
 integer_type := integer_vector_type -> {kind: "vector", body: $1}
               | integer_atom_type   -> {kind: "atom",   body: $1}
 
-integer_vector_type := kw_bit_026e996a   -> {kind: "bit"}
-                     | kw_logic_2c684987 -> {kind: "logic"}
-                     | kw_reg_e06b9586   -> {kind: "reg"}
+@profiles: ["sv_2017", "sv_2023"]
+integer_vector_type_sv_only := kw_bit_026e996a   -> {kind: "bit"}
+                             | kw_logic_2c684987 -> {kind: "logic"}
+
+integer_vector_type := integer_vector_type_sv_only
+                     | kw_reg_e06b9586 -> {kind: "reg"}
 
 interface_ansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )? interface_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
                       -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
@@ -2603,6 +2612,7 @@ interface_port_declaration := interface_identifier list_of_interface_identifiers
                             | interface_identifier dot modport_identifier list_of_interface_identifiers
                                     -> {kind: "modport", name: $1, modport: $3, items: $4}
 
+@profiles: ["sv_2017", "sv_2023"]
 interface_port_header := interface_identifier ( dot modport_identifier )?    -> {kind: "named",     name: $1, modport: $2}
                       | kw_interface_5ea2d81a ( dot modport_identifier )?    -> {kind: "interface", modport: $2}
 
@@ -2863,6 +2873,12 @@ local_parameter_declaration := local_parameter_declaration_sv_2017 -> {kind: "sv
 loop_generate_construct := kw_for_43eef9a6 lparen genvar_initialization semi genvar_expression semi genvar_iteration rparen generate_block
                         -> {init: $3, condition: $5, step: $7, block: $9}
 
+@profiles: ["sv_2017", "sv_2023"]
+loop_statement_sv_only := kw_do_eadcd9bd statement_or_null kw_while_6517f89c lparen expression rparen semi
+                               -> {kind: "do_while", body: $2, condition: $5}
+                        | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen statement
+                               -> {kind: "foreach",  array: $3, loop_vars: $5, body: $8}
+
 loop_statement := kw_forever_e07f8c4a statement_or_null
                        -> {kind: "forever",  body: $2}
                 | kw_repeat_c0ac4842 lparen expression rparen statement_or_null
@@ -2871,10 +2887,7 @@ loop_statement := kw_forever_e07f8c4a statement_or_null
                        -> {kind: "while",    condition: $3, body: $5}
                 | kw_for_43eef9a6 lparen ( for_initialization )? semi ( expression )? semi ( for_step )? rparen statement_or_null
                        -> {kind: "for",      init: $3, condition: $5, step: $7, body: $9}
-                | kw_do_eadcd9bd statement_or_null kw_while_6517f89c lparen expression rparen semi
-                       -> {kind: "do_while", body: $2, condition: $5}
-                | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen statement
-                       -> {kind: "foreach",  array: $3, loop_vars: $5, body: $8}
+                | loop_statement_sv_only
 
 loop_variables := ( index_variable_identifier )? ( comma ( index_variable_identifier )? )*
                -> [$1, $2::2*]
@@ -3328,6 +3341,10 @@ net_assignment := net_lvalue assign expression
 net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
                     -> {name: $1, dims: $2, init: $3}
 
+@profiles: ["sv_2017", "sv_2023"]
+interconnect_net_declaration_sv_only := @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
+                                -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
+
 @profiles: ["sv_2017", "verilog_2005"]
 net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
                                 -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
@@ -3337,8 +3354,7 @@ net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? (
                          # SV-PARSE-STRICT.2: unresolved-wildcard-import escape — accept an otherwise-undeclared net-type id ONLY when a `pkg::*` is in scope (cannot prove undeclared; defer to elaboration). The gate lives on the `wildcard_escape_nettype_identifier` helper (a `phase: post` predicate, so it stays BRANCH-LOCAL — an inline `phase: branch` predicate is flattened rule-wide by `branch_predicates_for_rule` and would wrongly gate the `wire a;` branch).
                          | wildcard_escape_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
-                         | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
-                                -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
+                         | interconnect_net_declaration_sv_only
 
 @profiles: ["sv_2023"]
 net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
@@ -3349,8 +3365,7 @@ net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( net_strength )? (
                          # SV-PARSE-STRICT.2: unresolved-wildcard-import escape (branch-local `phase: post` gate via the helper — see the sv_2017 note).
                          | wildcard_escape_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        nettype_id: $1, delay_control: $2, assignments: $3}
-                         | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
-                                -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
+                         | interconnect_net_declaration_sv_only
 
 net_strength := drive_strength  -> {kind: "drive",  body: $1}
               | charge_strength -> {kind: "charge", body: $1}
@@ -3373,15 +3388,18 @@ net_lvalue := ps_or_hierarchical_net_identifier constant_select
 net_port_header := ( port_direction )? net_port_type
                 -> {direction: $1, port_type: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
+net_port_type_interconnect_sv_only := kw_interconnect_c8ec83f5 implicit_data_type -> {kind: "interconnect", data_type: $2}
+
 @profiles: ["sv_2017", "verilog_2005"]
 net_port_type_sv_2017 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
                        | net_type_identifier                              -> {kind: "identifier",   name: $1}
-                       | kw_interconnect_c8ec83f5 implicit_data_type      -> {kind: "interconnect", data_type: $2}
+                       | net_port_type_interconnect_sv_only
 
 @profiles: ["sv_2023"]
 net_port_type_sv_2023 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
                        | nettype_identifier                               -> {kind: "identifier",   name: $1}
-                       | kw_interconnect_c8ec83f5 implicit_data_type      -> {kind: "interconnect", data_type: $2}
+                       | net_port_type_interconnect_sv_only
 
 net_port_type := net_port_type_sv_2017 -> {kind: "sv_2017", body: $1}
                | net_port_type_sv_2023 -> {kind: "sv_2023", body: $1}
@@ -3483,9 +3501,12 @@ non_consecutive_repetition_sv_2017 := lbrack assign const_or_range_expression rb
 non_consecutive_repetition := non_consecutive_repetition_sv_2017
                            -> {body: $1}
 
-non_integer_type := kw_shortreal_99d69111 -> {kind: "shortreal"}
-                  | kw_real_c9c64e07      -> {kind: "real"}
-                  | kw_realtime_91c462ed  -> {kind: "realtime"}
+@profiles: ["sv_2017", "sv_2023"]
+non_integer_type_sv_only := kw_shortreal_99d69111 -> {kind: "shortreal"}
+
+non_integer_type := non_integer_type_sv_only
+                  | kw_real_c9c64e07     -> {kind: "real"}
+                  | kw_realtime_91c462ed -> {kind: "realtime"}
 
 non_port_interface_item := generate_region
                                -> {kind: "generate_region",       body: $1}
@@ -3948,10 +3969,13 @@ port_declaration := attribute_instance* inout_declaration
                   | attribute_instance* interface_port_declaration
                             -> {kind: "interface", attributes: $1, body: $2}
 
+@profiles: ["sv_2017", "sv_2023"]
+port_direction_sv_only := kw_ref_69449f99 -> {kind: "ref"}
+
 port_direction := kw_input_140f86aa  -> {kind: "input"}
                | kw_output_1029d676 -> {kind: "output"}
                | kw_inout_c900aaa9  -> {kind: "inout"}
-               | kw_ref_69449f99    -> {kind: "ref"}
+               | port_direction_sv_only
 
 port_expression := port_reference
                           -> {kind: "single", body: $1}
@@ -5181,9 +5205,12 @@ tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
 tf_port_declaration := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit list_of_tf_variable_identifiers semi
                     -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, items: $5}
 
+@profiles: ["sv_2017"]
+tf_port_direction_const_ref_sv_only := kw_const_b42f3f6f kw_ref_69449f99 -> {kind: "const_ref"}
+
 @profiles: ["sv_2017", "verilog_2005"]
 tf_port_direction_sv_2017 := port_direction                       -> {kind: "port_direction", body: $1}
-                           | kw_const_b42f3f6f kw_ref_69449f99    -> {kind: "const_ref"}
+                           | tf_port_direction_const_ref_sv_only
 
 @profiles: ["sv_2023"]
 tf_port_direction_sv_2023 := port_direction
@@ -5666,12 +5693,15 @@ variable_port_header := ( port_direction )? variable_port_type
 variable_port_type := var_data_type
                    -> {body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
+wait_statement_sv_only := kw_wait_daaad336 kw_fork_3f673f2a semi
+                               -> {kind: "wait_fork"}
+                        | kw_wait_order_e1b7850a lparen hierarchical_identifier ( comma hierarchical_identifier )* rparen action_block
+                               -> {kind: "wait_order", events: [$3, $4::2*], action: $6}
+
 wait_statement := kw_wait_daaad336 lparen expression rparen statement_or_null
                        -> {kind: "wait",       condition: $3, body: $5}
-                | kw_wait_daaad336 kw_fork_3f673f2a semi
-                       -> {kind: "wait_fork"}
-                | kw_wait_order_e1b7850a lparen hierarchical_identifier ( comma hierarchical_identifier )* rparen action_block
-                       -> {kind: "wait_order", events: [$3, $4::2*], action: $6}
+                | wait_statement_sv_only
 
 @profiles: ["sv_2017"]
 weight_specification_sv_2017 := integral_number          -> {kind: "number",     body: $1}

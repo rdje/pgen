@@ -253,23 +253,47 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     Verilog-2005 core and stay in the un-gated umbrella (shape-preserving; found when the realistic
     accept-corpus module over-rejected at `integer i;`).
 
-- ID: `VERILOG-2005-PROFILE.4.2` (next frontier) — CODE leaf: **cluster (c) branch-lifts** for the
-  bare-keyword SV-only alternatives inside core rules, per the `integer_atom_type_sv_only` idiom
-  (shape-preserving named-lift + gate; AST-verified each): `always_keyword`
-  (`always_comb`/`always_latch`/`always_ff`), `loop_statement` (`do…while`, `foreach`),
-  `integer_vector_type` (`bit`/`logic`), `non_integer_type` (`shortreal`), `net_port_type`
-  `interconnect` branch, `event_trigger` `->>` branch, `tf_port_direction` `const ref` branch,
-  `wait_statement` SV-only forms. Closure evidence: the deferred reject cases (`always_comb`,
-  `do…while`, `logic x;` as a TYPE) REJECT under `verilog_2005`, and `wire logic;` (net named `logic`)
-  ACCEPTS — the `.4.1`-diagnosed PEG-commit over-rejection resolves once `logic`-as-type is gated.
-  Must keep `--lint-grammar` at 0 orphans + the standing non-increase rule.
+- ID: `VERILOG-2005-PROFILE.4.2`
+  Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0008`) — CODE leaf: **cluster (c)
+  branch-lifts landed** — 10 shape-preserving named-lifts per the `integer_atom_type_sv_only` idiom
+  + 1 whole-rule leak gate, grammar-directive-only, NO engine change. As executed (see "`.4.2`
+  Findings" + "Acceptance Checklist (`.4.2`)"):
+  - Named-lifts (each `@profiles`-gated; umbrella alternative order PRESERVED; all lifted return
+    annotations verbatim): `always_keyword_sv_only` (`always_comb`/`always_latch`/`always_ff`),
+    `loop_statement_sv_only` (`do…while`, `foreach`), `integer_vector_type_sv_only` (`bit`/`logic`),
+    `non_integer_type_sv_only` (`shortreal`), `net_port_type_interconnect_sv_only` (shared by both
+    `net_port_type_sv_2017`/`_sv_2023`), `interconnect_net_declaration_sv_only` (shared by both
+    `net_declaration` variants; carries the branch's `@probe_sample` verbatim),
+    `port_direction_sv_only` (`ref` — a DISCOVERED leak beyond the plan: `task t (ref integer a);`
+    accepted under `verilog_2005`), `tf_port_direction_const_ref_sv_only` (`const ref`,
+    `["sv_2017"]` since its only parent is the `_sv_2017` variant), `wait_statement_sv_only`
+    (`wait fork;` + `wait_order(…)`), `event_trigger_control_sv_only` (the delay-control form,
+    `["sv_2017"]` — see the SV-0023 transformation note below).
+  - Whole-rule leak gate: `interface_port_header` `["sv_2017","sv_2023"]` (interface-typed ANSI
+    ports are SV-only; discovered when `module m (interconnect w);` re-parsed as an interface port
+    after the net_port_type lift — AST-dump-pinned).
+  - **The planned "`event_trigger` `->>` branch" item TRANSFORMED under tools:** the literal `->>`
+    appears NOWHERE in the grammar — the SV grammar encodes both LRM alternatives with `->` and
+    mis-attaches the optional `delay_or_event_control` to the second `->` branch (so `-> #5 e;`
+    wrongly ACCEPTS under sv_2017 and `->> e;` wrongly REJECTS). Ledgered **`SV-0023`** (own fix
+    leaf; also covers the 1364-2005 event-array-trigger accept-gap `-> e[0];`). Within this slice
+    the mis-encoded delay-form branch was lifted + gated (`event_trigger_control_sv_only`) so
+    `-> #5 e;` correctly REJECTS under `verilog_2005`; its sv_2017 shape/labels kept verbatim.
+  - **`module m (interconnect w);` (bare two-identifier port) is NOT rejectable in this slice:**
+    after both interconnect gates + the interface_port_header gate it STILL accepts via the
+    non-ANSI `port_expression` list branch `( port_reference ( comma port_reference )* )*` — a
+    pre-existing LRM-extraction defect (the LRM's LITERAL concatenation braces extracted as
+    meta-repetition; `module m (a b);` accepts under EVERY profile at HEAD). Ledgered **`SV-0024`**
+    (own fix leaf, behavior-tightening all profiles). The conformance corpus pins the interconnect
+    PORT reject case on the ANSI form `module m (input interconnect w);` until SV-0024 lands.
 
 - ID: `VERILOG-2005-PROFILE.4.3` — closure leaf: promote the scratch conformance corpus into
   `rust/test_data/grammar_quality/` + a repo-standard `verilog_2005` gate (accept set + reject set +
   the 0-orphan lint lock), a profiled cert-coverage baseline (`--grammar-profile verilog_2005`), the
   downstream SV integration-contract full `verilog_2005` write-up, and the LIVE promotion decision.
   (The `sv_cert_recognized_union_gate` count re-baseline stays its OWN leaf per `.4`; drift now
-  `1304→1314` after `.4.1`'s 3 accounted new rules.)
+  `1304→1324` after `.4.1`'s 3 + `.4.2`'s 10 accounted new rules — canonical `1324/2/1302`,
+  union witness `1321`.)
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -482,6 +506,91 @@ proof).
   run was ALSO ambient-killed — environment-dependent host posture, documented in the gate script
   itself ("uvm cases may hit this cap on a small host — that is the HONEST state").
 
+## `.4.2` Findings (tools-first, 2026-07-02)
+
+- **REPRODUCE baseline (HEAD binary): 14 leaks + 1 over-rejection.** 12 of the 13 planned reject
+  probes ACCEPTED under `verilog_2005` while ACCEPTING under `sv_2017` (valid SV — the leak
+  signature): `always_comb`/`always_latch`/`always_ff`, `do…while`, `foreach` (statement-body form,
+  non-reinterpretable per [[feedback_corpus_expected_from_spec_not_fix]]), `logic x;`/`bit b;`/
+  `shortreal r;` (as TYPES), `interconnect` port + declaration, `const ref` tf-port, `wait fork;`,
+  `wait_order(…) else …`; plus 2 DISCOVERED leaks: `ref` task-port direction (via the shared core
+  `port_direction`'s `ref` branch) and `-> #5 e;` (the mis-encoded event-trigger delay form, legal
+  neither in 1364-2005 — oracle `:370` has no control — nor on `->` in IEEE 1800). `wire logic;`
+  reproduced the `.4.1`-diagnosed over-rejection (REJECT under all profiles; under sv_2017 that is
+  spec-correct since `logic` is reserved there).
+- **The 13th planned probe (`->> e;`) REJECTED under sv_2017 too** — not a profile item at all:
+  the literal `->>` is absent from the entire grammar (ledgered `SV-0023`, see the leaf entry).
+- **Second-path re-parses are the dominant failure mode of branch-gating — every reject case was
+  AST-dump-adjudicated, not assumed.** Two inputs stayed accepted after the planned gates and each
+  exposed a distinct pre-existing hole: (1) `module m (interconnect w);` re-parsed as an ANSI
+  INTERFACE port (`kind:"net_or_interface"`/`"named"` — `interface_port_header`'s
+  `interface_identifier` is a bare `declaration_identifier`) → whole-rule-gated
+  `interface_port_header` `["sv_2017","sv_2023"]`; (2) after THAT gate it re-parsed AGAIN via the
+  non-ANSI `port_expression` un-braced list branch (`kind:"list"`, module `kind:"nonansi"`) —
+  pre-existing all-profile over-acceptance (`module m (a b);` accepts at HEAD), ledgered `SV-0024`;
+  corpus case re-pinned to `module m (input interconnect w);`.
+- **Spec-honest accepts preserved:** `wait_order (a, b);` under `verilog_2005` remains ACCEPT — with
+  `wait_order` un-reserved (D2) it is a legal 1364-2005 TASK ENABLE; the reject case uses the
+  `else`-action form task enables cannot take. Same doctrine as `.4.1`'s `initial assert (1);`.
+- **Shape-preservation proven byte-exact:** 24 BEFORE/AFTER `--parse-dump-ast` dumps (all reject +
+  accept corpus files under `sv_2017`, interconnect cases also under `sv_2023`) — `diff -r` clean;
+  the lifted interconnect PORT branch additionally proven still live under sv_2017 via
+  `module m (input interconnect [3:0] w);` → `kind:"interconnect"` (the un-dimmed form is
+  tournament-shadowed by the `net_type_identifier` branch — pre-existing, lint-warned, unchanged).
+- **Cert accounting exact:** the +10 canonical `total`/`witness` delta equals the 10 new named
+  rules, all witnessed at seeds 0/7/42 (union witness +19→1321 includes the entry-relative
+  configs' credits); UNKNOWN=20 canonical / union=1 residual byte-identical. The union-gate count
+  pins (1304/1/1283+1302) remain the pre-existing stale-pin drift — now 1324/2/1302+1321 — owned by
+  the standing re-baseline leaf (per `.4`).
+
+## Acceptance Checklist (`.4.2`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — HEAD-binary probe matrix over the authored `.4.2` corpus:
+  14 SV-only constructs ACCEPT under `--profile verilog_2005` (each ACCEPTS under `sv_2017` — valid
+  SV, so the acceptance is a profile leak), e.g. `always_comb q = 1'b0;` v2005 rc=0 /
+  `task t (ref integer a);` v2005 rc=0 / `interconnect w;` v2005 rc=0; `wire logic;` REJECTS
+  (rc=1, the `.4.1` over-rejection); `->> e;` REJECTS under sv_2017 (`furthest_position=33`) →
+  re-scoped to `SV-0023`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — un-gated SV-only alternatives inside `verilog_2005`-active
+  rules, each pinned by rule-text dump + AST evidence: `always_keyword:498`,
+  `loop_statement:2866` (do@2874, foreach@2876), `integer_vector_type:2513`,
+  `non_integer_type:3486`, `net_port_type_sv_2017:3379`/`_sv_2023:3384` (interconnect),
+  `net_declaration_sv_2017:3340`/`_sv_2023:3352` (interconnect), `port_direction:3954` (`ref`),
+  `tf_port_direction_sv_2017:5186` (`const ref`), `wait_statement:5671-5673`,
+  `event_trigger_sv_2017:2090` (delay form); the two second-path re-parses pinned by
+  `--parse-dump-ast-pretty` (`net_or_interface/named` → `interface_port_header:2615`;
+  `list`/`nonansi` → `port_expression` un-braced star, HEAD `:3958`, oracle
+  `verilog_2005_lrm_extracted.ebnf:982-983`).
+- [x] **FIX** — declarative grammar-only (fix-hierarchy tier: grammar; NO engine change): 10
+  shape-preserving named-lifts per the `integer_atom_type_sv_only` idiom (annotations verbatim,
+  umbrella alternative order preserved, gates `["sv_2017","sv_2023"]` — or `["sv_2017"]` for the
+  two whose only parent is the `_sv_2017` variant) + the `interface_port_header` whole-rule gate.
+- [x] **ADDRESSED (verified)** — `.4.2` corpus: REJECT **15/15** under `verilog_2005` with every
+  file still ACCEPTING under `sv_2017` (leak → clean profile boundary), ACCEPT **8/8** under
+  `verilog_2005` including `wire logic;` **REJECT→ACCEPT** (the `.4.1` over-rejection CLOSED);
+  `.4.1` standing corpus re-verified (module_min / realistic counter / generate ×3 profiles PASS;
+  keywords-as-identifiers PASS under `verilog_2005`; 19/19 rejects hold, `bind_dir` sv_2017-waiver
+  per `SV-0022` unchanged); `--lint-grammar` rc=0, `verilog_2005` orphans **0→0** (non-increase
+  rule held), warnings byte-identical (8).
+- [x] **NO REGRESSION** — cert seeds 0/7/42 (`sv_2017`, entry `systemverilog_file`, count 40):
+  `total=1324 proof=2 witness=1302 UNKNOWN=20 (spf=0, prf=0)` DETERMINISTIC, canonical 20-rule
+  residual IDENTICAL (`DUMP_ALL` diff: zero newly-unknown; the `+10 total/+10 witness` are exactly
+  the 10 new lifted rules, all witnessed); `sv_cert_recognized_union_gate` semantic invariants
+  INTACT (canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `["context_member_method_call"]`,
+  union witness `1321`, deterministic ×3 seeds; unmet criteria = the pre-existing count pins only);
+  24/24 BEFORE→AFTER AST dumps byte-identical (sv_2017 + sv_2023); `ast_shape_contract` tests
+  18/18; embedding_api tests 51/0; realistic corpus `239` accepts / `126` directive-file fails
+  (= baseline exactly); SV external corpus non-uvm **10/10 preprocess + 10/10 parse** via
+  `sv_external_corpus_triage_gate` on the filtered manifest (uvm rows excluded per the documented
+  24 GB-host mem-cap posture, unchanged scope); clippy source clean (`clippy_on_rust_change`;
+  generated-stage debt pre-existing, non-strict); only the SV parser regenerated (mtime census —
+  the other 6 generated parsers untouched); release `1.0.158` / schema `13` unchanged (sv_2017 and
+  sv_2023 language + AST proven invariant; `verilog_2005` is the in-hardening profile).
+- [x] **LOCKSTEP** — bug ledger `SV-0023`/`SV-0024` rows added; main-platform book
+  `parser-families.md` remaining-hardening list updated to the post-`.4.2` state; SV parser book
+  updated + both book gates GREEN; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS
+  updated; tree + `docs/TASK_TREE.md` frontier → `.4.3`.
+
 ## Acceptance Checklist (`.4.1`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — `ast_pipeline grammars/systemverilog.ebnf --lint-grammar` at HEAD:
@@ -633,6 +742,25 @@ proof).
   (Generated-code fact recorded: the profile guard fires BEFORE `memoized_call`, so an off-profile
   rule call is near-free and leaves no memo row.)
 
+- 2026-07-02 (`.4.2`): **AST-dump-adjudicate every branch-gate reject case — second-path re-parses
+  are the dominant failure mode.** Gating a branch does not make an input reject; it makes the PEG
+  try every OTHER path, and under `verilog_2005`'s un-reserved SV keywords those paths are
+  identifier-shaped and plentiful. Both `.4.2` second-path accepts exposed real pre-existing
+  defects (`interface_port_header` bare-identifier leak; `SV-0024` un-braced `port_expression`).
+  A reject expectation is EARNED by a rejecting run + an accept-side AST dump naming the path,
+  never by "the branch is gated now".
+- 2026-07-02 (`.4.2`): **single-parent variant lifts gate to the variant's own profile list**
+  (`tf_port_direction_const_ref_sv_only` / `event_trigger_control_sv_only` → `["sv_2017"]`, not
+  `["sv_2017","sv_2023"]`): the sv_2023 twins carry their own copies of those branches, so a
+  2-profile gate would leave the lifted rule present-but-unreachable under sv_2023. Mirrors the
+  existing `weight_specification_sv_2017` convention.
+- 2026-07-02 (`.4.2`): **a planned gate item can dissolve into a defect ledger row** — the
+  "`event_trigger` `->>` branch" plan item had no `->>` branch to gate (the grammar mis-encodes
+  both LRM alternatives on `->`). The profile slice lifts/gates only what exists
+  (`event_trigger_control_sv_only`); the LRM-fidelity repair (add `->>`, move the control, fix the
+  swapped `kind` labels, array-trigger selects) is `SV-0023`'s own fix leaf — one concern per
+  commit, per the `.4.1` `SV-0021`/`SV-0022` precedent.
+
 ## Open Questions
 
 - ~~Exact default-profile-membership semantics of an UN-annotated rule~~ — **RESOLVED (`.1`)**:
@@ -724,7 +852,24 @@ proof).
   release probe); both book gates GREEN; clippy source clean. Two pre-existing sv_2017 defects
   discovered + ledgered (`SV-0021` mixed untyped→typed ANSI ports; `SV-0022` bind double-`semi`).
 
+- 2026-07-02 (`.4.2`, CODE — full verification): see "Acceptance Checklist (`.4.2`)" for the earned
+  boxes. Headlines: `.4.2` corpus REJECT 15/15 under `verilog_2005` (each still ACCEPT under
+  sv_2017) + ACCEPT 8/8 (incl. `wire logic;` REJECT→ACCEPT); `.4.1` standing corpus holds; lint
+  rc=0 / 0 orphans / warnings byte-identical; cert seeds 0/7/42 `total=1324 proof=2 witness=1302
+  UNKNOWN=20 spf=0` deterministic, identical canonical residual, +10 = the 10 new rules all
+  witnessed; union-gate semantic invariants intact (union `UNKNOWN=1`, witness `1321`; count pins
+  pre-existing-stale → re-baseline leaf); 24/24 AST before→after byte-identical; shape-contract
+  18/18; embedding 51/0; realistic 239/126; external non-uvm 10/10+10/10; clippy source clean;
+  SV-only regen; release/schema unchanged (`1.0.158`/13). Two pre-existing defects ledgered
+  (`SV-0023` event-trigger complex; `SV-0024` un-braced `port_expression`).
+
 ## Commit Log
+
+- 2026-07-02 (`.4.2`, CODE, `PGEN-VERILOG-2005-PROFILE-0008`): cluster (c) branch-lifts — 10
+  shape-preserving `_sv_only` named-lifts (always/loop/vector-type/non-integer-type/interconnect
+  port+decl/ref-direction/const-ref/wait/event-trigger-control) + the `interface_port_header`
+  whole-rule leak gate; `wire logic;` over-rejection closed; SV-0023/SV-0024 discovered + ledgered.
+  Frontier → `.4.3` (corpus promotion + `verilog_2005` gate + contract write-up + LIVE decision).
 
 - 2026-07-02 (`.4.1`, CODE, `PGEN-VERILOG-2005-PROFILE-0007`): built the `verilog_2005` profile to
   wellformedness coherence — 28 baseline admits + 103 SV-only gates + the D2 profile-split reserved
@@ -767,6 +912,18 @@ proof).
   concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
+
+- 2026-07-02: `.4.2` DONE (`PGEN-VERILOG-2005-PROFILE-0008`, CODE) — cluster (c) branch-lifts
+  landed: 10 shape-preserving `_sv_only` named-lifts + the `interface_port_header` leak gate make
+  the bare-keyword SV-only surface (`always_comb/latch/ff`, `do…while`/`foreach`, `bit`/`logic`,
+  `shortreal`, `interconnect` port+decl, `ref`/`const ref` directions, `wait fork`/`wait_order`,
+  the event-trigger delay form, interface-typed ports) REJECT under `verilog_2005`, and `wire
+  logic;` (the `.4.1` over-rejection) ACCEPT. Lint 0 orphans held; cert +10 accounted, UNKNOWN=20
+  invariant; full no-regression green; AST shapes byte-identical under sv_2017/sv_2023. Two more
+  pre-existing sv_2017 defects found + ledgered (`SV-0023` event-trigger LRM complex, `SV-0024`
+  un-braced `port_expression` list). SV family status UNCHANGED (`Mostly Done`). Frontier → `.4.3`
+  (corpus promotion + repo-standard `verilog_2005` gate + profiled cert baseline + contract
+  write-up + LIVE decision).
 
 - 2026-07-02: `.4.1` DONE (`PGEN-VERILOG-2005-PROFILE-0007`, CODE) — the build-to-coherence campaign's
   whole-rule + keyword axes landed: `verilog_2005` profile-orphans 170→0 (`--lint-grammar` rc 1→0,
