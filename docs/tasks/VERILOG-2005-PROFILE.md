@@ -150,11 +150,46 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     needed (no code/grammar/generated change; the 6 fully-certified grammars + SV inert by
     construction; clippy N/A). Full COMMIT.md lockstep (tree + TASK_TREE + LIVE + CHANGES +
     DEVELOPMENT_NOTES + MEMORY). SV family status UNCHANGED (`Mostly Done`).
-- ID: `VERILOG-2005-PROFILE.3` … (subsequent implementation leaves, one family/cluster per leaf,
-  in the order fixed by "`.1` Findings → Implementation order"). Whole-rule gates first (cascade
-  automatically, low-risk), then the bare-keyword **branch-lift** gates (shape-preserving, each
-  AST-shape-verified), then keyword re-admission, then the closure corpus/gate + LIVE + contract +
-  book lockstep. Accept/reject proven tools-first per leaf.
+- ID: `VERILOG-2005-PROFILE.3`
+  Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0005`) — **INVESTIGATION leaf, PURE-DOCS**
+  (task-tree + tracker docs only; the grammar gate edits trialed during this leaf were REVERTED, so
+  NO `grammars|rust/src|generated|ast_shape_contract` change lands → not a code change). Records the
+  tools-first discovery that **reshapes the `.4`+ implementation** and surfaces a pre-existing `.2`
+  wellformedness debt. See "`.3` Findings". Headline (tool-proven via `ast_pipeline … --lint-grammar`):
+  - The wellformedness linter has a **`verilog_2005`-profile-aware ORPHAN detector**
+    (ANNOTATION-COMPOSITION.4): a rule active under `verilog_2005` whose every production references a
+    rule ABSENT under `verilog_2005` is an unsatisfiable ORPHAN = a wellformedness ERROR.
+  - **`.2` (committed HEAD) already has 170 such `verilog_2005` orphans** — `.2` created the profile
+    but admitted only `module_declaration_sv_2017`, so ~170 core rules (`conditional_expression`,
+    `concatenation`, `conditional_statement`, …) are active-but-unsatisfiable under `verilog_2005`.
+    `.2` shipped this undetected because its verification did not run `--lint-grammar`. Under the
+    grammar-wellformedness contract ([[project_grammar_wellformedness_contract]]) an orphan is a
+    DEFECT, not a residual — so `.2` introduced a 170-orphan wellformedness regression.
+  - A **gates-first** `.3` (the originally-planned 16 whole-rule SV-only gates) WORSENS this to **256
+    orphans** (verified) — the gates remove more rules from `verilog_2005`, orphaning more parents. A
+    gates-only slice therefore CANNOT pass the NO-REGRESSION box (it is a lint regression). REVERTED.
+  - Root mechanism: the `verilog_2005` profile is orphan-clean **only when built to COHERENCE** — all
+    Verilog-2005-core rules admitted to `verilog_2005` AND all SV-only rules gated out, so every
+    `verilog_2005`-active rule is satisfiable. Any half-built intermediate (gates-only or admit-only)
+    leaves orphans. The orphan detector is the exact **closure oracle** for the profile (drive to 0).
+  - CONSEQUENCE for `.4`: the implementation must be a **build-to-coherence campaign driven by
+    `--lint-grammar` (target: 0 `verilog_2005` orphans)**, not independent gates-only / admit-only
+    slices. This also subsumes `.2`'s 170-orphan debt (completion resolves it). Flagged to the
+    director (scope/strategy) since it touches the wellformedness contract + reveals a `.2` regression.
+- ID: `VERILOG-2005-PROFILE.4` … (implementation — the CORRECTED plan): **build the `verilog_2005`
+  profile to wellformedness COHERENCE**, using `ast_pipeline grammars/systemverilog.ebnf --lint-grammar`
+  `verilog_2005`-orphan count as the closure oracle (drive 170 → 0). One coherent cluster per leaf,
+  each ending with a NON-INCREASING orphan count and accept/reject proven tools-first: (a) admit
+  `verilog_2005` to the `sv_2017` baseline of the oracle-adjudicated Verilog-2005-core rules
+  (declaration / statement / expression / dispatcher rules present in `verilog_2005_lrm_extracted.ebnf`
+  or known SV-refactorings whose SV-only children are gated); (b) gate the SV-only umbrella rules
+  (the 16 from the `.3` trial + the Deliverable-1 table) `["sv_2017","sv_2023"]`; (c) the bare-keyword
+  branch-lift gates (`always_comb/latch/ff`, `do…while`/`foreach`, `bit`/`logic`, `shortreal` —
+  shape-preserving, AST-verified); (d) keyword re-admission (Deliverable 2). Closure = `--lint-grammar`
+  0 `verilog_2005` orphans + a realistic Verilog-2005 module ACCEPTS + the SV-only reject corpus
+  REJECTS under `verilog_2005` while ACCEPTing under sv_2017/sv_2023 + cert/corpus/shape-contract
+  no-regression. Then LIVE + contract + book lockstep + a `verilog_2005` cert/corpus closure gate. The
+  `sv_cert_recognized_union_gate` count-drift re-baseline (its own ownership) also lives in this band.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -407,6 +442,17 @@ proof).
   The downstream SV integration-contract full write-up stays deferred to the closure leaf (honest: the
   strict subset is still being completed) — but the code-owned `rust/docs/EMBEDDING_API_CONTRACT.md`
   is updated in lockstep because the code const changed.
+- 2026-07-02 (`.3`, tool-proven, SUPERSEDES the `.1`/`.2` "incremental gates-first/one-family-per-leaf"
+  framing for the ordering): **the `verilog_2005` profile must be built to wellformedness COHERENCE
+  (0 `--lint-grammar` orphans), not shipped half-built.** An incomplete profile makes core rules
+  active-but-unsatisfiable (ORPHANS) — a wellformedness DEFECT per
+  [[project_grammar_wellformedness_contract]]. `.2` already left 170 such orphans (undetected — `.2`
+  did not run `--lint-grammar`); a gates-only step worsens it (256). The corrected `.4`+ plan drives
+  the orphan count to 0 using `--lint-grammar` as the closure oracle. **NEW STANDING SUB-RULE for
+  this tree:** every future `verilog_2005` code leaf MUST run `--lint-grammar` and end with a
+  NON-INCREASING `verilog_2005` orphan count (the profile-orphan lint is part of acceptance now).
+  Deferred to the director: confirm the build-to-coherence scope (a larger coordinated campaign than
+  a single 16-rule gate slice) before the `.4` code work begins.
 
 ## Open Questions
 
@@ -474,9 +520,29 @@ proof).
   `sv_2017`/`sv_2023`/`verilog_2005`/`vhdl_1076_2019`/`regex_default`@230-234; SV
   `systemverilog_profiles` vec@412-414). No code/grammar/generated change ⇒ no oracle re-run
   (cert / corpus / the 6 fully-certified grammars inert by construction; clippy N/A).
+- 2026-07-02 (`.3`, INVESTIGATION — tools-first): `ast_pipeline <grammar> --lint-grammar`. On HEAD
+  (committed `.2`): **170 `verilog_2005` profile-orphan ERRORS** (`git show HEAD:grammars/systemverilog.ebnf`
+  → temp → lint). With the trial 16-gate `.3` edit: **256 orphans** (170→256, a lint regression) →
+  the gate edits were REVERTED (`git checkout -- grammars/systemverilog.ebnf`; gate census back to the
+  single `.2` `["sv_2017","sv_2023"]` class gate). Oracle adjudication that fed the finding:
+  `verilog_2005_lrm_extracted.ebnf` (509 prod) presence check — Verilog-2005-core (present → admit):
+  `net_declaration`/`blocking_assignment`/`statement`/`event_control`/`delay_control`/`primary`/
+  `constant_primary`/`module_item`/`parameter_declaration`/`param_assignment`/`function_declaration`/
+  `task_declaration`/`udp_declaration`/`gate_instantiation`/…; SV-only (absent → gate):
+  `class`/`covergroup`/`constraint`/`property_expr`/`production`/`tagged_union`/`interface`/`program`.
+  Observed leak: `package p; endpackage` currently PARSES under `--profile verilog_2005` (un-gated
+  `package_declaration` reachable from `source_text_item`); `interface`/`program` already reject
+  (profile-split dispatch). No grammar/code/generated change lands (all trial edits reverted).
 
 ## Commit Log
 
+- 2026-07-02 (`.3`, INVESTIGATION, PURE-DOCS, `PGEN-VERILOG-2005-PROFILE-0005`): tools-first
+  `--lint-grammar` run exposed the `verilog_2005` profile-orphan wellformedness debt (HEAD/`.2`: 170
+  orphans; trial gates-first: 256 → REVERTED as a lint regression). Reclassified `.3` as an
+  investigation leaf + rewrote the `.4`+ plan to a build-to-coherence campaign (orphan count → 0 via
+  `--lint-grammar` as the closure oracle). No grammar/code/generated change lands (all trial gate
+  edits reverted; grammar restored to HEAD). Flagged the strategy/scope + the pre-existing `.2`
+  regression to the director. SV family status UNCHANGED (`Mostly Done`).
 - 2026-07-02 (`.2.1`, PURE-DOCS book lockstep, `PGEN-VERILOG-2005-PROFILE-0004`): closed the
   main-platform-book drift `.2` omitted (found in the fresh-session startup mdBook currency audit) —
   the top-level `docs/book/` now documents the live `verilog_2005` profile (in `parser-families.md`)
@@ -534,3 +600,12 @@ proof).
   `sv_2017`/`sv_2023`/`verilog_2005`; VHDL `vhdl_1076_2019`; regex `regex_default`), deferring the
   authoritative versioned list to `EMBEDDING_API_CONTRACT.md`. `mdbook_docs_gate` GREEN; no
   code/grammar/generated change; SV family status UNCHANGED (`Mostly Done`). Frontier stays `.3`.
+- 2026-07-02: `.3` DONE (`PGEN-VERILOG-2005-PROFILE-0005`, INVESTIGATION, PURE-DOCS) — tools-first
+  `--lint-grammar` discovery: the `verilog_2005` profile is only wellformed (0 orphans) when built to
+  COHERENCE; `.2` already left 170 `verilog_2005` profile-orphan defects (undetected — linter not run
+  in `.2`), and a gates-only step worsens it to 256 (a lint regression), so the trial 16-gate edit was
+  REVERTED. Reclassified the `.4`+ implementation as a build-to-coherence campaign driven by the
+  orphan detector as the closure oracle (→ 0 orphans), with a new standing sub-rule that every
+  `verilog_2005` code leaf must run `--lint-grammar` and never increase the orphan count. Flagged the
+  scope + the pre-existing `.2` regression to the director. Frontier → `.4` (director scope-confirm
+  pending). SV family status UNCHANGED (`Mostly Done`).
