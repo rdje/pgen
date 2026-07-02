@@ -1869,11 +1869,14 @@ delay_or_event_control := delay_control                                         
                         | event_control                                                  -> {kind: "event",  body: $1}
                         | kw_repeat_c0ac4842 lparen expression rparen event_control      -> {kind: "repeat", count: $3, control: $5}
 
+@profiles: ["sv_2017", "sv_2023"]
+delay_value_sv_only := time_literal        -> {kind: "time_literal",    body: $1}
+                     | kw_n_1step_e6d37e7c -> {kind: "step"}
+
 delay_value := unsigned_number     -> {kind: "unsigned_number", body: $1}
              | real_number         -> {kind: "real_number",     body: $1}
              | ps_identifier       -> {kind: "ps_identifier",   body: $1}
-             | time_literal        -> {kind: "time_literal",    body: $1}
-             | kw_n_1step_e6d37e7c -> {kind: "step"}
+             | delay_value_sv_only
 
 delayed_data := terminal_identifier                                            -> {kind: "simple",    name: $1}
               | terminal_identifier ( constant_mintypmax_expression )?         -> {kind: "with_expr", name: $1, expr: $2}
@@ -4076,9 +4079,12 @@ primary_sv_2023 := primary_literal
 primary := primary_sv_2017 -> {kind: "sv_2017", body: $1}
          | primary_sv_2023 -> {kind: "sv_2023", body: $1}
 
+@profiles: ["sv_2017", "sv_2023"]
+primary_literal_sv_only := time_literal            -> {kind: "time_literal",          body: $1}
+                         | unbased_unsized_literal -> {kind: "unbased_unsized_literal", body: $1}
+
 primary_literal := number                  -> {kind: "number",                body: $1}
-                 | time_literal            -> {kind: "time_literal",          body: $1}
-                 | unbased_unsized_literal -> {kind: "unbased_unsized_literal", body: $1}
+                 | primary_literal_sv_only
                  | string_literal          -> {kind: "string_literal",        body: $1}
 
 @profiles: ["sv_2017", "sv_2023"]

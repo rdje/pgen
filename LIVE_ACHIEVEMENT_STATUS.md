@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-02 (**ACTIVE: `MEMORY-ARCH` tree CLOSED — durable harness-agnostic agent-memory architecture adopted with full E1–E4 enforcement (`PGEN-MEMORY-ARCH-0001..0006`); all 54 durable `~/.claude` records migrated into tracked `docs/decisions/`, root `MEMORY.md` demoted to a bounded 23-line resume pointer, gates proven to bite. SV-EXH-PROOF `.6` was CONFIRMED green earlier this session (`-0113`, cached-mode `sv_parser_family_status_gate` exit 0 / both families pass) — the May-31 "open re-verify" item is RESOLVED.**) **SV status (updated 2026-06-04):** `systemverilog main parser` honestly `Mostly Done` — the ONE short Done-criterion is `focused_replay_target_debt_zero`; the closed-loop residual is now a best-known **97** (canonical gate `PGEN-SV-EXH-PROOF-0149`, exit 0), down the full arc ~2660 → 888 (.7.2 steering plateau) → 753 (.7.4.4 Purdom) → 273 (.7.4.5 budget) → **97 (.7.4.6.3 derivation-directed CONSTRUCTION)**. The "literal-0 needs a non-steering mechanism" call (old `.7.2.21`) was RIGHT and is now ANSWERED: construction (not steering) is that mechanism; the −791 from 888 confirms it. Residual measured **105** (`PGEN-SV-EXH-PROOF-0153`, 2026-06-05) — within the ±~25 run-to-run noise band (runs: 97/89/105/120). **`.7.4.6.7` LANDED:** the shadowing lint proved 25 ordered-choice branches DEAD (exact duplicates); all 25 removed from `systemverilog.ebnf` → `ordered_choice_shadowing 25→0`, grammar fully lint-clean, parse-neutral (SV external corpus 14/14, lib 652/0, realistic 730/730). This is a NECESSARY literal-0 prerequisite (a permanently-uncoverable dead branch can never be driven to 0) + a grammar-correctness cleanup. The de-dup did NOT move the noisy measured residual — which pinned the DEEPER blocker: the residual METRIC was NON-DETERMINISTIC (±~25, from the generator's WALL-CLOCK timeout). **RESOLVED `GRAMMAR-WELLFORMED.B1` (`PGEN-GRAMMAR-WELLFORMED-0005`, 2026-06-05): replaced the wall-clock generation deadline (`Instant::now`) with a DETERMINISTIC step-counter budget → the canonical gate now reports closed_loop_replay_targets_total = 84 IDENTICAL across two independent runs (the ±25 wobble of 97/89/105/120 is GONE; proven by construction + empirically). The literal-0 metric is now SIGNAL, not noise — the constructive half of the well-formedness duality can be driven + measured deterministically.** Earlier hypotheses (generation-difficulty; pre/post-LR phantom) both DISPROVEN by source-trace (`.7.4.6.6`). SV external corpus 14/14; realistic corpus 730/730; release 1.0.136 (schema 3).
 
-**Dialect profiles (updated 2026-07-02, `VERILOG-2005-PROFILE.6.1`, `Mostly Done` — PROMOTED from
+**Dialect profiles (updated 2026-07-02, `VERILOG-2005-PROFILE.6.2`, `Mostly Done` — PROMOTED from
 `In Progress` at `.4.3`):** the strict `verilog_2005` (IEEE 1364-2005) parsing profile on the SystemVerilog
 grammar (embedding API `1.3.0`; `GrammarProfile::Verilog2005` + aliases `1364-2005`/`ieee1364-2005`)
 now has its **repo-standard machine-checkable conformance surface**:
@@ -10,17 +10,21 @@ now has its **repo-standard machine-checkable conformance surface**:
 (script `rust/scripts/verilog_2005_conformance_gate.sh`, tracked contract
 `rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json`, corpus promoted from the
 `.4.1`/`.4.2` scratch sets into `rust/test_data/grammar_quality/verilog_2005_conformance/` — 12
-accept + 34 reject files). The gate asserts, against the pinned contract: (1) the **0
+accept + 38 reject files after the `.6.2` `SV-0025`/`SV-0027` reject-locks). The gate asserts,
+against the pinned contract: (1) the **0
 `verilog_2005` profile-orphan `--lint-grammar` lock** (the `.3` standing sub-rule, mechanized);
-(2) the **full 3-profile accept/reject matrix** (138 file×profile checks — every Verilog-2005
+(2) the **full 3-profile accept/reject matrix** (150 file×profile checks — every Verilog-2005
 accept file parses under `verilog_2005`, every SV-only reject file rejects under `verilog_2005`
 while still parsing under `sv_2017`/`sv_2023`, incl. the spec-adjudicated divergences:
 `keywords_as_identifiers.v`/`wire_logic.v` correctly REJECT under the SV profiles, `bind_dir.sv`
 carries the `SV-0022` all-profile waiver) + 2 profile-alias normalization checks; (3) the **profiled
-cert-coverage BASELINE** `--grammar-profile verilog_2005`: `total=1138 proof=2 witness=826
-UNKNOWN=310 (sample_parse_failures=0)` deterministic at seeds 0/7/42 — a baseline pin, not a closure
-claim (the cert run itself classifies 277 of the 310 as NO-reach-path dead-rule candidates under the
-profile, i.e. the gated SV-only surface being profile-unreachable BY DESIGN; the `.6.1`
+cert-coverage BASELINE** `--grammar-profile verilog_2005`: `total=1138 proof=2 witness=817
+UNKNOWN=319 (sample_parse_failures=0)` deterministic at seeds 0/7/42 (re-pinned `826/310`→`817/319`
+at `.6.2`: the `SV-0025`/`SV-0027` leak fixes removed the 9 FALSE witnesses earned through the
+leaked SV-only surface — witness dropping on a leak fix is the honest direction) — a baseline pin,
+not a closure claim (the cert run itself classifies 287 of the 319 as NO-reach-path dead-rule
+candidates under the profile, i.e. the gated SV-only surface being profile-unreachable BY DESIGN;
+the `.6.1`
 adjudication (2026-07-02, `-0011`) classified ALL 310 tools-first: 17 store-gated SV-only
 use-sites whose fact producers are profile-gated + 8 spurious reach paths through gated mandatory
 siblings + the 2 ledgered LEAKS `SV-0025`/`SV-0026` + 6 in-profile witnessable ratchet targets +
@@ -28,21 +32,25 @@ the 1 canonical residual; ratcheting is owned by leaves `.6.2`–`.6.5`). The do
 integration-contract full
 `verilog_2005` write-up (deferred from `.2`) is landed, and the contract's stale embedding-API
 baseline (`1.2.0`→`1.3.0`) is corrected. **Why `Mostly Done`, not `Done`:** the proof surface is a
-curated corpus (tracker rule: curated lists cannot earn `Done`), and THREE ledgered leaks bound
+curated corpus (tracker rule: curated lists cannot earn `Done`), and TWO OPEN ledgered leaks bound
 the strict-subset claim: `SV-0024` (un-braced multi-identifier port expressions accept under EVERY
 profile — `module m (interconnect w);` in the bare non-ANSI form still accepts under
-`verilog_2005` until it lands; the corpus pins the ANSI form), plus the two found by the `.6.1`
-residual adjudication itself — `SV-0025` (`delay_value`'s SV-only `1step`/`time_literal` branches
-un-gated: `wire #1step w;` / `wire #10ns w;` accept under `verilog_2005`) and `SV-0026`
-(SystemVerilog's `$unit` top-level surface active: bare `wire w;` / `reg r;` outside any module
-accept under `verilog_2005`). The
+`verilog_2005` until it lands; the corpus pins the ANSI form) and `SV-0026` (SystemVerilog's
+`$unit` top-level surface active: bare `wire w;` / `reg r;` outside any module accept under
+`verilog_2005`; fix leaf `.6.3` = the new frontier). The sibling leaks found by the `.6.1`
+adjudication are FIXED (`.6.2`, 2026-07-02): `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay
+forms) and `SV-0027` (`10ns` / `'0` expression literals) now REJECT under `verilog_2005` via
+shape-preserving gated lifts (`delay_value_sv_only`, `primary_literal_sv_only`), with 4 corpus
+reject-locks and SV-profile ASTs byte-invariant. The
 `sv_cert_recognized_union_gate` count re-baseline LANDED as leaf `.5` (2026-07-02, `-0010`): pins
 `1304/1/1283/1302`→`1324/2/1302/1321`, gate RED→GREEN fresh end-to-end (semantic invariants
 byte-identical — canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_member_method_call`,
 `spf=0`, seeds 0/7/42; the counts-only drift was the stale-pin lockstep gap from the
-SV-AST-SHAPE-FIDELITY + verilog_2005 named-lift campaigns). Left to close: `SV-0021`..`SV-0026`
-fix leaves and the profiled-cert ratchet leaves `.6.2`–`.6.5` (frontier `.6.2` = the `SV-0025`
-fix). SV family closure status is UNCHANGED (`Mostly Done`); no SV release bump (`sv_2017`/
+SV-AST-SHAPE-FIDELITY + verilog_2005 named-lift campaigns; re-pinned again at `.6.2` for the +2
+lifted rules: `1326/2/1304/1323`, UNKNOWN invariants unchanged). Left to close: the OPEN
+`SV-0021`..`SV-0024` + `SV-0026` fix leaves and the ratchet/design leaves `.6.3`–`.6.5`
+(frontier `.6.3` = the `SV-0026` `$unit` gate). SV family closure status is UNCHANGED
+(`Mostly Done`); no SV release bump (`sv_2017`/
 `sv_2023` behavior invariant — this leaf adds only test-data/gate/doc surfaces, zero grammar/Rust
 source change). Note: the SV figures in the paragraph above are from the 1.0.136 era; the current
 SV parser release is `1.0.158` / schema `13` (see per-parser book + `MEMORY.md`).
@@ -73,6 +81,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-07-02, session #19): **✅ `VERILOG-2005-PROFILE.6.2` LANDED (`PGEN-VERILOG-2005-PROFILE-0012`, CODE — grammar-only) — the SV-only literal/delay leak surface under `verilog_2005` is CLOSED: `SV-0025` + `SV-0027` fixed and `Released` same-day.** Two shape-preserving gated lifts (`delay_value_sv_only`: `time_literal`|`1step`; `primary_literal_sv_only`: `time_literal`|`unbased_unsized_literal` — the second pair found while pinning the first's fix locus): `wire #1step w;`, `wire #10ns w;`, `assign w = 10ns;`, `assign w = '0;` all ACCEPT→REJECT under `verilog_2005`, ACCEPT unchanged under `sv_2017`/`sv_2023` (12/12 before→after AST dumps byte-identical). 4 corpus reject-locks (matrix 138→150 checks, 150/150 green); `verilog_2005` cert re-pinned `826/310`→`817/319` — the 9 dropped witnesses set-diff-proven to be EXACTLY the leak-earned false ones (`time_literal`, `time_unit`, `unbased_unsized_literal`, 6 time-unit keyword tokens; NO-reach 277→287 incl. `kw_n_1step`) — witness dropping on a leak fix is the honest direction; union gate re-pinned `1326/2/1304/1323` for the +2 lifted rules (canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_member_method_call` — byte-identical). Both gates GREEN fresh at seeds 0/7/42, `spf=0`; lint `profile_orphans=0` held; `ast_shape_contract` 18/18; `embedding_api` 51/0; realistic direct-parse 478/478 (252 directive-carrying files preprocessing-lane-only, 0 directive-free failures); non-uvm external triage 10/10 preprocess + 10/10 parse; clippy source clean. Release/schema unchanged (`1.0.158`/13). **NO STATUS ROW CHANGE** — dialect block stays `Mostly Done` (OPEN leaks now `SV-0024` + `SV-0026` only; frontier `.6.3` = the `SV-0026` `$unit` gate); SystemVerilog `Mostly Done`; the 6 fully-certified grammars `Done`.
 
 Tracker note (2026-07-02, session #19): **🔍 `VERILOG-2005-PROFILE.6.1` LANDED (`PGEN-VERILOG-2005-PROFILE-0011`, INVESTIGATION — adjudication + ledger/docs, ZERO code change) — the `verilog_2005` profiled-cert 310-UNKNOWN residual is fully adjudicated tools-first.** The 3-step protocol + `PGEN_REACH_PATH_DUMP` + parse/AST probes + a scoped predicate trace classified the 33 genuine-gap candidates (310 − 277 NO-reach-path) into 5 mechanism classes: 17 store-gated SV-only use-sites whose fact producers are profile-gated (proven by the `🚫 has_fact [type_name, …]` rejection trace); 8 spurious reach paths through gated MANDATORY siblings (e.g. `kw_packed` "reachable" through `data_type`'s struct branch whose gated head `kw_struct` is correctly NO-reach — a reach-map soundness note for the `.6.5` design leaf); **2 confirmed strict-subset over-acceptance LEAKS, ledgered `SV-0025`** (`delay_value`'s SV-only `1step`/`time_literal` branches un-gated — `wire #1step w;` / `wire #10ns w;` ACCEPT under `verilog_2005`) **and `SV-0026`** (SV's `$unit` top-level surface active — bare `wire w;` / `reg r;` ACCEPT; the widest known subset leak); 6 in-profile witnessable ratchet targets (delay-identifier / hierarchical-tf / plain-`randomize`-call / specify-timing-check routes all probe-ACCEPT under the profile); 1 canonical residual (`context_member_method_call`, owned elsewhere). Baseline reproduced byte-for-byte before adjudication (`1138/2/826/310/spf=0`, seed 0). Fix/ratchet/design leaves `.6.2`–`.6.5` spawned (frontier `.6.2` = the `SV-0025` fix). **NO STATUS ROW CHANGE** — the dialect block stays `Mostly Done` (its left-to-close now names `SV-0021`..`SV-0026` + `.6.2`–`.6.5`); SystemVerilog `Mostly Done`; the 6 fully-certified grammars `Done`.
 

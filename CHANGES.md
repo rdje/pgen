@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0012 (VERILOG-2005-PROFILE.6.2): SV-only literal/delay leak surface CLOSED under `verilog_2005` — `SV-0025` + `SV-0027` fixed (`Released`) via two shape-preserving gated lifts; 4 corpus reject-locks; cert + union pins re-baselined
+
+Same session (#19), PNT continuation from `.6.1`. **Grammar-only CODE leaf** (2 lifts; zero Rust-source change; release/schema unchanged `1.0.158`/13).
+
+- **The fix:** `delay_value`'s SV-only alternatives (`time_literal`, `1step`) lifted into `delay_value_sv_only` and `primary_literal`'s ADJACENT SV-only alternatives (`time_literal`, `unbased_unsized_literal`) into `primary_literal_sv_only` — both `@profiles: ["sv_2017","sv_2023"]`, PEG order preserved, parents reference them as bare pass-through alternatives (the `.4.2` idiom). `SV-0027` was found while pinning the `SV-0025` locus (same mechanism, expression context); single-carrier proven for both.
+- **Verified:** `wire #1step w;` / `wire #10ns w;` / `assign w = 10ns;` / `assign w = '0;` ACCEPT→REJECT under `verilog_2005`, ACCEPT unchanged under `sv_2017`/`sv_2023`; 12/12 before→after AST dumps byte-identical; 5 in-profile controls unchanged; profile guards confirmed in the emitted parser source.
+- **Oracles GREEN fresh:** `verilog_2005_conformance_gate` (lint `profile_orphans=0`, 150/150 matrix incl. the 4 new reject-locks, cert `1138/2/817/319` seeds 0/7/42 `spf=0` — the 9 dropped witnesses set-diff-proven = the leak-earned false ones; NO-reach 277→287) and `sv_cert_recognized_union_gate` (`1326/2/1304/20` canonical, `1323/1` union, residual byte-identical — only the +2 accounted counts moved). `ast_shape_contract` 18/18; `embedding_api` 51/0; realistic direct-parse 478/478; non-uvm external triage 10/10+10/10; clippy source clean.
+- **Lockstep:** ledger `SV-0025`→`Released` + `SV-0027` born-`Released`; SV integration contract (corpus/matrix/cert pins, honest boundary, trust posture); book `parser-families.md`; LIVE dialect block + tracker note; both contract JSONs re-baselined with provenance; tree + `docs/TASK_TREE.md` frontier → `.6.3` (`SV-0026` `$unit` gate).
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0011 (VERILOG-2005-PROFILE.6.1): the `verilog_2005` profiled-cert 310-UNKNOWN residual fully adjudicated tools-first; 2 strict-subset LEAKS found + ledgered (`SV-0025`, `SV-0026`); fix leaves `.6.2`–`.6.5` spawned
 
 Fresh session #19 (2026-07-02). Full mandated startup read (core docs direct + book/roadmap/codebase Explore digests), then PNT into the tree frontier `.6`. **INVESTIGATION leaf — ZERO code change** (ledger + task-tree + book/contract/LIVE lockstep only).

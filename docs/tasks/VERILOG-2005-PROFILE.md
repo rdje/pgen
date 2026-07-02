@@ -352,6 +352,49 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   the conformance gate); port the `prune_log` helper to it under its owning surface
   (`GRAMMAR-WELLFORMED.H.12.8.5.2`) — the scratch log was deleted manually this session.
 
+## Acceptance Checklist (`.6.2`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — pre-fix parse-probe matrix on HEAD binaries: `wire #1step w;`,
+  `wire #10ns w;` (SV-0025), `assign w = 10ns;`, `assign w = '0;` (SV-0027) all **ACCEPT under
+  `--profile verilog_2005`** (each also ACCEPT under `sv_2017`/`sv_2023` — legal IEEE 1800);
+  IEEE 1364-2005 A.2.2.3 / §literals have none of these forms. AST dumps name the accepting
+  paths (`delay.body.body.kind="step"` / `kind:"time_literal"` via `delay_value`;
+  `primary_literal → time_literal / unbased_unsized_literal`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `PGEN_REACH_PATH_DUMP` named the live chain
+  `net_declaration_sv_2017 → delay_control → delay_value ("root/o4")` for `kw_n_1step`
+  (`.6.1` Step 2); `delay_value` (`grammars/systemverilog.ebnf:1872`) and `primary_literal`
+  (`:4079`) are shared UN-SPLIT core rules, so `verilog_2005` rides ALL their branches — the
+  SV-only alternatives (`time_literal`, `1step`; `time_literal`, `unbased_unsized_literal`)
+  were never gated by the `.4.1`/`.4.2` waves. Carrier census tool-proven (grep + reach map):
+  no other active carrier under the profile.
+- [x] **FIX** — declarative, grammar-only (fix-hierarchy tier: grammar; no engine change): two
+  shape-preserving gated named lifts per the `.4.2` idiom — `delay_value_sv_only` +
+  `primary_literal_sv_only`, both `@profiles: ["sv_2017","sv_2023"]`, adjacent-branch,
+  PEG-order-preserving; parent rules reference them as bare pass-through alternatives.
+- [x] **ADDRESSED (verified)** — all 4 probes flipped ACCEPT→**REJECT** under `verilog_2005`
+  on the regenerated parser (fresh release probe build verified by mtime — an initial stale-binary
+  probe run was caught and discarded); the profile guard is in the emitted source
+  (`rule_profile_is_enabled(&["sv_2017","sv_2023"])` in both `parse_*_sv_only` fns); the 4 new
+  corpus reject-locks hold in the 150/150 matrix.
+- [x] **NO REGRESSION** — the same 4 inputs still ACCEPT under `sv_2017`/`sv_2023`; 12/12
+  before→after AST dumps **byte-identical** (4 leak + 2 control files × 2 SV profiles);
+  `--lint-grammar` rc=0, `profile_orphans=0`, `ordered_choice_shadowing=0`, warnings unchanged
+  (census 1446→1448 = the 2 lifts exactly); `verilog_2005_conformance_gate` **GREEN fresh**
+  (`gate_green: true`, lint lock + 150/150 matrix + 2/2 aliases + cert `1138/2/817/319`
+  byte-identical seeds 0/7/42, `spf=0`); `sv_cert_recognized_union_gate` **GREEN fresh**
+  (canonical `1326/2/1304/UNKNOWN=20`, union `1323/UNKNOWN=1`, residual
+  `["context_member_method_call"]` — semantic invariants byte-identical, only the +2 accounted
+  counts moved); `ast_shape_contract` 18/18; `embedding_api` 51/0; realistic corpus direct-parse
+  subset 478/478 (the 252 directive-carrying files need the preprocess lane — verified
+  failing-only-for-preprocessing, 0 directive-free failures); external corpus non-uvm triage
+  green (see Verification Log); clippy source clean.
+- [x] **LOCKSTEP** — ledger `SV-0025`→`Released` + new `SV-0027` (`Released`, born-fixed);
+  SV integration contract (corpus/matrix/cert pins + honest boundary + trust posture); main book
+  `parser-families.md` (same pins + fixed/open boundary sentence); LIVE dialect block +
+  session-#19 tracker note; conformance + union contract JSONs re-baselined with provenance
+  notes; tree + `docs/TASK_TREE.md` frontier → `.6.3`; CHANGES / DEVELOPMENT_NOTES / MEMORY;
+  release/schema unchanged (`1.0.158`/13).
+
 ## Acceptance Checklist (`.5`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — `sv_cert_recognized_union_gate` RED on counts at HEAD (session
@@ -398,15 +441,26 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     ×1 rule, D in-profile witnessable ratchet targets ×6, E known canonical residual ×1).
     Fix-leaf plan spawned as `.6.2`–`.6.5`.
 
-  - ID: `VERILOG-2005-PROFILE.6.2` — **frontier** (pending): CODE leaf — fix `SV-0025`:
-    branch-lift `delay_value`'s two SV-only alternatives (`1step`, `time_literal`) into a gated
-    `delay_value_sv_only` (`["sv_2017","sv_2023"]`), shape-preserving per the `.4.2` idiom; add
-    `wire #1step w;` / `wire #10ns w;` reject rows to the conformance corpus; re-baseline the
-    contract in the same commit. Acceptance: ACCEPT→REJECT flips under `verilog_2005`; `sv_2017`
-    ACCEPT unchanged; `--lint-grammar` `verilog_2005` orphans stay 0; cert seeds 0/7/42
-    deterministic, `spf=0`; SV canonical/union cert untouched or accounted.
+  - ID: `VERILOG-2005-PROFILE.6.2` — Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0012`)
+    — CODE leaf (grammar-only): closed the SV-only literal/delay leak surface under
+    `verilog_2005` — `SV-0025` (delay forms) + the same-mechanism `SV-0027` found while pinning
+    the fix locus (`primary_literal`'s adjacent SV-only branches `time_literal` +
+    `unbased_unsized_literal`; probes `assign w = 10ns;` / `assign w = '0;` ACCEPTed at HEAD;
+    single-carrier proven — `unbased_unsized_literal` referenced ONLY by `primary_literal`;
+    `time_literal`'s third carrier `timeunits_declaration` already profile-dead via
+    `kw_timeunit`/`kw_timeprecision`). TWO shape-preserving gated lifts per the `.4.2` idiom,
+    both `["sv_2017","sv_2023"]`, PEG order preserved: `delay_value_sv_only`
+    (`time_literal` | `kw_n_1step`) and `primary_literal_sv_only` (`time_literal` |
+    `unbased_unsized_literal`). 4 corpus reject-locks added (matrix 138→150 checks); the
+    `verilog_2005` contract cert pins re-baselined `826/310`→`817/319` (the 9 dropped witnesses
+    are EXACTLY the leak-earned false ones: `time_literal`, `time_unit`,
+    `unbased_unsized_literal`, the 6 time-unit keyword tokens — set-diff proven; NO-reach
+    277→287 incl. `kw_n_1step` itself) and the union-gate pins re-baselined for the +2 lifted
+    rules (`1326/2/1304/1323`; UNKNOWN invariants byte-identical). Both gates GREEN fresh.
+    Release/schema unchanged (`1.0.158`/13 — SV-profile behavior + AST byte-invariant, 12/12
+    dumps). See Acceptance Checklist (`.6.2`).
 
-  - ID: `VERILOG-2005-PROFILE.6.3` — pending: CODE leaf — fix `SV-0026`: gate `description`'s
+  - ID: `VERILOG-2005-PROFILE.6.3` — **frontier** (pending): CODE leaf — fix `SV-0026`: gate `description`'s
     SV `$unit` compilation-unit alternative(s) out of `verilog_2005` (branch-lift or whole-rule
     gate per the `.1` D4 preference), keeping module/UDP/config; add top-level-declaration reject
     rows to the corpus. EXPECT cert-baseline movement (many `.6.1` probe scaffolds parse through
@@ -1173,7 +1227,30 @@ proof).
   `verilog_2005`; in-profile witnessability probes: `wire #foo w;`, `top.f(1);`,
   `x = randomize(a);` all ACCEPT under `verilog_2005` (positive control `wire #10 w;` ACCEPT).
 
+- 2026-07-02 (`.6.2`, CODE — full verification): see "Acceptance Checklist (`.6.2`)" for the
+  earned boxes. Headlines: 4 leak probes ACCEPT→REJECT under `verilog_2005` / ACCEPT unchanged
+  under `sv_2017`+`sv_2023`; 5 in-profile controls unchanged (`#10`, `#foo`, hierarchical tf
+  call, plain `randomize(a)` call, string literal); 12/12 AST byte-compares; lint
+  `profile_orphans=0` rc=0 census 1446→1448; `verilog_2005_conformance_gate` GREEN
+  (150/150 matrix, cert `1138/2/817/319` seeds 0/7/42 `spf=0`, the 9 dropped witnesses
+  set-diff-proven = `time_literal`/`time_unit`/`unbased_unsized_literal`/6 time-unit kw tokens,
+  NO-reach 277→287); `sv_cert_recognized_union_gate` GREEN (`1326/2/1304/20` canonical,
+  `1323/1` union, residual unchanged); `ast_shape_contract` 18/18; `embedding_api` 51/0;
+  realistic direct-parse 478/478 (252 directive-carrying files classified
+  preprocessing-lane-only, 0 directive-free failures); non-uvm external triage green; clippy
+  source clean; both gates' >10 MB stage logs pruned (disk doctrine — the union gate's ~5 GB
+  regen log pruned manually again; the `prune_log` port to that script remains the
+  `GRAMMAR-WELLFORMED.H.12.8.5.2` follow-up).
+
 ## Commit Log
+
+- 2026-07-02 (`.6.2`, CODE, `PGEN-VERILOG-2005-PROFILE-0012`): SV-only literal/delay leak
+  surface CLOSED under `verilog_2005` — `SV-0025` + `SV-0027` fixed via two shape-preserving
+  gated lifts (`delay_value_sv_only`, `primary_literal_sv_only`); 4 corpus reject-locks
+  (matrix 138→150); cert pins re-baselined `826/310`→`817/319` (false-witness drop, honest
+  direction) + union pins `1324/2/1302/1321`→`1326/2/1304/1323` (+2 accounted rules); both
+  gates GREEN fresh; ledger/book/contract/LIVE lockstep; release/schema unchanged
+  (`1.0.158`/13). Frontier → `.6.3` (`SV-0026` `$unit` gate).
 
 - 2026-07-02 (`.6.1`, INVESTIGATION, `PGEN-VERILOG-2005-PROFILE-0011`): 310-UNKNOWN profiled
   residual fully adjudicated tools-first into 5 mechanism classes (17 store-gated SV-only
@@ -1241,6 +1318,19 @@ proof).
   concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
+
+- 2026-07-02: `.6.2` DONE (`PGEN-VERILOG-2005-PROFILE-0012`, CODE — grammar-only) — the SV-only
+  literal/delay leak surface under `verilog_2005` is CLOSED: `SV-0025` (`wire #1step w;` /
+  `wire #10ns w;`) and the same-mechanism `SV-0027` found while pinning the fix locus
+  (`assign w = 10ns;` / `assign w = '0;`) now REJECT under the strict profile via two
+  shape-preserving gated lifts (`delay_value_sv_only`, `primary_literal_sv_only` — the `.4.2`
+  idiom, PEG order preserved, SV-profile ASTs 12/12 byte-identical). 4 corpus reject-locks; cert
+  pins re-baselined `826/310`→`817/319` (the 9 leak-earned FALSE witnesses dropped — honest
+  direction for a leak fix); union pins re-baselined for the +2 lifted rules
+  (`1326/2/1304/1323`, UNKNOWN invariants byte-identical); both gates GREEN fresh; ledger rows
+  `SV-0025`/`SV-0027` → `Released`. Release/schema unchanged (`1.0.158`/13). Frontier → `.6.3`
+  (the `SV-0026` `$unit` gate — the last OPEN `verilog_2005`-only leak alongside all-profile
+  `SV-0024`). SV family status UNCHANGED (`Mostly Done`).
 
 - 2026-07-02: `.6.1` DONE (`PGEN-VERILOG-2005-PROFILE-0011`, INVESTIGATION — adjudication +
   ledger/docs only, ZERO code change) — the `verilog_2005` profiled-cert 310-UNKNOWN residual is
