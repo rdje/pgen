@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0015 — `.6.3.2` fix mechanics: prelude integrity is a STORE check, and the retry budget is tier-2's measure pointed at the sub-path
+
+Session #20. Implementation notes worth keeping beyond the tree record:
+
+- **The integrity check is a store-state check, not a render-diff.** `store_name_for_gate(kind, family)` after the injected render is exactly the question the replay will ask (`reach_prelude_replay_text` calls the same helper); checking global store state (not an emission delta) is deliberately the semantics — a pre-existing matching fact also satisfies the gate at replay, so demanding "THIS render emitted it" would be stricter than the contract and could fail working preludes.
+- **Rollback discipline on the discarded attempt:** the wrong-family render's emitted facts must not leak into the retry — reuse the existing `quantified_store_checkpoint` (taken before the repeats loop; the injection precedes all on-path repeats, and name preludes have `iterations==1`, so rolling back to it is precisely "undo this injected attempt") + the H.11.2 word-shape flag restore pair.
+- **Retry budget derivation:** `depth + config.max_depth + max_offpath_mandatory_sibling_depth_along_hops(sub_hops)`. The naive H.4.2 form (`depth + max_depth`) is NOT sufficient here: the injection site sits near the entry (depth ≈ 2), so it adds almost nothing, and the `.6.3.1` failure was at the boundary (`number` at depth 64 under budget 64). The sub-path sibling term (property_spec's min-full-derivation depth) is what makes the property host actually fit — it is tier-2's exact measure, pointed at the surface tier-2 cannot see. `compute_min_full_derivation_depths()` (a fixpoint) runs only on the rare retry path.
+- **`git stash` A/B is the cheap decisive control for "is this failure mine?"** — the rtl_const_expr canonical-cert timeout looked alarming mid-verification; stash + rebuild (~30 s) + rerun + pop settled it in one measurement (identical failure pre-change ⇒ pre-existing; spun off `CERT-GEN-BUDGET.3`). Also a reminder that a "tree COMPLETE" posture can silently rot: `.2`'s 2026-06-25 A/B pinned this exact invocation green; deterministic step budgets make such drift bisectable.
+- Working-directory hygiene bit me twice this session: compound `cd rust && …` commands persist the cwd across Bash calls — a later relative-path invocation exit-127'd and a book grep "found no file". Prefer absolute paths in every command.
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0014 — `.6.3.1` root cause: the armed name-prelude can silently emit the WRONG fact kind (depth-starved forced branch + fallback + no integrity check)
 
 Session #20. The `.6.3.1` engine investigation closed in one scoped debug-trace cert run. Durable mechanism knowledge:

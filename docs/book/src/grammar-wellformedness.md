@@ -1077,6 +1077,32 @@ it — closing them would require tightening the grammar's generic alternative t
 type-parameter and interface-class heads, a change deliberately deferred until a *real* parse failure
 (not merely an unwitnessed fragment) justifies it.
 
+A later hardening increment closed a **silent-degradation** hole in the armed prelude itself:
+**fact-kind integrity with a depth-fresh retry**. The prelude's injected iteration must derive the
+producer's *host* declaration — including the host's deep **mandatory siblings** (a
+`property_declaration` must also complete its `property_spec`, a ~25-level expression chain) — but
+the per-target witness depth budget only ever measured the *main* reach chain (the target's own
+subtree at tier 1, the main chain's deepest mandatory off-path sibling at tier 2); the prelude's
+own sub-path was invisible to both tiers. When the injected forced branch died on that hidden
+depth (`… depth exceeded … while expanding rule 'number'`), the ordered-choice fallback quietly
+rendered a *shallower sibling of the wrong declaration family* — a `sequence \foo ; … endsequence`
+prelude feeding a `has_fact(property_name, …)` gate — and nothing checked that the iteration had
+emitted the armed fact kind at all. A witness could then only succeed *accidentally*, when the
+main path happened to render a self-emitting host; any reach re-routing away from such a host
+(exactly what an unrelated grammar reshape did) turned the broken prelude into a lost witness.
+The fix encodes the prelude's contract directly: after each injected iteration the generator
+verifies a fact of the armed `(kind, family)` now exists in the generation-time store, and when it
+does not (or the render failed outright) it rolls the discarded attempt back and retries **once**
+under a depth-fresh budget measured from the injection depth *plus the sub-path's own deepest
+mandatory off-path sibling* — the same tier-2 measure, applied to the sub-path the tiers cannot
+see. A retry that still cannot produce the armed fact fails the attempt *loudly* instead of
+handing the gate an unusable store. Count preludes and every injection that already emitted the
+right fact are byte-identical by construction; on the canonical SystemVerilog run the headline
+accounting is unchanged (`UNKNOWN=20`, union `UNKNOWN=1`, deterministic at seeds 0/7/42) while the
+plannable pass witnesses one more target directly and eight fewer probe samples fail to re-parse —
+and the property-gate witness now carries a *property* prelude, making it robust to reach
+re-routing instead of dependent on an accidental self-emitting host.
+
 ### Closing the SVA operator layer, and what the residual is now
 
 Past the reach passes, the last stretch of the SystemVerilog drive (`UNKNOWN 32 → 22`) was not

@@ -1150,6 +1150,11 @@ struct ReachPrelude {
     /// generation store, and the gated consumer's whole render is forced to THAT store name
     /// (`reach_prelude_replay_text` reads it back). `None` ⇒ the existing count prelude.
     name_gate: Option<NameGateArm>,
+    /// VERILOG-2005-PROFILE.6.3.2: the body→producer reach hops this prelude's `sub_plan` was
+    /// compiled from. The armed-prelude integrity retry sizes its depth-fresh budget from these
+    /// hops' mandatory off-path siblings — the same measure the two-tier witness budget applies
+    /// to the MAIN chain, here applied to the prelude sub-path (which that budget cannot see).
+    sub_hops: Vec<(String, String)>,
 }
 
 /// STORE-AWARE-GEN.4b.2: the positive name-matching store gate a CONSUMER rule carries —
@@ -2998,6 +3003,7 @@ impl<'a> StimuliGenerator<'a> {
                     iterations,
                     captured: None,
                     name_gate: None,
+                    sub_hops: sub_hops.clone(),
                 });
             }
         }
@@ -3152,6 +3158,7 @@ impl<'a> StimuliGenerator<'a> {
                             kind: kind.to_string(),
                             family: gate.family.clone(),
                         }),
+                        sub_hops: sub_hops.clone(),
                     });
                 }
             }
@@ -6632,8 +6639,21 @@ impl<'a> StimuliGenerator<'a> {
         let Some(hops) = self.reach_hops(entry_rule, target_rule) else {
             return 0;
         };
+        self.max_offpath_mandatory_sibling_depth_along_hops(&hops, depths)
+    }
+
+    /// VERILOG-2005-PROFILE.6.3.2: the hops-generic core of
+    /// `max_offpath_mandatory_sibling_depth`. Split out so the armed-prelude integrity retry can
+    /// apply the SAME deepest-mandatory-off-path-sibling measure to the prelude's body→producer
+    /// sub-path (`ReachPrelude::sub_hops`) that the two-tier witness budget applies to the
+    /// entry→target main chain.
+    fn max_offpath_mandatory_sibling_depth_along_hops(
+        &self,
+        hops: &[(String, String)],
+        depths: &HashMap<String, usize>,
+    ) -> usize {
         let mut deepest = 0usize;
-        for (hop_rule, hop_site_path) in &hops {
+        for (hop_rule, hop_site_path) in hops {
             let Some(rule_node) = self.grammar_tree.get(hop_rule.as_str()) else {
                 continue;
             };
@@ -9877,17 +9897,105 @@ impl<'a> StimuliGenerator<'a> {
                         current_rule, node_path, prelude_iterations
                     ),
                 );
+                // VERILOG-2005-PROFILE.6.3.2: the armed name gate this prelude exists to satisfy
+                // (`None` for the count prelude) plus the body→producer sub-path, read up front
+                // for the integrity check / depth-fresh retry below.
+                let (armed_name_gate, prelude_sub_hops) = self
+                    .reach_plan
+                    .as_ref()
+                    .and_then(|plan| plan.prelude.as_ref())
+                    .map(|prelude| (prelude.name_gate.clone(), prelude.sub_hops.clone()))
+                    .unwrap_or((None, Vec::new()));
                 for _ in 0..prelude_iterations {
                     self.enforce_generation_deadline(current_rule, &quantified_path)?;
                     let saved_plan = self.reach_plan.take();
                     self.reach_plan = Some((*sub_plan).clone());
-                    let prelude_result = self.generate_node(
+                    let mut prelude_result = self.generate_node(
                         element,
                         current_rule,
                         depth + 1,
                         call_stack,
                         &quantified_path,
                     );
+                    // VERILOG-2005-PROFILE.6.3.2: armed-prelude fact-kind INTEGRITY + ONE
+                    // depth-fresh retry. A name-coordinated prelude exists to emit ONE fact of
+                    // the armed `(kind, family)`; the per-target witness budget cannot see the
+                    // prelude sub-path, so its forced producer-host branch can die on depth deep
+                    // in a mandatory sibling (`property_declaration`'s `property_spec` chain,
+                    // `… depth exceeded … rule 'number'`) and `generate_or`'s
+                    // forced-first-with-fallback then SILENTLY renders a wrong-family sibling
+                    // (`sequence_declaration` — a useless `sequence_name` fact for a
+                    // `has_fact(property_name)` gate). Verify the armed fact actually exists
+                    // after the injected render; when it does not (or the render erred), roll the
+                    // discarded attempt back and retry ONCE under a depth-fresh budget measured
+                    // from the injection depth plus the sub-path's deepest mandatory off-path
+                    // sibling — the exact tier-2 measure, applied to the sub-path the tiers
+                    // cannot see. Count preludes (`name_gate=None`) and injections that already
+                    // emitted the armed fact are byte-identical; the retry fires only where the
+                    // prelude silently produced an unusable witness before this fix.
+                    if let Some(arm) = &armed_name_gate {
+                        let gate_unsatisfied = self
+                            .store_name_for_gate(&arm.kind, arm.family.as_deref())
+                            .is_none();
+                        if prelude_result.is_err() || gate_unsatisfied {
+                            if let Some(checkpoint) = &quantified_store_checkpoint {
+                                self.gen_semantic_state.rollback_to(checkpoint.clone());
+                            }
+                            self.last_terminal_word_shaped = quantified_entry_word_shape.0;
+                            self.last_terminal_from_atomic_rule = quantified_entry_word_shape.1;
+                            let depths = self.compute_min_full_derivation_depths();
+                            let sibling_need = self
+                                .max_offpath_mandatory_sibling_depth_along_hops(
+                                    &prelude_sub_hops,
+                                    &depths,
+                                );
+                            let saved_max_depth = self.config.max_depth;
+                            self.config.max_depth = depth
+                                .saturating_add(saved_max_depth)
+                                .saturating_add(sibling_need);
+                            self.trace(
+                                TraceLevel::Debug,
+                                format_args!(
+                                    "C2 semantic-prelude integrity retry: rule='{}' path='{}' kind='{}' family={:?} first_render={} retry_max_depth={}",
+                                    current_rule,
+                                    node_path,
+                                    arm.kind,
+                                    arm.family,
+                                    if prelude_result.is_ok() {
+                                        "ok-without-armed-fact"
+                                    } else {
+                                        "err"
+                                    },
+                                    self.config.max_depth
+                                ),
+                            );
+                            self.reach_plan = Some((*sub_plan).clone());
+                            prelude_result = self.generate_node(
+                                element,
+                                current_rule,
+                                depth + 1,
+                                call_stack,
+                                &quantified_path,
+                            );
+                            self.config.max_depth = saved_max_depth;
+                            if prelude_result.is_ok()
+                                && self
+                                    .store_name_for_gate(&arm.kind, arm.family.as_deref())
+                                    .is_none()
+                            {
+                                prelude_result = Err(anyhow!(
+                                    "Armed name-prelude integrity failure: injected iteration emitted no '{}' fact{} at rule '{}' site '{}'",
+                                    arm.kind,
+                                    arm.family
+                                        .as_deref()
+                                        .map(|family| format!(" (family '{family}')"))
+                                        .unwrap_or_default(),
+                                    current_rule,
+                                    node_path
+                                ));
+                            }
+                        }
+                    }
                     self.reach_plan = saved_plan;
                     match prelude_result {
                         Ok(generated) => {

@@ -352,6 +352,14 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   the conformance gate); port the `prune_log` helper to it under its owning surface
   (`GRAMMAR-WELLFORMED.H.12.8.5.2`) — the scratch log was deleted manually this session.
 
+## Acceptance Checklist (`.6.3.2`, enforced)
+- [x] **REPRODUCE / ISSUE** — `.6.3.1` evidence: `[plannable-probe] rule='known_unscoped_property_identifier' … sample="sequence\foo ;…endsequence property\foo_0 ;…"` (wrong-family prelude at HEAD); post-lift 48/48 `parsed=true witnessed_target=false` (canonical `UNKNOWN` 20→21, union 1→2 — the `.6.3` blocker).
+- [x] **ROOT CAUSE (WHY + WHERE)** — tool-named in `.6.3.1`: `OR branch failed: rule='assertion_item_declaration' path='root' branch=0 reason=Stimuli generation depth exceeded max_depth=64 while expanding rule 'number'` → `Selected OR branch: … branch=1` (silent sequence fallback) inside the injected prelude render; injection loop `generate_quantified:9880-9913` accepts any `Ok` with no armed-fact check; budgets `run_plannable_witness_pass:4089/4210` + `max_offpath_mandatory_sibling_depth:6626` never cover the prelude sub-path.
+- [x] **FIX** — engine tier (declarative/grammar tiers inapplicable — parser-agnostic generator internals): `ReachPrelude.sub_hops` + hops-generic `max_offpath_mandatory_sibling_depth_along_hops` + armed-prelude integrity check (`store_name_for_gate`) with ONE depth-fresh retry (injection depth + budget + sub-path deepest mandatory off-path sibling) and a loud `Armed name-prelude integrity failure` error when still unsatisfied. Count-preludes and already-correct injections byte-identical by construction.
+- [x] **ADDRESSED (verified)** — the witness sample flipped `"sequence\foo ;…endsequence property\foo_0 ;…"` → `"property\foo ;215.8_40endproperty property\foo_0 ;\foo_0 endproperty"` (right fact kind; robust to reach re-routing); plannable pass `1054→1055` witnessed, probe-parse-failures `68→60` (seed 0).
+- [x] **NO REGRESSION** — canonical cert `1326/2/1304/UNKNOWN=20 spf=0` byte-identical (headline + full 20-rule residual + NO-reach lists, md5-compared) at seeds 0/7/42; `sv_cert_recognized_union_gate` GREEN fresh (canonical 20 / union 1 / witness 1323 / residual `context_member_method_call`, seeds 0/7/42, `unmet_criteria_count: 0`); `verilog_2005_conformance_gate` GREEN fresh (orphans=0, 150/150, aliases 2, cert `1138/2/817/319` seeds 0/7/42); `ast_shape_contract_gate` 18/18; clippy source strict-clean (generated-stage 182 errors = pre-existing tolerated debt, all in `generated/systemverilog_parser.rs`); fully-certified certs seed 0: json `9/0`, regex `198/0`, vhdl `216/0`, svpp `74/0`, rtl_frontend `169/proof=1/0`; rtl_const_expr canonical-cert timeout A/B-proven PRE-EXISTING (git-stash control: identical `TargetTimeout conditional_expr root/o1 budget=4000ms` on the pre-change binary) → spun off `CERT-GEN-BUDGET.3`, not caused here.
+- [x] **LOCKSTEP** — book `docs/book/src/grammar-wellformedness.md` (new prelude-integrity increment in the semantic-prelude ladder; `mdbook_docs_gate` ✅); `CERT-GEN-BUDGET.md` reopened with `.3`; this tree + `docs/TASK_TREE.md`; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE. No contract/ledger/schema/release change (generator-internal; parser byte-untouched).
+
 ## Acceptance Checklist (`.6.2`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — pre-fix parse-probe matrix on HEAD binaries: `wire #1step w;`,
@@ -460,8 +468,12 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     Release/schema unchanged (`1.0.158`/13 — SV-profile behavior + AST byte-invariant, 12/12
     dumps). See Acceptance Checklist (`.6.2`).
 
-  - ID: `VERILOG-2005-PROFILE.6.3` — Status: `blocked` (2026-07-02, checkpoint
-    `PGEN-VERILOG-2005-PROFILE-0013`; blocker = `.6.3.1`): CODE leaf — fix `SV-0026`. The fix was
+  - ID: `VERILOG-2005-PROFILE.6.3` — **frontier** Status: `pending` (UNBLOCKED 2026-07-02 by
+    `.6.3.2` — the engine name-prelude is now integrity-checked + depth-fresh-retried, so the
+    `known_unscoped_property_identifier` witness no longer depends on the accidental
+    self-emitting host the lifts route away from; REPLAY the recorded lift diffs below and
+    re-earn all locks incl. the canonical/union pins. Original blocked-checkpoint record
+    `PGEN-VERILOG-2005-PROFILE-0013`): CODE leaf — fix `SV-0026`. The fix was
     BUILT and PARSE-VERIFIED this session, then **REVERTED** because it cannot earn NO-REGRESSION
     yet (see `.6.3` Findings): (a) a SECOND carrier was found tools-first — `source_text_item`
     carries direct top-level `local_parameter_declaration semi` / `parameter_declaration semi`
@@ -503,22 +515,30 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     fails with the SAME depth error ×4 → tier-2 (deep sibling IS on the main chain there)
     rescues it — working as designed. Fix commissioned as `.6.3.2`.
 
-  - ID: `VERILOG-2005-PROFILE.6.3.2` — **frontier** (pending): CODE leaf (ENGINE fix,
-    general/parser-agnostic — `stimuli_generator.rs`): make the armed name-prelude honor its
-    semantic contract ("the injected iteration exists to emit one fact of the armed
-    `(kind, family)`"). Design (from the `.6.3.1` evidence): in the `generate_quantified`
-    prelude-injection loop, after each injected render (and on a depth-exceeded `Err`), verify
-    via the gen store (`store_name_for_gate(arm)`) that a matching fact now exists; when the
-    check fails, RETRY that injected iteration ONCE under a fresh depth budget measured from the
-    injection depth (`depth + max_depth`, the proven H.4.2 constructive-reach pattern), and only
-    then fall to the existing `failed` path. Strictly additive: count-preludes
-    (`name_gate=None`) and every injection that already emits the right fact are byte-identical;
-    the retry fires only where the prelude was already broken (never witnessed anything real).
-    Keyed on the armed `NameGateArm` (structural), never a rule name. Verification: canonical SV
-    cert `1326/2/1304/20` + union `1323/1` at seeds 0/7/42 (must not regress; witness sample for
-    `known_unscoped_property_identifier` should now carry a PROPERTY prelude), `verilog_2005`
-    gate pins `1138/2/817/319`, 6 fully-certified grammars byte-identical (passes inert),
-    ast_shape_contract GREEN, clippy clean. `.6.3` replays after it.
+  - ID: `VERILOG-2005-PROFILE.6.3.2` — Status: `done` (2026-07-02, session #20,
+    `PGEN-VERILOG-2005-PROFILE-0015`): CODE leaf (ENGINE fix, general/parser-agnostic —
+    `stimuli_generator.rs`): the armed name-prelude now honors its semantic contract ("the
+    injected iteration exists to emit one fact of the armed `(kind, family)`"). As designed from
+    the `.6.3.1` evidence: (1) `ReachPrelude` carries its body→producer `sub_hops`; (2) in the
+    `generate_quantified` prelude-injection loop, after each injected render (and on a render
+    `Err`), the generator verifies via `store_name_for_gate(arm)` that a matching fact now
+    exists; on failure it rolls the discarded attempt back (store checkpoint + word-shape
+    flags) and retries ONCE under a depth-fresh budget = injection depth + current budget + the
+    SUB-path's deepest mandatory off-path sibling (the tier-2 measure via the new hops-generic
+    `max_offpath_mandatory_sibling_depth_along_hops`, applied to the sub-path the tiers cannot
+    see); a retry that still lacks the armed fact fails LOUDLY (`Armed name-prelude integrity
+    failure: …`) instead of handing the gate an unusable store. Count-preludes
+    (`name_gate=None`) and every already-correct injection are byte-identical by construction.
+    VERIFIED: the property-gate witness now carries a PROPERTY prelude
+    (`property\foo ;…endproperty property\foo_0 ;\foo_0 endproperty`); canonical
+    `1326/2/1304/20` byte-identical (headline + full residual + NO-reach lists) at seeds
+    0/7/42; plannable pass 1054→1055 witnessed with probe-parse-failures 68→60 (honest
+    direction); union gate GREEN fresh (pins exact); `verilog_2005` gate GREEN fresh
+    (`1138/2/817/319`, 150/150, 0 orphans); ast_shape_contract 18/18; clippy source
+    strict-clean; 5/6 fully-certified grammars UNKNOWN=0 green and the 6th
+    (rtl_const_expr) canonical-cert timeout PROVEN PRE-EXISTING by a git-stash A/B control
+    (identical failure on the pre-change binary — spun off as `CERT-GEN-BUDGET.3`). See
+    "Acceptance Checklist (`.6.3.2`)". `.6.3` is UNBLOCKED — replay next.
 
   - ID: `VERILOG-2005-PROFILE.6.4` — pending: RATCHET leaf — witness the 6 class-D in-profile
     rules (`simple_identifier_no_scope`, `scope_free_identifier`, `ps_identifier` via the
@@ -1426,7 +1446,34 @@ proof).
   PRELUDE sub-path. Arming census for fix blast-radius: 99 `name-prelude spec` lines across 10
   distinct gated rules in the canonical run. No grammar / code / generated / release change.
 
+- 2026-07-02 (`.6.3.2`, CODE — engine fix, full verification): symptom flip MEASURED — the
+  `known_unscoped_property_identifier` probe sample now renders a PROPERTY prelude
+  (`property\foo ;215.8_40endproperty property\foo_0 ;\foo_0 endproperty`); canonical cert
+  byte-identical `1326/2/1304/20 spf=0` at seeds 0/7/42 (headline + full residual list + NO-reach
+  list md5-compared vs the pre-fix baseline); plannable-pass transparency moved honestly
+  (1054→1055 witnessed; probe-parse-failures 68→60; target-own pass 25→24 targeted / 3→2
+  witnessed — same final set). Gates GREEN fresh: `sv_cert_recognized_union_gate`
+  (`unmet_criteria_count: 0`), `verilog_2005_conformance_gate` (`gate_green: true`),
+  `ast_shape_contract_gate` (18/18), `mdbook_docs_gate`, `clippy_on_rust_change` (source
+  strict-clean; generated-stage errors pre-existing, all in `generated/systemverilog_parser.rs`).
+  Fully-certified sweep seed 0: 5/6 UNKNOWN=0 green; rtl_const_expr canonical cert
+  (`--entry-rule conditional_expr --max-depth 32`) FAILS at HEAD with the deterministic
+  step-budget timeout — git-stash A/B control run on the pre-change binary reproduced the
+  IDENTICAL error, proving it pre-existing (intervening drift since `CERT-GEN-BUDGET.2`'s
+  2026-06-25 A/B) → `CERT-GEN-BUDGET.3` spawned; not caused by this leaf. Union-gate 4.9 GB
+  regen log pruned post-pass (the `H.12.8.5.2` `prune_log` port remains open).
+
 ## Commit Log
+
+- 2026-07-02 (`.6.3.2` CODE, `PGEN-VERILOG-2005-PROFILE-0015`): armed name-prelude fact-kind
+  INTEGRITY + depth-fresh retry landed in `stimuli_generator.rs` (`ReachPrelude.sub_hops`,
+  hops-generic `max_offpath_mandatory_sibling_depth_along_hops`, integrity check via
+  `store_name_for_gate` + ONE retry sized by the sub-path's deepest mandatory off-path
+  sibling, loud failure otherwise). Property-gate witness now robust (PROPERTY prelude);
+  canonical/union/verilog_2005/shape/clippy/mdbook all green with pins byte-identical.
+  Book lockstep: new prelude-integrity increment in `grammar-wellformedness.md`.
+  Side discovery spun off: `CERT-GEN-BUDGET.3` (rtl_const_expr canonical-cert budget timeout
+  at HEAD, A/B-proven pre-existing). `.6.3` UNBLOCKED → frontier (replay the recorded lifts).
 
 - 2026-07-02 (`.6.3.1` INVESTIGATION, `PGEN-VERILOG-2005-PROFILE-0014`): the engine
   witness-routing anomaly fully tool-named (ZERO code) — the armed name-prelude's injected

@@ -71,6 +71,17 @@ bounded-budget fix is `.2`.
   NO REGRESSION — decisive A/B (PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS=0 legacy vs default 4000, SAME binary, seed 0, count 40), BYTE-IDENTICAL cert headlines: json total=9/witness=9/UNKNOWN=0; regex 198/198/0; vhdl 216/216/0; systemverilog_preprocessor 74/74/0; rtl_frontend total=169 proof=1 witness=168 UNKNOWN=0; systemverilog total=1288 proof=1 witness=1259 UNKNOWN=28 spf=0 (also =28 at seeds 7/42). rtl_const_expr depth-32 fully_certified (total=48 UNKNOWN=0) at seeds 0/7/42. clippy_source_all_targets → ok (0 errors; the no-features source gate caught a cfg-attachment slip mid-implementation — the const had to carry its OWN #[cfg(feature="generated_parsers")] so it did not steal the gate off run_certificate_coverage_report — fixed + re-verified). No grammar/generated/parser/release/schema/ledger change (generated/*.rs untouched ⇒ external-corpus / parse gates unaffected by construction).`
   Commit: `PGEN-CERT-GEN-BUDGET-0002`
 
+- ID: `CERT-GEN-BUDGET.3`
+  Status: `pending`
+  Goal: `INVESTIGATION (tools-first): the rtl_const_expr canonical cert ("--entry-rule conditional_expr --count 40 --seed 0 --max-depth 32") — pinned fully_certified (48/0, seeds 0/7/42) by the .2 decisive A/B on 2026-06-25 — now FAILS at HEAD with "Stimuli generation target timeout exceeded for rule 'conditional_expr' at path 'root/o1' (budget=4000ms)" in the PASS-1 diverse pass. The budget is a DETERMINISTIC step budget, so this is an intervening engine-behavior drift (per-sample step count grew past 4M), not machine noise. Find WHY+WHERE (git bisect over the engine commits since PGEN-CERT-GEN-BUDGET-0002, and/or a step-count-trace diff), adjudicate (engine regression to fix vs honest re-calibration of the default budget), and restore the fully-certified-6 cert surface to green.`
+  Discovery evidence (2026-07-02, session #20, found during the VERILOG-2005-PROFILE.6.3.2
+  no-regression sweep): the failure reproduces IDENTICALLY on the pre-`.6.3.2` binary
+  (git-stash A/B control — same error, same rule, same path, same budget), proving it
+  PRE-EXISTS the `.6.3.2` engine fix and post-dates the 2026-06-25 `.2` verification. The
+  other five fully-certified grammars are green at HEAD (json `9/0`, regex `198/0`, vhdl
+  `216/0`, svpp `74/0`, rtl_frontend `169/proof=1/0`; seed 0). Depths 40/48 also cut on the
+  budget (the DESIGNED `.2` behavior); depth 32 failing is the NEW fact.
+
 ## Acceptance Checklist (enforced)
 - [x] **REPRODUCE / ISSUE** — `ast_pipeline --report-certificate-coverage` PASS-1 diverse pass is time-unbounded: unbounded (`PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS=0`) `rtl_const_expr --max-depth 40` and `conditional_expr --max-depth 40/48` HANG (>40s wall, rc=124) on the current binary.
 - [x] **ROOT CAUSE (WHY + WHERE)** — diverse config leaves `target_generation_timeout_ms=0` (`stimuli_generator.rs:217`) → `timeout_budget_from_ms(0)=None` (`:1795/1799`) → `generation_deadline_exceeded()` false when unarmed (`:1810`); `generate_many` calls `generate_from_entry` directly, so the B1 step-budget (`enforce_generation_deadline`, woven through the core generation recursion `:8141/8175/9602/9149/…`) is NEVER ARMED for the diverse pass.
@@ -83,10 +94,14 @@ bounded-budget fix is `.2`.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
+| 1 | `CERT-GEN-BUDGET.3` | `pending` | REOPENED 2026-07-02: the rtl_const_expr canonical cert (depth 32) — pinned fully_certified by the `.2` A/B — now step-budget-times-out at HEAD (`TargetTimeout conditional_expr root/o1 budget=4000ms`); A/B-proven independent of the `.6.3.2` engine fix; deterministic ⇒ bisectable intervening engine drift. A fully-certified-6 proof surface is currently RED. |
 | — | `CERT-GEN-BUDGET.2` | `done` (`PGEN-CERT-GEN-BUDGET-0002`) | The bounded-budget fix LANDED: diverse pass now arms a default 4M-step B1 budget; byte-identical cert for the 6 well-behaved grammars + SV; rtl_const_expr fully_certified at depth 32 (seeds 0/7/42); depth-40/48 runaway cut deterministically (~15s). |
 | — | `CERT-GEN-BUDGET.1` | `done` (`PGEN-CERT-GEN-BUDGET-0001`) | Root cause: the diverse-pass config never arms the B1 step-budget (`target_generation_timeout_ms=0`) → unbounded generation, pathological/non-terminating on deeply-recursive rtl_const_expr; non-monotonic in `--max-depth`. |
 
-**Tree status: all leaves `done` → `CERT-GEN-BUDGET` is COMPLETE.** (Tree-level: the cert-coverage diverse pass is now deterministically bounded without changing the well-behaved grammars' cert results — Goal + all Acceptance Criteria met.)
+**Tree status: REOPENED 2026-07-02 (was complete 2026-06-25).** The `.3` discovery — the
+rtl_const_expr canonical cert timing out at HEAD on the deterministic budget the `.2` A/B
+calibrated — invalidates the "COMPLETE" posture until `.3` restores the fully-certified-6
+cert surface to green.
 
 ## Decisions
 
@@ -118,3 +133,4 @@ bounded-budget fix is `.2`.
 
 - `2026-06-14`: Created (`.1` done, `PGEN-CERT-GEN-BUDGET-0001`) — root-caused the "stuck 6.5-min" `ast_pipeline` cert-coverage run to the time-unbounded PASS-1 diverse pass (no B1 step-budget armed; `main.rs:2370`); pathological/non-terminating on deeply-recursive rtl_const_expr; non-monotonic in `--max-depth`. Fix ticketed as `.2` (arm a generous deterministic step-budget, preserving byte-identical cert for the 6 well-behaved grammars). Frontier → `.2`.
 - `2026-06-25`: `.2` DONE (`PGEN-CERT-GEN-BUDGET-0002`) — armed a deterministic 4,000,000-step (4000 ms) per-sample default budget on the cert PASS-1 diverse pass via the new `generate_many_bounded` (env-tunable `PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS`). Byte-identical cert for the 6 well-behaved grammars + SV (decisive A/B), rtl_const_expr fully_certified at depth 32 (seeds 0/7/42), and the current depth-40/48 runaway cut deterministically (~15s vs unbounded hang). Generator-only / parser-agnostic; no grammar/generated/release/schema/ledger change. **Tree COMPLETE (all leaves done).**
+- `2026-07-02`: Tree REOPENED — `.3` spawned (`pending`, discovered during `VERILOG-2005-PROFILE.6.3.2` verification, recorded in commit `PGEN-VERILOG-2005-PROFILE-0015`): the rtl_const_expr canonical cert (depth 32) now FAILS at HEAD on the deterministic 4M-step budget (`TargetTimeout conditional_expr root/o1 budget=4000ms`); git-stash A/B proved it independent of the `.6.3.2` engine fix ⇒ an intervening engine drift since the `.2` calibration. The other five fully-certified grammars remain green at HEAD (seed 0). Frontier → `.3`.
