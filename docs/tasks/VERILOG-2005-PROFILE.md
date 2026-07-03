@@ -580,15 +580,36 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     `SV-DOLLAR-LRM-FIDELITY`). `verilog_2005` cert UNKNOWN stays `327` (= pins, headline
     reproduced byte-identical at seed 0); no code/grammar/generated change.
 
-  - ID: `VERILOG-2005-PROFILE.6.5` — proposed: DESIGN leaf (engine-accounting) — per-profile
-    `proof` accounting for (i) the 277 NO-reach-path profile-gated rules, (ii) class-A store-gated
-    use-sites whose fact producers are profile-gated (semantically unsatisfiable — the reach map
-    cannot see it), and (iii) class-B spurious reach paths (the BFS treats a profile-gated
-    MANDATORY sequence element as skippable — e.g. `kw_packed` "reachable" through `data_type`'s
-    struct branch whose head `struct_union` is gated, while `kw_struct` itself is correctly
-    NO-reach). All three are engine design questions (parser-agnostic), not `verilog_2005`
-    grammar work; the leaf decides whether they become `proof` entries or stay documented
-    `UNKNOWN` posture.
+  - ID: `VERILOG-2005-PROFILE.6.5` — Status: `done` (2026-07-03, session #25,
+    `PGEN-VERILOG-2005-PROFILE-0018`, DESIGN leaf — ZERO engine/grammar code; one contract
+    PROSE fix): per-profile `proof` accounting DESIGNED and DECIDED — the three profile-gated
+    residual classes ((i) NO-reach stranded rules, (ii) class-A store-gated use-sites with
+    profile-unreachable producers, (iii) class-B spurious reach paths) ARE soundly provable and
+    SHALL become `proof` entries, but STAGED: `.6.6` lands the read-only machine
+    classification (headline-byte-identical, env-gated), `.6.7` promotes to certificates + full
+    re-pin only after the classification reproduces the manual adjudication. Full design with
+    tool-pinned WHY+WHERE for all three mechanisms in "`.6.5` Findings" below. Also landed: the
+    deferred conformance-contract `baseline_note` prose fixes (stale "295 of the 326"→"of the
+    327", a duplicated `$unit` phrase removed, the missing SV-DOLLAR-LRM-FIDELITY.4 re-pin hop
+    appended) — pins untouched, gate re-run GREEN.
+
+  - ID: `VERILOG-2005-PROFILE.6.6` — proposed: CODE leaf (engine, parser-agnostic) — the
+    READ-ONLY residual-classification surface designed in `.6.5`: pure analyses
+    `profile_entry_unreachable_rules` (P1) + `store_unproducible_rules` (P2) in
+    `grammar_wellformedness.rs`, surfaced by the cert report behind
+    `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` (default output BYTE-IDENTICAL; `reach_hops_pass`
+    untouched). Verification bar: canonical + `verilog_2005` + union headlines byte-identical at
+    seeds 0/7/42; fully-certified 6 byte-identical; on `verilog_2005` the machine classes must
+    reproduce the `.6.1`/`.6.4`/`.6.5` adjudication (library/entry cohort NOT classified dead;
+    class-A set = the `known_unscoped_*`/`checked_*` family; any machine-vs-manual discrepancy
+    adjudicated tools-first before the leaf closes).
+  - ID: `VERILOG-2005-PROFILE.6.7` — proposed: CODE leaf (engine + gate re-pins) — PROMOTION:
+    new `WellformednessCertificate::{ProfileEntryUnreachable, ProfileUnproducibleGate}` variants
+    + independent checkers; cert proof-gathering consumes them; ALL affected pinned gates
+    re-baselined in the SAME slice (v2005 conformance cert pins, `sv_cert_recognized_union_gate`
+    canonical pins, LIVE/book/contract lockstep). Blocked on `.6.6` closing with the
+    classification verified; the leaf must enumerate the exact expected canonical-run delta from
+    the `.6.6` machine output BEFORE landing.
 
 ## `.6.1` Findings (tools-first, 2026-07-02 — the 310-UNKNOWN adjudication)
 
@@ -824,6 +845,137 @@ proof_reverify_failures=0)`.
   `:4026`/`:4081`). External-corpus 14/14 never exercised these spellings (no timing checks /
   `$unit::` / module-level severity tasks in the corpus), which is why the family stayed
   invisible.
+
+## `.6.5` Findings (DESIGN, 2026-07-03 — per-profile proof accounting)
+
+Design leaf: heavy engine reading + a fresh evidence run; ZERO engine/grammar code. Fresh
+baseline (HEAD binaries, SV release `1.0.161`, schema `15`):
+`PGEN_CERT_COVERAGE_DUMP_ALL=1 … --report-certificate-coverage --grammar-profile verilog_2005
+--entry-rule systemverilog_file --count 40 --seed 0` reproduced the contract pins
+byte-for-byte — `total=1147 proof=4 witness=816 UNKNOWN=327 (spf=0, prf=0)`, 295 NO-reach rules
+enumerated in full, `327 − 295 = 32` attempted-but-unwitnessed.
+
+### The tool-pinned mechanisms (WHY + WHERE, all three classes)
+
+- **(i) Stranded-rule class — why NO-reach rules can't earn today's `UnreachableRule` proof.**
+  `apply_grammar_profile_filter` (`rust/src/main.rs:2237`) prunes only rules whose OWN
+  `@profiles` tag excludes the active profile; an untagged (universal) rule SURVIVES even when
+  every rule referencing it is pruned (e.g. `kw_typedef` under `verilog_2005`). The cert's
+  proof side (`main.rs:2497` → `gather_verified_proof_covered_rules`,
+  `grammar_wellformedness.rs:1723`) detects whole-rule deadness via `detect_unreachable_rules`
+  (`:268`), whose `reachable_rules` (`:284`) promotes every UNREFERENCED rule to a secondary
+  ROOT (`:306-313` — the multi-entry-awareness that keeps `library_text` legitimate). A
+  profile-stranded rule is therefore its own root → never "unreachable" → no proof → UNKNOWN,
+  with only the pass-3 warning (`main.rs:2926`) naming it a "dead-rule candidate — adjudicate
+  via the linter" — and the linter has NO profile-entry-unreachability check to adjudicate
+  with (`detect_profile_orphans`/`compute_sat_by_profile`, `grammar_wellformedness.rs:778`/
+  `:671`, prove the DOWNWARD axis — "can this rule derive a string under P" — not the UPWARD
+  axis "can any entry reach it under P").
+- **(ii) Class-A store-gated use-sites — why the linter's unbound-kind check can't fire.** The
+  `type_name` emitters live on profile-AGNOSTIC `declared_*_identifier` helper rules
+  (`grammars/systemverilog.ebnf:1018/:1022/:1587/:3507/:5464-:5481`) that SURVIVE the profile
+  filter, so `detect_unbound_fact_kinds` (`grammar_wellformedness.rs:958` — kind-existence over
+  the annotation set) still sees emitters. The kinds are unproducible under `verilog_2005` only
+  because every PRODUCING CONTEXT (the gated declaration hosts referencing those helpers) is
+  entry-unreachable under the profile — i.e. class (ii) is class (i) lifted through the
+  annotation surface, and deadness CASCADES (a dead producer's emissions vanish → more rules
+  die), so the sound analysis is a fixpoint.
+- **(iii) Class-B spurious reach paths — where the BFS loses profile truth.** `reach_hops_pass`
+  (`rust/src/ast_pipeline/stimuli_generator.rs:6800`) discovers edges from EVERY
+  rule-reference site; a reference to a rule missing from the active (profile-pruned) tree is
+  simply SKIPPED (`:6869` `continue`) instead of invalidating the enclosing MANDATORY branch —
+  so `kw_packed` is "discovered" through `data_type`'s struct branch whose mandatory head
+  `struct_union` is not in the active tree. The exact honesty needed ALREADY EXISTS in
+  `mandatory_node_gated` (`:7120` — "a reference to a rule MISSING from the active
+  (profile-pruned) tree is treated as gated — it cannot be rendered, so it is no escape",
+  `:7161-7164`) but is only consulted by the LAST-pass store-free edge deprioritization, never
+  by the default BFS or the NO-reach classification.
+
+### The load-bearing structural finding: the 295 is HETEROGENEOUS
+
+The fresh NO-reach dump shows the 295 contains TWO populations that any sound proof MUST
+separate: (a) the genuinely profile-stranded SV-only surface (`kw_class`,
+`declared_class_identifier`, the covergroup/SVA/constraint families, …) and (b) the
+ENTRY-RELATIVE infrastructure (`library_text`, `library_declaration`, `sv_multi_entry_root`,
+`systemverilog_parseable_file`, `include_statement`, …) — rules rooted under OTHER declared
+entries, partly core 1364-2005 §13 surface (library maps/config are legal Verilog-2005), which
+are NOT dead under the profile. A proof keyed on the single cert entry would falsely brand (b)
+dead. **Therefore the certificate must quantify over the DECLARED ENTRY UNIVERSE** (the cert
+entry + the `--cert-union-config` entries present in the active filtered tree), not the single
+`--entry-rule`.
+
+### The current 32-rule attempted-but-unwitnessed residual (fresh, seed 0)
+
+Class A (mandatory positive store-gate, producers profile-unreachable — 18):
+`known_unscoped_class_scope_{class,interface_class,type_parameter}_identifier`,
+`known_unscoped_block_type_identifier`, `known_unscoped_data_type_identifier`,
+`known_unscoped_block_class_type`, `provisional_unscoped_block_class_type`,
+`known_unscoped_covergroup_type_identifier`, `known_unscoped_block_covergroup_identifier`,
+`known_unscoped_let_identifier`, `checked_nettype_identifier`,
+`wildcard_escape_nettype_identifier`, `known_unscoped_sequence_identifier`,
+`checked_type_identifier`, `known_unscoped_class_scoped_call_{class,interface_class,
+type_parameter}_identifier`, `class_scoped_tf_call`. Class B (spurious reach through a gated
+mandatory sibling — 7): `kw_packed`, `kw_randc`, `random_qualifier`, `struct_union_member`,
+`kw_type`, `kw_inside`, `kw_matches`. Class E (canonical residual — 1):
+`context_member_method_call`. Post-`.6.1` drift entries needing `.6.6` adjudication (6):
+`data_type_or_void`, `kw_void`, `dynamic_array_variable_identifier`, `function_statement`,
+`hierarchical_tf_identifier`, `identifier_list` (the SV-DOLLAR waves re-routed reach paths
+since `.6.1`; `kw_rand` left the residual). That the manual snapshot drifted in ONE DAY of
+grammar work is itself design evidence: prose adjudication goes stale per-commit; only a
+machine classification stays current.
+
+### The DESIGN (decided)
+
+**Decision: the three classes SHALL become sound `proof` entries — per-profile proof
+accounting is adopted as the end state — but STAGED behind a read-only machine classification
+that must first reproduce the manual adjudication.** Leaving mechanizable truth as contract
+prose contradicts `DOCTRINE_ENFORCEMENT.md` ("a doctrine that is not mechanically checked is
+not enforced"); conversely, re-pinning every gate on the strength of a brand-new analysis with
+no independent confirmation surface is the tournament-loser-leak mistake. Staging resolves
+both.
+
+**P1 — profile-entry-universe unreachability (covers classes i + iii).** New pure analysis in
+`grammar_wellformedness.rs`: over the ACTIVE (profile-filtered) tree, the positively-reachable
+set from the DECLARED ENTRY UNIVERSE, with SATISFIABILITY-HONEST edges — a reference site
+contributes an edge only if its enclosing derivation within the referencing rule is
+satisfiable under the profile (reusing the `node_satisfiable` algebra: Or = any alternative,
+Sequence = all elements, min-0 quantifier = skippable, lookahead = no positive edge, a
+reference to a missing rule = unsatisfiable — the `mandatory_node_gated` missing-rule half
+lifted to the proof layer). A rule outside that set is `profile_entry_unreachable`: no parse
+from any declared entry under P can positively enter it. Decidable, pure, independently
+re-derivable. Class-B rules fall out automatically (their only "reach" was through an
+unsatisfiable branch). The default reach BFS (`reach_hops_pass`) is deliberately NOT touched —
+witness-landscape neutrality (the `.6.3` collateral lesson).
+
+**P2 — profile-unproducible mandatory store-gate (covers class ii).** Fixpoint composed with
+P1: fact-kind K is producible under P iff SOME P1-live rule carries an `@emit_fact` of kind K;
+a rule whose MANDATORY descent (the `mandatory_node_gated` algebra) forces a POSITIVE
+fact-query (`has_fact` / `fact_attribute_equals` / `fact_count_at_least` min≥1 — NEVER
+`lacks_fact` or other negative forms: an unsatisfiable NEGATIVE gate makes a rule ALWAYS-LIVE,
+not dead) on an unproducible K is dead under P → remove → its emissions vanish → iterate to
+fixpoint. Sound-core boundaries stated explicitly: (a) KIND-level only (attribute-level
+`declaration_family=…` refinement deliberately out — kind-level suffices for the observed
+classes); (b) if ANY P1-live rule carries `@import_from_library`, the analysis degrades to
+inert for kinds that library kind can supply (external artifacts can inject facts without an
+in-parse emitter) — under `verilog_2005` the import surface is SV-only-gated so no
+degradation; (c) the certificate is scoped "under profile P with no external fact libraries"
+(the cert-coverage accounting configuration — witness verification runs lib-free today).
+
+**Staging.** `.6.6` (CODE): P1+P2 as pure functions + a cert-report classification of the
+residual UNKNOWN into `profile_entry_unreachable` / `store_unproducible_under_profile` /
+`genuine`, printed ONLY under `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` (default output
+byte-identical; precedent: the gap report's read-only `reach_classification` field). Entry
+universe = canonical entry + `--cert-union-config` entries present in the active tree. `.6.7`
+(CODE, blocked on `.6.6`): promotion — `WellformednessCertificate::ProfileEntryUnreachable
+{ rule, profile, entries }` + `ProfileUnproducibleGate { rule, profile, kind }` variants with
+independent checkers (re-derive from scratch, never trust the detector), proof-gathering
+consumes them, and EVERY affected pinned gate is re-baselined in the same slice with set-diff
+evidence (v2005 conformance cert pins → UNKNOWN becomes the genuine residual; the recognized
+union gate's canonical pins move too — the stranded sv_2023-feature rules under `sv_2017` earn
+the same proof; the union RESULT is invariant because per-config proofs already extend the
+union, `main.rs:3012`). Expected post-`.6.7` v2005 posture: UNKNOWN ≈ entry-relative library
+cohort + `context_member_method_call` + whatever `.6.6` adjudicates genuine — each then
+individually ownable, which is exactly what the pins-not-closure posture cannot offer today.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -1254,6 +1406,19 @@ proof).
 
 ## Decisions
 
+- 2026-07-03 (`.6.5`): **Per-profile proof accounting ADOPTED as the end state, STAGED.** The
+  three profile-gated residual classes are soundly provable (P1 entry-universe unreachability
+  over the active tree with satisfiability-honest edges; P2 unproducible-mandatory-positive-
+  store-gate fixpoint composed with P1) and SHALL become `proof` certificates — but only after
+  a read-only, env-gated machine classification (`.6.6`) reproduces the manual adjudication;
+  promotion + all gate re-pins land together in `.6.7`. Soundness boundaries fixed in the
+  design: the certificate quantifies over the DECLARED ENTRY UNIVERSE (never the single cert
+  entry — the 295 NO-reach set is heterogeneous and contains the entry-relative library
+  cohort, which is legal 1364-2005 §13 surface and must NOT be branded dead); P2 counts only
+  POSITIVE fact-queries (`lacks_fact` unsatisfiability makes a rule always-live, not dead),
+  kind-level only, degrades to inert in the presence of a live `@import_from_library`; the
+  default reach BFS (`reach_hops_pass`) is not touched at any stage (witness-landscape
+  neutrality — the `.6.3` collateral lesson). See "`.6.5` Findings".
 - 2026-07-01: **A profile is the correct mechanism** (not a bespoke validator, not a fork). This
   matches the project's existing dialect-gating architecture (`@profiles:` + `GrammarProfile`)
   and the [[project_ebnf_is_single_source_of_truth]] doctrine — the subset boundary lives IN the
@@ -1398,6 +1563,22 @@ proof).
 
 ## Verification Log
 
+- 2026-07-03 (`.6.5` DESIGN, `PGEN-VERILOG-2005-PROFILE-0018`): fresh evidence run on HEAD
+  binaries (SV `1.0.161`/schema 15): `PGEN_CERT_COVERAGE_DUMP_ALL=1 ./rust/target/debug/
+  ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile
+  verilog_2005 --entry-rule systemverilog_file --count 40 --seed 0` → headline byte-identical
+  to the contract pins (`total=1147 proof=4 witness=816 UNKNOWN=327`, `spf=0`, `prf=0`); 295
+  NO-reach rules enumerated (heterogeneity confirmed: contains `library_text`/
+  `sv_multi_entry_root`/`systemverilog_parseable_file`/`library_declaration`/
+  `include_statement` — the entry-relative cohort — alongside the stranded SV-only surface);
+  the 32-rule attempted-but-unwitnessed residual extracted by set-diff and classified (18 A +
+  7 B + 1 E + 6 post-`.6.1` drift). Engine mechanisms pinned by direct code read (file:line
+  in the findings): `main.rs:2237`/`2497`/`2926`, `grammar_wellformedness.rs:268`/`284`/
+  `306-313`/`671`/`778`/`958`/`1723`, `stimuli_generator.rs:6800`/`6869`/`7120`/`7161-7164`,
+  `grammars/systemverilog.ebnf:1018-5481` (profile-agnostic `type_name` emitters). Contract
+  prose fix verified: `jq` parse clean, the four cert pins unchanged (`1147/4/816/327`), and
+  `make -C rust SHELL=/bin/bash verilog_2005_conformance_gate` re-run GREEN end-to-end after
+  the edit (lint 0-orphan lock + 192-check matrix + 3-seed cert pins).
 - 2026-07-01 (`.1`, tools-first inventory): confirmed the 1364-2005 LRM PDF
   (`docs/verilog/2005/Verilog-LRM-IEEE-1364-2005.pdf`), extracted md/txt, and
   `grammars/verilog_2005_lrm_extracted.ebnf` (1529 lines / 476 productions) are all present;
@@ -1608,6 +1789,18 @@ proof).
 
 ## Commit Log
 
+- 2026-07-03 (`.6.5` DESIGN, `PGEN-VERILOG-2005-PROFILE-0018`): per-profile proof accounting
+  DESIGNED + DECIDED (staged adoption: `.6.6` read-only machine classification →
+  `.6.7` certificate promotion + full re-pin); all three residual-class mechanisms tool-pinned
+  to file:line (the stranded-rule secondary-root heuristic, the profile-agnostic fact-emitter
+  helpers, the reach-BFS missing-mandatory skip); the 295 NO-reach heterogeneity finding
+  (entry-relative cohort vs stranded SV-only surface) fixed the certificate's quantification
+  (declared entry universe). Conformance-contract `baseline_note` prose corrected (stale
+  "of the 326"→"of the 327", duplicated `$unit` phrase removed, the missing
+  `SV-DOLLAR-LRM-FIDELITY.4` re-pin hop appended) — pins untouched, gate GREEN. ZERO
+  engine/grammar code. Frontier → `.6.6` (classification CODE leaf), alternates =
+  `SV-0021`..`SV-0024`/`SV-0028` fix leaves.
+
 - 2026-07-02 (`.6.4` INVESTIGATION, `PGEN-VERILOG-2005-PROFILE-0017`): the class-D witness
   ratchet ADJUDICATED — no earnable `verilog_2005` UNKNOWN delta (ZERO code): the identifier
   trio is already witnessed inside the `809/327` pins (rescued by the `.6.3.2`
@@ -1735,6 +1928,10 @@ proof).
 
 ## Changelog
 
+- 2026-07-03: `.6.5` DESIGN leaf done (`PGEN-VERILOG-2005-PROFILE-0018`) — per-profile proof
+  accounting designed and decided (staged: `.6.6` read-only classification → `.6.7` certificate
+  promotion + re-pins); conformance-contract `baseline_note` prose corrected (pins untouched,
+  gate GREEN). New proposed leaves `.6.6`/`.6.7`; frontier → `.6.6`.
 - 2026-07-02: `.6.3` BLOCKED-CHECKPOINT (`PGEN-VERILOG-2005-PROFILE-0013`, docs-only commit) —
   the `SV-0026` fix was built and parse-verified but deliberately NOT landed: it deterministically
   loses the `known_unscoped_property_identifier` witness in both SV entry profiles (canonical
