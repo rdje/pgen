@@ -5728,6 +5728,13 @@ uniqueness_constraint := uniqueness_constraint_sv_2017 -> {kind: "sv_2017", body
 unpacked_dimension := lbrack constant_range rbrack         -> {kind: "range",      body: $2}
                     | lbrack constant_expression rbrack    -> {kind: "expression", body: $2}
 
+# VERILOG-2005-PROFILE.6.9 (SV-0033) — the bare `[]` (unsized) dimension is SystemVerilog-only
+# (IEEE 1800 §7.5 dynamic arrays); IEEE 1364-2005 has no unsized dimension anywhere in Annex A
+# (every dimension is a ranged `[msb:lsb]` / indexed form). Gating the whole rule prunes the `[]`
+# surface out of `verilog_2005` at all three carriers (packed_dimension alt, variable_dimension
+# alt, the variable_decl_assignment dynamic-array branch) while the sv_2017/sv_2023 tree — and
+# thus their AST — is unchanged. Whole-rule @profiles gate idiom, cf. `uniqueness_constraint`.
+@profiles: ["sv_2017", "sv_2023"]
 unsized_dimension := lbrack rbrack
                   -> {kind: "unsized"}
 

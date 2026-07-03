@@ -36,15 +36,20 @@ curated corpus (tracker rule: curated lists cannot earn `Done`), and FOUR OPEN l
 the strict-subset claim: `SV-0024` (un-braced multi-identifier port expressions accept under EVERY
 profile — `module m (interconnect w);` in the bare non-ANSI form still accepts under
 `verilog_2005` until it lands; the corpus pins the ANSI form), `SV-0028` (a stray top-level
-`;` accepts under every profile), and TWO of the three `verilog_2005`-only over-acceptances surfaced
-2026-07-03 by the `.6.6` machine residual-classification's tools-first adjudication:
+`;` accepts under every profile), and — of the three `verilog_2005`-only over-acceptances surfaced
+2026-07-03 by the `.6.6` machine residual-classification's tools-first adjudication —
 `SV-0031` (the `::` scope-resolution surface — `initial p::f();`, `p::C::f()`, expression
-`p::X` all accept) and `SV-0033` (dynamic-array `[]`
-dimension) — both `Root Caused` with AST-pinned carriers, each awaiting its own `_sv_only`
-gated-lift fix leaf; the third, `SV-0032` (`void` return type + `void'(…)` cast), is now FIXED at
-`.6.8` (2026-07-03, `-0020`): both `kw_void` surfaces gated via
-`data_type_or_void_sv_only`/`void_cast_statement_sv_only`, so `function void f;` and `void'(f());`
-REJECT under `verilog_2005` while the SV profiles stay AST-identical. ALL THREE profile-boundary leaks found by the `.6.1`
+`p::X` all accept) remains `Root Caused` with AST-pinned carriers, awaiting its own `_sv_only`
+gated-lift fix leaf, while `SV-0032` (`void` return type + `void'(…)` cast) is FIXED at
+`.6.8` (2026-07-03, `-0020`: both `kw_void` surfaces gated via
+`data_type_or_void_sv_only`/`void_cast_statement_sv_only`) and `SV-0033` (the dynamic-array `[]`
+unsized dimension `reg q [];`) is FIXED at `.6.9` (2026-07-03, `-0021`: a single whole-rule
+`@profiles: ["sv_2017","sv_2023"]` gate on the entirely-SV-only `unsized_dimension` rule — ZERO
+new rules — pruning all three carriers at once), so `function void f;`, `void'(f());` and
+`reg q [];` all REJECT under `verilog_2005` while the SV profiles stay AST-identical. Fixing
+`SV-0033` surfaced (tools-first) a fourth sibling leak, `SV-0034` — the SV-only associative-array
+(`reg q [integer];`) and queue (`reg q [$];`) dimension alternatives of the same
+`variable_dimension` rule — now `Root Caused` with its own fix leaf. ALL THREE profile-boundary leaks found by the `.6.1`
 adjudication are now FIXED: `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay forms) and
 `SV-0027` (`10ns` / `'0` expression literals) at `.6.2`, and `SV-0026` — the widest, the SV
 `$unit` top-level surface — at `.6.3` (2026-07-02, `-0016`): BOTH carriers gated via
@@ -62,10 +67,13 @@ lifted rules — `1326/2/1304/1323` — at `.6.3` for the +2 `$unit` lifts —
 `1328/2/1306/1325` — and through `SV-DOLLAR-LRM-FIDELITY.3`/`.4` (+9 then +4 accounted rules) —
 `1337/2/1315/1334` then `1341/2/1319/1338` and (`.6.8` +2 witnessed void lifts) the CURRENT
 `1343/2/1321/1340` — UNKNOWN invariants unchanged
-throughout). Current strict-profile pins: conformance matrix `198` checks (`66` cases; 15 accept
-+ 51 reject corpus files), profiled cert `1147/4/816/327` `spf=0` (296 NO-reach-by-design),
-seeds 0/7/42. Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` + `SV-0031`/`SV-0033` fix leaves and the per-profile
+throughout; `.6.9` leaves the union BYTE-IDENTICAL (`1343/2/1321/1340`, gate re-verified GREEN — the
+whole-rule `unsized_dimension` gate adds no rule and never touches the `sv_2017`/`sv_2023` tree).
+Current strict-profile pins: conformance matrix `204` checks (`68` cases; 16 accept
++ 52 reject corpus files), profiled cert `1146/4/815/327` `spf=0` (296 NO-reach-by-design; `.6.9`:
+`unsized_dimension` leaves the profile universe — total/witness −1 — dropping its one leak-earned
+false witness, UNKNOWN/NO-reach unchanged), seeds 0/7/42. Left to close: the OPEN
+`SV-0021`..`SV-0024` + `SV-0028` + `SV-0031`/`SV-0034` fix leaves and the per-profile
 proof-accounting lane: design leaf `.6.5` DONE 2026-07-03 (staged adoption decided), and the
 `.6.6` READ-ONLY machine classification LANDED 2026-07-03 (session #26, `-0019`) — pure P1
 entry-universe-reachability + P2 unproducible-store-gate analyses in
@@ -75,9 +83,11 @@ untouched): on `verilog_2005` the machine split `292 profile_entry_unreachable +
 17 store_unproducible + 18 genuine = 327`, reproducing the `.6.1`/`.6.4`/`.6.5` manual
 adjudication exactly where it was right and CORRECTING it twice where it had gone stale
 (`hierarchical_tf_identifier`, `class_scoped_tf_call`) — the discrepancy probes are what
-surfaced `SV-0031`/`SV-0032`/`SV-0033`. `SV-0032` (`void` surface) then LANDED as leaf `.6.8`
-(2026-07-03, `-0020`) — the first of the three `.6.6`-surfaced leaks closed. Remaining: the
-`SV-0031`/`SV-0033` fix leaves and `.6.7` certificate promotion + full gate re-pins (must first
+surfaced `SV-0031`/`SV-0032`/`SV-0033`. `SV-0032` (`void` surface) LANDED as leaf `.6.8`
+(2026-07-03, `-0020`) and `SV-0033` (dynamic-array `[]`) as leaf `.6.9` (2026-07-03, `-0021`) — two
+of the three `.6.6`-surfaced leaks now closed; fixing `.6.9` also surfaced (tools-first) a fourth
+sibling leak `SV-0034` (SV-only associative-array/queue dimensions). Remaining: the
+`SV-0031`/`SV-0034` fix leaves and `.6.7` certificate promotion + full gate re-pins (must first
 decide the conformance gate's entry-universe wiring). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
 full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
 at `1.0.159`, the `SV-0030` digit/compare restoration at `1.0.160` — which also EARNED the
