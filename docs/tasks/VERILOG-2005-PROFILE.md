@@ -379,6 +379,60 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
 - [x] **NO REGRESSION** — canonical cert `1326/2/1304/UNKNOWN=20 spf=0` byte-identical (headline + full 20-rule residual + NO-reach lists, md5-compared) at seeds 0/7/42; `sv_cert_recognized_union_gate` GREEN fresh (canonical 20 / union 1 / witness 1323 / residual `context_member_method_call`, seeds 0/7/42, `unmet_criteria_count: 0`); `verilog_2005_conformance_gate` GREEN fresh (orphans=0, 150/150, aliases 2, cert `1138/2/817/319` seeds 0/7/42); `ast_shape_contract_gate` 18/18; clippy source strict-clean (generated-stage 182 errors = pre-existing tolerated debt, all in `generated/systemverilog_parser.rs`); fully-certified certs seed 0: json `9/0`, regex `198/0`, vhdl `216/0`, svpp `74/0`, rtl_frontend `169/proof=1/0`; rtl_const_expr canonical-cert timeout A/B-proven PRE-EXISTING (git-stash control: identical `TargetTimeout conditional_expr root/o1 budget=4000ms` on the pre-change binary) → spun off `CERT-GEN-BUDGET.3`, not caused here.
 - [x] **LOCKSTEP** — book `docs/book/src/grammar-wellformedness.md` (new prelude-integrity increment in the semantic-prelude ladder; `mdbook_docs_gate` ✅); `CERT-GEN-BUDGET.md` reopened with `.3`; this tree + `docs/TASK_TREE.md`; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE. No contract/ledger/schema/release change (generator-internal; parser byte-untouched).
 
+## Acceptance Checklist (`.6.10`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — pre-fix parse-probe on HEAD release binary: `module m; reg q [*];`
+  (associative wildcard) and `module m; reg q [$];` (queue) both **ACCEPT under `--profile
+  verilog_2005`** (leak), and also ACCEPT under `sv_2017`/`sv_2023` (legal). Associative arrays (IEEE
+  1800 §7.8) and queues (§7.10) are SystemVerilog-only; IEEE 1364-2005 array dimensions are always
+  ranged (§4.9 / Annex A). No-over-gate control `reg [7:0] q; reg r [3:0];` correctly ACCEPTS under
+  `verilog_2005`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `associative_dimension := lbrack data_type rbrack | lbrack star
+  rbrack` (`grammars/systemverilog.ebnf:627`) and `queue_dimension := lbrack kw_dollar (colon
+  constant_expression)? rbrack` (`:4587`) are each *entirely* SV-only and referenced from EXACTLY ONE
+  site — the corresponding `variable_dimension` alternative (`:5810` associative, `:5811` queue).
+  `variable_dimension` stays v2005-reachable via its `unpacked_dimension` (ranged) alt. Same
+  `.2`/`.4.1` baseline-admission family as `SV-0026`/`SV-0031`/`SV-0032`/`SV-0033`. **Tools-first
+  correction:** the associative probe MUST be the wildcard `[*]` — `reg q [integer];` does NOT
+  isolate `associative_dimension` (`unpacked_dimension` is tried first; the keyword `integer` parses
+  there as a bare primary → the separate all-profile `SV-0035`).
+- [x] **FIX** — declarative, grammar-only (tier: grammar; no engine/codegen change): two whole-rule
+  `@profiles: ["sv_2017","sv_2023"]` tags (the `.6.9`/`uniqueness_constraint` idiom) on
+  `associative_dimension` and `queue_dimension` — ZERO new rules. Validated tools-first on the static
+  `--lint-grammar` 0-orphan check before the regen. Emitted source carries the guards
+  (`parse_associative_dimension`/`parse_queue_dimension` profile checks in
+  `generated/systemverilog_parser.rs`).
+- [x] **ADDRESSED (verified)** — `reg q [*];` and `reg q [$];` flip ACCEPT→**REJECT** under
+  `verilog_2005` on the regenerated release binary; still ACCEPT under `sv_2017`/`sv_2023`; the
+  no-over-gate control `reg [7:0] q; reg r [3:0];` still ACCEPTS under `verilog_2005`; the sv_2017 AST
+  is byte-identical (`{kind:"associative"}`/`{kind:"wildcard"}`/`{kind:"queue"}` intact, **zero**
+  `_sv_only` wrapper keys); 2 new corpus reject-locks (`reject/assoc_array_dim.sv` = `reg q [*];`,
+  `reject/queue_dim.sv`) hold in the 210-check matrix.
+- [x] **NO REGRESSION** — `verilog_2005_conformance_gate` **GREEN** (lint orphans=0, corpus 210
+  checks / 0 mismatches, aliases 2, cert `1144/4/813/327` deterministic seeds 0/7/42); the honest
+  leak-fix delta = both rules LEAVE the profile universe (total 1146→1144) dropping the 2 false
+  witnesses earned through the leak (witness 815→813), with UNKNOWN 327 and NO-reach 296 unchanged
+  (set-diff proven, both absent from the seed-0 dump); `sv_cert_recognized_union_gate` **GREEN &
+  BYTE-IDENTICAL** (canonical `1343/2/1321/UNKNOWN=20`, union `1343/2/1340/UNKNOWN=1`, residual
+  `context_member_method_call`, seeds 0/7/42 — no new rule, SV tree untouched); `--lint-grammar` 0
+  `verilog_2005` orphans (census 1465 UNCHANGED); `ast_shape_contract` GREEN 18/18; the 6
+  fully-certified grammars byte-identical (SV-only regen); `clippy_on_rust_change` GREEN (source stage
+  0 errors — grammar-only; generated-parser clippy is pre-existing non-strict debt); `mdbook_docs_gate`
+  ✅.
+- [x] **LOCKSTEP** — ledger `SV-0034` → `Released` (fix record + `1.0.161` no-bump) + new `SV-0035`
+  row (`Root Caused`, ALL-PROFILE — a reserved type keyword parsing as a bare primary,
+  `localparam p = integer;` accepts under every profile); conformance contract JSON re-pinned
+  (`1144/4/813/327` + `.6.10` `baseline_note` hop + 2 case entries, associative case using `[*]`);
+  book `parser-families.md`; SV integration contract; LIVE dialect block; tree + `docs/TASK_TREE.md`
+  frontier; CHANGES / DEVELOPMENT_NOTES / MEMORY. Release/schema unchanged (`1.0.161`/15 — SV
+  profiles AST-byte-invariant).
+- [x] **ALERT-DISCIPLINE (BE-ALERT) + WRONG-CARRIER CATCH** — the associative fix's *assumed* test
+  case (`reg q [integer];`) did NOT flip on the rebuilt binary; empirical verification (not trusting
+  the assumed grammar path) revealed `[integer]` routes through `unpacked_dimension`
+  (keyword-as-primary), a DISTINCT ALL-PROFILE leak now ledgered `SV-0035` (`Root Caused`) —
+  `localparam p = integer;` accepts under `sv_2017`/`sv_2023`/`verilog_2005`. Kept OUT of this
+  surgical fix; the associative surface re-probed + locked via the isolating `[*]`.
+
 ## Acceptance Checklist (`.6.9`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — pre-fix parse-probe on HEAD release binary: `module m; reg q [];
@@ -805,6 +859,37 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     (`reject/dynamic_array_unsized.sv` REJECT-lock: v2005 REJECT / sv_2017+sv_2023 ACCEPT;
     `accept/array_ranged_dim.v` no-over-gate control: ranged dims all-profile ACCEPT). Ledger
     `SV-0033` → `Released`. See "Acceptance Checklist (`.6.9`)".
+  - ID: `VERILOG-2005-PROFILE.6.10` — Status: `done` (2026-07-03, session #28, CODE leaf,
+    grammar-only): **close the `SV-0034` `verilog_2005`-only boundary leak — the SV-only
+    associative-array (`[data_type]`) and queue (`[$]`) dimension surfaces.** IEEE 1800 §7.8
+    associative arrays and §7.10 queues are SystemVerilog-only; IEEE 1364-2005 has neither (§4.9 /
+    A.2.5 dimensions are ranged `[msb:lsb]` only), so `reg q [integer];` (associative) and `reg q
+    [$];` (queue) must REJECT under the strict profile. Surfaced tools-first while fixing `SV-0033`
+    (`.6.9`) by probing the sibling alternatives of the same `variable_dimension` rule (ledger
+    `SV-0034`, `Root Caused`). TOOLS-FIRST WHY+WHERE (session #28, fresh release binary): the queue
+    form `module m; reg q [$]; endmodule` and the associative WILDCARD form `module m; reg q [*];
+    endmodule` both **ACCEPT under `--profile verilog_2005`** (leak) and under `sv_2017`/`sv_2023`
+    (legal). TOOLS-FIRST CORRECTION during implementation (the assumed carrier was wrong — verified,
+    not trusted): the associative surface must be probed with the wildcard `[*]`, NOT `[data_type]`
+    with a type keyword — `reg q [integer];` does NOT isolate `associative_dimension` because
+    `variable_dimension` tries `unpacked_dimension` FIRST and the keyword `integer` parses there as a
+    bare primary/`specparam` expression (`localparam p = integer;` likewise ACCEPTS under
+    `verilog_2005`), a SEPARATE keyword-reservation/primary-leniency leak now ledgered `SV-0035`
+    (`Root Caused`), NOT this dimension surface. `[*]` matches only the associative wildcard
+    alternative, so it cleanly proves the gate. The two SV-only leaf rules —
+    `associative_dimension := lbrack data_type rbrack` (`grammars/systemverilog.ebnf:627`) and
+    `queue_dimension := lbrack kw_dollar ( colon constant_expression )? rbrack` (`:4587`) — are each
+    referenced from EXACTLY ONE site: the corresponding `variable_dimension` alternative (`:5810`
+    associative, `:5811` queue). `variable_dimension` itself stays v2005-reachable via its
+    `unpacked_dimension` (ranged) alternative, so gating the two SV-only leaves prunes ONLY the
+    associative/queue surface (same structure as `.6.9`'s `unsized_dimension`). FIX (declarative,
+    grammar-only; tier: grammar): the whole-rule `@profiles: ["sv_2017","sv_2023"]` idiom (cf.
+    `.6.9`/`uniqueness_constraint`) on BOTH single-carrier SV-only rules (`associative_dimension`,
+    `queue_dimension`) — ZERO new rules. Re-pin surface (measured post-regen): v2005 conformance
+    cert pins + `sv_cert_recognized_union_gate` pins (expected union byte-identical — no new rule,
+    SV tree untouched); 2 corpus reject-locks (`reject/assoc_array_dim.sv`, `reject/queue_dim.sv`) +
+    reuse `accept/array_ranged_dim.v` as the no-over-gate control. Ledger `SV-0034` → `Released`.
+    See "Acceptance Checklist (`.6.10`)".
 
 ## `.6.1` Findings (tools-first, 2026-07-02 — the 310-UNKNOWN adjudication)
 

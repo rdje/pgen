@@ -624,6 +624,12 @@ assignment_pattern_net_lvalue := tick lbrace net_lvalue ( comma net_lvalue )* rb
 assignment_pattern_variable_lvalue := tick lbrace variable_lvalue ( comma variable_lvalue )* rbrace
                                    -> {items: [$3, $4::2*]}
 
+# VERILOG-2005-PROFILE.6.10 (SV-0034) — the associative-array dimension (`[data_type]` and the
+# wildcard `[*]`) is SystemVerilog-only (IEEE 1800 §7.8); IEEE 1364-2005 has no associative arrays
+# (Annex A array dimensions are ranged `[msb:lsb]` only). Whole-rule @profiles gate — single-carrier
+# SV-only rule, referenced only from variable_dimension's associative alt; the sv_2017/sv_2023 tree
+# (and AST) is unchanged. Whole-rule gate idiom, cf. unsized_dimension (.6.9) / uniqueness_constraint.
+@profiles: ["sv_2017", "sv_2023"]
 associative_dimension := lbrack data_type rbrack    -> {kind: "data_type", body: $2}
                        | lbrack star rbrack          -> {kind: "wildcard"}
 
@@ -4584,6 +4590,11 @@ pulsestyle_declaration := kw_pulsestyle_onevent_11e408b6 list_of_path_outputs se
                         | kw_pulsestyle_ondetect_90d0b4fa list_of_path_outputs semi
                                 -> {kind: "ondetect",  outputs: $2}
 
+# VERILOG-2005-PROFILE.6.10 (SV-0034) — the queue dimension (`[$]` / `[$:N]`) is SystemVerilog-only
+# (IEEE 1800 §7.10); IEEE 1364-2005 has no queues. Whole-rule @profiles gate — single-carrier SV-only
+# rule, referenced only from variable_dimension's queue alt; the sv_2017/sv_2023 tree (and AST) is
+# unchanged. Whole-rule gate idiom, cf. unsized_dimension (.6.9) / uniqueness_constraint.
+@profiles: ["sv_2017", "sv_2023"]
 queue_dimension := lbrack kw_dollar ( colon constant_expression )? rbrack
                 -> {bound: $3}
 

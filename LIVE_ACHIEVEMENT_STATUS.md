@@ -48,8 +48,14 @@ unsized dimension `reg q [];`) is FIXED at `.6.9` (2026-07-03, `-0021`: a single
 new rules — pruning all three carriers at once), so `function void f;`, `void'(f());` and
 `reg q [];` all REJECT under `verilog_2005` while the SV profiles stay AST-identical. Fixing
 `SV-0033` surfaced (tools-first) a fourth sibling leak, `SV-0034` — the SV-only associative-array
-(`reg q [integer];`) and queue (`reg q [$];`) dimension alternatives of the same
-`variable_dimension` rule — now `Root Caused` with its own fix leaf. ALL THREE profile-boundary leaks found by the `.6.1`
+(`reg q [*];`) and queue (`reg q [$];`) dimension alternatives of the same `variable_dimension`
+rule — now FIXED at `.6.10` (2026-07-03, `-0022`: two more whole-rule `@profiles` gates on
+`associative_dimension`/`queue_dimension`; `reg q [*];` / `reg q [$];` REJECT under `verilog_2005`).
+Fixing IT in turn surfaced a DISTINCT all-profile leak `SV-0035` (`Root Caused`) — a reserved type
+keyword (`integer`) parsing as a bare primary expression under EVERY profile (`localparam p =
+integer;` accepts under `sv_2017`/`sv_2023`/`verilog_2005`), so `reg q [integer];` leaks through
+`unpacked_dimension`, not the associative surface; it joins `SV-0024`/`SV-0028` as an open
+all-profile leak (a wrong-carrier assumption on `SV-0034` caught empirically). ALL THREE profile-boundary leaks found by the `.6.1`
 adjudication are now FIXED: `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay forms) and
 `SV-0027` (`10ns` / `'0` expression literals) at `.6.2`, and `SV-0026` — the widest, the SV
 `$unit` top-level surface — at `.6.3` (2026-07-02, `-0016`): BOTH carriers gated via
@@ -67,13 +73,15 @@ lifted rules — `1326/2/1304/1323` — at `.6.3` for the +2 `$unit` lifts —
 `1328/2/1306/1325` — and through `SV-DOLLAR-LRM-FIDELITY.3`/`.4` (+9 then +4 accounted rules) —
 `1337/2/1315/1334` then `1341/2/1319/1338` and (`.6.8` +2 witnessed void lifts) the CURRENT
 `1343/2/1321/1340` — UNKNOWN invariants unchanged
-throughout; `.6.9` leaves the union BYTE-IDENTICAL (`1343/2/1321/1340`, gate re-verified GREEN — the
-whole-rule `unsized_dimension` gate adds no rule and never touches the `sv_2017`/`sv_2023` tree).
-Current strict-profile pins: conformance matrix `204` checks (`68` cases; 16 accept
-+ 52 reject corpus files), profiled cert `1146/4/815/327` `spf=0` (296 NO-reach-by-design; `.6.9`:
-`unsized_dimension` leaves the profile universe — total/witness −1 — dropping its one leak-earned
-false witness, UNKNOWN/NO-reach unchanged), seeds 0/7/42. Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` + `SV-0031`/`SV-0034` fix leaves and the per-profile
+throughout; `.6.9` and `.6.10` both leave the union BYTE-IDENTICAL (`1343/2/1321/1340`, gate
+re-verified GREEN — the whole-rule dimension gates add no rule and never touch the
+`sv_2017`/`sv_2023` tree).
+Current strict-profile pins: conformance matrix `210` checks (`70` cases; 16 accept
++ 54 reject corpus files), profiled cert `1144/4/813/327` `spf=0` (296 NO-reach-by-design; `.6.9`
+dropped `unsized_dimension` and `.6.10` dropped `associative_dimension`+`queue_dimension` — each
+leaves the profile universe, total/witness −1 then −2, each dropping its leak-earned false
+witness(es), UNKNOWN/NO-reach unchanged), seeds 0/7/42. Left to close: the OPEN
+`SV-0021`..`SV-0024` + `SV-0028` + `SV-0031` (+ the new all-profile `SV-0035`) fix leaves and the per-profile
 proof-accounting lane: design leaf `.6.5` DONE 2026-07-03 (staged adoption decided), and the
 `.6.6` READ-ONLY machine classification LANDED 2026-07-03 (session #26, `-0019`) — pure P1
 entry-universe-reachability + P2 unproducible-store-gate analyses in
@@ -84,10 +92,13 @@ untouched): on `verilog_2005` the machine split `292 profile_entry_unreachable +
 adjudication exactly where it was right and CORRECTING it twice where it had gone stale
 (`hierarchical_tf_identifier`, `class_scoped_tf_call`) — the discrepancy probes are what
 surfaced `SV-0031`/`SV-0032`/`SV-0033`. `SV-0032` (`void` surface) LANDED as leaf `.6.8`
-(2026-07-03, `-0020`) and `SV-0033` (dynamic-array `[]`) as leaf `.6.9` (2026-07-03, `-0021`) — two
-of the three `.6.6`-surfaced leaks now closed; fixing `.6.9` also surfaced (tools-first) a fourth
-sibling leak `SV-0034` (SV-only associative-array/queue dimensions). Remaining: the
-`SV-0031`/`SV-0034` fix leaves and `.6.7` certificate promotion + full gate re-pins (must first
+(2026-07-03, `-0020`), `SV-0033` (dynamic-array `[]`) as leaf `.6.9` (`-0021`), and `SV-0034`
+(associative `[*]`/queue `[$]` dimensions) as leaf `.6.10` (`-0022`) — ALL THREE `.6.6`-surfaced
+leaks plus the `SV-0034` sibling now closed; fixing `.6.10` surfaced (tools-first, a wrong-carrier
+assumption caught empirically) a DISTINCT all-profile leak `SV-0035` (a reserved type keyword
+`integer` parsing as a bare primary expression under every profile). Remaining: the `SV-0031`
+(v2005-only) + `SV-0035` (all-profile) fix leaves and `.6.7` certificate promotion + full gate
+re-pins (must first
 decide the conformance gate's entry-universe wiring). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
 full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
 at `1.0.159`, the `SV-0030` digit/compare restoration at `1.0.160` — which also EARNED the

@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-03 - PGEN-VERILOG-2005-PROFILE-0022 — the wrong-carrier assumption, caught by verifying the flip
+
+Session #28. `SV-0034` (associative + queue dimensions) is another clean whole-rule-gate near-clone of `.6.9`, but the implementation surfaced a discipline lesson worth recording:
+
+- **I assumed the wrong carrier — and empirical verification caught it.** The `SV-0034` ledger repro was `reg q [integer];` (an associative `[data_type]` form). After gating `associative_dimension`, that case STILL accepted under `verilog_2005`. The reason: `variable_dimension` tries `unpacked_dimension` BEFORE `associative_dimension`, and the keyword `integer` is consumed there as a bare primary/`specparam` expression — so `[integer]` never went through `associative_dimension` at all. The associative surface IS real and IS gated, but its clean isolating probe is the WILDCARD `[*]` (only `associative_dimension` accepts `[*]`; `*` is not an expression start). **Had I trusted the assumed path and shipped `[integer]` as the reject-lock, the conformance gate would have failed — or a mis-scoped fix would have been declared complete.** The reject-lock's actual behavior on the rebuilt binary — not the assumed grammar path — is the proof.
+- **The confound was itself a new bug (`SV-0035`), and an ALL-PROFILE one.** `localparam p = integer;` accepts under `sv_2017`/`sv_2023`/`verilog_2005` — a reserved type keyword parsing as a bare primary expression everywhere, not just under the strict subset. It joins `SV-0024`/`SV-0028` as an open all-profile leak (distinct from the v2005-only dimension-surface family), ledgered `Root Caused` with its own fix leaf. Probing one leak's neighborhood surfaced a broader correctness gap — the alert-discipline paying off twice in one session (`SV-0034` while fixing `SV-0033`; `SV-0035` while fixing `SV-0034`).
+- **Cert signature identical to `.6.9`, doubled.** Both `associative_dimension` and `queue_dimension` were live witnesses under the leaked profile, so gating them drops total −2 AND witness −2 (`1146/815` → `1144/813`), UNKNOWN/NO-reach unchanged — the same "leaked-construct-was-a-witness" signature as `.6.9`'s single-rule −1/−1. Union byte-identical (no new rule, SV tree untouched).
+
 ## 2026-07-03 - PGEN-VERILOG-2005-PROFILE-0021 — the whole-rule gate vs the branch-lift, and a different cert signature
 
 Session #28. `SV-0033` is a close cousin of `.6.8`'s `SV-0032`, but two contrasts are worth recording:
