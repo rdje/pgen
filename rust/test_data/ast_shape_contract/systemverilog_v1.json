@@ -537,6 +537,109 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0003 / SV-DOLLAR-LRM-FIDELITY.3: the compare-lhs shape lock. Parses \"e\" AS scalar_timing_check_compare_lhs; realizes {kind:\"base\", body:{kind:\"operand_chain\",...}} — deliberately byte-shape-identical to the expression rule's base alternative so eq-consumers can treat lhs as an expression node. The chain's operator tier is binary_operator_above_equality (IEEE 1800-2017 Table 11-2 rows 3-7 only), which is what makes the eq branches reachable at all in PEG (a full-expression lhs greedily consumes the == itself) while `a & b == 1'b0` (== binds tighter than &) still falls back to the precedence-correct flat parse."
+  },
+  {
+   "name": "package_scope_dollar_unit",
+   "input": "$unit::",
+   "rule_under_test": "package_scope",
+   "declared_annotation": "{kind: \"dollar_unit\", name: {body: \"$unit\"}} (branch 2 via the profile-gated package_scope_dollar_unit_sv_only lift; the name field is load-bearing — it makes consumer typedef-exclusion predicates ($….name.body) resolvable)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "name"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "dollar_unit"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0004 / SV-DOLLAR-LRM-FIDELITY.4: the SV-0029 wave-3 $unit lock. Parses \"$unit::\" AS package_scope; realizes {kind: \"dollar_unit\"} through the sv-only lift (verilog_2005 gates the branch off). Pre-fix the token literal was the mangled `sv_dollar_unit` so the IEEE spelling could never reach this branch (the LRM `$unit::y` REJECTED everywhere while the branch itself was shadow-dead — identifier text matched the `package` branch first). The name:{body:\"$unit\"} literal is LOAD-BEARING: non_typedef_package_scope's post predicate and scoped_or_hierarchical_tf_identifier's (runtime-broadcast) branch predicate drill $….name.body, and an absent field is an unresolvable ref = hard predicate REJECT (trace-proven in .4) — with the field they resolve to \"$unit\", an impossible identifier, so lacks_fact passes unconditionally. Removing the lift fails parse_package_scope_dollar_unit_sv_only() to compile (revert guard)."
+  },
+  {
+   "name": "hierarchical_identifier_rooted",
+   "input": "$root.m.y",
+   "rule_under_test": "hierarchical_identifier",
+   "declared_annotation": "{root: $1, scope: $2, name: $3} with root = the {kind: \"root\"} marker from hierarchical_root_prefix_sv_only",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "root",
+    "scope",
+    "name"
+   ],
+   "expected_json_object_string_values": {},
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0004 / SV-DOLLAR-LRM-FIDELITY.4: the SV-0029 wave-3 $root anchor lock. Parses \"$root.m.y\" AS hierarchical_identifier; realizes {root: {kind:\"root\"}, scope, name} so downstream consumers see the IEEE 1800 §3.12 anchor explicitly. Pre-fix the token literal was mangled and full-file parses stole `$root` into the generic system_tf token (AST carried kind:\"system_tf\" with no root marker, dump-proven)."
+  },
+  {
+   "name": "hierarchical_tf_identifier_rooted",
+   "input": "$root.top.f",
+   "rule_under_test": "hierarchical_tf_identifier",
+   "declared_annotation": "{kind: \"rooted\", scope_chain: $2, name: $3} (branch 1; $1 = hierarchical_root_prefix_sv_only)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "scope_chain",
+    "name"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "rooted"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0004 / SV-DOLLAR-LRM-FIDELITY.4: the SV-0029 wave-3 rooted-TF lock. Parses \"$root.top.f\" AS hierarchical_tf_identifier; realizes the {kind:\"rooted\"} branch whose $N indices were re-based when the `$root dot` prefix was lifted into hierarchical_root_prefix_sv_only (scope_chain: $3->$2, name: $4->$3). If the lift or the re-based indices regress, scope_chain/name corrupt or the branch fails."
+  },
+  {
+   "name": "elaboration_severity_fatal",
+   "input": "$fatal;",
+   "rule_under_test": "elaboration_system_task_sv_2017",
+   "declared_annotation": "{kind: \"fatal\", args: $2} (branch 1; the four severity tokens carry their IEEE `$` spellings)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "args"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "fatal"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0004 / SV-DOLLAR-LRM-FIDELITY.4: the SV-0029 wave-3 severity lock. Parses \"$fatal;\" AS elaboration_system_task_sv_2017; realizes {kind:\"fatal\", args:null}. Pre-fix the four severity token literals were mangled (`sv_dollar_fatal` etc.) so the IEEE module-level elaboration severity tasks REJECTED under every profile."
+  },
+  {
+   "name": "primary_dollar_bare",
+   "input": "$",
+   "rule_under_test": "primary_dollar_sv_only",
+   "declared_annotation": "{kind: \"system_dollar\"} (the profile-gated bare-$ primary lift)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "system_dollar"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0004 / SV-DOLLAR-LRM-FIDELITY.4: the SV-0029 wave-3 bare-$ lock. Parses \"$\" AS primary_dollar_sv_only; realizes {kind:\"system_dollar\"} (IEEE 1800 A.8.4 `primary ::= … $ …`). Pre-fix the token literal was the mangled `sv_dollar` word so the IEEE bare-$ primary REJECTED everywhere. Removing the lift fails parse_primary_dollar_sv_only() to compile (revert guard)."
+  },
+  {
+   "name": "rooted_tf_call",
+   "input": "$root.top.f(1)",
+   "rule_under_test": "rooted_tf_call_sv_only",
+   "declared_annotation": "{kind: \"rooted_tf\", target: $2, attributes: $3, args: $4} ($1 = the !( identifier ) no-re-route guard, which occupies a positional slot)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "target",
+    "attributes",
+    "args"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "rooted_tf"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-DOLLAR-LRM-FIDELITY-0004 / SV-DOLLAR-LRM-FIDELITY.4: the SV-0029 wave-3 rooted-TF-call carrier lock. Parses \"$root.top.f(1)\" AS rooted_tf_call_sv_only; realizes {kind:\"rooted_tf\", target:{kind:\"rooted\",…}, args}. The rule exists because scoped_or_hierarchical_tf_identifier's branch-2 predicate is runtime-BROADCAST to all branches (branch_predicates_for_rule flat-maps per-branch directives) and hard-rejects rooted results via the unresolvable $scope.name.body ref — so $root TF calls need a carrier OUTSIDE that rule (wired into subroutine_call + call_primary, before the tf branches). The !( identifier ) guard keeps every identifier-headed call on its existing route; removing the rule fails parse_rooted_tf_call_sv_only() to compile (revert guard)."
   }
  ]
 }

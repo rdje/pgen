@@ -3,7 +3,8 @@
 ## Metadata
 
 - Tree ID: `SV-DOLLAR-LRM-FIDELITY`
-- Status: `active`
+- Status: `complete` (2026-07-03 — all 4 leaves done; `SV-0029` + `SV-0030` `Released` at
+  releases `1.0.159`–`1.0.161`)
 - Roadmap lane: SystemVerilog parser-family LRM fidelity (released-parser correctness defect
   family; sibling of `SV-COVERGROUP-FIDELITY` / `SV-SVA-PROPERTY-FIDELITY` /
   `SV-AST-SHAPE-FIDELITY`)
@@ -94,10 +95,10 @@ canonicalization (`tools/extract_systemverilog_lrm_profiles.py:315`, `$name` →
 ## Task Tree
 
 - ID: `SV-DOLLAR-LRM-FIDELITY`
-  Status: `active`
+  Status: `complete`
   Goal: restore LRM `$`-spelling fidelity for the mangled token family (SV-0029) + the
   `scalar_constant` digit loss (SV-0030), with correct per-profile gating.
-  Children: `.1`, `.2`, `.3`
+  Children: `.1`, `.2`, `.3`, `.4`
 
 - ID: `SV-DOLLAR-LRM-FIDELITY.1` — Status: `done` (2026-07-02, session #21,
   `PGEN-SV-DOLLAR-LRM-FIDELITY-0001`, ZERO code — DESIGN/AUDIT leaf, tools-first): the full
@@ -159,21 +160,105 @@ canonicalization (`tools/extract_systemverilog_lrm_profiles.py:315`, `$name` →
   precedence-correct AST; the LRM language is unaffected since `~expr ⊆ expression`).
   Verified per the enforced checklist below; ledger `SV-0030` → `Released`.
 
-- ID: `SV-DOLLAR-LRM-FIDELITY.4` — proposed: CODE leaf, wave 3 (`SV-0029` SV-only group):
-  `$root` (2 sites) / `$unit` (`package_scope:3760`) / the 4 elaboration-severity tokens /
-  bare-`$` literal fixes + the PEG-order adjudication per referencing context (the
-  ordered-choice COMMIT hazard: `system_tf_identifier` matches `$root`/`$unit` prefixes, and a
-  committed choice does not re-enter on outer failure — each `primary`/statement site needs its
-  order proven, not assumed) + the `verilog_2005` gates for the now-real SV-only spellings
-  (incl. closing the TODAY-leak: mangled `sv_dollar_fatal;` accepts under `verilog_2005`).
-  AST-shape impact: `$root.`-anchored names move from `kind:"system_tf"` to the hierarchical
-  kinds ⇒ schema adjudication + samples.
+- ID: `SV-DOLLAR-LRM-FIDELITY.4` — Status: `done` (2026-07-03, session #23,
+  `PGEN-SV-DOLLAR-LRM-FIDELITY-0004`, CODE — grammar + shape-test dispatch, SV release
+  `1.0.160`→`1.0.161`, schema `14`→`15`): wave 3 LANDED, `SV-0029` CLOSED in full. The 7
+  remaining token literals carry their IEEE spellings (`$root`/`$unit`/`$fatal`/`$error`/
+  `$warning`/`$info`/bare-`$`); `system_tf_call`'s optional-parens alternative carries the
+  `!( $root . ) !( $unit :: )` steal guards (annotation re-based `$3/$4` — a lookahead
+  OCCUPIES a `$N` slot, codegen-proven); three profile-gated lifts
+  (`hierarchical_root_prefix_sv_only` → `root: {kind:"root"}` marker,
+  `package_scope_dollar_unit_sv_only` → `{kind:"dollar_unit", name:{body:"$unit"}}` with the
+  load-bearing resolvable name, `primary_dollar_sv_only`) + the `!( identifier )`-guarded
+  `rooted_tf_call_sv_only` carrier in `subroutine_call`/`call_primary` (routes AROUND the
+  runtime-broadcast branch predicate that hard-rejects rooted results inside
+  `scoped_or_hierarchical_tf_identifier` — see Open Questions). Census 1459→1463. TWO `.1`
+  hypotheses corrected tools-first (severity "v2005 leak" = identifier reading, dump-proven;
+  pure literal fix INERT for `$unit`/`$root`-tf without the predicate-resolvability +
+  carrier fixes, trace-proven). Verified per the enforced checklist below; ledger `SV-0029`
+  → `Released`.
 
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-DOLLAR-LRM-FIDELITY.4` | `pending` | wave 3 (SV-only group `$root`/`$unit`/severity/bare-`$`) needs per-site PEG-order proofs + `verilog_2005` gates — the most delicate slice, last |
+| — | (tree complete) | — | all 4 leaves done; `SV-0029` + `SV-0030` both `Released` (releases `1.0.159`–`1.0.161`); tree ready to close |
+
+## Acceptance Checklist (`.4`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — fresh HEAD (release `1.0.160`) 16-probe matrix ×3 profiles:
+  `$unit::y` REJ×3 / `sv_dollar_unit::y` ACC×3; module-level `$fatal;`/`$error;`/`$warning;`/
+  `$info;` REJ×3 vs mangled ACC×3; `x = $;` REJ×3 vs `x = sv_dollar;` ACC×3; `$root.m.y` +
+  `$root.top.f(1);` ACC×3 but MIS-ROUTED (`kind:"system_tf"` chains, dump-proven —
+  `root_expr_lrm`/`root_tf_lrm` pre-dumps). Control: bare `foo;` ACC×3 (the implicit-var-decl
+  surface) — the AST dump proved mangled `sv_dollar_fatal;` rides THAT route (chain
+  `variable > implicit > variable_decl > data_declaration`), disproving the `.1` severity-host
+  leak hypothesis. Ledger `SV-0029`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — four tool-named mechanisms: (1) the 7 token literals
+  matched mangled rule-name text (`grammars/systemverilog.ebnf:6312-6352`, e.g.
+  `kw_sv_dollar_root_f65f0e67 := trivia /sv_dollar_root\b/`); (2) the generic
+  `system_tf_identifier` (`/\$[a-zA-Z0-9_$]+/`, `:471`) matches `$root`/`$unit` as whole
+  tokens and `system_tf_call`'s optional-parens alternative SUCCEEDS on the bare identifier —
+  a PEG commit that steals the anchor (`root_expr_lrm` pre-dump: `system_tf >
+  call_postfix_chain`); (3) `non_typedef_package_scope`'s post predicate + the
+  `scoped_or_hierarchical_tf_identifier` branch predicate drill `$….name.body`, and an
+  UNRESOLVABLE ref is a hard reject — trace: `$unit` token matched 22→28 then the route died
+  (`furthest_position=30`), entry-rule isolation pinned `non_typedef_package_scope` REJ on
+  `$unit::` while `package_scope` ACC; (4) the predicate runtime BROADCASTS per-branch
+  directives rule-wide (`branch_predicates_for_rule` flat-maps —
+  `rust/src/ast_pipeline/semantic_runtime.rs:735`): trace `🚫 Branch 3/3 for rule
+  'scoped_or_hierarchical_tf_identifier' rejected by branch predicate
+  'lacks_fact_attribute_equals [… scope.name.body …]'` fired on the SUCCEEDED rooted branch
+  (`hierarchical_tf_identifier` selected branch 1 consuming 12 chars) — the compiled
+  registration is correctly per-branch (`[[], [pred], []]`), so the flat-map is the defect
+  (ledgered as an open engine question; adjudicated OUT of this leaf).
+- [x] **FIX** — GRAMMAR tier + shape-test dispatch (no engine change):
+  `grammars/systemverilog.ebnf` — 7 literals fixed; steal guards on `system_tf_call` alt 1
+  (annotation `$1/$2`→`$3/$4`; a lookahead occupies a slot, proven on a minimal generated
+  parser); lifts `hierarchical_root_prefix_sv_only` (+ `hierarchical_identifier`/
+  `hierarchical_tf_identifier` rewires, `$3/$4`→`$2/$3` re-base),
+  `package_scope_dollar_unit_sv_only` (load-bearing `name: {body: "$unit"}` — nested-object
+  literal codegen-verified), `primary_dollar_sv_only`, `rooted_tf_call_sv_only`
+  (`!( identifier )` no-re-route firewall; wired into `subroutine_call` + `call_primary`);
+  `rust/src/ast_shape_contract.rs` — 6 new dispatch arms. Census 1450→1459→1463 (net +4 this
+  leaf); regen + both binaries rebuilt.
+- [x] **ADDRESSED (verified)** — 28-probe AFTER matrix: every LRM spelling ACC under
+  `sv_2017`+`sv_2023` and REJ under `verilog_2005` (`unit_lrm`, `unit_tf_lrm`,
+  `sev_{fatal,error,warning,info}_lrm` + args forms, `root_expr_lrm`, `root_tf_lrm`,
+  `root_call_expr_lrm`, `bare_lrm`); anchor markers AST-dump-proven (`dollar_unit`, `root`,
+  `rooted_tf`+`rooted`, `fatal`, `system_dollar`) with ZERO `kind:"system_tf"` residue;
+  24/24 mangled+control dumps byte-identical pre↔post (cmp, both dialects) incl.
+  `$root(1);`/`$rootabc(1);`/`$unit`-bare/`a.b.c`/`top.f(1);`/`pkg::y`/`foo;` controls.
+- [x] **NO REGRESSION** — canonical cert `CERTIFICATE-COVERAGE: … total=1341 proof=2
+  witness=1319 UNKNOWN=20 (spf=0, prf=0)` seeds 0/7/42, 20-rule residual SET-IDENTICAL
+  pre↔post (python set-compare per seed: `True`; +4 total = exactly the census delta, all 4
+  new rules witnessed); `verilog_2005` cert `1147/4/816/327` deterministic seeds 0/7/42
+  (residual set-diff: sole add `kw_sv_dollar_04da59ec` — NO-reach-by-design 294→295;
+  `kw_sv_dollar_root`/`kw_sv_dollar_unit` upgrade witness→PROOF, the honest direction);
+  `verilog_2005_conformance_gate` GREEN (`gate_green: true`, 192 checks/0 mismatches, 64
+  cases incl. 4 new locks, lint orphans=0, cert pins earned ×3 seeds);
+  `sv_cert_recognized_union_gate` GREEN re-pinned (`1341/2/1319/20`, union `1338/1`,
+  residual `context_member_method_call`, `unmet_criteria_json: []`, seeds 0/7/42);
+  `ast_shape_contract_gate` green (18 passed/0 failed; 31 SV samples incl. 6 new);
+  `sv_external_corpus_triage_gate` rc 0 — 10/10 non-uvm rows pass, the 4 uvm rows are the
+  documented 24 GB-host mem-cap posture (uvm_pkg/uvm_compat_pkg × 2 profiles — same rows as
+  the pre-fix state); `--lint-grammar` rc 0 (1463 rules, all error classes 0,
+  `always_matches=8` pin unchanged, `profile_orphans=0`); `clippy_on_rust_change` rc 0
+  (source strict-clean; generated-stage non-strict debt = 178 eq_op const-fold sites (+1
+  from the new choice, same documented class) + 1 pre-existing svpp `overly_complex_bool_expr`
+  — svpp parser mtime-untouched); the other 9 generated parsers mtime-untouched ⇒ the 6
+  fully-certified grammars byte-identical by construction; `systemverilog_parser_book_gate` +
+  `mdbook_docs_gate` rc 0.
+- [x] **LOCKSTEP** — ledger `SV-0029` → `Released` (wave-3 proof + fix/release/assessment
+  columns); SV integration contract → `1.0.161`/schema `15` (identity, schema-15 paragraph
+  with the 14 note retained, 1.0.161 highlights section, trust-posture + known-issues
+  bullets, release-stream note, and the line-62 v2005 cert-pin that had gone stale at `.3`
+  corrected); SV parser book (schema-versioning row 15 + intro chain, changelog-index
+  1.0.161) + book gate; top-level book `parser-families.md` (SV-0029 → FIXED-in-full
+  narrative, three-open-defects roster, v2005 cert chain incl. the witness→proof upgrades);
+  conformance contract +4 case rows + cert re-pin `1147/4/816/327` + NO-reach note 295;
+  union contract re-pin `1341/1319/1338`; shape manifest +6 samples (+ the dollar_unit
+  name-field update); tree + `docs/TASK_TREE.md`; MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE.
 
 ## Acceptance Checklist (`.3`, enforced)
 
@@ -370,9 +455,51 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
   DELIBERATELY — promoting it would mis-associate `~e && f` as `~(e && f)`; the flat parse is
   the precedence-correct AST and `~expr ⊆ expression` keeps the language identical. Recorded
   as adjudicated, not an oversight.
+- `2026-07-03` (`.4`): the `.1`(c) "v2005 severity leak / wave-3 gates required" hypothesis is
+  DISPROVEN by AST dump — mangled `sv_dollar_fatal;` accepts under EVERY profile as an
+  ordinary implicit-type variable declaration (identifier reading; control probe: bare `foo;`
+  accepts ×3 profiles), NOT through the severity host. Consequence: NO severity profile-gate is
+  needed (the hosts' existing `@profiles` tags exclude v2005 — post-fix `$fatal;` REJECTS under
+  v2005 naturally), and "mangled must REJECT" is NOT an earnable criterion for the wave-3
+  tokens: their mangled spellings are legal identifier text and keep their identifier readings
+  (byte-identical ASTs pre↔post, cmp-proven). The criterion refines to: the special-construct
+  routing is carried ONLY by the LRM `$` spellings.
+- `2026-07-03` (`.4`): a negative lookahead OCCUPIES a positional `$N` slot — codegen-proven
+  with a minimal generated parser (the guard is pushed as `element_0`); every annotation on a
+  guard-carrying sequence must index past the guards (`system_tf_call` → `$3/$4`;
+  `rooted_tf_call_sv_only` → `$2/$3/$4`).
+- `2026-07-03` (`.4`): steal-guard placement — only `system_tf_call`'s FIRST (optional-parens)
+  alternative needs the `!( $root . ) !( $unit :: )` guards; the parens-mandatory alternatives
+  fail naturally on `.`/`::` tails without committing. `$root(…)`/`$unit` (no tail) stay on the
+  generic route byte-identically.
+- `2026-07-03` (`.4`): TWO trace-diagnosed blockers required follow-up fixes beyond the `.1`
+  sketch: (1) `non_typedef_package_scope`'s post predicate and
+  `scoped_or_hierarchical_tf_identifier`'s branch predicate drill `$….name.body`, and an
+  unresolvable ref is a hard predicate REJECT — fixed DECLARATIVELY by giving the dollar_unit
+  lift a load-bearing `name: {body: "$unit"}` literal (resolvable + impossible-identifier ⇒
+  `lacks_fact` passes unconditionally, semantically exact). (2) the predicate runtime
+  BROADCASTS per-branch directives rule-wide (`branch_predicates_for_rule` flat-maps them —
+  `rust/src/ast_pipeline/semantic_runtime.rs:735`), so `scoped_or_hierarchical_tf_identifier`
+  branch 3 is predicate-dead for rooted results (`🚫 Branch 3/3 … rejected by branch predicate`,
+  trace-proven) — routed AROUND via the new `!( identifier )`-guarded `rooted_tf_call_sv_only`
+  carrier (wired into `subroutine_call` + `call_primary`); an engine fix was adjudicated OUT of
+  this leaf (un-broadcasting would re-route every identifier-headed hierarchical TF call from
+  the method_call machinery to tf_call — a wide shape drift; the broadcast defect is ledgered
+  as an open question for its own tree).
 
 ## Open Questions
 
+- **Branch-predicate BROADCAST (engine, found in `.4`, tools-proven):**
+  `branch_predicates_for_rule` (`rust/src/ast_pipeline/semantic_runtime.rs:735`) flat-maps
+  EVERY per-branch directive into the rule-wide set, so a branch-local `@predicate` with
+  `phase: branch` is evaluated against every branch of its rule — the compiled per-branch
+  registration (`branch_directives_by_rule`, correctly `[[], [pred], []]`) plus the caller's
+  redundant `branch_predicates_for_rule_branch` chain say branch-local was the INTENT. Visible
+  consequence today: `scoped_or_hierarchical_tf_identifier` branch 3 (hierarchical) is
+  predicate-dead in-context (statement-context hierarchical TF calls ride the method_call
+  machinery instead). Un-broadcasting is a behavior-visible engine change (those calls would
+  re-route tf_call-first ⇒ wide shape drift) — needs its own tree with a full shape-impact
+  adjudication; NOT a quick fix.
 - Whether `tools/extract_systemverilog_lrm_profiles.py` should be fixed too (only matters on a
   future re-synthesis; does not block the frontier).
 - The bare-`$` primary sites (`kw_sv_dollar_04da59ec` at `:2976`/`:2993`/`:4026`/`:4081`) are a
@@ -396,6 +523,7 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
 | `2026-07-02` | (origin) | the `VERILOG-2005-PROFILE.6.4` probe matrix (LRM-vs-mangled × profiles) | recorded in that tree's `.6.4` Findings + Verification Log |
 | `2026-07-02` | `.1` | 12 timing checks × {LRM, mangled} × {sv_2017, verilog_2005} = 26 probes (incl. the two `width_min` controls); `$unit`/severity×4/bare-`$`/`$root`×2 × {LRM, mangled} × 3 profiles; UDP `init_val` × 5 digit forms × 2 profiles; `specify_item` alternatives read; severity-host profile-admission cross-checked against the `man_sev_fatal` v2005=ACC probe; `$width` BNF verified in `section-31-timing-checks.txt`; sha1 naming convention verified on 3 samples | all recorded in "`.1` Findings"; zero code |
 | `2026-07-02` | `.2` | lint (1450 rules, 0 error classes, `profile_orphans=0`, `always_matches=8` unchanged, rc 0); regen + both binaries rebuilt fresh-mtime; generated-parser literal audit (`\$setup\b` present, rule names unchanged); AFTER matrix: 12/12 LRM ACC + 12/12 mangled REJ (both dialects) + width_min REJ + 3 procedural controls ACC + 8 wave-3 probes unchanged; canonical cert 3 seeds `1328/2/1306/20 spf=0` + residual set-compare vs pre-fix union log `pre==post: True`; union gate GREEN; conformance gate GREEN 168/0 + cert pins EXACT `1138/2/809/327`; shape 18/18; external corpus green; clippy rc 0; other 9 generated parsers mtime-untouched | all green — pins exact, zero re-pins |
+| `2026-07-03` | `.4` | BEFORE: 16-probe matrix ×3 profiles + `foo;` control + 24 AST pre-dumps (both dialects) + cert DUMP_ALL baselines (canonical ×3 seeds + v2005 ×1) captured before any edit; lookahead-slot proof (minimal grammar → generated parser: guard pushed as `element_0`); nested-object `name:{body:"$unit"}` annotation codegen-verified; lint post-edit (1463 rules, all error classes 0, rc 0); regen + both binaries ×2 rounds (the mid-leaf trace diagnosis added 2 follow-up fixes); AFTER: 28-probe matrix (all LRM ACC/ACC/REJ, all mangled unchanged), 7 anchor-marker dumps (zero system_tf residue), 24/24 byte-identical cmp controls; entry-rule isolation chain (`package_scope` ACC / `non_typedef_package_scope` REJ pinned the predicate; `scoped_or_hierarchical_tf_identifier` trace named the broadcast); canonical cert 3 seeds `1341/2/1319/20 spf=0` residual set-identical; v2005 cert 3 seeds `1147/4/816/327` set-diff adjudicated; conformance GREEN 192/0 (64 cases); union GREEN re-pinned `1341/2/1319/20` + union `1338/1`; shape 18/18 (31 samples); external corpus 10 non-uvm pass + 4 documented uvm mem-cap rows; clippy rc 0 source-clean; both book gates rc 0; other 9 generated parsers mtime-untouched | all green — canonical residual set-identical; v2005 ratchet honest (bare-`$` → NO-reach, `$root`/`$unit` → PROOF); every contract re-pin has the one `.4` cause |
 | `2026-07-02/03` | `.3` | BEFORE matrix (17 probes × 2 profiles) + pre-fix AST dumps (10) + pre-fix cert DUMP_ALL baselines (canonical seeds 0/7/42 + v2005 seed 0) captured BEFORE any edit; lint post-edit (1459 rules, all error classes 0, `always_matches=8`, `profile_orphans=0`, rc 0); regen + both binaries rebuilt; AFTER matrix (UDP digits REJ→ACC ×2 forms ×2 profiles, `1'b` ACC→REJ ×2 profiles, 9 fallback probes ACC with byte-identical ASTs, `e == 1'b` stays REJ); eq/case_eq/ne/'b0 shape dumps (1 `kind:"eq"` node, correct lhs/rhs nesting); entry-rule isolation flip; canonical cert 3 seeds `1337/2/1315/20 spf=0` residual set-identical; v2005 cert `1147/2/819/326` set-diff = `scalar_constant` ratchet only, NO-reach 294 set-identical; conformance gate GREEN 180/0 (60 cases, 4 new locks) + cert pins earned 3 seeds; union gate GREEN re-pinned `1337/2/1315/20` + union `1334/1`; shape gate 18/18 (25 samples, 4 new + 4 dispatch arms); external corpus triage green; clippy rc 0 source-clean (generated-stage debt pre-existing, 0 hits in changed source); other 9 generated parsers mtime-untouched | all green — canonical residual set-identical; v2005 witness ratchet honest (+`scalar_constant`); 3 contract re-pins each with the one `.3` cause |
 
 ## Commit Log
@@ -406,6 +534,7 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
 | `.1` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0001` (`SV-DOLLAR-LRM-FIDELITY.1`) | design/audit closed; wave plan re-sliced `.2` literals / `.3` SV-0030 / `.4` SV-only; `SV-0030` extended with the `init_val` site; zero code |
 | `.2` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0002` (`SV-DOLLAR-LRM-FIDELITY.2`) | wave 1 LANDED — 12 timing-check literals `sv_dollar_X`→`$X`; release `1.0.159` (schema 13 unchanged); all gates green, pins exact; ledger `SV-0029` → `Fix In Progress` |
 | `.3` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0003` (`SV-DOLLAR-LRM-FIDELITY.3`) | wave 2 LANDED — `SV-0030` CLOSED both sites (ten IEEE digit alternatives at `scalar_constant`+`init_val`; compare branches made reachable via the precedence-restricted lhs + follow-guards); release `1.0.160`, schema `13`→`14`; canonical residual set-identical, v2005 `scalar_constant` witness ratchet earned; ledger `SV-0030` → `Released` |
+| `.4` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0004` (`SV-DOLLAR-LRM-FIDELITY.4`) | wave 3 LANDED — `SV-0029` CLOSED in full (7 anchor literals + steal guards + 3 profile-gated lifts + the rooted-TF carrier + the resolvable `$unit` name field); release `1.0.161`, schema `14`→`15`; canonical residual set-identical, v2005 `$root`/`$unit` witness→PROOF upgrades; ledger `SV-0029` → `Released`; tree COMPLETE |
 
 ## Changelog
 
@@ -416,3 +545,7 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
   frontier → `.3` (wave 2, `SV-0030` digits + reorder).
 - `2026-07-03`: `.3` wave 2 landed (`PGEN-SV-DOLLAR-LRM-FIDELITY-0003`, release `1.0.160`,
   schema `14`); `SV-0030` `Released`; frontier → `.4` (wave 3, the SV-only group).
+- `2026-07-03`: `.4` wave 3 landed (`PGEN-SV-DOLLAR-LRM-FIDELITY-0004`, release `1.0.161`,
+  schema `15`); `SV-0029` `Released`; TREE COMPLETE — both ledger rows closed. The
+  branch-predicate-broadcast engine finding stays recorded under Open Questions for a future
+  tree.

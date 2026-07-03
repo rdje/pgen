@@ -1,0 +1,3 @@
+module m;
+  $fatal;
+endmodule

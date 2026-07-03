@@ -1135,6 +1135,38 @@ mod tests {
                 "scalar_timing_check_compare_lhs" => parser
                     .parse_scalar_timing_check_compare_lhs()
                     .map_err(|err| err.to_string()),
+                // SV-DOLLAR-LRM-FIDELITY.4 (ledger SV-0029 wave 3): lock the LRM
+                // `$`-spelling routes for the SV-only anchor family. The four
+                // tokens ($root / $unit / the severity family / bare `$`) carried
+                // mangled `sv_dollar_*` literals, so the IEEE spellings either
+                // REJECTED ($unit::, module-level $fatal;, x = $;) or were
+                // stolen by the generic `system_tf_identifier` with no anchor in
+                // the AST ($root.m.y → kind:"system_tf", dump-proven). The three
+                // `_sv_only` lifts (hierarchical_root_prefix_sv_only,
+                // package_scope_dollar_unit_sv_only, primary_dollar_sv_only) are
+                // profile gates AND compile-time revert guards — removing any of
+                // them fails its `parse_*()` below to compile. The
+                // `hierarchical_tf_identifier` arm additionally locks the $N
+                // re-base (scope_chain: $3→$2, name: $4→$3) done when the
+                // `$root dot` prefix was lifted.
+                "package_scope" => parser
+                    .parse_package_scope()
+                    .map_err(|err| err.to_string()),
+                "hierarchical_identifier" => parser
+                    .parse_hierarchical_identifier()
+                    .map_err(|err| err.to_string()),
+                "hierarchical_tf_identifier" => parser
+                    .parse_hierarchical_tf_identifier()
+                    .map_err(|err| err.to_string()),
+                "elaboration_system_task_sv_2017" => parser
+                    .parse_elaboration_system_task_sv_2017()
+                    .map_err(|err| err.to_string()),
+                "primary_dollar_sv_only" => parser
+                    .parse_primary_dollar_sv_only()
+                    .map_err(|err| err.to_string()),
+                "rooted_tf_call_sv_only" => parser
+                    .parse_rooted_tf_call_sv_only()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

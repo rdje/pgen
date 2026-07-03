@@ -708,8 +708,8 @@ bins_selection_or_option := attribute_instance* coverage_option -> {kind: "optio
 # allows `$` as a bit-select expression meaning "last element of a queue
 # or dynamic array" (e.g. `matched_overrides[$]` accesses the queue's
 # last element). The existing `expression` branch doesn't accept bare
-# `$` (primary's `kw_sv_dollar_04da59ec` is the SV system-dollar, a
-# distinct token used for `$sv_dollar_unit` etc.; bare `$` as an
+# `$` (primary's `kw_sv_dollar_04da59ec` is the SV system-dollar
+# primary token — IEEE 1800 A.8.4 `primary ::= … $ …`; bare `$` as an
 # expression operand isn't a primary form). Adding `kw_dollar` as a
 # direct alternative lets `q[$]` parse via the bit_select path. Also
 # matches the LRM rule `bit_select := { [ expression ] }` which in
@@ -2375,7 +2375,16 @@ hierarchical_btf_identifier := hierarchical_tf_identifier
 
 hierarchical_event_identifier := hierarchical_identifier
 
-hierarchical_identifier := ( kw_sv_dollar_root_f65f0e67 dot )? ( identifier constant_bit_select dot )* identifier
+# SV-0029 wave-3 (SV-DOLLAR-LRM-FIDELITY.4): the `$root.` anchor is IEEE 1800-only
+# (§3.12 / A.9.3) — Verilog-2005 hierarchical names have no `$root` — so the prefix
+# is lifted into a profile-gated named rule (the established `_sv_only` idiom, cf.
+# `delay_value_sv_only`). The lift returns a `{kind: "root"}` marker: downstream
+# consumers see the LRM anchor explicitly in the `root:` field (null when absent).
+@profiles: ["sv_2017", "sv_2023"]
+hierarchical_root_prefix_sv_only := kw_sv_dollar_root_f65f0e67 dot
+                                 -> {kind: "root"}
+
+hierarchical_identifier := ( hierarchical_root_prefix_sv_only )? ( identifier constant_bit_select dot )* identifier
                         -> {root: $1, scope: $2, name: $3}
 
 hierarchical_instance := name_of_instance lparen ( list_of_port_connections )? rparen
@@ -2391,8 +2400,8 @@ hierarchical_sequence_identifier := hierarchical_identifier
 
 hierarchical_task_identifier := hierarchical_identifier
 
-hierarchical_tf_identifier := kw_sv_dollar_root_f65f0e67 dot ( identifier constant_bit_select dot )* callable_identifier
-                                                                                                                       -> {kind: "rooted", scope_chain: $3, name: $4}
+hierarchical_tf_identifier := hierarchical_root_prefix_sv_only ( identifier constant_bit_select dot )* callable_identifier
+                                                                                                                       -> {kind: "rooted", scope_chain: $2, name: $3}
                            | identifier constant_bit_select dot ( identifier constant_bit_select dot )* callable_identifier
                                                                                                                        -> {kind: "anchored", head: $1, head_select: $2, scope_chain: $4, name: $5}
 
@@ -3115,6 +3124,7 @@ call_primary := context_member_method_call          -> {kind: "context_member_me
               | split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
               | class_scoped_tf_call_with_args     -> {kind: "class_scoped_tf",              body: $1}
               | plain_tf_call_with_args            -> {kind: "plain_tf",                     body: $1}
+              | rooted_tf_call_sv_only
               | tf_call_with_args                  -> {kind: "tf",                           body: $1}
               | direct_callable_method_call        -> {kind: "direct_callable_method",       body: $1}
               | system_tf_call                     -> {kind: "system_tf",                    body: $1}
@@ -3782,8 +3792,24 @@ package_or_generate_item_declaration_sv_2023 := local_parameter_declaration semi
 package_or_generate_item_declaration := package_or_generate_item_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                                        | package_or_generate_item_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
+# SV-0029 wave-3 (SV-DOLLAR-LRM-FIDELITY.4): `$unit::` is the IEEE 1800-only
+# compilation-unit scope (§3.12.1) — profile-gated out of verilog_2005 via the
+# `_sv_only` lift idiom (the SV-0026 posture: v2005 has no $unit surface).
+# The `name: {body: "$unit"}` field is LOAD-BEARING, not decorative: package_scope
+# consumers gate on typedef-exclusion predicates that drill `$….name.body`
+# (`non_typedef_package_scope`'s post predicate, `scoped_or_hierarchical_tf_identifier`'s
+# branch predicate). An absent field makes those `$refs` UNRESOLVABLE, which the
+# predicate runtime treats as a hard REJECT (the .b.6.2.2-documented ContextualError
+# back-out) — trace-proven in .4: `$unit::y` died inside `non_typedef_package_scope`
+# with package_scope itself succeeding. With the field present the refs resolve to
+# "$unit" — an impossible identifier, so every `lacks_fact…` typedef-exclusion passes
+# unconditionally, which is semantically exact: `$unit` can never name a typedef.
+@profiles: ["sv_2017", "sv_2023"]
+package_scope_dollar_unit_sv_only := kw_sv_dollar_unit_1d99223f scope_resolution
+                                  -> {kind: "dollar_unit", name: {body: "$unit"}}
+
 package_scope := package_identifier scope_resolution             -> {kind: "package",     name: $1}
-               | kw_sv_dollar_unit_1d99223f scope_resolution     -> {kind: "dollar_unit"}
+               | package_scope_dollar_unit_sv_only
 
 packed_dimension := lbrack constant_range rbrack    -> {kind: "range",    body: $2}
                   | unsized_dimension                 -> {kind: "unsized", body: $1}
@@ -4047,10 +4073,18 @@ primary_sv_2017 := @probe_sample: "1" primary_literal
                         -> {kind: "sequence_method",    body: $1}
                  | @probe_sample: "this" kw_this_c2543fff
                         -> {kind: "this"}
-                 | kw_sv_dollar_04da59ec
-                        -> {kind: "system_dollar"}
+                 | primary_dollar_sv_only
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( instance_or_class_scope )?
                         -> {kind: "null_class_assign",  local_n: $5, scope: $6}
+
+# SV-0029 wave-3 (SV-DOLLAR-LRM-FIDELITY.4): the bare-`$` primary is IEEE 1800-only
+# (A.8.4 `primary ::= … $ …`; 1364-2005 has no `$` primary) — profile-gated out of
+# the v2005-admitted `primary_sv_2017` via the `_sv_only` lift idiom. The sibling
+# `primary_sv_2023` / `method_call_receiver_*` hosts are never verilog_2005-active,
+# so their inline `kw_sv_dollar_04da59ec` branches stay as-is.
+@profiles: ["sv_2017", "sv_2023"]
+primary_dollar_sv_only := kw_sv_dollar_04da59ec
+                       -> {kind: "system_dollar"}
 
 primary_hier_scope_prefix := kw_class_qualifier_fa08937d -> {kind: "class_qualifier", body: $1}
                            | non_typedef_package_scope    -> {kind: "package_scope",   body: $1}
@@ -5112,8 +5146,23 @@ struct_union_member := attribute_instance* ( random_qualifier )? data_type_or_vo
 structure_pattern_key := member_identifier      -> {kind: "member",  body: $1}
                        | assignment_pattern_key -> {kind: "pattern", body: $1}
 
+# SV-0029 wave-3 (SV-DOLLAR-LRM-FIDELITY.4): the dedicated `$root.`-anchored TF-call
+# carrier. It CANNOT live as a branch of `scoped_or_hierarchical_tf_identifier`:
+# that rule's branch-2 typedef-exclusion predicate is BROADCAST to every branch by
+# the runtime (`branch_predicates_for_rule` flat-maps all per-branch directives —
+# semantic_runtime.rs:735), and its `$scope.name.body` ref is unresolvable on a
+# rooted result, which hard-rejects the branch (trace-proven: `🚫 Branch 3/3 …
+# rejected by branch predicate` on `$root.top.f`). The `!( identifier )` guard is
+# the no-re-route firewall: only `$root`-headed targets can enter, so every
+# identifier-headed TF call keeps its existing route byte-identically ($N slots:
+# the guard occupies $1 — codegen-proven — so payload fields start at $2).
+@profiles: ["sv_2017", "sv_2023"]
+rooted_tf_call_sv_only := !( identifier ) hierarchical_tf_identifier attribute_instance* ( lparen list_of_arguments rparen )?
+                       -> {kind: "rooted_tf", target: $2, attributes: $3, args: $4}
+
 @branch_policy: priority_first
 subroutine_call := class_scoped_tf_call                            -> {kind: "class_scoped_tf", body: $1}
+                 | rooted_tf_call_sv_only
                  | tf_call                                          -> {kind: "tf",             body: $1}
                  | system_tf_call                                   -> {kind: "system_tf",      body: $1}
                  | method_call                                      -> {kind: "method",         body: $1}
@@ -5161,8 +5210,20 @@ sv_dollar_timeskew_timing_check := kw_sv_dollar_timeskew_6d763f0a lparen referen
 sv_dollar_width_timing_check := kw_sv_dollar_width_72b04d27 lparen controlled_reference_event comma timing_check_limit comma threshold ( comma ( notifier )? )? rparen semi
                              -> {controlled_reference_event: $3, limit: $5, threshold: $7, tail: $8}
 
-system_tf_call := system_tf_identifier ( lparen list_of_arguments rparen )?
-                       -> {kind: "args",        name: $1, args: $2}
+# SV-0029 wave-3 steal guard (SV-DOLLAR-LRM-FIDELITY.4): the generic
+# `system_tf_identifier` regex also matches the LRM anchors `$root` / `$unit` as
+# whole tokens, and this optional-parens alternative SUCCEEDS on the bare
+# identifier — a PEG commit that permanently steals `$root.…` hierarchical names
+# and `$unit::…` scopes from their anchored rules (an outer failure never
+# re-enters the choice). The two inline negative lookaheads withdraw ONLY the
+# anchor-followed-by-its-tail spellings (`$root.` / `$unit::`); `$root(…)`,
+# `$unit`, and every ordinary `$name` stay on this generic route. The
+# parens-mandatory alternatives below need no guard — they fail naturally on
+# `.`/`::` tails without committing. NOTE the $N renumber: a lookahead OCCUPIES
+# a positional slot (codegen-proven — it pushes an empty element), so the two
+# guards are $1/$2 and the payload starts at $3.
+system_tf_call := !( kw_sv_dollar_root_f65f0e67 dot ) !( kw_sv_dollar_unit_1d99223f scope_resolution ) system_tf_identifier ( lparen list_of_arguments rparen )?
+                       -> {kind: "args",        name: $3, args: $4}
                 | system_tf_identifier lparen data_type ( comma expression )? rparen
                        -> {kind: "data_type",   name: $1, data_type: $3, expr: $4}
                 | system_tf_identifier lparen expression ( comma ( expression )? )* ( comma ( clocking_event )? )? rparen
@@ -6309,23 +6370,23 @@ kw_super_8451ba8a := trivia /super\b/
 
 kw_supply_076df715 := trivia /supply\b/
 
-kw_sv_dollar_04da59ec := trivia /sv_dollar\b/
+kw_sv_dollar_04da59ec := trivia /\$/
 
-kw_sv_dollar_error_d304cf0a := trivia /sv_dollar_error\b/
+kw_sv_dollar_error_d304cf0a := trivia /\$error\b/
 
-kw_sv_dollar_fatal_ecc3c9fd := trivia /sv_dollar_fatal\b/
+kw_sv_dollar_fatal_ecc3c9fd := trivia /\$fatal\b/
 
-# The 12 specify timing-check keyword tokens below carry their IEEE `$`-spelling literals
-# (SV-0029 wave-1 fix, SV-DOLLAR-LRM-FIDELITY.2): the `sv_dollar_*` RULE NAMES are the
-# canonicalized forms of those `$` spellings and are KEPT even though the `_<hash>` suffix
-# was derived (sha1[:8]) from the old mangled literal — renaming would churn the pinned
-# cert residual/NO-reach name lists. The remaining `sv_dollar_*`-literal tokens ($root,
-# $unit, severity, bare $) are the SV-0029 wave-3 scope (tree SV-DOLLAR-LRM-FIDELITY.4).
+# Every `kw_sv_dollar_*` token below carries its IEEE `$`-spelling literal (SV-0029,
+# tree SV-DOLLAR-LRM-FIDELITY: wave 1 = the 12 specify timing checks, wave 3 = $root/
+# $unit/severity/bare `$`): the `sv_dollar_*` RULE NAMES are the canonicalized forms of
+# those `$` spellings and are KEPT even though the `_<hash>` suffix was derived
+# (sha1[:8]) from the old mangled literal — renaming would churn the pinned cert
+# residual/NO-reach name lists.
 kw_sv_dollar_fullskew_1e1514b3 := trivia /\$fullskew\b/
 
 kw_sv_dollar_hold_0cf8df90 := trivia /\$hold\b/
 
-kw_sv_dollar_info_d116cb1c := trivia /sv_dollar_info\b/
+kw_sv_dollar_info_d116cb1c := trivia /\$info\b/
 
 kw_sv_dollar_nochange_872771bf := trivia /\$nochange\b/
 
@@ -6337,7 +6398,7 @@ kw_sv_dollar_recrem_fc40cd26 := trivia /\$recrem\b/
 
 kw_sv_dollar_removal_7a979d46 := trivia /\$removal\b/
 
-kw_sv_dollar_root_f65f0e67 := trivia /sv_dollar_root\b/
+kw_sv_dollar_root_f65f0e67 := trivia /\$root\b/
 
 kw_sv_dollar_setup_b58bdaae := trivia /\$setup\b/
 
@@ -6347,9 +6408,9 @@ kw_sv_dollar_skew_1ae5c1e4 := trivia /\$skew\b/
 
 kw_sv_dollar_timeskew_6d763f0a := trivia /\$timeskew\b/
 
-kw_sv_dollar_unit_1d99223f := trivia /sv_dollar_unit\b/
+kw_sv_dollar_unit_1d99223f := trivia /\$unit\b/
 
-kw_sv_dollar_warning_22a41474 := trivia /sv_dollar_warning\b/
+kw_sv_dollar_warning_22a41474 := trivia /\$warning\b/
 
 kw_sv_dollar_width_72b04d27 := trivia /\$width\b/
 

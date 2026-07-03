@@ -52,16 +52,16 @@ byte-identical — canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_
 `spf=0`, seeds 0/7/42; re-pinned again at `.6.2` for the +2
 lifted rules — `1326/2/1304/1323` — and at `.6.3` for the +2 `$unit` lifts —
 `1328/2/1306/1325` — UNKNOWN invariants unchanged throughout). Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` fix leaves, the `SV-0029` wave-3 remainder (the SV-only
-`$root`/`$unit`/severity/bare-`$` tokens — fix tree `SV-DOLLAR-LRM-FIDELITY`, leaf `.4`;
-waves 1–2 are FIXED: the 12 timing-check `$` spellings at `1.0.159` and the full `SV-0030`
-digit/compare restoration at `1.0.160`, which also EARNED the formerly-blocked
-`verilog_2005` `scalar_constant` witness — the one class-D ratchet the `.6.4` adjudication
-had classified as blocked-on-SV-0030), and the design leaf `.6.5`
-(per-profile proof accounting). SV family closure status is UNCHANGED
+`SV-0021`..`SV-0024` + `SV-0028` fix leaves and the design leaf `.6.5`
+(per-profile proof accounting). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
+full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
+at `1.0.159`, the `SV-0030` digit/compare restoration at `1.0.160` — which also EARNED the
+formerly-blocked `verilog_2005` `scalar_constant` witness — and the SV-only
+`$root`/`$unit`/severity/bare-`$` anchors at `1.0.161`, schema `15`, with the `$root`/`$unit`
+tokens upgrading witness→PROOF under the strict profile). SV family closure status is UNCHANGED
 (`Mostly Done`); no SV release bump (`sv_2017`/
 `sv_2023` behavior invariant). Note: the SV figures in the paragraph above are from the 1.0.136
-era; the current SV parser release is `1.0.160` / schema `14` (see per-parser book + `MEMORY.md`).
+era; the current SV parser release is `1.0.161` / schema `15` (see per-parser book + `MEMORY.md`).
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -89,6 +89,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-07-03, session #23): **✅ `SV-DOLLAR-LRM-FIDELITY.4` LANDED (`PGEN-SV-DOLLAR-LRM-FIDELITY-0004`, CODE — grammar + shape-test dispatch; SV release `1.0.160`→`1.0.161`, schema `14`→`15`) — `SV-0029` CLOSED in full; the `SV-DOLLAR-LRM-FIDELITY` tree is COMPLETE.** The 7 remaining mangled `$` tokens carry their IEEE spellings: `$unit::` scopes, module-level severity tasks, `$root.`-anchored names/calls (now with the anchor explicit in the AST — `root:{kind:"root"}` / the new `{kind:"rooted_tf"}` carrier — instead of the generic `kind:"system_tf"` steal), and the bare-`$` primary ACCEPT under `sv_2017`/`sv_2023` and REJECT under strict `verilog_2005` (28-probe matrix; 24/24 mangled+control ASTs byte-identical). Mechanics: `system_tf_call` steal guards (`!( $root . )`/`!( $unit :: )`), 3 profile-gated lifts (incl. the load-bearing `name:{body:"$unit"}` literal that keeps typedef-exclusion predicates resolvable), and the `!( identifier )`-guarded `rooted_tf_call_sv_only` carrier that routes around the runtime's branch-predicate BROADCAST (per-branch directives are flat-mapped rule-wide, `semantic_runtime.rs:735` — trace-proven, recorded as an open engine question). NO-REGRESSION: canonical cert `1341/2/1319/UNKNOWN=20 spf=0` seeds 0/7/42 residual SET-IDENTICAL; `verilog_2005` cert `1147/4/816/327` (bare-`$` → NO-reach-by-design 295; `$root`/`$unit` → witness-to-PROOF upgrades); conformance GREEN 192/0 (+4 locks); union GREEN re-pinned (`1341/2/1319/20`, union `1338/1`); shape 18/18 (31 samples); corpus 10 non-uvm pass + the 4 documented uvm mem-cap rows; clippy source-clean; both book gates green. Ledger `SV-0029` → `Released`; contract `1.0.161`/schema-15; both books lockstep. **NO STATUS ROW CHANGE** — SystemVerilog `Mostly Done` (canonical UNKNOWN=20 > 0); dialect block `Mostly Done` (open: `SV-0023`/`SV-0024`/`SV-0028`); the 6 fully-certified grammars `Done`.
 
 Tracker note (2026-07-03, session #22): **✅ `SV-DOLLAR-LRM-FIDELITY.3` LANDED (`PGEN-SV-DOLLAR-LRM-FIDELITY-0003`, CODE — grammar + shape-test dispatch; SV release `1.0.159`→`1.0.160`, schema `13`→`14`) — `SV-0030` CLOSED at BOTH sites.** The LRM digit alternatives are restored (ten IEEE A.7.5.3 forms at `scalar_constant`, ten A.5.1 forms at UDP `init_val` — 8 new `\b`-guarded sha1-named tokens, digit-less `1'b`/`1'B` removed): **sequential-UDP initializers `initial q = 1'b0;`/`1'b1;` flipped REJECT→ACCEPT under every profile** and the digit-less nonsense flipped ACCEPT→REJECT. The specify timing-check compare branches are REACHABLE for the first time — the `.1`-sketched reorder was tool-proven INERT (the greedy full-`expression` lhs eats `== 1'b0` itself), so the landed design is compare-branches-first over a NEW precedence-restricted lhs (`scalar_timing_check_compare_lhs`; operator tier = only IEEE Table 11-2 rows 3–7) with `!binary_operator`/`!tick` follow-guards — `e == 1'b0` now emits `{kind:"eq", lhs, rhs}` while `e == 1'b0 && f` / `a & b == 1'b0` keep their precedence-correct flat parses BYTE-IDENTICALLY (9 guard probes cmp-proven). NO-REGRESSION: canonical cert `1337/2/1315/UNKNOWN=20 spf=0` seeds 0/7/42 with the 20-rule residual SET-IDENTICAL (total +9 = the exact census delta, every new rule witnessed); `verilog_2005` cert `1147/2/819/326` — set-diff-proven sole change = **`scalar_constant` LEAVES the UNKNOWN residual** (the `.6.4`-adjudicated blocked witness EARNED; NO-reach 294 set-identical); conformance gate GREEN **180 checks/0 mismatches** (60 cases incl. 4 new SV-0030 locks); union gate GREEN re-pinned (`1337/2/1315/20`, union `1334/1`, residual `context_member_method_call`); shape 18/18 (25 samples, 4 new incl. the compare-lhs revert guard); external corpus green; clippy source strict-clean; the 6 fully-certified grammars untouched (SV-only regen). Ledger `SV-0030` → `Released`; contract `1.0.160`/schema-14 highlights; both books lockstep (incl. correcting the top book's stale "162 checks"). **NO STATUS ROW CHANGE** — SystemVerilog `Mostly Done`; dialect block `Mostly Done`; the 6 fully-certified grammars `Done`. Frontier → `.4` (wave 3: the SV-only `$` group + `verilog_2005` gates + per-site PEG-order proofs).
 
