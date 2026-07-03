@@ -98,3 +98,18 @@ recognized basis must become a re-runnable gate.
 - The `1 → 0` union flip is owned by `GRAMMAR-WELLFORMED.H.12.8.3.2` (close
   `context_member_method_call`, blocked on `STORE-AWARE-GEN.4b`); when it lands, this gate's
   contract is re-baselined to `expected_union_unknown=0` + empty residual in the same slice.
+- `GRAMMAR-WELLFORMED.H.12.8.5.4` — stage-log pruning port (see below).
+
+## Leaf `GRAMMAR-WELLFORMED.H.12.8.5.4` — port `prune_log` to the cert gates' stage-log seam
+
+- ID: `GRAMMAR-WELLFORMED.H.12.8.5.4`
+  Status: `done` (2026-07-03, `PGEN-GRAMMAR-WELLFORMED-0148`)
+  Goal: `Port the VERILOG-2005-PROFILE.4.3 prune_log idiom (10 MB threshold → 2000-line tail, success AND failure paths) from verilog_2005_conformance_gate.sh into the stage-log helpers of sv_cert_recognized_union_gate.sh (whose ensure_generated_systemverilog_parser stage log is ~5 GB per run — hand-deleted twice, sessions #22/#23) and rtl_const_expr_cert_gate.sh (whose ensure stage log measured 40 MB this session). Disk space is a critical resource; a gate must not leave multi-GB scratch per run. Per-seed cert logs (the parsed evidence artifacts, ~4 KB) deliberately untouched.`
+
+### Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — measured this session: `rust/target/rtl_const_expr_cert_gate/logs/ensure_generated_rtl_const_expr_artifacts.log` = **40 MB** after one gate run (du); the union gate's `ensure_generated_systemverilog_parser.log` ~**5 GB** per run is twice-documented (`VERILOG-2005-PROFILE.md:1514/1583` + MEMORY session notes; absent from the current logs dir only because it was hand-deleted last session). Host disk 84% used, 77 GB free (df).
+- [x] **ROOT CAUSE (WHY + WHERE)** — the two gates' `run_logged`/`run_logged_rust` helpers redirect a stage's FULL stdout+stderr to a per-stage log with no size bound (`sv_cert_recognized_union_gate.sh:59-85`, `rtl_const_expr_cert_gate.sh:59-73`); `make focus_systemverilog` emits ~5 GB of generation debug output. The `.4.3`-landed `prune_log` (`verilog_2005_conformance_gate.sh:59-70`) exists but was never ported when the newer gates were modeled on the older un-pruned script.
+- [x] **FIX** — proof-surface script tier: identical `PRUNE_THRESHOLD_BYTES=10485760` + `prune_log` helper (gate-named prune banner) in both scripts, invoked on BOTH success and failure paths of every stage-log helper. Per-seed cert logs untouched (parsed evidence; ~4 KB).
+- [x] **ADDRESSED (verified)** — fresh end-to-end re-runs of BOTH gates: `rtl_const_expr_cert_gate` GREEN with the ensure stage log 40 MB → pruned tail (banner + last 2000 lines); `sv_cert_recognized_union_gate` GREEN (canonical `1341/2/1319/20`, union `1338/1`, residual exact, seeds 0/7/42) with the ~5 GB `ensure_generated_systemverilog_parser.log` → pruned tail; logs dir total now MBs, not GBs.
+- [x] **NO REGRESSION** — both gates GREEN on the same contracts (the pins are the oracle; pruning happens strictly AFTER a stage completes/fails and never touches the grep'd per-seed cert logs); no engine/grammar/generated change ⇒ parsers byte-identical by construction; `bash -n` clean on both scripts.
+- [x] **LOCKSTEP** — this leaf + the `H.12.8.5` frontier row in `GRAMMAR-WELLFORMED.md`; `VERILOG-2005-PROFILE.md` open-note satisfied (`.5` NOTE + `.6.x` recurrences); CHANGES / MEMORY. Book N/A (gate-internal scratch-log hygiene; no user-facing behavior/command change — same posture as the `.4.3` landing).

@@ -55,16 +55,34 @@ require_nonempty_file() {
     fi
 }
 
+# Stage logs (e.g. the focus_rtl_const_expr regen, ~40 MB per run) are scratch, not
+# evidence: keep only a bounded tail. Per-seed cert logs are NOT routed through this
+# helper and stay complete — they are the parsed evidence artifacts.
+PRUNE_THRESHOLD_BYTES=10485760
+
+prune_log() {
+    local log_file="$1"
+    if [[ -f "$log_file" ]] && [[ "$(wc -c <"$log_file")" -gt "$PRUNE_THRESHOLD_BYTES" ]]; then
+        local tmp="${log_file}.tail"
+        {
+            echo "[pruned by rtl_const_expr_cert_gate: original log exceeded ${PRUNE_THRESHOLD_BYTES} bytes; last 2000 lines retained]"
+            tail -n 2000 "$log_file"
+        } >"$tmp" && mv "$tmp" "$log_file"
+    fi
+}
+
 run_logged_rust() {
     local label="$1"
     shift
     local log_file="$LOG_DIR/${label}.log"
     echo "==> ${label}"
     if (cd "$RUST_DIR" && "$@") >"$log_file" 2>&1; then
+        prune_log "$log_file"
         echo "    ok (${log_file})"
     else
         echo "error: stage '$label' failed (log: $log_file)" >&2
         tail -n 120 "$log_file" >&2 || true
+        prune_log "$log_file"
         exit 1
     fi
 }

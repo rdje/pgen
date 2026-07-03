@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-07-03 - PGEN-GRAMMAR-WELLFORMED-0148 (GRAMMAR-WELLFORMED.H.12.8.5.4): cert-gate stage logs bounded — `prune_log` ported to the union gate + the rce cert gate; the ~5 GB per-run scratch log is gone for good
+
+Session #24, PNT continuation. **Gate-script slice** (proof-surface hygiene; no grammar/engine/generated behavior change) — disk space is a critical resource, and two cert gates left unbounded stage logs per run:
+
+- **Reproduce (measured):** `sv_cert_recognized_union_gate`'s `ensure_generated_systemverilog_parser.log` reached **5,300,623,974 bytes live during this run** (the twice-hand-deleted phenomenon from sessions #22/#23); the new `rtl_const_expr_cert_gate`'s ensure log measured **40 MB**. Host disk 84% used.
+- **Root cause (WHY+WHERE):** both scripts' `run_logged`/`run_logged_rust` helpers redirect a stage's full stdout+stderr to a per-stage log with no size bound; the `.4.3`-landed `prune_log` idiom existed only in `verilog_2005_conformance_gate.sh`.
+- **Fix:** identical `PRUNE_THRESHOLD_BYTES=10485760` + gate-named `prune_log` (2000-line tail) in both scripts, invoked on success AND failure paths of every stage-log helper. Per-seed cert logs (the parsed evidence artifacts, ~4 KB) deliberately not routed through pruning.
+- **Verified (both oracles re-run fresh end-to-end):** `sv_cert_recognized_union_gate` ✅ GREEN — canonical `1341/2/1319/UNKNOWN=20`, union `1338/UNKNOWN=1`, residual `["context_member_method_call"]`, deterministic seeds 0/7/42, `unmet_criteria_count: 0` — with the 5.3 GB stage log auto-pruned to **476 KB** (banner + tail); `rtl_const_expr_cert_gate` ✅ GREEN (`48/0/48/0 fully_certified`, seeds 0/7/42) with its ensure log pruned 40 MB → **436 KB**. `bash -n` clean on both. Artifact-hygiene survey alongside: `rust/target` 35 GB total, dominated by the live debug build tree (29 GB, needed) — the auto-prune closes the only recurring multi-GB scratch producer.
+- **Lockstep:** owning leaf `H.12.8.5.4` + checklist in `GRAMMAR-WELLFORMED-H12852-…-implement.md`; `GRAMMAR-WELLFORMED.md` `.8.5` row; `VERILOG-2005-PROFILE.md` `.5` open-note annotated landed. Book N/A (gate-internal scratch hygiene, no user-facing command/behavior change — same posture as the `.4.3` landing).
+
 ## 2026-07-03 - PGEN-DOC-CERTPIN-SYNC-0001: stale cert-pin prose re-synced to the tracked contract oracles (top book × 2 chapters + LIVE dialect block)
 
 Session #24, PNT continuation. **Pure-docs slice** (books-lockstep doctrine: book↔codebase drift is a tracked correctness defect) — three live surfaces had cert-pin prose lagging the tracked contracts after the `SV-DOLLAR-LRM-FIDELITY` campaign; each fix verified against the contract JSON oracles, not against another report:

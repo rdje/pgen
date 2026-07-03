@@ -351,6 +351,9 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   retains its own ~5 GB `focus_systemverilog` stage log per run (the phenomenon `.4.3` fixed in
   the conformance gate); port the `prune_log` helper to it under its owning surface
   (`GRAMMAR-WELLFORMED.H.12.8.5.2`) — the scratch log was deleted manually this session.
+  (Follow-up LANDED 2026-07-03 as `GRAMMAR-WELLFORMED.H.12.8.5.4`,
+  `PGEN-GRAMMAR-WELLFORMED-0148`: `prune_log` ported to the union gate AND the new
+  `rtl_const_expr_cert_gate` stage-log helpers.)
 
 ## Acceptance Checklist (`.6.3`, enforced)
 - [x] **REPRODUCE / ISSUE** — `SV-0026` at HEAD pre-fix: `printf 'wire w;\n' | parseability_probe --parse systemverilog /dev/stdin --profile verilog_2005` → ACCEPTS (likewise `reg r;`, `localparam p = 1;`, `parameter p = 1;`); IEEE 1364-2005 A.1.2 allows only module/UDP/config at top level. Two carriers (ledger row).
