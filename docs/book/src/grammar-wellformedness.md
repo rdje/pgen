@@ -688,6 +688,17 @@ re-parses and witnesses `lparen`/`rparen`. With it, `rtl_const_expr` reaches
 `total=48 witness=48 UNKNOWN=0 fully_certified=true`, deterministically across seeds, with zero
 sample-parse failures.
 
+That canonical baseline — the **default** entry rule, `--max-depth 32`, `--count 40`, the default
+diverse generation step-budget, seeds 0/7/42 — is now regression-locked by a standing oracle:
+`make -C rust SHELL=/bin/bash rtl_const_expr_cert_gate` re-runs the exact configuration for every
+declared seed and asserts each headline field (total/proof/witness/`UNKNOWN`/`fully_certified`,
+`sample_parse_failures=0`, `proof_reverify_failures=0`, plus cross-seed determinism) against the
+tracked contract `rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json`. So
+`rtl_const_expr`'s membership in the fully-certified roster is machine-checked rather than
+doc-asserted — the gate exists precisely because a diagnostic sub-entry probe configuration
+(`--entry-rule conditional_expr`) was once mislabeled as the canonical lane, and only a pinned
+oracle makes that class of wording confusion fail mechanically.
+
 Two properties keep this honest and safe:
 
 - **The diverse certification pass is untouched.** The reach pass is *separate* and *additive*: it only ever

@@ -1,0 +1,23 @@
+{
+  "family": "rtl_const_expr",
+  "version": 1,
+  "gate": "rtl_const_expr_cert_gate",
+  "grammar_input": "generated/rtl_const_expr.json",
+  "entry_rule_arg": "default",
+  "expected_grammar": "rtl_const_expr",
+  "expected_entry": "rtl_const_expr",
+  "max_depth": 32,
+  "samples": 40,
+  "seeds": [
+    0,
+    7,
+    42
+  ],
+  "diverse_generation_budget": "default",
+  "expected_total": 48,
+  "expected_proof": 0,
+  "expected_witness": 48,
+  "expected_unknown": 0,
+  "expected_fully_certified": true,
+  "done_rule": "rtl_const_expr holds its fully-certified-6 roster membership only while the canonical DEFAULT-ENTRY certificate-coverage lane (no --entry-rule override, --max-depth 32, --count 40, the default diverse generation step-budget, no PGEN_* generation-knob overrides) reproduces total=48 proof=0 witness=48 UNKNOWN=0 fully_certified=true with sample_parse_failures=0 and proof_reverify_failures=0, and every declared seed yields an identical signature (determinism). Sub-entry probe configs (e.g. --entry-rule conditional_expr) are diagnostic lanes, not this baseline: their UNKNOWN=1 root-rule artifact is entry-relative by construction (CERT-GEN-BUDGET.3 adjudication)."
+}

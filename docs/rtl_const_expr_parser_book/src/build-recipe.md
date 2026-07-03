@@ -71,7 +71,17 @@ Once the parser is built, the rtl_const_expr family exposes validation/release g
 
 ```bash
 make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_parser_book_gate
+make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_cert_gate
 cargo test --lib --features generated_parsers rtl_const_expr_ast_shape_contract
 ```
+
+`rtl_const_expr_cert_gate` locks the family's canonical certificate-coverage baseline —
+`total=48 proof=0 witness=48 UNKNOWN=0 fully_certified=true`, deterministic at seeds 0/7/42 with
+zero sample-parse failures (the **default** entry rule, `--max-depth 32`, `--count 40`, the default
+diverse generation step-budget) — against the tracked contract
+`rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json`. It regenerates the
+`generated/rtl_const_expr.json` input, rebuilds the debug `ast_pipeline`, re-runs the exact
+canonical configuration for every declared seed, and fails on any drift in any headline field or on
+cross-seed nondeterminism.
 
 See the integration contract § "Validation / Release Gates" for the full list.

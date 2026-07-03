@@ -60,6 +60,13 @@ This is the document downstream projects (primarily RTLSyn, for deterministic pa
   - `make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_parser_book_gate`
 - AST-shape contract:
   - `cargo test --lib --features generated_parsers rtl_const_expr_ast_shape_contract`
+- Canonical certificate-coverage baseline (fully-certified roster lock):
+  - `make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_cert_gate`
+  - pins `total=48 proof=0 witness=48 UNKNOWN=0 fully_certified=true` (default entry rule,
+    `--max-depth 32`, `--count 40`, default diverse generation step-budget), with
+    `sample_parse_failures=0` / `proof_reverify_failures=0` and an identical signature across
+    seeds 0/7/42, against the tracked contract
+    `rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json`
 
 ## Schema Versioning
 

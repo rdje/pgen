@@ -3,10 +3,10 @@
 ## Metadata
 
 - Tree ID: `CERT-GEN-BUDGET`
-- Status: `active`
+- Status: `complete`
 - Roadmap lane: `Stimuli-generator / proof-tooling robustness (certificate-coverage)`
 - Created: `2026-06-14`
-- Last updated: `2026-06-25`
+- Last updated: `2026-07-03`
 - Owner: repo-local workflow
 
 ## Goal
@@ -46,9 +46,9 @@ bounded-budget fix is `.2`.
 ## Task Tree
 
 - ID: `CERT-GEN-BUDGET`
-  Status: `active`
-  Goal: `bound the cert-coverage diverse-pass generation time deterministically without changing well-behaved grammars' cert results.`
-  Children: `CERT-GEN-BUDGET.1`, `CERT-GEN-BUDGET.2`
+  Status: `complete`
+  Goal: `bound the cert-coverage diverse-pass generation time deterministically without changing well-behaved grammars' cert results; oracle-lock the rce canonical cert baseline the confusion arose on.`
+  Children: `CERT-GEN-BUDGET.1`, `CERT-GEN-BUDGET.2`, `CERT-GEN-BUDGET.3`, `CERT-GEN-BUDGET.4`
 
 - ID: `CERT-GEN-BUDGET.1`
   Status: `done`
@@ -101,10 +101,19 @@ bounded-budget fix is `.2`.
     invocation-wording confusion like this fails mechanically instead of narratively.
 
 - ID: `CERT-GEN-BUDGET.4`
-  Status: `pending`
+  Status: `done` (2026-07-03, `PGEN-CERT-GEN-BUDGET-0004`)
   Goal: `GATE leaf: pin the rtl_const_expr canonical certificate-coverage baseline (default entry, --max-depth 32, --count 40, seeds 0/7/42, expected 48/0 fully_certified, default diverse budget) in a repo-standard machine-checkable gate (extend an existing rce gate or add rce_cert_gate), so the fully-certified-6 roster membership for rce is oracle-locked rather than doc-asserted. Cheap (~30 s per seed).`
+  Verification: `2026-07-03 — LANDED as a new standalone gate (extending was adjudicated worse: the only existing rce gate is the book gate, a docs oracle). rust/scripts/rtl_const_expr_cert_gate.sh (modeled on sv_cert_recognized_union_gate.sh) + tracked contract rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json + make target rtl_const_expr_cert_gate + help line + CI YAML .github/workflows/rtl-const-expr-cert-gate.yml (workflow_dispatch, artifact upload). The gate regenerates generated/rtl_const_expr.json via focus_rtl_const_expr, rebuilds the debug ast_pipeline (generated_parsers ebnf_dual_run), then for each declared seed re-runs the CANONICAL config — the DEFAULT entry rule (no --entry-rule), --max-depth 32, --count 40, the DEFAULT diverse step-budget with behavior-affecting PGEN_* generation knobs explicitly env -u'd — and asserts every headline field (grammar/entry identity, total=48, proof=0, witness=48, UNKNOWN=0, fully_certified=true, sample_parse_failures=0, proof_reverify_failures=0) plus cross-seed signature determinism against the contract; emits summary.txt/summary.json; nonzero on any drift. Pre-gate baseline reproduced on HEAD binaries (3/3 seeds byte-identical headline); the assembled gate then re-earned it end-to-end GREEN (exit 0, unmet_criteria_count 0). Lockstep: book grammar-wellformedness.md (oracle-lock paragraph in the constructive-reach section) + parser-families.md (Phase S rce baseline paragraph) + rce parser book build-recipe.md (gate command + pinned numbers — the book previously carried NO cert numbers) + rce integration contract Validation/Release Gates.`
 
-## Acceptance Checklist (enforced)
+## Acceptance Checklist (`.4`, enforced)
+- [x] **REPRODUCE / ISSUE** — the roster claim was doc-asserted only: no standing gate pinned the rce canonical cert (tool-proven: `grep -rn rtl_const_expr rust/Makefile` → only `focus_rtl_const_expr` + `rtl_const_expr_parser_book_gate`, a docs oracle; `ls rust/scripts | grep cert` → only the SV union gate). The `.3` adjudication is the harm exemplar: a sub-entry probe config mislabeled "canonical" survived two records and presented as a roster regression.
+- [x] **ROOT CAUSE (WHY + WHERE)** — absence-of-oracle, located: the fully-certified-6 accounting basis had a per-grammar standing oracle for SV only (`sv_cert_recognized_union_gate`); rce's `48/0` lived in prose (`CHANGES.md`, tree records). WHY the confusion survived = nothing mechanical distinguished the canonical DEFAULT-entry lane from the `--entry-rule conditional_expr` diagnostic lane (`CERT-GEN-BUDGET.3`, `PGEN-CERT-GEN-BUDGET-0003`).
+- [x] **FIX** — proof-surface tier (no grammar/engine change applies): the standalone deterministic gate + tracked contract + make/CI wiring described in Verification, with the canonical-vs-sub-entry distinction encoded in the contract (`entry_rule_arg: "default"`, expected_entry assertion, done_rule prose).
+- [x] **ADDRESSED (verified)** — before: no oracle (grep evidence above). After: `make -C rust SHELL=/bin/bash rtl_const_expr_cert_gate` → GREEN end-to-end (regen + rebuild + 3-seed re-run): `✅ rtl_const_expr canonical certificate-coverage gate passed (total=48 proof=0 witness=48 UNKNOWN=0 fully_certified=true, deterministic across seeds [0,7,42])`, `unmet_criteria_count: 0`, per-seed signatures identical.
+- [x] **NO REGRESSION** — zero code-behavior surface touched: no `grammars/*.ebnf`, no `rust/src/*`, no codegen; `generated/rtl_const_expr.json` regen inside the gate is byte-stable (the cert headline reproduced the pre-gate HEAD baseline exactly, seeds 0/7/42) ⇒ parsers and the other 5 fully-certified grammars unaffected by construction; clippy not applicable (no Rust source amended); the gate run itself IS the named re-runnable oracle CI re-executes.
+- [x] **LOCKSTEP** — top book (`grammar-wellformedness.md`, `parser-families.md`) + rce parser book (`build-recipe.md`) + rce integration contract + `mdbook_docs_gate`/`rtl_const_expr_parser_book_gate` green; this tree + `docs/TASK_TREE.md` frontier; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE. No release/schema/ledger change (not a parser change).
+
+## Acceptance Checklist (`.2`, enforced)
 - [x] **REPRODUCE / ISSUE** — `ast_pipeline --report-certificate-coverage` PASS-1 diverse pass is time-unbounded: unbounded (`PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS=0`) `rtl_const_expr --max-depth 40` and `conditional_expr --max-depth 40/48` HANG (>40s wall, rc=124) on the current binary.
 - [x] **ROOT CAUSE (WHY + WHERE)** — diverse config leaves `target_generation_timeout_ms=0` (`stimuli_generator.rs:217`) → `timeout_budget_from_ms(0)=None` (`:1795/1799`) → `generation_deadline_exceeded()` false when unarmed (`:1810`); `generate_many` calls `generate_from_entry` directly, so the B1 step-budget (`enforce_generation_deadline`, woven through the core generation recursion `:8141/8175/9602/9149/…`) is NEVER ARMED for the diverse pass.
 - [x] **FIX** — generator-only, parser-agnostic; fix-hierarchy = engine/proof-tool budget (no grammar/declarative surface applies). `generate_many_bounded` arms a per-sample B1 budget; cert PASS-1 default `CERT_DIVERSE_GENERATION_TIMEOUT_MS_DEFAULT=4_000` ms; both new items `#[cfg(feature="generated_parsers")]`-gated.
@@ -116,16 +125,16 @@ bounded-budget fix is `.2`.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `CERT-GEN-BUDGET.4` | `pending` | Pin the rce canonical default-entry cert (`48/0`, seeds 0/7/42, depth 32) in a machine-checkable gate — the `.3` adjudication showed the roster claim is currently doc-asserted only, which is exactly how the wording confusion survived. |
+| — | `CERT-GEN-BUDGET.4` | `done` (`PGEN-CERT-GEN-BUDGET-0004`) | LANDED — `rtl_const_expr_cert_gate` (script + tracked contract + make target + CI YAML) oracle-locks the rce canonical DEFAULT-entry cert: `48/0 fully_certified` asserted field-by-field at seeds 0/7/42 with cross-seed determinism; GREEN end-to-end (`unmet_criteria_count: 0`) and red-path verified (doctored contract → nonzero + named unmet criterion). |
 | — | `CERT-GEN-BUDGET.3` | `done` (`PGEN-CERT-GEN-BUDGET-0003`) | ADJUDICATED — no defect/drift: the `.1`/`.2` records mislabeled the `conditional_expr` sub-entry probe config as "canonical"; the DEFAULT-entry lane reproduces `48/0 fully_certified` at seeds 0/7/42 with the exact `.2` step count (8,487,959 @ seed 0). Sub-entry `UNKNOWN=1` = the root rule, entry-relative artifact; the budget cutting the sub-entry's ~150M-step run is designed behavior. |
 | — | `CERT-GEN-BUDGET.2` | `done` (`PGEN-CERT-GEN-BUDGET-0002`) | The bounded-budget fix LANDED: diverse pass now arms a default 4M-step B1 budget; byte-identical cert for the 6 well-behaved grammars + SV; rtl_const_expr fully_certified at depth 32 (seeds 0/7/42, DEFAULT entry); depth-40/48 runaway cut deterministically (~15s). |
 | — | `CERT-GEN-BUDGET.1` | `done` (`PGEN-CERT-GEN-BUDGET-0001`) | Root cause: the diverse-pass config never arms the B1 step-budget (`target_generation_timeout_ms=0`) → unbounded generation, pathological/non-terminating on deeply-recursive rtl_const_expr; non-monotonic in `--max-depth`. |
 
-**Tree status: active (was briefly reopened as a suspected regression 2026-07-02; the `.3`
-adjudication cleared it same-day — no drift, roster intact). Remaining scope = the `.4` gate
-pin.** NOTE for readers of `.1`/`.2`: where those records say "canonical
-`--entry-rule conditional_expr`", read "the `.1` pathology-probe config"; the CERTIFICATION
-config is the default entry (`rtl_const_expr`).
+**Tree status: COMPLETE (2026-07-03 — all leaves done; the `.4` gate pin landed as
+`PGEN-CERT-GEN-BUDGET-0004`). The rce canonical cert is now oracle-locked by
+`make -C rust SHELL=/bin/bash rtl_const_expr_cert_gate`.** NOTE for readers of `.1`/`.2`:
+where those records say "canonical `--entry-rule conditional_expr`", read "the `.1`
+pathology-probe config"; the CERTIFICATION config is the default entry (`rtl_const_expr`).
 
 ## Decisions
 
@@ -144,6 +153,7 @@ config is the default entry (`rtl_const_expr`).
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-14` | `CERT-GEN-BUDGET.1` | `rtl_const_expr.json cert depth sweep (count 5: depths 4/8/12/16 instant DepthExceeded; count 1: depth 24 instant error, depth 28 >200s timeout rc=124, depth 32 18.15s fully_certified, depth 40 >40s); ps (depth-28 child 100% CPU → reaped at 200s, RSS 21 MB, RAM 85% free); code read (main.rs:2370 diverse config ..Default::default(); stimuli_generator.rs:208 default target_generation_timeout_ms=0; :1682 timeout_budget_from_ms(0)=None; :1697 deadline-check None⇒false)` | `Root cause = unbounded diverse pass (B1 step-budget never armed); non-monotonic in depth; not a deadlock; severity moderate (tooling robustness). Fix → .2. No code changed.` |
+| `2026-07-03` | `CERT-GEN-BUDGET.4` | `Pre-gate HEAD baseline: 3/3 seeds byte-identical headline (total=48 proof=0 witness=48 UNKNOWN=0 fully_certified=true spf=0 prf=0; direct ast_pipeline runs, seeds 0/7/42). Assembled gate GREEN end-to-end via make rtl_const_expr_cert_gate (regen focus_rtl_const_expr + debug ast_pipeline rebuild + 3-seed re-run): exit 0, cert_baseline_green true, unmet_criteria_count 0, per-seed signatures identical. Red-path proof: doctored contract (expected_total=49) via PGEN_RTL_CONST_EXPR_CERT_CONTRACT_FILE → nonzero exit + "❌ … primary_unmet=seed=0 total=48 (expected 49)". bash -n clean; mdbook_docs_gate + rtl_const_expr_parser_book_gate green post-lockstep.` | `Gate LANDED: rtl_const_expr_cert_gate script + tracked contract + make target/help + CI YAML; roster membership for rce now oracle-locked. Proof-surface only — no grammar/engine/generated behavior change.` |
 | `2026-06-25` | `CERT-GEN-BUDGET.2` | `Calibration via low-verbosity step-count trace (SV d24 = 93,176 steps; rce d32 = 8,487,959 steps, byte-identical at 2M budget ⇒ per-sample max < 2M). Current-binary pathology sweep (UNBOUNDED =0, timeout 40s): conditional_expr d40/d48 + rtl_const_expr d40 HANG (rc=124); d28 now fast (intervening-work mitigated). Decisive A/B (=0 vs default 4000): json/regex/vhdl/svpp/rtl_frontend/SV byte-identical (SV UNKNOWN=28 spf=0, also =28 @ seeds 7/42); rce d32 fully_certified @ seeds 0/7/42. Pathology cut @ default: rce d40 = 14.96s, conditional_expr d48 = 16.59s (TargetTimeout budget=4000ms). clippy_source_all_targets → ok (0 errors); full clippy gate ✅; ast_shape_contract 18/18.` | `Fix LANDED: generate_many_bounded + default 4M-step diverse-pass budget. Byte-identical for 6 well-behaved + SV; rce fully_certified; depth-40/48 runaway bounded ~15s. Generator-only; no parser/grammar/generated/release change.` |
 
 ## Commit Log
@@ -152,6 +162,7 @@ config is the default entry (`rtl_const_expr`).
 | --- | --- | --- |
 | `CERT-GEN-BUDGET.1` | `PGEN-CERT-GEN-BUDGET-0001` | Pure-docs investigation; root cause + severity + fix ticket. |
 | `CERT-GEN-BUDGET.2` | `PGEN-CERT-GEN-BUDGET-0002` | The bounded-budget FIX (code): `generate_many_bounded` + default 4M-step diverse-pass budget; byte-identical cert for 6 well-behaved grammars + SV; rtl_const_expr fully_certified at depth 32 (seeds 0/7/42); depth-40/48 runaway cut deterministically. |
+| `CERT-GEN-BUDGET.4` | `PGEN-CERT-GEN-BUDGET-0004` | The GATE pin (proof surface): `rtl_const_expr_cert_gate` script + `rtl_const_expr_cert_contract.json` + make target + CI YAML; canonical DEFAULT-entry `48/0 fully_certified` asserted per-field at seeds 0/7/42 with determinism; green- and red-path verified. |
 
 ## Changelog
 
@@ -159,3 +170,4 @@ config is the default entry (`rtl_const_expr`).
 - `2026-06-25`: `.2` DONE (`PGEN-CERT-GEN-BUDGET-0002`) — armed a deterministic 4,000,000-step (4000 ms) per-sample default budget on the cert PASS-1 diverse pass via the new `generate_many_bounded` (env-tunable `PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS`). Byte-identical cert for the 6 well-behaved grammars + SV (decisive A/B), rtl_const_expr fully_certified at depth 32 (seeds 0/7/42), and the current depth-40/48 runaway cut deterministically (~15s vs unbounded hang). Generator-only / parser-agnostic; no grammar/generated/release/schema/ledger change. **Tree COMPLETE (all leaves done).**
 - `2026-07-02`: Tree REOPENED — `.3` spawned (`pending`, discovered during `VERILOG-2005-PROFILE.6.3.2` verification, recorded in commit `PGEN-VERILOG-2005-PROFILE-0015`): the rtl_const_expr canonical cert (depth 32) now FAILS at HEAD on the deterministic 4M-step budget (`TargetTimeout conditional_expr root/o1 budget=4000ms`); git-stash A/B proved it independent of the `.6.3.2` engine fix ⇒ an intervening engine drift since the `.2` calibration. The other five fully-certified grammars remain green at HEAD (seed 0). Frontier → `.3`.
 - `2026-07-02` (same day, later): `.3` DONE (`PGEN-CERT-GEN-BUDGET-0003`) — **ADJUDICATED, no defect**: systematic elimination (stash A/B; in-place source replay at the `.2` base commit — identical failure; JSON regen byte-identical; toolchain/lockfile unchanged) proved code+input stability, and the DEFAULT-entry lane then reconciled everything — `48/0 fully_certified` at seeds 0/7/42 with the `.2` calibration's exact step count (8,487,959 @ seed 0). The `.1`/`.2` prose mislabeling the `conditional_expr` sub-entry probe as "canonical" was the whole defect; sub-entry `UNKNOWN=1` is the root rule (entry-relative artifact) and the budget cutting its ~150M-step run is designed behavior. Roster intact. `.4` spawned (gate-pin the rce canonical cert). Frontier → `.4`.
+- `2026-07-03`: `.4` DONE (`PGEN-CERT-GEN-BUDGET-0004`) — the rce canonical cert baseline is oracle-locked: new standing gate `make -C rust SHELL=/bin/bash rtl_const_expr_cert_gate` (script modeled on `sv_cert_recognized_union_gate.sh`; tracked contract `rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json`; CI workflow `rtl-const-expr-cert-gate.yml`) re-runs the DEFAULT-entry `--max-depth 32 --count 40` lane at seeds 0/7/42 with behavior-affecting `PGEN_*` knobs env-neutralized and asserts every headline field + cross-seed determinism. GREEN end-to-end; red-path verified with a doctored contract. The canonical-vs-sub-entry distinction that caused the `.3` confusion is now encoded in the contract itself (`entry_rule_arg: "default"`, expected-entry assertion, done_rule prose). Book/contract lockstep: `grammar-wellformedness.md`, `parser-families.md`, rce `build-recipe.md` (first cert numbers in that book), rce integration contract gates section. **Tree COMPLETE (all leaves done).**

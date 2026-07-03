@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-03 - PGEN-CERT-GEN-BUDGET-0004 — gate-pinning a "known-good" number: the design choices that make a cert pin honest
+
+Session #24. The rce cert gate is small, but four choices in it are the reusable pattern for pinning any grammar's canonical cert:
+
+- **Pin the LANE, not just the number.** The `.3` incident was never a wrong number — it was the wrong *config* labeled canonical. So the contract pins the invocation shape (`entry_rule_arg: "default"`, `grammar_input`, `max_depth`, `samples`, `diverse_generation_budget: "default"`) and the script asserts the headline's `grammar='…' entry='…'` identity fields, not only total/UNKNOWN. A future engine change that silently altered the default entry would fail the gate by name.
+- **Neutralize the environment you claim.** "Default diverse budget" is only true if `PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS` (and the witness-pass knobs `PGEN_WITNESS_NO_PURDOM`/`PGEN_WITNESS_TIMEOUT_FLOOR_MS`/`PGEN_GENERATION_STEPS_PER_MS`) cannot leak in from the caller's shell — the script `env -u`'s them around the cert runs. Without this, an operator with a debugging knob exported gets a spurious red (or worse, a spurious green).
+- **Prove the red path before trusting the green.** A doctored contract (`expected_total=49`, via the `PGEN_RTL_CONST_EXPR_CERT_CONTRACT_FILE` override + a scratch state dir) must fail nonzero with the named criterion (`seed=0 total=48 (expected 49)`). Every new gate should ship with this one-shot falsifiability check in its verification log; a gate that cannot go red is decoration.
+- **Assert determinism as a first-class criterion.** The per-seed full signature (all 9 parsed fields) is compared across seeds inside the gate, so nondeterminism is its own named failure — not something a reader infers from three separate log files.
+- Cost note: ~30 s/seed for the cert runs; the dominant wall-time is the `focus_rtl_const_expr` regen (+ its ~40 MB stage log under the gate's own `logs/`, overwritten per run) and the debug `ast_pipeline` rebuild when stale. Well inside CI budgets; no `prune_log`-class growth here (the ~5 GB regen-log phenomenon is SV-specific and stays owned by the union-gate follow-up).
+
 ## 2026-07-03 - PGEN-SV-DOLLAR-LRM-FIDELITY-0004 — three engine facts the wave-3 anchors forced into the open (lookahead slots, unresolvable predicate refs, the branch-predicate broadcast)
 
 Session #23. The `.1` design predicted wave 3 correctly at the TOKEN level and wrongly at the ROUTING level — every correction came from a tool, not a theory, and three of the mechanisms are durable engine facts:

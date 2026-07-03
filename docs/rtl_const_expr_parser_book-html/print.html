@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6e09f93b.js";
+            window.path_to_searchindex_js = "searchindex-23654deb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -295,8 +295,17 @@ cargo build --release --features generated_parsers
 <h2 id="family-closure--proof-gates"><a class="header" href="#family-closure--proof-gates">Family closure / proof gates</a></h2>
 <p>Once the parser is built, the rtl_const_expr family exposes validation/release gates that should be run by anyone publishing a parser-release version bump:</p>
 <pre><code class="language-bash">make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_parser_book_gate
+make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_cert_gate
 cargo test --lib --features generated_parsers rtl_const_expr_ast_shape_contract
 </code></pre>
+<p><code>rtl_const_expr_cert_gate</code> locks the family’s canonical certificate-coverage baseline —
+<code>total=48 proof=0 witness=48 UNKNOWN=0 fully_certified=true</code>, deterministic at seeds 0/7/42 with
+zero sample-parse failures (the <strong>default</strong> entry rule, <code>--max-depth 32</code>, <code>--count 40</code>, the default
+diverse generation step-budget) — against the tracked contract
+<code>rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json</code>. It regenerates the
+<code>generated/rtl_const_expr.json</code> input, rebuilds the debug <code>ast_pipeline</code>, re-runs the exact
+canonical configuration for every declared seed, and fails on any drift in any headline field or on
+cross-seed nondeterminism.</p>
 <p>See the integration contract § “Validation / Release Gates” for the full list.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="public-api-surface"><a class="header" href="#public-api-surface">Public API Surface</a></h1>

@@ -1,0 +1,29 @@
+name: rtl-const-expr-cert-gate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rtl-const-expr-cert-gate:
+    name: rtl-const-expr-cert-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run rtl_const_expr canonical certificate-coverage gate
+        run: make -C rust SHELL=/bin/bash rtl_const_expr_cert_gate
+
+      - name: Upload rtl_const_expr cert gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: rtl-const-expr-cert-gate-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/rtl_const_expr_cert_gate
+          if-no-files-found: warn
+          retention-days: 14
