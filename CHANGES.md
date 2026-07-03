@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-07-03 - PGEN-DOC-CERTPIN-SYNC-0001: stale cert-pin prose re-synced to the tracked contract oracles (top book × 2 chapters + LIVE dialect block)
+
+Session #24, PNT continuation. **Pure-docs slice** (books-lockstep doctrine: book↔codebase drift is a tracked correctness defect) — three live surfaces had cert-pin prose lagging the tracked contracts after the `SV-DOLLAR-LRM-FIDELITY` campaign; each fix verified against the contract JSON oracles, not against another report:
+
+- `docs/book/src/grammar-wellformedness.md` (union-gate section): canonical `1324/2/1302/20` → **`1341/2/1319/20`**, union `1321/1` → **`1338/1`** (= `systemverilog_recognized_cert_union_contract.json`), and the re-baseline provenance extended through the boundary-lift + LRM-fidelity chain (`1324→1341`, +17 accounted rules, invariants unchanged).
+- `docs/book/src/parser-families.md` (dialect-profile section): corpus `15 accept + 45 reject files` → **`15 + 49`** (dir-counted), matrix `180 checks (60 cases)` → **`192 (64 cases)`** (= `verilog_2005_conformance_contract_v0.json` cases×3 profiles), and clause (c)'s head cert statement `1147/2/819/326` → **`1147/4/816/327`** (the trailing provenance chain already ended at the current figure — the head now states it too).
+- `LIVE_ACHIEVEMENT_STATUS.md` (dialect block): the union re-pin chain extended past `.6.3`'s `1328/2/1306/1325` through `SV-DOLLAR-LRM-FIDELITY.3`/`.4` to the CURRENT `1341/2/1319/1338`, plus a current-pins sentence (matrix `192`/64, cert `1147/4/816/327`, 295 NO-reach). Dated tracker notes and per-release ledger/contract records were deliberately NOT rewritten — they are correct history for their releases.
+- Verified: `mdbook_docs_gate` ✅ fresh; sweep confirms no remaining stale instances in live surfaces (`grep` over `docs/book/src` + contracts — residual `180/60` hits are inside the 1.0.160-era release records, correct for that release). Noted, deferred (owned by the next v2005 re-pin slice): the conformance contract's own `baseline_note` prose says "295 of the 326" where the field oracle says `expected_unknown=327` — the gate never consumes the note (comment-only reference), so it cannot affect a verdict.
+
 ## 2026-07-03 - PGEN-CERT-GEN-BUDGET-0004 (CERT-GEN-BUDGET.4): the rtl_const_expr canonical cert baseline is oracle-locked — new standing gate `rtl_const_expr_cert_gate`; TREE COMPLETE
 
 Session #24, PNT from the MEMORY frontier. **Proof-surface leaf — no grammar/engine/generated behavior change** (new gate script + tracked contract + make target + CI YAML; zero edits under `grammars/`, `rust/src/`, or codegen).

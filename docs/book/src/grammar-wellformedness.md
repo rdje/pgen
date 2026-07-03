@@ -1254,13 +1254,16 @@ is not left as prose: it is locked by a re-runnable, deterministic gate,
 `--report-certificate-coverage` + 4-config `--cert-union-config` invocation *for each* of seeds
 0/7/42 and asserts, against a tracked contract
 (`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`), the canonical
-accounting (`total=1324 proof=2 witness=1302 UNKNOWN=20`), the union accounting
-(`witness=1321 UNKNOWN=1`), the exact union residual rule set (`["context_member_method_call"]`,
+accounting (`total=1341 proof=2 witness=1319 UNKNOWN=20`), the union accounting
+(`witness=1338 UNKNOWN=1`), the exact union residual rule set (`["context_member_method_call"]`,
 compared order-insensitively), `sample_parse_failures=0`, and that all three seeds agree
-byte-for-byte. (The count pins were re-baselined 2026-07-02, `VERILOG-2005-PROFILE.5`: the
-`SV-AST-SHAPE-FIDELITY` named-lift campaign plus the `verilog_2005`-profile named-lifts added 20
-accounted rules — `total 1304→1324`, all witnessed or proven — without touching the semantic
-invariants: canonical `UNKNOWN=20`, union `UNKNOWN=1`, the same single residual rule.) So the recognized figure cannot silently drift, and the final union `1 → 0` flip —
+byte-for-byte. (The count pins have been re-baselined as accounted rules were added, each time
+without touching the semantic invariants — canonical `UNKNOWN=20`, union `UNKNOWN=1`, the same
+single residual rule: 2026-07-02, `VERILOG-2005-PROFILE.5` — the `SV-AST-SHAPE-FIDELITY` named-lift
+campaign plus the `verilog_2005`-profile named-lifts, `total 1304→1324`; then through the
+`verilog_2005` boundary-leak lifts and the `SV-DOLLAR-LRM-FIDELITY` LRM-fidelity campaign
+(2026-07-02→03) — 17 more accounted rules, `total 1324→1341`, canonical witness `1302→1319`, union
+witness `1321→1338`, all witnessed or proven.) So the recognized figure cannot silently drift, and the final union `1 → 0` flip —
 when the last reach-gap `context_member_method_call` closes — is itself gated (the contract is
 re-baselined to `expected_union_unknown=0` in that same slice). SystemVerilog remains **Mostly Done**
 until then: the union `UNKNOWN` is `1`, not `0`, and the gate says so plainly. (The gate adds a proof

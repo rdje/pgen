@@ -50,8 +50,12 @@ after which the recognized-union invariant HELD). The
 `1304/1/1283/1302`→`1324/2/1302/1321`, gate RED→GREEN fresh end-to-end (semantic invariants
 byte-identical — canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_member_method_call`,
 `spf=0`, seeds 0/7/42; re-pinned again at `.6.2` for the +2
-lifted rules — `1326/2/1304/1323` — and at `.6.3` for the +2 `$unit` lifts —
-`1328/2/1306/1325` — UNKNOWN invariants unchanged throughout). Left to close: the OPEN
+lifted rules — `1326/2/1304/1323` — at `.6.3` for the +2 `$unit` lifts —
+`1328/2/1306/1325` — and through `SV-DOLLAR-LRM-FIDELITY.3`/`.4` (+9 then +4 accounted rules) —
+`1337/2/1315/1334` then the CURRENT `1341/2/1319/1338` — UNKNOWN invariants unchanged
+throughout). Current strict-profile pins: conformance matrix `192` checks (`64` cases; 15 accept
++ 49 reject corpus files), profiled cert `1147/4/816/327` `spf=0` (295 NO-reach-by-design),
+seeds 0/7/42. Left to close: the OPEN
 `SV-0021`..`SV-0024` + `SV-0028` fix leaves and the design leaf `.6.5`
 (per-profile proof accounting). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
 full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
