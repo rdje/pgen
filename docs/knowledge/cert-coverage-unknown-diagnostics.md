@@ -66,6 +66,7 @@ precondition fact was never generated (the store-aware-generation / declare-then
 
 ## Companions
 - `PGEN_REACH_PATH_DUMP=1` (prefix any gen/cert cmd) → the BFS hop chain the planner installs per target (see which path stole the bytes for a `witnessed_target=false`).
+- `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` (prefix the cert cmd; profile runs) → read-only machine split of the residual into `profile_entry_unreachable` / `store_unproducible_under_profile` / `genuine` (P1 entry-universe reachability + P2 unproducible-store-gate fixpoint; entry universe = cert entry + the `--cert-union-config` entries, so pass the alternate entries). TOOLBOX.md §4.6.
 - NOT-depth check: re-run cert at `--max-depth 24/32/40`; unchanged UNKNOWN set ⇒ the per-target budget is adequate, cause is a forcing/store-gate bug, not depth.
 - `PGEN_WITNESS_NO_PURDOM=1` (A/B the ordering), `PGEN_WITNESS_TIMEOUT_FLOOR_MS` (per-target budget floor).
 - Related: [[sv-cert-coverage-predicate-gated-false-witness]], [[sv-store-fact-scope-and-canonical-name-coupling]], [[prove-rule-dead-or-reachable]], [[ast-pipeline-cli-reference]].

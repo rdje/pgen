@@ -30,6 +30,7 @@ the generation-input / memo observability.
 | **The FULL list of `UNKNOWN` rules (not the truncated 25)?** | `PGEN_CERT_COVERAGE_DUMP_ALL=1` | prefix the cert command |
 | **WHY each `UNKNOWN` rule failed to witness (the forced sample + verdict)?** | `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` | prefix the cert command → `[plannable-probe]` lines |
 | The reach path (BFS hop chain) the planner installs for a target? | `PGEN_REACH_PATH_DUMP=1` | prefix any generation/cert command |
+| **Which residual `UNKNOWN`s are profile-excluded by construction (vs genuine)?** | `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` | prefix the cert command → `RESIDUAL-CLASSIFICATION` block |
 | Is an `UNKNOWN` a dead rule, a reach gap, or a store-gate rejection? | the 3-step protocol below | dump-all → debug-probes → semantic trace |
 | The normalized grammar IR the generators consume? | `--dump-gen-ast` | `ast_pipeline g.ebnf --generate-parser --dump-gen-ast gen.json …` |
 | Static well-formedness (LR / non-terminating / shadowing)? | `--lint-grammar` | `ast_pipeline g.ebnf --lint-grammar` |
@@ -154,6 +155,52 @@ Prints the BFS hop chain (`reach_hops`) the planner installs to steer generation
 toward each target rule — the entry→target rule path with the chosen branch at
 each hop. Use it when a `parsed=true witnessed_target=false` result needs you to
 see *which* path the planner took (and therefore which sibling stole the bytes).
+
+---
+
+## Residual classification under a profile (`PGEN_CERT_RESIDUAL_CLASSIFICATION`)
+
+Under a dialect profile (e.g. `verilog_2005` on the SystemVerilog grammar), most of
+the cert residual is `UNKNOWN` **because the profile excludes it** — gated SV-only
+rules whose every referencing rule was pruned, and store-gated use-sites whose fact
+*producers* are profile-unreachable. This read-only surface classifies the residual
+mechanically, so the genuinely-actionable remainder stands out:
+
+```bash
+PGEN_CERT_RESIDUAL_CLASSIFICATION=1 PGEN_CERT_COVERAGE_DUMP_ALL=1 \
+  ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf \
+  --report-certificate-coverage --grammar-profile verilog_2005 \
+  --entry-rule systemverilog_file --count 40 --seed 0 \
+  --cert-union-config sv_multi_entry_root:verilog_2005 \
+  --cert-union-config library_text:verilog_2005
+```
+
+An extra block is printed after the `UNKNOWN` list (the default output is
+byte-identical when the variable is unset — the analysis does not even run):
+
+```
+  RESIDUAL-CLASSIFICATION (read-only; PGEN_CERT_RESIDUAL_CLASSIFICATION): profile='verilog_2005' entry_universe=["systemverilog_file", "sv_multi_entry_root", "library_text"] store_analysis=active
+    profile_entry_unreachable (…): […]         ← not positively reachable from ANY declared entry
+    store_unproducible_under_profile (…): […]  ← a mandatory positive store-gate no live rule can feed
+    genuine (…): […]                           ← the honest remainder to witness or adjudicate
+```
+
+Two sound, pure analyses back the classes. **P1** computes positive reachability from
+the *declared entry universe* (the cert entry plus every `--cert-union-config` entry
+present in the active tree — pass the alternate entries, or an entry-relative cohort
+like `library_text`'s will honestly show as unreachable *from the single entry*) with
+satisfiability-honest edges: a reference contributes nothing through an unsatisfiable
+alternative, a profile-pruned mandatory sibling, or a lookahead. **P2** is a fixpoint
+composed with P1: a fact-kind is producible only if some live rule emits it, a live
+rule whose rule-level `@predicate` *requires* a positive fact-query (`has_fact`,
+`fact_attribute_equals`, `fact_count_at_least` ≥ 1 — never `lacks_fact` or negations)
+on an unproducible kind is dead, and deadness cascades until stable. If any live rule
+carries `@import_from_library` the store analysis reports itself `DEGRADED-INERT`
+(external artifacts could inject facts, so no unproducibility claim is safe).
+
+The classification is diagnostic only — it never changes generation, the reach
+passes, or the headline numbers. Promoting the two classes to checkable per-profile
+`proof` certificates is tracked separately (`VERILOG-2005-PROFILE.6.7`).
 
 ---
 

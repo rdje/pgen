@@ -32,11 +32,16 @@ the 1 canonical residual; ratcheting is owned by leaves `.6.2`–`.6.5`). The do
 integration-contract full
 `verilog_2005` write-up (deferred from `.2`) is landed, and the contract's stale embedding-API
 baseline (`1.2.0`→`1.3.0`) is corrected. **Why `Mostly Done`, not `Done`:** the proof surface is a
-curated corpus (tracker rule: curated lists cannot earn `Done`), and TWO OPEN ledgered leaks bound
+curated corpus (tracker rule: curated lists cannot earn `Done`), and FIVE OPEN ledgered leaks bound
 the strict-subset claim: `SV-0024` (un-braced multi-identifier port expressions accept under EVERY
 profile — `module m (interconnect w);` in the bare non-ANSI form still accepts under
-`verilog_2005` until it lands; the corpus pins the ANSI form) and `SV-0028` (a stray top-level
-`;` accepts under every profile). ALL THREE profile-boundary leaks found by the `.6.1`
+`verilog_2005` until it lands; the corpus pins the ANSI form), `SV-0028` (a stray top-level
+`;` accepts under every profile), and the THREE `verilog_2005`-only over-acceptances surfaced
+2026-07-03 by the `.6.6` machine residual-classification's tools-first adjudication:
+`SV-0031` (the `::` scope-resolution surface — `initial p::f();`, `p::C::f()`, expression
+`p::X` all accept), `SV-0032` (`void` function return type), `SV-0033` (dynamic-array `[]`
+dimension) — all `Root Caused` with AST-pinned carriers, each awaiting its own `_sv_only`
+gated-lift fix leaf. ALL THREE profile-boundary leaks found by the `.6.1`
 adjudication are now FIXED: `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay forms) and
 `SV-0027` (`10ns` / `'0` expression literals) at `.6.2`, and `SV-0026` — the widest, the SV
 `$unit` top-level surface — at `.6.3` (2026-07-02, `-0016`): BOTH carriers gated via
@@ -56,10 +61,18 @@ lifted rules — `1326/2/1304/1323` — at `.6.3` for the +2 `$unit` lifts —
 throughout). Current strict-profile pins: conformance matrix `192` checks (`64` cases; 15 accept
 + 49 reject corpus files), profiled cert `1147/4/816/327` `spf=0` (295 NO-reach-by-design),
 seeds 0/7/42. Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` fix leaves and the per-profile proof-accounting lane
-(design leaf `.6.5` DONE 2026-07-03 — staged adoption decided; implementation leaves `.6.6`
-read-only machine classification and `.6.7` certificate promotion + re-pins are the remaining
-work). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
+`SV-0021`..`SV-0024` + `SV-0028` + `SV-0031`..`SV-0033` fix leaves and the per-profile
+proof-accounting lane: design leaf `.6.5` DONE 2026-07-03 (staged adoption decided), and the
+`.6.6` READ-ONLY machine classification LANDED 2026-07-03 (session #26, `-0019`) — pure P1
+entry-universe-reachability + P2 unproducible-store-gate analyses in
+`grammar_wellformedness.rs`, printed by the cert report only under
+`PGEN_CERT_RESIDUAL_CLASSIFICATION=1` (default output diff-proven byte-identical; headline pins
+untouched): on `verilog_2005` the machine split `292 profile_entry_unreachable +
+17 store_unproducible + 18 genuine = 327`, reproducing the `.6.1`/`.6.4`/`.6.5` manual
+adjudication exactly where it was right and CORRECTING it twice where it had gone stale
+(`hierarchical_tf_identifier`, `class_scoped_tf_call`) — the discrepancy probes are what
+surfaced `SV-0031`/`SV-0032`/`SV-0033`. Remaining: `.6.7` certificate promotion + full gate
+re-pins (must first decide the conformance gate's entry-universe wiring). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
 full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
 at `1.0.159`, the `SV-0030` digit/compare restoration at `1.0.160` — which also EARNED the
 formerly-blocked `verilog_2005` `scalar_constant` witness — and the SV-only

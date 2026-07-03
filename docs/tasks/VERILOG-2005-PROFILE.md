@@ -355,6 +355,14 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   `PGEN-GRAMMAR-WELLFORMED-0148`: `prune_log` ported to the union gate AND the new
   `rtl_const_expr_cert_gate` stage-log helpers.)
 
+## Acceptance Checklist (`.6.6`, enforced)
+- [x] **REPRODUCE / ISSUE** — the `.6.5`-designed gap (profile-gated residual carries no machine classification; manual adjudication drifts per-commit). Fresh BEFORE run reproduced the pins byte-identical: `CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1147 proof=4 witness=816 UNKNOWN=327 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)` (seed 0, `PGEN_CERT_COVERAGE_DUMP_ALL=1`, 295 NO-reach enumerated; canonical+union BEFORE likewise `1341/2/1319/20` + union `1338/1`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — carried from `.6.5`, all three mechanisms tool-pinned to file:line: `reachable_rules`' unreferenced→secondary-root promotion (`grammar_wellformedness.rs:306-313`) defeats today's `UnreachableRule` proof for stranded rules; the profile-agnostic `declared_*_identifier` emitters (`systemverilog.ebnf:1018-5481`) defeat the kind-existence lint (unproducibility is reachability of producing contexts, a fixpoint); `reach_hops_pass`' missing-mandatory skip (`stimuli_generator.rs:6869`) vs the honesty in `mandatory_node_gated` (`:7120`) explains the class-B spurious reach paths.
+- [x] **FIX** — engine tier, parser-agnostic, READ-ONLY: P1 `profile_entry_positively_live` + P2 `classify_profile_residual` (+ satisfiability/edge/gate/emitter/import helpers) in `rust/src/ast_pipeline/grammar_wellformedness.rs`; cert-report print behind `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` in `rust/src/main.rs` (entry universe = canonical + `--cert-union-config` entries present in the active tree); `reach_hops_pass` and all generation paths untouched; 6 new unit tests (module total 39, all green).
+- [x] **ADDRESSED (verified)** — the machine classification exists and reproduces the manual adjudication: on `verilog_2005` (universe = canonical + `sv_multi_entry_root`/`library_text`/`systemverilog_parseable_file`) it prints `profile_entry_unreachable (292)` / `store_unproducible_under_profile (17)` / `genuine (18)` = 327, md5-identical across seeds 0/7/42 (`d3d0914028df9c1bdfa8de6d589053ec` ×3); the arithmetic reconciles `.6.5` exactly (295 − 11 entry cohort + 7 class-B + `identifier_list` = 292); the library/entry cohort is all `genuine` (never branded dead); class-A = exactly the `known_unscoped_*`/`checked_*` 17 with per-rule kind/cascade reasons; BOTH machine-vs-manual discrepancies adjudicated tools-first in the machine's favor (see "`.6.6` Findings": `hierarchical_tf_identifier` stale `.6.4` note; `class_scoped_tf_call` negative-gated escape — probes + `--parse-dump-ast` carrier pins), yielding ledgered `SV-0031`/`SV-0032`/`SV-0033`.
+- [x] **NO REGRESSION** — env var UNSET: v2005 seed-0 `DUMP_ALL` output byte-identical pre↔post (empty diff) and canonical+union seed-0 output byte-identical pre↔post; headlines reproduce the pins at seeds 0/7/42 (v2005 `1147/4/816/327`, `sample_parse_failures=0`); `sv_cert_recognized_union_gate` ✅ GREEN fresh (canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `["context_member_method_call"]`, deterministic seeds 0/7/42); `verilog_2005_conformance_gate` ✅ GREEN fresh (0-orphan lint lock + 192-check matrix + 3-seed cert pins); fully-certified SIX byte-identical (json `9/0/9/0`, regex `198/0/198/0`, svpp `74/0/74/0`, vhdl `216/0/216/0`, rtl_frontend `169/1/168/0` — all `fully_certified=true`, `sample_parse_failures=0`; `rtl_const_expr_cert_gate` ✅ `48/0/48/0` seeds 0/7/42); mdbook gate ✅; clippy source-clean (`clippy_on_rust_change` ✅; the generated-stage findings are the pre-existing generated-parser debt class).
+- [x] **LOCKSTEP** — TOOLBOX.md §4.6 + quick-chooser row; book `docs/book/src/diagnosing-unknowns.md` (glance-table row + full section, mdbook gate ✅); KM card `cert-coverage-unknown-diagnostics` companion row (km-check OK); ledger rows `SV-0031`/`SV-0032`/`SV-0033` (`Root Caused`); LIVE dialect block (waiver set five); `docs/TASK_TREE.md` row + frontier → `.6.7`; CHANGES/DEVELOPMENT_NOTES/MEMORY. Release/schema unchanged (`1.0.161`/15 — parser behavior untouched by construction).
+
 ## Acceptance Checklist (`.6.3`, enforced)
 - [x] **REPRODUCE / ISSUE** — `SV-0026` at HEAD pre-fix: `printf 'wire w;\n' | parseability_probe --parse systemverilog /dev/stdin --profile verilog_2005` → ACCEPTS (likewise `reg r;`, `localparam p = 1;`, `parameter p = 1;`); IEEE 1364-2005 A.1.2 allows only module/UDP/config at top level. Two carriers (ledger row).
 - [x] **ROOT CAUSE (WHY + WHERE)** — `.6.1`/`.6.3` findings: `description`'s SV `$unit` `package_item` alternative + `source_text_item`'s direct top-level `local_parameter_declaration semi`/`parameter_declaration semi` alternatives are active under `verilog_2005` (un-gated shared-core branches; reach chain + AST dumps named both accepting paths; the `.2` baseline-admission wave admitted them un-audited).
@@ -593,23 +601,34 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     327", a duplicated `$unit` phrase removed, the missing SV-DOLLAR-LRM-FIDELITY.4 re-pin hop
     appended) — pins untouched, gate re-run GREEN.
 
-  - ID: `VERILOG-2005-PROFILE.6.6` — proposed: CODE leaf (engine, parser-agnostic) — the
-    READ-ONLY residual-classification surface designed in `.6.5`: pure analyses
-    `profile_entry_unreachable_rules` (P1) + `store_unproducible_rules` (P2) in
-    `grammar_wellformedness.rs`, surfaced by the cert report behind
-    `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` (default output BYTE-IDENTICAL; `reach_hops_pass`
-    untouched). Verification bar: canonical + `verilog_2005` + union headlines byte-identical at
-    seeds 0/7/42; fully-certified 6 byte-identical; on `verilog_2005` the machine classes must
-    reproduce the `.6.1`/`.6.4`/`.6.5` adjudication (library/entry cohort NOT classified dead;
-    class-A set = the `known_unscoped_*`/`checked_*` family; any machine-vs-manual discrepancy
-    adjudicated tools-first before the leaf closes).
-  - ID: `VERILOG-2005-PROFILE.6.7` — proposed: CODE leaf (engine + gate re-pins) — PROMOTION:
-    new `WellformednessCertificate::{ProfileEntryUnreachable, ProfileUnproducibleGate}` variants
+  - ID: `VERILOG-2005-PROFILE.6.6` — Status: `done` (2026-07-03, session #26,
+    `PGEN-VERILOG-2005-PROFILE-0019`, CODE leaf — engine, parser-agnostic, READ-ONLY): the
+    `.6.5`-designed residual classification LANDED — pure analyses
+    `profile_entry_positively_live` (P1) + `classify_profile_residual` (P2 fixpoint) in
+    `grammar_wellformedness.rs` (+ 6 unit tests), surfaced by the cert report behind
+    `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` (default output byte-identical — diff-proven at seed 0
+    for BOTH the v2005 DUMP_ALL run and the canonical+union run; `reach_hops_pass` untouched).
+    On `verilog_2005` the machine classes REPRODUCE the manual adjudication and reconcile the
+    327 exactly (`292 P1 + 17 P2 + 18 genuine`; library/entry cohort all `genuine`, class-A =
+    exactly the `known_unscoped_*`/`checked_*` 17 with per-rule kind reasons, class-B ×7 fall
+    out as P1-unreachable, `identifier_list` = the `.6.4` D→B reading; md5-identical at seeds
+    0/7/42) — and where machine and manual DISAGREED, the tools-first adjudication went to the
+    MACHINE both times (`hierarchical_tf_identifier`: the `.6.4` note went stale at wave 3;
+    `class_scoped_tf_call`: the negative-gated scoped escape parses in-profile), exposing THREE
+    new ledgered `verilog_2005` boundary leaks (**`SV-0031`** `::` scope-resolution surface,
+    **`SV-0032`** `void` return type, **`SV-0033`** dynamic-array `[]` — all `Root Caused`,
+    own fix leaves). Full record in "`.6.6` Findings".
+  - ID: `VERILOG-2005-PROFILE.6.7` — proposed (UNBLOCKED by `.6.6`): CODE leaf (engine + gate
+    re-pins) — PROMOTION: new
+    `WellformednessCertificate::{ProfileEntryUnreachable, ProfileUnproducibleGate}` variants
     + independent checkers; cert proof-gathering consumes them; ALL affected pinned gates
     re-baselined in the SAME slice (v2005 conformance cert pins, `sv_cert_recognized_union_gate`
-    canonical pins, LIVE/book/contract lockstep). Blocked on `.6.6` closing with the
-    classification verified; the leaf must enumerate the exact expected canonical-run delta from
-    the `.6.6` machine output BEFORE landing.
+    canonical pins, LIVE/book/contract lockstep). The leaf must enumerate the exact expected
+    canonical-run delta from the `.6.6` machine output BEFORE landing. NOTE from `.6.6`: the
+    v2005 conformance gate's cert invocation carries NO `--cert-union-config`, so promotion must
+    first decide the gate-side entry-universe wiring (add union configs to the gate command, or
+    plumb a dedicated entry-universe flag) — otherwise P1 under the gate's single-entry universe
+    would prove the entry-relative library cohort dead, exactly what `.6.5` forbids.
 
 ## `.6.1` Findings (tools-first, 2026-07-02 — the 310-UNKNOWN adjudication)
 
@@ -976,6 +995,80 @@ the same proof; the union RESULT is invariant because per-config proofs already 
 union, `main.rs:3012`). Expected post-`.6.7` v2005 posture: UNKNOWN ≈ entry-relative library
 cohort + `context_member_method_call` + whatever `.6.6` adjudicates genuine — each then
 individually ownable, which is exactly what the pins-not-closure posture cannot offer today.
+
+## `.6.6` Findings (CODE + adjudication, 2026-07-03 — the machine classification and what it corrected)
+
+**The landed surface.** Pure, parser-agnostic analyses in
+`rust/src/ast_pipeline/grammar_wellformedness.rs`: P1 `profile_entry_positively_live`
+(positive reachability from the DECLARED entry universe over the active profile-filtered tree,
+satisfiability-honest edges — an unsatisfiable Or-alternative, a pruned mandatory sibling, or a
+lookahead contributes no edge; a rule missing from the active tree but present in the pre-filter
+tree reads PRUNED=⊥, missing from both reads external=⊤; NO unreferenced→secondary-root
+promotion) and P2 `classify_profile_residual` (kind-producibility over the P1-live set from
+per-rule `@emit_fact` enumeration across all three annotation surfaces; a live rule whose
+RULE-LEVEL `@predicate` REQUIRES a positive fact-query — And=union, Or=INTERSECTION,
+Not/Compare/In=nothing, `fact_count_at_least` only with a literal count ≥1 — on an unproducible
+kind is dead; deadness cascades through the satisfiability composition itself, since a mandatory
+reference to a dead rule makes the referencer unsatisfiable — the `mandatory_node_gated` algebra
+is the satisfiability algebra's dual, so the in-loop mandatory check proved DEAD CODE and the
+mandatory-descent walk is used at classification time to ATTRIBUTE each cascade casualty;
+`@import_from_library` on any live rule degrades P2 to inert). Surfaced by the cert report ONLY
+under `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` (`main.rs`, after the `UNKNOWN` list; entry universe
+= canonical entry + the `--cert-union-config` entries present in the active tree); the analysis
+does not even run otherwise. `reach_hops_pass` untouched. 6 new unit tests (stranded-rule
+no-self-root + second-entry rescue; satisfiability-honest edges + lookahead; gate/cascade/escape/
+negative-gate; live-emitter + import-degradation; Or-intersection + literal-count; stranding).
+
+**The machine classification (v2005, seed 0, entry universe = canonical +
+`sv_multi_entry_root`/`library_text`/`systemverilog_parseable_file`):**
+`profile_entry_unreachable (292)` + `store_unproducible_under_profile (17)` + `genuine (18)`
+= 327 ✓, and the arithmetic reconciles the `.6.5` manual snapshot EXACTLY:
+295 NO-reach − 11 entry-relative cohort (now live via the declared universe) = 284, + the 7
+class-B spurious-reach rules (`kw_packed`, `kw_randc`, `random_qualifier`,
+`struct_union_member`, `kw_type`, `kw_inside`, `kw_matches` — all falling out automatically as
+P1-unreachable, exactly as designed) + `identifier_list` (the `.6.4` D→B reading confirmed) =
+292. The 17 store rules are precisely the `known_unscoped_*`/`checked_*` class-A family, now
+with machine-precise reasons: `type_name` ×13, `let_name`, `sequence_name`,
+`wildcard_import_open`, and two mandatory-descent cascade attributions
+(`known_unscoped_block_type_identifier`/`known_unscoped_data_type_identifier` →
+`checked_type_identifier`; `known_unscoped_block_covergroup_identifier` →
+`known_unscoped_covergroup_type_identifier`). The 18 genuine = the 11 entry-relative
+library/include/parseable cohort (NEVER branded dead — the `.6.5` load-bearing requirement) +
+`context_member_method_call` (class E ✓) + `class_scoped_tf_call` + the 5 drift entries.
+Classification block md5-identical at seeds 0/7/42.
+
+**Machine-vs-manual discrepancies — BOTH adjudicated tools-first, BOTH in the machine's favor:**
+
+- `hierarchical_tf_identifier` (manual `.6.4`: "sole production MANDATES `$root.`" → A-like):
+  STALE — at HEAD the rule has TWO alternatives (`grammars/systemverilog.ebnf:2403`): the
+  `$root.`-rooted one (whose mandatory head `hierarchical_root_prefix_sv_only` is
+  profile-gated, `:2383-84`) AND the `anchored` `identifier constant_bit_select dot (…)*
+  callable_identifier` alternative added by the SV-DOLLAR wave-3 split — plain `top.f(1)`
+  hierarchical task enables, core 1364-2005 §12.5 surface. Machine `genuine` CORRECT; the
+  manual note aged out in one day of grammar work — the exact staleness the `.6.5` design
+  predicted prose adjudication would suffer.
+- `class_scoped_tf_call` (manual `.6.1`: class-A unwitnessable): the machine declined the
+  deadness claim because `class_scoped_call_prefix_head` (`:6641`) carries a FOURTH
+  alternative, `scoped_class_scoped_call_prefix_identifier` (`:6630`), gated ONLY by
+  NEGATIVE `lacks_fact_attribute_equals` predicates (×3 + `non_typedef_package_scope`'s
+  `:2694`) — trivially satisfiable on an empty store. Probing it proved the machine right and
+  exposed a REAL boundary leak: `initial p::f();`, `initial p::C::f();`, and the expression
+  `wire w = p::X;` ALL ACCEPT under `verilog_2005` (AST-proven route
+  `subroutine_call → scoped_or_hierarchical_with_args → package_scope → tf`), though IEEE
+  1364-2005 has no `::` token anywhere in Annex A. Ledgered **`SV-0031`** (`Root Caused`,
+  own fix leaf — NOT bundled into this read-only slice).
+
+**The 4 remaining machine-`genuine` drift entries probed tools-first:** `function_statement`
+is legal in-profile surface (task/function body statements — a witnessable ratchet target,
+verdict stands). `data_type_or_void`/`kw_void` and `dynamic_array_variable_identifier` are
+machine-CORRECT (`module m; function void f; … endfunction endmodule` and `module m; reg q [];
+endmodule` both ACCEPT under `verilog_2005`) — and that in-profile parseability is itself
+over-acceptance: `void` is not a 1364-2005 return type (§10.4) and dynamic-array `[]` is IEEE
+1800 §7.5 only. Ledgered **`SV-0032`** (void return-type slot on the v2005-admitted
+`function_declaration_sv_2017`) and **`SV-0033`** (dynamic-dimension alternative on the
+v2005-admitted `data_declaration`), both AST-carrier-pinned, both `Root Caused`, own fix
+leaves. Net: the classification's first run corrected two manual adjudications and surfaced
+three ledgerable boundary leaks — the mechanization case made empirically.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -1563,6 +1656,30 @@ proof).
 
 ## Verification Log
 
+- 2026-07-03 (`.6.6` CODE, `PGEN-VERILOG-2005-PROFILE-0019`, session #26): BEFORE captures on
+  HEAD binaries reproduced the pins byte-identical (v2005 seed-0 `DUMP_ALL`
+  `1147/4/816/UNKNOWN=327 spf=0` + 295 NO-reach; canonical+union seed-0 `1341/2/1319/20`,
+  union `1338/1`, residual `context_member_method_call`). AFTER (env unset): both outputs
+  **diff-proven byte-identical** pre↔post; v2005 headlines reproduced at seeds 7/42.
+  Unit tests: `cargo test --lib ast_pipeline::grammar_wellformedness` → 39 passed / 0 failed
+  (6 new: P1 no-self-root + second-entry rescue, satisfiability-honest edges + lookahead,
+  gate/cascade/escape/negative, live-emitter + import-degradation, Or-intersection +
+  literal-count, store-fixpoint stranding). Classification (env set, universe = canonical +
+  `sv_multi_entry_root`/`library_text`/`systemverilog_parseable_file`): `292/17/18 = 327`,
+  block md5 `d3d0914028df9c1bdfa8de6d589053ec` identical at seeds 0/7/42. Discrepancy
+  adjudication probes: `initial p::f();` / `initial p::C::f();` / `wire w = p::X;` ACCEPT
+  under `verilog_2005` (AST dump route `subroutine_call → scoped_or_hierarchical_with_args →
+  package_scope → tf`) → `SV-0031`; `module m; function void f; …` ACCEPT (route
+  `… → function_declaration` sv_2017 variant, universal `data_type_or_void` slot) → `SV-0032`;
+  `module m; reg q [];` ACCEPT (route `data_declaration → data_type` with the universal
+  dynamic-dimension alternative) → `SV-0033`; grammar reads pinned the negative-gate escape
+  (`systemverilog.ebnf:6630/:6641/:2694`) and the wave-3 `anchored` alternative (`:2403`).
+  Oracles re-run fresh: `sv_cert_recognized_union_gate` ✅ (canonical `UNKNOWN=20`, union
+  `UNKNOWN=1`, deterministic seeds 0/7/42); `verilog_2005_conformance_gate` ✅ (lint 0-orphan
+  lock + 192-check matrix + 3-seed cert pins); fully-certified six byte-identical (json
+  `9/0/9/0`, regex `198/0/198/0`, svpp `74/0/74/0`, vhdl `216/0/216/0`, rtl_frontend
+  `169/1/168/0`, `rtl_const_expr_cert_gate` ✅); `mdbook_docs_gate` ✅; km-check OK;
+  `clippy_on_rust_change` ✅ (source strict-clean).
 - 2026-07-03 (`.6.5` DESIGN, `PGEN-VERILOG-2005-PROFILE-0018`): fresh evidence run on HEAD
   binaries (SV `1.0.161`/schema 15): `PGEN_CERT_COVERAGE_DUMP_ALL=1 ./rust/target/debug/
   ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile
@@ -1789,6 +1906,19 @@ proof).
 
 ## Commit Log
 
+- 2026-07-03 (`.6.6` CODE, `PGEN-VERILOG-2005-PROFILE-0019`): the READ-ONLY machine
+  residual-classification LANDED (P1 `profile_entry_positively_live` + P2
+  `classify_profile_residual` in `grammar_wellformedness.rs`, 6 unit tests; cert-report print
+  behind `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` in `main.rs`; `reach_hops_pass` untouched;
+  default output diff-proven byte-identical; all pinned gates GREEN fresh). On `verilog_2005`
+  the machine split `292/17/18 = 327` reconciles the manual adjudication exactly and CORRECTED
+  it twice tools-first (`hierarchical_tf_identifier` stale note; `class_scoped_tf_call`
+  negative-gated escape), surfacing THREE new ledgered boundary leaks `SV-0031` (`::` surface)
+  / `SV-0032` (`void` return type) / `SV-0033` (dynamic-array `[]`). TOOLBOX §4.6 + book + KM
+  + ledger + LIVE lockstep. Frontier → `.6.7` (promotion + re-pins; gate-side entry-universe
+  wiring is its first decision), alternates = `SV-0021`..`SV-0024`/`SV-0028`/
+  `SV-0031`..`SV-0033` fix leaves.
+
 - 2026-07-03 (`.6.5` DESIGN, `PGEN-VERILOG-2005-PROFILE-0018`): per-profile proof accounting
   DESIGNED + DECIDED (staged adoption: `.6.6` read-only machine classification →
   `.6.7` certificate promotion + full re-pin); all three residual-class mechanisms tool-pinned
@@ -1928,6 +2058,11 @@ proof).
 
 ## Changelog
 
+- 2026-07-03: `.6.6` CODE leaf done (`PGEN-VERILOG-2005-PROFILE-0019`) — read-only machine
+  residual-classification landed (env-gated, byte-identical default, all gates green); the
+  classification's first run corrected the manual adjudication twice and surfaced the three
+  new ledgered `verilog_2005` leaks `SV-0031`/`SV-0032`/`SV-0033`. `.6.7` UNBLOCKED;
+  frontier → `.6.7`.
 - 2026-07-03: `.6.5` DESIGN leaf done (`PGEN-VERILOG-2005-PROFILE-0018`) — per-profile proof
   accounting designed and decided (staged: `.6.6` read-only classification → `.6.7` certificate
   promotion + re-pins); conformance-contract `baseline_note` prose corrected (pins untouched,

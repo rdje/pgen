@@ -2944,6 +2944,71 @@ fn run_certificate_coverage_report(
             &report.unknown[..shown]
         );
     }
+    // VERILOG-2005-PROFILE.6.6: the READ-ONLY, env-gated residual classification (P1
+    // profile-entry-universe unreachability + P2 unproducible-mandatory-store-gate fixpoint,
+    // designed in `.6.5`). Prints ONLY under PGEN_CERT_RESIDUAL_CLASSIFICATION (default output is
+    // byte-identical by construction — the analysis does not even run otherwise) and never touches
+    // generation or the reach passes. The entry universe = the canonical entry + every
+    // `--cert-union-config` entry present in the ACTIVE (profile-filtered) tree; the pre-filter
+    // rule set distinguishes profile-PRUNED references (unsatisfiable) from external/include
+    // references (never accused). Promotion to `proof` certificates is the separate `.6.7` leaf.
+    if std::env::var_os("PGEN_CERT_RESIDUAL_CLASSIFICATION").is_some() && !report.unknown.is_empty()
+    {
+        use pgen::ast_pipeline::grammar_wellformedness::classify_profile_residual;
+        let mut entries: Vec<String> = vec![entry_rule.clone()];
+        for raw in union_configs {
+            let cfg_entry = match raw.split_once(':') {
+                Some((e, _)) => e.trim(),
+                None => raw.trim(),
+            };
+            if !cfg_entry.is_empty()
+                && grammar.grammar_tree.contains_key(cfg_entry)
+                && !entries.iter().any(|e| e == cfg_entry)
+            {
+                entries.push(cfg_entry.to_string());
+            }
+        }
+        let full_defined: std::collections::HashSet<String> =
+            unfiltered_grammar.grammar_tree.keys().cloned().collect();
+        let classification = classify_profile_residual(
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            &full_defined,
+            &entries,
+            grammar.annotations.as_ref(),
+            &report.unknown,
+        );
+        println!(
+            "  RESIDUAL-CLASSIFICATION (read-only; PGEN_CERT_RESIDUAL_CLASSIFICATION): profile='{}' entry_universe={:?} store_analysis={}",
+            profile.unwrap_or("<none>"),
+            classification.entries,
+            if classification.degraded_inert {
+                "DEGRADED-INERT (a live rule carries @import_from_library)"
+            } else {
+                "active"
+            },
+        );
+        println!(
+            "    profile_entry_unreachable ({}): {:?}",
+            classification.profile_entry_unreachable.len(),
+            classification.profile_entry_unreachable
+        );
+        let store: Vec<String> = classification
+            .store_unproducible
+            .iter()
+            .map(|(rule, why)| format!("{rule} [{why}]"))
+            .collect();
+        println!(
+            "    store_unproducible_under_profile ({}): {:?}",
+            store.len(),
+            store
+        );
+        println!(
+            "    genuine ({}): {:?}",
+            classification.genuine.len(),
+            classification.genuine
+        );
+    }
     if !canonical.proof_fails.is_empty() {
         println!(
             "  WARNING proof re-verify FAILURES (linter bugs to fix): {:?}",

@@ -1778,6 +1778,533 @@ where
     (covered, failures)
 }
 
+// ============================================================================================
+// VERILOG-2005-PROFILE.6.6 — per-profile residual classification (READ-ONLY; staged toward the
+// `.6.7` per-profile `proof` promotion).
+//
+// Under a dialect profile the cert-coverage residual contains rules that are UNKNOWN not because
+// anything is missing, but BECAUSE the profile excludes them — and today's whole-rule proofs
+// cannot say so: `apply_grammar_profile_filter` prunes only rules whose OWN `@profiles` tag
+// excludes the profile, so an untagged rule stranded by the pruning of every referencing rule
+// SURVIVES, and `reachable_rules`' unreferenced→secondary-root promotion then makes it its own
+// root (never "unreachable" → no proof → UNKNOWN). Two pure analyses close that gap:
+//
+//   P1 — profile-entry-universe unreachability. Over the ACTIVE (profile-filtered) tree, the
+//   positively-reachable set from the DECLARED ENTRY UNIVERSE (the cert entry + every
+//   `--cert-union-config` entry present in the active tree — NEVER the unreferenced-root
+//   heuristic, which is exactly what a stranded rule defeats), with SATISFIABILITY-HONEST edges:
+//   a reference site contributes an edge only if its enclosing derivation within the referencing
+//   rule is satisfiable over the active tree (Or = any alternative, Sequence = all elements,
+//   min-0 quantifier = skippable, lookahead = no positive edge, and — the `mandatory_node_gated`
+//   missing-rule half lifted to the proof layer — a reference to a rule PRUNED from the active
+//   tree is unsatisfiable, while a reference to a rule defined in NO tree stays external/⊤).
+//   A rule outside that set can never be positively entered by a parse from any declared entry.
+//
+//   P2 — profile-unproducible mandatory store-gate, a fixpoint composed with P1. Fact-kind K is
+//   producible iff SOME P1-live rule carries an `@emit_fact` of kind K; a live rule whose
+//   RULE-LEVEL `@predicate` REQUIRES a positive fact-query (`has_fact` / `fact_attribute_equals`
+//   / `fact_count_at_least` with a literal count ≥ 1 — NEVER `lacks_fact`/negations: an
+//   unsatisfiable NEGATIVE gate makes a rule always-live, not dead) on an unproducible K is dead.
+//   Deadness then CASCADES through the satisfiability composition itself (a mandatory reference
+//   to a dead rule makes the referencer unsatisfiable — the `mandatory_node_gated` algebra is the
+//   satisfiability algebra's dual), and a dead rule's emissions vanish, so the analysis iterates
+//   P1+P2 to a fixpoint; the mandatory-descent walk is used at CLASSIFICATION time to attribute
+//   each cascade casualty to its forcing rule. Sound-core boundaries: KIND-level only
+//   (attribute-level refinement deliberately out); branch-level predicates are ignored (a branch
+//   gate kills only its branch — flattening it rule-wide would falsely brand escape-carrying
+//   rules dead); and if ANY P1-live rule carries `@import_from_library` the store analysis is
+//   DEGRADED TO INERT (external artifacts can inject facts without an in-parse emitter, and the
+//   artifact contents are not statically known — so no `store_unproducible` claim is safe).
+//
+// Both analyses are PURE, deterministic, parser-agnostic, and independently re-derivable — the
+// `.6.7` certificate variants re-derive them from scratch. Design record: the `.6.5` Findings in
+// `docs/tasks/VERILOG-2005-PROFILE.md`.
+// ============================================================================================
+
+/// The read-only classification of a profile run's residual `UNKNOWN` set (printed by the cert
+/// report only under `PGEN_CERT_RESIDUAL_CLASSIFICATION=1`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProfileResidualClassification {
+    /// The declared entry universe the analysis quantified over.
+    pub entries: Vec<String>,
+    /// `true` iff some P1-live rule carries `@import_from_library` — P2 then makes NO
+    /// `store_unproducible` claims (P1 entry-unreachability is unaffected: reachability is
+    /// structural, facts cannot re-wire references).
+    pub degraded_inert: bool,
+    /// Residual rules NOT positively reachable from any declared entry (P1).
+    pub profile_entry_unreachable: Vec<String>,
+    /// Residual rules that are P1-live but dead under the store fixpoint (P2): `(rule, reason)`.
+    pub store_unproducible: Vec<(String, String)>,
+    /// Residual rules the analysis cannot prove dead — the honest remainder.
+    pub genuine: Vec<String>,
+}
+
+/// Is `node` satisfiable over the ACTIVE (profile-filtered) tree, given the current per-rule
+/// estimates (fixpoint) and the store-dead set? Same composition algebra as `node_satisfiable`,
+/// with the profile question already resolved by the filter: a reference to a rule missing from
+/// the active tree is PRUNED = ⊥ when the full (pre-filter) tree defines it, and external/include
+/// = ⊤ when nothing defines it (never false-accuse).
+fn node_satisfiable_active(
+    node: &ASTNode,
+    sat: &HashMap<String, bool>,
+    active: &HashMap<String, ASTNode>,
+    full_defined: &HashSet<String>,
+    dead: &HashSet<String>,
+) -> bool {
+    match node {
+        ASTNode::Or { alternatives } => alternatives
+            .iter()
+            .any(|a| node_satisfiable_active(a, sat, active, full_defined, dead)),
+        ASTNode::Sequence { elements } => elements
+            .iter()
+            .all(|e| node_satisfiable_active(e, sat, active, full_defined, dead)),
+        ASTNode::Quantified { element, quantifier } => {
+            let (min, _) = parse_quantifier_bounds(quantifier).unwrap_or((0, None));
+            min == 0 || node_satisfiable_active(element, sat, active, full_defined, dead)
+        }
+        ASTNode::Lookahead { .. } => true,
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => node_satisfiable_active(inner, sat, active, full_defined, dead),
+            ASTValue::Token(parts) => match referenced_rule(parts) {
+                Some(r) if !active.contains_key(r) => !full_defined.contains(r),
+                Some(r) => !dead.contains(r) && sat.get(r).copied().unwrap_or(false),
+                None => true,
+            },
+        },
+    }
+}
+
+/// The satisfiability fixpoint over the active tree (the `compute_sat_by_profile` shape, with the
+/// profile dimension already resolved by the filter and the store-dead set treated as ⊥).
+fn active_tree_satisfiability(
+    active: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    full_defined: &HashSet<String>,
+    dead: &HashSet<String>,
+) -> HashMap<String, bool> {
+    let mut sat: HashMap<String, bool> = HashMap::new();
+    loop {
+        let mut changed = false;
+        for rule in rule_order {
+            if dead.contains(rule) {
+                continue;
+            }
+            let Some(body) = active.get(rule) else { continue };
+            let value = node_satisfiable_active(body, &sat, active, full_defined, dead);
+            if sat.get(rule).copied().unwrap_or(false) != value {
+                sat.insert(rule.clone(), value);
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    sat
+}
+
+/// Collect the POSITIVE, SATISFIABLE-context rule-reference edges of `node`: a reference
+/// contributes only when some derivation of the enclosing structure can positively render it —
+/// an unsatisfiable Or-alternative contributes nothing, a Sequence with ANY unsatisfiable element
+/// contributes nothing (the whole sequence can never derive), a quantifier body contributes only
+/// if the body itself is satisfiable (rendering it at least once is the only way it emits), and a
+/// lookahead contributes nothing (an assertion renders no input). The edge target must itself be
+/// active, satisfiable, and not store-dead — an accepted parse can never contain a rule that
+/// cannot complete.
+fn collect_satisfiable_positive_edges(
+    node: &ASTNode,
+    sat: &HashMap<String, bool>,
+    active: &HashMap<String, ASTNode>,
+    full_defined: &HashSet<String>,
+    dead: &HashSet<String>,
+    out: &mut HashSet<String>,
+) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            for a in alternatives {
+                if node_satisfiable_active(a, sat, active, full_defined, dead) {
+                    collect_satisfiable_positive_edges(a, sat, active, full_defined, dead, out);
+                }
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            if elements
+                .iter()
+                .all(|e| node_satisfiable_active(e, sat, active, full_defined, dead))
+            {
+                for e in elements {
+                    collect_satisfiable_positive_edges(e, sat, active, full_defined, dead, out);
+                }
+            }
+        }
+        ASTNode::Quantified { element, .. } => {
+            if node_satisfiable_active(element, sat, active, full_defined, dead) {
+                collect_satisfiable_positive_edges(element, sat, active, full_defined, dead, out);
+            }
+        }
+        ASTNode::Lookahead { .. } => {}
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => {
+                collect_satisfiable_positive_edges(inner, sat, active, full_defined, dead, out)
+            }
+            ASTValue::Token(parts) => {
+                if let Some(r) = referenced_rule(parts) {
+                    if active.contains_key(r)
+                        && !dead.contains(r)
+                        && sat.get(r).copied().unwrap_or(false)
+                    {
+                        out.insert(r.to_string());
+                    }
+                }
+            }
+        },
+    }
+}
+
+/// P1: the set of rules POSITIVELY reachable from the DECLARED ENTRY UNIVERSE over the active
+/// (profile-filtered) tree with satisfiability-honest edges, with `dead` rules treated as removed
+/// (⊥ satisfiability, no edges in or out). Entries not present in the active tree (or themselves
+/// unsatisfiable/dead) seed nothing. PURE; deterministic (set membership only — callers order
+/// output by `rule_order`/input order).
+pub fn profile_entry_positively_live(
+    active: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    full_defined: &HashSet<String>,
+    entries: &[String],
+    dead: &HashSet<String>,
+) -> HashSet<String> {
+    let sat = active_tree_satisfiability(active, rule_order, full_defined, dead);
+    let mut live: HashSet<String> = HashSet::new();
+    let mut stack: Vec<String> = Vec::new();
+    for entry in entries {
+        if active.contains_key(entry)
+            && !dead.contains(entry)
+            && sat.get(entry).copied().unwrap_or(false)
+            && live.insert(entry.clone())
+        {
+            stack.push(entry.clone());
+        }
+    }
+    while let Some(rule) = stack.pop() {
+        let Some(body) = active.get(&rule) else { continue };
+        let mut edges = HashSet::new();
+        collect_satisfiable_positive_edges(body, &sat, active, full_defined, dead, &mut edges);
+        for r in edges {
+            if live.insert(r.clone()) {
+                stack.push(r);
+            }
+        }
+    }
+    live
+}
+
+/// Per-rule `@emit_fact` kinds across ALL annotation surfaces (rule-level, per-branch,
+/// mid-sequence) — the per-rule refinement of `collect_emitted_fact_kinds`, same complete
+/// enumeration. Counting a BRANCH emission toward its whole rule is deliberate and sound in P2's
+/// direction: it can only make MORE kinds producible (fewer deadness claims), never fewer.
+fn emitted_fact_kinds_by_rule(annotations: &Annotations) -> HashMap<String, HashSet<String>> {
+    let mut emitted: HashMap<String, HashSet<String>> = HashMap::new();
+    let visit = |rule: &str, ann: &SemanticAnnotation, out: &mut HashMap<String, HashSet<String>>| {
+        if let Ok(Some(SemanticRuntimeDirective::EmitFact(spec))) =
+            parse_semantic_runtime_directive(ann)
+        {
+            out.entry(rule.to_string()).or_default().insert(spec.kind);
+        }
+    };
+    for (rule, anns) in &annotations.semantic_annotations {
+        for ann in anns {
+            visit(rule, ann, &mut emitted);
+        }
+    }
+    for (rule, branches) in &annotations.branch_semantic_annotations {
+        for branch in branches {
+            for ann in branch {
+                visit(rule, ann, &mut emitted);
+            }
+        }
+    }
+    for (rule, branches) in &annotations.branch_mid_sequence_semantic_annotations {
+        for branch in branches {
+            for mid in branch {
+                visit(rule, &mid.annotation, &mut emitted);
+            }
+        }
+    }
+    emitted
+}
+
+/// The rules carrying an `@import_from_library` directive on ANY annotation surface — the P2
+/// degradation trigger (a live import can inject facts with no in-parse emitter).
+fn library_import_rules(annotations: &Annotations) -> HashSet<String> {
+    let mut rules: HashSet<String> = HashSet::new();
+    let visit = |rule: &str, ann: &SemanticAnnotation, out: &mut HashSet<String>| {
+        if let Ok(Some(SemanticRuntimeDirective::ImportFromLibrary(_))) =
+            parse_semantic_runtime_directive(ann)
+        {
+            out.insert(rule.to_string());
+        }
+    };
+    for (rule, anns) in &annotations.semantic_annotations {
+        for ann in anns {
+            visit(rule, ann, &mut rules);
+        }
+    }
+    for (rule, branches) in &annotations.branch_semantic_annotations {
+        for branch in branches {
+            for ann in branch {
+                visit(rule, ann, &mut rules);
+            }
+        }
+    }
+    for (rule, branches) in &annotations.branch_mid_sequence_semantic_annotations {
+        for branch in branches {
+            for mid in branch {
+                visit(rule, &mid.annotation, &mut rules);
+            }
+        }
+    }
+    rules
+}
+
+/// The fact-kind a primitive call REQUIRES to be positively present for the call to be true —
+/// `has_fact`/`fact_attribute_equals` always; `fact_count_at_least` only with a LITERAL count ≥ 1
+/// (a dynamic or zero count requires nothing). Everything else (incl. `lacks_fact` and the
+/// negative duals) requires nothing.
+fn positive_call_required_kind(call: &PrimitiveCall) -> Option<String> {
+    match call.name.as_str() {
+        "has_fact" | "fact_attribute_equals" => call.args.first().and_then(literal_fact_kind),
+        "fact_count_at_least" => match call.args.get(1) {
+            Some(PredicateValue::IntLit(n)) if *n >= 1 => {
+                call.args.first().and_then(literal_fact_kind)
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// The fact-kinds a predicate expression REQUIRES positively present for the WHOLE expression to
+/// be true — the sound propositional core: And = union, Or = INTERSECTION (a kind is required
+/// only if every disjunct requires it), Not/Compare/In = nothing (negation flips truth, and a
+/// comparison's semantics are not modelled — never false-accuse).
+fn required_positive_kinds_in_expr(expr: &PredicateExpr) -> std::collections::BTreeSet<String> {
+    match expr {
+        PredicateExpr::Call(call) => positive_call_required_kind(call).into_iter().collect(),
+        PredicateExpr::Not(_) => Default::default(),
+        PredicateExpr::And(a, b) => {
+            let mut out = required_positive_kinds_in_expr(a);
+            out.extend(required_positive_kinds_in_expr(b));
+            out
+        }
+        PredicateExpr::Or(a, b) => {
+            let a = required_positive_kinds_in_expr(a);
+            let b = required_positive_kinds_in_expr(b);
+            a.intersection(&b).cloned().collect()
+        }
+        PredicateExpr::Compare { .. } | PredicateExpr::In { .. } => Default::default(),
+    }
+}
+
+/// Per-rule REQUIRED positive gate kinds from RULE-LEVEL `@predicate`s only (every derivation of
+/// the rule must pass a rule-level predicate; a branch-level predicate kills only its branch, so
+/// counting it rule-wide would falsely brand an escape-carrying rule dead — deliberately
+/// excluded). Handles both the inline-expression form and the structured
+/// `{name: has_fact, args: [...]}` form, mirroring `consulted_kinds_in_predicate`.
+fn rule_level_required_positive_gate_kinds(
+    annotations: &Annotations,
+) -> HashMap<String, std::collections::BTreeSet<String>> {
+    let mut gates: HashMap<String, std::collections::BTreeSet<String>> = HashMap::new();
+    for (rule, anns) in &annotations.semantic_annotations {
+        for ann in anns {
+            let Ok(Some(SemanticRuntimeDirective::Predicate(spec))) =
+                parse_semantic_runtime_directive(ann)
+            else {
+                continue;
+            };
+            let mut kinds: std::collections::BTreeSet<String> = Default::default();
+            if let Ok(expr) = parse_predicate_expression(&spec.name) {
+                kinds.extend(required_positive_kinds_in_expr(&expr));
+            }
+            let scalar_arg = |v: &super::UnifiedSemanticValue| match v {
+                super::UnifiedSemanticValue::String(s)
+                | super::UnifiedSemanticValue::Identifier(s) => Some(s.clone()),
+                _ => None,
+            };
+            match spec.name.trim() {
+                "has_fact" | "fact_attribute_equals" => {
+                    kinds.extend(spec.args.first().and_then(scalar_arg));
+                }
+                "fact_count_at_least" => {
+                    let literal_min_one = matches!(
+                        spec.args.get(1),
+                        Some(super::UnifiedSemanticValue::Number(n))
+                            if n.trim().parse::<i64>().is_ok_and(|v| v >= 1)
+                    );
+                    if literal_min_one {
+                        kinds.extend(spec.args.first().and_then(scalar_arg));
+                    }
+                }
+                _ => {}
+            }
+            if !kinds.is_empty() {
+                gates.entry(rule.clone()).or_default().extend(kinds);
+            }
+        }
+    }
+    gates
+}
+
+/// Does a MANDATORY descent of `node` force a rule outside `live_now` (dead, pruned, or
+/// entry-unreachable — no derivation can render it)? The `mandatory_node_gated` algebra: Or is
+/// forced iff EVERY alternative is (any clean alternative is an escape), Sequence iff ANY element
+/// is, a min-0 quantifier never (skippable), a lookahead never (renders nothing). References to
+/// rules defined in NO tree are external/include — never forcing. Returns the first forcing
+/// referenced rule (deterministic: body walk order) for the reason string.
+fn mandatory_forces_non_live(
+    node: &ASTNode,
+    live_now: &HashSet<String>,
+    full_defined: &HashSet<String>,
+) -> Option<String> {
+    match node {
+        ASTNode::Or { alternatives } => {
+            let mut first: Option<String> = None;
+            for alt in alternatives {
+                match mandatory_forces_non_live(alt, live_now, full_defined) {
+                    Some(r) => {
+                        if first.is_none() {
+                            first = Some(r);
+                        }
+                    }
+                    None => return None,
+                }
+            }
+            first
+        }
+        ASTNode::Sequence { elements } => elements
+            .iter()
+            .find_map(|e| mandatory_forces_non_live(e, live_now, full_defined)),
+        ASTNode::Quantified { element, quantifier } => {
+            if parse_quantifier_bounds(quantifier).is_some_and(|(min, _)| min >= 1) {
+                mandatory_forces_non_live(element, live_now, full_defined)
+            } else {
+                None
+            }
+        }
+        ASTNode::Lookahead { .. } => None,
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => mandatory_forces_non_live(inner, live_now, full_defined),
+            ASTValue::Token(parts) => match referenced_rule(parts) {
+                Some(r) if full_defined.contains(r) && !live_now.contains(r) => Some(r.to_string()),
+                _ => None,
+            },
+        },
+    }
+}
+
+/// P2 composed with P1, then the classification of a residual `UNKNOWN` set. See the section
+/// comment above for the design + soundness boundaries. `active`/`rule_order` = the
+/// profile-filtered tree; `full_defined` = the PRE-filter rule names (so pruned vs external
+/// references are distinguished); `entries` = the declared entry universe; `unknown` = the cert
+/// report's residual (classified in its given order). PURE; deterministic.
+pub fn classify_profile_residual(
+    active: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    full_defined: &HashSet<String>,
+    entries: &[String],
+    annotations: Option<&Annotations>,
+    unknown: &[String],
+) -> ProfileResidualClassification {
+    let no_dead: HashSet<String> = HashSet::new();
+    let live0 = profile_entry_positively_live(active, rule_order, full_defined, entries, &no_dead);
+
+    let degraded_inert = annotations
+        .map(|ann| library_import_rules(ann).iter().any(|r| live0.contains(r)))
+        .unwrap_or(false);
+
+    // The composed P1+P2 fixpoint (skipped entirely when degraded or annotation-free — P2 then
+    // claims nothing and `live_final == live0`).
+    let mut dead_reason: std::collections::BTreeMap<String, String> = Default::default();
+    let mut live_final = live0.clone();
+    if !degraded_inert {
+        if let Some(annotations) = annotations {
+            let gate_kinds = rule_level_required_positive_gate_kinds(annotations);
+            let emitted_by_rule = emitted_fact_kinds_by_rule(annotations);
+            if !gate_kinds.is_empty() {
+                loop {
+                    let dead_set: HashSet<String> = dead_reason.keys().cloned().collect();
+                    let live_now = profile_entry_positively_live(
+                        active,
+                        rule_order,
+                        full_defined,
+                        entries,
+                        &dead_set,
+                    );
+                    let producible: HashSet<&String> = live_now
+                        .iter()
+                        .filter_map(|r| emitted_by_rule.get(r))
+                        .flatten()
+                        .collect();
+                    // Only the DIRECT gate check is needed here: a rule whose mandatory descent
+                    // forces a dead rule is unsatisfiable once the dead rule is ⊥, so the next
+                    // live recomputation drops it (and everything reachable only through it)
+                    // automatically — the satisfiability composition IS the mandatory algebra's
+                    // dual. The mandatory-descent walk is used for ATTRIBUTION at classification
+                    // time (naming the forcing rule), never as a second deadness mechanism.
+                    let mut changed = false;
+                    for rule in rule_order {
+                        if !live_now.contains(rule) || dead_reason.contains_key(rule) {
+                            continue;
+                        }
+                        if let Some(kind) = gate_kinds
+                            .get(rule)
+                            .and_then(|ks| ks.iter().find(|k| !producible.contains(k)))
+                        {
+                            dead_reason
+                                .insert(rule.clone(), format!("gate kind '{kind}' unproducible"));
+                            changed = true;
+                        }
+                    }
+                    if !changed {
+                        live_final = live_now;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut profile_entry_unreachable = Vec::new();
+    let mut store_unproducible = Vec::new();
+    let mut genuine = Vec::new();
+    for rule in unknown {
+        if !live0.contains(rule) {
+            profile_entry_unreachable.push(rule.clone());
+        } else if let Some(reason) = dead_reason.get(rule) {
+            store_unproducible.push((rule.clone(), reason.clone()));
+        } else if !live_final.contains(rule) {
+            // Dead by the store fixpoint's cascade — attribute the mechanism: name the mandatory
+            // reference that forces a non-live rule when there is one (the
+            // `known_unscoped_block_type_identifier := checked_type_identifier …` shape), else the
+            // rule lost its only reach path through a dead carrier (stranded).
+            let reason = active
+                .get(rule)
+                .and_then(|body| mandatory_forces_non_live(body, &live_final, full_defined))
+                .map(|via| format!("mandatory descent forces '{via}'"))
+                .unwrap_or_else(|| "stranded by the store fixpoint".to_string());
+            store_unproducible.push((rule.clone(), reason));
+        } else {
+            genuine.push(rule.clone());
+        }
+    }
+    ProfileResidualClassification {
+        entries: entries.to_vec(),
+        degraded_inert,
+        profile_entry_unreachable,
+        store_unproducible,
+        genuine,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2761,5 +3288,310 @@ mod tests {
         let issues = detect_ordered_choice_shadowing(&g, &order);
         assert_eq!(issues.len(), 1);
         assert_eq!(issues[0].node_path, "root/s1", "path must locate the nested Or");
+    }
+
+    // ---- VERILOG-2005-PROFILE.6.6: per-profile residual classification (P1 + P2) ----
+
+    /// The pre-filter rule universe for the P1/P2 tests: the ACTIVE tree's rules plus the rules
+    /// the "profile" pruned (so pruned references read as unsatisfiable, not external).
+    fn full_with(active: &HashMap<String, ASTNode>, pruned: &[&str]) -> HashSet<String> {
+        let mut full: HashSet<String> = active.keys().cloned().collect();
+        full.extend(pruned.iter().map(|s| s.to_string()));
+        full
+    }
+
+    #[test]
+    fn p1_stranded_rule_is_not_live_and_second_entry_rescues_its_cohort() {
+        // ACTIVE tree (post profile filter): the filter pruned `host` (the only referencer of
+        // `stranded`), so `stranded` survives UNREFERENCED — the exact shape the
+        // unreferenced→secondary-root heuristic mis-promotes. P1 must NOT treat it as a root.
+        // `lib_root` is a second DECLARED entry whose cohort must stay live.
+        let mut g = HashMap::new();
+        g.insert("entry".into(), rule_ref("a"));
+        g.insert("a".into(), token("string", "x"));
+        g.insert("stranded".into(), token("string", "y"));
+        g.insert("lib_root".into(), rule_ref("lib_item"));
+        g.insert("lib_item".into(), token("string", "z"));
+        let order: Vec<String> =
+            vec!["entry".into(), "a".into(), "stranded".into(), "lib_root".into(), "lib_item".into()];
+        let full = full_with(&g, &["host"]);
+        let no_dead = HashSet::new();
+
+        // Single-entry universe: the stranded rule AND the other entry's cohort are not live.
+        let live = profile_entry_positively_live(&g, &order, &full, &["entry".into()], &no_dead);
+        assert!(live.contains("entry") && live.contains("a"));
+        assert!(!live.contains("stranded"), "an unreferenced stranded rule must NOT self-root");
+        assert!(!live.contains("lib_item"), "another entry's cohort is not live under one entry");
+
+        // Declaring the second entry rescues exactly its cohort — never the stranded rule.
+        let live2 = profile_entry_positively_live(
+            &g,
+            &order,
+            &full,
+            &["entry".into(), "lib_root".into()],
+            &no_dead,
+        );
+        assert!(live2.contains("lib_root") && live2.contains("lib_item"));
+        assert!(!live2.contains("stranded"));
+    }
+
+    #[test]
+    fn p1_edges_are_satisfiability_honest_and_lookaheads_emit_none() {
+        // entry := ( pruned_ref target ) | b        — alternative 1 mandatorily crosses a PRUNED
+        // rule, so `target` gets NO edge from it (class B: a spurious reach path through a gated
+        // mandatory sibling). guard := !target b     — a lookahead reference is no positive edge.
+        let mut g = HashMap::new();
+        g.insert(
+            "entry".into(),
+            or(vec![seq(vec![rule_ref("pruned"), rule_ref("target")]), rule_ref("b")]),
+        );
+        g.insert("target".into(), token("string", "t"));
+        g.insert("b".into(), seq(vec![look(rule_ref("target"), false), token("string", "b")]));
+        let order: Vec<String> = vec!["entry".into(), "target".into(), "b".into()];
+        let full = full_with(&g, &["pruned"]);
+        let live =
+            profile_entry_positively_live(&g, &order, &full, &["entry".into()], &HashSet::new());
+        assert!(live.contains("b"), "the satisfiable alternative stays live");
+        assert!(
+            !live.contains("target"),
+            "no positive edge through an unsatisfiable alternative or a lookahead"
+        );
+    }
+
+    #[test]
+    fn p2_unproducible_gate_and_cascade_are_classified_and_escapes_stay_genuine() {
+        // The v2005 class-A shape in miniature:
+        //   entry     := use_site | cascade | escape | negative | plain
+        //   producer  := "decl"        @emit_fact(type_name)   — but its ONLY referencer is
+        //                                                        PRUNED, so it is NOT live
+        //   use_site  := "id"          @predicate has_fact(type_name, x)   → gate-dead
+        //   cascade   := use_site "!"                                       → dead via use_site
+        //   escape    := use_site | "ok"                                    → has an escape: live
+        //   negative  := "id2"         @predicate lacks_fact(type_name, x)  → negative gate: live
+        let mut g = HashMap::new();
+        g.insert(
+            "entry".into(),
+            or(vec![
+                rule_ref("use_site"),
+                rule_ref("cascade"),
+                rule_ref("escape"),
+                rule_ref("negative"),
+                rule_ref("plain"),
+            ]),
+        );
+        g.insert("producer".into(), token("string", "decl"));
+        g.insert("use_site".into(), token("string", "id"));
+        g.insert("cascade".into(), seq(vec![rule_ref("use_site"), token("string", "!")]));
+        g.insert("escape".into(), or(vec![rule_ref("use_site"), token("string", "ok")]));
+        g.insert("negative".into(), token("string", "id2"));
+        g.insert("plain".into(), token("string", "p"));
+        let order: Vec<String> = vec![
+            "entry".into(),
+            "producer".into(),
+            "use_site".into(),
+            "cascade".into(),
+            "escape".into(),
+            "negative".into(),
+            "plain".into(),
+        ];
+        let full = full_with(&g, &["pruned_host"]);
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("producer".into(), vec![emit_fact_ann("type_name")]);
+        ann.semantic_annotations
+            .insert("use_site".into(), vec![predicate_ann("has_fact(type_name, x)")]);
+        ann.semantic_annotations
+            .insert("negative".into(), vec![predicate_ann("lacks_fact(type_name, x)")]);
+        let unknown: Vec<String> = vec![
+            "producer".into(),
+            "use_site".into(),
+            "cascade".into(),
+            "escape".into(),
+            "negative".into(),
+            "plain".into(),
+        ];
+        let c = classify_profile_residual(
+            &g,
+            &order,
+            &full,
+            &["entry".into()],
+            Some(&ann),
+            &unknown,
+        );
+        assert!(!c.degraded_inert);
+        // The producer is entry-unreachable (its referencer was pruned) — class (i).
+        assert_eq!(c.profile_entry_unreachable, vec!["producer".to_string()]);
+        // The use-site's kind has no LIVE emitter → gate-dead; the cascade follows — class (ii).
+        assert_eq!(
+            c.store_unproducible,
+            vec![
+                ("use_site".to_string(), "gate kind 'type_name' unproducible".to_string()),
+                ("cascade".to_string(), "mandatory descent forces 'use_site'".to_string()),
+            ]
+        );
+        // The escape-carrying rule, the negative-gated rule, and the plain rule stay honest.
+        assert_eq!(
+            c.genuine,
+            vec!["escape".to_string(), "negative".to_string(), "plain".to_string()]
+        );
+    }
+
+    #[test]
+    fn p2_live_emitter_keeps_gate_satisfiable_and_import_degrades_inert() {
+        // (a) With the producer LIVE (referenced from the entry), the same gate is satisfiable —
+        // the gated rule is genuine. (b) With `@import_from_library` on a live rule, P2 makes NO
+        // store claims at all (degraded inert), while P1 still classifies entry-unreachability.
+        let mut g = HashMap::new();
+        g.insert("entry".into(), or(vec![rule_ref("producer"), rule_ref("use_site")]));
+        g.insert("producer".into(), token("string", "decl"));
+        g.insert("use_site".into(), token("string", "id"));
+        g.insert("stranded".into(), token("string", "s"));
+        let order: Vec<String> =
+            vec!["entry".into(), "producer".into(), "use_site".into(), "stranded".into()];
+        let full = full_with(&g, &["pruned_host"]);
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("producer".into(), vec![emit_fact_ann("type_name")]);
+        ann.semantic_annotations
+            .insert("use_site".into(), vec![predicate_ann("has_fact(type_name, x)")]);
+        let unknown: Vec<String> = vec!["use_site".into(), "stranded".into()];
+        let c = classify_profile_residual(
+            &g,
+            &order,
+            &full,
+            &["entry".into()],
+            Some(&ann),
+            &unknown,
+        );
+        assert!(!c.degraded_inert);
+        assert!(c.store_unproducible.is_empty(), "a live emitter satisfies the gate: {c:?}");
+        assert_eq!(c.genuine, vec!["use_site".to_string()]);
+        assert_eq!(c.profile_entry_unreachable, vec!["stranded".to_string()]);
+
+        // (b) the degradation trigger: an @import_from_library on a LIVE rule. Rebuild with the
+        // producer NOT live (so the gate WOULD be dead) — the import must suppress the claim.
+        let mut g2 = g.clone();
+        g2.insert("entry".into(), rule_ref("use_site"));
+        let mut ann2 = Annotations::default();
+        ann2.semantic_annotations.insert("producer".into(), vec![emit_fact_ann("type_name")]);
+        ann2.semantic_annotations.insert(
+            "use_site".into(),
+            vec![
+                predicate_ann("has_fact(type_name, x)"),
+                sem_named(
+                    "import_from_library",
+                    crate::ast_pipeline::UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".into(),
+                            value: crate::ast_pipeline::UnifiedSemanticValue::Identifier(
+                                "package".into(),
+                            ),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name_from".into(),
+                            value: crate::ast_pipeline::UnifiedSemanticValue::RuleReference(
+                                "$1".into(),
+                            ),
+                        },
+                    ]),
+                ),
+            ],
+        );
+        let unknown2: Vec<String> = vec!["use_site".into()];
+        let c2 = classify_profile_residual(
+            &g2,
+            &order,
+            &full,
+            &["entry".into()],
+            Some(&ann2),
+            &unknown2,
+        );
+        assert!(c2.degraded_inert, "a live @import_from_library must degrade P2 to inert");
+        assert!(c2.store_unproducible.is_empty(), "no store claim under degradation: {c2:?}");
+        assert_eq!(c2.genuine, vec!["use_site".to_string()]);
+    }
+
+    #[test]
+    fn p2_or_required_kinds_intersect_and_count_gate_needs_literal_min_one() {
+        // (a) `has_fact(a, x) || has_fact(b, x)` REQUIRES neither kind alone (intersection) —
+        // with only `a` unproducible the rule stays live. (b) `fact_count_at_least` gates only
+        // with a literal count ≥ 1: a dynamic count claims nothing.
+        let mut g = HashMap::new();
+        g.insert("entry".into(), or(vec![rule_ref("either"), rule_ref("counted"), rule_ref("emit_b")]));
+        g.insert("either".into(), token("string", "e"));
+        g.insert("counted".into(), token("string", "c"));
+        g.insert("emit_b".into(), token("string", "b"));
+        let order: Vec<String> =
+            vec!["entry".into(), "either".into(), "counted".into(), "emit_b".into()];
+        let full = full_with(&g, &[]);
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("emit_b".into(), vec![emit_fact_ann("b")]);
+        ann.semantic_annotations
+            .insert("either".into(), vec![predicate_ann("has_fact(a, x) || has_fact(b, x)")]);
+        ann.semantic_annotations
+            .insert("counted".into(), vec![predicate_ann("fact_count_at_least(a, $n)")]);
+        let unknown: Vec<String> = vec!["either".into(), "counted".into()];
+        let c = classify_profile_residual(
+            &g,
+            &order,
+            &full,
+            &["entry".into()],
+            Some(&ann),
+            &unknown,
+        );
+        assert!(
+            c.store_unproducible.is_empty(),
+            "an Or-escape kind and a dynamic count must claim nothing: {c:?}"
+        );
+        assert_eq!(c.genuine, vec!["either".to_string(), "counted".to_string()]);
+
+        // The AND form DOES require the unproducible kind — the claim fires.
+        let mut ann2 = Annotations::default();
+        ann2.semantic_annotations.insert("emit_b".into(), vec![emit_fact_ann("b")]);
+        ann2.semantic_annotations
+            .insert("either".into(), vec![predicate_ann("has_fact(a, x) && has_fact(b, x)")]);
+        let unknown2: Vec<String> = vec!["either".into()];
+        let c2 = classify_profile_residual(
+            &g,
+            &order,
+            &full,
+            &["entry".into()],
+            Some(&ann2),
+            &unknown2,
+        );
+        assert_eq!(
+            c2.store_unproducible,
+            vec![("either".to_string(), "gate kind 'a' unproducible".to_string())]
+        );
+    }
+
+    #[test]
+    fn p2_stranding_through_a_store_dead_rule_is_reported() {
+        // `inner` is reachable ONLY through the gate-dead `use_site` — the fixpoint removes the
+        // dead rule's edges, so `inner` leaves the live set and is reported as stranded.
+        let mut g = HashMap::new();
+        g.insert("entry".into(), rule_ref("use_site"));
+        g.insert("use_site".into(), rule_ref("inner"));
+        g.insert("inner".into(), token("string", "i"));
+        let order: Vec<String> = vec!["entry".into(), "use_site".into(), "inner".into()];
+        let full = full_with(&g, &[]);
+        let mut ann = Annotations::default();
+        ann.semantic_annotations
+            .insert("use_site".into(), vec![predicate_ann("has_fact(type_name, x)")]);
+        let unknown: Vec<String> = vec!["use_site".into(), "inner".into()];
+        let c = classify_profile_residual(
+            &g,
+            &order,
+            &full,
+            &["entry".into()],
+            Some(&ann),
+            &unknown,
+        );
+        assert_eq!(
+            c.store_unproducible,
+            vec![
+                ("use_site".to_string(), "gate kind 'type_name' unproducible".to_string()),
+                ("inner".to_string(), "stranded by the store fixpoint".to_string()),
+            ]
+        );
+        assert!(c.genuine.is_empty());
     }
 }
