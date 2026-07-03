@@ -1,4 +1,11 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-03 - PGEN-VERILOG-2005-PROFILE-0020 — gating the `void` surface: two facts worth recording
+
+Session #27. The `.6.8` fix is a textbook `_sv_only` lift, but two things the measurement surfaced are worth recording:
+
+- **The two void surfaces are ONE concern but TWO carriers.** The ledger's `SV-0032` repro was the function-return-type void (`function void f;`), but `grep kw_void grammars/systemverilog.ebnf` found a second live leak — the `void'(…)` cast in `subroutine_call_statement` (`:5174`). Because `void` is categorically absent from IEEE 1364-2005, a complete fix must gate BOTH; gating only the return slot would have left `initial void'(f());` accepting under the strict profile. **The blast-radius grep, not the ledger repro, defines the fix boundary** — a reminder to enumerate every carrier of a leaked token before declaring a subtractive-profile fix complete.
+- **The v2005 hard pins did not move — because the leaked rules were never witnessed.** Gating `void` out dropped no v2005 witnesses: `kw_void`/`data_type_or_void` were already in the UNKNOWN residual (classified `genuine` by `.6.6` precisely because they parse in-profile but weren't *reached by a generated witness*), so removing them just reclassified `kw_void_e9cede9b` from UNKNOWN-genuine → UNKNOWN-NO-reach (a stranded untagged rule once its only referencers — the two new gated lifts — left the profile). Total/proof/witness/UNKNOWN stayed byte-identical (`1147/4/816/327`); only NO-reach moved (295→296). The only moving pins are canonical/union (+2 witnessed sv_only rules under sv_2017). **A leak fix that leaves the strict-profile cert headline invariant is the expected signature when the leaked construct was never a witness in the first place** — contrast `SV-0025`/`SV-0026`, where the leaked surface *had* earned false witnesses and the fix visibly dropped them (`817/319`→`809/327`).
+
 ## 2026-07-03 - PGEN-VERILOG-2005-PROFILE-0019 — implementing the residual classification: three facts the landing surfaced
 
 Session #26. The `.6.6` implementation followed the `.6.5` design almost verbatim; the three things the design could not know are worth recording:

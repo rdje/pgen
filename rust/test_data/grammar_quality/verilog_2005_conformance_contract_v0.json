@@ -42,7 +42,7 @@
     "expected_unknown": 327,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
-    "baseline_note": "BASELINE pins, not a closure claim: under the strict subset profile the gated SV-only surface is profile-unreachable (the cert run itself classifies 295 of the 327 UNKNOWN as NO-reach-path dead-rule candidates under verilog_2005) — the expected posture per the tree's .1 D4 closure bar. Re-pinned 826/310 -> 817/319 at VERILOG-2005-PROFILE.6.2 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0012), then 817/319 -> 809/327 at VERILOG-2005-PROFILE.6.3, then 1138/809/327 -> 1147/819/326 at SV-DOLLAR-LRM-FIDELITY.3 (2026-07-02, PGEN-SV-DOLLAR-LRM-FIDELITY-0003: the SV-0030 digit/eq-branch restoration adds 9 profile-agnostic rules — 8 digit tokens + 3 compare-lhs rules minus the 2 removed digit-less tokens — all witnessed, and scalar_constant itself leaves the UNKNOWN residual, set-diff-proven as the ONLY residual change with the 294-rule NO-reach list set-identical; the .6.4-adjudicated class-D witness now genuinely earned), then 1147/2/819/326 -> 1147/4/816/327 at SV-DOLLAR-LRM-FIDELITY.4 (2026-07-03, PGEN-SV-DOLLAR-LRM-FIDELITY-0004: the SV-0029 wave-3 anchor restoration — the $root/$unit tokens upgrade witness -> PROOF under the strict profile and the bare-$ token joins the NO-reach set by design, 294 -> 295) (VERILOG-2005-PROFILE.6.3 provenance: the SV-0026 $unit-surface gates made the top-level SV-only unit items profile-unreachable, dropping the witnesses previously earned through that leak; NO-reach 287 -> 294 - same honest direction as the .6.2 re-pin). Earlier .6.2 provenance: the SV-0025/SV-0027 leak fixes removed the 9 FALSE witnesses that had been earned through the leaked SV-only surface (time_literal, time_unit, unbased_unsized_literal, and the 6 time-unit keyword tokens) — witness dropping on a leak fix is the honest direction, and kw_n_1step itself moved from reachable-through-the-leak to NO-reach. Ratcheting the genuine remainder is its own follow-up work; drift in EITHER direction fails this gate and requires a re-baselined contract in the same commit."
+    "baseline_note": "BASELINE pins, not a closure claim: under the strict subset profile the gated SV-only surface is profile-unreachable (the cert run itself classifies 296 of the 327 UNKNOWN as NO-reach-path dead-rule candidates under verilog_2005) — the expected posture per the tree's .1 D4 closure bar. Re-pinned 826/310 -> 817/319 at VERILOG-2005-PROFILE.6.2 (2026-07-02, PGEN-VERILOG-2005-PROFILE-0012), then 817/319 -> 809/327 at VERILOG-2005-PROFILE.6.3, then 1138/809/327 -> 1147/819/326 at SV-DOLLAR-LRM-FIDELITY.3 (2026-07-02, PGEN-SV-DOLLAR-LRM-FIDELITY-0003: the SV-0030 digit/eq-branch restoration adds 9 profile-agnostic rules — 8 digit tokens + 3 compare-lhs rules minus the 2 removed digit-less tokens — all witnessed, and scalar_constant itself leaves the UNKNOWN residual, set-diff-proven as the ONLY residual change with the 294-rule NO-reach list set-identical; the .6.4-adjudicated class-D witness now genuinely earned), then 1147/2/819/326 -> 1147/4/816/327 at SV-DOLLAR-LRM-FIDELITY.4 (2026-07-03, PGEN-SV-DOLLAR-LRM-FIDELITY-0004: the SV-0029 wave-3 anchor restoration — the $root/$unit tokens upgrade witness -> PROOF under the strict profile and the bare-$ token joins the NO-reach set by design, 294 -> 295) (VERILOG-2005-PROFILE.6.3 provenance: the SV-0026 $unit-surface gates made the top-level SV-only unit items profile-unreachable, dropping the witnesses previously earned through that leak; NO-reach 287 -> 294 - same honest direction as the .6.2 re-pin). Earlier .6.2 provenance: the SV-0025/SV-0027 leak fixes removed the 9 FALSE witnesses that had been earned through the leaked SV-only surface (time_literal, time_unit, unbased_unsized_literal, and the 6 time-unit keyword tokens) — witness dropping on a leak fix is the honest direction, and kw_n_1step itself moved from reachable-through-the-leak to NO-reach. Then at VERILOG-2005-PROFILE.6.8 (2026-07-03, PGEN-VERILOG-2005-PROFILE-0020: the SV-0032 void-surface gates) the hard pins stayed 1147/4/816/327 byte-identical — kw_void_e9cede9b simply moved from UNKNOWN-genuine (it had parsed in-profile via the leak) to a NO-reach dead-rule candidate once its only referencers (the new profile-gated data_type_or_void_sv_only / void_cast_statement_sv_only lifts) left the verilog_2005 tree, so NO-reach 295 -> 296 with total/proof/witness/UNKNOWN unchanged; the 2 new sv_only rules are witnessed under sv_2017 (canonical union re-pinned 1341->1343 in the same commit). Ratcheting the genuine remainder is its own follow-up work; drift in EITHER direction fails this gate and requires a re-baselined contract in the same commit."
   },
   "cases": [
     {
@@ -583,6 +583,24 @@
         "sv_2023": "accept"
       },
       "note": "IEEE 1800 A.8.4 bare-`$` primary (`x = $;`) — SystemVerilog-only (1364-2005 A.8.4 has no `$` primary; semantic queue-bound restriction stays out of parser scope). SV-0029 wave-3 lock: accepts under the SV profiles via the profile-gated `primary_dollar_sv_only` lift; rejects under verilog_2005."
+    },
+    {
+      "file": "reject/function_void.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0032: void function return type is IEEE 1800 only (1364-2005 has no void return type); gated at VERILOG-2005-PROFILE.6.8."
+    },
+    {
+      "file": "reject/void_cast.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0032: the void'(...) cast is IEEE 1800 only; gated at VERILOG-2005-PROFILE.6.8."
     }
   ]
 }

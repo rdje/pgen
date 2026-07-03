@@ -379,6 +379,56 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
 - [x] **NO REGRESSION** — canonical cert `1326/2/1304/UNKNOWN=20 spf=0` byte-identical (headline + full 20-rule residual + NO-reach lists, md5-compared) at seeds 0/7/42; `sv_cert_recognized_union_gate` GREEN fresh (canonical 20 / union 1 / witness 1323 / residual `context_member_method_call`, seeds 0/7/42, `unmet_criteria_count: 0`); `verilog_2005_conformance_gate` GREEN fresh (orphans=0, 150/150, aliases 2, cert `1138/2/817/319` seeds 0/7/42); `ast_shape_contract_gate` 18/18; clippy source strict-clean (generated-stage 182 errors = pre-existing tolerated debt, all in `generated/systemverilog_parser.rs`); fully-certified certs seed 0: json `9/0`, regex `198/0`, vhdl `216/0`, svpp `74/0`, rtl_frontend `169/proof=1/0`; rtl_const_expr canonical-cert timeout A/B-proven PRE-EXISTING (git-stash control: identical `TargetTimeout conditional_expr root/o1 budget=4000ms` on the pre-change binary) → spun off `CERT-GEN-BUDGET.3`, not caused here.
 - [x] **LOCKSTEP** — book `docs/book/src/grammar-wellformedness.md` (new prelude-integrity increment in the semantic-prelude ladder; `mdbook_docs_gate` ✅); `CERT-GEN-BUDGET.md` reopened with `.3`; this tree + `docs/TASK_TREE.md`; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE. No contract/ledger/schema/release change (generator-internal; parser byte-untouched).
 
+## Acceptance Checklist (`.6.8`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — pre-fix parse-probe on HEAD release binary: `module m; function
+  void f; input a; f = a; endfunction endmodule` **ACCEPTS under `--profile verilog_2005`**
+  (`parse_full passed`), and the `void'(…)` cast `module m; initial void'(f()); endmodule`
+  **ACCEPTS under `verilog_2005`** too; both also ACCEPT under `sv_2017` (legal IEEE 1800).
+  IEEE 1364-2005 §10.4 function return types are `[signed][range]`/`integer`/`real`/`realtime`/
+  `time` — no `void`; the token `void` appears nowhere in 1364-2005 Annex A.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grep -n kw_void grammars/systemverilog.ebnf` names exactly
+  two ungated `kw_void_e9cede9b` surfaces: `data_type_or_void := … | kw_void_e9cede9b ->
+  {kind:"void"}` (`:1838`, the return-type/member slot, reachable under `verilog_2005` via
+  `function_data_type_or_implicit`/function prototypes/`struct_union_member`) and
+  `subroutine_call_statement := … | kw_void_e9cede9b tick lparen function_subroutine_call rparen
+  semi -> {kind:"void_cast"}` (`:5174`). Both rules are UNTAGGED (universal) → survived the
+  `verilog_2005` profile filter and rode into the baseline un-audited (the `.2`/`.4.1`
+  baseline-admission family: statically satisfiable, off-dialect, invisible to the
+  orphan-coherence lint). AST-dump confirms the accepting path
+  `… → function_declaration (sv_2017 variant, v2005-admitted) → data_type_or_void (void)`.
+- [x] **FIX** — declarative, grammar-only (fix-hierarchy tier: grammar; no engine change): two
+  shape-preserving `_sv_only` lifts per the `.6.3`/`.4.2` idiom —
+  `data_type_or_void_sv_only := kw_void_e9cede9b -> {kind:"void"}` (`grammars/systemverilog.ebnf`,
+  above `data_type_or_void`) and `void_cast_statement_sv_only := kw_void_e9cede9b tick lparen
+  function_subroutine_call rparen semi -> {kind:"void_cast", body: $4}` (above
+  `subroutine_call_statement`), both `@profiles: ["sv_2017","sv_2023"]`, referenced as bare
+  pass-through alternatives (PEG order preserved). Emitted source carries the profile guard
+  (`parse_data_type_or_void_sv_only` / `parse_void_cast_statement_sv_only` in
+  `generated/systemverilog_parser.rs`).
+- [x] **ADDRESSED (verified)** — both probes flip ACCEPT→**REJECT** under `verilog_2005` on the
+  regenerated release binary (`function void f; …` and `initial void'(f());`); both still ACCEPT
+  under `sv_2017`/`sv_2023`; the sv_2017 AST is byte-identical — `{kind:"void"}` and
+  `{kind:"void_cast"}` present, **zero** `data_type_or_void_sv_only`/`void_cast_statement_sv_only`
+  wrapper keys in the dumped JSON (bare-ref passthrough is transparent, no extra nesting); the 2
+  new corpus reject-locks (`function_void.sv`, `void_cast.sv`) hold in the 198-check matrix.
+- [x] **NO REGRESSION** — `verilog_2005_conformance_gate` **GREEN** (lint orphans=0, corpus 198
+  checks / 0 mismatches, aliases 2, cert `1147/4/816/327` deterministic seeds 0/7/42 — hard pins
+  byte-identical; `kw_void_e9cede9b` moved UNKNOWN-genuine → NO-reach, NO-reach 295→296);
+  `sv_cert_recognized_union_gate` **GREEN** (canonical `1343/2/1321/UNKNOWN=20`, union
+  `1343/2/1340/UNKNOWN=1`, residual `context_member_method_call`, seeds 0/7/42 — the 2 new sv_only
+  rules witnessed under sv_2017, +2 total/witness, UNKNOWN invariants unchanged); `--lint-grammar`
+  0 `verilog_2005` orphans (census 1463→1465, no new shadowing/non-terminating/unreachable); the 6
+  fully-certified grammars byte-identical (SV-only regen; json `9/0` + regex `198/0` spot-checked
+  `fully_certified=true`); `ast_shape_contract` GREEN; clippy source strict-clean.
+- [x] **LOCKSTEP** — ledger `SV-0032` → `Released` (fix record + `1.0.161` no-bump); book
+  `parser-families.md` (void rejects in worked examples + matrix 66/198 + NO-reach 296 +
+  `.6.6`-surfaced-leaks note, `SV-0032` FIXED / `SV-0031`/`SV-0033` open; mdbook gate ✅); both
+  cert contract JSONs re-pinned with provenance (union pins `1341→1343`; conformance
+  `baseline_note` 295→296 + `.6.8` hop); LIVE dialect block (waiver set now FOUR); tree +
+  `docs/TASK_TREE.md` frontier; CHANGES / DEVELOPMENT_NOTES / MEMORY. Release/schema unchanged
+  (`1.0.161`/15 — SV profiles AST-byte-invariant).
+
 ## Acceptance Checklist (`.6.2`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — pre-fix parse-probe matrix on HEAD binaries: `wire #1step w;`,
@@ -629,6 +679,32 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     first decide the gate-side entry-universe wiring (add union configs to the gate command, or
     plumb a dedicated entry-universe flag) — otherwise P1 under the gate's single-entry universe
     would prove the entry-relative library cohort dead, exactly what `.6.5` forbids.
+  - ID: `VERILOG-2005-PROFILE.6.8` — Status: `done` (2026-07-03, session #27,
+    `PGEN-VERILOG-2005-PROFILE-0020`, CODE leaf, grammar-only): **closed the `SV-0032`
+    `verilog_2005`-only boundary leak — the SV-only `void` surface.** `void` is categorically absent from IEEE 1364-2005 (§10.4 lists function return
+    types `[signed][range]`/`integer`/`real`/`realtime`/`time`; the token `void` appears nowhere
+    in 1364-2005 Annex A), so EVERY `void` construct must REJECT under the strict profile. The
+    `.6.6` machine classification's `genuine` verdict on `data_type_or_void`/`kw_void`, probed
+    tools-first, exposed this leak (ledger `SV-0032`). Two ungated `kw_void_e9cede9b` surfaces
+    rode into the `verilog_2005` baseline un-audited (the same `.2`/`.4.1` baseline-admission
+    family as `SV-0026`/`SV-0031`, statically satisfiable but off-dialect → invisible to the
+    orphan-coherence lint):
+      1. `data_type_or_void`'s void return-type/member slot (`grammars/systemverilog.ebnf:1838`,
+         `kw_void_e9cede9b -> {kind: "void"}`) — reachable under `verilog_2005` via
+         `function_data_type_or_implicit` / function prototypes / `struct_union_member`.
+      2. `subroutine_call_statement`'s `void'(…)` cast branch (`:5174`,
+         `kw_void_e9cede9b tick lparen function_subroutine_call rparen semi -> {kind: "void_cast"}`).
+    FIX (declarative, shape-preserving `_sv_only` lift idiom, cf. `.6.3` / `.4.2`): lift each void
+    branch into a `@profiles: ["sv_2017","sv_2023"]`-gated named rule referenced bare (AST
+    passthrough) — `data_type_or_void_sv_only` and `void_cast_statement_sv_only`. Under
+    `sv_2017`/`sv_2023` the AST is byte-identical (bare-ref passthrough, `--parse-dump-ast`
+    diff-proven); under `verilog_2005` the gated rules are pruned → `void` rejects. Corpus:
+    `reject/function_void.v` + `reject/void_cast.v` (v2005 REJECT / sv_2017+sv_2023 ACCEPT).
+    Re-pin surface (measured post-regen): the v2005 conformance cert pins + the
+    `sv_cert_recognized_union_gate` canonical/union pins (the 2 new sv_only rules must earn a
+    witness under `sv_2017`, else new UNKNOWN). Runs `--lint-grammar` (v2005 orphan count
+    NON-INCREASING per the `.4.3` standing sub-rule). Ledger `SV-0032` → `Released`. See
+    "Acceptance Checklist (`.6.8`)".
 
 ## `.6.1` Findings (tools-first, 2026-07-02 — the 310-UNKNOWN adjudication)
 

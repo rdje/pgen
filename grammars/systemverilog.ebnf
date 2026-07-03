@@ -1834,8 +1834,16 @@ data_type_or_incomplete_class_scoped_type_sv_2023 := data_type                  
 data_type_or_incomplete_class_scoped_type := data_type_or_incomplete_class_scoped_type_sv_2023
                                            -> {body: $1}
 
-data_type_or_void := data_type        -> {kind: "data_type", body: $1}
-                   | kw_void_e9cede9b -> {kind: "void"}
+# VERILOG-2005-PROFILE.6.8 (SV-0032): `void` is categorically absent from IEEE 1364-2005
+# (§10.4 return types; nowhere in Annex A), so its SV-only surface is lifted into a
+# profile-gated named rule (the established `_sv_only` idiom, cf. `delay_value_sv_only`).
+# Bare pass-through reference keeps the sv_2017/sv_2023 AST byte-identical; the gate makes
+# `void` reject under `verilog_2005`.
+@profiles: ["sv_2017", "sv_2023"]
+data_type_or_void_sv_only := kw_void_e9cede9b -> {kind: "void"}
+
+data_type_or_void := data_type                 -> {kind: "data_type", body: $1}
+                   | data_type_or_void_sv_only
 
 default_clause := kw_default_7505d64a
                -> {kind: "default"}
@@ -5169,10 +5177,16 @@ subroutine_call := class_scoped_tf_call                            -> {kind: "cl
                  | ( kw_std_55ec981f scope_resolution )? randomize_call
                                                                     -> {kind: "randomize",      std_scope: $1, body: $2}
 
+# VERILOG-2005-PROFILE.6.8 (SV-0032): the `void'(…)` cast is IEEE 1800 only — lifted into a
+# profile-gated named rule so it rejects under `verilog_2005` while the sv_2017/sv_2023 AST
+# stays byte-identical (bare pass-through reference).
+@profiles: ["sv_2017", "sv_2023"]
+void_cast_statement_sv_only := kw_void_e9cede9b tick lparen function_subroutine_call rparen semi
+                                  -> {kind: "void_cast", body: $4}
+
 subroutine_call_statement := subroutine_call semi
                                   -> {kind: "call",      body: $1}
-                           | kw_void_e9cede9b tick lparen function_subroutine_call rparen semi
-                                  -> {kind: "void_cast", body: $4}
+                           | void_cast_statement_sv_only
 
 sv_dollar_fullskew_timing_check := kw_sv_dollar_fullskew_1e1514b3 lparen reference_event comma data_event comma timing_check_limit comma timing_check_limit ( comma ( notifier )? ( comma ( event_based_flag )? ( comma ( remain_active_flag )? )? )? )? rparen semi
                                 -> {reference_event: $3, data_event: $5, limit_setup: $7, limit_hold: $9, tail: $10}

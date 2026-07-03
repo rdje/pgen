@@ -16,11 +16,11 @@
     "library_text:sv_2017",
     "systemverilog_parseable_file:sv_2017"
   ],
-  "expected_total": 1341,
+  "expected_total": 1343,
   "expected_proof": 2,
-  "expected_canonical_witness": 1319,
+  "expected_canonical_witness": 1321,
   "expected_canonical_unknown": 20,
-  "expected_union_witness": 1338,
+  "expected_union_witness": 1340,
   "expected_union_unknown": 1,
   "expected_union_residual_rules": [
     "context_member_method_call"
