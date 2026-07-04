@@ -42,15 +42,54 @@ every name reference in the 1465-rule grammar.
   `1.0.162` (schema `15` unchanged). The "re-probe after each fix" discipline surfaced a *distinct,
   broader* residual — the reserved-list-completeness leak now owned by `.3` (ledger `SV-0036`). See
   "`.2` Findings" + "Acceptance Checklist" below.
-- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3` — proposed (CODE leaf): close `SV-0036` — extend
-  `reserved_non_keyword_identifier_sv` (`grammars/systemverilog.ebnf:386`) to the full SV reserved
-  keyword set so the 35 net/gate/structural Verilog keywords (`wire`/`wand`/`wor`/`tri*`/`supply*`/
-  `uwire`/`and`/`or`/`not`/`nand`/`nor`/`xor`/`xnor`/`buf*`/`nmos`/`pmos`/`always`/`assign`/`initial`/
-  `posedge`/`negedge`/`edge`/`macromodule`/`primitive`/`genvar`/`defparam`/`specparam`) — reserved in
-  SV but absent from the `_sv` list — can no longer match as expression primaries under `sv_2017`/
-  `sv_2023`. Wider blast radius than `.2` (the list feeds every `non_keyword_identifier` site incl.
-  `declaration_identifier`/`callable_identifier`), so it warrants its own corpus/cert verification.
-  The `_v2005` list is already complete (full Annex B), so `verilog_2005` already rejects these.
+- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3` — Status: `split` (2026-07-04, session #29,
+  `PGEN-SV-KEYWORD-PRIMARY-FIDELITY-0003`, tools-first ATTEMPT → BLOCKED, NO code shipped): implementing
+  the reserved-list extension (adding the `_v2005 \ _sv` delta of 91 words to
+  `reserved_non_keyword_identifier_sv`) closes the SV-0036 primary leak but **regresses implicit-type
+  ANSI ports** (`module m(input a);` / `module m(input [7:0] a);` flip ACCEPT→REJECT). Root-caused
+  tools-first (stash + rebuild + trace): a **pre-existing latent bug** — `net_port_type_sv_2017` alt 1
+  (`grammars/systemverilog.ebnf:3474`, `net_type_identifier -> {kind:"identifier"}`) uses the *ungated*
+  `net_type_identifier := declaration_identifier` (`:3517`) which greedily eats the port NAME as a
+  net-type; in `.2` this was MASKED because the reserved-list omitted `input`/`output`/`inout`, so the
+  parser could fall back to a (wrong) parse treating the direction word as an identifier. Reserving the
+  direction keywords removes that mask and exposes the greediness. Ledgered `SV-0037`. So SV-0036 has a
+  PREREQUISITE. Split into `.3.1` (fix SV-0037 first) → `.3.2` (then reserve the keywords safely).
+- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.1` — proposed (CODE leaf, the PREREQUISITE): fix `SV-0037` — gate
+  `net_port_type_sv_2017`/`_sv_2023` alt 1's `net_type_identifier` to the store-gated
+  `checked_nettype_identifier` (`:3537`, the existing SV-PARSE-STRICT.2 declared-nettype gate) so an
+  undeclared identifier can no longer match as a net-type and eat the port name — the implicit-type
+  path (alt 0) then correctly wins and the name is bound. Delicate: `net_port_type` underpins EVERY
+  port and net declaration; needs AST-shape check (alt 1 emits `{kind:"identifier", name:$1}`), full
+  cert/conformance/union/shape/external-corpus verification, and a possible schema bump. Verify implicit
+  ANSI ports `module m(input a);` / `module m(input [7:0] a);` ACCEPT after the fix (they should — the
+  fix restores the correct parse, independent of any reserved-list change).
+- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.2` — proposed (CODE leaf, BLOCKED on `.3.1`): close `SV-0036` —
+  extend `reserved_non_keyword_identifier_sv` (`:386`) by the `_v2005 \ _sv` delta (91 words: the full
+  IEEE 1364-2005 Annex B net-type/gate/structural/config keywords SV also reserves — `always`/`and`/
+  `assign`/`wire`/`config`/`input`/`output`/… — making `_sv` ⊇ `_v2005`, LRM-complete) so they can no
+  longer match as expression primaries under `sv_2017`/`sv_2023`. Only safe AFTER `.3.1` removes the
+  net-type greediness. All 91 words empirically leak as primaries on the `.2` baseline (verified). The
+  `\b` word-boundary makes alternation order irrelevant and protects keyword-prefixed identifiers
+  (`input_data`). The `_v2005` list is already complete, so `verilog_2005` already rejects these.
+
+## `.3` Findings (tools-first, 2026-07-04 — the blocked attempt + the SV-0037 discovery)
+
+**ATTEMPT:** added the 91-word `_v2005 \ _sv` delta to `reserved_non_keyword_identifier_sv`, regenerated,
+rebuilt. Result: all 91 residual keywords correctly REJECT as primaries (SV-0036 leak closed), AND
+keyword-prefixed identifiers (`input_data`/`wire_en`/`and_gate`) still ACCEPT (the `\b` works) — BUT
+`module m(input a);` and `module m(input [7:0] a);` flipped ACCEPT→REJECT.
+
+**ROOT CAUSE of the regression (SV-0037, pre-existing, tools-first):** stash + rebuild proved `.2`
+ACCEPTED `module m(input a);`; the `.2` trace showed it only accepted because `port_identifier` matched
+`input` (9→14) as an identifier in a fallback parse — the "correct" parse (direction=`input`,
+implicit-type, name=`a`) was ALREADY broken because `net_port_type_sv_2017` alt 1
+(`net_type_identifier := declaration_identifier`, bare) greedily eats `a` as a net-type (longest-match
+across the 3 alts), leaving nothing for `port_identifier` at the `)`. Reserving `input`/`output`/`inout`
+removed the fallback mask and exposed the greediness. This is `net_port_type`'s ungated
+`net_type_identifier` — a latent grammar bug distinct from the reserved-list-completeness of SV-0036.
+
+**DECISION:** do NOT ship `.3` with the port regression (correctness before speed). SV-0036's fix has a
+prerequisite; split into `.3.1` (fix SV-0037) → `.3.2` (reserve keywords). No code shipped in `.3`.
 
 ## `.2` Findings (tools-first, 2026-07-04 — implementation + the moved-leak discovery)
 
@@ -196,3 +235,12 @@ already use `non_keyword_identifier` and work under all profiles, so the mechani
   source strict-clean; json 9/0 + regex 198/0). Release `1.0.161` → `1.0.162`, schema `15`.
   The moved-leak re-probe surfaced `SV-0036` (net/gate/structural keyword primary leak under the SV
   profiles) → split to `.3`.
+- 2026-07-04 (`.3` ATTEMPT → BLOCKED, `PGEN-SV-KEYWORD-PRIMARY-FIDELITY-0003`, session #29, NO code
+  shipped): added the 91-word `_v2005 \ _sv` delta to `reserved_non_keyword_identifier_sv`, regenerated,
+  rebuilt. All 91 keywords REJECT as primaries (leak closed) + keyword-prefixed identifiers still
+  ACCEPT — BUT `module m(input a);` / `module m(input [7:0] a);` regressed ACCEPT→REJECT. Tools-first
+  root cause (git stash + rebuild `.2` baseline + `--trace-rules ansi_port_declaration`): a PRE-EXISTING
+  latent bug — `net_port_type_sv_2017` alt 1's ungated `net_type_identifier := declaration_identifier`
+  (`:3517`) greedily eats the port name; masked in `.2` by the reserved-list omitting the direction
+  keywords. Ledgered `SV-0037`. REVERTED the grammar change (working tree back to clean `.2`); split
+  `.3` → `.3.1` (fix SV-0037) → `.3.2` (SV-0036 reservation, blocked on `.3.1`). NO regression shipped.

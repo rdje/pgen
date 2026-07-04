@@ -1,4 +1,16 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-04 - PGEN-SV-KEYWORD-PRIMARY-FIDELITY-0003 — reserving a keyword can UNMASK a latent parse bug; the "byte-identical parse" reasoning that was wrong
+
+Session #29. Attempting `SV-0036` (reserve the net/gate/structural SV keywords) regressed implicit-type ANSI ports. The lessons are about diagnostic discipline, not just the fix.
+
+- **My "byte-identical parse" reasoning was WRONG — and the tool proved it.** I reasoned: "`module m(input a);` involves only non-reserved `a` in the name position, so adding reserved words can't change its parse; therefore the reject must be pre-existing." That was a plausible-but-false inference. A `git stash` + rebuild of the `.2` baseline showed `module m(input a);` ACCEPTED in `.2` and REJECTED in `.3` — a real regression. The lesson (again): **do not ship on reasoning; get the tool-backed baseline.** The stash-rebuild is the definitive "is this a regression?" oracle, and it overturned my inference.
+
+- **Reserving a keyword can UNMASK a latent bug elsewhere.** The `.2` trace showed `module m(input a);` only accepted because `port_identifier` matched `input` (a fallback parse treating the direction word as an identifier); the AST was `{kind:"nonansi"}` — already wrong. The "correct" ANSI parse (direction + implicit-type + name) was ALREADY broken by `net_port_type_sv_2017` alt 1's ungated `net_type_identifier := declaration_identifier` greedily eating the name. Reserving `input`/`output`/`inout` removed the fallback and turned a silent mis-parse into a loud reject. So a keyword-reservation change is NOT self-contained: it can expose any rule that was relying on the keyword being identifier-matchable. Re-probe port/declaration syntax after any reserved-list change.
+
+- **`net_type_identifier` should be store-gated (it's a USE of a declared nettype).** The grammar already has `checked_nettype_identifier` (`:3537`, the SV-PARSE-STRICT.2 declared-nettype gate) used by `net_declaration`, but `net_port_type`'s alt 1 kept the bare `net_type_identifier`. A bare identifier is not a net-type; gating alt 1 to the declared-nettype form is the correct `.3.1` fix and lets the implicit-type alt win. This mirrors the standing discipline [[feedback_grammar_rules_must_consult_store]] — a rule that claims "this bare identifier is category K (nettype)" must consult the store.
+
+- **`_sv` ⊇ `_v2005` is the right target for the reserved list (SV Annex B ⊇ Verilog-2005 Annex B), but the direction/config keywords entangle with declaration syntax.** All 91 `_v2005 \ _sv` words leak as primaries, so SV-0036 genuinely needs all of them; but `.3.2` is only safe after `.3.1` removes the net-type greediness. Reinforces [[feedback_no_codebase_change_without_tool_backed_facts]] and [[project_keyword_primary_leak_vs_lrm_data_type_route]].
+
 ## 2026-07-04 - PGEN-SV-KEYWORD-PRIMARY-FIDELITY-0002 — "the leak moved to a *legitimate* route": not every residual accept is a leak, and the reserved-list is a second axis
 
 Session #29. `SV-0035` (reserved type keyword as a bare primary) closed by routing three name carriers through `non_keyword_identifier`. Three findings worth recording, because they change how the *next* keyword-reservation leak should be triaged.
