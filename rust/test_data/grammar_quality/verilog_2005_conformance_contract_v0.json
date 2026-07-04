@@ -359,6 +359,15 @@
       "note": "SV-0024 lock (positive): `module m ({a, b});` — the braced concatenation port (`{ port_reference {, port_reference} }`) is the LRM's valid multi-reference form and accepts under EVERY profile. Before SV-LRM-SHAPE-FIDELITY.1 the missing `lbrace`/`rbrace` made this REJECT while the invalid un-braced `a b` accepted; the fix inverts both."
     },
     {
+      "file": "accept/ansi_implicit_then_typed_port.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0021 regression lock: an implicit-type ANSI port (`input a`) followed by an explicitly-typed ANSI port (`output reg b`) — `module m (input a, output reg b);`. Valid IEEE 1364-2005 (ANSI port declarations with a `reg` type, A.1.3) and valid IEEE 1800, so it accepts under EVERY profile. SV-0021 was an all-profile over-REJECTION (the whole ANSI header rejected, historical furthest_position=25) fixed as a CONSEQUENCE of SV-0037 (SV-KEYWORD-PRIMARY-FIDELITY.3.1, 1.0.162->1.0.163): the greedy ungated `net_type_identifier` in `net_port_type_sv_2017/2023` ate the implicit port's name under the global longest_match policy, corrupting the first port into a `nonansi` shape so the following explicitly-typed ANSI port had no valid continuation. Routing alt-1 to the store-gated `checked_nettype_identifier` let the implicit `ansi` path win; this lock pins that the mixed implicit-then-typed ANSI header stays accepting. Adjudicated at SV-OVER-REJECTION-FIDELITY.1."
+    },
+    {
       "file": "reject/stray_top_level_semi.sv",
       "expect": {
         "verilog_2005": "reject",
