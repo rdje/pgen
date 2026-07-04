@@ -224,7 +224,7 @@ nytprof/
 # PARSER GENERATED FILES
 # =============================================================================
 # Generated parsers / artifacts
-# `generated/` is intentionally version controlled by repository policy.
+# `generated/` is NOT version controlled — it is regenerated locally (README + COMMIT.md).
 **/target/
 generated_*.pm
 generated_*.jl
@@ -400,9 +400,11 @@ Desktop.ini
 test_runner_*.log
 universal_test_runner_*.log
 
-# Repository policy: keep the full generated tree in git.
-!generated/
-!generated/**
+# (generated/ is IGNORED near the top of this file — it is pipeline output,
+# regenerated locally via `make focus_<grammar>`; see README "Key Project Paths"
+# + COMMIT.md. The prior `!generated/` / `!generated/**` un-ignore here was a
+# superseded 2026-03-07 policy, reversed by "Slice 5: stop tracking generated/*"
+# and removed on 2026-07-04 so generated/ is properly untracked again.)
 
 # External-corpus bulk characterization raw dumps (regenerable; track characterization.md only)
 stimuli/*/characterization/results.tsv
