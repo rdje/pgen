@@ -47,9 +47,15 @@ closure bar as the other shipped families:
 
 - Analog simulation / SPICE-level numeric solving — PGEN parses + shapes the AST; it does not solve.
 - Deciding the exact synthesizable/behavioral subset — that is the `.1` scoping leaf's job.
-- Vendoring the LRM PDF now — DEFERRED until the family is scoped (the reference PDF is currently
-  user-local at `~/Documents/livework/chipdoc/eda/accellera/verilog-ams/current/VAMS-LRM-2023.pdf`;
-  if adopted, vendor it git-ignored like the IEEE 1800 / VHDL LRM PDFs per `-0109`).
+- Vendoring the LRM PDF now — DEFERRED until the family is scoped. The reference PDF is now at
+  `/Users/richarddje/Documents/github/Verilog-AMS-LRM-2023.pdf` (director surfaced it 2026-07-04;
+  previously noted user-local at `~/Documents/livework/chipdoc/eda/accellera/verilog-ams/current/VAMS-LRM-2023.pdf`).
+  If adopted, vendor it git-ignored like the IEEE 1800 / VHDL LRM PDFs per `-0109`. When unparked, the
+  staging step mirrors the other LRM workspaces (`docs/verilog/2005`, `docs/vhdl/2019`): copy the PDF
+  under `docs/verilog_ams/2023/` and run `python3 tools/ieee_lrm_converter.py --pdf … --out-root
+  docs/verilog_ams/2023 --domain Verilog-AMS --include-annex --extract-grammar` (the extraction flow
+  is proven family-agnostic — TOC-driven with a page-heading fallback + BNF `::=` extraction,
+  `tools/LRM_CONVERSION_WORKFLOW.md`).
 
 ## Reuse opportunities (to evaluate at scoping)
 
@@ -85,6 +91,12 @@ closure bar as the other shipped families:
 - `2026-06-21`: Captured as `proposed` / own-now-build-later on director agreement after the
   Verilog-AMS LRM 2023 was surfaced. Sequenced strictly after the locked program; PDF vendoring
   deferred to scoping. Promote to a `docs/decisions/` project record when the family is scoped.
+- `2026-07-04`: Director **REAFFIRMED PARKED** — "Do not automatically start working on Verilog-AMS
+  2023 … Wait until I say so. … we need to finalize the Verilog 2005 and SV 2017/2023 work. I will
+  decide when to actually start." So this lane stays parked and NOT PNT-eligible; the active priority
+  is finalizing `systemverilog` (sv_2017/sv_2023) + strict `verilog_2005`. PDF surfaced at
+  `/Users/richarddje/Documents/github/Verilog-AMS-LRM-2023.pdf`. No leaf may be worked without the
+  director's explicit go-ahead.
 
 ## Open Questions
 
@@ -100,13 +112,17 @@ closure bar as the other shipped families:
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-21` | `VERILOG-AMS` | stub creation (pure docs) | created |
+| `2026-07-04` | `VERILOG-AMS` | director reaffirmed PARKED + PDF location note (pure docs) | updated; still parked |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `VERILOG-AMS` | `PGEN-VERILOG-AMS-0001` | proposed stub created |
+| `VERILOG-AMS` | `PGEN-VERILOG-AMS-0002` | 2026-07-04 director reaffirmed PARKED; PDF now at `/Users/richarddje/Documents/github/Verilog-AMS-LRM-2023.pdf` |
 
 ## Changelog
 
 - `2026-06-21`: Created proposed task-tree stub (`PGEN-VERILOG-AMS-0001`).
+- `2026-07-04`: Director reaffirmed the lane is PARKED (do not start until explicitly told; finalize
+  SV + verilog_2005 first); recorded the new PDF location (`PGEN-VERILOG-AMS-0002`, pure docs).
