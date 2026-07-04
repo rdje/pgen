@@ -2372,7 +2372,10 @@ genvar_declaration := kw_genvar_9cb2eb8a list_of_genvar_identifiers semi
 genvar_expression := constant_expression
                   -> {body: $1}
 
-genvar_identifier := identifier
+# SV-0035 (SV-KEYWORD-PRIMARY-FIDELITY.2): keyword-exclude the genvar-name carrier
+# (the `constant_primary` alternative right after `specparam_identifier`, where the
+# leak would otherwise move). Shape-preserving `{body:X}`.
+genvar_identifier := non_keyword_identifier
 
 genvar_initialization := ( kw_genvar_9cb2eb8a )? genvar_identifier assign constant_expression
                       -> {genvar_keyword: $1, name: $2, value: $4}
@@ -2409,7 +2412,11 @@ hierarchical_event_identifier := hierarchical_identifier
 hierarchical_root_prefix_sv_only := kw_sv_dollar_root_f65f0e67 dot
                                  -> {kind: "root"}
 
-hierarchical_identifier := ( hierarchical_root_prefix_sv_only )? ( identifier constant_bit_select dot )* identifier
+# SV-0035 (SV-KEYWORD-PRIMARY-FIDELITY.2): the trailing name segment is keyword-excluded
+# so a reserved type keyword can no longer match as a bare non-constant `primary`
+# hierarchical name (`assign w = integer;`). A hierarchical name segment can never be a
+# reserved word, so this is universally correct; shape-preserving (`name` stays `{body:X}`).
+hierarchical_identifier := ( hierarchical_root_prefix_sv_only )? ( identifier constant_bit_select dot )* non_keyword_identifier
                         -> {root: $1, scope: $2, name: $3}
 
 hierarchical_instance := name_of_instance lparen ( list_of_port_connections )? rparen
@@ -5080,7 +5087,12 @@ specparam_assignment := specparam_identifier assign constant_mintypmax_expressio
 specparam_declaration := kw_specparam_54af7813 ( packed_dimension )? list_of_specparam_assignments semi
                       -> {dims: $2, items: $3}
 
-specparam_identifier := identifier
+# SV-0035 (SV-KEYWORD-PRIMARY-FIDELITY.2): route through the keyword-excluding
+# `non_keyword_identifier` so a reserved type keyword (`integer`/`real`/…) can no
+# longer match as a bare `constant_primary` expression name (`localparam p =
+# integer;`). Shape-preserving: `identifier` and `non_keyword_identifier` both emit
+# `{body:X}`, so `{kind:"specparam", name:{body:X}}` is byte-identical for legal names.
+specparam_identifier := non_keyword_identifier
 
 start_edge_offset := mintypmax_expression
                   -> {body: $1}
