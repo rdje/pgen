@@ -54,16 +54,22 @@ every name reference in the 1465-rule grammar.
   parser could fall back to a (wrong) parse treating the direction word as an identifier. Reserving the
   direction keywords removes that mask and exposes the greediness. Ledgered `SV-0037`. So SV-0036 has a
   PREREQUISITE. Split into `.3.1` (fix SV-0037 first) → `.3.2` (then reserve the keywords safely).
-- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.1` — proposed (CODE leaf, the PREREQUISITE): fix `SV-0037` — gate
-  `net_port_type_sv_2017`/`_sv_2023` alt 1's `net_type_identifier` to the store-gated
-  `checked_nettype_identifier` (`:3537`, the existing SV-PARSE-STRICT.2 declared-nettype gate) so an
-  undeclared identifier can no longer match as a net-type and eat the port name — the implicit-type
-  path (alt 0) then correctly wins and the name is bound. Delicate: `net_port_type` underpins EVERY
-  port and net declaration; needs AST-shape check (alt 1 emits `{kind:"identifier", name:$1}`), full
-  cert/conformance/union/shape/external-corpus verification, and a possible schema bump. Verify implicit
-  ANSI ports `module m(input a);` / `module m(input [7:0] a);` ACCEPT after the fix (they should — the
-  fix restores the correct parse, independent of any reserved-list change).
-- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.2` — proposed (CODE leaf, BLOCKED on `.3.1`): close `SV-0036` —
+- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.1` — Status: `done` (2026-07-04, session #30,
+  `PGEN-SV-KEYWORD-PRIMARY-FIDELITY-0004`, CODE leaf, the PREREQUISITE): fixed `SV-0037` — routed
+  `net_port_type_sv_2017` alt 1 (`grammars/systemverilog.ebnf:3474`, `net_type_identifier`) and
+  `net_port_type_sv_2023` alt 1 (`:3479`, `nettype_identifier`) to the store-gated
+  `checked_nettype_identifier` (`:3537`, the SV-PARSE-STRICT.2 declared-nettype gate) so an undeclared
+  identifier can no longer match as a net-type and eat the port name. Tools-first trace confirmed the
+  precise mechanism: `net_port_type_sv_2017` runs under the GLOBAL DEFAULT `branch_policy=longest_match`
+  (not ordered-choice), so the ungated `net_type_identifier` matching a bare ` a` (2 bytes) out-consumed
+  alt 0's empty implicit match (0 bytes) and ate the port name. After the fix the implicit-type path
+  (alt 0) correctly wins and the name binds: `module m(input a);` flips `{kind:"nonansi"}` →
+  `{kind:"ansi"}` under sv_2017/sv_2023/verilog_2005. SV release `1.0.162` → `1.0.163` (schema `15`
+  unchanged — both `ansi`/`nonansi` shapes pre-exist; a mis-parse *correction*, not a new shape).
+  See "`.3.1` Findings" + "Acceptance Checklist — `.3.1`" below. `SV-0037` CLOSED (`Released`); `.3.2`
+  UNBLOCKED.
+- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.2` — Status: `proposed` (CODE leaf, **UNBLOCKED** — prerequisite
+  `.3.1`/`SV-0037` is now `Released`): close `SV-0036` —
   extend `reserved_non_keyword_identifier_sv` (`:386`) by the `_v2005 \ _sv` delta (91 words: the full
   IEEE 1364-2005 Annex B net-type/gate/structural/config keywords SV also reserves — `always`/`and`/
   `assign`/`wire`/`config`/`input`/`output`/… — making `_sv` ⊇ `_v2005`, LRM-complete) so they can no
@@ -90,6 +96,60 @@ removed the fallback mask and exposed the greediness. This is `net_port_type`'s 
 
 **DECISION:** do NOT ship `.3` with the port regression (correctness before speed). SV-0036's fix has a
 prerequisite; split into `.3.1` (fix SV-0037) → `.3.2` (reserve keywords). No code shipped in `.3`.
+
+## `.3.1` Findings (tools-first, 2026-07-04 — the SV-0037 fix + the precise longest_match mechanism)
+
+**REPRODUCED (HEAD `.2` release binary, all profiles):** `module m(input a);` ACCEPTs but the AST-dump is
+`{kind:"nonansi"}` with a port-expression list `[input, a]` — mis-parsed as a NON-ANSI port list, NOT the
+correct ANSI port (direction=`input`, implicit type, name=`a`). (`--parse-dump-ast-pretty`.)
+
+**ROOT CAUSE sharpened by trace (`--trace-rules ansi_port_declaration,net_port_type_sv_2017,net_type_identifier_sv_2017,port_identifier`
+at `PGEN_TRACE_VERBOSITY=debug`):** the trace line
+`Rule 'net_port_type_sv_2017' selected branch 2/3 consuming 2 chars (… branch_policy=longest_match)` +
+`Rule 'net_type_identifier' successfully parsed from 14 to 16 (consumed 2 bytes: ' a')` proves the exact
+mechanism — `net_port_type_sv_2017` runs under the **global default `longest_match`** branch policy (NOT
+ordered-choice; comments `grammars/systemverilog.ebnf:484`,`:5604`). So alt 0 `( net_type )?
+data_type_or_implicit` matches EMPTY (implicit, 0 bytes) but alt 1's ungated `net_type_identifier`
+(`:3517`, bare `declaration_identifier`) matches ` a` (2 bytes) and, being longer, WINS — eating the port
+NAME. With no name left, the ANSI port fails and the module backtracks to the wrong `nonansi` branch.
+
+**FIX (declarative grammar, store-consulting — fix-hierarchy tier: grammar):** routed both carriers to the
+store-gated `checked_nettype_identifier` (`:3537`, `@predicate fact_attribute_equals(type_name, $body,
+declaration_family, nettype)`, profile-agnostic). An undeclared identifier now fails alt 1, so alt 0
+(implicit) wins and the name binds. A DECLARED nettype still routes through alt 0's
+`known_unscoped_data_type` (declared nettypes emit a `type_name` fact), so the legitimate nettype-port
+shape is preserved (`myNet a` stays `{kind:"typed", data_type:{known_unscoped_data_type}}`, tie-dominated
+by alt 0 under longest_match). ZERO new rules (census `1465` unchanged); `net_type_identifier`/
+`nettype_identifier` stay referenced by the nettype-DECLARATION rules (`:3510`/`:3559`), so no orphan.
+AST shape `{kind:"identifier", name:$1}` on alt 1 preserved (`{body:X}` both sides). This honors
+`feedback_grammar_rules_must_consult_store` — a rule claiming a bare identifier is category `nettype`
+MUST consult the store.
+
+## Acceptance Checklist (enforced) — `SV-KEYWORD-PRIMARY-FIDELITY.3.1`
+
+- [x] **REPRODUCE / ISSUE** — HEAD `.2` release binary: `printf 'module m(input a); endmodule\n' | parseability_probe
+  --parse-dump-ast-pretty systemverilog … --profile sv_2017` → ACCEPTS but AST `{kind:"nonansi"}` (mis-parse;
+  `input`/`a` consumed as a non-ANSI port-expression list) instead of the correct ANSI port.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `--trace-rules` at `debug`: `net_port_type_sv_2017` (`grammars/systemverilog.ebnf:3474`)
+  under the global default `branch_policy=longest_match` selects alt 1 (`net_type_identifier` → ungated
+  `declaration_identifier`, `:3517`) because it consumes ` a` (2 bytes) vs alt 0's empty implicit match (0 bytes),
+  eating the port name → ANSI fails → `nonansi` fallback. sv_2023 twin: `:3479` (`nettype_identifier`, `:3567`).
+- [x] **FIX** — declarative grammar (tier: grammar): re-point both alt-1 carriers to the store-gated
+  `checked_nettype_identifier` (`:3537`). Store-consulting, AST-shape-preserving, ZERO new rules.
+- [x] **ADDRESSED (verified)** — `module m(input a);` flips `{kind:"nonansi"}` → `{kind:"ansi"}` (direction=input,
+  name=a) under sv_2017 / sv_2023 / verilog_2005; 14-case port harness OK on sv_2017 + sv_2023 (implicit A1–A5,
+  ranged B1–B2, typed C1–C3, declared-nettype D1–D2 shape-preserved, typedef E1, nonansi F1 preserved); v2005
+  implicit/ranged/wire → ansi, nonansi preserved.
+- [x] **NO REGRESSION** — canonical SV cert `1343/2/1321/UNKNOWN=20` (seeds 0/7/42, spf=0, byte-identical);
+  `ast_shape_contract_gate` 18/18; `sv_cert_recognized_union_gate` GREEN (canonical=20, union=1, residual
+  `context_member_method_call`, seeds 0/7/42); `verilog_2005_conformance_gate` GREEN (orphans 0, matrix 219/0, cert
+  `1117/4/773/340` seeds 0/7/42); `sv_external_corpus_triage_gate` 14/14 parse_pass / 0 fail; `--lint-grammar`
+  1465 rules, profile_orphans=0, always_matches_shadowing=8 (byte-identical to HEAD baseline); json `9/0` + regex
+  `198/0` `fully_certified=true` (fully-certified-6 byte-identical — SV-only regen).
+- [x] **LOCKSTEP** — SV integration contract release/contract `1.0.162` → `1.0.163` (schema `15` unchanged) + §
+  "Release 1.0.163" + last-updated; SV parser book `changelog-index.md` `1.0.163` entry; top book `parser-families.md`
+  SV-0037 fixed + SV-0036 prerequisite cleared; ledger `SV-0037` → `Released` + `SV-0036` UNBLOCKED; live docs
+  (`MEMORY.md`/`CHANGES.md`/`DEVELOPMENT_NOTES.md`/`LIVE_ACHIEVEMENT_STATUS.md`) + this task file.
 
 ## `.2` Findings (tools-first, 2026-07-04 — implementation + the moved-leak discovery)
 
@@ -244,3 +304,15 @@ already use `non_keyword_identifier` and work under all profiles, so the mechani
   (`:3517`) greedily eats the port name; masked in `.2` by the reserved-list omitting the direction
   keywords. Ledgered `SV-0037`. REVERTED the grammar change (working tree back to clean `.2`); split
   `.3` → `.3.1` (fix SV-0037) → `.3.2` (SV-0036 reservation, blocked on `.3.1`). NO regression shipped.
+- 2026-07-04 (`.3.1` CODE, `PGEN-SV-KEYWORD-PRIMARY-FIDELITY-0004`, session #30): `SV-0037` fixed +
+  regenerated + re-verified. Tools-first trace named the exact mechanism (`net_port_type_sv_2017`
+  `branch_policy=longest_match` → alt 1's ungated `net_type_identifier` out-consumes alt 0's empty
+  implicit match and eats the port name). Both alt-1 carriers (`:3474` sv_2017, `:3479` sv_2023) routed to
+  the store-gated `checked_nettype_identifier` (`:3537`). ADDRESSED: `module m(input a);`
+  `{kind:"nonansi"}` → `{kind:"ansi"}` under all 3 profiles (14-case harness OK sv_2017/sv_2023;
+  v2005 implicit/ranged/wire ansi, nonansi preserved; declared-nettype port shape preserved). NO
+  REGRESSION (all measured, seeds 0/7/42): canonical cert `1343/2/1321/20` byte-identical; ast_shape
+  18/18; union canonical=20/union=1; v2005 conformance orphans 0 / matrix 219/0 / cert `1117/4/773/340`;
+  external corpus 14/14; lint 1465 rules profile_orphans=0 always_matches_shadowing=8 byte-identical;
+  json 9/0 + regex 198/0 fully_certified. Release `1.0.162` → `1.0.163`, schema `15`. `SV-0037` CLOSED
+  (`Released`); `SV-0036`/`.3.2` UNBLOCKED.

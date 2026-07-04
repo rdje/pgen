@@ -3470,13 +3470,25 @@ net_port_header := ( port_direction )? net_port_type
 net_port_type_interconnect_sv_only := kw_interconnect_c8ec83f5 implicit_data_type -> {kind: "interconnect", data_type: $2}
 
 @profiles: ["sv_2017", "verilog_2005"]
+# SV-KEYWORD-PRIMARY-FIDELITY.3.1 (SV-0037): alt 1 was the *ungated* `net_type_identifier`
+# (bare `declaration_identifier`, :3517). Under the global default `longest_match` branch
+# policy it out-consumes alt 0's empty implicit match and greedily eats the port NAME of an
+# implicit-type ANSI port (`module m(input a);` — `a` matched as a net-type, no name left →
+# the ANSI branch fails and the module mis-parses as `nonansi`). Routed to the store-gated,
+# profile-agnostic `checked_nettype_identifier` (:3537, `fact_attribute_equals(type_name, …,
+# declaration_family, nettype)`) so only a DECLARED nettype can match here (a declared nettype
+# already routes through alt 0's `known_unscoped_data_type`, so alt 1 is LRM-faithful but
+# tie-dominated). AST shape `{kind:"identifier", name:$1}` preserved (`{body:X}` both sides).
 net_port_type_sv_2017 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
-                       | net_type_identifier                              -> {kind: "identifier",   name: $1}
+                       | checked_nettype_identifier                       -> {kind: "identifier",   name: $1}
                        | net_port_type_interconnect_sv_only
 
 @profiles: ["sv_2023"]
+# SV-KEYWORD-PRIMARY-FIDELITY.3.1 (SV-0037): sv_2023 twin of the alt-1 greedy-nettype fix
+# above — the ungated `nettype_identifier` (:3567) is routed to the store-gated
+# `checked_nettype_identifier` (:3537) for the same reason. Same AST shape preserved.
 net_port_type_sv_2023 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
-                       | nettype_identifier                               -> {kind: "identifier",   name: $1}
+                       | checked_nettype_identifier                       -> {kind: "identifier",   name: $1}
                        | net_port_type_interconnect_sv_only
 
 net_port_type := net_port_type_sv_2017 -> {kind: "sv_2017", body: $1}

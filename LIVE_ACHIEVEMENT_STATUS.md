@@ -63,12 +63,15 @@ new, narrower residual `SV-0036` (`Root Caused`): net-type/gate/structural SV
 keywords (`wire`/`and`/`always`/…) reserved in SV but absent from `reserved_non_keyword_identifier_sv`
 still leak as primaries under `sv_2017`/`sv_2023` only (a reserved-list-completeness residual;
 `verilog_2005` unaffected). Closing `SV-0036` (leaf `.3`) hit a PREREQUISITE discovered tools-first —
-`SV-0037` (`Root Caused`): reserving the direction keywords exposes a pre-existing latent bug where
-`net_port_type`'s ungated `net_type_identifier` greedily eats implicit-type ANSI port names
-(`module m(input a);` mis-parses on HEAD, regresses to REJECT under reservation). So `.3` was split
-`.3.1` (fix `SV-0037` — the frontier) → `.3.2` (reserve keywords → close `SV-0036`), no code shipped in
-`.3`. So the open all-profile leaks are now `SV-0024`/`SV-0028`/`SV-0037` (+ the SV-profile-only
-`SV-0036`, blocked on `.3.1`). ALL THREE profile-boundary leaks found by the `.6.1`
+`SV-0037`, now **FIXED** at `SV-KEYWORD-PRIMARY-FIDELITY.3.1` (2026-07-04, `-0004`, release `1.0.162` →
+`1.0.163`, schema `15` unchanged): `net_port_type_sv_2017`/`_sv_2023` alt 1's ungated
+`net_type_identifier`/`nettype_identifier` greedily ate implicit-type ANSI port names under the grammar's
+default `longest_match` branch policy (`module m(input a);` mis-parsed `{kind:"nonansi"}` on HEAD) —
+routed both carriers to the store-gated `checked_nettype_identifier`, so implicit ANSI ports now parse
+the correct `{kind:"ansi"}` under all profiles (canonical cert `1343/2/1321/20` + all gates
+byte-identical). So `.3` was split `.3.1` (fix `SV-0037` — **done**) → `.3.2` (reserve keywords → close
+`SV-0036`, now **UNBLOCKED** — the frontier). So the open all-profile leaks are now `SV-0024`/`SV-0028`
+(+ the SV-profile-only `SV-0036`, UNBLOCKED, owned by `.3.2`). ALL THREE profile-boundary leaks found by the `.6.1`
 adjudication are now FIXED: `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay forms) and
 `SV-0027` (`10ns` / `'0` expression literals) at `.6.2`, and `SV-0026` — the widest, the SV
 `$unit` top-level surface — at `.6.3` (2026-07-02, `-0016`): BOTH carriers gated via
