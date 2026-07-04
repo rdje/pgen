@@ -39,8 +39,10 @@ profile — `module m (interconnect w);` in the bare non-ANSI form still accepts
 `;` accepts under every profile), and — of the three `verilog_2005`-only over-acceptances surfaced
 2026-07-03 by the `.6.6` machine residual-classification's tools-first adjudication —
 `SV-0031` (the `::` scope-resolution surface — `initial p::f();`, `p::C::f()`, expression
-`p::X` all accept) remains `Root Caused` with AST-pinned carriers, awaiting its own `_sv_only`
-gated-lift fix leaf, while `SV-0032` (`void` return type + `void'(…)` cast) is FIXED at
+`p::X`, `import p::*;` all accept) is now FIXED at `.6.11` (2026-07-04, `-0023`: whole-rule
+`@profiles` gates on 27 rules — the `::` token root `scope_resolution` plus the 26 `::`-only
+consumer rules the multi-profile `--lint-grammar` orphan-coherence check DERIVED once the token was
+gated; the LAST `verilog_2005`-only leak), while `SV-0032` (`void` return type + `void'(…)` cast) is FIXED at
 `.6.8` (2026-07-03, `-0020`: both `kw_void` surfaces gated via
 `data_type_or_void_sv_only`/`void_cast_statement_sv_only`) and `SV-0033` (the dynamic-array `[]`
 unsized dimension `reg q [];`) is FIXED at `.6.9` (2026-07-03, `-0021`: a single whole-rule
@@ -76,12 +78,14 @@ lifted rules — `1326/2/1304/1323` — at `.6.3` for the +2 `$unit` lifts —
 throughout; `.6.9` and `.6.10` both leave the union BYTE-IDENTICAL (`1343/2/1321/1340`, gate
 re-verified GREEN — the whole-rule dimension gates add no rule and never touch the
 `sv_2017`/`sv_2023` tree).
-Current strict-profile pins: conformance matrix `210` checks (`70` cases; 16 accept
-+ 54 reject corpus files), profiled cert `1144/4/813/327` `spf=0` (296 NO-reach-by-design; `.6.9`
-dropped `unsized_dimension` and `.6.10` dropped `associative_dimension`+`queue_dimension` — each
-leaves the profile universe, total/witness −1 then −2, each dropping its leak-earned false
-witness(es), UNKNOWN/NO-reach unchanged), seeds 0/7/42. Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` + `SV-0031` (+ the new all-profile `SV-0035`) fix leaves and the per-profile
+Current strict-profile pins: conformance matrix `219` checks (`73` cases; 16 accept
++ 57 reject corpus files), profiled cert `1117/4/773/340` `spf=0` (297 NO-reach-by-design; `.6.11`
+gated the whole `::` surface — the `scope_resolution` token root + 26 linter-derived orphan-cascade
+consumers, all 27 leaving the profile universe, total 1144→1117, and the token de-witnessing the
+`::`-reachable SV-only surface it had falsely witnessed through the leak — witness 813→773, UNKNOWN
+327→340, NO-reach 296→297; every de-witnessed rule is SV-only `::` surface, zero core-Verilog-2005),
+seeds 0/7/42. Left to close: the OPEN
+`SV-0021`..`SV-0024` + `SV-0028` (+ the all-profile `SV-0035`) fix leaves and the per-profile
 proof-accounting lane: design leaf `.6.5` DONE 2026-07-03 (staged adoption decided), and the
 `.6.6` READ-ONLY machine classification LANDED 2026-07-03 (session #26, `-0019`) — pure P1
 entry-universe-reachability + P2 unproducible-store-gate analyses in
@@ -92,13 +96,15 @@ untouched): on `verilog_2005` the machine split `292 profile_entry_unreachable +
 adjudication exactly where it was right and CORRECTING it twice where it had gone stale
 (`hierarchical_tf_identifier`, `class_scoped_tf_call`) — the discrepancy probes are what
 surfaced `SV-0031`/`SV-0032`/`SV-0033`. `SV-0032` (`void` surface) LANDED as leaf `.6.8`
-(2026-07-03, `-0020`), `SV-0033` (dynamic-array `[]`) as leaf `.6.9` (`-0021`), and `SV-0034`
-(associative `[*]`/queue `[$]` dimensions) as leaf `.6.10` (`-0022`) — ALL THREE `.6.6`-surfaced
-leaks plus the `SV-0034` sibling now closed; fixing `.6.10` surfaced (tools-first, a wrong-carrier
-assumption caught empirically) a DISTINCT all-profile leak `SV-0035` (a reserved type keyword
-`integer` parsing as a bare primary expression under every profile). Remaining: the `SV-0031`
-(v2005-only) + `SV-0035` (all-profile) fix leaves and `.6.7` certificate promotion + full gate
-re-pins (must first
+(2026-07-03, `-0020`), `SV-0033` (dynamic-array `[]`) as leaf `.6.9` (`-0021`), `SV-0034`
+(associative `[*]`/queue `[$]` dimensions) as leaf `.6.10` (`-0022`), and `SV-0031` (the `::`
+scope-resolution surface — the LAST `verilog_2005`-only leak) as leaf `.6.11` (2026-07-04, `-0023`:
+27-rule whole-rule `@profiles` gate — the `::` token root + 26 linter-derived orphan-cascade
+consumers) — ALL FOUR `.6.6`-surfaced leaks (plus the `SV-0034` sibling) now closed; fixing `.6.10`
+surfaced (tools-first, a wrong-carrier assumption caught empirically) a DISTINCT all-profile leak
+`SV-0035` (a reserved type keyword `integer` parsing as a bare primary expression under every
+profile). Remaining: the all-profile `SV-0035` (+ `SV-0024`/`SV-0028`) fix leaves and `.6.7`
+certificate promotion + full gate re-pins (must first
 decide the conformance gate's entry-universe wiring). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
 full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
 at `1.0.159`, the `SV-0030` digit/compare restoration at `1.0.160` — which also EARNED the

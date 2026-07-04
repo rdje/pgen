@@ -379,6 +379,72 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
 - [x] **NO REGRESSION** — canonical cert `1326/2/1304/UNKNOWN=20 spf=0` byte-identical (headline + full 20-rule residual + NO-reach lists, md5-compared) at seeds 0/7/42; `sv_cert_recognized_union_gate` GREEN fresh (canonical 20 / union 1 / witness 1323 / residual `context_member_method_call`, seeds 0/7/42, `unmet_criteria_count: 0`); `verilog_2005_conformance_gate` GREEN fresh (orphans=0, 150/150, aliases 2, cert `1138/2/817/319` seeds 0/7/42); `ast_shape_contract_gate` 18/18; clippy source strict-clean (generated-stage 182 errors = pre-existing tolerated debt, all in `generated/systemverilog_parser.rs`); fully-certified certs seed 0: json `9/0`, regex `198/0`, vhdl `216/0`, svpp `74/0`, rtl_frontend `169/proof=1/0`; rtl_const_expr canonical-cert timeout A/B-proven PRE-EXISTING (git-stash control: identical `TargetTimeout conditional_expr root/o1 budget=4000ms` on the pre-change binary) → spun off `CERT-GEN-BUDGET.3`, not caused here.
 - [x] **LOCKSTEP** — book `docs/book/src/grammar-wellformedness.md` (new prelude-integrity increment in the semantic-prelude ladder; `mdbook_docs_gate` ✅); `CERT-GEN-BUDGET.md` reopened with `.3`; this tree + `docs/TASK_TREE.md`; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE. No contract/ledger/schema/release change (generator-internal; parser byte-untouched).
 
+## Acceptance Checklist (`.6.11`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — pre-fix parse-probe on HEAD release binary (session #29):
+  `module m; initial p::f(); endmodule` (package-scoped subroutine call), `module m; initial
+  p::C::f(); endmodule` (package→class scoped call), and `module m; wire w = p::X; endmodule`
+  (package-scoped constant expression) all **ACCEPT under `--profile verilog_2005`** (leak), and
+  also ACCEPT under `sv_2017` (legal). The `::` scope-resolution operator is IEEE 1800
+  (SystemVerilog) only — IEEE 1364-2005 has no `::` token anywhere in Annex A. No-over-gate control
+  `module m; wire w = 1; endmodule` correctly ACCEPTS under `verilog_2005`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the `::` token has EXACTLY ONE producer:
+  `scope_resolution := trivia "::" -> {kind:"scope_resolution"}` (`grammars/systemverilog.ebnf:6601`).
+  All 37 references (`grep -n scope_resolution`) are `::`-consumers, every one SV-only:
+  `package_scope` (`:3825`), `class_scope` (`:1138`), `package_import_item` (`:3745`),
+  `package_export_declaration` (`:3712`), `class_scoped_call_prefix` (`:6675`), the `local::` forms,
+  and the `!scope_resolution` negative-lookaheads in the core identifier rules
+  `simple_identifier_no_scope` (`:378`) / `escaped_identifier` (`:396`). Same `.2`/`.4.1`
+  baseline-admission family as `SV-0026`/`SV-0032`/`SV-0033`/`SV-0034` (statically satisfiable,
+  off-dialect, invisible to the orphan-coherence lint). The specific leak route the `.6.6` machine
+  classification named — `class_scoped_call_prefix_head`'s FOURTH alternative
+  `scoped_class_scoped_call_prefix_identifier` (`:6630`), gated only by trivially-satisfiable NEGATIVE
+  `lacks_fact_attribute_equals` predicates (`:6641`/`:2694`) — is one consumer among many; the atomic
+  root is the `::` token rule itself.
+- [x] **FIX** — declarative, grammar-only (tier: grammar; no engine/codegen change): whole-rule
+  `@profiles: ["sv_2017","sv_2023"]` tags (the `.6.9`/`.6.10`/`uniqueness_constraint` idiom) on the `::`
+  surface — the `scope_resolution` token ROOT PLUS 26 linter-derived orphan-cascade consumer rules
+  (ZERO new rules). Gating the token root is airtight (no `::` token ⇒ no `::` anything). The gate's
+  multi-profile `--lint-grammar` (no `--grammar-profile` filter — the orphan-coherence check) then
+  flagged 26 rules "present under verilog_2005 but NOT satisfiable there — every production references
+  `scope_resolution` (now absent)" and DERIVED each minimal fix (`@profiles: [sv_2017, sv_2023]`): the
+  whole `::`-only consumer surface (`package_scope`, `package_import_item`, `package_export_declaration`,
+  `non_typedef_package_scope`, `class_scope`, `class_scoped_call_prefix`, `class_scoped_tf_call`/`_with_args`,
+  `scoped_class_scoped_call_prefix_identifier`, and the 15 `scoped_*` scope-prefix identifiers). Gating all
+  27 reaches the fixpoint at **0 verilog_2005 orphans in ONE wave** (`--lint-grammar`: profile_orphans
+  0, unreachable_rules 0, non_terminating 0, ordered_choice_shadowing 0). NOTE the tools-first catch: my
+  earlier single-profile `--lint-grammar --grammar-profile verilog_2005` read 0 orphans, but the GATE's
+  plain multi-profile `--lint-grammar` is the authoritative orphan-coherence oracle (it surfaced the 26)
+  — the well-formedness contract deriving the complete `::`-surface gate. Emitted source carries the
+  guards (`parse_scope_resolution` + the 26 `parse_*` profile checks in `generated/systemverilog_parser.rs`).
+- [x] **ADDRESSED (verified)** — on the regenerated release binary: `initial p::f();`,
+  `initial p::C::f();`, `wire w = p::X;` all flip ACCEPT→**REJECT** under `verilog_2005`, still ACCEPT
+  under `sv_2017`/`sv_2023`; `import p::*;` also REJECTs under v2005 / ACCEPTs sv_2017 (bonus — the
+  package-import gate works, no SV over-gate); the no-over-gate controls `wire w = 1;` and the
+  identifier-heavy `wire a; reg b; assign a=b; initial begin a=1; end` still ACCEPT under `verilog_2005`
+  (the `!scope_resolution` negative-lookaheads in the core identifier rules stay correct — the 37-site
+  blast radius is empirically clean); the sv_2017 AST of `p::f()` shows `package_scope`/`package` intact,
+  ZERO `_sv_only` wrapper keys; 3 corpus reject-locks (`pkg_scope_call.sv`, `pkg_class_scope_call.sv`,
+  `pkg_scope_expr.sv`) hold in the 219-check matrix.
+- [x] **NO REGRESSION** — `verilog_2005_conformance_gate` **GREEN** (lint orphans=0, corpus 219 checks /
+  0 mismatches, aliases 2, cert `1117/4/773/340` deterministic seeds 0/7/42); the honest leak-fix delta =
+  all 27 gated rules LEAVE the profile universe (total 1144→1117) and the token de-witnesses the
+  `::`-reachable SV-only surface it had falsely witnessed through the leak (witness 813→773, UNKNOWN
+  327→340, NO-reach 296→297; every de-witnessed rule is SV-only `::` surface, ZERO core-Verilog-2005
+  constructs — set-diff-inspected); `sv_cert_recognized_union_gate` **GREEN & BYTE-IDENTICAL** (canonical
+  `1343/2/1321/UNKNOWN=20`, union `1343/2/1340/UNKNOWN=1`, residual `context_member_method_call`, seeds
+  0/7/42 — no new rule, SV tree untouched); `--lint-grammar` 0 `verilog_2005` orphans (unreachable 0,
+  non_terminating 0, ordered_choice_shadowing 0); `ast_shape_contract` GREEN 18/18; the 6 fully-certified
+  grammars intact (json `9/0`, regex `198/0`, rtl_const_expr `48/0` `fully_certified=true`; svpp/vhdl/
+  rtl_frontend byte-identical, unregenerated); `clippy_on_rust_change` source strict-clean (grammar-only;
+  generated non-strict pre-existing debt); `mdbook_docs_gate` **GREEN**.
+- [x] **LOCKSTEP** — ledger `SV-0031` → `Released` (fix record + `1.0.161` no-bump); conformance
+  contract JSON re-pinned (`1117/4/773/340` + `.6.11` `baseline_note` hop + 3 case entries); book
+  `parser-families.md`; SV integration contract (trust posture + fixed-leak bullet; open waivers now
+  the all-profile `SV-0024`/`SV-0028`/`SV-0035`); LIVE dialect block; tree + `docs/TASK_TREE.md`
+  frontier; CHANGES / DEVELOPMENT_NOTES / MEMORY. Release/schema unchanged (`1.0.161`/15 — SV profiles
+  AST-byte-invariant).
+
 ## Acceptance Checklist (`.6.10`, enforced)
 
 - [x] **REPRODUCE / ISSUE** — pre-fix parse-probe on HEAD release binary: `module m; reg q [*];`
@@ -890,6 +956,47 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     SV tree untouched); 2 corpus reject-locks (`reject/assoc_array_dim.sv`, `reject/queue_dim.sv`) +
     reuse `accept/array_ranged_dim.v` as the no-over-gate control. Ledger `SV-0034` → `Released`.
     See "Acceptance Checklist (`.6.10`)".
+  - ID: `VERILOG-2005-PROFILE.6.11` — Status: `done` (2026-07-04, session #29,
+    `PGEN-VERILOG-2005-PROFILE-0023`, CODE leaf, grammar-only): **closed the `SV-0031`
+    `verilog_2005`-only boundary leak — the SV-only `::`
+    scope-resolution surface** (the LAST `.6.6`-surfaced v2005-only leak). IEEE 1364-2005 has NO
+    `::` scope-resolution operator anywhere in Annex A — package scopes (`pkg::name`), class scopes
+    (`C::name`), `$unit::`/`local::`, and package import/export (`import pkg::*;`) are all IEEE 1800
+    (SystemVerilog) surface — so EVERY `::` construct must REJECT under the strict profile. Surfaced
+    tools-first by the `.6.6` machine residual-classification's `class_scoped_tf_call` adjudication
+    (the negative-gated `scoped_class_scoped_call_prefix_identifier` escape at `:6630`/`:6641`/`:2694`
+    is trivially satisfiable on an empty store; ledger `SV-0031`, `Root Caused`). TOOLS-FIRST WHY+WHERE
+    (session #29, fresh release binary): `module m; initial p::f(); endmodule`, `module m; initial
+    p::C::f(); endmodule`, and `module m; wire w = p::X; endmodule` all **ACCEPT under `--profile
+    verilog_2005`** (leak) and under `sv_2017` (legal); control `module m; wire w = 1; endmodule`
+    correctly still ACCEPTS under v2005. The `::` token has EXACTLY ONE producer:
+    `scope_resolution := trivia "::" -> {kind:"scope_resolution"}` (`grammars/systemverilog.ebnf:6601`),
+    the atomic SV-only marker; all 37 references are `::`-consumers (`package_scope`, `class_scope`,
+    `package_import_item`, `package_export_declaration`, `class_scoped_call_prefix`, the `local::`
+    forms, and the `!scope_resolution` negative-lookaheads in the core identifier rules
+    `simple_identifier_no_scope`/`escaped_identifier`). FIX (declarative, grammar-only; tier: grammar):
+    whole-rule `@profiles: ["sv_2017","sv_2023"]` gates on the `::` surface — the `.6.9`/`.6.10`/
+    `uniqueness_constraint` idiom applied at the `::` ROOT (`scope_resolution`) PLUS the 26 linter-derived
+    orphan-cascade consumer rules. Gating the token root closes the leak airtight (no `::` token ⇒ no
+    `::` anything: under v2005 the guard fails → every positive `::`-route dies AND the
+    `!scope_resolution` negative-lookaheads always pass — correct, no `::` in v2005 — so `p::f()` matches
+    bare `p`, leaves `::f()` unconsumed → full-input REJECT), but the gate's multi-profile
+    `--lint-grammar` orphan-coherence check then surfaced 26 rules "present under verilog_2005 but NOT
+    satisfiable — every production references `scope_resolution` (now absent)": the whole `::`-only
+    consumer surface (`package_scope`/`package_import_item`/`package_export_declaration`/
+    `non_typedef_package_scope`, `class_scope`/`class_scoped_call_prefix`/`class_scoped_tf_call`(`_with_args`)/
+    `scoped_class_scoped_call_prefix_identifier`, and the 15 `scoped_*` type/checker/property/sequence/
+    covergroup/let/nettype/enum/package-parameter scope-prefix identifiers). The linter DERIVED the
+    minimal fix per rule (`@profiles: [sv_2017, sv_2023]`) — the well-formedness contract in action — so
+    the complete fix gates all 27 (`scope_resolution` + the 26), and re-lint reaches the fixpoint at
+    0 v2005 orphans in ONE wave (the linter's orphan detection is already transitive). Under
+    `sv_2017`/`sv_2023` every guard passes → AST byte-identical (bare-token/entry-guard, no shape change;
+    union gate byte-identical). This is the `.6.9`-anticipated candidate-B cascade, bounded + linter-proven.
+    Re-pin surface (measured post-regen): v2005 conformance cert pins + `sv_cert_recognized_union_gate`
+    pins (expected union byte-identical — no new rule, SV tree untouched); corpus reject-locks for the
+    three carriers + reuse a legal-v2005 control as the no-over-gate guard. Runs `--lint-grammar`
+    (v2005 orphan count NON-INCREASING per the `.4.3` standing sub-rule). Ledger `SV-0031` → `Released`.
+    See "Acceptance Checklist (`.6.11`)".
 
 ## `.6.1` Findings (tools-first, 2026-07-02 — the 310-UNKNOWN adjudication)
 
