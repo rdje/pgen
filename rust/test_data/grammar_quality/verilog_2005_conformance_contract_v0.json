@@ -338,7 +338,25 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "Pinned on the ANSI form `input interconnect w` until SV-0024 (un-braced non-ANSI `port_expression` list over-acceptance, `module m (a b);`) lands."
+      "note": "ANSI form `input interconnect w` — rejects under verilog_2005 (no `interconnect` net type). SV-0024 (the un-braced non-ANSI `module m (a b);` form) is now FIXED at SV-LRM-SHAPE-FIDELITY.1; the bare form is locked separately by `reject/port_bare_multi_id.sv`."
+    },
+    {
+      "file": "reject/port_bare_multi_id.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0024 lock: `module m (a b);` — an un-braced multi-identifier port_expression. IEEE `port_expression ::= port_reference | { port_reference {, port_reference} }` requires literal concatenation braces, so `a b` is invalid under verilog_2005 (only the non-ANSI port_expression path exists there). Under sv_2017/sv_2023 it ACCEPTS as a legitimate ANSI interface port (`a` = interface_identifier, `b` = port_identifier; the not-a-declared-interface check is elaboration, not parse). Fixed at SV-LRM-SHAPE-FIDELITY.1."
+    },
+    {
+      "file": "accept/port_concat.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0024 lock (positive): `module m ({a, b});` — the braced concatenation port (`{ port_reference {, port_reference} }`) is the LRM's valid multi-reference form and accepts under EVERY profile. Before SV-LRM-SHAPE-FIDELITY.1 the missing `lbrace`/`rbrace` made this REJECT while the invalid un-braced `a b` accepted; the fix inverts both."
     },
     {
       "file": "reject/interface.sv",

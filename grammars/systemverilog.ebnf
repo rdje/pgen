@@ -4089,8 +4089,8 @@ port_direction := kw_input_140f86aa  -> {kind: "input"}
 
 port_expression := port_reference
                           -> {kind: "single", body: $1}
-                | ( port_reference ( comma port_reference )* )*
-                          -> {kind: "list",   body: $1}
+                | lbrace port_reference ( comma port_reference )* rbrace
+                          -> {kind: "list",   body: [$2, $3::2*]}
 
 port_identifier := declaration_identifier
 
