@@ -693,12 +693,36 @@ open. The `_` prefix is chosen over *re-rolling* the terminal precisely
 because it consumes no RNG: every other sample in the seed's stream stays
 byte-identical, so the certificate-coverage landscape is not perturbed
 (re-rolling advances the RNG and silently shifts unrelated samples'
-witnesses). Only `rtl_frontend` and `systemverilog` carry the `!kw` shape at
-all; the change is provably inert for every other grammar (no push fires) and
-measured byte-identical for SystemVerilog. Result: `rtl_frontend`
-certificate-coverage `sample_parse_failures` `1 → 0` at the affected seed,
-with the witness landscape byte-identical at every seed — generator-only, no
-parser/grammar change, no schema or release bump.
+witnesses).
+
+`SV-KEYWORD-PRIMARY-FIDELITY.3.2` (2026-07-04) extended the guard from the
+`!kw_A … !kw_Z` **fixed-literal** shape to the `!reserved-regex` shape that
+SystemVerilog actually uses — `non_keyword_identifier :=
+!reserved_non_keyword_identifier identifier`, whose lookahead target is a
+regex **whole-word list** `trivia? /(?:parameter|localparam|…|wire|xor)\b/`
+(reached via an `Or` of the profile-gated `reserved_non_keyword_identifier_sv
+| reserved_non_keyword_identifier_v2005` sub-rules). Before the extension the
+detector only recognised fixed-literal keyword rules, so SystemVerilog's
+identifier exclusion was **not** actually enforced on the generation side — a
+latent gap: the closed loop could emit a reserved word (e.g. `import or::…`,
+where `or` is a reserved net/gate keyword) that the parser then rejects. The
+detector now resolves the reserved word list from the regex (all branches must
+be identifier-shaped whole words, so no other rule shape is ever misread; the
+words are precomputed once per generator from the already-profile-filtered
+tree), and the same RNG-neutral `_` repair applies (`or → _or`). The
+**safety invariant** is unchanged: the generator excludes a word in an
+identifier position only where a `!<rule-matching-word> identifier` sequence
+exists — exactly where the parser rejects it — so generator and parser agree
+by construction. The change is provably inert for every grammar without such a
+shape: the six fully-certified grammars (`json`, `regex`, `rtl_const_expr`,
+`systemverilog_preprocessor`, `vhdl`, `rtl_frontend`) are measured
+byte-identical (they carry no `!reserved-regex` identifier rule, and
+`rtl_frontend`'s `!kw` shape is handled by the original fixed-literal path).
+Result: `rtl_frontend` certificate-coverage `sample_parse_failures` `1 → 0`
+(the original `RTL-FE-CLOSURE.6` case) and SystemVerilog `sample_parse_failures`
+`1 → 0` at the affected seed after the `.3.2` reserved-list extension, with the
+witness landscape byte-identical at every seed — generator-only, no parser/grammar
+change to those grammars, no schema bump.
 
 ## Semantic Round-Trip: Context-Valid Generation
 

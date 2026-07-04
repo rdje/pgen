@@ -68,15 +68,114 @@ every name reference in the 1465-rule grammar.
   unchanged — both `ansi`/`nonansi` shapes pre-exist; a mis-parse *correction*, not a new shape).
   See "`.3.1` Findings" + "Acceptance Checklist — `.3.1`" below. `SV-0037` CLOSED (`Released`); `.3.2`
   UNBLOCKED.
-- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.2` — Status: `proposed` (CODE leaf, **UNBLOCKED** — prerequisite
-  `.3.1`/`SV-0037` is now `Released`): close `SV-0036` —
+- ID: `SV-KEYWORD-PRIMARY-FIDELITY.3.2` — Status: `done` (2026-07-04, session #31,
+  `PGEN-SV-KEYWORD-PRIMARY-FIDELITY-0005`, CODE leaf — grammar + generator prerequisite): `SV-0036`
+  CLOSED. SV release `1.0.163` → `1.0.164` (schema `15` unchanged). See "`.3.2` Findings" + "Acceptance
+  Checklist — `.3.2`" below. This is the LAST leaf of the tree; the all-profile reserved-keyword-as-primary
+  family (`SV-0035`+`SV-0036`) is fully closed. Closed `SV-0036` —
   extend `reserved_non_keyword_identifier_sv` (`:386`) by the `_v2005 \ _sv` delta (91 words: the full
   IEEE 1364-2005 Annex B net-type/gate/structural/config keywords SV also reserves — `always`/`and`/
   `assign`/`wire`/`config`/`input`/`output`/… — making `_sv` ⊇ `_v2005`, LRM-complete) so they can no
   longer match as expression primaries under `sv_2017`/`sv_2023`. Only safe AFTER `.3.1` removes the
-  net-type greediness. All 91 words empirically leak as primaries on the `.2` baseline (verified). The
-  `\b` word-boundary makes alternation order irrelevant and protects keyword-prefixed identifiers
-  (`input_data`). The `_v2005` list is already complete, so `verilog_2005` already rejects these.
+  net-type greediness. All 91 words empirically leak as primaries on the `.3.1` baseline (verified,
+  91/91 → REJECT after the reservation). The `\b` word-boundary makes alternation order irrelevant and
+  protects keyword-prefixed identifiers (`input_data`/`wire_en`/`and_gate` — verified still ACCEPT).
+  The `_v2005` list is already complete, so `verilog_2005` already rejects these.
+  **Closing `.3.2` required a co-landed GENERATOR prerequisite (tools-first discovery — see "`.3.2`
+  Findings" below): the SV stimuli generator out-generated its own parser** — a seed-0 diverse sample
+  emitted `import or::…` (`or` is one of the 91 newly-reserved words) which the parser now correctly
+  REJECTS, bumping the canonical-cert `sample_parse_failures` 0→1 (the `sv_cert_recognized_union_gate`
+  hard-asserts `spf=0`). Root-caused to the RTL-FE-CLOSURE.6 keyword-exclusion collector only
+  recognizing the `!kw_A … !kw_Z TERM` FIXED-literal shape, never SV's `!reserved_non_keyword_identifier
+  identifier` (regex whole-word-list) shape → the generator never excluded reserved words there. Fix
+  (general, parser-agnostic): extend the exclusion collector to also read a negative-lookahead target
+  that resolves to a whole-word REGEX alternation `trivia? /(?:w1|…)\b/` (incl. via an `Or` of
+  profile-gated sub-rules). The existing RNG-neutral `_`-prefix repair then makes `or`→`_or` in place
+  (no RNG cascade), so `spf` returns to 0 and all other samples stay byte-identical.
+
+## `.3.2` Findings (tools-first, 2026-07-04 session #31 — the reservation + the generator prerequisite)
+
+**REPRODUCE (HEAD `.3.1` release binary, `sv_2017`+`sv_2023`):** the 91 net/gate/structural keywords
+(`wire`/`and`/`always`/`assign`/`initial`/`posedge`/`nand`/`supply0`/…) ACCEPT as bare expression
+primaries (`assign w = <kw>;`) — the SV-0036 leak. Keyword-prefixed identifiers (`wire_en`/`input_data`/
+`and_gate`/`always_on`) ACCEPT (the `\b` guard — must stay accepting).
+
+**FIX 1 — the reservation (grammar):** appended the `_v2005 \ _sv` delta (exactly 91 words, computed
+tools-first with `comm`) to `reserved_non_keyword_identifier_sv` (`grammars/systemverilog.ebnf:386`),
+preserving the proven-good `_v2005`-native ordering, so `_sv` (81→172 words) ⊇ `_v2005` (verified: 0
+`_v2005` words missing from `_sv`). After regen: all 91 REJECT as primaries under `sv_2017`/`sv_2023`
+(arith/initial/localparam/if-cond positions — moved-leak re-probe clean); keyword-prefixed identifiers
+still ACCEPT; SV-0035 type family still REJECTs (10/10); the SV-0037 implicit-ANSI port stays
+`{kind:"ansi"}` (all profiles); a realistic design ACCEPTs (no over-rejection).
+
+**THE FISHY RESULT (stopped + root-caused per the alert doctrine):** with the reservation alone the
+canonical cert stayed `total=1343 proof=2 witness=1321 UNKNOWN=20` at all seeds — BUT
+`sample_parse_failures` went **0→1 at seed 0** (0 at seeds 7/42). A generator emitting a parser-rejected
+sample is a gen⟷parse duality break; the `sv_cert_recognized_union_gate` HARD-asserts `canonical spf==0`
+(`rust/scripts/sv_cert_recognized_union_gate.sh:241`), so this would fail the gate.
+
+**ROOT CAUSE (WHY + WHERE, tools-first):** the failing seed-0 diverse sample (dumped by the cert's own
+`SAMPLE-PARSE FAILURES` block, `rust/src/main.rs:3018`) is a top-level `import or::ihoiK;` (comments
+interspersed) — `or` is one of the 91 newly-reserved words. The generator emitted `or` as a package
+identifier; the parser now correctly REJECTS it (`import or::x;`→REJECT, `import foo::x;`→ACCEPT,
+verified). WHERE: the RTL-FE-CLOSURE.6 keyword-exclusion collector
+`collect_identifier_keyword_exclusions` (`rust/src/ast_pipeline/stimuli_generator.rs:9471`) only
+recognizes a leading `!X` whose target `X` is a FIXED keyword-literal rule (`kw_if := /if\b/`, via
+`rule_fixed_keyword_literal`). SV's `non_keyword_identifier := !reserved_non_keyword_identifier
+identifier` (`:359`) targets a rule whose body is an `Or` of two REGEX whole-word-list rules
+(`reserved_non_keyword_identifier_sv | _v2005`), so the collector extracted NOTHING → the generator was
+never keyword-aware for SV's identifier exclusion (a latent gap, masked until a word the generator emits
+— `or` — became reserved). The `.3.2` reservation exposed it.
+
+**FIX 2 — the generator prerequisite (engine, general/parser-agnostic):** extend the exclusion
+collector to ALSO treat a negative-lookahead target that resolves to a whole-word REGEX alternation
+`trivia? /(?:w1|…)\b/` (directly, or via an `Or` of such profile-gated sub-rules) as an exclusion set —
+returning every reserved whole-word spelling. Conservative (returns nothing unless EVERY branch is a
+pure identifier-shaped word list, so no other rule shape is ever misread; the words are precomputed once
+per generator from the already-profile-filtered tree). The EXISTING RNG-neutral `_`-prefix repair
+(`:9716`) then repairs the colliding identifier `or`→`_or` IN PLACE, consuming no RNG, so every other
+sample stays byte-identical and the cert stream is not perturbed. **Safety invariant:** the generator
+excludes a word in an identifier position ONLY where a `!<rule-matching-word> identifier` sequence
+exists — exactly where the parser rejects it — so generator and parser agree by construction, and the 6
+fully-certified grammars (all `spf=0` today ⇒ no current collision ⇒ repair never fires) stay
+byte-identical. This honors RTL-FE-CLOSURE.6's design ("the closed loop must not out-generate its own
+parser"), extended from the `!kw_A…!kw_Z` shape to the `!reserved-regex` shape.
+
+## Acceptance Checklist (enforced) — `SV-KEYWORD-PRIMARY-FIDELITY.3.2`
+
+- [x] **REPRODUCE / ISSUE** — HEAD `.3.1` release binary: `assign w = <kw>;` for the 91 net/gate/structural
+  keywords (`wire`/`and`/`always`/`assign`/`initial`/`posedge`/`nand`/`nor`/`supply0`/…) ACCEPTs as a bare
+  expression primary under `sv_2017`/`sv_2023` (the SV-0036 leak); keyword-prefixed identifiers (`wire_en`/
+  `input_data`/`and_gate`/`always_on`) ACCEPT (the `\b` guard — must stay accepting).
+- [x] **ROOT CAUSE (WHY + WHERE)** — (1) `reserved_non_keyword_identifier_sv` (`grammars/systemverilog.ebnf:386`)
+  omitted the net-type/gate/structural Verilog keywords SV also reserves, so `non_keyword_identifier` (`:359`)
+  let them through as primaries. (2) The spf regression: the cert's own `SAMPLE-PARSE FAILURES` dump
+  (`rust/src/main.rs:3018`) named the seed-0 diverse sample `import or::ihoiK;` (`or` newly reserved) which the
+  parser now correctly REJECTS → canonical `sample_parse_failures` 0→1; root-caused to `collect_identifier_keyword_exclusions`
+  (`rust/src/ast_pipeline/stimuli_generator.rs:9471`) recognizing only the fixed-literal `!kw_A…!kw_Z` shape and
+  not SV's `!reserved_non_keyword_identifier identifier` regex-word-list shape (the target rule's `Or` body has a
+  profile-pruned `_v2005` branch — verified via a temporary env-gated map dump: `reserved_non_keyword_identifier`
+  resolved to 172 words including `or` only after the `Or`-leniency fix for the pruned branch).
+- [x] **FIX** — (grammar) append the `_v2005 \ _sv` delta (91 words) to `reserved_non_keyword_identifier_sv`
+  (fix-hierarchy tier: grammar; `_sv` 81→172, `_sv` ⊇ `_v2005`); (engine prerequisite) extend the RTL-FE-CLOSURE.6
+  exclusion collector to resolve a whole-word REGEX alternation (incl. via an `Or` of profile-gated sub-rules), so
+  the existing RNG-neutral `_`-prefix repair handles SV. General/parser-agnostic; ZERO new grammar rules.
+- [x] **ADDRESSED (verified)** — all 91 delta keywords REJECT as primaries under `sv_2017`/`sv_2023`
+  (arith/initial/localparam/if-cond positions — moved-leak re-probe clean, 0 residual carriers); keyword-prefixed
+  identifiers still ACCEPT (0 false rejects); SV-0035 type family still REJECTs (10/10); SV-0037 implicit-ANSI port
+  stays `{kind:"ansi"}` (all profiles); realistic design ACCEPTs; canonical cert `sample_parse_failures` 1→0 at seed 0.
+- [x] **NO REGRESSION** — seeds 0/7/42: canonical SV cert `1343/2/1321/UNKNOWN=20` spf=0 byte-identical;
+  `sv_cert_recognized_union_gate` GREEN (canonical UNKNOWN=20, union UNKNOWN=1, residual `context_member_method_call`);
+  `verilog_2005_conformance_gate` GREEN (orphans 0, matrix 219/0, cert `1117/4/773/340` — byte-identical, `_sv` change
+  inert under v2005); `ast_shape_contract_gate` 18/18; `sv_external_corpus_triage_gate` 14/14 parse_pass / 0 fail;
+  `--lint-grammar` 1465 rules / profile_orphans=0 / always_matches_shadowing=8; the 6 fully-certified grammars
+  byte-identical (json `9/0`, regex `198/0`, vhdl `216/0`, rtl_const_expr `48/0`, rtl_frontend `168/0`, svpp `74/0`
+  — the generator change measured byte-identical against a git-stash baseline); `clippy_on_rust_change` source strict-clean.
+- [x] **LOCKSTEP** — ledger `SV-0036` → `Released` (fixed `1.0.164`); SV integration contract release/contract
+  `1.0.163` → `1.0.164` (schema 15) + § "Release 1.0.164"; SV parser book `changelog-index.md` `1.0.164` entry;
+  top book `parser-families.md` SV-0036 → FIXED; `stimuli-and-quality.md` Mechanism 5 extended to the
+  `!reserved-regex` shape; `docs/TASK_TREE.md` frontier; live docs (`MEMORY.md`/`CHANGES.md`/`DEVELOPMENT_NOTES.md`/
+  `LIVE_ACHIEVEMENT_STATUS.md`) + this task file (`.3.2` done + checklist).
 
 ## `.3` Findings (tools-first, 2026-07-04 — the blocked attempt + the SV-0037 discovery)
 

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.163`
+  - `1.0.164`
 - Parser release version:
-  - `1.0.163`
+  - `1.0.164`
 - Embedding API contract baseline:
   - `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
@@ -79,6 +79,14 @@ This is the document downstream projects such as Nexsim should read first when d
 ### Support boundary
 - Bug reports against the `verilog_2005` profile follow the standard protocol (`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`); classify "SV-only construct wrongly accepted under `verilog_2005`" as a **profile-leak** defect and include the construct's IEEE 1364-2005 Annex A / IEEE 1800 Annex A adjudication in the report.
 - The profile shares the family's release/versioning stream (release `1.0.161`, schema `15`); a future profile-affecting grammar change bumps the family release exactly like any other SV change and must keep `verilog_2005_conformance_gate` green (or re-baseline its contract in the same commit with justification).
+
+## Release 1.0.164 / Contract 1.0.164 Highlights — SV-KEYWORD-PRIMARY-FIDELITY.3.2: net/gate/structural reserved keywords no longer parse as bare expression primaries (ledger `SV-0036` closed); schema 15 unchanged
+
+- **What changed for consumers (accept→reject, `sv_2017`/`sv_2023`):** 91 net-type / gate-primitive / structural / config Verilog keywords that SystemVerilog also reserves (`wire`, `and`, `always`, `assign`, `initial`, `posedge`, `negedge`, `nand`, `nor`, `xor`, `buf`, `supply0`, `tri`, `genvar`, `specparam`, …) previously matched as a bare expression **primary** (e.g. `assign w = wire;`, `initial x = and;`) — they now correctly **REJECT** under `sv_2017` / `sv_2023`. IEEE 1800 Annex B reserves these words; they can never be an operand. `verilog_2005` was already correct (its reserved list is the complete IEEE 1364-2005 Annex B).
+- **What is unchanged:** keyword-**prefixed** identifiers (`wire_en`, `input_data`, `and_gate`, `always_on`) still parse as ordinary identifiers — the reserved regex is `\b`-anchored. Legal designs are unaffected (external corpus 14/14, 0 fail).
+- **Why schema stays 15:** the fix is grammar-only for parser behavior — the `_v2005 \ _sv` reserved-word delta was appended to `reserved_non_keyword_identifier_sv` (`grammars/systemverilog.ebnf:386`; the `_sv` list grows 81→172 words so `_sv` ⊇ `_v2005`). No new rule (census `1465` unchanged), no AST shape change (`{body:X}` preserved; only reserved keywords flip acceptance).
+- **Closed-loop (generator) prerequisite:** landing the reservation exposed a latent stimuli-generator gap — its RTL-FE-CLOSURE.6 keyword-exclusion guard recognized only the fixed-literal `!kw_A…!kw_Z` identifier shape, not SystemVerilog's `!reserved_non_keyword_identifier identifier` (regex whole-word-list) shape, so the closed loop could emit a reserved word (`import or::…`) the parser now rejects (`sample_parse_failures` 0→1). The guard was extended (`rust/src/ast_pipeline/stimuli_generator.rs`) to resolve a whole-word regex alternation (incl. via an `Or` of profile-gated sub-rules); the existing RNG-neutral `_`-prefix repair (`or`→`_or`) restores `sample_parse_failures=0`. Provably inert for the six fully-certified grammars (measured byte-identical). This is a generation-side quality fix; it does not change any parser output shape.
+- **Proof (all seeds 0/7/42):** canonical cert `1343/2/1321/UNKNOWN=20` (spf=0, byte-identical); `sv_cert_recognized_union_gate` GREEN (canonical UNKNOWN=20, union UNKNOWN=1, residual `context_member_method_call`); `verilog_2005_conformance_gate` GREEN (orphans 0, matrix 219/0, cert `1117/4/773/340`); `ast_shape_contract_gate` 18/18; `sv_external_corpus_triage_gate` 14/14 parse_pass / 0 fail; `--lint-grammar` 1465 rules / profile_orphans=0; the six fully-certified grammars byte-identical; `clippy_on_rust_change` source strict-clean. Full matrix in ledger row `SV-0036`.
 
 ## Release 1.0.163 / Contract 1.0.163 Highlights — SV-KEYWORD-PRIMARY-FIDELITY.3.1: implicit-type ANSI ports parse correctly (ledger `SV-0037` closed); schema 15 unchanged
 

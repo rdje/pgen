@@ -1571,6 +1571,21 @@ pub struct StimuliGenerator<'a> {
     // repaired (the `!kw … TERM` round-trip guard fired, normally a
     // deterministic `_` prefix).
     keyword_identifier_collisions: usize,
+    // SV-KEYWORD-PRIMARY-FIDELITY.3.2: precomputed reserved whole-word spellings
+    // for every rule whose body resolves to a whole-word REGEX alternation
+    // `trivia? /(?:w1|…)\b/` (directly, or via an `Or` of such profile-gated
+    // sub-rules — SV's `reserved_non_keyword_identifier := _sv | _v2005`). This
+    // extends the RTL-FE-CLOSURE.6 keyword-exclusion collector from the
+    // `!kw_A … !kw_Z TERM` FIXED-literal shape to the `!reserved-regex TERM`
+    // shape used by SV's `non_keyword_identifier := !reserved_non_keyword_identifier
+    // identifier`, so the closed loop cannot out-generate its own parser (which
+    // rejects those words in that identifier position). Keyed by rule name;
+    // consulted only when that rule is the target of a leading negative lookahead
+    // in an identifier sequence (`collect_identifier_keyword_exclusions`). Computed
+    // once in `new()` from the already-profile-filtered tree ⇒ profile-honest and
+    // no per-generation regex re-parse. EMPTY for grammars without such a rule ⇒
+    // a structural no-op (parser/EBNF-agnostic).
+    reserved_word_lists: HashMap<String, Vec<String>>,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -1661,6 +1676,11 @@ impl<'a> StimuliGenerator<'a> {
         // once (the SAME annotation parse the codegen/store-aware path use), for the two-pass
         // `reach_hops` store-gated-edge deprioritization. Empty ⇒ inert (no behavior change).
         let reach_gate_kinds = Self::compute_reach_gate_kinds(annotations);
+        // SV-KEYWORD-PRIMARY-FIDELITY.3.2: precompute the reserved whole-word lists once from the
+        // already-profile-filtered tree (so an `!reserved-regex identifier` shape excludes exactly the
+        // words the active-profile parser reserves). EMPTY for grammars without a whole-word-list rule
+        // ⇒ inert (byte-identical generation).
+        let reserved_word_lists = Self::compute_reserved_word_lists(grammar_tree);
 
         let coverage = StimuliCoverageMetrics::new(
             grammar_name.clone(),
@@ -1712,6 +1732,7 @@ impl<'a> StimuliGenerator<'a> {
             free_terminal_closer_discards: 0,
             keyword_identifier_exclusions: Vec::new(),
             keyword_identifier_collisions: 0,
+            reserved_word_lists,
         }
     }
 
@@ -9480,6 +9501,10 @@ impl<'a> StimuliGenerator<'a> {
                     if let Some(literal) = self.lookahead_keyword_literal(element) {
                         keywords.push(literal);
                     }
+                    // SV-KEYWORD-PRIMARY-FIDELITY.3.2: also honor a lookahead whose target resolves
+                    // to a whole-word REGEX alternation (SV's `!reserved_non_keyword_identifier`) —
+                    // the precomputed exclusion set (empty for every other shape ⇒ inert).
+                    keywords.extend(self.lookahead_reserved_words(element).iter().cloned());
                     idx += 1;
                 }
                 _ => break,
@@ -9490,6 +9515,29 @@ impl<'a> StimuliGenerator<'a> {
             return Vec::new();
         }
         keywords
+    }
+
+    /// SV-KEYWORD-PRIMARY-FIDELITY.3.2: if `element` is a rule reference whose rule resolves to a
+    /// whole-word REGEX alternation (a reserved-word list — directly, or via an `Or` of such
+    /// profile-gated sub-rules), return the precomputed reserved whole-word spellings; `&[]` for
+    /// every other shape. Companion to `lookahead_keyword_literal` (the single-fixed-literal case).
+    fn lookahead_reserved_words(&self, element: &ASTNode) -> &[String] {
+        let ASTNode::Atom {
+            value: ASTValue::Token(parts),
+        } = element
+        else {
+            return &[];
+        };
+        let Some((token_type, token_value)) = Self::extract_token_pair(parts) else {
+            return &[];
+        };
+        if token_type != "rule_reference" {
+            return &[];
+        }
+        self.reserved_word_lists
+            .get(token_value)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
     }
 
     /// RTL-FE-CLOSURE.6: if `element` is a rule reference to a fixed
@@ -9542,6 +9590,213 @@ impl<'a> StimuliGenerator<'a> {
         } else {
             Some(literal)
         }
+    }
+
+    /// SV-KEYWORD-PRIMARY-FIDELITY.3.2: precompute, from the (already
+    /// profile-filtered) generation tree, every rule whose body resolves to a
+    /// whole-word REGEX alternation `trivia? /(?:w1|…)\b/` — directly, or via an
+    /// `Or` of such profile-gated sub-rules (SV's
+    /// `reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv |
+    /// reserved_non_keyword_identifier_v2005`). Maps each such rule name to its
+    /// reserved whole-word spellings so `collect_identifier_keyword_exclusions`
+    /// can extend the RTL-FE-CLOSURE.6 exclusion set from the `!kw_A … !kw_Z`
+    /// fixed-literal shape to the `!reserved-regex identifier` shape. Rules that
+    /// are NOT pure word lists yield nothing (the resolver bails on the first
+    /// non-word branch) ⇒ empty map for grammars without such a rule ⇒ inert.
+    fn compute_reserved_word_lists(
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> HashMap<String, Vec<String>> {
+        let mut out = HashMap::new();
+        for rule_name in grammar_tree.keys() {
+            let mut visited = HashSet::new();
+            if let Some(words) = Self::rule_reserved_word_list(grammar_tree, rule_name, &mut visited, 0)
+            {
+                if !words.is_empty() {
+                    out.insert(rule_name.clone(), words);
+                }
+            }
+        }
+        out
+    }
+
+    /// SV-KEYWORD-PRIMARY-FIDELITY.3.2: recursion-guard depth cap for
+    /// reserved-word-list resolution (matches `node_is_nullable`'s cutoff).
+    const RESERVED_WORD_LIST_MAX_DEPTH: usize = 32;
+
+    /// Resolve a rule name to its reserved whole-word list (`None` if the rule is
+    /// absent or not a pure whole-word-list shape). Cycle-guarded via `visited`.
+    fn rule_reserved_word_list(
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_name: &str,
+        visited: &mut HashSet<String>,
+        depth: usize,
+    ) -> Option<Vec<String>> {
+        if depth > Self::RESERVED_WORD_LIST_MAX_DEPTH || !visited.insert(rule_name.to_string()) {
+            return None;
+        }
+        let body = grammar_tree.get(rule_name)?;
+        let result = Self::node_reserved_word_list(grammar_tree, body, visited, depth);
+        visited.remove(rule_name);
+        result
+    }
+
+    /// Resolve an AST node to a reserved whole-word list. Conservative — returns
+    /// `Some` ONLY when the node is a pure whole-word list, so no other rule shape
+    /// is ever misread as a reserved list (never a false exclusion):
+    /// * `Or`      — EVERY alternative must itself resolve to a word list; union them.
+    /// * `Sequence`— exactly one element carries the word list; every OTHER element
+    ///               must be nullable (trivia / anchors), else this is not a list.
+    /// * `Atom`    — a rule reference (recurse), or a regex that is a pure
+    ///               identifier-word alternation (`regex_word_list`).
+    fn node_reserved_word_list(
+        grammar_tree: &HashMap<String, ASTNode>,
+        node: &ASTNode,
+        visited: &mut HashSet<String>,
+        depth: usize,
+    ) -> Option<Vec<String>> {
+        if depth > Self::RESERVED_WORD_LIST_MAX_DEPTH {
+            return None;
+        }
+        match node {
+            ASTNode::Or { alternatives } => {
+                // Union the reserved words of EVERY alternative. A direct reference to a
+                // profile-PRUNED (absent) rule is an inactive branch under this profile —
+                // skip it (it contributes no words and, being unmatchable, does not
+                // disqualify the classification). This is what lets SV's
+                // `reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv |
+                // reserved_non_keyword_identifier_v2005` resolve under `sv_2017`/`sv_2023`
+                // (where the `_v2005` rule is filtered out but its reference remains). A
+                // PRESENT alternative that is not a word list still bails (`?`) ⇒ conservative.
+                let mut out = Vec::new();
+                let mut any_resolved = false;
+                for alt in alternatives {
+                    if let ASTNode::Atom {
+                        value: ASTValue::Token(parts),
+                    } = alt
+                    {
+                        if let Some(("rule_reference", name)) = Self::extract_token_pair(parts) {
+                            if !grammar_tree.contains_key(name) {
+                                continue;
+                            }
+                        }
+                    }
+                    out.extend(Self::node_reserved_word_list(
+                        grammar_tree,
+                        alt,
+                        visited,
+                        depth + 1,
+                    )?);
+                    any_resolved = true;
+                }
+                if any_resolved && !out.is_empty() {
+                    Some(out)
+                } else {
+                    None
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                let mut found: Option<Vec<String>> = None;
+                for element in elements {
+                    if let Some(words) =
+                        Self::node_reserved_word_list(grammar_tree, element, visited, depth + 1)
+                    {
+                        if found.is_some() {
+                            // Two word-list-bearing elements ⇒ not a reserved-list rule.
+                            return None;
+                        }
+                        found = Some(words);
+                    } else {
+                        let mut hit_cycle = false;
+                        if !Self::node_is_nullable(
+                            grammar_tree,
+                            element,
+                            0,
+                            &mut HashSet::new(),
+                            &mut hit_cycle,
+                        ) {
+                            // A required, non-word-list element ⇒ not a reserved-list rule.
+                            return None;
+                        }
+                    }
+                }
+                found
+            }
+            ASTNode::Atom {
+                value: ASTValue::Token(parts),
+            } => {
+                let (token_type, token_value) = Self::extract_token_pair(parts)?;
+                match token_type {
+                    "rule_reference" => {
+                        Self::rule_reserved_word_list(grammar_tree, token_value, visited, depth + 1)
+                    }
+                    "regex" => Self::regex_word_list(token_value),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// SV-KEYWORD-PRIMARY-FIDELITY.3.2: extract the whole-word spellings of a
+    /// pure identifier-word alternation regex `(?:w1|w2|…)\b` (the reserved-list
+    /// shape). Returns `None` unless EVERY branch is a fixed literal shaped like a
+    /// `simple_identifier` (`[A-Za-z_][A-Za-z0-9_$]*`), so a single-literal keyword
+    /// regex (`/if\b/` — handled by `regex_fixed_literal`) or any non-word regex
+    /// (whitespace, comments) is never misread as a word list. `\b`/anchors are
+    /// empty-matching look-arounds and are transparent to the extraction.
+    fn regex_word_list(pattern: &str) -> Option<Vec<String>> {
+        regex_syntax::parse(pattern.trim())
+            .ok()
+            .and_then(|hir| Self::hir_word_list(&hir))
+    }
+
+    fn hir_word_list(hir: &Hir) -> Option<Vec<String>> {
+        match hir.kind() {
+            HirKind::Alternation(parts) => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                let mut words = Vec::with_capacity(parts.len());
+                for part in parts {
+                    let literal = Self::hir_fixed_literal(part)?;
+                    if !Self::is_identifier_word(&literal) {
+                        return None;
+                    }
+                    words.push(literal);
+                }
+                Some(words)
+            }
+            HirKind::Concat(parts) => {
+                // Exactly one part is the word-list alternation; the rest must be
+                // empty-matching (the trailing `\b`, anchors), else bail.
+                let mut result: Option<Vec<String>> = None;
+                for part in parts {
+                    if Self::hir_matches_empty(part) {
+                        continue;
+                    }
+                    match Self::hir_word_list(part) {
+                        Some(words) if result.is_none() => result = Some(words),
+                        _ => return None,
+                    }
+                }
+                result
+            }
+            HirKind::Capture(capture) => Self::hir_word_list(&capture.sub),
+            HirKind::Repetition(rep) if rep.min == 1 && rep.max == Some(1) => {
+                Self::hir_word_list(&rep.sub)
+            }
+            _ => None,
+        }
+    }
+
+    /// A `simple_identifier`-shaped whole word: `[A-Za-z_][A-Za-z0-9_$]*`.
+    fn is_identifier_word(word: &str) -> bool {
+        let mut chars = word.chars();
+        match chars.next() {
+            Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
+            _ => return false,
+        }
+        chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
     }
 
     /// RTL-FE-CLOSURE.6: does the generated identifier `sample` collide with

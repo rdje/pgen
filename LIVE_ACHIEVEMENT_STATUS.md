@@ -59,7 +59,7 @@ accepts) — now FIXED at `SV-KEYWORD-PRIMARY-FIDELITY.2` (2026-07-04, `-0002`, 
 `1.0.162`, schema `15`: the 3 expression-primary bare-`identifier` carriers `specparam_identifier`/
 `genvar_identifier`/`hierarchical_identifier`-trailing-name routed through `non_keyword_identifier`,
 AST-shape-preserving, ZERO new rules; all gates byte-identical). Its moved-leak re-probe surfaced a
-new, narrower residual `SV-0036` (`Root Caused`): net-type/gate/structural SV
+new, narrower residual `SV-0036` (now **FIXED** — see below): net-type/gate/structural SV
 keywords (`wire`/`and`/`always`/…) reserved in SV but absent from `reserved_non_keyword_identifier_sv`
 still leak as primaries under `sv_2017`/`sv_2023` only (a reserved-list-completeness residual;
 `verilog_2005` unaffected). Closing `SV-0036` (leaf `.3`) hit a PREREQUISITE discovered tools-first —
@@ -70,8 +70,17 @@ default `longest_match` branch policy (`module m(input a);` mis-parsed `{kind:"n
 routed both carriers to the store-gated `checked_nettype_identifier`, so implicit ANSI ports now parse
 the correct `{kind:"ansi"}` under all profiles (canonical cert `1343/2/1321/20` + all gates
 byte-identical). So `.3` was split `.3.1` (fix `SV-0037` — **done**) → `.3.2` (reserve keywords → close
-`SV-0036`, now **UNBLOCKED** — the frontier). So the open all-profile leaks are now `SV-0024`/`SV-0028`
-(+ the SV-profile-only `SV-0036`, UNBLOCKED, owned by `.3.2`). ALL THREE profile-boundary leaks found by the `.6.1`
+`SV-0036`) — both now **done**: `SV-0036` FIXED at `SV-KEYWORD-PRIMARY-FIDELITY.3.2` (2026-07-04,
+`-0005`, release `1.0.163` → `1.0.164`, schema `15` unchanged): the `_v2005 \ _sv` delta (91 words)
+appended to `reserved_non_keyword_identifier_sv` (`_sv` 81→172, `_sv` ⊇ `_v2005`) so net/gate/structural
+keywords reject as primaries under `sv_2017`/`sv_2023`, PLUS a co-landed general/parser-agnostic generator
+prerequisite (the RTL-FE-CLOSURE.6 keyword-exclusion guard extended to the `!reserved-regex` shape so the
+stimuli generator stops out-generating its own parser; canonical `sample_parse_failures` 1→0 at seed 0, 6
+fully-certified grammars byte-identical). ZERO new rules; all gates byte-identical (canonical cert
+`1343/2/1321/20`, v2005 `1117/4/773/340`, conformance 219/0, union canonical=20/union=1, ast_shape 18/18,
+external corpus 14/14). The all-profile reserved-keyword-as-primary family (`SV-0035`+`SV-0036`) is fully
+closed and the `SV-KEYWORD-PRIMARY-FIDELITY` tree is COMPLETE. So the open all-profile leaks are now
+`SV-0024`/`SV-0028`. ALL THREE profile-boundary leaks found by the `.6.1`
 adjudication are now FIXED: `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay forms) and
 `SV-0027` (`10ns` / `'0` expression literals) at `.6.2`, and `SV-0026` — the widest, the SV
 `$unit` top-level surface — at `.6.3` (2026-07-02, `-0016`): BOTH carriers gated via
@@ -99,7 +108,7 @@ consumers, all 27 leaving the profile universe, total 1144→1117, and the token
 `::`-reachable SV-only surface it had falsely witnessed through the leak — witness 813→773, UNKNOWN
 327→340, NO-reach 296→297; every de-witnessed rule is SV-only `::` surface, zero core-Verilog-2005),
 seeds 0/7/42. Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` (+ the SV-profile-only `SV-0036`; `SV-0035` FIXED at `1.0.162`) fix leaves and the per-profile
+`SV-0021`..`SV-0024` + `SV-0028` (the `SV-0035`+`SV-0036` reserved-keyword-as-primary family and its `SV-0037` prerequisite are all FIXED — tree `SV-KEYWORD-PRIMARY-FIDELITY` COMPLETE at release `1.0.164`) fix leaves and the per-profile
 proof-accounting lane: design leaf `.6.5` DONE 2026-07-03 (staged adoption decided), and the
 `.6.6` READ-ONLY machine classification LANDED 2026-07-03 (session #26, `-0019`) — pure P1
 entry-universe-reachability + P2 unproducible-store-gate analyses in
@@ -120,8 +129,11 @@ surfaced (tools-first, a wrong-carrier assumption caught empirically) a DISTINCT
 profile) — now FIXED at `SV-KEYWORD-PRIMARY-FIDELITY.2` (2026-07-04, `-0002`, release `1.0.162`),
 whose moved-leak re-probe surfaced the new SV-profile-only `SV-0036` (net/gate/structural keyword
 primary leak). Closing `SV-0036` (leaf `.3`) discovered a prerequisite `SV-0037` (implicit-ANSI-port
-net-type greedy mis-parse), so `.3` split → `.3.1` (fix SV-0037, the frontier) → `.3.2` (SV-0036).
-Remaining: `SV-0037`/`.3.1` → `SV-0036`/`.3.2` + `SV-0024`/`SV-0028` fix leaves and `.6.7`
+net-type greedy mis-parse), so `.3` split → `.3.1` (fix SV-0037, `-0004`) → `.3.2` (SV-0036, `-0005`) —
+both now **done**: `SV-0037` FIXED at `1.0.163` and `SV-0036` FIXED at `1.0.164` (the 91-word reserved-list
+`_v2005 \ _sv` delta + a co-landed general/parser-agnostic generator-keyword-awareness prerequisite that
+stops the stimuli generator out-generating its own parser), so the whole `SV-KEYWORD-PRIMARY-FIDELITY`
+tree is COMPLETE. Remaining: `SV-0024`/`SV-0028` fix leaves and `.6.7`
 certificate promotion + full gate re-pins (must first
 decide the conformance gate's entry-universe wiring). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
 full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
