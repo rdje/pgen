@@ -182,10 +182,10 @@
       "file": "reject/bind_dir.sv",
       "expect": {
         "verilog_2005": "reject",
-        "sv_2017": "reject",
-        "sv_2023": "reject"
+        "sv_2017": "accept",
+        "sv_2023": "accept"
       },
-      "note": "SV-0022 waiver: the spec-valid single-semi `bind` never parses under ANY profile (pre-existing double-`semi` grammar defect), so the sv_2017/sv_2023 rows are also `reject`; re-adjudicate to `accept` when SV-0022 lands. The verilog_2005 `reject` remains the profile-correct expectation either way."
+      "note": "SV-0022 lock: `module m; bind target_mod my_checker c1(); endmodule` — a spec-valid single-`;` `bind` inside a module. FIXED at SV-OVER-REJECTION-FIDELITY.2 (1.0.166): the redundant trailing `semi` in `bind_directive` (grammars/systemverilog.ebnf:668/:670) was removed — every `bind_instantiation` alternative (module/program/interface/checker_instantiation) already consumes its own `;`, so the LRM's `bind … bind_instantiation ;` is a redundant double-`;` that all commercial tools resolve as a single `;`. Now ACCEPTS under sv_2017/sv_2023 (`bind` is IEEE 1800 only) and REJECTS under verilog_2005 (no `bind` in IEEE 1364-2005 Annex A — the SV-only-construct-rejects-under-v2005 pattern). Before the fix it wrongly REJECTED under every profile (over-rejection); it stays in reject/ because the file name tracks the verilog_2005 verdict."
     },
     {
       "file": "reject/bit_var.sv",

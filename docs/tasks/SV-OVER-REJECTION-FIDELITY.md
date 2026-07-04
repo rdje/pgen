@@ -55,7 +55,60 @@ leaf, one leaf per commit.
   (`accept/ansi_implicit_then_typed_port.v`, accept under all 3 profiles) + adjudicates the ledger
   row `Root Caused`→`Released`. No grammar/parser/schema/release change. See "Acceptance Checklist —
   `.1`" below.
-- ID: `SV-OVER-REJECTION-FIDELITY.2` — Status: `pending` — close `SV-0022` (`bind` double-`semi`).
+- ID: `SV-OVER-REJECTION-FIDELITY.2` — Status: `done` (2026-07-04, session #34,
+  `PGEN-SV-OVER-REJECTION-FIDELITY-0002`, CODE leaf — grammar-only) — closed `SV-0022`
+  (`bind` double-`semi`). Removed the trailing `semi` from both `bind_directive` alternatives
+  (`grammars/systemverilog.ebnf:668`/`:670`) so a spec-valid single-`;` `bind` parses. SV release
+  `1.0.165` → `1.0.166` (schema 15 unchanged — `semi` was the uncaptured last position). `bind … c1 ();`
+  (top-level + module-scope) flips REJECT→ACCEPT under `sv_2017`/`sv_2023`, stays REJECT under
+  `verilog_2005`; `bind_dir.sv` corpus rows flipped to SV-accept. All gates GREEN seeds 0/7/42. See
+  "`.2` Findings" + "Acceptance Checklist — `.2`" below.
+
+## `.2` Findings (tools-first, 2026-07-04 session #34 — SV-0022 bind double-semi)
+
+**REPRODUCE (HEAD `1.0.165` release binary — SV-0022 STILL reproduces, unlike SV-0021):**
+```
+printf 'module m; endmodule bind m my_checker c1 ();\n'  | probe --parse … --profile sv_2017  → REJECT (pos 20, furthest_position=44)   [WRONG — valid IEEE 1800]
+printf 'module m; endmodule bind m my_checker c1 ();;\n' | probe --parse … --profile sv_2017  → ACCEPT   [the double-semi mechanism confirmation]
+printf 'module m; bind m my_checker c1 (); endmodule\n'  | probe --parse … --profile sv_2017  → REJECT (furthest_position=34)          [WRONG]
+```
+
+**ROOT CAUSE (WHY + WHERE):** `bind_directive` (`grammars/systemverilog.ebnf:668`) is
+`kw_bind bind_target_scope ( colon bind_target_instance_list )? bind_instantiation semi` (and the
+second alt `:670` `kw_bind bind_target_instance bind_instantiation semi`). But
+`bind_instantiation` (`:673`) is just `program_instantiation | module_instantiation |
+interface_instantiation | checker_instantiation`, and EVERY one of those already consumes its own
+trailing `semi` (`module_instantiation:3280` `… ( comma hierarchical_instance )* semi`;
+`program_instantiation:4310`; `interface_instantiation:2677`; `checker_instantiation:928`). So
+`bind_directive` requires a SECOND `;` that the LRM does not: the spec-valid `bind … c1 ();` is
+consumed through the instantiation's `;`, then `bind_directive`'s trailing `semi` finds nothing →
+REJECT; only the invalid-looking `c1 ();;` parses (instantiation eats `;`, bind_directive's `semi`
+eats the second).
+
+**LRM ADJUDICATION (from the tracked markdown, per `feedback_corpus_expected_from_spec_not_fix`):**
+IEEE 1800-2017 §23 (`docs/systemverilog/2017/md/section-23-modules-and-hierarchy.md:753`):
+`bind_directive ::= bind bind_target_scope [: bind_target_instance_list] bind_instantiation ;`, and
+`bind_instantiation ::=` (`:772`) is the 4 instantiation alternatives with NO `;` of its own, while
+`module_instantiation ::=` (`:833`) ends in `;`. The literal published BNF therefore expands to a
+redundant DOUBLE `;` (`bind … inst() ; ;`) — a known LRM redundancy that every commercial simulator
+(VCS/Questa/Xcelium/Verilator/slang) resolves as a SINGLE `;`. (The earlier ledger row's "IEEE
+1800-2017 A.1.4 puts no extra `;` after `bind_instantiation`" was imprecise: the `;` is in
+`bind_directive`; the point is it is REDUNDANT with the instantiation's own `;`.) The grammar
+over-specified by keeping BOTH `;`s.
+
+**FIX (declarative, grammar-only):** remove the trailing `semi` from both `bind_directive`
+alternatives; the instantiation's own `;` is the terminator. `semi` is the last, UNCAPTURED position
+(`$5`/`$4`), so the return-annotation `$` refs (`instantiation: $4` / `$3`) are unchanged → NO schema
+change. Release bump (accept↔reject behavior change on shipped SV profiles) per `PGEN_RELEASE_POLICY`.
+
+## Acceptance Checklist (`.2`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — `bind m my_checker c1 ();` REJECTed (`furthest_position=44`, top-level + module-scope); `c1 ();;` ACCEPTed. Confirmed on HEAD `1.0.165` release binary.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `bind_directive` (`:668`/`:670`) required a trailing `semi` after `bind_instantiation`, whose alternatives (`module_instantiation:3280`, `program_instantiation:4310`, `interface_instantiation:2677`, `checker_instantiation:928`) each already consume their own `;`; the IEEE 1800-2017 §23 BNF (`section-23…:753`) has a redundant double-`;` resolved as single by every commercial tool.
+- [x] **FIX** — declarative/grammar tier: removed the trailing `semi` from both `bind_directive` alternatives; positionally safe (uncaptured last token `$5`/`$4` → no schema change).
+- [x] **ADDRESSED (verified, release binary post-regen)** — `bind … c1 ();` REJECT→**ACCEPT** under `sv_2017`/`sv_2023` (top-level + module-scope), REJECT under `verilog_2005`; `bind_dir.sv` flips to SV-accept; the `;;` form is now a legitimate `bind … ();` + empty package item under SV (cf. SV-0028), REJECT under verilog_2005.
+- [x] **NO REGRESSION (seeds 0/7/42)** — `sv_cert_recognized_union_gate` GREEN (canonical `1343/2/1321/20` byte-identical, union `UNKNOWN=1` residual `context_member_method_call`, witness 1340); `verilog_2005_conformance_gate` GREEN (orphans 0, matrix `231/0` with `bind_dir.sv` flipped, cert `1117/4/773/340` byte-identical); `ast_shape_contract` 18/18 (1 test, shapes byte-identical); external corpus 14/14; `--lint-grammar` census 1465 / profile_orphans 0; the 6 fully-certified grammars byte-identical (SV-only regen, mtimes); clippy source-clean (grammar-only, flow skipped).
+- [x] **LOCKSTEP** — ledger `SV-0022` → `Released`; SV integration contract (version `1.0.165`→`1.0.166`, SV-0022 waiver→FIXED, remaining-bound framings, new Release 1.0.166 section); conformance corpus `reject/bind_dir.sv` rows flipped to SV-accept; SV parser book changelog `1.0.166` + regenerated HTML; top book `parser-families.md`; `docs/TASK_TREE.md`; release bump `1.0.166`; LIVE/CHANGES/DEVELOPMENT_NOTES/MEMORY.
 - ID: `SV-OVER-REJECTION-FIDELITY.3` — Status: `pending` — close `SV-0023` (event-trigger complex;
   schema-bump candidate).
 
@@ -148,14 +201,21 @@ the sibling port locks `accept/port_concat.v` / `reject/port_bare_multi_id.sv`).
 | --- | --- | --- | --- |
 | `2026-07-04` | `SV-OVER-REJECTION-FIDELITY.1` | ledger repro + 20-case mixed-ANSI battery (release `1.0.165`) | `20/20 ACCEPT` on `sv_2017`/`sv_2023`; ledger repro `parse_full passed` on all 3 profiles, deterministic 3× |
 | `2026-07-04` | `SV-OVER-REJECTION-FIDELITY.1` | `verilog_2005_conformance_gate` (rebuild + matrix + cert seeds 0/7/42) | **GREEN** (`gate_green: true`, 0 unmet): new lock ACCEPT all 3 profiles, matrix `231`/0 mismatches, lint `profile_orphans=0` (1465 rules), cert `1117/4/773/340` spf=0 byte-identical seeds 0/7/42 |
+| `2026-07-04` | `SV-OVER-REJECTION-FIDELITY.2` | bind flip (release binary post-regen) | `bind … c1 ();` top-level + module-scope REJECT→**ACCEPT** on `sv_2017`/`sv_2023`, REJECT on `verilog_2005`; lint 1465 / orphans 0 |
+| `2026-07-04` | `SV-OVER-REJECTION-FIDELITY.2` | no-regression suite (seeds 0/7/42) | `sv_cert_recognized_union_gate` **GREEN** (canonical `1343/2/1321/20`, union `1`, witness 1340 byte-identical); `verilog_2005_conformance_gate` **GREEN** (matrix `231/0`, cert `1117/4/773/340` byte-identical, orphans 0); `ast_shape_contract` 1/1; external corpus 14/14; 6 grammars byte-identical; clippy source-clean |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `SV-OVER-REJECTION-FIDELITY.1` | `PGEN-SV-OVER-REJECTION-FIDELITY-0001 (SV-OVER-REJECTION-FIDELITY.1): SV-0021 CLOSED — mixed implicit-then-typed ANSI port list adjudicated Released (fixed as consequence of SV-0037) + regression-locked` | Corpus/adjudication leaf — no grammar/parser/schema/release change |
+| `SV-OVER-REJECTION-FIDELITY.2` | `PGEN-SV-OVER-REJECTION-FIDELITY-0002 (SV-OVER-REJECTION-FIDELITY.2): SV-0022 CLOSED — spec-valid single-semi bind no longer over-rejects; SV 1.0.165->1.0.166` | Grammar-only; release bump `1.0.166` (schema 15 unchanged) |
 
 ## Changelog
 
 - `2026-07-04`: Created task tree (session #34) for the `SV-0021`/`SV-0022`/`SV-0023` over-rejection
   complex; opened `.1` (SV-0021 adjudication + regression lock).
+- `2026-07-04`: `.1` done (SV-0021 CLOSED, `PGEN-SV-OVER-REJECTION-FIDELITY-0001`, commit `96bba68d`).
+- `2026-07-04`: `.2` done (SV-0022 CLOSED, `PGEN-SV-OVER-REJECTION-FIDELITY-0002`) — grammar-only,
+  removed `bind_directive`'s redundant trailing `semi`; SV `1.0.165`→`1.0.166` (schema 15); all gates
+  GREEN seeds 0/7/42. Remaining leaf: `.3` (SV-0023 event-trigger complex).

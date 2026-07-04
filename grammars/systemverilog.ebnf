@@ -665,9 +665,9 @@ binary_module_path_operator := equal                -> {kind: "equal"}
                             | reduction_xnor      -> {kind: "reduction_xnor"}
 
 @profiles: ["sv_2017", "sv_2023"]
-bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instance_list )? bind_instantiation semi
+bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instance_list )? bind_instantiation
                     -> {kind: "scoped", target_scope: $2, instances: $3, instantiation: $4}
-               | kw_bind_6bdd4db9 bind_target_instance bind_instantiation semi
+               | kw_bind_6bdd4db9 bind_target_instance bind_instantiation
                     -> {kind: "single", target_instance: $2, instantiation: $3}
 
 bind_instantiation := program_instantiation   -> {kind: "program",   body: $1}
