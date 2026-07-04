@@ -359,6 +359,15 @@
       "note": "SV-0024 lock (positive): `module m ({a, b});` — the braced concatenation port (`{ port_reference {, port_reference} }`) is the LRM's valid multi-reference form and accepts under EVERY profile. Before SV-LRM-SHAPE-FIDELITY.1 the missing `lbrace`/`rbrace` made this REJECT while the invalid un-braced `a b` accepted; the fix inverts both."
     },
     {
+      "file": "reject/stray_top_level_semi.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0028 lock: a bare top-level `;`. IEEE 1364-2005 A.1.2 `source_text ::= { description }` with `description ::= module_declaration | udp_declaration | config_declaration` admits no null/empty top-level item, so a stray `;` is invalid under verilog_2005 — it accepted only via `source_text_item`'s LRM-less direct `semi` branch, removed at SV-LRM-SHAPE-FIDELITY.2. Under sv_2017/sv_2023 it correctly ACCEPTS as the LRM empty package-or-generate item (`description ::= … | { attribute_instance } package_item`, `package_or_generate_item_declaration ::= … | ;` — IEEE 1800-2017 §26 / 2023 Annex A), reached via the PEG-first `description` path that is untouched by the fix. SV-profile-byte-invariant (no release bump)."
+    },
+    {
       "file": "reject/interface.sv",
       "expect": {
         "verilog_2005": "reject",

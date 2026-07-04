@@ -32,11 +32,12 @@ the 1 canonical residual; ratcheting is owned by leaves `.6.2`–`.6.5`). The do
 integration-contract full
 `verilog_2005` write-up (deferred from `.2`) is landed, and the contract's stale embedding-API
 baseline (`1.2.0`→`1.3.0`) is corrected. **Why `Mostly Done`, not `Done`:** the proof surface is a
-curated corpus (tracker rule: curated lists cannot earn `Done`), and FOUR OPEN ledgered leaks bound
-the strict-subset claim: `SV-0024` (un-braced multi-identifier port expressions accept under EVERY
-profile — `module m (interconnect w);` in the bare non-ANSI form still accepts under
-`verilog_2005` until it lands; the corpus pins the ANSI form), `SV-0028` (a stray top-level
-`;` accepts under every profile), and — of the three `verilog_2005`-only over-acceptances surfaced
+curated corpus (tracker rule: curated lists cannot earn `Done`), and the ledgered leaks that
+historically bounded the strict-subset claim have now almost all landed (the narrative below records
+each), leaving the all-profile over-REJECTION complex `SV-0021`/`SV-0022`/`SV-0023` + the `.6.7`
+cert-promotion lane as the remaining bound: `SV-0024` (un-braced multi-identifier port expressions —
+FIXED at `1.0.165`), `SV-0028` (a stray top-level `;` — FIXED at `1.0.165`, re-adjudicated
+`verilog_2005`-only), and — of the three `verilog_2005`-only over-acceptances surfaced
 2026-07-03 by the `.6.6` machine residual-classification's tools-first adjudication —
 `SV-0031` (the `::` scope-resolution surface — `initial p::f();`, `p::C::f()`, expression
 `p::X`, `import p::*;` all accept) is now FIXED at `.6.11` (2026-07-04, `-0023`: whole-rule
@@ -87,8 +88,20 @@ SV release `1.0.164`→`1.0.165`, schema 15): the LRM concatenation-brace shape 
 so `module m (a b);` ACCEPT→REJECT under `verilog_2005` (ACCEPT unchanged under `sv_2017`/`sv_2023` — a
 legitimate ANSI interface port) and the braced concatenation port `module m ({a, b});` REJECT→ACCEPT under
 every profile; all gates GREEN (canonical `1343/2/1321/20` byte-identical, v2005 conformance matrix 225/0
-+ cert `1117/4/773/340`, external corpus 14/14, 6 fully-certified byte-identical). So the LAST open
-all-profile over-acceptance is now `SV-0028` (stray top-level `;`, owned by `SV-LRM-SHAPE-FIDELITY.2`).
++ cert `1117/4/773/340`, external corpus 14/14, 6 fully-certified byte-identical). `SV-0028` (stray
+top-level `;`) is now ALSO FIXED at `SV-LRM-SHAPE-FIDELITY.2` (2026-07-04, `PGEN-SV-LRM-SHAPE-FIDELITY-0002`,
+SV release stays `1.0.165` — NO bump, `verilog_2005`-only, SV profiles byte-invariant, schema 15): tools-first
+re-adjudication (AST dumps + IEEE LRM markdown) corrected the "all-profile" framing to `verilog_2005`-only —
+under `sv_2017`/`sv_2023` a stray `;` is the legitimate LRM empty package-or-generate item
+(`package_or_generate_item_declaration ::= … | ;`) reached via the PEG-first `description → package_item`
+path and MUST stay ACCEPT; only the `verilog_2005` direct `source_text_item` `semi` branch
+(`grammars/systemverilog.ebnf:231`) was LRM-less and is removed (ZERO census change — a branch, not a rule).
+`;` / `;;` / `module m; endmodule\n;` ACCEPT→REJECT under `verilog_2005`, unchanged ACCEPT under
+`sv_2017`/`sv_2023`; all gates GREEN seeds 0/7/42 (canonical `1343/2/1321/20` + v2005 `1117/4/773/340` +
+conformance matrix 228/0 with 1 new lock all byte-identical, ast_shape 18/18, external corpus 14/14, 6
+fully-certified byte-identical). **With `SV-0024`+`SV-0028` both closed the `SV-LRM-SHAPE-FIDELITY` tree is
+COMPLETE and NO open all-profile over-acceptance leak remains** — the strict-subset claim's remaining bound
+is the all-profile over-REJECTION complex `SV-0021`/`SV-0022`/`SV-0023`.
 ALL THREE profile-boundary leaks found by the `.6.1`
 adjudication are now FIXED: `SV-0025` (`wire #1step w;` / `wire #10ns w;` delay forms) and
 `SV-0027` (`10ns` / `'0` expression literals) at `.6.2`, and `SV-0026` — the widest, the SV
@@ -117,7 +130,7 @@ consumers, all 27 leaving the profile universe, total 1144→1117, and the token
 `::`-reachable SV-only surface it had falsely witnessed through the leak — witness 813→773, UNKNOWN
 327→340, NO-reach 296→297; every de-witnessed rule is SV-only `::` surface, zero core-Verilog-2005),
 seeds 0/7/42. Left to close: the OPEN
-`SV-0021`..`SV-0024` + `SV-0028` (the `SV-0035`+`SV-0036` reserved-keyword-as-primary family and its `SV-0037` prerequisite are all FIXED — tree `SV-KEYWORD-PRIMARY-FIDELITY` COMPLETE at release `1.0.164`) fix leaves and the per-profile
+over-rejection complex `SV-0021`/`SV-0022`/`SV-0023` (the all-profile over-acceptance leaks `SV-0024`+`SV-0028` are now FIXED at `1.0.165` via the COMPLETE `SV-LRM-SHAPE-FIDELITY` tree; the `SV-0035`+`SV-0036` reserved-keyword-as-primary family and its `SV-0037` prerequisite are all FIXED — tree `SV-KEYWORD-PRIMARY-FIDELITY` COMPLETE at release `1.0.164`) fix leaves and the per-profile
 proof-accounting lane: design leaf `.6.5` DONE 2026-07-03 (staged adoption decided), and the
 `.6.6` READ-ONLY machine classification LANDED 2026-07-03 (session #26, `-0019`) — pure P1
 entry-universe-reachability + P2 unproducible-store-gate analyses in
@@ -142,7 +155,8 @@ net-type greedy mis-parse), so `.3` split → `.3.1` (fix SV-0037, `-0004`) → 
 both now **done**: `SV-0037` FIXED at `1.0.163` and `SV-0036` FIXED at `1.0.164` (the 91-word reserved-list
 `_v2005 \ _sv` delta + a co-landed general/parser-agnostic generator-keyword-awareness prerequisite that
 stops the stimuli generator out-generating its own parser), so the whole `SV-KEYWORD-PRIMARY-FIDELITY`
-tree is COMPLETE. Remaining: `SV-0024`/`SV-0028` fix leaves and `.6.7`
+tree is COMPLETE. Remaining: the `SV-0021`/`SV-0022`/`SV-0023` over-rejection fix leaves (`SV-0024`+`SV-0028`
+are now FIXED at `1.0.165` — the `SV-LRM-SHAPE-FIDELITY` tree is COMPLETE) and `.6.7`
 certificate promotion + full gate re-pins (must first
 decide the conformance gate's entry-universe wiring). The `SV-0029`/`SV-0030` LRM-fidelity family is CLOSED in
 full (tree `SV-DOLLAR-LRM-FIDELITY` complete, 2026-07-03: the 12 timing-check `$` spellings
@@ -180,6 +194,8 @@ This file is the authoritative live tracking view for "where we are now".
 - Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
+
+Tracker note (2026-07-04, session #33): **✅ `SV-LRM-SHAPE-FIDELITY.2` LANDED (`PGEN-SV-LRM-SHAPE-FIDELITY-0002`, CODE — grammar-only) — `SV-0028` CLOSED (`Released`); SV release stays `1.0.165` (NO bump — `verilog_2005`-only, SV profiles byte-invariant, schema 15). The `SV-LRM-SHAPE-FIDELITY` tree is now COMPLETE.** Removed `source_text_item`'s LRM-less direct `| semi -> {kind:"semi"}` alternative (`grammars/systemverilog.ebnf:231`); ZERO census change (a branch, not a rule; census 1465). **Tools-first re-adjudication** (AST dumps + IEEE LRM markdown) corrected the tree/ledger "all-profile" framing to **`verilog_2005`-only**: under `sv_2017`/`sv_2023` a stray `;` is the legitimate LRM empty package-or-generate item (`description ::= … | { attribute_instance } package_item`, `package_or_generate_item_declaration ::= … | ;` — IEEE 1800-2017 §26 / 2023 Annex A), reached via the PEG-first `description` path (which shadows `:231`), so it MUST stay ACCEPT; only the `verilog_2005` direct `source_text_item` `semi` branch was LRM-less (IEEE 1364-2005 A.1.2 `source_text ::= { description }` admits no null top-level item). Spec-faithful outcome: `;` / `;;` / `module m; endmodule\n;` ACCEPT→REJECT under `verilog_2005`, unchanged ACCEPT under `sv_2017`/`sv_2023` (empty-item AST byte-shape-identical). NO-REGRESSION seeds 0/7/42: union gate GREEN (canonical `1343/2/1321/UNKNOWN=20` byte-identical, union `UNKNOWN=1` residual `context_member_method_call`), `verilog_2005_conformance_gate` GREEN (orphans 0, matrix 228/0 with 1 new lock `reject/stray_top_level_semi.sv`, cert `1117/4/773/340` byte-identical — the stray-`;` path never earned a v2005 witness), `ast_shape_contract` 18/18, external corpus 14/14, the 6 fully-certified grammars byte-identical (json `9/9`, regex `198/198` fully_certified), clippy source-clean (grammar-only). **Dialect block stays `Mostly Done`** (no open all-profile over-acceptance remains; the remaining bound is the over-rejection complex `SV-0021`/`SV-0022`/`SV-0023` + the `.6.7` promotion lane).
 
 Tracker note (2026-07-04, session #32): **✅ `SV-LRM-SHAPE-FIDELITY.1` LANDED (`PGEN-SV-LRM-SHAPE-FIDELITY-0001`, CODE — grammar-only) — `SV-0024` CLOSED (`Released`), SV release `1.0.164`→`1.0.165` (schema 15).** The un-braced multi-identifier `port_expression` over-acceptance is fixed on ALL profiles by restoring the IEEE concatenation-brace shape (`grammars/systemverilog.ebnf:4092`: `( port_reference ( comma port_reference )* )*` → `lbrace port_reference ( comma port_reference )* rbrace -> {kind:"list", body:[$2, $3::2*]}`; ZERO new rules, census 1465). Tools-first: AST-dump pinned the two accepting paths (verilog_2005 non-ANSI `{kind:"list"}` vs sv_2017 legitimate `interface_port_header` ANSI interface port). Spec-faithful outcome: `module m (a b);` ACCEPT→REJECT under `verilog_2005`, ACCEPT unchanged under `sv_2017`/`sv_2023` (interface port — valid IEEE 1800 syntax); the braced concatenation port `module m ({a, b});` REJECT→ACCEPT under EVERY profile (LRM's valid multi-reference form, previously unsupported). NO-REGRESSION seeds 0/7/42: union gate GREEN (canonical `1343/2/1321/UNKNOWN=20` byte-identical, union `UNKNOWN=1` residual `context_member_method_call`), `verilog_2005_conformance_gate` GREEN (orphans 0, matrix 225/0 with 2 new locks `reject/port_bare_multi_id.sv`+`accept/port_concat.v`, cert `1117/4/773/340` byte-identical — port_expression still witnessed via braces), `ast_shape_contract` 18/18, external corpus 14/14, the 6 fully-certified grammars byte-identical (json `9/0`, regex `198/0`), clippy source strict-clean. New tree `SV-LRM-SHAPE-FIDELITY` (owns the two remaining all-profile grammar-SHAPE over-acceptances); `.2` (`SV-0028` stray top-level `;`) pending. **Dialect block stays `Mostly Done`** (last open all-profile over-acceptance now `SV-0028`; plus the over-rejection defects `SV-0021`/`SV-0022`/`SV-0023` + the `.6.7` promotion lane).
 
