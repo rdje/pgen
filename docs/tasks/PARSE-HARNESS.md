@@ -332,11 +332,37 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   ALL registered grammars" target is **re-scoped** into the certified baseline (now) + `.5.1`–`.5.5`
   (the per-grammar closures) — an honest task-tree refinement (the measurement §15 discovered exactly
   which grammars need more work and why). Acceptance checklist + tool-mapped plan in §14.
-- `.5.1` — **regex fidelity — `not-started`.** Root-cause + fix the interpreter's regex divergence: an
-  AST divergence in the quantifier-greediness fold and a deeper verdict divergence on
-  `\Q…\E`-with-quantifier / negative-lookahead constructs (`quoted_run_inner_piece = quoted_literal_char
-  !"\\E"`, `piece_quoted_run_quantified`). Then PROMOTE `regex` from DEFERRED to CERTIFIED. The
-  `probe_regex_divergence_minimizer` scouting test is the starting tool.
+- `.5.1` — **regex fidelity — `not-started` (investigation started, session #41).** Root-cause + fix
+  the interpreter's regex divergence, then PROMOTE `regex` DEFERRED→CERTIFIED.
+  **Investigation log (session #41, tool-backed — read this FIRST so the next session doesn't repeat the
+  dead end):**
+  - **The ACTUAL diverging samples (from `::measurement PGEN_PHEQ_ONLY=regex`, ladder [6,12,18], 45
+    samples / 42 agree / 3 diverge):**
+    - AST: `\Q]\E* ?\Q]\E+\Q]\E+|^|\Q\E?(?>)*|[[:<:]]+\Q\E(?C)+` — interp emits
+      `"greediness":"lazy"` where the oracle emits `"greediness":[]` (the empty/greedy-default marker),
+      first differing at AST byte 72.
+    - AST: `\Q]\E* ?\Q]\E+\Q]\E+|^|\Q` (a truncation of the above) — same greediness divergence.
+    - Verdict: `\Q]\E?\Q]\E*\Q]\E*|$+(?C)` — interp ACCEPTS, oracle REJECTS (interp `furthest=25`,
+      near the trailing `$+` / `(?C)`).
+  - **REFUTED hypotheses (do NOT re-pursue):** (1) the isolated constructs `\Q…\E`(+`?`/`??`/`+`),
+    `[^]]`, `\A`(+`?`/`??`), empty `|`/`||`/`a||b` all AGREE (`probe_regex_divergence_minimizer`) — the
+    divergence is NOT any of them in isolation. (2) A "the interpreter skips leading layout where the
+    whitespace-sensitive regex parser does not" theory is REFUTED by the codegen: **both** branches of
+    `consume_layout_for_terminal` (`ast_based_generator.rs:4734`/`4771`) call
+    `consume_optional_whitespace()` — the only difference between them is comment handling
+    (`any_comment_arm`), and regex has no comments. So the interpreter's whitespace-skip already matches
+    the generated regex parser; the greediness divergence is NOT a layout-skip difference.
+  - **The likely real cause (unconfirmed — next session's job to PIN with a minimal repro):** a
+    **longest-match tie-break / `piece+` backtracking** interaction around `* ?` (a `quant_base` `*`
+    then a space then `?`). `quantifier = quant_base quant_suffix?` with `quant_suffix = "?" -> "lazy"`;
+    `concatenation = piece+`, `piece = piece_quoted_run_quantified | atom quantifier?`. The two
+    implementations resolve the ambiguous parse of `… * ?\Q…` differently (interp binds the `?` as the
+    lazy `quant_suffix` of `*`; the generated parser leaves `quant_suffix` empty → `[]` and parses the
+    ` ?` some other way). Next step: minimize to the smallest `*`-then-space-then-`?` input that
+    diverges; read the generated regex parser's emitted `quantifier`/`quant_suffix?`/`piece` logic
+    against the interpreter's `parse_or` longest-match tournament + the sequence `?`-element handling;
+    the `$+` verdict case likely shares the same greedy-binding root or an anchor-quantifier-legality
+    difference. Tool: `probe_regex_divergence_minimizer` (add `*`-space-`?` cases + dump the AST).
 - `.5.2` — **ebnf fidelity — `not-started`.** Root-cause + fix the interpreter's ebnf VERDICT divergence
   (interpreter accepts input the generated ebnf parser rejects, `furthest≈3`). Then promote `ebnf`.
 - `.5.3` — **return_annotation fidelity — `not-started`.** Root-cause + fix the AST divergence in the
