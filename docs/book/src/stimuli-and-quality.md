@@ -771,7 +771,8 @@ The result is verified per grammar with certificate-coverage, where `sample_pars
 predicates. At the current baseline (deterministic at seeds 0/7/42) the six fully-certified grammars
 report `UNKNOWN=0`, `fully_certified=true`, `sample_parse_failures=0` (json, regex, vhdl,
 systemverilog_preprocessor, rtl_frontend, rtl_const_expr), and SystemVerilog — the predicate-heaviest
-grammar — reports `sample_parse_failures=0` with a canonical residual of `UNKNOWN=20` that the sound
-multi-config recognized union collapses to `UNKNOWN=1` (the single `context_member_method_call`
-reach-gap, deferred to a future structured-witness synthesizer). No grammar emits a sample its own
+grammar — reports `sample_parse_failures=0` with a canonical (`sv_2017`) residual of `UNKNOWN=12` (down
+from 20 since `VERILOG-2005-PROFILE.6.7` promoted the 8 `sv_2017`-profile-unreachable SystemVerilog-only
+rules to per-profile `proof`) that the sound multi-config recognized union collapses to `UNKNOWN=1` (the
+single `context_member_method_call` reach-gap, deferred to a future structured-witness synthesizer). No grammar emits a sample its own
 parser semantically rejects.

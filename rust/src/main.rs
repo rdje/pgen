@@ -2404,11 +2404,15 @@ fn gather_cert_covered_sets(
     samples: usize,
     seed: u64,
     profile: Option<&str>,
+    full_defined: &std::collections::HashSet<String>,
+    entry_universe: &[String],
+    gather_profile_proofs: bool,
     max_depth: usize,
     emit_diagnostics: bool,
 ) -> Result<CertCoveredSets> {
     use pgen::ast_pipeline::grammar_wellformedness::{
-        certificate_coverage, gather_verified_proof_covered_rules,
+        certificate_coverage, gather_verified_profile_proof_covered_rules,
+        gather_verified_proof_covered_rules,
     };
     let entry_rule = entry.to_string();
 
@@ -2494,8 +2498,42 @@ fn gather_cert_covered_sets(
     }
 
     // PROOF side: the rules a verified unreachability certificate proves dead (re-checked, not trusted).
-    let (proof_covered, proof_fails) =
+    let (mut proof_covered, mut proof_fails) =
         gather_verified_proof_covered_rules(&grammar.grammar_tree, &grammar.rule_order);
+
+    // VERILOG-2005-PROFILE.6.7: PER-PROFILE proof promotion. When a dialect profile is active, a rule
+    // stranded by the pruning of every context that could reach it (P1) or dead under the
+    // unproducible-store-gate fixpoint (P2) is provably never-witnessed — but the profile-agnostic
+    // whole-rule proofs above cannot say so. Fold in the VERIFIED per-profile proofs (each independently
+    // re-derived by `verify_profile_certificate`), quantifying over the DECLARED ENTRY UNIVERSE (so the
+    // entry-relative library cohort is never falsely branded dead). Gated on `profile.is_some()`: with no
+    // profile the single-entry P1 would mis-brand alternate-entry rules, so the no-profile cert stays
+    // byte-identical. INERT for a fully-certified grammar (UNKNOWN=0 ⇒ nothing to promote), so the 6
+    // fully-certified grammars are unaffected by construction.
+    //
+    // `gather_profile_proofs` is TRUE only for the CANONICAL (base-config) run — the config being
+    // certified. The multi-config union's AUXILIARY per-config runs are pure WITNESS-extenders (their
+    // reason for existing), so they do NOT contribute profile-proofs: that keeps the union's proof set =
+    // "provably dead under the BASE profile" (so `canonical_proof == union_proof` stays true) and its
+    // witness set = "witnessed under some recognized config" — the sound recognized-union model. A rule
+    // proof-under-base + witness-under-an-alternate-config is covered either way (union UNKNOWN invariant).
+    if let (true, Some(active_profile)) = (gather_profile_proofs, profile) {
+        let entries: Vec<String> = entry_universe
+            .iter()
+            .filter(|e| grammar.grammar_tree.contains_key(*e))
+            .cloned()
+            .collect();
+        let (profile_proof, profile_fails) = gather_verified_profile_proof_covered_rules(
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            full_defined,
+            &entries,
+            grammar.annotations.as_ref(),
+            active_profile,
+        );
+        proof_covered.extend(profile_proof);
+        proof_fails.extend(profile_fails);
+    }
 
     // PASS 2 — GRAMMAR-WELLFORMED.H.4.2: the CONSTRUCTIVE-REACH witness pass. Run only if the diverse
     // pass left UNKNOWN rules. It is a deliberately SEPARATE, auxiliary witness-finder for branches the
@@ -2855,10 +2893,41 @@ fn run_certificate_coverage_report(
         .ok_or_else(|| anyhow::anyhow!("grammar '{}' has no rules", grammar.grammar_name))?;
     let samples = samples.max(1);
 
+    // VERILOG-2005-PROFILE.6.7: the DECLARED ENTRY UNIVERSE for per-profile proof gathering — the
+    // canonical entry PLUS every `--cert-union-config` entry (deduped, in declaration order). Each
+    // `gather_cert_covered_sets` call filters this to the entries present in its own active tree, so
+    // the entry-relative library cohort (`library_text`, …) is reachable → never falsely proved dead
+    // (the `.6.5` load-bearing requirement). `full_defined` = the PRE-filter rule names, so
+    // profile-PRUNED references (unsatisfiable) are distinguished from external/include references
+    // (never accused). Both are profile-INERT when no profile is active (the gathering is gated on
+    // `profile.is_some()`).
+    let mut entry_universe: Vec<String> = vec![entry_rule.clone()];
+    for raw in union_configs {
+        let cfg_entry = match raw.split_once(':') {
+            Some((e, _)) => e.trim(),
+            None => raw.trim(),
+        };
+        if !cfg_entry.is_empty() && !entry_universe.iter().any(|e| e == cfg_entry) {
+            entry_universe.push(cfg_entry.to_string());
+        }
+    }
+    let full_defined: std::collections::HashSet<String> =
+        unfiltered_grammar.grammar_tree.keys().cloned().collect();
+
     // CANONICAL pass — verbose (`emit_diagnostics=true`), so its per-pass diagnostic lines +
     // PGEN_CERT_COVERAGE_DEBUG_PROBES output are byte-identical to the historical single-config report.
-    let canonical =
-        gather_cert_covered_sets(grammar, &entry_rule, samples, seed, profile, max_depth, true)?;
+    let canonical = gather_cert_covered_sets(
+        grammar,
+        &entry_rule,
+        samples,
+        seed,
+        profile,
+        &full_defined,
+        &entry_universe,
+        true, // canonical/base config — gather per-profile proofs
+        max_depth,
+        true,
+    )?;
 
     let report = certificate_coverage(
         &grammar.rule_order,
@@ -2948,28 +3017,19 @@ fn run_certificate_coverage_report(
     // profile-entry-universe unreachability + P2 unproducible-mandatory-store-gate fixpoint,
     // designed in `.6.5`). Prints ONLY under PGEN_CERT_RESIDUAL_CLASSIFICATION (default output is
     // byte-identical by construction — the analysis does not even run otherwise) and never touches
-    // generation or the reach passes. The entry universe = the canonical entry + every
-    // `--cert-union-config` entry present in the ACTIVE (profile-filtered) tree; the pre-filter
-    // rule set distinguishes profile-PRUNED references (unsatisfiable) from external/include
-    // references (never accused). Promotion to `proof` certificates is the separate `.6.7` leaf.
+    // generation or the reach passes. Reuses the run's DECLARED ENTRY UNIVERSE (filtered to the
+    // ACTIVE profile-filtered tree) + the pre-filter rule set (distinguishes profile-PRUNED
+    // references — unsatisfiable — from external/include references, never accused). Since `.6.7`
+    // promoted P1∪P2 into `proof`, `report.unknown` is now the GENUINE remainder, so this block is a
+    // confirmation surface (it should classify the residual as all-`genuine`).
     if std::env::var_os("PGEN_CERT_RESIDUAL_CLASSIFICATION").is_some() && !report.unknown.is_empty()
     {
         use pgen::ast_pipeline::grammar_wellformedness::classify_profile_residual;
-        let mut entries: Vec<String> = vec![entry_rule.clone()];
-        for raw in union_configs {
-            let cfg_entry = match raw.split_once(':') {
-                Some((e, _)) => e.trim(),
-                None => raw.trim(),
-            };
-            if !cfg_entry.is_empty()
-                && grammar.grammar_tree.contains_key(cfg_entry)
-                && !entries.iter().any(|e| e == cfg_entry)
-            {
-                entries.push(cfg_entry.to_string());
-            }
-        }
-        let full_defined: std::collections::HashSet<String> =
-            unfiltered_grammar.grammar_tree.keys().cloned().collect();
+        let entries: Vec<String> = entry_universe
+            .iter()
+            .filter(|e| grammar.grammar_tree.contains_key(*e))
+            .cloned()
+            .collect();
         let classification = classify_profile_residual(
             &grammar.grammar_tree,
             &grammar.rule_order,
@@ -3071,6 +3131,9 @@ fn run_certificate_coverage_report(
                 samples,
                 seed,
                 cfg_profile,
+                &full_defined,
+                &entry_universe,
+                false, // auxiliary union config — witness-extender only, no profile-proofs
                 max_depth,
                 false,
             )?;

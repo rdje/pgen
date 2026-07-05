@@ -1487,6 +1487,22 @@ pub enum WellformednessCertificate {
     /// primitive (which records positive entry) correctly never records it. The non-witnessing is a
     /// SOUND, decidable PROOF (re-derived as `reachable ∖ positively_reachable`), not a coverage gap.
     LookaheadOnlyRule { rule: String },
+    /// VERILOG-2005-PROFILE.6.7 (P1): `rule` SURVIVES the `profile` filter but is NOT positively
+    /// reachable from any entry in the DECLARED ENTRY UNIVERSE `entries` over the active
+    /// (profile-filtered) tree with satisfiability-honest edges — no accepted parse from any declared
+    /// entry under `profile` can positively enter it, so the transactional witness primitive can never
+    /// record it. A SOUND, decidable PER-PROFILE PROOF (the profile-scoped generalization of
+    /// `LookaheadOnlyRule`), re-derived from scratch by `verify_profile_certificate`. Verified only
+    /// through the dedicated verifier (it needs the pre-filter rule set + the entry universe, which the
+    /// generic `verify_wellformedness_certificate` signature does not carry).
+    ProfileEntryUnreachable { rule: String, profile: String, entries: Vec<String> },
+    /// VERILOG-2005-PROFILE.6.7 (P2): `rule` is P1-live under `profile` but dead under the
+    /// profile-unproducible-store-gate FIXPOINT (`classify_profile_residual`) — its mandatory descent
+    /// forces a positive store-gate (or a rule that forces one) on a fact-kind no P1-live rule can
+    /// emit, with NO live `@import_from_library` degrading the analysis. `reason` is the machine
+    /// attribution (`gate kind 'K' unproducible` / `mandatory descent forces 'R'` / `stranded by the
+    /// store fixpoint`). A SOUND per-profile PROOF re-derived from scratch by `verify_profile_certificate`.
+    ProfileUnproducibleGate { rule: String, profile: String, reason: String },
 }
 
 /// THE CHECKER (G.2): independently re-validate ANY wellformedness certificate against the grammar.
@@ -1581,6 +1597,85 @@ pub fn verify_wellformedness_certificate(
                 ))
             }
         }
+        WellformednessCertificate::ProfileEntryUnreachable { rule, .. }
+        | WellformednessCertificate::ProfileUnproducibleGate { rule, .. } => Err(format!(
+            "profile certificate for rule '{rule}' must be re-verified through \
+             `verify_profile_certificate` (it needs the pre-filter rule set + the declared entry \
+             universe, which this generic verifier does not carry)"
+        )),
+    }
+}
+
+/// VERILOG-2005-PROFILE.6.7 — THE CHECKER for the per-profile proof certificates
+/// (`ProfileEntryUnreachable` / `ProfileUnproducibleGate`). Independently re-derives the claim from
+/// the active (profile-filtered) tree + the pre-filter rule set (`full_defined`, so profile-PRUNED
+/// vs external/include references are distinguished) + the declared entry universe (`entries`), via
+/// the SAME pure `.6.6` analyses the detector uses — recomputing, never trusting a passed-in flag
+/// (the `LookaheadOnlyRule` re-derivation pattern). Non-profile variants delegate to the generic
+/// `verify_wellformedness_certificate`. `Ok(())` iff the certificate genuinely holds.
+pub fn verify_profile_certificate(
+    active: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    full_defined: &HashSet<String>,
+    entries: &[String],
+    annotations: Option<&Annotations>,
+    cert: &WellformednessCertificate,
+) -> Result<(), String> {
+    match cert {
+        WellformednessCertificate::ProfileEntryUnreachable {
+            rule,
+            profile: _,
+            entries: cert_entries,
+        } => {
+            if !active.contains_key(rule) {
+                return Err(format!(
+                    "profile-entry-unreachable certificate cites rule '{rule}' absent from the active (profile-filtered) tree"
+                ));
+            }
+            if cert_entries != entries {
+                return Err(format!(
+                    "profile-entry-unreachable certificate for '{rule}' carries entry universe {cert_entries:?} but the run's universe is {entries:?}"
+                ));
+            }
+            // Re-derive P1 (positive reachability from the declared entry universe, no store-dead
+            // set) independently; the claim holds iff `rule` is NOT positively reachable.
+            let live0 =
+                profile_entry_positively_live(active, rule_order, full_defined, entries, &HashSet::new());
+            if live0.contains(rule) {
+                Err(format!(
+                    "certificate claims '{rule}' is PROFILE-ENTRY-UNREACHABLE, but it IS positively reachable from the declared entry universe"
+                ))
+            } else {
+                Ok(())
+            }
+        }
+        WellformednessCertificate::ProfileUnproducibleGate { rule, profile: _, reason: _ } => {
+            if !active.contains_key(rule) {
+                return Err(format!(
+                    "profile-unproducible-gate certificate cites rule '{rule}' absent from the active (profile-filtered) tree"
+                ));
+            }
+            // Re-derive the P1+P2 store fixpoint from scratch (grammar-global; the `unknown` argument
+            // only selects which rules are bucketed, so classifying just `[rule]` yields the same
+            // verdict) and confirm `rule` lands in `store_unproducible`.
+            let classification = classify_profile_residual(
+                active,
+                rule_order,
+                full_defined,
+                entries,
+                annotations,
+                std::slice::from_ref(rule),
+            );
+            if classification.store_unproducible.iter().any(|(r, _)| r == rule) {
+                Ok(())
+            } else {
+                Err(format!(
+                    "certificate claims '{rule}' is STORE-UNPRODUCIBLE under the profile, but the re-derived classification does not place it there (degraded_inert={})",
+                    classification.degraded_inert
+                ))
+            }
+        }
+        other => verify_wellformedness_certificate(active, rule_order, annotations, other),
     }
 }
 
@@ -2303,6 +2398,69 @@ pub fn classify_profile_residual(
         store_unproducible,
         genuine,
     }
+}
+
+/// VERILOG-2005-PROFILE.6.7 (proof gathering, per-profile): the set of active rules covered by a
+/// VERIFIED PER-PROFILE proof — each proposed by `classify_profile_residual` (P1 profile-entry
+/// unreachability + P2 unproducible-store-gate fixpoint) AND independently re-confirmed by
+/// `verify_profile_certificate`. This is the profile-scoped analogue of
+/// `gather_verified_proof_covered_rules`: under a dialect profile, a rule stranded by the pruning of
+/// every context that could reach it (or dead under the store fixpoint) is provably never-witnessed,
+/// but the profile-agnostic whole-rule proofs cannot say so (`reachable_rules` promotes such a
+/// stranded rule to its own secondary root). SOUND because a rule NOT positively reachable from any
+/// declared entry — or dead under the store fixpoint — can never be exercised by an accepted parse,
+/// so the transactional witness primitive correctly never records it. The classification quantifies
+/// over the DECLARED ENTRY UNIVERSE `entries`, so the entry-relative cohort (`library_text`, …) is
+/// NEVER falsely branded dead. PURE + deterministic (set membership; the caller need not order). A
+/// proposed rule whose certificate fails re-verify is a LINTER BUG — returned in `failures`, never
+/// silently covered.
+pub fn gather_verified_profile_proof_covered_rules(
+    active: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    full_defined: &HashSet<String>,
+    entries: &[String],
+    annotations: Option<&Annotations>,
+    profile: &str,
+) -> (HashSet<String>, Vec<String>) {
+    let mut covered = HashSet::new();
+    let mut failures = Vec::new();
+    // Classify the WHOLE active rule set (pass `rule_order` as the candidate universe): P1-dead rules
+    // land in `profile_entry_unreachable`, store-fixpoint-dead in `store_unproducible`, the rest in
+    // `genuine` (never covered here). The store fixpoint itself is grammar-global — independent of
+    // this candidate list.
+    let classification =
+        classify_profile_residual(active, rule_order, full_defined, entries, annotations, rule_order);
+    for rule in &classification.profile_entry_unreachable {
+        let cert = WellformednessCertificate::ProfileEntryUnreachable {
+            rule: rule.clone(),
+            profile: profile.to_string(),
+            entries: entries.to_vec(),
+        };
+        match verify_profile_certificate(active, rule_order, full_defined, entries, annotations, &cert)
+        {
+            Ok(()) => {
+                covered.insert(rule.clone());
+            }
+            Err(e) => failures
+                .push(format!("profile-entry-unreachable proof for '{rule}' failed re-verify: {e}")),
+        }
+    }
+    for (rule, reason) in &classification.store_unproducible {
+        let cert = WellformednessCertificate::ProfileUnproducibleGate {
+            rule: rule.clone(),
+            profile: profile.to_string(),
+            reason: reason.clone(),
+        };
+        match verify_profile_certificate(active, rule_order, full_defined, entries, annotations, &cert)
+        {
+            Ok(()) => {
+                covered.insert(rule.clone());
+            }
+            Err(e) => failures
+                .push(format!("profile-unproducible-gate proof for '{rule}' failed re-verify: {e}")),
+        }
+    }
+    (covered, failures)
 }
 
 #[cfg(test)]
@@ -3433,6 +3591,100 @@ mod tests {
             c.genuine,
             vec!["escape".to_string(), "negative".to_string(), "plain".to_string()]
         );
+    }
+
+    #[test]
+    fn profile_proof_gathering_covers_p1_and_p2_and_checker_rejects_live_and_genuine_rules() {
+        // VERILOG-2005-PROFILE.6.7: the class-A miniature — `producer` is P1 (its ONLY referencer is
+        // pruned, so it survives unreferenced but is entry-unreachable), `use_site` is P2 (its
+        // store-gate kind has no LIVE emitter), `escape`/`plain`/`entry` are genuine/live.
+        let mut g = HashMap::new();
+        g.insert(
+            "entry".into(),
+            or(vec![rule_ref("use_site"), rule_ref("escape"), rule_ref("plain")]),
+        );
+        g.insert("producer".into(), token("string", "decl"));
+        g.insert("use_site".into(), token("string", "id"));
+        g.insert("escape".into(), or(vec![rule_ref("use_site"), token("string", "ok")]));
+        g.insert("plain".into(), token("string", "p"));
+        let order: Vec<String> = vec![
+            "entry".into(),
+            "producer".into(),
+            "use_site".into(),
+            "escape".into(),
+            "plain".into(),
+        ];
+        let full = full_with(&g, &["pruned_host"]);
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("producer".into(), vec![emit_fact_ann("type_name")]);
+        ann.semantic_annotations
+            .insert("use_site".into(), vec![predicate_ann("has_fact(type_name, x)")]);
+        let entries = vec!["entry".to_string()];
+
+        // The gatherer covers exactly the P1∪P2 set, and EVERY proposed proof re-verifies.
+        let (covered, failures) = gather_verified_profile_proof_covered_rules(
+            &g,
+            &order,
+            &full,
+            &entries,
+            Some(&ann),
+            "test_profile",
+        );
+        assert!(failures.is_empty(), "every proposed per-profile proof must re-verify: {failures:?}");
+        assert!(covered.contains("producer"), "P1 entry-unreachable rule is proof-covered");
+        assert!(covered.contains("use_site"), "P2 store-unproducible rule is proof-covered");
+        assert!(
+            !covered.contains("escape") && !covered.contains("plain") && !covered.contains("entry"),
+            "a genuine/live rule is NEVER covered by a per-profile proof"
+        );
+
+        // The checker independently ACCEPTS a valid P1 cert, REJECTS one for a LIVE rule, and
+        // REJECTS a cert whose carried entry universe differs from the run's.
+        let good_p1 = WellformednessCertificate::ProfileEntryUnreachable {
+            rule: "producer".into(),
+            profile: "test_profile".into(),
+            entries: entries.clone(),
+        };
+        assert!(verify_profile_certificate(&g, &order, &full, &entries, Some(&ann), &good_p1).is_ok());
+        let bad_p1 = WellformednessCertificate::ProfileEntryUnreachable {
+            rule: "plain".into(),
+            profile: "test_profile".into(),
+            entries: entries.clone(),
+        };
+        assert!(
+            verify_profile_certificate(&g, &order, &full, &entries, Some(&ann), &bad_p1).is_err(),
+            "a live rule is NOT profile-entry-unreachable"
+        );
+        let mismatched = WellformednessCertificate::ProfileEntryUnreachable {
+            rule: "producer".into(),
+            profile: "test_profile".into(),
+            entries: vec!["entry".into(), "other".into()],
+        };
+        assert!(
+            verify_profile_certificate(&g, &order, &full, &entries, Some(&ann), &mismatched).is_err(),
+            "a cert whose entry universe differs from the run's must be rejected"
+        );
+
+        // The checker ACCEPTS a valid P2 cert and REJECTS one for a genuine (live, ungated) rule.
+        let good_p2 = WellformednessCertificate::ProfileUnproducibleGate {
+            rule: "use_site".into(),
+            profile: "test_profile".into(),
+            reason: "gate kind 'type_name' unproducible".into(),
+        };
+        assert!(verify_profile_certificate(&g, &order, &full, &entries, Some(&ann), &good_p2).is_ok());
+        let bad_p2 = WellformednessCertificate::ProfileUnproducibleGate {
+            rule: "plain".into(),
+            profile: "test_profile".into(),
+            reason: "irrelevant".into(),
+        };
+        assert!(
+            verify_profile_certificate(&g, &order, &full, &entries, Some(&ann), &bad_p2).is_err(),
+            "a genuine rule is NOT store-unproducible"
+        );
+
+        // The GENERIC verifier refuses the profile variants (it lacks the entry universe / pre-filter
+        // set) — routing them here is mandatory, not optional.
+        assert!(verify_wellformedness_certificate(&g, &order, Some(&ann), &good_p1).is_err());
     }
 
     #[test]

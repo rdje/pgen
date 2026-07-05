@@ -154,6 +154,16 @@ cert_expected_prf="$(jq -r '.cert.expected_proof_reverify_failures' "$CONTRACT_F
 
 mapfile -t cert_seeds < <(jq -r '.cert.seeds[]' "$CONTRACT_FILE")
 
+# VERILOG-2005-PROFILE.6.7: the DECLARED ENTRY UNIVERSE for the profiled cert's per-profile proof
+# gathering (P1/P2). Without these the single-entry universe would falsely prove the entry-relative
+# library cohort (`library_text`, …) dead — exactly what `.6.5` forbids. Absent ⇒ empty (byte-identical
+# legacy behaviour).
+mapfile -t cert_union_configs < <(jq -r '.cert.union_configs[]? // empty' "$CONTRACT_FILE")
+declare -a cert_union_args=()
+for cfg in "${cert_union_configs[@]:-}"; do
+    [[ -n "$cfg" ]] && cert_union_args+=(--cert-union-config "$cfg")
+done
+
 mkdir -p "$LOG_DIR"
 : >"$SUMMARY_TXT"
 
@@ -265,7 +275,8 @@ for seed in "${cert_seeds[@]}"; do
     echo "==> cert baseline profile=${cert_profile} seed=${seed}"
     if ! "$AST_PIPELINE_BIN" "$GRAMMAR_FILE" --report-certificate-coverage \
         --grammar-profile "$cert_profile" --entry-rule "$cert_entry" \
-        --count "$cert_samples" --seed "$seed" >"$cert_log" 2>&1; then
+        --count "$cert_samples" --seed "$seed" \
+        ${cert_union_args[@]+"${cert_union_args[@]}"} >"$cert_log" 2>&1; then
         echo "error: cert-coverage run failed for seed ${seed} (log: $cert_log)" >&2
         tail -n 80 "$cert_log" >&2 || true
         exit 1

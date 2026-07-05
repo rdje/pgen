@@ -3,7 +3,11 @@
 ## Metadata
 
 - Tree ID: `VERILOG-2005-PROFILE`
-- Status: `active`
+- Status: `complete` (2026-07-05, session #36 — `.6.7` per-profile `proof` promotion landed as
+  `PGEN-VERILOG-2005-PROFILE-0024`; all leaves `done`. The profile is registered end-to-end, strict
+  both ways, orphan-coherent, and its residual is now the honest genuine remainder — `verilog_2005`
+  cert `1117/327/773/17` with the profile-excluded surface PROVED, not UNKNOWN. Remaining ratchet of
+  the 17-rule genuine remainder is optional follow-up, not a tree blocker.)
 - Roadmap lane: dialect-profile surface for the EBNF-driven SV grammar (Verilog ⊂ SystemVerilog)
 - Created: `2026-07-01`
 - Owner: repo-local workflow
@@ -355,6 +359,14 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   `PGEN-GRAMMAR-WELLFORMED-0148`: `prune_log` ported to the union gate AND the new
   `rtl_const_expr_cert_gate` stage-log helpers.)
 
+## Acceptance Checklist (`.6.7`, enforced)
+- [x] **REPRODUCE / ISSUE** — BEFORE (HEAD binaries, seed 0, full declared entry universe via `--cert-union-config sv_multi_entry_root:verilog_2005 library_text:verilog_2005 systemverilog_parseable_file:verilog_2005`): `CERTIFICATE-COVERAGE: … --grammar-profile verilog_2005 … total=1117 proof=4 witness=773 UNKNOWN=340`, and `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` classifies the 340 as `profile_entry_unreachable (298)` + `store_unproducible_under_profile (25)` + `genuine (17)` — i.e. 323 rules that are provably profile-dead sit as UNKNOWN because the profile-agnostic whole-rule proofs cannot express profile-scoped deadness. Canonical `sv_2017`: `1343/2/1321/20`, classification P1=8 / P2=0 (DEGRADED-INERT — a live rule carries `@import_from_library`) / genuine 12.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the cert proof-side (`gather_verified_proof_covered_rules`, `rust/src/ast_pipeline/grammar_wellformedness.rs`) knows only the two profile-AGNOSTIC whole-rule proof classes (`UnreachableRule`/`LookaheadOnlyRule`); `reachable_rules` promotes a profile-stranded-but-surviving rule to its own secondary root (`grammar_wellformedness.rs` `reachable_rules`), so it is never "unreachable" → no proof → UNKNOWN. There was no per-profile proof certificate. The sound P1/P2 analyses already existed (read-only, `.6.6`): `profile_entry_positively_live` + `classify_profile_residual`.
+- [x] **FIX** — ENGINE tier (declarative/grammar tiers inapplicable — proof accounting is engine-internal, parser-agnostic; the fix-hierarchy is respected: no grammar/store change is possible for an accounting promotion). Two new `WellformednessCertificate` variants `ProfileEntryUnreachable {rule, profile, entries}` (P1) / `ProfileUnproducibleGate {rule, profile, reason}` (P2) + independent checker `verify_profile_certificate` (re-derives via the pure `.6.6` analyses; the generic verifier routes profile variants here) + `gather_verified_profile_proof_covered_rules` (proposes P1∪P2, re-verifies each). `rust/src/main.rs` `gather_cert_covered_sets` gains `full_defined` + `entry_universe` + `gather_profile_proofs` (TRUE canonical-only) and folds the verified proofs into `proof_covered`. Canonical-only keeps `union_proof == canonical_proof`. `verilog_2005_conformance_gate.sh` + its contract gain the `union_configs` wiring so P1's entry universe includes the library cohort.
+- [x] **ADDRESSED (verified, seeds 0/7/42, standalone `ast_pipeline`)** — `verilog_2005` `1117/4/773/340`→**`1117/327/773/17`** byte-identical at seeds 0/7/42 (323 P1∪P2 → proof; 17 genuine remainder). Canonical `sv_2017` `1343/2/1321/20`→**`1343/10/1321/12`**; union `1343/2/1340/1`→**`1343/10/1332/1`** residual `["context_member_method_call"]` (union UNKNOWN invariant). New unit test `profile_proof_gathering_covers_p1_and_p2_and_checker_rejects_live_and_genuine_rules` — module `cargo test --lib grammar_wellformedness` 40/40.
+- [x] **NO REGRESSION** — `verilog_2005_conformance_gate` GREEN (0-orphan lint lock + full matrix unchanged + cert re-pinned `1117/327/773/17` seeds 0/7/42); `sv_cert_recognized_union_gate` GREEN (canonical `1343/10/1321/12`, union `1343/10/1332/1`, residual `context_member_method_call`, seeds 0/7/42); the 6 fully-certified grammars BYTE-IDENTICAL by construction (UNKNOWN=0 ⇒ nothing to promote; parser AST byte-invariant — no grammar/parser/generated change); `cargo test --lib grammar_wellformedness` 40/40; clippy source-clean (the pre-existing generated/lib `unused_imports` warnings are untouched debt, present at HEAD). NO release/schema bump.
+- [x] **LOCKSTEP** — book `parser-families.md` (v2005 baseline + honest-read promotion narrative), `stimuli-and-quality.md` (canonical 20→12), `grammar-wellformedness.md` (recognized-union pins + `.6.7` history); SV integration contract (recognized basis + v2005 baseline); both contract JSONs re-pinned with provenance; LIVE dialect block + session-#36 tracker note; `docs/TASK_TREE.md` frontier (tree COMPLETE); CHANGES / DEVELOPMENT_NOTES / MEMORY. No ledger row (accounting promotion, not a defect fix). Release/schema unchanged (`1.0.167`/16).
+
 ## Acceptance Checklist (`.6.6`, enforced)
 - [x] **REPRODUCE / ISSUE** — the `.6.5`-designed gap (profile-gated residual carries no machine classification; manual adjudication drifts per-commit). Fresh BEFORE run reproduced the pins byte-identical: `CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1147 proof=4 witness=816 UNKNOWN=327 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)` (seed 0, `PGEN_CERT_COVERAGE_DUMP_ALL=1`, 295 NO-reach enumerated; canonical+union BEFORE likewise `1341/2/1319/20` + union `1338/1`).
 - [x] **ROOT CAUSE (WHY + WHERE)** — carried from `.6.5`, all three mechanisms tool-pinned to file:line: `reachable_rules`' unreferenced→secondary-root promotion (`grammar_wellformedness.rs:306-313`) defeats today's `UnreachableRule` proof for stranded rules; the profile-agnostic `declared_*_identifier` emitters (`systemverilog.ebnf:1018-5481`) defeat the kind-existence lint (unproducibility is reachability of producing contexts, a fixpoint); `reach_hops_pass`' missing-mandatory skip (`stimuli_generator.rs:6869`) vs the honesty in `mandatory_node_gated` (`:7120`) explains the class-B spurious reach paths.
@@ -682,7 +694,8 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   re-baselined with provenance notes; tree + `docs/TASK_TREE.md` frontier advanced; LIVE dialect
   block left-to-close updated; CHANGES / DEVELOPMENT_NOTES / MEMORY.
 
-- ID: `VERILOG-2005-PROFILE.6` — **frontier** (active umbrella, 2026-07-02 session #19): ratchet
+- ID: `VERILOG-2005-PROFILE.6` — `done` (umbrella COMPLETE 2026-07-05 via `.6.7`; was the active
+  frontier from 2026-07-02 session #19): ratchet
   the `verilog_2005` profiled cert-coverage baseline (pinned `1138/2/826/310/spf=0`). Adjudicate
   the 310-UNKNOWN residual tools-first (the 3-step protocol): the 277 NO-reach-path candidates are
   expected profile-unreachable SV-only surface (candidates for per-profile `proof` accounting
@@ -852,17 +865,62 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     new ledgered `verilog_2005` boundary leaks (**`SV-0031`** `::` scope-resolution surface,
     **`SV-0032`** `void` return type, **`SV-0033`** dynamic-array `[]` — all `Root Caused`,
     own fix leaves). Full record in "`.6.6` Findings".
-  - ID: `VERILOG-2005-PROFILE.6.7` — proposed (UNBLOCKED by `.6.6`): CODE leaf (engine + gate
-    re-pins) — PROMOTION: new
+  - ID: `VERILOG-2005-PROFILE.6.7` — Status: `done` (2026-07-05, session #36,
+    `PGEN-VERILOG-2005-PROFILE-0024`):
+    CODE leaf (engine + gate re-pins) — PROMOTION: new
     `WellformednessCertificate::{ProfileEntryUnreachable, ProfileUnproducibleGate}` variants
     + independent checkers; cert proof-gathering consumes them; ALL affected pinned gates
     re-baselined in the SAME slice (v2005 conformance cert pins, `sv_cert_recognized_union_gate`
-    canonical pins, LIVE/book/contract lockstep). The leaf must enumerate the exact expected
-    canonical-run delta from the `.6.6` machine output BEFORE landing. NOTE from `.6.6`: the
-    v2005 conformance gate's cert invocation carries NO `--cert-union-config`, so promotion must
-    first decide the gate-side entry-universe wiring (add union configs to the gate command, or
-    plumb a dedicated entry-universe flag) — otherwise P1 under the gate's single-entry universe
-    would prove the entry-relative library cohort dead, exactly what `.6.5` forbids.
+    canonical pins, LIVE/book/contract lockstep). Design + tools-first BEFORE-measurements in
+    "`.6.7` Findings" below. NOTE from `.6.6`: the v2005 conformance gate's cert invocation carries
+    NO `--cert-union-config`, so promotion must first decide the gate-side entry-universe wiring —
+    DECIDED: add the same 3 union configs the `.6.6` classification uses
+    (`sv_multi_entry_root:verilog_2005` / `library_text:verilog_2005` /
+    `systemverilog_parseable_file:verilog_2005`) to the conformance gate's cert command, so P1's
+    entry universe includes the entry-relative library cohort (else it is falsely proved dead,
+    exactly what `.6.5` forbids).
+
+## `.6.7` Findings (session #36, 2026-07-05 — the promotion design + tools-first before-measurements)
+
+**Purity / blast radius (tools-first).** The change lives ENTIRELY in the `ast_pipeline`
+cert-report path (`grammar_wellformedness.rs` analysis + `main.rs` report) — NO grammar edit, NO
+parser regen, NO generated-artifact change. Parsers stay byte-identical (no `focus_*`), so the 6
+fully-certified grammars are inert BY CONSTRUCTION: profile-proof gathering can only newly-cover a
+rule that is P1-unreachable or P2-store-dead, and such a rule can never be witnessed (unreachable ⇒
+not exercised), so for a grammar with `UNKNOWN=0` there is nothing to promote → byte-identical cert.
+Only SV's multi-profile runs (`sv_2017` / `verilog_2005`), which carry a non-empty residual, move.
+
+**Gate on `profile.is_some()`.** Profile-proof gathering runs ONLY when a profile is active AND over
+the DECLARED ENTRY UNIVERSE (entry + `--cert-union-config` entries present in the active tree). With
+no profile the single-entry P1 would falsely brand alternate-entry rules (`library_text`, …) dead —
+so the no-profile path is untouched (also guarantees byte-identical no-profile certs).
+
+**Measured BEFORE-state (HEAD binaries, seed 0, full declared entry universe):**
+- `verilog_2005`: `total=1117 proof=4 witness=773 UNKNOWN=340`; classification P1=298 / P2=25 /
+  genuine=17 (`store_analysis=active` — the import surface is SV-only-gated). → PROMOTE 323
+  (P1∪P2): expected AFTER `1117/327/773/17`. The 17 genuine = the 11-rule entry-relative library/
+  include/parseable cohort + `context_member_method_call` + 5 in-profile ratchet targets
+  (`data_type_or_void`, `function_statement`, `hierarchical_tf_identifier`,
+  `scoped_or_hierarchical_tf_identifier`, `tf_call_with_args`).
+- canonical `sv_2017` (recognized-union base): `total=1343 proof=2 witness=1321 UNKNOWN=20`;
+  classification P1=8 / P2=0 / genuine=12, `store_analysis=DEGRADED-INERT` (a live rule carries
+  `@import_from_library` → P2 makes no claims under `sv_2017`, correctly). → PROMOTE 8 (P1): expected
+  AFTER canonical `1343/10/1321/12`. The 12 genuine = the 11-rule library cohort +
+  `context_member_method_call`.
+- UNION result invariant: `context_member_method_call` is `genuine` under every config and witnessed
+  by none, so union `UNKNOWN` stays **1** (the load-bearing `.6.5` requirement). Promotion only moves
+  UNKNOWN→proof, never creates UNKNOWN. The union proof/witness SPLIT shifts (proof-precedence in
+  `certificate_coverage` counts a rule that is proof-in-`sv_2017` + witness-in-`sv_2023` as proof) —
+  measured exactly post-build and re-pinned with set-diff evidence.
+
+**Design (engine).** Two new `WellformednessCertificate` variants + a dedicated
+`verify_profile_certificate(active, rule_order, full_defined, entries, annotations, cert)` (the
+generic `verify_wellformedness_certificate` lacks `full_defined`/`entries`, so profile variants route
+through the dedicated verifier; both re-derive from scratch via the pure `.6.6` analyses, never trust
+the detector). A `gather_verified_profile_proof_covered_rules` proposes P1∪P2 via
+`classify_profile_residual` then re-verifies each with the dedicated checker. `main.rs`
+`gather_cert_covered_sets` gains `full_defined` + `entry_universe` params and, when `profile.is_some()`,
+unions the profile-proofs into `proof_covered`.
   - ID: `VERILOG-2005-PROFILE.6.8` — Status: `done` (2026-07-03, session #27,
     `PGEN-VERILOG-2005-PROFILE-0020`, CODE leaf, grammar-only): **closed the `SV-0032`
     `verilog_2005`-only boundary leak — the SV-only `void` surface.** `void` is categorically absent from IEEE 1364-2005 (§10.4 lists function return
