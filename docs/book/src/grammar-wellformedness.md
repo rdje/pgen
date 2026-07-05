@@ -32,11 +32,13 @@ independent axis. (This is literature-grounded, not invented; sources at the end
 3. **No dead branches.** In an ordered choice `a | b | …`, a later alternative is *shadowed* if an
    earlier one always matches first — it can never be selected, so it is unreachable. This is the
    branch-level form of "useless symbol." Exact-duplicate and fixed-terminal-prefix are detected as
-   hard gates. A third form, *earlier-always-succeeds*, was staged as a warning — but a 2026-07-05
-   tools-first audit found it **unsound for PGEN's backtracking engine** (it can flag a *live* branch
-   as dead; see the correction under the worked example), so it stays a non-gating heuristic and its
-   planned promotion to a hard gate is **retired**. The general FIRST-set-domination heuristic is
-   *deliberately omitted* as unsound for PEG (see "Where PGEN stands").
+   hard gates. A third form, *earlier-always-succeeds*, was once staged as a warning for promotion —
+   but a 2026-07-05 tools-first audit found it **unsound for PGEN's backtracking engine** (it flagged
+   a *live* branch as dead; see the correction under the worked example), so as of **A2.2** its
+   shadowing *verdict* was removed: it survives only as a non-gating, non-verdict `[note]`
+   (`always_succeeds_alternatives`), and its planned promotion to a hard gate is **retired**. The
+   general FIRST-set-domination heuristic is *deliberately omitted* as unsound for PEG (see "Where
+   PGEN stands").
 4. **No dangling references, no profile orphans.** Every referenced rule is defined, and every rule
    present under a language profile (e.g. `sv_2017` vs `sv_2023`) is actually satisfiable under it.
 
@@ -172,9 +174,11 @@ consecutive_repetition := ( star const_or_range_expression )?   -> {kind: "star_
 ```
 
 Every alternative is individually wrapped `( … )?`. Because an optional can never fail, the **first**
-alternative always succeeds, so PEG commits to it and the `[*]` and `[+]` forms (alternatives two and
-three) are **unreachable** — and worse, the rule silently emits an empty `star_range` node on every
-sequence expression even when there is no repetition at all. The signature is too regular to be
+alternative always succeeds. (The linter originally called the `[*]`/`[+]` forms *unreachable* on the
+"PEG commits to the first success" reasoning — a claim the 2026-07-05 Correction below **retracts** for
+PGEN's backtracking engine; read this paragraph as the historical framing.) The real, engine-independent
+defect stands regardless: the rule silently emits an empty `star_range` node on every sequence expression
+even when there is no repetition at all. The signature is too regular to be
 hand-written; it looks like an extraction artifact from translating the IEEE 1800 grammar out of the
 LRM PDF, where an "optional" marker was attached to each alternative instead of to the construct as a
 whole. The same shape recurs across several rule families (covergroup value-ranges, randsequence
@@ -221,11 +225,23 @@ flagged branch is **live**.
 
 So "an earlier alternative always succeeds" does *not* imply "later alternatives are unreachable" under
 backtracking. The sound question — *can this alternative ever win?* — is a language-difference question,
-undecidable in general (exactly the class this chapter excludes). The check is therefore reclassified as
-a non-gating anti-pattern **hint**: valuable for surfacing extraction artifacts (as above), but not a
-proof of deadness. Its residual warnings include **false positives**, and its promotion to a hard gate is
-retired. This is the chapter's own principle turned on itself — a complete-but-unsound check "would 'fix'
-branches that were never broken", so PGEN keeps it honest by demoting it.
+undecidable in general (exactly the class this chapter excludes). This is the chapter's own principle
+turned on itself — a complete-but-unsound check "would 'fix' branches that were never broken", so PGEN
+keeps it honest by demoting it.
+
+**As implemented (A2.2, 2026-07-05).** The shadowing *verdict* was removed outright: the linter no
+longer produces an "earlier-always-succeeds ⇒ later-alternative-unreachable" shadowing finding, and the
+matching unreachability *certificate* variant is gone (a certificate is a *proof* of deadness, which
+always-succeeds cannot honestly supply). There was no sound sub-case worth keeping — every
+always-succeeds form, empty-match or not, is defeated by the same backtracking argument, and the only
+truly-redundant case (an exact *duplicate* alternative) is already its own sound reason. The underlying
+observation survives as a **non-verdict note**: `--lint-grammar` now reports
+`always_succeeds_alternatives=N (note)` and prints each as a `[note]` worded to make *no* reachability
+claim — kept because a nullable earlier alternative is still a useful smell (it was the tool that found
+the dropped-delimiter bugs above). Concretely, SystemVerilog's former **8** always-matches *warnings*
+became **6** informational *notes* (the count reframes from "one per shadowed victim" to "one per
+always-succeeding source"), `ordered_choice_shadowing` stays a hard gate at `0`, and the proven-live
+`interconnect` port branch is no longer flagged at all.
 
 The residual handful is the *honest* part of the picture: a few rules (`net_port_type`, the
 port-headers) are genuinely ambiguous on a bare identifier — "is this name a net type, or a data
@@ -1320,22 +1336,29 @@ and fixed-terminal-prefix shadow freedom, and **structural reachability** ("no u
 multi-entry-aware) — all hard gates — plus **attribute non-circularity**, which holds by construction
 (the annotation language is synthesized-only).
 
-It *also* now detects a second sound form of dead branch: an **earlier alternative that always
-succeeds**. In an ordered choice `a | b`, if `a` can never fail (it is `e?`, `e*`, an all-optional
-sequence, or a reference to such a rule), then PEG commits to `a` on every input and `b` is
-unreachable. This is distinct from nullability — a lookahead `&e`/`!e` consumes nothing (nullable)
-but *can* fail, so it never triggers this rule (no false positives). The analysis is deliberately
-conservative: it flags a later branch only when the earlier one is *provably* always-succeeding,
-never on a guess. It found 52 real dead branches in the SystemVerilog grammar (a recurring
-"`( X )?` written as an alternative" mistake) — those are surfaced as warnings first and will become
-a hard gate once the grammar is cleaned, exactly the way exact-duplicate shadowing was staged.
+It *also* observes — but no longer as a *verdict* — an **earlier alternative that always succeeds**.
+In an ordered choice `a | b`, if `a` can never fail (it is `e?`, `e*`, an all-optional sequence, or a
+reference to such a rule), a *pure* PEG would commit to `a` and leave `b` unreachable. PGEN once
+gated on exactly that reasoning; the 2026-07-05 audit (see the Correction under the worked example)
+found it **unsound for PGEN's backtracking / longest-match engine** — after `a` succeeds by matching
+*empty* and then fails downstream, the engine re-enters `b`, so `b` is *live*. It flagged
+proven-live branches (the `interconnect` port form) as dead. So as of **A2.2** the always-succeeds
+*shadowing verdict was removed*: it no longer emits a "shadowed/unreachable" finding and there is no
+gate-promotion path. What survives is a **non-verdict note** — `--lint-grammar` reports
+`always_succeeds_alternatives=N (note)` and prints each as a `[note]` that says explicitly *"not a
+deadness verdict"* — because a nullable earlier alternative is still a genuine grammar smell (it was
+the tool that surfaced the dropped-delimiter extraction bugs above). On SystemVerilog the former 8
+always-matches *warnings* are now 6 informational *notes*; every fully-certified grammar is at 0.
+(This is distinct from nullability — a lookahead `&e`/`!e` consumes nothing but *can* fail, so it
+never triggers the note; no false positives on that axis.)
 
 A note on what is **left out on purpose:** the *general* "FIRST-set domination" heuristic — "if
 everything `b` could start with, `a` could also start with, then `b` is dead" — is **unsound for
 PEG** and is intentionally not implemented. `a` might match the first token and then fail later, in
-which case PEG *does* backtrack and try `b`, so `b` is live. Implementing the general heuristic would
-falsely accuse live branches of being dead — the opposite of an honest linter. PGEN sticks to the
-two *sound, decidable* forms (fixed-terminal-prefix and always-succeeds).
+which case PGEN *does* backtrack and try `b`, so `b` is live. That is the *same* argument that
+retired the always-succeeds verdict. Implementing either as a verdict would falsely accuse live
+branches of being dead — the opposite of an honest linter. So the only *gating* shadow forms are the
+two that are sound under backtracking: **exact-duplicate** and **fixed-terminal-prefix**.
 
 On the **well-*defined*** layer, all three axes are now enforced. Attribute non-circularity holds by
 construction (synthesized-only annotations). Attribute completeness for synthesized attributes (`$N`)

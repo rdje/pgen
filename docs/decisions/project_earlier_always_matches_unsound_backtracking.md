@@ -54,11 +54,24 @@ not "unreachable". The check cannot separate these soundly.
   fires via backtracking) — they are NOT dead branches to "clean".
 - Item 4b store-gating is NOT an A2 deadness fix (the branches are reachable); any store-gating there is
   a separate AST-shape/fidelity question.
-- FRONTIER → `A2.2` DESIGN: decide the check's disposition (retire / demote to a non-verdict
-  informational anti-pattern hint / restrict to a provably-sound sub-case — the EMPTY-match earlier-alt
-  form is provably unsound and must at minimum be excluded) + implement in
-  `rust/src/ast_pipeline/grammar_wellformedness.rs` (drop the `EarlierAlwaysMatches::is_hard_gate()`→true
-  path; reframe the emitted "unreachable" wording) + book + this record lockstep.
+- **DISPOSITION IMPLEMENTED — `A2.2` DONE (2026-07-05, `PGEN-GRAMMAR-WELLFORMED-0150`, CODE).** Chosen
+  of the three options: **demote to a non-verdict informational note** (there is NO sound sub-case —
+  every always-succeeds form, empty-match or not, is defeated by the same backtracking argument; the only
+  truly-redundant case is exact-DUPLICATE, already its own sound reason). Implemented in
+  `rust/src/ast_pipeline/grammar_wellformedness.rs` + `rust/src/main.rs`: removed
+  `ShadowingReason::EarlierAlwaysMatches` (the whole shadowing *verdict*) AND the unsound
+  `UnreachabilityReason::EarlierArmAlwaysSucceeds` *certificate* variant (a certificate is a PROOF of
+  deadness — which always-succeeds cannot supply); removed the now-vacuous `ShadowingReason::is_hard_gate`;
+  added the non-verdict `WellformednessIssue::AlwaysSucceedsAlternative` + detector
+  `detect_always_succeeds_alternatives`, whose message makes NO unreachability claim. `--lint-grammar`
+  now reports `always_succeeds_alternatives=N (note)` (was `always_matches_shadowing=N (warning)`); SV's
+  8 always-matches warnings → 6 informational notes; `ordered_choice_shadowing` stays a hard gate at 0;
+  the proven-live `net_port_type_sv_2017 #2` interconnect branch is no longer flagged. NO grammar/parser
+  regen (shadowing/note is lint-only; shadowing certs are branch-level, not in the rule-level cert-coverage
+  proof pool, so canonical cert `1343/10/1321/12` is byte-identical at seeds 0/7/42). Book
+  `docs/book/src/grammar-wellformedness.md` reconciled (the "As implemented (A2.2)" note + the
+  "Where PGEN stands" section). `A2.3` (theoretical): `FixedTerminalPrefix` (`a | ab`) is *also* reachable
+  under backtracking — its soundness deserves its own tool-proved re-audit; logged, not acted on here.
 
 The earlier-fixed A2.1 families (boolean-abbrev, covergroup ranges, rs-prod, module-path, etc.) were
 LRM-grounded DROPPED-DELIMITER extraction-artifact fixes (spurious `?`/lost `[ ]`/`{ }`) that are

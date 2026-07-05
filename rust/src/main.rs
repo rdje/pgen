@@ -3175,9 +3175,9 @@ fn run_certificate_coverage_report(
 
 fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
-        detect_left_recursion, detect_nonterminating_rules, detect_nullable_repetition,
-        detect_ordered_choice_shadowing, detect_profile_orphans, detect_unbound_fact_kinds,
-        detect_unreachable_rules,
+        detect_always_succeeds_alternatives, detect_left_recursion, detect_nonterminating_rules,
+        detect_nullable_repetition, detect_ordered_choice_shadowing, detect_profile_orphans,
+        detect_unbound_fact_kinds, detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -3185,6 +3185,10 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     let lr = detect_left_recursion(g, order);
     let nonterm = detect_nonterminating_rules(g, order);
     let shadow = detect_ordered_choice_shadowing(g, order);
+    // GRAMMAR-WELLFORMED.A2.2: the NON-VERDICT always-succeeds smell (a nullable/total earlier
+    // alternative). It makes NO deadness claim (the old unsound `EarlierAlwaysMatches` shadowing
+    // verdict was retired) and never gates — surfaced as a [note].
+    let always_notes = detect_always_succeeds_alternatives(g, order);
     let nullrep = detect_nullable_repetition(g, order);
     // GRAMMAR-WELLFORMED.A1b: structural reachability — rules defined but unreachable from any
     // root (entry + unreferenced secondary entries). A dead rule is a well-formedness defect.
@@ -3237,16 +3241,14 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         Vec::new()
     };
 
-    let shadow_hard_count = shadow.iter().filter(|i| i.reason.is_hard_gate()).count();
-    let shadow_warn_count = shadow.len() - shadow_hard_count;
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_matches_shadowing={} (warning, A2 backlog), unreachable_rules={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         lr.len(),
         nonterm.len(),
-        shadow_hard_count,
-        shadow_warn_count,
+        shadow.len(),
+        always_notes.len(),
         unreachable.len(),
         unbound_facts.len(),
         nullrep.len(),
@@ -3271,26 +3273,24 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     if lr.len() > 10 {
         println!("  [info]  ... and {} more left-recursive rules", lr.len() - 10);
     }
-    // GRAMMAR-WELLFORMED.A2: split shadowing into the HARD-gated reasons (exact-duplicate +
-    // fixed-terminal-prefix — all authored grammars are clean at 0) and the newly-added
-    // EARLIER-ALWAYS-MATCHES reason, which is sound but still has an unfixed SV backlog (the
-    // `( X )?`-as-an-alternative anti-pattern), so it is reported as a WARNING until cleaned
-    // (A2.1 promotes it), mirroring how exact-dup shadowing was staged before A1a.
-    let (shadow_hard, shadow_warn): (Vec<_>, Vec<_>) =
-        shadow.iter().partition(|i| i.reason.is_hard_gate());
-    for issue in shadow_hard.iter().take(40) {
+    // GRAMMAR-WELLFORMED.A2/A2.2: every surviving shadowing reason (exact-duplicate +
+    // fixed-terminal-prefix) is a SOUND, HARD-gated unreachability verdict — all authored grammars are
+    // clean at 0. (The unsound `EarlierAlwaysMatches` warning was retired at A2.2; its observation is
+    // now the non-verdict always-succeeds [note] printed below.)
+    for issue in shadow.iter().take(40) {
         println!("  [error] {}", issue.message());
     }
-    if shadow_hard.len() > 40 {
-        println!("  [error] ... and {} more committed-shadowing findings", shadow_hard.len() - 40);
+    if shadow.len() > 40 {
+        println!("  [error] ... and {} more shadowed (unreachable) branch findings", shadow.len() - 40);
     }
-    for issue in shadow_warn.iter().take(40) {
-        println!("  [warn]  {}", issue.message());
+    // GRAMMAR-WELLFORMED.A2.2: the always-succeeds smell — a NON-VERDICT [note] (never gates).
+    for issue in always_notes.iter().take(40) {
+        println!("  [note]  {}", issue.message());
     }
-    if shadow_warn.len() > 40 {
+    if always_notes.len() > 40 {
         println!(
-            "  [warn]  ... and {} more always-matches shadowing findings (A2 backlog — not yet a hard gate)",
-            shadow_warn.len() - 40
+            "  [note]  ... and {} more always-succeeds-alternative notes (informational — not a deadness verdict)",
+            always_notes.len() - 40
         );
     }
     for issue in nullrep.iter().take(40) {
@@ -3321,7 +3321,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
 
     if nonterm.is_empty()
         && orphans.is_empty()
-        && shadow_hard.is_empty()
+        && shadow.is_empty()
         && unreachable.is_empty()
         && unbound_facts.is_empty()
     {
@@ -3336,11 +3336,11 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         }
         // GRAMMAR-WELLFORMED.A1a: a shadowed ordered-choice alternative is an UNREACHABLE
         // (dead) branch — a well-formedness defect (PEG ordered-choice hygiene; the branch-level
-        // analogue of an unreachable rule). The exact-dup + fixed-prefix reasons are the HARD
-        // gate (all grammars clean); EARLIER-ALWAYS-MATCHES (A2) is a warning backlog (above),
-        // not gated here until A2.1 cleans the SV `( X )?`-alternative defects.
-        if !shadow_hard.is_empty() {
-            problems.push(format!("{} shadowed (unreachable) branch(es)", shadow_hard.len()));
+        // analogue of an unreachable rule). Every surviving shadowing reason (exact-dup +
+        // fixed-prefix) is a SOUND HARD gate (all grammars clean at 0); the retired unsound
+        // always-succeeds heuristic is a non-verdict [note] above, never gated (A2.2).
+        if !shadow.is_empty() {
+            problems.push(format!("{} shadowed (unreachable) branch(es)", shadow.len()));
         }
         // GRAMMAR-WELLFORMED.A1b: a defined-but-unreachable rule is a dead rule (Hopcroft–Ullman
         // "no useless symbols" — the reachable half). Hard failure.

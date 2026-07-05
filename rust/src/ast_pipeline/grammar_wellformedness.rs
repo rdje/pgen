@@ -47,6 +47,24 @@ pub enum WellformednessIssue {
     /// prevents an actual hang, but the grammar is ill-formed (the repetition is meaningless)
     /// and it is almost always a grammar bug.
     NullableRepetition { rule: String, node_path: String },
+    /// NOTE — a NON-VERDICT informational grammar smell (GRAMMAR-WELLFORMED.A2.2): in `rule`'s
+    /// ordered choice at `node_path`, the alternative at `always_index` ALWAYS SUCCEEDS (it is
+    /// nullable-or-total — `e?`/`e*`/an all-optional sequence/a ref to such a rule), and there is
+    /// at least one LATER alternative. This is DELIBERATELY NOT a deadness/unreachability verdict:
+    /// PGEN's engine is NOT PEG-commit (it backtracks / longest-matches), so after the always-
+    /// succeeding alternative matches (often by matching EMPTY) and then fails downstream, the engine
+    /// re-enters a later alternative — a later alternative is therefore reachable, not dead. (This is
+    /// exactly why the old A2 `EarlierAlwaysMatches` *shadowing verdict* was RETIRED as unsound —
+    /// [[project_earlier_always_matches_unsound_backtracking]] — while the underlying observation is
+    /// kept here as a non-verdict hint.) The smell is still worth surfacing: a nullable earlier
+    /// alternative is very often a DROPPED-DELIMITER extraction artifact (a lost `[ ]`/`{ }` that
+    /// made a wrapper nullable — the A2.1.1–A2.1.6 fix family). Sound + decidable (it states only the
+    /// always-succeeds fact, never a reachability claim); never gates.
+    AlwaysSucceedsAlternative {
+        rule: String,
+        node_path: String,
+        always_index: usize,
+    },
     /// WARNING (ANNOTATION-COMPOSITION.2): `rule` is PRESENT under grammar profile `profile`
     /// (its `@profiles` set is universal/empty OR contains `profile`) but is NOT SATISFIABLE
     /// under it — every production has a required element that references a rule absent under
@@ -98,6 +116,10 @@ impl WellformednessIssue {
             WellformednessIssue::NullableRepetition { rule, node_path } => format!(
                 "grammar well-formedness WARNING: rule '{}' has an unbounded repetition at '{}' over a NULLABLE body (can loop without consuming input — Ford PEG well-formedness POPL 2004 §3.6); the runtime is zero-length-guarded but the grammar is ill-formed (likely a bug — the body should consume, or use a bounded quantifier)",
                 rule, node_path
+            ),
+            WellformednessIssue::AlwaysSucceedsAlternative { rule, node_path, always_index } => format!(
+                "grammar NOTE (not a deadness verdict): rule '{}' (ordered choice at '{}') has an earlier alternative #{} that ALWAYS SUCCEEDS (nullable/total — e.g. `e?`/`e*`/all-optional); later alternatives are reachable ONLY when the engine's non-PEG-commit branch policy (backtracking / longest-match) rejects #{} — confirm the ordering is intended (a nullable earlier alternative is often a dropped-delimiter extraction artifact, e.g. a lost `[ ]`/`{{ }}`). This is informational only; it makes NO unreachability claim and never gates.",
+                rule, node_path, always_index, always_index
             ),
             WellformednessIssue::ProfileOrphan { rule, profile, suggested_profiles } => {
                 let fix = if suggested_profiles.is_empty() {
@@ -488,12 +510,15 @@ fn compute_nullable(grammar: &HashMap<String, ASTNode>, rule_order: &[String]) -
 }
 
 /// Does `node` ALWAYS SUCCEED — i.e. match (possibly empty) on EVERY input, never failing?
-/// This is the dual of nullability for ordered-choice shadowing: in `a | b`, if `a` always
-/// succeeds, PEG commits to `a` and `b` is unreachable (GRAMMAR-WELLFORMED.A2). It DIFFERS from
-/// `node_nullable` on syntactic predicates: a lookahead `&e`/`!e` consumes no input (so it is
-/// *nullable*) but it can FAIL, so it does NOT always succeed. CONSERVATIVE: anything we cannot
-/// PROVE always-succeeds is `false` — so we only ever UNDER-report (miss a shadow), never
-/// false-accuse a live branch of being dead.
+/// This is the dual of nullability. It powers the NON-VERDICT `AlwaysSucceedsAlternative` note
+/// (GRAMMAR-WELLFORMED.A2.2): in `a | b`, if `a` always succeeds, `b` is reachable ONLY via the
+/// engine's non-PEG-commit branch policy (backtracking / longest-match) — a genuine grammar smell,
+/// but NOT a deadness claim. (The old `EarlierAlwaysMatches` *shadowing verdict* built on this was
+/// RETIRED as unsound for PGEN's backtracking engine — see
+/// [[project_earlier_always_matches_unsound_backtracking]].) It DIFFERS from `node_nullable` on
+/// syntactic predicates: a lookahead `&e`/`!e` consumes no input (so it is *nullable*) but it can
+/// FAIL, so it does NOT always succeed. CONSERVATIVE: anything we cannot PROVE always-succeeds is
+/// `false` — so the note only ever UNDER-reports, never over-claims.
 fn node_always_succeeds(node: &ASTNode, always: &HashMap<String, bool>) -> bool {
     match node {
         // ordered choice succeeds if ANY alternative always succeeds.
@@ -1115,16 +1140,18 @@ fn dfs(
 // ---------------------------------------------------------------------------
 // PARSE-SOTA.9 / adoption A2 (⭐): static ordered-choice SHADOWING lint.
 //
-// In a PEG ordered choice `a / b`, an alternative is UNREACHABLE if an earlier
-// alternative always matches whenever it could (the `A := a | ab` quirk that the ALL(*)
-// authors call out and that the SystemVerilog grammar work repeatedly hits as
-// catch-all-shadows-specific). A general subsumption check risks false positives, so this
-// lint is deliberately SOUND-ONLY — it flags just the two unambiguous structural cases:
+// In an ordered choice `a / b`, a later alternative can be UNREACHABLE (dead). A general
+// subsumption check risks false positives, so this lint is deliberately SOUND-ONLY — it flags
+// just the two unambiguous structural cases:
 //   (1) a DUPLICATE alternative (an exact structural copy of an earlier one), and
 //   (2) an earlier alternative that is a FIXED-TERMINAL prefix of a later one
 //       (`a` before `a b` → `a b` is dead, because PEG commits to `a`).
-// It is a WARNING (emitted via the DIAG-SEVERITY pgen_warn! channel when wired), not a
-// hard error. Pure analysis.
+// Both are HARD-gated (every authored grammar is at 0). A THIRD form once lived here — an earlier
+// alternative that always-succeeds — but it was RETIRED at A2.2 as UNSOUND for PGEN's backtracking /
+// longest-match engine (it declared proven-LIVE branches dead;
+// [[project_earlier_always_matches_unsound_backtracking]]). The always-succeeds observation survives
+// only as the NON-VERDICT `WellformednessIssue::AlwaysSucceedsAlternative` note
+// (`detect_always_succeeds_alternatives`), which makes no reachability claim. Pure analysis.
 // ---------------------------------------------------------------------------
 
 /// An ordered-choice alternative shadowed (made unreachable) by an earlier one.
@@ -1145,32 +1172,25 @@ pub enum ShadowingReason {
     DuplicateAlternative,
     /// The earlier alternative is a fixed-terminal prefix of this one (PEG commits first).
     FixedTerminalPrefix,
-    /// The earlier alternative ALWAYS SUCCEEDS (e.g. `e?`, `e*`, an all-optional sequence) — so
-    /// PEG commits to it on every input and this one can never be tried.
-    EarlierAlwaysMatches,
+    // NOTE (GRAMMAR-WELLFORMED.A2.2): a former `EarlierAlwaysMatches` reason was RETIRED here.
+    // "an earlier alternative always-succeeds ⇒ later alternatives are unreachable" holds only under
+    // PEG-commit; PGEN backtracks / longest-matches, so it declared PROVEN-LIVE branches dead (a false
+    // positive — [[project_earlier_always_matches_unsound_backtracking]]). The sound observation lives
+    // on as the non-verdict `WellformednessIssue::AlwaysSucceedsAlternative` note, which makes no
+    // reachability claim. `ShadowingReason` now carries ONLY the two genuinely-sound reasons.
 }
 
-impl ShadowingReason {
-    /// Is this reason part of the HARD `--lint-grammar` gate yet? The exact-duplicate and
-    /// fixed-terminal-prefix reasons are gated (every authored grammar was cleaned to 0 — A1a/.1/.2);
-    /// `EarlierAlwaysMatches` is the newly-added A2 detector and currently has an UNFIXED backlog in
-    /// the SV grammar (the `( X )?`-as-an-alternative anti-pattern), so it is surfaced as a WARNING
-    /// until that backlog is cleaned LRM-grounded, exactly as exact-dup shadowing was staged before
-    /// A1a promoted it. Promote here once the warnings reach 0 (GRAMMAR-WELLFORMED.A2.1).
-    pub fn is_hard_gate(&self) -> bool {
-        match self {
-            ShadowingReason::DuplicateAlternative | ShadowingReason::FixedTerminalPrefix => true,
-            ShadowingReason::EarlierAlwaysMatches => false,
-        }
-    }
-}
+// NOTE (GRAMMAR-WELLFORMED.A2.2): the former `ShadowingReason::is_hard_gate()` was removed. Every
+// surviving shadowing reason (exact-duplicate + fixed-terminal-prefix) is a SOUND, hard-gated
+// unreachability verdict, so the warning/hard split it encoded is vacuous — the only non-gated
+// observation (always-succeeds) is no longer a `ShadowingReason` (it is the non-verdict
+// `WellformednessIssue::AlwaysSucceedsAlternative` note). Every `ShadowingIssue` now gates.
 
 impl ShadowingIssue {
     pub fn message(&self) -> String {
         let why = match self.reason {
             ShadowingReason::DuplicateAlternative => "is an exact duplicate of",
             ShadowingReason::FixedTerminalPrefix => "is a fixed-terminal prefix of",
-            ShadowingReason::EarlierAlwaysMatches => "always matches (never fails) earlier than",
         };
         format!(
             "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — alternative #{} {} it (PEG commits to the earlier alternative); reorder (specific before general) or merge",
@@ -1236,38 +1256,30 @@ fn ast_eq(a: &ASTNode, b: &ASTNode) -> bool {
     }
 }
 
-/// Detect shadowed (unreachable) alternatives in every ordered choice of every rule.
-/// PURE analysis; deterministic order via `rule_order` + source order of Or nodes.
+/// Detect shadowed (UNREACHABLE) alternatives in every ordered choice of every rule. SOUND-ONLY:
+/// the two zero-false-positive structural reasons (exact-duplicate + fixed-terminal-prefix). The
+/// non-verdict always-succeeds SMELL is a SEPARATE, non-gating report (`detect_always_succeeds_alternatives`),
+/// deliberately NOT a shadowing verdict (A2.2). PURE analysis; deterministic order via `rule_order`
+/// + source order of Or nodes.
 pub fn detect_ordered_choice_shadowing(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
 ) -> Vec<ShadowingIssue> {
-    let always = compute_always_succeeds(grammar, rule_order);
     let mut issues = Vec::new();
     for rule in rule_order {
         let Some(body) = grammar.get(rule) else { continue };
-        collect_shadowing(rule, body, "root", &always, &mut issues);
+        collect_shadowing(rule, body, "root", &mut issues);
     }
     issues
 }
 
-fn collect_shadowing(
-    rule: &str,
-    node: &ASTNode,
-    path: &str,
-    always: &HashMap<String, bool>,
-    out: &mut Vec<ShadowingIssue>,
-) {
+fn collect_shadowing(rule: &str, node: &ASTNode, path: &str, out: &mut Vec<ShadowingIssue>) {
     match node {
         ASTNode::Or { alternatives } => {
             for (j, alt_j) in alternatives.iter().enumerate() {
                 for (i, alt_i) in alternatives.iter().enumerate().take(j) {
                     let reason = if ast_eq(alt_i, alt_j) {
                         Some(ShadowingReason::DuplicateAlternative)
-                    } else if node_always_succeeds(alt_i, always) {
-                        // An earlier alternative that always succeeds makes this one (and every
-                        // later one) unreachable — PEG commits to the first success.
-                        Some(ShadowingReason::EarlierAlwaysMatches)
                     } else if let Some(prefix) = fixed_terminal_seq(alt_i) {
                         // alt_i is a guaranteed fixed match; if it prefixes alt_j's leading
                         // fixed terminals, PEG commits to alt_i and alt_j is unreachable.
@@ -1296,23 +1308,89 @@ fn collect_shadowing(
                 }
             }
             for (idx, alt) in alternatives.iter().enumerate() {
-                collect_shadowing(rule, alt, &format!("{}/o{}", path, idx), always, out);
+                collect_shadowing(rule, alt, &format!("{}/o{}", path, idx), out);
             }
         }
         ASTNode::Sequence { elements } => {
             for (idx, e) in elements.iter().enumerate() {
-                collect_shadowing(rule, e, &format!("{}/s{}", path, idx), always, out);
+                collect_shadowing(rule, e, &format!("{}/s{}", path, idx), out);
             }
         }
         ASTNode::Quantified { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/q", path), always, out);
+            collect_shadowing(rule, element, &format!("{}/q", path), out);
         }
         ASTNode::Lookahead { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/l", path), always, out);
+            collect_shadowing(rule, element, &format!("{}/l", path), out);
         }
         ASTNode::Atom { value } => {
             if let ASTValue::Node(inner) = value {
-                collect_shadowing(rule, inner, &format!("{}/a", path), always, out);
+                collect_shadowing(rule, inner, &format!("{}/a", path), out);
+            }
+        }
+    }
+}
+
+/// GRAMMAR-WELLFORMED.A2.2 — the NON-VERDICT always-succeeds smell. For every ordered choice, flag
+/// each earlier alternative that ALWAYS SUCCEEDS (nullable/total) and is followed by at least one
+/// later alternative. This is NOT a shadowing/deadness verdict: PGEN's engine is not PEG-commit, so
+/// a later alternative is reachable via backtracking / longest-match after the always-succeeding one
+/// fails downstream (the unsound `EarlierAlwaysMatches` verdict this replaces declared such branches
+/// dead — [[project_earlier_always_matches_unsound_backtracking]]). It IS a useful grammar smell (a
+/// nullable earlier alternative is often a dropped-delimiter extraction artifact). Emits ONE
+/// `WellformednessIssue::AlwaysSucceedsAlternative` per (ordered choice, always-succeeding earlier
+/// index). PURE analysis; reuses the `compute_always_succeeds` fixpoint; deterministic. Parser-agnostic.
+pub fn detect_always_succeeds_alternatives(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<WellformednessIssue> {
+    let always = compute_always_succeeds(grammar, rule_order);
+    let mut out = Vec::new();
+    for rule in rule_order {
+        let Some(body) = grammar.get(rule) else { continue };
+        collect_always_succeeds_alternatives(rule, body, "root", &always, &mut out);
+    }
+    out
+}
+
+fn collect_always_succeeds_alternatives(
+    rule: &str,
+    node: &ASTNode,
+    path: &str,
+    always: &HashMap<String, bool>,
+    out: &mut Vec<WellformednessIssue>,
+) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            // Every alternative EXCEPT the last that always-succeeds is a smell (there is a later
+            // alternative reachable only via backtracking). One note per such earlier index.
+            let last = alternatives.len().saturating_sub(1);
+            for (i, alt_i) in alternatives.iter().enumerate().take(last) {
+                if node_always_succeeds(alt_i, always) {
+                    out.push(WellformednessIssue::AlwaysSucceedsAlternative {
+                        rule: rule.to_string(),
+                        node_path: path.to_string(),
+                        always_index: i,
+                    });
+                }
+            }
+            for (idx, alt) in alternatives.iter().enumerate() {
+                collect_always_succeeds_alternatives(rule, alt, &format!("{}/o{}", path, idx), always, out);
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for (idx, e) in elements.iter().enumerate() {
+                collect_always_succeeds_alternatives(rule, e, &format!("{}/s{}", path, idx), always, out);
+            }
+        }
+        ASTNode::Quantified { element, .. } => {
+            collect_always_succeeds_alternatives(rule, element, &format!("{}/q", path), always, out);
+        }
+        ASTNode::Lookahead { element, .. } => {
+            collect_always_succeeds_alternatives(rule, element, &format!("{}/l", path), always, out);
+        }
+        ASTNode::Atom { value } => {
+            if let ASTValue::Node(inner) = value {
+                collect_always_succeeds_alternatives(rule, inner, &format!("{}/a", path), always, out);
             }
         }
     }
@@ -1327,20 +1405,22 @@ fn collect_shadowing(
 // the cited node from the grammar and re-derives the claim directly — it does NOT
 // trust the detector's output. A certificate that fails to verify is a linter bug (or
 // a tampered certificate). The exact-duplicate and fixed-terminal-prefix re-checks are
-// trivial + fully independent; the always-succeeds re-check re-derives via
-// `node_always_succeeds` (a structural-witness form that needs no fixpoint is a planned
-// G.1.1 refinement). Reachability certificates (WITNESSES, generator-produced) are G.3.
+// trivial + fully independent. (A former always-succeeds certificate reason was RETIRED at
+// A2.2: always-succeeds does NOT prove unreachability under a backtracking / longest-match
+// engine, so it cannot honestly ship an unreachability PROOF —
+// [[project_earlier_always_matches_unsound_backtracking]].) Reachability certificates
+// (WITNESSES, generator-produced) are G.3.
 // =============================================================================
 
-/// The structured, checkable reason an ordered-choice alternative is unreachable.
+/// The structured, checkable reason an ordered-choice alternative is unreachable. Only the two
+/// SOUND structural reasons — anything that cannot ship a genuine unreachability PROOF (e.g. the
+/// retired always-succeeds heuristic, A2.2) is deliberately absent.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnreachabilityReason {
     /// Alternative `by` is an exact structural duplicate of the dead one.
     DuplicateOf { by: usize },
     /// Alternative `by` is a fixed-terminal prefix of the dead one (PEG commits to `by`).
     FixedTerminalPrefixBy { by: usize },
-    /// Alternative `by` ALWAYS SUCCEEDS, so PEG commits before the dead one is ever tried.
-    EarlierArmAlwaysSucceeds { by: usize },
 }
 
 /// A certificate that one ordered-choice alternative is UNREACHABLE — the proof half of the
@@ -1364,9 +1444,6 @@ impl ShadowingIssue {
             }
             ShadowingReason::FixedTerminalPrefix => {
                 UnreachabilityReason::FixedTerminalPrefixBy { by: self.by_index }
-            }
-            ShadowingReason::EarlierAlwaysMatches => {
-                UnreachabilityReason::EarlierArmAlwaysSucceeds { by: self.by_index }
             }
         };
         UnreachabilityCertificate {
@@ -1415,7 +1492,6 @@ fn navigate_node_path<'a>(body: &'a ASTNode, node_path: &str) -> Option<&'a ASTN
 /// (with the reason) means the certificate is invalid — a linter bug or a tampered/stale certificate.
 pub fn verify_unreachability_certificate(
     grammar: &HashMap<String, ASTNode>,
-    rule_order: &[String],
     cert: &UnreachabilityCertificate,
 ) -> Result<(), String> {
     let body = grammar
@@ -1428,8 +1504,7 @@ pub fn verify_unreachability_certificate(
     };
     let by = match &cert.reason {
         UnreachabilityReason::DuplicateOf { by }
-        | UnreachabilityReason::FixedTerminalPrefixBy { by }
-        | UnreachabilityReason::EarlierArmAlwaysSucceeds { by } => *by,
+        | UnreachabilityReason::FixedTerminalPrefixBy { by } => *by,
     };
     if by >= cert.dead_index {
         return Err(format!(
@@ -1452,10 +1527,6 @@ pub fn verify_unreachability_certificate(
             }
             None => false,
         },
-        UnreachabilityReason::EarlierArmAlwaysSucceeds { .. } => {
-            let always = compute_always_succeeds(grammar, rule_order);
-            node_always_succeeds(by_alt, &always)
-        }
     };
     if holds {
         Ok(())
@@ -1517,7 +1588,7 @@ pub fn verify_wellformedness_certificate(
 ) -> Result<(), String> {
     match cert {
         WellformednessCertificate::DeadAlternative(c) => {
-            verify_unreachability_certificate(grammar, rule_order, c)
+            verify_unreachability_certificate(grammar, c)
         }
         WellformednessCertificate::UnreachableRule { rule } => {
             if !grammar.contains_key(rule) {
@@ -3139,9 +3210,10 @@ mod tests {
             verify_wellformedness_certificate(&g, &order, None, &bogus).is_err(),
             "claiming the reachable rule 'keep' unreachable must be rejected"
         );
-        // the generalized checker also dispatches DeadAlternative correctly.
+        // the generalized checker also dispatches DeadAlternative correctly (exact-duplicate = a
+        // SOUND shadowing verdict; the retired always-succeeds heuristic no longer shadows).
         let mut g2 = HashMap::new();
-        g2.insert("o".into(), or(vec![quant(token("string", "x"), "?"), token("string", "y")]));
+        g2.insert("o".into(), or(vec![token("string", "a"), token("string", "a")]));
         let order2: Vec<String> = vec!["o".into()];
         let sh = detect_ordered_choice_shadowing(&g2, &order2);
         let wrapped = WellformednessCertificate::DeadAlternative(sh[0].certificate());
@@ -3183,33 +3255,33 @@ mod tests {
     fn unreachability_certificates_verify_and_reject_tampering() {
         // GRAMMAR-WELLFORMED.G.1: every dead-verdict certificate must independently re-verify, and a
         // tampered/bogus certificate must be REJECTED by the checker (the trust comes from the checker).
+        // Only the two SOUND unreachability reasons remain (the unsound always-succeeds verdict was
+        // retired at A2.2):
         //   r := "a" | "a"           exact duplicate
         //   p := "a" | "a" "b"       fixed-terminal prefix
-        //   o := "x"? | "y"          earlier-always-succeeds
         let mut g = HashMap::new();
         g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));
         g.insert(
             "p".into(),
             or(vec![token("string", "a"), seq(vec![token("string", "a"), token("string", "b")])]),
         );
-        g.insert("o".into(), or(vec![quant(token("string", "x"), "?"), token("string", "y")]));
-        let order: Vec<String> = vec!["r".into(), "p".into(), "o".into()];
+        let order: Vec<String> = vec!["r".into(), "p".into()];
         let issues = detect_ordered_choice_shadowing(&g, &order);
         assert!(!issues.is_empty(), "expected shadowing findings");
         // (1) every real certificate independently re-verifies.
         for iss in &issues {
             let cert = iss.certificate();
             assert!(
-                verify_unreachability_certificate(&g, &order, &cert).is_ok(),
+                verify_unreachability_certificate(&g, &cert).is_ok(),
                 "valid certificate must verify: {cert:?} -> {:?}",
-                verify_unreachability_certificate(&g, &order, &cert)
+                verify_unreachability_certificate(&g, &cert)
             );
         }
         // (2) tamper: point the dead alternative at the shadower itself (by not < dead) -> rejected.
-        let mut tampered = issues.iter().find(|i| i.rule == "o").unwrap().certificate();
+        let mut tampered = issues.iter().find(|i| i.rule == "r").unwrap().certificate();
         tampered.dead_index = 0;
         assert!(
-            verify_unreachability_certificate(&g, &order, &tampered).is_err(),
+            verify_unreachability_certificate(&g, &tampered).is_err(),
             "tampered certificate (dead_index == shadower) must be rejected"
         );
         // (3) bogus: claim an exact-duplicate relation where the alternatives are NOT identical.
@@ -3220,30 +3292,32 @@ mod tests {
             reason: UnreachabilityReason::DuplicateOf { by: 0 },
         };
         assert!(
-            verify_unreachability_certificate(&g, &order, &bogus).is_err(),
+            verify_unreachability_certificate(&g, &bogus).is_err(),
             "bogus duplicate claim must be rejected (the alternatives are not identical)"
         );
         // (4) a path that does not resolve is rejected.
         let bad_path = UnreachabilityCertificate {
-            rule: "o".into(),
+            rule: "p".into(),
             node_path: "root/s9".into(),
             dead_index: 1,
-            reason: UnreachabilityReason::EarlierArmAlwaysSucceeds { by: 0 },
+            reason: UnreachabilityReason::FixedTerminalPrefixBy { by: 0 },
         };
         assert!(
-            verify_unreachability_certificate(&g, &order, &bad_path).is_err(),
+            verify_unreachability_certificate(&g, &bad_path).is_err(),
             "unresolvable path must be rejected"
         );
     }
 
     #[test]
-    fn detects_always_succeeds_branch_shadowing() {
-        // GRAMMAR-WELLFORMED.A2 (sound subset): an earlier alternative that ALWAYS SUCCEEDS
-        // makes every later one unreachable (PEG commits to the first success).
-        //   opt    := "x"? | "y"           → `"x"?` always succeeds → `"y"` dead
-        //   star   := "z"* | "w"           → `"z"*` always succeeds → `"w"` dead
-        //   allopt := ("a"? "b"?) | "c"    → an all-optional sequence always succeeds → `"c"` dead
-        //   nref   := nullable_rule | "d"  → ref to an always-succeeding rule → `"d"` dead
+    fn always_succeeds_is_a_non_verdict_note_not_a_shadowing_finding() {
+        // GRAMMAR-WELLFORMED.A2.2: an earlier alternative that ALWAYS SUCCEEDS is a NON-VERDICT smell
+        // (`detect_always_succeeds_alternatives`), NOT a shadowing/deadness verdict — PGEN backtracks /
+        // longest-matches, so the later branch is reachable (the old `EarlierAlwaysMatches` verdict that
+        // called it dead was retired as unsound).
+        //   opt    := "x"? | "y"           `"x"?` always succeeds, `"y"` later
+        //   star   := "z"* | "w"           `"z"*` always succeeds, `"w"` later
+        //   allopt := ("a"? "b"?) | "c"    an all-optional sequence always succeeds, `"c"` later
+        //   nref   := nullable_rule | "d"  a ref to an always-succeeding rule, `"d"` later
         let mut g = HashMap::new();
         g.insert("opt".into(), or(vec![quant(token("string", "x"), "?"), token("string", "y")]));
         g.insert("star".into(), or(vec![quant(token("string", "z"), "*"), token("string", "w")]));
@@ -3263,13 +3337,30 @@ mod tests {
             "nref".into(),
             "nullable_rule".into(),
         ];
-        let issues = detect_ordered_choice_shadowing(&g, &order);
+        // (1) NONE of these is a shadowing (unreachability) verdict anymore.
+        let shadow = detect_ordered_choice_shadowing(&g, &order);
+        assert!(
+            shadow.is_empty(),
+            "always-succeeds must NOT be flagged as a shadowing/deadness verdict: {shadow:?}"
+        );
+        // (2) each IS surfaced as a non-verdict always-succeeds note on the earlier (index-0) alternative.
+        let notes = detect_always_succeeds_alternatives(&g, &order);
         for rule in ["opt", "star", "allopt", "nref"] {
             assert!(
-                issues.iter().any(|i| i.rule == rule
-                    && i.shadowed_index == 1
-                    && i.reason == ShadowingReason::EarlierAlwaysMatches),
-                "rule '{rule}' second branch must be flagged EarlierAlwaysMatches: {issues:?}"
+                notes.iter().any(|n| matches!(n,
+                    WellformednessIssue::AlwaysSucceedsAlternative { rule: r, always_index, .. }
+                    if r == rule && *always_index == 0)),
+                "rule '{rule}' must carry an AlwaysSucceedsAlternative note on alt #0: {notes:?}"
+            );
+        }
+        // (3) the note wording makes NO unreachability claim (soundness of the message). The precise
+        // wrong phrasings are the retired verdict's — "is unreachable" and "PEG commits to". (The word
+        // "deadness" appears only in the DISCLAIMER "not a deadness verdict", which is intended.)
+        for n in &notes {
+            let m = n.message();
+            assert!(
+                !m.contains("is unreachable") && !m.contains("PEG commits to"),
+                "note must make no deadness verdict: {m}"
             );
         }
     }
@@ -3289,6 +3380,13 @@ mod tests {
         assert!(
             issues.is_empty(),
             "a lookahead earlier branch can fail, so it must not shadow a later branch: {issues:?}"
+        );
+        // The same soundness line for the non-verdict note: a lookahead does NOT always-succeed, so it
+        // must NOT produce an AlwaysSucceedsAlternative note either.
+        let notes = detect_always_succeeds_alternatives(&g, &order);
+        assert!(
+            notes.is_empty(),
+            "a lookahead earlier branch can fail → no always-succeeds note: {notes:?}"
         );
     }
 
