@@ -56,9 +56,9 @@ The design in full — including how the interpreter is made "100 % trustworthy"
 differential-equivalence oracle and the per-combinator suite — lives in the task tree
 `docs/tasks/PARSE-HARNESS.md`. All three approaches are live; this chapter documents each. The
 interpreter's `.4` **core** is byte-identical to the generated parser on the structural +
-return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **8 registered
-grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, and — since `.5.1` — `regex` and
-`systemverilog_preprocessor`) with an honest promotion ratchet for the rest (see *The
+return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **9 registered
+grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, and — since `.5.1`/`.5.2` — `regex`,
+`systemverilog_preprocessor`, and `ebnf`) with an honest promotion ratchet for the rest (see *The
 differential-equivalence gate* below); the remaining per-grammar fidelity closures
 and the semantic-directive orchestration are `PARSE-HARNESS.5.1`–`.5.5` / `.6`.
 
@@ -343,15 +343,41 @@ rather than quietly testing only the easy ones. Every registered grammar is clas
 
 | Class | Grammars | Gate behaviour |
 |---|---|---|
-| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch`, `regex`, `systemverilog_preprocessor` | must stay byte-identical — a regression **fails** the gate |
-| **DEFERRED** | `ebnf`, `return_annotation`, `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if one becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). Each owns a follow-up leaf. |
+| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch`, `regex`, `systemverilog_preprocessor`, `ebnf` | must stay byte-identical — a regression **fails** the gate |
+| **DEFERRED** | `return_annotation`, `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if one becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). Each owns a follow-up leaf. |
 | **EXCLUDED** | `builtin_return_annotation`, `builtin_semantic_annotation` | out of scope *by construction* — their registry oracle is not a codegen parser of their own grammar (one aliases the `return_annotation` parser; the other uses a hand-rolled bootstrap parser), so the differential's premise does not hold |
 
 `regex` and `systemverilog_preprocessor` were **promoted** from DEFERRED to CERTIFIED by `PARSE-HARNESS.5.1`
 (session #42) — see *Four fidelity dimensions the interpreter mirrors* below for the four interpreter gaps
 that were root-caused and closed. The promotion ratchet did its job: fixing `regex` also made
 `systemverilog_preprocessor` byte-identical, the gate **failed** demanding the promotion, and it was
-promoted the same commit (progress is never lost silently).
+promoted the same commit (progress is never lost silently). `ebnf` was promoted by `PARSE-HARNESS.5.2`
+(session #43) — see *Comment layout is grammar-specific* below.
+
+### Comment layout is grammar-specific (`PARSE-HARNESS.5.2`)
+
+PGEN's EBNF meta-grammar offers three comment conventions — `#`-to-end-of-line, `//`-to-end-of-line, and
+`/* … */` block comments — which the generated parser normally skips as **layout** (trivia) between tokens.
+But a grammar can also define a *real token* that begins with one of those introducers: SystemVerilog's `#`
+(delays / parameter lists), VHDL's `#` (based-literal delimiters), or — the case that motivated this leaf —
+the EBNF grammar's own `block_comment := "/*" block_comment_content "*/"`, which makes `"/*"` a genuine
+grammar token, not trivia.
+
+When that happens, skipping the introducer as layout would **steal** the token, so codegen **suppresses that
+comment arm** for that grammar (a per-introducer static decision, GRAMMAR-WELLFORMED.H.11.5). The result is
+grammar-specific: `json` skips all three; `regex`/`vhdl`/`systemverilog`/`rtl_frontend` do **not** skip `#`;
+`semantic_annotation` skips only `#`; and **`ebnf` does not skip `/* … */`** — so the generated ebnf parser
+*rejects* a comment-only input like `/**/` (it must be matched structurally, and the top-level rule requires
+real grammar content).
+
+The interpreter had been skipping **all three** introducers unconditionally, so it *accepted* `/**/` where
+the generated ebnf parser rejected it. The fix makes the interpreter consult **codegen's own suppression
+predicate** — the exact function the code generator uses to decide which arms to emit — so the interpreter's
+two layout skippers gate each comment arm identically to the generated parser, for **every** grammar. Because
+the interpreter now computes the same decision from the same source of truth, it can never drift: a change to
+codegen's rule is automatically reflected, and a dedicated gate test pins the per-grammar `(#, //, /*)` matrix
+against the shipped parsers. This is the same discipline as the `.5.1` fidelity work — mirror the generator
+expression-for-expression, keyed on a grammar *property*, never on a grammar name in the interpreter's logic.
 
 Notably, the CERTIFIED set includes the **store-using** SystemVerilog / VHDL / rtl_frontend — the
 interpreter is byte-identical to their generated parsers over this corpus even though it does not yet fully

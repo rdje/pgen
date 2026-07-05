@@ -254,7 +254,7 @@ fn parse_bool_env(var_name: &str) -> Option<bool> {
 }
 
 /// Convert snake_case to PascalCase
-fn snake_to_pascal(name: &str) -> String {
+pub(crate) fn snake_to_pascal(name: &str) -> String {
     name.split('_')
         .map(|word| {
             let mut chars = word.chars();

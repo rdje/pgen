@@ -59,6 +59,9 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
+use crate::ast_pipeline::ast_based_generator::{
+    CommentArmSuppression, comment_arm_suppression_for_grammar,
+};
 use crate::ast_pipeline::semantic_directive_registry::SemanticBranchPolicy;
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use crate::ast_pipeline::{
@@ -226,6 +229,7 @@ pub fn interpret_parse_gen_ast(
         grammar: grammar_tree,
         annotations,
         layout: grammar_layout_policy(grammar_name),
+        comment_arms: comment_arm_suppression_for_grammar(grammar_name, grammar_tree, annotations),
         active_profile: active_profile.map(|s| s.to_string()),
         input,
         position: 0,
@@ -413,6 +417,13 @@ struct Interp<'g, 'i> {
     /// `match_string`, `match_regex`, and the trailing-layout consume so the interpreter is
     /// byte-identical to the generated parser for whitespace-sensitive grammars (regex).
     layout: LayoutPolicy,
+    /// The grammar's per-introducer comment-arm suppression (PARSE-HARNESS.5.2) — which of the
+    /// `#` / `//` / `/*` comment introducers the two layout skippers (`consume_layout_for_terminal` /
+    /// `consume_layout_for_regex`) may skip as trivia. Computed via codegen's OWN predicate
+    /// (`comment_arm_suppression_for_grammar`), so the interpreter skips comment layout byte-identically
+    /// to the generated parser: a grammar that CLAIMS an introducer as a real token (e.g. ebnf's
+    /// `block_comment := "/*" …`) has that arm SUPPRESSED, so those bytes must be matched structurally.
+    comment_arms: CommentArmSuppression,
     /// The active (already-normalized) dialect profile (`Some("pcre2")` for default regex,
     /// `Some("sv_2017")` for SV, `None` = unprofiled). A rule annotated `@profiles` is excluded when the
     /// active profile is not among its allowed profiles (PARSE-HARNESS.5.1) — mirrors codegen's
@@ -1055,7 +1066,12 @@ impl<'g, 'i> Interp<'g, 'i> {
                 break;
             }
             let bytes = self.input.as_bytes();
-            if bytes[self.position] == b'#' {
+            // Per-introducer comment-arm suppression (PARSE-HARNESS.5.2): each arm is entered only when
+            // the grammar does NOT claim its introducer as a non-comment token, mirroring codegen's
+            // `terminal_hash_arm` / `terminal_line_comment_arm` / `terminal_block_comment_arm`
+            // (`ast_based_generator.rs:4677-4733`). A claimed introducer (`claims_* == true`) is matched
+            // structurally, not skipped as trivia.
+            if !self.comment_arms.claims_hash && bytes[self.position] == b'#' {
                 while self.position < self.input.len() {
                     let b = bytes[self.position];
                     if b == b'\n' || b == b'\r' {
@@ -1065,7 +1081,8 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 continue;
             }
-            if self.position + 1 < bytes.len()
+            if !self.comment_arms.claims_line_comment
+                && self.position + 1 < bytes.len()
                 && bytes[self.position] == b'/'
                 && bytes[self.position + 1] == b'/'
             {
@@ -1079,7 +1096,8 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 continue;
             }
-            if self.position + 1 < bytes.len()
+            if !self.comment_arms.claims_block_comment
+                && self.position + 1 < bytes.len()
                 && bytes[self.position] == b'/'
                 && bytes[self.position + 1] == b'*'
             {
@@ -1112,7 +1130,12 @@ impl<'g, 'i> Interp<'g, 'i> {
                 break;
             }
             let bytes = self.input.as_bytes();
-            if bytes[self.position] == b'#' {
+            // Per-introducer comment-arm suppression (PARSE-HARNESS.5.2), mirroring codegen's
+            // `regex_hash_arm` / `regex_line_comment_arm` / `regex_block_comment_arm`
+            // (`ast_based_generator.rs:4530-4595`): the STATIC arm is present only when the grammar does
+            // not claim the introducer (`!claims_*`), and each present arm keeps the DYNAMIC H.11.3 guard
+            // (`regex_token_matches_at_cursor`) so an active token that IS a comment introducer wins.
+            if !self.comment_arms.claims_hash && bytes[self.position] == b'#' {
                 if self.regex_token_matches_at_cursor(pattern) {
                     break;
                 }
@@ -1125,7 +1148,8 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 continue;
             }
-            if self.position + 1 < bytes.len()
+            if !self.comment_arms.claims_line_comment
+                && self.position + 1 < bytes.len()
                 && bytes[self.position] == b'/'
                 && bytes[self.position + 1] == b'/'
             {
@@ -1142,7 +1166,8 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 continue;
             }
-            if self.position + 1 < bytes.len()
+            if !self.comment_arms.claims_block_comment
+                && self.position + 1 < bytes.len()
                 && bytes[self.position] == b'/'
                 && bytes[self.position + 1] == b'*'
             {

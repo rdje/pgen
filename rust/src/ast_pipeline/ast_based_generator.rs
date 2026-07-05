@@ -34,6 +34,51 @@ macro_rules! eprintln {
     };
 }
 
+/// The per-introducer comment-arm suppression decision for the two layout skippers
+/// (`consume_layout_for_terminal` / `consume_layout_for_regex`).
+///
+/// Codegen emits a comment-skip arm for an introducer (`#` / `//` / `/*`) **only** when the grammar
+/// does NOT claim that introducer as a non-comment token (GRAMMAR-WELLFORMED.H.11.5 — see
+/// [`AstBasedGenerator::grammar_claims_introducer_as_non_comment`]). A `true` field means the grammar
+/// DOES claim the introducer, so its layout arm is **suppressed** and those bytes must be matched
+/// structurally instead of skipped as trivia.
+///
+/// This is the single source of truth shared by codegen (which emits the arms) and the parse-harness
+/// interpreter (`PARSE-HARNESS.5.2`, which must skip layout byte-identically to the generated parser).
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CommentArmSuppression {
+    /// The grammar claims `#` as a non-comment token ⇒ the `#`-to-EOL layout arm is suppressed.
+    pub claims_hash: bool,
+    /// The grammar claims `//` as a non-comment token ⇒ the `//`-to-EOL layout arm is suppressed.
+    pub claims_line_comment: bool,
+    /// The grammar claims `/*` as a non-comment token ⇒ the `/* */` block-comment layout arm is suppressed.
+    pub claims_block_comment: bool,
+}
+
+/// Compute a grammar's [`CommentArmSuppression`] — the exact per-introducer arm-emission decision the
+/// shipped codegen makes for the layout skippers — **without** running codegen, so the parse-harness
+/// interpreter (`PARSE-HARNESS.5.2`) can skip layout byte-identically to the generated parser.
+///
+/// This reconstructs codegen's *minimal relevant* generator config so it calls codegen's own predicate
+/// with the same inputs: `AstBasedGenerator::new(snake_to_pascal(grammar_name))` sets `self.grammar_name`
+/// exactly as the real generation path does (`ast_generator_direct.rs:109-110`), and `annotations` is
+/// set exactly as `generator.annotations = Some(annotations.clone())` there (`:177`). The predicate
+/// `grammar_claims_introducer_as_non_comment` reads only those two fields (via `effective_regex_pattern`
+/// → `rule_token_steering_policy`), so the result is provably identical to what codegen emits — reusing
+/// codegen's kernel means the interpreter can never drift from the generated parser.
+pub(crate) fn comment_arm_suppression_for_grammar(
+    grammar_name: &str,
+    grammar_tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+) -> CommentArmSuppression {
+    let mut generator =
+        AstBasedGenerator::new(crate::ast_pipeline::ast_generator_direct::snake_to_pascal(
+            grammar_name,
+        ));
+    generator.annotations = annotations.cloned();
+    generator.comment_arm_suppression(grammar_tree)
+}
+
 /// AST-based generator that produces guaranteed syntactically correct Rust code
 pub struct AstBasedGenerator {
     pub grammar_name: String,
@@ -4222,6 +4267,22 @@ impl AstBasedGenerator {
         grammar_tree.iter().any(|(rule_name, node)| {
             self.node_has_non_comment_claim(rule_name, node, introducer, grammar_tree, None)
         })
+    }
+
+    /// The three per-introducer comment-arm suppression decisions for the layout skippers — codegen's
+    /// own kernel, exposed so the parse-harness interpreter (`PARSE-HARNESS.5.2`) mirrors the generated
+    /// parser's layout skipping byte-for-byte. See [`CommentArmSuppression`] +
+    /// [`comment_arm_suppression_for_grammar`]. Used by codegen's layout-skipper emission (H.11.5) is
+    /// left inline for a byte-identical emit path; this method is the shared read-only query.
+    pub(crate) fn comment_arm_suppression(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> CommentArmSuppression {
+        CommentArmSuppression {
+            claims_hash: self.grammar_claims_introducer_as_non_comment(grammar_tree, "#"),
+            claims_line_comment: self.grammar_claims_introducer_as_non_comment(grammar_tree, "//"),
+            claims_block_comment: self.grammar_claims_introducer_as_non_comment(grammar_tree, "/*"),
+        }
     }
 
     /// Walk `node` looking for a terminal that can START a match with

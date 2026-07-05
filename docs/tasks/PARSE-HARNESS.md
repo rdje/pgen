@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — now **8 grammars CERTIFIED**. Frontier → **`.5.2` (ebnf fidelity — VERDICT divergence) `not-started`**, then `.5.3`/`.5.5`, then `.6` combinator suite. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` acceptance checklist).
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — now **9 grammars CERTIFIED**. Frontier → **`.5.3` (return_annotation fold) `not-started`**, then `.5.5`, then `.6` combinator suite. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` checklist), §17 (`.5.2` checklist).
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -375,8 +375,23 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   CLEAN**; `parse_harness_equivalence_gate` **3/3** (regex+svpp CERTIFIED byte-identical; json/semantic_annotation/
   rtl_frontend/vhdl/systemverilog/scratch stay byte-identical; ratchet holds for ebnf/return_annotation/
   rtl_const_expr; completeness). Interpreter unit tests **7/7**. See §16 for the enforced acceptance checklist.
-- `.5.2` — **ebnf fidelity — `not-started` (investigation SCOUTED, session #42, tools-first — read this FIRST).**
-  Root-cause + fix the interpreter's ebnf VERDICT divergence, then promote `ebnf`.
+- `.5.2` — **ebnf fidelity — `done` (session #43, `PGEN-PARSE-HARNESS-0009`).** Root-caused + fixed the
+  interpreter's ebnf VERDICT divergence, then PROMOTED `ebnf` DEFERRED→CERTIFIED. **Root cause (tool-backed,
+  §17):** the interpreter's two layout skippers (`consume_layout_for_terminal` / `consume_layout_for_regex`)
+  UNCONDITIONALLY skip all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm
+  per-grammar (GRAMMAR-WELLFORMED.H.11.5) when the grammar claims that introducer as a non-comment token —
+  ebnf's `block_comment := "/*" …` makes `"/*"` a real token, so the generated ebnf parser has NO `/*`
+  layout arm and rejects the comment-only `/**/`, while the interpreter skipped it as layout and accepted.
+  **Fix (single source of truth):** the interpreter now computes the per-introducer suppression via codegen's
+  OWN predicate `grammar_claims_introducer_as_non_comment` (exposed as `comment_arm_suppression_for_grammar`)
+  and gates each layout arm on it — so it matches codegen for EVERY grammar (the gating can only reduce
+  divergence). General ⇒ also removed the latent over-skip for regex/vhdl/sv/rtl_frontend (`#` arm) and
+  semantic_annotation (`//`+`/*` arms). All interpreter-tooling; codegen emit path untouched. VERIFIED:
+  `PGEN_PHEQ_ONLY=ebnf` DIVERGE 6→CLEAN 83/83; deep-stress ebnf CLEAN 242/242 (5 seeds × gate depths);
+  `parse_harness_equivalence_gate` 4/4 (ebnf CERTIFIED + the new matrix-pinning test). Original scouting log
+  retained below for provenance.
+  **Scouting log (session #42, tool-backed — `PGEN_PHEQ_ONLY=ebnf …::measurement`; applies the `.5.1` lesson
+  = enumerate the FULL divergence set BEFORE theorizing):**
   **Scouting log (session #42, tool-backed — `PGEN_PHEQ_ONLY=ebnf …::measurement`; applies the `.5.1` lesson
   = enumerate the FULL divergence set BEFORE theorizing):**
   - **The FULL divergence set (ladder [6,12,18], 83 samples / 77 agree / 6 diverge) — ALL are the SAME class:
@@ -455,8 +470,8 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 4 | `PARSE-HARNESS.5` (differential-equivalence gate) | `done` (#41, `PGEN-PARSE-HARNESS-0005`) | `parse_harness_equivalence_gate` landed: deterministic interpreter-vs-generated differential over a bounded stimuli corpus (seeds 0/7/42, large-stack). CERTIFIED byte-identical: json, semantic_annotation, rtl_frontend, vhdl, **systemverilog (sv_2017)**, scratch. DEFERRED ratchet + EXCLUDED classification for the rest (§14/§15). 3 gate tests green; SV cert unchanged. |
 | 5 | `PARSE-HARNESS.5.1` (regex fidelity) | `done` (#42, `PGEN-PARSE-HARNESS-0007`) | 4 tool-pinpointed interpreter-fidelity fixes (layout policy / unresolved-ref built-ins / `@transform`+PCRE2 contract / `@profiles` gating). regex CERTIFIED byte-identical (deep stress 400/400). Also closed `.5.4` (svpp, 459/459). Gate 3/3; SV+certified unchanged. §16 checklist. |
 | 6 | `PARSE-HARNESS.5.4` (svpp fidelity) | `done` (CLOSED by `.5.1`, #42) | Incidentally closed by `.5.1`'s shared layout policy + built-ins; the `.5` ratchet detected + demanded the promotion. CERTIFIED (459/459). |
-| 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `not-started` (**frontier**) | VERDICT divergence: interpreter accepts input the generated ebnf parser rejects (`furthest≈3`). Next frontier leaf. |
-| 8 | `PARSE-HARNESS.5.3` / `.5.5` (return_annotation fold / rtl_const_expr corpus) | `not-started` | `.5.3` positional-ref/`Json` fold shape; `.5.5` targeted corpus (deep precedence chain). |
+| 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `done` (#43, `PGEN-PARSE-HARNESS-0009`) | Root cause: interpreter's layout skippers unconditionally skip all 3 comment introducers; codegen suppresses arms per-grammar (H.11.5). Fix gates the arms via codegen's shared predicate. ebnf CERTIFIED byte-identical (DIVERGE 6→CLEAN 83). §17 checklist. |
+| 8 | `PARSE-HARNESS.5.3` / `.5.5` (return_annotation fold / rtl_const_expr corpus) | `not-started` (**frontier**) | `.5.3` positional-ref/`Json` fold shape; `.5.5` targeted corpus (deep precedence chain). |
 | 9 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
 
 ---
@@ -827,7 +842,7 @@ established the honest per-grammar state. Corpus per grammar: stimuli `generate_
 | `systemverilog` (sv_2017) | ✅ CERTIFIED | 94 | byte-identical — the big store-gated/profiled grammar. ~18 s (no-memo). |
 | `scratch` | ✅ CERTIFIED | 3 | byte-identical (blessed fixture). |
 | `regex` | ✅ CERTIFIED (`.5.1`, #42) | 400 | byte-identical after the 4 fidelity fixes (layout policy / built-ins / `@transform`+PCRE2 contract / `@profiles`); deep stress 5 seeds × depths 6-30. |
-| `ebnf` | ⏸ DEFERRED `.5.2` | 83 | VERDICT: interpreter accepts what the generated ebnf parser rejects (`furthest≈3`). |
+| `ebnf` | ✅ CERTIFIED (`.5.2`, #43) | 83 | byte-identical after gating the interpreter's layout comment arms via codegen's per-introducer suppression predicate (H.11.5); ebnf claims `/*` as a non-comment token so its `/* */` block-comment layout arm is suppressed. DIVERGE 6→CLEAN. |
 | `return_annotation` | ⏸ DEFERRED `.5.3` | 68 | AST divergence in the positional-ref / `Json` fold shape. |
 | `systemverilog_preprocessor` | ✅ CERTIFIED (`.5.1`, #42) | 459 | byte-identical — the `.5.1` shared layout policy (regex-token whitespace-sensitivity) + built-ins closed the `.5.4` span/shape divergence; deep stress 459/459. |
 | `rtl_const_expr` | ⏸ DEFERRED `.5.5` | 0 | deep precedence chain exceeds bounded depth; unbounded deep gen hangs. |
@@ -886,3 +901,72 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
   section: CERTIFIED/DEFERRED lists + the four regex-fidelity root causes); `TOOLBOX.md` §1.6 CERTIFIED/DEFERRED
   lists; this tree (`.5.1` done + checklist, `.5.4` closed, frontier, §15 map); CHANGES.md / DEVELOPMENT_NOTES.md
   / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.
+
+## 17. PARSE-HARNESS.5.2 — ebnf fidelity — Acceptance Checklist (enforced)
+
+> Session #43. A CODE change (interpreter-tooling only): edits `rust/src/parse_harness_interpreter.rs`
+> (gate the layout skippers' comment arms) + `rust/src/ast_pipeline/ast_based_generator.rs` (expose a
+> SHARED read-only query, no emit-path change). NO engine / grammar / codegen-emit / generated-parser
+> change. Capability closure: "ROOT CAUSE" = the interpreter's layout skippers unconditionally skip all
+> three comment introducers while codegen SUPPRESSES arms per-grammar (H.11.5); "ADDRESSED" = ebnf
+> certified byte-identical, differentially, over the deterministic + deep-stress corpus.
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_PHEQ_ONLY=ebnf cargo test … parse_harness_equivalence::measurement`
+  (ladder [6,12,18], seeds 0/7/42), THIS session → `ebnf DIVERGE samples=83 agree=77 diverge=6`. ALL 6 one
+  class — the interpreter ACCEPTS a comment/layout-only input the generated ebnf parser REJECTS:
+  `"/**/"` (interp furthest=3), `"/*"` (furthest=2), `"       /**//***/"` (furthest=10) + 3 more of the
+  same shape. Verdict-only (`interp.accepted=true (grammar-parse=true)` vs `oracle.accepted=false`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — tool-established by reading the EMITTED oracle + codegen (the scouting
+  log's mandated next step). The generated ebnf parser's `consume_layout_for_terminal`
+  (`generated/ebnf.rs:70486-70523`) has arms for `#` and `//` but **NO `/* */` block-comment arm**. This is
+  codegen's per-introducer static suppression (GRAMMAR-WELLFORMED.H.11.5): `terminal_block_comment_arm = if
+  claims_block_comment { EMPTY } else { EMIT }` (`ast_based_generator.rs:4713-4733`), where
+  `claims_block_comment = grammar_claims_introducer_as_non_comment(tree, "/*")` (`:4522`) is **true** for
+  ebnf because `block_comment := "/*" block_comment_content "*/"` (`grammars/ebnf.ebnf:560`) makes `"/*"` a
+  real, non-comment grammar token — so codegen does NOT treat `/* */` as layout and requires structural
+  matching. The interpreter's `consume_layout_for_terminal` (`parse_harness_interpreter.rs:1044-1101`) and
+  `consume_layout_for_regex` (`:1103-1167`) **unconditionally** include all three comment arms
+  (`#`/`//`/`/*`), so on `/**/` the interpreter skips the block comment as layout, reaches EOF, and ACCEPTs;
+  the generated parser (no `/*` layout arm) requires the `comment` alternative to match structurally in the
+  `grammar_file` `*`-loop and REJECTs. The per-grammar arm matrix was read directly from ALL 10 generated
+  parsers (json/svpp/rtl_const_expr/return_annotation = all 3 arms; regex/vhdl/systemverilog/rtl_frontend =
+  no `#` arm; semantic_annotation = `#` only; ebnf = no `/*` arm), confirming the interpreter's unconditional
+  arms are a LATENT over-skip for every suppressed cell — ebnf's `/*` is simply the first the corpus
+  witnessed. (The unterminated-`/*` leniency the scouting log flagged is subsumed: once the `/*` arm is
+  suppressed for ebnf it no longer applies; where an arm IS kept, the generated arm has the SAME lenient
+  close, so the interpreter stays faithful.)
+- [x] **FIX** — fix-hierarchy tier = **new interpreter tooling + a SHARED read-only codegen query** (single
+  source of truth, no drift; codegen's emit path is NOT touched). (a) `ast_based_generator.rs`: a
+  `pub(crate) struct CommentArmSuppression` + a `pub(crate) fn comment_arm_suppression_for_grammar(grammar_name,
+  grammar_tree, annotations)` that reconstructs codegen's minimal generator config
+  (`AstBasedGenerator::new(snake_to_pascal(name))` + `.annotations`) and calls codegen's OWN predicate
+  `grammar_claims_introducer_as_non_comment` for `#`/`//`/`/*` — so the interpreter computes the IDENTICAL
+  booleans codegen emits with, and can never drift. (b) `parse_harness_interpreter.rs`: `Interp` gains a
+  `comment_arms: CommentArmSuppression` computed via that function; each of the three arms in
+  `consume_layout_for_terminal` + `consume_layout_for_regex` is gated on `!claims_*`, mirroring codegen's
+  `terminal_*_arm` / `regex_*_arm` suppression.
+- [x] **ADDRESSED (verified)** — before→after, re-runnable oracles. `PGEN_PHEQ_ONLY=ebnf …::measurement`
+  (ladder [6,12,18], seeds 0/7/42) → `ebnf DIVERGE 6` → **`CLEAN agree=83 diverge=0`**; the deep-stress
+  probe (`probe_layout_deep_stress`; ebnf widens to **5 seeds** × the gate depths [6,12,18], 16/rung — its
+  no-memo deep recursion is impractical past depth ~18, the `.6` memoization is that fix) → **`CLEAN
+  agree=242 diverge=0`**; `make -C rust parse_harness_equivalence_gate` → **4 passed**
+  (`certified_grammars_are_byte_identical` now includes `ebnf`; the ratchet forced its promotion;
+  `every_registered_grammar_is_classified_exactly_once`; the new `comment_arm_suppression_matrix_is_pinned`
+  pins the per-grammar `(#, //, /*)` matrix against the shipped parsers — ebnf claims `/*`;
+  regex/vhdl/sv/rtl_frontend claim `#`; semantic_annotation claims `//`+`/*`). Interpreter unit tests
+  **7/7**.
+- [x] **NO REGRESSION** — interpreter-tooling + an ADDITIVE `pub(crate)` query (the codegen EMIT path is not
+  touched — codegen still uses its inline `grammar_claims_introducer_as_non_comment` calls; my additions are
+  a new struct + free fn + a method + a `snake_to_pascal` visibility bump, none on the emit path). The
+  equivalence gate re-proves json/semantic_annotation/rtl_frontend/vhdl/**systemverilog (sv_2017)**/scratch/
+  regex/svpp STILL byte-identical (the shared predicate makes the interpreter match codegen for ALL grammars
+  → the gating can only REDUCE divergence, never introduce it); interpreter unit tests **7/7**. **The
+  strongest proof that the additive codegen change is emit-neutral:** `sv_cert_recognized_union_gate`
+  REGENERATED `systemverilog_parser.rs` with the modified `ast_pipeline` and got the IDENTICAL cert —
+  `recognized_basis_green: true`, canonical `UNKNOWN=12`, union `UNKNOWN=1`, residual
+  `["context_member_method_call"]`, `sample_parse_failures=0`, deterministic byte-identical across seeds
+  0/7/42. My commit stages no `generated/*` (git-ignored). New code clippy-clean; `mdbook_docs_gate` GREEN.
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` (CERTIFIED list gains `ebnf`; the
+  per-introducer layout-arm suppression documented as the fidelity mechanism); `TOOLBOX.md` §1.6
+  CERTIFIED/DEFERRED lists; this tree (`.5.2` done + this checklist, frontier, §15 map); CHANGES.md /
+  DEVELOPMENT_NOTES.md / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.

@@ -515,12 +515,20 @@ pub const CERTIFIED: &[&str] = &[
     // Promoted from DEFERRED by PARSE-HARNESS.5.1 (the four regex-fidelity root causes: whitespace-sensitive
     // layout policy, unresolved-reference built-ins `builtin_any_char`/`builtin_ascii_char`, the `@transform`
     // numeric span coercion + the PCRE2 post-parse contract, and `@profiles` dialect gating). Byte-identical
-    // over the gate corpus AND a deeper stress ladder (5 seeds, depths 6-30 — `probe_regex_deep_stress`).
+    // over the gate corpus AND a deeper stress ladder (5 seeds, depths 6-30 — `probe_layout_deep_stress`).
     "regex",
     // Also promoted by PARSE-HARNESS.5.1: the same general fixes (the `systemverilog_preprocessor` regex-token
     // whitespace-sensitivity via the shared layout policy, + the built-ins) incidentally closed the `.5.4`
     // AST span/shape divergence. Byte-identical over the gate corpus AND the deep stress ladder (459 samples).
     "systemverilog_preprocessor",
+    // Promoted from DEFERRED by PARSE-HARNESS.5.2: the interpreter's two layout skippers unconditionally
+    // skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar
+    // when the grammar claims that introducer as a non-comment token (GRAMMAR-WELLFORMED.H.11.5). ebnf's
+    // `block_comment := "/*" …` makes `"/*"` a real token, so the generated ebnf parser has NO `/*` layout
+    // arm and rejects the comment-only `/**/`. The interpreter now gates each arm via codegen's OWN
+    // predicate (`comment_arm_suppression_for_grammar`), so it matches the generated parser for every
+    // grammar. Byte-identical over the gate corpus AND the deep stress ladder (`probe_layout_deep_stress`).
+    "ebnf",
 ];
 
 /// **DEFERRED** — registered grammars whose interpreter differential is NOT yet byte-identical, each
@@ -528,11 +536,6 @@ pub const CERTIFIED: &[&str] = &[
 /// *still* divergent (the no-silent-caps discipline): if one becomes byte-identical it must be
 /// *promoted* to [`CERTIFIED`], so the gate fails until it is — an honest ratchet, never a silent skip.
 pub const DEFERRED: &[(&str, &str)] = &[
-    (
-        "ebnf",
-        "verdict divergence: interpreter accepts input the generated ebnf parser rejects \
-         (PARSE-HARNESS.5.2)",
-    ),
     (
         "return_annotation",
         "AST divergence in the positional-ref / Json fold shape (PARSE-HARNESS.5.3)",
@@ -705,23 +708,36 @@ mod measurement {
         println!("=== end regex minimizer ===\n");
     }
 
-    /// PARSE-HARNESS.5.1 DEEP STRESS (scouting, not an assertion): run the differential over a DEEPER +
-    /// WIDER corpus than the gate (ladder up to 30, 16/rung, 5 seeds) to build confidence that a
-    /// certification is not an artifact of the shallow gate ladder before promoting. Covers the grammars
-    /// PARSE-HARNESS.5.1's general fixes certified (`regex` + `systemverilog_preprocessor`); filter with
-    /// `PGEN_PHEQ_ONLY`. Run with `--ignored --nocapture`.
+    /// DEEP STRESS (scouting, not an assertion): run the differential over a DEEPER + WIDER corpus than
+    /// the gate (ladder up to 30, 16/rung, 5 seeds) to build confidence that a certification is not an
+    /// artifact of the shallow gate ladder before promoting. Covers the grammars the layout/fidelity
+    /// closures certified — `regex` + `systemverilog_preprocessor` (PARSE-HARNESS.5.1) and `ebnf`
+    /// (PARSE-HARNESS.5.2, the per-introducer comment-arm suppression). Add a new target here when a
+    /// grammar is promoted through a layout/fidelity fix; filter with `PGEN_PHEQ_ONLY`. Run with
+    /// `--ignored --nocapture`.
     #[test]
     #[ignore = "measurement/scouting probe — run explicitly with --ignored --nocapture"]
-    fn probe_regex_deep_stress() {
+    fn probe_layout_deep_stress() {
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let grammars_dir = manifest.join("../grammars");
         let only = std::env::var("PGEN_PHEQ_ONLY").ok();
-        let targets: &[(&str, &str)] = &[
-            ("regex", "regex.ebnf"),
-            ("systemverilog_preprocessor", "systemverilog_preprocessor.ebnf"),
+        // Per-target ladder. The whitespace-flat grammars (`regex` / `systemverilog_preprocessor`) stress
+        // cheaply to depth 30 × 5 seeds. `ebnf` is deeply RECURSIVE (`grammar_rule` → `expression` → …), so
+        // the no-memo interpreter is super-linear PAST depth ~18 (the §`.6` memoization is the fix) — a
+        // deeper depth ladder does not complete in practical time. So `ebnf`'s deep-stress instead widens
+        // the SEED coverage at the gate depths (5 seeds vs the gate's 3), which completes; its certification
+        // proper is the gate (`[6,12,18]` × seeds 0/7/42, 83 samples).
+        let targets: &[(&str, &str, &[usize])] = &[
+            ("regex", "regex.ebnf", &[6, 12, 18, 24, 30]),
+            (
+                "systemverilog_preprocessor",
+                "systemverilog_preprocessor.ebnf",
+                &[6, 12, 18, 24, 30],
+            ),
+            ("ebnf", "ebnf.ebnf", &[6, 12, 18]),
         ];
-        println!("\n=== deep stress (ladder 6-30, 5 seeds, 16/rung) ===");
-        for (name, file) in targets {
+        println!("\n=== deep stress (per-target ladder, 5 seeds, 16/rung) ===");
+        for (name, file, ladder) in targets {
             if let Some(f) = &only {
                 if f != name {
                     continue;
@@ -730,7 +746,7 @@ mod measurement {
             let cfg = EquivalenceConfig {
                 seeds: vec![0, 7, 42, 101, 2024],
                 count_per_seed: 16,
-                depth_ladder: vec![6, 12, 18, 24, 30],
+                depth_ladder: ladder.to_vec(),
                 max_recorded_divergences: 12,
                 ..Default::default()
             };
@@ -814,6 +830,56 @@ mod gate {
         for g in CERTIFIED.iter().chain(deferred.iter()) {
             assert!(target_for(g).is_some(), "grammar {g:?} has no EQUIVALENCE_TARGETS entry");
         }
+    }
+
+    /// PARSE-HARNESS.5.2: the interpreter skips comment layout via codegen's own per-introducer
+    /// suppression predicate (`comment_arm_suppression_for_grammar`). Pin its result for every registered
+    /// grammar against the ground truth read directly from the shipped `generated/*.rs`
+    /// `consume_layout_for_terminal` arms (the `(#, //, /*)` columns), so a codegen predicate change that
+    /// would desync the interpreter from the generated parsers fails HERE (in addition to the differential
+    /// gate). `true` = the grammar claims that introducer as a non-comment token ⇒ its layout arm is
+    /// suppressed.
+    #[test]
+    fn comment_arm_suppression_matrix_is_pinned() {
+        use crate::ast_pipeline::ast_based_generator::comment_arm_suppression_for_grammar;
+        // (grammar, file, (claims_hash, claims_line_comment, claims_block_comment)) — read from the
+        // generated parsers' `consume_layout_for_terminal`: an ABSENT arm ⇒ claimed ⇒ `true`.
+        let expected: &[(&str, &str, (bool, bool, bool))] = &[
+            ("json", "json.ebnf", (false, false, false)),
+            ("regex", "regex.ebnf", (true, false, false)),
+            ("vhdl", "vhdl.ebnf", (true, false, false)),
+            ("systemverilog", "systemverilog.ebnf", (true, false, false)),
+            ("rtl_frontend", "rtl_frontend.ebnf", (true, false, false)),
+            (
+                "systemverilog_preprocessor",
+                "systemverilog_preprocessor.ebnf",
+                (false, false, false),
+            ),
+            ("rtl_const_expr", "rtl_const_expr.ebnf", (false, false, false)),
+            ("semantic_annotation", "semantic_annotation.ebnf", (false, true, true)),
+            ("return_annotation", "return_annotation.ebnf", (false, false, false)),
+            ("ebnf", "ebnf.ebnf", (false, false, true)),
+        ];
+        let dir = grammars_dir();
+        let mut failures: Vec<String> = Vec::new();
+        for (name, file, (eh, el, eb)) in expected {
+            let (tree, _order, annotations) =
+                load_gen_ast(&dir.join(file)).expect("grammar loads");
+            let sup = comment_arm_suppression_for_grammar(name, &tree, annotations.as_ref());
+            let got = (sup.claims_hash, sup.claims_line_comment, sup.claims_block_comment);
+            if got != (*eh, *el, *eb) {
+                failures.push(format!(
+                    "  {name}: expected (#,//,/*)=({eh},{el},{eb}) but got ({},{},{})",
+                    sup.claims_hash, sup.claims_line_comment, sup.claims_block_comment
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "PARSE-HARNESS.5.2: comment-arm suppression desynced from the generated parsers — the \
+             interpreter would skip comment layout differently than codegen emits:\n{}",
+            failures.join("\n")
+        );
     }
 
     /// CERTIFIED: each of these must be byte-identical (verdict + typed AST) between the interpreter and
