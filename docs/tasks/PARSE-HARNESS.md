@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`) — frontier `.2` (Phase A, first authoritative-by-construction harness) **`in-progress` (session #38, 2026-07-05)**. `.1` DESIGN is this file.
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete** (both authoritative-by-construction harnesses landed). Frontier → **`.4` (Phase B — the VERIFIED grammar-AST interpreter, the director's flagship) `not-started`** — recommend a **fresh session** before starting it (heavier work; per the `.1`/`.2` sharpness pattern).
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -285,9 +285,29 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   `parse_and_cover_scratch`, detail with `furthest_position`, AST-JSON, entry-aware variants). `generated/` is
   git-ignored so scratch artifacts never pollute the tracked set; `grammars/scratch/scratch.ebnf` IS tracked
   (the blessed slot + the integration-test fixture).
-- `.3` — **(approach 2) compile-and-run harness — `not-started`.** `compile_and_parse(...)` over the real
-  codegen + a throwaway compile. Verify: reproduces a registered grammar's known verdict/AST; becomes the
-  CI oracle for `.5`.
+- `.3` — **(approach 2) compile-and-run harness — `done` (session #39, `PGEN-PARSE-HARNESS-0003`).**
+  `compile_and_parse(grammar_ebnf, input, opts) -> ParseOutcome` over the **real codegen** + a **throwaway
+  external-crate compile**. Verified: reproduces the `json` registry verdict + **byte-identical typed AST** (integration
+  test **1 passed**); becomes the CI oracle for `.5`.
+  **Implementation shape (spike-verified this session — decisive tool evidence, §12 below):** the make-or-break
+  question was *"can a generated parser compile in an EXTERNAL crate (not inside `pgen`)?"* — because the generated
+  source hard-codes `use crate::ast_pipeline::…` and inside `pgen` that resolves `pub(crate)` items an external crate
+  can't see. Tool-verified answer: **YES.** A static audit shows every generated parser reaches **only**
+  `crate::ast_pipeline::*` (22 distinct symbols, ALL `pub`) plus externs `regex`/`rustc_hash`/`serde_json`; a throwaway
+  crate that path-deps `pgen`, adds the single shim `use pgen::ast_pipeline;` (so `crate::ast_pipeline` resolves), and
+  `include!`s the generated file **compiles and runs** — reproducing the registry verdicts byte-for-byte on TWO grammars
+  with distinct machinery (`scratch`: `"hello, world!"`→ACCEPT, `"hello, mars!"`→REJECT `furthest=7`; `json`:
+  `{"a":1,"b":[true,null]}`→ACCEPT, `{"a": }`→REJECT `furthest=6`). `ParseNode` derives `serde::Serialize`, so the
+  throwaway emits the **byte-identical typed AST** the registry's `parse_node_to_json` (`serde_json::to_value(node)`) does.
+  So the harness = pure plumbing: (1) shell the pre-built `ast_pipeline` binary exactly as `RUST_GENERATOR`
+  (`--emit-raw-ast-json` then `--generate-parser --debug --trace --eliminate-left-recursion`), (2) discover the struct
+  name by grepping the emitted `pub struct <Name>Parser<'input>` (exactly one per file — verified), (3) synthesize a
+  throwaway cargo crate (path-dep `pgen`, isolated `CARGO_TARGET_DIR` → no lock contention with an outer `cargo test`),
+  (4) `cargo run` it on the input file (+ optional `--entry-rule` via `parse_full_from`), (5) parse its sentinel-wrapped
+  JSON `{accepted, furthest_position, error, ast}` back into `ParseOutcome`. Uses `parse_full()`/`parse_full_from(entry)`
+  → entry-rule-agnostic like the scratch slot. Honest bound: `scratch`+`json` prove the mechanism + full return-annotation/
+  regex-token/memo surface; SV's 69MB method surface is unverified here — any `pub(crate)` method it needs made `pub` is a
+  bounded follow-up surfaced by `.5`, not a `.3` blocker.
 - `.4` — **(approach 1) interpreter core — `not-started`.** The shared-core dynamic dispatcher over the
   gen-AST (§2.1). Verify: parses the per-combinator smoke set; wired for `.5`.
 - `.5` — **the differential-equivalence gate — `not-started`.** `parse_harness_equivalence_gate`:
@@ -314,9 +334,10 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | `PARSE-HARNESS.2` (approach 3 — scratch-register path) | `in-progress` (frontier) | Phase A, first authoritative-by-construction harness; richest A2.3 evidence. Built in the director-agreed fresh session (#38, 2026-07-05). |
-| 2 | `PARSE-HARNESS.3` (approach 2 — compile-and-run) | `not-started` | Phase A, the CI oracle for the equivalence gate. |
-| 3 | `PARSE-HARNESS.4`–`.7` (interpreter + equivalence gate + combinator suite + fuzz) | `not-started` | Phase B — the verified general interpreter (the director's flagship). |
+| 1 | `PARSE-HARNESS.2` (approach 3 — scratch-register path) | `done` (`PGEN-PARSE-HARNESS-0002`, #38) | Phase A, first authoritative-by-construction harness; richest A2.3 evidence. |
+| 2 | `PARSE-HARNESS.3` (approach 2 — compile-and-run) | `done` (`PGEN-PARSE-HARNESS-0003`, #39) | Phase A complete; the self-contained CI oracle for the `.5` equivalence gate; external-crate compile proven + integration test green. |
+| 3 | `PARSE-HARNESS.4` (interpreter core — Phase B) | `not-started` (**frontier**) | The shared-core dynamic dispatcher over the gen-AST — the director's flagship. Recommend a **fresh session** before starting (heavier work). |
+| 4 | `PARSE-HARNESS.5`–`.7` (equivalence gate + combinator suite + fuzz) | `not-started` | Phase B — make the interpreter authoritative-by-verification; `.3`/`.2` are its oracle. |
 
 ---
 
@@ -396,3 +417,61 @@ director agreement 2026-07-05 — a sharpness/quality call, not a blocker.)
   the depth of the linter/stimuli/parser-gen chapters, per D5, SAME-COMMIT); `SUMMARY.md` updated;
   `grammars/scratch/README.md` documents the slot; `TOOLBOX.md` scratch-probe entry (brief now; the full
   tool-entry + probe protocol is the `.9` capstone). CHANGES.md / DEVELOPMENT_NOTES.md / MEMORY.md updated.
+
+## 12. PARSE-HARNESS.3 — Acceptance Checklist (enforced)
+
+> Per `TOOLBOX.md` / `DOCTRINE_ENFORCEMENT.md`: a CODE change (this leaf adds `rust/src/parse_harness.rs`,
+> wires `rust/src/lib.rs`) MUST pass ROOT CAUSE + ADDRESSED + NO REGRESSION, each ticked and evidence-backed.
+> This is a **capability build**, so "ROOT CAUSE" = the tool-confirmed gap + the make-or-break feasibility
+> question the spike had to settle, and "ADDRESSED" = the compile-and-run harness reproducing a *registered*
+> grammar's known verdict + typed AST by construction.
+
+- [x] **REPRODUCE / ISSUE** — the gap `.1` DESIGN §1.1 named: there is no way to run the REAL generated parser
+  on an arbitrary grammar *without* the full registry+codegen+compile-in ceremony. Approach 3 (scratch) closes
+  it by permanently wiring one registry slot + rebuilding `pgen`; approach 2 must do it as a **self-contained
+  throwaway** (no registry edit, no `pgen` rebuild) so it can be the CI oracle for the `.5` equivalence gate.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the make-or-break design risk: a generated parser source hard-codes
+  `use crate::ast_pipeline::{…}` (`generated/*_parser.rs` line 3). Inside `pgen` that resolves fine (same crate
+  sees `pub(crate)` items); an **external** throwaway crate sees only `pub` items, so an emitted reference to any
+  `pub(crate)` type/method would fail to compile. Tool-verified this session, decisively:
+  - static audit — `grep -oE "crate::ast_pipeline::[A-Za-z_]+"` over **all** `generated/*_parser.rs` → **22
+    distinct symbols, every one `pub`** (structs/enums/`pub fn`/`pub mod`/`pub use` in `rust/src/ast_pipeline/mod.rs`);
+    the only externs are `regex`/`rustc_hash`/`serde_json`. Core parse types (`ParseNode`/`ParseError`/… ) all `pub`;
+    `ParseNode` derives `serde::Serialize` (`mod.rs:754`) → the throwaway serializes the **byte-identical** AST that
+    the registry's `parse_node_to_json` = `serde_json::to_value(node)` (`parser_registry.rs:1044`) does.
+  - empirical spike (`scratchpad/ph_spike`, external crate, path-dep `pgen` + `use pgen::ast_pipeline;` +
+    `include!` of the generated file): **compiles and runs**, reproducing registry verdicts on two grammars with
+    distinct machinery — `scratch` (`"hello, world!"`→ACCEPT, `"hello, mars!"`→REJECT `furthest=7`) and `json`
+    (`{"a":1,"b":[true,null]}`→ACCEPT, `{"a": }`→REJECT `furthest=6`). Exactly one `pub struct <Name>Parser<'input>`
+    per generated file (verified across 7 grammars) → struct name is discoverable by grep, no name re-derivation.
+- [x] **FIX** — fix-hierarchy tier = **new tooling / plumbing** (no engine, annotation, grammar, or codegen change):
+  add `rust/src/parse_harness.rs` (`compile_and_parse(grammar_ebnf, input, &opts) -> ParseOutcome`), `pub mod
+  parse_harness;` in `lib.rs`. It shells the pre-built `ast_pipeline` binary for codegen exactly as `RUST_GENERATOR`,
+  synthesizes a throwaway external crate (isolated `CARGO_TARGET_DIR`), and marshals the result back — authoritative
+  BY CONSTRUCTION (it runs the shipped codegen + runtime; the only trusted surface is this plumbing).
+- [x] **ADDRESSED (verified)** — before→after: the capability now EXISTS. The compile-and-run harness
+  (`pgen::parse_harness::compile_and_parse`) takes `grammars/json.ebnf` + an input and reproduces the shipped
+  `json` parser's behaviour through a throwaway external compile. Re-runnable oracle = the
+  `#[cfg(all(feature="generated_parsers", has_generated_json_parser))]` integration test
+  `parse_harness::tests::compile_and_run_harness_reproduces_json_registry_verdict_and_ast` — **1 passed**
+  (`cargo test --lib --features generated_parsers parse_harness` → `6 passed; 0 failed`). It asserts, for
+  `{"a": 1, "b": [true, null, "x"]}`: `outcome.accepted==true` AND `outcome.ast_json ==
+  parser_registry::parse_sample_ast_json("json", …)` (the harness's typed AST is **byte-identical** to the
+  shipped registry's), and for `{"a": }`: `outcome.accepted==false` matching `parse_sample("json", …)==Some(false)`.
+  Plus 5 unit tests for the plumbing (struct-name discovery, sentinel/JSON marshalling, reject shape). Manual
+  spike parity earlier this session: `scratch` (`"hello, world!"`→ACCEPT, `"hello, mars!"`→REJECT `furthest=7`)
+  and `json` (`furthest=6` on the reject) — both matching the scratch slot / registry.
+- [x] **NO REGRESSION** — the change is **purely additive tooling**: a new module `rust/src/parse_harness.rs` +
+  one `pub mod parse_harness;` line in `lib.rs`; it is **never invoked by any parse/codegen/cert path**. `git
+  status` confirms only `rust/src/parse_harness.rs` (new), `rust/src/lib.rs`, and the two docs files changed; **no
+  `generated/*_parser.rs` regenerated** (mtimes unchanged — SV `12:37`, json `20:30`, scratch `12:13`), so the 6
+  fully-certified grammars + SV are **byte-identical by construction**. SV cert re-verified unchanged via
+  `sv_cert_recognized_union_gate` (the tracked-contract oracle) at seeds 0/7/42 → canonical `1343/10/1321/12`,
+  union `1343/10/1332/1`, `sample_parse_failures=0`. `parse_harness` is **clippy-clean** (`cargo clippy --lib
+  --tests --features generated_parsers` — 0 findings in the module; the 179 generated-stage `eq_op` errors are
+  pre-existing, unchanged). `mdbook_docs_gate` **GREEN**. Full lib builds with `--features generated_parsers`.
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` gains the **compile-and-run harness**
+  section (D5, SAME-COMMIT, to the depth of the scratch-slot / linter / stimuli / parser-gen chapters: what it is,
+  the API, the 5-step plumbing, the load-bearing external-compile fact, the by-construction trust argument,
+  cost/reuse) + the approaches table row promoted `forthcoming → landed`; `TOOLBOX.md` gains a compile-and-run
+  entry (§1.4); CHANGES.md / DEVELOPMENT_NOTES.md / MEMORY.md updated.

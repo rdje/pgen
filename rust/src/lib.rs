@@ -9,6 +9,9 @@ pub mod auto_return_annotation_shape_gate;
 #[cfg(feature = "ebnf_dual_run")]
 pub mod ebnf_frontend;
 pub mod embedding_api;
+/// PARSE-HARNESS.3 — the compile-and-run harness (approach 2): run the REAL codegen + runtime on an
+/// ARBITRARY grammar via a throwaway external crate, authoritative by construction. See the module docs.
+pub mod parse_harness;
 /// Parser-specific hook implementations. Each module here implements
 /// the [`ast_pipeline::ParserHooks`] contract for one grammar's
 /// codegen-time extensibility needs. Code in this module is

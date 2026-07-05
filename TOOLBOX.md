@@ -144,6 +144,21 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** exactly as for any registered grammar (rc 0 + `parse_full passed`, the typed AST, branch-entry trace, `furthest_position` on reject). Restore the default fixture (`git checkout grammars/scratch/scratch.ebnf`) before committing. Full design + trust architecture: book chapter *The Parse Harness* + `docs/tasks/PARSE-HARNESS.md`.
 
+### 1.4 The compile-and-run harness — parse an ARBITRARY grammar with NO registry edit / NO `pgen` rebuild
+- **WHAT:** `pgen::parse_harness::compile_and_parse(grammar_ebnf, input, &opts) -> ParseOutcome` — runs the REAL codegen on an arbitrary `.ebnf`, compiles the emitted parser as a **throwaway external crate**, runs it, and returns `{accepted, furthest_position, error, ast_json}`. Authoritative **BY CONSTRUCTION** (the shipped codegen + runtime); self-contained (touches neither the registry nor `pgen`). PARSE-HARNESS approach 2 — the in-process API a gate/oracle can call (vs the scratch slot 1.3, which is the CLI-toolbox path). It IS the CI oracle for the `.5` differential-equivalence gate.
+- **WHEN:** you need the verdict + typed AST for a synthetic grammar **programmatically** (a Rust test/gate), without the scratch slot's `focus_scratch` + probe-rebuild ceremony; or to cross-check the scratch slot / interpreter.
+- **HOW (Rust):**
+  ```rust
+  use pgen::parse_harness::{compile_and_parse, CompileAndParseOptions};
+  let out = compile_and_parse(
+      std::path::Path::new("grammars/scratch/scratch.ebnf"),
+      "hello, world!",
+      &CompileAndParseOptions::default(), // .entry_rule = alternate start; .workdir = reuse to keep pgen cached
+  )?;
+  assert!(out.accepted);              // out.furthest_position / out.error on reject; out.ast_json (typed AST) on accept
+  ```
+- **OUTPUT:** a `ParseOutcome` whose `ast_json` is **byte-identical** to `parser_registry::parse_sample_ast_json` for a registered grammar (pinned by the integration test `parse_harness::tests::compile_and_run_harness_reproduces_json_registry_verdict_and_ast`). Needs an `ast_pipeline` binary built with `--features ebnf_dual_run` (the standard `target/debug/ast_pipeline`). First probe compiles `pgen` as a dep (~seconds→minutes cold); reuse `opts.workdir` to keep it warm. Full design: book chapter *The Parse Harness* + `docs/tasks/PARSE-HARNESS.md`.
+
 ---
 
 ## 2. Trace — watch the parser explain itself (`parseability_probe`)
