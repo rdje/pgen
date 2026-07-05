@@ -50,12 +50,14 @@ a differential-equivalence oracle).
 |---|---|---|---|
 | **Scratch-register slot** *(landed — `PARSE-HARNESS.2`)* | **by construction** — identical to the shipped register→codegen→drive pipeline | the small scratch registry wiring | an integration test: a known scratch grammar → known verdict/AST |
 | **Compile-and-run harness** *(landed — `PARSE-HARNESS.3`)* | **by construction** — runs the shipped codegen + runtime on a throwaway *external* compile | the harness plumbing (codegen call, throwaway-crate synthesis, I/O marshalling) | an integration test reproducing a registered grammar's verdict + byte-identical AST |
-| **Grammar-AST interpreter** *(forthcoming — `PARSE-HARNESS.4`+)* | **by verification** — a shared-core dynamic dispatcher over the gen-AST | the thin dynamic-dispatch layer over the shared runtime | a differential-equivalence gate vs the generated parser, byte-for-byte, over the full corpus + a per-combinator suite |
+| **Grammar-AST interpreter** *(core landed — `PARSE-HARNESS.4`)* | **by verification** — a shared-core dynamic dispatcher over the gen-AST | the thin dynamic-dispatch layer over the shared runtime | a differential-equivalence check vs the generated parser, byte-for-byte (the full-corpus gate is `PARSE-HARNESS.5`) |
 
 The design in full — including how the interpreter is made "100 % trustworthy" via the
 differential-equivalence oracle and the per-combinator suite — lives in the task tree
-`docs/tasks/PARSE-HARNESS.md`. The two **by-construction** approaches are live today; this chapter
-documents both.
+`docs/tasks/PARSE-HARNESS.md`. All three approaches are live; this chapter documents each. The
+interpreter's `.4` **core** is byte-identical to the generated parser on the structural +
+return-annotation surface (proven on the smoke set below); the full-corpus, all-registered-grammars
+gate and the semantic-directive orchestration are `PARSE-HARNESS.5`/`.6`.
 
 ## The scratch-register slot
 
@@ -225,6 +227,87 @@ dependency (cold: seconds→a couple of minutes). Reuse the same `CompileAndPars
 probes and only the tiny probe bin recompiles — `pgen` stays cached in the isolated target dir — so a
 batch driver (the `PARSE-HARNESS.5` equivalence gate) pays the `pgen` compile once.
 
+## The grammar-AST interpreter
+
+The interpreter is the third approach — and the only one that is **not** authoritative by construction.
+Where the scratch slot and the compile-and-run harness *are* the shipped pipeline (they run the real
+codegen + runtime), the interpreter is a genuine **second parsing implementation**: it parses an input
+against an arbitrary grammar **in-process, with no codegen and no compile**, by *dynamically
+dispatching* over the normalized generation-input AST (the same `ASTNode` IR `--dump-gen-ast` emits and
+that codegen consumes) instead of running generated match-arms. It is the fast, in-process capability
+the director named — the tool for a daily grammar-authoring probe or a linter-soundness question, once
+trusted.
+
+It is exposed alongside the compile-and-run harness, returning the **same** `ParseOutcome` (so the two
+are directly diffable — that diff is the equivalence gate):
+
+```rust
+use pgen::parse_harness_interpreter::{interpret_parse, InterpretOptions};
+use std::path::Path;
+
+let outcome = interpret_parse(
+    Path::new("grammars/json.ebnf"),
+    r#"{"a": [1, true, null]}"#,
+    &InterpretOptions::default(),   // .entry_rule = Some("rule") to start from an alternate symbol
+)?;
+assert!(outcome.accepted);
+// outcome.furthest_position — the deepest byte reached (the reject locus on !accepted)
+// outcome.ast_json          — the typed AST on accept, byte-identical to the generated parser's
+```
+
+There is also a feature-independent core, `interpret_parse_gen_ast`, that takes an already-normalized
+gen-AST (the triple `grammar_tree` / `rule_order` / `annotations` that codegen consumes) — the entry
+point the `PARSE-HARNESS.5` differential-equivalence gate drives.
+
+### Why it is trustworthy — "by verification" (the hard case)
+
+Because the interpreter is a second implementation, its trust must be *earned*, not assumed. Two design
+legs make it so:
+
+1. **A minimized trusted surface (the shared core).** A generated parser is ~9 000 lines per grammar,
+   but its *combinator control-flow is fully inlined per-rule as codegen templates* — there is no shared
+   runtime function for it — while the *semantic + type layer* survives as callable runtime. So the
+   interpreter **reuses verbatim** the shipped `ParseNode` / `ParseContent` types (so the AST it
+   serializes is byte-identical), the quantifier-bounds decoder, the semantic-runtime checkpoint /
+   rollback that speculation needs, and the gen-AST IR + loader; and it **re-expresses** only the small,
+   parser-agnostic lexical/speculation primitives (`match_string`, `match_regex`, the layout consumers,
+   `try_parse` — mirrored byte-for-byte from a generated parser's emitted code), plus the combinator
+   dispatch (the ordered-choice tournament + `branch_policy`, sequence, the quantifier loop, lookahead)
+   and the return-annotation fold. The residual divergence surface is therefore just that thin dispatch
+   layer.
+2. **Differential equivalence (the certifying oracle).** The residual is checked against the
+   authoritative generated parser, byte-for-byte. The interpreter's tests assert it is **byte-identical
+   to the registered `json` parser** (verdict + typed AST, across accept and reject inputs — exercising
+   multi-branch ordered choice, sequence, regex tokens, rule-reference recursion, the object/array/spread
+   return-annotation fold, and layout) **and to the compile-and-run harness on synthetic per-combinator
+   grammars** (the A2.3 fixed-terminal-prefix shape, `*` / `+` repetition, optional `?`, and `&` / `!`
+   lookahead) — verdict, `furthest_position`, and typed AST all identical. That synthetic-grammar diff is
+   a *mini* version of the `PARSE-HARNESS.5` gate, whose oracle is the compile-and-run harness above.
+
+### One subtlety worth calling out: interning to `'static`
+
+The shipped `ParseNode.rule_name` (and a quantifier node's label) is a `&'static str` — a compile-time
+literal in a generated parser. An interpreter over an *arbitrary* grammar has runtime `String`
+rule-names, so to reuse the exact `ParseNode` type (and thus produce a byte-identical serialized AST) it
+**interns** the finite set of grammar-derived strings — rule names, the handful of quantifier labels,
+the annotation literals — leaking each distinct string to `&'static str` at most once, ever. For a
+probe/gate tool that bounded, one-time-per-string leak is deliberate and the price of type-level
+byte-identity.
+
+### Honest bounds (the interpreter)
+
+This is the interpreter **core**. It is byte-identical to the generated parser on the **structural +
+return-annotation** surface — ordered choice under the default `longest_match` policy, sequence, the
+quantifier forms, lookahead, terminals / regex-tokens / layout, rule references, and the full
+return-annotation fold — plus the accept/reject **verdict** and `furthest_position`, proven on the smoke
+set. Deferred to `PARSE-HARNESS.5`/`.6` (threaded here so they extend without restructuring, but not in
+the `.4` smoke set): the **semantic-directive orchestration** that *gates parse outcomes* on the store
+(`@predicate` gates, `@emit_fact`/scope effects), the non-default `branch_policy` / per-branch
+`@priority` paths, packrat **memoization** (a transparent cache — AST-invariant — added where the full
+corpus needs it), and the full-corpus, all-registered-grammars byte-identity. As with every claim on
+this platform, the honest statement is *divergence-free over the tested corpus with a shared core* — not
+a formal all-inputs proof.
+
 ## Honest bounds
 
 - The scratch slot and the compile-and-run harness are authoritative *by construction* — they run the
@@ -236,10 +319,12 @@ batch driver (the `PARSE-HARNESS.5` equivalence gate) pays the `pgen` compile on
   memoization). A very large grammar such as full SystemVerilog could in principle emit a call to a
   `pub(crate)` runtime *method* that an external crate cannot see; if so, exposing that one method is a
   small, bounded follow-up (surfaced by the `PARSE-HARNESS.5` gate), not a redesign.
-- The forthcoming interpreter (`PARSE-HARNESS.4`+) is a genuine second implementation; its trust is
-  *earned* by a differential-equivalence oracle, and the honest claim there will be "divergence-free
-  over a combinator-complete, real-world, fuzzed corpus with a shared core" — **not** a formal
-  all-inputs proof. See `docs/tasks/PARSE-HARNESS.md` §3.4.
+- The interpreter (`PARSE-HARNESS.4`, core landed — see *The grammar-AST interpreter* above) is a
+  genuine second implementation; its trust is *earned* by a differential-equivalence oracle, and the
+  honest claim is "divergence-free over the tested corpus with a shared core" — **not** a formal
+  all-inputs proof. The `.4` core is proven byte-identical on the structural + return-annotation smoke
+  set; the full-corpus, all-registered-grammars gate + a combinator-complete + fuzzed corpus are
+  `PARSE-HARNESS.5`/`.6`/`.7`. See `docs/tasks/PARSE-HARNESS.md` §3.4 / §13.
 
 ## See also
 

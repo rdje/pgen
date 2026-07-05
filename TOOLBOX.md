@@ -89,7 +89,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 |---|---|
 | "Does this file parse? Where does it fail?" | [1.1 `--parse`](#11---parse--supports) + [3.2 furthest-position](#32-furthest-position-error-diagnostic) |
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
-| **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) |
+| **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (in-process, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (in-process, NO compile) |
 | "A `@predicate` rejected valid input — which one, why?" | [2.4 predicate self-explaining trace](#24-predicate-self-explaining-trace) |
 | "The parse is slow / stuck — which rules dominate?" | [3.1 `--dump-rule-call-counts`](#31---dump-rule-call-counts) |
 | "I need to watch the parser step by step" | [2.1 trace verbosity](#21-trace-verbosity) + [2.2 `--trace-rules`](#22---trace-rules) |
@@ -158,6 +158,22 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   assert!(out.accepted);              // out.furthest_position / out.error on reject; out.ast_json (typed AST) on accept
   ```
 - **OUTPUT:** a `ParseOutcome` whose `ast_json` is **byte-identical** to `parser_registry::parse_sample_ast_json` for a registered grammar (pinned by the integration test `parse_harness::tests::compile_and_run_harness_reproduces_json_registry_verdict_and_ast`). Needs an `ast_pipeline` binary built with `--features ebnf_dual_run` (the standard `target/debug/ast_pipeline`). First probe compiles `pgen` as a dep (~seconds→minutes cold); reuse `opts.workdir` to keep it warm. Full design: book chapter *The Parse Harness* + `docs/tasks/PARSE-HARNESS.md`.
+
+### 1.5 The grammar-AST interpreter — parse an ARBITRARY grammar IN-PROCESS with NO codegen / NO compile
+- **WHAT:** `pgen::parse_harness_interpreter::interpret_parse(grammar_ebnf, input, &opts) -> ParseOutcome` — an in-process **interpreter** that dynamically dispatches over the normalized gen-AST (the `--dump-gen-ast` IR) reusing the shipped `ParseNode`/`ParseContent`/semantic runtime, so it needs **neither codegen nor a compile**. Same `ParseOutcome{accepted, furthest_position, error, ast_json}` as `compile_and_parse` (1.4), so the two are directly diffable. Authoritative **BY VERIFICATION** — a second implementation whose thin dispatch layer is proven byte-identical to the generated parser by a differential oracle. PARSE-HARNESS approach 1 (`.4` core). The fast path for "which alternative wins on this input?" / grammar-authoring / linter-soundness probes when you do NOT want the per-probe `rustc` compile of 1.4.
+- **WHEN:** you need the verdict + typed AST for a synthetic grammar **fast and in-process** (a Rust test/gate/REPL-style probe), and the grammar is on the `.4` structural + return-annotation surface (no store-gated `@predicate`/`@emit_fact` parse outcomes — those are the `.5`/`.6` extension). Cross-checks the scratch slot / compile-and-run harness with no compile.
+- **HOW (Rust):**
+  ```rust
+  use pgen::parse_harness_interpreter::{interpret_parse, InterpretOptions};
+  let out = interpret_parse(
+      std::path::Path::new("grammars/json.ebnf"),
+      r#"{"a": [1, true, null]}"#,
+      &InterpretOptions::default(), // .entry_rule = Some("rule") for an alternate start symbol
+  )?;
+  assert!(out.accepted);            // out.furthest_position / out.error on reject; out.ast_json on accept
+  // feature-independent core (already-normalized gen-AST): interpret_parse_gen_ast(tree, order, anns, entry, input)
+  ```
+- **OUTPUT:** a `ParseOutcome` whose `ast_json` is **byte-identical** to `parser_registry::parse_sample_ast_json` for a registered grammar (pinned by `parse_harness_interpreter::tests::interpreter_is_byte_identical_to_the_json_registry_parser`) and to `compile_and_parse` (1.4) on synthetic grammars. Needs `--features ebnf_dual_run` (the `.ebnf` frontend). No `rustc` per probe → the fast oracle-side of the `.5` differential-equivalence gate. Full design: book chapter *The Parse Harness* + `docs/tasks/PARSE-HARNESS.md` §13.
 
 ---
 

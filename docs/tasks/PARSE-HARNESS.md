@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete** (both authoritative-by-construction harnesses landed). Frontier → **`.4` (Phase B — the VERIFIED grammar-AST interpreter, the director's flagship) `not-started`** — recommend a **fresh session** before starting it (heavier work; per the `.1`/`.2` sharpness pattern).
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set (json registry + 5 synthetic per-combinator grammars via the `.3` oracle); **Phase B is now OPEN.** Frontier → **`.5` (the differential-equivalence gate over the full corpus, all registered grammars, seeds 0/7/42 — the `.3` compile-and-run harness is its oracle) `not-started`**. See §13 for the `.4` tool-mapped plan, committed scope, and acceptance checklist.
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -308,8 +308,22 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   → entry-rule-agnostic like the scratch slot. Honest bound: `scratch`+`json` prove the mechanism + full return-annotation/
   regex-token/memo surface; SV's 69MB method surface is unverified here — any `pub(crate)` method it needs made `pub` is a
   bounded follow-up surfaced by `.5`, not a `.3` blocker.
-- `.4` — **(approach 1) interpreter core — `not-started`.** The shared-core dynamic dispatcher over the
-  gen-AST (§2.1). Verify: parses the per-combinator smoke set; wired for `.5`.
+- `.4` — **(approach 1) interpreter core — `done` (session #40, `PGEN-PARSE-HARNESS-0004`).** The
+  shared-core dynamic dispatcher over the gen-AST (§2.1). VERIFIED byte-identical to the generated parser on
+  the per-combinator smoke set: the `json` registry oracle (7 accepts + 4 rejects, byte-identical verdict + typed
+  AST) + 5 synthetic grammars via the `.3` compile-and-run oracle (A2.3 fixed-prefix, `*`/`+`, optional `?`,
+  `&`/`!` lookahead — byte-identical verdict + `furthest_position` + typed AST); `parse_harness_interpreter`
+  **7 tests pass**. Wired for `.5` (returns the same `ParseOutcome` as `compile_and_parse`; the core entry
+  `interpret_parse_gen_ast` is the gate's driver). **Tool-mapped plan, committed scope, shared-core boundary,
+  and the enforced acceptance checklist are in §13.** Key decisions this leaf makes (all tool-backed, §13): the interpreter reuses the shipped semantic /
+  AST / recursion / quantifier-bounds primitives **verbatim** (Section A) and re-expresses only the combinator
+  dispatch + the lexical/speculation primitives + the return-fold (Sections B/C), which exist **only** as
+  codegen `quote!` templates — so the divergence surface is the combinator half, exactly as D2 predicted; a
+  string **interner** leaks the finite set of rule-names / quantifier-labels / annotation-literals to
+  `&'static str` so the exact shipped `ParseNode` type is reused (byte-identical serde); **no memo** in `.4`
+  (a transparent cache — AST-invariant — deferred to `.5` where the corpus needs it); the **semantic-directive
+  orchestration** (store-gated parsing) is threaded (SemanticRuntimeState present + speculation-faithful) but
+  its full orchestration is the `.6` extension (honest bound, §3.4 / §13).
 - `.5` — **the differential-equivalence gate — `not-started`.** `parse_harness_equivalence_gate`:
   interpreter vs generated parser, byte-identical over the full corpus (§3.2), all registered grammars,
   seeds 0/7/42. This is the leg that makes (1) authoritative.
@@ -336,8 +350,9 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | --- | --- | --- | --- |
 | 1 | `PARSE-HARNESS.2` (approach 3 — scratch-register path) | `done` (`PGEN-PARSE-HARNESS-0002`, #38) | Phase A, first authoritative-by-construction harness; richest A2.3 evidence. |
 | 2 | `PARSE-HARNESS.3` (approach 2 — compile-and-run) | `done` (`PGEN-PARSE-HARNESS-0003`, #39) | Phase A complete; the self-contained CI oracle for the `.5` equivalence gate; external-crate compile proven + integration test green. |
-| 3 | `PARSE-HARNESS.4` (interpreter core — Phase B) | `not-started` (**frontier**) | The shared-core dynamic dispatcher over the gen-AST — the director's flagship. Recommend a **fresh session** before starting (heavier work). |
-| 4 | `PARSE-HARNESS.5`–`.7` (equivalence gate + combinator suite + fuzz) | `not-started` | Phase B — make the interpreter authoritative-by-verification; `.3`/`.2` are its oracle. |
+| 3 | `PARSE-HARNESS.4` (interpreter core — Phase B) | `done` (#40, `PGEN-PARSE-HARNESS-0004`) | The shared-core dynamic dispatcher over the gen-AST — the director's flagship. Byte-identical on the smoke set (json registry + 5 synthetic combinator grammars via the `.3` oracle); 7 tests pass. Tool-mapped plan + committed scope + acceptance checklist in §13. |
+| 4 | `PARSE-HARNESS.5` (differential-equivalence gate) | `not-started` (**frontier**) | `parse_harness_equivalence_gate`: interpreter (`.4`) vs the generated parser byte-identical over the FULL corpus, all registered grammars, seeds 0/7/42 — the leg that makes (1) authoritative. The `.3` compile-and-run harness + the registry are its oracle; `interpret_parse_gen_ast` is its driver. |
+| 5 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
 
 ---
 
@@ -475,3 +490,129 @@ director agreement 2026-07-05 — a sharpness/quality call, not a blocker.)
   the API, the 5-step plumbing, the load-bearing external-compile fact, the by-construction trust argument,
   cost/reuse) + the approaches table row promoted `forthcoming → landed`; `TOOLBOX.md` gains a compile-and-run
   entry (§1.4); CHANGES.md / DEVELOPMENT_NOTES.md / MEMORY.md updated.
+
+## 13. PARSE-HARNESS.4 — implementation plan, tool-mapped design, committed scope, acceptance checklist
+
+> Session #40. Two focused code-mapping passes over the tree (recorded here so the design is durable, not
+> conversation-bound) established exactly where the interpreter's "thin dynamic-dispatch layer" boundary is
+> (D2). The maps are the WHY+WHERE evidence for the build.
+
+### 13.1 The shared-core boundary (tool-mapped — this is what D2 predicted, now precise)
+
+A generated parser is ~9K lines per grammar, but its *combinator control-flow is fully inlined per-rule as
+codegen `quote!` templates* — there is **no shared `impl`** for it. What survives as callable runtime is
+almost entirely the **semantic + type layer**. So the interpreter splits cleanly into three sections:
+
+- **Section A — reuse VERBATIM (the shared core; all `pub` in `crate::ast_pipeline`):** `SemanticRuntimeState`
+  (checkpoint / rollback_to_named / extract_delta_since / apply_delta / emit_fact / open_scope / close_scope /
+  apply_directive(s) / evaluate_predicate / evaluate_content_aware_predicate / push_rule_context /
+  pop_rule_context), `CompiledSemanticRuntimeAnnotations` (+ `compile_semantic_runtime_annotations`),
+  `ParseNode` / `ParseContent` (+ `to_json_value`), `RecursionGuard`, `parse_quantifier_bounds`,
+  `UnifiedReturnAST`, `SemanticBranchPolicy`, `ParseError` / `ParseResult`, the gen-AST IR (`ASTNode` /
+  `ASTValue` / `TokenValue` / `Annotations` / `BranchAnnotation`), and the in-process gen-AST loader
+  (`ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope` → `RustASTPipeline::transform_from_raw_ast`).
+- **Section B — re-implement (parser-AGNOSTIC, mechanical; exist ONLY as codegen templates):** `try_parse`
+  (position + `semantic_runtime_state.checkpoint()` save, `rollback_to_named` on `Err`), `match_string`,
+  `match_regex` (anchored `\A(?:pat)` + empty-match probe), `consume_layout_for_terminal` /
+  `consume_layout_for_regex` / `consume_optional_whitespace` / `consume_horizontal_whitespace`,
+  `bytes_match_at`, `regex_token_matches_at_cursor`. **Mirrored byte-for-byte from the emitted code in a
+  generated parser** (the authoritative behavior), not from prose.
+- **Section C — re-express the dispatch (a dynamic walk over `ASTNode`):** the ordered-choice tournament +
+  `branch_policy` (longest_match / ordered / priority_first) + per-branch `@priority` + associativity;
+  sequence assembly (each element wrapped `ParseNode{rule_name:"element_{i}", content, span}`; the `?`-element
+  special case → inner content or empty `Sequence`); the quantifier loop (`parse_quantifier_bounds` + per-iter
+  `try_parse` + zero-length guard + `SAFETY_LIMIT=10_000` + min/max); lookahead (`&`/`!`, zero-width); the
+  return-annotation fold (`AstReturnTransformer::generate_transform` mirrored at runtime — see 13.3); the
+  synthetic `-> $1` passthrough default for single-element bodies (`body_has_single_element`: `Sequence` len≤1
+  or non-`Quantified` atom/Or/Lookahead → `true`; `Quantified` → `false`); the rule-node wrap
+  (`ParseNode{rule_name:<rule>, content:<result>, span:start..end}`) + monotonic `furthest_position` at entry.
+
+### 13.2 Atom / node shapes (tool-verified from the emitted `json` + `rtl_const_expr` parsers)
+
+- `Atom(Token[tag,val])`: `quoted_string`/`number`/`probability`/`include_dir`/`include_file`/`rule` →
+  `match_string(val)` → `ParseContent::Terminal(matched)`; `regex` → `match_regex(val, true)` →
+  `Terminal(matched)`; `rule_reference` → `ParseContent::Alternative(Box::new(parse_rule(val)))`; anything
+  else / `parts.len()<2` → empty `Terminal("")` (consumes 0).
+- `Sequence{elements}` → `ParseContent::Sequence(vec![ParseNode{rule_name:"element_{i}", content, span}, …])`.
+- `Quantified{element,quantifier}` → `ParseContent::Quantified(vec![iter_node…], intern(quantifier))`.
+- `Lookahead{element,positive}` → zero-width (position restored); consumes nothing.
+- `Or{alternatives}` → the winning branch's (transformed) content; single-branch and multi-branch paths differ
+  (multi-branch = the try_parse tournament).
+
+### 13.3 The return-fold model (decisive detail — nails byte-identity on `json`)
+
+Every codegen call site passes `captured_vars = &["result"|"content"]` (len 1) — verified at
+`ast_based_generator.rs:2499,3031,3169`. So the fold's `$N` always resolves against a **single base** = the
+branch's raw structural `ParseContent`, with the len==1 rule (`generate_positional_ref`): `$1` →
+`match &base { Sequence(elements) if !empty => elements[0].content.clone(), Alternative(node) =>
+node.content.clone(), other => other.clone() }`; `$N` (N>1) → `Sequence(elements) if len>N-1 =>
+elements[N-1].content.clone()` else `Terminal("<invalid_sequence_access>")`. Object → `Json(Object)` (keys
+sorted); Array → `Sequence(vec)` with Spread/FlattenSpread flattening; literals → the typed `Json(...)` /
+`Terminal(interned)` the codegen emits. The runtime fold is a faithful mirror of `AstReturnTransformer`.
+
+### 13.4 Committed scope (what `.4` delivers vs what `.5`/`.6` extend — honest bounds, §3.4)
+
+- **IN `.4`:** `pgen::parse_harness_interpreter::interpret_parse(grammar_ebnf, input, &opts) -> ParseOutcome`
+  (+ an in-process gen-AST core entry), reusing `crate::parse_harness::ParseOutcome` so `.5` can diff it
+  against `compile_and_parse` trivially. Full combinator dispatch (Sections B/C) + the return-fold, reusing
+  Section A verbatim, with a string interner for `&'static str`. **Verified byte-identical** against the
+  oracle on the smoke set: **json** (registry `parse_sample_ast_json` — byte-identical, no compile; covers
+  Or / Sequence / regex-token / rule-ref / return-fold / layout) + **synthetic per-combinator grammars** via
+  the `.3` `compile_and_parse` oracle (quantifier forms, lookahead `&`/`!`, ordered-vs-longest choice,
+  priority). Verdict (accept/reject) + `furthest_position` are the rock-solid core (structure-only, no
+  content-shape subtlety).
+- **DEFERRED to `.5`/`.6` (threaded but not the `.4` smoke set — the honest boundary):** the
+  **semantic-directive orchestration** (store-gated parsing — `@predicate` branch/pre/post gates changing the
+  verdict, `@emit_fact`/scope effects, the `$reference`-against-content resolution, `@import`/`@export`
+  library); **memoization** with semantic-delta replay (a transparent cache — AST-invariant — added in `.5`
+  where the full corpus, incl. SV, needs it for performance/termination); **full-corpus** byte-identity across
+  all registered grammars. `SemanticRuntimeState` is constructed + threaded through `try_parse` (speculation
+  snapshots it, faithfully) so `.6` extends without restructuring; rules that carry semantic directives are
+  detected (`CompiledSemanticRuntimeAnnotations::has_rule`) and the smoke set excludes grammars that *gate
+  parse outcomes* on the store. No over-claim: `.4` is byte-identical on the **structural + return-annotation**
+  surface, proven on the smoke set; the combinator-complete + full-corpus proof is `.5`/`.6`.
+
+### 13.5 PARSE-HARNESS.4 — Acceptance Checklist (enforced)
+
+> A CODE change (adds `rust/src/parse_harness_interpreter.rs`, wires `rust/src/lib.rs`). Capability build:
+> "ROOT CAUSE" = the tool-mapped shared-core boundary that makes the interpreter a *thin* dispatcher (the
+> make-or-break design fact); "ADDRESSED" = the interpreter reproducing the generated parser's verdict +
+> byte-identical typed AST on the smoke set, differentially against the authoritative oracle.
+
+- [x] **REPRODUCE / ISSUE** — the capability gap `.1` §1.1: no in-process, no-codegen way to parse an input
+  against an arbitrary grammar. Approaches 2/3 are authoritative-by-construction but pay a per-probe compile;
+  approach 1 (this leaf) is the fast in-process interpreter — its trust must be *earned* (§3), so it is
+  verified against the by-construction oracle.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the tool-mapped shared-core boundary (13.1): the combinator half exists
+  ONLY as codegen `quote!` templates (`ast_based_generator.rs` generate_or_logic @2995 / generate_sequence_element
+  @3590 / generate_quantified_logic @3859 / generate_lookahead_logic @2930 / generate_atom_logic @3647 +
+  `AstReturnTransformer::generate_transform` @ast_return_transform.rs:14), the semantic half is callable runtime
+  (`semantic_runtime.rs` / `mod.rs`, all `pub`: `ParseNode`@755 / `ParseContent`@715 / `parse_quantifier_bounds`@916
+  / `SemanticRuntimeState`@1205). So the interpreter reuses Section A verbatim and re-expresses Sections B/C — the
+  divergence surface is exactly the combinator dispatch, which the differential oracle then pins. The one wrong
+  guess (quantifier iteration node) was caught by the oracle on the first run and fixed to `rule_name:"quantified"`
+  / `span:0..0` / zero-length-discard by reading `generate_quantified_logic` @3986-4009.
+- [x] **FIX** — new tooling module `rust/src/parse_harness_interpreter.rs` (fix-hierarchy tier = new tooling /
+  plumbing; no engine / grammar / codegen / existing-runtime change); `pub mod parse_harness_interpreter;` in
+  `rust/src/lib.rs`. `interpret_parse` (`.ebnf`-loading, `ebnf_dual_run`-gated) + `interpret_parse_gen_ast` (core).
+- [x] **ADDRESSED (verified)** — before→after: the in-process interpreter capability now EXISTS. Re-runnable
+  oracles = the differential smoke tests (`cargo test --lib --features "generated_parsers ebnf_dual_run"
+  parse_harness_interpreter` → **7 passed; 0 failed**): (1) `interpreter_is_byte_identical_to_the_json_registry_parser`
+  — `interpret_parse` byte-identical to `parser_registry::parse_sample_ast_json("json", …)` across 7 accepts + 4
+  rejects (multi-branch `Or`/longest_match, sequence, regex tokens, rule-ref recursion, object/array/spread fold,
+  layout); (2) `interpreter_agrees_with_compile_and_run_on_synthetic_combinators` — byte-identical verdict +
+  `furthest_position` + typed AST vs `parse_harness::compile_and_parse` on 5 synthetic grammars (A2.3 fixed-prefix,
+  `*`/`+`, optional `?`, `&`/`!` lookahead); + 5 unit tests.
+- [x] **NO REGRESSION** — purely additive tooling (new module + one `pub mod` line); NEVER invoked by any
+  parse/codegen/cert path; no `generated/*_parser.rs` regenerated (mtimes unchanged) → the 6 fully-certified
+  grammars + SV byte-identical by construction; SV cert re-verified unchanged via `sv_cert_recognized_union_gate`
+  at seeds 0/7/42 → canonical **1343/10/1321/12**, union **1343/10/1332/1**, `sample_parse_failures=0`; the new
+  module clippy-clean (`cargo clippy --lib --features "generated_parsers ebnf_dual_run"` — 0 findings in the
+  module; the 179 generated-stage `eq_op` errors are pre-existing, unchanged); `mdbook_docs_gate` GREEN.
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` gains the **grammar-AST interpreter**
+  section (D5, SAME-COMMIT, to the depth of the scratch-slot / compile-and-run / linter / stimuli / parser-gen
+  chapters: what it is, the API + core entry, the by-verification trust argument, the shared-core boundary, the
+  interning-to-`'static` subtlety, honest bounds) + the approaches-table row promoted `forthcoming → core landed`;
+  `TOOLBOX.md` §1.5 interpreter entry + quick-chooser row; CHANGES.md / DEVELOPMENT_NOTES.md (+ the novel
+  shared-primitive-factoring observation, surfaced for director feedback) / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md
+  updated.

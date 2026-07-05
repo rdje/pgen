@@ -12,6 +12,10 @@ pub mod embedding_api;
 /// PARSE-HARNESS.3 — the compile-and-run harness (approach 2): run the REAL codegen + runtime on an
 /// ARBITRARY grammar via a throwaway external crate, authoritative by construction. See the module docs.
 pub mod parse_harness;
+/// PARSE-HARNESS.4 — the grammar-AST interpreter (approach 1): an in-process, no-codegen dynamic
+/// dispatcher over the normalized gen-AST that reuses the shipped semantic/AST runtime, authoritative
+/// by VERIFICATION (a differential-equivalence oracle vs the generated parser). See the module docs.
+pub mod parse_harness_interpreter;
 /// Parser-specific hook implementations. Each module here implements
 /// the [`ast_pipeline::ParserHooks`] contract for one grammar's
 /// codegen-time extensibility needs. Code in this module is
