@@ -1,0 +1,41 @@
+# ==============================================================================
+# PGEN scratch slot — a blessed, throwaway probe grammar (PARSE-HARNESS approach 3).
+#
+# WHAT THIS IS
+#   The `scratch` grammar is a first-class registered parser whose grammar body is
+#   meant to be OVERWRITTEN freely. It lets you parse an arbitrary input against an
+#   arbitrary grammar using the whole shipped `parseability_probe` toolbox — with
+#   semantics IDENTICAL to the shipped generated parsers — without the full
+#   register→codegen→compile-in ceremony for a one-off probe.
+#
+# HOW TO USE
+#   1. Edit the grammar body below (the entry rule must be named `scratch` so the
+#      registered slot stays stable; helper rules can be named anything).
+#   2. Regenerate + rebuild:  make -C rust SHELL=/bin/bash focus_scratch
+#      then rebuild the probe:  (cd rust && cargo build --release --features generated_parsers --bin parseability_probe)
+#   3. Drive it with the full toolbox:
+#        parseability_probe --parse scratch <input_file>
+#        parseability_probe --parse-dump-ast-pretty scratch <input_file> out.json
+#        PGEN_TRACE_VERBOSITY=debug parseability_probe --parse scratch <input_file> --trace-rules scratch
+#        ast_pipeline grammars/scratch/scratch.ebnf --lint-grammar
+#        ast_pipeline grammars/scratch/scratch.ebnf --report-certificate-coverage --entry-rule scratch --count 40 --seed 0
+#
+# IMPORTANT
+#   The generated artifacts (generated/scratch_parser.rs, generated/scratch.json) are
+#   git-ignored — they never enter the tracked set. THIS file is tracked: it is both
+#   the blessed slot AND the committed integration-test fixture proving the slot is
+#   authoritative-by-construction. If you edit the body for a probe, restore the
+#   default (git checkout grammars/scratch/scratch.ebnf) before committing so the
+#   scratch integration test keeps passing.
+#
+# See grammars/scratch/README.md and the "The Parse Harness" chapter in docs/book/.
+# ==============================================================================
+
+# Default fixture grammar: a deterministic, fully-consuming greeting.
+#   accepts:  "hello, world!"  and  "hello, pgen!"
+#   rejects:  "hello, mars!"   (no matching `name` alternative)
+
+scratch := "hello, " name "!"
+
+name := "world"
+name := "pgen"

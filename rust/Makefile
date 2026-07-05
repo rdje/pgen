@@ -26,6 +26,8 @@ RTL_CONST_EXPR_EBNF = $(GRAMMARS_DIR)/rtl_const_expr.ebnf
 SVPP_EBNF = $(GRAMMARS_DIR)/systemverilog_preprocessor.ebnf
 RTL_FRONTEND_EBNF = $(GRAMMARS_DIR)/rtl_frontend.ebnf
 VHDL_EBNF = $(GRAMMARS_DIR)/vhdl.ebnf
+# PARSE-HARNESS.2 — the blessed scratch-register slot (arbitrary-grammar probe).
+SCRATCH_EBNF = $(GRAMMARS_DIR)/scratch/scratch.ebnf
 
 # Generated JSON files (intermediate)
 SEMANTIC_ANNOTATION_JSON = $(GENERATED_DIR)/semantic_annotation.json
@@ -37,6 +39,7 @@ RTL_CONST_EXPR_JSON = $(GENERATED_DIR)/rtl_const_expr.json
 SVPP_JSON = $(GENERATED_DIR)/systemverilog_preprocessor.json
 RTL_FRONTEND_JSON = $(GENERATED_DIR)/rtl_frontend.json
 VHDL_JSON = $(GENERATED_DIR)/vhdl.json
+SCRATCH_JSON = $(GENERATED_DIR)/scratch.json
 
 # Generated Rust parser files (final output)
 SEMANTIC_ANNOTATION_PARSER = $(GENERATED_DIR)/semantic_annotation_parser.rs
@@ -48,6 +51,7 @@ RTL_CONST_EXPR_PARSER = $(GENERATED_DIR)/rtl_const_expr_parser.rs
 SVPP_PARSER = $(GENERATED_DIR)/systemverilog_preprocessor_parser.rs
 RTL_FRONTEND_PARSER = $(GENERATED_DIR)/rtl_frontend_parser.rs
 VHDL_PARSER = $(GENERATED_DIR)/vhdl_parser.rs
+SCRATCH_PARSER = $(GENERATED_DIR)/scratch_parser.rs
 
 # Compiled Rust parser executables
 SEMANTIC_ANNOTATION_EXE = $(GENERATED_DIR)/semantic_annotation_parser
@@ -225,6 +229,35 @@ json_parser: $(JSON_JSON) $(RUST_AST_PIPELINE)
 focus_json: $(JSON_PARSER)
 	@echo ""
 	@echo "✅ json parser artifact ready: $(JSON_PARSER)"
+	@echo ""
+
+# Generate scratch raw-AST JSON from EBNF (PARSE-HARNESS.2 — the blessed
+# scratch-register slot; the grammar body is meant to be overwritten freely
+# for arbitrary-grammar probing).
+$(SCRATCH_JSON): $(SCRATCH_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating scratch JSON with debug output (Rust frontend)..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_FRONTEND_TO_JSON) $(SCRATCH_EBNF) --emit-raw-ast-json $(SCRATCH_JSON)
+
+# Generate final scratch parser from JSON
+$(SCRATCH_PARSER): $(SCRATCH_JSON) $(RUST_AST_PIPELINE)
+	@echo "Generating final scratch parser from JSON..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(SCRATCH_JSON) -o $(SCRATCH_PARSER)
+
+# `make focus_scratch` — regenerate the scratch artifact so subsequent
+# `cargo build/test --features generated_parsers` invocations pick up the
+# scratch slot (build.rs sets has_generated_scratch_parser when the artifact
+# exists). Edit grammars/scratch/scratch.ebnf, run this, rebuild the probe,
+# then drive `parseability_probe --parse scratch <input>`.
+.PHONY: focus_scratch
+focus_scratch: $(SCRATCH_PARSER)
+	@echo ""
+	@echo "✅ scratch parser artifact ready: $(SCRATCH_PARSER)"
+	@echo ""
+	@echo "Rebuild the probe, then drive the full toolbox on your probe grammar:"
+	@echo "  (cd $(RUST_DIR) && cargo build --release --features generated_parsers --bin parseability_probe)"
+	@echo "  ./rust/target/release/parseability_probe --parse scratch <input_file>"
 	@echo ""
 
 # Generate rtl_const_expr raw-AST JSON from EBNF (GRAMMAR-WELLFORMED.H.4 — Phase H cert-coverage wiring)

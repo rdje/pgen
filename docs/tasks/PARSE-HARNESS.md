@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`) — frontier `.2` (Phase A, first authoritative-by-construction harness). `.1` DESIGN is this file.
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`) — frontier `.2` (Phase A, first authoritative-by-construction harness) **`in-progress` (session #38, 2026-07-05)**. `.1` DESIGN is this file.
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -269,10 +269,22 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   semantic core = `semantic_runtime`; build order = authoritative-by-construction first (oracle), then
   the verified interpreter. Open sub-decision for `.2`/`.3`: which of (3)/(2) lands first (lean (3) for
   A2.3 evidence richness). NO code.
-- `.2` — **(approach 3) scratch-register path — `not-started`.** A `grammars/scratch/*.ebnf` slot + auto
-  registry wiring + `make focus_scratch` so a probe grammar is drivable by the full `parseability_probe`
-  toolbox. Verify: authoritative-by-construction (integration test) + a `scratch` grammar parses a known
-  input to a known AST. Unblocks A2.3.
+- `.2` — **(approach 3) scratch-register path — `in-progress` (session #38, `PGEN-PARSE-HARNESS-0002`).** A
+  `grammars/scratch/` slot (blessed default `scratch.ebnf`) + auto registry wiring + `make focus_scratch`
+  so a probe grammar is drivable by the full `parseability_probe` toolbox. Verify: authoritative-by-construction
+  (integration test) + a `scratch` grammar parses a known input to a known AST. Unblocks A2.3.
+  **Implementation shape (tool-verified, §11 below):** the generated struct/method names are derived from
+  the grammar-name (the `.ebnf` file stem) and the entry rule respectively (`ast_generator_direct.rs:109`
+  `snake_to_pascal(grammar_name)` → `ScratchParser`; `ast_based_generator.rs:352`), and the canonical
+  `parse_full()` method is **entry-rule-agnostic** (`generated/json_parser.rs:283` — `parse_full_json` just
+  delegates to it), so a single blessed slot `grammars/scratch/scratch.ebnf` (stem `scratch`) yields a
+  STABLE registry entry (`grammar_name: "scratch"`, `ScratchParser::parse_full()`) independent of whatever
+  entry-rule name the probe grammar uses. Wiring mirrors `json` exactly: Makefile `SCRATCH_*` vars +
+  `focus_scratch`, `build.rs` `has_generated_scratch_parser` cfg + `PGEN_SCRATCH_PARSER_PATH*`, `lib.rs`
+  `generated_parsers::scratch`, and the `parser_registry.rs` dispatch (`parse_with_scratch` via `parse_full()`,
+  `parse_and_cover_scratch`, detail with `furthest_position`, AST-JSON, entry-aware variants). `generated/` is
+  git-ignored so scratch artifacts never pollute the tracked set; `grammars/scratch/scratch.ebnf` IS tracked
+  (the blessed slot + the integration-test fixture).
 - `.3` — **(approach 2) compile-and-run harness — `not-started`.** `compile_and_parse(...)` over the real
   codegen + a throwaway compile. Verify: reproduces a registered grammar's known verdict/AST; becomes the
   CI oracle for `.5`.
@@ -302,7 +314,7 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | `PARSE-HARNESS.2` (approach 3 — scratch-register path) | `not-started` (frontier) | Phase A, first authoritative-by-construction harness; richest A2.3 evidence. **Fresh-session recommended** for the build (director-agreed 2026-07-05 — a substantial, careful tooling build best done sharp). |
+| 1 | `PARSE-HARNESS.2` (approach 3 — scratch-register path) | `in-progress` (frontier) | Phase A, first authoritative-by-construction harness; richest A2.3 evidence. Built in the director-agreed fresh session (#38, 2026-07-05). |
 | 2 | `PARSE-HARNESS.3` (approach 2 — compile-and-run) | `not-started` | Phase A, the CI oracle for the equivalence gate. |
 | 3 | `PARSE-HARNESS.4`–`.7` (interpreter + equivalence gate + combinator suite + fuzz) | `not-started` | Phase B — the verified general interpreter (the director's flagship). |
 
@@ -340,3 +352,47 @@ director agreement 2026-07-05 — a sharpness/quality call, not a blocker.)
 - **Composes with** the certificate-coverage machinery (`parse_and_cover`), the stimuli generator (the
   differential corpus source), and the EBNF dual-run gate (the precedent for a two-implementation
   equivalence gate).
+
+## 11. PARSE-HARNESS.2 — Acceptance Checklist (enforced)
+
+> Per `TOOLBOX.md` / `DOCTRINE_ENFORCEMENT.md`: a CODE change (this leaf touches `grammars/scratch/scratch.ebnf`,
+> `rust/src/*`) MUST pass ROOT CAUSE + ADDRESSED + NO REGRESSION, each ticked and evidence-backed.
+> This is a **capability build**, so "ROOT CAUSE" = the tool-confirmed capability gap that motivates the slot,
+> and "ADDRESSED" = the new capability demonstrated by the toolbox on a synthetic grammar.
+
+- [x] **REPRODUCE / ISSUE** — the capability gap is real: before this slice, driving the shipped parser
+  toolbox on an *arbitrary* grammar was impossible. `parseability_probe --parse scratch <input>` and
+  `--supports scratch` both reported the grammar as unsupported (no registry entry / no
+  `has_generated_scratch_parser` cfg). Confirmed in `.1` DESIGN §1.1 (registry-keyed drive paths only).
+- [x] **ROOT CAUSE (WHY + WHERE)** — the drive paths (`parser_registry::parse_sample` /
+  `parseability_probe --parse`) are **registry-keyed** to compiled-in grammars; there was no `scratch`
+  slot. WHERE: `rust/src/parser_registry.rs` `GENERATED_PARSER_REGISTRY` (no `scratch` entry),
+  `rust/build.rs` (no `has_generated_scratch_parser` cfg), `rust/src/lib.rs` `generated_parsers` (no
+  `scratch` module), `rust/Makefile` (no `focus_scratch`). Tool-verified via
+  `ast_pipeline grammars/scratch/scratch.ebnf --lint-grammar` (grammar well-formed → generatable) and the
+  generated-parser naming derivation read from `ast_generator_direct.rs:109` + `ast_based_generator.rs:352`.
+- [x] **FIX** — fix-hierarchy tier = **plumbing/registry** (no engine or annotation change): add the blessed
+  `grammars/scratch/` slot + the `json`-identical wiring (Makefile `SCRATCH_*` + `focus_scratch`, `build.rs`
+  cfg, `lib.rs` module, `parser_registry.rs` dispatch keyed on `parse_full()` so the slot is entry-rule-agnostic).
+- [x] **ADDRESSED (verified)** — before→after on the symptom: `parseability_probe --parse scratch "hello, world!"`
+  went from **grammar-unsupported → `parse_full passed` (rc 0)** after `make -C rust focus_scratch` + rebuild;
+  `--parse-dump-ast-pretty scratch` emits the known typed AST (rooted at `scratch` → `element_1` → `name` =
+  text `world`); `--trace-rules scratch` shows the real `ScratchParser::parse_scratch` branch-entry
+  (A2.3-style evidence); the known reject `"hello, mars!"` reports `[furthest_position=7]` (rc 1);
+  `--lint-grammar` → well-formed (`non_terminating=0`, `ordered_choice_shadowing=0`, `unreachable_rules=0`,
+  `profile_orphans=0`, rc 0); `--report-certificate-coverage --entry-rule scratch` →
+  `total=2 proof=0 witness=2 UNKNOWN=0 fully_certified=true (sample_parse_failures=0)`. Re-runnable oracle =
+  the `#[cfg(has_generated_scratch_parser)]` integration test in `parser_registry.rs`
+  (`scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast`) — **1 passed**.
+- [x] **NO REGRESSION** — the 6 fully-certified grammars + the SV parser stay **byte-identical** (scratch is
+  additive, `#[cfg(has_generated_scratch_parser)]`-gated + keyed on `"scratch"`; only `focus_scratch` ran, all
+  other `generated/*_parser.rs` mtimes unchanged; no existing grammar/parser/codegen/dispatch path changed);
+  canonical SV cert `1343/10/1321/12` unchanged at seeds 0/7/42 via `sv_cert_recognized_union_gate` (the
+  tracked-contract oracle; `sample_parse_failures=0`); `mdbook_docs_gate` GREEN; my hand-written code +
+  the scratch generated parser are clippy-clean — the 179 `clippy::eq_op` errors under the generated stage
+  are **pre-existing** (114 in shipped `systemverilog_parser.rs`, 64 in `rtl_frontend_parser.rs`; codegen'd
+  `"x" == "x"` `branch_policy` constants), unchanged by this slice.
+- [x] **LOCKSTEP** — top-level mdBook gains `docs/book/src/parse-harness.md` (the scratch-slot section, to
+  the depth of the linter/stimuli/parser-gen chapters, per D5, SAME-COMMIT); `SUMMARY.md` updated;
+  `grammars/scratch/README.md` documents the slot; `TOOLBOX.md` scratch-probe entry (brief now; the full
+  tool-entry + probe protocol is the `.9` capstone). CHANGES.md / DEVELOPMENT_NOTES.md / MEMORY.md updated.

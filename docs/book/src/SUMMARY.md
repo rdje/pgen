@@ -25,6 +25,7 @@
 - [Developer Architecture](developer-architecture.md)
 - [Inside the Parser: Termination & Performance](inside-parser-performance.md)
 - [Grammar Well-Formedness & Well-Definedness](grammar-wellformedness.md)
+- [The Parse Harness](parse-harness.md)
 - [Lexical Annotations — the 4th Pillar](lexical-annotations.md)
 - [Academic Foundations](academic-foundations.md)
 - [Parser Hooks](parser-hooks.md)

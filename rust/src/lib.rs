@@ -79,6 +79,12 @@ pub mod generated_parsers {
     pub mod rtl_frontend {
         include!(env!("PGEN_RTL_FRONTEND_PARSER_PATH_RESOLVED"));
     }
+    // PARSE-HARNESS.2 — the blessed scratch-register slot (arbitrary-grammar probe).
+    // Present only when `make focus_scratch` has built the artifact.
+    #[cfg(has_generated_scratch_parser)]
+    pub mod scratch {
+        include!(env!("PGEN_SCRATCH_PARSER_PATH_RESOLVED"));
+    }
 }
 
 #[cfg(feature = "generated_parsers")]

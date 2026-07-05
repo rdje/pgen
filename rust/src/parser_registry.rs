@@ -13,6 +13,9 @@ use crate::generated_parsers::regex::RegexParser;
 use crate::generated_parsers::rtl_const_expr::RtlConstExprParser;
 #[cfg(has_generated_rtl_frontend_parser)]
 use crate::generated_parsers::rtl_frontend::RtlFrontendParser;
+// PARSE-HARNESS.2 — the blessed scratch-register slot (arbitrary-grammar probe).
+#[cfg(has_generated_scratch_parser)]
+use crate::generated_parsers::scratch::ScratchParser;
 #[cfg(has_generated_systemverilog_parser)]
 use crate::generated_parsers::systemverilog::SystemverilogParser;
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
@@ -937,6 +940,107 @@ pub fn parse_and_cover_vhdl(
     }
 }
 
+// ============================================================================
+// PARSE-HARNESS.2 — the scratch-register slot (approach 3).
+//
+// `scratch` is a blessed, throwaway grammar slot whose body is meant to be
+// overwritten freely (`grammars/scratch/scratch.ebnf` + `make focus_scratch`),
+// so an arbitrary grammar becomes a first-class registered parser drivable by
+// the whole `parseability_probe` toolbox. Trust: authoritative BY CONSTRUCTION —
+// this is the real generated parser + real runtime, identical to how every
+// shipped grammar is built and driven; the only trusted surface is this small,
+// one-time wiring, covered by the integration test below.
+//
+// KEY: every dispatch below calls the generated parser's ENTRY-RULE-AGNOSTIC
+// `parse_full()` (or `parse_full_from(entry)` when an alternate entry is asked),
+// so the registration is STABLE no matter what entry rule the probe grammar uses
+// — the registry never needs to know the probe grammar's entry-rule name.
+// ============================================================================
+
+#[cfg(has_generated_scratch_parser)]
+fn parse_with_scratch(sample: &str) -> bool {
+    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    parser.set_trace_rules(current_trace_rules());
+    parser.parse_full().is_ok()
+}
+
+/// PARSE-HARNESS.2 — the `ParseDetailFn` for the scratch slot: parse and, on failure, augment the
+/// error with `furthest_position` (the deepest byte any branch reached — the same A2.2/A2.3-grade
+/// reject diagnostic the SV detail path emits). scratch has no grammar profile, so the profile arg is
+/// ignored.
+#[cfg(has_generated_scratch_parser)]
+fn parse_with_scratch_detail(sample: &str, _grammar_profile: Option<&str>) -> Result<(), String> {
+    parse_with_scratch_detail_entry(sample, None)
+}
+
+/// PARSE-HARNESS.2 — scratch detail parse from an OPTIONAL alternate entry (`parseability_probe
+/// --entry-rule`). `entry=None` parses from the grammar's canonical entry via `parse_full()`;
+/// `Some(rule)` parses from `parse_full_from(rule)`. The `furthest_position` augmentation is preserved
+/// either way.
+#[cfg(has_generated_scratch_parser)]
+fn parse_with_scratch_detail_entry(sample: &str, entry: Option<&str>) -> Result<(), String> {
+    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    parser.set_trace_rules(current_trace_rules());
+    let result = match entry {
+        Some(e) => parser.parse_full_from(e).map(|_| ()),
+        None => parser.parse_full().map(|_| ()),
+    };
+    result.map_err(|err| {
+        let furthest = parser.furthest_position();
+        let err_str = err.to_string();
+        let surface = extract_position_from_message(&err_str);
+        format!(
+            "{} [furthest_position={}, +{} bytes deeper than surface position]",
+            err_str,
+            furthest,
+            furthest.saturating_sub(surface),
+        )
+    })
+}
+
+/// PARSE-HARNESS.2 — parse `sample` through the scratch parser and return `(parsed_ok,
+/// rules_exercised)` for `certificate_coverage` (the witness side), so `--report-certificate-coverage`
+/// works on a synthetic grammar too. Mirrors `parse_and_cover_json`: enable the transactional
+/// `coverage_stack`, parse, return the parser's own record of the committed rules. scratch has no
+/// grammar profile.
+#[cfg(has_generated_scratch_parser)]
+pub fn parse_and_cover_scratch(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+    entry: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    parser.enable_coverage();
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full(),
+    };
+    match outcome {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
+#[cfg(has_generated_scratch_parser)]
+fn parse_with_scratch_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    parser.set_trace_rules(current_trace_rules());
+    let parsed = parser.parse_full().map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
+/// PARSE-HARNESS.2 — entry-aware AST-JSON dump for scratch (the `--parse-dump-ast[-pretty]
+/// --entry-rule RULE` surface). Parses from an ALTERNATE start symbol via `parse_full_from(entry)` and
+/// serializes the typed AST, so a probe grammar's non-entry rule can have its AST shape inspected in
+/// isolation (directly useful for the A2.3 shadowing probes).
+#[cfg(has_generated_scratch_parser)]
+fn parse_with_scratch_ast_json_from_entry(sample: &str, entry: &str) -> Result<JsonValue, String> {
+    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    parser.set_trace_rules(current_trace_rules());
+    let parsed = parser.parse_full_from(entry).map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 fn parse_node_to_json(node: &ParseNode<'_>) -> Result<JsonValue, String> {
     serde_json::to_value(node).map_err(|err| format!("failed to serialize parse tree: {}", err))
 }
@@ -1021,6 +1125,17 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         parse_sample: parse_with_vhdl,
         parse_and_cover: Some(parse_and_cover_vhdl),
         parse_detail: None,
+    },
+    // PARSE-HARNESS.2 — the blessed scratch-register slot. Present only when
+    // `make focus_scratch` has built the artifact (additive, cfg-gated, never
+    // affecting a shipped grammar). Fully toolbox-capable: parse + cert-coverage
+    // witness + labelled detail (`furthest_position`).
+    #[cfg(has_generated_scratch_parser)]
+    GeneratedParserRegistryEntry {
+        grammar_name: "scratch",
+        parse_sample: parse_with_scratch,
+        parse_and_cover: Some(parse_and_cover_scratch),
+        parse_detail: Some(parse_with_scratch_detail),
     },
     // Add future grammars here once their generated parser artifacts compile cleanly.
     // Examples: json, regex, systemverilog, vhdl.
@@ -1135,6 +1250,8 @@ pub fn parse_sample_detail_with_profile(
         "systemverilog_preprocessor" => Some(parse_with_systemverilog_preprocessor_detail(sample)),
         #[cfg(has_generated_vhdl_parser)]
         "vhdl" => Some(parse_with_vhdl_detail(sample)),
+        #[cfg(has_generated_scratch_parser)]
+        "scratch" => Some(parse_with_scratch_detail(sample, grammar_profile)),
         _ => None,
     }
 }
@@ -1158,7 +1275,8 @@ pub fn parse_sample_detail_from_entry(
         has_generated_rtl_const_expr_parser,
         has_generated_rtl_frontend_parser,
         has_generated_systemverilog_preprocessor_parser,
-        has_generated_vhdl_parser
+        has_generated_vhdl_parser,
+        has_generated_scratch_parser
     )))]
     let _ = (sample, grammar_profile, entry);
 
@@ -1215,6 +1333,8 @@ pub fn parse_sample_detail_from_entry(
             let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
             Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
         }
+        #[cfg(has_generated_scratch_parser)]
+        "scratch" => Some(parse_with_scratch_detail_entry(sample, Some(entry))),
         _ => None,
     }
 }
@@ -1262,6 +1382,8 @@ pub fn parse_sample_ast_json_with_profile(
         }
         #[cfg(has_generated_vhdl_parser)]
         "vhdl" => Some(parse_with_vhdl_ast_json(sample)),
+        #[cfg(has_generated_scratch_parser)]
+        "scratch" => Some(parse_with_scratch_ast_json(sample)),
         _ => None,
     }
 }
@@ -1286,6 +1408,10 @@ pub fn parse_sample_ast_json_from_entry(
             grammar_profile,
             entry,
         )),
+        // PARSE-HARNESS.2 — entry-aware AST dump for the scratch slot (probe a non-entry rule in
+        // isolation; directly useful for the A2.3 shadowing probes). scratch ignores the profile.
+        #[cfg(has_generated_scratch_parser)]
+        "scratch" => Some(parse_with_scratch_ast_json_from_entry(sample, entry)),
         _ => {
             let _ = (sample, grammar_profile, entry);
             None
@@ -1308,6 +1434,55 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{parse_sample, parse_sample_ast_json, registered_grammars, supports_grammar};
+
+    // PARSE-HARNESS.2 — the scratch-register slot is authoritative BY CONSTRUCTION: this test proves
+    // the blessed `grammars/scratch/scratch.ebnf` fixture is driven through the REAL generated parser +
+    // runtime (the same register→codegen→drive pipeline every shipped grammar uses) and yields the
+    // KNOWN verdict + AST. The expecteds are derived from the fixture grammar's SPEC, not mirrored from
+    // the tool output: `scratch := "hello, " name "!"`, `name := "world" | "pgen"` — so "hello, world!"
+    // and "hello, pgen!" fully-consume (accept), "hello, mars!" has no matching `name` alternative
+    // (reject), and "hello, world" is a partial parse (reject, since `parse_full` requires full input).
+    // (Asserts against the committed default fixture — restore it via `git checkout` before committing
+    // if you edited the body for a probe; see grammars/scratch/README.md.)
+    #[cfg(has_generated_scratch_parser)]
+    #[test]
+    fn scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast() {
+        assert!(supports_grammar("scratch"), "scratch slot must be registered");
+        assert!(
+            registered_grammars().contains(&"scratch"),
+            "scratch must appear in registered_grammars()"
+        );
+
+        assert_eq!(parse_sample("scratch", "hello, world!"), Some(true));
+        assert_eq!(parse_sample("scratch", "hello, pgen!"), Some(true));
+        assert_eq!(
+            parse_sample("scratch", "hello, mars!"),
+            Some(false),
+            "no `name` alternative matches `mars`"
+        );
+        assert_eq!(
+            parse_sample("scratch", "hello, world"),
+            Some(false),
+            "partial input must be rejected (parse_full requires full consumption)"
+        );
+
+        let ast = parse_sample_ast_json("scratch", "hello, world!")
+            .expect("scratch is AST-JSON capable")
+            .expect("the fixture input parses");
+        let ast_str = serde_json::to_string(&ast).expect("AST serializes");
+        assert!(
+            ast_str.contains("scratch"),
+            "AST must root at the `scratch` rule: {ast_str}"
+        );
+        assert!(
+            ast_str.contains("name"),
+            "AST must contain the `name` sub-rule: {ast_str}"
+        );
+        assert!(
+            ast_str.contains("world"),
+            "AST must retain the matched `world` text: {ast_str}"
+        );
+    }
 
     #[cfg(has_generated_rtl_frontend_parser)]
     #[derive(Debug, Deserialize)]

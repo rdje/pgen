@@ -10,6 +10,8 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(has_generated_regex_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_rtl_const_expr_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_rtl_frontend_parser)");
+    // PARSE-HARNESS.2 — the blessed scratch-register slot.
+    println!("cargo:rustc-check-cfg=cfg(has_generated_scratch_parser)");
     println!("cargo:rerun-if-env-changed=PGEN_EBNF_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_JSON_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_REGEX_PARSER_PATH");
@@ -18,6 +20,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=PGEN_VHDL_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_RTL_CONST_EXPR_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_RTL_FRONTEND_PARSER_PATH");
+    println!("cargo:rerun-if-env-changed=PGEN_SCRATCH_PARSER_PATH");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into()));
     let source_dir = manifest_dir.join("src");
@@ -39,6 +42,8 @@ fn main() {
         .unwrap_or_else(|_| "../generated/rtl_const_expr_parser.rs".to_string());
     let rtl_frontend_configured_path = env::var("PGEN_RTL_FRONTEND_PARSER_PATH")
         .unwrap_or_else(|_| "../generated/rtl_frontend_parser.rs".to_string());
+    let scratch_configured_path = env::var("PGEN_SCRATCH_PARSER_PATH")
+        .unwrap_or_else(|_| "../generated/scratch_parser.rs".to_string());
 
     let ebnf_resolved = resolve_path(&manifest_dir, &ebnf_configured_path);
     println!("cargo:rerun-if-changed={}", ebnf_resolved.to_string_lossy());
@@ -71,6 +76,11 @@ fn main() {
     println!(
         "cargo:rerun-if-changed={}",
         rtl_frontend_resolved.to_string_lossy()
+    );
+    let scratch_resolved = resolve_path(&manifest_dir, &scratch_configured_path);
+    println!(
+        "cargo:rerun-if-changed={}",
+        scratch_resolved.to_string_lossy()
     );
     // The EBNF generated parser is treated like any other generated parser:
     // its `include!()` site is gated on the `has_generated_ebnf_parser`
@@ -142,6 +152,18 @@ fn main() {
         println!(
             "cargo:rustc-env=PGEN_RTL_FRONTEND_PARSER_PATH_RESOLVED={}",
             relativize_for_include(&source_dir, &rtl_frontend_resolved).display()
+        );
+    }
+
+    // PARSE-HARNESS.2 — the scratch-register slot is gated exactly like the other
+    // generated parsers: the cfg + include path are set ONLY when the artifact exists
+    // (`make focus_scratch`). With no artifact, the slot is simply absent (additive,
+    // never affecting a shipped grammar), so a clean checkout compiles unchanged.
+    if scratch_resolved.is_file() {
+        println!("cargo:rustc-cfg=has_generated_scratch_parser");
+        println!(
+            "cargo:rustc-env=PGEN_SCRATCH_PARSER_PATH_RESOLVED={}",
+            relativize_for_include(&source_dir, &scratch_resolved).display()
         );
     }
 }

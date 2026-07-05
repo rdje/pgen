@@ -479,7 +479,7 @@ Primary files:
 - `rust/src/lib.rs`
 
 Role:
-- `parser_registry.rs` centralizes grammar-name dispatch across generated/bootstrap/profile-aware parsers.
+- `parser_registry.rs` centralizes grammar-name dispatch across generated/bootstrap/profile-aware parsers. As of `PARSE-HARNESS.2` it also carries the additive, `#[cfg(has_generated_scratch_parser)]`-gated **`scratch`** slot — the parse-harness approach-3 entry that makes an arbitrary probe grammar (`grammars/scratch/scratch.ebnf`, built by `make focus_scratch`) drivable by the whole `parseability_probe` toolbox; its dispatch uses the generated parser's entry-rule-agnostic `parse_full()` so the registration is stable across arbitrary probe grammars.
 - `embedding_api.rs` exposes a stable, versioned consumer contract with limits, result shapes, and AST-dump modes.
 - `lib.rs` controls feature-gated exposure of the major subsystems.
 
