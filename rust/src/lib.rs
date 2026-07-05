@@ -16,6 +16,13 @@ pub mod parse_harness;
 /// dispatcher over the normalized gen-AST that reuses the shipped semantic/AST runtime, authoritative
 /// by VERIFICATION (a differential-equivalence oracle vs the generated parser). See the module docs.
 pub mod parse_harness_interpreter;
+/// PARSE-HARNESS.5 — the differential-equivalence gate driver: run the interpreter (`.4`) and the
+/// shipped generated parser over one deterministic stimuli corpus and assert byte-identical
+/// verdict + typed AST, per registered grammar. Report-first (never panics); the certified/deferred
+/// split is the honest scope of the interpreter's trust. Requires BOTH `ebnf_dual_run` (the `.ebnf`
+/// loader + stimuli corpus) and `generated_parsers` (the `parser_registry` oracle). See the module docs.
+#[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+pub mod parse_harness_equivalence;
 /// Parser-specific hook implementations. Each module here implements
 /// the [`ast_pipeline::ParserHooks`] contract for one grammar's
 /// codegen-time extensibility needs. Code in this module is

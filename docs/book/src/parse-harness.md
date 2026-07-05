@@ -50,14 +50,16 @@ a differential-equivalence oracle).
 |---|---|---|---|
 | **Scratch-register slot** *(landed — `PARSE-HARNESS.2`)* | **by construction** — identical to the shipped register→codegen→drive pipeline | the small scratch registry wiring | an integration test: a known scratch grammar → known verdict/AST |
 | **Compile-and-run harness** *(landed — `PARSE-HARNESS.3`)* | **by construction** — runs the shipped codegen + runtime on a throwaway *external* compile | the harness plumbing (codegen call, throwaway-crate synthesis, I/O marshalling) | an integration test reproducing a registered grammar's verdict + byte-identical AST |
-| **Grammar-AST interpreter** *(core landed — `PARSE-HARNESS.4`)* | **by verification** — a shared-core dynamic dispatcher over the gen-AST | the thin dynamic-dispatch layer over the shared runtime | a differential-equivalence check vs the generated parser, byte-for-byte (the full-corpus gate is `PARSE-HARNESS.5`) |
+| **Grammar-AST interpreter** *(landed — `PARSE-HARNESS.4` core + `.5` gate)* | **by verification** — a shared-core dynamic dispatcher over the gen-AST | the thin dynamic-dispatch layer over the shared runtime | the **differential-equivalence gate** vs the generated parser, byte-for-byte over a deterministic corpus (`PARSE-HARNESS.5`, below) |
 
 The design in full — including how the interpreter is made "100 % trustworthy" via the
 differential-equivalence oracle and the per-combinator suite — lives in the task tree
 `docs/tasks/PARSE-HARNESS.md`. All three approaches are live; this chapter documents each. The
 interpreter's `.4` **core** is byte-identical to the generated parser on the structural +
-return-annotation surface (proven on the smoke set below); the full-corpus, all-registered-grammars
-gate and the semantic-directive orchestration are `PARSE-HARNESS.5`/`.6`.
+return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **6 registered
+grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend) with an honest promotion ratchet
+for the rest (see *The differential-equivalence gate* below); the remaining per-grammar fidelity closures
+and the semantic-directive orchestration are `PARSE-HARNESS.5.1`–`.5.5` / `.6`.
 
 ## The scratch-register slot
 
@@ -308,6 +310,48 @@ corpus needs it), and the full-corpus, all-registered-grammars byte-identity. As
 this platform, the honest statement is *divergence-free over the tested corpus with a shared core* — not
 a formal all-inputs proof.
 
+## The differential-equivalence gate
+
+The interpreter is a *second* parsing implementation, so its trust is **earned, not assumed**. The
+mechanism that earns it is the **differential-equivalence gate** (`PARSE-HARNESS.5`, module
+`rust/src/parse_harness_equivalence.rs`, run via `make -C rust parse_harness_equivalence_gate`): for each
+registered grammar it runs **both** the interpreter (approach 1) and the shipped **generated parser** over
+one deterministic corpus and asserts they agree **byte for byte** — same accept/reject verdict and, on
+accept, the **byte-identical typed AST**. Any divergence names the grammar, the exact input, and where the
+two serialized ASTs first differ.
+
+**The corpus is the grammar's own strongest in-tree oracle of valid inputs:** its **stimuli generator**,
+seeded at the standard `0` / `7` / `42`, over a bounded depth ladder, plus first-half **truncation probes**
+for reject-path parity. Crucially, the interpreter and the stimuli generator consume the *identical*
+normalized gen-AST that codegen consumed to build the generated parser — so all three implementations are
+driven from one source of truth. Two robustness details make the gate trustworthy and non-flaky:
+
+- **Bounded generation.** Corpus generation uses the same deterministic step budget the certificate-coverage
+  pass uses (`generate_many_bounded`), so a super-linear grammar cannot hang the gate — the cutoff is
+  machine-independent, so a seeded run yields the same corpus every time.
+- **Large-stack workers.** The differential runs on a 512 MiB-stack worker thread, because recursive-descent
+  parsing (both implementations) can nest deeply on a pathologically-nested sample and would otherwise
+  overflow the small default stack and *abort the process* before the interpreter's logical depth guard
+  fires (the "bound the *real* stack, not just the logical depth" discipline).
+
+### The honest three-way classification (no silent caps)
+
+The interpreter is not yet byte-identical on *every* registered grammar, and the gate says so honestly
+rather than quietly testing only the easy ones. Every registered grammar is classified **exactly once**
+(a completeness test enforces this, so a newly-added grammar cannot be silently unmeasured):
+
+| Class | Grammars | Gate behaviour |
+|---|---|---|
+| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch` | must stay byte-identical — a regression **fails** the gate |
+| **DEFERRED** | `regex`, `ebnf`, `return_annotation`, `systemverilog_preprocessor`, `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if one becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). Each owns a follow-up leaf. |
+| **EXCLUDED** | `builtin_return_annotation`, `builtin_semantic_annotation` | out of scope *by construction* — their registry oracle is not a codegen parser of their own grammar (one aliases the `return_annotation` parser; the other uses a hand-rolled bootstrap parser), so the differential's premise does not hold |
+
+Notably, the CERTIFIED set includes the **store-using** SystemVerilog / VHDL / rtl_frontend — the
+interpreter is byte-identical to their generated parsers over this corpus even though it does not yet fully
+orchestrate store-gated *parse outcomes*. That is an honest **corpus-scoped** certification (byte-identical
+over this deterministic corpus), not an all-inputs proof; the deeper store-gated-outcome constructs and a
+combinator-complete corpus are the job of the `.6` combinator+semantic suite and the `.7` fuzz lane.
+
 ## Honest bounds
 
 - The scratch slot and the compile-and-run harness are authoritative *by construction* — they run the
@@ -320,11 +364,12 @@ a formal all-inputs proof.
   `pub(crate)` runtime *method* that an external crate cannot see; if so, exposing that one method is a
   small, bounded follow-up (surfaced by the `PARSE-HARNESS.5` gate), not a redesign.
 - The interpreter (`PARSE-HARNESS.4`, core landed — see *The grammar-AST interpreter* above) is a
-  genuine second implementation; its trust is *earned* by a differential-equivalence oracle, and the
-  honest claim is "divergence-free over the tested corpus with a shared core" — **not** a formal
-  all-inputs proof. The `.4` core is proven byte-identical on the structural + return-annotation smoke
-  set; the full-corpus, all-registered-grammars gate + a combinator-complete + fuzzed corpus are
-  `PARSE-HARNESS.5`/`.6`/`.7`. See `docs/tasks/PARSE-HARNESS.md` §3.4 / §13.
+  genuine second implementation; its trust is *earned* by the differential-equivalence gate (`.5`, see
+  *The differential-equivalence gate* above), and the honest claim is "divergence-free over the tested
+  corpus with a shared core" — **not** a formal all-inputs proof. The gate now **certifies 6 grammars
+  byte-identical** (including SystemVerilog / VHDL / rtl_frontend) and honestly **defers** the rest with a
+  promotion ratchet; the per-grammar fidelity closures are `PARSE-HARNESS.5.1`–`.5.5`, and a
+  combinator-complete + fuzzed corpus is `.6`/`.7`. See `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15.
 
 ## See also
 

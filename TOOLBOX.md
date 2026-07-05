@@ -90,6 +90,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Does this file parse? Where does it fail?" | [1.1 `--parse`](#11---parse--supports) + [3.2 furthest-position](#32-furthest-position-error-diagnostic) |
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
 | **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (in-process, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (in-process, NO compile) |
+| **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | "A `@predicate` rejected valid input — which one, why?" | [2.4 predicate self-explaining trace](#24-predicate-self-explaining-trace) |
 | "The parse is slow / stuck — which rules dominate?" | [3.1 `--dump-rule-call-counts`](#31---dump-rule-call-counts) |
 | "I need to watch the parser step by step" | [2.1 trace verbosity](#21-trace-verbosity) + [2.2 `--trace-rules`](#22---trace-rules) |
@@ -174,6 +175,21 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   // feature-independent core (already-normalized gen-AST): interpret_parse_gen_ast(tree, order, anns, entry, input)
   ```
 - **OUTPUT:** a `ParseOutcome` whose `ast_json` is **byte-identical** to `parser_registry::parse_sample_ast_json` for a registered grammar (pinned by `parse_harness_interpreter::tests::interpreter_is_byte_identical_to_the_json_registry_parser`) and to `compile_and_parse` (1.4) on synthetic grammars. Needs `--features ebnf_dual_run` (the `.ebnf` frontend). No `rustc` per probe → the fast oracle-side of the `.5` differential-equivalence gate. Full design: book chapter *The Parse Harness* + `docs/tasks/PARSE-HARNESS.md` §13.
+
+### 1.6 The differential-equivalence gate — is the interpreter byte-identical to the generated parser?
+- **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` (module `rust/src/parse_harness_equivalence.rs`) — the certifying oracle for the interpreter (1.5). For each registered grammar it runs the interpreter AND the shipped generated parser over ONE deterministic stimuli corpus (seeds 0/7/42, bounded generation, large-stack workers) and asserts **byte-identical** verdict + typed AST. Report-first API (`evaluate_grammar_equivalence` collects divergences, never panics) + 3 enforcing gate tests. PARSE-HARNESS.5.
+- **WHEN:** after ANY interpreter change (regression guard); to MEASURE whether the interpreter matches the generated parser on a grammar; to see WHICH input first diverges and WHERE the two ASTs differ (the divergence names the grammar + sample + byte offset). The scouting probes (`cargo test … parse_harness_equivalence::measurement -- --ignored --nocapture`) print the full per-grammar map + a regex-divergence minimizer.
+- **HOW:**
+  ```bash
+  make -C rust SHELL=/bin/bash parse_harness_equivalence_gate
+  # measurement / scouting (per-grammar CLEAN/DIVERGE + first divergence):
+  cargo test --features "generated_parsers ebnf_dual_run" --lib \
+    parse_harness_equivalence::measurement::measure_equivalence_across_registered_grammars -- --ignored --nocapture
+  # isolate one grammar under a shell timeout (no-memo interpreter can be slow on deep samples):
+  PGEN_PHEQ_ONLY=regex cargo test --features "generated_parsers ebnf_dual_run" --lib \
+    parse_harness_equivalence::measurement::measure_equivalence_across_registered_grammars -- --ignored --nocapture
+  ```
+- **OUTPUT:** the 3 gate tests pass/fail (`certified_grammars_are_byte_identical`, `deferred_grammars_are_still_divergent_or_promote_them`, `every_registered_grammar_is_classified_exactly_once`). CERTIFIED (byte-identical): json, semantic_annotation, rtl_frontend, vhdl, systemverilog (sv_2017), scratch. DEFERRED (still divergent, ratcheted → `.5.1`–`.5.5`): regex, ebnf, return_annotation, systemverilog_preprocessor, rtl_const_expr. EXCLUDED (oracle is not own-grammar codegen): builtin_return_annotation, builtin_semantic_annotation. Full map: book chapter *The Parse Harness* → *The differential-equivalence gate* + `docs/tasks/PARSE-HARNESS.md` §14/§15.
 
 ---
 

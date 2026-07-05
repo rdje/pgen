@@ -1563,6 +1563,14 @@ ast_shape_contract_gate:
 	cd $(RUST_DIR) && cargo test --features generated_parsers --lib ast_shape_contract --quiet
 	@echo "✅ AST-shape contract gate passed."
 
+.PHONY: parse_harness_equivalence_gate
+parse_harness_equivalence_gate:
+	@echo "🪞 Running parse-harness differential-equivalence gate (PARSE-HARNESS.5)..."
+	@echo "   interpreter (approach 1) == generated parser, byte-identical over the deterministic"
+	@echo "   stimuli corpus (seeds 0/7/42); CERTIFIED byte-identical + DEFERRED ratchet + completeness."
+	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib parse_harness_equivalence::gate -- --nocapture
+	@echo "✅ Parse-harness differential-equivalence gate passed."
+
 .PHONY: regex_ast_shape_contract_gate
 regex_ast_shape_contract_gate:
 	@echo "🧬 Running regex AST-shape contract gate..."
