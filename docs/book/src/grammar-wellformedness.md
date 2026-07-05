@@ -31,10 +31,12 @@ independent axis. (This is literature-grounded, not invented; sources at the end
    empty-matching body (which would loop without consuming). *(Ford, PEG, 2004.)*
 3. **No dead branches.** In an ordered choice `a | b | …`, a later alternative is *shadowed* if an
    earlier one always matches first — it can never be selected, so it is unreachable. This is the
-   branch-level form of "useless symbol." Three *sound* forms are detected: exact-duplicate and
-   fixed-terminal-prefix (both hard gates today), and earlier-always-succeeds (a warning while the
-   grammar is being cleaned). The general FIRST-set-domination heuristic is *deliberately omitted* as
-   unsound for PEG (see "Where PGEN stands").
+   branch-level form of "useless symbol." Exact-duplicate and fixed-terminal-prefix are detected as
+   hard gates. A third form, *earlier-always-succeeds*, was staged as a warning — but a 2026-07-05
+   tools-first audit found it **unsound for PGEN's backtracking engine** (it can flag a *live* branch
+   as dead; see the correction under the worked example), so it stays a non-gating heuristic and its
+   planned promotion to a hard gate is **retired**. The general FIRST-set-domination heuristic is
+   *deliberately omitted* as unsound for PEG (see "Where PGEN stands").
 4. **No dangling references, no profile orphans.** Every referenced rule is defined, and every rule
    present under a language profile (e.g. `sv_2017` vs `sv_2023`) is actually satisfiable under it.
 
@@ -202,6 +204,29 @@ the LRM grammar is an order-independent CFG, but a PEG must try the specific for
 general one — so a handful of rules (`let_formal_type`, `port`, the argument lists, …) just needed
 their alternatives reordered specific-before-general. Together these cleared 44 of the 52.
 
+### ⚠️ Correction (2026-07-05): the always-succeeds check is unsound for a backtracking engine
+
+The fixes above **stand** — they are LRM-grounded (restored delimiters, removed spurious optionals) and
+they eliminate real junk-node emission and parse gaps, independent of any reachability argument. But a
+later tools-first audit found the *always-succeeds shadowing check itself* to be **unsound** for PGEN's
+engine, which **backtracks** rather than committing to the first matching alternative the way a pure PEG
+would.
+
+Counter-example, on the shipped parser: for `module m(interconnect p);` the check reports
+`net_port_type_sv_2017` alternative #2 (the `interconnect` form) *unreachable* because alternative #0
+always succeeds. Yet an AST dump shows the `interconnect` node in the **final** parse tree, and a rule
+trace shows the parser **enters all three alternatives** and selects #2 — alternative #0 "always
+succeeds" only by matching **empty**, then fails downstream, and the engine **backtracks** to #2. The
+flagged branch is **live**.
+
+So "an earlier alternative always succeeds" does *not* imply "later alternatives are unreachable" under
+backtracking. The sound question — *can this alternative ever win?* — is a language-difference question,
+undecidable in general (exactly the class this chapter excludes). The check is therefore reclassified as
+a non-gating anti-pattern **hint**: valuable for surfacing extraction artifacts (as above), but not a
+proof of deadness. Its residual warnings include **false positives**, and its promotion to a hard gate is
+retired. This is the chapter's own principle turned on itself — a complete-but-unsound check "would 'fix'
+branches that were never broken", so PGEN keeps it honest by demoting it.
+
 The residual handful is the *honest* part of the picture: a few rules (`net_port_type`, the
 port-headers) are genuinely ambiguous on a bare identifier — "is this name a net type, or a data
 type?" — which no amount of reordering can settle. Those are flagged for **semantic store-gating**
@@ -243,9 +268,11 @@ convicts the innocent (even if it sometimes returns "not proven") is exactly wha
 opposite trade — a complete judge that sometimes convicts the innocent — would be worse than useless,
 because you would "fix" branches that were never broken.
 
-This is why every check PGEN ships is a *sound decidable subset* and why the unsound heuristics
-(general FIRST-set domination, parse-order predicate reachability) are deliberately excluded: they
-would buy completeness at the cost of soundness — the wrong direction.
+This is why every *gating* check PGEN ships is a *sound decidable subset* and why the unsound heuristics
+(general FIRST-set domination, parse-order predicate reachability, and — as of the 2026-07-05 audit —
+earlier-always-succeeds shadowing under backtracking) are excluded from the gates: they would buy
+completeness at the cost of soundness — the wrong direction. (Earlier-always-succeeds remains available
+as a non-gating anti-pattern *hint*, not a verdict.)
 
 ### The mechanism: a certifying algorithm
 

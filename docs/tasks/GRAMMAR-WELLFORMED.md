@@ -1396,8 +1396,12 @@ subtle dead branch"), never a silent accept.
   first token then fail, after which b IS tried) — adding it would false-accuse live branches,
   violating "never game / never falsely reclassify". The two sound forms (fixed-terminal-prefix +
   always-succeeds) are the decidable, zero-false-positive core.
-- `A2.1` — **FRONTIER: clean the 52 SV `always_matches_shadowing` defects LRM-grounded, then promote
-  EarlierAlwaysMatches to the hard gate.** Each is a latent (not active) defect — the dead branch
+- `A2.1` — **⚠️ RE-ADJUDICATED 2026-07-05 (see `A2.1-SOUNDNESS` below): the "promote EarlierAlwaysMatches
+  to the hard gate" goal is RETIRED — the check is UNSOUND for PGEN's backtracking engine (it declares a
+  proven-LIVE fragment dead). The 8 residual warnings include FALSE POSITIVES, not dead branches to clean.
+  FRONTIER → `A2.2` (decide the check's disposition + implement).** Historical framing (now superseded):
+  "clean the 52 SV `always_matches_shadowing` defects LRM-grounded, then promote
+  EarlierAlwaysMatches to the hard gate." Each was believed a latent (not active) defect — the dead branch
   never fires today because alt #0 always wins, so a fix CHANGES parse behavior and MUST be verified
   parse-neutral (or parse-IMPROVING, LRM-grounded) against the SV corpus + the global stimuli metric,
   ONE change/family at a time ([[feedback_no_codebase_change_without_tool_backed_facts]], never derive
@@ -1486,6 +1490,55 @@ subtle dead branch"), never a silent accept.
      `systemverilog_parseable_file` are declared entries (this is `A1b.1`, the entry-declaration leaf).
      Until then the 2 findings stay a benign WARNING (always-matches is warning-staged). A2 promotion to
      a hard gate is blocked on this + the 4b store-gating family.
+
+- `A2.1-SOUNDNESS` — **INVESTIGATION `done` (2026-07-05, session #37, tools-first, ZERO code) — 🚨 THE
+  A2 `EarlierAlwaysMatches` CHECK IS UNSOUND FOR PGEN's BACKTRACKING ENGINE: it declares a LIVE fragment
+  DEAD, violating the [[feedback_certifying_linter_trustworthiness]] contract ("the linter NEVER declares
+  a live fragment dead"). ⇒ the A2.1 goal "clean the residual then PROMOTE `EarlierAlwaysMatches` to the
+  hard gate" is INVALID as framed; item 4b's "shadowed/dead → store-gate to reach" premise is REFUTED
+  for the branches empirically checked.** Surfaced while verifying the residual 8 tools-first (the FIRST
+  time the deferred residual was checked against the real parser rather than reasoned from grammar shape).
+  - **DECISIVE EVIDENCE (three independent tool angles, existing shipped parser — NO regen needed).**
+    Probe `module m(interconnect p); endmodule` (`--profile sv_2017`, ACCEPTS): (1) `--parse-dump-ast-pretty`
+    → the final AST contains `{kind:"interconnect"}` on the route `… ansi > net_or_interface > sv_2017 >
+    interconnect`, i.e. through `net_port_type` (the `sv_2017` wrapper is `net_port_type := net_port_type_sv_2017
+    -> {kind:"sv_2017"}`); (2) producer-grep — the ONLY `{kind:"interconnect"}` producer in a PORT context is
+    `net_port_type_interconnect_sv_only` (`:3490`, = `net_port_type_sv_2017` ALT #2); the other producer
+    (`:3444` `interconnect_net_declaration_sv_only`) is a `;`-terminated net *declaration*, impossible in a
+    port list; (3) `--trace-rules net_port_type_sv_2017` → the parser ENTERS "branch 1/3", "branch 2/3", AND
+    "branch 3/3" (alt #0 logs `matched with zero length` 45×; branch 3/3 = interconnect is entered and its
+    output is the winning AST node). A branch that is entered AND whose output appears in the final parse tree
+    is, by definition, REACHED — so the linter's "alternative #2 is unreachable" is a FALSE POSITIVE.
+  - **ROOT CAUSE.** The A2 verdict message states its own premise verbatim: "alternative #0 always matches
+    (never fails) earlier than it (**PEG commits to the earlier alternative**)". PGEN does NOT commit-to-first
+    — it BACKTRACKS (enters alternatives in order and keeps the one that leads to overall success; the trace
+    proves all 3 entered). Alt #0 `( net_type )? data_type_or_implicit` always-*succeeds* only by matching
+    EMPTY (`implicit_data_type := ( signing )? packed_dimension*` is nullable); that empty match then fails
+    downstream (`port_identifier` can't be the keyword `interconnect`), the engine backtracks, and alt #2 wins.
+    `compute_always_succeeds` is CORRECT (alt #0 does always-succeed); the unsound step is the CONCLUSION
+    "⇒ later alternatives unreachable", which holds only under PEG-commit, a model PGEN violates. Corroborated
+    by the project's own Phase `C1` ("defeat-earlier-branch crafting … so the parser SELECTS i on replay") —
+    witness-crafting only makes sense because later branches ARE selectable.
+  - **SCOPE / precision.** "always-succeeds shadowing" is the same family the certifying-linter decision
+    EXCLUDES alongside "general FIRST-domination" and "parse-order predicate reachability" — it was mistakenly
+    admitted to the sound subset. The sound property under backtracking is "can this alt ever WIN" (a
+    language-difference/domination question — UNDECIDABLE in general per [[feedback_certifying_linter_trustworthiness]]),
+    NOT the locally-decidable "is an earlier alt always-succeeds". Empirically MIXED within a rule: alt #2
+    (interconnect) WINS (live); alt #1 (`checked_nettype_identifier`) is entered-but-never-wins for bare ids
+    (alt #0 consumes any identifier as a `data_type` first) — "dominated", but still not "unreachable". The
+    check cannot distinguish these soundly.
+  - **RE-ADJUDICATION.** (i) A2 `EarlierAlwaysMatches` is an UNSOUND heuristic → it must NOT gate, and per the
+    "no verdict without a checkable proof" discipline it should not emit a definite "unreachable" verdict at all
+    (even as a warning it makes an unprovable deadness claim). (ii) Item 4b store-gating is NOT needed to "make
+    dead branches reachable" (they are reachable) — any store-gating there is a separate AST-shape/fidelity
+    question, not an A2 deadness fix. (iii) A2.1's "promote to hard gate" goal is RETIRED. FRONTIER → a DESIGN
+    leaf `A2.2` to decide the disposition (retire the check / demote to a non-verdict informational
+    anti-pattern hint / restrict to a provably-sound sub-case if one exists — the EMPTY-match earlier-alt form
+    is provably unsound and must at minimum be excluded) + implement in `grammar_wellformedness.rs` (drop the
+    `EarlierAlwaysMatches::is_hard_gate()`→true path; reframe the emitted text away from "unreachable") + book
+    + decision-record lockstep. The confirmatory removal experiment (delete alt #2, regen, show `interconnect
+    p` REJECTS) is AVAILABLE but not required — the AST already proves the branch wins. NO grammar/parser
+    change and NO regen in THIS investigation (analysis-only). [[project_earlier_always_matches_unsound_backtracking]]
 
 ### Phase B — make the constructive proof deterministic (the count becomes signal)
 - `B1` — **DONE (code, PGEN-GRAMMAR-WELLFORMED-0005; gate-residual confirm in flight):** replaced the
