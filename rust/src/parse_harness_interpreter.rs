@@ -63,7 +63,8 @@ use crate::ast_pipeline::semantic_directive_registry::SemanticBranchPolicy;
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, ParseContent, ParseError, ParseNode,
-    ParseResult, SemanticRuntimeState, TokenValue, parse_quantifier_bounds,
+    ParseResult, SemanticAnnotation, SemanticRuntimeState, TokenValue, UnifiedSemanticAST,
+    parse_canonical_transform_expression, parse_quantifier_bounds, parse_semantic_string_list,
 };
 
 pub use crate::parse_harness::ParseOutcome;
@@ -111,6 +112,10 @@ pub struct InterpretOptions {
     /// unless the loader recorded an explicit entry). Entry-rule-agnostic, exactly like the scratch
     /// slot and the compile-and-run harness.
     pub entry_rule: Option<String>,
+    /// The ALREADY-NORMALIZED active dialect profile to gate `@profiles` rules against (PARSE-HARNESS.5.1)
+    /// — e.g. `Some("pcre2")` for strict regex, `Some("sv_2017")` for SV. `None` (default) = all rules
+    /// active. Normalize a requested profile with [`crate::parser_registry::active_grammar_profile`].
+    pub profile: Option<String>,
 }
 
 /// Parse `input` against the arbitrary grammar at `grammar_ebnf`, returning the [`ParseOutcome`].
@@ -159,7 +164,17 @@ pub fn interpret_parse(
         .transform_from_raw_ast(raw_ast)
         .map_err(|e| InterpretError::Load(format!("normalization: {e}")))?;
 
+    // The grammar name = the `.ebnf` file stem (what codegen normalizes for its layout-policy
+    // decision, PARSE-HARNESS.5.1). Falls back to the empty string (⇒ the whitespace-insensitive
+    // default policy) only for a nameless path, which never matches a whitespace-sensitive grammar.
+    let grammar_name = grammar_ebnf
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+
     interpret_parse_gen_ast(
+        grammar_name,
+        opts.profile.as_deref(),
         &grammar_tree,
         &rule_order,
         annotations.as_ref(),
@@ -174,7 +189,18 @@ pub fn interpret_parse(
 /// gen-AST (e.g. the `PARSE-HARNESS.5` differential gate).
 ///
 /// `entry` selects the start symbol (`None` = `rule_order[0]`).
+///
+/// `grammar_name` is the grammar's `.ebnf` file stem (e.g. `regex`); it selects the [`LayoutPolicy`]
+/// so the interpreter's terminal / regex-token / trailing-layout skipping is byte-identical to the
+/// generated parser for whitespace-sensitive grammars (PARSE-HARNESS.5.1). A whitespace-insensitive
+/// grammar (the common case) yields the all-`true` policy = the interpreter's prior behavior.
+///
+/// `active_profile` is the ALREADY-NORMALIZED dialect profile to gate `@profiles` rules against (e.g.
+/// `Some("pcre2")` for default regex, `Some("sv_2017")` for SV, `None` = unprofiled → all rules active).
+/// Normalize a requested profile via [`crate::parser_registry::active_grammar_profile`] before calling.
 pub fn interpret_parse_gen_ast(
+    grammar_name: &str,
+    active_profile: Option<&str>,
     grammar_tree: &HashMap<String, ASTNode>,
     rule_order: &[String],
     annotations: Option<&Annotations>,
@@ -199,6 +225,8 @@ pub fn interpret_parse_gen_ast(
     let mut interp = Interp {
         grammar: grammar_tree,
         annotations,
+        layout: grammar_layout_policy(grammar_name),
+        active_profile: active_profile.map(|s| s.to_string()),
         input,
         position: 0,
         furthest_position: 0,
@@ -208,10 +236,14 @@ pub fn interpret_parse_gen_ast(
     };
 
     // Mirror `parse_full`: parse the entry rule, consume trailing layout, then require the whole input
-    // was consumed. A prefix-only parse is a REJECT (accepted == false), not an error.
+    // was consumed. A prefix-only parse is a REJECT (accepted == false), not an error. The trailing
+    // consume is gated by the layout policy — a whitespace-sensitive grammar (regex) treats trailing
+    // whitespace as significant (`allow_trailing_layout`, ast_based_generator.rs:1144).
     let outcome = match interp.parse_rule(&entry_rule) {
         Ok(node) => {
-            interp.consume_layout_for_terminal("<EOF>");
+            if interp.layout.allow_trailing_layout {
+                interp.consume_layout_for_terminal("<EOF>");
+            }
             if interp.position == interp.input.len() {
                 let ast_json = serde_json::to_value(&node).map_err(|e| {
                     InterpretError::Load(format!("failed to serialize typed AST: {e}"))
@@ -266,10 +298,126 @@ fn intern(s: &str) -> &'static str {
     leaked
 }
 
+/// A grammar's layout/whitespace-skipping policy — whether the parser skips leading layout
+/// (whitespace + comments) before matching terminals / regex-tokens, and trailing layout at the end
+/// of a full parse. Most grammars are whitespace-INSENSITIVE (all three `true`, layout is skipped),
+/// but a few are whitespace-SENSITIVE where layout is literal input.
+///
+/// # PARSE-HARNESS.5.1 — why this exists (the regex fidelity fix)
+///
+/// The interpreter must reproduce the generated parser **byte-for-byte**, and the shipped codegen makes
+/// this a per-grammar, grammar-NAME-keyed decision (`ast_based_generator.rs`): `regex` is
+/// whitespace-sensitive so its terminals, regex-tokens, and trailing `<EOF>` do NOT skip layout;
+/// `systemverilog_preprocessor` disables the regex-token layout skip. Without this, on a regex input
+/// like `\Q]\E* ?` the interpreter would skip the literal space and bind the `?` as a lazy
+/// `quant_suffix` (`greediness:"lazy"`) where the generated regex parser leaves the space in place and
+/// the suffix empty (`greediness:[]`) — the exact divergence PARSE-HARNESS.5's measurement recorded.
+///
+/// [`grammar_layout_policy`] mirrors, expression-for-expression, the three codegen decisions:
+/// - `skip_layout_for_terminals` ⟷ `allow_layout_skip_for_terminals` (`ast_based_generator.rs:4509`),
+/// - `skip_layout_for_regexes`   ⟷ `allow_layout_skip_for_regexes`   (`ast_based_generator.rs:4510`),
+/// - `allow_trailing_layout`     ⟷ `allow_trailing_layout`           (`ast_based_generator.rs:1144`).
+///
+/// The differential-equivalence gate (PARSE-HARNESS.5) is the runtime drift guard: once `regex` is
+/// CERTIFIED byte-identical, any future codegen change to its whitespace handling that is not mirrored
+/// here fails the gate (the un-fakeable oracle leg per `DOCTRINE_ENFORCEMENT.md` §6.1).
+#[derive(Debug, Clone, Copy)]
+struct LayoutPolicy {
+    /// Skip leading layout before a string terminal (`match_string`). `false` ⇒ terminals are
+    /// whitespace-sensitive (regex).
+    skip_layout_for_terminals: bool,
+    /// Skip leading layout before a regex-token (`match_regex`). `false` ⇒ regex-tokens are
+    /// whitespace-sensitive (regex, systemverilog_preprocessor).
+    skip_layout_for_regexes: bool,
+    /// Consume trailing layout after the entry rule before the end-of-input check. `false` ⇒ trailing
+    /// whitespace is significant (regex).
+    allow_trailing_layout: bool,
+}
+
+/// Compute a grammar's [`LayoutPolicy`] from its name, mirroring the shipped codegen's grammar-name
+/// keyed decisions **verbatim** (see [`LayoutPolicy`] for the crux + the exact `ast_based_generator.rs`
+/// line references). `grammar_name` is the grammar's `.ebnf` file stem (e.g. `regex`), exactly the
+/// value codegen normalizes.
+fn grammar_layout_policy(grammar_name: &str) -> LayoutPolicy {
+    // Codegen's `normalized_grammar_name`: keep only ASCII alphanumerics, lowercase
+    // (ast_based_generator.rs:4503-4508).
+    let normalized: String = grammar_name
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric())
+        .collect::<String>()
+        .to_ascii_lowercase();
+    LayoutPolicy {
+        skip_layout_for_terminals: normalized != "regex",
+        skip_layout_for_regexes: !matches!(normalized.as_str(), "regex" | "systemverilogpreprocessor"),
+        // Codegen uses the RAW name here (`eq_ignore_ascii_case`, ast_based_generator.rs:1144).
+        allow_trailing_layout: !grammar_name.eq_ignore_ascii_case("regex"),
+    }
+}
+
+/// Is `annotation` the rule's `@transform` directive? Mirrors codegen's `semantic_directive_name`
+/// (`ast_based_generator.rs:6514/6955`): a named directive matches on its normalized name; an unnamed
+/// `TransformExpr` defaults to the `transform` directive. The canonical-parse guard at the call site is
+/// the real filter, so this only needs to exclude a differently-named directive.
+fn annotation_is_transform_directive(annotation: &SemanticAnnotation) -> bool {
+    if let Some(name) = annotation.name() {
+        let normalized = name.trim().to_ascii_lowercase();
+        if !normalized.is_empty() {
+            return normalized == "transform";
+        }
+    }
+    matches!(annotation.ast(), UnifiedSemanticAST::TransformExpr { .. })
+}
+
+/// Mirror the generated `span_text.parse::<T>().unwrap_or(D).to_string()` for the canonical `@transform`
+/// target types (`ast_based_generator.rs:4116-4119`). On parse failure the default expression is used,
+/// parsed as the same type (matching `unwrap_or(D)`); a non-numeric target (`String`/`str`/unknown) is
+/// the identity, since codegen's `parse::<String>()` is infallible and yields the text itself.
+fn numeric_span_transform(target_type: &str, default_expr: &str, text: &str) -> String {
+    fn parse_or_default<T>(text: &str, default_expr: &str) -> String
+    where
+        T: std::str::FromStr + ToString,
+    {
+        text.parse::<T>()
+            .or_else(|_| default_expr.parse::<T>())
+            .map(|v| v.to_string())
+            .unwrap_or_else(|_| default_expr.trim().to_string())
+    }
+    // Codegen interpolates the type verbatim into `parse::<#target_type>()`; take the leaf so a
+    // path-qualified type (`std::primitive::usize`) still dispatches.
+    let leaf = target_type.rsplit("::").next().unwrap_or(target_type).trim();
+    match leaf {
+        "usize" => parse_or_default::<usize>(text, default_expr),
+        "u8" => parse_or_default::<u8>(text, default_expr),
+        "u16" => parse_or_default::<u16>(text, default_expr),
+        "u32" => parse_or_default::<u32>(text, default_expr),
+        "u64" => parse_or_default::<u64>(text, default_expr),
+        "u128" => parse_or_default::<u128>(text, default_expr),
+        "isize" => parse_or_default::<isize>(text, default_expr),
+        "i8" => parse_or_default::<i8>(text, default_expr),
+        "i16" => parse_or_default::<i16>(text, default_expr),
+        "i32" => parse_or_default::<i32>(text, default_expr),
+        "i64" => parse_or_default::<i64>(text, default_expr),
+        "i128" => parse_or_default::<i128>(text, default_expr),
+        "f32" => parse_or_default::<f32>(text, default_expr),
+        "f64" => parse_or_default::<f64>(text, default_expr),
+        "bool" => parse_or_default::<bool>(text, default_expr),
+        _ => text.to_string(),
+    }
+}
+
 /// The dynamic-dispatch interpreter state. `'g` = the borrowed gen-AST; `'i` = the input string.
 struct Interp<'g, 'i> {
     grammar: &'g HashMap<String, ASTNode>,
     annotations: Option<&'g Annotations>,
+    /// The grammar's layout/whitespace-skipping policy (PARSE-HARNESS.5.1) — consulted by
+    /// `match_string`, `match_regex`, and the trailing-layout consume so the interpreter is
+    /// byte-identical to the generated parser for whitespace-sensitive grammars (regex).
+    layout: LayoutPolicy,
+    /// The active (already-normalized) dialect profile (`Some("pcre2")` for default regex,
+    /// `Some("sv_2017")` for SV, `None` = unprofiled). A rule annotated `@profiles` is excluded when the
+    /// active profile is not among its allowed profiles (PARSE-HARNESS.5.1) — mirrors codegen's
+    /// `rule_profile_is_enabled`. `None` ⇒ all rules active (matches codegen's `None` case).
+    active_profile: Option<String>,
     input: &'i str,
     position: usize,
     /// The deepest input byte any branch reached (even after backtracking) — updated monotonically at
@@ -310,18 +458,209 @@ impl<'g, 'i> Interp<'g, 'i> {
             self.furthest_position = self.position;
         }
 
-        let body = self.grammar.get(rule_name).ok_or(ParseError::InvalidSyntax {
-            message: "interpreter: reference to undefined rule",
-            position: start_pos,
-        })?;
+        // Profile gate: a rule annotated `@profiles` is EXCLUDED (Backtracks) when the active dialect
+        // profile is not among its allowed profiles — mirrors codegen's rule-entry `profile_guard`
+        // (ast_based_generator.rs:2692-2704) + `rule_profile_is_enabled` (:4903). Empty (ungated) rule
+        // or `None` active profile ⇒ always enabled. This is what makes the interpreter reject a
+        // relaxed-only construct (e.g. `directive_name_relaxed`) under strict `pcre2` (PARSE-HARNESS.5.1).
+        if self.active_profile.is_some() {
+            let profiles = self.rule_profiles(rule_name);
+            if !profiles.is_empty() && !self.profile_enabled(&profiles) {
+                return Err(ParseError::Backtrack { position: start_pos });
+            }
+        }
+
+        // A rule REFERENCED but not DEFINED in the grammar is not an error: codegen synthesizes a
+        // native method for a handful of built-in names (`generate_unresolved_reference_method`), so the
+        // interpreter mirrors that dispatch instead of hard-erroring (PARSE-HARNESS.5.1). The regex
+        // grammar reaches this via `unicode_char = !builtin_ascii_char builtin_any_char`.
+        let Some(body) = self.grammar.get(rule_name) else {
+            return self.parse_unresolved_reference(rule_name, start_pos);
+        };
 
         let content = self.parse_rule_body(body, rule_name, start_pos)?;
+        // A rule-level `@transform` applied to the matched SPAN text, for a body that is NOT a single
+        // terminal (e.g. `digits = digit+` → `usize`). Codegen splices this AFTER the return-annotation
+        // transform and ONLY for a non-`Or` body (`generate_post_body_span_transform`,
+        // ast_based_generator.rs:2606-2609/4094) — PARSE-HARNESS.5.1.
+        let content = if matches!(body, ASTNode::Or { .. }) {
+            content
+        } else {
+            self.apply_post_body_span_transform(rule_name, content, start_pos)
+        };
         let end_pos = self.position;
         Ok(ParseNode {
             rule_name: intern(rule_name),
             content,
             span: start_pos..end_pos,
         })
+    }
+
+    /// Mirror codegen's `generate_post_body_span_transform` (`ast_based_generator.rs:4094`): if the
+    /// rule carries a canonical `@transform` (`str::parse::<T>().unwrap_or(D)`) and the body result is
+    /// NOT already a `TransformedTerminal`, replace it with `TransformedTerminal(matched_span.trim()
+    /// .parse::<T>().unwrap_or(D).to_string())`. This lets a self-hosted `digit+` rule carry a typed
+    /// numeric result with no `/.../` body; `to_json_value()` then renders the `TransformedTerminal` as
+    /// a JSON number (e.g. `{min: 12}` instead of `["1","2"]`).
+    fn apply_post_body_span_transform(
+        &self,
+        rule_name: &str,
+        content: ParseContent<'i>,
+        start_pos: usize,
+    ) -> ParseContent<'i> {
+        if matches!(content, ParseContent::TransformedTerminal(_)) {
+            return content;
+        }
+        let Some((target_type, default_expr)) = self.rule_span_transform(rule_name) else {
+            return content;
+        };
+        let span_text = self.input[start_pos..self.position].trim();
+        ParseContent::TransformedTerminal(numeric_span_transform(&target_type, &default_expr, span_text))
+    }
+
+    /// The rule's canonical `@transform` `(target_type, default_expr)`, if any — mirrors the detection
+    /// in `generate_post_body_span_transform`: the first `transform`-named semantic annotation whose AST
+    /// is a `TransformExpr` parsing as a canonical `str::parse::<T>().unwrap_or(D)`.
+    fn rule_span_transform(&self, rule_name: &str) -> Option<(String, String)> {
+        let annotations = self.annotations?;
+        let semantic_annotations = annotations.semantic_annotations.get(rule_name)?;
+        for annotation in semantic_annotations {
+            if !annotation_is_transform_directive(annotation) {
+                continue;
+            }
+            if let UnifiedSemanticAST::TransformExpr { expression } = annotation.ast()
+                && let Some(transform) = parse_canonical_transform_expression(expression)
+            {
+                return Some((transform.target_type, transform.default_expr));
+            }
+        }
+        None
+    }
+
+    /// The rule's allowed dialect profiles from its `@profiles` annotation (lowercased, empty = ungated)
+    /// — mirrors codegen's `rule_profiles` (`ast_based_generator.rs:7108`).
+    fn rule_profiles(&self, rule_name: &str) -> Vec<String> {
+        let Some(annotations) = self.annotations else {
+            return Vec::new();
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return Vec::new();
+        };
+        let mut profiles = Vec::new();
+        for annotation in entries {
+            // Mirror `semantic_directive_parts` for the NAMED `@profiles` directive: name + list payload.
+            let Some(name) = annotation.name() else {
+                continue;
+            };
+            if !name.trim().eq_ignore_ascii_case("profiles") {
+                continue;
+            }
+            let payload = annotation.ast().payload_text().trim().to_string();
+            if let Some(parsed) = parse_semantic_string_list(&payload) {
+                profiles = parsed
+                    .into_iter()
+                    .map(|value| value.trim().to_ascii_lowercase())
+                    .filter(|value| !value.is_empty())
+                    .collect();
+            }
+        }
+        profiles
+    }
+
+    /// Is a rule with the given `@profiles` allow-list active under `self.active_profile`? Mirrors
+    /// codegen's `rule_profile_is_enabled` (`ast_based_generator.rs:4903`): empty allow-list or a `None`
+    /// active profile ⇒ enabled; otherwise the active profile must match one allowed (case-insensitive).
+    fn profile_enabled(&self, allowed: &[String]) -> bool {
+        if allowed.is_empty() {
+            return true;
+        }
+        match self.active_profile.as_deref() {
+            Some(active) => allowed.iter().any(|candidate| active.eq_ignore_ascii_case(candidate)),
+            None => true,
+        }
+    }
+
+    /// Mirror codegen's `generate_unresolved_reference_method` (`ast_based_generator.rs:833-946`) for a
+    /// rule that is referenced but not defined in the grammar. Byte-identical to the emitted method:
+    /// same `rule_name`, `content`, and `span`. These built-ins let a `/.../`-free grammar express
+    /// any-char / negated-class idioms (the regex grammar's `unicode_char` uses `builtin_ascii_char`
+    /// and `builtin_any_char`); everything else is codegen's Backtrack stub.
+    fn parse_unresolved_reference(
+        &mut self,
+        rule_name: &str,
+        start_pos: usize,
+    ) -> ParseResult<ParseNode<'i>> {
+        let interned = intern(rule_name);
+        match rule_name {
+            // Zero-width literal markers (span start..start) — ast_based_generator.rs:837-856.
+            "true" => Ok(ParseNode {
+                rule_name: interned,
+                content: ParseContent::Terminal("true"),
+                span: start_pos..start_pos,
+            }),
+            "false" => Ok(ParseNode {
+                rule_name: interned,
+                content: ParseContent::Terminal("false"),
+                span: start_pos..start_pos,
+            }),
+            // `@…`-to-end-of-line matcher. Codegen skips leading layout UNCONDITIONALLY here
+            // (`consume_optional_whitespace`, not layout-policy-gated) — ast_based_generator.rs:857-885.
+            "semantic_annotation" => {
+                let checkpoint = self.position;
+                self.consume_optional_whitespace();
+                let at_pos = self.position;
+                if at_pos >= self.input.len() || self.input.as_bytes()[at_pos] != b'@' {
+                    self.position = checkpoint;
+                    return Err(ParseError::Backtrack { position: checkpoint });
+                }
+                while self.position < self.input.len() {
+                    let b = self.input.as_bytes()[self.position];
+                    if b == b'\n' || b == b'\r' {
+                        break;
+                    }
+                    self.position += 1;
+                }
+                let end_pos = self.position;
+                Ok(ParseNode {
+                    rule_name: interned,
+                    content: ParseContent::Terminal(&self.input[at_pos..end_pos]),
+                    span: at_pos..end_pos,
+                })
+            }
+            // Native any-single-Unicode-scalar matcher (no layout skip) — ast_based_generator.rs:894-912.
+            "builtin_any_char" => {
+                let matched_char = match self.input[start_pos..].chars().next() {
+                    Some(ch) => ch,
+                    None => return Err(ParseError::Backtrack { position: start_pos }),
+                };
+                let end_pos = start_pos + matched_char.len_utf8();
+                self.position = end_pos;
+                Ok(ParseNode {
+                    rule_name: interned,
+                    content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
+                    span: start_pos..end_pos,
+                })
+            }
+            // Native single-ASCII-scalar matcher; Backtracks on a non-ASCII char or EOF — the negation
+            // half of `!builtin_ascii_char builtin_any_char` — ast_based_generator.rs:919-937.
+            "builtin_ascii_char" => {
+                let matched_char = match self.input[start_pos..].chars().next() {
+                    Some(ch) if ch.is_ascii() => ch,
+                    _ => return Err(ParseError::Backtrack { position: start_pos }),
+                };
+                let end_pos = start_pos + matched_char.len_utf8();
+                self.position = end_pos;
+                Ok(ParseNode {
+                    rule_name: interned,
+                    content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
+                    span: start_pos..end_pos,
+                })
+            }
+            // Default: the Backtrack stub for a genuinely unknown reference — ast_based_generator.rs:939-944.
+            _ => Err(ParseError::Backtrack {
+                position: self.position,
+            }),
+        }
     }
 
     /// Produce the rule's final (post-transform) `ParseContent`. An `Or` body applies its
@@ -601,7 +940,11 @@ impl<'g, 'i> Interp<'g, 'i> {
     // ── Lexical primitives (mirrored byte-for-byte from a generated parser) ───────────────────────────
 
     fn match_string(&mut self, expected: &str) -> ParseResult<&'i str> {
-        self.consume_layout_for_terminal(expected);
+        // Gated by the layout policy: a whitespace-sensitive grammar (regex) does NOT skip layout
+        // before a terminal (`allow_layout_skip_for_terminals`, ast_based_generator.rs:4509/6146).
+        if self.layout.skip_layout_for_terminals {
+            self.consume_layout_for_terminal(expected);
+        }
         let start = self.position;
         let expected_bytes = expected.as_bytes();
         let end = start + expected_bytes.len();
@@ -625,7 +968,12 @@ impl<'g, 'i> Interp<'g, 'i> {
             rule_stack: Vec::new(),
             input_context: String::new(),
         })?;
-        if skip_leading_whitespace {
+        // Gated by the layout policy: a regex-layout-sensitive grammar (regex,
+        // systemverilog_preprocessor) forces `can_match_empty=false` AND does not skip layout before a
+        // regex-token (`allow_layout_skip_for_regexes`, ast_based_generator.rs:4510/4832-4844). The
+        // compile above still runs at the same point, so an invalid pattern still errors identically.
+        let can_match_empty = can_match_empty && self.layout.skip_layout_for_regexes;
+        if skip_leading_whitespace && self.layout.skip_layout_for_regexes {
             self.consume_layout_for_regex(can_match_empty, pattern);
         }
         let Some(haystack) = self.input.get(self.position..) else {

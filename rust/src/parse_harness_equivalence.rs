@@ -302,12 +302,26 @@ pub fn evaluate_grammar_equivalence(
 
     let corpus = build_corpus(grammar_name, &gen_ast, cfg);
     let profile = cfg.profile.as_deref();
+    // The ACTIVE (normalized) profile the oracle parses under — the interpreter must gate `@profiles`
+    // rules against the SAME profile (regex's `None` normalizes to strict `pcre2`) so it matches
+    // `parse_sample` byte-for-byte (PARSE-HARNESS.5.1).
+    let active_profile = crate::parser_registry::active_grammar_profile(grammar_name, profile);
 
     for sample in &corpus {
         report.samples_total += 1;
 
-        // Interpreter side (approach 1).
-        let interp = match interpret_parse_gen_ast(tree, order, annotations.as_ref(), None, sample) {
+        // Interpreter side (approach 1). Pass the grammar name + active profile so the interpreter uses
+        // the same layout/whitespace policy and `@profiles` gating the generated parser was built with
+        // (PARSE-HARNESS.5.1).
+        let interp = match interpret_parse_gen_ast(
+            grammar_name,
+            active_profile.as_deref(),
+            tree,
+            order,
+            annotations.as_ref(),
+            None,
+            sample,
+        ) {
             Ok(o) => o,
             Err(e) => {
                 record(
@@ -332,15 +346,24 @@ pub fn evaluate_grammar_equivalence(
                 }
             };
 
-        if interp.accepted != oracle_accepted {
+        // The interpreter reproduces the generated *grammar parse*; `parse_sample` additionally applies
+        // the grammar's post-parse semantic contract (regex's PCRE2-fidelity check — e.g. it rejects a
+        // quantifier on an anchor like `$+`, which the grammar accepts but PCRE2 rejects). Apply that
+        // same contract to the interpreter's verdict so both sides are compared at the identical
+        // "grammar parse + registry contract" layer a downstream consumer sees (PARSE-HARNESS.5.1). For
+        // grammars with no contract this is a no-op (`Ok`), so `interp_accepted == interp.accepted`.
+        let interp_accepted = interp.accepted
+            && crate::parser_registry::post_parse_semantic_contract(grammar_name, sample).is_ok();
+
+        if interp_accepted != oracle_accepted {
             record(
                 &mut report,
                 cfg,
                 sample,
                 DivergenceKind::Verdict,
                 format!(
-                    "interp.accepted={} oracle.accepted={} (interp furthest={})",
-                    interp.accepted, oracle_accepted, interp.furthest_position
+                    "interp.accepted={} (grammar-parse={}) oracle.accepted={} (interp furthest={})",
+                    interp_accepted, interp.accepted, oracle_accepted, interp.furthest_position
                 ),
             );
             continue;
@@ -489,6 +512,15 @@ pub const CERTIFIED: &[&str] = &[
     "vhdl",
     "systemverilog",
     "scratch",
+    // Promoted from DEFERRED by PARSE-HARNESS.5.1 (the four regex-fidelity root causes: whitespace-sensitive
+    // layout policy, unresolved-reference built-ins `builtin_any_char`/`builtin_ascii_char`, the `@transform`
+    // numeric span coercion + the PCRE2 post-parse contract, and `@profiles` dialect gating). Byte-identical
+    // over the gate corpus AND a deeper stress ladder (5 seeds, depths 6-30 — `probe_regex_deep_stress`).
+    "regex",
+    // Also promoted by PARSE-HARNESS.5.1: the same general fixes (the `systemverilog_preprocessor` regex-token
+    // whitespace-sensitivity via the shared layout policy, + the built-ins) incidentally closed the `.5.4`
+    // AST span/shape divergence. Byte-identical over the gate corpus AND the deep stress ladder (459 samples).
+    "systemverilog_preprocessor",
 ];
 
 /// **DEFERRED** — registered grammars whose interpreter differential is NOT yet byte-identical, each
@@ -497,11 +529,6 @@ pub const CERTIFIED: &[&str] = &[
 /// *promoted* to [`CERTIFIED`], so the gate fails until it is — an honest ratchet, never a silent skip.
 pub const DEFERRED: &[(&str, &str)] = &[
     (
-        "regex",
-        "AST divergence in the quantifier-greediness fold + a deeper verdict divergence on \
-         `\\Q…\\E`-with-quantifier / negative-lookahead constructs (PARSE-HARNESS.5.1)",
-    ),
-    (
         "ebnf",
         "verdict divergence: interpreter accepts input the generated ebnf parser rejects \
          (PARSE-HARNESS.5.2)",
@@ -509,10 +536,6 @@ pub const DEFERRED: &[(&str, &str)] = &[
     (
         "return_annotation",
         "AST divergence in the positional-ref / Json fold shape (PARSE-HARNESS.5.3)",
-    ),
-    (
-        "systemverilog_preprocessor",
-        "AST divergence in emitted node span/shape (PARSE-HARNESS.5.4)",
     ),
     (
         "rtl_const_expr",
@@ -637,6 +660,20 @@ mod measurement {
             r"a|",
             r"|",
             r"||",
+            // PARSE-HARNESS.5.1 regression cases (the two root causes fixed this leaf):
+            // (1) whitespace-sensitivity — the literal space between `*` and `?` must NOT be skipped,
+            //     so `quant_suffix` stays empty (`greediness:[]`), not lazy.
+            r"\Q]\E* ?",
+            r"\Q]\E*?",
+            r"a* ?",
+            r"a b",
+            // (2) the PCRE2 post-parse contract — a quantifier on an anchor is grammar-accepted but
+            //     PCRE2-rejected, so `parse_sample` (and the interpreter+contract) must REJECT.
+            r"$+",
+            r"$*",
+            r"^+",
+            r"$+(?C)",
+            r"\Q]\E?\Q]\E*\Q]\E*|$+(?C)",
         ];
         println!("\n=== regex divergence minimizer (interp | generated) ===");
         for input in candidates {
@@ -647,8 +684,14 @@ mod measurement {
                     interpret_parse_gen_ast_from_ebnf(&g, &inp)
                 }
             });
+            // Reconcile at the same layer the gate uses: grammar-parse + the registry post-parse
+            // contract (PARSE-HARNESS.5.1), so the anchor-quantifier cases show the effective verdict.
             let interp_verdict = match interp {
-                Ok(o) => format!("{}", o.accepted),
+                Ok(o) => {
+                    let effective = o.accepted
+                        && crate::parser_registry::post_parse_semantic_contract("regex", input).is_ok();
+                    format!("{effective}")
+                }
                 Err(e) => format!("ERR({e})"),
             };
             let gen_verdict = crate::parser_registry::parse_sample("regex", input);
@@ -662,6 +705,45 @@ mod measurement {
         println!("=== end regex minimizer ===\n");
     }
 
+    /// PARSE-HARNESS.5.1 DEEP STRESS (scouting, not an assertion): run the differential over a DEEPER +
+    /// WIDER corpus than the gate (ladder up to 30, 16/rung, 5 seeds) to build confidence that a
+    /// certification is not an artifact of the shallow gate ladder before promoting. Covers the grammars
+    /// PARSE-HARNESS.5.1's general fixes certified (`regex` + `systemverilog_preprocessor`); filter with
+    /// `PGEN_PHEQ_ONLY`. Run with `--ignored --nocapture`.
+    #[test]
+    #[ignore = "measurement/scouting probe — run explicitly with --ignored --nocapture"]
+    fn probe_regex_deep_stress() {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let grammars_dir = manifest.join("../grammars");
+        let only = std::env::var("PGEN_PHEQ_ONLY").ok();
+        let targets: &[(&str, &str)] = &[
+            ("regex", "regex.ebnf"),
+            ("systemverilog_preprocessor", "systemverilog_preprocessor.ebnf"),
+        ];
+        println!("\n=== deep stress (ladder 6-30, 5 seeds, 16/rung) ===");
+        for (name, file) in targets {
+            if let Some(f) = &only {
+                if f != name {
+                    continue;
+                }
+            }
+            let cfg = EquivalenceConfig {
+                seeds: vec![0, 7, 42, 101, 2024],
+                count_per_seed: 16,
+                depth_ladder: vec![6, 12, 18, 24, 30],
+                max_recorded_divergences: 12,
+                ..Default::default()
+            };
+            let report =
+                evaluate_grammar_equivalence_on_large_stack(name, &grammars_dir.join(file), &cfg);
+            println!("{}", report.summary_line());
+            for d in report.divergences.iter().take(12) {
+                println!("    · [{:?}] sample={:?}\n        {}", d.kind, d.sample, d.detail);
+            }
+        }
+        println!("=== end deep stress ===\n");
+    }
+
     /// Small helper: load + interpret in one call (mirrors `interpret_parse` but reusable in probes).
     fn interpret_parse_gen_ast_from_ebnf(
         grammar_ebnf: &std::path::Path,
@@ -669,7 +751,23 @@ mod measurement {
     ) -> Result<crate::parse_harness::ParseOutcome, String> {
         let gen_ast = load_gen_ast(grammar_ebnf)?;
         let (tree, order, annotations) = &gen_ast;
-        interpret_parse_gen_ast(tree, order, annotations.as_ref(), None, input).map_err(|e| e.to_string())
+        // Grammar name = `.ebnf` file stem, so the interpreter picks the same layout policy + `@profiles`
+        // gating the generated parser was built with (PARSE-HARNESS.5.1).
+        let grammar_name = grammar_ebnf
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+        let active_profile = crate::parser_registry::active_grammar_profile(grammar_name, None);
+        interpret_parse_gen_ast(
+            grammar_name,
+            active_profile.as_deref(),
+            tree,
+            order,
+            annotations.as_ref(),
+            None,
+            input,
+        )
+        .map_err(|e| e.to_string())
     }
 }
 

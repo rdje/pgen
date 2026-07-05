@@ -56,9 +56,10 @@ The design in full — including how the interpreter is made "100 % trustworthy"
 differential-equivalence oracle and the per-combinator suite — lives in the task tree
 `docs/tasks/PARSE-HARNESS.md`. All three approaches are live; this chapter documents each. The
 interpreter's `.4` **core** is byte-identical to the generated parser on the structural +
-return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **6 registered
-grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend) with an honest promotion ratchet
-for the rest (see *The differential-equivalence gate* below); the remaining per-grammar fidelity closures
+return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **8 registered
+grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, and — since `.5.1` — `regex` and
+`systemverilog_preprocessor`) with an honest promotion ratchet for the rest (see *The
+differential-equivalence gate* below); the remaining per-grammar fidelity closures
 and the semantic-directive orchestration are `PARSE-HARNESS.5.1`–`.5.5` / `.6`.
 
 ## The scratch-register slot
@@ -342,15 +343,50 @@ rather than quietly testing only the easy ones. Every registered grammar is clas
 
 | Class | Grammars | Gate behaviour |
 |---|---|---|
-| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch` | must stay byte-identical — a regression **fails** the gate |
-| **DEFERRED** | `regex`, `ebnf`, `return_annotation`, `systemverilog_preprocessor`, `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if one becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). Each owns a follow-up leaf. |
+| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch`, `regex`, `systemverilog_preprocessor` | must stay byte-identical — a regression **fails** the gate |
+| **DEFERRED** | `ebnf`, `return_annotation`, `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if one becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). Each owns a follow-up leaf. |
 | **EXCLUDED** | `builtin_return_annotation`, `builtin_semantic_annotation` | out of scope *by construction* — their registry oracle is not a codegen parser of their own grammar (one aliases the `return_annotation` parser; the other uses a hand-rolled bootstrap parser), so the differential's premise does not hold |
+
+`regex` and `systemverilog_preprocessor` were **promoted** from DEFERRED to CERTIFIED by `PARSE-HARNESS.5.1`
+(session #42) — see *Four fidelity dimensions the interpreter mirrors* below for the four interpreter gaps
+that were root-caused and closed. The promotion ratchet did its job: fixing `regex` also made
+`systemverilog_preprocessor` byte-identical, the gate **failed** demanding the promotion, and it was
+promoted the same commit (progress is never lost silently).
 
 Notably, the CERTIFIED set includes the **store-using** SystemVerilog / VHDL / rtl_frontend — the
 interpreter is byte-identical to their generated parsers over this corpus even though it does not yet fully
 orchestrate store-gated *parse outcomes*. That is an honest **corpus-scoped** certification (byte-identical
 over this deterministic corpus), not an all-inputs proof; the deeper store-gated-outcome constructs and a
 combinator-complete corpus are the job of the `.6` combinator+semantic suite and the `.7` fuzz lane.
+
+### Four fidelity dimensions the interpreter mirrors (`PARSE-HARNESS.5.1`)
+
+Certifying `regex` — a whitespace-sensitive, built-in-using, transform-carrying, profile-gated grammar —
+forced the interpreter to reproduce four codegen decisions it had previously glossed over. Each is a
+**general** primitive (keyed on a grammar capability, never a grammar name in the interpreter's own logic)
+that mirrors the shipped code-generator expression-for-expression, so it improves fidelity for *every*
+grammar with that shape — not just regex:
+
+- **Whitespace-sensitivity (a per-grammar layout policy).** Most grammars skip inter-token layout; a few
+  (`regex`, `systemverilog_preprocessor`) are whitespace-*sensitive* and must not. Codegen encodes this as
+  three boolean layout flags; the interpreter now derives the identical `LayoutPolicy` and gates its layout
+  consumers on it. Without this, the interpreter skipped a literal space inside `\Q]\E* ?` and bound the
+  `?` as a lazy quantifier suffix where the generated parser leaves it empty.
+- **Unresolved-reference built-ins.** A grammar may reference a rule that has no definition because it is a
+  codegen-native matcher (`builtin_any_char`, `builtin_ascii_char`, `true`/`false`, a semantic-annotation
+  hook). The interpreter now resolves those references to the same native matchers instead of erroring —
+  which is what lets `regex`'s `unicode_char = !builtin_ascii_char builtin_any_char` match non-ASCII input.
+- **`@transform` span coercion + a post-parse contract.** A `@transform` annotation coerces a matched span
+  to a typed value (e.g. `digits` → the integer `12`, rendered as a JSON number, not a digit array). And
+  some registered parsers layer a **post-parse semantic contract** on top of the grammar parse — `regex`
+  applies PCRE2-fidelity validation (rejecting e.g. `$+`, a quantifier on an anchor, which the grammar
+  accepts but PCRE2 does not). The gate applies that same registry contract to the interpreter's verdict, so
+  both sides are compared at the identical "grammar-parse + registry contract" layer; the interpreter core
+  stays a pure grammar-parse reproduction (parser-agnostic).
+- **`@profiles` dialect gating.** A rule tagged `@profiles: [...]` is active only under a matching dialect
+  profile (regex's default is the strict `pcre2` profile; SystemVerilog distinguishes `sv_2017` / `sv_2023`).
+  The interpreter now threads the active profile and Backtracks a profile-gated rule at entry when the active
+  profile is not allowed — mirroring the generated parser's rule-entry profile guard.
 
 ## Honest bounds
 
@@ -366,10 +402,12 @@ combinator-complete corpus are the job of the `.6` combinator+semantic suite and
 - The interpreter (`PARSE-HARNESS.4`, core landed — see *The grammar-AST interpreter* above) is a
   genuine second implementation; its trust is *earned* by the differential-equivalence gate (`.5`, see
   *The differential-equivalence gate* above), and the honest claim is "divergence-free over the tested
-  corpus with a shared core" — **not** a formal all-inputs proof. The gate now **certifies 6 grammars
-  byte-identical** (including SystemVerilog / VHDL / rtl_frontend) and honestly **defers** the rest with a
-  promotion ratchet; the per-grammar fidelity closures are `PARSE-HARNESS.5.1`–`.5.5`, and a
-  combinator-complete + fuzzed corpus is `.6`/`.7`. See `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15.
+  corpus with a shared core" — **not** a formal all-inputs proof. The gate now **certifies 8 grammars
+  byte-identical** (including SystemVerilog / VHDL / rtl_frontend, plus `regex` and
+  `systemverilog_preprocessor` since `.5.1`) and honestly **defers** the rest (`ebnf`, `return_annotation`,
+  `rtl_const_expr`) with a promotion ratchet; the remaining per-grammar fidelity closures are
+  `PARSE-HARNESS.5.2`/`.5.3`/`.5.5`, and a combinator-complete + fuzzed corpus is `.6`/`.7`. See
+  `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15 / §16.
 
 ## See also
 

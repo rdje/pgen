@@ -117,6 +117,16 @@ type ParseAndCoverFn =
 type ParseDetailFn = fn(&str, Option<&str>) -> Result<(), String>;
 
 #[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+/// The **active** dialect profile a grammar parses under, given a requested profile — the single source
+/// of truth for per-grammar profile defaults (regex's unspecified profile normalizes to strict `pcre2`;
+/// SV's `2017`/`2023` aliases map to `sv_2017`/`sv_2023`). This is what a profile-aware second parser
+/// (the PARSE-HARNESS interpreter) must gate `@profiles` rules against so it matches `parse_sample`
+/// byte-for-byte (PARSE-HARNESS.5.1). Returns an owned `String` so a non-registry caller need not
+/// borrow the request.
+pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>) -> Option<String> {
+    normalize_generated_grammar_profile(grammar_name, grammar_profile).map(|s| s.to_string())
+}
+
 fn normalize_generated_grammar_profile<'a>(
     grammar_name: &str,
     grammar_profile: Option<&'a str>,
@@ -1167,6 +1177,26 @@ pub fn parse_sample_with_profile(
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_profile(sample, grammar_profile)),
         _ => find_entry(grammar_name).map(|entry| entry.parse(sample)),
+    }
+}
+
+/// The **post-parse semantic contract** a grammar applies on top of the raw grammar parse, if any.
+///
+/// A few grammars validate more than "did the EBNF grammar parse". Today the only one is `regex`:
+/// after `parse_full_regex` succeeds, `parse_sample`/`parse_sample_ast_json` additionally run
+/// [`validate_regex_compile_contract`] (the PCRE2-fidelity check that rejects e.g. a quantifier on an
+/// anchor, `$+`, which the grammar accepts but PCRE2 rejects — see `parse_with_regex_detail`). This
+/// helper exposes that post-parse layer separately from the parse so a second parser implementation
+/// (the PARSE-HARNESS interpreter) can be certified against `parse_sample` at the SAME layer: the
+/// interpreter reproduces the generated *grammar parse*, and the differential-equivalence gate applies
+/// this contract to the interpreter's verdict, mirroring what a downstream `parse_sample` consumer sees
+/// (PARSE-HARNESS.5.1). Grammars with no post-parse contract return `Ok(())` (the common case), so the
+/// helper is a general, parser-agnostic primitive — a newly-contracted grammar is added here once.
+pub fn post_parse_semantic_contract(grammar_name: &str, sample: &str) -> Result<(), String> {
+    match grammar_name {
+        #[cfg(has_generated_regex_parser)]
+        "regex" => validate_regex_compile_contract(sample).map_err(|err| err.message),
+        _ => Ok(()),
     }
 }
 

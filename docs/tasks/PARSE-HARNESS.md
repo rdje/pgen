@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). Frontier → **`.5.1`–`.5.5` (per-grammar fidelity/corpus closures — root-cause + fix each DEFERRED grammar) `not-started`**, then `.6` combinator suite. See §13 (`.4` plan) and §14 (`.5` plan + acceptance checklist) and §15 (the measurement map).
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — now **8 grammars CERTIFIED**. Frontier → **`.5.2` (ebnf fidelity — VERDICT divergence) `not-started`**, then `.5.3`/`.5.5`, then `.6` combinator suite. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` acceptance checklist).
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -332,43 +332,60 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   ALL registered grammars" target is **re-scoped** into the certified baseline (now) + `.5.1`–`.5.5`
   (the per-grammar closures) — an honest task-tree refinement (the measurement §15 discovered exactly
   which grammars need more work and why). Acceptance checklist + tool-mapped plan in §14.
-- `.5.1` — **regex fidelity — `not-started` (investigation started, session #41).** Root-cause + fix
-  the interpreter's regex divergence, then PROMOTE `regex` DEFERRED→CERTIFIED.
-  **Investigation log (session #41, tool-backed — read this FIRST so the next session doesn't repeat the
-  dead end):**
-  - **The ACTUAL diverging samples (from `::measurement PGEN_PHEQ_ONLY=regex`, ladder [6,12,18], 45
-    samples / 42 agree / 3 diverge):**
-    - AST: `\Q]\E* ?\Q]\E+\Q]\E+|^|\Q\E?(?>)*|[[:<:]]+\Q\E(?C)+` — interp emits
-      `"greediness":"lazy"` where the oracle emits `"greediness":[]` (the empty/greedy-default marker),
-      first differing at AST byte 72.
-    - AST: `\Q]\E* ?\Q]\E+\Q]\E+|^|\Q` (a truncation of the above) — same greediness divergence.
-    - Verdict: `\Q]\E?\Q]\E*\Q]\E*|$+(?C)` — interp ACCEPTS, oracle REJECTS (interp `furthest=25`,
-      near the trailing `$+` / `(?C)`).
-  - **REFUTED hypotheses (do NOT re-pursue):** (1) the isolated constructs `\Q…\E`(+`?`/`??`/`+`),
-    `[^]]`, `\A`(+`?`/`??`), empty `|`/`||`/`a||b` all AGREE (`probe_regex_divergence_minimizer`) — the
-    divergence is NOT any of them in isolation. (2) A "the interpreter skips leading layout where the
-    whitespace-sensitive regex parser does not" theory is REFUTED by the codegen: **both** branches of
-    `consume_layout_for_terminal` (`ast_based_generator.rs:4734`/`4771`) call
-    `consume_optional_whitespace()` — the only difference between them is comment handling
-    (`any_comment_arm`), and regex has no comments. So the interpreter's whitespace-skip already matches
-    the generated regex parser; the greediness divergence is NOT a layout-skip difference.
-  - **The likely real cause (unconfirmed — next session's job to PIN with a minimal repro):** a
-    **longest-match tie-break / `piece+` backtracking** interaction around `* ?` (a `quant_base` `*`
-    then a space then `?`). `quantifier = quant_base quant_suffix?` with `quant_suffix = "?" -> "lazy"`;
-    `concatenation = piece+`, `piece = piece_quoted_run_quantified | atom quantifier?`. The two
-    implementations resolve the ambiguous parse of `… * ?\Q…` differently (interp binds the `?` as the
-    lazy `quant_suffix` of `*`; the generated parser leaves `quant_suffix` empty → `[]` and parses the
-    ` ?` some other way). Next step: minimize to the smallest `*`-then-space-then-`?` input that
-    diverges; read the generated regex parser's emitted `quantifier`/`quant_suffix?`/`piece` logic
-    against the interpreter's `parse_or` longest-match tournament + the sequence `?`-element handling;
-    the `$+` verdict case likely shares the same greedy-binding root or an anchor-quantifier-legality
-    difference. Tool: `probe_regex_divergence_minimizer` (add `*`-space-`?` cases + dump the AST).
+- `.5.1` — **regex fidelity — `done` (session #42, `PGEN-PARSE-HARNESS-0007`).** Root-caused + fixed
+  the interpreter's regex divergence (FOUR distinct interpreter-fidelity gaps, each tool-pinpointed), then
+  PROMOTED `regex` DEFERRED→CERTIFIED. The general fixes ALSO closed `.5.4` (`systemverilog_preprocessor`
+  — promoted the same commit; see below). All fixes are **interpreter-tooling only** — no engine / grammar
+  / codegen / generated-parser change, so the certified grammars stay byte-identical by construction.
+  **The four root causes (WHY + WHERE, tool-backed) + fixes:**
+  1. **Whitespace-sensitivity (layout policy).** `regex` is whitespace-SENSITIVE — codegen keys this on the
+     grammar NAME (`allow_layout_skip_for_terminals = normalized != "regex"` @`ast_based_generator.rs:4509`;
+     `allow_layout_skip_for_regexes` @`:4510`; `allow_trailing_layout` @`:1144`), emitting `if false {
+     consume_layout… }` in the generated `match_string`/`match_regex`/`parse_full`. The interpreter
+     unconditionally skipped layout, so on `\Q]\E* ?` it skipped the literal space and bound the `?` as a
+     lazy `quant_suffix` (`greediness:"lazy"`) where the generated parser leaves it empty (`greediness:[]`).
+     (The prior "REFUTED" note missed that regex's `match_string` never *calls* `consume_layout_for_terminal`.)
+     **Fix:** a per-grammar `LayoutPolicy` mirroring the three codegen decisions expression-for-expression,
+     gated at the same three call sites.
+  2. **Unresolved-reference built-ins.** `unicode_char = !builtin_ascii_char builtin_any_char` matches every
+     non-ASCII char via codegen-native matchers (`generate_unresolved_reference_method`
+     @`ast_based_generator.rs:833-946`) for rules referenced-but-undefined. The interpreter hard-errored on
+     any rule not in the grammar tree → rejected every `é`-bearing input at `furthest≈3`. **Fix:**
+     `parse_unresolved_reference` mirrors codegen's `true`/`false`/`semantic_annotation`/`builtin_any_char`/
+     `builtin_ascii_char` matchers + the Backtrack stub, byte-identical.
+  3. **`@transform` numeric span coercion + the PCRE2 post-parse contract.** (a) `digits = digit+` carries
+     `@transform: str::parse::<usize>()` (`generate_post_body_span_transform` @`:4094`) → a
+     `TransformedTerminal` that `to_json_value()` renders as a NUMBER (`{min:12}`); the interpreter produced
+     a digit-char array (`["1","2"]`). **Fix:** `apply_post_body_span_transform` mirrors it for the canonical
+     integer/float/bool target types. (b) `parse_sample` for regex applies `validate_regex_compile_contract`
+     (PCRE2-fidelity — rejects e.g. `$+`, a quantifier on an anchor, which the grammar accepts but PCRE2
+     rejects; `parser_registry.rs:357`) ON TOP of the grammar parse. **Fix:** a general
+     `parser_registry::post_parse_semantic_contract(name, sample)` the gate applies to the interpreter's
+     verdict, so both sides compare at the same "grammar-parse + registry contract" layer (the interpreter
+     core stays a pure grammar-parse reproduction; parser-agnostic).
+  4. **`@profiles` dialect gating.** `directive_name_relaxed = … @profiles:["relaxed"]` is excluded under the
+     default strict `pcre2` profile (codegen rule-entry `profile_guard` @`:2692-2704` + `rule_profile_is_enabled`
+     @`:4903`), so the generated parser rejects `(*H_2Y-:)`; the interpreter ignored `@profiles` and accepted
+     it. **Fix:** thread the ALREADY-NORMALIZED active profile (`parser_registry::active_grammar_profile`,
+     new pub) into the interpreter; a `@profiles` rule Backtracks at entry when the active profile is not
+     allowed — mirrors `rule_profiles` (@`:7108`) + `rule_profile_is_enabled`. General (also correctly gates
+     SV `sv_2017` vs `sv_2023` — SV stays byte-identical).
+  **Verification (tools-first, re-runnable):** `probe_regex_divergence_minimizer` agrees on all fixed
+  constructs; `probe_regex_deep_stress` (5 seeds, depths 6-30) — regex **400/400 CLEAN**, svpp **459/459
+  CLEAN**; `parse_harness_equivalence_gate` **3/3** (regex+svpp CERTIFIED byte-identical; json/semantic_annotation/
+  rtl_frontend/vhdl/systemverilog/scratch stay byte-identical; ratchet holds for ebnf/return_annotation/
+  rtl_const_expr; completeness). Interpreter unit tests **7/7**. See §16 for the enforced acceptance checklist.
 - `.5.2` — **ebnf fidelity — `not-started`.** Root-cause + fix the interpreter's ebnf VERDICT divergence
   (interpreter accepts input the generated ebnf parser rejects, `furthest≈3`). Then promote `ebnf`.
 - `.5.3` — **return_annotation fidelity — `not-started`.** Root-cause + fix the AST divergence in the
   positional-ref / `Json` fold shape. Then promote `return_annotation`.
-- `.5.4` — **systemverilog_preprocessor fidelity — `not-started`.** Root-cause + fix the AST divergence
-  in emitted node span/shape. Then promote `systemverilog_preprocessor`.
+- `.5.4` — **systemverilog_preprocessor fidelity — `done` (CLOSED by `.5.1`, session #42,
+  `PGEN-PARSE-HARNESS-0007`).** The `.5.1` general fixes (the `systemverilog_preprocessor` regex-token
+  whitespace-sensitivity via the shared `LayoutPolicy` — `allow_layout_skip_for_regexes` is `false` for both
+  `regex` and `systemverilogpreprocessor` — plus the unresolved-reference built-ins) incidentally closed the
+  `.5.4` AST span/shape divergence. The `.5` ratchet DETECTED svpp had become byte-identical and DEMANDED its
+  promotion (the no-silent-progress discipline working as designed); PROMOTED to CERTIFIED after
+  `probe_regex_deep_stress` confirmed **459/459 CLEAN** (5 seeds, depths 6-30).
 - `.5.5` — **rtl_const_expr corpus — `not-started`.** The deep expression precedence chain does not
   generate within the bounded depth ladder (and unbounded deep generation hangs — the known super-linear
   pathology). Build a targeted corpus (curated `rtl_const_expr` inputs and/or a tuned deep+bounded
@@ -399,8 +416,11 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 2 | `PARSE-HARNESS.3` (approach 2 — compile-and-run) | `done` (`PGEN-PARSE-HARNESS-0003`, #39) | Phase A complete; the self-contained CI oracle for the `.5` equivalence gate; external-crate compile proven + integration test green. |
 | 3 | `PARSE-HARNESS.4` (interpreter core — Phase B) | `done` (#40, `PGEN-PARSE-HARNESS-0004`) | The shared-core dynamic dispatcher over the gen-AST — the director's flagship. Byte-identical on the smoke set (json registry + 5 synthetic combinator grammars via the `.3` oracle); 7 tests pass. Tool-mapped plan + committed scope + acceptance checklist in §13. |
 | 4 | `PARSE-HARNESS.5` (differential-equivalence gate) | `done` (#41, `PGEN-PARSE-HARNESS-0005`) | `parse_harness_equivalence_gate` landed: deterministic interpreter-vs-generated differential over a bounded stimuli corpus (seeds 0/7/42, large-stack). CERTIFIED byte-identical: json, semantic_annotation, rtl_frontend, vhdl, **systemverilog (sv_2017)**, scratch. DEFERRED ratchet + EXCLUDED classification for the rest (§14/§15). 3 gate tests green; SV cert unchanged. |
-| 5 | `PARSE-HARNESS.5.1`–`.5.5` (per-grammar closures) | `not-started` (**frontier**) | Root-cause + fix each DEFERRED grammar's divergence (regex/ebnf/return_annotation/svpp fidelity) or corpus (rtl_const_expr), then promote it to CERTIFIED. `.5.1` (regex) is the next frontier leaf. |
-| 6 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
+| 5 | `PARSE-HARNESS.5.1` (regex fidelity) | `done` (#42, `PGEN-PARSE-HARNESS-0007`) | 4 tool-pinpointed interpreter-fidelity fixes (layout policy / unresolved-ref built-ins / `@transform`+PCRE2 contract / `@profiles` gating). regex CERTIFIED byte-identical (deep stress 400/400). Also closed `.5.4` (svpp, 459/459). Gate 3/3; SV+certified unchanged. §16 checklist. |
+| 6 | `PARSE-HARNESS.5.4` (svpp fidelity) | `done` (CLOSED by `.5.1`, #42) | Incidentally closed by `.5.1`'s shared layout policy + built-ins; the `.5` ratchet detected + demanded the promotion. CERTIFIED (459/459). |
+| 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `not-started` (**frontier**) | VERDICT divergence: interpreter accepts input the generated ebnf parser rejects (`furthest≈3`). Next frontier leaf. |
+| 8 | `PARSE-HARNESS.5.3` / `.5.5` (return_annotation fold / rtl_const_expr corpus) | `not-started` | `.5.3` positional-ref/`Json` fold shape; `.5.5` targeted corpus (deep precedence chain). |
+| 9 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
 
 ---
 
@@ -769,10 +789,10 @@ established the honest per-grammar state. Corpus per grammar: stimuli `generate_
 | `vhdl` | ✅ CERTIFIED | 78 | byte-identical. |
 | `systemverilog` (sv_2017) | ✅ CERTIFIED | 94 | byte-identical — the big store-gated/profiled grammar. ~18 s (no-memo). |
 | `scratch` | ✅ CERTIFIED | 3 | byte-identical (blessed fixture). |
-| `regex` | ⏸ DEFERRED `.5.1` | 45–89 | AST greediness fold divergence; deeper VERDICT divergence on `\Q…\E`-quantifier / `!"\\E"` lookahead. |
+| `regex` | ✅ CERTIFIED (`.5.1`, #42) | 400 | byte-identical after the 4 fidelity fixes (layout policy / built-ins / `@transform`+PCRE2 contract / `@profiles`); deep stress 5 seeds × depths 6-30. |
 | `ebnf` | ⏸ DEFERRED `.5.2` | 83 | VERDICT: interpreter accepts what the generated ebnf parser rejects (`furthest≈3`). |
 | `return_annotation` | ⏸ DEFERRED `.5.3` | 68 | AST divergence in the positional-ref / `Json` fold shape. |
-| `systemverilog_preprocessor` | ⏸ DEFERRED `.5.4` | 75 | AST divergence in emitted node span/shape. |
+| `systemverilog_preprocessor` | ✅ CERTIFIED (`.5.1`, #42) | 459 | byte-identical — the `.5.1` shared layout policy (regex-token whitespace-sensitivity) + built-ins closed the `.5.4` span/shape divergence; deep stress 459/459. |
 | `rtl_const_expr` | ⏸ DEFERRED `.5.5` | 0 | deep precedence chain exceeds bounded depth; unbounded deep gen hangs. |
 | `builtin_return_annotation` | ⛔ EXCLUDED | — | oracle = the `return_annotation` parser (different grammar). |
 | `builtin_semantic_annotation` | ⛔ EXCLUDED | — | oracle = hand-rolled `parse_bootstrap`, not codegen. |
@@ -784,3 +804,48 @@ specific regex constructs, NOT in the semantic store as `.4`'s honest bound had 
 reshapes where the remaining `.5`/`.6` work is (fold + regex fidelity first; deep store-gated-outcome
 orchestration is exercised further only in `.6`). Two interpreter robustness gaps were also found and
 handled (stack overflow → large-stack worker; no-memo slowness → bounded corpus, memoization deferred).
+
+## 16. PARSE-HARNESS.5.1 (+ .5.4 closure) — Acceptance Checklist (enforced)
+
+> Session #42. A CODE change (interpreter-tooling only): edits `rust/src/parse_harness_interpreter.rs`,
+> `rust/src/parse_harness_equivalence.rs`, `rust/src/parser_registry.rs` (two NEW pub helpers only). NO
+> engine / grammar / codegen / generated-parser change. Capability build: "ROOT CAUSE" = the four
+> tool-pinpointed interpreter-fidelity gaps (§`.5.1` leaf); "ADDRESSED" = regex + svpp certified
+> byte-identical, differentially, over a deterministic + deep-stress corpus.
+
+- [x] **REPRODUCE / ISSUE** — `parse_harness_equivalence::measurement PGEN_PHEQ_ONLY=regex` (ladder
+  [6,12,18]) → `DIVERGE samples=45 agree=42 diverge=3`; the deep stress (ladder 6-30) surfaced the full
+  divergence set (greediness fold, `$+` verdict, `é`/`\Q…\E` verdict, counted-quantifier fold, `(*verb:)`
+  over-acceptance). svpp DEFERRED `.5.4` for an AST span/shape divergence.
+- [x] **ROOT CAUSE (WHY + WHERE)** — FOUR tool-backed causes (full detail in the `.5.1` leaf): (1)
+  whitespace-sensitivity keyed on the grammar name (`ast_based_generator.rs:4509/4510/1144` → generated
+  `match_string`/`match_regex`/`parse_full` emit `if false { consume_layout… }`); the interpreter skipped
+  layout unconditionally → `greediness:"lazy"` vs `[]` on `\Q]\E* ?`. (2) `generate_unresolved_reference_method`
+  (`:833-946`) native built-ins `builtin_any_char`/`builtin_ascii_char` (via `unicode_char = !builtin_ascii_char
+  builtin_any_char`); the interpreter hard-errored on undefined refs → rejected every non-ASCII char at
+  `furthest≈3`. (3) `generate_post_body_span_transform` (`:4094`) `@transform` numeric coercion of `digits`
+  (`{min:12}` vs `["1","2"]`) + the `validate_regex_compile_contract` PCRE2 post-parse layer in `parse_sample`
+  (`parser_registry.rs:357` — rejects `$+`). (4) `@profiles` rule-entry gating (`:2692-2704`/`:4903`/`:7108`);
+  the interpreter ignored the active profile → accepted the relaxed-only `directive_name_relaxed` under strict
+  `pcre2`.
+- [x] **FIX** — fix-hierarchy tier = **new interpreter tooling** (no engine/grammar/codegen touched): a
+  per-grammar `LayoutPolicy` + `parse_unresolved_reference` + `apply_post_body_span_transform`/`rule_span_transform`
+  + `@profiles` gating (`rule_profiles`/`profile_enabled` + threaded active profile), each mirroring the cited
+  codegen verbatim; plus two NEW parser-agnostic `parser_registry` helpers (`post_parse_semantic_contract`,
+  `active_grammar_profile`) the gate applies symmetrically.
+- [x] **ADDRESSED (verified)** — before→after, re-runnable oracles: `probe_regex_deep_stress` (5 seeds ×
+  depths 6-30) — regex `DIVERGE 3` → **`CLEAN 400/400`**, svpp **`CLEAN 459/459`**; `probe_regex_divergence_minimizer`
+  agrees on every fixed construct (`\Q]\E* ?`→greedy, `$+`→reject, `(*H_2Y-:)`→reject); `make -C rust
+  parse_harness_equivalence_gate` → **3 passed** (`certified_grammars_are_byte_identical` now includes regex+svpp;
+  the ratchet forced the svpp promotion; completeness holds).
+- [x] **NO REGRESSION** — purely additive tooling; `git status` = only the 3 source files (NO
+  `generated/*_parser.rs` regenerated → the fully-certified grammars + SV byte-identical by construction);
+  the equivalence gate re-proves json/semantic_annotation/rtl_frontend/vhdl/**systemverilog (sv_2017)**/scratch
+  STILL byte-identical (SV under the NEW `@profiles`-aware interpreter — profile-awareness can only align
+  interp→oracle, never diverge); interpreter unit tests **7/7**; SV cert re-verified unchanged via
+  `sv_cert_recognized_union_gate` (canonical `1343/10/1321/12`, seeds 0/7/42); my new code clippy-clean (0
+  findings after the one `collapsible_if` collapse; the generated-stage `eq_op` errors are pre-existing).
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` (the differential-equivalence gate
+  section: CERTIFIED/DEFERRED lists + the four regex-fidelity root causes); `TOOLBOX.md` §1.6 CERTIFIED/DEFERRED
+  lists; this tree (`.5.1` done + checklist, `.5.4` closed, frontier, §15 map); CHANGES.md / DEVELOPMENT_NOTES.md
+  / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.
