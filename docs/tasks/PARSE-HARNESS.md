@@ -375,8 +375,45 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   CLEAN**; `parse_harness_equivalence_gate` **3/3** (regex+svpp CERTIFIED byte-identical; json/semantic_annotation/
   rtl_frontend/vhdl/systemverilog/scratch stay byte-identical; ratchet holds for ebnf/return_annotation/
   rtl_const_expr; completeness). Interpreter unit tests **7/7**. See §16 for the enforced acceptance checklist.
-- `.5.2` — **ebnf fidelity — `not-started`.** Root-cause + fix the interpreter's ebnf VERDICT divergence
-  (interpreter accepts input the generated ebnf parser rejects, `furthest≈3`). Then promote `ebnf`.
+- `.5.2` — **ebnf fidelity — `not-started` (investigation SCOUTED, session #42, tools-first — read this FIRST).**
+  Root-cause + fix the interpreter's ebnf VERDICT divergence, then promote `ebnf`.
+  **Scouting log (session #42, tool-backed — `PGEN_PHEQ_ONLY=ebnf …::measurement`; applies the `.5.1` lesson
+  = enumerate the FULL divergence set BEFORE theorizing):**
+  - **The FULL divergence set (ladder [6,12,18], 83 samples / 77 agree / 6 diverge) — ALL are the SAME class:
+    the interpreter ACCEPTS a COMMENT/LAYOUT-ONLY input the generated parser REJECTS.** Diverging samples:
+    `"/**/"` (interp furthest=3), `"/*"` (furthest=2), `"       /**//***/"` (furthest=10) + 3 more of the same
+    shape. Verdict-only (`interp.accepted=true (grammar-parse=true)` vs `oracle.accepted=false`); no AST case.
+  - **WHERE (tool-established):** entry rule `grammar_file := (include_directive | semantic_annotation |
+    grammar_rule | comment | whitespace)* -> …` (`grammars/ebnf.ebnf:25`) — a `*` over alternatives that
+    INCLUDE `comment` + `whitespace`. The oracle is the RAW generated parser `EbnfParser::parse_full_grammar_file()`
+    (`parser_registry.rs:266-268`) — **no adapter, no post-parse contract** (the only contract is regex's,
+    `parser_registry.rs:1185`). So the divergence is a genuine grammar-parse-of-`grammar_file` difference, NOT
+    a registry-layer artifact. Interpreter acceptance requires `position == input.len()` after the entry-rule
+    parse + a trailing layout consume (`parse_harness_interpreter.rs:242-267`); `furthest_position` is bumped
+    ONLY at rule-entry (`:457`), so a small furthest (2/3/10) with a full-input accept is self-consistent (the
+    final comment is eaten by a layout-consume that does not bump furthest).
+  - **CONCRETE located bug (tool-backed, the `/*` sub-case):** the interpreter's HAND-ROLLED block-comment
+    layout skipper treats an UNTERMINATED `/*` as a COMPLETE comment. In `consume_layout_for_terminal`
+    (`parse_harness_interpreter.rs:1082-1095`) — and identically in `consume_layout_for_regex` (`:1145-1161`)
+    — the `/*` arm does `position += 2` then `while position+1 < len && !(bytes==*/) { position += 1 }` then
+    an UNCONDITIONAL `if position+1 < len { position += 2 }`, so on `/*` (len 2) it advances to EOF and
+    `continue`s → the comment is "consumed" with NO required `*/`. The generated `block_comment := "/*"
+    block_comment_content "*/"` REQUIRES the close, so it rejects `/*`. This skipper is too lenient.
+  - **The `/**/` / `/**//***/` sub-case (NOT yet root-caused — next session's first job, DO NOT assume):**
+    `/**/` is a well-terminated empty comment, so the lenient-skipper bug above does NOT explain it. Both naive
+    theories (comment-consumed-as-leading-layout-then-`*`-matches-zero; comment-matched-by-the-`comment`-ALT)
+    predict ACCEPT, yet the generated parser REJECTS. The likely real mechanism (VERIFY with a tool first —
+    read the EMITTED generated `parse_grammar_file` `*`-loop + its layout handling, or trace it): codegen
+    treats `comment`/`whitespace` as auto-skipped LAYOUT (the layout skipper carries comment arms —
+    `ast_based_generator.rs:4525/4596/9699`), so the `comment`/`whitespace` ALTERNATIVES in `grammar_file` are
+    effectively DEAD, and the generated `*`-loop likely skips layout, tries an element, FAILS at EOF, and
+    ROLLS BACK the layout consumption → grammar_file matches zero at position 0 → EOF check (`0 != len`) →
+    REJECT. The interpreter instead keeps the layout-consume (or matches `comment` as an element) → reaches
+    EOF → ACCEPT. **Next tool step:** diff the emitted generated `grammar_file` quantifier-loop-with-layout
+    against the interpreter's `*`-loop + `consume_layout_for_terminal`; the fix is to make the interpreter's
+    comment/layout handling mirror codegen's (rollback semantics + required-close), a GENERAL layout-fidelity
+    fix (parser-agnostic), likely also tightening the two skippers above. Then re-run `PGEN_PHEQ_ONLY=ebnf`
+    + a generalized deep-stress, promote `ebnf`, full no-regression + lockstep + `.5.2` acceptance checklist.
 - `.5.3` — **return_annotation fidelity — `not-started`.** Root-cause + fix the AST divergence in the
   positional-ref / `Json` fold shape. Then promote `return_annotation`.
 - `.5.4` — **systemverilog_preprocessor fidelity — `done` (CLOSED by `.5.1`, session #42,
