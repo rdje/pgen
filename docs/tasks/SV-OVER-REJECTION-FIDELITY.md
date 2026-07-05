@@ -109,8 +109,104 @@ change. Release bump (accept↔reject behavior change on shipped SV profiles) pe
 - [x] **ADDRESSED (verified, release binary post-regen)** — `bind … c1 ();` REJECT→**ACCEPT** under `sv_2017`/`sv_2023` (top-level + module-scope), REJECT under `verilog_2005`; `bind_dir.sv` flips to SV-accept; the `;;` form is now a legitimate `bind … ();` + empty package item under SV (cf. SV-0028), REJECT under verilog_2005.
 - [x] **NO REGRESSION (seeds 0/7/42)** — `sv_cert_recognized_union_gate` GREEN (canonical `1343/2/1321/20` byte-identical, union `UNKNOWN=1` residual `context_member_method_call`, witness 1340); `verilog_2005_conformance_gate` GREEN (orphans 0, matrix `231/0` with `bind_dir.sv` flipped, cert `1117/4/773/340` byte-identical); `ast_shape_contract` 18/18 (1 test, shapes byte-identical); external corpus 14/14; `--lint-grammar` census 1465 / profile_orphans 0; the 6 fully-certified grammars byte-identical (SV-only regen, mtimes); clippy source-clean (grammar-only, flow skipped).
 - [x] **LOCKSTEP** — ledger `SV-0022` → `Released`; SV integration contract (version `1.0.165`→`1.0.166`, SV-0022 waiver→FIXED, remaining-bound framings, new Release 1.0.166 section); conformance corpus `reject/bind_dir.sv` rows flipped to SV-accept; SV parser book changelog `1.0.166` + regenerated HTML; top book `parser-families.md`; `docs/TASK_TREE.md`; release bump `1.0.166`; LIVE/CHANGES/DEVELOPMENT_NOTES/MEMORY.
-- ID: `SV-OVER-REJECTION-FIDELITY.3` — Status: `pending` — close `SV-0023` (event-trigger complex;
-  schema-bump candidate).
+- ID: `SV-OVER-REJECTION-FIDELITY.3` — Status: `done` (2026-07-05, session #35,
+  `PGEN-SV-OVER-REJECTION-FIDELITY-0003`, CODE leaf — grammar-only + schema/release bump) — closed
+  `SV-0023` (event-trigger complex). Added the `->>`
+  nonblocking-trigger token, split the event-trigger block into three profile-faithful rules, move
+  the optional `[delay_or_event_control]` onto the `->>` (nonblocking) branch, correct the swapped
+  consumer-visible `kind` labels (`->` is BLOCKING, `->>` is NONBLOCKING per IEEE 1800 §15.5), and
+  give the `verilog_2005` branch a `bit_select` so the IEEE 1364-2005 event-array trigger accepts.
+  SCHEMA BUMP `15`→`16` (restructured event-trigger return annotations + new/removed branches) +
+  release bump `1.0.166`→`1.0.167` (accept↔reject on shipped SV profiles). See "`.3` Findings" +
+  "Acceptance Checklist — `.3`" below.
+
+## `.3` Findings (tools-first, 2026-07-05 session #35 — SV-0023 event-trigger complex)
+
+**REPRODUCE (HEAD `1.0.166` release binary — all four SV-0023 facets reproduce):**
+```
+initial ->> e;    (sv_2017) → REJECT (furthest_position=29)   [WRONG — IEEE 1800 §9.4.4/A.6.5 ->> nonblocking trigger unsupported; literal `->>` absent from the grammar]
+initial ->> #5 e; (sv_2017) → REJECT (furthest_position=29)   [WRONG — ->> with [delay_or_event_control] unsupported]
+initial -> #5 e;  (sv_2017) → ACCEPT                          [WRONG — per A.6.5 the optional control belongs to ->> ONLY; the grammar mis-attached it to a second `->` branch]
+initial -> e[0];  (verilog_2005) → REJECT (furthest_position=37) [WRONG — IEEE 1364-2005 A.6.5 `-> hei { [expression] } ;` array trigger; branch has no bracket-select]
+initial -> e;     (sv_2017) → ACCEPT but AST {kind:"non_blocking"}  [WRONG LABEL — `->` is the BLOCKING trigger per §15.5.3]
+initial -> #5 e;  (sv_2017) → AST {kind:"blocking", control:{kind:"delay"}}  [WRONG LABEL + over-accept]
+```
+AST-dump-pinned label swap confirmed via `--parse-dump-ast-pretty`.
+
+**ROOT CAUSE (WHY + WHERE):** the event-trigger block `grammars/systemverilog.ebnf:2152-2168`:
+- The `->>` token appears NOWHERE in the grammar (grep `->>` = 0 hits) → the nonblocking trigger is
+  unsupported (facet 1/2).
+- The optional `( delay_or_event_control )?` is attached to `event_trigger_control_sv_only` (`:2153`,
+  `implies ( delay_or_event_control )? hierarchical_event_identifier semi`) — a SECOND `->` (`implies`)
+  branch — instead of to `->>`; so `-> #5 e;` over-accepts (facet 3).
+- The consumer-visible `kind` labels are SWAPPED vs IEEE 1800 §15.5: the plain `-> hei ;` branch
+  (`:2157`) is labeled `{kind:"non_blocking"}` (LRM: `->` is BLOCKING, §15.5.3) and the
+  control-carrying branch (`:2154`) is labeled `{kind:"blocking"}` (LRM: `->>` is NONBLOCKING,
+  §15.5.4) — the schema-bump driver.
+- `event_trigger_sv_2017` (`:2156`) is gated `["sv_2017","verilog_2005"]` with a bare
+  `implies hierarchical_event_identifier semi` (no bracket-select), so the IEEE 1364-2005 array
+  trigger `-> e[0];` (A.6.5 `-> hierarchical_event_identifier { [ expression ] } ;`) has no `[…]`
+  path and rejects under `verilog_2005` (facet 4).
+
+**LRM ADJUDICATION (spec-first, per `feedback_corpus_expected_from_spec_not_fix`):**
+- IEEE 1800-2017 A.6.5 (`docs/systemverilog/2017/md/section-15…:287-288`):
+  `event_trigger ::= -> hierarchical_event_identifier ; | ->> [ delay_or_event_control ] hierarchical_event_identifier ;`.
+- IEEE 1800-2023 Annex A (`docs/systemverilog/2023/md/section-Annex_A…:2192-2193`): same with a
+  trailing `nonrange_select` on each alternative.
+- IEEE 1364-2005 (`grammars/verilog_2005_lrm_extracted.ebnf:370-371`):
+  `event_trigger ::= "->" hierarchical_event_identifier { [ expression ] } ;` — no `->>`, with
+  bracket array-selects.
+- Semantics: §15.5.3 `->` = blocking named-event trigger; §15.5.4 `->>` = nonblocking trigger and the
+  ONLY form carrying the optional `[ delay_or_event_control ]`.
+
+**FIX (declarative, grammar-only, fix-hierarchy tier 1):** add `nonblocking_implies := trivia "->>"`
+(gated `["sv_2017","sv_2023"]`, modeled on the existing 3-char operator tokens
+`arithmetic_shift_left`/`iff_arrow`); split the event-trigger block into three profile-faithful
+rules — `event_trigger_sv_2017` (2017 BNF, no select), `event_trigger_sv_2023` (2023 BNF, trailing
+`nonrange_select`), `event_trigger_verilog_2005` (1364-2005 BNF, trailing `bit_select`); each has a
+`->` blocking branch and (SV only) a `->> [ delay_or_event_control ]` nonblocking branch; the top
+`event_trigger` dispatches to all three. Positional `$` refs verified. `event_trigger_control_sv_only`
+is removed (its only reference was `:2159`). Census `1465`→`1466` (−1 `event_trigger_control_sv_only`,
++1 `nonblocking_implies`, +1 `event_trigger_verilog_2005`). No new EBNF construct (`trivia "…"` is
+existing syntax) → no `ebnf.ebnf` port.
+
+## Acceptance Checklist (`.3`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — HEAD `1.0.166` release binary: `->> e;` / `->> #5 e;` REJECT
+  (`furthest_position=29`), `-> #5 e;` wrongly ACCEPTs, `-> e[0];` REJECTs under `verilog_2005`
+  (`furthest_position=37`); `-> e;` AST mislabeled `{kind:"non_blocking"}`, `-> #5 e;` AST
+  `{kind:"blocking", control:{kind:"delay"}}` (pinned via `--parse-dump-ast-pretty`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — event-trigger block `grammars/systemverilog.ebnf:2152-2168`:
+  `->>` token absent; optional control mis-attached to a second `->` branch
+  (`event_trigger_control_sv_only:2153`); `kind` labels swapped vs IEEE 1800 §15.5.3/15.5.4; the
+  shared `sv_2017`/`verilog_2005` branch has no bracket-select for the 1364-2005 array trigger.
+- [x] **FIX** — declarative/grammar tier: add `nonblocking_implies := trivia "->>"`; three
+  profile-faithful event-trigger rules; optional control on the `->>` branch only; corrected labels;
+  `bit_select` on the `verilog_2005` branch.
+- [x] **ADDRESSED (verified, release binary post-regen)** — `->> e;` / `->> #5 e;` REJECT→**ACCEPT** under
+  `sv_2017`/`sv_2023` (REJECT under `verilog_2005`); `-> #5 e;` **ACCEPT→REJECT** under every profile;
+  `-> e[0];` REJECT→**ACCEPT** under `verilog_2005` + `sv_2023` (REJECT under `sv_2017` per the strict 2017
+  BNF — no select); `-> e;` AST label `non_blocking`→**`blocking`** and `->> #5 e;` → `{kind:"non_blocking",
+  control:{kind:"delay"}}` (pinned via `--parse-dump-ast-pretty`). Baseline `-> e;` stays ACCEPT all profiles.
+  All flips deterministic (3×). Census `1465`→`1466`.
+- [x] **NO REGRESSION (seeds 0/7/42)** — `sv_cert_recognized_union_gate` **GREEN** (canonical `1343/2/1321/20`
+  byte-identical, union UNKNOWN=1 residual `context_member_method_call`, witness 1340 — the sv_2017/union tree
+  net census change is 0: −`event_trigger_control_sv_only` +`nonblocking_implies`); `verilog_2005_conformance_gate`
+  **GREEN** (`gate_green:true`, orphans 0, matrix `240/0` with 3 new locks + the `event_trigger_delay.sv`
+  re-adjudication, cert `1117/4/773/340` byte-identical seeds 0/7/42 — v2005 tree net census change 0:
+  −`event_trigger_sv_2017` from the v2005 universe +`event_trigger_verilog_2005`); `ast_shape_contract_gate`
+  **18/18** (no sample exercises event triggers → inert); `sv_external_corpus_triage_gate` **14/14**;
+  `--lint-grammar` census 1466 / `non_terminating=0` / `ordered_choice_shadowing=0` / `unreachable_rules=0` /
+  `profile_orphans=0`; the 6 fully-certified grammars byte-identical (SV-only regen — mtimes prove the other 6
+  generated parsers untouched); clippy source strict-clean (grammar-only, generated regen only).
+- [x] **LOCKSTEP** — ledger `SV-0023` `Root Caused`→`Released` (Fix/Fixed-in `1.0.167`/Status filled);
+  integration contract (version `1.0.166`→`1.0.167`, schema `15`→`16` note prepended, dialect trust-posture
+  bullet, `SV-0023` waiver→FIXED, new § "Release 1.0.167"); conformance corpus (`accept/event_trigger_array.v`,
+  `reject/event_trigger_nonblocking.sv`, `reject/event_trigger_nonblocking_delay.sv` added +
+  `reject/event_trigger_delay.sv` re-adjudicated + `accept/event_trigger.v` note); SV parser book
+  (`schema-versioning` current-schema `13`→`16` drift fixed + schema-16 prose/table row, `changelog-index`
+  1.0.167 entry, `json-carrier` event_trigger 3-branch + corrected labels + new verilog_2005 row) + regenerated
+  HTML; `docs/TASK_TREE.md` frontier; LIVE/CHANGES/DEVELOPMENT_NOTES/MEMORY.
 
 ## `.1` Findings (tools-first, 2026-07-04 session #34 — SV-0021 mixed ANSI port list)
 
@@ -203,6 +299,8 @@ the sibling port locks `accept/port_concat.v` / `reject/port_bare_multi_id.sv`).
 | `2026-07-04` | `SV-OVER-REJECTION-FIDELITY.1` | `verilog_2005_conformance_gate` (rebuild + matrix + cert seeds 0/7/42) | **GREEN** (`gate_green: true`, 0 unmet): new lock ACCEPT all 3 profiles, matrix `231`/0 mismatches, lint `profile_orphans=0` (1465 rules), cert `1117/4/773/340` spf=0 byte-identical seeds 0/7/42 |
 | `2026-07-04` | `SV-OVER-REJECTION-FIDELITY.2` | bind flip (release binary post-regen) | `bind … c1 ();` top-level + module-scope REJECT→**ACCEPT** on `sv_2017`/`sv_2023`, REJECT on `verilog_2005`; lint 1465 / orphans 0 |
 | `2026-07-04` | `SV-OVER-REJECTION-FIDELITY.2` | no-regression suite (seeds 0/7/42) | `sv_cert_recognized_union_gate` **GREEN** (canonical `1343/2/1321/20`, union `1`, witness 1340 byte-identical); `verilog_2005_conformance_gate` **GREEN** (matrix `231/0`, cert `1117/4/773/340` byte-identical, orphans 0); `ast_shape_contract` 1/1; external corpus 14/14; 6 grammars byte-identical; clippy source-clean |
+| `2026-07-05` | `SV-OVER-REJECTION-FIDELITY.3` | facet flips (release binary post-regen) | `->> e;`/`->> #5 e;` REJECT→**ACCEPT** (sv_2017/sv_2023), REJECT (verilog_2005); `-> #5 e;` **ACCEPT→REJECT** (all); `-> e[0];` REJECT→**ACCEPT** (verilog_2005/sv_2023), REJECT (sv_2017); `-> e;` label `non_blocking`→`blocking`; all deterministic 3×; lint census 1466 / orphans 0 |
+| `2026-07-05` | `SV-OVER-REJECTION-FIDELITY.3` | no-regression suite (seeds 0/7/42) | `sv_cert_recognized_union_gate` **GREEN** (canonical `1343/2/1321/20` byte-identical, union `1` residual `context_member_method_call`, witness 1340); `verilog_2005_conformance_gate` **GREEN** (matrix `240/0` with 3 new event-trigger locks + `event_trigger_delay.sv` re-adjudication, cert `1117/4/773/340` byte-identical, orphans 0); `ast_shape_contract` 18/18; external corpus 14/14; 6 grammars byte-identical (mtimes); clippy source-clean |
 
 ## Commit Log
 
@@ -210,6 +308,7 @@ the sibling port locks `accept/port_concat.v` / `reject/port_bare_multi_id.sv`).
 | --- | --- | --- |
 | `SV-OVER-REJECTION-FIDELITY.1` | `PGEN-SV-OVER-REJECTION-FIDELITY-0001 (SV-OVER-REJECTION-FIDELITY.1): SV-0021 CLOSED — mixed implicit-then-typed ANSI port list adjudicated Released (fixed as consequence of SV-0037) + regression-locked` | Corpus/adjudication leaf — no grammar/parser/schema/release change |
 | `SV-OVER-REJECTION-FIDELITY.2` | `PGEN-SV-OVER-REJECTION-FIDELITY-0002 (SV-OVER-REJECTION-FIDELITY.2): SV-0022 CLOSED — spec-valid single-semi bind no longer over-rejects; SV 1.0.165->1.0.166` | Grammar-only; release bump `1.0.166` (schema 15 unchanged) |
+| `SV-OVER-REJECTION-FIDELITY.3` | `PGEN-SV-OVER-REJECTION-FIDELITY-0003 (SV-OVER-REJECTION-FIDELITY.3): SV-0023 CLOSED — event-trigger ->>/delay/array LRM complex restored; SV 1.0.166->1.0.167, schema 15->16; TREE COMPLETE` | Grammar-only; release bump `1.0.167` + schema bump `15`→`16` (restructured event-trigger annotations + new/removed branches) |
 
 ## Changelog
 
@@ -219,3 +318,11 @@ the sibling port locks `accept/port_concat.v` / `reject/port_bare_multi_id.sv`).
 - `2026-07-04`: `.2` done (SV-0022 CLOSED, `PGEN-SV-OVER-REJECTION-FIDELITY-0002`) — grammar-only,
   removed `bind_directive`'s redundant trailing `semi`; SV `1.0.165`→`1.0.166` (schema 15); all gates
   GREEN seeds 0/7/42. Remaining leaf: `.3` (SV-0023 event-trigger complex).
+- `2026-07-05`: `.3` done (SV-0023 CLOSED, `PGEN-SV-OVER-REJECTION-FIDELITY-0003`) — grammar-only,
+  rewrote the event-trigger block per IEEE 1800 §15.5/A.6.5 + IEEE 1364-2005 A.6.5: added the `->>`
+  (`nonblocking_implies`) token, split into three profile-faithful rules, moved the optional
+  `[delay_or_event_control]` onto the `->>` (nonblocking) branch, corrected the swapped
+  `blocking`/`non_blocking` labels, added the `verilog_2005` array bracket-select. SV `1.0.166`→`1.0.167`,
+  schema `15`→`16`; census `1465`→`1466`; all gates GREEN seeds 0/7/42 (union `1343/2/1321/20`,
+  conformance matrix `240/0` + cert `1117/4/773/340`, ast_shape 18/18, external corpus 14/14).
+  **TREE COMPLETE** — all three all-profile over-REJECTION defects `SV-0021`/`SV-0022`/`SV-0023` closed.

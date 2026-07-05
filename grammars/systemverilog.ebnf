@@ -2149,23 +2149,37 @@ event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e ex
 event_expression := event_expression_primary ( ( kw_or_1758356d | comma ) event_expression_primary )*
                  -> [$1, $2::2*]
 
-@profiles: ["sv_2017"]
-event_trigger_control_sv_only := implies ( delay_or_event_control )? hierarchical_event_identifier semi
-                              -> {kind: "blocking",     control: $2, name: $3}
+# SV-OVER-REJECTION-FIDELITY.3 / ledger SV-0023 — IEEE 1800 §15.5 + A.6.5 event triggers.
+#   `->` is the BLOCKING named-event trigger (§15.5.3); `->>` is the NONBLOCKING trigger (§15.5.4)
+#   and is the ONLY form that carries the optional [ delay_or_event_control ]. IEEE 1800-2017 A.6.5:
+#   `-> hei ;` | `->> [ delay_or_event_control ] hei ;` (no select). IEEE 1800-2023 Annex A: each
+#   alternative gains a trailing nonrange_select. IEEE 1364-2005 (verilog_2005_lrm_extracted.ebnf
+#   :370-371): `-> hei { [ expression ] } ;` — bracket array-selects, no `->>`. The prior encoding
+#   had no `->>` token (nonblocking unsupported), mis-attached the control to a second `->` branch
+#   (`-> #5 e;` over-accepted), SWAPPED the consumer-visible blocking/non_blocking labels, and shared
+#   the sv_2017 rule with verilog_2005 (no array-select → `-> e[0];` rejected under 1364-2005).
+@profiles: ["sv_2017", "sv_2023"]
+nonblocking_implies := trivia "->>"           -> {kind: "nonblocking_implies"}
 
-@profiles: ["sv_2017", "verilog_2005"]
-event_trigger_sv_2017 := implies hierarchical_event_identifier semi
-                              -> {kind: "non_blocking", name: $2}
-                       | event_trigger_control_sv_only
+@profiles: ["sv_2017"]
+event_trigger_sv_2017 := nonblocking_implies ( delay_or_event_control )? hierarchical_event_identifier semi
+                              -> {kind: "non_blocking", control: $2, name: $3}
+                       | implies hierarchical_event_identifier semi
+                              -> {kind: "blocking",     name: $2}
 
 @profiles: ["sv_2023"]
-event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select semi
-                              -> {kind: "non_blocking", name: $2, select: $3}
-                       | implies ( delay_or_event_control )? hierarchical_event_identifier nonrange_select semi
-                              -> {kind: "blocking",     control: $2, name: $3, select: $4}
+event_trigger_sv_2023 := nonblocking_implies ( delay_or_event_control )? hierarchical_event_identifier nonrange_select semi
+                              -> {kind: "non_blocking", control: $2, name: $3, select: $4}
+                       | implies hierarchical_event_identifier nonrange_select semi
+                              -> {kind: "blocking",     name: $2, select: $3}
 
-event_trigger := event_trigger_sv_2017 -> {kind: "sv_2017", body: $1}
-               | event_trigger_sv_2023 -> {kind: "sv_2023", body: $1}
+@profiles: ["verilog_2005"]
+event_trigger_verilog_2005 := implies hierarchical_event_identifier bit_select semi
+                              -> {kind: "blocking",     name: $2, select: $3}
+
+event_trigger := event_trigger_sv_2017      -> {kind: "sv_2017",      body: $1}
+               | event_trigger_sv_2023      -> {kind: "sv_2023",      body: $1}
+               | event_trigger_verilog_2005 -> {kind: "verilog_2005", body: $1}
 
 @profiles: ["sv_2017", "sv_2023"]
 expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen action_block

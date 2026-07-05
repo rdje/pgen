@@ -60,7 +60,16 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "`-> e;` is the legal IEEE 1364-2005 event trigger."
+      "note": "`-> e;` is the legal IEEE 1364-2005 event trigger. Blocking `->` form; parses under every profile (relabeled kind:\"non_blocking\"->\"blocking\" at SV-OVER-REJECTION-FIDELITY.3 per IEEE 1800 §15.5.3, parse-verdict unchanged)."
+    },
+    {
+      "file": "accept/event_trigger_array.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "reject",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0023 lock: `-> e[0];` event-array trigger. ACCEPTS under verilog_2005 (IEEE 1364-2005 A.6.5 `-> hei { [ expression ] } ;`, bracket array-selects — closed at SV-OVER-REJECTION-FIDELITY.3 by giving event_trigger_verilog_2005 a trailing bit_select) and under sv_2023 (Annex A adds a trailing nonrange_select). REJECTS under sv_2017 (IEEE 1800-2017 A.6.5 is `-> hei ;` with NO select — faithful strict-2017 subset; the 2023 LRM added the select)."
     },
     {
       "file": "accept/generate_param.v",
@@ -250,10 +259,28 @@
       "file": "reject/event_trigger_delay.sv",
       "expect": {
         "verilog_2005": "reject",
+        "sv_2017": "reject",
+        "sv_2023": "reject"
+      },
+      "note": "`-> #5 e;` is legal in NO dialect: per IEEE 1800 A.6.5 the optional `[ delay_or_event_control ]` belongs to the NONBLOCKING `->>` form ONLY, and IEEE 1364-2005 has no delay-form trigger at all. RE-ADJUDICATED at SV-OVER-REJECTION-FIDELITY.3 (SV-0023): the prior sv_2017/sv_2023 `accept` rows recorded the over-acceptance defect (the delay control was mis-attached to a second `->` branch); the fix moved the control onto `->>`, so `-> #5 e;` now correctly REJECTS under every profile."
+    },
+    {
+      "file": "reject/event_trigger_nonblocking.sv",
+      "expect": {
+        "verilog_2005": "reject",
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "`-> #5 e;` is legal in NEITHER dialect per the LRMs, but currently ACCEPTS under sv_2017/sv_2023 (SV-0023 mis-encoding of the `->>` delay form onto `->`); the sv-side `accept` rows record that defect posture — re-adjudicate when SV-0023 lands. verilog_2005 REJECT via the `event_trigger_control_sv_only` gate."
+      "note": "SV-0023 lock: `->> e;` nonblocking event trigger (IEEE 1800 §15.5.4 / A.6.5). ACCEPTS under sv_2017/sv_2023 (closed at SV-OVER-REJECTION-FIDELITY.3 by adding the `->>` (nonblocking_implies) token — the literal `->>` was previously absent from the grammar). REJECTS under verilog_2005 (IEEE 1364-2005 has no `->>`; the SV-only-construct-rejects-under-v2005 pattern). File name tracks the verilog_2005 verdict."
+    },
+    {
+      "file": "reject/event_trigger_nonblocking_delay.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-0023 lock: `->> #5 e;` nonblocking event trigger with `[ delay_or_event_control ]` (IEEE 1800 A.6.5 — the control belongs to `->>` ONLY). ACCEPTS under sv_2017/sv_2023 (the optional control is now on the nonblocking branch). REJECTS under verilog_2005 (no `->>` / no delay-form trigger in IEEE 1364-2005). File name tracks the verilog_2005 verdict."
     },
     {
       "file": "reject/expr_time_literal.sv",
