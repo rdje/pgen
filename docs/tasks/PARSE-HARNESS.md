@@ -429,8 +429,33 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
     comment/layout handling mirror codegen's (rollback semantics + required-close), a GENERAL layout-fidelity
     fix (parser-agnostic), likely also tightening the two skippers above. Then re-run `PGEN_PHEQ_ONLY=ebnf`
     + a generalized deep-stress, promote `ebnf`, full no-regression + lockstep + `.5.2` acceptance checklist.
-- `.5.3` — **return_annotation fidelity — `not-started`.** Root-cause + fix the AST divergence in the
-  positional-ref / `Json` fold shape. Then promote `return_annotation`.
+- `.5.3` — **return_annotation fidelity — `not-started` (investigation SCOUTED, session #43, tools-first — read this FIRST).**
+  Root-cause + fix the AST divergence in the positional-ref / `Json` fold shape, then promote `return_annotation`.
+  **Scouting log (session #43, tool-backed — `PGEN_PHEQ_ONLY=return_annotation …::measurement`):**
+  - **The divergence set: `DIVERGE samples=68 agree=50 diverge=8 (+10 suppressed)` — ALL are `[Ast]` (NOT
+    verdict): both interp + oracle ACCEPT and produce the SAME-LENGTH AST (e.g. 828/828), but the byte content
+    differs.** Diverging samples: `$1.S15`, `$1.S15K.vbn**`, `$1[$1*]**`, … — every one involves a **dotted
+    property access** (`$1.S15`) or **array access** (`$1[$1*]`), i.e. a rule that was **left-recursion-eliminated**.
+  - **WHERE / likely cause (tool-established, VERIFY before fixing):** the divergence is an **Object-property
+    KEY-ORDER** difference in the folded return-annotation AST for LR-eliminated rules. `property_access_expression
+    := accessor_base '.' identifier -> {type:"property_access", base:$1, property:$3}` (`grammars/return_annotation.ebnf:99-100`)
+    is LR-eliminated into a `_pgen_lr_chain` carrying a `wrapper_specs` string. The ORACLE dump of `$1.S15`
+    (`parseability_probe --parse-dump-ast-pretty return_annotation`) shows the wrapper_specs `annotation_template`
+    serializes the Object properties in order **`{property, type, base}`** — NOT grammar source order `{type, base,
+    property}`. The measurement diff shows the interpreter emits a DIFFERENT order at the same offset (interp
+    `…PositionalRef:{index:1}},"type":{StringLiteral…` vs oracle `…PositionalRef:{index:1}},"property":{PositionalRef…`),
+    i.e. interp `{base, type, …}` vs oracle `{property, type, base}`. So the interpreter's return-annotation Object
+    fold (or its `_pgen_lr_chain` wrapper handling) preserves a different property ORDER than codegen froze into
+    `wrapper_specs`. **Next tool step:** dump the interpreter's full AST for `$1.S15` (extend the measurement's
+    `probe_regex_divergence_minimizer` pattern, or add a scouting probe), diff it against `/tmp` oracle dump; find
+    where codegen fixes the wrapper_specs Object key order (likely `ast_based_generator.rs` LR-elimination /
+    annotation-template serialization — an `IndexMap`/ordered map vs the interpreter's `HashMap` iteration) and
+    make the interpreter's fold reproduce that EXACT order (parser-agnostic; the fix is in `parse_harness_interpreter.rs`'s
+    return-fold, mirroring codegen). Then re-run `PGEN_PHEQ_ONLY=return_annotation`, promote, full no-regression +
+    lockstep + a `.5.3` acceptance checklist.
+  - **Note on scope:** this is the FOLD (return-annotation Object serialization for LR-eliminated rules), NOT
+    layout (`.5.2`) or the semantic store (`.6`). It is likely a general ordering-fidelity fix that also hardens
+    any future LR-eliminated grammar with Object return annotations.
 - `.5.4` — **systemverilog_preprocessor fidelity — `done` (CLOSED by `.5.1`, session #42,
   `PGEN-PARSE-HARNESS-0007`).** The `.5.1` general fixes (the `systemverilog_preprocessor` regex-token
   whitespace-sensitivity via the shared `LayoutPolicy` — `allow_layout_skip_for_regexes` is `false` for both
@@ -471,7 +496,7 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 5 | `PARSE-HARNESS.5.1` (regex fidelity) | `done` (#42, `PGEN-PARSE-HARNESS-0007`) | 4 tool-pinpointed interpreter-fidelity fixes (layout policy / unresolved-ref built-ins / `@transform`+PCRE2 contract / `@profiles` gating). regex CERTIFIED byte-identical (deep stress 400/400). Also closed `.5.4` (svpp, 459/459). Gate 3/3; SV+certified unchanged. §16 checklist. |
 | 6 | `PARSE-HARNESS.5.4` (svpp fidelity) | `done` (CLOSED by `.5.1`, #42) | Incidentally closed by `.5.1`'s shared layout policy + built-ins; the `.5` ratchet detected + demanded the promotion. CERTIFIED (459/459). |
 | 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `done` (#43, `PGEN-PARSE-HARNESS-0009`) | Root cause: interpreter's layout skippers unconditionally skip all 3 comment introducers; codegen suppresses arms per-grammar (H.11.5). Fix gates the arms via codegen's shared predicate. ebnf CERTIFIED byte-identical (DIVERGE 6→CLEAN 83). §17 checklist. |
-| 8 | `PARSE-HARNESS.5.3` / `.5.5` (return_annotation fold / rtl_const_expr corpus) | `not-started` (**frontier**) | `.5.3` positional-ref/`Json` fold shape; `.5.5` targeted corpus (deep precedence chain). |
+| 8 | `PARSE-HARNESS.5.3` / `.5.5` (return_annotation fold / rtl_const_expr corpus) | `not-started` (**frontier**; `.5.3` SCOUTED #43) | `.5.3` = Object KEY-ORDER divergence in the folded AST for LR-eliminated rules (dotted `$1.S15` / array `$1[$1*]`): oracle wrapper_specs order `{property,type,base}` vs interp `{base,type,…}` — §6 `.5.3` scouting log. `.5.5` targeted corpus (deep precedence chain). |
 | 9 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
 
 ---
