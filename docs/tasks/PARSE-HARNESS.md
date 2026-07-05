@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — now **9 grammars CERTIFIED**. Frontier → **`.5.3` (return_annotation fold) `not-started`**, then `.5.5`, then `.6` combinator suite. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` checklist), §17 (`.5.2` checklist).
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — 9 grammars CERTIFIED. `.5.3` (return_annotation fold) **`done`** (`PGEN-PARSE-HARNESS-0011`, session #44): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`) — codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load; a `serialize_with` SORTED serializer canonicalizes every site, certifying **`return_annotation`** byte-identical — now **10 grammars CERTIFIED**. Frontier → **`.5.5` (rtl_const_expr corpus) `not-started`**, then `.6` combinator suite. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` checklist), §17 (`.5.2` checklist), §18 (`.5.3` checklist).
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -429,9 +429,30 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
     comment/layout handling mirror codegen's (rollback semantics + required-close), a GENERAL layout-fidelity
     fix (parser-agnostic), likely also tightening the two skippers above. Then re-run `PGEN_PHEQ_ONLY=ebnf`
     + a generalized deep-stress, promote `ebnf`, full no-regression + lockstep + `.5.2` acceptance checklist.
-- `.5.3` — **return_annotation fidelity — `not-started` (investigation SCOUTED, session #43, tools-first — read this FIRST).**
-  Root-cause + fix the AST divergence in the positional-ref / `Json` fold shape, then promote `return_annotation`.
-  **Scouting log (session #43, tool-backed — `PGEN_PHEQ_ONLY=return_annotation …::measurement`):**
+- `.5.3` — **return_annotation fidelity — `done` (session #44, `PGEN-PARSE-HARNESS-0011`).** Root-caused +
+  fixed the AST divergence, then PROMOTED `return_annotation` DEFERRED→CERTIFIED (**10th** grammar). **The
+  scouting log's hypothesis was REFUTED by the tools** — see §18 for the enforced acceptance checklist and the
+  real root cause. In brief (tool-backed): the divergence is the `_pgen_lr_chain` `wrapper_specs` blob (the
+  serialized per-alt `annotation_template`s of the LR-eliminated `property_access_expression` / array-access
+  rules), which is `serde_json`-serialized from a std `HashMap` (`UnifiedReturnAST::Object.properties`, whose
+  per-instance iteration order is NON-deterministic). There is no stable "codegen order" for the interpreter to
+  mirror — codegen merely FROZE one arbitrary HashMap order into the generated parser, while the interpreter
+  re-serialized a fresh (itself non-deterministic — proven: `$1.S15`→`{property,base,…}`, `$1[$1*]**`→`{type,…}`,
+  `$1.S15K.vbn**`→`{property,type,…}` in ONE run) order each load. **Fix (single source of truth):** a
+  `serialize_with` sorted serializer on `UnifiedReturnAST::Object.properties` (`rust/src/ast_pipeline/unified_return_ast.rs`)
+  canonicalizes EVERY serialization site at once (gen-AST, the codegen-frozen literal, the interpreter) → sorted
+  keys everywhere → byte-identical. General/parser-agnostic; it also closed a LATENT codegen non-determinism (a
+  fresh `--generate-parser` could previously freeze a different — behaviorally-equivalent — `wrapper_specs` order;
+  now byte-identical across regens, tool-verified). Blast radius: only `return_annotation` + `semantic_annotation`
+  carry Object-template `wrapper_specs` (both regenerated; no shape-contract pins the blob). VERIFIED:
+  `PGEN_PHEQ_ONLY=return_annotation` DIVERGE 8→CLEAN 68/68; `parse_harness_equivalence_gate` 4/4 (return_annotation
+  CERTIFIED; semantic_annotation still byte-identical after regen; ratchet now only rtl_const_expr); interp unit
+  tests 7/7; `unified_return_ast` 27/27. **CERTIFIED now 10:** json/semantic_annotation/rtl_frontend/vhdl/
+  **systemverilog (sv_2017)**/scratch/regex/systemverilog_preprocessor/ebnf/**return_annotation**; DEFERRED →
+  rtl_const_expr; EXCLUDED → builtin_*. Original scouting log retained below for provenance.
+  **Scouting log (session #43, tool-backed — `PGEN_PHEQ_ONLY=return_annotation …::measurement`; the KEY-ORDER
+  hypothesis below was the right SYMPTOM but the wrong CAUSE — the order is not a mirrorable codegen order but a
+  non-deterministic HashMap artifact, per §18):**
   - **The divergence set: `DIVERGE samples=68 agree=50 diverge=8 (+10 suppressed)` — ALL are `[Ast]` (NOT
     verdict): both interp + oracle ACCEPT and produce the SAME-LENGTH AST (e.g. 828/828), but the byte content
     differs.** Diverging samples: `$1.S15`, `$1.S15K.vbn**`, `$1[$1*]**`, … — every one involves a **dotted
@@ -496,8 +517,9 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 5 | `PARSE-HARNESS.5.1` (regex fidelity) | `done` (#42, `PGEN-PARSE-HARNESS-0007`) | 4 tool-pinpointed interpreter-fidelity fixes (layout policy / unresolved-ref built-ins / `@transform`+PCRE2 contract / `@profiles` gating). regex CERTIFIED byte-identical (deep stress 400/400). Also closed `.5.4` (svpp, 459/459). Gate 3/3; SV+certified unchanged. §16 checklist. |
 | 6 | `PARSE-HARNESS.5.4` (svpp fidelity) | `done` (CLOSED by `.5.1`, #42) | Incidentally closed by `.5.1`'s shared layout policy + built-ins; the `.5` ratchet detected + demanded the promotion. CERTIFIED (459/459). |
 | 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `done` (#43, `PGEN-PARSE-HARNESS-0009`) | Root cause: interpreter's layout skippers unconditionally skip all 3 comment introducers; codegen suppresses arms per-grammar (H.11.5). Fix gates the arms via codegen's shared predicate. ebnf CERTIFIED byte-identical (DIVERGE 6→CLEAN 83). §17 checklist. |
-| 8 | `PARSE-HARNESS.5.3` / `.5.5` (return_annotation fold / rtl_const_expr corpus) | `not-started` (**frontier**; `.5.3` SCOUTED #43) | `.5.3` = Object KEY-ORDER divergence in the folded AST for LR-eliminated rules (dotted `$1.S15` / array `$1[$1*]`): oracle wrapper_specs order `{property,type,base}` vs interp `{base,type,…}` — §6 `.5.3` scouting log. `.5.5` targeted corpus (deep precedence chain). |
-| 9 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
+| 8 | `PARSE-HARNESS.5.3` (return_annotation fold) | `done` (#44, `PGEN-PARSE-HARNESS-0011`) | Root cause (tools REFUTED the scouting hypothesis): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`); codegen froze one arbitrary order, the interpreter re-serialized a fresh (itself non-deterministic) order each load. Fix = a `serialize_with` SORTED serializer canonicalizing every site. return_annotation CERTIFIED (DIVERGE 8→CLEAN 68). Also closed a latent codegen non-determinism. §18 checklist. |
+| 9 | `PARSE-HARNESS.5.5` (rtl_const_expr corpus) | `not-started` (**frontier**) | Targeted corpus for the deep precedence chain (exceeds bounded gen; unbounded hangs). A corpus problem, not an interpreter divergence. |
+| 10 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
 
 ---
 
@@ -868,7 +890,7 @@ established the honest per-grammar state. Corpus per grammar: stimuli `generate_
 | `scratch` | ✅ CERTIFIED | 3 | byte-identical (blessed fixture). |
 | `regex` | ✅ CERTIFIED (`.5.1`, #42) | 400 | byte-identical after the 4 fidelity fixes (layout policy / built-ins / `@transform`+PCRE2 contract / `@profiles`); deep stress 5 seeds × depths 6-30. |
 | `ebnf` | ✅ CERTIFIED (`.5.2`, #43) | 83 | byte-identical after gating the interpreter's layout comment arms via codegen's per-introducer suppression predicate (H.11.5); ebnf claims `/*` as a non-comment token so its `/* */` block-comment layout arm is suppressed. DIVERGE 6→CLEAN. |
-| `return_annotation` | ⏸ DEFERRED `.5.3` | 68 | AST divergence in the positional-ref / `Json` fold shape. |
+| `return_annotation` | ✅ CERTIFIED (`.5.3`, #44) | 68 | byte-identical after canonicalizing the `_pgen_lr_chain` `wrapper_specs` blob (a `serialize_with` SORTED serializer on `UnifiedReturnAST::Object.properties`) — it was serialized from a non-deterministic std `HashMap`; codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load. DIVERGE 8→CLEAN. Also closed a latent codegen non-determinism. |
 | `systemverilog_preprocessor` | ✅ CERTIFIED (`.5.1`, #42) | 459 | byte-identical — the `.5.1` shared layout policy (regex-token whitespace-sensitivity) + built-ins closed the `.5.4` span/shape divergence; deep stress 459/459. |
 | `rtl_const_expr` | ⏸ DEFERRED `.5.5` | 0 | deep precedence chain exceeds bounded depth; unbounded deep gen hangs. |
 | `builtin_return_annotation` | ⛔ EXCLUDED | — | oracle = the `return_annotation` parser (different grammar). |
@@ -995,3 +1017,66 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
   per-introducer layout-arm suppression documented as the fidelity mechanism); `TOOLBOX.md` §1.6
   CERTIFIED/DEFERRED lists; this tree (`.5.2` done + this checklist, frontier, §15 map); CHANGES.md /
   DEVELOPMENT_NOTES.md / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.
+
+## 18. PARSE-HARNESS.5.3 — return_annotation fidelity — Acceptance Checklist (enforced)
+
+> Session #44. A CODE change: a SHARED codegen serialization primitive
+> (`rust/src/ast_pipeline/unified_return_ast.rs` — a `serialize_with` sorted serializer on
+> `UnifiedReturnAST::Object.properties`) + the interpreter/gate classification promotion
+> (`rust/src/parse_harness_equivalence.rs`) + a new `.5.3` scouting probe. This is the FIRST `.5.x`
+> leaf that touches codegen (all prior were interpreter-only), because the tools REFUTED the scouting
+> log's "interpreter-only, mirror codegen's order" hypothesis: the divergence is a genuine shared
+> serialization non-determinism, not an interpreter-side fold bug. Both affected generated parsers
+> (`return_annotation`, `semantic_annotation`) were regenerated; no engine/grammar change.
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_PHEQ_ONLY=return_annotation cargo test … parse_harness_equivalence::measurement`
+  (ladder [6,12,18], seeds 0/7/42) → `return_annotation DIVERGE samples=68 agree=50 diverge=8 (+10 suppressed)`.
+  ALL 8 are `[Ast]` (both ACCEPT, same-length AST, different bytes); every diverging sample is a dotted
+  property-access (`$1.S15`) or array-access (`$1[$1*]**`) — an LR-eliminated rule.
+- [x] **ROOT CAUSE (WHY + WHERE)** — TOOLS-FIRST, and it REFUTED the scouting log's KEY-ORDER-to-mirror
+  hypothesis. The new `.5.3` scouting probe (`probe_return_annotation_divergence`) dumped both exact
+  `wrapper_specs` strings: the interpreter's `_pgen_lr_chain` `wrapper_specs` blob picks a DIFFERENT Object
+  key order for the SAME rule across samples **in one run** (`$1.S15`→`{property,base,…}`,
+  `$1[$1*]**`→`{type,…}`, `$1.S15K.vbn**`→`{property,type,…}`) — the fingerprint of std `HashMap`
+  non-determinism, NOT a stable "codegen order". WHERE: the blob is `serde_json::to_string(&wrapper_specs)`
+  at `rust/src/ast_pipeline/mod.rs:1943` (LR-elimination), where each `wrapper_specs[i].annotation_template`
+  is a `UnifiedReturnAST::Object { properties: HashMap }` (`unified_return_ast.rs:56-58`). Codegen FROZE one
+  arbitrary HashMap order into the generated parser (`generated/return_annotation_parser.rs:11473` — a
+  string literal); the interpreter re-serialized a fresh (itself non-deterministic) order each `load_gen_ast`.
+  So there is nothing for the interpreter to "mirror" — the two blobs are independent HashMap serializations
+  of the same semantically-orderless content. Tool trail: gen-AST wrapper_specs (`--dump-gen-ast`) ≠ the
+  generated literal ≠ the runtime output = three different orders; the oracle order was stable run-to-run
+  (deterministic-only-because-frozen), the interpreter's was not.
+- [x] **FIX** — fix-hierarchy tier = **shared codegen serialization primitive** (the lowest tier that can
+  fix it — an interpreter-only fix is impossible when the oracle's own order is a non-canonical frozen
+  artifact). A `#[serde(serialize_with = "serialize_properties_sorted")]` on `UnifiedReturnAST::Object.properties`
+  emits keys in SORTED order at EVERY serialization site at once (the LR-elim gen-AST blob, codegen's frozen
+  literal, and the interpreter's in-process re-serialization) → all sorted → byte-identical. Parser-agnostic
+  (a shared type used by every grammar). Deserialization is unchanged (still into a `HashMap`; key order is
+  semantically irrelevant — the blob is only ever deserialized back). Then promoted `return_annotation`
+  DEFERRED→CERTIFIED in `parse_harness_equivalence.rs`.
+- [x] **ADDRESSED (verified)** — before→after, re-runnable oracles: `PGEN_PHEQ_ONLY=return_annotation …::measurement`
+  → `return_annotation DIVERGE 8` → **`CLEAN agree=68 diverge=0`**; `make -C rust parse_harness_equivalence_gate`
+  → **4 passed** (`certified_grammars_are_byte_identical` now includes `return_annotation`; the ratchet forced
+  its promotion, leaving only `rtl_const_expr` DEFERRED; `every_registered_grammar_is_classified_exactly_once`;
+  `comment_arm_suppression_matrix_is_pinned` unaffected). Interpreter unit tests **7/7**; `unified_return_ast`
+  serialization round-trip tests **27/27**. BONUS (latent bug closed): the generated `return_annotation_parser.rs`
+  `wrapper_specs` is now **byte-identical across regens** (tool-verified: regen twice → `diff` empty), where it
+  was previously a non-deterministic frozen HashMap order.
+- [x] **NO REGRESSION** — the shared serialization change affects ONLY grammars whose LR-eliminated rules carry
+  **Object** return-annotation templates: a repo-wide audit found exactly TWO (`return_annotation`,
+  `semantic_annotation`); both were regenerated and both are byte-identical in the equivalence gate
+  (`semantic_annotation` stays CERTIFIED — its sorted frozen blob matches the sorted interpreter blob). NO
+  `ast_shape_contract` manifest pins a `wrapper_specs` blob (grep-verified), and the FINAL folded AST is
+  unaffected (it is a `serde_json::Value` built by the fold, which already sorts). **Emit-neutrality proof for
+  the shared codegen change on the big grammar:** `sv_cert_recognized_union_gate` REGENERATED
+  `systemverilog_parser.rs` with the modified `ast_pipeline` → IDENTICAL cert (canonical `1343/10/1321/12`,
+  union residual `["context_member_method_call"]`, `sample_parse_failures=0`, deterministic byte-identical
+  seeds 0/7/42) — SV has no Object-template `wrapper_specs`, so its emit is untouched. New code clippy-clean
+  (`unified_return_ast` / `parse_harness_equivalence` / `parse_harness_interpreter` — 0 findings; the
+  generated-stage `eq_op` errors are pre-existing); `mdbook_docs_gate` GREEN. My commit stages no `generated/*`
+  (git-ignored).
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` (CERTIFIED list gains `return_annotation`;
+  the `wrapper_specs` canonicalization documented as the fidelity mechanism + the latent-non-determinism note);
+  `TOOLBOX.md` §1.6 CERTIFIED/DEFERRED lists; this tree (`.5.3` done + this checklist, frontier, §15 map);
+  CHANGES.md / DEVELOPMENT_NOTES.md / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.

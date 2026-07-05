@@ -529,6 +529,17 @@ pub const CERTIFIED: &[&str] = &[
     // predicate (`comment_arm_suppression_for_grammar`), so it matches the generated parser for every
     // grammar. Byte-identical over the gate corpus AND the deep stress ladder (`probe_layout_deep_stress`).
     "ebnf",
+    // Promoted from DEFERRED by PARSE-HARNESS.5.3: the `_pgen_lr_chain` `wrapper_specs` blob (the
+    // serialized per-alt `annotation_template`s of an LR-eliminated rule such as
+    // `property_access_expression`) was serialized from a std `HashMap` (`UnifiedReturnAST::Object`),
+    // whose per-instance iteration order is non-deterministic. Codegen froze ONE arbitrary order into the
+    // generated parser; the interpreter re-serialized a fresh (and itself non-deterministic) order each
+    // load — so the two typed ASTs diverged byte-for-byte on the dotted/array LR-eliminated shapes
+    // (`$1.S15`, `$1[$1*]`). The `Object.properties` serializer now emits keys SORTED, canonicalizing
+    // every serialization site at once (gen-AST, codegen-frozen literal, interpreter) AND removing a
+    // latent codegen non-determinism (regens could otherwise freeze different orders). Byte-identical over
+    // the gate corpus (68 samples).
+    "return_annotation",
 ];
 
 /// **DEFERRED** — registered grammars whose interpreter differential is NOT yet byte-identical, each
@@ -536,10 +547,6 @@ pub const CERTIFIED: &[&str] = &[
 /// *still* divergent (the no-silent-caps discipline): if one becomes byte-identical it must be
 /// *promoted* to [`CERTIFIED`], so the gate fails until it is — an honest ratchet, never a silent skip.
 pub const DEFERRED: &[(&str, &str)] = &[
-    (
-        "return_annotation",
-        "AST divergence in the positional-ref / Json fold shape (PARSE-HARNESS.5.3)",
-    ),
     (
         "rtl_const_expr",
         "zero corpus: the deep expression precedence chain exceeds the bounded generation depth, and \
@@ -706,6 +713,62 @@ mod measurement {
             println!("{flag} input={input:<12?} interp={interp_verdict:<10} generated={gen_verdict:?}");
         }
         println!("=== end regex minimizer ===\n");
+    }
+
+    /// PARSE-HARNESS.5.3 SCOUTING (not an assertion): dump the FULL interpreter vs generated-parser
+    /// (`parse_sample_ast_json`) AST for the diverging `return_annotation` samples, and isolate the exact
+    /// `wrapper_specs` string on each side. The `.5.3` divergence is an Object KEY-ORDER difference inside
+    /// the `_pgen_lr_chain` `wrapper_specs` serialized blob for LR-eliminated rules (`$1.S15`, `$1[$1*]`).
+    /// Run with `--ignored --nocapture`.
+    #[test]
+    #[ignore = "measurement/scouting probe — run explicitly with --ignored --nocapture"]
+    fn probe_return_annotation_divergence() {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let grammar = manifest.join("../grammars/return_annotation.ebnf");
+        let samples = ["$1.S15", "$1[$1*]**", "$1.S15K.vbn**"];
+        println!("\n=== return_annotation .5.3 divergence dump (interp vs oracle) ===");
+        for input in samples {
+            let interp = run_on_large_stack({
+                let g = grammar.clone();
+                let inp = input.to_string();
+                move || interpret_parse_gen_ast_from_ebnf(&g, &inp)
+            });
+            let interp_json = match &interp {
+                Ok(o) => o.ast_json.clone(),
+                Err(e) => {
+                    println!("input={input:?} interp ERR({e})");
+                    continue;
+                }
+            };
+            let oracle_json =
+                match crate::parser_registry::parse_sample_ast_json("return_annotation", input) {
+                    Some(Ok(v)) => Some(v),
+                    other => {
+                        println!("input={input:?} oracle no-AST: {other:?}");
+                        None
+                    }
+                };
+            let ws = |v: &Option<serde_json::Value>| -> String {
+                v.as_ref()
+                    .and_then(|j| serde_json::to_string(j).ok())
+                    .map(|s| {
+                        // Isolate every `wrapper_specs` string occurrence for a clean side-by-side.
+                        s.match_indices("wrapper_specs")
+                            .map(|(i, _)| {
+                                let tail = &s[i..];
+                                truncate(tail, 180).to_string()
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n        ")
+                    })
+                    .unwrap_or_else(|| "<none>".to_string())
+            };
+            let identical = interp_json == oracle_json;
+            println!("\ninput={input:?}  identical={identical}");
+            println!("    interp wrapper_specs: {}", ws(&interp_json));
+            println!("    oracle wrapper_specs: {}", ws(&oracle_json));
+        }
+        println!("=== end return_annotation .5.3 dump ===\n");
     }
 
     /// DEEP STRESS (scouting, not an assertion): run the differential over a DEEPER + WIDER corpus than

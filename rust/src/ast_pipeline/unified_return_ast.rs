@@ -25,6 +25,36 @@ pub enum ExtractionTarget {
     Last,
 }
 
+/// Serialize an `Object`'s `properties` map with its keys in **sorted** order, so the JSON
+/// serialization is DETERMINISTIC and CANONICAL (PARSE-HARNESS.5.3).
+///
+/// A std [`HashMap`] iterates in a per-instance, non-deterministic order, and this type is
+/// `serde`-serialized in two load-bearing places that must agree byte-for-byte:
+/// - the LR-elimination `_pgen_lr_chain` `wrapper_specs` blob (`super::mod` — a
+///   `serde_json::to_string` of the per-alt `annotation_template`s), which codegen FREEZES into
+///   the generated parser as a string literal, and
+/// - the same blob re-serialized in-process by the grammar-AST interpreter
+///   (`parse_harness_interpreter`) each time it loads the gen-AST.
+///
+/// With the default (unsorted) map order these two blobs — and even two interpreter runs — pick
+/// different key orders for the SAME template (a dotted/array LR-eliminated rule such as
+/// `property_access_expression`), so the interpreter's typed AST diverged from the generated
+/// parser's byte-for-byte. Emitting sorted keys canonicalizes every serialization site at once and
+/// additionally removes a latent codegen non-determinism (a fresh `--generate-parser` could
+/// otherwise freeze a different — though behaviorally-equivalent — `wrapper_specs` order each run).
+/// The key ORDER carries no semantics: the blob is only ever deserialized back into a `HashMap`.
+fn serialize_properties_sorted<S>(
+    properties: &HashMap<String, Box<UnifiedReturnAST>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let sorted: std::collections::BTreeMap<&String, &Box<UnifiedReturnAST>> =
+        properties.iter().collect();
+    serializer.collect_map(sorted)
+}
+
 /// The unified AST representation of a return annotation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum UnifiedReturnAST {
@@ -54,6 +84,7 @@ pub enum UnifiedReturnAST {
 
     /// Object with key-value pairs: {type: "array", element: $3}
     Object {
+        #[serde(serialize_with = "serialize_properties_sorted")]
         properties: HashMap<String, Box<UnifiedReturnAST>>,
     },
 

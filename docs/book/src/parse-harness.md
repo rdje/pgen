@@ -56,11 +56,11 @@ The design in full — including how the interpreter is made "100 % trustworthy"
 differential-equivalence oracle and the per-combinator suite — lives in the task tree
 `docs/tasks/PARSE-HARNESS.md`. All three approaches are live; this chapter documents each. The
 interpreter's `.4` **core** is byte-identical to the generated parser on the structural +
-return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **9 registered
-grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, and — since `.5.1`/`.5.2` — `regex`,
-`systemverilog_preprocessor`, and `ebnf`) with an honest promotion ratchet for the rest (see *The
-differential-equivalence gate* below); the remaining per-grammar fidelity closures
-and the semantic-directive orchestration are `PARSE-HARNESS.5.1`–`.5.5` / `.6`.
+return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **10 registered
+grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, and — since `.5.1`/`.5.2`/`.5.3` —
+`regex`, `systemverilog_preprocessor`, `ebnf`, and `return_annotation`) with an honest promotion ratchet for
+the rest (see *The differential-equivalence gate* below); the remaining per-grammar fidelity closure
+(`rtl_const_expr`) and the semantic-directive orchestration are `PARSE-HARNESS.5.5` / `.6`.
 
 ## The scratch-register slot
 
@@ -343,8 +343,8 @@ rather than quietly testing only the easy ones. Every registered grammar is clas
 
 | Class | Grammars | Gate behaviour |
 |---|---|---|
-| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch`, `regex`, `systemverilog_preprocessor`, `ebnf` | must stay byte-identical — a regression **fails** the gate |
-| **DEFERRED** | `return_annotation`, `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if one becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). Each owns a follow-up leaf. |
+| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch`, `regex`, `systemverilog_preprocessor`, `ebnf`, `return_annotation` | must stay byte-identical — a regression **fails** the gate |
+| **DEFERRED** | `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if it becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). It owns a follow-up leaf (`.5.5`, a corpus problem). |
 | **EXCLUDED** | `builtin_return_annotation`, `builtin_semantic_annotation` | out of scope *by construction* — their registry oracle is not a codegen parser of their own grammar (one aliases the `return_annotation` parser; the other uses a hand-rolled bootstrap parser), so the differential's premise does not hold |
 
 `regex` and `systemverilog_preprocessor` were **promoted** from DEFERRED to CERTIFIED by `PARSE-HARNESS.5.1`
@@ -352,7 +352,35 @@ rather than quietly testing only the easy ones. Every registered grammar is clas
 that were root-caused and closed. The promotion ratchet did its job: fixing `regex` also made
 `systemverilog_preprocessor` byte-identical, the gate **failed** demanding the promotion, and it was
 promoted the same commit (progress is never lost silently). `ebnf` was promoted by `PARSE-HARNESS.5.2`
-(session #43) — see *Comment layout is grammar-specific* below.
+(session #43) — see *Comment layout is grammar-specific* below. `return_annotation` was promoted by
+`PARSE-HARNESS.5.3` (session #44) — see *Canonical serialization of the LR-chain blob* below.
+
+### Canonical serialization of the LR-chain blob (`PARSE-HARNESS.5.3`)
+
+When PGEN eliminates left-recursion from a rule (for example `return_annotation`'s
+`property_access_expression := accessor_base '.' identifier` and its array-access sibling), it rewrites the
+rule into a base + suffix pair and attaches a synthetic `_pgen_lr_chain` value that carries a **`wrapper_specs`**
+field — a JSON string holding, per alternative, the original rule's return-annotation *template*. That blob is
+purely internal plumbing: it is only ever deserialized back to replay the rule's annotation over the folded
+chain. Its **key order is semantically irrelevant**.
+
+The template is a `UnifiedReturnAST::Object` whose properties were stored in a standard hash map, and the blob
+is produced by serializing that map. A hash map iterates in a per-instance, non-deterministic order, which
+caused two independent serializations to disagree byte-for-byte: the code generator **froze one arbitrary
+order** into the generated parser as a string literal, while the interpreter **re-serialized a fresh order**
+(itself varying run-to-run, and even sample-to-sample within one run) each time it loaded the grammar. Both
+were "correct" — same content, different key order — but the differential-equivalence gate compares the typed
+AST *byte-for-byte*, so the interpreter diverged from the generated parser on exactly the dotted/array
+LR-eliminated shapes (`$1.S15`, `$1[$1*]`).
+
+The fix canonicalizes the serialization at its single source of truth: the object's properties are now emitted
+with **sorted keys** everywhere the type is serialized — the gen-AST blob, the generator's frozen literal, and
+the interpreter's in-process re-serialization all agree. This is a shared, parser-agnostic primitive (it lives
+on the `UnifiedReturnAST` type, used by every grammar), and it additionally removes a latent
+non-determinism in the code generator itself: two `--generate-parser` runs now produce a **byte-identical**
+`wrapper_specs` blob, where before they could freeze different (behaviorally-equivalent) orders. The only two
+grammars whose LR-eliminated rules carry object-shaped templates — `return_annotation` and `semantic_annotation`
+— were regenerated; both are byte-identical in the gate.
 
 ### Comment layout is grammar-specific (`PARSE-HARNESS.5.2`)
 
@@ -428,12 +456,12 @@ grammar with that shape — not just regex:
 - The interpreter (`PARSE-HARNESS.4`, core landed — see *The grammar-AST interpreter* above) is a
   genuine second implementation; its trust is *earned* by the differential-equivalence gate (`.5`, see
   *The differential-equivalence gate* above), and the honest claim is "divergence-free over the tested
-  corpus with a shared core" — **not** a formal all-inputs proof. The gate now **certifies 8 grammars
+  corpus with a shared core" — **not** a formal all-inputs proof. The gate now **certifies 10 grammars
   byte-identical** (including SystemVerilog / VHDL / rtl_frontend, plus `regex` and
-  `systemverilog_preprocessor` since `.5.1`) and honestly **defers** the rest (`ebnf`, `return_annotation`,
-  `rtl_const_expr`) with a promotion ratchet; the remaining per-grammar fidelity closures are
-  `PARSE-HARNESS.5.2`/`.5.3`/`.5.5`, and a combinator-complete + fuzzed corpus is `.6`/`.7`. See
-  `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15 / §16.
+  `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, and `return_annotation` since `.5.3`) and
+  honestly **defers** the one remaining (`rtl_const_expr`) with a promotion ratchet; that last per-grammar
+  closure is `PARSE-HARNESS.5.5` (a corpus problem), and a combinator-complete + fuzzed corpus is `.6`/`.7`.
+  See `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15 / §16 / §17 / §18.
 
 ## See also
 
