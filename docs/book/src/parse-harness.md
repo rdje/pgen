@@ -56,11 +56,11 @@ The design in full — including how the interpreter is made "100 % trustworthy"
 differential-equivalence oracle and the per-combinator suite — lives in the task tree
 `docs/tasks/PARSE-HARNESS.md`. All three approaches are live; this chapter documents each. The
 interpreter's `.4` **core** is byte-identical to the generated parser on the structural +
-return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **10 registered
-grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, and — since `.5.1`/`.5.2`/`.5.3` —
-`regex`, `systemverilog_preprocessor`, `ebnf`, and `return_annotation`) with an honest promotion ratchet for
-the rest (see *The differential-equivalence gate* below); the remaining per-grammar fidelity closure
-(`rtl_const_expr`) and the semantic-directive orchestration are `PARSE-HARNESS.5.5` / `.6`.
+return-annotation surface, and the `.5` **differential-equivalence gate** now certifies **all 11 registered
+grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, and — since `.5.1`–`.5.5` —
+`regex`, `systemverilog_preprocessor`, `ebnf`, `return_annotation`, and `rtl_const_expr`); the DEFERRED
+ratchet is now empty (every previously-deferred grammar has been promoted — see *The differential-equivalence
+gate* below). The remaining work is the semantic-directive orchestration (`PARSE-HARNESS.6`).
 
 ## The scratch-register slot
 
@@ -343,8 +343,8 @@ rather than quietly testing only the easy ones. Every registered grammar is clas
 
 | Class | Grammars | Gate behaviour |
 |---|---|---|
-| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch`, `regex`, `systemverilog_preprocessor`, `ebnf`, `return_annotation` | must stay byte-identical — a regression **fails** the gate |
-| **DEFERRED** | `rtl_const_expr` | asserted **still divergent** — a *ratchet*: if it becomes byte-identical the gate fails, demanding it be **promoted** to CERTIFIED (progress is never lost silently). It owns a follow-up leaf (`.5.5`, a corpus problem). |
+| **CERTIFIED** | `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, `systemverilog` (sv_2017), `scratch`, `regex`, `systemverilog_preprocessor`, `ebnf`, `return_annotation`, `rtl_const_expr` | must stay byte-identical — a regression **fails** the gate |
+| **DEFERRED** | *(empty)* | the ratchet stays wired for a future newly-registered divergent grammar; every grammar deferred so far has been **promoted** (`.5.1`–`.5.5`) |
 | **EXCLUDED** | `builtin_return_annotation`, `builtin_semantic_annotation` | out of scope *by construction* — their registry oracle is not a codegen parser of their own grammar (one aliases the `return_annotation` parser; the other uses a hand-rolled bootstrap parser), so the differential's premise does not hold |
 
 `regex` and `systemverilog_preprocessor` were **promoted** from DEFERRED to CERTIFIED by `PARSE-HARNESS.5.1`
@@ -353,7 +353,39 @@ that were root-caused and closed. The promotion ratchet did its job: fixing `reg
 `systemverilog_preprocessor` byte-identical, the gate **failed** demanding the promotion, and it was
 promoted the same commit (progress is never lost silently). `ebnf` was promoted by `PARSE-HARNESS.5.2`
 (session #43) — see *Comment layout is grammar-specific* below. `return_annotation` was promoted by
-`PARSE-HARNESS.5.3` (session #44) — see *Canonical serialization of the LR-chain blob* below.
+`PARSE-HARNESS.5.3` (session #44) — see *Canonical serialization of the LR-chain blob* below. `rtl_const_expr`
+was promoted by `PARSE-HARNESS.5.5` (session #45) — see *A curated corpus for un-generatable grammars* below —
+which emptied the DEFERRED list: all 11 differentiable registered grammars are now CERTIFIED byte-identical.
+
+### A curated corpus for un-generatable grammars (`PARSE-HARNESS.5.5`)
+
+The gate's corpus is normally the grammar's own **stimuli generator** at fixed seeds over a bounded depth
+ladder (`[6, 12, 18]`). That works for almost every grammar — but `rtl_const_expr` is a pathological case
+for *unbiased* generation. Its expression core is a **~16-level precedence cascade**
+(`rtl_const_expr → conditional_expr → logical_or_expr → … → multiplicative_expr → unary_expr → primary_expr
+→ literal → decimal_integer`), where each level has the shape `X := Y (op Y)*`. Two things follow, both
+tool-established via the CLI generation sweep (`ast_pipeline grammars/rtl_const_expr.ebnf --generate-stimuli
+--max-depth D`):
+
+- the generator needs `max_depth ≳ 30` **just to reach a leaf** — at depths 6–28 it fails outright
+  (`Stimuli generation depth exceeded max_depth=N while expanding 'multiplicative_expr'`), so the gate's
+  shallow ladder yields **zero** samples; and
+- once it *does* have that depth, the ten `(op Y)*` quantifier levels each re-descend the whole chain, so
+  generation is **super-linear**: the only working window is a razor-thin band around depth 32 (which emits
+  giant, thousands-of-character expressions), and depths ≥ 40 **hang**.
+
+So the stimuli generator cannot supply this grammar a usable differential corpus. The fix is a general,
+parser-agnostic **curated-input corpus** (`CURATED_CORPUS`, keyed by grammar name alongside the
+CERTIFIED/DEFERRED/EXCLUDED lists): a small, construct-complete, hand-authored set of *inputs* covering both
+literal kinds, plain/dotted/package-qualified identifiers, all four unary ops, every binary op at each of the
+ten precedence levels, multi-term chains, mixed precedence, ternaries (flat and nested), parentheses,
+whitespace variety, and near-miss rejects. Crucially these are **inputs only** — the differential still
+compares the interpreter against the *authoritative generated parser*, which supplies the verdict and typed
+AST, so a curated input carries **no expected-output "mirror" risk**; it merely gives the differential
+something to compare. Over that corpus the interpreter is byte-identical to the generated parser (151 samples,
+zero divergence), confirming the leaf's thesis: `rtl_const_expr` was a **corpus** gap, not an interpreter
+divergence. (Note: the same narrow depth-32 window is why `rtl_const_expr`'s certificate-coverage gate is
+tuned to `--max-depth 32` with a step budget — where it fully certifies 48/48 rules, `UNKNOWN=0`.)
 
 ### Canonical serialization of the LR-chain blob (`PARSE-HARNESS.5.3`)
 
@@ -456,12 +488,12 @@ grammar with that shape — not just regex:
 - The interpreter (`PARSE-HARNESS.4`, core landed — see *The grammar-AST interpreter* above) is a
   genuine second implementation; its trust is *earned* by the differential-equivalence gate (`.5`, see
   *The differential-equivalence gate* above), and the honest claim is "divergence-free over the tested
-  corpus with a shared core" — **not** a formal all-inputs proof. The gate now **certifies 10 grammars
-  byte-identical** (including SystemVerilog / VHDL / rtl_frontend, plus `regex` and
-  `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, and `return_annotation` since `.5.3`) and
-  honestly **defers** the one remaining (`rtl_const_expr`) with a promotion ratchet; that last per-grammar
-  closure is `PARSE-HARNESS.5.5` (a corpus problem), and a combinator-complete + fuzzed corpus is `.6`/`.7`.
-  See `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15 / §16 / §17 / §18.
+  corpus with a shared core" — **not** a formal all-inputs proof. The gate now **certifies all 11
+  differentiable grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, plus `regex` and
+  `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
+  `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
+  ratchet is now empty. A combinator-complete + fuzzed corpus is `.6`/`.7`. See
+  `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15 / §16 / §17 / §18 / §19.
 
 ## See also
 

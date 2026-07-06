@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — 9 grammars CERTIFIED. `.5.3` (return_annotation fold) **`done`** (`PGEN-PARSE-HARNESS-0011`, session #44): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`) — codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load; a `serialize_with` SORTED serializer canonicalizes every site, certifying **`return_annotation`** byte-identical — now **10 grammars CERTIFIED**. Frontier → **`.5.5` (rtl_const_expr corpus) `not-started`**, then `.6` combinator suite. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` checklist), §17 (`.5.2` checklist), §18 (`.5.3` checklist).
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — 9 grammars CERTIFIED. `.5.3` (return_annotation fold) **`done`** (`PGEN-PARSE-HARNESS-0011`, session #44): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`) — codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load; a `serialize_with` SORTED serializer canonicalizes every site, certifying **`return_annotation`** byte-identical — now **10 grammars CERTIFIED**. `.5.5` (rtl_const_expr corpus) **`done`** (`PGEN-PARSE-HARNESS-0012`, session #45): NOT a fidelity fix but a CORPUS fix — the stimuli generator yields 0 usable samples for rtl_const_expr's ~16-level precedence cascade within the bounded ladder (depths ≤28 fail, ~32 pathologically huge, ≥40 hang — tool-established); a general parser-agnostic **curated-input corpus** (`CURATED_CORPUS`) gives the differential inputs and the interpreter is byte-identical over it (CLEAN 151/151), certifying **`rtl_const_expr`** — now **11 grammars CERTIFIED, DEFERRED empty**. Frontier → **`.6` (per-combinator + semantic-directive suite) `not-started`**. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` checklist), §17 (`.5.2` checklist), §18 (`.5.3` checklist), §19 (`.5.5` checklist).
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -484,11 +484,17 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   `.5.4` AST span/shape divergence. The `.5` ratchet DETECTED svpp had become byte-identical and DEMANDED its
   promotion (the no-silent-progress discipline working as designed); PROMOTED to CERTIFIED after
   `probe_regex_deep_stress` confirmed **459/459 CLEAN** (5 seeds, depths 6-30).
-- `.5.5` — **rtl_const_expr corpus — `not-started`.** The deep expression precedence chain does not
-  generate within the bounded depth ladder (and unbounded deep generation hangs — the known super-linear
-  pathology). Build a targeted corpus (curated `rtl_const_expr` inputs and/or a tuned deep+bounded
-  generation) so the differential has samples, then certify. This is a corpus problem, not an
-  interpreter divergence.
+- `.5.5` — **rtl_const_expr corpus — `done` (session #45, `PGEN-PARSE-HARNESS-0012`).** PROMOTED
+  `rtl_const_expr` DEFERRED→CERTIFIED (**11th** grammar) via a general **curated-input-corpus** mechanism —
+  NOT a fidelity fix but a corpus fix (the leaf's thesis, now VERIFIED: byte-identical once a corpus
+  exists). **Tool-established (§19):** the CLI generation sweep confirmed the razor-thin window — depths
+  6-28 FAIL (`depth exceeded max_depth=N while expanding 'multiplicative_expr'`), depth 32 generates but
+  only pathologically huge (thousands-of-chars) expressions, depths ≥40 HANG — so tuned generation is not
+  a robust corpus source. Fix = a parser-agnostic `CURATED_CORPUS` table + `curated_corpus_for` +
+  `build_corpus` integration (deduped, with truncation reject-path probes), seeded with a
+  construct-complete `rtl_const_expr` curated list. VERIFIED: `PGEN_PHEQ_ONLY=rtl_const_expr` DIVERGE
+  samples=0 → **CLEAN 151/151**; `parse_harness_equivalence_gate` 4/4; no `generated/*` regenerated. See
+  §19 for the enforced acceptance checklist.
 - `.6` — **the per-combinator differential suite — `not-started`.** Isolating grammars for every
   construct (§3.3) — the load-bearing coverage for "trust it on ANY grammar."
 - `.7` — **the fuzzing lane (optional) — `not-started`.** Random gen-ASTs × random inputs, differential;
@@ -518,8 +524,8 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 6 | `PARSE-HARNESS.5.4` (svpp fidelity) | `done` (CLOSED by `.5.1`, #42) | Incidentally closed by `.5.1`'s shared layout policy + built-ins; the `.5` ratchet detected + demanded the promotion. CERTIFIED (459/459). |
 | 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `done` (#43, `PGEN-PARSE-HARNESS-0009`) | Root cause: interpreter's layout skippers unconditionally skip all 3 comment introducers; codegen suppresses arms per-grammar (H.11.5). Fix gates the arms via codegen's shared predicate. ebnf CERTIFIED byte-identical (DIVERGE 6→CLEAN 83). §17 checklist. |
 | 8 | `PARSE-HARNESS.5.3` (return_annotation fold) | `done` (#44, `PGEN-PARSE-HARNESS-0011`) | Root cause (tools REFUTED the scouting hypothesis): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`); codegen froze one arbitrary order, the interpreter re-serialized a fresh (itself non-deterministic) order each load. Fix = a `serialize_with` SORTED serializer canonicalizing every site. return_annotation CERTIFIED (DIVERGE 8→CLEAN 68). Also closed a latent codegen non-determinism. §18 checklist. |
-| 9 | `PARSE-HARNESS.5.5` (rtl_const_expr corpus) | `not-started` (**frontier**) | Targeted corpus for the deep precedence chain (exceeds bounded gen; unbounded hangs). A corpus problem, not an interpreter divergence. |
-| 10 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
+| 9 | `PARSE-HARNESS.5.5` (rtl_const_expr corpus) | `done` (#45, `PGEN-PARSE-HARNESS-0012`) | Curated-input corpus for the deep precedence chain (exceeds bounded gen; unbounded hangs — tool-confirmed §19). A corpus problem, not an interpreter divergence. rtl_const_expr CERTIFIED (DIVERGE 0→CLEAN 151); DEFERRED now empty (11 CERTIFIED). §19 checklist. |
+| 10 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` (**frontier**) | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
 
 ---
 
@@ -892,7 +898,7 @@ established the honest per-grammar state. Corpus per grammar: stimuli `generate_
 | `ebnf` | ✅ CERTIFIED (`.5.2`, #43) | 83 | byte-identical after gating the interpreter's layout comment arms via codegen's per-introducer suppression predicate (H.11.5); ebnf claims `/*` as a non-comment token so its `/* */` block-comment layout arm is suppressed. DIVERGE 6→CLEAN. |
 | `return_annotation` | ✅ CERTIFIED (`.5.3`, #44) | 68 | byte-identical after canonicalizing the `_pgen_lr_chain` `wrapper_specs` blob (a `serialize_with` SORTED serializer on `UnifiedReturnAST::Object.properties`) — it was serialized from a non-deterministic std `HashMap`; codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load. DIVERGE 8→CLEAN. Also closed a latent codegen non-determinism. |
 | `systemverilog_preprocessor` | ✅ CERTIFIED (`.5.1`, #42) | 459 | byte-identical — the `.5.1` shared layout policy (regex-token whitespace-sensitivity) + built-ins closed the `.5.4` span/shape divergence; deep stress 459/459. |
-| `rtl_const_expr` | ⏸ DEFERRED `.5.5` | 0 | deep precedence chain exceeds bounded depth; unbounded deep gen hangs. |
+| `rtl_const_expr` | ✅ CERTIFIED (`.5.5`, #45) | 151 | byte-identical over a **curated** input corpus (the stimuli generator yields 0 usable samples: its ~16-level precedence cascade needs depth ≳30 to reach a leaf — depths ≤28 fail, ~32 emits pathologically-huge exprs, ≥40 hang). A corpus fix, not a fidelity fix. DIVERGE 0→CLEAN. |
 | `builtin_return_annotation` | ⛔ EXCLUDED | — | oracle = the `return_annotation` parser (different grammar). |
 | `builtin_semantic_annotation` | ⛔ EXCLUDED | — | oracle = hand-rolled `parse_bootstrap`, not codegen. |
 
@@ -1080,3 +1086,72 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
   the `wrapper_specs` canonicalization documented as the fidelity mechanism + the latent-non-determinism note);
   `TOOLBOX.md` §1.6 CERTIFIED/DEFERRED lists; this tree (`.5.3` done + this checklist, frontier, §15 map);
   CHANGES.md / DEVELOPMENT_NOTES.md / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.
+
+## 19. PARSE-HARNESS.5.5 — rtl_const_expr corpus — Acceptance Checklist (enforced)
+
+> Session #45. A CODE change (tooling-only): edits `rust/src/parse_harness_equivalence.rs` — a general
+> **curated-input-corpus** mechanism (`CURATED_CORPUS` table + `curated_corpus_for` + `build_corpus`
+> integration) + a construct-complete `rtl_const_expr` curated list + the DEFERRED→CERTIFIED promotion.
+> NO engine / grammar / codegen / generated-parser change (no `generated/*` regenerated). This is a
+> **corpus problem, not an interpreter divergence** (the leaf's thesis) — VERIFIED by the differential
+> being byte-identical on the curated corpus.
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_PHEQ_ONLY=rtl_const_expr cargo test … parse_harness_equivalence::measurement`
+  (default ladder [6,12,18], seeds 0/7/42), THIS session → `rtl_const_expr DIVERGE samples=0 agree=0
+  diverge=0`. The differential has ZERO corpus, so `is_clean()` is false (samples_total==0) and the grammar
+  stays honestly DEFERRED — but for a NON-fidelity reason (no inputs), unlike every other `.5.x` leaf.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the stimuli generator cannot produce a usable corpus for
+  `rtl_const_expr` within the bounded depth ladder, and the only depth window that generates at all is
+  pathological + hang-adjacent. Tool-established via the CLI generation sweep (`ast_pipeline
+  grammars/rtl_const_expr.ebnf --generate-stimuli --count 8 --seed 0 --max-depth D`, debug binary rebuilt
+  with `ebnf_dual_run`): depths **6/12/16/18/20/24/28 → FAIL** rc=1 (`Error: Stimuli generation depth
+  exceeded max_depth=N while expanding rule 'multiplicative_expr'` / `'identifier'`), depth **32 →
+  succeeds but emits only pathologically huge expressions** (thousands of chars, giant binop chains —
+  hostile to the no-memo interpreter), depths **40/60/80 → HANG** (25 s timeout; the known super-linear
+  pathology). WHY: the grammar's precedence chain is ~16 rules deep (`rtl_const_expr → conditional_expr →
+  logical_or_expr → … → multiplicative_expr → unary_expr → primary_expr → literal → decimal_integer →
+  terminal`, `grammars/rtl_const_expr.ebnf:11-74`), so the generator needs `max_depth ≳ 30` just to bottom
+  out to a leaf — and by then the 10 `(op X)*` quantifier levels each re-descend the whole chain,
+  exploding super-linearly. WHERE: the corpus is generation-only in `build_corpus`
+  (`rust/src/parse_harness_equivalence.rs`), which returns `[]` for `rtl_const_expr`. This is a
+  CORPUS-CONSTRUCTION gap, not an interpreter fidelity bug (confirmed by ADDRESSED: the differential is
+  byte-identical once a corpus exists).
+- [x] **FIX** — fix-hierarchy tier = **new tooling / plumbing** (no engine / grammar / codegen / generated
+  change): a general per-grammar **curated-input-corpus** mechanism — `CURATED_CORPUS: &[(&str, &[&str])]`
+  (parser-agnostic, keyed by grammar name, next to CERTIFIED/DEFERRED as one source of truth) +
+  `curated_corpus_for(name)` + `build_corpus` appending the curated inputs (deduped, with the same
+  truncation-probe reject-path coverage as generated samples) — seeded with a construct-complete
+  `rtl_const_expr` curated list (both literal kinds incl. underscores, plain/dotted/package-qualified
+  identifiers, all four unary ops incl. nesting, every binary op at every one of the 10 precedence
+  levels + multi-term chains + mixed precedence, ternary incl. nesting, parentheses, whitespace/trivia
+  variety, and near-miss rejects). The differential compares the interpreter against the AUTHORITATIVE
+  generated parser, so curated INPUTS carry no expected-output mirror risk (the oracle supplies the
+  verdict + AST). Then promoted `rtl_const_expr` DEFERRED→CERTIFIED.
+- [x] **ADDRESSED (verified)** — before→after, re-runnable oracles: `PGEN_PHEQ_ONLY=rtl_const_expr …::measurement`
+  (default ladder [6,12,18], seeds 0/7/42) → `rtl_const_expr DIVERGE samples=0` → **`CLEAN samples=151
+  agree=151 diverge=0`** (the interpreter is byte-identical to the generated parser over the curated
+  corpus — verdict + typed AST, incl. the truncation reject-path probes); `make -C rust
+  parse_harness_equivalence_gate` → **4 passed** (`certified_grammars_are_byte_identical` now includes
+  `rtl_const_expr`; the ratchet forced its promotion, leaving DEFERRED empty;
+  `every_registered_grammar_is_classified_exactly_once` holds — rtl_const_expr now CERTIFIED-only;
+  `comment_arm_suppression_matrix_is_pinned` unaffected). Grounding cross-check (tool, not a regression of
+  mine): `rtl_const_expr`'s own certificate-coverage still fully certifies at its tuned `--max-depth 32`
+  window (`total=48 witness=48 UNKNOWN=0 fully_certified=true`, `sample_parse_failures=0`) — the same
+  narrow depth band that motivates the curated corpus.
+- [x] **NO REGRESSION** — the change is **purely additive test-only tooling** in
+  `rust/src/parse_harness_equivalence.rs` (a `CURATED_CORPUS` table + `curated_corpus_for` + a
+  `push_sample_with_probes` helper + the DEFERRED→CERTIFIED move); NEVER invoked by any parse/codegen/cert
+  path. `git status` shows only `rust/src/parse_harness_equivalence.rs` + docs — **no `generated/*`
+  regenerated** → the 10 previously-certified grammars + SV are byte-identical **by construction**, and
+  the equivalence gate re-proves them so directly (`certified_grammars_are_byte_identical` **4 passed**,
+  which re-runs the interpreter-vs-generated differential for `systemverilog` (sv_2017) and all other
+  CERTIFIED grammars — a stronger, more targeted SV no-regression signal than the SV cert gate for a
+  change that touches no SV/codegen surface). New code clippy-clean (`cargo clippy --lib --features
+  "generated_parsers ebnf_dual_run"` — 0 findings in `parse_harness_equivalence`; the generated-stage
+  `eq_op` errors are pre-existing, unchanged). `mdbook_docs_gate` GREEN (verified below).
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` (CERTIFIED list gains
+  `rtl_const_expr`; DEFERRED now empty; a new *A curated corpus for un-generatable grammars* subsection
+  documents the mechanism + the precedence-cascade root cause + the no-mirror-risk argument + the
+  depth-32 cert-window note); `TOOLBOX.md` §1.6 CERTIFIED (11)/DEFERRED (empty) + the `.5.5` mechanism
+  note; this tree (`.5.5` done + this checklist, frontier, §15 map); CHANGES.md / DEVELOPMENT_NOTES.md /
+  MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.

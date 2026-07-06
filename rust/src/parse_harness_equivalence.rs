@@ -179,9 +179,39 @@ fn load_gen_ast(grammar_ebnf: &Path) -> Result<GenAst, String> {
         .map_err(|e| format!("normalization: {e}"))
 }
 
+/// Add `s` to the corpus (deduped, order-stable) and — when `include_truncation_probes` — also its
+/// first-half char-boundary truncation, so the corpus probes reject-path parity as well as accept paths.
+fn push_sample_with_probes(
+    samples: &mut Vec<String>,
+    seen: &mut std::collections::HashSet<String>,
+    s: &str,
+    include_truncation_probes: bool,
+) {
+    if seen.insert(s.to_string()) {
+        samples.push(s.to_string());
+    }
+    if include_truncation_probes {
+        let half = s.len() / 2;
+        if half > 0 {
+            // Truncate on a char boundary.
+            let mut cut = half;
+            while cut > 0 && !s.is_char_boundary(cut) {
+                cut -= 1;
+            }
+            if cut > 0 {
+                let t = s[..cut].to_string();
+                if seen.insert(t.clone()) {
+                    samples.push(t);
+                }
+            }
+        }
+    }
+}
+
 /// Build the deterministic corpus for a grammar: `count_per_seed` stimuli-generated valid samples per
-/// seed, plus (optionally) a first-half truncation of each to probe reject-path parity. Deduplicated,
-/// order-stable.
+/// seed, plus (optionally) a first-half truncation of each to probe reject-path parity, plus any
+/// hand-authored [`CURATED_CORPUS`] inputs for grammars the stimuli generator cannot cover within the
+/// bounded depth ladder (PARSE-HARNESS.5.5). Deduplicated, order-stable.
 fn build_corpus(grammar_name: &str, gen_ast: &GenAst, cfg: &EquivalenceConfig) -> Vec<String> {
     let (tree, order, annotations) = gen_ast;
     let mut samples: Vec<String> = Vec::new();
@@ -211,26 +241,19 @@ fn build_corpus(grammar_name: &str, gen_ast: &GenAst, cfg: &EquivalenceConfig) -
             Err(_) => continue, // a generation failure for one rung is not a differential divergence
         };
         for s in batch {
-            if seen.insert(s.clone()) {
-                samples.push(s.clone());
-            }
-            if cfg.include_truncation_probes {
-                let half = s.len() / 2;
-                if half > 0 {
-                    // Truncate on a char boundary.
-                    let mut cut = half;
-                    while cut > 0 && !s.is_char_boundary(cut) {
-                        cut -= 1;
-                    }
-                    if cut > 0 {
-                        let t = s[..cut].to_string();
-                        if seen.insert(t.clone()) {
-                            samples.push(t);
-                        }
-                    }
-                }
-            }
+            push_sample_with_probes(&mut samples, &mut seen, &s, cfg.include_truncation_probes);
         }
+        }
+    }
+    // Append the grammar's curated inputs (if any). For a grammar like `rtl_const_expr` whose ~16-level
+    // precedence chain the stimuli generator cannot bottom out within the bounded depth ladder (and whose
+    // only generating depth window yields pathologically huge, hang-adjacent expressions — tool-established,
+    // PARSE-HARNESS.5.5), these ARE the corpus; for a well-generated grammar this is a no-op. The
+    // differential compares the interpreter against the AUTHORITATIVE generated parser, so curated INPUTS
+    // carry no expected-output mirror risk (the oracle supplies the verdict + AST).
+    if let Some(curated) = curated_corpus_for(grammar_name) {
+        for &s in curated {
+            push_sample_with_probes(&mut samples, &mut seen, s, cfg.include_truncation_probes);
         }
     }
     samples
@@ -540,20 +563,28 @@ pub const CERTIFIED: &[&str] = &[
     // latent codegen non-determinism (regens could otherwise freeze different orders). Byte-identical over
     // the gate corpus (68 samples).
     "return_annotation",
+    // Promoted from DEFERRED by PARSE-HARNESS.5.5: NOT an interpreter fidelity fix — a corpus fix. The
+    // stimuli generator produces ZERO usable samples for rtl_const_expr within the bounded depth ladder
+    // (its ~16-level precedence chain needs `max_depth ≳ 30` to reach a leaf; the only generating depth
+    // window emits pathologically huge, hang-adjacent expressions — tool-established via the CLI generation
+    // sweep). A construct-complete hand-authored [`CURATED_CORPUS`] entry gives the differential inputs,
+    // and the interpreter is byte-identical to the generated parser over it (verdict + typed AST) —
+    // confirming the leaf's thesis that this was a corpus gap, not an interpreter divergence.
+    "rtl_const_expr",
 ];
 
 /// **DEFERRED** — registered grammars whose interpreter differential is NOT yet byte-identical, each
 /// with the tool-established reason + owning follow-up leaf. The gate runs them and asserts they are
 /// *still* divergent (the no-silent-caps discipline): if one becomes byte-identical it must be
 /// *promoted* to [`CERTIFIED`], so the gate fails until it is — an honest ratchet, never a silent skip.
-pub const DEFERRED: &[(&str, &str)] = &[
-    (
-        "rtl_const_expr",
-        "zero corpus: the deep expression precedence chain exceeds the bounded generation depth, and \
-         unbounded deep generation hangs (the known super-linear pathology) — needs a targeted corpus \
-         (PARSE-HARNESS.5.5)",
-    ),
-];
+///
+/// Now **empty**: every previously-deferred grammar has been promoted to [`CERTIFIED`] through the
+/// per-grammar closures — `regex`+`systemverilog_preprocessor` (PARSE-HARNESS.5.1), `ebnf` (5.2),
+/// `return_annotation` (5.3), and `rtl_const_expr` (5.5, via the curated corpus). The ratchet stays wired
+/// (an empty list is a vacuous-but-honest guard) so a future newly-registered divergent grammar has a
+/// place to land, and [`every_registered_grammar_is_classified_exactly_once`] keeps the classification
+/// exhaustive.
+pub const DEFERRED: &[(&str, &str)] = &[];
 
 /// **EXCLUDED** — registered grammar names the differential does NOT apply to, because their registry
 /// oracle is not a codegen parser *of their own `.ebnf`*: `builtin_return_annotation` aliases the
@@ -573,6 +604,138 @@ pub const EXCLUDED: &[(&str, &str)] = &[
          builtin_semantic_annotation.ebnf",
     ),
 ];
+
+/// **CURATED_CORPUS** — hand-authored input corpora for grammars whose stimuli generator cannot produce
+/// a usable corpus within the gate's bounded depth ladder. Parser-agnostic: keyed by grammar name, one
+/// row per such grammar, kept next to the CERTIFIED/DEFERRED/EXCLUDED classification as one source of
+/// truth. These are INPUTS only — the differential still compares the interpreter against the
+/// authoritative generated parser (which supplies the verdict + typed AST), so a curated input carries no
+/// "expected-output mirror" risk; it merely gives the differential something to compare (PARSE-HARNESS.5.5).
+pub const CURATED_CORPUS: &[(&str, &[&str])] = &[("rtl_const_expr", RTL_CONST_EXPR_CURATED)];
+
+/// Construct-complete curated inputs for `rtl_const_expr` (PARSE-HARNESS.5.5). The ~16-level precedence
+/// chain (`rtl_const_expr → conditional_expr → logical_or_expr → … → multiplicative_expr → unary_expr →
+/// primary_expr → literal → decimal_integer`) needs `max_depth ≳ 30` just to reach a leaf, and the only
+/// generating depth window (~32) emits pathologically huge, hang-adjacent expressions (tool-established),
+/// so the stimuli generator yields ZERO usable samples on the bounded ladder. This list instead exercises
+/// every construct directly, kept small so the no-memo interpreter stays fast: both literal kinds (incl.
+/// underscores), plain/dotted/package-qualified identifiers, all four unary ops (incl. nesting), every
+/// binary op at each of the 10 precedence levels + multi-term chains + mixed precedence, ternary (incl.
+/// nesting), parentheses, whitespace/trivia variety, and near-miss rejects (both sides must agree on the
+/// reject too).
+const RTL_CONST_EXPR_CURATED: &[&str] = &[
+    // ── literals — decimal (incl. underscores) and every based radix (b/o/d/h, signed, underscores) ──
+    "0",
+    "5",
+    "42",
+    "255",
+    "1_000",
+    "8'hFF",
+    "4'b1010",
+    "16'd255",
+    "3'o7",
+    "1'sb0",
+    "8'hDE_AD",
+    "2'b1_0",
+    "12'HABC",
+    // ── identifiers — plain, keyword-ish, `$`-bearing, dotted, package-qualified, and mixed ──
+    "foo",
+    "x",
+    "_bar",
+    "a$",
+    "WIDTH",
+    "a.b",
+    "pkg.member.sub",
+    "pkg::NAME",
+    "a::b::c",
+    "pkg::a.b",
+    "a.b::c",
+    // ── unary ops — each, plus nesting/stacking ──
+    "+5",
+    "-5",
+    "!x",
+    "~x",
+    "- -5",
+    "~~x",
+    "!~x",
+    "+-x",
+    // ── binary ops — one per precedence level (multiplicative … logical_or) ──
+    "a*b",
+    "a/b",
+    "a%b",
+    "a+b",
+    "a-b",
+    "a<<b",
+    "a>>b",
+    "a<b",
+    "a<=b",
+    "a>b",
+    "a>=b",
+    "a==b",
+    "a!=b",
+    "a&b",
+    "a^b",
+    "a|b",
+    "a&&b",
+    "a||b",
+    // ── multi-term chains (the `(op X)*` quantifier with >1 repetition) ──
+    "a+b+c",
+    "a*b*c*d",
+    "1+2+3+4+5",
+    "a|b|c",
+    "a&&b&&c",
+    "a-b-c-d",
+    // ── mixed precedence (associativity + level interleaving) ──
+    "a+b*c",
+    "a*b+c",
+    "a<<b+c",
+    "a||b&&c",
+    "a==b&&c==d",
+    "a|b^c&d",
+    "a+b<c",
+    // ── ternary — flat and nested (right-associative via conditional_expr recursion) ──
+    "a?b:c",
+    "1?2:3",
+    "a?b:c?d:e",
+    "a?b?c:d:e",
+    "N>0?N:1",
+    // ── parentheses — grouping, nesting, override precedence ──
+    "(a)",
+    "((a))",
+    "(a+b)",
+    "(a+b)*c",
+    "a*(b+c)",
+    "(a?b:c)",
+    // ── whitespace / trivia variety (spaces, tabs, newlines around tokens) ──
+    "a + b",
+    " a ",
+    "a  *  b",
+    "a\t*\tb",
+    "1 +\n2",
+    // ── realistic constant expressions ──
+    "WIDTH-1",
+    "8'hFF & MASK",
+    "(A+B)*2",
+    "pkg::WIDTH*2+1",
+    "DEPTH<<1",
+    "~MASK & DATA",
+    // ── near-miss rejects (both interpreter and generated parser must REJECT) ──
+    "a+",
+    "(a",
+    "a?b",
+    "?:",
+    "*a",
+    "a b",
+    "1 2",
+];
+
+/// Look up a grammar's curated input corpus, if any ([`CURATED_CORPUS`]).
+pub fn curated_corpus_for(grammar_name: &str) -> Option<&'static [&'static str]> {
+    CURATED_CORPUS
+        .iter()
+        .find(|(n, _)| *n == grammar_name)
+        .map(|(_, s)| *s)
+}
 
 /// Look up a grammar's `.ebnf` path (relative to `grammars/`) + dialect profile from
 /// [`EQUIVALENCE_TARGETS`].
