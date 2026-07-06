@@ -8,18 +8,22 @@ read the codegen source. The generators are `rust/src/ast_based_generator.rs` (p
 ## The generated parser is a recursive-descent PEG
 
 Each rule becomes a function that tries to match at the current input position and either succeeds
-(advancing the position and returning a value) or backtracks. The semantics are **PEG** semantics:
+(advancing the position and returning a value) or backtracks. The semantics are PEG-*style* recursive
+descent with one deliberate departure from classical PEG:
 
-- **ordered choice** `|` tries alternatives left-to-right and commits to the first match — no global
-  ambiguity, no longest-match across alternatives (see [Rules and Expressions](rules-and-expressions.md));
+- **choice** `|` runs a **branch tournament** governed by the rule's `@branch_policy` — the default
+  `longest_match` tries every alternative and keeps the longest match; `ordered` gives classical
+  PEG first-match commit; `priority_first` ranks by `@priority` (see
+  [Rules and Expressions](rules-and-expressions.md));
 - **sequences** match elements in order, backtracking the whole sequence if any element fails;
 - **lookaheads** `&` / `!` test without consuming (see [Lookaheads](lookaheads.md));
 - a **packrat memo** caches per-rule, per-position results so repeated work is avoided; the memo also
   replays semantic-store side effects on a cache hit, so context-aware gating stays correct under
   backtracking.
 
-This is why alternative ordering and prefix-sharing matter so much: the parser does what you *wrote*, in
-the order you wrote it.
+Alternative ordering still matters — it breaks longest-match ties, it *is* the selection order under
+`ordered`, and it is what `@priority` indexes — but under the default policy a shared prefix does not
+strand a later, longer alternative.
 
 ## Terminals → matchers
 
@@ -69,9 +73,11 @@ becomes a profile guard so a rule only participates under the selected grammar p
 
 Two proofs back the codegen and are the grammar author's safety net:
 
-- **`--lint-grammar`** — static well-formedness: left-recursion info, non-terminating **ERRORS**, and
-  ordered-choice **shadowing WARNINGS** (a later alternative that an earlier one already subsumes). Run it
-  after every grammar edit.
+- **`--lint-grammar`** — static well-formedness: left-recursion info and hard **ERRORS** for
+  non-terminating rules, unreachable rules, undefined references, unbound fact-kinds, profile orphans,
+  and ordered-choice **shadowing** (an exact-duplicate alternative under any policy; a
+  fixed-terminal-prefix pair only on an `@branch_policy: ordered` rule, where the earlier alternative
+  genuinely always wins). Run it after every grammar edit.
 - **`--report-certificate-coverage`** — for every rule, is it covered by a verified unreachability
   **PROOF** or a verified reachability **WITNESS**? `UNKNOWN=0` with no failures, deterministic at seeds
   `0/7/42`, is the objective "trustworthy on this grammar" number.

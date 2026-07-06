@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9c102f01.js";
+            window.path_to_searchindex_js = "searchindex-d050627c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -232,7 +232,8 @@ path instead; see <a href="bootstrap.html">The Bootstrap Path</a>.</p>
 is where the real defect lives (see <code>TOOLBOX.md</code> §3.2).</p>
 <h2 id="prove-the-grammar"><a class="header" href="#prove-the-grammar">Prove the grammar</a></h2>
 <p>Two read-only proofs are the grammar author’s first stop after any edit:</p>
-<pre><code class="language-bash"># static well-formedness: left-recursion info, non-terminating ERRORS, ordered-choice shadowing WARNINGS
+<pre><code class="language-bash"># static well-formedness: left-recursion info + hard errors (non-terminating, unreachable,
+# undefined refs, unbound fact-kinds, profile orphans, ordered-choice shadowing)
 ./rust/target/debug/ast_pipeline grammars/foolang.ebnf --lint-grammar
 
 # trustworthiness: every rule covered by an unreachability PROOF or a reachability WITNESS?

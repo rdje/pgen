@@ -350,7 +350,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 ## 5. Static analysis & generation IR (`ast_pipeline`)
 
 ### 5.1 `--lint-grammar`
-- **WHAT:** static well-formedness report — left-recursion info; HARD-gated errors for non-terminating rules, ordered-choice shadowing, unreachable rules, **undefined references** (a rule referencing a rule never defined — codegen would emit a never-matching stub; the check runs on the UNFILTERED grammar and allowlists codegen's native builtins), unbound fact-kinds, and profile orphans; nullable-repetition warnings; always-succeeds notes — then exits (nonzero on any error-class finding).
+- **WHAT:** static well-formedness report — left-recursion info; HARD-gated errors for non-terminating rules, ordered-choice shadowing (exact-duplicate under any policy; fixed-terminal-prefix ONLY on an `@branch_policy: ordered` rule — under the default `longest_match`/`priority_first` the later alternative is LIVE, A2.3), unreachable rules, **undefined references** (a rule referencing a rule never defined — codegen would emit a never-matching stub; the check runs on the UNFILTERED grammar and allowlists codegen's native builtins), unbound fact-kinds, and profile orphans; nullable-repetition warnings; always-succeeds notes — then exits (nonzero on any error-class finding).
 - **WHEN:** after any grammar edit; to adjudicate a `no_path`/dead-rule candidate; **"every parse rejects at `furthest_position=0` and nothing points at the cause"** (the undefined-ref signature); "is my grammar well-formed?".
 - **HOW:** `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --lint-grammar`.
 

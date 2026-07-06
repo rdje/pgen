@@ -63,7 +63,8 @@ is where the real defect lives (see `TOOLBOX.md` §3.2).
 Two read-only proofs are the grammar author's first stop after any edit:
 
 ```bash
-# static well-formedness: left-recursion info, non-terminating ERRORS, ordered-choice shadowing WARNINGS
+# static well-formedness: left-recursion info + hard errors (non-terminating, unreachable,
+# undefined refs, unbound fact-kinds, profile orphans, ordered-choice shadowing)
 ./rust/target/debug/ast_pipeline grammars/foolang.ebnf --lint-grammar
 
 # trustworthiness: every rule covered by an unreachability PROOF or a reachability WITNESS?

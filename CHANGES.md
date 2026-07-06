@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0151 (GRAMMAR-WELLFORMED.A2.3): the `FixedTerminalPrefix` shadowing verdict + its certificate are now BRANCH-POLICY-AWARE — the false "PEG commits" hard gate on the default longest_match policy is gone; the sound `ordered` sub-case keeps gating
+
+Session #51. **Linter-soundness ENGINE fix (4 files; ZERO parse-behavior change, ZERO grammar/parser
+regen — regen byte-identity proven).** Discharges the A2.2 theoretical note with the PARSE-HARNESS.8
+evidence: the fixed-terminal-prefix deadness argument assumes first-success commit, which is PGEN's
+selection semantics ONLY under `@branch_policy: ordered` (zero shipped uses) — under the DEFAULT
+`longest_match` the tournament selects the later, longer alternative (the engine's own
+`🏁 selected branch 2/2` trace on `a|ab`), so the old unconditional verdict hard-failed live grammars.
+
+- **Shared policy derivation (single source of truth):** NEW
+  `semantic_directive_registry::semantic_directive_name_payload` + `effective_rule_branch_policy`;
+  codegen's `semantic_directive_parts`/`rule_branch_policy` now DELEGATE to them — the linter reads
+  the exact resolution the tournament compiles, so the two can never drift. Emit-identical proven:
+  `focus_json` + `focus_rtl_frontend` regen → `cmp` byte-identical.
+- **Verdict:** `detect_ordered_choice_shadowing` gains the annotations param; `FixedTerminalPrefix`
+  fires only when the owning rule's effective policy is `ordered` AND the rule carries no
+  branch-phase `@predicate` (a branch predicate can block the earlier alternative after it matches,
+  reviving the later one — conservative rule-wide suppression across all 3 annotation surfaces).
+  Per-reason messages: the false shared "(PEG commits to the earlier alternative)" trailer is gone;
+  the fixed-prefix message states the true ordered-premise; the duplicate message is mechanism-neutral.
+- **Certificate:** `verify_unreachability_certificate` re-derives the POLICY CONDITION for
+  `FixedTerminalPrefixBy` — a certificate is a proof, and a policy-false one (e.g. presented for a
+  `longest_match` rule) is now REJECTED, not re-verified on structure alone.
+- **VERIFIED:** default-policy `a|ab` probe `--lint-grammar` rc=1→rc=0 (false verdict gone);
+  `ordered` probe keeps rc=1 with the corrected message; `ordered`+branch-predicate probe suppressed;
+  `priority_first` probe clean. NO REGRESSION: 13/13 shipped-grammar lint sweep at
+  `ordered_choice_shadowing=0`; `sv_cert_recognized_union_gate` GREEN (canonical UNKNOWN=12, union 1,
+  seeds 0/7/42); decisive stash A/B — bare canonical cert byte-identical with/without the change;
+  dual-feature lib 807/0 (wellformedness 45/45 incl. the new policy-matrix + certificate-rejection
+  tests); `verilog_2005_conformance_gate` GREEN; clippy source-strict; both book gates PASS.
+- **LOCKSTEP:** top book (contract item 3, *Where PGEN stands*, new A2.3 soundness passage);
+  **ebnf parser book — real drift fixed**: `rules-and-expressions.md`/`codegen-model.md` claimed `|`
+  "commits to the first match" (the exact misconception the probe disproved) → rewritten to the
+  three-policy tournament semantics (+ stale "shadowing WARNINGS" corrected, HTML regenerated);
+  TOOLBOX §5.1; decision record `project_fixed_terminal_prefix_policy_conditional` + INDEX. Sibling
+  audit `A2.4` (DuplicateAlternative tie-break inversion under `right`/`nonassoc` associativity)
+  logged, NOT acted on. LIVE tracker rows unchanged.
 ## 2026-07-07 - PGEN-PARSE-HARNESS-0016 (PARSE-HARNESS.8): the A2.3 proof ran on the harness — `FixedTerminalPrefix`'s "unreachable" verdict is live-CONFIRMED FALSE under the default branch policy; verdict handed to GRAMMAR-WELLFORMED.A2.3
 
 Session #51. **Evidence-only slice (no code change) — the parse harness's first real use.** The

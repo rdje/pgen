@@ -16,8 +16,12 @@
 use super::predicate_expr::{
     PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
-use super::semantic_directive_registry::parse_semantic_string_list;
-use super::semantic_runtime::{SemanticRuntimeDirective, parse_semantic_runtime_directive};
+use super::semantic_directive_registry::{
+    SemanticBranchPolicy, effective_rule_branch_policy, parse_semantic_string_list,
+};
+use super::semantic_runtime::{
+    SemanticPredicatePhase, SemanticRuntimeDirective, parse_semantic_runtime_directive,
+};
 use super::{ASTNode, ASTValue, Annotations, SemanticAnnotation, TokenValue, parse_quantifier_bounds};
 use std::collections::{HashMap, HashSet};
 
@@ -1218,14 +1222,23 @@ pub struct ShadowingIssue {
 pub enum ShadowingReason {
     /// Exact structural duplicate of the earlier alternative.
     DuplicateAlternative,
-    /// The earlier alternative is a fixed-terminal prefix of this one (PEG commits first).
+    /// The earlier alternative is a fixed-terminal prefix of this one AND the owning rule's
+    /// effective `@branch_policy` is `ordered` (first-success commit) with no branch-phase
+    /// `@predicate` able to block the earlier alternative — the ONLY selection semantics under
+    /// which the classical PEG prefix-shadowing argument holds (GRAMMAR-WELLFORMED.A2.3).
     FixedTerminalPrefix,
     // NOTE (GRAMMAR-WELLFORMED.A2.2): a former `EarlierAlwaysMatches` reason was RETIRED here.
     // "an earlier alternative always-succeeds ⇒ later alternatives are unreachable" holds only under
     // PEG-commit; PGEN backtracks / longest-matches, so it declared PROVEN-LIVE branches dead (a false
     // positive — [[project_earlier_always_matches_unsound_backtracking]]). The sound observation lives
     // on as the non-verdict `WellformednessIssue::AlwaysSucceedsAlternative` note, which makes no
-    // reachability claim. `ShadowingReason` now carries ONLY the two genuinely-sound reasons.
+    // reachability claim.
+    // NOTE (GRAMMAR-WELLFORMED.A2.3): `FixedTerminalPrefix` was made POLICY-CONDITIONAL here. Under
+    // the DEFAULT `longest_match` policy (and `priority_first`) the engine runs the FULL tournament
+    // and a longer/higher-priority LATER alternative wins — live-proven by PARSE-HARNESS.8 (the
+    // engine's own `🏁 selected branch 2/2 (branch_policy=longest_match)` trace on `a | ab` over
+    // "ab", the very branch the old unconditional verdict branded dead). The verdict now fires ONLY
+    // where its premise holds: `@branch_policy: ordered`, no branch-phase predicates.
 }
 
 // NOTE (GRAMMAR-WELLFORMED.A2.2): the former `ShadowingReason::is_hard_gate()` was removed. Every
@@ -1236,14 +1249,24 @@ pub enum ShadowingReason {
 
 impl ShadowingIssue {
     pub fn message(&self) -> String {
-        let why = match self.reason {
-            ShadowingReason::DuplicateAlternative => "is an exact duplicate of",
-            ShadowingReason::FixedTerminalPrefix => "is a fixed-terminal prefix of",
-        };
-        format!(
-            "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — alternative #{} {} it (PEG commits to the earlier alternative); reorder (specific before general) or merge",
-            self.rule, self.node_path, self.shadowed_index, self.by_index, why
-        )
+        match self.reason {
+            // A2.3: each reason states ITS OWN (true) selection-semantics premise — the old shared
+            // "(PEG commits to the earlier alternative)" trailer asserted a commit semantics PGEN's
+            // default longest_match tournament does not have.
+            ShadowingReason::DuplicateAlternative => format!(
+                "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — it is an exact structural duplicate of alternative #{}; merge or remove the duplicate",
+                self.rule, self.node_path, self.shadowed_index, self.by_index
+            ),
+            ShadowingReason::FixedTerminalPrefix => format!(
+                "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — alternative #{} is a fixed-terminal prefix of it and the rule's effective @branch_policy is 'ordered' (the choice commits to the first successful alternative, and whenever #{} could match, #{} succeeds first); reorder (specific before general) or merge",
+                self.rule,
+                self.node_path,
+                self.shadowed_index,
+                self.by_index,
+                self.shadowed_index,
+                self.by_index
+            ),
+        }
     }
 }
 
@@ -1304,33 +1327,97 @@ fn ast_eq(a: &ASTNode, b: &ASTNode) -> bool {
     }
 }
 
+/// GRAMMAR-WELLFORMED.A2.3: does `rule` carry ANY branch-phase `@predicate` (on any annotation
+/// surface — rule-level, per-branch, or mid-sequence)? A branch-phase predicate can BLOCK an
+/// individual alternative AFTER it matches (`branch_predicate_blocked` → `should_take = false` in
+/// the generated tournament), letting a later alternative win even under `ordered` first-success
+/// commit — so its presence makes every inter-alternative deadness verdict for that rule unsound.
+/// Conservative on purpose: ANY branch-phase predicate anywhere on the rule suppresses the verdict.
+fn rule_has_branch_phase_predicates(annotations: Option<&Annotations>, rule: &str) -> bool {
+    let Some(annotations) = annotations else {
+        return false;
+    };
+    let mut any = false;
+    let mut check = |ann: &SemanticAnnotation| {
+        if let Ok(Some(SemanticRuntimeDirective::Predicate(spec))) =
+            parse_semantic_runtime_directive(ann)
+        {
+            if spec.phase == SemanticPredicatePhase::Branch {
+                any = true;
+            }
+        }
+    };
+    for ann in annotations.semantic_annotations.get(rule).into_iter().flatten() {
+        check(ann);
+    }
+    for branch in annotations.branch_semantic_annotations.get(rule).into_iter().flatten() {
+        for ann in branch {
+            check(ann);
+        }
+    }
+    for branch in
+        annotations.branch_mid_sequence_semantic_annotations.get(rule).into_iter().flatten()
+    {
+        for mid in branch {
+            check(&mid.annotation);
+        }
+    }
+    any
+}
+
 /// Detect shadowed (UNREACHABLE) alternatives in every ordered choice of every rule. SOUND-ONLY:
-/// the two zero-false-positive structural reasons (exact-duplicate + fixed-terminal-prefix). The
-/// non-verdict always-succeeds SMELL is a SEPARATE, non-gating report (`detect_always_succeeds_alternatives`),
-/// deliberately NOT a shadowing verdict (A2.2). PURE analysis; deterministic order via `rule_order`
-/// + source order of Or nodes.
+/// exact-duplicate (selection-semantics-independent deadness of the later twin) plus
+/// fixed-terminal-prefix RESTRICTED to its sound sub-case — the owning rule's effective
+/// `@branch_policy` is `ordered` (first-success commit) and no branch-phase `@predicate` can block
+/// the earlier alternative (A2.3: under the default `longest_match` and under `priority_first`
+/// the engine runs the full tournament and the later alternative is LIVE — tool-proven by
+/// PARSE-HARNESS.8 — so no finding is emitted there; the structure is the normal longest-match
+/// idiom, not a smell). The non-verdict always-succeeds SMELL is a SEPARATE, non-gating report
+/// (`detect_always_succeeds_alternatives`), deliberately NOT a shadowing verdict (A2.2). PURE
+/// analysis; deterministic order via `rule_order` + source order of Or nodes. `annotations` feeds
+/// the per-rule policy/predicate condition; `None` means no annotations → every rule is at the
+/// default `longest_match` → only duplicate verdicts can fire.
 pub fn detect_ordered_choice_shadowing(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
+    annotations: Option<&Annotations>,
 ) -> Vec<ShadowingIssue> {
     let mut issues = Vec::new();
     for rule in rule_order {
         let Some(body) = grammar.get(rule) else { continue };
-        collect_shadowing(rule, body, "root", &mut issues);
+        // The branch policy is a RULE-level property (codegen keys every Or in the rule's body —
+        // nested ones included — on `rule_branch_policy(rule_name)`), so compute it once per rule.
+        let fixed_prefix_verdict_applies =
+            effective_rule_branch_policy(annotations, rule) == SemanticBranchPolicy::Ordered
+                && !rule_has_branch_phase_predicates(annotations, rule);
+        collect_shadowing(rule, body, "root", fixed_prefix_verdict_applies, &mut issues);
     }
     issues
 }
 
-fn collect_shadowing(rule: &str, node: &ASTNode, path: &str, out: &mut Vec<ShadowingIssue>) {
+fn collect_shadowing(
+    rule: &str,
+    node: &ASTNode,
+    path: &str,
+    fixed_prefix_verdict_applies: bool,
+    out: &mut Vec<ShadowingIssue>,
+) {
     match node {
         ASTNode::Or { alternatives } => {
             for (j, alt_j) in alternatives.iter().enumerate() {
                 for (i, alt_i) in alternatives.iter().enumerate().take(j) {
                     let reason = if ast_eq(alt_i, alt_j) {
                         Some(ShadowingReason::DuplicateAlternative)
+                    } else if !fixed_prefix_verdict_applies {
+                        // A2.3: under `longest_match` (default) / `priority_first` the later
+                        // alternative is reachable (the tournament tries every branch and a
+                        // longer/higher-priority match wins) — no deadness verdict to make.
+                        None
                     } else if let Some(prefix) = fixed_terminal_seq(alt_i) {
-                        // alt_i is a guaranteed fixed match; if it prefixes alt_j's leading
-                        // fixed terminals, PEG commits to alt_i and alt_j is unreachable.
+                        // alt_i is a guaranteed fixed match; under `ordered` (first-success
+                        // commit, no branch predicates) if it prefixes alt_j's leading fixed
+                        // terminals, the choice commits to alt_i whenever alt_j could match,
+                        // so alt_j is unreachable.
                         let later = leading_fixed_terminals(alt_j);
                         if !prefix.is_empty()
                             && later.len() >= prefix.len()
@@ -1356,23 +1443,35 @@ fn collect_shadowing(rule: &str, node: &ASTNode, path: &str, out: &mut Vec<Shado
                 }
             }
             for (idx, alt) in alternatives.iter().enumerate() {
-                collect_shadowing(rule, alt, &format!("{}/o{}", path, idx), out);
+                collect_shadowing(
+                    rule,
+                    alt,
+                    &format!("{}/o{}", path, idx),
+                    fixed_prefix_verdict_applies,
+                    out,
+                );
             }
         }
         ASTNode::Sequence { elements } => {
             for (idx, e) in elements.iter().enumerate() {
-                collect_shadowing(rule, e, &format!("{}/s{}", path, idx), out);
+                collect_shadowing(
+                    rule,
+                    e,
+                    &format!("{}/s{}", path, idx),
+                    fixed_prefix_verdict_applies,
+                    out,
+                );
             }
         }
         ASTNode::Quantified { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/q", path), out);
+            collect_shadowing(rule, element, &format!("{}/q", path), fixed_prefix_verdict_applies, out);
         }
         ASTNode::Lookahead { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/l", path), out);
+            collect_shadowing(rule, element, &format!("{}/l", path), fixed_prefix_verdict_applies, out);
         }
         ASTNode::Atom { value } => {
             if let ASTValue::Node(inner) = value {
-                collect_shadowing(rule, inner, &format!("{}/a", path), out);
+                collect_shadowing(rule, inner, &format!("{}/a", path), fixed_prefix_verdict_applies, out);
             }
         }
     }
@@ -1452,22 +1551,28 @@ fn collect_always_succeeds_alternatives(
 // `verify_unreachability_certificate` is the INDEPENDENT CHECKER: it re-navigates to
 // the cited node from the grammar and re-derives the claim directly — it does NOT
 // trust the detector's output. A certificate that fails to verify is a linter bug (or
-// a tampered certificate). The exact-duplicate and fixed-terminal-prefix re-checks are
-// trivial + fully independent. (A former always-succeeds certificate reason was RETIRED at
-// A2.2: always-succeeds does NOT prove unreachability under a backtracking / longest-match
-// engine, so it cannot honestly ship an unreachability PROOF —
+// a tampered certificate). The exact-duplicate re-check is trivial + fully independent;
+// the fixed-terminal-prefix re-check is POLICY-CONDITIONAL (A2.3): it re-derives BOTH the
+// structural prefix AND the selection-semantics condition (`@branch_policy: ordered`, no
+// branch-phase predicates) — an unconditional prefix certificate would be re-verifiable yet
+// FALSE under the default longest_match tournament. (A former always-succeeds certificate
+// reason was RETIRED at A2.2: always-succeeds does NOT prove unreachability under a
+// backtracking / longest-match engine, so it cannot honestly ship an unreachability PROOF —
 // [[project_earlier_always_matches_unsound_backtracking]].) Reachability certificates
 // (WITNESSES, generator-produced) are G.3.
 // =============================================================================
 
 /// The structured, checkable reason an ordered-choice alternative is unreachable. Only the two
-/// SOUND structural reasons — anything that cannot ship a genuine unreachability PROOF (e.g. the
-/// retired always-succeeds heuristic, A2.2) is deliberately absent.
+/// SOUND reasons — anything that cannot ship a genuine unreachability PROOF (e.g. the retired
+/// always-succeeds heuristic, A2.2) is deliberately absent.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnreachabilityReason {
     /// Alternative `by` is an exact structural duplicate of the dead one.
     DuplicateOf { by: usize },
-    /// Alternative `by` is a fixed-terminal prefix of the dead one (PEG commits to `by`).
+    /// Alternative `by` is a fixed-terminal prefix of the dead one AND the owning rule's effective
+    /// `@branch_policy` is `ordered` with no branch-phase predicates (A2.3) — the certificate's
+    /// deadness claim is POLICY-CONDITIONAL, and the checker re-derives the condition, not just the
+    /// structural prefix.
     FixedTerminalPrefixBy { by: usize },
 }
 
@@ -1536,10 +1641,15 @@ fn navigate_node_path<'a>(body: &'a ASTNode, node_path: &str) -> Option<&'a ASTN
 
 /// THE CHECKER (G.1/G.2 seed): independently re-validate an unreachability certificate against the
 /// grammar. Re-navigates to the cited `Or` node and re-derives the deadness claim DIRECTLY from the
-/// AST — it never trusts the detector. Returns `Ok(())` iff the certificate genuinely holds; `Err`
-/// (with the reason) means the certificate is invalid — a linter bug or a tampered/stale certificate.
+/// AST — it never trusts the detector. For the policy-conditional `FixedTerminalPrefixBy` reason
+/// (A2.3) it re-derives the selection-semantics condition too (`annotations` supplies the rule's
+/// effective `@branch_policy` + branch-predicate surface; `None` means default `longest_match`, so
+/// any fixed-prefix certificate is honestly REJECTED). Returns `Ok(())` iff the certificate
+/// genuinely holds; `Err` (with the reason) means the certificate is invalid — a linter bug or a
+/// tampered/stale certificate.
 pub fn verify_unreachability_certificate(
     grammar: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
     cert: &UnreachabilityCertificate,
 ) -> Result<(), String> {
     let body = grammar
@@ -1568,13 +1678,26 @@ pub fn verify_unreachability_certificate(
         .ok_or_else(|| format!("certificate dead index #{} out of range", cert.dead_index))?;
     let holds = match &cert.reason {
         UnreachabilityReason::DuplicateOf { .. } => ast_eq(by_alt, dead_alt),
-        UnreachabilityReason::FixedTerminalPrefixBy { .. } => match fixed_terminal_seq(by_alt) {
-            Some(prefix) => {
-                let later = leading_fixed_terminals(dead_alt);
-                !prefix.is_empty() && later.len() >= prefix.len() && later[..prefix.len()] == prefix[..]
-            }
-            None => false,
-        },
+        UnreachabilityReason::FixedTerminalPrefixBy { .. } => {
+            // A2.3: the deadness claim is policy-conditional — a certificate is a PROOF, so the
+            // checker re-derives the CONDITION (ordered first-success commit, no branch-phase
+            // predicates), not just the structural prefix. A fixed-prefix certificate for a
+            // longest_match/priority_first rule is FALSE (the later alternative is live) and is
+            // rejected here regardless of the structural relation holding.
+            let policy_holds = effective_rule_branch_policy(annotations, &cert.rule)
+                == SemanticBranchPolicy::Ordered
+                && !rule_has_branch_phase_predicates(annotations, &cert.rule);
+            policy_holds
+                && match fixed_terminal_seq(by_alt) {
+                    Some(prefix) => {
+                        let later = leading_fixed_terminals(dead_alt);
+                        !prefix.is_empty()
+                            && later.len() >= prefix.len()
+                            && later[..prefix.len()] == prefix[..]
+                    }
+                    None => false,
+                }
+        }
     };
     if holds {
         Ok(())
@@ -1636,7 +1759,7 @@ pub fn verify_wellformedness_certificate(
 ) -> Result<(), String> {
     match cert {
         WellformednessCertificate::DeadAlternative(c) => {
-            verify_unreachability_certificate(grammar, c)
+            verify_unreachability_certificate(grammar, annotations, c)
         }
         WellformednessCertificate::UnreachableRule { rule } => {
             if !grammar.contains_key(rule) {
@@ -3092,30 +3215,143 @@ mod tests {
 
     #[test]
     fn detects_duplicate_alternative() {
-        // r := "a" | "a"   → the 2nd alternative is a dead duplicate.
+        // r := "a" | "a"   → the 2nd alternative is a dead duplicate (policy-independent).
         let mut g = HashMap::new();
         g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));
         let order: Vec<String> = vec!["r".into()];
-        let issues = detect_ordered_choice_shadowing(&g, &order);
+        let issues = detect_ordered_choice_shadowing(&g, &order, None);
         assert_eq!(issues.len(), 1, "exactly one shadowed alt: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].by_index, 0);
         assert_eq!(issues[0].reason, ShadowingReason::DuplicateAlternative);
     }
 
-    #[test]
-    fn detects_fixed_terminal_prefix_shadowing() {
-        // r := "a" | "a" "b"   → "a" commits first, so `a b` is unreachable (the a|ab quirk).
+    /// Test-only: annotations giving `rule` a `@branch_policy: <policy>` directive (the exact
+    /// `SemanticAnnotation::Named` + `Raw` shape the EBNF frontend produces for the directive).
+    fn policy_annotations(rule: &str, policy: &str) -> Annotations {
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert(
+            rule.to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "branch_policy".to_string(),
+                ast: crate::ast_pipeline::UnifiedSemanticAST::Raw { content: policy.to_string() },
+            }],
+        );
+        ann
+    }
+
+    /// Test-only: a branch-phase `@predicate` annotation (the structured object form with an
+    /// explicit `phase: branch`).
+    fn branch_phase_predicate_ann() -> SemanticAnnotation {
+        use crate::ast_pipeline::{UnifiedSemanticProperty as P, UnifiedSemanticValue as V};
+        sem_named(
+            "predicate",
+            V::Object(vec![
+                P { key: "name".into(), value: V::Identifier("has_fact".into()) },
+                P {
+                    key: "args".into(),
+                    value: V::Array(vec![
+                        V::Identifier("some_kind".into()),
+                        V::RuleReference("$1".into()),
+                    ]),
+                },
+                P { key: "phase".into(), value: V::Identifier("branch".into()) },
+            ]),
+        )
+    }
+
+    /// The `a | ab` grammar the A2.3 policy matrix runs on.
+    fn fixed_prefix_grammar() -> (HashMap<String, ASTNode>, Vec<String>) {
         let mut g = HashMap::new();
         g.insert(
             "r".into(),
             or(vec![token("string", "a"), seq(vec![token("string", "a"), token("string", "b")])]),
         );
-        let order: Vec<String> = vec!["r".into()];
-        let issues = detect_ordered_choice_shadowing(&g, &order);
-        assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
+        (g, vec!["r".into()])
+    }
+
+    #[test]
+    fn fixed_terminal_prefix_is_not_a_verdict_under_default_longest_match() {
+        // GRAMMAR-WELLFORMED.A2.3: `r := "a" | "a" "b"` with NO annotations = the DEFAULT
+        // `longest_match` tournament — the later alternative WINS on "ab" (live-proven by
+        // PARSE-HARNESS.8: the engine's own `🏁 selected branch 2/2` trace), so a deadness
+        // verdict here would be FALSE. No finding.
+        let (g, order) = fixed_prefix_grammar();
+        let issues = detect_ordered_choice_shadowing(&g, &order, None);
+        assert!(
+            issues.is_empty(),
+            "a|ab under default longest_match is a LIVE idiom — no verdict: {issues:?}"
+        );
+        // Explicit `longest_match` and `priority_first` are equally live — the tournament tries
+        // every branch and a longer/higher-priority later match wins.
+        for policy in ["longest_match", "priority_first"] {
+            let ann = policy_annotations("r", policy);
+            let issues = detect_ordered_choice_shadowing(&g, &order, Some(&ann));
+            assert!(
+                issues.is_empty(),
+                "a|ab under {policy} is a LIVE idiom — no verdict: {issues:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn detects_fixed_terminal_prefix_shadowing_under_ordered_policy() {
+        // GRAMMAR-WELLFORMED.A2.3: under `@branch_policy: ordered` the choice commits to the
+        // first successful alternative ("ordered REJECTS \"ab\"" — the PARSE-HARNESS.8 /.6.1
+        // discrimination proof), so `a b` after `a` IS unreachable — the sound sub-case keeps
+        // its hard verdict.
+        let (g, order) = fixed_prefix_grammar();
+        let ann = policy_annotations("r", "ordered");
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&ann));
+        assert_eq!(issues.len(), 1, "ordered-policy a|ab must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+        // The message states the TRUE premise (ordered first-success commit), not "PEG commits".
+        let m = issues[0].message();
+        assert!(
+            m.contains("@branch_policy is 'ordered'") && !m.contains("PEG commits"),
+            "the verdict message must state the ordered-policy premise: {m}"
+        );
+    }
+
+    #[test]
+    fn fixed_terminal_prefix_is_suppressed_by_branch_phase_predicates() {
+        // GRAMMAR-WELLFORMED.A2.3: a branch-phase predicate can BLOCK the earlier alternative
+        // after it matches (`should_take = false`), letting the later one win even under
+        // `ordered` — so its presence suppresses the verdict (conservative, any surface).
+        let (g, order) = fixed_prefix_grammar();
+        let mut ann = policy_annotations("r", "ordered");
+        ann.semantic_annotations
+            .get_mut("r")
+            .unwrap()
+            .push(branch_phase_predicate_ann());
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&ann));
+        assert!(
+            issues.is_empty(),
+            "a branch-phase predicate makes the earlier alt blockable — no verdict: {issues:?}"
+        );
+        // …and on the per-branch annotation surface too.
+        let mut ann2 = policy_annotations("r", "ordered");
+        ann2.branch_semantic_annotations
+            .insert("r".into(), vec![vec![branch_phase_predicate_ann()], vec![]]);
+        let issues2 = detect_ordered_choice_shadowing(&g, &order, Some(&ann2));
+        assert!(
+            issues2.is_empty(),
+            "a per-branch branch-phase predicate must also suppress the verdict: {issues2:?}"
+        );
+        // A NON-branch-phase predicate (default phase = pre) does NOT suppress: it gates rule
+        // ENTRY, not an individual alternative.
+        let mut ann3 = policy_annotations("r", "ordered");
+        ann3.semantic_annotations
+            .get_mut("r")
+            .unwrap()
+            .push(predicate_ann("has_fact(some_kind, head)"));
+        let issues3 = detect_ordered_choice_shadowing(&g, &order, Some(&ann3));
+        assert_eq!(
+            issues3.len(),
+            1,
+            "a pre-phase predicate gates the whole rule, not a branch — verdict stands: {issues3:?}"
+        );
     }
 
     #[test]
@@ -3320,7 +3556,7 @@ mod tests {
         let mut g2 = HashMap::new();
         g2.insert("o".into(), or(vec![token("string", "a"), token("string", "a")]));
         let order2: Vec<String> = vec!["o".into()];
-        let sh = detect_ordered_choice_shadowing(&g2, &order2);
+        let sh = detect_ordered_choice_shadowing(&g2, &order2, None);
         let wrapped = WellformednessCertificate::DeadAlternative(sh[0].certificate());
         assert!(verify_wellformedness_certificate(&g2, &order2, None, &wrapped).is_ok());
     }
@@ -3361,9 +3597,9 @@ mod tests {
         // GRAMMAR-WELLFORMED.G.1: every dead-verdict certificate must independently re-verify, and a
         // tampered/bogus certificate must be REJECTED by the checker (the trust comes from the checker).
         // Only the two SOUND unreachability reasons remain (the unsound always-succeeds verdict was
-        // retired at A2.2):
-        //   r := "a" | "a"           exact duplicate
-        //   p := "a" | "a" "b"       fixed-terminal prefix
+        // retired at A2.2; fixed-terminal-prefix is policy-conditional since A2.3):
+        //   r := "a" | "a"           exact duplicate (policy-independent)
+        //   p := "a" | "a" "b"       fixed-terminal prefix — requires @branch_policy: ordered
         let mut g = HashMap::new();
         g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));
         g.insert(
@@ -3371,22 +3607,23 @@ mod tests {
             or(vec![token("string", "a"), seq(vec![token("string", "a"), token("string", "b")])]),
         );
         let order: Vec<String> = vec!["r".into(), "p".into()];
-        let issues = detect_ordered_choice_shadowing(&g, &order);
-        assert!(!issues.is_empty(), "expected shadowing findings");
-        // (1) every real certificate independently re-verifies.
+        let ann = policy_annotations("p", "ordered");
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&ann));
+        assert_eq!(issues.len(), 2, "expected the duplicate + the ordered fixed-prefix findings");
+        // (1) every real certificate independently re-verifies (under the same annotations).
         for iss in &issues {
             let cert = iss.certificate();
             assert!(
-                verify_unreachability_certificate(&g, &cert).is_ok(),
+                verify_unreachability_certificate(&g, Some(&ann), &cert).is_ok(),
                 "valid certificate must verify: {cert:?} -> {:?}",
-                verify_unreachability_certificate(&g, &cert)
+                verify_unreachability_certificate(&g, Some(&ann), &cert)
             );
         }
         // (2) tamper: point the dead alternative at the shadower itself (by not < dead) -> rejected.
         let mut tampered = issues.iter().find(|i| i.rule == "r").unwrap().certificate();
         tampered.dead_index = 0;
         assert!(
-            verify_unreachability_certificate(&g, &tampered).is_err(),
+            verify_unreachability_certificate(&g, Some(&ann), &tampered).is_err(),
             "tampered certificate (dead_index == shadower) must be rejected"
         );
         // (3) bogus: claim an exact-duplicate relation where the alternatives are NOT identical.
@@ -3397,7 +3634,7 @@ mod tests {
             reason: UnreachabilityReason::DuplicateOf { by: 0 },
         };
         assert!(
-            verify_unreachability_certificate(&g, &bogus).is_err(),
+            verify_unreachability_certificate(&g, Some(&ann), &bogus).is_err(),
             "bogus duplicate claim must be rejected (the alternatives are not identical)"
         );
         // (4) a path that does not resolve is rejected.
@@ -3408,8 +3645,33 @@ mod tests {
             reason: UnreachabilityReason::FixedTerminalPrefixBy { by: 0 },
         };
         assert!(
-            verify_unreachability_certificate(&g, &bad_path).is_err(),
+            verify_unreachability_certificate(&g, Some(&ann), &bad_path).is_err(),
             "unresolvable path must be rejected"
+        );
+        // (5) A2.3 — a STALE/POLICY-FALSE fixed-prefix certificate is rejected: the same structural
+        // relation, presented for a rule at the DEFAULT longest_match policy (annotations absent or
+        // policy non-ordered), where the later alternative is LIVE (PARSE-HARNESS.8).
+        let stale = UnreachabilityCertificate {
+            rule: "p".into(),
+            node_path: "root".into(),
+            dead_index: 1,
+            reason: UnreachabilityReason::FixedTerminalPrefixBy { by: 0 },
+        };
+        assert!(
+            verify_unreachability_certificate(&g, None, &stale).is_err(),
+            "a fixed-prefix certificate without an ordered policy must be rejected"
+        );
+        let lm = policy_annotations("p", "longest_match");
+        assert!(
+            verify_unreachability_certificate(&g, Some(&lm), &stale).is_err(),
+            "a fixed-prefix certificate for a longest_match rule must be rejected"
+        );
+        // (6) A2.3 — a branch-phase predicate on the rule likewise invalidates the certificate.
+        let mut blocked = policy_annotations("p", "ordered");
+        blocked.semantic_annotations.get_mut("p").unwrap().push(branch_phase_predicate_ann());
+        assert!(
+            verify_unreachability_certificate(&g, Some(&blocked), &stale).is_err(),
+            "a fixed-prefix certificate for a rule with branch-phase predicates must be rejected"
         );
     }
 
@@ -3443,7 +3705,7 @@ mod tests {
             "nullable_rule".into(),
         ];
         // (1) NONE of these is a shadowing (unreachability) verdict anymore.
-        let shadow = detect_ordered_choice_shadowing(&g, &order);
+        let shadow = detect_ordered_choice_shadowing(&g, &order, None);
         assert!(
             shadow.is_empty(),
             "always-succeeds must NOT be flagged as a shadowing/deadness verdict: {shadow:?}"
@@ -3481,7 +3743,7 @@ mod tests {
         g.insert("pos".into(), or(vec![look(token("string", "a"), true), token("string", "b")]));
         g.insert("neg".into(), or(vec![look(token("string", "a"), false), token("string", "a")]));
         let order: Vec<String> = vec!["pos".into(), "neg".into()];
-        let issues = detect_ordered_choice_shadowing(&g, &order);
+        let issues = detect_ordered_choice_shadowing(&g, &order, None);
         assert!(
             issues.is_empty(),
             "a lookahead earlier branch can fail, so it must not shadow a later branch: {issues:?}"
@@ -3516,11 +3778,21 @@ mod tests {
             "x".into(),
             "y".into(),
         ];
-        let issues = detect_ordered_choice_shadowing(&g, &order);
+        let issues = detect_ordered_choice_shadowing(&g, &order, None);
         assert!(
             issues.is_empty(),
             "no false positives on distinct/longer-first/rule-ref alternatives: {issues:?}"
         );
+        // The same inputs stay clean under an ordered policy too (distinct terminals don't prefix;
+        // longer-first means the earlier alt is not a prefix of the later; rule-refs can fail).
+        for rule in ["distinct", "longer_first", "rule_alts"] {
+            let ann = policy_annotations(rule, "ordered");
+            let issues = detect_ordered_choice_shadowing(&g, &order, Some(&ann));
+            assert!(
+                issues.is_empty(),
+                "no ordered-policy false positives on '{rule}': {issues:?}"
+            );
+        }
     }
 
     /// PARSE-SOTA.8.1 prerequisite — verify the analyses on a REAL shipped grammar:
@@ -3627,7 +3899,7 @@ mod tests {
             nonterm.len()
         );
 
-        let shadow = detect_ordered_choice_shadowing(&grammar, &rule_order);
+        let shadow = detect_ordered_choice_shadowing(&grammar, &rule_order, None);
         eprintln!("shadowing findings: {} (soft — review for false positives)", shadow.len());
         for s in shadow.iter().take(15) {
             eprintln!("  {}", s.message());
@@ -3646,7 +3918,7 @@ mod tests {
             ]),
         );
         let order: Vec<String> = vec!["r".into()];
-        let issues = detect_ordered_choice_shadowing(&g, &order);
+        let issues = detect_ordered_choice_shadowing(&g, &order, None);
         assert_eq!(issues.len(), 1);
         assert_eq!(issues[0].node_path, "root/s1", "path must locate the nested Or");
     }

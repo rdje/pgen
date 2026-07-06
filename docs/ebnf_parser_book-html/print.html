@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9c102f01.js";
+            window.path_to_searchindex_js = "searchindex-d050627c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -309,7 +309,8 @@ path instead; see <a href="#the-bootstrap-path">The Bootstrap Path</a>.</p>
 is where the real defect lives (see <code>TOOLBOX.md</code> §3.2).</p>
 <h2 id="prove-the-grammar"><a class="header" href="#prove-the-grammar">Prove the grammar</a></h2>
 <p>Two read-only proofs are the grammar author’s first stop after any edit:</p>
-<pre><code class="language-bash"># static well-formedness: left-recursion info, non-terminating ERRORS, ordered-choice shadowing WARNINGS
+<pre><code class="language-bash"># static well-formedness: left-recursion info + hard errors (non-terminating, unreachable,
+# undefined refs, unbound fact-kinds, profile orphans, ordered-choice shadowing)
 ./rust/target/debug/ast_pipeline grammars/foolang.ebnf --lint-grammar
 
 # trustworthiness: every rule covered by an unreachability PROOF or a reachability WITNESS?
@@ -533,15 +534,26 @@ assignment     := lvalue "=" expression ";"
 <code>any_char</code> family (<a href="#terminals">Terminals</a>); otherwise an undefined reference is a grammar defect that
 <code>--lint-grammar</code> reports.</p>
 <h2 id="ordered-choice-"><a class="header" href="#ordered-choice-">Ordered choice (<code>|</code>)</a></h2>
-<p><code>|</code> is <strong>ordered choice</strong>, not symmetric alternation. The parser tries each alternative left-to-right and
-commits to the <strong>first</strong> that matches:</p>
+<p><code>|</code> is a <strong>branch tournament</strong>, not symmetric alternation — and (a common PEG misconception) <em>not</em>
+first-match commit by default. The parser tries the alternatives and selects a winner according to the
+rule’s effective <code>@branch_policy</code>:</p>
+<ul>
+<li><strong><code>longest_match</code> (the default):</strong> every alternative is tried; the one consuming the most input wins
+(ties resolve to the earlier alternative). On <code>start := "a" | "a" "b"</code> with input <code>ab</code>, the <strong>second</strong>
+alternative wins — the engine’s own trace shows <code>selected branch 2/2</code>.</li>
+<li><strong><code>ordered</code>:</strong> classical PEG first-success commit — the first alternative that matches wins and the
+rest are skipped. Only under this policy does <code>"a" | "a" "b"</code> strand the <code>b</code>.</li>
+<li><strong><code>priority_first</code>:</strong> the <code>@priority</code> list ranks the alternatives; longest-match breaks priority ties.</li>
+</ul>
 <pre><code class="language-ebnf">keyword := "module" | "macromodule" | "module_extern"
 </code></pre>
-<p>Because choice is ordered, <strong>put the longer / more specific alternative first</strong> when alternatives share a
-prefix — otherwise the shorter one wins and strands the rest. This “ordered-choice shadowing” is exactly
-what <code>--lint-grammar</code> warns about (see <a href="#codegen-mental-model">Codegen Mental Model</a> and the platform book’s
-<a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter). Each non-last branch may also
-carry its <strong>own</strong> inline <code>-&gt; …</code> return annotation before the <code>|</code>:</p>
+<p>Ordering still matters as style — <strong>put the more specific alternative first</strong> — but under the default
+<code>longest_match</code> a shared prefix does <em>not</em> make the later alternative unreachable. <code>--lint-grammar</code>’s
+“ordered-choice shadowing” hard error therefore fires for a fixed-terminal-prefix pair <strong>only on a rule
+whose <code>@branch_policy</code> is <code>ordered</code></strong> (where the earlier alternative genuinely always wins); exact
+duplicates are flagged under every policy (see <a href="#codegen-mental-model">Codegen Mental Model</a> and the platform
+book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter). Each non-last branch
+may also carry its <strong>own</strong> inline <code>-&gt; …</code> return annotation before the <code>|</code>:</p>
 <pre><code class="language-ebnf">sign := "+" -&gt; {kind: "plus"}
       | "-" -&gt; {kind: "minus"}
 </code></pre>
@@ -1109,18 +1121,22 @@ read the codegen source. The generators are <code>rust/src/ast_based_generator.r
 <code>rust/src/ast_return_transform.rs</code> (return shaping).</p>
 <h2 id="the-generated-parser-is-a-recursive-descent-peg"><a class="header" href="#the-generated-parser-is-a-recursive-descent-peg">The generated parser is a recursive-descent PEG</a></h2>
 <p>Each rule becomes a function that tries to match at the current input position and either succeeds
-(advancing the position and returning a value) or backtracks. The semantics are <strong>PEG</strong> semantics:</p>
+(advancing the position and returning a value) or backtracks. The semantics are PEG-<em>style</em> recursive
+descent with one deliberate departure from classical PEG:</p>
 <ul>
-<li><strong>ordered choice</strong> <code>|</code> tries alternatives left-to-right and commits to the first match — no global
-ambiguity, no longest-match across alternatives (see <a href="#rules-and-expressions">Rules and Expressions</a>);</li>
+<li><strong>choice</strong> <code>|</code> runs a <strong>branch tournament</strong> governed by the rule’s <code>@branch_policy</code> — the default
+<code>longest_match</code> tries every alternative and keeps the longest match; <code>ordered</code> gives classical
+PEG first-match commit; <code>priority_first</code> ranks by <code>@priority</code> (see
+<a href="#rules-and-expressions">Rules and Expressions</a>);</li>
 <li><strong>sequences</strong> match elements in order, backtracking the whole sequence if any element fails;</li>
 <li><strong>lookaheads</strong> <code>&amp;</code> / <code>!</code> test without consuming (see <a href="#lookaheads">Lookaheads</a>);</li>
 <li>a <strong>packrat memo</strong> caches per-rule, per-position results so repeated work is avoided; the memo also
 replays semantic-store side effects on a cache hit, so context-aware gating stays correct under
 backtracking.</li>
 </ul>
-<p>This is why alternative ordering and prefix-sharing matter so much: the parser does what you <em>wrote</em>, in
-the order you wrote it.</p>
+<p>Alternative ordering still matters — it breaks longest-match ties, it <em>is</em> the selection order under
+<code>ordered</code>, and it is what <code>@priority</code> indexes — but under the default policy a shared prefix does not
+strand a later, longer alternative.</p>
 <h2 id="terminals--matchers"><a class="header" href="#terminals--matchers">Terminals → matchers</a></h2>
 <div class="table-wrapper">
 <table>
@@ -1162,9 +1178,11 @@ becomes a profile guard so a rule only participates under the selected grammar p
 <h2 id="well-formedness-and-trustworthiness"><a class="header" href="#well-formedness-and-trustworthiness">Well-formedness and trustworthiness</a></h2>
 <p>Two proofs back the codegen and are the grammar author’s safety net:</p>
 <ul>
-<li><strong><code>--lint-grammar</code></strong> — static well-formedness: left-recursion info, non-terminating <strong>ERRORS</strong>, and
-ordered-choice <strong>shadowing WARNINGS</strong> (a later alternative that an earlier one already subsumes). Run it
-after every grammar edit.</li>
+<li><strong><code>--lint-grammar</code></strong> — static well-formedness: left-recursion info and hard <strong>ERRORS</strong> for
+non-terminating rules, unreachable rules, undefined references, unbound fact-kinds, profile orphans,
+and ordered-choice <strong>shadowing</strong> (an exact-duplicate alternative under any policy; a
+fixed-terminal-prefix pair only on an <code>@branch_policy: ordered</code> rule, where the earlier alternative
+genuinely always wins). Run it after every grammar edit.</li>
 <li><strong><code>--report-certificate-coverage</code></strong> — for every rule, is it covered by a verified unreachability
 <strong>PROOF</strong> or a verified reachability <strong>WITNESS</strong>? <code>UNKNOWN=0</code> with no failures, deterministic at seeds
 <code>0/7/42</code>, is the objective “trustworthy on this grammar” number.</li>

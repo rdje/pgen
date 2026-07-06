@@ -512,9 +512,11 @@ The gate also asserts a **completeness** invariant (every combinator in the enum
 case, and every case name is unique — no silent gap), and folds in the load-bearing **A2.2/A2.3
 discrimination proof**: on the *same* `a | ab` grammar, `longest_match` **accepts** `"ab"` while `ordered`
 **rejects** it — proven on **both** the interpreter and the real generated parser, in agreement. That is
-precisely the fact that makes a `FixedTerminalPrefix` shadowing verdict *unsound* under PGEN's backtracking
-engine, and it is why the harness was built. (This front-loads the empirical evidence the
-`GRAMMAR-WELLFORMED.A2.3` investigation needs.)
+precisely the fact that makes an *unconditional* `FixedTerminalPrefix` shadowing verdict *unsound* under
+PGEN's backtracking engine, and it is why the harness was built. (This evidence was consumed by
+`GRAMMAR-WELLFORMED.A2.3`, 2026-07-07 — the harness's first real use: the linter's fixed-prefix verdict is
+now **policy-conditional**, firing only under `@branch_policy: ordered`; see the *Grammar
+well-formedness* chapter.)
 
 ### Two tool-established subtleties this suite surfaced
 

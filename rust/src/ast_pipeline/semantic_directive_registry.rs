@@ -1,3 +1,4 @@
+use super::{Annotations, SemanticAnnotation, UnifiedSemanticAST};
 use regex::Regex;
 use std::sync::OnceLock;
 
@@ -412,6 +413,65 @@ pub fn extract_semantic_directive(content: &str) -> Option<(String, String)> {
 
 pub fn extract_semantic_directive_name(content: &str) -> Option<String> {
     extract_semantic_directive(content).map(|(name, _)| name)
+}
+
+/// Resolve a semantic annotation into its `(directive_name, payload)` pair — named annotations
+/// directly; legacy `TransformExpr`/raw payload shapes via `extract_semantic_directive`. This is
+/// THE shared derivation for steering directives: the generator's `semantic_directive_parts`
+/// delegates here, and the wellformedness linter's policy-conditioned verdicts read the same
+/// function (GRAMMAR-WELLFORMED.A2.3), so codegen and linter can never drift on what a directive
+/// says.
+pub fn semantic_directive_name_payload(
+    annotation: &SemanticAnnotation,
+) -> Option<(String, String)> {
+    if let Some(name) = annotation.name() {
+        let normalized = name.trim().to_ascii_lowercase();
+        if !normalized.is_empty() {
+            let payload = annotation.ast().payload_text().to_string();
+            return Some((normalized, payload.trim().to_string()));
+        }
+    }
+
+    match annotation.ast() {
+        UnifiedSemanticAST::TransformExpr { expression } => {
+            if let Some(parts) = extract_semantic_directive(expression) {
+                return Some(parts);
+            }
+            Some(("transform".to_string(), expression.clone()))
+        }
+        _ => extract_semantic_directive(annotation.ast().payload_text()),
+    }
+}
+
+/// The effective `@branch_policy` codegen resolves for `rule_name`: the LAST `@branch_policy`
+/// directive on the rule wins; absent any directive (or any annotations at all), the engine
+/// default `LongestMatch`. Shared by the tournament codegen (`rule_branch_policy`) and the
+/// linter's policy-conditioned shadowing verdicts (GRAMMAR-WELLFORMED.A2.3) — a deadness verdict
+/// is only as sound as the selection semantics it assumes, so both must read the SAME resolution.
+pub fn effective_rule_branch_policy(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+) -> SemanticBranchPolicy {
+    let Some(annotations) = annotations else {
+        return SemanticBranchPolicy::LongestMatch;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return SemanticBranchPolicy::LongestMatch;
+    };
+
+    let mut policy = SemanticBranchPolicy::LongestMatch;
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        if name == "branch_policy" {
+            if let Some(parsed) = SemanticBranchPolicy::parse(&payload) {
+                policy = parsed;
+            }
+        }
+    }
+
+    policy
 }
 
 pub fn parse_semantic_numeric_list(payload: &str) -> Option<Vec<i64>> {

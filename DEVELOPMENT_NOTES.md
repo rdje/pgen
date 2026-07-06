@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0151 — GRAMMAR-WELLFORMED.A2.3: condition the verdict AND its certificate; share the premise-derivation with the thing that executes the premise
+
+Session #51. Two engineering notes from landing the policy-aware fix:
+
+- **A certificate must carry its CONDITION, not just its structure.** The `FixedTerminalPrefixBy`
+  proof certificate re-verified purely structurally — so a certificate that was FALSE under the
+  rule's actual selection policy would still "independently re-verify". The fix threads the
+  annotations into `verify_unreachability_certificate` so the checker re-derives the policy
+  condition too: a re-runnable checker that validates only part of a claim is a false sense of
+  security. When conditioning a verdict, grep for every place its certificate is re-derived and
+  condition those identically.
+- **Derive the premise where it is EXECUTED.** The verdict's premise ("this rule commits
+  first-success") is decided by codegen's `rule_branch_policy`. Instead of mirroring that
+  resolution in the linter (drift risk — the exact failure mode `.5.2`'s comment-arm lesson warned
+  about), the resolution moved to a shared registry function and codegen now DELEGATES to it —
+  proven emit-identical by regen byte-comparison (json + rtl_frontend, `cmp` clean). The linter can
+  now never disagree with the tournament about what policy a rule has.
+- **Baseline discipline paid off again:** the post-change canonical cert CLI run read
+  `proof=21/UNKNOWN=1` against the tree's remembered `proof=10/UNKNOWN=12` — a 30-second git-stash
+  A/B proved the shape byte-identical WITHOUT the change (it is VERILOG-2005-PROFILE.6.7's
+  per-profile promotion, and the union GATE's pinned accounting — canonical UNKNOWN=12 — is green),
+  turning a would-be alarm into a provenance note instead of an hour of false debugging.
 ## 2026-07-07 - PGEN-PARSE-HARNESS-0016 — PARSE-HARNESS.8: a deadness verdict is only as sound as the SELECTION SEMANTICS it assumes
 
 Session #51. Engineering note from the A2.3 hand-back probe:

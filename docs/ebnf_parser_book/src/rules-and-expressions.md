@@ -19,18 +19,28 @@ A reference to an *undefined* name resolves to a built-in matcher when the name 
 
 ## Ordered choice (`|`)
 
-`|` is **ordered choice**, not symmetric alternation. The parser tries each alternative left-to-right and
-commits to the **first** that matches:
+`|` is a **branch tournament**, not symmetric alternation — and (a common PEG misconception) *not*
+first-match commit by default. The parser tries the alternatives and selects a winner according to the
+rule's effective `@branch_policy`:
+
+- **`longest_match` (the default):** every alternative is tried; the one consuming the most input wins
+  (ties resolve to the earlier alternative). On `start := "a" | "a" "b"` with input `ab`, the **second**
+  alternative wins — the engine's own trace shows `selected branch 2/2`.
+- **`ordered`:** classical PEG first-success commit — the first alternative that matches wins and the
+  rest are skipped. Only under this policy does `"a" | "a" "b"` strand the `b`.
+- **`priority_first`:** the `@priority` list ranks the alternatives; longest-match breaks priority ties.
 
 ```ebnf
 keyword := "module" | "macromodule" | "module_extern"
 ```
 
-Because choice is ordered, **put the longer / more specific alternative first** when alternatives share a
-prefix — otherwise the shorter one wins and strands the rest. This "ordered-choice shadowing" is exactly
-what `--lint-grammar` warns about (see [Codegen Mental Model](codegen-model.md) and the platform book's
-[Grammar Well-Formedness](../../book/src/grammar-wellformedness.md) chapter). Each non-last branch may also
-carry its **own** inline `-> …` return annotation before the `|`:
+Ordering still matters as style — **put the more specific alternative first** — but under the default
+`longest_match` a shared prefix does *not* make the later alternative unreachable. `--lint-grammar`'s
+"ordered-choice shadowing" hard error therefore fires for a fixed-terminal-prefix pair **only on a rule
+whose `@branch_policy` is `ordered`** (where the earlier alternative genuinely always wins); exact
+duplicates are flagged under every policy (see [Codegen Mental Model](codegen-model.md) and the platform
+book's [Grammar Well-Formedness](../../book/src/grammar-wellformedness.md) chapter). Each non-last branch
+may also carry its **own** inline `-> …` return annotation before the `|`:
 
 ```ebnf
 sign := "+" -> {kind: "plus"}

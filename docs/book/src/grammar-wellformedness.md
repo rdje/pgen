@@ -31,8 +31,12 @@ independent axis. (This is literature-grounded, not invented; sources at the end
    empty-matching body (which would loop without consuming). *(Ford, PEG, 2004.)*
 3. **No dead branches.** In an ordered choice `a | b | …`, a later alternative is *shadowed* if an
    earlier one always matches first — it can never be selected, so it is unreachable. This is the
-   branch-level form of "useless symbol." Exact-duplicate and fixed-terminal-prefix are detected as
-   hard gates. A third form, *earlier-always-succeeds*, was once staged as a warning for promotion —
+   branch-level form of "useless symbol." Exact-duplicate is detected as a hard gate.
+   Fixed-terminal-prefix is a hard gate **only where its premise holds** — a rule whose effective
+   `@branch_policy` is `ordered` (first-success commit) with no branch-phase predicates; under the
+   default `longest_match` (and `priority_first`) the engine runs the full tournament and the later
+   alternative is *live*, so no finding is emitted (**A2.3**, live-proven on the parse harness). A
+   third form, *earlier-always-succeeds*, was once staged as a warning for promotion —
    but a 2026-07-05 tools-first audit found it **unsound for PGEN's backtracking engine** (it flagged
    a *live* branch as dead; see the correction under the worked example), so as of **A2.2** its
    shadowing *verdict* was removed: it survives only as a non-gating, non-verdict `[note]`
@@ -1332,9 +1336,10 @@ branch as "doesn't count."
 ## Where PGEN stands
 
 The linter (`--lint-grammar`) already proves: termination, profile-orphan freedom, exact-duplicate
-and fixed-terminal-prefix shadow freedom, **structural reachability** ("no unreachable rules",
-multi-entry-aware), and **no undefined references** — all hard gates — plus **attribute
-non-circularity**, which holds by construction (the annotation language is synthesized-only).
+shadow freedom plus fixed-terminal-prefix shadow freedom in its sound (`ordered`-policy) sub-case,
+**structural reachability** ("no unreachable rules", multi-entry-aware), and **no undefined
+references** — all hard gates — plus **attribute non-circularity**, which holds by construction
+(the annotation language is synthesized-only).
 
 The **undefined-reference** gate (`undefined_references=N (error)`, since
 `UNDEFINED-REF-DIAGNOSTICS.2`, 2026-07-06) is the *other half* of "no useless symbols": a rule that
@@ -1372,8 +1377,25 @@ everything `b` could start with, `a` could also start with, then `b` is dead" �
 PEG** and is intentionally not implemented. `a` might match the first token and then fail later, in
 which case PGEN *does* backtrack and try `b`, so `b` is live. That is the *same* argument that
 retired the always-succeeds verdict. Implementing either as a verdict would falsely accuse live
-branches of being dead — the opposite of an honest linter. So the only *gating* shadow forms are the
-two that are sound under backtracking: **exact-duplicate** and **fixed-terminal-prefix**.
+branches of being dead — the opposite of an honest linter.
+
+The same argument caught one more verdict — **fixed-terminal-prefix itself** (**A2.3**,
+2026-07-07). The classical claim "`a | a b` — the earlier alternative is a fixed-terminal prefix of
+the later, PEG commits, so `a b` is dead" implicitly assumes a *first-success-commit* selection
+semantics. PGEN's tournament has three (`@branch_policy`): the **default `longest_match`** tries
+*every* alternative and keeps the longest match — the parse harness proved the engine **selects**
+the supposedly-dead later alternative on `a | a b` over input `ab` (its own trace:
+`🏁 selected branch 2/2 … branch_policy=longest_match`) while the old unconditional verdict
+hard-failed the same live grammar. `priority_first` likewise lets a later alternative win. Only
+`ordered` genuinely commits to the first success. So the fixed-prefix verdict is now
+**policy-conditional**: it fires (and hard-gates, with its proof certificate) only for a rule whose
+effective `@branch_policy` is `ordered` and which carries no branch-phase `@predicate` (a branch
+predicate can block the earlier alternative after it matches, reviving the later one). Under
+`longest_match`/`priority_first` the pattern is the normal longest-match idiom — live, correct, and
+deliberately not even a note. The certificate checker re-derives the policy condition too: a
+fixed-prefix certificate presented for a `longest_match` rule is *rejected as false*, not
+re-verified on structure alone. So the *gating* shadow forms are: **exact-duplicate** (any policy)
+and **fixed-terminal-prefix under `ordered`**.
 
 On the **well-*defined*** layer, all three axes are now enforced. Attribute non-circularity holds by
 construction (synthesized-only annotations). Attribute completeness for synthesized attributes (`$N`)

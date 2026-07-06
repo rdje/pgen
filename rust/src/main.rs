@@ -3190,7 +3190,10 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     let order = &grammar.rule_order;
     let lr = detect_left_recursion(g, order);
     let nonterm = detect_nonterminating_rules(g, order);
-    let shadow = detect_ordered_choice_shadowing(g, order);
+    // GRAMMAR-WELLFORMED.A2.3: the annotations feed the per-rule effective @branch_policy — the
+    // fixed-terminal-prefix deadness verdict fires only where its first-success-commit premise
+    // holds (`@branch_policy: ordered`, no branch-phase predicates).
+    let shadow = detect_ordered_choice_shadowing(g, order, grammar.annotations.as_ref());
     // GRAMMAR-WELLFORMED.A2.2: the NON-VERDICT always-succeeds smell (a nullable/total earlier
     // alternative). It makes NO deadness claim (the old unsound `EarlierAlwaysMatches` shadowing
     // verdict was retired) and never gates — surfaced as a [note].

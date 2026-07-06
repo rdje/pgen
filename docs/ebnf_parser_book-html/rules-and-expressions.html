@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9c102f01.js";
+            window.path_to_searchindex_js = "searchindex-d050627c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -193,15 +193,26 @@ assignment     := lvalue "=" expression ";"
 <code>any_char</code> family (<a href="terminals.html">Terminals</a>); otherwise an undefined reference is a grammar defect that
 <code>--lint-grammar</code> reports.</p>
 <h2 id="ordered-choice-"><a class="header" href="#ordered-choice-">Ordered choice (<code>|</code>)</a></h2>
-<p><code>|</code> is <strong>ordered choice</strong>, not symmetric alternation. The parser tries each alternative left-to-right and
-commits to the <strong>first</strong> that matches:</p>
+<p><code>|</code> is a <strong>branch tournament</strong>, not symmetric alternation — and (a common PEG misconception) <em>not</em>
+first-match commit by default. The parser tries the alternatives and selects a winner according to the
+rule’s effective <code>@branch_policy</code>:</p>
+<ul>
+<li><strong><code>longest_match</code> (the default):</strong> every alternative is tried; the one consuming the most input wins
+(ties resolve to the earlier alternative). On <code>start := "a" | "a" "b"</code> with input <code>ab</code>, the <strong>second</strong>
+alternative wins — the engine’s own trace shows <code>selected branch 2/2</code>.</li>
+<li><strong><code>ordered</code>:</strong> classical PEG first-success commit — the first alternative that matches wins and the
+rest are skipped. Only under this policy does <code>"a" | "a" "b"</code> strand the <code>b</code>.</li>
+<li><strong><code>priority_first</code>:</strong> the <code>@priority</code> list ranks the alternatives; longest-match breaks priority ties.</li>
+</ul>
 <pre><code class="language-ebnf">keyword := "module" | "macromodule" | "module_extern"
 </code></pre>
-<p>Because choice is ordered, <strong>put the longer / more specific alternative first</strong> when alternatives share a
-prefix — otherwise the shorter one wins and strands the rest. This “ordered-choice shadowing” is exactly
-what <code>--lint-grammar</code> warns about (see <a href="codegen-model.html">Codegen Mental Model</a> and the platform book’s
-<a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter). Each non-last branch may also
-carry its <strong>own</strong> inline <code>-&gt; …</code> return annotation before the <code>|</code>:</p>
+<p>Ordering still matters as style — <strong>put the more specific alternative first</strong> — but under the default
+<code>longest_match</code> a shared prefix does <em>not</em> make the later alternative unreachable. <code>--lint-grammar</code>’s
+“ordered-choice shadowing” hard error therefore fires for a fixed-terminal-prefix pair <strong>only on a rule
+whose <code>@branch_policy</code> is <code>ordered</code></strong> (where the earlier alternative genuinely always wins); exact
+duplicates are flagged under every policy (see <a href="codegen-model.html">Codegen Mental Model</a> and the platform
+book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter). Each non-last branch
+may also carry its <strong>own</strong> inline <code>-&gt; …</code> return annotation before the <code>|</code>:</p>
 <pre><code class="language-ebnf">sign := "+" -&gt; {kind: "plus"}
       | "-" -&gt; {kind: "minus"}
 </code></pre>

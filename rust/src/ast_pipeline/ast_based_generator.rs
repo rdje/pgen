@@ -9,7 +9,7 @@ use crate::ast_pipeline::{
     SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
     TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
     ast_return_transform::AstReturnTransformer, compile_semantic_runtime_annotations,
-    extract_semantic_directive, normalize_semantic_scalar, parse_canonical_transform_expression,
+    normalize_semantic_scalar, parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
     parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
     parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
@@ -7156,46 +7156,19 @@ impl AstBasedGenerator {
     }
 
     fn semantic_directive_parts(annotation: &SemanticAnnotation) -> Option<(String, String)> {
-        if let Some(name) = annotation.name() {
-            let normalized = name.trim().to_ascii_lowercase();
-            if !normalized.is_empty() {
-                let payload = annotation.ast().payload_text().to_string();
-                return Some((normalized, payload.trim().to_string()));
-            }
-        }
-
-        match annotation.ast() {
-            UnifiedSemanticAST::TransformExpr { expression } => {
-                if let Some(parts) = extract_semantic_directive(expression) {
-                    return Some(parts);
-                }
-                Some(("transform".to_string(), expression.clone()))
-            }
-            _ => extract_semantic_directive(annotation.ast().payload_text()),
-        }
+        // GRAMMAR-WELLFORMED.A2.3: the derivation moved to the shared registry function so the
+        // linter's policy-conditioned verdicts read the exact resolution codegen uses.
+        crate::ast_pipeline::semantic_directive_registry::semantic_directive_name_payload(
+            annotation,
+        )
     }
 
     fn rule_branch_policy(&self, rule_name: &str) -> SemanticBranchPolicy {
-        let Some(annotations) = &self.annotations else {
-            return SemanticBranchPolicy::LongestMatch;
-        };
-        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return SemanticBranchPolicy::LongestMatch;
-        };
-
-        let mut policy = SemanticBranchPolicy::LongestMatch;
-        for annotation in entries {
-            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
-                continue;
-            };
-            if name == "branch_policy" {
-                if let Some(parsed) = SemanticBranchPolicy::parse(&payload) {
-                    policy = parsed;
-                }
-            }
-        }
-
-        policy
+        // GRAMMAR-WELLFORMED.A2.3: shared with the linter (see `effective_rule_branch_policy`).
+        crate::ast_pipeline::semantic_directive_registry::effective_rule_branch_policy(
+            self.annotations.as_ref(),
+            rule_name,
+        )
     }
 
     fn rule_coverage_target_policy(&self, rule_name: &str) -> SemanticCoverageTargetPolicy {
