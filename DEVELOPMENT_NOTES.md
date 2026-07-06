@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0002 — POSITIONAL-PAYLOAD-REFS.2: anchors are hypotheses — the oracle corrected mine twice before the re-anchor locked
+
+Session #50. Two engineering notes worth keeping:
+
+- **Independent anchors earn their keep by being falsifiable — and mine were falsified.** The suite
+  convention (anchor from documented semantics, certification from interpreter≡oracle) caught that
+  MY model of the raw positional walk was wrong in both directions: the case I designed as working
+  (`$2[2]`) hard-errored, and the case I designed as unresolvable (`$2.word` from a word-binding
+  position) resolved. The gate's `agreed=true anchor_ok=false` split is exactly the right
+  diagnostic: parity held (no implementation bug), the ANCHOR was wrong (my model bug). The
+  correction chain — scratch-slot probe → self-explaining resolver error naming the exact ref →
+  `--parse-dump-ast-pretty` showing the `Alternative`-wrapped rule node — took minutes and produced
+  two NEW normative facts (dotted self-match on the wrapper; `[0]`-unwrap before child indexing).
+  Pattern: when parity holds but anchors miss, dump the actual tree BEFORE redesigning the case.
+- **The stale-binary trap has a second head.** `focus_scratch` regenerates the artifact, but the
+  release probe embeds parsers at COMPILE time — my first probe ran the PREVIOUS scratch grammar
+  (trace showed it matching `'hello, '`) with a plausible-looking position-0 reject. The tell:
+  `furthest_position=0` on an input whose first construct should consume bytes. Extended rule from
+  [[feedback_verify_sv_parser_regen_mtime]]: after ANY scratch-slot swap, rebuild the probe binary
+  and confirm the trace shows YOUR grammar's terminals before trusting a verdict.
 ## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0001 — POSITIONAL-PAYLOAD-REFS.1: the F4 evidence pass — why the "one parsing site" claim holds, and the one collateral the audit caught
 
 Session #50. Evidence-only leaf; two notes worth keeping:

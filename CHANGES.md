@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0002 (POSITIONAL-PAYLOAD-REFS.2): F4 CLOSED — positional `$N[.path]`/`[0][M]` payload references RESOLVE; sigil preserved at the one shared capture point; suite 23/23 with the REJECT→ACCEPT re-anchor; two new normative raw-tree walk facts
+
+Session #50. **CODE leaf — engine (payload capture) + stimuli-planner collateral + suite re-anchor,
+NO codegen-template change, NO shipped-parser regen, NO release bump:**
+`rust/src/ast_pipeline/unified_semantic_ast.rs` (`parse_rule_reference` captures from the SIGIL for
+digit-headed refs — `$2.word` → `"$2.word"`; alpha-headed refs stay stripped, byte-identical),
+`rust/src/ast_pipeline/stimuli_generator.rs` (`emit_name_is_whole_render` excludes `$`-headed
+positional refs — the `.1`-flagged collateral), `rust/src/parse_harness_semantic_suite.rs`
+(the re-anchor + the new hard-error pin; 22 → 23 cases).
+
+- **The fix:** the `.1`-confirmed ONE capture point now keeps `$` iff the reference body is
+  digit-headed, so the ALREADY-EMITTED resolver dispatch (`starts_with('$')` + digit →
+  `resolve_positional_semantic_reference`, which itself requires the `$`) just works. Interpreter
+  parity automatic — it compiles annotations with the same shared `compile_semantic_runtime_annotations`.
+- **Suite re-anchor (deliberate):** `sem_ref_positional_unresolvable` → **`sem_ref_positional`**
+  (constructs `RefPositionalUnresolvable` → `RefPositional`): plain `$2` (emit name), dotted
+  `$2.word`, chained-indexed `$2[0][2]` — `"(a)[a,z]{z,a}"` REJECT→**ACCEPT** + two targeted
+  REJECTs; NEW **`sem_ref_positional_deep_unresolvable`** keeps the hard-error parity pin
+  (`$3.word` walks into the literal `"]"` → unresolvable → rule fails, both sides).
+- **⚠️ Two tool-established walk facts (my first anchors were WRONG; the oracle +
+  `--parse-dump-ast-pretty` corrected them):** (1) a positional element binding a rule
+  Alternative-WRAPS the rule node — the dotted walk SELF-matches its name (`$2.word` on
+  `use := "[" word "]"` resolves); (2) `[M]` on such an element accepts only `[0]` (the unwrap) —
+  indexing the rule's children is `$N[0][M]` (probe: `could not resolve attribute reference
+  '$2[2]'`). Both now NORMATIVE (spec invariant 3 amended, invariant 6 added) and book-documented.
+- **VERIFIED:** `parse_harness_semantic_gate` **23/23 CLEAN** (2/2 tests);
+  `parse_harness_equivalence_gate` 4/4 — **11 CERTIFIED byte-identical** (the interpreter
+  live-compiles every shipped grammar's annotations through the CHANGED function — SV's 45
+  predicates + 23 emit_facts included); `parse_harness_combinator_gate` 16/16;
+  `sv_cert_recognized_union_gate` GREEN deterministic seeds 0/7/42 (canonical `1343/10/1321/12`,
+  union 1, residual `context_member_method_call` — also re-proves the stimuli planner post-
+  `emit_name_is_whole_render`); units unified_semantic_ast 13/13, stimuli_generator 182/182,
+  semantic_runtime 98/98; clippy strict-source GREEN; `mdbook_docs_gate` +
+  `semantic_annotation_parser_book_gate` GREEN.
+- **Lockstep:** `PGEN_ANNOTATION_NORMATIVE_SPEC.md` (invariants 3+6); semantic_annotation book
+  `values-and-references.md` (new *Positional references* section + rendered HTML); top book
+  `parse-harness.md` (23 cases, new table rows, author-fact rewrite); `TOOLBOX.md` §1.8 (23/23).
+- **TREE COMPLETE — F4 CLOSED.** Next per the SEM-FINDINGS cross-tree order: `FACT-NAME-MATCHING.1` (F2).
 ## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0001 (POSITIONAL-PAYLOAD-REFS.1): F4 strip locus CONFIRMED — one function, one dispatch site (`parse_rule_reference`, `unified_semantic_ast.rs:532–617`); zero-usage audit = blast radius nil; 1 collateral flagged for `.2`
 
 Session #50. **EVIDENCE leaf — NO code.** The three `.1` parts, each tool-backed:

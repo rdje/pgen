@@ -89,3 +89,36 @@ When a `$name` / `$a.b` reference resolves against a rule X (SEMREF-SHAPED, 2026
   key/path lookup into the **shaped** structure down to a scalar leaf (String/Number/Bool as-is; an
   absent key, a non-object intermediate, `Null`, or a non-scalar leaf → unresolved);
 - if X has no `->`, resolution is the raw sub-rule-name descendant search.
+
+### Positional references — `$N` (working since POSITIONAL-PAYLOAD-REFS.2)
+
+A **positional** head (`$1`, `$2`, … — 1-indexed over the rule's parsed elements, literals included)
+resolves against the annotated rule's own content, with optional dotted / indexed segments chained
+behind it. Since `POSITIONAL-PAYLOAD-REFS.2` (2026-07-06) positional references **resolve** from
+compiled grammar directives; before that fix the payload compiler stripped the `$` sigil and a
+positional payload reference always hard-failed. All three forms are differentially pinned
+(generated parser ≡ interpreter) by the `sem_ref_positional` suite case:
+
+```text
+@emit_fact: { kind: pf, name: $2, family: p }                     # plain: position 2's text
+mk := "(" word ")"                                                 # $2 = the word element → "a"
+
+@predicate: { name: has_fact, args: [pf, $2.word], phase: post }   # dotted from a position
+use := "[" pair "]"                                                # $2 = pair → first word below it
+
+@predicate: { name: has_fact, args: [pf, $2[0][2]], phase: post }  # chained-indexed
+idx := "{" pair "}"                                                # [0] unwraps, [2] = second word
+```
+
+Raw-tree walk semantics an author must know (AST-dump-established, pinned differentially):
+
+- **positions count every element** — literals occupy positions (`mk := "(" word ")"` puts `word`
+  at `$2`);
+- **a position that binds a rule wraps that rule's node** — a dotted segment may **self-match** the
+  wrapped rule's name (`$2.word` above resolves even though position 2 *is* the `word` element);
+- **indexing into a bound rule's children needs the `[0]` unwrap first** — `$2[0][2]`, not `$2[2]`
+  (`[0]` unwraps the position's rule-node wrapper; the next index walks the rule's real children,
+  0-based, literals included);
+- **an unresolvable reference is a hard error** — a segment walking into a literal/terminal element
+  (e.g. `$3.word` where position 3 is `"]"`) fails the whole rule, identically on the generated
+  parser and the interpreter (pinned by `sem_ref_positional_deep_unresolvable`).

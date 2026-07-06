@@ -3188,11 +3188,18 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     /// STORE-AWARE-GEN.4b.2: does a producer's `@emit_fact` name resolve to the producer rule's WHOLE
-    /// render? True for an undotted `$ref` (e.g. `name: $body` on `declared_X := X_identifier ->
+    /// render? True for an undotted NAMED `$ref` (e.g. `name: $body` on `declared_X := X_identifier ->
     /// {body:$1.body}`, where the render IS the identifier). A dotted ref (`$x.body`) or a literal name
     /// (regex's `name: capture`) does not, so it is left exactly as-is by the emit hook.
+    /// POSITIONAL-PAYLOAD-REFS.2: a positional ref (compiled literal keeps the `$` sigil — `"$2"`)
+    /// is ALSO excluded even when undotted: `$N` resolves to position N's SUB-render, not the whole
+    /// render, so claiming whole-render for it would mis-plan the producer.
     fn emit_name_is_whole_render(name: &SemanticRuntimeValue) -> bool {
-        matches!(name, SemanticRuntimeValue::RuleReference(reference) if !reference.contains('.'))
+        matches!(
+            name,
+            SemanticRuntimeValue::RuleReference(reference)
+                if !reference.contains('.') && !reference.starts_with('$')
+        )
     }
 
     /// STORE-AWARE-GEN.4b.2: the `declaration_family` attribute value a producer `@emit_fact` carries

@@ -1,8 +1,10 @@
 # POSITIONAL-PAYLOAD-REFS — make positional `$N` references resolvable in semantic-directive payloads (F4)
 
 - Tree ID: `POSITIONAL-PAYLOAD-REFS`
-- Status: `active` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
-  2026-07-06; this tree owns finding **F4**)
+- Status: `complete` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
+  2026-07-06; this tree owns finding **F4**. `.1` evidence + `.2` fix both landed session #50 —
+  **F4 CLOSED**: positional `$N[.path]`/`[0][M]` references resolve in directive payloads on both
+  implementations)
 
 ## 1. The finding (tool-established, PARSE-HARNESS.6.2 session #47)
 
@@ -116,17 +118,78 @@ hard-fail.
     2's SUB-render). Unreachable today (zero usage) but `.2` makes it reachable — `.2` MUST exclude
     `$`-headed refs from the whole-render heuristic (or resolve the position) and cover it.
 
-- `.2` — **FIX: sigil preservation + suite re-anchor + docs — `not-started` (frontier).** Blocked on
-  `.1` → now UNBLOCKED. The §2 fix (in `parse_rule_reference`, `unified_semantic_ast.rs` — the `.1`-
-  confirmed locus) + the §3 battery + the enforced acceptance checklist + spec/book lockstep + the
-  `.1`-flagged `emit_name_is_whole_render` exclusion.
+- `.2` — **FIX: sigil preservation + suite re-anchor + docs — `done` (2026-07-06, session #50,
+  `PGEN-POSITIONAL-PAYLOAD-REFS-0002`).** The §2 fix landed at the `.1`-confirmed locus:
+  `parse_rule_reference` (`rust/src/ast_pipeline/unified_semantic_ast.rs`) now captures from the
+  SIGIL for digit-headed refs (`$2.word` → `"$2.word"`) and from after it for alpha-headed refs
+  (`$body` → `"body"`, byte-identical to pre-fix). The `.1`-flagged collateral landed with it:
+  `emit_name_is_whole_render` (`stimuli_generator.rs`) excludes `$`-headed (positional) refs from
+  the whole-render heuristic. NO codegen-template change, NO shipped-parser regen (frozen literals
+  unchanged — the `.1` audit), interpreter parity automatic (shared compile fn).
+
+  **Suite re-anchor (deliberate, documented):** `sem_ref_positional_unresolvable` →
+  `sem_ref_positional` (construct `RefPositionalUnresolvable` → `RefPositional`): the working case
+  covers plain `$2` (emit name), dotted `$2.word`, and chained-indexed `$2[0][2]`; REJECT→ACCEPT on
+  the all-resolve-to-"a" input. NEW `sem_ref_positional_deep_unresolvable` (construct
+  `RefPositionalDeepUnresolvable`) retains the hard-error parity pin: `$3.word` walks into the
+  literal `"]"` (Terminal content) → unresolvable → hard error → REJECT, both sides. Suite 22 → 23.
+
+  **⚠️ TWO tool-established raw-tree walk facts found while re-anchoring (my first anchors were
+  WRONG — the compile-and-run oracle + `--parse-dump-ast-pretty` corrected them):**
+  - a positional element that binds a rule WRAPS the rule node in `Alternative` content, and the
+    named-descendant walk SELF-MATCHES the wrapped node's rule name (`$2.word` on
+    `use := "[" word "]"` RESOLVES — my planned "deep unresolvable via terminal-walk-from-word"
+    case ACCEPTED);
+  - `[M]` on such an element accepts ONLY `[0]` (the Alternative-unwrap arm of
+    `find_semantic_indexed_child`); indexing the bound rule's children is the chained `$N[0][M]`
+    form (`$2[2]` on `idx := "{" pair "}"` hard-errored: `could not resolve attribute reference
+    '$2[2]'`, rule stack `program → idx`).
+  Both facts are now normative (spec invariant 3), book-documented, and differentially pinned.
+
+  **Lockstep landed same-commit:** normative spec (`PGEN_ANNOTATION_NORMATIVE_SPEC.md`) — raw-tree
+  positional-walk semantics added to invariant 3 + NEW invariant 6 (compiled-literal sigil
+  discipline, with history); semantic_annotation parser book (`values-and-references.md` — the new
+  *Positional references* section with worked examples + author facts; rendered HTML regenerated);
+  top book `parse-harness.md` (23 cases, the two new table rows, the grammar-author fact rewritten
+  to the working reality); `TOOLBOX.md` §1.8 count 23/23.
+
+## Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — pre-fix pin `sem_ref_positional_unresolvable`: `"(a)[a]"` REJECT on
+  both implementations (suite CLEAN at #47–#49); frozen literal read showed
+  `RuleReference("2")` (sigil stripped) for `name: $2`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `.1` (commit `87fb3d5f`): `parse_rule_reference`
+  (`unified_semantic_ast.rs:533` `expect_char('$')`, `:534` capture-after-sigil, `:616` return) is
+  the ONE payload capture point; the emitted resolver dispatches positional ONLY on
+  `starts_with('$')` (`ast_based_generator.rs:5557`) and the named lexer REJECTS a digit head
+  (`:5948`) → a stripped positional ref can never resolve.
+- [x] **FIX** — engine tier (fix-hierarchy: the narrowest engine cut; no grammar/annotation tier
+  can reach a compiler strip): keep the sigil iff digit-headed at the single capture point +
+  the `emit_name_is_whole_render` positional exclusion. NO template change, NO regen.
+- [x] **ADDRESSED (verified)** — `sem_ref_positional` `"(a)[a,z]{z,a}"` REJECT→**ACCEPT** with
+  plain/dotted/chained-indexed refs all live (gate 23/23 CLEAN 2/2 tests,
+  `make -C rust parse_harness_semantic_gate`); the live scratch probe showed the resolution
+  chain working end-to-end (self-explaining `could not resolve attribute reference '$2[2]'`
+  during anchor correction — the error now names the exact ref).
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate` 4/4: **11 CERTIFIED grammars
+  byte-identical** (the interpreter compiles every shipped grammar's annotations LIVE through the
+  changed capture fn — SV's 45 `@predicate`s/23 `@emit_fact`s with `$body`-style named refs
+  included — and stays byte-identical to the generated parsers); `sv_cert_recognized_union_gate`
+  GREEN deterministic seeds 0/7/42 (canonical `1343/10/1321/12`, union UNKNOWN=1, residual
+  `context_member_method_call` — byte-identical to the locked baseline, also re-proves the
+  stimuli/witness planner after the `emit_name_is_whole_render` change);
+  `parse_harness_combinator_gate` 16/16; unit tests unified_semantic_ast 13/13,
+  stimuli_generator 182/182, semantic_runtime 98/98; clippy strict-source GREEN (generated stage =
+  pre-existing `eq_op` debt only, non-strict by design).
+- [x] **LOCKSTEP** — normative spec invariant 3 amended + invariant 6 added;
+  semantic_annotation book + rendered HTML (gate GREEN); top book parse-harness chapter;
+  TOOLBOX.md §1.8; `mdbook_docs_gate` GREEN; tree + TASK_TREE.md + live docs this commit.
 
 ## 5. Current Frontier
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | `.1` (strip locus + zero-usage audit) | `done` (2026-07-06 #50, `PGEN-POSITIONAL-PAYLOAD-REFS-0001`) | Locus = `parse_rule_reference` (`unified_semantic_ast.rs:532–617`), ONE site; zero usage in grammars + generated; 1 collateral flagged for `.2`. |
-| 2 | `.2` (sigil preservation + re-anchor + docs) | `not-started` (**frontier**) | Narrow engine cut in the `.1`-confirmed locus; parity automatic; MUST handle `emit_name_is_whole_render`. |
+| 2 | `.2` (sigil preservation + re-anchor + docs) | `done` (2026-07-06 #50, `PGEN-POSITIONAL-PAYLOAD-REFS-0002`) | F4 CLOSED: positional payload refs resolve; suite 23/23; 11 CERTIFIED byte-identical; spec/book lockstep. **TREE COMPLETE.** |
 
 ## 6. Relationships
 

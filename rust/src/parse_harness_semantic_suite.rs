@@ -100,14 +100,28 @@ pub enum SemanticConstruct {
     /// Named `$ref` resolution over RAW (un-shaped) rule content — the recursive named-descendant
     /// tree walk (`find_semantic_named_descendant`), on rules WITHOUT a `->`.
     RefRawNamedWalk,
-    /// The positional-`$N` parity pin: the semantic-annotation compiler STRIPS the `$` sigil
-    /// (`name: $2` freezes as `RuleReference("2")`), so the resolver routes it to the NAMED path,
-    /// whose lexer rejects a leading digit — a positional reference in a directive payload can
-    /// therefore NEVER resolve (tool-established, session #47; the
-    /// `resolve_positional_semantic_reference` machinery is unreachable from compiled directives —
-    /// a half-wired surface, surfaced to the director). Both implementations must fail identically:
-    /// a hard emit-resolution error that fails the rule.
-    RefPositionalUnresolvable,
+    /// Positional-`$N` resolution in directive payloads — plain `$N`, dotted `$N.name`, and indexed
+    /// `$N[M]` — over RAW rule content. HISTORY: until `POSITIONAL-PAYLOAD-REFS.2` (2026-07-06,
+    /// session #50) the annotation compiler STRIPPED the `$` sigil (`name: $2` froze as
+    /// `RuleReference("2")`), the resolver routed the digit-headed text to the NAMED path, whose
+    /// lexer rejects a digit head — positional payload refs could NEVER resolve (tool-established,
+    /// session #47; pinned then as the `sem_ref_positional_unresolvable` hard-error parity case).
+    /// The fix preserves the sigil for digit-headed refs in the ONE shared payload parser
+    /// (`parse_rule_reference`), so the deliberately-built `resolve_positional_semantic_reference`
+    /// machinery (SV-EXH-PROOF.3.3.4.a.2) is finally reachable; this case pins the WORKING
+    /// semantics differentially.
+    RefPositional,
+    /// The residual positional hard-error parity pin (the successor of the pre-fix
+    /// `sem_ref_positional_unresolvable` case): a dotted segment that walks INTO a
+    /// terminal-content element (`$3.word` where position 3 is the literal `"]"` — a `Terminal`
+    /// node has no children and the named-descendant walk has nothing to match) still fails
+    /// resolution → the directive hard-errors → the rule fails, identically on both
+    /// implementations. NOTE (tool-established while re-anchoring, session #50): a positional
+    /// element that binds a RULE wraps that rule node in `Alternative` content, and the named walk
+    /// SELF-MATCHES the wrapped node's rule name — so `$2.word` on `use := "[" word "]"` RESOLVES
+    /// (position 2 is the wrapped `word` itself); only a walk into literal/terminal content is
+    /// genuinely dead.
+    RefPositionalDeepUnresolvable,
     /// Named/dotted resolution with `view: shaped` against the `->` Json (SEMREF-SHAPED).
     RefShaped,
     /// The `.len` suffix on a resolved reference.
@@ -152,7 +166,8 @@ impl SemanticConstruct {
         SemanticConstruct::RollbackLoserBranch,
         SemanticConstruct::ZeroLengthEmit,
         SemanticConstruct::RefRawNamedWalk,
-        SemanticConstruct::RefPositionalUnresolvable,
+        SemanticConstruct::RefPositional,
+        SemanticConstruct::RefPositionalDeepUnresolvable,
         SemanticConstruct::RefShaped,
         SemanticConstruct::RefLen,
         SemanticConstruct::BranchStartEmit,
@@ -443,29 +458,70 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         note: "named `$word` resolution over RAW (no `->`) content — the recursive named-descendant \
                tree walk, in both the emit payload and the predicate args",
     },
-    // ── $reference resolution: the positional-$N unresolvable parity pin ───────────────────────────
+    // ── $reference resolution: WORKING positional $N / $N.name / $N[M] over RAW content ────────────
     SemanticCase {
-        name: "sem_ref_positional_unresolvable",
-        construct: SemanticConstruct::RefPositionalUnresolvable,
+        name: "sem_ref_positional",
+        construct: SemanticConstruct::RefPositional,
+        // POSITIONAL-PAYLOAD-REFS.2 re-anchor: the pre-fix `sem_ref_positional_unresolvable` pin
+        // (`"(a)[a]"` REJECT — the compiler stripped `$`, resolution always hard-errored) becomes
+        // the WORKING positional case. `mk`'s emit uses plain `$2` (position 2 = the wrapped
+        // `word`); `use`'s gate uses dotted `$2.word` (position 2 = the wrapped `pair`, then the
+        // named-descendant walk to its FIRST `word`); `idx`'s gate uses chained-indexed `$2[0][2]`
+        // — the SV-EXH-PROOF.3.3.4.a.2 bracket machinery's FIRST live coverage, exercising BOTH
+        // `find_semantic_indexed_child` arms: a positional element wraps its rule node in
+        // `Alternative` content (AST-dump-established, session #50), so `[0]` unwraps the wrapper
+        // to the `pair` node and `[2]` then picks its 0-based sequence child 2 (the second `word`;
+        // child 1 is the `","` literal).
+        grammar_body: "@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
+                       program := mk use idx\n\
+                       @emit_fact: { kind: pf, name: $2, family: p }\n\
+                       mk := \"(\" word \")\"\n\
+                       @predicate: { name: has_fact, args: [pf, $2.word], phase: post }\n\
+                       use := \"[\" pair \"]\"\n\
+                       @predicate: { name: has_fact, args: [pf, $2[0][2]], phase: post }\n\
+                       idx := \"{\" pair \"}\"\n\
+                       pair := word \",\" word\n\
+                       word := /[a-z]+/\n",
+        inputs: &[
+            // All three resolve to "a": mk emits pf:"a" ($2), use's $2.word finds the FIRST word
+            // descendant of `pair` ("a"), idx's $2[0][2] unwraps to `pair` then picks its 0-based
+            // child 2 = the SECOND word ("a").
+            ("(a)[a,z]{z,a}", true),
+            // use's dotted $2.word resolves "b" → has_fact(pf,"b") false → REJECT.
+            ("(a)[b,z]{z,a}", false),
+            // idx's chained-indexed $2[0][2] resolves "b" → has_fact(pf,"b") false → REJECT.
+            ("(a)[a,z]{z,b}", false),
+        ],
+        entry_rule: None,
+        note: "positional payload refs RESOLVE since POSITIONAL-PAYLOAD-REFS.2 (the compiler keeps \
+               the `$` for digit-headed refs): plain `$N`, dotted `$N.name`, and chained-indexed \
+               `$N[0][M]` (Alternative-unwrap + sequence-index) all live-covered over RAW content",
+    },
+    // ── $reference resolution: the residual positional hard-error parity pin ───────────────────────
+    SemanticCase {
+        name: "sem_ref_positional_deep_unresolvable",
+        construct: SemanticConstruct::RefPositionalDeepUnresolvable,
+        // The successor of the RETIRED pre-fix `sem_ref_positional_unresolvable` case (same grammar
+        // shape and inputs; the predicate ref changed `$2.word` → `$3.word`). Pre-fix the stripped
+        // `"2"` literal could never even dispatch positionally; post-fix `$2.word` RESOLVES
+        // (position 2 is the Alternative-wrapped `word` node and the named walk SELF-matches it —
+        // the session #50 AST-dump finding), so the residual hard-error pin moves to `$3.word`:
+        // position 3 is the literal `"]"` (Terminal content, no children, nothing named to match)
+        // → resolution fails → the predicate hard-errors → `use` fails → REJECT on both sides.
         grammar_body: "@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
                        program := mk use\n\
                        @emit_fact: { kind: pf, name: $2, family: p }\n\
                        mk := \"(\" word \")\"\n\
-                       @predicate: { name: has_fact, args: [pf, $2.word], phase: post }\n\
+                       @predicate: { name: has_fact, args: [pf, $3.word], phase: post }\n\
                        use := \"[\" word \"]\"\n\
                        word := /[a-z]+/\n",
         inputs: &[
-            // The compiler strips `$` (the frozen literal is `RuleReference("2")`), the named-path
-            // lexer rejects a leading digit, resolution fails → the `@emit_fact` hard-errors → `mk`
-            // fails → REJECT, identically on both sides. Structurally the inputs are valid — the
-            // rejects are pure resolution-failure parity.
             ("(a)[a]", false),
             ("(a)[b]", false),
         ],
         entry_rule: None,
-        note: "positional `$N` in a directive payload can NEVER resolve (the compiler strips `$`; the \
-               named lexer rejects a digit head) — the hard-error parity pinned; a half-wired engine \
-               surface surfaced to the director",
+        note: "a positional dotted segment walking INTO a terminal-content (literal) element stays \
+               unresolvable → hard-error parity (the successor of the pre-fix strip pin)",
     },
     // ── $reference resolution: named/dotted with view: shaped ───────────────────────────────────────
     SemanticCase {

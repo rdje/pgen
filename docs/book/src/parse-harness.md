@@ -569,7 +569,7 @@ memo is **taint-gated with write-epoch validation**: a body that transitively co
 cached *epoch-stamped* and replayable only while the store is unchanged, so a same-position retry
 after a store change evicts the stale entry and honestly re-parses).
 
-The 22 isolating cases cover the orchestration surface:
+The 23 isolating cases cover the orchestration surface:
 
 | Construct | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -585,7 +585,8 @@ The 22 isolating cases cover the orchestration surface:
 | **C3-B rollback** | a *successful but losing* branch emits | only the WINNING branch's emissions survive the tournament |
 | **zero-length emit** | `maybe := "x"?` with `@emit_fact`, under `*` | a zero-length success fires its effects even though the iteration is structurally discarded |
 | **raw named walk** | `$word` on rules without `->` | the recursive named-descendant walk over the raw tree |
-| **positional `$N` parity** | `name: $2` in a directive payload | positional refs can *never* resolve (the compiler strips `$`) — the hard-error parity, pinned |
+| **positional `$N` resolution** | `name: $2`, `$2.word`, `$2[0][2]` in directive payloads | positional refs **resolve** since POSITIONAL-PAYLOAD-REFS.2 — plain, dotted (self-match on the wrapped rule), and chained-indexed (`[0]` unwrap + 0-based child) all live-covered |
+| **positional hard-error parity** | `$3.word` where position 3 is the literal `"]"` | a dotted segment walking into terminal content stays unresolvable → the directive hard-errors and fails the rule, identically on both sides |
 | **shaped view** | `$w.body` with `view: shaped` | dotted resolution against the `->`-shaped JSON |
 | **`.len`** | `name: $body.len` | the resolved text's character count |
 | **branch-start actions** | inline `@emit_fact` at a branch start | fires for the WINNING branch only (INLINE-ACTIONS.2) |
@@ -612,10 +613,17 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   suite found the discrepancy, the fix restored the introducing commit's own "candidate branch only"
   semantics, and `sem_branch_gate` was deliberately re-anchored to pin branch-locality. Helper rules
   carrying `phase: post` gates (the SV `net_declaration` pattern) remain an equivalent idiom.
-- **Positional `$N` references do not work in directive payloads.** The annotation compiler strips the
-  `$` sigil, so `$2` freezes as `RuleReference("2")`, which the resolver's *named* lexer rejects (digit
-  head) — resolution always fails, hard. The positional resolver machinery is unreachable from compiled
-  directives (a half-wired surface, like the bounded quantifiers).
+- **Positional `$N` references work in directive payloads** (since `POSITIONAL-PAYLOAD-REFS.2`,
+  2026-07-06): `name: $2` resolves position 2's text, `$2.word` walks a dotted segment from a
+  position, and `$2[0][2]` chains indexed access. The raw-tree walk facts an author needs: positions
+  are 1-indexed and **literals occupy positions**; a position that binds a rule **wraps the rule
+  node**, so a dotted segment may self-match its name, and indexing into the rule's children needs
+  the `[0]` unwrap first (`$2[0][2]`, not `$2[2]`); an unresolvable segment (e.g. one walking into a
+  literal element) is a **hard error** that fails the rule. *History:* the annotation compiler used
+  to strip the `$` sigil (`$2` froze as `RuleReference("2")`, which the *named* lexer rejects on the
+  digit head) — the deliberately-built positional resolver was unreachable from compiled directives,
+  a half-wired surface found by this suite; the fix preserves the sigil for digit-headed refs at the
+  single shared payload-capture point, so the interpreter inherits it automatically.
 - **The memo is taint-gated with write-epoch validation (stale store-dependent entries can never
   replay).** The memo key is `(rule, position)` — store-blind — so replaying a store-dependent outcome
   after the store changed would resurrect stale verdicts (and stale *trees*). Since
@@ -662,8 +670,9 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
   half (`.6.1`, *The structural combinator suite* above — 16 isolating grammars) and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
-  20 isolating grammars covering the store-gated-outcome surface, which also landed the interpreter's
-  semantic orchestration mirror + split memo). A fuzzing lane (`.7`) remains the optional push toward
+  23 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
+  findings-driven re-anchors), which also landed the interpreter's semantic orchestration mirror +
+  split memo). A fuzzing lane (`.7`) remains the optional push toward
   exhaustive. Out of harness scope on the semantic side: bootstrap facts (the cross-file `veer` surface)
   and real library I/O (both registry-owned), and coverage recording (a cert surface). See
   `docs/tasks/PARSE-HARNESS.md` §3.3 / §3.4 / §21.3.

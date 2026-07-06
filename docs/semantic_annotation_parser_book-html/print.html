@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-20ea42ad.js";
+            window.path_to_searchindex_js = "searchindex-8820ec52.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -460,6 +460,35 @@ See <a href="#backends-bootstrap-vs-generated">Backends</a>.</p>
 key/path lookup into the <strong>shaped</strong> structure down to a scalar leaf (String/Number/Bool as-is; an
 absent key, a non-object intermediate, <code>Null</code>, or a non-scalar leaf → unresolved);</li>
 <li>if X has no <code>-&gt;</code>, resolution is the raw sub-rule-name descendant search.</li>
+</ul>
+<h3 id="positional-references--n-working-since-positional-payload-refs2"><a class="header" href="#positional-references--n-working-since-positional-payload-refs2">Positional references — <code>$N</code> (working since POSITIONAL-PAYLOAD-REFS.2)</a></h3>
+<p>A <strong>positional</strong> head (<code>$1</code>, <code>$2</code>, … — 1-indexed over the rule’s parsed elements, literals included)
+resolves against the annotated rule’s own content, with optional dotted / indexed segments chained
+behind it. Since <code>POSITIONAL-PAYLOAD-REFS.2</code> (2026-07-06) positional references <strong>resolve</strong> from
+compiled grammar directives; before that fix the payload compiler stripped the <code>$</code> sigil and a
+positional payload reference always hard-failed. All three forms are differentially pinned
+(generated parser ≡ interpreter) by the <code>sem_ref_positional</code> suite case:</p>
+<pre><code class="language-text">@emit_fact: { kind: pf, name: $2, family: p }                     # plain: position 2's text
+mk := "(" word ")"                                                 # $2 = the word element → "a"
+
+@predicate: { name: has_fact, args: [pf, $2.word], phase: post }   # dotted from a position
+use := "[" pair "]"                                                # $2 = pair → first word below it
+
+@predicate: { name: has_fact, args: [pf, $2[0][2]], phase: post }  # chained-indexed
+idx := "{" pair "}"                                                # [0] unwraps, [2] = second word
+</code></pre>
+<p>Raw-tree walk semantics an author must know (AST-dump-established, pinned differentially):</p>
+<ul>
+<li><strong>positions count every element</strong> — literals occupy positions (<code>mk := "(" word ")"</code> puts <code>word</code>
+at <code>$2</code>);</li>
+<li><strong>a position that binds a rule wraps that rule’s node</strong> — a dotted segment may <strong>self-match</strong> the
+wrapped rule’s name (<code>$2.word</code> above resolves even though position 2 <em>is</em> the <code>word</code> element);</li>
+<li><strong>indexing into a bound rule’s children needs the <code>[0]</code> unwrap first</strong> — <code>$2[0][2]</code>, not <code>$2[2]</code>
+(<code>[0]</code> unwraps the position’s rule-node wrapper; the next index walks the rule’s real children,
+0-based, literals included);</li>
+<li><strong>an unresolvable reference is a hard error</strong> — a segment walking into a literal/terminal element
+(e.g. <code>$3.word</code> where position 3 is <code>"]"</code>) fails the whole rule, identically on the generated
+parser and the interpreter (pinned by <code>sem_ref_positional_deep_unresolvable</code>).</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="steering-directives"><a class="header" href="#steering-directives">Steering Directives</a></h1>

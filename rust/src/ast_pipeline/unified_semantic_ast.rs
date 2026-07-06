@@ -530,9 +530,24 @@ impl<'a> StructuredSemanticValueParser<'a> {
     }
 
     fn parse_rule_reference(&mut self) -> Option<String> {
+        let sigil_start = self.position;
         self.expect_char('$')?;
         let start = self.position;
         let first = self.peek_char()?;
+        // POSITIONAL-PAYLOAD-REFS.2 (2026-07-06): digit-headed (positional)
+        // references KEEP the leading `$` in the captured text
+        // (`$2.word` → `"$2.word"`), because the runtime resolver
+        // (`resolve_semantic_reference`) dispatches to the positional walk
+        // only on a `$`-headed, digit-bodied reference and its segment
+        // parser (`parse_semantic_reference_segments`) requires the `$`
+        // itself. Alpha-headed (named) references stay sigil-stripped
+        // (`$body` → `"body"`) — the named resolution path expects the
+        // bare name and is byte-identical to the pre-fix behavior.
+        let capture_start = if first.is_ascii_digit() {
+            sigil_start
+        } else {
+            start
+        };
         if first.is_ascii_digit() {
             self.consume_while(|ch| ch.is_ascii_digit());
         } else if first.is_ascii_alphabetic() || first == '_' {
@@ -613,7 +628,7 @@ impl<'a> StructuredSemanticValueParser<'a> {
                 _ => break,
             }
         }
-        Some(self.input[start..self.position].to_string())
+        Some(self.input[capture_start..self.position].to_string())
     }
 
     fn parse_number(&mut self) -> Option<String> {
