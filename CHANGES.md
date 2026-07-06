@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0001 (MEMO-STORE-SOUNDNESS.1): the F1 evidence slice — SUCCESS-side memo staleness CONFIRMED (verdict-flip AND stale AST), taint hook points audited, SV corpus perf baseline locked
+
+Session #49. **EVIDENCE leaf — test-only code (one `--ignored` scouting probe appended to
+`rust/src/parse_harness_semantic_suite.rs::measurement`; NO parser/engine/grammar/generated change).**
+The tools-first `.1` slice of the F1 fix tree (`SEM-FINDINGS` cross-tree priority 2), executed per
+the leaf plan: (a) success-side isolating probe, (b) taint-counter hook-point audit, (c)
+`PGEN_REPORT_MEMO_STATS` baseline. Full evidence in `docs/tasks/MEMO-STORE-SOUNDNESS.md` §1/§2/§4.
+
+- **(a) The suspected SUCCESS-side sibling gap is CONFIRMED — and it is verdict-affecting, not just
+  AST-affecting.** New probe `measure_memo_success_side_staleness` (two isolating grammars on the
+  `sem_memo_*` skeleton — an unannotated `pick` over a store-gated tournament, a zero-width
+  `@emit_fact` between same-position evaluations), run through BOTH the interpreter and the
+  compile-and-run oracle: (i) verdict-observable — `"gox!"` REJECTS on both sides where a fresh
+  evaluation accepts (the stale replay of the pre-emission narrow win misaligns the tail); (ii)
+  AST-observable — `"go!"` ACCEPTS with the stale `normal_pick` tree where fresh evaluation shapes
+  `special_pick`. Fresh-position (`"ongo!"` → `special_pick`) and store-free (`"go?"`) controls
+  green. **Adjudication: `.2` must exclude tainted SUCCESSES from the memo too** — the
+  delta-replay + fresh-gates design provably does not cover nested tournament content.
+- **(b) The taint-counter design is mechanically confirmed.** ALL predicate evaluation funnels
+  through `evaluate_predicate` (`semantic_runtime.rs:2032`): pre via `evaluate_directive_predicate`
+  (`:2379`), post/branch via `evaluate_content_aware_predicate` (`:2356`), composed
+  `@predicate_def`s via the default arm (`:2227`) — on both implementations. Both evaluators take
+  `&self` ⇒ `Cell<u64>` beside `SemanticStoreCounters` (`:1232`). Monotonic across speculation BY
+  CONSTRUCTION: `rollback_to_named` is truncation-based and never touches counters; the rule
+  transaction's `mem::take` window MOVES the state and starts only AFTER the body, so
+  `memoized_call`'s before/after reads always see the live state; a rule's own gates evaluate
+  outside its own `memoized_call` (fresh-per-hit stays uncached — correct). `content_kind_is` is
+  the one content-only arm (memo-key-covered ⇒ exemptable).
+- **(c) The before-numbers `.2` must match:** `PGEN_REPORT_MEMO_STATS=1 make -C rust
+  sv_external_corpus_triage_gate` — 14/14 parse-pass; `parse_total_ms=398455`, max `190958` (uvm);
+  per-case table in the tree. Cached failures are **83–85% of memo entries on every case** (uvm:
+  4.38M ok + 21.8M fail) — the PARSE-TERMINATION.6 majority thesis re-measured at corpus scale =
+  the measured perf premise of the taint-exclusion design.
+- **VERIFIED:** probe deterministic (curated inputs); `parse_harness_semantic_gate` re-run GREEN
+  (20/20 CLEAN, 2/2 tests — the probe changes no gate anchors); SV external corpus 14/14 (the (c)
+  run IS the oracle re-run); `clippy_on_rust_change` strict-source GREEN (0 findings in the touched
+  module; generated stage carries only the pre-existing non-strict `eq_op` debt). LIVE tracker
+  unchanged (evidence only; SV release stays `1.0.167`/schema 16).
+
 ## 2026-07-06 - PGEN-BRANCH-PREDICATE-LOCALITY-0002 (BRANCH-PREDICATE-LOCALITY.2): inline `phase: branch` predicates are now branch-LOCAL — the one-function engine fix, the deliberate `sem_branch_gate` re-anchor, and the SV routing-preservation companion; TREE COMPLETE
 
 Session #48. **CODE leaf — engine (ONE registry function) + suite re-anchor + SV grammar companion + contract re-lock: edits `rust/src/ast_pipeline/semantic_runtime.rs` (`branch_predicates_for_rule` drops the flat-map over branch buckets — rule-level branch predicates only; inline ones reach the tournament exclusively via `branch_predicates_for_rule_branch`, already chained at every call site), `rust/src/parse_harness_semantic_suite.rs` (the `sem_branch_gate` branch-local re-anchor, old+new pins both recorded), `rust/src/parse_harness_interpreter.rs` (doc comment), `grammars/systemverilog.ebnf` (the companion: the dead `hierarchical` branch of `scoped_or_hierarchical_tf_identifier` RETIRED + linter-derived `@profiles: [sv_2017, sv_2023]` on `scoped_or_hierarchical_tf_identifier`/`tf_call_with_args` + 3 comment sites refreshed), `rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json` (justified cert re-lock + provenance), `rust/test_data/ast_shape_contract/systemverilog_v1.json` (2 prose fields).** Interpreter parity by construction — it calls the SAME registry function; ZERO interpreter logic change.

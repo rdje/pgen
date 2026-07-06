@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0001 — MEMO-STORE-SOUNDNESS.1: designing a staleness probe that flips a VERDICT, and why the taint counter is monotonic for free
+
+Session #49. PNT resumed from the layer-A pointer onto the cross-tree frontier
+(`MEMO-STORE-SOUNDNESS.1`, F1). Three technique notes for continuity:
+
+- **Making cache staleness verdict-observable:** a stale memo SUCCESS naively manifests as "wrong
+  AST, same accept" — hard to anchor in a verdict-based differential. The trick: make the
+  store-gated tournament branch consume MORE bytes than the fallback (`wide:="gox"` vs
+  `narrow:="go"`). The stale replay then hands back the SHORT parse, the tail token misses, and the
+  whole parse REJECTS where fresh evaluation accepts — staleness becomes a plain accept/reject
+  anchor. Keep the equal-length variant too (`special_pick`/`normal_pick` markers grepped from
+  `ast_json`) because it proves the tree-corruption mode independently, plus a fresh-position
+  control (`"ongo!"`: the emitter consumes bytes, so the retry lands at a NEW memo key and behaves
+  soundly) that isolates the mechanism to same-position replay specifically.
+- **The taint counter is rollback-proof without any special handling — but only because of two
+  specific mechanics, both now pinned in the tree:** (1) speculation rollback
+  (`rollback_to_named`) is TRUNCATION-based (fact/scope-arena lengths) and never touches the
+  cumulative `counters` block, so a counter beside it survives C3-B branch cleanup; (2) the rule
+  transaction's `mem::take` window MOVES the state (PARSE-TERMINATION.3.1 removed the clone-restore
+  — the `:9072` codegen test pins that) and begins only AFTER the body call returns, so
+  `memoized_call` (which IS the body) always reads the live state at both boundaries. Had either
+  been otherwise (clone-restore, or take-before-body), the counter would silently under-count and
+  tainted attempts would still get cached. Worth re-checking both facts whenever the transaction
+  skeleton changes.
+- **A rule's own gates must NOT taint its own memo entry — and the existing call order gives that
+  for free:** pre gates run before `f`, post/branch gates run in the take-window after `f`, and
+  `memoized_call` is `f` itself. So the counter delta seen by `memoized_call` covers exactly the
+  NESTED transactions (the `sem_memo_wrapper` shape) and never the rule's own gates (which the
+  transaction deliberately re-evaluates fresh on every hit — `sem_memo_gate_retry`). The design
+  needs zero phase-discrimination logic; the call order already encodes it.
+
 ## 2026-07-06 - PGEN-BRANCH-PREDICATE-LOCALITY-0002 — BRANCH-PREDICATE-LOCALITY.2: the locality fix, and three engineering notes on fixing an engine bug that dead grammar code depended on
 
 Session #48. Three notes worth keeping:

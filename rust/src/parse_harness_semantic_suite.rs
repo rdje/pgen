@@ -844,4 +844,155 @@ mod measurement {
         let clean = reports.iter().filter(|r| r.is_clean()).count();
         eprintln!("\n{clean}/{} semantic cases CLEAN", reports.len());
     }
+
+    /// Scouting probe (`MEMO-STORE-SOUNDNESS.1`): does the SUCCESS side of the split memo have the
+    /// same store-blindness as the failure side (`sem_memo_wrapper`)? A memo-HIT replays the cached
+    /// BODY — the node whose nested tournament choices were made under the store AS IT WAS on first
+    /// evaluation. Gates re-evaluate fresh (`sem_memo_gate_retry`), but the body CONTENT is
+    /// store-frozen. Two isolating variants, both built on the `sem_memo_*` skeleton (an unannotated
+    /// rule `pick` whose nested tournament depends on a post gate; a zero-width `@emit_fact` between
+    /// the first and second same-position evaluations):
+    ///
+    /// - **verdict-observable** (`probe_memo_success_verdict`): the gated branch consumes MORE bytes
+    ///   (`wide := "gox"` vs `narrow := "go"`), so a stale replay of the narrow win leaves the parse
+    ///   misaligned and REJECTS where a fresh evaluation would pick `wide` and ACCEPT `"gox!"`.
+    /// - **AST-observable** (`probe_memo_success_ast`): both branches consume the same bytes but shape
+    ///   different `kind` markers — a stale replay ACCEPTs with `normal_pick` where a fresh
+    ///   evaluation would ACCEPT with `special_pick` (same verdict, wrong tree).
+    ///
+    /// Prints the per-input interpreter/oracle verdicts + the winning-branch marker, then an explicit
+    /// CONFIRMED/ABSENT summary for each side. Run:
+    /// `cargo test --features "generated_parsers ebnf_dual_run" --lib
+    ///  parse_harness_semantic_suite::measurement::measure_memo_success_side_staleness -- --ignored --nocapture`.
+    #[test]
+    #[ignore = "scouting probe (MEMO-STORE-SOUNDNESS.1): measures the SUCCESS-side memo-staleness shape; run with --ignored --nocapture"]
+    fn measure_memo_success_side_staleness() {
+        use crate::parse_harness::ParseOutcome;
+        use crate::parse_harness_interpreter::{InterpretOptions, interpret_parse};
+
+        // Variant A — the stale replay flips the VERDICT. First evaluation of `pick` (no fact):
+        // `wide`'s body parses but its post gate rejects → `narrow` wins → memo success
+        // `(pick, 0) = narrow, end 2`. Branch 2 emits the fact zero-width and retries `pick` at
+        // position 0: a stale memo hit replays the narrow win (end 2) so `"!"` misses at byte 2 of
+        // `"gox!"` → REJECT; a fresh evaluation would let `wide` pass its gate, win the tournament
+        // at end 3, and ACCEPT.
+        const VERDICT_GRAMMAR: &str = r#"@fact_kind: { name: g, attributes: [family], description: "G." }
+program := pick "?" | en pick "!"
+pick := wide | narrow
+@predicate: { name: has_fact, args: [g, "on"], phase: post }
+wide := "gox"
+narrow := "go"
+@emit_fact: { kind: g, name: "on", family: f }
+en := "on"?
+"#;
+        // Variant B — same skeleton, equal-length branches with distinct shaped `kind` markers: the
+        // stale replay keeps the SAME verdict but the WRONG tree (`normal_pick` instead of
+        // `special_pick`) on `"go!"`. `"ongo!"` is the fresh-position control: `en` consumes bytes,
+        // so `pick` runs at a new position and the gate steers the tournament to `special_pick`.
+        const AST_GRAMMAR: &str = r#"@fact_kind: { name: g, attributes: [family], description: "G." }
+program := pick "?" | en pick "!"
+pick := special | normal
+@predicate: { name: has_fact, args: [g, "on"], phase: post }
+special := "go" -> { kind: "special_pick" }
+normal := "go" -> { kind: "normal_pick" }
+@emit_fact: { kind: g, name: "on", family: f }
+en := "on"?
+"#;
+
+        let bin = default_ast_pipeline_bin();
+        if !bin.is_file() {
+            eprintln!("ast_pipeline not built at {} — cannot measure", bin.display());
+            return;
+        }
+        let workdir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/parse_harness_semantic");
+
+        /// Which shaped `kind` marker the winning `pick` branch left in the typed AST (the losing
+        /// branch's marker never appears in the tree).
+        fn winner_marker(outcome: &Result<ParseOutcome, impl std::fmt::Display>) -> &'static str {
+            let Ok(o) = outcome else { return "<error>" };
+            let Some(ast) = &o.ast_json else { return "-" };
+            let rendered = ast.to_string();
+            match (rendered.contains("special_pick"), rendered.contains("normal_pick")) {
+                (true, false) => "special_pick",
+                (false, true) => "normal_pick",
+                (true, true) => "BOTH-MARKERS?!",
+                (false, false) => "no-marker",
+            }
+        }
+        fn verdict(outcome: &Result<ParseOutcome, impl std::fmt::Display>) -> String {
+            match outcome {
+                Ok(o) => format!("accepted={} furthest_position={}", o.accepted, o.furthest_position),
+                Err(e) => format!("ERROR: {e}"),
+            }
+        }
+
+        run_on_large_stack(move || {
+            let grammars_dir = workdir.join("grammars");
+            std::fs::create_dir_all(&grammars_dir).expect("create probe grammars dir");
+            let opts = CompileAndParseOptions {
+                ast_pipeline_bin: Some(bin),
+                workdir: Some(workdir.clone()),
+                keep_workdir: true,
+                ..Default::default()
+            };
+            let interp_opts = InterpretOptions::default();
+
+            let variants: [(&str, &str, &[&str]); 2] = [
+                // "gox!" = the verdict discriminator; "go?"/"ongo!" = store-free / fresh-position
+                // accept controls; "gox?" rejects under either semantics (both-reject control).
+                ("probe_memo_success_verdict", VERDICT_GRAMMAR, &["gox!", "go?", "gox?", "ongo!"][..]),
+                // "go!" = the AST discriminator; "go?" accepts store-free as normal_pick; "ongo!"
+                // proves the gate steers the tournament to special_pick at a fresh position.
+                ("probe_memo_success_ast", AST_GRAMMAR, &["go!", "go?", "ongo!"][..]),
+            ];
+
+            let mut oracle_verdict_stale = false;
+            let mut interp_verdict_stale = false;
+            let mut oracle_ast_stale = false;
+            let mut interp_ast_stale = false;
+
+            eprintln!("\n=== MEMO-STORE-SOUNDNESS.1 success-side staleness probe ===");
+            for (name, grammar, inputs) in variants {
+                let grammar_path = grammars_dir.join(format!("{name}.ebnf"));
+                std::fs::write(&grammar_path, grammar).expect("write probe grammar");
+                eprintln!("\n--- {name} ---");
+                for input in inputs {
+                    let interp = interpret_parse(&grammar_path, input, &interp_opts);
+                    let oracle = compile_and_parse(&grammar_path, input, &opts);
+                    eprintln!(
+                        "  {:<9} interp[{} kind={}]  oracle[{} kind={}]",
+                        format!("{input:?}"),
+                        verdict(&interp),
+                        winner_marker(&interp),
+                        verdict(&oracle),
+                        winner_marker(&oracle),
+                    );
+                    // The discriminators: a SOUND (store-aware) memo would ACCEPT "gox!" under the
+                    // verdict grammar and shape special_pick on "go!" under the AST grammar.
+                    if name == "probe_memo_success_verdict" && *input == "gox!" {
+                        oracle_verdict_stale = matches!(&oracle, Ok(o) if !o.accepted);
+                        interp_verdict_stale = matches!(&interp, Ok(o) if !o.accepted);
+                    }
+                    if name == "probe_memo_success_ast" && *input == "go!" {
+                        oracle_ast_stale = matches!(&oracle, Ok(o) if o.accepted)
+                            && winner_marker(&oracle) == "normal_pick";
+                        interp_ast_stale = matches!(&interp, Ok(o) if o.accepted)
+                            && winner_marker(&interp) == "normal_pick";
+                    }
+                }
+            }
+
+            eprintln!("\n=== summary (sound store-aware memo ⇒ all four read ABSENT) ===");
+            eprintln!(
+                "  verdict-observable staleness: oracle={} interp={}",
+                if oracle_verdict_stale { "CONFIRMED (stale REJECT of \"gox!\")" } else { "ABSENT" },
+                if interp_verdict_stale { "CONFIRMED" } else { "ABSENT" },
+            );
+            eprintln!(
+                "  AST-observable staleness:     oracle={} interp={}",
+                if oracle_ast_stale { "CONFIRMED (stale normal_pick on \"go!\")" } else { "ABSENT" },
+                if interp_ast_stale { "CONFIRMED" } else { "ABSENT" },
+            );
+        });
+    }
 }
