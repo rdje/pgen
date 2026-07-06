@@ -90,6 +90,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Does this file parse? Where does it fail?" | [1.1 `--parse`](#11---parse--supports) + [3.2 furthest-position](#32-furthest-position-error-diagnostic) |
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
 | **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (in-process, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (in-process, NO compile) |
+| **"Which alternative WINS this choice on this input? Is this branch LIVE or dead?"** | [Protocol D](#protocol-d--which-alternative-wins-this-choice--is-this-branch-live-the-a22a23-class-probe) — scratch slot + the `🏁 selected branch N/M` trace line + the 1.7 policy matrix |
 | **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | **"Is the interpreter byte-identical PER COMBINATOR (on a synthetic grammar, in isolation)?"** | [1.7 the structural combinator suite](#17-the-structural-combinator-suite--is-the-interpreter-byte-identical-per-combinator) |
 | **"Is the interpreter byte-identical on the SEMANTIC-DIRECTIVE surface (`@predicate`/`@emit_fact`/scope/rollback/memo×store)?"** | [1.8 the semantic-directive orchestration suite](#18-the-semantic-directive-orchestration-suite--is-the-interpreter-byte-identical-on-the-store-gated-surface) |
@@ -389,6 +390,34 @@ Cause map: `NO reach path` = dead-rule candidate (adjudicate via 5.1) · `parsed
 ## Protocol C — a parse is slow / hangs
 1. `--dump-rule-call-counts 30 --dump-rule-call-counts-exclude "trivia,…"` (3.1) → the dominating rules.
 2. `--trace-rules <dominator>` (2.2) → the actual call pattern; `PGEN_REPORT_MEMO_STATS=1` (3.3) for memo behavior.
+
+## Protocol D — which alternative WINS this choice? / is this branch LIVE? (the A2.2/A2.3-class probe)
+
+For any "is this ordered-choice branch dead or live / which alt does the engine actually select?"
+question — NEVER answer it from the grammar text (PGEN's `|` is a branch TOURNAMENT, default
+`longest_match`, NOT PEG first-match commit; two linter verdicts were unsound for exactly this reason).
+
+1. **Isolate the choice in the scratch slot (1.3)** — `scratch := <alt0> | <alt1> | …`, carrying the
+   real rule's `@branch_policy` / `@priority` / `@associativity` annotations if any; then
+   `make -C rust SHELL=/bin/bash focus_scratch` + rebuild the release probe (it embeds scratch at
+   COMPILE time).
+2. **Parse the discriminating input and READ THE WINNER** — codegen's own selection line:
+   ```bash
+   PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe \
+     --parse scratch /tmp/in.txt --trace-rules scratch 2>&1 | grep 🏁
+   # → 🏁 Rule 'scratch' selected branch N/M consuming K chars (priority=…, associativity=…, branch_policy=…)
+   ```
+   `N` names the winning alternative; `--parse-dump-ast-pretty` (1.2) confirms the winner's shape.
+   (For a rule inside a REAL registered grammar, skip the slot and run step 2 directly with
+   `--trace-rules <rule>` on the real parser.)
+3. **Cross-check against the pinned policy matrix** (`parse_harness_combinator_gate`, 1.7): only
+   `ordered` commits to the first success; `longest_match` (the default) tries every alternative and
+   keeps the longest (ties → earlier, or later under `@associativity: right`); `priority_first` ranks
+   by `@priority` with longest-match tie-break.
+
+Cause map: a branch the engine SELECTS is **LIVE** — any deadness verdict must be conditioned on the
+rule's actual selection semantics (precedents: A2.2 `EarlierAlwaysMatches` retired; A2.3
+`FixedTerminalPrefix` policy-conditioned — `docs/decisions/project_fixed_terminal_prefix_policy_conditional.md`).
 
 ---
 

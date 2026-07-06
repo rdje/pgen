@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-PARSE-HARNESS-0017 (PARSE-HARNESS.9): lockstep capstone — TOOLBOX Protocol D ("which alternative WINS / is this branch live?") + book canonical-probe section; `.7` fuzz parked-optional (D6); PARSE-HARNESS TREE COMPLETE
+
+Session #51. **Docs-only capstone closing the PARSE-HARNESS tree.** The D5 audit confirmed every
+per-component lockstep obligation landed same-commit as its component (TOOLBOX entries 1.3–1.8; the
+top-book *The Parse Harness* chapter covers all three components + both suites + honest bounds; no
+contract owed — the harness is an internal diagnostic surface). The genuine residue is now closed:
+
+- **TOOLBOX Protocol D** — the canonical probe for the harness's signature question, "which
+  alternative WINS this choice / is this branch LIVE?": isolate the choice in the scratch slot
+  (carrying the real rule's policy annotations), read the winner off codegen's own
+  `🏁 selected branch N/M (… branch_policy=…)` trace line, cross-check the pinned `.6.1` policy
+  matrix. Quick-chooser row added; the A2.2/A2.3 precedents wired in as the cause map.
+- **Book:** the scratch-slot section gains the matching *canonical probe* subsection (the exact
+  workflow that decided `GRAMMAR-WELLFORMED.A2.3`).
+- **Tree closure:** `.7` (fuzz) PARKED-OPTIONAL by decision D6 — the trust claim is already carried
+  by three complete differential surfaces (per-combinator 16/16, per-semantic-construct 24/24,
+  all-shipped 11 CERTIFIED at seeds 0/7/42) and §3.4 documents the no-fuzz honest bound; re-open on
+  demand. All 7 tree-level acceptance criteria (§5) met — **TREE COMPLETE** (10 landed leaves,
+  sessions #37–#51, from design-lock to the first real consumer fixing a live linter-soundness
+  defect). LIVE tracker rows unchanged.
 ## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0151 (GRAMMAR-WELLFORMED.A2.3): the `FixedTerminalPrefix` shadowing verdict + its certificate are now BRANCH-POLICY-AWARE — the false "PEG commits" hard gate on the default longest_match policy is gone; the sound `ordered` sub-case keeps gating
 
 Session #51. **Linter-soundness ENGINE fix (4 files; ZERO parse-behavior change, ZERO grammar/parser

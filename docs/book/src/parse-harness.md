@@ -104,6 +104,26 @@ PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe \
     --report-certificate-coverage --entry-rule scratch --count 40 --seed 0
 ```
 
+### The canonical probe: which alternative wins? (TOOLBOX Protocol D)
+
+The slot's signature use is the question that motivated the whole harness: *which alternative does
+the engine actually select — is this branch live or dead?* Never answer it from the grammar text
+(PGEN's `|` is a branch **tournament**, `longest_match` by default — *not* PEG first-match commit).
+Isolate the choice in the slot (carrying the real rule's `@branch_policy`/`@priority` annotations),
+then read the winner off codegen's own selection line:
+
+```bash
+PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe \
+    --parse scratch /tmp/in.txt --trace-rules scratch 2>&1 | grep 🏁
+# → 🏁 Rule 'scratch' selected branch 2/2 consuming 2 chars (priority=0, associativity=left, branch_policy=longest_match)
+```
+
+That one line names the winning branch, the policy that chose it, and the consumed length; the AST
+dump confirms the winner's shape. This is exactly how `GRAMMAR-WELLFORMED.A2.3` was decided (the
+harness's first real use): the engine selected the very alternative the linter's old unconditional
+fixed-terminal-prefix verdict branded unreachable, and the verdict was made branch-policy-aware as a
+result. The full step-by-step lives in `TOOLBOX.md` **Protocol D**.
+
 ### How it works (the wiring)
 
 The slot mirrors a shipped grammar (`json`) exactly, and adds nothing to the trusted surface beyond a
