@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — 9 grammars CERTIFIED. `.5.3` (return_annotation fold) **`done`** (`PGEN-PARSE-HARNESS-0011`, session #44): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`) — codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load; a `serialize_with` SORTED serializer canonicalizes every site, certifying **`return_annotation`** byte-identical — now **10 grammars CERTIFIED**. `.5.5` (rtl_const_expr corpus) **`done`** (`PGEN-PARSE-HARNESS-0012`, session #45): NOT a fidelity fix but a CORPUS fix — the stimuli generator yields 0 usable samples for rtl_const_expr's ~16-level precedence cascade within the bounded ladder (depths ≤28 fail, ~32 pathologically huge, ≥40 hang — tool-established); a general parser-agnostic **curated-input corpus** (`CURATED_CORPUS`) gives the differential inputs and the interpreter is byte-identical over it (CLEAN 151/151), certifying **`rtl_const_expr`** — now **11 grammars CERTIFIED, DEFERRED empty**. `.6.1` (structural combinator isolating suite) **`done`** (`PGEN-PARSE-HARNESS-0014`, session #46): a systematic, gated suite of **16 isolating grammars** (module `rust/src/parse_harness_combinator_suite.rs`, gate `make -C rust parse_harness_combinator_gate`) proving the interpreter byte-identical to the `.3` compile-and-run oracle per structural combinator (choice under all 3 branch_policies, quantifiers `?`/`*`/`+` incl. zero-length guard, lookahead, sequence-backtrack, atoms/regex-token, rule-ref, LR-eliminated) — **16/16 CLEAN**, gate 2/2, incl. the folded-in A2.2/A2.3 discrimination proof; three tool-established findings surfaced (§20). Frontier → **`.6.2` (semantic-directive orchestration suite) `not-started`**. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1`), §17 (`.5.2`), §18 (`.5.3`), §19 (`.5.5`), §20 (`.6.1` checklist).
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — 9 grammars CERTIFIED. `.5.3` (return_annotation fold) **`done`** (`PGEN-PARSE-HARNESS-0011`, session #44): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`) — codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load; a `serialize_with` SORTED serializer canonicalizes every site, certifying **`return_annotation`** byte-identical — now **10 grammars CERTIFIED**. `.5.5` (rtl_const_expr corpus) **`done`** (`PGEN-PARSE-HARNESS-0012`, session #45): NOT a fidelity fix but a CORPUS fix — the stimuli generator yields 0 usable samples for rtl_const_expr's ~16-level precedence cascade within the bounded ladder (depths ≤28 fail, ~32 pathologically huge, ≥40 hang — tool-established); a general parser-agnostic **curated-input corpus** (`CURATED_CORPUS`) gives the differential inputs and the interpreter is byte-identical over it (CLEAN 151/151), certifying **`rtl_const_expr`** — now **11 grammars CERTIFIED, DEFERRED empty**. `.6.1` (structural combinator isolating suite) **`done`** (`PGEN-PARSE-HARNESS-0014`, session #46): a systematic, gated suite of **16 isolating grammars** (module `rust/src/parse_harness_combinator_suite.rs`, gate `make -C rust parse_harness_combinator_gate`) proving the interpreter byte-identical to the `.3` compile-and-run oracle per structural combinator (choice under all 3 branch_policies, quantifiers `?`/`*`/`+` incl. zero-length guard, lookahead, sequence-backtrack, atoms/regex-token, rule-ref, LR-eliminated) — **16/16 CLEAN**, gate 2/2, incl. the folded-in A2.2/A2.3 discrimination proof; three tool-established findings surfaced (§20). `.6.2` (semantic-directive orchestration) **`done`** (`PGEN-PARSE-HARNESS-0015`, session #47): the interpreter gains the FULL store-gated orchestration mirror + split packrat memo (mirrored from the emitted codegen templates; the queries/store/transactions reused verbatim from the shared runtime), certified byte-identical to the `.3` oracle per construct by a **20-case isolating suite** (module `rust/src/parse_harness_semantic_suite.rs`, gate `make -C rust parse_harness_semantic_gate`) — **20/20 CLEAN** (pre-mirror baseline 1/18), `.5` gate 4/4 with all 11 CERTIFIED grammars byte-identical under the now-directive-aware interpreter (~21 s — the memo closed the no-memo slowness), **the `.6` per-construct coverage is COMPLETE** and the §3.4/§13.4 honest bound is CLOSED; six tool-established findings surfaced (§21). Frontier → **`.7` (optional fuzz) / `.8` (A2.3 hand-back) / `.9` (lockstep capstone)**. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1`), §17 (`.5.2`), §18 (`.5.3`), §19 (`.5.5`), §20 (`.6.1` checklist), §21 (`.6.2` plan + checklist).
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -522,13 +522,21 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
     structurally eliminated (only the wrapper form is) → runtime cycle-breaking, where interp & oracle
     diverge on `furthest_position` (interp 2/4, oracle 0; verdicts agree) — a KNOWN out-of-scope
     interpreter-fidelity gap kept as a durable re-runnable probe. Acceptance checklist in §20.
-  - `.6.2` — **semantic-directive orchestration suite — `not-started`.** The surface `.4`/`.5` explicitly
-    **DEFERRED** (§13.4): `@predicate` branch/pre/post gates that CHANGE the verdict (hit AND miss);
-    `@emit_fact` + query + scope tree + rollback/transactions; `$reference`-against-content resolution;
-    `@import`/`@export` library; non-default `branch_policy`/`@priority`; and **memoization** with
-    semantic-delta replay (the transparent AST-invariant cache the corpus/perf needs). Higher build-risk
-    — it exercises store-gated *parse outcomes*, the interpreter's least-proven surface. Owns its own
-    isolating grammars + differential, and closes the honest bound in §3.4.
+  - `.6.2` — **semantic-directive orchestration suite — `done` (session #47, `PGEN-PARSE-HARNESS-0015`).**
+    The surface `.4`/`.5` explicitly **DEFERRED** (§13.4) — store-gated *parse outcomes* — is now BOTH
+    implemented in the interpreter AND certified per-construct: the full orchestration mirror
+    (`with_rule_transaction` skeleton, tournament C3-B + branch gates + branch-start actions, the
+    `$reference` resolver family, library phases, and the **split packrat memo** with semantic-delta
+    replay) mirrored from the EMITTED codegen templates, plus the 20-case isolating suite (module
+    `rust/src/parse_harness_semantic_suite.rs`, gate `make -C rust parse_harness_semantic_gate`) proving
+    the interpreter **byte-identical to the `.3` compile-and-run oracle per construct — 20/20 CLEAN**
+    (pre-mirror honest baseline: 1/18). Closes the §3.4/§13.4 honest bound — **the `.6` per-construct
+    coverage is COMPLETE**. Six tool-established findings surfaced (§21.2/§21.4 + CHANGES.md): the
+    store-blind memo failure cache (stale-failure replay, pinned BOTH sides), quoted-arg
+    String-vs-Identifier fact-name mismatch, inline branch-predicate rule-wide flattening, the `$`-strip
+    positional-ref dead path, zero-length-success emission persistence, and the no-preamble
+    unresolved-reference stubs (a real interpreter-fidelity fix). **Tool-mapped plan, committed scope,
+    and the enforced acceptance checklist are in §21.**
 - `.7` — **the fuzzing lane (optional) — `not-started`.** Random gen-ASTs × random inputs, differential;
   pushes coverage toward exhaustive (§3.4).
 - `.8` — **first real use: run the A2.3 proof on the harness — `not-started`.** Parse `a | ab` on `"ab"`
@@ -558,8 +566,8 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 8 | `PARSE-HARNESS.5.3` (return_annotation fold) | `done` (#44, `PGEN-PARSE-HARNESS-0011`) | Root cause (tools REFUTED the scouting hypothesis): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`); codegen froze one arbitrary order, the interpreter re-serialized a fresh (itself non-deterministic) order each load. Fix = a `serialize_with` SORTED serializer canonicalizing every site. return_annotation CERTIFIED (DIVERGE 8→CLEAN 68). Also closed a latent codegen non-determinism. §18 checklist. |
 | 9 | `PARSE-HARNESS.5.5` (rtl_const_expr corpus) | `done` (#45, `PGEN-PARSE-HARNESS-0012`) | Curated-input corpus for the deep precedence chain (exceeds bounded gen; unbounded hangs — tool-confirmed §19). A corpus problem, not an interpreter divergence. rtl_const_expr CERTIFIED (DIVERGE 0→CLEAN 151); DEFERRED now empty (11 CERTIFIED). §19 checklist. |
 | 10 | `PARSE-HARNESS.6.1` (structural combinator isolating suite) | `done` (`PGEN-PARSE-HARNESS-0014`, #46) | Phase B — 16 isolating grammars, interpreter byte-identical to the `.3` compile-and-run oracle per structural combinator (branch_policy choice incl. `a\|ab`, quantifiers `?`/`*`/`+` incl. zero-length guard, lookahead, sequence-backtrack, atoms/regex-token, rule-ref, LR-eliminated wrapper form). 16/16 CLEAN; gate 2/2 (byte-identity + A2.2/A2.3 discrimination + coverage completeness). 3 tool-findings surfaced (§20). Test-only; no `generated/*` regen. |
-| 11 | `PARSE-HARNESS.6.2` (semantic-directive orchestration suite) | `not-started` (**frontier**) | Phase B — the DEFERRED store-gated-outcome surface (`@predicate`/`@emit_fact`/scope/rollback + memoization). Higher build-risk. |
-| 12 | `PARSE-HARNESS.7` (fuzz, optional) | `not-started` | Phase B — random gen-ASTs × random inputs, differential. |
+| 11 | `PARSE-HARNESS.6.2` (semantic-directive orchestration suite) | `done` (`PGEN-PARSE-HARNESS-0015`, #47) | Phase B — the interpreter's full store-gated orchestration mirror + split memo, certified per construct vs the compile-and-run oracle (**20/20 CLEAN**; pre-mirror baseline 1/18). The `.6` per-construct coverage is COMPLETE. Six tool-established findings surfaced (§21). |
+| 12 | `PARSE-HARNESS.7` (fuzz, optional) | `not-started` (**frontier**, with `.8`/`.9`) | Phase B — random gen-ASTs × random inputs, differential. |
 
 ---
 
@@ -1248,3 +1256,188 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
   out-of-scope note) + the interpreter honest-bound updated; `TOOLBOX.md` gains a combinator-suite gate entry;
   this tree (`.6.1` done + this checklist + frontier → `.6.2`); CHANGES.md / DEVELOPMENT_NOTES.md (+ the three
   novel findings surfaced for director feedback) / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md updated.
+
+## 21. PARSE-HARNESS.6.2 — semantic-directive orchestration: tool-mapped plan, committed scope, acceptance checklist
+
+> Session #47. The plan below was established TOOLS-FIRST before any code: a minimal semantic grammar
+> (`@fact_kind` + `@emit_fact` + `has_fact` post-`@predicate`) was pushed through the REAL codegen
+> (`ast_pipeline … --generate-parser` — it compiles, 41 semantic-runtime call sites) and the emitted
+> orchestration read line-by-line against the codegen templates. This section records the boundary and
+> the design so the build is durable, not conversation-bound (same discipline as §13).
+
+### 21.1 The shared-runtime vs generated-template boundary (tool-mapped)
+
+The generated parser's semantic orchestration splits exactly like §13.1 predicted for the combinator half:
+
+- **Section A — reuse VERBATIM (all `pub` in `crate::ast_pipeline::semantic_runtime`):**
+  `compile_semantic_runtime_annotations(&Annotations)` (the in-process compiler — the SAME function
+  codegen calls at `ast_based_generator.rs:6586` to freeze the compiled literal);
+  `CompiledSemanticRuntimeAnnotations::{has_rule, is_empty, pre_predicates_for_rule,
+  effect_directives_for_rule, post_predicates_for_rule, branch_predicates_for_rule,
+  branch_predicates_for_rule_branch, branch_effect_directives_for_rule_branch, library_imports_for_rule,
+  library_exports_for_rule, needs_raw_post_capture_for_rule, exportable_fact_kinds, clone_predicate_defs}`;
+  `SemanticRuntimeState::{new, set_predicate_defs, push_rule_context, pop_rule_context, checkpoint,
+  rollback_to_named, transaction_named, evaluate_directive_predicate, evaluate_content_aware_predicate,
+  extract_delta_since, apply_delta}`; `SemanticRuntimeTransaction::{state, state_mut, apply_directive,
+  commit}`; the spec types (`SemanticRuntimeDirective`, `SemanticPredicateSpec`, `SemanticPredicatePhase`
+  (default `Pre`), `SemanticPredicateContentView` (default **`Raw`**), `SemanticFactSpec`,
+  `SemanticScopeSpec`, `SemanticCloseScopeSpec`, `SemanticLibraryImportSpec/ExportSpec`); the builtin
+  predicate vocabulary (`has_fact`, `lacks_fact`, `fact_attribute_equals`, `lacks_fact_attribute_equals`,
+  `fact_count_at_least` — `semantic_runtime.rs:2031-2200`) + `@define_predicate` defs.
+- **Section B — mirror from the EMITTED code (exist only as codegen `quote!` templates; authoritative
+  reference = the emitted spike parser + `ast_based_generator.rs`):**
+  - `with_semantic_runtime_rule_transaction` (`:1661`) — the rule-level orchestration skeleton: fast path
+    (no annotations → push/pop rule context only); else push context → checkpoint → PRE predicates
+    (`evaluate_directive_predicate`; `Some(false)` → `Backtrack{position: self.position}`) → body →
+    `semantic_raw_content.unwrap_or(&node.content)` → effect directives → library imports → POST
+    predicates (`resolve_semantic_predicate_spec_against_content` then `evaluate_content_aware_predicate`;
+    `Some(false)` → `Backtrack{position: node.span.start}`) → library exports (vs
+    `checkpoint.fact_len()`) → `transaction.commit()`; on any `Err` → `rollback_to_named(checkpoint)`;
+    always `pop_rule_context` (exactly one pop per push).
+  - `apply_semantic_runtime_effect_directive` (`:2010-2110`) — OpenScope/CloseScope/EmitFact with
+    `$ref` resolution against `root_content = node.content`; Predicate/library/declaration → `Ok(false)`.
+  - `apply_branch_start_effect_directive` (`:1225-1318`, INLINE-ACTIONS.2) — the WINNING branch's
+    branch-start `@emit_fact`/`@open_scope`/`@close_scope` applied DIRECTLY to the live state (no
+    transaction — the enclosing rule transaction + tournament checkpoint own rollback).
+  - `apply_semantic_runtime_library_import_directive` / `_export_directive` (emitted `:415-561` in the
+    spike) — filesystem-library I/O; **`library_in_dir`/`library_out_dir` are `None` unless set**
+    (`parser_registry.rs:722` sets them from registry options; the compile-and-run throwaway main does
+    NOT) → both sides no-op on missing dirs; resolution failures are `ContextualError`s.
+  - The resolver family (`:2116-2360`, `:5534+`): `resolve_semantic_runtime_value_against_content`,
+    `resolve_unified_semantic_value_against_content` (+`try_`), `resolve_unified_semantic_properties_…`,
+    `resolve_semantic_predicate_spec_against_content` (+`try_` — an unresolvable `$ref` in a BRANCH
+    predicate blocks that branch rather than erroring), `resolve_semantic_reference`
+    (`$N` positional / named / dotted / `[N]` indexed / `.len`; SEMREF-SHAPED: a named ref against a
+    `ParseContent::Json` walks the SHAPED object), `semantic_node_scalar`, `coerce_semantic_runtime_scalar`.
+  - The multi-branch tournament semantic discipline (`:3230-3612`, C3-B): per-branch — branch-phase
+    predicates (`branch_predicates_for_rule` ∪ `…_for_rule_branch`, evaluated against
+    `(raw_content, transformed)`; blocked branch never takes) → `extract_delta_since(tournament_checkpoint)`
+    → `rollback_to_named(tournament_checkpoint)` (no loser leakage); winner — `apply_delta(winner's delta)`
+    → branch-start effects → `semantic_raw_content = best_raw_content` (captured only when
+    `needs_raw_post_capture_for_rule`).
+  - `memoized_call` (`:6440-6545`, PARSE-TERMINATION.6 split memo): the TRANSACTION WRAPS the memo —
+    `with_semantic_runtime_rule_transaction(rule, |p| p.memoized_call(rule_id, body))` — so a rule's OWN
+    gates/effects are NEVER cached (re-evaluated fresh on every memo hit); the memo stores the BODY's
+    `(node, raw_semantic_content, end_pos, semantic_delta)` and replays the delta on hit; failures land in
+    a lean `memo_fail` set keyed `(rule_id, position)` only.
+- **Section C — the interpreter wiring:** compile the annotations once per parse
+  (`compile_semantic_runtime_annotations`), `set_predicate_defs`, wrap `parse_rule_inner`'s body in the
+  §B skeleton, thread `semantic_raw_content` through the Or tournament, mirror the C3-B discipline in
+  `parse_or`, and (decision by measurement, §21.3) the split memo.
+
+### 21.2 The isolating suite (module `rust/src/parse_harness_semantic_suite.rs`, gate `parse_harness_semantic_gate`)
+
+Same architecture as `.6.1` (a static case table, report-first driver, curated inputs with
+independently-reasoned anchors, differential vs the `.3` compile-and-run oracle, large-stack worker,
+deterministic by construction). The LANDED table has **20 cases / 20 enumerated constructs** (each
+verdict- or AST-changing so the differential is live); every grammar was validated through
+`ast_pipeline --generate-parser` before locking:
+
+1. `sem_post_gate` — `@emit_fact` + `has_fact` post gate (declare-then-use ACCEPT; use-undeclared REJECT).
+2. `sem_pre_gate` — a `phase: pre` predicate blocking rule entry.
+3. `sem_branch_gate` — the INLINE `phase: branch` predicate — pins the tool-established RULE-WIDE
+   flattening (`branch_predicates_for_rule` flat-maps every branch bucket, `semantic_runtime.rs:735`).
+4. `sem_branch_select` — branch-LOCAL selection via helper rules with post gates (the SV `.b.6.2.2`
+   idiom): the store flips WHICH branch wins (AST-changing).
+5. `sem_attr_gate` / 6. `sem_lacks_gate` / 7. `sem_count_gate` — the query vocabulary
+   (`fact_attribute_equals` / `lacks_fact` / `fact_count_at_least`).
+8. `sem_scope` — `@open_scope`/`@close_scope` + `has_fact_in_current_scope` (first coverage of scopes by
+   any grammar; verdict-observable scope tree). 9. `sem_scope_is` — `current_scope_is` at rule entry.
+10. `sem_rollback_loser` — C3-B: a SUCCESSFUL-but-losing branch's emission must not persist; the winner's
+    must; a failed branch's rolls back (three-input discrimination).
+11. `sem_zero_len_emit` — the zero-length-guard × store composition: a discarded zero-length iteration's
+    rule-level emission PERSISTS (tool-established; pinned).
+12. `sem_ref_raw_named` — named `$word` over RAW (no `->`) content — the recursive named-descendant walk.
+13. `sem_ref_positional_unresolvable` — positional `$N` in a directive payload can NEVER resolve (the
+    compiler strips `$`; the named lexer rejects a digit head) — hard-error parity pinned.
+14. `sem_ref_shaped` — `view: shaped` dotted resolution against the `->` Json (SEMREF-SHAPED).
+15. `sem_ref_len` — the `.len` suffix.
+16. `sem_branch_start_emit` — INLINE-ACTIONS.2 winning-branch-only branch-start `@emit_fact`.
+17. `sem_emit_attrs` — `@emit_fact` attributes resolved from `$ref`s + `fact_attribute_equals` on them.
+18. `sem_library_noop` — `@export_to_library`/`@import_from_library` with no configured dirs (no-op parity).
+19. `sem_memo_gate_retry` — transaction-wraps-memo: a gated rule re-tried at the same position after a
+    zero-width store change re-evaluates its own gates FRESH (measured: parity, the sound side).
+20. `sem_memo_wrapper` — the CONFIRMED genuine finding from the §21.1 scouting: an UNANNOTATED wrapper
+    rule over a store-gated rule caches the composed failure in `memo_fail` keyed `(rule, position)` only;
+    a same-position retry after a zero-width emission replays the STALE failure (oracle REJECTS `go!`
+    where fresh evaluation would accept) — pinned on both sides via the interpreter's mirrored split memo.
+
+The session-#47 measurement flow (measure-then-lock): the pre-mirror baseline was **1/18 CLEAN** (only
+the library no-op — the interpreter was directive-blind, every gate case diverged interp-ACCEPT vs
+oracle-REJECT); three oracle-side surprises were then root-caused with the toolbox (scratch-slot traces +
+the frozen-literal reads — the quoted-String vs coerced-Identifier fact-name mismatch, the branch-gate
+rule-wide flattening, the `$`-strip positional dead path); after the §21.1 orchestration mirror + split
+memo landed, the suite went **20/20 CLEAN** with zero interpreter-vs-oracle divergence.
+
+### 21.3 Committed scope + decision points (honest bounds)
+
+- **IN `.6.2`:** the §21.1 Section B/C orchestration mirror (interpreter-tooling only — no engine /
+  grammar / codegen-emit / generated-parser change); the §21.2 suite + measurement probes + gate; the
+  book/TOOLBOX lockstep. Target: every suite case CLEAN (byte-identical verdict + `furthest_position` +
+  typed AST) or an explicitly-classified KNOWN divergence (the direct-LR precedent).
+- **Memoization (decision by measurement — RESOLVED, session #47):** `sem_memo_wrapper` CONFIRMED the
+  observable memo effect (the oracle REJECTS `go!` — a stale `(rule, position)`-keyed failure replay —
+  where fresh evaluation would accept), so the interpreter mirrors the split memo (memo + memo_fail +
+  semantic-delta replay + raw-content carry; no coverage lane — the interpreter has no coverage) and is
+  byte-identical INCLUDING the quirk; the staleness is surfaced to the director as a platform finding
+  (memoization × store composition on the FAILURE side — the success side was closed by `.b.6.2.36.4`
+  and is pinned sound by `sem_memo_gate_retry`). Bonus: the memo also removed the `.5`-documented
+  no-memo interpreter slowness (the equivalence gate now runs in ~21 s).
+- **OUT (honest bounds, stated per §3.4):** bootstrap facts (`push_fact_record` cross-file veer surface —
+  the harness `ParseOutcome` API has no bootstrap-facts input); real library I/O through the throwaway
+  oracle (the compile-and-run main sets no library dirs; the no-op path is pinned — real I/O stays proven
+  by the registry-path SV gates); coverage-delta replay (coverage is a registry/cert surface the
+  interpreter does not implement); `@define_predicate` composition beyond what the builtin vocabulary
+  exercises (no shipped grammar uses it; noted for a follow-up if a suite case proves cheap).
+
+### 21.4 PARSE-HARNESS.6.2 — Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the interpreter evaluated NO semantic directive (tool-verified: zero
+  `evaluate_predicate`/`emit_fact`/`apply_directive` call sites in `parse_harness_interpreter.rs`); the
+  §21.2 pre-mirror measurement enumerated the honest baseline: **1/18 CLEAN** — every verdict-changing
+  gate case diverged interp-ACCEPT vs oracle-REJECT (e.g. `sem_post_gate "decl a;use b;"
+  interp=true oracle=false`), only the library no-op agreed.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the §21.1 boundary: the orchestration exists only as codegen
+  templates (`with_semantic_runtime_rule_transaction` @`ast_based_generator.rs:1661`, effects @`:2010`,
+  branch-start @`:1225`, tournament C3-B @`:3230-3612`, memo @`:6440`, resolvers @`:2116`/`:5534`); the
+  semantic half is callable runtime (Section A) — so the interpreter reuses A verbatim and mirrors B
+  from the EMITTED code. The three oracle-side surprises were pinpointed with the toolbox BEFORE the
+  mirror: the scratch-slot scoped trace (`PGEN_TRACE_VERBOSITY=debug … --trace-rules pick`) named the
+  exact rejection — `🔍 has_fact(kind=mode, name=String("special")) → false` with the fact present
+  (quoted-String arg vs coerced-`Identifier` fact name) and `🛡️ predicate 'has_fact' REJECTED branch
+  2/2` (the rule-wide flattening, `branch_predicates_for_rule` flat-map @`semantic_runtime.rs:735-747`);
+  the `sem_count_gate` full-trace showed `furthest_position=0` with `parse_word` = a bare
+  `Err(Backtrack)` stub (my missing `word` rule + the no-preamble unresolved-stub fidelity fact); the
+  frozen compiled literal showed `name: $2` → `RuleReference("2")` (the `$`-strip making positional
+  refs unresolvable).
+- [x] **FIX** — fix-hierarchy tier = **new interpreter tooling / plumbing** (no engine / grammar /
+  codegen-emit / generated change): the §21.1 Section-B/C mirror in `parse_harness_interpreter.rs`
+  (~+1300 lines: `with_rule_transaction`, `memoized_call` split memo, effect/branch-start appliers,
+  the resolver family, the full tournament ladder with C3-B, raw-capture threading, the
+  unresolved-stub dispatch reorder), the suite module `parse_harness_semantic_suite.rs` (20 cases),
+  `lib.rs` wiring, two `pub(crate)` comparator helpers in the `.6.1` module, and the
+  `parse_harness_semantic_gate` Makefile target.
+- [x] **ADDRESSED (verified)** — before→after: **1/18 → 20/20 CLEAN**. Re-runnable oracle =
+  `make -C rust parse_harness_semantic_gate` → **2 gate tests pass**
+  (`every_semantic_construct_is_byte_identical` — 20/20 CLEAN, byte-identical verdict +
+  `furthest_position` + typed AST vs the compile-and-run oracle; `semantic_construct_coverage_is_complete`).
+  The `.4` interpreter unit tests still **7/7**.
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate` → **4/4** (all **11 CERTIFIED grammars stay
+  byte-identical** under the now-directive-AWARE + memoized interpreter — the sharpest signal, since
+  SV's 45 `@predicate`s + 23 `@emit_fact`s are now actively evaluated where they were previously
+  ignored; re-run and green again after the scratch-fixture restore; the gate also dropped to ~21 s —
+  the memo closed the `.5`-documented no-memo slowness); `parse_harness_combinator_gate` → **16/16
+  CLEAN, 2/2**; SV cert re-verified unchanged via `sv_cert_recognized_union_gate` at seeds **0/7/42** —
+  `recognized_basis_green: true`, canonical `UNKNOWN=12`, union `UNKNOWN=1` witness `1332`, residual
+  `["context_member_method_call"]`, `sample_parse_failures=0`, `unmet_criteria_count=0`, deterministic
+  byte-identical; NO shipped `generated/*` regenerated (only the scratch slot was cycled for TRACING
+  and restored from the blessed fixture); `clippy_on_rust_change` strict-source GREEN (0 findings in
+  the three parse-harness modules; the 179 generated-stage `eq_op` errors are pre-existing, unchanged);
+  `mdbook_docs_gate` GREEN.
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` gains *The semantic-directive
+  orchestration suite* section (D5, SAME-COMMIT, to the depth of the sibling sections: what it is, the
+  20-case table, the orchestration-mirror description, and the six pinned grammar-author facts) + the
+  honest-bounds paragraph updated; `TOOLBOX.md` §1.8 entry + quick-chooser row; this tree (`.6.2` done,
+  §21 plan + §21.2 landed table + §21.3 memo decision RESOLVED + this checklist, frontier);
+  `docs/TASK_TREE.md` row refreshed (was stale at `.5.2`); CHANGES.md / DEVELOPMENT_NOTES.md (+ the six
+  findings surfaced for director feedback) / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md updated.

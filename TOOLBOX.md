@@ -92,6 +92,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (in-process, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (in-process, NO compile) |
 | **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | **"Is the interpreter byte-identical PER COMBINATOR (on a synthetic grammar, in isolation)?"** | [1.7 the structural combinator suite](#17-the-structural-combinator-suite--is-the-interpreter-byte-identical-per-combinator) |
+| **"Is the interpreter byte-identical on the SEMANTIC-DIRECTIVE surface (`@predicate`/`@emit_fact`/scope/rollback/memo×store)?"** | [1.8 the semantic-directive orchestration suite](#18-the-semantic-directive-orchestration-suite--is-the-interpreter-byte-identical-on-the-store-gated-surface) |
 | "A `@predicate` rejected valid input — which one, why?" | [2.4 predicate self-explaining trace](#24-predicate-self-explaining-trace) |
 | "The parse is slow / stuck — which rules dominate?" | [3.1 `--dump-rule-call-counts`](#31---dump-rule-call-counts) |
 | "I need to watch the parser step by step" | [2.1 trace verbosity](#21-trace-verbosity) + [2.2 `--trace-rules`](#22---trace-rules) |
@@ -206,6 +207,18 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
     parse_harness_combinator_suite::measurement::measure_direct_left_recursion_known_divergence -- --ignored --nocapture
   ```
 - **OUTPUT:** 2 gate tests pass (`every_structural_combinator_is_byte_identical` — 16/16 CLEAN + the folded-in A2.2/A2.3 discrimination proof; `combinator_coverage_is_complete`). Deterministic by construction (fixed grammars × curated inputs, no seeds); runs on a 512 MiB large-stack worker (the interpreter's logical recursion guard fires only past the 2 MiB default stack on the LR case). Honest bounds (no silent caps): bounded quantifiers `{N,M}` are unreachable through the oracle (codegen aborts `Unknown quantifier`); bare DIRECT left-recursion is a KNOWN `furthest_position` divergence on the runtime-cycle-breaking path (a durable `--ignored` probe). Full map: book chapter *The Parse Harness* → *The structural combinator suite* + `docs/tasks/PARSE-HARNESS.md` §20.
+
+### 1.8 The semantic-directive orchestration suite — is the interpreter byte-identical on the STORE-GATED surface?
+- **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_semantic_gate` (module `rust/src/parse_harness_semantic_suite.rs`) — the `.6.1` sibling for the **semantic-directive orchestration** surface (PARSE-HARNESS.6.2): **20 isolating grammars**, one per store-gated construct — `@predicate` gates in every phase (`pre`/`branch`/`post`, hit AND miss), `@emit_fact` + the full builtin query vocabulary (`has_fact`/`lacks_fact`/`fact_attribute_equals`/`fact_count_at_least`/`has_fact_in_current_scope`/`current_scope_is`), the scope tree (`@open_scope`/`@close_scope`), C3-B tournament rollback (a successful-but-losing branch's emissions must not persist), zero-length-success emission, `$reference` resolution (named raw-tree walk / shaped view / `.len` / the positional-`$N` hard-error parity), branch-start inline actions (INLINE-ACTIONS.2), library no-op parity, and **memoization × store** composition (gates re-evaluate fresh on memo hits; the failure cache is store-blind — both pinned) — each run through BOTH the interpreter (1.5) and the compile-and-run oracle (1.4), asserted **byte-identical** (verdict + `furthest_position` + typed AST). Landing the suite also landed the interpreter's semantic-orchestration mirror + split memo, closing the §13.4/§3.4 honest bound.
+- **WHEN:** after ANY interpreter or semantic-runtime orchestration change (regression guard); to prove/measure a *specific* store-gated construct in isolation; to consult the pinned grammar-author facts (unquoted predicate-arg identifiers; inline branch predicates flatten rule-wide; positional `$N` never resolves in directive payloads; the memo failure cache is store-blind).
+- **HOW:**
+  ```bash
+  make -C rust SHELL=/bin/bash parse_harness_semantic_gate
+  # scouting: the full per-construct, per-input interp-vs-oracle map
+  cargo test --features "generated_parsers ebnf_dual_run" --lib \
+    parse_harness_semantic_suite::measurement::measure_semantic_suite -- --ignored --nocapture
+  ```
+- **OUTPUT:** 2 gate tests pass (`every_semantic_construct_is_byte_identical` — 20/20 CLEAN; `semantic_construct_coverage_is_complete`). Deterministic by construction (fixed grammars × curated inputs). Honest bounds (§21.3): bootstrap facts + real library I/O are registry-owned (out of harness scope); no coverage lane. Full map: book chapter *The Parse Harness* → *The semantic-directive orchestration suite* + `docs/tasks/PARSE-HARNESS.md` §21.
 
 ---
 

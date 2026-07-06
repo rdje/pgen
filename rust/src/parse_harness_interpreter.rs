@@ -62,12 +62,18 @@ use std::sync::{Mutex, OnceLock};
 use crate::ast_pipeline::ast_based_generator::{
     CommentArmSuppression, comment_arm_suppression_for_grammar,
 };
-use crate::ast_pipeline::semantic_directive_registry::SemanticBranchPolicy;
+use crate::ast_pipeline::semantic_directive_registry::{
+    SemanticAssociativity, SemanticBranchPolicy, parse_semantic_branch_priorities,
+};
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, ParseContent, ParseError, ParseNode,
-    ParseResult, SemanticAnnotation, SemanticRuntimeState, TokenValue, UnifiedSemanticAST,
-    parse_canonical_transform_expression, parse_quantifier_bounds, parse_semantic_string_list,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, CompiledSemanticRuntimeAnnotations,
+    ParseContent, ParseError, ParseNode, ParseResult, SemanticAnnotation, SemanticCloseScopeSpec,
+    SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
+    SemanticRuntimeDelta, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeTransaction,
+    SemanticRuntimeValue, SemanticScopeSpec, TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty,
+    UnifiedSemanticValue, compile_semantic_runtime_annotations, parse_canonical_transform_expression,
+    parse_quantifier_bounds, parse_semantic_string_list,
 };
 
 pub use crate::parse_harness::ParseOutcome;
@@ -225,6 +231,21 @@ pub fn interpret_parse_gen_ast(
             .ok_or(InterpretError::EmptyGrammar)?,
     };
 
+    // Compile the semantic-runtime registry EXACTLY as codegen does at generation time
+    // (`compile_semantic_runtime_annotations` is the same function codegen calls at
+    // `ast_based_generator.rs:6586` before freezing the literal into the generated parser). A grammar
+    // whose annotations fail to compile cannot have a generated-parser oracle either, so surfacing the
+    // compile error as a setup failure mirrors the codegen abort.
+    let default_annotations = Annotations::default();
+    let compiled_sem =
+        compile_semantic_runtime_annotations(annotations.unwrap_or(&default_annotations))
+            .map_err(|e| InterpretError::Load(format!("semantic-runtime compile: {e}")))?;
+
+    // Mirror the generated constructor: the state starts empty with the compiled `@predicate_def`
+    // registry installed (the generated parser does `set_predicate_defs(clone_predicate_defs())`).
+    let mut semantic_state = SemanticRuntimeState::new();
+    semantic_state.set_predicate_defs(compiled_sem.clone_predicate_defs());
+
     let mut interp = Interp {
         grammar: grammar_tree,
         annotations,
@@ -236,7 +257,10 @@ pub fn interpret_parse_gen_ast(
         furthest_position: 0,
         depth: 0,
         max_depth: 2000,
-        semantic_state: SemanticRuntimeState::new(),
+        semantic_state,
+        compiled_sem,
+        memo: rustc_hash::FxHashMap::default(),
+        memo_fail: rustc_hash::FxHashSet::default(),
     };
 
     // Mirror `parse_full`: parse the entry rule, consume trailing layout, then require the whole input
@@ -436,10 +460,35 @@ struct Interp<'g, 'i> {
     furthest_position: usize,
     depth: usize,
     max_depth: usize,
-    /// Reused VERBATIM (Section A): speculation snapshots/restores it, faithfully, so the semantic
-    /// orchestration extends here in `.6` without restructuring. For the `.4` structural smoke set
-    /// (no `@emit_fact`) it stays empty, so it never perturbs the typed AST.
+    /// Reused VERBATIM (Section A): speculation snapshots/restores it, faithfully. Populated by the
+    /// `.6.2` semantic-directive orchestration mirror (`with_rule_transaction` + the branch machinery);
+    /// for a grammar with no semantic directives it stays empty, so it never perturbs the typed AST.
     semantic_state: SemanticRuntimeState,
+    /// The COMPILED semantic-runtime registry (Section A, reused verbatim): the same
+    /// `compile_semantic_runtime_annotations` output codegen freezes into a generated parser
+    /// (`ast_based_generator.rs:6586`), compiled here in-process from the identical gen-AST
+    /// `Annotations`. Drives the `.6.2` orchestration mirror: pre/branch/post predicates, effect
+    /// directives, branch-start inline actions, library phases, and `needs_raw_post_capture_for_rule`.
+    compiled_sem: CompiledSemanticRuntimeAnnotations,
+    /// The split packrat memo, mirrored from the generated `memoized_call`
+    /// (`ast_based_generator.rs:6440`, PARSE-TERMINATION.6): successes carry the BODY's node + the
+    /// captured raw content + the semantic delta (replayed on hit); failures live in the lean
+    /// `memo_fail` set keyed `(rule, position)` ONLY. The rule transaction WRAPS the memo, so a rule's
+    /// own gates/effects are never cached — but the failure cache is store-blind by design, which the
+    /// `.6.2` suite pins differentially (`sem_memo_wrapper`).
+    memo: rustc_hash::FxHashMap<(&'static str, usize), InterpMemoEntry<'i>>,
+    /// The failure half of the split memo (see `memo`).
+    memo_fail: rustc_hash::FxHashSet<(&'static str, usize)>,
+}
+
+/// One success entry of the interpreter's split memo — the mirror of the generated `MemoEntry` minus
+/// the coverage lane (the interpreter has no coverage recording; that is a registry/cert surface).
+#[derive(Clone)]
+struct InterpMemoEntry<'i> {
+    node: ParseNode<'i>,
+    raw_semantic_content: Option<ParseContent<'i>>,
+    end_pos: usize,
+    semantic_delta: Option<SemanticRuntimeDelta>,
 }
 
 impl<'g, 'i> Interp<'g, 'i> {
@@ -464,6 +513,19 @@ impl<'g, 'i> Interp<'g, 'i> {
 
     fn parse_rule_inner(&mut self, rule_name: &str) -> ParseResult<ParseNode<'i>> {
         let start_pos = self.position;
+
+        // A rule REFERENCED but not DEFINED in the grammar is not an error: codegen synthesizes a
+        // native method for a handful of built-in names (`generate_unresolved_reference_method`), so the
+        // interpreter mirrors that dispatch instead of hard-erroring (PARSE-HARNESS.5.1). The regex
+        // grammar reaches this via `unicode_char = !builtin_ascii_char builtin_any_char`.
+        // Dispatched BEFORE the furthest bump / profile gate / transaction: the generated
+        // unresolved-reference methods are bare stubs with NO rule preamble at all (no
+        // `furthest_position` bump, no memo, no rule context — tool-verified from the emitted
+        // `parse_word` stub and `parse_builtin_any_char`, PARSE-HARNESS.6.2).
+        let Some(body) = self.grammar.get(rule_name) else {
+            return self.parse_unresolved_reference(rule_name, start_pos);
+        };
+
         // furthest_position is updated at rule entry, monotonically (never decremented on backtrack).
         if self.position > self.furthest_position {
             self.furthest_position = self.position;
@@ -481,30 +543,993 @@ impl<'g, 'i> Interp<'g, 'i> {
             }
         }
 
-        // A rule REFERENCED but not DEFINED in the grammar is not an error: codegen synthesizes a
-        // native method for a handful of built-in names (`generate_unresolved_reference_method`), so the
-        // interpreter mirrors that dispatch instead of hard-erroring (PARSE-HARNESS.5.1). The regex
-        // grammar reaches this via `unicode_char = !builtin_ascii_char builtin_any_char`.
-        let Some(body) = self.grammar.get(rule_name) else {
-            return self.parse_unresolved_reference(rule_name, start_pos);
-        };
-
-        let content = self.parse_rule_body(body, rule_name, start_pos)?;
-        // A rule-level `@transform` applied to the matched SPAN text, for a body that is NOT a single
-        // terminal (e.g. `digits = digit+` → `usize`). Codegen splices this AFTER the return-annotation
-        // transform and ONLY for a non-`Or` body (`generate_post_body_span_transform`,
-        // ast_based_generator.rs:2606-2609/4094) — PARSE-HARNESS.5.1.
-        let content = if matches!(body, ASTNode::Or { .. }) {
-            content
-        } else {
-            self.apply_post_body_span_transform(rule_name, content, start_pos)
-        };
-        let end_pos = self.position;
-        Ok(ParseNode {
-            rule_name: intern(rule_name),
-            content,
-            span: start_pos..end_pos,
+        // The generated rule skeleton (tool-verified from the emitted parsers, PARSE-HARNESS.6.2):
+        // `with_semantic_runtime_rule_transaction(rule, |p| p.memoized_call(rule_id, body))` — the
+        // TRANSACTION (pre gates → body → effects → imports → post gates → exports → commit) WRAPS the
+        // memo, so a rule's own gates/effects are re-evaluated fresh on every memo hit; the memo caches
+        // only the BODY's `(node, raw, semantic_delta)`.
+        let interned_rule = intern(rule_name);
+        self.with_rule_transaction(interned_rule, |s| {
+            s.memoized_call(interned_rule, |s| {
+                let capture_raw = s.compiled_sem.needs_raw_post_capture_for_rule(interned_rule);
+                let mut semantic_raw_content: Option<ParseContent<'i>> = None;
+                let content = s.parse_rule_body(
+                    body,
+                    rule_name,
+                    start_pos,
+                    capture_raw,
+                    &mut semantic_raw_content,
+                )?;
+                // A rule-level `@transform` applied to the matched SPAN text, for a body that is NOT a
+                // single terminal (e.g. `digits = digit+` → `usize`). Codegen splices this AFTER the
+                // return-annotation transform and ONLY for a non-`Or` body
+                // (`generate_post_body_span_transform`, ast_based_generator.rs:2606-2609/4094).
+                let content = if matches!(body, ASTNode::Or { .. }) {
+                    content
+                } else {
+                    s.apply_post_body_span_transform(rule_name, content, start_pos)
+                };
+                let end_pos = s.position;
+                Ok((
+                    ParseNode {
+                        rule_name: interned_rule,
+                        content,
+                        span: start_pos..end_pos,
+                    },
+                    semantic_raw_content,
+                ))
+            })
         })
+    }
+
+    // ── The semantic-directive orchestration mirror (PARSE-HARNESS.6.2) ────────────────────────────
+    //
+    // Everything below `── ` here mirrors the generated orchestration templates byte-for-byte from the
+    // EMITTED code (the authoritative behavior): `with_semantic_runtime_rule_transaction`
+    // (`ast_based_generator.rs:1661`), `memoized_call` (`:6440`), the effect/branch-start appliers
+    // (`:2010` / `:1225`), the library phases, and the `$reference` resolver family (`:2116` / `:5534`).
+    // The queries themselves (predicate evaluation, transactions, checkpoints, deltas) are the SHARED
+    // runtime (`semantic_runtime.rs`), reused verbatim — the mirror is only the orchestration glue that
+    // exists solely as codegen `quote!` templates.
+
+    /// Mirror of the generated `with_semantic_runtime_rule_transaction`: the rule-level semantic
+    /// orchestration skeleton. Fast path for a rule with no compiled directives (push/pop rule context
+    /// only); else: checkpoint → PRE predicates → body → effect directives → library imports → POST
+    /// predicates → library exports → commit, with a named rollback on any failure and exactly one
+    /// rule-context pop per push.
+    fn with_rule_transaction(
+        &mut self,
+        rule_name: &'static str,
+        f: impl FnOnce(&mut Self) -> ParseResult<(ParseNode<'i>, Option<ParseContent<'i>>)>,
+    ) -> ParseResult<ParseNode<'i>> {
+        if self.compiled_sem.is_empty() || !self.compiled_sem.has_rule(rule_name) {
+            self.semantic_state.push_rule_context(rule_name);
+            let result = f(self);
+            self.semantic_state.pop_rule_context();
+            let (node, _raw) = result?;
+            return Ok(node);
+        }
+        self.semantic_state.push_rule_context(rule_name);
+        let semantic_checkpoint = self.semantic_state.checkpoint();
+        let result: ParseResult<ParseNode<'i>> = (|s: &mut Self| -> ParseResult<ParseNode<'i>> {
+            // PRE predicates — evaluated content-free (`evaluate_directive_predicate`), before the body.
+            let mut predicate_blocked = false;
+            for directive in s.compiled_sem.pre_predicates_for_rule(rule_name) {
+                match s.semantic_state.evaluate_directive_predicate(directive) {
+                    Some(true) => {}
+                    Some(false) => {
+                        predicate_blocked = true;
+                        break;
+                    }
+                    None => {}
+                }
+            }
+            if predicate_blocked {
+                return Err(ParseError::Backtrack {
+                    position: s.position,
+                });
+            }
+            let entry_fact_len: usize = semantic_checkpoint.fact_len();
+            let (node, semantic_raw_content) = f(s)?;
+            let semantic_raw_content = semantic_raw_content.as_ref().unwrap_or(&node.content);
+            // The generated code `mem::take`s the state so the transaction can borrow it mutably while
+            // the `&self` resolvers stay callable; restored unconditionally below.
+            let mut semantic_state = std::mem::take(&mut s.semantic_state);
+            let semantic_txn_result: ParseResult<()> = (|| -> ParseResult<()> {
+                let mut txn = semantic_state.transaction_named(rule_name);
+                for directive in s.compiled_sem.effect_directives_for_rule(rule_name) {
+                    let _ = s.apply_effect_directive(&mut txn, directive, &node.content)?;
+                }
+                for directive in s.compiled_sem.library_imports_for_rule(rule_name) {
+                    if let SemanticRuntimeDirective::ImportFromLibrary(spec) = directive {
+                        s.apply_library_import_directive(&mut txn, spec, &node.content)?;
+                    }
+                }
+                // POST predicates — resolved against the (raw, shaped) content pair, evaluated on the
+                // transaction's state (so this rule's own effects above are visible to its gates).
+                let mut post_predicate_blocked = false;
+                for directive in s.compiled_sem.post_predicates_for_rule(rule_name) {
+                    match directive {
+                        SemanticRuntimeDirective::Predicate(spec)
+                            if spec.phase == SemanticPredicatePhase::Post =>
+                        {
+                            let resolved_spec = s.resolve_predicate_spec_against_content(
+                                spec,
+                                semantic_raw_content,
+                                &node.content,
+                            )?;
+                            match txn.state().evaluate_content_aware_predicate(
+                                &resolved_spec,
+                                semantic_raw_content,
+                                &node.content,
+                            ) {
+                                Some(true) => {}
+                                Some(false) => {
+                                    post_predicate_blocked = true;
+                                    break;
+                                }
+                                None => {}
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                if post_predicate_blocked {
+                    return Err(ParseError::Backtrack {
+                        position: node.span.start,
+                    });
+                }
+                for directive in s.compiled_sem.library_exports_for_rule(rule_name) {
+                    if let SemanticRuntimeDirective::ExportToLibrary(_spec) = directive {
+                        s.apply_library_export_directive(&txn, &node.content, entry_fact_len)?;
+                    }
+                }
+                let _ = txn.commit();
+                Ok(())
+            })();
+            s.semantic_state = semantic_state;
+            semantic_txn_result?;
+            Ok(node)
+        })(self);
+        if result.is_err() {
+            self.semantic_state
+                .rollback_to_named(semantic_checkpoint, Some(rule_name));
+        }
+        self.semantic_state.pop_rule_context();
+        result
+    }
+
+    /// Mirror of the generated split-memo `memoized_call` (PARSE-TERMINATION.6 +
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.36.4`): failures are cached in a lean position-keyed set; successes
+    /// replay the cached node + raw content + semantic delta. Keyed on the CALL position (the rule's
+    /// entry position — pre predicates are zero-width). The failure cache is store-blind by design
+    /// (the `sem_memo_wrapper` pin).
+    fn memoized_call(
+        &mut self,
+        rule_name: &'static str,
+        f: impl FnOnce(&mut Self) -> ParseResult<(ParseNode<'i>, Option<ParseContent<'i>>)>,
+    ) -> ParseResult<(ParseNode<'i>, Option<ParseContent<'i>>)> {
+        let key = (rule_name, self.position);
+        if self.memo_fail.contains(&key) {
+            return Err(ParseError::Backtrack { position: key.1 });
+        }
+        if let Some(entry) = self.memo.get(&key) {
+            self.position = entry.end_pos;
+            let node = entry.node.clone();
+            let raw = entry.raw_semantic_content.clone();
+            if let Some(delta) = entry.semantic_delta.clone() {
+                if !delta.is_empty() {
+                    self.semantic_state.apply_delta(delta);
+                }
+            }
+            return Ok((node, raw));
+        }
+        let memo_entry_checkpoint = self.semantic_state.checkpoint();
+        let result = f(self);
+        match &result {
+            Ok((node, raw_semantic_content)) => {
+                let semantic_delta = self
+                    .semantic_state
+                    .extract_delta_since(&memo_entry_checkpoint);
+                self.memo.insert(
+                    key,
+                    InterpMemoEntry {
+                        node: node.clone(),
+                        raw_semantic_content: raw_semantic_content.clone(),
+                        end_pos: node.span.end,
+                        semantic_delta: Some(semantic_delta),
+                    },
+                );
+            }
+            Err(_) => {
+                self.memo_fail.insert(key);
+            }
+        }
+        result
+    }
+
+    /// Mirror of the generated `apply_semantic_runtime_effect_directive`: apply one
+    /// `@open_scope`/`@close_scope`/`@emit_fact` onto the rule transaction, resolving `$ref`s against
+    /// the rule's (shaped) content. Predicates / library / declaration directives are handled by their
+    /// own phases and return `Ok(false)` here.
+    fn apply_effect_directive(
+        &self,
+        transaction: &mut SemanticRuntimeTransaction<'_>,
+        directive: &SemanticRuntimeDirective,
+        root_content: &ParseContent<'i>,
+    ) -> ParseResult<bool> {
+        match directive {
+            SemanticRuntimeDirective::Predicate(_) => Ok(false),
+            SemanticRuntimeDirective::ExportToLibrary(_)
+            | SemanticRuntimeDirective::ImportFromLibrary(_) => Ok(false),
+            SemanticRuntimeDirective::DeclareFactKind(_)
+            | SemanticRuntimeDirective::DefinePredicate(_) => Ok(false),
+            SemanticRuntimeDirective::OpenScope(spec) => {
+                let resolved_name = spec
+                    .name
+                    .as_ref()
+                    .map(|value| {
+                        self.resolve_semantic_runtime_value_against_content(value, root_content)
+                            .ok_or_else(|| {
+                                self.create_contextual_error(
+                                    "Semantic runtime could not resolve scope name for directive in current parse result",
+                                )
+                            })
+                    })
+                    .transpose()?;
+                Ok(transaction.apply_directive(&SemanticRuntimeDirective::OpenScope(
+                    SemanticScopeSpec {
+                        kind: spec.kind.clone(),
+                        name: resolved_name,
+                    },
+                )))
+            }
+            SemanticRuntimeDirective::CloseScope(spec) => {
+                let resolved_name = spec
+                    .name
+                    .as_ref()
+                    .map(|value| {
+                        self.resolve_semantic_runtime_value_against_content(value, root_content)
+                            .ok_or_else(|| {
+                                self.create_contextual_error(
+                                    "Semantic runtime could not resolve close-scope name for directive in current parse result",
+                                )
+                            })
+                    })
+                    .transpose()?;
+                Ok(transaction.apply_directive(&SemanticRuntimeDirective::CloseScope(
+                    SemanticCloseScopeSpec {
+                        kind: spec.kind.clone(),
+                        name: resolved_name,
+                    },
+                )))
+            }
+            SemanticRuntimeDirective::EmitFact(spec) => {
+                let resolved_name = self
+                    .resolve_semantic_runtime_value_against_content(&spec.name, root_content)
+                    .ok_or_else(|| {
+                        self.create_contextual_error(
+                            "Semantic runtime could not resolve fact name for directive in current parse result",
+                        )
+                    })?;
+                let resolved_attributes = self
+                    .resolve_unified_semantic_properties_against_content(
+                        &spec.attributes,
+                        root_content,
+                    )?;
+                Ok(transaction.apply_directive(&SemanticRuntimeDirective::EmitFact(
+                    SemanticFactSpec {
+                        kind: spec.kind.clone(),
+                        name: resolved_name,
+                        attributes: resolved_attributes,
+                    },
+                )))
+            }
+        }
+    }
+
+    /// Mirror of the generated `apply_branch_start_effect_directive` (INLINE-ACTIONS.2): apply a
+    /// WINNING branch's branch-start inline ACTION directly onto the live semantic state (no
+    /// transaction wrapper — the enclosing rule transaction and the tournament checkpoint own
+    /// rollback), resolving `$ref`s against the selected branch's content.
+    fn apply_branch_start_effect_directive(
+        &mut self,
+        directive: &SemanticRuntimeDirective,
+        root_content: &ParseContent<'i>,
+    ) -> ParseResult<bool> {
+        let resolved: Option<SemanticRuntimeDirective> = match directive {
+            SemanticRuntimeDirective::EmitFact(spec) => {
+                let resolved_name = self
+                    .resolve_semantic_runtime_value_against_content(&spec.name, root_content)
+                    .ok_or_else(|| {
+                        self.create_contextual_error(
+                            "Branch-start @emit_fact could not resolve the fact name against the selected branch content",
+                        )
+                    })?;
+                let resolved_attributes = self
+                    .resolve_unified_semantic_properties_against_content(
+                        &spec.attributes,
+                        root_content,
+                    )?;
+                Some(SemanticRuntimeDirective::EmitFact(SemanticFactSpec {
+                    kind: spec.kind.clone(),
+                    name: resolved_name,
+                    attributes: resolved_attributes,
+                }))
+            }
+            SemanticRuntimeDirective::OpenScope(spec) => {
+                let resolved_name = spec
+                    .name
+                    .as_ref()
+                    .map(|value| {
+                        self.resolve_semantic_runtime_value_against_content(value, root_content)
+                            .ok_or_else(|| {
+                                self.create_contextual_error(
+                                    "Branch-start @open_scope could not resolve the scope name against the selected branch content",
+                                )
+                            })
+                    })
+                    .transpose()?;
+                Some(SemanticRuntimeDirective::OpenScope(SemanticScopeSpec {
+                    kind: spec.kind.clone(),
+                    name: resolved_name,
+                }))
+            }
+            SemanticRuntimeDirective::CloseScope(spec) => {
+                let resolved_name = spec
+                    .name
+                    .as_ref()
+                    .map(|value| {
+                        self.resolve_semantic_runtime_value_against_content(value, root_content)
+                            .ok_or_else(|| {
+                                self.create_contextual_error(
+                                    "Branch-start @close_scope could not resolve the scope name against the selected branch content",
+                                )
+                            })
+                    })
+                    .transpose()?;
+                Some(SemanticRuntimeDirective::CloseScope(SemanticCloseScopeSpec {
+                    kind: spec.kind.clone(),
+                    name: resolved_name,
+                }))
+            }
+            _ => None,
+        };
+        match resolved {
+            Some(resolved) => Ok(self.semantic_state.apply_directive(&resolved)),
+            None => Ok(false),
+        }
+    }
+
+    /// Mirror of the generated `apply_semantic_runtime_library_import_directive`. The interpreter's
+    /// harness API has NO library configuration (`library_in_dir` is always unset — exactly like the
+    /// compile-and-run oracle's throwaway main), so the generated early-return-on-`None` path is the
+    /// whole behavior: a no-op BEFORE any `name_from` resolution (PARSE-HARNESS.md §21.3 honest bound;
+    /// the real-I/O lane is registry-owned and proven by the SV gates).
+    fn apply_library_import_directive(
+        &self,
+        _transaction: &mut SemanticRuntimeTransaction<'_>,
+        _spec: &crate::ast_pipeline::SemanticLibraryImportSpec,
+        _root_content: &ParseContent<'i>,
+    ) -> ParseResult<()> {
+        // Mirrors: `let Some(lib_in) = self.library_in_dir.as_deref() else { return Ok(()); };`
+        Ok(())
+    }
+
+    /// Mirror of the generated `apply_semantic_runtime_library_export_directive` — the same
+    /// no-library-configured no-op as the import side (early return before resolution).
+    fn apply_library_export_directive(
+        &self,
+        _transaction: &SemanticRuntimeTransaction<'_>,
+        _root_content: &ParseContent<'i>,
+        _entry_fact_len: usize,
+    ) -> ParseResult<()> {
+        // Mirrors: `let Some(lib_out) = self.library_out_dir.as_deref() else { return Ok(()); };`
+        Ok(())
+    }
+
+    /// Mirror of the generated `create_contextual_error`. Only the failure CLASS matters to the
+    /// harness differential (verdict + `furthest_position` + typed AST are compared; the error string
+    /// is not), so the rule stack / input context are left empty.
+    fn create_contextual_error(&self, message: &str) -> ParseError {
+        ParseError::ContextualError {
+            message: message.to_string(),
+            position: self.position,
+            rule_stack: Vec::new(),
+            input_context: String::new(),
+        }
+    }
+
+    // ── The `$reference` resolver family (mirrored from the emitted templates, `:2116`/`:5534`) ─────
+
+    /// Mirror of the generated `resolve_semantic_runtime_value_against_content`: resolve one
+    /// `SemanticRuntimeValue` (a directive's `name`/`name_from` payload) against the rule content —
+    /// `$ref`s go through `resolve_semantic_reference` + the scalar coercion; literals pass through.
+    fn resolve_semantic_runtime_value_against_content(
+        &self,
+        value: &SemanticRuntimeValue,
+        root_content: &ParseContent<'i>,
+    ) -> Option<SemanticRuntimeValue> {
+        match value {
+            SemanticRuntimeValue::RuleReference(reference) => self
+                .resolve_semantic_reference(root_content, reference)
+                .map(|resolved| self.coerce_semantic_runtime_scalar(&resolved)),
+            SemanticRuntimeValue::String(text) => Some(SemanticRuntimeValue::String(text.clone())),
+            SemanticRuntimeValue::Identifier(text) => {
+                Some(SemanticRuntimeValue::Identifier(text.clone()))
+            }
+            SemanticRuntimeValue::Number(text) => Some(SemanticRuntimeValue::Number(text.clone())),
+            SemanticRuntimeValue::Boolean(value) => Some(SemanticRuntimeValue::Boolean(*value)),
+            SemanticRuntimeValue::Null => Some(SemanticRuntimeValue::Null),
+        }
+    }
+
+    /// Mirror of the generated `resolve_unified_semantic_value_against_content` (the HARD-resolving
+    /// variant: an unresolvable `$ref` is a `ContextualError`).
+    fn resolve_unified_semantic_value_against_content(
+        &self,
+        value: &UnifiedSemanticValue,
+        root_content: &ParseContent<'i>,
+    ) -> ParseResult<UnifiedSemanticValue> {
+        match value {
+            UnifiedSemanticValue::RuleReference(reference) => self
+                .resolve_semantic_reference(root_content, reference)
+                .map(|resolved| self.coerce_unified_semantic_scalar(&resolved))
+                .ok_or_else(|| {
+                    self.create_contextual_error(&format!(
+                        "Semantic runtime could not resolve attribute reference '{reference}'"
+                    ))
+                }),
+            UnifiedSemanticValue::String(text) => Ok(UnifiedSemanticValue::String(text.clone())),
+            UnifiedSemanticValue::Identifier(text) => {
+                Ok(UnifiedSemanticValue::Identifier(text.clone()))
+            }
+            UnifiedSemanticValue::Number(text) => Ok(UnifiedSemanticValue::Number(text.clone())),
+            UnifiedSemanticValue::Boolean(value) => Ok(UnifiedSemanticValue::Boolean(*value)),
+            UnifiedSemanticValue::Null => Ok(UnifiedSemanticValue::Null),
+            UnifiedSemanticValue::Array(elements) => {
+                let mut resolved = Vec::with_capacity(elements.len());
+                for element in elements {
+                    resolved
+                        .push(self.resolve_unified_semantic_value_against_content(element, root_content)?);
+                }
+                Ok(UnifiedSemanticValue::Array(resolved))
+            }
+            UnifiedSemanticValue::Object(properties) => Ok(UnifiedSemanticValue::Object(
+                self.resolve_unified_semantic_properties_against_content(properties, root_content)?,
+            )),
+        }
+    }
+
+    /// Mirror of the generated `try_resolve_unified_semantic_value_against_content` (the SOFT variant:
+    /// an unresolvable `$ref` yields `Ok(None)` — a BRANCH predicate with an unresolvable arg blocks
+    /// that branch instead of erroring).
+    fn try_resolve_unified_semantic_value_against_content(
+        &self,
+        value: &UnifiedSemanticValue,
+        root_content: &ParseContent<'i>,
+    ) -> ParseResult<Option<UnifiedSemanticValue>> {
+        match value {
+            UnifiedSemanticValue::RuleReference(reference) => Ok(self
+                .resolve_semantic_reference(root_content, reference)
+                .map(|resolved| self.coerce_unified_semantic_scalar(&resolved))),
+            UnifiedSemanticValue::String(text) => {
+                Ok(Some(UnifiedSemanticValue::String(text.clone())))
+            }
+            UnifiedSemanticValue::Identifier(text) => {
+                Ok(Some(UnifiedSemanticValue::Identifier(text.clone())))
+            }
+            UnifiedSemanticValue::Number(text) => {
+                Ok(Some(UnifiedSemanticValue::Number(text.clone())))
+            }
+            UnifiedSemanticValue::Boolean(value) => Ok(Some(UnifiedSemanticValue::Boolean(*value))),
+            UnifiedSemanticValue::Null => Ok(Some(UnifiedSemanticValue::Null)),
+            UnifiedSemanticValue::Array(elements) => {
+                let mut resolved = Vec::with_capacity(elements.len());
+                for element in elements {
+                    let Some(resolved_element) =
+                        self.try_resolve_unified_semantic_value_against_content(element, root_content)?
+                    else {
+                        return Ok(None);
+                    };
+                    resolved.push(resolved_element);
+                }
+                Ok(Some(UnifiedSemanticValue::Array(resolved)))
+            }
+            UnifiedSemanticValue::Object(properties) => {
+                let mut resolved = Vec::with_capacity(properties.len());
+                for property in properties {
+                    let Some(resolved_value) = self
+                        .try_resolve_unified_semantic_value_against_content(&property.value, root_content)?
+                    else {
+                        return Ok(None);
+                    };
+                    resolved.push(UnifiedSemanticProperty {
+                        key: property.key.clone(),
+                        value: resolved_value,
+                    });
+                }
+                Ok(Some(UnifiedSemanticValue::Object(resolved)))
+            }
+        }
+    }
+
+    /// Mirror of the generated `resolve_unified_semantic_properties_against_content`.
+    fn resolve_unified_semantic_properties_against_content(
+        &self,
+        properties: &[UnifiedSemanticProperty],
+        root_content: &ParseContent<'i>,
+    ) -> ParseResult<Vec<UnifiedSemanticProperty>> {
+        let mut resolved = Vec::with_capacity(properties.len());
+        for property in properties {
+            resolved.push(UnifiedSemanticProperty {
+                key: property.key.clone(),
+                value: self
+                    .resolve_unified_semantic_value_against_content(&property.value, root_content)?,
+            });
+        }
+        Ok(resolved)
+    }
+
+    /// Mirror of the generated `resolve_semantic_predicate_spec_against_content`: resolve a POST
+    /// predicate's args against the view-selected content (default `Raw`; `view: shaped` selects the
+    /// `->`-shaped content). HARD-resolving (unresolvable `$ref` → `ContextualError`).
+    fn resolve_predicate_spec_against_content(
+        &self,
+        spec: &SemanticPredicateSpec,
+        raw_content: &ParseContent<'i>,
+        shaped_content: &ParseContent<'i>,
+    ) -> ParseResult<SemanticPredicateSpec> {
+        let selected_content = match spec.view {
+            SemanticPredicateContentView::Raw => raw_content,
+            SemanticPredicateContentView::Shaped => shaped_content,
+        };
+        let mut resolved_args = Vec::with_capacity(spec.args.len());
+        for arg in &spec.args {
+            resolved_args
+                .push(self.resolve_unified_semantic_value_against_content(arg, selected_content)?);
+        }
+        Ok(SemanticPredicateSpec {
+            name: spec.name.clone(),
+            args: resolved_args,
+            phase: spec.phase,
+            view: spec.view,
+        })
+    }
+
+    /// Mirror of the generated `try_resolve_semantic_predicate_spec_against_content` (the BRANCH
+    /// predicate variant — an unresolvable arg yields `Ok(None)`, blocking the branch).
+    fn try_resolve_predicate_spec_against_content(
+        &self,
+        spec: &SemanticPredicateSpec,
+        raw_content: &ParseContent<'i>,
+        shaped_content: &ParseContent<'i>,
+    ) -> ParseResult<Option<SemanticPredicateSpec>> {
+        let selected_content = match spec.view {
+            SemanticPredicateContentView::Raw => raw_content,
+            SemanticPredicateContentView::Shaped => shaped_content,
+        };
+        let mut resolved_args = Vec::with_capacity(spec.args.len());
+        for arg in &spec.args {
+            let Some(resolved_arg) =
+                self.try_resolve_unified_semantic_value_against_content(arg, selected_content)?
+            else {
+                return Ok(None);
+            };
+            resolved_args.push(resolved_arg);
+        }
+        Ok(Some(SemanticPredicateSpec {
+            name: spec.name.clone(),
+            args: resolved_args,
+            phase: spec.phase,
+            view: spec.view,
+        }))
+    }
+
+    /// Mirror of the generated `coerce_semantic_runtime_scalar`: a resolved reference's text is coerced
+    /// bool → number → identifier → string (variant-SENSITIVE downstream — the fact-index name match
+    /// distinguishes `Identifier("x")` from `String("x")`, which is why grammar predicate args use
+    /// unquoted identifiers).
+    fn coerce_semantic_runtime_scalar(&self, value: &str) -> SemanticRuntimeValue {
+        let normalized = value.trim();
+        if normalized.eq_ignore_ascii_case("true") {
+            return SemanticRuntimeValue::Boolean(true);
+        }
+        if normalized.eq_ignore_ascii_case("false") {
+            return SemanticRuntimeValue::Boolean(false);
+        }
+        if normalized.parse::<f64>().is_ok() {
+            return SemanticRuntimeValue::Number(normalized.to_string());
+        }
+        if Self::semantic_identifier(normalized) {
+            return SemanticRuntimeValue::Identifier(normalized.to_string());
+        }
+        SemanticRuntimeValue::String(normalized.to_string())
+    }
+
+    /// Mirror of the generated `coerce_unified_semantic_scalar` (same ladder, unified-value flavor).
+    fn coerce_unified_semantic_scalar(&self, value: &str) -> UnifiedSemanticValue {
+        let normalized = value.trim();
+        if normalized.eq_ignore_ascii_case("true") {
+            return UnifiedSemanticValue::Boolean(true);
+        }
+        if normalized.eq_ignore_ascii_case("false") {
+            return UnifiedSemanticValue::Boolean(false);
+        }
+        if normalized.parse::<f64>().is_ok() {
+            return UnifiedSemanticValue::Number(normalized.to_string());
+        }
+        if Self::semantic_identifier(normalized) {
+            return UnifiedSemanticValue::Identifier(normalized.to_string());
+        }
+        UnifiedSemanticValue::String(normalized.to_string())
+    }
+
+    /// Mirror of the generated `resolve_semantic_reference`: `$N…` positional / named-dotted /
+    /// `[N]`-indexed / `.len` reference text → the resolved scalar string.
+    fn resolve_semantic_reference(
+        &self,
+        root_content: &ParseContent<'i>,
+        reference: &str,
+    ) -> Option<String> {
+        let normalized = reference.trim();
+        if normalized.is_empty() {
+            return None;
+        }
+        let (core_reference, wants_len) = if let Some(stripped) = normalized.strip_suffix(".len") {
+            (stripped, true)
+        } else {
+            (normalized, false)
+        };
+        let resolved = if core_reference.starts_with('$') {
+            let dollar_reference_body = core_reference[1..].trim();
+            let dollar_reference_is_positional = dollar_reference_body
+                .as_bytes()
+                .first()
+                .map(|byte| byte.is_ascii_digit())
+                .unwrap_or(false);
+            if dollar_reference_is_positional {
+                self.resolve_positional_semantic_reference(root_content, core_reference)
+            } else {
+                self.resolve_named_semantic_reference(root_content, dollar_reference_body)
+            }
+        } else {
+            self.resolve_named_semantic_reference(root_content, core_reference)
+        }?;
+        if wants_len {
+            Some(resolved.chars().count().to_string())
+        } else {
+            Some(resolved)
+        }
+    }
+
+    /// Mirror of the generated `resolve_positional_semantic_reference` (`$N[.path]` over the RAW tree).
+    fn resolve_positional_semantic_reference(
+        &self,
+        root_content: &ParseContent<'i>,
+        reference: &str,
+    ) -> Option<String> {
+        let (index, path_segments) = Self::parse_semantic_reference_segments(reference)?;
+        let mut current_node = match root_content {
+            ParseContent::Sequence(elements) => elements.get(index.saturating_sub(1))?,
+            ParseContent::Alternative(node) => {
+                if index == 1 {
+                    node.as_ref()
+                } else {
+                    return None;
+                }
+            }
+            ParseContent::Quantified(elements, _) => elements.get(index.saturating_sub(1))?,
+            _ => return None,
+        };
+        for segment in path_segments {
+            if let Some(index) = Self::parse_bracketed_index(segment) {
+                current_node = Self::find_semantic_indexed_child(&current_node.content, index)?;
+            } else {
+                current_node =
+                    Self::find_semantic_named_descendant(&current_node.content, segment)?;
+            }
+        }
+        self.semantic_node_scalar(current_node)
+    }
+
+    /// Mirror of the generated `resolve_named_semantic_reference` (SEMREF-SHAPED: against a
+    /// `ParseContent::Json` the dotted path walks the shaped object; otherwise the raw named-descendant
+    /// walk).
+    fn resolve_named_semantic_reference(
+        &self,
+        root_content: &ParseContent<'i>,
+        reference: &str,
+    ) -> Option<String> {
+        let lexed_segments = Self::lex_semantic_reference_segments_named(reference)?;
+        if lexed_segments.is_empty() {
+            return None;
+        }
+        if let ParseContent::Json(value) = root_content {
+            let mut current = value;
+            for segment in &lexed_segments {
+                if let Some(index) = Self::parse_bracketed_index(segment) {
+                    current = current.get(index)?;
+                } else {
+                    if !Self::semantic_identifier(segment) {
+                        return None;
+                    }
+                    current = current.get(*segment)?;
+                }
+            }
+            return match current {
+                serde_json::Value::String(text) => Some(text.clone()),
+                serde_json::Value::Number(number) => Some(number.to_string()),
+                serde_json::Value::Bool(boolean) => Some(boolean.to_string()),
+                _ => None,
+            };
+        }
+        let mut iter = lexed_segments.iter();
+        let first = iter.next()?;
+        if !Self::semantic_identifier(first) {
+            return None;
+        }
+        let mut current_node = Self::find_semantic_named_descendant(root_content, first)?;
+        for segment in iter {
+            if let Some(index) = Self::parse_bracketed_index(segment) {
+                current_node = Self::find_semantic_indexed_child(&current_node.content, index)?;
+            } else {
+                if !Self::semantic_identifier(segment) {
+                    return None;
+                }
+                current_node =
+                    Self::find_semantic_named_descendant(&current_node.content, segment)?;
+            }
+        }
+        self.semantic_node_scalar(current_node)
+    }
+
+    /// Mirror of the generated `parse_semantic_reference_segments` (`$N` + lexed `.name`/`[N]` suffix).
+    fn parse_semantic_reference_segments(reference: &str) -> Option<(usize, Vec<&str>)> {
+        let normalized = reference.trim();
+        if !normalized.starts_with('$') {
+            return None;
+        }
+        let bytes = normalized.as_bytes();
+        let mut index_end = 1usize;
+        while index_end < bytes.len() && bytes[index_end].is_ascii_digit() {
+            index_end += 1;
+        }
+        if index_end == 1 {
+            return None;
+        }
+        let index = normalized[1..index_end].parse::<usize>().ok()?;
+        if index == 0 {
+            return None;
+        }
+        let suffix = normalized[index_end..].trim();
+        let segments = Self::lex_semantic_reference_segments_suffix(suffix)?;
+        for segment in &segments {
+            if Self::parse_bracketed_index(segment).is_none() && !Self::semantic_identifier(segment)
+            {
+                return None;
+            }
+        }
+        Some((index, segments))
+    }
+
+    /// Mirror of the generated `find_semantic_indexed_child`.
+    fn find_semantic_indexed_child<'a>(
+        content: &'a ParseContent<'i>,
+        index: usize,
+    ) -> Option<&'a ParseNode<'i>> {
+        match content {
+            ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
+                elements.get(index)
+            }
+            ParseContent::Alternative(node) if index == 0 => Some(node.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Mirror of the generated `find_semantic_named_descendant` (a raw-tree walk — it does NOT descend
+    /// into a shaped `Json` leaf).
+    fn find_semantic_named_descendant<'a>(
+        content: &'a ParseContent<'i>,
+        target_name: &str,
+    ) -> Option<&'a ParseNode<'i>> {
+        match content {
+            ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
+                for node in elements {
+                    if node.rule_name == target_name {
+                        return Some(node);
+                    }
+                    if let Some(found) =
+                        Self::find_semantic_named_descendant(&node.content, target_name)
+                    {
+                        return Some(found);
+                    }
+                }
+                None
+            }
+            ParseContent::Alternative(node) => {
+                if node.rule_name == target_name {
+                    Some(node)
+                } else {
+                    Self::find_semantic_named_descendant(&node.content, target_name)
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Mirror of the generated `semantic_node_scalar` / `semantic_content_scalar`.
+    fn semantic_node_scalar(&self, node: &ParseNode<'i>) -> Option<String> {
+        self.semantic_content_scalar(&node.content)
+    }
+
+    fn semantic_content_scalar(&self, content: &ParseContent<'i>) -> Option<String> {
+        match content {
+            ParseContent::Terminal(value) => Some((*value).to_string()),
+            ParseContent::TransformedTerminal(value) => Some(value.clone()),
+            ParseContent::Json(value) => match value {
+                serde_json::Value::String(s) => Some(s.clone()),
+                serde_json::Value::Null => None,
+                other => Some(other.to_string()),
+            },
+            ParseContent::Alternative(node) => self.semantic_node_scalar(node),
+            ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
+                let mut merged = String::new();
+                for node in elements {
+                    if let Some(value) = self.semantic_node_scalar(node) {
+                        merged.push_str(&value);
+                    }
+                }
+                if merged.trim().is_empty() { None } else { Some(merged) }
+            }
+        }
+    }
+
+    /// Mirror of the generated `semantic_identifier`.
+    fn semantic_identifier(segment: &str) -> bool {
+        let bytes = segment.as_bytes();
+        let Some(first) = bytes.first() else {
+            return false;
+        };
+        if !(*first == b'_' || (*first as char).is_ascii_alphabetic()) {
+            return false;
+        }
+        bytes[1..]
+            .iter()
+            .all(|b| *b == b'_' || (*b as char).is_ascii_alphanumeric())
+    }
+
+    /// Mirror of the generated `lex_semantic_reference_segments_suffix`.
+    fn lex_semantic_reference_segments_suffix(suffix: &str) -> Option<Vec<&str>> {
+        let mut segments = Vec::new();
+        let mut remaining = suffix.trim();
+        while !remaining.is_empty() {
+            if let Some(rest) = remaining.strip_prefix('.') {
+                let bytes = rest.as_bytes();
+                let mut end = 0usize;
+                if bytes.is_empty() || !(bytes[0] == b'_' || (bytes[0] as char).is_ascii_alphabetic())
+                {
+                    return None;
+                }
+                end += 1;
+                while end < bytes.len()
+                    && (bytes[end] == b'_' || (bytes[end] as char).is_ascii_alphanumeric())
+                {
+                    end += 1;
+                }
+                segments.push(&rest[..end]);
+                remaining = &rest[end..];
+            } else if let Some(rest) = remaining.strip_prefix('[') {
+                let bytes = rest.as_bytes();
+                let mut end = 0usize;
+                while end < bytes.len() && (bytes[end] as char).is_ascii_digit() {
+                    end += 1;
+                }
+                if end == 0 || end >= bytes.len() || bytes[end] != b']' {
+                    return None;
+                }
+                let bracketed_end = 1 + end + 1;
+                segments.push(&remaining[..bracketed_end]);
+                remaining = &remaining[bracketed_end..];
+            } else {
+                return None;
+            }
+        }
+        Some(segments)
+    }
+
+    /// Mirror of the generated `lex_semantic_reference_segments_named`.
+    fn lex_semantic_reference_segments_named(reference: &str) -> Option<Vec<&str>> {
+        let normalized = reference.trim();
+        let bytes = normalized.as_bytes();
+        if bytes.is_empty() {
+            return None;
+        }
+        let mut head_end = 0usize;
+        if !(bytes[0] == b'_' || (bytes[0] as char).is_ascii_alphabetic()) {
+            return None;
+        }
+        head_end += 1;
+        while head_end < bytes.len()
+            && (bytes[head_end] == b'_' || (bytes[head_end] as char).is_ascii_alphanumeric())
+        {
+            head_end += 1;
+        }
+        let head = &normalized[..head_end];
+        let suffix = &normalized[head_end..];
+        let mut segments = Vec::with_capacity(1);
+        segments.push(head);
+        segments.extend(Self::lex_semantic_reference_segments_suffix(suffix)?);
+        Some(segments)
+    }
+
+    /// Mirror of the generated `parse_bracketed_index`.
+    fn parse_bracketed_index(segment: &str) -> Option<usize> {
+        let inner = segment.strip_prefix('[')?.strip_suffix(']')?;
+        if inner.is_empty() || !inner.bytes().all(|b| (b as char).is_ascii_digit()) {
+            return None;
+        }
+        inner.parse::<usize>().ok()
+    }
+
+    // ── Tournament annotation helpers (mirror codegen's generation-time readers) ────────────────────
+
+    /// Mirror of codegen's `rule_branch_priorities` (`ast_based_generator.rs:7305`): the per-branch
+    /// `@priority` (or `@precedence`) list, defaulting to all-zero. Explicit `@priority` wins over
+    /// `@precedence`.
+    fn rule_branch_priorities(&self, rule_name: &str, branch_count: usize) -> Vec<i64> {
+        let default_priorities = vec![0i64; branch_count];
+        let Some(entries) = self
+            .annotations
+            .and_then(|a| a.semantic_annotations.get(rule_name))
+        else {
+            return default_priorities;
+        };
+        let mut precedence_priorities: Option<Vec<i64>> = None;
+        let mut explicit_priorities: Option<Vec<i64>> = None;
+        for annotation in entries {
+            let Some(name) = annotation.name() else {
+                continue;
+            };
+            let payload = annotation.ast().payload_text().trim().to_string();
+            let Some(parsed) = parse_semantic_branch_priorities(&payload, branch_count) else {
+                continue;
+            };
+            let normalized = name.trim().to_ascii_lowercase();
+            match normalized.as_str() {
+                "precedence" => precedence_priorities = Some(parsed),
+                "priority" => explicit_priorities = Some(parsed),
+                _ => {}
+            }
+        }
+        explicit_priorities
+            .or(precedence_priorities)
+            .unwrap_or(default_priorities)
+    }
+
+    /// Mirror of codegen's `rule_associativity` (`ast_based_generator.rs:7282`): the rule's
+    /// `@associativity` (default `left`).
+    fn rule_associativity(&self, rule_name: &str) -> SemanticAssociativity {
+        let Some(entries) = self
+            .annotations
+            .and_then(|a| a.semantic_annotations.get(rule_name))
+        else {
+            return SemanticAssociativity::Left;
+        };
+        let mut associativity = SemanticAssociativity::Left;
+        for annotation in entries {
+            let Some(name) = annotation.name() else {
+                continue;
+            };
+            if !name.trim().eq_ignore_ascii_case("associativity") {
+                continue;
+            }
+            let payload = annotation.ast().payload_text().trim().to_string();
+            if let Some(parsed) = SemanticAssociativity::parse(&payload) {
+                associativity = parsed;
+            }
+        }
+        associativity
     }
 
     /// Mirror codegen's `generate_post_body_span_transform` (`ast_based_generator.rs:4094`): if the
@@ -678,16 +1703,26 @@ impl<'g, 'i> Interp<'g, 'i> {
     /// return-annotation transform per-branch inside the tournament; a non-`Or` body gets the
     /// rule-level branch-0 transform (explicit annotation, else the synthetic `-> $1` passthrough for a
     /// single-element body, else raw).
+    ///
+    /// `capture_raw` / `raw_out` mirror the generated rule body's `semantic_capture_raw_for_post` /
+    /// `semantic_raw_content` locals (PARSE-HARNESS.6.2): codegen INLINES every nested construct into
+    /// the rule method, so ANY `Or` (body-level or nested) writes the same rule-scoped local. The
+    /// out-param is threaded through the whole dispatch to reproduce exactly that
+    /// mutable-local-with-no-rollback behavior.
     fn parse_rule_body(
         &mut self,
         body: &'g ASTNode,
         rule_name: &str,
         start_pos: usize,
+        capture_raw: bool,
+        raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
         match body {
-            ASTNode::Or { alternatives } => self.parse_or(alternatives, rule_name),
+            ASTNode::Or { alternatives } => {
+                self.parse_or(alternatives, rule_name, capture_raw, raw_out)
+            }
             _ => {
-                let raw = self.parse_node(body, rule_name)?;
+                let raw = self.parse_node(body, rule_name, capture_raw, raw_out)?;
                 let ann = self.resolve_branch_annotation(rule_name, 0, body);
                 Ok(match ann {
                     Some(a) => self.apply_return_annotation(&a, &raw, start_pos),
@@ -700,34 +1735,59 @@ impl<'g, 'i> Interp<'g, 'i> {
     /// Dispatch a single (sub-)node to its raw structural `ParseContent`. This is the codegen's
     /// `generate_node_parsing_logic`: it does NOT apply a rule-level transform (that is the caller's
     /// job); an `Or` sub-node applies its own per-branch transforms inside `parse_or`.
-    fn parse_node(&mut self, node: &'g ASTNode, rule_name: &str) -> ParseResult<ParseContent<'i>> {
+    fn parse_node(
+        &mut self,
+        node: &'g ASTNode,
+        rule_name: &str,
+        capture_raw: bool,
+        raw_out: &mut Option<ParseContent<'i>>,
+    ) -> ParseResult<ParseContent<'i>> {
         match node {
-            ASTNode::Or { alternatives } => self.parse_or(alternatives, rule_name),
-            ASTNode::Sequence { elements } => self.parse_sequence(elements, rule_name),
+            ASTNode::Or { alternatives } => {
+                self.parse_or(alternatives, rule_name, capture_raw, raw_out)
+            }
+            ASTNode::Sequence { elements } => {
+                self.parse_sequence(elements, rule_name, capture_raw, raw_out)
+            }
             ASTNode::Atom { value } => self.parse_atom(value, rule_name),
             ASTNode::Quantified { element, quantifier } => {
-                self.parse_quantified(element, quantifier, rule_name)
+                self.parse_quantified(element, quantifier, rule_name, capture_raw, raw_out)
             }
             ASTNode::Lookahead { element, positive } => {
-                self.parse_lookahead(element, *positive, rule_name)
+                self.parse_lookahead(element, *positive, rule_name, capture_raw, raw_out)
             }
         }
     }
 
     // ── Ordered choice (the tournament) ────────────────────────────────────────────────────────────
 
-    /// Ordered choice honoring `branch_policy`. Single-branch: parse + branch-0 transform. Multi-branch:
-    /// the try_parse tournament — under the default `longest_match`, strictly-greater `candidate_end`
-    /// replaces the incumbent and an equal end keeps the earliest branch (the exact `should_take`
-    /// ladder the generated parser emits, for the default policy/priority/associativity).
+    /// Ordered choice honoring `branch_policy` — the full generated tournament, mirrored from the
+    /// emitted multi-branch template (PARSE-HARNESS.6.2, tool-verified from the emitted parsers):
+    ///
+    /// - single-branch: parse + raw capture (before the transform) + branch-0 transform;
+    /// - multi-branch: per branch — the `ordered` early-skip, `try_parse` attempt, the branch
+    ///   transform computed BEFORE the position rollback (BRANCH-BROADCAST-FIX.3), the BRANCH-phase
+    ///   predicates (rule-level ∪ branch-local — note `branch_predicates_for_rule` flat-maps every
+    ///   branch bucket, so an inline branch predicate gates EVERY branch, the documented flattening),
+    ///   the full `should_take` ladder (policy × priority × length × associativity, incl. the
+    ///   `nonassoc` tie), then the C3-B semantic-delta extract + rollback (no loser leakage);
+    /// - winner: position, the winner's delta replay, the winning branch's branch-start inline
+    ///   actions (INLINE-ACTIONS.2), and the raw-capture assignment.
     fn parse_or(
         &mut self,
         alternatives: &'g [ASTNode],
         rule_name: &str,
+        capture_raw: bool,
+        raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
         if alternatives.len() == 1 {
             let branch_start = self.position;
-            let raw = self.parse_node(&alternatives[0], rule_name)?;
+            let raw = self.parse_node(&alternatives[0], rule_name, capture_raw, raw_out)?;
+            // The generated single-branch template captures the RAW result before the transform
+            // (`if semantic_capture_raw_for_post { semantic_raw_content = Some(result.clone()); }`).
+            if capture_raw {
+                *raw_out = Some(raw.clone());
+            }
             let ann = self.resolve_branch_annotation(rule_name, 0, &alternatives[0]);
             return Ok(match ann {
                 Some(a) => self.apply_return_annotation(&a, &raw, branch_start),
@@ -736,47 +1796,186 @@ impl<'g, 'i> Interp<'g, 'i> {
         }
 
         let policy = self.rule_branch_policy(rule_name);
+        let priorities = self.rule_branch_priorities(rule_name, alternatives.len());
+        let associativity = self.rule_associativity(rule_name);
         let parse_start = self.position;
 
         let mut best_content: Option<ParseContent<'i>> = None;
+        let mut best_raw_content: Option<ParseContent<'i>> = None;
         let mut best_end = parse_start;
+        let mut best_priority: i64 = i64::MIN;
+        let mut best_branch_index: usize = 0;
+        let mut nonassoc_tie = false;
+        // C3-B (SV-EXH-PROOF.3.3.4.b.6.2.33): tournament-scope semantic checkpoint; each branch
+        // extracts its delta then rolls back; ONLY the winner's delta is replayed at the end.
+        let tournament_checkpoint = self.semantic_state.checkpoint();
+        let mut best_semantic_delta: Option<SemanticRuntimeDelta> = None;
 
         for (idx, alternative) in alternatives.iter().enumerate() {
-            // `ordered` keeps the first successful branch.
+            // The emitted arm guard: `if policy == ordered && best_content.is_some() {} else {…}` —
+            // under `ordered` later branches are not even attempted once one succeeded.
             if policy == SemanticBranchPolicy::Ordered && best_content.is_some() {
                 continue;
             }
             self.position = parse_start;
             let branch_start = self.position;
-            let attempt = self.try_parse(|p| p.parse_node(alternative, rule_name));
+            let attempt =
+                self.try_parse(|p| p.parse_node(alternative, rule_name, capture_raw, raw_out));
             if let Some(raw) = attempt {
                 let candidate_end = self.position;
+                let candidate_priority: i64 = priorities.get(idx).copied().unwrap_or(0);
+                // BRANCH-BROADCAST-FIX.3 — the branch transform runs BEFORE the position rollback
+                // ($text/MatchedText slices `input[start..position]`).
                 let ann = self.resolve_branch_annotation(rule_name, idx, alternative);
                 let transformed = match ann {
                     Some(a) => self.apply_return_annotation(&a, &raw, branch_start),
-                    None => raw,
+                    None => raw.clone(),
                 };
-                // Default longest_match ladder (priority/associativity are default here — `.6` extends):
-                //   first candidate wins; strictly-longer replaces; equal end keeps the earlier branch.
-                let take = match policy {
-                    SemanticBranchPolicy::Ordered => best_content.is_none(),
-                    // priority_first with all-default priorities degenerates to first-wins-then-longest;
-                    // the full priority/associativity ladder is the `.6` extension (honest bound §13.4).
-                    _ => best_content.is_none() || candidate_end > best_end,
+                self.position = parse_start;
+
+                // BRANCH-phase predicates: rule-level ∪ branch-local, `try_resolve` semantics (an
+                // unresolvable `$ref` BLOCKS the branch), evaluated on the LIVE state (this branch's
+                // own emissions are visible), against the (raw, transformed) content pair.
+                let mut branch_predicate_blocked = false;
+                for directive in self
+                    .compiled_sem
+                    .branch_predicates_for_rule(rule_name)
+                    .chain(self.compiled_sem.branch_predicates_for_rule_branch(rule_name, idx))
+                {
+                    if let SemanticRuntimeDirective::Predicate(spec) = directive {
+                        if spec.phase == SemanticPredicatePhase::Branch {
+                            let Some(resolved_spec) = self
+                                .try_resolve_predicate_spec_against_content(
+                                    spec,
+                                    &raw,
+                                    &transformed,
+                                )?
+                            else {
+                                branch_predicate_blocked = true;
+                                break;
+                            };
+                            match self.semantic_state.evaluate_content_aware_predicate(
+                                &resolved_spec,
+                                &raw,
+                                &transformed,
+                            ) {
+                                Some(true) => {}
+                                Some(false) => {
+                                    branch_predicate_blocked = true;
+                                    break;
+                                }
+                                None => {}
+                            }
+                        }
+                    }
+                }
+
+                // The FULL generated `should_take` ladder (policy × priority × length × associativity).
+                let should_take = if branch_predicate_blocked {
+                    false
+                } else if policy == SemanticBranchPolicy::Ordered {
+                    best_content.is_none()
+                } else if policy == SemanticBranchPolicy::PriorityFirst {
+                    if best_content.is_none() {
+                        true
+                    } else if candidate_priority > best_priority {
+                        true
+                    } else if candidate_priority < best_priority {
+                        false
+                    } else if candidate_end > best_end {
+                        true
+                    } else if candidate_end < best_end {
+                        false
+                    } else {
+                        match associativity {
+                            SemanticAssociativity::Right => idx > best_branch_index,
+                            SemanticAssociativity::NonAssoc => {
+                                if idx != best_branch_index {
+                                    nonassoc_tie = true;
+                                }
+                                false
+                            }
+                            SemanticAssociativity::Left => false,
+                        }
+                    }
+                } else if best_content.is_none() {
+                    true
+                } else if candidate_end > best_end {
+                    true
+                } else if candidate_end < best_end {
+                    false
+                } else if candidate_priority > best_priority {
+                    true
+                } else if candidate_priority < best_priority {
+                    false
+                } else {
+                    match associativity {
+                        SemanticAssociativity::Right => idx > best_branch_index,
+                        SemanticAssociativity::NonAssoc => {
+                            if idx != best_branch_index {
+                                nonassoc_tie = true;
+                            }
+                            false
+                        }
+                        SemanticAssociativity::Left => false,
+                    }
                 };
-                if take {
+
+                // C3-B: extract this branch's delta, then roll back to the tournament checkpoint so no
+                // branch's effects leak into the next; the winner's delta is replayed after the loop.
+                let candidate_delta = self
+                    .semantic_state
+                    .extract_delta_since(&tournament_checkpoint);
+                self.semantic_state
+                    .rollback_to_named(tournament_checkpoint.clone(), Some(rule_name));
+
+                if should_take {
                     best_end = candidate_end;
+                    best_priority = candidate_priority;
+                    best_branch_index = idx;
+                    if capture_raw {
+                        best_raw_content = Some(raw.clone());
+                    }
                     best_content = Some(transformed);
+                    best_semantic_delta = Some(candidate_delta);
                 }
             }
         }
 
+        if nonassoc_tie {
+            return Err(ParseError::Backtrack {
+                position: parse_start,
+            });
+        }
         match best_content {
             Some(content) => {
                 self.position = best_end;
+                // Replay ONLY the winning branch's semantic effects (C3-B).
+                if let Some(delta) = best_semantic_delta {
+                    if !delta.is_empty() {
+                        self.semantic_state.apply_delta(delta);
+                    }
+                }
+                // INLINE-ACTIONS.2: the winning branch's branch-start inline actions fire here — after
+                // the winner's body delta is replayed and before the rule-level effect/post phases.
+                // Cloned out of the registry first (the generated code does the same, to release the
+                // immutable borrow before the `&mut self` apply).
+                let branch_start_effects: Vec<SemanticRuntimeDirective> = self
+                    .compiled_sem
+                    .branch_effect_directives_for_rule_branch(rule_name, best_branch_index)
+                    .cloned()
+                    .collect();
+                for effect in &branch_start_effects {
+                    self.apply_branch_start_effect_directive(effect, &content)?;
+                }
+                // The emitted tournament ends with the UNCONDITIONAL rule-local assignment
+                // `semantic_raw_content = best_raw_content` (None unless capture_raw).
+                *raw_out = best_raw_content;
                 Ok(content)
             }
-            None => Err(ParseError::Backtrack { position: parse_start }),
+            None => Err(ParseError::Backtrack {
+                position: parse_start,
+            }),
         }
     }
 
@@ -789,6 +1988,8 @@ impl<'g, 'i> Interp<'g, 'i> {
         &mut self,
         elements: &'g [ASTNode],
         rule_name: &str,
+        capture_raw: bool,
+        raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
         let mut sequence_elements: Vec<ParseNode<'i>> = Vec::with_capacity(elements.len());
         for (idx, element) in elements.iter().enumerate() {
@@ -796,12 +1997,12 @@ impl<'g, 'i> Interp<'g, 'i> {
             let element_content = match element {
                 ASTNode::Quantified { element: inner, quantifier } if quantifier == "?" => {
                     // Optional sequence element: inner content on match, empty Sequence on absence.
-                    match self.try_parse(|p| p.parse_node(inner, rule_name)) {
+                    match self.try_parse(|p| p.parse_node(inner, rule_name, capture_raw, raw_out)) {
                         Some(content) => content,
                         None => ParseContent::Sequence(Vec::new()),
                     }
                 }
-                _ => self.parse_node(element, rule_name)?,
+                _ => self.parse_node(element, rule_name, capture_raw, raw_out)?,
             };
             let element_end = self.position;
             sequence_elements.push(ParseNode {
@@ -824,6 +2025,8 @@ impl<'g, 'i> Interp<'g, 'i> {
         element: &'g ASTNode,
         quantifier: &str,
         rule_name: &str,
+        capture_raw: bool,
+        raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
         const SAFETY_LIMIT: usize = 10_000;
         let (min, max) = parse_quantifier_bounds(quantifier).unwrap_or((0, None));
@@ -841,7 +2044,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                     break;
                 }
             }
-            match self.try_parse(|p| p.parse_node(element, rule_name)) {
+            match self.try_parse(|p| p.parse_node(element, rule_name, capture_raw, raw_out)) {
                 Some(content) => {
                     let current_position = self.position;
                     // Zero-length guard: a matching but non-advancing iteration would loop forever;
@@ -880,9 +2083,11 @@ impl<'g, 'i> Interp<'g, 'i> {
         element: &'g ASTNode,
         positive: bool,
         rule_name: &str,
+        capture_raw: bool,
+        raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
         let lookahead_start = self.position;
-        let matched = self.try_parse(|p| p.parse_node(element, rule_name));
+        let matched = self.try_parse(|p| p.parse_node(element, rule_name, capture_raw, raw_out));
         self.position = lookahead_start;
         let ok = if positive { matched.is_some() } else { matched.is_none() };
         if ok {

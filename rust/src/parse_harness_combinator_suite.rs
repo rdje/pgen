@@ -406,8 +406,12 @@ impl CombinatorCaseReport {
 }
 
 /// Compact one-line AST-diff note (mirrors the `.5` reporter): the first byte offset at which the two
-/// serialized ASTs differ, with a small window of context from each side.
-fn ast_diff_note(interp: Option<&serde_json::Value>, oracle: Option<&serde_json::Value>) -> String {
+/// serialized ASTs differ, with a small window of context from each side. `pub(crate)` so the sibling
+/// `.6.2` semantic suite reuses the identical comparator (one source of truth for "byte-identical").
+pub(crate) fn ast_diff_note(
+    interp: Option<&serde_json::Value>,
+    oracle: Option<&serde_json::Value>,
+) -> String {
     match (interp, oracle) {
         (Some(i), Some(o)) => {
             let is = i.to_string();
@@ -491,8 +495,9 @@ pub fn run_combinator_case(
 }
 
 /// Compare one interpreter outcome against one oracle outcome + the independent anchor.
+/// `pub(crate)` so the sibling `.6.2` semantic suite reuses the identical comparator.
 #[cfg(feature = "ebnf_dual_run")]
-fn compare(
+pub(crate) fn compare(
     input: &str,
     expected_accept: bool,
     interp: Result<ParseOutcome, crate::parse_harness_interpreter::InterpretError>,

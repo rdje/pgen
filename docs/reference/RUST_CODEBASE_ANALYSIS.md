@@ -1,6 +1,30 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-06-10
+Last updated: 2026-07-06
+
+## Recent Architecture Change Note (2026-07-06)
+
+**The parse-harness subsystem is complete as a verified second parse implementation
+(`PARSE-HARNESS.2`–`.6.2`, sessions #37–#47).** Five sibling modules now form a coherent
+arbitrary-grammar parse capability alongside the registry path: `parse_harness.rs` (the
+compile-and-run oracle — real codegen compiled as a throwaway external crate, authoritative by
+construction), `parse_harness_interpreter.rs` (the in-process grammar-AST interpreter — a dynamic
+dispatcher over the normalized gen-AST that reuses the shipped `ParseNode`/`ParseContent`/
+`semantic_runtime` types verbatim and, since `.6.2`, mirrors the FULL semantic-directive
+orchestration — the rule-transaction skeleton, tournament C3-B delta discipline, branch-start inline
+actions, the `$reference` resolver family, and the split packrat memo with semantic-delta replay —
+from the emitted codegen templates), and the three certifying oracles: `parse_harness_equivalence.rs`
+(byte-identity vs the shipped generated parsers over a deterministic corpus — 11 grammars CERTIFIED),
+`parse_harness_combinator_suite.rs` (per-structural-combinator isolation, 16/16), and
+`parse_harness_semantic_suite.rs` (per-semantic-construct isolation, 20/20). Architectural
+significance: the interpreter is a genuine second implementation of PGEN's parse semantics whose
+divergence surface is pinned mechanically per construct, which (a) gives every linter/authoring
+question an in-process arbitrary-grammar probe with no codegen, and (b) doubles as an executable
+specification of the generated parsers' orchestration (the emitted `quote!` templates now have a
+readable, tested mirror). The `.6.2` differential work also pinned several engine behaviors as
+grammar-author facts (store-blind memo failure cache; variant-sensitive fact-name matching;
+rule-wide inline branch-predicate flattening; the `$`-stripped positional-reference dead path) —
+see the parse-harness book chapter and `docs/tasks/PARSE-HARNESS.md` §21.
 
 ## Recent Architecture Change Note (2026-06-10, later)
 

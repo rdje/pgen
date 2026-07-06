@@ -541,6 +541,85 @@ on `furthest_position` (measured: interpreter reaches `2`/`4`, the generated par
 interpreter-fidelity gap kept as a durable, re-runnable probe and surfaced for a follow-up, distinct from
 the LR-*eliminated* combinator the suite certifies.
 
+## The semantic-directive orchestration suite (`PARSE-HARNESS.6.2`)
+
+The structural suite above proves the interpreter per-combinator — but PGEN parsing is not purely
+structural: a grammar can **gate parse outcomes on the semantic store** (`@predicate` in the `pre` /
+`branch` / `post` phases), **populate** that store (`@emit_fact`, `@open_scope` / `@close_scope`), resolve
+`$references` against the parsed content, and interact with memoization and speculative rollback. This was
+the interpreter's explicitly-deferred, least-proven surface (its honest bound since `.4`). The
+**semantic-directive orchestration suite** (`PARSE-HARNESS.6.2`, module
+`rust/src/parse_harness_semantic_suite.rs`, run via `make -C rust parse_harness_semantic_gate`) closes it
+the same way `.6.1` closed the structural half: small isolating grammars, one per orchestration construct,
+each differentially verified **byte-identical** (verdict + `furthest_position` + typed AST) against the
+compile-and-run oracle over fixed curated inputs — deterministic by construction, report-first, with a
+completeness invariant so no construct can be silently unmeasured.
+
+Landing the suite also landed the capability it certifies: the interpreter now runs the **full semantic
+orchestration mirror**. The queries and the store itself were always the *shared runtime* (reused
+verbatim: predicate evaluation, transactions, checkpoints, deltas, the scope tree); what the interpreter
+mirrors from the emitted codegen templates is the orchestration *glue* — the rule-level transaction
+skeleton (PRE gates → body → effects → library imports → POST gates → library exports → commit, with a
+named rollback on failure), the tournament's per-branch C3-B semantic-delta capture/rollback with a
+winner-only replay, branch-phase predicates, winning-branch branch-start inline actions, the `$reference`
+resolver family (named / dotted / `view: raw` vs `view: shaped` / `.len`), and the **split packrat memo**
+with semantic-delta replay (the transaction *wraps* the memo, so a rule's own gates and effects are
+re-evaluated fresh on every memo hit; only the body is cached).
+
+The 20 isolating cases cover the orchestration surface:
+
+| Construct | Isolating grammar (essence) | What it proves |
+|---|---|---|
+| **post gate** (hit + miss) | `@emit_fact` at `decl`, `has_fact` post gate at `use` | declare-before-use accepts; use-of-undeclared rejects |
+| **pre gate** | `has_fact` with `phase: pre` | blocks rule *entry* before the body runs |
+| **inline branch gate** | `pick := @predicate{…, phase: branch} alt1 \| alt2` | an inline branch predicate is flattened **rule-wide** (gates *every* branch) — the documented engine semantics |
+| **branch-local selection** | helper rules with `phase: post` gates per alternative | the store flips *which* branch wins — same verdict, different AST (the SV idiom) |
+| **attribute gate** | `fact_attribute_equals` over two emit families | same-name fact with the wrong attribute still rejects |
+| **negative gate** | `lacks_fact` | accept-when-absent, reject-when-present |
+| **counting gate** | `fact_count_at_least(item, 2)` | the running per-kind count gates the parse |
+| **scope visibility** | `@open_scope`/`@close_scope` + `has_fact_in_current_scope` | a fact emitted inside a closed scope is invisible at the outer depth |
+| **scope identity** | `current_scope_is(class, "c")` | the open scope's kind/name is verdict-observable |
+| **C3-B rollback** | a *successful but losing* branch emits | only the WINNING branch's emissions survive the tournament |
+| **zero-length emit** | `maybe := "x"?` with `@emit_fact`, under `*` | a zero-length success fires its effects even though the iteration is structurally discarded |
+| **raw named walk** | `$word` on rules without `->` | the recursive named-descendant walk over the raw tree |
+| **positional `$N` parity** | `name: $2` in a directive payload | positional refs can *never* resolve (the compiler strips `$`) — the hard-error parity, pinned |
+| **shaped view** | `$w.body` with `view: shaped` | dotted resolution against the `->`-shaped JSON |
+| **`.len`** | `name: $body.len` | the resolved text's character count |
+| **branch-start actions** | inline `@emit_fact` at a branch start | fires for the WINNING branch only (INLINE-ACTIONS.2) |
+| **emit attributes from refs** | `kindattr: $kind.body` | attributes resolved from the parse + `fact_attribute_equals` over them |
+| **library no-op parity** | `@export_to_library`/`@import_from_library`, no dirs configured | both sides skip identically (real I/O is registry-owned) |
+| **memo × store (success)** | a gated rule re-tried at the same position after a store change | the memo caches the BODY only; the rule's own gates re-evaluate fresh |
+| **memo × store (failure)** | an *unannotated wrapper* over a gated rule | the failure cache is keyed `(rule, position)` only, so a stale store-dependent failure replays — the generated parser's actual behavior, pinned |
+
+### Grammar-author facts this suite established (tools-first)
+
+Each of these was found by the oracle or a scratch-slot trace while building the suite — they are
+behaviors of the *shipped engine*, now pinned differentially and worth knowing when writing grammars:
+
+- **Predicate-arg names are variant-sensitive: use *unquoted* identifiers.** A fact name resolved from a
+  `$ref` is coerced to `Identifier("x")`; a *quoted* `"x"` in `args:` stays `String("x")` and never
+  matches it (`has_fact(kind, name=String(...)) → false` with the fact present). SV's grammars use
+  unquoted identifiers in predicate args throughout — for exactly this reason.
+- **An inline `phase: branch` predicate gates every branch.** `branch_predicates_for_rule` flat-maps all
+  branch buckets, so an inline branch predicate is applied rule-wide (and twice on its own branch —
+  harmless for pure predicates). Branch-LOCAL gating is expressed with helper rules carrying `phase: post`
+  gates (the SV `net_declaration` pattern).
+- **Positional `$N` references do not work in directive payloads.** The annotation compiler strips the
+  `$` sigil, so `$2` freezes as `RuleReference("2")`, which the resolver's *named* lexer rejects (digit
+  head) — resolution always fails, hard. The positional resolver machinery is unreachable from compiled
+  directives (a half-wired surface, like the bounded quantifiers).
+- **The memo failure cache is store-blind.** The rule transaction wraps the memo, so an *annotated* rule's
+  own gates are never cached — but an **unannotated wrapper rule** over a gated rule caches the composed
+  failure keyed on `(rule, position)` alone, and a same-position retry after a zero-width store change
+  replays the stale failure. The suite pins this real behavior on both implementations; it is surfaced as
+  a platform finding rather than silently normalized.
+- **A discarded zero-length iteration's effects persist.** A rule that succeeds matching zero bytes fires
+  its `@emit_fact` (effects run on rule success), even when the quantifier's zero-length guard then
+  discards the iteration structurally.
+- **Unresolved-reference stubs have no rule preamble.** A referenced-but-undefined rule compiles to a bare
+  `Err(Backtrack)` stub with no `furthest_position` bump, no memo, no rule context — the interpreter
+  dispatches these before its own rule preamble to stay byte-identical.
+
 ## Honest bounds
 
 - The scratch slot and the compile-and-run harness are authoritative *by construction* — they run the
@@ -559,10 +638,14 @@ the LR-*eliminated* combinator the suite certifies.
   differentiable grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, plus `regex` and
   `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
   `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
-  ratchet is now empty. The **structural** half of a combinator-complete corpus has now also landed
-  (`.6.1`, *The structural combinator suite* above — 16 isolating grammars, byte-identical interpreter vs
-  compile-and-run oracle); the **semantic-directive** half (`@predicate`/`@emit_fact`/scope/rollback) is
-  `.6.2`, and a fuzzing lane is `.7`. See `docs/tasks/PARSE-HARNESS.md` §3.3 / §3.4.
+  ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
+  half (`.6.1`, *The structural combinator suite* above — 16 isolating grammars) and the
+  **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
+  20 isolating grammars covering the store-gated-outcome surface, which also landed the interpreter's
+  semantic orchestration mirror + split memo). A fuzzing lane (`.7`) remains the optional push toward
+  exhaustive. Out of harness scope on the semantic side: bootstrap facts (the cross-file `veer` surface)
+  and real library I/O (both registry-owned), and coverage recording (a cert surface). See
+  `docs/tasks/PARSE-HARNESS.md` §3.3 / §3.4 / §21.3.
 
 ## See also
 

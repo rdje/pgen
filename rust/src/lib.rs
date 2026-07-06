@@ -31,6 +31,13 @@ pub mod parse_harness_equivalence;
 /// module docs.
 #[cfg(feature = "ebnf_dual_run")]
 pub mod parse_harness_combinator_suite;
+/// PARSE-HARNESS.6.2 — the semantic-directive orchestration isolating suite: the `.6.1` sibling for the
+/// store-gated-outcome surface (`@predicate` pre/branch/post gates, `@emit_fact` + the query vocabulary,
+/// the scope tree, C3-B rollback, `$reference` resolution, branch-start inline actions, library no-op
+/// parity, and memoization × store composition), each construct differentially verified byte-identical
+/// against the compile-and-run oracle (`.3`) on small isolating grammars. See the module docs.
+#[cfg(feature = "ebnf_dual_run")]
+pub mod parse_harness_semantic_suite;
 /// Parser-specific hook implementations. Each module here implements
 /// the [`ast_pipeline::ParserHooks`] contract for one grammar's
 /// codegen-time extensibility needs. Code in this module is

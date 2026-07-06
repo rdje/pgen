@@ -1581,6 +1581,17 @@ parse_harness_combinator_gate:
 	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib parse_harness_combinator_suite::gate -- --nocapture
 	@echo "✅ Parse-harness structural combinator suite passed."
 
+.PHONY: parse_harness_semantic_gate
+parse_harness_semantic_gate:
+	@echo "🧿 Running parse-harness semantic-directive orchestration suite (PARSE-HARNESS.6.2)..."
+	@echo "   interpreter (approach 1) == compile-and-run oracle (approach 3), byte-identical over a"
+	@echo "   per-construct isolating-grammar suite for the store-gated-outcome surface (pre/branch/post"
+	@echo "   @predicate gates, @emit_fact + the query vocabulary, scope tree, C3-B rollback, \$$ref"
+	@echo "   resolution, branch-start inline actions, library no-op parity, memoization x store)."
+	cd $(RUST_DIR) && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib parse_harness_semantic_suite::gate -- --nocapture
+	@echo "✅ Parse-harness semantic-directive orchestration suite passed."
+
 .PHONY: regex_ast_shape_contract_gate
 regex_ast_shape_contract_gate:
 	@echo "🧬 Running regex AST-shape contract gate..."
