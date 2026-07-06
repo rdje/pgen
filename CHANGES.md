@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0001 (POSITIONAL-PAYLOAD-REFS.1): F4 strip locus CONFIRMED — one function, one dispatch site (`parse_rule_reference`, `unified_semantic_ast.rs:532–617`); zero-usage audit = blast radius nil; 1 collateral flagged for `.2`
+
+Session #50. **EVIDENCE leaf — NO code.** The three `.1` parts, each tool-backed:
+
+- **(a) Strip locus:** `StructuredSemanticValueParser::parse_rule_reference`
+  (`rust/src/ast_pipeline/unified_semantic_ast.rs:532–617`) — `expect_char('$')` consumes the sigil
+  (`:533`), capture starts AFTER it (`:534`), returns `input[start..position]` (`:616`); single
+  dispatch site `parse_value:419–421`; BOTH annotation entries (bootstrap + generated-parser) converge
+  on `parse_structured_payload`, and `@predicate` object-form `args:` arrays recurse through the same
+  `parse_value` — so every payload surface funnels through the ONE function. Conversion to the frozen
+  literal is verbatim (`from_semantic_value`, `semantic_runtime.rs:72–82`). Resolver side: positional
+  dispatch REQUIRES `starts_with('$')` (template `ast_based_generator.rs:5557`; segments parser
+  requires `$` at `:5706`); named lexer rejects a digit head (`:5948`) → stripped `"2.word"` can
+  never resolve. Interpreter mirror identical (`parse_harness_interpreter.rs:1224–1237`). Parity
+  automatic: the shared `compile_semantic_runtime_annotations` (`semantic_runtime.rs:2980`) feeds
+  codegen freeze (`ast_based_generator.rs:6683`) AND the interpreter in-process
+  (`parse_harness_interpreter.rs:241`). Locus refinement vs the tree's §2 guess: the function lives
+  in `unified_semantic_ast.rs`, not `semantic_runtime.rs`.
+- **(b) Zero-usage audit:** grammars — 0 live digit-headed `$N` in any runtime-directive payload
+  (only hit = a historical comment `grammars/regex.ebnf:787`; the `@generate`/`@optimize`/
+  `@validate`/`@semantic_value` `$N` lines are NON-runtime kinds → `Ok(None)` at
+  `semantic_runtime.rs:2609`, no consumer anywhere). Generated — **0** digit/sigil-headed
+  `RuleReference("…")` frozen literals across all 11 generated parsers (61 literals, all alpha-headed
+  named).
+- **(c) Named path + collateral survey:** alpha-headed refs stay stripped and keep today's exact
+  non-`$` route (`:5570`) — byte-identical by the fix shape. `library.rs` artifact paths are
+  defensive verbatim markers; `predicate_expr` `$refs` are a separate bindings-based `ArgRef`
+  surface (`semantic_runtime.rs:2399`) — unaffected. ⚠️ ONE flagged `.2` collateral:
+  `emit_name_is_whole_render` (`stimuli_generator.rs:3194–3196`) treats any undotted `RuleReference`
+  as whole-render — post-fix `name: $2` would wrongly qualify; `.2` must exclude `$`-headed refs.
+- Frontier: `POSITIONAL-PAYLOAD-REFS.2` (the sigil-preservation fix + suite re-anchor + spec/book
+  lockstep) is UNBLOCKED. Trackers: tree leaf log + `docs/TASK_TREE.md` rows (this tree + the
+  `SEM-FINDINGS` next-pointer). No code, no gates re-run (evidence reads only), LIVE tracker
+  unchanged.
 ## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0002 (MEMO-STORE-SOUNDNESS.2): the memo × store soundness fix — taint-gated, WRITE-EPOCH-VALIDATED memo participation on both implementations; the exclusion design refuted at 117× and replaced in-leaf; F1 SOUNDNESS CLOSED
 
 Session #49. **CODE leaf — engine (shared runtime + codegen template) + interpreter mirror + suite

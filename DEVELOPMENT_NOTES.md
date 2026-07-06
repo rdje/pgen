@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0001 — POSITIONAL-PAYLOAD-REFS.1: the F4 evidence pass — why the "one parsing site" claim holds, and the one collateral the audit caught
+
+Session #50. Evidence-only leaf; two notes worth keeping:
+
+- **The "one shared value-parser" architecture claim survived a hostile read.** The risk in a
+  sigil-preservation fix is a second, forgotten `$`-parsing site. The audit walked every candidate:
+  (1) both annotation entry paths (bootstrap `parse_bootstrap` AND the generated-parser
+  `parse_generated_semantic_annotation_entry`) converge on `parse_structured_payload` → `parse_value`
+  → `parse_rule_reference` — the generated path deliberately re-slices the ORIGINAL payload text
+  from the input span and re-parses it with the same hand-rolled parser, so there is no parallel
+  value pipeline; (2) `@predicate` accepts only structured payloads (bare name or object), so its
+  `args:` arrays also come from the same `parse_value` — the `fact_count_at_least(k, $ref)`
+  call-shape seen in stimuli-generator comments is the OBJECT form in the actual grammars, not a
+  separate expression surface; (3) `predicate_expr.rs` DOES lex `$refs` itself, but into
+  `PredicateValue::ArgRef` resolved against caller `bindings` (`semantic_runtime.rs:2399`) — a
+  deliberately separate surface (predicate-def argument substitution, V-QDEF-4-checked), untouched
+  by payload-value semantics. Conclusion: the `.2` fix is genuinely ONE function
+  (`parse_rule_reference`, `unified_semantic_ast.rs:532–617`).
+- **Zero-usage audits should sweep for *stale* heuristics, not just live users.** The grammar +
+  frozen-literal greps proved nothing USES positional payload refs — but the survey still caught a
+  consumer whose correctness silently DEPENDS on that emptiness: `emit_name_is_whole_render`
+  (`stimuli_generator.rs:3194–3196`) classifies any undotted `RuleReference` name as
+  "the whole render", which is only true because the sole live undotted refs are named whole-render
+  `$body`-style refs. The moment `.2` makes `name: $2` expressible, that heuristic mis-classifies
+  (position-2 sub-render ≠ whole render) — so the fix leaf now owns the exclusion. Pattern to
+  reuse: after proving "nobody uses X", ask "what code is only correct BECAUSE nobody uses X?".
 ## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0002 — MEMO-STORE-SOUNDNESS.2: the exclusion→validation pivot, and what "entry counts ≠ attempt counts" taught the perf model
 
 Session #49. Three engineering notes worth keeping:
