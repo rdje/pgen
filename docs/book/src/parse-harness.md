@@ -569,7 +569,7 @@ memo is **taint-gated with write-epoch validation**: a body that transitively co
 cached *epoch-stamped* and replayable only while the store is unchanged, so a same-position retry
 after a store change evicts the stale entry and honestly re-parses).
 
-The 23 isolating cases cover the orchestration surface:
+The 24 isolating cases cover the orchestration surface:
 
 | Construct | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -596,16 +596,22 @@ The 23 isolating cases cover the orchestration surface:
 | **memo × store (tainted failure)** | an *unannotated wrapper* over a gated rule | a store-tainted body failure is cached *epoch-stamped* and **evicted** when the zero-width store change bumps the epoch — the retry re-parses fresh and accepts |
 | **memo × store (tainted success, verdict)** | an unannotated `pick` over a gated *longer* branch vs a plain shorter one | a store-tainted tournament win is **evicted** once the store moves — the retry re-runs the tournament and the longer gated branch wins (the pre-fix stale replay rejected this input) |
 | **memo × store (tainted success, tree)** | the equal-length twin with shaped `kind` markers | the retry re-runs the tie under the NEW store — the byte-identical AST comparison pins the winner on both implementations |
+| **quoted name args** | `args: [mode, "special"]` vs a `$2`-emitted fact; `current_scope_is(block, "sc")` vs a `$2`-named scope | quoted String args match Identifier-coerced `$ref` names **textually** since FACT-NAME-MATCHING.2 — the F2 dead-gate class closed on both unified sites |
 
 ### Grammar-author facts this suite established (tools-first)
 
 Each of these was found by the oracle or a scratch-slot trace while building the suite — they are
 behaviors of the *shipped engine*, now pinned differentially and worth knowing when writing grammars:
 
-- **Predicate-arg names are variant-sensitive: use *unquoted* identifiers.** A fact name resolved from a
-  `$ref` is coerced to `Identifier("x")`; a *quoted* `"x"` in `args:` stays `String("x")` and never
-  matches it (`has_fact(kind, name=String(...)) → false` with the fact present). SV's grammars use
-  unquoted identifiers in predicate args throughout — for exactly this reason.
+- **Quoted and unquoted name args are equivalent** (since `FACT-NAME-MATCHING.2`, 2026-07-06): fact
+  and scope NAME matching is **textual** — `String("x")`, `Identifier("x")`, and a `$ref` resolving
+  to `x` all match each other (case-sensitively), the same scalar-friendly semantics attribute
+  values always had. *History:* name matching used to be variant-strict (the fact index keyed on
+  the raw value enum — an accident of the performance-index commit), so a *quoted* `"x"` in `args:`
+  could never match a `$ref`-emitted `Identifier("x")` (`has_fact(kind, name=String(...)) → false`
+  with the fact present — a silently dead gate this suite found); SV's grammars use unquoted
+  identifiers throughout because of that era. The unification covered both strict sites (the fact
+  index and `current_scope_is`) in the shared runtime, so the interpreter inherited it automatically.
 - **An inline `phase: branch` predicate is branch-LOCAL** (gates only the alternative it is attached
   to) — matching the semantic-annotation book's published contract. *History:* until
   `BRANCH-PREDICATE-LOCALITY.2` (2026-07-06) the registry accessor flat-mapped every branch bucket, so
@@ -670,7 +676,7 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
   half (`.6.1`, *The structural combinator suite* above — 16 isolating grammars) and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
-  23 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
+  24 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
   findings-driven re-anchors), which also landed the interpreter's semantic orchestration mirror +
   split memo). A fuzzing lane (`.7`) remains the optional push toward
   exhaustive. Out of harness scope on the semantic side: bootstrap facts (the cross-file `veer` surface)

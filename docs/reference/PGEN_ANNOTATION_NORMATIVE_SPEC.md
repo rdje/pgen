@@ -204,6 +204,39 @@ Source contract references:
 - `rust/src/ast_pipeline/unified_semantic_ast.rs` (`StructuredSemanticValueParser::parse_rule_reference`)
 - `rust/src/ast_pipeline/ast_based_generator.rs` (resolver helpers: `lex_semantic_reference_segments_suffix`, `lex_semantic_reference_segments_named`, `parse_bracketed_index`, `find_semantic_indexed_child`, `resolve_positional_semantic_reference`, `resolve_named_semantic_reference`)
 
+## Fact & Scope Name Matching (Normative)
+
+How the semantic store compares NAMES in queries (`has_fact`, `lacks_fact`,
+`has_fact_in_current_scope`, `has_fact_attribute`, `fact_attribute_equals`,
+`lacks_fact_attribute_equals`, `current_scope_is`) against stored fact/scope names — the
+`FACT-NAME-MATCHING.2` contract (2026-07-06):
+
+1. **Name matching is TEXTUAL for text-bearing values.** `String("x")`, `Identifier("x")`,
+   `RuleReference("x")`, and `Number("x")` all denote the text `x` and match each other. A quoted
+   `"special"` predicate arg therefore matches a `$ref`-emitted fact name (which the emit hook
+   coerces to `Identifier` via `coerce_semantic_runtime_scalar`). `Boolean` and `Null` names have
+   no scalar text and match only their own variant/value. This is EXACTLY the semantics attribute
+   VALUES have always had (`semantic_values_match` — "scalar-friendly", d4dc2284) and that
+   `resolve_path`'s fact/scope name lookups have always had (`fact_name_matches`), now applied
+   uniformly: kind (textual, case-insensitive), attribute key (textual, case-insensitive),
+   attribute value (textual), fact name (textual, case-SENSITIVE), scope name (textual,
+   case-SENSITIVE).
+2. **Mechanism.** The fact index normalizes its name key (`FactNameKey`: text-bearing variants →
+   their scalar text; `Boolean`/`Null` distinct) at insert, remove, and every query;
+   `current_scope_is` compares via `semantic_runtime_values_match`. The index stays hash-based —
+   the ≤200ns p99 store-performance contract is unaffected.
+3. **HISTORY.** Until `FACT-NAME-MATCHING.2`, name matching was variant-STRICT (the index keyed on
+   the raw `SemanticRuntimeValue` enum — an accident of the `be3c5754` performance-index commit
+   inheriting the original `==` comparison), so the natural quoted form `args: [mode, "special"]`
+   was a silently dead gate and grammars used the unquoted-identifier workaround convention.
+   Quoted and unquoted name args are now equivalent; the workaround convention remains valid
+   style. Differentially pinned by the `sem_quoted_name_args` suite case (both implementations,
+   both unified sites).
+
+Source contract references:
+- `rust/src/ast_pipeline/semantic_runtime.rs` (`FactNameKey`, `FactIndex::{insert,remove,any_with_name,any_with_name_at_scope,positions_for_name}`, `semantic_runtime_values_match`, `semantic_values_match`, `fact_name_matches`)
+- `rust/src/parse_harness_semantic_suite.rs` (`sem_quoted_name_args`)
+
 ## Semantic Leverage Contract (Parser + Stimuli)
 Normative runtime leverage behavior for semantic annotations:
 

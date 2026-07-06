@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8820ec52.js";
+            window.path_to_searchindex_js = "searchindex-53b44eda.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -723,6 +723,13 @@ known_type_identifier := identifier
 <code>typedef … my_t;</code> — the store carries that fact forward. This is the mechanism behind PGEN’s
 context-aware grammars; the platform book and the SystemVerilog parser book have deeper worked
 examples.</p>
+<p><strong>Name matching is textual.</strong> A query’s name argument matches a stored fact (or scope) name by its
+<strong>text</strong>, case-sensitively — a quoted <code>"special"</code>, an unquoted <code>special</code>, and a <code>$ref</code> resolving to
+<code>special</code> are all the same name. Kinds and attribute keys are case-insensitive; attribute values
+match textually too. (Until FACT-NAME-MATCHING.2, 2026-07-06, name matching was variant-strict, so
+a <em>quoted</em> name arg could never match a <code>$ref</code>-emitted name — the reason older grammars use
+unquoted identifiers in <code>args:</code>. Both forms are now equivalent; the normative contract is the
+<em>Fact &amp; Scope Name Matching</em> section of <code>PGEN_ANNOTATION_NORMATIVE_SPEC.md</code>.)</p>
 <h2 id="scopes"><a class="header" href="#scopes">Scopes</a></h2>
 <p><code>@open_scope</code> / <code>@close_scope</code> build a scope tree so that a fact emitted inside a module/package/class
 is visible to queries within that scope and resolved along the scope path. This is what lets the same

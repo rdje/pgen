@@ -1045,21 +1045,55 @@ struct FactIndex {
     by_kind: HashMap<String, FactKindIndex>,
 }
 
+/// `FACT-NAME-MATCHING.2` (2026-07-06): the normalized fact-NAME index key.
+/// Text-bearing variants (`String` / `Identifier` / `RuleReference` /
+/// `Number`) normalize to their scalar TEXT, so `Identifier("x")` and
+/// `String("x")` occupy (and find) the SAME bucket — exactly the
+/// `semantic_values_match` attribute-comparison semantics, now applied to
+/// names. `Boolean` / `Null` stay distinct categories (they have no scalar
+/// text; `semantic_values_match` compares them strictly too). HISTORY: the
+/// key used to be the raw `SemanticRuntimeValue` enum (variant-STRICT —
+/// derived `Hash`/`PartialEq` from the `be3c5754` performance index, which
+/// inherited the original `fact.name == expected_name` comparison), so a
+/// quoted `"x"` predicate arg (`String`) could never match a `$ref`-emitted
+/// name (`Identifier` via `coerce_semantic_runtime_scalar`) — a silently
+/// dead gate. Names now match textually like every sibling comparison
+/// (kind, attribute key, attribute value, `resolve_path` names).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum FactNameKey {
+    Text(String),
+    Boolean(bool),
+    Null,
+}
+
+impl FactNameKey {
+    fn from_value(value: &SemanticRuntimeValue) -> Self {
+        match value {
+            SemanticRuntimeValue::String(s)
+            | SemanticRuntimeValue::Identifier(s)
+            | SemanticRuntimeValue::RuleReference(s)
+            | SemanticRuntimeValue::Number(s) => Self::Text(s.clone()),
+            SemanticRuntimeValue::Boolean(b) => Self::Boolean(*b),
+            SemanticRuntimeValue::Null => Self::Null,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 struct FactKindIndex {
-    by_scope_and_name: HashMap<(usize, SemanticRuntimeValue), Vec<usize>>,
+    by_scope_and_name: HashMap<(usize, FactNameKey), Vec<usize>>,
     total_count: usize,
 }
 
 impl FactIndex {
     /// Insert `position` (the master `facts` Vec index) for the given fact.
     /// Kind is normalised lowercase to match `eq_ignore_ascii_case` query
-    /// semantics already in place.
+    /// semantics already in place; name is normalised via [`FactNameKey`].
     fn insert(&mut self, kind: &str, scope_depth: usize, name: &SemanticRuntimeValue, position: usize) {
         let kind_index = self.by_kind.entry(kind.to_ascii_lowercase()).or_default();
         kind_index
             .by_scope_and_name
-            .entry((scope_depth, name.clone()))
+            .entry((scope_depth, FactNameKey::from_value(name)))
             .or_default()
             .push(position);
         kind_index.total_count += 1;
@@ -1072,7 +1106,7 @@ impl FactIndex {
         let Some(kind_index) = self.by_kind.get_mut(&kind_normalised) else {
             return false;
         };
-        let key = (scope_depth, name.clone());
+        let key = (scope_depth, FactNameKey::from_value(name));
         let Some(positions) = kind_index.by_scope_and_name.get_mut(&key) else {
             return false;
         };
@@ -1091,16 +1125,18 @@ impl FactIndex {
     }
 
     /// O(1)-average existence check across the whole store: is there any fact
-    /// of `kind` with this `name` (in any scope_depth)?
+    /// of `kind` with this `name` (in any scope_depth)? Name matching is
+    /// TEXTUAL via [`FactNameKey`].
     fn any_with_name(&self, kind: &str, name: &SemanticRuntimeValue) -> bool {
         let kind_normalised = kind.to_ascii_lowercase();
         let Some(kind_index) = self.by_kind.get(&kind_normalised) else {
             return false;
         };
+        let name_key = FactNameKey::from_value(name);
         kind_index
             .by_scope_and_name
             .iter()
-            .any(|((_, n), positions)| n == name && !positions.is_empty())
+            .any(|((_, n), positions)| *n == name_key && !positions.is_empty())
     }
 
     /// O(1) existence check at a specific scope depth.
@@ -1116,30 +1152,28 @@ impl FactIndex {
         };
         kind_index
             .by_scope_and_name
-            .get(&(scope_depth, name.clone()))
+            .get(&(scope_depth, FactNameKey::from_value(name)))
             .is_some_and(|positions| !positions.is_empty())
     }
 
     /// Enumerate positions in the master Vec for facts matching
     /// `(kind, name)` across ALL scope depths. Used by attribute-existence
     /// and attribute-value-equality predicates which need to look up the
-    /// fact's `attributes` payload.
+    /// fact's `attributes` payload. Name matching is TEXTUAL via
+    /// [`FactNameKey`].
     fn positions_for_name<'a>(
         &'a self,
         kind: &str,
-        name: &'a SemanticRuntimeValue,
+        name: &SemanticRuntimeValue,
     ) -> impl Iterator<Item = usize> + 'a {
         let kind_normalised = kind.to_ascii_lowercase();
+        let name_key = FactNameKey::from_value(name);
         self.by_kind
             .get(&kind_normalised)
             .into_iter()
-            .flat_map(move |kind_index| {
-                kind_index
-                    .by_scope_and_name
-                    .iter()
-                    .filter(move |((_, n), _)| n == name)
-                    .flat_map(|(_, positions)| positions.iter().copied())
-            })
+            .flat_map(|kind_index| kind_index.by_scope_and_name.iter())
+            .filter(move |((_, n), _)| *n == name_key)
+            .flat_map(|(_, positions)| positions.iter().copied())
     }
 
     /// O(1) total fact count for a given kind.
@@ -2122,7 +2156,15 @@ impl SemanticRuntimeState {
                     return Some(true);
                 };
                 let expected_name = SemanticRuntimeValue::from_semantic_value(expected_name_arg)?;
-                Some(current_scope.name.as_ref() == Some(&expected_name))
+                // FACT-NAME-MATCHING.2: textual comparison (a quoted String
+                // arg matches an Identifier-coerced scope name), consistent
+                // with fact-NAME matching and `find_scope_by_name`.
+                Some(
+                    current_scope
+                        .name
+                        .as_ref()
+                        .is_some_and(|name| semantic_runtime_values_match(name, &expected_name)),
+                )
             }
             // `.3.3.4.b.5.1.1`: index-backed O(1)-avg existence check.
             "has_fact" => {
@@ -3349,6 +3391,23 @@ fn semantic_runtime_value_text(value: &SemanticRuntimeValue) -> Option<&str> {
 /// for non-textual variants (Boolean, Null).
 fn fact_name_matches(value: &SemanticRuntimeValue, name: &str) -> bool {
     semantic_runtime_value_text(value).is_some_and(|t| t == name)
+}
+
+/// `FACT-NAME-MATCHING.2`: the `SemanticRuntimeValue` counterpart of
+/// `semantic_values_match` — textual equality whenever BOTH sides are
+/// text-bearing (`String` / `Identifier` / `RuleReference` / `Number`),
+/// strict variant equality otherwise (`Boolean` / `Null`). Used by
+/// `current_scope_is` so a quoted `"c"` query arg (String) matches a scope
+/// named from a `$ref` (Identifier via `coerce_semantic_runtime_scalar`),
+/// consistent with the now-textual fact-NAME index matching.
+fn semantic_runtime_values_match(left: &SemanticRuntimeValue, right: &SemanticRuntimeValue) -> bool {
+    match (
+        semantic_runtime_value_text(left),
+        semantic_runtime_value_text(right),
+    ) {
+        (Some(left_text), Some(right_text)) => left_text == right_text,
+        _ => left == right,
+    }
 }
 
 /// `SV-EXH-PROOF.3.3.4.b.5.1.4`: look up an attribute's textual value on a

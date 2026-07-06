@@ -39,6 +39,14 @@ Here the parser will only accept `my_t x;` as a typed declaration *after* it has
 context-aware grammars; the platform book and the SystemVerilog parser book have deeper worked
 examples.
 
+**Name matching is textual.** A query's name argument matches a stored fact (or scope) name by its
+**text**, case-sensitively — a quoted `"special"`, an unquoted `special`, and a `$ref` resolving to
+`special` are all the same name. Kinds and attribute keys are case-insensitive; attribute values
+match textually too. (Until FACT-NAME-MATCHING.2, 2026-07-06, name matching was variant-strict, so
+a *quoted* name arg could never match a `$ref`-emitted name — the reason older grammars use
+unquoted identifiers in `args:`. Both forms are now equivalent; the normative contract is the
+*Fact & Scope Name Matching* section of `PGEN_ANNOTATION_NORMATIVE_SPEC.md`.)
+
 ## Scopes
 
 `@open_scope` / `@close_scope` build a scope tree so that a fact emitted inside a module/package/class

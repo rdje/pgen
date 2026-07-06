@@ -149,6 +149,16 @@ pub enum SemanticConstruct {
     /// store-tainted successes too (evicted once the store moves); these cases pin the sound
     /// behavior on both observables.
     MemoSuccessStaleness,
+    /// Quoted (String) name args match `$ref`-emitted (Identifier-coerced) fact/scope names
+    /// TEXTUALLY. HISTORY: until `FACT-NAME-MATCHING.2` (2026-07-06, session #50) fact-NAME
+    /// matching was variant-STRICT (the index keyed on the raw `SemanticRuntimeValue` enum;
+    /// `current_scope_is` compared with `==`), so the natural `args: [mode, "special"]` was a
+    /// silently dead gate (`has_fact(..., String("special")) → false` WITH the fact present —
+    /// the F2 finding) and grammars had to use the unquoted-identifier workaround convention.
+    /// Names now normalize to their scalar text ([`FactNameKey`] in the shared index +
+    /// `semantic_runtime_values_match` in `current_scope_is`) — the same textual semantics
+    /// attribute values always had (`semantic_values_match`); this case pins BOTH unified sites.
+    QuotedNameArgTextualMatch,
 }
 
 impl SemanticConstruct {
@@ -176,6 +186,7 @@ impl SemanticConstruct {
         SemanticConstruct::MemoGateRetry,
         SemanticConstruct::MemoWrapperStaleness,
         SemanticConstruct::MemoSuccessStaleness,
+        SemanticConstruct::QuotedNameArgTextualMatch,
     ];
 }
 
@@ -392,6 +403,39 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         inputs: &[("class{body", true), ("body", false)],
         entry_rule: None,
         note: "current_scope_is: `inner` is enterable only inside the class scope `opener` opened",
+    },
+    // ── FACT-NAME-MATCHING.2: quoted name args match $ref-emitted names TEXTUALLY ──────────────────
+    SemanticCase {
+        name: "sem_quoted_name_args",
+        construct: SemanticConstruct::QuotedNameArgTextualMatch,
+        // BOTH unified sites in one grammar: `use`'s post gate queries the `$2`-emitted fact
+        // (Identifier("special") via `coerce_semantic_runtime_scalar`) with a QUOTED
+        // `"special"` (String); `inner`'s pre gate queries the `$2`-named scope
+        // (Identifier via the same coercion) with a QUOTED `"sc"`. Pre-fix both were
+        // variant-strict misses (the F2 dead gate); post-fix both match textually.
+        grammar_body: "@fact_kind: { name: mode, attributes: [family], description: \"M.\" }\n\
+                       program := mk use opener inner\n\
+                       @emit_fact: { kind: mode, name: $2, family: m }\n\
+                       mk := \"(\" word \")\"\n\
+                       @predicate: { name: has_fact, args: [mode, \"special\"], phase: post }\n\
+                       use := \"!\"\n\
+                       @open_scope: { kind: block, name: $2 }\n\
+                       opener := \"{\" word \"}\"\n\
+                       @predicate: { name: current_scope_is, args: [block, \"sc\"], phase: pre }\n\
+                       inner := \"end\"\n\
+                       word := /[a-z]+/\n",
+        inputs: &[
+            // mk emits mode:Identifier("special"); use's quoted "special" matches textually;
+            // opener opens block:Identifier("sc"); inner's quoted "sc" matches textually.
+            ("(special)!{sc}end", true),
+            // The emitted fact is named "other" → has_fact(mode, "special") false → REJECT.
+            ("(other)!{sc}end", false),
+            // The scope is named "xx" → current_scope_is(block, "sc") false → REJECT.
+            ("(special)!{xx}end", false),
+        ],
+        entry_rule: None,
+        note: "quoted String name args match Identifier-coerced $ref names TEXTUALLY (fact index + \
+               current_scope_is) since FACT-NAME-MATCHING.2 — the F2 dead-gate class closed",
     },
     // ── C3-B: loser-branch emissions must not leak; winner's must persist ──────────────────────────
     SemanticCase {

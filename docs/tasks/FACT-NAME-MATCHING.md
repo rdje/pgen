@@ -1,8 +1,10 @@
 # FACT-NAME-MATCHING — quoted predicate args vs `$ref`-emitted fact names: unify or lint (F2)
 
 - Tree ID: `FACT-NAME-MATCHING`
-- Status: `active` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
-  2026-07-06; this tree owns finding **F2**)
+- Status: `complete` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
+  2026-07-06; this tree owns finding **F2**. `.1` adjudication + `.2` fix both landed session #50 —
+  **F2 CLOSED**: fact/scope NAME matching is textual, quoted and unquoted name args are equivalent,
+  on both implementations)
 
 ## 1. The finding (tool-established, PARSE-HARNESS.6.2 session #47)
 
@@ -90,16 +92,60 @@ warning-fires/warning-silent test pair + spec/book lockstep; no parser behavior 
     the SHARED `SemanticRuntimeState`); (v) §3 battery — any equivalence-gate change means a
     shipped grammar RELIED on the mismatch → stop and surface.
 
-- `.2` — **FIX at tier (a) + suite case + docs — `not-started` (frontier).** Blocked on `.1` →
-  now UNBLOCKED. The enforced acceptance checklist + the §3 battery + normative-spec/book lockstep
-  (the textual name-matching contract becomes documented).
+- `.2` — **FIX at tier (a) + suite case + docs — `done` (2026-07-06, session #50,
+  `PGEN-FACT-NAME-MATCHING-0002`).** The engine unification landed in the SHARED runtime
+  (`rust/src/ast_pipeline/semantic_runtime.rs`), so interpreter parity is automatic and NO
+  codegen-template change / NO shipped-parser regen was needed:
+  - **`FactNameKey`** (Text(scalar text) for String/Identifier/RuleReference/Number;
+    Boolean/Null distinct — EXACTLY `semantic_values_match` semantics) normalizes the fact-index
+    name key at `insert` / `remove` / `any_with_name` / `any_with_name_at_scope` /
+    `positions_for_name`; the index stays hash-based (the ≤200ns contract untouched).
+  - **`semantic_runtime_values_match`** (the `SemanticRuntimeValue` mirror of
+    `semantic_values_match`) replaces the strict `==` in `current_scope_is` — the second strict
+    site the `.1` inventory found.
+  - **Suite**: NEW `sem_quoted_name_args` (construct `QuotedNameArgTextualMatch`) covers BOTH
+    unified sites in one grammar — a `$2`-emitted fact (Identifier via coercion) queried with a
+    QUOTED `"special"` (has_fact) and a `$2`-named scope queried with a QUOTED `"sc"`
+    (current_scope_is); ACCEPT + 2 targeted REJECTs. Suite 23 → 24. (The case composes with the
+    just-landed F4 positional refs — `name: $2` payloads.)
+
+## Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — the F2 finding (scratch-slot trace, session #47): `🔍 has_fact(kind=mode,
+  name=String("special")) → false` WITH the fact present — the natural quoted arg is a silently
+  dead gate; grammars carry the unquoted-identifier workaround convention.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `.1` (commit `cf262c9d`): the scratch-slot `--trace-rules`
+  self-explaining query trace (session #47) showed the miss WITH the fact present
+  (`🔍 has_fact(kind=mode, name=String("special")) → false`); the source read pinned WHERE:
+  fact-index name key = the raw `SemanticRuntimeValue` enum (`:1050`, `n == name` `:1103/:1140`,
+  hash lookup `:1119`) + `current_scope_is` strict `==` (`:2125`) — variant-STRICT by ACCIDENT
+  (original `==` a529c2d2 no rationale; be3c5754 preserved it for perf) while
+  kind/key/attribute-value/`resolve_path` names are ALL textual; one `fact_attribute_equals`
+  call = 3 textual + 1 strict comparison.
+- [x] **FIX** — engine tier per the `.1` adjudication (the inconsistency lives in the engine;
+  no grammar/annotation tier can reach an index key): `FactNameKey` normalization + the
+  `current_scope_is` textual comparison, both in the shared runtime.
+- [x] **ADDRESSED (verified)** — `sem_quoted_name_args` `"(special)!{sc}end"` ACCEPTs with quoted
+  args on BOTH sites (pre-fix: dead gate → REJECT); `parse_harness_semantic_gate` **24/24 CLEAN
+  2/2 tests** — the quoted-arg case live and byte-identical on both implementations.
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate` 4/4: **11 CERTIFIED byte-identical**
+  (the §3 tripwire is SILENT — no shipped grammar relied on the strict mismatch);
+  `sv_cert_recognized_union_gate` GREEN deterministic seeds 0/7/42 (canonical `1343/10/1321/12`,
+  union 1, residual `context_member_method_call`); `ast_shape_contract_gate` 18/18;
+  `sv_external_corpus_triage_gate` GREEN (`primary_parse_failure_corpus: <none>` — 14/14);
+  `parse_harness_combinator_gate` 16/16; semantic_runtime units 98/98 (no unit pinned the strict
+  behavior); clippy strict-source GREEN (generated stage = pre-existing `eq_op` debt only).
+- [x] **LOCKSTEP** — normative spec NEW section *Fact & Scope Name Matching (Normative)*; top book
+  `semantic-store.md` §6 "Name matching is textual" + `parse-harness.md` (24 cases, new table row,
+  the variant-sensitivity author fact REWRITTEN to the unified reality); semantic_annotation book
+  `semantic-store.md` + rendered HTML (gate GREEN); `TOOLBOX.md` §1.8 (24/24); `mdbook_docs_gate`
+  GREEN; tree + TASK_TREE.md + live docs this commit.
 
 ## 5. Current Frontier
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | `.1` (consistency read → tier decision) | `done` (2026-07-06 #50, `PGEN-FACT-NAME-MATCHING-0001`) | **Tier (a)**: names strict by ACCIDENT (index perf commit), attributes textual BY DESIGN, scope-name matching itself split — unify names to textual. |
-| 2 | `.2` (fix + case + docs) | `not-started` (**frontier**) | NameKey normalization in the shared index + `current_scope_is`; parity automatic. |
+| 2 | `.2` (fix + case + docs) | `done` (2026-07-06 #50, `PGEN-FACT-NAME-MATCHING-0002`) | F2 CLOSED: names match textually on both sites; suite 24/24; 11 CERTIFIED byte-identical; spec/book lockstep. **TREE COMPLETE.** |
 
 ## 6. Relationships
 

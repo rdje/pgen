@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-06 - PGEN-FACT-NAME-MATCHING-0002 — FACT-NAME-MATCHING.2: the cheapest engine unification of the campaign — and why the tripwire mattered more than the fix
+
+Session #50. Two engineering notes worth keeping:
+
+- **When both sides of an equality are assigned by unrelated heuristics, strict equality is a bug
+  generator.** The store's emit side picked the name VARIANT via a coercion ladder
+  (`coerce_semantic_runtime_scalar`: bool → number → Identifier → String) while the query side
+  picked it via surface syntax (quoted vs unquoted). Neither choice was ABOUT identity, yet the
+  index compared them as identity. The unification didn't add leniency so much as remove a
+  comparison of two accidents. Reusable smell: grep for `==` on enums whose variants are assigned
+  by heuristics on one side and syntax on the other.
+- **The no-regression tripwire was the actual risk control.** Making matching MORE permissive can
+  only flip queries false→true — the danger is a shipped grammar whose routing RELIED on a
+  quoted-arg gate never firing. The equivalence gate (11 CERTIFIED byte-identical, interpreter
+  live-compiling every shipped grammar's annotations) plus the SV cert union at 3 seeds re-proved
+  every shipped surface byte-identical, converting "should be safe" into "measured safe". Also
+  worth keeping: NO unit test pinned the strict behavior (98/98 green untouched) — the strictness
+  was so accidental nothing ever asserted it.
 ## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0002 — POSITIONAL-PAYLOAD-REFS.2: anchors are hypotheses — the oracle corrected mine twice before the re-anchor locked
 
 Session #50. Two engineering notes worth keeping:

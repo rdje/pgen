@@ -218,7 +218,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   cargo test --features "generated_parsers ebnf_dual_run" --lib \
     parse_harness_semantic_suite::measurement::measure_semantic_suite -- --ignored --nocapture
   ```
-- **OUTPUT:** 2 gate tests pass (`every_semantic_construct_is_byte_identical` — 23/23 CLEAN; `semantic_construct_coverage_is_complete`). Deterministic by construction (fixed grammars × curated inputs). Honest bounds (§21.3): bootstrap facts + real library I/O are registry-owned (out of harness scope); no coverage lane. Full map: book chapter *The Parse Harness* → *The semantic-directive orchestration suite* + `docs/tasks/PARSE-HARNESS.md` §21.
+- **OUTPUT:** 2 gate tests pass (`every_semantic_construct_is_byte_identical` — 24/24 CLEAN; `semantic_construct_coverage_is_complete`). Deterministic by construction (fixed grammars × curated inputs). Honest bounds (§21.3): bootstrap facts + real library I/O are registry-owned (out of harness scope); no coverage lane. Full map: book chapter *The Parse Harness* → *The semantic-directive orchestration suite* + `docs/tasks/PARSE-HARNESS.md` §21.
 
 ---
 

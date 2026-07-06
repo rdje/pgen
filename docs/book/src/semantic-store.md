@@ -281,6 +281,16 @@ The engine provides four:
 Each primitive completes in **average O(1)** thanks to the per-kind secondary
 indexes. (See §9 for the performance story.)
 
+**Name matching is textual.** A query's name argument matches a stored fact
+(or scope) name by its **text**, not by how either side was written: a quoted
+`"special"`, an unquoted `special`, and a `$ref` that resolved to `special`
+all denote the same name (case-sensitively). Kinds and attribute keys match
+case-insensitively; attribute values match textually too. *History:* until
+FACT-NAME-MATCHING.2 (2026-07-06) name matching was variant-strict — a quoted
+`"x"` could never match a `$ref`-emitted name, a silently dead gate — which is
+why older grammars follow an unquoted-identifier convention in `args:`. Both
+forms are now equivalent.
+
 ### Phases
 
 The `phase:` modifier tells the engine *when* to check:

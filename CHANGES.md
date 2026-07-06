@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-FACT-NAME-MATCHING-0002 (FACT-NAME-MATCHING.2): F2 CLOSED — fact/scope NAME matching unified to TEXTUAL equality; quoted and unquoted name args now equivalent; suite 24/24; TREE COMPLETE
+
+Session #50. **CODE leaf — engine (shared runtime ONLY) + suite case, NO codegen-template change,
+NO shipped-parser regen, NO release bump, interpreter parity automatic:**
+`rust/src/ast_pipeline/semantic_runtime.rs` (the `FactNameKey` normalized index key —
+Text(scalar text) for String/Identifier/RuleReference/Number, Boolean/Null distinct — at
+`insert`/`remove`/`any_with_name`/`any_with_name_at_scope`/`positions_for_name`; the new
+`semantic_runtime_values_match` textual comparison in `current_scope_is`),
+`rust/src/parse_harness_semantic_suite.rs` (NEW `sem_quoted_name_args` case, construct
+`QuotedNameArgTextualMatch`; 23 → 24 cases).
+
+- **The fix (tier (a) per the `.1` adjudication):** names now match by scalar TEXT — exactly the
+  semantics attribute values always had (`semantic_values_match`) and `resolve_path` names always
+  had (`fact_name_matches`). `Identifier("x")`, `String("x")`, `RuleReference("x")`, `Number("x")`
+  unify; Boolean/Null stay distinct. The index stays hash-based (≤200ns contract untouched). Both
+  strict sites from the `.1` inventory covered: the fact index AND `current_scope_is`.
+- **The F2 dead gate is live:** `sem_quoted_name_args` — a `$2`-emitted fact (Identifier via
+  coercion) queried with QUOTED `"special"` + a `$2`-named scope queried with QUOTED `"sc"` →
+  ACCEPT (pre-fix: silently dead REJECT), plus 2 targeted REJECTs; byte-identical on both
+  implementations. Quoted and unquoted name args are now equivalent; the unquoted convention
+  remains valid style.
+- **VERIFIED:** `parse_harness_semantic_gate` **24/24 CLEAN**; `parse_harness_equivalence_gate`
+  4/4 — **11 CERTIFIED byte-identical** (the tree's shipped-grammar-reliance tripwire is SILENT);
+  `sv_cert_recognized_union_gate` GREEN deterministic seeds 0/7/42 (canonical `1343/10/1321/12`,
+  union 1); `ast_shape_contract_gate` 18/18; `sv_external_corpus_triage_gate` GREEN
+  (`primary_parse_failure_corpus: <none>`); `parse_harness_combinator_gate` 16/16; semantic_runtime
+  units 98/98 (nothing pinned the strict behavior); clippy strict-source GREEN; `mdbook_docs_gate`
+  + `semantic_annotation_parser_book_gate` GREEN. Release probe rebuilt post-change.
+- **Lockstep:** `PGEN_ANNOTATION_NORMATIVE_SPEC.md` NEW section *Fact & Scope Name Matching
+  (Normative)*; top book `semantic-store.md` §6 ("Name matching is textual") +
+  `parse-harness.md` (24 cases, new table row, the variant-sensitivity grammar-author fact
+  REWRITTEN); semantic_annotation book `semantic-store.md` + rendered HTML; `TOOLBOX.md` §1.8.
+- **TREE COMPLETE — F2 CLOSED.** Next per the SEM-FINDINGS cross-tree order:
+  `UNDEFINED-REF-DIAGNOSTICS.1` (F6).
 ## 2026-07-06 - PGEN-FACT-NAME-MATCHING-0001 (FACT-NAME-MATCHING.1): F2 tier ADJUDICATED — (a) engine inconsistency CONFIRMED; fact-NAME matching is variant-strict by ACCIDENT while every sibling comparison is textual; `.2` = unify names to textual equality
 
 Session #50. **EVIDENCE leaf — NO code.** The consistency read the tree demanded, now decisive:
