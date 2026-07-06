@@ -1609,6 +1609,49 @@ subtle dead branch"), never a silent accept.
   updated (disposition IMPLEMENTED); CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS +
   this tree frontier updated.
 
+- `A2.3` — **`in-progress` (session #51) — `FixedTerminalPrefix` soundness re-audit (the A2.2 theoretical
+  note, now tool-provable via PARSE-HARNESS).** The `A2.2` leaf logged (but did not act on) the theoretical
+  concern that `ShadowingReason::FixedTerminalPrefix` — the OTHER hard-gated shadowing verdict, whose
+  message also asserts "PEG commits to the earlier alternative" — is likewise unsound under PGEN's
+  backtracking/tournament engine. The PARSE-HARNESS `.6.1` combinator suite + the `.8` live probes now
+  supply the decisive evidence: on `start := "a" | "a" "b"` with input `"ab"`, the DEFAULT
+  `longest_match` policy and `priority_first` both SELECT THE LATER alternative (accept), while only
+  `@branch_policy: ordered` commits to the earlier one (reject) — so "alternative #j is unreachable"
+  is FALSE for the two policies every shipped grammar actually uses (28+16+… `priority_first` uses,
+  zero `ordered` uses, everything else default `longest_match`). The check is inert today (flags 0
+  branches on every shipped grammar) but it is a hard GATE: the moment an author writes the legitimate
+  longest-match idiom `a | ab`, `--lint-grammar` would hard-fail with a false deadness claim — a direct
+  [[feedback_certifying_linter_trustworthiness]] violation ("the linter NEVER declares a live fragment
+  dead"). DISPOSITION (to be confirmed by the probes + implemented here): make the verdict
+  **branch-policy-aware** — `FixedTerminalPrefix` remains a hard-gated unreachability verdict ONLY for
+  rules whose effective `@branch_policy` is `ordered` (first-success commit, where the classical PEG
+  argument holds — and only when no branch-phase `@predicate` can block the earlier alternative);
+  under `longest_match`/`priority_first` the structure is a live, legitimate idiom → NO finding (not
+  even a note — unlike always-succeeds it is not a smell, it is the normal longest-match pattern).
+  The `FixedTerminalPrefixBy` unreachability CERTIFICATE must carry the same policy condition (a
+  certificate is a PROOF; an unconditional one would be re-verifiable yet false). Acceptance checklist
+  below (enforced).
+  **EVIDENCE RECEIVED (PARSE-HARNESS.8, session #51 — live-CONFIRMED, upgrading this from
+  defect-in-waiting to live false-verdict):** on the scratch slot with `scratch := "a" | "a" "b"`
+  (default policy) and input `"ab"`, the engine ACCEPTS with the LATER alternative's typed AST and
+  its own trace says `🏁 Rule 'scratch' selected branch 2/2 … branch_policy=longest_match`, while
+  `--lint-grammar` on the SAME grammar reports `alternative #1 is unreachable … (PEG commits to the
+  earlier alternative)` and exits **rc=1** — the certifying linter hard-fails a live grammar on a
+  false deadness verdict. Fresh `parse_harness_combinator_gate` (2/2, 50.91 s): `choice_ordered`
+  REJECTS `"ab"` (the sole sound sub-case), `choice_longest_default`/`choice_longest_explicit`/
+  `choice_priority_first` ACCEPT it — interpreter + compile-and-run oracle byte-identical throughout.
+- `A2.4` — **`not-started` (logged, NOT acted on — tool-audit candidate surfaced during A2.3):**
+  `DuplicateAlternative` tie-break soundness under non-default `@associativity`. The engine breaks
+  equal-length/equal-priority ties by associativity (`ast_based_generator.rs:3474-3484`): `right`
+  makes the LATER branch win ties — so for an exact-duplicate pair under `@associativity: right` the
+  engine SELECTS the later duplicate (branch-index-keyed effects: per-branch return annotations,
+  branch-start inline actions, `semantic_selected_branch_index`), inverting the "later duplicate is
+  unreachable" claim; under `nonassoc` a duplicate tie sets `nonassoc_tie` (neither taken), so
+  removing the "dead" duplicate would CHANGE behavior (un-fail the tie). No shipped grammar uses
+  `@associativity: right`/`nonassoc` (grep: only a keyword-list rule in `semantic_annotation.ebnf`),
+  so this is a defect-in-waiting, same class as pre-`.8` A2.3. Needs its own probe-backed audit
+  (per [[feedback_no_codebase_change_without_tool_backed_facts]]) before any disposition.
+
 ### Phase B — make the constructive proof deterministic (the count becomes signal)
 - `B1` — **DONE (code, PGEN-GRAMMAR-WELLFORMED-0005; gate-residual confirm in flight):** replaced the
   wall-clock generation deadline with a DETERMINISTIC step counter. `GenerationTimeoutBudget` and

@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-PARSE-HARNESS-0016 (PARSE-HARNESS.8): the A2.3 proof ran on the harness — `FixedTerminalPrefix`'s "unreachable" verdict is live-CONFIRMED FALSE under the default branch policy; verdict handed to GRAMMAR-WELLFORMED.A2.3
+
+Session #51. **Evidence-only slice (no code change) — the parse harness's first real use.** The
+`GRAMMAR-WELLFORMED.A2.2` theoretical note ("`a | ab` fixed-prefix is likewise reachable under
+backtracking") is now a tool-proven fact:
+
+- **Live scratch-slot probe** (TOOLBOX 1.3): `scratch := "a" | "a" "b"` (DEFAULT policy) on `"ab"`
+  ACCEPTS with the LATER alternative's typed AST, and codegen's own trace line reads
+  `🏁 Rule 'scratch' selected branch 2/2 consuming 2 chars (… branch_policy=longest_match)` — while
+  `--lint-grammar` on the SAME grammar hard-fails **rc=1** with `alternative #1 is unreachable —
+  alternative #0 is a fixed-terminal prefix of it (PEG commits to the earlier alternative)`. The
+  certifying linter declares a demonstrably-selected branch dead — a live false verdict, upgrading
+  A2.3 from defect-in-waiting.
+- **Fresh `parse_harness_combinator_gate`** (2/2, 50.91 s) + scout: `choice_ordered` REJECTS `"ab"`
+  (first-alt commit — the ONE policy where the PEG argument holds); `choice_longest_default`/
+  `choice_longest_explicit`/`choice_priority_first` ACCEPT it; `always_succeeds` accepts `"keyword"`
+  via the later alt — interpreter and compile-and-run oracle byte-identical on every case.
+- **Handed-back verdict:** `FixedTerminalPrefix` is FALSE under `longest_match` (the DEFAULT) and
+  `priority_first` — the two policies 100% of shipped grammars use (zero `ordered` uses) — and TRUE
+  only under `@branch_policy: ordered` absent branch-phase predicates. `GRAMMAR-WELLFORMED.A2.3`
+  opened with the evidence + the branch-policy-aware disposition; a new `A2.4` audit candidate
+  (DuplicateAlternative tie-breaks under `right`/`nonassoc` associativity) logged, NOT acted on.
+
+Scratch fixture restored + `focus_scratch` + release-probe rebuild re-run (the compile-time-embed
+trap). LIVE tracker rows unchanged.
 ## 2026-07-06 - PGEN-SEM-FINDINGS-0003 (SEM-FINDINGS.2): the SEM-FINDINGS dispatch tree is CLOSED — all six PARSE-HARNESS.6.2 findings FIXED or normatively DOCUMENTED; fresh gate 24/24
 
 Session #50. **Close-out (docs-only).** The director's 2026-07-06 directive ("adjudicate each of

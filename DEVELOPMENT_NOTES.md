@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-PARSE-HARNESS-0016 — PARSE-HARNESS.8: a deadness verdict is only as sound as the SELECTION SEMANTICS it assumes
+
+Session #51. Engineering note from the A2.3 hand-back probe:
+
+- **Every unreachability argument over an ordered choice implicitly assumes a selection semantics —
+  name it, then check it against the engine's ACTUAL policy table.** `FixedTerminalPrefix` reasons
+  "the earlier alternative matches a prefix, PEG commits, so the later alternative is dead." PGEN's
+  tournament has THREE selection semantics (`longest_match` default / `ordered` / `priority_first`;
+  `rule_branch_policy`, `ast_based_generator.rs:7178`), and the PEG-commit premise holds for exactly
+  ONE of them (`ordered` — which zero shipped grammars use). The probe made the falsity vivid: the
+  engine's own `🏁 selected branch 2/2 (branch_policy=longest_match)` trace on the very branch the
+  linter brands unreachable, in the same session, on the same grammar. Same class as the A2.2
+  `EarlierAlwaysMatches` retirement — but this one was caught BEFORE it ever fired on a real grammar
+  (the check is inert on all shipped grammars), which is the cheap time to catch it.
+- **The harness earned its keep on first use.** The scratch slot answered "which alternative wins?"
+  with authoritative-by-construction evidence in one body swap; the `.6.1` gate supplied the
+  cross-implementation policy matrix for free (already pinned, re-run fresh in 51 s). No new tool
+  needed — the build-a-tool investment from sessions #38–#47 is what made this a half-day audit
+  instead of a speculation thread.
+- **Tie-break tables are soundness surfaces too.** Reading the tournament's tie-break arm for the
+  audit surfaced that `@associativity: right` makes the LATER branch win equal-length ties — which
+  inverts the `DuplicateAlternative` "later duplicate is unreachable" claim, and `nonassoc` makes a
+  duplicate tie fail BOTH branches (so removing the "dead" duplicate would change behavior). Logged
+  as `GRAMMAR-WELLFORMED.A2.4` (defect-in-waiting: no shipped grammar uses right/nonassoc), not
+  acted on — one tool-proven disposition at a time.
 ## 2026-07-06 - PGEN-UNDEFINED-REF-DIAGNOSTICS-0002 — UNDEFINED-REF-DIAGNOSTICS.2: the view a static check runs on IS part of its specification
 
 Session #50. One engineering note worth keeping:

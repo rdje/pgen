@@ -539,9 +539,34 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
     and the enforced acceptance checklist are in §21.**
 - `.7` — **the fuzzing lane (optional) — `not-started`.** Random gen-ASTs × random inputs, differential;
   pushes coverage toward exhaustive (§3.4).
-- `.8` — **first real use: run the A2.3 proof on the harness — `not-started`.** Parse `a | ab` on `"ab"`
-  (+ the always-succeeds cases) and read which alternative wins; hand the verdict back to
-  `GRAMMAR-WELLFORMED.A2.3`.
+- `.8` — **first real use: run the A2.3 proof on the harness — `done` (session #51, `PGEN-PARSE-HARNESS-0016`).**
+  The capability's first real consumer: the `GRAMMAR-WELLFORMED.A2.3` `FixedTerminalPrefix` soundness
+  question, answered with live harness evidence (evidence-only slice — no code change; the disposition
+  + fix belong to `GRAMMAR-WELLFORMED.A2.3`, opened this session with this hand-back).
+  **Live scratch-slot probe (TOOLBOX 1.3 — its WHEN names exactly this probe).** Body
+  `scratch := "a" | "a" "b"` (DEFAULT policy — no annotations), `make focus_scratch` + release-probe
+  rebuild, then on input `"ab"`:
+  - `--parse` → **ACCEPT** (`parse_full passed`, rc 0); input `"a"` also ACCEPTs.
+  - `--parse-dump-ast-pretty` → the typed AST is the TWO-terminal sequence (`Terminal "a"` span 0-1 +
+    `Terminal "b"` span 1-2) — the LATER alternative's shape, not the one-terminal earlier alt.
+  - `PGEN_TRACE_VERBOSITY=debug … --trace-rules scratch` → codegen's own selection line:
+    **`🏁 Rule 'scratch' selected branch 2/2 consuming 2 chars (priority=0, associativity=left,
+    branch_policy=longest_match)`** — the engine SELECTS the alternative the linter brands dead.
+  - `ast_pipeline <same grammar> --lint-grammar` → `ordered_choice_shadowing=1 (error)`, message
+    `alternative #1 is unreachable — alternative #0 is a fixed-terminal prefix of it (PEG commits to
+    the earlier alternative)`, **rc=1** — the certifying linter HARD-FAILS a live grammar on a false
+    deadness verdict, in the same session the engine demonstrably selects that branch.
+  **Fresh `.6.1` gate + scout (the pinned cross-implementation oracle):** `parse_harness_combinator_gate`
+  2/2 in 50.91 s; scout map `choice_longest_default CLEAN 4` (accepts `"ab"`), `choice_longest_explicit
+  CLEAN 3`, `choice_ordered CLEAN 3` (**REJECTS `"ab"`** — first-alt commit; the one policy where the
+  PEG argument holds), `choice_priority_first CLEAN 3` (accepts `"ab"` via the higher-`@priority` later
+  alt), `always_succeeds CLEAN 4` (accepts `"keyword"` via the later alt past an always-succeeding
+  earlier alt) — interpreter and compile-and-run oracle byte-identical on every case.
+  **The handed-back verdict:** `FixedTerminalPrefix`'s "later alternative is unreachable" claim is
+  **FALSE under `longest_match` (the DEFAULT) and `priority_first`** — the two policies 100% of
+  shipped grammars use — and **TRUE only under `@branch_policy: ordered`** (first-success commit),
+  absent branch-phase predicates that could block the earlier alternative. Scratch fixture restored +
+  `focus_scratch` + probe rebuild re-run after the probe (the #50 compile-time-embed trap).
 - `.9` — **lockstep capstone — `not-started`.** `TOOLBOX.md` tool entries + probe protocol; the
   **top-level mdBook** sections for each landed component (interpreter / compile-and-run / scratch-slot),
   each documenting it as a structural AST-pipeline component to the depth of the existing linter /
@@ -567,7 +592,8 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 9 | `PARSE-HARNESS.5.5` (rtl_const_expr corpus) | `done` (#45, `PGEN-PARSE-HARNESS-0012`) | Curated-input corpus for the deep precedence chain (exceeds bounded gen; unbounded hangs — tool-confirmed §19). A corpus problem, not an interpreter divergence. rtl_const_expr CERTIFIED (DIVERGE 0→CLEAN 151); DEFERRED now empty (11 CERTIFIED). §19 checklist. |
 | 10 | `PARSE-HARNESS.6.1` (structural combinator isolating suite) | `done` (`PGEN-PARSE-HARNESS-0014`, #46) | Phase B — 16 isolating grammars, interpreter byte-identical to the `.3` compile-and-run oracle per structural combinator (branch_policy choice incl. `a\|ab`, quantifiers `?`/`*`/`+` incl. zero-length guard, lookahead, sequence-backtrack, atoms/regex-token, rule-ref, LR-eliminated wrapper form). 16/16 CLEAN; gate 2/2 (byte-identity + A2.2/A2.3 discrimination + coverage completeness). 3 tool-findings surfaced (§20). Test-only; no `generated/*` regen. |
 | 11 | `PARSE-HARNESS.6.2` (semantic-directive orchestration suite) | `done` (`PGEN-PARSE-HARNESS-0015`, #47) | Phase B — the interpreter's full store-gated orchestration mirror + split memo, certified per construct vs the compile-and-run oracle (**20/20 CLEAN**; pre-mirror baseline 1/18). The `.6` per-construct coverage is COMPLETE. Six tool-established findings surfaced (§21). |
-| 12 | `PARSE-HARNESS.7` (fuzz, optional) | `not-started` (**frontier**, with `.8`/`.9`) | Phase B — random gen-ASTs × random inputs, differential. |
+| 12 | `PARSE-HARNESS.7` (fuzz, optional) | `not-started` (**frontier**, with `.9`) | Phase B — random gen-ASTs × random inputs, differential. |
+| 13 | `PARSE-HARNESS.8` (the A2.3 proof — first real use) | `done` (`PGEN-PARSE-HARNESS-0016`, #51) | Live scratch-slot probe + fresh `.6.1` gate: default `longest_match` SELECTS the "shadowed" later alt on `a\|ab` (`🏁 selected branch 2/2`) while `--lint-grammar` hard-fails the same grammar rc=1 — the `FixedTerminalPrefix` verdict is FALSE under `longest_match`/`priority_first`, TRUE only under `ordered`. Verdict handed to `GRAMMAR-WELLFORMED.A2.3` (opened same session). Evidence-only; no code change. |
 
 ---
 
