@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-FACT-NAME-MATCHING-0001 (FACT-NAME-MATCHING.1): F2 tier ADJUDICATED — (a) engine inconsistency CONFIRMED; fact-NAME matching is variant-strict by ACCIDENT while every sibling comparison is textual; `.2` = unify names to textual equality
+
+Session #50. **EVIDENCE leaf — NO code.** The consistency read the tree demanded, now decisive:
+
+- **The full comparison inventory** (`semantic_runtime.rs`): fact KIND textual case-insensitive
+  (`eq_ignore_ascii_case` + lowercased index key); attribute KEY textual; attribute VALUE textual
+  when text-bearing (`semantic_values_match:3398` — String/Identifier/RuleReference/Number unify);
+  `resolve_path` fact-by-name AND scope-by-name textual (`fact_name_matches:3350`); but the
+  fact-index NAME key is the raw enum (`HashMap<(usize, SemanticRuntimeValue), _>`:1050, `n == name`
+  :1103/:1140, hash-key lookup :1119) → `Identifier("x") ≠ String("x")` — the F2 dead gate — and
+  `current_scope_is`'s name arg (:2125) is strict the same way. One `fact_attribute_equals` call
+  mixes THREE textual comparisons with ONE variant-strict one; scope-name matching is itself split
+  textual/strict across two query paths.
+- **Strictness is accidental, leniency is deliberate:** strict `fact.name == expected_name` dates
+  to the original predicate-evaluators commit (a529c2d2, no typing rationale) and was preserved by
+  the multi-index commit (be3c5754) purely for the store-performance contract ("+Hash on
+  SemanticRuntimeValue … Required because the index uses (scope_depth, SemanticRuntimeValue) as a
+  HashMap key"); the lenient attribute matcher was an explicit design choice at introduction
+  (d4dc2284: "scalar-friendly semantic value matching for attribute comparisons"). No decision
+  record defends strict name typing. The variant on each side is incidental (emit = coercion
+  heuristic `coerce_semantic_runtime_scalar`; query = surface syntax quoted/unquoted) — strict
+  equality compares two accidents.
+- **`.2` scope recorded in-tree:** NameKey normalization (Text/Boolean/Null, exactly
+  `semantic_values_match` semantics) at index insert/remove/query + `current_scope_is` textual +
+  the quoted-arg suite case (String arg matches Identifier-emitted fact) + §3 battery (equivalence
+  gate is the shipped-grammar-reliance tripwire) + spec/book lockstep. Interpreter parity automatic
+  (the index lives in the shared `SemanticRuntimeState`).
+- Frontier: `FACT-NAME-MATCHING.2` UNBLOCKED. Trackers: tree leaf log + `docs/TASK_TREE.md` rows.
+  No code, no gates re-run (evidence reads only), LIVE tracker unchanged.
 ## 2026-07-06 - PGEN-POSITIONAL-PAYLOAD-REFS-0002 (POSITIONAL-PAYLOAD-REFS.2): F4 CLOSED — positional `$N[.path]`/`[0][M]` payload references RESOLVE; sigil preserved at the one shared capture point; suite 23/23 with the REJECT→ACCEPT re-anchor; two new normative raw-tree walk facts
 
 Session #50. **CODE leaf — engine (payload capture) + stimuli-planner collateral + suite re-anchor,
