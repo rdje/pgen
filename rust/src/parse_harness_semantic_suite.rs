@@ -21,8 +21,10 @@
 //! - `@export_to_library` / `@import_from_library` orchestration (the no-library-configured no-op
 //!   parity — the compile-and-run oracle sets no library dirs, so both sides must skip identically);
 //! - memoization × store composition (the generated parser's transaction-wraps-memo design re-evaluates
-//!   a rule's own gates on every memo hit; the split-memo failure cache is keyed on position only —
-//!   both compositions pinned differentially).
+//!   a rule's own gates on every memo hit; since MEMO-STORE-SOUNDNESS.2 the memo is TAINT-GATED with
+//!   write-epoch VALIDATION — a store-consulting body's outcome is epoch-stamped and replayable only
+//!   while the store is unchanged, so same-position retries after a store change honestly re-parse —
+//!   all compositions pinned differentially).
 //!
 //! For every `(grammar, input)` pair it runs **both** the interpreter
 //! ([`interpret_parse`](crate::parse_harness_interpreter::interpret_parse)) and the compile-and-run
@@ -120,9 +122,19 @@ pub enum SemanticConstruct {
     /// re-evaluate its own gates fresh (the memo caches the BODY, never the rule's gates).
     MemoGateRetry,
     /// The split-memo failure cache keyed on `(rule, position)` only: an UNANNOTATED wrapper rule over
-    /// a store-gated rule caches a store-dependent failure; a same-position retry after a store change
-    /// replays it. Pins whichever behavior the generated parser actually has.
+    /// a store-gated rule fails store-dependently; a same-position retry after a store change must
+    /// re-parse fresh. HISTORY: until `MEMO-STORE-SOUNDNESS.2` the failure cache was store-blind and
+    /// replayed the STALE failure (valid input rejected — the original pin); the taint gate now
+    /// epoch-stamps store-tainted failures and evicts them once the store moves, and this case pins
+    /// the SOUND behavior differentially.
     MemoWrapperStaleness,
+    /// The SUCCESS-side sibling (`MEMO-STORE-SOUNDNESS.1` finding, `.2` fix): a memo-HIT replays the
+    /// cached BODY, whose nested tournament choices were made under the store as it was on FIRST
+    /// evaluation — gates re-evaluate fresh, but body CONTENT used to be store-frozen (stale
+    /// end-position flipping the verdict; stale tree at equal length). The taint gate epoch-stamps
+    /// store-tainted successes too (evicted once the store moves); these cases pin the sound
+    /// behavior on both observables.
+    MemoSuccessStaleness,
 }
 
 impl SemanticConstruct {
@@ -148,6 +160,7 @@ impl SemanticConstruct {
         SemanticConstruct::LibraryNoop,
         SemanticConstruct::MemoGateRetry,
         SemanticConstruct::MemoWrapperStaleness,
+        SemanticConstruct::MemoSuccessStaleness,
     ];
 }
 
@@ -577,21 +590,92 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
                        @emit_fact: { kind: g, name: \"on\", family: f }\n\
                        en := \"on\"?\n",
         inputs: &[
-            // The staleness pin (tool-established, session #47 measurement): `wrap` (UNANNOTATED)
-            // wraps `gated`. Branch 1: `gated`'s post gate rejects → `wrap`'s BODY fails → the split
-            // memo records a failure keyed `(wrap, 0)`. Branch 2: `en` emits the fact zero-length,
-            // then `wrap` retries at position 0 — and the generated parser replays the STALE cached
-            // failure even though the gate would now pass, so the parse REJECTS. A memo-less fresh
-            // evaluation would ACCEPT. The anchor pins the ORACLE's actual behavior (the memoization ×
-            // store composition on the FAILURE side — surfaced to the director as a platform finding;
-            // the SUCCESS side re-evaluates gates fresh, see `sem_memo_gate_retry`).
-            ("go!", false),
+            // The SOUND re-anchor (MEMO-STORE-SOUNDNESS.2 — deliberate, documented): `wrap`
+            // (UNANNOTATED) wraps `gated`. Branch 1: `gated`'s post gate rejects → `wrap`'s BODY
+            // fails STORE-TAINTEDLY (the gate evaluation bumped the taint counter inside `wrap`'s
+            // body) → the failure is cached EPOCH-STAMPED. Branch 2: `en` emits the fact
+            // zero-length (bumping the store write epoch), `wrap` retries at position 0 → the
+            // stale stamped failure is EVICTED, the body honestly RE-PARSES, `gated`'s gate now
+            // passes → ACCEPT. HISTORY: the pre-fix store-blind failure cache replayed the stale
+            // failure and this input was pinned `("go!", false)` (tool-established, session #47) —
+            // that stale-REJECT pin flipped to the sound ACCEPT with the `.2` taint gate, both
+            // pins recorded.
+            ("go!", true),
+            // Branch 1 rejects (no fact); branch 2's re-parse now ACCEPTS `wrap` (fact emitted) but
+            // then fails on "!" vs "?" — the branch rollback discards the emission → REJECT.
             ("go?", false),
             ("ongo!", true),
         ],
         entry_rule: None,
-        note: "split-memo failure cache keyed (rule, position) over a store-gated child replays a STALE \
-               store-dependent failure — the generated parser's actual composition behavior, pinned",
+        note: "taint-gated failure cache (MEMO-STORE-SOUNDNESS.2): a store-tainted body failure is \
+               not cached, so a same-position retry after a zero-width store change re-parses fresh \
+               and ACCEPTs — the sound composition, pinned differentially",
+    },
+    // ── Split-memo SUCCESS cache × store (the `.1`-confirmed sibling, promoted probe grammars) ─────
+    SemanticCase {
+        name: "sem_memo_success_verdict",
+        construct: SemanticConstruct::MemoSuccessStaleness,
+        grammar_body: "@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
+                       program := pick \"?\" | en pick \"!\"\n\
+                       pick := wide | narrow\n\
+                       @predicate: { name: has_fact, args: [g, \"on\"], phase: post }\n\
+                       wide := \"gox\"\n\
+                       narrow := \"go\"\n\
+                       @emit_fact: { kind: g, name: \"on\", family: f }\n\
+                       en := \"on\"?\n",
+        inputs: &[
+            // THE verdict pin (MEMO-STORE-SOUNDNESS.1 probe → .2 sound anchor): branch 1 — `wide`'s
+            // gate misses (no fact) so `narrow` wins `pick` store-TAINTEDLY (end 2, cached
+            // epoch-stamped); `"?"` misses at byte 2. Branch 2 — `en` emits zero-width (epoch
+            // bump), the stale stamped win is EVICTED and `pick` re-parses fresh at position 0:
+            // `wide` now passes its gate, wins the tournament at end 3, `"!"` matches → ACCEPT.
+            // HISTORY: pre-fix the stale cached narrow win replayed (end 2) and this input
+            // REJECTED — the `.1`-measured staleness, deliberately flipped by the taint gate.
+            ("gox!", true),
+            // Store-free accept control: branch 1 wins directly via `narrow` + `"?"`.
+            ("go?", true),
+            // Both-reject control: stale or fresh, no branch aligns.
+            ("gox?", false),
+            // Fresh-position control: `en` consumes "on", `pick` runs at a NEW position — no
+            // same-position retry involved.
+            ("ongo!", true),
+        ],
+        entry_rule: None,
+        note: "taint-gated SUCCESS cache (MEMO-STORE-SOUNDNESS.2): a store-tainted tournament win is \
+               not cached, so the same-position retry after a zero-width emission re-runs the \
+               tournament and the LONGER gated branch wins — verdict-observable soundness pin",
+    },
+    SemanticCase {
+        name: "sem_memo_success_ast",
+        construct: SemanticConstruct::MemoSuccessStaleness,
+        grammar_body: "@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
+                       program := pick \"?\" | en pick \"!\"\n\
+                       pick := special | normal\n\
+                       @predicate: { name: has_fact, args: [g, \"on\"], phase: post }\n\
+                       special := \"go\" -> { kind: \"special_pick\" }\n\
+                       normal := \"go\" -> { kind: \"normal_pick\" }\n\
+                       @emit_fact: { kind: g, name: \"on\", family: f }\n\
+                       en := \"on\"?\n",
+        inputs: &[
+            // The tree pin (equal-length branches, shaped `kind` markers): branch 2's fresh re-parse
+            // (taint gate — the branch-1 `normal` win was cached epoch-stamped and EVICTED after
+            // `en`'s zero-width emission bumped the epoch) lets `special` pass its gate and win the
+            // tie → ACCEPT shaped `special_pick`. Pre-fix the stale `normal_pick` tree replayed
+            // (same verdict, WRONG tree — the `.1` AST-observable staleness). The verdict anchor
+            // alone cannot see the marker; the interpreter-vs-oracle BYTE-IDENTICAL AST comparison
+            // is what pins the tree (plus the `--ignored` probe's marker check).
+            ("go!", true),
+            // Store-free control: accepts as `normal_pick` via branch 1 (gate off, tie → but
+            // `special`'s gate rejects, so `normal` wins legitimately).
+            ("go?", true),
+            // Fresh-position control: `en` consumes "on", the gate passes at the new position →
+            // `special_pick` wins the tie.
+            ("ongo!", true),
+        ],
+        entry_rule: None,
+        note: "taint-gated SUCCESS cache, tree-observable twin: the same-position retry re-runs the \
+               equal-length tournament under the NEW store — byte-identical AST comparison pins the \
+               special_pick/normal_pick winner on both implementations",
     },
 ];
 

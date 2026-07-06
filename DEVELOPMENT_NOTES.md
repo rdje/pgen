@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0002 — MEMO-STORE-SOUNDNESS.2: the exclusion→validation pivot, and what "entry counts ≠ attempt counts" taught the perf model
+
+Session #49. Three engineering notes worth keeping:
+
+- **The perf gate caught a design error the entry-count statistics endorsed.** The `.1` baseline
+  measured cached failures at 83-85% "pure-structural majority" and the exclusion design leaned on
+  it. But END-STATE ENTRY counts say nothing about ATTEMPT counts: the entries that tame PEG
+  backtracking storms are exactly the ones at store-consulting positions, and each is consulted
+  ORDERS more often than it is inserted. Exclusion measured 117× slower on scr1_core_top
+  (1.48 s → 173.6 s) and ~2.9 h on the shape gate. Lesson recorded: when a cache-participation
+  change is justified by cache-content statistics, demand an attempt-level (hit-frequency) argument
+  or measure a real workload FIRST — a 3-minute `/usr/bin/time` spot-probe on one corpus case would
+  have refuted the thesis before any battery time was spent (it did, immediately, once run).
+- **Write-epoch VALIDATION preserved every soundness pin at ~1/8 the headline cost, but the global
+  epoch has a measured tail:** friscv_pipeline (2.6 KB, declaration-dense) went 4.1× because ANY
+  store write evicts EVERY tainted entry — cross-region invalidation. The right refinement (leaf
+  `.3`) is scope: per-fact-kind epochs or generation-tagged eviction. Also note the epoch bump
+  rules that made the design viable at all: zero-change rollbacks (the ubiquitous speculation case)
+  must NOT bump, else the epoch churns and tainted entries never survive a tournament.
+- **The template-change bootstrap trap:** adding a field to the shared `MemoEntry` breaks
+  compilation of every on-disk generated parser (they construct it), and `generated/ebnf.rs` is
+  included even by the `ebnf_dual_run`-only build — so the regen has to walk the repo's own
+  cold-start ladder: delete stale artifacts → seed `ebnf.rs` (existence-gated include) → annotation
+  parsers via bootstrap mode (`--no-default-features --features bootstrap` — zero includes) → the
+  focus chain → rebuild both binaries. Recorded here because the naive "regen then rebuild" order
+  deadlocks on the hard-included annotation parsers.
+
 ## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0001 — MEMO-STORE-SOUNDNESS.1: designing a staleness probe that flips a VERDICT, and why the taint counter is monotonic for free
 
 Session #49. PNT resumed from the layer-A pointer onto the cross-tree frontier

@@ -2,7 +2,8 @@
 
 - Tree ID: `MEMO-STORE-SOUNDNESS`
 - Status: `active` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
-  2026-07-06; this tree owns finding **F1**)
+  2026-07-06; this tree owns finding **F1**). **F1 soundness CLOSED** (`.1` evidence + `.2` fix,
+  session #49); the optional `.3` perf-headroom leaf remains.
 
 ## 1. The finding (tool-established, PARSE-HARNESS.6.2 session #47)
 
@@ -47,10 +48,33 @@ no lower tier can see it):
 - Track "this body consulted the store": a monotonically-increasing **predicate-evaluation counter**
   on `SemanticRuntimeState` (bumped in `evaluate_predicate`/`evaluate_content_aware_predicate`);
   `memoized_call` snapshots it before the body and compares after. If the body (transitively)
-  evaluated ≥1 predicate, the attempt is **store-tainted**:
-  - tainted FAILURE → do NOT insert into `memo_fail` (re-parse on retry — honest, sound);
-  - tainted SUCCESS → **exclude likewise** (`.1` adjudication, tool-established: delta replay +
-    fresh gates do NOT cover nested tournament content — stale verdict AND stale AST measured).
+  evaluated ≥1 predicate, the attempt is **store-tainted**.
+- ⚠️ **DESIGN PIVOT (`.2` implementation, tool-forced): tainted outcomes are NOT excluded — they are
+  EPOCH-STAMPED and VALIDATED.** The original exclusion thesis ("failures are the ~81-85%
+  pure-structural majority, so excluding the tainted minority is cheap") was REFUTED by measurement:
+  entry counts ≠ attempt counts. With exclusion implemented, SV `scr1_core_top` went **1484 ms →
+  173 580 ms (117×)** (`/usr/bin/time`, debug probe, same preprocessed input) and the shape-contract
+  gate crawled to ~2.9 h — SV evaluates predicates on virtually every identifier path, so exclusion
+  guts packrat protection exactly where it tames PEG backtracking. Refined design (implemented):
+  - `SemanticRuntimeState` gains a **store write epoch** (`write_epoch: u64`) bumped by every
+    observable MUTATION — `emit_fact`, `push_fact_record`, `open_scope`, `close_scope` (real pops),
+    non-empty `apply_delta`, and `rollback_to_named` only when it actually discards facts/arena
+    nodes or restores a different active chain. Pure queries never bump it, so write-stable regions
+    (where backtracking storms live) keep a constant epoch.
+  - tainted FAILURE → cached in a separate `memo_fail_tainted: FxHashMap<key, epoch>` (the lean
+    pure set stays payload-free); replayable only while the epoch is unchanged; EVICTED + honestly
+    re-parsed once the store moves.
+  - tainted SUCCESS → cached in `MemoEntry` with `tainted_at_epoch: Option<u64>`; same
+    validate-on-hit / evict-when-stale rule.
+  - SOUNDNESS: predicates are pure functions of (position-determined args, store); an unchanged
+    write epoch means every predicate the cached body evaluated would answer identically today —
+    replay is sound. Every `sem_memo_*` staleness shape involves a store WRITE between the attempts
+    (the zero-width emitter, or an enclosing rollback that discards facts), which bumps the epoch
+    and evicts — so staleness remains impossible while the memo keeps protecting.
+  - Why not "epoch in the memo KEY" (the §2-rejected alternative — still rejected): a keyed epoch
+    strands every entry on each write for retrieval forever; validation instead keeps pure entries
+    valid across writes and tainted entries valid within write-stable regions, self-healing by
+    eviction.
 - **`.1` hook-point + mechanics audit (tool-established, session #49):**
   - ALL predicate evaluation funnels through `evaluate_predicate` (`semantic_runtime.rs:2032`):
     PRE via `evaluate_directive_predicate` (`:2379` → `:2387`; codegen `:1768`/interp `:618`);
@@ -183,16 +207,92 @@ external corpus (hit-rate + wall-clock) — the fix must NOT materially regress 
     leaf; the memo × store contract documentation lands with the `.2` fix. Tree §1/§2 updated
     same-commit (this file).
 - `.2` — **FIX: taint-gated memo participation (codegen template + interpreter mirror, same commit)
-  — `not-started`.** Blocked on `.1`. The §2 fix + regen + the §3 battery + perf before/after + the
-  enforced acceptance checklist + book/spec lockstep (the memo × store contract becomes documented
-  behavior).
+  — `done` (session #49, `PGEN-MEMO-STORE-SOUNDNESS-0002`).** The §2 fix (as PIVOTED: epoch-stamped VALIDATION, not exclusion)
+  + regen + the §3 battery + perf before/after + the enforced acceptance checklist + book/spec
+  lockstep (the memo × store contract becomes documented behavior).
+
+  **Implementation record (session #49):**
+  - Shared runtime (`semantic_runtime.rs`): `SemanticStoreCounters.predicate_evaluations`
+    (`Cell<u64>`, bumped at `evaluate_predicate` entry — the single choke point; `content_kind_is`
+    deliberately exempt, documented) + `SemanticRuntimeState.write_epoch` (bumped by real mutations
+    only: `emit_fact`, `push_fact_record`, `open_scope`, `close_scope` pops, non-empty
+    `apply_delta`, discarding `rollback_to_named`) + accessors.
+  - Codegen template (`ast_based_generator.rs::memoized_call`): taint snapshot/compare around the
+    body; tainted successes stamped `MemoEntry.tainted_at_epoch`; tainted failures in the new
+    `memo_fail_tainted: FxHashMap<key, epoch>`; validate-on-hit + evict-when-stale on BOTH sides;
+    `report_memo_stats` reports the taint split. Shared `MemoEntry` (mod.rs) gained
+    `tainted_at_epoch: Option<u64>`. Rendered-template pin test extended (6 taint assertions).
+  - Interpreter mirror (`parse_harness_interpreter.rs::memoized_call` + `InterpMemoEntry` +
+    `memo_fail_tainted`): the IDENTICAL logic, same commit.
+  - Suite: `sem_memo_wrapper` re-anchored to the sound ACCEPT (`"go!"` false→true, both pins
+    recorded); NEW construct `MemoSuccessStaleness` + promoted cases `sem_memo_success_verdict`
+    (sound `("gox!", true)`) and `sem_memo_success_ast` — 22 cases total.
+  - Full-parser regen via the cold-start bootstrap path (stale `generated/*` construct the old
+    `MemoEntry`; `generated/ebnf.rs` re-seeded, annotation parsers via bootstrap mode, then the
+    focus chain; all 11 generated artifacts carry the taint template).
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — `.1`'s probe (CONFIRMED×4: stale verdict-flip `"gox!"`
+    `accepted=false furthest_position=0` + stale `normal_pick` tree, oracle AND interpreter) + the
+    `sem_memo_wrapper` stale-REJECT pin from session #47.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the store-blind `(rule, position)` memo key replays
+    store-dependent outcomes across store changes: `memoized_call` codegen template
+    (`ast_based_generator.rs`, pre-fix :6437-6550) + interpreter mirror (`:707-749`); `.1`'s
+    hook-point audit (§2) names every predicate path that composes the staleness.
+  - [x] **FIX** — engine tier (the defect lives in the `memoized_call` template; no lower tier can
+    see it — fix-hierarchy justification in `SEM-FINDINGS` §1 F1): taint-tracked, EPOCH-VALIDATED
+    memo participation on both implementations, as recorded above. The first-cut taint-EXCLUSION
+    design was implemented, MEASURED at 117× slower on SV (`scr1_core_top` 1484 ms → 173 580 ms),
+    and replaced by the validation design in the same leaf — the perf gate did its job (§2 pivot).
+  - [x] **ADDRESSED (verified)** — probe re-run post-fix: **ABSENT×4** (was CONFIRMED×4) on oracle
+    AND interpreter; `sem_memo_wrapper` `"go!"` REJECT→ACCEPT differentially CLEAN; the two new
+    success-side cases CLEAN — `parse_harness_semantic_gate` **22/22 CLEAN, 2/2 tests**.
+  - [x] **NO REGRESSION** — `parse_harness_semantic_gate` 22/22 CLEAN 2/2; `parse_harness_combinator_gate`
+    16/16 2/2; `parse_harness_equivalence_gate` 4/4 — all **11 CERTIFIED grammars byte-identical**;
+    `ast_shape_contract_gate` 18/18; `sv_cert_recognized_union_gate` GREEN seeds 0/7/42
+    (`recognized_basis_green: true`, canonical UNKNOWN=12, union UNKNOWN=1 residual
+    `context_member_method_call`, `unmet_criteria_json: []` — byte-identical pins);
+    `verilog_2005_conformance_gate` GREEN (cert `1115/328/773/14` byte-identical, matrix 240/0,
+    orphans 0); SV external corpus **14/14**; codegen units 67/67 (incl. 6 new taint template pins);
+    semantic_runtime 98/98; interpreter 7/7; `clippy_on_rust_change` strict-source GREEN (generated
+    stage: the pre-existing 178 `eq_op`, non-strict by design); `mdbook_docs_gate` GREEN.
+  - [x] **PERF (the §3 required before→after, stats-on both sides)** — corpus totals
+    `parse_total_ms` 398 455 → **459 851 (+15.4%)**, max (uvm) 190 958 → **219 277 (+14.8%)**;
+    per-case: uvm +14.8%, uvm_compat +11-13%, scr1 +26-30%, friscv_rv32i +27%, veer +15-19%,
+    friscv_pipeline 235 → 955 ms (**4.1×** — the outlier: a small declaration-dense file where
+    global-epoch eviction thrashes). END-STATE memo entry counts are IDENTICAL to baseline on every
+    case (uvm: 4 376 930 ok + 21 836 980 fail — of which 884 785 / 919 419 now carry taint stamps);
+    the cost is validated-eviction re-parsing + 1-2 extra hash probes per memoized_call.
+    ADJUDICATION (correctness-before-speed, [[feedback_correctness_before_speed]]): the price of
+    soundness, accepted; the documented optimization headroom (single-probe hit path; finer-grained
+    epoch scoping to stop cross-region eviction) is leaf `.3`.
+  - [x] **LOCKSTEP** — book *Parse Harness* chapter (suite table 22 rows + the taint-validation
+    grammar-author fact + mirror description + 117× exclusion history), `TOOLBOX.md` §1.8,
+    `PARSE-HARNESS.md` §21 live-spec note, this tree (§1/§2 pivot/§4), SV integration contract
+    current-state note; MEMORY/CHANGES/DEVELOPMENT_NOTES/TASK_TREE.md same-commit.
+  - **RELEASE/LEDGER ADJUDICATION: NO SV release bump (stays `1.0.167`/schema `16`), NO ledger
+    row** — every locked SV surface is byte-identical (cert all profiles at seeds 0/7/42, matrix
+    240/0, shapes 18/18, corpus verdicts 14/14) and no SV-level staleness flip is demonstrated (the
+    class was proven on isolating grammars; no SV reproducer exists). Per the
+    `BRANCH-PREDICATE-LOCALITY.2` / SV-0026/SV-0028 precedent the version tracks the OBSERVABLE
+    contract; the engine-level soundness record lives here + CHANGES + the book, and the contract
+    carries a current-state marker (incl. the wall-clock note for big-file consumers).
+
+- `.3` — **OPTIONAL PERF: memo taint-validation headroom — `not-started`.** The `.2` after-table
+  accepts +15% (uvm) / 4.1× (friscv_pipeline outlier) as the price of soundness under
+  correctness-before-speed. This leaf owns the measured optimization pass: (a) single-probe
+  success-hit path (fold the staleness check into one `memo.get`); (b) finer-grained epoch scoping
+  so an unrelated store write does not evict every tainted entry (candidates: per-fact-kind epochs,
+  or an eviction-on-next-hit generation scheme); (c) re-run the stats-on corpus and re-lock the
+  table. Perf-gated like `.2`; soundness pins (probe ABSENT×4 + the 22-case suite) must stay green.
 
 ## 5. Current Frontier
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | `.1` (success-side probe + design check + perf baseline) | `done` | Success-side staleness CONFIRMED (both observables × both implementations); hook points + monotonicity audited; corpus baseline locked. |
-| 2 | `.2` (taint-gated memo fix, both implementations) | `not-started` (**frontier**) | Unblocked. Engine tier; perf-gated; tainted FAILURES **and** SUCCESSES excluded (`.1` adjudication). |
+| 2 | `.2` (taint-gated memo fix, both implementations) | `done` | Epoch-stamped VALIDATION (pivoted from exclusion — 117× measured). Probe ABSENT×4; suite 22/22; full battery GREEN; perf +15% uvm accepted (correctness-before-speed), headroom → `.3`. |
+| 3 | `.3` (memo taint-validation perf headroom) | `not-started` (**frontier**) | OPTIONAL follow-up: single-probe hit path; finer-grained epoch scoping (stop cross-region eviction — the friscv_pipeline 4× outlier); re-measure vs the `.2` after-table. |
 
 ## 6. Relationships
 

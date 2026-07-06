@@ -564,9 +564,12 @@ named rollback on failure), the tournament's per-branch C3-B semantic-delta capt
 winner-only replay, branch-phase predicates, winning-branch branch-start inline actions, the `$reference`
 resolver family (named / dotted / `view: raw` vs `view: shaped` / `.len`), and the **split packrat memo**
 with semantic-delta replay (the transaction *wraps* the memo, so a rule's own gates and effects are
-re-evaluated fresh on every memo hit; only the body is cached).
+re-evaluated fresh on every memo hit; only the body is cached — and since MEMO-STORE-SOUNDNESS.2 the
+memo is **taint-gated with write-epoch validation**: a body that transitively consulted the store is
+cached *epoch-stamped* and replayable only while the store is unchanged, so a same-position retry
+after a store change evicts the stale entry and honestly re-parses).
 
-The 20 isolating cases cover the orchestration surface:
+The 22 isolating cases cover the orchestration surface:
 
 | Construct | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -588,8 +591,10 @@ The 20 isolating cases cover the orchestration surface:
 | **branch-start actions** | inline `@emit_fact` at a branch start | fires for the WINNING branch only (INLINE-ACTIONS.2) |
 | **emit attributes from refs** | `kindattr: $kind.body` | attributes resolved from the parse + `fact_attribute_equals` over them |
 | **library no-op parity** | `@export_to_library`/`@import_from_library`, no dirs configured | both sides skip identically (real I/O is registry-owned) |
-| **memo × store (success)** | a gated rule re-tried at the same position after a store change | the memo caches the BODY only; the rule's own gates re-evaluate fresh |
-| **memo × store (failure)** | an *unannotated wrapper* over a gated rule | the failure cache is keyed `(rule, position)` only, so a stale store-dependent failure replays — the generated parser's actual behavior, pinned |
+| **memo × store (gate retry)** | a gated rule re-tried at the same position after a store change | the memo caches the BODY only; the rule's own gates re-evaluate fresh |
+| **memo × store (tainted failure)** | an *unannotated wrapper* over a gated rule | a store-tainted body failure is cached *epoch-stamped* and **evicted** when the zero-width store change bumps the epoch — the retry re-parses fresh and accepts |
+| **memo × store (tainted success, verdict)** | an unannotated `pick` over a gated *longer* branch vs a plain shorter one | a store-tainted tournament win is **evicted** once the store moves — the retry re-runs the tournament and the longer gated branch wins (the pre-fix stale replay rejected this input) |
+| **memo × store (tainted success, tree)** | the equal-length twin with shaped `kind` markers | the retry re-runs the tie under the NEW store — the byte-identical AST comparison pins the winner on both implementations |
 
 ### Grammar-author facts this suite established (tools-first)
 
@@ -611,11 +616,24 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `$` sigil, so `$2` freezes as `RuleReference("2")`, which the resolver's *named* lexer rejects (digit
   head) — resolution always fails, hard. The positional resolver machinery is unreachable from compiled
   directives (a half-wired surface, like the bounded quantifiers).
-- **The memo failure cache is store-blind.** The rule transaction wraps the memo, so an *annotated* rule's
-  own gates are never cached — but an **unannotated wrapper rule** over a gated rule caches the composed
-  failure keyed on `(rule, position)` alone, and a same-position retry after a zero-width store change
-  replays the stale failure. The suite pins this real behavior on both implementations; it is surfaced as
-  a platform finding rather than silently normalized.
+- **The memo is taint-gated with write-epoch validation (stale store-dependent entries can never
+  replay).** The memo key is `(rule, position)` — store-blind — so replaying a store-dependent outcome
+  after the store changed would resurrect stale verdicts (and stale *trees*). Since
+  MEMO-STORE-SOUNDNESS.2 every `memoized_call` snapshots the store's predicate-evaluation counter
+  around the rule body: if the body (transitively — nested rules' gates, inline branch predicates,
+  composed defs) evaluated ≥1 predicate, the outcome is cached **stamped with the store write epoch**
+  (mutations only: emissions, imports, scope opens/closes, discarding rollbacks) and is replayable
+  only while that epoch is unchanged — predicates are pure functions of position-determined args plus
+  the store, so an unchanged epoch reproduces every verdict; a moved epoch evicts the entry and the
+  retry re-parses fresh. Outright *exclusion* of tainted outcomes was measured at **117× slower** on
+  SV (predicates fire on virtually every identifier path — exclusion guts packrat protection), which
+  is why validation, not exclusion, is the shipped design. HISTORY: the pre-fix cache was store-blind
+  on both sides — a stale failure replayed a REJECT of valid input (`sem_memo_wrapper`, session #47)
+  and a stale success replayed old tournament content that could flip the verdict *and* the tree
+  (`MEMO-STORE-SOUNDNESS.1`, session #49) — both now deliberately re-anchored to the sound behavior.
+  A rule's *own* gates still never taint its own entry (they evaluate in the transaction, outside the
+  memo, fresh on every hit); predicate evaluation is the store's ONLY read path into parsing, so the
+  counter is a complete store-dependence signal.
 - **A discarded zero-length iteration's effects persist.** A rule that succeeds matching zero bytes fires
   its `@emit_fact` (effects run on rule success), even when the quantifier's zero-length guard then
   discards the iteration structurally.

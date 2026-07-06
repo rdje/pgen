@@ -596,6 +596,12 @@ impl AstBasedGenerator {
                 // majority) live here with no per-entry value/allocation; the
                 // backtrack position is the key itself.
                 memo_fail: rustc_hash::FxHashSet<(RuleId, usize)>,
+                // MEMO-STORE-SOUNDNESS.2 — STORE-TAINTED failures live apart,
+                // stamped with the store write epoch at insert; they are
+                // replayable only while that epoch is unchanged and are
+                // evicted (then re-parsed) once the store has moved. The lean
+                // pure-structural set above stays payload-free.
+                memo_fail_tainted: rustc_hash::FxHashMap<(RuleId, usize), u64>,
                 recursion_guard: RecursionGuard,
                 grammar_profile: Option<String>,
                 recovery_events: Vec<RecoveryEvent>,
@@ -1021,6 +1027,7 @@ impl AstBasedGenerator {
                     // a one-time allocation at parser construction (cheap).
                     memo: rustc_hash::FxHashMap::with_capacity_and_hasher(256, Default::default()),
                     memo_fail: rustc_hash::FxHashSet::default(),
+                    memo_fail_tainted: rustc_hash::FxHashMap::default(),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     grammar_profile: None,
                     recovery_events: Vec::new(),
@@ -6411,12 +6418,26 @@ impl AstBasedGenerator {
                     let e = per_rule.entry(*rule_id).or_insert((0, 0, 0));
                     e.2 += 1;
                 }
+                // MEMO-STORE-SOUNDNESS.2 — epoch-stamped tainted failures are
+                // failures too; fold them into the per-rule counts and report
+                // the taint split in the header.
+                for ((rule_id, _pos), _epoch) in self.memo_fail_tainted.iter() {
+                    let e = per_rule.entry(*rule_id).or_insert((0, 0, 0));
+                    e.2 += 1;
+                }
+                let tainted_successes = self
+                    .memo
+                    .values()
+                    .filter(|entry| entry.tainted_at_epoch.is_some())
+                    .count();
                 let mut rows: Vec<(RuleId, (usize, usize, usize))> = per_rule.into_iter().collect();
                 eprintln!(
-                    "=== MEMO STATS: {} success entries + {} cached failures = {} total, {} subtree-nodes, {} distinct rules ===",
+                    "=== MEMO STATS: {} success entries ({} tainted) + {} cached failures ({} tainted) = {} total, {} subtree-nodes, {} distinct rules ===",
                     self.memo.len(),
-                    self.memo_fail.len(),
-                    self.memo.len() + self.memo_fail.len(),
+                    tainted_successes,
+                    self.memo_fail.len() + self.memo_fail_tainted.len(),
+                    self.memo_fail_tainted.len(),
+                    self.memo.len() + self.memo_fail.len() + self.memo_fail_tainted.len(),
                     total_nodes,
                     rows.len()
                 );
@@ -6457,8 +6478,46 @@ impl AstBasedGenerator {
                     });
                 }
 
+                // MEMO-STORE-SOUNDNESS.2 — a STORE-TAINTED cached failure is
+                // replayable only while the store write epoch is unchanged
+                // since it was recorded (predicates are pure functions of
+                // position-determined args + store, so an unchanged epoch
+                // reproduces every verdict). Once the store has moved, the
+                // entry is evicted and the retry honestly re-parses — the
+                // `sem_memo_wrapper` sound anchor.
+                if let Some(&epoch) = self.memo_fail_tainted.get(&key) {
+                    if epoch == self.semantic_runtime_state.write_epoch() {
+                        if self.trace_enabled() {
+                            self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memo hit for rule {} at position {} - cached tainted failure (store epoch unchanged)", rule_id, self.position));
+                        }
+                        return Err(ParseError::Backtrack {
+                            position: key.1,
+                        });
+                    }
+                    if self.trace_enabled() {
+                        self.logger.log_debug(#filename, self.position as u32, &format!("💾 Evicting STALE tainted failure for rule {} at position {} - store epoch moved", rule_id, self.position));
+                    }
+                    self.memo_fail_tainted.remove(&key);
+                }
+
                 // The success map holds only successful parses (`result` is always
                 // `Some`); a cache hit replays the cached node + semantic delta.
+                // MEMO-STORE-SOUNDNESS.2 — a STORE-TAINTED success (the body
+                // transitively evaluated ≥1 predicate) is replayable only
+                // while the store write epoch is unchanged since insert; a
+                // stale one is evicted and re-parsed fresh (the
+                // `sem_memo_success_*` sound anchors — a stale replay can
+                // flip both the verdict and the tree).
+                let stale_tainted_success = matches!(
+                    self.memo.get(&key),
+                    Some(entry) if entry.tainted_at_epoch.is_some_and(|epoch| epoch != self.semantic_runtime_state.write_epoch())
+                );
+                if stale_tainted_success {
+                    if self.trace_enabled() {
+                        self.logger.log_debug(#filename, self.position as u32, &format!("💾 Evicting STALE tainted success for rule {} at position {} - store epoch moved", rule_id, self.position));
+                    }
+                    self.memo.remove(&key);
+                }
                 if let Some(entry) = self.memo.get(&key) {
                     if let Some(node) = &entry.result {
                         self.position = entry.end_pos;
@@ -6511,7 +6570,31 @@ impl AstBasedGenerator {
                 // length so the body's pushed entries can be stored alongside
                 // the result and replayed on every future cache hit.
                 let memo_coverage_checkpoint = self.coverage_stack.len();
+                // MEMO-STORE-SOUNDNESS.2 — taint-gated memo participation.
+                // The memo key is (rule, position) — store-BLIND — so an
+                // outcome that depended on the mutable semantic store must not
+                // be replayed after the store changes: a stale FAILURE replays
+                // a REJECT (`sem_memo_wrapper`), a stale SUCCESS replays body
+                // content whose nested tournament choices were made under the
+                // OLD store (verdict-flipping AND tree-corrupting —
+                // `sem_memo_success_verdict` / `sem_memo_success_ast`). The
+                // predicate-evaluation counter is a COMPLETE store-dependence
+                // signal (predicates are the store's only read path into
+                // parsing) and is monotonic across speculation (truncation
+                // rollback never resets counters). Tainted outcomes ARE cached
+                // — stamped with the store write epoch and validated on every
+                // hit — because outright exclusion collapses packrat
+                // protection on predicate-heavy grammars (MEASURED: SV
+                // scr1_core_top 1.48 s → 173.6 s, 117×, session #49). A rule's
+                // OWN pre/post gates evaluate OUTSIDE its memoized_call, so
+                // they never taint its own entry (the transaction re-evaluates
+                // them fresh on every hit); inline branch predicates evaluate
+                // INSIDE the body and taint it — correct, they steer which
+                // branch's content wins.
+                let memo_taint_snapshot = self.semantic_runtime_state.predicate_evaluations();
                 let result = f(self);
+                let memo_store_tainted =
+                    self.semantic_runtime_state.predicate_evaluations() != memo_taint_snapshot;
 
                 if let Ok((node, raw_semantic_content)) = &result {
                     let semantic_delta = self
@@ -6532,10 +6615,24 @@ impl AstBasedGenerator {
                             end_pos: node.span.end,
                             semantic_delta: Some(semantic_delta),
                             coverage_delta,
+                            tainted_at_epoch: if memo_store_tainted {
+                                Some(self.semantic_runtime_state.write_epoch())
+                            } else {
+                                None
+                            },
                         },
                     );
                     if self.trace_enabled() {
                         self.logger.log_info(#filename, self.position as u32, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
+                    }
+                } else if memo_store_tainted {
+                    // MEMO-STORE-SOUNDNESS.2 — a store-tainted failure is
+                    // cached with its epoch stamp; valid only while the store
+                    // is unchanged.
+                    self.memo_fail_tainted
+                        .insert(key, self.semantic_runtime_state.write_epoch());
+                    if self.trace_enabled() {
+                        self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memoized TAINTED failed result for rule {} at position {} (epoch-stamped)", rule_id, self.position));
                     }
                 } else {
                     // PARSE-TERMINATION.6 — record the failure in the lean set
@@ -8630,6 +8727,44 @@ mod semantic_usage_tests {
         assert!(
             nospace.contains("self.coverage_stack.extend_from_slice(coverage)"),
             "a memo hit must replay the cached coverage delta onto the live coverage stack"
+        );
+        // MEMO-STORE-SOUNDNESS.2 — the memo must be TAINT-GATED with
+        // write-epoch VALIDATION: the body's predicate-evaluation delta
+        // decides taint, tainted outcomes (failure AND success) are stamped
+        // with the store write epoch at insert, validated on every hit, and
+        // evicted once the store has moved (the memo key is store-blind, so
+        // an unvalidated store-dependent entry would replay stale
+        // verdicts/trees on same-position retries after a store change;
+        // outright taint-EXCLUSION is NOT acceptable — it collapses packrat
+        // protection on predicate-heavy grammars, measured 117× on SV
+        // scr1_core_top, session #49).
+        assert!(
+            nospace.contains(
+                "letmemo_taint_snapshot=self.semantic_runtime_state.predicate_evaluations()"
+            ),
+            "memoized_call must snapshot the predicate-evaluation counter before the rule body"
+        );
+        assert!(
+            nospace.contains(
+                "self.semantic_runtime_state.predicate_evaluations()!=memo_taint_snapshot"
+            ),
+            "memoized_call must compare the predicate-evaluation counter after the rule body"
+        );
+        assert!(
+            nospace.contains("memo_fail_tainted:rustc_hash::FxHashMap<(RuleId,usize),u64>"),
+            "the parser must carry the epoch-stamped tainted-failure map beside the lean pure set"
+        );
+        assert!(
+            nospace.contains("tainted_at_epoch:ifmemo_store_tainted{"),
+            "a memoized success must be epoch-stamped when the body was store-tainted"
+        );
+        assert!(
+            nospace.contains("self.memo_fail_tainted.remove(&key)"),
+            "a stale tainted failure must be EVICTED (then re-parsed), not replayed"
+        );
+        assert!(
+            nospace.contains("self.memo.remove(&key)"),
+            "a stale tainted success must be EVICTED (then re-parsed), not replayed"
         );
     }
 

@@ -787,6 +787,15 @@ pub struct MemoEntry<'input> {
     /// the parse succeeded — even if the delta is empty (no side effects),
     /// the field is `Some(empty_delta)` to keep the type uniform.
     pub semantic_delta: Option<SemanticRuntimeDelta>,
+    /// MEMO-STORE-SOUNDNESS.2 — `Some(write_epoch_at_insert)` when the rule
+    /// body was STORE-TAINTED (it transitively evaluated ≥1 predicate), else
+    /// `None` (pure-structural — valid forever). A tainted entry is replayable
+    /// only while the store's write epoch is unchanged: predicates are pure
+    /// functions of (position-determined args, store), so an unchanged epoch
+    /// means every predicate the body evaluated would answer identically
+    /// today. A stale tainted entry is evicted on hit and the caller
+    /// re-parses fresh (the `sem_memo_success_*` sound pins).
+    pub tainted_at_epoch: Option<u64>,
     /// GRAMMAR-WELLFORMED.H.10.2.2 — the transactional parse-COVERAGE entries
     /// the rule's body pushed (relative to the coverage-stack length captured
     /// at memoization-call entry). The same memoization × transactional-record

@@ -1264,6 +1264,14 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
 > (`ast_pipeline … --generate-parser` — it compiles, 41 semantic-runtime call sites) and the emitted
 > orchestration read line-by-line against the codegen templates. This section records the boundary and
 > the design so the build is durable, not conversation-bound (same discipline as §13).
+>
+> ⚠️ LIVE-SPEC NOTE (2026-07-06, session #49): the suite this section landed at **20 cases** was
+> extended + deliberately re-anchored by **`MEMO-STORE-SOUNDNESS.2`** — the memo × store composition
+> is now TAINT-GATED (store-consulting bodies cached on neither memo side), `sem_memo_wrapper` pins
+> the sound ACCEPT, and two success-side cases (`sem_memo_success_verdict`/`sem_memo_success_ast`)
+> joined, making **22 cases**. The 20/20 numbers below are the honest historical record of `.6.2`'s
+> landing; the live suite contract is documented in `docs/tasks/MEMO-STORE-SOUNDNESS.md` + the book's
+> *The Parse Harness* chapter.
 
 ### 21.1 The shared-runtime vs generated-template boundary (tool-mapped)
 

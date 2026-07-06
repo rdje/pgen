@@ -261,6 +261,7 @@ pub fn interpret_parse_gen_ast(
         compiled_sem,
         memo: rustc_hash::FxHashMap::default(),
         memo_fail: rustc_hash::FxHashSet::default(),
+        memo_fail_tainted: rustc_hash::FxHashMap::default(),
     };
 
     // Mirror `parse_full`: parse the entry rule, consume trailing layout, then require the whole input
@@ -474,11 +475,16 @@ struct Interp<'g, 'i> {
     /// (`ast_based_generator.rs:6440`, PARSE-TERMINATION.6): successes carry the BODY's node + the
     /// captured raw content + the semantic delta (replayed on hit); failures live in the lean
     /// `memo_fail` set keyed `(rule, position)` ONLY. The rule transaction WRAPS the memo, so a rule's
-    /// own gates/effects are never cached — but the failure cache is store-blind by design, which the
-    /// `.6.2` suite pins differentially (`sem_memo_wrapper`).
+    /// own gates/effects are never cached; store-TAINTED bodies (transitively evaluated ≥1 predicate)
+    /// are EPOCH-STAMPED and replayable only while the store write epoch is unchanged
+    /// (MEMO-STORE-SOUNDNESS.2 taint gate — the `sem_memo_wrapper` / `sem_memo_success_*` sound pins),
+    /// so a stale store-dependent entry can never replay.
     memo: rustc_hash::FxHashMap<(&'static str, usize), InterpMemoEntry<'i>>,
     /// The failure half of the split memo (see `memo`).
     memo_fail: rustc_hash::FxHashSet<(&'static str, usize)>,
+    /// MEMO-STORE-SOUNDNESS.2 — store-tainted failures, epoch-stamped (mirror of the generated
+    /// `memo_fail_tainted`).
+    memo_fail_tainted: rustc_hash::FxHashMap<(&'static str, usize), u64>,
 }
 
 /// One success entry of the interpreter's split memo — the mirror of the generated `MemoEntry` minus
@@ -489,6 +495,9 @@ struct InterpMemoEntry<'i> {
     raw_semantic_content: Option<ParseContent<'i>>,
     end_pos: usize,
     semantic_delta: Option<SemanticRuntimeDelta>,
+    /// MEMO-STORE-SOUNDNESS.2 — `Some(write_epoch_at_insert)` for a store-tainted body (mirror of
+    /// the generated `MemoEntry::tainted_at_epoch`); validated on every hit, evicted when stale.
+    tainted_at_epoch: Option<u64>,
 }
 
 impl<'g, 'i> Interp<'g, 'i> {
@@ -700,10 +709,13 @@ impl<'g, 'i> Interp<'g, 'i> {
     }
 
     /// Mirror of the generated split-memo `memoized_call` (PARSE-TERMINATION.6 +
-    /// `SV-EXH-PROOF.3.3.4.b.6.2.36.4`): failures are cached in a lean position-keyed set; successes
-    /// replay the cached node + raw content + semantic delta. Keyed on the CALL position (the rule's
-    /// entry position — pre predicates are zero-width). The failure cache is store-blind by design
-    /// (the `sem_memo_wrapper` pin).
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.36.4` + MEMO-STORE-SOUNDNESS.2): failures are cached in a lean
+    /// position-keyed set; successes replay the cached node + raw content + semantic delta. Keyed on
+    /// the CALL position (the rule's entry position — pre predicates are zero-width). The memo key is
+    /// store-BLIND, so a STORE-TAINTED outcome (the body transitively evaluated ≥1 predicate) is
+    /// EPOCH-STAMPED at insert and replayable only while the store write epoch is unchanged —
+    /// mirroring the generated template's taint gate exactly (the `sem_memo_wrapper` /
+    /// `sem_memo_success_*` sound re-anchors; outright taint-EXCLUSION measured 117× slower on SV).
     fn memoized_call(
         &mut self,
         rule_name: &'static str,
@@ -712,6 +724,22 @@ impl<'g, 'i> Interp<'g, 'i> {
         let key = (rule_name, self.position);
         if self.memo_fail.contains(&key) {
             return Err(ParseError::Backtrack { position: key.1 });
+        }
+        // MEMO-STORE-SOUNDNESS.2 — tainted-failure validation: replay only while the store write
+        // epoch is unchanged since insert; evict + re-parse once the store has moved.
+        if let Some(&epoch) = self.memo_fail_tainted.get(&key) {
+            if epoch == self.semantic_state.write_epoch() {
+                return Err(ParseError::Backtrack { position: key.1 });
+            }
+            self.memo_fail_tainted.remove(&key);
+        }
+        // MEMO-STORE-SOUNDNESS.2 — tainted-success validation (mirror of the generated template).
+        let stale_tainted_success = matches!(
+            self.memo.get(&key),
+            Some(entry) if entry.tainted_at_epoch.is_some_and(|epoch| epoch != self.semantic_state.write_epoch())
+        );
+        if stale_tainted_success {
+            self.memo.remove(&key);
         }
         if let Some(entry) = self.memo.get(&key) {
             self.position = entry.end_pos;
@@ -725,7 +753,10 @@ impl<'g, 'i> Interp<'g, 'i> {
             return Ok((node, raw));
         }
         let memo_entry_checkpoint = self.semantic_state.checkpoint();
+        let memo_taint_snapshot = self.semantic_state.predicate_evaluations();
         let result = f(self);
+        let memo_store_tainted =
+            self.semantic_state.predicate_evaluations() != memo_taint_snapshot;
         match &result {
             Ok((node, raw_semantic_content)) => {
                 let semantic_delta = self
@@ -738,8 +769,17 @@ impl<'g, 'i> Interp<'g, 'i> {
                         raw_semantic_content: raw_semantic_content.clone(),
                         end_pos: node.span.end,
                         semantic_delta: Some(semantic_delta),
+                        tainted_at_epoch: if memo_store_tainted {
+                            Some(self.semantic_state.write_epoch())
+                        } else {
+                            None
+                        },
                     },
                 );
+            }
+            Err(_) if memo_store_tainted => {
+                self.memo_fail_tainted
+                    .insert(key, self.semantic_state.write_epoch());
             }
             Err(_) => {
                 self.memo_fail.insert(key);

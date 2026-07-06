@@ -5,6 +5,17 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-07-06, MEMO-STORE-SOUNDNESS.2 — engine-level, NO release bump):** the
+> shared parse engine's packrat memo is now **taint-gated with store-write-epoch validation** — a
+> memoized outcome whose rule body consulted the semantic store is replayable only while the store
+> is unchanged, closing a platform-level staleness class (a store-dependent cached failure/success
+> could previously replay after the store changed). Every locked SV surface is verified
+> byte-identical through this change (certificate-coverage all profiles at seeds 0/7/42, the
+> verilog_2005 conformance matrix 240/0, the AST shape contract 18/18, the external corpus 14/14
+> verdicts), so the contract and release version are unchanged. Operational note for big-file
+> consumers: corpus wall-clock measured ≈ +15% on the uvm_pkg case (soundness-driven cache
+> validation); tracked optimization headroom is `docs/tasks/MEMO-STORE-SOUNDNESS.md` leaf `.3`.
+
 ## Contract Identity
 - Contract version:
   - `1.0.167`

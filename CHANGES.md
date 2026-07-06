@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0002 (MEMO-STORE-SOUNDNESS.2): the memo × store soundness fix — taint-gated, WRITE-EPOCH-VALIDATED memo participation on both implementations; the exclusion design refuted at 117× and replaced in-leaf; F1 SOUNDNESS CLOSED
+
+Session #49. **CODE leaf — engine (shared runtime + codegen template) + interpreter mirror + suite
+re-anchor + full-parser regen: `rust/src/ast_pipeline/semantic_runtime.rs` (the
+`predicate_evaluations` taint counter (`Cell<u64>`, single choke point `evaluate_predicate`;
+`content_kind_is` exempt) + the `write_epoch` store-mutation counter (emit/import/open/close/
+non-empty delta/discarding rollback only)), `rust/src/ast_pipeline/mod.rs` (`MemoEntry.tainted_at_epoch`),
+`rust/src/ast_pipeline/ast_based_generator.rs` (the `memoized_call` template: taint snapshot/compare,
+epoch-stamped tainted entries on BOTH memo sides incl. the new `memo_fail_tainted` map,
+validate-on-hit + evict-when-stale; `report_memo_stats` taint split; 6 new rendered-template pin
+assertions), `rust/src/parse_harness_interpreter.rs` (the IDENTICAL mirror), 
+`rust/src/parse_harness_semantic_suite.rs` (the deliberate `sem_memo_wrapper` REJECT→ACCEPT sound
+re-anchor + the promoted `sem_memo_success_verdict`/`sem_memo_success_ast` cases — 22 total), all 11
+`generated/*` artifacts regenerated via the cold-start bootstrap path.**
+
+- **The design pivot is the story (tool-forced, measured):** the tree's original taint-EXCLUSION
+  thesis ("failures are the 83-85% pure-structural majority — excluding the tainted minority is
+  cheap") was implemented FIRST and REFUTED by measurement — entry counts ≠ attempt counts: SV
+  `scr1_core_top` 1 484 ms → 173 580 ms (**117×**), the shape gate at ~2.9 h — SV evaluates
+  predicates on virtually every identifier path, so exclusion guts packrat protection exactly where
+  it tames PEG backtracking. Replaced in-leaf by **epoch-stamped VALIDATION**: tainted outcomes are
+  cached stamped with the store write epoch and replay only while it is unchanged (predicates are
+  pure functions of position-determined args + store ⇒ unchanged epoch ⇒ identical verdicts —
+  sound), evicted + honestly re-parsed once the store moves. Pure-structural entries stay
+  forever-valid; write-stable regions (where backtracking storms live) keep their memo.
+- **Soundness proven:** the `.1` probe flipped CONFIRMED×4 → **ABSENT×4** (both observables, both
+  implementations); `sem_memo_wrapper` `"go!"` REJECT→ACCEPT differentially CLEAN; suite **22/22
+  CLEAN 2/2**.
+- **No-regression battery GREEN:** combinator 16/16; equivalence 4/4 — **11 CERTIFIED grammars
+  byte-identical**; shape contract 18/18; `sv_cert_recognized_union_gate` seeds 0/7/42 byte-identical
+  (canonical UNKNOWN=12, union 1, residual `context_member_method_call`); `verilog_2005_conformance_gate`
+  GREEN (`1115/328/773/14`, matrix 240/0); external corpus **14/14**; codegen units 67/67;
+  semantic_runtime 98/98; interpreter 7/7; clippy strict-source; mdbook.
+- **Perf (stats-on both sides, the required before→after):** corpus `parse_total_ms` 398 455 →
+  459 851 (**+15.4%**), uvm max 190 958 → 219 277 (+14.8%); worst case friscv_pipeline 235 → 955 ms
+  (4.1× — global-epoch eviction thrash on a small declaration-dense file). End-state memo entry
+  counts byte-identical to baseline on every case (uvm 4.38 M + 21.8 M; 884 785 / 919 419 now
+  taint-stamped). ACCEPTED per correctness-before-speed; optimization headroom (single-probe hit
+  path; finer-grained epoch scoping) tracked as leaf `.3`.
+- **Release/ledger adjudication: NO SV bump (stays `1.0.167`/schema `16`), NO ledger row** — every
+  locked SV surface byte-identical and no SV-level staleness flip demonstrated (isolating-grammar
+  class); SV integration contract carries a current-state note (incl. the wall-clock note).
+- **Lockstep:** book *Parse Harness* (22-row table, the taint-validation grammar-author fact with
+  the 117× history), `TOOLBOX.md` §1.8, `PARSE-HARNESS.md` §21 live-spec note, both trees +
+  `docs/TASK_TREE.md`, SV contract note, MEMORY.
+
 ## 2026-07-06 - PGEN-MEMO-STORE-SOUNDNESS-0001 (MEMO-STORE-SOUNDNESS.1): the F1 evidence slice — SUCCESS-side memo staleness CONFIRMED (verdict-flip AND stale AST), taint hook points audited, SV corpus perf baseline locked
 
 Session #49. **EVIDENCE leaf — test-only code (one `--ignored` scouting probe appended to

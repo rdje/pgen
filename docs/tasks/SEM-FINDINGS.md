@@ -57,7 +57,7 @@ a leaf here — a whole tree for one documentation slice would be ceremony witho
 | Finding | Spawned tree | Frontier there | Priority order |
 |---|---|---|---|
 | F3 inline branch-predicate flattening (+ SV:4605) | [`BRANCH-PREDICATE-LOCALITY`](BRANCH-PREDICATE-LOCALITY.md) | `.1` SV:4605 reproducer + blast-radius audit | **1 — suspected LIVE SV defect** |
-| F1 store-blind memo failure cache | [`MEMO-STORE-SOUNDNESS`](MEMO-STORE-SOUNDNESS.md) | `.1` success-side probe + taint design + perf baseline | 2 — soundness |
+| F1 store-blind memo failure cache | [`MEMO-STORE-SOUNDNESS`](MEMO-STORE-SOUNDNESS.md) | **SOUNDNESS CLOSED** (#49: `.1` evidence — success-side sibling CONFIRMED too; `.2` fix — epoch-validated taint gate on both implementations, suite 22/22; perf headroom leaf `.3` optional) | 2 — soundness |
 | F4 `$`-stripped positional payload refs | [`POSITIONAL-PAYLOAD-REFS`](POSITIONAL-PAYLOAD-REFS.md) | `.1` strip locus + zero-usage audit | 3 |
 | F2 quoted-arg fact-name mismatch | [`FACT-NAME-MATCHING`](FACT-NAME-MATCHING.md) | `.1` consistency read → tier decision | 4 |
 | F6 undefined-reference diagnosability | [`UNDEFINED-REF-DIAGNOSTICS`](UNDEFINED-REF-DIAGNOSTICS.md) | `.1` gap check + shipped-grammar sweep | 5 |

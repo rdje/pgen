@@ -1178,6 +1178,19 @@ pub struct SemanticStoreCounters {
     pub scopes_closed: u64,
     /// `rollback_to` calls.
     pub rollbacks: u64,
+    /// MEMO-STORE-SOUNDNESS.2 — store-consulting predicate evaluations
+    /// (`evaluate_predicate` entries; the content-only `content_kind_is`
+    /// short-circuit is deliberately exempt — its verdict depends on parse
+    /// content, which the memo key already covers). This is the memo TAINT
+    /// signal: `memoized_call` snapshots it around a rule body, and a changed
+    /// count means the body's outcome may depend on the mutable store, so the
+    /// attempt must not be cached. A `Cell` because predicate evaluation is a
+    /// `&self` query path by design; like every counter here it is CUMULATIVE
+    /// — truncation-based `rollback_to` never resets it, which is exactly what
+    /// keeps the taint signal monotonic across speculation (a predicate
+    /// evaluated inside a rolled-back nested speculation still tainted the
+    /// enclosing attempt).
+    pub predicate_evaluations: std::cell::Cell<u64>,
 }
 
 /// `SV-EXH-PROOF.3.3.4.b.5.1.6`: filter for `dump_facts`. A `None` field
@@ -1231,6 +1244,20 @@ pub struct SemanticRuntimeState {
     predicate_defs: HashMap<String, PredicateDef>,
     /// `.3.3.4.b.5.1.6`: cumulative operation counters (observability).
     counters: SemanticStoreCounters,
+    /// MEMO-STORE-SOUNDNESS.2 — the store WRITE epoch: a monotonic counter
+    /// bumped by every observable store MUTATION (fact emission/import,
+    /// scope open/close, delta application, and rollbacks that actually
+    /// discard something). Pure queries never bump it. `memoized_call` stamps
+    /// store-tainted memo entries with this epoch at insert time and treats
+    /// them as valid only while it is unchanged: predicates are pure
+    /// functions of (position-determined args, store), so an unchanged epoch
+    /// means every predicate the cached body evaluated would evaluate
+    /// identically today — replay is sound. A changed epoch evicts the entry
+    /// and the retry honestly re-parses (the `sem_memo_*` sound anchors).
+    /// Deliberately NOT part of the memo key (a keyed epoch would strand
+    /// every entry on each write and collapse the memo on store-heavy
+    /// grammars — the rejected alternative in `docs/tasks/MEMO-STORE-SOUNDNESS.md` §2).
+    write_epoch: u64,
     /// `SV-EXH-PROOF.3.3.4.b.6.2.36.2` — the rule whose IIFE / transaction
     /// currently owns the state. Set by `with_rule_context` (called by the
     /// generated `with_semantic_runtime_rule_transaction` wrapper); cleared
@@ -1290,6 +1317,7 @@ impl SemanticRuntimeState {
             active_chain: vec![ScopeId::ROOT],
             predicate_defs: HashMap::new(),
             counters: SemanticStoreCounters::default(),
+            write_epoch: 0,
             // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — initialised empty; the
             // generated parser's per-rule IIFE pushes/pops via
             // `push_rule_context` / `pop_rule_context`.
@@ -1341,6 +1369,25 @@ impl SemanticRuntimeState {
     /// Snapshot of the cumulative operation counters.
     pub fn counters(&self) -> &SemanticStoreCounters {
         &self.counters
+    }
+
+    /// MEMO-STORE-SOUNDNESS.2 — the cumulative store-consulting predicate
+    /// evaluation count (the memo taint signal; see the field doc on
+    /// [`SemanticStoreCounters::predicate_evaluations`]). `memoized_call`
+    /// snapshots this before a rule body and compares after: a changed count
+    /// means the body (transitively — nested rules' pre/post gates, inline
+    /// branch predicates, composed defs) consulted the mutable store, so
+    /// neither its failure nor its success may be cached under the
+    /// store-blind `(rule, position)` key.
+    pub fn predicate_evaluations(&self) -> u64 {
+        self.counters.predicate_evaluations.get()
+    }
+
+    /// MEMO-STORE-SOUNDNESS.2 — the current store write epoch (see the field
+    /// doc). `memoized_call` stamps tainted memo entries with this and
+    /// re-validates on every hit.
+    pub fn write_epoch(&self) -> u64 {
+        self.write_epoch
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.5.1.6`: iterate the facts matching `filter`.
@@ -1671,6 +1718,13 @@ impl SemanticRuntimeState {
     /// On success the state is fast-forwarded to whatever the source-
     /// transaction's end state was.
     pub fn apply_delta(&mut self, delta: SemanticRuntimeDelta) {
+        // MEMO-STORE-SOUNDNESS.2 — a non-empty delta mutates the store
+        // (facts appended / scopes opened / scopes closed). Callers already
+        // skip apply_delta for empty deltas; guard anyway so a no-op apply
+        // never invalidates tainted memo entries.
+        if !delta.is_empty() {
+            self.write_epoch += 1;
+        }
         // Push new scope_arena nodes (preserving their `closed` flag —
         // a scope opened AND closed in the branch is reapplied as
         // closed; a scope opened and still active is reapplied as open).
@@ -1737,6 +1791,17 @@ impl SemanticRuntimeState {
         let facts_being_rolled_back = (self.facts.len() - fact_len) as u64;
         self.counters.rollbacks += 1;
         self.counters.facts_rolled_back += facts_being_rolled_back;
+        // MEMO-STORE-SOUNDNESS.2 — a rollback is a store mutation ONLY when
+        // it actually discards facts, truncates arena nodes, or restores a
+        // different active chain; the ubiquitous zero-change speculation
+        // rollback must NOT invalidate tainted memo entries (that would
+        // re-collapse the memo on store-heavy grammars).
+        if facts_being_rolled_back > 0
+            || self.scope_arena.len() > scope_arena_len
+            || self.active_chain != checkpoint.active_chain_snapshot
+        {
+            self.write_epoch += 1;
+        }
         // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining rollback trace.
         // Pair with emit_fact + has_fact traces to spot C3-B style bugs
         // where a fact emitted on the eventual-winning parse path gets
@@ -1838,6 +1903,7 @@ impl SemanticRuntimeState {
     }
 
     pub fn open_scope(&mut self, spec: SemanticScopeSpec) {
+        self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
         // `.3.3.4.b.5.1.3`: allocate a new arena node, parent = current
         // active leaf. Maintain the legacy `scopes` Vec in lockstep so
         // existing predicates that consult `scopes` keep working.
@@ -1901,6 +1967,7 @@ impl SemanticRuntimeState {
                 }
             }
             self.counters.scopes_closed += 1;
+            self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
             true
         } else {
             // SV-EXH-PROOF.3.3.4.b.6.2.28 — close mismatch.
@@ -1914,6 +1981,7 @@ impl SemanticRuntimeState {
     }
 
     pub fn emit_fact(&mut self, fact: SemanticFactSpec) {
+        self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
         let scope_depth = self.scopes.len() - 1;
         let scope_id = self.current_scope_id();
         let position = self.facts.len();
@@ -1970,6 +2038,7 @@ impl SemanticRuntimeState {
     /// importer's scope tree); MVP-0 imports merge at the current active
     /// scope.
     pub fn push_fact_record(&mut self, mut record: SemanticFactRecord) {
+        self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
         record.scope_depth = self.scopes.len() - 1;
         record.scope_id = self.current_scope_id();
         let position = self.facts.len();
@@ -2030,6 +2099,17 @@ impl SemanticRuntimeState {
     }
 
     pub fn evaluate_predicate(&self, predicate: &SemanticPredicateSpec) -> Option<bool> {
+        // MEMO-STORE-SOUNDNESS.2 — the memo taint signal. EVERY store-consulting
+        // predicate evaluation funnels through here (pre gates via
+        // `evaluate_directive_predicate`, post/branch gates via
+        // `evaluate_content_aware_predicate`'s delegation, composed
+        // `@predicate_def`s via the default arm below), so this single bump is a
+        // COMPLETE "the caller consulted the store" record. Composed-def bodies
+        // re-enter through `eval_primitive_call_as_bool`; the extra bumps are
+        // harmless (taint is a ≥1 threshold).
+        self.counters
+            .predicate_evaluations
+            .set(self.counters.predicate_evaluations.get() + 1);
         let normalized_name = predicate.name.trim().to_ascii_lowercase();
         match normalized_name.as_str() {
             "current_scope_is" => {
