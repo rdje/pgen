@@ -495,8 +495,28 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   construct-complete `rtl_const_expr` curated list. VERIFIED: `PGEN_PHEQ_ONLY=rtl_const_expr` DIVERGE
   samples=0 → **CLEAN 151/151**; `parse_harness_equivalence_gate` 4/4; no `generated/*` regenerated. See
   §19 for the enforced acceptance checklist.
-- `.6` — **the per-combinator differential suite — `not-started`.** Isolating grammars for every
-  construct (§3.3) — the load-bearing coverage for "trust it on ANY grammar."
+- `.6` — **the per-combinator + semantic-directive differential suite — `not-started`.** Isolating
+  grammars for every construct (§3.3) — the load-bearing coverage for "trust it on ANY grammar." The
+  end-to-end `.5` gate only covers the constructs the *shipped* grammars use; `.6` proves equivalence
+  **per combinator** on small synthetic grammars (interpreter vs the `.3` compile-and-run oracle / a
+  scratch parser), so the interpreter is trusted on ANY grammar built from PGEN's constructs. Decomposed
+  into two sub-leaves by build-risk (session #45 scoping):
+  - `.6.1` — **structural combinator isolating suite — `not-started` (frontier).** The combinators the
+    interpreter core (`.4`) ALREADY dispatches, each isolated + differentially verified over targeted
+    inputs: ordered choice under EACH `branch_policy` (`longest_match` / `ordered` / `priority_first`),
+    including the `a | ab` fixed-prefix shape and the `e? | keyword` always-succeeds shape (the
+    `A2.2`/`A2.3` cases directly — this also front-loads the `.8` empirical proof); sequence + backtrack;
+    every quantifier form (`?`/`*`/`+`/`{N}`/`{N,M}`/`{N,}`/`{,M}`) incl. the zero-length guard; lookahead
+    `&`/`!`; atom / terminal / regex-token; rule-ref; left-recursion (LR-eliminated). Lower build-risk —
+    it extends the proven `.4` smoke-set pattern (synthetic grammars diffed via `compile_and_parse`) into
+    a systematic, gated suite. This is the natural next slice.
+  - `.6.2` — **semantic-directive orchestration suite — `not-started`.** The surface `.4`/`.5` explicitly
+    **DEFERRED** (§13.4): `@predicate` branch/pre/post gates that CHANGE the verdict (hit AND miss);
+    `@emit_fact` + query + scope tree + rollback/transactions; `$reference`-against-content resolution;
+    `@import`/`@export` library; non-default `branch_policy`/`@priority`; and **memoization** with
+    semantic-delta replay (the transparent AST-invariant cache the corpus/perf needs). Higher build-risk
+    — it exercises store-gated *parse outcomes*, the interpreter's least-proven surface. Owns its own
+    isolating grammars + differential, and closes the honest bound in §3.4.
 - `.7` — **the fuzzing lane (optional) — `not-started`.** Random gen-ASTs × random inputs, differential;
   pushes coverage toward exhaustive (§3.4).
 - `.8` — **first real use: run the A2.3 proof on the harness — `not-started`.** Parse `a | ab` on `"ab"`
@@ -525,7 +545,9 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `done` (#43, `PGEN-PARSE-HARNESS-0009`) | Root cause: interpreter's layout skippers unconditionally skip all 3 comment introducers; codegen suppresses arms per-grammar (H.11.5). Fix gates the arms via codegen's shared predicate. ebnf CERTIFIED byte-identical (DIVERGE 6→CLEAN 83). §17 checklist. |
 | 8 | `PARSE-HARNESS.5.3` (return_annotation fold) | `done` (#44, `PGEN-PARSE-HARNESS-0011`) | Root cause (tools REFUTED the scouting hypothesis): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`); codegen froze one arbitrary order, the interpreter re-serialized a fresh (itself non-deterministic) order each load. Fix = a `serialize_with` SORTED serializer canonicalizing every site. return_annotation CERTIFIED (DIVERGE 8→CLEAN 68). Also closed a latent codegen non-determinism. §18 checklist. |
 | 9 | `PARSE-HARNESS.5.5` (rtl_const_expr corpus) | `done` (#45, `PGEN-PARSE-HARNESS-0012`) | Curated-input corpus for the deep precedence chain (exceeds bounded gen; unbounded hangs — tool-confirmed §19). A corpus problem, not an interpreter divergence. rtl_const_expr CERTIFIED (DIVERGE 0→CLEAN 151); DEFERRED now empty (11 CERTIFIED). §19 checklist. |
-| 10 | `PARSE-HARNESS.6`–`.7` (combinator suite + fuzz) | `not-started` (**frontier**) | Phase B — combinator-complete coverage (incl. the deferred semantic-directive orchestration) + optional fuzz. |
+| 10 | `PARSE-HARNESS.6.1` (structural combinator isolating suite) | `not-started` (**frontier**) | Phase B — per-combinator isolating grammars for the combinators `.4` already dispatches (branch_policy choice incl. `a\|ab`, quantifiers, lookahead, sequence, atoms, rule-ref, LR), each differentially verified. Lower build-risk; extends the proven `.4` smoke-set pattern. |
+| 11 | `PARSE-HARNESS.6.2` (semantic-directive orchestration suite) | `not-started` | Phase B — the DEFERRED store-gated-outcome surface (`@predicate`/`@emit_fact`/scope/rollback + memoization). Higher build-risk. |
+| 12 | `PARSE-HARNESS.7` (fuzz, optional) | `not-started` | Phase B — random gen-ASTs × random inputs, differential. |
 
 ---
 
