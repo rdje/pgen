@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-53b44eda.js";
+            window.path_to_searchindex_js = "searchindex-502eb58c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -243,6 +243,12 @@ than silently dropping them. The net effect: a fact is in the store <strong>iff<
 emitted it survived. This soundness is what makes store-aware gating trustworthy; it is also what the
 store-aware generation work relies on so the stimuli generator never emits a sample its own parser
 would semantically reject.</p>
+<p>One boundary is deliberately <strong>transactional, not structural</strong>: effects commit on rule <em>success</em> —
+including a <strong>zero-length</strong> success. A quantifier’s zero-length guard discards a zero-length
+iteration structurally (anti-infinite-loop), but the discarded iteration’s rule <em>succeeded</em>, so its
+<code>@emit_fact</code> persists. A zero-width marker emission (<code>en := "on"?</code>-style) is therefore a reliable
+idiom; to get no-effect-when-empty, make the emitting rule consume at least one byte. (Normative:
+the <em>Effects Timing</em> section of <code>PGEN_ANNOTATION_NORMATIVE_SPEC.md</code>.)</p>
 <h2 id="observability"><a class="header" href="#observability">Observability</a></h2>
 <p>When a predicate query rejects a rule, the debug toolbox makes the <em>why</em> explicit — a scoped
 <code>--trace-rules &lt;rule&gt;</code> at <code>high</code>/<code>debug</code> prints the predicate verdict and the resolved facts (see the

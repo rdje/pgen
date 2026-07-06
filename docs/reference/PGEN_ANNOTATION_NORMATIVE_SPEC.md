@@ -237,6 +237,34 @@ Source contract references:
 - `rust/src/ast_pipeline/semantic_runtime.rs` (`FactNameKey`, `FactIndex::{insert,remove,any_with_name,any_with_name_at_scope,positions_for_name}`, `semantic_runtime_values_match`, `semantic_values_match`, `fact_name_matches`)
 - `rust/src/parse_harness_semantic_suite.rs` (`sem_quoted_name_args`)
 
+## Effects Timing (Normative)
+
+When semantic-directive EFFECTS (`@emit_fact` emissions, `@open_scope`/`@close_scope` scope
+changes, library imports/exports) take effect and when they are undone — the `SEM-FINDINGS` F5
+contract (2026-07-06, differentially pinned by the `sem_zero_len_emit` suite case on both the
+generated parser and the interpreter):
+
+1. **Effects commit on RULE SUCCESS — including zero-length success.** A rule that succeeds
+   matching zero bytes (e.g. `maybe := "x"?` on input that has no `x`) fires its rule-level
+   effects exactly like any other success. A zero-width marker emission is a legitimate, reliable
+   idiom (cf. the `en := "on"?` enabling pattern).
+2. **Rollback is TRANSACTIONAL, not structural.** Effects are undone only by the transaction
+   rollback that accompanies a parse FAILURE or a losing tournament branch (C3-B). In particular,
+   a quantifier's zero-length guard — which discards a zero-length iteration STRUCTURALLY to
+   prevent infinite loops — is an anti-infinite-loop mechanism, NOT a transaction boundary: the
+   discarded iteration's rule SUCCEEDED, so its effects PERSIST in the store even though the
+   iteration contributes no node to the tree.
+3. **Consequence for grammar authors.** "The fact is in the store iff the emitting rule's success
+   was committed" — where a structurally-discarded zero-length iteration counts as COMMITTED
+   (its success survived; only its tree contribution was dropped). An author who wants
+   no-effect-when-empty must make the emitting rule fail on empty (consume ≥1 byte) rather than
+   rely on the guard's discard.
+
+Source contract references:
+- `rust/src/parse_harness_semantic_suite.rs` (`sem_zero_len_emit` — the differential pin)
+- `rust/src/ast_pipeline/ast_based_generator.rs` (the quantifier zero-length guard + the
+  `with_semantic_runtime_rule_transaction` commit/rollback wrapper)
+
 ## Semantic Leverage Contract (Parser + Stimuli)
 Normative runtime leverage behavior for semantic annotations:
 

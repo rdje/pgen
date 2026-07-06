@@ -442,6 +442,17 @@ store size — so even heavy PEG backtracking (the SystemVerilog grammar
 exhibits hundreds of restorations per parse) stays well within the
 performance budget.
 
+**The boundary is transactional, not structural.** Effects commit on rule
+**success** — *including a zero-length success*. A quantifier's zero-length
+guard discards a zero-length iteration *structurally* (it contributes no
+node, preventing an infinite loop), but that guard is not a transaction:
+the discarded iteration's rule *succeeded*, so its `@emit_fact` persists
+(normative — the *Effects Timing* section of
+`PGEN_ANNOTATION_NORMATIVE_SPEC.md`, pinned differentially by the
+`sem_zero_len_emit` suite case). A zero-width marker emission is a
+legitimate idiom; if you want no-effect-when-empty, make the emitting rule
+consume at least one byte.
+
 ## 10. The multi-index performance story
 
 Behind the scenes, the store maintains multiple indexes per fact-kind. Each

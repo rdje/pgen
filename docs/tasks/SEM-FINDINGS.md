@@ -66,13 +66,20 @@ a leaf here — a whole tree for one documentation slice would be ceremony witho
 
 - `.0` — **directive capture + tree spawning — `done`** (`PGEN-SEM-FINDINGS-0001` + the restructure
   commit): the §1 adjudication table, the working rules, and the five spawned per-finding trees.
-- `.1` — **F5: zero-length effects-timing documentation — `not-started`.** The one doc-only finding:
-  add the effects-timing rule ("effects commit on rule success, INCLUDING zero-length success; the
-  quantifier guard's structural discard does not roll them back") to
-  `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` (+ the semantic_annotation book if it discusses
-  effect timing; the top-level book's grammar-author facts already state it). Pinned by
-  `sem_zero_len_emit`. Doc-only slice; check the spec's current wording first (silent vs
-  contradicting).
+- `.1` — **F5: zero-length effects-timing documentation — `done` (2026-07-06, session #50,
+  `PGEN-SEM-FINDINGS-0002`).** Wording check FIRST (per the leaf spec): the normative spec was
+  SILENT (the Semantic Leverage Contract lists the directives, no timing rule — no contradiction);
+  the top book's ROLLBACK stage said rollback fires on FAILURE (consistent but boundary-implicit);
+  the semantic_annotation book's transactions paragraph had the AMBIGUOUS "a fact is in the store
+  iff the committed parse that emitted it survived" (a structurally-discarded zero-length
+  iteration's status unclear). LANDED: NEW normative-spec section **Effects Timing (Normative)**
+  (3 rules: effects commit on rule success INCLUDING zero-length; rollback is TRANSACTIONAL never
+  structural — the quantifier zero-length guard is an anti-infinite-loop mechanism, not a
+  transaction boundary; the author consequence + the consume-≥1-byte idiom for
+  no-effect-when-empty) + the top book semantic-store ROLLBACK section's "transactional, not
+  structural" note + the semantic_annotation book's disambiguating paragraph (discarded iteration
+  = COMMITTED success). All reference the `sem_zero_len_emit` differential pin. Both book gates +
+  `mdbook_docs_gate` GREEN.
 - `.2` — **CLOSE-OUT — `not-started`.** When all five spawned trees complete: verify
   `parse_harness_semantic_gate` pins the post-fix semantics N/N, every finding is either fixed or
   normatively documented (tree acceptance §5), and mark this tree complete.
@@ -82,11 +89,11 @@ a leaf here — a whole tree for one documentation slice would be ceremony witho
 | # | Item | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | `BRANCH-PREDICATE-LOCALITY` (F3) | **tree `complete`** (2026-07-06 #48) | `.1` CONFIRMED broader than suspected (branches 1 AND 3 predicate-dead; day-one bug contradicting `43bbc43c`); `.2` fixed it at the engine tier (registry fn rule-level-only), re-anchored `sem_branch_gate` deliberately (flattening pin → branch-local pin), and preserved SV routing byte-identically (hierarchical branch retired + 2 linter-derived `@profiles` gates; v2005 cert honestly improved `1117/327/773/17`→`1115/328/773/14`; NO release bump — behavior byte-invariant on every profile). |
-| 2 | `MEMO-STORE-SOUNDNESS.1` | `not-started` | Soundness; perf baseline included. |
-| 3 | `POSITIONAL-PAYLOAD-REFS.1` | `not-started` | Narrowest engine cut. |
-| 4 | `FACT-NAME-MATCHING.1` | `not-started` | Tier decision by evidence. |
-| 5 | `UNDEFINED-REF-DIAGNOSTICS.1` | `not-started` | Includes a shipped-grammar undefined-ref sweep. |
-| 6 | `SEM-FINDINGS.1` (F5 doc slice) | `not-started` | Doc-only; any session can pick it up. |
+| 2 | `MEMO-STORE-SOUNDNESS` (F1) | **SOUNDNESS CLOSED** (#49, `.1`+`.2`; optional perf leaf `.3` parked) | Epoch-validated taint gate on both implementations. |
+| 3 | `POSITIONAL-PAYLOAD-REFS` (F4) | **tree `complete`** (#50, `.1`+`.2`) | Sigil preservation; suite 23 cases; 2 normative walk facts. |
+| 4 | `FACT-NAME-MATCHING` (F2) | **tree `complete`** (#50, `.1`+`.2`) | Names unified to textual equality; suite 24 cases. |
+| 5 | `UNDEFINED-REF-DIAGNOSTICS` (F6) | **tree `complete`** (#50, `.1`+`.2`) | `--lint-grammar` hard-gates undefined refs; 13/13 grammars clean. |
+| 6 | `SEM-FINDINGS.1` (F5 doc slice) | `done` (2026-07-06 #50, `PGEN-SEM-FINDINGS-0002`) | Spec *Effects Timing (Normative)* + both store chapters; ambiguous book wording disambiguated. |
 | 7 | `SEM-FINDINGS.2` (close-out) | `not-started` | Blocked on all five trees. |
 
 ## 6. Acceptance criteria (tree-level)

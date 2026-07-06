@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-SEM-FINDINGS-0002 (SEM-FINDINGS.1): F5 effects-timing semantics are now NORMATIVE — effects commit on rule success INCLUDING zero-length success; the quantifier guard's structural discard is not a transaction boundary
+
+Session #50. **DOC-only leaf (the one no-code-fix finding).** Wording check first, per the leaf
+spec: the normative spec was SILENT; the top book's ROLLBACK stage was consistent but
+boundary-implicit; the semantic_annotation book's "a fact is in the store iff the committed parse
+that emitted it survived" was AMBIGUOUS for a structurally-discarded zero-length iteration.
+
+- NEW spec section **Effects Timing (Normative)** (`PGEN_ANNOTATION_NORMATIVE_SPEC.md`): (1)
+  effects commit on RULE SUCCESS including zero-length success (the zero-width marker idiom is
+  legitimate and reliable); (2) rollback is TRANSACTIONAL, never structural — the quantifier
+  zero-length guard is an anti-infinite-loop mechanism, not a transaction boundary, so a discarded
+  iteration's effects PERSIST; (3) the author consequence: a discarded zero-length iteration counts
+  as COMMITTED; want no-effect-when-empty → make the emitting rule consume ≥1 byte.
+- Top book `semantic-store.md` (ROLLBACK stage): the "transactional, not structural" boundary note.
+- semantic_annotation book `semantic-store.md`: the disambiguating paragraph + rendered HTML.
+- All three surfaces reference the `sem_zero_len_emit` differential pin (both implementations).
+  Gates: `semantic_annotation_parser_book_gate` + `mdbook_docs_gate` GREEN. LIVE tracker unchanged.
 ## 2026-07-06 - PGEN-UNDEFINED-REF-DIAGNOSTICS-0002 (UNDEFINED-REF-DIAGNOSTICS.2): F6 CLOSED — `--lint-grammar` hard-gates undefined references (13/13 shipped grammars clean at 0); codegen warns unconditionally at stub emission; the unfiltered-view requirement discovered and fixed in-leaf; TREE COMPLETE
 
 Session #50. **CODE leaf — linter tier (NO engine/parse behavior change):**

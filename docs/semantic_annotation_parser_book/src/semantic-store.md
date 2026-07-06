@@ -70,6 +70,13 @@ emitted it survived. This soundness is what makes store-aware gating trustworthy
 store-aware generation work relies on so the stimuli generator never emits a sample its own parser
 would semantically reject.
 
+One boundary is deliberately **transactional, not structural**: effects commit on rule *success* —
+including a **zero-length** success. A quantifier's zero-length guard discards a zero-length
+iteration structurally (anti-infinite-loop), but the discarded iteration's rule *succeeded*, so its
+`@emit_fact` persists. A zero-width marker emission (`en := "on"?`-style) is therefore a reliable
+idiom; to get no-effect-when-empty, make the emitting rule consume at least one byte. (Normative:
+the *Effects Timing* section of `PGEN_ANNOTATION_NORMATIVE_SPEC.md`.)
+
 ## Observability
 
 When a predicate query rejects a rule, the debug toolbox makes the *why* explicit — a scoped
