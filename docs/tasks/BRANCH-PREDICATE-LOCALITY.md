@@ -24,6 +24,76 @@ An INLINE `@predicate: { …, phase: branch }` placed at the start of ONE altern
   explicitly works AROUND flattening ("an inline `phase: branch` predicate is flattened rule-wide …
   the gate lives on a helper with `phase: post` so it stays BRANCH-LOCAL").
 
+## 1b. Leaf `.1` VERDICT (2026-07-06, session #48, tools-first — all three sub-items evidence-backed)
+
+**CONFIRMED — and BROADER than suspected: branches 1 AND 3 of `scoped_or_hierarchical_tf_identifier`
+are BOTH 100% dead today; only branch 2 (package_scope) can ever win. The flattening is a day-one
+implementation bug that CONTRADICTS its own introducing commit's documented semantics. No input is
+observed to REJECT outright (sibling lanes absorb everything), so the live damage is (i) dead
+branches, (ii) double predicate evaluation, (iii) three grammar workaround sites. A NEW finding:
+the naive fix would flip statement-position dotted-call AST shapes corpus-wide — `.2` must pair the
+engine fix with routing preservation (see §3b).**
+
+### (a) Reproducers + traces (probe = shipped `parseability_probe`, SV profile `sv_2017`)
+
+| Input (statement in `module top; initial begin … end endmodule`) | Verdict today | Winning lane today | `scoped_or_hierarchical_tf_identifier` trace |
+|---|---|---|---|
+| `foo.bar(1);` (anchored hierarchical) | ACCEPT | `method_call` (`kind:"method"`) | `✅ Leaving branch 3/3 … (success)` → `🛡️ 'lacks_fact_attribute_equals' REJECTED branch 3/3 … unresolved args […, RuleReference("scope.name.body"), …]` → `🚫 Branch 3/3 … rejected by branch predicate` |
+| `$root.foo.bar(1);` (rooted) | ACCEPT | `rooted_tf_call_sv_only` (`kind:"rooted_tf"` — the SV-0029 firewall lane) | same branch-3 kill at position 45 |
+| `C::m(1);` (class scope, `C` a declared class) | ACCEPT | `class_scoped_tf_call` (subroutine_call lane #1) | `✅ Leaving branch 1/3 … (success)` → `🛡️ … REJECTED branch 1/3 … unresolved args` (branch 1's `scope` = `class_scope = {body:…}` has NO `name` key) |
+| `p::f(1);` (package scope, `p` a declared package) | ACCEPT | `tf_call` via **branch 2** (`kind:"package_scope"`) | `🛡️ … PASSED branch 2/3` printed **TWICE back-to-back** — the flattening double-evaluation, live |
+
+So: the rule's `{kind:"class_scope"}` and `{kind:"hierarchical"}` shapes are UNPRODUCIBLE today;
+every structural success of branches 1/3 is predicate-killed by the broadcast `$scope.name.body`
+unresolvable-ref rule. Acceptance is preserved everywhere by sibling lanes.
+
+### (b) Blast-radius audit (grep `phase: branch` over ALL `grammars/*.ebnf` + scratch)
+
+Exactly **ONE live inline `phase: branch` user in the repository: SV:4605 itself.** Two comment
+sites document the flattening and work around it (SV:3452 `wildcard_escape_nettype_identifier`
+post-phase helper; SV:3582 same idiom), and a THIRD site (SV:5234-5243, `SV-0029`
+`SV-DOLLAR-LRM-FIDELITY.4`) both documents it ("that rule's branch-2 typedef-exclusion predicate is
+BROADCAST to every branch by the runtime … trace-proven") **and RELIES on it as a routing
+firewall**: `rooted_tf_call_sv_only := !( identifier ) hierarchical_tf_identifier …` exists
+precisely because branch 3 is dead, with the `!( identifier )` guard added "so every
+identifier-headed TF call keeps its existing route byte-identically".
+
+### (c) History adjudication (`git log -S`)
+
+- `9fc91261` (2026-03-20, "Add semantic branch predicate seam"): `branch_predicates_for_rule`
+  returned ONLY rule-level directives — the exact semantics the fix restores.
+- `43bbc43c` (2026-03-21, "Compile branch-local semantic annotations"): added the flat-map — while
+  its own CHANGES.md entry documents the intended semantics as *"generated branch selection now
+  evaluates: rule-wide branch predicates **plus branch-local predicates for the candidate branch
+  only**"*. The implementation contradicts the intent recorded in the same commit.
+- VERDICT: **flattening was never a deliberate decision — it is an implementation bug**, later
+  discovered and worked around three times in the SV grammar (3452 / 3582 / 5234), then pinned
+  differentially by `.6.2`'s `sem_branch_gate`. No decision record blesses it. The fix proceeds.
+
+### NEW finding (routing consequence — surfaced to director 2026-07-06)
+
+Reviving branches 1/3 does NOT merely "make hierarchical tf-names parseable through this rule" —
+under `priority_first` it would FLIP the winning lane for dotted calls that today fall through to
+later lanes:
+
+- **statement position** (`subroutine_call`, SV:5248-5255): `tf_call` is lane #3, `method_call`
+  lane #5 → EVERY `x.y(...)`-shaped statement call (`obj.m(1);` — ubiquitous in UVM) would flip
+  `{kind:"method"}` → `{kind:"tf", body:{…,kind:"hierarchical"}}`.
+- **chain-initial** (`chainable_call_initial`, SV:3151-3155): `tf_call_with_args` #3 precedes
+  `direct_callable_method_call` #4 → `a.b(1).c()` chain roots flip similarly.
+- **expression position** is safe: in `call_primary` (SV:3174-3185)
+  `split_direct_callable_method_call` (#5) wins before `tf_call_with_args` (#9).
+
+A corpus-wide statement-call shape migration has NO correctness gain (`obj.m(1);` is genuinely
+parse-time-ambiguous between method call and hierarchical tf call; both shapes are faithful) and
+would break the released SV contract downstream. Project precedent (SV-0029's firewall, release
+policy, shape-contract discipline) says PRESERVE routing. Therefore `.2` = the engine fix **+ an SV
+companion that keeps today's winners byte-identical** (mechanism decided by `.2` measurement-first:
+candidate = explicitly retiring the dead branches 1/3 at SV:4603-4607 so the revived engine has
+nothing to re-route, with cert/witness impact measured; naive lane reordering is NOT
+byte-identical — e.g. `p::f(1);` wins via branch 2 today and method-lane machinery also probes
+package receivers).
+
 ## 2. The suspected LIVE SV defect (VERIFY FIRST — leaf `.1`)
 
 `grammars/systemverilog.ebnf:4605` (`scoped_or_hierarchical_tf_identifier`, landed `.b.6.2.2`) puts an
@@ -75,24 +145,29 @@ semantics section states BRANCH-LOCAL as the contract.
 
 ## 5. Leaves
 
-- `.1` — **EVIDENCE: the SV:4605 reproducer + blast-radius audit — `not-started` (frontier).**
-  (a) Author a minimal SV input whose parse must route a hierarchical tf-name through
-  `scoped_or_hierarchical_tf_identifier`; run `parseability_probe --parse-dump-ast-pretty` +
-  `PGEN_TRACE_VERBOSITY=debug --trace-rules scoped_or_hierarchical_tf_identifier`; look for
-  `🛡️ … REJECTED branch 3/3 … unresolved args` (the silent block) — record ACCEPT/REJECT + which
-  branch wins TODAY. (b) Grep all `grammars/*.ebnf` for inline `phase: branch`; classify each user.
-  (c) `git log -S 'branch_predicates_for_rule'` — was flattening ever a deliberate decision (a
-  decision record trumps my bug reading; then the fix needs a director call). NO code.
-- `.2` — **FIX: registry-fn locality + SV:4605 verification + re-anchors — `not-started`.** Blocked on
-  `.1`. The one-function fix + regen + the §4 battery + the enforced acceptance checklist + SV
-  ledger/release handling + book/spec lockstep.
+- `.1` — **EVIDENCE: the SV:4605 reproducer + blast-radius audit — `done`**
+  (`PGEN-BRANCH-PREDICATE-LOCALITY-0001`, 2026-07-06 session #48; full evidence in §1b).
+  (a) Four reproducers traced — branch 3 AND branch 1 confirmed structurally-successful-then-
+  predicate-killed (`🚫 Branch 3/3 … rejected by branch predicate` / `🚫 Branch 1/3 …`); branch 2
+  double-evaluates; every reproducer still ACCEPTS via sibling lanes (method / rooted_tf /
+  class_scoped_tf). (b) Blast radius: ONE live inline `phase: branch` in all grammars = SV:4605;
+  three SV comment sites document/workaround the flattening (3452, 3582, 5234 — the last RELIES on
+  it as a routing firewall). (c) History: the flat-map contradicts its own introducing commit's
+  (`43bbc43c`) documented "candidate branch only" semantics — an implementation bug, never a
+  decision. PLUS the new routing-consequence finding (§1b): the fix must preserve statement/chain
+  lane winners. NO code (verified: docs-only commit).
+- `.2` — **FIX: registry-fn locality + SV routing preservation + re-anchors — `not-started`
+  (frontier).** The one-function engine fix, PLUS the §1b-mandated SV companion (measurement-first:
+  regen in a sandbox, diff shape-contract + external corpus winners, then retire/guard the dead
+  branches so today's routing stays byte-identical), + regen + the §4 battery + the enforced
+  acceptance checklist + SV ledger/release handling + book/spec lockstep.
 
 ## 6. Current Frontier
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | `.1` (SV:4605 reproducer + blast-radius audit) | `not-started` (**frontier**) | Tools-first; NO code. |
-| 2 | `.2` (registry-fn fix + verification) | `not-started` | Blocked on `.1`. Engine tier, full battery, SV release handling. |
+| 1 | `.1` (SV:4605 reproducer + blast-radius audit) | `done` (2026-07-06 #48) | CONFIRMED broader: branches 1+3 both dead; flattening = day-one bug; routing-flip risk found. |
+| 2 | `.2` (registry-fn fix + SV routing preservation + verification) | `not-started` (**frontier**) | Engine tier + SV companion, full battery, SV release handling. |
 
 ## 7. Relationships
 
