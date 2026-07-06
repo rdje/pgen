@@ -1332,9 +1332,24 @@ branch as "doesn't count."
 ## Where PGEN stands
 
 The linter (`--lint-grammar`) already proves: termination, profile-orphan freedom, exact-duplicate
-and fixed-terminal-prefix shadow freedom, and **structural reachability** ("no unreachable rules",
-multi-entry-aware) — all hard gates — plus **attribute non-circularity**, which holds by construction
-(the annotation language is synthesized-only).
+and fixed-terminal-prefix shadow freedom, **structural reachability** ("no unreachable rules",
+multi-entry-aware), and **no undefined references** — all hard gates — plus **attribute
+non-circularity**, which holds by construction (the annotation language is synthesized-only).
+
+The **undefined-reference** gate (`undefined_references=N (error)`, since
+`UNDEFINED-REF-DIAGNOSTICS.2`, 2026-07-06) is the *other half* of "no useless symbols": a rule that
+references a rule that is never **defined**. Before it, codegen silently synthesized a
+never-matching stub for such a reference — the grammar compiled clean and every parse rejected at
+`furthest_position=0` with nothing pointing at the cause (a real session-#47 incident: a suite
+grammar accidentally omitted its `word` rule). Now `--lint-grammar` names the exact referencing
+rule and missing name, and `--generate-parser` additionally prints an unconditional warning at the
+moment it emits a stub. Two deliberate design points: the check runs against the **unfiltered**
+grammar (codegen always compiles the *full* grammar — profile selection is a runtime guard — so
+`@profiles`-gated definitions deliberately stripped from a filtered lint view must not read as
+dangling), and the allowlist of intentionally-undefined names is **codegen's own native-builtin
+set** (`builtin_any_char`, `builtin_ascii_char`, `true`, `false`, `semantic_annotation`), consumed
+from the single `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` constant and locked to the dispatch by an
+oracle test — the linter can never drift from what codegen actually synthesizes.
 
 It *also* observes — but no longer as a *verdict* — an **earlier alternative that always succeeds**.
 In an ordered choice `a | b`, if `a` can never fail (it is `e?`, `e*`, an all-optional sequence, or a

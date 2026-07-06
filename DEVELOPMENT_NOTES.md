@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-06 - PGEN-UNDEFINED-REF-DIAGNOSTICS-0002 — UNDEFINED-REF-DIAGNOSTICS.2: the view a static check runs on IS part of its specification
+
+Session #50. One engineering note worth keeping:
+
+- **A sound detector on the wrong VIEW is an unsound diagnostic.** The undefined-reference detector
+  was correct from the first build — and still fired 7 false positives on regex.ebnf, because the
+  lint path hands detectors the PROFILE-FILTERED grammar while codegen compiles the FULL grammar
+  (the pcre2 generation default strips `@profiles:["relaxed"]` rule DEFINITIONS; their references
+  legitimately remain, guarded at runtime). The diagnostic's claim is "codegen will emit a stub" —
+  so its input must be codegen's input, not the filter's output. The fix reused the cert-coverage
+  keep-the-unfiltered-bundle pattern. Reusable rule: when adding a static check, state WHICH
+  pipeline view its claim is about and wire exactly that view — and sweep ALL shipped grammars
+  before trusting green, because the one grammar with profile-gated rules (regex) was also the
+  only one that could expose the mismatch. Bonus observation: the main.rs codegen comment had
+  documented this exact stripping hazard for years — the false positives were the linter
+  re-discovering it from the other side.
 ## 2026-07-06 - PGEN-FACT-NAME-MATCHING-0002 — FACT-NAME-MATCHING.2: the cheapest engine unification of the campaign — and why the tripwire mattered more than the fix
 
 Session #50. Two engineering notes worth keeping:

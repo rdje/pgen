@@ -948,15 +948,21 @@ fn main() -> Result<()> {
 
     // PARSE-SOTA.9.1 (adoption A2): opt-in grammar well-formedness LINT.
     if args.lint_grammar {
+        // UNDEFINED-REF-DIAGNOSTICS.2: keep the UNFILTERED bundle too — the undefined-reference
+        // check must see the view CODEGEN compiles (always the FULL grammar; profile selection is
+        // a runtime guard). The profile filter deliberately strips @profiles-gated rule
+        // DEFINITIONS from the filtered view (e.g. regex's pcre2 generation default strips the
+        // `relaxed` rules), which would make their intact references look dangling.
+        let unfiltered_grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
         let grammar = apply_grammar_profile_filter(
-            load_grammar_bundle(
-                &args.input_path,
-                &mut pipeline,
-                args.emit_raw_ast_json.as_deref(),
-            )?,
+            unfiltered_grammar.clone(),
             args.grammar_profile.as_deref(),
         )?;
-        return run_grammar_lint(&grammar);
+        return run_grammar_lint(&grammar, &unfiltered_grammar);
     }
 
     // STIMULI-SIGNOFF.2.3 (adoption D): opt-in k-path coverage report.
@@ -3173,11 +3179,11 @@ fn run_certificate_coverage_report(
     Ok(())
 }
 
-fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
+fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         detect_always_succeeds_alternatives, detect_left_recursion, detect_nonterminating_rules,
         detect_nullable_repetition, detect_ordered_choice_shadowing, detect_profile_orphans,
-        detect_unbound_fact_kinds, detect_unreachable_rules,
+        detect_unbound_fact_kinds, detect_undefined_references, detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -3193,6 +3199,17 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     // GRAMMAR-WELLFORMED.A1b: structural reachability — rules defined but unreachable from any
     // root (entry + unreferenced secondary entries). A dead rule is a well-formedness defect.
     let unreachable = detect_unreachable_rules(g, order);
+
+    // UNDEFINED-REF-DIAGNOSTICS.2 (F6): references to rules that are neither defined nor
+    // codegen-native builtins — codegen emits a never-matching stub for them, silently killing
+    // every referencing production. The structural dual of unreachable_rules; hard gate (all
+    // shipped grammars are clean at 0 — the session-#50 sweep). Runs on the UNFILTERED bundle:
+    // codegen always emits the FULL grammar (profile selection is a runtime guard), so the
+    // filtered view's deliberately-stripped @profiles rule definitions must not read as danglers.
+    let undefined_refs = detect_undefined_references(
+        &unfiltered_grammar.grammar_tree,
+        &unfiltered_grammar.rule_order,
+    );
 
     // GRAMMAR-WELLFORMED.F1: data-dependent binding-before-use — a @predicate consulting a
     // fact-kind that no @emit_fact establishes (the fact can never be bound). Hard gate (all
@@ -3242,7 +3259,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     };
 
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         lr.len(),
@@ -3250,6 +3267,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         shadow.len(),
         always_notes.len(),
         unreachable.len(),
+        undefined_refs.len(),
         unbound_facts.len(),
         nullrep.len(),
         orphans.len(),
@@ -3260,6 +3278,15 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     }
     if unreachable.len() > 40 {
         println!("  [error] ... and {} more unreachable rules", unreachable.len() - 40);
+    }
+    for issue in undefined_refs.iter().take(40) {
+        println!("  [error] {}", issue.message());
+    }
+    if undefined_refs.len() > 40 {
+        println!(
+            "  [error] ... and {} more undefined-reference findings",
+            undefined_refs.len() - 40
+        );
     }
     for issue in unbound_facts.iter().take(40) {
         println!("  [error] {}", issue.message());
@@ -3323,6 +3350,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         && orphans.is_empty()
         && shadow.is_empty()
         && unreachable.is_empty()
+        && undefined_refs.is_empty()
         && unbound_facts.is_empty()
     {
         Ok(())
@@ -3346,6 +3374,11 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         // "no useless symbols" — the reachable half). Hard failure.
         if !unreachable.is_empty() {
             problems.push(format!("{} unreachable rule(s)", unreachable.len()));
+        }
+        // UNDEFINED-REF-DIAGNOSTICS.2 (F6): a referenced-but-undefined rule compiles into a
+        // never-matching stub — every referencing production is dead. Hard failure.
+        if !undefined_refs.is_empty() {
+            problems.push(format!("{} undefined reference(s)", undefined_refs.len()));
         }
         // GRAMMAR-WELLFORMED.F1: a @predicate consulting a fact-kind nothing emits = binding-
         // before-use (the fact can never be established). Hard failure.

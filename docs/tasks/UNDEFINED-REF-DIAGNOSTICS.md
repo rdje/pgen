@@ -1,8 +1,11 @@
 # UNDEFINED-REF-DIAGNOSTICS — surface referenced-but-undefined rules at lint/codegen time (F6)
 
 - Tree ID: `UNDEFINED-REF-DIAGNOSTICS`
-- Status: `active` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
-  2026-07-06; this tree owns finding **F6**, the residual diagnosability half)
+- Status: `complete` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
+  2026-07-06; this tree owns finding **F6**, the residual diagnosability half. `.1` evidence + `.2`
+  fix both landed session #50 — **F6 CLOSED**: `--lint-grammar` hard-gates undefined references
+  (13/13 shipped grammars clean at 0) and codegen warns unconditionally at stub emission; the
+  interpreter-parity half landed earlier in `PGEN-PARSE-HARNESS-0015`)
 
 ## 1. The finding (tool-established, PARSE-HARNESS.6.2 session #47)
 
@@ -103,16 +106,63 @@ the diagnostic; TOOLBOX `--lint-grammar` entry updated.
   detector is a small standalone pass (references − defined − allowlist); no deeper
   GRAMMAR-WELLFORMED integration needed (cross-link on landing).
 
-- `.2` — **FIX: the linter diagnostic (+ codegen warning) — `not-started` (frontier).** Blocked on
-  `.1` → now UNBLOCKED. The §2 diagnostic at the `.1`-adjudicated severity + the §4 battery + the
-  enforced acceptance checklist + book/TOOLBOX lockstep.
+- `.2` — **FIX: the linter diagnostic (+ codegen warning) — `done` (2026-07-06, session #50,
+  `PGEN-UNDEFINED-REF-DIAGNOSTICS-0002`).** All four `.1`-adjudicated pieces landed:
+  - **`detect_undefined_references`** (`grammar_wellformedness.rs`) — the structural dual of
+    `detect_unreachable_rules`; reuses the linter's own `collect_node_rule_refs` walker;
+    deterministic (rule_order iteration, sorted refs); NEW `UndefinedReference` issue variant with
+    a self-explaining `[error]` message (never-matching stub + typo hint).
+  - **`NATIVE_UNRESOLVED_REFERENCE_BUILTINS`** — a pub associated const on `AstBasedGenerator`
+    adjacent to the dispatch, consumed by the linter; the
+    `native_unresolved_builtins_const_matches_dispatch` ORACLE test locks const ↔ dispatch in both
+    directions (every const name emits non-stub tokens; a non-const probe emits exactly the bare
+    stub; count pinned at 5).
+  - **`run_grammar_lint` wiring** — summary field `undefined_references=N (error)`, `[error]`
+    prints, HARD gate + problems entry. ⚠️ **`.2`-discovered design requirement (tools-first):**
+    the detector runs on the **UNFILTERED bundle** — the first sweep ran on the filtered view and
+    fired 7 FALSE positives on regex.ebnf (`unicode_escape` ×3, `…_relaxed` rules): the pcre2
+    generation-default profile filter deliberately STRIPS `@profiles:["relaxed"]` rule DEFINITIONS
+    while codegen always compiles the FULL grammar (profile selection = runtime guard, per the
+    long-standing main.rs comment). The lint call site now keeps the unfiltered bundle (the
+    cert-coverage pattern) and the detector sees exactly codegen's view → regex 0.
+  - **The codegen warning** — unconditional `pgen_warn!` in `generate_unresolved_reference_methods`
+    for every NON-native unresolved reference at the moment of stub emission.
+
+## Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — `.1` (commit `587e3e6c`): the missing-`word` reproducer lints
+  ALL-ZEROS exit 0 while `--generate-parser` silently emits the bare stub; the F6 origin incident
+  rejected everything at `furthest_position=0` with nothing naming the cause.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `.1`: NO existing detector covers the class
+  (`unreachable_rules=0` on the reproducer — an undefined ref is not a rule, reachability cannot
+  see it); codegen's `_ =>` fallback (`ast_based_generator.rs` dispatch) silently emits
+  `Err(Backtrack)` stubs; verified via `--lint-grammar` output + the emitted parser text.
+- [x] **FIX** — linter tier per the `.1` adjudication (a static wellformedness property; no engine
+  behavior change): the detector + const + oracle test + lint wiring + the codegen warning.
+- [x] **ADDRESSED (verified)** — before→after on the reproducer: `--lint-grammar` silence →
+  `undefined_references=1 (error)` + the exact `rule 'item' references UNDEFINED rule 'word'`
+  message + **exit 1**; `--generate-parser` now prints the unconditional
+  `[PGEN][WARN] … reference to UNDEFINED rule 'word'` at stub emission (verified live; silent on
+  regex codegen — 0 warning lines).
+- [x] **NO REGRESSION** — the fires/silent/builtin unit triple + wellformedness suite **43/43**;
+  codegen units **68/68** (incl. the new oracle lock); the all-shipped-grammars lint sweep: **13/13
+  grammars rc=0 with `undefined_references=0`** (ebnf/json/regex/return_annotation/rtl_const_expr/
+  rtl_frontend/semantic_annotation/systemverilog/systemverilog_preprocessor/vhdl/scratch/
+  builtin_return_annotation/builtin_semantic_annotation — regex byte-identically clean after the
+  unfiltered-view fix); `verilog_2005_conformance_gate` GREEN (the one gate that consumes
+  `--lint-grammar` — the lint lock + corpus matrix + profiled cert baseline deterministic across
+  seeds 0/7/42); clippy strict-source GREEN (generated stage = pre-existing `eq_op` debt only);
+  `mdbook_docs_gate` GREEN.
+- [x] **LOCKSTEP** — book `grammar-wellformedness.md` (*Where PGEN stands* gains the
+  undefined-reference gate paragraph with both design points); `TOOLBOX.md` §5.1 rewritten (full
+  error-class list + the `furthest_position=0` WHEN-signature); `GRAMMAR-WELLFORMED` tree
+  cross-link (Decisions); tree + TASK_TREE.md + live docs this commit.
 
 ## 6. Current Frontier
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | `.1` (gap check + severity/ownership + shipped-grammar sweep) | `done` (2026-07-06 #50, `PGEN-UNDEFINED-REF-DIAGNOSTICS-0001`) | Gap live-confirmed; `[error]` hard-gate adjudicated; sweep = 0 live defects; allowlist + SSoT shape decided. |
-| 2 | `.2` (linter diagnostic + tests + lockstep) | `not-started` (**frontier**) | Linter tier; `detect_undefined_references` + const + oracle test + codegen warning. |
+| 2 | `.2` (linter diagnostic + tests + lockstep) | `done` (2026-07-06 #50, `PGEN-UNDEFINED-REF-DIAGNOSTICS-0002`) | F6 CLOSED: the gate lands hard at 0 across all 13 grammars; unfiltered-view requirement discovered + fixed in-leaf. **TREE COMPLETE.** |
 
 ## 7. Relationships
 

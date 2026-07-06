@@ -86,6 +86,14 @@ pub enum WellformednessIssue {
     /// nothing references, i.e. a secondary entry such as a `*_multi_entry_root`). A dead rule;
     /// a well-formed grammar has none (Hopcroft–Ullman "no useless symbols" — the reachable half).
     UnreachableRule { rule: String },
+    /// ERROR (UNDEFINED-REF-DIAGNOSTICS.2, the F6 residual): `rule` REFERENCES `referenced`,
+    /// which is neither DEFINED in the grammar nor one of codegen's native builtins
+    /// (`NATIVE_UNRESOLVED_REFERENCE_BUILTINS`). Codegen silently synthesizes a never-matching
+    /// bare `Err(Backtrack)` stub for it — every path through the reference ALWAYS fails, making
+    /// each referencing production dead (strictly stronger than an unreachable rule, which merely
+    /// never runs). The structural DUAL of `UnreachableRule`: defined-but-unreferenced vs
+    /// referenced-but-undefined (Hopcroft–Ullman "no useless symbols" — the defined half).
+    UndefinedReference { rule: String, referenced: String },
     /// ERROR (GRAMMAR-WELLFORMED.F1, data-dependent binding-before-use — Jim/Mandelbaum/Walker,
     /// POPL 2010): `rule`'s `@predicate` consults a fact `kind` (via `primitive`, one of
     /// `has_fact`/`lacks_fact`/`fact_attribute_equals`/`fact_count_at_least`) that NO `@emit_fact`
@@ -139,6 +147,10 @@ impl WellformednessIssue {
             WellformednessIssue::UnreachableRule { rule } => format!(
                 "grammar well-formedness ERROR: rule '{}' is DEFINED but UNREACHABLE from any entry/root by transitive reference — a dead rule (a well-formed grammar has no useless symbols). Remove it, or reference it from a reachable rule, or make it a top-level entry.",
                 rule
+            ),
+            WellformednessIssue::UndefinedReference { rule, referenced } => format!(
+                "grammar well-formedness ERROR: rule '{}' references UNDEFINED rule '{}' — codegen emits a never-matching stub for it, so every path through the reference ALWAYS fails (the referencing production is dead). Define '{}', or fix the reference (likely a typo), or — if a native primitive was intended — use one of codegen's builtins.",
+                rule, referenced, referenced
             ),
             WellformednessIssue::UnboundFactKind { rule, kind, primitive } => format!(
                 "grammar well-formedness ERROR: rule '{}' consults fact-kind '{}' via {}(...), but NO @emit_fact in the grammar emits kind '{}' — the fact can never be established (binding-before-use, Jim et al. POPL 2010). The predicate is degenerate (has_fact always-false / lacks_fact always-true). Fix: emit '{}' somewhere with @emit_fact, or correct the consulted kind (likely a typo).",
@@ -297,6 +309,42 @@ pub fn detect_unreachable_rules(
         .filter(|r| grammar.contains_key(r.as_str()) && !reachable.contains(r.as_str()))
         .map(|r| WellformednessIssue::UnreachableRule { rule: r.clone() })
         .collect()
+}
+
+/// UNDEFINED-REF-DIAGNOSTICS.2 (the F6 residual): every reference to a rule that is neither
+/// DEFINED in the grammar nor one of codegen's native builtins
+/// (`AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS` — the single source of truth, so
+/// this detector can never drift from what codegen actually synthesizes). Codegen emits a
+/// never-matching bare `Err(Backtrack)` stub for such a reference, silently killing every
+/// referencing production — the structural DUAL of `detect_unreachable_rules`. Deterministic:
+/// iterates `rule_order`, references within a rule sorted; one issue per distinct
+/// `(rule, referenced)` pair.
+pub fn detect_undefined_references(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<WellformednessIssue> {
+    let native: &[&str] =
+        crate::ast_pipeline::ast_based_generator::AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS;
+    let mut issues = Vec::new();
+    for rule in rule_order {
+        let Some(body) = grammar.get(rule) else {
+            continue;
+        };
+        let mut refs = HashSet::new();
+        collect_node_rule_refs(body, &mut refs);
+        let mut undefined: Vec<&String> = refs
+            .iter()
+            .filter(|r| !grammar.contains_key(r.as_str()) && !native.contains(&r.as_str()))
+            .collect();
+        undefined.sort();
+        for referenced in undefined {
+            issues.push(WellformednessIssue::UndefinedReference {
+                rule: rule.clone(),
+                referenced: referenced.clone(),
+            });
+        }
+    }
+    issues
 }
 
 /// The set of rules REACHABLE from the roots (the canonical entry `rule_order[0]` PLUS every rule
@@ -2836,6 +2884,63 @@ mod tests {
                 "{keep} must NOT be flagged (reachable or a root): {issues:?}"
             );
         }
+    }
+
+    #[test]
+    fn detects_undefined_reference_fires_on_missing_rule() {
+        // UNDEFINED-REF-DIAGNOSTICS.2 (F6): `item` references `word`, which is never defined —
+        // codegen would emit the never-matching stub; the linter must flag it as an error.
+        let mut g = HashMap::new();
+        g.insert(
+            "program".into(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("item")),
+                quantifier: "+".into(),
+            },
+        );
+        g.insert(
+            "item".into(),
+            seq(vec![token("string", "("), rule_ref("word"), token("string", ")")]),
+        );
+        let order: Vec<String> = vec!["program".into(), "item".into()];
+        let issues = detect_undefined_references(&g, &order);
+        assert_eq!(issues.len(), 1, "exactly the one undefined ref: {issues:?}");
+        assert!(
+            issues.iter().any(|i| matches!(
+                i,
+                WellformednessIssue::UndefinedReference { rule, referenced }
+                    if rule == "item" && referenced == "word"
+            )),
+            "item -> word must be flagged: {issues:?}"
+        );
+    }
+
+    #[test]
+    fn detects_undefined_reference_silent_when_all_defined() {
+        let mut g = HashMap::new();
+        g.insert("program".into(), rule_ref("item"));
+        g.insert("item".into(), token("string", "x"));
+        let order: Vec<String> = vec!["program".into(), "item".into()];
+        let issues = detect_undefined_references(&g, &order);
+        assert!(issues.is_empty(), "no undefined refs → no issues: {issues:?}");
+    }
+
+    #[test]
+    fn detects_undefined_reference_silent_on_native_builtins() {
+        // Every codegen-native builtin is allowlisted straight from the codegen const — the
+        // single source of truth — so intentional native references (regex's builtin_any_char,
+        // the annotation grammars' semantic_annotation) never fire the diagnostic.
+        let natives = crate::ast_pipeline::ast_based_generator::AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS;
+        let mut elements: Vec<ASTNode> = natives.iter().map(|n| rule_ref(n)).collect();
+        elements.push(token("string", "x"));
+        let mut g = HashMap::new();
+        g.insert("program".into(), seq(elements));
+        let order: Vec<String> = vec!["program".into()];
+        let issues = detect_undefined_references(&g, &order);
+        assert!(
+            issues.is_empty(),
+            "native builtins must never be flagged: {issues:?}"
+        );
     }
 
     #[test]

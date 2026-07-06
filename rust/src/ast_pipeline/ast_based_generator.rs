@@ -821,6 +821,26 @@ impl AstBasedGenerator {
         }
     }
 
+    /// UNDEFINED-REF-DIAGNOSTICS.2: the SINGLE SOURCE OF TRUTH for which
+    /// referenced-but-undefined rule names codegen synthesizes a NATIVE
+    /// matcher for (instead of the never-matching bare `Err(Backtrack)`
+    /// stub). The linter's `detect_undefined_references`
+    /// (`grammar_wellformedness.rs`) consumes this const as its allowlist, so
+    /// the linter can never drift from what codegen actually synthesizes; the
+    /// `native_unresolved_builtins_const_matches_dispatch` oracle test locks
+    /// the const to the `generate_unresolved_reference_method` dispatch arms
+    /// in both directions. The `builtin_` prefix names are the deliberately
+    /// grammar-consumable primitives (director 2026-06-07); `true`/`false`
+    /// are the boolean-literal fallbacks; `semantic_annotation` is the native
+    /// `@…`-line matcher used by the annotation grammars.
+    pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] = &[
+        "builtin_any_char",
+        "builtin_ascii_char",
+        "false",
+        "semantic_annotation",
+        "true",
+    ];
+
     fn generate_unresolved_reference_methods(
         &self,
         grammar_tree: &HashMap<String, ASTNode>,
@@ -840,6 +860,25 @@ impl AstBasedGenerator {
             .collect();
         unresolved.sort();
         unresolved.dedup();
+
+        // UNDEFINED-REF-DIAGNOSTICS.2: belt-and-braces warning at the moment of
+        // stub emission — a NON-native unresolved reference compiles into a
+        // never-matching `Err(Backtrack)` stub, which silently kills every
+        // referencing path. The linter (`--lint-grammar`,
+        // `detect_undefined_references`) is the gating diagnostic; this warning
+        // covers the direct `--generate-parser` path. Unconditional per the
+        // severity doctrine (never gated by verbosity).
+        for rule in &unresolved {
+            if !Self::NATIVE_UNRESOLVED_REFERENCE_BUILTINS.contains(&rule.as_str()) {
+                crate::pgen_warn!(
+                    "grammar '{}': reference to UNDEFINED rule '{}' — codegen emits a \
+                     never-matching stub (every path through it always fails). Define the rule \
+                     or fix the reference (run --lint-grammar for the gating diagnostic).",
+                    self.grammar_name,
+                    rule
+                );
+            }
+        }
 
         unresolved
             .iter()
@@ -884,6 +923,12 @@ impl AstBasedGenerator {
     fn generate_unresolved_reference_method(&self, rule_name: &str) -> TokenStream {
         let method_name = format_ident!("parse_{}", rule_name);
 
+        // NOTE: the native arms below MUST stay in lockstep with
+        // `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (the single source of truth
+        // the linter consumes). The
+        // `native_unresolved_builtins_const_matches_dispatch` oracle test
+        // locks the two together: every const name must emit NON-stub tokens
+        // here, and any non-const name must emit exactly the bare stub.
         match rule_name {
             "true" => quote! {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -11113,6 +11158,46 @@ mod semantic_usage_tests {
             rendered.contains("\"true\""),
             "expected parse_true fallback to materialize boolean content, got: {}",
             rendered
+        );
+    }
+
+    #[test]
+    fn native_unresolved_builtins_const_matches_dispatch() {
+        // UNDEFINED-REF-DIAGNOSTICS.2 oracle lock: the const the linter
+        // consumes must equal the dispatch's native arms IN BOTH DIRECTIONS.
+        // (1) every const name emits NON-stub tokens (a native matcher);
+        // (2) a non-const name emits EXACTLY the bare Backtrack stub — so a
+        // new native arm added without updating the const, or a const entry
+        // without an arm, fails here.
+        let generator = AstBasedGenerator::new("usage_test".to_string());
+        let bare_stub_probe = generator
+            .generate_unresolved_reference_method("definitely_not_a_native_builtin_probe")
+            .to_string()
+            .replace("definitely_not_a_native_builtin_probe", "NAME");
+        assert!(
+            bare_stub_probe.contains("Backtrack"),
+            "the fallback arm must be the bare Backtrack stub, got: {}",
+            bare_stub_probe
+        );
+        for native in AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS {
+            let rendered = generator
+                .generate_unresolved_reference_method(native)
+                .to_string()
+                .replace(native, "NAME");
+            assert_ne!(
+                rendered, bare_stub_probe,
+                "'{}' is in NATIVE_UNRESOLVED_REFERENCE_BUILTINS but the dispatch emits the bare \
+                 stub for it — const and dispatch have drifted",
+                native
+            );
+        }
+        // Direction (2) is the probe assertion above: any name NOT in the
+        // const must take the `_ =>` arm. Guard the const against silent
+        // growth/shrink so a dispatch edit forces a conscious update here.
+        assert_eq!(
+            AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS.len(),
+            5,
+            "the native-builtin allowlist changed — update the linter docs/book and this count"
         );
     }
 

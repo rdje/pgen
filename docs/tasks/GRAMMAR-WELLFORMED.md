@@ -2294,6 +2294,16 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
   complete (exact reachability undecidable for data-dependent PEG), `UNKNOWN` drained to 0 on the shipped
   grammar. Logged in the top-level book ("Trusting the linter: certificates, not faith" + "The attribution
   rule" + "Worked example"). Director: "we can't afford to doubt the grammar linter."
+- `2026-07-06` (cross-link, session #50): the **undefined-reference** well-formedness gate — the
+  "no dangling references" half of contract item 4 — LANDED via the sibling tree
+  [`UNDEFINED-REF-DIAGNOSTICS`](UNDEFINED-REF-DIAGNOSTICS.md) (F6, `PGEN-UNDEFINED-REF-DIAGNOSTICS-0002`):
+  `detect_undefined_references` in `grammar_wellformedness.rs` (the structural DUAL of
+  `detect_unreachable_rules`), `[error]` hard-gated in `--lint-grammar`, allowlist = codegen's
+  `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` const (oracle-locked to the dispatch), run on the
+  UNFILTERED bundle (codegen compiles the full grammar), plus an unconditional codegen warning at
+  stub emission. This tree remains the charter owner of the wellformedness contract; that leaf's
+  detector composes with A1b's reachability exactly as Hopcroft–Ullman's two "no useless symbols"
+  halves.
 - `2026-06-05`: Created from the director brainstorm. The frame UNIFIES the linter (static proof) +
   the stimuli generator (constructive proof) of reachability. Cross-refs: `PARSE-SOTA` (existing
   lint checks A1/.9), `SV-EXH-PROOF.7` (the generator/literal-0 consumer), `PARSE-TERMINATION`

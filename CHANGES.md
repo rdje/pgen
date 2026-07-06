@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-UNDEFINED-REF-DIAGNOSTICS-0002 (UNDEFINED-REF-DIAGNOSTICS.2): F6 CLOSED — `--lint-grammar` hard-gates undefined references (13/13 shipped grammars clean at 0); codegen warns unconditionally at stub emission; the unfiltered-view requirement discovered and fixed in-leaf; TREE COMPLETE
+
+Session #50. **CODE leaf — linter tier (NO engine/parse behavior change):**
+`rust/src/ast_pipeline/grammar_wellformedness.rs` (`detect_undefined_references` — the structural
+dual of `detect_unreachable_rules`, reusing the linter's own `collect_node_rule_refs`; NEW
+`UndefinedReference` issue variant + message; the fires/silent/builtin unit triple),
+`rust/src/ast_pipeline/ast_based_generator.rs` (`NATIVE_UNRESOLVED_REFERENCE_BUILTINS` pub const —
+the single source of truth the linter consumes; the `native_unresolved_builtins_const_matches_dispatch`
+ORACLE test locking const ↔ dispatch both directions; the unconditional `pgen_warn!` at stub
+emission), `rust/src/main.rs` (`run_grammar_lint` wiring: summary field, `[error]` prints, hard
+gate + problems entry; the lint call site keeps the UNFILTERED bundle).
+
+- **The gate:** `rule X references UNDEFINED rule 'Y'` is now `[error]`, HARD-gating
+  `--lint-grammar` (exit nonzero) — the never-matching-stub class that used to compile silently
+  and reject everything at `furthest_position=0` (the F6 session-#47 incident).
+- **⚠️ In-leaf tools-first discovery:** the first sweep ran the detector on the FILTERED lint view
+  and fired **7 false positives on regex.ebnf** (`unicode_escape`×3 + the `relaxed` rules) — the
+  pcre2 generation-default profile filter deliberately STRIPS `@profiles:["relaxed"]` rule
+  DEFINITIONS while codegen always compiles the FULL grammar (profile selection is a runtime
+  guard). Fixed by the cert-coverage keep-unfiltered pattern: the detector sees exactly codegen's
+  view. All flagged rules verified defined in the full grammar before the fix was applied.
+- **VERIFIED:** reproducer before→after silence → `undefined_references=1 (error)` + exit 1 +
+  the exact item→word message; codegen warning fires on the reproducer, silent on regex (0 lines);
+  shipped sweep **13/13 grammars rc=0 at `undefined_references=0`**; wellformedness units 43/43;
+  codegen units 68/68; `verilog_2005_conformance_gate` GREEN (the one `--lint-grammar` consumer —
+  lint lock, 240/0 matrix, cert deterministic seeds 0/7/42); clippy strict-source GREEN;
+  `mdbook_docs_gate` GREEN.
+- **Lockstep:** book `grammar-wellformedness.md` *Where PGEN stands* (the undefined-reference gate
+  + both design points); `TOOLBOX.md` §5.1 (full error-class list + the `furthest_position=0`
+  WHEN-signature); `GRAMMAR-WELLFORMED` Decisions cross-link (charter owner).
+- **TREE COMPLETE — F6 CLOSED** (the interpreter-parity half landed earlier in
+  `PGEN-PARSE-HARNESS-0015`). Next per the SEM-FINDINGS cross-tree order: `SEM-FINDINGS.1`
+  (F5 effects-timing doc) then `SEM-FINDINGS.2` close-out.
 ## 2026-07-06 - PGEN-UNDEFINED-REF-DIAGNOSTICS-0001 (UNDEFINED-REF-DIAGNOSTICS.1): F6 gap live-CONFIRMED (linter all-zeros on a never-matching grammar); severity adjudicated [error] hard-gate; shipped sweep = 0 live defects; allowlist + SSoT shape decided
 
 Session #50. **EVIDENCE leaf — NO code.** The four `.1` parts, each tool-backed:
