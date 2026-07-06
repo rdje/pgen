@@ -57,22 +57,62 @@ the diagnostic; TOOLBOX `--lint-grammar` entry updated.
 
 ## 5. Leaves
 
-- `.1` — **EVIDENCE: the gap check + severity/ownership adjudication — `not-started` (frontier).**
-  (a) Run `--lint-grammar` on the missing-`word` reproducer — confirm silence (the gap). (b) Read the
-  linter's severity taxonomy + existing report classes (where does this diagnostic belong). (c) Sweep
-  ALL shipped grammars for undefined refs TODAY (any hit = a live latent defect, surfaced
-  immediately). (d) Enumerate the builtin allowlist from codegen's dispatch + decide the
-  single-source-of-truth exposure shape. NO code.
-- `.2` — **FIX: the linter diagnostic (+ optional codegen warning) — `not-started`.** Blocked on
-  `.1`. The §2 diagnostic + the §4 battery + the enforced acceptance checklist + book/TOOLBOX
-  lockstep.
+- `.1` — **EVIDENCE: the gap check + severity/ownership adjudication — `done` (2026-07-06,
+  session #50, `PGEN-UNDEFINED-REF-DIAGNOSTICS-0001`).** All four parts tool-backed:
+
+  **(a) Gap CONFIRMED live.** Reproducer (`program := item+` / `item := "(" word ")"` — `word`
+  undefined): `--lint-grammar` reports ALL ZEROS and exits 0 —
+  `grammar lint: 'undefref' (2 rules) — left_recursive=0 … non_terminating=0 (error),
+  ordered_choice_shadowing=0 (error), … unreachable_rules=0 (error), unbound_fact_kinds=0 (error),
+  nullable_repetition=0 (warning), profile_orphans=0 (error…)`. `--generate-parser` on the same
+  grammar succeeds silently and emits the bare `Err(Backtrack)` stub for `word` (verified in the
+  emitted parser text). Notably `unreachable_rules=0` — an undefined ref cannot trip reachability
+  (it is not a rule), so NO existing detector covers this class.
+
+  **(b) Severity taxonomy + placement (from `run_grammar_lint`, `main.rs:3176+`):** classes are
+  `[error]` (HARD-gate — the lint exits nonzero: non_terminating, profile_orphans,
+  ordered_choice_shadowing, unreachable_rules, unbound_fact_kinds), `[warn]` (non-gating:
+  nullable_repetition), `[note]` (never gates: always_succeeds), `[info]` (left-recursion).
+  ADJUDICATED: **`[error]`, hard-gating** — a referenced-but-undefined rule makes every
+  referencing path NEVER-match (strictly stronger than `unreachable_rules`, which is error), and
+  the (c) sweep proves all shipped grammars are clean at 0, so the hard gate binds immediately
+  (the F1/A1b precedent: authored grammars clean → lock at 0). The regex-family concern is nil by
+  construction (the allowlist is excluded). Placement: a NEW detector
+  `detect_undefined_references(g, order)` in `grammar_wellformedness.rs` — the structural DUAL of
+  `detect_unreachable_rules` (defined-but-unreferenced vs referenced-but-undefined).
+
+  **(c) Shipped-grammar sweep: ZERO live defects.** Oracle-style sweep of what codegen ACTUALLY
+  emitted — grep all 11 on-disk generated parsers for the bare-stub method shape
+  (`pub fn parse_X … { Err(ParseError::Backtrack { position: self.position }) }`), pattern
+  POSITIVE-CONTROLLED on the reproducer's emitted `word` stub: **bare_stubs=[] in all 11**
+  (json/regex/return_annotation/rtl_const_expr/rtl_frontend/scratch/semantic_annotation/
+  systemverilog/systemverilog_preprocessor/vhdl/ebnf). Natives legitimately in use:
+  regex → `builtin_any_char` + `builtin_ascii_char`; semantic_annotation + ebnf →
+  `semantic_annotation`.
+
+  **(d) Allowlist + SSoT exposure shape.** Codegen's dispatch
+  (`generate_unresolved_reference_method`, `ast_based_generator.rs:884–997`) natively synthesizes
+  EXACTLY `true`, `false`, `semantic_annotation`, `builtin_any_char`, `builtin_ascii_char`; the
+  `_ =>` fallback (`:990–996`) is the bare stub. DECIDED for `.2`: (i) a
+  `pub(crate) const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str]` adjacent to
+  the dispatch; (ii) an ORACLE-style unit test locking const ↔ dispatch (every const name's
+  emitted tokens ≠ the bare-stub tokens; a non-const probe name's tokens == the bare-stub tokens)
+  so the two can never drift; (iii) the linter detector consumes the const. ALSO ADJUDICATED:
+  yes to the belt-and-braces codegen warning at stub-emission time, unconditional per
+  [[feedback_severity_never_gated_by_verbosity]]. OWNERSHIP re-check: stays HERE — the new
+  detector is a small standalone pass (references − defined − allowlist); no deeper
+  GRAMMAR-WELLFORMED integration needed (cross-link on landing).
+
+- `.2` — **FIX: the linter diagnostic (+ codegen warning) — `not-started` (frontier).** Blocked on
+  `.1` → now UNBLOCKED. The §2 diagnostic at the `.1`-adjudicated severity + the §4 battery + the
+  enforced acceptance checklist + book/TOOLBOX lockstep.
 
 ## 6. Current Frontier
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | `.1` (gap check + severity/ownership + shipped-grammar sweep) | `not-started` (**frontier**) | Tools-first; NO code. |
-| 2 | `.2` (linter diagnostic + tests + lockstep) | `not-started` | Blocked on `.1`. Linter tier. |
+| 1 | `.1` (gap check + severity/ownership + shipped-grammar sweep) | `done` (2026-07-06 #50, `PGEN-UNDEFINED-REF-DIAGNOSTICS-0001`) | Gap live-confirmed; `[error]` hard-gate adjudicated; sweep = 0 live defects; allowlist + SSoT shape decided. |
+| 2 | `.2` (linter diagnostic + tests + lockstep) | `not-started` (**frontier**) | Linter tier; `detect_undefined_references` + const + oracle test + codegen warning. |
 
 ## 7. Relationships
 

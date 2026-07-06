@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-UNDEFINED-REF-DIAGNOSTICS-0001 (UNDEFINED-REF-DIAGNOSTICS.1): F6 gap live-CONFIRMED (linter all-zeros on a never-matching grammar); severity adjudicated [error] hard-gate; shipped sweep = 0 live defects; allowlist + SSoT shape decided
+
+Session #50. **EVIDENCE leaf — NO code.** The four `.1` parts, each tool-backed:
+
+- **(a) The gap, live:** the missing-`word` reproducer lints ALL ZEROS exit 0 (pasted summary line
+  in the leaf) and `--generate-parser` succeeds silently while emitting the bare `Err(Backtrack)`
+  stub (verified in the emitted text). `unreachable_rules=0` proves no existing detector covers
+  the class — an undefined ref is not a rule, so reachability cannot see it.
+- **(b) Placement + severity:** the lint taxonomy is [error] (hard-gates: non_terminating,
+  profile_orphans, shadowing, unreachable, unbound_fact_kinds) / [warn] / [note] / [info].
+  ADJUDICATED: a NEW `detect_undefined_references` in `grammar_wellformedness.rs` (the structural
+  DUAL of `detect_unreachable_rules`), reported `[error]` and HARD-gating — a referenced-undefined
+  rule makes every referencing path never-match, strictly stronger than unreachable; the sweep
+  (c) shows all shipped grammars clean, so the gate binds at 0 immediately (F1/A1b precedent).
+- **(c) Shipped sweep — 0 live defects:** oracle-style grep of the bare-stub method shape in what
+  codegen ACTUALLY emitted across all 11 generated parsers, positive-controlled on the
+  reproducer's `word` stub. Natives legitimately in use: regex → builtin_any_char +
+  builtin_ascii_char; semantic_annotation + ebnf → semantic_annotation.
+- **(d) Allowlist + exposure:** codegen dispatch (`generate_unresolved_reference_method`,
+  `ast_based_generator.rs:884–997`) = {true, false, semantic_annotation, builtin_any_char,
+  builtin_ascii_char}; fallback `_ =>` bare stub (:990–996). `.2` shape: a pub(crate) const
+  adjacent to the dispatch + an oracle unit test locking const ↔ dispatch (native tokens ≠ stub
+  tokens; non-native probe == stub tokens) + the linter consuming the const; PLUS the
+  belt-and-braces unconditional codegen warning at stub emission (severity never verbosity-gated).
+  Ownership stays in this tree (small standalone pass); GRAMMAR-WELLFORMED cross-link on landing.
+- Frontier: `UNDEFINED-REF-DIAGNOSTICS.2` UNBLOCKED. No code, LIVE tracker unchanged.
 ## 2026-07-06 - PGEN-FACT-NAME-MATCHING-0002 (FACT-NAME-MATCHING.2): F2 CLOSED — fact/scope NAME matching unified to TEXTUAL equality; quoted and unquoted name args now equivalent; suite 24/24; TREE COMPLETE
 
 Session #50. **CODE leaf — engine (shared runtime ONLY) + suite case, NO codegen-template change,
