@@ -47,43 +47,49 @@
   SAME commit + the suite re-run.
 - **One clean slice per leaf**; book/spec lockstep same-commit (director D5 discipline).
 
-## 3. Leaves
+## 3. Structure — one spawned tree per code-fix finding (director: "Create task-tree for each")
 
-- `.1` — **ADJUDICATION EVIDENCE PASS — `not-started` (the next session's first job).** Run the five
-  pending tool checks in the §1 table (F3's SV:4605 reproducer FIRST — a suspected live SV defect;
-  then F2's `semantic_values_match` asymmetry read; F4's sigil-strip locus + repo-wide positional-ref
-  grep; F6's `--lint-grammar` silence check; F5's normative-spec wording check). Output: each
-  preliminary adjudication CONFIRMED or corrected, recorded here; spawn/scope `.2`–`.7` accordingly.
-  NO code.
-- `.2` — **F3: branch-predicate locality (+ the SV:4605 consequence) — `not-started`.** The registry-fn
-  fix + `sem_branch_gate` re-anchor + SV verification (reproducer REJECT→PASS if the defect is
-  confirmed) + SV ledger/release handling. Highest priority of the fixes (live-parser impact).
-- `.3` — **F1: memo × store soundness — `not-started`.** The taint-gated memo participation fix
-  (codegen template + the interpreter's mirrored `memoized_call`, same commit) + the success-side
-  staleness probe/adjudication + `sem_memo_wrapper` re-anchor (stale-REJECT pin flips to sound-ACCEPT)
-  + `PGEN_REPORT_MEMO_STATS` perf before/after on SV.
-- `.4` — **F4: positional-`$N` payload refs — `not-started`.** The compiler sigil-preservation fix +
-  the `sem_ref_positional_unresolvable` → working-case re-anchor + normative-spec/book note.
-- `.5` — **F2: fact-name matching — `not-started`.** Engine unification OR validator V-rule (decided by
-  `.1`); suite case for whichever lands.
-- `.6` — **F5: zero-length effects-timing — `not-started`.** Normative-spec (+ book) documentation
-  slice. Doc-only.
-- `.7` — **F6: undefined-reference diagnosability — `not-started`.** The linter/codegen diagnostic
-  (with the builtin allowlist), OR hand-off to `GRAMMAR-WELLFORMED` per `.1`'s ownership call.
+The five findings needing real work each own a dedicated tree (created 2026-07-06, session #47,
+same commit as this restructure); each tree carries its OWN tools-first evidence leaf (`.1`, NO code)
+gating its fix leaf (`.2`), so the §1 pending tool checks live with their fixes. F5 (doc-only) stays
+a leaf here — a whole tree for one documentation slice would be ceremony without ownership value.
 
-## 4. Current Frontier
+| Finding | Spawned tree | Frontier there | Priority order |
+|---|---|---|---|
+| F3 inline branch-predicate flattening (+ SV:4605) | [`BRANCH-PREDICATE-LOCALITY`](BRANCH-PREDICATE-LOCALITY.md) | `.1` SV:4605 reproducer + blast-radius audit | **1 — suspected LIVE SV defect** |
+| F1 store-blind memo failure cache | [`MEMO-STORE-SOUNDNESS`](MEMO-STORE-SOUNDNESS.md) | `.1` success-side probe + taint design + perf baseline | 2 — soundness |
+| F4 `$`-stripped positional payload refs | [`POSITIONAL-PAYLOAD-REFS`](POSITIONAL-PAYLOAD-REFS.md) | `.1` strip locus + zero-usage audit | 3 |
+| F2 quoted-arg fact-name mismatch | [`FACT-NAME-MATCHING`](FACT-NAME-MATCHING.md) | `.1` consistency read → tier decision | 4 |
+| F6 undefined-reference diagnosability | [`UNDEFINED-REF-DIAGNOSTICS`](UNDEFINED-REF-DIAGNOSTICS.md) | `.1` gap check + shipped-grammar sweep | 5 |
 
-| # | Leaf | Status | Notes |
+## 4. Leaves (of THIS dispatch tree)
+
+- `.0` — **directive capture + tree spawning — `done`** (`PGEN-SEM-FINDINGS-0001` + the restructure
+  commit): the §1 adjudication table, the working rules, and the five spawned per-finding trees.
+- `.1` — **F5: zero-length effects-timing documentation — `not-started`.** The one doc-only finding:
+  add the effects-timing rule ("effects commit on rule success, INCLUDING zero-length success; the
+  quantifier guard's structural discard does not roll them back") to
+  `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` (+ the semantic_annotation book if it discusses
+  effect timing; the top-level book's grammar-author facts already state it). Pinned by
+  `sem_zero_len_emit`. Doc-only slice; check the spec's current wording first (silent vs
+  contradicting).
+- `.2` — **CLOSE-OUT — `not-started`.** When all five spawned trees complete: verify
+  `parse_harness_semantic_gate` pins the post-fix semantics N/N, every finding is either fixed or
+  normatively documented (tree acceptance §5), and mark this tree complete.
+
+## 5. Current Frontier
+
+| # | Item | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | `SEM-FINDINGS.1` (adjudication evidence pass) | `not-started` (**frontier**) | Tools-first confirmation of all six adjudications; F3's SV:4605 reproducer first. NO code. |
-| 2 | `SEM-FINDINGS.2` (F3 branch-predicate locality) | `not-started` | Blocked on `.1`. Suspected live SV defect — highest fix priority. |
-| 3 | `SEM-FINDINGS.3` (F1 memo × store soundness) | `not-started` | Blocked on `.1`. |
-| 4 | `SEM-FINDINGS.4` (F4 positional payload refs) | `not-started` | Blocked on `.1`. |
-| 5 | `SEM-FINDINGS.5` (F2 fact-name matching) | `not-started` | Blocked on `.1` (engine-vs-linter tier decision). |
-| 6 | `SEM-FINDINGS.6` (F5 effects-timing doc) | `not-started` | Doc-only. |
-| 7 | `SEM-FINDINGS.7` (F6 undefined-ref diagnosability) | `not-started` | Blocked on `.1` (ownership call vs `GRAMMAR-WELLFORMED`). |
+| 1 | `BRANCH-PREDICATE-LOCALITY.1` | `not-started` (**cross-tree PNT order: FIRST**) | Suspected live SV defect — the SV:4605 reproducer. |
+| 2 | `MEMO-STORE-SOUNDNESS.1` | `not-started` | Soundness; perf baseline included. |
+| 3 | `POSITIONAL-PAYLOAD-REFS.1` | `not-started` | Narrowest engine cut. |
+| 4 | `FACT-NAME-MATCHING.1` | `not-started` | Tier decision by evidence. |
+| 5 | `UNDEFINED-REF-DIAGNOSTICS.1` | `not-started` | Includes a shipped-grammar undefined-ref sweep. |
+| 6 | `SEM-FINDINGS.1` (F5 doc slice) | `not-started` | Doc-only; any session can pick it up. |
+| 7 | `SEM-FINDINGS.2` (close-out) | `not-started` | Blocked on all five trees. |
 
-## 5. Acceptance criteria (tree-level)
+## 6. Acceptance criteria (tree-level)
 
 1. Every finding carries a tool-CONFIRMED adjudication (not the preliminary leaning) recorded in §1.
 2. Every needs-fix finding is fixed at the stated tier with the enforced acceptance checklist, the full
@@ -95,7 +101,7 @@
 5. SV impact (F3) handled per release policy: ledger entry, release bump, conformance re-lock if behavior
    changed.
 
-## 6. Relationships
+## 7. Relationships
 
 - Consumes: `PARSE-HARNESS.6.2` (`PGEN-PARSE-HARNESS-0015`) — the findings, the pinning suite, and the
   interpreter mirror that makes engine changes verifiable differentially.
