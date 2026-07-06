@@ -1,7 +1,9 @@
 # SEM-FINDINGS — adjudicate + elegantly address the six PARSE-HARNESS.6.2 tool-established findings
 
 - Tree ID: `SEM-FINDINGS`
-- Status: `active` (created 2026-07-06, session #47, `PGEN-SEM-FINDINGS-0001` — directive capture + adjudication plan; created moments before a directed `/clear`, so this file IS the handoff)
+- Status: `complete` (created 2026-07-06, session #47, `PGEN-SEM-FINDINGS-0001`; **CLOSED 2026-07-06,
+  session #50, `PGEN-SEM-FINDINGS-0003`** — all six findings fixed or normatively documented; the
+  final adjudications are in the close-out block below)
 - Director directive (2026-07-06, verbatim intent): *"You need to address the following tool-established
   findings of yours … You need to find way to elegantly address them if they need to be. Create
   task-tree for each if need be."* — i.e. (1) adjudicate each of the six `.6.2` findings (defect to fix
@@ -15,7 +17,27 @@
 
 ---
 
-## 1. The six findings + session-#47 preliminary adjudication (to be VERIFIED tools-first in `.1`)
+## 0. CLOSE-OUT — final adjudications (2026-07-06, session #50, `.2`)
+
+Every session-#47 preliminary adjudication was verified tools-first in its owning tree's `.1` and
+resolved; the final outcomes:
+
+| # | Final adjudication | Landed via | Suite pin now |
+|---|---|---|---|
+| F1 | FIXED (engine, both memo sides) — taint-gated memo with WRITE-EPOCH VALIDATION (the tree's exclusion design was implemented, measured 117× slower on SV, and replaced in-leaf) | `MEMO-STORE-SOUNDNESS` `.1`+`.2` (#49); optional perf leaf `.3` parked | `sem_memo_wrapper` + `sem_memo_success_verdict`/`_ast` (sound behavior) |
+| F2 | FIXED (engine, shared runtime) — tier (a) confirmed: names strict by ACCIDENT vs attributes textual BY DESIGN → `FactNameKey` textual index + `current_scope_is`; quoted/unquoted args now equivalent | `FACT-NAME-MATCHING` `.1`+`.2` (#50) | `sem_quoted_name_args` (both unified sites) |
+| F3 | FIXED (engine, one registry fn) — branch predicates branch-LOCAL; broader than suspected (branches 1 AND 3 dead); SV routing preserved byte-identically (hierarchical branch retired + 2 derived `@profiles` gates); NO release bump | `BRANCH-PREDICATE-LOCALITY` `.1`+`.2` (#48) | `sem_branch_gate` (branch-local) |
+| F4 | FIXED (engine, one capture fn) — sigil preserved iff digit-headed; positional `$N`/`$N.name`/`$N[0][M]` resolve; 2 new normative walk facts (Alternative-wrap self-match; `[0]` unwrap) | `POSITIONAL-PAYLOAD-REFS` `.1`+`.2` (#50) | `sem_ref_positional` + `sem_ref_positional_deep_unresolvable` |
+| F5 | DOCUMENTED NORMATIVELY (no code, as adjudicated) — spec *Effects Timing (Normative)* + both store chapters (effects commit on zero-length success; structural discard ≠ transaction) | `SEM-FINDINGS.1` (#50) | `sem_zero_len_emit` (unchanged) |
+| F6 | FIXED (linter tier) — `--lint-grammar` hard-gates undefined references (unfiltered view; codegen-const allowlist, oracle-locked) + unconditional codegen stub-warning; parity half had landed in `.6.2` | `UNDEFINED-REF-DIAGNOSTICS` `.1`+`.2` (#50) | (linter-level; reproducer in the tree) |
+
+Tree-level acceptance (§6) verified at close-out: adjudications tool-confirmed (each tree's `.1`);
+fixes carry the enforced checklist + full battery (each tree's `.2`); F5 normative;
+`parse_harness_semantic_gate` FRESH close-out run pins the post-fix semantics **24/24 CLEAN**
+(2/2 tests, both implementations); SV release policy: every finding adjudicated NO-bump with the
+locked surfaces byte-identical (verified per-tree) — SV stays `1.0.167`/schema `16`.
+
+## 1. The six findings + session-#47 preliminary adjudication (superseded by §0; kept for provenance)
 
 > ⚠️ The "leaning" column is preliminary reasoning from the `.6.2` evidence. Leaf `.1` must confirm each
 > with the named tool check BEFORE any fix tree is spawned (no code change without tool-backed facts).
@@ -80,9 +102,10 @@ a leaf here — a whole tree for one documentation slice would be ceremony witho
   structural" note + the semantic_annotation book's disambiguating paragraph (discarded iteration
   = COMMITTED success). All reference the `sem_zero_len_emit` differential pin. Both book gates +
   `mdbook_docs_gate` GREEN.
-- `.2` — **CLOSE-OUT — `not-started`.** When all five spawned trees complete: verify
-  `parse_harness_semantic_gate` pins the post-fix semantics N/N, every finding is either fixed or
-  normatively documented (tree acceptance §5), and mark this tree complete.
+- `.2` — **CLOSE-OUT — `done` (2026-07-06, session #50, `PGEN-SEM-FINDINGS-0003`).** All five
+  spawned trees complete + the F5 doc leaf landed; the §0 close-out block records the final
+  adjudications; the fresh `parse_harness_semantic_gate` run pins the post-fix semantics
+  **24/24 CLEAN**; tree marked `complete`.
 
 ## 5. Current Frontier
 
@@ -94,7 +117,7 @@ a leaf here — a whole tree for one documentation slice would be ceremony witho
 | 4 | `FACT-NAME-MATCHING` (F2) | **tree `complete`** (#50, `.1`+`.2`) | Names unified to textual equality; suite 24 cases. |
 | 5 | `UNDEFINED-REF-DIAGNOSTICS` (F6) | **tree `complete`** (#50, `.1`+`.2`) | `--lint-grammar` hard-gates undefined refs; 13/13 grammars clean. |
 | 6 | `SEM-FINDINGS.1` (F5 doc slice) | `done` (2026-07-06 #50, `PGEN-SEM-FINDINGS-0002`) | Spec *Effects Timing (Normative)* + both store chapters; ambiguous book wording disambiguated. |
-| 7 | `SEM-FINDINGS.2` (close-out) | `not-started` | Blocked on all five trees. |
+| 7 | `SEM-FINDINGS.2` (close-out) | `done` (2026-07-06 #50, `PGEN-SEM-FINDINGS-0003`) | §0 final-adjudication block; gate 24/24 fresh; **TREE COMPLETE**. |
 
 ## 6. Acceptance criteria (tree-level)
 

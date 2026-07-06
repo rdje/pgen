@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-07-06 - PGEN-SEM-FINDINGS-0003 (SEM-FINDINGS.2): the SEM-FINDINGS dispatch tree is CLOSED — all six PARSE-HARNESS.6.2 findings FIXED or normatively DOCUMENTED; fresh gate 24/24
+
+Session #50. **Close-out (docs-only).** The director's 2026-07-06 directive ("adjudicate each of
+the six findings, fix elegantly where needed, tree per finding") is fully discharged:
+
+- F3 branch-predicate locality — FIXED engine tier (#48, `BRANCH-PREDICATE-LOCALITY`).
+- F1 memo × store soundness — FIXED engine tier, epoch-validated taint gate (#49,
+  `MEMO-STORE-SOUNDNESS`; optional perf headroom `.3` parked).
+- F4 positional payload refs — FIXED engine tier, sigil preservation (#50,
+  `POSITIONAL-PAYLOAD-REFS`).
+- F2 quoted-name matching — FIXED engine tier, textual name equality (#50, `FACT-NAME-MATCHING`).
+- F6 undefined-ref diagnosability — FIXED linter tier, hard gate + codegen warning (#50,
+  `UNDEFINED-REF-DIAGNOSTICS`).
+- F5 zero-length effects timing — DOCUMENTED NORMATIVELY, no code as adjudicated (#50,
+  `SEM-FINDINGS.1`).
+
+Tree acceptance verified: each fix carries the enforced checklist + full battery in its tree; a
+FRESH `parse_harness_semantic_gate` run pins the post-fix semantics **24/24 CLEAN** (2/2 tests,
+both implementations byte-identical); SV release policy — every finding NO-bump (locked surfaces
+byte-identical, verified per-tree; SV stays `1.0.167`/schema `16`). The tree's new §0 records the
+final adjudication per finding (the §1 table is kept as provenance). LIVE tracker unchanged.
 ## 2026-07-06 - PGEN-SEM-FINDINGS-0002 (SEM-FINDINGS.1): F5 effects-timing semantics are now NORMATIVE — effects commit on rule success INCLUDING zero-length success; the quantifier guard's structural discard is not a transaction boundary
 
 Session #50. **DOC-only leaf (the one no-code-fix finding).** Wording check first, per the leaf
