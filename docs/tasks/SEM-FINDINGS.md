@@ -81,8 +81,7 @@ a leaf here — a whole tree for one documentation slice would be ceremony witho
 
 | # | Item | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | `BRANCH-PREDICATE-LOCALITY.1` | `done` (2026-07-06 #48) | **F3 CONFIRMED, broader than suspected**: branches 1 AND 3 of `scoped_or_hierarchical_tf_identifier` both predicate-dead (trace-proven); flattening contradicts its own introducing commit (`43bbc43c`) — a day-one bug, never a decision; blast radius = SV:4605 only; NEW routing-flip finding → `.2` = engine fix + SV routing preservation. |
-| 1b | `BRANCH-PREDICATE-LOCALITY.2` | `not-started` (**cross-tree PNT order: FIRST**) | The registry-fn fix + SV companion (measurement-first shape preservation). |
+| 1 | `BRANCH-PREDICATE-LOCALITY` (F3) | **tree `complete`** (2026-07-06 #48) | `.1` CONFIRMED broader than suspected (branches 1 AND 3 predicate-dead; day-one bug contradicting `43bbc43c`); `.2` fixed it at the engine tier (registry fn rule-level-only), re-anchored `sem_branch_gate` deliberately (flattening pin → branch-local pin), and preserved SV routing byte-identically (hierarchical branch retired + 2 linter-derived `@profiles` gates; v2005 cert honestly improved `1117/327/773/17`→`1115/328/773/14`; NO release bump — behavior byte-invariant on every profile). |
 | 2 | `MEMO-STORE-SOUNDNESS.1` | `not-started` | Soundness; perf baseline included. |
 | 3 | `POSITIONAL-PAYLOAD-REFS.1` | `not-started` | Narrowest engine cut. |
 | 4 | `FACT-NAME-MATCHING.1` | `not-started` | Tier decision by evidence. |

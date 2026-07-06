@@ -557,7 +557,11 @@ Normative runtime leverage behavior for semantic annotations:
     - semantic runtime scaffold baseline:
       - `@open_scope`, `@close_scope`, and `@emit_fact` compile into effect directives over scoped semantic runtime state,
       - `@predicate` compiles into typed predicate directives with explicit phase/view defaults and object/scalar payload support,
-      - compiled rule views remain split across pre predicates, post predicates, branch predicates, and effect directives.
+      - compiled rule views remain split across pre predicates, post predicates, branch predicates, and effect directives,
+      - branch-phase predicate scope is normative (`BRANCH-PREDICATE-LOCALITY.2`, 2026-07-06):
+        - a `phase: branch` predicate written at RULE level gates every alternative of the rule's ordered choice,
+        - an INLINE `phase: branch` predicate written at the start of one alternative is branch-LOCAL — it gates only that alternative and is evaluated exactly once per candidate attempt,
+        - this matches the semantic-annotation parser book's published contract; the pre-fix rule-wide flattening of inline branch predicates was an engine defect, pinned and re-anchored by the `parse_harness_semantic_gate` `sem_branch_gate` case.
     - Tier-4 gate contract:
       - dedicated shared semantic contract slice:
         - `rust/test_data/semantic_annotation/sc13_contract.json`

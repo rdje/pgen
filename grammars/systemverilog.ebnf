@@ -3449,7 +3449,7 @@ net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? (
                          # SV-PARSE-STRICT.2: a user net-type identifier must be a KNOWN declared type/nettype (sound store-gate via `checked_nettype_identifier`).
                          | checked_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
-                         # SV-PARSE-STRICT.2: unresolved-wildcard-import escape — accept an otherwise-undeclared net-type id ONLY when a `pkg::*` is in scope (cannot prove undeclared; defer to elaboration). The gate lives on the `wildcard_escape_nettype_identifier` helper (a `phase: post` predicate, so it stays BRANCH-LOCAL — an inline `phase: branch` predicate is flattened rule-wide by `branch_predicates_for_rule` and would wrongly gate the `wire a;` branch).
+                         # SV-PARSE-STRICT.2: unresolved-wildcard-import escape — accept an otherwise-undeclared net-type id ONLY when a `pkg::*` is in scope (cannot prove undeclared; defer to elaboration). The gate lives on the `wildcard_escape_nettype_identifier` helper (a `phase: post` predicate — historically required because inline `phase: branch` predicates were flattened rule-wide; branch-LOCAL since BRANCH-PREDICATE-LOCALITY.2, the helper idiom kept as-is, shape-stable).
                          | wildcard_escape_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
                          | interconnect_net_declaration_sv_only
@@ -3578,10 +3578,12 @@ declared_nettype_identifier := declaration_identifier -> { body: $1.body }
 # SV-PARSE-STRICT.2: the unresolved-wildcard-import ESCAPE used by the
 # `net_declaration` alias branch — accepts a (possibly undeclared) net-type
 # identifier ONLY when an `import pkg::*;` is in scope (`fact_count_at_least
-# (wildcard_import_open, 1)`). The gate is `phase: post` (NOT inline `phase:
-# branch`) so it stays BRANCH-LOCAL: an inline `phase: branch` predicate is
-# flattened rule-wide by `branch_predicates_for_rule` and would wrongly gate the
-# sibling `wire a;` branch. Profile-agnostic.
+# (wildcard_import_open, 1)`). The gate is `phase: post` on this helper rule —
+# historically REQUIRED because an inline `phase: branch` predicate was flattened
+# rule-wide by `branch_predicates_for_rule` and would have wrongly gated the
+# sibling `wire a;` branch; since BRANCH-PREDICATE-LOCALITY.2 (2026-07-06) inline
+# branch predicates are branch-LOCAL and the two idioms are equivalent — the
+# helper-rule form is kept as-is (shape-stable). Profile-agnostic.
 @predicate: { name: fact_count_at_least, args: [wildcard_import_open, 1], phase: post }
 wildcard_escape_nettype_identifier := declaration_identifier -> { body: $1.body }
 
@@ -4599,12 +4601,33 @@ ps_or_hierarchical_sequence_identifier := scoped_sequence_identifier        -> {
                                        | known_unscoped_sequence_identifier -> {body: $1}
                                        | hierarchical_sequence_identifier   -> {body: $1}
 
+# BRANCH-PREDICATE-LOCALITY.2 (2026-07-06): the former third alternative
+# (`hierarchical_tf_identifier -> {kind: "hierarchical", body: $1}`) is RETIRED
+# deliberately. It had been dead since .b.6.2.2 landed: the branch-2 inline
+# predicate was broadcast rule-wide by the engine's flattening bug and its
+# `$scope.name.body` ref is unresolvable on a hierarchical result, so the branch
+# was always predicate-killed (trace-proven; ledger/tree BRANCH-PREDICATE-LOCALITY §1b).
+# With the engine fixed to the published branch-LOCAL contract, reviving the branch
+# would have flipped statement-position and chain-initial dotted calls corpus-wide
+# from the method-call carriers to `{kind:"tf"}` (measured on the reproducers) with
+# zero correctness gain — identifier-headed hierarchical tf calls are carried by the
+# method machinery, `$root.`-headed ones by `rooted_tf_call_sv_only` (the SV-0029
+# lane), and this rule's contract is the SCOPED tf-name surface. Consequence, stated
+# honestly: `hierarchical_tf_identifier`'s anchored (identifier-headed) alternative
+# is now structurally unreachable — its only remaining consumer is
+# `rooted_tf_call_sv_only`, whose `!( identifier )` firewall admits only `$root.`
+# heads; it stays as documented LRM-faithful capacity for a future consumer.
+# The @profiles tag is the linter's own derived minimal fix: with the hierarchical
+# branch retired, both remaining branches reference class_scope/package_scope,
+# which are absent under verilog_2005 (IEEE 1364-2005 has no classes/packages) —
+# the rule was already runtime-dead there (branches 1-2 structurally unmatchable,
+# branch 3 predicate-killed), so gating it is behavior-preserving (matrix-proven).
+@profiles: ["sv_2017", "sv_2023"]
 @branch_policy: priority_first
 scoped_or_hierarchical_tf_identifier := class_scope tf_identifier                  -> {kind: "class_scope", scope: $1, name: $2}
-                                      # .b.6.2.2: same $-ref defect as non_typedef_package_scope — drill via the branch's `scope: $1` (= package_scope = {kind, name: <package_identifier> = {body: scalar}}).
+                                      # .b.6.2.2: same $-ref defect as non_typedef_package_scope — drill via the branch's `scope: $1` (= package_scope = {kind, name: <package_identifier> = {body: scalar}}). Branch-LOCAL since BRANCH-PREDICATE-LOCALITY.2 (single evaluation, this branch only).
                                       | @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.name.body, declaration_family, typedef], phase: branch, view: shaped }
                                         package_scope tf_identifier                -> {kind: "package_scope", scope: $1, name: $2}
-                                      | hierarchical_tf_identifier                 -> {kind: "hierarchical", body: $1}
 
 // @branch_policy: priority_first
 // ps_or_hierarchical_tf_identifier := scoped_or_hierarchical_tf_identifier | tf_identifier
@@ -5232,15 +5255,18 @@ structure_pattern_key := member_identifier      -> {kind: "member",  body: $1}
                        | assignment_pattern_key -> {kind: "pattern", body: $1}
 
 # SV-0029 wave-3 (SV-DOLLAR-LRM-FIDELITY.4): the dedicated `$root.`-anchored TF-call
-# carrier. It CANNOT live as a branch of `scoped_or_hierarchical_tf_identifier`:
-# that rule's branch-2 typedef-exclusion predicate is BROADCAST to every branch by
-# the runtime (`branch_predicates_for_rule` flat-maps all per-branch directives —
-# semantic_runtime.rs:735), and its `$scope.name.body` ref is unresolvable on a
-# rooted result, which hard-rejects the branch (trace-proven: `🚫 Branch 3/3 …
-# rejected by branch predicate` on `$root.top.f`). The `!( identifier )` guard is
-# the no-re-route firewall: only `$root`-headed targets can enter, so every
-# identifier-headed TF call keeps its existing route byte-identically ($N slots:
-# the guard occupies $1 — codegen-proven — so payload fields start at $2).
+# carrier. HISTORY: it was born as a workaround — under the engine's (since-fixed)
+# branch-predicate FLATTENING bug, `scoped_or_hierarchical_tf_identifier`'s branch-2
+# typedef-exclusion predicate was broadcast to every branch and its `$scope.name.body`
+# ref hard-rejected the hierarchical branch (trace-proven: `🚫 Branch 3/3 … rejected
+# by branch predicate` on `$root.top.f`). BRANCH-PREDICATE-LOCALITY.2 (2026-07-06)
+# fixed the engine to the published branch-LOCAL contract and RETIRED that rule's
+# hierarchical branch outright (see the comment there), so this lane is now the
+# deliberate, sole `$root.` TF-call carrier — no longer a workaround. The
+# `!( identifier )` guard remains the no-re-route firewall: only `$root`-headed
+# targets can enter, so every identifier-headed TF call keeps its existing route
+# byte-identically ($N slots: the guard occupies $1 — codegen-proven — so payload
+# fields start at $2).
 @profiles: ["sv_2017", "sv_2023"]
 rooted_tf_call_sv_only := !( identifier ) hierarchical_tf_identifier attribute_instance* ( lparen list_of_arguments rparen )?
                        -> {kind: "rooted_tf", target: $2, attributes: $3, args: $4}
@@ -5402,6 +5428,10 @@ terminal_identifier := identifier
 plain_tf_call_with_args := tf_identifier attribute_instance* lparen list_of_arguments rparen
                         -> {name: $1, attributes: $2, args: $4}
 
+# BRANCH-PREDICATE-LOCALITY.2: @profiles = the linter's derived minimal fix — the
+# sole production references scoped_or_hierarchical_tf_identifier, itself sv-only
+# now (see the comment there), so this carrier is honestly v2005-unsatisfiable.
+@profiles: ["sv_2017", "sv_2023"]
 tf_call_with_args := scoped_or_hierarchical_tf_identifier attribute_instance* lparen list_of_arguments rparen
                   -> {name: $1, attributes: $2, args: $4}
 

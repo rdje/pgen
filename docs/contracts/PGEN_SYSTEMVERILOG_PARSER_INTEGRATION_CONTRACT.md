@@ -844,6 +844,10 @@ ps_or_hierarchical_net_identifier
 
 scoped_or_hierarchical_tf_identifier
   -> 3 kinds: class_scope / package_scope / hierarchical
+     (since BRANCH-PREDICATE-LOCALITY.2, 2026-07-06: **2 kinds — class_scope / package_scope**;
+      the hierarchical branch was retired — it had been predicate-dead since it landed, so
+      `kind:"hierarchical"` was never observable from this rule; identifier-headed hierarchical
+      tf calls ride the method-call carriers, `$root.`-headed ones ride `rooted_tf_call_sv_only`)
 
 ps_parameter_identifier
   -> 4 kinds: class_scope / package_scope / unscoped / generate_scoped

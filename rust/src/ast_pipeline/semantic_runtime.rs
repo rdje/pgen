@@ -732,17 +732,20 @@ impl CompiledSemanticRuntimeAnnotations {
             .filter(|directive| directive.is_library_export())
     }
 
+    /// RULE-level branch-phase predicates ONLY (from `directives_by_rule`).
+    /// An INLINE (per-branch) branch predicate is branch-LOCAL and reaches the
+    /// tournament exclusively via `branch_predicates_for_rule_branch` — every
+    /// call site chains the two (BRANCH-PREDICATE-LOCALITY.2). This restores
+    /// the introducing seam's semantics ("rule-wide plus branch-local for the
+    /// candidate branch only", 43bbc43c): the former flat-map over ALL branch
+    /// buckets broadcast each inline predicate rule-wide and double-evaluated
+    /// it on its own branch.
     pub fn branch_predicates_for_rule<'a>(
         &'a self,
         rule_name: &'a str,
     ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
         self.directives_for_rule(rule_name)
             .iter()
-            .chain(
-                self.branch_directives_for_rule(rule_name)
-                    .iter()
-                    .flat_map(|directives| directives.iter()),
-            )
             .filter(|directive| directive.is_branch_predicate())
     }
 

@@ -1767,8 +1767,9 @@ impl<'g, 'i> Interp<'g, 'i> {
     /// - single-branch: parse + raw capture (before the transform) + branch-0 transform;
     /// - multi-branch: per branch — the `ordered` early-skip, `try_parse` attempt, the branch
     ///   transform computed BEFORE the position rollback (BRANCH-BROADCAST-FIX.3), the BRANCH-phase
-    ///   predicates (rule-level ∪ branch-local — note `branch_predicates_for_rule` flat-maps every
-    ///   branch bucket, so an inline branch predicate gates EVERY branch, the documented flattening),
+    ///   predicates (rule-level ∪ branch-local: `branch_predicates_for_rule` returns RULE-level
+    ///   branch predicates only, and `_for_rule_branch` supplies the candidate branch's own — an
+    ///   inline branch predicate is branch-LOCAL since BRANCH-PREDICATE-LOCALITY.2),
     ///   the full `should_take` ladder (policy × priority × length × associativity, incl. the
     ///   `nonassoc` tie), then the C3-B semantic-delta extract + rollback (no loser leakage);
     /// - winner: position, the winner's delta replay, the winning branch's branch-start inline

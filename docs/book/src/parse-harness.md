@@ -572,7 +572,7 @@ The 20 isolating cases cover the orchestration surface:
 |---|---|---|
 | **post gate** (hit + miss) | `@emit_fact` at `decl`, `has_fact` post gate at `use` | declare-before-use accepts; use-of-undeclared rejects |
 | **pre gate** | `has_fact` with `phase: pre` | blocks rule *entry* before the body runs |
-| **inline branch gate** | `pick := @predicate{…, phase: branch} alt1 \| alt2` | an inline branch predicate is flattened **rule-wide** (gates *every* branch) — the documented engine semantics |
+| **inline branch gate** | `pick := @predicate{…, phase: branch} alt1 \| alt2` | an inline branch predicate is **branch-local** (gates only its own alternative) — the store flips *which* branch wins |
 | **branch-local selection** | helper rules with `phase: post` gates per alternative | the store flips *which* branch wins — same verdict, different AST (the SV idiom) |
 | **attribute gate** | `fact_attribute_equals` over two emit families | same-name fact with the wrong attribute still rejects |
 | **negative gate** | `lacks_fact` | accept-when-absent, reject-when-present |
@@ -600,10 +600,13 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `$ref` is coerced to `Identifier("x")`; a *quoted* `"x"` in `args:` stays `String("x")` and never
   matches it (`has_fact(kind, name=String(...)) → false` with the fact present). SV's grammars use
   unquoted identifiers in predicate args throughout — for exactly this reason.
-- **An inline `phase: branch` predicate gates every branch.** `branch_predicates_for_rule` flat-maps all
-  branch buckets, so an inline branch predicate is applied rule-wide (and twice on its own branch —
-  harmless for pure predicates). Branch-LOCAL gating is expressed with helper rules carrying `phase: post`
-  gates (the SV `net_declaration` pattern).
+- **An inline `phase: branch` predicate is branch-LOCAL** (gates only the alternative it is attached
+  to) — matching the semantic-annotation book's published contract. *History:* until
+  `BRANCH-PREDICATE-LOCALITY.2` (2026-07-06) the registry accessor flat-mapped every branch bucket, so
+  an inline branch predicate was broadcast rule-wide (and double-evaluated on its own branch); the
+  suite found the discrepancy, the fix restored the introducing commit's own "candidate branch only"
+  semantics, and `sem_branch_gate` was deliberately re-anchored to pin branch-locality. Helper rules
+  carrying `phase: post` gates (the SV `net_declaration` pattern) remain an equivalent idiom.
 - **Positional `$N` references do not work in directive payloads.** The annotation compiler strips the
   `$` sigil, so `$2` freezes as `RuleReference("2")`, which the resolver's *named* lexer rejects (digit
   head) — resolution always fails, hard. The positional resolver machinery is unreachable from compiled

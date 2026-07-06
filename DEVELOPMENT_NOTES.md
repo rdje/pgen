@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-06 - PGEN-BRANCH-PREDICATE-LOCALITY-0002 — BRANCH-PREDICATE-LOCALITY.2: the locality fix, and three engineering notes on fixing an engine bug that dead grammar code depended on
+
+Session #48. Three notes worth keeping:
+
+- **The measurement-first companion discipline paid off exactly as designed.** The engine fix was applied ALONE first, the probe rebuilt, and the flip MEASURED (`foo.bar(1);` `method`→`tf`) before any grammar decision. That measurement — not the `.1` prediction — justified the companion, and the companion's own verification is a byte-compare against the pre-fix dumps (`cmp` on the reproducer ASTs) plus the golden-file gates (shape 18/18, matrix 240/0, canonical cert byte-identical). Sequence for the next engine-fix-with-grammar-dependents: fix → measure the delta → design the companion FROM the measured delta → re-measure to byte-identity.
+- **The linter derived the follow-up fix itself.** Retiring the dead branch made two rules v2005-orphans, and the multi-profile `--lint-grammar` orphan check didn't just flag them — it DERIVED the minimal `@profiles` tags (the ANNOTATION-COMPOSITION.4 derived-fix surface). The v2005 conformance gate then caught the cert-universe shift and forced the justified re-lock. Two mechanical gates steered the change to its honest fixpoint; zero guessing.
+- **No-bump adjudication:** a grammar edit + parser regen with NO observable behavior change on any profile (routing byte-identical, matrix unchanged) takes NO release bump per the SV-0026/SV-0028 byte-invariant precedent — the version tracks the observable contract, not the grammar text. The retired branch's kinds (`hierarchical`, and effectively `class_scope`) were never producible, so no consumer can be affected; the integration contract carries a current-state marker so the historical "3 kinds" record cannot mislead.
+
 ## 2026-07-06 - PGEN-BRANCH-PREDICATE-LOCALITY-0001 — BRANCH-PREDICATE-LOCALITY.1: the F3 evidence slice (traces, blast radius, history) and the routing-flip discovery
 
 Session #48. PNT resumed from the layer-A pointer straight onto the cross-tree frontier (`BRANCH-PREDICATE-LOCALITY.1`, F3, highest SEM-FINDINGS priority). Evidence-only; NO code. Three technique notes for continuity:

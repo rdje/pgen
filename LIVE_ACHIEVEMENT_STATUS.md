@@ -40,15 +40,19 @@ while still parsing under `sv_2017`/`sv_2023`, incl. the spec-adjudicated diverg
 carried the `SV-0022` all-profile waiver — since FIXED at `1.0.166`, its rows now REJECT under
 `verilog_2005` / ACCEPT under the SV profiles) + 2 profile-alias normalization checks; (3) the **profiled
 cert-coverage BASELINE** `--grammar-profile verilog_2005` (declared entry universe wired via the
-gate's `union_configs`): `total=1117 proof=327 witness=773 UNKNOWN=17 (sample_parse_failures=0)`
+gate's `union_configs`): `total=1115 proof=328 witness=773 UNKNOWN=14 (sample_parse_failures=0)`
 deterministic at seeds 0/7/42. As of `.6.7` (2026-07-05, the per-profile `proof` PROMOTION) the
 cert PROVES the profile-excluded surface rather than leaving it UNKNOWN: the 298 profile-entry-
 unreachable SV-only rules + the 25 store-unproducible use-sites became per-profile `proof`
 certificates (`ProfileEntryUnreachable`/`ProfileUnproducibleGate`, each independently re-derived),
-so `proof 4→327` and `UNKNOWN 340→17` — and that 17 is the GENUINE remainder (the entry-relative
-library/include cohort, never branded dead since the analysis quantifies over the declared entry
-universe, + `context_member_method_call` + 5 in-profile ratchet targets), a regression lock on the
-honest residual rather than a mixed dead-rule pile. The downstream SV
+so `proof 4→327` and `UNKNOWN 340→17`; then `BRANCH-PREDICATE-LOCALITY.2` (2026-07-06) resolved 3
+of the 5 in-profile ratchet targets (`scoped_or_hierarchical_tf_identifier` + `tf_call_with_args`
+left the `verilog_2005` universe via linter-derived `@profiles` gates, `hierarchical_tf_identifier`
+upgraded to a `ProfileEntryUnreachable` proof) → `1115/328/773/14`, witness byte-identical. The 14
+is the GENUINE remainder (the entry-relative library/include cohort, never branded dead since the
+analysis quantifies over the declared entry universe, + `context_member_method_call` + 2 in-profile
+ratchet targets `data_type_or_void`/`function_statement`), a regression lock on the honest residual
+rather than a mixed dead-rule pile. The downstream SV
 integration-contract full
 `verilog_2005` write-up (deferred from `.2`) is landed, and the contract's stale embedding-API
 baseline (`1.2.0`→`1.3.0`) is corrected. **Why `Mostly Done`, not `Done`:** the proof surface is a

@@ -66,11 +66,13 @@ pub enum SemanticConstruct {
     PostGate,
     /// A `phase: pre` gate — blocks rule entry before the body runs.
     PreGate,
-    /// A `phase: branch` inline predicate. Tool-established (session #47, scratch-slot trace): an
-    /// inline branch predicate is FLATTENED RULE-WIDE — `branch_predicates_for_rule` flat-maps every
-    /// branch bucket (`semantic_runtime.rs:735-747`), so it gates EVERY branch of the tournament, not
-    /// just its own (exactly what the SV `net_declaration` comment documents). This case pins that
-    /// flattening semantics differentially.
+    /// A `phase: branch` inline predicate — branch-LOCAL: it gates ONLY the alternative it is
+    /// attached to (`branch_predicates_for_rule_branch`). HISTORY: until `BRANCH-PREDICATE-LOCALITY.2`
+    /// (2026-07-06, session #48) the registry fn `branch_predicates_for_rule` flat-mapped every branch
+    /// bucket, FLATTENING an inline branch predicate rule-wide (tool-established, session #47,
+    /// scratch-slot trace; the SV `net_declaration` comment documented the workaround). That was a
+    /// day-one bug contradicting its introducing commit's (`43bbc43c`) "candidate branch only"
+    /// semantics; this case now pins the restored branch-LOCAL semantics differentially.
     BranchGate,
     /// The branch-LOCAL gating idiom (the SV `.b.6.2.2` pattern): each alternative delegates to a
     /// helper rule carrying a `phase: post` gate, so the store flips WHICH branch wins — AST-changing
@@ -210,7 +212,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         entry_rule: None,
         note: "pre gate blocks `gated` entry unless `arm;` emitted the flag first",
     },
-    // ── The inline branch gate (rule-wide flattening pin) ──────────────────────────────────────────
+    // ── The inline branch gate (branch-LOCAL pin — re-anchored by BRANCH-PREDICATE-LOCALITY.2) ────
     SemanticCase {
         name: "sem_branch_gate",
         construct: SemanticConstruct::BranchGate,
@@ -229,17 +231,19 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
                              | word \";\" -> { kind: \"normal_pick\", w: $1.body }\n\
                        word := /[a-z]+/ -> { body: $1 }\n",
         inputs: &[
-            // The gate passes rule-wide → branch 1 wins the equal-length tie → special_pick.
+            // The gate passes on its own branch → branch 1 wins the equal-length tie → special_pick.
             ("mode:special;x;", true),
-            // The FLATTENING pin: the inline branch predicate gates BOTH branches (rule-wide), so with
-            // the gate failing, `pick` has no live branch and the parse REJECTS — branch 2 does NOT
-            // survive as "normal_pick".
-            ("mode:other;x;", false),
+            // The BRANCH-LOCAL pin (re-anchored, BRANCH-PREDICATE-LOCALITY.2): the inline predicate
+            // gates ONLY branch 1 — with the gate failing, branch 2 survives and the parse ACCEPTS as
+            // "normal_pick". (Pre-fix flattening semantics: the predicate gated BOTH branches and this
+            // input REJECTED — the documented old pin, deliberately flipped with the engine fix.)
+            ("mode:other;x;", true),
             ("mode:special;x", false),
         ],
         entry_rule: None,
-        note: "an INLINE branch-phase predicate is flattened RULE-WIDE (gates every branch) — the \
-               documented engine semantics, pinned differentially",
+        note: "an INLINE branch-phase predicate is branch-LOCAL (gates only its own alternative; \
+               restored by BRANCH-PREDICATE-LOCALITY.2) — the store flips WHICH branch wins, pinned \
+               differentially",
     },
     // ── Branch-LOCAL selection via helper post gates (the SV idiom) ────────────────────────────────
     SemanticCase {

@@ -1,9 +1,12 @@
 # BRANCH-PREDICATE-LOCALITY — make inline `phase: branch` predicates branch-LOCAL (F3), and fix the suspected live SV:4605 consequence
 
 - Tree ID: `BRANCH-PREDICATE-LOCALITY`
-- Status: `active` (created 2026-07-06, session #47, spawned by `SEM-FINDINGS` — director directive
-  2026-07-06 to elegantly address the `PARSE-HARNESS.6.2` findings; this tree owns finding **F3**)
-- Priority: **HIGHEST of the SEM-FINDINGS fixes** — a suspected LIVE SV parser defect rides on it.
+- Status: `complete` (created 2026-07-06 session #47, spawned by `SEM-FINDINGS` — director directive
+  2026-07-06 to elegantly address the `PARSE-HARNESS.6.2` findings; this tree owns finding **F3**.
+  `.1` evidence done + `.2` fix done, both 2026-07-06 session #48 —
+  `PGEN-BRANCH-PREDICATE-LOCALITY-0001`/`-0002`)
+- Priority: **HIGHEST of the SEM-FINDINGS fixes** — a suspected LIVE SV parser defect rode on it
+  (confirmed broader than suspected; fixed with byte-identical routing preservation).
 
 ## 1. The finding (tool-established, PARSE-HARNESS.6.2 session #47)
 
@@ -156,18 +159,55 @@ semantics section states BRANCH-LOCAL as the contract.
   (`43bbc43c`) documented "candidate branch only" semantics — an implementation bug, never a
   decision. PLUS the new routing-consequence finding (§1b): the fix must preserve statement/chain
   lane winners. NO code (verified: docs-only commit).
-- `.2` — **FIX: registry-fn locality + SV routing preservation + re-anchors — `not-started`
-  (frontier).** The one-function engine fix, PLUS the §1b-mandated SV companion (measurement-first:
-  regen in a sandbox, diff shape-contract + external corpus winners, then retire/guard the dead
-  branches so today's routing stays byte-identical), + regen + the §4 battery + the enforced
-  acceptance checklist + SV ledger/release handling + book/spec lockstep.
+- `.2` — **FIX: registry-fn locality + SV routing preservation + re-anchors — `done`
+  (`PGEN-BRANCH-PREDICATE-LOCALITY-0002`, 2026-07-06 session #48).** What landed:
+  - **Engine (the one function):** `branch_predicates_for_rule` (`rust/src/ast_pipeline/semantic_runtime.rs`)
+    no longer chains the flat-map over the branch buckets — it returns RULE-level branch-phase
+    predicates only; inline predicates reach the tournament exclusively via
+    `branch_predicates_for_rule_branch` (already chained at every call site: the generated template
+    @`ast_based_generator.rs:3264` and the interpreter @`parse_harness_interpreter.rs:1842`).
+    Interpreter parity by construction (same registry fn) — ZERO interpreter logic change.
+    **Fix-hierarchy justification: engine tier, because the defect IS the registry function's
+    semantics — no annotation/grammar/store tier can repair an engine flat-map.**
+  - **Suite re-anchor (deliberate):** `sem_branch_gate`'s `"mode:other;x;"` pin flipped REJECT→ACCEPT
+    (`normal_pick`) — the branch-LOCAL pin; old flattening semantics + new semantics both recorded in
+    the case comments and the book. `sem_branch_select` (helper-rule idiom) stayed CLEAN unchanged.
+  - **SV companion (measurement-first, §1b):** the pre-companion measurement CONFIRMED the flip
+    (`foo.bar(1);` statement re-routed `{kind:"method"}`→`{kind:"tf"}`). Companion: (a) RETIRED the
+    dead `hierarchical` branch of `scoped_or_hierarchical_tf_identifier` (SV:4603 region, fully
+    documented in-grammar); (b) the multi-profile `--lint-grammar` orphan check then DERIVED the
+    minimal follow-up — `scoped_or_hierarchical_tf_identifier` + `tf_call_with_args` gated
+    `@profiles: [sv_2017, sv_2023]` (both became honestly v2005-unsatisfiable: the remaining
+    branches reference class/package scopes absent in 1364-2005); (c) three grammar comment sites
+    (3452 / 3582 / SV-0029@5234) refreshed to the branch-local reality.
+  - **v2005 cert re-lock (justified):** `1117/327/773/17` → **`1115/328/773/14`** — 3 of `.6.7`'s 5
+    in-profile ratchet targets RESOLVED (2 leave the universe via the `@profiles` gates,
+    `hierarchical_tf_identifier` upgrades UNKNOWN→`ProfileEntryUnreachable` proof); witness
+    byte-identical (ZERO de-witnessing); provenance appended to the contract `baseline_note`.
+  - **Release/ledger adjudication: NO SV release bump (stays `1.0.167`/schema `16`), NO ledger
+    entry** — no observable parse behavior changed on ANY profile: sv_2017 routing preserved
+    byte-identically (reproducer `cmp` + shape 18/18 + corpus + canonical cert byte-identical),
+    v2005 accept/reject matrix 240/0 unchanged; the flattening's historical user-visible SV
+    consequences were already ledgered/fixed under `SV-0029`. The dead branches never produced an
+    observable shape, so their retirement is invisible to consumers (contract note added).
+
+## Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — `.1` (§1b): 4 reproducers, `PGEN_TRACE_VERBOSITY=debug --trace-rules scoped_or_hierarchical_tf_identifier` → `✅ Leaving branch 3/3 … (success)` then `🚫 Branch 3/3 … rejected by branch predicate 'lacks_fact_attribute_equals [… RuleReference("scope.name.body") …]'` (same for branch 1/3 on `C::m(1);`); branch 2 `🛡️ PASSED` printed twice (double-evaluation). Pre-companion flip MEASURED: `foo.bar(1);` AST kinds `method`/`split_direct_callable` → `tf` after the engine fix alone.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `branch_predicates_for_rule` @ `rust/src/ast_pipeline/semantic_runtime.rs:735-747` chained `.flat_map` over ALL branch buckets, broadcasting every inline `phase: branch` predicate rule-wide + double-evaluating it on its own branch; `git log -S`: the seam commit `9fc91261` had rule-level-only semantics, the flat-map commit `43bbc43c` documents "branch-local predicates for the candidate branch only" while implementing the opposite — an implementation bug contradicting its own commit AND the semantic-annotation book's published branch-local contract.
+- [x] **FIX** — engine tier (registry fn returns rule-level only; per-branch stays in `_for_rule_branch`) + deliberate suite re-anchor + SV grammar companion (branch retirement + 2 linter-derived `@profiles` gates) + doc/contract lockstep. Why no lower tier: the flat-map is engine code; grammar tiers can only work AROUND it (as SV 3452/3582/5234 historically did).
+- [x] **ADDRESSED (verified)** — `make -C rust parse_harness_semantic_gate` → 2/2, **20/20 CLEAN** on the re-anchored branch-LOCAL pins (`sem_branch_gate` `"mode:other;x;"` REJECT→ACCEPT `normal_pick`, interp == compile-and-run oracle byte-identical); SV:4605 predicate now branch-2-local — post-fix trace shows `PASSED branch 2/2` exactly ONCE (was twice) and no branch-1/3 predicate kills.
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate` 4/4 (**all 11 CERTIFIED byte-identical** incl. systemverilog sv_2017 under the regenerated grammar); `parse_harness_combinator_gate` 2/2 (16/16); `sv_cert_recognized_union_gate` GREEN seeds 0/7/42 (canonical UNKNOWN=12, union UNKNOWN=1, residual `context_member_method_call`, witness 1332 — byte-identical pins); `ast_shape_contract_gate` GREEN (18/18); `sv_external_corpus_triage_gate` GREEN; `verilog_2005_conformance_gate` GREEN at the re-locked justified baseline (orphans 0, matrix 240/0 UNCHANGED, cert `1115/328/773/14` deterministic seeds 0/7/42, `unmet_criteria_json: []`); reproducer ASTs byte-identical to pre-fix (`cmp` on anchored + rooted); `clippy_on_rust_change` strict-source GREEN; `semantic_runtime`/interpreter unit tests GREEN; `mdbook_docs_gate` GREEN.
+- [x] **LOCKSTEP** — top book `parse-harness.md` (suite table + grammar-author facts → branch-LOCAL with history); `PGEN_ANNOTATION_NORMATIVE_SPEC.md` (normative branch-phase scope clause); semantic_annotation book already stated branch-local (now true — no edit); SV grammar comments (3452/3582/5234 + the new rule-retirement block); `ast_shape_contract/systemverilog_v1.json` prose (2 `drift_tracked_in` fields); SV integration contract (current-state marker on the Slice-104 "3 kinds" record); `verilog_2005_conformance_contract_v0.json` re-lock + provenance; `LIVE_ACHIEVEMENT_STATUS.md` v2005 row prose.
 
 ## 6. Current Frontier
 
 | # | Leaf | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | `.1` (SV:4605 reproducer + blast-radius audit) | `done` (2026-07-06 #48) | CONFIRMED broader: branches 1+3 both dead; flattening = day-one bug; routing-flip risk found. |
-| 2 | `.2` (registry-fn fix + SV routing preservation + verification) | `not-started` (**frontier**) | Engine tier + SV companion, full battery, SV release handling. |
+| 2 | `.2` (registry-fn fix + SV routing preservation + verification) | `done` (2026-07-06 #48) | Engine fix + deliberate re-anchor + SV companion; full battery GREEN; NO release bump (behavior byte-invariant on every profile). |
+
+**TREE COMPLETE** — F3 is fixed at the engine tier with the published contract restored, the SV
+routing preserved byte-identically, and the v2005 certification honestly improved (UNKNOWN 17→14).
 
 ## 7. Relationships
 
