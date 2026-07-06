@@ -23,6 +23,14 @@ pub mod parse_harness_interpreter;
 /// loader + stimuli corpus) and `generated_parsers` (the `parser_registry` oracle). See the module docs.
 #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
 pub mod parse_harness_equivalence;
+/// PARSE-HARNESS.6.1 — the structural combinator isolating suite: a table of small synthetic grammars,
+/// one per structural combinator the `.4` interpreter dispatches, each differentially verified
+/// byte-identical against the compile-and-run oracle (`.3`). Upgrades the interpreter's trust from "the
+/// shipped grammars' constructs" to "any grammar built from PGEN's structural constructs". Requires
+/// `ebnf_dual_run` (the interpreter's `.ebnf` loader; the oracle shells the codegen binary). See the
+/// module docs.
+#[cfg(feature = "ebnf_dual_run")]
+pub mod parse_harness_combinator_suite;
 /// Parser-specific hook implementations. Each module here implements
 /// the [`ast_pipeline::ParserHooks`] contract for one grammar's
 /// codegen-time extensibility needs. Code in this module is

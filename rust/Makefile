@@ -1571,6 +1571,16 @@ parse_harness_equivalence_gate:
 	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib parse_harness_equivalence::gate -- --nocapture
 	@echo "✅ Parse-harness differential-equivalence gate passed."
 
+.PHONY: parse_harness_combinator_gate
+parse_harness_combinator_gate:
+	@echo "🧩 Running parse-harness structural combinator suite (PARSE-HARNESS.6.1)..."
+	@echo "   interpreter (approach 1) == compile-and-run oracle (approach 3), byte-identical over a"
+	@echo "   per-combinator isolating-grammar suite (choice/branch_policy, quantifiers, lookahead,"
+	@echo "   sequence, atoms, rule-ref, LR); includes the A2.2/A2.3 branch_policy discrimination proof."
+	cd $(RUST_DIR) && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib parse_harness_combinator_suite::gate -- --nocapture
+	@echo "✅ Parse-harness structural combinator suite passed."
+
 .PHONY: regex_ast_shape_contract_gate
 regex_ast_shape_contract_gate:
 	@echo "🧬 Running regex AST-shape contract gate..."

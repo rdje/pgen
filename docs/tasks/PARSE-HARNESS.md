@@ -1,7 +1,7 @@
 # PARSE-HARNESS — general arbitrary-grammar parse capability (the grammar-AST interpreter + compile-and-run + scratch-register), each made 100% trustworthy
 
 - Tree ID: `PARSE-HARNESS`
-- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — 9 grammars CERTIFIED. `.5.3` (return_annotation fold) **`done`** (`PGEN-PARSE-HARNESS-0011`, session #44): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`) — codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load; a `serialize_with` SORTED serializer canonicalizes every site, certifying **`return_annotation`** byte-identical — now **10 grammars CERTIFIED**. `.5.5` (rtl_const_expr corpus) **`done`** (`PGEN-PARSE-HARNESS-0012`, session #45): NOT a fidelity fix but a CORPUS fix — the stimuli generator yields 0 usable samples for rtl_const_expr's ~16-level precedence cascade within the bounded ladder (depths ≤28 fail, ~32 pathologically huge, ≥40 hang — tool-established); a general parser-agnostic **curated-input corpus** (`CURATED_CORPUS`) gives the differential inputs and the interpreter is byte-identical over it (CLEAN 151/151), certifying **`rtl_const_expr`** — now **11 grammars CERTIFIED, DEFERRED empty**. Frontier → **`.6` (per-combinator + semantic-directive suite) `not-started`**. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1` checklist), §17 (`.5.2` checklist), §18 (`.5.3` checklist), §19 (`.5.5` checklist).
+- Status: `active` (created 2026-07-05, session #37, `PGEN-PARSE-HARNESS-0001`). `.1` DESIGN is this file; `.2` (scratch-register) **`done`** (`PGEN-PARSE-HARNESS-0002`, session #38); `.3` (compile-and-run) **`done`** (`PGEN-PARSE-HARNESS-0003`, session #39). **Phase A complete.** `.4` (interpreter core — the director's flagship) **`done`** (`PGEN-PARSE-HARNESS-0004`, session #40): byte-identical to the generated parser on the structural + return-annotation smoke set. **Phase B open.** `.5` (the differential-equivalence GATE — `parse_harness_equivalence_gate`) **`done`** (`PGEN-PARSE-HARNESS-0005`, session #41): the deterministic interpreter-vs-generated-parser differential over a bounded stimuli corpus (seeds 0/7/42, large-stack workers), **certifying 6 grammars byte-identical** — `json`, `semantic_annotation`, `rtl_frontend`, `vhdl`, **`systemverilog` (sv_2017)**, `scratch` — with an honest DEFERRED ratchet + EXCLUDED classification (no silent caps) for the remainder. The measurement discovered the honest per-grammar split (tool-backed, §14/§15). `.5.1` (regex fidelity) **`done`** (`PGEN-PARSE-HARNESS-0007`, session #42): FOUR tool-pinpointed interpreter-fidelity fixes (whitespace-sensitive layout policy / unresolved-reference built-ins / `@transform` numeric coercion + PCRE2 post-parse contract / `@profiles` dialect gating) certified **`regex`** byte-identical (deep stress 400/400) AND incidentally closed **`.5.4`** (`systemverilog_preprocessor`, 459/459) — 8 grammars CERTIFIED. `.5.2` (ebnf fidelity) **`done`** (`PGEN-PARSE-HARNESS-0009`, session #43): the interpreter's two layout skippers unconditionally skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar when the grammar claims that introducer as a real token (H.11.5 — ebnf's `block_comment := "/*" …`); the interpreter now gates each arm via codegen's OWN predicate (`comment_arm_suppression_for_grammar`), certifying **`ebnf`** byte-identical — 9 grammars CERTIFIED. `.5.3` (return_annotation fold) **`done`** (`PGEN-PARSE-HARNESS-0011`, session #44): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`) — codegen froze one arbitrary order, the interpreter re-serialized a fresh non-deterministic order each load; a `serialize_with` SORTED serializer canonicalizes every site, certifying **`return_annotation`** byte-identical — now **10 grammars CERTIFIED**. `.5.5` (rtl_const_expr corpus) **`done`** (`PGEN-PARSE-HARNESS-0012`, session #45): NOT a fidelity fix but a CORPUS fix — the stimuli generator yields 0 usable samples for rtl_const_expr's ~16-level precedence cascade within the bounded ladder (depths ≤28 fail, ~32 pathologically huge, ≥40 hang — tool-established); a general parser-agnostic **curated-input corpus** (`CURATED_CORPUS`) gives the differential inputs and the interpreter is byte-identical over it (CLEAN 151/151), certifying **`rtl_const_expr`** — now **11 grammars CERTIFIED, DEFERRED empty**. `.6.1` (structural combinator isolating suite) **`done`** (`PGEN-PARSE-HARNESS-0014`, session #46): a systematic, gated suite of **16 isolating grammars** (module `rust/src/parse_harness_combinator_suite.rs`, gate `make -C rust parse_harness_combinator_gate`) proving the interpreter byte-identical to the `.3` compile-and-run oracle per structural combinator (choice under all 3 branch_policies, quantifiers `?`/`*`/`+` incl. zero-length guard, lookahead, sequence-backtrack, atoms/regex-token, rule-ref, LR-eliminated) — **16/16 CLEAN**, gate 2/2, incl. the folded-in A2.2/A2.3 discrimination proof; three tool-established findings surfaced (§20). Frontier → **`.6.2` (semantic-directive orchestration suite) `not-started`**. See §13 (`.4` plan), §14 (`.5` plan), §15 (measurement map), §16 (`.5.1`), §17 (`.5.2`), §18 (`.5.3`), §19 (`.5.5`), §20 (`.6.1` checklist).
 - Roadmap lane: cross-cutting **tooling / diagnostics** — closes the "no cheap way to parse an input against an *arbitrary* grammar" capability gap surfaced by `GRAMMAR-WELLFORMED.A2.2`/`A2.3`.
 - Director directive (2026-07-05): *"let's build this general grammar-AST interpreter … task-tree track all 3 ways … find a SOTA, signoff way to make (1) authoritative … we need to be able to 100% trust their outcome … their task-tree shall describe them in gory detail."*
 
@@ -501,15 +501,27 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
   **per combinator** on small synthetic grammars (interpreter vs the `.3` compile-and-run oracle / a
   scratch parser), so the interpreter is trusted on ANY grammar built from PGEN's constructs. Decomposed
   into two sub-leaves by build-risk (session #45 scoping):
-  - `.6.1` — **structural combinator isolating suite — `not-started` (frontier).** The combinators the
-    interpreter core (`.4`) ALREADY dispatches, each isolated + differentially verified over targeted
-    inputs: ordered choice under EACH `branch_policy` (`longest_match` / `ordered` / `priority_first`),
-    including the `a | ab` fixed-prefix shape and the `e? | keyword` always-succeeds shape (the
-    `A2.2`/`A2.3` cases directly — this also front-loads the `.8` empirical proof); sequence + backtrack;
-    every quantifier form (`?`/`*`/`+`/`{N}`/`{N,M}`/`{N,}`/`{,M}`) incl. the zero-length guard; lookahead
-    `&`/`!`; atom / terminal / regex-token; rule-ref; left-recursion (LR-eliminated). Lower build-risk —
-    it extends the proven `.4` smoke-set pattern (synthetic grammars diffed via `compile_and_parse`) into
-    a systematic, gated suite. This is the natural next slice.
+  - `.6.1` — **structural combinator isolating suite — `done` (session #46, `PGEN-PARSE-HARNESS-0014`).**
+    A systematic, gated suite (module `rust/src/parse_harness_combinator_suite.rs`, gate
+    `make -C rust parse_harness_combinator_gate`) of **16 small isolating grammars**, one per structural
+    combinator the `.4` interpreter dispatches, each differentially verified **byte-identical**
+    (verdict + `furthest_position` + typed AST) against the `.3` compile-and-run oracle over curated
+    inputs: ordered choice under EACH `branch_policy` (`longest_match` default+explicit / `ordered` /
+    `priority_first`), the `a | ab` fixed-prefix + `e? | keyword` always-succeeds shapes (A2.2/A2.3
+    directly — front-loads `.8`); sequence + backtrack; `?`/`*`/`+` incl. the zero-length guard; lookahead
+    `&`/`!`; atom terminal + regex-token; rule-ref; left-recursion (the **LR-eliminated wrapper form**).
+    Report-first (never-panic) + 2 enforcing gate tests (byte-identity incl. the folded-in A2.2/A2.3
+    discrimination proof; combinator-coverage completeness) + 2 `--ignored` scouting probes, all on a
+    512 MiB large-stack worker. **VERIFIED (tools-first): 16/16 CLEAN**, gate 2/2. Test-only tooling —
+    NO engine/grammar/codegen/generated change (no `generated/*` regenerated). Three tool-established
+    findings surfaced (see §20 + `DEVELOPMENT_NOTES.md`): (1) bounded quantifiers `{N,M}` are half-wired
+    (frontend + runtime `parse_quantifier_bounds` support them; **codegen** aborts `Unknown quantifier` →
+    unreachable via the oracle → `?`/`*`/`+` are the covered forms); (2) LR-elimination **prepends**
+    `_lr_base`/`_lr_suffix` to `rule_order`, shifting `rule_order[0]` off the semantic entry (the case
+    names the entry explicitly, applied to both sides); (3) bare **direct** LR `A := A x | y` is NOT
+    structurally eliminated (only the wrapper form is) → runtime cycle-breaking, where interp & oracle
+    diverge on `furthest_position` (interp 2/4, oracle 0; verdicts agree) — a KNOWN out-of-scope
+    interpreter-fidelity gap kept as a durable re-runnable probe. Acceptance checklist in §20.
   - `.6.2` — **semantic-directive orchestration suite — `not-started`.** The surface `.4`/`.5` explicitly
     **DEFERRED** (§13.4): `@predicate` branch/pre/post gates that CHANGE the verdict (hit AND miss);
     `@emit_fact` + query + scope tree + rollback/transactions; `$reference`-against-content resolution;
@@ -545,8 +557,8 @@ Each **code** leaf (`.2`–`.8`) additionally carries the enforced **Acceptance 
 | 7 | `PARSE-HARNESS.5.2` (ebnf fidelity) | `done` (#43, `PGEN-PARSE-HARNESS-0009`) | Root cause: interpreter's layout skippers unconditionally skip all 3 comment introducers; codegen suppresses arms per-grammar (H.11.5). Fix gates the arms via codegen's shared predicate. ebnf CERTIFIED byte-identical (DIVERGE 6→CLEAN 83). §17 checklist. |
 | 8 | `PARSE-HARNESS.5.3` (return_annotation fold) | `done` (#44, `PGEN-PARSE-HARNESS-0011`) | Root cause (tools REFUTED the scouting hypothesis): the `_pgen_lr_chain` `wrapper_specs` blob was serialized from a non-deterministic std `HashMap` (`UnifiedReturnAST::Object`); codegen froze one arbitrary order, the interpreter re-serialized a fresh (itself non-deterministic) order each load. Fix = a `serialize_with` SORTED serializer canonicalizing every site. return_annotation CERTIFIED (DIVERGE 8→CLEAN 68). Also closed a latent codegen non-determinism. §18 checklist. |
 | 9 | `PARSE-HARNESS.5.5` (rtl_const_expr corpus) | `done` (#45, `PGEN-PARSE-HARNESS-0012`) | Curated-input corpus for the deep precedence chain (exceeds bounded gen; unbounded hangs — tool-confirmed §19). A corpus problem, not an interpreter divergence. rtl_const_expr CERTIFIED (DIVERGE 0→CLEAN 151); DEFERRED now empty (11 CERTIFIED). §19 checklist. |
-| 10 | `PARSE-HARNESS.6.1` (structural combinator isolating suite) | `not-started` (**frontier**) | Phase B — per-combinator isolating grammars for the combinators `.4` already dispatches (branch_policy choice incl. `a\|ab`, quantifiers, lookahead, sequence, atoms, rule-ref, LR), each differentially verified. Lower build-risk; extends the proven `.4` smoke-set pattern. |
-| 11 | `PARSE-HARNESS.6.2` (semantic-directive orchestration suite) | `not-started` | Phase B — the DEFERRED store-gated-outcome surface (`@predicate`/`@emit_fact`/scope/rollback + memoization). Higher build-risk. |
+| 10 | `PARSE-HARNESS.6.1` (structural combinator isolating suite) | `done` (`PGEN-PARSE-HARNESS-0014`, #46) | Phase B — 16 isolating grammars, interpreter byte-identical to the `.3` compile-and-run oracle per structural combinator (branch_policy choice incl. `a\|ab`, quantifiers `?`/`*`/`+` incl. zero-length guard, lookahead, sequence-backtrack, atoms/regex-token, rule-ref, LR-eliminated wrapper form). 16/16 CLEAN; gate 2/2 (byte-identity + A2.2/A2.3 discrimination + coverage completeness). 3 tool-findings surfaced (§20). Test-only; no `generated/*` regen. |
+| 11 | `PARSE-HARNESS.6.2` (semantic-directive orchestration suite) | `not-started` (**frontier**) | Phase B — the DEFERRED store-gated-outcome surface (`@predicate`/`@emit_fact`/scope/rollback + memoization). Higher build-risk. |
 | 12 | `PARSE-HARNESS.7` (fuzz, optional) | `not-started` | Phase B — random gen-ASTs × random inputs, differential. |
 
 ---
@@ -1177,3 +1189,62 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
   depth-32 cert-window note); `TOOLBOX.md` §1.6 CERTIFIED (11)/DEFERRED (empty) + the `.5.5` mechanism
   note; this tree (`.5.5` done + this checklist, frontier, §15 map); CHANGES.md / DEVELOPMENT_NOTES.md /
   MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md.
+
+## 20. PARSE-HARNESS.6.1 — structural combinator isolating suite — Acceptance Checklist (enforced)
+
+> Session #46, `PGEN-PARSE-HARNESS-0014`. A CODE change (adds `rust/src/parse_harness_combinator_suite.rs`,
+> wires `rust/src/lib.rs`, adds the `parse_harness_combinator_gate` Makefile target). Capability build:
+> "ROOT CAUSE" = the coverage gap that end-to-end `.5` equivalence leaves (only the shipped grammars'
+> constructs), which per-combinator isolation closes; "ADDRESSED" = the interpreter proven byte-identical to
+> the compile-and-run oracle on a systematic per-combinator suite. Test-only tooling — never invoked by any
+> parse/codegen/cert path; NO `generated/*` regenerated (the 11 CERTIFIED grammars + SV byte-identical by
+> construction).
+
+- [x] **REPRODUCE / ISSUE** — the `.5` differential-equivalence gate certifies the interpreter byte-identical
+  only over constructs the *shipped* grammars use (§3.3). To trust the interpreter on an ARBITRARY grammar
+  (the harness's whole point — e.g. A2.3's `a | ab`), equivalence must be proven **per combinator** on small
+  synthetic grammars. Before this leaf there was no such suite.
+- [x] **ROOT CAUSE (WHY + WHERE)** — this is a capability build, so the tool-backed evidence is the empirical
+  grounding of the suite (measure-then-lock, [[feedback_always_signoff_decisions]]): every isolating grammar
+  was validated to compile through `ast_pipeline --generate-parser` before use, and the differential
+  measurement (`measure_combinator_suite`) established the true oracle verdicts. That loop caught THREE
+  tool-established facts (WHY+WHERE):
+  - bounded quantifiers `{N,M}` fail codegen with `Unknown quantifier: 2` (`ast_pipeline <g> --generate-parser`;
+    the frontend emits a `["quantifier","2"]` node, codegen `generate_quantified_logic` has no handler) → the
+    compile-and-run oracle cannot build them → `?`/`*`/`+` are the covered forms;
+  - the first LR grammar (bare direct `start := start "+" term | term`) is NOT structurally eliminated —
+    `detect_left_recursive_chain_plan` / `extract_rule_reference_name` (`rust/src/ast_pipeline/mod.rs`) match
+    only the **wrapper/indirect** form (a multi-element sequence alt is not a bare rule-ref), so direct LR
+    falls to runtime cycle-breaking, where interp & oracle diverge on `furthest_position` (measured interp
+    2/4 vs oracle 0) — a KNOWN out-of-scope gap (`DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE` + ignored probe);
+  - the wrapper LR form IS eliminated (`4 _lr_base + 6 _lr_suffix` gen-AST nodes) but LR-elimination
+    **prepends** the helpers to `rule_order`, so `rule_order[0]` ≠ the semantic entry `expr` → the case names
+    the entry explicitly, applied identically to both sides.
+- [x] **FIX** — fix-hierarchy tier = **new tooling / plumbing** (no engine / grammar / codegen / existing-runtime
+  change): the new module (a `CombinatorCase` table of 16 isolating grammars + a report-first
+  `run_combinator_case` / `evaluate_all_combinator_cases_on_large_stack` driver over `interpret_parse` vs
+  `compile_and_parse`), `pub mod parse_harness_combinator_suite;` in `lib.rs` (`#[cfg(feature = "ebnf_dual_run")]`),
+  and the `parse_harness_combinator_gate` Makefile target. Runs on a 512 MiB large-stack worker — the
+  measurement first overflowed the default 2 MiB test stack on the LR case (the interpreter's logical
+  recursion guard fires only past 2 MiB of real stack — [[feedback_recursion_ceiling_must_bound_the_real_stack]]),
+  exactly as the `.5` gate anticipated.
+- [x] **ADDRESSED (verified)** — before→after: the per-combinator capability now EXISTS. Re-runnable oracle =
+  `make -C rust parse_harness_combinator_gate` → **2 gate tests pass**: `every_structural_combinator_is_byte_identical`
+  (all **16/16** cases CLEAN — interp == compile-and-run oracle, byte-identical verdict + `furthest_position` +
+  typed AST, every spec-reasoned anchor holding; folds in the A2.2/A2.3 discrimination proof: `longest_match`
+  accepts `"ab"`, `ordered` rejects `"ab"`, both matching the real generated parser) and
+  `combinator_coverage_is_complete` (every enumerated combinator has ≥1 case, names unique). Measurement map:
+  `16/16 combinator cases CLEAN`.
+- [x] **NO REGRESSION** — purely additive test-only tooling; NEVER invoked by any parse/codegen/cert path;
+  `git status` shows only `rust/src/parse_harness_combinator_suite.rs` (new), `rust/src/lib.rs`, `rust/Makefile`
+  (+ docs); **no `generated/*_parser.rs` regenerated** (mtimes unchanged) → the 11 CERTIFIED grammars + SV
+  byte-identical by construction; the `.5` gate re-proves them byte-identical independently. New module
+  clippy-clean (`cargo clippy --lib --tests --features "generated_parsers ebnf_dual_run"` — 0 findings in the
+  module; the pre-existing generated-stage `eq_op`/naming lints are unchanged); `clippy_on_rust_change`
+  strict-source GREEN; `mdbook_docs_gate` GREEN.
+- [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` gains *The structural combinator suite*
+  section (D5, SAME-COMMIT, to the depth of the sibling sections: what it is, the 16-case table, the
+  completeness + A2.2/A2.3 discrimination invariants, and the two tool-established subtleties + the direct-LR
+  out-of-scope note) + the interpreter honest-bound updated; `TOOLBOX.md` gains a combinator-suite gate entry;
+  this tree (`.6.1` done + this checklist + frontier → `.6.2`); CHANGES.md / DEVELOPMENT_NOTES.md (+ the three
+  novel findings surfaced for director feedback) / MEMORY.md / LIVE_ACHIEVEMENT_STATUS.md updated.

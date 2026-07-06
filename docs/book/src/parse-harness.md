@@ -474,6 +474,73 @@ grammar with that shape — not just regex:
   The interpreter now threads the active profile and Backtracks a profile-gated rule at entry when the active
   profile is not allowed — mirroring the generated parser's rule-entry profile guard.
 
+## The structural combinator suite (`PARSE-HARNESS.6.1`)
+
+The differential-equivalence gate above proves the interpreter byte-identical to the generated parser —
+but only over the constructs the *shipped* grammars happen to use. To trust the interpreter on an
+**arbitrary / synthetic** grammar (the whole point of the harness — e.g. the `a | ab` linter-soundness
+probe), we need equivalence **per combinator**, in isolation. That is the **structural combinator suite**
+(`PARSE-HARNESS.6.1`, module `rust/src/parse_harness_combinator_suite.rs`, run via
+`make -C rust parse_harness_combinator_gate`).
+
+It is a table of **small isolating grammars**, one per structural combinator the interpreter dispatches.
+For every `(grammar, input)` pair it runs **both** the interpreter and the **compile-and-run oracle**
+(approach 2 — the real codegen + runtime, authoritative *by construction*; the registry oracle the `.5`
+gate uses does not apply because these grammars are synthetic and never registered) and asserts they agree
+**byte for byte**: the accept/reject verdict, `furthest_position` on reject, and the typed AST on accept.
+Because the corpus is a *fixed curated input set* (not the seeded stimuli generator), the differential is
+`synthetic grammar × curated input` with no randomness — deterministic by construction.
+
+The 16 isolating cases cover the whole structural surface:
+
+| Combinator | Isolating grammar (essence) | What it proves |
+|---|---|---|
+| ordered choice — **default `longest_match`** | `start := "a" \| "a" "b"` | picks the longer alt on `"ab"` → **accept** |
+| ordered choice — **explicit `longest_match`** | `@branch_policy: longest_match` + same | the explicit path matches the default |
+| ordered choice — **`ordered`** | `@branch_policy: ordered` + same | picks the *first* alt on `"ab"` → leaves `"b"` → **reject** |
+| ordered choice — **`priority_first`** | `@branch_policy: priority_first` + `@priority: [1,2]` | picks the higher-`@priority` alt (reorders vs source) |
+| **always-succeeds** (`e? \| keyword`) | `start := opt \| kw`, `opt := "x"?` | the always-matching `opt` does *not* shadow `kw` under `longest_match` |
+| **sequence + backtrack** | `start := "a" "b" \| "a" "c"` | backtrack after the shared `"a"` prefix |
+| quantifier **`?`** / **`*`** / **`+`** | `item?` / `item*` / `item+` | optional / zero-or-more / one-or-more |
+| quantifier **zero-length guard** | `start := item*`, `item := "x"?` | a `*` over a nullable element must stop at the first empty iteration |
+| lookahead **`!`** / **`&`** | `!"x" any` / `&digit rest` | zero-width negative / positive lookahead |
+| **atom** — terminal / regex-token | `"hello"` / `/[0-9]+/` | exact literal / anchored pattern match |
+| **rule reference** | `start := a b` | dispatch to referenced rules |
+| **left recursion** (LR-eliminated) | `expr := wrapper \| term`, `wrapper := expr "+" term` | the wrapper form is rewritten to `base (suffix)*` |
+
+The gate also asserts a **completeness** invariant (every combinator in the enumerated universe has ≥1
+case, and every case name is unique — no silent gap), and folds in the load-bearing **A2.2/A2.3
+discrimination proof**: on the *same* `a | ab` grammar, `longest_match` **accepts** `"ab"` while `ordered`
+**rejects** it — proven on **both** the interpreter and the real generated parser, in agreement. That is
+precisely the fact that makes a `FixedTerminalPrefix` shadowing verdict *unsound* under PGEN's backtracking
+engine, and it is why the harness was built. (This front-loads the empirical evidence the
+`GRAMMAR-WELLFORMED.A2.3` investigation needs.)
+
+### Two tool-established subtleties this suite surfaced
+
+Building the suite exposed two behaviours worth knowing when authoring grammars — both found by the oracle,
+not by guesswork:
+
+- **Bounded quantifiers `{N}` / `{N,M}` / `{N,}` / `{,M}` are half-wired.** The EBNF *frontend* parses
+  `item{2}` into a quantifier node, and the shared runtime `parse_quantifier_bounds` honours the bounds —
+  but **codegen has no handler** and aborts with `Unknown quantifier: 2`. So a grammar using a bounded
+  quantifier cannot be compiled today; only `?` / `*` / `+` reach the generated parser. The suite documents
+  this rather than silently skipping it, and it is a clean candidate for a future codegen enhancement.
+- **LR-elimination shifts the canonical entry.** When PGEN eliminates the wrapper/indirect left-recursion
+  form, it **prepends** the synthetic `_lr_base` / `_lr_suffix` helper rules to the rule order — so
+  `rule_order[0]` is no longer the semantic entry (`expr`); it becomes the base rule. Driving an
+  LR-eliminated grammar therefore requires naming the real entry explicitly (the suite does, applying the
+  same entry to both the interpreter and the oracle so the differential stays valid). This only affects
+  synthetic left-recursive grammars — the shipped grammars express operator chains iteratively
+  (`X := Y (op Y)*`), which needs no elimination.
+
+Bare *direct* left recursion (`A := A x | y`) is a deliberately **out-of-scope** case: PGEN's structural
+elimination only matches the wrapper form, so direct recursion is left to *runtime cycle-breaking*
+(`RecursionGuard`). On that path the interpreter and the generated parser agree on the verdict but diverge
+on `furthest_position` (measured: interpreter reaches `2`/`4`, the generated parser stays `0`) — a genuine
+interpreter-fidelity gap kept as a durable, re-runnable probe and surfaced for a follow-up, distinct from
+the LR-*eliminated* combinator the suite certifies.
+
 ## Honest bounds
 
 - The scratch slot and the compile-and-run harness are authoritative *by construction* — they run the
@@ -492,8 +559,10 @@ grammar with that shape — not just regex:
   differentiable grammars byte-identical** (including SystemVerilog / VHDL / rtl_frontend, plus `regex` and
   `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
   `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
-  ratchet is now empty. A combinator-complete + fuzzed corpus is `.6`/`.7`. See
-  `docs/tasks/PARSE-HARNESS.md` §3.4 / §14 / §15 / §16 / §17 / §18 / §19.
+  ratchet is now empty. The **structural** half of a combinator-complete corpus has now also landed
+  (`.6.1`, *The structural combinator suite* above — 16 isolating grammars, byte-identical interpreter vs
+  compile-and-run oracle); the **semantic-directive** half (`@predicate`/`@emit_fact`/scope/rollback) is
+  `.6.2`, and a fuzzing lane is `.7`. See `docs/tasks/PARSE-HARNESS.md` §3.3 / §3.4.
 
 ## See also
 
