@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-REPO-HYGIENE-0001 (REPO-HYGIENE.1): remove the vestigial repo-root `test` package (`Cargo.toml` + empty `src/lib.rs`)
+
+Session #52. **Repo-hygiene cleanup (director-authorized).** The repo root carried a tracked
+standalone `Cargo.toml` (`name = "test"`, deps `regex`/`lazy_static`) plus an empty (0-byte)
+`src/lib.rs`, both present since the initial commit `b579dc8a`. It is NOT a Cargo workspace root and
+`rust/` does not reference it, so it was a dead scaffold — built by no gate, but its one live effect
+was trapping `cargo` invoked from the repo root into building this empty stub (`running 0 tests`)
+instead of the real `pgen` crate under `rust/`. Surfaced during `GRAMMAR-WELLFORMED.A2.4` when a
+root-level `cargo test --lib` resolved to it.
+
+- **Tool-proven orphaned before removal:** no `.github/` workflow builds from repo root (only
+  `cargo install mdbook`); every script/gate/hook cargo call targets `rust/`/`rtl_*/` via `-C rust`
+  or `--manifest-path`; not in any `.gitignore`; no root `Cargo.lock` or tracked root `target/`; no
+  live doc/config references the `test` package (all `src/lib.rs` doc hits are cargo's
+  `Running unittests src/lib.rs` output strings or historical `rust/src/lib.rs` debug logs; no
+  `core/` crate exists).
+- **Fix:** `git rm Cargo.toml src/lib.rs`.
+- **Verified:** `cargo` from the repo root now correctly errors "could not find Cargo.toml" (no
+  stray package); `pgen` lib tests still 695/695 from `rust/`; `check_doctrines.sh` all 6 PASS.
+- **Tracked by the new `REPO-HYGIENE` tree** (leaf `.1`, full acceptance checklist). No user-facing
+  surface / book / contract / release affected.
+
 ## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0152 (GRAMMAR-WELLFORMED.A2.4): `DuplicateAlternative` verdict + `DuplicateOf` certificate made SELECTION-SEMANTICS-AWARE — the A2.2/A2.3/A2.4 "PEG commits" arc is COMPLETE
 
 Session #52. **The LAST unconditioned ordered-choice deadness verdict.** The linter's
