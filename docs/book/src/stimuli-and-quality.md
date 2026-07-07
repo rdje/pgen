@@ -776,3 +776,62 @@ from 20 since `VERILOG-2005-PROFILE.6.7` promoted the 8 `sv_2017`-profile-unreac
 rules to per-profile `proof`) that the sound multi-config recognized union collapses to `UNKNOWN=1` (the
 single `context_member_method_call` reach-gap, deferred to a future structured-witness synthesizer). No grammar emits a sample its own
 parser semantically rejects.
+
+## Directed (Learned) Generation — the FdLoop Loop
+
+Beyond the diverse pass (coverage-guided random sampling) and the witness pass (deterministic
+single-target construction), the generator has a third, opt-in mode: **directed generation with a
+learned distribution**, adopted from *FdLoop* (Kirschner & Soremekun, "Directed Grammar-Based Test
+Generation", arXiv 2508.01472). Where the witness pass forces one named target, the directed loop
+steers the **whole distribution** of generated samples toward a measurable goal.
+
+Each round it:
+
+1. **generates** a batch of samples and **scores** each one against the goal (the *fitness*);
+2. **selects** the round's best sample and keeps its *derivation log* — the exact ordered-choice
+   branches its generation resolved (recorded per sample, at zero cost when the mode is off);
+3. **re-learns** a per-choice-point branch distribution from all selected logs so far (counting
+   which alternative won at each `rule::path` choice point — a *probabilistic grammar* learned
+   from the best inputs), and **resets one randomly-chosen learned group back to uniform** so the
+   loop keeps exploring (FdLoop's exploration mutation, drawn from the run's seeded RNG);
+4. **installs** the learned distribution: the next round's weighted branch tournament multiplies
+   each alternative's weight by its learned count (composed with — never replacing — the
+   grammar's declared probabilities and the coverage-deficit guidance).
+
+The first supported goal is **`k_path`**: fitness = how many *new* k-paths (a rule in the context
+of its depth-k ancestor chain — the coverage-universe metric) the sample's generation covered.
+Run it with:
+
+```bash
+./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf \
+  --grammar-profile sv_2017 --entry-rule systemverilog_file \
+  --directed-generation-goal k_path \
+  --directed-rounds 10 --directed-samples-per-round 5 --directed-k 2 \
+  --seed 0 [--directed-report-json report.json]
+```
+
+The headline always includes the honest comparator — a **same-seed, same-budget diverse baseline**
+(a fresh generator generating `rounds × samples_per_round` samples with no learning):
+
+```text
+DIRECTED-GENERATION: goal=k_path grammar='systemverilog' entry='systemverilog_file' k=2
+  rounds=10 samples_per_round=5 seed=0
+  -> directed covered 723/4111 (17.6%) vs diverse baseline 680/4111 (16.5%) [delta +43]
+  learned_groups=56
+```
+
+Measured on SystemVerilog (`sv_2017`, k=2, 50-sample budget) the directed loop beats the diverse
+baseline at every canonical seed — `+43` k-paths at seed 0, `+104` at seed 7, `+13` at seed 42 —
+and the run is **deterministic**: the same seed reproduces the identical report byte-for-byte. On
+a small saturating grammar (json: 13/13 k-paths for both) directed and diverse honestly tie —
+there is nothing left to steer toward.
+
+The related read-only report `--report-k-path-coverage K` prints the plain diverse-pass coverage
+(`covered/universe` at depth K) without the loop, using `--count` samples.
+
+Honest bounds: `k_path` is the only goal wired today (the wider goal vocabulary — parser
+code-coverage feedback, parse-failure revelation, corpus-mimicry learning from real-world files —
+is designed and tracked in the `STIMULI-SIGNOFF` tree, leaf `.4`); learning covers ordered-choice
+branch selection, not repetition counts; and the loop is generation-side and opt-in only — the
+diverse pass, the witness pass, and certificate coverage stay byte-identical with the mode off
+(proven by pre/post byte-compares at seeds 0/7/42).

@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0011 (STIMULI-SIGNOFF.4.2): the FdLoop directed-loop driver lands — directed generation measurably BEATS the diverse pass on SV's own k-path signoff metric
+
+Session #58. The `.4` capability is now end-to-end: goal-directed generation with a LEARNED
+distribution, adopted from FdLoop (arXiv 2508.01472), goal G1 = k-path coverage.
+
+- **New surface:** `StimuliGenerator::directed_k_path_generation` (per round: generate n samples →
+  fitness = NEW k-paths covered (the `.2` recorder's set-length delta) → select the round's best
+  sample's derivation log (first-seen argmax) → re-learn the distribution from all selected logs →
+  exploration mutation (reset one seeded-RNG-chosen learned group to uniform, FdLoop's
+  uniform-reset) → install for the next round; failed generations score 0 and contribute no log)
+  + `DirectedKPathOutcome` + CLI mode `--directed-generation-goal k_path` with `--directed-rounds`
+  / `--directed-samples-per-round` / `--directed-k` / `--directed-report-json` (main.rs runner
+  `run_directed_generation`, `DirectedGenerationRun` params struct).
+- **The headline is honest by construction:** every run prints the directed result NEXT TO a
+  same-seed, same-budget diverse baseline (a fresh generator, rounds×samples samples, no learning).
+- **MEASURED (SV sv_2017, k=2, 50-sample budget):** directed beats diverse at ALL 3 canonical
+  seeds — `723/4111 (17.6%) vs 680/4111 (16.5%) [delta +43]` @seed 0; `716 vs 612 [+104]` @seed 7;
+  `649 vs 636 [+13]` @seed 42. json control: honest tie at saturation (13/13 both — nothing left
+  to steer toward). DETERMINISTIC: repeated same-seed runs produce byte-identical JSON reports.
+- **No regression:** all 12 svpp+regex cert+corpus artifacts cmp byte-identical to the pre-`.4.1`
+  baseline at seeds 0/7/42 (the mode is opt-in; default surfaces untouched); suites 753/827/869
+  all 0-fail (+2 new tests); clippy source 0.
+- **Book:** new "Directed (Learned) Generation — the FdLoop Loop" section in
+  `stimuli-and-quality.md` (mechanism, CLI, the real SV headline, determinism, honest bounds; also
+  documents the previously-undocumented `--report-k-path-coverage`); `mdbook_docs_gate` ✅.
+- Tracker: LIVE unchanged (capability lane; no closure-row movement).
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0010 (STIMULI-SIGNOFF.4.1): the learned-distribution layer lands — FdLoop stage-1/2 substrate, default-OFF byte-identical
 
 Session #58. First CODE slice of the `.4` FDLOOP design — the generator can now LEARN a

@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0011 — STIMULI-SIGNOFF.4.2: implementation notes — the baseline must share the seed AND the budget, or the delta is theater
+
+Session #58. Notes from landing the directed-loop driver:
+
+1. **Bake the comparator into the headline.** The single most gameable number in a "directed beats
+   random" claim is the baseline. `run_directed_generation` constructs BOTH generators identically
+   (same grammar, same `StimuliConfig`, same seed) and gives the diverse baseline the exact total
+   sample budget (`rounds × samples_per_round`); the `DIRECTED-GENERATION:` line always prints
+   both. On SV the deltas (+43/+104/+13 across seeds 0/7/42) are therefore attributable to the
+   learned steering alone. The json control tying at 13/13 is the honest negative space: on a
+   saturating grammar directed generation has nothing to buy you.
+2. **Fitness-by-delta makes the recorder the oracle.** Per-sample fitness = `covered_k_paths` set
+   length AFTER minus BEFORE the sample — no second measurement machinery; the `.2` recorder that
+   DEFINED the signoff metric also scores the loop that chases it. Note the delta is
+   order-dependent (later samples re-covering paths score lower) — that is FdLoop's own
+   relative-to-current-state feedback semantics, not an accident.
+3. **Exploration must also be seeded.** FdLoop "resets random rules to uniform" for exploration;
+   naively that would break PGEN's determinism doctrine. The reset choice draws from the
+   generator's own seeded StdRng over SORTED group keys, so the whole loop — sampling, selection,
+   exploration — reproduces byte-identically per seed (proven: repeated seed-0 SV/json reports
+   diff-clean).
+4. **Clap arg-group hygiene:** the four sub-flags all declare `requires = "directed_generation_goal"`
+   so a stray `--directed-rounds` without the goal is rejected at parse time instead of silently
+   ignored.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0010 — STIMULI-SIGNOFF.4.1: implementation notes — a steering layer that must prove it does nothing by default
 
 Session #58. Notes from landing the learned-distribution layer:

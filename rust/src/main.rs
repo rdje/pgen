@@ -97,6 +97,31 @@ struct Args {
     #[arg(long, value_name = "K")]
     report_k_path_coverage: Option<usize>,
 
+    /// STIMULI-SIGNOFF.4.2: opt-in DIRECTED generation loop (FdLoop, arXiv 2508.01472): per
+    /// round, learn a per-choice-point branch distribution from the round's best sample and
+    /// steer the next round's generation with it. Value names the GOAL; supported: `k_path`
+    /// (goal G1 — per-sample fitness = NEW k-paths covered). Prints a `DIRECTED-GENERATION:`
+    /// headline including a same-seed, same-budget diverse-pass baseline comparison. Opt-in
+    /// only — no other generation surface changes.
+    #[arg(long, value_name = "GOAL")]
+    directed_generation_goal: Option<String>,
+
+    /// STIMULI-SIGNOFF.4.2: rounds for the directed loop (FdLoop generations).
+    #[arg(long, default_value_t = 10, requires = "directed_generation_goal")]
+    directed_rounds: usize,
+
+    /// STIMULI-SIGNOFF.4.2: samples generated (and scored) per directed round.
+    #[arg(long, default_value_t = 5, requires = "directed_generation_goal")]
+    directed_samples_per_round: usize,
+
+    /// STIMULI-SIGNOFF.4.2: the k for the k_path goal's coverage metric (use small k, 2-3).
+    #[arg(long, default_value_t = 2, requires = "directed_generation_goal")]
+    directed_k: usize,
+
+    /// STIMULI-SIGNOFF.4.2: optional path for the directed loop's JSON report.
+    #[arg(long, value_name = "FILE", requires = "directed_generation_goal")]
+    directed_report_json: Option<String>,
+
     /// GRAMMAR-WELLFORMED.G.4: opt-in CERTIFICATE-COVERAGE report (the linter⟷generator duality
     /// capstone). For every rule, is it covered by a verified unreachability PROOF or a verified
     /// reachability WITNESS (a clean diverse `--count` sample that parses through the real parser and
@@ -981,6 +1006,31 @@ fn main() -> Result<()> {
             args.entry_rule.as_deref(),
             args.count,
             args.seed.unwrap_or(0),
+        );
+    }
+
+    // STIMULI-SIGNOFF.4.2: opt-in FdLoop directed generation loop (goal-directed learned
+    // distributions). Read-only report mode like the k-path report above.
+    if let Some(goal) = args.directed_generation_goal.as_deref() {
+        let grammar = apply_grammar_profile_filter(
+            load_grammar_bundle(
+                &args.input_path,
+                &mut pipeline,
+                args.emit_raw_ast_json.as_deref(),
+            )?,
+            args.grammar_profile.as_deref(),
+        )?;
+        return run_directed_generation(
+            &grammar,
+            DirectedGenerationRun {
+                goal,
+                entry: args.entry_rule.as_deref(),
+                rounds: args.directed_rounds,
+                samples_per_round: args.directed_samples_per_round,
+                k: args.directed_k,
+                seed: args.seed.unwrap_or(0),
+                report_json: args.directed_report_json.as_deref(),
+            },
         );
     }
 
@@ -2384,6 +2434,108 @@ fn run_k_path_coverage_report(
         "k-path coverage: grammar='{}' entry='{}' k={} samples={} -> covered {}/{} k-paths ({:.1}% of the universe)",
         grammar.grammar_name, entry_rule, k, samples, covered, universe, pct
     );
+    Ok(())
+}
+
+/// STIMULI-SIGNOFF.4.2: the parameters of one `--directed-generation-goal` run.
+struct DirectedGenerationRun<'a> {
+    goal: &'a str,
+    entry: Option<&'a str>,
+    rounds: usize,
+    samples_per_round: usize,
+    k: usize,
+    seed: u64,
+    report_json: Option<&'a str>,
+}
+
+/// STIMULI-SIGNOFF.4.2: run the FdLoop directed generation loop for the requested goal and
+/// print the headline, including the same-seed same-budget DIVERSE baseline (a fresh generator
+/// generating rounds×samples_per_round samples with no learning) — the honest comparator for
+/// "did the learned steering buy coverage the plain diverse pass would not have reached?".
+fn run_directed_generation(grammar: &LoadedGrammar, run: DirectedGenerationRun) -> Result<()> {
+    if run.goal != "k_path" {
+        anyhow::bail!(
+            "unsupported --directed-generation-goal '{}' (supported goals: k_path)",
+            run.goal
+        );
+    }
+    let entry_rule = run
+        .entry
+        .map(|s| s.to_string())
+        .or_else(|| grammar.rule_order.first().cloned())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "grammar '{}' has no rules to run directed generation for",
+                grammar.grammar_name
+            )
+        })?;
+    let rounds = run.rounds.max(1);
+    let samples_per_round = run.samples_per_round.max(1);
+    let make_generator = || {
+        StimuliGenerator::new(
+            grammar.grammar_name.clone(),
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            grammar.annotations.as_ref(),
+            StimuliConfig {
+                seed: Some(run.seed),
+                ..Default::default()
+            },
+        )
+    };
+
+    let mut directed = make_generator();
+    let outcome = directed.directed_k_path_generation(&entry_rule, rounds, samples_per_round, run.k);
+
+    let mut diverse = make_generator();
+    let budget = rounds.saturating_mul(samples_per_round);
+    let (diverse_covered, universe) = diverse.k_path_coverage_report(&entry_rule, budget, run.k);
+
+    let pct = |covered: usize| {
+        if universe > 0 {
+            100.0 * covered as f64 / universe as f64
+        } else {
+            0.0
+        }
+    };
+    let delta = outcome.covered as i64 - diverse_covered as i64;
+    println!(
+        "DIRECTED-GENERATION: goal=k_path grammar='{}' entry='{}' k={} rounds={} samples_per_round={} seed={} -> directed covered {}/{} ({:.1}%) vs diverse baseline {}/{} ({:.1}%) [delta {:+}] learned_groups={}",
+        grammar.grammar_name,
+        entry_rule,
+        run.k,
+        rounds,
+        samples_per_round,
+        run.seed,
+        outcome.covered,
+        universe,
+        pct(outcome.covered),
+        diverse_covered,
+        universe,
+        pct(diverse_covered),
+        delta,
+        outcome.learned_groups
+    );
+    if let Some(path) = run.report_json {
+        let report = serde_json::json!({
+            "goal": "k_path",
+            "grammar_name": grammar.grammar_name,
+            "entry_rule": entry_rule,
+            "k": run.k,
+            "rounds": rounds,
+            "samples_per_round": samples_per_round,
+            "seed": run.seed,
+            "universe": universe,
+            "directed_covered": outcome.covered,
+            "diverse_baseline_covered": diverse_covered,
+            "delta": delta,
+            "per_round_best_new_k_paths": outcome.per_round_best_new_k_paths,
+            "learned_groups": outcome.learned_groups,
+        });
+        std::fs::write(path, serde_json::to_string_pretty(&report)?)
+            .with_context(|| format!("failed to write directed-generation report to {path}"))?;
+        println!("Wrote directed-generation report to {path}");
+    }
     Ok(())
 }
 

@@ -1396,6 +1396,24 @@ pub struct BranchSelectionLogEntry {
     pub branch_index: usize,
 }
 
+/// STIMULI-SIGNOFF.4.2: the measurable result of one directed k-path generation run (goal G1)
+/// — enough to reproduce (rounds/samples/k are the inputs; the seed lives in the generator's
+/// config) and to compare against a same-seed same-budget diverse baseline.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DirectedKPathOutcome {
+    pub rounds: usize,
+    pub samples_per_round: usize,
+    pub k: usize,
+    /// The best per-sample fitness (NEW k-paths covered) selected each round; 0 for a round
+    /// where every generation failed.
+    pub per_round_best_new_k_paths: Vec<usize>,
+    /// Final covered-in-universe k-path count (same accounting as `k_path_coverage`).
+    pub covered: usize,
+    pub universe: usize,
+    /// Learned branch groups installed after the final round (observability).
+    pub learned_groups: usize,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -6307,6 +6325,81 @@ impl<'a> StimuliGenerator<'a> {
                 total_branches,
                 branch_index,
             });
+        }
+    }
+
+    /// STIMULI-SIGNOFF.4.2: the FdLoop directed loop, goal G1 (k-path coverage). Per round:
+    /// generate `samples_per_round` samples (per-sample fitness = NEW k-paths its generation
+    /// covered — the `.2` recorder's set-length delta), select the round's best sample's
+    /// selection log (argmax fitness; first-seen wins ties — deterministic), accumulate the
+    /// selected logs and re-learn the distribution, apply the exploration mutation (reset one
+    /// seeded-RNG-chosen learned group to all-zero counts ⇒ multiplier 1 ⇒ uniform — FdLoop's
+    /// uniform-reset), install it for the next round. Failed generations score 0 and contribute
+    /// no log (no derivation to learn from). Deterministic per seed: every stochastic step —
+    /// sampling, the reset choice — draws from the generator's seeded `StdRng`. Opt-in only:
+    /// nothing here runs unless a caller invokes it, so every default surface is untouched.
+    pub fn directed_k_path_generation(
+        &mut self,
+        entry: &str,
+        rounds: usize,
+        samples_per_round: usize,
+        k: usize,
+    ) -> DirectedKPathOutcome {
+        self.enable_k_path_recording(k);
+        self.enable_branch_selection_log();
+        let mut selected_logs: Vec<Vec<BranchSelectionLogEntry>> = Vec::new();
+        let mut per_round_best_new_k_paths: Vec<usize> = Vec::with_capacity(rounds);
+        for _round in 0..rounds {
+            let mut round_best: Option<(usize, Vec<BranchSelectionLogEntry>)> = None;
+            for _sample in 0..samples_per_round {
+                let covered_before = self.covered_k_paths().map(HashSet::len).unwrap_or(0);
+                let _ = self.take_branch_selection_log();
+                let generation = self.generate_from_entry(entry);
+                let sample_log = self.take_branch_selection_log();
+                let covered_after = self.covered_k_paths().map(HashSet::len).unwrap_or(0);
+                let fitness = covered_after.saturating_sub(covered_before);
+                if generation.is_err() {
+                    continue;
+                }
+                let improves = round_best
+                    .as_ref()
+                    .map(|(best, _)| fitness > *best)
+                    .unwrap_or(true);
+                if improves {
+                    round_best = Some((fitness, sample_log));
+                }
+            }
+            let Some((best_fitness, best_log)) = round_best else {
+                per_round_best_new_k_paths.push(0);
+                continue;
+            };
+            per_round_best_new_k_paths.push(best_fitness);
+            selected_logs.push(best_log);
+            let mut learned = Self::learn_branch_distributions(&selected_logs);
+            if !learned.is_empty() {
+                let mut keys: Vec<&String> = learned.keys().collect();
+                keys.sort();
+                let reset_key = keys[self.rng.gen_range(0..keys.len())].clone();
+                if let Some(counts) = learned.get_mut(&reset_key) {
+                    counts.iter_mut().for_each(|count| *count = 0);
+                }
+            }
+            self.set_learned_branch_distributions(Some(learned));
+        }
+        let (covered, universe) = self.k_path_coverage().unwrap_or((0, 0));
+        let learned_groups = self
+            .learned_branch_distributions
+            .as_ref()
+            .map(HashMap::len)
+            .unwrap_or(0);
+        DirectedKPathOutcome {
+            rounds,
+            samples_per_round,
+            k,
+            per_round_best_new_k_paths,
+            covered,
+            universe,
+            learned_groups,
         }
     }
 
@@ -24051,6 +24144,51 @@ mod tests {
         assert!(
             skew_b[1] >= 38,
             "a 1e6-skew toward branch 1 must dominate sampling; got {skew_b:?}"
+        );
+    }
+
+    #[test]
+    fn directed_k_path_loop_is_deterministic_and_learns() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let run = || {
+            let mut g = simple_generator(&grammar_tree, &rule_order, 21);
+            g.directed_k_path_generation("start", 3, 4, 2)
+        };
+        let first = run();
+        let second = run();
+        assert_eq!(
+            first, second,
+            "same seed + same budget must reproduce the identical outcome"
+        );
+        assert_eq!(first.per_round_best_new_k_paths.len(), 3);
+        assert!(
+            first.learned_groups >= 1,
+            "the loop must install a learned distribution; got {first:?}"
+        );
+        assert!(first.covered <= first.universe);
+        assert!(
+            first.per_round_best_new_k_paths[0] >= 1,
+            "round 0 always covers new k-paths on a fresh recorder; got {first:?}"
+        );
+    }
+
+    #[test]
+    fn directed_k_path_loop_saturates_tiny_grammar_universe_like_diverse() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut directed = simple_generator(&grammar_tree, &rule_order, 5);
+        let outcome = directed.directed_k_path_generation("start", 5, 5, 2);
+        let mut diverse = simple_generator(&grammar_tree, &rule_order, 5);
+        let (diverse_covered, universe) = diverse.k_path_coverage_report("start", 25, 2);
+        assert_eq!(outcome.universe, universe);
+        assert_eq!(
+            outcome.covered, universe,
+            "25 directed samples saturate the 5-edge universe; got {outcome:?}"
+        );
+        assert_eq!(
+            diverse_covered, universe,
+            "the same-budget diverse baseline saturates it too"
         );
     }
 
