@@ -37,7 +37,7 @@ escape_unit = single_byte_escape
 | 5 (`property_escape`) | `\p{Lu}`, `\P{Lu}`, `\pL`, `\PL` | `\pL` | nested property_escape Sequence |
 | 6 (`simple_escape`) | `\<any-char>` (catch-all) | `\d`, `\.`, `\\` | `Terminal(<char>)` (single char after backslash) |
 
-The branches are tried in order; `simple_escape` is the catch-all that matches any unrecognized `\<char>` escape. **Profile note (REGEX-PCRE2-FIDELITY.3.1):** branch 2 (`unicode_escape`, `\u{…}`) is `@profiles: ["relaxed"]` — active only under the `relaxed` profile; branch 6 (`simple_escape`) splits into a strict default variant and a `relaxed` variant. In the default (`pcre2`) profile the six PCRE2-unsupported escape letters `\i \F \l \L \u \U` are rejected. See [Profiles — strict default vs `relaxed`](#profiles--strict-default-vs-relaxed).
+The branches are tried in order; `simple_escape` is the catch-all that matches any unrecognized `\<char>` escape. **Profile note (REGEX-PCRE2-FIDELITY.3.1):** branch 2 (`unicode_escape`, `\u{…}`) is `@profiles: ["relaxed"]` — active only under the `relaxed` profile; branch 6 (`simple_escape`)'s letter component carries the strict/relaxed split. In the default (`pcre2`) profile the six PCRE2-unsupported escape letters `\i \F \l \L \u \U` are rejected. See [Profiles — strict default vs `relaxed`](#profiles--strict-default-vs-relaxed). **Anchor note (REGEX-PCRE2-FIDELITY.3.13, release 1.1.82):** the 7 escape-anchor spellings `\A \Z \z \b \B \G \K` are NOT reachable through `simple_escape` at the pattern level in either profile — they are anchors, owned by the `anchor` rule (their own non-quantifiable `piece` branch), which is how `\b*`-style quantified escape-anchors reject PCRE2-faithfully (err 109).
 
 ## `single_byte_escape`
 
@@ -50,15 +50,20 @@ PCRE2's `\C` — match one code unit. `Terminal("C")`.
 ## `simple_escape`
 
 ```ebnf
-simple_escape = simple_escape_strict | simple_escape_relaxed
+simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail
+simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
+simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
 ```
 
-The catch-all single-char escape. Emits the typed shorthand object `{type: "escape", kind: "shorthand", char: <char>}` — the character that follows the backslash. It is a transparent alternation over a **strict** (default / `pcre2` profile) variant and a `@profiles: ["relaxed"]` variant (see [Profiles — strict default vs `relaxed`](#profiles--strict-default-vs-relaxed) below).
+The catch-all single-char escape. Emits the typed shorthand object `{type: "escape", kind: "shorthand", char: <char>}` (positional ref `char: $5`) — the character that follows the backslash.
 
 For `\d`: the inner shape is `{type:"escape",kind:"shorthand",char:"d"}` — the standard PCRE2 metacharacter is just text from the parser's perspective; semantic interpretation (`\d` = digit-class) is downstream.
 
-- `simple_escape_strict` (always active): the catch-all **excluding** the four brace-form leads (`\o{`/`\x{`/`\p{`/`\P{`), the digit guards (`\0`–`\9`, PGEN-RGX-0087), **and** the six PCRE2-unsupported escape letters `\i \F \l \L \u \U` (REGEX-PCRE2-FIDELITY.3.1). Positional ref `char: $21`.
-- `simple_escape_relaxed` (`@profiles: ["relaxed"]` — active only under the `relaxed` profile): the historical catch-all without the six-letter exclusion (re-admits `\i \F \l \L \u \U`). Positional ref `char: $15`.
+**Since release 1.1.82 (REGEX-PCRE2-FIDELITY.3.13)** the letter component is a **positive enumeration** instead of negative-lookahead guards over `any_char` (the stimuli generator is lookahead-blind, so guard-based exclusions were invisible to generation; a positive set is generation-faithful). Same accepted set per profile as before, minus the 7 escape-anchor letters (see below):
+
+- `simple_escape_letter_strict` (always active): 39 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings `A B G K Z b z` (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13) and the six PCRE2-unsupported letters `F L U i l u` (REGEX-PCRE2-FIDELITY.3.1).
+- `simple_escape_letter_relaxed` (`@profiles: ["relaxed"]`): re-admits `\i \F \l \L \u \U`. The anchor letters stay excluded in BOTH profiles.
+- Digits are excluded positively (no `digit` alternative — the PGEN-RGX-0087 rule: `\<digit>` is always backref/octal/error, never shorthand); the four brace-form leads (`\o{`/`\x{`/`\p{`/`\P{`) remain negative lookaheads (a "not followed by `{`" condition has no positive spelling).
 
 ## Profiles — strict default vs `relaxed`
 

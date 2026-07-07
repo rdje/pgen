@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3384b4d0.js";
+            window.path_to_searchindex_js = "searchindex-f0ecf901.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -184,16 +184,18 @@
 <p>The <code>piece</code> rule is the workhorse of regex — every quantified or unquantified atom in a pattern is a piece. This chapter covers <code>piece</code> itself plus its siblings introduced for the PGEN-RGX-0074 fix.</p>
 <h2 id="piece"><a class="header" href="#piece"><code>piece</code></a></h2>
 <pre><code class="language-ebnf">piece = piece_quoted_run_quantified -&gt; $1
+      | anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
       | atom quantifier?
 -&gt; {type: "piece", atom: $1, quantifier: $2}
 </code></pre>
-<p>Two branches:</p>
+<p>Three branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>):</p>
 <ol>
 <li><strong>Branch 0</strong>: <code>piece_quoted_run_quantified -&gt; $1</code>. Tried FIRST. Matches <code>\Q...\E quantifier</code> — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).</li>
-<li><strong>Branch 1</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. The standard piece shape: a single atom with an optional quantifier.</li>
+<li><strong>Branch 1</strong>: <code>anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. Anchors (<code>^ $ \A \Z \z \b \B \G \K</code>) are <strong>non-quantifiable</strong> in PCRE2 (err 109), so an anchor forms a piece with NO quantifier slot; the <code>!quantifier</code> lookahead makes <code>^*</code>/<code>$*</code>/<code>\b*</code>/<code>\A{2}</code>-style patterns REJECT while non-quantifier braces (<code>${</code>, <code>\A{a}</code>, <code>\A{}</code>) still parse as anchor + literal-brace pieces (PCRE2-parity). The emitted piece is byte-identical to the pre-<code>1.1.82</code> unquantified-anchor shape (<code>quantifier: []</code> matches the unmatched-<code>?</code> byte-shape). <code>anchor</code> is no longer an <code>atom</code> alternative. See the anchors chapter’s “Quantified anchors reject” section and ledger <code>REGEX-0088</code>.</li>
+<li><strong>Branch 2</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. The standard piece shape: a single atom with an optional quantifier.</li>
 </ol>
-<p>PEG-ordered alternation: branch 0 is attempted first; if it doesn’t match, branch 1 takes over. For <code>\Qa\E{3}</code> (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 1 matches via the <code>quoted_literal</code> atom alternative.</p>
-<h3 id="shape--branch-1-the-common-case"><a class="header" href="#shape--branch-1-the-common-case">Shape — branch 1 (the common case)</a></h3>
+<p>For <code>\Qa\E{3}</code> (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 2 matches via the <code>quoted_literal</code> atom alternative.</p>
+<h3 id="shape--the-standard-atom-branch-the-common-case"><a class="header" href="#shape--the-standard-atom-branch-the-common-case">Shape — the standard atom branch (the common case)</a></h3>
 <pre><code class="language-json">{
   "type": "piece",
   "atom": &lt;atom-content&gt;,

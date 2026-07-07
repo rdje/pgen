@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3384b4d0.js";
+            window.path_to_searchindex_js = "searchindex-f0ecf901.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -214,19 +214,23 @@ escape = "\\" escape_unit
 </tbody>
 </table>
 </div>
-<p>The branches are tried in order; <code>simple_escape</code> is the catch-all that matches any unrecognized <code>\&lt;char&gt;</code> escape. <strong>Profile note (REGEX-PCRE2-FIDELITY.3.1):</strong> branch 2 (<code>unicode_escape</code>, <code>\u{…}</code>) is <code>@profiles: ["relaxed"]</code> — active only under the <code>relaxed</code> profile; branch 6 (<code>simple_escape</code>) splits into a strict default variant and a <code>relaxed</code> variant. In the default (<code>pcre2</code>) profile the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> are rejected. See <a href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a>.</p>
+<p>The branches are tried in order; <code>simple_escape</code> is the catch-all that matches any unrecognized <code>\&lt;char&gt;</code> escape. <strong>Profile note (REGEX-PCRE2-FIDELITY.3.1):</strong> branch 2 (<code>unicode_escape</code>, <code>\u{…}</code>) is <code>@profiles: ["relaxed"]</code> — active only under the <code>relaxed</code> profile; branch 6 (<code>simple_escape</code>)’s letter component carries the strict/relaxed split. In the default (<code>pcre2</code>) profile the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> are rejected. See <a href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a>. <strong>Anchor note (REGEX-PCRE2-FIDELITY.3.13, release 1.1.82):</strong> the 7 escape-anchor spellings <code>\A \Z \z \b \B \G \K</code> are NOT reachable through <code>simple_escape</code> at the pattern level in either profile — they are anchors, owned by the <code>anchor</code> rule (their own non-quantifiable <code>piece</code> branch), which is how <code>\b*</code>-style quantified escape-anchors reject PCRE2-faithfully (err 109).</p>
 <h2 id="single_byte_escape"><a class="header" href="#single_byte_escape"><code>single_byte_escape</code></a></h2>
 <pre><code class="language-ebnf">single_byte_escape = "C"
 </code></pre>
 <p>PCRE2’s <code>\C</code> — match one code unit. <code>Terminal("C")</code>.</p>
 <h2 id="simple_escape"><a class="header" href="#simple_escape"><code>simple_escape</code></a></h2>
-<pre><code class="language-ebnf">simple_escape = simple_escape_strict | simple_escape_relaxed
+<pre><code class="language-ebnf">simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail
+simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
+simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
 </code></pre>
-<p>The catch-all single-char escape. Emits the typed shorthand object <code>{type: "escape", kind: "shorthand", char: &lt;char&gt;}</code> — the character that follows the backslash. It is a transparent alternation over a <strong>strict</strong> (default / <code>pcre2</code> profile) variant and a <code>@profiles: ["relaxed"]</code> variant (see <a href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a> below).</p>
+<p>The catch-all single-char escape. Emits the typed shorthand object <code>{type: "escape", kind: "shorthand", char: &lt;char&gt;}</code> (positional ref <code>char: $5</code>) — the character that follows the backslash.</p>
 <p>For <code>\d</code>: the inner shape is <code>{type:"escape",kind:"shorthand",char:"d"}</code> — the standard PCRE2 metacharacter is just text from the parser’s perspective; semantic interpretation (<code>\d</code> = digit-class) is downstream.</p>
+<p><strong>Since release 1.1.82 (REGEX-PCRE2-FIDELITY.3.13)</strong> the letter component is a <strong>positive enumeration</strong> instead of negative-lookahead guards over <code>any_char</code> (the stimuli generator is lookahead-blind, so guard-based exclusions were invisible to generation; a positive set is generation-faithful). Same accepted set per profile as before, minus the 7 escape-anchor letters (see below):</p>
 <ul>
-<li><code>simple_escape_strict</code> (always active): the catch-all <strong>excluding</strong> the four brace-form leads (<code>\o{</code>/<code>\x{</code>/<code>\p{</code>/<code>\P{</code>), the digit guards (<code>\0</code>–<code>\9</code>, PGEN-RGX-0087), <strong>and</strong> the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> (REGEX-PCRE2-FIDELITY.3.1). Positional ref <code>char: $21</code>.</li>
-<li><code>simple_escape_relaxed</code> (<code>@profiles: ["relaxed"]</code> — active only under the <code>relaxed</code> profile): the historical catch-all without the six-letter exclusion (re-admits <code>\i \F \l \L \u \U</code>). Positional ref <code>char: $15</code>.</li>
+<li><code>simple_escape_letter_strict</code> (always active): 39 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings <code>A B G K Z b z</code> (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13) and the six PCRE2-unsupported letters <code>F L U i l u</code> (REGEX-PCRE2-FIDELITY.3.1).</li>
+<li><code>simple_escape_letter_relaxed</code> (<code>@profiles: ["relaxed"]</code>): re-admits <code>\i \F \l \L \u \U</code>. The anchor letters stay excluded in BOTH profiles.</li>
+<li>Digits are excluded positively (no <code>digit</code> alternative — the PGEN-RGX-0087 rule: <code>\&lt;digit&gt;</code> is always backref/octal/error, never shorthand); the four brace-form leads (<code>\o{</code>/<code>\x{</code>/<code>\p{</code>/<code>\P{</code>) remain negative lookaheads (a “not followed by <code>{</code>” condition has no positive spelling).</li>
 </ul>
 <h2 id="profiles--strict-default-vs-relaxed"><a class="header" href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a></h2>
 <p><strong>REGEX-PCRE2-FIDELITY.3.1.</strong> PGEN’s regex parser is <strong>PCRE2-faithful by default</strong>. The six escape letters PCRE2 does not support — <code>\i \F \l \L \u \U</code> (and the braced <code>\u{…}</code> form) — are <strong>rejected in the default (<code>pcre2</code>) profile</strong> and re-admitted only under the opt-out <strong><code>relaxed</code></strong> profile. This rule lives entirely in the grammar (the EBNF is the single source of truth); it was previously enforced by an out-of-band host validator.</p>

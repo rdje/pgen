@@ -2314,7 +2314,7 @@ fn apply_grammar_profile_filter(
     // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: an unspecified profile resolves to the
     // grammar's DECLARED `@default_profile` (e.g. regex → strict `pcre2`) on the GENERATION side
     // too — the generation twin of the parse-side default the generated constructor now carries.
-    // Without this, the `@profiles:["relaxed"]`-gated constructs (`simple_escape_relaxed`,
+    // Without this, the `@profiles:["relaxed"]`-gated constructs (`simple_escape_letter_relaxed`,
     // `unicode_escape`, …) would NOT be filtered out of default-mode generation, so the generator
     // could emit `\u` etc. that the (grammar-strict) default-mode parser rejects. The retired
     // `== "regex" → "pcre2"` name literal was the doctrine violation this replaces: the default

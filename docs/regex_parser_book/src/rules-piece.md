@@ -6,18 +6,20 @@ The `piece` rule is the workhorse of regex — every quantified or unquantified 
 
 ```ebnf
 piece = piece_quoted_run_quantified -> $1
+      | anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}
       | atom quantifier?
 -> {type: "piece", atom: $1, quantifier: $2}
 ```
 
-Two branches:
+Three branches (the anchor branch landed in release `1.1.82`, `REGEX-PCRE2-FIDELITY.3.13`):
 
 1. **Branch 0**: `piece_quoted_run_quantified -> $1`. Tried FIRST. Matches `\Q...\E quantifier` — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).
-2. **Branch 1**: `atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}`. The standard piece shape: a single atom with an optional quantifier.
+2. **Branch 1**: `anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}`. Anchors (`^ $ \A \Z \z \b \B \G \K`) are **non-quantifiable** in PCRE2 (err 109), so an anchor forms a piece with NO quantifier slot; the `!quantifier` lookahead makes `^*`/`$*`/`\b*`/`\A{2}`-style patterns REJECT while non-quantifier braces (`${`, `\A{a}`, `\A{}`) still parse as anchor + literal-brace pieces (PCRE2-parity). The emitted piece is byte-identical to the pre-`1.1.82` unquantified-anchor shape (`quantifier: []` matches the unmatched-`?` byte-shape). `anchor` is no longer an `atom` alternative. See the anchors chapter's "Quantified anchors reject" section and ledger `REGEX-0088`.
+3. **Branch 2**: `atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}`. The standard piece shape: a single atom with an optional quantifier.
 
-PEG-ordered alternation: branch 0 is attempted first; if it doesn't match, branch 1 takes over. For `\Qa\E{3}` (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 1 matches via the `quoted_literal` atom alternative.
+For `\Qa\E{3}` (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 2 matches via the `quoted_literal` atom alternative.
 
-### Shape — branch 1 (the common case)
+### Shape — the standard atom branch (the common case)
 
 ```json
 {

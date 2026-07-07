@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3384b4d0.js";
+            window.path_to_searchindex_js = "searchindex-f0ecf901.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -182,6 +182,21 @@
                     <main>
                         <h1 id="examples-anchors-and-boundaries"><a class="header" href="#examples-anchors-and-boundaries">Examples: Anchors and Boundaries</a></h1>
 <p>Concrete probe outputs for PCRE2 anchors and word-boundary constructs. As of slice 7 (post-1.1.35) the <code>anchor</code> rule emits a typed <code>{type: "anchor", kind: "&lt;name&gt;"}</code> object — consumers read <code>.kind</code> directly instead of dispatching by string match on the raw escape text.</p>
+<h2 id="quantified-anchors-reject-release-1182-regex-pcre2-fidelity313"><a class="header" href="#quantified-anchors-reject-release-1182-regex-pcre2-fidelity313">Quantified anchors reject (release 1.1.82, REGEX-PCRE2-FIDELITY.3.13)</a></h2>
+<p>PCRE2 rejects a quantifier applied directly to ANY of the 9 anchor forms (err 109, “quantifier
+does not follow a repeatable item”), and since release <code>1.1.82</code> PGEN does too — at the grammar
+layer (anchors are their own non-quantifiable <code>piece</code> branch; the check no longer lives in the
+host validator):</p>
+<ul>
+<li><strong>REJECT</strong> (<code>E_PARSE_FAILURE</code>): <code>^*</code> <code>$*</code> <code>$?</code> <code>^+</code> <code>${2}</code> <code>\A*</code> <code>\A{2}</code> <code>\A{2,3}</code> <code>\A{,2}</code>
+<code>\b*</code> <code>\B?</code> <code>\G+</code> <code>\z*</code> <code>\Z*</code> <code>\K*</code> — the escape-anchor forms were wrongly ACCEPTED before
+<code>1.1.82</code> (bug ledger <code>REGEX-0088</code>).</li>
+<li><strong>ACCEPT</strong> (shapes unchanged): bare anchors; anchors in concatenation (<code>a^b$c</code>); grouped
+anchors — <code>(?:^)*</code> quantifies the GROUP, PCRE2-parity; class members <code>[$]*</code> / <code>[\b]</code> (a <code>$</code>
+in a class is a literal; <code>[\b]</code> is backspace); the POSIX word-boundary aliases
+<code>[[:&lt;:]]*</code> / <code>[[:&gt;:]]+</code> (PCRE2 compiles them to quantifiable sub-groups); and non-quantifier
+braces <code>${</code> <code>\A{a}</code> <code>\A{2</code> <code>\A{}</code> (not a valid quantifier shape ⇒ literal braces, PCRE2-parity).</li>
+</ul>
 <h2 id="-start-anchor"><a class="header" href="#-start-anchor"><code>^</code> start anchor</a></h2>
 <pre><code class="language-json">"pattern": [
   [[

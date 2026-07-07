@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-REGEX-PCRE2-0011 — REGEX-PCRE2-FIDELITY.3.13: implementation notes — encoding "non-quantifiable" structurally, and why positive enumeration beats lookahead guards for generation
+
+Session #60. Notes from landing the quantified-anchor encoding (regex release 1.1.82):
+
+1. **The `!quantifier` rule-reference lookahead is what makes the boundary oracle-exact.** A
+   naive "anchors are not atoms" split correctly rejects `\A*` but silently RE-ACCEPTS `\A{2}`
+   as anchor + literal-brace pieces (`{`, `2`, `}` are all valid literals — caught by the
+   post-edit matrix, not by inspection). PCRE2's boundary is "reject iff the following text
+   forms a VALID quantifier" — which is exactly PGEN's own `quantifier` rule, so
+   `anchor !quantifier` encodes the boundary with zero duplication: `\A{2}`/`\A{,2}` reject;
+   `${`/`\A{a}`/`\A{}` stay literal. Oracle-pinned both directions before the edit
+   (pcre2test 10.47).
+2. **A negative-lookahead guard is invisible to the stimuli generator (`Lookahead → Ok("")`),
+   so a guard-based exclusion is a LATENT duality break.** The `.3.1` six-letter guards on
+   `simple_escape` had exactly this exposure. The house pattern that is generation-faithful BY
+   CONSTRUCTION is the positive enumeration (`class_range_literal_escape_letter` precedent) —
+   the generator can only pick letters that are actually in the language. This slice converts
+   `simple_escape` to that pattern (strict 39 letters / relaxed +6) and folds the anchor-letter
+   exclusion in. The `o{`/`x{`/`p{`/`P{` 2-char guards stay: "not followed by `{`" has no
+   positive spelling, and they are generation-safe (the brace forms belong to dedicated escape
+   rules — a generated bare letter + counted quantifier reparses as a VALID form, e.g. `\o{2}`
+   is octal).
+3. **Behavior-invisibility argument for the letter exclusion:** at top level `anchor` always
+   beat `simple_escape` for the 7 anchor letters by earlier-tie in the atom tournament (equal
+   2-char length), so removing them from the escape universe changes verdicts ONLY where a
+   quantifier follows — precisely the class being closed. The 34/34 AST byte-compare over the
+   accept matrix is the empirical confirmation.
+4. **Residual generation-side coincidence class (documented, not closed):** the generator can
+   still emit an anchor piece followed by independent literal pieces that happen to spell
+   `{digits}` (e.g. `$`+`{`+`2`+`}` ⇒ `${2}`, which the parser now rejects). Probability
+   ~(1/|literal-set|)^3 per junction — did not fire in 300 hunter samples; the
+   `STIMULI-SIGNOFF.13.3` scaled duality-hunt lane will quantify it honestly. The full fix
+   needs lookahead-aware generation (the STIMULI-SIGNOFF 2026-06-10 ticketed capability).
+5. **Version-pin discipline:** the ledger's newest `Fixed in` cell is the AUTHORITATIVE
+   source — the `embedding_api.rs` consts are drift-gated against it (the gate PARSES the
+   ledger), and the tracked contract JSON + contract .md + top-book handoff line are the other
+   copies. Editing the ledger while a suite runs flips the drift gate red until the consts
+   land — sequence the const bump together with the ledger row.
+6. **`parse_sample_with_profile` threads profiles ONLY for systemverilog** — for regex the
+   profile-routing verdict API is `parse_sample_detail_with_profile`. The new oracle-matrix
+   pin originally used the former and "failed" spuriously; remember for any future
+   profile-sensitive test.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0014 — STIMULI-SIGNOFF.4.4: implementation notes — a bug hunter is only as honest as its oracle wiring
 
 Session #59. Notes from landing the G2 duality-break hunter:

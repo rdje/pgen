@@ -1820,6 +1820,63 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("json", "{]"), Some(false));
     }
 
+    /// REGEX-PCRE2-FIDELITY.3.13: quantified anchors reject at the GRAMMAR layer (the anchor
+    /// `piece` branch carries `!quantifier`; `find_invalid_quantified_anchor` was removed from
+    /// the compile contract). PCRE2 10.47 oracle (`pcre2test`, 2026-07-07): every direct
+    /// quantifier on any of the 9 anchor forms is err 109 "quantifier does not follow a
+    /// repeatable item" — including the escape anchors the retired validator missed (it checked
+    /// only `^`/`$`) — while grouped anchors, class members, the POSIX word-boundary aliases,
+    /// and non-quantifier braces stay accepted.
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_quantified_anchors_reject_at_the_grammar_layer_pcre2_faithfully() {
+        // Direct quantifier on an anchor: REJECT (PCRE2 err 109).
+        for pattern in [
+            "^*", "$*", "$?", "^+", "${2}", "${,2}", "a$*", // the pre-3.13 validator's ^/$ set
+            "\\A*", "\\A{2}", "\\A{2,}", "\\A{2,3}", "\\A{,2}", // counted forms, oracle-pinned
+            "\\b*", "\\B?", "\\G+", "\\z*", "\\Z*", "\\K*", // the divergence set PGEN accepted pre-3.13
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "quantified anchor must reject: {pattern}"
+            );
+        }
+        // Anchor without a following quantifier shape: ACCEPT.
+        for pattern in [
+            "^", "$", "\\A", "\\Z", "\\z", "\\b", "\\B", "\\G", "\\K", // bare anchors
+            "a^b$c", "^abc$", // anchors in concatenation
+            "(?:^)*", "(?=\\b)", // grouped anchors ARE quantifiable / assertable
+            "[$]*", "[\\b]", // class members, not anchors
+            "[[:<:]]*", "[[:>:]]+", // POSIX aliases compile to quantifiable sub-groups (oracle-accepted)
+            "${", "\\A{a}", "\\A{2", "\\A{}", "^{a}", // not a quantifier ⇒ literal braces (oracle-accepted)
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "non-quantified anchor form must accept: {pattern}"
+            );
+        }
+        // The tightening applies in BOTH profiles (the contract rejected `^*` in relaxed too).
+        // (`parse_sample_detail_with_profile` is the profile-routing verdict API for regex;
+        // `parse_sample_with_profile` threads profiles only for systemverilog.)
+        assert!(
+            super::parse_sample_detail_with_profile("regex", "\\b*", Some("relaxed"))
+                .expect("regex registered")
+                .is_err(),
+            "relaxed must also reject a quantified escape-anchor"
+        );
+        // Relaxed still re-admits the .3.1 fidelity letters (regression guard for the
+        // simple_escape positive-enumeration restructure).
+        assert!(
+            super::parse_sample_detail_with_profile("regex", "\\u", Some("relaxed"))
+                .expect("regex registered")
+                .is_ok(),
+            "relaxed must still re-admit \\u"
+        );
+        assert_eq!(parse_sample("regex", "\\u"), Some(false));
+    }
+
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {

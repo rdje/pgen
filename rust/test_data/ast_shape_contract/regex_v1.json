@@ -75,7 +75,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/regex_return_annotations.json",
-    "extracted_at": "2026-06-10",
+    "extracted_at": "2026-07-07",
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
@@ -832,6 +832,12 @@
         "rule": "piece",
         "branch_index": 1,
         "annotation_type": "return_object",
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: []}"
+      },
+      {
+        "rule": "piece",
+        "branch_index": 2,
+        "annotation_type": "return_object",
         "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
       },
       {
@@ -1111,16 +1117,10 @@
         "normalized_text": "{sign: $1, value: $2}"
       },
       {
-        "rule": "simple_escape_relaxed",
+        "rule": "simple_escape",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $15}"
-      },
-      {
-        "rule": "simple_escape_strict",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $21}"
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $5}"
       },
       {
         "rule": "single_byte_escape",

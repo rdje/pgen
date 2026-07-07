@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3384b4d0.js";
+            window.path_to_searchindex_js = "searchindex-f0ecf901.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -1495,16 +1495,18 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <p>The <code>piece</code> rule is the workhorse of regex — every quantified or unquantified atom in a pattern is a piece. This chapter covers <code>piece</code> itself plus its siblings introduced for the PGEN-RGX-0074 fix.</p>
 <h2 id="piece"><a class="header" href="#piece"><code>piece</code></a></h2>
 <pre><code class="language-ebnf">piece = piece_quoted_run_quantified -&gt; $1
+      | anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
       | atom quantifier?
 -&gt; {type: "piece", atom: $1, quantifier: $2}
 </code></pre>
-<p>Two branches:</p>
+<p>Three branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>):</p>
 <ol>
 <li><strong>Branch 0</strong>: <code>piece_quoted_run_quantified -&gt; $1</code>. Tried FIRST. Matches <code>\Q...\E quantifier</code> — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).</li>
-<li><strong>Branch 1</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. The standard piece shape: a single atom with an optional quantifier.</li>
+<li><strong>Branch 1</strong>: <code>anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. Anchors (<code>^ $ \A \Z \z \b \B \G \K</code>) are <strong>non-quantifiable</strong> in PCRE2 (err 109), so an anchor forms a piece with NO quantifier slot; the <code>!quantifier</code> lookahead makes <code>^*</code>/<code>$*</code>/<code>\b*</code>/<code>\A{2}</code>-style patterns REJECT while non-quantifier braces (<code>${</code>, <code>\A{a}</code>, <code>\A{}</code>) still parse as anchor + literal-brace pieces (PCRE2-parity). The emitted piece is byte-identical to the pre-<code>1.1.82</code> unquantified-anchor shape (<code>quantifier: []</code> matches the unmatched-<code>?</code> byte-shape). <code>anchor</code> is no longer an <code>atom</code> alternative. See the anchors chapter’s “Quantified anchors reject” section and ledger <code>REGEX-0088</code>.</li>
+<li><strong>Branch 2</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. The standard piece shape: a single atom with an optional quantifier.</li>
 </ol>
-<p>PEG-ordered alternation: branch 0 is attempted first; if it doesn’t match, branch 1 takes over. For <code>\Qa\E{3}</code> (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 1 matches via the <code>quoted_literal</code> atom alternative.</p>
-<h3 id="shape--branch-1-the-common-case"><a class="header" href="#shape--branch-1-the-common-case">Shape — branch 1 (the common case)</a></h3>
+<p>For <code>\Qa\E{3}</code> (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 2 matches via the <code>quoted_literal</code> atom alternative.</p>
+<h3 id="shape--the-standard-atom-branch-the-common-case"><a class="header" href="#shape--the-standard-atom-branch-the-common-case">Shape — the standard atom branch (the common case)</a></h3>
 <pre><code class="language-json">{
   "type": "piece",
   "atom": &lt;atom-content&gt;,
@@ -1838,7 +1840,6 @@ digits = /([0-9]+)/
 <pre><code class="language-ebnf">atom = literal
      | whitespace_literal
      | dot
-     | anchor
      | backreference
      | quoted_literal
      | escape
@@ -1861,7 +1862,8 @@ digits = /([0-9]+)/
      | python_named_backreference
      | group
 </code></pre>
-<p>25-way Or rule. Currently <strong>un-annotated</strong>. Each branch’s content varies by alternative.</p>
+<p>24-way Or rule. Currently <strong>un-annotated</strong>. Each branch’s content varies by alternative.</p>
+<p>Since release <code>1.1.82</code> (<code>REGEX-PCRE2-FIDELITY.3.13</code>), <code>anchor</code> is <strong>not</strong> an <code>atom</code> alternative — anchors are non-quantifiable in PCRE2, so they form their own <code>piece</code> branch (see <a href="#piece-and-the-quoted-run-family">piece</a>). The anchor’s typed <code>{type:"anchor", kind}</code> shape inside a piece is unchanged.</p>
 <h3 id="current-shape-2"><a class="header" href="#current-shape-2">Current shape</a></h3>
 <p>The matched alternative’s content appears as the atom’s content directly — wrapped in an <code>Alternative</code> envelope at the ParseNode level, but <code>to_json_value()</code> unwraps it transparently.</p>
 <p>So when walking the JSON output, the atom field of a piece simply IS the matched alternative’s shape. There’s no <code>{type: "atom", kind: "literal", ...}</code> wrapper.</p>
@@ -2772,19 +2774,23 @@ escape = "\\" escape_unit
 </tbody>
 </table>
 </div>
-<p>The branches are tried in order; <code>simple_escape</code> is the catch-all that matches any unrecognized <code>\&lt;char&gt;</code> escape. <strong>Profile note (REGEX-PCRE2-FIDELITY.3.1):</strong> branch 2 (<code>unicode_escape</code>, <code>\u{…}</code>) is <code>@profiles: ["relaxed"]</code> — active only under the <code>relaxed</code> profile; branch 6 (<code>simple_escape</code>) splits into a strict default variant and a <code>relaxed</code> variant. In the default (<code>pcre2</code>) profile the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> are rejected. See <a href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a>.</p>
+<p>The branches are tried in order; <code>simple_escape</code> is the catch-all that matches any unrecognized <code>\&lt;char&gt;</code> escape. <strong>Profile note (REGEX-PCRE2-FIDELITY.3.1):</strong> branch 2 (<code>unicode_escape</code>, <code>\u{…}</code>) is <code>@profiles: ["relaxed"]</code> — active only under the <code>relaxed</code> profile; branch 6 (<code>simple_escape</code>)’s letter component carries the strict/relaxed split. In the default (<code>pcre2</code>) profile the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> are rejected. See <a href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a>. <strong>Anchor note (REGEX-PCRE2-FIDELITY.3.13, release 1.1.82):</strong> the 7 escape-anchor spellings <code>\A \Z \z \b \B \G \K</code> are NOT reachable through <code>simple_escape</code> at the pattern level in either profile — they are anchors, owned by the <code>anchor</code> rule (their own non-quantifiable <code>piece</code> branch), which is how <code>\b*</code>-style quantified escape-anchors reject PCRE2-faithfully (err 109).</p>
 <h2 id="single_byte_escape"><a class="header" href="#single_byte_escape"><code>single_byte_escape</code></a></h2>
 <pre><code class="language-ebnf">single_byte_escape = "C"
 </code></pre>
 <p>PCRE2’s <code>\C</code> — match one code unit. <code>Terminal("C")</code>.</p>
 <h2 id="simple_escape"><a class="header" href="#simple_escape"><code>simple_escape</code></a></h2>
-<pre><code class="language-ebnf">simple_escape = simple_escape_strict | simple_escape_relaxed
+<pre><code class="language-ebnf">simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail
+simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
+simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
 </code></pre>
-<p>The catch-all single-char escape. Emits the typed shorthand object <code>{type: "escape", kind: "shorthand", char: &lt;char&gt;}</code> — the character that follows the backslash. It is a transparent alternation over a <strong>strict</strong> (default / <code>pcre2</code> profile) variant and a <code>@profiles: ["relaxed"]</code> variant (see <a href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a> below).</p>
+<p>The catch-all single-char escape. Emits the typed shorthand object <code>{type: "escape", kind: "shorthand", char: &lt;char&gt;}</code> (positional ref <code>char: $5</code>) — the character that follows the backslash.</p>
 <p>For <code>\d</code>: the inner shape is <code>{type:"escape",kind:"shorthand",char:"d"}</code> — the standard PCRE2 metacharacter is just text from the parser’s perspective; semantic interpretation (<code>\d</code> = digit-class) is downstream.</p>
+<p><strong>Since release 1.1.82 (REGEX-PCRE2-FIDELITY.3.13)</strong> the letter component is a <strong>positive enumeration</strong> instead of negative-lookahead guards over <code>any_char</code> (the stimuli generator is lookahead-blind, so guard-based exclusions were invisible to generation; a positive set is generation-faithful). Same accepted set per profile as before, minus the 7 escape-anchor letters (see below):</p>
 <ul>
-<li><code>simple_escape_strict</code> (always active): the catch-all <strong>excluding</strong> the four brace-form leads (<code>\o{</code>/<code>\x{</code>/<code>\p{</code>/<code>\P{</code>), the digit guards (<code>\0</code>–<code>\9</code>, PGEN-RGX-0087), <strong>and</strong> the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> (REGEX-PCRE2-FIDELITY.3.1). Positional ref <code>char: $21</code>.</li>
-<li><code>simple_escape_relaxed</code> (<code>@profiles: ["relaxed"]</code> — active only under the <code>relaxed</code> profile): the historical catch-all without the six-letter exclusion (re-admits <code>\i \F \l \L \u \U</code>). Positional ref <code>char: $15</code>.</li>
+<li><code>simple_escape_letter_strict</code> (always active): 39 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings <code>A B G K Z b z</code> (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13) and the six PCRE2-unsupported letters <code>F L U i l u</code> (REGEX-PCRE2-FIDELITY.3.1).</li>
+<li><code>simple_escape_letter_relaxed</code> (<code>@profiles: ["relaxed"]</code>): re-admits <code>\i \F \l \L \u \U</code>. The anchor letters stay excluded in BOTH profiles.</li>
+<li>Digits are excluded positively (no <code>digit</code> alternative — the PGEN-RGX-0087 rule: <code>\&lt;digit&gt;</code> is always backref/octal/error, never shorthand); the four brace-form leads (<code>\o{</code>/<code>\x{</code>/<code>\p{</code>/<code>\P{</code>) remain negative lookaheads (a “not followed by <code>{</code>” condition has no positive spelling).</li>
 </ul>
 <h2 id="profiles--strict-default-vs-relaxed"><a class="header" href="#profiles--strict-default-vs-relaxed">Profiles — strict default vs <code>relaxed</code></a></h2>
 <p><strong>REGEX-PCRE2-FIDELITY.3.1.</strong> PGEN’s regex parser is <strong>PCRE2-faithful by default</strong>. The six escape letters PCRE2 does not support — <code>\i \F \l \L \u \U</code> (and the braced <code>\u{…}</code> form) — are <strong>rejected in the default (<code>pcre2</code>) profile</strong> and re-admitted only under the opt-out <strong><code>relaxed</code></strong> profile. This rule lives entirely in the grammar (the EBNF is the single source of truth); it was previously enforced by an out-of-band host validator.</p>
@@ -4117,6 +4123,21 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-anchors-and-boundaries"><a class="header" href="#examples-anchors-and-boundaries">Examples: Anchors and Boundaries</a></h1>
 <p>Concrete probe outputs for PCRE2 anchors and word-boundary constructs. As of slice 7 (post-1.1.35) the <code>anchor</code> rule emits a typed <code>{type: "anchor", kind: "&lt;name&gt;"}</code> object — consumers read <code>.kind</code> directly instead of dispatching by string match on the raw escape text.</p>
+<h2 id="quantified-anchors-reject-release-1182-regex-pcre2-fidelity313"><a class="header" href="#quantified-anchors-reject-release-1182-regex-pcre2-fidelity313">Quantified anchors reject (release 1.1.82, REGEX-PCRE2-FIDELITY.3.13)</a></h2>
+<p>PCRE2 rejects a quantifier applied directly to ANY of the 9 anchor forms (err 109, “quantifier
+does not follow a repeatable item”), and since release <code>1.1.82</code> PGEN does too — at the grammar
+layer (anchors are their own non-quantifiable <code>piece</code> branch; the check no longer lives in the
+host validator):</p>
+<ul>
+<li><strong>REJECT</strong> (<code>E_PARSE_FAILURE</code>): <code>^*</code> <code>$*</code> <code>$?</code> <code>^+</code> <code>${2}</code> <code>\A*</code> <code>\A{2}</code> <code>\A{2,3}</code> <code>\A{,2}</code>
+<code>\b*</code> <code>\B?</code> <code>\G+</code> <code>\z*</code> <code>\Z*</code> <code>\K*</code> — the escape-anchor forms were wrongly ACCEPTED before
+<code>1.1.82</code> (bug ledger <code>REGEX-0088</code>).</li>
+<li><strong>ACCEPT</strong> (shapes unchanged): bare anchors; anchors in concatenation (<code>a^b$c</code>); grouped
+anchors — <code>(?:^)*</code> quantifies the GROUP, PCRE2-parity; class members <code>[$]*</code> / <code>[\b]</code> (a <code>$</code>
+in a class is a literal; <code>[\b]</code> is backspace); the POSIX word-boundary aliases
+<code>[[:&lt;:]]*</code> / <code>[[:&gt;:]]+</code> (PCRE2 compiles them to quantifiable sub-groups); and non-quantifier
+braces <code>${</code> <code>\A{a}</code> <code>\A{2</code> <code>\A{}</code> (not a valid quantifier shape ⇒ literal braces, PCRE2-parity).</li>
+</ul>
 <h2 id="-start-anchor"><a class="header" href="#-start-anchor"><code>^</code> start anchor</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
@@ -5069,6 +5090,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <h3 id="2026-07-07-maintenance-release-1181--contract-1183--unchanged--default-profile2-the-strict-pcre2-by-default-resolution-is-now-grammar-declared-default_profile-pcre2"><a class="header" href="#2026-07-07-maintenance-release-1181--contract-1183--unchanged--default-profile2-the-strict-pcre2-by-default-resolution-is-now-grammar-declared-default_profile-pcre2">2026-07-07 maintenance (release 1.1.81 / Contract 1.1.83 — UNCHANGED) — DEFAULT-PROFILE.2: the strict-<code>pcre2</code>-by-default resolution is now grammar-declared (<code>@default_profile: pcre2</code>)</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: IMPLEMENTATION-ONLY, SURFACE-NEUTRAL (no version bump). The “unspecified profile = strict <code>pcre2</code>, <code>relaxed</code> is the opt-out” default was engine-hard-coded (<code>== "regex"</code> name literals in the parse registry / generation filter / embedding API); it is now declared in <code>grammars/regex.ebnf</code> via the grammar-level <code>@default_profile: pcre2</code> directive, and the generated parser carries its own default (<code>DEFAULT_GRAMMAR_PROFILE</code> constant; the constructor starts on it; <code>set_grammar_profile(None)</code> restores it). <strong>You need to do nothing</strong>: default accept/reject byte-identical (cert <code>198/198</code> <code>fully_certified</code> seeds 0/7/42; broader-corpus + differential-equivalence gates green), AST shapes/error codes/versions unchanged. See <code>rules-escape.md</code> “Profiles — strict default vs <code>relaxed</code>” (the new provenance note) and the contract’s “Maintenance Update 2026-07-07” section.</p>
+</blockquote>
+<h3 id="1182--contract-1184--regex-0088-quantified-anchors-reject-pcre2-faithfully-incl-escape-anchors-the-check-migrated-into-the-grammar"><a class="header" href="#1182--contract-1184--regex-0088-quantified-anchors-reject-pcre2-faithfully-incl-escape-anchors-the-check-migrated-into-the-grammar">1.1.82 / Contract 1.1.84 — REGEX-0088: quantified anchors reject PCRE2-faithfully (incl. escape anchors); the check migrated into the grammar</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR-TIGHTENING (release bump 1.1.81→1.1.82 / contract 1.1.83→1.1.84; <strong>schema stays <code>1</code></strong>). PGEN previously ACCEPTED a direct quantifier on the 7 escape anchors — <code>\A* \b* \B? \G+ \z* \Z* \K*</code> + counted forms <code>\A{2}</code>/<code>\A{2,}</code>/<code>\A{2,3}</code>/<code>\A{,2}</code> — which <code>pcre2test</code> 10.47 rejects (err 109); found internally by a differential probe (the old host-validator check covered only <code>^</code>/<code>$</code>). All now REJECT. Fix is grammar-encoded (<code>REGEX-PCRE2-FIDELITY.3.13</code>): <code>anchor</code> is its own non-quantifiable <code>piece</code> branch (<code>anchor !quantifier</code> — the lookahead keeps non-quantifier braces literal: <code>${</code>/<code>\A{a}</code>/<code>\A{2</code>/<code>\A{}</code> still ACCEPT, oracle-exact), and <code>find_invalid_quantified_anchor</code> was DELETED from the host validator (2nd of the 10 compile-contract checks migrated). <code>^*</code>-class diagnostics change from the contract message to a standard grammar parse failure — match on <strong>code</strong> (<code>E_PARSE_FAILURE</code>), not text. Every still-accepted pattern’s AST is BYTE-IDENTICAL (34/34 probe matrix; grouped <code>(?:^)*</code>, class <code>[$]*</code>/<code>[\b]</code>, POSIX aliases <code>[[:&lt;:]]*</code>/<code>[[:&gt;:]]+</code> all keep prior shapes + verdicts). Also folded in: <code>simple_escape</code>’s letter component is now a positive enumeration (same per-profile accept set; generation-faithful — see <code>rules-escape.md</code>). Bug ledger: <code>REGEX-0088</code>. <strong>Contract section:</strong> “Release 1.1.82 / Contract 1.1.84 Highlights — REGEX-0088”. Examples: this book’s anchors chapter (<code>examples-anchors.md</code> → “Quantified anchors reject”).</p>
 </blockquote>
 <h3 id="2026-06-08-maintenance-release-1181--contract-1183--unchanged--regex-self-hosting-the-regex-parser-is-now-self-hosting-no-rust-regex-crate-dependency"><a class="header" href="#2026-06-08-maintenance-release-1181--contract-1183--unchanged--regex-self-hosting-the-regex-parser-is-now-self-hosting-no-rust-regex-crate-dependency">2026-06-08 maintenance (release 1.1.81 / Contract 1.1.83 — UNCHANGED) — REGEX-SELF-HOSTING: the regex parser is now self-hosting (no Rust <code>regex</code>-crate dependency)</a></h3>
 <blockquote>

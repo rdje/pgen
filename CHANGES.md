@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-REGEX-PCRE2-0011 (REGEX-PCRE2-FIDELITY.3.13): quantified anchors reject PCRE2-faithfully — REGEX-0088 fixed, the check grammar-encoded, regex release 1.1.82
+
+Session #60. RELEASED regex slice (release `1.1.81`→`1.1.82`, contract `1.1.83`→`1.1.84`,
+AST-dump schema stays `1`). Fixes the `REGEX-0088` accepts-invalid divergence found by the
+`.13.1` differential probe AND closes the `$*` duality-break class from the STIMULI-SIGNOFF.4.4
+hunter — one structural grammar encoding does both.
+
+- **Grammar (`grammars/regex.ebnf`):** (1) `anchor` moved OUT of `atom` into its own `piece`
+  branch `anchor !quantifier -> {type:"piece", atom:$1, quantifier:[]}` — anchors are
+  non-quantifiable per PCRE2 (err 109); the `!quantifier` lookahead rejects the counted forms
+  (`\A{2}` `\A{2,}` `\A{2,3}` `\A{,2}`) while keeping non-quantifier braces literal (`${`,
+  `\A{a}`, `\A{2`, `\A{}` — oracle-exact boundary); (2) `simple_escape`'s letter component
+  re-encoded as a POSITIVE enumeration (`simple_escape_tail`/`simple_escape_letter` +
+  `simple_escape_letter_strict` (39 letters) + `@profiles:["relaxed"]`
+  `simple_escape_letter_relaxed`) excluding the 7 anchor letters in BOTH profiles — replacing
+  the generation-blind negative-lookahead guards (the generator is lookahead-blind; a positive
+  set is generation-faithful by construction, retro-fixing the `.3.1` six-letter encoding too).
+- **Validator:** `find_invalid_quantified_anchor` DELETED from
+  `regex_compile_validation.rs` (the 2nd of the 10 compile-contract checks migrated into the
+  EBNF; the `.3.2` precedent). New pin
+  `parser_registry::tests::regex_quantified_anchors_reject_at_the_grammar_layer_pcre2_faithfully`
+  (18 oracle-pinned rejects + 22 accepts + both-profile tightening + relaxed `\u` guard).
+- **Verified:** 8 target verdict flips exactly (`\A* \A{2} \b* \B? \G+ \z* \Z* \K*`
+  ACCEPT→REJECT); 34/34 still-accepted matrix ASTs byte-identical; regex cert
+  `fully_certified=true UNKNOWN=0 spf=0` at seeds 0/7/42 (total 198→200, new rules witnessed,
+  re-runs byte-identical); hunter re-run seeds 0/7/42: the quantified-anchor signature GONE
+  (rejections 6/7/11 → 4/1/1 per 100); lib suites 880/838/763 all 0-fail; shape-contract
+  manifest inventory re-derived from `generated/regex_return_annotations.json` (5-entry diff);
+  equivalence/dual-run/PCRE2-oracle/broader-corpus gates green (see the leaf checklist).
+- **Lockstep:** ledger row `REGEX-0088` (drift-gate authoritative); embedding consts + tracked
+  contract JSON bumped; integration contract Identity + "Release 1.1.82 / Contract 1.1.84
+  Highlights"; regex book (changelog, anchors examples, piece/atom/escape chapters) + regenerated
+  HTML; top-book `parser-families.md` handoff + `stimuli-and-quality.md` closure-progress note.
+- 🔎 Latent zero-width-quantified siblings `\E*`/`\Q\E*` (PGEN accepts on BOTH generator and
+  parser sides; PCRE2 err 109) spun out to `REGEX-PCRE2-FIDELITY.3.19` — invisible to the
+  duality hunter by construction; needs oracle-differential coverage.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0015 (STIMULI-SIGNOFF.13.1): the .13 root-cause + design record — and a NEW released-parser fidelity divergence found while root-causing
 
 Session #60. Docs-only. The `.4.4` finding's mandated tools-first root cause, per class, plus the

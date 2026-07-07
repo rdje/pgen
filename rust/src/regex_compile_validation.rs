@@ -40,9 +40,10 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     if let Some(error) = find_invalid_char_class_construct(input) {
         return Err(error);
     }
-    if let Some(error) = find_invalid_quantified_anchor(input) {
-        return Err(error);
-    }
+    // REGEX-PCRE2-FIDELITY.3.13: the quantified-anchor check (`find_invalid_quantified_anchor`)
+    // was MIGRATED into `grammars/regex.ebnf` — anchors are their own non-quantifiable `piece`
+    // branch (`anchor !quantifier`), so `^*`/`$*` AND the previously-missed escape-anchor forms
+    // (`\A*` `\b*` `\B?` `\G+` `\z*` `\Z*` `\K*`, err 109) now reject at the grammar layer.
     if let Some(error) = find_invalid_scan_substring_capture_list(input) {
         return Err(error);
     }
@@ -1353,50 +1354,6 @@ fn validate_scan_substring_capture_refs(
     None
 }
 
-fn find_invalid_quantified_anchor(input: &str) -> Option<RegexCompileValidationError> {
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-    let mut in_char_class = false;
-
-    while index < bytes.len() {
-        if in_char_class {
-            if bytes[index] == b'\\' {
-                index = skip_regex_escape(bytes, index);
-                continue;
-            }
-            if bytes[index] == b']' {
-                in_char_class = false;
-            }
-            index += 1;
-            continue;
-        }
-
-        match bytes[index] {
-            b'\\' => index = skip_regex_escape(bytes, index),
-            b'[' => {
-                if is_extended_class_start(bytes, index) {
-                    index += 1;
-                } else {
-                    in_char_class = true;
-                    index += 1;
-                }
-            }
-            b'^' | b'$' => {
-                if let Some(quantifier_offset) = quantifier_starts_at(bytes, index + 1) {
-                    return Some(RegexCompileValidationError::new(
-                        quantifier_offset,
-                        "quantifier cannot be applied directly to an anchor",
-                    ));
-                }
-                index += 1;
-            }
-            _ => index += 1,
-        }
-    }
-
-    None
-}
-
 fn quantifier_starts_at(bytes: &[u8], index: usize) -> Option<usize> {
     if index >= bytes.len() {
         return None;
@@ -2118,9 +2075,12 @@ mod tests {
     }
 
     #[test]
-    fn rejects_quantified_anchor() {
-        let error = validate_regex_compile_contract("^*").expect_err("must reject ^*");
-        assert!(error.message.contains("anchor"));
+    fn quantified_anchor_check_is_grammar_owned_now() {
+        // REGEX-PCRE2-FIDELITY.3.13: the contract layer no longer rejects quantified anchors —
+        // the grammar does (the anchor `piece` branch carries `!quantifier`). The parser-level
+        // verdict matrix lives in `parser_registry::tests::
+        // regex_quantified_anchors_reject_at_the_grammar_layer_pcre2_faithfully`.
+        assert!(validate_regex_compile_contract("^*").is_ok());
     }
 
     #[test]

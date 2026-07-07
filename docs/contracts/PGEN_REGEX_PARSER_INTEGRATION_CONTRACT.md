@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.83`
+  - `1.1.84`
 - Parser release version:
-  - `1.1.81`
+  - `1.1.82`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-06-08`
+  - `2026-07-07`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -71,6 +71,16 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text.
+
+## Release 1.1.82 / Contract 1.1.84 Highlights — REGEX-0088: quantified anchors now reject PCRE2-faithfully (incl. the escape anchors); the check is grammar-encoded
+
+**Bug ledger:** `REGEX-0088` (internal — found by the STIMULI-SIGNOFF.13 differential probe vs `pcre2test` 10.47; no external downstream report).
+
+**What changed (behavior-tightening).** PGEN previously ACCEPTED a direct quantifier on the 7 escape anchors — `\A* \b* \B? \G+ \z* \Z* \K*` and their counted forms (`\A{2}` `\A{2,}` `\A{2,3}` `\A{,2}`) — which PCRE2 10.47 rejects (error 109, "quantifier does not follow a repeatable item"). All of these now REJECT. `^*`/`$*`/`${2}`-style forms (already rejected via the host validator) continue to reject, but the rejection now comes from the GRAMMAR: the quantified-anchor rule was migrated into `grammars/regex.ebnf` (anchors are their own non-quantifiable `piece` branch, `anchor !quantifier`) and `find_invalid_quantified_anchor` was DELETED from the host validator (`REGEX-PCRE2-FIDELITY.3.13`; one of the ten compile-contract sub-checks, now the second migrated).
+
+**What did NOT change.** Every still-accepted pattern's AST is byte-identical (34/34 probe matrix + the full lib/shape gates). Bare anchors, anchors in concatenation (`a^b$c`), grouped anchors (`(?:^)*` — quantifiable, PCRE2-parity), class members (`[$]*`, `[\b]`), the POSIX word-boundary aliases (`[[:<:]]*`/`[[:>:]]+` — quantifiable, PCRE2-parity), and non-quantifier braces (`${`, `\A{a}`, `\A{2`, `\A{}` — literal braces, PCRE2-parity) all keep their exact prior shapes. **AST-dump schema stays `1`** (no new vocabulary).
+
+**Action for downstream (RGX):** the previously-PGEN-accepted quantified-escape-anchor patterns were PCRE2-invalid all along (any RGX pipeline lowering them would have diverged from PCRE2 at match time) — adopting `1.1.82` aligns the accept set with PCRE2. The `^*`-class diagnostic changes from the contract message ("quantifier cannot be applied directly to an anchor") to a standard grammar parse failure — as always, match on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. Also folded into this release: `simple_escape`'s letter component is now a positive enumeration (same accepted set in the default profile; the `relaxed` profile still re-admits `\i \F \l \L \u \U`) — this makes the exclusions visible to stimuli generation (generation-faithful), with no consumer-visible shape change.
 
 ## Release 1.1.81 / Contract 1.1.83 Highlights — PGEN-RGX-0088: octal `>0o377` is mode-dependent — FIX2.3's blanket parse-time reject REVERTED (mode-agnostic emission)
 

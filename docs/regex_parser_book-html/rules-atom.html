@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3384b4d0.js";
+            window.path_to_searchindex_js = "searchindex-f0ecf901.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -186,7 +186,6 @@
 <pre><code class="language-ebnf">atom = literal
      | whitespace_literal
      | dot
-     | anchor
      | backreference
      | quoted_literal
      | escape
@@ -209,7 +208,8 @@
      | python_named_backreference
      | group
 </code></pre>
-<p>25-way Or rule. Currently <strong>un-annotated</strong>. Each branch’s content varies by alternative.</p>
+<p>24-way Or rule. Currently <strong>un-annotated</strong>. Each branch’s content varies by alternative.</p>
+<p>Since release <code>1.1.82</code> (<code>REGEX-PCRE2-FIDELITY.3.13</code>), <code>anchor</code> is <strong>not</strong> an <code>atom</code> alternative — anchors are non-quantifiable in PCRE2, so they form their own <code>piece</code> branch (see <a href="rules-piece.html">piece</a>). The anchor’s typed <code>{type:"anchor", kind}</code> shape inside a piece is unchanged.</p>
 <h3 id="current-shape"><a class="header" href="#current-shape">Current shape</a></h3>
 <p>The matched alternative’s content appears as the atom’s content directly — wrapped in an <code>Alternative</code> envelope at the ParseNode level, but <code>to_json_value()</code> unwraps it transparently.</p>
 <p>So when walking the JSON output, the atom field of a piece simply IS the matched alternative’s shape. There’s no <code>{type: "atom", kind: "literal", ...}</code> wrapper.</p>

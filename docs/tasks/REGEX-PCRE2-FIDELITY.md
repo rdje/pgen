@@ -231,16 +231,40 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `fact_count_at_least`. `.3.12` is the concrete driver/closer of `STORE-AWARE-GEN.3`; verify cert-cov
   seed 1 → 0 + seed sweep + RGX conformance + oracle. Low-frequency (seed-dependent); not a spacing
   concern. Composes with `.3.11` (escape whitelist).
-- ID: `.3.13`  Status: `pending` (EVIDENCED 2026-07-07, `PGEN-STIMULI-SIGNOFF-0015` — the STIMULI-SIGNOFF.13
-  duality-break hunt + differential oracle probe; design §3/§4 of
-  `docs/tasks/STIMULI-SIGNOFF-13-post-parse-contract-design.md`)  Goal: encode row 8 (quantified anchors)
-  STRUCTURALLY — split `piece` so the full non-quantifiable anchor set `{^, $, \A, \b, \B, \G, \z, \Z, \K}`
-  cannot take a quantifier (POSIX aliases `[[:<:]]`/`[[:>:]]` STAY quantifiable — oracle-verified parity);
-  AST shape preserved; migrate/remove `find_invalid_quantified_anchor` same-slice. **This leaf ALSO fixes a
-  REAL released-parser accepts-invalid DIVERGENCE found 2026-07-07:** PGEN accepts `\A*` `\b*` `\B?` `\G+`
-  `\z*` `\Z*` `\K*`, PCRE2 10.47 rejects all seven (err 109) — the validator checks only `^`/`$`; latent
-  because the oracle corpus lacks the forms. Verify: `pcre2test` matrix (7 escape-anchors + `^*`/`$*` reject;
-  `(?:^)*`/POSIX-alias-quantified accept) + oracle gate + RGX conformance + cert-coverage + hunter re-run.
+- ID: `.3.13`  Status: **`done`** (`PGEN-REGEX-PCRE2-0011`, 2026-07-07 session #60; regex release
+  `1.1.81`→**`1.1.82`**, contract `1.1.83`→**`1.1.84`**, AST-dump schema stays `1`, ledger **`REGEX-0088`**;
+  EVIDENCED by `PGEN-STIMULI-SIGNOFF-0015` — the STIMULI-SIGNOFF.13 duality-break hunt + differential oracle
+  probe; design §3/§4 of `docs/tasks/STIMULI-SIGNOFF-13-post-parse-contract-design.md`)
+  Goal: encode row 8 (quantified anchors) STRUCTURALLY — split `piece` so the full non-quantifiable anchor
+  set `{^, $, \A, \b, \B, \G, \z, \Z, \K}` cannot take a quantifier (POSIX aliases `[[:<:]]`/`[[:>:]]` STAY
+  quantifiable — oracle-verified parity); AST shape preserved; migrate/remove
+  `find_invalid_quantified_anchor` same-slice. **This leaf ALSO fixed a REAL released-parser
+  accepts-invalid DIVERGENCE:** PGEN accepted `\A*` `\b*` `\B?` `\G+` `\z*` `\Z*` `\K*`, PCRE2 10.47
+  rejects all seven (err 109) — the validator checked only `^`/`$`; latent because the oracle corpus lacks
+  the forms.
+  Verification: `done — full evidence in the Acceptance Checklist below. LANDED: (1) piece gains the anchor
+  branch (anchor !quantifier -> {type:"piece", atom:$1, quantifier:[]}; anchor removed from atom) — the
+  !quantifier lookahead gives the ORACLE-EXACT boundary (counted forms \A{2}/\A{2,}/\A{2,3}/\A{,2} reject;
+  non-quantifier braces ${/\A{a}/\A{2/\A{}/^{a} stay literal-accepted); (2) simple_escape restructured to a
+  POSITIVE letter enumeration (simple_escape_tail/letter + strict 39 letters + @profiles:["relaxed"] extra
+  6) excluding the 7 anchor letters in BOTH profiles — generation-faithful (the generator is
+  lookahead-blind, so the old guard idiom was invisible to generation; also retro-fixes the .3.1 six-letter
+  guards the same way); the o{/x{/p{/P{ 2-char guards stay (no positive spelling; generation-safe since the
+  brace forms belong to the dedicated octal/hex/property rules); (3) find_invalid_quantified_anchor DELETED
+  (call + fn + test); new full-stack pin regex_quantified_anchors_reject_at_the_grammar_layer_pcre2_faithfully
+  in parser_registry (18 rejects / 22 accepts / both-profile tightening via parse_sample_detail_with_profile
+  — NOTE: parse_sample_with_profile threads profiles only for SV — / relaxed \u regression guard); manifest
+  inventory re-derived from generated/regex_return_annotations.json (5-entry diff: piece branch insert +
+  shift, simple_escape_strict/relaxed → simple_escape@$5).`
+  Commit: `PGEN-REGEX-PCRE2-0011`
+
+### REGEX-PCRE2-FIDELITY.3.13 — Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — duality class: hunter `--directed-generation-goal duality_break` on regex seeds 0/7/42 emitted `DUALITY-BREAK: signature="quantifier cannot be applied directly to an anchor" … shrunk_reproducer="$*"` at every seed. Divergence: `printf '\A*' | parseability_probe --parse regex` → ACCEPT while `pcre2test` 10.47 rejects `/\A*/` err 109 (same for `\b* \B? \G+ \z* \Z* \K*` + counted forms — the full differential matrix in the STIMULI-SIGNOFF-13 design §3).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `piece = atom quantifier?` with `atom = … | anchor | …` (regex.ebnf:54/:149) structurally permits any anchor+quantifier, and the PCRE2 rule lived OUT-OF-BAND in `find_invalid_quantified_anchor` (regex_compile_validation.rs:1356), invisible to generation ([[project_ebnf_is_single_source_of_truth]]). WHERE the divergence: that validator matched only bytes `^`/`$` (`b'^' | b'$'` arm) — the 7 escape-anchor spellings were never checked; latent because the PCRE2-oracle corpus contains no quantified escape-anchors. Probe evidence: every reproducer failed with the CONTRACT message (not a grammar backtrack) pre-change ⇒ grammar-accepted; `\A*` failed NOWHERE ⇒ parser-accepted (the divergence).
+- [x] **FIX** — fix-hierarchy GRAMMAR tier (no engine change): the anchor `piece` branch + `!quantifier` + the positive `simple_escape` letter enumeration (both profiles); validator branch deleted same-slice (the `.3.2` migration precedent).
+- [x] **ADDRESSED (verified)** — verdict matrix pre→post: EXACTLY the 8 target flips (`\A*` `\A{2}` `\b*` `\B?` `\G+` `\z*` `\Z*` `\K*` ACCEPT→REJECT), zero collateral changes across the 49-pattern matrix; `$*`/`^*`/`${2}` now reject at the GRAMMAR layer (`Parser did not consume full input`, not the contract message); hunter re-run seeds 0/7/42: the quantified-anchor signature GONE (directed rejections 6/7/11 → 4/1/1 per 100; residual classes = the `.3.14`/`.3.15`/`.3.17` classes + the predicted latent start-option-position class, exactly per the design); new full-stack pin green.
+- [x] **NO REGRESSION** — 34/34 still-accepted matrix samples' ASTs cmp BYTE-IDENTICAL pre/post (anchors, groups, quoted-runs, escapes, POSIX aliases, `${`); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=200 proof=0 witness=200 UNKNOWN=0 fully_certified=true (sample_parse_failures=0 …)` at seeds 0/7/42, byte-identical re-runs (total 198→200 = the 2 net new rules, both witnessed); `--lint-grammar` 0 errors / 0 profile-orphans (200 rules); lib suites dual **880/0** (+1 pin), `generated_parsers` **838/0**, no-features **763/0**; `parse_harness_equivalence_gate` ✅ (regex stays differential-CERTIFIED); `ebnf_frontend_dual_run_gate` ✅; `regex_pcre2_compile_oracle_gate` ✅; `regex_broader_corpus_proof_gate` ✅ (0 parse failures); svpp cross-guard cert unchanged (`total=74 witness=74 UNKNOWN=0 fully_certified=true spf=0`); clippy source-strict clean.
+- [x] **LOCKSTEP** — ledger `REGEX-0088` row (drift-gate authoritative Fixed-in pair) + embedding consts + tracked contract JSON bumped to 1.1.82/1.1.84; integration contract Identity + "Release 1.1.82 / Contract 1.1.84 Highlights — REGEX-0088"; regex book: changelog entry, anchors-chapter "Quantified anchors reject" section, piece/atom/escape chapters updated, tracked HTML regenerated; top-book `parser-families.md` handoff pair + `stimuli-and-quality.md` closure-progress note; ast_shape_contract manifest inventory synced; latent `\E*`/`\Q\E*` spun out to `.3.19`.
 - ID: `.3.14`  Status: `pending` (EVIDENCED `-0015`, same source)  Goal: encode row 6's STRUCTURAL residual
   (names were `.3.2`): name-class-conditional directive shapes — MARK-shorthand payload REQUIRED non-empty
   (`(*:)` rejects, err 166); verbs (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) take `:`-suffix only
@@ -266,6 +290,13 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - ID: `.3.18`  Status: `pending` (LATENT class, oracle-verified `-0015`)  Goal: row 4 — counted-quantifier
   bounds (`a{5,2}` rejects err 104; `{,>65535}` limits); `@predicate`/structural per the `.1` table; the
   generator currently CAN emit out-of-order bounds (not yet observed at the 100-sample hunter budget).
+- ID: `.3.19`  Status: `pending` (LATENT accepts-invalid divergences, oracle-verified 2026-07-07 during the
+  `.3.13` implementation)  Goal: the ZERO-WIDTH-QUANTIFIED family beyond anchors — PGEN ACCEPTS `\E*`
+  (stray `\E` is zero-width) and `\Q\E*` (empty quoted literal) which PCRE2 10.47 REJECTS (err 109);
+  `\Qa\E*` correctly accepted by both. Both sides of PGEN (generator AND parser) agree today, so the
+  duality hunter can NEVER surface these — only oracle-differential coverage can; candidate encode =
+  the stray-`\E`/empty-`\Q\E` atoms joining the anchor treatment (non-quantifiable piece forms). Distinct
+  from `.3.13`'s anchor-rule scope; spun out to keep that slice bounded.
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
   EBNF is the sole source of truth.

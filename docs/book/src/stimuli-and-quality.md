@@ -932,6 +932,15 @@ at 100/200 samples because the cert pass generates under its own budgeted, cover
 configuration whose distribution avoids these rare forms — the hunter's plain-configuration pass
 is exactly what exposes them.)
 
+**Closure progress.** Root-causing these classes (the `STIMULI-SIGNOFF.13` design record) showed
+each one is a PCRE2 rule living in the out-of-band post-parse validator instead of the EBNF —
+and the fix program encodes them into the grammar one class at a time. The quantified-anchor
+class (`$*`) is CLOSED: regex release `1.1.82` makes anchors their own non-quantifiable `piece`
+branch, so the generator can no longer render the form at all — the hunter re-run at seeds
+0/7/42 shows that signature gone (and the same slice fixed a real released-parser divergence:
+PGEN had wrongly ACCEPTED quantified *escape* anchors like `\b*` that PCRE2 rejects). The
+remaining classes are owned by further `REGEX-PCRE2-FIDELITY.3.x` leaves.
+
 Honest bounds: the goal vocabulary is `k_path`, `corpus_mimicry`, and `duality_break` today
 (parser code-coverage feedback remains designed-only, tracked in the `STIMULI-SIGNOFF` tree,
 leaf `.3`); learning covers ordered-choice branch selection, not repetition counts, so mimicry is

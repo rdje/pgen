@@ -8,7 +8,6 @@
 atom = literal
      | whitespace_literal
      | dot
-     | anchor
      | backreference
      | quoted_literal
      | escape
@@ -32,7 +31,9 @@ atom = literal
      | group
 ```
 
-25-way Or rule. Currently **un-annotated**. Each branch's content varies by alternative.
+24-way Or rule. Currently **un-annotated**. Each branch's content varies by alternative.
+
+Since release `1.1.82` (`REGEX-PCRE2-FIDELITY.3.13`), `anchor` is **not** an `atom` alternative — anchors are non-quantifiable in PCRE2, so they form their own `piece` branch (see [piece](rules-piece.md)). The anchor's typed `{type:"anchor", kind}` shape inside a piece is unchanged.
 
 ### Current shape
 

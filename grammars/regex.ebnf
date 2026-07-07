@@ -50,7 +50,27 @@ concatenation  = piece+
 # PCRE2 rule (pcre2pattern(3) §"Backslash"): a quantifier following
 # `\Q...\E` applies only to the LAST char of the literal sequence; the
 # rest are independent literal pieces. This branch encodes that rule.
+#
+# REGEX-PCRE2-FIDELITY.3.13: anchors are their OWN piece branch with NO
+# quantifier slot — PCRE2 rejects a quantifier directly on any of the 9
+# anchor forms (`^* $* \A* \b* \B? \G+ \z* \Z* \K*` and the counted
+# forms like `\A{2}` all fail err 109 "quantifier does not follow a
+# repeatable item"; oracle `pcre2test` 10.47, 2026-07-07). Grouped
+# anchors (`(?:^)*`) and the POSIX word-boundary aliases
+# (`[[:<:]]*` / `[[:>:]]+`) ARE quantifiable — PCRE2 compiles those to
+# quantifiable sub-groups — and keep flowing through the `atom
+# quantifier?` branch. The literal `[]` quantifier placeholder matches
+# the byte-shape an unmatched `?` produces (the
+# `quoted_run_inner_piece` precedent), so bare-anchor pieces are
+# BYTE-IDENTICAL to their pre-split shape. The `!quantifier` negative
+# lookahead makes the COUNTED forms reject too: without it, `\A{2}`
+# would re-parse as anchor + literal-brace pieces (`{`/`2`/`}` are
+# valid literals) and wrongly ACCEPT. With it the boundary is EXACTLY
+# PCRE2's (oracle 10.47): `\A{2}` `\A{2,}` `\A{2,3}` `\A{,2}` reject
+# (valid quantifier shapes), while `${` `\A{a}` `\A{2` `\A{}` stay
+# accepted (not a quantifier ⇒ literal braces on both sides).
 piece          = piece_quoted_run_quantified -> $1
+               | anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}
                | atom quantifier?
 -> {type: "piece", atom: $1, quantifier: $2}
 
@@ -143,10 +163,12 @@ quant_suffix   = "?" -> "lazy"
                | "+" -> "possessive"
 
 # Atoms
+# REGEX-PCRE2-FIDELITY.3.13: `anchor` is NOT an atom — anchors are
+# non-quantifiable in PCRE2, so they live in their own `piece` branch
+# (see `piece`). Everything listed here may take a quantifier.
 atom           = literal
                | whitespace_literal
                | dot
-               | anchor
                | backreference
                | quoted_literal
                | escape
@@ -642,22 +664,41 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 # ⇒ clean hard REJECT (PCRE2-faithful). 14 lookaheads precede
 # `any_char` in the relaxed variant ($15); the strict variant adds 6 more ($21).
 #
-# PGEN-REGEX-PCRE2-0006 (`REGEX-PCRE2-FIDELITY.3.1`): `simple_escape` is now a
-# strict/relaxed pair so the default (pcre2) profile rejects the six escape
-# letters PCRE2 does not support — `\i \F \l \L \u \U` — by GRAMMAR, migrating
+# PGEN-REGEX-PCRE2-0006 (`REGEX-PCRE2-FIDELITY.3.1`): the six escape letters
+# PCRE2 does not support — `\i \F \l \L \u \U` — are rejected by GRAMMAR in the
+# default (pcre2) profile, migrating
 # `regex_compile_validation.rs::find_invalid_escape_i` into the EBNF (the EBNF
 # is the single source of truth). DEFAULT is conformance-neutral (these were
-# rejected by the validator before, by the strict variant after; oracle:
-# `pcre2test` 10.47 rejects all six in atom/class/class-range). The `relaxed`
-# profile re-admits them via `simple_escape_relaxed` (the original catch-all).
-simple_escape  = simple_escape_strict | simple_escape_relaxed
-# Strict (default/pcre2): the original guards PLUS `!"i" !"F" !"l" !"L" !"u" !"U"`.
-# 20 lookaheads precede `any_char`, so its positional ref is `$21`.
-simple_escape_strict = !"o{" !"x{" !"p{" !"P{" !"i" !"F" !"l" !"L" !"u" !"U" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" !"8" !"9" any_char -> {type: "escape", kind: "shorthand", char: $21}
-# Relaxed opt-out: the pre-PCRE2-fidelity catch-all (admits the six letters).
-# Identical to the historical `simple_escape` body — 14 lookaheads, `any_char` = `$15`.
+# rejected by the validator before, by the grammar after; oracle: `pcre2test`
+# 10.47 rejects all six in atom/class/class-range). The `relaxed` profile
+# re-admits them via `simple_escape_letter_relaxed`.
+#
+# REGEX-PCRE2-FIDELITY.3.13: the letter component is now a POSITIVE
+# enumeration (`simple_escape_letter`, the `class_range_literal_escape_letter`
+# pattern) instead of negative-lookahead guards over `any_char` — the stimuli
+# generator is lookahead-BLIND (`Lookahead → Ok("")`), so guard-based
+# exclusions are invisible to generation and can emit parser-rejected samples
+# (the STIMULI-SIGNOFF.13 duality-break class); a positive set is
+# generation-faithful by construction. The enumeration EXCLUDES (in BOTH
+# profiles) the 7 escape-anchor letters `A Z z b B G K` — at top level those
+# spellings are ANCHORS (owned by the `anchor` rule / the anchor `piece`
+# branch; previously `anchor` won the atom tie-break anyway, so dropping them
+# here is behavior-invisible EXCEPT that `\b*`-style quantified escape-anchors
+# now correctly REJECT, matching PCRE2 err 109) — and the digits (backref /
+# octal / error territory per PGEN-RGX-0087, previously `!"0"`…`!"9"` guards).
+# The four 2-char brace-form guards (`\o{` `\x{` `\p{` `\P{`) REMAIN
+# lookaheads (a "not followed by `{`" condition has no positive spelling;
+# generation-safe: the brace forms belong to the dedicated octal/hex/property
+# escape rules, so a generated bare letter + counted quantifier still parses).
+simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail -> {type: "escape", kind: "shorthand", char: $5}
+simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
+simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
+# 39 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
+# PCRE2-unsupported fidelity letters (`F L U i l u`).
+simple_escape_letter_strict = 'C' | 'D' | 'E' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
+                            | 'a' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'j' | 'k' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'v' | 'w' | 'x' | 'y'
 @profiles: ["relaxed"]
-simple_escape_relaxed = !"o{" !"x{" !"p{" !"P{" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" !"8" !"9" any_char -> {type: "escape", kind: "shorthand", char: $15}
+simple_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'
 
 @type: "hexadecimal_escape"
 @description: "Hex escape sequences \xFF or \x{FFFF}"

@@ -2,6 +2,22 @@
 
 Concrete probe outputs for PCRE2 anchors and word-boundary constructs. As of slice 7 (post-1.1.35) the `anchor` rule emits a typed `{type: "anchor", kind: "<name>"}` object — consumers read `.kind` directly instead of dispatching by string match on the raw escape text.
 
+## Quantified anchors reject (release 1.1.82, REGEX-PCRE2-FIDELITY.3.13)
+
+PCRE2 rejects a quantifier applied directly to ANY of the 9 anchor forms (err 109, "quantifier
+does not follow a repeatable item"), and since release `1.1.82` PGEN does too — at the grammar
+layer (anchors are their own non-quantifiable `piece` branch; the check no longer lives in the
+host validator):
+
+- **REJECT** (`E_PARSE_FAILURE`): `^*` `$*` `$?` `^+` `${2}` `\A*` `\A{2}` `\A{2,3}` `\A{,2}`
+  `\b*` `\B?` `\G+` `\z*` `\Z*` `\K*` — the escape-anchor forms were wrongly ACCEPTED before
+  `1.1.82` (bug ledger `REGEX-0088`).
+- **ACCEPT** (shapes unchanged): bare anchors; anchors in concatenation (`a^b$c`); grouped
+  anchors — `(?:^)*` quantifies the GROUP, PCRE2-parity; class members `[$]*` / `[\b]` (a `$`
+  in a class is a literal; `[\b]` is backspace); the POSIX word-boundary aliases
+  `[[:<:]]*` / `[[:>:]]+` (PCRE2 compiles them to quantifiable sub-groups); and non-quantifier
+  braces `${` `\A{a}` `\A{2` `\A{}` (not a valid quantifier shape ⇒ literal braces, PCRE2-parity).
+
 ## `^` start anchor
 
 ```json
