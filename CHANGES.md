@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-WS-DIRECTIVE-0001 (WS-DIRECTIVE.1): DESIGN — `@whitespace_sensitive` grammar-level directive to replace the codegen grammar-NAME layout gate (docs-only)
+
+Session #54. New tree `WS-DIRECTIVE` (docs/tasks/WS-DIRECTIVE.md) opened by PNT for the
+PARSE-HARNESS.5.1 latent tension: the three layout-policy booleans (skip layout before
+terminals / before regex tokens / consume trailing layout) are decided by grammar-name string
+literals (`ast_based_generator.rs:1240/:4621/:4622-4625`, mirrored expression-for-expression by
+`parse_harness_interpreter.rs:370-384`) — invisible in the `.ebnf`, in violation of
+"capability-gated, never grammar-name-gated" (director 2026-06-08) and the
+EBNF-single-source-of-truth doctrine, and closing whitespace-sensitive synthetic grammars off
+from the whole parse harness. `.1` locks the design (D1-D7): a grammar-level
+`@whitespace_sensitive: true | { terminals, regex_tokens, trailing }` directive (parses through
+the EXISTING generic annotation surface — zero meta-grammar change), regex/svpp declare their
+true policy in-grammar, the name-gate is DELETED, and emit-neutrality (`cmp` over every
+regenerated shipped parser) is the decisive no-regression oracle. Tools-first fact base at HEAD
+`a161939c` in the tree file §1; two same-class out-of-scope findings routed (§6): F1 the
+regex→`pcre2` default-profile name-gates (`parser_registry.rs:138` + `main.rs:2256`; candidate
+`@default_profile:` directive tree) and F2 the svpp stimuli quantified-separator heuristic
+(`stimuli_generator.rs:11642`; STIMULI-SIGNOFF backlog candidate). Implementation = `.2`
+(enforced checklist §5). Docs-only: no code/grammar/generated change.
+
 ## 2026-07-07 - PGEN-BOUNDED-QUANT-0001 (BOUNDED-QUANT.1): bounded quantifiers `{n}`/`{n,m}`/`{n,}`/`{,m}` compile end-to-end — the codegen half-wire (PARSE-HARNESS.6.1 finding #1) is CLOSED
 
 Session #53. **Parser-agnostic engine-helper fix + per-combinator proof.** The four bounded
