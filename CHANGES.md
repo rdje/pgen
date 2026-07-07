@@ -1,5 +1,33 @@
 # CHANGES.md
-## 2026-07-07 - PGEN-DEFAULT-PROFILE-0002 (DEFAULT-PROFILE.2): `@default_profile` landed end-to-end — the regex→`pcre2` name-gates are RETIRED (the artifact carries its own default; tree COMPLETE)
+## 2026-07-07 - PGEN-PROFILE-ALIAS-0001 (PROFILE-ALIAS.1): DESIGN — `@profile_alias` grammar-level directive to replace the SV profile-ALIAS name-gates (docs-only)
+
+Session #56. New task tree `PROFILE-ALIAS` (owns `DEFAULT-PROFILE` §6 routed finding **F-A**) —
+the third and last member of the name-gate retirement series (layout policy → default profile →
+request-spelling aliases). Docs-only design commit; no code changed.
+
+- **Problem (tool-pinned at HEAD `b163330b`):** the request-spelling table (`2017`/`ieee1800-2017`/
+  … ⇒ `sv_2017`, etc.) lives in THREE hand-copied engine tables — `parser_registry.rs:149-168`
+  (`normalize_generated_grammar_profile`, name-gated `match grammar_name { "systemverilog" … }`),
+  `main.rs:2119-2130` (`normalize_grammar_profile_name`, GLOBAL — applies SV + VHDL aliases to ANY
+  grammar and lowercases unmatched values), `embedding_api.rs:285-305` (`GrammarProfile::FromStr`,
+  the third copy). Invisible to the `.ebnf`; closed to every other grammar; and ALREADY diverged
+  four observable ways (VHDL aliases missing parse-side — inert only because `vhdl.ebnf` declares
+  zero `@profiles` rules; `"2017"` rewritten for every grammar generation-side; two different case
+  rules; embedding's stale `regex_default` naming a profile the regex grammar never declares).
+- **Design (docs/tasks/PROFILE-ALIAS.md §2):** grammar-level `@profile_alias: { "<alias>":
+  <canonical>, … }` map directive; multiple declarations MERGE (same-key conflicting targets =
+  hard error); targets validated against the grammar's declared profile universe (union of
+  `@profiles` payloads + `@default_profile`); keys may not shadow canonical names; case-insensitive
+  lookup, unmatched pass-through. ONE `semantic_runtime::compile_profile_aliases` fn (validator +
+  codegen + generation filter + interpreter); codegen emits a sorted `GRAMMAR_PROFILE_ALIASES`
+  const + alias resolution INSIDE `set_grammar_profile` (artifact-owned, the
+  `DEFAULT_GRAMMAR_PROFILE` ownership model); registry SV arm + the global `main.rs` table DELETED
+  (data-driven datum like `default_generated_grammar_profile`); embedding arms sourced from the
+  generated constants or drift-gated (D6 decision in `.2`); VHDL alias arms deleted as inert with
+  a behavior-neutrality probe; `systemverilog.ebnf` declares its ten spellings.
+- **Tree:** `.1` DESIGN done (this slice); FRONTIER = `.2` IMPLEMENT end-to-end (verification plan
+  D9: pre-fix reproduce probe, combinator alias case, alias probe matrix ×3 boundaries, 10 non-SV
+  parsers `cmp` byte-identical, full SV lane matrix, books/spec/matrix lockstep).
 
 Session #55. **New parser-agnostic grammar-level directive** (the WS-DIRECTIVE sibling; owns that
 tree's routed finding F1). WHICH dialect profile an unspecified request resolves to — acceptance-

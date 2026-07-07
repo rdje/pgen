@@ -1,5 +1,33 @@
 # DEVELOPMENT_NOTES.md
-## 2026-07-07 - PGEN-DEFAULT-PROFILE-0002 — DEFAULT-PROFILE.2: the artifact-owned default, and the bootstrap dance for a generated-constant the engine consumes
+## 2026-07-07 - PGEN-PROFILE-ALIAS-0001 — PROFILE-ALIAS.1: design notes — triplicated alias tables are ALREADY diverged, and what that buys the directive design
+
+Session #56. Fact-finding notes behind the `@profile_alias` design (docs/tasks/PROFILE-ALIAS.md):
+
+1. **The strongest evidence for retiring a hand-copied table is the drift you can already
+   measure.** The three alias copies were presumably byte-equivalent in intent when written; at
+   HEAD they disagree four ways (VHDL aliases only in 2 of 3 copies; the generation-side copy is
+   not even name-gated, so `"2017"` ⇒ `"sv_2017"` fires for ANY grammar; unmatched-value case
+   handling differs — lowercase vs pass-through — masked only by the guard's
+   `eq_ignore_ascii_case`; embedding still parses `regex_default`, a profile name the regex
+   grammar has never declared). None of these is an acceptance bug TODAY — each needed a
+   specific probe to show why it is inert — which is exactly the "silent drift until it isn't"
+   window [[feedback_duplicated_metadata_needs_derived_drift_gate]] describes.
+2. **`@profiles` census as an inertness oracle.** `grep -c "@profiles"`: systemverilog 392,
+   regex 6, vhdl 0. The zero is load-bearing: VHDL profile aliases normalize a value NO guard
+   ever consults, so deleting them is behavior-neutral BY CONSTRUCTION — but the design still
+   requires a `.2` probe (parse + generation with `--grammar-profile 1076-2019` before/after)
+   rather than resting on the census alone.
+3. **Alias resolution belongs INSIDE `set_grammar_profile`.** The DEFAULT-PROFILE.2 lesson
+   (artifact owns its default; `None` RESTORES it) generalizes: if the setter resolves aliases,
+   every consumer — registry, embedding, direct construction, future callers — is correct for
+   free, and the three boundary copies stop being load-bearing at all. Validation shape: alias
+   targets check against the grammar's declared profile universe (union of `@profiles` payloads +
+   `@default_profile`), which both catches typos and forbids alias→alias chains structurally.
+4. **Directive-payload precedent check before inventing surface:** `@whitespace_sensitive`
+   already parses a structured map payload (`{ regex_tokens: true }`), so a map-valued
+   `@profile_alias` needs zero meta-grammar change (dual-run gate re-verifies in `.2`). Merge
+   semantics (multiple `@profile_alias` lines) differ deliberately from `@default_profile`'s
+   single-scalar conflict rule — an alias table is naturally declared in groups.
 
 Session #55. Notes from replacing the regex→`pcre2` default-profile name-gates with the
 grammar-level `@default_profile:` directive:
