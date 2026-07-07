@@ -537,6 +537,25 @@ impl AnnotationValidator {
                     });
                 }
             }
+            // `WS-DIRECTIVE.2`: lint the grammar-level layout-policy payload
+            // through the SAME parser codegen compiles it with
+            // (`semantic_runtime::parse_layout_sensitivity_payload`), so the
+            // lint and the codegen error can never disagree.
+            "whitespace_sensitive" => {
+                if let Err(err) = crate::ast_pipeline::semantic_runtime::parse_layout_sensitivity_payload(
+                    semantic_annotation.ast(),
+                ) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: err,
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "priority" | "precedence" => {
                 if parse_semantic_numeric_list(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {
@@ -2768,6 +2787,60 @@ mod tests {
             d.code == "W_SEM_INVALID_ASSOCIATIVITY_PAYLOAD"
                 && d.severity == AnnotationSeverity::Warning
         }));
+    }
+
+    // `WS-DIRECTIVE.2`: the `@whitespace_sensitive:` payload is linted through
+    // the SAME parser codegen compiles it with, so lint and codegen agree.
+    #[test]
+    fn semantic_validator_warns_on_invalid_whitespace_sensitive_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "whitespace_sensitive".to_string(),
+                ast: UnifiedSemanticAST::from_named_payload(
+                    "whitespace_sensitive",
+                    "{ tokens: true }",
+                ),
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD"
+                && d.severity == AnnotationSeverity::Warning
+                && d.message.contains("unknown field 'tokens'")
+        }));
+    }
+
+    #[test]
+    fn semantic_validator_accepts_well_formed_whitespace_sensitive_payloads() {
+        for payload in ["true", "false", "{ regex_tokens: true }", "{ terminals: true, trailing: false }"] {
+            let mut annotations = Annotations::default();
+            annotations.semantic_annotations.insert(
+                "start".to_string(),
+                vec![SemanticAnnotation::Named {
+                    name: "whitespace_sensitive".to_string(),
+                    ast: UnifiedSemanticAST::from_named_payload("whitespace_sensitive", payload),
+                }],
+            );
+            let report = AnnotationValidator::default().validate_annotations(&annotations);
+            assert!(
+                !report
+                    .diagnostics
+                    .iter()
+                    .any(|d| d.code == "W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD"),
+                "payload {payload:?} should lint clean"
+            );
+            // Registered in the typed directive registry — no unknown-directive noise.
+            assert!(
+                !report
+                    .diagnostics
+                    .iter()
+                    .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"),
+                "payload {payload:?} should not trigger the unknown-directive lint"
+            );
+        }
     }
 
     #[test]

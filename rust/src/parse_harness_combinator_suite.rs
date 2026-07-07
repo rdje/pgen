@@ -124,6 +124,16 @@ pub enum Combinator {
     /// Left recursion in the wrapper/indirect form PGEN structurally eliminates
     /// (`expr := wrapper | term`, `wrapper := expr "+" term`), rewritten to `base (suffix)*`.
     LeftRecursion,
+    /// The DEFAULT layout policy (no `@whitespace_sensitive:` directive): layout is auto-skipped
+    /// before terminals and after the entry rule (WS-DIRECTIVE.2 contrast case).
+    LayoutInsensitiveDefault,
+    /// The grammar-level `@whitespace_sensitive: true` directive: NO layout skip anywhere —
+    /// whitespace is literal input (WS-DIRECTIVE.2; the policy regex declares).
+    LayoutWhitespaceSensitiveFull,
+    /// The granular `@whitespace_sensitive: { regex_tokens: true }` facet: regex tokens are
+    /// whitespace-sensitive while terminals and trailing layout keep the default skip
+    /// (WS-DIRECTIVE.2; the policy systemverilog_preprocessor declares).
+    LayoutWhitespaceSensitiveRegexTokens,
 }
 
 impl Combinator {
@@ -149,6 +159,9 @@ impl Combinator {
         Combinator::AtomRegexToken,
         Combinator::RuleReference,
         Combinator::LeftRecursion,
+        Combinator::LayoutInsensitiveDefault,
+        Combinator::LayoutWhitespaceSensitiveFull,
+        Combinator::LayoutWhitespaceSensitiveRegexTokens,
     ];
 }
 
@@ -368,6 +381,55 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         inputs: &[("n", true), ("n+n", true), ("n+n+n", true), ("n+", false), ("+n", false)],
         entry_rule: Some("expr"),
         note: "the wrapper/indirect LR form is structurally eliminated to `base (suffix)*`",
+    },
+    // ── Layout policy — the grammar-level `@whitespace_sensitive:` directive (WS-DIRECTIVE.2) ──────
+    CombinatorCase {
+        name: "layout_insensitive_default",
+        combinator: Combinator::LayoutInsensitiveDefault,
+        // No directive = the whitespace-INSENSITIVE default: leading layout is skipped before every
+        // terminal and trailing layout is consumed after the entry rule.
+        grammar_body: "start := \"a\" \"b\"\n",
+        inputs: &[
+            ("ab", true),
+            ("a b", true),
+            (" ab", true),
+            ("ab ", true),
+            ("a x", false),
+        ],
+        entry_rule: None,
+        note: "default layout policy skips interior/leading layout and consumes trailing layout",
+    },
+    CombinatorCase {
+        name: "layout_ws_sensitive_full",
+        combinator: Combinator::LayoutWhitespaceSensitiveFull,
+        // `@whitespace_sensitive: true` (the regex.ebnf policy): NO layout skip anywhere — the same
+        // inputs the default case accepts must now REJECT whenever they carry whitespace. This is the
+        // capability the retired grammar-NAME gate closed off from synthetic grammars entirely.
+        grammar_body: "@whitespace_sensitive: true\nstart := \"a\" \"b\"\n",
+        inputs: &[
+            ("ab", true),
+            ("a b", false),
+            (" ab", false),
+            ("ab ", false),
+        ],
+        entry_rule: None,
+        note: "@whitespace_sensitive: true makes every space literal (contrast with the default case)",
+    },
+    CombinatorCase {
+        name: "layout_ws_sensitive_regex_tokens",
+        combinator: Combinator::LayoutWhitespaceSensitiveRegexTokens,
+        // `@whitespace_sensitive: { regex_tokens: true }` (the systemverilog_preprocessor policy):
+        // ONLY regex tokens are whitespace-sensitive — terminals still skip leading layout and
+        // trailing layout is still consumed.
+        grammar_body: "@whitespace_sensitive: { regex_tokens: true }\nstart := \"k\" /[a-z]+/\n",
+        inputs: &[
+            ("kx", true),
+            ("k x", false),
+            (" kx", true),
+            ("kx ", true),
+        ],
+        entry_rule: None,
+        note: "granular facet: regex tokens sensitive, terminals + trailing keep the default skip",
     },
 ];
 

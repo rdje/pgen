@@ -1038,6 +1038,16 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
   interp→oracle, never diverge); interpreter unit tests **7/7**; SV cert re-verified unchanged via
   `sv_cert_recognized_union_gate` (canonical `1343/10/1321/12`, seeds 0/7/42); my new code clippy-clean (0
   findings after the one `collapsible_if` collapse; the generated-stage `eq_op` errors are pre-existing).
+
+> **LIVE-SPEC note (2026-07-07, session #54).** The `.5.1` root-cause #1 grammar-NAME layout gate
+> (`allow_layout_skip_for_terminals`/`_for_regexes`/`allow_trailing_layout` keyed on
+> `grammar_name != "regex"` / `"systemverilogpreprocessor"`, mirrored expression-for-expression by the
+> interpreter's `grammar_layout_policy(grammar_name)`) — the latent tension recorded when `.5.1` landed —
+> is **RESOLVED by `WS-DIRECTIVE.2`**: the layout policy is now declared IN the grammar via the
+> grammar-level `@whitespace_sensitive:` directive (regex `true`; svpp `{ regex_tokens: true }`), compiled
+> once by `semantic_runtime::compile_layout_sensitivity` and consumed by BOTH codegen and the interpreter
+> (the name literals are deleted; all generated parsers byte-identical; the `.6.1` suite grew 3 `layout_*`
+> isolating cases, 20→23). See `docs/tasks/WS-DIRECTIVE.md`.
 - [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` (the differential-equivalence gate
   section: CERTIFIED/DEFERRED lists + the four regex-fidelity root causes); `TOOLBOX.md` §1.6 CERTIFIED/DEFERRED
   lists; this tree (`.5.1` done + checklist, `.5.4` closed, frontier, §15 map); CHANGES.md / DEVELOPMENT_NOTES.md

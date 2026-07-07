@@ -11,7 +11,16 @@
 # Notes:
 # - This grammar is intentionally line-oriented and deterministic.
 # - Non-directive source lines are captured as passthrough text.
+#
+# WS-DIRECTIVE.2 — grammar-level layout policy: the preprocessor is
+# line-oriented, so its REGEX TOKENS are whitespace-sensitive (a token like
+# `[^\r\n]*` must start matching at the cursor, not after an auto-skip that
+# could swallow a significant newline). String terminals and trailing layout
+# keep the default skip. (This directive replaced the retired engine-side
+# grammar-NAME gate; the policy now lives here, in the grammar, per the
+# EBNF-single-source-of-truth doctrine.)
 
+@whitespace_sensitive: { regex_tokens: true }
 systemverilog_preprocessor_file := pp_item*
 -> {type: "systemverilog_preprocessor_file", items: $1}
 

@@ -62,6 +62,7 @@ Parser steering:
 - `@recover_budget`
 - `@recover_parse_budget`
 - `@recover_global_budget`
+- `@whitespace_sensitive` (grammar-level layout policy — whether the generated parser auto-skips layout before terminals / regex tokens and consumes trailing layout; payload `true` | `false` | `{ terminals, regex_tokens, trailing }`; compiled by `semantic_runtime::compile_layout_sensitivity`, consumed by parser codegen and the parse-harness interpreter; declared by `grammars/regex.ebnf` (`true`) and `grammars/systemverilog_preprocessor.ebnf` (`{ regex_tokens: true }`); WS-DIRECTIVE.2)
 
 Parser and stimuli steering:
 - `@transform`

@@ -273,6 +273,15 @@ Normative runtime leverage behavior for semantic annotations:
   - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) emit `TransformedTerminal` code paths.
   - Target type parsing is path-aware (for example `std::primitive::i64`).
   - `@profiles` is typed/validated and currently drives parser-side rule/profile guards in generated parsers.
+  - `@whitespace_sensitive` (WS-DIRECTIVE.2) is the grammar-level LAYOUT-POLICY directive:
+    - payload `true` | `false` | `{ terminals: <bool>, regex_tokens: <bool>, trailing: <bool> }` (absent field = `false`),
+    - a `true` facet means the generated parser must NOT auto-skip layout at that point (`terminals` → `match_string` leading skip, `regex_tokens` → `match_regex` leading skip, `trailing` → `parse_full` trailing consumption),
+    - default (directive absent) is whitespace-INSENSITIVE (all skips active),
+    - grammar-level semantics: every occurrence is merged; identical duplicates are allowed, conflicting payloads are a hard compile error; malformed payloads (unknown field / non-boolean value) are hard compile errors,
+    - compiled by `semantic_runtime::compile_layout_sensitivity` into `CompiledSemanticRuntimeAnnotations::layout_sensitivity()`; consumed by parser codegen AND the parse-harness interpreter (one source of truth),
+    - compile-time only: it never enters the per-rule runtime directive lists, so declaring it is emit-neutral for the serialized runtime-annotations blob and for the rule it mechanically binds to,
+    - declared today by `grammars/regex.ebnf` (`true`) and `grammars/systemverilog_preprocessor.ebnf` (`{ regex_tokens: true }`) — this directive replaced the retired engine-side grammar-NAME layout gate,
+    - lint surface: `W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD` (validator warning through the SAME payload parser codegen uses).
   - `Structured` and `Raw` semantic annotations do not alter regex atom parser generation behavior unless a typed directive path consumes them.
 - Stimuli generation (`rust/src/ast_pipeline/stimuli_generator.rs`):
   - Regex sample generation checks semantic hints before regex-HIR sampling.

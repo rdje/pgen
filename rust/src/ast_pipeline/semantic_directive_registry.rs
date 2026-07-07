@@ -367,6 +367,14 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "example",
         capability: SemanticDirectiveCapability::StimuliSteering,
     },
+    // `WS-DIRECTIVE.2`: grammar-level layout policy — whether the generated
+    // parser auto-skips layout before terminals / regex tokens and consumes
+    // trailing layout. Compiled by `semantic_runtime::compile_layout_sensitivity`;
+    // steers parser codegen (and the parse-harness interpreter), not stimuli.
+    SemanticDirectiveSpec {
+        name: "whitespace_sensitive",
+        capability: SemanticDirectiveCapability::ParserSteering,
+    },
 ];
 
 pub fn semantic_directive_spec(name: &str) -> Option<SemanticDirectiveSpec> {
@@ -1263,6 +1271,7 @@ mod tests {
         assert!(semantic_directive_spec("open_scope").is_some());
         assert!(semantic_directive_spec("close_scope").is_some());
         assert!(semantic_directive_spec("predicate").is_some());
+        assert!(semantic_directive_spec("whitespace_sensitive").is_some());
         assert!(semantic_directive_spec("unknown_directive").is_none());
     }
 
@@ -1323,6 +1332,12 @@ mod tests {
         assert_eq!(
             semantic_directive_spec("literal").map(|s| s.capability),
             Some(SemanticDirectiveCapability::StimuliSteering)
+        );
+        // `WS-DIRECTIVE.2`: the grammar-level layout policy steers parser
+        // codegen (and the parse-harness interpreter), not stimuli.
+        assert_eq!(
+            semantic_directive_spec("whitespace_sensitive").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserSteering)
         );
     }
 }

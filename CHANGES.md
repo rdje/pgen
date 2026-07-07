@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-WS-DIRECTIVE-0002 (WS-DIRECTIVE.2): `@whitespace_sensitive` landed end-to-end — the grammar-NAME layout gate is RETIRED (emit-neutral, tree COMPLETE)
+
+Session #54. **New parser-agnostic grammar-level directive, proven emit-neutral.** The layout
+policy (auto-skip layout before terminals / before regex tokens; consume trailing layout) is now
+declared IN the grammar instead of being keyed on the grammar's file name in the engine.
+
+- **REPRODUCE:** pre-fix, a synthetic grammar declaring `@whitespace_sensitive: true` still emitted
+  `if true { consume_layout… }` in `match_string`/`parse_full` — the directive was silently ignored
+  (any grammar not literally named `regex` was forced whitespace-insensitive; the parse harness
+  could not express a whitespace-sensitive synthetic grammar at all).
+- **Fix:** `semantic_runtime::compile_layout_sensitivity` compiles the grammar-level directive
+  (`true` | `false` | `{ terminals, regex_tokens, trailing }`; identical duplicates tolerated,
+  conflicts/malformed payloads hard errors) into `CompiledSemanticRuntimeAnnotations`; codegen's
+  three layout booleans and the interpreter's `LayoutPolicy` both read it (the `"regex"` /
+  `"systemverilogpreprocessor"` literals are DELETED); `grammars/regex.ebnf` declares `true`,
+  `grammars/systemverilog_preprocessor.ebnf` declares `{ regex_tokens: true }`. Deliberately NO new
+  `SemanticRuntimeDirective` enum variant (the directive is compile-time only and never enters the
+  serialized runtime blob — emit-neutral by construction); `rule_has_no_semantic_annotations`
+  ignores it so the bound rule keeps the unannotated fast-path. Registered in the typed directive
+  registry (ParserSteering) + validator payload lint `W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD`
+  through the SAME parser codegen uses.
+- **Verified:** probe now emits `if false { consume_layout… }`; combinator suite 20→**23**
+  (`layout_insensitive_default` / `layout_ws_sensitive_full` / `layout_ws_sensitive_regex_tokens`,
+  all CLEAN interp==oracle byte-identical — the default accepts `"a b"`, the directive rejects it);
+  emit-neutrality PROVEN — ALL 11 `generated/*.rs` regenerated and `cmp` BYTE-IDENTICAL;
+  equivalence gate 4/4 (11 CERTIFIED); semantic gate 24/24; features-on lib **821/0**; dual-run
+  gate ✅ (zero meta-grammar change — the directive parses through the existing generic annotation
+  surface); regex cert `198/198 UNKNOWN=0 fully_certified` + svpp `74/74 UNKNOWN=0 fully_certified`
+  deterministic at seeds 0/7/42; clippy strict-source ok; both book gates ✅. NO release bump.
+- **Lockstep:** ebnf book *Layout policy* section + the FALSE "PGEN does not insert implicit
+  token-skipping" claim corrected (tool-disproven — implicit skipping IS the default); top book
+  annotation-system + parse-harness chapters; TOOLBOX §1.7; normative spec + steering matrix;
+  PARSE-HARNESS LIVE-SPEC note (the `.5.1` latent tension RESOLVED). Findings routed (tree §6):
+  F1 regex→pcre2 default-profile name-gates (`parser_registry.rs:138`, `main.rs:2256`); F2 svpp
+  stimuli quantified-separator heuristic (`stimuli_generator.rs:11642`).
+
 ## 2026-07-07 - PGEN-WS-DIRECTIVE-0001 (WS-DIRECTIVE.1): DESIGN — `@whitespace_sensitive` grammar-level directive to replace the codegen grammar-NAME layout gate (docs-only)
 
 Session #54. New tree `WS-DIRECTIVE` (docs/tasks/WS-DIRECTIVE.md) opened by PNT for the

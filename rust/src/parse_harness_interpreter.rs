@@ -249,7 +249,7 @@ pub fn interpret_parse_gen_ast(
     let mut interp = Interp {
         grammar: grammar_tree,
         annotations,
-        layout: grammar_layout_policy(grammar_name),
+        layout: grammar_layout_policy(&compiled_sem),
         comment_arms: comment_arm_suppression_for_grammar(grammar_name, grammar_tree, annotations),
         active_profile: active_profile.map(|s| s.to_string()),
         input,
@@ -334,18 +334,19 @@ fn intern(s: &str) -> &'static str {
 ///
 /// # PARSE-HARNESS.5.1 — why this exists (the regex fidelity fix)
 ///
-/// The interpreter must reproduce the generated parser **byte-for-byte**, and the shipped codegen makes
-/// this a per-grammar, grammar-NAME-keyed decision (`ast_based_generator.rs`): `regex` is
-/// whitespace-sensitive so its terminals, regex-tokens, and trailing `<EOF>` do NOT skip layout;
-/// `systemverilog_preprocessor` disables the regex-token layout skip. Without this, on a regex input
-/// like `\Q]\E* ?` the interpreter would skip the literal space and bind the `?` as a lazy
+/// The interpreter must reproduce the generated parser **byte-for-byte**. On a regex input like
+/// `\Q]\E* ?` an unconditional layout skip would consume the literal space and bind the `?` as a lazy
 /// `quant_suffix` (`greediness:"lazy"`) where the generated regex parser leaves the space in place and
 /// the suffix empty (`greediness:[]`) — the exact divergence PARSE-HARNESS.5's measurement recorded.
 ///
-/// [`grammar_layout_policy`] mirrors, expression-for-expression, the three codegen decisions:
-/// - `skip_layout_for_terminals` ⟷ `allow_layout_skip_for_terminals` (`ast_based_generator.rs:4509`),
-/// - `skip_layout_for_regexes`   ⟷ `allow_layout_skip_for_regexes`   (`ast_based_generator.rs:4510`),
-/// - `allow_trailing_layout`     ⟷ `allow_trailing_layout`           (`ast_based_generator.rs:1144`).
+/// # WS-DIRECTIVE.2 — one source of truth
+///
+/// Since `WS-DIRECTIVE.2`, both codegen and this interpreter derive the policy from the grammar's
+/// OWN declaration — the grammar-level `@whitespace_sensitive:` directive, compiled by
+/// `semantic_runtime::compile_layout_sensitivity` (the historical grammar-NAME gate is retired):
+/// - `skip_layout_for_terminals` ⟷ codegen's `allow_layout_skip_for_terminals` = `!terminals`,
+/// - `skip_layout_for_regexes`   ⟷ codegen's `allow_layout_skip_for_regexes`   = `!regex_tokens`,
+/// - `allow_trailing_layout`     ⟷ codegen's `allow_trailing_layout`           = `!trailing`.
 ///
 /// The differential-equivalence gate (PARSE-HARNESS.5) is the runtime drift guard: once `regex` is
 /// CERTIFIED byte-identical, any future codegen change to its whitespace handling that is not mirrored
@@ -363,23 +364,17 @@ struct LayoutPolicy {
     allow_trailing_layout: bool,
 }
 
-/// Compute a grammar's [`LayoutPolicy`] from its name, mirroring the shipped codegen's grammar-name
-/// keyed decisions **verbatim** (see [`LayoutPolicy`] for the crux + the exact `ast_based_generator.rs`
-/// line references). `grammar_name` is the grammar's `.ebnf` file stem (e.g. `regex`), exactly the
-/// value codegen normalizes.
-fn grammar_layout_policy(grammar_name: &str) -> LayoutPolicy {
-    // Codegen's `normalized_grammar_name`: keep only ASCII alphanumerics, lowercase
-    // (ast_based_generator.rs:4503-4508).
-    let normalized: String = grammar_name
-        .chars()
-        .filter(|ch| ch.is_ascii_alphanumeric())
-        .collect::<String>()
-        .to_ascii_lowercase();
+/// Compute a grammar's [`LayoutPolicy`] from its compiled semantic-runtime annotations — the SAME
+/// `@whitespace_sensitive:` declaration codegen consumes (`AstBasedGenerator::layout_sensitivity`),
+/// so the two implementations cannot drift by construction (see [`LayoutPolicy`]).
+fn grammar_layout_policy(
+    compiled: &crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
+) -> LayoutPolicy {
+    let sensitivity = compiled.layout_sensitivity();
     LayoutPolicy {
-        skip_layout_for_terminals: normalized != "regex",
-        skip_layout_for_regexes: !matches!(normalized.as_str(), "regex" | "systemverilogpreprocessor"),
-        // Codegen uses the RAW name here (`eq_ignore_ascii_case`, ast_based_generator.rs:1144).
-        allow_trailing_layout: !grammar_name.eq_ignore_ascii_case("regex"),
+        skip_layout_for_terminals: !sensitivity.terminals,
+        skip_layout_for_regexes: !sensitivity.regex_tokens,
+        allow_trailing_layout: !sensitivity.trailing,
     }
 }
 

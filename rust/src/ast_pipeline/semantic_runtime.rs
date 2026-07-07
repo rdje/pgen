@@ -170,6 +170,156 @@ pub struct SemanticLibraryImportSpec {
     pub name: SemanticRuntimeValue,
 }
 
+/// `WS-DIRECTIVE.2`: the compiled payload of the grammar-level
+/// `@whitespace_sensitive:` directive — the parser's declared LAYOUT policy.
+///
+/// Each `true` facet means the generated parser (and the interpreter) must
+/// NOT auto-skip layout (whitespace/comments) at that point:
+///
+/// - `terminals`    — `match_string` must not skip leading layout,
+/// - `regex_tokens` — `match_regex` must not skip leading layout,
+/// - `trailing`     — `parse_full` must not consume trailing layout.
+///
+/// Surface syntax (parsed by [`compile_layout_sensitivity`]):
+///
+/// ```text
+/// @whitespace_sensitive: true                          # all three facets
+/// @whitespace_sensitive: { regex_tokens: true }        # granular (absent = false)
+/// ```
+///
+/// The default (directive absent) is all-`false` — whitespace-INSENSITIVE,
+/// i.e. the historical behavior of every grammar. This directive replaces
+/// the retired grammar-NAME layout gate (`grammar_name != "regex"` /
+/// `"systemverilogpreprocessor"`), so the layout policy is declared IN the
+/// `.ebnf` per the EBNF-single-source-of-truth doctrine.
+///
+/// The directive is **compile-time only**: it never enters
+/// `directives_by_rule` (no runtime semantics — the policy is burned into
+/// the emitted parser code), so declaring it is emit-neutral for the
+/// serialized runtime-annotations blob.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct LayoutSensitivity {
+    pub terminals: bool,
+    pub regex_tokens: bool,
+    pub trailing: bool,
+}
+
+impl LayoutSensitivity {
+    /// The `@whitespace_sensitive: true` shorthand — all three facets.
+    pub const FULL: Self = Self {
+        terminals: true,
+        regex_tokens: true,
+        trailing: true,
+    };
+}
+
+/// The normalized directive name recognized by [`compile_layout_sensitivity`].
+pub const WHITESPACE_SENSITIVE_DIRECTIVE_NAME: &str = "whitespace_sensitive";
+
+/// `WS-DIRECTIVE.2`: scan a grammar's semantic annotations for the
+/// grammar-level `@whitespace_sensitive:` directive and compile it into a
+/// [`LayoutSensitivity`]. Returns `Ok(None)` when the grammar declares no
+/// layout policy (the whitespace-insensitive default).
+///
+/// Payload forms:
+/// - scalar `true`  → [`LayoutSensitivity::FULL`],
+/// - scalar `false` → all facets `false` (explicit default; allowed),
+/// - object `{ terminals: <bool>, regex_tokens: <bool>, trailing: <bool> }`
+///   — any subset of the three keys; an absent key means `false`; an
+///   unknown key or non-boolean value is a hard compile error.
+///
+/// Duplicate declarations with IDENTICAL payloads are allowed (mirroring the
+/// `@fact_kind` V-DECL-1 convenience); CONFLICTING payloads are a hard error.
+/// Mechanically the directive binds to whichever rule follows it, but its
+/// meaning is grammar-level, so every occurrence (rule- or branch-attached)
+/// is merged through the same conflict check.
+pub fn compile_layout_sensitivity(
+    annotations: &Annotations,
+) -> Result<Option<LayoutSensitivity>, String> {
+    let mut declared: Option<LayoutSensitivity> = None;
+    let rule_level = annotations
+        .semantic_annotations
+        .iter()
+        .flat_map(|(_, list)| list.iter());
+    let branch_level = annotations
+        .branch_semantic_annotations
+        .iter()
+        .flat_map(|(_, branches)| branches.iter().flat_map(|list| list.iter()));
+    for annotation in rule_level.chain(branch_level) {
+        let Some(name) = annotation.name() else {
+            continue;
+        };
+        if name.trim().to_ascii_lowercase() != WHITESPACE_SENSITIVE_DIRECTIVE_NAME {
+            continue;
+        }
+        let parsed = parse_layout_sensitivity_payload(annotation.ast())?;
+        match declared {
+            Some(prior) if prior != parsed => {
+                return Err(format!(
+                    "@{WHITESPACE_SENSITIVE_DIRECTIVE_NAME}: declared more than once with conflicting payloads (first: {prior:?}; second: {parsed:?}). Declare the grammar's layout policy exactly once."
+                ));
+            }
+            _ => declared = Some(parsed),
+        }
+    }
+    Ok(declared)
+}
+
+/// Parses one `@whitespace_sensitive:` payload (see
+/// [`compile_layout_sensitivity`] for the accepted forms). `pub(crate)` so
+/// the annotation validator lints the payload through the SAME parser that
+/// codegen compiles it with (no second dialect).
+pub(crate) fn parse_layout_sensitivity_payload(
+    ast: &UnifiedSemanticAST,
+) -> Result<LayoutSensitivity, String> {
+    const USAGE: &str = "Directive '@whitespace_sensitive' expects `true`, `false`, or an object with boolean fields drawn from {terminals, regex_tokens, trailing}.";
+    let payload = ast
+        .structured_value()
+        .ok_or_else(|| format!("{USAGE} (payload is not a structured value)"))?;
+    if let Some(full) = scalar_bool(payload) {
+        return Ok(if full {
+            LayoutSensitivity::FULL
+        } else {
+            LayoutSensitivity::default()
+        });
+    }
+    let properties = object_properties(payload)
+        .ok_or_else(|| format!("{USAGE} (got a non-boolean, non-object payload: {payload:?})"))?;
+    let mut sensitivity = LayoutSensitivity::default();
+    for property in properties {
+        let value = scalar_bool(&property.value).ok_or_else(|| {
+            format!(
+                "@whitespace_sensitive: field '{}' must be a boolean; got {:?}.",
+                property.key, property.value
+            )
+        })?;
+        match property.key.trim().to_ascii_lowercase().as_str() {
+            "terminals" => sensitivity.terminals = value,
+            "regex_tokens" => sensitivity.regex_tokens = value,
+            "trailing" => sensitivity.trailing = value,
+            other => {
+                return Err(format!(
+                    "@whitespace_sensitive: unknown field '{other}'. Known fields: terminals, regex_tokens, trailing."
+                ));
+            }
+        }
+    }
+    Ok(sensitivity)
+}
+
+/// Boolean reading of a scalar payload value: the typed `Boolean` variant or
+/// the literal texts `true` / `false` (case-insensitive).
+fn scalar_bool(value: &UnifiedSemanticValue) -> Option<bool> {
+    if let UnifiedSemanticValue::Boolean(b) = value {
+        return Some(*b);
+    }
+    match scalar_text(value)?.trim().to_ascii_lowercase().as_str() {
+        "true" => Some(true),
+        "false" => Some(false),
+        _ => None,
+    }
+}
+
 /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: payload of a `@fact_kind:` declaration.
 ///
 /// Surface syntax (per `PGEN_SEMANTIC_STORE_SCHEMA_LANGUAGE_SPEC.md` §4):
@@ -520,6 +670,13 @@ pub struct CompiledSemanticRuntimeAnnotations {
     /// this map is populated. A `@predicate <user-name>` call site resolves
     /// against this registry.
     predicate_defs: HashMap<String, PredicateDef>,
+    /// `WS-DIRECTIVE.2`: the grammar-level `@whitespace_sensitive:` layout
+    /// policy, compiled by [`compile_layout_sensitivity`]. `None` = the
+    /// directive is absent (whitespace-insensitive default). Compile-time
+    /// only: consumed by parser codegen and the parse-harness interpreter;
+    /// never serialized into generated parsers (the policy is burned into
+    /// the emitted code) — `from_rule_directives` / `from_parts` seed `None`.
+    layout_sensitivity: Option<LayoutSensitivity>,
 }
 
 impl CompiledSemanticRuntimeAnnotations {
@@ -535,6 +692,7 @@ impl CompiledSemanticRuntimeAnnotations {
             branch_directives_by_rule: HashMap::new(),
             fact_kinds: HashMap::new(),
             predicate_defs: HashMap::new(),
+            layout_sensitivity: None,
         }
     }
 
@@ -547,7 +705,15 @@ impl CompiledSemanticRuntimeAnnotations {
             branch_directives_by_rule,
             fact_kinds: HashMap::new(),
             predicate_defs: HashMap::new(),
+            layout_sensitivity: None,
         }
+    }
+
+    /// `WS-DIRECTIVE.2`: the grammar's declared `@whitespace_sensitive:`
+    /// layout policy; all-`false` (whitespace-insensitive) when the grammar
+    /// declares none. See [`LayoutSensitivity`].
+    pub fn layout_sensitivity(&self) -> LayoutSensitivity {
+        self.layout_sensitivity.unwrap_or_default()
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: accessor for the predicate-def registry.
@@ -3106,6 +3272,9 @@ pub fn compile_semantic_runtime_annotations(
         branch_directives_by_rule,
         fact_kinds,
         predicate_defs,
+        // `WS-DIRECTIVE.2`: the grammar-level layout policy (its own scan —
+        // the directive never enters the per-rule directive lists).
+        layout_sensitivity: compile_layout_sensitivity(annotations)?,
     })
 }
 
@@ -3475,10 +3644,11 @@ fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        CompiledSemanticRuntimeAnnotations, SemanticFactSpec, SemanticLibraryExportSpec,
-        SemanticLibraryImportSpec, SemanticPredicateContentView, SemanticPredicatePhase,
-        SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeValue,
-        SemanticScopeKind, compile_rule_semantic_runtime_directives,
+        CompiledSemanticRuntimeAnnotations, LayoutSensitivity, SemanticFactSpec,
+        SemanticLibraryExportSpec, SemanticLibraryImportSpec, SemanticPredicateContentView,
+        SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeDirective,
+        SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
+        compile_layout_sensitivity, compile_rule_semantic_runtime_directives,
         compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
         parse_semantic_runtime_directives,
     };
@@ -7002,5 +7172,123 @@ mod tests {
         assert_eq!(decl.attributes, vec!["name", "type_kind"]);
         assert_eq!(decl.required, vec!["name"]);
         assert!(decl.exportable);
+    }
+
+    // ── WS-DIRECTIVE.2: the grammar-level `@whitespace_sensitive:` directive ──
+
+    fn whitespace_sensitive_annotation(payload: UnifiedSemanticValue) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "whitespace_sensitive".to_string(),
+            ast: UnifiedSemanticAST::Structured {
+                canonical: String::new(),
+                value: payload,
+            },
+        }
+    }
+
+    fn annotations_with_ws_directives(payloads: Vec<UnifiedSemanticValue>) -> Annotations {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "entry_rule".to_string(),
+            payloads
+                .into_iter()
+                .map(whitespace_sensitive_annotation)
+                .collect(),
+        );
+        annotations
+    }
+
+    #[test]
+    fn layout_sensitivity_absent_directive_defaults_whitespace_insensitive() {
+        let annotations = Annotations::default();
+        assert_eq!(compile_layout_sensitivity(&annotations), Ok(None));
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        assert_eq!(compiled.layout_sensitivity(), LayoutSensitivity::default());
+    }
+
+    #[test]
+    fn layout_sensitivity_scalar_true_declares_full_sensitivity() {
+        // Both the typed Boolean payload and the textual `true` spelling.
+        for payload in [bool_val(true), ident_val("true")] {
+            let annotations = annotations_with_ws_directives(vec![payload]);
+            let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+            assert_eq!(compiled.layout_sensitivity(), LayoutSensitivity::FULL);
+        }
+    }
+
+    #[test]
+    fn layout_sensitivity_scalar_false_is_the_explicit_default() {
+        let annotations = annotations_with_ws_directives(vec![bool_val(false)]);
+        assert_eq!(
+            compile_layout_sensitivity(&annotations),
+            Ok(Some(LayoutSensitivity::default()))
+        );
+    }
+
+    #[test]
+    fn layout_sensitivity_granular_object_sets_only_named_facets() {
+        // The systemverilog_preprocessor shape: regex tokens only.
+        let annotations = annotations_with_ws_directives(vec![object(vec![(
+            "regex_tokens",
+            bool_val(true),
+        )])]);
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        assert_eq!(
+            compiled.layout_sensitivity(),
+            LayoutSensitivity {
+                terminals: false,
+                regex_tokens: true,
+                trailing: false,
+            }
+        );
+    }
+
+    #[test]
+    fn layout_sensitivity_identical_duplicate_declarations_are_allowed() {
+        let annotations =
+            annotations_with_ws_directives(vec![bool_val(true), ident_val("true")]);
+        assert_eq!(
+            compile_layout_sensitivity(&annotations),
+            Ok(Some(LayoutSensitivity::FULL))
+        );
+    }
+
+    #[test]
+    fn layout_sensitivity_conflicting_declarations_are_a_hard_error() {
+        let annotations = annotations_with_ws_directives(vec![
+            bool_val(true),
+            object(vec![("terminals", bool_val(true))]),
+        ]);
+        let err = compile_layout_sensitivity(&annotations).expect_err("conflict must error");
+        assert!(
+            err.contains("conflicting payloads"),
+            "error should name the conflict: {err}"
+        );
+        // The full compile pass must surface the same error.
+        assert!(compile_semantic_runtime_annotations(&annotations).is_err());
+    }
+
+    #[test]
+    fn layout_sensitivity_unknown_field_is_a_hard_error() {
+        let annotations =
+            annotations_with_ws_directives(vec![object(vec![("tokens", bool_val(true))])]);
+        let err = compile_layout_sensitivity(&annotations).expect_err("unknown field must error");
+        assert!(
+            err.contains("unknown field 'tokens'"),
+            "error should name the field: {err}"
+        );
+    }
+
+    #[test]
+    fn layout_sensitivity_non_boolean_field_value_is_a_hard_error() {
+        let annotations = annotations_with_ws_directives(vec![object(vec![(
+            "terminals",
+            ident_val("yes"),
+        )])]);
+        let err = compile_layout_sensitivity(&annotations).expect_err("non-bool must error");
+        assert!(
+            err.contains("must be a boolean"),
+            "error should explain the type: {err}"
+        );
     }
 }

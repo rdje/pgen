@@ -75,10 +75,14 @@ rule_operator := (
 )
 ```
 
-> Whitespace *inside the language you are describing* is a different matter — your grammar must match the
-> input's own whitespace explicitly (typically via a `trivia`/`whitespace` rule you call between tokens).
-> PGEN does not insert implicit token-skipping for you. See how the shipped grammars thread a `trivia`
-> rule through their sequences.
+> Whitespace *inside the language you are describing* is governed by the grammar's **layout policy**.
+> By default a generated parser is whitespace-INSENSITIVE: it automatically skips layout (whitespace
+> and unclaimed comment introducers) before each string terminal and regex token, and consumes
+> trailing layout after the entry rule — so `start := "a" "b"` accepts `a b` out of the box. A
+> whitespace-SENSITIVE language (regex is the canonical example: every space is a literal atom) opts
+> out with the grammar-level [`@whitespace_sensitive` directive](semantic-annotations.md#layout-policy--whitespace_sensitive).
+> Grammars can additionally thread an explicit `trivia` rule through their sequences when they need
+> the skipped layout to be *visible* in the AST or to control it rule-by-rule.
 
 ## Includes and annotations at the top
 

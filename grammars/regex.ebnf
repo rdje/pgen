@@ -2,12 +2,20 @@
 # Supports embedded code blocks via (?{...}) constructs (intended for Lua/JS hooks)
 # Properly handles balanced braces and string literals in code blocks
 
+# WS-DIRECTIVE.2 — grammar-level layout policy: a regex is whitespace-
+# SENSITIVE. Every space/newline in the input is a literal atom, so the
+# generated parser must NOT auto-skip layout before terminals or regex
+# tokens, nor consume trailing layout after the entry rule. (This directive
+# replaced the retired engine-side grammar-NAME gate; the policy now lives
+# here, in the grammar, per the EBNF-single-source-of-truth doctrine.)
+#
 # Entry point. The body is `pattern` (not `pattern?`) — emptiness is
 # already handled by the inner `alternative = concatenation?` rule so the
 # pattern reference is total. With `pattern?` here the annotation `$1`
 # would (correctly) resolve to the whole `Quantified-?` wrapper instead
 # of the inner pattern content (per the doctrine that `$N` on a
 # Quantified body is "the whole capture group" — see annotation-system.md).
+@whitespace_sensitive: true
 regex          = pattern
 -> {type: "regex", pattern: $1}
 

@@ -4,11 +4,13 @@
 
 use super::Logger;
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, ParserHookRegistry, ParserImplContext,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, LayoutSensitivity, ParserHookRegistry,
+    ParserImplContext,
     SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy, SemanticRuntimeDirective,
     SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
     TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
-    ast_return_transform::AstReturnTransformer, compile_semantic_runtime_annotations,
+    ast_return_transform::AstReturnTransformer, compile_layout_sensitivity,
+    compile_semantic_runtime_annotations,
     normalize_semantic_scalar, parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_charset,
     parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
@@ -225,17 +227,34 @@ impl AstBasedGenerator {
     }
 
     fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
+        // `WS-DIRECTIVE.2`: the grammar-level `@whitespace_sensitive:`
+        // directive is compile-time only (it compiles to ZERO runtime
+        // directives — see `semantic_runtime::compile_layout_sensitivity`),
+        // so the rule it mechanically binds to must NOT be pushed onto the
+        // full `with_semantic_runtime_rule_transaction` path by its mere
+        // presence: declaring the layout policy stays emit-neutral for the
+        // rule body.
+        let is_runtime_relevant = |annotation: &SemanticAnnotation| {
+            annotation.name().is_none_or(|name| {
+                name.trim().to_ascii_lowercase()
+                    != crate::ast_pipeline::semantic_runtime::WHITESPACE_SENSITIVE_DIRECTIVE_NAME
+            })
+        };
         let Some(annotations) = &self.annotations else {
             return true;
         };
         let direct_empty = annotations
             .semantic_annotations
             .get(rule_name)
-            .is_none_or(|v| v.is_empty());
+            .is_none_or(|v| !v.iter().any(&is_runtime_relevant));
         let branch_empty = annotations
             .branch_semantic_annotations
             .get(rule_name)
-            .is_none_or(|branches| branches.iter().all(|b| b.is_empty()));
+            .is_none_or(|branches| {
+                branches
+                    .iter()
+                    .all(|b| !b.iter().any(&is_runtime_relevant))
+            });
         let mid_seq_empty = annotations
             .branch_mid_sequence_semantic_annotations
             .get(rule_name)
@@ -1229,6 +1248,23 @@ impl AstBasedGenerator {
         }
     }
 
+    /// `WS-DIRECTIVE.2`: the grammar's declared layout policy — the
+    /// grammar-level `@whitespace_sensitive:` directive compiled from
+    /// `self.annotations` (all-`false` = whitespace-insensitive when absent).
+    /// This replaced the retired grammar-NAME gate (`grammar_name != "regex"`
+    /// / `"systemverilogpreprocessor"`), so the policy is declared IN the
+    /// `.ebnf`. A malformed/conflicting payload is NOT swallowed by the
+    /// `.ok()` here: the same compile runs — and aborts generation with the
+    /// precise error — in `generate_compiled_semantic_runtime_annotations_tokens`
+    /// (via `compile_semantic_runtime_annotations`), which every generation
+    /// emits.
+    fn layout_sensitivity(&self) -> LayoutSensitivity {
+        self.annotations
+            .as_ref()
+            .and_then(|annotations| compile_layout_sensitivity(annotations).ok().flatten())
+            .unwrap_or_default()
+    }
+
     fn generate_parse_method(
         &self,
         entry_rule: &str,
@@ -1237,7 +1273,7 @@ impl AstBasedGenerator {
     ) -> TokenStream {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
-        let allow_trailing_layout = !self.grammar_name.eq_ignore_ascii_case("regex");
+        let allow_trailing_layout = !self.layout_sensitivity().trailing;
 
         // GRAMMAR-WELLFORMED.H.12.8.4.3: entry-aware full parse. Compute one dispatch
         // arm per rule so `parse_from` / `parse_full_from` can begin a full-input parse
@@ -4612,17 +4648,12 @@ impl AstBasedGenerator {
         filename: &str,
         grammar_tree: &HashMap<String, ASTNode>,
     ) -> TokenStream {
-        let normalized_grammar_name = self
-            .grammar_name
-            .chars()
-            .filter(|ch| ch.is_ascii_alphanumeric())
-            .collect::<String>()
-            .to_ascii_lowercase();
-        let allow_layout_skip_for_terminals = normalized_grammar_name != "regex";
-        let allow_layout_skip_for_regexes = !matches!(
-            normalized_grammar_name.as_str(),
-            "regex" | "systemverilogpreprocessor"
-        );
+        // `WS-DIRECTIVE.2`: the layout policy comes from the grammar-level
+        // `@whitespace_sensitive:` directive (the grammar-NAME gate is
+        // retired) — see `Self::layout_sensitivity`.
+        let layout_sensitivity = self.layout_sensitivity();
+        let allow_layout_skip_for_terminals = !layout_sensitivity.terminals;
+        let allow_layout_skip_for_regexes = !layout_sensitivity.regex_tokens;
         // GRAMMAR-WELLFORMED.H.11.5: per-introducer static comment-arm
         // suppression — see `grammar_claims_introducer_as_non_comment`. An
         // introducer the grammar assigns a non-comment meaning loses its arm

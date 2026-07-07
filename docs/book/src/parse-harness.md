@@ -511,7 +511,7 @@ gate uses does not apply because these grammars are synthetic and never register
 Because the corpus is a *fixed curated input set* (not the seeded stimuli generator), the differential is
 `synthetic grammar × curated input` with no randomness — deterministic by construction.
 
-The 20 isolating cases cover the whole structural surface:
+The 23 isolating cases cover the whole structural surface:
 
 | Combinator | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -528,6 +528,9 @@ The 20 isolating cases cover the whole structural surface:
 | **atom** — terminal / regex-token | `"hello"` / `/[0-9]+/` | exact literal / anchored pattern match |
 | **rule reference** | `start := a b` | dispatch to referenced rules |
 | **left recursion** (LR-eliminated) | `expr := wrapper \| term`, `wrapper := expr "+" term` | the wrapper form is rewritten to `base (suffix)*` |
+| **layout — insensitive default** | `start := "a" "b"` (no directive) | layout is auto-skipped: `"a b"`, `" ab"`, `"ab "` all **accept** |
+| **layout — `@whitespace_sensitive: true`** | same grammar + the directive | every space is literal: only `"ab"` accepts (the `regex.ebnf` policy) — since `WS-DIRECTIVE.2` |
+| **layout — `{ regex_tokens: true }`** | `start := "k" /[a-z]+/` + the granular directive | only regex tokens are sensitive: `"k x"` rejects, `" kx"` / `"kx "` accept (the svpp policy) |
 
 The gate also asserts a **completeness** invariant (every combinator in the enumerated universe has ≥1
 case, and every case name is unique — no silent gap), and folds in the load-bearing **A2.2/A2.3
@@ -703,8 +706,10 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
   `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
   ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
-  half (`.6.1`, *The structural combinator suite* above — 20 isolating grammars: 16 at landing, plus the
-  four bounded-quantifier cases added when `BOUNDED-QUANT.1` closed that half-wire) and the
+  half (`.6.1`, *The structural combinator suite* above — 23 isolating grammars: 16 at landing, plus the
+  four bounded-quantifier cases added when `BOUNDED-QUANT.1` closed that half-wire and the three
+  layout-policy cases added when `WS-DIRECTIVE.2` made whitespace-sensitivity a declarable,
+  synthetic-grammar-expressible capability) and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
   24 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
   findings-driven re-anchors), which also landed the interpreter's semantic orchestration mirror +

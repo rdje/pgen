@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-WS-DIRECTIVE-0002 — WS-DIRECTIVE.2: retiring a grammar-NAME gate emit-neutrally — three engineering lessons
+
+Session #54. Notes from replacing the grammar-name layout gate with the grammar-level
+`@whitespace_sensitive:` directive:
+
+1. **A "compile-time-only" directive must stay OUT of the runtime directive lists.** The obvious
+   implementation (a new `SemanticRuntimeDirective` variant, mirroring `@fact_kind`) would have
+   broken emit-neutrality twice over: (a) `generate_compiled_semantic_runtime_annotations_tokens`
+   serializes every per-rule directive into the generated parser, so the blob would change; (b) the
+   emitted runtime code contains exhaustive matches over the enum, so EVERY regenerated parser's
+   source would change. A dedicated grammar-level scan (`compile_layout_sensitivity`) that the full
+   compile pass calls with `?` — and that never populates `directives_by_rule` — keeps the entire
+   serialized surface untouched. Rule of thumb: **an annotation with zero runtime semantics should
+   never acquire a runtime representation.**
+2. **Annotation PRESENCE is itself a codegen input — audit the censuses.** The first regen left
+   regex/svpp parsers divergent: `rule_has_no_semantic_annotations` counts RAW annotations, so the
+   directive-bound ENTRY rule was silently pushed from the unannotated fast-path onto the full
+   `with_semantic_runtime_rule_transaction` wrapper. The `diff` of the regenerated parser named the
+   mechanism in one read. When adding any new annotation, grep for every "does this rule have
+   annotations?" census and decide explicitly whether the new name counts.
+3. **Emit-neutrality (`cmp` over ALL regenerated parsers) is the perfect oracle for a
+   behavior-preserving refactor of codegen inputs.** It caught lesson-2's subtle wrapper regression
+   instantly — no test suite required — and it converts "trust me, the booleans are the same" into
+   a byte-level proof. Snapshot `generated/*.rs` BEFORE touching codegen; regen; `cmp`.
+4. **Book-drift bonus find:** the ebnf book claimed "PGEN does not insert implicit token-skipping
+   for you" — tool-disproven by the new `layout_insensitive_default` combinator case
+   (`start := "a" "b"` accepts `"a b"` by default). Corrected in the same commit; the books are the
+   director's only window ([[feedback_regex_book_live]]).
+
 ## 2026-07-07 - PGEN-BOUNDED-QUANT-0001 — BOUNDED-QUANT.1: the half-wire was a DIALECT split, and the duality break was the tell
 
 Session #53. Engineering notes from closing the bounded-quantifier half-wire (PARSE-HARNESS.6.1

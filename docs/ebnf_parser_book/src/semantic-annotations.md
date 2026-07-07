@@ -46,6 +46,7 @@ The directives the AST pipeline interprets, grouped by what they do:
 | Profiles | `@profiles` | restrict a rule to a grammar profile (e.g. `sv_2017` vs `sv_2023`) |
 | Value | `@transform`, `@semantic_value` | post-process a matched value |
 | Stimuli | `@generate`, `@sample`, `@dispatch_table`, … | steer stimuli generation |
+| Layout | `@whitespace_sensitive` | grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet) |
 | Pragmas | `@stop_at_rule_boundary` | bound how far a sequence consumes |
 
 The store-backed gating directives are the heart of context-aware parsing — for example, "only treat this
@@ -67,6 +68,53 @@ type_declaration := "typedef" data_type identifier ";" -> {kind: "typedef", name
 @predicate: has_fact(type_name, $1)
 known_type := identifier -> {kind: "type_ref", name: $1}
 ```
+
+## Layout policy — `@whitespace_sensitive`
+
+By default a generated parser is **whitespace-INSENSITIVE**: it silently skips layout (whitespace and
+unclaimed comment introducers) before every string terminal and regex token, and consumes trailing
+layout after the entry rule. `start := "a" "b"` therefore accepts `ab`, `a b`, ` ab`, and `ab `.
+
+A whitespace-SENSITIVE language opts out with this **grammar-level** directive (declare it once,
+directly above a rule — conventionally the entry rule):
+
+```ebnf
+# the whole grammar is whitespace-sensitive: every space is literal input
+@whitespace_sensitive: true
+regex = pattern
+```
+
+With `true`, none of the three skips happen — `start := "a" "b"` now accepts **only** `ab`. This is
+the policy `grammars/regex.ebnf` declares: in a regex, ` ` is an atom, so `a b` must parse as
+three atoms, and a trailing space must not be silently discarded.
+
+The granular form enables individual facets (an absent field means "keep the default skip"):
+
+```ebnf
+# only regex tokens are whitespace-sensitive; terminals and trailing layout keep the skip
+@whitespace_sensitive: { regex_tokens: true }
+systemverilog_preprocessor_file := pp_item*
+```
+
+| Field | `true` means the generated parser must NOT … |
+| --- | --- |
+| `terminals` | skip leading layout before a string terminal (`match_string`) |
+| `regex_tokens` | skip leading layout before a regex token (`match_regex`) |
+| `trailing` | consume trailing layout after the entry rule (`parse_full`) |
+
+Rules of the road:
+
+- **One declaration per grammar.** Identical duplicates are tolerated; *conflicting* payloads are a
+  hard generation error. Malformed payloads (an unknown field, a non-boolean value) are hard errors
+  too, and the annotation validator lints them early (`W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD`).
+- **Compile-time only.** The directive carries no runtime semantics — the policy is burned into the
+  emitted parser code, and the parse-harness interpreter derives its layout policy from the same
+  compiled declaration, so both implementations agree by construction.
+- **Provenance.** This directive replaced an engine-internal gate that keyed the layout policy on the
+  grammar's *file name* — the policy is now declared in the grammar itself, and any grammar
+  (including a scratch/probe grammar) can be whitespace-sensitive. The isolating proof cases live in
+  the structural combinator suite (`layout_insensitive_default`, `layout_ws_sensitive_full`,
+  `layout_ws_sensitive_regex_tokens`).
 
 ## Lexical annotations
 

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-44493303.js";
+            window.path_to_searchindex_js = "searchindex-d951704b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -399,10 +399,14 @@ readability:</p>
 )
 </code></pre>
 <blockquote>
-<p>Whitespace <em>inside the language you are describing</em> is a different matter — your grammar must match the
-input’s own whitespace explicitly (typically via a <code>trivia</code>/<code>whitespace</code> rule you call between tokens).
-PGEN does not insert implicit token-skipping for you. See how the shipped grammars thread a <code>trivia</code>
-rule through their sequences.</p>
+<p>Whitespace <em>inside the language you are describing</em> is governed by the grammar’s <strong>layout policy</strong>.
+By default a generated parser is whitespace-INSENSITIVE: it automatically skips layout (whitespace
+and unclaimed comment introducers) before each string terminal and regex token, and consumes
+trailing layout after the entry rule — so <code>start := "a" "b"</code> accepts <code>a b</code> out of the box. A
+whitespace-SENSITIVE language (regex is the canonical example: every space is a literal atom) opts
+out with the grammar-level <a href="#layout-policy--whitespace_sensitive"><code>@whitespace_sensitive</code> directive</a>.
+Grammars can additionally thread an explicit <code>trivia</code> rule through their sequences when they need
+the skipped layout to be <em>visible</em> in the AST or to control it rule-by-rule.</p>
 </blockquote>
 <h2 id="includes-and-annotations-at-the-top"><a class="header" href="#includes-and-annotations-at-the-top">Includes and annotations at the top</a></h2>
 <p>Include directives and grammar-level semantic annotations conventionally sit near the top of the file:</p>
@@ -967,6 +971,7 @@ contract.</p>
 <tr><td>Profiles</td><td><code>@profiles</code></td><td>restrict a rule to a grammar profile (e.g. <code>sv_2017</code> vs <code>sv_2023</code>)</td></tr>
 <tr><td>Value</td><td><code>@transform</code>, <code>@semantic_value</code></td><td>post-process a matched value</td></tr>
 <tr><td>Stimuli</td><td><code>@generate</code>, <code>@sample</code>, <code>@dispatch_table</code>, …</td><td>steer stimuli generation</td></tr>
+<tr><td>Layout</td><td><code>@whitespace_sensitive</code></td><td>grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet)</td></tr>
 <tr><td>Pragmas</td><td><code>@stop_at_rule_boundary</code></td><td>bound how far a sequence consumes</td></tr>
 </tbody>
 </table>
@@ -987,6 +992,50 @@ type_declaration := "typedef" data_type identifier ";" -&gt; {kind: "typedef", n
 @predicate: has_fact(type_name, $1)
 known_type := identifier -&gt; {kind: "type_ref", name: $1}
 </code></pre>
+<h2 id="layout-policy--whitespace_sensitive"><a class="header" href="#layout-policy--whitespace_sensitive">Layout policy — <code>@whitespace_sensitive</code></a></h2>
+<p>By default a generated parser is <strong>whitespace-INSENSITIVE</strong>: it silently skips layout (whitespace and
+unclaimed comment introducers) before every string terminal and regex token, and consumes trailing
+layout after the entry rule. <code>start := "a" "b"</code> therefore accepts <code>ab</code>, <code>a b</code>, <code> ab</code>, and <code>ab </code>.</p>
+<p>A whitespace-SENSITIVE language opts out with this <strong>grammar-level</strong> directive (declare it once,
+directly above a rule — conventionally the entry rule):</p>
+<pre><code class="language-ebnf"># the whole grammar is whitespace-sensitive: every space is literal input
+@whitespace_sensitive: true
+regex = pattern
+</code></pre>
+<p>With <code>true</code>, none of the three skips happen — <code>start := "a" "b"</code> now accepts <strong>only</strong> <code>ab</code>. This is
+the policy <code>grammars/regex.ebnf</code> declares: in a regex, <code> </code> is an atom, so <code>a b</code> must parse as
+three atoms, and a trailing space must not be silently discarded.</p>
+<p>The granular form enables individual facets (an absent field means “keep the default skip”):</p>
+<pre><code class="language-ebnf"># only regex tokens are whitespace-sensitive; terminals and trailing layout keep the skip
+@whitespace_sensitive: { regex_tokens: true }
+systemverilog_preprocessor_file := pp_item*
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th><code>true</code> means the generated parser must NOT …</th></tr>
+</thead>
+<tbody>
+<tr><td><code>terminals</code></td><td>skip leading layout before a string terminal (<code>match_string</code>)</td></tr>
+<tr><td><code>regex_tokens</code></td><td>skip leading layout before a regex token (<code>match_regex</code>)</td></tr>
+<tr><td><code>trailing</code></td><td>consume trailing layout after the entry rule (<code>parse_full</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Rules of the road:</p>
+<ul>
+<li><strong>One declaration per grammar.</strong> Identical duplicates are tolerated; <em>conflicting</em> payloads are a
+hard generation error. Malformed payloads (an unknown field, a non-boolean value) are hard errors
+too, and the annotation validator lints them early (<code>W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD</code>).</li>
+<li><strong>Compile-time only.</strong> The directive carries no runtime semantics — the policy is burned into the
+emitted parser code, and the parse-harness interpreter derives its layout policy from the same
+compiled declaration, so both implementations agree by construction.</li>
+<li><strong>Provenance.</strong> This directive replaced an engine-internal gate that keyed the layout policy on the
+grammar’s <em>file name</em> — the policy is now declared in the grammar itself, and any grammar
+(including a scratch/probe grammar) can be whitespace-sensitive. The isolating proof cases live in
+the structural combinator suite (<code>layout_insensitive_default</code>, <code>layout_ws_sensitive_full</code>,
+<code>layout_ws_sensitive_regex_tokens</code>).</li>
+</ul>
 <h2 id="lexical-annotations"><a class="header" href="#lexical-annotations">Lexical annotations</a></h2>
 <p>The <code>[&gt; … ]</code> / <code>[&gt;! … ]</code> follow-restriction is a <em>lexical</em> annotation in the same family; it is documented
 in <a href="#lookaheads">Lookaheads</a> and the platform book’s

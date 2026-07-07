@@ -34,6 +34,10 @@ PGEN also now has a narrower replay-only variant: `@probe_sample`.
 
 That widened the annotation system from "token-shape nudges" into a real narrow branch-steering surface for coverage-guided replay, while still keeping the project rule that sample hints must be justified by parser-backed evidence rather than sprayed across a grammar blindly.
 
+#### Grammar-level layout policy: `@whitespace_sensitive` (WS-DIRECTIVE)
+
+By default a generated parser is whitespace-INSENSITIVE — it auto-skips layout (whitespace + unclaimed comment introducers) before terminals and regex tokens and consumes trailing layout. A whitespace-sensitive language (regex is the canonical case: a space is a literal atom) declares its policy **in the grammar** with the grammar-level `@whitespace_sensitive: true` directive, or granularly with `{ terminals: …, regex_tokens: …, trailing: … }` (`grammars/systemverilog_preprocessor.ebnf` declares `{ regex_tokens: true }`). The directive is compile-time only (the policy is burned into the emitted parser; the parse-harness interpreter derives its layout policy from the same compiled declaration), conflicting duplicate declarations are hard errors, and malformed payloads are linted (`W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD`) and rejected at generation. This replaced the historical engine-internal gate that keyed layout on the grammar's *file name* — any grammar, including a scratch/probe grammar, can now be whitespace-sensitive. Grammar-author reference: the ebnf parser book's *Semantic Annotations* chapter (Layout policy section); proof cases: the structural combinator suite's three `layout_*` cases.
+
 #### Semantic refs resolve against the rule's *produced* structure (SEMREF-SHAPED)
 
 A semantic-directive argument reference (`$name`, `$a.b`) on rule **X** resolves against **the structure X produces** — not X's internal parse plumbing:

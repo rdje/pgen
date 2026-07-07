@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-44493303.js";
+            window.path_to_searchindex_js = "searchindex-d951704b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -244,10 +244,14 @@ readability:</p>
 )
 </code></pre>
 <blockquote>
-<p>Whitespace <em>inside the language you are describing</em> is a different matter — your grammar must match the
-input’s own whitespace explicitly (typically via a <code>trivia</code>/<code>whitespace</code> rule you call between tokens).
-PGEN does not insert implicit token-skipping for you. See how the shipped grammars thread a <code>trivia</code>
-rule through their sequences.</p>
+<p>Whitespace <em>inside the language you are describing</em> is governed by the grammar’s <strong>layout policy</strong>.
+By default a generated parser is whitespace-INSENSITIVE: it automatically skips layout (whitespace
+and unclaimed comment introducers) before each string terminal and regex token, and consumes
+trailing layout after the entry rule — so <code>start := "a" "b"</code> accepts <code>a b</code> out of the box. A
+whitespace-SENSITIVE language (regex is the canonical example: every space is a literal atom) opts
+out with the grammar-level <a href="semantic-annotations.html#layout-policy--whitespace_sensitive"><code>@whitespace_sensitive</code> directive</a>.
+Grammars can additionally thread an explicit <code>trivia</code> rule through their sequences when they need
+the skipped layout to be <em>visible</em> in the AST or to control it rule-by-rule.</p>
 </blockquote>
 <h2 id="includes-and-annotations-at-the-top"><a class="header" href="#includes-and-annotations-at-the-top">Includes and annotations at the top</a></h2>
 <p>Include directives and grammar-level semantic annotations conventionally sit near the top of the file:</p>
