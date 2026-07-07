@@ -65,6 +65,7 @@ use crate::ast_pipeline::ast_based_generator::{
 use crate::ast_pipeline::semantic_directive_registry::{
     SemanticAssociativity, SemanticBranchPolicy, parse_semantic_branch_priorities,
 };
+use crate::ast_pipeline::stimuli_generator::BranchSelectionLogEntry;
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, CompiledSemanticRuntimeAnnotations,
@@ -158,6 +159,57 @@ pub fn interpret_parse(
         input.len()
     );
 
+    let (grammar_tree, rule_order, annotations, grammar_name) =
+        load_normalized_gen_ast_for_interpret(grammar_ebnf)?;
+    interpret_parse_gen_ast(
+        &grammar_name,
+        opts.profile.as_deref(),
+        &grammar_tree,
+        &rule_order,
+        annotations.as_ref(),
+        opts.entry_rule.as_deref(),
+        input,
+    )
+}
+
+/// STIMULI-SIGNOFF.4.3: like [`interpret_parse`], but with the OR-selection recorder ON — the
+/// path-level convenience over [`interpret_parse_gen_ast_with_selections`] (see there for the log
+/// semantics). Requires the `ebnf_dual_run` feature exactly like [`interpret_parse`].
+#[cfg(feature = "ebnf_dual_run")]
+pub fn interpret_parse_with_selections(
+    grammar_ebnf: &Path,
+    input: &str,
+    opts: &InterpretOptions,
+) -> Result<(ParseOutcome, Vec<BranchSelectionLogEntry>), InterpretError> {
+    crate::pgen_trace_low!(
+        "parse-harness interpreter: interpret_parse_with_selections grammar={} entry={:?} input_len={}",
+        grammar_ebnf.display(),
+        opts.entry_rule,
+        input.len()
+    );
+    let (grammar_tree, rule_order, annotations, grammar_name) =
+        load_normalized_gen_ast_for_interpret(grammar_ebnf)?;
+    interpret_parse_gen_ast_with_selections(
+        &grammar_name,
+        opts.profile.as_deref(),
+        &grammar_tree,
+        &rule_order,
+        annotations.as_ref(),
+        opts.entry_rule.as_deref(),
+        input,
+    )
+}
+
+/// Shared loading half of the path-level entry points: EBNF frontend → raw AST → the normalized
+/// gen-AST triple codegen consumes (LR-elimination on, annotations preserved), plus the grammar
+/// name (the `.ebnf` file stem — what codegen normalizes for its layout-policy decision,
+/// PARSE-HARNESS.5.1; the empty-string fallback for a nameless path never matches a
+/// whitespace-sensitive grammar).
+#[cfg(feature = "ebnf_dual_run")]
+#[allow(clippy::type_complexity)]
+fn load_normalized_gen_ast_for_interpret(
+    grammar_ebnf: &Path,
+) -> Result<(HashMap<String, ASTNode>, Vec<String>, Option<Annotations>, String), InterpretError> {
     if !grammar_ebnf.is_file() {
         return Err(InterpretError::GrammarNotFound(grammar_ebnf.to_path_buf()));
     }
@@ -168,32 +220,17 @@ pub fn interpret_parse(
         .get("raw_ast")
         .and_then(|v| v.as_array())
         .ok_or_else(|| InterpretError::Load("EBNF envelope has no `raw_ast` array".to_string()))?;
-
-    // Normalize exactly as codegen does: LR-elimination on (PipelineConfig default), annotations
-    // preserved. The returned triple IS the in-memory gen-AST codegen consumes.
     let pipeline =
         crate::ast_pipeline::RustASTPipeline::new(crate::ast_pipeline::PipelineConfig::default());
     let (grammar_tree, rule_order, annotations) = pipeline
         .transform_from_raw_ast(raw_ast)
         .map_err(|e| InterpretError::Load(format!("normalization: {e}")))?;
-
-    // The grammar name = the `.ebnf` file stem (what codegen normalizes for its layout-policy
-    // decision, PARSE-HARNESS.5.1). Falls back to the empty string (⇒ the whitespace-insensitive
-    // default policy) only for a nameless path, which never matches a whitespace-sensitive grammar.
     let grammar_name = grammar_ebnf
         .file_stem()
         .and_then(|s| s.to_str())
-        .unwrap_or("");
-
-    interpret_parse_gen_ast(
-        grammar_name,
-        opts.profile.as_deref(),
-        &grammar_tree,
-        &rule_order,
-        annotations.as_ref(),
-        opts.entry_rule.as_deref(),
-        input,
-    )
+        .unwrap_or("")
+        .to_string();
+    Ok((grammar_tree, rule_order, annotations, grammar_name))
 }
 
 /// Parse `input` against an already-normalized gen-AST (the triple codegen consumes:
@@ -222,6 +259,61 @@ pub fn interpret_parse_gen_ast(
     entry: Option<&str>,
     input: &str,
 ) -> Result<ParseOutcome, InterpretError> {
+    // Recorder OFF — the pre-existing, differential-certified path, byte-identical.
+    interpret_parse_gen_ast_core(
+        grammar_name,
+        active_profile,
+        grammar_tree,
+        rule_order,
+        annotations,
+        entry,
+        input,
+        None,
+    )
+    .map(|(outcome, _)| outcome)
+}
+
+/// STIMULI-SIGNOFF.4.3 (design §3.2 front-end (b)): like [`interpret_parse_gen_ast`], but with the
+/// OR-selection recorder ON — the parser-agnostic derivation counter for EXTERNAL corpus inputs.
+/// On an ACCEPTED parse the second element is the final derivation's OR resolutions, one
+/// [`BranchSelectionLogEntry`] per resolved choice point, keyed on the generator's own
+/// `"{rule}::{node_path}"` branch-group coordinates — directly foldable by
+/// [`crate::ast_pipeline::stimuli_generator::StimuliGenerator::learn_branch_distributions`].
+/// Winner-only exact: tournament losers, backtracked speculation, and lookahead probes contribute
+/// nothing; memo-replayed subtrees contribute exactly their stored segment. On a REJECTED parse
+/// the log is empty (a reject has no derivation to learn from).
+pub fn interpret_parse_gen_ast_with_selections(
+    grammar_name: &str,
+    active_profile: Option<&str>,
+    grammar_tree: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    annotations: Option<&Annotations>,
+    entry: Option<&str>,
+    input: &str,
+) -> Result<(ParseOutcome, Vec<BranchSelectionLogEntry>), InterpretError> {
+    interpret_parse_gen_ast_core(
+        grammar_name,
+        active_profile,
+        grammar_tree,
+        rule_order,
+        annotations,
+        entry,
+        input,
+        Some(SelectionRecorder::for_grammar(grammar_tree)),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn interpret_parse_gen_ast_core(
+    grammar_name: &str,
+    active_profile: Option<&str>,
+    grammar_tree: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    annotations: Option<&Annotations>,
+    entry: Option<&str>,
+    input: &str,
+    selection_recorder: Option<SelectionRecorder>,
+) -> Result<(ParseOutcome, Vec<BranchSelectionLogEntry>), InterpretError> {
     let entry_rule = match entry {
         Some(e) => {
             if !grammar_tree.contains_key(e) {
@@ -280,6 +372,7 @@ pub fn interpret_parse_gen_ast(
         memo: rustc_hash::FxHashMap::default(),
         memo_fail: rustc_hash::FxHashSet::default(),
         memo_fail_tainted: rustc_hash::FxHashMap::default(),
+        selection_recorder,
     };
 
     // Mirror `parse_full`: parse the entry rule, consume trailing layout, then require the whole input
@@ -320,7 +413,18 @@ pub fn interpret_parse_gen_ast(
             ast_json: None,
         },
     };
-    Ok(outcome)
+    // STIMULI-SIGNOFF.4.3: only an ACCEPTED parse yields a derivation — a rejected/prefix parse's
+    // residual entries are not a derivation and are dropped.
+    let selections = if outcome.accepted {
+        interp
+            .selection_recorder
+            .take()
+            .map(|recorder| recorder.log)
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    Ok((outcome, selections))
 }
 
 /// Intern a grammar-derived string to `&'static str`.
@@ -448,6 +552,92 @@ fn numeric_span_transform(target_type: &str, default_expr: &str, text: &str) -> 
 }
 
 /// The dynamic-dispatch interpreter state. `'g` = the borrowed gen-AST; `'i` = the input string.
+/// STIMULI-SIGNOFF.4.3 — one `Or` choice point's identity for selection recording: the same
+/// `"{rule}::{node_path}"` branch-group key the stimuli generator's coverage record and learned
+/// distributions use, so interpreter-attributed derivations and generator-attributed derivations
+/// speak identical coordinates (design §3.2 front-end (b)).
+struct OrSite {
+    group_key: String,
+    total_branches: usize,
+}
+
+/// STIMULI-SIGNOFF.4.3 — the default-OFF selection recorder (`None` on every pre-existing entry
+/// point, so the differential-certified paths are untouched). `sites` maps each `Or` node —
+/// addressed by its alternatives-buffer pointer, stable for the lifetime of the borrowed
+/// gen-AST — to its structural identity, so no path threading is needed through the certified
+/// dispatch signatures. `log` accumulates the FINAL derivation's OR resolutions with
+/// winner-only exactness: `parse_or` keeps only the winning branch's segment, `try_parse`
+/// truncates on failure, lookahead speculation is always discarded, and memo entries replay
+/// their body's segment on hits.
+struct SelectionRecorder {
+    sites: HashMap<usize, OrSite>,
+    log: Vec<BranchSelectionLogEntry>,
+}
+
+impl SelectionRecorder {
+    /// Build the Or-site map for a normalized gen-AST — the traversal (and therefore the
+    /// `node_path` spelling: `root` at each rule body, `/oN` Or alternative, `/sN` sequence
+    /// element, `/q` quantified child, `/l` lookahead child, `/a` atom-wrapped node) mirrors the
+    /// generator's `collect_branch_groups`, which defines the group-key universe.
+    fn for_grammar(grammar_tree: &HashMap<String, ASTNode>) -> Self {
+        let mut sites = HashMap::new();
+        for (rule_name, body) in grammar_tree {
+            Self::collect_or_sites(rule_name, body, "root", &mut sites);
+        }
+        SelectionRecorder {
+            sites,
+            log: Vec::new(),
+        }
+    }
+
+    fn collect_or_sites(
+        rule_name: &str,
+        node: &ASTNode,
+        node_path: &str,
+        sites: &mut HashMap<usize, OrSite>,
+    ) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                // An empty-alternative `Or` is skipped: it resolves no branch, and an empty
+                // `Vec`'s dangling buffer pointer is shared across instances (not a valid key).
+                if !alternatives.is_empty() {
+                    sites.insert(
+                        alternatives.as_ptr() as usize,
+                        OrSite {
+                            group_key: format!("{}::{}", rule_name, node_path),
+                            total_branches: alternatives.len(),
+                        },
+                    );
+                }
+                for (idx, alternative) in alternatives.iter().enumerate() {
+                    let alt_path = format!("{}/o{}", node_path, idx);
+                    Self::collect_or_sites(rule_name, alternative, &alt_path, sites);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for (idx, element) in elements.iter().enumerate() {
+                    let element_path = format!("{}/s{}", node_path, idx);
+                    Self::collect_or_sites(rule_name, element, &element_path, sites);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                let quantified_path = format!("{}/q", node_path);
+                Self::collect_or_sites(rule_name, element, &quantified_path, sites);
+            }
+            ASTNode::Lookahead { element, .. } => {
+                let lookahead_path = format!("{}/l", node_path);
+                Self::collect_or_sites(rule_name, element, &lookahead_path, sites);
+            }
+            ASTNode::Atom { value } => {
+                if let ASTValue::Node(node) = value {
+                    let atom_path = format!("{}/a", node_path);
+                    Self::collect_or_sites(rule_name, node, &atom_path, sites);
+                }
+            }
+        }
+    }
+}
+
 struct Interp<'g, 'i> {
     grammar: &'g HashMap<String, ASTNode>,
     annotations: Option<&'g Annotations>,
@@ -498,6 +688,11 @@ struct Interp<'g, 'i> {
     /// MEMO-STORE-SOUNDNESS.2 — store-tainted failures, epoch-stamped (mirror of the generated
     /// `memo_fail_tainted`).
     memo_fail_tainted: rustc_hash::FxHashMap<(&'static str, usize), u64>,
+    /// STIMULI-SIGNOFF.4.3 — the OR-selection recorder. `None` (every pre-existing entry point) =
+    /// OFF: every recorder helper is a no-op, so the differential-certified parse paths are
+    /// untouched. `Some` only via `interpret_parse_gen_ast_with_selections` /
+    /// `interpret_parse_with_selections` (the external-corpus derivation-counting front-end).
+    selection_recorder: Option<SelectionRecorder>,
 }
 
 /// One success entry of the interpreter's split memo — the mirror of the generated `MemoEntry` minus
@@ -511,9 +706,68 @@ struct InterpMemoEntry<'i> {
     /// MEMO-STORE-SOUNDNESS.2 — `Some(write_epoch_at_insert)` for a store-tainted body (mirror of
     /// the generated `MemoEntry::tainted_at_epoch`); validated on every hit, evicted when stale.
     tainted_at_epoch: Option<u64>,
+    /// STIMULI-SIGNOFF.4.3 — the body's OR-selection segment, captured at insert and replayed on
+    /// every hit so the selection log stays EXACT across packrat replay (a memo-hit subtree in the
+    /// final derivation still contributes its choices). `None` whenever the recorder is OFF.
+    selections: Option<Vec<BranchSelectionLogEntry>>,
 }
 
 impl<'g, 'i> Interp<'g, 'i> {
+    // ── STIMULI-SIGNOFF.4.3: selection-recorder helpers (all no-ops when the recorder is OFF) ──────
+
+    /// Current selection-log length — the checkpoint value for truncate/split. 0 when OFF.
+    fn selection_log_len(&self) -> usize {
+        self.selection_recorder
+            .as_ref()
+            .map(|r| r.log.len())
+            .unwrap_or(0)
+    }
+
+    /// Discard every entry recorded past `len` (a failed/discarded speculation's entries).
+    fn truncate_selection_log(&mut self, len: usize) {
+        if let Some(recorder) = self.selection_recorder.as_mut() {
+            recorder.log.truncate(len);
+        }
+    }
+
+    /// Remove and return the entries recorded past `len` (one tournament attempt's segment).
+    fn split_off_selection_log(&mut self, len: usize) -> Vec<BranchSelectionLogEntry> {
+        match self.selection_recorder.as_mut() {
+            Some(recorder) => recorder.log.split_off(len),
+            None => Vec::new(),
+        }
+    }
+
+    /// Re-append a previously split-off (or memo-replayed) segment.
+    fn extend_selection_log(&mut self, segment: Vec<BranchSelectionLogEntry>) {
+        if let Some(recorder) = self.selection_recorder.as_mut() {
+            recorder.log.extend(segment);
+        }
+    }
+
+    /// Copy the entries recorded past `len` (for a memo entry's stored segment). `None` when OFF,
+    /// so the memo carries zero recording cost on the certified paths.
+    fn selection_log_segment(&self, len: usize) -> Option<Vec<BranchSelectionLogEntry>> {
+        self.selection_recorder
+            .as_ref()
+            .map(|r| r.log[len..].to_vec())
+    }
+
+    /// Record one resolved OR choice — the winning `branch_index` at the `Or` node whose
+    /// alternatives buffer is `alternatives` — using the site map's structural group key.
+    fn note_or_selection(&mut self, alternatives: &'g [ASTNode], branch_index: usize) {
+        if let Some(recorder) = self.selection_recorder.as_mut() {
+            if let Some(site) = recorder.sites.get(&(alternatives.as_ptr() as usize)) {
+                let entry = BranchSelectionLogEntry {
+                    group_key: site.group_key.clone(),
+                    total_branches: site.total_branches,
+                    branch_index,
+                };
+                recorder.log.push(entry);
+            }
+        }
+    }
+
     // ── Rule dispatch ────────────────────────────────────────────────────────────────────────────
 
     /// Parse a named rule, producing its `ParseNode` (`rule_name`, the shaped `content`, and the
@@ -758,15 +1012,23 @@ impl<'g, 'i> Interp<'g, 'i> {
             self.position = entry.end_pos;
             let node = entry.node.clone();
             let raw = entry.raw_semantic_content.clone();
-            if let Some(delta) = entry.semantic_delta.clone() {
+            let delta = entry.semantic_delta.clone();
+            let selections = entry.selections.clone();
+            if let Some(delta) = delta {
                 if !delta.is_empty() {
                     self.semantic_state.apply_delta(delta);
                 }
+            }
+            // STIMULI-SIGNOFF.4.3: replay the body's OR-selection segment so a memo-hit subtree in
+            // the final derivation still contributes its choices (exactness across packrat replay).
+            if let Some(segment) = selections {
+                self.extend_selection_log(segment);
             }
             return Ok((node, raw));
         }
         let memo_entry_checkpoint = self.semantic_state.checkpoint();
         let memo_taint_snapshot = self.semantic_state.predicate_evaluations();
+        let memo_selection_start = self.selection_log_len();
         let result = f(self);
         let memo_store_tainted =
             self.semantic_state.predicate_evaluations() != memo_taint_snapshot;
@@ -787,6 +1049,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                         } else {
                             None
                         },
+                        selections: self.selection_log_segment(memo_selection_start),
                     },
                 );
             }
@@ -1837,6 +2100,9 @@ impl<'g, 'i> Interp<'g, 'i> {
         if alternatives.len() == 1 {
             let branch_start = self.position;
             let raw = self.parse_node(&alternatives[0], rule_name, capture_raw, raw_out)?;
+            // STIMULI-SIGNOFF.4.3: a resolved single-branch choice is a derivation choice too —
+            // the generator's own log records these sites (total_branches = 1), so parity keeps them.
+            self.note_or_selection(alternatives, 0);
             // The generated single-branch template captures the RAW result before the transform
             // (`if semantic_capture_raw_for_post { semantic_raw_content = Some(result.clone()); }`).
             if capture_raw {
@@ -1864,6 +2130,9 @@ impl<'g, 'i> Interp<'g, 'i> {
         // extracts its delta then rolls back; ONLY the winner's delta is replayed at the end.
         let tournament_checkpoint = self.semantic_state.checkpoint();
         let mut best_semantic_delta: Option<SemanticRuntimeDelta> = None;
+        // STIMULI-SIGNOFF.4.3: only the WINNING attempt's selection segment survives the
+        // tournament — losers' subtree resolutions are not part of the derivation.
+        let mut best_selection_segment: Vec<BranchSelectionLogEntry> = Vec::new();
 
         for (idx, alternative) in alternatives.iter().enumerate() {
             // The emitted arm guard: `if policy == ordered && best_content.is_some() {} else {…}` —
@@ -1873,6 +2142,7 @@ impl<'g, 'i> Interp<'g, 'i> {
             }
             self.position = parse_start;
             let branch_start = self.position;
+            let attempt_selection_start = self.selection_log_len();
             let attempt =
                 self.try_parse(|p| p.parse_node(alternative, rule_name, capture_raw, raw_out));
             if let Some(raw) = attempt {
@@ -1983,6 +2253,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                 self.semantic_state
                     .rollback_to_named(tournament_checkpoint.clone(), Some(rule_name));
 
+                // STIMULI-SIGNOFF.4.3: split this attempt's selections out of the live log
+                // regardless of the verdict — a kept winner is re-appended after the loop, a
+                // displaced/losing attempt's segment is dropped with it.
+                let attempt_selections = self.split_off_selection_log(attempt_selection_start);
+
                 if should_take {
                     best_end = candidate_end;
                     best_priority = candidate_priority;
@@ -1992,6 +2267,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                     }
                     best_content = Some(transformed);
                     best_semantic_delta = Some(candidate_delta);
+                    best_selection_segment = attempt_selections;
                 }
             }
         }
@@ -2022,6 +2298,10 @@ impl<'g, 'i> Interp<'g, 'i> {
                 for effect in &branch_start_effects {
                     self.apply_branch_start_effect_directive(effect, &content)?;
                 }
+                // STIMULI-SIGNOFF.4.3: the winner's subtree selections re-enter the log, then the
+                // winning choice at THIS site is recorded (post-order, like the generator's log).
+                self.extend_selection_log(best_selection_segment);
+                self.note_or_selection(alternatives, best_branch_index);
                 // The emitted tournament ends with the UNCONDITIONAL rule-local assignment
                 // `semantic_raw_content = best_raw_content` (None unless capture_raw).
                 *raw_out = best_raw_content;
@@ -2141,8 +2421,13 @@ impl<'g, 'i> Interp<'g, 'i> {
         raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
         let lookahead_start = self.position;
+        let selection_start = self.selection_log_len();
         let matched = self.try_parse(|p| p.parse_node(element, rule_name, capture_raw, raw_out));
         self.position = lookahead_start;
+        // STIMULI-SIGNOFF.4.3: a lookahead is a zero-width PREDICATE — its speculative parse
+        // contributes nothing to the derivation even when it matches (parity: the generator is
+        // lookahead-generation-blind and never logs there).
+        self.truncate_selection_log(selection_start);
         let ok = if positive { matched.is_some() } else { matched.is_none() };
         if ok {
             Ok(ParseContent::Sequence(Vec::new()))
@@ -2194,6 +2479,7 @@ impl<'g, 'i> Interp<'g, 'i> {
     fn try_parse<T>(&mut self, f: impl FnOnce(&mut Self) -> ParseResult<T>) -> Option<T> {
         let saved_pos = self.position;
         let saved_depth = self.depth;
+        let saved_selections = self.selection_log_len();
         let checkpoint = self.semantic_state.checkpoint();
         match f(self) {
             Ok(result) => Some(result),
@@ -2202,6 +2488,8 @@ impl<'g, 'i> Interp<'g, 'i> {
                 self.depth = saved_depth;
                 self.semantic_state
                     .rollback_to_named(checkpoint, Some("interpreter try_parse Err"));
+                // STIMULI-SIGNOFF.4.3: a failed speculation's OR resolutions are not derivation.
+                self.truncate_selection_log(saved_selections);
                 None
             }
         }
@@ -2874,6 +3162,203 @@ mod tests {
     fn regex_can_match_empty_detects_optional_vs_required() {
         assert!(regex_can_match_empty(r"\s*").unwrap(), r"\s* can match empty");
         assert!(!regex_can_match_empty(r"[0-9]+").unwrap(), "[0-9]+ cannot match empty");
+    }
+
+    // ── STIMULI-SIGNOFF.4.3: selection-recording tests (the external-corpus derivation counter) ──────
+
+    fn sel_token(token_type: &str, token_value: &str) -> ASTNode {
+        ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String(token_type.to_string()),
+                TokenValue::String(token_value.to_string()),
+            ]),
+        }
+    }
+
+    fn sel_terminal(value: &str) -> ASTNode {
+        sel_token("quoted_string", value)
+    }
+
+    fn sel_rule_ref(rule: &str) -> ASTNode {
+        sel_token("rule_reference", rule)
+    }
+
+    fn sel_parse(
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_order: &[String],
+        input: &str,
+    ) -> (ParseOutcome, HashMap<String, Vec<u64>>) {
+        let (outcome, selections) = interpret_parse_gen_ast_with_selections(
+            "selection_test",
+            None,
+            grammar_tree,
+            rule_order,
+            None,
+            Some("start"),
+            input,
+        )
+        .expect("interpreter plumbing must succeed");
+        let folded =
+            crate::ast_pipeline::stimuli_generator::StimuliGenerator::learn_branch_distributions(
+                &[selections],
+            );
+        (outcome, folded)
+    }
+
+    /// The memo-replay pin: `start := item "!" | item "?"` on `"x?"` — branch 0 parses `item`
+    /// (memo insert) then fails on `"!"` (its entries truncated by the backtrack); branch 1 hits
+    /// the memo for `item` at the same position, so `item`'s choice reaches the final log ONLY via
+    /// the stored segment's replay. Winner-only exact: one `item` resolution, one `start` winner.
+    #[test]
+    fn selection_recording_replays_memo_hits_and_survives_backtracking() {
+        let mut grammar = HashMap::new();
+        grammar.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![sel_rule_ref("item"), sel_terminal("!")],
+                    },
+                    ASTNode::Sequence {
+                        elements: vec![sel_rule_ref("item"), sel_terminal("?")],
+                    },
+                ],
+            },
+        );
+        grammar.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![sel_terminal("x"), sel_terminal("yy")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "item".to_string()];
+
+        let (outcome, folded) = sel_parse(&grammar, &rule_order, "x?");
+        assert!(outcome.accepted, "x? parses: {outcome:?}");
+        assert_eq!(
+            folded.get("item::root"),
+            Some(&vec![1, 0]),
+            "the memo-replayed item choice must appear exactly once; got {folded:?}"
+        );
+        assert_eq!(
+            folded.get("start::root"),
+            Some(&vec![0, 1]),
+            "only the winning start branch is recorded; got {folded:?}"
+        );
+        assert_eq!(folded.len(), 2, "no other groups; got {folded:?}");
+    }
+
+    /// The loser-discard pin: `start := inner | inner "!"` on `"x!"` — BOTH branches succeed
+    /// under `longest_match` (branch 0 consumes 1 byte, branch 1 consumes 2), so the tournament
+    /// keeps branch 1 and must DROP branch 0's whole subtree segment: `inner`'s choice counts
+    /// once, not twice.
+    #[test]
+    fn selection_recording_discards_tournament_losers_subtrees() {
+        let mut grammar = HashMap::new();
+        grammar.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    sel_rule_ref("inner"),
+                    ASTNode::Sequence {
+                        elements: vec![sel_rule_ref("inner"), sel_terminal("!")],
+                    },
+                ],
+            },
+        );
+        grammar.insert(
+            "inner".to_string(),
+            ASTNode::Or {
+                alternatives: vec![sel_terminal("x"), sel_terminal("y")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "inner".to_string()];
+
+        let (outcome, folded) = sel_parse(&grammar, &rule_order, "x!");
+        assert!(outcome.accepted, "x! parses: {outcome:?}");
+        assert_eq!(
+            folded.get("inner::root"),
+            Some(&vec![1, 0]),
+            "the losing branch-0 attempt's inner resolution must be dropped; got {folded:?}"
+        );
+        assert_eq!(
+            folded.get("start::root"),
+            Some(&vec![0, 1]),
+            "longest_match keeps branch 1; got {folded:?}"
+        );
+        assert_eq!(folded.len(), 2, "no other groups; got {folded:?}");
+    }
+
+    /// The lookahead pin: a positive lookahead's speculative parse resolves choices but is a
+    /// zero-width PREDICATE — its entries never reach the log (parity with the generator, which
+    /// is lookahead-generation-blind). `start := &( "a" | "b" ) sym`, `sym := "a" | "b"`.
+    #[test]
+    fn selection_recording_discards_lookahead_speculation() {
+        let mut grammar = HashMap::new();
+        grammar.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Lookahead {
+                        element: Box::new(ASTNode::Or {
+                            alternatives: vec![sel_terminal("a"), sel_terminal("b")],
+                        }),
+                        positive: true,
+                    },
+                    sel_rule_ref("sym"),
+                ],
+            },
+        );
+        grammar.insert(
+            "sym".to_string(),
+            ASTNode::Or {
+                alternatives: vec![sel_terminal("a"), sel_terminal("b")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "sym".to_string()];
+
+        let (outcome, folded) = sel_parse(&grammar, &rule_order, "a");
+        assert!(outcome.accepted, "a parses: {outcome:?}");
+        assert_eq!(
+            folded.get("sym::root"),
+            Some(&vec![1, 0]),
+            "the consuming sym resolution is recorded; got {folded:?}"
+        );
+        assert_eq!(
+            folded.len(),
+            1,
+            "the lookahead's inline Or (start::root/s0/l) must contribute nothing; got {folded:?}"
+        );
+    }
+
+    /// A REJECTED input has no derivation: the outcome is `accepted == false` and the selections
+    /// are empty, so a corpus learner can filter on acceptance alone.
+    #[test]
+    fn selection_recording_yields_no_selections_on_reject() {
+        let mut grammar = HashMap::new();
+        grammar.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![sel_terminal("a"), sel_terminal("b")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let (outcome, selections) = interpret_parse_gen_ast_with_selections(
+            "selection_test",
+            None,
+            &grammar,
+            &rule_order,
+            None,
+            Some("start"),
+            "z",
+        )
+        .expect("interpreter plumbing must succeed");
+        assert!(!outcome.accepted, "z must be rejected: {outcome:?}");
+        assert!(
+            selections.is_empty(),
+            "a reject yields no derivation log; got {selections:?}"
+        );
     }
 
     // ── Differential integration tests (the `.4` acceptance oracle) ──────────────────────────────────

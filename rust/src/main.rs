@@ -100,9 +100,13 @@ struct Args {
     /// STIMULI-SIGNOFF.4.2: opt-in DIRECTED generation loop (FdLoop, arXiv 2508.01472): per
     /// round, learn a per-choice-point branch distribution from the round's best sample and
     /// steer the next round's generation with it. Value names the GOAL; supported: `k_path`
-    /// (goal G1 — per-sample fitness = NEW k-paths covered). Prints a `DIRECTED-GENERATION:`
-    /// headline including a same-seed, same-budget diverse-pass baseline comparison. Opt-in
-    /// only — no other generation surface changes.
+    /// (goal G1 — per-sample fitness = NEW k-paths covered) and `corpus_mimicry` (goal G3,
+    /// STIMULI-SIGNOFF.4.3 — learn the distribution from a REAL corpus via the gen-AST
+    /// interpreter and generate distributionally-similar inputs; per-sample fitness = L1
+    /// proximity to the corpus distribution; needs `--mimicry-corpus-file` and/or
+    /// `--mimicry-corpus-lines`). Prints a `DIRECTED-GENERATION:` headline including a
+    /// same-seed, same-budget diverse-pass baseline comparison. Opt-in only — no other
+    /// generation surface changes.
     #[arg(long, value_name = "GOAL")]
     directed_generation_goal: Option<String>,
 
@@ -121,6 +125,17 @@ struct Args {
     /// STIMULI-SIGNOFF.4.2: optional path for the directed loop's JSON report.
     #[arg(long, value_name = "FILE", requires = "directed_generation_goal")]
     directed_report_json: Option<String>,
+
+    /// STIMULI-SIGNOFF.4.3 (goal `corpus_mimicry`): a corpus file whose WHOLE content is ONE
+    /// corpus input (repeatable; the SV-corpus-file shape). Inputs are attributed through the
+    /// gen-AST interpreter; inputs the grammar rejects contribute nothing and are reported.
+    #[arg(long, value_name = "FILE", requires = "directed_generation_goal")]
+    mimicry_corpus_file: Vec<String>,
+
+    /// STIMULI-SIGNOFF.4.3 (goal `corpus_mimicry`): a corpus list file where each non-empty
+    /// LINE is one input (the one-pattern-per-line shape, e.g. extracted regex corpora).
+    #[arg(long, value_name = "FILE", requires = "directed_generation_goal")]
+    mimicry_corpus_lines: Option<String>,
 
     /// GRAMMAR-WELLFORMED.G.4: opt-in CERTIFICATE-COVERAGE report (the linter⟷generator duality
     /// capstone). For every rule, is it covered by a verified unreachability PROOF or a verified
@@ -1030,6 +1045,9 @@ fn main() -> Result<()> {
                 k: args.directed_k,
                 seed: args.seed.unwrap_or(0),
                 report_json: args.directed_report_json.as_deref(),
+                mimicry_corpus_files: &args.mimicry_corpus_file,
+                mimicry_corpus_lines: args.mimicry_corpus_lines.as_deref(),
+                grammar_profile: args.grammar_profile.as_deref(),
             },
         );
     }
@@ -2446,6 +2464,13 @@ struct DirectedGenerationRun<'a> {
     k: usize,
     seed: u64,
     report_json: Option<&'a str>,
+    /// STIMULI-SIGNOFF.4.3 (goal `corpus_mimicry`): whole-file corpus inputs.
+    mimicry_corpus_files: &'a [String],
+    /// STIMULI-SIGNOFF.4.3 (goal `corpus_mimicry`): one-input-per-line corpus list file.
+    mimicry_corpus_lines: Option<&'a str>,
+    /// STIMULI-SIGNOFF.4.3: the requested dialect profile, passed through to the interpreter's
+    /// corpus attribution so `@profiles` gating matches the (already profile-filtered) generator.
+    grammar_profile: Option<&'a str>,
 }
 
 /// STIMULI-SIGNOFF.4.2: run the FdLoop directed generation loop for the requested goal and
@@ -2453,9 +2478,12 @@ struct DirectedGenerationRun<'a> {
 /// generating rounds×samples_per_round samples with no learning) — the honest comparator for
 /// "did the learned steering buy coverage the plain diverse pass would not have reached?".
 fn run_directed_generation(grammar: &LoadedGrammar, run: DirectedGenerationRun) -> Result<()> {
+    if run.goal == "corpus_mimicry" {
+        return run_directed_corpus_mimicry(grammar, &run);
+    }
     if run.goal != "k_path" {
         anyhow::bail!(
-            "unsupported --directed-generation-goal '{}' (supported goals: k_path)",
+            "unsupported --directed-generation-goal '{}' (supported goals: k_path, corpus_mimicry)",
             run.goal
         );
     }
@@ -2530,6 +2558,158 @@ fn run_directed_generation(grammar: &LoadedGrammar, run: DirectedGenerationRun) 
             "diverse_baseline_covered": diverse_covered,
             "delta": delta,
             "per_round_best_new_k_paths": outcome.per_round_best_new_k_paths,
+            "learned_groups": outcome.learned_groups,
+        });
+        std::fs::write(path, serde_json::to_string_pretty(&report)?)
+            .with_context(|| format!("failed to write directed-generation report to {path}"))?;
+        println!("Wrote directed-generation report to {path}");
+    }
+    Ok(())
+}
+
+/// STIMULI-SIGNOFF.4.3: run the FdLoop directed loop for goal G3 (corpus mimicry). Stage 1 —
+/// attribute every corpus input's derivation through the gen-AST interpreter
+/// (`interpret_parse_gen_ast_with_selections`, the parser-agnostic derivation counter over the
+/// SAME profile-filtered grammar tree generation uses, so group keys and branch indices match by
+/// construction) and fold the ACCEPTED inputs' selection logs into the corpus distribution.
+/// Stages 4–6 — `directed_corpus_mimicry_generation`. The headline compares the directed
+/// population's L1 proximity to the corpus against a SAME-SEED SAME-BUDGET diverse baseline
+/// scored identically (`mimicry_population_score`; selection recording is read-only, so the
+/// baseline's generated output is byte-identical to a plain diverse pass).
+fn run_directed_corpus_mimicry(grammar: &LoadedGrammar, run: &DirectedGenerationRun) -> Result<()> {
+    let entry_rule = run
+        .entry
+        .map(|s| s.to_string())
+        .or_else(|| grammar.rule_order.first().cloned())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "grammar '{}' has no rules to run directed generation for",
+                grammar.grammar_name
+            )
+        })?;
+    let rounds = run.rounds.max(1);
+    let samples_per_round = run.samples_per_round.max(1);
+
+    // ── Corpus ingestion (deterministic: files in the given order, then the lines file). ──
+    let mut corpus_inputs: Vec<(String, String)> = Vec::new();
+    for path in run.mimicry_corpus_files {
+        let content = std::fs::read_to_string(path)
+            .with_context(|| format!("failed to read --mimicry-corpus-file {path}"))?;
+        corpus_inputs.push((path.clone(), content));
+    }
+    if let Some(path) = run.mimicry_corpus_lines {
+        let content = std::fs::read_to_string(path)
+            .with_context(|| format!("failed to read --mimicry-corpus-lines {path}"))?;
+        for (idx, line) in content.lines().enumerate() {
+            if !line.is_empty() {
+                corpus_inputs.push((format!("{path}:{}", idx + 1), line.to_string()));
+            }
+        }
+    }
+    if corpus_inputs.is_empty() {
+        anyhow::bail!(
+            "goal corpus_mimicry needs a corpus: pass --mimicry-corpus-file FILE (whole file = \
+             one input, repeatable) and/or --mimicry-corpus-lines FILE (one input per line)"
+        );
+    }
+
+    // ── Stage 1: interpreter-attributed derivation counting over the corpus. ──
+    let mut accepted_logs = Vec::new();
+    let mut rejected = 0usize;
+    for (label, input) in &corpus_inputs {
+        let (outcome, selections) =
+            pgen::parse_harness_interpreter::interpret_parse_gen_ast_with_selections(
+                &grammar.grammar_name,
+                run.grammar_profile,
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                grammar.annotations.as_ref(),
+                Some(entry_rule.as_str()),
+                input,
+            )
+            .map_err(|e| anyhow::anyhow!("corpus attribution failed for {label}: {e}"))?;
+        if outcome.accepted {
+            accepted_logs.push(selections);
+        } else {
+            rejected += 1;
+        }
+    }
+    if accepted_logs.is_empty() {
+        anyhow::bail!(
+            "goal corpus_mimicry: none of the {} corpus inputs is accepted by grammar '{}' \
+             (entry '{}'), so there is no distribution to learn",
+            corpus_inputs.len(),
+            grammar.grammar_name,
+            entry_rule
+        );
+    }
+    let corpus = StimuliGenerator::learn_branch_distributions(&accepted_logs);
+
+    let make_generator = || {
+        StimuliGenerator::new(
+            grammar.grammar_name.clone(),
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            grammar.annotations.as_ref(),
+            StimuliConfig {
+                seed: Some(run.seed),
+                ..Default::default()
+            },
+        )
+    };
+
+    let mut directed = make_generator();
+    let outcome =
+        directed.directed_corpus_mimicry_generation(&entry_rule, rounds, samples_per_round, &corpus);
+
+    let budget = rounds.saturating_mul(samples_per_round);
+    let mut diverse = make_generator();
+    let (baseline_proximity, baseline_shared, baseline_samples) =
+        diverse.mimicry_population_score(&entry_rule, budget, &corpus);
+
+    let delta = outcome.population_proximity - baseline_proximity;
+    println!(
+        "DIRECTED-GENERATION: goal=corpus_mimicry grammar='{}' entry='{}' rounds={} samples_per_round={} seed={} corpus_inputs={} accepted={} rejected={} corpus_groups={} -> directed population proximity {:.4} (shared {}/{}, {} samples) vs diverse baseline {:.4} (shared {}/{}, {} samples) [delta {:+.4}] learned_groups={}",
+        grammar.grammar_name,
+        entry_rule,
+        rounds,
+        samples_per_round,
+        run.seed,
+        corpus_inputs.len(),
+        accepted_logs.len(),
+        rejected,
+        outcome.corpus_groups,
+        outcome.population_proximity,
+        outcome.shared_groups,
+        outcome.corpus_groups,
+        outcome.generated_samples,
+        baseline_proximity,
+        baseline_shared,
+        outcome.corpus_groups,
+        baseline_samples,
+        delta,
+        outcome.learned_groups
+    );
+    if let Some(path) = run.report_json {
+        let report = serde_json::json!({
+            "goal": "corpus_mimicry",
+            "grammar_name": grammar.grammar_name,
+            "entry_rule": entry_rule,
+            "rounds": rounds,
+            "samples_per_round": samples_per_round,
+            "seed": run.seed,
+            "corpus_inputs": corpus_inputs.len(),
+            "corpus_accepted": accepted_logs.len(),
+            "corpus_rejected": rejected,
+            "corpus_groups": outcome.corpus_groups,
+            "directed_population_proximity": outcome.population_proximity,
+            "directed_shared_groups": outcome.shared_groups,
+            "directed_generated_samples": outcome.generated_samples,
+            "diverse_baseline_proximity": baseline_proximity,
+            "diverse_baseline_shared_groups": baseline_shared,
+            "diverse_baseline_generated_samples": baseline_samples,
+            "delta": delta,
+            "per_round_best_proximity": outcome.per_round_best_proximity,
             "learned_groups": outcome.learned_groups,
         });
         std::fs::write(path, serde_json::to_string_pretty(&report)?)

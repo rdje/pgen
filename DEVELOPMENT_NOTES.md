@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0013 — STIMULI-SIGNOFF.4.3: implementation notes — attributing derivations you didn't generate
+
+Session #59. Notes from landing external-corpus learning + G3 mimicry:
+
+1. **Pointer-keyed sites beat path threading.** The interpreter's dispatch signatures are
+   certified byte-identical by three gates; threading a `node_path` string through them would
+   have touched every certified function for a feature that is off by default. Instead the
+   recorder pre-walks the SAME borrowed gen-AST with the exact `collect_branch_groups` traversal
+   and keys each Or site by its alternatives-buffer ADDRESS (`Vec::as_ptr`, stable for the
+   borrow's lifetime) → `parse_or` does one HashMap probe, zero signature changes. Empty-`Or`
+   nodes are skipped (a zero-capacity `Vec`'s dangling pointer is shared across instances — not a
+   valid key; they also resolve no branch).
+2. **Winner-only exactness needed FOUR splices, not one.** A naive "record at the winner" log
+   over-counts massively under `longest_match` (every alternative is attempted; losers' subtrees
+   would pollute every choice point — wrong for FdLoop's derivation-tree counting). The exact set:
+   per-attempt `split_off` in `parse_or` (keep only the kept winner's segment), truncate in
+   `try_parse` (all backtracks), unconditional truncate in `parse_lookahead` (a matching lookahead
+   is still a zero-width predicate — the generator never logs there, parity), and segment
+   store/replay in `memoized_call` (WITHOUT it the log silently loses every subtree whose first
+   computation happened inside a later-discarded attempt — the `start := item "!" | item "?"`
+   test pins exactly that hole).
+3. **The corpus attribution must walk the tree GENERATION uses.** `run_directed_corpus_mimicry`
+   attributes over `grammar.grammar_tree` — the same (profile-filtered) triple the generator is
+   constructed from — so group keys AND branch indices agree by construction. Attributing over a
+   differently-filtered tree would silently shift Or indices and corrupt the learned counts.
+4. **Honest support reporting matters for L1 proximity.** The score averages only SHARED groups
+   (corpus ∩ population), so the headline also prints `shared X/Y` and the rejected-input count —
+   a high proximity over 3 of 80 groups must be readable as weak support. The json lane's 81/95
+   accepted matching `json_corpus_bundle/results/characterization.md` exactly was a free
+   independent cross-check of the interpreter's verdicts on real files.
+5. **Re-learn = corpus + selected, not selected alone.** For mimicry the corpus IS the target;
+   re-learning only from selected samples would drift toward self-similarity. The corpus counts
+   stay the dominant prior (2k-input counts vs a handful of selected logs); selected samples
+   reinforce corpus-like paths that are actually GENERATABLE. The uniform-reset explore then
+   applies on top, exactly as in the `.4.2` k-path loop.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0011 — STIMULI-SIGNOFF.4.2: implementation notes — the baseline must share the seed AND the budget, or the delta is theater
 
 Session #58. Notes from landing the directed-loop driver:

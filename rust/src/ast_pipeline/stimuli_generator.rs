@@ -1414,6 +1414,30 @@ pub struct DirectedKPathOutcome {
     pub learned_groups: usize,
 }
 
+/// STIMULI-SIGNOFF.4.3: the measurable result of one directed corpus-mimicry generation run
+/// (goal G3) — how distributionally CLOSE the generated population came to the learned corpus
+/// distribution, plus the per-round selected-best trace. `PartialEq` (not `Eq`): proximities are
+/// finite `f64`s from a deterministic fold, so same-seed same-budget runs compare exactly equal.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DirectedMimicryOutcome {
+    pub rounds: usize,
+    pub samples_per_round: usize,
+    /// The selected (best) sample's L1 proximity to the corpus distribution per round; `0.0` for
+    /// a round where every generation failed (no derivation to learn from).
+    pub per_round_best_proximity: Vec<f64>,
+    /// Successful generations across the run — the population the score below aggregates.
+    pub generated_samples: usize,
+    /// The population mimicry score: `distribution_l1_proximity` of the aggregated per-group
+    /// selection counts of ALL successful samples vs the corpus distribution.
+    pub population_proximity: f64,
+    /// Groups present in BOTH the corpus map and the population aggregate (the score's support).
+    pub shared_groups: usize,
+    /// Total groups in the corpus map (for honest support reporting).
+    pub corpus_groups: usize,
+    /// Learned branch groups installed after the final round (observability).
+    pub learned_groups: usize,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -6274,17 +6298,70 @@ impl<'a> StimuliGenerator<'a> {
     ) -> HashMap<String, Vec<u64>> {
         let mut learned: HashMap<String, Vec<u64>> = HashMap::new();
         for log in logs {
-            for entry in log {
-                let counts = learned
-                    .entry(entry.group_key.clone())
-                    .or_insert_with(|| vec![0; entry.total_branches]);
-                if counts.len() <= entry.branch_index {
-                    counts.resize(entry.branch_index + 1, 0);
-                }
-                counts[entry.branch_index] += 1;
-            }
+            Self::fold_branch_selection_counts(&mut learned, log);
         }
         learned
+    }
+
+    /// STIMULI-SIGNOFF.4.3: fold ONE selection log's entries into a per-group counts map — the
+    /// shared inner fold of `learn_branch_distributions`, exposed so callers can accumulate
+    /// per-sample and population count maps (the mimicry fitness / score inputs) with the exact
+    /// same fold the learned-distribution layer uses. Pure and deterministic.
+    pub fn fold_branch_selection_counts(
+        counts: &mut HashMap<String, Vec<u64>>,
+        log: &[BranchSelectionLogEntry],
+    ) {
+        for entry in log {
+            let group_counts = counts
+                .entry(entry.group_key.clone())
+                .or_insert_with(|| vec![0; entry.total_branches]);
+            if group_counts.len() <= entry.branch_index {
+                group_counts.resize(entry.branch_index + 1, 0);
+            }
+            group_counts[entry.branch_index] += 1;
+        }
+    }
+
+    /// STIMULI-SIGNOFF.4.3 (goal G3, design §3.3): per-group L1 proximity between two count maps'
+    /// normalized distributions. For each group present in BOTH maps with a nonzero total on both
+    /// sides, the group's proximity is `1 − L1(p, q)/2 ∈ [0, 1]` (identical distributions → 1,
+    /// disjoint branch mass → 0); the result is the mean over those SHARED groups plus their
+    /// count. `(0.0, 0)` when no group is shared. Deterministic: sorted-key iteration fixes the
+    /// `f64` fold order.
+    pub fn distribution_l1_proximity(
+        corpus: &HashMap<String, Vec<u64>>,
+        sample: &HashMap<String, Vec<u64>>,
+    ) -> (f64, usize) {
+        let mut keys: Vec<&String> = corpus
+            .keys()
+            .filter(|key| sample.contains_key(*key))
+            .collect();
+        keys.sort();
+        let mut proximity_sum = 0.0_f64;
+        let mut shared_groups = 0usize;
+        for key in keys {
+            let corpus_counts = &corpus[key];
+            let sample_counts = &sample[key];
+            let corpus_total: u64 = corpus_counts.iter().sum();
+            let sample_total: u64 = sample_counts.iter().sum();
+            if corpus_total == 0 || sample_total == 0 {
+                continue;
+            }
+            let len = corpus_counts.len().max(sample_counts.len());
+            let mut l1 = 0.0_f64;
+            for idx in 0..len {
+                let p = *corpus_counts.get(idx).unwrap_or(&0) as f64 / corpus_total as f64;
+                let q = *sample_counts.get(idx).unwrap_or(&0) as f64 / sample_total as f64;
+                l1 += (p - q).abs();
+            }
+            proximity_sum += 1.0 - l1 / 2.0;
+            shared_groups += 1;
+        }
+        if shared_groups == 0 {
+            (0.0, 0)
+        } else {
+            (proximity_sum / shared_groups as f64, shared_groups)
+        }
     }
 
     /// Install (or clear with `None`) the learned distribution the weighted tournament
@@ -6401,6 +6478,123 @@ impl<'a> StimuliGenerator<'a> {
             universe,
             learned_groups,
         }
+    }
+
+    /// STIMULI-SIGNOFF.4.3: the FdLoop directed loop, goal G3 (corpus mimicry, design §3.3).
+    /// `corpus` is a per-group selection-count map learned from EXTERNAL inputs (the interpreter
+    /// front-end `interpret_parse_gen_ast_with_selections` folded via
+    /// `learn_branch_distributions`) — installed up front as the stage-1 prior, so round 0 already
+    /// samples corpus-like. Per round: generate `samples_per_round` samples with the selection log
+    /// on (per-sample fitness = `distribution_l1_proximity` of the sample's OWN counts vs the
+    /// corpus — the "how corpus-like is this one derivation" score), select the round's best log
+    /// (strict argmax, first-seen wins ties), re-learn as CORPUS + accumulated selected logs (the
+    /// corpus stays the dominant prior; selected samples reinforce achievable corpus-like paths),
+    /// apply the exploration mutation (reset one seeded-RNG-chosen group to zeros ⇒ uniform —
+    /// FdLoop's uniform-reset, exactly the `.4.2` device), install for the next round. Failed
+    /// generations score 0 and contribute no log. Deterministic per seed; opt-in only.
+    pub fn directed_corpus_mimicry_generation(
+        &mut self,
+        entry: &str,
+        rounds: usize,
+        samples_per_round: usize,
+        corpus: &HashMap<String, Vec<u64>>,
+    ) -> DirectedMimicryOutcome {
+        self.enable_branch_selection_log();
+        self.set_learned_branch_distributions(Some(corpus.clone()));
+        let mut selected_logs: Vec<Vec<BranchSelectionLogEntry>> = Vec::new();
+        let mut per_round_best_proximity: Vec<f64> = Vec::with_capacity(rounds);
+        let mut population: HashMap<String, Vec<u64>> = HashMap::new();
+        let mut generated_samples = 0usize;
+        for _round in 0..rounds {
+            let mut round_best: Option<(f64, Vec<BranchSelectionLogEntry>)> = None;
+            for _sample in 0..samples_per_round {
+                let _ = self.take_branch_selection_log();
+                let generation = self.generate_from_entry(entry);
+                let sample_log = self.take_branch_selection_log();
+                if generation.is_err() {
+                    continue;
+                }
+                generated_samples += 1;
+                let mut sample_counts: HashMap<String, Vec<u64>> = HashMap::new();
+                Self::fold_branch_selection_counts(&mut sample_counts, &sample_log);
+                Self::fold_branch_selection_counts(&mut population, &sample_log);
+                let (fitness, _) = Self::distribution_l1_proximity(corpus, &sample_counts);
+                let improves = round_best
+                    .as_ref()
+                    .map(|(best, _)| fitness > *best)
+                    .unwrap_or(true);
+                if improves {
+                    round_best = Some((fitness, sample_log));
+                }
+            }
+            let Some((best_fitness, best_log)) = round_best else {
+                per_round_best_proximity.push(0.0);
+                continue;
+            };
+            per_round_best_proximity.push(best_fitness);
+            selected_logs.push(best_log);
+            let mut learned = corpus.clone();
+            for log in &selected_logs {
+                Self::fold_branch_selection_counts(&mut learned, log);
+            }
+            if !learned.is_empty() {
+                let mut keys: Vec<&String> = learned.keys().collect();
+                keys.sort();
+                let reset_key = keys[self.rng.gen_range(0..keys.len())].clone();
+                if let Some(counts) = learned.get_mut(&reset_key) {
+                    counts.iter_mut().for_each(|count| *count = 0);
+                }
+            }
+            self.set_learned_branch_distributions(Some(learned));
+        }
+        let (population_proximity, shared_groups) =
+            Self::distribution_l1_proximity(corpus, &population);
+        let learned_groups = self
+            .learned_branch_distributions
+            .as_ref()
+            .map(HashMap::len)
+            .unwrap_or(0);
+        DirectedMimicryOutcome {
+            rounds,
+            samples_per_round,
+            per_round_best_proximity,
+            generated_samples,
+            population_proximity,
+            shared_groups,
+            corpus_groups: corpus.len(),
+            learned_groups,
+        }
+    }
+
+    /// STIMULI-SIGNOFF.4.3: score THIS generator's plain output population against a corpus
+    /// distribution — generate `samples` samples with the selection log on (recording is
+    /// read-only, so the generated output is byte-identical to the same generator without it),
+    /// fold every successful sample's log into one population counts map, and return
+    /// `(population_proximity, shared_groups, generated_samples)`. This is the same-seed
+    /// same-budget DIVERSE baseline comparator for `directed_corpus_mimicry_generation` (and the
+    /// generic "how corpus-like is this configuration" probe).
+    pub fn mimicry_population_score(
+        &mut self,
+        entry: &str,
+        samples: usize,
+        corpus: &HashMap<String, Vec<u64>>,
+    ) -> (f64, usize, usize) {
+        self.enable_branch_selection_log();
+        let mut population: HashMap<String, Vec<u64>> = HashMap::new();
+        let mut generated_samples = 0usize;
+        for _ in 0..samples {
+            let _ = self.take_branch_selection_log();
+            let generation = self.generate_from_entry(entry);
+            let sample_log = self.take_branch_selection_log();
+            if generation.is_err() {
+                continue;
+            }
+            generated_samples += 1;
+            Self::fold_branch_selection_counts(&mut population, &sample_log);
+        }
+        let (population_proximity, shared_groups) =
+            Self::distribution_l1_proximity(corpus, &population);
+        (population_proximity, shared_groups, generated_samples)
     }
 
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis — no generation
@@ -24212,6 +24406,161 @@ mod tests {
         assert_eq!(
             baseline, empty_map,
             "an EMPTY learned map must be byte-identical to no map (multiplier 1 everywhere)"
+        );
+    }
+
+    // ---- STIMULI-SIGNOFF.4.3: external-corpus learning (front-end (b)) + goal G3 mimicry ----
+
+    /// Two independent 2-branch choice points behind a sequence:
+    ///   start := x y ; x := "a" | "bb" ; y := "c" | "d"
+    fn two_choice_point_grammar() -> HashMap<String, ASTNode> {
+        let mut g = HashMap::new();
+        g.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("x"), rule_ref("y")],
+            },
+        );
+        g.insert(
+            "x".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "a"), token("quoted_string", "bb")],
+            },
+        );
+        g.insert(
+            "y".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "c"), token("quoted_string", "d")],
+            },
+        );
+        g
+    }
+
+    /// FRONT-END PARITY (the `.4.3` acceptance pin): the generator's OWN selection log
+    /// (front-end (a), `.4.1`) and the interpreter's log for the SAME sample (front-end (b))
+    /// fold to the IDENTICAL learned distribution — proving external-corpus attribution speaks
+    /// the generator's `"{rule}::{node_path}"` coordinates exactly.
+    #[test]
+    fn interpreter_corpus_attribution_folds_identically_to_the_generator_log() {
+        let grammar_tree = two_choice_point_grammar();
+        let rule_order = vec!["start".to_string(), "x".to_string(), "y".to_string()];
+
+        for seed in [0_u64, 7, 42] {
+            let mut g = simple_generator(&grammar_tree, &rule_order, seed);
+            g.enable_branch_selection_log();
+            let sample = g.generate_from_entry("start").expect("trivial grammar generates");
+            let generator_log = g.take_branch_selection_log();
+            assert!(!generator_log.is_empty(), "the generator logs its own choices");
+
+            let (outcome, interpreter_log) =
+                crate::parse_harness_interpreter::interpret_parse_gen_ast_with_selections(
+                    "parity_test",
+                    None,
+                    &grammar_tree,
+                    &rule_order,
+                    None,
+                    Some("start"),
+                    &sample,
+                )
+                .expect("interpreter plumbing must succeed");
+            assert!(
+                outcome.accepted,
+                "the generated sample {sample:?} must round-trip through the interpreter: {outcome:?}"
+            );
+
+            let from_generator = StimuliGenerator::learn_branch_distributions(&[generator_log]);
+            let from_interpreter = StimuliGenerator::learn_branch_distributions(&[interpreter_log]);
+            assert_eq!(
+                from_generator, from_interpreter,
+                "front-end (a) and (b) must attribute the same derivation identically for {sample:?} (seed {seed})"
+            );
+        }
+    }
+
+    #[test]
+    fn distribution_l1_proximity_math_is_pinned() {
+        let map = |entries: &[(&str, Vec<u64>)]| -> HashMap<String, Vec<u64>> {
+            entries
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.clone()))
+                .collect()
+        };
+        // Identical distributions → 1.0 across both shared groups.
+        let corpus = map(&[("x::root", vec![3, 1]), ("y::root", vec![0, 5])]);
+        assert_eq!(
+            StimuliGenerator::distribution_l1_proximity(&corpus, &corpus),
+            (1.0, 2)
+        );
+        // Disjoint branch mass → 0.0 (L1 = 2).
+        let sample = map(&[("x::root", vec![0, 4])]);
+        let corpus_one = map(&[("x::root", vec![7, 0])]);
+        assert_eq!(
+            StimuliGenerator::distribution_l1_proximity(&corpus_one, &sample),
+            (0.0, 1)
+        );
+        // Half-overlap: p = [.5,.5] vs q = [1,0] → L1 = 1 → proximity 0.5.
+        let corpus_half = map(&[("x::root", vec![1, 1])]);
+        let sample_half = map(&[("x::root", vec![1, 0])]);
+        assert_eq!(
+            StimuliGenerator::distribution_l1_proximity(&corpus_half, &sample_half),
+            (0.5, 1)
+        );
+        // Unshared groups don't count; scale-invariance (counts vs proportions).
+        let corpus_two = map(&[("x::root", vec![10, 10]), ("only_corpus::root", vec![1])]);
+        let sample_two = map(&[("x::root", vec![500, 500]), ("only_sample::root", vec![1])]);
+        assert_eq!(
+            StimuliGenerator::distribution_l1_proximity(&corpus_two, &sample_two),
+            (1.0, 1)
+        );
+        // A zero-total group on either side is skipped; nothing shared → (0.0, 0).
+        let zero = map(&[("x::root", vec![0, 0])]);
+        assert_eq!(
+            StimuliGenerator::distribution_l1_proximity(&zero, &zero),
+            (0.0, 0)
+        );
+        assert_eq!(
+            StimuliGenerator::distribution_l1_proximity(&HashMap::new(), &HashMap::new()),
+            (0.0, 0)
+        );
+    }
+
+    /// The G3 loop pin: with a hard-skewed corpus distribution installed, the directed mimicry
+    /// population lands measurably CLOSER to the corpus than the same-seed same-budget diverse
+    /// baseline — and the whole outcome reproduces exactly on a same-seed rerun.
+    #[test]
+    fn directed_mimicry_loop_beats_diverse_baseline_and_is_deterministic() {
+        let grammar_tree = two_choice_point_grammar();
+        let rule_order = vec!["start".to_string(), "x".to_string(), "y".to_string()];
+        let mut corpus = HashMap::new();
+        corpus.insert("x::root".to_string(), vec![1_000_u64, 0]);
+        corpus.insert("y::root".to_string(), vec![0_u64, 1_000]);
+        const SEED: u64 = 13;
+        const ROUNDS: usize = 4;
+        const SAMPLES_PER_ROUND: usize = 8;
+
+        let run_directed = || {
+            let mut g = simple_generator(&grammar_tree, &rule_order, SEED);
+            g.directed_corpus_mimicry_generation("start", ROUNDS, SAMPLES_PER_ROUND, &corpus)
+        };
+        let outcome = run_directed();
+        let rerun = run_directed();
+        assert_eq!(outcome, rerun, "same seed + budget must reproduce exactly");
+
+        let mut diverse = simple_generator(&grammar_tree, &rule_order, SEED);
+        let (baseline_proximity, baseline_shared, baseline_samples) =
+            diverse.mimicry_population_score("start", ROUNDS * SAMPLES_PER_ROUND, &corpus);
+
+        assert_eq!(outcome.corpus_groups, 2);
+        assert_eq!(outcome.shared_groups, 2, "both choice points generate: {outcome:?}");
+        assert_eq!(baseline_shared, 2);
+        assert_eq!(outcome.generated_samples, ROUNDS * SAMPLES_PER_ROUND);
+        assert_eq!(baseline_samples, ROUNDS * SAMPLES_PER_ROUND);
+        assert!(
+            outcome.population_proximity > baseline_proximity,
+            "the corpus-primed directed population must be closer to the corpus than the \
+             uniform diverse pass; directed {:.4} vs baseline {:.4}",
+            outcome.population_proximity,
+            baseline_proximity
         );
     }
 

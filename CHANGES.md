@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0013 (STIMULI-SIGNOFF.4.3): external-corpus learning + G3 corpus-mimicry land — PGEN learns a REAL corpus's distribution and generates statistically similar stimuli
+
+Session #59. The director-GO'd G3 capability ([[project_corpus_mimicry_g3_director_go]]): "learn
+the distribution from a real-world corpus and generate statistically similar, realistic stimuli."
+Parser-agnostic throughout (structural `"{rule}::{node_path}"` keys, zero name literals).
+
+- **The external derivation counter (design §3.2 front-end (b)):** the gen-AST interpreter
+  (`parse_harness_interpreter.rs`) gained a default-OFF OR-selection recorder —
+  `interpret_parse_gen_ast_with_selections` / `interpret_parse_with_selections` return, for an
+  ACCEPTED input, the final derivation's resolved choices as `BranchSelectionLogEntry`s directly
+  foldable by `learn_branch_distributions`. WINNER-ONLY EXACT (stronger than the `.4.1`
+  generator-log bound): `parse_or` keeps only the winning branch's segment, `try_parse` truncates
+  on backtrack, lookahead speculation is always discarded, and memo entries store + replay their
+  body's segment (`InterpMemoEntry.selections`) so packrat replay stays exact. Every pre-existing
+  entry point delegates with the recorder OFF — the differential-certified paths untouched
+  (equivalence/combinator/semantic gates re-run green).
+- **Front-end parity pinned:** `learn(generator's own log) == learn(interpreter log of the SAME
+  sample)` exactly (fold-map equality at seeds 0/7/42) — corpus-attributed and self-attributed
+  derivations speak identical coordinates.
+- **Mimicry math + the G3 loop (`stimuli_generator.rs`):** `distribution_l1_proximity` (per-group
+  `1 − L1/2` over shared groups, sorted-key deterministic fold), `fold_branch_selection_counts`
+  (the shared fold), `directed_corpus_mimicry_generation` (corpus distribution installed as the
+  stage-1 prior; per round: generate → per-sample fitness = L1 proximity to the corpus →
+  select-best → re-learn as corpus + accumulated selected logs → seeded uniform-reset explore →
+  install) + `DirectedMimicryOutcome` + `mimicry_population_score` (the identically-scored
+  same-seed same-budget diverse comparator).
+- **CLI:** `--directed-generation-goal corpus_mimicry` + `--mimicry-corpus-file` (whole file = one
+  input, repeatable) / `--mimicry-corpus-lines` (one input per line); headline + JSON report with
+  accepted/rejected corpus counts and the diverse baseline.
+- **MEASURED on real external corpora — directed beats diverse at ALL 3 canonical seeds on BOTH
+  lanes:** regex ← PCRE2 canonical corpus (2187 patterns, 1981 accepted, 80 learned groups):
+  population proximity `0.5830 vs 0.4311 [+0.1519]` @seed 0, `+0.1710` @7, `+0.2141` @42;
+  json ← JSONTestSuite `y_` corpus (95 files, 81 accepted — exactly the bundle's tracked
+  characterization, an independent interpreter-verdict cross-check): `0.7280 vs 0.5618 [+0.1662]`
+  @0, `+0.1705` @7, `+0.1086` @42. DETERMINISTIC: repeat seed-0 reports byte-identical.
+- **No regression:** decisive git-stash baseline — all 12 svpp+regex cert+corpus artifacts cmp
+  byte-identical pre/post at seeds 0/7/42; suites 760/834/876 all 0-fail (+7 new tests); clippy
+  source 0; no `generated/*` change.
+- **Book:** the directed-generation section gains the "Goal `corpus_mimicry`" subsection (both
+  ingestion shapes, both real-corpus headlines, the attribution trust story, honest bounds —
+  distributional per choice point, not sequence-level); `mdbook_docs_gate` ✅.
+- Tracker: LIVE unchanged (capability lane). Frontier → `.4.4` (G2 duality-break hunter).
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0011 (STIMULI-SIGNOFF.4.2): the FdLoop directed-loop driver lands — directed generation measurably BEATS the diverse pass on SV's own k-path signoff metric
 
 Session #58. The `.4` capability is now end-to-end: goal-directed generation with a LEARNED
