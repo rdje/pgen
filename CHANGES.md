@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0010 (STIMULI-SIGNOFF.4.1): the learned-distribution layer lands — FdLoop stage-1/2 substrate, default-OFF byte-identical
+
+Session #58. First CODE slice of the `.4` FDLOOP design — the generator can now LEARN a
+per-choice-point distribution and be steered by it (the substrate the `.4.2` directed loop will
+drive). Parser-agnostic: keyed on the structural `"{rule}::{node_path}"` branch-group key.
+
+- **New surface (`rust/src/ast_pipeline/stimuli_generator.rs`):** `BranchSelectionLogEntry` +
+  `enable_branch_selection_log`/`take_branch_selection_log` (per-sample OR-selection log —
+  default OFF, read-only, appended at the 4 `record_branch_success` sites in `generate_or`;
+  honest bound: includes subtrees later discarded by ancestor backtracking);
+  `learn_branch_distributions(&[logs])` (pure fold → `HashMap<group_key, Vec<u64>>` counts);
+  `set_learned_branch_distributions` + `learned_branch_multiplier` (`max(1, count)`) composed
+  MULTIPLICATIVELY into the LongestMatch phase-2 weight product (declared probabilities ×
+  coverage guidance × semantic × constraint × learned).
+- **Default-OFF byte-identity (the `.12` discipline):** svpp cert `74/74 UNKNOWN=0
+  fully_certified spf=0` and regex cert `198/198 UNKNOWN=0 fully_certified spf=0` BYTE-IDENTICAL
+  pre/post at seeds 0/7/42 (6/6 reports cmp-identical); `--stimuli-corpus-json` corpora cmp
+  BYTE-IDENTICAL 6/6 (svpp+regex × 3 seeds). Absent map ⇒ multiplier exactly 1 ⇒ arithmetic
+  identity — proven, not assumed.
+- **Capability proven:** `learned_distribution_skew_provably_shifts_sampling` — a 1e6-skew per
+  branch flips ≥38/40 seeded samples to the skewed branch; log/fold/off-by-default each
+  unit-tested (4 new tests).
+- **Suites:** no-features **751/0** (747+4), `generated_parsers` **825/0**, dual-feature
+  **867/0**; clippy source stage 0 errors (generated stage = known pre-existing 178 `eq_op`
+  debt); no `generated/*` change (generator runtime only).
+- Book: deliberately deferred to `.4.2` (no user-facing surface until the driver CLI lands; the
+  `.4.2` leaf owns that book section). Tracker: LIVE unchanged.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0009 (STIMULI-SIGNOFF.4): FDLOOP directed/learned generation — research + DESIGN slice (docs-only; the mandated SV-EXH-PROOF.7.4.6 reconciliation recorded)
 
 Session #58. PURE DOCS — the first slice of `.4` per the decisive `-0008` resume pointer.

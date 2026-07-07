@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0010 — STIMULI-SIGNOFF.4.1: implementation notes — a steering layer that must prove it does nothing by default
+
+Session #58. Notes from landing the learned-distribution layer:
+
+1. **Multiplicative identity is the cheapest byte-identity proof.** The learned factor enters the
+   LongestMatch weight product as `max(1, learned_count)` with `unwrap_or(0).max(1)` on every
+   lookup miss — so "no map installed" is not a separate code path that must be kept in sync; it
+   is the SAME path evaluating to exactly 1. The pre/post cmp of svpp+regex certs AND corpora at
+   seeds 0/7/42 then confirms the identity empirically (12/12 artifacts byte-identical; the only
+   stdout delta in the capture harness was its own differing output directory).
+2. **Log at the success sites, not the sampling site.** The per-sample selection log appends where
+   `record_branch_success` fires (4 sites in `generate_or`: literal-hint, normal, depth-slack
+   retry, constructive-reach retry) — the only places the WINNING branch is known. Logging at the
+   WeightedIndex draw would count tournament attempts, not derivation content. The honest bound
+   (documented on the field): a successful inner OR under a LATER-failing ancestor still logs —
+   an over-approximation of the final derivation that frequency learning tolerates; exact
+   final-derivation attribution would require threading a tree, deferred until evidence demands.
+3. **The skew unit test needs to out-shout coverage guidance.** `coverage_guidance_multiplier`
+   boosts a still-uncovered sibling up to ~×48, so a small learned skew can be masked early. The
+   test uses a 1e6 skew (steady-state stray probability ≈ 48/1e6 per draw) and asserts ≥38/40 —
+   deterministic under the fixed seed, and robust to future guidance-tuning slices.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0009 — STIMULI-SIGNOFF.4: design notes — where FdLoop genuinely fits a generator that already has deterministic construction
 
 Session #58 (docs-only). Notes from the FDLOOP research + design slice:

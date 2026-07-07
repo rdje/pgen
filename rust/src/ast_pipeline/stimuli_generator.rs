@@ -1381,6 +1381,21 @@ struct ActiveGrammarMutationReplay {
     selection: GrammarMutationSelection,
 }
 
+/// STIMULI-SIGNOFF.4.1: one successful OR resolution during a sample's generation — the unit
+/// of the per-sample self-derivation selection log (`enable_branch_selection_log` /
+/// `take_branch_selection_log`), and the input `learn_branch_distributions` folds into a
+/// learned per-choice-point distribution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BranchSelectionLogEntry {
+    /// The structural branch-group key `"{rule}::{node_path}"` (identical to the coverage
+    /// record's key, so learned distributions and coverage speak the same coordinates).
+    pub group_key: String,
+    /// Total alternatives at the choice point (sizes the learned counts vector).
+    pub total_branches: usize,
+    /// The winning alternative's global branch index.
+    pub branch_index: usize,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -1430,6 +1445,23 @@ pub struct StimuliGenerator<'a> {
     /// rule call-stack as a covered k-path. Read-only instrumentation (never changes a
     /// generation decision). Pairs with `compute_k_paths(k)` (the universe/denominator).
     k_path_recording: Option<(usize, HashSet<Vec<String>>)>,
+    /// STIMULI-SIGNOFF.4.1 (FDLOOP directed generation, layer 1): per-sample OR-selection LOG.
+    /// `None` = OFF (default → zero overhead, generation byte-identical → monotone). When
+    /// `Some`, every successful OR resolution appends its (group_key, total_branches,
+    /// branch_index) so a caller can attribute the generator's OWN samples' branch choices —
+    /// the self-derivation learning front-end of the `.4` design (§3.2 front-end (a)).
+    /// Read-only instrumentation (never changes a generation decision). HONEST BOUND: entries
+    /// include OR resolutions inside subtrees an ancestor later discards by backtracking — an
+    /// over-approximation of the final derivation, tolerable for frequency learning.
+    branch_selection_log: Option<Vec<BranchSelectionLogEntry>>,
+    /// STIMULI-SIGNOFF.4.1: the LEARNED per-choice-point distribution (FdLoop stage-1 output),
+    /// keyed on the structural `"{rule}::{node_path}"` branch-group key (the same key the
+    /// coverage record uses — parser-agnostic, zero name literals). `None` = OFF (default):
+    /// the learned multiplier is exactly 1 for every branch, so the weighted tournament is
+    /// byte-identical. When installed, each candidate's phase-2 weight is multiplied by
+    /// `max(1, learned_count)` — composed WITH (never replacing) declared probabilities,
+    /// coverage guidance, and the other steering multipliers.
+    learned_branch_distributions: Option<HashMap<String, Vec<u64>>>,
     target_probe_history: HashMap<String, TargetProbeHistory>,
     target_drive_validation_active: bool,
     active_generation_entry_rule: Option<String>,
@@ -1720,6 +1752,8 @@ impl<'a> StimuliGenerator<'a> {
             construct_mode: false,
             reach_retry_count: 0,
             k_path_recording: None,
+            branch_selection_log: None,
+            learned_branch_distributions: None,
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
             active_generation_entry_rule: None,
@@ -6193,6 +6227,89 @@ impl<'a> StimuliGenerator<'a> {
         self.k_path_coverage().unwrap_or((0, 0))
     }
 
+    // ---- STIMULI-SIGNOFF.4.1: FDLOOP directed generation, layer 1 (learned distributions) ----
+    // Design: docs/tasks/STIMULI-SIGNOFF-4-fdloop-directed-generation-design.md §3.2.
+    // The loop driver that consumes this surface (fitness → select-best → re-learn →
+    // exploration mutation) is leaf `.4.2`.
+
+    /// Enable the per-sample OR-selection log (default OFF → generation byte-identical).
+    /// Read-only instrumentation: recording never changes a generation decision.
+    pub fn enable_branch_selection_log(&mut self) {
+        self.branch_selection_log = Some(Vec::new());
+    }
+
+    /// Drain and return the entries logged since enabling (or since the last take);
+    /// recording stays ON so a driver can take once per generated sample. Returns an
+    /// empty vec when recording is OFF.
+    pub fn take_branch_selection_log(&mut self) -> Vec<BranchSelectionLogEntry> {
+        match self.branch_selection_log.as_mut() {
+            Some(log) => std::mem::take(log),
+            None => Vec::new(),
+        }
+    }
+
+    /// Fold accepted samples' selection logs into a learned per-choice-point distribution
+    /// (FdLoop stage 1 — counting production-alternative expansions across derivations):
+    /// `group_key -> per-branch-index selection counts`. Pure and deterministic.
+    pub fn learn_branch_distributions(
+        logs: &[Vec<BranchSelectionLogEntry>],
+    ) -> HashMap<String, Vec<u64>> {
+        let mut learned: HashMap<String, Vec<u64>> = HashMap::new();
+        for log in logs {
+            for entry in log {
+                let counts = learned
+                    .entry(entry.group_key.clone())
+                    .or_insert_with(|| vec![0; entry.total_branches]);
+                if counts.len() <= entry.branch_index {
+                    counts.resize(entry.branch_index + 1, 0);
+                }
+                counts[entry.branch_index] += 1;
+            }
+        }
+        learned
+    }
+
+    /// Install (or clear with `None`) the learned distribution the weighted tournament
+    /// consults. Absent map ⇒ the learned multiplier is exactly 1 for every branch ⇒
+    /// generation byte-identical (the default-OFF monotonicity contract this layer ships
+    /// under; the directed loop that installs real distributions is `.4.2`).
+    pub fn set_learned_branch_distributions(
+        &mut self,
+        learned: Option<HashMap<String, Vec<u64>>>,
+    ) {
+        self.learned_branch_distributions = learned;
+    }
+
+    /// The learned weight multiplier for one branch: `max(1, learned_count)`. Returns 1 when
+    /// no map is installed / the group is unknown / the index is unseen, so a learned-zero
+    /// branch keeps its base weight and exploration never starves (FdLoop's uniform-reset
+    /// mutation serves the same purpose on the driver side).
+    fn learned_branch_multiplier(&self, group_key: &str, branch_idx: usize) -> u64 {
+        self.learned_branch_distributions
+            .as_ref()
+            .and_then(|map| map.get(group_key))
+            .and_then(|counts| counts.get(branch_idx))
+            .copied()
+            .unwrap_or(0)
+            .max(1)
+    }
+
+    /// Append one successful OR resolution to the per-sample selection log (no-op when OFF).
+    fn note_branch_selection(
+        &mut self,
+        group_key: &str,
+        total_branches: usize,
+        branch_index: usize,
+    ) {
+        if let Some(log) = self.branch_selection_log.as_mut() {
+            log.push(BranchSelectionLogEntry {
+                group_key: group_key.to_string(),
+                total_branches,
+                branch_index,
+            });
+        }
+    }
+
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis — no generation
     /// behavior change): like `collect_rule_references`, but also records WHERE
     /// each rule reference occurs, using the same `node_path` encoding as
@@ -8767,10 +8884,16 @@ impl<'a> StimuliGenerator<'a> {
                                 depth,
                                 call_stack,
                             );
+                            // STIMULI-SIGNOFF.4.1: the learned-distribution layer composes
+                            // MULTIPLICATIVELY with every existing steering signal; with no
+                            // map installed the factor is exactly 1 → byte-identical.
+                            let learned_multiplier =
+                                self.learned_branch_multiplier(&group_key, *global_idx);
                             u64::from(base_weights[local_idx])
                                 .saturating_mul(adjusted_multiplier)
                                 .saturating_mul(semantic_multiplier)
                                 .saturating_mul(constraint_multiplier)
+                                .saturating_mul(learned_multiplier)
                         })
                         .collect();
 
@@ -8914,6 +9037,7 @@ impl<'a> StimuliGenerator<'a> {
                     alternatives.len(),
                     selected_global,
                 );
+                self.note_branch_selection(&group_key, alternatives.len(), selected_global);
                 self.trace(
                     TraceLevel::High,
                     format_args!(
@@ -8945,6 +9069,7 @@ impl<'a> StimuliGenerator<'a> {
                         alternatives.len(),
                         selected_global,
                     );
+                    self.note_branch_selection(&group_key, alternatives.len(), selected_global);
                     self.trace(
                         TraceLevel::High,
                         format_args!(
@@ -8994,6 +9119,11 @@ impl<'a> StimuliGenerator<'a> {
                                     &group_key,
                                     current_rule,
                                     node_path,
+                                    alternatives.len(),
+                                    selected_global,
+                                );
+                                self.note_branch_selection(
+                                    &group_key,
                                     alternatives.len(),
                                     selected_global,
                                 );
@@ -9089,6 +9219,11 @@ impl<'a> StimuliGenerator<'a> {
                                     &group_key,
                                     current_rule,
                                     node_path,
+                                    alternatives.len(),
+                                    selected_global,
+                                );
+                                self.note_branch_selection(
+                                    &group_key,
                                     alternatives.len(),
                                     selected_global,
                                 );
@@ -23811,6 +23946,134 @@ mod tests {
             covered.contains(&vec!["start".to_string(), "mid_a".to_string()])
                 || covered.contains(&vec!["start".to_string(), "mid_b".to_string()]),
             "a `start`-> reference edge must be covered; got {covered:?}"
+        );
+    }
+
+    // ---- STIMULI-SIGNOFF.4.1: learned-distribution layer (FDLOOP layer 1) ----
+
+    /// Two-branch synthetic grammar for the learned-distribution tests:
+    ///   start := "a" | "b"
+    fn two_branch_grammar() -> HashMap<String, ASTNode> {
+        let mut g = HashMap::new();
+        g.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("string", "a"), token("string", "b")],
+            },
+        );
+        g
+    }
+
+    #[test]
+    fn branch_selection_log_is_off_by_default_and_drains_per_take() {
+        let grammar_tree = two_branch_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut g = simple_generator(&grammar_tree, &rule_order, 3);
+
+        // OFF by default: generation logs nothing and take returns empty.
+        let _ = g.generate_from_entry("start");
+        assert!(
+            g.take_branch_selection_log().is_empty(),
+            "the selection log must be OFF by default"
+        );
+
+        // ON: one sample from a single-OR grammar logs exactly one resolution at start::root.
+        g.enable_branch_selection_log();
+        let _ = g.generate_from_entry("start").expect("trivial grammar generates");
+        let log = g.take_branch_selection_log();
+        assert_eq!(log.len(), 1, "one OR resolution per sample; got {log:?}");
+        assert_eq!(log[0].group_key, "start::root");
+        assert_eq!(log[0].total_branches, 2);
+        assert!(log[0].branch_index < 2);
+
+        // Draining keeps recording ON and clears the buffer (per-sample lifecycle).
+        assert!(g.take_branch_selection_log().is_empty());
+        let _ = g.generate_from_entry("start").expect("trivial grammar generates");
+        assert_eq!(g.take_branch_selection_log().len(), 1);
+    }
+
+    #[test]
+    fn learn_branch_distributions_folds_counts_per_group_and_branch() {
+        let entry = |branch_index: usize| BranchSelectionLogEntry {
+            group_key: "start::root".to_string(),
+            total_branches: 2,
+            branch_index,
+        };
+        let other = BranchSelectionLogEntry {
+            group_key: "deep::root/o0".to_string(),
+            total_branches: 3,
+            branch_index: 2,
+        };
+        let logs = vec![
+            vec![entry(0), entry(1), entry(1)],
+            vec![entry(1), other.clone()],
+        ];
+        let learned = StimuliGenerator::learn_branch_distributions(&logs);
+        assert_eq!(learned.len(), 2);
+        assert_eq!(learned["start::root"], vec![1, 3]);
+        assert_eq!(learned["deep::root/o0"], vec![0, 0, 1]);
+    }
+
+    #[test]
+    fn learned_distribution_skew_provably_shifts_sampling() {
+        let grammar_tree = two_branch_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        const SAMPLES: usize = 40;
+        // The steady-state stray probability is bounded by the coverage-guidance ceiling
+        // (~×48 for a still-uncovered sibling) over the learned weight: 48/1e6 per draw.
+        const SKEW: u64 = 1_000_000;
+
+        let mut counts_for = |skewed_branch: usize| {
+            let mut g = simple_generator(&grammar_tree, &rule_order, 11);
+            let mut learned = HashMap::new();
+            let mut weights = vec![0_u64; 2];
+            weights[skewed_branch] = SKEW;
+            learned.insert("start::root".to_string(), weights);
+            g.set_learned_branch_distributions(Some(learned));
+            let mut hits = [0_usize; 2];
+            for _ in 0..SAMPLES {
+                let sample = g.generate_from_entry("start").expect("trivial grammar generates");
+                match sample.as_str() {
+                    "a" => hits[0] += 1,
+                    "b" => hits[1] += 1,
+                    other => panic!("unexpected sample {other:?}"),
+                }
+            }
+            hits
+        };
+
+        let skew_a = counts_for(0);
+        let skew_b = counts_for(1);
+        assert!(
+            skew_a[0] >= 38,
+            "a 1e6-skew toward branch 0 must dominate sampling; got {skew_a:?}"
+        );
+        assert!(
+            skew_b[1] >= 38,
+            "a 1e6-skew toward branch 1 must dominate sampling; got {skew_b:?}"
+        );
+    }
+
+    #[test]
+    fn absent_or_empty_learned_map_leaves_generation_byte_identical() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        const SEED: u64 = 7;
+        const SAMPLES: usize = 25;
+
+        let generate_all = |learned: Option<HashMap<String, Vec<u64>>>| -> Vec<String> {
+            let mut g = simple_generator(&grammar_tree, &rule_order, SEED);
+            g.set_learned_branch_distributions(learned);
+            (0..SAMPLES)
+                .map(|_| g.generate_from_entry("start").expect("synthetic grammar generates"))
+                .collect()
+        };
+
+        let baseline = generate_all(None);
+        let empty_map = generate_all(Some(HashMap::new()));
+        assert_eq!(
+            baseline, empty_map,
+            "an EMPTY learned map must be byte-identical to no map (multiplier 1 everywhere)"
         );
     }
 
