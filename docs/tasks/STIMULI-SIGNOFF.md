@@ -3,10 +3,10 @@
 ## Metadata
 
 - Tree ID: `STIMULI-SIGNOFF`
-- Status: `proposed`
+- Status: `active`
 - Roadmap lane: `Stimuli generator → best-in-class / signoff-grade (user vision 2026-05-31)`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31`
+- Last updated: `2026-07-07`
 - Owner: repo-local workflow
 
 ## Goal
@@ -40,9 +40,9 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
 ## Task Tree
 
 - ID: `STIMULI-SIGNOFF`
-  Status: `active` (`.1` audit DONE 2026-06-03; 6 gaps → leaves `.2`–`.7`)
+  Status: `active` (`.1` audit DONE 2026-06-03; 6 gaps → leaves `.2`–`.7`; the 2026-07-01 `-0005` survey's 4 gaps + 1 de-smell folded in as `.8`–`.12` on 2026-07-07)
   Goal: `Signoff-grade, parser-agnostic EBNF stimuli generator via capability-gap closure.`
-  Children: `.1` audit → `.2` k-path coverage · `.3` code-coverage feedback · `.4` directed/learned generation · `.5` uniform/Boltzmann · `.6` grammar-tree-aware shrinking · `.7` mutation-maturity metric
+  Children: `.1` audit → `.2` k-path coverage · `.3` code-coverage feedback · `.4` directed/learned generation · `.5` uniform/Boltzmann · `.6` grammar-tree-aware shrinking · `.7` mutation-maturity metric · `.8` CIT/n-wise · `.9` metamorphic+differential oracles · `.10` swarm · `.11` boundary-value-as-goal · `.12` quantified-separator de-smell
 
 - ID: `STIMULI-SIGNOFF.1`
   Status: `done` (`PGEN-STIMULI-SIGNOFF-0001`, 2026-06-03)
@@ -93,15 +93,58 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
   Verification: `pending`
   Commit: `pending`
 
+- ID: `STIMULI-SIGNOFF.8`
+  Status: `pending` (survey gap (a), folded 2026-07-07 from the `-0005` survey)
+  Goal: `COMBINATORIAL / PAIRWISE / N-WISE INTERACTION COVERAGE (CIT) — cover n-wise combinations of INDEPENDENT choice points (distinct from .2's k-path, which is ancestor-chain context). No impl today (stimuli_generator.rs:6056 is only the k-path cost warning). Parser-agnostic grammar-structure property.`
+  Acceptance: `an n-wise interaction coverage universe + numerator computable per grammar; reported like --report-k-path-coverage.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.9`
+  Status: `pending` (survey gap (b), folded 2026-07-07)
+  Goal: `INTEGRATED METAMORPHIC + DIFFERENTIAL ORACLES — semantics-preserving transforms (rename bound ids, reorder independent decls, redundant parens) that must preserve acceptance/AST-equivalence; promote the per-family EXTERNAL differential gates (pcre2, corpus triage) into a generation-integrated oracle. Parser-agnostic.`
+  Acceptance: `at least one metamorphic transform lane wired into generation with an acceptance/AST-equivalence oracle; divergences reported.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.10`
+  Status: `pending` (survey gap (c), folded 2026-07-07)
+  Goal: `SWARM / FEATURE-DIVERSITY TESTING (Groce et al.) — randomly disable grammar-feature subsets per run so rare feature ABSENCE combinations are exercised. No swarm mechanism exists today. Parser-agnostic.`
+  Acceptance: `a swarm strategy (per-run feature subset masking) available; coverage delta vs the diverse pass measured.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.11`
+  Status: `pending` (survey gap (d), folded 2026-07-07)
+  Goal: `BOUNDARY-VALUE COVERAGE AS A FIRST-CLASS GOAL — @range/@len bounds are HONORED (parse_semantic_numeric_bounds/len_bounds) but not systematically TARGETED (min/max/min-1/max+1 as coverage obligations). Parser-agnostic.`
+  Acceptance: `boundary obligations derived from declared constraints; generation targets them; a boundary-coverage number reported.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.12`
+  Status: `active` (design DONE 2026-07-07 — this entry; implementation next)
+  Goal: `RETIRE THE LAST GENERATOR NAME-GATE: should_insert_quantified_separator() (stimuli_generator.rs:11635-11659) hardcodes grammar_name=="systemverilog_preprocessor" + 4 container-rule names + the pp_item element check. Re-express as a general, grammar-declared separator-cohesion property — the 4th member of the name-gate retirement series (WS-DIRECTIVE @whitespace_sensitive → DEFAULT-PROFILE @default_profile → PROFILE-ALIAS @profile_alias → this).`
+  Design:
+    - `REPRODUCE/ISSUE (tool-backed): stimuli_generator.rs:11642 is the generator's ONLY grammar-name string-literal gate (grep-verified over the module; the other "regex" hits are TOKEN-TYPE matches). Introduced by 90e502b5 ("Eliminate SV preprocessor parseability debt"). It violates [[feedback_features_parser_agnostic_enable_all_parsers]] (capability-gated, never grammar-name-gated) and hides a generation-relevant lexical-cohesion property OUTSIDE the EBNF ([[project_ebnf_is_single_source_of_truth]]): a whitespace-sensitive line-oriented SYNTHETIC/scratch grammar cannot express "stacked items need a line break" at all.`
+    - `WHY the capability exists: svpp is line-oriented; every directive's trailing newline is OPTIONAL (pp_define := ... newline?), so two stacked pp_item renderings can fuse into one line (a define body eats to EOL) → the generator inserts "\n" between quantified pp_item iterations when the junction lacks one. The four hardcoded containers (systemverilog_preprocessor_file :24, pp_if_branch :83, pp_elsif_branch :85, pp_else_branch :87) are EXACTLY the four pp_item* sites — the property truly belongs to pp_item itself.`
+    - `FIX: new rule-level StimuliSteering directive @quantified_separator, bound to the QUANTIFIED rule (pp_item). Payload: "sep" shorthand (satisfied only by itself) or { insert: "sep", satisfied_by: ["sep", ...] }. General engine rule at a quantifier join: if the quantified element is a rule-reference to a rule declaring the directive, insert 'insert' between two non-empty adjacent renderings unless output ends with — or the segment starts with — ANY satisfied_by spelling. svpp declares { insert: "\n", satisfied_by: ["\n", "\r\n"] }: the CRLF knowledge moves INTO the grammar (its own newline := /\r?\n/ spelling); the engine keeps zero language knowledge. Byte-identity with today expected BY CONSTRUCTION: ends_with("\r\n") ⊆ ends_with("\n"); every reachable segment-leading "\r" is a pp_blank_line newline rendering "\r\n" (no other pp_item alternative can start with a bare CR).`
+    - `MECHANICS: (1) semantic_directive_registry.rs — register quantified_separator as StimuliSteering (does NOT serialize into parser artifacts: svpp's @sample yields 0 directives_by_rule inserts, grep-verified → ALL 11 generated parsers stay byte-identical, NO release bump). (2) semantic_runtime.rs — shared compile fn (QuantifiedSeparatorPolicy { insert, satisfied_by }) so the validator lints through the SAME parser the generator compiles with (the WS-DIRECTIVE pattern); annotation payload strings support \n escapes (unified_semantic_ast.rs:516). (3) annotation_validator.rs — W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD via that fn. (4) stimuli_generator.rs — constructor-time HashMap<rule, policy> cache (the compute_name_gates pattern); should_insert_quantified_separator loses BOTH name-gates and becomes directive-driven; node_is_rule_reference generalizes to "element references a policy-bearing rule". (5) grammars/systemverilog_preprocessor.ebnf — the directive above pp_item. On-item placement is behavior-identical today AND more general (any future container quantifying pp_item inherits it).`
+    - `VERIFICATION PLAN: pre/post svpp generated-corpus BYTE-COMPARE at seeds 0/7/42 (expect identical); svpp cert fully_certified spf=0 seeds 0/7/42 + the zero-plausible-gap gate; cross-grammar certs byte-identical (regex 198/198/0); all 11 regenerated parsers cmp byte-identical; dual-run gate; lib both feature sets; clippy; registry/validator/compile-fn unit tests incl. a scratch-style synthetic line-oriented grammar proving the capability is now EXPRESSIBLE for any grammar; lockstep = annotation normative spec + semantic steering control matrix + book annotation chapter + svpp parser book.`
+  Acceptance: `the grammar-name + rule-name literals are DELETED from stimuli_generator.rs; svpp behavior proven preserved (byte-compare + cert + gates); the capability demonstrated on a NON-svpp grammar; full lockstep.`
+  Verification: `pending (design done 2026-07-07)`
+  Commit: `PGEN-STIMULI-SIGNOFF-0006 (design + tree restructure); implementation pending`
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `STIMULI-SIGNOFF.1` | `done` (`-0001`) | Audit landed; 6 gaps → leaves `.2`–`.7` (KM [[stimuli-generator-capability-gaps]]). |
+| **1** | `STIMULI-SIGNOFF.12` | `active` (design DONE 2026-07-07, `-0006`) | the LAST generator name-gate (bounded de-smell; completes the WS→DEFAULT→ALIAS retirement series); implementation is the immediate frontier. |
+| — | `STIMULI-SIGNOFF.1` | `done` (`-0001`) | Audit landed; 6 gaps → leaves `.2`–`.7` (KM [[stimuli-generator-capability-gaps]]). |
 | — | `STIMULI-SIGNOFF.2` | `done` (`-0002`/`-0003`/`-0004`; gap #1 k-path coverage CLOSED — universe + numerator + `--report-k-path-coverage` report) | k-path metric DEFINES the signoff bar; SV measured (sv_2017, k=2): universe 4105, covered 679 (16.5%). Optional follow-up `.2.4` (wire the recorder into the full closed-loop gate). (Row was stale `pending`; corrected 2026-06-30.) |
 | 3 | `STIMULI-SIGNOFF.4` | `pending` | directed/FDLOOP = the literal-0 reach (co-owned by `SV-EXH-PROOF.7.4.6`). |
 | 4 | `STIMULI-SIGNOFF.3` | `pending` | code-coverage feedback pairs with `.2` (input→code coverage). |
 | — | `.5` / `.6` / `.7` | `pending` | secondary (uniform/Boltzmann · grammar-tree shrinking · mutation-maturity metric). |
+| — | `.8` / `.9` / `.10` / `.11` | `pending` | the 2026-07-01 survey gaps (CIT · metamorphic/differential oracles · swarm · boundary-value-as-goal), folded in 2026-07-07. |
 
 ## Decisions
 
@@ -113,7 +156,7 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
 ## Open Questions
 
 - Does the first concrete capability (deterministic target-reach/path-forcing, from `.7`) land under SV-EXH-PROOF.7 or graduate here? (resolve when `.7` resumes)
-- Fold the four `2026-07-01`-surveyed gaps (CIT `.8`, metamorphic/differential oracles `.9`, swarm `.10`, boundary-value-as-goal `.11`) + the parser-agnostic de-smell (`.12`, the `should_insert_quantified_separator` svpp hardcoding) into numbered leaves when this tree is next actively worked. (Deferred at 2026-07-01 to avoid duplicating the existing, richer `.1`–`.7` structure during a fresh-session handoff.)
+- ~~Fold the four `2026-07-01`-surveyed gaps + the parser-agnostic de-smell into numbered leaves when this tree is next actively worked.~~ **RESOLVED 2026-07-07**: folded as `.8`–`.12` (`PGEN-STIMULI-SIGNOFF-0006`); `.12` carries its full design and is the active frontier.
 
 ## Blockers
 
@@ -135,3 +178,4 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
 
 - `2026-05-31`: Created thin skeleton (TASKTREE-GOV.2 roadmap-coverage).
 - `2026-07-01`: Director-requested fresh capability re-survey (`PGEN-STIMULI-SIGNOFF-0005`, PURE-DOCS) — a tools-first, symbol-cited HAVE/PARTIAL/LACK sweep confirmed the `.1` audit and added 4 candidate gaps (CIT/pairwise, integrated metamorphic+differential oracles, swarm, boundary-value-as-coverage-goal) + one concrete parser-agnosticism SMELL (`should_insert_quantified_separator()` hardcodes svpp rule names). Recorded as a `Decisions` entry; leaves `.8`–`.12` deferred to the next active work on this tree (see `Open Questions`). No structural change to the existing `.1`–`.7` plan.
+- `2026-07-07`: (`PGEN-STIMULI-SIGNOFF-0006`, PURE-DOCS, session #57) — tree actively resumed per the MEMORY.md PNT frontier: the deferred survey items folded in as numbered leaves `.8`–`.11` (CIT · metamorphic/differential · swarm · boundary-value-as-goal, all `pending`) + `.12` (the quantified-separator de-smell) created `active` with its full tools-first DESIGN (the `@quantified_separator` rule-level StimuliSteering directive; evidence: the name-gate at `stimuli_generator.rs:11642` is the generator's only grammar-name literal, the 4 hardcoded containers are exactly the grammar's 4 `pp_item*` sites, StimuliSteering directives provably don't serialize into parser artifacts → emit-neutral by construction). `.12` implementation is the tree's frontier.

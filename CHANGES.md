@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0006 (STIMULI-SIGNOFF.8–.12 fold-in + .12 DESIGN): the deferred survey gaps become numbered leaves; the last generator name-gate gets its retirement design (PURE DOCS)
+
+Session #57. PNT resumed the `STIMULI-SIGNOFF` tree per the MEMORY.md frontier. The 2026-07-01
+`-0005` survey items are now numbered leaves: `.8` CIT/n-wise interaction coverage, `.9`
+metamorphic+differential oracles, `.10` swarm/feature-diversity, `.11` boundary-value-as-goal
+(all `pending`), and `.12` — the `should_insert_quantified_separator()` de-smell — is `active`
+with its full tools-first DESIGN recorded in-tree:
+
+- **The defect class:** `stimuli_generator.rs:11642` gates on `grammar_name ==
+  "systemverilog_preprocessor"` + 4 hardcoded container-rule names + the `pp_item` element check —
+  the generator's ONLY grammar-name literal (grep-verified; the other `"regex"` hits are
+  token-type matches), the 4th and last member of the name-gate retirement series
+  (`@whitespace_sensitive` → `@default_profile` → `@profile_alias` → this).
+- **The design:** a rule-level **StimuliSteering** directive `@quantified_separator` bound to the
+  QUANTIFIED rule (`pp_item`), payload `"sep"` or `{ insert, satisfied_by: [...] }`. svpp declares
+  `{ insert: "\n", satisfied_by: ["\n", "\r\n"] }` — the CRLF knowledge moves INTO the grammar
+  (its own `newline := /\r?\n/` spelling); the engine keeps zero language knowledge.
+- **Byte-identity by construction:** the 4 hardcoded containers are exactly the grammar's 4
+  `pp_item*` sites; `ends_with("\r\n") ⊆ ends_with("\n")`; every reachable segment-leading `\r`
+  is a `pp_blank_line` newline rendering. StimuliSteering directives don't serialize into parser
+  artifacts (svpp's `@sample` yields 0 `directives_by_rule` inserts) → all 11 generated parsers
+  stay byte-identical; NO release bump anticipated.
+
+Files: `docs/tasks/STIMULI-SIGNOFF.md` (leaves + design + frontier), `docs/TASK_TREE.md` (row),
+`MEMORY.md`, `CHANGES.md`. No code touched.
+
 ## 2026-07-07 - PGEN-PROFILE-ALIAS-0002 (PROFILE-ALIAS.2): `@profile_alias` landed end-to-end — the SV profile-ALIAS name-gates are RETIRED (the artifact carries its request spellings; tree COMPLETE)
 
 Session #56. **New parser-agnostic grammar-level directive** (the third and last member of the
