@@ -555,6 +555,181 @@ pub(crate) fn parse_profile_alias_payload(
     Ok(pairs)
 }
 
+/// The normalized directive name recognized by [`compile_quantified_separators`].
+pub const QUANTIFIED_SEPARATOR_DIRECTIVE_NAME: &str = "quantified_separator";
+
+/// `STIMULI-SIGNOFF.12`: the RULE-level `@quantified_separator:` directive —
+/// the grammar-declared lexical-cohesion property for STACKED quantified
+/// renderings of the annotated rule.
+///
+/// When the stimuli generator joins successive iterations of a quantified
+/// rule reference (`item*` / `item+` / bounded forms) and the referenced rule
+/// declares this directive, it inserts `insert` between two non-empty
+/// adjacent renderings UNLESS the junction is already separated — i.e. the
+/// output so far ends with, or the incoming rendering starts with, any
+/// `satisfied_by` spelling.
+///
+/// Surface syntax (parsed by [`parse_quantified_separator_payload`]):
+///
+/// ```text
+/// @quantified_separator: "\n"                                    # shorthand: satisfied only by itself
+/// @quantified_separator: { insert: "\n", satisfied_by: ["\n", "\r\n"] }
+/// ```
+///
+/// `satisfied_by` must contain `insert` (a junction that already carries the
+/// inserted text IS separated); alternate spellings (e.g. `"\r\n"` when the
+/// grammar's own `newline` token is `/\r?\n/`) are GRAMMAR knowledge and are
+/// declared here, never hardcoded in the engine. This directive replaces the
+/// retired generator name-gate (`grammar_name == "systemverilog_preprocessor"`
+/// + four container-rule names), per the EBNF-single-source-of-truth doctrine.
+///
+/// The directive is **generation-side only** (`StimuliSteering`): it never
+/// enters `directives_by_rule`, so declaring it is emit-neutral for every
+/// generated parser.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuantifiedSeparatorPolicy {
+    /// The literal text inserted between two adjacent quantified renderings.
+    pub insert: String,
+    /// The junction spellings that count as "already separated" (always
+    /// includes `insert`).
+    pub satisfied_by: Vec<String>,
+}
+
+/// `STIMULI-SIGNOFF.12`: scan a grammar's RULE-level semantic annotations for
+/// `@quantified_separator:` directives and compile them into a per-rule
+/// policy map. The map is keyed by the ANNOTATED rule (the rule whose stacked
+/// renderings need separating), with a per-rule verdict so one malformed
+/// payload poisons exactly the rules it annotates — the generator fails
+/// loudly at the first join that would need the broken policy, and the
+/// annotation validator lints the same payloads statically.
+///
+/// Duplicate declarations on one rule with IDENTICAL payloads are allowed
+/// (the `@fact_kind` V-DECL-1 convenience); CONFLICTING payloads are that
+/// rule's compile error. A BRANCH-level occurrence is rejected (per-branch
+/// separator cohesion is not a meaningful property — the directive describes
+/// the rule's whole rendering).
+pub fn compile_quantified_separators(
+    annotations: &Annotations,
+) -> BTreeMap<String, Result<QuantifiedSeparatorPolicy, String>> {
+    let mut compiled: BTreeMap<String, Result<QuantifiedSeparatorPolicy, String>> =
+        BTreeMap::new();
+    for (rule, list) in &annotations.semantic_annotations {
+        for annotation in list {
+            let Some(name) = annotation.name() else {
+                continue;
+            };
+            if name.trim().to_ascii_lowercase() != QUANTIFIED_SEPARATOR_DIRECTIVE_NAME {
+                continue;
+            }
+            let parsed = parse_quantified_separator_payload(annotation.ast());
+            match (compiled.get(rule), &parsed) {
+                (Some(Ok(prior)), Ok(current)) if prior != current => {
+                    compiled.insert(
+                        rule.clone(),
+                        Err(format!(
+                            "@{QUANTIFIED_SEPARATOR_DIRECTIVE_NAME}: rule '{rule}' declares conflicting payloads (first: {prior:?}; second: {current:?}). Declare the rule's separator exactly once."
+                        )),
+                    );
+                }
+                (Some(Err(_)), _) => {}
+                _ => {
+                    compiled.insert(rule.clone(), parsed);
+                }
+            }
+        }
+    }
+    for (rule, branches) in &annotations.branch_semantic_annotations {
+        for list in branches {
+            for annotation in list {
+                let Some(name) = annotation.name() else {
+                    continue;
+                };
+                if name.trim().to_ascii_lowercase() == QUANTIFIED_SEPARATOR_DIRECTIVE_NAME {
+                    compiled.insert(
+                        rule.clone(),
+                        Err(format!(
+                            "@{QUANTIFIED_SEPARATOR_DIRECTIVE_NAME}: rule '{rule}' attaches the directive to a BRANCH; it is a whole-rule property — declare it at rule level."
+                        )),
+                    );
+                }
+            }
+        }
+    }
+    compiled
+}
+
+/// Parses one `@quantified_separator:` payload (see
+/// [`compile_quantified_separators`] for the accepted forms). `pub(crate)` so
+/// the annotation validator lints the payload through the SAME parser the
+/// stimuli generator compiles it with (no second dialect).
+pub(crate) fn parse_quantified_separator_payload(
+    ast: &UnifiedSemanticAST,
+) -> Result<QuantifiedSeparatorPolicy, String> {
+    const USAGE: &str = "Directive '@quantified_separator' expects a non-empty quoted separator string (e.g. \"\\n\") or an object { insert: \"...\", satisfied_by: [\"...\", ...] } whose satisfied_by list contains insert.";
+    let payload = ast
+        .structured_value()
+        .ok_or_else(|| format!("{USAGE} (payload is not a structured value)"))?;
+    let quoted_string = |value: &UnifiedSemanticValue, field: &str| -> Result<String, String> {
+        match value {
+            UnifiedSemanticValue::String(text) if !text.is_empty() => Ok(text.clone()),
+            UnifiedSemanticValue::String(_) => {
+                Err(format!("{USAGE} ({field} is an empty string)"))
+            }
+            other => Err(format!(
+                "{USAGE} ({field} must be a quoted string; got {other:?})"
+            )),
+        }
+    };
+    if let UnifiedSemanticValue::String(_) = payload {
+        let insert = quoted_string(payload, "the separator")?;
+        return Ok(QuantifiedSeparatorPolicy {
+            satisfied_by: vec![insert.clone()],
+            insert,
+        });
+    }
+    let properties = object_properties(payload)
+        .ok_or_else(|| format!("{USAGE} (got a non-string, non-object payload: {payload:?})"))?;
+    let mut insert: Option<String> = None;
+    let mut satisfied_by: Option<Vec<String>> = None;
+    for prop in properties {
+        match prop.key.trim().to_ascii_lowercase().as_str() {
+            "insert" => insert = Some(quoted_string(&prop.value, "insert")?),
+            "satisfied_by" => {
+                let UnifiedSemanticValue::Array(items) = &prop.value else {
+                    return Err(format!(
+                        "{USAGE} (satisfied_by must be an array of quoted strings; got {:?})",
+                        prop.value
+                    ));
+                };
+                if items.is_empty() {
+                    return Err(format!("{USAGE} (satisfied_by is empty)"));
+                }
+                let mut spellings = Vec::with_capacity(items.len());
+                for item in items {
+                    spellings.push(quoted_string(item, "a satisfied_by entry")?);
+                }
+                satisfied_by = Some(spellings);
+            }
+            other => {
+                return Err(format!(
+                    "@{QUANTIFIED_SEPARATOR_DIRECTIVE_NAME}: unknown field '{other}'. Known fields: insert, satisfied_by."
+                ));
+            }
+        }
+    }
+    let insert = insert.ok_or_else(|| format!("{USAGE} (missing the required insert field)"))?;
+    let satisfied_by = satisfied_by.unwrap_or_else(|| vec![insert.clone()]);
+    if !satisfied_by.contains(&insert) {
+        return Err(format!(
+            "@{QUANTIFIED_SEPARATOR_DIRECTIVE_NAME}: satisfied_by {satisfied_by:?} must contain the insert string {insert:?} (a junction already carrying the inserted text IS separated)."
+        ));
+    }
+    Ok(QuantifiedSeparatorPolicy {
+        insert,
+        satisfied_by,
+    })
+}
+
 /// The shared identifier shape for dialect-profile names and alias spellings
 /// (ASCII alphanumerics, '_', '-') — one character class for
 /// `@default_profile` payloads, `@profile_alias` keys, and their targets.
@@ -3957,12 +4132,13 @@ fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        CompiledSemanticRuntimeAnnotations, LayoutSensitivity, SemanticFactSpec,
+        CompiledSemanticRuntimeAnnotations, LayoutSensitivity, QuantifiedSeparatorPolicy,
+        SemanticFactSpec,
         SemanticLibraryExportSpec, SemanticLibraryImportSpec, SemanticPredicateContentView,
         SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeDirective,
         SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
         compile_default_profile, compile_layout_sensitivity, compile_profile_aliases,
-        compile_rule_semantic_runtime_directives,
+        compile_quantified_separators, compile_rule_semantic_runtime_directives,
         compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
         parse_semantic_runtime_directives,
     };
@@ -7897,6 +8073,190 @@ mod tests {
         assert!(
             err.contains("must target ONE profile name"),
             "error should explain the target shape: {err}"
+        );
+    }
+
+    // ── STIMULI-SIGNOFF.12: the rule-level `@quantified_separator:` directive ──
+
+    fn quantified_separator_annotation(payload: UnifiedSemanticValue) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "quantified_separator".to_string(),
+            ast: UnifiedSemanticAST::Structured {
+                canonical: String::new(),
+                value: payload,
+            },
+        }
+    }
+
+    fn annotations_with_quantified_separator(
+        rule: &str,
+        payloads: Vec<UnifiedSemanticValue>,
+    ) -> Annotations {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            rule.to_string(),
+            payloads
+                .into_iter()
+                .map(quantified_separator_annotation)
+                .collect(),
+        );
+        annotations
+    }
+
+    #[test]
+    fn quantified_separator_absent_directive_compiles_to_an_empty_map() {
+        assert!(compile_quantified_separators(&Annotations::default()).is_empty());
+    }
+
+    #[test]
+    fn quantified_separator_string_shorthand_is_satisfied_only_by_itself() {
+        let annotations =
+            annotations_with_quantified_separator("item", vec![string_val("\n")]);
+        let compiled = compile_quantified_separators(&annotations);
+        assert_eq!(
+            compiled.get("item"),
+            Some(&Ok(QuantifiedSeparatorPolicy {
+                insert: "\n".to_string(),
+                satisfied_by: vec!["\n".to_string()],
+            }))
+        );
+    }
+
+    #[test]
+    fn quantified_separator_object_declares_alternate_satisfying_spellings() {
+        // The svpp shape: insert "\n"; the grammar's own `/\r?\n/` newline
+        // token means "\r\n" also counts as an already-separated junction.
+        let annotations = annotations_with_quantified_separator(
+            "pp_item",
+            vec![object(vec![
+                ("insert", string_val("\n")),
+                (
+                    "satisfied_by",
+                    arr(vec![string_val("\n"), string_val("\r\n")]),
+                ),
+            ])],
+        );
+        let compiled = compile_quantified_separators(&annotations);
+        assert_eq!(
+            compiled.get("pp_item"),
+            Some(&Ok(QuantifiedSeparatorPolicy {
+                insert: "\n".to_string(),
+                satisfied_by: vec!["\n".to_string(), "\r\n".to_string()],
+            }))
+        );
+    }
+
+    #[test]
+    fn quantified_separator_object_without_satisfied_by_defaults_to_insert() {
+        let annotations = annotations_with_quantified_separator(
+            "item",
+            vec![object(vec![("insert", string_val(";"))])],
+        );
+        let compiled = compile_quantified_separators(&annotations);
+        assert_eq!(
+            compiled.get("item"),
+            Some(&Ok(QuantifiedSeparatorPolicy {
+                insert: ";".to_string(),
+                satisfied_by: vec![";".to_string()],
+            }))
+        );
+    }
+
+    #[test]
+    fn quantified_separator_satisfied_by_must_contain_insert() {
+        let annotations = annotations_with_quantified_separator(
+            "item",
+            vec![object(vec![
+                ("insert", string_val("\n")),
+                ("satisfied_by", arr(vec![string_val("\r\n")])),
+            ])],
+        );
+        let err = compile_quantified_separators(&annotations)
+            .get("item")
+            .cloned()
+            .expect("compiled")
+            .expect_err("satisfied_by missing insert must error");
+        assert!(
+            err.contains("must contain the insert string"),
+            "error should explain the containment rule: {err}"
+        );
+    }
+
+    #[test]
+    fn quantified_separator_rejects_empty_and_non_string_payloads() {
+        for (payload, needle) in [
+            (string_val(""), "empty string"),
+            (ident_val("newline"), "non-string, non-object"),
+            (bool_val(true), "non-string, non-object"),
+            (
+                object(vec![("insert", ident_val("nl"))]),
+                "must be a quoted string",
+            ),
+            (
+                object(vec![("separator", string_val("\n"))]),
+                "unknown field 'separator'",
+            ),
+            (object(vec![]), "missing the required insert field"),
+            (
+                object(vec![
+                    ("insert", string_val("\n")),
+                    ("satisfied_by", arr(vec![])),
+                ]),
+                "satisfied_by is empty",
+            ),
+        ] {
+            let annotations =
+                annotations_with_quantified_separator("item", vec![payload.clone()]);
+            let err = compile_quantified_separators(&annotations)
+                .get("item")
+                .cloned()
+                .expect("compiled")
+                .expect_err("malformed payload must error");
+            assert!(
+                err.contains(needle),
+                "payload {payload:?} should error with '{needle}': {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn quantified_separator_identical_duplicates_allowed_conflicts_error() {
+        let identical = annotations_with_quantified_separator(
+            "item",
+            vec![string_val("\n"), string_val("\n")],
+        );
+        assert!(compile_quantified_separators(&identical).get("item").expect("compiled").is_ok());
+
+        let conflicting = annotations_with_quantified_separator(
+            "item",
+            vec![string_val("\n"), string_val(";")],
+        );
+        let err = compile_quantified_separators(&conflicting)
+            .get("item")
+            .cloned()
+            .expect("compiled")
+            .expect_err("conflicting payloads must error");
+        assert!(
+            err.contains("conflicting payloads"),
+            "error should name the conflict: {err}"
+        );
+    }
+
+    #[test]
+    fn quantified_separator_branch_level_attachment_is_rejected() {
+        let mut annotations = Annotations::default();
+        annotations.branch_semantic_annotations.insert(
+            "item".to_string(),
+            vec![vec![quantified_separator_annotation(string_val("\n"))]],
+        );
+        let err = compile_quantified_separators(&annotations)
+            .get("item")
+            .cloned()
+            .expect("compiled")
+            .expect_err("branch-level attachment must error");
+        assert!(
+            err.contains("declare it at rule level"),
+            "error should direct to rule level: {err}"
         );
     }
 }

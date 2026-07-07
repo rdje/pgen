@@ -597,6 +597,25 @@ impl AnnotationValidator {
                     });
                 }
             }
+            // `STIMULI-SIGNOFF.12`: lint the rule-level quantified-separator
+            // payload through the SAME parser the stimuli generator compiles
+            // it with (`semantic_runtime::parse_quantified_separator_payload`),
+            // so the lint and the generation-time error can never disagree.
+            "quantified_separator" => {
+                if let Err(err) = crate::ast_pipeline::semantic_runtime::parse_quantified_separator_payload(
+                    semantic_annotation.ast(),
+                ) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: err,
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "priority" | "precedence" => {
                 if parse_semantic_numeric_list(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {
@@ -2871,6 +2890,67 @@ mod tests {
                     .diagnostics
                     .iter()
                     .any(|d| d.code == "W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD"),
+                "payload {payload:?} should lint clean"
+            );
+            // Registered in the typed directive registry — no unknown-directive noise.
+            assert!(
+                !report
+                    .diagnostics
+                    .iter()
+                    .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"),
+                "payload {payload:?} should not trigger the unknown-directive lint"
+            );
+        }
+    }
+
+    // `STIMULI-SIGNOFF.12`: the `@quantified_separator:` payload is linted
+    // through the SAME parser the stimuli generator compiles it with, so the
+    // lint and the generation-time error agree.
+    #[test]
+    fn semantic_validator_warns_on_invalid_quantified_separator_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "pp_item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "quantified_separator".to_string(),
+                ast: UnifiedSemanticAST::from_named_payload(
+                    "quantified_separator",
+                    r#"{ separator: "\n" }"#,
+                ),
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD"
+                && d.severity == AnnotationSeverity::Warning
+                && d.message.contains("unknown field 'separator'")
+        }));
+    }
+
+    #[test]
+    fn semantic_validator_accepts_well_formed_quantified_separator_payloads() {
+        // The payload TEXT path (`from_named_payload`) also proves the "\n"
+        // escape reaches the compiled policy — the exact svpp spelling.
+        for payload in [
+            r#""\n""#,
+            r#"{ insert: "\n", satisfied_by: ["\n", "\r\n"] }"#,
+            r#"{ insert: ";" }"#,
+        ] {
+            let mut annotations = Annotations::default();
+            annotations.semantic_annotations.insert(
+                "pp_item".to_string(),
+                vec![SemanticAnnotation::Named {
+                    name: "quantified_separator".to_string(),
+                    ast: UnifiedSemanticAST::from_named_payload("quantified_separator", payload),
+                }],
+            );
+            let report = AnnotationValidator::default().validate_annotations(&annotations);
+            assert!(
+                !report
+                    .diagnostics
+                    .iter()
+                    .any(|d| d.code == "W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD"),
                 "payload {payload:?} should lint clean"
             );
             // Registered in the typed directive registry — no unknown-directive noise.

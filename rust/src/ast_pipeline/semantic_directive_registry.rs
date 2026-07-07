@@ -396,6 +396,17 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "profile_alias",
         capability: SemanticDirectiveCapability::ParserSteering,
     },
+    // `STIMULI-SIGNOFF.12`: rule-level stacked-rendering separator cohesion —
+    // the literal the stimuli generator inserts between successive quantified
+    // renderings of the annotated rule, plus which junction spellings already
+    // count as separated. Compiled by
+    // `semantic_runtime::compile_quantified_separators`; steers stimuli
+    // generation only (never serialized into parser artifacts — emit-neutral).
+    // Replaces the retired svpp generator name-gate.
+    SemanticDirectiveSpec {
+        name: "quantified_separator",
+        capability: SemanticDirectiveCapability::StimuliSteering,
+    },
 ];
 
 pub fn semantic_directive_spec(name: &str) -> Option<SemanticDirectiveSpec> {

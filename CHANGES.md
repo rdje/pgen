@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0007 (STIMULI-SIGNOFF.12): `@quantified_separator` lands end-to-end — the LAST generator name-gate is RETIRED (grammar-declared separator cohesion; byte-identical everywhere)
+
+Session #57. **New parser-agnostic RULE-level stimuli directive** (the 4th and final member of the
+name-gate retirement series: layout → default profile → request aliases → **stacked-rendering
+separator**). HOW the stimuli generator separates stacked quantified renderings of a line-oriented
+item is now declared IN the grammar (`grammars/systemverilog_preprocessor.ebnf`:
+`@quantified_separator: { insert: "\n", satisfied_by: ["\n", "\r\n"] }` on `pp_item`) instead of
+being hardcoded in the engine.
+
+- **REPRODUCE:** `should_insert_quantified_separator` (`stimuli_generator.rs:11642` pre-change)
+  gated on `grammar_name == "systemverilog_preprocessor"` PLUS four hardcoded container-rule names
+  PLUS the `pp_item` element check — the generator's ONLY grammar-name literal (grep-verified),
+  introduced by `90e502b5`. A synthetic line-oriented grammar could not express "stacked items
+  need a separator" at all.
+- **Fix:** registry entry (`StimuliSteering`) + `semantic_runtime::compile_quantified_separators`
+  (per-rule verdict map — a malformed payload poisons exactly the rules it annotates and fails
+  generation LOUDLY at the first join that would need it; identical duplicates tolerated,
+  conflicts error, branch-level attachment rejected) + payload parser shared with the validator
+  lint `W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD` (no second dialect) + the generator's
+  `quantified_separator_to_insert` (junction check = output ends with / segment starts with any
+  `satisfied_by` spelling; the CRLF spelling is GRAMMAR knowledge — svpp's own
+  `newline := /\r?\n/`). The name-gate is DELETED.
+- **Implementation finding (design corrected):** the design's "StimuliSteering ⇒ emit-neutral
+  automatically" inference was incomplete — codegen's `rule_has_no_semantic_annotations`
+  (`ast_based_generator.rs:230`) treats ANY annotation as runtime-relevant unless excluded, so the
+  directive initially flipped `pp_item` onto the `with_semantic_runtime_rule_transaction` wrapper
+  (svpp parser diff at line 1665). Fixed with the 4th exclusion + the
+  `quantified_separator_directive_keeps_the_annotated_rule_on_the_fast_path` codegen pin test.
+- **PROVEN:** svpp cert `74/74 UNKNOWN=0 fully_certified spf=0` byte-identical pre/post seeds
+  0/7/42; svpp `--stimuli-corpus-json` corpora cmp BYTE-IDENTICAL ×3 seeds; regenerated svpp +
+  regex parser artifacts cmp BYTE-IDENTICAL (emit-neutral, NO release bump); regex cert
+  `198/198/0` byte-identical; capability proven GENERAL (a generator named "test" separates a
+  synthetic `file := item+` via `@quantified_separator: ";"`); the grammar NAME alone activates
+  nothing (the legacy name-gate test migrated to the declared contract); lib suites 747/0
+  no-features, 821/0 `generated_parsers`, 863/0 dual-feature (= 848 baseline + 15 new tests);
+  svpp zero-plausible-gap gate ✅; dual-run gate ✅; clippy source-strict ✅; mdbook + ebnf book
+  gates ✅.
+- **LOCKSTEP:** steering control matrix + annotation normative spec + top book
+  `annotation-system.md` + ebnf parser book `semantic-annotations.md` (catalog row + full
+  authoring section, HTML regenerated); svpp book/contract N/A (consumer surface byte-identical).
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0006 (STIMULI-SIGNOFF.8–.12 fold-in + .12 DESIGN): the deferred survey gaps become numbered leaves; the last generator name-gate gets its retirement design (PURE DOCS)
 
 Session #57. PNT resumed the `STIMULI-SIGNOFF` tree per the MEMORY.md frontier. The 2026-07-01

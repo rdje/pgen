@@ -24,6 +24,17 @@
 systemverilog_preprocessor_file := pp_item*
 -> {type: "systemverilog_preprocessor_file", items: $1}
 
+# STIMULI-SIGNOFF.12 — generation-side lexical cohesion: pp_item is a LINE
+# construct whose trailing newline is optional (`pp_define := ... newline?`),
+# so two STACKED quantified renderings can fuse into one line (a define body
+# eats to end-of-line and would swallow the next directive). The stimuli
+# generator therefore inserts "\n" between adjacent pp_item renderings unless
+# the junction already carries a line break — and "\r\n" also counts as one,
+# because THIS grammar's own newline token is `/\r?\n/`. (This directive
+# replaced the retired engine-side grammar-NAME + container-rule-name gate;
+# the policy now lives here, in the grammar, per the EBNF-single-source-of-
+# truth doctrine. Parsing is unaffected: the directive steers stimuli only.)
+@quantified_separator: { insert: "\n", satisfied_by: ["\n", "\r\n"] }
 pp_item := pp_define              -> {kind: "define",              body: $1}
          | pp_undef               -> {kind: "undef",               body: $1}
          | pp_include             -> {kind: "include",             body: $1}

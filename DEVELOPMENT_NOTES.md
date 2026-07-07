@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0007 — STIMULI-SIGNOFF.12: implementation notes — a stimuli-only directive is NOT automatically emit-neutral, and junction spellings are grammar knowledge
+
+Session #57. Notes from retiring the last generator name-gate via `@quantified_separator`:
+
+1. **The emit-neutrality trap for ANY new rule-level directive.** The design inferred "svpp's
+   `@sample` yields zero `directives_by_rule` inserts ⇒ a StimuliSteering directive is emit-neutral".
+   That is true for the SERIALIZED runtime blob but NOT for the emission SHAPE: codegen's
+   `rule_has_no_semantic_annotations` (`ast_based_generator.rs:230`) — the fast-path-vs-
+   `with_semantic_runtime_rule_transaction` decision — treats ANY annotation as runtime-relevant
+   unless its name is in the explicit compile-time-only exclusion list. Adding the directive to
+   svpp flipped `pp_item` onto the transaction wrapper (183→63-line body diff at parser line 1665)
+   even though the directive has zero runtime semantics. The oracle that caught it was the planned
+   `cmp` of the regenerated artifact against the pre-change snapshot — the byte-compare discipline
+   is what makes "emit-neutral by construction" an earned claim, not an assumed one. Lesson for the
+   NEXT parser-inert directive: add it to that exclusion list in the same slice, and pin it with a
+   rendered-parser fast-path test (this slice added the first such pin,
+   `quantified_separator_directive_keeps_the_annotated_rule_on_the_fast_path`).
+2. **Junction spellings belong in the grammar.** The retired name-gate treated a segment-leading
+   `\r` as "already separated" — CRLF knowledge that looks engine-generic but is actually svpp's
+   own `newline := /\r?\n/` spelling. The directive's `satisfied_by` list moves exactly that
+   knowledge into the `.ebnf` (`{ insert: "\n", satisfied_by: ["\n", "\r\n"] }`), which is why the
+   general engine rule (ends-with / starts-with any declared spelling) reproduces the old behavior
+   byte-identically: `ends_with("\r\n") ⊆ ends_with("\n")`, and every reachable `\r`-leading svpp
+   rendering is a `pp_blank_line` CRLF.
+3. **Per-rule Err verdicts make a declarative surface loud without changing infallible APIs.**
+   `compile_quantified_separators` returns `BTreeMap<rule, Result<Policy, String>>`: the generator's
+   infallible constructor stores the map, and a malformed payload errors at exactly the first
+   quantifier join that would consult it (deterministic, names the directive), while the annotation
+   validator lints the same payload statically through the same parser. This is a reusable shape for
+   future generation-side directives whose compile errors have no natural codegen-time surface.
+4. **Adjacent observation (logged, not acted):** rules carrying ONLY stimuli-only directives
+   (svpp's `@sample` on `directive_tail`/`line_comment`) still take the full transaction wrapper —
+   same-class dead weight as the pp_item flip, pre-existing, candidate future de-weight if the
+   wrapper cost ever matters.
+
 ## 2026-07-07 - PGEN-PROFILE-ALIAS-0002 — PROFILE-ALIAS.2: implementation notes — driving a REQUESTED profile through the differential, and when a typed enum copy is drift-gated instead of deleted
 
 Session #56. Notes from landing `@profile_alias` end-to-end:

@@ -14,6 +14,7 @@ use super::{
     parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
     stimuli_hint_for_target_type,
 };
+use super::semantic_runtime::{QuantifiedSeparatorPolicy, compile_quantified_separators};
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
@@ -22,7 +23,7 @@ use rand::{Rng, SeedableRng};
 use regex_syntax::hir::{Class, Hir, HirKind, Literal, Repetition};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::panic::Location;
 // GRAMMAR-WELLFORMED.B1: wall-clock time (`std::time::{Duration, Instant}`) is no longer used —
@@ -1517,6 +1518,14 @@ pub struct StimuliGenerator<'a> {
     // a matching name upstream and rendering it at the use-site. Empty ⇒ the name-prelude path is
     // inert (byte-identical for grammars without name-matching store gates). Parser-agnostic.
     gen_name_gate: HashMap<String, NameGate>,
+    // STIMULI-SIGNOFF.12: per-rule `@quantified_separator` policies — the grammar-declared
+    // separator inserted between STACKED quantified renderings of the annotated rule (svpp's
+    // line-oriented `pp_item`). Keyed by the ANNOTATED (referenced) rule; a per-rule `Err`
+    // verdict makes a malformed payload fail LOUDLY at the first join that would need it.
+    // Empty ⇒ the separator path is inert (byte-identical for every directive-free grammar).
+    // Replaces the retired `grammar_name == "systemverilog_preprocessor"` + container-rule
+    // name-gate. Parser-agnostic; keyed only on annotations.
+    quantified_separators: BTreeMap<String, std::result::Result<QuantifiedSeparatorPolicy, String>>,
     // SV-EXH-PROOF.2.3.2: grammar-scoped structural-sigil set `G`
     // (union of every permissive leading-negated content class's
     // printable complement across the whole grammar). Derived once
@@ -1681,6 +1690,12 @@ impl<'a> StimuliGenerator<'a> {
         // words the active-profile parser reserves). EMPTY for grammars without a whole-word-list rule
         // ⇒ inert (byte-identical generation).
         let reserved_word_lists = Self::compute_reserved_word_lists(grammar_tree);
+        // STIMULI-SIGNOFF.12: precompute the per-rule `@quantified_separator` policies once from
+        // the annotations (the same declarative surface the validator lints). Empty for every
+        // directive-free grammar ⇒ the quantifier-join separator path is inert.
+        let quantified_separators = annotations
+            .map(compile_quantified_separators)
+            .unwrap_or_default();
 
         let coverage = StimuliCoverageMetrics::new(
             grammar_name.clone(),
@@ -1726,6 +1741,7 @@ impl<'a> StimuliGenerator<'a> {
             gen_count_literal_thresholds,
             reach_gate_kinds,
             gen_name_gate,
+            quantified_separators,
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
             closer_scopes_entered: 0,
@@ -10261,13 +10277,12 @@ impl<'a> StimuliGenerator<'a> {
                     self.reach_plan = saved_plan;
                     match prelude_result {
                         Ok(generated) => {
-                            if self.should_insert_quantified_separator(
-                                current_rule,
+                            if let Some(sep) = self.quantified_separator_to_insert(
                                 element,
                                 output.as_str(),
                                 &generated,
-                            ) {
-                                output.push('\n');
+                            )? {
+                                output.push_str(sep);
                             }
                             self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws)
                         }
@@ -10292,13 +10307,12 @@ impl<'a> StimuliGenerator<'a> {
                     &quantified_path,
                 ) {
                     Ok(generated) => {
-                        if self.should_insert_quantified_separator(
-                            current_rule,
+                        if let Some(sep) = self.quantified_separator_to_insert(
                             element,
                             output.as_str(),
                             &generated,
-                        ) {
-                            output.push('\n');
+                        )? {
+                            output.push_str(sep);
                         }
                         self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws)
                     }
@@ -11632,43 +11646,50 @@ impl<'a> StimuliGenerator<'a> {
         *prev_tail_word_shaped = cur_tail;
     }
 
-    fn should_insert_quantified_separator(
+    /// STIMULI-SIGNOFF.12: the grammar-declared stacked-rendering separator for a quantified
+    /// rule reference (`@quantified_separator` on the REFERENCED rule — see
+    /// `semantic_runtime::compile_quantified_separators`). Returns the text to insert between
+    /// `output` and `segment`, or `None` when the junction needs no separator: an empty side, a
+    /// non-rule-reference element, a rule without the directive, or a junction that is ALREADY
+    /// separated (the output ends with — or the segment starts with — one of the policy's
+    /// `satisfied_by` spellings; alternate spellings like svpp's `"\r\n"` are declared IN the
+    /// grammar, never hardcoded here). A declared-but-malformed payload is a LOUD generation
+    /// error at exactly the join that would need it (the annotation validator lints the same
+    /// payload statically). Replaces the retired svpp grammar-name + container-rule name-gate.
+    fn quantified_separator_to_insert(
         &self,
-        current_rule: &str,
         element: &ASTNode,
         output: &str,
         segment: &str,
-    ) -> bool {
-        if self.grammar_name != "systemverilog_preprocessor"
-            || output.is_empty()
+    ) -> Result<Option<&str>> {
+        let Some(rule) = Self::rule_reference_name(element) else {
+            return Ok(None);
+        };
+        let Some(policy) = self.quantified_separators.get(rule) else {
+            return Ok(None);
+        };
+        let policy = policy.as_ref().map_err(|err| anyhow!("{err}"))?;
+        if output.is_empty()
             || segment.is_empty()
-            || output.ends_with('\n')
-            || segment.starts_with('\n')
-            || segment.starts_with('\r')
+            || policy
+                .satisfied_by
+                .iter()
+                .any(|sep| output.ends_with(sep) || segment.starts_with(sep))
         {
-            return false;
+            return Ok(None);
         }
-
-        matches!(
-            current_rule,
-            "systemverilog_preprocessor_file"
-                | "pp_if_branch"
-                | "pp_elsif_branch"
-                | "pp_else_branch"
-        ) && Self::node_is_rule_reference(element, "pp_item")
+        Ok(Some(policy.insert.as_str()))
     }
 
-    fn node_is_rule_reference(node: &ASTNode, expected_rule: &str) -> bool {
+    fn rule_reference_name(node: &ASTNode) -> Option<&str> {
         let ASTNode::Atom { value } = node else {
-            return false;
+            return None;
         };
         let ASTValue::Token(parts) = value else {
-            return false;
+            return None;
         };
-        let Some((token_type, token_value)) = Self::extract_token_pair(parts) else {
-            return false;
-        };
-        token_type == "rule_reference" && token_value == expected_rule
+        let (token_type, token_value) = Self::extract_token_pair(parts)?;
+        (token_type == "rule_reference").then_some(token_value)
     }
 
     fn constraint_driven_candidate(
@@ -14621,6 +14642,170 @@ mod tests {
                 reach_uncovered_recursive_branches: false,
             },
         )
+    }
+
+    // ── STIMULI-SIGNOFF.12: the `@quantified_separator` directive ──
+
+    /// A minimal line-oriented-ish synthetic grammar: `file := item+`,
+    /// `item := /x/`. NOT svpp — the generator is named "test" — proving the
+    /// separator capability is grammar-declared, never grammar-name-gated.
+    fn quantified_separator_fixture() -> (HashMap<String, ASTNode>, Vec<String>) {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "file".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(token("rule_reference", "item")),
+                quantifier: "+".to_string(),
+            },
+        );
+        grammar_tree.insert("item".to_string(), token("regex", "x"));
+        (grammar_tree, vec!["file".to_string(), "item".to_string()])
+    }
+
+    fn quantified_separator_annotations(rule: &str, payload_text: &str) -> Annotations {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            rule.to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "quantified_separator".to_string(),
+                ast: UnifiedSemanticAST::from_named_payload("quantified_separator", payload_text),
+            }],
+        );
+        annotations
+    }
+
+    fn generator_with_annotations<'a>(
+        grammar_tree: &'a HashMap<String, ASTNode>,
+        rule_order: &'a [String],
+        annotations: Option<&'a Annotations>,
+        seed: u64,
+    ) -> StimuliGenerator<'a> {
+        StimuliGenerator::new(
+            "test".to_string(),
+            grammar_tree,
+            rule_order,
+            annotations,
+            StimuliConfig {
+                seed: Some(seed),
+                max_depth: 8,
+                max_repeat: 4,
+                max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
+                target_helper_generation_timeout_ms: 1000,
+                recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
+                enforce_word_boundary_spacing: false,
+                trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
+            },
+        )
+    }
+
+    #[test]
+    fn quantified_separator_directive_separates_stacked_renderings_for_any_grammar() {
+        let (grammar_tree, rule_order) = quantified_separator_fixture();
+        let annotations = quantified_separator_annotations("item", r#"";""#);
+        let mut saw_multi_item_sample = false;
+        for seed in [0u64, 7, 42, 99] {
+            let mut generator =
+                generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), seed);
+            for sample in generator
+                .generate_many(8, Some("file"))
+                .expect("separator-annotated generation should succeed")
+            {
+                assert!(
+                    sample.split(';').all(|part| part == "x"),
+                    "stacked items must be ';'-separated x renderings (seed {seed}): {sample:?}"
+                );
+                saw_multi_item_sample |= sample.contains(';');
+            }
+        }
+        assert!(
+            saw_multi_item_sample,
+            "at least one sample must stack >=2 items so the separator is exercised"
+        );
+    }
+
+    #[test]
+    fn quantified_separator_absent_directive_keeps_the_fused_default() {
+        let (grammar_tree, rule_order) = quantified_separator_fixture();
+        for seed in [0u64, 7, 42, 99] {
+            let mut generator =
+                generator_with_annotations(&grammar_tree, &rule_order, None, seed);
+            for sample in generator
+                .generate_many(8, Some("file"))
+                .expect("directive-free generation should succeed")
+            {
+                assert!(
+                    !sample.contains(';'),
+                    "no directive => no separator is ever inserted (seed {seed}): {sample:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn quantified_separator_junction_respects_declared_satisfying_spellings() {
+        let (grammar_tree, rule_order) = quantified_separator_fixture();
+        // The svpp shape: insert "\n"; the grammar's own /\r?\n/ newline token
+        // makes "\r\n" a declared already-separated junction spelling.
+        let annotations = quantified_separator_annotations(
+            "item",
+            r#"{ insert: "\n", satisfied_by: ["\n", "\r\n"] }"#,
+        );
+        let generator =
+            generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 0);
+        let item = rule_ref("item");
+        let insert_between = |output: &str, segment: &str| {
+            generator
+                .quantified_separator_to_insert(&item, output, segment)
+                .expect("well-formed policy never errors")
+        };
+        assert_eq!(insert_between("a", "b"), Some("\n"), "bare junction gets the separator");
+        assert_eq!(insert_between("a\n", "b"), None, "output already ends with the separator");
+        assert_eq!(insert_between("a", "\nb"), None, "segment already starts with the separator");
+        assert_eq!(
+            insert_between("a", "\r\nb"),
+            None,
+            "a declared alternate spelling (CRLF) satisfies the junction"
+        );
+        assert_eq!(insert_between("", "b"), None, "an empty output never needs separating");
+        assert_eq!(insert_between("a", ""), None, "an empty segment never needs separating");
+        assert_eq!(
+            generator
+                .quantified_separator_to_insert(&token("regex", "x"), "a", "b")
+                .expect("non-rule-reference elements are policy-free"),
+            None,
+            "only rule-reference elements consult the policy map"
+        );
+        assert_eq!(
+            generator
+                .quantified_separator_to_insert(&rule_ref("file"), "a", "b")
+                .expect("directive-free rules are policy-free"),
+            None,
+            "a rule without the directive never separates"
+        );
+    }
+
+    #[test]
+    fn quantified_separator_malformed_payload_fails_loudly_at_the_join() {
+        let (grammar_tree, rule_order) = quantified_separator_fixture();
+        // An identifier payload is malformed (the directive requires a quoted
+        // string or an object) — the compile verdict poisons `item`, and the
+        // first quantifier join over it must surface the compile error.
+        let annotations = quantified_separator_annotations("item", "newline");
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 0);
+        let err = generator
+            .generate_many(8, Some("file"))
+            .expect_err("a malformed declared payload must fail generation loudly");
+        assert!(
+            err.to_string().contains("quantified_separator"),
+            "the error must name the directive: {err}"
+        );
     }
 
     /// LEXICAL-ANNOTATIONS.3 — Obligation A (intra-token faithfulness). The line-comment regex
@@ -18295,8 +18480,14 @@ mod tests {
         );
     }
 
+    // STIMULI-SIGNOFF.12: this test previously pinned the retired NAME-GATE
+    // (a generator literally named "systemverilog_preprocessor" inserted "\n"
+    // between pp_item repetitions with NO declaration anywhere). The contract
+    // is now grammar-declared: the same scenario separates because pp_item
+    // carries `@quantified_separator`, and the grammar NAME alone activates
+    // nothing.
     #[test]
-    fn preprocessor_item_repetition_inserts_newline_separator() {
+    fn preprocessor_item_repetition_newline_separator_is_grammar_declared_not_name_gated() {
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
             "systemverilog_preprocessor_file".to_string(),
@@ -18318,37 +18509,56 @@ mod tests {
             "systemverilog_preprocessor_file".to_string(),
             "pp_item".to_string(),
         ];
-
-        let mut generator = StimuliGenerator::new(
-            "systemverilog_preprocessor".to_string(),
-            &grammar_tree,
-            &rule_order,
-            None,
-            StimuliConfig {
-                seed: Some(991),
-                max_depth: 8,
-                max_repeat: 4,
-                max_rule_visits: 4,
-                target_pending_frontier_extra_stagnation: 8,
-                target_generation_timeout_ms: 0,
-                target_helper_generation_timeout_ms: 1000,
-                recovery_mode: RecoveryStimuliMode::Baseline,
-                mutation_mode: StimuliMutationMode::Baseline,
-                constraint_profile: StimuliConstraintProfile::Baseline,
-                negative_profile: StimuliNegativeProfile::Baseline,
-                enforce_word_boundary_spacing: false,
-                trace_verbosity: TraceVerbosity::None,
-                reach_uncovered_recursive_branches: false,
-            },
+        let annotations = quantified_separator_annotations(
+            "pp_item",
+            r#"{ insert: "\n", satisfied_by: ["\n", "\r\n"] }"#,
         );
 
-        let sample = generator
+        fn build<'a>(
+            grammar_tree: &'a HashMap<String, ASTNode>,
+            rule_order: &'a [String],
+            annotations: Option<&'a Annotations>,
+        ) -> StimuliGenerator<'a> {
+            StimuliGenerator::new(
+                "systemverilog_preprocessor".to_string(),
+                grammar_tree,
+                rule_order,
+                annotations,
+                StimuliConfig {
+                    seed: Some(991),
+                    max_depth: 8,
+                    max_repeat: 4,
+                    max_rule_visits: 4,
+                    target_pending_frontier_extra_stagnation: 8,
+                    target_generation_timeout_ms: 0,
+                    target_helper_generation_timeout_ms: 1000,
+                    recovery_mode: RecoveryStimuliMode::Baseline,
+                    mutation_mode: StimuliMutationMode::Baseline,
+                    constraint_profile: StimuliConstraintProfile::Baseline,
+                    negative_profile: StimuliNegativeProfile::Baseline,
+                    enforce_word_boundary_spacing: false,
+                    trace_verbosity: TraceVerbosity::None,
+                    reach_uncovered_recursive_branches: false,
+                },
+            )
+        }
+
+        let sample = build(&grammar_tree, &rule_order, Some(&annotations))
             .generate_many(1, None)
-            .expect("preprocessor repetition generation should succeed");
+            .expect("declared-separator generation should succeed");
         assert!(
             sample[0].contains('\n'),
-            "repeated preprocessor items should be newline-separated: {:?}",
+            "pp_item declares @quantified_separator, so repeated items are newline-separated: {:?}",
             sample[0]
+        );
+
+        let undeclared = build(&grammar_tree, &rule_order, None)
+            .generate_many(1, None)
+            .expect("declaration-free generation should succeed");
+        assert!(
+            !undeclared[0].contains('\n'),
+            "the grammar NAME alone must activate nothing (name-gate retired): {:?}",
+            undeclared[0]
         );
     }
 

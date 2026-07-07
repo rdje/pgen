@@ -228,16 +228,18 @@ impl AstBasedGenerator {
     }
 
     fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
-        // `WS-DIRECTIVE.2` / `DEFAULT-PROFILE.2` / `PROFILE-ALIAS.2`: the
-        // grammar-level `@whitespace_sensitive:`, `@default_profile:`, and
-        // `@profile_alias:` directives are compile-time only (each compiles
-        // to ZERO runtime directives — see
-        // `semantic_runtime::compile_layout_sensitivity` /
+        // `WS-DIRECTIVE.2` / `DEFAULT-PROFILE.2` / `PROFILE-ALIAS.2` /
+        // `STIMULI-SIGNOFF.12`: the grammar-level `@whitespace_sensitive:`,
+        // `@default_profile:`, and `@profile_alias:` directives are
+        // compile-time only, and the rule-level `@quantified_separator:`
+        // directive is generation-side only (each compiles to ZERO runtime
+        // directives — see `semantic_runtime::compile_layout_sensitivity` /
         // `semantic_runtime::compile_default_profile` /
-        // `semantic_runtime::compile_profile_aliases`), so the rule any of
-        // them mechanically binds to must NOT be pushed onto the full
+        // `semantic_runtime::compile_profile_aliases` /
+        // `semantic_runtime::compile_quantified_separators`), so the rule any
+        // of them binds to must NOT be pushed onto the full
         // `with_semantic_runtime_rule_transaction` path by its mere
-        // presence: declaring a grammar-level policy stays emit-neutral for
+        // presence: declaring a parser-inert policy stays emit-neutral for
         // the rule body.
         let is_runtime_relevant = |annotation: &SemanticAnnotation| {
             annotation.name().is_none_or(|name| {
@@ -248,6 +250,8 @@ impl AstBasedGenerator {
                         != crate::ast_pipeline::semantic_runtime::DEFAULT_PROFILE_DIRECTIVE_NAME
                     && normalized
                         != crate::ast_pipeline::semantic_runtime::PROFILE_ALIAS_DIRECTIVE_NAME
+                    && normalized
+                        != crate::ast_pipeline::semantic_runtime::QUANTIFIED_SEPARATOR_DIRECTIVE_NAME
             })
         };
         let Some(annotations) = &self.annotations else {
@@ -8157,6 +8161,61 @@ mod semantic_usage_tests {
                     .expect("parser generation should succeed")
             })
             .as_str()
+    }
+
+    // `STIMULI-SIGNOFF.12`: the generation-side-only `@quantified_separator`
+    // directive must NOT push its rule onto the full
+    // `with_semantic_runtime_rule_transaction` path — it compiles to ZERO
+    // runtime directives, so the annotated rule keeps the fast-path emission
+    // (the same emit-neutrality contract as `@whitespace_sensitive` /
+    // `@default_profile` / `@profile_alias`). Pinned here because the svpp
+    // regeneration surfaced exactly this leak: pp_item's body flipped onto
+    // the transaction wrapper before the `rule_has_no_semantic_annotations`
+    // exclusion was added.
+    #[test]
+    fn quantified_separator_directive_keeps_the_annotated_rule_on_the_fast_path() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![structured_named_annotation(
+                "quantified_separator",
+                r#""\n""#,
+                UnifiedSemanticValue::String("\n".to_string()),
+            )],
+        );
+        let generator = AstBasedGenerator {
+            grammar_name: "separator_fast_path_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            emit_typed_entry_skeleton: false,
+            enable_debug: false,
+            parser_hook_registry: None,
+            ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
+        };
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "file".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(token("rule_reference", "item")),
+                quantifier: "*".to_string(),
+            },
+        );
+        grammar_tree.insert("item".to_string(), token("quoted_string", "x"));
+        let rule_order = vec!["file".to_string(), "item".to_string()];
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "separator_fast_path.rs")
+            .expect("parser generation should succeed");
+        assert!(
+            !rendered.contains(r#"with_semantic_runtime_rule_transaction("item""#),
+            "a rule annotated ONLY with @quantified_separator must keep the fast-path emission"
+        );
+        assert!(
+            rendered.contains(r#"push_rule_context("item")"#),
+            "the fast-path body still pushes the rule context for trace parity"
+        );
     }
 
     fn post_runtime_generator() -> AstBasedGenerator {

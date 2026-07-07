@@ -46,6 +46,7 @@ The directives the AST pipeline interprets, grouped by what they do:
 | Profiles | `@profiles` | restrict a rule to a grammar profile (e.g. `sv_2017` vs `sv_2023`) |
 | Value | `@transform`, `@semantic_value` | post-process a matched value |
 | Stimuli | `@generate`, `@sample`, `@dispatch_table`, … | steer stimuli generation |
+| Stimuli | `@quantified_separator` | rule-level separator the stimuli generator inserts between STACKED quantified renderings of the annotated rule |
 | Layout | `@whitespace_sensitive` | grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet) |
 | Profiles | `@default_profile` | grammar-level default dialect profile: what an *unspecified* requested profile resolves to |
 | Profiles | `@profile_alias` | grammar-level request-spelling map: which requested spellings resolve to which canonical profile names |
@@ -196,6 +197,49 @@ Rules of the road:
   declared in `grammars/systemverilog.ebnf` itself, and any grammar can declare its own. The
   isolating proof cases live in the structural combinator suite (`profile_alias_resolves`,
   `profile_alias_unknown_passthrough`).
+
+## Quantified separator — `@quantified_separator`
+
+A **rule-level** stimuli-generation directive for junction-sensitive (typically line-oriented)
+items: declare it directly above the rule whose **stacked quantified renderings** must be kept
+apart, and the stimuli generator inserts the separator between successive non-empty renderings of
+that rule at every `*` / `+` / bounded-quantifier join — unless the junction is already separated.
+
+```ebnf
+# pp_item is a LINE construct whose trailing newline is optional, so two stacked
+# renderings could fuse into one line; "\r\n" also counts as separated because
+# THIS grammar's own newline token is /\r?\n/.
+@quantified_separator: { insert: "\n", satisfied_by: ["\n", "\r\n"] }
+pp_item := pp_define | pp_undef | pp_include | ...
+```
+
+The shorthand `@quantified_separator: "<sep>"` means "satisfied only by itself". In the object
+form, `satisfied_by` lists every junction spelling that already counts as separated — it must
+contain `insert`. String payloads support the standard escapes (`\n`, `\r`, `\t`).
+
+"Already separated" means: the output so far **ends with** — or the incoming rendering **starts
+with** — any `satisfied_by` spelling. Alternate spellings are *grammar knowledge*: svpp declares
+`"\r\n"` because its own `newline` token is `/\r?\n/`; the engine hardcodes no language-specific
+spellings.
+
+Rules of the road:
+
+- **Bind it to the ITEM, not the container.** The directive describes the quantified rule's own
+  rendering shape, so every container that stacks it (`pp_item*` appears in four svpp rules)
+  inherits the policy from the one declaration.
+- **One policy per rule.** Identical duplicate declarations are tolerated; *conflicting* payloads
+  are that rule's compile error. Attaching the directive to a **branch** is an error — it is a
+  whole-rule property. Malformed payloads are linted early
+  (`W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD`) and fail generation loudly at the first
+  quantifier join that would need them.
+- **Stimuli-only, emit-neutral.** The directive steers stimuli generation only: it compiles to
+  zero runtime directives, and the annotated rule keeps the fast-path parser emission — declaring
+  it changes nothing in the generated parser (pinned by a codegen test).
+- **Provenance.** This directive replaced the *last* per-language literal in the stimuli
+  generator — a hardcoded `systemverilog_preprocessor` grammar-name gate plus four hardcoded
+  container-rule names. The policy is now declared in
+  `grammars/systemverilog_preprocessor.ebnf` itself, and any grammar (including a scratch/probe
+  grammar) can declare separator cohesion.
 
 ## Lexical annotations
 

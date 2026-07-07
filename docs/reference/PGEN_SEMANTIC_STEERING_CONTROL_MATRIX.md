@@ -57,6 +57,7 @@ Stimuli steering:
 - `@weight`
 - `@literal`
 - `@example`
+- `@quantified_separator` (rule-level stacked-rendering separator cohesion — the literal the stimuli generator inserts between successive quantified renderings of the annotated rule, plus which junction spellings already count as separated; payload = a quoted separator string (shorthand: satisfied only by itself) or `{ insert: "...", satisfied_by: ["...", ...] }` where `satisfied_by` must contain `insert`; compiled by `semantic_runtime::compile_quantified_separators`, consumed ONLY by the stimuli generator (never serialized into parser artifacts — emit-neutral, pinned by the codegen fast-path test); declared by `grammars/systemverilog_preprocessor.ebnf` on `pp_item` (`{ insert: "\n", satisfied_by: ["\n", "\r\n"] }` — its own `newline := /\r?\n/` spelling makes CRLF an already-separated junction); replaces the retired generator name-gate; STIMULI-SIGNOFF.12)
 
 Parser steering:
 - `@recover_budget`

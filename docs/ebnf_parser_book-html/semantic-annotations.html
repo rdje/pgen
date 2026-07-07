@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-58ca2503.js";
+            window.path_to_searchindex_js = "searchindex-f6b29b57.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -220,6 +220,7 @@ contract.</p>
 <tr><td>Profiles</td><td><code>@profiles</code></td><td>restrict a rule to a grammar profile (e.g. <code>sv_2017</code> vs <code>sv_2023</code>)</td></tr>
 <tr><td>Value</td><td><code>@transform</code>, <code>@semantic_value</code></td><td>post-process a matched value</td></tr>
 <tr><td>Stimuli</td><td><code>@generate</code>, <code>@sample</code>, <code>@dispatch_table</code>, …</td><td>steer stimuli generation</td></tr>
+<tr><td>Stimuli</td><td><code>@quantified_separator</code></td><td>rule-level separator the stimuli generator inserts between STACKED quantified renderings of the annotated rule</td></tr>
 <tr><td>Layout</td><td><code>@whitespace_sensitive</code></td><td>grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet)</td></tr>
 <tr><td>Profiles</td><td><code>@default_profile</code></td><td>grammar-level default dialect profile: what an <em>unspecified</em> requested profile resolves to</td></tr>
 <tr><td>Profiles</td><td><code>@profile_alias</code></td><td>grammar-level request-spelling map: which requested spellings resolve to which canonical profile names</td></tr>
@@ -352,6 +353,43 @@ request spellings (<code>2017</code> → <code>sv_2017</code>, …) on the gramm
 declared in <code>grammars/systemverilog.ebnf</code> itself, and any grammar can declare its own. The
 isolating proof cases live in the structural combinator suite (<code>profile_alias_resolves</code>,
 <code>profile_alias_unknown_passthrough</code>).</li>
+</ul>
+<h2 id="quantified-separator--quantified_separator"><a class="header" href="#quantified-separator--quantified_separator">Quantified separator — <code>@quantified_separator</code></a></h2>
+<p>A <strong>rule-level</strong> stimuli-generation directive for junction-sensitive (typically line-oriented)
+items: declare it directly above the rule whose <strong>stacked quantified renderings</strong> must be kept
+apart, and the stimuli generator inserts the separator between successive non-empty renderings of
+that rule at every <code>*</code> / <code>+</code> / bounded-quantifier join — unless the junction is already separated.</p>
+<pre><code class="language-ebnf"># pp_item is a LINE construct whose trailing newline is optional, so two stacked
+# renderings could fuse into one line; "\r\n" also counts as separated because
+# THIS grammar's own newline token is /\r?\n/.
+@quantified_separator: { insert: "\n", satisfied_by: ["\n", "\r\n"] }
+pp_item := pp_define | pp_undef | pp_include | ...
+</code></pre>
+<p>The shorthand <code>@quantified_separator: "&lt;sep&gt;"</code> means “satisfied only by itself”. In the object
+form, <code>satisfied_by</code> lists every junction spelling that already counts as separated — it must
+contain <code>insert</code>. String payloads support the standard escapes (<code>\n</code>, <code>\r</code>, <code>\t</code>).</p>
+<p>“Already separated” means: the output so far <strong>ends with</strong> — or the incoming rendering <strong>starts
+with</strong> — any <code>satisfied_by</code> spelling. Alternate spellings are <em>grammar knowledge</em>: svpp declares
+<code>"\r\n"</code> because its own <code>newline</code> token is <code>/\r?\n/</code>; the engine hardcodes no language-specific
+spellings.</p>
+<p>Rules of the road:</p>
+<ul>
+<li><strong>Bind it to the ITEM, not the container.</strong> The directive describes the quantified rule’s own
+rendering shape, so every container that stacks it (<code>pp_item*</code> appears in four svpp rules)
+inherits the policy from the one declaration.</li>
+<li><strong>One policy per rule.</strong> Identical duplicate declarations are tolerated; <em>conflicting</em> payloads
+are that rule’s compile error. Attaching the directive to a <strong>branch</strong> is an error — it is a
+whole-rule property. Malformed payloads are linted early
+(<code>W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD</code>) and fail generation loudly at the first
+quantifier join that would need them.</li>
+<li><strong>Stimuli-only, emit-neutral.</strong> The directive steers stimuli generation only: it compiles to
+zero runtime directives, and the annotated rule keeps the fast-path parser emission — declaring
+it changes nothing in the generated parser (pinned by a codegen test).</li>
+<li><strong>Provenance.</strong> This directive replaced the <em>last</em> per-language literal in the stimuli
+generator — a hardcoded <code>systemverilog_preprocessor</code> grammar-name gate plus four hardcoded
+container-rule names. The policy is now declared in
+<code>grammars/systemverilog_preprocessor.ebnf</code> itself, and any grammar (including a scratch/probe
+grammar) can declare separator cohesion.</li>
 </ul>
 <h2 id="lexical-annotations"><a class="header" href="#lexical-annotations">Lexical annotations</a></h2>
 <p>The <code>[&gt; … ]</code> / <code>[&gt;! … ]</code> follow-restriction is a <em>lexical</em> annotation in the same family; it is documented
