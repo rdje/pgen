@@ -63,6 +63,7 @@ Parser steering:
 - `@recover_parse_budget`
 - `@recover_global_budget`
 - `@whitespace_sensitive` (grammar-level layout policy — whether the generated parser auto-skips layout before terminals / regex tokens and consumes trailing layout; payload `true` | `false` | `{ terminals, regex_tokens, trailing }`; compiled by `semantic_runtime::compile_layout_sensitivity`, consumed by parser codegen and the parse-harness interpreter; declared by `grammars/regex.ebnf` (`true`) and `grammars/systemverilog_preprocessor.ebnf` (`{ regex_tokens: true }`); WS-DIRECTIVE.2)
+- `@default_profile` (grammar-level default dialect profile — the profile an UNSPECIFIED requested profile resolves to; payload = one profile name; compiled by `semantic_runtime::compile_default_profile`, burned into the generated parser (`DEFAULT_GRAMMAR_PROFILE` constant + constructor + `set_grammar_profile(None)` restore) and consumed by the generation-side profile filter, the parser registry, and the parse-harness interpreter; declared by `grammars/regex.ebnf` (`pcre2`); DEFAULT-PROFILE.2)
 
 Parser and stimuli steering:
 - `@transform`

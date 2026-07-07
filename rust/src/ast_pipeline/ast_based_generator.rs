@@ -9,7 +9,8 @@ use crate::ast_pipeline::{
     SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy, SemanticRuntimeDirective,
     SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
     TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
-    ast_return_transform::AstReturnTransformer, compile_layout_sensitivity,
+    ast_return_transform::AstReturnTransformer, compile_default_profile,
+    compile_layout_sensitivity,
     compile_semantic_runtime_annotations,
     normalize_semantic_scalar, parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_charset,
@@ -227,17 +228,22 @@ impl AstBasedGenerator {
     }
 
     fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
-        // `WS-DIRECTIVE.2`: the grammar-level `@whitespace_sensitive:`
-        // directive is compile-time only (it compiles to ZERO runtime
-        // directives — see `semantic_runtime::compile_layout_sensitivity`),
-        // so the rule it mechanically binds to must NOT be pushed onto the
-        // full `with_semantic_runtime_rule_transaction` path by its mere
-        // presence: declaring the layout policy stays emit-neutral for the
-        // rule body.
+        // `WS-DIRECTIVE.2` / `DEFAULT-PROFILE.2`: the grammar-level
+        // `@whitespace_sensitive:` and `@default_profile:` directives are
+        // compile-time only (each compiles to ZERO runtime directives — see
+        // `semantic_runtime::compile_layout_sensitivity` /
+        // `semantic_runtime::compile_default_profile`), so the rule either
+        // mechanically binds to must NOT be pushed onto the full
+        // `with_semantic_runtime_rule_transaction` path by its mere
+        // presence: declaring a grammar-level policy stays emit-neutral for
+        // the rule body.
         let is_runtime_relevant = |annotation: &SemanticAnnotation| {
             annotation.name().is_none_or(|name| {
-                name.trim().to_ascii_lowercase()
+                let normalized = name.trim().to_ascii_lowercase();
+                normalized
                     != crate::ast_pipeline::semantic_runtime::WHITESPACE_SENSITIVE_DIRECTIVE_NAME
+                    && normalized
+                        != crate::ast_pipeline::semantic_runtime::DEFAULT_PROFILE_DIRECTIVE_NAME
             })
         };
         let Some(annotations) = &self.annotations else {
@@ -1064,6 +1070,15 @@ impl AstBasedGenerator {
         let compiled_semantic_runtime_annotations =
             self.generate_compiled_semantic_runtime_annotations_tokens()?;
         let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
+        // `DEFAULT-PROFILE.2`: a directive-bearing grammar's parser starts on
+        // its declared default profile — the artifact carries its own default,
+        // so no caller has to remember to set it. Grammars without the
+        // directive emit today's exact `None` (byte-identical regeneration).
+        let grammar_profile_init = if self.default_grammar_profile().is_some() {
+            quote! { grammar_profile: Some(Self::DEFAULT_GRAMMAR_PROFILE.to_string()), }
+        } else {
+            quote! { grammar_profile: None, }
+        };
 
         Ok(quote! {
             pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
@@ -1092,7 +1107,7 @@ impl AstBasedGenerator {
                     memo_fail: rustc_hash::FxHashSet::default(),
                     memo_fail_tainted: rustc_hash::FxHashMap::default(),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
-                    grammar_profile: None,
+                    #grammar_profile_init
                     recovery_events: Vec::new(),
                     recovery_counts: HashMap::new(),
                     recovery_parse_count: 0,
@@ -1265,6 +1280,23 @@ impl AstBasedGenerator {
             .unwrap_or_default()
     }
 
+    /// `DEFAULT-PROFILE.2`: the grammar's declared default dialect profile —
+    /// the grammar-level `@default_profile:` directive compiled from
+    /// `self.annotations` (`None` when absent: an unspecified requested
+    /// profile stays unset, the permissive guard default). This replaced the
+    /// retired grammar-NAME gates (`parser_registry.rs` / `main.rs` /
+    /// `embedding_api.rs` `== "regex"` → `pcre2`), so the default is declared
+    /// IN the `.ebnf` and burned into the emitted constructor/setter. A
+    /// malformed/conflicting payload is NOT swallowed by the `.ok()` here:
+    /// the same compile runs — and aborts generation with the precise error —
+    /// in `generate_compiled_semantic_runtime_annotations_tokens` (via
+    /// `compile_semantic_runtime_annotations`), which every generation emits.
+    fn default_grammar_profile(&self) -> Option<String> {
+        self.annotations
+            .as_ref()
+            .and_then(|annotations| compile_default_profile(annotations).ok().flatten())
+    }
+
     fn generate_parse_method(
         &self,
         entry_rule: &str,
@@ -1274,6 +1306,39 @@ impl AstBasedGenerator {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
         let allow_trailing_layout = !self.layout_sensitivity().trailing;
+
+        // `DEFAULT-PROFILE.2`: a directive-bearing grammar's parser CARRIES its
+        // declared default profile (`@default_profile`) — an associated const
+        // plus a `set_grammar_profile` where `None` RESTORES the declared
+        // default instead of falling back to the permissive unset state, so
+        // "unspecified means the declared default" holds at every entry point
+        // with no caller cooperation. Grammars without the directive emit
+        // today's exact tokens (byte-identical regeneration).
+        let grammar_profile_surface = match self.default_grammar_profile() {
+            Some(default_profile) => {
+                quote! {
+                    /// `DEFAULT-PROFILE.2`: the grammar-declared `@default_profile` —
+                    /// the dialect profile an UNSPECIFIED requested profile resolves
+                    /// to. The constructor starts on it; `set_grammar_profile(None)`
+                    /// restores it.
+                    pub const DEFAULT_GRAMMAR_PROFILE: &'static str = #default_profile;
+
+                    pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
+                        // `None` restores the grammar-declared default profile,
+                        // never a permissive unset state.
+                        self.grammar_profile = match profile {
+                            Some(value) => Some(value.to_string()),
+                            None => Some(Self::DEFAULT_GRAMMAR_PROFILE.to_string()),
+                        };
+                    }
+                }
+            }
+            None => quote! {
+                pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
+                    self.grammar_profile = profile.map(|value| value.to_string());
+                }
+            },
+        };
 
         // GRAMMAR-WELLFORMED.H.12.8.4.3: entry-aware full parse. Compute one dispatch
         // arm per rule so `parse_from` / `parse_full_from` can begin a full-input parse
@@ -1509,9 +1574,7 @@ impl AstBasedGenerator {
                 }
             }
 
-            pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
-                self.grammar_profile = profile.map(|value| value.to_string());
-            }
+            #grammar_profile_surface
 
             pub fn grammar_profile(&self) -> Option<&str> {
                 self.grammar_profile.as_deref()
@@ -9286,6 +9349,85 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("sv_2023"),
             "generated parser should embed the second allowed profile literal, got: {}",
+            rendered
+        );
+    }
+
+    // `DEFAULT-PROFILE.2`: a directive-bearing grammar's parser CARRIES its
+    // declared default profile. The payload must be the STRUCTURED form the
+    // real `.ebnf` pipeline produces (`from_named_payload` parses `pcre2` to
+    // an Identifier); `compile_default_profile` requires a structured scalar.
+    fn default_profile_rendered_parser() -> &'static str {
+        static RENDERED: OnceLock<String> = OnceLock::new();
+        RENDERED
+            .get_or_init(|| {
+                let mut generator = generator_with_named_semantic("entry", vec![]);
+                let mut annotations = Annotations::default();
+                annotations.semantic_annotations.insert(
+                    "entry".to_string(),
+                    vec![SemanticAnnotation::Named {
+                        name: "default_profile".to_string(),
+                        ast: UnifiedSemanticAST::from_named_payload("default_profile", "pcre2"),
+                    }],
+                );
+                generator.annotations = Some(annotations);
+                let mut grammar_tree = HashMap::new();
+                grammar_tree.insert("entry".to_string(), token("quoted_string", "x"));
+                let rule_order = vec!["entry".to_string()];
+                generator
+                    .generate_parser(
+                        &grammar_tree,
+                        &rule_order,
+                        "semantic_default_profile_usage.rs",
+                    )
+                    .expect("parser generation should succeed")
+            })
+            .as_str()
+    }
+
+    #[test]
+    fn generated_parser_default_profile_contract_carries_the_declared_default() {
+        let rendered = default_profile_rendered_parser();
+        assert!(
+            rendered.contains("DEFAULT_GRAMMAR_PROFILE: &'static str = \"pcre2\""),
+            "a @default_profile grammar should emit the declared-default constant, got: {}",
+            rendered
+        );
+        // The constructor starts on the declared default AND `set_grammar_profile(None)`
+        // restores it — the two `Self::DEFAULT_GRAMMAR_PROFILE.to_string()` consumers.
+        assert!(
+            rendered
+                .matches("Self::DEFAULT_GRAMMAR_PROFILE.to_string()")
+                .count()
+                >= 2,
+            "constructor init AND setter restore should both read the constant, got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("grammar_profile: None"),
+            "a @default_profile grammar must not start on the permissive unset state, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_without_default_profile_directive_keeps_the_permissive_unset_state() {
+        // Byte-identity leg for non-bearing grammars: no constant, today's
+        // exact constructor init and permissive setter.
+        let rendered = profile_guard_rendered_parser();
+        assert!(
+            !rendered.contains("DEFAULT_GRAMMAR_PROFILE"),
+            "a grammar without @default_profile must not emit the constant, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("grammar_profile: None"),
+            "a grammar without @default_profile keeps the unset-profile constructor init, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("self.grammar_profile = profile.map(|value| value.to_string())"),
+            "a grammar without @default_profile keeps the plain permissive setter, got: {}",
             rendered
         );
     }

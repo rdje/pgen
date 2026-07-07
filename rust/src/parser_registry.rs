@@ -118,29 +118,38 @@ type ParseDetailFn = fn(&str, Option<&str>) -> Result<(), String>;
 
 #[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
 /// The **active** dialect profile a grammar parses under, given a requested profile — the single source
-/// of truth for per-grammar profile defaults (regex's unspecified profile normalizes to strict `pcre2`;
-/// SV's `2017`/`2023` aliases map to `sv_2017`/`sv_2023`). This is what a profile-aware second parser
-/// (the PARSE-HARNESS interpreter) must gate `@profiles` rules against so it matches `parse_sample`
-/// byte-for-byte (PARSE-HARNESS.5.1). Returns an owned `String` so a non-registry caller need not
-/// borrow the request.
+/// of truth for per-grammar profile resolution (an unspecified/empty profile resolves to the grammar's
+/// DECLARED `@default_profile`, sourced from the generated parser's `DEFAULT_GRAMMAR_PROFILE` constant
+/// — e.g. regex → strict `pcre2`; SV's `2017`/`2023` aliases map to `sv_2017`/`sv_2023`). This is what
+/// a profile-aware second parser (the PARSE-HARNESS interpreter) must gate `@profiles` rules against so
+/// it matches `parse_sample` byte-for-byte (PARSE-HARNESS.5.1). Returns an owned `String` so a
+/// non-registry caller need not borrow the request.
 pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>) -> Option<String> {
-    normalize_generated_grammar_profile(grammar_name, grammar_profile).map(|s| s.to_string())
+    normalize_generated_grammar_profile(grammar_name, grammar_profile)
+        .map(|s| s.to_string())
+        .or_else(|| default_generated_grammar_profile(grammar_name).map(|s| s.to_string()))
+}
+
+/// `DEFAULT-PROFILE.2`: the grammar-DECLARED default dialect profile — the profile an
+/// UNSPECIFIED/empty requested profile resolves to. Sourced from the generated parser's
+/// `DEFAULT_GRAMMAR_PROFILE` constant, which codegen emits from the grammar's own
+/// `@default_profile:` directive — so the registry holds NO profile knowledge of its own (the
+/// retired `== "regex" → "pcre2"` literal was exactly that defect class). Same data-driven
+/// boundary as `parse_and_cover`: the per-grammar datum lives in this table, sourced from the
+/// grammar-derived artifact.
+#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+fn default_generated_grammar_profile(grammar_name: &str) -> Option<&'static str> {
+    match grammar_name {
+        #[cfg(has_generated_regex_parser)]
+        "regex" => Some(RegexParser::DEFAULT_GRAMMAR_PROFILE),
+        _ => None,
+    }
 }
 
 fn normalize_generated_grammar_profile<'a>(
     grammar_name: &str,
     grammar_profile: Option<&'a str>,
 ) -> Option<&'a str> {
-    // REGEX-PCRE2-FIDELITY.2: regex is PCRE2-faithful BY DEFAULT — an unspecified/empty profile
-    // normalizes to the strict `pcre2` profile (NOT permissive `None`); `relaxed` is the opt-out.
-    // (The codegen profile guard `rule_profile_is_enabled` treats `None` as "all rules active", so a
-    // named default is required for `@profiles:["relaxed"]`-gated constructs to be excluded by default.)
-    if grammar_name == "regex" {
-        return match grammar_profile.map(|p| p.trim().to_ascii_lowercase()).as_deref() {
-            Some("relaxed") => Some("relaxed"),
-            _ => Some("pcre2"),
-        };
-    }
     let profile = grammar_profile?.trim();
     if profile.is_empty() {
         return None;
@@ -357,8 +366,9 @@ where
 
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Result<(), String> {
-    // REGEX-PCRE2-FIDELITY.2: default = strict `pcre2` (PCRE2-faithful); `relaxed` opt-out. Owned into
-    // the 'static worker closure. No-op until `.3.x` gates constructs by `@profiles`.
+    // REGEX-PCRE2-FIDELITY.2 / DEFAULT-PROFILE.2: default = strict `pcre2` (PCRE2-faithful);
+    // `relaxed` opt-out. The default now comes from the ARTIFACT: `set_grammar_profile(None)`
+    // restores the grammar-declared `@default_profile` (owned into the 'static worker closure).
     let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
@@ -370,7 +380,8 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
 
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex_ast_json(sample: &str, grammar_profile: Option<&str>) -> Result<JsonValue, String> {
-    // REGEX-PCRE2-FIDELITY.2: default = strict `pcre2`; `relaxed` opt-out (owned into the worker closure).
+    // REGEX-PCRE2-FIDELITY.2 / DEFAULT-PROFILE.2: default = strict `pcre2`; the default comes from
+    // the artifact (`set_grammar_profile(None)` restores the declared `@default_profile`).
     let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));

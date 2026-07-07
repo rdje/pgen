@@ -47,6 +47,7 @@ The directives the AST pipeline interprets, grouped by what they do:
 | Value | `@transform`, `@semantic_value` | post-process a matched value |
 | Stimuli | `@generate`, `@sample`, `@dispatch_table`, … | steer stimuli generation |
 | Layout | `@whitespace_sensitive` | grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet) |
+| Profiles | `@default_profile` | grammar-level default dialect profile: what an *unspecified* requested profile resolves to |
 | Pragmas | `@stop_at_rule_boundary` | bound how far a sequence consumes |
 
 The store-backed gating directives are the heart of context-aware parsing — for example, "only treat this
@@ -115,6 +116,44 @@ Rules of the road:
   (including a scratch/probe grammar) can be whitespace-sensitive. The isolating proof cases live in
   the structural combinator suite (`layout_insensitive_default`, `layout_ws_sensitive_full`,
   `layout_ws_sensitive_regex_tokens`).
+
+## Default profile — `@default_profile`
+
+A grammar that gates rules by dialect profile (`@profiles`) can also declare what an **unspecified**
+requested profile means. Without a declaration, requesting no profile leaves the profile guard
+permissive — every `@profiles`-gated rule stays active. With this **grammar-level** directive
+(declare it once, directly above a rule — conventionally the entry rule):
+
+```ebnf
+# an unspecified requested profile means strict pcre2; `relaxed` is the opt-out
+@default_profile: pcre2
+regex = pattern
+```
+
+an unspecified or empty requested profile resolves to the declared default everywhere: the generated
+parser's constructor starts on it, `set_grammar_profile(None)` *restores* it (never a permissive
+unset state), generation-side profile filtering uses it, and the parse-harness interpreter resolves
+it from the same compiled declaration. An **explicit** requested profile always wins.
+
+This is the policy `grammars/regex.ebnf` declares: regex is PCRE2-faithful by default, so the
+`@profiles: ["relaxed"]`-gated constructs (`\u`, …) are excluded unless `relaxed` is requested.
+
+The payload is ONE profile name — a bare identifier-shaped scalar (`pcre2`, `sv_2017`) or a quoted
+string for names with other characters (`"verilog-2005"`).
+
+Rules of the road:
+
+- **One declaration per grammar.** Identical duplicates are tolerated; *conflicting* payloads are a
+  hard generation error. Malformed payloads (empty, non-scalar, non-identifier-shaped) are hard
+  errors too, and the annotation validator lints them early
+  (`W_SEM_INVALID_DEFAULT_PROFILE_PAYLOAD`).
+- **Compile-time only.** The directive carries no runtime semantics — the default is burned into
+  the emitted parser (a `DEFAULT_GRAMMAR_PROFILE` constant + the constructor/setter), and every
+  other consumer derives from the same compiled declaration.
+- **Provenance.** This directive replaced engine-internal gates that keyed the regex→`pcre2`
+  default on the grammar's *name* — the default is now declared in the grammar itself, and any
+  grammar (including a scratch/probe grammar) can declare one. The isolating proof cases live in
+  the structural combinator suite (`profile_unspecified_permissive`, `profile_default_gate`).
 
 ## Lexical annotations
 

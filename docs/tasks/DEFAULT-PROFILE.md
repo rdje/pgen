@@ -1,7 +1,8 @@
 # DEFAULT-PROFILE — `@default_profile`: replace the regex→`pcre2` default-profile name-gates with a declarative grammar-level directive
 
-- Status: `active` (created 2026-07-07, session #55). `.1` DESIGN = this document.
-  FRONTIER = `.2` implementation.
+- Status: `complete` (2026-07-07, session #55 — `.1` design `PGEN-DEFAULT-PROFILE-0001` +
+  `.2` implementation both landed; all six tree-level acceptance criteria in §4 met).
+  FRONTIER = *(empty)*.
 - Roadmap lane: cross-cutting engine correctness / EBNF-single-source-of-truth — WHICH dialect
   profile a parser runs under when the caller specifies none is an ACCEPTANCE-RELEVANT behavior
   (it decides whether `@profiles:["relaxed"]`-gated constructs are accepted), and today it is
@@ -193,9 +194,19 @@ F-A). The svpp stimuli separator heuristic stays routed to `STIMULI-SIGNOFF` (WS
 
 ## 3. Tree
 
-- `DEFAULT-PROFILE.1` — DESIGN (this document; docs-only commit). **DONE** when committed.
+- `DEFAULT-PROFILE.1` — DESIGN (this document; docs-only commit). **DONE**
+  (`PGEN-DEFAULT-PROFILE-0001`, `0e448fb6`).
 - `DEFAULT-PROFILE.2` — IMPLEMENT end-to-end per D3–D7 + full lockstep + verification (§4/§5).
-  **Status: open (the frontier).**
+  **DONE** (`PGEN-DEFAULT-PROFILE-0002`, session #55 — earned checklist in §5; verification
+  log in §7). Implementation notes vs the D7 map: (4) the codegen carrier is emitted by
+  `generate_parse_method` (the const + restoring setter beside `grammar_profile()`) and
+  `generate_constructor` (the `Some(Self::DEFAULT_GRAMMAR_PROFILE.to_string())` init);
+  `rule_has_no_semantic_annotations` also excludes the directive (same fast-path exclusion as
+  `whitespace_sensitive` — tool-diagnosed mid-slice when the first regen showed the
+  directive-bound entry rule pushed onto the full transaction wrapper); (5) the registry datum
+  is `default_generated_grammar_profile()` sourcing `RegexParser::DEFAULT_GRAMMAR_PROFILE`,
+  resolved in `active_grammar_profile` via `or_else`; (10) DECIDED YES — the suite grew 23→25
+  (`profile_unspecified_permissive` / `profile_default_gate`).
 
 ## 4. Tree-level acceptance criteria
 
@@ -215,28 +226,62 @@ F-A). The svpp stimuli separator heuristic stays routed to `STIMULI-SIGNOFF` (WS
    opt-in profile, interpreter and compile-and-run oracle agreeing byte-for-byte.
 6. Books / normative spec / steering matrix / regex contract lockstep in the same commit.
 
-## 5. Acceptance Checklist (enforced; leaf `.2` copies + earns this)
+## 5. Acceptance Checklist (enforced) — leaf `.2`, EARNED
 
-```markdown
-## Acceptance Checklist (enforced)
-- [ ] **REPRODUCE / ISSUE** — grep/read evidence of the three name-gate boundaries at HEAD +
-  probe: a synthetic profiled grammar has NO way to declare a default (permissive by
-  default through interpreter AND oracle), while regex gets pcre2 by name.
-- [ ] **ROOT CAUSE (WHY + WHERE)** — the default-profile knowledge lives in engine literals
-  (`parser_registry.rs:138`, `main.rs:2256`, `embedding_api.rs:1531/:1559`), invisible to
-  the EBNF and closed to other grammars (§1 fact base, file:line-pinned).
-- [ ] **FIX** — grammar-level `@default_profile` directive, tier: declarative/grammar +
-  parser-agnostic engine wiring (fix-hierarchy: new annotation — levels 1/2 impossible, the
-  capability does not exist declaratively).
-- [ ] **ADDRESSED (verified)** — synthetic-grammar probe flips REJECT/ACCEPT correctly by
-  profile with the directive; regex lanes byte-equivalent with the name-gates deleted.
-- [ ] **NO REGRESSION** — 10 non-regex parsers `cmp` byte-identical; regex + svpp certs
-  fully_certified seeds 0/7/42; RGX conformance/broader corpus; equivalence 4/4 (11
-  CERTIFIED); combinator + semantic suites CLEAN; features-on lib green; dual-run ✅;
-  clippy source-strict ok.
-- [ ] **LOCKSTEP** — ebnf book + top book + normative spec + steering matrix + regex
-  contract/book + continuity docs same-commit; both book gates ✅.
-```
+- [x] **REPRODUCE / ISSUE** — grep evidence of the three name-gate boundaries at HEAD
+  `0e448fb6` (§1). Probe (pre-fix codegen, session #55): a synthetic grammar declaring
+  `@default_profile: strict` + a `@profiles: ["relaxed"]` rule generated with the directive
+  SILENTLY IGNORED — emitted constructor `grammar_profile: None,` (probe_parser.rs:109),
+  the plain permissive setter (:298-299), the `@profiles` guard present (:2045) but
+  `None => true` permissive, and **0** occurrences of any default carrier — while regex got
+  `pcre2` by name literals only.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the default-profile knowledge lives in engine string
+  literals: `parser_registry.rs:138-143` (parse side; also silently coerced any explicit
+  non-`relaxed` value to `pcre2`), `main.rs:2254-2258` (generation side),
+  `embedding_api.rs:1531`/`:1559` (embedding side, each with a "must remember" warning
+  comment) — invisible to the EBNF, closed to every other grammar, and caller-owned because
+  the emitted guard treats an unset profile as permissive (codegen
+  `ast_based_generator.rs:5046-5057`). Full fact base §1, file:line-pinned.
+- [x] **FIX** — grammar-level `@default_profile: <name>` directive (D1–D7): ONE compile fn
+  (`semantic_runtime::compile_default_profile` + shared payload parser), validator arm
+  (`W_SEM_INVALID_DEFAULT_PROFILE_PAYLOAD`), directive-registry entry (ParserSteering),
+  codegen carrier (const + ctor init + `set_grammar_profile(None)` restore; fast-path
+  exclusion in `rule_has_no_semantic_annotations`), registry table datum sourcing the
+  generated constant (name arm DELETED), `main.rs` generation-side consult (name arm
+  DELETED), interpreter requested-or-default resolve, embedding explicit sets DELETED,
+  `regex.ebnf` declares `pcre2`. Fix-hierarchy: level 3 (new annotation) + parser-agnostic
+  engine wiring — levels 1/2 impossible (the capability did not exist declaratively).
+- [x] **ADDRESSED (verified)** — the combinator pair is the decisive flip:
+  `profile_unspecified_permissive` (no directive) `"R"` ACCEPTS vs `profile_default_gate`
+  (directive) `"R"` REJECTS — each `CLEAN samples=3 diverge=0 anchor_miss=0`, interpreter ==
+  compile-and-run oracle byte-identical. Post-fix regen probe: `generated/regex_parser.rs`
+  carries the declared default (`:582` ctor init, `:987` const `= "pcre2"`, `:989-992`
+  restoring setter). Regex lanes byte-equivalent with the name-gates deleted: cert
+  `total=198 witness=198 UNKNOWN=0 fully_certified=true (spf=0)` ×seeds 0/7/42 — identical
+  to the pre-change headline.
+- [x] **NO REGRESSION** — ALL 11 `generated/*.rs` regenerated with the new codegen: the 10
+  non-directive-bearing parsers `cmp` **BYTE-IDENTICAL** to the pre-change snapshot; the
+  regex delta is EXACTLY the 3-part carrier (17 diff lines). Features-on lib
+  `cargo test --lib` **832/0** (was 821; +11 new tests — incl. the three direct-construction
+  regex test sites now running under the strict artifact default). Combinator gate 2/2 —
+  **25/25 CLEAN**; equivalence gate 4/4 (**11 CERTIFIED**); semantic gate 2/2 (24/24);
+  `ebnf_frontend_dual_run_gate` ✅ (zero meta-grammar change); svpp cert `74/74/0
+  fully_certified` ×3 seeds; `regex_broader_corpus_proof_gate` ✅ (0 parse failures);
+  `clippy_on_rust_change` strict source stage ok (generated stage = the KNOWN pre-existing
+  `eq_op` debt — 177×`eq_op`+1, unchanged BY CONSTRUCTION).
+- [x] **LOCKSTEP** — same commit: ebnf parser book (`semantic-annotations.md` new *Default
+  profile* section + catalog row) + regenerated tracked `docs/ebnf_parser_book-html/`; top
+  book `annotation-system.md` (new directive subsection) + `parse-harness.md` (25-case
+  table + the 2 profile rows + counts); `TOOLBOX.md` §1.7 (25 cases + the default-profile
+  coverage + WHEN row); `PGEN_ANNOTATION_NORMATIVE_SPEC.md` (full directive semantics);
+  `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (Parser-steering entry);
+  `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` (2026-07-07 SURFACE-NEUTRAL maintenance
+  update) + regex parser book (`rules-escape.md` provenance note; `changelog-index.md`
+  entry) + regenerated tracked `docs/regex_parser_book-html/`; CHANGES.md +
+  DEVELOPMENT_NOTES.md entries; MEMORY.md overwritten; docs/TASK_TREE.md row;
+  LIVE_ACHIEVEMENT_STATUS reviewed (rows UNCHANGED — engine-internal + doc closure).
+  `mdbook_docs_gate` + `ebnf_parser_book_gate` + `regex_parser_book_gate` all ✅.
+  NO release/contract/schema bump (surface-neutral; regex accept/reject byte-equivalent).
 
 ## 6. Findings routed elsewhere (surfacing directive)
 
@@ -254,6 +299,22 @@ F-A). The svpp stimuli separator heuristic stays routed to `STIMULI-SIGNOFF` (WS
   interpreter/equivalence observers of `active_grammar_profile`; the 5 `@profiles` sites in
   regex.ebnf; the not-in-class token-type-tag hits; the `@whitespace_sensitive` precedent
   chain (compile fn + validator arm + registry catalog entry).
+- 2026-07-07 (session #55, `.2` pre-fix): REPRODUCE probe — the directive-bearing synthetic
+  grammar emits `grammar_profile: None` + the permissive setter + zero default carrier
+  (directive silently ignored; the pcre2 default only via the name literals).
+- 2026-07-07 (session #55, `.2` mid-fix, tool-diagnosed): the FIRST regex regen diverged
+  beyond the intended carrier (the `regex` entry-rule body switched onto the full
+  transaction wrapper — 132 diff lines); diff-pinned to `rule_has_no_semantic_annotations`
+  counting the directive as runtime-relevant; fixed by the same exclusion
+  `whitespace_sensitive` uses; second regen = exactly the 17-line carrier delta.
+- 2026-07-07 (session #55, `.2` post-fix): focused unit tests 11/11 (`compile_default_profile`
+  ×7 + validator pair + codegen pair); combinator gate 2/2 **25/25 CLEAN** (the new pair
+  `diverge=0 anchor_miss=0`); equivalence 4/4 (11 CERTIFIED); semantic 2/2 (24/24); lib
+  **832/0**; dual-run ✅; regex cert `198/198/0 fully_certified` ×seeds 0/7/42 + svpp
+  `74/74/0` ×3; broader-corpus gate ✅; 10/10 non-regex parsers `cmp` byte-identical
+  (ebnf.rs after regenerating from the canonical `rust/` cwd — the first regen differed only
+  by the embedded output-path literal); clippy strict-source ok; all three book gates ✅.
+  Commit `PGEN-DEFAULT-PROFILE-0002`.
 
 ## 8. Decisions
 

@@ -375,6 +375,16 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "whitespace_sensitive",
         capability: SemanticDirectiveCapability::ParserSteering,
     },
+    // `DEFAULT-PROFILE.2`: grammar-level default dialect profile — the
+    // profile an UNSPECIFIED requested profile resolves to (e.g. regex →
+    // `pcre2`). Compiled by `semantic_runtime::compile_default_profile`;
+    // burned into the generated parser's constructor/`set_grammar_profile`
+    // and consulted by the generation-side profile filter and the
+    // parse-harness interpreter.
+    SemanticDirectiveSpec {
+        name: "default_profile",
+        capability: SemanticDirectiveCapability::ParserSteering,
+    },
 ];
 
 pub fn semantic_directive_spec(name: &str) -> Option<SemanticDirectiveSpec> {

@@ -84,6 +84,13 @@ parseability_probe --parse regex pattern.re
 parseability_probe --parse regex pattern.re --profile relaxed
 ```
 
+> **Where the default is declared (DEFAULT-PROFILE.2, 2026-07-07).** The "unspecified profile =
+> strict `pcre2`" resolution is declared **in the grammar** — `grammars/regex.ebnf` carries the
+> grammar-level `@default_profile: pcre2` directive, and the generated parser embeds it (a
+> `DEFAULT_GRAMMAR_PROFILE` constant; the constructor starts on it, and `set_grammar_profile(None)`
+> restores it). Observable behavior is unchanged from the prior engine-side default; it is now
+> grammar-declared rather than engine-hard-coded, per the EBNF-single-source-of-truth doctrine.
+
 > **Downstream note (RGX):** the stable `pgen::embedding_api` host surface currently exposes only the strict `regex_default` profile, so embedded consumers get PCRE2-faithful default behavior. A rejected `\u` (etc.) surfaces as diagnostic code `E_PARSE_FAILURE` with a machine-localizable location — match on the **code**, not the message text. Selecting `relaxed` through the embedding API is a planned follow-on.
 
 > **Scope.** This covers exactly the six letters above. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) that the default profile still accepts — the full recognized-escape whitelist is tracked separately (REGEX-PCRE2-FIDELITY.3.11).

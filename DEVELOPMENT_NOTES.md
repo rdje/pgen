@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-DEFAULT-PROFILE-0002 — DEFAULT-PROFILE.2: the artifact-owned default, and the bootstrap dance for a generated-constant the engine consumes
+
+Session #55. Notes from replacing the regex→`pcre2` default-profile name-gates with the
+grammar-level `@default_profile:` directive:
+
+1. **When a default is acceptance-relevant, make the ARTIFACT own it, not the callers.** The old
+   posture required every boundary (registry wrapper, embedding function, any direct constructor)
+   to re-apply `Some("pcre2")` by hand — two `embedding_api.rs` call sites carried literal "you
+   MUST set this or relaxed constructs leak in" warnings. Emitting the default into the generated
+   parser (constant + constructor start + `set_grammar_profile(None)` RESTORES the default) kills
+   the whole footgun class: a forgotten set call is now correct instead of silently permissive.
+   Three test sites that constructed `RegexParser` bare (shape-contract, typed differential gate,
+   auto-shape gate) switched from permissive to strict posture automatically — and stayed green,
+   which is itself evidence the curated corpora were already strict-clean.
+2. **A registry datum sourced from a generated constant needs a bootstrap order.** The engine
+   (`parser_registry.rs`) referencing `RegexParser::DEFAULT_GRAMMAR_PROFILE` cannot compile against
+   the STALE artifact that lacks the constant, and `make focus_regex` builds `ast_pipeline` WITH
+   `generated_parsers`. The clean dance: park `generated/regex_parser.rs` (the
+   `has_generated_regex_parser` cfg stops firing), build codegen, regenerate, restore. Worth
+   remembering for any future codegen-emitted symbol the engine consumes.
+3. **The WS-DIRECTIVE.2 lessons replayed verbatim — they are now a checklist.** (a) compile-time
+   directive ⇒ NO runtime enum variant, own grammar-level scan, never in `directives_by_rule`;
+   (b) add the directive name to `rule_has_no_semantic_annotations`'s exclusion (the first regen
+   diverged by 132 lines because the directive-bound entry rule fell off the unannotated fast-path —
+   diff-diagnosed in one read, exactly like last time); (c) snapshot `generated/*.rs` → regen →
+   `cmp` as the behavior-preservation oracle (10/10 byte-identical; the regex delta is exactly the
+   intended carrier). One extra wrinkle: regenerate `ebnf.rs` from the canonical `rust/` cwd — the
+   emitted source embeds the output path string, so the cwd changes the artifact.
+
 ## 2026-07-07 - PGEN-WS-DIRECTIVE-0002 — WS-DIRECTIVE.2: retiring a grammar-NAME gate emit-neutrally — three engineering lessons
 
 Session #54. Notes from replacing the grammar-name layout gate with the grammar-level

@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-DEFAULT-PROFILE-0002 (DEFAULT-PROFILE.2): `@default_profile` landed end-to-end — the regex→`pcre2` name-gates are RETIRED (the artifact carries its own default; tree COMPLETE)
+
+Session #55. **New parser-agnostic grammar-level directive** (the WS-DIRECTIVE sibling; owns that
+tree's routed finding F1). WHICH dialect profile an unspecified request resolves to — acceptance-
+relevant, since it gates the `@profiles: ["relaxed"]` constructs — is now declared IN the grammar
+(`grammars/regex.ebnf`: `@default_profile: pcre2`) instead of being keyed on `== "regex"` string
+literals at three engine boundaries.
+
+- **REPRODUCE:** pre-fix, a synthetic grammar declaring `@default_profile: strict` still emitted
+  `grammar_profile: None` + the plain permissive setter — the directive was silently ignored (no
+  grammar could declare its unspecified-profile default; regex got `pcre2` only by name literals in
+  `parser_registry.rs:138`, `main.rs:2256`, and `embedding_api.rs:1531/:1559` — the latter two with
+  "the guard treats None as permissive, so you MUST set it" warning comments: a standing embedder
+  footgun).
+- **Fix:** `semantic_runtime::compile_default_profile` compiles the grammar-level directive (one
+  identifier-shaped profile name; identical duplicates tolerated, conflicts/malformed payloads hard
+  errors) into `CompiledSemanticRuntimeAnnotations`; codegen burns it into the generated parser —
+  a `DEFAULT_GRAMMAR_PROFILE` constant, the constructor STARTS on it, and `set_grammar_profile(None)`
+  RESTORES it (never a permissive unset state) — so the ARTIFACT owns its default and no caller has
+  to remember it. The registry's `active_grammar_profile` resolves an unspecified profile through
+  the generated constant (name arm DELETED, along with the regex-only "any explicit non-relaxed
+  value coerces to pcre2" quirk — acceptance-equivalent, since the guard only distinguishes
+  `@profiles`-list membership); `main.rs::apply_grammar_profile_filter` consults the compiled
+  directive (name arm DELETED); the two `embedding_api.rs` explicit sets are DELETED; the
+  parse-harness interpreter resolves requested-or-declared-default from the same compiled value.
+  NO new `SemanticRuntimeDirective` variant; `rule_has_no_semantic_annotations` excludes the
+  directive (both per the WS-DIRECTIVE.2 lessons). Registered (ParserSteering) + validator lint
+  `W_SEM_INVALID_DEFAULT_PROFILE_PAYLOAD` through the SAME payload parser codegen uses.
+- **Verified:** post-fix the regenerated `generated/regex_parser.rs` carries exactly the 3-part
+  carrier (ctor init / const / restoring setter — 17 diff lines); the other **10 parsers regen
+  `cmp` BYTE-IDENTICAL**. Combinator suite 23→**25**: `profile_unspecified_permissive` (no
+  directive: the relaxed-gated `"R"` ACCEPTS) vs `profile_default_gate` (directive: `"R"`
+  REJECTS), both CLEAN interp==oracle byte-identical. Equivalence gate 4/4 (11 CERTIFIED);
+  semantic gate 24/24; features-on lib **832/0** (+11 tests); dual-run gate ✅ (zero meta-grammar
+  change); regex cert `198/198 UNKNOWN=0 fully_certified` + svpp `74/74 UNKNOWN=0 fully_certified`
+  deterministic at seeds 0/7/42 (byte-identical headlines); `regex_broader_corpus_proof_gate` ✅;
+  clippy strict-source ok; all three book gates (top / ebnf / regex) ✅. SURFACE-NEUTRAL for
+  downstream (regex contract maintenance note added); NO release bump. Routed finding F-A: the SV
+  profile-ALIAS map (`parser_registry.rs:148-158`) is the remaining same-family name-gate
+  (alias normalization, a different capability) — surfaced, not owned.
+
 ## 2026-07-07 - PGEN-WS-DIRECTIVE-0002 (WS-DIRECTIVE.2): `@whitespace_sensitive` landed end-to-end — the grammar-NAME layout gate is RETIRED (emit-neutral, tree COMPLETE)
 
 Session #54. **New parser-agnostic grammar-level directive, proven emit-neutral.** The layout

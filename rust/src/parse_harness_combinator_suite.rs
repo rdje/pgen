@@ -134,6 +134,13 @@ pub enum Combinator {
     /// whitespace-sensitive while terminals and trailing layout keep the default skip
     /// (WS-DIRECTIVE.2; the policy systemverilog_preprocessor declares).
     LayoutWhitespaceSensitiveRegexTokens,
+    /// No `@default_profile:` directive: an unspecified profile leaves the guard PERMISSIVE, so
+    /// `@profiles`-gated rules are active (DEFAULT-PROFILE.2 contrast case).
+    ProfileUnspecifiedPermissive,
+    /// The grammar-level `@default_profile:` directive: an unspecified profile resolves to the
+    /// DECLARED default, so `@profiles`-gated rules outside it are excluded by default
+    /// (DEFAULT-PROFILE.2; the policy regex declares as `pcre2`).
+    ProfileDefaultGate,
 }
 
 impl Combinator {
@@ -162,6 +169,8 @@ impl Combinator {
         Combinator::LayoutInsensitiveDefault,
         Combinator::LayoutWhitespaceSensitiveFull,
         Combinator::LayoutWhitespaceSensitiveRegexTokens,
+        Combinator::ProfileUnspecifiedPermissive,
+        Combinator::ProfileDefaultGate,
     ];
 }
 
@@ -430,6 +439,31 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         ],
         entry_rule: None,
         note: "granular facet: regex tokens sensitive, terminals + trailing keep the default skip",
+    },
+    // ── Default profile — the grammar-level `@default_profile:` directive (DEFAULT-PROFILE.2) ──────
+    CombinatorCase {
+        name: "profile_unspecified_permissive",
+        combinator: Combinator::ProfileUnspecifiedPermissive,
+        // No directive = the permissive default: with no profile requested, the
+        // `rule_profile_is_enabled` guard treats `None` as "all rules active", so the
+        // `@profiles: ["relaxed"]`-gated branch IS reachable.
+        grammar_body: "start := base | relaxed_only\nbase := \"b\"\n@profiles: [\"relaxed\"]\nrelaxed_only := \"R\"\n",
+        inputs: &[("b", true), ("R", true), ("x", false)],
+        entry_rule: None,
+        note: "no @default_profile: an unspecified profile leaves @profiles-gated rules active",
+    },
+    CombinatorCase {
+        name: "profile_default_gate",
+        combinator: Combinator::ProfileDefaultGate,
+        // `@default_profile: strict` (the regex.ebnf shape, which declares `pcre2`): an
+        // UNSPECIFIED profile now resolves to the declared default, so the
+        // `@profiles: ["relaxed"]`-gated branch is EXCLUDED — the same inputs the permissive
+        // case accepts must now REJECT. This is the capability the retired
+        // `== "regex" → "pcre2"` name literals closed off from synthetic grammars entirely.
+        grammar_body: "@default_profile: strict\nstart := base | relaxed_only\nbase := \"b\"\n@profiles: [\"relaxed\"]\nrelaxed_only := \"R\"\n",
+        inputs: &[("b", true), ("R", false), ("x", false)],
+        entry_rule: None,
+        note: "@default_profile makes the declared default the unspecified-profile resolution (contrast with the permissive case)",
     },
 ];
 

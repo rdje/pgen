@@ -282,6 +282,15 @@ Normative runtime leverage behavior for semantic annotations:
     - compile-time only: it never enters the per-rule runtime directive lists, so declaring it is emit-neutral for the serialized runtime-annotations blob and for the rule it mechanically binds to,
     - declared today by `grammars/regex.ebnf` (`true`) and `grammars/systemverilog_preprocessor.ebnf` (`{ regex_tokens: true }`) — this directive replaced the retired engine-side grammar-NAME layout gate,
     - lint surface: `W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD` (validator warning through the SAME payload parser codegen uses).
+  - `@default_profile` (DEFAULT-PROFILE.2) is the grammar-level DEFAULT-DIALECT-PROFILE directive:
+    - payload = ONE non-empty profile name (identifier-shaped scalar such as `pcre2`, or a quoted string for other characters),
+    - it names the profile an UNSPECIFIED/empty requested profile resolves to; an explicit requested profile always wins,
+    - default (directive absent) keeps the permissive unspecified-profile posture (the `rule_profile_is_enabled` guard treats an unset profile as "all rules active"),
+    - grammar-level semantics: every occurrence is merged; identical duplicates are allowed, conflicting payloads are a hard compile error; malformed payloads (empty / non-scalar / non-identifier-shaped) are hard compile errors,
+    - compiled by `semantic_runtime::compile_default_profile` into `CompiledSemanticRuntimeAnnotations::default_profile()`; consumed by parser codegen (the generated parser embeds a `DEFAULT_GRAMMAR_PROFILE` constant, its constructor starts on it, and `set_grammar_profile(None)` RESTORES it), the generation-side profile filter, the parser registry's `active_grammar_profile` (via the generated constant), and the parse-harness interpreter (one source of truth),
+    - compile-time only: it never enters the per-rule runtime directive lists, so declaring it is emit-neutral for the serialized runtime-annotations blob and for the rule it mechanically binds to,
+    - declared today by `grammars/regex.ebnf` (`pcre2` — PCRE2-faithful by default, `relaxed` the opt-out) — this directive replaced the retired engine-side `== "regex" → "pcre2"` name literals (parse registry / generation filter / embedding API),
+    - lint surface: `W_SEM_INVALID_DEFAULT_PROFILE_PAYLOAD` (validator warning through the SAME payload parser codegen uses).
   - `Structured` and `Raw` semantic annotations do not alter regex atom parser generation behavior unless a typed directive path consumes them.
 - Stimuli generation (`rust/src/ast_pipeline/stimuli_generator.rs`):
   - Regex sample generation checks semantic hints before regex-HIR sampling.

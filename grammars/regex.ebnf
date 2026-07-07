@@ -9,6 +9,16 @@
 # replaced the retired engine-side grammar-NAME gate; the policy now lives
 # here, in the grammar, per the EBNF-single-source-of-truth doctrine.)
 #
+# DEFAULT-PROFILE.2 — grammar-level default dialect profile: regex is
+# PCRE2-faithful BY DEFAULT (REGEX-PCRE2-FIDELITY). An unspecified/empty
+# requested profile resolves to the strict `pcre2` profile, so the
+# `@profiles: ["relaxed"]`-gated constructs (`\u`, …) are EXCLUDED unless
+# the `relaxed` profile is requested explicitly. Codegen burns this into
+# the generated parser (constructor + `set_grammar_profile(None)`); the
+# generation-side profile filter and the parse-harness interpreter consult
+# the same compiled value. (This directive replaced the retired engine-side
+# `== "regex" → "pcre2"` name literals.)
+#
 # Entry point. The body is `pattern` (not `pattern?`) — emptiness is
 # already handled by the inner `alternative = concatenation?` rule so the
 # pattern reference is total. With `pattern?` here the annotation `$1`
@@ -16,6 +26,7 @@
 # of the inner pattern content (per the doctrine that `$N` on a
 # Quantified body is "the whole capture group" — see annotation-system.md).
 @whitespace_sensitive: true
+@default_profile: pcre2
 regex          = pattern
 -> {type: "regex", pattern: $1}
 

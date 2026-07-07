@@ -1048,6 +1048,16 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
 > once by `semantic_runtime::compile_layout_sensitivity` and consumed by BOTH codegen and the interpreter
 > (the name literals are deleted; all generated parsers byte-identical; the `.6.1` suite grew 3 `layout_*`
 > isolating cases, 20→23). See `docs/tasks/WS-DIRECTIVE.md`.
+>
+> **LIVE-SPEC note (2026-07-07, session #55).** The SIBLING name-gate class — the regex→`pcre2`
+> default-profile literals (`parser_registry.rs` / `main.rs` / `embedding_api.rs`) that the `.5.1`
+> interpreter had to normalize through `active_grammar_profile` — is **RESOLVED by
+> `DEFAULT-PROFILE.2`**: the default is now the grammar-level `@default_profile:` directive
+> (regex `pcre2`), compiled once by `semantic_runtime::compile_default_profile`, burned into the
+> generated parser (constant + ctor + `set_grammar_profile(None)` restore), and resolved by the
+> interpreter as requested-or-declared-default; the `.6.1` suite grew the
+> `profile_unspecified_permissive`/`profile_default_gate` pair, 23→25. See
+> `docs/tasks/DEFAULT-PROFILE.md`.
 - [x] **LOCKSTEP** — top-level mdBook `docs/book/src/parse-harness.md` (the differential-equivalence gate
   section: CERTIFIED/DEFERRED lists + the four regex-fidelity root causes); `TOOLBOX.md` §1.6 CERTIFIED/DEFERRED
   lists; this tree (`.5.1` done + checklist, `.5.4` closed, frontier, §15 map); CHANGES.md / DEVELOPMENT_NOTES.md

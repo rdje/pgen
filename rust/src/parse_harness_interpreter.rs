@@ -122,8 +122,9 @@ pub struct InterpretOptions {
     /// slot and the compile-and-run harness.
     pub entry_rule: Option<String>,
     /// The ALREADY-NORMALIZED active dialect profile to gate `@profiles` rules against (PARSE-HARNESS.5.1)
-    /// — e.g. `Some("pcre2")` for strict regex, `Some("sv_2017")` for SV. `None` (default) = all rules
-    /// active. Normalize a requested profile with [`crate::parser_registry::active_grammar_profile`].
+    /// — e.g. `Some("pcre2")` for strict regex, `Some("sv_2017")` for SV. `None` (default) = the
+    /// grammar's declared `@default_profile` if any (DEFAULT-PROFILE.2), else all rules active.
+    /// Normalize a requested profile with [`crate::parser_registry::active_grammar_profile`].
     pub profile: Option<String>,
 }
 
@@ -205,8 +206,10 @@ pub fn interpret_parse(
 /// grammar (the common case) yields the all-`true` policy = the interpreter's prior behavior.
 ///
 /// `active_profile` is the ALREADY-NORMALIZED dialect profile to gate `@profiles` rules against (e.g.
-/// `Some("pcre2")` for default regex, `Some("sv_2017")` for SV, `None` = unprofiled → all rules active).
-/// Normalize a requested profile via [`crate::parser_registry::active_grammar_profile`] before calling.
+/// `Some("pcre2")` for default regex, `Some("sv_2017")` for SV). `None` resolves to the grammar's
+/// declared `@default_profile` if any (DEFAULT-PROFILE.2 — mirroring the generated constructor), else
+/// unprofiled → all rules active. Normalize a requested profile via
+/// [`crate::parser_registry::active_grammar_profile`] before calling.
 pub fn interpret_parse_gen_ast(
     grammar_name: &str,
     active_profile: Option<&str>,
@@ -246,12 +249,21 @@ pub fn interpret_parse_gen_ast(
     let mut semantic_state = SemanticRuntimeState::new();
     semantic_state.set_predicate_defs(compiled_sem.clone_predicate_defs());
 
+    // `DEFAULT-PROFILE.2`: an UNSPECIFIED profile resolves to the grammar's declared
+    // `@default_profile` — the same compiled value codegen burns into the generated
+    // constructor (`set_grammar_profile(None)` restores it), so the interpreter's
+    // `@profiles` gating is byte-identical to the generated parser with no caller
+    // cooperation. An explicit requested profile always wins.
+    let active_profile = active_profile
+        .map(|s| s.to_string())
+        .or_else(|| compiled_sem.default_profile().map(|s| s.to_string()));
+
     let mut interp = Interp {
         grammar: grammar_tree,
         annotations,
         layout: grammar_layout_policy(&compiled_sem),
         comment_arms: comment_arm_suppression_for_grammar(grammar_name, grammar_tree, annotations),
-        active_profile: active_profile.map(|s| s.to_string()),
+        active_profile,
         input,
         position: 0,
         furthest_position: 0,

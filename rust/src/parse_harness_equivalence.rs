@@ -326,8 +326,9 @@ pub fn evaluate_grammar_equivalence(
     let corpus = build_corpus(grammar_name, &gen_ast, cfg);
     let profile = cfg.profile.as_deref();
     // The ACTIVE (normalized) profile the oracle parses under — the interpreter must gate `@profiles`
-    // rules against the SAME profile (regex's `None` normalizes to strict `pcre2`) so it matches
-    // `parse_sample` byte-for-byte (PARSE-HARNESS.5.1).
+    // rules against the SAME profile (an unspecified regex profile resolves to the grammar-declared
+    // `@default_profile`, strict `pcre2` — DEFAULT-PROFILE.2) so it matches `parse_sample`
+    // byte-for-byte (PARSE-HARNESS.5.1).
     let active_profile = crate::parser_registry::active_grammar_profile(grammar_name, profile);
 
     for sample in &corpus {

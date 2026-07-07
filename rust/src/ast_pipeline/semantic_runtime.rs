@@ -307,6 +307,81 @@ pub(crate) fn parse_layout_sensitivity_payload(
     Ok(sensitivity)
 }
 
+/// The normalized directive name recognized by [`compile_default_profile`].
+pub const DEFAULT_PROFILE_DIRECTIVE_NAME: &str = "default_profile";
+
+/// `DEFAULT-PROFILE.2`: scan a grammar's semantic annotations for the
+/// grammar-level `@default_profile:` directive and compile it into the
+/// dialect-profile name an UNSPECIFIED requested profile resolves to.
+/// Returns `Ok(None)` when the grammar declares none (an unspecified profile
+/// stays unset — the permissive `rule_profile_is_enabled` default).
+///
+/// Payload form: ONE non-empty profile name (an identifier-shaped scalar such
+/// as `pcre2` — ASCII alphanumerics, `_`, `-`). Anything else is a hard
+/// compile error.
+///
+/// Duplicate declarations with IDENTICAL payloads are allowed (mirroring the
+/// `@fact_kind` V-DECL-1 convenience); CONFLICTING payloads are a hard error.
+/// Mechanically the directive binds to whichever rule follows it, but its
+/// meaning is grammar-level, so every occurrence (rule- or branch-attached)
+/// is merged through the same conflict check — exactly like
+/// [`compile_layout_sensitivity`].
+pub fn compile_default_profile(annotations: &Annotations) -> Result<Option<String>, String> {
+    let mut declared: Option<String> = None;
+    let rule_level = annotations
+        .semantic_annotations
+        .iter()
+        .flat_map(|(_, list)| list.iter());
+    let branch_level = annotations
+        .branch_semantic_annotations
+        .iter()
+        .flat_map(|(_, branches)| branches.iter().flat_map(|list| list.iter()));
+    for annotation in rule_level.chain(branch_level) {
+        let Some(name) = annotation.name() else {
+            continue;
+        };
+        if name.trim().to_ascii_lowercase() != DEFAULT_PROFILE_DIRECTIVE_NAME {
+            continue;
+        }
+        let parsed = parse_default_profile_payload(annotation.ast())?;
+        match &declared {
+            Some(prior) if *prior != parsed => {
+                return Err(format!(
+                    "@{DEFAULT_PROFILE_DIRECTIVE_NAME}: declared more than once with conflicting payloads (first: {prior:?}; second: {parsed:?}). Declare the grammar's default profile exactly once."
+                ));
+            }
+            _ => declared = Some(parsed),
+        }
+    }
+    Ok(declared)
+}
+
+/// Parses one `@default_profile:` payload (see [`compile_default_profile`]
+/// for the accepted form). `pub(crate)` so the annotation validator lints the
+/// payload through the SAME parser that codegen compiles it with (no second
+/// dialect).
+pub(crate) fn parse_default_profile_payload(ast: &UnifiedSemanticAST) -> Result<String, String> {
+    const USAGE: &str = "Directive '@default_profile' expects ONE non-empty profile name (an identifier-shaped scalar such as `pcre2`).";
+    let payload = ast
+        .structured_value()
+        .ok_or_else(|| format!("{USAGE} (payload is not a structured value)"))?;
+    let text = scalar_text(payload)
+        .ok_or_else(|| format!("{USAGE} (got a non-scalar payload: {payload:?})"))?;
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Err(format!("{USAGE} (payload is empty)"));
+    }
+    if !trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(format!(
+            "@{DEFAULT_PROFILE_DIRECTIVE_NAME}: '{trimmed}' is not an identifier-shaped profile name (ASCII alphanumerics, '_', '-')."
+        ));
+    }
+    Ok(trimmed.to_string())
+}
+
 /// Boolean reading of a scalar payload value: the typed `Boolean` variant or
 /// the literal texts `true` / `false` (case-insensitive).
 fn scalar_bool(value: &UnifiedSemanticValue) -> Option<bool> {
@@ -677,6 +752,14 @@ pub struct CompiledSemanticRuntimeAnnotations {
     /// never serialized into generated parsers (the policy is burned into
     /// the emitted code) — `from_rule_directives` / `from_parts` seed `None`.
     layout_sensitivity: Option<LayoutSensitivity>,
+    /// `DEFAULT-PROFILE.2`: the grammar-level `@default_profile:` directive,
+    /// compiled by [`compile_default_profile`]. `None` = the directive is
+    /// absent (an unspecified requested profile stays unset — the permissive
+    /// guard default). Compile-time only: consumed by parser codegen (the
+    /// default is burned into the emitted constructor/setter) and the
+    /// parse-harness interpreter; never serialized into generated parsers —
+    /// `from_rule_directives` / `from_parts` seed `None`.
+    default_profile: Option<String>,
 }
 
 impl CompiledSemanticRuntimeAnnotations {
@@ -693,6 +776,7 @@ impl CompiledSemanticRuntimeAnnotations {
             fact_kinds: HashMap::new(),
             predicate_defs: HashMap::new(),
             layout_sensitivity: None,
+            default_profile: None,
         }
     }
 
@@ -706,6 +790,7 @@ impl CompiledSemanticRuntimeAnnotations {
             fact_kinds: HashMap::new(),
             predicate_defs: HashMap::new(),
             layout_sensitivity: None,
+            default_profile: None,
         }
     }
 
@@ -714,6 +799,13 @@ impl CompiledSemanticRuntimeAnnotations {
     /// declares none. See [`LayoutSensitivity`].
     pub fn layout_sensitivity(&self) -> LayoutSensitivity {
         self.layout_sensitivity.unwrap_or_default()
+    }
+
+    /// `DEFAULT-PROFILE.2`: the grammar's declared `@default_profile:` — the
+    /// dialect-profile name an UNSPECIFIED requested profile resolves to;
+    /// `None` when the grammar declares none. See [`compile_default_profile`].
+    pub fn default_profile(&self) -> Option<&str> {
+        self.default_profile.as_deref()
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: accessor for the predicate-def registry.
@@ -3275,6 +3367,9 @@ pub fn compile_semantic_runtime_annotations(
         // `WS-DIRECTIVE.2`: the grammar-level layout policy (its own scan —
         // the directive never enters the per-rule directive lists).
         layout_sensitivity: compile_layout_sensitivity(annotations)?,
+        // `DEFAULT-PROFILE.2`: the grammar-level default dialect profile
+        // (same grammar-wide-scan pattern; never enters the per-rule lists).
+        default_profile: compile_default_profile(annotations)?,
     })
 }
 
@@ -3648,7 +3743,8 @@ mod tests {
         SemanticLibraryExportSpec, SemanticLibraryImportSpec, SemanticPredicateContentView,
         SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeDirective,
         SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
-        compile_layout_sensitivity, compile_rule_semantic_runtime_directives,
+        compile_default_profile, compile_layout_sensitivity,
+        compile_rule_semantic_runtime_directives,
         compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
         parse_semantic_runtime_directives,
     };
@@ -7289,6 +7385,115 @@ mod tests {
         assert!(
             err.contains("must be a boolean"),
             "error should explain the type: {err}"
+        );
+    }
+
+    // ── DEFAULT-PROFILE.2: the grammar-level `@default_profile:` directive ──
+
+    fn default_profile_annotation(payload: UnifiedSemanticValue) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "default_profile".to_string(),
+            ast: UnifiedSemanticAST::Structured {
+                canonical: String::new(),
+                value: payload,
+            },
+        }
+    }
+
+    fn annotations_with_default_profile_directives(
+        payloads: Vec<UnifiedSemanticValue>,
+    ) -> Annotations {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "entry_rule".to_string(),
+            payloads
+                .into_iter()
+                .map(default_profile_annotation)
+                .collect(),
+        );
+        annotations
+    }
+
+    #[test]
+    fn default_profile_absent_directive_stays_unset() {
+        let annotations = Annotations::default();
+        assert_eq!(compile_default_profile(&annotations), Ok(None));
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        assert_eq!(compiled.default_profile(), None);
+    }
+
+    #[test]
+    fn default_profile_scalar_identifier_declares_the_default() {
+        let annotations =
+            annotations_with_default_profile_directives(vec![ident_val("pcre2")]);
+        assert_eq!(
+            compile_default_profile(&annotations),
+            Ok(Some("pcre2".to_string()))
+        );
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        assert_eq!(compiled.default_profile(), Some("pcre2"));
+    }
+
+    #[test]
+    fn default_profile_identical_duplicate_declarations_are_allowed() {
+        let annotations = annotations_with_default_profile_directives(vec![
+            ident_val("pcre2"),
+            ident_val("pcre2"),
+        ]);
+        assert_eq!(
+            compile_default_profile(&annotations),
+            Ok(Some("pcre2".to_string()))
+        );
+    }
+
+    #[test]
+    fn default_profile_conflicting_declarations_are_a_hard_error() {
+        let annotations = annotations_with_default_profile_directives(vec![
+            ident_val("pcre2"),
+            ident_val("relaxed"),
+        ]);
+        let err = compile_default_profile(&annotations).expect_err("conflict must error");
+        assert!(
+            err.contains("conflicting payloads"),
+            "error should name the conflict: {err}"
+        );
+        // The full compile pass must surface the same error.
+        assert!(compile_semantic_runtime_annotations(&annotations).is_err());
+    }
+
+    #[test]
+    fn default_profile_empty_payload_is_a_hard_error() {
+        let annotations =
+            annotations_with_default_profile_directives(vec![UnifiedSemanticValue::String(
+                "  ".to_string(),
+            )]);
+        let err = compile_default_profile(&annotations).expect_err("empty must error");
+        assert!(err.contains("empty"), "error should say empty: {err}");
+    }
+
+    #[test]
+    fn default_profile_non_scalar_payload_is_a_hard_error() {
+        let annotations = annotations_with_default_profile_directives(vec![object(vec![(
+            "profile",
+            ident_val("pcre2"),
+        )])]);
+        let err = compile_default_profile(&annotations).expect_err("non-scalar must error");
+        assert!(
+            err.contains("non-scalar"),
+            "error should say non-scalar: {err}"
+        );
+    }
+
+    #[test]
+    fn default_profile_non_identifier_payload_is_a_hard_error() {
+        let annotations =
+            annotations_with_default_profile_directives(vec![UnifiedSemanticValue::String(
+                "pc re2".to_string(),
+            )]);
+        let err = compile_default_profile(&annotations).expect_err("non-identifier must error");
+        assert!(
+            err.contains("identifier-shaped"),
+            "error should explain the shape: {err}"
         );
     }
 }

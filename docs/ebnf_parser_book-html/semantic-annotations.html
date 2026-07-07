@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d951704b.js";
+            window.path_to_searchindex_js = "searchindex-f9a556ae.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -221,6 +221,7 @@ contract.</p>
 <tr><td>Value</td><td><code>@transform</code>, <code>@semantic_value</code></td><td>post-process a matched value</td></tr>
 <tr><td>Stimuli</td><td><code>@generate</code>, <code>@sample</code>, <code>@dispatch_table</code>, …</td><td>steer stimuli generation</td></tr>
 <tr><td>Layout</td><td><code>@whitespace_sensitive</code></td><td>grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet)</td></tr>
+<tr><td>Profiles</td><td><code>@default_profile</code></td><td>grammar-level default dialect profile: what an <em>unspecified</em> requested profile resolves to</td></tr>
 <tr><td>Pragmas</td><td><code>@stop_at_rule_boundary</code></td><td>bound how far a sequence consumes</td></tr>
 </tbody>
 </table>
@@ -284,6 +285,37 @@ grammar’s <em>file name</em> — the policy is now declared in the grammar its
 (including a scratch/probe grammar) can be whitespace-sensitive. The isolating proof cases live in
 the structural combinator suite (<code>layout_insensitive_default</code>, <code>layout_ws_sensitive_full</code>,
 <code>layout_ws_sensitive_regex_tokens</code>).</li>
+</ul>
+<h2 id="default-profile--default_profile"><a class="header" href="#default-profile--default_profile">Default profile — <code>@default_profile</code></a></h2>
+<p>A grammar that gates rules by dialect profile (<code>@profiles</code>) can also declare what an <strong>unspecified</strong>
+requested profile means. Without a declaration, requesting no profile leaves the profile guard
+permissive — every <code>@profiles</code>-gated rule stays active. With this <strong>grammar-level</strong> directive
+(declare it once, directly above a rule — conventionally the entry rule):</p>
+<pre><code class="language-ebnf"># an unspecified requested profile means strict pcre2; `relaxed` is the opt-out
+@default_profile: pcre2
+regex = pattern
+</code></pre>
+<p>an unspecified or empty requested profile resolves to the declared default everywhere: the generated
+parser’s constructor starts on it, <code>set_grammar_profile(None)</code> <em>restores</em> it (never a permissive
+unset state), generation-side profile filtering uses it, and the parse-harness interpreter resolves
+it from the same compiled declaration. An <strong>explicit</strong> requested profile always wins.</p>
+<p>This is the policy <code>grammars/regex.ebnf</code> declares: regex is PCRE2-faithful by default, so the
+<code>@profiles: ["relaxed"]</code>-gated constructs (<code>\u</code>, …) are excluded unless <code>relaxed</code> is requested.</p>
+<p>The payload is ONE profile name — a bare identifier-shaped scalar (<code>pcre2</code>, <code>sv_2017</code>) or a quoted
+string for names with other characters (<code>"verilog-2005"</code>).</p>
+<p>Rules of the road:</p>
+<ul>
+<li><strong>One declaration per grammar.</strong> Identical duplicates are tolerated; <em>conflicting</em> payloads are a
+hard generation error. Malformed payloads (empty, non-scalar, non-identifier-shaped) are hard
+errors too, and the annotation validator lints them early
+(<code>W_SEM_INVALID_DEFAULT_PROFILE_PAYLOAD</code>).</li>
+<li><strong>Compile-time only.</strong> The directive carries no runtime semantics — the default is burned into
+the emitted parser (a <code>DEFAULT_GRAMMAR_PROFILE</code> constant + the constructor/setter), and every
+other consumer derives from the same compiled declaration.</li>
+<li><strong>Provenance.</strong> This directive replaced engine-internal gates that keyed the regex→<code>pcre2</code>
+default on the grammar’s <em>name</em> — the default is now declared in the grammar itself, and any
+grammar (including a scratch/probe grammar) can declare one. The isolating proof cases live in
+the structural combinator suite (<code>profile_unspecified_permissive</code>, <code>profile_default_gate</code>).</li>
 </ul>
 <h2 id="lexical-annotations"><a class="header" href="#lexical-annotations">Lexical annotations</a></h2>
 <p>The <code>[&gt; … ]</code> / <code>[&gt;! … ]</code> follow-restriction is a <em>lexical</em> annotation in the same family; it is documented

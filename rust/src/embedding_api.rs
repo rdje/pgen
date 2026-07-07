@@ -1523,12 +1523,11 @@ fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
                 &owned_input,
                 crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
             );
-            // REGEX-PCRE2-FIDELITY.3.1 (PGEN-REGEX-PCRE2-0006): the `regex_default` embedding path is
-            // PCRE2-faithful by DEFAULT. The codegen profile guard treats `None` as permissive (all
-            // rules active), so the strict `pcre2` profile MUST be set explicitly — otherwise the
-            // `@profiles:["relaxed"]` constructs (e.g. `\u`) would be ACCEPTED here (the former
-            // out-of-band `\u` validator check has been migrated into the grammar).
-            parser.set_grammar_profile(Some("pcre2"));
+            // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: the `regex_default` embedding path is
+            // PCRE2-faithful by DEFAULT — and since DEFAULT-PROFILE.2 the ARTIFACT owns that default:
+            // the generated constructor starts on the grammar-declared `@default_profile` (`pcre2`),
+            // so no explicit `set_grammar_profile` is needed (the former call site here was the
+            // embedder-must-remember footgun the directive retired).
             parser
                 .parse_full_regex()
                 .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;
@@ -1554,9 +1553,9 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
                 &owned_input,
                 crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
             );
-            // REGEX-PCRE2-FIDELITY.3.1 (PGEN-REGEX-PCRE2-0006): PCRE2-faithful default — set the strict
-            // `pcre2` profile explicitly (None = permissive in the codegen guard). See parse_generated_regex.
-            parser.set_grammar_profile(Some("pcre2"));
+            // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: PCRE2-faithful default — the generated
+            // constructor starts on the grammar-declared `@default_profile` (`pcre2`); no explicit
+            // set needed. See parse_generated_regex.
             let parsed = parser
                 .parse_full_regex()
                 .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;

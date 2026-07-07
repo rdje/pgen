@@ -4539,7 +4539,8 @@ pub use semantic_runtime::{
     SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
     SemanticRuntimeCheckpoint, SemanticRuntimeDelta, SemanticRuntimeDirective,
     SemanticRuntimeState, SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame,
-    SemanticScopeKind, SemanticScopeSpec, SemanticStoreCounters, compile_layout_sensitivity,
+    SemanticScopeKind, SemanticScopeSpec, SemanticStoreCounters, compile_default_profile,
+    compile_layout_sensitivity,
     compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
     parse_semantic_runtime_directive, parse_semantic_runtime_directives,
 };

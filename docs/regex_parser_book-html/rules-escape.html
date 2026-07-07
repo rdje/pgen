@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7e6a0554.js";
+            window.path_to_searchindex_js = "searchindex-3384b4d0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -252,6 +252,14 @@ parseability_probe --parse regex pattern.re
 # relaxed opt-out: \u / \u{41} / \i / \F / \l / \L / \U accepted
 parseability_probe --parse regex pattern.re --profile relaxed
 </code></pre>
+<blockquote>
+<p><strong>Where the default is declared (DEFAULT-PROFILE.2, 2026-07-07).</strong> The “unspecified profile =
+strict <code>pcre2</code>” resolution is declared <strong>in the grammar</strong> — <code>grammars/regex.ebnf</code> carries the
+grammar-level <code>@default_profile: pcre2</code> directive, and the generated parser embeds it (a
+<code>DEFAULT_GRAMMAR_PROFILE</code> constant; the constructor starts on it, and <code>set_grammar_profile(None)</code>
+restores it). Observable behavior is unchanged from the prior engine-side default; it is now
+grammar-declared rather than engine-hard-coded, per the EBNF-single-source-of-truth doctrine.</p>
+</blockquote>
 <blockquote>
 <p><strong>Downstream note (RGX):</strong> the stable <code>pgen::embedding_api</code> host surface currently exposes only the strict <code>regex_default</code> profile, so embedded consumers get PCRE2-faithful default behavior. A rejected <code>\u</code> (etc.) surfaces as diagnostic code <code>E_PARSE_FAILURE</code> with a machine-localizable location — match on the <strong>code</strong>, not the message text. Selecting <code>relaxed</code> through the embedding API is a planned follow-on.</p>
 </blockquote>

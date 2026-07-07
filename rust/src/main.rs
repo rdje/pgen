@@ -2244,17 +2244,35 @@ fn apply_grammar_profile_filter(
     grammar: LoadedGrammar,
     grammar_profile: Option<&str>,
 ) -> Result<LoadedGrammar> {
-    // REGEX-PCRE2-FIDELITY.3.1 (PGEN-REGEX-PCRE2-0006): regex is PCRE2-faithful BY DEFAULT on the
-    // GENERATION side too — an unspecified profile resolves to the strict `pcre2` profile (NOT
-    // permissive `None`), the generation twin of `.2`'s parse-side default in
-    // `parser_registry::normalize_generated_grammar_profile`. Without this, the
-    // `@profiles:["relaxed"]`-gated constructs (`simple_escape_relaxed`, `unicode_escape`, …) would NOT
-    // be filtered out of default-mode generation, so the generator could emit `\u` etc. that the
-    // (now grammar-strict) default-mode parser rejects.
-    let grammar_profile = match grammar_profile {
-        Some(profile) => Some(profile),
-        None if grammar.grammar_name == "regex" => Some("pcre2"),
-        None => None,
+    // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: an unspecified profile resolves to the
+    // grammar's DECLARED `@default_profile` (e.g. regex → strict `pcre2`) on the GENERATION side
+    // too — the generation twin of the parse-side default the generated constructor now carries.
+    // Without this, the `@profiles:["relaxed"]`-gated constructs (`simple_escape_relaxed`,
+    // `unicode_escape`, …) would NOT be filtered out of default-mode generation, so the generator
+    // could emit `\u` etc. that the (grammar-strict) default-mode parser rejects. The retired
+    // `== "regex" → "pcre2"` name literal was the doctrine violation this replaces: the default
+    // now comes from the grammar itself, for any grammar. A malformed/conflicting directive is a
+    // hard error here, exactly as it is at codegen.
+    let declared_default_profile = match grammar_profile {
+        Some(_) => None,
+        None => grammar
+            .annotations
+            .as_ref()
+            .map(|annotations| {
+                pgen::ast_pipeline::compile_default_profile(annotations).map_err(|err| {
+                    anyhow::anyhow!(
+                        "Grammar '{}': invalid @default_profile directive: {}",
+                        grammar.grammar_name,
+                        err
+                    )
+                })
+            })
+            .transpose()?
+            .flatten(),
+    };
+    let grammar_profile = match (grammar_profile, declared_default_profile.as_deref()) {
+        (Some(profile), _) => Some(profile),
+        (None, declared) => declared,
     };
     let Some(profile) = grammar_profile else {
         return Ok(grammar);
