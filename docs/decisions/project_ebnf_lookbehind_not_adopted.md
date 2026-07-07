@@ -1,12 +1,13 @@
 ---
 name: project-ebnf-lookbehind-not-adopted
-description: PGEN's EBNF keeps its PEG lookahead assertions (`&`/`!` — already first-class and load-bearing) and does NOT add regex-style lookbehind (`(?<=)`/`(?<!)`). In a top-down grammar the left context is structural (the rule path already encodes it); no mainstream PEG tool ships lookbehind; the real "left-context" needs are served by regex-token `\b`, rule restructuring, or the semantic store; and every lookbehind use would widen the generator's lookahead-blindness duality debt. Status — PROPOSED 2026-07-08 (director brainstorming question); awaiting director ratification.
+description: PGEN's EBNF keeps its PEG lookahead assertions (`&`/`!` — already first-class and load-bearing) and does NOT add regex-style lookbehind (`(?<=)`/`(?<!)`). In a top-down grammar the left context is structural (the rule path already encodes it); no mainstream PEG tool ships lookbehind; the real "left-context" needs are served by regex-token `\b`, rule restructuring, or the semantic store; and every lookbehind use would widen the generator's lookahead-blindness duality debt. Status — RATIFIED by the director 2026-07-08 ("lookbehind is a no-go per your assessment").
 metadata:
   node_type: memory
   type: project
-  director_directive: false
-  status: proposed-awaiting-ratification
+  director_directive: true
+  status: ratified
   created: 2026-07-08
+  ratified: 2026-07-08
   owning_tree: (none — language-design adjudication; would be owned by an EBNF-language tree if adopted)
 ---
 
@@ -22,7 +23,7 @@ and it is load-bearing across the corpus — `!quantifier` (the `.3.13` non-quan
 `( !")" builtin_any_char )*` payload idiom, and the `.3.14` recognized-name exclusion guard. Nothing
 to add on the lookahead side. The open question is only lookBEHIND (`(?<=…)`/`(?<!…)`).
 
-**The adjudication (PROPOSED): do not add lookbehind.**
+**The adjudication (RATIFIED, director 2026-07-08): do not add lookbehind.**
 
 1. **Left context is structural in a grammar.** Regex needs lookbehind because a regex is a flat
    scan with no derivation context. A PEG/EBNF parse *arrives* at every position through an explicit
