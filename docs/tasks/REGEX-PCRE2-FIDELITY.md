@@ -231,6 +231,41 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `fact_count_at_least`. `.3.12` is the concrete driver/closer of `STORE-AWARE-GEN.3`; verify cert-cov
   seed 1 → 0 + seed sweep + RGX conformance + oracle. Low-frequency (seed-dependent); not a spacing
   concern. Composes with `.3.11` (escape whitelist).
+- ID: `.3.13`  Status: `pending` (EVIDENCED 2026-07-07, `PGEN-STIMULI-SIGNOFF-0015` — the STIMULI-SIGNOFF.13
+  duality-break hunt + differential oracle probe; design §3/§4 of
+  `docs/tasks/STIMULI-SIGNOFF-13-post-parse-contract-design.md`)  Goal: encode row 8 (quantified anchors)
+  STRUCTURALLY — split `piece` so the full non-quantifiable anchor set `{^, $, \A, \b, \B, \G, \z, \Z, \K}`
+  cannot take a quantifier (POSIX aliases `[[:<:]]`/`[[:>:]]` STAY quantifiable — oracle-verified parity);
+  AST shape preserved; migrate/remove `find_invalid_quantified_anchor` same-slice. **This leaf ALSO fixes a
+  REAL released-parser accepts-invalid DIVERGENCE found 2026-07-07:** PGEN accepts `\A*` `\b*` `\B?` `\G+`
+  `\z*` `\Z*` `\K*`, PCRE2 10.47 rejects all seven (err 109) — the validator checks only `^`/`$`; latent
+  because the oracle corpus lacks the forms. Verify: `pcre2test` matrix (7 escape-anchors + `^*`/`$*` reject;
+  `(?:^)*`/POSIX-alias-quantified accept) + oracle gate + RGX conformance + cert-coverage + hunter re-run.
+- ID: `.3.14`  Status: `pending` (EVIDENCED `-0015`, same source)  Goal: encode row 6's STRUCTURAL residual
+  (names were `.3.2`): name-class-conditional directive shapes — MARK-shorthand payload REQUIRED non-empty
+  (`(*:)` rejects, err 166); verbs (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) take `:`-suffix only
+  (`(*SKIP=)`/`(*PRUNE=)` reject, err 160; `(*PRUNE:)` stays accepted — oracle-verified); `=`-suffix only for
+  the numeric-value start options (digits payload). Honest bounds: the start-option POSITION check (`a(*UTF)`)
+  is contextual — stays in the validator until the capstone finds a shape; quantified-verb (`(*:x)+` rejects,
+  `(*ACCEPT)+` accepts) adjudicated during design. Migrate the matched validator branches same-slice.
+- ID: `.3.15`  Status: `pending` (EVIDENCED `-0015`)  Goal: encode row 7's residual (empty-`[]` was `.3.7(a)`):
+  class-member VISIBILITY — `stray_class_end_quote` (`\E`), empty `quoted_class_literal` (`\Q\E`) and
+  `empty_quoted_class_literal` are PCRE2-INVISIBLE members; the non-empty-class requirement must count only
+  VISIBLE members, allowing invisible prefixes before the first-`]`-literal form (`[\E]` / `[\Q]` / `[\E\E]`
+  reject err 106; `[\E]x]` stays ACCEPTED — oracle-verified). Migrate the matched class-analyzer paths.
+- ID: `.3.16`  Status: `pending` (EVIDENCED `-0015`; BLOCKED on `STIMULI-SIGNOFF.13.2` — the interpreter has
+  NO value-constraint mirror, so `@range` on a differential-CERTIFIED grammar would open a latent divergence
+  class)  Goal: encode row 5 — `@range: [0, 255]` on a dedicated `callout_number` rule (`(?C262)` rejects
+  err 138, `(?C255)` accepted); codegen already emits the parse-time guard (`ast_based_generator.rs:7868`)
+  and the generator samples within bounds; migrate `find_invalid_numeric_callout`.
+- ID: `.3.17`  Status: `pending` (EVIDENCED `-0015`; design owned by `STIMULI-SIGNOFF.13.4`)  Goal: row 9
+  generation-side — scs capture-list references. Parse-time predicate is UNSOUND (forward refs LEGAL:
+  `(*scs:('a'))(?<a>x)` oracle-accepted), so the parse-side check STAYS in the validator; the generator-side
+  fix = store-aware generation draws `name_ref` from generation-emitted capture-name facts (the sound
+  already-generated subset, the `.3.12` precedent) via a grammar-declared generation-side gate.
+- ID: `.3.18`  Status: `pending` (LATENT class, oracle-verified `-0015`)  Goal: row 4 — counted-quantifier
+  bounds (`a{5,2}` rejects err 104; `{,>65535}` limits); `@predicate`/structural per the `.1` table; the
+  generator currently CAN emit out-of-order bounds (not yet observed at the 100-sample hunter budget).
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
   EBNF is the sole source of truth.

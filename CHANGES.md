@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0015 (STIMULI-SIGNOFF.13.1): the .13 root-cause + design record — and a NEW released-parser fidelity divergence found while root-causing
+
+Session #60. Docs-only. The `.4.4` finding's mandated tools-first root cause, per class, plus the
+fix design and ownership plan: `docs/tasks/STIMULI-SIGNOFF-13-post-parse-contract-design.md`.
+
+- **Reproduction:** the hunter re-run at seeds 0/7/42 (100 samples each): 6/7/11 rejected,
+  4/5/4 unique breaks, deterministic — same class set as `.4.4`.
+- **Root cause (WHY+WHERE, tool-backed, per class):** every shrunk reproducer fed to the REAL
+  parser fails with the post-parse-CONTRACT message, not a grammar backtrack — the grammar
+  structurally ACCEPTS all 6 forms; the generator is contract-BLIND (grep-verified: zero
+  references to `regex_compile_validation`/`post_parse_semantic_contract` in
+  `stimuli_generator.rs`); the contract runs UNCONDITIONALLY in both profiles
+  (`parser_registry.rs:394/:407/:1226`). Each class's grammar site + validator site + PCRE2
+  10.47 oracle verdict are pinned in the design §2 table. All 6 classes are exactly
+  not-yet-encoded rows (5/6/7/8/9) of the `REGEX-PCRE2-FIDELITY.3` validator-migration table —
+  the duality break exists BECAUSE those checks live out-of-band of the EBNF.
+- **🔎 NEW FINDING (a real accepts-invalid divergence in the RELEASED regex parser):** PGEN
+  accepts all 7 quantified escape-anchors `\A*` `\b*` `\B?` `\G+` `\z*` `\Z*` `\K*` that PCRE2
+  10.47 rejects (err 109) — `find_invalid_quantified_anchor` covers only `^`/`$`; latent because
+  the oracle corpus lacks the forms (POSIX aliases `[[:<:]]*`/`[[:>:]]+` are parity-accepted).
+  Routed to `REGEX-PCRE2-FIDELITY.3.13`, which owns the row-8 structural encoding that fixes the
+  duality class AND the divergence in one slice.
+- **Design decisions:** encodings are PLAIN (no profile split — the contract rejects in both
+  profiles today, so verdict parity everywhere); each encoding slice removes its matching
+  validator branch same-slice (the `.3.2` precedent) with `pcre2test` + oracle-gate parity proof.
+  scs (class 6) parse-time predicate proven UNSOUND — forward references are LEGAL
+  (`(*scs:('a'))(?<a>x)` oracle-accepted) — so its fix is generation-side store-aware
+  (`STIMULI-SIGNOFF.13.4` + `REGEX-PCRE2-FIDELITY.3.17`). The `(?C262)` `@range` route is
+  BLOCKED on the interpreter's missing value-constraint mirror (`STIMULI-SIGNOFF.13.2` lands the
+  parser-agnostic mirror first — a latent platform hole for ANY grammar adopting `@range`).
+- **Cert-spf adjudication (the leaf's second mandate) DECIDED:** the cert config stays (its
+  deterministic baselines are load-bearing); the `.13.3` duality-hunt gate lane becomes the
+  honest plain-config coverage; the book already states the config scope.
+- **Ownership split:** regex.ebnf encodings → new `REGEX-PCRE2-FIDELITY` leaves `.3.13`–`.3.18`
+  (materialized this slice with evidence + oracle verdicts); general parser-agnostic capabilities
+  + the honesty ratchet stay in `STIMULI-SIGNOFF.13.2`–`.13.4`.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0014 (STIMULI-SIGNOFF.4.4): goal G2 duality-break hunter lands — and its FIRST real hunt finds real generator debt on regex
 
 Session #59. The third FdLoop goal: actively HUNT generator-emitted-but-parser-rejected samples
