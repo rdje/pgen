@@ -17,7 +17,9 @@ use super::predicate_expr::{
     PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
 use super::semantic_directive_registry::{
-    SemanticBranchPolicy, effective_rule_branch_policy, parse_semantic_string_list,
+    SemanticAssociativity, SemanticBranchPolicy, effective_rule_associativity,
+    effective_rule_branch_policy, effective_rule_branch_priorities,
+    effective_rule_deterministic_partition_policy, parse_semantic_string_list,
 };
 use super::semantic_runtime::{
     SemanticPredicatePhase, SemanticRuntimeDirective, parse_semantic_runtime_directive,
@@ -1220,8 +1222,20 @@ pub struct ShadowingIssue {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShadowingReason {
-    /// Exact structural duplicate of the earlier alternative.
+    /// Exact structural duplicate of the earlier alternative AND the rule's selection semantics
+    /// guarantee the earlier twin beats it (GRAMMAR-WELLFORMED.A2.4): `@branch_policy: ordered`
+    /// (first-success commit), or a tournament policy where the earlier twin's effective
+    /// `@priority` wins outright, or ties break its way (`left`, the default) — with no
+    /// branch-phase `@predicate` able to block the earlier twin and no `@deterministic_group`
+    /// partition rotation able to reorder the tournament.
     DuplicateAlternative,
+    /// Exact structural duplicate of the earlier alternative under `@associativity: nonassoc`
+    /// with equal effective priorities (GRAMMAR-WELLFORMED.A2.4): the twins ALWAYS tie, the
+    /// engine's `nonassoc_tie` fails the WHOLE choice whenever they match, so NEITHER twin can
+    /// ever be selected. The unreachability claim for the later twin holds, but the remedy
+    /// differs — removing just one duplicate would CHANGE acceptance (the survivor then wins),
+    /// so the message says restructure deliberately, not merge-or-remove.
+    DuplicateAlternativeNonassocTie,
     /// The earlier alternative is a fixed-terminal prefix of this one AND the owning rule's
     /// effective `@branch_policy` is `ordered` (first-success commit) with no branch-phase
     /// `@predicate` able to block the earlier alternative — the ONLY selection semantics under
@@ -1256,6 +1270,10 @@ impl ShadowingIssue {
             ShadowingReason::DuplicateAlternative => format!(
                 "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — it is an exact structural duplicate of alternative #{}; merge or remove the duplicate",
                 self.rule, self.node_path, self.shadowed_index, self.by_index
+            ),
+            ShadowingReason::DuplicateAlternativeNonassocTie => format!(
+                "grammar shadowing: in rule '{}' (ordered choice at {}), alternatives #{} and #{} are exact structural duplicates under @associativity: nonassoc — they always tie, the tie fails the whole choice, and NEITHER can ever be selected; note that removing just one duplicate would CHANGE acceptance (the survivor then wins the choice), so restructure the alternatives deliberately",
+                self.rule, self.node_path, self.by_index, self.shadowed_index
             ),
             ShadowingReason::FixedTerminalPrefix => format!(
                 "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — alternative #{} is a fixed-terminal prefix of it and the rule's effective @branch_policy is 'ordered' (the choice commits to the first successful alternative, and whenever #{} could match, #{} succeeds first); reorder (specific before general) or merge",
@@ -1365,18 +1383,108 @@ fn rule_has_branch_phase_predicates(annotations: Option<&Annotations>, rule: &st
     any
 }
 
-/// Detect shadowed (UNREACHABLE) alternatives in every ordered choice of every rule. SOUND-ONLY:
-/// exact-duplicate (selection-semantics-independent deadness of the later twin) plus
-/// fixed-terminal-prefix RESTRICTED to its sound sub-case — the owning rule's effective
-/// `@branch_policy` is `ordered` (first-success commit) and no branch-phase `@predicate` can block
-/// the earlier alternative (A2.3: under the default `longest_match` and under `priority_first`
-/// the engine runs the full tournament and the later alternative is LIVE — tool-proven by
-/// PARSE-HARNESS.8 — so no finding is emitted there; the structure is the normal longest-match
-/// idiom, not a smell). The non-verdict always-succeeds SMELL is a SEPARATE, non-gating report
-/// (`detect_always_succeeds_alternatives`), deliberately NOT a shadowing verdict (A2.2). PURE
-/// analysis; deterministic order via `rule_order` + source order of Or nodes. `annotations` feeds
-/// the per-rule policy/predicate condition; `None` means no annotations → every rule is at the
-/// default `longest_match` → only duplicate verdicts can fire.
+/// GRAMMAR-WELLFORMED.A2.4: the selection semantics the generated engine ACTUALLY resolves for a
+/// rule's branch tournaments — every input an inter-alternative deadness verdict must be
+/// conditioned on. Resolved once per rule through the SAME shared registry functions codegen
+/// delegates to (`effective_rule_branch_policy` / `_associativity` / `_branch_priorities` /
+/// `_deterministic_partition_policy`), so detector, certificate checker, and codegen can never
+/// drift. Priorities are re-normalized per choice (the same `@priority`/`@precedence` payload is
+/// applied by codegen to EVERY Or in the rule at that Or's arity), hence the arity-taking method
+/// rather than a stored vector.
+struct RuleSelectionSemantics<'a> {
+    annotations: Option<&'a Annotations>,
+    rule: &'a str,
+    policy: SemanticBranchPolicy,
+    associativity: SemanticAssociativity,
+    partition_enabled: bool,
+    has_branch_phase_predicates: bool,
+}
+
+impl<'a> RuleSelectionSemantics<'a> {
+    fn resolve(annotations: Option<&'a Annotations>, rule: &'a str) -> Self {
+        RuleSelectionSemantics {
+            annotations,
+            rule,
+            policy: effective_rule_branch_policy(annotations, rule),
+            associativity: effective_rule_associativity(annotations, rule),
+            partition_enabled: effective_rule_deterministic_partition_policy(annotations, rule)
+                .enabled,
+            has_branch_phase_predicates: rule_has_branch_phase_predicates(annotations, rule),
+        }
+    }
+
+    /// Is the fixed-terminal-prefix deadness argument sound for this rule? A2.3: only under
+    /// `@branch_policy: ordered` (first-success commit) with no branch-phase predicates. A2.4
+    /// probe D adds: and no `@deterministic_group` partition — rotation reorders the evaluation
+    /// order, so "the earlier alternative commits first" no longer holds.
+    fn fixed_prefix_verdict_applies(&self) -> bool {
+        self.policy == SemanticBranchPolicy::Ordered
+            && !self.has_branch_phase_predicates
+            && !self.partition_enabled
+    }
+
+    /// The sound duplicate verdict (if any) for an exact-twin pair — `by` earlier, `dead` later —
+    /// in an `arity`-branch choice. `None` means the engine CAN select the later twin, so no
+    /// deadness verdict may be emitted. Live-proven condition table (A2.4 probes R/N/P/D):
+    ///   - branch-phase predicates or partition rotation anywhere on the rule → None
+    ///     (a predicate can block the earlier twin; rotation reorders the tournament);
+    ///   - `ordered` → the earlier twin commits first (priority/associativity never consulted);
+    ///   - tournament policies (`longest_match`/`priority_first` — twins always tie on length, so
+    ///     priority then associativity decide):
+    ///       * earlier priority strictly higher → earlier wins outright;
+    ///       * equal priority: `left` keeps the earlier (verdict), `right` selects the LATER
+    ///         (probe R — no verdict), `nonassoc` fails the whole choice whenever the twins match
+    ///         (probe N — the nonassoc-tie verdict: the later twin is never selected, but the
+    ///         remedy differs);
+    ///       * later priority strictly higher → the later twin WINS (probe P — no verdict).
+    fn duplicate_verdict(
+        &self,
+        arity: usize,
+        by: usize,
+        dead: usize,
+    ) -> Option<ShadowingReason> {
+        if self.has_branch_phase_predicates || self.partition_enabled {
+            return None;
+        }
+        if self.policy == SemanticBranchPolicy::Ordered {
+            return Some(ShadowingReason::DuplicateAlternative);
+        }
+        let priorities = effective_rule_branch_priorities(self.annotations, self.rule, arity);
+        let (p_by, p_dead) = (priorities[by], priorities[dead]);
+        match self.associativity {
+            SemanticAssociativity::Left => {
+                (p_by >= p_dead).then_some(ShadowingReason::DuplicateAlternative)
+            }
+            SemanticAssociativity::Right => {
+                (p_by > p_dead).then_some(ShadowingReason::DuplicateAlternative)
+            }
+            SemanticAssociativity::NonAssoc => {
+                if p_by > p_dead {
+                    Some(ShadowingReason::DuplicateAlternative)
+                } else if p_by == p_dead {
+                    Some(ShadowingReason::DuplicateAlternativeNonassocTie)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+/// Detect shadowed (UNREACHABLE) alternatives in every ordered choice of every rule. SOUND-ONLY —
+/// every verdict is conditioned on the rule's ACTUAL selection semantics (A2.3 + A2.4):
+/// exact-duplicate fires only where the engine provably never selects the later twin (see
+/// `RuleSelectionSemantics::duplicate_verdict` — under `@associativity: right`, a later-higher
+/// `@priority`, or `@deterministic_group` rotation the engine SELECTS the "duplicate", live-proven
+/// by the A2.4 probes); fixed-terminal-prefix stays RESTRICTED to its sound sub-case — effective
+/// `@branch_policy: ordered` with no branch-phase `@predicate` and no partition rotation (A2.3:
+/// under the default `longest_match` and under `priority_first` the engine runs the full
+/// tournament and the later alternative is LIVE — tool-proven by PARSE-HARNESS.8). The non-verdict
+/// always-succeeds SMELL is a SEPARATE, non-gating report (`detect_always_succeeds_alternatives`),
+/// deliberately NOT a shadowing verdict (A2.2). PURE analysis; deterministic order via
+/// `rule_order` + source order of Or nodes. `annotations` feeds the per-rule conditions; `None`
+/// means no annotations → every rule is at the default `longest_match`/`left`/no-partition →
+/// duplicate verdicts fire, fixed-prefix verdicts do not.
 pub fn detect_ordered_choice_shadowing(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
@@ -1385,12 +1493,11 @@ pub fn detect_ordered_choice_shadowing(
     let mut issues = Vec::new();
     for rule in rule_order {
         let Some(body) = grammar.get(rule) else { continue };
-        // The branch policy is a RULE-level property (codegen keys every Or in the rule's body —
-        // nested ones included — on `rule_branch_policy(rule_name)`), so compute it once per rule.
-        let fixed_prefix_verdict_applies =
-            effective_rule_branch_policy(annotations, rule) == SemanticBranchPolicy::Ordered
-                && !rule_has_branch_phase_predicates(annotations, rule);
-        collect_shadowing(rule, body, "root", fixed_prefix_verdict_applies, &mut issues);
+        // Selection semantics are RULE-level properties (codegen keys every Or in the rule's
+        // body — nested ones included — on the rule-name-resolved directives), so resolve once
+        // per rule; only priorities re-normalize per Or arity.
+        let semantics = RuleSelectionSemantics::resolve(annotations, rule);
+        collect_shadowing(rule, body, "root", &semantics, &mut issues);
     }
     issues
 }
@@ -1399,7 +1506,7 @@ fn collect_shadowing(
     rule: &str,
     node: &ASTNode,
     path: &str,
-    fixed_prefix_verdict_applies: bool,
+    semantics: &RuleSelectionSemantics<'_>,
     out: &mut Vec<ShadowingIssue>,
 ) {
     match node {
@@ -1407,8 +1514,8 @@ fn collect_shadowing(
             for (j, alt_j) in alternatives.iter().enumerate() {
                 for (i, alt_i) in alternatives.iter().enumerate().take(j) {
                     let reason = if ast_eq(alt_i, alt_j) {
-                        Some(ShadowingReason::DuplicateAlternative)
-                    } else if !fixed_prefix_verdict_applies {
+                        semantics.duplicate_verdict(alternatives.len(), i, j)
+                    } else if !semantics.fixed_prefix_verdict_applies() {
                         // A2.3: under `longest_match` (default) / `priority_first` the later
                         // alternative is reachable (the tournament tries every branch and a
                         // longer/higher-priority match wins) — no deadness verdict to make.
@@ -1443,35 +1550,23 @@ fn collect_shadowing(
                 }
             }
             for (idx, alt) in alternatives.iter().enumerate() {
-                collect_shadowing(
-                    rule,
-                    alt,
-                    &format!("{}/o{}", path, idx),
-                    fixed_prefix_verdict_applies,
-                    out,
-                );
+                collect_shadowing(rule, alt, &format!("{}/o{}", path, idx), semantics, out);
             }
         }
         ASTNode::Sequence { elements } => {
             for (idx, e) in elements.iter().enumerate() {
-                collect_shadowing(
-                    rule,
-                    e,
-                    &format!("{}/s{}", path, idx),
-                    fixed_prefix_verdict_applies,
-                    out,
-                );
+                collect_shadowing(rule, e, &format!("{}/s{}", path, idx), semantics, out);
             }
         }
         ASTNode::Quantified { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/q", path), fixed_prefix_verdict_applies, out);
+            collect_shadowing(rule, element, &format!("{}/q", path), semantics, out);
         }
         ASTNode::Lookahead { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/l", path), fixed_prefix_verdict_applies, out);
+            collect_shadowing(rule, element, &format!("{}/l", path), semantics, out);
         }
         ASTNode::Atom { value } => {
             if let ASTValue::Node(inner) = value {
-                collect_shadowing(rule, inner, &format!("{}/a", path), fixed_prefix_verdict_applies, out);
+                collect_shadowing(rule, inner, &format!("{}/a", path), semantics, out);
             }
         }
     }
@@ -1592,7 +1687,11 @@ impl ShadowingIssue {
     /// Emit the structured unreachability certificate for this shadowing finding (G.1).
     pub fn certificate(&self) -> UnreachabilityCertificate {
         let reason = match self.reason {
-            ShadowingReason::DuplicateAlternative => {
+            // Both duplicate flavors certify the same claim — the later twin is never selected
+            // (under nonassoc, the tie fails the choice, so it is never selected either); the
+            // checker re-derives the selection-semantics disjunction (A2.4).
+            ShadowingReason::DuplicateAlternative
+            | ShadowingReason::DuplicateAlternativeNonassocTie => {
                 UnreachabilityReason::DuplicateOf { by: self.by_index }
             }
             ShadowingReason::FixedTerminalPrefix => {
@@ -1641,12 +1740,17 @@ fn navigate_node_path<'a>(body: &'a ASTNode, node_path: &str) -> Option<&'a ASTN
 
 /// THE CHECKER (G.1/G.2 seed): independently re-validate an unreachability certificate against the
 /// grammar. Re-navigates to the cited `Or` node and re-derives the deadness claim DIRECTLY from the
-/// AST — it never trusts the detector. For the policy-conditional `FixedTerminalPrefixBy` reason
-/// (A2.3) it re-derives the selection-semantics condition too (`annotations` supplies the rule's
-/// effective `@branch_policy` + branch-predicate surface; `None` means default `longest_match`, so
-/// any fixed-prefix certificate is honestly REJECTED). Returns `Ok(())` iff the certificate
-/// genuinely holds; `Err` (with the reason) means the certificate is invalid — a linter bug or a
-/// tampered/stale certificate.
+/// AST — it never trusts the detector. BOTH reasons are selection-semantics-conditional and the
+/// checker re-derives their conditions (A2.3 + A2.4): `DuplicateOf` re-derives the structural
+/// twin-ship AND the tournament condition (`annotations` supplies the rule's effective
+/// `@branch_policy` / `@associativity` / `@priority` / `@deterministic_group` / branch-predicate
+/// surface — a duplicate certificate under `@associativity: right`, a later-higher `@priority`, or
+/// partition rotation is FALSE: the engine SELECTS the "dead" twin, live-proven by the A2.4
+/// probes); `FixedTerminalPrefixBy` re-derives the structural prefix AND the ordered-commit
+/// condition. `None` annotations means every rule is at the defaults, so duplicate certificates
+/// verify and fixed-prefix certificates are honestly REJECTED. Returns `Ok(())` iff the
+/// certificate genuinely holds; `Err` (with the reason) means the certificate is invalid — a
+/// linter bug or a tampered/stale certificate.
 pub fn verify_unreachability_certificate(
     grammar: &HashMap<String, ASTNode>,
     annotations: Option<&Annotations>,
@@ -1676,18 +1780,29 @@ pub fn verify_unreachability_certificate(
     let dead_alt = alternatives
         .get(cert.dead_index)
         .ok_or_else(|| format!("certificate dead index #{} out of range", cert.dead_index))?;
+    let semantics = RuleSelectionSemantics::resolve(annotations, &cert.rule);
     let holds = match &cert.reason {
-        UnreachabilityReason::DuplicateOf { .. } => ast_eq(by_alt, dead_alt),
+        UnreachabilityReason::DuplicateOf { .. } => {
+            // A2.4: the deadness claim is selection-semantics-conditional — a certificate is a
+            // PROOF, so the checker re-derives the CONDITION (via the SAME
+            // `RuleSelectionSemantics::duplicate_verdict` the detector uses), not just the
+            // structural twin-ship. A duplicate certificate for a rule whose tie-break or
+            // priority resolution can SELECT the later twin (`right` associativity, later-higher
+            // `@priority`, `@deterministic_group` rotation, a branch-phase predicate) is FALSE
+            // and rejected regardless of the structural relation holding.
+            ast_eq(by_alt, dead_alt)
+                && semantics
+                    .duplicate_verdict(alternatives.len(), by, cert.dead_index)
+                    .is_some()
+        }
         UnreachabilityReason::FixedTerminalPrefixBy { .. } => {
-            // A2.3: the deadness claim is policy-conditional — a certificate is a PROOF, so the
-            // checker re-derives the CONDITION (ordered first-success commit, no branch-phase
-            // predicates), not just the structural prefix. A fixed-prefix certificate for a
-            // longest_match/priority_first rule is FALSE (the later alternative is live) and is
-            // rejected here regardless of the structural relation holding.
-            let policy_holds = effective_rule_branch_policy(annotations, &cert.rule)
-                == SemanticBranchPolicy::Ordered
-                && !rule_has_branch_phase_predicates(annotations, &cert.rule);
-            policy_holds
+            // A2.3: the deadness claim is policy-conditional — the checker re-derives the
+            // CONDITION (ordered first-success commit, no branch-phase predicates; A2.4 probe D
+            // adds no-partition-rotation), not just the structural prefix. A fixed-prefix
+            // certificate for a longest_match/priority_first rule is FALSE (the later
+            // alternative is live) and is rejected here regardless of the structural relation
+            // holding.
+            semantics.fixed_prefix_verdict_applies()
                 && match fixed_terminal_seq(by_alt) {
                     Some(prefix) => {
                         let later = leading_fixed_terminals(dead_alt);
@@ -3215,7 +3330,9 @@ mod tests {
 
     #[test]
     fn detects_duplicate_alternative() {
-        // r := "a" | "a"   → the 2nd alternative is a dead duplicate (policy-independent).
+        // r := "a" | "a"   → the 2nd alternative is a dead duplicate at the DEFAULTS
+        // (left/longest_match/no-priority/no-partition — the sound sub-case; A2.4 conditions
+        // the verdict on the selection semantics).
         let mut g = HashMap::new();
         g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));
         let order: Vec<String> = vec!["r".into()];
@@ -3351,6 +3468,178 @@ mod tests {
             issues3.len(),
             1,
             "a pre-phase predicate gates the whole rule, not a branch — verdict stands: {issues3:?}"
+        );
+    }
+
+    /// Test-only: annotations giving `rule` a list of named directives with raw payloads (the
+    /// exact `SemanticAnnotation::Named` + `Raw` shape the EBNF frontend produces).
+    fn named_raw_annotations(rule: &str, directives: &[(&str, &str)]) -> Annotations {
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert(
+            rule.to_string(),
+            directives
+                .iter()
+                .map(|(name, payload)| SemanticAnnotation::Named {
+                    name: (*name).to_string(),
+                    ast: crate::ast_pipeline::UnifiedSemanticAST::Raw {
+                        content: (*payload).to_string(),
+                    },
+                })
+                .collect(),
+        );
+        ann
+    }
+
+    /// The exact-twin grammar every A2.4 case probes: `r := "a" | "a"`.
+    fn duplicate_twin_grammar() -> (HashMap<String, ASTNode>, Vec<String>) {
+        let mut g = HashMap::new();
+        g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));
+        (g, vec!["r".into()])
+    }
+
+    #[test]
+    fn duplicate_verdict_is_selection_semantics_aware() {
+        // GRAMMAR-WELLFORMED.A2.4 (probes R/P/D): an exact-duplicate deadness verdict is only as
+        // sound as the rule's selection semantics — where the engine can SELECT the later twin,
+        // no verdict may fire. Each suppressed case below was live-proven on the parse harness
+        // (the engine's own `🏁 selected branch 2/2` trace on `"a" | "a"` over "a").
+        let (g, order) = duplicate_twin_grammar();
+        // (R) `@associativity: right` — the equal-length/equal-priority tie selects the LATER twin.
+        let right = named_raw_annotations("r", &[("associativity", "right")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&right));
+        assert!(issues.is_empty(), "right-assoc ties select the later twin — no verdict: {issues:?}");
+        // (P) a later-higher `@priority` wins before the associativity tie-break — default policy/assoc.
+        let later_p = named_raw_annotations("r", &[("priority", "[0, 5]")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&later_p));
+        assert!(issues.is_empty(), "the higher-priority later twin wins — no verdict: {issues:?}");
+        // (P under priority_first) the same priority resolution is primary there.
+        let pf_later =
+            named_raw_annotations("r", &[("branch_policy", "priority_first"), ("priority", "[0, 5]")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&pf_later));
+        assert!(issues.is_empty(), "priority_first later-higher twin wins — no verdict: {issues:?}");
+        // (D) `@deterministic_group` rotates the evaluation order — under `left` a tie keeps the
+        // INCUMBENT, so a rotated-first later twin wins; rotation also reorders `ordered`
+        // first-success. Conservatively suppressed whenever enabled.
+        let partition = named_raw_annotations("r", &[("deterministic_group", "true")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&partition));
+        assert!(issues.is_empty(), "partition rotation reorders the tournament — no verdict: {issues:?}");
+        // An EARLIER-higher priority keeps the verdict (the earlier twin wins outright) — under
+        // the default `left` AND under `right` (priority is compared before the tie-break).
+        for extra in [vec![("priority", "[5, 0]")], vec![("associativity", "right"), ("priority", "[5, 0]")]] {
+            let ann = named_raw_annotations("r", &extra);
+            let issues = detect_ordered_choice_shadowing(&g, &order, Some(&ann));
+            assert_eq!(issues.len(), 1, "earlier-higher priority keeps the verdict ({extra:?}): {issues:?}");
+            assert_eq!(issues[0].reason, ShadowingReason::DuplicateAlternative);
+            assert_eq!(issues[0].shadowed_index, 1);
+        }
+        // `@branch_policy: ordered` commits to the FIRST success in source order — priorities and
+        // associativity are never consulted, so the verdict stands even under `right`.
+        let ordered =
+            named_raw_annotations("r", &[("branch_policy", "ordered"), ("associativity", "right")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&ordered));
+        assert_eq!(issues.len(), 1, "ordered first-success keeps the verdict: {issues:?}");
+        // A branch-phase predicate can BLOCK the earlier twin, reviving the later one — suppress
+        // (same conservative condition as the A2.3 fixed-prefix verdict).
+        let mut pred = Annotations::default();
+        pred.semantic_annotations.insert("r".into(), vec![branch_phase_predicate_ann()]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&pred));
+        assert!(issues.is_empty(), "a branch-phase predicate suppresses the duplicate verdict: {issues:?}");
+    }
+
+    #[test]
+    fn duplicate_nonassoc_tie_is_its_own_truthful_verdict() {
+        // GRAMMAR-WELLFORMED.A2.4 (probe N): equal-priority exact twins under
+        // `@associativity: nonassoc` ALWAYS tie, the engine's `nonassoc_tie` fails the whole
+        // choice (live-proven: the twins REJECT the very input their body matches while the
+        // deduplicated control ACCEPTS it), so NEITHER twin is ever selected. The unreachability
+        // claim holds, but the remedy differs — the message must say so instead of advising a
+        // behavior-CHANGING merge-or-remove.
+        let (g, order) = duplicate_twin_grammar();
+        let nonassoc = named_raw_annotations("r", &[("associativity", "nonassoc")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&nonassoc));
+        assert_eq!(issues.len(), 1, "nonassoc equal-priority twins are a (tie) verdict: {issues:?}");
+        assert_eq!(issues[0].reason, ShadowingReason::DuplicateAlternativeNonassocTie);
+        let m = issues[0].message();
+        assert!(
+            m.contains("nonassoc") && m.contains("CHANGE acceptance"),
+            "the nonassoc-tie message must state the tie semantics and the removal caveat: {m}"
+        );
+        // A later-higher priority resolves the tie BEFORE associativity — the later twin simply
+        // wins: no verdict at all.
+        let later_p =
+            named_raw_annotations("r", &[("associativity", "nonassoc"), ("priority", "[0, 5]")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&later_p));
+        assert!(issues.is_empty(), "nonassoc + later-higher priority selects the later twin: {issues:?}");
+        // An earlier-higher priority also never ties — the earlier twin wins outright: the
+        // STANDARD duplicate verdict.
+        let earlier_p =
+            named_raw_annotations("r", &[("associativity", "nonassoc"), ("priority", "[5, 0]")]);
+        let issues = detect_ordered_choice_shadowing(&g, &order, Some(&earlier_p));
+        assert_eq!(issues.len(), 1, "nonassoc + earlier-higher priority: standard verdict: {issues:?}");
+        assert_eq!(issues[0].reason, ShadowingReason::DuplicateAlternative);
+    }
+
+    #[test]
+    fn duplicate_certificates_are_selection_semantics_conditional() {
+        // GRAMMAR-WELLFORMED.A2.4: a `DuplicateOf` certificate is a PROOF — the checker re-derives
+        // the selection-semantics condition (the same `duplicate_verdict` the detector uses), so a
+        // certificate presented under semantics where the engine can SELECT the later twin is
+        // REJECTED regardless of the structural twin-ship holding.
+        let (g, _order) = duplicate_twin_grammar();
+        let cert = UnreachabilityCertificate {
+            rule: "r".into(),
+            node_path: "root".into(),
+            dead_index: 1,
+            reason: UnreachabilityReason::DuplicateOf { by: 0 },
+        };
+        // Sound at the defaults (no annotations at all).
+        assert!(verify_unreachability_certificate(&g, None, &cert).is_ok());
+        // FALSE under each engine-can-select-the-twin semantics (probes R/P/D + the predicate lane).
+        let mut pred = Annotations::default();
+        pred.semantic_annotations.insert("r".into(), vec![branch_phase_predicate_ann()]);
+        for (label, ann) in [
+            ("right associativity", named_raw_annotations("r", &[("associativity", "right")])),
+            ("later-higher priority", named_raw_annotations("r", &[("priority", "[0, 5]")])),
+            ("partition rotation", named_raw_annotations("r", &[("deterministic_group", "true")])),
+            ("branch-phase predicate", pred),
+        ] {
+            assert!(
+                verify_unreachability_certificate(&g, Some(&ann), &cert).is_err(),
+                "a duplicate certificate under {label} must be rejected"
+            );
+        }
+        // Still TRUE under nonassoc equal-priority (the tie fails the choice — the later twin is
+        // never selected) and under ordered (first-success commit).
+        for (label, ann) in [
+            ("nonassoc tie", named_raw_annotations("r", &[("associativity", "nonassoc")])),
+            ("ordered commit", named_raw_annotations("r", &[("branch_policy", "ordered"), ("associativity", "right")])),
+        ] {
+            assert!(
+                verify_unreachability_certificate(&g, Some(&ann), &cert).is_ok(),
+                "a duplicate certificate under {label} genuinely holds"
+            );
+        }
+        // A2.4-D also tightens the A2.3 fixed-prefix condition: ordered + partition rotation
+        // reorders first-success, so that certificate is rejected too.
+        let (pg, _porder) = fixed_prefix_grammar();
+        let prefix_cert = UnreachabilityCertificate {
+            rule: "r".into(),
+            node_path: "root".into(),
+            dead_index: 1,
+            reason: UnreachabilityReason::FixedTerminalPrefixBy { by: 0 },
+        };
+        let ordered = named_raw_annotations("r", &[("branch_policy", "ordered")]);
+        assert!(
+            verify_unreachability_certificate(&pg, Some(&ordered), &prefix_cert).is_ok(),
+            "the ordered fixed-prefix certificate holds without rotation"
+        );
+        let rotated = named_raw_annotations(
+            "r",
+            &[("branch_policy", "ordered"), ("deterministic_group", "true")],
+        );
+        assert!(
+            verify_unreachability_certificate(&pg, Some(&rotated), &prefix_cert).is_err(),
+            "ordered + partition rotation reorders first-success — the certificate must be rejected"
         );
     }
 
@@ -3596,9 +3885,10 @@ mod tests {
     fn unreachability_certificates_verify_and_reject_tampering() {
         // GRAMMAR-WELLFORMED.G.1: every dead-verdict certificate must independently re-verify, and a
         // tampered/bogus certificate must be REJECTED by the checker (the trust comes from the checker).
-        // Only the two SOUND unreachability reasons remain (the unsound always-succeeds verdict was
-        // retired at A2.2; fixed-terminal-prefix is policy-conditional since A2.3):
-        //   r := "a" | "a"           exact duplicate (policy-independent)
+        // Only the SOUND unreachability reasons remain (the unsound always-succeeds verdict was
+        // retired at A2.2; fixed-terminal-prefix is policy-conditional since A2.3; exact-duplicate
+        // is selection-semantics-conditional since A2.4 — sound here at rule `r`'s defaults):
+        //   r := "a" | "a"           exact duplicate (defaults: left/longest_match)
         //   p := "a" | "a" "b"       fixed-terminal prefix — requires @branch_policy: ordered
         let mut g = HashMap::new();
         g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));

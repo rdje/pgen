@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0152 — GRAMMAR-WELLFORMED.A2.4: condition the duplicate verdict on the FULL tie-break, not just the policy; the shared resolver pattern generalizes
+
+Session #52. Three engineering notes from closing the A2.2/A2.3/A2.4 arc:
+
+1. **The tie-break is a *sequence*, and a soundness condition has to model all of it.** A2.3
+   conditioned the fixed-prefix verdict on one axis (`@branch_policy`). The duplicate verdict needed
+   the whole tournament: the generated `generate_or_logic` decides an equal-length tie by
+   `@priority` FIRST (a strictly-higher later twin wins outright, before associativity is even
+   consulted), then `@associativity` (`left` keeps the earlier, `right` picks the later, `nonassoc`
+   sets `nonassoc_tie` which fails the *whole choice*), and it does all of this over an
+   `evaluation_order` that `@deterministic_group` *rotates* by a group-keyed FNV offset. Modelling
+   only associativity would have missed the priority and rotation cases (probes P and D). The fix
+   folds all four inputs into one `RuleSelectionSemantics::duplicate_verdict` that returns the sound
+   reason or `None`, and both the detector and the certificate checker call it — so the "is this
+   twin dead?" question has exactly one answer site.
+
+2. **`nonassoc` is unreachable-BUT-load-bearing — a distinct verdict, not a suppression.** The other
+   three cases (right / later-priority / rotation) SUPPRESS the verdict (the engine selects the later
+   twin, so it is live). `nonassoc` is different: the tie fails the choice, so the later twin is
+   *still* unreachable — but so is the earlier one, and removing one duplicate makes the survivor
+   win, *changing acceptance*. That is a real finding with a different remedy, so it earns its own
+   `DuplicateAlternativeNonassocTie` reason and message ("restructure deliberately," not "merge or
+   remove"). The probe that proved it: the twins reject the very input their body matches, while the
+   deduplicated control accepts it — a behavior a suppression would have hidden.
+
+3. **The shared-resolver pattern is now the standard, and it pays off in the byte-identity proof.**
+   Following A2.3, the three tie-break derivations moved to `semantic_directive_registry.rs`
+   (`effective_rule_associativity` / `effective_rule_branch_priorities` /
+   `effective_rule_deterministic_partition_policy`, plus the struct
+   `SemanticDeterminismPartitionPolicy` itself), and codegen's `rule_associativity` /
+   `rule_branch_priorities` / `rule_deterministic_partition_policy` became one-line delegations. The
+   payoff is verification cost: because the moved bodies are the *same* code codegen ran before,
+   regenerating the four policy-carrying grammars (json / rtl_frontend / systemverilog / regex) and
+   `cmp`-ing against the pre-change parsers proves emit-identity in seconds — the linter change and
+   the codegen refactor are demonstrably parse-behavior-neutral, and the linter can never drift from
+   the semantics it reasons about.
+
 ## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0151 — GRAMMAR-WELLFORMED.A2.3: condition the verdict AND its certificate; share the premise-derivation with the thing that executes the premise
 
 Session #51. Two engineering notes from landing the policy-aware fix:

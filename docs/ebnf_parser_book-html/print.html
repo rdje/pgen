@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d050627c.js";
+            window.path_to_searchindex_js = "searchindex-7b3268d4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -550,9 +550,15 @@ rest are skipped. Only under this policy does <code>"a" | "a" "b"</code> strand 
 <p>Ordering still matters as style — <strong>put the more specific alternative first</strong> — but under the default
 <code>longest_match</code> a shared prefix does <em>not</em> make the later alternative unreachable. <code>--lint-grammar</code>’s
 “ordered-choice shadowing” hard error therefore fires for a fixed-terminal-prefix pair <strong>only on a rule
-whose <code>@branch_policy</code> is <code>ordered</code></strong> (where the earlier alternative genuinely always wins); exact
-duplicates are flagged under every policy (see <a href="#codegen-mental-model">Codegen Mental Model</a> and the platform
-book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter). Each non-last branch
+whose <code>@branch_policy</code> is <code>ordered</code></strong> (where the earlier alternative genuinely always wins, and no
+<code>@deterministic_group</code> rotation is in play). Exact <strong>duplicate</strong> alternatives are flagged too — but
+also only where the tie-break provably keeps the earlier twin: <code>ordered</code>, or a tournament where the
+earlier twin’s <code>@priority</code> is higher or ties break its way (<code>left</code>, the default). Under
+<code>@associativity: right</code>, a later-higher <code>@priority</code>, or a <code>@deterministic_group</code> rotation the engine
+<strong>selects</strong> the later twin, so no verdict fires; under <code>@associativity: nonassoc</code> the tie fails the
+whole choice, which is its own distinct “restructure deliberately” finding (removing one duplicate
+would change what the rule accepts). See <a href="#codegen-mental-model">Codegen Mental Model</a> and the platform
+book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter. Each non-last branch
 may also carry its <strong>own</strong> inline <code>-&gt; …</code> return annotation before the <code>|</code>:</p>
 <pre><code class="language-ebnf">sign := "+" -&gt; {kind: "plus"}
       | "-" -&gt; {kind: "minus"}
@@ -1180,9 +1186,13 @@ becomes a profile guard so a rule only participates under the selected grammar p
 <ul>
 <li><strong><code>--lint-grammar</code></strong> — static well-formedness: left-recursion info and hard <strong>ERRORS</strong> for
 non-terminating rules, unreachable rules, undefined references, unbound fact-kinds, profile orphans,
-and ordered-choice <strong>shadowing</strong> (an exact-duplicate alternative under any policy; a
-fixed-terminal-prefix pair only on an <code>@branch_policy: ordered</code> rule, where the earlier alternative
-genuinely always wins). Run it after every grammar edit.</li>
+and ordered-choice <strong>shadowing</strong> — both forms conditioned on the rule’s actual selection
+semantics: an exact-<strong>duplicate</strong> alternative only where the tie-break provably keeps the earlier
+twin (<code>ordered</code>, or a tournament where the earlier twin’s <code>@priority</code> is higher or ties break its
+way under <code>left</code>; <code>@associativity: nonassoc</code> twins are a distinct “restructure deliberately”
+finding); a <strong>fixed-terminal-prefix</strong> pair only on an <code>@branch_policy: ordered</code> rule with no
+<code>@deterministic_group</code> rotation, where the earlier alternative genuinely always wins. Run it after
+every grammar edit.</li>
 <li><strong><code>--report-certificate-coverage</code></strong> — for every rule, is it covered by a verified unreachability
 <strong>PROOF</strong> or a verified reachability <strong>WITNESS</strong>? <code>UNKNOWN=0</code> with no failures, deterministic at seeds
 <code>0/7/42</code>, is the objective “trustworthy on this grammar” number.</li>
@@ -1281,8 +1291,9 @@ See <a href="#terminals">Terminals</a>.</p>
 <code>builtin_ascii_char</code>) that need no regex engine. The basis of regex-engine-independent grammars.</p>
 </li>
 <li>
-<p><strong>Ordered choice (<code>|</code>)</strong> — PEG alternation: tries branches left-to-right, commits to the first match.
-Ordering matters. See <a href="#rules-and-expressions">Rules and Expressions</a>.</p>
+<p><strong>Ordered choice (<code>|</code>)</strong> — a branch <strong>tournament</strong>, <em>not</em> first-match commit by default: every
+alternative is tried and the longest match wins (the default <code>longest_match</code>); <code>@branch_policy: ordered</code> gives the classical PEG first-success commit. Ordering still matters (it breaks
+longest-match ties and is the try order). See <a href="#rules-and-expressions">Rules and Expressions</a>.</p>
 </li>
 <li>
 <p><strong>Quantifier</strong> — repetition postfix <code>?</code> <code>*</code> <code>+</code> <code>{n}</code> <code>{n,m}</code> <code>{n,}</code> <code>{,m}</code>, all handled by the Layer-0

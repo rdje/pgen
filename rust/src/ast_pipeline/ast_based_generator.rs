@@ -10,9 +10,9 @@ use crate::ast_pipeline::{
     TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
     ast_return_transform::AstReturnTransformer, compile_semantic_runtime_annotations,
     normalize_semantic_scalar, parse_canonical_transform_expression,
-    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
+    parse_semantic_bool, parse_semantic_charset,
     parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
-    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_implication,
     parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
     parse_quantifier_bounds, parse_semantic_pattern, parse_semantic_reference_list,
     parse_semantic_string_list, parse_semantic_token_class,
@@ -153,11 +153,10 @@ struct SemanticNegativeCasePolicy {
     negative: bool,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-struct SemanticDeterminismPartitionPolicy {
-    enabled: bool,
-    group_label: Option<String>,
-}
+// GRAMMAR-WELLFORMED.A2.4: `SemanticDeterminismPartitionPolicy` moved to the shared
+// `semantic_directive_registry` (the linter conditions evaluation-order-based deadness verdicts
+// on it, so codegen and linter must read the SAME resolution).
+use crate::ast_pipeline::semantic_directive_registry::SemanticDeterminismPartitionPolicy;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct SemanticTokenSteeringPolicy {
@@ -7240,45 +7239,13 @@ impl AstBasedGenerator {
         &self,
         rule_name: &str,
     ) -> SemanticDeterminismPartitionPolicy {
-        let Some(annotations) = &self.annotations else {
-            return SemanticDeterminismPartitionPolicy::default();
-        };
-        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return SemanticDeterminismPartitionPolicy::default();
-        };
-
-        let mut policy = SemanticDeterminismPartitionPolicy::default();
-        for annotation in entries {
-            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
-                continue;
-            };
-            match name.as_str() {
-                "seed_group" => {
-                    if let Some(label) = parse_semantic_group_label(&payload) {
-                        policy.group_label = Some(label);
-                    }
-                }
-                "deterministic_group" => {
-                    if let Some(parsed) = parse_semantic_deterministic_group(&payload) {
-                        policy.enabled = parsed.enabled;
-                        if let Some(label) = parsed.group {
-                            policy.group_label = Some(label);
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        if !policy.enabled {
-            policy.group_label = None;
-            return policy;
-        }
-        if policy.group_label.is_none() {
-            policy.group_label = Some(format!("rule.{}", rule_name));
-        }
-
-        policy
+        // GRAMMAR-WELLFORMED.A2.4: shared with the linter (see
+        // `effective_rule_deterministic_partition_policy` — partition rotation reorders the
+        // branch tournament, so deadness verdicts are conditioned on the same resolution).
+        crate::ast_pipeline::semantic_directive_registry::effective_rule_deterministic_partition_policy(
+            self.annotations.as_ref(),
+            rule_name,
+        )
     }
 
     fn rule_profiles(&self, rule_name: &str) -> Vec<String> {
@@ -7395,61 +7362,24 @@ impl AstBasedGenerator {
     }
 
     fn rule_associativity(&self, rule_name: &str) -> SemanticAssociativity {
-        let Some(annotations) = &self.annotations else {
-            return SemanticAssociativity::Left;
-        };
-        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return SemanticAssociativity::Left;
-        };
-
-        let mut associativity = SemanticAssociativity::Left;
-        for annotation in entries {
-            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
-                continue;
-            };
-            if name == "associativity" {
-                if let Some(parsed) = SemanticAssociativity::parse(&payload) {
-                    associativity = parsed;
-                }
-            }
-        }
-
-        associativity
+        // GRAMMAR-WELLFORMED.A2.4: shared with the linter (see `effective_rule_associativity` —
+        // the tie-break selects the LATER branch under `right`, so deadness verdicts must read
+        // the same resolution).
+        crate::ast_pipeline::semantic_directive_registry::effective_rule_associativity(
+            self.annotations.as_ref(),
+            rule_name,
+        )
     }
 
     fn rule_branch_priorities(&self, rule_name: &str, branch_count: usize) -> Vec<i64> {
-        let default_priorities = vec![0i64; branch_count];
-        let Some(annotations) = &self.annotations else {
-            return default_priorities;
-        };
-        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return default_priorities;
-        };
-
-        let mut precedence_priorities: Option<Vec<i64>> = None;
-        let mut explicit_priorities: Option<Vec<i64>> = None;
-
-        for annotation in entries {
-            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
-                continue;
-            };
-            let Some(parsed) = parse_semantic_branch_priorities(&payload, branch_count) else {
-                continue;
-            };
-            match name.as_str() {
-                "precedence" => {
-                    precedence_priorities = Some(parsed);
-                }
-                "priority" => {
-                    explicit_priorities = Some(parsed);
-                }
-                _ => {}
-            }
-        }
-
-        explicit_priorities
-            .or(precedence_priorities)
-            .unwrap_or(default_priorities)
+        // GRAMMAR-WELLFORMED.A2.4: shared with the linter (see
+        // `effective_rule_branch_priorities` — priority is compared before the associativity
+        // tie-break, so deadness verdicts must read the same resolution).
+        crate::ast_pipeline::semantic_directive_registry::effective_rule_branch_priorities(
+            self.annotations.as_ref(),
+            rule_name,
+            branch_count,
+        )
     }
 
     fn rule_value_constraints(&self, rule_name: &str) -> SemanticValueConstraints {

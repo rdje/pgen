@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d050627c.js";
+            window.path_to_searchindex_js = "searchindex-7b3268d4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -246,9 +246,13 @@ becomes a profile guard so a rule only participates under the selected grammar p
 <ul>
 <li><strong><code>--lint-grammar</code></strong> — static well-formedness: left-recursion info and hard <strong>ERRORS</strong> for
 non-terminating rules, unreachable rules, undefined references, unbound fact-kinds, profile orphans,
-and ordered-choice <strong>shadowing</strong> (an exact-duplicate alternative under any policy; a
-fixed-terminal-prefix pair only on an <code>@branch_policy: ordered</code> rule, where the earlier alternative
-genuinely always wins). Run it after every grammar edit.</li>
+and ordered-choice <strong>shadowing</strong> — both forms conditioned on the rule’s actual selection
+semantics: an exact-<strong>duplicate</strong> alternative only where the tie-break provably keeps the earlier
+twin (<code>ordered</code>, or a tournament where the earlier twin’s <code>@priority</code> is higher or ties break its
+way under <code>left</code>; <code>@associativity: nonassoc</code> twins are a distinct “restructure deliberately”
+finding); a <strong>fixed-terminal-prefix</strong> pair only on an <code>@branch_policy: ordered</code> rule with no
+<code>@deterministic_group</code> rotation, where the earlier alternative genuinely always wins. Run it after
+every grammar edit.</li>
 <li><strong><code>--report-certificate-coverage</code></strong> — for every rule, is it covered by a verified unreachability
 <strong>PROOF</strong> or a verified reachability <strong>WITNESS</strong>? <code>UNKNOWN=0</code> with no failures, deterministic at seeds
 <code>0/7/42</code>, is the objective “trustworthy on this grammar” number.</li>

@@ -19,8 +19,10 @@ docs cross-linked from [Welcome](welcome.md).
 - **`any_char` / `ascii_char`** — native single-character matchers (also `builtin_any_char` /
   `builtin_ascii_char`) that need no regex engine. The basis of regex-engine-independent grammars.
 
-- **Ordered choice (`|`)** — PEG alternation: tries branches left-to-right, commits to the first match.
-  Ordering matters. See [Rules and Expressions](rules-and-expressions.md).
+- **Ordered choice (`|`)** — a branch **tournament**, *not* first-match commit by default: every
+  alternative is tried and the longest match wins (the default `longest_match`); `@branch_policy:
+  ordered` gives the classical PEG first-success commit. Ordering still matters (it breaks
+  longest-match ties and is the try order). See [Rules and Expressions](rules-and-expressions.md).
 
 - **Quantifier** — repetition postfix `?` `*` `+` `{n}` `{n,m}` `{n,}` `{,m}`, all handled by the Layer-0
   unified engine. See [Quantifiers](quantifiers.md).

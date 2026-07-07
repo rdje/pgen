@@ -75,9 +75,13 @@ Two proofs back the codegen and are the grammar author's safety net:
 
 - **`--lint-grammar`** — static well-formedness: left-recursion info and hard **ERRORS** for
   non-terminating rules, unreachable rules, undefined references, unbound fact-kinds, profile orphans,
-  and ordered-choice **shadowing** (an exact-duplicate alternative under any policy; a
-  fixed-terminal-prefix pair only on an `@branch_policy: ordered` rule, where the earlier alternative
-  genuinely always wins). Run it after every grammar edit.
+  and ordered-choice **shadowing** — both forms conditioned on the rule's actual selection
+  semantics: an exact-**duplicate** alternative only where the tie-break provably keeps the earlier
+  twin (`ordered`, or a tournament where the earlier twin's `@priority` is higher or ties break its
+  way under `left`; `@associativity: nonassoc` twins are a distinct "restructure deliberately"
+  finding); a **fixed-terminal-prefix** pair only on an `@branch_policy: ordered` rule with no
+  `@deterministic_group` rotation, where the earlier alternative genuinely always wins. Run it after
+  every grammar edit.
 - **`--report-certificate-coverage`** — for every rule, is it covered by a verified unreachability
   **PROOF** or a verified reachability **WITNESS**? `UNKNOWN=0` with no failures, deterministic at seeds
   `0/7/42`, is the objective "trustworthy on this grammar" number.

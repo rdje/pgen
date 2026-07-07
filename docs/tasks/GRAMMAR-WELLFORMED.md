@@ -1665,17 +1665,127 @@ subtle dead branch"), never a silent accept.
   test extended with the stale/policy-false + branch-predicate rejection cases; ordered-policy
   false-positive guards added to `no_false_positive_distinct_or_longer_first`. Acceptance checklist
   below (enforced).
-- `A2.4` — **`not-started` (logged, NOT acted on — tool-audit candidate surfaced during A2.3):**
-  `DuplicateAlternative` tie-break soundness under non-default `@associativity`. The engine breaks
-  equal-length/equal-priority ties by associativity (`ast_based_generator.rs:3474-3484`): `right`
-  makes the LATER branch win ties — so for an exact-duplicate pair under `@associativity: right` the
-  engine SELECTS the later duplicate (branch-index-keyed effects: per-branch return annotations,
-  branch-start inline actions, `semantic_selected_branch_index`), inverting the "later duplicate is
-  unreachable" claim; under `nonassoc` a duplicate tie sets `nonassoc_tie` (neither taken), so
-  removing the "dead" duplicate would CHANGE behavior (un-fail the tie). No shipped grammar uses
-  `@associativity: right`/`nonassoc` (grep: only a keyword-list rule in `semantic_annotation.ebnf`),
-  so this is a defect-in-waiting, same class as pre-`.8` A2.3. Needs its own probe-backed audit
-  (per [[feedback_no_codebase_change_without_tool_backed_facts]]) before any disposition.
+- `A2.4` — **`done` (`PGEN-GRAMMAR-WELLFORMED-0152`, session #52, CODE / linter-soundness engine
+  fix; ZERO grammar/parser regen — regen byte-identity proven on all 4 policy-carrying grammars):**
+  the LAST unconditioned ordered-choice deadness verdict (`DuplicateAlternative`) is now
+  SELECTION-SEMANTICS-CONDITIONAL, completing the A2.2/A2.3/A2.4 arc. FIX: new
+  `RuleSelectionSemantics` resolver (`grammar_wellformedness.rs`) reads the rule's effective
+  `@associativity`/`@priority`/`@deterministic_group`/branch-predicate surface through NEW shared
+  registry helpers (`effective_rule_associativity` / `effective_rule_branch_priorities` /
+  `effective_rule_deterministic_partition_policy` + moved-shared `SemanticDeterminismPartitionPolicy`)
+  that codegen's `rule_associativity`/`rule_branch_priorities`/`rule_deterministic_partition_policy`
+  now DELEGATE to (A2.3 single-source-of-truth pattern — the two can never drift). The duplicate
+  verdict fires only where the earlier twin provably wins (`ordered`; or tournament with earlier
+  priority ≥ later under `left` / strictly-greater under `right`/`nonassoc`, no branch-phase
+  predicate, no partition rotation); the `nonassoc` equal-priority tie gets its OWN reason
+  `DuplicateAlternativeNonassocTie` (unreachable, but "restructure deliberately" not "merge/remove",
+  since removal changes acceptance). `DuplicateOf` certificate re-check + A2.3's `FixedTerminalPrefixBy`
+  now both route through `RuleSelectionSemantics` (A2.4-D also requires no partition rotation for the
+  fixed-prefix verdict — rotation reorders `ordered` first-success). ADDRESSED (before→after,
+  scratch slot): probe R `@associativity: right` rc=1→**rc=0**; probe P `@priority: [0,5]`
+  rc=1→**rc=0**; probe D `@deterministic_group` rc=1→**rc=0**; probe N `@associativity: nonassoc`
+  keeps rc=1 with the NEW truthful tie message; defaults + `ordered` keep rc=1 (sound sub-cases).
+  NO-REGRESSION: lib 695/0 (+3 A2.4 tests, 48/48 wellformedness); shipped-grammar shadowing sweep
+  unchanged (12 shipped at 0, `profiled_generated` at 23 — grep-proven ZERO conditioning
+  annotations, so identical default path); byte-identical regen of ALL 4 policy carriers (json
+  defaults / rtl_frontend priority_first×16 / systemverilog @priority×4 / regex @precedence×4 —
+  `cmp` clean, proving codegen delegation emit-identical); `parse_harness_combinator_gate` 2/2;
+  `sv_cert_recognized_union_gate` GREEN (canonical UNKNOWN=12, union 1, seeds 0/7/42); clippy
+  source-strict; mdbook gate. LOCKSTEP: top book grammar-wellformedness chapter + TOOLBOX §5.1 &
+  Protocol D + decision record `project_duplicate_alternative_selection_semantics_conditional`. See
+  the acceptance checklist below (enforced). PROBE EVIDENCE (Protocol D, scratch slot, input `a`,
+  exact twins `"a" | "a"`): **(R)**
+  `@associativity: right` → engine `🏁 Rule 'scratch' selected branch 2/2 consuming 1 chars
+  (priority=0, associativity=right, branch_policy=longest_match)` while lint rc=1 "alternative #1
+  is unreachable" — FALSE VERDICT; **(N)** `@associativity: nonassoc` → twins REJECT `a`
+  (`Backtrack at position 0`) while dedup control `probe_n_single := "a"` ACCEPTS — the verdict's
+  "merge or remove the duplicate" advice CHANGES ACCEPTANCE (nonassoc tie fails both twins; the
+  pair is load-bearing); **(P)** `@priority: [0, 5]` default assoc/policy → `🏁 selected branch
+  2/2 (priority=5, associativity=left)` — FALSE VERDICT; **(D)** `@deterministic_group: "spin"`
+  (FNV offset 1) all-default assoc/policy → `🏁 selected branch 2/2 (priority=0,
+  associativity=left, branch_policy=longest_match)` — evaluation-order ROTATION makes ties keep
+  the rotated-first incumbent under left assoc → FALSE VERDICT; rotation ALSO reorders `ordered`
+  first-success (codegen: shared `for branch_index in evaluation_order` + ordered arm
+  `best_content.is_none()`), so A2.3's FixedTerminalPrefix condition must additionally require
+  partition-disabled. Lint halves: all four probe grammars hard-fail rc=1 with the unconditional
+  duplicate verdict today. NOTE original audit plan below (kept for the record):
+  `DuplicateAlternative` tie-break soundness under non-default `@associativity` AND per-branch
+  `@priority`. The engine breaks equal-length ties by priority THEN associativity
+  (`ast_based_generator.rs:3440-3484`): `right` makes the LATER branch win ties — so for an
+  exact-duplicate pair under `@associativity: right` the engine SELECTS the later duplicate
+  (branch-index-keyed effects: per-branch return annotations, branch-start inline actions,
+  `semantic_selected_branch_index`), inverting the "later duplicate is unreachable" claim; under
+  `nonassoc` a duplicate tie sets `nonassoc_tie` (NEITHER taken — the choice FAILS), so removing
+  the "dead" duplicate would CHANGE behavior (un-fail the tie — the `DuplicateOf` certificate's
+  removal-preserves-language claim is FALSE); a LATER-higher `@priority: [lo, hi]` on the twins
+  makes the later duplicate win under BOTH `longest_match` (priority is the pre-associativity
+  tie-break) and `priority_first` (priority is primary). The linter arm
+  (`grammar_wellformedness.rs:1409`) and the `DuplicateOf` certificate re-check (`:1680`, bare
+  `ast_eq`) are both selection-semantics-BLIND — the exact A2.3 unsoundness class. Exposure:
+  `@associativity` has ZERO shipped-grammar uses; `@priority` has 7 (SV family) but the 13-grammar
+  lint sweep is at 0 shadowing findings → defect-in-waiting. AUDIT PLAN (evidence FIRST per
+  [[feedback_no_codebase_change_without_tool_backed_facts]], Protocol D is the tool): scratch-slot
+  probes (R) `@associativity: right` + `scratch := "a" | "a"` → expect engine `🏁 selected branch
+  2/2` while lint hard-fails "alternative #1 unreachable"; (N) `@associativity: nonassoc` twins →
+  expect engine REJECT on the tie (removal would flip to ACCEPT — the removal advice changes
+  behavior); (P) `@priority: [0, 5]` twins under default policy/assoc → expect `🏁 selected branch
+  2/2`. Disposition (if confirmed): condition the verdict + `DuplicateOf` certificate on the
+  selection semantics via shared registry helpers (`effective_rule_associativity`,
+  `effective_rule_branch_priorities` — codegen delegates, A2.3 single-source-of-truth pattern);
+  sound sub-cases keep the hard gate (policy `ordered`; or tournament with `left` assoc + equal
+  effective twin priorities + no branch-phase predicates — the predicate suppression mirrors
+  A2.3's conservative rule-wide condition).
+
+## Acceptance Checklist (enforced) — `A2.4`
+- [x] **REPRODUCE / ISSUE** — Protocol D scratch-slot probes, exact twins `scratch := "a" | "a"`,
+  input `a`: (R) `@associativity: right`, (P) `@priority: [0, 5]`, (D) `@deterministic_group:
+  "spin"`, (N) `@associativity: nonassoc` — each `ast_pipeline <g>.ebnf --lint-grammar` hard-failed
+  **rc=1** `ordered_choice_shadowing=1` "alternative #1 is unreachable — exact structural duplicate
+  … merge or remove", while the engine on the SAME grammar (release `parseability_probe --parse
+  scratch`) SELECTS the "dead" later twin (R/P/D) or REJECTS both twins (N, while the dedup control
+  ACCEPTS) — the certifying linter hard-fails a live grammar / gives acceptance-changing advice.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammar_wellformedness.rs` `collect_shadowing` (pre-fix
+  `:1409`) concluded "exact duplicate ⇒ later twin unreachable" SELECTION-SEMANTICS-BLIND; the
+  `DuplicateOf` certificate re-check (`:1680`) was a bare `ast_eq`. PGEN's `|` is a branch
+  TOURNAMENT (`generate_or_logic`, `ast_based_generator.rs:3440-3484`): equal-length twins tie, and
+  the winner is `@priority` (compared first) then `@associativity` (`left`→earlier, `right`→later,
+  `nonassoc`→`nonassoc_tie` fails the choice), all under a `@deterministic_group` `evaluation_order`
+  ROTATION. The engine's own traces name the winner: `🏁 Rule 'scratch' selected branch 2/2` for
+  R (`associativity=right`), P (`priority=5`), D; N's `Backtrack at position 0` vs the control's
+  accept proves the tie fails the whole choice. Evaluation-order rotation ALSO reorders `ordered`
+  first-success → tightens A2.3.
+- [x] **FIX** — fix-hierarchy tier = ENGINE (linter/analysis soundness; not expressible in grammar
+  or annotation). NEW `RuleSelectionSemantics::duplicate_verdict` conditions the verdict on the
+  effective `@associativity`/`@priority`/`@deterministic_group`/branch-predicate surface, derived by
+  NEW shared `effective_rule_associativity` / `effective_rule_branch_priorities` /
+  `effective_rule_deterministic_partition_policy` (+ moved-shared `SemanticDeterminismPartitionPolicy`)
+  — the same functions codegen's tournament now DELEGATES to (single source of truth). New
+  `DuplicateAlternativeNonassocTie` reason for the tie sub-case. `DuplicateOf` +
+  `FixedTerminalPrefixBy` certificate checks route through the shared resolver. 3 files; no new
+  grammar constructs; no parser regen.
+- [x] **ADDRESSED (verified)** — before→after on the probe grammars (`ast_pipeline <g> --lint-grammar`):
+  R **rc=1 → rc=0** (`ordered_choice_shadowing` 1→0), P **rc=1 → rc=0**, D **rc=1 → rc=0** (all
+  three false verdicts gone); N **still rc=1 at 1** with the NEW truthful tie message ("always tie …
+  NEITHER can ever be selected … removing … would CHANGE acceptance … restructure deliberately");
+  defaults `"a" | "a"` and `@branch_policy: ordered` variant **still rc=1 at 1** (sound sub-cases
+  keep the hard gate). Duplicate certificates now REJECTED by `verify_unreachability_certificate`
+  under right/priority/partition/predicate, ACCEPTED under nonassoc-tie/ordered/defaults (pinned by
+  the new `duplicate_certificates_are_selection_semantics_conditional` test).
+- [x] **NO REGRESSION** — lib **695/695** (+3 A2.4 tests; wellformedness module 48/48);
+  shipped-grammar shadowing sweep UNCHANGED (12 shipped grammars at `ordered_choice_shadowing=0`;
+  `systemverilog_lrm_profiled_generated` at 23 — grep-proven ZERO
+  `@associativity`/`@priority`/`@precedence`/`@deterministic_group`/`@seed_group` annotations, so
+  the identical default path). Byte-identical regen of ALL 4 policy-carrying grammars proves the
+  codegen delegation is emit-identical: `json` (defaults), `rtl_frontend` (`priority_first`×16),
+  `systemverilog` (`@priority`×4), `regex` (`@precedence`×4) — `cmp` clean each. `parse_harness_combinator_gate`
+  **2/2** (policy/tie-break matrix); `sv_cert_recognized_union_gate` **GREEN** (canonical UNKNOWN=12,
+  union UNKNOWN=1, residual `context_member_method_call`, deterministic seeds 0/7/42); clippy
+  source-strict clean (generated-stage `eq_op` debt pre-existing + byte-identical); `mdbook_docs_gate`
+  green.
+- [x] **LOCKSTEP** — top book `grammar-wellformedness.md` (A2.4 paragraph + updated "gating shadow
+  forms" conclusion), `TOOLBOX.md` §5.1 + Protocol D precedent list, decision record
+  `docs/decisions/project_duplicate_alternative_selection_semantics_conditional.md`; auto-memory
+  `project_earlier_always_matches_unsound_backtracking` updated (A2.4 closed).
 
 ## Acceptance Checklist (enforced) — `A2.3`
 - [x] **REPRODUCE / ISSUE** — PARSE-HARNESS.8 live probe: `scratch := "a" | "a" "b"` (default
@@ -2144,6 +2254,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `closed` (superseded by `A2.1-SOUNDNESS`; hard-gate-promotion goal RETIRED) | The LRM-grounded fixes ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`) STAND (real dropped-delimiter extraction bugs). What is retired is the "promote `EarlierAlwaysMatches` to a hard gate" goal — the check is UNSOUND for PGEN's backtracking engine (`A2.1-SOUNDNESS`). The residual 8 warnings were FALSE POSITIVES (proven-live port-header/net-type branches), not dead branches to clean. |
 | 1 | `GRAMMAR-WELLFORMED.A2.2` (retire the unsound `EarlierAlwaysMatches` verdict + demote to a non-verdict note) | `done` (`PGEN-GRAMMAR-WELLFORMED-0150`, CODE / linter-soundness engine fix; ZERO grammar/parser regen) | Removed the `EarlierAlwaysMatches` shadowing verdict + its bogus `EarlierArmAlwaysSucceeds` certificate; added a non-verdict `AlwaysSucceedsAlternative` `[note]`. SV `--lint-grammar` now reports `always_succeeds_alternatives=8 (note)` (was `always_matches_shadowing=8 (warning)`), `ordered_choice_shadowing=0` unchanged, rc=0; the proven-live `net_port_type_sv_2017 #2` interconnect branch is no longer branded dead. Cert-coverage byte-identical (`1343/10/1321/12` seeds 0/7/42 — shadowing certs aren't in the rule-level proof pool); `cargo test grammar_wellformedness` GREEN; 6 fully-certified grammars byte-identical. |
 | 1 | `GRAMMAR-WELLFORMED.A2.3` (`FixedTerminalPrefix` verdict + certificate made branch-policy-aware) | `done` (`PGEN-GRAMMAR-WELLFORMED-0151`, session #51, CODE / linter-soundness engine fix; ZERO grammar/parser regen — regen byte-identity proven) | The OTHER "PEG commits" verdict live-proven FALSE under the DEFAULT `longest_match` policy by PARSE-HARNESS.8 (engine `🏁 selected branch 2/2` on `a\|ab` while lint hard-failed rc=1). Now fires ONLY under `@branch_policy: ordered` with no branch-phase predicates; the `FixedTerminalPrefixBy` certificate re-derives the policy condition (a policy-false certificate is REJECTED). Policy derivation = NEW shared `effective_rule_branch_policy` (codegen delegates to it — single source of truth). ADDRESSED: default-policy probe rc=1→rc=0; ordered probe keeps rc=1 with the corrected message. NO-REGRESSION: 13/13 shipped lint sweep at 0; `sv_cert_recognized_union_gate` GREEN seeds 0/7/42; stash A/B cert byte-identical; json+rtl_frontend regen `cmp` byte-identical; lib 807/0; v2005 conformance gate GREEN; clippy source-strict; both book gates. LOCKSTEP: top book + ebnf book (fixed the real "`\|` commits to first match" drift) + TOOLBOX §5.1 + decision record `project_fixed_terminal_prefix_policy_conditional`. Sibling audit `A2.4` (duplicate tie-break under right/nonassoc) logged, not acted. |
+| 1 | `GRAMMAR-WELLFORMED.A2.4` (`DuplicateAlternative` verdict + `DuplicateOf` certificate made selection-semantics-aware) | `done` (`PGEN-GRAMMAR-WELLFORMED-0152`, session #52, CODE / linter-soundness engine fix; ZERO grammar/parser regen — regen byte-identity proven) | The LAST unconditioned ordered-choice deadness verdict, closing the A2.2/A2.3/A2.4 arc. Protocol D probes on `scratch := "a" \| "a"` live-proved the engine SELECTS the "dead" later twin under `@associativity: right` (R), a later-higher `@priority` (P), and `@deterministic_group` rotation (D) — each engine `🏁 selected branch 2/2` while lint hard-failed rc=1 — and under `@associativity: nonassoc` (N) the equal-priority tie FAILS the whole choice (twins REJECT while the dedup control ACCEPTS), so "merge or remove" would change acceptance. FIX: new `RuleSelectionSemantics::duplicate_verdict` conditions the verdict on the effective `@associativity`/`@priority`/`@deterministic_group`/branch-predicate surface via NEW shared `effective_rule_associativity`/`effective_rule_branch_priorities`/`effective_rule_deterministic_partition_policy` (codegen delegates — single source of truth); new `DuplicateAlternativeNonassocTie` reason ("restructure deliberately"); `DuplicateOf` + `FixedTerminalPrefixBy` certificate checks route through the resolver (A2.4-D also requires no partition rotation for the fixed-prefix verdict). ADDRESSED: R/P/D rc=1→rc=0, N keeps rc=1 with the truthful tie message, defaults+ordered keep rc=1. NO-REGRESSION: lib 695/0 (+3 tests, 48/48 wellformedness); shipped shadowing sweep unchanged (12 at 0, `profiled_generated` 23 grep-proven no conditioning annotations); ALL 4 policy carriers byte-identical (json/rtl_frontend/systemverilog/regex `cmp` clean); `parse_harness_combinator_gate` 2/2; `sv_cert_recognized_union_gate` GREEN (UNKNOWN 12/union 1, seeds 0/7/42); clippy source-strict; mdbook gate. LOCKSTEP: top book grammar-wellformedness chapter + TOOLBOX §5.1 & Protocol D + decision record `project_duplicate_alternative_selection_semantics_conditional`. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
 | 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** ✓ **H.5.1.2 (`-0046`) drove svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword fusion — to 0 via the declarative `[>! /\w/]` lexical-annotation (the construct built for the generator) + a general `collect_rule_body` frontend fix it surfaced (consecutive `[>` directives now each bind; only the first bound before); svpp `sample_parse_failures` 8→1, `UNKNOWN` 7→4, `witness` 66→69 seed 0; json/regex cert-coverage unchanged; lib 621/621; cross-family gate PASS.** ✓ **`H.5.1.3.2` (`-0049`) CLOSED the LAST svpp residual** — `condition_text -> $text` (declarative atomicity, LEXICAL-ANNOTATIONS.6) suppresses the stray trailing `\n` that stranded a `` `" `` stringize; svpp cert-coverage `sample_parse_failures` **1→0** (both seeds, deterministic) ⇒ **svpp is now cert-coverage CLEAN**. Consumer-visible: svpp schema **3→4**, release **1.0.4→1.0.5** (condition_atom "text" body raw-envelope→`$text` string; annot 66→67; director-approved). ✓ **`H.4.1` (`-0050`) ROOT-CAUSED rtl_const_expr's `UNKNOWN` residual** (the FIRST per-grammar `UNKNOWN`→0 drive, tools-first, pure-docs): the residual reduces to the stubborn pair `lparen`/`rparen` = the `primary_expr := lparen conditional_expr rparen` parenthesised-primary branch, which clean diverse generation essentially NEVER selects (`0/40` samples contain `(` @ depth 32; the branch re-enters the ~15-deep precedence chain → depth-floor pruning + recursion-pressure penalty avoid it; fatal-aborts at the default depth 24). ADJUDICATED a **generator-reach deficiency** (statically reachable; `(1)` is valid) — fix belongs in the generator. The witness-pass shortcut is off the table per the explicit `main.rs:1572` design decision. ✓ **`H.4.2` (`-0051`) DONE — CONSTRUCTIVE-REACH: rtl_const_expr is now `fully_certified=true` (UNKNOWN 3→0, deterministic across seeds), with ZERO certification regression on any grammar** (decisive git-stash baseline: `sample_parse_failures` byte-identical pre/post for json/regex/vhdl/SV; UNKNOWN only decreases — regex 101→98, vhdl 85→69, SV 1160→1126). Opt-in `StimuliConfig.reach_uncovered_recursive_branches` (default OFF → all non-cert-coverage surfaces byte-identical) drives three gated `generate_or` behaviours (floor-retain + try-recursive-first + minimal-`construct_mode` depth-retry); `run_certificate_coverage_report` is two-pass (diverse certification pass byte-identical + auxiliary reach pass that only UNIONS re-parsing witnesses). lib 686/0; new test PASS; self-host + cross-family + oracle green. ✓ **`H.5.2` (`-0052`) drove svpp `UNKNOWN 3→2`** — removed the OBJECTIVELY-PROVEN-DEAD `trivia` rule (referenced by nothing; gap-report oracle `reachable:false unreachable_from_entry`; the only statically-unreachable rule) at source per the literal-0 doctrine, and tightened the `sv_preprocessor_zero_plausible_gap_proof_gate` from a `[trivia]` helper-pocket to a **literal-ZERO unreachable surface** (contract v2→3, observed==allowed==[]; gate GREEN). cert-coverage `total 72 witness 70 UNKNOWN 2 sample_parse_failures 0` (seeds 0/7); shape-contract GREEN (no AST/schema/release change); lib 716/0. svpp's remaining 2 `UNKNOWN` (`directive_tail`/`line_comment`) are reachable optionals = generator-reach → **`H.5.3`** (svpp fully_certified after it). ✓ **`H.5.3` (`-0053`) DONE — svpp `fully_certified=true` at seeds 0/7/42** via DECLARATIVE witnessing-sample steering (evidence-driven re-scope from the assumed constructive-reach engine pass): the 2 residuals were 100% generator-side, caused by stale `@sample: " "` hints (un-witnessable bare space / `line_comment?`-short-circuit), replaced with witnessing-and-faithful `@sample: " x"` / `@sample: " //"`; `sample_parse_failures=0`, deterministic, zero cross-grammar regression (grammar-only). Multi-seed measurement surfaced TWO pre-existing svpp residuals (the stimuli generator as bug-finding oracle): (1) a seed-1/12-only macro-default nested-optional UNKNOWN — but a SAMPLE-BUDGET artifact (count 100/200 → `UNKNOWN=0`) → ticketed **`H.5.4`** (low priority); (2) a genuine OVER-GENERATION (`sample_parse_failures=1` at seeds 3/6/10/12/14/15 of 0–15, IDENTICAL on the pre-H.5.3 grammar → pre-existing, an unclosed/closer-stolen `pp_conditional` round-trip hazard) → ticketed **`H.5.5`** (the real round-trip defect). ✓ `H.5.5` + `H.5.4` closed (svpp seed-robustly clean via `H.5.5`/`H.7.2`/`H.9`). ✓ **`H.10.1` (`-0060`) — the regex `UNKNOWN`→0 drive's dead-rule removal: the 12 no-path rules (both oracles: `unreachable_from_entry`) removed at source; regex `UNKNOWN 19→7`, `total 210→198`, spf=0, deterministic seeds 0/7/42; gap-report unreachable 12→0; oracle gate + lib 721/0 green; no release/schema bump.** ✓ **`H.10.2.1` (closed via `BRANCH-BROADCAST-FIX.5`, regex `UNKNOWN 7→5`).** ✓ **`H.10.2.2` (`-0061`) ENGINE FIX — memo-hit coverage-delta replay (the memoization × coverage-record composition gap, the `.36.4` class on the witness record): regex `UNKNOWN 5→3` + CROSS-GRAMMAR vhdl `31→30`, rtl_frontend `75→73`, SV `738→647` (−91), spf byte-identical 0 everywhere, oracle gate PASS, NO bump.** ✓ **`H.10.2.3` (`-0062`) unicode_char witnessed via the declarative `@sample: "é"` (the rule was ungeneratable — `builtin_any_char` has no grammar def + no generator special-case; the engine capability ticketed in STIMULI-SIGNOFF): regex `UNKNOWN 3→2`, spf=0, seeds 0/7/42, oracle PASS, NO bump.** NEXT = the regex store-gated pair `numeric_backreference`/`backreference_digits` (B2/C1/C2 fact-emitting-prelude lane) + the vhdl (30) / rtl_frontend (73) / SV (647) drives. |
 | — | `GRAMMAR-WELLFORMED.C2` | `done` (`C2.1` design `-0063` + `C2.2` implement `-0064`) | **Semantic-prelude reach (count-gated MVP) LANDED — regex is the 4th `fully_certified` grammar (`UNKNOWN 2→0`, witness 198, spf=0, seeds 0/7/42 × counts 1/40/200, deterministic).** Cross-grammar byte-identical; oracle + cross-family + mdbook gates PASS; no regen/bump. |

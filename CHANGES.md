@@ -1,4 +1,54 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0152 (GRAMMAR-WELLFORMED.A2.4): `DuplicateAlternative` verdict + `DuplicateOf` certificate made SELECTION-SEMANTICS-AWARE — the A2.2/A2.3/A2.4 "PEG commits" arc is COMPLETE
+
+Session #52. **The LAST unconditioned ordered-choice deadness verdict.** The linter's
+`DuplicateAlternative` shadowing verdict ("two identical alternatives — the later is unreachable")
+carried the same latent assumption A2.2/A2.3 retired: it assumed the earlier twin always wins. But
+PGEN's `|` is a branch TOURNAMENT — equal-length twins tie, and the winner is decided by `@priority`
+(compared first) then `@associativity` (`left`→earlier, `right`→later, `nonassoc`→the tie fails the
+whole choice), all under a `@deterministic_group` evaluation-order rotation.
+
+- **Tool-backed root cause (Protocol D, scratch slot, `scratch := "a" | "a"`, input `a`).** Four
+  live probes read from the engine's own `🏁 selected branch N/M` trace / accept-reject verdict:
+  **(R)** `@associativity: right` → `🏁 selected branch 2/2 (… associativity=right)`; **(P)**
+  `@priority: [0, 5]` → `🏁 selected branch 2/2 (priority=5)`; **(D)** `@deterministic_group:
+  "spin"` → `🏁 selected branch 2/2` (rotation makes the later twin the incumbent a `left` tie
+  keeps); **(N)** `@associativity: nonassoc` → both twins REJECT `a` while the deduplicated control
+  `probe_n_single := "a"` ACCEPTS it (the nonassoc tie fails the whole choice). In R/P/D the engine
+  SELECTS the branch the linter branded dead; in N the "merge or remove" advice would change
+  acceptance.
+- **Fix (linter tier — ZERO parse-behavior change, byte-identical regen).** New
+  `RuleSelectionSemantics::duplicate_verdict` conditions the verdict on the rule's effective
+  `@associativity`/`@priority`/`@deterministic_group`/branch-predicate surface, and the `DuplicateOf`
+  proof certificate re-derives the same condition. New reason `DuplicateAlternativeNonassocTie` for
+  the tie sub-case ("restructure deliberately," since removing one duplicate changes acceptance).
+  The selection semantics are resolved by NEW shared `effective_rule_associativity` /
+  `effective_rule_branch_priorities` / `effective_rule_deterministic_partition_policy` (plus the
+  moved-shared `SemanticDeterminismPartitionPolicy`) in `semantic_directive_registry.rs` — the SAME
+  functions codegen's tournament now DELEGATES to (single source of truth; the two can never drift).
+  A2.4-D also tightened the A2.3 fixed-prefix verdict to require no partition rotation (rotation
+  reorders `ordered` first-success). 3 source files; no new grammar constructs; no parser regen.
+- **Verified.** ADDRESSED: R/P/D probes rc=1→rc=0; N keeps rc=1 with the new truthful tie message;
+  defaults `"a"|"a"` and `@branch_policy: ordered` keep rc=1 (sound sub-cases). NO-REGRESSION:
+  lib **695/695** (+3 A2.4 tests, wellformedness module 48/48); shipped-grammar shadowing sweep
+  unchanged (12 shipped at 0; `systemverilog_lrm_profiled_generated` at 23 — grep-proven zero
+  conditioning annotations, identical default path); byte-identical regen of ALL 4 policy-carrying
+  grammars proving the codegen delegation emit-identical — `json` (defaults), `rtl_frontend`
+  (`priority_first`×16), `systemverilog` (`@priority`×4), `regex` (`@precedence`×4), `cmp` clean each;
+  `parse_harness_combinator_gate` **2/2**; `sv_cert_recognized_union_gate` **GREEN** (canonical
+  UNKNOWN=12, union UNKNOWN=1, residual `context_member_method_call`, deterministic seeds 0/7/42);
+  clippy source-strict (generated-stage `eq_op` debt pre-existing + byte-identical); `mdbook_docs_gate`
+  green.
+- **Lockstep (same commit).** Top book *Grammar Well-Formedness* chapter (A2.4 paragraph + updated
+  "gating shadow forms" conclusion); `TOOLBOX.md` §5.1 + Protocol D precedent list; decision record
+  `docs/decisions/project_duplicate_alternative_selection_semantics_conditional.md`; auto-memory
+  `project_earlier_always_matches_unsound_backtracking` (arc marked COMPLETE). **NO release bump.**
+
+With A2.2 (always-succeeds retired), A2.3 (fixed-prefix policy-conditioned), and A2.4 (duplicate
+selection-semantics-conditioned), **every surviving ordered-choice deadness verdict now names AND
+checks the selection semantics it assumes** — the certifying-linter "never declares a live fragment
+dead" contract is honored across the whole ordered-choice surface.
+
 ## 2026-07-07 - PGEN-PARSE-HARNESS-0017 (PARSE-HARNESS.9): lockstep capstone — TOOLBOX Protocol D ("which alternative WINS / is this branch live?") + book canonical-probe section; `.7` fuzz parked-optional (D6); PARSE-HARNESS TREE COMPLETE
 
 Session #51. **Docs-only capstone closing the PARSE-HARNESS tree.** The D5 audit confirmed every

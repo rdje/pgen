@@ -37,9 +37,15 @@ keyword := "module" | "macromodule" | "module_extern"
 Ordering still matters as style — **put the more specific alternative first** — but under the default
 `longest_match` a shared prefix does *not* make the later alternative unreachable. `--lint-grammar`'s
 "ordered-choice shadowing" hard error therefore fires for a fixed-terminal-prefix pair **only on a rule
-whose `@branch_policy` is `ordered`** (where the earlier alternative genuinely always wins); exact
-duplicates are flagged under every policy (see [Codegen Mental Model](codegen-model.md) and the platform
-book's [Grammar Well-Formedness](../../book/src/grammar-wellformedness.md) chapter). Each non-last branch
+whose `@branch_policy` is `ordered`** (where the earlier alternative genuinely always wins, and no
+`@deterministic_group` rotation is in play). Exact **duplicate** alternatives are flagged too — but
+also only where the tie-break provably keeps the earlier twin: `ordered`, or a tournament where the
+earlier twin's `@priority` is higher or ties break its way (`left`, the default). Under
+`@associativity: right`, a later-higher `@priority`, or a `@deterministic_group` rotation the engine
+**selects** the later twin, so no verdict fires; under `@associativity: nonassoc` the tie fails the
+whole choice, which is its own distinct "restructure deliberately" finding (removing one duplicate
+would change what the rule accepts). See [Codegen Mental Model](codegen-model.md) and the platform
+book's [Grammar Well-Formedness](../../book/src/grammar-wellformedness.md) chapter. Each non-last branch
 may also carry its **own** inline `-> …` return annotation before the `|`:
 
 ```ebnf

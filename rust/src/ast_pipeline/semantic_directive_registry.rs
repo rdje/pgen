@@ -474,6 +474,144 @@ pub fn effective_rule_branch_policy(
     policy
 }
 
+/// The effective `@associativity` codegen resolves for `rule_name`: the LAST parseable
+/// `@associativity` directive on the rule wins; absent any (or any annotations at all), the engine
+/// default `Left`. Shared by the tournament codegen (`rule_associativity`) and the linter's
+/// selection-semantics-conditioned duplicate verdicts (GRAMMAR-WELLFORMED.A2.4) — under
+/// `@associativity: right` an equal-length/equal-priority tie selects the LATER branch, so a
+/// "later duplicate is unreachable" verdict must read the same resolution codegen emits.
+pub fn effective_rule_associativity(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+) -> SemanticAssociativity {
+    let Some(annotations) = annotations else {
+        return SemanticAssociativity::Left;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return SemanticAssociativity::Left;
+    };
+
+    let mut associativity = SemanticAssociativity::Left;
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        if name == "associativity" {
+            if let Some(parsed) = SemanticAssociativity::parse(&payload) {
+                associativity = parsed;
+            }
+        }
+    }
+
+    associativity
+}
+
+/// The effective per-branch tournament priorities codegen resolves for a `branch_count`-ary
+/// choice in `rule_name`: an explicit `@priority` list wins over `@precedence`; a single value
+/// broadcasts to every branch; missing tail entries default to `0`; absent both directives (or any
+/// annotations at all), all-zero. Shared by the tournament codegen (`rule_branch_priorities`) and
+/// the linter's duplicate verdicts (GRAMMAR-WELLFORMED.A2.4) — priority is compared BEFORE the
+/// associativity tie-break, so a later exact-duplicate with the higher priority WINS and any
+/// deadness verdict must read the same resolution codegen emits.
+pub fn effective_rule_branch_priorities(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+    branch_count: usize,
+) -> Vec<i64> {
+    let default_priorities = vec![0i64; branch_count];
+    let Some(annotations) = annotations else {
+        return default_priorities;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return default_priorities;
+    };
+
+    let mut precedence_priorities: Option<Vec<i64>> = None;
+    let mut explicit_priorities: Option<Vec<i64>> = None;
+
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        let Some(parsed) = parse_semantic_branch_priorities(&payload, branch_count) else {
+            continue;
+        };
+        match name.as_str() {
+            "precedence" => {
+                precedence_priorities = Some(parsed);
+            }
+            "priority" => {
+                explicit_priorities = Some(parsed);
+            }
+            _ => {}
+        }
+    }
+
+    explicit_priorities
+        .or(precedence_priorities)
+        .unwrap_or(default_priorities)
+}
+
+/// The deterministic-partition policy a rule's branch tournament runs under (`@deterministic_group`
+/// enables it; `@seed_group` / a group payload names the partition group; an enabled policy with no
+/// explicit label defaults to `rule.<name>`). When enabled, the generated tournament ROTATES its
+/// branch evaluation order by a group-keyed offset — which reorders `ordered` first-success commit
+/// and flips which side of an equal tie is the incumbent — so every evaluation-order-based deadness
+/// verdict is conditioned on this policy being disabled (GRAMMAR-WELLFORMED.A2.4 probe D). Shared
+/// by codegen (`rule_deterministic_partition_policy`) and the linter.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SemanticDeterminismPartitionPolicy {
+    pub enabled: bool,
+    pub group_label: Option<String>,
+}
+
+/// The effective deterministic-partition policy codegen resolves for `rule_name` — see
+/// [`SemanticDeterminismPartitionPolicy`].
+pub fn effective_rule_deterministic_partition_policy(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+) -> SemanticDeterminismPartitionPolicy {
+    let Some(annotations) = annotations else {
+        return SemanticDeterminismPartitionPolicy::default();
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return SemanticDeterminismPartitionPolicy::default();
+    };
+
+    let mut policy = SemanticDeterminismPartitionPolicy::default();
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        match name.as_str() {
+            "seed_group" => {
+                if let Some(label) = parse_semantic_group_label(&payload) {
+                    policy.group_label = Some(label);
+                }
+            }
+            "deterministic_group" => {
+                if let Some(parsed) = parse_semantic_deterministic_group(&payload) {
+                    policy.enabled = parsed.enabled;
+                    if let Some(label) = parsed.group {
+                        policy.group_label = Some(label);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if !policy.enabled {
+        policy.group_label = None;
+        return policy;
+    }
+    if policy.group_label.is_none() {
+        policy.group_label = Some(format!("rule.{}", rule_name));
+    }
+
+    policy
+}
+
 pub fn parse_semantic_numeric_list(payload: &str) -> Option<Vec<i64>> {
     let normalized = payload.trim();
     if normalized.is_empty() {

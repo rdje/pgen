@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d050627c.js";
+            window.path_to_searchindex_js = "searchindex-7b3268d4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -209,9 +209,15 @@ rest are skipped. Only under this policy does <code>"a" | "a" "b"</code> strand 
 <p>Ordering still matters as style — <strong>put the more specific alternative first</strong> — but under the default
 <code>longest_match</code> a shared prefix does <em>not</em> make the later alternative unreachable. <code>--lint-grammar</code>’s
 “ordered-choice shadowing” hard error therefore fires for a fixed-terminal-prefix pair <strong>only on a rule
-whose <code>@branch_policy</code> is <code>ordered</code></strong> (where the earlier alternative genuinely always wins); exact
-duplicates are flagged under every policy (see <a href="codegen-model.html">Codegen Mental Model</a> and the platform
-book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter). Each non-last branch
+whose <code>@branch_policy</code> is <code>ordered</code></strong> (where the earlier alternative genuinely always wins, and no
+<code>@deterministic_group</code> rotation is in play). Exact <strong>duplicate</strong> alternatives are flagged too — but
+also only where the tie-break provably keeps the earlier twin: <code>ordered</code>, or a tournament where the
+earlier twin’s <code>@priority</code> is higher or ties break its way (<code>left</code>, the default). Under
+<code>@associativity: right</code>, a later-higher <code>@priority</code>, or a <code>@deterministic_group</code> rotation the engine
+<strong>selects</strong> the later twin, so no verdict fires; under <code>@associativity: nonassoc</code> the tie fails the
+whole choice, which is its own distinct “restructure deliberately” finding (removing one duplicate
+would change what the rule accepts). See <a href="codegen-model.html">Codegen Mental Model</a> and the platform
+book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter. Each non-last branch
 may also carry its <strong>own</strong> inline <code>-&gt; …</code> return annotation before the <code>|</code>:</p>
 <pre><code class="language-ebnf">sign := "+" -&gt; {kind: "plus"}
       | "-" -&gt; {kind: "minus"}

@@ -1394,8 +1394,30 @@ predicate can block the earlier alternative after it matches, reviving the later
 `longest_match`/`priority_first` the pattern is the normal longest-match idiom — live, correct, and
 deliberately not even a note. The certificate checker re-derives the policy condition too: a
 fixed-prefix certificate presented for a `longest_match` rule is *rejected as false*, not
-re-verified on structure alone. So the *gating* shadow forms are: **exact-duplicate** (any policy)
-and **fixed-terminal-prefix under `ordered`**.
+re-verified on structure alone.
+
+The **exact-duplicate** verdict turned out to hide the *same* assumption (**A2.4**, 2026-07-07). "The
+later of two identical alternatives is unreachable" is true only if the earlier twin always beats it —
+and in PGEN's tournament that depends on the tie-break. The parse harness proved three ways the engine
+**selects the later twin** on `r := "a" | "a"` over input `a` (each its own `🏁 selected branch 2/2`
+trace): under **`@associativity: right`** an equal-length/equal-priority tie picks the *later* branch;
+under a **later-higher `@priority`** the later twin wins outright (priority is compared before
+associativity); and under **`@deterministic_group`** the tournament's evaluation order is *rotated* by a
+group-keyed offset, so which twin is the incumbent flips. A fourth case, **`@associativity: nonassoc`**,
+is subtler: equal-priority twins *always* tie, and a nonassoc tie **fails the whole choice** — so neither
+twin is ever selected (the twins *reject* the very input their body matches, while the deduplicated
+control accepts it). The later twin is still unreachable there, but *removing one duplicate would change
+acceptance* (the survivor then wins), so that verdict carries its own message — "restructure
+deliberately," not "merge or remove." The duplicate verdict (and its proof certificate) now reads the
+rule's effective `@associativity` / `@priority` / `@deterministic_group` — through the **same** shared
+resolver codegen's tournament uses, so the two can never drift — and fires only where the earlier twin
+provably wins (or the nonassoc tie provably fails the choice). A2.4-D also tightened the A2.3
+fixed-prefix condition: partition rotation reorders `ordered` first-success too, so that verdict now
+additionally requires no `@deterministic_group`.
+
+So the *gating* shadow forms are: **exact-duplicate** (where the earlier twin provably wins the
+tie, or a `nonassoc` tie provably fails the choice) and **fixed-terminal-prefix under `ordered`**
+(no branch-phase predicate, no partition rotation).
 
 On the **well-*defined*** layer, all three axes are now enforced. Attribute non-circularity holds by
 construction (synthesized-only annotations). Attribute completeness for synthesized attributes (`$N`)

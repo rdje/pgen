@@ -351,7 +351,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 ## 5. Static analysis & generation IR (`ast_pipeline`)
 
 ### 5.1 `--lint-grammar`
-- **WHAT:** static well-formedness report — left-recursion info; HARD-gated errors for non-terminating rules, ordered-choice shadowing (exact-duplicate under any policy; fixed-terminal-prefix ONLY on an `@branch_policy: ordered` rule — under the default `longest_match`/`priority_first` the later alternative is LIVE, A2.3), unreachable rules, **undefined references** (a rule referencing a rule never defined — codegen would emit a never-matching stub; the check runs on the UNFILTERED grammar and allowlists codegen's native builtins), unbound fact-kinds, and profile orphans; nullable-repetition warnings; always-succeeds notes — then exits (nonzero on any error-class finding).
+- **WHAT:** static well-formedness report — left-recursion info; HARD-gated errors for non-terminating rules, ordered-choice shadowing (both verdicts are now SELECTION-SEMANTICS-CONDITIONAL: exact-duplicate fires only where the tie-break provably keeps the EARLIER twin — under `@associativity: right`, a later-higher `@priority`, or `@deterministic_group` evaluation-order rotation the engine SELECTS the later twin, so no verdict; under `@associativity: nonassoc` an equal-priority tie fails the whole choice — a distinct "restructure deliberately" verdict since merge/remove would change acceptance (A2.4); fixed-terminal-prefix ONLY on an `@branch_policy: ordered` rule with no branch-phase predicate and no partition rotation — under the default `longest_match`/`priority_first` the later alternative is LIVE (A2.3)), unreachable rules, **undefined references** (a rule referencing a rule never defined — codegen would emit a never-matching stub; the check runs on the UNFILTERED grammar and allowlists codegen's native builtins), unbound fact-kinds, and profile orphans; nullable-repetition warnings; always-succeeds notes — then exits (nonzero on any error-class finding).
 - **WHEN:** after any grammar edit; to adjudicate a `no_path`/dead-rule candidate; **"every parse rejects at `furthest_position=0` and nothing points at the cause"** (the undefined-ref signature); "is my grammar well-formed?".
 - **HOW:** `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --lint-grammar`.
 
@@ -417,7 +417,11 @@ question — NEVER answer it from the grammar text (PGEN's `|` is a branch TOURN
 
 Cause map: a branch the engine SELECTS is **LIVE** — any deadness verdict must be conditioned on the
 rule's actual selection semantics (precedents: A2.2 `EarlierAlwaysMatches` retired; A2.3
-`FixedTerminalPrefix` policy-conditioned — `docs/decisions/project_fixed_terminal_prefix_policy_conditional.md`).
+`FixedTerminalPrefix` policy-conditioned — `docs/decisions/project_fixed_terminal_prefix_policy_conditional.md`;
+A2.4 `DuplicateAlternative` tie-break-conditioned on `@associativity`/`@priority`/`@deterministic_group` —
+`docs/decisions/project_duplicate_alternative_selection_semantics_conditional.md`, the R/P/D/N probes
+above are its worked example). With A2.2/A2.3/A2.4 every ordered-choice deadness verdict now names AND
+checks its selection semantics.
 
 ---
 
