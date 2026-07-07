@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0014 — STIMULI-SIGNOFF.4.4: implementation notes — a bug hunter is only as honest as its oracle wiring
+
+Session #59. Notes from landing the G2 duality-break hunter:
+
+1. **Inject the oracle; never import the registry into the generator.** The lib loop takes
+   `impl FnMut(&str) -> Result<(), String>` — `Err` MEANS "the oracle rejected a generator
+   emission" and nothing else. Setup problems (unsupported grammar, missing feature) are
+   pre-checked in `main.rs` and bail BEFORE the loop, so they can never masquerade as breaks.
+   Tests inject synthetic oracles; the CLI injects `parse_sample_detail_with_profile`. The
+   by-reference closure is `Copy`, so hunt and baseline provably share one oracle.
+2. **Shrink signature-preserving, not merely rejection-preserving.** A plain "still rejects"
+   predicate lets the minimizer wander from one defect class into another (deleting half a
+   sample often produces a DIFFERENT parse error), and the report would pin reproducer A on
+   signature B. The shrink predicate re-normalizes each candidate's error and requires equality
+   with the break's signature.
+3. **Novelty grading (2/1/0) is what makes the loop a HUNTER.** Rewarding any rejection equally
+   would let the loop lock onto the first failure class and farm it; grading a NEW signature
+   above a repeat makes the selected-log distribution drift toward unexplored failure classes.
+   On regex this surfaced 5–7 distinct classes per 100-sample run.
+4. **The finding is the point (and it must be routed, not fixed inline).** The first real hunt
+   found regex generator debt (~8 % PCRE2-post-parse-contract rejections). Scope discipline: the
+   `.4.4` leaf ships the HUNTER; the debt gets its own evidenced leaf (`.13`) with the shrunk
+   reproducers as its starting corpus. Also recorded honestly: cert spf=0 is CONFIG-SCOPED —
+   re-probed at `--count 100/200` and it still reads 0 because the cert pass's steered config
+   avoids these forms; the plain-config hunter is what exposes them.
+5. **The scratch slot is the perfect deliberate-break rig.** `scratch := !"x" any` exercises the
+   KNOWN generation-blind-lookahead gap through a real generated parser end-to-end (find →
+   dedup → shrink to `"x"`), with `git checkout` + `focus_scratch` restoring the fixture — no
+   new test scaffolding, no registry edits.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0013 — STIMULI-SIGNOFF.4.3: implementation notes — attributing derivations you didn't generate
 
 Session #59. Notes from landing external-corpus learning + G3 mimicry:

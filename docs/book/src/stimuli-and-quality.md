@@ -884,10 +884,60 @@ seed:
 
 Both runs are **deterministic** — repeating a seed reproduces the JSON report byte-for-byte.
 
-Honest bounds: the goal vocabulary is `k_path` and `corpus_mimicry` today (parser code-coverage
-feedback and parse-failure revelation are designed and tracked in the `STIMULI-SIGNOFF` tree,
-leaf `.4`); learning covers ordered-choice branch selection, not repetition counts, so mimicry is
+### Goal `duality_break` — hunt inputs the generator emits but the parser rejects
+
+The third goal turns the loop into an **active bug hunter**. A sample the generator emitted that
+the shipped parser then *rejects* is a **generator⟷parser duality break** — by PGEN doctrine a
+defect to surface, never to shrug off. Where the certificate-coverage round-trip *checks* for
+such breaks passively (`sample_parse_failures`), this mode *chases* them: per-sample fitness
+rewards rejections, graded by **novelty** (a rejection whose *signature* — the parser's error
+message with digit runs normalized away — was never seen before scores highest), so the learned
+distribution steers toward rejection-prone derivation regions and fresh failure classes. Every
+unique signature is then **shrunk** to a minimal reproducer that still fails with the *same*
+signature.
+
+```bash
+./rust/target/debug/ast_pipeline grammars/regex.ebnf \
+  --directed-generation-goal duality_break \
+  --directed-rounds 10 --directed-samples-per-round 10 --seed 0 [--directed-report-json r.json]
+```
+
+```text
+DIRECTED-GENERATION: goal=duality_break grammar='regex' entry='regex' rounds=10
+  samples_per_round=10 seed=0
+  -> directed rejected 8/100 unique_breaks=5 vs diverse baseline rejected 7/100 learned_groups=31
+  DUALITY-BREAK: signature="MARK shorthand verb requires a non-empty argument"
+                 occurrences=3 shrunk_reproducer="(*:)"
+  DUALITY-BREAK: signature="quantifier cannot be applied directly to an anchor"
+                 occurrences=1 shrunk_reproducer="$*"
+  ...
+```
+
+The oracle is the **real registered generated parser** (so this goal needs a registered grammar
+and a `generated_parsers` build); a self-contained end-to-end proof runs the hunter over the
+scratch slot carrying a deliberately generation-blind `!"x"` lookahead — it finds the break and
+shrinks the reproducer to exactly `x`.
+
+**What the first real hunts found.** The SystemVerilog preprocessor gets a clean bill (0
+rejections in 100 samples at each canonical seed). The regex family does **not**: at every seed
+the hunter surfaces real breaks (~8 % of samples, 5–7 unique signatures per 100-sample run) —
+generated patterns that parse *structurally* but violate the parser's PCRE2-faithful post-parse
+contract, e.g. an empty MARK verb argument `(*:)`, a quantified anchor `$*`, a callout number
+over PCRE2's 255 limit `(?C262)`, `\Q`/`\E` forms the class analyzer calls unterminated `[\Q]`,
+and a scan-substring verb referencing an unknown capture `(*scs:('_'))`. These are honest,
+previously-unmeasured generator debt — the generator does not consult the post-parse contract
+layer when it renders those constructs — and closing that class is tracked as its own
+`STIMULI-SIGNOFF` leaf. (Certificate coverage reports `sample_parse_failures=0` for regex even
+at 100/200 samples because the cert pass generates under its own budgeted, coverage-steered
+configuration whose distribution avoids these rare forms — the hunter's plain-configuration pass
+is exactly what exposes them.)
+
+Honest bounds: the goal vocabulary is `k_path`, `corpus_mimicry`, and `duality_break` today
+(parser code-coverage feedback remains designed-only, tracked in the `STIMULI-SIGNOFF` tree,
+leaf `.3`); learning covers ordered-choice branch selection, not repetition counts, so mimicry is
 distributional per choice point (branch frequencies), not sequence-level (it will not reproduce
-idioms longer than the grammar's choice structure); and the loop is generation-side and opt-in
-only — the diverse pass, the witness pass, and certificate coverage stay byte-identical with the
-mode off (proven by pre/post byte-compares at seeds 0/7/42).
+idioms longer than the grammar's choice structure); duality hunting finds only what its parse
+oracle rejects, and signature normalization is digit-blind (two defects sharing an error shape
+dedup together); and the loops are generation-side and opt-in only — the diverse pass, the
+witness pass, and certificate coverage stay byte-identical with the modes off (proven by
+pre/post byte-compares at seeds 0/7/42).

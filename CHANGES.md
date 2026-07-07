@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0014 (STIMULI-SIGNOFF.4.4): goal G2 duality-break hunter lands — and its FIRST real hunt finds real generator debt on regex
+
+Session #59. The third FdLoop goal: actively HUNT generator-emitted-but-parser-rejected samples
+(duality breaks — the be-alert defect class) instead of waiting for the passive round-trip
+counter to trip over them. Parser-agnostic by ORACLE INJECTION: the lib loop
+(`directed_duality_break_hunt`) takes `parse_verdict: impl FnMut(&str) -> Result<(), String>` and
+never names a parser; `main.rs` injects the real registered generated parser.
+
+- **New surface:** `DualityBreak`/`DirectedDualityOutcome` + `normalize_rejection_signature`
+  (digit runs → `#`, so signatures dedup across positions/counts) +
+  `directed_duality_break_hunt` (per-sample fitness: 2 = NEW rejection signature, 1 = repeat,
+  0 = accepted — novelty-graded so the loop chases fresh failure classes; the `.4.2`/`.4.3`
+  select-best/re-learn/uniform-reset loop shape) + `duality_rejection_baseline`; CLI goal
+  `--directed-generation-goal duality_break` with per-break SIGNATURE-PRESERVING shrinking
+  (`minimize_failing_input` keeps the same normalized signature) and per-break
+  `DUALITY-BREAK:` headline lines + JSON report.
+- **End-to-end proof (the real generated scratch parser):** scratch carrying the deliberately
+  generation-blind `!"x"` lookahead → the hunter finds 1 unique break (29/50 rejected) and
+  shrinks the reproducer to exactly `"x"`; repeat reports byte-identical.
+- **🔎 FIRST REAL HUNTS — a genuine FINDING:** svpp gets a clean bill (0 rejections / 100
+  samples at each canonical seed). regex does NOT: ~8 % of plain-config diverse samples are
+  rejected at every seed, 5–7 unique signatures per run, ALL from the PCRE2-faithful post-parse
+  contract the generator never consults — shrunk reproducers `(*:)` (empty MARK arg), `$*`/`^*`
+  (quantified anchor), `(?C262)` (callout > 255), `[\Q]`/`[\E\E]` (unterminated-class analysis),
+  `(*scs:('_'))` (unknown named capture), `(*SKIP=)` (malformed verb). Routed to NEW leaf
+  `STIMULI-SIGNOFF.13` (post-parse-contract-aware generation). Characterization probe: regex
+  cert `sample_parse_failures` stays 0 even at `--count 100/200` — the cert pass's budgeted,
+  coverage-steered config avoids these rare forms, so the cert spf=0 claim is CONFIG-SCOPED;
+  the honesty adjudication (should a plain-config lane feed spf?) is owned by `.13` too.
+- **Honest steering note:** on regex the directed rejected-count ties/loses vs the diverse
+  baseline (8v7 / 8v10 / 8v10) — the breaks there are spread across rare forms, so steering buys
+  little; the steering property itself is pinned by the synthetic-oracle unit test (directed >
+  baseline, deterministic). The hunter's real-lane value is the findings.
+- **No regression:** 12/12 svpp+regex cert+corpus artifacts byte-identical vs the pre-`.4.4`
+  baseline at seeds 0/7/42 (additive-only change); suites 763/837/879 (+3); clippy source 0;
+  scratch fixture restored; no `generated/*` change.
+- **Book:** the directed-generation section gains the "Goal `duality_break`" subsection
+  (mechanism, the scratch proof, the honest real-lane findings); `mdbook_docs_gate` ✅.
+- Tracker: LIVE unchanged (capability lane; the regex family row is untouched — the breaks are
+  GENERATOR debt, not parser debt). `.4` is now MOSTLY DONE (only the blocked `.4.5` SV lane
+  remains). Frontier → `.13`.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0013 (STIMULI-SIGNOFF.4.3): external-corpus learning + G3 corpus-mimicry land — PGEN learns a REAL corpus's distribution and generates statistically similar stimuli
 
 Session #59. The director-GO'd G3 capability ([[project_corpus_mimicry_g3_director_go]]): "learn

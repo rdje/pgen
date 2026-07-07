@@ -1438,6 +1438,37 @@ pub struct DirectedMimicryOutcome {
     pub learned_groups: usize,
 }
 
+/// STIMULI-SIGNOFF.4.4: one unique generator⟷parser duality break found by the hunter — a
+/// generator-emitted-but-oracle-rejected sample class, deduped by normalized rejection signature.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DualityBreak {
+    /// The oracle's rejection message with digit runs collapsed to `#` (position/count-blind),
+    /// so one defect class is one break regardless of where in the sample it fired.
+    pub signature: String,
+    /// The FIRST sample that produced this signature (the shrink seed).
+    pub first_sample: String,
+    /// How many rejected samples mapped to this signature across the run.
+    pub occurrences: u64,
+}
+
+/// STIMULI-SIGNOFF.4.4: the measurable result of one directed duality-break hunt (goal G2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DirectedDualityOutcome {
+    pub rounds: usize,
+    pub samples_per_round: usize,
+    /// The selected (best) sample's novelty-graded fitness per round (2 = new signature,
+    /// 1 = repeat rejection, 0 = accepted / every generation failed).
+    pub per_round_best_fitness: Vec<u64>,
+    /// Successful generations across the run.
+    pub generated_samples: usize,
+    /// How many of them the oracle REJECTED (the duality-break hits, pre-dedup).
+    pub rejected_samples: usize,
+    /// The unique breaks, in discovery order (deterministic per seed).
+    pub breaks: Vec<DualityBreak>,
+    /// Learned branch groups installed after the final round (observability).
+    pub learned_groups: usize,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -6564,6 +6595,145 @@ impl<'a> StimuliGenerator<'a> {
             corpus_groups: corpus.len(),
             learned_groups,
         }
+    }
+
+    /// STIMULI-SIGNOFF.4.4: collapse every digit run in an oracle rejection message to `#`, so
+    /// rejection signatures dedup across byte positions / line numbers / counts. Pure.
+    pub fn normalize_rejection_signature(error: &str) -> String {
+        let mut normalized = String::with_capacity(error.len());
+        let mut in_digit_run = false;
+        for ch in error.chars() {
+            if ch.is_ascii_digit() {
+                if !in_digit_run {
+                    normalized.push('#');
+                    in_digit_run = true;
+                }
+            } else {
+                in_digit_run = false;
+                normalized.push(ch);
+            }
+        }
+        normalized
+    }
+
+    /// STIMULI-SIGNOFF.4.4: the FdLoop directed loop, goal G2 (duality-break hunting, design
+    /// §3.3). `parse_verdict` is the INJECTED parse oracle — `Ok(())` = the sample parses,
+    /// `Err(message)` = the oracle REJECTED a sample this generator emitted, i.e. a
+    /// generator⟷parser duality break (the defect class the be-alert doctrine treats as a bug to
+    /// surface, never to classify-and-move-on). The generator stays parser-agnostic: it never
+    /// names a parser — the CLI injects the real generated parser, tests inject synthetic
+    /// oracles. Per round (the `.4.2`/`.4.3` loop shape): generate `samples_per_round` samples
+    /// with the selection log on → per-sample fitness = 2 for a NEW rejection signature, 1 for a
+    /// repeat rejection, 0 for accepted (novelty-graded, so the loop chases fresh failure
+    /// classes) → select the round's best log (strict argmax, first-seen tie-break) → re-learn
+    /// from the accumulated selected logs (steering the distribution toward rejection-prone
+    /// derivation regions) → seeded uniform-reset explore → install. Failed generations score
+    /// nothing and contribute no log. Deterministic per seed; opt-in only.
+    pub fn directed_duality_break_hunt(
+        &mut self,
+        entry: &str,
+        rounds: usize,
+        samples_per_round: usize,
+        mut parse_verdict: impl FnMut(&str) -> std::result::Result<(), String>,
+    ) -> DirectedDualityOutcome {
+        self.enable_branch_selection_log();
+        let mut selected_logs: Vec<Vec<BranchSelectionLogEntry>> = Vec::new();
+        let mut per_round_best_fitness: Vec<u64> = Vec::with_capacity(rounds);
+        let mut generated_samples = 0usize;
+        let mut rejected_samples = 0usize;
+        let mut breaks: Vec<DualityBreak> = Vec::new();
+        for _round in 0..rounds {
+            let mut round_best: Option<(u64, Vec<BranchSelectionLogEntry>)> = None;
+            for _sample in 0..samples_per_round {
+                let _ = self.take_branch_selection_log();
+                let generation = self.generate_from_entry(entry);
+                let sample_log = self.take_branch_selection_log();
+                let Ok(sample) = generation else {
+                    continue;
+                };
+                generated_samples += 1;
+                let fitness: u64 = match parse_verdict(&sample) {
+                    Ok(()) => 0,
+                    Err(error) => {
+                        rejected_samples += 1;
+                        let signature = Self::normalize_rejection_signature(&error);
+                        if let Some(existing) =
+                            breaks.iter_mut().find(|b| b.signature == signature)
+                        {
+                            existing.occurrences += 1;
+                            1
+                        } else {
+                            breaks.push(DualityBreak {
+                                signature,
+                                first_sample: sample.clone(),
+                                occurrences: 1,
+                            });
+                            2
+                        }
+                    }
+                };
+                let improves = round_best
+                    .as_ref()
+                    .map(|(best, _)| fitness > *best)
+                    .unwrap_or(true);
+                if improves {
+                    round_best = Some((fitness, sample_log));
+                }
+            }
+            let Some((best_fitness, best_log)) = round_best else {
+                per_round_best_fitness.push(0);
+                continue;
+            };
+            per_round_best_fitness.push(best_fitness);
+            selected_logs.push(best_log);
+            let mut learned = Self::learn_branch_distributions(&selected_logs);
+            if !learned.is_empty() {
+                let mut keys: Vec<&String> = learned.keys().collect();
+                keys.sort();
+                let reset_key = keys[self.rng.gen_range(0..keys.len())].clone();
+                if let Some(counts) = learned.get_mut(&reset_key) {
+                    counts.iter_mut().for_each(|count| *count = 0);
+                }
+            }
+            self.set_learned_branch_distributions(Some(learned));
+        }
+        let learned_groups = self
+            .learned_branch_distributions
+            .as_ref()
+            .map(HashMap::len)
+            .unwrap_or(0);
+        DirectedDualityOutcome {
+            rounds,
+            samples_per_round,
+            per_round_best_fitness,
+            generated_samples,
+            rejected_samples,
+            breaks,
+            learned_groups,
+        }
+    }
+
+    /// STIMULI-SIGNOFF.4.4: count how many of `samples` plain diverse generations the oracle
+    /// rejects — the same-seed same-budget DIVERSE baseline comparator for
+    /// `directed_duality_break_hunt`. Returns `(rejected, generated)`.
+    pub fn duality_rejection_baseline(
+        &mut self,
+        entry: &str,
+        samples: usize,
+        mut parse_verdict: impl FnMut(&str) -> std::result::Result<(), String>,
+    ) -> (usize, usize) {
+        let mut rejected = 0usize;
+        let mut generated = 0usize;
+        for _ in 0..samples {
+            let Ok(sample) = self.generate_from_entry(entry) else {
+                continue;
+            };
+            generated += 1;
+            if parse_verdict(&sample).is_err() {
+                rejected += 1;
+            }
+        }
+        (rejected, generated)
     }
 
     /// STIMULI-SIGNOFF.4.3: score THIS generator's plain output population against a corpus
@@ -24562,6 +24732,103 @@ mod tests {
             outcome.population_proximity,
             baseline_proximity
         );
+    }
+
+    // ---- STIMULI-SIGNOFF.4.4: goal G2 — the duality-break hunter ----
+
+    #[test]
+    fn rejection_signature_normalization_is_digit_blind() {
+        assert_eq!(
+            StimuliGenerator::normalize_rejection_signature(
+                "Parser did not consume full input at position 12345 [furthest_position=99]"
+            ),
+            "Parser did not consume full input at position # [furthest_position=#]"
+        );
+        assert_eq!(
+            StimuliGenerator::normalize_rejection_signature("no digits here"),
+            "no digits here"
+        );
+        assert_eq!(StimuliGenerator::normalize_rejection_signature("a1b22c333"), "a#b#c#");
+    }
+
+    /// The G2 steering pin: with an oracle that rejects every sample whose `x` choice rendered
+    /// `"bb"`, the novelty-graded loop selects rejected samples' logs and re-learns toward the
+    /// rejection-prone branch — so the directed pass reveals MORE rejections than the same-seed
+    /// same-budget diverse baseline. And the whole outcome reproduces exactly per seed.
+    #[test]
+    fn duality_hunt_steers_toward_rejections_and_is_deterministic() {
+        let grammar_tree = two_choice_point_grammar();
+        let rule_order = vec!["start".to_string(), "x".to_string(), "y".to_string()];
+        let oracle = |sample: &str| -> std::result::Result<(), String> {
+            if sample.contains("bb") {
+                Err(format!("rejected: bb at byte {}", sample.find("bb").unwrap_or(0)))
+            } else {
+                Ok(())
+            }
+        };
+        const SEED: u64 = 17;
+        const ROUNDS: usize = 8;
+        const SAMPLES_PER_ROUND: usize = 8;
+
+        let run_hunt = || {
+            let mut g = simple_generator(&grammar_tree, &rule_order, SEED);
+            g.directed_duality_break_hunt("start", ROUNDS, SAMPLES_PER_ROUND, oracle)
+        };
+        let outcome = run_hunt();
+        let rerun = run_hunt();
+        assert_eq!(outcome, rerun, "same seed + budget must reproduce exactly");
+
+        let mut diverse = simple_generator(&grammar_tree, &rule_order, SEED);
+        let (baseline_rejected, baseline_generated) =
+            diverse.duality_rejection_baseline("start", ROUNDS * SAMPLES_PER_ROUND, oracle);
+
+        assert_eq!(outcome.generated_samples, ROUNDS * SAMPLES_PER_ROUND);
+        assert_eq!(baseline_generated, ROUNDS * SAMPLES_PER_ROUND);
+        assert_eq!(
+            outcome.breaks.len(),
+            1,
+            "one defect class (position-normalized) regardless of where it fired: {outcome:?}"
+        );
+        assert_eq!(outcome.breaks[0].signature, "rejected: bb at byte #");
+        assert!(
+            outcome.rejected_samples > baseline_rejected,
+            "the novelty-fitness loop must steer toward the rejection-prone branch; \
+             directed {} vs baseline {} rejected of {}",
+            outcome.rejected_samples,
+            baseline_rejected,
+            ROUNDS * SAMPLES_PER_ROUND
+        );
+    }
+
+    #[test]
+    fn duality_breaks_dedupe_by_signature_and_grade_novelty() {
+        let grammar_tree = two_choice_point_grammar();
+        let rule_order = vec!["start".to_string(), "x".to_string(), "y".to_string()];
+        let oracle = |sample: &str| -> std::result::Result<(), String> {
+            if sample.contains("bb") {
+                Err(format!("boom at {}", sample.len()))
+            } else {
+                Ok(())
+            }
+        };
+        let mut g = simple_generator(&grammar_tree, &rule_order, 5);
+        let outcome = g.directed_duality_break_hunt("start", 4, 6, oracle);
+
+        assert_eq!(outcome.breaks.len(), 1, "all rejections share one signature: {outcome:?}");
+        let duality_break = &outcome.breaks[0];
+        assert_eq!(duality_break.signature, "boom at #");
+        assert_eq!(
+            duality_break.occurrences as usize, outcome.rejected_samples,
+            "every rejection folds into the one break: {outcome:?}"
+        );
+        assert!(
+            duality_break.first_sample.contains("bb"),
+            "the retained first sample must actually exhibit the break: {duality_break:?}"
+        );
+        // Novelty grading: the round that DISCOVERED the signature selected fitness 2; later
+        // rejecting rounds select repeats at fitness 1; fitness never exceeds 2.
+        assert!(outcome.per_round_best_fitness.contains(&2), "{outcome:?}");
+        assert!(outcome.per_round_best_fitness.iter().all(|f| *f <= 2), "{outcome:?}");
     }
 
     #[test]

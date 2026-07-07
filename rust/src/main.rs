@@ -100,13 +100,16 @@ struct Args {
     /// STIMULI-SIGNOFF.4.2: opt-in DIRECTED generation loop (FdLoop, arXiv 2508.01472): per
     /// round, learn a per-choice-point branch distribution from the round's best sample and
     /// steer the next round's generation with it. Value names the GOAL; supported: `k_path`
-    /// (goal G1 — per-sample fitness = NEW k-paths covered) and `corpus_mimicry` (goal G3,
+    /// (goal G1 — per-sample fitness = NEW k-paths covered), `corpus_mimicry` (goal G3,
     /// STIMULI-SIGNOFF.4.3 — learn the distribution from a REAL corpus via the gen-AST
     /// interpreter and generate distributionally-similar inputs; per-sample fitness = L1
     /// proximity to the corpus distribution; needs `--mimicry-corpus-file` and/or
-    /// `--mimicry-corpus-lines`). Prints a `DIRECTED-GENERATION:` headline including a
-    /// same-seed, same-budget diverse-pass baseline comparison. Opt-in only — no other
-    /// generation surface changes.
+    /// `--mimicry-corpus-lines`), and `duality_break` (goal G2, STIMULI-SIGNOFF.4.4 — hunt
+    /// generator-emitted-but-parser-REJECTED samples against the real generated parser;
+    /// fitness rewards novel rejection signatures; each unique break is shrunk to a minimal
+    /// signature-preserving reproducer; needs a registered generated parser). Prints a
+    /// `DIRECTED-GENERATION:` headline including a same-seed, same-budget diverse-pass
+    /// baseline comparison. Opt-in only — no other generation surface changes.
     #[arg(long, value_name = "GOAL")]
     directed_generation_goal: Option<String>,
 
@@ -2481,9 +2484,12 @@ fn run_directed_generation(grammar: &LoadedGrammar, run: DirectedGenerationRun) 
     if run.goal == "corpus_mimicry" {
         return run_directed_corpus_mimicry(grammar, &run);
     }
+    if run.goal == "duality_break" {
+        return run_directed_duality_hunt(grammar, &run);
+    }
     if run.goal != "k_path" {
         anyhow::bail!(
-            "unsupported --directed-generation-goal '{}' (supported goals: k_path, corpus_mimicry)",
+            "unsupported --directed-generation-goal '{}' (supported goals: k_path, corpus_mimicry, duality_break)",
             run.goal
         );
     }
@@ -2710,6 +2716,148 @@ fn run_directed_corpus_mimicry(grammar: &LoadedGrammar, run: &DirectedGeneration
             "diverse_baseline_generated_samples": baseline_samples,
             "delta": delta,
             "per_round_best_proximity": outcome.per_round_best_proximity,
+            "learned_groups": outcome.learned_groups,
+        });
+        std::fs::write(path, serde_json::to_string_pretty(&report)?)
+            .with_context(|| format!("failed to write directed-generation report to {path}"))?;
+        println!("Wrote directed-generation report to {path}");
+    }
+    Ok(())
+}
+
+/// STIMULI-SIGNOFF.4.4: run the FdLoop directed loop for goal G2 (duality-break hunting). The
+/// rejection oracle is the REAL registered generated parser
+/// (`parser_registry::parse_sample_detail_with_profile`), injected into the parser-agnostic lib
+/// loop — a hit is a sample the generator emitted and the shipped parser rejects, i.e. a
+/// generator⟷parser duality break. Each unique (digit-normalized) rejection signature is shrunk
+/// to a minimal SIGNATURE-PRESERVING reproducer via the existing `minimize_failing_input`
+/// machinery. The headline includes the same-seed same-budget diverse baseline (plain diverse
+/// generation scored by the same oracle).
+#[cfg(not(feature = "generated_parsers"))]
+fn run_directed_duality_hunt(_grammar: &LoadedGrammar, _run: &DirectedGenerationRun) -> Result<()> {
+    anyhow::bail!(
+        "goal duality_break needs --features generated_parsers (the real generated parser is the rejection oracle)"
+    )
+}
+
+#[cfg(feature = "generated_parsers")]
+fn run_directed_duality_hunt(grammar: &LoadedGrammar, run: &DirectedGenerationRun) -> Result<()> {
+    let entry_rule = run
+        .entry
+        .map(|s| s.to_string())
+        .or_else(|| grammar.rule_order.first().cloned())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "grammar '{}' has no rules to run directed generation for",
+                grammar.grammar_name
+            )
+        })?;
+    let rounds = run.rounds.max(1);
+    let samples_per_round = run.samples_per_round.max(1);
+    let grammar_name = grammar.grammar_name.clone();
+    let profile = run.grammar_profile.map(|s| s.to_string());
+
+    // Support pre-check (a cheap empty-string probe): `None` = no registered generated parser.
+    if parser_registry::parse_sample_detail_with_profile(&grammar_name, "", profile.as_deref())
+        .is_none()
+    {
+        anyhow::bail!(
+            "goal duality_break: grammar '{}' has no registered generated parser to hunt against. Supported grammars: {}",
+            grammar_name,
+            supported_generated_parseability_grammars_csv()
+        );
+    }
+    // Captures by reference → `Copy`, so the hunt and the baseline share the same oracle.
+    let oracle = |sample: &str| -> std::result::Result<(), String> {
+        parser_registry::parse_sample_detail_with_profile(&grammar_name, sample, profile.as_deref())
+            .unwrap_or_else(|| Err("unsupported grammar (pre-checked; unreachable)".to_string()))
+    };
+
+    let make_generator = || {
+        StimuliGenerator::new(
+            grammar.grammar_name.clone(),
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            grammar.annotations.as_ref(),
+            StimuliConfig {
+                seed: Some(run.seed),
+                ..Default::default()
+            },
+        )
+    };
+
+    let mut directed = make_generator();
+    let outcome =
+        directed.directed_duality_break_hunt(&entry_rule, rounds, samples_per_round, oracle);
+
+    let budget = rounds.saturating_mul(samples_per_round);
+    let mut diverse = make_generator();
+    let (baseline_rejected, baseline_generated) =
+        diverse.duality_rejection_baseline(&entry_rule, budget, oracle);
+
+    // Shrink each unique break to a minimal reproducer that still fails with the SAME signature.
+    let mut break_reports: Vec<serde_json::Value> = Vec::new();
+    let mut break_lines: Vec<String> = Vec::new();
+    for duality_break in &outcome.breaks {
+        let shrunk = minimize_failing_input(&duality_break.first_sample, |candidate| {
+            Ok(
+                match parser_registry::parse_sample_detail_with_profile(
+                    &grammar_name,
+                    candidate,
+                    profile.as_deref(),
+                ) {
+                    Some(Err(error)) => {
+                        StimuliGenerator::normalize_rejection_signature(&error)
+                            == duality_break.signature
+                    }
+                    _ => false,
+                },
+            )
+        })?;
+        break_lines.push(format!(
+            "signature={:?} occurrences={} shrunk_reproducer={:?}",
+            duality_break.signature, duality_break.occurrences, shrunk
+        ));
+        break_reports.push(serde_json::json!({
+            "signature": duality_break.signature,
+            "occurrences": duality_break.occurrences,
+            "first_sample": duality_break.first_sample,
+            "shrunk_reproducer": shrunk,
+        }));
+    }
+
+    println!(
+        "DIRECTED-GENERATION: goal=duality_break grammar='{}' entry='{}' rounds={} samples_per_round={} seed={} -> directed rejected {}/{} unique_breaks={} vs diverse baseline rejected {}/{} learned_groups={}",
+        grammar.grammar_name,
+        entry_rule,
+        rounds,
+        samples_per_round,
+        run.seed,
+        outcome.rejected_samples,
+        outcome.generated_samples,
+        outcome.breaks.len(),
+        baseline_rejected,
+        baseline_generated,
+        outcome.learned_groups
+    );
+    for line in &break_lines {
+        println!("  DUALITY-BREAK: {line}");
+    }
+    if let Some(path) = run.report_json {
+        let report = serde_json::json!({
+            "goal": "duality_break",
+            "grammar_name": grammar.grammar_name,
+            "entry_rule": entry_rule,
+            "rounds": rounds,
+            "samples_per_round": samples_per_round,
+            "seed": run.seed,
+            "directed_generated_samples": outcome.generated_samples,
+            "directed_rejected_samples": outcome.rejected_samples,
+            "diverse_baseline_generated_samples": baseline_generated,
+            "diverse_baseline_rejected_samples": baseline_rejected,
+            "unique_breaks": outcome.breaks.len(),
+            "breaks": break_reports,
+            "per_round_best_fitness": outcome.per_round_best_fitness,
             "learned_groups": outcome.learned_groups,
         });
         std::fs::write(path, serde_json::to_string_pretty(&report)?)
