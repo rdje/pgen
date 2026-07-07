@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0009 (STIMULI-SIGNOFF.4): FDLOOP directed/learned generation — research + DESIGN slice (docs-only; the mandated SV-EXH-PROOF.7.4.6 reconciliation recorded)
+
+Session #58. PURE DOCS — the first slice of `.4` per the decisive `-0008` resume pointer.
+
+- **Research (grounded, per [[feedback_research_grounded_sota_no_trial_and_revert]]):** FdLoop
+  (Kirschner & Soremekun, arXiv 2508.01472, TSE submission 2025) read in full via the arXiv HTML.
+  Six-stage loop: learn per-production probabilities from derivation trees → generate n from the
+  learned probabilistic grammar + n validity-preserving mutants → execute + collect goal metrics
+  → select the single best by weighted-sum fitness → re-learn from the selected set + reset
+  random rules to uniform (exploration). Beats 5 baselines in 86 % of settings; 2× EvoGFuzz on
+  exception-revealing. Their depth-3 shortest-subtree control ≈ our Purdom/`construct_mode`
+  (we are strictly stronger there).
+- **Reconciliation (mandated by the pointer):** the leaf's original acceptance "SV residual
+  273 → ~0" is PARTIALLY SUPERSEDED — `SV-EXH-PROOF.7.4.6.3/.6.5/.6.7` landed deterministic
+  derivation-directed CONSTRUCTION (273→97→~84 best-known) and proved the residual metric
+  NOISE-DOMINATED (±~25: runs 97/89/105/120). So single-target reach is already better-served
+  deterministically, and no FdLoop measurement may target the SV residual until
+  `SV-EXH-PROOF.7.4.6.8` (metric determinism, owned there) lands. The SURVIVING value = the
+  GENERAL capability PGEN lacks: a LEARNED per-choice-point distribution layer + goal-fitness
+  feedback loop (distributional goals, not single named targets).
+- **Design recorded:** `docs/tasks/STIMULI-SIGNOFF-4-fdloop-directed-generation-design.md` —
+  worked symbol-cited mapping (learned `HashMap<"{rule}::{node_path}", Vec<u64>>` composed into
+  `generate_or` phase-2 alongside declared probabilities + `coverage_guidance_multiplier`;
+  learning front-ends = self-derivation counting + EXTERNAL-corpus counting via the gen-AST
+  interpreter; loop driver grafted onto `run_coverage_guided_fuzz_loop`; all stochastic steps
+  seeded `StdRng`, 0/7/42 triplicate; default-OFF byte-identical). Goal vocabulary v1:
+  G1 k-path coverage delta (primary — the `.2` metric; SV sv_2017 k=2 baseline 679/4105 = 16.5 %
+  is the before→after), G2 parse-failure revelation (duality-break hunter), G3 corpus-mimicry
+  (NEW direction — realistic stimuli learned from a real corpus; surfaced to director),
+  G4 parser code coverage (deferred to `.3`). Sub-leaves `.4.1`–`.4.5`; frontier → `.4.1`
+  (the learned-distribution layer). Leaf acceptance re-framed accordingly.
+- Tracker: LIVE_ACHIEVEMENT_STATUS unchanged (docs-only design slice; no code, no gates moved).
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0007 (STIMULI-SIGNOFF.12): `@quantified_separator` lands end-to-end — the LAST generator name-gate is RETIRED (grammar-declared separator cohesion; byte-identical everywhere)
 
 Session #57. **New parser-agnostic RULE-level stimuli directive** (the 4th and final member of the

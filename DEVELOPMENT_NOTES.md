@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0009 — STIMULI-SIGNOFF.4: design notes — where FdLoop genuinely fits a generator that already has deterministic construction
+
+Session #58 (docs-only). Notes from the FDLOOP research + design slice:
+
+1. **Read the paper AFTER the landscape moved, and reconcile honestly.** The `.4` leaf was written
+   when the SV residual was 273 and reach-plan SEARCH was timing out; FdLoop was recruited as the
+   reach lever. By read time, `.7.4.6.3` derivation-directed construction had already solved
+   single-target reach deterministically (backtrack-free, O(tree-size)) and `.7.4.6.7` had proven
+   the residual metric noise-dominated (±~25). Blindly implementing the paper's headline use-case
+   would have been trial-and-revert against a landed, stronger mechanism. The correct adoption is
+   the part of FdLoop PGEN genuinely lacks: LEARNED distributions + a goal-fitness loop for
+   DISTRIBUTIONAL goals (k-path coverage, failure revelation, corpus-mimicry) — properties of the
+   whole sample population that no single-target forcing mechanism can drive.
+2. **The interpreter is the parser-agnostic derivation-tree counter.** FdLoop's learning stage
+   needs per-choice-point attribution `(rule, node_path, branch_index)` from EXISTING inputs. The
+   typed AST cannot provide it (return annotations fold structure; `_meta` is deferred), but
+   `parse_harness_interpreter` walks the SAME normalized gen-AST the generator consumes and holds
+   exactly that attribution at every choice it resolves — no new parser surface needed. For
+   self-generated samples the attribution is free (the generator logs its own choices).
+3. **FdLoop's stochasticity vs PGEN determinism resolves by seeding.** Every stochastic step
+   (sampling, the reset-a-rule-to-uniform exploration mutation, mutant selection) draws from the
+   run's `StdRng::seed_from_u64`; verification is the canonical 0/7/42 triplicate. The learned
+   layer itself is default-OFF (absent map ⇒ byte-identical generation) — same monotonicity
+   pattern as `.12` / the `.7.4.x` witness-pass work.
+4. Full design + slice plan: `docs/tasks/STIMULI-SIGNOFF-4-fdloop-directed-generation-design.md`.
+
 ## 2026-07-07 - PGEN-STIMULI-SIGNOFF-0007 — STIMULI-SIGNOFF.12: implementation notes — a stimuli-only directive is NOT automatically emit-neutral, and junction spellings are grammar knowledge
 
 Session #57. Notes from retiring the last generator name-gate via `@quantified_separator`:
