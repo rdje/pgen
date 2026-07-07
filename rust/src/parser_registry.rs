@@ -154,17 +154,34 @@ fn normalize_generated_grammar_profile<'a>(
     if profile.is_empty() {
         return None;
     }
+    Some(resolve_generated_grammar_profile_alias(
+        grammar_name,
+        profile,
+    ))
+}
+
+/// `PROFILE-ALIAS.2`: the grammar-DECLARED request-spelling alias resolver —
+/// dispatches to the generated parser's `resolve_grammar_profile_alias`
+/// (emitted from the grammar's own `@profile_alias:` directives, e.g. SV's
+/// `2017`/`ieee1800-2017` → `sv_2017`), so the registry holds NO spelling
+/// knowledge of its own (the retired `"systemverilog"` alias match arm was
+/// exactly that defect class). Same data-driven boundary as
+/// `default_generated_grammar_profile`: the per-grammar datum lives in this
+/// table, sourced from the grammar-derived artifact. Unmatched spellings and
+/// alias-free grammars pass through unchanged.
+#[cfg(has_generated_systemverilog_parser)]
+fn resolve_generated_grammar_profile_alias<'a>(grammar_name: &str, profile: &'a str) -> &'a str {
     match grammar_name {
-        "systemverilog" => match profile.to_ascii_lowercase().as_str() {
-            "2017" | "ieee1800-2017" | "ieee_1800_2017" => Some("sv_2017"),
-            "2023" | "ieee1800-2023" | "ieee_1800_2023" => Some("sv_2023"),
-            "verilog_2005" | "1364-2005" | "ieee1364-2005" | "ieee_1364_2005" => {
-                Some("verilog_2005")
-            }
-            _ => grammar_profile,
-        },
-        _ => grammar_profile,
+        "systemverilog" => SystemverilogParser::resolve_grammar_profile_alias(profile),
+        _ => profile,
     }
+}
+
+/// `PROFILE-ALIAS.2`: without the SV artifact compiled in, no registered
+/// grammar declares `@profile_alias` — every spelling passes through.
+#[cfg(not(has_generated_systemverilog_parser))]
+fn resolve_generated_grammar_profile_alias<'a>(_grammar_name: &str, profile: &'a str) -> &'a str {
+    profile
 }
 
 #[derive(Clone, Copy, Debug)]

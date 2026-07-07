@@ -141,6 +141,13 @@ pub enum Combinator {
     /// DECLARED default, so `@profiles`-gated rules outside it are excluded by default
     /// (DEFAULT-PROFILE.2; the policy regex declares as `pcre2`).
     ProfileDefaultGate,
+    /// The grammar-level `@profile_alias:` directive: a requested ALIAS spelling resolves to its
+    /// declared canonical profile, so the `@profiles`-gated rule it names is ACTIVE
+    /// (PROFILE-ALIAS.2; the policy systemverilog declares — `2017` → `sv_2017`, …).
+    ProfileAliasResolves,
+    /// The alias pass-through contrast: an UNDECLARED spelling passes through unresolved, so a
+    /// `@profiles`-gated rule stays EXCLUDED (PROFILE-ALIAS.2 — unknown values are not coerced).
+    ProfileAliasUnknownPassthrough,
 }
 
 impl Combinator {
@@ -171,6 +178,8 @@ impl Combinator {
         Combinator::LayoutWhitespaceSensitiveRegexTokens,
         Combinator::ProfileUnspecifiedPermissive,
         Combinator::ProfileDefaultGate,
+        Combinator::ProfileAliasResolves,
+        Combinator::ProfileAliasUnknownPassthrough,
     ];
 }
 
@@ -193,6 +202,12 @@ pub struct CombinatorCase {
     /// `rule_order[0]` is no longer the semantic entry `expr` — it becomes the base rule (just `"n"`).
     /// Driving the LR combinator therefore requires naming the real entry explicitly.
     pub entry_rule: Option<&'static str>,
+    /// `PROFILE-ALIAS.2`: the dialect-profile SPELLING to request before parsing, applied
+    /// **identically** to both sides (the interpreter via `InterpretOptions::profile`, the oracle via
+    /// `CompileAndParseOptions::requested_profile` → the probe's `set_grammar_profile`). `None` = no
+    /// request (each grammar's constructor posture — the declared `@default_profile` if any, else
+    /// unset/permissive). This is how the alias-resolution cases drive a declared spelling end-to-end.
+    pub requested_profile: Option<&'static str>,
     /// A short note on what the case proves (surfaced in the scouting report).
     pub note: &'static str,
 }
@@ -211,6 +226,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := \"a\" | \"a\" \"b\"\n",
         inputs: &[("ab", true), ("a", true), ("b", false), ("abc", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "default longest_match picks the longer alt on \"ab\" (accept)",
     },
     CombinatorCase {
@@ -219,6 +235,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "@branch_policy: longest_match\nstart := \"a\" | \"a\" \"b\"\n",
         inputs: &[("ab", true), ("a", true), ("b", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "explicit longest_match matches the default (accept \"ab\")",
     },
     CombinatorCase {
@@ -229,6 +246,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "@branch_policy: ordered\nstart := \"a\" | \"a\" \"b\"\n",
         inputs: &[("ab", false), ("a", true), ("b", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "ordered picks the FIRST alt on \"ab\" → leaves \"b\" → reject (the A2.3 contrast)",
     },
     CombinatorCase {
@@ -239,6 +257,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "@branch_policy: priority_first\n@priority: [1, 2]\nstart := \"a\" | \"a\" \"b\"\n",
         inputs: &[("ab", true), ("a", true), ("b", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "priority_first picks the higher-@priority alt (2) → accepts \"ab\" (reorders vs source)",
     },
     CombinatorCase {
@@ -250,6 +269,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := opt | kw\nopt := \"x\"?\nkw := \"keyword\"\n",
         inputs: &[("x", true), ("", true), ("keyword", true), ("z", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "always-succeeds `opt` does NOT shadow `kw` under longest_match (A2.2 unsoundness point)",
     },
     // ── Sequence + backtrack ─────────────────────────────────────────────────────────────────────────
@@ -259,6 +279,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := \"a\" \"b\" | \"a\" \"c\"\n",
         inputs: &[("ab", true), ("ac", true), ("ad", false), ("a", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "backtrack after the shared `\"a\"` prefix to try the second alt",
     },
     // ── Quantifiers ?/*/+ and the four bounded forms (first-class since BOUNDED-QUANT.1) ─────────────
@@ -268,6 +289,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := \"a\" item?\nitem := \"b\"\n",
         inputs: &[("a", true), ("ab", true), ("abb", false), ("", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`?` optionally consumes one `item`",
     },
     CombinatorCase {
@@ -276,6 +298,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := item*\nitem := \"x\"\n",
         inputs: &[("", true), ("x", true), ("xxx", true), ("xy", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`*` consumes zero-or-more `item`",
     },
     CombinatorCase {
@@ -284,6 +307,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := item+\nitem := \"x\"\n",
         inputs: &[("x", true), ("xxx", true), ("", false), ("xy", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`+` consumes one-or-more `item`",
     },
     CombinatorCase {
@@ -294,6 +318,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := item{2}\nitem := \"x\"\n",
         inputs: &[("xx", true), ("x", false), ("xxx", false), ("", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`{2}` accepts exactly two `item`s (the BOUNDED-QUANT.1 half-wire closure proof)",
     },
     CombinatorCase {
@@ -302,6 +327,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := item{2,3}\nitem := \"x\"\n",
         inputs: &[("x", false), ("xx", true), ("xxx", true), ("xxxx", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`{2,3}` accepts the 2..=3 window and nothing outside it",
     },
     CombinatorCase {
@@ -310,6 +336,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := item{2,}\nitem := \"x\"\n",
         inputs: &[("", false), ("x", false), ("xx", true), ("xxxxx", true)],
         entry_rule: None,
+        requested_profile: None,
         note: "`{2,}` needs at least two `item`s, unbounded above",
     },
     CombinatorCase {
@@ -318,6 +345,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := item{,2}\nitem := \"x\"\n",
         inputs: &[("", true), ("x", true), ("xx", true), ("xxx", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`{,2}` accepts zero through two `item`s; a third is unconsumed → reject",
     },
     CombinatorCase {
@@ -328,6 +356,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := item*\nitem := \"x\"?\n",
         inputs: &[("", true), ("x", true), ("xx", true), ("y", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`*` over a nullable `item` must stop at the first zero-length iteration (the guard)",
     },
     // ── Lookahead &/! (zero-width) ───────────────────────────────────────────────────────────────────
@@ -337,6 +366,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := !\"x\" any\nany := \"y\" | \"z\"\n",
         inputs: &[("y", true), ("z", true), ("x", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`!\"x\"` fails when the input starts with \"x\"; zero-width otherwise",
     },
     CombinatorCase {
@@ -345,6 +375,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := &digit rest\ndigit := \"1\" | \"2\"\nrest := digit \"!\"\n",
         inputs: &[("1!", true), ("2!", true), ("1", false), ("x!", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`&digit` requires a digit next (zero-width), then `rest` consumes it",
     },
     // ── Atoms: terminal + regex-token ────────────────────────────────────────────────────────────────
@@ -354,6 +385,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := \"hello\"\n",
         inputs: &[("hello", true), ("hell", false), ("helloo", false), ("", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "a plain terminal atom must match exactly",
     },
     CombinatorCase {
@@ -362,6 +394,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := /[0-9]+/\n",
         inputs: &[("123", true), ("7", true), ("", false), ("12a", false), ("a", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "a `/…/` regex-token atom matches its pattern anchored at the cursor",
     },
     // ── Rule reference ───────────────────────────────────────────────────────────────────────────────
@@ -371,6 +404,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := a b\na := \"x\"\nb := \"y\"\n",
         inputs: &[("xy", true), ("x", false), ("xyz", false), ("yx", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "`start` dispatches to referenced rules `a` then `b`",
     },
     // ── Left recursion (LR-eliminated) ───────────────────────────────────────────────────────────────
@@ -389,6 +423,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "expr := wrapper | term\nwrapper := expr \"+\" term\nterm := \"n\"\n",
         inputs: &[("n", true), ("n+n", true), ("n+n+n", true), ("n+", false), ("+n", false)],
         entry_rule: Some("expr"),
+        requested_profile: None,
         note: "the wrapper/indirect LR form is structurally eliminated to `base (suffix)*`",
     },
     // ── Layout policy — the grammar-level `@whitespace_sensitive:` directive (WS-DIRECTIVE.2) ──────
@@ -406,6 +441,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
             ("a x", false),
         ],
         entry_rule: None,
+        requested_profile: None,
         note: "default layout policy skips interior/leading layout and consumes trailing layout",
     },
     CombinatorCase {
@@ -422,6 +458,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
             ("ab ", false),
         ],
         entry_rule: None,
+        requested_profile: None,
         note: "@whitespace_sensitive: true makes every space literal (contrast with the default case)",
     },
     CombinatorCase {
@@ -438,6 +475,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
             ("kx ", true),
         ],
         entry_rule: None,
+        requested_profile: None,
         note: "granular facet: regex tokens sensitive, terminals + trailing keep the default skip",
     },
     // ── Default profile — the grammar-level `@default_profile:` directive (DEFAULT-PROFILE.2) ──────
@@ -450,6 +488,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "start := base | relaxed_only\nbase := \"b\"\n@profiles: [\"relaxed\"]\nrelaxed_only := \"R\"\n",
         inputs: &[("b", true), ("R", true), ("x", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "no @default_profile: an unspecified profile leaves @profiles-gated rules active",
     },
     CombinatorCase {
@@ -463,7 +502,36 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         grammar_body: "@default_profile: strict\nstart := base | relaxed_only\nbase := \"b\"\n@profiles: [\"relaxed\"]\nrelaxed_only := \"R\"\n",
         inputs: &[("b", true), ("R", false), ("x", false)],
         entry_rule: None,
+        requested_profile: None,
         note: "@default_profile makes the declared default the unspecified-profile resolution (contrast with the permissive case)",
+    },
+    // ── Profile aliases — the grammar-level `@profile_alias:` directive (PROFILE-ALIAS.2) ──────────
+    CombinatorCase {
+        name: "profile_alias_resolves",
+        combinator: Combinator::ProfileAliasResolves,
+        // `@profile_alias: { "old": modern }` (the systemverilog.ebnf shape, which declares
+        // `2017` → `sv_2017`, …): requesting the ALIAS spelling `old` resolves to the canonical
+        // `modern`, so the `@profiles: ["modern"]`-gated branch IS active — `"R"` accepts. This is
+        // the capability the retired engine alias tables (`parser_registry.rs` "systemverilog"
+        // arm, the global `main.rs` spelling table) closed off from synthetic grammars entirely.
+        grammar_body: "@profile_alias: { \"old\": modern }\nstart := base | modern_only\nbase := \"b\"\n@profiles: [\"modern\"]\nmodern_only := \"R\"\n",
+        inputs: &[("b", true), ("R", true), ("x", false)],
+        entry_rule: None,
+        requested_profile: Some("old"),
+        note: "requesting the declared alias spelling resolves to the canonical profile → the gated rule is ACTIVE",
+    },
+    CombinatorCase {
+        name: "profile_alias_unknown_passthrough",
+        combinator: Combinator::ProfileAliasUnknownPassthrough,
+        // The pass-through contrast on the SAME grammar: an UNDECLARED spelling is not coerced —
+        // it passes through unresolved, matches no `@profiles` list, and the gated branch stays
+        // EXCLUDED — `"R"` rejects. (The retired regex name-gate's "coerce any explicit value"
+        // quirk is exactly what this pins as NOT happening.)
+        grammar_body: "@profile_alias: { \"old\": modern }\nstart := base | modern_only\nbase := \"b\"\n@profiles: [\"modern\"]\nmodern_only := \"R\"\n",
+        inputs: &[("b", true), ("R", false), ("x", false)],
+        entry_rule: None,
+        requested_profile: Some("unknown"),
+        note: "an undeclared spelling passes through unresolved → the gated rule stays EXCLUDED (no coercion)",
     },
 ];
 
@@ -613,15 +681,18 @@ pub fn run_combinator_case(
         return report;
     }
 
-    // The case's entry rule is applied IDENTICALLY to both sides (so the differential stays valid): the
-    // interpreter via `InterpretOptions::entry_rule`, the oracle via `CompileAndParseOptions::entry_rule`
-    // (`parse_full_from`). `None` = each grammar's canonical entry.
+    // The case's entry rule and requested profile are applied IDENTICALLY to both sides (so the
+    // differential stays valid): the interpreter via `InterpretOptions::{entry_rule, profile}`, the
+    // oracle via `CompileAndParseOptions::{entry_rule, requested_profile}` (`parse_full_from` /
+    // the probe's `set_grammar_profile`). `None` = each grammar's canonical entry / constructor
+    // profile posture.
     let interp_opts = InterpretOptions {
         entry_rule: case.entry_rule.map(str::to_string),
-        ..Default::default()
+        profile: case.requested_profile.map(str::to_string),
     };
     let case_opts = CompileAndParseOptions {
         entry_rule: case.entry_rule.map(str::to_string),
+        requested_profile: case.requested_profile.map(str::to_string),
         ..opts.clone()
     };
 

@@ -91,6 +91,12 @@ pub struct CompileAndParseOptions {
     /// Pass `--eliminate-left-recursion` to codegen (default `true` — mirrors the shipped `RUST_GENERATOR`
     /// recipe). Only set `false` for a deliberate no-LR-elimination experiment.
     pub eliminate_left_recursion: bool,
+    /// `PROFILE-ALIAS.2`: request a dialect profile SPELLING before parsing — the probe calls
+    /// `set_grammar_profile(Some(<spelling>))` on the compiled parser, so the artifact's own
+    /// resolution (declared `@profile_alias` spellings, unknown-value pass-through) is what gates
+    /// `@profiles` rules. `None` (default) = the artifact's constructor posture (the declared
+    /// `@default_profile` if any, else unset/permissive).
+    pub requested_profile: Option<String>,
 }
 
 impl Default for CompileAndParseOptions {
@@ -102,6 +108,7 @@ impl Default for CompileAndParseOptions {
             workdir: None,
             keep_workdir: false,
             eliminate_left_recursion: true,
+            requested_profile: None,
         }
     }
 }
@@ -340,8 +347,13 @@ fn run_in_workdir(
     let bin = target_dir.join("debug").join(PROBE_BIN_NAME);
     let mut run = Command::new(&bin);
     run.arg(&input_file);
-    if let Some(entry) = &opts.entry_rule {
-        run.arg(entry);
+    // Positional args: [entry_rule] [requested_profile] — an empty entry slot is passed as ""
+    // (the probe main filters empties) so a profile-only request keeps its position.
+    if opts.entry_rule.is_some() || opts.requested_profile.is_some() {
+        run.arg(opts.entry_rule.as_deref().unwrap_or(""));
+    }
+    if let Some(profile) = &opts.requested_profile {
+        run.arg(profile);
     }
     crate::pgen_trace!(TraceLevel::Medium, "parse-harness: run {}", bin.display());
     let run_out = run.output()?;
@@ -421,11 +433,17 @@ mod generated {{
 
 fn main() {{
     let args: Vec<String> = std::env::args().collect();
-    let input_path = args.get(1).expect("usage: probe <input_file> [entry_rule]");
+    let input_path = args
+        .get(1)
+        .expect("usage: probe <input_file> [entry_rule] [requested_profile]");
     let entry: Option<&str> = args.get(2).map(|s| s.as_str()).filter(|s| !s.is_empty());
+    let profile: Option<&str> = args.get(3).map(|s| s.as_str()).filter(|s| !s.is_empty());
     let input = std::fs::read_to_string(input_path).expect("read input file");
 
     let mut parser = generated::{struct_name}::new(&input, Box::new(pgen::NoOpLogger));
+    if let Some(requested) = profile {{
+        parser.set_grammar_profile(Some(requested));
+    }}
     let result = match entry {{
         Some(e) => parser.parse_full_from(e),
         None => parser.parse_full(),

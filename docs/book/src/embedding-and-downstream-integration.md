@@ -40,6 +40,13 @@ The authoritative, versioned list — accepted aliases (e.g. `2017` / `ieee1800-
 metadata — is `rust/docs/EMBEDDING_API_CONTRACT.md`. Treat that contract (not this prose) as the
 source of truth for exact version and profile values.
 
+Since `PROFILE-ALIAS.2`, the SystemVerilog alias spellings are **grammar-declared** (`@profile_alias`
+in `grammars/systemverilog.ebnf`) and burned into the generated parser (`GRAMMAR_PROFILE_ALIASES` +
+case-insensitive resolution inside `set_grammar_profile`), so the artifact itself accepts them at
+every entry point. The embedding API's typed `GrammarProfile` enum keeps its own spellings as part
+of the typed contract, and a drift-gate test asserts they resolve every grammar-declared alias to
+the declared canonical profile — the two surfaces cannot silently diverge.
+
 ## Linter-Oriented Downstream Surfaces
 
 One downstream direction now tracked explicitly is linter enablement. The idea is not that PGEN should become a linter by itself. The idea is that PGEN should be able to hand downstream tools a stronger front-end product than "just a parse tree."

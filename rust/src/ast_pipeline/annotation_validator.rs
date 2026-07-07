@@ -575,6 +575,28 @@ impl AnnotationValidator {
                     });
                 }
             }
+            // `PROFILE-ALIAS.2`: lint the grammar-level profile-alias-map
+            // payload through the SAME parser codegen compiles it with
+            // (`semantic_runtime::parse_profile_alias_payload`), so the
+            // lint and the codegen error can never disagree. (The
+            // cross-declaration merge/universe checks run at compile time in
+            // `compile_profile_aliases`, exactly like `@default_profile`'s
+            // conflict check.)
+            "profile_alias" => {
+                if let Err(err) = crate::ast_pipeline::semantic_runtime::parse_profile_alias_payload(
+                    semantic_annotation.ast(),
+                ) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: err,
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "priority" | "precedence" => {
                 if parse_semantic_numeric_list(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {
@@ -2906,6 +2928,61 @@ mod tests {
                     .diagnostics
                     .iter()
                     .any(|d| d.code == "W_SEM_INVALID_DEFAULT_PROFILE_PAYLOAD"),
+                "payload {payload:?} should lint clean"
+            );
+            // Registered in the typed directive registry — no unknown-directive noise.
+            assert!(
+                !report
+                    .diagnostics
+                    .iter()
+                    .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"),
+                "payload {payload:?} should not trigger the unknown-directive lint"
+            );
+        }
+    }
+
+    // `PROFILE-ALIAS.2`: the `@profile_alias:` payload is linted through the
+    // SAME parser codegen compiles it with, so lint and codegen agree.
+    #[test]
+    fn semantic_validator_warns_on_invalid_profile_alias_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "profile_alias".to_string(),
+                ast: UnifiedSemanticAST::from_named_payload("profile_alias", "sv_2017"),
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD"
+                && d.severity == AnnotationSeverity::Warning
+                && d.message.contains("non-object")
+        }));
+    }
+
+    #[test]
+    fn semantic_validator_accepts_well_formed_profile_alias_payloads() {
+        // Quoted keys carry hyphenated spellings; identifier keys work bare.
+        for payload in [
+            "{ \"2017\": sv_2017, \"ieee1800-2017\": sv_2017 }",
+            "{ old: modern }",
+        ] {
+            let mut annotations = Annotations::default();
+            annotations.semantic_annotations.insert(
+                "start".to_string(),
+                vec![SemanticAnnotation::Named {
+                    name: "profile_alias".to_string(),
+                    ast: UnifiedSemanticAST::from_named_payload("profile_alias", payload),
+                }],
+            );
+            let report = AnnotationValidator::default().validate_annotations(&annotations);
+            assert!(
+                !report
+                    .diagnostics
+                    .iter()
+                    .any(|d| d.code == "W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD"),
                 "payload {payload:?} should lint clean"
             );
             // Registered in the typed directive registry — no unknown-directive noise.

@@ -5,7 +5,7 @@ use super::{
 use super::predicate_expr::{
     PredicateDef, PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SemanticScopeKind {
@@ -371,15 +371,198 @@ pub(crate) fn parse_default_profile_payload(ast: &UnifiedSemanticAST) -> Result<
     if trimmed.is_empty() {
         return Err(format!("{USAGE} (payload is empty)"));
     }
-    if !trimmed
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-    {
+    if !is_identifier_shaped_profile_name(trimmed) {
         return Err(format!(
             "@{DEFAULT_PROFILE_DIRECTIVE_NAME}: '{trimmed}' is not an identifier-shaped profile name (ASCII alphanumerics, '_', '-')."
         ));
     }
     Ok(trimmed.to_string())
+}
+
+/// The normalized directive name recognized by [`compile_profile_aliases`].
+pub const PROFILE_ALIAS_DIRECTIVE_NAME: &str = "profile_alias";
+
+/// `PROFILE-ALIAS.2`: scan a grammar's semantic annotations for the
+/// grammar-level `@profile_alias:` directive(s) and compile them into ONE
+/// merged map of request-spelling → canonical dialect-profile name. Returns
+/// `Ok(None)` when the grammar declares none (requested profiles pass
+/// through unresolved — today's behavior for every alias-free grammar).
+///
+/// Payload form: an object of `alias → canonical` pairs, e.g.
+/// `{ "2017": sv_2017, "ieee1800-2017": sv_2017 }`. Keys may be quoted (for
+/// spellings like `1364-2005`) or identifier-shaped; targets are
+/// identifier-shaped profile names.
+///
+/// MERGE semantics (deliberately unlike `@default_profile`'s single scalar):
+/// multiple declarations merge into one map — an alias table is naturally
+/// declared in groups. Re-declaring the same alias (case-insensitive) with
+/// the SAME target is tolerated; with a DIFFERENT target it is a hard
+/// compile error.
+///
+/// Well-formedness (hard compile errors, both checked against the grammar's
+/// declared profile universe — the union of every `@profiles` list payload
+/// plus the `@default_profile` payload):
+/// - every alias TARGET must be a declared canonical profile (catches typos
+///   and forbids alias→alias chains structurally),
+/// - no alias KEY may shadow a declared canonical profile name.
+///
+/// Alias keys are stored lowercased: the lookup contract is case-insensitive
+/// on the request spelling, mirroring the emitted `rule_profile_is_enabled`
+/// guard's `eq_ignore_ascii_case` comparison.
+pub fn compile_profile_aliases(
+    annotations: &Annotations,
+) -> Result<Option<BTreeMap<String, String>>, String> {
+    let mut declared: BTreeMap<String, String> = BTreeMap::new();
+    let rule_level = annotations
+        .semantic_annotations
+        .iter()
+        .flat_map(|(_, list)| list.iter());
+    let branch_level = annotations
+        .branch_semantic_annotations
+        .iter()
+        .flat_map(|(_, branches)| branches.iter().flat_map(|list| list.iter()));
+    for annotation in rule_level.chain(branch_level) {
+        let Some(name) = annotation.name() else {
+            continue;
+        };
+        if name.trim().to_ascii_lowercase() != PROFILE_ALIAS_DIRECTIVE_NAME {
+            continue;
+        }
+        for (alias, canonical) in parse_profile_alias_payload(annotation.ast())? {
+            let key = alias.to_ascii_lowercase();
+            match declared.get(&key) {
+                Some(prior) if !prior.eq_ignore_ascii_case(&canonical) => {
+                    return Err(format!(
+                        "@{PROFILE_ALIAS_DIRECTIVE_NAME}: alias '{alias}' declared more than once with conflicting targets (first: '{prior}'; second: '{canonical}'). Declare each alias exactly once."
+                    ));
+                }
+                _ => {
+                    declared.insert(key, canonical);
+                }
+            }
+        }
+    }
+    if declared.is_empty() {
+        return Ok(None);
+    }
+
+    let universe = declared_profile_universe(annotations)?;
+    if universe.is_empty() {
+        return Err(format!(
+            "@{PROFILE_ALIAS_DIRECTIVE_NAME}: the grammar declares profile aliases but no profiles (no `@profiles` lists and no `@default_profile`) — there is nothing to alias."
+        ));
+    }
+    for (alias, canonical) in &declared {
+        if !universe.contains(&canonical.to_ascii_lowercase()) {
+            return Err(format!(
+                "@{PROFILE_ALIAS_DIRECTIVE_NAME}: alias '{alias}' targets '{canonical}', which is not a profile this grammar declares (declared universe: {:?}).",
+                universe.iter().collect::<Vec<_>>()
+            ));
+        }
+        if universe.contains(alias) {
+            return Err(format!(
+                "@{PROFILE_ALIAS_DIRECTIVE_NAME}: alias '{alias}' shadows a declared canonical profile name — an alias may not redefine a real profile."
+            ));
+        }
+    }
+    Ok(Some(declared))
+}
+
+/// The grammar's declared dialect-profile universe: the lowercased union of
+/// every `@profiles` list payload (rule- and branch-level) plus the
+/// `@default_profile` payload. Used by [`compile_profile_aliases`] to
+/// validate alias targets and keys.
+fn declared_profile_universe(annotations: &Annotations) -> Result<BTreeSet<String>, String> {
+    use super::semantic_directive_registry::{
+        parse_semantic_string_list, semantic_directive_name_payload,
+    };
+    let mut universe = BTreeSet::new();
+    let rule_level = annotations
+        .semantic_annotations
+        .iter()
+        .flat_map(|(_, list)| list.iter());
+    let branch_level = annotations
+        .branch_semantic_annotations
+        .iter()
+        .flat_map(|(_, branches)| branches.iter().flat_map(|list| list.iter()));
+    for annotation in rule_level.chain(branch_level) {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        if name != "profiles" {
+            continue;
+        }
+        if let Some(values) = parse_semantic_string_list(&payload) {
+            universe.extend(
+                values
+                    .into_iter()
+                    .map(|value| value.trim().to_ascii_lowercase())
+                    .filter(|value| !value.is_empty()),
+            );
+        }
+    }
+    if let Some(default_profile) = compile_default_profile(annotations)? {
+        universe.insert(default_profile.to_ascii_lowercase());
+    }
+    Ok(universe)
+}
+
+/// Parses one `@profile_alias:` payload (see [`compile_profile_aliases`] for
+/// the accepted form). `pub(crate)` so the annotation validator lints the
+/// payload through the SAME parser that codegen compiles it with (no second
+/// dialect).
+pub(crate) fn parse_profile_alias_payload(
+    ast: &UnifiedSemanticAST,
+) -> Result<Vec<(String, String)>, String> {
+    const USAGE: &str = "Directive '@profile_alias' expects an object of alias → canonical-profile pairs, e.g. `{ \"2017\": sv_2017, \"ieee1800-2017\": sv_2017 }`.";
+    let payload = ast
+        .structured_value()
+        .ok_or_else(|| format!("{USAGE} (payload is not a structured value)"))?;
+    let properties = object_properties(payload)
+        .ok_or_else(|| format!("{USAGE} (got a non-object payload: {payload:?})"))?;
+    if properties.is_empty() {
+        return Err(format!("{USAGE} (the object is empty)"));
+    }
+    let mut pairs = Vec::with_capacity(properties.len());
+    for property in properties {
+        let alias = property.key.trim();
+        if alias.is_empty() {
+            return Err(format!("{USAGE} (an alias spelling is empty)"));
+        }
+        if !is_identifier_shaped_profile_name(alias) {
+            return Err(format!(
+                "@{PROFILE_ALIAS_DIRECTIVE_NAME}: alias '{alias}' is not an identifier-shaped spelling (ASCII alphanumerics, '_', '-')."
+            ));
+        }
+        let canonical = scalar_text(&property.value).map(str::trim).ok_or_else(|| {
+            format!(
+                "@{PROFILE_ALIAS_DIRECTIVE_NAME}: alias '{alias}' must target ONE profile name; got {:?}.",
+                property.value
+            )
+        })?;
+        if canonical.is_empty() {
+            return Err(format!(
+                "@{PROFILE_ALIAS_DIRECTIVE_NAME}: alias '{alias}' targets an empty profile name."
+            ));
+        }
+        if !is_identifier_shaped_profile_name(canonical) {
+            return Err(format!(
+                "@{PROFILE_ALIAS_DIRECTIVE_NAME}: alias '{alias}' targets '{canonical}', which is not an identifier-shaped profile name (ASCII alphanumerics, '_', '-')."
+            ));
+        }
+        pairs.push((alias.to_string(), canonical.to_string()));
+    }
+    Ok(pairs)
+}
+
+/// The shared identifier shape for dialect-profile names and alias spellings
+/// (ASCII alphanumerics, '_', '-') — one character class for
+/// `@default_profile` payloads, `@profile_alias` keys, and their targets.
+fn is_identifier_shaped_profile_name(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
 /// Boolean reading of a scalar payload value: the typed `Boolean` variant or
@@ -760,6 +943,16 @@ pub struct CompiledSemanticRuntimeAnnotations {
     /// parse-harness interpreter; never serialized into generated parsers —
     /// `from_rule_directives` / `from_parts` seed `None`.
     default_profile: Option<String>,
+    /// `PROFILE-ALIAS.2`: the grammar-level `@profile_alias:` map, compiled
+    /// by [`compile_profile_aliases`] (alias spellings lowercased; targets
+    /// validated against the declared profile universe). `None` = the
+    /// grammar declares no aliases (requested profiles pass through
+    /// unresolved). Compile-time only: consumed by parser codegen (burned
+    /// into the emitted `GRAMMAR_PROFILE_ALIASES` const + alias-resolving
+    /// `set_grammar_profile`), the generation-side profile filter, and the
+    /// parse-harness interpreter; never serialized into generated parsers —
+    /// `from_rule_directives` / `from_parts` seed `None`.
+    profile_aliases: Option<BTreeMap<String, String>>,
 }
 
 impl CompiledSemanticRuntimeAnnotations {
@@ -777,6 +970,7 @@ impl CompiledSemanticRuntimeAnnotations {
             predicate_defs: HashMap::new(),
             layout_sensitivity: None,
             default_profile: None,
+            profile_aliases: None,
         }
     }
 
@@ -791,6 +985,7 @@ impl CompiledSemanticRuntimeAnnotations {
             predicate_defs: HashMap::new(),
             layout_sensitivity: None,
             default_profile: None,
+            profile_aliases: None,
         }
     }
 
@@ -806,6 +1001,26 @@ impl CompiledSemanticRuntimeAnnotations {
     /// `None` when the grammar declares none. See [`compile_default_profile`].
     pub fn default_profile(&self) -> Option<&str> {
         self.default_profile.as_deref()
+    }
+
+    /// `PROFILE-ALIAS.2`: the grammar's declared `@profile_alias` map —
+    /// request spellings (lowercased) → canonical profile names; `None` when
+    /// the grammar declares none. See [`compile_profile_aliases`].
+    pub fn profile_aliases(&self) -> Option<&BTreeMap<String, String>> {
+        self.profile_aliases.as_ref()
+    }
+
+    /// `PROFILE-ALIAS.2`: resolve ONE requested profile spelling through the
+    /// declared alias map — case-insensitive on the spelling; unmatched (or
+    /// alias-free-grammar) requests pass through unchanged.
+    pub fn resolve_profile_alias<'a>(&'a self, requested: &'a str) -> &'a str {
+        let Some(aliases) = self.profile_aliases.as_ref() else {
+            return requested;
+        };
+        aliases
+            .get(&requested.trim().to_ascii_lowercase())
+            .map(String::as_str)
+            .unwrap_or(requested)
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: accessor for the predicate-def registry.
@@ -3370,6 +3585,9 @@ pub fn compile_semantic_runtime_annotations(
         // `DEFAULT-PROFILE.2`: the grammar-level default dialect profile
         // (same grammar-wide-scan pattern; never enters the per-rule lists).
         default_profile: compile_default_profile(annotations)?,
+        // `PROFILE-ALIAS.2`: the grammar-level request-spelling alias map
+        // (same grammar-wide-scan pattern; never enters the per-rule lists).
+        profile_aliases: compile_profile_aliases(annotations)?,
     })
 }
 
@@ -3743,7 +3961,7 @@ mod tests {
         SemanticLibraryExportSpec, SemanticLibraryImportSpec, SemanticPredicateContentView,
         SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeDirective,
         SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
-        compile_default_profile, compile_layout_sensitivity,
+        compile_default_profile, compile_layout_sensitivity, compile_profile_aliases,
         compile_rule_semantic_runtime_directives,
         compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
         parse_semantic_runtime_directives,
@@ -7494,6 +7712,191 @@ mod tests {
         assert!(
             err.contains("identifier-shaped"),
             "error should explain the shape: {err}"
+        );
+    }
+
+    // ── PROFILE-ALIAS.2: the grammar-level `@profile_alias:` directive ──
+
+    fn profile_alias_annotation(payload: UnifiedSemanticValue) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "profile_alias".to_string(),
+            ast: UnifiedSemanticAST::Structured {
+                canonical: String::new(),
+                value: payload,
+            },
+        }
+    }
+
+    fn profiles_list_annotation(list: &str) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "profiles".to_string(),
+            ast: UnifiedSemanticAST::from_named_payload("profiles", list),
+        }
+    }
+
+    fn annotations_with_profile_alias(
+        alias_payloads: Vec<UnifiedSemanticValue>,
+        profiles_lists: Vec<&str>,
+    ) -> Annotations {
+        let mut annotations = Annotations::default();
+        let mut entries: Vec<SemanticAnnotation> = alias_payloads
+            .into_iter()
+            .map(profile_alias_annotation)
+            .collect();
+        entries.extend(profiles_lists.into_iter().map(profiles_list_annotation));
+        annotations
+            .semantic_annotations
+            .insert("entry_rule".to_string(), entries);
+        annotations
+    }
+
+    #[test]
+    fn profile_alias_absent_directive_stays_unset_and_resolve_passes_through() {
+        let annotations = Annotations::default();
+        assert_eq!(compile_profile_aliases(&annotations), Ok(None));
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        assert_eq!(compiled.profile_aliases(), None);
+        assert_eq!(compiled.resolve_profile_alias("2017"), "2017");
+    }
+
+    #[test]
+    fn profile_alias_maps_merge_across_declarations_with_lowercased_keys() {
+        let annotations = annotations_with_profile_alias(
+            vec![
+                object(vec![("2017", ident_val("sv_2017"))]),
+                object(vec![("IEEE1800-2017", ident_val("sv_2017"))]),
+            ],
+            vec![r#"["sv_2017"]"#],
+        );
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        let aliases = compiled.profile_aliases().expect("aliases declared");
+        assert_eq!(aliases.len(), 2);
+        assert_eq!(aliases.get("2017").map(String::as_str), Some("sv_2017"));
+        assert_eq!(
+            aliases.get("ieee1800-2017").map(String::as_str),
+            Some("sv_2017")
+        );
+        // Case-insensitive resolution; unmatched spellings pass through.
+        assert_eq!(compiled.resolve_profile_alias("Ieee1800-2017"), "sv_2017");
+        assert_eq!(compiled.resolve_profile_alias("sv_2017"), "sv_2017");
+        assert_eq!(compiled.resolve_profile_alias("bogus"), "bogus");
+    }
+
+    #[test]
+    fn profile_alias_identical_duplicate_declarations_are_allowed() {
+        let annotations = annotations_with_profile_alias(
+            vec![
+                object(vec![("2017", ident_val("sv_2017"))]),
+                object(vec![("2017", ident_val("sv_2017"))]),
+            ],
+            vec![r#"["sv_2017"]"#],
+        );
+        let compiled = compile_profile_aliases(&annotations).expect("compile");
+        assert_eq!(compiled.expect("declared").len(), 1);
+    }
+
+    #[test]
+    fn profile_alias_conflicting_duplicate_targets_are_a_hard_error() {
+        let annotations = annotations_with_profile_alias(
+            vec![
+                object(vec![("2017", ident_val("sv_2017"))]),
+                object(vec![("2017", ident_val("sv_2023"))]),
+            ],
+            vec![r#"["sv_2017", "sv_2023"]"#],
+        );
+        let err = compile_profile_aliases(&annotations).expect_err("conflict must error");
+        assert!(
+            err.contains("conflicting targets"),
+            "error should name the conflict: {err}"
+        );
+        assert!(compile_semantic_runtime_annotations(&annotations).is_err());
+    }
+
+    #[test]
+    fn profile_alias_target_outside_the_declared_universe_is_a_hard_error() {
+        let annotations = annotations_with_profile_alias(
+            vec![object(vec![("2017", ident_val("sv_2107"))])],
+            vec![r#"["sv_2017"]"#],
+        );
+        let err = compile_profile_aliases(&annotations).expect_err("typo target must error");
+        assert!(
+            err.contains("not a profile this grammar declares"),
+            "error should name the universe miss: {err}"
+        );
+    }
+
+    #[test]
+    fn profile_alias_key_shadowing_a_canonical_profile_is_a_hard_error() {
+        let annotations = annotations_with_profile_alias(
+            vec![object(vec![("sv_2017", ident_val("sv_2023"))])],
+            vec![r#"["sv_2017", "sv_2023"]"#],
+        );
+        let err = compile_profile_aliases(&annotations).expect_err("shadowing must error");
+        assert!(
+            err.contains("shadows a declared canonical profile"),
+            "error should name the shadowing: {err}"
+        );
+    }
+
+    #[test]
+    fn profile_alias_without_any_declared_profiles_is_a_hard_error() {
+        let annotations = annotations_with_profile_alias(
+            vec![object(vec![("2017", ident_val("sv_2017"))])],
+            vec![],
+        );
+        let err = compile_profile_aliases(&annotations).expect_err("no universe must error");
+        assert!(
+            err.contains("nothing to alias"),
+            "error should say the grammar declares no profiles: {err}"
+        );
+    }
+
+    #[test]
+    fn profile_alias_default_profile_counts_toward_the_universe() {
+        let mut annotations = annotations_with_profile_alias(
+            vec![object(vec![("old", ident_val("base"))])],
+            vec![],
+        );
+        annotations
+            .semantic_annotations
+            .get_mut("entry_rule")
+            .expect("entry present")
+            .push(default_profile_annotation(ident_val("base")));
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        assert_eq!(compiled.resolve_profile_alias("OLD"), "base");
+    }
+
+    #[test]
+    fn profile_alias_empty_object_payload_is_a_hard_error() {
+        let annotations =
+            annotations_with_profile_alias(vec![object(vec![])], vec![r#"["sv_2017"]"#]);
+        let err = compile_profile_aliases(&annotations).expect_err("empty object must error");
+        assert!(err.contains("empty"), "error should say empty: {err}");
+    }
+
+    #[test]
+    fn profile_alias_non_object_payload_is_a_hard_error() {
+        let annotations = annotations_with_profile_alias(
+            vec![ident_val("sv_2017")],
+            vec![r#"["sv_2017"]"#],
+        );
+        let err = compile_profile_aliases(&annotations).expect_err("non-object must error");
+        assert!(
+            err.contains("non-object"),
+            "error should say non-object: {err}"
+        );
+    }
+
+    #[test]
+    fn profile_alias_non_scalar_target_is_a_hard_error() {
+        let annotations = annotations_with_profile_alias(
+            vec![object(vec![("2017", arr(vec![ident_val("sv_2017")]))])],
+            vec![r#"["sv_2017"]"#],
+        );
+        let err = compile_profile_aliases(&annotations).expect_err("non-scalar must error");
+        assert!(
+            err.contains("must target ONE profile name"),
+            "error should explain the target shape: {err}"
         );
     }
 }

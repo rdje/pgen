@@ -1,4 +1,65 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-PROFILE-ALIAS-0002 (PROFILE-ALIAS.2): `@profile_alias` landed end-to-end — the SV profile-ALIAS name-gates are RETIRED (the artifact carries its request spellings; tree COMPLETE)
+
+Session #56. **New parser-agnostic grammar-level directive** (the third and last member of the
+name-gate retirement series: layout → default profile → request aliases; owns DEFAULT-PROFILE §6
+routed finding F-A). WHICH request spellings a dialect profile accepts (`--profile 2017` ⇒
+`sv_2017`) is now declared IN the grammar (`grammars/systemverilog.ebnf`: three `@profile_alias`
+maps, 9 spellings → 3 canonicals) instead of being hand-copied across three engine tables.
+
+- **REPRODUCE:** pre-fix, a synthetic grammar declaring `@profile_alias: { "old": modern }`
+  generated with the directive silently ignored — ZERO alias carrier in the emitted parser, and an
+  aliased request stored RAW gated the `@profiles: ["modern"]` rule OFF. The SV spellings lived
+  only in `parser_registry.rs:149-168` (name-gated `"systemverilog"` match), `main.rs:2119-2130`
+  (a GLOBAL table applying SV + VHDL aliases to ANY grammar and lowercasing unmatched values), and
+  `embedding_api.rs:285-305` (`GrammarProfile::FromStr`) — with 4 already-observable cross-copy
+  divergences (VHDL aliases missing parse-side; cross-grammar `"2017"` leakage; two case rules;
+  embedding's stale `regex_default`).
+- **Fix:** `semantic_runtime::compile_profile_aliases` compiles the grammar-level map directive
+  (MERGE across declarations; same-key conflicting targets a hard error; alias targets validated
+  against the grammar's declared profile UNIVERSE — the union of `@profiles` payloads +
+  `@default_profile` — so typo'd targets, alias→alias chains, and canonical-shadowing keys are
+  compile errors; keys lowercased, lookups case-insensitive; unmatched spellings pass through
+  UN-COERCED) into `CompiledSemanticRuntimeAnnotations` (+ `resolve_profile_alias`); codegen emits
+  the sorted `GRAMMAR_PROFILE_ALIASES` const + a pub `resolve_grammar_profile_alias` and resolves
+  spellings INSIDE `set_grammar_profile` (artifact-owned, composed 2×2 with the default-profile
+  surface); the registry's SV spelling arm is DELETED (a data-driven
+  `resolve_generated_grammar_profile_alias` sources the generated resolver, the
+  `default_generated_grammar_profile` boundary); the `main.rs` global table is DELETED (the
+  generation filter consults the compiled map; declared `@profiles` list values are compared
+  case-insensitively with NO alias rewriting — closing the cross-grammar-leakage and case-rule
+  divergences); the interpreter mirrors the setter (spellings resolve, idempotent for
+  pre-normalized profiles); the embedding enum keeps its typed spellings DRIFT-GATED
+  (`grammar_profile_from_str_matches_the_artifact_declared_alias_map` parses the artifact const
+  and asserts agreement — the duplicated-metadata-doctrine shape, since `embedding_api` must
+  compile feature-less); the inert `main.rs` VHDL arms died with the table (vhdl.ebnf declares
+  zero `@profiles`; a 3-way generation probe — alias/canonical/unprofiled — is byte-identical).
+  Registered (ParserSteering) + validator lint `W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD` through the
+  same payload parser. Harness extension (parser-agnostic): `CompileAndParseOptions.
+  requested_profile` + the probe main's third positional + `CombinatorCase.requested_profile`, so
+  a requested profile drives BOTH differential sides identically.
+- **Verified:** combinator suite 25→**27** — `profile_alias_resolves` (requesting declared `old`:
+  gated `"R"` ACCEPTS) vs `profile_alias_unknown_passthrough` (requesting `unknown`: `"R"`
+  REJECTS, no coercion), both `CLEAN samples=3 diverge=0`, 27/27 CLEAN. ALL 11 parsers
+  regenerated: 10 `cmp` BYTE-IDENTICAL (incl. regex — the default-only emission arm reproduces
+  today's exact tokens), SV delta = EXACTLY the 32-line carrier. Real-SV alias matrix: 8 spellings
+  incl. case-insensitive `IEEE1800-2017` PASS; alias `1364-2005` rejects SV-only `logic` exactly
+  like canonical `verilog_2005`. Generation twin: cert under `--grammar-profile 2017` byte-equal
+  to `sv_2017` (`1343/21/1321/1` spf=0). SV canonical cert byte-equal to the pin ×seeds 0/7/42;
+  regex `198/198/0` + svpp `74/74/0` fully_certified ×3; `verilog_2005_conformance_gate` GREEN
+  (240/0 matrix, 2 alias probes, cert deterministic); SV external corpus **14/14**; features-on
+  lib **848/0** (+16: 11 compile-fn + 2 validator + 2 codegen-contract + the embedding drift
+  gate); no-features **732/0**; dual-run ✅ (ZERO meta-grammar change); clippy strict-source ok
+  (generated = the known 177×`eq_op`+1 debt, unchanged); mdbook + ebnf-book + SV-book gates ✅.
+- **Lockstep:** ebnf book catalog row + new *Profile aliases* section (+tracked html); top book
+  `annotation-system.md` new subsection + `parse-harness.md` 27-case table +
+  `parseability-probe-debug.md` (spellings now grammar-declared) +
+  `embedding-and-downstream-integration.md` (drift-gate note); SV book glossary Profile entry
+  (+tracked html); TOOLBOX Profiles line + §1.7; normative spec (full directive semantics);
+  steering matrix (ParserSteering entry); `rust/docs/EMBEDDING_API_CONTRACT.md` SURFACE-NEUTRAL
+  maintenance note. **NO release/contract/schema bump** (surface-neutral: every previously-valid
+  request resolves identically; the SV artifact delta is additive API). Tree COMPLETE.
+
 ## 2026-07-07 - PGEN-PROFILE-ALIAS-0001 (PROFILE-ALIAS.1): DESIGN — `@profile_alias` grammar-level directive to replace the SV profile-ALIAS name-gates (docs-only)
 
 Session #56. New task tree `PROFILE-ALIAS` (owns `DEFAULT-PROFILE` §6 routed finding **F-A**) —

@@ -4540,7 +4540,7 @@ pub use semantic_runtime::{
     SemanticRuntimeCheckpoint, SemanticRuntimeDelta, SemanticRuntimeDirective,
     SemanticRuntimeState, SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame,
     SemanticScopeKind, SemanticScopeSpec, SemanticStoreCounters, compile_default_profile,
-    compile_layout_sensitivity,
+    compile_layout_sensitivity, compile_profile_aliases,
     compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
     parse_semantic_runtime_directive, parse_semantic_runtime_directives,
 };

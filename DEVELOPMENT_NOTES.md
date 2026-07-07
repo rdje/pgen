@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-PROFILE-ALIAS-0002 — PROFILE-ALIAS.2: implementation notes — driving a REQUESTED profile through the differential, and when a typed enum copy is drift-gated instead of deleted
+
+Session #56. Notes from landing `@profile_alias` end-to-end:
+
+1. **A directive whose behavior depends on the REQUEST needed a harness extension.** The
+   WS/DEFAULT-PROFILE combinator cases could prove their constructs with unspecified profiles
+   (constructor posture). Alias resolution only manifests when a caller REQUESTS a spelling — so
+   proving interp==oracle byte-identity required teaching BOTH differential sides to carry one:
+   `CompileAndParseOptions.requested_profile` → the throwaway probe main's third positional →
+   `set_grammar_profile`, and `InterpretOptions::profile` on the interpreter side, applied
+   identically by the suite runner from the new `CombinatorCase.requested_profile`. Parser-agnostic
+   and reusable for any future request-dependent directive.
+2. **Delete vs drift-gate splits on WHERE the copy lives.** The registry/main.rs alias tables were
+   ENGINE knowledge with an artifact authority available under cfg → delete-not-fallback (the
+   `default_generated_grammar_profile` data-driven boundary). The embedding enum's spellings are a
+   TYPED PUBLIC CONTRACT that must compile feature-less — no unconditional artifact source exists,
+   and deleting accepted spellings would be an API break with no doctrinal gain. The doctrine cure
+   for a copy-that-must-exist is the drift GATE (parse the authoritative const, assert agreement) —
+   one direction only (artifact → enum), since an embedding-only spelling is additive convenience,
+   not drift. The `main.rs` VHDL arms, by contrast, were proven INERT (vhdl.ebnf `@profiles`=0; a
+   3-way alias/canonical/unprofiled generation probe byte-identical) and died with the table.
+3. **Universe validation makes alias chains structurally impossible.** Requiring every alias
+   TARGET to be a member of the declared profile universe (union of `@profiles` payloads +
+   `@default_profile`) and every alias KEY to NOT be in it kills three defect classes with one
+   check: typo'd targets, alias→alias chains, and canonical-shadowing keys — no dedicated cycle
+   detection needed.
+4. **The 2×2 emission matrix keeps byte-identity honest.** `grammar_profile_surface` now composes
+   (default?, aliases?) with the two alias-free arms emitting today's EXACT tokens — which is what
+   made `cmp` prove 10/10 non-SV parsers (including regex, the default-only grammar) byte-identical
+   after a full regen, isolating the SV delta to exactly the 32-line carrier.
+5. **Concurrent gate runs can clobber a shared binary.** A background `verilog_2005_conformance_gate`
+   failed mid-run when a concurrently-launched build with a DIFFERENT feature set replaced
+   `target/debug/ast_pipeline` between its seeds (the error names the missing feature). Same-feature
+   concurrent builds are safe (cargo lock + compatible artifact); different-feature ones are not —
+   serialize them.
+
 ## 2026-07-07 - PGEN-PROFILE-ALIAS-0001 — PROFILE-ALIAS.1: design notes — triplicated alias tables are ALREADY diverged, and what that buys the directive design
 
 Session #56. Fact-finding notes behind the `@profile_alias` design (docs/tasks/PROFILE-ALIAS.md):

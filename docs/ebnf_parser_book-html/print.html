@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f9a556ae.js";
+            window.path_to_searchindex_js = "searchindex-58ca2503.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -973,6 +973,7 @@ contract.</p>
 <tr><td>Stimuli</td><td><code>@generate</code>, <code>@sample</code>, <code>@dispatch_table</code>, …</td><td>steer stimuli generation</td></tr>
 <tr><td>Layout</td><td><code>@whitespace_sensitive</code></td><td>grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet)</td></tr>
 <tr><td>Profiles</td><td><code>@default_profile</code></td><td>grammar-level default dialect profile: what an <em>unspecified</em> requested profile resolves to</td></tr>
+<tr><td>Profiles</td><td><code>@profile_alias</code></td><td>grammar-level request-spelling map: which requested spellings resolve to which canonical profile names</td></tr>
 <tr><td>Pragmas</td><td><code>@stop_at_rule_boundary</code></td><td>bound how far a sequence consumes</td></tr>
 </tbody>
 </table>
@@ -1067,6 +1068,41 @@ other consumer derives from the same compiled declaration.</li>
 default on the grammar’s <em>name</em> — the default is now declared in the grammar itself, and any
 grammar (including a scratch/probe grammar) can declare one. The isolating proof cases live in
 the structural combinator suite (<code>profile_unspecified_permissive</code>, <code>profile_default_gate</code>).</li>
+</ul>
+<h2 id="profile-aliases--profile_alias"><a class="header" href="#profile-aliases--profile_alias">Profile aliases — <code>@profile_alias</code></a></h2>
+<p>A profiled grammar can also declare which requested <strong>spellings</strong> resolve to its canonical profile
+names, with the <strong>grammar-level</strong> map directive (declare it directly above a rule — conventionally
+the entry rule; multiple declarations merge):</p>
+<pre><code class="language-ebnf"># accepted request spellings for this grammar's canonical profiles
+@profile_alias: { "2017": sv_2017, "ieee1800-2017": sv_2017, "ieee_1800_2017": sv_2017 }
+@profile_alias: { "2023": sv_2023, "ieee1800-2023": sv_2023, "ieee_1800_2023": sv_2023 }
+systemverilog_file := trivia source_text trivia
+</code></pre>
+<p>A requested profile spelling is looked up <strong>case-insensitively</strong>; a declared spelling resolves to
+its canonical target everywhere (the generated parser resolves it inside <code>set_grammar_profile</code>, the
+registry’s profile oracle, generation-side profile filtering, and the parse-harness interpreter all
+derive from the same compiled declaration). An <strong>undeclared</strong> spelling passes through un-coerced —
+it simply matches no <code>@profiles</code> list.</p>
+<p>Keys may be quoted (needed for spellings like <code>"1364-2005"</code>) or bare identifier-shaped; targets are
+identifier-shaped canonical profile names.</p>
+<p>Rules of the road:</p>
+<ul>
+<li><strong>Merge semantics.</strong> Multiple <code>@profile_alias</code> declarations merge into one map (an alias table is
+naturally written in groups). Re-declaring the same spelling with the SAME target is tolerated;
+a <em>different</em> target is a hard generation error.</li>
+<li><strong>Targets must be real.</strong> Every alias target must be a profile the grammar actually declares
+(the union of its <code>@profiles</code> list payloads and its <code>@default_profile</code>) — a typo’d target is a
+hard error, and alias→alias chains are impossible by construction. A spelling may not shadow a
+canonical profile name. Malformed payloads (non-object, empty object, non-scalar targets) are
+hard errors too, linted early (<code>W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD</code>).</li>
+<li><strong>Compile-time only.</strong> The map is burned into the emitted parser — a sorted
+<code>GRAMMAR_PROFILE_ALIASES</code> constant plus case-insensitive resolution in <code>set_grammar_profile</code> —
+so every entry point accepts the declared spellings with no caller cooperation.</li>
+<li><strong>Provenance.</strong> This directive replaced engine alias tables that keyed the SystemVerilog
+request spellings (<code>2017</code> → <code>sv_2017</code>, …) on the grammar’s <em>name</em> — the spellings are now
+declared in <code>grammars/systemverilog.ebnf</code> itself, and any grammar can declare its own. The
+isolating proof cases live in the structural combinator suite (<code>profile_alias_resolves</code>,
+<code>profile_alias_unknown_passthrough</code>).</li>
 </ul>
 <h2 id="lexical-annotations"><a class="header" href="#lexical-annotations">Lexical annotations</a></h2>
 <p>The <code>[&gt; … ]</code> / <code>[&gt;! … ]</code> follow-restriction is a <em>lexical</em> annotation in the same family; it is documented

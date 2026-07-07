@@ -48,6 +48,7 @@ The directives the AST pipeline interprets, grouped by what they do:
 | Stimuli | `@generate`, `@sample`, `@dispatch_table`, … | steer stimuli generation |
 | Layout | `@whitespace_sensitive` | grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet) |
 | Profiles | `@default_profile` | grammar-level default dialect profile: what an *unspecified* requested profile resolves to |
+| Profiles | `@profile_alias` | grammar-level request-spelling map: which requested spellings resolve to which canonical profile names |
 | Pragmas | `@stop_at_rule_boundary` | bound how far a sequence consumes |
 
 The store-backed gating directives are the heart of context-aware parsing — for example, "only treat this
@@ -154,6 +155,47 @@ Rules of the road:
   default on the grammar's *name* — the default is now declared in the grammar itself, and any
   grammar (including a scratch/probe grammar) can declare one. The isolating proof cases live in
   the structural combinator suite (`profile_unspecified_permissive`, `profile_default_gate`).
+
+## Profile aliases — `@profile_alias`
+
+A profiled grammar can also declare which requested **spellings** resolve to its canonical profile
+names, with the **grammar-level** map directive (declare it directly above a rule — conventionally
+the entry rule; multiple declarations merge):
+
+```ebnf
+# accepted request spellings for this grammar's canonical profiles
+@profile_alias: { "2017": sv_2017, "ieee1800-2017": sv_2017, "ieee_1800_2017": sv_2017 }
+@profile_alias: { "2023": sv_2023, "ieee1800-2023": sv_2023, "ieee_1800_2023": sv_2023 }
+systemverilog_file := trivia source_text trivia
+```
+
+A requested profile spelling is looked up **case-insensitively**; a declared spelling resolves to
+its canonical target everywhere (the generated parser resolves it inside `set_grammar_profile`, the
+registry's profile oracle, generation-side profile filtering, and the parse-harness interpreter all
+derive from the same compiled declaration). An **undeclared** spelling passes through un-coerced —
+it simply matches no `@profiles` list.
+
+Keys may be quoted (needed for spellings like `"1364-2005"`) or bare identifier-shaped; targets are
+identifier-shaped canonical profile names.
+
+Rules of the road:
+
+- **Merge semantics.** Multiple `@profile_alias` declarations merge into one map (an alias table is
+  naturally written in groups). Re-declaring the same spelling with the SAME target is tolerated;
+  a *different* target is a hard generation error.
+- **Targets must be real.** Every alias target must be a profile the grammar actually declares
+  (the union of its `@profiles` list payloads and its `@default_profile`) — a typo'd target is a
+  hard error, and alias→alias chains are impossible by construction. A spelling may not shadow a
+  canonical profile name. Malformed payloads (non-object, empty object, non-scalar targets) are
+  hard errors too, linted early (`W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD`).
+- **Compile-time only.** The map is burned into the emitted parser — a sorted
+  `GRAMMAR_PROFILE_ALIASES` constant plus case-insensitive resolution in `set_grammar_profile` —
+  so every entry point accepts the declared spellings with no caller cooperation.
+- **Provenance.** This directive replaced engine alias tables that keyed the SystemVerilog
+  request spellings (`2017` → `sv_2017`, …) on the grammar's *name* — the spellings are now
+  declared in `grammars/systemverilog.ebnf` itself, and any grammar can declare its own. The
+  isolating proof cases live in the structural combinator suite (`profile_alias_resolves`,
+  `profile_alias_unknown_passthrough`).
 
 ## Lexical annotations
 

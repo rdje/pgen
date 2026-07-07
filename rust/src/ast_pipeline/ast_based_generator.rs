@@ -10,7 +10,7 @@ use crate::ast_pipeline::{
     SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
     TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
     ast_return_transform::AstReturnTransformer, compile_default_profile,
-    compile_layout_sensitivity,
+    compile_layout_sensitivity, compile_profile_aliases,
     compile_semantic_runtime_annotations,
     normalize_semantic_scalar, parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_charset,
@@ -228,12 +228,14 @@ impl AstBasedGenerator {
     }
 
     fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
-        // `WS-DIRECTIVE.2` / `DEFAULT-PROFILE.2`: the grammar-level
-        // `@whitespace_sensitive:` and `@default_profile:` directives are
-        // compile-time only (each compiles to ZERO runtime directives — see
+        // `WS-DIRECTIVE.2` / `DEFAULT-PROFILE.2` / `PROFILE-ALIAS.2`: the
+        // grammar-level `@whitespace_sensitive:`, `@default_profile:`, and
+        // `@profile_alias:` directives are compile-time only (each compiles
+        // to ZERO runtime directives — see
         // `semantic_runtime::compile_layout_sensitivity` /
-        // `semantic_runtime::compile_default_profile`), so the rule either
-        // mechanically binds to must NOT be pushed onto the full
+        // `semantic_runtime::compile_default_profile` /
+        // `semantic_runtime::compile_profile_aliases`), so the rule any of
+        // them mechanically binds to must NOT be pushed onto the full
         // `with_semantic_runtime_rule_transaction` path by its mere
         // presence: declaring a grammar-level policy stays emit-neutral for
         // the rule body.
@@ -244,6 +246,8 @@ impl AstBasedGenerator {
                     != crate::ast_pipeline::semantic_runtime::WHITESPACE_SENSITIVE_DIRECTIVE_NAME
                     && normalized
                         != crate::ast_pipeline::semantic_runtime::DEFAULT_PROFILE_DIRECTIVE_NAME
+                    && normalized
+                        != crate::ast_pipeline::semantic_runtime::PROFILE_ALIAS_DIRECTIVE_NAME
             })
         };
         let Some(annotations) = &self.annotations else {
@@ -1297,6 +1301,58 @@ impl AstBasedGenerator {
             .and_then(|annotations| compile_default_profile(annotations).ok().flatten())
     }
 
+    /// `PROFILE-ALIAS.2`: the grammar's declared request-spelling alias map —
+    /// the grammar-level `@profile_alias:` directive(s) compiled from
+    /// `self.annotations` (`None` when absent: requested profiles pass
+    /// through unresolved). This replaces the retired grammar-NAME alias
+    /// tables (`parser_registry.rs` `"systemverilog"` arm / the global
+    /// `main.rs` spelling table / the hand-copied `embedding_api.rs` arms),
+    /// so the spellings are declared IN the `.ebnf` and burned into the
+    /// emitted `GRAMMAR_PROFILE_ALIASES` const + alias-resolving setter. A
+    /// malformed/conflicting payload is NOT swallowed by the `.ok()` here:
+    /// the same compile runs — and aborts generation with the precise error —
+    /// in `generate_compiled_semantic_runtime_annotations_tokens` (via
+    /// `compile_semantic_runtime_annotations`), which every generation emits.
+    fn grammar_profile_aliases(&self) -> Option<std::collections::BTreeMap<String, String>> {
+        self.annotations
+            .as_ref()
+            .and_then(|annotations| compile_profile_aliases(annotations).ok().flatten())
+    }
+
+    /// `PROFILE-ALIAS.2`: the emitted alias carrier for an alias-declaring
+    /// grammar — the sorted `GRAMMAR_PROFILE_ALIASES` const (deterministic:
+    /// `BTreeMap` iteration order) plus the case-insensitive resolver
+    /// `set_grammar_profile` routes through. `pub` on both so the parser
+    /// registry's profile oracle can source the SAME artifact-owned data
+    /// instead of keeping its own copy.
+    fn grammar_profile_alias_surface(
+        aliases: &std::collections::BTreeMap<String, String>,
+    ) -> TokenStream {
+        let alias_pairs = aliases
+            .iter()
+            .map(|(alias, canonical)| quote! { (#alias, #canonical) });
+        quote! {
+            /// `PROFILE-ALIAS.2`: the grammar-declared `@profile_alias` map —
+            /// request spellings → canonical profile names (sorted by
+            /// spelling; spellings stored lowercase). `set_grammar_profile`
+            /// resolves through it case-insensitively, so every entry point
+            /// accepts the declared spellings with no caller cooperation.
+            pub const GRAMMAR_PROFILE_ALIASES: &'static [(&'static str, &'static str)] =
+                &[#(#alias_pairs),*];
+
+            /// Resolve one requested profile spelling through
+            /// [`Self::GRAMMAR_PROFILE_ALIASES`] (case-insensitive);
+            /// unmatched spellings pass through unchanged.
+            pub fn resolve_grammar_profile_alias(profile: &str) -> &str {
+                Self::GRAMMAR_PROFILE_ALIASES
+                    .iter()
+                    .find(|(alias, _)| alias.eq_ignore_ascii_case(profile))
+                    .map(|(_, canonical)| *canonical)
+                    .unwrap_or(profile)
+            }
+        }
+    }
+
     fn generate_parse_method(
         &self,
         entry_rule: &str,
@@ -1312,10 +1368,42 @@ impl AstBasedGenerator {
         // plus a `set_grammar_profile` where `None` RESTORES the declared
         // default instead of falling back to the permissive unset state, so
         // "unspecified means the declared default" holds at every entry point
-        // with no caller cooperation. Grammars without the directive emit
-        // today's exact tokens (byte-identical regeneration).
-        let grammar_profile_surface = match self.default_grammar_profile() {
-            Some(default_profile) => {
+        // with no caller cooperation.
+        // `PROFILE-ALIAS.2`: an alias-declaring grammar's parser likewise
+        // CARRIES its request-spelling map (`@profile_alias`) — a sorted
+        // `GRAMMAR_PROFILE_ALIASES` const plus alias resolution INSIDE the
+        // setter, so every entry point accepts the declared spellings with no
+        // caller cooperation. Grammars without either directive emit today's
+        // exact tokens (byte-identical regeneration).
+        let grammar_profile_surface = match (
+            self.default_grammar_profile(),
+            self.grammar_profile_aliases(),
+        ) {
+            (Some(default_profile), Some(aliases)) => {
+                let alias_surface = Self::grammar_profile_alias_surface(&aliases);
+                quote! {
+                    #alias_surface
+
+                    /// `DEFAULT-PROFILE.2`: the grammar-declared `@default_profile` —
+                    /// the dialect profile an UNSPECIFIED requested profile resolves
+                    /// to. The constructor starts on it; `set_grammar_profile(None)`
+                    /// restores it.
+                    pub const DEFAULT_GRAMMAR_PROFILE: &'static str = #default_profile;
+
+                    pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
+                        // `None` restores the grammar-declared default profile,
+                        // never a permissive unset state; an explicit spelling
+                        // resolves through the grammar-declared alias map.
+                        self.grammar_profile = match profile {
+                            Some(value) => {
+                                Some(Self::resolve_grammar_profile_alias(value).to_string())
+                            }
+                            None => Some(Self::DEFAULT_GRAMMAR_PROFILE.to_string()),
+                        };
+                    }
+                }
+            }
+            (Some(default_profile), None) => {
                 quote! {
                     /// `DEFAULT-PROFILE.2`: the grammar-declared `@default_profile` —
                     /// the dialect profile an UNSPECIFIED requested profile resolves
@@ -1333,7 +1421,21 @@ impl AstBasedGenerator {
                     }
                 }
             }
-            None => quote! {
+            (None, Some(aliases)) => {
+                let alias_surface = Self::grammar_profile_alias_surface(&aliases);
+                quote! {
+                    #alias_surface
+
+                    pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
+                        // An explicit spelling resolves through the
+                        // grammar-declared alias map; unmatched spellings pass
+                        // through unchanged.
+                        self.grammar_profile = profile
+                            .map(|value| Self::resolve_grammar_profile_alias(value).to_string());
+                    }
+                }
+            }
+            (None, None) => quote! {
                 pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
                     self.grammar_profile = profile.map(|value| value.to_string());
                 }
@@ -9429,6 +9531,108 @@ mod semantic_usage_tests {
             rendered.contains("self.grammar_profile = profile.map(|value| value.to_string())"),
             "a grammar without @default_profile keeps the plain permissive setter, got: {}",
             rendered
+        );
+    }
+
+    // `PROFILE-ALIAS.2`: an alias-declaring grammar's parser CARRIES its
+    // request-spelling map. The payload is the STRUCTURED object form the real
+    // `.ebnf` pipeline produces (`from_named_payload` parses the map literal);
+    // `@profiles` on the same rule supplies the declared universe the alias
+    // targets validate against.
+    fn profile_alias_rendered_parser() -> &'static str {
+        static RENDERED: OnceLock<String> = OnceLock::new();
+        RENDERED
+            .get_or_init(|| {
+                let mut generator = generator_with_named_semantic("entry", vec![]);
+                let mut annotations = Annotations::default();
+                annotations.semantic_annotations.insert(
+                    "entry".to_string(),
+                    vec![
+                        SemanticAnnotation::Named {
+                            name: "profile_alias".to_string(),
+                            ast: UnifiedSemanticAST::from_named_payload(
+                                "profile_alias",
+                                "{ \"ieee1800-2017\": sv_2017, \"2017\": sv_2017 }",
+                            ),
+                        },
+                        SemanticAnnotation::Named {
+                            name: "profiles".to_string(),
+                            ast: UnifiedSemanticAST::from_named_payload(
+                                "profiles",
+                                "[\"sv_2017\"]",
+                            ),
+                        },
+                    ],
+                );
+                generator.annotations = Some(annotations);
+                let mut grammar_tree = HashMap::new();
+                grammar_tree.insert("entry".to_string(), token("quoted_string", "x"));
+                let rule_order = vec!["entry".to_string()];
+                generator
+                    .generate_parser(
+                        &grammar_tree,
+                        &rule_order,
+                        "semantic_profile_alias_usage.rs",
+                    )
+                    .expect("parser generation should succeed")
+            })
+            .as_str()
+    }
+
+    #[test]
+    fn generated_parser_profile_alias_contract_carries_the_declared_map() {
+        let rendered = profile_alias_rendered_parser();
+        assert!(
+            rendered.contains("GRAMMAR_PROFILE_ALIASES"),
+            "a @profile_alias grammar should emit the alias constant, got: {}",
+            rendered
+        );
+        // Sorted by spelling (BTreeMap order): "2017" precedes "ieee1800-2017"
+        // even though the payload declared them in the other order.
+        let first = rendered
+            .find("(\"2017\", \"sv_2017\")")
+            .expect("first alias pair should be embedded");
+        let second = rendered
+            .find("(\"ieee1800-2017\", \"sv_2017\")")
+            .expect("second alias pair should be embedded");
+        assert!(
+            first < second,
+            "alias pairs should be emitted sorted by spelling, got: {}",
+            rendered
+        );
+        // The setter resolves explicit spellings through the map…
+        assert!(
+            rendered.contains("Self::resolve_grammar_profile_alias(value).to_string()"),
+            "the setter should resolve requested spellings through the alias map, got: {}",
+            rendered
+        );
+        // …while (no `@default_profile` here) the constructor stays unset.
+        assert!(
+            rendered.contains("grammar_profile: None"),
+            "an alias-only grammar keeps the unset-profile constructor init, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_without_profile_alias_directive_emits_no_alias_surface() {
+        // Byte-identity leg for non-bearing grammars: no constant, no resolver.
+        let rendered = profile_guard_rendered_parser();
+        assert!(
+            !rendered.contains("GRAMMAR_PROFILE_ALIASES"),
+            "a grammar without @profile_alias must not emit the alias constant, got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("resolve_grammar_profile_alias"),
+            "a grammar without @profile_alias must not emit the resolver, got: {}",
+            rendered
+        );
+        let default_rendered = default_profile_rendered_parser();
+        assert!(
+            !default_rendered.contains("GRAMMAR_PROFILE_ALIASES"),
+            "a default-profile-only grammar must not emit the alias surface, got: {}",
+            default_rendered
         );
     }
 

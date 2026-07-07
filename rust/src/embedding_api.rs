@@ -4716,4 +4716,37 @@ mod tests {
         assert_eq!(outcome.status, ParseStatus::Success);
         assert!(outcome.diagnostic.is_none());
     }
+
+    /// `PROFILE-ALIAS.2` (D6 drift gate): the `GrammarProfile::FromStr` alias
+    /// spellings are a hand-copy of the grammar-declared `@profile_alias` map
+    /// (the typed embedding enum must parse without the generated artifact, so
+    /// it cannot source the const directly). Per the duplicated-metadata
+    /// doctrine, this gate PARSES the authoritative source — the generated
+    /// parser's `GRAMMAR_PROFILE_ALIASES` const — and asserts the embedding
+    /// copy resolves every declared spelling to the declared canonical
+    /// profile. An artifact alias the embedding enum rejects (or maps to a
+    /// different canonical name) fails here. (Embedding-only spellings are
+    /// additive typed-API convenience, deliberately not gated.)
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn grammar_profile_from_str_matches_the_artifact_declared_alias_map() {
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+        assert!(
+            !SystemverilogParser::GRAMMAR_PROFILE_ALIASES.is_empty(),
+            "systemverilog.ebnf should declare @profile_alias spellings"
+        );
+        for (alias, canonical) in SystemverilogParser::GRAMMAR_PROFILE_ALIASES {
+            let parsed: GrammarProfile = alias.parse().unwrap_or_else(|err| {
+                panic!(
+                    "embedding GrammarProfile must accept the grammar-declared alias '{alias}': {err:?}"
+                )
+            });
+            assert_eq!(
+                parsed.as_str(),
+                *canonical,
+                "embedding GrammarProfile maps alias '{alias}' to '{}' but the grammar declares '{canonical}'",
+                parsed.as_str()
+            );
+        }
+    }
 }

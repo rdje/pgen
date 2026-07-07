@@ -385,6 +385,17 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "default_profile",
         capability: SemanticDirectiveCapability::ParserSteering,
     },
+    // `PROFILE-ALIAS.2`: grammar-level request-spelling alias map — which
+    // requested profile spellings resolve to which canonical profile names
+    // (e.g. SV's `2017` → `sv_2017`). Compiled by
+    // `semantic_runtime::compile_profile_aliases`; burned into the generated
+    // parser's `GRAMMAR_PROFILE_ALIASES` const + alias-resolving
+    // `set_grammar_profile`, and consulted by the registry's profile oracle,
+    // the generation-side profile filter, and the parse-harness interpreter.
+    SemanticDirectiveSpec {
+        name: "profile_alias",
+        capability: SemanticDirectiveCapability::ParserSteering,
+    },
 ];
 
 pub fn semantic_directive_spec(name: &str) -> Option<SemanticDirectiveSpec> {

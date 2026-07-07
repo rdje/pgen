@@ -82,6 +82,15 @@ Grammar parser API:
     1364-2005 (Verilog) parsing profile on the SystemVerilog grammar: it rides the `sv_2017` baseline
     of shared core constructs and rejects SV-only constructs. Subset enforcement is being completed
     incrementally (see the `VERILOG-2005-PROFILE` task tree); today it gates `class_declaration`.
+  - `PROFILE-ALIAS.2` (2026-07-07, SURFACE-NEUTRAL maintenance note): the SystemVerilog alias
+    spellings this enum's `FromStr` accepts (`2017` / `ieee1800-2017` / `ieee_1800_2017`, the
+    `2023` group, the `1364-2005` group) are now DECLARED BY THE GRAMMAR (`@profile_alias` in
+    `grammars/systemverilog.ebnf`) and carried by the generated parser itself (a sorted
+    `GRAMMAR_PROFILE_ALIASES` constant + case-insensitive resolution inside `set_grammar_profile`).
+    The typed `FromStr` spellings remain part of THIS contract and are drift-gated: a features-on
+    test (`grammar_profile_from_str_matches_the_artifact_declared_alias_map`) asserts the enum
+    resolves every grammar-declared spelling to the declared canonical profile, so the two
+    surfaces cannot silently diverge. No accepted spelling changed; no version bump.
 - `InputOwnershipModel`: `borrowed_str`
 - `ParseSessionModel`: `stateless_per_call`
 - `GrammarParseOutcome`: includes API version, grammar, profile, status, optional diagnostic.

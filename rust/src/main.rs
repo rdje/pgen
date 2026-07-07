@@ -2116,17 +2116,13 @@ fn normalize_legacy_generation_ast_dump(mut json_value: serde_json::Value) -> se
     json_value
 }
 
-fn normalize_grammar_profile_name(profile: &str) -> String {
-    let normalized = profile.trim().to_ascii_lowercase();
-    match normalized.as_str() {
-        "sv_2017" | "2017" | "ieee1800-2017" | "ieee_1800_2017" => "sv_2017".to_string(),
-        "sv_2023" | "2023" | "ieee1800-2023" | "ieee_1800_2023" => "sv_2023".to_string(),
-        "vhdl_1076_2019" | "1076_2019" | "1076-2019" | "ieee1076-2019" | "ieee_1076_2019" => {
-            "vhdl_1076_2019".to_string()
-        }
-        _ => normalized,
-    }
-}
+// `PROFILE-ALIAS.2`: the former `normalize_grammar_profile_name` global spelling
+// table (SV + VHDL aliases applied to ANY grammar) lived here — retired: request
+// spellings are now declared per-grammar via `@profile_alias` and resolved
+// through `compile_profile_aliases` in `apply_grammar_profile_filter`; declared
+// `@profiles` list values are compared case-insensitively (the same
+// `eq_ignore_ascii_case` posture as the generated `rule_profile_is_enabled`
+// guard) with no alias rewriting.
 
 fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profile: &str) -> bool {
     let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
@@ -2150,7 +2146,7 @@ fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profi
                     allowed_profiles = parse_semantic_string_list(&payload).map(|values| {
                         values
                             .into_iter()
-                            .map(|value| normalize_grammar_profile_name(&value))
+                            .map(|value| value.trim().to_ascii_lowercase())
                             .collect()
                     });
                     continue;
@@ -2166,7 +2162,7 @@ fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profi
                     allowed_profiles = parse_semantic_string_list(&payload).map(|values| {
                         values
                             .into_iter()
-                            .map(|value| normalize_grammar_profile_name(&value))
+                            .map(|value| value.trim().to_ascii_lowercase())
                             .collect()
                     });
                     continue;
@@ -2177,7 +2173,7 @@ fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profi
         allowed_profiles = parse_semantic_string_list(payload).map(|values| {
             values
                 .into_iter()
-                .map(|value| normalize_grammar_profile_name(&value))
+                .map(|value| value.trim().to_ascii_lowercase())
                 .collect()
         });
     }
@@ -2277,7 +2273,35 @@ fn apply_grammar_profile_filter(
     let Some(profile) = grammar_profile else {
         return Ok(grammar);
     };
-    let active_profile = normalize_grammar_profile_name(profile);
+    // PROFILE-ALIAS.2: resolve the requested spelling through the grammar's OWN
+    // declared `@profile_alias` map (case-insensitive; unmatched spellings pass
+    // through), then compare lowercased — the generation twin of the alias
+    // resolution the generated parser's `set_grammar_profile` now carries. The
+    // retired global spelling table (SV + VHDL aliases applied to ANY grammar)
+    // was the same doctrine-violation class as the retired default-profile name
+    // gate above. A malformed/conflicting directive is a hard error here,
+    // exactly as it is at codegen.
+    let declared_aliases = grammar
+        .annotations
+        .as_ref()
+        .map(|annotations| {
+            pgen::ast_pipeline::compile_profile_aliases(annotations).map_err(|err| {
+                anyhow::anyhow!(
+                    "Grammar '{}': invalid @profile_alias directive: {}",
+                    grammar.grammar_name,
+                    err
+                )
+            })
+        })
+        .transpose()?
+        .flatten();
+    let requested_profile = profile.trim();
+    let active_profile = declared_aliases
+        .as_ref()
+        .and_then(|aliases| aliases.get(&requested_profile.to_ascii_lowercase()))
+        .map(String::as_str)
+        .unwrap_or(requested_profile)
+        .to_ascii_lowercase();
     let Some(annotations) = grammar.annotations.as_ref() else {
         return Ok(grammar);
     };

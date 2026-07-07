@@ -86,7 +86,7 @@ parseability_probe --parse systemverilog file.sv --profile 2017
 parseability_probe --parse systemverilog file.sv --profile 2023
 ```
 
-For SystemVerilog, the recognized profile names are `2017`, `ieee1800-2017`, `ieee_1800_2017`, `2023`, `ieee1800-2023`, `ieee_1800_2023`, and — for the strict IEEE 1364-2005 (Verilog) subset dialect profile — `verilog_2005`, `1364-2005`, `ieee1364-2005`, `ieee_1364_2005`. Other grammars may define their own profile names.
+For SystemVerilog, the canonical profile names are `sv_2017`, `sv_2023`, and — for the strict IEEE 1364-2005 (Verilog) subset dialect profile — `verilog_2005`. The accepted request *spellings* on top of those (`2017`, `ieee1800-2017`, `ieee_1800_2017`, `2023`, `ieee1800-2023`, `ieee_1800_2023`, `1364-2005`, `ieee1364-2005`, `ieee_1364_2005`) are **declared by the grammar itself** via the `@profile_alias` directive in `grammars/systemverilog.ebnf` — the generated parser carries them in its `GRAMMAR_PROFILE_ALIASES` constant and resolves them case-insensitively inside `set_grammar_profile`, so every entry point (CLI, registry, embedding) accepts the same spellings with no engine-side alias table. An unrecognized spelling passes through un-coerced (it simply matches no `@profiles` list). Other grammars define their own profile names — and, when they want request aliases, their own `@profile_alias` map.
 
 ### Parse from an alternate entry rule (`--entry-rule`)
 

@@ -121,10 +121,13 @@ pub struct InterpretOptions {
     /// unless the loader recorded an explicit entry). Entry-rule-agnostic, exactly like the scratch
     /// slot and the compile-and-run harness.
     pub entry_rule: Option<String>,
-    /// The ALREADY-NORMALIZED active dialect profile to gate `@profiles` rules against (PARSE-HARNESS.5.1)
-    /// — e.g. `Some("pcre2")` for strict regex, `Some("sv_2017")` for SV. `None` (default) = the
-    /// grammar's declared `@default_profile` if any (DEFAULT-PROFILE.2), else all rules active.
-    /// Normalize a requested profile with [`crate::parser_registry::active_grammar_profile`].
+    /// The requested dialect profile to gate `@profiles` rules against (PARSE-HARNESS.5.1) — e.g.
+    /// `Some("pcre2")` for strict regex, `Some("sv_2017")` for SV. A declared `@profile_alias`
+    /// SPELLING also resolves here (PROFILE-ALIAS.2 — mirroring the generated
+    /// `set_grammar_profile`), so both canonical names and declared aliases are accepted. `None`
+    /// (default) = the grammar's declared `@default_profile` if any (DEFAULT-PROFILE.2), else all
+    /// rules active. For a REGISTERED grammar you may also pre-normalize with
+    /// [`crate::parser_registry::active_grammar_profile`] (idempotent here).
     pub profile: Option<String>,
 }
 
@@ -249,13 +252,16 @@ pub fn interpret_parse_gen_ast(
     let mut semantic_state = SemanticRuntimeState::new();
     semantic_state.set_predicate_defs(compiled_sem.clone_predicate_defs());
 
-    // `DEFAULT-PROFILE.2`: an UNSPECIFIED profile resolves to the grammar's declared
-    // `@default_profile` — the same compiled value codegen burns into the generated
-    // constructor (`set_grammar_profile(None)` restores it), so the interpreter's
-    // `@profiles` gating is byte-identical to the generated parser with no caller
-    // cooperation. An explicit requested profile always wins.
+    // `DEFAULT-PROFILE.2` / `PROFILE-ALIAS.2`: mirror the generated setter — an
+    // EXPLICIT requested spelling resolves through the grammar's declared
+    // `@profile_alias` map (case-insensitive; unmatched spellings pass through,
+    // and canonical names are never alias keys so the resolve is idempotent for
+    // an already-normalized profile); an UNSPECIFIED profile resolves to the
+    // declared `@default_profile`. Both are the same compiled values codegen
+    // burns into the generated parser, so the interpreter's `@profiles` gating
+    // is byte-identical with no caller cooperation.
     let active_profile = active_profile
-        .map(|s| s.to_string())
+        .map(|s| compiled_sem.resolve_profile_alias(s).to_string())
         .or_else(|| compiled_sem.default_profile().map(|s| s.to_string()));
 
     let mut interp = Interp {

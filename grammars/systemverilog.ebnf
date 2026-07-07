@@ -186,6 +186,16 @@
 # The active grammar is flattened into one file because the legacy Perl EBNF
 # frontend used in the current HDL pipeline does not expand `include(...)`.
 
+# PROFILE-ALIAS.2: the request-spelling alias map for this grammar's three
+# canonical dialect profiles (sv_2017 / sv_2023 / verilog_2005). These are the
+# spellings a caller may pass as the requested profile (CLI --profile /
+# --grammar-profile, registry, embedding); the generated parser resolves them
+# case-insensitively inside set_grammar_profile, and the registry/generation/
+# interpreter lanes consult the same compiled map. Declared HERE so the
+# spellings are grammar-owned (never engine name-gates).
+@profile_alias: { "2017": sv_2017, "ieee1800-2017": sv_2017, "ieee_1800_2017": sv_2017 }
+@profile_alias: { "2023": sv_2023, "ieee1800-2023": sv_2023, "ieee_1800_2023": sv_2023 }
+@profile_alias: { "1364-2005": verilog_2005, "ieee1364-2005": verilog_2005, "ieee_1364_2005": verilog_2005 }
 @branch_policy: priority_first
 @priority: [12, 3, 2, 1, 1]
 @coverage_target: 4
