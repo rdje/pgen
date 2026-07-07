@@ -139,12 +139,22 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `callout_hash_string` | `-> {quote:"hash", payload:$2}` | Same shape; `quote:"hash"`. |
 | `callout_dollar_string` | `-> {quote:"dollar", payload:$2}` | Same shape; `quote:"dollar"`. |
 | `callout_brace_string` | `-> {quote:"brace", payload:$2}` | Same shape; `quote:"brace"`. Asymmetric delimiters (`{` opening, `}` closing) — the `"brace"` label captures both. |
-| `directive_named` | `-> {kind:"named", name:$1, payload:$2}` | Object. `name` is a clean string (after slice 34's regex-literal rewrite of `directive_name`); `payload` is raw `directive_payload_suffix?` shape. |
-| `directive_mark_shorthand` | `-> {kind:"mark_shorthand", payload:$2}` | Object. `payload` is raw `directive_payload_simple?` shape. |
-| `directive_name` | regex literal `/([A-Za-z][A-Za-z0-9_\-]*)/` | Terminal of the matched verb name (was `directive_name_start directive_name_continue*` chain). |
-| `directive_payload_suffix` (branch 0, `:`) | `-> {separator:":", value:$2}` | Object. `value` is `directive_payload_simple` (clean string after slice 35 regex-literal rewrite); `[]` when un-matched. |
-| `directive_payload_suffix` (branch 1, `=`) | `-> {separator:"=", value:$2}` | Same shape, `separator:"="`. |
-| `directive_payload_simple` | regex literal `/([^)]*)/` | Terminal of the payload body (any char except `)` — matches the verb-closing). Was `directive_payload_char*` chain. |
+| `directive_mark_named` | `-> {kind:"named", name:$1, payload:$2}` | Object (release 1.1.83, `.3.14`: `directive_named` split into per-name-class branches; the `{kind:"named", name, payload}` carrier is unchanged). `name` = `"MARK"`; `payload` = required `{separator:":", value}`. |
+| `directive_verb_named` | `-> {kind:"named", name:$1, payload:$2}` | Same carrier. `name` ∈ the 7 verbs; `payload` = optional `directive_payload_colon` (`[]` when absent). |
+| `directive_limit_named` | `-> {kind:"named", name:$1, payload:$2}` | Same carrier. `name` ∈ the 4 `LIMIT_*` options; `payload` = required `{separator:"=", value:<digits string>}`. |
+| `directive_option_named` | `-> {kind:"named", name:$1, payload:[]}` | Same carrier. Bare-only start options; the literal `[]` payload matches the unmatched-optional byte-shape. |
+| `directive_relaxed_named` (`relaxed` profile) | `-> {kind:"named", name:$2, payload:$3}` | Same carrier ($1 is the recognized-name exclusion guard, a negative lookahead). `name` from `directive_name_relaxed`; `payload` = raw `directive_payload_suffix?` shape. |
+| `directive_mark_shorthand` | `-> {kind:"mark_shorthand", payload:$2}` | Object. `payload` is a required non-empty clean string since `.3.14` (`(*:)` now rejects). |
+| `directive_name_relaxed` (`relaxed` profile) | `-> $text` | Terminal of the matched name (`[A-Za-z][A-Za-z0-9_-]*`). The former `directive_name` dispatch / `directive_name_strict` enumeration were superseded by the per-class name rules (`directive_verb_name` / `directive_limit_name` / `directive_option_name`, all passthrough). |
+| `directive_payload_colon_required` | `-> {separator:":", value:$2}` | Object; `value` is the required non-empty payload string (MARK forms). |
+| `directive_payload_colon` | `-> {separator:":", value:$2}` | Object; `value` a possibly-empty payload string (`(*PRUNE:)` gives `""`). |
+| `directive_payload_equals` | `-> {separator:"=", value:$2}` | Object; `value` the digits string (`(*LIMIT_HEAP=500)` gives `"500"`). |
+| `directive_payload_digits` | `-> $text` | Terminal of the digit run. |
+| `directive_payload_required` | branch 2 `-> $text` (branch 1 passes `directive_payload_core` through) | Clean payload string either way; the generatable-core/superset split is generation-only (see the rules chapter). |
+| `directive_payload_core` | `-> $text` | Terminal of the `letter/digit/_` run. |
+| `directive_payload_suffix` (branch 0, `:`) (`relaxed` profile) | `-> {separator:":", value:$2}` | Object. Relaxed-only since `.3.14` (reachable solely through `directive_relaxed_named`); `value` is `directive_payload_simple` (clean string); `[]` when un-matched. |
+| `directive_payload_suffix` (branch 1, `=`) (`relaxed` profile) | `-> {separator:"=", value:$2}` | Same shape, `separator:"="`. |
+| `directive_payload_simple` | `-> $text` | Terminal of the payload body (any char except the verb-closing `)`). |
 | `condition_assertion` (branch 0, `?=`) | `-> {kind:"lookahead", positive:true, body:$2}` | Object. Surfaces inside `conditional.condition`. |
 | `condition_assertion` (branch 1, `?!`) | `-> {kind:"lookahead", positive:false, body:$2}` | Same kind, `positive:false`. |
 | `condition_assertion` (branch 2, `?<=`) | `-> {kind:"lookbehind", positive:true, body:$2}` | Object. |

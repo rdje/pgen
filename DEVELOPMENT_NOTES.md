@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0012 — REGEX-PCRE2-FIDELITY.3.14: implementation notes — name-class-conditional shapes, two NEW generator facts, and the cert profile-universe rule
+
+Session #61. Notes from landing the verb/start-option argument-shape encoding (regex release
+1.1.83):
+
+1. **Per-name-class branch splits preserve the released carrier exactly.** Splitting
+   `directive_named` into 5 branches each annotated `-> {kind:"named", name:…, payload:…}` is
+   byte-identical for every previously-accepted input as long as (a) the bare-only branch writes
+   the literal `payload: []` (the `.3.13` `quantifier:[]` precedent — a literal `[]` matches the
+   unmatched-optional byte-shape), and (b) positional refs count a leading lookahead as an element
+   (`name:$2, payload:$3` in the guarded relaxed branch). 30/30 AST cmp proved it.
+2. **NEW generator fact (→ `STIMULI-SIGNOFF.14`): the codegen-native builtins have NO generation
+   arm.** `( !")" builtin_any_char )+` forced the first-ever REQUIRED generation of
+   `builtin_any_char` and failed with `Error: Missing rule 'builtin_any_char'` (mini-grammar
+   isolation). Every prior use sits under `*`, where the generator emits ZERO repetitions — the
+   same minimality that emitted the PCRE2-invalid `(*:)` in the first place. In-grammar remedy:
+   pair the superset with a positively-enumerated generatable core (`directive_payload_core`;
+   union parse-identical under the longest-match tournament). The engine-level fix (native-builtin
+   emitters, guard-AWARE char sampling inside guarded repetitions) is deliberately NOT this slice.
+3. **NEW cert fact (scratch-slot V6-proven): the default cert universe excludes PROFILE-GATED
+   rules but keeps UNGATED rules they reference.** So a rule referenced ONLY from a
+   `@profiles`-gated rule is a permanent "NO reach path" UNKNOWN unless it carries the gate
+   itself. `directive_payload_suffix` became relaxed-only in this slice and needed the
+   `@profiles:["relaxed"]` gate (the `directive_name_relaxed` precedent). Rule of thumb: when a
+   rule's LAST ungated reference disappears, gate it or the cert breaks. Also the arithmetic
+   check: cert total = all rules − gated rules (210 = 200 + 11 net-new − 1 gated).
+4. **A helper rule referenced only under a negative lookahead can never be witnessed** (a
+   matching guard FAILS the branch; a passing guard records nothing — entry testimony is sound
+   under backtracking). Hence the relaxed-guard is INLINED over the positively-witnessed name
+   rules (`!( ( "MARK" | directive_verb_name | … ) ( ":" | "=" | ")" ) )`) instead of hoisting a
+   `directive_recognized_prefix` helper.
+5. **Stale-binary trap re-confirmed** (`feedback_verify_sv_parser_regen_mtime`): a scratch-slot
+   cert ran against a probe/pipeline still embedding the PREVIOUS scratch fixture (a cwd-failed
+   rebuild) and produced a spectacular false signal (spf=20, "parser rejects everything") that
+   dissolved once the ladder rebuilt per-variant. Always pair `focus_scratch` with the
+   dual-feature `ast_pipeline` rebuild before reading cert output.
+6. **The differential matrix WAS the divergence finder.** Running the full 96-pattern oracle
+   matrix BEFORE designing the encode surfaced REGEX-0089/0090 (and the `.3.21` overflow class)
+   — none of which the hunter could see (the hunter only finds generator-side breaks; these were
+   parser-accepts-invalid). The pre-encode oracle matrix is now the proven template for every
+   remaining `.3.x` migration slice.
+
 ## 2026-07-07 - PGEN-REGEX-PCRE2-0011 — REGEX-PCRE2-FIDELITY.3.13: implementation notes — encoding "non-quantifiable" structurally, and why positive enumeration beats lookahead guards for generation
 
 Session #60. Notes from landing the quantified-anchor encoding (regex release 1.1.82):

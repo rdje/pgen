@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f0ecf901.js";
+            window.path_to_searchindex_js = "searchindex-a1626cb8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -285,75 +285,95 @@
 <h2 id="directive_verb"><a class="header" href="#directive_verb"><code>directive_verb</code></a></h2>
 <pre><code class="language-ebnf">directive_verb = "(*" directive_body ")"
 </code></pre>
-<p>3-element Sequence: <code>["(*", &lt;body&gt;, ")"]</code>.</p>
+<p>Emits <code>{type:"atom", kind:"directive_verb", body:&lt;directive_body&gt;}</code>.</p>
 <h3 id="directive_body"><a class="header" href="#directive_body"><code>directive_body</code></a></h3>
 <pre><code class="language-ebnf">directive_body = directive_named | directive_mark_shorthand
 </code></pre>
-<p>2-way Or.</p>
-<h3 id="directive_named"><a class="header" href="#directive_named"><code>directive_named</code></a></h3>
-<pre><code class="language-ebnf">directive_named = directive_name directive_payload_suffix?
+<p>2-way Or (both branches pass their object through).</p>
+<h3 id="directive_named--name-class-conditional-argument-shapes"><a class="header" href="#directive_named--name-class-conditional-argument-shapes"><code>directive_named</code> — name-class-conditional argument shapes</a></h3>
+<pre><code class="language-ebnf">directive_named = directive_mark_named
+                | directive_verb_named
+                | directive_limit_named
+                | directive_option_named
+                | directive_relaxed_named
 </code></pre>
-<p>2-element Sequence.</p>
-<h3 id="directive_name"><a class="header" href="#directive_name"><code>directive_name</code></a></h3>
-<pre><code class="language-ebnf">directive_name = directive_name_strict | directive_name_relaxed
-</code></pre>
-<p><strong>REGEX-PCRE2-FIDELITY.3.2 — verb-name profile gating.</strong> The default (<code>pcre2</code>) profile accepts ONLY the
-recognized PCRE2 verb + start-option names (the EBNF now owns verb-name acceptance; the unrecognized-name
-rejection moved out of the host validator). <code>directive_name_strict</code> is an ordered choice of exactly those
-names — the 8 verbs (<code>MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN</code>) and 26 start-options (<code>UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE</code>), ordered longest-first for prefix overlaps. It is <strong>case-sensitive</strong>
-(PCRE2 rejects <code>(*accept)</code>/<code>(*Skip)</code>). The <code>@profiles: ["relaxed"]</code> variant <code>directive_name_relaxed</code>
-re-admits any <code>[A-Za-z][A-Za-z0-9_-]*</code> name.</p>
+<p><strong>REGEX-PCRE2-FIDELITY.3.14 (release 1.1.83) — the EBNF now owns PCRE2’s per-name-class ARGUMENT
+shapes</strong> (they previously lived in the host compile-contract; <code>.3.2</code> had already moved NAME
+acceptance in). Every branch emits the same released carrier <code>{kind:"named", name:&lt;string&gt;, payload:&lt;payload&gt;}</code>, so previously-accepted patterns are byte-identical. The classes, each pinned
+against <code>pcre2test</code> 10.47:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Branch</th><th>Names</th><th>Argument shape</th><th>Oracle boundary</th></tr>
+</thead>
+<tbody>
+<tr><td><code>directive_mark_named</code></td><td><code>MARK</code></td><td><code>:</code>-payload <strong>required non-empty</strong></td><td><code>(*MARK:x)</code> ACCEPT; <code>(*MARK)</code> / <code>(*MARK:)</code> REJECT (err 166); <code>(*MARK=x)</code> REJECT (err 160)</td></tr>
+<tr><td><code>directive_verb_named</code></td><td><code>FAIL F ACCEPT COMMIT PRUNE SKIP THEN</code></td><td>optional <code>:</code>-payload, empty allowed</td><td><code>(*PRUNE)</code> / <code>(*PRUNE:)</code> / <code>(*PRUNE:x)</code> ACCEPT; <code>(*PRUNE=x)</code> / <code>(*SKIP=)</code> REJECT (err 160)</td></tr>
+<tr><td><code>directive_limit_named</code></td><td><code>LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION</code></td><td><code>=digits</code> <strong>required</strong></td><td><code>(*LIMIT_HEAP=500)</code> ACCEPT; bare <code>(*LIMIT_HEAP)</code>, <code>(*LIMIT_HEAP=)</code>, <code>(*LIMIT_HEAP=abc)</code>, <code>(*LIMIT_HEAP:5)</code> REJECT (err 160)</td></tr>
+<tr><td><code>directive_option_named</code></td><td>the other 21 start options (<code>UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE</code>)</td><td><strong>bare only</strong></td><td><code>(*UTF)</code> ACCEPT; <code>(*UTF:x)</code> / <code>(*UTF=5)</code> / <code>(*CR=5)</code> / <code>(*TURKISH_CASING=5)</code> REJECT (err 160)</td></tr>
+<tr><td><code>directive_relaxed_named</code> (<code>@profiles: ["relaxed"]</code>)</td><td>any <strong>unrecognized</strong> <code>[A-Za-z][A-Za-z0-9_-]*</code> name</td><td>any suffix (<code>:</code>/<code>=</code>/bare)</td><td>relaxed-profile catch-all; see below</td></tr>
+</tbody>
+</table>
+</div>
+<p>Name matching is <strong>case-sensitive</strong> (PCRE2 rejects <code>(*accept)</code>/<code>(*Skip)</code>); the name lists stay
+ordered longest-first for prefix overlaps (<code>FAIL</code>&gt;<code>F</code>, <code>UTF32/16/8</code>&gt;<code>UTF</code>, …). This release fixed
+two real accepts-invalid divergences the old validator missed (ledger <strong>REGEX-0089</strong>): PGEN
+accepted <code>=digits</code> on non-LIMIT options (<code>(*UTF=5)</code>) and accepted bare <code>(*LIMIT_HEAP)</code> — PCRE2
+rejects both (err 160).</p>
+<p>The relaxed catch-all carries an inline negative lookahead excluding every RECOGNIZED name at a
+name boundary (<code>:</code>/<code>=</code>/<code>)</code>), so the strict shapes above stay authoritative in <strong>both</strong> profiles
+(<code>(*MARK)</code> rejects under <code>relaxed</code> too), while extended spellings (<code>(*LIMIT_HEAPX=5)</code>, <code>(*SKIPX)</code>)
+still reach the catch-all under <code>relaxed</code>.</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Pattern</th><th>default (<code>pcre2</code>)</th><th><code>relaxed</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>(*ACCEPT)</code> <code>(*FAIL)</code> <code>(*MARK:x)</code> <code>(*UTF)</code> <code>(*LIMIT_MATCH=100)</code></td><td>ACCEPT</td><td>ACCEPT</td></tr>
-<tr><td><code>(*FOO)</code> <code>(*BAR:x)</code> <code>(*MARKX)</code> <code>(*accept)</code> (unrecognized / wrong case)</td><td>REJECT</td><td>ACCEPT</td></tr>
-<tr><td><code>(*MARK)</code> (no arg), <code>a(*UTF)</code> (start-option not at start)</td><td>REJECT</td><td>REJECT (structural checks retained)</td></tr>
+<tr><td><code>(*ACCEPT)</code> <code>(*FAIL:x)</code> <code>(*MARK:x)</code> <code>(*:x)</code> <code>(*UTF)</code> <code>(*LIMIT_MATCH=100)</code></td><td>ACCEPT</td><td>ACCEPT</td></tr>
+<tr><td><code>(*FOO)</code> <code>(*BAR:x)</code> <code>(*FOO=x)</code> <code>(*MARKX)</code> <code>(*accept)</code> (unrecognized / wrong case)</td><td>REJECT</td><td>ACCEPT</td></tr>
+<tr><td><code>(*:)</code> <code>(*MARK)</code> <code>(*MARK:)</code> <code>(*SKIP=)</code> <code>(*UTF=5)</code> <code>(*LIMIT_HEAP)</code> (invalid shapes)</td><td>REJECT</td><td>REJECT</td></tr>
 </tbody>
 </table>
 </div>
-<p>The structural verb checks PCRE2 enforces beyond the name (MARK requires a non-empty argument;
-start-options must appear at the pattern start; <code>=value</code> must be numeric; only <code>ACCEPT</code> may be quantified)
-remain in the host compile-contract for now and apply in <strong>both</strong> profiles. <code>directive_name</code> has no return
-annotation (passthrough) so <code>directive_named</code>’s <code>name</code> field shape is unchanged.</p>
-<p>Both variants emit the matched name as text — <code>directive_name_relaxed</code> is a 2-element Sequence
-<code>[&lt;first-char&gt;, &lt;Quantified of remaining chars&gt;]</code>; <code>directive_name_strict</code> is the matched keyword Terminal.</p>
-<h3 id="directive_payload_suffix"><a class="header" href="#directive_payload_suffix"><code>directive_payload_suffix</code></a></h3>
-<pre><code class="language-ebnf">directive_payload_suffix = ":" directive_payload_simple?
-                         | "=" directive_payload_simple?
+<p>Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
+start-option <strong>position</strong> rule (<code>a(*UTF)</code> and <code>a(*LIMIT_HEAP=500)</code> reject — the <code>=</code>-form position
+hole was also fixed this release, ledger <strong>REGEX-0090</strong>), the LIMIT value <strong>range</strong> (overflow
+values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror), and the
+quantified-verb rule (only <code>(*ACCEPT)</code> may take a quantifier).</p>
+<h3 id="directive_mark_shorthand"><a class="header" href="#directive_mark_shorthand"><code>directive_mark_shorthand</code></a></h3>
+<pre><code class="language-ebnf">directive_mark_shorthand = ":" directive_payload_required
 </code></pre>
-<p>2-way Or.</p>
-<h3 id="directive_payload_simple"><a class="header" href="#directive_payload_simple"><code>directive_payload_simple</code></a></h3>
-<pre><code class="language-ebnf">directive_payload_simple = directive_payload_char*
+<p>The <code>(*:name)</code> MARK shorthand — emits <code>{kind:"mark_shorthand", payload:&lt;string&gt;}</code>. Since <code>.3.14</code>
+the payload is <strong>required non-empty</strong> (<code>(*:)</code> rejects, PCRE2 err 166 — this closed the
+STIMULI-SIGNOFF duality-break class where the generator emitted <code>(*:)</code>).</p>
+<h3 id="payload-rules"><a class="header" href="#payload-rules">Payload rules</a></h3>
+<pre><code class="language-ebnf">directive_payload_colon_required = ":" directive_payload_required   -&gt; {separator: ":", value: $2}
+directive_payload_colon  = ":" directive_payload_simple?            -&gt; {separator: ":", value: $2}
+directive_payload_equals = "=" directive_payload_digits             -&gt; {separator: "=", value: $2}
+directive_payload_digits = digit+ -&gt; $text
+directive_payload_required = directive_payload_core
+                           | ( !")" builtin_any_char )+ -&gt; $text
+directive_payload_core = ( letter | digit | '_' )+ -&gt; $text
+directive_payload_simple = ( !")" builtin_any_char )* -&gt; $text
 </code></pre>
-<p>Quantified-<code>*</code> of payload chars.</p>
-<h3 id="directive_payload_char"><a class="header" href="#directive_payload_char"><code>directive_payload_char</code></a></h3>
-<pre><code class="language-ebnf">directive_payload_char = /([^)])/
-</code></pre>
-<p>Single-character regex matching anything except <code>)</code>. Emits <code>Terminal(&lt;char&gt;)</code>.</p>
+<p>All payload values are clean strings; the suffix objects are <code>{separator:":"|"=", value:&lt;string&gt;}</code> — unchanged from the released carrier. <code>directive_payload_required</code> pairs a
+positively-enumerated generatable core with PCRE2’s full any-char-but-<code>)</code> superset; parsing is
+identical to the plain superset (the longest-match tournament keeps the union exact) — the split
+exists purely so stimuli generation, which has no native <code>builtin_any_char</code> emitter (tracked as
+<code>STIMULI-SIGNOFF.14</code>), can emit required payloads.</p>
+<p><code>directive_payload_suffix</code> (<code>":"|"=" directive_payload_simple?</code> per branch) is now the
+relaxed-only any-shape suffix reachable solely through <code>directive_relaxed_named</code>, and carries the
+same <code>@profiles: ["relaxed"]</code> gate.</p>
 <p>For <code>(*UTF8)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(*",
-  [
-    [&lt;directive_name for "UTF8"&gt;],
-    []   // no payload suffix
-  ],
-  ")"
-]
+<pre><code class="language-json">"atom": {
+  "type": "atom",
+  "kind": "directive_verb",
+  "body": { "kind": "named", "name": "UTF8", "payload": [] }
+}
 </code></pre>
-<p>For <code>(*MARK:label)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(*",
-  [
-    [&lt;directive_name for "MARK"&gt;],
-    [":", [&lt;chars: l,a,b,e,l&gt;]]
-  ],
-  ")"
-]
-</code></pre>
+<p>For <code>(*LIMIT_HEAP=500)</code> the payload is <code>{"separator": "=", "value": "500"}</code>; for <code>(*MARK:x)</code> it is
+<code>{"separator": ":", "value": "x"}</code>; for <code>(*:x)</code> the body is <code>{"kind": "mark_shorthand", "payload": "x"}</code>.</p>
 <h2 id="extended_class"><a class="header" href="#extended_class"><code>extended_class</code></a></h2>
 <pre><code class="language-ebnf">extended_class = "(?[" extended_class_content "])"
 </code></pre>

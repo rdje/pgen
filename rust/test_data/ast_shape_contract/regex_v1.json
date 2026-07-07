@@ -75,7 +75,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/regex_return_annotations.json",
-    "extracted_at": "2026-07-07",
+    "extracted_at": "2026-07-08",
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
@@ -547,6 +547,18 @@
         "normalized_text": "{kind: \"define\"}"
       },
       {
+        "rule": "directive_limit_named",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
+      },
+      {
+        "rule": "directive_mark_named",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
+      },
+      {
         "rule": "directive_mark_shorthand",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -559,10 +571,46 @@
         "normalized_text": "$text"
       },
       {
-        "rule": "directive_named",
+        "rule": "directive_option_named",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
+        "normalized_text": "{kind: \"named\", name: $1, payload: []}"
+      },
+      {
+        "rule": "directive_payload_colon",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{separator: \":\", value: $2}"
+      },
+      {
+        "rule": "directive_payload_colon_required",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{separator: \":\", value: $2}"
+      },
+      {
+        "rule": "directive_payload_core",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "directive_payload_digits",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "directive_payload_equals",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{separator: \"=\", value: $2}"
+      },
+      {
+        "rule": "directive_payload_required",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "directive_payload_simple",
@@ -583,10 +631,22 @@
         "normalized_text": "{separator: \"=\", value: $2}"
       },
       {
+        "rule": "directive_relaxed_named",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"named\", name: $2, payload: $3}"
+      },
+      {
         "rule": "directive_verb",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"directive_verb\", body: $2}"
+      },
+      {
+        "rule": "directive_verb_named",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
       },
       {
         "rule": "escape",

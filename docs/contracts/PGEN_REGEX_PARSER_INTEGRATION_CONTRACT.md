@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.84`
+  - `1.1.85`
 - Parser release version:
-  - `1.1.82`
+  - `1.1.83`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-07-07`
+  - `2026-07-08`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -70,7 +70,24 @@ This is the document downstream projects such as RGX should read first when deci
 
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
-**Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text.
+**Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.83 / Contract 1.1.85 Highlights — REGEX-0089/0090: verb & start-option ARGUMENT SHAPES now reject PCRE2-faithfully; the shape checks are grammar-encoded
+
+**Bug ledger:** `REGEX-0089` + `REGEX-0090` (internal — found by the `REGEX-PCRE2-FIDELITY.3.14` pre-encode differential matrix vs `pcre2test` 10.47; no external downstream report).
+
+**What changed (behavior-tightening).** PCRE2's per-name-class verb/start-option ARGUMENT rules are now encoded in `grammars/regex.ebnf` (`directive_named` split into name-class branches), replacing the host validator's shape checks (`REGEX-PCRE2-FIDELITY.3.14`, the third compile-contract migration):
+
+- **MARK** — named `(*MARK:name)` or shorthand `(*:name)` — REQUIRES a non-empty `:`-argument: `(*:)`, `(*MARK)`, `(*MARK:)` reject (PCRE2 err-166 class); `(*MARK=x)` rejects (err-160 class).
+- The other **7 verbs** (`ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) take an OPTIONAL `:`-payload, empty allowed: `(*PRUNE)`, `(*PRUNE:)`, `(*PRUNE:x)` accept; every `=`-suffixed verb (`(*SKIP=)`, `(*PRUNE=x)`, …) rejects.
+- The **4 numeric-limit options** (`LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION`) REQUIRE `=digits`: `(*LIMIT_HEAP=500)` accepts; bare `(*LIMIT_HEAP)`, `(*LIMIT_HEAP=)`, `(*LIMIT_HEAP=abc)`, `(*LIMIT_HEAP:5)` reject.
+- Every **other start option** is BARE-only: `(*UTF)` accepts; `(*UTF:x)`, `(*UTF=5)`, `(*CR=5)`, `(*TURKISH_CASING=5)` reject.
+
+Two real accepts-invalid divergences were fixed by this encoding: **REGEX-0089** — PGEN `1.1.82` wrongly ACCEPTED `=digits` on non-LIMIT options (`(*UTF=5)`-class) and bare `(*LIMIT_HEAP)`; and **REGEX-0090** — the validator's start-option POSITION check skipped `=`-value forms, so `a(*LIMIT_HEAP=500)` and `(*FAIL)(*LIMIT_HEAP=5)a` were wrongly accepted (the position rule remains validator-owned — it is contextual — but now covers all forms). PCRE2 10.47 rejects all of these (err 160).
+
+**What did NOT change.** Every still-accepted pattern's AST is byte-identical (30/30 directive/verb probe matrix + the shape-contract gate; the released `{kind:"named", name, payload}` / `{kind:"mark_shorthand", payload}` carriers are unchanged) — **AST-dump schema stays `1`**. Valid forms across the whole class keep their exact verdicts and shapes: `(*:x)`, `(*MARK:x)`, `(*PRUNE:)`, `(*F:x)`, `(*UTF)`, `(*LIMIT_HEAP=0)`, `(*LIMIT_HEAP=500)a`, `(*LIMIT_MATCH=10)(*UCP)a`, `a(*PRUNE:x)b`, `(*ACCEPT)+`, `(*ACCEPT:x)+`. The tightening applies in BOTH profiles (the `relaxed` catch-all now excludes recognized names at a name boundary, so it cannot resurrect an invalid shape); `relaxed` still re-admits unrecognized names — including extended spellings such as `(*SKIPX)` or `(*LIMIT_HEAPX=5)` — with any suffix.
+
+**Action for downstream (RGX):** the newly-rejected forms were PCRE2-invalid all along — adopting `1.1.83` aligns the accept set with PCRE2. The rejection LAYER for the migrated shapes moves from the contract message ("PCRE2 verb is malformed" / "MARK shorthand verb requires a non-empty argument" / "PCRE2 start option with '=' requires a numeric value") to a standard grammar parse failure — as always, match on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. The position-rule diagnostics (now also covering `=`-forms) keep the contract message ("PCRE2 start option must appear at the start-option prefix"). Known residual bounds (tracked): the LIMIT `=value` RANGE is not yet enforced (`(*LIMIT_HEAP=<u32-overflow>)` still parses; PCRE2 rejects err 160 — `REGEX-PCRE2-FIDELITY.3.21`, blocked on the interpreter value-constraint mirror), and the quantified-verb rule (only `(*ACCEPT)` quantifies) remains contract-owned (`.3.20`).
 
 ## Release 1.1.82 / Contract 1.1.84 Highlights — REGEX-0088: quantified anchors now reject PCRE2-faithfully (incl. the escape anchors); the check is grammar-encoded
 

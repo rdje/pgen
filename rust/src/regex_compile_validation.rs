@@ -422,10 +422,11 @@ fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationErro
                     cursor += 1;
                 }
 
-                let Some(delimiter) = bytes.get(cursor).copied() else {
+                if bytes.get(cursor).is_none() {
+                    // Unterminated `(*` construct — nothing further to check here.
                     index += 1;
                     continue;
-                };
+                }
                 let name = std::str::from_utf8(&bytes[name_start..cursor]).ok()?;
 
                 if is_non_verb_star_group_name(name) {
@@ -434,12 +435,10 @@ fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationErro
                 }
 
                 if name.is_empty() {
-                    if delimiter != b':' || bytes.get(cursor + 1) == Some(&b')') {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "MARK shorthand verb requires a non-empty argument",
-                        ));
-                    }
+                    // REGEX-PCRE2-FIDELITY.3.14: the MARK-shorthand non-empty-argument rule is
+                    // grammar-owned now (`directive_mark_shorthand` requires a payload char), so
+                    // only grammar-accepted `(*:payload)` forms reach this validator; the
+                    // quantified-verb rule stays here until `.3.20`/capstone `.4`.
                     if let Some(group_end) = find_star_verb_end(bytes, index) {
                         if quantifier_starts_at(bytes, group_end + 1).is_some() {
                             return Some(RegexCompileValidationError::new(
@@ -453,27 +452,14 @@ fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationErro
                 }
 
                 if is_pcre2_start_option_name(name) {
-                    if delimiter == b'=' {
-                        let value_start = cursor + 1;
-                        let mut value_end = value_start;
-                        while bytes
-                            .get(value_end)
-                            .is_some_and(|byte| byte.is_ascii_digit())
-                        {
-                            value_end += 1;
-                        }
-                        if value_end == value_start || bytes.get(value_end) != Some(&b')') {
-                            return Some(RegexCompileValidationError::new(
-                                index,
-                                "PCRE2 start option with '=' requires a numeric value",
-                            ));
-                        }
-                    } else if delimiter != b')' {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "PCRE2 start option does not accept this delimiter",
-                        ));
-                    } else if !is_start_option_position(bytes, index) {
+                    // REGEX-PCRE2-FIDELITY.3.14: the argument-shape rules (bare-only options,
+                    // `=digits`-required LIMIT_* forms) are grammar-owned now
+                    // (`directive_option_named` / `directive_limit_named`). The POSITION rule is
+                    // contextual (start options must form the pattern's `(*...)` prefix) and
+                    // stays validator-owned until capstone `.4`; it now covers `=`-value forms
+                    // too — the pre-`.3.14` check skipped them, so `a(*LIMIT_HEAP=500)` was
+                    // wrongly accepted (PCRE2 10.47 rejects, err 160 — ledger REGEX-0090).
+                    if !is_start_option_position(bytes, index) {
                         return Some(RegexCompileValidationError::new(
                             index,
                             "PCRE2 start option must appear at the start-option prefix",
@@ -485,21 +471,11 @@ fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationErro
                     }
                 }
 
-                if let Some(argument_rule) = pcre2_verb_argument_rule(name) {
-                    if delimiter != b':' && delimiter != b')' {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "PCRE2 verb is malformed",
-                        ));
-                    }
-                    if argument_rule == VerbArgumentRule::Required
-                        && (delimiter != b':' || bytes.get(cursor + 1) == Some(&b')'))
-                    {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "MARK verb requires a non-empty argument",
-                        ));
-                    }
+                if is_pcre2_verb_name(name) {
+                    // REGEX-PCRE2-FIDELITY.3.14: the verb argument-shape rules (`:`-suffix only,
+                    // MARK requires a non-empty argument) are grammar-owned now
+                    // (`directive_mark_named` / `directive_verb_named`); only the
+                    // quantified-verb rule remains here until `.3.20`/capstone `.4`.
                     if let Some(group_end) = find_star_verb_end(bytes, index) {
                         if !matches!(name, "ACCEPT")
                             && quantifier_starts_at(bytes, group_end + 1).is_some()
@@ -542,20 +518,14 @@ fn find_star_verb_end(bytes: &[u8], start: usize) -> Option<usize> {
         .map(|offset| start + 2 + offset)
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum VerbArgumentRule {
-    Optional,
-    Required,
-}
-
-fn pcre2_verb_argument_rule(name: &str) -> Option<VerbArgumentRule> {
-    match name {
-        "MARK" => Some(VerbArgumentRule::Required),
-        "ACCEPT" | "F" | "FAIL" | "COMMIT" | "PRUNE" | "SKIP" | "THEN" => {
-            Some(VerbArgumentRule::Optional)
-        }
-        _ => None,
-    }
+fn is_pcre2_verb_name(name: &str) -> bool {
+    // REGEX-PCRE2-FIDELITY.3.14: the per-verb argument-shape distinction (MARK required vs the
+    // rest optional) migrated into grammars/regex.ebnf; the validator only needs the verb-name
+    // recognition for its remaining quantified-verb rule.
+    matches!(
+        name,
+        "MARK" | "ACCEPT" | "F" | "FAIL" | "COMMIT" | "PRUNE" | "SKIP" | "THEN"
+    )
 }
 
 fn is_non_verb_star_group_name(name: &str) -> bool {
@@ -1634,7 +1604,7 @@ fn star_directive_group_end_at(bytes: &[u8], start: usize) -> Option<usize> {
         return (delimiter == b':').then(|| find_star_verb_end(bytes, start))?;
     }
 
-    if is_pcre2_start_option_name(name) || pcre2_verb_argument_rule(name).is_some() {
+    if is_pcre2_start_option_name(name) || is_pcre2_verb_name(name) {
         return find_star_verb_end(bytes, start);
     }
 
@@ -1943,21 +1913,6 @@ mod tests {
     }
 
     #[test]
-    fn rejects_invalid_pcre2_verb_shapes() {
-        // REGEX-PCRE2-FIDELITY.3.2 (PGEN-REGEX-PCRE2-0008): the validator now keeps only the
-        // STRUCTURAL verb checks (e.g. MARK requires a non-empty argument). Unrecognized verb NAMES
-        // (e.g. `(*ploo:abc)`) are rejected by the GRAMMAR's strict `directive_name` in the default
-        // (pcre2) profile — not this out-of-band validator, which the `relaxed` profile must not block.
-        // The grammar-level unrecognized-name rejection is proven at the parse layer (behaviour matrix),
-        // not here.
-        for input in ["a(*MARK)b", "abc(*MARK:)pqr", "abc(*:)pqr"] {
-            let error =
-                validate_regex_compile_contract(input).expect_err("must reject invalid verb shape");
-            assert!(error.message.contains("verb") || error.message.contains("MARK"));
-        }
-    }
-
-    #[test]
     fn rejects_quantified_non_accept_verb() {
         let error =
             validate_regex_compile_contract("a(*FAIL)+b").expect_err("must reject quantified FAIL");
@@ -1973,17 +1928,18 @@ mod tests {
     }
 
     #[test]
-    fn rejects_empty_pcre2_start_option_value() {
-        let error = validate_regex_compile_contract("(*LIMIT_MATCH=)abc")
-            .expect_err("must reject empty LIMIT_MATCH");
-        assert!(error.message.contains("numeric"));
-    }
-
-    #[test]
     fn rejects_mid_pattern_pcre2_start_option() {
-        let error =
-            validate_regex_compile_contract("a(*CR)b").expect_err("must reject mid-pattern CR");
-        assert!(error.message.contains("start-option"));
+        // REGEX-PCRE2-FIDELITY.3.14: verb/start-option argument SHAPES (`(*MARK)`, `(*:)`,
+        // `(*SKIP=)`, `(*LIMIT_MATCH=)`, bare `(*LIMIT_HEAP)`, `(*UTF=5)`, …) are grammar-owned
+        // now — proven at the parse layer by the parser_registry arg-shape pin, not here. The
+        // contextual POSITION rule stays validator-owned until capstone `.4`, and since `.3.14`
+        // it also covers `=`-value forms (ledger REGEX-0090: `a(*LIMIT_HEAP=500)` was wrongly
+        // accepted; PCRE2 10.47 rejects err 160).
+        for input in ["a(*CR)b", "a(*LIMIT_HEAP=500)", "(*FAIL)(*LIMIT_HEAP=5)a"] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("must reject mid-pattern start option");
+            assert!(error.message.contains("start-option"));
+        }
     }
 
     #[test]

@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0012 (REGEX-PCRE2-FIDELITY.3.14): verb/start-option ARGUMENT SHAPES reject PCRE2-faithfully — REGEX-0089/0090 fixed, the checks grammar-encoded, regex release 1.1.83
+
+Session #61. RELEASED regex slice (release `1.1.82`→`1.1.83`, contract `1.1.84`→`1.1.85`,
+AST-dump schema stays `1`). Encodes PCRE2's per-name-class verb/start-option ARGUMENT shapes into
+the grammar (the 3rd compile-contract migration), fixing the `REGEX-0089`/`REGEX-0090`
+accepts-invalid divergences found by this slice's own pre-encode differential matrix AND closing
+the `(*:)` + `(*SKIP=)` duality-break classes from the STIMULI-SIGNOFF hunter.
+
+- **Grammar (`grammars/regex.ebnf`):** `directive_named` split into name-class-conditional
+  branches — `directive_mark_named` (`MARK` + REQUIRED non-empty `:`-payload; the
+  `directive_mark_shorthand` `(*:name)` form likewise requires its payload, killing the `(*:)`
+  duality class), `directive_verb_named` (7 verbs + OPTIONAL `:`-payload, empty allowed),
+  `directive_limit_named` (4 `LIMIT_*` + REQUIRED `=digit+`), `directive_option_named` (21
+  bare-only options, literal `payload:[]` = the unmatched-optional byte-shape), and the
+  `@profiles:["relaxed"]` `directive_relaxed_named` catch-all guarded by an inline
+  recognized-name-at-boundary negative lookahead (strict shapes bind in BOTH profiles; extended
+  spellings like `(*LIMIT_HEAPX=5)` stay relaxed-accepted). `directive_payload_required` pairs a
+  positively-enumerated generatable core (`directive_payload_core`) with the any-char-but-`)`
+  superset — parse-identical union under longest-match; needed because the stimuli generator has
+  NO generation arm for `builtin_any_char` (mini-grammar-isolated: `( !")" builtin_any_char )+`
+  errors "Missing rule" — latent everywhere else because `*`-quantified uses generate EMPTY, which
+  is exactly how `(*:)` was ever emitted; tracked as **NEW `STIMULI-SIGNOFF.14`**).
+  `directive_payload_suffix` became relaxed-only and carries the `@profiles` gate (an ungated rule
+  referenced only from a gated rule is a permanent default-universe UNKNOWN — scratch-slot-proven).
+  The former `directive_name`/`directive_name_strict` were superseded and removed.
+- **Divergences fixed:** `REGEX-0089` — PGEN accepted `=digits` on non-LIMIT options
+  (`(*UTF=5)`, `(*CR=5)`, `(*TURKISH_CASING=5)`) and bare `(*LIMIT_HEAP)`; PCRE2 10.47 rejects all
+  (err 160). `REGEX-0090` — the validator's start-option POSITION check skipped `=`-value forms
+  (`a(*LIMIT_HEAP=500)`, `(*FAIL)(*LIMIT_HEAP=5)a` wrongly accepted); the position rule stays
+  validator-owned (contextual — the `.3.14` honest bound) but now covers all forms.
+- **Validator (`regex_compile_validation.rs`):** the MARK-shorthand/MARK-required/verb-`=`/
+  option-shape branches DELETED (grammar-owned); `pcre2_verb_argument_rule` reduced to
+  `is_pcre2_verb_name`; the quantified-verb rule KEPT (spun to `.3.20` — the post-fix hunter then
+  OBSERVED it at seed 42: `(*F)+`). LIMIT value RANGE (overflow) spun to `.3.21` (blocked on the
+  `13.2` interpreter value-constraint mirror, like `.3.16`).
+- **Verification:** 96-pattern oracle matrix — EXACTLY the 6 divergence flips, zero collateral;
+  30/30 still-accepted ASTs byte-identical; regex cert `210/210 UNKNOWN=0 fully_certified spf=0`
+  seeds 0/7/42 (a mid-slice 5-UNKNOWN regression was toolbox-root-caused to the two generator
+  findings above and fixed in-grammar); lint 0 errors / 0 profile-orphans; lib suites **879/837/761**
+  all green; equivalence (regex stays differential-CERTIFIED) + dual-run + pcre2-oracle +
+  broader-corpus + both book gates ✅; svpp cross-guard 74/74 ×3 unchanged; hunter re-run 0/7/42:
+  both target signatures GONE (rejections 4/1/1 → 1/1/2 per 100; residuals = the tracked
+  `.3.15`/`.3.20`/position classes); clippy source-strict clean.
+- **Lockstep:** ledger rows + embedding consts + contract JSON/md (Identity + 1.1.83/1.1.85
+  Highlights) + regex book (changelog, `rules-misc.md` directive section rewritten to the
+  per-class truth, `json-carrier.md` inventory) + top book (`parser-families.md`,
+  `stimuli-and-quality.md`) + ast_shape_contract manifest (12-entry diff) + task trees/index.
+
 ## 2026-07-07 - PGEN-REGEX-PCRE2-0011 (REGEX-PCRE2-FIDELITY.3.13): quantified anchors reject PCRE2-faithfully — REGEX-0088 fixed, the check grammar-encoded, regex release 1.1.82
 
 Session #60. RELEASED regex slice (release `1.1.81`→`1.1.82`, contract `1.1.83`→`1.1.84`,

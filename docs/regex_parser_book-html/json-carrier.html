@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f0ecf901.js";
+            window.path_to_searchindex_js = "searchindex-a1626cb8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -320,12 +320,22 @@
 <tr><td><code>callout_hash_string</code></td><td><code>-&gt; {quote:"hash", payload:$2}</code></td><td>Same shape; <code>quote:"hash"</code>.</td></tr>
 <tr><td><code>callout_dollar_string</code></td><td><code>-&gt; {quote:"dollar", payload:$2}</code></td><td>Same shape; <code>quote:"dollar"</code>.</td></tr>
 <tr><td><code>callout_brace_string</code></td><td><code>-&gt; {quote:"brace", payload:$2}</code></td><td>Same shape; <code>quote:"brace"</code>. Asymmetric delimiters (<code>{</code> opening, <code>}</code> closing) — the <code>"brace"</code> label captures both.</td></tr>
-<tr><td><code>directive_named</code></td><td><code>-&gt; {kind:"named", name:$1, payload:$2}</code></td><td>Object. <code>name</code> is a clean string (after slice 34’s regex-literal rewrite of <code>directive_name</code>); <code>payload</code> is raw <code>directive_payload_suffix?</code> shape.</td></tr>
-<tr><td><code>directive_mark_shorthand</code></td><td><code>-&gt; {kind:"mark_shorthand", payload:$2}</code></td><td>Object. <code>payload</code> is raw <code>directive_payload_simple?</code> shape.</td></tr>
-<tr><td><code>directive_name</code></td><td>regex literal <code>/([A-Za-z][A-Za-z0-9_\-]*)/</code></td><td>Terminal of the matched verb name (was <code>directive_name_start directive_name_continue*</code> chain).</td></tr>
-<tr><td><code>directive_payload_suffix</code> (branch 0, <code>:</code>)</td><td><code>-&gt; {separator:":", value:$2}</code></td><td>Object. <code>value</code> is <code>directive_payload_simple</code> (clean string after slice 35 regex-literal rewrite); <code>[]</code> when un-matched.</td></tr>
-<tr><td><code>directive_payload_suffix</code> (branch 1, <code>=</code>)</td><td><code>-&gt; {separator:"=", value:$2}</code></td><td>Same shape, <code>separator:"="</code>.</td></tr>
-<tr><td><code>directive_payload_simple</code></td><td>regex literal <code>/([^)]*)/</code></td><td>Terminal of the payload body (any char except <code>)</code> — matches the verb-closing). Was <code>directive_payload_char*</code> chain.</td></tr>
+<tr><td><code>directive_mark_named</code></td><td><code>-&gt; {kind:"named", name:$1, payload:$2}</code></td><td>Object (release 1.1.83, <code>.3.14</code>: <code>directive_named</code> split into per-name-class branches; the <code>{kind:"named", name, payload}</code> carrier is unchanged). <code>name</code> = <code>"MARK"</code>; <code>payload</code> = required <code>{separator:":", value}</code>.</td></tr>
+<tr><td><code>directive_verb_named</code></td><td><code>-&gt; {kind:"named", name:$1, payload:$2}</code></td><td>Same carrier. <code>name</code> ∈ the 7 verbs; <code>payload</code> = optional <code>directive_payload_colon</code> (<code>[]</code> when absent).</td></tr>
+<tr><td><code>directive_limit_named</code></td><td><code>-&gt; {kind:"named", name:$1, payload:$2}</code></td><td>Same carrier. <code>name</code> ∈ the 4 <code>LIMIT_*</code> options; <code>payload</code> = required <code>{separator:"=", value:&lt;digits string&gt;}</code>.</td></tr>
+<tr><td><code>directive_option_named</code></td><td><code>-&gt; {kind:"named", name:$1, payload:[]}</code></td><td>Same carrier. Bare-only start options; the literal <code>[]</code> payload matches the unmatched-optional byte-shape.</td></tr>
+<tr><td><code>directive_relaxed_named</code> (<code>relaxed</code> profile)</td><td><code>-&gt; {kind:"named", name:$2, payload:$3}</code></td><td>Same carrier ($1 is the recognized-name exclusion guard, a negative lookahead). <code>name</code> from <code>directive_name_relaxed</code>; <code>payload</code> = raw <code>directive_payload_suffix?</code> shape.</td></tr>
+<tr><td><code>directive_mark_shorthand</code></td><td><code>-&gt; {kind:"mark_shorthand", payload:$2}</code></td><td>Object. <code>payload</code> is a required non-empty clean string since <code>.3.14</code> (<code>(*:)</code> now rejects).</td></tr>
+<tr><td><code>directive_name_relaxed</code> (<code>relaxed</code> profile)</td><td><code>-&gt; $text</code></td><td>Terminal of the matched name (<code>[A-Za-z][A-Za-z0-9_-]*</code>). The former <code>directive_name</code> dispatch / <code>directive_name_strict</code> enumeration were superseded by the per-class name rules (<code>directive_verb_name</code> / <code>directive_limit_name</code> / <code>directive_option_name</code>, all passthrough).</td></tr>
+<tr><td><code>directive_payload_colon_required</code></td><td><code>-&gt; {separator:":", value:$2}</code></td><td>Object; <code>value</code> is the required non-empty payload string (MARK forms).</td></tr>
+<tr><td><code>directive_payload_colon</code></td><td><code>-&gt; {separator:":", value:$2}</code></td><td>Object; <code>value</code> a possibly-empty payload string (<code>(*PRUNE:)</code> gives <code>""</code>).</td></tr>
+<tr><td><code>directive_payload_equals</code></td><td><code>-&gt; {separator:"=", value:$2}</code></td><td>Object; <code>value</code> the digits string (<code>(*LIMIT_HEAP=500)</code> gives <code>"500"</code>).</td></tr>
+<tr><td><code>directive_payload_digits</code></td><td><code>-&gt; $text</code></td><td>Terminal of the digit run.</td></tr>
+<tr><td><code>directive_payload_required</code></td><td>branch 2 <code>-&gt; $text</code> (branch 1 passes <code>directive_payload_core</code> through)</td><td>Clean payload string either way; the generatable-core/superset split is generation-only (see the rules chapter).</td></tr>
+<tr><td><code>directive_payload_core</code></td><td><code>-&gt; $text</code></td><td>Terminal of the <code>letter/digit/_</code> run.</td></tr>
+<tr><td><code>directive_payload_suffix</code> (branch 0, <code>:</code>) (<code>relaxed</code> profile)</td><td><code>-&gt; {separator:":", value:$2}</code></td><td>Object. Relaxed-only since <code>.3.14</code> (reachable solely through <code>directive_relaxed_named</code>); <code>value</code> is <code>directive_payload_simple</code> (clean string); <code>[]</code> when un-matched.</td></tr>
+<tr><td><code>directive_payload_suffix</code> (branch 1, <code>=</code>) (<code>relaxed</code> profile)</td><td><code>-&gt; {separator:"=", value:$2}</code></td><td>Same shape, <code>separator:"="</code>.</td></tr>
+<tr><td><code>directive_payload_simple</code></td><td><code>-&gt; $text</code></td><td>Terminal of the payload body (any char except the verb-closing <code>)</code>).</td></tr>
 <tr><td><code>condition_assertion</code> (branch 0, <code>?=</code>)</td><td><code>-&gt; {kind:"lookahead", positive:true, body:$2}</code></td><td>Object. Surfaces inside <code>conditional.condition</code>.</td></tr>
 <tr><td><code>condition_assertion</code> (branch 1, <code>?!</code>)</td><td><code>-&gt; {kind:"lookahead", positive:false, body:$2}</code></td><td>Same kind, <code>positive:false</code>.</td></tr>
 <tr><td><code>condition_assertion</code> (branch 2, <code>?&lt;=</code>)</td><td><code>-&gt; {kind:"lookbehind", positive:true, body:$2}</code></td><td>Object.</td></tr>

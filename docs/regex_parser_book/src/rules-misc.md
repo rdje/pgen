@@ -173,7 +173,7 @@ recursion_condition = "R" digits?
 directive_verb = "(*" directive_body ")"
 ```
 
-3-element Sequence: `["(*", <body>, ")"]`.
+Emits `{type:"atom", kind:"directive_verb", body:<directive_body>}`.
 
 ### `directive_body`
 
@@ -181,96 +181,102 @@ directive_verb = "(*" directive_body ")"
 directive_body = directive_named | directive_mark_shorthand
 ```
 
-2-way Or.
+2-way Or (both branches pass their object through).
 
-### `directive_named`
-
-```ebnf
-directive_named = directive_name directive_payload_suffix?
-```
-
-2-element Sequence.
-
-### `directive_name`
+### `directive_named` — name-class-conditional argument shapes
 
 ```ebnf
-directive_name = directive_name_strict | directive_name_relaxed
+directive_named = directive_mark_named
+                | directive_verb_named
+                | directive_limit_named
+                | directive_option_named
+                | directive_relaxed_named
 ```
 
-**REGEX-PCRE2-FIDELITY.3.2 — verb-name profile gating.** The default (`pcre2`) profile accepts ONLY the
-recognized PCRE2 verb + start-option names (the EBNF now owns verb-name acceptance; the unrecognized-name
-rejection moved out of the host validator). `directive_name_strict` is an ordered choice of exactly those
-names — the 8 verbs (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and 26 start-options (`UTF UTF8 UTF16
-UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT
-CASELESS_RESTRICT TURKISH_CASING LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION CR LF CRLF ANY NUL
-ANYCRLF BSR_ANYCRLF BSR_UNICODE`), ordered longest-first for prefix overlaps. It is **case-sensitive**
-(PCRE2 rejects `(*accept)`/`(*Skip)`). The `@profiles: ["relaxed"]` variant `directive_name_relaxed`
-re-admits any `[A-Za-z][A-Za-z0-9_-]*` name.
+**REGEX-PCRE2-FIDELITY.3.14 (release 1.1.83) — the EBNF now owns PCRE2's per-name-class ARGUMENT
+shapes** (they previously lived in the host compile-contract; `.3.2` had already moved NAME
+acceptance in). Every branch emits the same released carrier `{kind:"named", name:<string>,
+payload:<payload>}`, so previously-accepted patterns are byte-identical. The classes, each pinned
+against `pcre2test` 10.47:
+
+| Branch | Names | Argument shape | Oracle boundary |
+|---|---|---|---|
+| `directive_mark_named` | `MARK` | `:`-payload **required non-empty** | `(*MARK:x)` ACCEPT; `(*MARK)` / `(*MARK:)` REJECT (err 166); `(*MARK=x)` REJECT (err 160) |
+| `directive_verb_named` | `FAIL F ACCEPT COMMIT PRUNE SKIP THEN` | optional `:`-payload, empty allowed | `(*PRUNE)` / `(*PRUNE:)` / `(*PRUNE:x)` ACCEPT; `(*PRUNE=x)` / `(*SKIP=)` REJECT (err 160) |
+| `directive_limit_named` | `LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION` | `=digits` **required** | `(*LIMIT_HEAP=500)` ACCEPT; bare `(*LIMIT_HEAP)`, `(*LIMIT_HEAP=)`, `(*LIMIT_HEAP=abc)`, `(*LIMIT_HEAP:5)` REJECT (err 160) |
+| `directive_option_named` | the other 21 start options (`UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE`) | **bare only** | `(*UTF)` ACCEPT; `(*UTF:x)` / `(*UTF=5)` / `(*CR=5)` / `(*TURKISH_CASING=5)` REJECT (err 160) |
+| `directive_relaxed_named` (`@profiles: ["relaxed"]`) | any **unrecognized** `[A-Za-z][A-Za-z0-9_-]*` name | any suffix (`:`/`=`/bare) | relaxed-profile catch-all; see below |
+
+Name matching is **case-sensitive** (PCRE2 rejects `(*accept)`/`(*Skip)`); the name lists stay
+ordered longest-first for prefix overlaps (`FAIL`>`F`, `UTF32/16/8`>`UTF`, …). This release fixed
+two real accepts-invalid divergences the old validator missed (ledger **REGEX-0089**): PGEN
+accepted `=digits` on non-LIMIT options (`(*UTF=5)`) and accepted bare `(*LIMIT_HEAP)` — PCRE2
+rejects both (err 160).
+
+The relaxed catch-all carries an inline negative lookahead excluding every RECOGNIZED name at a
+name boundary (`:`/`=`/`)`), so the strict shapes above stay authoritative in **both** profiles
+(`(*MARK)` rejects under `relaxed` too), while extended spellings (`(*LIMIT_HEAPX=5)`, `(*SKIPX)`)
+still reach the catch-all under `relaxed`.
 
 | Pattern | default (`pcre2`) | `relaxed` |
 |---|---|---|
-| `(*ACCEPT)` `(*FAIL)` `(*MARK:x)` `(*UTF)` `(*LIMIT_MATCH=100)` | ACCEPT | ACCEPT |
-| `(*FOO)` `(*BAR:x)` `(*MARKX)` `(*accept)` (unrecognized / wrong case) | REJECT | ACCEPT |
-| `(*MARK)` (no arg), `a(*UTF)` (start-option not at start) | REJECT | REJECT (structural checks retained) |
+| `(*ACCEPT)` `(*FAIL:x)` `(*MARK:x)` `(*:x)` `(*UTF)` `(*LIMIT_MATCH=100)` | ACCEPT | ACCEPT |
+| `(*FOO)` `(*BAR:x)` `(*FOO=x)` `(*MARKX)` `(*accept)` (unrecognized / wrong case) | REJECT | ACCEPT |
+| `(*:)` `(*MARK)` `(*MARK:)` `(*SKIP=)` `(*UTF=5)` `(*LIMIT_HEAP)` (invalid shapes) | REJECT | REJECT |
 
-The structural verb checks PCRE2 enforces beyond the name (MARK requires a non-empty argument;
-start-options must appear at the pattern start; `=value` must be numeric; only `ACCEPT` may be quantified)
-remain in the host compile-contract for now and apply in **both** profiles. `directive_name` has no return
-annotation (passthrough) so `directive_named`'s `name` field shape is unchanged.
+Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
+start-option **position** rule (`a(*UTF)` and `a(*LIMIT_HEAP=500)` reject — the `=`-form position
+hole was also fixed this release, ledger **REGEX-0090**), the LIMIT value **range** (overflow
+values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror), and the
+quantified-verb rule (only `(*ACCEPT)` may take a quantifier).
 
-Both variants emit the matched name as text — `directive_name_relaxed` is a 2-element Sequence
-`[<first-char>, <Quantified of remaining chars>]`; `directive_name_strict` is the matched keyword Terminal.
-
-### `directive_payload_suffix`
+### `directive_mark_shorthand`
 
 ```ebnf
-directive_payload_suffix = ":" directive_payload_simple?
-                         | "=" directive_payload_simple?
+directive_mark_shorthand = ":" directive_payload_required
 ```
 
-2-way Or.
+The `(*:name)` MARK shorthand — emits `{kind:"mark_shorthand", payload:<string>}`. Since `.3.14`
+the payload is **required non-empty** (`(*:)` rejects, PCRE2 err 166 — this closed the
+STIMULI-SIGNOFF duality-break class where the generator emitted `(*:)`).
 
-### `directive_payload_simple`
+### Payload rules
 
 ```ebnf
-directive_payload_simple = directive_payload_char*
+directive_payload_colon_required = ":" directive_payload_required   -> {separator: ":", value: $2}
+directive_payload_colon  = ":" directive_payload_simple?            -> {separator: ":", value: $2}
+directive_payload_equals = "=" directive_payload_digits             -> {separator: "=", value: $2}
+directive_payload_digits = digit+ -> $text
+directive_payload_required = directive_payload_core
+                           | ( !")" builtin_any_char )+ -> $text
+directive_payload_core = ( letter | digit | '_' )+ -> $text
+directive_payload_simple = ( !")" builtin_any_char )* -> $text
 ```
 
-Quantified-`*` of payload chars.
+All payload values are clean strings; the suffix objects are `{separator:":"|"=",
+value:<string>}` — unchanged from the released carrier. `directive_payload_required` pairs a
+positively-enumerated generatable core with PCRE2's full any-char-but-`)` superset; parsing is
+identical to the plain superset (the longest-match tournament keeps the union exact) — the split
+exists purely so stimuli generation, which has no native `builtin_any_char` emitter (tracked as
+`STIMULI-SIGNOFF.14`), can emit required payloads.
 
-### `directive_payload_char`
-
-```ebnf
-directive_payload_char = /([^)])/
-```
-
-Single-character regex matching anything except `)`. Emits `Terminal(<char>)`.
+`directive_payload_suffix` (`":"|"=" directive_payload_simple?` per branch) is now the
+relaxed-only any-shape suffix reachable solely through `directive_relaxed_named`, and carries the
+same `@profiles: ["relaxed"]` gate.
 
 For `(*UTF8)`:
 
 ```json
-"atom": [
-  "(*",
-  [
-    [<directive_name for "UTF8">],
-    []   // no payload suffix
-  ],
-  ")"
-]
+"atom": {
+  "type": "atom",
+  "kind": "directive_verb",
+  "body": { "kind": "named", "name": "UTF8", "payload": [] }
+}
 ```
 
-For `(*MARK:label)`:
-
-```json
-"atom": [
-  "(*",
-  [
-    [<directive_name for "MARK">],
-    [":", [<chars: l,a,b,e,l>]]
-  ],
-  ")"
-]
-```
+For `(*LIMIT_HEAP=500)` the payload is `{"separator": "=", "value": "500"}`; for `(*MARK:x)` it is
+`{"separator": ":", "value": "x"}`; for `(*:x)` the body is `{"kind": "mark_shorthand",
+"payload": "x"}`.
 
 ## `extended_class`
 

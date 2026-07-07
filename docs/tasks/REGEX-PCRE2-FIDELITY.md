@@ -265,13 +265,54 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - [x] **ADDRESSED (verified)** — verdict matrix pre→post: EXACTLY the 8 target flips (`\A*` `\A{2}` `\b*` `\B?` `\G+` `\z*` `\Z*` `\K*` ACCEPT→REJECT), zero collateral changes across the 49-pattern matrix; `$*`/`^*`/`${2}` now reject at the GRAMMAR layer (`Parser did not consume full input`, not the contract message); hunter re-run seeds 0/7/42: the quantified-anchor signature GONE (directed rejections 6/7/11 → 4/1/1 per 100; residual classes = the `.3.14`/`.3.15`/`.3.17` classes + the predicted latent start-option-position class, exactly per the design); new full-stack pin green.
 - [x] **NO REGRESSION** — 34/34 still-accepted matrix samples' ASTs cmp BYTE-IDENTICAL pre/post (anchors, groups, quoted-runs, escapes, POSIX aliases, `${`); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=200 proof=0 witness=200 UNKNOWN=0 fully_certified=true (sample_parse_failures=0 …)` at seeds 0/7/42, byte-identical re-runs (total 198→200 = the 2 net new rules, both witnessed); `--lint-grammar` 0 errors / 0 profile-orphans (200 rules); lib suites dual **880/0** (+1 pin), `generated_parsers` **838/0**, no-features **763/0**; `parse_harness_equivalence_gate` ✅ (regex stays differential-CERTIFIED); `ebnf_frontend_dual_run_gate` ✅; `regex_pcre2_compile_oracle_gate` ✅; `regex_broader_corpus_proof_gate` ✅ (0 parse failures); svpp cross-guard cert unchanged (`total=74 witness=74 UNKNOWN=0 fully_certified=true spf=0`); clippy source-strict clean.
 - [x] **LOCKSTEP** — ledger `REGEX-0088` row (drift-gate authoritative Fixed-in pair) + embedding consts + tracked contract JSON bumped to 1.1.82/1.1.84; integration contract Identity + "Release 1.1.82 / Contract 1.1.84 Highlights — REGEX-0088"; regex book: changelog entry, anchors-chapter "Quantified anchors reject" section, piece/atom/escape chapters updated, tracked HTML regenerated; top-book `parser-families.md` handoff pair + `stimuli-and-quality.md` closure-progress note; ast_shape_contract manifest inventory synced; latent `\E*`/`\Q\E*` spun out to `.3.19`.
-- ID: `.3.14`  Status: `pending` (EVIDENCED `-0015`, same source)  Goal: encode row 6's STRUCTURAL residual
+- ID: `.3.14`  Status: **`done`** (`PGEN-REGEX-PCRE2-0012`, 2026-07-08 session #61; regex release
+  `1.1.82`→**`1.1.83`**, contract `1.1.84`→**`1.1.85`**, AST-dump schema stays `1`, ledger **`REGEX-0089`**
+  + **`REGEX-0090`**; EVIDENCED `-0015`)
+  Goal: encode row 6's STRUCTURAL residual
   (names were `.3.2`): name-class-conditional directive shapes — MARK-shorthand payload REQUIRED non-empty
   (`(*:)` rejects, err 166); verbs (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) take `:`-suffix only
   (`(*SKIP=)`/`(*PRUNE=)` reject, err 160; `(*PRUNE:)` stays accepted — oracle-verified); `=`-suffix only for
   the numeric-value start options (digits payload). Honest bounds: the start-option POSITION check (`a(*UTF)`)
   is contextual — stays in the validator until the capstone finds a shape; quantified-verb (`(*:x)+` rejects,
   `(*ACCEPT)+` accepts) adjudicated during design. Migrate the matched validator branches same-slice.
+  Verification: `done — full evidence in the Acceptance Checklist below. LANDED: (1) directive_named split
+  into name-class-conditional branches (directive_mark_named "MARK"+required :-payload / directive_verb_named
+  7 verbs+optional :-payload / directive_limit_named 4 LIMIT_*+required =digit+ / directive_option_named 21
+  bare-only options with literal payload:[] / @profiles:["relaxed"] directive_relaxed_named with an INLINE
+  recognized-name-at-boundary negative lookahead so strict shapes bind in BOTH profiles — inlined over the
+  positively-witnessed name rules on purpose: a helper referenced only under a negative lookahead can never
+  be coverage-witnessed); directive_mark_shorthand requires the payload (the duality-class kill). (2) The
+  ORACLE MATRIX (96 patterns, pcre2test 10.47) found and this slice FIXED 3 real accepts-invalid divergence
+  spellings beyond the migration set: =digits on non-LIMIT options ((*UTF=5)/(*CR=5)/(*TURKISH_CASING=5)) +
+  bare (*LIMIT_HEAP) [REGEX-0089, grammar-encoded] and mid-pattern =-form options a(*LIMIT_HEAP=500) /
+  (*FAIL)(*LIMIT_HEAP=5)a [REGEX-0090 — the validator position check ran only in the bare-')' else-branch;
+  now unconditional for recognized option names; position stays validator-owned per the honest bound]. (3)
+  Validator migration: MARK-shorthand/MARK-required/verb-'='/option-shape branches DELETED;
+  pcre2_verb_argument_rule → is_pcre2_verb_name; quantified-verb checks KEPT (→ .3.20). (4) CERT REGRESSION
+  root-caused TOOLS-FIRST and fixed in-slice: 4 UNKNOWNs = the stimuli generator has NO generation arm for
+  builtin_any_char (mini-grammar isolation: ( !")" builtin_any_char )+ errors "Missing rule"; latent because
+  every prior use sat under * where EMPTY generation sufficed — exactly how (*:) was ever emitted) → fix =
+  directive_payload_required pairs a positively-enumerated generatable core (directive_payload_core) with the
+  superset branch (parse-identical union under longest_match; engine debt → NEW STIMULI-SIGNOFF.14); 1
+  UNKNOWN (directive_payload_suffix "NO reach path") = an UNGATED rule referenced only from a PROFILE-GATED
+  rule stays in the default cert universe with no reach path (scratch-slot V6 reproduction; the gated parent
+  itself is excluded — the 210=200+11-1 arithmetic) → fix = @profiles:["relaxed"] on directive_payload_suffix
+  (the directive_name_relaxed precedent; it IS relaxed-only now). (5) In-slice adjudications: quantified-verb
+  encoding SPUN to .3.20 (different mechanism — piece-level quantifiability — + needs a relaxed-semantics
+  decision; hunter then OBSERVED it at seed 42: (*F)+); LIMIT value RANGE spun to .3.21 (oracle: overflow
+  rejects err 160; value-constraint class blocked on 13.2 like .3.16). New full-stack pin
+  regex_verb_argument_shapes_reject_at_the_grammar_layer_pcre2_faithfully (25 rejects / 37 accepts /
+  both-profile tightening / relaxed unrecognized-name regression). Manifest inventory re-derived (12-entry
+  diff: directive_named out, 11 per-class entries in).`
+  Commit: `PGEN-REGEX-PCRE2-0012`
+
+### REGEX-PCRE2-FIDELITY.3.14 — Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — duality classes: the `.13.1` hunter emitted `DUALITY-BREAK: signature="MARK shorthand verb requires a non-empty argument" … shrunk_reproducer="(*:)"` (seeds 0/7/42) and `signature="PCRE2 verb is malformed" … shrunk_reproducer="(*PRUNE=)"` (seed 7). Divergences: pre-change probe matrix vs `pcre2test` 10.47 — `printf '(*UTF=5)' | parseability_probe --parse regex` → ACCEPT / PCRE2 err 160; same for `(*CR=5)` `(*TURKISH_CASING=5)` `(*LIMIT_HEAP)` `a(*LIMIT_HEAP=500)` `(*FAIL)(*LIMIT_HEAP=5)a`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `directive_mark_shorthand = ":" directive_payload_simple?` (payload OPTIONAL) + `directive_payload_suffix` attaching `:`/`=` to ANY `directive_name` (regex.ebnf pre-change :1143-1149) structurally admit every arg shape; the PCRE2 per-name-class rules lived OUT-OF-BAND in `find_invalid_verb_construct` (regex_compile_validation.rs :436-514), invisible to generation ([[project_ebnf_is_single_source_of_truth]]). WHERE the divergences: the validator's start-option arm accepted `=<digits>)` for EVERY option name and bare `)` unconditionally (no LIMIT-vs-plain distinction, :455-470) — REGEX-0089; and its POSITION check sat in the bare-`)` `else`-branch so `=`-forms skipped it (:456 vs :476) — REGEX-0090. Cert-regression root causes: `Error: Missing rule 'builtin_any_char'` (mini-grammar `( !")" builtin_any_char )+` isolation; zero generation arms in stimuli_generator.rs vs the native matcher at ast_based_generator.rs:1022) and the scratch-slot V6 reproduction of the gated-parent/ungated-child cert-universe signature (`name_part`/`suffix_part` UNKNOWN "NO reach path" exactly mirroring `directive_payload_suffix`).
+- [x] **FIX** — fix-hierarchy GRAMMAR tier (no engine change): name-class-conditional `directive_named` branches + required/equals/bare payload rules + the guarded relaxed catch-all + `directive_payload_core` generatable-core pairing + `@profiles` gate on the now-relaxed-only `directive_payload_suffix`; validator shape-branches deleted same-slice (the `.3.2`/`.3.13` precedent), position check made unconditional (REGEX-0090, validator-owned per the honest bound).
+- [x] **ADDRESSED (verified)** — verdict matrix pre→post over 96 oracle-pinned patterns: EXACTLY the 6 divergence flips (`(*UTF=5)` `(*CR=5)` `(*TURKISH_CASING=5)` `(*LIMIT_HEAP)` `a(*LIMIT_HEAP=500)` `(*FAIL)(*LIMIT_HEAP=5)a` ACCEPT→REJECT), zero collateral changes; `(*:)`/`(*MARK)`/`(*SKIP=)`-class forms now reject at the GRAMMAR layer; hunter re-run seeds 0/7/42: BOTH `.3.14` signatures GONE (directed rejections 4/1/1 → **1/1/2** per 100; residuals = the tracked `.3.15` `[\E]`, `.3.20` `(*F)+` — now OBSERVED — and the position class, exactly per the design); relaxed-profile matrix: parity preserved (invalid recognized-name shapes reject in relaxed too; `(*FOO)`/`(*FOO=x)`/`(*SKIPX)`/`(*LIMIT_HEAPX=5)` stay relaxed-accepted); new full-stack pin green in-suite.
+- [x] **NO REGRESSION** — 30/30 still-accepted directive/verb matrix ASTs cmp BYTE-IDENTICAL pre/post (`--parse-dump-ast-pretty`); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=210 proof=0 witness=210 UNKNOWN=0 fully_certified=true (sample_parse_failures=0 …)` at seeds 0/7/42 (total 200→210 = the 11 net-new rules witnessed, `directive_relaxed_named` profile-excluded by construction); `--lint-grammar` 0 errors / 0 profile-orphans (210 rules); lib suites dual **879/0** (= 880 − 2 migrated validator tests + 1 pin), `generated_parsers` **837/0**, no-features **761/0**; `parse_harness_equivalence_gate` ✅ (regex stays differential-CERTIFIED); `ebnf_frontend_dual_run_gate` ✅; `regex_pcre2_compile_oracle_gate` ✅; `regex_broader_corpus_proof_gate` ✅; svpp cross-guard cert `total=74 witness=74 UNKNOWN=0 fully_certified=true spf=0` ×3 seeds unchanged; `mdbook_docs_gate` + `regex_parser_book_gate` ✅; clippy source-strict clean (generated stage = the known pre-existing 178 `eq_op` debt, non-strict by design).
+- [x] **LOCKSTEP** — ledger `REGEX-0089`+`REGEX-0090` rows (drift-gate authoritative Fixed-in pair) + embedding consts + tracked contract JSON bumped to 1.1.83/1.1.85; integration contract Identity + "Release 1.1.83 / Contract 1.1.85 Highlights — REGEX-0089/0090" + a supersession pointer on the `.3.2` historical note; regex book: changelog entry, `rules-misc.md` directive section REWRITTEN to the current per-class truth (also purging the stale pre-typed `directive_payload_char` era text), `json-carrier.md` inventory rows re-derived, tracked HTML regenerated; top book `parser-families.md` handoff pair + `stimuli-and-quality.md` closure-progress note (incl. the STIMULI-SIGNOFF.14 finding); ast_shape_contract manifest inventory synced (12-entry diff); new leaves `.3.20`/`.3.21` + `STIMULI-SIGNOFF.14` recorded; `docs/TASK_TREE.md` index updated.
 - ID: `.3.15`  Status: `pending` (EVIDENCED `-0015`)  Goal: encode row 7's residual (empty-`[]` was `.3.7(a)`):
   class-member VISIBILITY — `stray_class_end_quote` (`\E`), empty `quoted_class_literal` (`\Q\E`) and
   `empty_quoted_class_literal` are PCRE2-INVISIBLE members; the non-empty-class requirement must count only
@@ -297,6 +338,26 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   duality hunter can NEVER surface these — only oracle-differential coverage can; candidate encode =
   the stray-`\E`/empty-`\Q\E` atoms joining the anchor treatment (non-quantifiable piece forms). Distinct
   from `.3.13`'s anchor-rule scope; spun out to keep that slice bounded.
+- ID: `.3.20`  Status: `pending` (spun out of `.3.14`'s in-slice adjudication, 2026-07-08; oracle matrix
+  already pinned; NO LONGER latent-only — the post-`.3.14` hunter re-run OBSERVED it at seed 42:
+  `DUALITY-BREAK: signature="only ACCEPT verb may be quantified…" shrunk_reproducer="(*F)+"`)
+  Goal: QUANTIFIED-VERB encoding — only `(*ACCEPT)` may take a quantifier (oracle
+  `pcre2test` 10.47: `(*ACCEPT)+` AND `(*ACCEPT:x)+` ACCEPT; `(*:x)+` `(*PRUNE)+` `(*FAIL)*` `(*MARK:x)+`
+  all err 109). Candidate mechanism = the `.3.13` piece-level split (non-ACCEPT `directive_verb` forms get
+  a `!quantifier` piece branch; the ACCEPT-named form stays quantifiable in `atom`). Adjudicated OUT of
+  `.3.14` to keep that slice bounded to arg shapes AND because it needs its own relaxed-semantics decision:
+  quantified UNKNOWN-name verbs (`(*foo)+`) are relaxed-ACCEPTED today and a piece-level `!quantifier` on
+  the relaxed catch-all would newly reject them (a relaxed-surface behavior change to adjudicate) plus the
+  lookahead-blind generation interplay. The validator's quantified-verb branches (both the empty-name and
+  named arms of `find_invalid_verb_construct`) stay until this leaf or capstone `.4`.
+- ID: `.3.21`  Status: `pending` (LATENT accepts-invalid divergence, oracle-verified 2026-07-08 during
+  `.3.14`; BLOCKED like `.3.16` on `STIMULI-SIGNOFF.13.2` — the interpreter has NO value-constraint
+  mirror)  Goal: LIMIT `=value` RANGE — PGEN accepts `(*LIMIT_HEAP=99999999999999999999)` (the `.3.14`
+  grammar requires `digit+` but bounds no value) where PCRE2 10.47 REJECTS (err 160; u32-range family).
+  Candidate encode = `@range` on `directive_payload_digits` (or a width-bounded digits shape if the
+  boundary proves digit-count-exact — pin the exact boundary with pcre2test first: `4294967295` vs
+  `4294967296`). Same class as `.3.16` (callout `@range`): parse-time value constraints must land AFTER
+  the interpreter mirror or they open a latent differential-equivalence divergence.
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
   EBNF is the sole source of truth.

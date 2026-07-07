@@ -1137,56 +1137,106 @@ directive_verb    = "(*" directive_body ")"                        -> {type: "at
 # `directive_body` per-branch: `directive_named` produces
 # `{kind:"named", name, payload}`; `directive_mark_shorthand` (the
 # `(*:foo)` shortcut) produces `{kind:"mark_shorthand", payload}`.
-# `payload` is raw (sub-rule typing of directive_payload_suffix /
-# directive_payload_simple is a separate concern).
 directive_body    = directive_named | directive_mark_shorthand
-directive_named   = directive_name directive_payload_suffix?      -> {kind: "named", name: $1, payload: $2}
-directive_mark_shorthand = ":" directive_payload_simple?          -> {kind: "mark_shorthand", payload: $2}
-# `directive_payload_suffix` per-branch typed `{separator, value}`.
-# `:` and `=` are the two PCRE2-supported separators. `value` is the
-# raw `directive_payload_simple?` shape — empty string when un-matched.
-directive_payload_suffix = ":" directive_payload_simple?              -> {separator: ":", value: $2}
-                         | "=" directive_payload_simple?              -> {separator: "=", value: $2}
-# PCRE2 default verb-name payloads run until the verb-closing ")".
-# Per-verb argument requirements such as MARK requiring a non-empty name are
-# downstream validation concerns for the stable regex_default parser profile.
-# `directive_payload_simple` rewritten from `directive_payload_char*` chain
-# to a regex literal `/([^)]*)/` — emits clean string Terminal of the payload
-# body (matches anything except the verb-closing `)`). Same pattern as
-# `comment_text` from slice 20.
+# PGEN-REGEX-PCRE2-0012 (`REGEX-PCRE2-FIDELITY.3.14`): name-class-conditional
+# argument SHAPES — the EBNF now owns PCRE2's per-name-class verb/start-option
+# argument rules, migrated out of `find_invalid_verb_construct` (oracle
+# `pcre2test` 10.47, 2026-07-07):
+#   - MARK (named or the `(*:...)` shorthand) REQUIRES a non-empty `:`-payload:
+#     `(*:)` / `(*MARK)` / `(*MARK:)` reject (err 166), `(*MARK=x)` rejects
+#     (err 160), `(*:x)` / `(*MARK:x)` accept;
+#   - the other 7 verbs take an OPTIONAL `:`-payload, empty allowed:
+#     `(*PRUNE)` / `(*PRUNE:)` / `(*PRUNE:x)` accept, `(*PRUNE=…)` /
+#     `(*SKIP=)` reject (err 160);
+#   - the 4 numeric-limit start options REQUIRE `=digits`: `(*LIMIT_HEAP=500)`
+#     accepts; bare `(*LIMIT_HEAP)`, `(*LIMIT_HEAP=)`, `(*LIMIT_HEAP=abc)`,
+#     `(*LIMIT_HEAP:5)` reject (err 160);
+#   - every other start option is BARE-only: `(*UTF)` accepts, `(*UTF:x)` /
+#     `(*UTF=5)` / `(*TURKISH_CASING=5)` reject (err 160).
+# Every branch preserves the released `{kind:"named", name, payload}` carrier
+# byte-identically — the literal `payload: []` on the bare-option branch
+# matches the unmatched-optional shape (the `.3.13` piece-branch precedent).
+# Honest bounds (stay OUT of the grammar): the start-option POSITION rule
+# (`a(*UTF)` rejects, err 160) is contextual — validator-owned until capstone
+# `.4`; the LIMIT value RANGE (`(*LIMIT_HEAP=<overflow>)` rejects, err 160) is
+# a value constraint (`@range` class) blocked on the interpreter mirror
+# (`STIMULI-SIGNOFF.13.2`); quantified-verb (`(*PRUNE)+` rejects, only
+# `(*ACCEPT)` quantifies) stays validator-owned (spun to `.3.20`).
+directive_named   = directive_mark_named
+                  | directive_verb_named
+                  | directive_limit_named
+                  | directive_option_named
+                  | directive_relaxed_named
+directive_mark_named   = "MARK" directive_payload_colon_required      -> {kind: "named", name: $1, payload: $2}
+directive_verb_named   = directive_verb_name directive_payload_colon? -> {kind: "named", name: $1, payload: $2}
+directive_limit_named  = directive_limit_name directive_payload_equals -> {kind: "named", name: $1, payload: $2}
+directive_option_named = directive_option_name                        -> {kind: "named", name: $1, payload: []}
+# The relaxed catch-all re-admits any UNRECOGNIZED name with any `:`/`=`/bare
+# suffix (the original catch-all surface). The inline negative lookahead
+# excludes every RECOGNIZED name at a name boundary (`:`/`=`/`)`), so the
+# strict shapes above stay authoritative in BOTH profiles (verdict parity);
+# an extended spelling such as `(*LIMIT_HEAPX)` still reaches the catch-all.
+# The guard is inlined over the positively-witnessed name rules on purpose:
+# a helper rule referenced only under a negative lookahead could never be
+# coverage-witnessed. Generation honest bound: the guard is a negative
+# lookahead the generator does not enforce (the tracked lookahead-gap class),
+# so RELAXED-profile generation could emit a recognized name through this
+# branch; default-profile generation never activates it.
+@profiles: ["relaxed"]
+directive_relaxed_named = !( ( "MARK" | directive_verb_name | directive_limit_name | directive_option_name ) ( ":" | "=" | ")" ) ) directive_name_relaxed directive_payload_suffix? -> {kind: "named", name: $2, payload: $3}
+directive_mark_shorthand = ":" directive_payload_required          -> {kind: "mark_shorthand", payload: $2}
+# Payload shapes, one per name class; `{separator, value}` carrier preserved.
+# The REQUIRED form demands at least one payload char (the PCRE2 err-166
+# boundary); the digits form is the numeric-limit `=` value (its RANGE is the
+# `.13.2`-blocked honest bound above). PCRE2 payloads run until the
+# verb-closing `)` — same pattern as `comment_text` from slice 20.
+directive_payload_colon_required = ":" directive_payload_required     -> {separator: ":", value: $2}
+directive_payload_colon  = ":" directive_payload_simple?              -> {separator: ":", value: $2}
+directive_payload_equals = "=" directive_payload_digits               -> {separator: "=", value: $2}
+directive_payload_digits = digit+ -> $text
+# The REQUIRED payload pairs a positively-enumerated GENERATABLE core (branch
+# 1 — what stimuli generation emits) with PCRE2's full payload superset
+# (branch 2 — any char but the verb-closing `)`). Parsing is IDENTICAL to the
+# plain superset (branch 2 subsumes branch 1; the longest-match tournament
+# keeps the union exact), so this split changes generation only: the stimuli
+# generator has no native `builtin_any_char` emitter and is lookahead-blind
+# (the tracked lookahead-gap class, STIMULI-SIGNOFF.14), so the superset
+# branch alone is un-generatable — the `*`-quantified `directive_payload_simple`
+# never hit this because empty generation sufficed (which is exactly how the
+# pre-`.3.14` generator emitted the PCRE2-invalid `(*:)`).
+directive_payload_required = directive_payload_core
+                           | ( !")" builtin_any_char )+ -> $text
+directive_payload_core = ( letter | digit | '_' )+ -> $text
 directive_payload_simple = ( !")" builtin_any_char )* -> $text
 # GRAMMAR-WELLFORMED.H.10.1: the former `directive_payload_char` helper
 # (superseded by `directive_payload_simple` above) was removed as
 # proven-dead (unreachable_from_entry).
-# `directive_name` rewritten from `directive_name_start
-# directive_name_continue*` chain (multi-element) to a regex literal
-# that emits a clean string Terminal of the matched verb name.
-# Char-set mirrors the previous chain: leading letter, then letters/
-# digits/underscore/hyphen.
-# PGEN-REGEX-PCRE2-0008 (`REGEX-PCRE2-FIDELITY.3.2`): strict/relaxed split so the default (`pcre2`)
-# profile accepts ONLY the recognized PCRE2 verb + start-option names — the EBNF now owns verb-name
-# acceptance, migrating the unrecognized-name rejection out of `find_invalid_verb_construct` (the
-# finer structural checks — MARK-arg, start-option position, `=value`, quantified-ACCEPT — stay in the
-# validator for now; capstone `.4` removes it). Strict = an ordered choice of the 8 verbs + 26
-# start-options, ordered LONGEST-FIRST for prefix overlaps (`FAIL`>`F`, `UTF32/16/8`>`UTF`,
-# `NOTEMPTY_ATSTART`>`NOTEMPTY`, `ANYCRLF`>`ANY`, `CRLF`>`CR`). Case-sensitive (PCRE2 rejects
-# `(*accept)`/`(*Skip)`). `relaxed` re-admits any name (the original catch-all). No `->` on any of
-# these (passthrough) ⇒ `directive_named`'s `name:$1` shape is preserved; no manifest change.
-directive_name    = directive_name_strict | directive_name_relaxed
-directive_name_strict = "FAIL" | "F" | "ACCEPT" | "COMMIT" | "PRUNE" | "SKIP" | "THEN" | "MARK"
-                      | "UTF32" | "UTF16" | "UTF8" | "UTF" | "UCP"
+# `directive_payload_suffix` is the relaxed-only any-shape suffix (`:` or
+# `=`, any simple payload), reachable solely through the catch-all
+# `directive_relaxed_named` — so it carries the same `@profiles` gate as
+# `directive_name_relaxed` (a rule referenced only from relaxed-gated rules
+# is outside the default-profile certificate universe; ungated it would be a
+# permanently unreachable-in-default UNKNOWN, the V6 scratch-slot signature).
+@profiles: ["relaxed"]
+directive_payload_suffix = ":" directive_payload_simple?              -> {separator: ":", value: $2}
+                         | "=" directive_payload_simple?              -> {separator: "=", value: $2}
+# The recognized PCRE2 name universe, split per argument-shape class. Name
+# lists stay ordered LONGEST-FIRST for prefix overlaps (`FAIL`>`F`,
+# `UTF32/16/8`>`UTF`, `NOTEMPTY_ATSTART`>`NOTEMPTY`, `ANYCRLF`>`ANY`,
+# `CRLF`>`CR`). Case-sensitive (PCRE2 rejects `(*accept)`/`(*Skip)`).
+# REGEX-PCRE2-FIDELITY.3.14: the former `directive_name` dispatch and flat
+# `directive_name_strict` enumeration (the `.3.2` split) were superseded by
+# these name-class rules and removed (the H.10.1 proven-dead precedent).
+directive_verb_name   = "FAIL" | "F" | "ACCEPT" | "COMMIT" | "PRUNE" | "SKIP" | "THEN"
+directive_limit_name  = "LIMIT_HEAP" | "LIMIT_MATCH" | "LIMIT_DEPTH" | "LIMIT_RECURSION"
+directive_option_name = "UTF32" | "UTF16" | "UTF8" | "UTF" | "UCP"
                       | "NOTEMPTY_ATSTART" | "NOTEMPTY"
                       | "NO_AUTO_POSSESS" | "NO_DOTSTAR_ANCHOR" | "NO_JIT" | "NO_START_OPT"
                       | "CASELESS_RESTRICT" | "TURKISH_CASING"
-                      | "LIMIT_HEAP" | "LIMIT_MATCH" | "LIMIT_DEPTH" | "LIMIT_RECURSION"
                       | "CRLF" | "CR" | "LF" | "ANYCRLF" | "ANY" | "NUL"
                       | "BSR_ANYCRLF" | "BSR_UNICODE"
 @profiles: ["relaxed"]
 directive_name_relaxed = letter ( letter | digit | '_' | '-' )* -> $text
-# GRAMMAR-WELLFORMED.H.10.1: the former `directive_name_start` /
-# `directive_name_continue` / `directive_special` chain helpers
-# (superseded by the inline `directive_name` forms above) were removed
-# as proven-dead (unreachable_from_entry).
 
 # PCRE2 extended character class syntax (?[ ... ]). `body` is the
 # raw `extended_class_content` shape (Quantified-* of

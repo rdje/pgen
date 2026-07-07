@@ -939,7 +939,18 @@ class (`$*`) is CLOSED: regex release `1.1.82` makes anchors their own non-quant
 branch, so the generator can no longer render the form at all — the hunter re-run at seeds
 0/7/42 shows that signature gone (and the same slice fixed a real released-parser divergence:
 PGEN had wrongly ACCEPTED quantified *escape* anchors like `\b*` that PCRE2 rejects). The
-remaining classes are owned by further `REGEX-PCRE2-FIDELITY.3.x` leaves.
+verb argument-shape classes (`(*:)` empty MARK argument and `(*SKIP=)`-style malformed verbs)
+are CLOSED the same way: regex release `1.1.83` encodes PCRE2's per-name-class argument shapes
+(MARK requires a non-empty `:`-argument; verbs take `:` only; `LIMIT_*` options require
+`=digits`; other options are bare-only) as name-class-conditional grammar branches — the MARK
+payload is now structurally non-empty, so the generator can no longer render `(*:)` at all (and
+this slice too fixed real released-parser divergences: PGEN wrongly accepted `(*UTF=5)`-class
+`=`-forms, bare `(*LIMIT_HEAP)`, and mid-pattern `=`-form options). Landing it also surfaced a
+NEW tracked generator gap (`STIMULI-SIGNOFF.14`): the stimuli generator has no generation arm
+for the codegen-native builtins (`builtin_any_char`) — forcing a required payload made that
+visible ("Missing rule"), and the grammar pairs the superset payload with a positively-enumerated
+generatable core as the generation-faithful encode. The remaining classes are owned by further
+`REGEX-PCRE2-FIDELITY.3.x` leaves.
 
 Honest bounds: the goal vocabulary is `k_path`, `corpus_mimicry`, and `duality_break` today
 (parser code-coverage feedback remains designed-only, tracked in the `STIMULI-SIGNOFF` tree,

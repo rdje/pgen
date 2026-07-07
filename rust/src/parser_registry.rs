@@ -1877,6 +1877,85 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "\\u"), Some(false));
     }
 
+    /// REGEX-PCRE2-FIDELITY.3.14: verb/start-option argument SHAPES reject at the GRAMMAR layer
+    /// (name-class-conditional `directive_named` branches; the matching
+    /// `find_invalid_verb_construct` shape checks were removed from the compile contract).
+    /// PCRE2 10.47 oracle (`pcre2test`, 2026-07-07): MARK — named or `(*:...)` shorthand —
+    /// REQUIRES a non-empty `:`-payload (err 166); the other 7 verbs take an OPTIONAL
+    /// `:`-payload only (`=` is err 160); the 4 LIMIT_* start options REQUIRE `=digits`
+    /// (bare/empty/non-digit forms are err 160 — ledger REGEX-0089: PGEN wrongly accepted
+    /// bare `(*LIMIT_HEAP)` and `=digits` on non-LIMIT options like `(*UTF=5)`); every other
+    /// start option is BARE-only (err 160 otherwise).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_verb_argument_shapes_reject_at_the_grammar_layer_pcre2_faithfully() {
+        // Invalid argument shapes: REJECT (PCRE2 err 166 / err 160).
+        for pattern in [
+            "(*:)", "(*MARK)", "(*MARK:)", // MARK without its required non-empty argument
+            "(*MARK=x)", "(*MARK=)", // MARK never takes `=`
+            "(*PRUNE=)", "(*PRUNE=x)", "(*SKIP=)", "(*SKIP=x)", "(*THEN=x)", "(*COMMIT=x)",
+            "(*ACCEPT=x)", "(*FAIL=x)", // verbs are `:`-suffix only
+            "(*UTF:x)", "(*UTF=5)", "(*UTF=)", "(*CR=5)",
+            "(*TURKISH_CASING=5)", // non-LIMIT start options are bare-only (REGEX-0089)
+            "(*LIMIT_HEAP)", // LIMIT_* requires `=digits` (REGEX-0089)
+            "(*LIMIT_HEAP=)", "(*LIMIT_HEAP=abc)", "(*LIMIT_HEAP=5x)", "(*LIMIT_HEAP:5)",
+            "a(*LIMIT_HEAP=500)", "(*FAIL)(*LIMIT_HEAP=5)a", // `=`-form position (REGEX-0090)
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "invalid verb/start-option argument shape must reject: {pattern}"
+            );
+        }
+        // Valid shapes: ACCEPT (all oracle-verified).
+        for pattern in [
+            "(*:x)", "(*:name)", "(*MARK:x)", // MARK with a non-empty argument
+            "(*PRUNE)", "(*PRUNE:)", "(*PRUNE:x)", "(*SKIP)", "(*SKIP:)", "(*SKIP:x)",
+            "(*THEN)", "(*THEN:x)", "(*COMMIT)", "(*COMMIT:x)", "(*ACCEPT)", "(*ACCEPT:x)",
+            "(*F)", "(*F:x)", "(*FAIL)", "(*FAIL:x)", // verbs: optional `:`-payload, empty OK
+            "(*UTF)", "(*UCP)", "(*NOTEMPTY_ATSTART)", "(*BSR_ANYCRLF)", "(*NUL)",
+            "(*NO_DOTSTAR_ANCHOR)", "(*CASELESS_RESTRICT)", // bare start options
+            "(*LIMIT_HEAP=500)", "(*LIMIT_MATCH=1000)", "(*LIMIT_DEPTH=10)",
+            "(*LIMIT_RECURSION=10)", "(*LIMIT_HEAP=0)", // LIMIT_* with the required digits
+            "(*LIMIT_HEAP=500)a", "(*LIMIT_MATCH=10)(*UCP)a", // start-option prefix then pattern
+            "(*UTF)(*UCP)a", "a(*PRUNE:x)b", "(*MARK:x)(*FAIL)a", // verbs are position-free
+            "(*ACCEPT)+", "(*ACCEPT:x)+", // only ACCEPT quantifies (validator-owned, unchanged)
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "valid verb/start-option argument shape must accept: {pattern}"
+            );
+        }
+        // The tightening applies in BOTH profiles: the relaxed catch-all's recognized-name
+        // exclusion guard keeps the strict shapes authoritative under `relaxed` too.
+        // (`parse_sample_detail_with_profile` is the profile-routing verdict API for regex;
+        // `parse_sample_with_profile` threads profiles only for systemverilog.)
+        for pattern in ["(*:)", "(*MARK)", "(*SKIP=)", "(*UTF=5)", "(*LIMIT_HEAP)", "(*F=x)"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject the invalid recognized-name shape: {pattern}"
+            );
+        }
+        // Relaxed still re-admits UNRECOGNIZED names with any suffix shape (the catch-all
+        // surface is unchanged for extended spellings, including strict-name extensions).
+        for pattern in ["(*FOO)", "(*FOO=x)", "(*FOO:x)", "(*SKIPX)", "(*LIMIT_HEAPX=5)"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_ok(),
+                "relaxed must still re-admit the unrecognized directive name: {pattern}"
+            );
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "the default profile must keep rejecting the unrecognized name: {pattern}"
+            );
+        }
+    }
+
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {
