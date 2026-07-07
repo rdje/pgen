@@ -43,22 +43,22 @@
 //!
 //! This is the **structural** combinator surface — exactly what the `.4` interpreter core dispatches:
 //! ordered choice under each `branch_policy`, sequence + backtrack, the `?`/`*`/`+` quantifiers (incl. the
-//! zero-length guard), lookahead `&`/`!`, atoms/terminals/regex-tokens, rule references, and
+//! zero-length guard), the four bounded quantifier forms `{N}`/`{N,M}`/`{N,}`/`{,M}` (first-class since
+//! BOUNDED-QUANT.1), lookahead `&`/`!`, atoms/terminals/regex-tokens, rule references, and
 //! LR-eliminated left recursion. The **semantic-directive** surface that gates parse *outcomes* on the
 //! store (`@predicate`/`@emit_fact`/scope/rollback + memoization) is the sibling leaf `.6.2` and is *not*
 //! covered here.
 //!
-//! Two constructs are **unreachable through the oracle** and are documented rather than silently dropped
-//! (no silent caps, [[feedback_always_signoff_decisions]]):
+//! (Historical note — the `.6.1` landing documented bounded quantifiers as *unreachable through the
+//! oracle*: codegen aborted with `Unknown quantifier: 2` because the canonical
+//! `parse_quantifier_bounds` decoder spoke only the braced spelling while the EBNF frontend emits the
+//! brace-STRIPPED raw-AST token `["quantifier","2"]`. `BOUNDED-QUANT.1` closed that half-wire in the
+//! one shared decoder, and the four `quant_bounded_*` cases below are the per-combinator differential
+//! proof.)
 //!
-//! - **Bounded quantifiers `{N}` / `{N,M}` / `{N,}` / `{,M}`.** Tool-established (`ast_pipeline
-//!   <g>.ebnf --generate-parser`): the EBNF *frontend* parses `item{2}` into a `["quantifier","2"]`
-//!   node, but **codegen has no handler** and aborts with `Unknown quantifier: 2`, so
-//!   [`compile_and_parse`] cannot produce a parser for them — there is no oracle to differential against.
-//!   (The shared runtime `parse_quantifier_bounds` *does* support the bounds, so the interpreter would
-//!   honor them; the gap is purely codegen-side, i.e. the operators are a half-wired
-//!   "available-for-future-use" surface. See `DEVELOPMENT_NOTES.md`.) The `?`/`*`/`+` forms below fully
-//!   exercise the quantifier-loop dispatch and the zero-length guard.
+//! One construct remains **documented rather than silently dropped** (no silent caps,
+//! [[feedback_always_signoff_decisions]]):
+//!
 //! - **Non-default `branch_policy` still selects a *branch*, not the verdict via the store.** The three
 //!   policies below (`longest_match` / `ordered` / `priority_first`) are structural (they pick which
 //!   alternative wins purely by consumed-length / source-order / `@priority`); they are in scope. The
@@ -100,6 +100,14 @@ pub enum Combinator {
     QuantifierStar,
     /// The `+` (one-or-more) quantifier.
     QuantifierPlus,
+    /// The `{N}` exact-count bounded quantifier (BOUNDED-QUANT.1).
+    QuantifierBoundedExact,
+    /// The `{N,M}` range bounded quantifier (BOUNDED-QUANT.1).
+    QuantifierBoundedRange,
+    /// The `{N,}` at-least bounded quantifier (BOUNDED-QUANT.1).
+    QuantifierBoundedAtLeast,
+    /// The `{,M}` at-most bounded quantifier (BOUNDED-QUANT.1).
+    QuantifierBoundedAtMost,
     /// A `*` over a *nullable* element — exercises the zero-length guard (the loop must not spin forever
     /// on an element that matches empty).
     QuantifierZeroLengthGuard,
@@ -130,6 +138,10 @@ impl Combinator {
         Combinator::QuantifierOptional,
         Combinator::QuantifierStar,
         Combinator::QuantifierPlus,
+        Combinator::QuantifierBoundedExact,
+        Combinator::QuantifierBoundedRange,
+        Combinator::QuantifierBoundedAtLeast,
+        Combinator::QuantifierBoundedAtMost,
         Combinator::QuantifierZeroLengthGuard,
         Combinator::LookaheadNegative,
         Combinator::LookaheadPositive,
@@ -227,7 +239,7 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         entry_rule: None,
         note: "backtrack after the shared `\"a\"` prefix to try the second alt",
     },
-    // ── Quantifiers ?/*/+ (bounded {N,M} unreachable via codegen — see module docs) ──────────────────
+    // ── Quantifiers ?/*/+ and the four bounded forms (first-class since BOUNDED-QUANT.1) ─────────────
     CombinatorCase {
         name: "quant_optional",
         combinator: Combinator::QuantifierOptional,
@@ -251,6 +263,40 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         inputs: &[("x", true), ("xxx", true), ("", false), ("xy", false)],
         entry_rule: None,
         note: "`+` consumes one-or-more `item`",
+    },
+    CombinatorCase {
+        name: "quant_bounded_exact",
+        combinator: Combinator::QuantifierBoundedExact,
+        // `{2}` = exactly two: fewer fails the min-count (whole quantifier rolls back), more leaves
+        // unconsumed input past the max → full-parse reject on both sides of the window.
+        grammar_body: "start := item{2}\nitem := \"x\"\n",
+        inputs: &[("xx", true), ("x", false), ("xxx", false), ("", false)],
+        entry_rule: None,
+        note: "`{2}` accepts exactly two `item`s (the BOUNDED-QUANT.1 half-wire closure proof)",
+    },
+    CombinatorCase {
+        name: "quant_bounded_range",
+        combinator: Combinator::QuantifierBoundedRange,
+        grammar_body: "start := item{2,3}\nitem := \"x\"\n",
+        inputs: &[("x", false), ("xx", true), ("xxx", true), ("xxxx", false)],
+        entry_rule: None,
+        note: "`{2,3}` accepts the 2..=3 window and nothing outside it",
+    },
+    CombinatorCase {
+        name: "quant_bounded_at_least",
+        combinator: Combinator::QuantifierBoundedAtLeast,
+        grammar_body: "start := item{2,}\nitem := \"x\"\n",
+        inputs: &[("", false), ("x", false), ("xx", true), ("xxxxx", true)],
+        entry_rule: None,
+        note: "`{2,}` needs at least two `item`s, unbounded above",
+    },
+    CombinatorCase {
+        name: "quant_bounded_at_most",
+        combinator: Combinator::QuantifierBoundedAtMost,
+        grammar_body: "start := item{,2}\nitem := \"x\"\n",
+        inputs: &[("", true), ("x", true), ("xx", true), ("xxx", false)],
+        entry_rule: None,
+        note: "`{,2}` accepts zero through two `item`s; a third is unconsumed → reject",
     },
     CombinatorCase {
         name: "quant_zero_length_guard",

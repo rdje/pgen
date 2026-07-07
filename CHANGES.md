@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-07-07 - PGEN-BOUNDED-QUANT-0001 (BOUNDED-QUANT.1): bounded quantifiers `{n}`/`{n,m}`/`{n,}`/`{,m}` compile end-to-end — the codegen half-wire (PARSE-HARNESS.6.1 finding #1) is CLOSED
+
+Session #53. **Parser-agnostic engine-helper fix + per-combinator proof.** The four bounded
+quantifier forms are declared in `grammars/ebnf.ebnf` (164-186) and documented in the ebnf parser
+book as first-class — but parser codegen hard-aborted on all of them, while the stimuli generator
+happily generated strings for the same grammar: a live generator⟷parser duality break (the
+EBNF-single-source-of-truth defect class) plus a user-facing book drift.
+
+- **Reproduced live (tools-first):** `ast_pipeline bounded_quant.ebnf --generate-parser` →
+  `Error: Failed to generate parser using AST-based generator` / `Unknown quantifier: 2,3`;
+  the SAME grammar under `--generate-stimuli --count 5 --seed 0` → correct 2..3 repetitions,
+  `sample_successes=5/5`.
+- **Root cause (WHY+WHERE):** a dialect split on the `Quantified::quantifier` surface string.
+  The Rust EBNF frontend emits the brace-STRIPPED raw-AST token — `item{2,3}` →
+  `["quantifier","2,3"]` (`parse_braced_quantifier`, `rust/src/ebnf_frontend.rs:1013-1032`;
+  contract-locked by `tokenizes_regex_and_bounded_quantifier`). The canonical Layer-0 decoder
+  `parse_quantifier_bounds` (`rust/src/ast_pipeline/mod.rs:925`) decoded only `?`/`*`/`+` and the
+  BRACED spellings → `None` → both codegens abort (`ast_based_generator.rs:4013-4015`,
+  `ast_code_generator.rs:437-439`); the interpreter (`parse_harness_interpreter.rs:2073`) and 7
+  `grammar_wellformedness.rs` sites silently misread bounded forms via their `unwrap_or`
+  fallbacks. The stimuli generator diverged because it bypassed the canonical helper through a
+  private, duplicated brace-less bounds parser (`stimuli_generator.rs:10346`) — duplicated logic
+  drifting exactly as the duplicate-metadata doctrine predicts.
+- **Fix (one clean change, no menu):** the canonical `parse_quantifier_bounds` now normalizes
+  `{…}`-wrapped input and decodes BOTH spellings through one inner parser (braced acceptance
+  unchanged; `+6` unit tests incl. both-spelling invalid-form rejection). The stimuli generator's
+  private decoder is DELEGATED to the canonical helper (unbounded maxima still clamp to
+  `config.max_repeat`, never below `min`) — one decoder, drift impossible. The frontend-emission
+  alternative was rejected: the brace-less token is a pinned cross-frontend raw-AST contract.
+- **Per-combinator proof:** `parse_harness_combinator_suite` grew four `Combinator` variants +
+  isolating cases — `quant_bounded_exact` (`item{2}`), `quant_bounded_range` (`item{2,3}`),
+  `quant_bounded_at_least` (`item{2,}`), `quant_bounded_at_most` (`item{,2}`) — each proving the
+  exact accept window byte-identically (verdict + `furthest_position` + typed AST) on the
+  interpreter AND the compile-and-run oracle (the real codegen): 16 → **20 cases**.
+- **Verified:** reproducer `--generate-parser` abort → parser generated (129 KB); stimuli output
+  byte-identical pre/post delegation; `parse_harness_combinator_gate` **20/20 CLEAN** (2 gate
+  tests); `parse_harness_equivalence_gate` **4/4** (11 CERTIFIED grammars byte-identical);
+  `parse_harness_semantic_gate` **2/2** (24/24); features-on lib **811 passed / 0 failed**;
+  emit-neutrality PROVEN — `make focus_json` + `make focus_regex` regen `cmp` byte-identical, and
+  a raw-AST scan of all 15 frontend-parseable shipped grammars found ZERO bounded-quantifier
+  tokens (the 3 `*_lrm_extracted.ebnf` snapshots are frontend-unparseable raw artifacts,
+  pre-existing); clippy strict-source GREEN; `mdbook_docs_gate` + `ebnf_parser_book_gate` GREEN.
+- **Lockstep:** TOOLBOX §1.7 (bounded forms now covered; honest bound narrowed to direct-LR);
+  top book *The Parse Harness* (20-case table + the closure story); ebnf parser book
+  `quantifiers.md` — its "all seven forms are first-class" claim is now TRUE, and its false
+  "bounded forms are used throughout `grammars/regex.ebnf`" claim corrected (those are quantifiers
+  inside regex LITERALS, not EBNF quantifiers); `docs/tasks/PARSE-HARNESS.md` §20 LIVE-SPEC note;
+  NEW tree `docs/tasks/BOUNDED-QUANT.md` (full acceptance checklist).
+- **NO release bump:** no shipped parser regenerated-with-change (byte-identical), engine surface
+  strictly widened (previously-hard-error inputs now compile).
+
 ## 2026-07-07 - PGEN-REPO-HYGIENE-0001 (REPO-HYGIENE.1): remove the vestigial repo-root `test` package (`Cargo.toml` + empty `src/lib.rs`)
 
 Session #52. **Repo-hygiene cleanup (director-authorized).** The repo root carried a tracked

@@ -917,45 +917,65 @@ pub enum ASTNode {
 /// * `"{N,}"`     → `(N, None)`            (at least N)
 /// * `"{,M}"`     → `(0, Some(M))`         (at most M)
 ///
+/// The bounded forms are also accepted in their brace-STRIPPED spelling
+/// (`"N"` / `"N,M"` / `"N,"` / `",M"`): the Rust EBNF frontend's
+/// `parse_braced_quantifier` normalizes `item{2,3}` to the raw-AST token
+/// `["quantifier","2,3"]` (braces removed), and that is the string
+/// `ASTNode::Quantified::quantifier` actually carries at codegen /
+/// interpret / lint time. Decoding both spellings here closed the
+/// bounded-quantifier half-wire in which stimuli generation accepted a
+/// grammar whose parser could not be compiled (`Unknown quantifier: 2,3`)
+/// — BOUNDED-QUANT.1.
+///
 /// Returns `None` for any other input (invalid quantifier string).
 ///
-/// This is the canonical surface-form → bounds mapping used by both the
-/// `ast_based_generator` and `ast_code_generator` quantifier codegen, so a
-/// single helper carries every repetition operator the engine supports.
+/// This is the canonical surface-form → bounds mapping used by the
+/// `ast_based_generator` / `ast_code_generator` quantifier codegen, the
+/// parse-harness interpreter, the grammar-wellformedness linter, and (by
+/// delegation) the stimuli generator, so a single helper carries every
+/// repetition operator the engine supports.
 pub fn parse_quantifier_bounds(quantifier: &str) -> Option<(usize, Option<usize>)> {
     let q = quantifier.trim();
     match q {
-        "?" => Some((0, Some(1))),
-        "*" => Some((0, None)),
-        "+" => Some((1, None)),
-        _ if q.starts_with('{') && q.ends_with('}') && q.len() >= 3 => {
-            let inner = &q[1..q.len() - 1];
-            if let Some(comma_pos) = inner.find(',') {
-                let min_str = inner[..comma_pos].trim();
-                let max_str = inner[comma_pos + 1..].trim();
-                let min: usize = if min_str.is_empty() {
-                    0
-                } else {
-                    min_str.parse().ok()?
-                };
-                let max: Option<usize> = if max_str.is_empty() {
-                    None
-                } else {
-                    Some(max_str.parse().ok()?)
-                };
-                if let Some(m) = max {
-                    if m < min {
-                        return None;
-                    }
-                }
-                Some((min, max))
-            } else {
-                // "{N}" — exact count
-                let n: usize = inner.trim().parse().ok()?;
-                Some((n, Some(n)))
+        "?" => return Some((0, Some(1))),
+        "*" => return Some((0, None)),
+        "+" => return Some((1, None)),
+        _ => {}
+    }
+    // Bounded forms: strip the braces when present so the documented braced
+    // spelling and the frontend's brace-stripped raw-AST spelling decode
+    // through the same inner parser.
+    let inner = if q.starts_with('{') && q.ends_with('}') && q.len() >= 3 {
+        &q[1..q.len() - 1]
+    } else {
+        q
+    };
+    if inner.trim().is_empty() {
+        return None;
+    }
+    if let Some(comma_pos) = inner.find(',') {
+        let min_str = inner[..comma_pos].trim();
+        let max_str = inner[comma_pos + 1..].trim();
+        let min: usize = if min_str.is_empty() {
+            0
+        } else {
+            min_str.parse().ok()?
+        };
+        let max: Option<usize> = if max_str.is_empty() {
+            None
+        } else {
+            Some(max_str.parse().ok()?)
+        };
+        if let Some(m) = max {
+            if m < min {
+                return None;
             }
         }
-        _ => None,
+        Some((min, max))
+    } else {
+        // "{N}" / "N" — exact count
+        let n: usize = inner.trim().parse().ok()?;
+        Some((n, Some(n)))
     }
 }
 
@@ -1037,16 +1057,38 @@ mod parse_quantifier_bounds_tests {
         assert_eq!(parse_quantifier_bounds("{ 2 , 5 }"), Some((2, Some(5))));
     }
 
+    // BOUNDED-QUANT.1: the brace-STRIPPED spelling the Rust EBNF frontend
+    // actually emits into the raw AST (`["quantifier","2,3"]`) must decode
+    // identically to the braced source spelling.
+    #[test]
+    fn brace_stripped_bounded_quantifiers() {
+        assert_eq!(parse_quantifier_bounds("3"), Some((3, Some(3))));
+        assert_eq!(parse_quantifier_bounds("2,5"), Some((2, Some(5))));
+        assert_eq!(parse_quantifier_bounds("2,"), Some((2, None)));
+        assert_eq!(parse_quantifier_bounds(",5"), Some((0, Some(5))));
+        assert_eq!(parse_quantifier_bounds("0,0"), Some((0, Some(0))));
+        // inner whitespace tolerated, same as the braced spelling
+        assert_eq!(parse_quantifier_bounds(" 2 , 5 "), Some((2, Some(5))));
+    }
+
     #[test]
     fn invalid_quantifiers_return_none() {
         assert_eq!(parse_quantifier_bounds(""), None);
         assert_eq!(parse_quantifier_bounds("foo"), None);
         assert_eq!(parse_quantifier_bounds("{}"), None);
         assert_eq!(parse_quantifier_bounds("{a}"), None);
-        // M < N is invalid
+        // M < N is invalid — both spellings
         assert_eq!(parse_quantifier_bounds("{5,2}"), None);
-        // Negative numbers reject via usize parse
+        assert_eq!(parse_quantifier_bounds("5,2"), None);
+        // Negative numbers reject via usize parse — both spellings
         assert_eq!(parse_quantifier_bounds("{-1}"), None);
+        assert_eq!(parse_quantifier_bounds("-1"), None);
+        // A second comma is not a valid bounds shape
+        assert_eq!(parse_quantifier_bounds("1,2,3"), None);
+        // A lone comma decodes as the degenerate open range `(0, None)` in
+        // BOTH spellings (`{,}` always did; the stripped form must match).
+        assert_eq!(parse_quantifier_bounds(","), Some((0, None)));
+        assert_eq!(parse_quantifier_bounds("{,}"), Some((0, None)));
     }
 }
 

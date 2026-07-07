@@ -16,8 +16,19 @@ engine** (the "Layer-0" engine, `rust/src/ast_pipeline/mod.rs::parse_quantifier_
 | `{n,}` | at least `n` | `(n, ∞)` |
 | `{,m}` | at most `m` | `(0, m)` |
 
-All seven are first-class and consumed by the codegen. The bounded forms (`{n}`, `{n,m}`, `{n,}`, `{,m}`)
-are used throughout `grammars/regex.ebnf`.
+All seven are first-class and consumed by the codegen, and each form is differentially proven: the
+parse-harness structural combinator suite (`make -C rust parse_harness_combinator_gate`) runs an
+isolating grammar per form through both the grammar-AST interpreter and the real generated parser and
+asserts byte-identical behavior — including the exact accept windows of the four bounded forms
+(`item{2}` accepts `xx` and nothing else; `item{2,3}` accepts the 2..=3 window; …).
+
+> Historical note: before `BOUNDED-QUANT.1` (2026-07-07) the four bounded forms were *half-wired* —
+> the stimuli generator honored them but parser codegen aborted with `Unknown quantifier`, so a
+> grammar using `x{2,3}` could not be compiled. The fix unified the two quantifier-bounds decoders
+> into one (`rust/src/ast_pipeline/mod.rs::parse_quantifier_bounds`), which now also decodes the
+> brace-stripped spelling the EBNF frontend carries in the raw AST. (No shipped grammar used a
+> bounded form — `grammars/regex.ebnf`'s `{n,m}`-looking text lives inside *regex literals*, i.e. the
+> regex language's own quantifiers, not EBNF quantifiers.)
 
 ```ebnf
 optional_sign  := ( "+" | "-" )?

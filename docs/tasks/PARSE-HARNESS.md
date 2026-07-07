@@ -1246,6 +1246,13 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
 
 ## 20. PARSE-HARNESS.6.1 — structural combinator isolating suite — Acceptance Checklist (enforced)
 
+> ⚠️ LIVE-SPEC NOTE (2026-07-07, session #53): tool-established finding #1 below (bounded quantifiers
+> `{N,M}` half-wired — codegen aborts `Unknown quantifier`) is **RESOLVED** by **`BOUNDED-QUANT.1`**
+> (`docs/tasks/BOUNDED-QUANT.md`): the canonical `parse_quantifier_bounds` decoder now also accepts the
+> frontend's brace-stripped raw-AST spelling, the stimuli generator's private duplicate decoder
+> delegates to it, and the suite grew four `quant_bounded_*` isolating cases (16 → **20**, all CLEAN).
+> The 16/16 numbers below are the honest historical record of `.6.1`'s landing.
+
 > Session #46, `PGEN-PARSE-HARNESS-0014`. A CODE change (adds `rust/src/parse_harness_combinator_suite.rs`,
 > wires `rust/src/lib.rs`, adds the `parse_harness_combinator_gate` Makefile target). Capability build:
 > "ROOT CAUSE" = the coverage gap that end-to-end `.5` equivalence leaves (only the shipped grammars'

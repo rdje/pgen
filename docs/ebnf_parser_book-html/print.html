@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7b3268d4.js";
+            window.path_to_searchindex_js = "searchindex-44493303.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -648,8 +648,20 @@ engine</strong> (the “Layer-0” engine, <code>rust/src/ast_pipeline/mod.rs::p
 </tbody>
 </table>
 </div>
-<p>All seven are first-class and consumed by the codegen. The bounded forms (<code>{n}</code>, <code>{n,m}</code>, <code>{n,}</code>, <code>{,m}</code>)
-are used throughout <code>grammars/regex.ebnf</code>.</p>
+<p>All seven are first-class and consumed by the codegen, and each form is differentially proven: the
+parse-harness structural combinator suite (<code>make -C rust parse_harness_combinator_gate</code>) runs an
+isolating grammar per form through both the grammar-AST interpreter and the real generated parser and
+asserts byte-identical behavior — including the exact accept windows of the four bounded forms
+(<code>item{2}</code> accepts <code>xx</code> and nothing else; <code>item{2,3}</code> accepts the 2..=3 window; …).</p>
+<blockquote>
+<p>Historical note: before <code>BOUNDED-QUANT.1</code> (2026-07-07) the four bounded forms were <em>half-wired</em> —
+the stimuli generator honored them but parser codegen aborted with <code>Unknown quantifier</code>, so a
+grammar using <code>x{2,3}</code> could not be compiled. The fix unified the two quantifier-bounds decoders
+into one (<code>rust/src/ast_pipeline/mod.rs::parse_quantifier_bounds</code>), which now also decodes the
+brace-stripped spelling the EBNF frontend carries in the raw AST. (No shipped grammar used a
+bounded form — <code>grammars/regex.ebnf</code>’s <code>{n,m}</code>-looking text lives inside <em>regex literals</em>, i.e. the
+regex language’s own quantifiers, not EBNF quantifiers.)</p>
+</blockquote>
 <pre><code class="language-ebnf">optional_sign  := ( "+" | "-" )?
 zero_or_more   := digit*
 one_or_more    := digit+

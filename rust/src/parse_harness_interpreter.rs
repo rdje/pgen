@@ -2973,11 +2973,11 @@ mod tests {
                 "start := &digit rest\ndigit := \"1\" | \"2\"\nrest := digit \"!\"\n",
                 &[("1!", true), ("2!", true), ("1", false), ("x!", false)],
             ),
-            // NOTE: bounded `{N,M}` quantifiers are intentionally NOT a smoke case here — the EBNF
-            // *input* surface does not accept `item{2,3}` in a grammar body end-to-end yet (the codegen
-            // treats bounded operators as parser-agnostic infrastructure "available for future use"), so
-            // the compile-and-run oracle cannot generate a parser for it. `parse_quantified` still honors
-            // `{N,M}` bounds via `parse_quantifier_bounds`; it is simply unreachable from `.ebnf` syntax.
+            // NOTE: bounded `{N,M}` quantifiers are covered by the dedicated
+            // `parse_harness_combinator_suite` cases (`quant_bounded_*`) rather than duplicated here.
+            // They are first-class end-to-end since BOUNDED-QUANT.1 closed the codegen half-wire (the
+            // canonical `parse_quantifier_bounds` now decodes the frontend's brace-stripped raw-AST
+            // spelling, so the compile-and-run oracle builds them and the differential runs).
         ];
 
         let opts = CompileAndParseOptions {

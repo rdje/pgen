@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-07 - PGEN-BOUNDED-QUANT-0001 — BOUNDED-QUANT.1: the half-wire was a DIALECT split, and the duality break was the tell
+
+Session #53. Engineering notes from closing the bounded-quantifier half-wire (PARSE-HARNESS.6.1
+finding #1):
+
+1. **"Half-wired" was precisely a two-dialect surface string.** Layer 0 (SV-EXH-PROOF.3.3.4.b.3)
+   really did implement bounded-quantifier codegen — `generate_quantified_logic` delegates to
+   `parse_quantifier_bounds` and emits a correct `(min, max)` loop. What nobody wired was the
+   *spelling*: the decoder documented (and tested) the braced source forms `{2,3}`, while the Rust
+   EBNF frontend has always emitted the brace-STRIPPED token `["quantifier","2,3"]` into the raw
+   AST. Every consumer of the canonical helper saw `None`; the one consumer with a private
+   duplicate parser (the stimuli generator) happened to speak brace-less. So "wire codegen to
+   parse_quantifier_bounds" (the original finding's fix candidate) was already done — the real fix
+   was one decoder speaking both spellings, plus delegating the duplicate away
+   ([[feedback_duplicated_metadata_needs_derived_drift_gate]] in code form).
+2. **A generator⟷parser asymmetry is a high-signal smell.** The live repro that upgraded this from
+   "capability gap" to "defect": the SAME grammar stimuli-generates 5/5 but cannot be compiled.
+   Whenever generation and parsing disagree about a grammar, suspect a duplicated decoder/validator
+   one side bypasses (the EBNF-SOURCE-OF-TRUTH audit pattern, taxonomy class E).
+3. **The user-facing book was ahead of the code — drift can point the RIGHT way.** The ebnf parser
+   book claimed all seven quantifier forms first-class ("consumed by the codegen"). Instead of
+   walking the claim back, the fix made the claim true — the book's promise was the correct
+   contract (the Layer-0 director line). Its second claim ("bounded forms used throughout
+   regex.ebnf") was however plain false — the `{2,8}`-looking text there is inside regex literals;
+   a raw-AST token scan (15/15 frontend-parseable grammars) found ZERO EBNF bounded tokens, which
+   is also the emit-neutrality proof for the shipped parsers.
+4. **Silent-fallback consumers were quietly wrong, not loudly broken.** The interpreter and 7
+   wellformedness sites decode via `unwrap_or((0, None))`/`unwrap_or(true)`; for a bounded form
+   they would have treated `{2,3}` as `*`-like or mandatory-conservative instead of erroring.
+   Nothing shipped hit this (no bounded tokens anywhere), but it is why the fix belongs in the
+   shared decoder rather than at the abort site: all consumers heal at once.
+
 ## 2026-07-07 - PGEN-GRAMMAR-WELLFORMED-0152 — GRAMMAR-WELLFORMED.A2.4: condition the duplicate verdict on the FULL tie-break, not just the policy; the shared resolver pattern generalizes
 
 Session #52. Three engineering notes from closing the A2.2/A2.3/A2.4 arc:

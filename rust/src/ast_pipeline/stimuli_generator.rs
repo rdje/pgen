@@ -10343,51 +10343,19 @@ impl<'a> StimuliGenerator<'a> {
         }))
     }
 
+    /// BOUNDED-QUANT.1: delegate to the ONE canonical surface-form decoder
+    /// (`ast_pipeline::parse_quantifier_bounds`). This method previously
+    /// carried a private, duplicated bounds parser that accepted the
+    /// frontend's brace-stripped bounded spellings while the canonical
+    /// decoder did not — the drift behind the generator⟷parser duality
+    /// break (stimuli generated `item{2,3}` strings for a grammar whose
+    /// parser codegen aborted `Unknown quantifier: 2,3`). Generation-side
+    /// semantics are preserved: an unbounded maximum (`*`, `+`, `{N,}`)
+    /// clamps to `config.max_repeat` (never below `min`).
     fn parse_quantifier_bounds(&self, quantifier: &str) -> Result<(usize, usize)> {
-        match quantifier.trim() {
-            "?" => Ok((0, 1)),
-            "*" => Ok((0, self.config.max_repeat)),
-            "+" => Ok((1, self.config.max_repeat.max(1))),
-            other => {
-                if let Ok(exact) = other.parse::<usize>() {
-                    return Ok((exact, exact));
-                }
-
-                if other.contains(',') {
-                    let parts: Vec<&str> = other.split(',').collect();
-                    if parts.len() != 2 {
-                        return Err(anyhow!("Unsupported quantifier format '{}'", other));
-                    }
-
-                    let min = if parts[0].trim().is_empty() {
-                        0
-                    } else {
-                        parts[0].trim().parse::<usize>().with_context(|| {
-                            format!("Invalid quantifier lower bound '{}'", parts[0])
-                        })?
-                    };
-                    let max = if parts[1].trim().is_empty() {
-                        self.config.max_repeat.max(min)
-                    } else {
-                        parts[1].trim().parse::<usize>().with_context(|| {
-                            format!("Invalid quantifier upper bound '{}'", parts[1])
-                        })?
-                    };
-
-                    if min > max {
-                        return Err(anyhow!(
-                            "Invalid quantifier bounds '{}': min {} > max {}",
-                            other,
-                            min,
-                            max
-                        ));
-                    }
-                    return Ok((min, max));
-                }
-
-                Err(anyhow!("Unknown quantifier '{}'", other))
-            }
-        }
+        let (min, max) = super::parse_quantifier_bounds(quantifier)
+            .ok_or_else(|| anyhow!("Unknown quantifier '{}'", quantifier))?;
+        Ok((min, max.unwrap_or_else(|| self.config.max_repeat.max(min))))
     }
 
     /// SV-EXH-PROOF.7.4.6.5: returns `Cow::Borrowed(node)` in the common (no probability

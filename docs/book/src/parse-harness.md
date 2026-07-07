@@ -511,7 +511,7 @@ gate uses does not apply because these grammars are synthetic and never register
 Because the corpus is a *fixed curated input set* (not the seeded stimuli generator), the differential is
 `synthetic grammar × curated input` with no randomness — deterministic by construction.
 
-The 16 isolating cases cover the whole structural surface:
+The 20 isolating cases cover the whole structural surface:
 
 | Combinator | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -522,6 +522,7 @@ The 16 isolating cases cover the whole structural surface:
 | **always-succeeds** (`e? \| keyword`) | `start := opt \| kw`, `opt := "x"?` | the always-matching `opt` does *not* shadow `kw` under `longest_match` |
 | **sequence + backtrack** | `start := "a" "b" \| "a" "c"` | backtrack after the shared `"a"` prefix |
 | quantifier **`?`** / **`*`** / **`+`** | `item?` / `item*` / `item+` | optional / zero-or-more / one-or-more |
+| quantifier **`{n}`** / **`{n,m}`** / **`{n,}`** / **`{,m}`** | `item{2}` / `item{2,3}` / `item{2,}` / `item{,2}` | the four bounded windows enforce exactly their `(min, max)` — first-class since `BOUNDED-QUANT.1` |
 | quantifier **zero-length guard** | `start := item*`, `item := "x"?` | a `*` over a nullable element must stop at the first empty iteration |
 | lookahead **`!`** / **`&`** | `!"x" any` / `&digit rest` | zero-width negative / positive lookahead |
 | **atom** — terminal / regex-token | `"hello"` / `/[0-9]+/` | exact literal / anchored pattern match |
@@ -543,11 +544,17 @@ well-formedness* chapter.)
 Building the suite exposed two behaviours worth knowing when authoring grammars — both found by the oracle,
 not by guesswork:
 
-- **Bounded quantifiers `{N}` / `{N,M}` / `{N,}` / `{,M}` are half-wired.** The EBNF *frontend* parses
-  `item{2}` into a quantifier node, and the shared runtime `parse_quantifier_bounds` honours the bounds —
-  but **codegen has no handler** and aborts with `Unknown quantifier: 2`. So a grammar using a bounded
-  quantifier cannot be compiled today; only `?` / `*` / `+` reach the generated parser. The suite documents
-  this rather than silently skipping it, and it is a clean candidate for a future codegen enhancement.
+- **Bounded quantifiers `{N}` / `{N,M}` / `{N,}` / `{,M}` were half-wired — CLOSED by `BOUNDED-QUANT.1`
+  (2026-07-07).** As landed, the suite established that the EBNF *frontend* parses `item{2}` into a
+  quantifier node and the shared runtime honours the bounds, but **codegen aborted** with
+  `Unknown quantifier: 2` — while the *stimuli generator* happily generated strings for the same grammar
+  (a generator⟷parser duality break). The root cause was a dialect split on the quantifier surface
+  string: the frontend emits the brace-**stripped** raw-AST token (`["quantifier","2"]`), the canonical
+  `parse_quantifier_bounds` decoder spoke only the braced spelling, and the stimuli generator bypassed it
+  through a private duplicate parser that spoke brace-less. `BOUNDED-QUANT.1` taught the ONE canonical
+  decoder both spellings and delegated the stimuli duplicate to it; the four `quant_bounded_*` cases in
+  the table above are the per-combinator differential proof that all four bounded windows now compile,
+  parse, and interpret byte-identically.
 - **LR-elimination shifts the canonical entry.** When PGEN eliminates the wrapper/indirect left-recursion
   form, it **prepends** the synthetic `_lr_base` / `_lr_suffix` helper rules to the rule order — so
   `rule_order[0]` is no longer the semantic entry (`expr`); it becomes the base rule. Driving an
@@ -696,7 +703,8 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
   `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
   ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
-  half (`.6.1`, *The structural combinator suite* above — 16 isolating grammars) and the
+  half (`.6.1`, *The structural combinator suite* above — 20 isolating grammars: 16 at landing, plus the
+  four bounded-quantifier cases added when `BOUNDED-QUANT.1` closed that half-wire) and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
   24 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
   findings-driven re-anchors), which also landed the interpreter's semantic orchestration mirror +
