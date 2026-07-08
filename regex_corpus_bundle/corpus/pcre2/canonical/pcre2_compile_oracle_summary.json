@@ -7,17 +7,18 @@
   "output_file": "testdata/testoutput2",
   "pattern_specs_detected_input": 2239,
   "pattern_specs_detected_output": 2239,
-  "cases_emitted": 2195,
+  "cases_emitted": 2189,
   "max_cases": 0,
   "expected_parse_counts": {
-    "fail": 582,
-    "ok": 1613
+    "fail": 580,
+    "ok": 1609
   },
   "skip_reason_counts": {
-    "unsupported_suffix_token": 42,
+    "unsupported_suffix_token": 48,
     "utf8_decode_failure": 2
   },
   "unsupported_suffix_token_counts": {
+    "expand": 6,
     "hex": 27,
     "literal": 15
   },
@@ -62,7 +63,6 @@
     "dupnames": 52,
     "endanchored": 7,
     "escaped_cr_is_lf": 1,
-    "expand": 6,
     "extended": 6,
     "extended_more": 2,
     "extra_alt_bsux": 6,
@@ -71,7 +71,7 @@
     "global": 9,
     "gm": 7,
     "gmx": 3,
-    "i": 455,
+    "i": 454,
     "ib": 94,
     "ibi": 2,
     "ibs": 2,

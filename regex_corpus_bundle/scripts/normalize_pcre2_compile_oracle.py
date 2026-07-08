@@ -24,7 +24,14 @@ DEFAULT_OUTPUT_JSONL = ROOT / "corpus" / "pcre2" / "canonical" / "pcre2_compile_
 DEFAULT_SUMMARY_JSON = ROOT / "corpus" / "pcre2" / "canonical" / "pcre2_compile_oracle_summary.json"
 DEFAULT_SKIP_JSONL = ROOT / "corpus" / "pcre2" / "canonical" / "pcre2_compile_oracle_skips.jsonl"
 
-UNSUPPORTED_SUFFIX_TOKENS = {"glob", "hex", "literal"}
+# Suffix modifiers under which the RAW pattern text is not what pcre2_compile
+# sees, so pairing the raw text with the observed verdict is unsound by
+# construction: `hex` re-encodes the pattern from hex bytes, `literal`/`glob`
+# change the compile entrypoint, and `expand` (REGEX-PCRE2-FIDELITY.3.18)
+# macro-expands `\[...]{n}` repetitions BEFORE compiling — e.g. testinput2's
+# `/\[AB]{6000000000000000000000}/expand`, whose raw text is a plain err-105
+# reject (`pcre2test` 10.47) while the ingested expectation said "ok".
+UNSUPPORTED_SUFFIX_TOKENS = {"expand", "glob", "hex", "literal"}
 FAILED_RE = re.compile(r"^Failed:\s+error\s+(\d+)\b(?::\s*(.*))?$")
 
 

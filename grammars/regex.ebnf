@@ -128,7 +128,16 @@ quant_base     = "*"                -> {min: 0, max: null}
 # the surrounding `{` ... `}` syntax — the brace tokens carry no semantic
 # information beyond "this is a counted quantifier" (which the surrounding
 # `quant_base` context already conveys). Picks $3 = the body's typed shape.
-counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+#
+# REGEX-PCRE2-FIDELITY.3.18: quantifier-internal whitespace is `brace_ws`
+# (space + tab), NOT the full 6-char `ws` set. Oracle-frozen (pcre2test
+# 10.47, hex-pattern cells): `a{\t65536\t}` / `a{ 65536 }` → err 105 (tab
+# and space ARE quantifier whitespace), while the same brace with a
+# leading OR trailing \n / \f / \r / \v compiles clean → those bytes make
+# the brace a LITERAL, never quantifier whitespace. Pre-`.3.18` this rule
+# used `ws?`, so `a{\n2\n}` mis-parsed as quantifier {2} where PCRE2
+# treats every char as a literal piece.
+counted_quantifier = "{" brace_ws? counted_quantifier_body brace_ws? "}"
 -> $3
 
 # `counted_quantifier_body` was originally:
@@ -142,19 +151,57 @@ counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
 # specific shapes come first so `{2,5}` matches the range form before
 # falling through to {2,} or {2}.
 #
-# PGEN-RGX-0080 fix: `ws?` allowed at every position between the outer
+# PGEN-RGX-0080 fix: whitespace allowed at every position between the outer
 # `{` and `}`, mirroring PCRE2 default-mode behavior (per
 # `pcre2pattern(3) §"Repetition"`: "spaces and tabs may appear at any
-# point inside the curly brackets"). Pre-fix, `ws?` was only between
+# point inside the curly brackets"). Pre-fix, whitespace was only between
 # digits and `}` (trailing); whitespace abutting the comma
 # (`{ 1 , 2 }`, `{1 ,2}`, `{1, 2}`) caused the rule to fail and the
 # parser to fall back to literal piece interpretation. Post-fix, all 5
 # patterns in the bug report (a{1,2}, a{ 1,2 }, a{ 1 , 2 }, a{1 ,2},
 # a{1, 2}) parse to the same {min:1, max:2} typed shape.
-counted_quantifier_body = digits ws? "," ws? digits ws?  -> {min: $1, max: $5}
-                      | digits ws? "," ws?               -> {min: $1, max: null}
-                      | digits ws?                       -> {min: $1, max: $1}
-                      | "," ws? digits                   -> {min: 0,  max: $3}
+#
+# REGEX-PCRE2-FIDELITY.3.18: the bounds are `quant_bound_number` (the
+# value-structural [0, 65535] wrapper below), not raw `digits`, so an
+# out-of-range bound has NO fully-consuming quantifier parse — and the
+# `literal_open_brace` guard then blocks the literal fallback, making
+# PCRE2 err 105 grammar-faithful. The `$N` positions are unchanged
+# (`brace_ws?` occupies the same slots `ws?` did).
+counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -> {min: $1, max: $5}
+                      | quant_bound_number brace_ws? "," brace_ws?               -> {min: $1, max: null}
+                      | quant_bound_number brace_ws?                       -> {min: $1, max: $1}
+                      | "," brace_ws? quant_bound_number                   -> {min: 0,  max: $3}
+
+# REGEX-PCRE2-FIDELITY.3.18: the counted-quantifier bound is VALUE-bounded
+# to [0, 65535] (PCRE2 err 105 "number too big in {} quantifier";
+# `pcre2test` 10.47: `a{65535}` accepts, `a{65536}` / `a{4294967296}`
+# reject) with arbitrary leading zeros (`a{0000000000065535}` accepts —
+# the bound is the VALUE, not the digit count). Encoded STRUCTURALLY with
+# the `.3.16` `callout_number` idiom scaled to 65535: leading zeros plus
+# an optional nonzero-led core ≤ 65535, so an out-of-range run has no
+# fully-consuming parse and generation is in-range BY CONSTRUCTION. The
+# wrapper indirection is REQUIRED for the typed-int surface: the
+# rule-level `@transform` span fallback is not emitted for Or-rooted
+# rules, so the choice lives in `quant_bound_number_body` and
+# `quant_bound_number` keeps the former `digits` carrier (`@transform`
+# over the matched span: `"065535"` → `65535`).
+@transform: str::parse::<usize>().unwrap_or(0)
+quant_bound_number      = quant_bound_number_body
+quant_bound_number_body = "0"+ quant_bound_core? | quant_bound_core
+# The nonzero-led values 1-65535, most-specific first:
+# 65530-65535 / 65500-65529 / 65000-65499 / 60000-64999 / 10000-59999 /
+# 1000-9999 / 100-999 / 10-99 / 1-9. Branch selection is the default
+# longest-match tournament, so a full 5-digit value always beats its
+# 4-digit prefix.
+quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
+                        | "655" ("0" | "1" | "2") digit
+                        | "65" ("0" | "1" | "2" | "3" | "4") digit digit
+                        | "6" ("0" | "1" | "2" | "3" | "4") digit digit digit
+                        | ("1" | "2" | "3" | "4" | "5") digit digit digit digit
+                        | nonzero_digit digit digit digit
+                        | nonzero_digit digit digit
+                        | nonzero_digit digit
+                        | nonzero_digit
 # Each branch surfaces its semantic name directly as a typed string,
 # so consumers don't need to compare against the literal `"?"` / `"+"`
 # tokens or know which suffix character means which thing. Used by
@@ -192,7 +239,32 @@ atom           = literal
                | group
 
 # Literals and escapes
-literal        = literal_char
+#
+# REGEX-PCRE2-FIDELITY.3.18: `{` is split out of `literal_char` into the
+# guarded `literal_open_brace` branch (the two branches are disjoint —
+# `literal_char` no longer matches `{`).
+literal        = literal_char | literal_open_brace
+# PCRE2's brace tokenization model (oracle-pinned, pcre2test 10.47): a
+# brace whose text is syntactically-valid quantifier shape — digits with
+# spaces/tabs anywhere inside, in the four forms `{n}` `{n,}` `{n,m}`
+# `{,m}` — is ALWAYS a quantifier (then value/order/position checks
+# apply); only a NON-quantifier-shaped brace (`{}`, `{,}`, `{a}`,
+# `{\n2}`, unterminated `{2`) falls back to a literal `{`. This negative
+# lookahead encodes that model: a valid-syntax brace can neither parse as
+# quantifier (when its value is out of range — `quant_bound_number` fails
+# on > 65535, PCRE2 err 105) nor fall back to literal, so it
+# grammar-REJECTS. The same one guard closes the err-109 NON-REPEATABLE
+# POSITION class (`{2,5}` at pattern start, `x|{2,5}`, `a{2}{3}`: no
+# preceding atom ⇒ no quantifier slot, and the literal path is blocked)
+# and the u32-overflow hole (`a{4294967296}`: syntax-valid ⇒ literal
+# blocked; value-encode fails the quantifier). The guard's whitespace set
+# is `brace_ws` (space + tab — the oracle-frozen PCRE2 set; a \n/\f/\r/\v
+# inside the brace makes it literal, so the guard correctly does NOT
+# fire). The guard is INLINE (not a named rule) so it adds no
+# never-committing rule to the certificate-coverage universe. `$2` keeps
+# the accepted-literal AST byte-identical to the former `literal_char`
+# arm (the bare `"{"` terminal).
+literal_open_brace = !( "{" brace_ws? ( digit+ brace_ws? ( "," brace_ws? ( digit+ brace_ws? )? )? | "," brace_ws? digit+ brace_ws? ) "}" ) "{" -> $2
 whitespace_literal = whitespace
 # `quoted_literal` annotated to surface the typed
 # `{type:"atom", kind:"quoted_literal", body:<chars>}` shape.
@@ -208,7 +280,10 @@ quoted_literal_escaped_char = "\\" quoted_literal_escape_tail
 quoted_literal_escape_tail = letter_no_upper_e | digit | whitespace | class_safe_special | ']' | unicode_char
 # REGEX-SELF-HOSTING.5c: `literal_char` = letter|digit|<its punct subset>|unicode_char (its original set
 # `[A-Za-z0-9!"#%&',\-\/:;<=>@\]{}_\`~]|[^\x00-\x7F]`). `'"'`=double-quote, `"'"`=single-quote.
-literal_char   = letter | digit | '!' | '"' | '#' | '%' | '&' | "'" | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | ']' | '{' | '}' | '_' | '`' | '~' | unicode_char
+# REGEX-PCRE2-FIDELITY.3.18: `'{'` moved to the guarded `literal_open_brace`
+# branch of `literal` (PCRE2 brace tokenization model); `'}'` stays — an
+# unmatched `}` is always literal in PCRE2 default mode.
+literal_char   = letter | digit | '!' | '"' | '#' | '%' | '&' | "'" | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | ']' | '}' | '_' | '`' | '~' | unicode_char
 
 # Dot
 dot            = "."

@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0016 (REGEX-PCRE2-FIDELITY.3.18): the PCRE2 counted-quantifier BRACE TOKENIZATION model grammar-encoded — 6 released-parser divergences fixed, regex release 1.1.85
+
+Session #67. A full released-parser slice implementing the `-0015` frozen scoping: release
+`1.1.84`→`1.1.85`, contract `1.1.86`→`1.1.87`, AST-dump schema stays `1`, ledger
+`REGEX-0092`/`REGEX-0093`/`REGEX-0094` (the 6th validator→grammar compile-contract migration).
+
+- **The model (oracle-pinned, pcre2test 10.47; the whitespace set frozen via hex-pattern
+  65536-discriminator cells):** a syntactically-valid quantifier brace — digits with spaces/tabs
+  anywhere inside, forms `{n}` `{n,}` `{n,m}` `{,m}` — is ALWAYS a quantifier; then value > 65535
+  = err 105, min > max = err 104, non-repeatable position = err 109; only a
+  non-quantifier-shaped brace (`{}`, `{,}`, `{a}`, a `\n`/`\f`/`\r`/`\v` inside, unterminated)
+  is a literal `{`.
+- **Grammar encode:** `quant_bound_number`/`_body`/`quant_bound_core` — the `.3.16`
+  `callout_number` idiom scaled to `[0, 65535]` (9-branch nonzero-led cascade; `@transform`
+  typed-int carrier preserved; `$N` positions unchanged so the manifest annotations are
+  byte-stable) — replacing `digits` in all four `counted_quantifier_body` branches;
+  `literal_open_brace = !( quantifier-syntax ) "{" -> $2` (INLINE guard — a named guard rule
+  would be a permanently never-committing cert UNKNOWN) with `'{'` removed from `literal_char`;
+  quantifier-internal `ws?` → `brace_ws?` (space + tab) end-to-end. ONE guard closes both the
+  err-109 position class and the u32-overflow hole.
+- **The 6 divergences fixed (5 accepts-invalid → REJECT, 1 rejects-valid → ACCEPT):**
+  `a{4294967296}` (REGEX-0092 — the validator's `parse::<u32>().ok()?` overflow hole skipped ALL
+  checks); `{2,5}`-at-start / `x|{2,5}` / `a{2}{3}` (REGEX-0093 — err-109 position class);
+  `a{\t5\t,\t2\t}` accepts-invalid + `a{\n5,2\n}` rejects-valid (REGEX-0094 — the ws set was
+  space-only in the validator's recognizer AND all-whitespace in its `trim()`, each the opposite
+  of PCRE2's space+tab set; both found in-slice).
+- **Validator narrowed (design iv):** both 65535-limit branches + the overflow-holed parse path
+  DELETED; only min>max ORDER stays (tab-aware byte filter, `trim_matches([' ', '\t'])`,
+  saturating-u64 bounds).
+- **Duality-gate contract re-baselined same-commit** (the `.13.3` discipline, first legitimate
+  distribution re-baseline): the SAME two adjudicated classes (owners `.3.20`/`.4` unchanged)
+  shifted lanes/seeds with the new RNG stream positions; NO novel class at 6,300 gate samples —
+  the literal-brace generation-adjacency concern did NOT materialize. Gate GREEN ×2 post-re-baseline.
+- **Adjacent corpus-ingestion defect fixed (surfaced by the oracle-gate ratchet):** the
+  normalizer ingested pcre2test `expand`-modifier lines as raw patterns
+  (`/\[AB]{6000000000000000000000}/expand` → expectation "ok" while the raw text is a plain
+  err-105 reject — pcre2test macro-expands `\[...]{n}` BEFORE compiling). `"expand"` added to
+  `UNSUPPORTED_SUFFIX_TOKENS`; 6 cells skipped (2195→2189); canonical corpus artifacts
+  regenerated; baseline env v11 — false-accepts 292→**286**, the false-reject ratchet EXACT at
+  **46**.
+- **Verified:** 47-cell oracle matrix green on the rebuilt release probe (exactly the 6 flips,
+  zero collateral); literal-`{` AST byte-identical; typed min/max ints preserved; regex cert
+  **228/228/0 fully_certified spf=0** ×seeds 0/7/42 (224→228 = the 4 new rules); lint 0/0 (228
+  rules); lib suites **889/847/768** (+2 validator pins, +1 registry pin
+  `regex_counted_quantifier_brace_model_rejects_at_the_grammar_layer_pcre2_faithfully`);
+  equivalence gate ✅ (regex stays differential-CERTIFIED); combinator + semantic ✅;
+  `duality_hunt_gate` ✅; `regex_pcre2_compile_oracle_gate` ✅ v11 +
+  `regex_corpus_bundle_contract_gate` + `regex_pcre2_textsafe_corpus_gate` ✅; clippy
+  strict-source ok; both book gates ✅.
+- **Lockstep:** ledger rows + version consts + tracked contract JSON; contract MD Identity +
+  1.1.85/1.1.87 Highlights; regex book (rules-quantifier rewritten + `quant_bound_number` section,
+  rules-atom literal split + `literal_open_brace` section — both chapters' stale pre-self-hosting
+  text also brought to current truth — examples-quantifiers brace-model section, json-carrier +2
+  rows, changelog 1.1.85 entry, tracked HTML); top book parser-families handoff; AST-shape
+  manifest inventory 207→208; both trees + TASK_TREE + live docs.
+
 ## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0018 (STIMULI-SIGNOFF.13.3): the DUALITY-HUNT GATE lane + scaled-run residual enumeration — the `.13` node COMPLETE; gate tooling only, zero parser/generator change
 
 Session #66. The `.13.1` §6 adjudication's mandated lane, mechanized. No rust/src, grammars/, or

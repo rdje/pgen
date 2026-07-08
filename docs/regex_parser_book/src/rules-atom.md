@@ -54,10 +54,10 @@ When `atom` is annotated (planned in task #40), a target shape might be:
 ## `literal`
 
 ```ebnf
-literal = literal_char
+literal = literal_char | literal_open_brace
 ```
 
-Single-element wrapper around `literal_char`. Currently **un-annotated**. With the slice-36 codegen tightening, single-element-rule-body un-annotated rules still get the implicit `-> $1` default — so `literal` transparently returns whatever `literal_char` produced.
+Two disjoint branches (release `1.1.85`): `literal_char` covers every literal character except `{`, and `literal_open_brace` covers the guarded literal `{`. **Un-annotated** — the matched branch's shape passes straight through.
 
 ### Shape
 
@@ -65,15 +65,15 @@ Single-element wrapper around `literal_char`. Currently **un-annotated**. With t
 
 ### Examples
 
-For atom `a`: the `atom` content is `"a"` (JSON string).
+For atom `a`: the `atom` content is `"a"` (JSON string). For the `{` in `a{}`: the `atom` content is `"{"` — byte-identical to pre-`1.1.85` releases.
 
 ## `literal_char`
 
 ```ebnf
-literal_char = /([A-Za-z0-9!"#%&',\-\/:;<=>@\]{}_`~]|[^\x00-\x7F])/
+literal_char = letter | digit | '!' | '"' | '#' | '%' | '&' | "'" | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | ']' | '}' | '_' | '`' | '~' | unicode_char
 ```
 
-A single-character regex literal. Captures one ASCII non-special char OR any non-ASCII byte.
+A single-character regex literal: one ASCII non-special char OR any non-ASCII char (`unicode_char`). Native alternation since the self-hosting conversion (no Rust-regex body).
 
 ### Shape
 
@@ -81,7 +81,25 @@ A single-character regex literal. Captures one ASCII non-special char OR any non
 
 ### What's NOT a literal_char
 
-These chars are excluded because they have regex-special meaning and would be matched by other atom alternatives or by escape rules: `\`, `(`, `)`, `[`, `*`, `+`, `?`, `.`, `^`, `$`, `|`, `{`, space, control characters.
+Chars with regex-special meaning, matched by other atom alternatives or escape rules: `\`, `(`, `)`, `[`, `*`, `+`, `?`, `.`, `^`, `$`, `|`, space, control characters. Since release `1.1.85`, `{` is also not a `literal_char` — it lives in the guarded `literal_open_brace` branch below. An unmatched `}` IS a `literal_char` (PCRE2 treats it as literal in default mode).
+
+## `literal_open_brace`
+
+```ebnf
+literal_open_brace = !( "{" brace_ws? ( digit+ brace_ws? ( "," brace_ws? ( digit+ brace_ws? )? )? | "," brace_ws? digit+ brace_ws? ) "}" ) "{" -> $2
+```
+
+**Annotated (`-> $2`).** Release `1.1.85` (`REGEX-PCRE2-FIDELITY.3.18`, ledger `REGEX-0093`): PCRE2's brace tokenization model — a brace whose text is syntactically-valid quantifier shape (digits with spaces/tabs anywhere inside, in the four forms `{n}` `{n,}` `{n,m}` `{,m}`) is ALWAYS a quantifier, never a literal. The inline negative lookahead encodes exactly that syntax (digit runs value-UNBOUNDED, whitespace = `brace_ws` = space + tab), so:
+
+- a valid-syntax brace at a **non-repeatable position** (`{2,5}` at pattern start, `x|{2,5}`, `a{2}{3}`) can neither quantify nor fall back to literal ⇒ the pattern REJECTS (PCRE2 err 109);
+- a valid-syntax brace with an **out-of-range value** (`a{65536}`, `a{4294967296}`) fails the quantifier ([`quant_bound_number`](rules-quantifier.md)) and is blocked here too ⇒ REJECTS (err 105);
+- a **non-quantifier-shaped** brace (`{}`, `{,}`, `{ }`, `{a}`, `a{1,2,3}b`, a `\n`/`\f`/`\r`/`\v` inside, unterminated `a{65536`) matches this branch and stays a literal `{`, exactly as PCRE2 compiles it.
+
+The `-> $2` annotation drops the zero-width guard slot and emits the bare `"{"` terminal — byte-identical to the shape the former `literal_char` arm produced.
+
+### Shape
+
+`Terminal("{")`.
 
 ## `whitespace_literal`
 

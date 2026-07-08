@@ -186,6 +186,8 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `modifier_item` (branch 4, modifier_char) | (implicit `$1`) | Whatever modifier_char matched (single char). |
 | `quoted_class_range_atom` | `-> {type:"class_quoted_range_atom", char:$2}` | Object. Surfaces inside `class_range.start` / `class_range.end` for the PCRE2 `\Q...\E` quoted-class-range form. |
 | `digits` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer) |
+| `quant_bound_number` | `@transform: str::parse::<usize>().unwrap_or(0)` | Number (integer in `0..=65535`) — the counted-quantifier bound carrier, value-bounded structurally (REGEX-PCRE2-FIDELITY.3.18, rel `1.1.85`; same typed-int surface the former `digits` slot emitted). |
+| `literal_open_brace` | `-> $2` | Terminal `"{"` — the guarded literal open-brace branch of `literal` (rel `1.1.85`); `$2` drops the zero-width quantifier-syntax guard so the shape is byte-identical to the former `literal_char` arm. |
 | `posix_class` | `-> $1` | Whatever the matched element produced |
 
 Rules NOT in this list produce non-`Json` content (`Sequence`, `Quantified`, `Terminal`, `Alternative`) — they inherit the legacy recursive-envelope shape pending future annotation slices.

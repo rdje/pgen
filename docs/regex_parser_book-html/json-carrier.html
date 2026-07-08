@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c097dea4.js";
+            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -367,6 +367,8 @@
 <tr><td><code>modifier_item</code> (branch 4, modifier_char)</td><td>(implicit <code>$1</code>)</td><td>Whatever modifier_char matched (single char).</td></tr>
 <tr><td><code>quoted_class_range_atom</code></td><td><code>-&gt; {type:"class_quoted_range_atom", char:$2}</code></td><td>Object. Surfaces inside <code>class_range.start</code> / <code>class_range.end</code> for the PCRE2 <code>\Q...\E</code> quoted-class-range form.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
+<tr><td><code>quant_bound_number</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer in <code>0..=65535</code>) — the counted-quantifier bound carrier, value-bounded structurally (REGEX-PCRE2-FIDELITY.3.18, rel <code>1.1.85</code>; same typed-int surface the former <code>digits</code> slot emitted).</td></tr>
+<tr><td><code>literal_open_brace</code></td><td><code>-&gt; $2</code></td><td>Terminal <code>"{"</code> — the guarded literal open-brace branch of <code>literal</code> (rel <code>1.1.85</code>); <code>$2</code> drops the zero-width quantifier-syntax guard so the shape is byte-identical to the former <code>literal_char</code> arm.</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>
 </table>

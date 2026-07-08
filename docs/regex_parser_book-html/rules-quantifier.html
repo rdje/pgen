@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c097dea4.js";
+            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -247,10 +247,11 @@
 <h3 id="earlier-form-pre-1135"><a class="header" href="#earlier-form-pre-1135">Earlier form (pre-1.1.35)</a></h3>
 <p>Pre-slice-6, this rule used positional-passthrough <code>-&gt; $1</code> on every branch, which emitted the bare terminal string for shorthand cases (<code>"*"</code>/<code>"+"</code>/<code>"?"</code>) and the typed object only for counted quantifiers. That heterogeneous shape forced consumers to dispatch on string-vs-object. Slice 6 unifies the output to typed <code>{min, max}</code> for every branch — Tier-2 break, contract bumped accordingly.</p>
 <h2 id="counted_quantifier"><a class="header" href="#counted_quantifier"><code>counted_quantifier</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+<pre><code class="language-ebnf">counted_quantifier = "{" brace_ws? counted_quantifier_body brace_ws? "}"
 -&gt; $3
 </code></pre>
 <p><strong>Annotated.</strong> The annotation <code>-&gt; $3</code> lifts the typed <code>counted_quantifier_body</code> shape straight through, dropping the surrounding <code>{</code>, whitespace, and <code>}</code> tokens — they carry no semantic information beyond “this is a counted quantifier” (which the surrounding <code>quant_base</code> context already conveys).</p>
+<p><strong>Whitespace is <code>brace_ws</code> (space + tab), not the full <code>ws</code> set</strong> — release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0094</code>). PCRE2 allows exactly spaces and tabs inside quantifier braces (oracle-frozen: <code>a{\t65536\t}</code> is err 105, i.e. a quantifier; the same brace with a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> anywhere inside compiles clean as LITERALS). Pre-<code>1.1.85</code> the rule used <code>ws?</code>, so <code>a{\n2\n}</code> mis-parsed as the quantifier <code>{2}</code> where PCRE2 sees five literal pieces.</p>
 <h3 id="current-shape"><a class="header" href="#current-shape">Current shape</a></h3>
 <pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
@@ -265,14 +266,16 @@
 <tr><td><code>{2,}</code></td><td><code>{"min": 2, "max": null}</code></td></tr>
 <tr><td><code>{2,5}</code></td><td><code>{"min": 2, "max": 5}</code></td></tr>
 <tr><td><code>{,5}</code></td><td><code>{"min": 0, "max": 5}</code></td></tr>
+<tr><td><code>{ 2 , 5 }</code> (spaces/tabs anywhere)</td><td><code>{"min": 2, "max": 5}</code></td></tr>
+<tr><td><code>{065535}</code> (leading zeros collapse)</td><td><code>{"min": 65535, "max": 65535}</code></td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="counted_quantifier_body"><a class="header" href="#counted_quantifier_body"><code>counted_quantifier_body</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier_body = digits "," digits ws?  -&gt; {min: $1, max: $3}
-                        | digits "," ws?         -&gt; {min: $1, max: null}
-                        | digits ws?             -&gt; {min: $1, max: $1}
-                        | "," ws? digits         -&gt; {min: 0,  max: $3}
+<pre><code class="language-ebnf">counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -&gt; {min: $1, max: $5}
+                      | quant_bound_number brace_ws? "," brace_ws?               -&gt; {min: $1, max: null}
+                      | quant_bound_number brace_ws?                       -&gt; {min: $1, max: $1}
+                      | "," brace_ws? quant_bound_number                   -&gt; {min: 0,  max: $3}
 </code></pre>
 <p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). Each branch carries its own per-branch annotation producing the same <code>{min, max}</code> shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
@@ -282,12 +285,29 @@
 <h3 id="why-the-four-branches"><a class="header" href="#why-the-four-branches">Why the four branches</a></h3>
 <p>The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.</p>
 <p>The book entry for <a href="examples-quoted-literal.html">\Q…\E Quoted Literals</a> and <a href="examples-quantifiers.html">Quantifiers</a> shows this typed shape in worked examples.</p>
+<h2 id="quant_bound_number-and-quant_bound_number_body--quant_bound_core"><a class="header" href="#quant_bound_number-and-quant_bound_number_body--quant_bound_core"><code>quant_bound_number</code> (and <code>quant_bound_number_body</code> / <code>quant_bound_core</code>)</a></h2>
+<pre><code class="language-ebnf">@transform: str::parse::&lt;usize&gt;().unwrap_or(0)
+quant_bound_number      = quant_bound_number_body
+quant_bound_number_body = "0"+ quant_bound_core? | quant_bound_core
+quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
+                        | "655" ("0" | "1" | "2") digit
+                        | "65" ("0" | "1" | "2" | "3" | "4") digit digit
+                        | "6" ("0" | "1" | "2" | "3" | "4") digit digit digit
+                        | ("1" | "2" | "3" | "4" | "5") digit digit digit digit
+                        | nonzero_digit digit digit digit
+                        | nonzero_digit digit digit
+                        | nonzero_digit digit
+                        | nonzero_digit
+</code></pre>
+<p><strong>Annotated (<code>@transform</code> on the wrapper).</strong> Release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0092</code>): the counted-quantifier bound is VALUE-bounded to <code>[0, 65535]</code> (PCRE2 err 105) <strong>structurally</strong> — the <a href="rules-misc.html"><code>callout_number</code></a> <code>[0, 255]</code> idiom scaled up. <code>quant_bound_number_body</code> admits leading zeros plus an optional nonzero-led core whose 9-branch cascade covers exactly <code>1..=65535</code> (the default longest-match tournament picks the full value over any prefix), so an out-of-range digit run has no fully-consuming quantifier parse — and generation draws in-range bounds <strong>by construction</strong>. The wrapper carries the same <code>@transform</code> span parse <code>digits</code> used, so <code>min</code>/<code>max</code> stay typed ints (<code>"065535"</code> → <code>65535</code>) and the AST shape is unchanged.</p>
+<h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
+<p><code>Json(Number(&lt;usize&gt;))</code> in <code>0..=65535</code> — exactly what the former <code>digits</code> slot emitted for in-range values. Out-of-range values (<code>{65536}</code>, <code>{4294967296}</code> — the former u32-overflow hole that skipped every check) no longer parse at all: the quantifier fails AND the <a href="rules-atom.html"><code>literal_open_brace</code> guard</a> blocks the literal fallback, so the pattern REJECTS err-105-faithfully.</p>
 <h2 id="quant_suffix"><a class="header" href="#quant_suffix"><code>quant_suffix</code></a></h2>
 <pre><code class="language-ebnf">quant_suffix = "?" -&gt; "lazy"
              | "+" -&gt; "possessive"
 </code></pre>
 <p><strong>Annotated.</strong> Per-branch annotations emit semantic strings.</p>
-<h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
+<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -321,15 +341,15 @@
 digits = /([0-9]+)/
 </code></pre>
 <p><strong>Annotated.</strong> Emits a typed integer via <code>@transform</code>.</p>
-<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
+<h3 id="shape-3"><a class="header" href="#shape-3">Shape</a></h3>
 <p><code>Json(Number(&lt;usize&gt;))</code> — a non-negative integer.</p>
 <h3 id="where-it-appears"><a class="header" href="#where-it-appears">Where it appears</a></h3>
 <ul>
-<li>Inside <code>counted_quantifier_body</code> — the <code>min</code> and <code>max</code> digit slots, e.g. <code>{2,5}</code> produces typed integers <code>2</code> and <code>5</code>.</li>
 <li>Inside <code>version_number = digits ("." digits)?</code>.</li>
 <li>Inside <code>recursion_condition = "R" digits?</code>.</li>
-<li>Inside <code>callout_arg = digits | callout_string</code>.</li>
 <li>Inside <code>signed_digits = sign? digits</code>.</li>
+<li>NOT inside <code>counted_quantifier_body</code> since release <code>1.1.85</code> — the <code>min</code>/<code>max</code> slots are the value-bounded <code>quant_bound_number</code> (same typed-int carrier; see above).</li>
+<li>NOT inside <code>callout_arg</code> since release <code>1.1.83</code>-era <code>.3.16</code> — the numeric callout arg is the value-bounded <code>callout_number</code> (same idiom, <code>[0, 255]</code>).</li>
 </ul>
 <p>The <code>digit</code> (per-char) rule used by <code>backreference_digits = nonzero_digit digit*</code> is a DIFFERENT rule and is not annotated — each digit is still a per-char Terminal.</p>
 <h2 id="related-rules-digit-hex_digits-octal_digits-nonzero_digit-hex_digit-octal_digit"><a class="header" href="#related-rules-digit-hex_digits-octal_digits-nonzero_digit-hex_digit-octal_digit">Related rules: <code>digit</code>, <code>hex_digits</code>, <code>octal_digits</code>, <code>nonzero_digit</code>, <code>hex_digit</code>, <code>octal_digit</code></a></h2>

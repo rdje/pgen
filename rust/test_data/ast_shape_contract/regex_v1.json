@@ -727,6 +727,12 @@
         "normalized_text": "{type: \"atom\", kind: \"inline_modifiers\", spec: $2}"
       },
       {
+        "rule": "literal_open_brace",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
         "rule": "lookahead_neg",
         "branch_index": 0,
         "annotation_type": "return_object",

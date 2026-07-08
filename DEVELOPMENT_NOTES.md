@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0016 — REGEX-PCRE2-FIDELITY.3.18: implementation notes — the brace tokenization model
+
+Session #67. Notes from landing the counted-quantifier brace model:
+
+1. **A lookahead-only named rule is a permanent cert UNKNOWN.** The quantifier-syntax guard had
+   to be INLINE (`!( "{" brace_ws? ( … ) "}" ) "{"`): a named rule referenced only under `!` can
+   never COMMIT on an accepting parse, so the transactional coverage record never witnesses it
+   and `UNKNOWN=0` becomes unreachable. The `directive_relaxed_named` inline-group form
+   (`regex.ebnf:1313`) is the precedent; `digit`/`brace_ws` inside the group are witnessed at
+   their ordinary committed sites.
+2. **The bound cascade + longest-match tournament compose cleanly.** `quant_bound_core`'s
+   9 branches are prefix-disjoint, and the default longest-match tournament guarantees a full
+   value always beats its own 4-digit prefix (`"65535"` → the 5-digit branch, never
+   `"6553"+trailing-5` weirdness). On invalid values (`{65536}`) the core matches the longest
+   in-range prefix, the continuation then fails, and — critically — the guard has already
+   blocked the literal fallback, so the whole pattern rejects instead of re-parsing as literals.
+3. **The oracle's whitespace set had to be frozen with HEX cells.** pcre2test pattern lines
+   process no escapes, so `\n` typed in a pattern is a 2-char escape, not a newline byte. The
+   `/… /hex` modifier is the only way to get raw control bytes into a compile cell:
+   `61 7b 0a 36 35 35 33 36 0a 7d` (= `a{\n65536\n}`) compiling CLEAN is what proves a newline
+   makes the brace literal (space/tab cells err-105 on the same value). Leading AND trailing
+   positions verified for all four control bytes.
+4. **The validator's ws handling was wrong in BOTH directions at once.** The recognizer byte
+   filter (space-only) under-recognized → tab-spaced order violations never checked
+   (accepts-invalid); the whole-body `str::trim()` (all-whitespace) over-recognized →
+   newline-framed braces order-checked (rejects-valid). One class, two opposite defects — the
+   fix is a single set (space+tab) applied consistently (filter + per-part `trim_matches`).
+5. **pcre2test `expand` is a macro processor, not a pattern modifier.** `\[...]{n}` under
+   `/expand` is expanded BEFORE `pcre2_compile`, so the raw line text and the compiled pattern
+   are different strings — pairing the raw text with the observed verdict is unsound BY
+   CONSTRUCTION (the corpus had ingested one such line as expected-ok whose raw text is a plain
+   err-105 reject; PGEN's post-fix correct REJECT surfaced it as a phantom 47th false-reject).
+   `expand` now sits in `UNSUPPORTED_SUFFIX_TOKENS` next to `hex`/`literal`/`glob`, which
+   break the same raw-text↔compile-input mapping.
+6. **The duality gate behaved exactly as designed under a legitimate grammar change.** The 4 new
+   rules shifted the generator's RNG stream, moving the SAME two adjudicated break classes
+   across lanes/seeds. The gate failed on BOTH drift directions (novel-in-lane + vanished-in-lane),
+   the contract was re-baselined same-commit with owners unchanged, and the determinism tripwire
+   stayed byte-identical. First real-world exercise of the `.13.3` re-baseline discipline.
+
 ## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0018 — STIMULI-SIGNOFF.13.3: implementation notes — the duality-hunt gate lane
 
 Session #66. Notes from landing the gate + the scaled enumeration:

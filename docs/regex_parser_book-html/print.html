@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c097dea4.js";
+            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -1035,6 +1035,8 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>modifier_item</code> (branch 4, modifier_char)</td><td>(implicit <code>$1</code>)</td><td>Whatever modifier_char matched (single char).</td></tr>
 <tr><td><code>quoted_class_range_atom</code></td><td><code>-&gt; {type:"class_quoted_range_atom", char:$2}</code></td><td>Object. Surfaces inside <code>class_range.start</code> / <code>class_range.end</code> for the PCRE2 <code>\Q...\E</code> quoted-class-range form.</td></tr>
 <tr><td><code>digits</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer)</td></tr>
+<tr><td><code>quant_bound_number</code></td><td><code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code></td><td>Number (integer in <code>0..=65535</code>) — the counted-quantifier bound carrier, value-bounded structurally (REGEX-PCRE2-FIDELITY.3.18, rel <code>1.1.85</code>; same typed-int surface the former <code>digits</code> slot emitted).</td></tr>
+<tr><td><code>literal_open_brace</code></td><td><code>-&gt; $2</code></td><td>Terminal <code>"{"</code> — the guarded literal open-brace branch of <code>literal</code> (rel <code>1.1.85</code>); <code>$2</code> drops the zero-width quantifier-syntax guard so the shape is byte-identical to the former <code>literal_char</code> arm.</td></tr>
 <tr><td><code>posix_class</code></td><td><code>-&gt; $1</code></td><td>Whatever the matched element produced</td></tr>
 </tbody>
 </table>
@@ -1714,10 +1716,11 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 <h3 id="earlier-form-pre-1135"><a class="header" href="#earlier-form-pre-1135">Earlier form (pre-1.1.35)</a></h3>
 <p>Pre-slice-6, this rule used positional-passthrough <code>-&gt; $1</code> on every branch, which emitted the bare terminal string for shorthand cases (<code>"*"</code>/<code>"+"</code>/<code>"?"</code>) and the typed object only for counted quantifiers. That heterogeneous shape forced consumers to dispatch on string-vs-object. Slice 6 unifies the output to typed <code>{min, max}</code> for every branch — Tier-2 break, contract bumped accordingly.</p>
 <h2 id="counted_quantifier"><a class="header" href="#counted_quantifier"><code>counted_quantifier</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+<pre><code class="language-ebnf">counted_quantifier = "{" brace_ws? counted_quantifier_body brace_ws? "}"
 -&gt; $3
 </code></pre>
 <p><strong>Annotated.</strong> The annotation <code>-&gt; $3</code> lifts the typed <code>counted_quantifier_body</code> shape straight through, dropping the surrounding <code>{</code>, whitespace, and <code>}</code> tokens — they carry no semantic information beyond “this is a counted quantifier” (which the surrounding <code>quant_base</code> context already conveys).</p>
+<p><strong>Whitespace is <code>brace_ws</code> (space + tab), not the full <code>ws</code> set</strong> — release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0094</code>). PCRE2 allows exactly spaces and tabs inside quantifier braces (oracle-frozen: <code>a{\t65536\t}</code> is err 105, i.e. a quantifier; the same brace with a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> anywhere inside compiles clean as LITERALS). Pre-<code>1.1.85</code> the rule used <code>ws?</code>, so <code>a{\n2\n}</code> mis-parsed as the quantifier <code>{2}</code> where PCRE2 sees five literal pieces.</p>
 <h3 id="current-shape"><a class="header" href="#current-shape">Current shape</a></h3>
 <pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
@@ -1732,14 +1735,16 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 <tr><td><code>{2,}</code></td><td><code>{"min": 2, "max": null}</code></td></tr>
 <tr><td><code>{2,5}</code></td><td><code>{"min": 2, "max": 5}</code></td></tr>
 <tr><td><code>{,5}</code></td><td><code>{"min": 0, "max": 5}</code></td></tr>
+<tr><td><code>{ 2 , 5 }</code> (spaces/tabs anywhere)</td><td><code>{"min": 2, "max": 5}</code></td></tr>
+<tr><td><code>{065535}</code> (leading zeros collapse)</td><td><code>{"min": 65535, "max": 65535}</code></td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="counted_quantifier_body"><a class="header" href="#counted_quantifier_body"><code>counted_quantifier_body</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier_body = digits "," digits ws?  -&gt; {min: $1, max: $3}
-                        | digits "," ws?         -&gt; {min: $1, max: null}
-                        | digits ws?             -&gt; {min: $1, max: $1}
-                        | "," ws? digits         -&gt; {min: 0,  max: $3}
+<pre><code class="language-ebnf">counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -&gt; {min: $1, max: $5}
+                      | quant_bound_number brace_ws? "," brace_ws?               -&gt; {min: $1, max: null}
+                      | quant_bound_number brace_ws?                       -&gt; {min: $1, max: $1}
+                      | "," brace_ws? quant_bound_number                   -&gt; {min: 0,  max: $3}
 </code></pre>
 <p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). Each branch carries its own per-branch annotation producing the same <code>{min, max}</code> shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
@@ -1749,12 +1754,29 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 <h3 id="why-the-four-branches"><a class="header" href="#why-the-four-branches">Why the four branches</a></h3>
 <p>The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.</p>
 <p>The book entry for <a href="#examples-qe-quoted-literals">\Q…\E Quoted Literals</a> and <a href="#examples-quantifiers">Quantifiers</a> shows this typed shape in worked examples.</p>
+<h2 id="quant_bound_number-and-quant_bound_number_body--quant_bound_core"><a class="header" href="#quant_bound_number-and-quant_bound_number_body--quant_bound_core"><code>quant_bound_number</code> (and <code>quant_bound_number_body</code> / <code>quant_bound_core</code>)</a></h2>
+<pre><code class="language-ebnf">@transform: str::parse::&lt;usize&gt;().unwrap_or(0)
+quant_bound_number      = quant_bound_number_body
+quant_bound_number_body = "0"+ quant_bound_core? | quant_bound_core
+quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
+                        | "655" ("0" | "1" | "2") digit
+                        | "65" ("0" | "1" | "2" | "3" | "4") digit digit
+                        | "6" ("0" | "1" | "2" | "3" | "4") digit digit digit
+                        | ("1" | "2" | "3" | "4" | "5") digit digit digit digit
+                        | nonzero_digit digit digit digit
+                        | nonzero_digit digit digit
+                        | nonzero_digit digit
+                        | nonzero_digit
+</code></pre>
+<p><strong>Annotated (<code>@transform</code> on the wrapper).</strong> Release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0092</code>): the counted-quantifier bound is VALUE-bounded to <code>[0, 65535]</code> (PCRE2 err 105) <strong>structurally</strong> — the <a href="#anchors-backreferences-and-misc"><code>callout_number</code></a> <code>[0, 255]</code> idiom scaled up. <code>quant_bound_number_body</code> admits leading zeros plus an optional nonzero-led core whose 9-branch cascade covers exactly <code>1..=65535</code> (the default longest-match tournament picks the full value over any prefix), so an out-of-range digit run has no fully-consuming quantifier parse — and generation draws in-range bounds <strong>by construction</strong>. The wrapper carries the same <code>@transform</code> span parse <code>digits</code> used, so <code>min</code>/<code>max</code> stay typed ints (<code>"065535"</code> → <code>65535</code>) and the AST shape is unchanged.</p>
+<h3 id="shape-1-2"><a class="header" href="#shape-1-2">Shape</a></h3>
+<p><code>Json(Number(&lt;usize&gt;))</code> in <code>0..=65535</code> — exactly what the former <code>digits</code> slot emitted for in-range values. Out-of-range values (<code>{65536}</code>, <code>{4294967296}</code> — the former u32-overflow hole that skipped every check) no longer parse at all: the quantifier fails AND the <a href="#atom-subtree"><code>literal_open_brace</code> guard</a> blocks the literal fallback, so the pattern REJECTS err-105-faithfully.</p>
 <h2 id="quant_suffix"><a class="header" href="#quant_suffix"><code>quant_suffix</code></a></h2>
 <pre><code class="language-ebnf">quant_suffix = "?" -&gt; "lazy"
              | "+" -&gt; "possessive"
 </code></pre>
 <p><strong>Annotated.</strong> Per-branch annotations emit semantic strings.</p>
-<h3 id="shape-1-2"><a class="header" href="#shape-1-2">Shape</a></h3>
+<h3 id="shape-2-1"><a class="header" href="#shape-2-1">Shape</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1788,15 +1810,15 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 digits = /([0-9]+)/
 </code></pre>
 <p><strong>Annotated.</strong> Emits a typed integer via <code>@transform</code>.</p>
-<h3 id="shape-2-1"><a class="header" href="#shape-2-1">Shape</a></h3>
+<h3 id="shape-3-1"><a class="header" href="#shape-3-1">Shape</a></h3>
 <p><code>Json(Number(&lt;usize&gt;))</code> — a non-negative integer.</p>
 <h3 id="where-it-appears"><a class="header" href="#where-it-appears">Where it appears</a></h3>
 <ul>
-<li>Inside <code>counted_quantifier_body</code> — the <code>min</code> and <code>max</code> digit slots, e.g. <code>{2,5}</code> produces typed integers <code>2</code> and <code>5</code>.</li>
 <li>Inside <code>version_number = digits ("." digits)?</code>.</li>
 <li>Inside <code>recursion_condition = "R" digits?</code>.</li>
-<li>Inside <code>callout_arg = digits | callout_string</code>.</li>
 <li>Inside <code>signed_digits = sign? digits</code>.</li>
+<li>NOT inside <code>counted_quantifier_body</code> since release <code>1.1.85</code> — the <code>min</code>/<code>max</code> slots are the value-bounded <code>quant_bound_number</code> (same typed-int carrier; see above).</li>
+<li>NOT inside <code>callout_arg</code> since release <code>1.1.83</code>-era <code>.3.16</code> — the numeric callout arg is the value-bounded <code>callout_number</code> (same idiom, <code>[0, 255]</code>).</li>
 </ul>
 <p>The <code>digit</code> (per-char) rule used by <code>backreference_digits = nonzero_digit digit*</code> is a DIFFERENT rule and is not annotated — each digit is still a per-char Terminal.</p>
 <h2 id="related-rules-digit-hex_digits-octal_digits-nonzero_digit-hex_digit-octal_digit"><a class="header" href="#related-rules-digit-hex_digits-octal_digits-nonzero_digit-hex_digit-octal_digit">Related rules: <code>digit</code>, <code>hex_digits</code>, <code>octal_digits</code>, <code>nonzero_digit</code>, <code>hex_digit</code>, <code>octal_digit</code></a></h2>
@@ -1893,32 +1915,44 @@ digits = /([0-9]+)/
 </code></pre>
 <p>— a discriminator on which alternative matched. Until then, consumers identify the atom kind by walking the <code>rule_name</code> of the ParseNode tree (when going through the legacy path) or by structurally pattern-matching the JSON shape (when going through the typed path).</p>
 <h2 id="literal"><a class="header" href="#literal"><code>literal</code></a></h2>
-<pre><code class="language-ebnf">literal = literal_char
+<pre><code class="language-ebnf">literal = literal_char | literal_open_brace
 </code></pre>
-<p>Single-element wrapper around <code>literal_char</code>. Currently <strong>un-annotated</strong>. With the slice-36 codegen tightening, single-element-rule-body un-annotated rules still get the implicit <code>-&gt; $1</code> default — so <code>literal</code> transparently returns whatever <code>literal_char</code> produced.</p>
+<p>Two disjoint branches (release <code>1.1.85</code>): <code>literal_char</code> covers every literal character except <code>{</code>, and <code>literal_open_brace</code> covers the guarded literal <code>{</code>. <strong>Un-annotated</strong> — the matched branch’s shape passes straight through.</p>
 <h3 id="shape-7"><a class="header" href="#shape-7">Shape</a></h3>
 <p><code>Terminal(&lt;one-char&gt;)</code> — visible as a bare string in JSON.</p>
 <h3 id="examples-2"><a class="header" href="#examples-2">Examples</a></h3>
-<p>For atom <code>a</code>: the <code>atom</code> content is <code>"a"</code> (JSON string).</p>
+<p>For atom <code>a</code>: the <code>atom</code> content is <code>"a"</code> (JSON string). For the <code>{</code> in <code>a{}</code>: the <code>atom</code> content is <code>"{"</code> — byte-identical to pre-<code>1.1.85</code> releases.</p>
 <h2 id="literal_char"><a class="header" href="#literal_char"><code>literal_char</code></a></h2>
-<pre><code class="language-ebnf">literal_char = /([A-Za-z0-9!"#%&amp;',\-\/:;&lt;=&gt;@\]{}_`~]|[^\x00-\x7F])/
+<pre><code class="language-ebnf">literal_char = letter | digit | '!' | '"' | '#' | '%' | '&amp;' | "'" | ',' | '-' | '/' | ':' | ';' | '&lt;' | '=' | '&gt;' | '@' | ']' | '}' | '_' | '`' | '~' | unicode_char
 </code></pre>
-<p>A single-character regex literal. Captures one ASCII non-special char OR any non-ASCII byte.</p>
+<p>A single-character regex literal: one ASCII non-special char OR any non-ASCII char (<code>unicode_char</code>). Native alternation since the self-hosting conversion (no Rust-regex body).</p>
 <h3 id="shape-1-3"><a class="header" href="#shape-1-3">Shape</a></h3>
 <p><code>Terminal(&lt;one-char&gt;)</code>.</p>
 <h3 id="whats-not-a-literal_char"><a class="header" href="#whats-not-a-literal_char">What’s NOT a literal_char</a></h3>
-<p>These chars are excluded because they have regex-special meaning and would be matched by other atom alternatives or by escape rules: <code>\</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>*</code>, <code>+</code>, <code>?</code>, <code>.</code>, <code>^</code>, <code>$</code>, <code>|</code>, <code>{</code>, space, control characters.</p>
+<p>Chars with regex-special meaning, matched by other atom alternatives or escape rules: <code>\</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>*</code>, <code>+</code>, <code>?</code>, <code>.</code>, <code>^</code>, <code>$</code>, <code>|</code>, space, control characters. Since release <code>1.1.85</code>, <code>{</code> is also not a <code>literal_char</code> — it lives in the guarded <code>literal_open_brace</code> branch below. An unmatched <code>}</code> IS a <code>literal_char</code> (PCRE2 treats it as literal in default mode).</p>
+<h2 id="literal_open_brace"><a class="header" href="#literal_open_brace"><code>literal_open_brace</code></a></h2>
+<pre><code class="language-ebnf">literal_open_brace = !( "{" brace_ws? ( digit+ brace_ws? ( "," brace_ws? ( digit+ brace_ws? )? )? | "," brace_ws? digit+ brace_ws? ) "}" ) "{" -&gt; $2
+</code></pre>
+<p><strong>Annotated (<code>-&gt; $2</code>).</strong> Release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0093</code>): PCRE2’s brace tokenization model — a brace whose text is syntactically-valid quantifier shape (digits with spaces/tabs anywhere inside, in the four forms <code>{n}</code> <code>{n,}</code> <code>{n,m}</code> <code>{,m}</code>) is ALWAYS a quantifier, never a literal. The inline negative lookahead encodes exactly that syntax (digit runs value-UNBOUNDED, whitespace = <code>brace_ws</code> = space + tab), so:</p>
+<ul>
+<li>a valid-syntax brace at a <strong>non-repeatable position</strong> (<code>{2,5}</code> at pattern start, <code>x|{2,5}</code>, <code>a{2}{3}</code>) can neither quantify nor fall back to literal ⇒ the pattern REJECTS (PCRE2 err 109);</li>
+<li>a valid-syntax brace with an <strong>out-of-range value</strong> (<code>a{65536}</code>, <code>a{4294967296}</code>) fails the quantifier (<a href="#quantifier-subtree"><code>quant_bound_number</code></a>) and is blocked here too ⇒ REJECTS (err 105);</li>
+<li>a <strong>non-quantifier-shaped</strong> brace (<code>{}</code>, <code>{,}</code>, <code>{ }</code>, <code>{a}</code>, <code>a{1,2,3}b</code>, a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> inside, unterminated <code>a{65536</code>) matches this branch and stays a literal <code>{</code>, exactly as PCRE2 compiles it.</li>
+</ul>
+<p>The <code>-&gt; $2</code> annotation drops the zero-width guard slot and emits the bare <code>"{"</code> terminal — byte-identical to the shape the former <code>literal_char</code> arm produced.</p>
+<h3 id="shape-2-2"><a class="header" href="#shape-2-2">Shape</a></h3>
+<p><code>Terminal("{")</code>.</p>
 <h2 id="whitespace_literal"><a class="header" href="#whitespace_literal"><code>whitespace_literal</code></a></h2>
 <pre><code class="language-ebnf">whitespace_literal = whitespace
 </code></pre>
 <p>A wrapper for whitespace as an atom. Mirrors <code>literal</code>’s pattern but matches <code>whitespace</code> (regex <code>/[ \t\n\r\f\v]/</code>).</p>
-<h3 id="shape-2-2"><a class="header" href="#shape-2-2">Shape</a></h3>
+<h3 id="shape-3-2"><a class="header" href="#shape-3-2">Shape</a></h3>
 <p><code>Terminal(&lt;one-whitespace-char&gt;)</code>.</p>
 <h2 id="dot"><a class="header" href="#dot"><code>dot</code></a></h2>
 <pre><code class="language-ebnf">dot = "."
 </code></pre>
 <p>The <code>.</code> regex metacharacter (matches any character except newline by default).</p>
-<h3 id="shape-3-1"><a class="header" href="#shape-3-1">Shape</a></h3>
+<h3 id="shape-4-1"><a class="header" href="#shape-4-1">Shape</a></h3>
 <p><code>Terminal(".")</code>. Visible as the string <code>"."</code>.</p>
 <h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
 <p>For atom <code>.</code>: the <code>atom</code> content is <code>"."</code>.</p>
@@ -1934,7 +1968,7 @@ digits = /([0-9]+)/
        | "\\K" -&gt; {type: "anchor", kind: "keep_out"}
 </code></pre>
 <p>PCRE2 anchor metacharacters. 9-way Or, <strong>annotated</strong> as of slice 7 (post-1.1.35).</p>
-<h3 id="shape-4-1"><a class="header" href="#shape-4-1">Shape</a></h3>
+<h3 id="shape-5-1"><a class="header" href="#shape-5-1">Shape</a></h3>
 <pre><code class="language-json">{"type": "anchor", "kind": &lt;kind-name&gt;}
 </code></pre>
 <p><code>&lt;kind-name&gt;</code> is one of: <code>start_of_line</code>, <code>end_of_line</code>, <code>start_of_input</code>, <code>end_of_input_or_before_last_newline</code>, <code>end_of_input</code>, <code>word_boundary</code>, <code>non_word_boundary</code>, <code>match_start</code>, <code>keep_out</code>.</p>
@@ -1954,7 +1988,7 @@ digits = /([0-9]+)/
               | "\\g" signed_digits                                     -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 </code></pre>
 <p>10-way Or, <strong>annotated</strong> as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination).</p>
-<h3 id="shape-5-1"><a class="header" href="#shape-5-1">Shape</a></h3>
+<h3 id="shape-6-1"><a class="header" href="#shape-6-1">Shape</a></h3>
 <pre><code class="language-json">{"type": "backreference", "kind": &lt;form&gt;, ...form-specific-fields...}
 </code></pre>
 <h3 id="branches"><a class="header" href="#branches">Branches</a></h3>
@@ -2030,7 +2064,7 @@ digits = /([0-9]+)/
 <pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char* "\\E"
 </code></pre>
 <p>The full PCRE2 <code>\Q...\E</code> quoted-literal block as an atom. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-6-1"><a class="header" href="#shape-6-1">Shape</a></h3>
+<h3 id="shape-7-1"><a class="header" href="#shape-7-1">Shape</a></h3>
 <p>3-element Sequence: <code>["\\Q", &lt;Quantified of chars&gt;, "\\E"]</code>.</p>
 <h3 id="when-this-fires-vs-piece_quoted_run_quantified"><a class="header" href="#when-this-fires-vs-piece_quoted_run_quantified">When this fires vs <code>piece_quoted_run_quantified</code></a></h3>
 <ul>
@@ -2064,7 +2098,7 @@ digits = /([0-9]+)/
 <pre><code class="language-ebnf">escape = "\\" escape_unit
 </code></pre>
 <p>The PCRE2 escape sequence wrapper. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-7-1"><a class="header" href="#shape-7-1">Shape</a></h3>
+<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
 <p>2-element Sequence: <code>["\\", &lt;escape_unit-shape&gt;]</code>.</p>
 <p>The <code>escape_unit</code> rule branches into the various escape forms; see <a href="#escape-subtree">Escape Subtree</a>.</p>
 <h3 id="example-2-1"><a class="header" href="#example-2-1">Example</a></h3>
@@ -2091,7 +2125,7 @@ digits = /([0-9]+)/
                           | "[[:&gt;:]]" -&gt; {type: "anchor", kind: "posix_word_end"}
 </code></pre>
 <p>PCRE2’s BSD-style word-boundary aliases. 2-way Or, <strong>annotated</strong> as of slice 9 (post-1.1.37). Joins the same typed anchor family as the <code>anchor</code> rule.</p>
-<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
+<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
 <pre><code class="language-json">{"type": "anchor", "kind": "posix_word_start"}    // for [[:&lt;:]]
 {"type": "anchor", "kind": "posix_word_end"}      // for [[:&gt;:]]
 </code></pre>
@@ -2100,7 +2134,7 @@ digits = /([0-9]+)/
 <pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
 </code></pre>
 <p>The full character class atom. <strong>Un-annotated</strong>. See <a href="#character-class-subtree">Character Class Subtree</a> for the per-rule walk.</p>
-<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
+<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
 <p>4-element Sequence: <code>["[", &lt;negation?&gt;, &lt;class_initial_close?&gt;, &lt;class_body&gt;, "]"]</code>.</p>
 <h2 id="group"><a class="header" href="#group"><code>group</code></a></h2>
 <pre><code class="language-ebnf">group = capturing_group | noncapturing_group | named_group | python_named_group
@@ -2230,7 +2264,7 @@ invisibles), then a body with ≥1 <em>visible</em> member (<code>[^a]</code>, <
 member is structurally caret-free — a leading bare <code>^</code> would have been the negation
 (<code>[abc]</code>, <code>[\Ea]</code>, <code>[a^]</code> — the caret is fine after the first member).</li>
 </ul>
-<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
+<h3 id="shape-11"><a class="header" href="#shape-11">Shape</a></h3>
 <pre><code class="language-json">{
   "type": "atom",
   "kind": "char_class",
@@ -3646,6 +3680,32 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 <li><code>a{1, 2}</code> — whitespace after the comma (was 7 literal pieces pre-fix)</li>
 </ul>
 <p>PCRE2 conformance test suite testinput1:6679 (<code>/a{ 1 , 2 }/</code>) covers this case.</p>
+<p><strong>Since release <code>1.1.85</code>, “whitespace” here is exactly space + tab</strong> (the oracle-frozen PCRE2 set — <code>brace_ws</code>). Tab-spaced forms like <code>a{\t1\t,\t2\t}</code> parse to the same quantifier shape; a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> anywhere inside the brace makes the whole brace a LITERAL (see the brace-model section below), matching PCRE2’s tokenizer. Pre-<code>1.1.85</code> the rule used the full 6-char whitespace set, so <code>a{\n2\n}</code> mis-parsed as a quantifier.</p>
+<h2 id="the-pcre2-brace-tokenization-model--quantifier-vs-literal-vs-reject-release-1185"><a class="header" href="#the-pcre2-brace-tokenization-model--quantifier-vs-literal-vs-reject-release-1185">The PCRE2 brace tokenization model — quantifier vs literal vs reject (release 1.1.85)</a></h2>
+<p>A brace whose text is <strong>syntactically-valid quantifier shape</strong> — digits with spaces/tabs anywhere inside, in the four forms <code>{n}</code> <code>{n,}</code> <code>{n,m}</code> <code>{,m}</code> — is ALWAYS a quantifier in PCRE2, never a literal. PGEN encodes this with the value-structural <a href="#quantifier-subtree"><code>quant_bound_number</code></a> (bounds ≤ 65535 by construction) and the <a href="#atom-subtree"><code>literal_open_brace</code></a> negative-lookahead guard (a valid-syntax brace can never fall back to literal pieces). Oracle: <code>pcre2test</code> 10.47, <code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0092</code>/<code>0093</code>/<code>0094</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict (PGEN <code>1.1.85</code> = PCRE2)</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>a{2,5}</code> · <code>a{ 2 , 5 }</code> · <code>a{\t2\t,\t5\t}</code></td><td>ACCEPT (quantifier)</td><td>valid syntax, in-range, repeatable atom precedes</td></tr>
+<tr><td><code>a{0000000000065535}</code></td><td>ACCEPT (quantifier <code>{65535,65535}</code>)</td><td>the bound is the VALUE, not the digit count</td></tr>
+<tr><td><code>a{65536}</code> · <code>a{4294967296}</code> · <code>a{0,65536}</code></td><td>REJECT (err-105 class)</td><td>value &gt; 65535; <code>1.1.84</code> wrongly accepted the &gt;u32 forms</td></tr>
+<tr><td><code>a{5,2}</code> · <code>a{\t5\t,\t2\t}</code></td><td>REJECT (err-104 class)</td><td>min &gt; max (validator-owned; tab-aware since <code>1.1.85</code>)</td></tr>
+<tr><td><code>{2,5}</code> at start · <code>x|{2,5}</code> · <code>a{2}{3}</code></td><td>REJECT (err-109 class)</td><td>valid-syntax brace at a non-repeatable position; <code>1.1.84</code> wrongly accepted these as literals</td></tr>
+<tr><td><code>a{}</code> · <code>a{,}</code> · <code>a{ }</code> · <code>{a}</code> · <code>a{1,2,3}b</code> · <code>a{65536</code> (unterminated)</td><td>ACCEPT (literal pieces)</td><td>not quantifier syntax — literal <code>{</code> exactly as PCRE2</td></tr>
+<tr><td><code>a{\n2\n}</code> · <code>a{\n5,2\n}</code></td><td>ACCEPT (literal pieces)</td><td>a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> inside the brace makes it literal; <code>1.1.84</code> wrongly order-rejected <code>a{\n5,2\n}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>For an accepted literal brace, each character is its own <code>piece</code> with a bare-string atom — e.g. <code>a{}</code>:</p>
+<pre><code class="language-json">[
+  {"atom": "a", "quantifier": [], "type": "piece"},
+  {"atom": "{", "quantifier": [], "type": "piece"},
+  {"atom": "}", "quantifier": [], "type": "piece"}
+]
+</code></pre>
 <h2 id="a25-lazy-range-and-a25-possessive-range"><a class="header" href="#a25-lazy-range-and-a25-possessive-range"><code>a{2,5}?</code> (lazy range) and <code>a{2,5}+</code> (possessive range)</a></h2>
 <p>For <code>a{2,5}?</code>:</p>
 <pre><code class="language-json">{
@@ -3685,7 +3745,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
     Some(Quantifier { min, max, greediness })
 }
 <span class="boring">}</span></code></pre>
-<p>The whole quantifier subtree is annotated as of slice 6: <code>digits</code> (typed integer), <code>quant_suffix</code> (typed enum string), <code>counted_quantifier_body</code> (typed <code>{min, max}</code>), <code>counted_quantifier</code> (passthrough), <code>quant_base</code> (typed <code>{min, max}</code> for every branch), and <code>quantifier</code> (typed <code>{type, min, max, greediness}</code>). Consumer code is a six-line typed-field read.</p>
+<p>The whole quantifier subtree is annotated as of slice 6: <code>quant_bound_number</code> (typed integer in <code>0..=65535</code> — the value-structural <code>digits</code> replacement since release <code>1.1.85</code>), <code>quant_suffix</code> (typed enum string), <code>counted_quantifier_body</code> (typed <code>{min, max}</code>), <code>counted_quantifier</code> (passthrough), <code>quant_base</code> (typed <code>{min, max}</code> for every branch), and <code>quantifier</code> (typed <code>{type, min, max, greediness}</code>). Consumer code is a six-line typed-field read.</p>
 <p>The <code>[]</code> → <code>Greediness::Greedy</code> mapping in the suffix lookup will be removed when the annotation language gains a coalesce operator and <code>quantifier</code>’s annotation can emit the literal string <code>"greedy"</code> directly.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-character-classes"><a class="header" href="#examples-character-classes">Examples: Character Classes</a></h1>
@@ -5238,6 +5298,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1185--contract-1187--regex-009200930094-the-pcre2-counted-quantifier-brace-tokenization-model-the-value-bound-migrated-into-the-grammar"><a class="header" href="#1185--contract-1187--regex-009200930094-the-pcre2-counted-quantifier-brace-tokenization-model-the-value-bound-migrated-into-the-grammar">1.1.85 / Contract 1.1.87 — REGEX-0092/0093/0094: the PCRE2 counted-quantifier BRACE TOKENIZATION model; the value bound migrated into the grammar</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR-TIGHTENING + one CORRECTION (release bump 1.1.84→1.1.85 / contract 1.1.86→1.1.87; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.3.18</code>; oracle <code>pcre2test</code> 10.47, a 47-cell matrix with hex-pattern cells freezing the whitespace set). PCRE2’s brace model is now grammar-encoded: a syntactically-valid quantifier brace (digits + spaces/tabs anywhere inside — forms <code>{n}</code> <code>{n,}</code> <code>{n,m}</code> <code>{,m}</code>) is ALWAYS a quantifier, never a literal. <strong>5 accepts-invalid spellings now REJECT</strong>: <code>a{4294967296}</code> (<strong>REGEX-0092</strong> — the bound VALUE limit is 65535, and any &gt;u32 value previously skipped ALL checks via the validator’s <code>parse::&lt;u32&gt;().ok()?</code> overflow hole; err-105 class), <code>{2,5}</code>-at-start / <code>x|{2,5}</code> / <code>a{2}{3}</code> (<strong>REGEX-0093</strong> — a valid-syntax brace at a non-repeatable position; err-109 class; the new <code>literal_open_brace</code> negative-lookahead guard blocks the literal fallback), and <code>a{\t5\t,\t2\t}</code> (<strong>REGEX-0094</strong> — tab IS quantifier whitespace, so tab-spaced order violations reject; err-104 class). <strong>1 rejects-valid spelling now ACCEPTS</strong>: <code>a{\n5,2\n}</code> — a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> anywhere inside the brace makes it a LITERAL in PCRE2 (also REGEX-0094; the quantifier-whitespace set is exactly space + tab). <code>min</code>/<code>max</code> stay typed ints (the value-structural <code>quant_bound_number</code> carries the same <code>@transform</code>); the literal <code>{</code> AST is byte-identical; the only AST-shape changes are <code>a{\n2\n}</code>-family accept/accept cells that now parse as the literal pieces PCRE2 sees. Rejection LAYER for the &gt;65535 family moves from the contract message to a grammar parse error — match on the <strong>code</strong> (<code>E_PARSE_FAILURE</code>), not message text; the validator keeps exactly one counted-quantifier rule (min&gt;max order, err-104 class, now space+tab-exact). Generation draws in-range bounds by construction (6th compile-contract migration). Both profiles behave identically on this surface. Bug ledger: <code>REGEX-0092</code>/<code>REGEX-0093</code>/<code>REGEX-0094</code>. <strong>Contract section:</strong> “Release 1.1.85 / Contract 1.1.87 Highlights”. Rules detail: <code>rules-quantifier.md</code> (§ <code>counted_quantifier</code>, § <code>quant_bound_number</code>) + <code>rules-atom.md</code> (§ <code>literal_open_brace</code>); examples: <code>examples-quantifiers.md</code> → “The PCRE2 brace tokenization model”.</p>
+</blockquote>
 <h3 id="2026-07-08-maintenance-release-1184--contract-1186--unchanged--regex-pcre2-fidelity317-scan-substring-capture-list-generation-is-now-store-aware-generation-side-only"><a class="header" href="#2026-07-08-maintenance-release-1184--contract-1186--unchanged--regex-pcre2-fidelity317-scan-substring-capture-list-generation-is-now-store-aware-generation-side-only">2026-07-08 maintenance (release 1.1.84 / Contract 1.1.86 — UNCHANGED) — REGEX-PCRE2-FIDELITY.3.17: scan-substring capture-list generation is now store-aware (generation-side only)</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: IMPLEMENTATION-ONLY, SURFACE-NEUTRAL / conformance-neutral (no version bump; accept/reject set and every AST byte-identical — 21/21 probe matrix over named groups, scs numeric/named/relative/forward forms, backrefs, and conditionals). The scan-substring capture-list reference rule (<code>(*scs:('name'))</code> / <code>(*scs:(2))</code>) is validated against the FULL-pattern capture inventory by the post-parse contract, and PCRE2 accepts FORWARD references (<code>(*scs:('a'))(?&lt;a&gt;x)</code>) — so this class CANNOT move into the grammar as a parse-time gate. What changed is the GENERATION side: the stimuli generator was inventory-blind (54 of 57 generated scs groups were contract-rejected — invented names, out-of-range indices), and now draws scs names from the capture names it has already generated and scs indices from <code>1..=</code>(captures so far), via the new generation-side store directives (<code>@gen_emit_fact</code> on the new <code>capture_name</code> carrier; <code>@gen_predicate</code> on the new <code>scs_capture_name</code> / <code>scs_capture_number</code> value rules). Grammar-structurally the scs list items are now dedicated wrapper rules (<code>returned_capture_group = scs_capture_number | scs_capture_name_ref</code>) that are shape-transparent — the <code>captures</code> carrier in <code>scan_substring_group</code> is unchanged (see the JSON-carrier chapter’s new inventory rows). <strong>You need to do nothing</strong>: parse behavior, error codes, and versions are all unchanged; the parse-side inventory check stays in the compile contract. Duality closure: the <code>(*scs:('_'))</code> hunter signature is GONE at seeds 0/7/42; regex certificate coverage holds at <code>224/224</code> <code>UNKNOWN=0</code>.</p>

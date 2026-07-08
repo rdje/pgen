@@ -161,6 +161,32 @@ All five whitespace variants produce the same shape:
 
 PCRE2 conformance test suite testinput1:6679 (`/a{ 1 , 2 }/`) covers this case.
 
+**Since release `1.1.85`, "whitespace" here is exactly space + tab** (the oracle-frozen PCRE2 set — `brace_ws`). Tab-spaced forms like `a{\t1\t,\t2\t}` parse to the same quantifier shape; a `\n`/`\f`/`\r`/`\v` anywhere inside the brace makes the whole brace a LITERAL (see the brace-model section below), matching PCRE2's tokenizer. Pre-`1.1.85` the rule used the full 6-char whitespace set, so `a{\n2\n}` mis-parsed as a quantifier.
+
+## The PCRE2 brace tokenization model — quantifier vs literal vs reject (release 1.1.85)
+
+A brace whose text is **syntactically-valid quantifier shape** — digits with spaces/tabs anywhere inside, in the four forms `{n}` `{n,}` `{n,m}` `{,m}` — is ALWAYS a quantifier in PCRE2, never a literal. PGEN encodes this with the value-structural [`quant_bound_number`](rules-quantifier.md) (bounds ≤ 65535 by construction) and the [`literal_open_brace`](rules-atom.md) negative-lookahead guard (a valid-syntax brace can never fall back to literal pieces). Oracle: `pcre2test` 10.47, `REGEX-PCRE2-FIDELITY.3.18`, ledger `REGEX-0092`/`0093`/`0094`.
+
+| Input | Verdict (PGEN `1.1.85` = PCRE2) | Why |
+|---|---|---|
+| `a{2,5}` · `a{ 2 , 5 }` · `a{\t2\t,\t5\t}` | ACCEPT (quantifier) | valid syntax, in-range, repeatable atom precedes |
+| `a{0000000000065535}` | ACCEPT (quantifier `{65535,65535}`) | the bound is the VALUE, not the digit count |
+| `a{65536}` · `a{4294967296}` · `a{0,65536}` | REJECT (err-105 class) | value > 65535; `1.1.84` wrongly accepted the >u32 forms |
+| `a{5,2}` · `a{\t5\t,\t2\t}` | REJECT (err-104 class) | min > max (validator-owned; tab-aware since `1.1.85`) |
+| `{2,5}` at start · `x\|{2,5}` · `a{2}{3}` | REJECT (err-109 class) | valid-syntax brace at a non-repeatable position; `1.1.84` wrongly accepted these as literals |
+| `a{}` · `a{,}` · `a{ }` · `{a}` · `a{1,2,3}b` · `a{65536` (unterminated) | ACCEPT (literal pieces) | not quantifier syntax — literal `{` exactly as PCRE2 |
+| `a{\n2\n}` · `a{\n5,2\n}` | ACCEPT (literal pieces) | a `\n`/`\f`/`\r`/`\v` inside the brace makes it literal; `1.1.84` wrongly order-rejected `a{\n5,2\n}` |
+
+For an accepted literal brace, each character is its own `piece` with a bare-string atom — e.g. `a{}`:
+
+```json
+[
+  {"atom": "a", "quantifier": [], "type": "piece"},
+  {"atom": "{", "quantifier": [], "type": "piece"},
+  {"atom": "}", "quantifier": [], "type": "piece"}
+]
+```
+
 ## `a{2,5}?` (lazy range) and `a{2,5}+` (possessive range)
 
 For `a{2,5}?`:
@@ -208,6 +234,6 @@ fn extract_quant(piece: &Value) -> Option<Quantifier> {
 }
 ```
 
-The whole quantifier subtree is annotated as of slice 6: `digits` (typed integer), `quant_suffix` (typed enum string), `counted_quantifier_body` (typed `{min, max}`), `counted_quantifier` (passthrough), `quant_base` (typed `{min, max}` for every branch), and `quantifier` (typed `{type, min, max, greediness}`). Consumer code is a six-line typed-field read.
+The whole quantifier subtree is annotated as of slice 6: `quant_bound_number` (typed integer in `0..=65535` — the value-structural `digits` replacement since release `1.1.85`), `quant_suffix` (typed enum string), `counted_quantifier_body` (typed `{min, max}`), `counted_quantifier` (passthrough), `quant_base` (typed `{min, max}` for every branch), and `quantifier` (typed `{type, min, max, greediness}`). Consumer code is a six-line typed-field read.
 
 The `[]` → `Greediness::Greedy` mapping in the suffix lookup will be removed when the annotation language gains a coalesce operator and `quantifier`'s annotation can emit the literal string `"greedy"` directly.

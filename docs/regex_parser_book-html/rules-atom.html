@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c097dea4.js";
+            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -219,32 +219,44 @@
 </code></pre>
 <p>— a discriminator on which alternative matched. Until then, consumers identify the atom kind by walking the <code>rule_name</code> of the ParseNode tree (when going through the legacy path) or by structurally pattern-matching the JSON shape (when going through the typed path).</p>
 <h2 id="literal"><a class="header" href="#literal"><code>literal</code></a></h2>
-<pre><code class="language-ebnf">literal = literal_char
+<pre><code class="language-ebnf">literal = literal_char | literal_open_brace
 </code></pre>
-<p>Single-element wrapper around <code>literal_char</code>. Currently <strong>un-annotated</strong>. With the slice-36 codegen tightening, single-element-rule-body un-annotated rules still get the implicit <code>-&gt; $1</code> default — so <code>literal</code> transparently returns whatever <code>literal_char</code> produced.</p>
+<p>Two disjoint branches (release <code>1.1.85</code>): <code>literal_char</code> covers every literal character except <code>{</code>, and <code>literal_open_brace</code> covers the guarded literal <code>{</code>. <strong>Un-annotated</strong> — the matched branch’s shape passes straight through.</p>
 <h3 id="shape"><a class="header" href="#shape">Shape</a></h3>
 <p><code>Terminal(&lt;one-char&gt;)</code> — visible as a bare string in JSON.</p>
 <h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
-<p>For atom <code>a</code>: the <code>atom</code> content is <code>"a"</code> (JSON string).</p>
+<p>For atom <code>a</code>: the <code>atom</code> content is <code>"a"</code> (JSON string). For the <code>{</code> in <code>a{}</code>: the <code>atom</code> content is <code>"{"</code> — byte-identical to pre-<code>1.1.85</code> releases.</p>
 <h2 id="literal_char"><a class="header" href="#literal_char"><code>literal_char</code></a></h2>
-<pre><code class="language-ebnf">literal_char = /([A-Za-z0-9!"#%&amp;',\-\/:;&lt;=&gt;@\]{}_`~]|[^\x00-\x7F])/
+<pre><code class="language-ebnf">literal_char = letter | digit | '!' | '"' | '#' | '%' | '&amp;' | "'" | ',' | '-' | '/' | ':' | ';' | '&lt;' | '=' | '&gt;' | '@' | ']' | '}' | '_' | '`' | '~' | unicode_char
 </code></pre>
-<p>A single-character regex literal. Captures one ASCII non-special char OR any non-ASCII byte.</p>
+<p>A single-character regex literal: one ASCII non-special char OR any non-ASCII char (<code>unicode_char</code>). Native alternation since the self-hosting conversion (no Rust-regex body).</p>
 <h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
 <p><code>Terminal(&lt;one-char&gt;)</code>.</p>
 <h3 id="whats-not-a-literal_char"><a class="header" href="#whats-not-a-literal_char">What’s NOT a literal_char</a></h3>
-<p>These chars are excluded because they have regex-special meaning and would be matched by other atom alternatives or by escape rules: <code>\</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>*</code>, <code>+</code>, <code>?</code>, <code>.</code>, <code>^</code>, <code>$</code>, <code>|</code>, <code>{</code>, space, control characters.</p>
+<p>Chars with regex-special meaning, matched by other atom alternatives or escape rules: <code>\</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>*</code>, <code>+</code>, <code>?</code>, <code>.</code>, <code>^</code>, <code>$</code>, <code>|</code>, space, control characters. Since release <code>1.1.85</code>, <code>{</code> is also not a <code>literal_char</code> — it lives in the guarded <code>literal_open_brace</code> branch below. An unmatched <code>}</code> IS a <code>literal_char</code> (PCRE2 treats it as literal in default mode).</p>
+<h2 id="literal_open_brace"><a class="header" href="#literal_open_brace"><code>literal_open_brace</code></a></h2>
+<pre><code class="language-ebnf">literal_open_brace = !( "{" brace_ws? ( digit+ brace_ws? ( "," brace_ws? ( digit+ brace_ws? )? )? | "," brace_ws? digit+ brace_ws? ) "}" ) "{" -&gt; $2
+</code></pre>
+<p><strong>Annotated (<code>-&gt; $2</code>).</strong> Release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0093</code>): PCRE2’s brace tokenization model — a brace whose text is syntactically-valid quantifier shape (digits with spaces/tabs anywhere inside, in the four forms <code>{n}</code> <code>{n,}</code> <code>{n,m}</code> <code>{,m}</code>) is ALWAYS a quantifier, never a literal. The inline negative lookahead encodes exactly that syntax (digit runs value-UNBOUNDED, whitespace = <code>brace_ws</code> = space + tab), so:</p>
+<ul>
+<li>a valid-syntax brace at a <strong>non-repeatable position</strong> (<code>{2,5}</code> at pattern start, <code>x|{2,5}</code>, <code>a{2}{3}</code>) can neither quantify nor fall back to literal ⇒ the pattern REJECTS (PCRE2 err 109);</li>
+<li>a valid-syntax brace with an <strong>out-of-range value</strong> (<code>a{65536}</code>, <code>a{4294967296}</code>) fails the quantifier (<a href="rules-quantifier.html"><code>quant_bound_number</code></a>) and is blocked here too ⇒ REJECTS (err 105);</li>
+<li>a <strong>non-quantifier-shaped</strong> brace (<code>{}</code>, <code>{,}</code>, <code>{ }</code>, <code>{a}</code>, <code>a{1,2,3}b</code>, a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> inside, unterminated <code>a{65536</code>) matches this branch and stays a literal <code>{</code>, exactly as PCRE2 compiles it.</li>
+</ul>
+<p>The <code>-&gt; $2</code> annotation drops the zero-width guard slot and emits the bare <code>"{"</code> terminal — byte-identical to the shape the former <code>literal_char</code> arm produced.</p>
+<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
+<p><code>Terminal("{")</code>.</p>
 <h2 id="whitespace_literal"><a class="header" href="#whitespace_literal"><code>whitespace_literal</code></a></h2>
 <pre><code class="language-ebnf">whitespace_literal = whitespace
 </code></pre>
 <p>A wrapper for whitespace as an atom. Mirrors <code>literal</code>’s pattern but matches <code>whitespace</code> (regex <code>/[ \t\n\r\f\v]/</code>).</p>
-<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
+<h3 id="shape-3"><a class="header" href="#shape-3">Shape</a></h3>
 <p><code>Terminal(&lt;one-whitespace-char&gt;)</code>.</p>
 <h2 id="dot"><a class="header" href="#dot"><code>dot</code></a></h2>
 <pre><code class="language-ebnf">dot = "."
 </code></pre>
 <p>The <code>.</code> regex metacharacter (matches any character except newline by default).</p>
-<h3 id="shape-3"><a class="header" href="#shape-3">Shape</a></h3>
+<h3 id="shape-4"><a class="header" href="#shape-4">Shape</a></h3>
 <p><code>Terminal(".")</code>. Visible as the string <code>"."</code>.</p>
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
 <p>For atom <code>.</code>: the <code>atom</code> content is <code>"."</code>.</p>
@@ -260,7 +272,7 @@
        | "\\K" -&gt; {type: "anchor", kind: "keep_out"}
 </code></pre>
 <p>PCRE2 anchor metacharacters. 9-way Or, <strong>annotated</strong> as of slice 7 (post-1.1.35).</p>
-<h3 id="shape-4"><a class="header" href="#shape-4">Shape</a></h3>
+<h3 id="shape-5"><a class="header" href="#shape-5">Shape</a></h3>
 <pre><code class="language-json">{"type": "anchor", "kind": &lt;kind-name&gt;}
 </code></pre>
 <p><code>&lt;kind-name&gt;</code> is one of: <code>start_of_line</code>, <code>end_of_line</code>, <code>start_of_input</code>, <code>end_of_input_or_before_last_newline</code>, <code>end_of_input</code>, <code>word_boundary</code>, <code>non_word_boundary</code>, <code>match_start</code>, <code>keep_out</code>.</p>
@@ -280,7 +292,7 @@
               | "\\g" signed_digits                                     -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 </code></pre>
 <p>10-way Or, <strong>annotated</strong> as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination).</p>
-<h3 id="shape-5"><a class="header" href="#shape-5">Shape</a></h3>
+<h3 id="shape-6"><a class="header" href="#shape-6">Shape</a></h3>
 <pre><code class="language-json">{"type": "backreference", "kind": &lt;form&gt;, ...form-specific-fields...}
 </code></pre>
 <h3 id="branches"><a class="header" href="#branches">Branches</a></h3>
@@ -356,7 +368,7 @@
 <pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char* "\\E"
 </code></pre>
 <p>The full PCRE2 <code>\Q...\E</code> quoted-literal block as an atom. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-6"><a class="header" href="#shape-6">Shape</a></h3>
+<h3 id="shape-7"><a class="header" href="#shape-7">Shape</a></h3>
 <p>3-element Sequence: <code>["\\Q", &lt;Quantified of chars&gt;, "\\E"]</code>.</p>
 <h3 id="when-this-fires-vs-piece_quoted_run_quantified"><a class="header" href="#when-this-fires-vs-piece_quoted_run_quantified">When this fires vs <code>piece_quoted_run_quantified</code></a></h3>
 <ul>
@@ -390,7 +402,7 @@
 <pre><code class="language-ebnf">escape = "\\" escape_unit
 </code></pre>
 <p>The PCRE2 escape sequence wrapper. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-7"><a class="header" href="#shape-7">Shape</a></h3>
+<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
 <p>2-element Sequence: <code>["\\", &lt;escape_unit-shape&gt;]</code>.</p>
 <p>The <code>escape_unit</code> rule branches into the various escape forms; see <a href="rules-escape.html">Escape Subtree</a>.</p>
 <h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
@@ -417,7 +429,7 @@
                           | "[[:&gt;:]]" -&gt; {type: "anchor", kind: "posix_word_end"}
 </code></pre>
 <p>PCRE2’s BSD-style word-boundary aliases. 2-way Or, <strong>annotated</strong> as of slice 9 (post-1.1.37). Joins the same typed anchor family as the <code>anchor</code> rule.</p>
-<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
+<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
 <pre><code class="language-json">{"type": "anchor", "kind": "posix_word_start"}    // for [[:&lt;:]]
 {"type": "anchor", "kind": "posix_word_end"}      // for [[:&gt;:]]
 </code></pre>
@@ -426,7 +438,7 @@
 <pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
 </code></pre>
 <p>The full character class atom. <strong>Un-annotated</strong>. See <a href="rules-char-class.html">Character Class Subtree</a> for the per-rule walk.</p>
-<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
+<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
 <p>4-element Sequence: <code>["[", &lt;negation?&gt;, &lt;class_initial_close?&gt;, &lt;class_body&gt;, "]"]</code>.</p>
 <h2 id="group"><a class="header" href="#group"><code>group</code></a></h2>
 <pre><code class="language-ebnf">group = capturing_group | noncapturing_group | named_group | python_named_group

@@ -2121,6 +2121,132 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.3.18 (ledger REGEX-0092/0093/0094): the PCRE2 counted-quantifier
+    /// BRACE TOKENIZATION model is grammar-encoded. Oracle (`pcre2test` 10.47, 2026-07-08,
+    /// blank-line-separated + hex-pattern cells): a syntactically-valid quantifier brace —
+    /// digits with SPACES/TABS anywhere inside, forms `{n}` `{n,}` `{n,m}` `{,m}` — is ALWAYS
+    /// a quantifier, then (1) any bound VALUE > 65535 is err 105, (2) min > max is err 104,
+    /// (3) a non-repeatable position is err 109; only a NON-quantifier-shaped brace (`{}`,
+    /// `{,}`, `{a}`, a \n/\f/\r/\v inside, unterminated) is a literal `{`. Encoded via the
+    /// value-structural `quant_bound_number` (≤ 65535 by construction) + the
+    /// `literal_open_brace` negative-lookahead guard; the min>max ORDER rule stays
+    /// validator-owned (space+tab-exact since `.3.18`).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_counted_quantifier_brace_model_rejects_at_the_grammar_layer_pcre2_faithfully() {
+        // Value class (err 105): the bound VALUE exceeds 65535 — including the former
+        // u32-overflow hole (REGEX-0092: `a{4294967296}` skipped every check) and
+        // quantifier-whitespace spellings.
+        for pattern in [
+            "a{65536}",
+            "a{4294967296}",
+            "a{99999999999999999999}",
+            "a{065536}",
+            "a{ 65536 }",
+            "a{\t65536\t}",
+            "a{0,65536}",
+            "a{65536,}",
+            "a{,65536}",
+            "a{ ,65536}",
+            "a{, 65536}",
+            "a{65536,65537}",
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "out-of-range quantifier bound must reject: {pattern}"
+            );
+        }
+        // Order class (err 104): min > max — validator-owned, now tab-aware (REGEX-0094).
+        for pattern in ["a{5,2}", "a{ 5 , 2 }", "a{\t5\t,\t2\t}", "(){5,2}", "^{5,2}$"] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "out-of-order quantifier bounds must reject: {pattern}"
+            );
+        }
+        // Position class (err 109, REGEX-0093): a valid-syntax brace at a non-repeatable
+        // position can neither quantify (nothing precedes) nor fall back to literal.
+        for pattern in ["{2,5}", "x|{2,5}", "a{2}{3}", "{2}", "({2,5})", "a|{0}"] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "non-repeatable-position quantifier brace must reject: {pattern}"
+            );
+        }
+        // Quantifier accepts: in-range values, leading zeros (the VALUE decides, not the
+        // digit count), space/tab whitespace anywhere inside (all oracle-verified).
+        for pattern in [
+            "a{2,5}",
+            "a{ 2 , 5 }",
+            "a{\t2\t,\t5\t}",
+            "a{0}",
+            "a{65535}",
+            "a{0000000000065535}",
+            "a{065535}",
+            "a{0,65535}",
+            "a{65535,}",
+            "a{,65535}",
+            "a{,5}",
+            "a{2, }",
+            "a{ 3 }",
+            "(a){2,5}",
+            "a{2,5}?",
+            "a{2,5}+",
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "valid counted quantifier must accept: {pattern}"
+            );
+        }
+        // Literal-brace accepts: NON-quantifier-shaped braces stay literal — including a
+        // \n inside the brace (REGEX-0094 rejects-valid: `a{\n5,2\n}` was wrongly
+        // order-rejected; PCRE2 compiles it clean as literals).
+        for pattern in [
+            "a{}",
+            "a{,}",
+            "a{ }",
+            "{a}",
+            "{}",
+            "a{1,2,3}b",
+            "a{65536",
+            "a{2,",
+            "a{\n2\n}",
+            "a{\n5,2\n}",
+            "a{\n65536\n}",
+            "X{12ABC}",
+            "a{(?#XYZ),2}",
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "non-quantifier-shaped brace must stay literal: {pattern}"
+            );
+        }
+        // The typed-int carrier is preserved: leading zeros collapse to the VALUE (the
+        // `@transform` span parse on `quant_bound_number`), exactly as `digits` surfaced it.
+        let ast = super::parse_sample_ast_json("regex", "a{065535}")
+            .expect("regex registered")
+            .expect("accepts a{065535}")
+            .to_string();
+        assert!(
+            ast.contains("\"min\":65535") && ast.contains("\"max\":65535"),
+            "a{{065535}} must carry the typed int bounds 65535: {ast}"
+        );
+        // The brace model applies in BOTH profiles (the quantifier rules and the guard are
+        // profile-shared; the validator's order rule runs unconditionally).
+        for pattern in ["a{65536}", "{2,5}", "a{2}{3}", "a{5,2}", "a{2,5}", "a{}"] {
+            let verdict = super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                .expect("regex registered");
+            assert_eq!(
+                verdict.is_ok(),
+                parse_sample("regex", pattern) == Some(true),
+                "relaxed must agree with the default profile on the brace model: {pattern}"
+            );
+        }
+    }
+
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {

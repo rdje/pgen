@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.86`
+  - `1.1.87`
 - Parser release version:
-  - `1.1.84`
+  - `1.1.85`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,29 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.85 / Contract 1.1.87 Highlights — REGEX-0092/0093/0094: the PCRE2 counted-quantifier BRACE TOKENIZATION model; the value bound is grammar-encoded
+
+**Bug ledger:** `REGEX-0092` (u32-overflow value hole) + `REGEX-0093` (non-repeatable-position class) + `REGEX-0094` (the brace-whitespace set, both directions) — all internal, found by the `REGEX-PCRE2-FIDELITY.3.18` pre-encode oracle matrix vs `pcre2test` 10.47 (hex-pattern cells froze the whitespace set).
+
+**What changed (behavior-TIGHTENING: 5 accepts-invalid spellings now REJECT; behavior-CORRECTING: 1 rejects-valid spelling now ACCEPTS).** PCRE2's brace tokenization model is now encoded in `grammars/regex.ebnf`, replacing the host validator's value-limit checks (`REGEX-PCRE2-FIDELITY.3.18`, the sixth compile-contract migration). The model, oracle-verified over a 47-cell matrix:
+
+| Rule | Example | Verdict (both = PGEN `1.1.85` = PCRE2 10.47) |
+|---|---|---|
+| A syntactically-valid quantifier brace — digits with SPACES/TABS anywhere inside, forms `{n}` `{n,}` `{n,m}` `{,m}` — is ALWAYS a quantifier, never a literal | `a{2,5}` · `a{ 2 , 5 }` · tab-spaced forms | ACCEPT (unchanged) |
+| Any bound VALUE > 65535 is err 105 — value-based, so leading zeros don't matter, and the former u32-overflow hole is closed | `a{65536}` (unchanged) · **`a{4294967296}` (was wrongly accepted)** · `a{0000000000065535}` accepts | REJECT / ACCEPT per value |
+| min > max is err 104 — including tab-spaced spellings | `a{5,2}` (unchanged) · **`a{\t5\t,\t2\t}` (was wrongly accepted)** | REJECT |
+| A valid-syntax brace at a non-repeatable position is err 109 | **`{2,5}` at pattern start · `x\|{2,5}` · `a{2}{3}` (all were wrongly accepted)** | REJECT |
+| Only space + tab are quantifier whitespace; a `\n`/`\f`/`\r`/`\v` inside the brace makes it a LITERAL | **`a{\n5,2\n}` (was wrongly rejected)** · `a{\n2\n}` | ACCEPT (literal pieces) |
+| Non-quantifier-shaped braces stay literal | `a{}` · `{a}` · `a{1,2,3}b` · unterminated `a{65536` | ACCEPT (unchanged) |
+
+**AST shape.** `min`/`max` stay typed ints (the same `@transform` span parse, now on the value-structural `quant_bound_number`); the literal `{` atom's AST is byte-identical (the bare `"{"` terminal). **AST-dump schema stays `1`.** The only AST-shape changes are the control-whitespace accept/accept cells (`a{\n2\n}`-family), which previously mis-parsed as quantifiers and now parse as the literal pieces PCRE2 sees.
+
+**Rejection-layer move.** The > 65535 value family moves from the contract message (`counted quantifier bound exceeds PCRE2 compile limit 65535`) to a standard grammar parse failure — as always, match on the diagnostic **code** (`E_PARSE_FAILURE`), never message text. The validator still owns exactly one counted-quantifier rule: min > max ordering (err 104 class, message `counted quantifier minimum cannot exceed counted quantifier maximum`), now with the PCRE2-exact space+tab whitespace set.
+
+**Generation.** Quantifier bounds are in-range **by construction** (the structural `quant_bound_number` cascade), so the stimuli generator can no longer emit out-of-range bounds. Out-of-order `{n,m}` draws remain a rare theoretical residual (never observed at the 22k-sample `STIMULI-SIGNOFF.13.3` budget; the duality-hunt gate watches).
+
+**Action for downstream (RGX):** the 5 newly-rejected spellings were PCRE2-invalid all along — adopting `1.1.85` aligns the accept set with PCRE2; `a{\n5,2\n}`-class patterns (valid PCRE2 literals) are newly accepted. Both profiles behave identically on this surface.
 
 ## Release 1.1.84 / Contract 1.1.86 Highlights — REGEX-0091: character-class member VISIBILITY & the PCRE2 class-open model; the class-emptiness checks are grammar-encoded
 

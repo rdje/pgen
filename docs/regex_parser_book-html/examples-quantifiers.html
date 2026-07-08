@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c097dea4.js";
+            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -294,6 +294,32 @@
 <li><code>a{1, 2}</code> — whitespace after the comma (was 7 literal pieces pre-fix)</li>
 </ul>
 <p>PCRE2 conformance test suite testinput1:6679 (<code>/a{ 1 , 2 }/</code>) covers this case.</p>
+<p><strong>Since release <code>1.1.85</code>, “whitespace” here is exactly space + tab</strong> (the oracle-frozen PCRE2 set — <code>brace_ws</code>). Tab-spaced forms like <code>a{\t1\t,\t2\t}</code> parse to the same quantifier shape; a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> anywhere inside the brace makes the whole brace a LITERAL (see the brace-model section below), matching PCRE2’s tokenizer. Pre-<code>1.1.85</code> the rule used the full 6-char whitespace set, so <code>a{\n2\n}</code> mis-parsed as a quantifier.</p>
+<h2 id="the-pcre2-brace-tokenization-model--quantifier-vs-literal-vs-reject-release-1185"><a class="header" href="#the-pcre2-brace-tokenization-model--quantifier-vs-literal-vs-reject-release-1185">The PCRE2 brace tokenization model — quantifier vs literal vs reject (release 1.1.85)</a></h2>
+<p>A brace whose text is <strong>syntactically-valid quantifier shape</strong> — digits with spaces/tabs anywhere inside, in the four forms <code>{n}</code> <code>{n,}</code> <code>{n,m}</code> <code>{,m}</code> — is ALWAYS a quantifier in PCRE2, never a literal. PGEN encodes this with the value-structural <a href="rules-quantifier.html"><code>quant_bound_number</code></a> (bounds ≤ 65535 by construction) and the <a href="rules-atom.html"><code>literal_open_brace</code></a> negative-lookahead guard (a valid-syntax brace can never fall back to literal pieces). Oracle: <code>pcre2test</code> 10.47, <code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0092</code>/<code>0093</code>/<code>0094</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict (PGEN <code>1.1.85</code> = PCRE2)</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>a{2,5}</code> · <code>a{ 2 , 5 }</code> · <code>a{\t2\t,\t5\t}</code></td><td>ACCEPT (quantifier)</td><td>valid syntax, in-range, repeatable atom precedes</td></tr>
+<tr><td><code>a{0000000000065535}</code></td><td>ACCEPT (quantifier <code>{65535,65535}</code>)</td><td>the bound is the VALUE, not the digit count</td></tr>
+<tr><td><code>a{65536}</code> · <code>a{4294967296}</code> · <code>a{0,65536}</code></td><td>REJECT (err-105 class)</td><td>value &gt; 65535; <code>1.1.84</code> wrongly accepted the &gt;u32 forms</td></tr>
+<tr><td><code>a{5,2}</code> · <code>a{\t5\t,\t2\t}</code></td><td>REJECT (err-104 class)</td><td>min &gt; max (validator-owned; tab-aware since <code>1.1.85</code>)</td></tr>
+<tr><td><code>{2,5}</code> at start · <code>x|{2,5}</code> · <code>a{2}{3}</code></td><td>REJECT (err-109 class)</td><td>valid-syntax brace at a non-repeatable position; <code>1.1.84</code> wrongly accepted these as literals</td></tr>
+<tr><td><code>a{}</code> · <code>a{,}</code> · <code>a{ }</code> · <code>{a}</code> · <code>a{1,2,3}b</code> · <code>a{65536</code> (unterminated)</td><td>ACCEPT (literal pieces)</td><td>not quantifier syntax — literal <code>{</code> exactly as PCRE2</td></tr>
+<tr><td><code>a{\n2\n}</code> · <code>a{\n5,2\n}</code></td><td>ACCEPT (literal pieces)</td><td>a <code>\n</code>/<code>\f</code>/<code>\r</code>/<code>\v</code> inside the brace makes it literal; <code>1.1.84</code> wrongly order-rejected <code>a{\n5,2\n}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>For an accepted literal brace, each character is its own <code>piece</code> with a bare-string atom — e.g. <code>a{}</code>:</p>
+<pre><code class="language-json">[
+  {"atom": "a", "quantifier": [], "type": "piece"},
+  {"atom": "{", "quantifier": [], "type": "piece"},
+  {"atom": "}", "quantifier": [], "type": "piece"}
+]
+</code></pre>
 <h2 id="a25-lazy-range-and-a25-possessive-range"><a class="header" href="#a25-lazy-range-and-a25-possessive-range"><code>a{2,5}?</code> (lazy range) and <code>a{2,5}+</code> (possessive range)</a></h2>
 <p>For <code>a{2,5}?</code>:</p>
 <pre><code class="language-json">{
@@ -333,7 +359,7 @@
     Some(Quantifier { min, max, greediness })
 }
 <span class="boring">}</span></code></pre>
-<p>The whole quantifier subtree is annotated as of slice 6: <code>digits</code> (typed integer), <code>quant_suffix</code> (typed enum string), <code>counted_quantifier_body</code> (typed <code>{min, max}</code>), <code>counted_quantifier</code> (passthrough), <code>quant_base</code> (typed <code>{min, max}</code> for every branch), and <code>quantifier</code> (typed <code>{type, min, max, greediness}</code>). Consumer code is a six-line typed-field read.</p>
+<p>The whole quantifier subtree is annotated as of slice 6: <code>quant_bound_number</code> (typed integer in <code>0..=65535</code> — the value-structural <code>digits</code> replacement since release <code>1.1.85</code>), <code>quant_suffix</code> (typed enum string), <code>counted_quantifier_body</code> (typed <code>{min, max}</code>), <code>counted_quantifier</code> (passthrough), <code>quant_base</code> (typed <code>{min, max}</code> for every branch), and <code>quantifier</code> (typed <code>{type, min, max, greediness}</code>). Consumer code is a six-line typed-field read.</p>
 <p>The <code>[]</code> → <code>Greediness::Greedy</code> mapping in the suffix lookup will be removed when the annotation language gains a coalesce operator and <code>quantifier</code>’s annotation can emit the literal string <code>"greedy"</code> directly.</p>
 
                     </main>

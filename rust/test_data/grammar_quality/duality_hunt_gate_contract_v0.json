@@ -13,10 +13,10 @@
       "seed": 0,
       "expected_signatures": [
         {
-          "signature": "PCRE# start option must appear at the start-option prefix",
-          "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
-          "example_reproducer": "E(*UTF16)"
+          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
+          "owner": "REGEX-PCRE2-FIDELITY.3.20",
+          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
+          "example_reproducer": "(*:_)*"
         }
       ]
     },
@@ -36,7 +36,14 @@
       "rounds": 20,
       "samples_per_round": 5,
       "seed": 42,
-      "expected_signatures": []
+      "expected_signatures": [
+        {
+          "signature": "PCRE# start option must appear at the start-option prefix",
+          "owner": "REGEX-PCRE2-FIDELITY.4",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
+          "example_reproducer": "E(*UTF)"
+        }
+      ]
     },
     {
       "lane_id": "svpp_canonical_seed0",
@@ -94,14 +101,7 @@
       "rounds": 200,
       "samples_per_round": 10,
       "seed": 7,
-      "expected_signatures": [
-        {
-          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
-          "owner": "REGEX-PCRE2-FIDELITY.3.20",
-          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
-          "example_reproducer": "(*:_)*"
-        }
-      ]
+      "expected_signatures": []
     },
     {
       "lane_id": "regex_scaled_seed42",
@@ -116,6 +116,12 @@
           "owner": "REGEX-PCRE2-FIDELITY.3.20",
           "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
           "example_reproducer": "(*FAIL)+"
+        },
+        {
+          "signature": "PCRE# start option must appear at the start-option prefix",
+          "owner": "REGEX-PCRE2-FIDELITY.4",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
+          "example_reproducer": "E(*UTF32)"
         }
       ]
     }

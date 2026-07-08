@@ -73,11 +73,13 @@ Pre-slice-6, this rule used positional-passthrough `-> $1` on every branch, whic
 ## `counted_quantifier`
 
 ```ebnf
-counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+counted_quantifier = "{" brace_ws? counted_quantifier_body brace_ws? "}"
 -> $3
 ```
 
 **Annotated.** The annotation `-> $3` lifts the typed `counted_quantifier_body` shape straight through, dropping the surrounding `{`, whitespace, and `}` tokens — they carry no semantic information beyond "this is a counted quantifier" (which the surrounding `quant_base` context already conveys).
+
+**Whitespace is `brace_ws` (space + tab), not the full `ws` set** — release `1.1.85` (`REGEX-PCRE2-FIDELITY.3.18`, ledger `REGEX-0094`). PCRE2 allows exactly spaces and tabs inside quantifier braces (oracle-frozen: `a{\t65536\t}` is err 105, i.e. a quantifier; the same brace with a `\n`/`\f`/`\r`/`\v` anywhere inside compiles clean as LITERALS). Pre-`1.1.85` the rule used `ws?`, so `a{\n2\n}` mis-parsed as the quantifier `{2}` where PCRE2 sees five literal pieces.
 
 ### Current shape
 
@@ -93,14 +95,16 @@ A typed `{min, max}` object, identical to whatever `counted_quantifier_body` emi
 | `{2,}` | `{"min": 2, "max": null}` |
 | `{2,5}` | `{"min": 2, "max": 5}` |
 | `{,5}` | `{"min": 0, "max": 5}` |
+| `{ 2 , 5 }` (spaces/tabs anywhere) | `{"min": 2, "max": 5}` |
+| `{065535}` (leading zeros collapse) | `{"min": 65535, "max": 65535}` |
 
 ## `counted_quantifier_body`
 
 ```ebnf
-counted_quantifier_body = digits "," digits ws?  -> {min: $1, max: $3}
-                        | digits "," ws?         -> {min: $1, max: null}
-                        | digits ws?             -> {min: $1, max: $1}
-                        | "," ws? digits         -> {min: 0,  max: $3}
+counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -> {min: $1, max: $5}
+                      | quant_bound_number brace_ws? "," brace_ws?               -> {min: $1, max: null}
+                      | quant_bound_number brace_ws?                       -> {min: $1, max: $1}
+                      | "," brace_ws? quant_bound_number                   -> {min: 0,  max: $3}
 ```
 
 **Annotated.** Four explicit branches, one per logical case (`{n,m}`, `{n,}`, `{n}`, `{,m}`). Each branch carries its own per-branch annotation producing the same `{min, max}` shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so `{2,5}` matches the range form before falling through to `{2,}` or `{2}`.
@@ -118,6 +122,29 @@ counted_quantifier_body = digits "," digits ws?  -> {min: $1, max: $3}
 The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.
 
 The book entry for [\Q...\E Quoted Literals](examples-quoted-literal.md) and [Quantifiers](examples-quantifiers.md) shows this typed shape in worked examples.
+
+## `quant_bound_number` (and `quant_bound_number_body` / `quant_bound_core`)
+
+```ebnf
+@transform: str::parse::<usize>().unwrap_or(0)
+quant_bound_number      = quant_bound_number_body
+quant_bound_number_body = "0"+ quant_bound_core? | quant_bound_core
+quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
+                        | "655" ("0" | "1" | "2") digit
+                        | "65" ("0" | "1" | "2" | "3" | "4") digit digit
+                        | "6" ("0" | "1" | "2" | "3" | "4") digit digit digit
+                        | ("1" | "2" | "3" | "4" | "5") digit digit digit digit
+                        | nonzero_digit digit digit digit
+                        | nonzero_digit digit digit
+                        | nonzero_digit digit
+                        | nonzero_digit
+```
+
+**Annotated (`@transform` on the wrapper).** Release `1.1.85` (`REGEX-PCRE2-FIDELITY.3.18`, ledger `REGEX-0092`): the counted-quantifier bound is VALUE-bounded to `[0, 65535]` (PCRE2 err 105) **structurally** — the [`callout_number`](rules-misc.md) `[0, 255]` idiom scaled up. `quant_bound_number_body` admits leading zeros plus an optional nonzero-led core whose 9-branch cascade covers exactly `1..=65535` (the default longest-match tournament picks the full value over any prefix), so an out-of-range digit run has no fully-consuming quantifier parse — and generation draws in-range bounds **by construction**. The wrapper carries the same `@transform` span parse `digits` used, so `min`/`max` stay typed ints (`"065535"` → `65535`) and the AST shape is unchanged.
+
+### Shape
+
+`Json(Number(<usize>))` in `0..=65535` — exactly what the former `digits` slot emitted for in-range values. Out-of-range values (`{65536}`, `{4294967296}` — the former u32-overflow hole that skipped every check) no longer parse at all: the quantifier fails AND the [`literal_open_brace` guard](rules-atom.md) blocks the literal fallback, so the pattern REJECTS err-105-faithfully.
 
 ## `quant_suffix`
 
@@ -163,11 +190,11 @@ digits = /([0-9]+)/
 
 ### Where it appears
 
-- Inside `counted_quantifier_body` — the `min` and `max` digit slots, e.g. `{2,5}` produces typed integers `2` and `5`.
 - Inside `version_number = digits ("." digits)?`.
 - Inside `recursion_condition = "R" digits?`.
-- Inside `callout_arg = digits | callout_string`.
 - Inside `signed_digits = sign? digits`.
+- NOT inside `counted_quantifier_body` since release `1.1.85` — the `min`/`max` slots are the value-bounded `quant_bound_number` (same typed-int carrier; see above).
+- NOT inside `callout_arg` since release `1.1.83`-era `.3.16` — the numeric callout arg is the value-bounded `callout_number` (same idiom, `[0, 255]`).
 
 The `digit` (per-char) rule used by `backreference_digits = nonzero_digit digit*` is a DIFFERENT rule and is not annotated — each digit is still a per-char Terminal.
 
