@@ -592,6 +592,64 @@ pub fn effective_rule_branch_priorities(
         .unwrap_or(default_priorities)
 }
 
+/// The effective SC-08 value-constraint set (`@enum` / `@regex` / `@range` / `@len`) codegen
+/// compiles into rule `rule_name`'s parse-time atom guards (`semantic_value_constraint_tokens`,
+/// `ast_based_generator.rs`) — the guards run on the matched string directly after the rule's
+/// guarded atoms (`match_string`/`match_regex`).
+///
+/// STIMULI-SIGNOFF.13.2: extracted here (verbatim from codegen's `rule_value_constraints`) so the
+/// parse-harness interpreter mirrors the guards through the SAME constraint resolution codegen
+/// emits from — the `effective_rule_branch_policy`/`effective_rule_branch_priorities`
+/// shared-delegate precedent. A malformed payload resolves to "no constraint" on BOTH consumers
+/// identically (the annotation validator owns payload lints).
+pub fn effective_rule_value_constraints(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+) -> SemanticValueConstraints {
+    let mut constraints = SemanticValueConstraints::default();
+    let Some(annotations) = annotations else {
+        return constraints;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return constraints;
+    };
+
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+
+        match name.as_str() {
+            "enum" => {
+                if let Some(values) = parse_semantic_string_list(&payload) {
+                    constraints.enum_values = values;
+                }
+            }
+            "regex" => {
+                let pattern = normalize_semantic_scalar(&payload);
+                if !pattern.is_empty() {
+                    constraints.regex_pattern = Some(pattern);
+                }
+            }
+            "range" => {
+                if let Some((min, max)) = parse_semantic_numeric_bounds(&payload) {
+                    constraints.min_numeric = Some(min);
+                    constraints.max_numeric = Some(max);
+                }
+            }
+            "len" => {
+                if let Some((min_len, max_len)) = parse_semantic_len_bounds(&payload) {
+                    constraints.min_len = Some(min_len);
+                    constraints.max_len = Some(max_len);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    constraints
+}
+
 /// The deterministic-partition policy a rule's branch tournament runs under (`@deterministic_group`
 /// enables it; `@seed_group` / a group payload names the partition group; an enabled policy with no
 /// explicit label defaults to `rule.<name>`). When enabled, the generated tournament ROTATES its
@@ -1371,5 +1429,60 @@ mod tests {
             semantic_directive_spec("whitespace_sensitive").map(|s| s.capability),
             Some(SemanticDirectiveCapability::ParserSteering)
         );
+    }
+
+    /// STIMULI-SIGNOFF.13.2 — the shared SC-08 extraction both codegen (emitted atom guards) and
+    /// the parse-harness interpreter (guard mirror) resolve constraints through. Payload shapes
+    /// per the SC-08 contract (`rust/test_data/semantic_annotation/sc08_contract.json`).
+    #[test]
+    fn effective_rule_value_constraints_resolves_all_four_sc08_directives() {
+        use super::effective_rule_value_constraints;
+        use crate::ast_pipeline::{Annotations, SemanticAnnotation, UnifiedSemanticAST};
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "token".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "enum".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"aa\", \"bb\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "regex".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[A-Z]{2}".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "range".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[0, 255]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "len".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[2, 3]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let constraints = effective_rule_value_constraints(Some(&annotations), "token");
+        assert_eq!(
+            constraints.enum_values,
+            vec!["aa".to_string(), "bb".to_string()]
+        );
+        assert_eq!(constraints.regex_pattern.as_deref(), Some("[A-Z]{2}"));
+        assert_eq!(constraints.min_numeric, Some(0.0));
+        assert_eq!(constraints.max_numeric, Some(255.0));
+        assert_eq!(constraints.min_len, Some(2));
+        assert_eq!(constraints.max_len, Some(3));
+
+        // Absent annotations / an unconstrained rule → the empty set on both consumers.
+        assert!(effective_rule_value_constraints(None, "token").is_empty());
+        assert!(effective_rule_value_constraints(Some(&annotations), "other").is_empty());
     }
 }

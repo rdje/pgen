@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0016 — STIMULI-SIGNOFF.13.2: implementation notes — the interpreter value-constraint mirror
+
+Session #63. Notes from landing the SC-08 interpreter mirror:
+
+1. **The mirror site was pre-threaded.** `parse_atom` already took `_rule_name` (unused) — the
+   interpreter's structure anticipated per-rule atom policies; the mirror only had to consume it.
+   Guarded tags are exactly codegen's (`quoted_string`/`number`/`probability`/`include_dir`/
+   `include_file`/`rule` after `match_string`; `regex` after `match_regex`; `rule_reference`
+   delegates to the referenced rule's own guards).
+2. **Faithful mirroring includes the quirks.** The emitted guard applies to EVERY guarded atom of
+   the rule — `@range` on a multi-atom rule with a literal atom means that literal must parse as
+   f64 (it never will), so the rule always rejects; and the numeric domain is f64-parse semantics
+   (`1e2` is in-range `[0, 255]`). The mirror reproduces both rather than "improving" them —
+   byte-parity beats aesthetics on a certified surface. Same for per-evaluation `Regex::new`
+   (the generated guard recompiles per execution too — including the invalid-pattern error path).
+3. **The measure-then-lock workflow carried the whole slice.** The suite's `--ignored` measurement
+   probe produced the honest pre-mirror divergence map (10 divergences, every agreeing anchor
+   oracle-confirmed) BEFORE any mirror code existed; the same command post-mirror showed 29/29
+   CLEAN — the before→after evidence was free.
+4. **The backtrack case is the load-bearing one.** `program := small "!" | wide "!"` with
+   `@range: [0, 9]` on `small` only: pre-mirror BOTH sides ACCEPT `42!` — the divergence is
+   tree-only (`small_pick` vs `wide_pick` at byte 78). A verdict-only comparator would have
+   certified a wrong-tree interpreter; the suite's byte-identical AST comparison is what caught
+   it (the `sem_memo_success_ast` lesson, revalidated).
+5. **Operational reminder confirmed:** `make focus_regex` rebuilds `ast_pipeline` WITHOUT
+   `ebnf_dual_run`, which fails `parse_harness::tests::compile_and_run_harness_reproduces_json_…`
+   in the next `--features generated_parsers` test run (the harness drives the binary as a
+   subprocess). Not a regression — rebuild the dual-feature binary and rerun (the standing
+   MEMORY warning, hit live this session).
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0013 — REGEX-PCRE2-FIDELITY.3.15: implementation notes — the class-open model, mixed-position spread, and scratch-slot design de-risking
 
 Session #62. Notes from landing the class-member-visibility encoding (regex release 1.1.84):

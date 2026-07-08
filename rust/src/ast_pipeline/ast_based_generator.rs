@@ -12,11 +12,11 @@ use crate::ast_pipeline::{
     ast_return_transform::AstReturnTransformer, compile_default_profile,
     compile_layout_sensitivity, compile_profile_aliases,
     compile_semantic_runtime_annotations,
-    normalize_semantic_scalar, parse_canonical_transform_expression,
+    parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_charset,
     parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
     parse_semantic_implication,
-    parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
+    parse_semantic_nonnegative_usize,
     parse_quantifier_bounds, parse_semantic_pattern, parse_semantic_reference_list,
     parse_semantic_string_list, parse_semantic_token_class,
 };
@@ -7583,48 +7583,13 @@ impl AstBasedGenerator {
     }
 
     fn rule_value_constraints(&self, rule_name: &str) -> SemanticValueConstraints {
-        let mut constraints = SemanticValueConstraints::default();
-        let Some(annotations) = &self.annotations else {
-            return constraints;
-        };
-        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return constraints;
-        };
-
-        for annotation in entries {
-            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
-                continue;
-            };
-
-            match name.as_str() {
-                "enum" => {
-                    if let Some(values) = parse_semantic_string_list(&payload) {
-                        constraints.enum_values = values;
-                    }
-                }
-                "regex" => {
-                    let pattern = normalize_semantic_scalar(&payload);
-                    if !pattern.is_empty() {
-                        constraints.regex_pattern = Some(pattern);
-                    }
-                }
-                "range" => {
-                    if let Some((min, max)) = parse_semantic_numeric_bounds(&payload) {
-                        constraints.min_numeric = Some(min);
-                        constraints.max_numeric = Some(max);
-                    }
-                }
-                "len" => {
-                    if let Some((min_len, max_len)) = parse_semantic_len_bounds(&payload) {
-                        constraints.min_len = Some(min_len);
-                        constraints.max_len = Some(max_len);
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        constraints
+        // STIMULI-SIGNOFF.13.2: the extraction moved to the shared registry function so the
+        // parse-harness interpreter's value-constraint guard mirror reads the exact constraint
+        // resolution these emitted guards are compiled from.
+        crate::ast_pipeline::semantic_directive_registry::effective_rule_value_constraints(
+            self.annotations.as_ref(),
+            rule_name,
+        )
     }
 
     fn rule_token_steering_policy(&self, rule_name: &str) -> SemanticTokenSteeringPolicy {

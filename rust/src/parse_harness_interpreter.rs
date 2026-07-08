@@ -32,7 +32,10 @@
 //!      (`match_string`, `match_regex`, the layout consumers, `try_parse`) — mirrored byte-for-byte
 //!      from the emitted code in a generated parser, the authoritative behavior — plus the combinator
 //!      dispatch (the ordered-choice tournament + `branch_policy`, sequence assembly, the quantifier
-//!      loop, lookahead) and the return-annotation fold.
+//!      loop, lookahead), the return-annotation fold, and the SC-08 value-constraint atom guards
+//!      (`@enum`/`@regex`/`@range`/`@len` — `enforce_value_constraints`, STIMULI-SIGNOFF.13.2,
+//!      resolved through the same shared registry function codegen compiles the emitted guards
+//!      from).
 //! 2. **Differential equivalence (the certifying oracle).** The residual — that thin dispatch layer —
 //!    is checked against the authoritative generated parser: this module's tests assert the
 //!    interpreter is **byte-identical** to the registered `json` parser (via
@@ -63,7 +66,8 @@ use crate::ast_pipeline::ast_based_generator::{
     CommentArmSuppression, comment_arm_suppression_for_grammar,
 };
 use crate::ast_pipeline::semantic_directive_registry::{
-    SemanticAssociativity, SemanticBranchPolicy, parse_semantic_branch_priorities,
+    SemanticAssociativity, SemanticBranchPolicy, SemanticValueConstraints,
+    effective_rule_value_constraints, parse_semantic_branch_priorities,
 };
 use crate::ast_pipeline::stimuli_generator::BranchSelectionLogEntry;
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
@@ -356,6 +360,17 @@ fn interpret_parse_gen_ast_core(
         .map(|s| compiled_sem.resolve_profile_alias(s).to_string())
         .or_else(|| compiled_sem.default_profile().map(|s| s.to_string()));
 
+    // STIMULI-SIGNOFF.13.2: the per-rule SC-08 value-constraint sets, resolved through the SAME
+    // shared function codegen compiles the emitted atom guards from. Rules without constraints
+    // (every rule of every shipped grammar today) are simply absent.
+    let value_constraints: rustc_hash::FxHashMap<&str, SemanticValueConstraints> = grammar_tree
+        .keys()
+        .filter_map(|rule| {
+            let constraints = effective_rule_value_constraints(annotations, rule);
+            (!constraints.is_empty()).then(|| (rule.as_str(), constraints))
+        })
+        .collect();
+
     let mut interp = Interp {
         grammar: grammar_tree,
         annotations,
@@ -372,6 +387,7 @@ fn interpret_parse_gen_ast_core(
         memo: rustc_hash::FxHashMap::default(),
         memo_fail: rustc_hash::FxHashSet::default(),
         memo_fail_tainted: rustc_hash::FxHashMap::default(),
+        value_constraints,
         selection_recorder,
     };
 
@@ -685,6 +701,14 @@ struct Interp<'g, 'i> {
     memo: rustc_hash::FxHashMap<(&'static str, usize), InterpMemoEntry<'i>>,
     /// The failure half of the split memo (see `memo`).
     memo_fail: rustc_hash::FxHashSet<(&'static str, usize)>,
+    /// STIMULI-SIGNOFF.13.2 — the SC-08 value-constraint guard mirror's per-rule constraint sets
+    /// (`@enum` / `@regex` / `@range` / `@len`), computed once at construction via the SAME shared
+    /// resolution codegen compiles the emitted guards from
+    /// (`effective_rule_value_constraints`). Only rules with a non-empty set appear, so the
+    /// per-atom lookup in `enforce_value_constraints` is a single hash probe returning `None` for
+    /// every unconstrained rule. Empty for every shipped grammar (none declares a value
+    /// constraint), so the differential-certified surfaces are untouched.
+    value_constraints: rustc_hash::FxHashMap<&'g str, SemanticValueConstraints>,
     /// MEMO-STORE-SOUNDNESS.2 — store-tainted failures, epoch-stamped (mirror of the generated
     /// `memo_fail_tainted`).
     memo_fail_tainted: rustc_hash::FxHashMap<(&'static str, usize), u64>,
@@ -2441,8 +2465,10 @@ impl<'g, 'i> Interp<'g, 'i> {
     /// A leaf `Atom`. The token type-tag (`parts[0]`) selects: `rule_reference` → recurse into the named
     /// rule, wrapped `Alternative(Box<node>)`; `regex` → `match_regex` → `Terminal`; `quoted_string` and
     /// the other literal tags → `match_string` → `Terminal`; anything else → an empty terminal
-    /// (consumes 0), exactly as the codegen's `generate_atom_logic`.
-    fn parse_atom(&mut self, value: &'g ASTValue, _rule_name: &str) -> ParseResult<ParseContent<'i>> {
+    /// (consumes 0), exactly as the codegen's `generate_atom_logic` — including the SC-08
+    /// value-constraint guards codegen splices directly after each guarded match
+    /// (`enforce_value_constraints`, STIMULI-SIGNOFF.13.2).
+    fn parse_atom(&mut self, value: &'g ASTValue, rule_name: &str) -> ParseResult<ParseContent<'i>> {
         let parts = match value {
             ASTValue::Token(parts) => parts,
             // The normalizer never emits `ASTValue::Node`; codegen treats it as an empty terminal.
@@ -2460,14 +2486,154 @@ impl<'g, 'i> Interp<'g, 'i> {
             }
             "regex" => {
                 let matched = self.match_regex(val, true)?;
+                self.enforce_value_constraints(rule_name, matched)?;
                 Ok(ParseContent::Terminal(matched))
             }
             "quoted_string" | "number" | "probability" | "include_dir" | "include_file" | "rule" => {
                 let matched = self.match_string(val)?;
+                self.enforce_value_constraints(rule_name, matched)?;
                 Ok(ParseContent::Terminal(matched))
             }
             _ => Ok(ParseContent::Terminal("")),
         }
+    }
+
+    /// STIMULI-SIGNOFF.13.2 — the SC-08 value-constraint guard mirror. Codegen splices these
+    /// checks on `matched_str` directly after every guarded atom match of a constraint-bearing
+    /// rule (`semantic_value_constraint_tokens`, `ast_based_generator.rs`; spliced in
+    /// `generate_atom_logic` after `match_string` for the literal tags and after `match_regex`
+    /// for regex-tokens — `rule_reference` delegates to the referenced rule's own guards).
+    /// Mirrored FAITHFULLY, quirks included:
+    ///
+    /// - check order is enum membership → `@regex` FULL-match → `@len` on `chars().count()` →
+    ///   `@range` on the `f64`-parsed value (first failure wins, exactly as the emitted early
+    ///   returns);
+    /// - the `@regex` pattern is compiled FRESH per evaluation (`regex::Regex::new`, NOT the
+    ///   anchored token-matching cache) and an invalid pattern is the same contextual error the
+    ///   emitted guard raises;
+    /// - message strings are byte-identical to the emitted ones;
+    /// - a rejection is an ordinary `Err` through the tournament/`try_parse` flow — BACKTRACKABLE,
+    ///   exactly like the generated parser's early `return Err(create_contextual_error(...))`;
+    /// - the guard applies to EVERY guarded atom of the rule (a `@range` rule with a non-numeric
+    ///   literal atom always rejects — the emitted behavior, deliberately not sanitized).
+    ///
+    /// One-sided bound arms mirror the emitted token stream even though the shared extraction
+    /// currently always populates bounds in pairs — if `effective_rule_value_constraints` ever
+    /// yields one-sided bounds, both consumers stay aligned by construction.
+    fn enforce_value_constraints(&self, rule_name: &str, matched_str: &str) -> ParseResult<()> {
+        let Some(constraints) = self.value_constraints.get(rule_name) else {
+            return Ok(());
+        };
+
+        if !constraints.enum_values.is_empty()
+            && !constraints
+                .enum_values
+                .iter()
+                .any(|allowed| allowed.as_str() == matched_str)
+        {
+            return Err(self.create_contextual_error(&format!(
+                "Semantic enum constraint failed for rule '{}': value '{}' not in allowed set",
+                rule_name, matched_str
+            )));
+        }
+
+        if let Some(pattern) = &constraints.regex_pattern {
+            let semantic_re = regex::Regex::new(pattern).map_err(|e| {
+                self.create_contextual_error(&format!(
+                    "Invalid semantic regex constraint '{}' for rule '{}': {}",
+                    pattern, rule_name, e
+                ))
+            })?;
+            let semantic_regex_full_match = semantic_re
+                .find(matched_str)
+                .map(|m| m.start() == 0 && m.end() == matched_str.len())
+                .unwrap_or(false);
+            if !semantic_regex_full_match {
+                return Err(self.create_contextual_error(&format!(
+                    "Semantic regex constraint '{}' failed for rule '{}': value '{}'",
+                    pattern, rule_name, matched_str
+                )));
+            }
+        }
+
+        match (constraints.min_len, constraints.max_len) {
+            (Some(min_len), Some(max_len)) => {
+                let semantic_len = matched_str.chars().count();
+                if semantic_len < min_len || semantic_len > max_len {
+                    return Err(self.create_contextual_error(&format!(
+                        "Semantic len constraint [{}, {}] failed for rule '{}': value '{}' has length {}",
+                        min_len, max_len, rule_name, matched_str, semantic_len
+                    )));
+                }
+            }
+            (Some(min_len), None) => {
+                let semantic_len = matched_str.chars().count();
+                if semantic_len < min_len {
+                    return Err(self.create_contextual_error(&format!(
+                        "Semantic len minimum {} failed for rule '{}': value '{}' has length {}",
+                        min_len, rule_name, matched_str, semantic_len
+                    )));
+                }
+            }
+            (None, Some(max_len)) => {
+                let semantic_len = matched_str.chars().count();
+                if semantic_len > max_len {
+                    return Err(self.create_contextual_error(&format!(
+                        "Semantic len maximum {} failed for rule '{}': value '{}' has length {}",
+                        max_len, rule_name, matched_str, semantic_len
+                    )));
+                }
+            }
+            (None, None) => {}
+        }
+
+        match (constraints.min_numeric, constraints.max_numeric) {
+            (Some(min), Some(max)) => {
+                let semantic_numeric = matched_str.parse::<f64>().map_err(|_| {
+                    self.create_contextual_error(&format!(
+                        "Semantic numeric constraint failed for rule '{}': value '{}' is not numeric",
+                        rule_name, matched_str
+                    ))
+                })?;
+                if semantic_numeric < min || semantic_numeric > max {
+                    return Err(self.create_contextual_error(&format!(
+                        "Semantic numeric range [{}, {}] failed for rule '{}': value {}",
+                        min, max, rule_name, semantic_numeric
+                    )));
+                }
+            }
+            (Some(min), None) => {
+                let semantic_numeric = matched_str.parse::<f64>().map_err(|_| {
+                    self.create_contextual_error(&format!(
+                        "Semantic numeric constraint failed for rule '{}': value '{}' is not numeric",
+                        rule_name, matched_str
+                    ))
+                })?;
+                if semantic_numeric < min {
+                    return Err(self.create_contextual_error(&format!(
+                        "Semantic numeric min {} failed for rule '{}': value {}",
+                        min, rule_name, semantic_numeric
+                    )));
+                }
+            }
+            (None, Some(max)) => {
+                let semantic_numeric = matched_str.parse::<f64>().map_err(|_| {
+                    self.create_contextual_error(&format!(
+                        "Semantic numeric constraint failed for rule '{}': value '{}' is not numeric",
+                        rule_name, matched_str
+                    ))
+                })?;
+                if semantic_numeric > max {
+                    return Err(self.create_contextual_error(&format!(
+                        "Semantic numeric max {} failed for rule '{}': value {}",
+                        max, rule_name, semantic_numeric
+                    )));
+                }
+            }
+            (None, None) => {}
+        }
+
+        Ok(())
     }
 
     // ── Speculation ──────────────────────────────────────────────────────────────────────────────────

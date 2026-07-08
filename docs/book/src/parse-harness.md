@@ -295,9 +295,12 @@ legs make it so:
    rollback that speculation needs, and the gen-AST IR + loader; and it **re-expresses** only the small,
    parser-agnostic lexical/speculation primitives (`match_string`, `match_regex`, the layout consumers,
    `try_parse` — mirrored byte-for-byte from a generated parser's emitted code), plus the combinator
-   dispatch (the ordered-choice tournament + `branch_policy`, sequence, the quantifier loop, lookahead)
-   and the return-annotation fold. The residual divergence surface is therefore just that thin dispatch
-   layer.
+   dispatch (the ordered-choice tournament + `branch_policy`, sequence, the quantifier loop, lookahead),
+   the return-annotation fold, and the SC-08 **value-constraint atom guards** (`@enum` / `@regex` /
+   `@range` / `@len` — enforced right after each guarded atom match with byte-identical check order,
+   message strings, and backtrackability, resolved through the *same shared registry function* codegen
+   compiles the emitted guards from). The residual divergence surface is therefore just that thin
+   dispatch layer.
 2. **Differential equivalence (the certifying oracle).** The residual is checked against the
    authoritative generated parser, byte-for-byte. The interpreter's tests assert it is **byte-identical
    to the registered `json` parser** (verdict + typed AST, across accept and reject inputs — exercising
@@ -582,7 +585,8 @@ the LR-*eliminated* combinator the suite certifies.
 The structural suite above proves the interpreter per-combinator — but PGEN parsing is not purely
 structural: a grammar can **gate parse outcomes on the semantic store** (`@predicate` in the `pre` /
 `branch` / `post` phases), **populate** that store (`@emit_fact`, `@open_scope` / `@close_scope`), resolve
-`$references` against the parsed content, and interact with memoization and speculative rollback. This was
+`$references` against the parsed content, gate a matched atom's **value** (the SC-08 constraints
+`@enum` / `@regex` / `@range` / `@len`), and interact with memoization and speculative rollback. This was
 the interpreter's explicitly-deferred, least-proven surface (its honest bound since `.4`). The
 **semantic-directive orchestration suite** (`PARSE-HARNESS.6.2`, module
 `rust/src/parse_harness_semantic_suite.rs`, run via `make -C rust parse_harness_semantic_gate`) closes it
@@ -605,7 +609,7 @@ memo is **taint-gated with write-epoch validation**: a body that transitively co
 cached *epoch-stamped* and replayable only while the store is unchanged, so a same-position retry
 after a store change evicts the stale entry and honestly re-parses).
 
-The 24 isolating cases cover the orchestration surface:
+The 29 isolating cases cover the orchestration surface:
 
 | Construct | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -633,6 +637,11 @@ The 24 isolating cases cover the orchestration surface:
 | **memo × store (tainted success, verdict)** | an unannotated `pick` over a gated *longer* branch vs a plain shorter one | a store-tainted tournament win is **evicted** once the store moves — the retry re-runs the tournament and the longer gated branch wins (the pre-fix stale replay rejected this input) |
 | **memo × store (tainted success, tree)** | the equal-length twin with shaped `kind` markers | the retry re-runs the tie under the NEW store — the byte-identical AST comparison pins the winner on both implementations |
 | **quoted name args** | `args: [mode, "special"]` vs a `$2`-emitted fact; `current_scope_is(block, "sc")` vs a `$2`-named scope | quoted String args match Identifier-coerced `$ref` names **textually** since FACT-NAME-MATCHING.2 — the F2 dead-gate class closed on both unified sites |
+| **`@enum` value guard** | `@enum: ["aa", "bb"]` on `token := /[a-z]+/` | in-set values accept; any other structurally valid match rejects (the emitted membership guard runs right after `match_regex`) — interpreter-mirrored since STIMULI-SIGNOFF.13.2 |
+| **`@regex` value guard** | `@regex: "[A-Z]{2}"` on `token := /[A-Za-z]+/` | the constraint is **full-match**: a prefix-only (`ABC`) or offset (`xAB`) hit of the payload pattern rejects |
+| **`@range` value guard** | `@range: [0, 255]` on `token := /[0-9a-z]+/` | inclusive boundaries `0`/`255` accept; `256` rejects; a non-numeric match (`zz`) rejects through the f64-parse arm |
+| **`@len` value guard** | `@len: [2, 3]` on `token := /[a-z]+/` | `chars().count()` bounds — one-off lengths on both sides reject |
+| **value-guard backtracking** | `program := small "!" \| wide "!"`, `@range: [0, 9]` on `small` only | a guard rejection is an ordinary backtrackable `Err`: `42!` still ACCEPTs via `wide` — and the byte-identical AST comparison pins *which* branch wins (pre-mirror the interpreter accepted via the guard-blind `small`: same verdict, wrong tree) |
 
 ### Grammar-author facts this suite established (tools-first)
 
@@ -718,9 +727,10 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   profile-alias cases added when `PROFILE-ALIAS.2` did the same for request-spelling resolution —
   the pair that also taught the oracle + suite to drive a *requested profile* end-to-end) and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
-  24 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
-  findings-driven re-anchors), which also landed the interpreter's semantic orchestration mirror +
-  split memo). A fuzzing lane (`.7`) remains the optional push toward
+  29 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
+  findings-driven re-anchors and the STIMULI-SIGNOFF.13.2 SC-08 value-guard mirror pins), which also
+  landed the interpreter's semantic orchestration mirror + split memo, and — with `13.2` — the
+  value-constraint atom-guard mirror. A fuzzing lane (`.7`) remains the optional push toward
   exhaustive. Out of harness scope on the semantic side: bootstrap facts (the cross-file `veer` surface)
   and real library I/O (both registry-owned), and coverage recording (a cert surface). See
   `docs/tasks/PARSE-HARNESS.md` §3.3 / §3.4 / §21.3.

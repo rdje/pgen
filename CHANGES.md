@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0016 (STIMULI-SIGNOFF.13.2): the parse-harness interpreter VALUE-CONSTRAINT mirror — SC-08 atom guards now differentially certified, REGEX-PCRE2-FIDELITY.3.16/.3.21 unblocked
+
+Session #63. Parser-agnostic interpreter/registry slice (NO released-parser behavior change —
+parsers and certs proven byte-identical; no release/schema/ledger bumps).
+
+- **Issue (latent divergence class, the `.13.1` design §4 row-4 prerequisite):** codegen compiles
+  the SC-08 value constraints (`@enum` / `@regex` / `@range` / `@len`) into parse-time guards on
+  every guarded atom of a constraint-bearing rule (`semantic_value_constraint_tokens`,
+  `ast_based_generator.rs:7777`), but the parse-harness gen-AST interpreter enforced NONE of them
+  (grep: zero constraint symbols in `parse_harness_interpreter.rs`) — so declaring `@range` on a
+  differential-CERTIFIED grammar (exactly what `REGEX-PCRE2-FIDELITY.3.16` callout + `.3.21`
+  LIMIT-range need) would open interpreter-ACCEPTS-where-parser-REJECTS divergences.
+- **Reproduced (measure-then-lock):** 5 new isolating semantic-suite cases run pre-mirror —
+  10 divergences: enum "cc"/"aab", regex full-match "ABC"/"xAB"/"Ab", range "256"/"zz",
+  len "a"/"abcd" (all interp=true oracle=false), plus the tree-observable backtrack pin
+  (`42!` same verdict, AST `small_pick` vs `wide_pick` — the guard-blind branch winning);
+  all 24 pre-existing cases stayed CLEAN.
+- **Fix (parser-agnostic, zero name-gating):** NEW shared
+  `semantic_directive_registry::effective_rule_value_constraints` (codegen's extraction moved
+  verbatim; codegen now delegates — the `effective_rule_branch_policy` precedent) + the
+  interpreter mirror: a constructor-time per-rule constraint cache and
+  `enforce_value_constraints` in `parse_atom`, enforcing after exactly the matches codegen
+  guards, with byte-identical check order (enum → regex FULL-match via per-evaluation
+  `Regex::new` → len `chars().count()` → numeric f64), byte-identical messages, and ordinary
+  backtrackable `Err` semantics.
+- **Verified:** post-mirror semantic suite **29/29 CLEAN** (all 10 divergences gone); combinator
+  gate CLEAN; `parse_harness_equivalence_gate` green — the 11 certified grammars byte-identical
+  (the mirror is INERT: no shipped grammar declares a value constraint, grep-proven);
+  EMIT-NEUTRALITY: `focus_regex`-regenerated `regex_parser.rs` cmp BYTE-IDENTICAL across the
+  codegen delegate refactor; svpp `74/74 UNKNOWN=0 spf=0` + regex `217/217 UNKNOWN=0 spf=0`
+  cert logs cmp byte-identical ×seeds 0/7/42; lib suites 762/839/881 (= baseline +1: the new
+  registry extraction pin test); clippy source stage ok; `mdbook_docs_gate` ✅.
+- **Lockstep:** top-book `parse-harness.md` (trusted-surface inventory, `.6.2` intro, +5 case
+  table rows, 24→29 counts); steering-matrix SC-08 row gains the interpreter-mirror consumer
+  (normative spec CHECKED — no SC-08 section exists; the matrix owns SC-08);
+  `REGEX-PCRE2-FIDELITY.3.16`/`.3.21` flipped to UNBLOCKED; tree + TASK_TREE index;
+  CHANGES/DEVELOPMENT_NOTES/MEMORY.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0013 (REGEX-PCRE2-FIDELITY.3.15): character-class member VISIBILITY & the PCRE2 class-open model reject/accept PCRE2-faithfully — REGEX-0091 fixed, the checks grammar-encoded, regex release 1.1.84
 
 Session #62. RELEASED regex slice (release `1.1.83`→`1.1.84`, contract `1.1.85`→`1.1.86`,

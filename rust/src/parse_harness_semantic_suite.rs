@@ -159,6 +159,28 @@ pub enum SemanticConstruct {
     /// `semantic_runtime_values_match` in `current_scope_is`) — the same textual semantics
     /// attribute values always had (`semantic_values_match`); this case pins BOTH unified sites.
     QuotedNameArgTextualMatch,
+    /// An `@enum` value-constraint guard (SC-08): codegen splices a membership check on the matched
+    /// string directly after the guarded atom's `match_string`/`match_regex`
+    /// (`semantic_value_constraint_tokens`, `ast_based_generator.rs`); an out-of-set value REJECTS.
+    /// HISTORY: until `STIMULI-SIGNOFF.13.2` (2026-07-08, session #63) the interpreter had NO
+    /// value-constraint mirror at all — every SC-08 guard was interpreter-invisible (ACCEPT where
+    /// the generated parser REJECTs), the latent divergence class that blocked `@range` grammar
+    /// work (`REGEX-PCRE2-FIDELITY.3.16`/`.3.21`). These five cases pin the mirror differentially.
+    ValueEnumGuard,
+    /// The `@regex` value-constraint guard: the emitted check compiles the payload pattern fresh
+    /// per evaluation and requires a FULL match (`find` starting at 0 AND ending at the value's
+    /// len) — a prefix or offset match must reject.
+    ValueRegexGuard,
+    /// The `@range` numeric guard: the matched text must parse as `f64` and lie within the
+    /// inclusive bounds — boundary values accept; out-of-range and non-numeric matches reject.
+    ValueRangeGuard,
+    /// The `@len` guard: the matched text's `chars().count()` must lie within the inclusive bounds.
+    ValueLenGuard,
+    /// A value-guard rejection is BACKTRACKABLE (an ordinary `Err` through the tournament /
+    /// `try_parse` flow, exactly like the emitted guard's early `return Err(create_contextual_error)`):
+    /// a guarded alternative that fails its constraint loses to a sibling instead of killing the
+    /// parse — and WHICH branch wins is tree-observable via the byte-identical AST comparison.
+    ValueGuardBacktrack,
 }
 
 impl SemanticConstruct {
@@ -187,6 +209,11 @@ impl SemanticConstruct {
         SemanticConstruct::MemoWrapperStaleness,
         SemanticConstruct::MemoSuccessStaleness,
         SemanticConstruct::QuotedNameArgTextualMatch,
+        SemanticConstruct::ValueEnumGuard,
+        SemanticConstruct::ValueRegexGuard,
+        SemanticConstruct::ValueRangeGuard,
+        SemanticConstruct::ValueLenGuard,
+        SemanticConstruct::ValueGuardBacktrack,
     ];
 }
 
@@ -776,6 +803,102 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         note: "taint-gated SUCCESS cache, tree-observable twin: the same-position retry re-runs the \
                equal-length tournament under the NEW store — byte-identical AST comparison pins the \
                special_pick/normal_pick winner on both implementations",
+    },
+    // ── SC-08 value-constraint guards (STIMULI-SIGNOFF.13.2 — the interpreter mirror pins) ─────────
+    SemanticCase {
+        name: "sem_value_enum_guard",
+        construct: SemanticConstruct::ValueEnumGuard,
+        grammar_body: "program := token\n\
+                       @enum: [\"aa\", \"bb\"]\n\
+                       token := /[a-z]+/\n",
+        inputs: &[
+            ("aa", true),
+            ("bb", true),
+            // Structurally matches /[a-z]+/; the emitted enum membership guard rejects it.
+            ("cc", false),
+            // A superstring of an allowed value is NOT in the set — membership is exact.
+            ("aab", false),
+        ],
+        entry_rule: None,
+        note: "@enum membership guard on a regex atom: in-set values ACCEPT, any other structurally \
+               valid match REJECTs (the emitted guard runs right after match_regex)",
+    },
+    SemanticCase {
+        name: "sem_value_regex_guard",
+        construct: SemanticConstruct::ValueRegexGuard,
+        grammar_body: "program := token\n\
+                       @regex: \"[A-Z]{2}\"\n\
+                       token := /[A-Za-z]+/\n",
+        inputs: &[
+            ("AB", true),
+            // The payload pattern matches only a PREFIX (0..2 of 3) — the full-match discipline
+            // (`m.start() == 0 && m.end() == matched_str.len()`) must reject.
+            ("ABC", false),
+            // First `find` hit starts at offset 1 — start != 0 must reject.
+            ("xAB", false),
+            ("Ab", false),
+        ],
+        entry_rule: None,
+        note: "@regex guard is FULL-match: a prefix-only or offset match of the constraint pattern \
+               rejects even though the atom's own token regex matched",
+    },
+    SemanticCase {
+        name: "sem_value_range_guard",
+        construct: SemanticConstruct::ValueRangeGuard,
+        grammar_body: "program := token\n\
+                       @range: [0, 255]\n\
+                       token := /[0-9a-z]+/\n",
+        inputs: &[
+            // Inclusive boundary anchors (the PCRE2-callout-bound shape `.3.16` will declare).
+            ("0", true),
+            ("255", true),
+            ("256", false),
+            // Structurally valid match that does not parse as f64 — the emitted guard's
+            // "is not numeric" arm.
+            ("zz", false),
+        ],
+        entry_rule: None,
+        note: "@range numeric guard: inclusive [0, 255] boundaries accept, max+1 rejects, and a \
+               non-numeric match rejects through the f64-parse arm",
+    },
+    SemanticCase {
+        name: "sem_value_len_guard",
+        construct: SemanticConstruct::ValueLenGuard,
+        grammar_body: "program := token\n\
+                       @len: [2, 3]\n\
+                       token := /[a-z]+/\n",
+        inputs: &[
+            ("ab", true),
+            ("abc", true),
+            ("a", false),
+            ("abcd", false),
+        ],
+        entry_rule: None,
+        note: "@len guard on chars().count(): inclusive [2, 3] boundaries accept, one-off lengths \
+               on both sides reject",
+    },
+    SemanticCase {
+        name: "sem_value_guard_backtrack",
+        construct: SemanticConstruct::ValueGuardBacktrack,
+        grammar_body: "program := small \"!\" | wide \"!\"\n\
+                       @range: [0, 9]\n\
+                       small := /[0-9]+/ -> { kind: \"small_pick\" }\n\
+                       wide := /[0-9]+/ -> { kind: \"wide_pick\" }\n",
+        inputs: &[
+            // small's guard rejects 42 (> 9) — an ordinary backtrackable Err — so branch 2 wins
+            // and the parse ACCEPTs as wide_pick. Pre-mirror the interpreter accepted this via
+            // branch 1 (guard-blind small_pick): SAME verdict, WRONG tree — the byte-identical
+            // AST comparison is what pins the divergence, like sem_memo_success_ast.
+            ("42!", true),
+            // In-range: small's guard passes and branch 1 wins the equal-length tie → small_pick.
+            ("7!", true),
+            // Both branches fail structurally — reject control.
+            ("x!", false),
+        ],
+        entry_rule: None,
+        note: "a value-guard rejection is BACKTRACKABLE: the guarded alternative loses the \
+               tournament to its sibling (verdict still ACCEPT); which branch wins is pinned by \
+               the byte-identical AST comparison",
     },
 ];
 

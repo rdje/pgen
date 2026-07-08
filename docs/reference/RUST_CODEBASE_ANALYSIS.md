@@ -13,10 +13,14 @@ dispatcher over the normalized gen-AST that reuses the shipped `ParseNode`/`Pars
 `semantic_runtime` types verbatim and, since `.6.2`, mirrors the FULL semantic-directive
 orchestration — the rule-transaction skeleton, tournament C3-B delta discipline, branch-start inline
 actions, the `$reference` resolver family, and the split packrat memo with semantic-delta replay —
-from the emitted codegen templates), and the three certifying oracles: `parse_harness_equivalence.rs`
+from the emitted codegen templates, and, since `STIMULI-SIGNOFF.13.2` (2026-07-08), the SC-08
+value-constraint atom guards `@enum`/`@regex`/`@range`/`@len` through the shared
+`effective_rule_value_constraints` registry resolution codegen compiles the emitted guards from),
+and the three certifying oracles: `parse_harness_equivalence.rs`
 (byte-identity vs the shipped generated parsers over a deterministic corpus — 11 grammars CERTIFIED),
-`parse_harness_combinator_suite.rs` (per-structural-combinator isolation, 16/16), and
-`parse_harness_semantic_suite.rs` (per-semantic-construct isolation, 20/20). Architectural
+`parse_harness_combinator_suite.rs` (per-structural-combinator isolation, 27 cases as of
+PROFILE-ALIAS), and `parse_harness_semantic_suite.rs` (per-semantic-construct isolation, 29 cases
+as of STIMULI-SIGNOFF.13.2 — the counts at first landing were 16/20). Architectural
 significance: the interpreter is a genuine second implementation of PGEN's parse semantics whose
 divergence surface is pinned mechanically per construct, which (a) gives every linter/authoring
 question an in-process arbitrary-grammar probe with no codegen, and (b) doubles as an executable
