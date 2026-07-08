@@ -49,6 +49,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `name_ref` (branch 1, quote) | `-> $2` | Whatever `name` produced (typed name string) |
 | `braced_name_ref` | `-> $3` | Whatever `name` produced (typed name string) |
 | `name` | regex literal `/(...)/` | Terminal of the matched name string (clean, no chain) |
+| `capture_name` | `-> $1` | Whatever `name` produced (typed name string) — the shared capture-NAME carrier of the three named-open markers (generation-side `@gen_emit_fact`; STIMULI-SIGNOFF.13.4). Shape-transparent: the markers' `-> $2` surface is unchanged. |
+| `scs_capture_number` | `-> $1` | Whatever `signed_digits` produced (typed `{sign, value}` object) — the scs list's numeric item (generation-side `@gen_predicate`; parse language identical to bare `signed_digits`). |
+| `scs_capture_name_ref` (branch 0, angle) | `-> $2` | Whatever `scs_capture_name` produced (typed name string) — mirrors `name_ref` branch 0 exactly. |
+| `scs_capture_name_ref` (branch 1, quote) | `-> $2` | Whatever `scs_capture_name` produced (typed name string) — mirrors `name_ref` branch 1 exactly. |
+| `scs_capture_name` | `-> $1` | Whatever `name` produced (typed name string) — the scs list's name item (generation-side `@gen_predicate` name draw). |
 | `subroutine_ref` (branch 0, braced) | `-> $1` | Whatever `braced_subroutine_ref` produced |
 | `subroutine_ref` (branch 1, angle) | `-> $2` | Whatever `signed_digits_or_name` produced (string for name, or `[<sign?>, <int>]` for digits) |
 | `subroutine_ref` (branch 2, quote) | `-> $2` | Same as branch 1 |

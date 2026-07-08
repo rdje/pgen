@@ -903,10 +903,25 @@ noncapturing_group   = "(?:" pattern? ")"             -> {type: "atom", kind: "n
 # the name via `-> $2` so the parent's `name:$1` is shape-preserving
 # (was `name:$2` over `"(?<" name ">" …`). `body:$2` = `pattern?`
 # (was `body:$4`). `@emit_fact` args are literal scalars (no `$ref`).
+#
+# `capture_name` (STIMULI-SIGNOFF.13.4 / REGEX-PCRE2-FIDELITY.3.17):
+# the shared capture-NAME carrier of the three named-open markers.
+# `@gen_emit_fact` is the GENERATION-side dual of `@emit_fact`
+# (StimuliSteering — never serialized into the parser, parse behavior
+# and AST byte-identical): during stimuli generation the rendered
+# name registers a `regex_capture_name` fact the instant it renders,
+# so a later scan-substring capture-list item can draw a KNOWN name
+# (`scs_capture_name`'s `@gen_predicate`) — the sound
+# already-generated-prefix subset of PCRE2's full-pattern named-capture
+# inventory (forward references stay parseable; the generator simply
+# never emits them). `name: $name` is an undotted `$ref`, so the
+# generator registers the marker's WHOLE render — exactly the name.
+@gen_emit_fact: { kind: regex_capture_name, name: $name }
+capture_name         = name                            -> $1
 @emit_fact: { kind: regex_capture_group, name: capture }
-named_group_open_angle = "(?<" name ">"               -> $2
+named_group_open_angle = "(?<" capture_name ">"        -> $2
 @emit_fact: { kind: regex_capture_group, name: capture }
-named_group_open_quote = "(?'" name "'"               -> $2
+named_group_open_quote = "(?'" capture_name "'"        -> $2
 named_group          = named_group_open_angle pattern? ")"    -> {type: "atom", kind: "named_group", name: $1, body: $2}
                      | named_group_open_quote pattern? ")"    -> {type: "atom", kind: "named_group", name: $1, body: $2}
 # Python-style `(?P<name>...)`. Distinct `kind:"python_named_group"`
@@ -919,7 +934,7 @@ named_group          = named_group_open_angle pattern? ")"    -> {type: "atom", 
 # PCRE2 — same emit-at-OPEN marker idiom. Shape preserved
 # (`name:$1` via the marker's `-> $2`; `body:$2` = `pattern?`).
 @emit_fact: { kind: regex_capture_group, name: capture }
-python_named_group_open = "(?P<" name ">"             -> $2
+python_named_group_open = "(?P<" capture_name ">"     -> $2
 python_named_group   = python_named_group_open pattern? ")"   -> {type: "atom", kind: "python_named_group", name: $1, body: $2}
 
 atomic_group         = "(?>" pattern? ")"             -> {type: "atom", kind: "atomic_group", body: $2}
@@ -1013,7 +1028,34 @@ returned_capture_subroutine = subroutine_target returned_capture_group_list   ->
 # `["(", first_group, [<comma-pair>...], ")"]` shape; consumer
 # walks the structure to extract groups.
 returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"
-returned_capture_group = signed_digits | name_ref
+# `returned_capture_group` (STIMULI-SIGNOFF.13.4 / REGEX-PCRE2-FIDELITY.3.17):
+# the two item branches are wrapped in scs-specific value rules carrying
+# GENERATION-side store gates (`@gen_predicate` — StimuliSteering, never
+# serialized into the parser; parse language + AST byte-identical to the
+# former `signed_digits | name_ref` shape). WHY generation-side-only: the
+# post-parse contract validates these references against the FULL-pattern
+# capture inventory and PCRE2 accepts FORWARD references
+# (`(*scs:('a'))(?<a>x)` — pcre2test-verified), so a parse-time
+# `@predicate` would newly reject valid patterns. The generator instead
+# draws from the ALREADY-GENERATED prefix (the sound subset):
+#   * `scs_capture_number` renders an integer in 1..=count(regex_capture_group)
+#     — absolute backward references only (relative `+N`/`-N` signed forms
+#     stay parseable, never generated);
+#   * `scs_capture_name` renders a name drawn from the live
+#     `regex_capture_name` facts (`capture_name` registers each named-group
+#     name as it renders).
+# Zero prior captures ⇒ both branches backtrack (the count-prune), so the
+# generator only emits scs groups after a capture group exists.
+returned_capture_group = scs_capture_number | scs_capture_name_ref
+@gen_predicate: { name: fact_count_at_least, args: [regex_capture_group, $value], phase: post }
+scs_capture_number = signed_digits -> $1
+# Mirrors `name_ref`'s two syntactic forms + `-> $2` name surfacing exactly
+# (shape-preserving; `name_ref` itself stays untouched for the
+# backreference/condition sites, which the validator checks separately).
+scs_capture_name_ref = "<" scs_capture_name ">"  -> $2
+                     | "'" scs_capture_name "'"  -> $2
+@gen_predicate: { name: has_fact, args: [regex_capture_name, $text], phase: post }
+scs_capture_name = name -> $1
 # `subroutine_target` per-branch typed `{kind:<form>, ...}`.
 # `kind:"python_named"` parallels slices 19/22 (preserve Python syntax
 # origin even though semantically equivalent to `kind:"named"`).

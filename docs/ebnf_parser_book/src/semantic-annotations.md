@@ -47,6 +47,7 @@ The directives the AST pipeline interprets, grouped by what they do:
 | Value | `@transform`, `@semantic_value` | post-process a matched value |
 | Stimuli | `@generate`, `@sample`, `@dispatch_table`, … | steer stimuli generation |
 | Stimuli | `@quantified_separator` | rule-level separator the stimuli generator inserts between STACKED quantified renderings of the annotated rule |
+| Stimuli | `@gen_emit_fact`, `@gen_predicate` | GENERATION-side store emission + gate/value-draw for cross-referential constraints that are parse-time-unsound (forward references legal) |
 | Layout | `@whitespace_sensitive` | grammar-level layout policy: disable the automatic layout skip (whole grammar or per facet) |
 | Profiles | `@default_profile` | grammar-level default dialect profile: what an *unspecified* requested profile resolves to |
 | Profiles | `@profile_alias` | grammar-level request-spelling map: which requested spellings resolve to which canonical profile names |
@@ -240,6 +241,56 @@ Rules of the road:
   container-rule names. The policy is now declared in
   `grammars/systemverilog_preprocessor.ebnf` itself, and any grammar (including a scratch/probe
   grammar) can declare separator cohesion.
+
+## Generation-side store gates — `@gen_emit_fact` / `@gen_predicate`
+
+The generation-side duals of `@emit_fact` / `@predicate`, for **cross-referential constraints
+whose parse-time evaluation would be unsound** because the referenced target may legally appear
+*later* in the input (forward references). The parseable language is untouched — both directives
+steer **stimuli generation only** (zero runtime directives; the annotated rule keeps the
+fast-path parser emission, pinned by a codegen test) — but the generator stops emitting
+references to targets that do not exist.
+
+```ebnf
+# PRODUCER: register each rendered capture name into the GENERATION-time store
+# the instant it renders. Bind the emit to a rule whose WHOLE render IS the
+# value (an undotted $ref name registers the rule's render).
+@gen_emit_fact: { kind: regex_capture_name, name: $name }
+capture_name := name -> $1
+
+# CONSUMER: render a name DRAWN from the live store (never an unknown name).
+@gen_predicate: { name: has_fact, args: [regex_capture_name, $text], phase: post }
+scs_capture_name := name -> $1
+
+# CONSUMER (numeric): render an index drawn from 1..=count(K).
+@gen_predicate: { name: fact_count_at_least, args: [regex_capture_group, $value], phase: post }
+scs_capture_number := signed_digits -> $1
+```
+
+Both payloads are **exactly** the `@emit_fact` / `@predicate` payload schemas, parsed by the same
+parsers (lint: `W_SEM_INVALID_GEN_EMIT_FACT_PAYLOAD` / `W_SEM_INVALID_GEN_PREDICATE_PAYLOAD`).
+Semantics:
+
+- **The draw.** A `has_fact(K, $ref)` gate makes the annotated rule's whole render a
+  seeded-deterministic draw from the live `K`-fact **names**; a `fact_count_at_least(K, $ref)`
+  gate draws an integer in `1..=count(K)`; a literal `fact_count_at_least(K, N)` is a plain
+  fixed-count generation gate (no draw). Bind a draw-gated directive to a **dedicated value
+  rule** whose whole render is the constrained value.
+- **Zero live facts backtrack.** When no `K` fact exists yet, the rule is cleanly
+  ungeneratable — the generation tournament falls to a sibling alternative, and the
+  certificate-coverage witness pass arms an upstream **producer prelude** instead (targeting the
+  gated rule, or any carrier whose mandatory render is forced through it, injects one producer
+  iteration upstream so the draw has a live fact).
+- **Sound subset, honestly bounded.** The generator only ever references *already-generated*
+  targets. A forward-referencing-only position (e.g. a construct whose reference list renders
+  *before* the region that could declare the target, generated in isolation) is honestly
+  ungeneratable — that is the design, not a defect: the alternative is emitting samples the
+  parser's full-input validation rejects.
+- **Provenance.** Built for the regex scan-substring capture list
+  (`(*scs:('name'))` — PCRE2 validates against the FULL-pattern inventory and forward
+  references are legal, so the parse side cannot gate; the generator was emitting ~100%
+  contract-rejected scs lists). First consumers: `grammars/regex.ebnf`'s `capture_name` /
+  `scs_capture_name` / `scs_capture_number`.
 
 ## Lexical annotations
 

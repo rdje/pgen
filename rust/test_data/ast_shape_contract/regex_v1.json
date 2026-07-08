@@ -367,6 +367,12 @@
         "normalized_text": "{quote: \"single\", payload: $2}"
       },
       {
+        "rule": "capture_name",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
         "rule": "capture_open",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -1121,6 +1127,30 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"script_run_group\", name: $2, body: $4}"
+      },
+      {
+        "rule": "scs_capture_name",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
+        "rule": "scs_capture_name_ref",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "scs_capture_name_ref",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "scs_capture_number",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
       },
       {
         "rule": "short_prop_letter",

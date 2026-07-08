@@ -966,9 +966,25 @@ out-of-range callout is no longer grammar-derivable (duality probe 5/60 → 0/60
 the leaf's originally-declared `@range: [0, 255]` value-constraint design was adjudicated OUT
 tools-first: the SC-08 guard and its generation sampling are ATOM-scoped, so on the
 self-hosted grammar's native `digits` body `@range` is inert on BOTH sides (generation-probed:
-`7562`, `3245`, `0935`… emitted). The remaining classes are owned by further
-`REGEX-PCRE2-FIDELITY.3.x` leaves (the sole hunter-visible residual is the `.3.17` scs
-capture-list class).
+`7562`, `3245`, `0935`… emitted). The scan-substring capture-list class (`(*scs:('_'))` /
+`(*scs:(4135))` — the generator invented capture names and out-of-range indices that the
+full-pattern inventory check rejected; a focused probe measured **54 of 57** generated scs
+groups contract-rejected) is CLOSED differently (`STIMULI-SIGNOFF.13.4` +
+`REGEX-PCRE2-FIDELITY.3.17`, surface-neutral — no version bump), because this class CANNOT
+be grammar-encoded at parse time: PCRE2 validates the list against the **full-pattern**
+inventory and forward references are legal (`(*scs:('a'))(?<a>x)` compiles), so a parse-time
+store gate would wrongly reject valid patterns. It is instead the first consumer of the new
+**generation-side store gates** (`@gen_emit_fact` / `@gen_predicate`, the annotation-system
+chapter): each rendered capture name registers a generation-time fact, and the scs list items
+draw a live name / an in-range index from that store — references to already-generated
+targets, the sound subset — with zero prior captures making the whole scs branch cleanly
+ungeneratable. The hunter re-run at seeds 0/7/42 shows the scs signature GONE (directed
+rejections 2/0/0 breaks → the sole residual is the start-option-position class below), the
+parse surface is byte-identical (21/21 AST byte-compares), and regex certificate coverage
+holds at `224/224` `UNKNOWN=0` across seeds 0/7/42. The remaining classes are owned by
+further `REGEX-PCRE2-FIDELITY.3.x` leaves — the sole hunter-visible residual is now the
+START-OPTION POSITION class (`E(*UTF16)`, observed at seed 0 during the `.3.17` re-run;
+previously latent), owned by the `.13.3` enumeration lane.
 
 Honest bounds: the goal vocabulary is `k_path`, `corpus_mimicry`, and `duality_break` today
 (parser code-coverage feedback remains designed-only, tracked in the `STIMULI-SIGNOFF` tree,

@@ -408,11 +408,47 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - [x] **ADDRESSED (verified)** — post-land matrix **31/31 oracle-exact** (12 rejects incl. `(?C0256)`/`(?C000000000256)`/`(?C999999999999999999999)`/both sites + 19 accepts incl. `(?C0255)`/`(?C00)`/`(?C010)`/string forms), BOTH profiles agree (pin test); rejection LAYER flipped ((?C262): contract message → `Parser did not consume full input at position 0` = grammar layer, code `E_PARSE_FAILURE` unchanged); duality probe **5/60 → 0/60** (seed 0); generation from `callout_number` **120/120 in-range** ×seeds 0/7/42; new full-stack pin green in-suite.
 - [x] **NO REGRESSION** — accepted-callout ASTs **19/19 cmp BYTE-IDENTICAL** pre/post (`--parse-dump-ast-pretty`, incl. `(?C0255)`→`"arg": 255`, `(?C)`→`"arg": []`, string forms, condition site); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=220 proof=0 witness=220 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)` ×seeds 0/7/42 (217→220 = exactly the 3 net-new rules, all witnessed); `--lint-grammar` 0 errors / 0 profile-orphans (220 rules); svpp cross-guard cert `total=74 witness=74 UNKNOWN=0 fully_certified=true spf=0` ×3 seeds unchanged; `regex_pcre2_compile_oracle_gate` ✅ **byte-identical baseline** (1857 matches / 46 false-rejects / 292 false-accepts / 338 mismatches = conformance-NEUTRAL); `regex_broader_corpus_proof_gate` ✅ (0 parse failures); `parse_harness_equivalence_gate` ✅ 4/4 (regex stays differential-CERTIFIED over the new rules); `ebnf_frontend_dual_run_gate` ✅; lib suites dual **880/0** / `generated_parsers` **838/0** / no-features **760/0** (= baselines −2 migrated validator tests +1 pin); `check_regex_self_hosting.sh` OK (new rules are literal-only); clippy `clippy_source_all_targets: ok` (generated stage = the known pre-existing 178 `eq_op` debt, non-strict by design); `mdbook_docs_gate` + `regex_parser_book_gate` ✅.
 - [x] **LOCKSTEP** — NO version bump (conformance- & surface-neutral, the `.3.1`/`.3.2` precedent; embedding consts untouched; no ledger row — no released divergence existed); integration contract **"Maintenance Update 2026-07-08"** (before/after table: identical language, byte-identical ASTs, code-not-message guidance); regex book: `rules-misc.md` new § `callout_number`, `json-carrier.md` callout row, `changelog-index.md` maintenance entry, tracked HTML regenerated; top book `stimuli-and-quality.md` duality-closure note (incl. the @range-inert adjudication); AST shape-contract manifest UNCHANGED (inventory stays 202 entries — no return-annotation change; shape gate green in-suite); tree + `docs/TASK_TREE.md` index + live docs updated.
-- ID: `.3.17`  Status: `pending` (EVIDENCED `-0015`; design owned by `STIMULI-SIGNOFF.13.4`)  Goal: row 9
+- ID: `.3.17`  Status: **`done`** (`PGEN-STIMULI-SIGNOFF-0017`, 2026-07-08 session #65, paired with
+  `STIMULI-SIGNOFF.13.4` which owns the general capability; conformance- & surface-NEUTRAL — NO version
+  bump: release `1.1.84`/contract `1.1.86`/schema `1` stay, no ledger row; full evidence in the
+  Acceptance Checklist below. EVIDENCED `-0015`, re-reproduced at HEAD `ed1861be`: hunter seed 0
+  `(*scs:('_'))` + entry-probe 54/57 scs samples contract-rejected — 34 numeric "unavailable capture" +
+  20 named "unknown named capture")  Goal: row 9
   generation-side — scs capture-list references. Parse-time predicate is UNSOUND (forward refs LEGAL:
   `(*scs:('a'))(?<a>x)` oracle-accepted), so the parse-side check STAYS in the validator; the generator-side
   fix = store-aware generation draws `name_ref` from generation-emitted capture-name facts (the sound
   already-generated subset, the `.3.12` precedent) via a grammar-declared generation-side gate.
+  REGEX APPLICATION of the `.13.4` capability (parse-language + AST byte-identical, generator-side only —
+  NO version bump): (a) `capture_name = name -> $1` wrapper in the three named-open markers
+  carrying `@gen_emit_fact {kind: regex_capture_name, name: $name}` (whole-render resolution registers the
+  REAL generated name, the instant the name renders — maximizing the sound prefix); (b) the scs list split
+  `returned_capture_group = scs_capture_number | scs_capture_name_ref` with
+  `scs_capture_number = signed_digits -> $1` gated `@gen_predicate fact_count_at_least(regex_capture_group,
+  $value)` (index draw 1..=count — the `.3.12` tight-bound refinement, needed here because scs digits ARE
+  reachable) and `scs_capture_name = name -> $1` gated `@gen_predicate has_fact(regex_capture_name, $text)`
+  (name draw from live facts). Also narrows the (unvalidated) subroutine-call capture-list generation to the
+  same sound subset — harmless, parse-side unchanged.
+
+### REGEX-PCRE2-FIDELITY.3.17 — Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — see `STIMULI-SIGNOFF.13.4`'s REPRODUCE box (same slice): hunter seed 0 at HEAD `ed1861be` → `DUALITY-BREAK: … shrunk_reproducer="(*scs:('_'))"`; scs entry-probe **54/57** samples parser-rejected (34 numeric-unavailable + 20 unknown-named).
+- [x] **ROOT CAUSE (WHY + WHERE)** — the `.13.1` design §2 row 6: `returned_capture_group = signed_digits | name_ref` (regex.ebnf:1016 pre-change) unconstrained; validator full-inventory check `validate_scan_substring_capture_refs` (regex_compile_validation.rs:1240); forward refs LEGAL (pcre2test 10.47: `(*scs:('a'))(?<a>x)` compiles — re-verified) ⇒ parse-side encode UNSOUND; the generator never consults the contract.
+- [x] **FIX** — the `.13.4` capability applied to `grammars/regex.ebnf`: `capture_name` carrier (+`@gen_emit_fact`) in the 3 named-open markers; `returned_capture_group = scs_capture_number | scs_capture_name_ref` (+`@gen_predicate` draws on the two value rules); parse language + AST shape identical by construction (`-> $1`/`-> $2` pass-throughs mirroring `name_ref`).
+- [x] **ADDRESSED (verified)** — hunter re-run seeds 0/7/42: the scs signature **GONE** (seed 0: 2 breaks → 1, the survivor = the separately-tracked start-option-position class `E(*UTF16)` — now OBSERVED, was latent; seeds 7/42: 0 breaks); entry-relative scs generation now fails HONESTLY at the count-prune (`STORE-AWARE-GEN: rule 'scs_capture_number' fact_count_at_least predicate unsatisfiable`) — the documented forward-only-position bound; full-entry witness samples draw live values: `()(*scs:(1))` / `(?<A>)(*scs:(<A>))` (DEBUG_PROBES).
+- [x] **NO REGRESSION** — accepted-pattern ASTs **21/21 cmp BYTE-IDENTICAL** pre/post (`--parse-dump-ast-pretty` matrix: named/quote/python groups, scs numeric/named/relative `+0`/`-1`/forward forms, `\k` both spellings, `(?P=…)`, conditional `(?(<a>)y|z)`, subroutine-call captures `(x)(?1(1))`); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=224 proof=0 witness=224 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)` ×seeds 0/7/42 (220→224 = exactly the 4 net-new rules, all witnessed — the initial `UNKNOWN=1` on `scs_capture_name_ref` was root-caused via DEBUG_PROBES and fixed by the `.13.4` count-gate mandatory descent); `--lint-grammar` 0 errors (224 rules); `regex_pcre2_compile_oracle_gate` ✅ **byte-identical baseline** (1857/46/292/338); `regex_broader_corpus_proof_gate` ✅; `parse_harness_equivalence_gate` ✅ (regex stays differential-CERTIFIED over the new grammar); `ebnf_frontend_dual_run_gate` ✅; svpp cert byte-identical ×3 seeds (stash A/B); lib suites 766/844/886 all green; `check_regex_self_hosting.sh` OK; clippy source ok; `mdbook_docs_gate` + `regex_parser_book_gate` + `ebnf_parser_book_gate` ✅.
+- [x] **LOCKSTEP** — NO version bump (conformance- & surface-neutral, the `.3.16` precedent; embedding consts untouched; no ledger row — the parse surface is unchanged and the parse-side check stays in the validator until capstone `.4`); integration contract **"Maintenance Update 2026-07-08 — REGEX-PCRE2-FIDELITY.3.17"** (before/after table: identical language, 21/21 byte-identical ASTs, unchanged codes/messages); regex book: `changelog-index.md` maintenance entry, `json-carrier.md` +5 inventory rows (`capture_name`/`scs_*`), tracked HTML regenerated; AST shape-contract manifest `regex_v1.json` inventory 202→207 (exactly the 5 new declared annotations, multiset-verified vs HEAD; gate green); top book + matrix + spec + ebnf book in the `.13.4` checklist; trees + `docs/TASK_TREE.md` + live docs updated.
+- ID: `.3.22`  Status: `pending` (🔎 NEW FINDING 2026-07-08 session #65, oracle-verified while scoping
+  `.3.17`)  Goal: the NAMED-REFERENCE UNKNOWN-NAME family — PGEN ACCEPTS `\k<zzz>` `(?P=zzz)` `(?&zzz)`
+  `\g{zzz}` (no group named `zzz` anywhere) which PCRE2 10.47 REJECTS (err 115 "reference to non-existent
+  subpattern"); control `(?'aa'x)\k<aa>` parity-ACCEPTED by both. The validator has NO named-reference
+  inventory check (only malformed-escape shape checks — `regex_compile_validation.rs:188/:194`), so this is
+  a latent accepts-invalid divergence in the RELEASED parser, invisible to the duality hunter (generator AND
+  parser agree — only oracle-differential coverage can see it; the `.3.19` discovery class). Fix shape:
+  parse-time inventory encoding is the same two-pass problem as scs (forward refs LEGAL: `\k<a>(?<a>x)`
+  oracle-accepted) ⇒ parse-side stays validator-tier until the capstone `.4` two-pass design; the
+  GENERATION side can meanwhile draw named-backref/subroutine names from the `.3.17`
+  `regex_capture_name` facts (the same `@gen_predicate` idiom) if the hunter ever observes over-generation
+  there (today the generator's named-ref sites are rare enough that no break was observed at the
+  100-sample budget). Ledger row + oracle-matrix + encode design = this leaf, sequenced after `.3.18`–`.3.21`.
 - ID: `.3.18`  Status: `pending` (LATENT class, oracle-verified `-0015`)  Goal: row 4 — counted-quantifier
   bounds (`a{5,2}` rejects err 104; `{,>65535}` limits); `@predicate`/structural per the `.1` table; the
   generator currently CAN emit out-of-order bounds (not yet observed at the 100-sample hunter budget).
@@ -580,13 +616,19 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
-- **(2026-07-08, session #64)** `.3.13`/`.3.14`/`.3.15`/`.3.16` are DONE (see the leaves + enforced
-  checklists above — the live frontier is tracked in `MEMORY.md` + `docs/TASK_TREE.md`). Next per the
-  standing PNT order: `STIMULI-SIGNOFF.13.4`/`.3.17` (scs capture-list, generation-side), `.13.3`
-  (gate lane), then `.3.18`–`.3.21` (`.3.21` note: the interpreter value-constraint mirror is landed,
-  but `.3.16` PROVED the SC-08 `@range` machinery is ATOM-scoped — inert on native-body rules of the
-  self-hosted grammar — so `.3.21` needs either a digit-width-bounded structural shape or the
-  rule-span value-constraint extension FIRST; pin the u32 boundary with pcre2test before designing).
+- **(2026-07-08, session #65)** `.3.13`/`.3.14`/`.3.15`/`.3.16`/**`.3.17`** are DONE (see the leaves +
+  enforced checklists above — the live frontier is tracked in `MEMORY.md` + `docs/TASK_TREE.md`). `.3.17`
+  closed the LAST hunter-visible scs class via the `STIMULI-SIGNOFF.13.4` generation-side store gates;
+  the hunter's sole residual is now the START-OPTION-POSITION class (`E(*UTF16)`, observed seed 0 —
+  previously latent, validator-owned position check). 🔎 NEW leaf `.3.22` records the named-reference
+  unknown-name family (`\k<zzz>`/`(?P=zzz)`/`(?&zzz)`/`\g{zzz}` PGEN-accepts / PCRE2-err-115) —
+  oracle-verified accepts-invalid divergences, hunter-invisible (both PGEN sides agree). Next per the
+  standing PNT order: `STIMULI-SIGNOFF.13.3` (gate lane + scaled residual enumeration), then
+  `.3.18`–`.3.22` (`.3.20` needs its relaxed-semantics decision; `.3.21` note: the interpreter
+  value-constraint mirror is landed, but `.3.16` PROVED the SC-08 `@range` machinery is ATOM-scoped —
+  inert on native-body rules of the self-hosted grammar — so `.3.21` needs either a
+  digit-width-bounded structural shape or the rule-span value-constraint extension FIRST; pin the u32
+  boundary with pcre2test before designing).
 - *(historical, 2026-06-08)* `.3.1` (`\u`-family), `.3.2` (`(*verb)` names), and **`.3.7`
   (cert-coverage clean — all 3 causes closed)** are DONE. After `.3.7`, regex DEFAULT cert-coverage `sample_parse_failures` is **0 at most
   seeds** (16→0/seed 0, 17→0/seed 7, 0/count 500); the only remaining residual is the seed-1 `\98495`

@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0017 (STIMULI-SIGNOFF.13.4 + REGEX-PCRE2-FIDELITY.3.17): GENERATION-SIDE store gates (`@gen_emit_fact`/`@gen_predicate` + value draws) close the scs capture-list duality class — the last hunter-visible regex break, NO version bump
+
+Session #65. General parser-agnostic capability + its regex application; conformance- &
+surface-NEUTRAL (release stays 1.1.84 / contract 1.1.86 / schema 1; no ledger row — the parse
+surface is unchanged).
+
+- **Issue (the `(*scs:('_'))` duality class, EVIDENCED `-0015`, re-reproduced at `ed1861be`):**
+  PCRE2 validates a scan-substring capture list against the FULL-pattern capture inventory with
+  forward references LEGAL (`(*scs:('a'))(?<a>x)` compiles — pcre2test 10.47), so the check CANNOT
+  be a parse-time store gate; it stays in the post-parse validator. The generator was
+  inventory-blind: scs entry-probe **54/57** samples parser-rejected (34 numeric "unavailable
+  capture" + 20 "unknown named capture"); hunter seed 0 residual `(*scs:('_'))`.
+- **The general capability (`.13.4`):** two new StimuliSteering directives — `@gen_emit_fact` /
+  `@gen_predicate`, the GENERATION-side duals of `@emit_fact`/`@predicate` (exact same payload
+  schemas, parsed by the same parsers; validator lints `W_SEM_INVALID_GEN_*_PAYLOAD`; never
+  serialized into parser artifacts — codegen fast-path pinned, transaction-wrapper count 39=39,
+  0 `gen_*` strings in the artifact). The generator folds them into the EXISTING store-aware maps
+  (emission on rule success; count-prune; count-prelude witness arming) and derives render-time
+  VALUE DRAWS from the predicate shape: `has_fact(K, $ref)` ⇒ the rule's whole render is a
+  seeded-deterministic draw from the live K-fact NAMES; `fact_count_at_least(K, $ref)` ⇒ drawn
+  from `1..=count(K)`; zero live facts ⇒ clean backtrack. Plus the `.4b.4`-class count-gate
+  MANDATORY DESCENT (`count_gate_via_mandatory_descent`) — found live: DEBUG_PROBES named
+  `scs_capture_name_ref` `parsed=true witnessed_target=false` (UNKNOWN=1 ×3 seeds) because
+  `compute_count_prelude`'s gated-rule search inspected only hops+target, never the target's
+  mandatory subtree.
+- **The regex application (`.3.17`):** `capture_name` carrier (+`@gen_emit_fact
+  {kind: regex_capture_name, name: $name}`) inside the three named-open markers;
+  `returned_capture_group = scs_capture_number | scs_capture_name_ref` with the two `@gen_predicate`
+  draws. Parse language + ASTs identical BY CONSTRUCTION (pass-through annotations).
+- **Verified:** hunter seeds 0/7/42 — the scs signature **GONE** (sole residual = the
+  start-option-position class, now OBSERVED: `E(*UTF16)` seed 0, owned by `.13.3`); ASTs **21/21
+  byte-identical** (named/quote/python groups, scs numeric/named/relative/forward, backrefs,
+  conditionals, subroutine-captures); regex cert **224/224/0 `fully_certified`** ×seeds 0/7/42
+  (220→224 = the 4 new rules, all witnessed — `()(*scs:(1))` / `(?<A>)(*scs:(<A>))`); svpp cert +
+  corpora **byte-identical old-engine-vs-new via git-stash A/B** ×3 seeds; PCRE2 oracle gate
+  byte-identical (1857/46/292/338); broader-corpus ✅; equivalence gate ✅ (regex re-certified over
+  the new grammar) + combinator ✅ + semantic ✅; dual-run ✅; self-hosting OK; lint 0 errors
+  (224 rules); suites no-features **766/0** / `generated_parsers` **844/0** / dual **886/0**
+  (= 760/838/880 +6 new tests); shape-contract manifest inventory 202→207 (exactly the 5 new
+  declared annotations, multiset-verified); clippy source ok; all three book gates ✅.
+- **🔎 NEW FINDING routed to `REGEX-PCRE2-FIDELITY.3.22`:** the named-reference unknown-name
+  family — PGEN ACCEPTS `\k<zzz>` `(?P=zzz)` `(?&zzz)` `\g{zzz}` (no such group) which PCRE2
+  rejects (err 115); oracle-verified, hunter-INVISIBLE (generator and parser agree — only
+  oracle-differential coverage sees it).
+- **Lockstep:** steering control matrix + annotation normative spec (new directive sections);
+  top book `annotation-system.md` + `stimuli-and-quality.md`; ebnf parser book catalog + full
+  section; regex book changelog + json-carrier (+5 rows) + HTML; integration contract
+  "Maintenance Update 2026-07-08 — .3.17"; both task trees + `docs/TASK_TREE.md`.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0014 (REGEX-PCRE2-FIDELITY.3.16): the numeric-callout [0, 255] bound grammar-encoded STRUCTURALLY — the declared `@range` design refuted tools-first, `find_invalid_numeric_callout` deleted (5th contract migration), NO version bump
 
 Session #64. Released-parser slice, conformance- & surface-NEUTRAL (no release/contract/schema/

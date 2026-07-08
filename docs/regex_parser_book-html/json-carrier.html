@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8d14be4b.js";
+            window.path_to_searchindex_js = "searchindex-c097dea4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -230,6 +230,11 @@
 <tr><td><code>name_ref</code> (branch 1, quote)</td><td><code>-&gt; $2</code></td><td>Whatever <code>name</code> produced (typed name string)</td></tr>
 <tr><td><code>braced_name_ref</code></td><td><code>-&gt; $3</code></td><td>Whatever <code>name</code> produced (typed name string)</td></tr>
 <tr><td><code>name</code></td><td>regex literal <code>/(...)/</code></td><td>Terminal of the matched name string (clean, no chain)</td></tr>
+<tr><td><code>capture_name</code></td><td><code>-&gt; $1</code></td><td>Whatever <code>name</code> produced (typed name string) — the shared capture-NAME carrier of the three named-open markers (generation-side <code>@gen_emit_fact</code>; STIMULI-SIGNOFF.13.4). Shape-transparent: the markers’ <code>-&gt; $2</code> surface is unchanged.</td></tr>
+<tr><td><code>scs_capture_number</code></td><td><code>-&gt; $1</code></td><td>Whatever <code>signed_digits</code> produced (typed <code>{sign, value}</code> object) — the scs list’s numeric item (generation-side <code>@gen_predicate</code>; parse language identical to bare <code>signed_digits</code>).</td></tr>
+<tr><td><code>scs_capture_name_ref</code> (branch 0, angle)</td><td><code>-&gt; $2</code></td><td>Whatever <code>scs_capture_name</code> produced (typed name string) — mirrors <code>name_ref</code> branch 0 exactly.</td></tr>
+<tr><td><code>scs_capture_name_ref</code> (branch 1, quote)</td><td><code>-&gt; $2</code></td><td>Whatever <code>scs_capture_name</code> produced (typed name string) — mirrors <code>name_ref</code> branch 1 exactly.</td></tr>
+<tr><td><code>scs_capture_name</code></td><td><code>-&gt; $1</code></td><td>Whatever <code>name</code> produced (typed name string) — the scs list’s name item (generation-side <code>@gen_predicate</code> name draw).</td></tr>
 <tr><td><code>subroutine_ref</code> (branch 0, braced)</td><td><code>-&gt; $1</code></td><td>Whatever <code>braced_subroutine_ref</code> produced</td></tr>
 <tr><td><code>subroutine_ref</code> (branch 1, angle)</td><td><code>-&gt; $2</code></td><td>Whatever <code>signed_digits_or_name</code> produced (string for name, or <code>[&lt;sign?&gt;, &lt;int&gt;]</code> for digits)</td></tr>
 <tr><td><code>subroutine_ref</code> (branch 2, quote)</td><td><code>-&gt; $2</code></td><td>Same as branch 1</td></tr>

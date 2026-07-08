@@ -229,15 +229,17 @@ impl AstBasedGenerator {
 
     fn rule_has_no_semantic_annotations(&self, rule_name: &str) -> bool {
         // `WS-DIRECTIVE.2` / `DEFAULT-PROFILE.2` / `PROFILE-ALIAS.2` /
-        // `STIMULI-SIGNOFF.12`: the grammar-level `@whitespace_sensitive:`,
-        // `@default_profile:`, and `@profile_alias:` directives are
-        // compile-time only, and the rule-level `@quantified_separator:`
-        // directive is generation-side only (each compiles to ZERO runtime
+        // `STIMULI-SIGNOFF.12` / `STIMULI-SIGNOFF.13.4`: the grammar-level
+        // `@whitespace_sensitive:`, `@default_profile:`, and `@profile_alias:`
+        // directives are compile-time only, and the rule-level
+        // `@quantified_separator:` / `@gen_emit_fact:` / `@gen_predicate:`
+        // directives are generation-side only (each compiles to ZERO runtime
         // directives — see `semantic_runtime::compile_layout_sensitivity` /
         // `semantic_runtime::compile_default_profile` /
         // `semantic_runtime::compile_profile_aliases` /
-        // `semantic_runtime::compile_quantified_separators`), so the rule any
-        // of them binds to must NOT be pushed onto the full
+        // `semantic_runtime::compile_quantified_separators` /
+        // `stimuli_generator::compute_store_aware_gen_directives`), so the
+        // rule any of them binds to must NOT be pushed onto the full
         // `with_semantic_runtime_rule_transaction` path by its mere
         // presence: declaring a parser-inert policy stays emit-neutral for
         // the rule body.
@@ -252,6 +254,10 @@ impl AstBasedGenerator {
                         != crate::ast_pipeline::semantic_runtime::PROFILE_ALIAS_DIRECTIVE_NAME
                     && normalized
                         != crate::ast_pipeline::semantic_runtime::QUANTIFIED_SEPARATOR_DIRECTIVE_NAME
+                    && normalized
+                        != crate::ast_pipeline::semantic_runtime::GEN_EMIT_FACT_DIRECTIVE_NAME
+                    && normalized
+                        != crate::ast_pipeline::semantic_runtime::GEN_PREDICATE_DIRECTIVE_NAME
             })
         };
         let Some(annotations) = &self.annotations else {
@@ -8180,6 +8186,101 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains(r#"push_rule_context("item")"#),
             "the fast-path body still pushes the rule context for trace parity"
+        );
+    }
+
+    // `STIMULI-SIGNOFF.13.4`: the generation-side-only `@gen_emit_fact` /
+    // `@gen_predicate` directives must NOT push their rule onto the full
+    // `with_semantic_runtime_rule_transaction` path — each compiles to ZERO
+    // runtime directives (StimuliSteering; consumed only by the stimuli
+    // generator's `compute_store_aware_gen_directives`), so the annotated
+    // rule keeps the fast-path emission (the same emit-neutrality contract
+    // as `@quantified_separator`).
+    #[test]
+    fn gen_store_directives_keep_the_annotated_rule_on_the_fast_path() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![structured_named_annotation(
+                "gen_emit_fact",
+                "{ kind: test_name, name: $item }",
+                UnifiedSemanticValue::Object(vec![
+                    UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("test_name".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::RuleReference("item".to_string()),
+                    },
+                ]),
+            )],
+        );
+        annotations.semantic_annotations.insert(
+            "use_site".to_string(),
+            vec![structured_named_annotation(
+                "gen_predicate",
+                "{ name: has_fact, args: [test_name, $text], phase: post }",
+                UnifiedSemanticValue::Object(vec![
+                    UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("has_fact".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "args".to_string(),
+                        value: UnifiedSemanticValue::Array(vec![
+                            UnifiedSemanticValue::Identifier("test_name".to_string()),
+                            UnifiedSemanticValue::RuleReference("text".to_string()),
+                        ]),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "phase".to_string(),
+                        value: UnifiedSemanticValue::Identifier("post".to_string()),
+                    },
+                ]),
+            )],
+        );
+        let generator = AstBasedGenerator {
+            grammar_name: "gen_store_fast_path_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            emit_typed_entry_skeleton: false,
+            enable_debug: false,
+            parser_hook_registry: None,
+            ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
+        };
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "file".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "item"),
+                    token("rule_reference", "use_site"),
+                ],
+            },
+        );
+        grammar_tree.insert("item".to_string(), token("quoted_string", "x"));
+        grammar_tree.insert("use_site".to_string(), token("quoted_string", "y"));
+        let rule_order = vec![
+            "file".to_string(),
+            "item".to_string(),
+            "use_site".to_string(),
+        ];
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "gen_store_fast_path.rs")
+            .expect("parser generation should succeed");
+        for rule in ["item", "use_site"] {
+            assert!(
+                !rendered.contains(&format!(r#"with_semantic_runtime_rule_transaction("{rule}""#)),
+                "a rule annotated ONLY with @gen_emit_fact/@gen_predicate must keep the fast-path emission ({rule})"
+            );
+        }
+        assert!(
+            !rendered.contains("gen_emit_fact") && !rendered.contains("gen_predicate"),
+            "the generation-side directives must never serialize into the parser artifact"
         );
     }
 

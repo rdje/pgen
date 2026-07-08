@@ -358,6 +358,20 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "predicate",
         capability: SemanticDirectiveCapability::ParsedAndValidated,
     },
+    // `STIMULI-SIGNOFF.13.4`: the generation-side duals of `@emit_fact` /
+    // `@predicate` — declarative store emission + store gating that binds at
+    // GENERATION time only (for cross-referential constraints whose
+    // parse-time evaluation is unsound, e.g. forward references). Compiled by
+    // the stimuli generator's `compute_store_aware_gen_directives`; never
+    // serialized into parser artifacts.
+    SemanticDirectiveSpec {
+        name: "gen_emit_fact",
+        capability: SemanticDirectiveCapability::StimuliSteering,
+    },
+    SemanticDirectiveSpec {
+        name: "gen_predicate",
+        capability: SemanticDirectiveCapability::StimuliSteering,
+    },
     // Literal-oriented generation hint directives.
     SemanticDirectiveSpec {
         name: "literal",
@@ -1065,6 +1079,22 @@ mod tests {
             Some(UnknownSemanticDirectivePolicy::Ignore)
         );
         assert_eq!(UnknownSemanticDirectivePolicy::parse("???"), None);
+    }
+
+    // `STIMULI-SIGNOFF.13.4`: the generation-side store directives are
+    // registered as StimuliSteering — recognized by the validator, never
+    // serialized into parser artifacts.
+    #[test]
+    fn gen_store_directives_are_registered_as_stimuli_steering() {
+        for name in ["gen_emit_fact", "gen_predicate"] {
+            let spec = semantic_directive_spec(name)
+                .unwrap_or_else(|| panic!("directive '{name}' must be registered"));
+            assert_eq!(
+                spec.capability,
+                SemanticDirectiveCapability::StimuliSteering,
+                "'{name}' must be StimuliSteering (generation-side only)"
+            );
+        }
     }
 
     #[test]

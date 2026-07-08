@@ -1,6 +1,26 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-07-06
+Last updated: 2026-07-08
+
+## Recent Architecture Change Note (2026-07-08)
+
+**Generation-side store gates (`STIMULI-SIGNOFF.13.4` + `REGEX-PCRE2-FIDELITY.3.17`, session
+#65).** The stimuli generator gains a declarative surface for CROSS-REFERENTIAL constraints whose
+parse-time evaluation is unsound (forward references legal — the regex scan-substring capture
+list): two new StimuliSteering directives, `@gen_emit_fact` / `@gen_predicate`, with EXACTLY the
+`@emit_fact`/`@predicate` payload schemas (shared parsers in `semantic_runtime.rs`; validator
+lints; never serialized into parser artifacts — codegen fast-path pinned). Architecturally they
+fold into the EXISTING store-aware generation maps (`compute_store_aware_gen_directives` →
+`gen_emit_facts`/`gen_count_kinds`), so the `.3` count-prune and the C2.2/`.4b.17` count-prelude
+witness arming apply unchanged; the new pieces are (a) per-rule render-time VALUE DRAWS
+(`GenValueDraw::NameOf` — the rule's whole render drawn seeded-deterministically from live fact
+names; `::IndexUpTo` — drawn from `1..=count(K)`), hooked in `generate_rule` beside the
+literal-hint override, and (b) `count_gate_via_mandatory_descent` — the count-gate analogue of the
+`.4b.4`/`.4b.7` name-gate mandatory descent, so a NON-gated carrier whose mandatory render forces
+an inner count-gated value rule still arms a producer prelude when targeted. Draws key ONLY off
+`@gen_predicate` (parse-time `@predicate` generation behavior byte-identical — svpp certs/corpora
+stash-A/B proven). First consumer: regex's scs capture list (the last hunter-visible duality
+class, closed; regex cert 224/224 with the new rules witnessed).
 
 ## Recent Architecture Change Note (2026-07-06)
 

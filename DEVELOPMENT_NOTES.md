@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0017 — STIMULI-SIGNOFF.13.4 + REGEX-PCRE2-FIDELITY.3.17: implementation notes — the generation-side store gates
+
+Session #65. Notes from landing `@gen_emit_fact`/`@gen_predicate` + the scs application:
+
+1. **Parse-time-unsound ≠ unenforceable: split the constraint by SIDE.** The scs capture list is
+   validated against the FULL-pattern inventory (forward refs legal), so the parse side must stay
+   permissive — but the GENERATOR can enforce the already-generated-prefix subset soundly. The
+   directive pair makes that split declarative: the constraint lives in the grammar (single source
+   of truth), each side consumes only its sound half. Same shape queued for the `.3.22`
+   named-reference family and any future cross-referential class.
+2. **Feeding the EXISTING store-aware maps bought the witness machinery for free — almost.** The
+   fold into `gen_emit_facts`/`gen_count_kinds` immediately activated the count-prune and the
+   count-prelude arming, and cert witnesses came out as `()(*scs:(1))` / `(?<A>)(*scs:(<A>))`
+   without any new prelude code. The one genuine gap: `compute_count_prelude` found the gated rule
+   only on hops/target — a NON-gated carrier (`scs_capture_name_ref`) whose mandatory render forces
+   an inner gated rule armed nothing (UNKNOWN=1 ×3 seeds; DEBUG_PROBES `parsed=true
+   witnessed_target=false sample="A"`). The name-prelude had solved exactly this in `.4b.4`/`.4b.7`;
+   `count_gate_via_mandatory_descent` is the count-side analogue (Sequence scans in order; Or
+   descends only when EVERY alternative is gated — an ungated escape means the generator can dodge;
+   quantifiers/lookaheads conservatively skipped).
+3. **Draws must key off `@gen_predicate` ONLY.** Wiring draws to parse-time `@predicate` shapes
+   would have changed `numeric_backreference` generation and broken the cert byte-identity
+   discipline for zero benefit. The `@gen_` prefix is the author's explicit opt-in to render-time
+   value drawing.
+4. **The stale-read trap after a `git stash` A/B:** the stash pop invalidates the editor/session's
+   read state of every stashed file — re-read before further edits. The A/B itself (old-engine svpp
+   baselines) is cheap (~40 s/build) and remains the decisive inertness proof.
+5. **Immediate-arm literal thresholds compose with draws.** A `$ref`-shaped gen-gate registers
+   threshold 1 (not the two-phase capture flow): the draw adapts the rendered value to the live
+   store, so the prelude only ever needs ONE producer iteration — no phase-1 capture, no
+   `reach_prelude_bypasses_count_prune` interaction with an empty pool.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0014 — REGEX-PCRE2-FIDELITY.3.16: implementation notes — the structural callout bound + why `@range` could not own it
 
 Session #64. Notes from landing the numeric-callout migration:

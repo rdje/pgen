@@ -616,6 +616,41 @@ impl AnnotationValidator {
                     });
                 }
             }
+            // `STIMULI-SIGNOFF.13.4`: lint the generation-side store
+            // directives through the SAME payload parsers `@emit_fact` /
+            // `@predicate` use (`semantic_runtime::parse_gen_emit_fact_payload`
+            // / `parse_gen_predicate_payload`), so the lint and the stimuli
+            // generator's compile can never disagree.
+            "gen_emit_fact" => {
+                if let Err(err) = crate::ast_pipeline::semantic_runtime::parse_gen_emit_fact_payload(
+                    semantic_annotation.ast(),
+                ) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_GEN_EMIT_FACT_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: err,
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "gen_predicate" => {
+                if let Err(err) = crate::ast_pipeline::semantic_runtime::parse_gen_predicate_payload(
+                    semantic_annotation.ast(),
+                ) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_GEN_PREDICATE_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: err,
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "priority" | "precedence" => {
                 if parse_semantic_numeric_list(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {

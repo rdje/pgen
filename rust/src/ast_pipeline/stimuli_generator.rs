@@ -1187,6 +1187,20 @@ struct NameGateArm {
     family: Option<String>,
 }
 
+/// STIMULI-SIGNOFF.13.4: the render-time VALUE DRAW a `@gen_predicate:` directive compiles to —
+/// the generation-side satisfaction strategy for a cross-referential store constraint whose
+/// parse-time evaluation is unsound (forward references legal). The annotated rule's WHOLE
+/// render is replaced by a value drawn from the live generation store:
+///   * `NameOf(K)`    — a fact NAME of kind `K` (`has_fact(K, $ref)` payload shape);
+///   * `IndexUpTo(K)` — an integer in `1..=count(K)` (`fact_count_at_least(K, $ref)` shape).
+/// Zero live `K` facts never reach the draw: the same directive registers `K` into
+/// `gen_count_kinds` (threshold 1), so the `.3` count-prune backtracks first.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum GenValueDraw {
+    NameOf(String),
+    IndexUpTo(String),
+}
+
 /// GRAMMAR-WELLFORMED.C2.2: hard cap on the armed prelude size. The captured value is
 /// grammar-rendered (regex backreference digits are effectively two digits), so this is
 /// a runaway backstop, not a tuning knob; an over-cap value is simply not captured and
@@ -1609,6 +1623,14 @@ pub struct StimuliGenerator<'a> {
     // every `$ref`-gated (regex) rule is byte-identical. Empty for grammars without a literal-threshold
     // `fact_count_at_least` ⇒ inert.
     gen_count_literal_thresholds: HashMap<String, usize>,
+    // STIMULI-SIGNOFF.13.4: rule → its render-time VALUE DRAW, derived from a `@gen_predicate:`
+    // directive's shape (`has_fact(K, $ref)` → NameOf(K): the rule's WHOLE render is drawn
+    // seeded-deterministically from the live K-fact names; `fact_count_at_least(K, $ref)` →
+    // IndexUpTo(K): drawn from 1..=count(K)). The generation-side dual of a parse-time-unsound
+    // cross-referential constraint (forward references legal — the regex scs capture list): the
+    // draw enforces the sound already-generated-prefix subset. Draws key ONLY off `@gen_predicate`
+    // (never parse-time `@predicate`), so every existing grammar's generation is byte-identical.
+    gen_value_draws: HashMap<String, GenValueDraw>,
     // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2 (M2a reach-honesty): rule → the fact-KINDS it consults via a
     // kind-first fact-query `@predicate` (`has_fact`/`lacks_fact`/`fact_attribute_equals`/
     // `lacks_fact_attribute_equals`/`fact_count_at_least`). A rule with entries is "store-gated" on
@@ -1773,7 +1795,7 @@ impl<'a> StimuliGenerator<'a> {
         // `gen_count_literal_thresholds` records N for the literal-threshold case. `store_aware_gen` is
         // true iff any such count-predicate OR name gate exists; predicate-free grammars (json/ebnf/
         // vhdl) gate the whole store-aware path off ⇒ byte-unaffected.
-        let (gen_emit_facts, gen_count_kinds, gen_count_literal_thresholds) =
+        let (gen_emit_facts, gen_count_kinds, gen_count_literal_thresholds, gen_value_draws) =
             Self::compute_store_aware_gen_directives(annotations);
         // STORE-AWARE-GEN.4b.2: precompute the per-rule NAME-matching store gates (the same annotation
         // parse) that drive the declare-then-use witness prelude. Empty for grammars without
@@ -1846,6 +1868,7 @@ impl<'a> StimuliGenerator<'a> {
             gen_emit_facts,
             gen_count_kinds,
             gen_count_literal_thresholds,
+            gen_value_draws,
             reach_gate_kinds,
             gen_name_gate,
             quantified_separators,
@@ -3078,11 +3101,19 @@ impl<'a> StimuliGenerator<'a> {
         if self.gen_count_kinds.is_empty() {
             return None;
         }
+        // STIMULI-SIGNOFF.13.4: the directly-gated hop/target scan, extended with the `.4b.4`-class
+        // MANDATORY-descent leg for count gates — a non-gated carrier (regex
+        // `scs_capture_name_ref := "<" scs_capture_name ">" | "'" scs_capture_name "'"`) routes its
+        // mandatory render through an inner count-gated value rule, so targeting the CARRIER must
+        // arm the same prelude targeting the inner rule would.
         let gated_rule = hops
             .iter()
             .map(|(rule, _)| rule.as_str())
             .chain(std::iter::once(target_rule))
-            .find(|rule| self.gen_count_kinds.contains_key(*rule))?;
+            .find(|rule| self.gen_count_kinds.contains_key(*rule))
+            .map(str::to_string)
+            .or_else(|| self.count_gate_via_mandatory_descent(target_rule, 0))?;
+        let gated_rule = gated_rule.as_str();
         let kind = self.gen_count_kinds.get(gated_rule)?.first()?;
         let mut producers: Vec<&str> = self
             .gen_emit_facts
@@ -3152,6 +3183,60 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         None
+    }
+
+    /// STIMULI-SIGNOFF.13.4: the count-gate analogue of the `.4b.4`/`.4b.7` name-gate mandatory
+    /// descent — find the count-gated rule a non-gated TARGET's mandatory render is forced through,
+    /// so `compute_count_prelude` can arm a producer prelude when the reach target is a CARRIER of
+    /// an inner count-gated value rule (regex `scs_capture_name_ref` → `scs_capture_name`).
+    /// Conservative walk: a `Sequence` scans elements in order and returns the first gate found;
+    /// an `Or` descends only when EVERY alternative resolves to a gate (an ungated escape means the
+    /// generator can dodge the gate — no prelude needed); `Quantified`/`Lookahead` elements are
+    /// skipped (never over-arms); rule references recurse depth-bounded. Returns the gated rule
+    /// name. `None` leaves the plan exactly pre-prelude, so this is inert for every grammar whose
+    /// count gates sit directly on hops/targets (the pre-13.4 universe).
+    fn count_gate_via_mandatory_descent(&self, rule: &str, depth: usize) -> Option<String> {
+        const COUNT_GATE_MANDATORY_DESCENT_DEPTH: usize = 8;
+        if depth >= COUNT_GATE_MANDATORY_DESCENT_DEPTH {
+            return None;
+        }
+        if self.gen_count_kinds.contains_key(rule) {
+            return Some(rule.to_string());
+        }
+        let node = self.grammar_tree.get(rule)?;
+        self.count_gate_in_mandatory_node(node, depth)
+    }
+
+    /// STIMULI-SIGNOFF.13.4: the structural walk behind `count_gate_via_mandatory_descent`.
+    fn count_gate_in_mandatory_node(&self, node: &ASTNode, depth: usize) -> Option<String> {
+        match node {
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .find_map(|element| self.count_gate_in_mandatory_node(element, depth)),
+            ASTNode::Or { alternatives } => {
+                let gates: Vec<Option<String>> = alternatives
+                    .iter()
+                    .map(|alternative| self.count_gate_in_mandatory_node(alternative, depth))
+                    .collect();
+                if gates.iter().any(|gate| gate.is_none()) {
+                    return None; // an ungated escape ⇒ the generator can dodge the gate ⇒ no prelude.
+                }
+                gates.into_iter().flatten().next()
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => self.count_gate_in_mandatory_node(inner, depth),
+                ASTValue::Token(parts) => {
+                    let (token_type, token_value) = Self::extract_token_pair(parts)?;
+                    if token_type == "rule_reference" && self.grammar_tree.contains_key(token_value)
+                    {
+                        self.count_gate_via_mandatory_descent(token_value, depth + 1)
+                    } else {
+                        None
+                    }
+                }
+            },
+            ASTNode::Quantified { .. } | ASTNode::Lookahead { .. } => None,
+        }
     }
 
     /// STORE-AWARE-GEN.4b.17: a count-prelude producer whose `@emit_fact` for the gated `kind` is
@@ -8862,6 +8947,68 @@ impl<'a> StimuliGenerator<'a> {
             ));
         }
 
+        // STIMULI-SIGNOFF.13.4: a rule carrying a `@gen_predicate:` VALUE DRAW renders a value
+        // drawn from the live generation store instead of expanding its body — the sound
+        // already-generated-prefix subset of a cross-referential constraint whose parse-time
+        // evaluation is unsound (forward references legal; the regex scs capture list). The
+        // count-prune above (the same directive registers its kind with threshold 1) has already
+        // backtracked the zero-fact case, so the pool is non-empty here in every pruned flow; an
+        // empty pool (a prune-bypassing prelude capture phase) backtracks identically. Same
+        // bookkeeping as the rule-level literal-hint route (success recording, follow
+        // restriction, tail word-shape, atomicity flag). Empty `gen_value_draws` ⇒ inert
+        // (byte-identical for every grammar without `@gen_predicate`).
+        if self.store_aware_gen {
+            if let Some(draw) = self.gen_value_draws.get(rule_name).cloned() {
+                let drawn = match &draw {
+                    GenValueDraw::NameOf(kind) => {
+                        let pool: Vec<String> = self
+                            .gen_semantic_state
+                            .facts()
+                            .iter()
+                            .filter(|fact| fact.kind.eq_ignore_ascii_case(kind))
+                            .filter_map(|fact| fact.name.as_text().map(|text| text.to_string()))
+                            .collect();
+                        if pool.is_empty() {
+                            return Err(anyhow!(
+                                "STORE-AWARE-GEN: rule '{}' gen_predicate name draw has zero live '{}' facts — backtracking",
+                                rule_name,
+                                kind
+                            ));
+                        }
+                        pool[self.rng.gen_range(0..pool.len())].clone()
+                    }
+                    GenValueDraw::IndexUpTo(kind) => {
+                        let count = self
+                            .gen_semantic_state
+                            .facts()
+                            .iter()
+                            .filter(|fact| fact.kind.eq_ignore_ascii_case(kind))
+                            .count();
+                        if count == 0 {
+                            return Err(anyhow!(
+                                "STORE-AWARE-GEN: rule '{}' gen_predicate index draw has zero live '{}' facts — backtracking",
+                                rule_name,
+                                kind
+                            ));
+                        }
+                        (self.rng.gen_range(0..count) + 1).to_string()
+                    }
+                };
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "STIMULI-SIGNOFF.13.4 store value draw: rule='{}' depth={} draw={:?} render='{}'",
+                        rule_name, depth, draw, drawn
+                    ),
+                );
+                self.coverage.record_rule_success(rule_name);
+                self.last_terminal_from_atomic_rule = is_atomic;
+                let rendered = self.apply_lexical_follow_restriction(rule_name, drawn);
+                self.last_terminal_word_shaped = Self::tail_word_shaped(&rendered);
+                return Ok(rendered);
+            }
+        }
+
         call_stack.push(rule_name.to_string());
         // STIMULI-SIGNOFF.2.2: record the covered k-path (last-k window of the live call
         // stack). OFF by default (zero overhead / byte-identical generation); read-only.
@@ -12003,24 +12150,35 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
-    /// STORE-AWARE-GEN.3: precompute, from the grammar's semantic annotations, (1) per-rule
-    /// `@emit_fact` specs (emitted into the generation-time store on rule success) and (2) per-rule
-    /// fact-kinds K gated by a `fact_count_at_least(K, $ref)` post-predicate whose threshold is a
-    /// generated value (a `RuleReference`). Parser-agnostic; reuses `parse_semantic_runtime_directives`
-    /// (the same parse the codegen uses), so the generator honours the SAME annotation vocabulary.
+    /// STORE-AWARE-GEN.3 / STIMULI-SIGNOFF.13.4: precompute, from the grammar's semantic
+    /// annotations, (1) per-rule `@emit_fact` AND `@gen_emit_fact` specs (emitted into the
+    /// generation-time store on rule success), (2) per-rule fact-kinds K gated by a
+    /// `fact_count_at_least(K, …)` post-predicate or ANY `@gen_predicate` (the count-prune +
+    /// count-prelude keys), (3) the literal prune thresholds, and (4) per-rule render-time
+    /// VALUE DRAWS derived from `@gen_predicate` shapes. Parser-agnostic; reuses
+    /// `parse_semantic_runtime_directives` (the same parse the codegen uses) plus the shared
+    /// `@gen_*` payload parsers, so the generator honours the SAME annotation vocabulary.
     fn compute_store_aware_gen_directives(
         annotations: Option<&Annotations>,
     ) -> (
         HashMap<String, Vec<SemanticFactSpec>>,
         HashMap<String, Vec<String>>,
         HashMap<String, usize>,
+        HashMap<String, GenValueDraw>,
     ) {
         let mut emit_facts: HashMap<String, Vec<SemanticFactSpec>> = HashMap::new();
         let mut count_kinds: HashMap<String, Vec<String>> = HashMap::new();
         // STORE-AWARE-GEN.4b.17: rule → the literal threshold N of a `fact_count_at_least(K, N)` gate.
         let mut count_literal_thresholds: HashMap<String, usize> = HashMap::new();
+        // STIMULI-SIGNOFF.13.4: rule → the render-time value draw of its `@gen_predicate:` directive.
+        let mut value_draws: HashMap<String, GenValueDraw> = HashMap::new();
         let Some(annotations) = annotations else {
-            return (emit_facts, count_kinds, count_literal_thresholds);
+            return (
+                emit_facts,
+                count_kinds,
+                count_literal_thresholds,
+                value_draws,
+            );
         };
         // A directive may bind at the rule level OR a branch level — flatten both per rule.
         let mut per_rule: HashMap<String, Vec<&SemanticAnnotation>> = HashMap::new();
@@ -12036,6 +12194,87 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         for (rule, anns) in per_rule {
+            // STIMULI-SIGNOFF.13.4: fold the GENERATION-SIDE duals FIRST — `@gen_emit_fact:` /
+            // `@gen_predicate:` are StimuliSteering directives (never runtime directives, so the
+            // `parse_semantic_runtime_directives` pass below cannot see them; codegen and the
+            // parse-harness interpreter never consume them either). Their payloads parse through
+            // the SAME `@emit_fact` / `@predicate` payload parsers. A `@gen_predicate` registers
+            // its kind into `count_kinds` with a literal threshold (so the `.3` count-prune AND
+            // the C2.2/.4b.17 count-prelude witness arming both apply) and derives the rule's
+            // render-time VALUE DRAW from the predicate shape.
+            for annotation in &anns {
+                let Some(name) = annotation.name() else {
+                    continue;
+                };
+                match name.trim().to_ascii_lowercase().as_str() {
+                    crate::ast_pipeline::semantic_runtime::GEN_EMIT_FACT_DIRECTIVE_NAME => {
+                        if let Ok(spec) =
+                            crate::ast_pipeline::semantic_runtime::parse_gen_emit_fact_payload(
+                                annotation.ast(),
+                            )
+                        {
+                            emit_facts.entry(rule.clone()).or_default().push(spec);
+                        }
+                    }
+                    crate::ast_pipeline::semantic_runtime::GEN_PREDICATE_DIRECTIVE_NAME => {
+                        let Ok(spec) =
+                            crate::ast_pipeline::semantic_runtime::parse_gen_predicate_payload(
+                                annotation.ast(),
+                            )
+                        else {
+                            continue;
+                        };
+                        let Some(UnifiedSemanticValue::Identifier(kind)) = spec.args.first()
+                        else {
+                            continue;
+                        };
+                        match (spec.name.trim(), spec.args.get(1)) {
+                            // `has_fact(K, $ref)` — the rule renders a live K-fact NAME. The
+                            // count-prune threshold is 1 (has_fact ⟺ count ≥ 1) and the prelude
+                            // arms `iterations = 1` immediately (no phase-1 capture — the draw
+                            // adapts the render to the live store, so nothing needs capturing).
+                            ("has_fact", Some(UnifiedSemanticValue::RuleReference(_))) => {
+                                count_kinds
+                                    .entry(rule.clone())
+                                    .or_default()
+                                    .push(kind.clone());
+                                count_literal_thresholds.insert(rule.clone(), 1);
+                                value_draws.insert(rule.clone(), GenValueDraw::NameOf(kind.clone()));
+                            }
+                            // `fact_count_at_least(K, $ref)` — the rule renders an integer in
+                            // `1..=count(K)`. Threshold 1 for the same reason: the draw never
+                            // renders above the live count, so one armed producer suffices.
+                            (
+                                "fact_count_at_least",
+                                Some(UnifiedSemanticValue::RuleReference(_)),
+                            ) => {
+                                count_kinds
+                                    .entry(rule.clone())
+                                    .or_default()
+                                    .push(kind.clone());
+                                count_literal_thresholds.insert(rule.clone(), 1);
+                                value_draws
+                                    .insert(rule.clone(), GenValueDraw::IndexUpTo(kind.clone()));
+                            }
+                            // `fact_count_at_least(K, N)` — a fixed-count generation gate:
+                            // prune + N-iteration prelude, no draw (nothing value-shaped to render).
+                            ("fact_count_at_least", Some(UnifiedSemanticValue::Number(n))) => {
+                                if let Ok(threshold) = n.trim().parse::<usize>() {
+                                    if threshold >= 1 {
+                                        count_kinds
+                                            .entry(rule.clone())
+                                            .or_default()
+                                            .push(kind.clone());
+                                        count_literal_thresholds.insert(rule.clone(), threshold);
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
             let Ok(directives) = parse_semantic_runtime_directives(anns.into_iter()) else {
                 continue;
             };
@@ -12082,7 +12321,12 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
         }
-        (emit_facts, count_kinds, count_literal_thresholds)
+        (
+            emit_facts,
+            count_kinds,
+            count_literal_thresholds,
+            value_draws,
+        )
     }
 
     /// STORE-AWARE-GEN.3: the generation-time necessary condition for a rule gated by a
@@ -15318,6 +15562,266 @@ mod tests {
         assert!(
             saw_multi_item_sample,
             "at least one sample must stack >=2 items so the separator is exercised"
+        );
+    }
+
+    /// STIMULI-SIGNOFF.13.4: synthetic declare-then-use grammar for the
+    /// `@gen_emit_fact` / `@gen_predicate` render-time value-draw tests —
+    /// `file := decl use_site`; the producer `dname` registers its render as a
+    /// `cap_name` fact; the consumer `uname` draws a live `cap_name` name.
+    fn gen_store_draw_fixture() -> (HashMap<String, ASTNode>, Vec<String>) {
+        let mut g = HashMap::new();
+        g.insert(
+            "file".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("decl"), rule_ref("use_site")],
+            },
+        );
+        g.insert(
+            "decl".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "d:"),
+                    rule_ref("dname"),
+                    token("quoted_string", ";"),
+                ],
+            },
+        );
+        g.insert("dname".to_string(), token("regex", "[a-u][a-u]"));
+        g.insert(
+            "use_site".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "u:"),
+                    rule_ref("uname"),
+                    token("quoted_string", ";"),
+                ],
+            },
+        );
+        g.insert("uname".to_string(), token("regex", "[a-u][a-u]"));
+        (
+            g,
+            vec![
+                "file".to_string(),
+                "decl".to_string(),
+                "dname".to_string(),
+                "use_site".to_string(),
+                "uname".to_string(),
+            ],
+        )
+    }
+
+    fn gen_store_annotation(rule: &str, directive: &str, payload: &str) -> (String, SemanticAnnotation) {
+        (
+            rule.to_string(),
+            SemanticAnnotation::Named {
+                name: directive.to_string(),
+                ast: UnifiedSemanticAST::from_named_payload(directive, payload),
+            },
+        )
+    }
+
+    fn gen_store_annotations(entries: &[(String, SemanticAnnotation)]) -> Annotations {
+        let mut annotations = Annotations::default();
+        for (rule, annotation) in entries {
+            annotations
+                .semantic_annotations
+                .entry(rule.clone())
+                .or_default()
+                .push(annotation.clone());
+        }
+        annotations
+    }
+
+    #[test]
+    fn gen_value_name_draw_renders_a_live_stored_name_and_is_deterministic() {
+        let (grammar_tree, rule_order) = gen_store_draw_fixture();
+        let annotations = gen_store_annotations(&[
+            gen_store_annotation("dname", "gen_emit_fact", "{ kind: cap_name, name: $dname }"),
+            gen_store_annotation(
+                "uname",
+                "gen_predicate",
+                "{ name: has_fact, args: [cap_name, $text], phase: post }",
+            ),
+        ]);
+        for seed in [0u64, 7, 42, 99] {
+            let mut generator =
+                generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), seed);
+            let samples = generator
+                .generate_many(8, Some("file"))
+                .expect("draw-gated generation should succeed");
+            for sample in &samples {
+                // Shape: d:<declared>;u:<used>; — the used name must BE the declared name.
+                let rest = sample
+                    .strip_prefix("d:")
+                    .unwrap_or_else(|| panic!("unexpected sample shape (seed {seed}): {sample:?}"));
+                let (declared, rest) = rest
+                    .split_once(";u:")
+                    .unwrap_or_else(|| panic!("unexpected sample shape (seed {seed}): {sample:?}"));
+                let used = rest
+                    .strip_suffix(';')
+                    .unwrap_or_else(|| panic!("unexpected sample shape (seed {seed}): {sample:?}"));
+                assert_eq!(
+                    used, declared,
+                    "the consumer must render the LIVE declared name (seed {seed}): {sample:?}"
+                );
+            }
+            // Determinism: the same seed reproduces the exact sample vector.
+            let mut replay =
+                generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), seed);
+            let replayed = replay
+                .generate_many(8, Some("file"))
+                .expect("replay generation should succeed");
+            assert_eq!(samples, replayed, "same-seed draws must be byte-identical");
+        }
+    }
+
+    #[test]
+    fn gen_value_index_draw_stays_within_the_live_count() {
+        // file := decl decl use_site ; decl := "(" ")" emits one `grp` fact;
+        // inum draws an index in 1..=count(grp) — its regex body [5-9] can NEVER
+        // render, so any 1/2 render proves the draw replaced the body.
+        let mut g = HashMap::new();
+        g.insert(
+            "file".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("decl"), rule_ref("decl"), rule_ref("use_site")],
+            },
+        );
+        g.insert(
+            "decl".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "("), token("quoted_string", ")")],
+            },
+        );
+        g.insert(
+            "use_site".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "#"), rule_ref("inum")],
+            },
+        );
+        g.insert("inum".to_string(), token("regex", "[5-9]"));
+        let rule_order = vec![
+            "file".to_string(),
+            "decl".to_string(),
+            "use_site".to_string(),
+            "inum".to_string(),
+        ];
+        let annotations = gen_store_annotations(&[
+            gen_store_annotation("decl", "gen_emit_fact", "{ kind: grp, name: g }"),
+            gen_store_annotation(
+                "inum",
+                "gen_predicate",
+                "{ name: fact_count_at_least, args: [grp, $value], phase: post }",
+            ),
+        ]);
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for seed in [0u64, 7, 42, 99] {
+            let mut generator =
+                generator_with_annotations(&g, &rule_order, Some(&annotations), seed);
+            for sample in generator
+                .generate_many(8, Some("file"))
+                .expect("index-draw generation should succeed")
+            {
+                let index = sample
+                    .strip_prefix("()()#")
+                    .unwrap_or_else(|| panic!("unexpected sample shape (seed {seed}): {sample:?}"));
+                assert!(
+                    index == "1" || index == "2",
+                    "the drawn index must stay within the live count 2 (seed {seed}): {sample:?}"
+                );
+                seen.insert(index.to_string());
+            }
+        }
+        assert_eq!(
+            seen.len(),
+            2,
+            "both live indices must be drawn across seeds/samples: {seen:?}"
+        );
+    }
+
+    #[test]
+    fn gen_value_draw_with_an_empty_pool_backtracks_to_a_sibling_branch() {
+        // NO producer exists, so the has_fact-gated branch is ungeneratable —
+        // the count-prune backtracks it and the Or falls to the fallback.
+        let mut g = HashMap::new();
+        g.insert(
+            "file".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![
+                            token("quoted_string", "<"),
+                            rule_ref("uname"),
+                            token("quoted_string", ">"),
+                        ],
+                    },
+                    token("quoted_string", "fallback"),
+                ],
+            },
+        );
+        g.insert("uname".to_string(), token("regex", "[a-u][a-u]"));
+        let rule_order = vec!["file".to_string(), "uname".to_string()];
+        let annotations = gen_store_annotations(&[gen_store_annotation(
+            "uname",
+            "gen_predicate",
+            "{ name: has_fact, args: [cap_name, $text], phase: post }",
+        )]);
+        for seed in [0u64, 7, 42, 99] {
+            let mut generator =
+                generator_with_annotations(&g, &rule_order, Some(&annotations), seed);
+            for sample in generator
+                .generate_many(8, Some("file"))
+                .expect("generation should fall back to the ungated branch")
+            {
+                assert_eq!(
+                    sample, "fallback",
+                    "zero live facts must backtrack the draw-gated branch (seed {seed})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn gen_store_directive_fold_registers_emit_prune_prelude_and_draw_maps() {
+        let annotations = gen_store_annotations(&[
+            gen_store_annotation("dname", "gen_emit_fact", "{ kind: cap_name, name: $dname }"),
+            gen_store_annotation(
+                "uname",
+                "gen_predicate",
+                "{ name: has_fact, args: [cap_name, $text], phase: post }",
+            ),
+            gen_store_annotation(
+                "inum",
+                "gen_predicate",
+                "{ name: fact_count_at_least, args: [grp, $value], phase: post }",
+            ),
+        ]);
+        let (emit_facts, count_kinds, thresholds, draws) =
+            StimuliGenerator::compute_store_aware_gen_directives(Some(&annotations));
+        assert_eq!(
+            emit_facts.get("dname").map(|specs| specs.len()),
+            Some(1),
+            "@gen_emit_fact must fold into the generation emit map"
+        );
+        assert_eq!(
+            count_kinds.get("uname").map(Vec::as_slice),
+            Some(&["cap_name".to_string()][..]),
+            "@gen_predicate has_fact must register its kind for the count-prune/prelude"
+        );
+        assert_eq!(thresholds.get("uname"), Some(&1));
+        assert_eq!(
+            draws.get("uname"),
+            Some(&GenValueDraw::NameOf("cap_name".to_string()))
+        );
+        assert_eq!(
+            count_kinds.get("inum").map(Vec::as_slice),
+            Some(&["grp".to_string()][..])
+        );
+        assert_eq!(thresholds.get("inum"), Some(&1));
+        assert_eq!(
+            draws.get("inum"),
+            Some(&GenValueDraw::IndexUpTo("grp".to_string()))
         );
     }
 

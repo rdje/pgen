@@ -730,6 +730,63 @@ pub(crate) fn parse_quantified_separator_payload(
     })
 }
 
+/// `STIMULI-SIGNOFF.13.4`: the GENERATION-SIDE duals of `@emit_fact` /
+/// `@predicate` — for cross-referential constraints whose PARSE-time
+/// evaluation is unsound (forward references are legal, e.g. the regex
+/// scan-substring capture list) but whose GENERATION-time enforcement over
+/// the already-generated prefix is a sound subset.
+///
+/// Both are `StimuliSteering` directives: they compile to ZERO runtime
+/// directives (never enter `directives_by_rule`), so declaring them is
+/// emit-neutral for every generated parser and invisible to the
+/// parse-harness interpreter. Their payloads are EXACTLY the `@emit_fact` /
+/// `@predicate` payload schemas, parsed by the same parsers (no second
+/// dialect):
+///
+/// ```text
+/// @gen_emit_fact: { kind: regex_capture_name, name: $name }
+/// @gen_predicate: { name: has_fact, args: [regex_capture_name, $text], phase: post }
+/// @gen_predicate: { name: fact_count_at_least, args: [regex_capture_group, $value], phase: post }
+/// ```
+///
+/// The stimuli generator folds `@gen_emit_fact` into its generation-time
+/// store emission and `@gen_predicate` into its count-prune / prelude maps,
+/// and derives a render-time VALUE DRAW from the predicate shape
+/// (`has_fact(K, $ref)` → the rule's whole render is drawn from the live
+/// `K`-fact names; `fact_count_at_least(K, $ref)` → drawn from
+/// `1..=count(K)`). See `stimuli_generator::compute_store_aware_gen_directives`.
+pub const GEN_EMIT_FACT_DIRECTIVE_NAME: &str = "gen_emit_fact";
+pub const GEN_PREDICATE_DIRECTIVE_NAME: &str = "gen_predicate";
+
+/// `STIMULI-SIGNOFF.13.4`: parse a `@gen_emit_fact:` payload through the SAME
+/// parser `@emit_fact` uses, so the generation-side dual can never grow a
+/// second payload dialect. `pub(crate)` for the annotation validator + the
+/// stimuli generator.
+pub(crate) fn parse_gen_emit_fact_payload(
+    ast: &UnifiedSemanticAST,
+) -> Result<SemanticFactSpec, String> {
+    match parse_emit_fact(ast)? {
+        SemanticRuntimeDirective::EmitFact(spec) => Ok(spec),
+        other => Err(format!(
+            "@{GEN_EMIT_FACT_DIRECTIVE_NAME}: internal error — emit_fact payload parsed to a non-EmitFact directive ({other:?})."
+        )),
+    }
+}
+
+/// `STIMULI-SIGNOFF.13.4`: parse a `@gen_predicate:` payload through the SAME
+/// parser `@predicate` uses. `pub(crate)` for the annotation validator + the
+/// stimuli generator.
+pub(crate) fn parse_gen_predicate_payload(
+    ast: &UnifiedSemanticAST,
+) -> Result<SemanticPredicateSpec, String> {
+    match parse_predicate(ast)? {
+        SemanticRuntimeDirective::Predicate(spec) => Ok(spec),
+        other => Err(format!(
+            "@{GEN_PREDICATE_DIRECTIVE_NAME}: internal error — predicate payload parsed to a non-Predicate directive ({other:?})."
+        )),
+    }
+}
+
 /// The shared identifier shape for dialect-profile names and alias spellings
 /// (ASCII alphanumerics, '_', '-') — one character class for
 /// `@default_profile` payloads, `@profile_alias` keys, and their targets.
