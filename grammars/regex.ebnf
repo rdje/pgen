@@ -69,10 +69,34 @@ concatenation  = piece+
 # PCRE2's (oracle 10.47): `\A{2}` `\A{2,}` `\A{2,3}` `\A{,2}` reject
 # (valid quantifier shapes), while `${` `\A{a}` `\A{2` `\A{}` stay
 # accepted (not a quantifier ⇒ literal braces on both sides).
+# REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is
+# PCRE2 ZERO-WIDTH and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to
+# a quantifier: `a\E*` `\Ea*` `a\E\E*` `()\E*` `\Qa\E\E*` ACCEPT (the `*`
+# binds THROUGH the stray `\E` to the preceding repeatable atom), while `\E*`
+# `\E\E*` `^\E*` `a^\E*` `|\E*` `(\E*)` REJECT (err 109 — no repeatable
+# predecessor reachable through elision; an anchor or a group/alternation
+# edge blocks it). Oracle `pcre2test` 10.47 (44-cell map). The leaf's
+# declared "join the anchor `!quantifier` treatment" was REFUTED (it would
+# newly reject `a\E*`). Encode: stray `\E` is re-homed out of the
+# quantifiable `atom` (dropped from `simple_escape_letter_strict` — a
+# POSITIVE exclusion, generation-faithful, the `.3.13` idiom) into
+# `zero_width`, and `piece` gains (a) a STANDALONE branch
+# `zero_width !quantifier` (a stray `\E` never carries its own quantifier)
+# and (b) an ABSORPTION branch `atom zero_width+ quantifier` — the quantifier
+# reaches through ≥1 transparent stray `\E` to bind the atom, the `\E`s
+# ELIDED (PCRE2's delete-`\E` model); the `+` confines it to `<atom><\E>+<q>`
+# so plain `x*` is untouched. The absorption branch is LAST so the tie at
+# `\Q\E*` (empty quote + quantifier, 5 bytes both ways) resolves to the
+# earlier `atom quantifier?` — leaving empty-`\Q\E`-quantified BYTE-UNCHANGED
+# as a deferred divergence (spun out to `.3.23`: it entangles with the
+# pre-existing `\Q`-as-`simple_escape` / unterminated-`\Q...\E` quoting
+# model). The EMPTY `\Q\E` is NOT a `zero_width` this slice.
 piece          = piece_quoted_run_quantified -> $1
                | anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}
-               | atom quantifier?
--> {type: "piece", atom: $1, quantifier: $2}
+               | zero_width !quantifier -> {type: "piece", atom: $1, quantifier: []}
+               | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
+               | atom zero_width+ quantifier
+-> {type: "piece", atom: $1, quantifier: $3}
 
 # Match `\Q` + (zero or more prefix chars) + (one trailing char) + `\E`
 # + a required quantifier. The annotation flat-emits `[prefix*, last]`
@@ -98,6 +122,18 @@ piece_quoted_run_quantified = "\\Q" quoted_run_inner_piece* quoted_literal_char 
 # be paired with the trailing quantifier.
 quoted_run_inner_piece = quoted_literal_char !"\\E"
 -> {type: "piece", atom: $1, quantifier: []}
+
+# REGEX-PCRE2-FIDELITY.3.19: the PCRE2 zero-width, transparent piece atom
+# (consumed only by the `piece` STANDALONE / ABSORPTION branches, not by the
+# quantifiable `atom`). `stray_end_quote_escape` preserves the exact
+# pre-`.3.19` AST byte-shape a stray `\E` had as the `simple_escape`
+# shorthand (dropped from `simple_escape_letter_strict` this slice so a bare
+# quantifier can no longer bind directly to it). Empty `\Q\E` is NOT a member
+# this slice — making it non-quantifiable requires splitting `quoted_literal`,
+# which unmasks the `\Q`-as-`simple_escape` decomposition of `\Q\E<q>` and
+# entangles with unterminated-`\Q...\E` quoting (spun out to `.3.23`).
+zero_width     = stray_end_quote_escape
+stray_end_quote_escape = "\\E"        -> {type: "escape", kind: "shorthand", char: "E"}
 
 # Quantifiers (with lazy and possessive variants).
 #
@@ -826,9 +862,13 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail -> {type: "escape", kind: "shorthand", char: $5}
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
 simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
-# 39 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
-# PCRE2-unsupported fidelity letters (`F L U i l u`).
-simple_escape_letter_strict = 'C' | 'D' | 'E' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
+# 38 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
+# PCRE2-unsupported fidelity letters (`F L U i l u`) minus `E`
+# (REGEX-PCRE2-FIDELITY.3.19: a stray `\E` is PCRE2 zero-width, re-homed to
+# `stray_end_quote_escape` / `zero_width` so a bare quantifier cannot bind to
+# it; the LOWERCASE `\e` = ESC stays a shorthand). Uppercase-anchor letters
+# and `E` are the piece-level zero-width forms owned outside `simple_escape`.
+simple_escape_letter_strict = 'C' | 'D' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
                             | 'a' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'j' | 'k' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'v' | 'w' | 'x' | 'y'
 @profiles: ["relaxed"]
 simple_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'

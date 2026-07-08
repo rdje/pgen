@@ -18,6 +18,33 @@ host validator):
   `[[:<:]]*` / `[[:>:]]+` (PCRE2 compiles them to quantifiable sub-groups); and non-quantifier
   braces `${` `\A{a}` `\A{2` `\A{}` (not a valid quantifier shape ⇒ literal braces, PCRE2-parity).
 
+## Stray `\E` transparent quantifier binding (release 1.1.86, REGEX-PCRE2-FIDELITY.3.19)
+
+A stray `\E` (an end-of-quote with no matching `\Q`) is PCRE2 zero-width — but, *unlike* an anchor,
+it is **TRANSPARENT**: a quantifier binds THROUGH it to the preceding repeatable atom instead of
+erroring on it. Since release `1.1.86` PGEN encodes this at the grammar layer (stray `\E` is a
+non-quantifiable `zero_width` piece; the `piece` ABSORPTION branch reaches through it). The
+discriminating oracle fact (`pcre2test` 10.47): `a^*` REJECTS (an anchor is opaque) while `a\E*`
+ACCEPTS (a stray `\E` is transparent).
+
+- **REJECT** (`E_PARSE_FAILURE`, err 109 — no repeatable predecessor reachable through elision):
+  `\E*` `\E+` `\E?` `\E{2}` `\E{2,}` `\E{2,3}` `\E{,2}` (bare stray `\E` + quantifier); `\E\E*`
+  (two stray `\E`, still nothing repeatable); `^\E*` `\A\E*` `a^\E*` (an anchor before the `\E`
+  is non-repeatable and blocks the bind); `(\E*)` `|\E*` `a|\E*` `(a|\E*)` (a group-open or
+  alternation edge resets the predecessor). All were wrongly ACCEPTED before `1.1.86` (bug ledger
+  `REGEX-0095`).
+- **ACCEPT** (a quantifier binds through the transparent `\E` to the preceding atom): `a\E*` (=
+  `a*`), `ab\E*` (binds `b`), `a\E\E*`, `\Qa\E\E*`, `()\E*`, `(a)\E*`, `(a|b)\E*`; `\Ea*`
+  `\E\Ea*` `^\Ea*` `\E|a*` (a leading `\E`, then a quantified real atom).
+- **ACCEPT** (unchanged): bare stray `\E`, `a\E`, `\Ea`; non-quantifier braces `\E{a}` `\E{`;
+  grouped `(\E)*` (quantifies the group).
+
+For the eight `<atom>\E<quant>` accept cells the AST now binds the quantifier to the repeatable
+**atom** with the stray `\E`(s) elided (`a\E*` → `[piece(a, *)]`, not `[piece(a), piece(\E, *)]`);
+all other accepted patterns are byte-identical. **Deferred:** empty `\Q\E`-quantified (`\Q\E*`,
+`\Q\E{2}`, …) is still accepts-invalid and byte-UNCHANGED — it entangles with the
+`\Q`-as-`simple_escape` / unterminated-`\Q...\E` model (`REGEX-PCRE2-FIDELITY.3.23`).
+
 ## `^` start anchor
 
 ```json

@@ -7,17 +7,30 @@ The `piece` rule is the workhorse of regex — every quantified or unquantified 
 ```ebnf
 piece = piece_quoted_run_quantified -> $1
       | anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}
-      | atom quantifier?
--> {type: "piece", atom: $1, quantifier: $2}
+      | zero_width !quantifier -> {type: "piece", atom: $1, quantifier: []}
+      | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
+      | atom zero_width+ quantifier
+-> {type: "piece", atom: $1, quantifier: $3}
 ```
 
-Three branches (the anchor branch landed in release `1.1.82`, `REGEX-PCRE2-FIDELITY.3.13`):
+Five branches (the anchor branch landed in release `1.1.82`, `REGEX-PCRE2-FIDELITY.3.13`; the two zero-width branches in release `1.1.86`, `REGEX-PCRE2-FIDELITY.3.19`). Because `|` is a **longest-match tournament** (ties → the earlier branch), branch ORDER matters only for ties:
 
-1. **Branch 0**: `piece_quoted_run_quantified -> $1`. Tried FIRST. Matches `\Q...\E quantifier` — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).
-2. **Branch 1**: `anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}`. Anchors (`^ $ \A \Z \z \b \B \G \K`) are **non-quantifiable** in PCRE2 (err 109), so an anchor forms a piece with NO quantifier slot; the `!quantifier` lookahead makes `^*`/`$*`/`\b*`/`\A{2}`-style patterns REJECT while non-quantifier braces (`${`, `\A{a}`, `\A{}`) still parse as anchor + literal-brace pieces (PCRE2-parity). The emitted piece is byte-identical to the pre-`1.1.82` unquantified-anchor shape (`quantifier: []` matches the unmatched-`?` byte-shape). `anchor` is no longer an `atom` alternative. See the anchors chapter's "Quantified anchors reject" section and ledger `REGEX-0088`.
-3. **Branch 2**: `atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}`. The standard piece shape: a single atom with an optional quantifier.
+1. **Quoted-run branch**: `piece_quoted_run_quantified -> $1`. Tried FIRST. Matches `\Q...\E quantifier` — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).
+2. **Anchor branch**: `anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}`. Anchors (`^ $ \A \Z \z \b \B \G \K`) are **non-quantifiable** in PCRE2 (err 109) — and, crucially, OPAQUE: a quantifier after an anchor errors *even when a repeatable atom precedes* (`a^*` REJECTS). So an anchor forms a piece with NO quantifier slot; the `!quantifier` lookahead makes `^*`/`$*`/`\b*`/`\A{2}`-style patterns REJECT while non-quantifier braces (`${`, `\A{a}`, `\A{}`) still parse as anchor + literal-brace pieces. `anchor` is no longer an `atom` alternative. See ledger `REGEX-0088`.
+3. **Zero-width STANDALONE branch** (`.3.19`): `zero_width !quantifier -> {type: "piece", atom: $1, quantifier: []}`. A stray `\E` (`zero_width` — see below) is PCRE2 zero-width but, *unlike* an anchor, TRANSPARENT. On its own it forms a non-quantifiable piece; a bare `\E*` REJECTS (err 109) because the standalone branch's `!quantifier` fails and no other branch matches. Byte-identical to the pre-`1.1.86` stray-`\E` shape (`{type:"escape",kind:"shorthand",char:"E"}`, `quantifier: []`).
+4. **Standard atom branch**: `atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}`. A single atom with an optional quantifier — the common case.
+5. **Zero-width ABSORPTION branch** (`.3.19`): `atom zero_width+ quantifier -> {type: "piece", atom: $1, quantifier: $3}`. Placed LAST. A quantifier reaches THROUGH ≥1 transparent stray `\E` to bind the preceding atom (`a\E*` = `a*`), with the `\E`(s) **elided** (PCRE2's delete-`\E` model). The `+` confines this branch to exactly the `<atom> \E+ <quantifier>` case, so a plain `x*` is untouched (it never enters this branch). Being LAST, its `\Q\E*` tie (5 bytes, matched via `\Q`-escape + `\E` + `*`) *loses* to the earlier standard-atom branch (which reads `\Q\E` as one empty `quoted_literal` atom + quantifier) — so **empty-`\Q\E`-quantified stays byte-unchanged as a deferred accepts-invalid divergence** (`REGEX-PCRE2-FIDELITY.3.23`).
 
-For `\Qa\E{3}` (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 2 matches via the `quoted_literal` atom alternative.
+For `\Qa\E{3}` (single-char quoted run), the quoted-run branch fails (it requires the inner-piece-list to be non-empty before the trailing char), so the standard-atom branch matches via the `quoted_literal` atom alternative.
+
+### `zero_width` — the transparent stray `\E`
+
+```ebnf
+zero_width = stray_end_quote_escape
+stray_end_quote_escape = "\\E" -> {type: "escape", kind: "shorthand", char: "E"}
+```
+
+A stray `\E` — an end-of-quote with no matching `\Q` — is dropped from `simple_escape_letter_strict` (a POSITIVE exclusion, generation-faithful) and re-homed here, so a bare quantifier can no longer bind directly to it. The rule preserves the exact byte-shape `\E` had as a `simple_escape` shorthand, so bare `\E`, `a\E`, `\Ea` are all byte-identical to pre-`1.1.86`. Empty `\Q\E` is NOT a `zero_width` member this release — see `REGEX-PCRE2-FIDELITY.3.23`. See the escape chapter and the [transparent-binding examples](examples-anchors.md#stray-e-transparent-quantifier-binding-release-1186-regex-pcre2-fidelity319).
 
 ### Shape — the standard atom branch (the common case)
 

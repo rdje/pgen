@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
+            window.path_to_searchindex_js = "searchindex-2d08348b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -197,6 +197,31 @@ in a class is a literal; <code>[\b]</code> is backspace); the POSIX word-boundar
 <code>[[:&lt;:]]*</code> / <code>[[:&gt;:]]+</code> (PCRE2 compiles them to quantifiable sub-groups); and non-quantifier
 braces <code>${</code> <code>\A{a}</code> <code>\A{2</code> <code>\A{}</code> (not a valid quantifier shape ⇒ literal braces, PCRE2-parity).</li>
 </ul>
+<h2 id="stray-e-transparent-quantifier-binding-release-1186-regex-pcre2-fidelity319"><a class="header" href="#stray-e-transparent-quantifier-binding-release-1186-regex-pcre2-fidelity319">Stray <code>\E</code> transparent quantifier binding (release 1.1.86, REGEX-PCRE2-FIDELITY.3.19)</a></h2>
+<p>A stray <code>\E</code> (an end-of-quote with no matching <code>\Q</code>) is PCRE2 zero-width — but, <em>unlike</em> an anchor,
+it is <strong>TRANSPARENT</strong>: a quantifier binds THROUGH it to the preceding repeatable atom instead of
+erroring on it. Since release <code>1.1.86</code> PGEN encodes this at the grammar layer (stray <code>\E</code> is a
+non-quantifiable <code>zero_width</code> piece; the <code>piece</code> ABSORPTION branch reaches through it). The
+discriminating oracle fact (<code>pcre2test</code> 10.47): <code>a^*</code> REJECTS (an anchor is opaque) while <code>a\E*</code>
+ACCEPTS (a stray <code>\E</code> is transparent).</p>
+<ul>
+<li><strong>REJECT</strong> (<code>E_PARSE_FAILURE</code>, err 109 — no repeatable predecessor reachable through elision):
+<code>\E*</code> <code>\E+</code> <code>\E?</code> <code>\E{2}</code> <code>\E{2,}</code> <code>\E{2,3}</code> <code>\E{,2}</code> (bare stray <code>\E</code> + quantifier); <code>\E\E*</code>
+(two stray <code>\E</code>, still nothing repeatable); <code>^\E*</code> <code>\A\E*</code> <code>a^\E*</code> (an anchor before the <code>\E</code>
+is non-repeatable and blocks the bind); <code>(\E*)</code> <code>|\E*</code> <code>a|\E*</code> <code>(a|\E*)</code> (a group-open or
+alternation edge resets the predecessor). All were wrongly ACCEPTED before <code>1.1.86</code> (bug ledger
+<code>REGEX-0095</code>).</li>
+<li><strong>ACCEPT</strong> (a quantifier binds through the transparent <code>\E</code> to the preceding atom): <code>a\E*</code> (=
+<code>a*</code>), <code>ab\E*</code> (binds <code>b</code>), <code>a\E\E*</code>, <code>\Qa\E\E*</code>, <code>()\E*</code>, <code>(a)\E*</code>, <code>(a|b)\E*</code>; <code>\Ea*</code>
+<code>\E\Ea*</code> <code>^\Ea*</code> <code>\E|a*</code> (a leading <code>\E</code>, then a quantified real atom).</li>
+<li><strong>ACCEPT</strong> (unchanged): bare stray <code>\E</code>, <code>a\E</code>, <code>\Ea</code>; non-quantifier braces <code>\E{a}</code> <code>\E{</code>;
+grouped <code>(\E)*</code> (quantifies the group).</li>
+</ul>
+<p>For the eight <code>&lt;atom&gt;\E&lt;quant&gt;</code> accept cells the AST now binds the quantifier to the repeatable
+<strong>atom</strong> with the stray <code>\E</code>(s) elided (<code>a\E*</code> → <code>[piece(a, *)]</code>, not <code>[piece(a), piece(\E, *)]</code>);
+all other accepted patterns are byte-identical. <strong>Deferred:</strong> empty <code>\Q\E</code>-quantified (<code>\Q\E*</code>,
+<code>\Q\E{2}</code>, …) is still accepts-invalid and byte-UNCHANGED — it entangles with the
+<code>\Q</code>-as-<code>simple_escape</code> / unterminated-<code>\Q...\E</code> model (<code>REGEX-PCRE2-FIDELITY.3.23</code>).</p>
 <h2 id="-start-anchor"><a class="header" href="#-start-anchor"><code>^</code> start anchor</a></h2>
 <pre><code class="language-json">"pattern": [
   [[

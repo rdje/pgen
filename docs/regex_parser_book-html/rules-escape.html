@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
+            window.path_to_searchindex_js = "searchindex-2d08348b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -228,7 +228,7 @@ simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxe
 <p>For <code>\d</code>: the inner shape is <code>{type:"escape",kind:"shorthand",char:"d"}</code> — the standard PCRE2 metacharacter is just text from the parser’s perspective; semantic interpretation (<code>\d</code> = digit-class) is downstream.</p>
 <p><strong>Since release 1.1.82 (REGEX-PCRE2-FIDELITY.3.13)</strong> the letter component is a <strong>positive enumeration</strong> instead of negative-lookahead guards over <code>any_char</code> (the stimuli generator is lookahead-blind, so guard-based exclusions were invisible to generation; a positive set is generation-faithful). Same accepted set per profile as before, minus the 7 escape-anchor letters (see below):</p>
 <ul>
-<li><code>simple_escape_letter_strict</code> (always active): 39 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings <code>A B G K Z b z</code> (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13) and the six PCRE2-unsupported letters <code>F L U i l u</code> (REGEX-PCRE2-FIDELITY.3.1).</li>
+<li><code>simple_escape_letter_strict</code> (always active): 38 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings <code>A B G K Z b z</code> (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13), the six PCRE2-unsupported letters <code>F L U i l u</code> (REGEX-PCRE2-FIDELITY.3.1), and the uppercase <code>E</code> (a stray <code>\E</code> is a PCRE2 zero-width end-of-quote, re-homed to <code>stray_end_quote_escape</code> / the <code>zero_width</code> piece so a quantifier cannot bind directly to it — REGEX-PCRE2-FIDELITY.3.19, release 1.1.86; the LOWERCASE <code>\e</code> = ESC stays a shorthand). See the <a href="rules-piece.html#zero_width--the-transparent-stray-e">piece chapter’s <code>zero_width</code></a> section.</li>
 <li><code>simple_escape_letter_relaxed</code> (<code>@profiles: ["relaxed"]</code>): re-admits <code>\i \F \l \L \u \U</code>. The anchor letters stay excluded in BOTH profiles.</li>
 <li>Digits are excluded positively (no <code>digit</code> alternative — the PGEN-RGX-0087 rule: <code>\&lt;digit&gt;</code> is always backref/octal/error, never shorthand); the four brace-form leads (<code>\o{</code>/<code>\x{</code>/<code>\p{</code>/<code>\P{</code>) remain negative lookaheads (a “not followed by <code>{</code>” condition has no positive spelling).</li>
 </ul>

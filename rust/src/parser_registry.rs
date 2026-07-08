@@ -1877,6 +1877,77 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "\\u"), Some(false));
     }
 
+    /// REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width
+    /// and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to a quantifier. A quantifier
+    /// binds THROUGH the stray `\E` to the preceding repeatable atom (`a\E*` = `a*`), but is
+    /// err 109 "quantifier does not follow a repeatable item" when no repeatable predecessor is
+    /// reachable through elision — nothing before it, or an anchor / group-open / alternation
+    /// edge blocks it. Encoded structurally: stray `\E` is a non-quantifiable `zero_width`
+    /// piece (dropped from `simple_escape_letter_strict`); the `piece` ABSORPTION branch
+    /// `atom zero_width+ quantifier` lets a quantifier reach through it, the `\E`s elided.
+    /// Oracle: `pcre2test` 10.47 (44-cell map). Empty-`\Q\E`-quantified is spun out to `.3.23`
+    /// (the `\Q`-as-`simple_escape` / unterminated-`\Q...\E` entanglement).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_stray_end_quote_quantifier_binds_through_pcre2_faithfully() {
+        // Quantifier with NO repeatable predecessor reachable through elision: REJECT (err 109).
+        for pattern in [
+            "\\E*", "\\E+", "\\E?", "\\E{2}", "\\E{2,}", "\\E{2,3}", "\\E{,2}", // bare stray \E + quantifier
+            "\\E\\E*",              // two stray \E — still no repeatable predecessor
+            "^\\E*", "\\A\\E*",     // an anchor precedes: non-repeatable, blocks the bind
+            "a^\\E*",              // `a` precedes but the immediate predecessor after eliding \E is `^`
+            "(\\E*)",              // group-open edge resets the predecessor
+            "|\\E*", "a|\\E*", "(a|\\E*)", // alternation edge resets the predecessor
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "stray-\\E quantifier with no repeatable predecessor must reject: {pattern}"
+            );
+        }
+        // Quantifier binds THROUGH the transparent stray \E to the preceding repeatable atom: ACCEPT.
+        for pattern in [
+            "a\\E*", "a\\E\\E*", "ab\\E*", "\\Qa\\E\\E*", // <atom> \E+ <quantifier>
+            "\\Ea*", "\\E\\Ea*",                          // leading stray \E then a quantified real atom
+            "()\\E*", "(a)\\E*", "(?:)\\E*", "(a|b)\\E*", // a group is a repeatable atom
+            "^\\Ea*", "\\E|a*",                          // anchor / alternation-left then a quantified atom
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "stray-\\E-transparent quantifier binding must accept: {pattern}"
+            );
+        }
+        // Bare stray \E and non-quantifier braces (not a bound quantifier): ACCEPT (unchanged).
+        for pattern in ["\\E", "\\Ea", "a\\E", "\\E{a}", "\\E{", "(\\E)*", "(\\E\\E)*"] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "stray \\E without a bound quantifier must accept: {pattern}"
+            );
+        }
+        // `.3.23`-DEFERRED: empty-`\Q\E`-quantified stays a byte-unchanged accepts-invalid until
+        // the `\Q`-model slice (the absorption branch is LAST so `\Q\E*` loses its tie).
+        assert_eq!(parse_sample("regex", "\\Q\\E*"), Some(true));
+        // The tightening applies in BOTH profiles (quantifier-target validity is not a relaxed
+        // concern — the `.3.13` precedent). `parse_sample_detail_with_profile` is the
+        // profile-routing verdict API for regex.
+        assert!(
+            super::parse_sample_detail_with_profile("regex", "\\E*", Some("relaxed"))
+                .expect("regex registered")
+                .is_err(),
+            "relaxed must also reject a quantified stray \\E"
+        );
+        // Relaxed still re-admits the .3.1 fidelity letters (regression guard for the
+        // simple_escape strict-set edit that dropped `E`).
+        assert!(
+            super::parse_sample_detail_with_profile("regex", "\\u", Some("relaxed"))
+                .expect("regex registered")
+                .is_ok(),
+            "relaxed must still re-admit \\u"
+        );
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.14: verb/start-option argument SHAPES reject at the GRAMMAR layer
     /// (name-class-conditional `directive_named` branches; the matching
     /// `find_invalid_verb_construct` shape checks were removed from the compile contract).

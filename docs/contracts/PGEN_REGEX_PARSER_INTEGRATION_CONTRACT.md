@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.87`
+  - `1.1.88`
 - Parser release version:
-  - `1.1.85`
+  - `1.1.86`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,28 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.86 / Contract 1.1.88 Highlights — REGEX-0095: a quantifier on a stray `\E` (a zero-width, TRANSPARENT construct) now rejects PCRE2-faithfully; grammar-encoded
+
+**Bug ledger:** `REGEX-0095` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.3.13` anchor split's oracle scoping; oracle-differential, hunter-invisible (both PGEN sides agreed). A purely LATENT accepts-invalid divergence with no prior validator check.
+
+**What changed (behavior-TIGHTENING: a family of accepts-invalid spellings now REJECT; no rejects-valid changes).** A stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width. Unlike an anchor (opaque — `REGEX-0088`/`.3.13`), it is **TRANSPARENT** to a quantifier: a quantifier binds THROUGH it to the preceding repeatable atom. `regex.ebnf` now encodes this (`REGEX-PCRE2-FIDELITY.3.19`), oracle-verified over a 44-cell `pcre2test` 10.47 interaction map:
+
+| Rule | Example | Verdict (both = PGEN `1.1.86` = PCRE2 10.47) |
+|---|---|---|
+| A quantifier on a stray `\E` with NO repeatable predecessor reachable through elision is err 109 | **`\E*` · `\E{2}` · `\E\E*` (were wrongly accepted)** | REJECT |
+| An anchor is non-repeatable and BLOCKS the bind (even with a repeatable atom before it) | **`^\E*` · `\A\E*` · `a^\E*` (were wrongly accepted)** | REJECT |
+| A group-open / alternation edge resets the predecessor | **`(\E*)` · `\|\E*` · `a\|\E*` (were wrongly accepted)** | REJECT |
+| A quantifier binds THROUGH the transparent stray `\E` to the preceding repeatable atom | `a\E*` (= `a*`) · `ab\E*` (binds `b`) · `\Ea*` · `()\E*` · `(a\|b)\E*` | ACCEPT (unchanged verdict) |
+| A bare stray `\E` or a non-quantifier brace after it | `\E` · `a\E` · `\E{a}` · `(\E)*` | ACCEPT (unchanged) |
+
+**AST shape.** For the 8 curated `<atom>\E<quant>` accept cells (`a\E*`, `ab\E*`, `a\E\E*`, `\Qa\E\E*`, `()\E*`, `(a)\E*`, `(?:)\E*`, `(a|b)\E*`) the quantifier now binds to the repeatable **atom** (PCRE2-faithful — `a\E*` means `a*`) with the stray `\E`(s) **elided**, so the piece changes from `[piece(atom), piece(\E, quant)]` to `[piece(atom, quant)]`. Every other accepted pattern is byte-identical. **AST-dump schema stays `1`.**
+
+**Rejection-layer.** The family was NEVER validator-owned (no compile-contract check existed) — the fix is purely a grammar tightening. As always, match on the diagnostic **code** (`E_PARSE_FAILURE`), never message text.
+
+**Known deferred (`REGEX-PCRE2-FIDELITY.3.23`).** Empty `\Q\E`-quantified (`\Q\E*`, `\Q\E{2}`, …) is still accepts-invalid, byte-UNCHANGED this release — it entangles with the `\Q`-as-`simple_escape` / unterminated-`\Q...\E` quoting model and is owned by a separate leaf.
+
+**Action for downstream (RGX):** the newly-rejected `\E`-quantified spellings were PCRE2-invalid all along; adopting `1.1.86` aligns the accept set with PCRE2. Only patterns containing a redundant `\E` before a quantifier are affected (esoteric). Both profiles behave identically on this surface.
 
 ## Release 1.1.85 / Contract 1.1.87 Highlights — REGEX-0092/0093/0094: the PCRE2 counted-quantifier BRACE TOKENIZATION model; the value bound is grammar-encoded
 

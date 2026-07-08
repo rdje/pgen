@@ -940,7 +940,19 @@
         "rule": "piece",
         "branch_index": 2,
         "annotation_type": "return_object",
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: []}"
+      },
+      {
+        "rule": "piece",
+        "branch_index": 3,
+        "annotation_type": "return_object",
         "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
+      },
+      {
+        "rule": "piece",
+        "branch_index": 4,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: $3}"
       },
       {
         "rule": "piece_quoted_run_quantified",
@@ -1259,6 +1271,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"single_byte\"}"
+      },
+      {
+        "rule": "stray_end_quote_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: \"E\"}"
       },
       {
         "rule": "subroutine_call",

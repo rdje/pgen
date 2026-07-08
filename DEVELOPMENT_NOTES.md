@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0017 — REGEX-PCRE2-FIDELITY.3.19: implementation notes — stray-`\E` transparent-elision
+
+**The discriminating oracle fact.** The whole design turns on ONE `pcre2test` 10.47 pair: `a^*`
+REJECTS (an anchor is OPAQUE — it kills the preceding atom's repeatability) while `a\E*` ACCEPTS (a
+stray `\E` is TRANSPARENT — the quantifier binds through it to `a`). This is why the leaf's declared
+`anchor !quantifier` hypothesis was wrong: joining the anchor treatment would have made `a\E*` reject
+(a rejects-valid regression). Proof that the AST change is UNAVOIDABLE: if a standalone quantified
+zero-width piece could exist, `a^\E*` would accept (it doesn't); so `a\E*` MUST bind the quantifier to
+`a`, which is a different AST than the pre-fix `[piece(a), piece(\E,*)]`.
+
+**Why the ABSORPTION branch is placed LAST.** `piece` is a longest-match tournament (ties → earlier
+branch). `\Q\E*` (5 bytes) can be read two ways: (i) the standard-atom branch reads `\Q\E` as one empty
+`quoted_literal` atom + `*`; (ii) the absorption branch reads `\Q`(as `simple_escape` char Q) + `\E`(as
+`zero_width`) + `*`. Both consume 5 bytes → a TIE → the earlier branch wins. Putting absorption LAST
+makes the standard-atom reading win, leaving empty-`\Q\E`-quantified BYTE-IDENTICAL (deferred to
+`.3.23`) rather than being newly transformed. This is the mechanism that scoped the slice to stray-`\E`.
+
+**The `\Q`-model trap (caught by the interpreter, not the rebuild).** The first full-family design
+split empty `\Q\E` off `quoted_literal` (`quoted_literal_char*` → `+`), intending to route empty `\Q\E`
+into `zero_width`. That unmasked a decomposition: `\Q` is itself a valid `simple_escape` (char `Q`),
+because PGEN models an unterminated `\Q...` (quote-to-end-of-pattern) via that path — `\Qabc` and
+`\Qa*b` are accepted by BOTH PCRE2 and PGEN, and the corpus has 41 `\Q` lines. So `\Q\E*` parsed as
+`\Q`(escape) + `\E`(zw) + `*` and 8 empty-`\Q\E` cases wrongly accepted. Removing `'Q'` from
+`simple_escape` would break unterminated `\Q`; a negative lookahead is generation-blind. Conclusion:
+empty-`\Q\E` is entangled with the `\Q`-model and needs its own leaf (`.3.23`). The interpreter
+(regex-CERTIFIED, byte-identical to the generated parser) surfaced this in seconds, capping the
+expensive release rebuilds at exactly ONE.
+
+**Verification order that saved rebuild cost.** (1) oracle map (`pcre2test`) → the target truth-table;
+(2) interpreter over all 60 curated cells + 27 AST byte-diffs → design validated WITHOUT a rebuild;
+(3) ONE release-probe rebuild + ONE debug ast_pipeline rebuild → confirm probe == interpreter == oracle
+(44-cell map: only the 2 empty-`\Q\E` deferred cells diverge) + cert 230/230/0 ×3 seeds (the 2 new
+rules witnessed, no gap). The `printf '\E'` ESC-escape trap was avoided by driving all pattern I/O
+through Python literal strings / file writes, never `printf '\E*'`.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0016 — REGEX-PCRE2-FIDELITY.3.18: implementation notes — the brace tokenization model
 
 Session #67. Notes from landing the counted-quantifier brace model:

@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0017 (REGEX-PCRE2-FIDELITY.3.19): a quantifier on a stray `\E` (zero-width, TRANSPARENT) now rejects PCRE2-faithfully — grammar-encoded, regex release 1.1.86
+
+Session #68. A released-parser slice: release `1.1.85`→`1.1.86`, contract `1.1.87`→`1.1.88`,
+AST-dump schema stays `1`, ledger `REGEX-0095`. LATENT accepts-invalid divergences (no prior
+validator check; hunter-invisible — both PGEN sides agreed), oracle-verified during the `.3.13`
+implementation.
+
+- **The model (oracle-pinned, pcre2test 10.47; a 44-cell interaction map):** a stray `\E` (an
+  unmatched end-of-quote) is PCRE2 zero-width. Unlike an anchor — which is OPAQUE (a quantifier
+  after it errors even with a repeatable atom before: `a^*` REJECTS) — a stray `\E` is
+  **TRANSPARENT**: a quantifier binds THROUGH it to the preceding repeatable atom (`a\E*` = `a*`,
+  ACCEPT), and is err 109 only when no repeatable predecessor is reachable through elision.
+- **11 accepts-invalid spellings now REJECT** (`E_PARSE_FAILURE`): bare `\E*` `\E{2}` `\E\E*`;
+  anchor-blocked `^\E*` `\A\E*` `a^\E*`; group/alternation-edge `(\E*)` `|\E*` `a|\E*` `(a|\E*)`.
+- **Grammar encode (tier: GRAMMAR — no engine, no validator; never validator-owned):** `'E'` dropped
+  from `simple_escape_letter_strict` (positive exclusion — the stimuli generator is lookahead-blind,
+  so a positive set is generation-faithful; the `.3.13` idiom) and re-homed to
+  `stray_end_quote_escape` / `zero_width` (byte-shape preserved). `piece` gains a STANDALONE branch
+  (`zero_width !quantifier`) and a LAST-placed ABSORPTION branch (`atom zero_width+ quantifier`) that
+  reaches a quantifier through the transparent `\E`(s), eliding them (PCRE2 delete-`\E` model); the
+  `+` confines it to `<atom>\E+<quant>` so a plain `x*` is untouched.
+- **AST:** the 8 `<atom>\E<quant>` accept cells (`a\E*`, `ab\E*` binds `b`, `a\E\E*`, `\Qa\E\E*`,
+  `()\E*`, `(a)\E*`, `(?:)\E*`, `(a|b)\E*`) now bind the quantifier to the repeatable atom with the
+  stray `\E`(s) elided (`[piece(atom), piece(\E,quant)]` → `[piece(atom,quant)]`); all other accepted
+  patterns byte-identical. Rejection LAYER moves to a parse error — match on the **code**
+  (`E_PARSE_FAILURE`), not message text.
+- **Two in-slice adjudications (tools-first, `.3.16`/`.3.13` discipline):** (a) the leaf's declared
+  `anchor !quantifier` design was REFUTED by the oracle (anchors opaque vs stray `\E` transparent —
+  it would have newly rejected `a\E*`); (b) the full-family design was REFUTED by the interpreter
+  BEFORE the ~8-min rebuild (empty `\Q\E` unmasks the `\Q`-as-`simple_escape` / unterminated-`\Q...\E`
+  model — removing `'Q'` breaks unterminated `\Q`, and a negative lookahead is generation-blind), so
+  **empty-`\Q\E`-quantified is SPUN OUT to new leaf `.3.23`** (still accepts-invalid, byte-UNCHANGED).
+- **Deferred:** empty `\Q\E`-quantified (`\Q\E*`, …) — `REGEX-PCRE2-FIDELITY.3.23`, blocked on the
+  `\Q`-model.
+- **Both profiles** tighten identically (quantifier-target validity is not a relaxed-escape concern).
+- **Verified:** 44-cell oracle map green on the rebuilt release probe (probe == interpreter == oracle;
+  only the 2 empty-`\Q\E` deferred cells diverge); regex cert **230/230/0** `fully_certified` spf=0
+  ×seeds 0/7/42 (228→230 = the 2 new rules, both witnessed, NO witness gap); lint clean (230 rules);
+  dual lib suite **890/0** (+1 registry pin); equivalence gate ✅ (regex differential-CERTIFIED);
+  `ast_shape_contract` ✅ (manifest 208→211); PCRE2 compile-oracle gate ✅ byte-identical baseline v11
+  (conformance-neutral — the forms aren't in the corpus, the `.3.13` precedent); clippy source ok;
+  both book gates ✅. Bug ledger: `REGEX-0095`.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0016 (REGEX-PCRE2-FIDELITY.3.18): the PCRE2 counted-quantifier BRACE TOKENIZATION model grammar-encoded — 6 released-parser divergences fixed, regex release 1.1.85
 
 Session #67. A full released-parser slice implementing the `-0015` frozen scoping: release

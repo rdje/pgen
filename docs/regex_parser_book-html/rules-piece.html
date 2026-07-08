@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4bb2cec4.js";
+            window.path_to_searchindex_js = "searchindex-2d08348b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -185,16 +185,25 @@
 <h2 id="piece"><a class="header" href="#piece"><code>piece</code></a></h2>
 <pre><code class="language-ebnf">piece = piece_quoted_run_quantified -&gt; $1
       | anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
-      | atom quantifier?
--&gt; {type: "piece", atom: $1, quantifier: $2}
+      | zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
+      | atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}
+      | atom zero_width+ quantifier
+-&gt; {type: "piece", atom: $1, quantifier: $3}
 </code></pre>
-<p>Three branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>):</p>
+<p>Five branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>; the two zero-width branches in release <code>1.1.86</code>, <code>REGEX-PCRE2-FIDELITY.3.19</code>). Because <code>|</code> is a <strong>longest-match tournament</strong> (ties → the earlier branch), branch ORDER matters only for ties:</p>
 <ol>
-<li><strong>Branch 0</strong>: <code>piece_quoted_run_quantified -&gt; $1</code>. Tried FIRST. Matches <code>\Q...\E quantifier</code> — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).</li>
-<li><strong>Branch 1</strong>: <code>anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. Anchors (<code>^ $ \A \Z \z \b \B \G \K</code>) are <strong>non-quantifiable</strong> in PCRE2 (err 109), so an anchor forms a piece with NO quantifier slot; the <code>!quantifier</code> lookahead makes <code>^*</code>/<code>$*</code>/<code>\b*</code>/<code>\A{2}</code>-style patterns REJECT while non-quantifier braces (<code>${</code>, <code>\A{a}</code>, <code>\A{}</code>) still parse as anchor + literal-brace pieces (PCRE2-parity). The emitted piece is byte-identical to the pre-<code>1.1.82</code> unquantified-anchor shape (<code>quantifier: []</code> matches the unmatched-<code>?</code> byte-shape). <code>anchor</code> is no longer an <code>atom</code> alternative. See the anchors chapter’s “Quantified anchors reject” section and ledger <code>REGEX-0088</code>.</li>
-<li><strong>Branch 2</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. The standard piece shape: a single atom with an optional quantifier.</li>
+<li><strong>Quoted-run branch</strong>: <code>piece_quoted_run_quantified -&gt; $1</code>. Tried FIRST. Matches <code>\Q...\E quantifier</code> — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).</li>
+<li><strong>Anchor branch</strong>: <code>anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. Anchors (<code>^ $ \A \Z \z \b \B \G \K</code>) are <strong>non-quantifiable</strong> in PCRE2 (err 109) — and, crucially, OPAQUE: a quantifier after an anchor errors <em>even when a repeatable atom precedes</em> (<code>a^*</code> REJECTS). So an anchor forms a piece with NO quantifier slot; the <code>!quantifier</code> lookahead makes <code>^*</code>/<code>$*</code>/<code>\b*</code>/<code>\A{2}</code>-style patterns REJECT while non-quantifier braces (<code>${</code>, <code>\A{a}</code>, <code>\A{}</code>) still parse as anchor + literal-brace pieces. <code>anchor</code> is no longer an <code>atom</code> alternative. See ledger <code>REGEX-0088</code>.</li>
+<li><strong>Zero-width STANDALONE branch</strong> (<code>.3.19</code>): <code>zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. A stray <code>\E</code> (<code>zero_width</code> — see below) is PCRE2 zero-width but, <em>unlike</em> an anchor, TRANSPARENT. On its own it forms a non-quantifiable piece; a bare <code>\E*</code> REJECTS (err 109) because the standalone branch’s <code>!quantifier</code> fails and no other branch matches. Byte-identical to the pre-<code>1.1.86</code> stray-<code>\E</code> shape (<code>{type:"escape",kind:"shorthand",char:"E"}</code>, <code>quantifier: []</code>).</li>
+<li><strong>Standard atom branch</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. A single atom with an optional quantifier — the common case.</li>
+<li><strong>Zero-width ABSORPTION branch</strong> (<code>.3.19</code>): <code>atom zero_width+ quantifier -&gt; {type: "piece", atom: $1, quantifier: $3}</code>. Placed LAST. A quantifier reaches THROUGH ≥1 transparent stray <code>\E</code> to bind the preceding atom (<code>a\E*</code> = <code>a*</code>), with the <code>\E</code>(s) <strong>elided</strong> (PCRE2’s delete-<code>\E</code> model). The <code>+</code> confines this branch to exactly the <code>&lt;atom&gt; \E+ &lt;quantifier&gt;</code> case, so a plain <code>x*</code> is untouched (it never enters this branch). Being LAST, its <code>\Q\E*</code> tie (5 bytes, matched via <code>\Q</code>-escape + <code>\E</code> + <code>*</code>) <em>loses</em> to the earlier standard-atom branch (which reads <code>\Q\E</code> as one empty <code>quoted_literal</code> atom + quantifier) — so <strong>empty-<code>\Q\E</code>-quantified stays byte-unchanged as a deferred accepts-invalid divergence</strong> (<code>REGEX-PCRE2-FIDELITY.3.23</code>).</li>
 </ol>
-<p>For <code>\Qa\E{3}</code> (single-char quoted run), branch 0 fails (it requires the inner-piece-list to be non-empty before the trailing char), so branch 2 matches via the <code>quoted_literal</code> atom alternative.</p>
+<p>For <code>\Qa\E{3}</code> (single-char quoted run), the quoted-run branch fails (it requires the inner-piece-list to be non-empty before the trailing char), so the standard-atom branch matches via the <code>quoted_literal</code> atom alternative.</p>
+<h3 id="zero_width--the-transparent-stray-e"><a class="header" href="#zero_width--the-transparent-stray-e"><code>zero_width</code> — the transparent stray <code>\E</code></a></h3>
+<pre><code class="language-ebnf">zero_width = stray_end_quote_escape
+stray_end_quote_escape = "\\E" -&gt; {type: "escape", kind: "shorthand", char: "E"}
+</code></pre>
+<p>A stray <code>\E</code> — an end-of-quote with no matching <code>\Q</code> — is dropped from <code>simple_escape_letter_strict</code> (a POSITIVE exclusion, generation-faithful) and re-homed here, so a bare quantifier can no longer bind directly to it. The rule preserves the exact byte-shape <code>\E</code> had as a <code>simple_escape</code> shorthand, so bare <code>\E</code>, <code>a\E</code>, <code>\Ea</code> are all byte-identical to pre-<code>1.1.86</code>. Empty <code>\Q\E</code> is NOT a <code>zero_width</code> member this release — see <code>REGEX-PCRE2-FIDELITY.3.23</code>. See the escape chapter and the <a href="examples-anchors.html#stray-e-transparent-quantifier-binding-release-1186-regex-pcre2-fidelity319">transparent-binding examples</a>.</p>
 <h3 id="shape--the-standard-atom-branch-the-common-case"><a class="header" href="#shape--the-standard-atom-branch-the-common-case">Shape — the standard atom branch (the common case)</a></h3>
 <pre><code class="language-json">{
   "type": "piece",

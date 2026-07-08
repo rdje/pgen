@@ -1019,8 +1019,13 @@ class (`E(*UTF16)` / `E(*CASELESS_RESTRICT)` — a start option not at the patte
 validator-owned until the capstone finds a grammar shape). The counted-quantifier latent
 class (`a{5,2}`) did not surface even at this budget. Honest bound: the gate sees only
 generator-emitted-but-parser-**rejected** samples — accepts-invalid divergences where
-generator and parser agree (the oracle-differential `.3.19`/`.3.22` classes) are
-invisible to it by construction.
+generator and parser agree (the oracle-differential classes) are invisible to it by
+construction. Those are closed instead by the `pcre2test` oracle-differential lane: the
+stray-`\E`-quantified class (`\E*` / `a^\E*` / `(\E*)`) was closed by
+`REGEX-PCRE2-FIDELITY.3.19` (release `1.1.86`, ledger `REGEX-0095`); the residual
+oracle-differential classes are the named-reference unknown-name family (`\k<zzz>`,
+`REGEX-PCRE2-FIDELITY.3.22`) and empty-`\Q\E`-quantified (`\Q\E*`,
+`REGEX-PCRE2-FIDELITY.3.23`, spun out of `.3.19`).
 
 Honest bounds: the goal vocabulary is `k_path`, `corpus_mimicry`, and `duality_break` today
 (parser code-coverage feedback remains designed-only, tracked in the `STIMULI-SIGNOFF` tree,
