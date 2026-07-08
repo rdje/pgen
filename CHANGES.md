@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0020 (REGEX-PCRE2-FIDELITY.3.22): named-reference UNKNOWN-name family scoped + oracle-pinned (Deferred, ledger REGEX-0098); PURE-DOCS, no release
+
+Session #70. A **PURE-DOCS scoping slice** — no grammar/Rust/codegen/generated/manifest change, so no
+release/contract/schema bump (stays `1.1.88` / `1.1.90` / `1`). Deliverable per the frozen plan: the oracle
+matrix + ledger row `REGEX-0098` (**Deferred**) + the encode design for the capstone `.4`.
+
+- **The divergence (tools-first re-verified this session — both oracles re-run, not trusted from the #65
+  finding note).** A named reference to an UNKNOWN group name is accepts-invalid in the RELEASED parser.
+  `pcre2test` 10.47 rejects **9 spellings** with **error 115** "reference to non-existent subpattern":
+  `\k<zzz>` `\k'zzz'` `\k{zzz}` (named backreferences), `(?P=zzz)` (Python named backreference), `\g{zzz}`
+  (braced named backreference), `(?&zzz)` `(?P>zzz)` `\g<zzz>` `\g'zzz'` (named subroutine calls). The released
+  `parseability_probe` `1.1.88` ACCEPTS all of them. Controls parity-ACCEPT on both: `(?'aa'x)\k<aa>`,
+  `\k<aa>(?'aa'x)` (**forward ref LEGAL**), `(?<a>x)(?&a)`, `(?&a)(?<a>x)`, `\g{a}(?<a>x)`.
+- **WHY + WHERE.** No parse-side named-reference inventory exists. In `grammars/regex.ebnf` the reference rules
+  carry no `@predicate` (`backreference` `:366`/`:367`, `subroutine_named` `:368`/`:370`, `named_braced` `:372`,
+  `subroutine_call` `:1135`/`:1136`, `python_named_backreference` `:285`); the validator
+  `regex_compile_validation.rs::find_invalid_named_escape_or_group_name` (`:177-228`) only shape-checks names;
+  the name fact `regex_capture_name` is only `@gen_emit_fact` (`:1045`, generation-side).
+- **WHY DEFERRED (two-pass necessity, proven).** Forward references are LEGAL, so a single left-to-right
+  `has_fact`/`post`-predicate on the reference rule would reject the legal `\k<aa>(?'aa'x)` (rejects-valid
+  regression). "Does name X exist anywhere" is a whole-pattern for-all set-inclusion across two fact-kinds —
+  outside the current per-call predicate vocabulary. ⇒ owned by capstone `.4` (same two-pass class as the
+  start-option POSITION check). The oracle matrix + encode design are the frozen `.4` acceptance spec.
+- **Distinct, NOT this family.** `\g1`/`\1` single-digit numeric backref to a non-existent group (PCRE2 err 115,
+  PGEN accepts) is the pre-existing NUMERIC N<10 Non-Goal (REGEX-0083/0086), a separate item.
+- **Lockstep (docs-only).** Ledger `REGEX-0098` (Deferred), integration contract "Known deferred (`.3.22`)"
+  note, regex book (changelog-index consolidated "Known deferred divergences" table + `rules-groups.md`
+  callouts), leaf SCOPING LOG, this entry, DEVELOPMENT_NOTES / LIVE_ACHIEVEMENT_STATUS / MEMORY / TASK_TREE.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0019 (REGEX-PCRE2-FIDELITY.3.21): a LIMIT `=value` outside [0, 4294967289] now rejects PCRE2-faithfully; grammar-encoded, regex release 1.1.88
 
 Session #70. A released-parser slice: release `1.1.87`→`1.1.88`, contract `1.1.89`→`1.1.90`,

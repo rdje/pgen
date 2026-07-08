@@ -436,8 +436,10 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - [x] **ADDRESSED (verified)** — hunter re-run seeds 0/7/42: the scs signature **GONE** (seed 0: 2 breaks → 1, the survivor = the separately-tracked start-option-position class `E(*UTF16)` — now OBSERVED, was latent; seeds 7/42: 0 breaks); entry-relative scs generation now fails HONESTLY at the count-prune (`STORE-AWARE-GEN: rule 'scs_capture_number' fact_count_at_least predicate unsatisfiable`) — the documented forward-only-position bound; full-entry witness samples draw live values: `()(*scs:(1))` / `(?<A>)(*scs:(<A>))` (DEBUG_PROBES).
 - [x] **NO REGRESSION** — accepted-pattern ASTs **21/21 cmp BYTE-IDENTICAL** pre/post (`--parse-dump-ast-pretty` matrix: named/quote/python groups, scs numeric/named/relative `+0`/`-1`/forward forms, `\k` both spellings, `(?P=…)`, conditional `(?(<a>)y|z)`, subroutine-call captures `(x)(?1(1))`); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=224 proof=0 witness=224 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)` ×seeds 0/7/42 (220→224 = exactly the 4 net-new rules, all witnessed — the initial `UNKNOWN=1` on `scs_capture_name_ref` was root-caused via DEBUG_PROBES and fixed by the `.13.4` count-gate mandatory descent); `--lint-grammar` 0 errors (224 rules); `regex_pcre2_compile_oracle_gate` ✅ **byte-identical baseline** (1857/46/292/338); `regex_broader_corpus_proof_gate` ✅; `parse_harness_equivalence_gate` ✅ (regex stays differential-CERTIFIED over the new grammar); `ebnf_frontend_dual_run_gate` ✅; svpp cert byte-identical ×3 seeds (stash A/B); lib suites 766/844/886 all green; `check_regex_self_hosting.sh` OK; clippy source ok; `mdbook_docs_gate` + `regex_parser_book_gate` + `ebnf_parser_book_gate` ✅.
 - [x] **LOCKSTEP** — NO version bump (conformance- & surface-neutral, the `.3.16` precedent; embedding consts untouched; no ledger row — the parse surface is unchanged and the parse-side check stays in the validator until capstone `.4`); integration contract **"Maintenance Update 2026-07-08 — REGEX-PCRE2-FIDELITY.3.17"** (before/after table: identical language, 21/21 byte-identical ASTs, unchanged codes/messages); regex book: `changelog-index.md` maintenance entry, `json-carrier.md` +5 inventory rows (`capture_name`/`scs_*`), tracked HTML regenerated; AST shape-contract manifest `regex_v1.json` inventory 202→207 (exactly the 5 new declared annotations, multiset-verified vs HEAD; gate green); top book + matrix + spec + ebnf book in the `.13.4` checklist; trees + `docs/TASK_TREE.md` + live docs updated.
-- ID: `.3.22`  Status: `pending` (🔎 NEW FINDING 2026-07-08 session #65, oracle-verified while scoping
-  `.3.17`)  Goal: the NAMED-REFERENCE UNKNOWN-NAME family — PGEN ACCEPTS `\k<zzz>` `(?P=zzz)` `(?&zzz)`
+- ID: `.3.22`  Status: **`done`** (`PGEN-REGEX-PCRE2-0020`, session #70 2026-07-08 — PURE-DOCS scoping per the
+  frozen plan: oracle matrix + ledger `REGEX-0098` (Deferred) + encode design; NO code change, the parse-side
+  fix is deferred to capstone `.4`. Was: `pending`, 🔎 NEW FINDING 2026-07-08 session #65, oracle-verified while
+  scoping `.3.17`)  Goal: the NAMED-REFERENCE UNKNOWN-NAME family — PGEN ACCEPTS `\k<zzz>` `(?P=zzz)` `(?&zzz)`
   `\g{zzz}` (no group named `zzz` anywhere) which PCRE2 10.47 REJECTS (err 115 "reference to non-existent
   subpattern"); control `(?'aa'x)\k<aa>` parity-ACCEPTED by both. The validator has NO named-reference
   inventory check (only malformed-escape shape checks — `regex_compile_validation.rs:188/:194`), so this is
@@ -449,6 +451,43 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `regex_capture_name` facts (the same `@gen_predicate` idiom) if the hunter ever observes over-generation
   there (today the generator's named-ref sites are rare enough that no break was observed at the
   100-sample budget). Ledger row + oracle-matrix + encode design = this leaf, sequenced after `.3.18`–`.3.21`.
+
+  **SCOPING LOG (session #70, `PGEN-REGEX-PCRE2-0020`, PURE-DOCS).** Tools-first re-verification (both oracles
+  re-run this session, not trusted from the #65 note):
+  - **ORACLE (`pcre2test` 10.47).** 9 named-reference spellings for an UNKNOWN name `zzz` all → **err 115**
+    "reference to non-existent subpattern": `\k<zzz>` `\k'zzz'` `\k{zzz}` (named backrefs), `(?P=zzz)` (Python
+    named backref), `\g{zzz}` (braced named backref), `(?&zzz)` `(?P>zzz)` `\g<zzz>` `\g'zzz'` (named subroutine
+    calls). CONTROL parity ACCEPTS (both sides): `(?'aa'x)\k<aa>`, `\k<aa>(?'aa'x)` (**FORWARD ref LEGAL**),
+    `(?<a>x)(?&a)`, `(?&a)(?<a>x)`, `\g{a}(?<a>x)`. (Also `\g1`@0-groups → err 115, but that is the numeric
+    single-digit N<10 Non-Goal — REGEX-0083/0086, `numeric_backreference_single` ungated — NOT this named family;
+    excluded from this leaf's inventory.)
+  - **RELEASED PROBE (`parseability_probe` `1.1.88`).** All 10 unknown-name spellings ACCEPT (accepts-invalid vs
+    err 115); all 4 named controls ACCEPT (parity). Divergence CONFIRMED in the released parser.
+  - **WHY+WHERE (grammar + validator).** No named-reference inventory exists anywhere. `grammars/regex.ebnf`
+    reference rules carry NO `@predicate`: `\k…`→`backreference` (`:366`/`:367`), `\g<…>`/`\g'…'`→`subroutine_named`
+    (`:368`/`:370`), `\g{…}`→`named_braced` (`:372`), `(?&…)`/`(?P>…)`→`subroutine_call` (`:1135`/`:1136`),
+    `(?P=…)`→`python_named_backreference` (`:285`). The validator `regex_compile_validation.rs::find_invalid_named_escape_or_group_name`
+    (`:177-228`) only SHAPE-checks names (`is_pcre2_capture_name`), never inventories definitions. The name fact
+    `regex_capture_name` is only `@gen_emit_fact` (`:1045`, generation-side) — no parse-side inventory. Contrast:
+    `numeric_backreference` IS gated (`@predicate fact_count_at_least[regex_capture_group,$index] phase:post`, `:415`).
+  - **WHY DEFERRED (two-pass necessity, proven).** Forward references are LEGAL, so at the point a reference is
+    parsed the target group may be defined LATER; a left-to-right `has_fact`/`post`-predicate on the reference rule
+    fires before the forward name is emitted and would reject the legal `\k<aa>(?'aa'x)` (rejects-valid regression).
+    The `fact_count_at_least` numeric trick works only because it tests a MONOTONE count; "does name X exist
+    anywhere" is a for-all set-inclusion across two fact-kinds, outside the current per-call predicate vocabulary.
+    ⇒ inherently WHOLE-PATTERN two-pass ⇒ owned by capstone `.4` (same class as start-option POSITION).
+  - **ENCODE DESIGN (frozen for `.4`).** Pass 1: parse-side `@emit_fact` a `regex_capture_name` inventory per
+    group definition + a reference-name fact per use-site. Pass 2 (whole-pattern post-parse): assert every
+    reference name ∈ the definition set (order-independent → forward refs pass). Requires a GENERAL
+    parser-agnostic primitive — a whole-pattern post-parse verification hook OR a quantified/set-inclusion
+    predicate — NOT a regex special-case. GENERATION: no over-generation break observed at 100-sample or scaled
+    22k `.13.3`; if the hunter ever sees one, gate generation via the `.3.17` `regex_capture_name` facts
+    (`scs_capture_name` `@gen_predicate` idiom).
+  - **NO-REGRESSION (docs-only slice).** No grammar/Rust/codegen/generated/manifest change ⇒ no parser, cert,
+    or gate impact; release stays `1.1.88`, contract stays `1.1.90`, schema `1`. Lockstep: ledger `REGEX-0098`
+    (Deferred), integration contract "Known deferred (`.3.22`)" note, regex book (changelog-index consolidated
+    deferred-divergences note + `rules-groups.md` callouts on `subroutine_call`/`python_named_backreference`),
+    CHANGES / DEVELOPMENT_NOTES / LIVE_ACHIEVEMENT_STATUS / MEMORY / TASK_TREE.
 - ID: `.3.18`  Status: `done` (session #67, 2026-07-08, `PGEN-REGEX-PCRE2-0016` — IMPLEMENTED per the frozen
   `-0015` scoping; regex release `1.1.84`→`1.1.85`, contract `1.1.86`→`1.1.87`, schema stays `1`, ledger
   `REGEX-0092`/`0093`/`0094`; acceptance checklist below) — **SCOPED tools-first 2026-07-08 session #66**
@@ -1029,6 +1068,19 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-08, session #70)** `.3.22` SCOPED + CLOSED (`PGEN-REGEX-PCRE2-0020`, PURE-DOCS — no release/contract
+  bump; release stays `1.1.88`, contract `1.1.90`, schema `1`; ledger `REGEX-0098` **Deferred**). The
+  named-reference UNKNOWN-name family — PGEN `1.1.88` ACCEPTS 9 spellings (`\k<zzz>`/`\k'zzz'`/`\k{zzz}` +
+  `(?P=zzz)` + `\g{zzz}` + `(?&zzz)`/`(?P>zzz)`/`\g<zzz>`/`\g'zzz'`) that `pcre2test` 10.47 rejects err 115;
+  controls (define-then-ref + FORWARD-ref + subroutine) parity-ACCEPT. Tools-first re-verified this session
+  (oracle + released probe). Root cause: NO parse-side named-reference inventory (grammar refs ungated; validator
+  shape-only; `regex_capture_name` is `@gen_emit_fact`-only). The fix is inherently WHOLE-PATTERN two-pass
+  (forward refs LEGAL ⇒ a single-pass `has_fact` would reject `\k<aa>(?'aa'x)`), so it is DEFERRED to capstone
+  `.4` (same two-pass class as start-option POSITION); the oracle matrix + encode design are the frozen `.4`
+  acceptance spec (leaf SCOPING LOG). NOTE: `\g1`@0-groups (numeric single-digit N<10 Non-Goal, REGEX-0083/0086)
+  is a related-but-DISTINCT pre-existing divergence, not this named family. Frontier per the standing PNT order →
+  `.3.23` (empty-`\Q\E`-quantified, blocked on the `\Q`-model) → capstone `.4` (delete the validator; owns the
+  start-option POSITION duality re-baseline AND now the `.3.22` named-reference two-pass check) → `.5`.
 - **(2026-07-08, session #68)** `.3.19` LANDED (`PGEN-REGEX-PCRE2-0017`, regex release `1.1.85`→`1.1.86`,
   contract `1.1.87`→`1.1.88`, schema `1`, ledger `REGEX-0095`) — a quantifier on a **stray `\E`**
   (PCRE2 zero-width but TRANSPARENT, unlike an opaque anchor) now rejects err-109-faithfully, grammar-encoded:

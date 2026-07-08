@@ -184,6 +184,8 @@ subroutine_call = "(?" returned_capture_subroutine ")"
 - `R` — recursion.
 - `<signed_digits>` — numeric reference.
 
+> **Known deferred divergence (`REGEX-PCRE2-FIDELITY.3.22`, ledger `REGEX-0098`).** A named subroutine call to an UNKNOWN group name — `(?&zzz)`, `(?P>zzz)`, `\g<zzz>`, `\g'zzz'` (no group `zzz` defined) — is currently **accepted**, where `pcre2test` 10.47 rejects with error 115 "reference to non-existent subpattern". The grammar has no group-name inventory (references are ungated). The fix is deferred to the capstone `REGEX-PCRE2-FIDELITY.4` because it is inherently whole-pattern two-pass (forward references such as `(?&a)(?<a>x)` are LEGAL). See the [Known deferred divergences](changelog-index.md#known-deferred-divergences-accepts-invalid-not-yet-fixed) table.
+
 ## `scan_substring_group`
 
 ```ebnf
@@ -217,6 +219,8 @@ python_named_backreference = "(?P=" name ")"
 ```
 
 3-element Sequence `["(?P=", <name>, ")"]`.
+
+> **Known deferred divergence (`REGEX-PCRE2-FIDELITY.3.22`, ledger `REGEX-0098`).** `(?P=zzz)` for an UNKNOWN group name is currently **accepted**, where `pcre2test` 10.47 rejects with error 115. Same root cause and deferral as the named backreference / subroutine family — see the [Known deferred divergences](changelog-index.md#known-deferred-divergences-accepts-invalid-not-yet-fixed) table.
 
 ## Auxiliary rules
 

@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0020 — REGEX-PCRE2-FIDELITY.3.22: scoping notes — named-reference UNKNOWN-name family (Deferred, REGEX-0098)
+
+**PURE-DOCS scoping slice** (no code change; no release/contract/schema bump — stays `1.1.88`/`1.1.90`/`1`).
+Deliverable = the oracle matrix + ledger `REGEX-0098` (**Deferred**) + the encode design for capstone `.4`.
+
+**Oracle (`pcre2test` 10.47, one pattern per run).** 9 named-reference spellings for an unknown name `zzz`
+all → err 115 "reference to non-existent subpattern": `\k<zzz>` `\k'zzz'` `\k{zzz}` `(?P=zzz)` `\g{zzz}`
+`(?&zzz)` `(?P>zzz)` `\g<zzz>` `\g'zzz'`. Controls accept on both: `(?'aa'x)\k<aa>`, `\k<aa>(?'aa'x)`
+(FORWARD ref — proves two-pass), `(?<a>x)(?&a)`, `(?&a)(?<a>x)`, `\g{a}(?<a>x)`. The released `1.1.88` probe
+accepts all 10 unknown-name cases (`\g1` included, but that is the numeric single-digit N<10 Non-Goal — a
+distinct pre-existing item, REGEX-0083/0086 — excluded from this named family).
+
+**Root cause + why deferred.** `grammars/regex.ebnf` reference rules are ungated; the validator
+`find_invalid_named_escape_or_group_name` shape-checks names only; `regex_capture_name` is generation-side
+`@gen_emit_fact` only — no parse-side inventory. The clean fix is whole-pattern two-pass (forward refs legal),
+which the single-call predicate vocabulary can't express, so it is owned by capstone `.4`. Encode design:
+parse-side `@emit_fact` a name inventory + a reference-name fact, then a whole-pattern post-parse
+set-inclusion check (a GENERAL primitive — a post-parse verification hook or a set-inclusion predicate).
+
+**Toolbox note (repeat).** `pcre2test` swallows lines after a successful compile as subject data; run one
+pattern per run (blank-line terminated) or the matrix is garbage.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0019 — REGEX-PCRE2-FIDELITY.3.21: implementation notes — LIMIT value bound + a stale-oracle-baseline correction
 
 **The oracle bound (pinned FIRST, pcre2test 10.47, one-pattern-per-run binary search).** A numeric

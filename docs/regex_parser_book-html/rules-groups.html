@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-93ae9d38.js";
+            window.path_to_searchindex_js = "searchindex-d95ca800.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -316,6 +316,9 @@ aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0
 <li><code>R</code> — recursion.</li>
 <li><code>&lt;signed_digits&gt;</code> — numeric reference.</li>
 </ul>
+<blockquote>
+<p><strong>Known deferred divergence (<code>REGEX-PCRE2-FIDELITY.3.22</code>, ledger <code>REGEX-0098</code>).</strong> A named subroutine call to an UNKNOWN group name — <code>(?&amp;zzz)</code>, <code>(?P&gt;zzz)</code>, <code>\g&lt;zzz&gt;</code>, <code>\g'zzz'</code> (no group <code>zzz</code> defined) — is currently <strong>accepted</strong>, where <code>pcre2test</code> 10.47 rejects with error 115 “reference to non-existent subpattern”. The grammar has no group-name inventory (references are ungated). The fix is deferred to the capstone <code>REGEX-PCRE2-FIDELITY.4</code> because it is inherently whole-pattern two-pass (forward references such as <code>(?&amp;a)(?&lt;a&gt;x)</code> are LEGAL). See the <a href="changelog-index.html#known-deferred-divergences-accepts-invalid-not-yet-fixed">Known deferred divergences</a> table.</p>
+</blockquote>
 <h2 id="scan_substring_group"><a class="header" href="#scan_substring_group"><code>scan_substring_group</code></a></h2>
 <pre><code class="language-ebnf">scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
 </code></pre>
@@ -333,6 +336,9 @@ aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0
 <pre><code class="language-ebnf">python_named_backreference = "(?P=" name ")"
 </code></pre>
 <p>3-element Sequence <code>["(?P=", &lt;name&gt;, ")"]</code>.</p>
+<blockquote>
+<p><strong>Known deferred divergence (<code>REGEX-PCRE2-FIDELITY.3.22</code>, ledger <code>REGEX-0098</code>).</strong> <code>(?P=zzz)</code> for an UNKNOWN group name is currently <strong>accepted</strong>, where <code>pcre2test</code> 10.47 rejects with error 115. Same root cause and deferral as the named backreference / subroutine family — see the <a href="changelog-index.html#known-deferred-divergences-accepts-invalid-not-yet-fixed">Known deferred divergences</a> table.</p>
+</blockquote>
 <h2 id="auxiliary-rules"><a class="header" href="#auxiliary-rules">Auxiliary rules</a></h2>
 <h3 id="name"><a class="header" href="#name"><code>name</code></a></h3>
 <pre><code class="language-ebnf">name = name_start name_continue*
