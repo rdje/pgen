@@ -797,14 +797,96 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
     staleness recorded (NOT introduced here): the `#[ignore]`d contract fixture's `directive_named`/
     `directive_name` `required_rule_names` (see DEVELOPMENT_NOTES) — the non-ignored success test only
     checks parseability; all 93 samples parse.
-- ID: `.3.21`  Status: `pending` (LATENT accepts-invalid divergence, oracle-verified 2026-07-08 during
-  `.3.14`; UNBLOCKED like `.3.16` on 2026-07-08 — `STIMULI-SIGNOFF.13.2` landed the interpreter
-  value-constraint mirror)  Goal: LIMIT `=value` RANGE — PGEN accepts `(*LIMIT_HEAP=99999999999999999999)` (the `.3.14`
-  grammar requires `digit+` but bounds no value) where PCRE2 10.47 REJECTS (err 160; u32-range family).
-  Candidate encode = `@range` on `directive_payload_digits` (or a width-bounded digits shape if the
-  boundary proves digit-count-exact — pin the exact boundary with pcre2test first: `4294967295` vs
-  `4294967296`). Same class as `.3.16` (callout `@range`): parse-time value constraints must land AFTER
-  the interpreter mirror or they open a latent differential-equivalence divergence.
+- ID: `.3.21`  Status: **`done`** (`PGEN-REGEX-PCRE2-0019`, session #70 2026-07-08; regex release
+  `1.1.87`→**`1.1.88`**, contract `1.1.89`→**`1.1.90`**, schema `1`, ledger `REGEX-0097`) — LATENT
+  accepts-invalid divergence, oracle-verified 2026-07-08 during `.3.14`; UNBLOCKED like `.3.16` on
+  2026-07-08 (`STIMULI-SIGNOFF.13.2` interpreter value-constraint mirror).
+  Goal: LIMIT `=value` RANGE — PGEN accepts `(*LIMIT_HEAP=99999999999999999999)` (the `.3.14` grammar
+  requires `digit+` but bounds no value) where PCRE2 10.47 REJECTS (err 160). This is a RELEASED
+  accepts-invalid hole (parseability_probe release `1.1.87`: `(*LIMIT_HEAP=4294967290)abc`,
+  `(*LIMIT_HEAP=4294967295)abc`, `(*LIMIT_HEAP=99999999999999999999)abc` all ACCEPT) — NOT a validator
+  migration (`find_invalid_verb_construct` never value-checked LIMIT, `regex_compile_validation.rs:369-497`),
+  so it takes a ledger row + release bump like `.3.18`/`.3.20`.
+  **IN-SLICE ORACLE ADJUDICATION (tools-first — the leaf's own u32-max hypothesis was REFUTED):** the
+  candidate boundary `4294967295`/`4294967296` is WRONG. `pcre2test` 10.47, one-pattern-per-run, binary
+  search: last ACCEPT = **`4294967289`** (`0xFFFFFFF9`), first REJECT = **`4294967290`** (`0xFFFFFFFA`) —
+  `4294967295` (u32 max) itself REJECTS. This is PCRE2's Horner-with-pre-check overflow guard
+  (`n > UINT32_MAX/10 - 1` = `n > 429496728` before appending each digit ⇒ max accepted = `429496728*10+9
+  = 4294967289`; the err-160 "here" marker sat right before the last digit). Uniform across all 4 names
+  (LIMIT_HEAP/MATCH/DEPTH/RECURSION). Purely VALUE-based: unlimited leading zeros
+  (`(*LIMIT_HEAP=0000000000000000004294967289)` ACCEPT, `…4294967290` REJECT; all-zeros = value 0 ACCEPT).
+  **ENCODE (the `.3.16`/`.3.18` STRUCTURAL idiom scaled to ≤4294967289, NOT `@range` — `@range` proved
+  atom-scoped/inert on native-body self-hosted rules by `.3.16`):** wrapper `directive_payload_digits =
+  directive_limit_value_body -> $text` (keeps the released `value:"…"` STRING carrier byte-identically;
+  the wrapper single-rule-ref body dodges the Or-root span hazard — `$text` spans the whole body);
+  `directive_limit_value_body = "0"+ directive_limit_value_core? | directive_limit_value_core` (leading
+  zeros + optional nonzero-led core, all-zeros ⇒ value 0); `directive_limit_value_core` = the nonzero-led
+  1..4294967289 ladder (10-digit lexicographic bound `4294967289` most-specific-first + free 9..1-digit
+  branches), so an out-of-range run has NO fully-consuming parse (the trailing `)` fails) and generation
+  is in-range BY CONSTRUCTION. NOT `@profiles`-gated: value bound universal in both profiles (the `.3.18`
+  quant-bound precedent; `.3.14`/`.3.20` known-name shapes stay authoritative in relaxed).
+  See the Acceptance Checklist below for the executed evidence.
+
+  ### REGEX-PCRE2-FIDELITY.3.21 — Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — release probe `1.1.87`: `printf '(*LIMIT_HEAP=4294967290)a' |
+    parseability_probe --parse regex` → ACCEPT, same for `(*LIMIT_HEAP=4294967295)a` (u32 max) and
+    `(*LIMIT_HEAP=99999999999999999999)a`, where `pcre2test` 10.47 rejects all err 160. In-range values
+    (`=0`/`=500`/`=65535`/`=4294967289`) correctly ACCEPT. Purely LATENT accepts-invalid — no validator
+    check ever bounded the LIMIT value (`find_invalid_verb_construct` checks name/shape/POSITION only),
+    invisible to the duality hunter (generator + parser agree; the `.3.19`/`.3.22` oracle-differential class).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `directive_payload_digits = digit+` (`grammars/regex.ebnf:1477`
+    pre-fix) bounds the LIMIT `=value` SHAPE but no VALUE, so any digit run parses; and no out-of-band
+    check bounded it (`regex_compile_validation.rs::find_invalid_verb_construct:369-497`). WHERE:
+    `directive_payload_digits` ← `directive_payload_equals` (`:1476`) ← `directive_limit_named` (`:1448`).
+    Oracle-pinned FIRST (`pcre2test` 10.47, one-pattern-per-run, binary search): last ACCEPT =
+    **`4294967289`** (`0xFFFFFFF9`), first REJECT = **`4294967290`** — PCRE2's Horner overflow guard
+    `n > UINT32_MAX/10 - 1` (max = `429496728*10 + 9 = 4294967289`), NOT u32 max (which itself rejects).
+    Uniform across all 4 LIMIT names, purely value-based (unlimited leading zeros; all-zeros = 0). The
+    leaf's own candidate boundary (`4294967295`/`4294967296`) was REFUTED tools-first.
+  - [x] **FIX (tier: GRAMMAR — no engine, no validator; NEW bound, not a migration)** — structural encode
+    (`.3.16`/`.3.18` idiom, NOT `@range` — proved atom-scoped/inert by `.3.16`): wrapper
+    `directive_payload_digits = directive_limit_value_body -> $text` (keeps the `{separator, value:"…"}`
+    STRING carrier byte-identically; single-rule-ref body dodges the Or-root span hazard);
+    `directive_limit_value_body = "0"+ directive_limit_value_core? | directive_limit_value_core` (leading
+    zeros + optional nonzero-led core, all-zeros ⇒ 0); `directive_limit_value_core` = the nonzero-led
+    1..4294967289 ladder (10 lexicographic-bound branches on `4294967289` + 9 free 9..1-digit branches).
+    NOT `@profiles`-gated (value bound universal, the `.3.18` precedent). `lint` 0 errors / 0
+    undefined-refs / 0 unreachable (234 rules).
+  - [x] **ADDRESSED (verified)** — 21-cell release-probe verdict matrix == `pcre2test` 10.47 (**0
+    mismatches**, both profiles): `4294967290`/`4294967295`/`4294967296`/`99999999999999999999` +
+    leading-zero `…4294967290` flip ACCEPT→REJECT; boundary `4294967289` + `65536` + all-zeros + `500`
+    (empty body) stay ACCEPT; all 4 LIMIT names uniform; relaxed == default (proving no fallback hole —
+    out-of-range does NOT reparse as anything else). AST byte-identical for in-range (release
+    `--parse-dump-ast`: `(*LIMIT_HEAP=00700)a` → `payload:{separator:"=", value:"00700"}`, raw digit
+    string with leading zeros). Generation in-range BY CONSTRUCTION (debug `--generate-stimuli
+    --entry-rule directive_limit_named --count 200`, seeds 0/7/42: **0/601 over-max**, incl.
+    boundary-adjacent `4294967286`/`4294967236` + leading-zero forms). New pin
+    `parser_registry::tests::regex_limit_value_range_rejects_at_the_grammar_layer_pcre2_faithfully` green.
+  - [x] **NO REGRESSION** — regex cert `total=234 witness=234 UNKNOWN=0 fully_certified=true spf=0` at
+    seeds 0/7/42 (232→234 = net +2 rules `directive_limit_value_body`/`directive_limit_value_core`, both
+    witnessed, NO gap); `--lint-grammar` 0 errors (234 rules); dual-feature lib suite **892 passed / 0
+    failed / 29 ignored** (891→892 = the new registry pin; `parse_harness_equivalence_gate` ✅ regex stays
+    differential-CERTIFIED — `certified_grammars_are_byte_identical` + combinator/semantic byte-identity
+    green); `duality_hunt_gate` ✅ UNCHANGED (9 lanes byte-identical to the pinned contract — the sole
+    regex class stays the start-option-position signature owned by `.4`; NO new/vanished signature,
+    because the generator now emits only in-range values so there is no new break, and the parser
+    rejecting out-of-range creates none — oracle-differential, hunter-invisible; NO re-baseline);
+    `regex_pcre2_compile_oracle_gate` ✅ EXACTLY byte-identical — **decisive stash-baseline** (grammar
+    reverted + parser regen): OLD `1858/285/46` == NEW `1858/285/46` (match/false_accept/false_reject on
+    2189 cases), zero corpus cells flipped (every corpus `LIMIT=value` is in-range: `=0`/`=123`/`=1`;
+    change is grammatically isolated to `directive_payload_digits`). 🔎 the previously-recorded oracle
+    baseline `1857/286` was STALE (a `.3.18` universe-shift bookkeeping artifact carried through the
+    `.3.19`/`.3.20` "byte-identical" assertions without re-measurement) — corrected to the true measured
+    **`1858/285/46`** this slice; gate ratchets (`MAX_FALSE_ACCEPT=299`, `MIN_MATCH=1845`) unaffected.
+  - [x] **LOCKSTEP** — ledger `REGEX-0097` + `embedding_api.rs` version consts (release **1.1.88** /
+    contract **1.1.90**, schema `1`) + tracked contract JSON version fields + contract MD (Identity +
+    "Release 1.1.88 / Contract 1.1.90 Highlights — REGEX-0097"); regex book (`rules-misc` § `directive`
+    LIMIT-value paragraph + `changelog-index` entry) + tracked `regex_parser_book-html` regenerated; top
+    book `parser-families` version chain + `stimuli-and-quality` closure note (the last `@range`-class
+    honest bound closed); ast_shape manifest UNCHANGED (no new return annotation — `$text` on
+    `directive_payload_digits` preserved, the new rules are unannotated; inventory stays 214); oracle-gate
+    env comment corrected (stale `1857/286`→true `1858/285`); live docs (CHANGES / DEVELOPMENT_NOTES /
+    LIVE_ACHIEVEMENT_STATUS / MEMORY / TASK_TREE).
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
   EBNF is the sole source of truth. GATE-PINNED residual it owns (`STIMULI-SIGNOFF.13.3`, 2026-07-08):

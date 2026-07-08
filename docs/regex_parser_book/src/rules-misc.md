@@ -253,7 +253,7 @@ against `pcre2test` 10.47:
 | `directive_accept_named` (quantifiable) | `ACCEPT` | optional `:`-payload, empty allowed | `(*ACCEPT)` / `(*ACCEPT:x)` ACCEPT; **quantifiable** — `(*ACCEPT)+` / `(*ACCEPT:x)+` ACCEPT |
 | `directive_mark_named` | `MARK` | `:`-payload **required non-empty** | `(*MARK:x)` ACCEPT; `(*MARK)` / `(*MARK:)` REJECT (err 166); `(*MARK=x)` REJECT (err 160) |
 | `directive_verb_named` | `FAIL F COMMIT PRUNE SKIP THEN` (the 6 non-ACCEPT verbs) | optional `:`-payload, empty allowed | `(*PRUNE)` / `(*PRUNE:)` / `(*PRUNE:x)` ACCEPT; `(*PRUNE=x)` / `(*SKIP=)` REJECT (err 160); **not quantifiable** — `(*PRUNE)+` REJECT (err 109) |
-| `directive_limit_named` | `LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION` | `=digits` **required** | `(*LIMIT_HEAP=500)` ACCEPT; bare `(*LIMIT_HEAP)`, `(*LIMIT_HEAP=)`, `(*LIMIT_HEAP=abc)`, `(*LIMIT_HEAP:5)` REJECT (err 160) |
+| `directive_limit_named` | `LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION` | `=digits` **required**, value **≤ 4294967289** | `(*LIMIT_HEAP=500)` / `(*LIMIT_HEAP=4294967289)` ACCEPT; bare `(*LIMIT_HEAP)`, `(*LIMIT_HEAP=)`, `(*LIMIT_HEAP=abc)`, `(*LIMIT_HEAP:5)`, **`(*LIMIT_HEAP=4294967290)`** REJECT (err 160) |
 | `directive_option_named` | the other 21 start options (`UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE`) | **bare only** | `(*UTF)` ACCEPT; `(*UTF:x)` / `(*UTF=5)` / `(*CR=5)` / `(*TURKISH_CASING=5)` REJECT (err 160) |
 | `directive_relaxed_named` (`@profiles: ["relaxed"]`) | any **unrecognized** `[A-Za-z][A-Za-z0-9_-]*` name | any suffix (`:`/`=`/bare) | relaxed-profile catch-all; see below |
 
@@ -280,11 +280,20 @@ still reach the catch-all under `relaxed`.
 profiles (`(*PRUNE)+`, `(*:x)+`, `(*UTF)+`, `(*LIMIT_HEAP=5)+` — err 109); a quantified UNKNOWN-name
 verb (`(*foo)+`) stays `relaxed`-accepted (the catch-all is quantifiable) and default-rejected.
 
+**LIMIT value range (release `1.1.88`, `REGEX-PCRE2-FIDELITY.3.21`, ledger REGEX-0097):** a LIMIT
+`=value` is VALUE-bounded to **[0, 4294967289]** in **both** profiles — grammar-encoded on
+`directive_payload_digits` (structurally, the `.3.16`/`.3.18` idiom). PCRE2's Horner overflow guard
+caps the value at `429496728*10 + 9 = 4294967289` (`0xFFFFFFF9`), **not** u32 max `4294967295`
+(which itself rejects, err 160). The bound is purely value-based: arbitrary leading zeros are fine
+(`(*LIMIT_HEAP=00000000004294967289)` ACCEPT, `…4294967290` REJECT; all-zeros = value 0). `value`
+stays the raw digit string (leading zeros preserved). This closed a latent accepts-invalid hole —
+no validator ever bounded the LIMIT value.
+
 Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
 start-option **position** rule (`a(*UTF)` and `a(*LIMIT_HEAP=500)` reject — the `=`-form position
-hole was fixed in release 1.1.83, ledger **REGEX-0090**) and the LIMIT value **range** (overflow
-values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror). The
-quantified-verb rule is now grammar-owned (above), no longer validator-owned.
+hole was fixed in release 1.1.83, ledger **REGEX-0090**). The quantified-verb rule (release 1.1.87,
+above) and the LIMIT value range (release 1.1.88, above) are now grammar-owned, no longer
+validator-owned.
 
 ### `directive_mark_shorthand`
 

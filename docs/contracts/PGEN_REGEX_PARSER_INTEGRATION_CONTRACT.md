@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.89`
+  - `1.1.90`
 - Parser release version:
-  - `1.1.87`
+  - `1.1.88`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,27 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.88 / Contract 1.1.90 Highlights — REGEX-0097: a LIMIT `=value` outside [0, 4294967289] now rejects PCRE2-faithfully; grammar-encoded
+
+**Bug ledger:** `REGEX-0097` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.3.14` oracle scoping; oracle-differential, hunter-invisible (both PGEN sides agreed). A purely LATENT accepts-invalid divergence with no prior validator check — no check ever bounded the LIMIT value.
+
+**What changed (behavior-TIGHTENING: out-of-range LIMIT values flip ACCEPT→REJECT; no rejects-valid changes).** PCRE2 bounds a numeric start-option limit value (`(*LIMIT_HEAP=…)`, `(*LIMIT_MATCH=…)`, `(*LIMIT_DEPTH=…)`, `(*LIMIT_RECURSION=…)`) to a maximum of **4294967289** (`0xFFFFFFF9`); a larger value is err 160 "(*VERB) not recognized or malformed". The bound is PCRE2's Horner overflow guard (`n > UINT32_MAX/10 - 1` before appending each digit), so the maximum accepted value is `429496728*10 + 9 = 4294967289` — **NOT** u32 max `4294967295`, which itself rejects. `regex.ebnf` now encodes this (`REGEX-PCRE2-FIDELITY.3.21`), oracle-verified against `pcre2test` 10.47 (one-pattern-per-run binary search):
+
+| Rule | Example | Verdict (both = PGEN `1.1.88` = PCRE2 10.47) |
+|---|---|---|
+| A LIMIT value ≤ 4294967289 is accepted | `(*LIMIT_HEAP=0)` · `(*LIMIT_HEAP=500)` · `(*LIMIT_HEAP=4294967289)` | ACCEPT (unchanged) |
+| Arbitrary leading zeros are value-based | `(*LIMIT_HEAP=00000000004294967289)` · `(*LIMIT_HEAP=0)` | ACCEPT (unchanged) |
+| A LIMIT value ≥ 4294967290 is err 160 | **`(*LIMIT_HEAP=4294967290)` · `(*LIMIT_HEAP=4294967295)` · `(*LIMIT_HEAP=99999999999999999999)` (were wrongly accepted)** | REJECT |
+| The bound is uniform across all 4 LIMIT names | `(*LIMIT_MATCH=4294967290)` · `(*LIMIT_DEPTH=4294967290)` · `(*LIMIT_RECURSION=4294967290)` | REJECT |
+
+**AST shape.** Every in-range LIMIT value's AST is byte-identical — the `{kind:"named", name, payload:{separator:"=", value:"<digits>"}}` carrier is preserved, and `value` stays the **raw digit string** (leading zeros preserved, e.g. `(*LIMIT_HEAP=00700)` → `value:"00700"`). Only out-of-range values change verdict (ACCEPT→REJECT). **AST-dump schema stays `1`.**
+
+**Relaxed profile.** The value bound applies in `relaxed` too — a recognized LIMIT name keeps its exact PCRE2 value bound in both profiles (the `.3.14`/`.3.20` known-name-shape precedent; `relaxed` re-admits only UNKNOWN directive names, never a recognized name's value range).
+
+**Rejection-layer.** No validator ever owned the LIMIT value bound, so this is a NEW grammar-level rejection (`E_PARSE_FAILURE`). As always, match on the diagnostic **code**, never message text.
+
+**Action for downstream (RGX):** the newly-rejected out-of-range LIMIT values were PCRE2-invalid all along; adopting `1.1.88` aligns the accept set with PCRE2. Only patterns with a `(*LIMIT_…=<value>)` start option whose value exceeds 4294967289 are affected (esoteric). Both profiles behave identically for recognized LIMIT names.
 
 ## Release 1.1.87 / Contract 1.1.89 Highlights — REGEX-0096: only `(*ACCEPT)` may take a quantifier; every other `(*...)` directive quantified now rejects PCRE2-faithfully; grammar-encoded
 

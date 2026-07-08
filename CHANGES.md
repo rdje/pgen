@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0019 (REGEX-PCRE2-FIDELITY.3.21): a LIMIT `=value` outside [0, 4294967289] now rejects PCRE2-faithfully; grammar-encoded, regex release 1.1.88
+
+Session #70. A released-parser slice: release `1.1.87`→`1.1.88`, contract `1.1.89`→`1.1.90`,
+AST-dump schema stays `1`, ledger `REGEX-0097`. A NEW value-bound closing a latent accepts-invalid
+hole (NOT a validator→grammar migration — no validator ever bounded the LIMIT value).
+
+- **The bound (oracle-pinned FIRST, pcre2test 10.47, one-pattern-per-run binary search):** a numeric
+  LIMIT start-option value is capped at **4294967289** (`0xFFFFFFF9`); `4294967290` and larger are
+  err 160. This is PCRE2's Horner overflow guard (`n > UINT32_MAX/10 - 1` before appending each digit
+  ⇒ max = `429496728*10 + 9`), **NOT** u32 max `4294967295` — which itself REJECTS. The leaf's own
+  candidate boundary (`4294967295`/`4294967296`) was REFUTED tools-first. Uniform across all 4 LIMIT
+  names; purely value-based (unlimited leading zeros; all-zeros = value 0).
+- **Divergence.** The released parser (`1.1.87`) accepted ANY digit run — `directive_payload_digits =
+  digit+` bounded the SHAPE but no VALUE, and no out-of-band check bounded it (`find_invalid_verb_construct`
+  checks name/shape/POSITION only). Latent + hunter-invisible (generator + parser agreed).
+- **Grammar encode (tier: GRAMMAR — no engine, no validator):** the `.3.16` `callout_number` /
+  `.3.18` `quant_bound_number` STRUCTURAL idiom (NOT `@range` — proved atom-scoped/inert by `.3.16`).
+  `directive_payload_digits = directive_limit_value_body -> $text` (wrapper preserving the
+  `{separator:"=", value:"<digits>"}` STRING carrier byte-identically); `directive_limit_value_body =
+  "0"+ directive_limit_value_core? | directive_limit_value_core`; `directive_limit_value_core` = the
+  nonzero-led 1..4294967289 lexicographic ladder. An out-of-range run has NO fully-consuming parse and
+  generation is in-range BY CONSTRUCTION. Universal in both profiles (the `.3.18` precedent).
+- **Verified.** 21-cell release-probe verdict matrix == pcre2test (0 mismatches, both profiles; the
+  out-of-range flips + no fallback hole); AST byte-identical for in-range (`value:"00700"`); generation
+  0/601 over-max (seeds 0/7/42); cert `234/234/0 fully_certified spf=0` ×3 seeds (+2 rules witnessed);
+  dual suite `892/0`; `duality_hunt_gate` UNCHANGED; `regex_pcre2_compile_oracle_gate` EXACTLY
+  byte-identical via decisive stash-baseline (OLD `1858/285/46` == NEW `1858/285/46`). 🔎 The recorded
+  oracle baseline `1857/286` was STALE (a `.3.18` universe-shift artifact); corrected to the true
+  `1858/285/46`. This closed the last `@range`-class honest bound.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0018 (REGEX-PCRE2-FIDELITY.3.20): only `(*ACCEPT)` may take a quantifier — every other `(*...)` directive quantified now rejects PCRE2-faithfully; grammar-encoded, regex release 1.1.87
 
 Session #69. A released-parser slice: release `1.1.86`→`1.1.87`, contract `1.1.88`→`1.1.89`,

@@ -1430,9 +1430,11 @@ directive_body_nonquantifiable = directive_mark_named
 # matches the unmatched-optional shape (the `.3.13` piece-branch precedent).
 # Honest bounds (stay OUT of the grammar): the start-option POSITION rule
 # (`a(*UTF)` rejects, err 160) is contextual — validator-owned until capstone
-# `.4`; the LIMIT value RANGE (`(*LIMIT_HEAP=<overflow>)` rejects, err 160) is
-# a value constraint (`@range` class) blocked on the interpreter mirror
-# (`STIMULI-SIGNOFF.13.2`). REGEX-PCRE2-FIDELITY.3.20: quantified-verb (only
+# `.4`. REGEX-PCRE2-FIDELITY.3.21: the LIMIT value RANGE
+# (`(*LIMIT_HEAP=<overflow>)` rejects, err 160) is now GRAMMAR-encoded
+# structurally on `directive_payload_digits` ([0, 4294967289], see below) — it
+# was the last `@range`-class honest bound; the value constraint landed after the
+# `STIMULI-SIGNOFF.13.2` interpreter mirror, structurally like `.3.16`/`.3.18`. REGEX-PCRE2-FIDELITY.3.20: quantified-verb (only
 # `(*ACCEPT)` quantifies; `(*PRUNE)+` `(*:x)+` `(*UTF)+` `(*LIMIT_HEAP=5)+`
 # reject err 109) is now GRAMMAR-owned — the name-class rules below split into
 # the quantifiable ACCEPT form (`directive_accept_named`) and the
@@ -1468,13 +1470,56 @@ directive_relaxed_named = !( ( "MARK" | "ACCEPT" | directive_verb_name_nonaccept
 directive_mark_shorthand = ":" directive_payload_required          -> {kind: "mark_shorthand", payload: $2}
 # Payload shapes, one per name class; `{separator, value}` carrier preserved.
 # The REQUIRED form demands at least one payload char (the PCRE2 err-166
-# boundary); the digits form is the numeric-limit `=` value (its RANGE is the
-# `.13.2`-blocked honest bound above). PCRE2 payloads run until the
-# verb-closing `)` — same pattern as `comment_text` from slice 20.
+# boundary); the digits form is the numeric-limit `=` value (VALUE-bounded to
+# [0, 4294967289] by REGEX-PCRE2-FIDELITY.3.21 below). PCRE2 payloads run until
+# the verb-closing `)` — same pattern as `comment_text` from slice 20.
 directive_payload_colon_required = ":" directive_payload_required     -> {separator: ":", value: $2}
 directive_payload_colon  = ":" directive_payload_simple?              -> {separator: ":", value: $2}
 directive_payload_equals = "=" directive_payload_digits               -> {separator: "=", value: $2}
-directive_payload_digits = digit+ -> $text
+# REGEX-PCRE2-FIDELITY.3.21: the LIMIT `=value` is VALUE-bounded to
+# [0, 4294967289] (PCRE2 err 160 "(*VERB) not recognized or malformed";
+# `pcre2test` 10.47: `(*LIMIT_HEAP=4294967289)` accepts, `(*LIMIT_HEAP=4294967290)`
+# rejects). The bound is PCRE2's Horner overflow guard `n > UINT32_MAX/10 - 1`
+# (= `n > 429496728` before appending each digit), so the max accepted value is
+# `429496728*10 + 9 = 4294967289`, NOT u32 max 4294967295 (which itself rejects).
+# Uniform across all 4 LIMIT names, purely value-based (arbitrary leading zeros:
+# `(*LIMIT_HEAP=0000000000004294967289)` accepts). Encoded STRUCTURALLY with the
+# `.3.16` `callout_number` / `.3.18` `quant_bound_number` idiom (NOT `@range` —
+# proved atom-scoped/inert on the self-hosted native-body rules by `.3.16`):
+# leading zeros plus an optional nonzero-led core <= 4294967289, so an
+# out-of-range run has no fully-consuming parse (the trailing `)` then fails) and
+# generation is in-range BY CONSTRUCTION. The wrapper indirection preserves the
+# released `{separator, value}` STRING carrier byte-identically: the matched span
+# is captured via `$text` over `directive_limit_value_body` (a single-rule-ref
+# body dodges the Or-rooted-rule span hazard `.3.16` documented).
+directive_payload_digits = directive_limit_value_body -> $text
+directive_limit_value_body = "0"+ directive_limit_value_core? | directive_limit_value_core
+# The nonzero-led values 1..4294967289, most-specific first (the longest-match
+# tournament keeps a full-length value ahead of its shorter prefix). The 10-digit
+# branches are the lexicographic bound on 4294967289 (digits 4 2 9 4 9 6 7 2 8 9):
+# at each position a digit strictly below the bound digit lets the rest run free;
+# the exact-prefix tail (`"429496728" digit`) folds the equal case (bound's last
+# digit is 9 => 0-9). Every shorter length (9..1 digits, nonzero-led) is
+# < 10^9 < 4294967289, so it is unconstrained.
+directive_limit_value_core = ("1" | "2" | "3") digit digit digit digit digit digit digit digit digit
+                           | "4" ("0" | "1") digit digit digit digit digit digit digit digit
+                           | "42" ("0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8") digit digit digit digit digit digit digit
+                           | "429" ("0" | "1" | "2" | "3") digit digit digit digit digit digit
+                           | "4294" ("0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8") digit digit digit digit digit
+                           | "42949" ("0" | "1" | "2" | "3" | "4" | "5") digit digit digit digit
+                           | "429496" ("0" | "1" | "2" | "3" | "4" | "5" | "6") digit digit digit
+                           | "4294967" ("0" | "1") digit digit
+                           | "42949672" ("0" | "1" | "2" | "3" | "4" | "5" | "6" | "7") digit
+                           | "429496728" digit
+                           | nonzero_digit digit digit digit digit digit digit digit digit
+                           | nonzero_digit digit digit digit digit digit digit digit
+                           | nonzero_digit digit digit digit digit digit digit
+                           | nonzero_digit digit digit digit digit digit
+                           | nonzero_digit digit digit digit digit
+                           | nonzero_digit digit digit digit
+                           | nonzero_digit digit digit
+                           | nonzero_digit digit
+                           | nonzero_digit
 # The REQUIRED payload pairs a positively-enumerated GENERATABLE core (branch
 # 1 — what stimuli generation emits) with PCRE2's full payload superset
 # (branch 2 — any char but the verb-closing `)`). Parsing is IDENTICAL to the

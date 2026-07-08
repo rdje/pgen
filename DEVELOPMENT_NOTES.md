@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0019 — REGEX-PCRE2-FIDELITY.3.21: implementation notes — LIMIT value bound + a stale-oracle-baseline correction
+
+**The oracle bound (pinned FIRST, pcre2test 10.47, one-pattern-per-run binary search).** A numeric
+LIMIT start-option value maxes at **4294967289** (`0xFFFFFFF9`); `4294967290`+ is err 160. This is
+PCRE2's Horner overflow guard (`n > UINT32_MAX/10 - 1` = `n > 429496728` before appending each digit,
+so max = `429496728*10 + 9`). The err-160 "here" marker sat right before the last digit, which is the
+tell. **The leaf's own candidate boundary (`4294967295`/`4294967296`) was WRONG** — `4294967295`
+(u32 max) itself REJECTS. Refuted tools-first before any encode. Uniform across all 4 LIMIT names;
+purely value-based (unlimited leading zeros; all-zeros = 0). NOTE: `pcre2test` swallows lines after a
+successful compile as subject data, so a multi-pattern file gives garbage — one pattern per run (blank
+line terminated) is the only reliable harness.
+
+**The encode.** No validator ever bounded the LIMIT value (this is a NEW bound closing a latent hole,
+NOT a migration). Structural, the `.3.16`/`.3.18` idiom (NOT `@range` — `.3.16` proved SC-08 value
+constraints are atom-scoped ⇒ inert on the self-hosted native-body rules): `directive_payload_digits`
+became a wrapper `-> $text` over `directive_limit_value_body = "0"+ directive_limit_value_core? |
+directive_limit_value_core`, whose core is the nonzero-led 1..4294967289 lexicographic ladder (10
+bound branches on the digits `4 2 9 4 9 6 7 2 8 9` — a digit strictly below the bound digit at each
+position lets the rest run free, the exact-prefix tail `"429496728" digit` folds the equal case — plus
+9 free 9..1-digit branches, all < 10^9 < the bound). The wrapper single-rule-ref body dodges the
+Or-rooted-rule span hazard `.3.16` documented; `$text` keeps the `value` field the raw digit string
+(leading zeros preserved). An out-of-range run has NO fully-consuming parse: the ladder matches the
+longest in-range prefix, the trailing `)` then fails, and nothing else consumes `(*LIMIT_…=<overflow>`
+⇒ grammar-REJECT (verified — no fallback hole; relaxed == default).
+
+**🔎 A stale oracle-baseline record, corrected (root-caused, not waved away).** The oracle gate reported
+`match=1858 / false_accept=285 / false_reject=46` where MEMORY/leaf notes recorded `1857/286/46` as
+the byte-identical v11 baseline. Since my change is grammatically isolated to `directive_payload_digits`
+and every corpus `LIMIT=value` is in-range (`=0`/`=123`/`=1`), it could not have flipped a corpus cell.
+I did NOT reason this away — the decisive-baseline directive is explicit. I git-stashed the change,
+regenerated the OLD parser, and re-ran the gate: OLD `1858/285/46` == NEW `1858/285/46`, byte-identical.
+So the change is exactly oracle-neutral, and the recorded `1857/286` was a STALE number — a `.3.18`
+universe-shift bookkeeping artifact (the 2195→2189 cell skip + a 4-flip that netted to 285, recorded
+imprecisely as 286) propagated forward by the `.3.19`/`.3.20` "byte-identical" *assertions* (their forms
+weren't in the corpus, so they never re-measured the exact count). Corrected to the true `1858/285/46`
+in the oracle-env comment + MEMORY; the ratchet thresholds (MIN_MATCH=1845, MAX_FALSE_ACCEPT=299,
+MAX_FALSE_REJECT=46) are loose and unaffected, so the gate always passed — this is a recorded-observation
+correction, not a gate change. Lesson: assert "byte-identical" only from a re-measurement, not from
+"the forms aren't in the corpus" reasoning.
+
+**Env note.** `pgen` is a shell alias in this environment — a bash helper function named `pgen()` errors
+with "syntax error near unexpected token `('". Name test helpers anything else.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0018 — REGEX-PCRE2-FIDELITY.3.20: implementation notes — quantified-verb piece-split
 
 **The oracle rule (30-cell matrix, pcre2test 10.47).** `(*ACCEPT)` is the ONLY quantifiable `(*...)`

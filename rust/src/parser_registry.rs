@@ -2261,6 +2261,79 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.3.21 (ledger REGEX-0097): the LIMIT `=value` is VALUE-bounded to
+    /// [0, 4294967289] at the GRAMMAR layer (the structural `directive_limit_value_body` /
+    /// `directive_limit_value_core` ladder on `directive_payload_digits`; no validator check ever
+    /// bounded the LIMIT value — this closed a latent released accepts-invalid hole). PCRE2 10.47
+    /// oracle (`pcre2test`, 2026-07-08, blank-line-separated + binary search): `(*LIMIT_HEAP=4294967289)`
+    /// accepts, `(*LIMIT_HEAP=4294967290)` rejects (err 160). The bound is PCRE2's Horner overflow
+    /// guard `n > UINT32_MAX/10 - 1` (max accepted = 429496728*10 + 9 = 4294967289, NOT u32 max
+    /// 4294967295, which itself rejects). Uniform across all 4 LIMIT names, purely value-based
+    /// (arbitrary leading zeros neither save an out-of-range value nor doom an in-range one).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_limit_value_range_rejects_at_the_grammar_layer_pcre2_faithfully() {
+        // Out-of-range LIMIT values: REJECT (err 160). u32 max (4294967295) itself is out of range;
+        // leading zeros do not save an out-of-range value; all 4 LIMIT names share the bound.
+        for pattern in [
+            "(*LIMIT_HEAP=4294967290)a",           // boundary + 1
+            "(*LIMIT_HEAP=4294967295)a",           // u32 max — still rejects
+            "(*LIMIT_HEAP=4294967296)a",           // u32 max + 1
+            "(*LIMIT_HEAP=99999999999999999999)a", // gross overflow
+            "(*LIMIT_HEAP=00000000004294967290)a", // leading zeros do not save it
+            "(*LIMIT_MATCH=4294967290)a",
+            "(*LIMIT_DEPTH=4294967290)a",
+            "(*LIMIT_RECURSION=4294967290)a",
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "out-of-range LIMIT value must reject: {pattern}"
+            );
+        }
+        // In-range LIMIT values (VALUE <= 4294967289, arbitrary leading zeros, all-zeros = 0): ACCEPT.
+        for pattern in [
+            "(*LIMIT_HEAP=0)a",
+            "(*LIMIT_HEAP=500)a",
+            "(*LIMIT_HEAP=500)", // empty body after the start option
+            "(*LIMIT_HEAP=65535)a",
+            "(*LIMIT_HEAP=4294967289)a",           // boundary — last accepted value
+            "(*LIMIT_HEAP=00000000004294967289)a", // leading zeros, in range
+            "(*LIMIT_HEAP=00000000000000000000)a", // all zeros = value 0
+            "(*LIMIT_MATCH=4294967289)a",
+            "(*LIMIT_DEPTH=4294967289)a",
+            "(*LIMIT_RECURSION=4294967289)a",
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "in-range LIMIT value must accept: {pattern}"
+            );
+        }
+        // The released `{separator:"=", value:"<digits>"}` STRING carrier is byte-identical: the
+        // value is the raw digit text (leading zeros preserved), captured via `$text` over the
+        // wrapper `directive_limit_value_body`.
+        let ast = super::parse_sample_ast_json("regex", "(*LIMIT_HEAP=00700)a")
+            .expect("regex registered")
+            .expect("accepts (*LIMIT_HEAP=00700)a")
+            .to_string();
+        assert!(
+            ast.contains("\"value\":\"00700\""),
+            "(*LIMIT_HEAP=00700) must carry the raw digit string \"00700\": {ast}"
+        );
+        // The bound applies in BOTH profiles (directive_limit_value_body is profile-shared — the
+        // `.3.14`/`.3.20` known-name-shape precedent; relaxed re-admits only UNKNOWN names).
+        for pattern in ["(*LIMIT_HEAP=4294967290)a", "(*LIMIT_HEAP=4294967289)a"] {
+            let verdict = super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                .expect("regex registered");
+            assert_eq!(
+                verdict.is_ok(),
+                parse_sample("regex", pattern) == Some(true),
+                "relaxed must agree with the default profile on the LIMIT range: {pattern}"
+            );
+        }
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.18 (ledger REGEX-0092/0093/0094): the PCRE2 counted-quantifier
     /// BRACE TOKENIZATION model is grammar-encoded. Oracle (`pcre2test` 10.47, 2026-07-08,
     /// blank-line-separated + hex-pattern cells): a syntactically-valid quantifier brace —

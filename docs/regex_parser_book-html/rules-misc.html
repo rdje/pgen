@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e11f7417.js";
+            window.path_to_searchindex_js = "searchindex-93ae9d38.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -351,7 +351,7 @@ against <code>pcre2test</code> 10.47:</p>
 <tr><td><code>directive_accept_named</code> (quantifiable)</td><td><code>ACCEPT</code></td><td>optional <code>:</code>-payload, empty allowed</td><td><code>(*ACCEPT)</code> / <code>(*ACCEPT:x)</code> ACCEPT; <strong>quantifiable</strong> — <code>(*ACCEPT)+</code> / <code>(*ACCEPT:x)+</code> ACCEPT</td></tr>
 <tr><td><code>directive_mark_named</code></td><td><code>MARK</code></td><td><code>:</code>-payload <strong>required non-empty</strong></td><td><code>(*MARK:x)</code> ACCEPT; <code>(*MARK)</code> / <code>(*MARK:)</code> REJECT (err 166); <code>(*MARK=x)</code> REJECT (err 160)</td></tr>
 <tr><td><code>directive_verb_named</code></td><td><code>FAIL F COMMIT PRUNE SKIP THEN</code> (the 6 non-ACCEPT verbs)</td><td>optional <code>:</code>-payload, empty allowed</td><td><code>(*PRUNE)</code> / <code>(*PRUNE:)</code> / <code>(*PRUNE:x)</code> ACCEPT; <code>(*PRUNE=x)</code> / <code>(*SKIP=)</code> REJECT (err 160); <strong>not quantifiable</strong> — <code>(*PRUNE)+</code> REJECT (err 109)</td></tr>
-<tr><td><code>directive_limit_named</code></td><td><code>LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION</code></td><td><code>=digits</code> <strong>required</strong></td><td><code>(*LIMIT_HEAP=500)</code> ACCEPT; bare <code>(*LIMIT_HEAP)</code>, <code>(*LIMIT_HEAP=)</code>, <code>(*LIMIT_HEAP=abc)</code>, <code>(*LIMIT_HEAP:5)</code> REJECT (err 160)</td></tr>
+<tr><td><code>directive_limit_named</code></td><td><code>LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION</code></td><td><code>=digits</code> <strong>required</strong>, value <strong>≤ 4294967289</strong></td><td><code>(*LIMIT_HEAP=500)</code> / <code>(*LIMIT_HEAP=4294967289)</code> ACCEPT; bare <code>(*LIMIT_HEAP)</code>, <code>(*LIMIT_HEAP=)</code>, <code>(*LIMIT_HEAP=abc)</code>, <code>(*LIMIT_HEAP:5)</code>, <strong><code>(*LIMIT_HEAP=4294967290)</code></strong> REJECT (err 160)</td></tr>
 <tr><td><code>directive_option_named</code></td><td>the other 21 start options (<code>UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE</code>)</td><td><strong>bare only</strong></td><td><code>(*UTF)</code> ACCEPT; <code>(*UTF:x)</code> / <code>(*UTF=5)</code> / <code>(*CR=5)</code> / <code>(*TURKISH_CASING=5)</code> REJECT (err 160)</td></tr>
 <tr><td><code>directive_relaxed_named</code> (<code>@profiles: ["relaxed"]</code>)</td><td>any <strong>unrecognized</strong> <code>[A-Za-z][A-Za-z0-9_-]*</code> name</td><td>any suffix (<code>:</code>/<code>=</code>/bare)</td><td>relaxed-profile catch-all; see below</td></tr>
 </tbody>
@@ -383,11 +383,19 @@ still reach the catch-all under <code>relaxed</code>.</p>
 <code>directive_verb_nonquant</code> split above. A quantified KNOWN non-ACCEPT directive rejects in <strong>both</strong>
 profiles (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <code>(*LIMIT_HEAP=5)+</code> — err 109); a quantified UNKNOWN-name
 verb (<code>(*foo)+</code>) stays <code>relaxed</code>-accepted (the catch-all is quantifiable) and default-rejected.</p>
+<p><strong>LIMIT value range (release <code>1.1.88</code>, <code>REGEX-PCRE2-FIDELITY.3.21</code>, ledger REGEX-0097):</strong> a LIMIT
+<code>=value</code> is VALUE-bounded to <strong>[0, 4294967289]</strong> in <strong>both</strong> profiles — grammar-encoded on
+<code>directive_payload_digits</code> (structurally, the <code>.3.16</code>/<code>.3.18</code> idiom). PCRE2’s Horner overflow guard
+caps the value at <code>429496728*10 + 9 = 4294967289</code> (<code>0xFFFFFFF9</code>), <strong>not</strong> u32 max <code>4294967295</code>
+(which itself rejects, err 160). The bound is purely value-based: arbitrary leading zeros are fine
+(<code>(*LIMIT_HEAP=00000000004294967289)</code> ACCEPT, <code>…4294967290</code> REJECT; all-zeros = value 0). <code>value</code>
+stays the raw digit string (leading zeros preserved). This closed a latent accepts-invalid hole —
+no validator ever bounded the LIMIT value.</p>
 <p>Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
 start-option <strong>position</strong> rule (<code>a(*UTF)</code> and <code>a(*LIMIT_HEAP=500)</code> reject — the <code>=</code>-form position
-hole was fixed in release 1.1.83, ledger <strong>REGEX-0090</strong>) and the LIMIT value <strong>range</strong> (overflow
-values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror). The
-quantified-verb rule is now grammar-owned (above), no longer validator-owned.</p>
+hole was fixed in release 1.1.83, ledger <strong>REGEX-0090</strong>). The quantified-verb rule (release 1.1.87,
+above) and the LIMIT value range (release 1.1.88, above) are now grammar-owned, no longer
+validator-owned.</p>
 <h3 id="directive_mark_shorthand"><a class="header" href="#directive_mark_shorthand"><code>directive_mark_shorthand</code></a></h3>
 <pre><code class="language-ebnf">directive_mark_shorthand = ":" directive_payload_required
 </code></pre>
