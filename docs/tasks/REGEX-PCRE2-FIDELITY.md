@@ -449,9 +449,40 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `regex_capture_name` facts (the same `@gen_predicate` idiom) if the hunter ever observes over-generation
   there (today the generator's named-ref sites are rare enough that no break was observed at the
   100-sample budget). Ledger row + oracle-matrix + encode design = this leaf, sequenced after `.3.18`–`.3.21`.
-- ID: `.3.18`  Status: `pending` (LATENT class, oracle-verified `-0015`)  Goal: row 4 — counted-quantifier
-  bounds (`a{5,2}` rejects err 104; `{,>65535}` limits); `@predicate`/structural per the `.1` table; the
-  generator currently CAN emit out-of-order bounds (not yet observed at the 100-sample hunter budget).
+- ID: `.3.18`  Status: `pending` — **SCOPED tools-first 2026-07-08 session #66** (oracle matrix + released-parser
+  probes run; 🔎 FOUR NEW accepts-invalid divergences CONFIRMED, surfaced to the director)  Goal: row 4 —
+  counted-quantifier bounds + the brace tokenization model. THE PCRE2 10.47 MODEL (oracle-pinned, corrected
+  matrix with proper pcre2test blank-line separation — an earlier unseparated run silently treated patterns as
+  subjects): a syntactically-valid quantifier brace (digits + SPACES/TABS anywhere inside — `{n}` `{n,}` `{n,m}`
+  `{,m}`; tab-form `a{\t2\t,\t5\t}` oracle-verified a QUANTIFIER) is ALWAYS a quantifier, then three ordered
+  checks: (1) any bound VALUE > 65535 → err 105 (value-based: `a{0000000000065535}` ACCEPTS as quantifier;
+  `a{065536}`/`a{ 65536 }`/`a{4294967296}` all err 105), (2) min > max → err 104 (`a{5,2}`, `a{ 5 , 2 }`,
+  `(){5,2}`, and POSITION-INDEPENDENT `^{5,2}$` → 104), (3) non-repeatable position → err 109 (`^{2,5}$`,
+  `x|{2,5}`, `a{2}{3}`). Non-quantifier syntax (`{}`, `{,}`, `{a}`) = literal (`^a{}$` matches "a{}").
+  🔎 CONFIRMED RELEASED-PARSER DIVERGENCES (release probe vs oracle, 2026-07-08): PGEN ACCEPTS
+  `a{4294967296}` (the validator's `parse::<u32>().ok()?` silently returns None on overflow —
+  regex_compile_validation.rs:604-610 — so >u32 bounds skip ALL checks; PCRE2 err 105) + `{2,5}` at pattern
+  start + `x|{2,5}` + `a{2}{3}` (PGEN parses literal braces; PCRE2 err 109 position class). Parity cells
+  confirmed: `a{5,2}`/`a{65536}`/`a{ 5 , 2 }`/`a{,65536}`/`(){5,2}` R/R; `a{2,5}`/`a{ 3 }`/`a{0000000000065535}`
+  A/A. ENCODE DESIGN (the `.3.15`-guard + `.3.16`-value idiom composed): (i) value bound STRUCTURAL — a
+  `quant_bound_number` wrapper (the `callout_number` idiom scaled to ≤65535: `"0"* core?`, core = 1-4 digits
+  nonzero-led | 5-digit boundary cascade) replacing `digits` in all four `counted_quantifier_body` branches;
+  (ii) the literal-`{` atom gains a NEGATIVE LOOKAHEAD guard on quantifier-SYNTAX (digits/spaces/tabs shape,
+  value-UNBOUNDED) so a valid-syntax-but-bad brace can neither parse as quantifier NOR fall back to literal ⇒
+  grammar-REJECT — this ONE guard makes err-105 grammar-faithful AND closes the err-109 position class
+  (`{2,5}`-at-start / `x|{2,5}` / `a{2}{3}` all reject: no preceding atom ⇒ no quantifier slot, literal blocked)
+  AND fixes the u32-overflow hole (syntax-valid ⇒ guard blocks literal; value-encode fails quantifier);
+  (iii) `ws`-in-braces parity: the guard's syntax shape AND `counted_quantifier`'s `ws` must match PCRE2's
+  exact allowed set (space + tab — verify regex.ebnf `ws` covers tab, else `a{\t2\t}` would newly REJECT while
+  PCRE2 accepts, a rejects-valid regression; oracle newline/formfeed cells before freezing the set);
+  (iv) validator: DELETE the two 65535-limit branches + the overflow-holed parse path; KEEP the min>max order
+  branch (out-of-order needs cross-number value comparison — grammar-hostile with leading zeros; stays
+  validator-owned until capstone `.4` or a rule-span value-constraint extension, the `.3.21` sibling need);
+  (v) generation: bounds in-range BY CONSTRUCTION via the structural rule; out-of-order {n,m} draws remain a
+  rare residual (never observed at the 22k `.13.3` budget; the duality gate watches). Ledger rows for the 4
+  divergences + version bump (parse surface: new rejects) + oracle-matrix pin test + cert re-baseline (new
+  rules) + possible duality-gate contract re-baseline (grammar change shifts distributions — the gate will
+  say) + books/contract/manifest lockstep. Full slice — needs a fresh-session context budget.
 - ID: `.3.19`  Status: `pending` (LATENT accepts-invalid divergences, oracle-verified 2026-07-07 during the
   `.3.13` implementation)  Goal: the ZERO-WIDTH-QUANTIFIED family beyond anchors — PGEN ACCEPTS `\E*`
   (stray `\E` is zero-width) and `\Q\E*` (empty quoted literal) which PCRE2 10.47 REJECTS (err 109);
@@ -633,7 +664,11 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
   (16k directed 8 seeds + 6k diverse replay) found NO third class, and `.3.18`'s counted-quantifier
   class stayed latent even at scale (its leaf note stands: the generator CAN emit `a{5,2}`, just rarely).
   The `.3.20`/`.4` closing slices must re-baseline the gate contract same-commit (notes added to both
-  leaves). Frontier per the standing PNT order → `.3.18`–`.3.22` below.
+  leaves). Frontier per the standing PNT order → `.3.18`–`.3.22` below. SAME SESSION, `.3.18` was then
+  SCOPED tools-first (`PGEN-REGEX-PCRE2-0015`, PURE-DOCS): the full PCRE2 10.47 brace-tokenization model
+  oracle-pinned and 🔎 FOUR NEW released-parser accepts-invalid divergences CONFIRMED (`a{4294967296}`
+  validator-u32-overflow hole + the err-109 position family `{2,5}`-at-start / `x|{2,5}` / `a{2}{3}`) —
+  full matrix + encode design in the `.3.18` leaf; implementation = the next fresh-session slice.
 - **(2026-07-08, session #65)** `.3.13`/`.3.14`/`.3.15`/`.3.16`/**`.3.17`** are DONE (see the leaves +
   enforced checklists above — the live frontier is tracked in `MEMORY.md` + `docs/TASK_TREE.md`). `.3.17`
   closed the LAST hunter-visible scs class via the `STIMULI-SIGNOFF.13.4` generation-side store gates;
