@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0018 (REGEX-PCRE2-FIDELITY.3.20): only `(*ACCEPT)` may take a quantifier — every other `(*...)` directive quantified now rejects PCRE2-faithfully; grammar-encoded, regex release 1.1.87
+
+Session #69. A released-parser slice: release `1.1.86`→`1.1.87`, contract `1.1.88`→`1.1.89`,
+AST-dump schema stays `1`, ledger `REGEX-0096`. The 7th out-of-band-validator → grammar migration.
+
+- **The model (oracle-pinned, pcre2test 10.47; a 30-cell verdict matrix):** PCRE2 makes `(*ACCEPT)`
+  the ONLY quantifiable `(*...)` directive — `(*ACCEPT)+` `(*ACCEPT:x)+` `(*ACCEPT){2,3}` ACCEPT —
+  while every other form quantified is err 109: the 6 non-ACCEPT verbs (`(*PRUNE)+` `(*FAIL)*` …),
+  the `(*:x)` shorthand, MARK (`(*MARK:x)+`), and the start options (`(*UTF)+` `(*UCP)+`
+  `(*LIMIT_HEAP=5)+`).
+- **Divergence + migration.** The released parser (`1.1.86`) already rejected the verb / shorthand /
+  MARK quantified forms (validator-owned) but **latently ACCEPTED `(*UTF)+` / `(*LIMIT_HEAP=5)+`** —
+  `find_invalid_verb_construct`'s start-option arm checked POSITION only, never a trailing quantifier.
+  This slice both MIGRATES the whole quantified-verb rule out-of-band validator → grammar AND CLOSES
+  the start-option-quantified hole (**REGEX-0096**, 2 accepts-invalid flip ACCEPT→REJECT).
+- **Grammar encode (tier: GRAMMAR — no engine; validator loses two arms):** `directive_verb` split
+  into two atom rules with the SAME `{type:"atom", kind:"directive_verb", body}` carrier —
+  `directive_verb` (KEPT in `atom`, quantifiable) = `directive_accept_named | directive_relaxed_named`;
+  NEW `directive_verb_nonquant` (a non-quantifiable `piece` branch `directive_verb_nonquant
+  !quantifier`, the anchor/`zero_width` idiom) = the 6 non-ACCEPT verbs + MARK + `(*:x)` shorthand +
+  LIMIT + bare options. Because `atom` no longer matches a non-ACCEPT directive, a quantified one
+  fails the `!quantifier` lookahead AND finds no matching atom ⇒ the whole parse rejects
+  err-109-faithfully. `directive_accept_named = "ACCEPT" directive_payload_colon?`; `directive_verb_named`
+  re-points to `directive_verb_name_nonaccept` (6 names); the relaxed guard swaps `directive_verb_name`
+  for inline `"ACCEPT"` + `directive_verb_name_nonaccept`; the dead `directive_body` / `directive_named`
+  / `directive_verb_name` removed (H.10.1 precedent). Validator: the two quantified-verb arms + the dead
+  `quantifier_starts_at` helper DELETED; only the start-option POSITION rule stays (capstone `.4`).
+- **RELAXED-SEMANTICS decision (within the ratified PCRE2-faithful-by-default + relaxed-opt-out
+  principle):** a quantified UNKNOWN-name verb `(*foo)+` stays relaxed-ACCEPTED (relaxed = a strict
+  superset that never newly rejects — the unknown-name catch-all is quantifiable), while a KNOWN
+  non-ACCEPT directive (`(*PRUNE)+`, `(*UTF)+`, …) rejects in BOTH profiles. Verified on the release
+  probe (default vs `--profile relaxed`).
+- **AST:** every accepted directive byte-identical (both split rules keep the `directive_verb`
+  carrier; `directive_accept_named` keeps `{kind:"named",name,payload}`). Only quantified non-ACCEPT
+  directives change verdict. Rejection LAYER moves to `E_PARSE_FAILURE` — match on the **code**.
+- **Verified:** 30-cell release-probe verdict matrix == `pcre2test` 10.47 (0 mismatches; both
+  start-option divergences now reject); relaxed matrix confirms the decision (`(*foo)+` relaxed-ACCEPT
+  / default-REJECT); regex cert **232/232/0** `fully_certified` spf=0 ×seeds 0/7/42 (230→232 = net +2
+  rules, all witnessed, NO gap); `--lint-grammar` clean (232 rules); duality contract re-baselined
+  same-commit (the `only ACCEPT verb…` signature VANISHES); dual lib suite green (+1 registry pin);
+  equivalence gate ✅ (regex differential-CERTIFIED); ast_shape_contract regex ✅ (manifest 211→214);
+  `regex_pcre2_compile_oracle_gate` re-checked.
+- **Both profiles** tighten identically for KNOWN directive names.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0017 (REGEX-PCRE2-FIDELITY.3.19): a quantifier on a stray `\E` (zero-width, TRANSPARENT) now rejects PCRE2-faithfully — grammar-encoded, regex release 1.1.86
 
 Session #68. A released-parser slice: release `1.1.85`→`1.1.86`, contract `1.1.87`→`1.1.88`,

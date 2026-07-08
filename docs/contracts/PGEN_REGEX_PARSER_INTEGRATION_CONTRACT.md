@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.88`
+  - `1.1.89`
 - Parser release version:
-  - `1.1.86`
+  - `1.1.87`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,27 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.87 / Contract 1.1.89 Highlights — REGEX-0096: only `(*ACCEPT)` may take a quantifier; every other `(*...)` directive quantified now rejects PCRE2-faithfully; grammar-encoded
+
+**Bug ledger:** `REGEX-0096` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.3.20` pre-encode oracle matrix; the verb-quantified class was also hunter-observed as the `(*F)+` duality signature at seed 42. The verb/shorthand/MARK quantifier rejections were already correct (validator-owned); the NEW divergence is the **start-option-quantified** forms (`(*UTF)+`, `(*LIMIT_HEAP=5)+`), latently accepted because the validator's start-option arm only checked POSITION, never a trailing quantifier.
+
+**What changed (behavior-TIGHTENING: the start-option-quantified spellings flip ACCEPT→REJECT; verb/shorthand/MARK verdicts unchanged — the whole rule moves out-of-band validator → grammar; no rejects-valid changes).** PCRE2 (oracle `pcre2test` 10.47) makes `(*ACCEPT)` the ONLY quantifiable directive; every other `(*...)` form quantified is err 109 "quantifier does not follow a repeatable item". `regex.ebnf` now encodes this (`REGEX-PCRE2-FIDELITY.3.20`) via a piece-level split:
+
+| Rule | Example | Verdict (both = PGEN `1.1.87` = PCRE2 10.47) |
+|---|---|---|
+| Only `(*ACCEPT)` may take a quantifier | `(*ACCEPT)+` · `(*ACCEPT:x)+` · `(*ACCEPT){2,3}` | ACCEPT (unchanged) |
+| A quantified non-ACCEPT VERB / the `(*:x)` shorthand / MARK is err 109 | `(*PRUNE)+` · `(*FAIL)*` · `(*:x)+` · `(*MARK:x)+` | REJECT (was validator-owned; now grammar) |
+| A quantified START OPTION is err 109 | **`(*UTF)+` · `(*UCP)+` · `(*LIMIT_HEAP=5)+` (were wrongly accepted)** | REJECT |
+| A non-quantified directive is unaffected | `(*ACCEPT)` · `(*PRUNE)` · `(*:x)` · `(*UTF)` · `(*LIMIT_HEAP=5)` | ACCEPT (unchanged) |
+
+**AST shape.** Every accepted directive's AST is byte-identical (both `directive_verb` split rules keep the `{type:"atom", kind:"directive_verb", body}` carrier; `directive_accept_named` keeps the `{kind:"named", name, payload}` carrier). Only quantified non-ACCEPT directives change verdict (ACCEPT→REJECT). **AST-dump schema stays `1`.**
+
+**Relaxed profile.** A quantified KNOWN non-ACCEPT directive (`(*PRUNE)+`) rejects in `relaxed` too (recognized names keep their exact PCRE2 shape). A quantified UNKNOWN-name verb (`(*foo)+`) stays `relaxed`-ACCEPTED (relaxed = a strict superset that never newly rejects — the unknown-name catch-all is quantifiable), matching the pre-`.3.20` relaxed surface.
+
+**Rejection-layer.** The migrated verb/shorthand/MARK quantifier rejections move from the contract message (`only ACCEPT verb may be quantified…`) to `E_PARSE_FAILURE`; the start-option-quantified forms newly reject at the grammar (`E_PARSE_FAILURE`). As always, match on the diagnostic **code**, never message text.
+
+**Action for downstream (RGX):** the newly-rejected start-option-quantified spellings were PCRE2-invalid all along; adopting `1.1.87` aligns the accept set with PCRE2. Only patterns with a quantifier directly on a `(*...)` start option are affected (esoteric). Both profiles behave identically for recognized directive names.
 
 ## Release 1.1.86 / Contract 1.1.88 Highlights — REGEX-0095: a quantifier on a stray `\E` (a zero-width, TRANSPARENT construct) now rejects PCRE2-faithfully; grammar-encoded
 

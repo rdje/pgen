@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2d08348b.js";
+            window.path_to_searchindex_js = "searchindex-e11f7417.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -1519,16 +1519,18 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <pre><code class="language-ebnf">piece = piece_quoted_run_quantified -&gt; $1
       | anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
       | zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
+      | directive_verb_nonquant !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
       | atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}
       | atom zero_width+ quantifier
 -&gt; {type: "piece", atom: $1, quantifier: $3}
 </code></pre>
-<p>Five branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>; the two zero-width branches in release <code>1.1.86</code>, <code>REGEX-PCRE2-FIDELITY.3.19</code>). Because <code>|</code> is a <strong>longest-match tournament</strong> (ties → the earlier branch), branch ORDER matters only for ties:</p>
+<p>Six branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>; the two zero-width branches in release <code>1.1.86</code>, <code>REGEX-PCRE2-FIDELITY.3.19</code>; the non-quantifiable-directive branch in release <code>1.1.87</code>, <code>REGEX-PCRE2-FIDELITY.3.20</code>). Because <code>|</code> is a <strong>longest-match tournament</strong> (ties → the earlier branch), branch ORDER matters only for ties:</p>
 <ol>
 <li><strong>Quoted-run branch</strong>: <code>piece_quoted_run_quantified -&gt; $1</code>. Tried FIRST. Matches <code>\Q...\E quantifier</code> — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).</li>
 <li><strong>Anchor branch</strong>: <code>anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. Anchors (<code>^ $ \A \Z \z \b \B \G \K</code>) are <strong>non-quantifiable</strong> in PCRE2 (err 109) — and, crucially, OPAQUE: a quantifier after an anchor errors <em>even when a repeatable atom precedes</em> (<code>a^*</code> REJECTS). So an anchor forms a piece with NO quantifier slot; the <code>!quantifier</code> lookahead makes <code>^*</code>/<code>$*</code>/<code>\b*</code>/<code>\A{2}</code>-style patterns REJECT while non-quantifier braces (<code>${</code>, <code>\A{a}</code>, <code>\A{}</code>) still parse as anchor + literal-brace pieces. <code>anchor</code> is no longer an <code>atom</code> alternative. See ledger <code>REGEX-0088</code>.</li>
 <li><strong>Zero-width STANDALONE branch</strong> (<code>.3.19</code>): <code>zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. A stray <code>\E</code> (<code>zero_width</code> — see below) is PCRE2 zero-width but, <em>unlike</em> an anchor, TRANSPARENT. On its own it forms a non-quantifiable piece; a bare <code>\E*</code> REJECTS (err 109) because the standalone branch’s <code>!quantifier</code> fails and no other branch matches. Byte-identical to the pre-<code>1.1.86</code> stray-<code>\E</code> shape (<code>{type:"escape",kind:"shorthand",char:"E"}</code>, <code>quantifier: []</code>).</li>
-<li><strong>Standard atom branch</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. A single atom with an optional quantifier — the common case.</li>
+<li><strong>Non-quantifiable-directive branch</strong> (<code>.3.20</code>): <code>directive_verb_nonquant !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. In PCRE2 only <code>(*ACCEPT)</code> may take a quantifier; every other <code>(*...)</code> directive (the 6 non-ACCEPT verbs, MARK, the <code>(*:x)</code> shorthand, LIMIT, and the bare start options) quantified is err 109. Those directives are matched by <code>directive_verb_nonquant</code> (see the <a href="#directive_verb">directives chapter</a>) and form a non-quantifiable piece. Because <code>directive_verb</code> — the quantifiable directive rule kept in <code>atom</code> — now matches only <code>(*ACCEPT...)</code> and the relaxed unknown-name catch-all, a quantified non-ACCEPT directive fails this <code>!quantifier</code> lookahead AND finds no matching atom, so the whole parse REJECTS (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <code>(*LIMIT_HEAP=5)+</code> all err 109). See ledger <code>REGEX-0096</code>.</li>
+<li><strong>Standard atom branch</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. A single atom with an optional quantifier — the common case. <code>(*ACCEPT)+</code> accepts here (the ACCEPT directive is a quantifiable <code>atom</code>).</li>
 <li><strong>Zero-width ABSORPTION branch</strong> (<code>.3.19</code>): <code>atom zero_width+ quantifier -&gt; {type: "piece", atom: $1, quantifier: $3}</code>. Placed LAST. A quantifier reaches THROUGH ≥1 transparent stray <code>\E</code> to bind the preceding atom (<code>a\E*</code> = <code>a*</code>), with the <code>\E</code>(s) <strong>elided</strong> (PCRE2’s delete-<code>\E</code> model). The <code>+</code> confines this branch to exactly the <code>&lt;atom&gt; \E+ &lt;quantifier&gt;</code> case, so a plain <code>x*</code> is untouched (it never enters this branch). Being LAST, its <code>\Q\E*</code> tie (5 bytes, matched via <code>\Q</code>-escape + <code>\E</code> + <code>*</code>) <em>loses</em> to the earlier standard-atom branch (which reads <code>\Q\E</code> as one empty <code>quoted_literal</code> atom + quantifier) — so <strong>empty-<code>\Q\E</code>-quantified stays byte-unchanged as a deferred accepts-invalid divergence</strong> (<code>REGEX-PCRE2-FIDELITY.3.23</code>).</li>
 </ol>
 <p>For <code>\Qa\E{3}</code> (single-char quoted run), the quoted-run branch fails (it requires the inner-piece-list to be non-empty before the trailing char), so the standard-atom branch matches via the <code>quoted_literal</code> atom alternative.</p>
@@ -3260,19 +3262,36 @@ forms share <code>callout_arg</code>. String callout-args are not value-bounded 
 </code></pre>
 <p>2-way Or — recursion-by-number or recursion-by-name.</p>
 <h2 id="directive_verb"><a class="header" href="#directive_verb"><code>directive_verb</code></a></h2>
-<pre><code class="language-ebnf">directive_verb = "(*" directive_body ")"
+<pre><code class="language-ebnf">directive_verb          = "(*" directive_body_quantifiable ")"
+directive_verb_nonquant = "(*" directive_body_nonquantifiable ")"
 </code></pre>
-<p>Emits <code>{type:"atom", kind:"directive_verb", body:&lt;directive_body&gt;}</code>.</p>
-<h3 id="directive_body"><a class="header" href="#directive_body"><code>directive_body</code></a></h3>
-<pre><code class="language-ebnf">directive_body = directive_named | directive_mark_shorthand
+<p>Both emit <code>{type:"atom", kind:"directive_verb", body:&lt;...&gt;}</code> — the split (release <code>1.1.87</code>,
+<code>REGEX-PCRE2-FIDELITY.3.20</code>) is purely about <strong>quantifiability</strong>. In PCRE2 only <code>(*ACCEPT)</code> may take
+a quantifier; every other <code>(*...)</code> directive quantified is err 109. So <code>directive_verb</code> (the
+quantifiable rule, an <code>atom</code> alternative) matches only the ACCEPT verb and the relaxed unknown-name
+catch-all, while <code>directive_verb_nonquant</code> (matched only by the non-quantifiable
+<a href="#piece"><code>piece</code> branch</a> <code>directive_verb_nonquant !quantifier</code>) matches every other
+directive. Because <code>atom</code> no longer matches a non-ACCEPT directive, a quantified one rejects at the
+grammar (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <code>(*LIMIT_HEAP=5)+</code> all err 109; ledger <strong>REGEX-0096</strong>).</p>
+<h3 id="directive_body_quantifiable--directive_body_nonquantifiable"><a class="header" href="#directive_body_quantifiable--directive_body_nonquantifiable"><code>directive_body_quantifiable</code> / <code>directive_body_nonquantifiable</code></a></h3>
+<pre><code class="language-ebnf">directive_body_quantifiable    = directive_accept_named | directive_relaxed_named
+directive_body_nonquantifiable = directive_mark_named
+                               | directive_verb_named
+                               | directive_limit_named
+                               | directive_option_named
+                               | directive_mark_shorthand
 </code></pre>
-<p>2-way Or (both branches pass their object through).</p>
-<h3 id="directive_named--name-class-conditional-argument-shapes"><a class="header" href="#directive_named--name-class-conditional-argument-shapes"><code>directive_named</code> — name-class-conditional argument shapes</a></h3>
-<pre><code class="language-ebnf">directive_named = directive_mark_named
-                | directive_verb_named
-                | directive_limit_named
-                | directive_option_named
-                | directive_relaxed_named
+<p>The quantifiable body is the ACCEPT verb + the <code>@profiles:["relaxed"]</code> unknown-name catch-all (so
+relaxed <code>(*foo)+</code> stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, the
+<code>(*:x)</code> shorthand, LIMIT, and the bare start options. Both bodies pass their branch’s object through
+unchanged.</p>
+<h3 id="the-named-directive-classes--name-class-conditional-argument-shapes"><a class="header" href="#the-named-directive-classes--name-class-conditional-argument-shapes">the named-directive classes — name-class-conditional argument shapes</a></h3>
+<pre><code class="language-ebnf">directive_accept_named = "ACCEPT" directive_payload_colon?
+directive_mark_named   = "MARK" directive_payload_colon_required
+directive_verb_named   = directive_verb_name_nonaccept directive_payload_colon?
+directive_limit_named  = directive_limit_name directive_payload_equals
+directive_option_named = directive_option_name
+directive_relaxed_named = ... directive_name_relaxed directive_payload_suffix?
 </code></pre>
 <p><strong>REGEX-PCRE2-FIDELITY.3.14 (release 1.1.83) — the EBNF now owns PCRE2’s per-name-class ARGUMENT
 shapes</strong> (they previously lived in the host compile-contract; <code>.3.2</code> had already moved NAME
@@ -3284,8 +3303,9 @@ against <code>pcre2test</code> 10.47:</p>
 <tr><th>Branch</th><th>Names</th><th>Argument shape</th><th>Oracle boundary</th></tr>
 </thead>
 <tbody>
+<tr><td><code>directive_accept_named</code> (quantifiable)</td><td><code>ACCEPT</code></td><td>optional <code>:</code>-payload, empty allowed</td><td><code>(*ACCEPT)</code> / <code>(*ACCEPT:x)</code> ACCEPT; <strong>quantifiable</strong> — <code>(*ACCEPT)+</code> / <code>(*ACCEPT:x)+</code> ACCEPT</td></tr>
 <tr><td><code>directive_mark_named</code></td><td><code>MARK</code></td><td><code>:</code>-payload <strong>required non-empty</strong></td><td><code>(*MARK:x)</code> ACCEPT; <code>(*MARK)</code> / <code>(*MARK:)</code> REJECT (err 166); <code>(*MARK=x)</code> REJECT (err 160)</td></tr>
-<tr><td><code>directive_verb_named</code></td><td><code>FAIL F ACCEPT COMMIT PRUNE SKIP THEN</code></td><td>optional <code>:</code>-payload, empty allowed</td><td><code>(*PRUNE)</code> / <code>(*PRUNE:)</code> / <code>(*PRUNE:x)</code> ACCEPT; <code>(*PRUNE=x)</code> / <code>(*SKIP=)</code> REJECT (err 160)</td></tr>
+<tr><td><code>directive_verb_named</code></td><td><code>FAIL F COMMIT PRUNE SKIP THEN</code> (the 6 non-ACCEPT verbs)</td><td>optional <code>:</code>-payload, empty allowed</td><td><code>(*PRUNE)</code> / <code>(*PRUNE:)</code> / <code>(*PRUNE:x)</code> ACCEPT; <code>(*PRUNE=x)</code> / <code>(*SKIP=)</code> REJECT (err 160); <strong>not quantifiable</strong> — <code>(*PRUNE)+</code> REJECT (err 109)</td></tr>
 <tr><td><code>directive_limit_named</code></td><td><code>LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION</code></td><td><code>=digits</code> <strong>required</strong></td><td><code>(*LIMIT_HEAP=500)</code> ACCEPT; bare <code>(*LIMIT_HEAP)</code>, <code>(*LIMIT_HEAP=)</code>, <code>(*LIMIT_HEAP=abc)</code>, <code>(*LIMIT_HEAP:5)</code> REJECT (err 160)</td></tr>
 <tr><td><code>directive_option_named</code></td><td>the other 21 start options (<code>UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE</code>)</td><td><strong>bare only</strong></td><td><code>(*UTF)</code> ACCEPT; <code>(*UTF:x)</code> / <code>(*UTF=5)</code> / <code>(*CR=5)</code> / <code>(*TURKISH_CASING=5)</code> REJECT (err 160)</td></tr>
 <tr><td><code>directive_relaxed_named</code> (<code>@profiles: ["relaxed"]</code>)</td><td>any <strong>unrecognized</strong> <code>[A-Za-z][A-Za-z0-9_-]*</code> name</td><td>any suffix (<code>:</code>/<code>=</code>/bare)</td><td>relaxed-profile catch-all; see below</td></tr>
@@ -3313,11 +3333,16 @@ still reach the catch-all under <code>relaxed</code>.</p>
 </tbody>
 </table>
 </div>
+<p><strong>Quantifiability (release <code>1.1.87</code>, <code>REGEX-PCRE2-FIDELITY.3.20</code>, ledger REGEX-0096):</strong> only
+<code>(*ACCEPT)</code> may take a quantifier — grammar-encoded via the <code>directive_verb</code> /
+<code>directive_verb_nonquant</code> split above. A quantified KNOWN non-ACCEPT directive rejects in <strong>both</strong>
+profiles (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <code>(*LIMIT_HEAP=5)+</code> — err 109); a quantified UNKNOWN-name
+verb (<code>(*foo)+</code>) stays <code>relaxed</code>-accepted (the catch-all is quantifiable) and default-rejected.</p>
 <p>Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
 start-option <strong>position</strong> rule (<code>a(*UTF)</code> and <code>a(*LIMIT_HEAP=500)</code> reject — the <code>=</code>-form position
-hole was also fixed this release, ledger <strong>REGEX-0090</strong>), the LIMIT value <strong>range</strong> (overflow
-values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror), and the
-quantified-verb rule (only <code>(*ACCEPT)</code> may take a quantifier).</p>
+hole was fixed in release 1.1.83, ledger <strong>REGEX-0090</strong>) and the LIMIT value <strong>range</strong> (overflow
+values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror). The
+quantified-verb rule is now grammar-owned (above), no longer validator-owned.</p>
 <h3 id="directive_mark_shorthand"><a class="header" href="#directive_mark_shorthand"><code>directive_mark_shorthand</code></a></h3>
 <pre><code class="language-ebnf">directive_mark_shorthand = ":" directive_payload_required
 </code></pre>
@@ -5332,6 +5357,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1187--contract-1189--regex-0096-only-accept-may-take-a-quantifier-every-other--directive-quantified-now-rejects-pcre2-faithfully-grammar-encoded"><a class="header" href="#1187--contract-1189--regex-0096-only-accept-may-take-a-quantifier-every-other--directive-quantified-now-rejects-pcre2-faithfully-grammar-encoded">1.1.87 / Contract 1.1.89 — REGEX-0096: only <code>(*ACCEPT)</code> may take a quantifier; every other <code>(*...)</code> directive quantified now rejects PCRE2-faithfully; grammar-encoded</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR-TIGHTENING (release bump 1.1.86→1.1.87 / contract 1.1.88→1.1.89; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.3.20</code>; oracle <code>pcre2test</code> 10.47, a 17-cell matrix). PCRE2 makes <code>(*ACCEPT)</code> the ONLY quantifiable <code>(*...)</code> directive; every other form quantified is err 109. The verb/<code>(*:x)</code>-shorthand/MARK quantifier rejections were already correct (validator-owned); the NEW divergence is the <strong>start-option-quantified</strong> forms — <code>(*UTF)+</code> <code>(*UCP)+</code> <code>(*LIMIT_HEAP=5)+</code> were latently ACCEPTED (the validator’s start-option arm checked only POSITION, never a trailing quantifier). This slice migrates the whole quantified-verb rule out-of-band validator → grammar AND closes the start-option hole (<strong>REGEX-0096</strong>). Encoded structurally via a piece-level split: <code>directive_verb</code> (the quantifiable rule, an <code>atom</code>) = ACCEPT verb + the relaxed unknown-name catch-all; new <code>directive_verb_nonquant</code> (a non-quantifiable <code>piece</code> branch <code>directive_verb_nonquant !quantifier</code>) = the 6 non-ACCEPT verbs + MARK + <code>(*:x)</code> shorthand + LIMIT + bare options. <strong>Newly REJECT</strong>: <code>(*UTF)+</code> <code>(*UCP)+</code> <code>(*LIMIT_HEAP=5)+</code> (start options, the divergence) plus the validator→grammar-moved <code>(*PRUNE)+</code> <code>(*FAIL)*</code> <code>(*:x)+</code> <code>(*MARK:x)+</code>. <strong>Still ACCEPT</strong> (unchanged): <code>(*ACCEPT)+</code> <code>(*ACCEPT:x)+</code> <code>(*ACCEPT){2,3}</code> and every non-quantified directive. <strong>AST</strong>: every accepted directive byte-identical (both split rules keep the <code>{type:"atom",kind:"directive_verb",body}</code> carrier; <code>directive_accept_named</code> keeps <code>{kind:"named",name,payload}</code>). <strong>Relaxed</strong>: a quantified KNOWN directive rejects in relaxed too; a quantified UNKNOWN-name verb (<code>(*foo)+</code>) stays relaxed-accepted (superset opt-out). Rejection LAYER: match on the <strong>code</strong> (<code>E_PARSE_FAILURE</code>), not message text. Both profiles behave identically for recognized names. Bug ledger: <code>REGEX-0096</code>. <strong>Contract section:</strong> “Release 1.1.87 / Contract 1.1.89 Highlights”. Rules detail: <code>rules-misc.md</code> (§ <code>directive_verb</code>) + <code>rules-piece.md</code> (§ <code>piece</code>).</p>
+</blockquote>
 <h3 id="1186--contract-1188--regex-0095-a-quantifier-on-a-stray-e-zero-width-transparent-now-rejects-pcre2-faithfully-grammar-encoded"><a class="header" href="#1186--contract-1188--regex-0095-a-quantifier-on-a-stray-e-zero-width-transparent-now-rejects-pcre2-faithfully-grammar-encoded">1.1.86 / Contract 1.1.88 — REGEX-0095: a quantifier on a stray <code>\E</code> (zero-width, TRANSPARENT) now rejects PCRE2-faithfully; grammar-encoded</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: BEHAVIOR-TIGHTENING (release bump 1.1.85→1.1.86 / contract 1.1.87→1.1.88; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.3.19</code>; oracle <code>pcre2test</code> 10.47, a 44-cell interaction map). A stray <code>\E</code> (an unmatched end-of-quote) is PCRE2 zero-width — and, unlike an anchor (opaque, <code>REGEX-0088</code>/<code>.3.13</code>), it is <strong>TRANSPARENT</strong>: a quantifier binds THROUGH it to the preceding repeatable atom (<code>a\E*</code> = <code>a*</code>, ACCEPT), but is err 109 when no repeatable predecessor is reachable through elision. <strong>A family of accepts-invalid spellings now REJECT</strong>: bare <code>\E*</code> <code>\E{2}</code> <code>\E\E*</code>; anchor-blocked <code>^\E*</code> <code>\A\E*</code> <code>a^\E*</code> (an anchor is non-repeatable and blocks the bind); group/alternation-edge <code>(\E*)</code> <code>|\E*</code> <code>a|\E*</code> <code>(a|\E*)</code> (<strong>REGEX-0095</strong>; all were latent — no prior validator check). Encoded structurally: stray <code>\E</code> is a non-quantifiable <code>zero_width</code> piece (dropped from <code>simple_escape_letter_strict</code>); <code>piece</code> gains a STANDALONE branch and an ABSORPTION branch (<code>atom zero_width+ quantifier</code>, placed last). <strong>AST</strong>: the 8 <code>&lt;atom&gt;\E&lt;quant&gt;</code> accept cells (<code>a\E*</code>, <code>ab\E*</code> binds <code>b</code>, <code>a\E\E*</code>, <code>\Qa\E\E*</code>, <code>()\E*</code>, <code>(a)\E*</code>, <code>(?:)\E*</code>, <code>(a|b)\E*</code>) now bind the quantifier to the repeatable atom with the stray <code>\E</code>(s) elided (<code>[piece(atom), piece(\E, quant)]</code> → <code>[piece(atom, quant)]</code>); all other accepted patterns byte-identical. Rejection LAYER: match on the <strong>code</strong> (<code>E_PARSE_FAILURE</code>). <strong>Deferred</strong> (<code>REGEX-PCRE2-FIDELITY.3.23</code>): empty <code>\Q\E</code>-quantified (<code>\Q\E*</code>, …) is still accepts-invalid and byte-UNCHANGED (entangles with the <code>\Q</code>-as-<code>simple_escape</code> / unterminated-<code>\Q...\E</code> model). Both profiles behave identically. Bug ledger: <code>REGEX-0095</code>. <strong>Contract section:</strong> “Release 1.1.86 / Contract 1.1.88 Highlights”. Rules detail: <code>rules-piece.md</code> (§ <code>piece</code>, § <code>zero_width</code>); examples: <code>examples-anchors.md</code> → “Stray <code>\E</code> transparent quantifier binding”.</p>

@@ -367,6 +367,15 @@ fn find_invalid_counted_quantifier(input: &str) -> Option<RegexCompileValidation
 }
 
 fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationError> {
+    // REGEX-PCRE2-FIDELITY.3.20: the quantified-verb rule (only `(*ACCEPT)` may be quantified) was
+    // MIGRATED into `grammars/regex.ebnf` — the non-ACCEPT directives are a non-quantifiable `piece`
+    // branch (`directive_verb_nonquant !quantifier`), so `(*PRUNE)+` `(*:x)+` `(*MARK:x)+` `(*UTF)+`
+    // `(*LIMIT_HEAP=5)+` all reject at the grammar layer (err-109-faithful). The ONLY rule this
+    // function still owns is the start-option POSITION rule (contextual — "every group before this
+    // one is a start option" — which the grammar cannot express without a whole-pattern restructure;
+    // validator-owned until capstone `.4`). Verb/start-option NAME acceptance and per-name ARGUMENT
+    // shapes are already grammar-owned (`.3.2`/`.3.14`); this walk therefore only re-checks position
+    // for a recognized start option and advances past every other `(*...)` construct.
     let bytes = input.as_bytes();
     let mut index = 0usize;
 
@@ -400,75 +409,22 @@ fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationErro
                     continue;
                 }
 
-                if name.is_empty() {
-                    // REGEX-PCRE2-FIDELITY.3.14: the MARK-shorthand non-empty-argument rule is
-                    // grammar-owned now (`directive_mark_shorthand` requires a payload char), so
-                    // only grammar-accepted `(*:payload)` forms reach this validator; the
-                    // quantified-verb rule stays here until `.3.20`/capstone `.4`.
-                    if let Some(group_end) = find_star_verb_end(bytes, index) {
-                        if quantifier_starts_at(bytes, group_end + 1).is_some() {
-                            return Some(RegexCompileValidationError::new(
-                                group_end + 1,
-                                "only ACCEPT verb may be quantified by the regex compile contract",
-                            ));
-                        }
-                        index = group_end + 1;
-                        continue;
-                    }
+                if is_pcre2_start_option_name(name) && !is_start_option_position(bytes, index) {
+                    // The start-option POSITION rule (contextual; covers bare and `=`-value forms).
+                    return Some(RegexCompileValidationError::new(
+                        index,
+                        "PCRE2 start option must appear at the start-option prefix",
+                    ));
                 }
 
-                if is_pcre2_start_option_name(name) {
-                    // REGEX-PCRE2-FIDELITY.3.14: the argument-shape rules (bare-only options,
-                    // `=digits`-required LIMIT_* forms) are grammar-owned now
-                    // (`directive_option_named` / `directive_limit_named`). The POSITION rule is
-                    // contextual (start options must form the pattern's `(*...)` prefix) and
-                    // stays validator-owned until capstone `.4`; it now covers `=`-value forms
-                    // too — the pre-`.3.14` check skipped them, so `a(*LIMIT_HEAP=500)` was
-                    // wrongly accepted (PCRE2 10.47 rejects, err 160 — ledger REGEX-0090).
-                    if !is_start_option_position(bytes, index) {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "PCRE2 start option must appear at the start-option prefix",
-                        ));
-                    }
-                    if let Some(group_end) = find_star_verb_end(bytes, index) {
-                        index = group_end + 1;
-                        continue;
-                    }
+                // Every other `(*...)` construct — verbs, MARK, the `(*:x)` shorthand, LIMIT/option
+                // argument shapes, quantifiability, and unrecognized names — is grammar-owned now;
+                // just advance past it.
+                if let Some(group_end) = find_star_verb_end(bytes, index) {
+                    index = group_end + 1;
+                    continue;
                 }
-
-                if is_pcre2_verb_name(name) {
-                    // REGEX-PCRE2-FIDELITY.3.14: the verb argument-shape rules (`:`-suffix only,
-                    // MARK requires a non-empty argument) are grammar-owned now
-                    // (`directive_mark_named` / `directive_verb_named`); only the
-                    // quantified-verb rule remains here until `.3.20`/capstone `.4`.
-                    if let Some(group_end) = find_star_verb_end(bytes, index) {
-                        if !matches!(name, "ACCEPT")
-                            && quantifier_starts_at(bytes, group_end + 1).is_some()
-                        {
-                            return Some(RegexCompileValidationError::new(
-                                group_end + 1,
-                                "only ACCEPT verb may be quantified by the regex compile contract",
-                            ));
-                        }
-                        index = group_end + 1;
-                        continue;
-                    }
-                } else {
-                    // REGEX-PCRE2-FIDELITY.3.2 (PGEN-REGEX-PCRE2-0008): verb/start-option NAME
-                    // acceptance is now owned by grammars/regex.ebnf (directive_name strict/relaxed).
-                    // The default (pcre2) profile rejects an unrecognized name STRUCTURALLY (the parse
-                    // fails before this validator runs); the relaxed profile admits it. So the former
-                    // out-of-band "unrecognized PCRE2 verb or start option" reject is removed — advance
-                    // past the construct instead. (The recognized-name STRUCTURAL checks above —
-                    // MARK-arg, start-option position, =value, quantified-ACCEPT — stay until capstone
-                    // .4 removes the whole validator.)
-                    if let Some(group_end) = find_star_verb_end(bytes, index) {
-                        index = group_end + 1;
-                        continue;
-                    }
-                    index += 1;
-                }
+                index += 1;
             }
             _ => index += 1,
         }
@@ -485,9 +441,9 @@ fn find_star_verb_end(bytes: &[u8], start: usize) -> Option<usize> {
 }
 
 fn is_pcre2_verb_name(name: &str) -> bool {
-    // REGEX-PCRE2-FIDELITY.3.14: the per-verb argument-shape distinction (MARK required vs the
-    // rest optional) migrated into grammars/regex.ebnf; the validator only needs the verb-name
-    // recognition for its remaining quantified-verb rule.
+    // REGEX-PCRE2-FIDELITY.3.14/.3.20: the per-verb argument-shape distinction AND the
+    // quantified-verb rule are both grammar-owned now; the validator keeps verb-name recognition
+    // solely so `star_directive_group_end_at` can skip a `(*VERB)` group in the lookbehind walk.
     matches!(
         name,
         "MARK" | "ACCEPT" | "F" | "FAIL" | "COMMIT" | "PRUNE" | "SKIP" | "THEN"
@@ -1290,19 +1246,10 @@ fn validate_scan_substring_capture_refs(
     None
 }
 
-fn quantifier_starts_at(bytes: &[u8], index: usize) -> Option<usize> {
-    if index >= bytes.len() {
-        return None;
-    }
-    match bytes[index] {
-        b'*' | b'+' | b'?' => Some(index),
-        b'{' => bytes[index + 1..]
-            .iter()
-            .position(|byte| *byte == b'}')
-            .map(|_| index),
-        _ => None,
-    }
-}
+// REGEX-PCRE2-FIDELITY.3.20: the `quantifier_starts_at` helper was removed with the quantified-verb
+// checks it fed (only `(*ACCEPT)` may be quantified is grammar-owned now — the non-quantifiable
+// `directive_verb_nonquant` piece branch). `is_pcre2_verb_name` / `find_star_verb_end` stay — still
+// used by `star_directive_group_end_at` for the lookbehind walk.
 
 fn find_unbounded_quantified_lookbehind(input: &str) -> Option<RegexCompileValidationError> {
     let bytes = input.as_bytes();
@@ -1893,10 +1840,15 @@ mod tests {
     }
 
     #[test]
-    fn rejects_quantified_non_accept_verb() {
-        let error =
-            validate_regex_compile_contract("a(*FAIL)+b").expect_err("must reject quantified FAIL");
-        assert!(error.message.contains("ACCEPT"));
+    fn quantified_verb_check_is_grammar_owned_now() {
+        // REGEX-PCRE2-FIDELITY.3.20: the contract layer no longer rejects a quantified non-ACCEPT
+        // verb — the grammar does (non-ACCEPT directives are a non-quantifiable `piece` branch,
+        // `directive_verb_nonquant !quantifier`). So the validator now ACCEPTS `a(*FAIL)+b` (the
+        // grammar parse rejects it before this pass runs). The PCRE2-faithful parse-layer verdict
+        // is pinned by `parser_registry::tests::
+        // regex_quantified_verb_rejects_at_the_grammar_layer_pcre2_faithfully`.
+        validate_regex_compile_contract("a(*FAIL)+b")
+            .expect("quantified-verb rejection is grammar-owned now — the validator passes it");
     }
 
     #[test]

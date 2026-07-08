@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0018 — REGEX-PCRE2-FIDELITY.3.20: implementation notes — quantified-verb piece-split
+
+**The oracle rule (30-cell matrix, pcre2test 10.47).** `(*ACCEPT)` is the ONLY quantifiable `(*...)`
+directive: `(*ACCEPT)+` `(*ACCEPT:x)+` `(*ACCEPT)*` `(*ACCEPT)?` `(*ACCEPT){2,3}` ACCEPT; every other
+form quantified is err 109 — the 6 non-ACCEPT verbs, the `(*:x)` shorthand, MARK, and (crucially) the
+start options `(*UTF)+` `(*UCP)+` `(*LIMIT_HEAP=5)+`.
+
+**The divergence the released parser had.** The verb / shorthand / MARK quantified forms were already
+rejected (validator `find_invalid_verb_construct`, two arms). But its start-option arm checked only
+POSITION (`is_start_option_position`) and never a trailing quantifier, so a prefix-position start
+option (`(*UTF)`, `(*LIMIT_HEAP=5)`) passed and the grammar's `atom quantifier?` bound the `+` — a
+latent accepts-invalid (`REGEX-0096`). So this slice both migrates the whole rule into the grammar AND
+closes the start-option hole.
+
+**Why a piece-level split (the `.3.13`/`.3.19` idiom), not a validator patch.** The whole
+quantified-verb rule was OUT-OF-BAND (invisible to stimuli generation — the generator emitted `(*F)+`,
+the standing duality break). Moving it into the grammar makes generation duality-faithful by
+construction. The split:
+- `directive_verb` (KEPT in `atom`, quantifiable) body = `directive_body_quantifiable =
+  directive_accept_named | directive_relaxed_named`. So `atom` matches ONLY `(*ACCEPT...)` and the
+  relaxed unknown-name catch-all.
+- NEW `directive_verb_nonquant` body = `directive_body_nonquantifiable` (mark/verb/limit/option/shorthand),
+  reachable ONLY through the new non-quantifiable `piece` branch `directive_verb_nonquant !quantifier`.
+- Both carry the identical `{type:"atom", kind:"directive_verb", body:$2}` carrier, so accepted ASTs
+  are byte-identical.
+
+Mechanics of the rejection: for `(*PRUNE)+`, the piece branch `directive_verb_nonquant !quantifier`
+matches `(*PRUNE)` then the `!quantifier` lookahead FAILS on `+` ⇒ backtrack; `atom quantifier?` then
+finds no atom matching `(*PRUNE)` (it's not ACCEPT/catch-all) ⇒ the whole parse rejects. `(*ACCEPT)+`
+flows through `atom quantifier?` unchanged.
+
+**The relaxed-guard subtlety.** The relaxed catch-all's negative lookahead must still exclude ALL 7
+recognized verb names (so `(*ACCEPT)` never ties between `directive_accept_named` and the catch-all,
+both in `directive_body_quantifiable`). Since I removed the 7-name `directive_verb_name` (only 6 needed
+now, for `directive_verb_named`), the guard swaps it for inline `"ACCEPT"` + `directive_verb_name_nonaccept`.
+`directive_verb_name_nonaccept` stays coverage-witnessed via its positive `directive_verb_named` use.
+
+**The relaxed-semantics decision (adjudicated within the ratified principle).** A quantified
+UNKNOWN-name verb `(*foo)+` stays relaxed-ACCEPTED — the catch-all is in the quantifiable body, so
+relaxed keeps accepting it (relaxed = a strict superset that never newly rejects), while a KNOWN
+non-ACCEPT directive rejects in both profiles. Verified on the release probe with `--profile relaxed`.
+
+**Validator cleanup.** `find_invalid_verb_construct` loses both quantified-verb arms and reduces to the
+start-option POSITION rule only (capstone `.4`). Its dead helper `quantifier_starts_at` was removed;
+`is_pcre2_verb_name` / `find_star_verb_end` stay (still used by `star_directive_group_end_at` for the
+lookbehind walk). The unit test `rejects_quantified_non_accept_verb` became
+`quantified_verb_check_is_grammar_owned_now` (asserts the validator now PASSES `a(*FAIL)+b`), mirroring
+the `.3.13` `quantified_anchor_check_is_grammar_owned_now` precedent.
+
+**Manifest churn.** The new `piece` branch shifted branch indices: `piece` gained branch 5, and the
+`atom quantifier?` / absorption entries moved 3→4 / 4→5; plus 2 new rule entries (`directive_accept_named`,
+`directive_verb_nonquant`), inserted alphabetically. Re-derived byte-exact from the regenerated
+`regex_return_annotations.json` (214 entries).
+
+**Known pre-existing staleness (NOT introduced here).** The `#[ignore]`d contract test
+`regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples` fixture
+(`regex_parser_integration_contract_v1.json`) still lists `directive_named` / `directive_name` in some
+`required_rule_names` / `expected_rule_texts` — `directive_name` was already deleted in `.3.14` and left
+there; the test is ignored (its inner rule_names are erased by codegen flattening, per its ignore
+reason) and is not a gate. The non-ignored success-sample test only checks parseability; all 93 success
+samples still parse (none is a quantified non-ACCEPT directive — verified). Left as-is per the `.3.14`
+precedent, pending the test's own reformulation.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0017 — REGEX-PCRE2-FIDELITY.3.19: implementation notes — stray-`\E` transparent-elision
 
 **The discriminating oracle fact.** The whole design turns on ONE `pcre2test` 10.47 pair: `a^*`

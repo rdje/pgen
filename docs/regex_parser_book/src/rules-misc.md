@@ -202,27 +202,44 @@ recursion_condition = "R" digits?
 ## `directive_verb`
 
 ```ebnf
-directive_verb = "(*" directive_body ")"
+directive_verb          = "(*" directive_body_quantifiable ")"
+directive_verb_nonquant = "(*" directive_body_nonquantifiable ")"
 ```
 
-Emits `{type:"atom", kind:"directive_verb", body:<directive_body>}`.
+Both emit `{type:"atom", kind:"directive_verb", body:<...>}` — the split (release `1.1.87`,
+`REGEX-PCRE2-FIDELITY.3.20`) is purely about **quantifiability**. In PCRE2 only `(*ACCEPT)` may take
+a quantifier; every other `(*...)` directive quantified is err 109. So `directive_verb` (the
+quantifiable rule, an `atom` alternative) matches only the ACCEPT verb and the relaxed unknown-name
+catch-all, while `directive_verb_nonquant` (matched only by the non-quantifiable
+[`piece` branch](rules-piece.md#piece) `directive_verb_nonquant !quantifier`) matches every other
+directive. Because `atom` no longer matches a non-ACCEPT directive, a quantified one rejects at the
+grammar (`(*PRUNE)+`, `(*:x)+`, `(*UTF)+`, `(*LIMIT_HEAP=5)+` all err 109; ledger **REGEX-0096**).
 
-### `directive_body`
+### `directive_body_quantifiable` / `directive_body_nonquantifiable`
 
 ```ebnf
-directive_body = directive_named | directive_mark_shorthand
+directive_body_quantifiable    = directive_accept_named | directive_relaxed_named
+directive_body_nonquantifiable = directive_mark_named
+                               | directive_verb_named
+                               | directive_limit_named
+                               | directive_option_named
+                               | directive_mark_shorthand
 ```
 
-2-way Or (both branches pass their object through).
+The quantifiable body is the ACCEPT verb + the `@profiles:["relaxed"]` unknown-name catch-all (so
+relaxed `(*foo)+` stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, the
+`(*:x)` shorthand, LIMIT, and the bare start options. Both bodies pass their branch's object through
+unchanged.
 
-### `directive_named` — name-class-conditional argument shapes
+### the named-directive classes — name-class-conditional argument shapes
 
 ```ebnf
-directive_named = directive_mark_named
-                | directive_verb_named
-                | directive_limit_named
-                | directive_option_named
-                | directive_relaxed_named
+directive_accept_named = "ACCEPT" directive_payload_colon?
+directive_mark_named   = "MARK" directive_payload_colon_required
+directive_verb_named   = directive_verb_name_nonaccept directive_payload_colon?
+directive_limit_named  = directive_limit_name directive_payload_equals
+directive_option_named = directive_option_name
+directive_relaxed_named = ... directive_name_relaxed directive_payload_suffix?
 ```
 
 **REGEX-PCRE2-FIDELITY.3.14 (release 1.1.83) — the EBNF now owns PCRE2's per-name-class ARGUMENT
@@ -233,8 +250,9 @@ against `pcre2test` 10.47:
 
 | Branch | Names | Argument shape | Oracle boundary |
 |---|---|---|---|
+| `directive_accept_named` (quantifiable) | `ACCEPT` | optional `:`-payload, empty allowed | `(*ACCEPT)` / `(*ACCEPT:x)` ACCEPT; **quantifiable** — `(*ACCEPT)+` / `(*ACCEPT:x)+` ACCEPT |
 | `directive_mark_named` | `MARK` | `:`-payload **required non-empty** | `(*MARK:x)` ACCEPT; `(*MARK)` / `(*MARK:)` REJECT (err 166); `(*MARK=x)` REJECT (err 160) |
-| `directive_verb_named` | `FAIL F ACCEPT COMMIT PRUNE SKIP THEN` | optional `:`-payload, empty allowed | `(*PRUNE)` / `(*PRUNE:)` / `(*PRUNE:x)` ACCEPT; `(*PRUNE=x)` / `(*SKIP=)` REJECT (err 160) |
+| `directive_verb_named` | `FAIL F COMMIT PRUNE SKIP THEN` (the 6 non-ACCEPT verbs) | optional `:`-payload, empty allowed | `(*PRUNE)` / `(*PRUNE:)` / `(*PRUNE:x)` ACCEPT; `(*PRUNE=x)` / `(*SKIP=)` REJECT (err 160); **not quantifiable** — `(*PRUNE)+` REJECT (err 109) |
 | `directive_limit_named` | `LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION` | `=digits` **required** | `(*LIMIT_HEAP=500)` ACCEPT; bare `(*LIMIT_HEAP)`, `(*LIMIT_HEAP=)`, `(*LIMIT_HEAP=abc)`, `(*LIMIT_HEAP:5)` REJECT (err 160) |
 | `directive_option_named` | the other 21 start options (`UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE`) | **bare only** | `(*UTF)` ACCEPT; `(*UTF:x)` / `(*UTF=5)` / `(*CR=5)` / `(*TURKISH_CASING=5)` REJECT (err 160) |
 | `directive_relaxed_named` (`@profiles: ["relaxed"]`) | any **unrecognized** `[A-Za-z][A-Za-z0-9_-]*` name | any suffix (`:`/`=`/bare) | relaxed-profile catch-all; see below |
@@ -256,11 +274,17 @@ still reach the catch-all under `relaxed`.
 | `(*FOO)` `(*BAR:x)` `(*FOO=x)` `(*MARKX)` `(*accept)` (unrecognized / wrong case) | REJECT | ACCEPT |
 | `(*:)` `(*MARK)` `(*MARK:)` `(*SKIP=)` `(*UTF=5)` `(*LIMIT_HEAP)` (invalid shapes) | REJECT | REJECT |
 
+**Quantifiability (release `1.1.87`, `REGEX-PCRE2-FIDELITY.3.20`, ledger REGEX-0096):** only
+`(*ACCEPT)` may take a quantifier — grammar-encoded via the `directive_verb` /
+`directive_verb_nonquant` split above. A quantified KNOWN non-ACCEPT directive rejects in **both**
+profiles (`(*PRUNE)+`, `(*:x)+`, `(*UTF)+`, `(*LIMIT_HEAP=5)+` — err 109); a quantified UNKNOWN-name
+verb (`(*foo)+`) stays `relaxed`-accepted (the catch-all is quantifiable) and default-rejected.
+
 Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
 start-option **position** rule (`a(*UTF)` and `a(*LIMIT_HEAP=500)` reject — the `=`-form position
-hole was also fixed this release, ledger **REGEX-0090**), the LIMIT value **range** (overflow
-values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror), and the
-quantified-verb rule (only `(*ACCEPT)` may take a quantifier).
+hole was fixed in release 1.1.83, ledger **REGEX-0090**) and the LIMIT value **range** (overflow
+values reject in PCRE2 — a value-constraint slice blocked on the interpreter mirror). The
+quantified-verb rule is now grammar-owned (above), no longer validator-owned.
 
 ### `directive_mark_shorthand`
 

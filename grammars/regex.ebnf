@@ -91,9 +91,20 @@ concatenation  = piece+
 # as a deferred divergence (spun out to `.3.23`: it entangles with the
 # pre-existing `\Q`-as-`simple_escape` / unterminated-`\Q...\E` quoting
 # model). The EMPTY `\Q\E` is NOT a `zero_width` this slice.
+# REGEX-PCRE2-FIDELITY.3.20: only `(*ACCEPT)` may take a quantifier — every OTHER
+# `(*...)` directive (verbs, the `(*:x)` shorthand, MARK, LIMIT, start options)
+# rejects a following quantifier (PCRE2 err 109, oracle `pcre2test` 10.47:
+# `(*ACCEPT)+` `(*ACCEPT:x)+` ACCEPT; `(*PRUNE)+` `(*:x)+` `(*MARK:x)+` `(*UTF)+`
+# `(*LIMIT_HEAP=5)+` all reject). So the non-ACCEPT directives are a NON-quantifiable
+# `directive_verb_nonquant` piece branch (`!quantifier`, the anchor/`zero_width`
+# idiom), while `directive_verb` — now the ACCEPT-named form + the relaxed
+# unknown-name catch-all — stays a quantifiable `atom`. Because `atom` no longer
+# matches a non-ACCEPT directive, a quantified one fails `!quantifier` on this
+# branch AND finds no matching atom ⇒ the whole parse rejects err-109-faithfully.
 piece          = piece_quoted_run_quantified -> $1
                | anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}
                | zero_width !quantifier -> {type: "piece", atom: $1, quantifier: []}
+               | directive_verb_nonquant !quantifier -> {type: "piece", atom: $1, quantifier: []}
                | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
                | atom zero_width+ quantifier
 -> {type: "piece", atom: $1, quantifier: $3}
@@ -1375,11 +1386,30 @@ recursion_condition = "R" digits?                                             ->
                     | "R&" name                                               -> {kind: "recursion_named", name: $2}
 
 # PCRE2 verbs and start-of-pattern directives
-directive_verb    = "(*" directive_body ")"                        -> {type: "atom", kind: "directive_verb", body: $2}
-# `directive_body` per-branch: `directive_named` produces
-# `{kind:"named", name, payload}`; `directive_mark_shorthand` (the
-# `(*:foo)` shortcut) produces `{kind:"mark_shorthand", payload}`.
-directive_body    = directive_named | directive_mark_shorthand
+# REGEX-PCRE2-FIDELITY.3.20: `directive_verb` is split into two atom-producing
+# rules with the SAME `{type:"atom", kind:"directive_verb", body:$2}` carrier so
+# quantifiability is decided at the `piece` level (only `(*ACCEPT)` may be
+# quantified — oracle `pcre2test` 10.47). `directive_verb` (KEPT in `atom`,
+# quantifiable) matches the ACCEPT verb + the relaxed unknown-name catch-all;
+# `directive_verb_nonquant` (a NON-quantifiable `piece` branch) matches every
+# other directive (the 6 non-ACCEPT verbs, MARK, the `(*:x)` shorthand, LIMIT,
+# start options). Preserving the relaxed catch-all in the quantifiable rule keeps
+# relaxed `(*foo)+` accepted (relaxed = a strict superset that never newly
+# rejects), while a KNOWN non-ACCEPT directive stays non-quantifiable in BOTH
+# profiles (relaxed-parity: recognized names keep their exact PCRE2 shape).
+directive_verb    = "(*" directive_body_quantifiable ")"           -> {type: "atom", kind: "directive_verb", body: $2}
+directive_verb_nonquant = "(*" directive_body_nonquantifiable ")"  -> {type: "atom", kind: "directive_verb", body: $2}
+# The quantifiable body: the ACCEPT verb (`directive_accept_named`) + the
+# `@profiles:["relaxed"]` unknown-name catch-all. The non-quantifiable body: the
+# 6 non-ACCEPT verbs, MARK, the `(*:x)` shorthand, LIMIT, and the bare start
+# options. Each named branch keeps its released `{kind:"named", name, payload}` /
+# `{kind:"mark_shorthand", payload}` carrier byte-identically.
+directive_body_quantifiable    = directive_accept_named | directive_relaxed_named
+directive_body_nonquantifiable = directive_mark_named
+                               | directive_verb_named
+                               | directive_limit_named
+                               | directive_option_named
+                               | directive_mark_shorthand
 # PGEN-REGEX-PCRE2-0012 (`REGEX-PCRE2-FIDELITY.3.14`): name-class-conditional
 # argument SHAPES — the EBNF now owns PCRE2's per-name-class verb/start-option
 # argument rules, migrated out of `find_invalid_verb_construct` (oracle
@@ -1402,15 +1432,19 @@ directive_body    = directive_named | directive_mark_shorthand
 # (`a(*UTF)` rejects, err 160) is contextual — validator-owned until capstone
 # `.4`; the LIMIT value RANGE (`(*LIMIT_HEAP=<overflow>)` rejects, err 160) is
 # a value constraint (`@range` class) blocked on the interpreter mirror
-# (`STIMULI-SIGNOFF.13.2`); quantified-verb (`(*PRUNE)+` rejects, only
-# `(*ACCEPT)` quantifies) stays validator-owned (spun to `.3.20`).
-directive_named   = directive_mark_named
-                  | directive_verb_named
-                  | directive_limit_named
-                  | directive_option_named
-                  | directive_relaxed_named
+# (`STIMULI-SIGNOFF.13.2`). REGEX-PCRE2-FIDELITY.3.20: quantified-verb (only
+# `(*ACCEPT)` quantifies; `(*PRUNE)+` `(*:x)+` `(*UTF)+` `(*LIMIT_HEAP=5)+`
+# reject err 109) is now GRAMMAR-owned — the name-class rules below split into
+# the quantifiable ACCEPT form (`directive_accept_named`) and the
+# non-quantifiable rest, routed through `directive_verb`/`directive_verb_nonquant`.
+# REGEX-PCRE2-FIDELITY.3.20: the former flat `directive_named` alternation was
+# replaced by `directive_body_quantifiable`/`directive_body_nonquantifiable`
+# above (the H.10.1 proven-dead removal precedent). `directive_accept_named` is
+# the quantifiable ACCEPT verb; `directive_verb_named` now covers only the 6
+# non-ACCEPT verbs (via `directive_verb_name_nonaccept`).
+directive_accept_named = "ACCEPT" directive_payload_colon?            -> {kind: "named", name: $1, payload: $2}
 directive_mark_named   = "MARK" directive_payload_colon_required      -> {kind: "named", name: $1, payload: $2}
-directive_verb_named   = directive_verb_name directive_payload_colon? -> {kind: "named", name: $1, payload: $2}
+directive_verb_named   = directive_verb_name_nonaccept directive_payload_colon? -> {kind: "named", name: $1, payload: $2}
 directive_limit_named  = directive_limit_name directive_payload_equals -> {kind: "named", name: $1, payload: $2}
 directive_option_named = directive_option_name                        -> {kind: "named", name: $1, payload: []}
 # The relaxed catch-all re-admits any UNRECOGNIZED name with any `:`/`=`/bare
@@ -1425,7 +1459,12 @@ directive_option_named = directive_option_name                        -> {kind: 
 # so RELAXED-profile generation could emit a recognized name through this
 # branch; default-profile generation never activates it.
 @profiles: ["relaxed"]
-directive_relaxed_named = !( ( "MARK" | directive_verb_name | directive_limit_name | directive_option_name ) ( ":" | "=" | ")" ) ) directive_name_relaxed directive_payload_suffix? -> {kind: "named", name: $2, payload: $3}
+# REGEX-PCRE2-FIDELITY.3.20: the guard swaps `directive_verb_name` (the former
+# 7-name rule, removed) for inline `"ACCEPT"` + `directive_verb_name_nonaccept`,
+# so it still excludes ALL 7 recognized verb names at a name boundary — keeping
+# the strict shapes authoritative in both profiles and preventing an
+# `(*ACCEPT)`-in-relaxed tie between `directive_accept_named` and this catch-all.
+directive_relaxed_named = !( ( "MARK" | "ACCEPT" | directive_verb_name_nonaccept | directive_limit_name | directive_option_name ) ( ":" | "=" | ")" ) ) directive_name_relaxed directive_payload_suffix? -> {kind: "named", name: $2, payload: $3}
 directive_mark_shorthand = ":" directive_payload_required          -> {kind: "mark_shorthand", payload: $2}
 # Payload shapes, one per name class; `{separator, value}` carrier preserved.
 # The REQUIRED form demands at least one payload char (the PCRE2 err-166
@@ -1469,7 +1508,13 @@ directive_payload_suffix = ":" directive_payload_simple?              -> {separa
 # REGEX-PCRE2-FIDELITY.3.14: the former `directive_name` dispatch and flat
 # `directive_name_strict` enumeration (the `.3.2` split) were superseded by
 # these name-class rules and removed (the H.10.1 proven-dead precedent).
-directive_verb_name   = "FAIL" | "F" | "ACCEPT" | "COMMIT" | "PRUNE" | "SKIP" | "THEN"
+# REGEX-PCRE2-FIDELITY.3.20: `directive_verb_name` (the former 7-name rule incl.
+# `ACCEPT`) is removed — the quantifiable `ACCEPT` is handled by its own literal
+# in `directive_accept_named`, and only the 6 NON-ACCEPT verbs need a name rule
+# (`directive_verb_name_nonaccept`, used by `directive_verb_named` + the relaxed
+# guard, both positive references so it stays coverage-witnessed). LONGEST-FIRST
+# preserved (`FAIL`>`F`).
+directive_verb_name_nonaccept = "FAIL" | "F" | "COMMIT" | "PRUNE" | "SKIP" | "THEN"
 directive_limit_name  = "LIMIT_HEAP" | "LIMIT_MATCH" | "LIMIT_DEPTH" | "LIMIT_RECURSION"
 directive_option_name = "UTF32" | "UTF16" | "UTF8" | "UTF" | "UCP"
                       | "NOTEMPTY_ATSTART" | "NOTEMPTY"

@@ -1990,7 +1990,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             "(*LIMIT_RECURSION=10)", "(*LIMIT_HEAP=0)", // LIMIT_* with the required digits
             "(*LIMIT_HEAP=500)a", "(*LIMIT_MATCH=10)(*UCP)a", // start-option prefix then pattern
             "(*UTF)(*UCP)a", "a(*PRUNE:x)b", "(*MARK:x)(*FAIL)a", // verbs are position-free
-            "(*ACCEPT)+", "(*ACCEPT:x)+", // only ACCEPT quantifies (validator-owned, unchanged)
+            "(*ACCEPT)+", "(*ACCEPT:x)+", // only ACCEPT quantifies (grammar-owned since .3.20)
         ] {
             assert_eq!(
                 parse_sample("regex", pattern),
@@ -2023,6 +2023,75 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
                 parse_sample("regex", pattern),
                 Some(false),
                 "the default profile must keep rejecting the unrecognized name: {pattern}"
+            );
+        }
+    }
+
+    /// REGEX-PCRE2-FIDELITY.3.20 (ledger REGEX-0096): only `(*ACCEPT)` may take a quantifier —
+    /// every OTHER `(*...)` directive (the 6 non-ACCEPT verbs, MARK, the `(*:x)` shorthand, LIMIT,
+    /// and the bare start options) rejects a following quantifier at the GRAMMAR layer (the
+    /// non-quantifiable `directive_verb_nonquant !quantifier` piece branch; the two quantified-verb
+    /// arms of `find_invalid_verb_construct` were removed). PCRE2 10.47 oracle (`pcre2test`,
+    /// 2026-07-08): `(*ACCEPT)+` `(*ACCEPT:x)+` `(*ACCEPT){2,3}` ACCEPT; `(*PRUNE)+` `(*:x)+`
+    /// `(*MARK:x)+` err 109; and — the NEW `REGEX-0096` close — `(*UTF)+` / `(*LIMIT_HEAP=5)+`
+    /// (start-options quantified) also err 109, where the pre-`.3.20` validator only checked
+    /// start-option POSITION and latently accepted them.
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_quantified_verb_rejects_at_the_grammar_layer_pcre2_faithfully() {
+        // Quantified non-ACCEPT directives: REJECT (PCRE2 err 109).
+        for pattern in [
+            "(*PRUNE)+", "(*FAIL)*", "(*F)+", "(*SKIP)+", "(*COMMIT)+", "(*THEN)+", // verbs
+            "(*PRUNE){2}", "(*PRUNE){2,3}", "(*PRUNE){,2}", // counted forms
+            "(*:x)+", "(*:x){2}",   // the `(*:x)` shorthand
+            "(*MARK:x)+", "(*MARK:x){2}", // MARK
+            "(*UTF)+", "(*UCP)+",   // bare start options (REGEX-0096)
+            "(*LIMIT_HEAP=5)+",     // LIMIT start option (REGEX-0096)
+            "a(*PRUNE)+b",          // mid-pattern, real atoms around it
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "a quantified non-ACCEPT directive must reject (err 109): {pattern}"
+            );
+        }
+        // Only `(*ACCEPT)` quantifies: ACCEPT (every quantifier form). Bare non-ACCEPT directives
+        // (no quantifier) still accept — the split changed quantifiability only, not acceptance.
+        for pattern in [
+            "(*ACCEPT)+", "(*ACCEPT)*", "(*ACCEPT)?", "(*ACCEPT){2,3}", "(*ACCEPT){2,}",
+            "(*ACCEPT:x)+", "a(*ACCEPT)+b", // ACCEPT quantified, oracle-verified
+            "(*ACCEPT)", "(*PRUNE)", "(*:x)", "(*MARK:x)", "(*UTF)", "(*LIMIT_HEAP=5)", // bare
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "an ACCEPT-quantified or non-quantified directive must accept: {pattern}"
+            );
+        }
+        // The tightening applies in BOTH profiles for KNOWN names (the relaxed catch-all's
+        // recognized-name exclusion keeps them on their non-quantifiable strict shapes).
+        for pattern in ["(*PRUNE)+", "(*:x)+", "(*UTF)+", "(*LIMIT_HEAP=5)+", "(*MARK:x)+"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject a quantified KNOWN directive: {pattern}"
+            );
+        }
+        // RELAXED-SEMANTICS DECISION (REGEX-PCRE2-FIDELITY.3.20): a quantified UNKNOWN-name verb
+        // stays relaxed-ACCEPTED (relaxed = a strict superset that never newly rejects — the
+        // unknown-name catch-all is quantifiable), while the default profile keeps rejecting it.
+        for pattern in ["(*foo)+", "(*bar)*", "(*baz){2}"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_ok(),
+                "relaxed must keep accepting a quantified unknown-name verb: {pattern}"
+            );
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "the default profile must reject a quantified unknown-name verb: {pattern}"
             );
         }
     }

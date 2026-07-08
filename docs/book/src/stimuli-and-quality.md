@@ -1012,12 +1012,16 @@ what re-earns the duality picture outside that config.
 
 **The enumerated residual universe.** A scaled enumeration (16,000 directed samples
 across 8 seeds, plus a 6,000-sample plain diverse corpus replayed sample-by-sample
-through the real released parser) found exactly **two** residual classes and nothing
-else: the quantified-verb class (`(*FAIL)+` / `(*:_)*` / `(*COMMIT)*` — only `(*ACCEPT)`
-may be quantified; owned by `REGEX-PCRE2-FIDELITY.3.20`) and the start-option-position
-class (`E(*UTF16)` / `E(*CASELESS_RESTRICT)` — a start option not at the pattern prefix;
-validator-owned until the capstone finds a grammar shape). The counted-quantifier latent
-class (`a{5,2}`) did not surface even at this budget. Honest bound: the gate sees only
+through the real released parser) found exactly **two** residual classes: the
+quantified-verb class (`(*FAIL)+` / `(*:_)*` / `(*COMMIT)*` — only `(*ACCEPT)` may be
+quantified) and the start-option-position class (`E(*UTF16)` /
+`E(*CASELESS_RESTRICT)` — a start option not at the pattern prefix). The
+quantified-verb class was **closed** by `REGEX-PCRE2-FIDELITY.3.20` (release `1.1.87`,
+ledger `REGEX-0096`; grammar-encoded — non-ACCEPT directives are a non-quantifiable
+`piece` branch, so the generator no longer emits a quantified verb), leaving the
+start-option-position class as the sole remaining plain-config duality class
+(validator-owned until the capstone `.4` finds a grammar shape). The counted-quantifier
+latent class (`a{5,2}`) did not surface even at this budget. Honest bound: the gate sees only
 generator-emitted-but-parser-**rejected** samples — accepts-invalid divergences where
 generator and parser agree (the oracle-differential classes) are invisible to it by
 construction. Those are closed instead by the `pcre2test` oracle-differential lane: the

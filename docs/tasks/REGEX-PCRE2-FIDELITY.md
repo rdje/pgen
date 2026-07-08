@@ -689,22 +689,114 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   candidate design = model `\Q...\E` (and unterminated `\Q...`) as first-class quoting, then empty `\Q\E`
   is naturally a non-quantifiable `zero_width` joining the `.3.19` stray-`\E` treatment. Oracle matrix +
   interpreter divergence set pinned in this leaf.
-- ID: `.3.20`  Status: `pending` (spun out of `.3.14`'s in-slice adjudication, 2026-07-08; oracle matrix
-  already pinned; NO LONGER latent-only — the post-`.3.14` hunter re-run OBSERVED it at seed 42:
-  `DUALITY-BREAK: signature="only ACCEPT verb may be quantified…" shrunk_reproducer="(*F)+"`)
+- ID: `.3.20`  Status: **`done`** (`PGEN-REGEX-PCRE2-0018`, session #69 2026-07-08; regex release
+  `1.1.86`→**`1.1.87`**, contract `1.1.88`→**`1.1.89`**, AST-dump schema stays `1`, ledger
+  **`REGEX-0096`**; spun out of `.3.14`'s in-slice adjudication; oracle matrix re-pinned this session;
+  the post-`.3.14` hunter had OBSERVED it at seed 42: `DUALITY-BREAK: signature="only ACCEPT verb may
+  be quantified…" shrunk_reproducer="(*F)+"`)
   Goal: QUANTIFIED-VERB encoding — only `(*ACCEPT)` may take a quantifier (oracle
   `pcre2test` 10.47: `(*ACCEPT)+` AND `(*ACCEPT:x)+` ACCEPT; `(*:x)+` `(*PRUNE)+` `(*FAIL)*` `(*MARK:x)+`
   all err 109). Candidate mechanism = the `.3.13` piece-level split (non-ACCEPT `directive_verb` forms get
   a `!quantifier` piece branch; the ACCEPT-named form stays quantifiable in `atom`). Adjudicated OUT of
-  `.3.14` to keep that slice bounded to arg shapes AND because it needs its own relaxed-semantics decision:
-  quantified UNKNOWN-name verbs (`(*foo)+`) are relaxed-ACCEPTED today and a piece-level `!quantifier` on
-  the relaxed catch-all would newly reject them (a relaxed-surface behavior change to adjudicate) plus the
-  lookahead-blind generation interplay. The validator's quantified-verb branches (both the empty-name and
-  named arms of `find_invalid_verb_construct`) stay until this leaf or capstone `.4`. GATE-PINNED
-  (`STIMULI-SIGNOFF.13.3`, 2026-07-08): this class's signature (`only ACCEPT verb may be quantified…`) is
-  pinned with THIS leaf as owner in `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json`
-  (regex scaled lanes, all 3 seeds) — the closing slice MUST re-baseline that contract same-commit
-  (the vanished-signature discipline; `make -C rust duality_hunt_gate` fails until it does).
+  `.3.14` to keep that slice bounded to arg shapes AND because it needs its own relaxed-semantics decision.
+  GATE-PINNED (`STIMULI-SIGNOFF.13.3`, 2026-07-08): this class's signature (`only ACCEPT verb may be
+  quantified…`) is pinned with THIS leaf as owner in
+  `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json` (regex canonical seed0 + scaled
+  seed0/seed42) — the closing slice MUST re-baseline that contract same-commit (the vanished-signature
+  discipline; `make -C rust duality_hunt_gate` fails until it does).
+
+  **🔎 IN-SLICE OScope (tools-first, session #69): the oracle matrix widens the class beyond the leaf's
+  stated `(*PRUNE)+`/`(*:x)+`/`(*MARK:x)+` set — EVERY `(*...)` directive except `(*ACCEPT)` rejects a
+  following quantifier (err 109).** `pcre2test` 10.47 (this session): `(*ACCEPT)+` `(*ACCEPT:x)+`
+  `(*ACCEPT)*` `(*ACCEPT)?` `(*ACCEPT){2,3}` ACCEPT; `(*:x)+` `(*PRUNE)+` `(*FAIL)*` `(*F)+` `(*SKIP)+`
+  `(*COMMIT)+` `(*THEN)+` `(*MARK:x)+` **`(*UTF)+` `(*LIMIT_HEAP=5)+`** all err 109. The released
+  parser (`1.1.86`) matches the oracle on verbs/shorthand/MARK (validator-rejected) but **ACCEPTS
+  `(*UTF)+` / `(*LIMIT_HEAP=5)+`** — a NEW latent accepts-invalid: `find_invalid_verb_construct`'s
+  start-option arm (`regex_compile_validation.rs:420-438`) checks POSITION but never a trailing
+  quantifier, so a prefix-position start-option passes and the grammar's `atom quantifier?` binds the
+  `+`. So `.3.20` both MIGRATES the existing verb/shorthand/MARK quantifier checks to the grammar AND
+  CLOSES the start-option-quantified hole (ledger `REGEX-0096`).
+
+  **🔎 RELAXED-SEMANTICS DECISION (within the ratified `project_regex_pcre2_faithful_by_default`
+  principle — relaxed = a strict SUPERSET opt-out that only GAINS acceptance, never newly rejects):
+  preserve relaxed acceptance of quantified UNKNOWN-name verbs `(*foo)+`.** Encode: the two quantifiable
+  directive forms (`(*ACCEPT...)` and the `@profiles:["relaxed"]` catch-all `directive_relaxed_named`)
+  stay in `atom` (quantifiable); every KNOWN non-ACCEPT directive moves to a non-quantifiable piece
+  branch. So in DEFAULT (pcre2) `(*foo)+` still rejects (catch-all disabled ⇒ no directive matches ⇒
+  parse fails); in RELAXED `(*foo)+` still ACCEPTS (catch-all quantifiable) while a KNOWN `(*PRUNE)+`
+  rejects in BOTH profiles (the established relaxed-parity design — known names keep their exact PCRE2
+  shape, unknown names are permissively accepted). No relaxed regression.
+
+  **FINAL ENCODE (Model — piece-level split, the `.3.13`/`.3.19` idiom; validated pre-rebuild via the
+  regex-CERTIFIED interpreter):**
+  (1) Split `directive_verb` (the single quantifiable-`atom` rule) into two atom-producing rules with
+  the SAME `{type:"atom", kind:"directive_verb", body:$2}` carrier: `directive_verb` (KEPT in `atom`,
+  quantifiable) whose body is `directive_body_quantifiable = directive_accept_named | directive_relaxed_named`,
+  and NEW `directive_verb_nonquant` whose body is `directive_body_nonquantifiable = directive_mark_named |
+  directive_verb_named | directive_limit_named | directive_option_named | directive_mark_shorthand`.
+  (2) `directive_accept_named = "ACCEPT" directive_payload_colon?` (the ACCEPT verb, byte-identical
+  `{kind:"named",name,payload}` carrier); `directive_verb_named` re-points to `directive_verb_name_nonaccept
+  = "FAIL" | "F" | "COMMIT" | "PRUNE" | "SKIP" | "THEN"` (ACCEPT removed). The relaxed guard swaps
+  `directive_verb_name` → inline `"ACCEPT"` + `directive_verb_name_nonaccept` so it still excludes ALL 7
+  recognized verb names at a name boundary (keeping the strict shapes authoritative in both profiles and
+  avoiding an `(*ACCEPT)`-in-relaxed accept_named⟷catch-all tie). REMOVE the now-dead `directive_body`,
+  `directive_named`, `directive_verb_name` (the H.10.1 proven-dead precedent). (3) `piece` gains a
+  STANDALONE branch `directive_verb_nonquant !quantifier -> {type:"piece", atom:$1, quantifier:[]}` placed
+  with the other non-quantifiable branches (after `zero_width !quantifier`, before `atom quantifier?`).
+  Since `atom`'s directive coverage is now ACCEPT+catch-all only, a quantified non-ACCEPT directive:
+  `directive_verb_nonquant !quantifier` matches the directive then the `!quantifier` lookahead FAILS on
+  the trailing quantifier ⇒ backtrack, and `atom quantifier?` finds no matching atom ⇒ whole parse REJECTS
+  (err-109-faithful). (4) Validator: `find_invalid_verb_construct` loses both quantified-verb arms (the
+  empty-name shorthand check + the named-verb check) — it reduces to the start-option POSITION rule only
+  (capstone `.4` scope); dead helper `quantifier_starts_at` removed (`is_pcre2_verb_name`/`find_star_verb_end`
+  stay — still used by `star_directive_group_end_at`). AST byte-identical for every accepted directive
+  (all carriers unchanged); the only behavior change is quantified non-ACCEPT directives flip ACCEPT→REJECT
+  (verbs/shorthand/MARK move validator→grammar, no verdict change; start-options newly reject —
+  `REGEX-0096`). Both profiles tighten identically for KNOWN names; relaxed `(*foo)+` preserved.
+
+  ### REGEX-PCRE2-FIDELITY.3.20 — Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — release probe `1.1.86`: `printf '(*UTF)+' | parseability_probe --parse
+    regex` → ACCEPT and `printf '(*LIMIT_HEAP=5)+'` → ACCEPT, where `pcre2test` 10.47 rejects both err
+    109; verbs/shorthand/MARK quantified already rejected. A 30-cell oracle matrix pinned this session
+    (release-probe vs `pcre2test`): only `(*ACCEPT)`-family quantified ACCEPTs; all other directives
+    quantified REJECT.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — quantified-verb checks were OUT-OF-BAND in
+    `regex_compile_validation.rs::find_invalid_verb_construct` (empty-name arm `:403-418` + named-verb arm
+    `:440-456`), and the start-option arm (`:420-438`) never checked a trailing quantifier at all ⇒
+    `(*UTF)+`/`(*LIMIT_HEAP=5)+` latently accepted. `directive_verb` was a single quantifiable `atom`
+    (`grammars/regex.ebnf:270,1378`), so the grammar imposed no per-name quantifiability rule.
+  - [x] **FIX (tier: GRAMMAR — no engine; validator loses two arms)** — piece-level split per FINAL
+    ENCODE: `directive_verb` (quantifiable, ACCEPT + relaxed catch-all) stays in `atom`; NEW
+    `directive_verb_nonquant` (the rest) is a non-quantifiable `piece` branch (`directive_verb_nonquant
+    !quantifier`). Validator's two quantified-verb arms + dead `quantifier_starts_at` DELETED. `lint` 0
+    errors / 0 undefined-refs.
+  - [x] **ADDRESSED (verified)** — 30-cell release-probe verdict matrix == `pcre2test` 10.47 (**0
+    mismatches**): `(*UTF)+`/`(*LIMIT_HEAP=5)+` flip ACCEPT→REJECT, `(*ACCEPT)+`/`(*ACCEPT:x)+`/
+    `(*ACCEPT){2,3}` accept, all bare directives accept. Relaxed matrix (`--profile relaxed`) confirms the
+    RELAXED-SEMANTICS decision: `(*foo)+`/`(*bar)*`/`(*baz){2}` relaxed-ACCEPT / default-REJECT; KNOWN
+    `(*PRUNE)+`/`(*UTF)+`/`(*LIMIT_HEAP=5)+` reject in BOTH. New pin
+    `parser_registry::tests::regex_quantified_verb_rejects_at_the_grammar_layer_pcre2_faithfully` green.
+  - [x] **NO REGRESSION** — regex cert `total=232 witness=232 UNKNOWN=0 fully_certified=true spf=0` at
+    seeds 0/7/42 (230→232 = net +2 rules, all witnessed, NO gap); `--lint-grammar` 0 errors (232 rules);
+    dual-feature lib suite **891 passed / 0 failed / 29 ignored** (890→891 = the new registry pin;
+    `parse_harness_equivalence_gate` ✅ regex stays differential-CERTIFIED over the new grammar,
+    `ast_shape_contract` regex ✅ manifest 211→214, version drift gate ✅, all 93 contract success samples
+    parse); `duality_hunt_gate` ✅ re-baselined same-commit (the `only ACCEPT verb…` signature VANISHED
+    from all lanes; the sole remaining regex class is the start-option-position class owned by `.4`, now
+    in all 6 regex lanes — RNG-stream shift, NO novel class; tripwire green); `regex_pcre2_compile_oracle_gate`
+    ✅ byte-identical baseline v11 (conformance-neutral — the start-option-quantified forms aren't in the
+    2189-cell corpus, the `.3.19` precedent); `mdbook_docs_gate` + `regex_parser_book_gate` ✅.
+  - [x] **LOCKSTEP** — ledger `REGEX-0096` + `embedding_api.rs` version consts (release **1.1.87** /
+    contract **1.1.89**, schema `1`) + tracked contract JSON (`regex_parser_integration_contract_v1.json`
+    version fields) + contract MD (Identity + "Release 1.1.87 / Contract 1.1.89 Highlights"); regex book
+    (`rules-misc` § `directive_verb` rewritten, `rules-piece` § `piece` 6 branches, `changelog-index`) +
+    tracked `regex_parser_book-html` regenerated; top book `parser-families` version chain +
+    `stimuli-and-quality` residual-universe note (top book-html is gitignored); ast_shape manifest inventory
+    211→214 (re-derived byte-exact from the regenerated inventory); duality contract re-baseline; live docs
+    (CHANGES / DEVELOPMENT_NOTES / LIVE_ACHIEVEMENT_STATUS / MEMORY / TASK_TREE). Known pre-existing
+    staleness recorded (NOT introduced here): the `#[ignore]`d contract fixture's `directive_named`/
+    `directive_name` `required_rule_names` (see DEVELOPMENT_NOTES) — the non-ignored success test only
+    checks parseability; all 93 samples parse.
 - ID: `.3.21`  Status: `pending` (LATENT accepts-invalid divergence, oracle-verified 2026-07-08 during
   `.3.14`; UNBLOCKED like `.3.16` on 2026-07-08 — `STIMULI-SIGNOFF.13.2` landed the interpreter
   value-constraint mirror)  Goal: LIMIT `=value` RANGE — PGEN accepts `(*LIMIT_HEAP=99999999999999999999)` (the `.3.14`

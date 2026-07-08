@@ -13,10 +13,10 @@
       "seed": 0,
       "expected_signatures": [
         {
-          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
-          "owner": "REGEX-PCRE2-FIDELITY.3.20",
-          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
-          "example_reproducer": "(*:_)*"
+          "signature": "PCRE# start option must appear at the start-option prefix",
+          "owner": "REGEX-PCRE2-FIDELITY.4",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). REGEX-PCRE2-FIDELITY.3.20 closed the quantified-verb class in this lane; the position class now surfaces here (RNG-stream shift, not a novel class).",
+          "example_reproducer": "|(*CR)"
         }
       ]
     },
@@ -27,7 +27,14 @@
       "rounds": 20,
       "samples_per_round": 5,
       "seed": 7,
-      "expected_signatures": []
+      "expected_signatures": [
+        {
+          "signature": "PCRE# start option must appear at the start-option prefix",
+          "owner": "REGEX-PCRE2-FIDELITY.4",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). Surfaced in this lane after REGEX-PCRE2-FIDELITY.3.20 shifted the RNG stream (not a novel class).",
+          "example_reproducer": "()(*NOTEMPTY)"
+        }
+      ]
     },
     {
       "lane_id": "regex_canonical_seed42",
@@ -81,15 +88,9 @@
       "seed": 0,
       "expected_signatures": [
         {
-          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
-          "owner": "REGEX-PCRE2-FIDELITY.3.20",
-          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
-          "example_reproducer": "(*FAIL)+"
-        },
-        {
           "signature": "PCRE# start option must appear at the start-option prefix",
           "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). REGEX-PCRE2-FIDELITY.3.20 closed the quantified-verb class pinned here.",
           "example_reproducer": "E(*CASELESS_RESTRICT)"
         }
       ]
@@ -101,7 +102,14 @@
       "rounds": 200,
       "samples_per_round": 10,
       "seed": 7,
-      "expected_signatures": []
+      "expected_signatures": [
+        {
+          "signature": "PCRE# start option must appear at the start-option prefix",
+          "owner": "REGEX-PCRE2-FIDELITY.4",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). Surfaced in this lane after REGEX-PCRE2-FIDELITY.3.20 shifted the RNG stream (not a novel class).",
+          "example_reproducer": "()(*NOTEMPTY)"
+        }
+      ]
     },
     {
       "lane_id": "regex_scaled_seed42",
@@ -112,15 +120,9 @@
       "seed": 42,
       "expected_signatures": [
         {
-          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
-          "owner": "REGEX-PCRE2-FIDELITY.3.20",
-          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
-          "example_reproducer": "(*FAIL)+"
-        },
-        {
           "signature": "PCRE# start option must appear at the start-option prefix",
           "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). REGEX-PCRE2-FIDELITY.3.20 closed the quantified-verb class pinned here.",
           "example_reproducer": "E(*UTF32)"
         }
       ]
