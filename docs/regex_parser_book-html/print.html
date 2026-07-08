@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1626cb8.js";
+            window.path_to_searchindex_js = "searchindex-ca53efdd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -961,7 +961,11 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>script_run_group</code></td><td><code>-&gt; {type:"atom", kind:"script_run_group", name:$2, body:$4}</code></td><td>Object. <code>name</code> is <code>"sr"</code>/<code>"script_run"</code>/<code>"asr"</code>/<code>"atomic_script_run"</code> (atomic vs non-atomic encoded in name).</td></tr>
 <tr><td><code>subroutine_call</code> (branch 0, with captures)</td><td><code>-&gt; {type:"atom", kind:"subroutine_call", target:$2}</code></td><td>Object. <code>target</code> is <code>returned_capture_subroutine</code> (target + capture-list).</td></tr>
 <tr><td><code>subroutine_call</code> (branch 1, plain)</td><td><code>-&gt; {type:"atom", kind:"subroutine_call", target:$2}</code></td><td>Same kind; <code>target</code> is just <code>subroutine_target</code>. Inspect <code>target</code> shape to determine syntactic form.</td></tr>
-<tr><td><code>char_class</code></td><td><code>-&gt; {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}</code></td><td>Object. <code>negated</code>/<code>initial_close</code> are <code>true</code> matched, <code>[]</code> un-matched. <code>body</code> is raw class_body shape; inner posix_class/class_range/etc. items typed by earlier slices propagate.</td></tr>
+<tr><td><code>char_class</code></td><td>3 alts (rel <code>1.1.84</code>): <code>-&gt; {type:"atom", kind:"char_class", negated:$2, initial_close:$4, body:$5}</code> / <code>{…, negated:$2, initial_close:[], body:$3}</code> / <code>{…, negated:[], initial_close:[], body:$2}</code></td><td>Object (one shape from all 3 alts). <code>negated</code>/<code>initial_close</code> are <code>true</code> matched, <code>[]</code> un-matched. <code>body</code> is the flat class-item list; opening-slot invisibles (<code>\E</code>, <code>\Q\E</code>) are dropped.</td></tr>
+<tr><td><code>class_negated_open</code></td><td><code>-&gt; $2</code></td><td>Passthrough of <code>negation</code>’s <code>true</code> — the PCRE2 negation opening (caret with surrounding invisibles), rel <code>1.1.84</code>.</td></tr>
+<tr><td><code>class_body_nonempty</code></td><td><code>-&gt; [$1*, $2, $3*]</code></td><td>Array — the flat class-item list (invisible prefix ++ first VISIBLE member ++ rest), rel <code>1.1.84</code>.</td></tr>
+<tr><td><code>class_body_nonempty_nocaret</code></td><td><code>-&gt; [$1*, $2, $3*]</code></td><td>Array — same flatten; the no-negation body whose first visible member is structurally caret-free, rel <code>1.1.84</code>.</td></tr>
+<tr><td><code>empty_quoted_class_literal</code></td><td><code>-&gt; {type:"class_quoted_literal", body:[]}</code></td><td>Object — the invisible empty <code>\Q\E</code>, typed identically to an empty <code>quoted_class_literal</code> (byte-parity across routes), rel <code>1.1.84</code>.</td></tr>
 <tr><td><code>negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), <code>[]</code> from un-matched <code>negation?</code> slot.</td></tr>
 <tr><td><code>class_initial_close</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), <code>[]</code> from un-matched <code>class_initial_close?</code> slot.</td></tr>
 <tr><td><code>conditional</code></td><td><code>-&gt; {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}</code></td><td>Object. <code>condition</code> is heterogeneous (typed signed_digits / “DEFINE” / <code>["R", ...]</code> / name string). <code>no_branch</code> is <code>[]</code> (no else) or `[“</td></tr>
@@ -969,6 +973,7 @@ assert!(contract.supports_regex_generated_backend);
 <tr><td><code>extended_class</code></td><td><code>-&gt; {type:"atom", kind:"extended_class", body:$2}</code></td><td>Object. <code>body</code> is raw <code>extended_class_content</code> shape; sub-rule typing of the recursive set-operation structure is a separate concern.</td></tr>
 <tr><td><code>class_range</code></td><td><code>-&gt; {type:"class_range", start:$1, end:$5}</code></td><td>Object. <code>start</code>/<code>end</code> are typed class_atoms (escape / clean string / quoted_class_range_atom). <code>class_zero_width*</code> slots (rare PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash) dropped from typed shape; consumers needing them fall back to raw.</td></tr>
 <tr><td><code>quoted_class_literal</code></td><td><code>-&gt; {type:"class_quoted_literal", body:$2}</code></td><td>Object. <code>body</code> is array of <code>quoted_class_literal_char*</code> matched chars (parallels <code>quoted_literal</code> slice 18).</td></tr>
+<tr><td><code>quoted_class_literal_nonempty</code></td><td><code>-&gt; {type:"class_quoted_literal", body:$2}</code></td><td>Object — the ≥1-char form filling the visible-member slot; same shape as <code>quoted_class_literal</code>, rel <code>1.1.84</code>.</td></tr>
 <tr><td><code>class_range_escape</code></td><td><code>-&gt; $2</code></td><td>Transparent passthrough — drops the leading <code>\</code> so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer <code>escape -&gt; $2</code> (slice 14).</td></tr>
 <tr><td><code>subroutine_target</code> (branch 0, <code>&amp;name</code>)</td><td><code>-&gt; {kind:"named", name:$2}</code></td><td>Object. Surfaces inside <code>subroutine_call.target</code>.</td></tr>
 <tr><td><code>subroutine_target</code> (branch 1, <code>P&gt;name</code>)</td><td><code>-&gt; {kind:"python_named", name:$2}</code></td><td>Distinct kind preserves Python syntax origin (paralleling <code>python_named_backreference</code> slice 19).</td></tr>
@@ -2166,222 +2171,296 @@ digits = /([0-9]+)/
 <p>Once <code>atom</code> is annotated, the discriminator becomes a clean <code>kind</code> field lookup. Until then, the structural-prefix dispatch above is the way.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="character-class-subtree"><a class="header" href="#character-class-subtree">Character Class Subtree</a></h1>
-<p>PCRE2 character classes (<code>[abc]</code>, <code>[a-z]</code>, <code>[^a-z]</code>, <code>[[:alpha:]]</code>, etc.) live under <code>char_class</code>. Many sub-rules. As of slice 8 (post-1.1.36), <code>posix_class</code> and <code>posix_negation</code> are annotated — <code>posix_class</code> emits a typed <code>{type:"posix_class", name, negated}</code> object directly. The remaining sub-rules (<code>char_class</code> outer, <code>class_body</code>, <code>class_item</code>, <code>class_range</code>, <code>class_atom</code>, <code>class_literal</code>, <code>class_escape</code>, <code>quoted_class_literal</code>, <code>stray_class_end_quote</code>) are still un-annotated and emit raw envelope shapes pending future task #40 slices.</p>
-<h2 id="char_class-1"><a class="header" href="#char_class-1"><code>char_class</code></a></h2>
-<pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
-</code></pre>
-<p>The 4-element Sequence of <code>[</code>, optional <code>^</code>, optional initial <code>]</code>, body, <code>]</code>.</p>
-<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
-<pre><code class="language-json">[
-  "[",
-  &lt;negation? — empty array or "^" terminal&gt;,
-  &lt;class_initial_close? — empty array or "]" terminal&gt;,
-  &lt;class_body — Quantified-* of class_item nodes&gt;,
-  "]"
-]
-</code></pre>
-<h3 id="example--input-abc-1"><a class="header" href="#example--input-abc-1">Example — input <code>[abc]</code></a></h3>
-<pre><code class="language-json">"atom": [
-  "[",
-  [],          // not negated
-  [],          // no initial close
-  [
-    [...class_item for "a"...],
-    [...class_item for "b"...],
-    [...class_item for "c"...]
-  ],
-  "]"
-]
-</code></pre>
-<h2 id="negation"><a class="header" href="#negation"><code>negation</code></a></h2>
-<pre><code class="language-ebnf">@generate: "^" if $1 else ""
-@semantic_value: $1 != null
-negation = "^"
-</code></pre>
-<p>Single-char <code>^</code>. Carries semantic annotations but no return annotation. Emits <code>Terminal("^")</code>.</p>
-<h2 id="class_initial_close"><a class="header" href="#class_initial_close"><code>class_initial_close</code></a></h2>
-<pre><code class="language-ebnf">class_initial_close = "]"
-</code></pre>
-<p>Allows a literal <code>]</code> as the first class char (PCRE2 quirk). Emits <code>Terminal("]")</code>.</p>
-<h2 id="class_body"><a class="header" href="#class_body"><code>class_body</code></a></h2>
-<pre><code class="language-ebnf">@generate: build_class_items_list($1)
-@semantic_value: flatten($1)
-@validate: all($1, item =&gt; is_valid_class_item(item))
-class_body = class_item*
-</code></pre>
-<p>Quantified-<code>*</code> of class items. <strong>Un-annotated</strong> (the <code>@generate</code>/<code>@semantic_value</code>/<code>@validate</code> directives are semantic annotations, not return annotations).</p>
-<h3 id="shape-1-4"><a class="header" href="#shape-1-4">Shape</a></h3>
-<p>A <code>Quantified</code> of class_item nodes. JSON: array of class_item shapes.</p>
-<h2 id="class_item"><a class="header" href="#class_item"><code>class_item</code></a></h2>
-<pre><code class="language-ebnf">class_item = posix_class
-           | stray_class_end_quote
-           | class_range
-           | quoted_class_literal
-           | class_literal
-           | class_escape
-</code></pre>
-<p>6-way Or, <strong>un-annotated</strong> at the rule level — each branch’s content varies. Note: branch 0 (<code>posix_class</code>) IS annotated as a typed <code>{type:"posix_class", name, negated}</code> object since slice 8; the other branches still emit raw envelope shapes.</p>
-<h3 id="branches-1"><a class="header" href="#branches-1">Branches</a></h3>
+<p>PCRE2 character classes (<code>[abc]</code>, <code>[a-z]</code>, <code>[^a-z]</code>, <code>[[:alpha:]]</code>, <code>[]x]</code>, …) live under
+<code>char_class</code>, which emits a <strong>typed</strong> <code>{type: "atom", kind: "char_class", negated, initial_close, body}</code> object. Since release <code>1.1.84</code> (<code>REGEX-PCRE2-FIDELITY.3.15</code>, ledger
+<code>REGEX-0091</code>) the grammar encodes the <strong>full PCRE2 class-open model</strong> — member <em>visibility</em>,
+negation-through-invisibles, and the initial-<code>]</code>-literal rule — all oracle-verified against
+<code>pcre2test</code> 10.47.</p>
+<h2 id="the-pcre2-class-open-model-what-the-grammar-encodes"><a class="header" href="#the-pcre2-class-open-model-what-the-grammar-encodes">The PCRE2 class-open model (what the grammar encodes)</a></h2>
+<p>PCRE2 reads a class opening like this, and so does this grammar:</p>
+<ol>
+<li><strong>Invisible items never count.</strong> A stray <code>\E</code> and the empty <code>\Q\E</code> are zero-width — they
+can appear anywhere in a class but never make it non-empty and never affect the opening
+rules. <code>[\E]</code> is <strong>rejected</strong> (err 106 in PCRE2): the <code>\E</code> is invisible, so the <code>]</code> becomes
+a literal member and the class is then unterminated.</li>
+<li><strong>The first non-invisible char after <code>[</code> is the negation caret</strong> (if it is <code>^</code>). So
+<code>[\E^a]</code> is a <em>negated</em> class of <code>a</code> — and a <code>^</code> anywhere later is an ordinary member:
+<code>[^^]</code> is a negated class containing the literal <code>^</code>.</li>
+<li><strong>A <code>]</code> seen before any visible member is a LITERAL member</strong> — immediately after the
+opening (<code>[]]</code>), after the negation (<code>[^]]</code>), or after invisibles (<code>[\E]x]</code> is the class
+<code>]x</code>). Only after at least one visible member (or that initial <code>]</code>-literal) does <code>]</code> close
+the class. <code>[]</code> and <code>[^]</code> therefore reject: the <code>]</code> is a member and nothing closes.</li>
+<li><strong>In-class <code>\Q</code> is always the quote-opener</strong>, never a shorthand escape. <code>[\Q]</code> quotes the
+<code>]</code> and leaves the class unterminated → reject.</li>
+</ol>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Branch</th><th>Form</th><th>Shape (current)</th></tr>
+<tr><th>Input</th><th>Verdict</th><th>Why</th></tr>
 </thead>
 <tbody>
-<tr><td>0</td><td><code>[:alpha:]</code>, etc.</td><td>typed <code>{"type":"posix_class","name":&lt;str&gt;,"negated":&lt;true | []&gt;}</code> object (slice 8)</td></tr>
-<tr><td>1</td><td>stray <code>\E</code> (PCRE2 zero-width marker)</td><td><code>Terminal("\\E")</code></td></tr>
-<tr><td>2</td><td><code>a-z</code>, etc.</td><td>nested <code>class_range</code> Sequence</td></tr>
-<tr><td>3</td><td><code>\Q...\E</code> inside class</td><td>nested <code>quoted_class_literal</code> Sequence</td></tr>
-<tr><td>4</td><td>single literal char</td><td><code>Terminal(&lt;char&gt;)</code></td></tr>
-<tr><td>5</td><td><code>\d</code>, <code>\w</code>, etc.</td><td>nested <code>class_escape</code> shape</td></tr>
+<tr><td><code>[\E]</code> <code>[\Q\E]</code> <code>[^\E]</code></td><td>REJECT</td><td>invisible-only — the <code>]</code> became a literal member, unterminated</td></tr>
+<tr><td><code>[\E]x]</code> <code>[\Q\E]]</code> <code>[^\E]x]</code></td><td>ACCEPT</td><td>invisibles skipped → initial <code>]</code> is a literal member</td></tr>
+<tr><td><code>[^^]</code> <code>[^\E^]</code></td><td>ACCEPT</td><td>the second caret is a member of the negated class</td></tr>
+<tr><td><code>[\E^a]</code></td><td>ACCEPT</td><td>negation recognized through the invisible <code>\E</code> (<code>negated: true</code>)</td></tr>
+<tr><td><code>[\E^]</code> <code>[\Q\E^]</code></td><td>REJECT</td><td>the caret negates → the class is then empty/unterminated</td></tr>
+<tr><td><code>[\Q^\E]</code> <code>[\^]</code></td><td>ACCEPT</td><td>a quoted/escaped caret is a member, never negation</td></tr>
+<tr><td><code>[\Q]</code> <code>[\Qa]</code> <code>[a\Q]</code></td><td>REJECT</td><td>unterminated in-class quote (the <code>]</code> is quoted)</td></tr>
+<tr><td><code>[]</code> <code>[^]</code></td><td>REJECT</td><td>the first <code>]</code> is a literal member; nothing closes the class</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="walking-a-class_item"><a class="header" href="#walking-a-class_item">Walking a class_item</a></h3>
+<h2 id="char_class-1"><a class="header" href="#char_class-1"><code>char_class</code></a></h2>
+<pre><code class="language-ebnf">char_class     = "[" class_negated_open? class_zero_width* class_initial_close class_body "]"    -&gt; {type: "atom", kind: "char_class", negated: $2, initial_close: $4, body: $5}
+               | "[" class_negated_open class_body_nonempty "]"              -&gt; {type: "atom", kind: "char_class", negated: $2, initial_close: [], body: $3}
+               | "[" class_body_nonempty_nocaret "]"                         -&gt; {type: "atom", kind: "char_class", negated: [], initial_close: [], body: $2}
+</code></pre>
+<p>Three alternatives, one typed shape:</p>
+<ul>
+<li><strong>Alt 1 — the initial-<code>]</code>-literal form</strong>: optional negation opening, optional invisibles,
+then a literal <code>]</code> member, then any items (<code>[]]</code>, <code>[^]a]</code>, <code>[\E]x]</code>).</li>
+<li><strong>Alt 2 — negated, ordinary body</strong>: a negation opening (which itself absorbs surrounding
+invisibles), then a body with ≥1 <em>visible</em> member (<code>[^a]</code>, <code>[^^]</code>, <code>[\E^a]</code>).</li>
+<li><strong>Alt 3 — non-negated, ordinary body</strong>: a body with ≥1 visible member whose <em>first</em> visible
+member is structurally caret-free — a leading bare <code>^</code> would have been the negation
+(<code>[abc]</code>, <code>[\Ea]</code>, <code>[a^]</code> — the caret is fine after the first member).</li>
+</ul>
+<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
+<pre><code class="language-json">{
+  "type": "atom",
+  "kind": "char_class",
+  "negated": &lt;true when a negation caret opened the class, [] otherwise&gt;,
+  "initial_close": &lt;true when the class opened with a literal-`]` member, [] otherwise&gt;,
+  "body": [ &lt;class item values, in source order — see class_item&gt; ]
+}
+</code></pre>
+<p>The invisible items consumed by the opening slots (<code>class_negated_open</code>, the alt-1
+<code>class_zero_width*</code>) are <strong>dropped</strong> from the typed shape (the same convention as
+<code>class_range</code>’s zero-width slots). Invisibles <em>inside</em> the body (after the first visible
+member) still appear as body items.</p>
+<h3 id="examples-all-verified-against-the-running-parser"><a class="header" href="#examples-all-verified-against-the-running-parser">Examples (all verified against the running parser)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Typed value</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[ab]</code></td><td><code>{"body": ["a", "b"], "initial_close": [], "negated": [], …}</code></td></tr>
+<tr><td><code>[]]</code></td><td><code>{"body": [], "initial_close": true, "negated": [], …}</code></td></tr>
+<tr><td><code>[\E]x]</code></td><td><code>{"body": ["x"], "initial_close": true, "negated": [], …}</code></td></tr>
+<tr><td><code>[^^]</code></td><td><code>{"body": ["^"], "initial_close": [], "negated": true, …}</code></td></tr>
+<tr><td><code>[\E^a]</code></td><td><code>{"body": ["a"], "initial_close": [], "negated": true, …}</code></td></tr>
+<tr><td><code>[a-z]</code></td><td><code>{"body": [{"type": "class_range", "start": "a", "end": "z"}], …}</code></td></tr>
+<tr><td><code>[[:alpha:]]</code></td><td><code>{"body": [{"type": "posix_class", "name": "alpha", "negated": []}], …}</code></td></tr>
+<tr><td><code>[\Qa\E]</code></td><td><code>{"body": [{"type": "class_quoted_literal", "body": ["a"]}], …}</code></td></tr>
+<tr><td><code>[a\Q\E]</code></td><td><code>{"body": ["a", {"type": "class_quoted_literal", "body": []}], …}</code></td></tr>
+<tr><td><code>[a\E]</code></td><td><code>{"body": ["a", "\\E"], …}</code> (an in-body stray <code>\E</code> stays a body item)</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>AST correction note (release <code>1.1.84</code>).</strong> <code>[\E^a]</code>, <code>[\Q\E^a]</code> and <code>[\E^-z]</code> previously
+parsed as <em>non-negated</em> classes carrying <code>"\\E"</code> and <code>"^"</code> as members. That was
+PCRE2-unfaithful; they are now <code>negated: true</code> with the invisibles dropped, as above.</p>
+</blockquote>
+<h2 id="class_negated_open"><a class="header" href="#class_negated_open"><code>class_negated_open</code></a></h2>
+<pre><code class="language-ebnf">class_negated_open = class_zero_width* negation class_zero_width*    -&gt; $2
+</code></pre>
+<p>The PCRE2 negation opening: the caret with its surrounding invisibles. The <code>-&gt; $2</code>
+passthrough keeps the classic <code>negated</code> slot convention — a matched optional contributes the
+bare <code>true</code>, an unmatched one contributes <code>[]</code>.</p>
+<h2 id="negation"><a class="header" href="#negation"><code>negation</code></a></h2>
+<pre><code class="language-ebnf">@generate: "^" if $1 else ""
+@semantic_value: $1 != null
+negation = "^"                                                 -&gt; true
+</code></pre>
+<p>Emits the typed <code>true</code>.</p>
+<h2 id="class_initial_close"><a class="header" href="#class_initial_close"><code>class_initial_close</code></a></h2>
+<pre><code class="language-ebnf">class_initial_close = "]"                                            -&gt; true
+</code></pre>
+<p>The literal-<code>]</code>-member marker (PCRE2 quirk: a <code>]</code> before any visible member is a member, not
+the terminator). Emits the typed <code>true</code> into the <code>initial_close</code> slot.</p>
+<h2 id="class_body"><a class="header" href="#class_body"><code>class_body</code></a></h2>
+<pre><code class="language-ebnf">class_body     = class_item*
+</code></pre>
+<p>The alt-1 body (after an initial <code>]</code>-literal): zero or more items, no visibility requirement
+(the <code>]</code>-literal already made the class non-empty). Its value is the flat item list.</p>
+<h2 id="class_body_nonempty--class_body_nonempty_nocaret"><a class="header" href="#class_body_nonempty--class_body_nonempty_nocaret"><code>class_body_nonempty</code> / <code>class_body_nonempty_nocaret</code></a></h2>
+<pre><code class="language-ebnf">class_body_nonempty = class_zero_width* class_item_visible class_item*   -&gt; [$1*, $2, $3*]
+class_body_nonempty_nocaret = class_zero_width* class_item_visible_nocaret class_item*   -&gt; [$1*, $2, $3*]
+</code></pre>
+<p>The ordinary bodies: optional invisible prefix, then <strong>one visible member</strong>, then any items.
+The <code>-&gt; [$1*, $2, $3*]</code> flatten keeps the value a single flat item list, byte-identical to
+the pre-<code>1.1.84</code> shape for every previously-accepted input. The <code>_nocaret</code> variant (used by
+the no-negation alternative) excludes a bare <code>^</code> from the <em>first visible</em> position only —
+that caret would have been the negation.</p>
+<h2 id="class_item"><a class="header" href="#class_item"><code>class_item</code></a></h2>
+<pre><code class="language-ebnf">class_item     = posix_class
+               | stray_class_end_quote
+               | class_range
+               | quoted_class_literal
+               | class_literal
+               | class_escape
+</code></pre>
+<p>The unrestricted item (used after the first visible member / after an initial <code>]</code>-literal).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Branch</th><th>Form</th><th>Typed value</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><code>[:alpha:]</code> etc.</td><td><code>{"type": "posix_class", "name": &lt;str&gt;, "negated": &lt;true | []&gt;}</code></td></tr>
+<tr><td>1</td><td>stray <code>\E</code> (zero-width)</td><td><code>"\\E"</code> (string)</td></tr>
+<tr><td>2</td><td><code>a-z</code> etc.</td><td><code>{"type": "class_range", "start": &lt;atom&gt;, "end": &lt;atom&gt;}</code></td></tr>
+<tr><td>3</td><td><code>\Q…\E</code> (possibly empty)</td><td><code>{"type": "class_quoted_literal", "body": [&lt;chars&gt;]}</code></td></tr>
+<tr><td>4</td><td>one literal char</td><td><code>"&lt;char&gt;"</code> (string)</td></tr>
+<tr><td>5</td><td><code>\d</code>, <code>\x41</code>, …</td><td>the typed escape object — see <a href="#escape-subtree">Escape Subtree</a></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="class_item_visible--class_item_visible_nocaret"><a class="header" href="#class_item_visible--class_item_visible_nocaret"><code>class_item_visible</code> / <code>class_item_visible_nocaret</code></a></h2>
+<pre><code class="language-ebnf">class_item_visible = posix_class
+                   | class_range
+                   | quoted_class_literal_nonempty
+                   | class_literal
+                   | class_escape
+class_item_visible_nocaret = posix_class
+                           | class_range
+                           | quoted_class_literal_nonempty
+                           | class_literal_nocaret
+                           | class_escape
+</code></pre>
+<p><code>class_item</code> minus the invisible forms (branch 1 stray <code>\E</code>; the <em>empty</em> <code>\Q\E</code>), preserving
+the same relative alternative order. The <code>_nocaret</code> variant swaps in <code>class_literal_nocaret</code>
+so a bare <code>^</code> cannot fill the first-visible slot of a non-negated class. Their values are the
+same typed values as the matching <code>class_item</code> branches — consumers never see a difference.</p>
+<h2 id="walking-a-class-body"><a class="header" href="#walking-a-class-body">Walking a class body</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn classify_class_item(item: &amp;Value) -&gt; ClassItemKind {
+</span>fn class_items(class_atom: &amp;Value) -&gt; Vec&lt;&amp;Value&gt; {
+    class_atom["body"].as_array().unwrap().iter().collect()
+}
+
+fn classify_class_item(item: &amp;Value) -&gt; ClassItemKind {
     match item {
-        // posix_class is now annotated as a typed object {type:"posix_class",...}
-        Value::Object(map) if map.get("type").and_then(|v| v.as_str()) == Some("posix_class")
-            =&gt; ClassItemKind::PosixClass,
-        Value::String(s) if s == "\\E" =&gt; ClassItemKind::StrayEndQuote,
-        Value::String(s) if s.len() == 1 =&gt; ClassItemKind::Literal(s),
-        Value::Array(arr) =&gt; {
-            match arr.first() {
-                Some(Value::String(s)) if s == "\\Q" =&gt; ClassItemKind::QuotedLiteral,
-                Some(Value::String(s)) if s == "\\" =&gt; ClassItemKind::Escape,
-                _ if arr.len() &gt;= 5 =&gt; ClassItemKind::Range,  // class_range has class_atom-class_atom shape
-                _ =&gt; ClassItemKind::Unknown,
-            }
-        }
+        Value::String(s) if s == "\\E" =&gt; ClassItemKind::StrayEndQuote, // zero-width
+        Value::String(s) =&gt; ClassItemKind::Literal(s),                  // one member char
+        Value::Object(map) =&gt; match map["type"].as_str() {
+            Some("posix_class") =&gt; ClassItemKind::PosixClass,
+            Some("class_range") =&gt; ClassItemKind::Range,
+            Some("class_quoted_literal") =&gt; ClassItemKind::QuotedLiteral,
+            Some("escape") =&gt; ClassItemKind::Escape,
+            _ =&gt; ClassItemKind::Unknown,
+        },
         _ =&gt; ClassItemKind::Unknown,
     }
 }
 <span class="boring">}</span></code></pre>
+<p>For <code>[abc-z]</code>: <code>body</code> = <code>["a", "b", {"type": "class_range", "start": "c", "end": "z"}]</code>.</p>
 <h2 id="posix_class"><a class="header" href="#posix_class"><code>posix_class</code></a></h2>
 <pre><code class="language-ebnf">@generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
-posix_class = "[:" posix_negation? posix_name ":]"
+posix_class    = "[:" posix_negation? posix_name ":]"
 -&gt; {type: "posix_class", name: $3, negated: $2}
-
-posix_negation = "^" -&gt; true
 </code></pre>
-<p><strong>Annotated</strong> as of slice 8 (post-1.1.36) — fixes <a href="#changelog-index">PGEN-RGX-0076</a>. Pre-fix the rule used <code>-&gt; $1</code> which extracted only the literal <code>"[:"</code> opener, silently discarding the POSIX class name and negation marker.</p>
-<h3 id="shape-2-3"><a class="header" href="#shape-2-3">Shape</a></h3>
-<pre><code class="language-json">{"type": "posix_class", "name": &lt;name&gt;, "negated": &lt;true | []&gt;}
-</code></pre>
-<ul>
-<li><code>name</code> is the matched POSIX class name as a string (<code>"alpha"</code>, <code>"digit"</code>, <code>"xdigit"</code>, etc. — one of the 14 names accepted by <code>posix_name</code>).</li>
-<li><code>negated</code> is the typed boolean <code>true</code> when the source has <code>^</code> after <code>[:</code> (e.g. <code>[[:^alpha:]]</code>), or the empty array <code>[]</code> when no <code>^</code> was matched. Consumers map <code>[]</code> → <code>false</code>. Same convention as <code>quantifier.greediness</code>. A future coalesce-operator slice will let the rule emit a bare <code>false</code> instead of <code>[]</code>.</li>
-</ul>
-<h3 id="examples-3"><a class="header" href="#examples-3">Examples</a></h3>
+<p>Typed object. <code>negated</code> is <code>true</code> for <code>[[:^alpha:]]</code>, <code>[]</code> when no <code>^</code> was matched
+(consumers map <code>[]</code> → <code>false</code>, the same convention as <code>quantifier.greediness</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Source</th><th>Output</th></tr>
+<tr><th>Input</th><th>Value</th></tr>
 </thead>
 <tbody>
-<tr><td><code>[[:alpha:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}</code></td></tr>
-<tr><td><code>[[:^alpha:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"alpha","negated":true}</code></td></tr>
-<tr><td><code>[[:digit:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"digit","negated":[]}</code></td></tr>
-<tr><td><code>[[:xdigit:]]</code></td><td><code>class_body[0] = {"type":"posix_class","name":"xdigit","negated":[]}</code></td></tr>
-<tr><td><code>[[:alpha:][:digit:]]</code></td><td>2-element class_body — both POSIX classes typed and disambiguated</td></tr>
+<tr><td><code>[[:alpha:]]</code></td><td><code>{"type": "posix_class", "name": "alpha", "negated": []}</code></td></tr>
+<tr><td><code>[[:^digit:]]</code></td><td><code>{"type": "posix_class", "name": "digit", "negated": true}</code></td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="consumer-extraction-1"><a class="header" href="#consumer-extraction-1">Consumer extraction</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn extract_posix_class(class_item: &amp;Value) -&gt; Option&lt;(String, bool)&gt; {
-    let obj = class_item.as_object()?;
-    if obj.get("type")?.as_str()? != "posix_class" {
-        return None;
-    }
-    let name = obj.get("name")?.as_str()?.to_string();
-    let negated = obj.get("negated").map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false);
-    Some((name, negated))
-}
-<span class="boring">}</span></code></pre>
 <h2 id="class_range"><a class="header" href="#class_range"><code>class_range</code></a></h2>
-<pre><code class="language-ebnf">@generate: "ch &gt;= '" + escape_char($1) + "' &amp;&amp; ch &lt;= '" + escape_char($5) + "'"
-@semantic_value: {type: "range", start: $1, end: $5}
-@validate: ord($1) &lt;= ord($5)
-class_range = class_atom class_zero_width* "-" class_zero_width* class_atom
+<pre><code class="language-ebnf">class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom   -&gt; {type: "class_range", start: $1, end: $5}
 </code></pre>
-<p>5-element Sequence: <code>[&lt;start_atom&gt;, &lt;zero-width-prefix*&gt;, "-", &lt;zero-width-suffix*&gt;, &lt;end_atom&gt;]</code>. <strong>Un-annotated</strong> at the return-annotation level.</p>
-<h3 id="shape-3-2"><a class="header" href="#shape-3-2">Shape</a></h3>
-<pre><code class="language-json">[
-  &lt;class_atom for start&gt;,
-  &lt;Quantified of class_zero_width markers&gt;,
-  "-",
-  &lt;Quantified of class_zero_width markers&gt;,
-  &lt;class_atom for end&gt;
-]
-</code></pre>
-<p>For <code>a-z</code>:</p>
-<pre><code class="language-json">[&lt;class_atom for "a"&gt;, [], "-", [], &lt;class_atom for "z"&gt;]
-</code></pre>
-<p>The empty Quantifieds at indices 1 and 3 are the optional <code>\E</code> / empty-<code>\Q\E</code> markers that PCRE2 allows around the <code>-</code>.</p>
-<h2 id="class_atom"><a class="header" href="#class_atom"><code>class_atom</code></a></h2>
-<pre><code class="language-ebnf">@generate: extract_char_value($1)
-@semantic_value: {type: "atom", value: $1}
-class_atom = quoted_class_range_atom | class_range_escape | class_literal
-</code></pre>
-<p>3-way Or. Branches:</p>
+<p>Typed object; the two zero-width slots (PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash, e.g.
+<code>[a\E-z]</code>) are dropped from the typed shape. <code>start</code>/<code>end</code> are the typed <code>class_atom</code> values.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Branch</th><th>Form</th><th>Shape</th></tr>
+<tr><th>Input</th><th>Value</th></tr>
 </thead>
 <tbody>
-<tr><td>0</td><td><code>\Q&lt;char&gt;\E</code> (single-char quoted literal)</td><td>nested <code>quoted_class_range_atom</code> Sequence <code>["\\Q", &lt;char&gt;, "\\E"]</code></td></tr>
-<tr><td>1</td><td><code>\&lt;escape&gt;</code> (escaped char)</td><td>nested <code>class_range_escape</code> Sequence <code>["\\", &lt;escape-unit&gt;]</code></td></tr>
-<tr><td>2</td><td>plain literal char</td><td><code>Terminal(&lt;char&gt;)</code></td></tr>
+<tr><td><code>[a-z]</code></td><td><code>{"type": "class_range", "start": "a", "end": "z"}</code></td></tr>
+<tr><td><code>[\Qa\E-\Qz\E]</code></td><td><code>{"type": "class_range", "start": {"type": "class_quoted_range_atom", "char": "a"}, "end": {…"z"}}</code></td></tr>
+<tr><td><code>[a\E-z]</code></td><td><code>{"type": "class_range", "start": "a", "end": "z"}</code> (the stray <code>\E</code> dropped)</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="class_literal"><a class="header" href="#class_literal"><code>class_literal</code></a></h2>
-<pre><code class="language-ebnf">@generate: "ch == '" + escape_char($1) + "'"
-@semantic_value: {type: "literal", char: $1}
-@optimize: group_literals_for_switch($1)
-class_literal = /([A-Za-z0-9 \t\n\r\f\v\[!@#$%\^&amp;*()\-+={}|:;"'&lt;&gt;,.?\/`~_]|[^\x00-\x7F])/
+<h2 id="class_atom"><a class="header" href="#class_atom"><code>class_atom</code></a></h2>
+<pre><code class="language-ebnf">class_atom     = quoted_class_range_atom | class_range_escape | class_literal
 </code></pre>
-<p>Single-character regex. Emits <code>Terminal(&lt;char&gt;)</code>.</p>
+<p>Range endpoints. Each branch emits its own typed value (see below / the escape subtree).</p>
+<h2 id="class_literal--class_literal_nocaret"><a class="header" href="#class_literal--class_literal_nocaret"><code>class_literal</code> / <code>class_literal_nocaret</code></a></h2>
+<pre><code class="language-ebnf">class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
+class_literal_nocaret = letter | digit | whitespace | class_safe_special_nocaret | unicode_char
+</code></pre>
+<p>One member character; the value is the 1-char string. The <code>_nocaret</code> variant excludes <code>^</code>
+(see <code>class_item_visible_nocaret</code>).</p>
 <h2 id="class_escape"><a class="header" href="#class_escape"><code>class_escape</code></a></h2>
-<pre><code class="language-ebnf">@generate: resolve_escape_pattern($1)
-@semantic_value: {type: "escape", pattern: $1}
-class_escape = escape
+<pre><code class="language-ebnf">class_escape   = "\\" class_escape_unit -&gt; $2
 </code></pre>
-<p>Single-element wrapper around <code>escape</code>. <strong>Un-annotated</strong>. Emits whatever <code>escape</code> produces — see <a href="#escape-subtree">Escape Subtree</a>.</p>
-<h2 id="quoted_class_literal"><a class="header" href="#quoted_class_literal"><code>quoted_class_literal</code></a></h2>
-<pre><code class="language-ebnf">quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+<p>Transparent passthrough — emits the matched escape-unit’s typed object (see
+<a href="#escape-subtree">Escape Subtree</a>). Class context admits <code>\&lt;digit&gt;</code> octal forms (<code>[\8]</code>) and,
+since <code>1.1.84</code>, <strong>excludes <code>\Q</code> and <code>\E</code></strong> from the shorthand catch-alls in <em>both</em> profiles —
+those two are always the quote-opener / quote-end marker (<code>[\Q]</code> rejects as an unterminated
+class; a lone <code>\E</code> is the zero-width <code>stray_class_end_quote</code>).</p>
+<h2 id="quoted_class_literal--quoted_class_literal_nonempty"><a class="header" href="#quoted_class_literal--quoted_class_literal_nonempty"><code>quoted_class_literal</code> / <code>quoted_class_literal_nonempty</code></a></h2>
+<pre><code class="language-ebnf">quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"        -&gt; {type: "class_quoted_literal", body: $2}
+quoted_class_literal_nonempty = "\\Q" quoted_class_literal_char+ "\\E"        -&gt; {type: "class_quoted_literal", body: $2}
 </code></pre>
-<p>Inside-class <code>\Q...\E</code> block. 3-element Sequence: <code>["\\Q", &lt;chars-Quantified&gt;, "\\E"]</code>.</p>
+<p>The in-class quoted run. Both emit the same typed shape; the <code>_nonempty</code> variant (≥1 char)
+fills the visible-member slot, while the possibly-empty form remains available after the
+first visible member (<code>[a\Q\E]</code> → <code>body: ["a", {"type": "class_quoted_literal", "body": []}]</code>).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[\Qa\E]</code></td><td><code>{"type": "class_quoted_literal", "body": ["a"]}</code></td></tr>
+<tr><td><code>[ab\Q^$.\E]</code></td><td><code>["a", "b", {"type": "class_quoted_literal", "body": ["^", "$", "."]}]</code> (body)</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="quoted_class_range_atom"><a class="header" href="#quoted_class_range_atom"><code>quoted_class_range_atom</code></a></h2>
-<pre><code class="language-ebnf">quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
+<pre><code class="language-ebnf">quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"      -&gt; {type: "class_quoted_range_atom", char: $2}
 </code></pre>
-<p>A single-character <code>\Q&lt;char&gt;\E</code> used as a range endpoint. 3-element Sequence: <code>["\\Q", &lt;char&gt;, "\\E"]</code>.</p>
+<p>A single-character <code>\Q&lt;char&gt;\E</code> as a range endpoint (<code>[\Qa\E-\Qz\E]</code>).</p>
 <h2 id="stray_class_end_quote"><a class="header" href="#stray_class_end_quote"><code>stray_class_end_quote</code></a></h2>
 <pre><code class="language-ebnf">stray_class_end_quote = "\\E"
 </code></pre>
-<p>A bare <code>\E</code> inside a character class — PCRE2 treats this as a zero-width marker. Emits <code>Terminal("\\E")</code>.</p>
+<p>A bare <code>\E</code> inside a class — PCRE2-invisible (zero-width). As a <em>body</em> item it emits the
+string <code>"\\E"</code>; in the opening slots (<code>class_negated_open</code>, the alt-1 invisible prefix) it is
+consumed and dropped. It never counts toward class non-emptiness.</p>
 <h2 id="empty_quoted_class_literal"><a class="header" href="#empty_quoted_class_literal"><code>empty_quoted_class_literal</code></a></h2>
-<pre><code class="language-ebnf">empty_quoted_class_literal = "\\Q" "\\E"
+<pre><code class="language-ebnf">empty_quoted_class_literal = "\\Q" "\\E"   -&gt; {type: "class_quoted_literal", body: []}
 </code></pre>
-<p>The empty <code>\Q\E</code> zero-width sequence. 2-element Sequence: <code>["\\Q", "\\E"]</code>.</p>
+<p>The empty <code>\Q\E</code> — also PCRE2-invisible. Typed like <code>quoted_class_literal</code> with an empty
+<code>body</code>, so a <code>\Q\E</code> routed through <code>class_zero_width</code> is byte-identical to one routed through
+<code>class_item</code>.</p>
 <h2 id="class_zero_width"><a class="header" href="#class_zero_width"><code>class_zero_width</code></a></h2>
 <pre><code class="language-ebnf">class_zero_width = stray_class_end_quote | empty_quoted_class_literal
 </code></pre>
-<p>2-way Or wrapping the two zero-width forms. Emits the matched alternative’s shape.</p>
-<h2 id="class_safe_special"><a class="header" href="#class_safe_special"><code>class_safe_special</code></a></h2>
-<pre><code class="language-ebnf">class_safe_special = /([\[!@#$%\^&amp;*()\-+={}|:;"'&lt;&gt;,.?\/`~_])/
+<p>The two invisible forms, used by the opening slots, the visible-body prefixes, and the
+<code>class_range</code> dash surroundings.</p>
+<h2 id="class_safe_special--class_safe_special_nocaret"><a class="header" href="#class_safe_special--class_safe_special_nocaret"><code>class_safe_special</code> / <code>class_safe_special_nocaret</code></a></h2>
+<pre><code class="language-ebnf">class_safe_special = '[' | '!' | '@' | '#' | '$' | '%' | '^' | '&amp;' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '&lt;' | '&gt;' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
+class_safe_special_nocaret = '[' | '!' | '@' | '#' | '$' | '%' | '&amp;' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '&lt;' | '&gt;' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 </code></pre>
-<p>Single-character regex matching characters that are safe to use inside a class without escaping. <code>Terminal(&lt;char&gt;)</code>.</p>
+<p>ASCII punctuation that is a literal member inside a class without escaping (note: <strong>no
+backslash</strong> — escapes go through <code>class_escape</code>). The <code>_nocaret</code> variant is the same set
+minus <code>^</code>, used only for the first-visible slot of a non-negated class.</p>
 <h2 id="class_range_escape"><a class="header" href="#class_range_escape"><code>class_range_escape</code></a></h2>
-<pre><code class="language-ebnf">class_range_escape = "\\" class_range_escape_unit
+<pre><code class="language-ebnf">class_range_escape = "\\" class_range_escape_unit                     -&gt; $2
 </code></pre>
-<p>The 2-element Sequence <code>["\\", &lt;unit&gt;]</code> for escapes that can act as range endpoints.</p>
+<p>Transparent passthrough for escapes acting as range endpoints.</p>
 <h2 id="class_range_escape_unit"><a class="header" href="#class_range_escape_unit"><code>class_range_escape_unit</code></a></h2>
 <pre><code class="language-ebnf">class_range_escape_unit = hex_escape
                         | unicode_escape
@@ -2389,35 +2468,17 @@ class_escape = escape
                         | control_escape
                         | class_range_simple_escape
 </code></pre>
-<p>5-way Or — restricted set of escapes valid as range endpoints. The matched alternative’s shape appears.</p>
+<p>The restricted escape set valid as a range endpoint; the matched unit’s typed object surfaces
+through the <code>class_range_escape</code> passthrough.</p>
 <h2 id="class_range_simple_escape-class_range_any_char_no_orphan_quote_end-class_range_literal_escape_letter"><a class="header" href="#class_range_simple_escape-class_range_any_char_no_orphan_quote_end-class_range_literal_escape_letter"><code>class_range_simple_escape</code>, <code>class_range_any_char_no_orphan_quote_end</code>, <code>class_range_literal_escape_letter</code></a></h2>
-<p>Inner sub-rules controlling which characters can act as escaped class-range endpoints. All emit Terminal/Sequence shapes per their match. Consumers rarely need to walk these directly — the outer <code>class_range_escape</code> is sufficient for identifying the escape-as-endpoint shape.</p>
+<p>Inner sub-rules controlling which escaped letters can act as class-range endpoints (the
+strict variant already excludes <code>E</code>/<code>Q</code> and the six <code>.3.1</code> PCRE2-unsupported letters; the
+<code>relaxed</code> profile re-admits the latter six). Consumers rarely walk these — the outer
+<code>class_range_escape</code> passthrough is the shape that surfaces.</p>
 <h2 id="posix_negation-posix_name-letter_no_upper_e"><a class="header" href="#posix_negation-posix_name-letter_no_upper_e"><code>posix_negation</code>, <code>posix_name</code>, <code>letter_no_upper_e</code></a></h2>
-<p>Inner POSIX sub-rules. Emit raw Terminal/Sequence shapes.</p>
-<h2 id="walking-a-abc-z-example"><a class="header" href="#walking-a-abc-z-example">Walking a <code>[abc-z]</code> example</a></h2>
-<p>For <code>[abc-z]</code>:</p>
-<pre><code class="language-json">"atom": [
-  "[",
-  [],
-  [],
-  [
-    [&lt;class_item: "a"&gt;],
-    [&lt;class_item: "b"&gt;],
-    [&lt;class_range: c-z&gt;]
-  ],
-  "]"
-]
-</code></pre>
-<p>A consumer extracting the items:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn class_items(class_atom: &amp;Value) -&gt; Vec&lt;&amp;Value&gt; {
-    let arr = class_atom.as_array().unwrap();
-    let body = arr.get(3).and_then(|b| b.as_array()).unwrap();
-    body.iter().collect()
-}
-<span class="boring">}</span></code></pre>
-<p>For each item, classify by structural signature (per the Atom Subtree dispatch table — see <a href="#atom-subtree">Atom Subtree</a>).</p>
+<p>Inner POSIX sub-rules (<code>posix_negation -&gt; true</code>; <code>posix_name</code> emits the matched name string).
+<code>letter_no_upper_e</code> is the quoted-run letter set excluding <code>E</code> (so <code>\E</code> always terminates a
+quoted run).</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="group-family"><a class="header" href="#group-family">Group Family</a></h1>
 <p>PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. None are currently annotated in <code>regex.ebnf</code>. All emit raw envelope shapes.</p>
@@ -3571,7 +3632,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
   "type": "piece"
 }
 </code></pre>
-<h2 id="consumer-extraction-2"><a class="header" href="#consumer-extraction-2">Consumer extraction</a></h2>
+<h2 id="consumer-extraction-1"><a class="header" href="#consumer-extraction-1">Consumer extraction</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn extract_quant(piece: &amp;Value) -&gt; Option&lt;Quantifier&gt; {
@@ -3782,20 +3843,51 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 }
 </code></pre>
 <p><code>stray_class_end_quote = "\\E"</code> emits the bare terminal <code>"\\E"</code>.</p>
-<h2 id="future-direction-2"><a class="header" href="#future-direction-2">Future direction</a></h2>
-<p>The whole character-class subtree will be annotated in a future task #40 slice. Target:</p>
+<h2 id="the-pcre2-class-open-model--release-1184-regex-pcre2-fidelity315"><a class="header" href="#the-pcre2-class-open-model--release-1184-regex-pcre2-fidelity315">The PCRE2 class-open model — release <code>1.1.84</code> (<code>REGEX-PCRE2-FIDELITY.3.15</code>)</a></h2>
+<p>Member VISIBILITY, negation-through-invisibles, and the initial-<code>]</code>-literal rule are
+grammar-encoded and oracle-verified (<code>pcre2test</code> 10.47). Worked verdicts + shapes:</p>
+<h3 id="invisible-prefix--literal-member--ex-accept-the-class-x"><a class="header" href="#invisible-prefix--literal-member--ex-accept-the-class-x">Invisible prefix, <code>]</code>-literal member — <code>[\E]x]</code> (ACCEPT: the class <code>]x</code>)</a></h3>
 <pre><code class="language-json">{
-  "type": "char_class",
-  "negated": false,
-  "items": [
-    { "type": "literal", "value": "a" },
-    { "type": "range", "start": "b", "end": "z" },
-    { "type": "escape", "kind": "shorthand", "name": "d" },
-    { "type": "posix_class", "name": "alpha", "negated": false }
-  ]
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": true, "body": ["x"]},
+  ...
 }
 </code></pre>
-<p>Until that lands, consumers walk the per-rule raw shapes documented above.</p>
+<p>The stray <code>\E</code> is consumed by the opening and dropped; the first <code>]</code> became the
+<code>initial_close</code> literal member. (<code>[\E]</code> alone REJECTS — after the <code>]</code>-literal nothing closes
+the class.)</p>
+<h3 id="caret-member-after-negation---accept-a-negated-class-of-"><a class="header" href="#caret-member-after-negation---accept-a-negated-class-of-">Caret member after negation — <code>[^^]</code> (ACCEPT: a negated class of <code>^</code>)</a></h3>
+<pre><code class="language-json">{
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["^"]},
+  ...
+}
+</code></pre>
+<p>Only the FIRST non-invisible char after <code>[</code> negates; the next caret is a plain member.</p>
+<h3 id="negation-through-invisibles--ea-accept-a-negated-class-of-a"><a class="header" href="#negation-through-invisibles--ea-accept-a-negated-class-of-a">Negation through invisibles — <code>[\E^a]</code> (ACCEPT: a negated class of <code>a</code>)</a></h3>
+<pre><code class="language-json">{
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["a"]},
+  ...
+}
+</code></pre>
+<blockquote>
+<p><strong>Correction vs pre-<code>1.1.84</code>:</strong> this input previously parsed as a NON-negated class with
+body <code>["\E", "^", "a"]</code> — PCRE2-unfaithful. Same correction applies to <code>[\Q\E^a]</code> and
+<code>[\E^-z]</code>.</p>
+</blockquote>
+<h3 id="invisible-only-classes-reject--e-qe-e"><a class="header" href="#invisible-only-classes-reject--e-qe-e">Invisible-only classes REJECT — <code>[\E]</code>, <code>[\Q\E]</code>, <code>[^\E]</code></a></h3>
+<p>Invisible items never count toward non-emptiness: the <code>]</code> becomes a literal member and the
+class is unterminated (PCRE2 err 106). Likewise <code>[\Q]</code> / <code>[\Qa]</code> reject — an in-class <code>\Q</code>
+always opens a quoted run (it is never a shorthand escape), so the <code>]</code> is quoted and the
+class never closes.</p>
+<h3 id="in-body-invisibles-are-preserved--aqe-accept"><a class="header" href="#in-body-invisibles-are-preserved--aqe-accept">In-body invisibles are preserved — <code>[a\Q\E]</code> (ACCEPT)</a></h3>
+<pre><code class="language-json">{
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+           "body": ["a", {"type": "class_quoted_literal", "body": []}]},
+  ...
+}
+</code></pre>
+<p>After the first visible member, stray <code>\E</code> (as the string <code>"\E"</code>) and the empty <code>\Q\E</code>
+(as an empty-<code>body</code> <code>class_quoted_literal</code>) stay in the typed <code>body</code> — only the OPENING-slot
+invisibles are dropped.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-groups-and-alternations"><a class="header" href="#examples-groups-and-alternations">Examples: Groups and Alternations</a></h1>
 <p>Concrete probe outputs for grouping and alternation constructs. As of slice 23 (post-1.1.53), <strong>all 6 group sub-rules</strong> AND <strong>all 7 lookaround sub-rules</strong> are typed. Group typing is end-to-end. Lookaround family typing is end-to-end. Conditionals, scan_substring, and script_run still emit raw envelope shapes pending follow-up slices.</p>
@@ -3997,7 +4089,7 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 </table>
 </div>
 <p><strong>PGEN-RGX-0082 note:</strong> in releases 1.1.74 and earlier, the <code>lang:</code> branch (<code>code_block_lang</code>) had an off-by-one positional reference (<code>content: $4</code> referenced the optional <code>ws?</code> slot, not the actual <code>code_content</code>). For <code>(?{native:NAME})</code> patterns: <code>content</code> was always <code>[]</code>, silently dropping the callback name. Fixed in 1.1.75 (<code>$4</code> → <code>$5</code>); both <code>(?{ NAME })</code> and <code>(?{lang:NAME})</code> now produce parallel typed shapes with content preserved.</p>
-<h3 id="consumer-extraction-3"><a class="header" href="#consumer-extraction-3">Consumer extraction</a></h3>
+<h3 id="consumer-extraction-2"><a class="header" href="#consumer-extraction-2">Consumer extraction</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn extract_code_block(atom: &amp;Value) -&gt; Option&lt;(Option&lt;String&gt;, String)&gt; {
@@ -4687,7 +4779,7 @@ owns <code>\o{...}</code>.</p>
 }
 <span class="boring">}</span></code></pre>
 <p>For property escapes, the consumer reads <code>obj.name</code> (string) and <code>obj.negated</code> (bool) directly. For hex/unicode/octal, <code>obj.digits</code> (string) is parsed via <code>usize::from_str_radix(digits, &lt;base&gt;)</code>. For control / simple, <code>obj.char</code> (string) carries the matched character.</p>
-<h2 id="future-direction-3"><a class="header" href="#future-direction-3">Future direction</a></h2>
+<h2 id="future-direction-2"><a class="header" href="#future-direction-2">Future direction</a></h2>
 <p>Escape subtree campaign <strong>closed</strong> — all 7 <code>escape_unit</code> branches typed. The next atom-subtree slice picks one of the still-untyped atom alternatives (literal, whitespace_literal, dot, quoted_literal, char_class outer, group/conditional/lookaround/etc.).</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="from-the-recursive-envelope-pre-1130"><a class="header" href="#from-the-recursive-envelope-pre-1130">From the Recursive Envelope (pre-1.1.30)</a></h1>
@@ -5117,6 +5209,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1184--contract-1186--regex-0091-character-class-member-visibility--the-pcre2-class-open-model-the-emptiness-checks-migrated-into-the-grammar"><a class="header" href="#1184--contract-1186--regex-0091-character-class-member-visibility--the-pcre2-class-open-model-the-emptiness-checks-migrated-into-the-grammar">1.1.84 / Contract 1.1.86 — REGEX-0091: character-class member VISIBILITY &amp; the PCRE2 class-open model; the emptiness checks migrated into the grammar</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR-CORRECTING (release bump 1.1.83→1.1.84 / contract 1.1.85→1.1.86; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.3.15</code>; oracle <code>pcre2test</code> 10.47, an 84-cell matrix). <strong>17 rejects-valid spellings now ACCEPT</strong>: (a) an initial <code>]</code> after invisibles (stray <code>\E</code> / empty <code>\Q\E</code>) is a LITERAL member — <code>[\E]x]</code> is the class <code>]x</code> (also <code>[\Q\E]]</code>, <code>[^\E]x]</code>, …); (b) a caret AFTER the negation is an ordinary member — <code>[^^]</code>, <code>[^\E^]</code>; (c) the negation caret is recognized THROUGH invisibles — <code>[\E^]x]</code>, <code>[\E^^]</code>. Conversely <code>[\E^]</code>/<code>[\Q\E^]</code> keep rejecting (the caret negates, the class is then empty) and in-class <code>\Q</code> is now ALWAYS the quote-opener (never a shorthand escape): <code>[\Q]</code>/<code>[\Qa]</code> reject at the grammar, err-106-faithfully. <strong>AST correction (3 spellings)</strong>: <code>[\E^a]</code>/<code>[\Q\E^a]</code>/<code>[\E^-z]</code> were accepted-but-mis-parsed as non-negated member lists; they are now <code>negated:true</code> with the opening invisibles dropped. Every other still-accepted pattern’s AST is byte-identical (the <code>{kind:"char_class", negated, initial_close, body}</code> carrier unchanged). Grammar: <code>char_class</code> is a 3-alt split with <code>class_negated_open</code> (negation-through-invisibles) and visibility-led bodies (<code>class_body_nonempty(_nocaret)</code> — non-emptiness counts only VISIBLE members); the validator’s substantive-item/<code>^</code>-skip machinery was DELETED (4th compile-contract migration; its class scanner now mirrors the grammar’s open model — range/POSIX/escape-letter checks unchanged). Rejection LAYER for the migrated families moves from the contract message (“unterminated character class”) to a grammar parse error — match on the <strong>code</strong> (<code>E_PARSE_FAILURE</code>), not message text. Both profiles behave identically on this surface. This also closes the standing <code>[\E]</code> generator-emits/parser-rejects duality signature at the source. Bug ledger: <code>REGEX-0091</code>. <strong>Contract section:</strong> “Release 1.1.84 / Contract 1.1.86 Highlights — REGEX-0091”. Rules detail: <code>rules-char-class.md</code> (rewritten to the current typed truth); examples: <code>examples-char-class.md</code> → “The PCRE2 class-open model”.</p>
+</blockquote>
 <h3 id="1183--contract-1185--regex-00890090-verb--start-option-argument-shapes-reject-pcre2-faithfully-the-checks-migrated-into-the-grammar"><a class="header" href="#1183--contract-1185--regex-00890090-verb--start-option-argument-shapes-reject-pcre2-faithfully-the-checks-migrated-into-the-grammar">1.1.83 / Contract 1.1.85 — REGEX-0089/0090: verb &amp; start-option ARGUMENT SHAPES reject PCRE2-faithfully; the checks migrated into the grammar</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: BEHAVIOR-TIGHTENING (release bump 1.1.82→1.1.83 / contract 1.1.84→1.1.85; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.3.14</code>; oracle <code>pcre2test</code> 10.47). <code>directive_named</code> is now a per-name-class split — MARK (named or <code>(*:...)</code> shorthand) requires a non-empty <code>:</code>-argument (<code>(*:)</code> / <code>(*MARK)</code> / <code>(*MARK:)</code> reject, PCRE2 err-166 class); the other 7 verbs take <code>:</code>-suffix only (<code>(*SKIP=)</code> / <code>(*PRUNE=x)</code> reject, err-160 class; <code>(*PRUNE:)</code> stays accepted); the 4 <code>LIMIT_*</code> options REQUIRE <code>=digits</code>; every other start option is bare-only. Two accepts-invalid divergences fixed: <strong>REGEX-0089</strong> (PGEN accepted <code>=digits</code> on non-LIMIT options — <code>(*UTF=5)</code>, <code>(*CR=5)</code>, <code>(*TURKISH_CASING=5)</code> — and bare <code>(*LIMIT_HEAP)</code>; PCRE2 rejects all, err 160) and <strong>REGEX-0090</strong> (the host validator’s start-option POSITION check skipped <code>=</code>-value forms — <code>a(*LIMIT_HEAP=500)</code> / <code>(*FAIL)(*LIMIT_HEAP=5)a</code> were wrongly accepted; the position rule stays validator-owned but now covers all forms). Every still-accepted pattern’s AST is byte-identical (the <code>{kind:"named", name, payload}</code> carrier is unchanged). Rejection LAYER for the migrated shapes moves from the post-parse contract message to a grammar parse error — match on the <strong>code</strong> (<code>E_PARSE_FAILURE</code>), not message text. The tightening applies in BOTH profiles; <code>relaxed</code> still re-admits unrecognized names (incl. extended spellings like <code>(*LIMIT_HEAPX=5)</code>) with any suffix. Bug ledger: <code>REGEX-0089</code>/<code>REGEX-0090</code>. <strong>Contract section:</strong> “Release 1.1.83 / Contract 1.1.85 Highlights — REGEX-0089/0090”. Rules detail: <code>rules-misc.md</code> § <code>directive_named</code>.</p>

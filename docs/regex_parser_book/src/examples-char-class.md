@@ -239,21 +239,65 @@ PCRE2 zero-width marker:
 
 `stray_class_end_quote = "\\E"` emits the bare terminal `"\\E"`.
 
-## Future direction
+## The PCRE2 class-open model — release `1.1.84` (`REGEX-PCRE2-FIDELITY.3.15`)
 
-The whole character-class subtree will be annotated in a future task #40 slice. Target:
+Member VISIBILITY, negation-through-invisibles, and the initial-`]`-literal rule are
+grammar-encoded and oracle-verified (`pcre2test` 10.47). Worked verdicts + shapes:
+
+### Invisible prefix, `]`-literal member — `[\E]x]` (ACCEPT: the class `]x`)
 
 ```json
 {
-  "type": "char_class",
-  "negated": false,
-  "items": [
-    { "type": "literal", "value": "a" },
-    { "type": "range", "start": "b", "end": "z" },
-    { "type": "escape", "kind": "shorthand", "name": "d" },
-    { "type": "posix_class", "name": "alpha", "negated": false }
-  ]
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": true, "body": ["x"]},
+  ...
 }
 ```
 
-Until that lands, consumers walk the per-rule raw shapes documented above.
+The stray `\E` is consumed by the opening and dropped; the first `]` became the
+`initial_close` literal member. (`[\E]` alone REJECTS — after the `]`-literal nothing closes
+the class.)
+
+### Caret member after negation — `[^^]` (ACCEPT: a negated class of `^`)
+
+```json
+{
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["^"]},
+  ...
+}
+```
+
+Only the FIRST non-invisible char after `[` negates; the next caret is a plain member.
+
+### Negation through invisibles — `[\E^a]` (ACCEPT: a negated class of `a`)
+
+```json
+{
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["a"]},
+  ...
+}
+```
+
+> **Correction vs pre-`1.1.84`:** this input previously parsed as a NON-negated class with
+> body `["\E", "^", "a"]` — PCRE2-unfaithful. Same correction applies to `[\Q\E^a]` and
+> `[\E^-z]`.
+
+### Invisible-only classes REJECT — `[\E]`, `[\Q\E]`, `[^\E]`
+
+Invisible items never count toward non-emptiness: the `]` becomes a literal member and the
+class is unterminated (PCRE2 err 106). Likewise `[\Q]` / `[\Qa]` reject — an in-class `\Q`
+always opens a quoted run (it is never a shorthand escape), so the `]` is quoted and the
+class never closes.
+
+### In-body invisibles are preserved — `[a\Q\E]` (ACCEPT)
+
+```json
+{
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+           "body": ["a", {"type": "class_quoted_literal", "body": []}]},
+  ...
+}
+```
+
+After the first visible member, stray `\E` (as the string `"\E"`) and the empty `\Q\E`
+(as an empty-`body` `class_quoted_literal`) stay in the typed `body` — only the OPENING-slot
+invisibles are dropped.

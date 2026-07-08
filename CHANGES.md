@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0013 (REGEX-PCRE2-FIDELITY.3.15): character-class member VISIBILITY & the PCRE2 class-open model reject/accept PCRE2-faithfully — REGEX-0091 fixed, the checks grammar-encoded, regex release 1.1.84
+
+Session #62. RELEASED regex slice (release `1.1.83`→`1.1.84`, contract `1.1.85`→`1.1.86`,
+AST-dump schema stays `1`, ledger `REGEX-0091`).
+
+- **Issue (rejects-valid, 17 flips + 3 wrong ASTs):** PGEN rejected `[\E]x]` (PCRE2: the stray
+  `\E` is invisible, the first `]` is a LITERAL member — the class `]x`), `[^^]` (a caret after
+  the negation is an ordinary member), `[\E^]x]` (the negation caret is recognized THROUGH
+  invisibles), and 14 sibling spellings — all `pcre2test` 10.47-ACCEPTED; and it accepted
+  `[\E^a]`-family patterns with a PCRE2-unfaithful NON-negated AST. The generator emitted
+  invisible-only classes (`[\E]`) the validator rejected — the standing duality-break signature.
+- **Root cause:** class non-emptiness counted PCRE2-INVISIBLE items at the grammar
+  (`class_body_nonempty = class_item+`), `\Q`/`\E` leaked through the class-escape `any_char`
+  catch-alls, and the validator's `scan_char_class` modeled the class opening as
+  immediate-position checks (initial-`]` only directly after `[`; unconditional error on
+  `]`-with-no-substantive-item; a silent `^`-skip instead of negation semantics).
+- **Fix (grammar tier; 4th compile-contract migration):** the full PCRE2 class-open model in
+  `grammars/regex.ebnf` (3-alt `char_class`, `class_negated_open` negation-through-invisibles,
+  visibility-led non-empty bodies with `-> [$1*, $2, $3*]` flat-list byte-parity, structural
+  nocaret first-visible slot, `!"Q"`/`!"E"` guards both profiles); validator class-open paths
+  deleted, scanner aligned via `skip_invisible_class_items`.
+- **Verified:** exactly the 17 flips over the 84-cell oracle matrix (both profiles), zero
+  collateral; still-accepted ASTs byte-identical except the 3 documented negation corrections;
+  cert `217/217 UNKNOWN=0 fully_certified spf=0` ×3 seeds; lint 0/0; suites 880/838/761;
+  equivalence/dual-run/oracle/broader-corpus/svpp/book gates green; hunter re-run: the `[\E]`
+  signature GONE (1/1/2 → 1/0/0 per 100).
+- **Lockstep:** ledger row + embedding consts + contract JSON/md (Identity + 1.1.84/1.1.86
+  Highlights); regex book (changelog, `rules-char-class.md` rewritten to the current typed truth,
+  class-open examples, json-carrier inventory, HTML); top book (parser-families handoff,
+  stimuli-and-quality closure note); shape-contract manifest inventory 196→202; task tree + index.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0012 (REGEX-PCRE2-FIDELITY.3.14): verb/start-option ARGUMENT SHAPES reject PCRE2-faithfully — REGEX-0089/0090 fixed, the checks grammar-encoded, regex release 1.1.83
 
 Session #61. RELEASED regex slice (release `1.1.82`→`1.1.83`, contract `1.1.84`→`1.1.85`,

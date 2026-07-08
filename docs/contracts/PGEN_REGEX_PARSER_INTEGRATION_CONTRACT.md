@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.85`
+  - `1.1.86`
 - Parser release version:
-  - `1.1.83`
+  - `1.1.84`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -71,6 +71,29 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.84 / Contract 1.1.86 Highlights — REGEX-0091: character-class member VISIBILITY & the PCRE2 class-open model; the class-emptiness checks are grammar-encoded
+
+**Bug ledger:** `REGEX-0091` (internal — found by the `REGEX-PCRE2-FIDELITY.3.15` pre-encode differential matrix vs `pcre2test` 10.47; the class had been hunter-visible as the standing `[\E]` duality-break signature).
+
+**What changed (behavior-CORRECTING: 17 rejects-valid spellings now ACCEPT).** PCRE2's class-open model is now encoded in `grammars/regex.ebnf`, replacing the host validator's substantive-item emptiness checks (`REGEX-PCRE2-FIDELITY.3.15`, the fourth compile-contract migration). The model, oracle-verified over an 84-cell matrix:
+
+| Rule | Example | Verdict (both = PGEN `1.1.84` = PCRE2 10.47) |
+|---|---|---|
+| Stray `\E` and the empty `\Q\E` are INVISIBLE — they never count toward class non-emptiness | `[\E]` `[\Q\E]` `[^\E]` | REJECT (err 106 — the `]` became a literal member, the class is unterminated) |
+| A `]` seen before any VISIBLE member is a LITERAL member — including after invisibles | `[\E]x]` (the class `]x`) · `[\Q\E]]` · `[^\E]x]` | **ACCEPT (was wrongly rejected)** |
+| The negation caret is recognized THROUGH invisibles | `[\E^a]` (a NEGATED class of `a`) · `[\E^]x]` | ACCEPT (`[\E^]` itself still rejects: negated + empty) |
+| A caret AFTER the negation is an ordinary member | `[^^]` · `[^\E^]` · `[^^]x]` | **ACCEPT (was wrongly rejected)** |
+| A quoted/escaped caret is always a member, never negation | `[\Q^\E]` · `[\^]` | ACCEPT (unchanged) |
+| In-class `\Q` is ALWAYS the quote-opener (never a shorthand escape), so an unterminated in-class quote leaves the class unterminated | `[\Q]` `[\Qa]` `[a\Q]` | REJECT (err 106; now at the grammar layer) |
+
+**AST correction (3 spellings).** `[\E^a]`, `[\Q\E^a]`, `[\E^-z]` were previously ACCEPTED but mis-parsed as NON-negated classes carrying the `\E`/`^` as members. They now parse PCRE2-faithfully as `negated: true` with the invisible items dropped from the typed `body` (the established `class_range` zero-width-slot convention). Every other still-accepted pattern's typed AST is byte-identical pre/post (verified over the full matrix, both profiles). **AST-dump schema stays `1`** — the `{kind: "char_class", negated, initial_close, body}` carrier is unchanged; only those 3 spellings' VALUES were corrected.
+
+**Rejection-layer move.** The invisible-only / unterminated-quote / caret-negated-empty families move from the contract message (`unterminated character class`) to a standard grammar parse failure — as always, match on the diagnostic **code** (`E_PARSE_FAILURE`), never message text. The validator still owns the in-class RANGE checks (descending/non-literal endpoints), the class-invalid escape letters (`[\A]` etc. — `.3.11`), and `\N`-in-class; its class scanner now mirrors the grammar's open model (invisibles → optional `^` → invisibles → optional `]`-literal, which can seed a range: `[\E]-z]`).
+
+**Duality closure.** The standing `[\E]` generator-emits/parser-rejects hunter signature is closed at the source: invisible-only class bodies are no longer derivable from the grammar (`class_body_nonempty` requires a VISIBLE member; the no-negation variant is structurally caret-free in its first visible slot), so the stimuli generator can no longer emit them. Duality hunter re-run (seeds 0/7/42): directed rejections 1/1/2 → 1/0/0 per 100; the sole residual signature is the tracked `.3.17` scs capture-list class.
+
+**Action for downstream (RGX):** the 17 newly-accepted forms were PCRE2-valid all along — adopting `1.1.84` aligns the reject set with PCRE2. If you consume the typed `char_class` AST, note the 3 corrected spellings above (`negated` was previously wrong for them). Both profiles behave identically on this surface (`relaxed` still differs only on the `.3.1` escape letters).
 
 ## Release 1.1.83 / Contract 1.1.85 Highlights — REGEX-0089/0090: verb & start-option ARGUMENT SHAPES now reject PCRE2-faithfully; the shape checks are grammar-encoded
 

@@ -949,8 +949,17 @@ this slice too fixed real released-parser divergences: PGEN wrongly accepted `(*
 NEW tracked generator gap (`STIMULI-SIGNOFF.14`): the stimuli generator has no generation arm
 for the codegen-native builtins (`builtin_any_char`) — forcing a required payload made that
 visible ("Missing rule"), and the grammar pairs the superset payload with a positively-enumerated
-generatable core as the generation-faithful encode. The remaining classes are owned by further
-`REGEX-PCRE2-FIDELITY.3.x` leaves.
+generatable core as the generation-faithful encode. The class-member VISIBILITY class (`[\E]` —
+the generator emitted invisible-only classes the parser rejected) is CLOSED the same way: regex
+release `1.1.84` encodes PCRE2's full class-open model (non-emptiness counts only VISIBLE
+members; the negation caret is recognized through invisibles; an initial `]` after invisibles is
+a literal member; in-class `\Q` is always the quote-opener), so invisible-only class bodies are
+no longer grammar-derivable and the hunter re-run at seeds 0/7/42 shows that signature gone
+(directed rejections 1/1/2 → 1/0/0 per 100; this slice too fixed real released-parser
+divergences — 17 rejects-valid flips like `[\E]x]`/`[^^]` plus 3 accepted-but-mis-parsed
+negation ASTs, ledger `REGEX-0091`). The remaining classes are owned by further
+`REGEX-PCRE2-FIDELITY.3.x` leaves (the sole hunter-visible residual is the `.3.17` scs
+capture-list class).
 
 Honest bounds: the goal vocabulary is `k_path`, `corpus_mimicry`, and `duality_break` today
 (parser code-coverage feedback remains designed-only, tracked in the `STIMULI-SIGNOFF` tree,

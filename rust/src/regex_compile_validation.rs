@@ -741,34 +741,49 @@ impl ClassAtomKind {
     }
 }
 
+/// `REGEX-PCRE2-FIDELITY.3.15`: skip the PCRE2-INVISIBLE class items — stray `\E` and the
+/// empty `\Q\E` — which PCRE2 drops before reading the class opening (negation caret /
+/// initial-`]`-literal detection). Mirrors the grammar's `class_zero_width`.
+fn skip_invisible_class_items(bytes: &[u8], mut index: usize) -> usize {
+    loop {
+        if bytes.get(index) == Some(&b'\\') && bytes.get(index + 1) == Some(&b'E') {
+            index += 2;
+            continue;
+        }
+        if bytes.get(index) == Some(&b'\\')
+            && bytes.get(index + 1) == Some(&b'Q')
+            && bytes.get(index + 2) == Some(&b'\\')
+            && bytes.get(index + 3) == Some(&b'E')
+        {
+            index += 4;
+            continue;
+        }
+        return index;
+    }
+}
+
 fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileValidationError> {
+    // The PCRE2 class-open model (`REGEX-PCRE2-FIDELITY.3.15`, grammar-aligned): invisible
+    // items are skipped; the first non-invisible char may be the negation caret (invisibles
+    // may follow it too); a `]` seen before any VISIBLE member is a LITERAL member (it can be
+    // a range start — `[\E]-z]`). Class NON-EMPTINESS itself is grammar-owned now
+    // (`class_body_nonempty*` / `class_negated_open`), so `]` in the member loop always closes.
     let mut index = start + 1;
-    let mut has_substantive_item = false;
     let mut previous_atom: Option<ClassAtomKind> = None;
 
+    index = skip_invisible_class_items(bytes, index);
     if index < bytes.len() && bytes[index] == b'^' {
         index += 1;
+        index = skip_invisible_class_items(bytes, index);
     }
     if index < bytes.len() && bytes[index] == b']' {
-        has_substantive_item = true;
         previous_atom = Some(ClassAtomKind::Literal(b']' as u32));
         index += 1;
     }
 
     while index < bytes.len() {
         if bytes[index] == b']' {
-            if has_substantive_item {
-                return Ok(index);
-            }
-            return Err(RegexCompileValidationError::new(
-                start,
-                "unterminated character class",
-            ));
-        }
-
-        if bytes[index] == b'^' && !has_substantive_item {
-            index += 1;
-            continue;
+            return Ok(index);
         }
 
         if bytes[index] == b'-'
@@ -806,7 +821,6 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             }
             index = after_right;
             previous_atom = None;
-            has_substantive_item = true;
             continue;
         }
 
@@ -815,7 +829,6 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             && let Some(after_posix_class) = scan_posix_class(bytes, index)?
         {
             index = after_posix_class;
-            has_substantive_item = true;
             previous_atom = Some(ClassAtomKind::NonLiteral);
             continue;
         }
@@ -857,13 +870,11 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             }
             index = after_right;
             previous_atom = None;
-            has_substantive_item = true;
             continue;
         }
 
         index = after_left;
         previous_atom = Some(left_atom);
-        has_substantive_item = true;
     }
 
     Err(RegexCompileValidationError::new(

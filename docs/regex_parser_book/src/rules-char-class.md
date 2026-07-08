@@ -1,252 +1,298 @@
 # Character Class Subtree
 
-PCRE2 character classes (`[abc]`, `[a-z]`, `[^a-z]`, `[[:alpha:]]`, etc.) live under `char_class`. Many sub-rules. As of slice 8 (post-1.1.36), `posix_class` and `posix_negation` are annotated — `posix_class` emits a typed `{type:"posix_class", name, negated}` object directly. The remaining sub-rules (`char_class` outer, `class_body`, `class_item`, `class_range`, `class_atom`, `class_literal`, `class_escape`, `quoted_class_literal`, `stray_class_end_quote`) are still un-annotated and emit raw envelope shapes pending future task #40 slices.
+PCRE2 character classes (`[abc]`, `[a-z]`, `[^a-z]`, `[[:alpha:]]`, `[]x]`, …) live under
+`char_class`, which emits a **typed** `{type: "atom", kind: "char_class", negated,
+initial_close, body}` object. Since release `1.1.84` (`REGEX-PCRE2-FIDELITY.3.15`, ledger
+`REGEX-0091`) the grammar encodes the **full PCRE2 class-open model** — member *visibility*,
+negation-through-invisibles, and the initial-`]`-literal rule — all oracle-verified against
+`pcre2test` 10.47.
+
+## The PCRE2 class-open model (what the grammar encodes)
+
+PCRE2 reads a class opening like this, and so does this grammar:
+
+1. **Invisible items never count.** A stray `\E` and the empty `\Q\E` are zero-width — they
+   can appear anywhere in a class but never make it non-empty and never affect the opening
+   rules. `[\E]` is **rejected** (err 106 in PCRE2): the `\E` is invisible, so the `]` becomes
+   a literal member and the class is then unterminated.
+2. **The first non-invisible char after `[` is the negation caret** (if it is `^`). So
+   `[\E^a]` is a *negated* class of `a` — and a `^` anywhere later is an ordinary member:
+   `[^^]` is a negated class containing the literal `^`.
+3. **A `]` seen before any visible member is a LITERAL member** — immediately after the
+   opening (`[]]`), after the negation (`[^]]`), or after invisibles (`[\E]x]` is the class
+   `]x`). Only after at least one visible member (or that initial `]`-literal) does `]` close
+   the class. `[]` and `[^]` therefore reject: the `]` is a member and nothing closes.
+4. **In-class `\Q` is always the quote-opener**, never a shorthand escape. `[\Q]` quotes the
+   `]` and leaves the class unterminated → reject.
+
+| Input | Verdict | Why |
+|---|---|---|
+| `[\E]` `[\Q\E]` `[^\E]` | REJECT | invisible-only — the `]` became a literal member, unterminated |
+| `[\E]x]` `[\Q\E]]` `[^\E]x]` | ACCEPT | invisibles skipped → initial `]` is a literal member |
+| `[^^]` `[^\E^]` | ACCEPT | the second caret is a member of the negated class |
+| `[\E^a]` | ACCEPT | negation recognized through the invisible `\E` (`negated: true`) |
+| `[\E^]` `[\Q\E^]` | REJECT | the caret negates → the class is then empty/unterminated |
+| `[\Q^\E]` `[\^]` | ACCEPT | a quoted/escaped caret is a member, never negation |
+| `[\Q]` `[\Qa]` `[a\Q]` | REJECT | unterminated in-class quote (the `]` is quoted) |
+| `[]` `[^]` | REJECT | the first `]` is a literal member; nothing closes the class |
 
 ## `char_class`
 
 ```ebnf
-char_class = "[" negation? class_initial_close? class_body "]"
+char_class     = "[" class_negated_open? class_zero_width* class_initial_close class_body "]"    -> {type: "atom", kind: "char_class", negated: $2, initial_close: $4, body: $5}
+               | "[" class_negated_open class_body_nonempty "]"              -> {type: "atom", kind: "char_class", negated: $2, initial_close: [], body: $3}
+               | "[" class_body_nonempty_nocaret "]"                         -> {type: "atom", kind: "char_class", negated: [], initial_close: [], body: $2}
 ```
 
-The 4-element Sequence of `[`, optional `^`, optional initial `]`, body, `]`.
+Three alternatives, one typed shape:
+
+- **Alt 1 — the initial-`]`-literal form**: optional negation opening, optional invisibles,
+  then a literal `]` member, then any items (`[]]`, `[^]a]`, `[\E]x]`).
+- **Alt 2 — negated, ordinary body**: a negation opening (which itself absorbs surrounding
+  invisibles), then a body with ≥1 *visible* member (`[^a]`, `[^^]`, `[\E^a]`).
+- **Alt 3 — non-negated, ordinary body**: a body with ≥1 visible member whose *first* visible
+  member is structurally caret-free — a leading bare `^` would have been the negation
+  (`[abc]`, `[\Ea]`, `[a^]` — the caret is fine after the first member).
 
 ### Shape
 
 ```json
-[
-  "[",
-  <negation? — empty array or "^" terminal>,
-  <class_initial_close? — empty array or "]" terminal>,
-  <class_body — Quantified-* of class_item nodes>,
-  "]"
-]
+{
+  "type": "atom",
+  "kind": "char_class",
+  "negated": <true when a negation caret opened the class, [] otherwise>,
+  "initial_close": <true when the class opened with a literal-`]` member, [] otherwise>,
+  "body": [ <class item values, in source order — see class_item> ]
+}
 ```
 
-### Example — input `[abc]`
+The invisible items consumed by the opening slots (`class_negated_open`, the alt-1
+`class_zero_width*`) are **dropped** from the typed shape (the same convention as
+`class_range`'s zero-width slots). Invisibles *inside* the body (after the first visible
+member) still appear as body items.
 
-```json
-"atom": [
-  "[",
-  [],          // not negated
-  [],          // no initial close
-  [
-    [...class_item for "a"...],
-    [...class_item for "b"...],
-    [...class_item for "c"...]
-  ],
-  "]"
-]
+### Examples (all verified against the running parser)
+
+| Input | Typed value |
+|---|---|
+| `[ab]` | `{"body": ["a", "b"], "initial_close": [], "negated": [], …}` |
+| `[]]` | `{"body": [], "initial_close": true, "negated": [], …}` |
+| `[\E]x]` | `{"body": ["x"], "initial_close": true, "negated": [], …}` |
+| `[^^]` | `{"body": ["^"], "initial_close": [], "negated": true, …}` |
+| `[\E^a]` | `{"body": ["a"], "initial_close": [], "negated": true, …}` |
+| `[a-z]` | `{"body": [{"type": "class_range", "start": "a", "end": "z"}], …}` |
+| `[[:alpha:]]` | `{"body": [{"type": "posix_class", "name": "alpha", "negated": []}], …}` |
+| `[\Qa\E]` | `{"body": [{"type": "class_quoted_literal", "body": ["a"]}], …}` |
+| `[a\Q\E]` | `{"body": ["a", {"type": "class_quoted_literal", "body": []}], …}` |
+| `[a\E]` | `{"body": ["a", "\\E"], …}` (an in-body stray `\E` stays a body item) |
+
+> **AST correction note (release `1.1.84`).** `[\E^a]`, `[\Q\E^a]` and `[\E^-z]` previously
+> parsed as *non-negated* classes carrying `"\\E"` and `"^"` as members. That was
+> PCRE2-unfaithful; they are now `negated: true` with the invisibles dropped, as above.
+
+## `class_negated_open`
+
+```ebnf
+class_negated_open = class_zero_width* negation class_zero_width*    -> $2
 ```
+
+The PCRE2 negation opening: the caret with its surrounding invisibles. The `-> $2`
+passthrough keeps the classic `negated` slot convention — a matched optional contributes the
+bare `true`, an unmatched one contributes `[]`.
 
 ## `negation`
 
 ```ebnf
 @generate: "^" if $1 else ""
 @semantic_value: $1 != null
-negation = "^"
+negation = "^"                                                 -> true
 ```
 
-Single-char `^`. Carries semantic annotations but no return annotation. Emits `Terminal("^")`.
+Emits the typed `true`.
 
 ## `class_initial_close`
 
 ```ebnf
-class_initial_close = "]"
+class_initial_close = "]"                                            -> true
 ```
 
-Allows a literal `]` as the first class char (PCRE2 quirk). Emits `Terminal("]")`.
+The literal-`]`-member marker (PCRE2 quirk: a `]` before any visible member is a member, not
+the terminator). Emits the typed `true` into the `initial_close` slot.
 
 ## `class_body`
 
 ```ebnf
-@generate: build_class_items_list($1)
-@semantic_value: flatten($1)
-@validate: all($1, item => is_valid_class_item(item))
-class_body = class_item*
+class_body     = class_item*
 ```
 
-Quantified-`*` of class items. **Un-annotated** (the `@generate`/`@semantic_value`/`@validate` directives are semantic annotations, not return annotations).
+The alt-1 body (after an initial `]`-literal): zero or more items, no visibility requirement
+(the `]`-literal already made the class non-empty). Its value is the flat item list.
 
-### Shape
+## `class_body_nonempty` / `class_body_nonempty_nocaret`
 
-A `Quantified` of class_item nodes. JSON: array of class_item shapes.
+```ebnf
+class_body_nonempty = class_zero_width* class_item_visible class_item*   -> [$1*, $2, $3*]
+class_body_nonempty_nocaret = class_zero_width* class_item_visible_nocaret class_item*   -> [$1*, $2, $3*]
+```
+
+The ordinary bodies: optional invisible prefix, then **one visible member**, then any items.
+The `-> [$1*, $2, $3*]` flatten keeps the value a single flat item list, byte-identical to
+the pre-`1.1.84` shape for every previously-accepted input. The `_nocaret` variant (used by
+the no-negation alternative) excludes a bare `^` from the *first visible* position only —
+that caret would have been the negation.
 
 ## `class_item`
 
 ```ebnf
-class_item = posix_class
-           | stray_class_end_quote
-           | class_range
-           | quoted_class_literal
-           | class_literal
-           | class_escape
+class_item     = posix_class
+               | stray_class_end_quote
+               | class_range
+               | quoted_class_literal
+               | class_literal
+               | class_escape
 ```
 
-6-way Or, **un-annotated** at the rule level — each branch's content varies. Note: branch 0 (`posix_class`) IS annotated as a typed `{type:"posix_class", name, negated}` object since slice 8; the other branches still emit raw envelope shapes.
+The unrestricted item (used after the first visible member / after an initial `]`-literal).
 
-### Branches
-
-| Branch | Form | Shape (current) |
+| Branch | Form | Typed value |
 |---|---|---|
-| 0 | `[:alpha:]`, etc. | typed `{"type":"posix_class","name":<str>,"negated":<true \| []>}` object (slice 8) |
-| 1 | stray `\E` (PCRE2 zero-width marker) | `Terminal("\\E")` |
-| 2 | `a-z`, etc. | nested `class_range` Sequence |
-| 3 | `\Q...\E` inside class | nested `quoted_class_literal` Sequence |
-| 4 | single literal char | `Terminal(<char>)` |
-| 5 | `\d`, `\w`, etc. | nested `class_escape` shape |
+| 0 | `[:alpha:]` etc. | `{"type": "posix_class", "name": <str>, "negated": <true \| []>}` |
+| 1 | stray `\E` (zero-width) | `"\\E"` (string) |
+| 2 | `a-z` etc. | `{"type": "class_range", "start": <atom>, "end": <atom>}` |
+| 3 | `\Q…\E` (possibly empty) | `{"type": "class_quoted_literal", "body": [<chars>]}` |
+| 4 | one literal char | `"<char>"` (string) |
+| 5 | `\d`, `\x41`, … | the typed escape object — see [Escape Subtree](rules-escape.md) |
 
-### Walking a class_item
+## `class_item_visible` / `class_item_visible_nocaret`
+
+```ebnf
+class_item_visible = posix_class
+                   | class_range
+                   | quoted_class_literal_nonempty
+                   | class_literal
+                   | class_escape
+class_item_visible_nocaret = posix_class
+                           | class_range
+                           | quoted_class_literal_nonempty
+                           | class_literal_nocaret
+                           | class_escape
+```
+
+`class_item` minus the invisible forms (branch 1 stray `\E`; the *empty* `\Q\E`), preserving
+the same relative alternative order. The `_nocaret` variant swaps in `class_literal_nocaret`
+so a bare `^` cannot fill the first-visible slot of a non-negated class. Their values are the
+same typed values as the matching `class_item` branches — consumers never see a difference.
+
+## Walking a class body
 
 ```rust
+fn class_items(class_atom: &Value) -> Vec<&Value> {
+    class_atom["body"].as_array().unwrap().iter().collect()
+}
+
 fn classify_class_item(item: &Value) -> ClassItemKind {
     match item {
-        // posix_class is now annotated as a typed object {type:"posix_class",...}
-        Value::Object(map) if map.get("type").and_then(|v| v.as_str()) == Some("posix_class")
-            => ClassItemKind::PosixClass,
-        Value::String(s) if s == "\\E" => ClassItemKind::StrayEndQuote,
-        Value::String(s) if s.len() == 1 => ClassItemKind::Literal(s),
-        Value::Array(arr) => {
-            match arr.first() {
-                Some(Value::String(s)) if s == "\\Q" => ClassItemKind::QuotedLiteral,
-                Some(Value::String(s)) if s == "\\" => ClassItemKind::Escape,
-                _ if arr.len() >= 5 => ClassItemKind::Range,  // class_range has class_atom-class_atom shape
-                _ => ClassItemKind::Unknown,
-            }
-        }
+        Value::String(s) if s == "\\E" => ClassItemKind::StrayEndQuote, // zero-width
+        Value::String(s) => ClassItemKind::Literal(s),                  // one member char
+        Value::Object(map) => match map["type"].as_str() {
+            Some("posix_class") => ClassItemKind::PosixClass,
+            Some("class_range") => ClassItemKind::Range,
+            Some("class_quoted_literal") => ClassItemKind::QuotedLiteral,
+            Some("escape") => ClassItemKind::Escape,
+            _ => ClassItemKind::Unknown,
+        },
         _ => ClassItemKind::Unknown,
     }
 }
 ```
+
+For `[abc-z]`: `body` = `["a", "b", {"type": "class_range", "start": "c", "end": "z"}]`.
 
 ## `posix_class`
 
 ```ebnf
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
-posix_class = "[:" posix_negation? posix_name ":]"
+posix_class    = "[:" posix_negation? posix_name ":]"
 -> {type: "posix_class", name: $3, negated: $2}
-
-posix_negation = "^" -> true
 ```
 
-**Annotated** as of slice 8 (post-1.1.36) — fixes [PGEN-RGX-0076](changelog-index.md). Pre-fix the rule used `-> $1` which extracted only the literal `"[:"` opener, silently discarding the POSIX class name and negation marker.
+Typed object. `negated` is `true` for `[[:^alpha:]]`, `[]` when no `^` was matched
+(consumers map `[]` → `false`, the same convention as `quantifier.greediness`).
 
-### Shape
-
-```json
-{"type": "posix_class", "name": <name>, "negated": <true | []>}
-```
-
-- `name` is the matched POSIX class name as a string (`"alpha"`, `"digit"`, `"xdigit"`, etc. — one of the 14 names accepted by `posix_name`).
-- `negated` is the typed boolean `true` when the source has `^` after `[:` (e.g. `[[:^alpha:]]`), or the empty array `[]` when no `^` was matched. Consumers map `[]` → `false`. Same convention as `quantifier.greediness`. A future coalesce-operator slice will let the rule emit a bare `false` instead of `[]`.
-
-### Examples
-
-| Source | Output |
+| Input | Value |
 |---|---|
-| `[[:alpha:]]`     | `class_body[0] = {"type":"posix_class","name":"alpha","negated":[]}` |
-| `[[:^alpha:]]`    | `class_body[0] = {"type":"posix_class","name":"alpha","negated":true}` |
-| `[[:digit:]]`     | `class_body[0] = {"type":"posix_class","name":"digit","negated":[]}` |
-| `[[:xdigit:]]`    | `class_body[0] = {"type":"posix_class","name":"xdigit","negated":[]}` |
-| `[[:alpha:][:digit:]]` | 2-element class_body — both POSIX classes typed and disambiguated |
-
-### Consumer extraction
-
-```rust
-fn extract_posix_class(class_item: &Value) -> Option<(String, bool)> {
-    let obj = class_item.as_object()?;
-    if obj.get("type")?.as_str()? != "posix_class" {
-        return None;
-    }
-    let name = obj.get("name")?.as_str()?.to_string();
-    let negated = obj.get("negated").map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false);
-    Some((name, negated))
-}
-```
+| `[[:alpha:]]` | `{"type": "posix_class", "name": "alpha", "negated": []}` |
+| `[[:^digit:]]` | `{"type": "posix_class", "name": "digit", "negated": true}` |
 
 ## `class_range`
 
 ```ebnf
-@generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($5) + "'"
-@semantic_value: {type: "range", start: $1, end: $5}
-@validate: ord($1) <= ord($5)
-class_range = class_atom class_zero_width* "-" class_zero_width* class_atom
+class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom   -> {type: "class_range", start: $1, end: $5}
 ```
 
-5-element Sequence: `[<start_atom>, <zero-width-prefix*>, "-", <zero-width-suffix*>, <end_atom>]`. **Un-annotated** at the return-annotation level.
+Typed object; the two zero-width slots (PCRE2 `\E`/`\Q\E` markers around the dash, e.g.
+`[a\E-z]`) are dropped from the typed shape. `start`/`end` are the typed `class_atom` values.
 
-### Shape
-
-```json
-[
-  <class_atom for start>,
-  <Quantified of class_zero_width markers>,
-  "-",
-  <Quantified of class_zero_width markers>,
-  <class_atom for end>
-]
-```
-
-For `a-z`:
-
-```json
-[<class_atom for "a">, [], "-", [], <class_atom for "z">]
-```
-
-The empty Quantifieds at indices 1 and 3 are the optional `\E` / empty-`\Q\E` markers that PCRE2 allows around the `-`.
+| Input | Value |
+|---|---|
+| `[a-z]` | `{"type": "class_range", "start": "a", "end": "z"}` |
+| `[\Qa\E-\Qz\E]` | `{"type": "class_range", "start": {"type": "class_quoted_range_atom", "char": "a"}, "end": {…"z"}}` |
+| `[a\E-z]` | `{"type": "class_range", "start": "a", "end": "z"}` (the stray `\E` dropped) |
 
 ## `class_atom`
 
 ```ebnf
-@generate: extract_char_value($1)
-@semantic_value: {type: "atom", value: $1}
-class_atom = quoted_class_range_atom | class_range_escape | class_literal
+class_atom     = quoted_class_range_atom | class_range_escape | class_literal
 ```
 
-3-way Or. Branches:
+Range endpoints. Each branch emits its own typed value (see below / the escape subtree).
 
-| Branch | Form | Shape |
-|---|---|---|
-| 0 | `\Q<char>\E` (single-char quoted literal) | nested `quoted_class_range_atom` Sequence `["\\Q", <char>, "\\E"]` |
-| 1 | `\<escape>` (escaped char) | nested `class_range_escape` Sequence `["\\", <escape-unit>]` |
-| 2 | plain literal char | `Terminal(<char>)` |
-
-## `class_literal`
+## `class_literal` / `class_literal_nocaret`
 
 ```ebnf
-@generate: "ch == '" + escape_char($1) + "'"
-@semantic_value: {type: "literal", char: $1}
-@optimize: group_literals_for_switch($1)
-class_literal = /([A-Za-z0-9 \t\n\r\f\v\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_]|[^\x00-\x7F])/
+class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
+class_literal_nocaret = letter | digit | whitespace | class_safe_special_nocaret | unicode_char
 ```
 
-Single-character regex. Emits `Terminal(<char>)`.
+One member character; the value is the 1-char string. The `_nocaret` variant excludes `^`
+(see `class_item_visible_nocaret`).
 
 ## `class_escape`
 
 ```ebnf
-@generate: resolve_escape_pattern($1)
-@semantic_value: {type: "escape", pattern: $1}
-class_escape = escape
+class_escape   = "\\" class_escape_unit -> $2
 ```
 
-Single-element wrapper around `escape`. **Un-annotated**. Emits whatever `escape` produces — see [Escape Subtree](rules-escape.md).
+Transparent passthrough — emits the matched escape-unit's typed object (see
+[Escape Subtree](rules-escape.md)). Class context admits `\<digit>` octal forms (`[\8]`) and,
+since `1.1.84`, **excludes `\Q` and `\E`** from the shorthand catch-alls in *both* profiles —
+those two are always the quote-opener / quote-end marker (`[\Q]` rejects as an unterminated
+class; a lone `\E` is the zero-width `stray_class_end_quote`).
 
-## `quoted_class_literal`
+## `quoted_class_literal` / `quoted_class_literal_nonempty`
 
 ```ebnf
-quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"        -> {type: "class_quoted_literal", body: $2}
+quoted_class_literal_nonempty = "\\Q" quoted_class_literal_char+ "\\E"        -> {type: "class_quoted_literal", body: $2}
 ```
 
-Inside-class `\Q...\E` block. 3-element Sequence: `["\\Q", <chars-Quantified>, "\\E"]`.
+The in-class quoted run. Both emit the same typed shape; the `_nonempty` variant (≥1 char)
+fills the visible-member slot, while the possibly-empty form remains available after the
+first visible member (`[a\Q\E]` → `body: ["a", {"type": "class_quoted_literal", "body": []}]`).
+
+| Input | Value |
+|---|---|
+| `[\Qa\E]` | `{"type": "class_quoted_literal", "body": ["a"]}` |
+| `[ab\Q^$.\E]` | `["a", "b", {"type": "class_quoted_literal", "body": ["^", "$", "."]}]` (body) |
 
 ## `quoted_class_range_atom`
 
 ```ebnf
-quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"
+quoted_class_range_atom = "\\Q" quoted_class_literal_char "\\E"      -> {type: "class_quoted_range_atom", char: $2}
 ```
 
-A single-character `\Q<char>\E` used as a range endpoint. 3-element Sequence: `["\\Q", <char>, "\\E"]`.
+A single-character `\Q<char>\E` as a range endpoint (`[\Qa\E-\Qz\E]`).
 
 ## `stray_class_end_quote`
 
@@ -254,15 +300,19 @@ A single-character `\Q<char>\E` used as a range endpoint. 3-element Sequence: `[
 stray_class_end_quote = "\\E"
 ```
 
-A bare `\E` inside a character class — PCRE2 treats this as a zero-width marker. Emits `Terminal("\\E")`.
+A bare `\E` inside a class — PCRE2-invisible (zero-width). As a *body* item it emits the
+string `"\\E"`; in the opening slots (`class_negated_open`, the alt-1 invisible prefix) it is
+consumed and dropped. It never counts toward class non-emptiness.
 
 ## `empty_quoted_class_literal`
 
 ```ebnf
-empty_quoted_class_literal = "\\Q" "\\E"
+empty_quoted_class_literal = "\\Q" "\\E"   -> {type: "class_quoted_literal", body: []}
 ```
 
-The empty `\Q\E` zero-width sequence. 2-element Sequence: `["\\Q", "\\E"]`.
+The empty `\Q\E` — also PCRE2-invisible. Typed like `quoted_class_literal` with an empty
+`body`, so a `\Q\E` routed through `class_zero_width` is byte-identical to one routed through
+`class_item`.
 
 ## `class_zero_width`
 
@@ -270,23 +320,27 @@ The empty `\Q\E` zero-width sequence. 2-element Sequence: `["\\Q", "\\E"]`.
 class_zero_width = stray_class_end_quote | empty_quoted_class_literal
 ```
 
-2-way Or wrapping the two zero-width forms. Emits the matched alternative's shape.
+The two invisible forms, used by the opening slots, the visible-body prefixes, and the
+`class_range` dash surroundings.
 
-## `class_safe_special`
+## `class_safe_special` / `class_safe_special_nocaret`
 
 ```ebnf
-class_safe_special = /([\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_])/
+class_safe_special = '[' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
+class_safe_special_nocaret = '[' | '!' | '@' | '#' | '$' | '%' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 ```
 
-Single-character regex matching characters that are safe to use inside a class without escaping. `Terminal(<char>)`.
+ASCII punctuation that is a literal member inside a class without escaping (note: **no
+backslash** — escapes go through `class_escape`). The `_nocaret` variant is the same set
+minus `^`, used only for the first-visible slot of a non-negated class.
 
 ## `class_range_escape`
 
 ```ebnf
-class_range_escape = "\\" class_range_escape_unit
+class_range_escape = "\\" class_range_escape_unit                     -> $2
 ```
 
-The 2-element Sequence `["\\", <unit>]` for escapes that can act as range endpoints.
+Transparent passthrough for escapes acting as range endpoints.
 
 ## `class_range_escape_unit`
 
@@ -298,42 +352,18 @@ class_range_escape_unit = hex_escape
                         | class_range_simple_escape
 ```
 
-5-way Or — restricted set of escapes valid as range endpoints. The matched alternative's shape appears.
+The restricted escape set valid as a range endpoint; the matched unit's typed object surfaces
+through the `class_range_escape` passthrough.
 
 ## `class_range_simple_escape`, `class_range_any_char_no_orphan_quote_end`, `class_range_literal_escape_letter`
 
-Inner sub-rules controlling which characters can act as escaped class-range endpoints. All emit Terminal/Sequence shapes per their match. Consumers rarely need to walk these directly — the outer `class_range_escape` is sufficient for identifying the escape-as-endpoint shape.
+Inner sub-rules controlling which escaped letters can act as class-range endpoints (the
+strict variant already excludes `E`/`Q` and the six `.3.1` PCRE2-unsupported letters; the
+`relaxed` profile re-admits the latter six). Consumers rarely walk these — the outer
+`class_range_escape` passthrough is the shape that surfaces.
 
 ## `posix_negation`, `posix_name`, `letter_no_upper_e`
 
-Inner POSIX sub-rules. Emit raw Terminal/Sequence shapes.
-
-## Walking a `[abc-z]` example
-
-For `[abc-z]`:
-
-```json
-"atom": [
-  "[",
-  [],
-  [],
-  [
-    [<class_item: "a">],
-    [<class_item: "b">],
-    [<class_range: c-z>]
-  ],
-  "]"
-]
-```
-
-A consumer extracting the items:
-
-```rust
-fn class_items(class_atom: &Value) -> Vec<&Value> {
-    let arr = class_atom.as_array().unwrap();
-    let body = arr.get(3).and_then(|b| b.as_array()).unwrap();
-    body.iter().collect()
-}
-```
-
-For each item, classify by structural signature (per the Atom Subtree dispatch table — see [Atom Subtree](rules-atom.md)).
+Inner POSIX sub-rules (`posix_negation -> true`; `posix_name` emits the matched name string).
+`letter_no_upper_e` is the quoted-run letter set excluding `E` (so `\E` always terminates a
+quoted run).

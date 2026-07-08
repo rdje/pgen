@@ -382,13 +382,31 @@
         "rule": "char_class",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: $2, initial_close: $3, body: $4}"
+        "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: $2, initial_close: $4, body: $5}"
       },
       {
         "rule": "char_class",
         "branch_index": 1,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: $2, initial_close: [], body: $3}"
+      },
+      {
+        "rule": "char_class",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: [], initial_close: [], body: $2}"
+      },
+      {
+        "rule": "class_body_nonempty",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1*, $2, $3*]"
+      },
+      {
+        "rule": "class_body_nonempty_nocaret",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1*, $2, $3*]"
       },
       {
         "rule": "class_escape",
@@ -401,6 +419,12 @@
         "branch_index": 0,
         "annotation_type": "return_scalar",
         "normalized_text": "true"
+      },
+      {
+        "rule": "class_negated_open",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
       },
       {
         "rule": "class_range",
@@ -418,13 +442,13 @@
         "rule": "class_simple_escape_relaxed",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $5}"
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $7}"
       },
       {
         "rule": "class_simple_escape_strict",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $11}"
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $13}"
       },
       {
         "rule": "code_block_lang",
@@ -647,6 +671,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
+      },
+      {
+        "rule": "empty_quoted_class_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"class_quoted_literal\", body: []}"
       },
       {
         "rule": "escape",
@@ -1022,6 +1052,12 @@
       },
       {
         "rule": "quoted_class_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"class_quoted_literal\", body: $2}"
+      },
+      {
+        "rule": "quoted_class_literal_nonempty",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"class_quoted_literal\", body: $2}"

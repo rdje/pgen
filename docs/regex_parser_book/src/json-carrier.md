@@ -112,7 +112,11 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `script_run_group` | `-> {type:"atom", kind:"script_run_group", name:$2, body:$4}` | Object. `name` is `"sr"`/`"script_run"`/`"asr"`/`"atomic_script_run"` (atomic vs non-atomic encoded in name). |
 | `subroutine_call` (branch 0, with captures) | `-> {type:"atom", kind:"subroutine_call", target:$2}` | Object. `target` is `returned_capture_subroutine` (target + capture-list). |
 | `subroutine_call` (branch 1, plain) | `-> {type:"atom", kind:"subroutine_call", target:$2}` | Same kind; `target` is just `subroutine_target`. Inspect `target` shape to determine syntactic form. |
-| `char_class` | `-> {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}` | Object. `negated`/`initial_close` are `true` matched, `[]` un-matched. `body` is raw class_body shape; inner posix_class/class_range/etc. items typed by earlier slices propagate. |
+| `char_class` | 3 alts (rel `1.1.84`): `-> {type:"atom", kind:"char_class", negated:$2, initial_close:$4, body:$5}` / `{…, negated:$2, initial_close:[], body:$3}` / `{…, negated:[], initial_close:[], body:$2}` | Object (one shape from all 3 alts). `negated`/`initial_close` are `true` matched, `[]` un-matched. `body` is the flat class-item list; opening-slot invisibles (`\E`, `\Q\E`) are dropped. |
+| `class_negated_open` | `-> $2` | Passthrough of `negation`'s `true` — the PCRE2 negation opening (caret with surrounding invisibles), rel `1.1.84`. |
+| `class_body_nonempty` | `-> [$1*, $2, $3*]` | Array — the flat class-item list (invisible prefix ++ first VISIBLE member ++ rest), rel `1.1.84`. |
+| `class_body_nonempty_nocaret` | `-> [$1*, $2, $3*]` | Array — same flatten; the no-negation body whose first visible member is structurally caret-free, rel `1.1.84`. |
+| `empty_quoted_class_literal` | `-> {type:"class_quoted_literal", body:[]}` | Object — the invisible empty `\Q\E`, typed identically to an empty `quoted_class_literal` (byte-parity across routes), rel `1.1.84`. |
 | `negation` | `-> true` | Boolean `true` (matched), `[]` from un-matched `negation?` slot. |
 | `class_initial_close` | `-> true` | Boolean `true` (matched), `[]` from un-matched `class_initial_close?` slot. |
 | `conditional` | `-> {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}` | Object. `condition` is heterogeneous (typed signed_digits / "DEFINE" / `["R", ...]` / name string). `no_branch` is `[]` (no else) or `["|", <pieces>]` (else present). |
@@ -120,6 +124,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `extended_class` | `-> {type:"atom", kind:"extended_class", body:$2}` | Object. `body` is raw `extended_class_content` shape; sub-rule typing of the recursive set-operation structure is a separate concern. |
 | `class_range` | `-> {type:"class_range", start:$1, end:$5}` | Object. `start`/`end` are typed class_atoms (escape / clean string / quoted_class_range_atom). `class_zero_width*` slots (rare PCRE2 `\E`/`\Q\E` markers around the dash) dropped from typed shape; consumers needing them fall back to raw. |
 | `quoted_class_literal` | `-> {type:"class_quoted_literal", body:$2}` | Object. `body` is array of `quoted_class_literal_char*` matched chars (parallels `quoted_literal` slice 18). |
+| `quoted_class_literal_nonempty` | `-> {type:"class_quoted_literal", body:$2}` | Object — the ≥1-char form filling the visible-member slot; same shape as `quoted_class_literal`, rel `1.1.84`. |
 | `class_range_escape` | `-> $2` | Transparent passthrough — drops the leading `\` so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer `escape -> $2` (slice 14). |
 | `subroutine_target` (branch 0, `&name`) | `-> {kind:"named", name:$2}` | Object. Surfaces inside `subroutine_call.target`. |
 | `subroutine_target` (branch 1, `P>name`) | `-> {kind:"python_named", name:$2}` | Distinct kind preserves Python syntax origin (paralleling `python_named_backreference` slice 19). |

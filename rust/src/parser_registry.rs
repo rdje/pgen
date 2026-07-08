@@ -1956,6 +1956,92 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.3.15 (ledger REGEX-0091): the PCRE2 CLASS-OPEN model is
+    /// grammar-encoded — class NON-EMPTINESS counts only VISIBLE members (stray `\E` and the
+    /// empty `\Q\E` are PCRE2-invisible), the negation caret is recognized THROUGH invisibles
+    /// (and a caret after it is an ordinary member), and a `]` seen before any visible member
+    /// is a LITERAL member. `\Q` inside a class is always the quote-opener (never a shorthand
+    /// escape), so unterminated in-class quotes reject at the grammar. PCRE2 10.47 oracle
+    /// (`pcre2test`, 2026-07-08): the 80-pattern matrix in the task leaf; rejects are err 106.
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_class_member_visibility_rejects_at_the_grammar_layer_pcre2_faithfully() {
+        // Invisible-only / caret-negated-empty / unterminated-quote classes: REJECT (err 106).
+        for pattern in [
+            "[\\E]", "[\\Q\\E]", "[\\E\\E]", "[\\E\\Q\\E]", "[\\Q\\E\\E]",
+            "[\\Q\\E\\Q\\E]", // invisible-only bodies
+            "[^\\E]", "[^\\Q\\E]", "[^\\E\\E]", // negated invisible-only bodies
+            "[\\E^]", "[\\Q\\E^]", // the caret THROUGH invisibles is the negation (then empty)
+            "[\\Q]", "[\\Qa]", "[\\Q]x]", "[a\\Q]", "[\\Qab]",
+            "[\\Qa\\E", // in-class `\Q` quotes the `]` ⇒ unterminated
+            "[]", "[^]", // the .3.7 pins (the first `]` is a literal member, so these are empty)
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "invisible-only / unterminated class must reject: {pattern}"
+            );
+        }
+        // The 17 REGEX-0091 rejects-valid flips + key stays: ACCEPT (all oracle-verified).
+        for pattern in [
+            "[\\E]x]", "[\\Q\\E]x]", "[\\E\\E]x]", "[\\E\\Q\\E]x]", "[\\E]]",
+            "[\\Q\\E]]", // invisible prefix ⇒ the `]` is a literal member
+            "[^\\E]x]", "[^\\Q\\E]x]", "[^\\E]]", // ... after the negation caret too
+            "[^^]", "[^^]x]", "[^\\E^]", "[^\\Q\\E^]", // a caret after the negation is a MEMBER
+            "[\\E^]x]", "[\\E^\\E]x]", "[\\E^^]", "[\\E\\E^]y]", // negation through invisibles
+            "[a\\E]", "[\\Ea]", "[\\Qa\\E]", "[\\E\\Qa\\E]", "[\\Q\\Ea]",
+            "[a\\Q\\E]", "[\\Q\\E\\Qa\\E]", // visible member + invisibles: unchanged accepts
+            "[\\Q^\\E]", "[\\^]", // a QUOTED/ESCAPED caret first is a member, not negation
+            "[\\E^a]", "[\\Q\\E^a]", "[\\E^-z]", // the negated-class semantic corrections
+            "[]]", "[^]]", "[]a]", "[^]a]", "[]\\E]", // the .3.7 initial-close pins
+            "[\\E-x]", "[a-\\E]", "[a\\E-z]", "[a-\\Ez]", "[\\Qa\\E-z]", // range/dash + invisibles
+            "\\E", "a\\E", "\\Q\\E", "\\Qab\\E", // pattern-level quote surface unchanged
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "visible-member class form must accept: {pattern}"
+            );
+        }
+        // The negation caret recognized through invisibles is a SEMANTIC correction: `[\E^a]`
+        // is a NEGATED class of `a` (PGEN previously parsed a non-negated 3-member class).
+        let ast = super::parse_sample_ast_json("regex", "[\\E^a]")
+            .expect("regex registered")
+            .expect("accepts [\\E^a]")
+            .to_string();
+        assert!(
+            ast.contains("\"negated\":true"),
+            "[\\E^a] must parse as a NEGATED class: {ast}"
+        );
+        // The tightening applies in BOTH profiles (the `\Q`/`\E` guards + visibility rules are
+        // profile-shared; relaxed differs only on the .3.1 escape letters).
+        // (`parse_sample_detail_with_profile` is the profile-routing verdict API for regex.)
+        for pattern in ["[\\E]", "[\\Q]", "[\\Q\\E^]", "[^^]x]"] {
+            let verdict = super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                .expect("regex registered");
+            assert_eq!(
+                verdict.is_ok(),
+                parse_sample("regex", pattern) == Some(true),
+                "relaxed must agree with the default profile on the class-open surface: {pattern}"
+            );
+        }
+        // Relaxed still re-admits the .3.1 fidelity letters in CLASS context (regression guard
+        // for the class_simple_escape_relaxed catch-all renumbering).
+        for pattern in ["[\\u]", "[\\F]", "[\\l]", "[\\i]"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_ok(),
+                "relaxed must still re-admit the class-context escape letter: {pattern}"
+            );
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "the default profile must keep rejecting the class-context escape letter: {pattern}"
+            );
+        }
+    }
+
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {

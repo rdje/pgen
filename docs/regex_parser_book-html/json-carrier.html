@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1626cb8.js";
+            window.path_to_searchindex_js = "searchindex-ca53efdd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -293,7 +293,11 @@
 <tr><td><code>script_run_group</code></td><td><code>-&gt; {type:"atom", kind:"script_run_group", name:$2, body:$4}</code></td><td>Object. <code>name</code> is <code>"sr"</code>/<code>"script_run"</code>/<code>"asr"</code>/<code>"atomic_script_run"</code> (atomic vs non-atomic encoded in name).</td></tr>
 <tr><td><code>subroutine_call</code> (branch 0, with captures)</td><td><code>-&gt; {type:"atom", kind:"subroutine_call", target:$2}</code></td><td>Object. <code>target</code> is <code>returned_capture_subroutine</code> (target + capture-list).</td></tr>
 <tr><td><code>subroutine_call</code> (branch 1, plain)</td><td><code>-&gt; {type:"atom", kind:"subroutine_call", target:$2}</code></td><td>Same kind; <code>target</code> is just <code>subroutine_target</code>. Inspect <code>target</code> shape to determine syntactic form.</td></tr>
-<tr><td><code>char_class</code></td><td><code>-&gt; {type:"atom", kind:"char_class", negated:$2, initial_close:$3, body:$4}</code></td><td>Object. <code>negated</code>/<code>initial_close</code> are <code>true</code> matched, <code>[]</code> un-matched. <code>body</code> is raw class_body shape; inner posix_class/class_range/etc. items typed by earlier slices propagate.</td></tr>
+<tr><td><code>char_class</code></td><td>3 alts (rel <code>1.1.84</code>): <code>-&gt; {type:"atom", kind:"char_class", negated:$2, initial_close:$4, body:$5}</code> / <code>{…, negated:$2, initial_close:[], body:$3}</code> / <code>{…, negated:[], initial_close:[], body:$2}</code></td><td>Object (one shape from all 3 alts). <code>negated</code>/<code>initial_close</code> are <code>true</code> matched, <code>[]</code> un-matched. <code>body</code> is the flat class-item list; opening-slot invisibles (<code>\E</code>, <code>\Q\E</code>) are dropped.</td></tr>
+<tr><td><code>class_negated_open</code></td><td><code>-&gt; $2</code></td><td>Passthrough of <code>negation</code>’s <code>true</code> — the PCRE2 negation opening (caret with surrounding invisibles), rel <code>1.1.84</code>.</td></tr>
+<tr><td><code>class_body_nonempty</code></td><td><code>-&gt; [$1*, $2, $3*]</code></td><td>Array — the flat class-item list (invisible prefix ++ first VISIBLE member ++ rest), rel <code>1.1.84</code>.</td></tr>
+<tr><td><code>class_body_nonempty_nocaret</code></td><td><code>-&gt; [$1*, $2, $3*]</code></td><td>Array — same flatten; the no-negation body whose first visible member is structurally caret-free, rel <code>1.1.84</code>.</td></tr>
+<tr><td><code>empty_quoted_class_literal</code></td><td><code>-&gt; {type:"class_quoted_literal", body:[]}</code></td><td>Object — the invisible empty <code>\Q\E</code>, typed identically to an empty <code>quoted_class_literal</code> (byte-parity across routes), rel <code>1.1.84</code>.</td></tr>
 <tr><td><code>negation</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), <code>[]</code> from un-matched <code>negation?</code> slot.</td></tr>
 <tr><td><code>class_initial_close</code></td><td><code>-&gt; true</code></td><td>Boolean <code>true</code> (matched), <code>[]</code> from un-matched <code>class_initial_close?</code> slot.</td></tr>
 <tr><td><code>conditional</code></td><td><code>-&gt; {type:"atom", kind:"conditional", condition:$2, yes_branch:$4, no_branch:$5}</code></td><td>Object. <code>condition</code> is heterogeneous (typed signed_digits / “DEFINE” / <code>["R", ...]</code> / name string). <code>no_branch</code> is <code>[]</code> (no else) or `[“</td></tr>
@@ -301,6 +305,7 @@
 <tr><td><code>extended_class</code></td><td><code>-&gt; {type:"atom", kind:"extended_class", body:$2}</code></td><td>Object. <code>body</code> is raw <code>extended_class_content</code> shape; sub-rule typing of the recursive set-operation structure is a separate concern.</td></tr>
 <tr><td><code>class_range</code></td><td><code>-&gt; {type:"class_range", start:$1, end:$5}</code></td><td>Object. <code>start</code>/<code>end</code> are typed class_atoms (escape / clean string / quoted_class_range_atom). <code>class_zero_width*</code> slots (rare PCRE2 <code>\E</code>/<code>\Q\E</code> markers around the dash) dropped from typed shape; consumers needing them fall back to raw.</td></tr>
 <tr><td><code>quoted_class_literal</code></td><td><code>-&gt; {type:"class_quoted_literal", body:$2}</code></td><td>Object. <code>body</code> is array of <code>quoted_class_literal_char*</code> matched chars (parallels <code>quoted_literal</code> slice 18).</td></tr>
+<tr><td><code>quoted_class_literal_nonempty</code></td><td><code>-&gt; {type:"class_quoted_literal", body:$2}</code></td><td>Object — the ≥1-char form filling the visible-member slot; same shape as <code>quoted_class_literal</code>, rel <code>1.1.84</code>.</td></tr>
 <tr><td><code>class_range_escape</code></td><td><code>-&gt; $2</code></td><td>Transparent passthrough — drops the leading <code>\</code> so the typed escape_unit shape (slices 14-17) surfaces directly. Mirrors outer <code>escape -&gt; $2</code> (slice 14).</td></tr>
 <tr><td><code>subroutine_target</code> (branch 0, <code>&amp;name</code>)</td><td><code>-&gt; {kind:"named", name:$2}</code></td><td>Object. Surfaces inside <code>subroutine_call.target</code>.</td></tr>
 <tr><td><code>subroutine_target</code> (branch 1, <code>P&gt;name</code>)</td><td><code>-&gt; {kind:"python_named", name:$2}</code></td><td>Distinct kind preserves Python syntax origin (paralleling <code>python_named_backreference</code> slice 19).</td></tr>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1626cb8.js";
+            window.path_to_searchindex_js = "searchindex-ca53efdd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -364,20 +364,51 @@
 }
 </code></pre>
 <p><code>stray_class_end_quote = "\\E"</code> emits the bare terminal <code>"\\E"</code>.</p>
-<h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>The whole character-class subtree will be annotated in a future task #40 slice. Target:</p>
+<h2 id="the-pcre2-class-open-model--release-1184-regex-pcre2-fidelity315"><a class="header" href="#the-pcre2-class-open-model--release-1184-regex-pcre2-fidelity315">The PCRE2 class-open model — release <code>1.1.84</code> (<code>REGEX-PCRE2-FIDELITY.3.15</code>)</a></h2>
+<p>Member VISIBILITY, negation-through-invisibles, and the initial-<code>]</code>-literal rule are
+grammar-encoded and oracle-verified (<code>pcre2test</code> 10.47). Worked verdicts + shapes:</p>
+<h3 id="invisible-prefix--literal-member--ex-accept-the-class-x"><a class="header" href="#invisible-prefix--literal-member--ex-accept-the-class-x">Invisible prefix, <code>]</code>-literal member — <code>[\E]x]</code> (ACCEPT: the class <code>]x</code>)</a></h3>
 <pre><code class="language-json">{
-  "type": "char_class",
-  "negated": false,
-  "items": [
-    { "type": "literal", "value": "a" },
-    { "type": "range", "start": "b", "end": "z" },
-    { "type": "escape", "kind": "shorthand", "name": "d" },
-    { "type": "posix_class", "name": "alpha", "negated": false }
-  ]
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": true, "body": ["x"]},
+  ...
 }
 </code></pre>
-<p>Until that lands, consumers walk the per-rule raw shapes documented above.</p>
+<p>The stray <code>\E</code> is consumed by the opening and dropped; the first <code>]</code> became the
+<code>initial_close</code> literal member. (<code>[\E]</code> alone REJECTS — after the <code>]</code>-literal nothing closes
+the class.)</p>
+<h3 id="caret-member-after-negation---accept-a-negated-class-of-"><a class="header" href="#caret-member-after-negation---accept-a-negated-class-of-">Caret member after negation — <code>[^^]</code> (ACCEPT: a negated class of <code>^</code>)</a></h3>
+<pre><code class="language-json">{
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["^"]},
+  ...
+}
+</code></pre>
+<p>Only the FIRST non-invisible char after <code>[</code> negates; the next caret is a plain member.</p>
+<h3 id="negation-through-invisibles--ea-accept-a-negated-class-of-a"><a class="header" href="#negation-through-invisibles--ea-accept-a-negated-class-of-a">Negation through invisibles — <code>[\E^a]</code> (ACCEPT: a negated class of <code>a</code>)</a></h3>
+<pre><code class="language-json">{
+  "atom": {"type": "atom", "kind": "char_class", "negated": true, "initial_close": [], "body": ["a"]},
+  ...
+}
+</code></pre>
+<blockquote>
+<p><strong>Correction vs pre-<code>1.1.84</code>:</strong> this input previously parsed as a NON-negated class with
+body <code>["\E", "^", "a"]</code> — PCRE2-unfaithful. Same correction applies to <code>[\Q\E^a]</code> and
+<code>[\E^-z]</code>.</p>
+</blockquote>
+<h3 id="invisible-only-classes-reject--e-qe-e"><a class="header" href="#invisible-only-classes-reject--e-qe-e">Invisible-only classes REJECT — <code>[\E]</code>, <code>[\Q\E]</code>, <code>[^\E]</code></a></h3>
+<p>Invisible items never count toward non-emptiness: the <code>]</code> becomes a literal member and the
+class is unterminated (PCRE2 err 106). Likewise <code>[\Q]</code> / <code>[\Qa]</code> reject — an in-class <code>\Q</code>
+always opens a quoted run (it is never a shorthand escape), so the <code>]</code> is quoted and the
+class never closes.</p>
+<h3 id="in-body-invisibles-are-preserved--aqe-accept"><a class="header" href="#in-body-invisibles-are-preserved--aqe-accept">In-body invisibles are preserved — <code>[a\Q\E]</code> (ACCEPT)</a></h3>
+<pre><code class="language-json">{
+  "atom": {"type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+           "body": ["a", {"type": "class_quoted_literal", "body": []}]},
+  ...
+}
+</code></pre>
+<p>After the first visible member, stray <code>\E</code> (as the string <code>"\E"</code>) and the empty <code>\Q\E</code>
+(as an empty-<code>body</code> <code>class_quoted_literal</code>) stay in the typed <code>body</code> — only the OPENING-slot
+invisibles are dropped.</p>
 
                     </main>
 

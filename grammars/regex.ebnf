@@ -393,9 +393,28 @@ posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_star
 # Split into two alts so a class always has >=1 member: alt 1 is the `[]...]` form (the first `]` is a
 # literal member → `initial_close: true`); alt 2 has >=1 non-`]` item (`initial_close: []`). AST shape
 # is preserved exactly (`[]]`→initial_close:true,body:[]; `[x]`→initial_close:[],body:[x]).
-char_class     = "[" negation? class_initial_close class_body "]"    -> {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
-               | "[" negation? class_body_nonempty "]"              -> {type: "atom", kind: "char_class", negated: $2, initial_close: [], body: $3}
+# REGEX-PCRE2-FIDELITY.3.15 (REGEX-0091): the full PCRE2 CLASS-OPEN model. PCRE2 skips the
+# INVISIBLE items (stray `\E`, empty `\Q\E`) when reading the class opening: the first
+# NON-invisible char after `[` is the negation caret if it is `^` (so `[\E^a]` is a NEGATED
+# class of `a`, and a `^` after that is an ordinary member — `[^^]` accepts); after the
+# optional negation (invisibles allowed on both sides), a `]` with NO visible member seen yet
+# is a LITERAL member (`[\E]x]` = the class `]x`, ACCEPT; `[\E]` = unterminated, err 106).
+# Emptiness counts only VISIBLE members (`[\E]`/`[\Q\E]`/`[^\E]` reject err 106). All
+# oracle-verified against pcre2test 10.47 (the 80-pattern matrix in the task leaf). Alt 3's
+# first visible member is structurally caret-free (`class_body_nonempty_nocaret`) because a
+# leading bare `^` would BE the negation — structural, not lookahead, so generation stays
+# duality-sound. Invisible prefix/negation slots are dropped from the typed shape (the
+# class_range zero-width precedent).
+char_class     = "[" class_negated_open? class_zero_width* class_initial_close class_body "]"    -> {type: "atom", kind: "char_class", negated: $2, initial_close: $4, body: $5}
+               | "[" class_negated_open class_body_nonempty "]"              -> {type: "atom", kind: "char_class", negated: $2, initial_close: [], body: $3}
+               | "[" class_body_nonempty_nocaret "]"                         -> {type: "atom", kind: "char_class", negated: [], initial_close: [], body: $2}
 class_initial_close = "]"                                            -> true
+
+# REGEX-PCRE2-FIDELITY.3.15: the PCRE2 class-open negation — the FIRST non-invisible char
+# after `[` is the negation caret; invisible items may precede AND follow it (`[\E^...]`,
+# `[^\E]...]` both oracle-verified). `-> $2` passthrough keeps the `negated` slot convention
+# (matched optional = bare `true`, unmatched = `[]`).
+class_negated_open = class_zero_width* negation class_zero_width*    -> $2
 
 @generate: "^" if $1 else ""
 @semantic_value: $1 != null
@@ -410,10 +429,43 @@ class_body     = class_item*
 # whose first member is NOT a literal `]` still has at least one member (forbids `[]`/`[^]`). Same item
 # type + annotations as `class_body`; its value is the same flat class-item list (so the `char_class`
 # `body` shape is identical to alt 1).
+# REGEX-PCRE2-FIDELITY.3.15: restructured — the >=1 member must be VISIBLE (PCRE2-invisible
+# items — stray `\E`, empty `\Q\E` — do not count toward non-emptiness: `[\E]` is
+# unterminated err 106, not a 1-member class), with invisible items allowed before it. The
+# `-> [$1*, $2, $3*]` flatten keeps the body value the same flat item list as before (the
+# still-accepted-AST byte-parity lock).
 @generate: build_class_items_list($1)
 @semantic_value: flatten($1)
 @validate: all($1, item => is_valid_class_item(item))
-class_body_nonempty = class_item+
+class_body_nonempty = class_zero_width* class_item_visible class_item*   -> [$1*, $2, $3*]
+
+# REGEX-PCRE2-FIDELITY.3.15: the no-negation body variant — its first VISIBLE member must not
+# be a bare `^`, because PCRE2 reads the first non-invisible char after `[` as the negation
+# caret (`[\Q\E^]` = negated + `]`-literal + unterminated = err 106, NOT a 2-member class).
+# Structural (not lookahead) so stimuli generation cannot emit the caret there.
+@generate: build_class_items_list($1)
+@semantic_value: flatten($1)
+@validate: all($1, item => is_valid_class_item(item))
+class_body_nonempty_nocaret = class_zero_width* class_item_visible_nocaret class_item*   -> [$1*, $2, $3*]
+
+# REGEX-PCRE2-FIDELITY.3.15: the PCRE2-VISIBLE class members — `class_item` minus the
+# invisible forms (`stray_class_end_quote`, the empty `quoted_class_literal`). Same relative
+# alternative order as `class_item`.
+class_item_visible = posix_class
+                   | class_range
+                   | quoted_class_literal_nonempty
+                   | class_literal
+                   | class_escape
+class_item_visible_nocaret = posix_class
+                           | class_range
+                           | quoted_class_literal_nonempty
+                           | class_literal_nocaret
+                           | class_escape
+class_literal_nocaret = letter | digit | whitespace | class_safe_special_nocaret | unicode_char
+class_safe_special_nocaret = '[' | '!' | '@' | '#' | '$' | '%' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
+# REGEX-PCRE2-FIDELITY.3.15: the VISIBLE (>=1 quoted char) `\Q...\E` form for the visible-member
+# slot; emits the same `{type:"class_quoted_literal", body}` shape as `quoted_class_literal`.
+quoted_class_literal_nonempty = "\\Q" quoted_class_literal_char+ "\\E"        -> {type: "class_quoted_literal", body: $2}
 
 @dispatch: {
     "range": generate_range_check($1.start, $1.end),
@@ -452,7 +504,10 @@ stray_class_end_quote = "\\E"
 # matched. Consumers needing them can fall back to the raw shape.
 class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom   -> {type: "class_range", start: $1, end: $5}
 class_zero_width = stray_class_end_quote | empty_quoted_class_literal
-empty_quoted_class_literal = "\\Q" "\\E"
+# REGEX-PCRE2-FIDELITY.3.15: typed like `quoted_class_literal` with an empty body, so a
+# leading `\Q\E` routed through `class_zero_width` keeps the exact byte shape it had when it
+# routed through `class_item`/`quoted_class_literal`.
+empty_quoted_class_literal = "\\Q" "\\E"   -> {type: "class_quoted_literal", body: []}
 
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}
@@ -516,11 +571,14 @@ class_escape_unit = single_byte_escape
 # default (validator → grammar). Relaxed re-admits them. No digit guards here
 # (RGX-0088: class context admits `\<digit>` octal).
 class_simple_escape = class_simple_escape_strict | class_simple_escape_relaxed
-# Strict: original 4 guards PLUS the 6 letters → 10 lookaheads, `any_char` = `$11`.
-class_simple_escape_strict = !"o{" !"x{" !"p{" !"P{" !"i" !"F" !"l" !"L" !"u" !"U" any_char -> {type: "escape", kind: "shorthand", char: $11}
-# Relaxed opt-out: the original class catch-all (4 lookaheads, `any_char` = `$5`).
+# Strict: original 4 guards PLUS the 6 letters PLUS `Q`/`E` (`.3.15`) → 12 lookaheads, `any_char` = `$13`.
+# REGEX-PCRE2-FIDELITY.3.15: `!"Q"` / `!"E"` in BOTH profiles — `\Q` inside a class is ALWAYS
+# the quote-opener in PCRE2 (never a shorthand escape: `[\Q]`/`[\Qa]` are unterminated
+# classes, err 106 — the `]` is quoted), and `\E` is always the stray/quote-end marker.
+class_simple_escape_strict = !"o{" !"x{" !"p{" !"P{" !"i" !"F" !"l" !"L" !"u" !"U" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $13}
+# Relaxed opt-out: the original class catch-all + the `.3.15` `Q`/`E` guards (6 lookaheads, `any_char` = `$7`).
 @profiles: ["relaxed"]
-class_simple_escape_relaxed = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
+class_simple_escape_relaxed = !"o{" !"x{" !"p{" !"P{" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $7}
 
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}

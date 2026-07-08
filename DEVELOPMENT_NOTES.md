@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0013 — REGEX-PCRE2-FIDELITY.3.15: implementation notes — the class-open model, mixed-position spread, and scratch-slot design de-risking
+
+Session #62. Notes from landing the class-member-visibility encoding (regex release 1.1.84):
+
+1. **Mixed-position spread `[$1*, $2, $3*]` WORKS.** The auto-memory note "mixed spread arrays
+   fail" (`[a,$X**]`) does not extend to single-level `*` spreads in any array position —
+   `class_body_nonempty = zw* visible rest* -> [$1*, $2, $3*]` evaluates to the flat item list,
+   byte-identical to the old raw `class_item+` splice (verified over the full matrix, both
+   profiles). The return-annotation grammar (`array_element := expression`) permits it; the
+   runtime evaluates it correctly.
+2. **The `negated`-slot convention: a MATCHED optional contributes the BARE value.** `negation?`
+   yields `true` (not `[true]`) when matched, `[]` when not — so a mandatory wrapper referenced
+   as `negated: $2` matches the released byte-shape, and wrapping it `[$2]` regresses (`[^a]`
+   went `true`→`[true]` in the first candidate; caught by the scratch AST diff).
+3. **Annotating BOTH routes of a shared token keeps byte-parity.** A leading `\Q\E` moved from
+   `class_item`/`quoted_class_literal`(empty) to `class_zero_width`/`empty_quoted_class_literal`;
+   giving the latter the same `-> {type:"class_quoted_literal", body:[]}` annotation makes the
+   route swap invisible to consumers.
+4. **Structural exclusion beats lookahead wherever generation must stay sound.** The no-negation
+   body's first-visible slot excludes the bare `^` via a duplicated 28-element terminal chain
+   (`class_safe_special_nocaret`), NOT a `!"^"` lookahead — the generator is lookahead-blind and
+   would have emitted `[^]`-class invalid strings (the exact `.3.14` `directive_payload_core`
+   lesson, applied preemptively).
+5. **Scratch-slot design de-risking pays for itself.** Loading the FULL regex grammar into the
+   scratch slot (entry renamed, annotation kept) gave a control run byte-identical modulo the
+   top-level `rule_name` — then the candidate was verdict+AST verified over the whole matrix
+   BEFORE touching `grammars/regex.ebnf`. Two candidate defects (the `[true]` over-wrap; the
+   greedy-zw AST-shape hazard) died in scratch instead of on the released grammar. The slot
+   ignores `--profile` (`parse_with_scratch_detail` drops it) — relaxed-profile verification must
+   happen post-land on the real parser.
+6. **Python-heredoc backslash discipline:** the EBNF terminal `"\\Q"` (escaped backslash + Q)
+   written through a python triple-quoted heredoc needs four backslashes in the script; the
+   landing script used two, so the tracked grammar briefly carried the single-backslash terminal
+   `"\Q"` and `[\Qa\E]` regressed to REJECT — caught immediately by the post-land full-matrix
+   re-run (the re-run-everything discipline is not optional; the scratch candidate had the
+   correct spelling, which is why scratch was clean).
+7. **The validator's open-model alignment matters for RANGES.** The migrated scanner seeds
+   `previous_atom` with the `]`-literal (after invisibles/negation), so `[\E]-z]` accepts and
+   `[\E]-A]` rejects err-108-faithfully — deleting the emptiness error without aligning the
+   open phase would have broken the still-validator-owned descending-range check.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0012 — REGEX-PCRE2-FIDELITY.3.14: implementation notes — name-class-conditional shapes, two NEW generator facts, and the cert profile-universe rule
 
 Session #61. Notes from landing the verb/start-option argument-shape encoding (regex release
