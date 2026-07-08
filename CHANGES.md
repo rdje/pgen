@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0022 (REGEX-PCRE2-FIDELITY.4 SCOPING): the regex out-of-band validator is NOT deletable — tool-backed proof that 8 check families / 54 reject inputs are still LOAD-BEARING; capstone re-scoped into `.4.1`..`.4.11` (PURE-DOCS, no release)
+
+Session #72. A PURE-DOCS scoping + re-scope slice (no grammar/code/regen; regex stays `1.1.89` / contract
+`1.1.91` / schema `1`). On resuming, the `MEMORY.md` next-action framed the capstone `.4` as "delete the
+residual `validate_regex_compile_contract` — only the start-option POSITION rule remains validator-owned."
+A tools-first check found that claim WRONG.
+
+**Method (definitive).** The regex parse path (`parser_registry.rs:393-394`) runs `parse_full_regex()`
+(grammar) FIRST, then `validate_regex_compile_contract` (validator) ONLY if the grammar accepted. So the
+rejection MESSAGE names the source: `"Parser did not consume full input"` = grammar rejected (validator
+shadowed/dead for that input); a validator `"…compile contract"` string = grammar ACCEPTED and only the
+validator rejected (LOAD-BEARING — deleting it makes that input ACCEPT = an accepts-invalid PCRE2
+divergence). Ran the validator's OWN pinned reject corpus (its `#[test]` `expect_err` inputs, 58 cases)
+through the current release `parseability_probe --parse regex --profile pcre2` (rebuilt this session to
+embed the `.3.23` parser) and classified each by message source. Deterministic on re-run. (A first-pass
+classifier naively read exit code and mis-reported ALL as "shadowed" — caught immediately as
+too-good-to-be-true per the BE-ALERT discipline; the message-source correction gave the true map.)
+
+**Result: 8/8 checks LOAD-BEARING; 54/58 reject inputs validator-owned; only 4 grammar-shadowed** (the
+empty-`\Q\E`-region / orphan-`\E` char-class cases already closed by `.3.15`/`.3.23`). The still-owned
+families: bare property escape (`find_invalid_property_escape`), `\k`/group name charset+length ≤128
+(`find_invalid_named_escape_or_group_name`), counted `{N,M}` min>max order, class `\B`/`\K`/`\N` +
+nonliteral/DESCENDING ranges + POSIX names (`find_invalid_char_class_construct`, 27 inputs), scan-substring
+capture inventory, start-option POSITION, unbounded lookbehind, `\K`-in-lookaround. Load-bearing samples
+the grammar accepts today: `\pA` `\k<>` `x{5,4}` `[\B]` `[z-a]` `[[:foo:]]` `(*scs:(1)a)` `a(*CR)b`
+`(?<=a+)b` `(?=a\Kb)ab`.
+
+**Key insight (why the belief was wrong).** Generator↔parser DUALITY (hunter-visible, `duality_hunt_gate`)
+IS clean except start-option-position — because the store-aware generator never GENERATES these invalid
+forms. But validator LOAD-BEARING-ness is whether the GRAMMAR ALONE accepts a HAND-WRITTEN invalid
+pattern. Those are DIFFERENT axes; "duality-clean" ≠ "validator-deletable." The capstone is about
+deletion, so it needs the grammar to reject all 54.
+
+**Re-scope.** `.4` becomes a *deletion* leaf gated on encode-per-family child leaves `.4.1`..`.4.11` (each
+a released encode-in-EBNF slice; several — descending ranges, scs/named-ref two-pass inventories,
+lookbehind length, `\K`-in-lookaround — plausibly need a NEW parser-agnostic primitive, the same "hard"
+class flagged in the `.1` table rows 9/10 and the `.3.18`/`.3.22` deferrals), THEN the final deletion.
+Recommended next actionable slice: `.4.1` (bare property escape, STRUCTURAL, low-risk). Lockstep: decision
+record `project_regex_validator_deletion_blocked_load_bearing`, the `REGEX-PCRE2-FIDELITY.4` SCOPING LOG +
+child leaves + Current Frontier, `docs/decisions/INDEX.md`, `MEMORY.md`, `LIVE_ACHIEVEMENT_STATUS.md`,
+`DEVELOPMENT_NOTES.md`. **Status rows UNCHANGED** (`regex` stays `Done`; this corrects a continuity-doc
+error and re-scopes the open capstone — no behavior change).
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0021 (REGEX-PCRE2-FIDELITY.3.23): the PCRE2 `\Q` QUOTING model made first-class — closes empty-`\Q\E`-quantified accepts-invalid AND unterminated-`\Q…`-metachar rejects-valid (ledger REGEX-0099, regex release 1.1.89 / contract 1.1.91)
 
 Session #71. A RELEASED regex slice (release `1.1.88`→`1.1.89`, contract `1.1.90`→`1.1.91`, AST-dump schema

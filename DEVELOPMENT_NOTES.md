@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0022 — REGEX-PCRE2-FIDELITY.4 SCOPING: the regex validator is NOT deletable (8 families / 54 inputs LOAD-BEARING); capstone re-scoped (PURE-DOCS)
+
+PURE-DOCS scoping + re-scope. No grammar/code/regen (regex stays release `1.1.89` / contract `1.1.91` /
+schema `1`). This slice corrects a `MEMORY.md` continuity error and re-scopes the open capstone `.4`.
+
+**Tools-first (the BE-ALERT + toolbox-first discipline).** The resume pointer said "delete the residual
+validator — only the start-option POSITION rule remains validator-owned." Reading the ACTUAL code first,
+`validate_regex_compile_contract` still dispatches EIGHT live checks. Rather than trust the pointer, I
+proved the state with a probe:
+
+- **Message-source method.** The regex parse path (`parser_registry.rs:393-394`) is
+  `parse_full_regex()?` (grammar) THEN `validate_regex_compile_contract(...)` (validator) — the validator
+  only runs if the grammar accepted. So the rejection message names the source:
+  `"Parser did not consume full input"` ⟺ the grammar rejected (validator shadowed/dead for that input);
+  any validator `"…compile contract"` string ⟺ the grammar ACCEPTED and only the validator rejected
+  (LOAD-BEARING — deleting it makes the input ACCEPT, an accepts-invalid PCRE2 divergence).
+- **Corpus.** The validator's OWN pinned reject tests (`#[test]` `expect_err`, 58 inputs) — the
+  authoritative "what it must reject" contract — through the current release
+  `parseability_probe --parse regex --profile pcre2` (rebuilt this session, ~7 min, embeds the `.3.23`
+  parser). Deterministic on re-run.
+- **First-pass trap (surfaced honestly).** My first classifier read only the exit code and reported ALL
+  8 checks "fully shadowed" — flagged immediately as too-good-to-be-true (the BE-ALERT discipline), then
+  root-caused: the probe's parse path RUNS the validator, so exit-code alone measures grammar+validator.
+  The message-source split is what isolates the grammar.
+
+**Result: 8/8 checks LOAD-BEARING; 54/58 inputs validator-owned; only 4 grammar-shadowed** (the
+empty-`\Q\E`-region / orphan-`\E` char-class cases already closed by `.3.15`/`.3.23`).
+
+**Key insight.** "Duality-clean" ≠ "validator-deletable." `duality_hunt_gate` is clean except
+start-option-position because the store-aware GENERATOR never emits these invalid forms — but a user can
+HAND-WRITE them, and the grammar ALONE accepts them. Deletion needs the grammar to reject all 54.
+
+**Re-scope.** `.4` → encode-per-family child leaves `.4.1`..`.4.11` (triage in the `.4` SCOPING LOG in
+`docs/tasks/REGEX-PCRE2-FIDELITY.md`; full table in decision record
+`project_regex_validator_deletion_blocked_load_bearing`), THEN a final deletion. Recommended order:
+`.4.1` (bare property, structural) → `.4.6`/`.4.4`/`.4.2` (structural) → the hard/primitive-needing
+families (`.4.3` order, `.4.5` descending ranges, `.4.7`/`.4.11` two-pass, `.4.8` start-option position,
+`.4.9` lookbehind length, `.4.10` `\K`-in-lookaround). No behavior change; `regex` stays `Done`.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0021 — REGEX-PCRE2-FIDELITY.3.23: the `\Q` QUOTING model made first-class (REGEX-0099, release 1.1.89 / contract 1.1.91)
 
 RELEASED regex slice. `\Q` was a bare shorthand escape; making it first-class quoting closed two sibling

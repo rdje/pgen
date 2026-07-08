@@ -982,16 +982,106 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
     `directive_payload_digits` preserved, the new rules are unannotated; inventory stays 214); oracle-gate
     env comment corrected (stale `1857/286`→true `1858/285`); live docs (CHANGES / DEVELOPMENT_NOTES /
     LIVE_ACHIEVEMENT_STATUS / MEMORY / TASK_TREE).
-- ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
-  `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
-  EBNF is the sole source of truth. GATE-PINNED residual it owns (`STIMULI-SIGNOFF.13.3`, 2026-07-08):
-  the start-option POSITION class (`PCRE# start option must appear at the start-option prefix`,
-  reproducers `E(*UTF16)`/`E(*CASELESS_RESTRICT)`) is pinned with THIS capstone as owner in
-  `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json` (regex canonical seed 0 + scaled
-  seed 0) per the `.3.14` ratified honest bound (contextual — needs a grammar shape); the slice that
-  encodes it MUST re-baseline that contract same-commit (`make -C rust duality_hunt_gate` fails until it does).
+- ID: `.4`  Status: `pending` (RE-SCOPED 2026-07-09 `PGEN-REGEX-PCRE2-0022` — see the SCOPING LOG below)
+  Goal: capstone — delete `validate_regex_compile_contract` + its module so the EBNF is the sole source
+  of truth (`check_ebnf_source_of_truth.sh` green with no validator). **BLOCKED**: a tool-backed
+  message-source probe (session #72) proved the validator is NOT residual — **8 check families / 54 of
+  its 58 pinned reject inputs are still LOAD-BEARING** (the grammar ACCEPTS them; only the validator
+  rejects — deleting it today = 54 accepts-invalid PCRE2 divergences). So `.4` is now a *deletion* leaf
+  gated on the encode-in-EBNF child leaves `.4.1`..`.4.11` below; it runs LAST, once every family is
+  grammar-owned. It still owns the `STIMULI-SIGNOFF.13.3` GATE-PINNED start-option POSITION duality
+  re-baseline (`rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json`, regex canonical seed 0
+  + scaled seed 0; `make -C rust duality_hunt_gate` fails until the encoding slice re-baselines it) — now
+  carried by `.4.8`.
+- ID: `.4.1` Status: `pending` Goal: encode BARE property escape — `\p`/`\P` unbraced must be a 1-letter
+  Unicode general category (`\pA`/`\P_`/`\p`@EOF reject). Owns `find_invalid_property_escape`. **STRUCTURAL**
+  (the `property_escape` `p short_prop_letter` branch already exists; the leak is the fallback that lets
+  `\p`+bad-letter parse — likely a positive-exclusion in the escape rule, the `.3.13` idiom). Low risk.
+- ID: `.4.2` Status: `pending` Goal: encode `\k`/group NAME validity — charset (letter/digit/`_`/Unicode,
+  no leading digit) + length ≤ 128 (`\k`/`\kabc`/`\k''`/`\k<>`/`\k{}` + a 129-char capture name reject).
+  Owns `find_invalid_named_escape_or_group_name`. charset = **STRUCTURAL** (the `name` rule); length ≤128 =
+  a `len_bounds` `@predicate` (value-constraint) — assess whether the atom-scoped constraint machinery
+  reaches a `$text` name rule (cf. the `.3.16` atom-scope finding).
+- ID: `.4.3` Status: `pending` Goal: encode counted-quantifier `{N,M}` min>max ORDER (err 104;
+  `x{5,4}`/`a{\t5\t,\t2\t}` reject). Owns the residual of `find_invalid_counted_quantifier`. **VALUE-COMPARISON**
+  (cross-number, leading-zero-hostile) — `.3.18` explicitly deferred it here; likely needs a rule-span
+  value-constraint primitive, not a plain gate.
+- ID: `.4.4` Status: `pending` Goal: encode class shorthand/escape rejects — `\B`/`\K`/`\N` inside `[...]`
+  (`[\B]`/`[\K]`/`a[\NB]c` reject). Part of `find_invalid_char_class_construct`. **STRUCTURAL** (positive
+  class-escape enumeration; separable from ranges).
+- ID: `.4.5` Status: `pending` Goal: encode class RANGE validity — nonliteral endpoints (`[\d-x]`,
+  `[a-\p{Lu}]`, …) + DESCENDING ranges (`[z-a]`, `[\x{100}-z]`, decoded octal/hex/control endpoints).
+  Part of `find_invalid_char_class_construct`. nonliteral = **STRUCTURAL-ish** (a range endpoint must be a
+  literal-class atom); descending = **VALUE-COMPARISON over DECODED codepoints** (hard — needs a
+  value-constraint primitive that decodes `\x{}`/`\NNN`/`\cX`/`\a`/`\e` endpoints and compares).
+- ID: `.4.6` Status: `pending` Goal: encode POSIX class NAME validity — unknown `[[:foo:]]` reject +
+  the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
+  `find_invalid_char_class_construct`. **STRUCTURAL** (keyword set of the ~14 POSIX names + the 2 aliases).
+- ID: `.4.7` Status: `pending` Goal: encode scan-substring capture inventory — `(*scs:(N))`/`(*scs:(<name>))`
+  must reference an AVAILABLE capture (`(*scs:(1)…)`@0-groups, `(*scs:(0)…)`, `(*scs:(<name>)…)`@unknown
+  reject; forward refs LEGAL). Owns `find_invalid_scan_substring_capture_list`. **WHOLE-PATTERN two-pass**
+  (capture count + name inventory) — the same store-aware class as `.3.22`; forward-ref legality forbids a
+  single-pass `has_fact`. Needs the store-aware / two-pass primitive.
+- ID: `.4.8` Status: `pending` Goal: encode start-option POSITION — a recognized `(*UTF)`… start option
+  must appear only at the start-option prefix (`a(*CR)b`/`a(*LIMIT_HEAP=500)`/`(*FAIL)(*LIMIT_HEAP=5)a`
+  reject). Owns the residual of `find_invalid_verb_construct` + the `STIMULI-SIGNOFF.13.3` duality pin
+  (re-baseline `duality_hunt_gate_contract_v0.json` same-commit). **WHOLE-PATTERN two-pass** (contextual —
+  "every group before this is itself a start option"). The known long-standing `.4` target.
+- ID: `.4.9` Status: `pending` Goal: encode unbounded-lookbehind — a variable-length lookbehind body must
+  be bounded (`(?<=a+)b`/`(?<=a*)b`/`(?<=a{2,})b`/`(?<=…(c+)…)` reject; fixed `(?<=a{2})b` accept). Owns
+  `find_unbounded_quantified_lookbehind`. **LOOKBEHIND-LENGTH ANALYSIS** (hard — the body's max match
+  length must be finite; needs a new parser-agnostic primitive).
+- ID: `.4.10` Status: `pending` Goal: encode `\K`-in-lookaround — `\K` inside any lookaround body rejects
+  (`(?=a\Kb)`/`(?<=\K.)`/`(*pla:a\Kb)` reject; `\Kword` outside accepts). Owns
+  `find_invalid_keep_out_escape_in_lookaround`. **CONTEXTUAL** — the original `.1` table row 10 "hard one"
+  (depends on the enclosing construct); needs a contextual gate primitive.
+- ID: `.4.11` Status: `pending` Goal: encode the named-reference UNKNOWN-name inventory scoped by `.3.22`
+  (`\k<zzz>`/`(?P=zzz)`/`(?&zzz)`/`\g{zzz}`… @undefined reject; forward/subroutine refs accept). **NOT** a
+  current `validate_regex_compile_contract` check (validator is shape-only here) — a genuine
+  released-parser accepts-invalid divergence (ledger `REGEX-0098`). **WHOLE-PATTERN two-pass**, same class
+  as `.4.7`. The `.3.22` oracle matrix is its frozen acceptance spec.
 - ID: `.5`  Status: `pending`  Goal: verification — full `regex_pcre2_compile_oracle_gate` parity
   (default), relaxed-mode test suite, cert-coverage at floor, RGX conformance ratchet, lockstep.
+
+### REGEX-PCRE2-FIDELITY.4 — SCOPING LOG (`PGEN-REGEX-PCRE2-0022`, 2026-07-09, session #72, tool-backed, PURE-DOCS)
+
+**Trigger.** The `MEMORY.md` resume pointer framed the next action as "delete the residual validator —
+**only the start-option POSITION rule remains validator-owned**". A tools-first read of the ACTUAL code
+found `validate_regex_compile_contract` (`rust/src/regex_compile_validation.rs`) still dispatches EIGHT
+live checks (`parser_registry.rs:393-394` runs `parse_full_regex()` THEN the validator) — so the claim
+needed verification, not trust ([[feedback_be_alert_root_cause_fishy_immediately]]).
+
+**Method (definitive, no rebuild of logic).** The parse path runs the GRAMMAR first, then the validator
+ONLY if the grammar accepted. So the rejection MESSAGE names the source:
+`"Parser did not consume full input"` = grammar rejected (validator shadowed/dead for that input); a
+validator `"…compile contract"` string = grammar ACCEPTED, validator rejected (**load-bearing** — deleting
+it makes that input ACCEPT). Ran the validator's OWN pinned reject corpus (its `#[test]` `expect_err`
+inputs, 58 cases) through the current release `parseability_probe --parse regex --profile pcre2` (rebuilt
+this session to embed the `.3.23` parser) and classified each by message source. (First-pass classifier
+naively read exit code and mis-reported ALL as "shadowed" — caught immediately as too-good-to-be-true;
+the message-source correction gave the true map. Deterministic on re-run.)
+
+**Result: 8/8 checks LOAD-BEARING; 54/58 reject inputs validator-owned; 4 grammar-shadowed**
+(the empty-`\Q\E`-region / orphan-`\E` char-class cases already closed by `.3.15`/`.3.23`). Per-family
+map + encodability = the `.4.1`..`.4.11` leaves above and the decision record
+[[project_regex_validator_deletion_blocked_load_bearing]] (full table). Load-bearing sample reject
+inputs the grammar ACCEPTS today: `\pA` `\k<>` `x{5,4}` `[\B]` `[z-a]` `[\d-x]` `[[:foo:]]` `(*scs:(1)a)`
+`a(*CR)b` `(?<=a+)b` `(?=a\Kb)ab`.
+
+**Why the belief was wrong (the key insight).** Two DIFFERENT axes were conflated:
+(1) generator↔parser DUALITY (hunter-visible) IS clean except start-option-position — because the
+store-aware generator never GENERATES these invalid forms; (2) validator LOAD-BEARING-ness is whether the
+GRAMMAR ALONE accepts a HAND-WRITTEN invalid pattern — 8 families still do. "Duality-clean" ≠
+"validator-deletable"; the capstone is about deletion, so it needs the grammar to reject all 54.
+
+**Decision.** `.4` re-scoped into `.4.1`..`.4.11` (encode-per-family, released slices) THEN a final `.4`
+deletion. Recommended order (structural/cheap first, so the validator shrinks monotonically with released
+proof): `.4.1` → `.4.6` → `.4.4` → `.4.2` → then the hard families (`.4.3` order, `.4.5` descending
+ranges, `.4.7`/`.4.11` two-pass inventories, `.4.8` start-option position, `.4.9` lookbehind length,
+`.4.10` `\K`-in-lookaround) as their own design+build slices — several likely need a NEW parser-agnostic
+primitive (value-comparison over decoded ranges / whole-pattern two-pass / contextual gate), the same
+"hard" class flagged in the `.1` table (rows 9/10) and the `.3.18`/`.3.22` deferrals. No engine/grammar
+change this slice (PURE-DOCS scope + re-scope).
 
 ## `.2` DESIGN — the explicit `pcre2` default (uncovered scoping `.3.1`, 2026-06-07)
 
@@ -1124,6 +1214,20 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-09, session #72)** `.4` capstone RE-SCOPED (`PGEN-REGEX-PCRE2-0022`, PURE-DOCS — no
+  release/contract/schema bump; stays `1.1.89`/`1.1.91`/`1`). 🔎 Tool-backed finding: the `MEMORY`
+  "only the start-option POSITION rule remains validator-owned" was WRONG. A message-source probe (the
+  parse path rejects with a GRAMMAR message vs a VALIDATOR "…compile contract" message —
+  `parser_registry.rs:393-394`) of `validate_regex_compile_contract`'s 58-input pinned reject corpus
+  proved **8 check families / 54 inputs are still LOAD-BEARING** (grammar accepts, only the validator
+  rejects); only 4 (empty-`\Q\E`-region) are grammar-shadowed. Deleting the validator today = 54
+  accepts-invalid PCRE2 divergences. Root of the wrong belief: DUALITY-clean (the generator never EMITS
+  these) ≠ VALIDATOR-deletable (a user can HAND-WRITE them). `.4` re-scoped into encode-per-family child
+  leaves `.4.1`..`.4.11` (see the SCOPING LOG + [[project_regex_validator_deletion_blocked_load_bearing]])
+  THEN a final deletion; several need a NEW parser-agnostic primitive (value-comparison / whole-pattern
+  two-pass / contextual). Recommended next actionable slice = `.4.1` (bare property escape, STRUCTURAL,
+  low-risk) — a released slice, best in fresh context. Frontier per the standing PNT order → `.4.1` →
+  `.4.6`/`.4.4`/`.4.2` (structural) → the hard/primitive-needing families → final `.4` deletion → `.5`.
 - **(2026-07-08, session #71)** `.3.23` LANDED (`PGEN-REGEX-PCRE2-0021`, regex release `1.1.88`→`1.1.89`,
   contract `1.1.90`→`1.1.91`, schema `1`, ledger `REGEX-0099`) — the PCRE2 `\Q` QUOTING model made
   first-class (`Q` dropped from `simple_escape_letter_strict`), closing TWO sibling divergence classes with

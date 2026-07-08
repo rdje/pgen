@@ -85,6 +85,21 @@ instance (regex's `validate_regex_compile_contract`, pending its EBNF-encoding).
 cannot silently reappear: a future grammar cannot quietly grow a hand-written post-parse gate the stimuli
 generator can't see.
 
+**Migration progress + capstone re-scope (2026-07-09).** The `REGEX-PCRE2-FIDELITY` tree has since
+migrated several of the original checks into `regex.ebnf` (so the `\u`/`(*verb)` cases the generator once
+tripped are now grammar-owned and the *generator no longer trips the validator at all* — generation is
+faithful). But a tools-first probe (session #72, `PGEN-REGEX-PCRE2-0022`) established the honest remaining
+state: `validate_regex_compile_contract` still dispatches **8 live checks that are all LOAD-BEARING** —
+for **54 hand-writable inputs** (e.g. `[z-a]`, `x{5,4}`, `\pA`, `(?<=a+)b`, `(?=a\Kb)`, `a(*CR)b`,
+`(*scs:(1)a)`) the *grammar accepts* and only the validator rejects. So the validator is NOT residual, and
+the capstone that deletes it must first encode all 8 families in the EBNF (several need a new
+parser-agnostic primitive: value-comparison over decoded ranges, whole-pattern two-pass capture/start-option
+inventories, contextual `\K`/lookbehind analysis). Method + full map:
+`docs/decisions/project_regex_validator_deletion_blocked_load_bearing.md` and the
+`REGEX-PCRE2-FIDELITY.4` SCOPING LOG. Note the distinction: generator↔parser **duality** is clean (the
+generator never *emits* these), but that is not the same as the validator being **deletable** (a user can
+*hand-write* them).
+
 ## Why PGEN Works This Way
 
 PGEN targets domains where parser behavior materially affects downstream tooling and trust:
