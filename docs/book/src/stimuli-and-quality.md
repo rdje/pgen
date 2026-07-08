@@ -957,7 +957,16 @@ a literal member; in-class `\Q` is always the quote-opener), so invisible-only c
 no longer grammar-derivable and the hunter re-run at seeds 0/7/42 shows that signature gone
 (directed rejections 1/1/2 → 1/0/0 per 100; this slice too fixed real released-parser
 divergences — 17 rejects-valid flips like `[\E]x]`/`[^^]` plus 3 accepted-but-mis-parsed
-negation ASTs, ledger `REGEX-0091`). The remaining classes are owned by further
+negation ASTs, ledger `REGEX-0091`). The numeric-callout range class (`(?C4135)` — the
+generator emitted out-of-range callout numbers the validator rejected, 5 per 60 generated
+callouts) is CLOSED the same way (`REGEX-PCRE2-FIDELITY.3.16`, surface-neutral — no version
+bump): the PCRE2 value bound (≤ 255, arbitrary leading zeros, err 138) is encoded
+STRUCTURALLY as `callout_number` (leading zeros + an optional nonzero-led core ≤ 255), so an
+out-of-range callout is no longer grammar-derivable (duality probe 5/60 → 0/60) — notably,
+the leaf's originally-declared `@range: [0, 255]` value-constraint design was adjudicated OUT
+tools-first: the SC-08 guard and its generation sampling are ATOM-scoped, so on the
+self-hosted grammar's native `digits` body `@range` is inert on BOTH sides (generation-probed:
+`7562`, `3245`, `0935`… emitted). The remaining classes are owned by further
 `REGEX-PCRE2-FIDELITY.3.x` leaves (the sole hunter-visible residual is the `.3.17` scs
 capture-list class).
 

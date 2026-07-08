@@ -34,6 +34,19 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-08 — REGEX-PCRE2-FIDELITY.3.16: the numeric-callout [0, 255] bound migrated from the host validator INTO the grammar (IMPLEMENTATION-ONLY; SURFACE-NEUTRAL; release/contract versions UNCHANGED)
+
+**What this is.** A PGEN-initiated EBNF-single-source-of-truth migration (`PGEN-REGEX-PCRE2-0014`), **not** a downstream-reported bug. PCRE2 rejects a numeric callout whose **value** exceeds 255 (compile error 138) while accepting arbitrary leading zeros (`(?C0255)` / `(?C000000000255)` compile; `pcre2test` 10.47). That bound previously lived in the out-of-band host validator (`regex_compile_validation::find_invalid_numeric_callout`), invisible to the stimuli generator — which emitted out-of-range callouts the parser then rejected (a generator⟷parser duality break: 5 parser-rejected per 60 generated callout samples at seed 0). The bound is now encoded **structurally inside `grammars/regex.ebnf`**: `callout_arg`'s numeric branch is a dedicated `callout_number` rule (leading zeros plus an optional nonzero-led core ≤ 255), so an out-of-range digit run has no fully-consuming parse and generation is in-range **by construction** (duality probe 5/60 → 0/60). The validator check was deleted (5th compile-contract migration).
+
+**Versions UNCHANGED — no re-pin required.** Parser release stays `1.1.84`, contract stays `1.1.86`, AST-dump schema stays `1`. Surface-neutral for the stable host surface:
+
+| What downstream consumes | Before | After |
+|---|---|---|
+| Accepted language (what parses / what rejects) | (baseline) | **identical** — `pcre2test` 10.47 compile oracle byte-identical (1857 matches / 46 false-rejects / 292 false-accepts); 31-cell callout matrix oracle-exact in BOTH profiles, incl. the condition-callout site `(?(?C255)(?=y)x\|z)` |
+| AST shape for accepted callouts | (baseline) | **byte-identical** (19/19 dump comparison) — `callout_number` carries the same `@transform`-span typed int the former `digits` branch produced (`(?C0255)` → `"arg": 255`) |
+| Rejection error **code** for out-of-range callouts | `E_PARSE_FAILURE` | `E_PARSE_FAILURE` (unchanged) |
+| Rejection error **message** | `numeric callout argument exceeds PCRE2 compile limit 255` | a standard grammar parse error (`Parser did not consume full input …`) — **match on the code, not the text** |
+
 ## Maintenance Update 2026-07-07 — DEFAULT-PROFILE.2: the "unspecified profile = strict `pcre2`" default is now GRAMMAR-DECLARED (`@default_profile: pcre2` in `grammars/regex.ebnf`) (IMPLEMENTATION-ONLY; SURFACE-NEUTRAL; release/contract versions UNCHANGED)
 
 **What this is.** A PGEN-initiated doctrine change (EBNF-single-source-of-truth), **not** a downstream-reported bug. The PCRE2-faithful default — an unspecified/empty requested profile resolves to the strict `pcre2` profile, with `relaxed` the explicit opt-out — was previously hard-coded as `== "regex"` name literals inside the engine (parse registry, generation-side profile filter, embedding API). It is now declared in the grammar itself via the grammar-level `@default_profile: pcre2` directive, and the generated parser **carries its own default**: it embeds a `DEFAULT_GRAMMAR_PROFILE` constant, its constructor starts on it, and `set_grammar_profile(None)` *restores* it (never a permissive unset state).

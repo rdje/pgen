@@ -104,7 +104,7 @@ The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit retu
 | `alpha_lookaround` | `-> {type:"atom", kind:"alpha_lookaround", name:$2, body:$4}` | Object `{type:"atom", kind:"alpha_lookaround", name:<alpha_lookaround_name>, body:<pattern>}`. Consumers map `name` to dispatch on semantic equivalent. |
 | `inline_modifiers` | `-> {type:"atom", kind:"inline_modifiers", spec:$2}` | Object. `spec` is the raw `modifier_spec` shape (sub-rule typing is a separate slice). `[]` when `modifier_spec?` is un-matched (e.g. `(?)`). |
 | `scoped_inline_modifiers` | `-> {type:"atom", kind:"scoped_inline_modifiers", spec:$2, body:$4}` | Object. `body` is the inner pattern (raw). |
-| `callout` | `-> {type:"atom", kind:"callout", arg:$2}` | Object. `arg` is `callout_arg`'s typed-int (digits) or string (callout_string) shape. `[]` when un-matched. |
+| `callout` | `-> {type:"atom", kind:"callout", arg:$2}` | Object. `arg` is `callout_arg`'s typed-int (`callout_number`, value-bounded to [0, 255] — REGEX-PCRE2-FIDELITY.3.16) or string (callout_string) shape. `[]` when un-matched. |
 | `directive_verb` | `-> {type:"atom", kind:"directive_verb", body:$2}` | Object. `body` is the raw `directive_body` shape (sub-rule typing is a separate slice). |
 | `code_block_plain` | `-> {type:"atom", kind:"code_block", lang:null, content:$2}` | Object. `lang:null` distinguishes plain form. `content` is `code_content` (raw). |
 | `code_block_lang` | `-> {type:"atom", kind:"code_block", lang:$2, content:$5}` | Same kind as plain; `lang` is the matched language ident; `content` is the actual `code_content` body (per PGEN-RGX-0082 fix; was `$4` = `ws?` slot). |

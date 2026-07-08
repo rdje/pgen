@@ -13,10 +13,42 @@ The PCRE2 callout construct `(?C...)`. 4-element Sequence: `["(?C", <callout_arg
 ### `callout_arg`
 
 ```ebnf
-callout_arg = digits | callout_string
+callout_arg = callout_number | callout_string
 ```
 
-2-way Or. `digits` is the typed integer (annotated). `callout_string` is one of 8 string-delimited forms.
+2-way Or. `callout_number` is the typed integer (annotated). `callout_string` is one of 8 string-delimited forms.
+
+### `callout_number` — the numeric argument, value-bounded to [0, 255]
+
+```ebnf
+@transform: str::parse::<usize>().unwrap_or(0)
+callout_number      = callout_number_body
+callout_number_body = "0"+ callout_number_core? | callout_number_core
+callout_number_core = "25" ("0" | "1" | "2" | "3" | "4" | "5")
+                    | "2" ("0" | "1" | "2" | "3" | "4") digit
+                    | "1" digit digit
+                    | nonzero_digit digit
+                    | nonzero_digit
+```
+
+PCRE2 rejects a numeric callout whose **value** exceeds 255 (compile error 138), while
+accepting arbitrary leading zeros — `(?C255)`, `(?C0255)`, and `(?C000000000255)` all
+compile; `(?C256)` and `(?C0256)` do not (`pcre2test` 10.47). Since release 1.1.84's
+follow-up (REGEX-PCRE2-FIDELITY.3.16) this bound is encoded **structurally in the
+grammar**: the digit run must be leading zeros plus an optional nonzero-led core ≤ 255,
+so an out-of-range run has no fully-consuming parse (the trailing `")"` fails) and the
+stimuli generator can only emit in-range callout numbers by construction. Previously
+the bound lived in the out-of-band compile-contract validator
+(`find_invalid_numeric_callout`), invisible to generation.
+
+The `@transform` applies to the rule's matched **span**, so the carrier stays the exact
+typed integer the former `digits` branch produced: `(?C0255)` → `"arg": 255`. Rejection
+for out-of-range forms is now an ordinary parse failure (`Parser did not consume full
+input …`) rather than the validator's `numeric callout argument exceeds PCRE2 compile
+limit 255` message — match on the error **code** (`E_PARSE_FAILURE`), not the text.
+
+The same bound covers the condition-callout site `(?(?C255)(?=y)x|z)` — both callout
+forms share `callout_arg`. String callout-args are not value-bounded (unchanged).
 
 ### `callout_string`
 

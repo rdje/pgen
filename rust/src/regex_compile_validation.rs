@@ -31,9 +31,10 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     if let Some(error) = find_invalid_counted_quantifier(input) {
         return Err(error);
     }
-    if let Some(error) = find_invalid_numeric_callout(input) {
-        return Err(error);
-    }
+    // REGEX-PCRE2-FIDELITY.3.16: the numeric-callout range check (`find_invalid_numeric_callout`)
+    // was MIGRATED into `grammars/regex.ebnf` — `callout_number` structurally admits only digit
+    // runs whose VALUE is ≤ 255 with arbitrary leading zeros (PCRE2 err 138), so `(?C256)`-family
+    // forms now reject at the grammar layer and generation is in-range by construction.
     if let Some(error) = find_invalid_verb_construct(input) {
         return Err(error);
     }
@@ -353,45 +354,6 @@ fn find_invalid_counted_quantifier(input: &str) -> Option<RegexCompileValidation
                 } else {
                     index += 1;
                 }
-            }
-            _ => index += 1,
-        }
-    }
-
-    None
-}
-
-fn find_invalid_numeric_callout(input: &str) -> Option<RegexCompileValidationError> {
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-
-    while index + 3 < bytes.len() {
-        match bytes[index] {
-            b'\\' => index = skip_regex_escape(bytes, index),
-            b'[' if !is_extended_class_start(bytes, index) => {
-                index = skip_char_class_for_group(bytes, index)
-                    .map(|end| end + 1)
-                    .unwrap_or(index + 1);
-            }
-            b'(' if bytes.get(index + 1) == Some(&b'?') && bytes.get(index + 2) == Some(&b'C') => {
-                let mut arg_index = index + 3;
-                let mut number = 0u16;
-                while let Some(digit) = bytes.get(arg_index).copied() {
-                    if !digit.is_ascii_digit() {
-                        break;
-                    }
-                    number = number
-                        .saturating_mul(10)
-                        .saturating_add(u16::from(digit - b'0'));
-                    if number > 255 {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "numeric callout argument exceeds PCRE2 compile limit 255",
-                        ));
-                    }
-                    arg_index += 1;
-                }
-                index = arg_index.max(index + 1);
             }
             _ => index += 1,
         }
@@ -1865,19 +1827,6 @@ mod tests {
     fn allows_quote_escape_pair_outside_character_class() {
         validate_regex_compile_contract(r"abc\Q(*+|\Eabc")
             .expect("quoted literal escapes remain valid outside character classes");
-    }
-
-    #[test]
-    fn rejects_numeric_callout_above_pcre2_limit() {
-        let error = validate_regex_compile_contract("(?C256)ab")
-            .expect_err("must reject callout number above 255");
-        assert!(error.message.contains("255"));
-    }
-
-    #[test]
-    fn allows_numeric_callout_at_pcre2_limit() {
-        validate_regex_compile_contract("(?C255)ab")
-            .expect("numeric callout 255 is accepted by PCRE2");
     }
 
     #[test]

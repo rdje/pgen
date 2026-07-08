@@ -1038,11 +1038,37 @@ python_named_backreference = "(?P=" name ")"   -> {type: "backreference", kind: 
 inline_modifiers           = "(?" modifier_spec? ")"                 -> {type: "atom", kind: "inline_modifiers", spec: $2}
 scoped_inline_modifiers    = "(?" modifier_spec ":" pattern? ")"     -> {type: "atom", kind: "scoped_inline_modifiers", spec: $2, body: $4}
 branch_reset_group         = "(?|" pattern? ")"                     -> {type: "atom", kind: "branch_reset_group", body: $2}
-# `arg` carries the raw callout_arg shape (Or of digits | callout_string).
+# `arg` carries the raw callout_arg shape (Or of callout_number | callout_string).
 # Consumer dispatches on inner shape: integer → numeric callout-arg;
 # string-shaped → string callout-arg.
 callout                    = "(?C" callout_arg? ")"                 -> {type: "atom", kind: "callout", arg: $2}
-callout_arg                = digits | callout_string
+callout_arg                = callout_number | callout_string
+# REGEX-PCRE2-FIDELITY.3.16: the numeric callout argument is VALUE-bounded to
+# [0, 255] (PCRE2 err 138; `pcre2test` 10.47: `(?C255)` accepts, `(?C256)`
+# rejects) with arbitrary leading zeros (`(?C0255)` / `(?C000000000255)`
+# accept — the bound is the VALUE, not the digit count). Encoded STRUCTURALLY:
+# the digit run must be leading zeros plus an optional nonzero-led core ≤ 255,
+# so an out-of-range run has no fully-consuming parse (the following `")"`
+# then fails) and generation is in-range BY CONSTRUCTION. The `@range` value
+# constraint cannot own this bound: its parse guard and generation sampling
+# are ATOM-scoped (they fire on regex/literal atoms of the constraint-bearing
+# rule), and this self-hosted grammar has no regex atoms — on a native
+# `digits` body `@range` is inert on BOTH sides (generation-probed). The
+# wrapper indirection is REQUIRED for the typed-int surface: the rule-level
+# `@transform` span fallback is not emitted for Or-rooted rules
+# (`semantic_span_transform_tokens` excludes `ASTNode::Or`), so the choice
+# lives in `callout_number_body` and `callout_number` keeps the former
+# `digits` branch's exact carrier (`@transform` over the matched span:
+# `"0255"` → `255`).
+@transform: str::parse::<usize>().unwrap_or(0)
+callout_number             = callout_number_body
+callout_number_body        = "0"+ callout_number_core? | callout_number_core
+# The nonzero-led values 1-255: 250-255 / 200-249 / 100-199 / 10-99 / 1-9.
+callout_number_core        = "25" ("0" | "1" | "2" | "3" | "4" | "5")
+                           | "2" ("0" | "1" | "2" | "3" | "4") digit
+                           | "1" digit digit
+                           | nonzero_digit digit
+                           | nonzero_digit
 callout_string             = callout_backtick_string
                            | callout_single_string
                            | callout_double_string
@@ -1165,7 +1191,8 @@ condition_callout_assertion = condition_callout "(" condition_assertion   -> {ki
 # `condition_callout` is the inside-condition variant of the
 # atom-level `callout` (without the leading `(?` since the
 # surrounding `(?(...)` already consumed it). Same `{kind, arg}`
-# shape — `arg` is the typed callout_arg (digits → typed int, or
+# shape — `arg` is the typed callout_arg (callout_number → typed int
+# value-bounded to [0, 255] per REGEX-PCRE2-FIDELITY.3.16, or
 # typed callout_string from slice 33, or `[]` un-matched).
 condition_callout = "?C" callout_arg? ")"                                 -> {kind: "callout", arg: $2}
 # `condition_assertion` per-branch typed `{kind, positive, body}` /

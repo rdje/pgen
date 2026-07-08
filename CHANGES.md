@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0014 (REGEX-PCRE2-FIDELITY.3.16): the numeric-callout [0, 255] bound grammar-encoded STRUCTURALLY — the declared `@range` design refuted tools-first, `find_invalid_numeric_callout` deleted (5th contract migration), NO version bump
+
+Session #64. Released-parser slice, conformance- & surface-NEUTRAL (no release/contract/schema/
+ledger change — release stays 1.1.84 / contract 1.1.86 / schema 1).
+
+- **Issue (the `(?C262)` duality class, EVIDENCED `-0015`):** PCRE2 rejects a numeric callout whose
+  VALUE exceeds 255 (err 138; leading zeros accepted — `(?C0255)` compiles, `pcre2test` 10.47) but the
+  bound lived OUT-OF-BAND in `find_invalid_numeric_callout`, invisible to generation: 5/60 generated
+  callout samples were parser-rejected (`(?C4135)` …).
+- **Design adjudication (tools-first):** the leaf's declared `@range: [0, 255]` design was REFUTED
+  before implementation — the SC-08 machinery is ATOM-scoped on BOTH sides (parse guards spliced only
+  after literal/regex atom matches; generation sampling only in `generate_regex_sample`), and the
+  self-hosted regex grammar has no atom spanning a multi-digit number: a mini-grammar generation probe
+  with `@range` on a native `digits` body emitted `7562`/`3245`/`0935`/… — inert, and deleting the
+  validator under it would have opened an accepts-invalid hole. A second probed hazard: Or-rooted
+  rules get NO rule-level `@transform` span fallback (emitted-parser greps) → the wrapper shape.
+  **Consequence recorded for `.3.21`:** the LIMIT `=value` u32-range leaf is the same class and cannot
+  use `@range` as-is either.
+- **Fix (grammar tier, structural):** `callout_arg = callout_number | callout_string`;
+  `@transform`-span `callout_number = callout_number_body`; `callout_number_body = "0"+
+  callout_number_core? | callout_number_core`; `callout_number_core` = the 5-branch nonzero-led ≤255
+  encode. Out-of-range runs have no fully-consuming parse; generation is in-range BY CONSTRUCTION.
+  Validator fn + call + 2 unit tests DELETED; new full-stack pin
+  `regex_numeric_callout_range_rejects_at_the_grammar_layer_pcre2_faithfully` (10 rejects / 19
+  accepts / typed-int AST / both profiles).
+- **Verified:** matrix 31/31 oracle-exact (both callout sites, both profiles); ASTs 19/19
+  byte-identical (`(?C0255)` → `"arg": 255` preserved); duality 5/60 → **0/60**; generation 120/120
+  in-range ×3 seeds; cert **220/220/0 `fully_certified`** ×seeds 0/7/42 (217→220 = the 3 new rules,
+  spf=0); lint 0/0 (220 rules); svpp 74/74/0 ×3; PCRE2 oracle gate byte-identical baseline
+  (1857/46/292/338); broader corpus 0 fails; differential-equivalence gate 4/4 (regex stays
+  CERTIFIED — the new structural rules + span-transform are interpreter-mirrored); dual-run gate ✅;
+  lib suites 880/838/760 all /0 (−2 migrated validator tests, +1 pin); self-hosting OK; clippy
+  source-strict ok; both book gates ✅.
+- **In-slice incident (root-caused, tools-first):** a mid-verification cert read UNKNOWN=3
+  (`parsed=true witnessed_target=false` on exactly the 3 new rules) — mtime proof: the debug
+  `ast_pipeline` (08:19) predated the regen (09:04), so the WITNESS side ran the stale embedded
+  parser while the planner read the new `.ebnf`; dual-feature rebuild → clean. Reinforces the
+  standing regen-mtime discipline.
+- **Lockstep:** contract "Maintenance Update 2026-07-08" (before/after table; match on error CODE,
+  not message text); regex book `rules-misc.md` § `callout_number` + `json-carrier.md` + changelog
+  index + tracked HTML; top book `stimuli-and-quality.md` duality-closure note; manifest UNCHANGED
+  (inventory stays 202); tree checklist + `docs/TASK_TREE.md` + `MEMORY.md`.
+
 ## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0016 (STIMULI-SIGNOFF.13.2): the parse-harness interpreter VALUE-CONSTRAINT mirror — SC-08 atom guards now differentially certified, REGEX-PCRE2-FIDELITY.3.16/.3.21 unblocked
 
 Session #63. Parser-agnostic interpreter/registry slice (NO released-parser behavior change —

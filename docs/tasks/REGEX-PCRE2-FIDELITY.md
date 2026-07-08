@@ -363,12 +363,51 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - [x] **ADDRESSED (verified)** — verdict matrix pre→post over 84 oracle-pinned cells (80 strict + 4 relaxed): EXACTLY the 17 divergence flips (all REJECT→ACCEPT: `[\E]x]` `[\Q\E]x]` `[\E\E]x]` `[\E\Q\E]x]` `[^\E]x]` `[^\Q\E]x]` `[\E]]` `[\Q\E]]` `[^\E]]` `[^^]` `[^^]x]` `[^\E^]` `[^\Q\E^]` `[\E^]x]` `[\E^\E]x]` `[\E^^]` `[\E\E^]y]`), zero collateral, BOTH profiles oracle-faithful; invisible-only/unterminated-quote/caret-negated-empty families now reject at the GRAMMAR layer; post-land range pins `[\E]-z]`/`[]-z]` ACCEPT + `[\E]-A]`/`[]-A]` REJECT (err-108-faithful); hunter re-run seeds 0/7/42: the `[\E]` signature GONE (directed rejections 1/1/2 → **1/0/0** per 100; sole residual = the tracked `.3.17` scs class); new full-stack pin green in-suite.
 - [x] **NO REGRESSION** — still-accepted matrix ASTs cmp BYTE-IDENTICAL pre/post in BOTH profiles except EXACTLY the 3 documented semantic corrections (`[\E^a]` `[\Q\E^a]` `[\E^-z]` → `negated:true`, invisibles dropped — the fix's intended effect, ledger-documented); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=217 proof=0 witness=217 UNKNOWN=0 fully_certified=true (sample_parse_failures=0 …)` at seeds 0/7/42, byte-identical re-runs (total 210→217 = the 7 net-new rules, all witnessed); `--lint-grammar` 0 errors / 0 profile-orphans (217 rules); lib suites dual **880/0** (+1 pin), `generated_parsers` **838/0**, no-features **761/0**; validator unit tests 51/51 pre AND post (no stale expectations); `parse_harness_equivalence_gate` ✅ (regex stays differential-CERTIFIED); `ebnf_frontend_dual_run_gate` ✅; `regex_pcre2_compile_oracle_gate` ✅; `regex_broader_corpus_proof_gate` ✅ (0 parse failures); svpp cross-guard cert `total=74 witness=74 UNKNOWN=0 fully_certified=true spf=0` ×3 seeds unchanged; `mdbook_docs_gate` + `regex_parser_book_gate` ✅; clippy: zero findings in touched regions (generated stage = the known pre-existing debt, non-strict by design).
 - [x] **LOCKSTEP** — ledger `REGEX-0091` row (drift-gate authoritative Fixed-in pair) + embedding consts + tracked contract JSON bumped to 1.1.84/1.1.86; integration contract Identity + "Release 1.1.84 / Contract 1.1.86 Highlights — REGEX-0091" (verdict table + AST-correction + rejection-layer + duality-closure notes); regex book: changelog entry, `rules-char-class.md` REWRITTEN to the current typed truth (the chapter was raw-envelope-era stale — pre-.3.7 rule text, wrong walking code), `examples-char-class.md` stale "future direction" tail replaced with the class-open model examples (verified shapes), `json-carrier.md` inventory rows (+6 new / char_class updated), tracked HTML regenerated; top book `parser-families.md` handoff pair + `stimuli-and-quality.md` closure-progress note; ast_shape_contract manifest inventory re-derived (196→202); `docs/TASK_TREE.md` index updated.
-- ID: `.3.16`  Status: `pending` (EVIDENCED `-0015`; UNBLOCKED 2026-07-08 — `STIMULI-SIGNOFF.13.2`
-  (`PGEN-STIMULI-SIGNOFF-0016`) landed the interpreter value-constraint mirror, differentially pinned by
-  the five `sem_value_*` cases incl. the exact `@range: [0, 255]` boundary shape this leaf declares)
-  Goal: encode row 5 — `@range: [0, 255]` on a dedicated `callout_number` rule (`(?C262)` rejects
-  err 138, `(?C255)` accepted); codegen already emits the parse-time guard (`ast_based_generator.rs:7868`)
-  and the generator samples within bounds; migrate `find_invalid_numeric_callout`.
+- ID: `.3.16`  Status: **`done`** (`PGEN-REGEX-PCRE2-0014`, 2026-07-08 session #64; SURFACE-NEUTRAL —
+  release stays `1.1.84`, contract stays `1.1.86`, schema stays `1`, NO ledger row; EVIDENCED `-0015`;
+  was UNBLOCKED by `STIMULI-SIGNOFF.13.2`)
+  Goal (as declared): encode row 5 — `@range: [0, 255]` on a dedicated `callout_number` rule; migrate
+  `find_invalid_numeric_callout`.
+  **IN-SLICE DESIGN ADJUDICATION (tools-first): the declared `@range` design was REFUTED and the bound
+  encoded STRUCTURALLY instead.** The SC-08 value-constraint machinery is ATOM-scoped on BOTH sides —
+  the parse guard is spliced only after `match_string`/`match_regex` atoms of the constraint-bearing
+  rule (`semantic_value_constraint_tokens` call sites `ast_based_generator.rs:3993/:4054/:4090/:4126/:4142`;
+  the `.13.2` interpreter mirror doc pins it: "`rule_reference` delegates to the referenced rule's own
+  guards", `parse_harness_interpreter.rs:2505`) and generation sampling lives in `generate_regex_sample`
+  (`stimuli_generator.rs:11545`, regex atoms only) — and the self-hosted regex grammar HAS no regex/single
+  literal atom spanning a multi-digit number. Generation-probed on a mini grammar: `@range: [0, 255]` on a
+  native `digits` body emitted `7562`, `3245`, `0935`, `504`, … (out-of-range) ⇒ `@range` would be INERT on
+  both sides and deleting the validator would have opened an accepts-invalid hole. The `.13.2` unblock was
+  real only for `/regex/`-bodied rules (the suite shape). SECOND probed hazard: an Or-ROOTED rule gets NO
+  rule-level `@transform` span fallback (`semantic_span_transform_tokens` excludes `ASTNode::Or`,
+  `ast_based_generator.rs` — emitted-parser probes: choice-root and inline-group-root minis have ZERO
+  `__pgen_span_text` blocks; the wrapper shape has it) ⇒ the typed-int carrier needs the wrapper
+  indirection. Oracle pinned FIRST (`pcre2test` 10.47): the bound is the VALUE with ARBITRARY leading
+  zeros — `(?C255)`/`(?C0255)`/`(?C00)`/`(?C000000000255)`/`(?C010)` ACCEPT; `(?C256)`/`(?C262)`/
+  `(?C000000000256)`/`(?C999999999999999999999)` REJECT err 138; condition-callout site identical.
+  Verification: `done — full evidence in the Acceptance Checklist below. LANDED: (1) grammar (structural
+  tier): callout_arg = callout_number | callout_string; @transform-span callout_number = callout_number_body
+  (wrapper — Or-root span-transform hazard); callout_number_body = "0"+ callout_number_core? |
+  callout_number_core; callout_number_core = the 5-branch nonzero-led ≤255 encode (250-255 / 200-249 /
+  100-199 / 10-99 / 1-9) — out-of-range runs have no fully-consuming parse (the trailing ")" fails) and
+  generation is in-range BY CONSTRUCTION (120/120 across seeds 0/7/42 from entry callout_number).
+  (2) find_invalid_numeric_callout DELETED (fn + call + 2 unit tests; 5th compile-contract migration).
+  (3) New full-stack pin regex_numeric_callout_range_rejects_at_the_grammar_layer_pcre2_faithfully
+  (10 rejects / 19 accepts / typed-int AST assertion "arg":255 for (?C0255) / both-profile agreement).
+  (4) In-slice incident root-caused tools-first: a mid-verification cert read UNKNOWN=3
+  (parsed=true witnessed_target=false on the 3 new rules) — mtime proof: debug ast_pipeline (08:19)
+  predated the regen (09:04), so the WITNESS side ran the STALE embedded parser (no callout_number rules
+  to witness) while the planner read the new .ebnf; dual-feature rebuild → 220/220 clean ×3 seeds.
+  Reinforces [[feedback_verify_sv_parser_regen_mtime]].`
+  Commit: `PGEN-REGEX-PCRE2-0014`
+
+### REGEX-PCRE2-FIDELITY.3.16 — Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — duality class (EVIDENCED `-0015`): `printf '(?C262)' | parseability_probe --parse regex` → `Error: parse_full rejected sample … : numeric callout argument exceeds PCRE2 compile limit 255` (the CONTRACT message ⇒ grammar-ACCEPTED, validator-layer reject; same for the condition site `(?(?C262)(?=y)x|z)`); generation duality: `ast_pipeline grammars/regex.ebnf --generate-stimuli --count 60 --seed 0 --entry-rule callout` → **5/60 parser-rejected** (`(?C4135)` `(?C4612)` `(?C359)` `(?C4601)` `(?C3742)`) — the generator is validator-blind ([[project_ebnf_is_single_source_of_truth]]).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the PCRE2 bound lived OUT-OF-BAND in `find_invalid_numeric_callout` (`regex_compile_validation.rs:364`, call `:34`) while the grammar's `callout_arg = digits | callout_string` admits ANY digit run — invisible to generation. WHERE the declared design fails: the `@range` guard + sampling are ATOM-scoped (codegen call sites `:3993/:4054/:4090/:4126/:4142`; interpreter mirror "rule_reference delegates" `parse_harness_interpreter.rs:2505`; generation `stimuli_generator.rs:11545`) — mini-grammar probe: `@range` on a native `digits` body emits `7562`/`3245`/`0935`/… (inert both sides); plus the Or-root `@transform` span-fallback exclusion (`semantic_span_transform_tokens`, emitted-parser probes: 0 `__pgen_span_text` on choice/group roots vs present on the wrapper shape).
+- [x] **FIX** — fix-hierarchy GRAMMAR tier (structural; no engine change, no new annotation): the `callout_number`/`callout_number_body`/`callout_number_core` structural [0, 255] encode with the `@transform`-span wrapper preserving the exact typed-int carrier; validator check deleted same-slice (the `.3.2`/`.3.13`/`.3.14`/`.3.15` migration precedent).
+- [x] **ADDRESSED (verified)** — post-land matrix **31/31 oracle-exact** (12 rejects incl. `(?C0256)`/`(?C000000000256)`/`(?C999999999999999999999)`/both sites + 19 accepts incl. `(?C0255)`/`(?C00)`/`(?C010)`/string forms), BOTH profiles agree (pin test); rejection LAYER flipped ((?C262): contract message → `Parser did not consume full input at position 0` = grammar layer, code `E_PARSE_FAILURE` unchanged); duality probe **5/60 → 0/60** (seed 0); generation from `callout_number` **120/120 in-range** ×seeds 0/7/42; new full-stack pin green in-suite.
+- [x] **NO REGRESSION** — accepted-callout ASTs **19/19 cmp BYTE-IDENTICAL** pre/post (`--parse-dump-ast-pretty`, incl. `(?C0255)`→`"arg": 255`, `(?C)`→`"arg": []`, string forms, condition site); regex cert `CERTIFICATE-COVERAGE: grammar='regex' … total=220 proof=0 witness=220 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)` ×seeds 0/7/42 (217→220 = exactly the 3 net-new rules, all witnessed); `--lint-grammar` 0 errors / 0 profile-orphans (220 rules); svpp cross-guard cert `total=74 witness=74 UNKNOWN=0 fully_certified=true spf=0` ×3 seeds unchanged; `regex_pcre2_compile_oracle_gate` ✅ **byte-identical baseline** (1857 matches / 46 false-rejects / 292 false-accepts / 338 mismatches = conformance-NEUTRAL); `regex_broader_corpus_proof_gate` ✅ (0 parse failures); `parse_harness_equivalence_gate` ✅ 4/4 (regex stays differential-CERTIFIED over the new rules); `ebnf_frontend_dual_run_gate` ✅; lib suites dual **880/0** / `generated_parsers` **838/0** / no-features **760/0** (= baselines −2 migrated validator tests +1 pin); `check_regex_self_hosting.sh` OK (new rules are literal-only); clippy `clippy_source_all_targets: ok` (generated stage = the known pre-existing 178 `eq_op` debt, non-strict by design); `mdbook_docs_gate` + `regex_parser_book_gate` ✅.
+- [x] **LOCKSTEP** — NO version bump (conformance- & surface-neutral, the `.3.1`/`.3.2` precedent; embedding consts untouched; no ledger row — no released divergence existed); integration contract **"Maintenance Update 2026-07-08"** (before/after table: identical language, byte-identical ASTs, code-not-message guidance); regex book: `rules-misc.md` new § `callout_number`, `json-carrier.md` callout row, `changelog-index.md` maintenance entry, tracked HTML regenerated; top book `stimuli-and-quality.md` duality-closure note (incl. the @range-inert adjudication); AST shape-contract manifest UNCHANGED (inventory stays 202 entries — no return-annotation change; shape gate green in-suite); tree + `docs/TASK_TREE.md` index + live docs updated.
 - ID: `.3.17`  Status: `pending` (EVIDENCED `-0015`; design owned by `STIMULI-SIGNOFF.13.4`)  Goal: row 9
   generation-side — scs capture-list references. Parse-time predicate is UNSOUND (forward refs LEGAL:
   `(*scs:('a'))(?<a>x)` oracle-accepted), so the parse-side check STAYS in the validator; the generator-side
@@ -541,8 +580,15 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
-- `.3.1` (`\u`-family), `.3.2` (`(*verb)` names), and **`.3.7` (cert-coverage clean — all 3 causes
-  closed)** are DONE. After `.3.7`, regex DEFAULT cert-coverage `sample_parse_failures` is **0 at most
+- **(2026-07-08, session #64)** `.3.13`/`.3.14`/`.3.15`/`.3.16` are DONE (see the leaves + enforced
+  checklists above — the live frontier is tracked in `MEMORY.md` + `docs/TASK_TREE.md`). Next per the
+  standing PNT order: `STIMULI-SIGNOFF.13.4`/`.3.17` (scs capture-list, generation-side), `.13.3`
+  (gate lane), then `.3.18`–`.3.21` (`.3.21` note: the interpreter value-constraint mirror is landed,
+  but `.3.16` PROVED the SC-08 `@range` machinery is ATOM-scoped — inert on native-body rules of the
+  self-hosted grammar — so `.3.21` needs either a digit-width-bounded structural shape or the
+  rule-span value-constraint extension FIRST; pin the u32 boundary with pcre2test before designing).
+- *(historical, 2026-06-08)* `.3.1` (`\u`-family), `.3.2` (`(*verb)` names), and **`.3.7`
+  (cert-coverage clean — all 3 causes closed)** are DONE. After `.3.7`, regex DEFAULT cert-coverage `sample_parse_failures` is **0 at most
   seeds** (16→0/seed 0, 17→0/seed 7, 0/count 500); the only remaining residual is the seed-1 `\98495`
   numeric-backreference over-generation, owned by the spun-out **`.3.12`** (a distinct, low-frequency
   generator-fidelity gap unmasked by the spacing fix, NOT spacing). Next candidates, **pending a director
@@ -628,6 +674,7 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `2026-06-08` | `.3.7` root-cause (`-0009`) | `--report-certificate-coverage --entry-rule regex --count 200 --seed 0` → `sample_parse_failures=14`; `parseability_probe --parse regex` minimal repros isolated 3 causes (empty `[]`/`[^]`; `(?(R N)` spacing; name spacing); `\Q…\E`-with-`]` ruled out as red herrings | ROOT-CAUSE DONE (docs); 14 vs pre-self-hosting 3 = sample-set shift, oracle byte-identical (not a regression) |
 | `2026-06-08` | `.3.7` (a) impl (`-0010`) | `char_class` two-alt split (always ≥1 member); `[]`/`[^]` reject + `[]]`/`[^]]`/`[a-z]`/`[]x]`/`[\QxY\E]` pass; AST shapes preserved (`[]]`→initial_close:true; `[x]`→initial_close:[]); `regex_pcre2_compile_oracle_gate` BYTE-IDENTICAL; manifest synced 172→173; self-hosting gate OK (0 `/.../`, 0 `match_regex`); lib 615/0, generated_parsers 654/0, clippy ✓ | **(a) DONE** — empty-class category structurally eliminated; surface-neutral (no version bump); (b)/(c) spacing next |
 | `2026-06-08` | `.3.7` (b)+(c) impl (`PGEN-LEXICAL-ANNOTATIONS-0024`) | generator-only `$text`/`@transform` atomicity (intra-rule join suppression + cross-rule cohesion); cert-cov `sample_parse_failures` 16→**0** (count 200/seed 0 ×2), seed 7 17→0, count 500/seed 0 0, seed 1 18→**1** (the distinct `\98495` numeric-backref, routed to `.3.12`); repros `(?(R1)x)`/`(?P=abc)`/`(?P>vx)` pass; lib `--lib` 618/0 (+3 locks); `stimuli_cross_family_platform_gate` ✅; `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting gate OK; strict source clippy clean | **(b)+(c) DONE** — spacing category eliminated; surface-neutral (no version bump). `.3.7` CLOSED; spun out `.3.12` (numeric-backref over-generation, unmasked) |
+| `2026-07-08` | `.3.16` impl (`PGEN-REGEX-PCRE2-0014`) | oracle matrix (pcre2test 10.47, value-based + leading zeros); @range-inert adjudication probes (mini-grammar generation + emitted-parser span-transform greps); post-land matrix 31/31 oracle-exact both profiles; ASTs 19/19 byte-identical; duality 5/60→0/60; cert 220/220/0 fully_certified ×3 seeds (spf=0); svpp 74/74/0 ×3; oracle gate byte-identical (1857/46/292/338); broader corpus 0 fails; equivalence gate 4/4; dual-run gate ✅; suites 880/838/760 all /0; self-hosting OK; clippy source ok; both book gates ✅ | **DONE** — structural [0,255] encode (the declared @range design REFUTED tools-first: SC-08 is atom-scoped ⇒ inert on the self-hosted native body); validator check DELETED (5th migration); surface-neutral, no version bump; stale-binary cert incident root-caused (mtime) in-slice |
 
 ## Commit Log
 
@@ -644,9 +691,25 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `.3.7` root-cause | `PGEN-REGEX-PCRE2-0009` | regex default cert-coverage = 14, root-caused into 3 causes (empty `[]`/`[^]`; `(?(R N)` spacing; name spacing); docs-only |
 | `.3.7` (a) char_class | `PGEN-REGEX-PCRE2-0010` | empty-class fix: `char_class` two-alt split (always ≥1 member) → generator can't emit `[]`/`[^]`; oracle byte-identical; AST shapes preserved; manifest 172→173; surface-neutral |
 | `.3.7` (b)+(c) spacing | `PGEN-LEXICAL-ANNOTATIONS-0024` (LEXICAL-ANNOTATIONS `.6`) | lexical-token cohesion (generator-only `$text`/`@transform` atomicity); cert-cov 16→0; spacing category eliminated; surface-neutral; spun out `.3.12` (numeric-backref over-generation, unmasked) |
+| `.3.16` | `PGEN-REGEX-PCRE2-0014` | numeric-callout [0,255] STRUCTURAL encode (`callout_number` cluster + @transform-span wrapper); `find_invalid_numeric_callout` deleted (5th migration); @range design refuted tools-first (SC-08 atom-scoped); conformance- & surface-neutral (no version bump); duality 5/60→0/60 |
 
 ## Changelog
 
+- `2026-07-08`: `.3.16` IMPLEMENTATION DONE (`PGEN-REGEX-PCRE2-0014`, session #64). The numeric-callout
+  [0, 255] bound migrated into the grammar — but NOT via the declared `@range` design: the pre-implementation
+  mechanism probes REFUTED it (SC-08 value constraints are ATOM-scoped in parse-guard AND generation-sampling;
+  the self-hosted grammar has no spanning atom, so `@range` on a native `digits` body is inert on both sides
+  — generation-probed). Encoded STRUCTURALLY instead (`callout_number` = leading zeros + optional nonzero-led
+  core ≤ 255, `@transform`-span wrapper for the typed-int carrier — the Or-root span-transform exclusion was
+  also probe-confirmed and designed around). `find_invalid_numeric_callout` DELETED (5th compile-contract
+  migration). Conformance-NEUTRAL (oracle byte-identical 1857/46/292/338) + surface-neutral (19/19 ASTs
+  byte-identical) → NO version bump. Duality class closed at the source (generated-callout parser-rejections
+  5/60 → 0/60). Cert 217→220/220/0 `fully_certified` ×3 seeds. IMPORTANT downstream design fact: `.3.21`
+  (LIMIT `=value` u32 range) is in the SAME class and CANNOT use `@range` as-is either — it needs a
+  structural/width-bounded shape or the rule-span value-constraint extension first. In-slice incident:
+  a stale debug `ast_pipeline` (predating the regen) made cert read UNKNOWN=3 (`parsed=true
+  witnessed_target=false` — the witness side ran the OLD embedded parser); mtime-proven, dual rebuild fixed;
+  reinforces [[feedback_verify_sv_parser_regen_mtime]].
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-PCRE2-0001`), per the director directive to
   make regex PCRE2-faithful by default with a relaxed opt-out, EBNF-driven.
 - `2026-06-07`: `.2` design (`PGEN-REGEX-PCRE2-0002`) pinned the explicit-`pcre2`-default wiring (the

@@ -2042,6 +2042,85 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.3.16: the numeric callout argument is VALUE-bounded to [0, 255]
+    /// at the GRAMMAR layer (`callout_number`), replacing the migrated
+    /// `find_invalid_numeric_callout` validator check. All verdicts oracle-verified
+    /// (`pcre2test` 10.47: in-range and leading-zero forms accept; any value > 255 is err 138).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_numeric_callout_range_rejects_at_the_grammar_layer_pcre2_faithfully() {
+        // Out-of-range numeric callouts: REJECT (err 138 — the VALUE exceeds 255; leading
+        // zeros do not save an out-of-range value; the digit count alone decides nothing).
+        for pattern in [
+            "(?C256)",
+            "(?C262)",
+            "(?C260)",
+            "(?C999)",
+            "(?C1000)",
+            "(?C2555)",
+            "(?C0256)",
+            "(?C000000000256)",
+            "(?C999999999999999999999)",
+            "(?(?C262)(?=y)x|z)", // the condition-callout site shares callout_arg
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "out-of-range numeric callout must reject: {pattern}"
+            );
+        }
+        // In-range numeric callouts (VALUE ≤ 255, arbitrary leading zeros) and string
+        // callout-args (not value-bounded): ACCEPT.
+        for pattern in [
+            "(?C)",
+            "(?C0)",
+            "(?C1)",
+            "(?C25)",
+            "(?C99)",
+            "(?C199)",
+            "(?C249)",
+            "(?C250)",
+            "(?C255)",
+            "(?C0255)",
+            "(?C00)",
+            "(?C000000000255)",
+            "(?C010)",
+            "(?C255)x",
+            "(?(?C255)(?=y)x|z)",
+            "(?(?C0255)(?=y)x|z)",
+            "(?C`ab`)",
+            "(?C'cd')",
+            "(?C{ef})",
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "in-range / string callout must accept: {pattern}"
+            );
+        }
+        // The typed-int carrier is preserved: leading zeros collapse to the VALUE (the
+        // `@transform` span parse on `callout_number`), exactly as the former `digits`
+        // branch surfaced it.
+        let ast = super::parse_sample_ast_json("regex", "(?C0255)")
+            .expect("regex registered")
+            .expect("accepts (?C0255)")
+            .to_string();
+        assert!(
+            ast.contains("\"arg\":255"),
+            "(?C0255) must carry the typed int value 255: {ast}"
+        );
+        // The bound applies in BOTH profiles (callout_number is profile-shared).
+        for pattern in ["(?C256)", "(?C0256)", "(?C255)", "(?C0255)"] {
+            let verdict = super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                .expect("regex registered");
+            assert_eq!(
+                verdict.is_ok(),
+                parse_sample("regex", pattern) == Some(true),
+                "relaxed must agree with the default profile on the callout range: {pattern}"
+            );
+        }
+    }
+
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {

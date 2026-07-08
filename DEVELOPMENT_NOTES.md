@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0014 — REGEX-PCRE2-FIDELITY.3.16: implementation notes — the structural callout bound + why `@range` could not own it
+
+Session #64. Notes from landing the numeric-callout migration:
+
+1. **A "landed mechanism" claim in a leaf is a hypothesis until probed on the TARGET shape.** `.13.2`
+   really did land the SC-08 interpreter mirror, and the suite's `sem_value_range_guard` really does
+   pin the exact `[0, 255]` boundary — but on a `/regex/`-bodied rule. The guard's splice sites
+   (`semantic_value_constraint_tokens` call sites) and the generation sampling
+   (`generate_regex_sample`) are ATOM-scoped, and the SELF-HOSTED regex grammar (no `/.../` atoms by
+   doctrine) has no single atom spanning a multi-digit number — so the declared `@range` design was
+   inert on both sides for THIS grammar. Two cheap zero-build probes decided it: a mini-grammar
+   generation run (`--entry-rule callout_number`, out-of-range values emitted) and emitted-parser
+   greps (`--generate-parser` + grep `__pgen_span_text`).
+2. **The Or-root `@transform` span-fallback exclusion is a real modeling constraint.** Codegen emits
+   the rule-level span transform only for non-Or roots (`semantic_span_transform_tokens`,
+   `ASTNode::Or => quote!{}`; "Or roots apply transforms per-branch" — and a body-level `@transform`
+   is not a branch transform). An inline-group root normalizes to Or too. The pattern that works:
+   `@transform` on a WRAPPER rule whose body is a single rule reference; the choice lives one level
+   down. Worth remembering for any future `@transform`-on-choice rule.
+3. **Value-range-as-structure is small when the bound is small.** `[0, 255]` with arbitrary leading
+   zeros is `"0"+ core? | core` with a 5-branch core (250-255 / 200-249 / 100-199 / 10-99 / 1-9)
+   under the default `longest_match` tournament: out-of-range runs leave residual digits the trailing
+   `")"` cannot match. No lookaheads, generation-sound by construction. This does NOT scale to
+   `.3.21`'s u32 bound (10-digit boundary) — that leaf needs the rule-span value-constraint extension
+   or a width-bounded shape; recorded in the tree.
+4. **Stale-binary cert reads look exactly like a witness-accounting bug.** UNKNOWN=3 with
+   `parsed=true witnessed_target=false` on precisely the new rules sent me through coverage-stack /
+   memo / RULE_NAMES-table forensics — the answer was `target/debug/ast_pipeline` (embeds the
+   generated parser at COMPILE time) predating the regen: the witness side had no `callout_number`
+   rules to record while the planner read the fresh `.ebnf`. The mtime check
+   (`generated/regex_parser.rs` 09:04 vs binary 08:19) settled it in one command — run it FIRST
+   next time (the standing `feedback_verify_sv_parser_regen_mtime` discipline, now proven for the
+   debug `ast_pipeline` too, not just `focus_systemverilog`).
+
 ## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0016 — STIMULI-SIGNOFF.13.2: implementation notes — the interpreter value-constraint mirror
 
 Session #63. Notes from landing the SC-08 interpreter mirror:
