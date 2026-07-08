@@ -697,6 +697,12 @@
         "normalized_text": "{type: \"class_quoted_literal\", body: []}"
       },
       {
+        "rule": "empty_quoted_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"quoted_literal\", body: []}"
+      },
+      {
         "rule": "escape",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -964,11 +970,17 @@
         "rule": "piece",
         "branch_index": 4,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: []}"
       },
       {
         "rule": "piece",
         "branch_index": 5,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
+      },
+      {
+        "rule": "piece",
+        "branch_index": 6,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"piece\", atom: $1, quantifier: $3}"
       },
@@ -1343,6 +1355,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"unicode\", digits: $2}"
+      },
+      {
+        "rule": "unterminated_quoted_literal",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"quoted_literal\", body: $2}"
       },
       {
         "rule": "version_condition",

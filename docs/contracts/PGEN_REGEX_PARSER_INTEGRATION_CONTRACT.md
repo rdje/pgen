@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.90`
+  - `1.1.91`
 - Parser release version:
-  - `1.1.88`
+  - `1.1.89`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,29 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.89 / Contract 1.1.91 Highlights — REGEX-0099: the PCRE2 `\Q` QUOTING model (unterminated quote-to-end + empty-`\Q\E`-quantified); grammar-encoded
+
+**Bug ledger:** `REGEX-0099` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.3.23` `\Q`-model scoping; oracle-differential, hunter-invisible (both PGEN sides agreed). Root cause: `\Q` was a bare shorthand escape (`simple_escape`, char `Q`), so an unterminated `\Q…` region was mis-parsed as live regex instead of a literal quote-to-end run.
+
+**What changed (closes TWO divergence classes at once).** PCRE2 `\Q…\E` quotes everything between `\Q` and `\E` (or, unterminated, from `\Q` to end-of-pattern) as **literal**; the only special sequence inside is `\E`. `regex.ebnf` now models `\Q` as first-class quoting (`Q` dropped from `simple_escape_letter_strict`), oracle-verified against `pcre2test` 10.47 (85-cell matrix) and validated pre-rebuild by the regex-CERTIFIED interpreter (0 divergences):
+
+| Rule | Example | Verdict (both = PGEN `1.1.89` = PCRE2 10.47) |
+|---|---|---|
+| **Unterminated `\Q…` with a structural metachar tail (was REJECTS-VALID)** | **`\Q)` · `\Q(` · `\Q[` · `\Q^` · `\Q|` · `\Q(?:` · `\Q**` (were wrongly rejected)** | ACCEPT (literal tail) |
+| **Empty `\Q\E` + quantifier (was ACCEPTS-INVALID)** | **`\Q\E*` · `\Q\E{2}` · `\Q\E\Q\E*` (were wrongly accepted)** | REJECT (err 109) |
+| Terminated `\Q…\E` (unchanged) | `\Qa\E` · `\Qa*b\E` · `\Q)\E` · `\Qa\E*` (quantifier binds last char) | ACCEPT (unchanged) |
+| Bare empty `\Q\E` / absorption | `\Q\E` · `a\Q\E*` (= `a*`) | ACCEPT (unchanged / transparent-elision) |
+
+**AST shape.** Terminated `\Q…\E`, bare `\Q\E`, and `\Qa\E*` are byte-identical. The intended semantic corrections: unterminated `\Q…` is now ONE `{type:"atom", kind:"quoted_literal", body:[…]}` (was `\Q`-as-escape + live-regex pieces), and `a\Q\E*` becomes `a*` (empty quote elided, the `.3.19` absorption model). No new AST vocabulary — **AST-dump schema stays `1`**.
+
+**Relaxed profile.** Quantifier-target validity is not a relaxed concern (the `.3.13`/`.3.19`/`.3.20` precedent): the empty-`\Q\E`-quantified tightening applies in both profiles.
+
+**Rejection-layer.** The parse-side `\Q`-model is grammar-owned (`E_PARSE_FAILURE`); the host validator already skipped `\Q…` regions as quote-to-end, so it is unaffected. As always, match on the diagnostic **code**, never message text.
+
+**Action for downstream (RGX):** the newly-accepted unterminated `\Q…` metachar tails were PCRE2-valid all along (rejects-valid fix), and the newly-rejected empty-`\Q\E`-quantified forms were PCRE2-invalid all along (accepts-invalid fix); adopting `1.1.89` aligns both with PCRE2. Terminated `\Q…\E` behavior is unchanged.
+
+**Known deferred (`REGEX-PCRE2-FIDELITY.3.22`, ledger `REGEX-0098`).** A named reference to an UNKNOWN group name is still **accepts-invalid**, byte-UNCHANGED by this release. PGEN `1.1.89` accepts all nine unknown-name spellings — `\k<zzz>` / `\k'zzz'` / `\k{zzz}` / `(?P=zzz)` / `\g{zzz}` / `(?&zzz)` / `(?P>zzz)` / `\g<zzz>` / `\g'zzz'` — where `pcre2test` 10.47 rejects err 115. Deferred to the capstone `REGEX-PCRE2-FIDELITY.4` (named-reference resolution is inherently whole-pattern two-pass: forward references are LEGAL). **Action for downstream (RGX):** treat an unknown-name named reference as PCRE2-invalid regardless of PGEN's current accept, until `1.1.x` closes `REGEX-PCRE2-FIDELITY.4`.
 
 ## Release 1.1.88 / Contract 1.1.90 Highlights — REGEX-0097: a LIMIT `=value` outside [0, 4294967289] now rejects PCRE2-faithfully; grammar-encoded
 

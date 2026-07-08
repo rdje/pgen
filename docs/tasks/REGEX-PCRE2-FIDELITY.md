@@ -710,24 +710,80 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
     + `stimuli-and-quality` (residual-class note), tracked `book-html` regenerated; ast_shape manifest 208→211;
     new leaf `.3.23` + live docs (CHANGES / DEVELOPMENT_NOTES / LIVE_ACHIEVEMENT_STATUS / MEMORY / TASK_TREE).
 
-- ID: `.3.23`  Status: `pending` (🔎 SPUN OUT of `.3.19`, session #68 2026-07-08; oracle + interpreter
-  pinned)  Goal: EMPTY `\Q\E`-QUANTIFIED — PGEN ACCEPTS `\Q\E*` `\Q\E+` `\Q\E?` `\Q\E{2}` `\Q\E{2,}`
-  `\Q\E{2,3}` `\Q\E{,2}` `\Q\E\Q\E*` which PCRE2 10.47 REJECTS (err 109 — empty `\Q\E` is zero-width, a
-  quantifier on it has no repeatable target); `\Qa\E*` `a\Q\E*` correctly ACCEPTED by both. LATENT
-  accepts-invalid (both PGEN sides agree — hunter-invisible, the `.3.19`/`.3.22` oracle-differential class).
-  **Blocked on the `\Q`-model:** the natural encode (split empty `\Q\E` off `quoted_literal` into a
-  non-quantifiable `zero_width`, exactly the `.3.19` stray-`\E` idiom) is DEFEATED because `\Q` is itself a
-  valid `simple_escape` (char `Q`) — PGEN models PCRE2's unterminated `\Q...` quote-to-end (`\Qabc`
-  `\Qa*b` `\Q*` ACCEPT in both, oracle-verified 2026-07-08) via the `\Q`-as-escape path — so the
-  longest_match tournament decomposes `\Q\E*` as `\Q`(escape) + `\E`(zero-width) + `*`. Closing this needs
-  the `\Q`-as-quote-opener model made faithful FIRST: either a proper unterminated-`\Q...\E` quoting rule
-  (so `'Q'` can leave `simple_escape` without a rejects-valid regression on `\Qabc`, which the oracle
-  corpus exercises — 41 `\Q` lines) or a generation-faithful positive encoding of "`\Q` is never a bare
-  shorthand". A negative lookahead (`!("Q" "\\E")` on `simple_escape`) would fix the parse but is
-  generation-BLIND (the `.3.13` duality-break anti-pattern) — REFUTED. Sequence AFTER the `\Q`-model slice;
-  candidate design = model `\Q...\E` (and unterminated `\Q...`) as first-class quoting, then empty `\Q\E`
-  is naturally a non-quantifiable `zero_width` joining the `.3.19` stray-`\E` treatment. Oracle matrix +
-  interpreter divergence set pinned in this leaf.
+- ID: `.3.23`  Status: **`done`** (`PGEN-REGEX-PCRE2-0021`, session #71 2026-07-08; regex release
+  `1.1.88`→**`1.1.89`**, contract `1.1.90`→**`1.1.91`**, AST-dump schema stays `1`, ledger
+  **`REGEX-0099`**; spun out of `.3.19`, session #68) — the PCRE2 `\Q` QUOTING model made first-class,
+  closing TWO sibling divergence classes with ONE root cause (`\Q`-as-`simple_escape`).
+  Goal (as landed): (a) EMPTY `\Q\E`-QUANTIFIED accepts-invalid — `\Q\E*` `\Q\E+` `\Q\E?` `\Q\E{2}`
+  `\Q\E{2,}` `\Q\E{2,3}` `\Q\E{,2}` `\Q\E\Q\E*` now REJECT (err 109 — empty `\Q\E` is zero-width); AND
+  (b) 🔎 NEW FINDING (this session): UNTERMINATED `\Q…` metachar-tail REJECTS-VALID — `\Q)` `\Q(` `\Q[`
+  `\Q(?:` `\Q**` `\Qa**` `\Qa)b` now ACCEPT (PCRE2 quotes `\Q…` to end-of-pattern as literal). Both flow
+  from `\Q` being a bare `simple_escape` (char `Q`); the two are INSEPARABLE (see ROOT CAUSE), so one
+  grammar restructure closes both.
+
+  **🔎 IN-SLICE FINDING (surfaced to the director):** the `\Q`-as-`simple_escape` hack was not only the
+  accepts-invalid empty-quantified blocker `.3.23` was scoped for — it ALSO carried a whole REJECTS-VALID
+  class (unterminated `\Q…` with a structural metachar tail: `\Q^` mis-parsed `^` as an anchor, `\Q|` as
+  alternation, `\Q)` as an unbalanced group). The leaf's own candidate design ("model `\Q…\E` AND
+  unterminated `\Q…` as first-class quoting") already sanctioned the fix that closes both, so this slice
+  delivers a strictly bigger fidelity win than the empty-quantified target alone.
+
+  **🔎 SECOND IN-SLICE ROOT-CAUSE (tools-first, cert seed 42 spf=1):** the first encode made
+  `unterminated_quoted_literal` a quantifiable `atom`. The cert diverse pass then flagged a
+  generator-produced sample the (correct) parser rejects — `…\Q\E{0 ,0 }…` (dumped by the
+  `SAMPLE-PARSE FAILURES` block). Root cause: the lookahead-blind generator used a BARE `\Q` (unterminated
+  atom) as the absorption branch's atom (`atom zero_width+ quantifier`) + a stray `\E` + a quantifier; the
+  parser re-fuses `\Q\E` into `empty_quoted_literal` (longest-match) and orphans the quantifier → correct
+  REJECT, but a generator↔parser DUALITY break (the `.3.13`/`.3.19` lookahead-blindness anti-pattern, which
+  a `!"\\E"` guard would have re-introduced). FIX: make `unterminated_quoted_literal` a NON-atom STANDALONE
+  `piece` — it can then never be the absorption atom, and needs no lookahead (generation-faithful by
+  construction). Re-verified spf=0 across seeds 0/1/2/3/5/13/42/100/314/500.
+
+  **FINAL ENCODE (grammar tier, no engine change; the host validator already skips `\Q…` as
+  quote-to-end):** (1) `'Q'` dropped from `simple_escape_letter_strict` (positive exclusion). (2)
+  `quoted_literal` narrowed to nonempty terminated (`"\\Q" quoted_literal_char+ "\\E"`). (3) NEW
+  `unterminated_quoted_literal = "\\Q" quoted_literal_char*` consumed by a NEW standalone `piece` branch
+  (`-> {type:"piece", atom:$1, quantifier:[]}`, a NON-atom quote-to-end). (4) NEW `empty_quoted_literal =
+  "\\Q" "\\E"` added to the non-quantifiable `zero_width` (joins stray `\E`). So `\Q\E*` rejects via the
+  standalone `!quantifier` branch, `a\Q\E*` = `a*` via ABSORPTION, unterminated `\Q…` accepts as one
+  literal run, and terminated `\Q…\E` / bare `\Q\E` / `\Qa\E*` stay byte-identical.
+
+  ### REGEX-PCRE2-FIDELITY.3.23 — Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — release probe `1.1.88`: `printf '\Q)' | parseability_probe --parse regex`
+    → REJECT where `pcre2test` 10.47 ACCEPTs `/\Q)/`; `printf '\Q\E*'` → ACCEPT where `pcre2test` rejects
+    err 109. An 85-cell `pcre2test` 10.47 oracle matrix pinned this session (14 REJECT / 71 ACCEPT).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `'Q'` ∈ `simple_escape_letter_strict` (`grammars/regex.ebnf:882`
+    pre-fix) ⇒ `\Q` = `{escape, shorthand, char:"Q"}`, so unterminated `\Q…` parsed as escape-`Q` + live
+    regex (metachar tail breaks: `\Q)` unbalanced-group REJECT; `\Q^` anchor mis-parse); and empty `\Q\E`
+    was a quantifiable `quoted_literal` atom (`char*` admits empty body), so `atom quantifier?` bound the
+    `*`. ENTANGLED: fixing empty-quantified needs `Q` out of `simple_escape` (else longest-match
+    re-decomposes `\Q\E*` = `\Q`(escape) + `\E`(zero_width) + `*` via `.3.19` absorption), which needs a
+    first-class unterminated model to avoid regressing `\Qabc`. Second-order: cert seed-42 `SAMPLE-PARSE
+    FAILURES` dump (`\Q\E{0,0}`) named the generator over-generation via the absorption branch.
+  - [x] **FIX** — GRAMMAR tier (no engine, no validator), per FINAL ENCODE. `unterminated_quoted_literal`
+    is a NON-atom `piece` (the generation-faithful duality-break fix, no lookahead). `lint` 0 errors /
+    0 undefined-refs (236 rules).
+  - [x] **ADDRESSED (verified)** — regex-CERTIFIED interpreter (`parse_harness_interpreter::interpret_parse`)
+    == `pcre2test` on all 85 cells (**0 divergences**), with exactly 23 intended AST byte-changes
+    (unterminated `\Q…` → one `{atom,quoted_literal,body}`; `a\Q\E*` → `a*`) and every must-stay-identical
+    case (terminated `\Q…\E`, bare `\Q\E`, `\Qa\E*`, normal regex, `\E`/`\e`-families) UNCHANGED. Behavior
+    flips: 7 unterminated-metachar REJECT→ACCEPT + 8 empty-quantified ACCEPT→REJECT, both profiles. New pin
+    `parser_registry::tests::regex_quoted_literal_model_pcre2_faithfully` green; the `.3.19` pin's deferred
+    `\Q\E*`→ACCEPT assertion flipped to REJECT.
+  - [x] **NO REGRESSION** — regex cert `total=236 witness=236 UNKNOWN=0 fully_certified=true spf=0` at
+    seeds 0/7/42 (234→236 = the 2 net-new rules, all witnessed, no gap; spf=0 also across seeds
+    0/1/2/3/5/13/42/100/314/500 after the duality-break fix); `--lint-grammar` 0 errors (236 rules);
+    `regex_pcre2_compile_oracle_gate` byte-identical baseline `2189/1858/285/46` (the `\Q`-model forms are
+    not in the pcre2test corpus — the `.3.19`/`.3.21` precedent); `parse_harness_equivalence_gate` ✅ regex
+    stays differential-CERTIFIED; `duality_hunt_gate` ✅ 9 lanes, NO new signature; `ast_shape_contract`
+    regex ✅ inventory 214→217 (the 2 new rules + the new `piece` branch); dual lib suite **893/0**;
+    version-consts-match-ledger ✅.
+  - [x] **LOCKSTEP** — ledger `REGEX-0099` + embedding version consts (release **1.1.89** / contract
+    **1.1.91**, schema `1`) + tracked contract JSON (`regex_parser_integration_contract_v1.json`) +
+    contract MD ("Release 1.1.89 / Contract 1.1.91 Highlights — REGEX-0099" + Identity) + regex book
+    (changelog + piece/atom/escape/quoted-literal chapters + regenerated HTML) + top book
+    (`parser-families` version chain) + ast_shape manifest inventory 214→217; trees + `docs/TASK_TREE.md` +
+    live docs (CHANGES / DEVELOPMENT_NOTES / LIVE_ACHIEVEMENT_STATUS / MEMORY / TASK_TREE).
 - ID: `.3.20`  Status: **`done`** (`PGEN-REGEX-PCRE2-0018`, session #69 2026-07-08; regex release
   `1.1.86`→**`1.1.87`**, contract `1.1.88`→**`1.1.89`**, AST-dump schema stays `1`, ledger
   **`REGEX-0096`**; spun out of `.3.14`'s in-slice adjudication; oracle matrix re-pinned this session;
@@ -1068,6 +1124,22 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-08, session #71)** `.3.23` LANDED (`PGEN-REGEX-PCRE2-0021`, regex release `1.1.88`→`1.1.89`,
+  contract `1.1.90`→`1.1.91`, schema `1`, ledger `REGEX-0099`) — the PCRE2 `\Q` QUOTING model made
+  first-class (`Q` dropped from `simple_escape_letter_strict`), closing TWO sibling divergence classes with
+  ONE root cause: (a) empty-`\Q\E`-quantified accepts-invalid (`\Q\E*` `\Q\E{2}` now REJECT err-109) — the
+  `.3.19`-deferred target; AND (b) 🔎 NEW unterminated-`\Q…`-metachar-tail REJECTS-VALID (`\Q)` `\Q(` `\Q[`
+  `\Q^` `\Q|` `\Q(?:` now ACCEPT — PCRE2 quotes to end-of-pattern). NEW rules: `unterminated_quoted_literal`
+  (a NON-atom quote-to-end `piece`) + `empty_quoted_literal` (a non-quantifiable `zero_width`). Two in-slice
+  root-causes tools-first: the leaf's stated empty-quantified blocker (the `\Q`-as-`simple_escape`
+  entanglement) AND a cert seed-42 duality break (the generator over-generated `\Q\E{0,0}` when unterminated
+  was a quantifiable atom — fixed by the non-atom piece, generation-faithful, no lookahead). Validated
+  pre-rebuild by the regex-CERTIFIED interpreter (85/85 vs oracle, 23 intended AST changes). Cert 236/236/0
+  spf=0 seeds 0/7/42 (+ 8 more seeds); oracle gate byte-identical `2189/1858/285/46`; equivalence gate ✅;
+  duality gate 9 lanes NO new signature; ast_shape 214→217; dual suite 893/0. Full evidence: the `.3.23`
+  leaf checklist. Frontier per the standing PNT order → capstone `.4` (delete the validator; owns the
+  start-option POSITION duality re-baseline AND the `.3.22` named-reference two-pass check) → `.5`
+  (verification).
 - **(2026-07-08, session #70)** `.3.22` SCOPED + CLOSED (`PGEN-REGEX-PCRE2-0020`, PURE-DOCS — no release/contract
   bump; release stays `1.1.88`, contract `1.1.90`, schema `1`; ledger `REGEX-0098` **Deferred**). The
   named-reference UNKNOWN-name family — PGEN `1.1.88` ACCEPTS 9 spellings (`\k<zzz>`/`\k'zzz'`/`\k{zzz}` +

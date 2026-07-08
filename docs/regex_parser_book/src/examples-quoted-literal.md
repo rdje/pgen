@@ -27,7 +27,8 @@ Pre-PGEN-RGX-0077 (released 1.1.40), a separate codegen bug in the `[$1**]` flat
 | `\Qabc\E{2}` | `a` `b` `c{2}` | 3 pieces |
 | `\Qab\E{3}` | `a` `b{3}` | 2 pieces |
 | `\Qa\E{3}` | `a{3}` | 1 piece (degenerate) |
-| `\Q\E{2}` | empty | 1 piece (atom-fallback, degenerate) |
+| `\Q\E{2}` | — | **REJECT** (err 109 since `1.1.89` — empty quote is unrepeatable) |
+| `\Q)` | `)` literal | 1 piece (unterminated, quote-to-end; ACCEPT since `1.1.89`) |
 
 ## `\Qab*\E{2,}` — the canonical 3-piece case
 
@@ -92,14 +93,20 @@ Two pieces: `a` (no quantifier — `quantifier: []`) and `b` (with typed `{3}` q
 
 ONE piece. The `piece_quoted_run_quantified` branch requires at least one prefix char BEFORE the trailing char, so for single-char quoted runs it fails and the parser falls through to `piece`'s branch 1 (`atom quantifier?` matching the whole `\Qa\E` as a `quoted_literal` atom). Post-slice-18 the atom is the typed `{type:"atom", kind:"quoted_literal", body:["a"]}` object instead of the pre-slice 3-element `["\\Q", ["a"], "\\E"]` Sequence. Semantically correct: "quantify the only char in `\Qa\E`" is exactly the same as "quantify the whole 1-char block."
 
-## `\Q\E{2}` — empty quoted run with quantifier
+## `\Q\E{2}` — empty quoted run with quantifier → REJECT (since `1.1.89`, `REGEX-PCRE2-FIDELITY.3.23`)
+
+`\Q\E{2}` (and `\Q\E*`, `\Q\E+`, `\Q\E?`, `\Q\E{2,}`, `\Q\E{,2}`) **REJECT** — `pcre2test` 10.47 errs 109 "quantifier does not follow a repeatable item" (an empty quoted literal is zero-width, exactly like a stray `\E`, and zero-width is unrepeatable).
+
+⚠️ Corrected in release `1.1.89`. Before `1.1.89`, PGEN wrongly ACCEPTED `\Q\E{2}` (parsing empty `\Q\E` as one quantifiable `quoted_literal` atom and emitting `{"atom":{"kind":"quoted_literal","body":[]}, "quantifier":{min:2,max:2}}`) — an accepts-invalid divergence. This prose earlier claimed PCRE2 "matches the empty string twice"; that was wrong — `pcre2test` rejects it. Empty `\Q\E` is now the non-quantifiable `empty_quoted_literal` `zero_width` (see [piece](rules-piece.md#zero_width--the-transparent-stray-e-and-empty-qe)), so the standalone-branch `!quantifier` lookahead fails and no other branch matches ⇒ REJECT. A bare `\Q\E` (no quantifier) still accepts, byte-unchanged. A quantifier absorbs THROUGH an empty `\Q\E` onto a preceding atom: `a\Q\E*` = `a*`.
+
+## `\Q)` — unterminated `\Q…` quotes to end-of-pattern (ACCEPT since `1.1.89`)
 
 ```json
 "pattern": [
   [[
     {
-      "atom": {"type": "atom", "kind": "quoted_literal", "body": []},
-      "quantifier": {"type": "quantifier", "min": 2, "max": 2, "greediness": []},
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": [")"]},
+      "quantifier": [],
       "type": "piece"
     }
   ]],
@@ -107,7 +114,7 @@ ONE piece. The `piece_quoted_run_quantified` branch requires at least one prefix
 ]
 ```
 
-ONE piece. Empty `\Q...\E` falls through to atom-path. PCRE2 treats `\Q\E{2}` as a zero-width quantified empty match (matches the empty string twice = matches empty).
+ONE piece. A `\Q…` with NO closing `\E` quotes everything to end-of-pattern as literal, so `\Q)` is the single literal `)` — not an unbalanced group. Likewise `\Q(`, `\Q[`, `\Q^`, `\Q|`, `\Q(?:`, `\Q**` all ACCEPT as one literal run. Before `1.1.89`, PGEN mis-parsed the leading `\Q` as a shorthand escape and read the tail as live regex, wrongly REJECTING these — a rejects-valid divergence closed by the new [`unterminated_quoted_literal`](rules-atom.md#unterminated_quoted_literal) piece.
 
 ## `\Qab\E` — 2-char quoted run, NO trailing quantifier
 

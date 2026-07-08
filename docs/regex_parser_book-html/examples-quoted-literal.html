@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d95ca800.js";
+            window.path_to_searchindex_js = "searchindex-fa2caba9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -207,7 +207,8 @@
 <tr><td><code>\Qabc\E{2}</code></td><td><code>a</code> <code>b</code> <code>c{2}</code></td><td>3 pieces</td></tr>
 <tr><td><code>\Qab\E{3}</code></td><td><code>a</code> <code>b{3}</code></td><td>2 pieces</td></tr>
 <tr><td><code>\Qa\E{3}</code></td><td><code>a{3}</code></td><td>1 piece (degenerate)</td></tr>
-<tr><td><code>\Q\E{2}</code></td><td>empty</td><td>1 piece (atom-fallback, degenerate)</td></tr>
+<tr><td><code>\Q\E{2}</code></td><td>—</td><td><strong>REJECT</strong> (err 109 since <code>1.1.89</code> — empty quote is unrepeatable)</td></tr>
+<tr><td><code>\Q)</code></td><td><code>)</code> literal</td><td>1 piece (unterminated, quote-to-end; ACCEPT since <code>1.1.89</code>)</td></tr>
 </tbody>
 </table>
 </div>
@@ -262,19 +263,22 @@
 ]
 </code></pre>
 <p>ONE piece. The <code>piece_quoted_run_quantified</code> branch requires at least one prefix char BEFORE the trailing char, so for single-char quoted runs it fails and the parser falls through to <code>piece</code>’s branch 1 (<code>atom quantifier?</code> matching the whole <code>\Qa\E</code> as a <code>quoted_literal</code> atom). Post-slice-18 the atom is the typed <code>{type:"atom", kind:"quoted_literal", body:["a"]}</code> object instead of the pre-slice 3-element <code>["\\Q", ["a"], "\\E"]</code> Sequence. Semantically correct: “quantify the only char in <code>\Qa\E</code>” is exactly the same as “quantify the whole 1-char block.”</p>
-<h2 id="qe2--empty-quoted-run-with-quantifier"><a class="header" href="#qe2--empty-quoted-run-with-quantifier"><code>\Q\E{2}</code> — empty quoted run with quantifier</a></h2>
+<h2 id="qe2--empty-quoted-run-with-quantifier--reject-since-1189-regex-pcre2-fidelity323"><a class="header" href="#qe2--empty-quoted-run-with-quantifier--reject-since-1189-regex-pcre2-fidelity323"><code>\Q\E{2}</code> — empty quoted run with quantifier → REJECT (since <code>1.1.89</code>, <code>REGEX-PCRE2-FIDELITY.3.23</code>)</a></h2>
+<p><code>\Q\E{2}</code> (and <code>\Q\E*</code>, <code>\Q\E+</code>, <code>\Q\E?</code>, <code>\Q\E{2,}</code>, <code>\Q\E{,2}</code>) <strong>REJECT</strong> — <code>pcre2test</code> 10.47 errs 109 “quantifier does not follow a repeatable item” (an empty quoted literal is zero-width, exactly like a stray <code>\E</code>, and zero-width is unrepeatable).</p>
+<p>⚠️ Corrected in release <code>1.1.89</code>. Before <code>1.1.89</code>, PGEN wrongly ACCEPTED <code>\Q\E{2}</code> (parsing empty <code>\Q\E</code> as one quantifiable <code>quoted_literal</code> atom and emitting <code>{"atom":{"kind":"quoted_literal","body":[]}, "quantifier":{min:2,max:2}}</code>) — an accepts-invalid divergence. This prose earlier claimed PCRE2 “matches the empty string twice”; that was wrong — <code>pcre2test</code> rejects it. Empty <code>\Q\E</code> is now the non-quantifiable <code>empty_quoted_literal</code> <code>zero_width</code> (see <a href="rules-piece.html#zero_width--the-transparent-stray-e-and-empty-qe">piece</a>), so the standalone-branch <code>!quantifier</code> lookahead fails and no other branch matches ⇒ REJECT. A bare <code>\Q\E</code> (no quantifier) still accepts, byte-unchanged. A quantifier absorbs THROUGH an empty <code>\Q\E</code> onto a preceding atom: <code>a\Q\E*</code> = <code>a*</code>.</p>
+<h2 id="q--unterminated-q-quotes-to-end-of-pattern-accept-since-1189"><a class="header" href="#q--unterminated-q-quotes-to-end-of-pattern-accept-since-1189"><code>\Q)</code> — unterminated <code>\Q…</code> quotes to end-of-pattern (ACCEPT since <code>1.1.89</code>)</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
     {
-      "atom": {"type": "atom", "kind": "quoted_literal", "body": []},
-      "quantifier": {"type": "quantifier", "min": 2, "max": 2, "greediness": []},
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": [")"]},
+      "quantifier": [],
       "type": "piece"
     }
   ]],
   []
 ]
 </code></pre>
-<p>ONE piece. Empty <code>\Q...\E</code> falls through to atom-path. PCRE2 treats <code>\Q\E{2}</code> as a zero-width quantified empty match (matches the empty string twice = matches empty).</p>
+<p>ONE piece. A <code>\Q…</code> with NO closing <code>\E</code> quotes everything to end-of-pattern as literal, so <code>\Q)</code> is the single literal <code>)</code> — not an unbalanced group. Likewise <code>\Q(</code>, <code>\Q[</code>, <code>\Q^</code>, <code>\Q|</code>, <code>\Q(?:</code>, <code>\Q**</code> all ACCEPT as one literal run. Before <code>1.1.89</code>, PGEN mis-parsed the leading <code>\Q</code> as a shorthand escape and read the tail as live regex, wrongly REJECTING these — a rejects-valid divergence closed by the new <a href="rules-atom.html#unterminated_quoted_literal"><code>unterminated_quoted_literal</code></a> piece.</p>
 <h2 id="qabe--2-char-quoted-run-no-trailing-quantifier"><a class="header" href="#qabe--2-char-quoted-run-no-trailing-quantifier"><code>\Qab\E</code> — 2-char quoted run, NO trailing quantifier</a></h2>
 <pre><code class="language-json">"pattern": [
   [[

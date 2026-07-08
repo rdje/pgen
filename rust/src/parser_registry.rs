@@ -1926,9 +1926,10 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
                 "stray \\E without a bound quantifier must accept: {pattern}"
             );
         }
-        // `.3.23`-DEFERRED: empty-`\Q\E`-quantified stays a byte-unchanged accepts-invalid until
-        // the `\Q`-model slice (the absorption branch is LAST so `\Q\E*` loses its tie).
-        assert_eq!(parse_sample("regex", "\\Q\\E*"), Some(true));
+        // REGEX-PCRE2-FIDELITY.3.23 CLOSED the empty-`\Q\E`-quantified divergence: `\Q\E*` now
+        // REJECTS err-109-faithfully (empty `\Q\E` joined `zero_width`). The full family is pinned
+        // by `regex_quoted_literal_model_pcre2_faithfully` below.
+        assert_eq!(parse_sample("regex", "\\Q\\E*"), Some(false));
         // The tightening applies in BOTH profiles (quantifier-target validity is not a relaxed
         // concern — the `.3.13` precedent). `parse_sample_detail_with_profile` is the
         // profile-routing verdict API for regex.
@@ -2094,6 +2095,84 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
                 "the default profile must reject a quantified unknown-name verb: {pattern}"
             );
         }
+    }
+
+    /// REGEX-PCRE2-FIDELITY.3.23 (ledger REGEX-0099): the PCRE2 `\Q` QUOTING model is grammar-encoded
+    /// as first-class quoting — `\Q` is no longer a bare `simple_escape` (`Q` dropped from
+    /// `simple_escape_letter_strict`). Closes two divergence classes at once:
+    ///   - ACCEPTS-INVALID (tightening): empty `\Q\E` is now a non-quantifiable `zero_width`, so a
+    ///     quantifier on it is err 109 (`\Q\E*` `\Q\E{2}` REJECT) — the `.3.19`-deferred family.
+    ///   - REJECTS-VALID (widening): unterminated `\Q…` quotes to END-OF-PATTERN as literal
+    ///     (`unterminated_quoted_literal`), so a structural metachar tail (`\Q)` `\Q(` `\Q[` `\Q^`
+    ///     `\Q|`) is one literal run, not live regex.
+    /// Oracle `pcre2test` 10.47 (85-cell matrix in the task leaf); validated pre-rebuild by the
+    /// regex-CERTIFIED interpreter (`parse_harness_interpreter::interpret_parse`, 0 divergences).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_quoted_literal_model_pcre2_faithfully() {
+        // Empty `\Q\E` + quantifier: REJECT (err 109 — an empty quote is zero-width, unrepeatable).
+        for pattern in [
+            "\\Q\\E*", "\\Q\\E+", "\\Q\\E?", "\\Q\\E{2}", "\\Q\\E{2,}", "\\Q\\E{2,3}", "\\Q\\E{,2}",
+            "\\Q\\E\\Q\\E*", // two empty quotes then a quantifier — still no repeatable predecessor
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "a quantifier on an empty \\Q\\E must reject (err 109): {pattern}"
+            );
+        }
+        // Unterminated `\Q…` (no closing `\E`): quote-to-end, so a structural metachar tail is
+        // literal — ACCEPT (was REJECTS-VALID before `.3.23`).
+        for pattern in [
+            "\\Q", "\\Qa", "\\Qabc", "\\Qa*b", "\\Q*", "\\Q**", "\\Qa**", "\\Q)", "\\Q(", "\\Q[",
+            "\\Q]", "\\Q^", "\\Q$", "\\Q|", "\\Q(?:", "\\Qa)b", "\\Q++b", "\\Q*b*c",
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "an unterminated \\Q… quote-to-end must accept (literal tail): {pattern}"
+            );
+        }
+        // Terminated `\Q…\E` (unchanged), the quantifier-binds-last-char form, absorption, and a
+        // bare empty `\Q\E` (no quantifier): all ACCEPT.
+        for pattern in [
+            "\\Qa\\E", "\\Qabc\\E", "\\Q)\\E", "\\Q(?:\\E", "\\Q**\\E", // terminated (metachars literal)
+            "\\Qa\\E*", "\\Qab\\E{2,3}",                                 // quantifier binds last char
+            "a\\Q\\E*", "a\\Q\\E\\E*",                                   // absorption: `a*`
+            "\\Q\\E", "a\\Q\\E", "\\Q\\Eb", "\\Q\\E\\E",                 // bare empty quote (no quantifier)
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "a terminated / bound / absorbed / bare \\Q form must accept: {pattern}"
+            );
+        }
+        // The empty-quantified tightening applies in BOTH profiles (quantifier-target validity is
+        // not a relaxed concern — the `.3.13`/`.3.19`/`.3.20` precedent).
+        for pattern in ["\\Q\\E*", "\\Q\\E{2}"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject an empty-\\Q\\E-quantified form: {pattern}"
+            );
+        }
+        // First-class quoting pin: unterminated `\Q)` is ONE `quoted_literal` atom whose body is the
+        // literal tail — not `\Q`-as-escape + a live `)` (which rejected pre-`.3.23`).
+        let ast = super::parse_sample_ast_json("regex", "\\Q)")
+            .expect("regex registered")
+            .expect("\\Q) parses");
+        let atom = &ast["content"]["Json"]["pattern"][0][0][0]["atom"];
+        assert_eq!(
+            atom["kind"].as_str(),
+            Some("quoted_literal"),
+            "\\Q) must be a quoted_literal atom, got {atom}"
+        );
+        assert_eq!(
+            atom["body"][0].as_str(),
+            Some(")"),
+            "\\Q) body must be the literal `)`, got {atom}"
+        );
     }
 
     /// REGEX-PCRE2-FIDELITY.3.15 (ledger REGEX-0091): the PCRE2 CLASS-OPEN model is

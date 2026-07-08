@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d95ca800.js";
+            window.path_to_searchindex_js = "searchindex-fa2caba9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -1519,26 +1519,34 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <pre><code class="language-ebnf">piece = piece_quoted_run_quantified -&gt; $1
       | anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
       | zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
+      | unterminated_quoted_literal -&gt; {type: "piece", atom: $1, quantifier: []}
       | directive_verb_nonquant !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}
       | atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}
       | atom zero_width+ quantifier
 -&gt; {type: "piece", atom: $1, quantifier: $3}
 </code></pre>
-<p>Six branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>; the two zero-width branches in release <code>1.1.86</code>, <code>REGEX-PCRE2-FIDELITY.3.19</code>; the non-quantifiable-directive branch in release <code>1.1.87</code>, <code>REGEX-PCRE2-FIDELITY.3.20</code>). Because <code>|</code> is a <strong>longest-match tournament</strong> (ties → the earlier branch), branch ORDER matters only for ties:</p>
+<p>Seven branches (the anchor branch landed in release <code>1.1.82</code>, <code>REGEX-PCRE2-FIDELITY.3.13</code>; the two zero-width branches in release <code>1.1.86</code>, <code>REGEX-PCRE2-FIDELITY.3.19</code>; the non-quantifiable-directive branch in release <code>1.1.87</code>, <code>REGEX-PCRE2-FIDELITY.3.20</code>; the unterminated-quote branch in release <code>1.1.89</code>, <code>REGEX-PCRE2-FIDELITY.3.23</code>). Because <code>|</code> is a <strong>longest-match tournament</strong> (ties → the earlier branch), branch ORDER matters only for ties:</p>
 <ol>
 <li><strong>Quoted-run branch</strong>: <code>piece_quoted_run_quantified -&gt; $1</code>. Tried FIRST. Matches <code>\Q...\E quantifier</code> — multi-char quoted runs followed by a quantifier — and emits a Sequence of pieces (one per char, with the trailing piece carrying the quantifier).</li>
 <li><strong>Anchor branch</strong>: <code>anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. Anchors (<code>^ $ \A \Z \z \b \B \G \K</code>) are <strong>non-quantifiable</strong> in PCRE2 (err 109) — and, crucially, OPAQUE: a quantifier after an anchor errors <em>even when a repeatable atom precedes</em> (<code>a^*</code> REJECTS). So an anchor forms a piece with NO quantifier slot; the <code>!quantifier</code> lookahead makes <code>^*</code>/<code>$*</code>/<code>\b*</code>/<code>\A{2}</code>-style patterns REJECT while non-quantifier braces (<code>${</code>, <code>\A{a}</code>, <code>\A{}</code>) still parse as anchor + literal-brace pieces. <code>anchor</code> is no longer an <code>atom</code> alternative. See ledger <code>REGEX-0088</code>.</li>
-<li><strong>Zero-width STANDALONE branch</strong> (<code>.3.19</code>): <code>zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. A stray <code>\E</code> (<code>zero_width</code> — see below) is PCRE2 zero-width but, <em>unlike</em> an anchor, TRANSPARENT. On its own it forms a non-quantifiable piece; a bare <code>\E*</code> REJECTS (err 109) because the standalone branch’s <code>!quantifier</code> fails and no other branch matches. Byte-identical to the pre-<code>1.1.86</code> stray-<code>\E</code> shape (<code>{type:"escape",kind:"shorthand",char:"E"}</code>, <code>quantifier: []</code>).</li>
+<li><strong>Zero-width STANDALONE branch</strong> (<code>.3.19</code>/<code>.3.23</code>): <code>zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. A stray <code>\E</code> <strong>or an empty <code>\Q\E</code></strong> (<code>zero_width</code> — see below) is PCRE2 zero-width but, <em>unlike</em> an anchor, TRANSPARENT. On its own it forms a non-quantifiable piece; a bare <code>\E*</code> / <code>\Q\E*</code> REJECTS (err 109) because the standalone branch’s <code>!quantifier</code> fails and no other branch matches. Byte-identical to the pre-<code>1.1.86</code>/pre-<code>1.1.89</code> shapes.</li>
+<li><strong>Unterminated-quote branch</strong> (<code>.3.23</code>): <code>unterminated_quoted_literal -&gt; {type: "piece", atom: $1, quantifier: []}</code>. A <code>\Q…</code> with no closing <code>\E</code> quotes to END-OF-PATTERN as literal (see <a href="#unterminated_quoted_literal"><code>unterminated_quoted_literal</code></a>), so <code>\Q)</code> / <code>\Q(</code> / <code>\Q^</code> / <code>\Q(?:</code> are ONE literal run, not live regex. It is a NON-atom greedy-to-end piece — deliberately, so the ABSORPTION branch can never pick a bare <code>\Q</code> as its atom (which would let the lookahead-blind generator emit <code>\Q\E&lt;quantifier&gt;</code> — a duality break). See ledger <code>REGEX-0099</code>.</li>
 <li><strong>Non-quantifiable-directive branch</strong> (<code>.3.20</code>): <code>directive_verb_nonquant !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. In PCRE2 only <code>(*ACCEPT)</code> may take a quantifier; every other <code>(*...)</code> directive (the 6 non-ACCEPT verbs, MARK, the <code>(*:x)</code> shorthand, LIMIT, and the bare start options) quantified is err 109. Those directives are matched by <code>directive_verb_nonquant</code> (see the <a href="#directive_verb">directives chapter</a>) and form a non-quantifiable piece. Because <code>directive_verb</code> — the quantifiable directive rule kept in <code>atom</code> — now matches only <code>(*ACCEPT...)</code> and the relaxed unknown-name catch-all, a quantified non-ACCEPT directive fails this <code>!quantifier</code> lookahead AND finds no matching atom, so the whole parse REJECTS (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <code>(*LIMIT_HEAP=5)+</code> all err 109). See ledger <code>REGEX-0096</code>.</li>
 <li><strong>Standard atom branch</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. A single atom with an optional quantifier — the common case. <code>(*ACCEPT)+</code> accepts here (the ACCEPT directive is a quantifiable <code>atom</code>).</li>
-<li><strong>Zero-width ABSORPTION branch</strong> (<code>.3.19</code>): <code>atom zero_width+ quantifier -&gt; {type: "piece", atom: $1, quantifier: $3}</code>. Placed LAST. A quantifier reaches THROUGH ≥1 transparent stray <code>\E</code> to bind the preceding atom (<code>a\E*</code> = <code>a*</code>), with the <code>\E</code>(s) <strong>elided</strong> (PCRE2’s delete-<code>\E</code> model). The <code>+</code> confines this branch to exactly the <code>&lt;atom&gt; \E+ &lt;quantifier&gt;</code> case, so a plain <code>x*</code> is untouched (it never enters this branch). Being LAST, its <code>\Q\E*</code> tie (5 bytes, matched via <code>\Q</code>-escape + <code>\E</code> + <code>*</code>) <em>loses</em> to the earlier standard-atom branch (which reads <code>\Q\E</code> as one empty <code>quoted_literal</code> atom + quantifier) — so <strong>empty-<code>\Q\E</code>-quantified stays byte-unchanged as a deferred accepts-invalid divergence</strong> (<code>REGEX-PCRE2-FIDELITY.3.23</code>).</li>
+<li><strong>Zero-width ABSORPTION branch</strong> (<code>.3.19</code>/<code>.3.23</code>): <code>atom zero_width+ quantifier -&gt; {type: "piece", atom: $1, quantifier: $3}</code>. Placed LAST. A quantifier reaches THROUGH ≥1 transparent <code>zero_width</code> (a stray <code>\E</code> or an empty <code>\Q\E</code>) to bind the preceding atom (<code>a\E*</code> = <code>a*</code>, <code>a\Q\E*</code> = <code>a*</code>), with the zero-widths <strong>elided</strong> (PCRE2’s delete model). The <code>+</code> confines this branch to exactly the <code>&lt;atom&gt; &lt;zero_width&gt;+ &lt;quantifier&gt;</code> case, so a plain <code>x*</code> is untouched. Since <code>1.1.89</code> (<code>.3.23</code>), <code>\Q\E*</code> has NO leading atom (empty <code>\Q\E</code> is itself a <code>zero_width</code>, and <code>\Q</code> is no longer an escape atom), so it REJECTS via branch 3 — the pre-<code>1.1.89</code> “deferred accepts-invalid” note is resolved.</li>
 </ol>
 <p>For <code>\Qa\E{3}</code> (single-char quoted run), the quoted-run branch fails (it requires the inner-piece-list to be non-empty before the trailing char), so the standard-atom branch matches via the <code>quoted_literal</code> atom alternative.</p>
-<h3 id="zero_width--the-transparent-stray-e"><a class="header" href="#zero_width--the-transparent-stray-e"><code>zero_width</code> — the transparent stray <code>\E</code></a></h3>
-<pre><code class="language-ebnf">zero_width = stray_end_quote_escape
+<h3 id="zero_width--the-transparent-stray-e-and-empty-qe"><a class="header" href="#zero_width--the-transparent-stray-e-and-empty-qe"><code>zero_width</code> — the transparent stray <code>\E</code> and empty <code>\Q\E</code></a></h3>
+<pre><code class="language-ebnf">zero_width = stray_end_quote_escape | empty_quoted_literal
 stray_end_quote_escape = "\\E" -&gt; {type: "escape", kind: "shorthand", char: "E"}
+empty_quoted_literal = "\\Q" "\\E" -&gt; {type: "atom", kind: "quoted_literal", body: []}
 </code></pre>
-<p>A stray <code>\E</code> — an end-of-quote with no matching <code>\Q</code> — is dropped from <code>simple_escape_letter_strict</code> (a POSITIVE exclusion, generation-faithful) and re-homed here, so a bare quantifier can no longer bind directly to it. The rule preserves the exact byte-shape <code>\E</code> had as a <code>simple_escape</code> shorthand, so bare <code>\E</code>, <code>a\E</code>, <code>\Ea</code> are all byte-identical to pre-<code>1.1.86</code>. Empty <code>\Q\E</code> is NOT a <code>zero_width</code> member this release — see <code>REGEX-PCRE2-FIDELITY.3.23</code>. See the escape chapter and the <a href="#stray-e-transparent-quantifier-binding-release-1186-regex-pcre2-fidelity319">transparent-binding examples</a>.</p>
+<p>Two PCRE2 zero-width, transparent constructs:</p>
+<ul>
+<li><strong>stray <code>\E</code></strong> — an end-of-quote with no matching <code>\Q</code> — is dropped from <code>simple_escape_letter_strict</code> (a POSITIVE exclusion, generation-faithful) and re-homed here, so a bare quantifier can no longer bind directly to it. Bare <code>\E</code>, <code>a\E</code>, <code>\Ea</code> are byte-identical to pre-<code>1.1.86</code>.</li>
+<li><strong>empty <code>\Q\E</code></strong> (release <code>1.1.89</code>, <code>REGEX-PCRE2-FIDELITY.3.23</code>) — an empty quoted literal is PCRE2 zero-width, exactly like a stray <code>\E</code>. It joined <code>zero_width</code> so <code>\Q\E*</code> REJECTS (err 109) and <code>a\Q\E*</code> = <code>a*</code> (absorption). This is sound only because <code>Q</code> left <code>simple_escape</code> this release (otherwise the tournament would re-accept <code>\Q\E*</code> as <code>\Q</code>-escape + <code>\E</code> + <code>*</code>). Its emit preserves the exact <code>{type:"atom", kind:"quoted_literal", body:[]}</code> byte-shape a bare <code>\Q\E</code> had as a quantifiable atom, so a standalone <code>\Q\E</code> is unchanged.</li>
+</ul>
+<p>See the escape chapter and the <a href="#stray-e-transparent-quantifier-binding-release-1186-regex-pcre2-fidelity319">transparent-binding examples</a>.</p>
 <h3 id="shape--the-standard-atom-branch-the-common-case"><a class="header" href="#shape--the-standard-atom-branch-the-common-case">Shape — the standard atom branch (the common case)</a></h3>
 <pre><code class="language-json">{
   "type": "piece",
@@ -2072,44 +2080,43 @@ digits = /([0-9]+)/
 }
 <span class="boring">}</span></code></pre>
 <h2 id="quoted_literal"><a class="header" href="#quoted_literal"><code>quoted_literal</code></a></h2>
-<pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char* "\\E"
+<pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char+ "\\E"  -&gt; {type: "atom", kind: "quoted_literal", body: $2}
 </code></pre>
-<p>The full PCRE2 <code>\Q...\E</code> quoted-literal block as an atom. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-7-1"><a class="header" href="#shape-7-1">Shape</a></h3>
-<p>3-element Sequence: <code>["\\Q", &lt;Quantified of chars&gt;, "\\E"]</code>.</p>
-<h3 id="when-this-fires-vs-piece_quoted_run_quantified"><a class="header" href="#when-this-fires-vs-piece_quoted_run_quantified">When this fires vs <code>piece_quoted_run_quantified</code></a></h3>
+<p>A NON-empty TERMINATED PCRE2 <code>\Q...\E</code> quoted-literal block, as an atom (<code>char+</code> since release <code>1.1.89</code>, <code>REGEX-PCRE2-FIDELITY.3.23</code> — the empty case <code>\Q\E</code> moved to <code>zero_width</code>). Everything between <code>\Q</code> and <code>\E</code> is literal, including structural metacharacters (<code>\Q(?:\E</code>, <code>\Q**\E</code>, <code>\Q)\E</code> all accept). <code>body</code> is the array of matched chars (each <code>quoted_literal_char</code> is a single-char string; an escaped char like <code>\d</code> is the 2-element <code>["\\","d"]</code>).</p>
+<h3 id="shape--annotated"><a class="header" href="#shape--annotated">Shape — annotated</a></h3>
+<pre><code class="language-json">{ "type": "atom", "kind": "quoted_literal", "body": [&lt;chars&gt;] }
+</code></pre>
+<h3 id="when-this-fires-vs-the-sibling-q-rules"><a class="header" href="#when-this-fires-vs-the-sibling-q-rules">When this fires vs the sibling <code>\Q</code> rules</a></h3>
 <ul>
-<li><code>piece_quoted_run_quantified</code> fires when <code>\Q...\E</code> is followed by a quantifier AND has at least 2 chars in the run.</li>
-<li><code>quoted_literal</code> fires when <code>\Q...\E</code> is NOT followed by a quantifier, OR has 0 or 1 chars.</li>
+<li><code>piece_quoted_run_quantified</code> (see <a href="#piece-and-the-quoted-run-family">piece</a>) fires when a TERMINATED <code>\Q...\E</code> (≥1 char) is followed by a quantifier — the quantifier binds the LAST char (<code>\Qab\E*</code> = <code>a</code>, <code>b*</code>).</li>
+<li><code>quoted_literal</code> fires for a non-empty terminated <code>\Q...\E</code> NOT followed by a quantifier.</li>
+<li><code>empty_quoted_literal</code> (the <code>zero_width</code> in <a href="#zero_width--the-transparent-stray-e-and-empty-qe">piece</a>) handles <code>\Q\E</code>: bare <code>\Q\E</code> accepts (unchanged shape), <code>\Q\E*</code> REJECTS (err 109 — an empty quote is unrepeatable).</li>
+<li><code>unterminated_quoted_literal</code> (below) handles a <code>\Q…</code> with no <code>\E</code>.</li>
 </ul>
-<p>For <code>\Qab\E</code> (no trailing quantifier, 2 chars):</p>
+<p>For <code>\Qab\E</code> (terminated, no trailing quantifier):</p>
 <pre><code class="language-json">{
-  "atom": ["\\Q", ["a", "b"], "\\E"],
+  "atom": { "type": "atom", "kind": "quoted_literal", "body": ["a", "b"] },
   "quantifier": [],
   "type": "piece"
 }
 </code></pre>
-<p>For <code>\Qa\E{3}</code> (single-char run with quantifier — degenerate; falls through to atom path):</p>
+<h2 id="unterminated_quoted_literal"><a class="header" href="#unterminated_quoted_literal"><code>unterminated_quoted_literal</code></a></h2>
+<pre><code class="language-ebnf">unterminated_quoted_literal = "\\Q" quoted_literal_char*  -&gt; {type: "atom", kind: "quoted_literal", body: $2}
+</code></pre>
+<p>Release <code>1.1.89</code> (<code>REGEX-PCRE2-FIDELITY.3.23</code>). A <code>\Q…</code> with NO closing <code>\E</code> quotes everything to END-OF-PATTERN as literal — so <code>\Q)</code>, <code>\Q(</code>, <code>\Q[</code>, <code>\Q^</code>, <code>\Q(?:</code>, <code>\Q**</code> are ACCEPTED as one literal run (before <code>1.1.89</code> these REJECTED, because <code>\Q</code> was mis-parsed as a shorthand escape and the tail as live regex). The empty tail (<code>char*</code> = 0) is bare <code>\Q</code> at end-of-pattern.</p>
+<p>It is consumed ONLY by the standalone <a href="#piece">piece</a> branch <code>unterminated_quoted_literal -&gt; {type:"piece", atom:$1, quantifier:[]}</code> — never as a quantifiable <code>atom</code>. That is deliberate: a non-atom greedy-to-end piece can never be the ABSORPTION branch’s atom, which keeps the stimuli generator from emitting <code>\Q\E&lt;quantifier&gt;</code> (a duality break). Its <code>body</code> uses the same <code>{type:"atom", kind:"quoted_literal", body}</code> carrier as <code>quoted_literal</code>.</p>
+<p>For <code>\Q)</code> (unterminated, <code>)</code> literal):</p>
 <pre><code class="language-json">{
-  "atom": ["\\Q", ["a"], "\\E"],
-  "quantifier": [&lt;{3}&gt;],
+  "atom": { "type": "atom", "kind": "quoted_literal", "body": [")"] },
+  "quantifier": [],
   "type": "piece"
 }
 </code></pre>
-<p>For <code>\Q\E{2}</code> (empty run with quantifier — also degenerate; atom path):</p>
-<pre><code class="language-json">{
-  "atom": ["\\Q", [], "\\E"],
-  "quantifier": [&lt;{2}&gt;],
-  "type": "piece"
-}
-</code></pre>
-<p>These degenerate cases produce ONE piece (the whole <code>\Q...\E</code> as atom + the trailing quantifier) which is semantically correct because there’s no quantifier-attachment ambiguity.</p>
-<p>The non-degenerate case (multi-char run + quantifier, e.g. <code>\Qab*\E{2,}</code>) goes through <code>piece_quoted_run_quantified</code> instead and produces the multi-piece array — see <a href="#piece-and-the-quoted-run-family">piece</a>.</p>
 <h2 id="escape"><a class="header" href="#escape"><code>escape</code></a></h2>
 <pre><code class="language-ebnf">escape = "\\" escape_unit
 </code></pre>
 <p>The PCRE2 escape sequence wrapper. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
+<h3 id="shape-7-1"><a class="header" href="#shape-7-1">Shape</a></h3>
 <p>2-element Sequence: <code>["\\", &lt;escape_unit-shape&gt;]</code>.</p>
 <p>The <code>escape_unit</code> rule branches into the various escape forms; see <a href="#escape-subtree">Escape Subtree</a>.</p>
 <h3 id="example-2-1"><a class="header" href="#example-2-1">Example</a></h3>
@@ -2136,7 +2143,7 @@ digits = /([0-9]+)/
                           | "[[:&gt;:]]" -&gt; {type: "anchor", kind: "posix_word_end"}
 </code></pre>
 <p>PCRE2’s BSD-style word-boundary aliases. 2-way Or, <strong>annotated</strong> as of slice 9 (post-1.1.37). Joins the same typed anchor family as the <code>anchor</code> rule.</p>
-<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
+<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
 <pre><code class="language-json">{"type": "anchor", "kind": "posix_word_start"}    // for [[:&lt;:]]
 {"type": "anchor", "kind": "posix_word_end"}      // for [[:&gt;:]]
 </code></pre>
@@ -2145,7 +2152,7 @@ digits = /([0-9]+)/
 <pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
 </code></pre>
 <p>The full character class atom. <strong>Un-annotated</strong>. See <a href="#character-class-subtree">Character Class Subtree</a> for the per-rule walk.</p>
-<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
+<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
 <p>4-element Sequence: <code>["[", &lt;negation?&gt;, &lt;class_initial_close?&gt;, &lt;class_body&gt;, "]"]</code>.</p>
 <h2 id="group"><a class="header" href="#group"><code>group</code></a></h2>
 <pre><code class="language-ebnf">group = capturing_group | noncapturing_group | named_group | python_named_group
@@ -2275,7 +2282,7 @@ invisibles), then a body with ≥1 <em>visible</em> member (<code>[^a]</code>, <
 member is structurally caret-free — a leading bare <code>^</code> would have been the negation
 (<code>[abc]</code>, <code>[\Ea]</code>, <code>[a^]</code> — the caret is fine after the first member).</li>
 </ul>
-<h3 id="shape-11"><a class="header" href="#shape-11">Shape</a></h3>
+<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
 <pre><code class="language-json">{
   "type": "atom",
   "kind": "char_class",
@@ -2915,7 +2922,7 @@ simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxe
 <p>For <code>\d</code>: the inner shape is <code>{type:"escape",kind:"shorthand",char:"d"}</code> — the standard PCRE2 metacharacter is just text from the parser’s perspective; semantic interpretation (<code>\d</code> = digit-class) is downstream.</p>
 <p><strong>Since release 1.1.82 (REGEX-PCRE2-FIDELITY.3.13)</strong> the letter component is a <strong>positive enumeration</strong> instead of negative-lookahead guards over <code>any_char</code> (the stimuli generator is lookahead-blind, so guard-based exclusions were invisible to generation; a positive set is generation-faithful). Same accepted set per profile as before, minus the 7 escape-anchor letters (see below):</p>
 <ul>
-<li><code>simple_escape_letter_strict</code> (always active): 38 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings <code>A B G K Z b z</code> (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13), the six PCRE2-unsupported letters <code>F L U i l u</code> (REGEX-PCRE2-FIDELITY.3.1), and the uppercase <code>E</code> (a stray <code>\E</code> is a PCRE2 zero-width end-of-quote, re-homed to <code>stray_end_quote_escape</code> / the <code>zero_width</code> piece so a quantifier cannot bind directly to it — REGEX-PCRE2-FIDELITY.3.19, release 1.1.86; the LOWERCASE <code>\e</code> = ESC stays a shorthand). See the <a href="#zero_width--the-transparent-stray-e">piece chapter’s <code>zero_width</code></a> section.</li>
+<li><code>simple_escape_letter_strict</code> (always active): 37 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings <code>A B G K Z b z</code> (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13), the six PCRE2-unsupported letters <code>F L U i l u</code> (REGEX-PCRE2-FIDELITY.3.1), the uppercase <code>E</code> (a stray <code>\E</code> is a PCRE2 zero-width end-of-quote, re-homed to <code>stray_end_quote_escape</code> / the <code>zero_width</code> piece — REGEX-PCRE2-FIDELITY.3.19, release 1.1.86), and the uppercase <code>Q</code> (uppercase <code>\Q</code> is a QUOTE-OPENER, never a bare shorthand — PCRE2 quotes <code>\Q…\E</code> or <code>\Q…</code> to end-of-pattern as literal; re-homed to <code>quoted_literal</code> / <code>unterminated_quoted_literal</code> / <code>empty_quoted_literal</code> — REGEX-PCRE2-FIDELITY.3.23, release 1.1.89). The LOWERCASE <code>\e</code> (ESC) and <code>\q</code> stay shorthands. See the <a href="#zero_width--the-transparent-stray-e-and-empty-qe">piece chapter’s <code>zero_width</code></a> section and the <a href="#quoted_literal"><code>quoted_literal</code></a> atom.</li>
 <li><code>simple_escape_letter_relaxed</code> (<code>@profiles: ["relaxed"]</code>): re-admits <code>\i \F \l \L \u \U</code>. The anchor letters stay excluded in BOTH profiles.</li>
 <li>Digits are excluded positively (no <code>digit</code> alternative — the PGEN-RGX-0087 rule: <code>\&lt;digit&gt;</code> is always backref/octal/error, never shorthand); the four brace-form leads (<code>\o{</code>/<code>\x{</code>/<code>\p{</code>/<code>\P{</code>) remain negative lookaheads (a “not followed by <code>{</code>” condition has no positive spelling).</li>
 </ul>
@@ -4272,7 +4279,8 @@ invisibles are dropped.</p>
 <tr><td><code>\Qabc\E{2}</code></td><td><code>a</code> <code>b</code> <code>c{2}</code></td><td>3 pieces</td></tr>
 <tr><td><code>\Qab\E{3}</code></td><td><code>a</code> <code>b{3}</code></td><td>2 pieces</td></tr>
 <tr><td><code>\Qa\E{3}</code></td><td><code>a{3}</code></td><td>1 piece (degenerate)</td></tr>
-<tr><td><code>\Q\E{2}</code></td><td>empty</td><td>1 piece (atom-fallback, degenerate)</td></tr>
+<tr><td><code>\Q\E{2}</code></td><td>—</td><td><strong>REJECT</strong> (err 109 since <code>1.1.89</code> — empty quote is unrepeatable)</td></tr>
+<tr><td><code>\Q)</code></td><td><code>)</code> literal</td><td>1 piece (unterminated, quote-to-end; ACCEPT since <code>1.1.89</code>)</td></tr>
 </tbody>
 </table>
 </div>
@@ -4327,19 +4335,22 @@ invisibles are dropped.</p>
 ]
 </code></pre>
 <p>ONE piece. The <code>piece_quoted_run_quantified</code> branch requires at least one prefix char BEFORE the trailing char, so for single-char quoted runs it fails and the parser falls through to <code>piece</code>’s branch 1 (<code>atom quantifier?</code> matching the whole <code>\Qa\E</code> as a <code>quoted_literal</code> atom). Post-slice-18 the atom is the typed <code>{type:"atom", kind:"quoted_literal", body:["a"]}</code> object instead of the pre-slice 3-element <code>["\\Q", ["a"], "\\E"]</code> Sequence. Semantically correct: “quantify the only char in <code>\Qa\E</code>” is exactly the same as “quantify the whole 1-char block.”</p>
-<h2 id="qe2--empty-quoted-run-with-quantifier"><a class="header" href="#qe2--empty-quoted-run-with-quantifier"><code>\Q\E{2}</code> — empty quoted run with quantifier</a></h2>
+<h2 id="qe2--empty-quoted-run-with-quantifier--reject-since-1189-regex-pcre2-fidelity323"><a class="header" href="#qe2--empty-quoted-run-with-quantifier--reject-since-1189-regex-pcre2-fidelity323"><code>\Q\E{2}</code> — empty quoted run with quantifier → REJECT (since <code>1.1.89</code>, <code>REGEX-PCRE2-FIDELITY.3.23</code>)</a></h2>
+<p><code>\Q\E{2}</code> (and <code>\Q\E*</code>, <code>\Q\E+</code>, <code>\Q\E?</code>, <code>\Q\E{2,}</code>, <code>\Q\E{,2}</code>) <strong>REJECT</strong> — <code>pcre2test</code> 10.47 errs 109 “quantifier does not follow a repeatable item” (an empty quoted literal is zero-width, exactly like a stray <code>\E</code>, and zero-width is unrepeatable).</p>
+<p>⚠️ Corrected in release <code>1.1.89</code>. Before <code>1.1.89</code>, PGEN wrongly ACCEPTED <code>\Q\E{2}</code> (parsing empty <code>\Q\E</code> as one quantifiable <code>quoted_literal</code> atom and emitting <code>{"atom":{"kind":"quoted_literal","body":[]}, "quantifier":{min:2,max:2}}</code>) — an accepts-invalid divergence. This prose earlier claimed PCRE2 “matches the empty string twice”; that was wrong — <code>pcre2test</code> rejects it. Empty <code>\Q\E</code> is now the non-quantifiable <code>empty_quoted_literal</code> <code>zero_width</code> (see <a href="#zero_width--the-transparent-stray-e-and-empty-qe">piece</a>), so the standalone-branch <code>!quantifier</code> lookahead fails and no other branch matches ⇒ REJECT. A bare <code>\Q\E</code> (no quantifier) still accepts, byte-unchanged. A quantifier absorbs THROUGH an empty <code>\Q\E</code> onto a preceding atom: <code>a\Q\E*</code> = <code>a*</code>.</p>
+<h2 id="q--unterminated-q-quotes-to-end-of-pattern-accept-since-1189"><a class="header" href="#q--unterminated-q-quotes-to-end-of-pattern-accept-since-1189"><code>\Q)</code> — unterminated <code>\Q…</code> quotes to end-of-pattern (ACCEPT since <code>1.1.89</code>)</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
     {
-      "atom": {"type": "atom", "kind": "quoted_literal", "body": []},
-      "quantifier": {"type": "quantifier", "min": 2, "max": 2, "greediness": []},
+      "atom": {"type": "atom", "kind": "quoted_literal", "body": [")"]},
+      "quantifier": [],
       "type": "piece"
     }
   ]],
   []
 ]
 </code></pre>
-<p>ONE piece. Empty <code>\Q...\E</code> falls through to atom-path. PCRE2 treats <code>\Q\E{2}</code> as a zero-width quantified empty match (matches the empty string twice = matches empty).</p>
+<p>ONE piece. A <code>\Q…</code> with NO closing <code>\E</code> quotes everything to end-of-pattern as literal, so <code>\Q)</code> is the single literal <code>)</code> — not an unbalanced group. Likewise <code>\Q(</code>, <code>\Q[</code>, <code>\Q^</code>, <code>\Q|</code>, <code>\Q(?:</code>, <code>\Q**</code> all ACCEPT as one literal run. Before <code>1.1.89</code>, PGEN mis-parsed the leading <code>\Q</code> as a shorthand escape and read the tail as live regex, wrongly REJECTING these — a rejects-valid divergence closed by the new <a href="#unterminated_quoted_literal"><code>unterminated_quoted_literal</code></a> piece.</p>
 <h2 id="qabe--2-char-quoted-run-no-trailing-quantifier"><a class="header" href="#qabe--2-char-quoted-run-no-trailing-quantifier"><code>\Qab\E</code> — 2-char quoted run, NO trailing quantifier</a></h2>
 <pre><code class="language-json">"pattern": [
   [[
@@ -5380,11 +5391,14 @@ fn ast_snapshot_for_canonical_inputs() {
 </thead>
 <tbody>
 <tr><td><strong>Named reference to an UNKNOWN group name</strong> — err 115 “reference to non-existent subpattern”</td><td><code>\k&lt;zzz&gt;</code> <code>\k'zzz'</code> <code>\k{zzz}</code> <code>(?P=zzz)</code> <code>\g{zzz}</code> <code>(?&amp;zzz)</code> <code>(?P&gt;zzz)</code> <code>\g&lt;zzz&gt;</code> <code>\g'zzz'</code> (no group <code>zzz</code> defined)</td><td>Named-reference resolution is inherently <strong>whole-pattern two-pass</strong> — forward references are LEGAL (<code>\k&lt;aa&gt;(?'aa'x)</code> is accepted by both), so a single left-to-right check would wrongly reject the legal forward form. Owned by the capstone.</td><td><code>REGEX-0098</code> / <code>.3.22</code> (fix in <code>.4</code>)</td></tr>
-<tr><td><strong>Empty <code>\Q\E</code>-quantified</strong> — err 109 “quantifier does not follow a repeatable item”</td><td><code>\Q\E*</code> <code>\Q\E{2}</code> …</td><td>Entangles with the <code>\Q</code>-as-<code>simple_escape</code> / unterminated-<code>\Q...\E</code> quoting model.</td><td><code>REGEX-0095</code> note / <code>.3.23</code></td></tr>
 </tbody>
 </table>
 </div>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
+<h3 id="1189--contract-1191--regex-0099-the-pcre2-q-quoting-model-unterminated-quote-to-end--empty-qe-quantified-grammar-encoded"><a class="header" href="#1189--contract-1191--regex-0099-the-pcre2-q-quoting-model-unterminated-quote-to-end--empty-qe-quantified-grammar-encoded">1.1.89 / Contract 1.1.91 — REGEX-0099: the PCRE2 <code>\Q</code> QUOTING model (unterminated quote-to-end + empty-<code>\Q\E</code>-quantified); grammar-encoded</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR change in BOTH directions (release bump 1.1.88→1.1.89 / contract 1.1.90→1.1.91; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.3.23</code>; oracle <code>pcre2test</code> 10.47, an 85-cell matrix; validated pre-rebuild by the regex-CERTIFIED interpreter, 0 divergences). PCRE2 <code>\Q…\E</code> quotes everything between <code>\Q</code> and <code>\E</code> — or, unterminated, from <code>\Q</code> to END-OF-PATTERN — as <strong>literal</strong> (the only special sequence inside is <code>\E</code>). Before <code>1.1.89</code>, <code>\Q</code> was a bare shorthand escape (<code>simple_escape</code>, char <code>Q</code>), so this closes TWO sibling divergence classes with ONE root cause. <strong>Newly ACCEPT</strong> (was REJECTS-VALID — an unterminated <code>\Q…</code> metachar tail was mis-parsed as live regex): <code>\Q)</code> <code>\Q(</code> <code>\Q[</code> <code>\Q(?:</code> <code>\Q**</code> <code>\Qa**</code> <code>\Qa)b</code> (and the previously-accepted-but-mis-parsed <code>\Q</code> <code>\Qa</code> <code>\Qabc</code> <code>\Qa*b</code> <code>\Q^</code> <code>\Q$</code> <code>\Q|</code>, now one literal run). <strong>Newly REJECT</strong> (was ACCEPTS-INVALID — an empty quote is zero-width, unrepeatable): <code>\Q\E*</code> <code>\Q\E+</code> <code>\Q\E?</code> <code>\Q\E{2}</code> <code>\Q\E{2,}</code> <code>\Q\E{2,3}</code> <code>\Q\E{,2}</code> <code>\Q\E\Q\E*</code> (err 109). Encoded grammar-side (no engine, no validator — the host validator already skipped <code>\Q…</code> as quote-to-end): <code>'Q'</code> dropped from <code>simple_escape_letter_strict</code> (positive exclusion); <code>quoted_literal</code> narrowed to nonempty terminated (<code>char*</code>→<code>char+</code>); NEW <code>unterminated_quoted_literal</code> (quote-to-end) is a <strong>NON-atom standalone <code>piece</code></strong> — so the generator can never pick a bare <code>\Q</code> as the absorption branch’s atom (the generation-faithful fix for an in-slice cert seed-42 duality break; no <code>!"\\E"</code> lookahead needed); NEW <code>empty_quoted_literal</code> joins the non-quantifiable <code>zero_width</code> (so <code>\Q\E*</code> rejects via <code>!quantifier</code>, <code>a\Q\E*</code> = <code>a*</code> via absorption). <strong>AST</strong>: terminated <code>\Q…\E</code>, bare <code>\Q\E</code>, and <code>\Qa\E*</code> are byte-identical; intended semantic corrections — unterminated <code>\Q…</code> is now one <code>{type:"atom", kind:"quoted_literal", body}</code> (was <code>\Q</code>-as-escape + live-regex pieces) and <code>a\Q\E*</code> = <code>a*</code> (empty quote elided). <strong>No new AST vocab — schema stays <code>1</code>.</strong> Both directions apply in BOTH profiles. Rejection LAYER: the grammar (<code>E_PARSE_FAILURE</code>) — match on the <strong>code</strong>, not message text. Bug ledger: <code>REGEX-0099</code>. <strong>Contract section:</strong> “Release 1.1.89 / Contract 1.1.91 Highlights”. Rules detail: <code>rules-piece.md</code> (§ <code>piece</code>, § <code>zero_width</code>), <code>rules-atom.md</code> (§ <code>quoted_literal</code>, § <code>unterminated_quoted_literal</code>), <code>rules-escape.md</code> (§ <code>simple_escape</code>); examples: <code>examples-quoted-literal.md</code>.</p>
+</blockquote>
 <h3 id="1188--contract-1190--regex-0097-a-limit-value-outside-0-4294967289-now-rejects-pcre2-faithfully-grammar-encoded"><a class="header" href="#1188--contract-1190--regex-0097-a-limit-value-outside-0-4294967289-now-rejects-pcre2-faithfully-grammar-encoded">1.1.88 / Contract 1.1.90 — REGEX-0097: a LIMIT <code>=value</code> outside [0, 4294967289] now rejects PCRE2-faithfully; grammar-encoded</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: BEHAVIOR-TIGHTENING (release bump 1.1.87→1.1.88 / contract 1.1.89→1.1.90; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.3.21</code>; oracle <code>pcre2test</code> 10.47, one-pattern-per-run binary search). PCRE2 bounds a numeric LIMIT start-option value (<code>(*LIMIT_HEAP=…)</code> / <code>(*LIMIT_MATCH=…)</code> / <code>(*LIMIT_DEPTH=…)</code> / <code>(*LIMIT_RECURSION=…)</code>) to a maximum of <strong>4294967289</strong> (<code>0xFFFFFFF9</code>); a larger value is err 160. The bound is PCRE2’s Horner overflow guard <code>n &gt; UINT32_MAX/10 - 1</code>, so the max accepted value is <code>429496728*10 + 9 = 4294967289</code> — <strong>NOT</strong> u32 max 4294967295 (which itself rejects). Purely LATENT — no prior validator check ever bounded the value (<code>directive_payload_digits = digit+</code> bounded only the shape), and it is hunter-invisible (generator + parser agreed). <strong>Newly REJECT</strong>: <code>(*LIMIT_HEAP=4294967290)</code> <code>(*LIMIT_HEAP=4294967295)</code> <code>(*LIMIT_HEAP=99999999999999999999)</code> and the leading-zero form <code>(*LIMIT_HEAP=00000000004294967290)</code>, uniform across all 4 LIMIT names. <strong>Still ACCEPT</strong> (unchanged): <code>(*LIMIT_HEAP=0)</code> <code>(*LIMIT_HEAP=500)</code> <code>(*LIMIT_HEAP=4294967289)</code> (the boundary), <code>(*LIMIT_HEAP=00000000004294967289)</code> (leading zeros are value-based), all-zeros. Encoded structurally with the <code>.3.16</code> <code>callout_number</code> / <code>.3.18</code> <code>quant_bound_number</code> idiom (NOT <code>@range</code> — proved atom-scoped/inert by <code>.3.16</code>): <code>directive_payload_digits</code> is now a wrapper over <code>directive_limit_value_body</code> (<code>"0"+ directive_limit_value_core? | directive_limit_value_core</code>), whose <code>directive_limit_value_core</code> is the nonzero-led 1..4294967289 lexicographic ladder — so an out-of-range run has no fully-consuming parse (the trailing <code>)</code> fails) and generation is in-range by construction. <strong>AST</strong>: every in-range value byte-identical — <code>value</code> stays the raw digit string (leading zeros preserved: <code>(*LIMIT_HEAP=00700)</code> → <code>value:"00700"</code>). Rejection LAYER: a NEW grammar rejection — match on the <strong>code</strong> (<code>E_PARSE_FAILURE</code>), not message text. The value bound applies in BOTH profiles (recognized-name shapes stay authoritative in relaxed). Bug ledger: <code>REGEX-0097</code>. <strong>Contract section:</strong> “Release 1.1.88 / Contract 1.1.90 Highlights”. Rules detail: <code>rules-misc.md</code> (§ <code>directive</code> — LIMIT value bound).</p>

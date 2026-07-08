@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d95ca800.js";
+            window.path_to_searchindex_js = "searchindex-fa2caba9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -365,44 +365,43 @@
 }
 <span class="boring">}</span></code></pre>
 <h2 id="quoted_literal"><a class="header" href="#quoted_literal"><code>quoted_literal</code></a></h2>
-<pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char* "\\E"
+<pre><code class="language-ebnf">quoted_literal = "\\Q" quoted_literal_char+ "\\E"  -&gt; {type: "atom", kind: "quoted_literal", body: $2}
 </code></pre>
-<p>The full PCRE2 <code>\Q...\E</code> quoted-literal block as an atom. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-7"><a class="header" href="#shape-7">Shape</a></h3>
-<p>3-element Sequence: <code>["\\Q", &lt;Quantified of chars&gt;, "\\E"]</code>.</p>
-<h3 id="when-this-fires-vs-piece_quoted_run_quantified"><a class="header" href="#when-this-fires-vs-piece_quoted_run_quantified">When this fires vs <code>piece_quoted_run_quantified</code></a></h3>
+<p>A NON-empty TERMINATED PCRE2 <code>\Q...\E</code> quoted-literal block, as an atom (<code>char+</code> since release <code>1.1.89</code>, <code>REGEX-PCRE2-FIDELITY.3.23</code> — the empty case <code>\Q\E</code> moved to <code>zero_width</code>). Everything between <code>\Q</code> and <code>\E</code> is literal, including structural metacharacters (<code>\Q(?:\E</code>, <code>\Q**\E</code>, <code>\Q)\E</code> all accept). <code>body</code> is the array of matched chars (each <code>quoted_literal_char</code> is a single-char string; an escaped char like <code>\d</code> is the 2-element <code>["\\","d"]</code>).</p>
+<h3 id="shape--annotated"><a class="header" href="#shape--annotated">Shape — annotated</a></h3>
+<pre><code class="language-json">{ "type": "atom", "kind": "quoted_literal", "body": [&lt;chars&gt;] }
+</code></pre>
+<h3 id="when-this-fires-vs-the-sibling-q-rules"><a class="header" href="#when-this-fires-vs-the-sibling-q-rules">When this fires vs the sibling <code>\Q</code> rules</a></h3>
 <ul>
-<li><code>piece_quoted_run_quantified</code> fires when <code>\Q...\E</code> is followed by a quantifier AND has at least 2 chars in the run.</li>
-<li><code>quoted_literal</code> fires when <code>\Q...\E</code> is NOT followed by a quantifier, OR has 0 or 1 chars.</li>
+<li><code>piece_quoted_run_quantified</code> (see <a href="rules-piece.html">piece</a>) fires when a TERMINATED <code>\Q...\E</code> (≥1 char) is followed by a quantifier — the quantifier binds the LAST char (<code>\Qab\E*</code> = <code>a</code>, <code>b*</code>).</li>
+<li><code>quoted_literal</code> fires for a non-empty terminated <code>\Q...\E</code> NOT followed by a quantifier.</li>
+<li><code>empty_quoted_literal</code> (the <code>zero_width</code> in <a href="rules-piece.html#zero_width--the-transparent-stray-e-and-empty-qe">piece</a>) handles <code>\Q\E</code>: bare <code>\Q\E</code> accepts (unchanged shape), <code>\Q\E*</code> REJECTS (err 109 — an empty quote is unrepeatable).</li>
+<li><code>unterminated_quoted_literal</code> (below) handles a <code>\Q…</code> with no <code>\E</code>.</li>
 </ul>
-<p>For <code>\Qab\E</code> (no trailing quantifier, 2 chars):</p>
+<p>For <code>\Qab\E</code> (terminated, no trailing quantifier):</p>
 <pre><code class="language-json">{
-  "atom": ["\\Q", ["a", "b"], "\\E"],
+  "atom": { "type": "atom", "kind": "quoted_literal", "body": ["a", "b"] },
   "quantifier": [],
   "type": "piece"
 }
 </code></pre>
-<p>For <code>\Qa\E{3}</code> (single-char run with quantifier — degenerate; falls through to atom path):</p>
+<h2 id="unterminated_quoted_literal"><a class="header" href="#unterminated_quoted_literal"><code>unterminated_quoted_literal</code></a></h2>
+<pre><code class="language-ebnf">unterminated_quoted_literal = "\\Q" quoted_literal_char*  -&gt; {type: "atom", kind: "quoted_literal", body: $2}
+</code></pre>
+<p>Release <code>1.1.89</code> (<code>REGEX-PCRE2-FIDELITY.3.23</code>). A <code>\Q…</code> with NO closing <code>\E</code> quotes everything to END-OF-PATTERN as literal — so <code>\Q)</code>, <code>\Q(</code>, <code>\Q[</code>, <code>\Q^</code>, <code>\Q(?:</code>, <code>\Q**</code> are ACCEPTED as one literal run (before <code>1.1.89</code> these REJECTED, because <code>\Q</code> was mis-parsed as a shorthand escape and the tail as live regex). The empty tail (<code>char*</code> = 0) is bare <code>\Q</code> at end-of-pattern.</p>
+<p>It is consumed ONLY by the standalone <a href="rules-piece.html#piece">piece</a> branch <code>unterminated_quoted_literal -&gt; {type:"piece", atom:$1, quantifier:[]}</code> — never as a quantifiable <code>atom</code>. That is deliberate: a non-atom greedy-to-end piece can never be the ABSORPTION branch’s atom, which keeps the stimuli generator from emitting <code>\Q\E&lt;quantifier&gt;</code> (a duality break). Its <code>body</code> uses the same <code>{type:"atom", kind:"quoted_literal", body}</code> carrier as <code>quoted_literal</code>.</p>
+<p>For <code>\Q)</code> (unterminated, <code>)</code> literal):</p>
 <pre><code class="language-json">{
-  "atom": ["\\Q", ["a"], "\\E"],
-  "quantifier": [&lt;{3}&gt;],
+  "atom": { "type": "atom", "kind": "quoted_literal", "body": [")"] },
+  "quantifier": [],
   "type": "piece"
 }
 </code></pre>
-<p>For <code>\Q\E{2}</code> (empty run with quantifier — also degenerate; atom path):</p>
-<pre><code class="language-json">{
-  "atom": ["\\Q", [], "\\E"],
-  "quantifier": [&lt;{2}&gt;],
-  "type": "piece"
-}
-</code></pre>
-<p>These degenerate cases produce ONE piece (the whole <code>\Q...\E</code> as atom + the trailing quantifier) which is semantically correct because there’s no quantifier-attachment ambiguity.</p>
-<p>The non-degenerate case (multi-char run + quantifier, e.g. <code>\Qab*\E{2,}</code>) goes through <code>piece_quoted_run_quantified</code> instead and produces the multi-piece array — see <a href="rules-piece.html">piece</a>.</p>
 <h2 id="escape"><a class="header" href="#escape"><code>escape</code></a></h2>
 <pre><code class="language-ebnf">escape = "\\" escape_unit
 </code></pre>
 <p>The PCRE2 escape sequence wrapper. <strong>Un-annotated</strong>.</p>
-<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
+<h3 id="shape-7"><a class="header" href="#shape-7">Shape</a></h3>
 <p>2-element Sequence: <code>["\\", &lt;escape_unit-shape&gt;]</code>.</p>
 <p>The <code>escape_unit</code> rule branches into the various escape forms; see <a href="rules-escape.html">Escape Subtree</a>.</p>
 <h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
@@ -429,7 +428,7 @@
                           | "[[:&gt;:]]" -&gt; {type: "anchor", kind: "posix_word_end"}
 </code></pre>
 <p>PCRE2’s BSD-style word-boundary aliases. 2-way Or, <strong>annotated</strong> as of slice 9 (post-1.1.37). Joins the same typed anchor family as the <code>anchor</code> rule.</p>
-<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
+<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
 <pre><code class="language-json">{"type": "anchor", "kind": "posix_word_start"}    // for [[:&lt;:]]
 {"type": "anchor", "kind": "posix_word_end"}      // for [[:&gt;:]]
 </code></pre>
@@ -438,7 +437,7 @@
 <pre><code class="language-ebnf">char_class = "[" negation? class_initial_close? class_body "]"
 </code></pre>
 <p>The full character class atom. <strong>Un-annotated</strong>. See <a href="rules-char-class.html">Character Class Subtree</a> for the per-rule walk.</p>
-<h3 id="shape-10"><a class="header" href="#shape-10">Shape</a></h3>
+<h3 id="shape-9"><a class="header" href="#shape-9">Shape</a></h3>
 <p>4-element Sequence: <code>["[", &lt;negation?&gt;, &lt;class_initial_close?&gt;, &lt;class_body&gt;, "]"]</code>.</p>
 <h2 id="group"><a class="header" href="#group"><code>group</code></a></h2>
 <pre><code class="language-ebnf">group = capturing_group | noncapturing_group | named_group | python_named_group

@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0021 — REGEX-PCRE2-FIDELITY.3.23: the `\Q` QUOTING model made first-class (REGEX-0099, release 1.1.89 / contract 1.1.91)
+
+RELEASED regex slice. `\Q` was a bare shorthand escape; making it first-class quoting closed two sibling
+PCRE2 divergence classes at once, and the tightening surfaced (and closed) a generator over-generation.
+
+**Tools-first order (the toolbox-first discipline).**
+1. `pcre2test` 10.47 oracle — an 85-cell matrix pinning the `\Q` model: terminated `\Q…\E` always accepts
+   (metachars literal); unterminated `\Q…` quotes to end-of-pattern (always accepts); empty `\Q\E`
+   quantified rejects err 109; non-empty `\Q…\E` quantified accepts (binds last char).
+2. Released-parser dump + differential — found the two classes: unterminated `\Q…` with a structural
+   metachar tail (`\Q)` `\Q(` `\Q[` `\Q^` `\Q|` `\Q(?:`) was REJECTS-VALID (parsed `\Q` as escape-`Q` +
+   live regex), and empty-`\Q\E`-quantified was ACCEPTS-INVALID.
+3. The regex-CERTIFIED interpreter (`parse_harness_interpreter::interpret_parse`) validated the candidate
+   grammar PRE-rebuild: 85/85 vs oracle (0 divergences) + an AST byte-diff confirming exactly 23 intended
+   changes (unterminated `\Q…` → one `{atom,quoted_literal,body}`; `a\Q\E*` = `a*`), nothing else.
+
+**Two root causes, both tools-first.**
+- The `.3.19`-stated blocker: empty `\Q\E` can only become a non-quantifiable `zero_width` if `Q` also
+  leaves `simple_escape` — otherwise longest-match re-decomposes `\Q\E*` as `\Q`(escape) + `\E`(zero_width)
+  + `*` via the `.3.19` absorption branch. Dropping `Q` then REQUIRES a first-class unterminated-`\Q…`
+  model (else `\Qabc` regresses).
+- 🔎 In-slice cert seed-42 `sample_parse_failures=1`: the first encode made `unterminated_quoted_literal`
+  a quantifiable `atom`; the `SAMPLE-PARSE FAILURES` dump named the sample `\Q\E{0,0}`. The lookahead-blind
+  generator used a bare `\Q` (unterminated atom) as the absorption branch's atom + a stray `\E` +
+  quantifier; the parser (correctly) rejects it because it re-fuses `\Q\E` into `empty_quoted_literal`,
+  orphaning the quantifier — a generator↔parser duality break (the `.3.13`/`.3.19` lookahead-blindness
+  anti-pattern, which a `!"\\E"` guard would have re-introduced). FIX: make `unterminated_quoted_literal`
+  a NON-atom standalone `piece` — it can never be the absorption atom, and needs no lookahead
+  (generation-faithful by construction). spf=0 re-verified across seeds 0/1/2/3/5/13/42/100/314/500.
+
+**Book drift corrected in-slice (pre-existing, not introduced):** `rules-atom.md`'s `quoted_literal`
+section still showed the un-annotated 3-element-Sequence shape and a `\Q\E{2}` accept example — corrected to
+the annotated `{type:"atom", kind:"quoted_literal", body}` carrier and the current `\Q\E`-rejects behavior.
+
+Full evidence: the `.3.23` leaf Acceptance Checklist. Gates: cert 236/236/0 spf=0 ×3 seeds; oracle
+byte-identical `2189/1858/285/46`; equivalence + duality + ast_shape + both book gates green; dual suite
+893/0. Lockstep per the LOCKSTEP box in the leaf.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0020 — REGEX-PCRE2-FIDELITY.3.22: scoping notes — named-reference UNKNOWN-name family (Deferred, REGEX-0098)
 
 **PURE-DOCS scoping slice** (no code change; no release/contract/schema bump — stays `1.1.88`/`1.1.90`/`1`).

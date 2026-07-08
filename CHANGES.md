@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-REGEX-PCRE2-0021 (REGEX-PCRE2-FIDELITY.3.23): the PCRE2 `\Q` QUOTING model made first-class — closes empty-`\Q\E`-quantified accepts-invalid AND unterminated-`\Q…`-metachar rejects-valid (ledger REGEX-0099, regex release 1.1.89 / contract 1.1.91)
+
+Session #71. A RELEASED regex slice (release `1.1.88`→`1.1.89`, contract `1.1.90`→`1.1.91`, AST-dump schema
+stays `1`, ledger `REGEX-0099`). `\Q` was a bare shorthand escape (`simple_escape`, char `Q`); making it
+first-class quoting closes TWO sibling PCRE2 divergence classes with ONE root cause.
+
+- **Two classes, one root cause.** (a) EMPTY `\Q\E`-QUANTIFIED (accepts-invalid, the `.3.19`-deferred
+  target): `\Q\E*` `\Q\E+` `\Q\E?` `\Q\E{2}` `\Q\E{2,}` `\Q\E{2,3}` `\Q\E{,2}` `\Q\E\Q\E*` now REJECT (err
+  109 — an empty quote is zero-width, unrepeatable). (b) 🔎 NEW FINDING — UNTERMINATED `\Q…`-METACHAR-TAIL
+  (rejects-valid): `\Q)` `\Q(` `\Q[` `\Q(?:` `\Q**` `\Qa**` `\Qa)b` now ACCEPT (PCRE2 quotes an
+  unterminated `\Q…` to end-of-pattern as literal, so the tail is not live regex; before, `\Q^` mis-parsed
+  `^` as an anchor, `\Q|` as alternation, `\Q)` as an unbalanced group). The two are INSEPARABLE — removing
+  `Q` from `simple_escape` (needed so the empty-quantified fix isn't re-accepted via `\Q`-escape + `\E` +
+  absorption) forces the first-class unterminated model to avoid regressing `\Qabc`.
+- **🔎 Surfaced finding (director):** the `\Q`-as-`simple_escape` hack carried a whole REJECTS-VALID class,
+  not just the accepts-invalid empty-quantified blocker the leaf was scoped for — so the slice is a strictly
+  bigger fidelity win, and it was already sanctioned by the leaf's own candidate design.
+- **🔎 Second in-slice root-cause (tools-first, cert seed 42 spf=1):** the first encode made
+  `unterminated_quoted_literal` a quantifiable `atom`; the cert diverse pass then flagged a generator sample
+  the (correct) parser rejects — `\Q\E{0,0}` (via the `SAMPLE-PARSE FAILURES` dump). The lookahead-blind
+  generator used a bare `\Q` (unterminated atom) as the absorption branch's atom + a stray `\E` + quantifier;
+  the parser re-fuses `\Q\E` into `empty_quoted_literal` and orphans the quantifier (a generator↔parser
+  duality break; the `.3.13`/`.3.19` lookahead anti-pattern). FIX: make `unterminated_quoted_literal` a
+  NON-atom standalone `piece` — generation-faithful, no lookahead. spf=0 re-verified across 10 seeds.
+- **ENCODE (grammar tier, no engine; the validator already skips `\Q…` as quote-to-end):** `'Q'` dropped
+  from `simple_escape_letter_strict`; `quoted_literal` narrowed to nonempty terminated (`char*`→`char+`); NEW
+  `unterminated_quoted_literal` (quote-to-end, a non-atom `piece`); NEW `empty_quoted_literal` added to the
+  non-quantifiable `zero_width`. So `\Q\E*` rejects via the standalone `!quantifier` branch, `a\Q\E*` = `a*`
+  via ABSORPTION, and unterminated `\Q…` accepts as one literal run.
+- **AST.** Terminated `\Q…\E`, bare `\Q\E`, `\Qa\E*` byte-identical. Intended corrections: unterminated
+  `\Q…` → one `{type:"atom", kind:"quoted_literal", body}`; `a\Q\E*` = `a*`. No new AST vocab — schema `1`.
+- **VERIFIED.** Regex-CERTIFIED interpreter == `pcre2test` on all 85 oracle cells PRE-rebuild (0 divergences;
+  exactly 23 intended AST changes). Post-rebuild: regex cert `236/236/0 fully_certified spf=0` ×seeds 0/7/42
+  (234→236 net-new rules, all witnessed; spf=0 also across 10 seeds); lint 0 errors (236 rules);
+  `regex_pcre2_compile_oracle_gate` byte-identical baseline `2189/1858/285/46` (the `\Q`-model forms aren't
+  in the corpus — the `.3.19`/`.3.21` precedent); `parse_harness_equivalence_gate` ✅ regex differential-
+  CERTIFIED; `duality_hunt_gate` ✅ 9 lanes, NO new signature; `ast_shape_contract` regex ✅ inventory
+  214→217; new pin `regex_quoted_literal_model_pcre2_faithfully`; dual lib suite `893/0`; both book gates ✅.
+- **Lockstep.** Ledger `REGEX-0099` + embedding consts (1.1.89/1.1.91) + tracked contract JSON + contract MD
+  (Identity + 1.1.89/1.1.91 Highlights) + regex book (changelog + piece/atom/escape chapters + HTML) + top
+  book parser-families chain + ast_shape manifest 214→217 + the tree + `docs/TASK_TREE.md` + `MEMORY.md` +
+  `LIVE_ACHIEVEMENT_STATUS.md` + `DEVELOPMENT_NOTES.md`. Status rows UNCHANGED (`regex` stays `Done`).
+  Frontier → capstone `.4` → `.5`.
+
 ## 2026-07-08 - PGEN-REGEX-PCRE2-0020 (REGEX-PCRE2-FIDELITY.3.22): named-reference UNKNOWN-name family scoped + oracle-pinned (Deferred, ledger REGEX-0098); PURE-DOCS, no release
 
 Session #70. A **PURE-DOCS scoping slice** — no grammar/Rust/codegen/generated/manifest change, so no

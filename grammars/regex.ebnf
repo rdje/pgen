@@ -81,16 +81,20 @@ concatenation  = piece+
 # quantifiable `atom` (dropped from `simple_escape_letter_strict` — a
 # POSITIVE exclusion, generation-faithful, the `.3.13` idiom) into
 # `zero_width`, and `piece` gains (a) a STANDALONE branch
-# `zero_width !quantifier` (a stray `\E` never carries its own quantifier)
-# and (b) an ABSORPTION branch `atom zero_width+ quantifier` — the quantifier
-# reaches through ≥1 transparent stray `\E` to bind the atom, the `\E`s
-# ELIDED (PCRE2's delete-`\E` model); the `+` confines it to `<atom><\E>+<q>`
-# so plain `x*` is untouched. The absorption branch is LAST so the tie at
-# `\Q\E*` (empty quote + quantifier, 5 bytes both ways) resolves to the
-# earlier `atom quantifier?` — leaving empty-`\Q\E`-quantified BYTE-UNCHANGED
-# as a deferred divergence (spun out to `.3.23`: it entangles with the
-# pre-existing `\Q`-as-`simple_escape` / unterminated-`\Q...\E` quoting
-# model). The EMPTY `\Q\E` is NOT a `zero_width` this slice.
+# `zero_width !quantifier` (a stray `\E` / empty `\Q\E` never carries its own
+# quantifier) and (b) an ABSORPTION branch `atom zero_width+ quantifier` — the
+# quantifier reaches through ≥1 transparent `zero_width` to bind the atom, the
+# zero-widths ELIDED (PCRE2's delete-model); the `+` confines it to
+# `<atom><zero_width>+<q>` so plain `x*` is untouched.
+# REGEX-PCRE2-FIDELITY.3.23: empty `\Q\E` is now a `zero_width` member (see
+# that rule), so `\Q\E*` REJECTS via the STANDALONE branch's `!quantifier`
+# (err-109-faithful — the pre-`.3.23` deferred divergence) and `a\Q\E*` = `a*`
+# via ABSORPTION, exactly like the stray-`\E` cases. This is sound only because
+# `Q` left `simple_escape` this slice — otherwise `\Q\E*` would re-decompose as
+# `\Q`(escape atom) + `\E`(zero_width) + `*` and the absorption branch would
+# re-accept it. `unterminated_quoted_literal` (the quote-to-end atom) cannot
+# form that trap either: its `!"\\E"` refuses to match `\Q` when an `\E`
+# follows, so it never leaves a stray `\E` for absorption in `\Q\E*`.
 # REGEX-PCRE2-FIDELITY.3.20: only `(*ACCEPT)` may take a quantifier — every OTHER
 # `(*...)` directive (verbs, the `(*:x)` shorthand, MARK, LIMIT, start options)
 # rejects a following quantifier (PCRE2 err 109, oracle `pcre2test` 10.47:
@@ -104,6 +108,7 @@ concatenation  = piece+
 piece          = piece_quoted_run_quantified -> $1
                | anchor !quantifier -> {type: "piece", atom: $1, quantifier: []}
                | zero_width !quantifier -> {type: "piece", atom: $1, quantifier: []}
+               | unterminated_quoted_literal -> {type: "piece", atom: $1, quantifier: []}
                | directive_verb_nonquant !quantifier -> {type: "piece", atom: $1, quantifier: []}
                | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
                | atom zero_width+ quantifier
@@ -134,17 +139,25 @@ piece_quoted_run_quantified = "\\Q" quoted_run_inner_piece* quoted_literal_char 
 quoted_run_inner_piece = quoted_literal_char !"\\E"
 -> {type: "piece", atom: $1, quantifier: []}
 
-# REGEX-PCRE2-FIDELITY.3.19: the PCRE2 zero-width, transparent piece atom
+# REGEX-PCRE2-FIDELITY.3.19: the PCRE2 zero-width, transparent piece atoms
 # (consumed only by the `piece` STANDALONE / ABSORPTION branches, not by the
 # quantifiable `atom`). `stray_end_quote_escape` preserves the exact
 # pre-`.3.19` AST byte-shape a stray `\E` had as the `simple_escape`
 # shorthand (dropped from `simple_escape_letter_strict` this slice so a bare
-# quantifier can no longer bind directly to it). Empty `\Q\E` is NOT a member
-# this slice — making it non-quantifiable requires splitting `quoted_literal`,
-# which unmasks the `\Q`-as-`simple_escape` decomposition of `\Q\E<q>` and
-# entangles with unterminated-`\Q...\E` quoting (spun out to `.3.23`).
-zero_width     = stray_end_quote_escape
+# quantifier can no longer bind directly to it).
+# REGEX-PCRE2-FIDELITY.3.23: empty `\Q\E` JOINS this family. An empty quote is
+# PCRE2 zero-width and — exactly like a stray `\E` — transparent: a quantifier
+# on it is err 109 (`\Q\E*` `\Q\E{2}` REJECT), but a quantifier binds THROUGH
+# it to a preceding repeatable atom (`a\Q\E*` = `a*`, the `.3.19` ABSORPTION
+# branch). Splitting empty `\Q\E` off `quoted_literal` (now `char+`) into this
+# non-quantifiable `zero_width` is only sound BECAUSE `Q` left `simple_escape`
+# this slice — otherwise the tournament would re-accept `\Q\E*` as
+# `\Q`(escape) + `\E`(transparent) + `*` (the pre-`.3.23` blocker). The
+# `empty_quoted_literal` emit preserves the exact `{atom, quoted_literal,
+# body:[]}` byte-shape a bare `\Q\E` had as a quantifiable atom.
+zero_width     = stray_end_quote_escape | empty_quoted_literal
 stray_end_quote_escape = "\\E"        -> {type: "escape", kind: "shorthand", char: "E"}
+empty_quoted_literal = "\\Q" "\\E"    -> {type: "atom", kind: "quoted_literal", body: []}
 
 # Quantifiers (with lazy and possessive variants).
 #
@@ -315,13 +328,45 @@ literal_open_brace = !( "{" brace_ws? ( digit+ brace_ws? ( "," brace_ws? ( digit
 whitespace_literal = whitespace
 # `quoted_literal` annotated to surface the typed
 # `{type:"atom", kind:"quoted_literal", body:<chars>}` shape.
-# `body` is the array of `quoted_literal_char*` matched chars
+# `body` is the array of `quoted_literal_char+` matched chars
 # (each `quoted_literal_char` is a single-char string —
 # `quoted_literal_escaped_char` produces 2 chars, the `\` and
 # the tail). Consumers join the array to recover the string
 # literal; the array form preserves which chars were escaped vs
 # raw (consumers with semantic needs can distinguish).
-quoted_literal = "\\Q" quoted_literal_char* "\\E"      -> {type: "atom", kind: "quoted_literal", body: $2}
+#
+# REGEX-PCRE2-FIDELITY.3.23: the three PCRE2 `\Q` quoting shapes are now
+# first-class (the `\Q`-as-`simple_escape` hack is gone — `Q` dropped from
+# `simple_escape_letter_strict`):
+#   - TERMINATED non-empty `\Q…\E` → this `quoted_literal` (quantifiable
+#     `atom`, `char+`); the trailing quantifier binds the LAST char via
+#     `piece_quoted_run_quantified` (unchanged).
+#   - UNTERMINATED `\Q…` (no closing `\E`) → `unterminated_quoted_literal`, a
+#     STANDALONE non-quantifiable `piece` (NOT an `atom`): PCRE2 quotes
+#     everything from `\Q` to END-OF-PATTERN as literal, so the tail (incl.
+#     structural metachars `( ) [ | ^ $ * …`) is one greedy literal run. A run
+#     that stops at an `\E` is shorter than the TERMINATED form, so longest-
+#     match hands `\Q…\E` to `quoted_literal` / `empty_quoted_literal`; a run
+#     to true end-of-input is the unterminated form. It is a PIECE (not an
+#     `atom`) SO THAT the `piece` ABSORPTION branch cannot pick a bare `\Q` as
+#     its atom — otherwise the generator (lookahead-blind) would emit
+#     `\Q`(atom) + `\E`(zero_width) + quantifier and the parser would re-fuse
+#     `\Q\E` into `empty_quoted_literal`, orphaning the quantifier (a
+#     generator↔parser duality break; the `.3.13`/`.3.19` lookahead anti-
+#     pattern). As a non-atom greedy-to-end piece it takes no quantifier and is
+#     never an absorption atom, so no lookahead guard is needed — the model is
+#     generation-faithful by construction.
+#   - EMPTY `\Q\E` → the non-quantifiable `zero_width = empty_quoted_literal`
+#     (a quantifier on an empty quote is PCRE2 err 109 — see `zero_width`).
+# Together these close the pre-`.3.23` divergences: unterminated `\Q)` / `\Q(`
+# / `\Q[` / `\Q^` / `\Q|` REJECTED-VALID (metachar tail mis-parsed as regex)
+# and `\Q\E*` / `\Q\E{2}` ACCEPTED-INVALID (empty-quote quantified).
+quoted_literal = "\\Q" quoted_literal_char+ "\\E"      -> {type: "atom", kind: "quoted_literal", body: $2}
+# UNTERMINATED `\Q…` quote-to-end (consumed only by the `piece` STANDALONE
+# branch below — never a quantifiable `atom`). Emits the SAME `{atom,
+# quoted_literal, body}` carrier so consumers see a uniform quoted-literal
+# shape; the empty tail (`char*` = 0) is bare `\Q` at end-of-pattern.
+unterminated_quoted_literal = "\\Q" quoted_literal_char*   -> {type: "atom", kind: "quoted_literal", body: $2}
 quoted_literal_char = quoted_literal_escaped_char | letter | digit | whitespace | class_safe_special | ']' | unicode_char
 quoted_literal_escaped_char = "\\" quoted_literal_escape_tail
 quoted_literal_escape_tail = letter_no_upper_e | digit | whitespace | class_safe_special | ']' | unicode_char
@@ -873,13 +918,20 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail -> {type: "escape", kind: "shorthand", char: $5}
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
 simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
-# 38 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
-# PCRE2-unsupported fidelity letters (`F L U i l u`) minus `E`
+# 37 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
+# PCRE2-unsupported fidelity letters (`F L U i l u`) minus `E` and `Q`
 # (REGEX-PCRE2-FIDELITY.3.19: a stray `\E` is PCRE2 zero-width, re-homed to
 # `stray_end_quote_escape` / `zero_width` so a bare quantifier cannot bind to
-# it; the LOWERCASE `\e` = ESC stays a shorthand). Uppercase-anchor letters
-# and `E` are the piece-level zero-width forms owned outside `simple_escape`.
-simple_escape_letter_strict = 'C' | 'D' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
+# it; the LOWERCASE `\e` = ESC stays a shorthand.
+# REGEX-PCRE2-FIDELITY.3.23: uppercase `\Q` is a QUOTE-OPENER, never a bare
+# shorthand — PCRE2 quotes `\Q…\E` (or `\Q…` to end-of-pattern) as literal;
+# `Q` is dropped here so the `\Q`-as-`simple_escape` hack that mis-parsed an
+# unterminated `\Q…` metachar tail as live regex — and re-accepted the
+# empty-`\Q\E`-quantified forms — is gone. First-class quoting is owned by
+# `quoted_literal` / `unterminated_quoted_literal` / `empty_quoted_literal`;
+# the LOWERCASE `\q` stays a shorthand). Uppercase-anchor letters, `E`, and
+# `Q` are the piece-level zero-width / quoting forms owned outside `simple_escape`.
+simple_escape_letter_strict = 'C' | 'D' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'P' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
                             | 'a' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'j' | 'k' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'v' | 'w' | 'x' | 'y'
 @profiles: ["relaxed"]
 simple_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'

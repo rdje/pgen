@@ -252,53 +252,53 @@ fn classify_backreference(atom: &Value) -> Option<Backreference> {
 ## `quoted_literal`
 
 ```ebnf
-quoted_literal = "\\Q" quoted_literal_char* "\\E"
+quoted_literal = "\\Q" quoted_literal_char+ "\\E"  -> {type: "atom", kind: "quoted_literal", body: $2}
 ```
 
-The full PCRE2 `\Q...\E` quoted-literal block as an atom. **Un-annotated**.
+A NON-empty TERMINATED PCRE2 `\Q...\E` quoted-literal block, as an atom (`char+` since release `1.1.89`, `REGEX-PCRE2-FIDELITY.3.23` — the empty case `\Q\E` moved to `zero_width`). Everything between `\Q` and `\E` is literal, including structural metacharacters (`\Q(?:\E`, `\Q**\E`, `\Q)\E` all accept). `body` is the array of matched chars (each `quoted_literal_char` is a single-char string; an escaped char like `\d` is the 2-element `["\\","d"]`).
 
-### Shape
+### Shape — annotated
 
-3-element Sequence: `["\\Q", <Quantified of chars>, "\\E"]`.
+```json
+{ "type": "atom", "kind": "quoted_literal", "body": [<chars>] }
+```
 
-### When this fires vs `piece_quoted_run_quantified`
+### When this fires vs the sibling `\Q` rules
 
-- `piece_quoted_run_quantified` fires when `\Q...\E` is followed by a quantifier AND has at least 2 chars in the run.
-- `quoted_literal` fires when `\Q...\E` is NOT followed by a quantifier, OR has 0 or 1 chars.
+- `piece_quoted_run_quantified` (see [piece](rules-piece.md)) fires when a TERMINATED `\Q...\E` (≥1 char) is followed by a quantifier — the quantifier binds the LAST char (`\Qab\E*` = `a`, `b*`).
+- `quoted_literal` fires for a non-empty terminated `\Q...\E` NOT followed by a quantifier.
+- `empty_quoted_literal` (the `zero_width` in [piece](rules-piece.md#zero_width--the-transparent-stray-e-and-empty-qe)) handles `\Q\E`: bare `\Q\E` accepts (unchanged shape), `\Q\E*` REJECTS (err 109 — an empty quote is unrepeatable).
+- `unterminated_quoted_literal` (below) handles a `\Q…` with no `\E`.
 
-For `\Qab\E` (no trailing quantifier, 2 chars):
+For `\Qab\E` (terminated, no trailing quantifier):
 
 ```json
 {
-  "atom": ["\\Q", ["a", "b"], "\\E"],
+  "atom": { "type": "atom", "kind": "quoted_literal", "body": ["a", "b"] },
   "quantifier": [],
   "type": "piece"
 }
 ```
 
-For `\Qa\E{3}` (single-char run with quantifier — degenerate; falls through to atom path):
+## `unterminated_quoted_literal`
+
+```ebnf
+unterminated_quoted_literal = "\\Q" quoted_literal_char*  -> {type: "atom", kind: "quoted_literal", body: $2}
+```
+
+Release `1.1.89` (`REGEX-PCRE2-FIDELITY.3.23`). A `\Q…` with NO closing `\E` quotes everything to END-OF-PATTERN as literal — so `\Q)`, `\Q(`, `\Q[`, `\Q^`, `\Q(?:`, `\Q**` are ACCEPTED as one literal run (before `1.1.89` these REJECTED, because `\Q` was mis-parsed as a shorthand escape and the tail as live regex). The empty tail (`char*` = 0) is bare `\Q` at end-of-pattern.
+
+It is consumed ONLY by the standalone [piece](rules-piece.md#piece) branch `unterminated_quoted_literal -> {type:"piece", atom:$1, quantifier:[]}` — never as a quantifiable `atom`. That is deliberate: a non-atom greedy-to-end piece can never be the ABSORPTION branch's atom, which keeps the stimuli generator from emitting `\Q\E<quantifier>` (a duality break). Its `body` uses the same `{type:"atom", kind:"quoted_literal", body}` carrier as `quoted_literal`.
+
+For `\Q)` (unterminated, `)` literal):
 
 ```json
 {
-  "atom": ["\\Q", ["a"], "\\E"],
-  "quantifier": [<{3}>],
+  "atom": { "type": "atom", "kind": "quoted_literal", "body": [")"] },
+  "quantifier": [],
   "type": "piece"
 }
 ```
-
-For `\Q\E{2}` (empty run with quantifier — also degenerate; atom path):
-
-```json
-{
-  "atom": ["\\Q", [], "\\E"],
-  "quantifier": [<{2}>],
-  "type": "piece"
-}
-```
-
-These degenerate cases produce ONE piece (the whole `\Q...\E` as atom + the trailing quantifier) which is semantically correct because there's no quantifier-attachment ambiguity.
-
-The non-degenerate case (multi-char run + quantifier, e.g. `\Qab*\E{2,}`) goes through `piece_quoted_run_quantified` instead and produces the multi-piece array — see [piece](rules-piece.md).
 
 ## `escape`
 
