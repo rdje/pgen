@@ -523,6 +523,7 @@ help:
 	@echo "  sv_parse_full_ratio_promotion_gate - Run strict parse-full ratio promotion trials and emit threshold-ratchet readiness report"
 	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
 	@echo "  stimuli_cross_family_platform_gate - Validate bounded shared stimuli-platform replay across regex, VHDL, and SystemVerilog"
+	@echo "  duality_hunt_gate - Enforce the pinned plain-config duality-break signature sets (regex + svpp, canonical + scaled lanes)"
 	@echo "  vhdl_strict_promotion_gate - Run deterministic VHDL strict-promotion trials and emit required-mode readiness report"
 	@echo "  sv_syntax_closure_gate - Enforce deterministic SystemVerilog syntax-closure burn-down no-regression contract"
 	@echo "  sv_preprocessor_syntax_closure_gate - Enforce deterministic SystemVerilog preprocessor syntax-closure burn-down no-regression contract"
@@ -1444,6 +1445,12 @@ stimuli_cross_family_platform_gate:
 	@echo "🧪 Running stimuli cross-family platform gate..."
 	cd $(RUST_DIR) && ./scripts/stimuli_cross_family_platform_gate.sh
 	@echo "✅ Stimuli cross-family platform gate passed."
+
+.PHONY: duality_hunt_gate
+duality_hunt_gate:
+	@echo "🎯 Running plain-config duality-hunt gate (STIMULI-SIGNOFF.13.3)..."
+	cd $(RUST_DIR) && ./scripts/duality_hunt_gate.sh
+	@echo "✅ Duality-hunt gate passed."
 
 .PHONY: annotation_nonbootstrap_e2e_gate
 annotation_nonbootstrap_e2e_gate:

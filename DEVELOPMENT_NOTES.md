@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0018 — STIMULI-SIGNOFF.13.3: implementation notes — the duality-hunt gate lane
+
+Session #66. Notes from landing the gate + the scaled enumeration:
+
+1. **Pin CLASSES, not occurrences.** The contract pins per-(grammar, seed, budget) signature SETS
+   only — occurrences and reproducers vary with any distribution shift and would make every
+   benign generator change a false alarm. Exact reproducibility is owned separately by the
+   determinism tripwire (first lane run twice, JSON byte-compared), so the two concerns never
+   blur: the tripwire catches nondeterminism, the pins catch class drift.
+2. **The hunter's diverse baseline is a COUNT, not an enumeration.** `duality_rejection_baseline`
+   scores the plain diverse pass with the same oracle but reports only the rejected count — at
+   the 2000-sample budget the diverse lane rejected MORE than the directed lane enumerated
+   (7/7/6 vs 2/1/2). The honest enumeration therefore replayed the plain corpora
+   (`--stimuli-corpus-json` → per-sample release-probe) and confirmed all 20 rejections collapse
+   into the two already-pinned classes. Worth remembering for any future "did the hunter see
+   everything?" question: the replay is the completeness check the hunter itself cannot give.
+3. **Signature normalization must also strip file paths.** The probe's error line embeds the
+   input path; digit-normalization alone left 20 "unique" signatures that were really 2. The
+   hunter's own signatures are path-free (it parses in-process), so the gate compares only
+   hunter-side signatures — but any future replay-side tooling must path-normalize first.
+4. **Both drift directions are failures.** A gate that only fails on NOVEL signatures would let
+   closure progress silently rot the contract (a closed class's pin would stay forever); failing
+   on VANISHED pins forces the closing slice to record its own progress. This mirrors how cert
+   re-baselining is leaf-owned.
+
 ## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0017 — STIMULI-SIGNOFF.13.4 + REGEX-PCRE2-FIDELITY.3.17: implementation notes — the generation-side store gates
 
 Session #65. Notes from landing `@gen_emit_fact`/`@gen_predicate` + the scs application:

@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0018 (STIMULI-SIGNOFF.13.3): the DUALITY-HUNT GATE lane + scaled-run residual enumeration — the `.13` node COMPLETE; gate tooling only, zero parser/generator change
+
+Session #66. The `.13.1` §6 adjudication's mandated lane, mechanized. No rust/src, grammars/, or
+generated/ change — a tool-build slice (gate script + tracked contract + make target + docs).
+
+- **The gate:** `make -C rust SHELL=/bin/bash duality_hunt_gate` — runs the `.4.4` duality-break
+  hunter over 9 lanes pinned in the NEW tracked contract
+  `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json` (regex + svpp at the
+  canonical 20×5=100 budget, seeds 0/7/42; regex at the scaled 200×10=2000 budget, seeds 0/7/42)
+  and asserts the observed break-signature set equals the pinned set per lane. BOTH drift
+  directions fail with actionable messages: a NOVEL signature = a new break class → route it to a
+  task-tree leaf (be-alert doctrine); a VANISHED pinned signature = stale contract → the closing
+  slice re-baselines it same-commit (closure progress recorded in the pins, the cert-baseline
+  discipline). Determinism tripwire: the first lane runs twice, JSON reports byte-compared.
+  Testability: `PGEN_DUALITY_HUNT_CONTRACT`/`PGEN_DUALITY_HUNT_STATE_DIR` env overrides.
+- **The enumeration (22,000 samples at HEAD `123fb292`):** DIRECTED 16,000 (8 seeds
+  0/7/42/1/2/3/13/99 × 2000) → exactly TWO residual classes: "only ACCEPT verb may be
+  quantified…" (`(*FAIL)+`/`(*:_)*`/`(*COMMIT)*` — owner `REGEX-PCRE2-FIDELITY.3.20`) and
+  "PCRE# start option must appear at the start-option prefix" (`E(*UTF16)`/`E(*CASELESS_RESTRICT)`
+  — owner capstone `REGEX-PCRE2-FIDELITY.4` per the `.3.14` ratified honest bound). DIVERSE
+  cross-check (the hunter counts but never enumerates its diverse baseline): 3×2000 plain
+  corpora replayed per-sample through the release probe → 20 rejections (7/7/6), ALL collapsing
+  to the SAME two signatures — NO unknown class; the `.3.18` counted-quantifier latent class did
+  not surface even at scale. Both owners now carry the same-commit contract-re-baseline
+  obligation in their leaves.
+- **Verified:** gate GREEN ×2 back-to-back (tripwire byte-identical both runs); NEGATIVE
+  self-test on a perturbed contract copy → rc=1 with both messages (novel-detection +
+  vanished-detection). `mdbook_docs_gate` ✅; `scripts/check_doctrines.sh` ✅.
+- **Lockstep:** README Standard Commands entry; top-book `stimuli-and-quality.md` "The
+  duality-hunt gate" subsection + residual-universe truth; `.3.20`/`.4` re-baseline notes +
+  frontier note in `REGEX-PCRE2-FIDELITY.md`; trees + `docs/TASK_TREE.md`; MEMORY.md frontier →
+  `REGEX-PCRE2-FIDELITY.3.18`–`.3.22`.
+
 ## 2026-07-08 - PGEN-STIMULI-SIGNOFF-0017 (STIMULI-SIGNOFF.13.4 + REGEX-PCRE2-FIDELITY.3.17): GENERATION-SIDE store gates (`@gen_emit_fact`/`@gen_predicate` + value draws) close the scs capture-list duality class — the last hunter-visible regex break, NO version bump
 
 Session #65. General parser-agnostic capability + its regex application; conformance- &

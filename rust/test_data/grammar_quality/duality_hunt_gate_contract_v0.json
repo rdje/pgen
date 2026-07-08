@@ -1,0 +1,123 @@
+{
+  "pgen_duality_hunt_gate_contract_version": 1,
+  "owning_leaf": "STIMULI-SIGNOFF.13.3",
+  "description": "Pinned per-(grammar, seed) duality-break signature sets for the plain-config duality-hunt gate. This lane is the HONEST plain-configuration duality coverage mandated by the STIMULI-SIGNOFF.13.1 design §6 cert-spf adjudication: the certificate-coverage sample_parse_failures=0 claim is config-scoped (its steered, budgeted pass avoids rare forms), so this gate re-earns the duality picture under the hunter's plain configuration. Class identity is the hunter's digit-normalized rejection signature; occurrences and reproducers are deliberately NOT pinned (class-level granularity). A signature observed but not pinned = a NOVEL break class: the gate fails and the class must be routed to a task-tree leaf (the be-alert doctrine). A pinned signature no longer observed = a STALE contract: the closing slice re-baselines this file same-commit, recording closure progress (the cert-baseline discipline).",
+  "honest_bounds": "The gate sees only generator-emitted-but-parser-REJECTED samples (duality breaks). Accepts-invalid divergences where generator AND parser agree (the REGEX-PCRE2-FIDELITY .3.19/.3.22 classes) are invisible to it by construction — only oracle-differential coverage can see those. Pinned sets are budget- and distribution-scoped: a legitimate grammar/generator change re-baselines them same-slice.",
+  "lanes": [
+    {
+      "lane_id": "regex_canonical_seed0",
+      "grammar": "regex",
+      "grammar_file": "grammars/regex.ebnf",
+      "rounds": 20,
+      "samples_per_round": 5,
+      "seed": 0,
+      "expected_signatures": [
+        {
+          "signature": "PCRE# start option must appear at the start-option prefix",
+          "owner": "REGEX-PCRE2-FIDELITY.4",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
+          "example_reproducer": "E(*UTF16)"
+        }
+      ]
+    },
+    {
+      "lane_id": "regex_canonical_seed7",
+      "grammar": "regex",
+      "grammar_file": "grammars/regex.ebnf",
+      "rounds": 20,
+      "samples_per_round": 5,
+      "seed": 7,
+      "expected_signatures": []
+    },
+    {
+      "lane_id": "regex_canonical_seed42",
+      "grammar": "regex",
+      "grammar_file": "grammars/regex.ebnf",
+      "rounds": 20,
+      "samples_per_round": 5,
+      "seed": 42,
+      "expected_signatures": []
+    },
+    {
+      "lane_id": "svpp_canonical_seed0",
+      "grammar": "systemverilog_preprocessor",
+      "grammar_file": "grammars/systemverilog_preprocessor.ebnf",
+      "rounds": 20,
+      "samples_per_round": 5,
+      "seed": 0,
+      "expected_signatures": []
+    },
+    {
+      "lane_id": "svpp_canonical_seed7",
+      "grammar": "systemverilog_preprocessor",
+      "grammar_file": "grammars/systemverilog_preprocessor.ebnf",
+      "rounds": 20,
+      "samples_per_round": 5,
+      "seed": 7,
+      "expected_signatures": []
+    },
+    {
+      "lane_id": "svpp_canonical_seed42",
+      "grammar": "systemverilog_preprocessor",
+      "grammar_file": "grammars/systemverilog_preprocessor.ebnf",
+      "rounds": 20,
+      "samples_per_round": 5,
+      "seed": 42,
+      "expected_signatures": []
+    },
+    {
+      "lane_id": "regex_scaled_seed0",
+      "grammar": "regex",
+      "grammar_file": "grammars/regex.ebnf",
+      "rounds": 200,
+      "samples_per_round": 10,
+      "seed": 0,
+      "expected_signatures": [
+        {
+          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
+          "owner": "REGEX-PCRE2-FIDELITY.3.20",
+          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
+          "example_reproducer": "(*FAIL)+"
+        },
+        {
+          "signature": "PCRE# start option must appear at the start-option prefix",
+          "owner": "REGEX-PCRE2-FIDELITY.4",
+          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
+          "example_reproducer": "E(*CASELESS_RESTRICT)"
+        }
+      ]
+    },
+    {
+      "lane_id": "regex_scaled_seed7",
+      "grammar": "regex",
+      "grammar_file": "grammars/regex.ebnf",
+      "rounds": 200,
+      "samples_per_round": 10,
+      "seed": 7,
+      "expected_signatures": [
+        {
+          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
+          "owner": "REGEX-PCRE2-FIDELITY.3.20",
+          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
+          "example_reproducer": "(*:_)*"
+        }
+      ]
+    },
+    {
+      "lane_id": "regex_scaled_seed42",
+      "grammar": "regex",
+      "grammar_file": "grammars/regex.ebnf",
+      "rounds": 200,
+      "samples_per_round": 10,
+      "seed": 42,
+      "expected_signatures": [
+        {
+          "signature": "only ACCEPT verb may be quantified by the regex compile contract",
+          "owner": "REGEX-PCRE2-FIDELITY.3.20",
+          "owner_note": "quantified-verb encoding (pending; needs its relaxed-semantics decision)",
+          "example_reproducer": "(*FAIL)+"
+        }
+      ]
+    }
+  ]
+}

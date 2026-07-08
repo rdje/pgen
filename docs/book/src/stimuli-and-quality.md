@@ -982,9 +982,45 @@ ungeneratable. The hunter re-run at seeds 0/7/42 shows the scs signature GONE (d
 rejections 2/0/0 breaks → the sole residual is the start-option-position class below), the
 parse surface is byte-identical (21/21 AST byte-compares), and regex certificate coverage
 holds at `224/224` `UNKNOWN=0` across seeds 0/7/42. The remaining classes are owned by
-further `REGEX-PCRE2-FIDELITY.3.x` leaves — the sole hunter-visible residual is now the
-START-OPTION POSITION class (`E(*UTF16)`, observed at seed 0 during the `.3.17` re-run;
-previously latent), owned by the `.13.3` enumeration lane.
+further `REGEX-PCRE2-FIDELITY.3.x` leaves — the hunter-visible residuals are now exactly
+two classes, both pinned with named owners in the duality-hunt gate below (the `.13.3`
+enumeration outcome): the START-OPTION POSITION class (`E(*UTF16)`, first observed at
+seed 0 during the `.3.17` re-run) and the QUANTIFIED-VERB class (`(*FAIL)+`,
+`REGEX-PCRE2-FIDELITY.3.20`).
+
+### The duality-hunt gate — the honest plain-config coverage, pinned
+
+The hunter lane is a repo-standard deterministic gate:
+
+```bash
+make -C rust SHELL=/bin/bash duality_hunt_gate
+```
+
+It runs every lane pinned in the tracked contract
+(`rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json`) — regex and the
+SystemVerilog preprocessor at the canonical 100-sample discovery budget (seeds 0/7/42),
+plus regex at a 2000-sample scaled budget (seeds 0/7/42) — and asserts the observed
+break-signature set equals the pinned set per lane, with a determinism tripwire (the
+first lane runs twice; the two JSON reports must be byte-identical). A **novel**
+signature fails the gate: a new break class must be routed to a task-tree leaf, never
+shrugged off. A **vanished** pinned signature also fails it: the contract is stale, and
+the slice that closed the class re-baselines the contract same-commit — so closure
+progress is recorded in the pinned sets, exactly like the cert baselines. This is the
+honest plain-configuration duality coverage the cert-spf adjudication mandated:
+certificate coverage's `sample_parse_failures=0` claim is config-scoped, and this gate is
+what re-earns the duality picture outside that config.
+
+**The enumerated residual universe.** A scaled enumeration (16,000 directed samples
+across 8 seeds, plus a 6,000-sample plain diverse corpus replayed sample-by-sample
+through the real released parser) found exactly **two** residual classes and nothing
+else: the quantified-verb class (`(*FAIL)+` / `(*:_)*` / `(*COMMIT)*` — only `(*ACCEPT)`
+may be quantified; owned by `REGEX-PCRE2-FIDELITY.3.20`) and the start-option-position
+class (`E(*UTF16)` / `E(*CASELESS_RESTRICT)` — a start option not at the pattern prefix;
+validator-owned until the capstone finds a grammar shape). The counted-quantifier latent
+class (`a{5,2}`) did not surface even at this budget. Honest bound: the gate sees only
+generator-emitted-but-parser-**rejected** samples — accepts-invalid divergences where
+generator and parser agree (the oracle-differential `.3.19`/`.3.22` classes) are
+invisible to it by construction.
 
 Honest bounds: the goal vocabulary is `k_path`, `corpus_mimicry`, and `duality_break` today
 (parser code-coverage feedback remains designed-only, tracked in the `STIMULI-SIGNOFF` tree,

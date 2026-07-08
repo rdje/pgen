@@ -470,7 +470,11 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   quantified UNKNOWN-name verbs (`(*foo)+`) are relaxed-ACCEPTED today and a piece-level `!quantifier` on
   the relaxed catch-all would newly reject them (a relaxed-surface behavior change to adjudicate) plus the
   lookahead-blind generation interplay. The validator's quantified-verb branches (both the empty-name and
-  named arms of `find_invalid_verb_construct`) stay until this leaf or capstone `.4`.
+  named arms of `find_invalid_verb_construct`) stay until this leaf or capstone `.4`. GATE-PINNED
+  (`STIMULI-SIGNOFF.13.3`, 2026-07-08): this class's signature (`only ACCEPT verb may be quantified…`) is
+  pinned with THIS leaf as owner in `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json`
+  (regex scaled lanes, all 3 seeds) — the closing slice MUST re-baseline that contract same-commit
+  (the vanished-signature discipline; `make -C rust duality_hunt_gate` fails until it does).
 - ID: `.3.21`  Status: `pending` (LATENT accepts-invalid divergence, oracle-verified 2026-07-08 during
   `.3.14`; UNBLOCKED like `.3.16` on 2026-07-08 — `STIMULI-SIGNOFF.13.2` landed the interpreter
   value-constraint mirror)  Goal: LIMIT `=value` RANGE — PGEN accepts `(*LIMIT_HEAP=99999999999999999999)` (the `.3.14`
@@ -481,7 +485,12 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   the interpreter mirror or they open a latent differential-equivalence divergence.
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
-  EBNF is the sole source of truth.
+  EBNF is the sole source of truth. GATE-PINNED residual it owns (`STIMULI-SIGNOFF.13.3`, 2026-07-08):
+  the start-option POSITION class (`PCRE# start option must appear at the start-option prefix`,
+  reproducers `E(*UTF16)`/`E(*CASELESS_RESTRICT)`) is pinned with THIS capstone as owner in
+  `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json` (regex canonical seed 0 + scaled
+  seed 0) per the `.3.14` ratified honest bound (contextual — needs a grammar shape); the slice that
+  encodes it MUST re-baseline that contract same-commit (`make -C rust duality_hunt_gate` fails until it does).
 - ID: `.5`  Status: `pending`  Goal: verification — full `regex_pcre2_compile_oracle_gate` parity
   (default), relaxed-mode test suite, cert-coverage at floor, RGX conformance ratchet, lockstep.
 
@@ -616,6 +625,15 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-08, session #66)** `STIMULI-SIGNOFF.13.3` LANDED (`PGEN-STIMULI-SIGNOFF-0018`) — the
+  duality-hunt gate lane + scaled enumeration that CLOSES the `STIMULI-SIGNOFF.13` node. Regex
+  consequence: the hunter-visible residual universe is now PINNED in
+  `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json` — exactly 2 classes, both owned
+  here (quantified-verb → `.3.20`; start-option-position → capstone `.4`); a 22,000-sample enumeration
+  (16k directed 8 seeds + 6k diverse replay) found NO third class, and `.3.18`'s counted-quantifier
+  class stayed latent even at scale (its leaf note stands: the generator CAN emit `a{5,2}`, just rarely).
+  The `.3.20`/`.4` closing slices must re-baseline the gate contract same-commit (notes added to both
+  leaves). Frontier per the standing PNT order → `.3.18`–`.3.22` below.
 - **(2026-07-08, session #65)** `.3.13`/`.3.14`/`.3.15`/`.3.16`/**`.3.17`** are DONE (see the leaves +
   enforced checklists above — the live frontier is tracked in `MEMORY.md` + `docs/TASK_TREE.md`). `.3.17`
   closed the LAST hunter-visible scs class via the `STIMULI-SIGNOFF.13.4` generation-side store gates;

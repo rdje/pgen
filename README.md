@@ -165,6 +165,10 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
   - focused workflow-parity replay example:
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Plain-config duality-hunt gate:
+  - `make -C rust SHELL=/bin/bash duality_hunt_gate`
+  - asserts the pinned per-(grammar, seed) duality-break signature sets (regex + systemverilog_preprocessor, canonical 100-sample + scaled 2000-sample budgets, seeds 0/7/42) from `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json`, with a byte-identical determinism tripwire
+  - a NOVEL signature = a new break class to route to a task-tree leaf; a VANISHED pinned signature = re-baseline the contract same-commit with the change that closed it
 - Cross-family stimuli platform gate:
   - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
   - bounded shared replay over:
