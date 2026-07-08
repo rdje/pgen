@@ -22,9 +22,15 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     // these six in the default (pcre2) profile; the `relaxed` profile re-admits them. The EBNF is now
     // the single source of truth for this rule ([[project_ebnf_is_single_source_of_truth]]), so the
     // out-of-band validator no longer owns it.
-    if let Some(error) = find_invalid_property_escape(input) {
-        return Err(error);
-    }
+    //
+    // REGEX-PCRE2-FIDELITY.4.1: the bare Unicode-property-escape check
+    // (`find_invalid_property_escape`) has likewise been MIGRATED INTO
+    // `grammars/regex.ebnf` — `\p` / `\P` are now whole-letter lookaheads on
+    // `simple_escape` / `class_simple_escape_{strict,relaxed}` (and dropped from
+    // the `simple_escape_letter_strict` positive set), so a bare property escape
+    // that is not a valid one-letter category or `{name}` form (`\pA`, `\P_`,
+    // `\p`@EOF, `[\pA]`) hard-REJECTs at the grammar layer. The EBNF is the single
+    // source of truth; the out-of-band validator no longer owns it.
     if let Some(error) = find_invalid_named_escape_or_group_name(input) {
         return Err(error);
     }
@@ -124,56 +130,11 @@ fn skip_quoted_literal_escape(bytes: &[u8], start: usize) -> usize {
     bytes.len()
 }
 
-fn find_invalid_property_escape(input: &str) -> Option<RegexCompileValidationError> {
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-
-    while index < bytes.len() {
-        if bytes[index] != b'\\' {
-            index += 1;
-            continue;
-        }
-
-        match bytes.get(index + 1).copied() {
-            Some(b'Q') => {
-                index = skip_quoted_literal_escape(bytes, index);
-            }
-            Some(prefix @ (b'p' | b'P')) => {
-                let property_start = index + 2;
-                let Some(first) = bytes.get(property_start).copied() else {
-                    return Some(RegexCompileValidationError::new(
-                        index,
-                        "malformed Unicode property escape",
-                    ));
-                };
-
-                if first == b'{' {
-                    index = skip_regex_escape(bytes, index);
-                    continue;
-                }
-
-                if is_short_unicode_property_letter(first) {
-                    index = property_start + 1;
-                    continue;
-                }
-
-                let escape = if prefix == b'p' { "\\p" } else { "\\P" };
-                return Some(RegexCompileValidationError::new(
-                    index,
-                    format!(
-                        "{escape} without braces must use a one-letter Unicode general category"
-                    ),
-                ));
-            }
-            _ => {
-                index = skip_regex_escape(bytes, index);
-            }
-        }
-    }
-
-    None
-}
-
+// REGEX-PCRE2-FIDELITY.4.1: `find_invalid_property_escape` was removed — the bare
+// `\p` / `\P` property-escape acceptance rule is now grammar-owned (see the migration
+// note on `validate_regex_compile_contract`). `is_short_unicode_property_letter` is
+// retained: `skip_regex_escape` still uses it to advance past a valid `\pL` when the
+// OTHER checks below scan the pattern.
 fn find_invalid_named_escape_or_group_name(input: &str) -> Option<RegexCompileValidationError> {
     let bytes = input.as_bytes();
     let mut index = 0usize;
@@ -1549,25 +1510,15 @@ mod tests {
     // (`regex_pcre2_compile_oracle_gate`) — the EBNF is the single source of truth
     // ([[project_ebnf_is_single_source_of_truth]]).
 
-    #[test]
-    fn allows_short_unicode_property_escapes() {
-        for input in [r"\pL", r"\PN", r"[\pL\PN]", r"\pl", r"\Pn"] {
-            validate_regex_compile_contract(input)
-                .expect("PCRE2 accepts short-form one-letter Unicode property escapes");
-        }
-    }
-
-    #[test]
-    fn rejects_invalid_short_unicode_property_escapes() {
-        for input in [r"\pA", r"\P_", r"\p"] {
-            let error = validate_regex_compile_contract(input)
-                .expect_err("must reject malformed short Unicode property escape");
-            assert!(
-                error.message.contains("Unicode property")
-                    || error.message.contains("Unicode general category")
-            );
-        }
-    }
+    // REGEX-PCRE2-FIDELITY.4.1: the bare Unicode-property-escape acceptance rule has
+    // MOVED OUT of this validator INTO `grammars/regex.ebnf` — `\p` / `\P` are whole-letter
+    // lookaheads on `simple_escape` / `class_simple_escape_{strict,relaxed}` (and dropped
+    // from the `simple_escape_letter_strict` positive set), so a valid one-letter category
+    // or `{name}` form parses while `\pA` / `\P_` / `\p`@EOF / `[\pA]` hard-REJECT at the
+    // grammar layer. The former `allows_short_unicode_property_escapes` /
+    // `rejects_invalid_short_unicode_property_escapes` validator unit tests were removed
+    // accordingly; the behaviour is now proven by the GRAMMAR parse path and the `pcre2test`
+    // oracle (`regex_pcre2_compile_oracle_gate`) — the EBNF is the single source of truth.
 
     #[test]
     fn rejects_invalid_counted_quantifier_order() {

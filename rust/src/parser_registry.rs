@@ -1877,6 +1877,54 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "\\u"), Some(false));
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.1 (ledger `REGEX-0100`, release 1.1.90): a BARE `\p` / `\P`
+    /// Unicode-property escape is grammar-owned — `\p` / `\P` are ALWAYS property introducers
+    /// (owned by `property_escape`, tried first in `escape_unit` / `class_escape_unit`), never a
+    /// bare shorthand. A bad-letter (`\pA`), underscore (`\P_`), or at-EOF (`\p`) form hard-REJECTS
+    /// instead of decomposing into `\p` + literal. Encoded structurally: `p` / `P` dropped from
+    /// `simple_escape_letter_strict` (the positive-set / generation-faithful half) and the
+    /// `!"p{"` / `!"P{"` guards broadened to whole-letter `!"p"` / `!"P"` on `simple_escape` +
+    /// both `class_simple_escape` variants. This MIGRATED `regex_compile_validation.rs::
+    /// find_invalid_property_escape` into the EBNF (the grammar is the single source of truth);
+    /// behavior-NEUTRAL downstream — the validator rejected these before, the grammar rejects them
+    /// now. Oracle: `pcre2test` 10.47 (`regex_pcre2_compile_oracle_gate`).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_bare_property_escape_pcre2_faithfully() {
+        // Bare `\p` / `\P` not a valid one-letter category (or at EOF): REJECT — atom, class,
+        // and mid-pattern contexts.
+        for pattern in [
+            "\\pA", "\\P_", "\\p", "\\P", // atom-level bad-letter / at-EOF
+            "[\\pA]", "[\\P_]", "[a\\pA]", // class-level bad-letter
+            "a\\pAb", "x\\p", // mid-pattern
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "bare non-category property escape must reject: {pattern}"
+            );
+        }
+        // Valid short one-letter category, and the braced `{name}` form: ACCEPT — atom + class.
+        for pattern in [
+            "\\pL", "\\PN", "\\pl", "\\Pn", "\\pC", "\\pZ", // short one-letter categories
+            "[\\pL\\PN]", // short categories inside a class
+            "\\p{Lu}", "\\P{Han}", "[\\p{L}]", // braced property names (unchanged)
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "valid property escape must accept: {pattern}"
+            );
+        }
+        // The rule is unconditional (the migrated validator ran in BOTH profiles): relaxed also rejects.
+        assert!(
+            super::parse_sample_detail_with_profile("regex", "\\pA", Some("relaxed"))
+                .expect("regex registered")
+                .is_err(),
+            "relaxed must also reject a bare non-category property escape"
+        );
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width
     /// and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to a quantifier. A quantifier
     /// binds THROUGH the stray `\E` to the preceding repeatable atom (`a\E*` = `a*`), but is

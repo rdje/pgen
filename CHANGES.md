@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0023 (REGEX-PCRE2-FIDELITY.4.1): the bare `\p`/`\P` Unicode-property escape is now GRAMMAR-owned — behavior-neutral validator→grammar migration (regex release `1.1.89`→`1.1.90`, contract `1.1.91`→`1.1.92`, schema `1`, ledger REGEX-0100)
+
+Session #73. A RELEASED regex slice (grammar edit + regen + full lockstep), the first `.4` deletion-prep
+child. Encodes the bare Unicode-property-escape acceptance rule into `grammars/regex.ebnf`, migrating
+`regex_compile_validation.rs::find_invalid_property_escape` out of the out-of-band validator — the EBNF is
+now the single source of truth for it.
+
+**Root cause (tool-backed, message-source probe).** In PCRE2 `\p`/`\P` are ALWAYS Unicode-property
+introducers — a bare (un-braced) one MUST be a valid one-letter general category (`\pL`) or the `{name}`
+form, else it is a compile error. The GRAMMAR alone previously ACCEPTED a bad bare form: on `\pA`,
+`property_escape`'s `"p" short_prop_letter` branch fails (`A` ∉ the 14 category letters), the longest-match
+tournament falls through to `simple_escape`, whose `simple_escape_letter_strict` positive set listed `'P'`
+and `'p'`, so `\p` matched as a shorthand + `A` as a literal. In class context `class_simple_escape_
+{strict,relaxed}` guarded only the braced `!"p{"`/`!"P{"`, so `[\pA]` leaked identically. The rejection
+lived ONLY in the out-of-band `find_invalid_property_escape` — proven by a message-source probe: on the
+`1.1.89` release probe `\pA` rejected with the VALIDATOR message (`\p without braces must use a one-letter
+Unicode general category`), which fires only AFTER a grammar-accept.
+
+**Fix (grammar tier, no engine).** `'P'`/`'p'` DROPPED from `simple_escape_letter_strict` (positive
+exclusion, generation-faithful — the `.3.13`/`.3.19`/`.3.23` idiom), and the `!"p{"`/`!"P{"` guards
+BROADENED to whole-letter `!"p"`/`!"P"` on `simple_escape` + both `class_simple_escape` variants
+(positional-safe: `$5`/`$13`/`$7` unchanged). `find_invalid_property_escape` + its call site + its 2 unit
+tests DELETED (`is_short_unicode_property_letter` retained — `skip_regex_escape` still uses it for the
+other checks). 7 of the 8 validator check families remain (capstone `.4` deletes the rest via `.4.2`..`.4.11`).
+
+**Behavior-NEUTRAL downstream.** Every input's accept/reject verdict is byte-identical to `1.1.89` (the
+validator rejected these before, the grammar rejects them now, in BOTH profiles). The only observable
+change is the rejection MESSAGE (validator text → `E_PARSE_FAILURE`). After: `\pA`/`\P_`/`\p`/`\P`/`[\pA]`/
+`a\pAb`/`x\p` REJECT via the grammar (`Parser did not consume full input`); `\pL`/`\PN`/`\pl`/`\Pn`/`\pC`/
+`\pZ`/`[\pL\PN]`/`\p{Lu}`/`\P{Han}`/`[\p{L}]` ACCEPT (unchanged).
+
+**Verification.** message-source before→after; regex cert `236/236/0 fully_certified spf=0` ×seeds 0/7/42
+(rule-count unchanged); `--lint-grammar` 0 errors (236 rules); `regex_pcre2_compile_oracle_gate` byte-
+identical baseline `2189/1858/285/46`; `duality_hunt_gate` 9 lanes, no new signature; `parse_harness_
+equivalence_gate` regex byte-identical (differential-CERTIFIED); `regex_ast_shape_contract_gate` drift
+aligned; `regex_parser_integration_contract_gate` green; 51 focused lib tests pass (new pin
+`regex_bare_property_escape_pcre2_faithfully` + the ledger-drift gate now at `1.1.90`/`1.1.92`); clippy
+no-new-findings (the 178 eq_op generated debt is pre-existing; none cite the 3 changed files).
+
+**Lockstep.** grammar; `regex_compile_validation.rs`; `parser_registry.rs` (pin); `embedding_api.rs`
+(consts `1.1.90`/`1.1.92`); `regex_parser_integration_contract_v1.json`; ledger `REGEX-0100`; contract
+Identity + `1.1.90`/`1.1.92` Highlights; regex book (changelog + rules-escape + tracked HTML); top book
+parser-families chain; the tree + `docs/TASK_TREE.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`;
+`DEVELOPMENT_NOTES.md`. `regex` LIVE row stays `Done`.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0022 (REGEX-PCRE2-FIDELITY.4 SCOPING): the regex out-of-band validator is NOT deletable — tool-backed proof that 8 check families / 54 reject inputs are still LOAD-BEARING; capstone re-scoped into `.4.1`..`.4.11` (PURE-DOCS, no release)
 
 Session #72. A PURE-DOCS scoping + re-scope slice (no grammar/code/regen; regex stays `1.1.89` / contract

@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.91`
+  - `1.1.92`
 - Parser release version:
-  - `1.1.89`
+  - `1.1.90`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-07-08`
+  - `2026-07-09`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -96,6 +96,26 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.90 / Contract 1.1.92 Highlights — REGEX-0100: the bare `\p`/`\P` Unicode-property escape is now grammar-owned (behavior-neutral validator→grammar migration)
+
+**Bug ledger:** `REGEX-0100` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.4` validator-deletion scoping; **behavior-NEUTRAL for the released parser** (no verdict flips). Root cause: the GRAMMAR alone accepted a bad bare property escape (`\pA` parsed as `\p` shorthand + `A` literal) because `simple_escape_letter_strict` enumerated `'P'`/`'p'`; the rejection lived only in the out-of-band validator `find_invalid_property_escape` — a single-source-of-truth hole.
+
+**What changed.** In PCRE2, `\p`/`\P` are ALWAYS Unicode-property introducers — a bare (un-braced) form MUST be one of the 14 one-letter general categories, else it is a compile error. `regex.ebnf` now owns this: `'P'`/`'p'` dropped from `simple_escape_letter_strict` (positive exclusion, generation-faithful), and the `!"p{"`/`!"P{"` guards broadened to whole-letter `!"p"`/`!"P"` on `simple_escape` + both `class_simple_escape` variants. Oracle-verified against `pcre2test` 10.47; the regex parser stays differential-CERTIFIED (interpreter byte-identical).
+
+| Rule | Example | Verdict (both = PGEN `1.1.90` = PCRE2 10.47) |
+|---|---|---|
+| **Bare non-category / at-EOF (now grammar-REJECT; was validator-reject)** | `\pA` · `\P_` · `\p` · `\P` · `[\pA]` · `[\P_]` · `a\pAb` · `x\p` | REJECT |
+| Valid short one-letter category (unchanged) | `\pL` · `\PN` · `\pl` · `\Pn` · `\pC` · `\pZ` · `[\pL\PN]` | ACCEPT (unchanged) |
+| Braced `{name}` form (unchanged) | `\p{Lu}` · `\P{Han}` · `[\p{L}]` | ACCEPT (unchanged) |
+
+**AST shape.** Every accepted property-escape is byte-identical — no new AST vocabulary, **AST-dump schema stays `1`**.
+
+**Relaxed profile.** `\p`/`\P` are core PCRE2 syntax, not a relaxed extension: the bare-property rejection applies in both profiles (identical to the validator it replaces).
+
+**Rejection-layer.** The rule is now grammar-owned (`E_PARSE_FAILURE`); `find_invalid_property_escape` (+ its 2 unit tests) was deleted from the validator (7 of the 8 check families remain; capstone `.4` deletes the rest). Match on the diagnostic **code**, never message text.
+
+**Action for downstream (RGX):** none — every input's accept/reject verdict is unchanged from `1.1.89`. This release only moves the ownership of the bare-property rule from the out-of-band validator into the EBNF (the only observable difference is the rejection message text, which downstream should never match on).
 
 ## Release 1.1.89 / Contract 1.1.91 Highlights — REGEX-0099: the PCRE2 `\Q` QUOTING model (unterminated quote-to-end + empty-`\Q\E`-quantified); grammar-encoded
 

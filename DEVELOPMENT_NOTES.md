@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0023 — REGEX-PCRE2-FIDELITY.4.1: bare `\p`/`\P` property escape grammar-owned (behavior-neutral validator→grammar migration; release `1.1.90`/`1.1.92`/schema `1`, ledger REGEX-0100)
+
+RELEASED regex slice (grammar + regen + full lockstep), the first `.4` deletion-prep child of the
+re-scoped capstone. TOOLBOX-FIRST throughout.
+
+**WHY+WHERE (message-source probe, no guessing).** The regex parse path runs the grammar then the
+validator, so the reject MESSAGE names the owner. On the `1.1.89` release probe, `\pA`/`\P_`/`\p` rejected
+with the VALIDATOR message (`\p without braces must use a one-letter Unicode general category` / `malformed
+Unicode property escape`) — which fires only after a grammar-ACCEPT ⇒ the grammar ALONE accepted them. WHERE:
+`simple_escape_letter_strict` (`grammars/regex.ebnf:934-935`) positively enumerated `'P'`/`'p'`, so on `\pA`
+the `property_escape` short-letter branch fails and the longest-match tournament falls through to
+`simple_escape` (`\p` shorthand + `A` literal); class variants `class_simple_escape_{strict,relaxed}`
+(`:745`/`:748`) guarded only the braced `!"p{"`/`!"P{"`. The three sibling `simple_escape_tail` arms
+(`whitespace`/`special_char`/`unicode_char`) are all `p`/`P`-free (`unicode_char = !builtin_ascii_char …`),
+confirmed — so the positive-set drop fully closes the atom-level leak.
+
+**FIX (declarative, EBNF-only, fix-hierarchy grammar tier).** (1) `'P'`/`'p'` dropped from
+`simple_escape_letter_strict` — the generation-faithful half (a lookahead is generator-blind; the positive
+set is what keeps generation from emitting a bare `\p`, the `.3.13` duality contract). (2) `!"p{"`/`!"P{"`
+broadened to whole-letter `!"p"`/`!"P"` on `simple_escape` + both `class_simple_escape` variants — the
+structural block (`$5`/`$13`/`$7` positional refs unchanged, so no annotation churn). Together: `\p`/`\P`
+are ALWAYS property introducers owned by `property_escape` (tried first in `escape_unit`/`class_escape_unit`),
+so a bare non-category / at-EOF / class form has no fully-consuming parse ⇒ grammar-REJECT. Validator
+`find_invalid_property_escape` + call site + 2 unit tests removed; `is_short_unicode_property_letter` kept
+(used by `skip_regex_escape` for the other 7 checks).
+
+**Behavior-neutral, so why a release?** Downstream (registry path = grammar + validator) rejected these
+before and after — no verdict flips. But the GRAMMAR alone accepted them, which the stimuli generator and
+the differential interpreter can see: a single-source-of-truth defect ([[project_ebnf_is_single_source_of_
+truth]]). Encoding it is the released `.4.1` deletion-prep child; the version bump + ledger `REGEX-0100`
+mark the ownership move (the ledger-derived drift gate couples the `embedding_api` consts to the ledger's
+latest regex Fixed-in, so consts `1.1.90`/`1.1.92` require the matching ledger row).
+
+**Gates (all green).** cert `236/236/0` ×seeds 0/7/42; oracle byte-identical `2189/1858/285/46`; duality 9
+lanes clean; equivalence byte-identical; ast_shape aligned; integration contract green; 51 focused lib
+tests; clippy no-new-findings.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0022 — REGEX-PCRE2-FIDELITY.4 SCOPING: the regex validator is NOT deletable (8 families / 54 inputs LOAD-BEARING); capstone re-scoped (PURE-DOCS)
 
 PURE-DOCS scoping + re-scope. No grammar/code/regen (regex stays release `1.1.89` / contract `1.1.91` /

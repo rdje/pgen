@@ -50,7 +50,7 @@ PCRE2's `\C` — match one code unit. `Terminal("C")`.
 ## `simple_escape`
 
 ```ebnf
-simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail
+simple_escape  = !"o{" !"x{" !"p" !"P" simple_escape_tail
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
 simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
 ```
@@ -61,9 +61,9 @@ For `\d`: the inner shape is `{type:"escape",kind:"shorthand",char:"d"}` — the
 
 **Since release 1.1.82 (REGEX-PCRE2-FIDELITY.3.13)** the letter component is a **positive enumeration** instead of negative-lookahead guards over `any_char` (the stimuli generator is lookahead-blind, so guard-based exclusions were invisible to generation; a positive set is generation-faithful). Same accepted set per profile as before, minus the 7 escape-anchor letters (see below):
 
-- `simple_escape_letter_strict` (always active): 37 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings `A B G K Z b z` (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13), the six PCRE2-unsupported letters `F L U i l u` (REGEX-PCRE2-FIDELITY.3.1), the uppercase `E` (a stray `\E` is a PCRE2 zero-width end-of-quote, re-homed to `stray_end_quote_escape` / the `zero_width` piece — REGEX-PCRE2-FIDELITY.3.19, release 1.1.86), and the uppercase `Q` (uppercase `\Q` is a QUOTE-OPENER, never a bare shorthand — PCRE2 quotes `\Q…\E` or `\Q…` to end-of-pattern as literal; re-homed to `quoted_literal` / `unterminated_quoted_literal` / `empty_quoted_literal` — REGEX-PCRE2-FIDELITY.3.23, release 1.1.89). The LOWERCASE `\e` (ESC) and `\q` stay shorthands. See the [piece chapter's `zero_width`](rules-piece.md#zero_width--the-transparent-stray-e-and-empty-qe) section and the [`quoted_literal`](rules-atom.md#quoted_literal) atom.
-- `simple_escape_letter_relaxed` (`@profiles: ["relaxed"]`): re-admits `\i \F \l \L \u \U`. The anchor letters stay excluded in BOTH profiles.
-- Digits are excluded positively (no `digit` alternative — the PGEN-RGX-0087 rule: `\<digit>` is always backref/octal/error, never shorthand); the four brace-form leads (`\o{`/`\x{`/`\p{`/`\P{`) remain negative lookaheads (a "not followed by `{`" condition has no positive spelling).
+- `simple_escape_letter_strict` (always active): 35 letters — every ASCII letter EXCEPT the 7 escape-anchor spellings `A B G K Z b z` (those are anchors, never shorthand escapes — REGEX-PCRE2-FIDELITY.3.13), the six PCRE2-unsupported letters `F L U i l u` (REGEX-PCRE2-FIDELITY.3.1), the uppercase `E` (a stray `\E` is a PCRE2 zero-width end-of-quote, re-homed to `stray_end_quote_escape` / the `zero_width` piece — REGEX-PCRE2-FIDELITY.3.19, release 1.1.86), the uppercase `Q` (uppercase `\Q` is a QUOTE-OPENER, never a bare shorthand — PCRE2 quotes `\Q…\E` or `\Q…` to end-of-pattern as literal; re-homed to `quoted_literal` / `unterminated_quoted_literal` / `empty_quoted_literal` — REGEX-PCRE2-FIDELITY.3.23, release 1.1.89), and the two Unicode-property introducers `P p` (`\p`/`\P` are ALWAYS property escapes owned by `property_escape`, never bare shorthands — a bare non-category / at-EOF form like `\pA`/`\P_`/`\p` now REJECTS at the grammar layer; REGEX-PCRE2-FIDELITY.4.1, release 1.1.90). The LOWERCASE `\e` (ESC) and `\q` stay shorthands. See the [piece chapter's `zero_width`](rules-piece.md#zero_width--the-transparent-stray-e-and-empty-qe) section, the [`quoted_literal`](rules-atom.md#quoted_literal) atom, and the [`property_escape`](#property_escape) rule below.
+- `simple_escape_letter_relaxed` (`@profiles: ["relaxed"]`): re-admits `\i \F \l \L \u \U`. The anchor letters, `E`/`Q`, and the property introducers `p`/`P` stay excluded in BOTH profiles.
+- Digits are excluded positively (no `digit` alternative — the PGEN-RGX-0087 rule: `\<digit>` is always backref/octal/error, never shorthand); the `\o{`/`\x{` brace-form leads remain **2-char** negative lookaheads (`o`/`x` ARE shorthand letters, so only the `{`-braced octal/hex forms need excluding — a "not followed by `{`" condition has no positive spelling), while `\p`/`\P` are **whole-letter** negative lookaheads (`!"p"`/`!"P"`, REGEX-PCRE2-FIDELITY.4.1 — never shorthand letters at all).
 
 ## Profiles — strict default vs `relaxed`
 
@@ -191,6 +191,8 @@ property_escape = "p{" prop_name "}"
 | `\P{Lu}` | 3-element Sequence `["P{", <prop_name>, "}"]` |
 | `\pL` (short) | 2-element Sequence `["p", <short_prop_letter>]` |
 | `\PL` (short) | 2-element Sequence `["P", <short_prop_letter>]` |
+
+**Bare short-form validity (REGEX-PCRE2-FIDELITY.4.1, release 1.1.90).** In PCRE2 a bare (un-braced) `\p`/`\P` MUST be one of the 14 one-letter general categories in [`short_prop_letter`](#short_prop_letter). `\p`/`\P` are ALWAYS property introducers — they are excluded from `simple_escape` (dropped from `simple_escape_letter_strict`; the `!"p"`/`!"P"` whole-letter lookaheads on `simple_escape` / `class_simple_escape`), so a bad-letter (`\pA`, `\P_`), at-EOF (`\p`, `\P`), or class-context (`[\pA]`) form has **no fully-consuming parse and hard-REJECTS** rather than decomposing into `\p` + a literal. This is grammar-owned (the acceptance rule migrated out of the out-of-band `regex_compile_validation.rs::find_invalid_property_escape` — the EBNF is now the single source of truth). Behavior-neutral for downstream: these forms were rejected by the validator before and by the grammar now.
 
 ## `short_prop_letter`
 

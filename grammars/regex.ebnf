@@ -738,14 +738,20 @@ class_escape_unit = single_byte_escape
 # default (validator → grammar). Relaxed re-admits them. No digit guards here
 # (RGX-0088: class context admits `\<digit>` octal).
 class_simple_escape = class_simple_escape_strict | class_simple_escape_relaxed
-# Strict: original 4 guards PLUS the 6 letters PLUS `Q`/`E` (`.3.15`) → 12 lookaheads, `any_char` = `$13`.
+# Strict: 4 guards (`\o{` `\x{` + the whole-letter `\p` `\P`) PLUS the 6 letters
+# PLUS `Q`/`E` (`.3.15`) → 12 lookaheads, `any_char` = `$13`.
 # REGEX-PCRE2-FIDELITY.3.15: `!"Q"` / `!"E"` in BOTH profiles — `\Q` inside a class is ALWAYS
 # the quote-opener in PCRE2 (never a shorthand escape: `[\Q]`/`[\Qa]` are unterminated
 # classes, err 106 — the `]` is quoted), and `\E` is always the stray/quote-end marker.
-class_simple_escape_strict = !"o{" !"x{" !"p{" !"P{" !"i" !"F" !"l" !"L" !"u" !"U" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $13}
-# Relaxed opt-out: the original class catch-all + the `.3.15` `Q`/`E` guards (6 lookaheads, `any_char` = `$7`).
+# REGEX-PCRE2-FIDELITY.4.1: `\p` / `\P` guards BROADENED from `!"p{"` / `!"P{"` to the
+# whole-letter `!"p"` / `!"P"` — `\p` / `\P` are ALWAYS property introducers (owned by
+# `property_escape`, tried first in `class_escape_unit`), so a bad-letter form (`[\pA]`)
+# hard-REJECTs instead of decomposing into `\p` + literal (migrating the class half of
+# `find_invalid_property_escape` into the EBNF).
+class_simple_escape_strict = !"o{" !"x{" !"p" !"P" !"i" !"F" !"l" !"L" !"u" !"U" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $13}
+# Relaxed opt-out: the class catch-all + the `.3.15` `Q`/`E` + the `.4.1` `\p`/`\P` guards (6 lookaheads, `any_char` = `$7`).
 @profiles: ["relaxed"]
-class_simple_escape_relaxed = !"o{" !"x{" !"p{" !"P{" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $7}
+class_simple_escape_relaxed = !"o{" !"x{" !"p" !"P" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $7}
 
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
@@ -911,15 +917,29 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 # here is behavior-invisible EXCEPT that `\b*`-style quantified escape-anchors
 # now correctly REJECT, matching PCRE2 err 109) — and the digits (backref /
 # octal / error territory per PGEN-RGX-0087, previously `!"0"`…`!"9"` guards).
-# The four 2-char brace-form guards (`\o{` `\x{` `\p{` `\P{`) REMAIN
-# lookaheads (a "not followed by `{`" condition has no positive spelling;
-# generation-safe: the brace forms belong to the dedicated octal/hex/property
-# escape rules, so a generated bare letter + counted quantifier still parses).
-simple_escape  = !"o{" !"x{" !"p{" !"P{" simple_escape_tail -> {type: "escape", kind: "shorthand", char: $5}
+# The `\o{` / `\x{` 2-char brace-form guards REMAIN lookaheads (a "not
+# followed by `{`" condition has no positive spelling; generation-safe: the
+# brace forms belong to the dedicated octal/hex escape rules, so a generated
+# bare letter + counted quantifier still parses). REGEX-PCRE2-FIDELITY.4.1:
+# the `\p` / `\P` guards are BROADENED from `!"p{"` / `!"P{"` to the whole-letter
+# `!"p"` / `!"P"` — `\p` / `\P` are ALWAYS Unicode-property introducers in PCRE2
+# (owned by `property_escape`, tried first in `escape_unit`), never a bare
+# shorthand, so a bad-letter (`\pA`) / underscore (`\P_`) / at-EOF (`\p`) form
+# must hard-REJECT rather than decompose into `\p` + literal (migrating
+# `regex_compile_validation.rs::find_invalid_property_escape` into the EBNF —
+# the grammar is the single source of truth). `p` / `P` are also dropped from
+# the `simple_escape_letter_strict` positive set below so generation never emits
+# a bare `\p` (a lookahead is generator-blind; the positive set is the
+# generation-faithful half of the `.3.13` duality contract).
+simple_escape  = !"o{" !"x{" !"p" !"P" simple_escape_tail -> {type: "escape", kind: "shorthand", char: $5}
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
 simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
-# 37 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
-# PCRE2-unsupported fidelity letters (`F L U i l u`) minus `E` and `Q`
+# 35 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
+# PCRE2-unsupported fidelity letters (`F L U i l u`) minus `E` and `Q` minus the
+# 2 Unicode-property introducers (`P p`, REGEX-PCRE2-FIDELITY.4.1: `\p` / `\P` are
+# ALWAYS property escapes owned by `property_escape`, never bare shorthands — the
+# positive-set drop is the generation-faithful half of the `!"p"` / `!"P"`
+# lookahead broadening on `simple_escape` above)
 # (REGEX-PCRE2-FIDELITY.3.19: a stray `\E` is PCRE2 zero-width, re-homed to
 # `stray_end_quote_escape` / `zero_width` so a bare quantifier cannot bind to
 # it; the LOWERCASE `\e` = ESC stays a shorthand.
@@ -931,8 +951,8 @@ simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxe
 # `quoted_literal` / `unterminated_quoted_literal` / `empty_quoted_literal`;
 # the LOWERCASE `\q` stays a shorthand). Uppercase-anchor letters, `E`, and
 # `Q` are the piece-level zero-width / quoting forms owned outside `simple_escape`.
-simple_escape_letter_strict = 'C' | 'D' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'P' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
-                            | 'a' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'j' | 'k' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'v' | 'w' | 'x' | 'y'
+simple_escape_letter_strict = 'C' | 'D' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
+                            | 'a' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'j' | 'k' | 'm' | 'n' | 'o' | 'q' | 'r' | 's' | 't' | 'v' | 'w' | 'x' | 'y'
 @profiles: ["relaxed"]
 simple_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'
 
