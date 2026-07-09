@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-RAWCAP-TRANSFORM-PATH (tree-open, PURE-DOCS) — task-tree own the `.4.3`-surfaced codegen raw-capture gap
+
+Opened + owns a new parser-agnostic engine tree [`RAWCAP-TRANSFORM-PATH`](docs/tasks/RAWCAP-TRANSFORM-PATH.md)
+for the codegen gap surfaced by `PGEN-REGEX-PCRE2-0029` (director directive: *own it right away + fix
+whenever you get the chance*). **A Raw-view positional `@predicate` (`args:[$1, le, $5]`) HARD-ERRORS on a
+non-`Or` rule body (Sequence/Atom/Quantified/Lookahead) that ALSO carries a `->` return transform.** ROOT
+CAUSE PINNED by direct source read: `generate_or_logic` captures `semantic_raw_content = Some(result.clone())`
+before its inline transform (`ast_based_generator.rs:3358`/`:3377`/`:3731`), but the non-`Or`
+`rule_body_inner` (`:2917-2928`) inits it to `None` (`:2922`) and `#post_parse_transform_tokens`
+(`:2787-2815`/`:2928`) shadows `result` with the shaped Json without ever capturing the raw content — so a
+default-Raw predicate (`semantic_runtime.rs:4085`) resolves against the shaped Json where a positional `$N`
+has no slot. ⚠️ Design tension (why `SEMREF-SHAPED` chose shaped-only): the naive mirror-fix could regress
+SV `declared_*`-style default-Raw NAMED refs → `.1` blast-radius audit decides fix-shape before `.2` lands
+the codegen change. NO code this slice (tree-open only); `.2` deliberately deferred to a fresh session. This
+converts the `.4.3` "surfaced finding" note into a tracked, owned leaf.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0029 — REGEX-PCRE2-FIDELITY.4.3: counted-quantifier `{n,m}` min>max ORDER is now GRAMMAR-owned (behavior-neutral validator→grammar migration; first `value_compare` consumer)
 
 The counted-quantifier min>max ORDER reject (PCRE2 err 104 "numbers out of order in {} quantifier",

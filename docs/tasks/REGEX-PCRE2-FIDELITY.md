@@ -1470,7 +1470,12 @@ path (a rule with a `->` object annotation over a sequence body) that raw-captur
 `@predicate` on a rule that also has a `->` sequence transform will similarly fail.** Worked around here with
 `view: shaped` + NAMED refs (the proven SV idiom, robust to both the JSON shape and the unmatched
 `brace_ws?` optionals). The codegen fix (emit the raw capture on the transform path too) is a separate,
-parser-agnostic engine leaf — deferred, not needed for `.4.3`.
+parser-agnostic engine leaf — deferred, not needed for `.4.3`. **NOW TASK-TREE OWNED** by
+[`RAWCAP-TRANSFORM-PATH`](RAWCAP-TRANSFORM-PATH.md) (created 2026-07-09 session #77, director
+directive): root cause PINNED to `ast_based_generator.rs:2917-2928` — the non-`Or` `rule_body_inner`
+inits `semantic_raw_content = None` and `#post_parse_transform_tokens` shadows `result` with the
+shaped Json without ever capturing the raw content (the `Or` path does, at `:3358`/`:3377`/`:3731`);
+`.1` will audit the `SEMREF-SHAPED` blast radius before the codegen fix lands in `.2`.
 
 #### `.4.3` Acceptance Checklist (enforced)
 - [x] **REPRODUCE / ISSUE** — `pcre2test` 10.47: `x{5,4}` / `a{\t5\t,\t2\t}` / `a{5,2}` REJECT err 104
