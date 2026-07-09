@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-RSVC-0001 — RULE-SPAN-VALUE-CONSTRAINT.1: DESIGN of a general `@predicate` value-comparison primitive (PURE-DOCS, tree opened)
+
+Task-tree-first for the director-authorized rule-span value-constraint engine primitive. TOOLBOX-FIRST /
+tools-first scoping, every anchor read at HEAD and independently re-confirmed (not sub-agent trust).
+
+- **Root cause the primitive addresses (WHY+WHERE).** The proving consumer is
+  `regex_compile_validation.rs:400 validate_counted_quantifier_body`, whose `:433-434` `minimum > maximum`
+  check (PCRE2 err 104, `x{5,4}`) is out-of-band Rust; the function's own comment `:382-390` states the fix
+  intent verbatim — out-of-order "needs a rule-span value-constraint extension … grammar-hostile with leading
+  zeros" (leading-zeros are exactly what a value-coercing compare handles: `"05".parse::<i64>()==5`).
+- **🔎 STALE-FRAMING finding (surfaced to the director).** The MEMORY next_action said positional `$N`
+  HARD-ERRORS in `@predicate` payloads (the "gap to close"). It does NOT — `POSITIONAL-PAYLOAD-REFS.2`
+  (2026-07-06, session #50) already made `$N` resolve; the `sem_ref_positional_unresolvable` hard-error pin was
+  retired and replaced by the WORKING `RefPositional` differential pin (`parse_harness_semantic_suite.rs:104-113`,
+  `:533-570`). And the comparison logic already exists as `compare_predicate_values`
+  (`semantic_runtime.rs:4141-4169`: `Eq`/`Ne` textual; `Lt/Le/Gt/Ge` i64-numeric when both parse, deterministic
+  lexical fallback), currently reachable only via composed `@predicate_def` bodies. So the primitive is the
+  thin, faithful exposure of that helper as a first-class `@predicate` builtin — not a from-scratch build.
+- **Mechanism map (tool-verified).** Parse → `SemanticPredicateSpec` via `parse_predicate` (`:4007`, no
+  name-arity check). Dispatch to extend: `evaluate_predicate` match at `:2853` (11 arms) + registry
+  `ENGINE_BUILTIN_PREDICATE_NAMES` (`:3830`). Content-aware POST/BRANCH entry `evaluate_content_aware_predicate`
+  (`:3183`) falls through to `evaluate_predicate`. Both the codegen-emitted parser (`ast_based_generator.rs`
+  POST loop `:2133-2178`, BRANCH `:3537-3600`) and the interpreter (`parse_harness_interpreter.rs:948-977`)
+  CALL the shared runtime method — so a new arm is byte-identical across both BY CONSTRUCTION. Arg resolution
+  (`$N`/`$name`/dotted/indexed) already handled generically by the `resolve_*` helpers on both sides.
+- **Design decision (routine, within-principle).** Option A — a single `value_compare` builtin, op as an infix
+  middle bare-identifier arg (`args:[$lhs, <op>, $rhs]`), mapping 1:1 to `compare_predicate_values`; add
+  `CompareOp::from_word` (predicate_expr.rs, word forms `le`/`lt`/`ge`/`gt`/`eq`/`ne`). Rejected Option B (a
+  6-name family) — more surface, no expressive gain. Op-as-data matches the director's "minimal new syntax".
+- **v1 coercion** = decimal-integer numeric + deterministic lexical fallback (exactly what `.4.3` needs); a
+  `codepoint`-decoding coercion mode for `.4.5` descending ranges is a later, separate widening leaf.
+- **NO-REGRESSION verify-points confirmed inert** for the `.2` code slice: `grammar_wellformedness.rs:914`
+  `FACT_QUERY_PRIMITIVES` (a fixed 4-element `.contains()` set — `value_compare` isn't a fact-query) and the
+  stimuli generator's store-aware witnessing (keys off `has_fact`/`fact_count_at_least`/`fact_attribute_equals`
+  — `value_compare` is not a store-prelude gate). Full touch-map for `.2` in the tree §`.1`.
+- Scope: PURE-DOCS. No code, no regen, no version/schema change. FRONTIER = `.2`.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0027 — REGEX-PCRE2-FIDELITY.4.2: `\k`/group NAME validity grammar-owned (validator→grammar migration + 2 fidelity refinements; release `1.1.93`/`1.1.95`/schema `1`, ledger REGEX-0103)
 
 RELEASED regex slice, the 4th `.4` deletion-prep child (11th compile-contract check migrated;

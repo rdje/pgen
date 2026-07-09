@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-RSVC-0001 — RULE-SPAN-VALUE-CONSTRAINT.1: open the tree + tools-first DESIGN of a general `@predicate` value-comparison primitive (PURE-DOCS)
+
+Task-tree-first (mandatory before any code) for the director-authorized (2026-07-09) **rule-span
+value-constraint** engine primitive — a parser-agnostic `@predicate` value-comparison over two of a rule's
+resolved captures (`value_compare args:[$lhs, <op>, $rhs]`, ops `lt`/`le`/`gt`/`ge`/`eq`/`ne`). Distinct from
+the existing **atom-scoped** value guards (`@range`/`@len`/`@enum`/`@regex`, which constrain one atom's matched
+text): this is a **rule-span** cross-capture comparison, the shared unlock for the hard
+`REGEX-PCRE2-FIDELITY.4` families (`.4.3` min>max order, `.4.5` descending ranges, `.4.9` lookbehind length).
+
+- 🔎 **Tools-first finding — the MEMORY framing was STALE.** The next_action framed the primitive as needing
+  to close a "positional `$N` HARD-ERRORS in `@predicate` payloads" gap. That gap is already closed:
+  `POSITIONAL-PAYLOAD-REFS.2` (2026-07-06) made positional `$N` **resolve** in predicate payloads (the
+  `sem_ref_positional_unresolvable` hard-error pin was retired → the working `RefPositional` pin), and the
+  comparison logic already exists as `compare_predicate_values` (`semantic_runtime.rs:4141`). So the primitive
+  is the thin exposure of an existing, tested helper as a first-class `@predicate` builtin — materially smaller
+  and de-risked. Independently re-confirmed by direct source reads (not sub-agent trust).
+- **Design (recorded in the tree §`.1`).** Option A — a single `value_compare` builtin, op as an infix middle
+  bare-identifier arg; add a `CompareOp::from_word` map; a new `evaluate_predicate` arm + registry entry;
+  byte-identical codegen⟷interpreter by shared-runtime construction (both call `evaluate_content_aware_predicate`
+  → `evaluate_predicate`). Full touch-map + NO-REGRESSION verify-points (inert at
+  `grammar_wellformedness.rs FACT_QUERY_PRIMITIVES` and the stimuli generator) captured for the `.2` code slice.
+- Scope: PURE-DOCS (`docs/tasks/RULE-SPAN-VALUE-CONSTRAINT.md` new, `docs/TASK_TREE.md` index, `MEMORY.md`
+  resume pointer). No code, no behavior change; LIVE_ACHIEVEMENT_STATUS unchanged (internal engine capability,
+  no live-status row). FRONTIER = `.2` (implement + prove in isolation).
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0027 — REGEX-PCRE2-FIDELITY.4.2: `\k`/group NAME validity is GRAMMAR-owned (RELEASED regex slice: release 1.1.92→1.1.93 / contract 1.1.94→1.1.95, schema 1, ledger REGEX-0103)
 
 The design-focused session the `.4.2` SCOPING called for. Tool-backed design (`pcre2test` 10.47): a name is
