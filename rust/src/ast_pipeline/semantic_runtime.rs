@@ -3109,6 +3109,43 @@ impl SemanticRuntimeState {
                 );
                 Some(result)
             }
+            // RULE-SPAN-VALUE-CONSTRAINT.3: the CODE-POINT-coercion sibling of
+            // `value_compare`. Decodes each operand as a single CHARACTER LITERAL
+            // — a bare Unicode scalar or a standard C/Perl char escape (hex
+            // `\xHH` / `\x{H..}`, octal `\o{O..}` / `\NNN`, control `\cX`, the
+            // named escapes `\a \b \e \f \n \r \t`, or an escaped literal `\X`) —
+            // to its Unicode code point, then compares the two code points
+            // NUMERICALLY. This is what a grammar needs to own a code-point order
+            // constraint declaratively (a regex class range `[z-a]` /
+            // `[\x{100}-z]`, `REGEX-PCRE2-FIDELITY.4.5.c`): the endpoints reach
+            // the predicate as raw spellings, and a plain textual/`i64`
+            // `value_compare` mis-orders an escape spelling against a bare
+            // character (textual `"\x{100}" < "\x{FF}"`, but the code points are
+            // `256 > 255`). An operand that is not a single decodable character
+            // literal → `None` (INAPPLICABLE / non-blocking), the same
+            // `?`-on-malformed convention every builtin follows. Parser-agnostic
+            // (it decodes character literals, not grammar constructs);
+            // byte-identical codegen⟷interpreter by shared-runtime construction.
+            "value_compare_codepoint" => {
+                if predicate.args.len() != 3 {
+                    return None;
+                }
+                let lhs = scalar_text(predicate.args.first()?)?;
+                let op = super::predicate_expr::CompareOp::from_word(scalar_text(
+                    predicate.args.get(1)?,
+                )?)?;
+                let rhs = scalar_text(predicate.args.get(2)?)?;
+                let result = compare_codepoints(lhs, op, rhs);
+                crate::pgen_trace_high!(
+                    "⚖️ value_compare_codepoint({:?} {} {:?}) → {:?} caller={}",
+                    lhs,
+                    op,
+                    rhs,
+                    result,
+                    self.rule_context_path(),
+                );
+                result
+            }
             // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: not a built-in predicate name.
             // Dispatch to a composed `@predicate_def:` if one is registered
             // under this name. The predicate-def registry is keyed by the
@@ -3907,6 +3944,10 @@ const ENGINE_BUILTIN_PREDICATE_NAMES: &[&str] = &[
     "content_kind_is",
     // RULE-SPAN-VALUE-CONSTRAINT.2: the general value-comparison builtin.
     "value_compare",
+    // RULE-SPAN-VALUE-CONSTRAINT.3: the code-point-coercion sibling — decodes
+    // each operand as a character literal to its Unicode code point, then
+    // compares numerically (the `.4.5.c` class-range-order enabler).
+    "value_compare_codepoint",
 ];
 
 /// `SV-EXH-PROOF.3.3.4.b.5.1.2` + `.b.5.1.5`: scan a list of directives,
@@ -4286,6 +4327,126 @@ fn compare_values(lhs: &str, op: super::predicate_expr::CompareOp, rhs: &str) ->
     }
 }
 
+/// `RULE-SPAN-VALUE-CONSTRAINT.3`: compare two operands by their decoded Unicode
+/// CODE POINT. Each operand is decoded as a single character literal (see
+/// [`decode_char_literal_to_codepoint`]); the comparison then holds iff
+/// `decode(lhs) <op> decode(rhs)` numerically. Returns `None` when either
+/// operand is not a single decodable character literal — the caller treats that
+/// as INAPPLICABLE (non-blocking), the same convention `value_compare` follows
+/// on a malformed shape.
+fn compare_codepoints(lhs: &str, op: super::predicate_expr::CompareOp, rhs: &str) -> Option<bool> {
+    use super::predicate_expr::CompareOp;
+    let left = decode_char_literal_to_codepoint(lhs)?;
+    let right = decode_char_literal_to_codepoint(rhs)?;
+    Some(match op {
+        CompareOp::Eq => left == right,
+        CompareOp::Ne => left != right,
+        CompareOp::Lt => left < right,
+        CompareOp::Le => left <= right,
+        CompareOp::Gt => left > right,
+        CompareOp::Ge => left >= right,
+    })
+}
+
+/// Decode a single CHARACTER-LITERAL spelling to its Unicode code point.
+///
+/// Recognizes a bare single Unicode scalar and the standard C/Perl
+/// character-escape vocabulary shared across languages:
+/// - `\x{H..}` braced hex, `\xH` / `\xHH` (1–2) hex;
+/// - `\o{O..}` braced octal, `\NNN` (1–3 octal digits);
+/// - `\cX` control (`X & 0x1f`);
+/// - the named escapes `\a`(0x07) `\b`(0x08) `\e`(0x1b) `\f`(0x0c) `\n`(0x0a)
+///   `\r`(0x0d) `\t`(0x09);
+/// - a backslash-escaped literal `\X` → `X`'s code point.
+///
+/// Returns `None` for anything that is not exactly one WELL-FORMED character
+/// literal (e.g. a multi-character non-escape token, a malformed escape, or an
+/// empty string), so a caller treats an undecodable operand as INAPPLICABLE.
+///
+/// This is a GENERAL, parser-agnostic primitive: it decodes character literals,
+/// not grammar constructs. Its numeric results match the regex compile
+/// contract's `class_escape_literal_codepoint` on well-formed inputs, so a regex
+/// grammar can own its class-range code-point ordering declaratively (the first
+/// consumer, `REGEX-PCRE2-FIDELITY.4.5.c`), but nothing here is regex-specific.
+/// It is intentionally strict where that validator has fallthrough quirks (e.g.
+/// `\18` → `None` here): a consumer grammar tokenizes such input as separate
+/// atoms, so a malformed multi-token spelling never reaches this predicate.
+fn decode_char_literal_to_codepoint(spelling: &str) -> Option<u32> {
+    // A bare single Unicode scalar (not a backslash escape) is its code point;
+    // anything longer than one scalar is not a single character literal.
+    if !spelling.starts_with('\\') {
+        let mut chars = spelling.chars();
+        let only = chars.next()?;
+        return chars.next().is_none().then_some(only as u32);
+    }
+    // Backslash escape: `payload` is everything after the leading '\'.
+    let payload = &spelling['\\'.len_utf8()..];
+    let lead = payload.as_bytes().first().copied()?;
+    match lead {
+        b'x' => {
+            let rest = &payload[1..];
+            if let Some(inner) = rest.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {
+                return decode_char_literal_digits(inner.trim(), 16);
+            }
+            // `\xH` / `\xHH`: 1–2 hex digits, nothing more.
+            if rest.len() > 2 {
+                return None;
+            }
+            decode_char_literal_digits(rest, 16)
+        }
+        b'o' => {
+            // `\o{O..}` braced octal only (bare `\o` is not a code point).
+            let inner = payload[1..]
+                .strip_prefix('{')
+                .and_then(|s| s.strip_suffix('}'))?;
+            decode_char_literal_digits(inner.trim(), 8)
+        }
+        b'c' => {
+            // `\cX` control: exactly one following scalar → `X & 0x1f`.
+            let rest = &payload[1..];
+            let mut chars = rest.chars();
+            let control = chars.next()?;
+            chars.next().is_none().then(|| (control as u32) & 0x1f)
+        }
+        b'0'..=b'7' => {
+            // `\NNN`: 1–3 octal digits, nothing more.
+            if payload.len() > 3 {
+                return None;
+            }
+            decode_char_literal_digits(payload, 8)
+        }
+        _ => {
+            // A named C-string escape or a backslash-escaped literal `\X` — each
+            // is exactly one following scalar.
+            let mut chars = payload.chars();
+            let escaped = chars.next()?;
+            if chars.next().is_some() {
+                return None;
+            }
+            Some(match escaped {
+                'a' => 0x07,
+                'b' => 0x08,
+                'e' => 0x1b,
+                'f' => 0x0c,
+                'n' => 0x0a,
+                'r' => 0x0d,
+                't' => 0x09,
+                other => other as u32,
+            })
+        }
+    }
+}
+
+/// Parse `digits` in `radix` (8 or 16) to a `u32`, rejecting an empty string, a
+/// sign, or any non-radix digit (`u32::from_str_radix` alone would accept a
+/// leading `+`/`-`). A value wider than `u32` (overflow) yields `None`.
+fn decode_char_literal_digits(digits: &str, radix: u32) -> Option<u32> {
+    if digits.is_empty() || !digits.chars().all(|c| c.is_digit(radix)) {
+        return None;
+    }
+    u32::from_str_radix(digits, radix).ok()
+}
+
 fn semantic_values_match(left: &UnifiedSemanticValue, right: &UnifiedSemanticValue) -> bool {
     match (scalar_text(left), scalar_text(right)) {
         (Some(left_text), Some(right_text)) => left_text == right_text,
@@ -4314,13 +4475,78 @@ mod tests {
         SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
         compile_default_profile, compile_layout_sensitivity, compile_profile_aliases,
         compile_quantified_separators, compile_rule_semantic_runtime_directives,
-        compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
+        compile_semantic_runtime_annotations, compare_codepoints,
+        decode_char_literal_to_codepoint, parse_semantic_runtime_directive,
         parse_semantic_runtime_directives,
     };
+    use crate::ast_pipeline::predicate_expr::CompareOp;
     use crate::ast_pipeline::{
         Annotations, ParseContent, ParseNode, SemanticAnnotation, UnifiedSemanticAST,
         UnifiedSemanticValue,
     };
+
+    // RULE-SPAN-VALUE-CONSTRAINT.3: direct coverage of the code-point decoder /
+    // comparison behind the `value_compare_codepoint` builtin (the differential
+    // suite proves it codegen⟷interpreter byte-identical; this pins the decode
+    // table itself, incl. the PCRE2-faithful numeric results).
+    #[test]
+    fn decode_char_literal_to_codepoint_covers_the_char_escape_vocabulary() {
+        // Bare single Unicode scalar → its code point.
+        assert_eq!(decode_char_literal_to_codepoint("a"), Some(97));
+        assert_eq!(decode_char_literal_to_codepoint("z"), Some(122));
+        assert_eq!(decode_char_literal_to_codepoint("0"), Some(48));
+        assert_eq!(decode_char_literal_to_codepoint("é"), Some(0xE9));
+        // Hex: `\xH` / `\xHH` / `\x{H..}`.
+        assert_eq!(decode_char_literal_to_codepoint("\\x30"), Some(0x30));
+        assert_eq!(decode_char_literal_to_codepoint("\\x9"), Some(0x9));
+        assert_eq!(decode_char_literal_to_codepoint("\\x{100}"), Some(0x100));
+        assert_eq!(decode_char_literal_to_codepoint("\\x{FF}"), Some(0xFF));
+        // Octal: `\NNN` (1–3) and `\o{O..}`.
+        assert_eq!(decode_char_literal_to_codepoint("\\101"), Some(65)); // 'A'
+        assert_eq!(decode_char_literal_to_codepoint("\\7"), Some(7));
+        assert_eq!(decode_char_literal_to_codepoint("\\o{132}"), Some(90)); // 'Z'
+        // Control: `\cX` → X & 0x1f.
+        assert_eq!(decode_char_literal_to_codepoint("\\cA"), Some(1));
+        assert_eq!(decode_char_literal_to_codepoint("\\cZ"), Some(26));
+        // Named C-string escapes.
+        assert_eq!(decode_char_literal_to_codepoint("\\a"), Some(0x07));
+        assert_eq!(decode_char_literal_to_codepoint("\\b"), Some(0x08));
+        assert_eq!(decode_char_literal_to_codepoint("\\e"), Some(0x1b));
+        assert_eq!(decode_char_literal_to_codepoint("\\f"), Some(0x0c));
+        assert_eq!(decode_char_literal_to_codepoint("\\n"), Some(0x0a));
+        assert_eq!(decode_char_literal_to_codepoint("\\r"), Some(0x0d));
+        assert_eq!(decode_char_literal_to_codepoint("\\t"), Some(0x09));
+        // Backslash-escaped literal `\X` → X's code point.
+        assert_eq!(decode_char_literal_to_codepoint("\\-"), Some(45));
+        assert_eq!(decode_char_literal_to_codepoint("\\\\"), Some(92));
+        // Undecodable → None (INAPPLICABLE): multi-char non-escape, malformed
+        // escape, empty, non-radix digits, out-of-range.
+        assert_eq!(decode_char_literal_to_codepoint("ab"), None);
+        assert_eq!(decode_char_literal_to_codepoint(""), None);
+        assert_eq!(decode_char_literal_to_codepoint("\\x{}"), None);
+        assert_eq!(decode_char_literal_to_codepoint("\\x{1G}"), None);
+        assert_eq!(decode_char_literal_to_codepoint("\\18"), None); // '8' not octal
+        assert_eq!(decode_char_literal_to_codepoint("\\xGG"), None);
+    }
+
+    #[test]
+    fn compare_codepoints_orders_by_decoded_scalar_not_text() {
+        // Descending literal: 'z'(122) > 'a'(97).
+        assert_eq!(compare_codepoints("z", CompareOp::Le, "a"), Some(false));
+        assert_eq!(compare_codepoints("a", CompareOp::Le, "z"), Some(true));
+        // Code-point-vs-textual discriminator: "\x{100}" sorts textually BEFORE
+        // "\x{FF}" ('1'<'F'), but the code points are 256 > 255.
+        assert_eq!(
+            compare_codepoints("\\x{100}", CompareOp::Gt, "\\x{FF}"),
+            Some(true)
+        );
+        // Cross-form equality: octal \101 == bare 'A' (both 65).
+        assert_eq!(compare_codepoints("\\101", CompareOp::Eq, "A"), Some(true));
+        // \a and \x07 are the same code point (7).
+        assert_eq!(compare_codepoints("\\a", CompareOp::Ne, "\\x07"), Some(false));
+        // An undecodable operand makes the whole comparison INAPPLICABLE (None).
+        assert_eq!(compare_codepoints("\\x{}", CompareOp::Lt, "z"), None);
+    }
 
     fn structured_named(
         name: &str,

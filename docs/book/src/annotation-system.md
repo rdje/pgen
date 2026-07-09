@@ -111,6 +111,13 @@ grammar opts in simply by writing the predicate — and evaluates byte-identical
 parser and the parse-harness interpreter (both call the shared semantic runtime). Full semantics: the
 *Value-comparison predicates* section of [The Semantic Store](semantic-store.md).
 
+A sibling built-in `value_compare_codepoint` takes the same shape but compares its operands by their
+decoded **Unicode code point** — each operand is decoded as a single character literal (a bare scalar
+or a standard C/Perl char escape: `\xHH`/`\x{H..}`, `\o{O..}`/`\NNN`, `\cX`, `\a \b \e \f \n \r \t`,
+or `\X`) before comparing — for constraints like a character-class range order (`[z-a]`, `[\x{100}-z]`)
+where a textual comparison would mis-order an escape spelling against a bare character. See the same
+Semantic Store section.
+
 ## Semantic Seeds, Linters, And Front-End Workbenches
 
 The next major widening for semantic annotations is not "more random annotation flexibility." It is a disciplined semantic-seed layer that downstream tools can trust.

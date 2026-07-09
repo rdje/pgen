@@ -33,6 +33,7 @@ Built-in predicate functions (the store-query vocabulary):
 | `len_bounds(min, max)` | the matched text length is within `[min, max]` |
 | `numeric_bounds(min, max)` | the matched numeric value is within `[min, max]` |
 | `value_compare(lhs, op, rhs)` | the two resolved captures compare true under `op` (see below) |
+| `value_compare_codepoint(lhs, op, rhs)` | like `value_compare`, but compares the operands' decoded Unicode **code points** (see below) |
 
 **`value_compare` — a rule-span value comparison (not a store query).** Unlike the fact predicates
 above, `value_compare` reads no store: it gates a rule on a comparison between **two of the rule's own
@@ -51,6 +52,24 @@ This is a **rule-span** constraint — distinct from the **atom-scoped** value g
 `@range`/`@len`/`@enum`/`@regex` (and `len_bounds`/`numeric_bounds` above), which each constrain a
 *single* matched value against a constant. A malformed shape is inapplicable (non-blocking); an
 unresolvable reference fails the rule loudly.
+
+**`value_compare_codepoint` — the same shape, compared by code point.** When the operands are
+character literals whose *code point* order matters (not their text), use `value_compare_codepoint`.
+It decodes each operand as a single character literal — a bare Unicode scalar, or the standard C/Perl
+char-escape vocabulary (hex `\xHH` / `\x{H..}`, octal `\o{O..}` / `\NNN`, control `\cX`, named
+`\a \b \e \f \n \r \t`, or a backslash-escaped literal `\X`) — and compares the two code points
+numerically:
+
+```ebnf
+# Reject a descending character-class range ([z-a], [\x{100}-a]):
+@predicate: { name: value_compare_codepoint, args: [$1, le, $5], phase: post }
+class_range := class_atom "-" class_atom -> { start: $1, end: $5 }
+```
+
+This matters where a textual comparison misleads — `"\x{100}"` sorts textually *before* `"\x{FF}"`
+(`'1' < 'F'`) though the code points are `256 > 255`. An operand that is not a single decodable
+character literal makes the comparison inapplicable (non-blocking). It decodes character literals, not
+grammar constructs, so it is parser-agnostic like every other built-in.
 
 Phasing and composition:
 

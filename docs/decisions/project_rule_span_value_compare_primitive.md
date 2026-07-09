@@ -73,6 +73,26 @@ dispatch arm serves both (proven by `parse_harness_semantic_gate` + `parse_harne
 A `codepoint`-decoding coercion mode for `.4.5` descending ranges (`[\x{100}-z]`) is a later, separate
 widening leaf, not v1.
 
+**THE CODE-POINT SIBLING `value_compare_codepoint` (RULE-SPAN-VALUE-CONSTRAINT.3, landed
+`PGEN-RSVC-0003`, 2026-07-09).** The deferred widening. It is a **sibling built-in**, not a
+`value_compare` mode/flag: same op-word map, same dispatch/registry pattern, but it decodes each operand
+as a single CHARACTER LITERAL — a bare Unicode scalar or the standard C/Perl char-escape vocabulary
+(hex `\xHH`/`\x{H..}`, octal `\o{O..}`/`\NNN`, control `\cX`, named `\a \b \e \f \n \r \t`, escaped
+literal `\X`) — to its Unicode code point, then compares the two code points numerically. Chosen over a
+`coerce: codepoint` payload key (which would touch the shared `SemanticPredicateSpec` every site
+constructs) and over auto-coercion inside `compare_values` (which would silently change the proven
+`value_compare`/`counted_quantifier` path): a sibling builtin is the minimal-code, ZERO-blast-radius
+realization, and code-point comparison is a genuinely distinct semantics (it never uses the `i64`/
+textual ladder) that merits its own discoverable name. WHY it is needed (tool-shown): class-range
+endpoints reach a rule-span predicate as RAW spellings via positional `$N`, and a textual/`i64`
+comparison mis-orders them (`"\x{100}" < "\x{FF}"` textually, but code points `256 > 255`). The decoder
+is a GENERAL character-literal decoder (nothing regex-specific), but its numeric results match the
+regex compile contract's `class_escape_literal_codepoint` on well-formed inputs so the first consumer
+(`REGEX-PCRE2-FIDELITY.4.5.c`, descending-range err 108) gets PCRE2-faithful ordering. Proven in
+isolation (`parse_harness_semantic_suite::sem_value_compare_codepoint`, 8 inputs; the semantic +
+equivalence gates green; direct decoder unit tests) — inert until a consumer adopts it, exactly like
+`value_compare`.
+
 **LANDED.** `RULE-SPAN-VALUE-CONSTRAINT.2` (`PGEN-RSVC-0002`, 2026-07-09). Touch: `predicate_expr.rs`
 (`CompareOp::from_word`), `semantic_runtime.rs` (`value_compare` arm + `compare_values` +
 `ENGINE_BUILTIN_PREDICATE_NAMES`), `parse_harness_semantic_suite.rs` (2 isolating constructs/cases).

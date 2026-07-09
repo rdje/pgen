@@ -3,9 +3,11 @@
 ## Metadata
 
 - Tree ID: `RULE-SPAN-VALUE-CONSTRAINT`
-- Status: `active` — **CORE COMPLETE** (`.1`+`.2` done 2026-07-09, session #77). The general primitive
-  is landed + proven in isolation; the remaining work is the downstream CONSUMER
-  `REGEX-PCRE2-FIDELITY.4.3` (a leaf of a different tree), so the FRONTIER passes to that tree.
+- Status: `active` — **CORE COMPLETE** (`.1`+`.2` done 2026-07-09, session #77); **`.3` the
+  code-point-coercion sibling `value_compare_codepoint` done 2026-07-09, session #81** (the widening
+  leaf the v1 Non-Goals deferred, driven by `REGEX-PCRE2-FIDELITY.4.5.c`). The general primitives are
+  landed + proven in isolation; downstream CONSUMERS (`REGEX-PCRE2-FIDELITY.4.3` for `value_compare`,
+  `.4.5.c.2` for `value_compare_codepoint`) are leaves of a different tree, so the FRONTIER passes there.
 - Family / slice-id prefix: `PGEN-RSVC-<NNNN>` (abbreviation of the tree name; used in commit subjects)
 - Roadmap lane: cross-cutting engine correctness — a **parser-agnostic** value-comparison predicate
   that lets the EBNF express a *rule-span* value constraint (compare two of a rule's resolved
@@ -210,7 +212,7 @@ entries / more surface for no expressive gain; the director's framing lists ops 
 
 ## Task Tree
 
-- ID: `RULE-SPAN-VALUE-CONSTRAINT`  Status: `active`  Children: `.1`, `.2`
+- ID: `RULE-SPAN-VALUE-CONSTRAINT`  Status: `active`  Children: `.1`, `.2`, `.3`
 - ID: `.1`  Status: **`done`** (`PGEN-RSVC-0001`, session #77)  Goal: tools-first scoping + design of
   the `value_compare` rule-span value-comparison primitive; touch-map; surface decision; the
   STALE-FRAMING finding. Acceptance: the §`.1` section above + the checklist. PURE-DOCS.
@@ -219,6 +221,18 @@ entries / more surface for no expressive gain; the director's framing lists ops 
   (semantic suite construct + cases, semantic gate + equivalence gate green), byte-identical
   codegen⟷interpreter; full NO-REGRESSION; book + decision-record lockstep. No shipped consumer in
   this slice. See the §`.2` implementation section + Acceptance Checklist below.
+- ID: `.3`  Status: **`done`** (`PGEN-RSVC-0003`, session #81)  Goal: the CODE-POINT-COERCION sibling
+  builtin `value_compare_codepoint` — the widening leaf the `.2` Non-Goals deferred ("a `codepoint`-
+  decoding coercion mode for `.4.5` descending ranges … is a later, separate widening leaf"). Decodes
+  each operand as a single CHARACTER LITERAL (bare Unicode scalar or the standard C/Perl char-escape
+  vocabulary — hex `\xHH`/`\x{H..}`, octal `\o{O..}`/`\NNN`, control `\cX`, named `\a \b \e \f \n \r
+  \t`, escaped literal `\X`) to its Unicode code point, then compares the two code points numerically.
+  The enabler for `REGEX-PCRE2-FIDELITY.4.5.c` (class-range order `[z-a]`/`[\x{100}-z]`), whose
+  endpoints reach the predicate as raw spellings a textual/`i64` `value_compare` mis-orders. Same
+  op-word map, same dispatch/registry pattern as `.2`; a SIBLING builtin (not a `value_compare` flag)
+  keeps zero blast radius on the proven `value_compare`/`counted_quantifier` path. Proven in ISOLATION
+  (semantic suite construct + 8-input case: all six ops, hex/octal/control/named decode, codepoint-vs-
+  textual discriminators, `None`-non-blocking anchor). See the §`.3` section + Acceptance Checklist below.
 
 ### `.2` IMPLEMENTATION (`PGEN-RSVC-0002`, 2026-07-09, session #77)
 
@@ -300,6 +314,104 @@ layer (rule fails loudly). Byte-identical codegen⟷interpreter by shared-runtim
   regenerated); decision record [[project_rule_span_value_compare_primitive]] + INDEX; `CHANGES.md`;
   `DEVELOPMENT_NOTES.md`; `MEMORY.md`; `docs/TASK_TREE.md`. No parser EBNF touched ⇒ no per-parser
   contract/ledger/release change (this is an ENGINE primitive, inert until a consumer adopts it).
+
+### `.3` IMPLEMENTATION (`PGEN-RSVC-0003`, 2026-07-09, session #81)
+
+**Why a SIBLING builtin, not a `value_compare` mode (surface decision, within-principle → engineer's
+call; recorded).** The `.2` Non-Goals deferred "a `codepoint`-decoding coercion mode" as a later
+widening leaf. Three realizations were weighed: (X) a new sibling builtin `value_compare_codepoint`;
+(Y) a `coerce: codepoint` payload key on `value_compare`; (Z) auto-coercion inside `compare_values`.
+**(X) chosen.** It is the minimal-code, zero-blast-radius realization: one dispatch arm + one registry
+line (the exact pattern `.2` used), with NO change to the shared `SemanticPredicateSpec` struct (which
+many sites construct — (Y) would touch all of them) and NO silent semantic change to the proven
+`value_compare`/`counted_quantifier` path ((Z) would). The code-point comparison is a genuinely
+DISTINCT semantics (decodes character literals; never the `i64`/textual ladder), so a distinct,
+discoverable NAME is more honest than a hidden flag. The director authorized the *capability* ("the
+`value_compare` codepoint-coercion widening"); a sibling builtin is the cleanest realization of it.
+(The `.2` precedent likewise rejected a 6-name op-family, but for "no expressive gain"; here the second
+name carries real expressive gain — code-point vs value semantics.)
+
+**Tool-grounded root cause (why a plain `value_compare` cannot own class-range order).** Tools-first
+`--parse-dump-ast-pretty` on representative ranges (session #81) showed the endpoints reach a rule-span
+predicate as RAW SPELLINGS via positional `$N` (RAWCAP-TRANSFORM-PATH.2 — proven for a `->` rule):
+`[a-z]`→`start:"a"`; `[\x30-\x39]`→raw `"\x30"`/`"\x39"`; `[\a-\e]`→raw `"\a"`/`"\e"` (the grammar's
+SHAPED view decodes `\a`→`"a"`, a LOSSY letter — so only the raw spelling is faithful). A textual/`i64`
+`compare_values` mis-orders these: textual `"\x{100}" < "\x{FF}"` (compares `'1'`<`'F'`) but the code
+points are `256 > 255`; `"\x30"` doesn't parse as `i64` at all. So the descending-range reject
+(`REGEX-PCRE2-FIDELITY.4.5.c`, PCRE2 err 108) needs a code-point-decoding comparison — exactly the
+widening `.2` deferred. WHERE: `evaluate_predicate` (`semantic_runtime.rs`) had no code-point arm;
+the PCRE2-faithful decode reference is `regex_compile_validation.rs::class_escape_literal_codepoint`.
+
+**What landed (mirrors the `.2` touch-map).**
+1. `rust/src/ast_pipeline/semantic_runtime.rs` — a `"value_compare_codepoint"` arm in
+   `evaluate_predicate` (exactly-3-args; `scalar_text` lhs/rhs + `CompareOp::from_word` op;
+   `compare_codepoints`; malformed shape → `None`) + registration in
+   `ENGINE_BUILTIN_PREDICATE_NAMES`; new free functions `compare_codepoints` +
+   `decode_char_literal_to_codepoint` + `decode_char_literal_digits` next to `compare_values`.
+2. `rust/src/parse_harness_semantic_suite.rs` — `SemanticConstruct::ValueCompareCodepoint` + `::ALL`
+   entry + the `sem_value_compare_codepoint` case (8 inputs).
+3. `CompareOp::from_word` (`predicate_expr.rs`): REUSED verbatim from `.2` (no change).
+4. Codegen / interpreter / grammar: **NO change** (both call the shared runtime; args generic).
+
+**The decoder (general, parser-agnostic).** `decode_char_literal_to_codepoint(&str) -> Option<u32>`
+decodes a WELL-FORMED single character literal — a bare single Unicode scalar, or a backslash escape
+in the standard C/Perl vocabulary: `\x{H..}` / `\xH` / `\xHH` (hex), `\o{O..}` / `\NNN` (1–3 octal),
+`\cX` (control, `X & 0x1f`), the named escapes `\a`(0x07) `\b`(0x08) `\e`(0x1b) `\f`(0x0c) `\n`(0x0a)
+`\r`(0x0d) `\t`(0x09), and a backslash-escaped literal `\X` (→ `X`'s code point). Anything that is not
+exactly one decodable character literal → `None`, so the predicate is INAPPLICABLE (non-blocking) on
+it. It decodes CHARACTER LITERALS, not grammar constructs — nothing regex-specific — but its numeric
+results MATCH `class_escape_literal_codepoint` on well-formed inputs, so the regex consumer gets
+PCRE2-faithful ordering. (It is intentionally STRICT where the validator has fallthrough quirks —
+e.g. `\18` → `None` here vs `49` there — because the consumer grammar tokenizes `\1` and `8` as
+separate atoms, so a malformed multi-token spelling never reaches this predicate.)
+
+**Semantics (final).** Holds iff `decode(lhs) <op> decode(rhs)` numerically (both `Option<u32>`
+`Some`); either operand undecodable → `None` (INAPPLICABLE / non-blocking); a `post`-failure rejects
+the rule backtrackably. Byte-identical codegen⟷interpreter by shared-runtime construction.
+
+#### `.3` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — before this slice `value_compare_codepoint` was not a builtin
+  (`ENGINE_BUILTIN_PREDICATE_NAMES` had 12 names, none a code-point comparison); a rule-span code-point
+  comparison over decoded char-literal endpoints — the shape `REGEX-PCRE2-FIDELITY.4.5.c` needs for
+  class-range order (`[z-a]` err 108) — had no grammar-expressible form (`value_compare`'s `i64`/textual
+  ladder mis-orders escape spellings, tool-shown: textual `"\x{100}" < "\x{FF}"` vs code points
+  `256 > 255`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `--parse-dump-ast-pretty` (session #81): class-range endpoints reach
+  a rule-span predicate as RAW spellings via positional `$N` (`"\x30"`, `"\a"`, `"z"`), and a
+  textual/`i64` comparison mis-orders them; `evaluate_predicate` (`semantic_runtime.rs`) had no
+  code-point-decoding arm; PCRE2-faithful decode reference =
+  `regex_compile_validation.rs::class_escape_literal_codepoint`. Both codegen POST/BRANCH loops and the
+  interpreter CALL the shared `evaluate_predicate`, so one new arm serves both.
+- [x] **FIX** — fix-tier ENGINE (a widening of the director-authorized general value-comparison
+  primitive; no lower tier can express a two-capture code-point comparison over decoded char literals):
+  the `value_compare_codepoint` builtin + `compare_codepoints` + `decode_char_literal_to_codepoint`,
+  reusing `.2`'s positional-`$N` resolution, `CompareOp::from_word`, and content-aware predicate
+  plumbing (no new syntax, no codegen/grammar change). SIBLING builtin (not a `value_compare` flag) →
+  zero blast radius on the proven path.
+- [x] **ADDRESSED (verified)** — `make -C rust SHELL=/bin/bash parse_harness_semantic_gate` GREEN:
+  `sem_value_compare_codepoint` CLEAN (8 inputs, diverge=0, anchor_miss=0), both gate tests pass
+  (`every_semantic_construct_is_byte_identical` + `semantic_construct_coverage_is_complete`). The 8
+  inputs: all-six-ops-satisfied baseline (ACCEPT), one-op-flipped-at-a-time (6× REJECT — incl. the
+  descending literal `bz-a` and the code-point-vs-textual discriminators `\x{FF}>\x{100}` and
+  `\a==\x07`), and an undecodable `\x{}` endpoint (ACCEPT — `None` non-blocking). Interpreter ==
+  compile-and-run oracle byte-identical throughout — the oracle compiles a throwaway crate through the
+  REAL codegen, so the generated-parser path is exercised directly (no separate scratch-slot demo
+  needed, unlike `.2` which pre-dated that coverage). Plus direct decoder unit tests
+  (`decode_char_literal_to_codepoint_covers_the_char_escape_vocabulary` — the full escape table incl.
+  the PCRE2-faithful numeric results and the strict `None` cases; `compare_codepoints_orders_by_
+  decoded_scalar_not_text` — the code-point-vs-textual discriminators).
+- [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` GREEN (the 11
+  certified grammars, incl. the 6 fully-certified, byte-identical — `value_compare_codepoint` inert on
+  every shipped grammar, none declares it); full dual lib suite `<FILL: N passed; 0 failed>` (the new
+  case is enumerated data, not a new `#[test]`); `clippy` source-clean. No grammar/codegen/cert logic
+  touched ⇒ cert-coverage unaffected by construction. The two `.2`-flagged inert sites confirmed
+  (`grammar_wellformedness.rs` `FACT_QUERY_PRIMITIVES` — not a fact-query; `stimuli_generator.rs`
+  store-aware witnessing — not a store-prelude gate).
+- [x] **LOCKSTEP** — platform book *Semantic Store* + *Annotation System* (`value_compare_codepoint`
+  alongside `value_compare`); `semantic_annotation` parser book steering-directives catalog; decision
+  record [[project_rule_span_value_compare_primitive]] widened to note the sibling; `CHANGES.md`;
+  `DEVELOPMENT_NOTES.md`; `MEMORY.md`; `docs/TASK_TREE.md`. No parser EBNF touched ⇒ no per-parser
+  contract/ledger/release change (ENGINE primitive, inert until a consumer adopts it).
 
 ## Downstream consumers (separate trees — consume this primitive AFTER `.2` proves it)
 

@@ -372,6 +372,34 @@ Like every built-in predicate, a malformed shape (wrong arity, or an unknown op
 word) evaluates to *inapplicable* (non-blocking); an **unresolvable** `$ref`
 argument is a loud grammar-author error (the rule fails), never a silent pass.
 
+#### Comparing by code point: `value_compare_codepoint`
+
+`value_compare` compares operands as **values** (integer when both parse, textual
+otherwise). Sometimes a rule needs to compare two captures by their decoded
+**Unicode code point** instead — for example a character-class range endpoint,
+where the two ends may be written as bare characters *or* escape spellings and
+the constraint is on their code points, not their text. `value_compare_codepoint`
+is the sibling built-in for exactly that:
+
+```ebnf
+# Reject a descending class range ([z-a], [\x{100}-a]): endpoints compared by code point.
+@predicate: { name: value_compare_codepoint, args: [$1, le, $5], phase: post }
+class_range := class_atom "-" class_atom -> { start: $1, end: $5 }
+```
+
+It takes the same op words (`lt`·`le`·`gt`·`ge`·`eq`·`ne`) and the same payload
+references. The difference is coercion: each operand is decoded as a single
+**character literal** — a bare Unicode scalar, or the standard C/Perl
+character-escape vocabulary shared across languages (hex `\xHH` / `\x{H..}`,
+octal `\o{O..}` / `\NNN`, control `\cX`, the named escapes `\a \b \e \f \n \r
+\t`, or a backslash-escaped literal `\X`) — to its code point, and the two code
+points are compared numerically. This is essential where a textual comparison
+misleads: `"\x{100}"` sorts textually *before* `"\x{FF}"` (because `'1' < 'F'`),
+but the code points are `256 > 255`. An operand that is not a single decodable
+character literal makes the comparison *inapplicable* (non-blocking), the same
+convention `value_compare` follows. It decodes character literals, not grammar
+constructs, so it is fully parser-agnostic.
+
 ## 7. Stage 4 — SCOPE: `@open_scope` / `@close_scope`
 
 Facts live in scopes. Scopes form a tree. You declare scope boundaries with:

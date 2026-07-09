@@ -205,6 +205,17 @@ pub enum SemanticConstruct {
     /// both implementations (the un-worked-around `REGEX-PCRE2-FIDELITY.4.3` shape). Post-fix: raw
     /// captured → the comparison decides the verdict, byte-identical interpreter vs oracle.
     ValueCompareUnderTransform,
+    /// RULE-SPAN-VALUE-CONSTRAINT.3: the CODE-POINT-coercion sibling builtin
+    /// `value_compare_codepoint` — decodes each operand as a single CHARACTER
+    /// LITERAL (a bare Unicode scalar or a standard C/Perl char escape: hex
+    /// `\xHH`/`\x{H..}`, octal `\o{O..}`/`\NNN`, control `\cX`, named
+    /// `\a \b \e \f \n \r \t`, escaped literal `\X`) to its Unicode code point,
+    /// then compares the two code points NUMERICALLY. The enabler for
+    /// `REGEX-PCRE2-FIDELITY.4.5.c` class-range order (`[z-a]`/`[\x{100}-z]`),
+    /// whose raw endpoint spellings a textual/`i64` `value_compare` mis-orders.
+    /// An operand that is not a single decodable character literal → `None`
+    /// (INAPPLICABLE / non-blocking). `post`-phase failure rejects the rule.
+    ValueCompareCodepoint,
 }
 
 impl SemanticConstruct {
@@ -241,6 +252,7 @@ impl SemanticConstruct {
         SemanticConstruct::ValueCompare,
         SemanticConstruct::ValueCompareBacktrack,
         SemanticConstruct::ValueCompareUnderTransform,
+        SemanticConstruct::ValueCompareCodepoint,
     ];
 }
 
@@ -1036,6 +1048,57 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
                the transform shadows it (pre-fix it hard-errored → REJECT; the un-worked-around \
                REGEX-PCRE2-FIDELITY.4.3 shape). Named refs on `->` rules keep resolving against the \
                shaped Json (SEMREF-SHAPED), so this narrow positional capture cannot regress them",
+    },
+    // ── RULE-SPAN-VALUE-CONSTRAINT.3: the value_compare_codepoint builtin ────────────────────────────
+    SemanticCase {
+        name: "sem_value_compare_codepoint",
+        construct: SemanticConstruct::ValueCompareCodepoint,
+        // Six `value_compare_codepoint` post-gates, one per op, over two positional captures ($2, $4)
+        // of each pair rule (`<letter> catom "-" catom ";"`). The whole `program` requires all six
+        // pairs, so flipping ONE pair to violate its op yields a whole-program REJECT — a live, per-op
+        // discriminating anchor. `catom := /[^-;]+/` captures each raw endpoint SPELLING (the leading
+        // letters + `-`/`;` delimiters bound the pairs; no layout needed). Each op decodes both
+        // operands as a CODE POINT before comparing: bare char (`a`/`z`), hex `\x30`/`\x{100}`/`\x{FF}`,
+        // octal `\101`/`\102`, control `\cA`/`\cB`, named `\a`. Several inputs discriminate code-point
+        // from textual/`i64` ordering (a plain `value_compare` would give the OPPOSITE verdict).
+        grammar_body: "program := lt_p le_p gt_p ge_p eq_p ne_p\n\
+                       @predicate: { name: value_compare_codepoint, args: [$2, lt, $4], phase: post }\n\
+                       lt_p := \"a\" catom \"-\" catom \";\"\n\
+                       @predicate: { name: value_compare_codepoint, args: [$2, le, $4], phase: post }\n\
+                       le_p := \"b\" catom \"-\" catom \";\"\n\
+                       @predicate: { name: value_compare_codepoint, args: [$2, gt, $4], phase: post }\n\
+                       gt_p := \"c\" catom \"-\" catom \";\"\n\
+                       @predicate: { name: value_compare_codepoint, args: [$2, ge, $4], phase: post }\n\
+                       ge_p := \"d\" catom \"-\" catom \";\"\n\
+                       @predicate: { name: value_compare_codepoint, args: [$2, eq, $4], phase: post }\n\
+                       eq_p := \"e\" catom \"-\" catom \";\"\n\
+                       @predicate: { name: value_compare_codepoint, args: [$2, ne, $4], phase: post }\n\
+                       ne_p := \"f\" catom \"-\" catom \";\"\n\
+                       catom := /[^-;]+/\n",
+        inputs: &[
+            // All six ops satisfied → ACCEPT. lt 48<57 (\x30,\x39); le 97<=122 (a,z); gt 256>255
+            // (\x{100},\x{FF}) — the gt pair ALSO discriminates code-point from textual ("\x{100}"
+            // sorts BEFORE "\x{FF}", so textual gt would be FALSE); ge 2>=1 (\cB,\cA control decode);
+            // eq 65==65 (\101 octal == bare A — textual "\101"!="A", so an ACCEPT proves cross-form
+            // code-point equality); ne 7!=98 (\a named escape != b).
+            ("a\\x30-\\x39;ba-z;c\\x{100}-\\x{FF};d\\cB-\\cA;e\\101-A;f\\a-b;", true),
+            // One op violated at a time (rest satisfied) → whole-program REJECT (per-op discriminating).
+            ("a\\x39-\\x30;ba-z;c\\x{100}-\\x{FF};d\\cB-\\cA;e\\101-A;f\\a-b;", false), // lt: 57<48 false
+            ("a\\x30-\\x39;bz-a;c\\x{100}-\\x{FF};d\\cB-\\cA;e\\101-A;f\\a-b;", false), // le: 122<=97 false (DESCENDING literal, the .4.5.c headline)
+            ("a\\x30-\\x39;ba-z;c\\x{FF}-\\x{100};d\\cB-\\cA;e\\101-A;f\\a-b;", false), // gt: 255>256 false (textual "\x{FF}">"\x{100}" TRUE — proves code-point)
+            ("a\\x30-\\x39;ba-z;c\\x{100}-\\x{FF};d\\cA-\\cB;e\\101-A;f\\a-b;", false), // ge: 1>=2 false
+            ("a\\x30-\\x39;ba-z;c\\x{100}-\\x{FF};d\\cB-\\cA;e\\102-A;f\\a-b;", false), // eq: 66==65 false (\102 octal)
+            ("a\\x30-\\x39;ba-z;c\\x{100}-\\x{FF};d\\cB-\\cA;e\\101-A;f\\a-\\x07;", false), // ne: 7!=7 false (\a==\x07, textual "\a"!="\x07" TRUE — proves code-point)
+            // Undecodable operand (`\x{}` empty braces) → decode None → the gt gate is INAPPLICABLE
+            // (non-blocking), so the pair is NOT rejected and, with the rest satisfied, the program
+            // ACCEPTS — proving the `?`-on-malformed / None-non-blocking convention.
+            ("a\\x30-\\x39;ba-z;c\\x{}-\\x{FF};d\\cB-\\cA;e\\101-A;f\\a-b;", true),
+        ],
+        entry_rule: None,
+        note: "value_compare_codepoint over positional captures: all six ops each verdict-changing with \
+               hex/octal/control/named-escape endpoints, code-point-vs-textual discriminators \
+               (\\x{FF} vs \\x{100}; \\a vs \\x07; descending literal z-a), and a None-non-blocking \
+               anchor — the proving shape for REGEX-PCRE2-FIDELITY.4.5.c class-range order",
     },
 ];
 

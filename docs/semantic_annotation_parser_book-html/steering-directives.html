@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6cdfad2f.js";
+            window.path_to_searchindex_js = "searchindex-89654881.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -211,6 +211,7 @@ known_type_identifier := identifier
 <tr><td><code>len_bounds(min, max)</code></td><td>the matched text length is within <code>[min, max]</code></td></tr>
 <tr><td><code>numeric_bounds(min, max)</code></td><td>the matched numeric value is within <code>[min, max]</code></td></tr>
 <tr><td><code>value_compare(lhs, op, rhs)</code></td><td>the two resolved captures compare true under <code>op</code> (see below)</td></tr>
+<tr><td><code>value_compare_codepoint(lhs, op, rhs)</code></td><td>like <code>value_compare</code>, but compares the operands’ decoded Unicode <strong>code points</strong> (see below)</td></tr>
 </tbody>
 </table>
 </div>
@@ -228,6 +229,20 @@ This is a <strong>rule-span</strong> constraint — distinct from the <strong>at
 <code>@range</code>/<code>@len</code>/<code>@enum</code>/<code>@regex</code> (and <code>len_bounds</code>/<code>numeric_bounds</code> above), which each constrain a
 <em>single</em> matched value against a constant. A malformed shape is inapplicable (non-blocking); an
 unresolvable reference fails the rule loudly.</p>
+<p><strong><code>value_compare_codepoint</code> — the same shape, compared by code point.</strong> When the operands are
+character literals whose <em>code point</em> order matters (not their text), use <code>value_compare_codepoint</code>.
+It decodes each operand as a single character literal — a bare Unicode scalar, or the standard C/Perl
+char-escape vocabulary (hex <code>\xHH</code> / <code>\x{H..}</code>, octal <code>\o{O..}</code> / <code>\NNN</code>, control <code>\cX</code>, named
+<code>\a \b \e \f \n \r \t</code>, or a backslash-escaped literal <code>\X</code>) — and compares the two code points
+numerically:</p>
+<pre><code class="language-ebnf"># Reject a descending character-class range ([z-a], [\x{100}-a]):
+@predicate: { name: value_compare_codepoint, args: [$1, le, $5], phase: post }
+class_range := class_atom "-" class_atom -&gt; { start: $1, end: $5 }
+</code></pre>
+<p>This matters where a textual comparison misleads — <code>"\x{100}"</code> sorts textually <em>before</em> <code>"\x{FF}"</code>
+(<code>'1' &lt; 'F'</code>) though the code points are <code>256 &gt; 255</code>. An operand that is not a single decodable
+character literal makes the comparison inapplicable (non-blocking). It decodes character literals, not
+grammar constructs, so it is parser-agnostic like every other built-in.</p>
 <p>Phasing and composition:</p>
 <ul>
 <li><code>phase:</code> routes evaluation — <code>@predicate: {phase: branch, …}</code> makes the predicate <strong>branch-local</strong>
