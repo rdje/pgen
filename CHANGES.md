@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-ROADMAP-0003 (regex roadmap logged): SPEED (RGX-0078) elevated as THE critical regex issue + REGEX-CODE-HOOKS tree for `(??{...})` + corrected Perl5 note (PURE-DOCS)
+
+Session #73. Pure-docs logging of the director's regex-roadmap direction (no code/grammar/regen). Sequencing:
+**regex FEATURE-COMPLETE first → SPEED (headline priority) → Perl5-only matrix (future).** Landed:
+
+- **New tree `docs/tasks/RGX-0078.md`** (`queued`, precondition = feature-complete): activates the previously
+  decision-record-only speed work. Director-elevated — SPEED is THE critical regex issue (the feature set is
+  strong; PGEN regex parse = RGX compile-time is ~360× slower than PCRE2 no-JIT / ~85× JIT). Closure =
+  geomean(PGEN-parse / PCRE2-compile) `< 5×`. Profile-first; likely STRUCTURAL (arena/`ParseNode`/memo).
+- **New tree `docs/tasks/REGEX-CODE-HOOKS.md`** (`active`): documents the ALREADY-LANDED `(?{...})` /
+  `(?{lang:...})` embedded-code family (backends `lua`/`js`/`javascript`/`rhai`/`native`/`wasm`; RGX executes,
+  "runtime out of scope" for PGEN) as `.1`; owns `.2` = add the postponed sibling `(??{...})` via the SAME
+  mechanism (a distinct `dynamic_code_block` carrier). A regex feature-completeness prerequisite for RGX-0078.
+- **Corrected `docs/decisions/project_regex_perl5_feature_gap_direction.md`**: my first-draft claim that
+  `(?{...})` is a "Perl-only, parse-shape-only, never-execute" gap was WRONG — tool-verified in `regex.ebnf`
+  that it is already a PGEN extension. Reframed: the genuine Perl5-only gap is small (`\b{wb/sb/gcb/lb}`,
+  variable-length lookbehind, user-defined `\p{Is…}`) → a future exhaustive `perl`-oracle matrix + `perl5`
+  `@profiles` axis. Sequencing corrected to put SPEED as the headline.
+- `docs/TASK_TREE.md` (both trees added), `docs/decisions/INDEX.md`, `MEMORY.md` updated. Immediate
+  next_action remains `REGEX-PCRE2-FIDELITY.4.6` (continue PCRE2 parity). Status rows unchanged (`regex` `Done`).
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0023 (REGEX-PCRE2-FIDELITY.4.1): the bare `\p`/`\P` Unicode-property escape is now GRAMMAR-owned — behavior-neutral validator→grammar migration (regex release `1.1.89`→`1.1.90`, contract `1.1.91`→`1.1.92`, schema `1`, ledger REGEX-0100)
 
 Session #73. A RELEASED regex slice (grammar edit + regen + full lockstep), the first `.4` deletion-prep
