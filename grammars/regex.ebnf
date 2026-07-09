@@ -875,8 +875,16 @@ class_range_literal_escape_letter = class_range_literal_escape_letter_strict | c
 # letters they were reachable as a range ENDPOINT (`[\A-x]` / `[\z-\x{FFFF}]` parse via the RANGE
 # path, which the member-side `class_simple_escape_*` guards do not cover). Dropping them here,
 # together with the member guards, makes every `\A`/`\G`/`\z`-in-class form hard-REJECT.
-class_range_literal_escape_letter_strict = 'I' | 'J' | 'M' | 'O' | 'T' | 'V' | 'Y'
-                                         | 'a' | 'b' | 'e' | 'f' | 'g' | 'j' | 'k' | 'm' | 'n' | 'o' | 'q' | 'r' | 't' | 'v' | 'x' | 'y'
+# REGEX-PCRE2-FIDELITY.4.5.a.1: `V` (upper) and `v` (lower) are likewise DROPPED — `\v` / `\V` are the
+# VERTICAL-whitespace shorthands (the analogs of `\h` / `\H`, which were never range letters), so PCRE2
+# rejects them as a range ENDPOINT (err 150 "invalid range", NONLITERAL) even though they are valid class
+# MEMBERS. They were reachable as a range endpoint via this set (`[\v-x]` / `[a-\v]` accepts-invalid);
+# dropping them here (members still match `class_simple_escape`, `v`/`V` unguarded) makes `\v`/`\V` behave
+# byte-identically to `\h`/`\H`, and the paired `is_nonliteral_class_escape` fix (validator) supplies the
+# err-150 reject. Removing the range endpoint also stops the store-aware generator from emitting `\v`-ranges
+# (duality-safe). `\013`/`\x0b` (codepoint 11 via octal/hex) stay LITERAL, valid range endpoints — untouched.
+class_range_literal_escape_letter_strict = 'I' | 'J' | 'M' | 'O' | 'T' | 'Y'
+                                         | 'a' | 'b' | 'e' | 'f' | 'g' | 'j' | 'k' | 'm' | 'n' | 'o' | 'q' | 'r' | 't' | 'x' | 'y'
 @profiles: ["relaxed"]
 class_range_literal_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'
 letter_no_upper_e = 'A' | 'B' | 'C' | 'D' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'

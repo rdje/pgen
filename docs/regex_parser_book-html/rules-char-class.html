@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2b310153.js";
+            window.path_to_searchindex_js = "searchindex-8d27c87b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -439,6 +439,11 @@ reach paths:</p>
 in the pattern body via <code>escape_unit</code>).</li>
 <li><code>A</code>, <code>G</code>, <code>z</code> are dropped from <code>class_range_literal_escape_letter_strict</code> — they were reachable as
 a range <em>endpoint</em> (<code>[\A-x]</code>, <code>[\z-\x{FFFF}]</code>), which the member-side guards do not cover.</li>
+<li><code>V</code>, <code>v</code> are dropped from <code>class_range_literal_escape_letter_strict</code> (<code>.4.5.a.1</code>, <code>REGEX-0106</code>) — the
+vertical-whitespace shorthands are NONLITERAL (like <code>\h</code>/<code>\H</code>), so PCRE2 rejects them as a range
+<em>endpoint</em> (err 150) even though they are valid class <em>members</em>. They stay valid members via
+<code>class_simple_escape</code>; removing the range endpoint (paired with the validator’s <code>is_nonliteral_class_escape</code>
+gaining <code>v</code>/<code>V</code>) makes <code>\v</code>/<code>\V</code> behave byte-identically to <code>\h</code>/<code>\H</code>.</li>
 </ol>
 <div class="table-wrapper">
 <table>
@@ -447,8 +452,9 @@ a range <em>endpoint</em> (<code>[\A-x]</code>, <code>[\z-\x{FFFF}]</code>), whi
 </thead>
 <tbody>
 <tr><td><code>[\B]</code>, <code>[\K]</code>, <code>[\C]</code>, <code>a[\NB]c</code>, <code>[\A-x]</code>, <code>[a-\B]</code>, <code>[\z-\x{FFFF}]</code></td><td>REJECT</td><td>escape invalid as a class member (err 137/108)</td></tr>
-<tr><td><code>[\d]</code>, <code>[\w]</code>, <code>[\s]</code>, <code>[\b]</code> (backspace), <code>[\n]</code>, <code>[\a]</code>, <code>[\e]</code></td><td>ACCEPT</td><td>legal class shorthand / c-escape</td></tr>
-<tr><td><code>[\N{U+00E9}]</code>, <code>[\pL]</code>, <code>[\x41]</code>, <code>[\g]</code>, <code>[\j]</code>, <code>[\k]</code></td><td>ACCEPT</td><td>braced <code>\N{…}</code> / property / hex / literal-transport letter</td></tr>
+<tr><td><code>[\v-x]</code>, <code>[\V-x]</code>, <code>[a-\v]</code></td><td>REJECT</td><td>vertical-whitespace shorthand is a NONLITERAL range endpoint (err 150)</td></tr>
+<tr><td><code>[\d]</code>, <code>[\w]</code>, <code>[\s]</code>, <code>[\b]</code> (backspace), <code>[\n]</code>, <code>[\a]</code>, <code>[\e]</code>, <code>[\v]</code>, <code>[\V]</code></td><td>ACCEPT</td><td>legal class shorthand / c-escape (member)</td></tr>
+<tr><td><code>[\N{U+00E9}]</code>, <code>[\pL]</code>, <code>[\x41]</code>, <code>[\x0b-\x0c]</code>, <code>[\g]</code>, <code>[\j]</code>, <code>[\k]</code></td><td>ACCEPT</td><td>braced <code>\N{…}</code> / property / hex range / literal-transport letter</td></tr>
 <tr><td><code>[\I-x]</code>, <code>[\a-x]</code>; body <code>\B</code>, <code>\K</code>, <code>\A</code>, <code>\z</code> (outside a class)</td><td>ACCEPT</td><td>valid literal range / valid pattern-body anchor</td></tr>
 </tbody>
 </table>
@@ -553,8 +559,9 @@ minus <code>^</code>, used only for the first-visible slot of a non-negated clas
 through the <code>class_range_escape</code> passthrough.</p>
 <h2 id="class_range_simple_escape-class_range_any_char_no_orphan_quote_end-class_range_literal_escape_letter"><a class="header" href="#class_range_simple_escape-class_range_any_char_no_orphan_quote_end-class_range_literal_escape_letter"><code>class_range_simple_escape</code>, <code>class_range_any_char_no_orphan_quote_end</code>, <code>class_range_literal_escape_letter</code></a></h2>
 <p>Inner sub-rules controlling which escaped letters can act as class-range endpoints (the
-strict variant already excludes <code>E</code>/<code>Q</code> and the six <code>.3.1</code> PCRE2-unsupported letters; the
-<code>relaxed</code> profile re-admits the latter six). Consumers rarely walk these — the outer
+strict variant already excludes <code>E</code>/<code>Q</code>, the six <code>.3.1</code> PCRE2-unsupported letters, <code>A</code>/<code>G</code>/<code>z</code>
+(<code>.4.4</code>), and <code>V</code>/<code>v</code> (<code>.4.5.a.1</code> — the nonliteral vertical-whitespace shorthands); the
+<code>relaxed</code> profile re-admits the six <code>.3.1</code> letters only). Consumers rarely walk these — the outer
 <code>class_range_escape</code> passthrough is the shape that surfaces.</p>
 <h2 id="posix_negation-posix_name-letter_no_upper_e"><a class="header" href="#posix_negation-posix_name-letter_no_upper_e"><code>posix_negation</code>, <code>posix_name</code>, <code>letter_no_upper_e</code></a></h2>
 <p>Inner POSIX sub-rules (<code>posix_negation -&gt; true</code>; <code>posix_name</code> emits the matched name string).

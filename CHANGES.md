@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0032 — REGEX-PCRE2-FIDELITY.4.5.a.1: the `\v` / `\V` class-range accepts-invalid FIX (a genuine correctness fix, sibling of REGEX-0105; NOT a neutral migration)
+
+Released regex slice — release `1.1.95`→`1.1.96`, contract `1.1.97`→`1.1.98`, schema `1`, ledger `REGEX-0106`.
+
+**The bug.** The vertical-whitespace shorthands `\v` / `\V` were treated as LITERAL class-range endpoints, so
+`[\v-x]`, `[\V-x]`, `[a-\v]` were **accepts-invalid** — the released parser (grammar AND the out-of-band
+validator) BOTH accepted patterns `pcre2test` 10.47 rejects err 150 "invalid range". Surfaced while mapping
+the COMPLETE nonliteral class-range endpoint set for the (deferred) `.4.5.b` grammar migration.
+
+**Root cause (WHY + WHERE), two halves.** (validator) `regex_compile_validation.rs::is_nonliteral_class_escape`
+enumerated the nonliteral shorthands `\d \D \h \H \s \S \w \W` (+ `\p` `\P`) but OMITTED `\v` / `\V`, so a
+`\v` / `\V` range endpoint fell through to `class_escape_literal_codepoint`'s `_ => next as u32` and decoded
+to literal `118` / `86` (an ascending range that accepted). (grammar) `grammars/regex.ebnf`'s
+`class_range_literal_escape_letter_strict` listed `v` / `V`, so `\v` / `\V` formed a `class_range` endpoint —
+feeding the validator's mis-read AND letting the store-aware generator emit `\v`-ranges. The already-correct
+horizontal analogs `\h` / `\H` are handled the right way (members only, never range endpoints).
+
+**The fix (GRAMMAR + VALIDATOR tier — make `\v` / `\V` byte-identical to `\h` / `\H`).** (1) drop `'V'` / `'v'`
+from `class_range_literal_escape_letter_strict` (members via `class_simple_escape` untouched ⇒ `[\v]` / `[\V]`
+stay valid; no longer generated as range endpoints ⇒ duality-safe); (2) add `b'v' | b'V'` to
+`is_nonliteral_class_escape` ⇒ err-150 reject. Hex/octal endpoints of the same code point (`[\x0b-\x0c]`,
+`[\013-\014]`) stay literal and valid — only the shorthand form is nonliteral. A validator-only fix was
+rejected: it would leave the generator emitting `\v`-ranges the corrected validator rejects (a new duality
+break); the grammar half is required. The class-range validity family stays validator-owned pending the
+deferred `.4.5.b` / `.4.5.c` grammar migration (which now covers a uniformly-correct nonliteral family).
+
+**Behavior change (NOT neutral).** `[\v-x]`, `[\V-x]`, `[a-\v]` flip ACCEPT→REJECT (`E_PARSE_FAILURE` — match
+on code, not text). `[a-\V]` stays REJECT (was err-108 descending, now err-150 nonliteral). Members + hex/octal
+ranges + all other cells byte-identical, both profiles.
+
+**Verified.** Full release-probe matrix == `pcre2test` 10.47 (0 divergences). `regex_pcre2_compile_oracle_gate`
+byte-identical `2189/1867/274/48` (the corpus has no `\v` / `\V` class-range cells — corpus-invisible, proven
+by the direct oracle sweep + the new validator unit pin `rejects_vertical_whitespace_shorthand_class_range_endpoints`,
+the same class as `.3.21`). regex cert `239/239/0 fully_certified spf=0` ×seeds 0/7/42 (UNCHANGED); `--lint-grammar`
+0 errors (239 rules); `duality_hunt_gate` 9 lanes NO new/vanished signature; `parse_harness_equivalence_gate`
+regex byte-identical; `ast_shape_contract` inventory 221 UNCHANGED. Lockstep: ledger `REGEX-0106`, consts
+`1.1.96` / `1.1.98`, tracked contract JSON, contract Identity + Highlights, regex book (validator + changelog +
+`rules-char-class` + HTML), top book parser-families chain, the tree + `docs/TASK_TREE.md` + `MEMORY.md` +
+`LIVE_ACHIEVEMENT_STATUS.md` + `DEVELOPMENT_NOTES.md`.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0031 — REGEX-PCRE2-FIDELITY.4.5.a: the `-[` / `-||` class-range accepts-invalid FIX (a genuine correctness fix, NOT a neutral migration)
 
 Released regex slice — release `1.1.94`→`1.1.95`, contract `1.1.96`→`1.1.97`, schema `1`, ledger `REGEX-0105`.

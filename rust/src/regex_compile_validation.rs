@@ -649,7 +649,13 @@ fn is_nonliteral_class_escape(bytes: &[u8], index: usize, after_escape: usize) -
     let Some(next) = bytes.get(index + 1).copied() else {
         return false;
     };
-    matches!(next, b'd' | b'D' | b'h' | b'H' | b's' | b'S' | b'w' | b'W')
+    // REGEX-PCRE2-FIDELITY.4.5.a.1: `v` / `V` (the VERTICAL-whitespace shorthands) were MISSING from this
+    // set, so a `\v`/`\V` range endpoint decoded to a literal codepoint (`\v`→118, `\V`→86) in
+    // `class_escape_literal_codepoint` and `[\v-x]` / `[a-\v]` accepted-invalid. They are NONLITERAL — the
+    // analogs of `\h`/`\H` — so PCRE2 rejects them as a range endpoint (err 150). Paired with dropping
+    // `v`/`V` from `class_range_literal_escape_letter_strict` in the grammar so they are no longer generated
+    // as range endpoints. `\h` matches the horizontal shorthands; `\v`/`\V` the vertical.
+    matches!(next, b'd' | b'D' | b'h' | b'H' | b's' | b'S' | b'v' | b'V' | b'w' | b'W')
         || matches!(next, b'p' | b'P') && after_escape > index + 2
 }
 
@@ -1668,6 +1674,29 @@ mod tests {
     fn rejects_descending_class_range() {
         let error = validate_regex_compile_contract("[z-a]").expect_err("must reject [z-a]");
         assert!(error.message.contains("descending"));
+    }
+
+    #[test]
+    fn rejects_vertical_whitespace_shorthand_class_range_endpoints() {
+        // REGEX-PCRE2-FIDELITY.4.5.a.1: `\v` / `\V` (vertical-whitespace shorthands) are NONLITERAL range
+        // endpoints — pcre2test 10.47 rejects each err 150 "invalid range". Before the fix
+        // `is_nonliteral_class_escape` omitted `v`/`V` so they decoded to a literal codepoint and the ranges
+        // accepted-invalid. A `\v`/`\V` on EITHER side of the dash is invalid.
+        for input in ["[\\v-x]", "[\\V-x]", "[a-\\v]", "[a-\\V]", "[\\v-\\v]", "[\\d-\\v]", "[\\v-\\d]"] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("vertical-whitespace shorthand range endpoint must reject");
+            assert!(
+                error.message.contains("invalid character class range"),
+                "{input} must reject as an invalid (nonliteral) range, got: {}",
+                error.message
+            );
+        }
+        // Valid MEMBERS (not range endpoints) stay accepted, and codepoint-11 ranges via HEX/OCTAL are LITERAL
+        // endpoints (only the range-LETTER shorthand path is nonliteral).
+        for input in ["[\\v]", "[\\V]", "[a\\vb]", "[\\x0b-\\x0c]", "[\\013-\\014]"] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input} must stay accepted, got: {}", err.message));
+        }
     }
 
     #[test]

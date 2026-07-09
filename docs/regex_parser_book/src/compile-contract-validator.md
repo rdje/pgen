@@ -52,7 +52,7 @@ one instance is the only one and it can only ever shrink.
 
 ## The remaining check families
 
-As of regex release `1.1.95`, the validator dispatches these families (each row is a
+As of regex release `1.1.96`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 
@@ -70,6 +70,18 @@ As of regex release `1.1.95`, the validator dispatches these families (each row 
 > `.4.5.b`/`.4.5.c`); this release just makes the existing check correct. A **separate** newly-found divergence
 > — STANDALONE collating `[[.a.]]` / equivalence `[[=a=]]` members (PCRE2 err 113, PGEN accepts) — is tracked
 > as `.4.12` and NOT addressed here.
+>
+> **`1.1.96` (REGEX-0106, `.4.5.a.1`) — a SECOND range-validity *correctness fix*.** The vertical-whitespace
+> shorthands `\v` / `\V` were treated as LITERAL range endpoints, so `[\v-x]`, `[\V-x]`, `[a-\v]` were
+> **accepts-invalid** (PCRE2 err 150). Root cause, two halves: the validator's `is_nonliteral_class_escape`
+> omitted `v` / `V` from the nonliteral set (so they decoded to literal `118` / `86`), and the grammar's
+> `class_range_literal_escape_letter_strict` listed `v` / `V` (so they formed a range endpoint, and the
+> generator could emit `\v`-ranges). The fix makes `\v` / `\V` byte-identical to their already-correct
+> horizontal analogs `\h` / `\H`: dropped from the grammar range-letter set (members via `class_simple_escape`
+> untouched; duality-safe) and added to `is_nonliteral_class_escape` (err-150 reject). Members `[\v]` / `[\V]`
+> and hex/octal endpoints of the same code point (`[\x0b-\x0c]`) stay valid. The class-range family **stays
+> validator-owned** pending `.4.5.b`/`.4.5.c`. Oracle byte-identical (`2189/1867/274/48` — corpus-invisible,
+> proven by the direct `pcre2test` sweep + the unit pin).
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
 | **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |

@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0032 — REGEX-PCRE2-FIDELITY.4.5.a.1: `\v` / `\V` class-range accepts-invalid fix (grammar + validator tier)
+
+**Surfaced by the `.4.5.b` investigation (tools-first).** While mapping the COMPLETE nonliteral class-range
+endpoint set for the planned `.4.5.b` grammar migration, a `pcre2test` 10.47 sweep (`[\L-~]` over every
+candidate escape letter) found the nonliteral shorthand set is `\d \D \h \H \s \S \v \V \w \W` + `\p{}` `\P{}`,
+but the released parser handled only `\d \D \h \H \s \S \w \W \p \P`. `\v` / `\V` (the VERTICAL-whitespace
+shorthands, analogs of `\h` / `\H`) were accepts-invalid as range endpoints: `[\v-x]`, `[\V-x]`, `[a-\v]`
+ACCEPTED where PCRE2 rejects err 150.
+
+**Root cause (two halves).** (validator) `is_nonliteral_class_escape` (`regex_compile_validation.rs:648-654`)
+omitted `v` / `V`, so they decoded to literal `118` / `86` in `class_escape_literal_codepoint` (`:635`).
+(grammar) `class_range_literal_escape_letter_strict` (`regex.ebnf:878-879`) listed `v` / `V`, so they formed
+a `class_range` endpoint AND the store-aware generator could emit `\v`-ranges. `\h` / `\H` were already correct
+(members only + in the validator's nonliteral set).
+
+**Fix (make `\v` / `\V` consistent with `\h` / `\H`).** Drop `'V'` / `'v'` from the grammar range-letter set
+(members via `class_simple_escape` untouched; stops `\v`-range generation ⇒ duality-safe) + add `b'v' | b'V'`
+to `is_nonliteral_class_escape` (err-150 reject). Hex/octal endpoints of the same code point (`[\x0b-\x0c]`)
+stay literal/valid — only the range-LETTER shorthand path is touched. A validator-only fix was rejected (would
+keep generating `\v`-ranges the corrected validator rejects ⇒ a new duality break); the grammar half is
+required. Behavior-CHANGING: `[\v-x]` `[\V-x]` `[a-\v]` flip ACCEPT→REJECT. The class-range family stays
+validator-owned pending `.4.5.b` / `.4.5.c` (which now migrate a uniformly-correct nonliteral family).
+
+**Distinct from `.3.11`.** The oracle sweep also showed the range-letter set contains invalid-escape letters
+`\I \J \M \O \T \Y \j \m \q \y` (err 107 "unrecognized character", invalid EVERYWHERE — member and range) —
+a separate, `.3.11`-owned concern. `\v` / `\V` are cleanly separable (valid MEMBERS, invalid only as range
+endpoints), so this fix is surgical to them. Ledger `REGEX-0106`; release `1.1.95`→`1.1.96` / contract
+`1.1.97`→`1.1.98`; oracle byte-identical `2189/1867/274/48` (corpus-invisible).
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0031 — REGEX-PCRE2-FIDELITY.4.5.a: `-[` / `-||` class-range accepts-invalid fix (validator tier)
 
 **Root cause (tools-first, pinned).** `regex_compile_validation.rs::scan_char_class` gated both range

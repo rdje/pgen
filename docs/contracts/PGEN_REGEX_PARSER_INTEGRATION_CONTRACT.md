@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.97`
+  - `1.1.98`
 - Parser release version:
-  - `1.1.95`
+  - `1.1.96`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,23 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.96 / Contract 1.1.98 Highlights — REGEX-0106: `\v` / `\V` class-range validity fix (a genuine accepts-invalid correction — NOT behavior-neutral)
+
+**Bug ledger:** `REGEX-0106` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.4.5.b` tools-first investigation while mapping the COMPLETE nonliteral class-range endpoint set. **This is a behavior-CHANGING correctness fix (a sibling of `REGEX-0105`).** The vertical-whitespace shorthands `\v` / `\V` were treated as LITERAL class-range endpoints, so `[\v-x]`, `[\V-x]`, `[a-\v]` were **accepts-invalid** — the released parser (grammar **and** the out-of-band validator) BOTH accepted patterns that PCRE2 rejects err 150. Root cause (WHERE), two halves: the validator's `is_nonliteral_class_escape` enumerated the nonliteral shorthands `\d \D \h \H \s \S \w \W` (+ `\p` `\P`) but OMITTED `\v` / `\V`, so they decoded to a literal code point (`118` / `86`); and the grammar's `class_range_literal_escape_letter_strict` listed `v` / `V`, so they formed a `class_range` endpoint (and the store-aware generator could emit `\v`-ranges). The already-correct `\h` / `\H` (their horizontal analogs) are handled the right way — members only, never range endpoints.
+
+**What changed (verdict FLIPS — real inputs go from ACCEPT to REJECT).** `\v` / `\V` are made byte-identical in behavior to `\h` / `\H`: dropped from the grammar's range-letter set (so they are members only, and no longer generated as range endpoints — duality-safe) and added to the validator's nonliteral set (so a `\v` / `\V` range endpoint is err 150). Members (`[\v]`, `[\V]`, `[a\vb]`) stay valid; hex/octal endpoints of the SAME code point (`[\x0b-\x0c]`, `[\013-\014]`) stay LITERAL and valid — only the shorthand form is nonliteral. **GRAMMAR + VALIDATOR-tier fix** (the class-range validity family stays validator-owned pending the deferred `.4.5.b`/`.4.5.c` grammar migration; this is a surgical correctness fix sequenced first, making an inconsistent case consistent with its sibling).
+
+| Rule | Example | Verdict `1.1.95` (before) | Verdict `1.1.96` = PCRE2 10.47 |
+|---|---|---|---|
+| **`\v` / `\V` nonliteral range endpoint (err 150)** | `[\v-x]` · `[\V-x]` · `[a-\v]` · `[\v-\v]` · `[\d-\v]` · `[\v-\d]` | ACCEPT (invalid) | **REJECT** |
+| `\v` / `\V` as a class MEMBER (unchanged) | `[\v]` · `[\V]` · `[a\vb]` | ACCEPT | ACCEPT |
+| code-point 11 via HEX/OCTAL literal endpoint (unchanged) | `[\x0b-\x0c]` · `[\013-\014]` | ACCEPT | ACCEPT |
+| sibling shorthands + plain range (unchanged) | `[\h-x]` (reject) · `[\d-x]` (reject) · `[a-z]` (accept) | as before | as before |
+
+**Conformance:** `regex_pcre2_compile_oracle_gate` (`pcre2test` 10.47) — byte-identical `2189/1867/274/48`: the frozen corpus contains no `\v` / `\V` class-range cells, so the fix is **corpus-invisible** (proven instead by the direct `pcre2test` oracle sweep + the new validator unit pin `rejects_vertical_whitespace_shorthand_class_range_endpoints` — the same "true-but-corpus-invisible" class as `REGEX-0097`'s `.3.21`). regex cert-coverage `239/239 UNKNOWN=0` at seeds 0/7/42, `--lint-grammar` 0 errors (239 rules), `duality_hunt_gate` 9 lanes no new/vanished signature, `ast_shape_contract` inventory 221 — all UNCHANGED.
+
+**Action for downstream (RGX):** `[\v-x]` / `[\V-x]` / `[a-\v]` were malformed PCRE2 that PGEN previously mis-accepted; PGEN now rejects them PCRE2-faithfully with `E_PARSE_FAILURE`. `\v` / `\V` as class members are unaffected. Match on the diagnostic **code**, never message text.
 
 ## Release 1.1.95 / Contract 1.1.97 Highlights — REGEX-0105: `-[` / `-||` class-range validity fix (a genuine accepts-invalid correction — NOT behavior-neutral)
 

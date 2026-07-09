@@ -278,12 +278,18 @@ reach paths:
    in the pattern body via `escape_unit`).
 3. `A`, `G`, `z` are dropped from `class_range_literal_escape_letter_strict` — they were reachable as
    a range *endpoint* (`[\A-x]`, `[\z-\x{FFFF}]`), which the member-side guards do not cover.
+4. `V`, `v` are dropped from `class_range_literal_escape_letter_strict` (`.4.5.a.1`, `REGEX-0106`) — the
+   vertical-whitespace shorthands are NONLITERAL (like `\h`/`\H`), so PCRE2 rejects them as a range
+   *endpoint* (err 150) even though they are valid class *members*. They stay valid members via
+   `class_simple_escape`; removing the range endpoint (paired with the validator's `is_nonliteral_class_escape`
+   gaining `v`/`V`) makes `\v`/`\V` behave byte-identically to `\h`/`\H`.
 
 | Input | Verdict (PGEN = PCRE2 10.47) | Why |
 |---|---|---|
 | `[\B]`, `[\K]`, `[\C]`, `a[\NB]c`, `[\A-x]`, `[a-\B]`, `[\z-\x{FFFF}]` | REJECT | escape invalid as a class member (err 137/108) |
-| `[\d]`, `[\w]`, `[\s]`, `[\b]` (backspace), `[\n]`, `[\a]`, `[\e]` | ACCEPT | legal class shorthand / c-escape |
-| `[\N{U+00E9}]`, `[\pL]`, `[\x41]`, `[\g]`, `[\j]`, `[\k]` | ACCEPT | braced `\N{…}` / property / hex / literal-transport letter |
+| `[\v-x]`, `[\V-x]`, `[a-\v]` | REJECT | vertical-whitespace shorthand is a NONLITERAL range endpoint (err 150) |
+| `[\d]`, `[\w]`, `[\s]`, `[\b]` (backspace), `[\n]`, `[\a]`, `[\e]`, `[\v]`, `[\V]` | ACCEPT | legal class shorthand / c-escape (member) |
+| `[\N{U+00E9}]`, `[\pL]`, `[\x41]`, `[\x0b-\x0c]`, `[\g]`, `[\j]`, `[\k]` | ACCEPT | braced `\N{…}` / property / hex range / literal-transport letter |
 | `[\I-x]`, `[\a-x]`; body `\B`, `\K`, `\A`, `\z` (outside a class) | ACCEPT | valid literal range / valid pattern-body anchor |
 
 Behavior-neutral: every accept/reject verdict is byte-identical to `1.1.91` (validator rejected these
@@ -424,8 +430,9 @@ through the `class_range_escape` passthrough.
 ## `class_range_simple_escape`, `class_range_any_char_no_orphan_quote_end`, `class_range_literal_escape_letter`
 
 Inner sub-rules controlling which escaped letters can act as class-range endpoints (the
-strict variant already excludes `E`/`Q` and the six `.3.1` PCRE2-unsupported letters; the
-`relaxed` profile re-admits the latter six). Consumers rarely walk these — the outer
+strict variant already excludes `E`/`Q`, the six `.3.1` PCRE2-unsupported letters, `A`/`G`/`z`
+(`.4.4`), and `V`/`v` (`.4.5.a.1` — the nonliteral vertical-whitespace shorthands); the
+`relaxed` profile re-admits the six `.3.1` letters only). Consumers rarely walk these — the outer
 `class_range_escape` passthrough is the shape that surfaces.
 
 ## `posix_negation`, `posix_name`, `letter_no_upper_e`

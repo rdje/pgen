@@ -1084,6 +1084,23 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   of the investigation's root cause (AST-dump-proven): the grammar ALREADY forms `class_range` correctly for
   `-[` (treats `[` as literal `0x5B`) — the divergence is ENTIRELY the validator's `dash_starts_alt_extended_class_operator`
   guard skipping range detection. See the `.4.5.a` implementation section + Acceptance Checklist below.
+- ID: `.4.5.a.1` Status: **`done`** (`PGEN-REGEX-PCRE2-0032`, session #79; release `1.1.95`→`1.1.96`, contract
+  `1.1.97`→`1.1.98`, schema `1`, ledger `REGEX-0106`) Goal: fix the `\v` / `\V` accepts-invalid class-RANGE
+  divergence — the vertical-whitespace shorthands were treated as LITERAL range endpoints, so `[\v-x]`,
+  `[\V-x]`, `[a-\v]` were ACCEPTED where PCRE2 10.47 rejects them err 150 "invalid range" (they are NONLITERAL,
+  exactly like `\h` / `\H`). A SECOND class-range accepts-invalid correctness fix in the `.4.5.a` vein, surfaced
+  by the `.4.5.b` tools-first investigation (session #79). GRAMMAR+VALIDATOR tier (unlike `.4.5.a`, which was
+  validator-only): the two-halved `\v`/`\V` bug is (1) a GRAMMAR mis-classification — `v`/`V` were in
+  `class_range_literal_escape_letter_strict` (regex.ebnf:878-879) so `\v`/`\V` formed a `class_range` endpoint
+  and the store-aware generator could emit `\v`-ranges — and (2) a VALIDATOR omission —
+  `is_nonliteral_class_escape` (regex_compile_validation.rs:652) enumerated `d D h H s S w W p P` but omitted
+  `v`/`V`, so they fell through to `class_escape_literal_codepoint`'s `_ => next as u32` and decoded to literal
+  `118`/`86`. FIX makes `\v`/`\V` byte-identical in structure to the already-correct `\h`/`\H`: remove `v`/`V`
+  from the range-letter set (members via `class_simple_escape` unaffected; stops generation) + add `b'v'|b'V'`
+  to `is_nonliteral_class_escape` (validator rejects the range). Behavior-CHANGING (3 accepts-invalid cells
+  flip to reject) — oracle NET improvement. The class-range family stays validator-owned pending the deferred
+  `.4.5.b`/`.4.5.c` grammar migration, which now migrates a CONSISTENT nonliteral family (`d D h H s S v V w W
+  p P`). See the `.4.5.a.1` implementation section + Acceptance Checklist below.
 - ID: `.4.6` Status: **`done`** (`PGEN-REGEX-PCRE2-0024`, session #74; release `1.1.90`→`1.1.91`, contract
   `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) Goal: encode POSIX class NAME validity — unknown
   `[[:foo:]]` reject + the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
@@ -1324,6 +1341,97 @@ err 113 "POSIX collating elements are not supported"; the released parser ACCEPT
   `compile-contract-validator.md` + `changelog-index.md` + tracked HTML; top book `parser-families.md`;
   `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`;
   the new `.4.12` leaf (standalone collating/equivalence divergence).
+
+### REGEX-PCRE2-FIDELITY.4.5.a.1 — the `\v` / `\V` accepts-invalid class-range fix (`PGEN-REGEX-PCRE2-0032`, session #79)
+
+**Surfaced by the `.4.5.b` tools-first investigation (per [[feedback_be_alert_root_cause_fishy_immediately]]).** While mapping
+the COMPLETE nonliteral-endpoint set for the planned `.4.5.b` grammar migration, the oracle sweep (`pcre2test`
+10.47, `[\L-~]` for every candidate escape letter) found the nonliteral class-escape set is
+`\d \D \h \H \s \S \v \V \w \W` + `\p{}` `\P{}` — but the released parser handled only `\d \D \h \H \s \S \w \W \p \P`
+correctly. `\v`/`\V` (the VERTICAL-whitespace shorthands — the analogs of `\h`/`\H`) were treated as LITERAL
+range endpoints, so `[\v-x]`, `[\V-x]`, `[a-\v]` were ACCEPTED where PCRE2 rejects them err 150. A genuine
+released-parser accepts-invalid gap (not a documented divergence — ledger `REGEX-0106`).
+
+**🔎 ROOT CAUSE (WHY + WHERE) — a two-halved bug, tool-backed.**
+- **Validator omission** (`regex_compile_validation.rs:648-654`). `is_nonliteral_class_escape` enumerates
+  `matches!(next, b'd'|b'D'|b'h'|b'H'|b's'|b'S'|b'w'|b'W') || matches!(next, b'p'|b'P') && …` — it MISSES `v`/`V`.
+  So a `\v`/`\V` range endpoint falls through to `class_escape_literal_codepoint` (`:635` `_ => next as u32`),
+  decoding `\v`→`118`, `\V`→`86` (literal). `[\v-x]` = `118..120` ascending → ACCEPT; `[\V-x]` = `86..120` →
+  ACCEPT; `[a-\v]` = `97..118` → ACCEPT. (`[a-\V]` = `97..86` descending → err 108 reject — the released reject
+  was RIGHT verdict, WRONG reason.)
+- **Grammar mis-classification** (`grammars/regex.ebnf:878-879`). `v`/`V` were in
+  `class_range_literal_escape_letter_strict`, so `\v`/`\V` form a `class_range` endpoint (via
+  `class_range_escape` → `class_range_simple_escape`). This both feeds the validator's mis-read AND lets the
+  store-aware generator EMIT `\v`-ranges. (The already-correct `\h`/`\H` are NOT in this set — they are members
+  only, via `class_simple_escape` — which is why they are handled right.) `--parse-dump-ast` on `[\v-x]` was
+  blocked by the validator; the classification was read directly from the two rule sets + the oracle.
+
+**Frozen oracle matrix (`pcre2test` 10.47, `/PATTERN/utf`, the acceptance spec).**
+- err 150 (nonliteral `\v`/`\V` endpoint): `[\v-x]` `[\V-x]` `[a-\v]` `[a-\V]` `[\v-\v]` `[\V-\v]` `[\d-\v]`
+  `[\v-\d]` `[\v-\x7f]` (a `\v`/`\V` on EITHER side ⇒ invalid range).
+- ACCEPT (must stay): `[\v]` `[\V]` `[a\vb]` (valid MEMBERS — vertical-whitespace class); `[\x0b-\x0c]`
+  `[\013-\014]` (codepoint 11-12 via HEX/OCTAL = LITERAL endpoints ⇒ valid range — the fix must NOT touch
+  the hex/octal path, only the range-LETTER path); `[\h-x]` `[\d-x]` stay REJECT (unchanged).
+
+**FIX (grammar + validator tier — makes `\v`/`\V` byte-identical in structure to the already-correct `\h`/`\H`;
+fix-hierarchy justification).** The class-range validity FAMILY stays validator-owned pending the deferred
+`.4.5.b`/`.4.5.c` grammar migration; `\v`/`\V` are corrected to MATCH the family's already-correct members:
+(1) GRAMMAR — drop `'V'` (`:878`) and `'v'` (`:879`) from `class_range_literal_escape_letter_strict` so `\v`/`\V`
+are no longer range endpoints (identical to `\h`/`\H`); the member path (`class_simple_escape`, `v`/`V` unguarded)
+is untouched so `[\v]`/`[\V]` stay valid, and the generator can no longer emit `\v`-ranges (duality-safe — see
+NO REGRESSION); (2) VALIDATOR — add `b'v'|b'V'` to `is_nonliteral_class_escape` so a `\v`/`\V` range endpoint
+classifies `NonLiteral` → err 150. No change to hex/octal/control (`\x0b`/`\013` stay literal, valid). The
+relaxed profile is unaffected (`v`/`V` were never in `class_range_literal_escape_letter_relaxed`; the validator
+rejects nonliteral ranges in BOTH profiles, as it already does for `\h`/`\d`).
+
+**Behavior change (NOT a neutral migration).** Flips `[\v-x]` `[\V-x]` `[a-\v]` from accepts-invalid to reject.
+`[a-\V]` stays reject (verdict unchanged; now err 150 nonliteral not err 108 descending). Members + hex/octal
+ranges + all other cells stay byte-identical.
+
+**Why this is `.4.5.a.1`, not folded into `.4.5.b` (scope decision).** `.4.5.b` is the (harder) validator→grammar
+MIGRATION of the whole nonliteral family via a negative-lookahead PEG. `\v`/`\V` is a CORRECTNESS bug (accepts-invalid)
+in the SAME family. Per correctness-before-migration ([[feedback_correctness_before_speed]]) and one-defect-per-commit,
+it lands FIRST as a surgical `.4.5.a`-style fix (making an inconsistent case consistent with `\h`/`\H`), which also
+DE-RISKS `.4.5.b` — the migration now covers a uniformly-correct nonliteral set. A validator-only fix was rejected:
+it would leave the generator emitting `\v`-ranges (grammar still forms them) that the corrected validator rejects →
+a NEW duality break; the grammar half (stop generation) is required for duality-safety.
+
+#### `.4.5.a.1` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — released `parseability_probe --parse regex --profile pcre2` (11:22 `1.1.95` build):
+  `[\v-x]` `[\V-x]` `[a-\v]` all "parse_full passed" (grammar AND validator ACCEPT) where `pcre2test` 10.47
+  `/PATTERN/utf` rejects them err 150 "invalid range in character class" ⇒ a genuine released-parser
+  accepts-invalid. `[\h-x]`/`[\d-x]` already REJECT (the correct sibling behavior); `[\v]`/`[\V]` members
+  ACCEPT (must stay). Confirmed on `--profile relaxed` too (`[\v-x]`/`[\V-x]` ACCEPT, where `[\h-x]`/`[\d-x]`
+  already REJECT — the validator's nonliteral check is not a relaxed opt-out).
+- [x] **ROOT CAUSE (WHY + WHERE)** — two-halved: (validator) `regex_compile_validation.rs:652`
+  `is_nonliteral_class_escape` omits `v`/`V` from the nonliteral shorthand set, so `\v`/`\V` decode to literal
+  `118`/`86` in `class_escape_literal_codepoint` (`:635`); (grammar) `regex.ebnf:878-879`
+  `class_range_literal_escape_letter_strict` includes `V`/`v`, so `\v`/`\V` form a `class_range` endpoint AND
+  the generator can emit `\v`-ranges. Oracle sweep `[\L-~]` over the range-letter set isolated `\v`/`\V` (err 150)
+  from the distinct `.3.11`-owned invalid-escape letters (`\I \J \M \O \T \Y …`, err 107, invalid EVERYWHERE).
+- [x] **FIX** — GRAMMAR + VALIDATOR tier (make `\v`/`\V` consistent with `\h`/`\H`): drop `'V'`/`'v'` from
+  `class_range_literal_escape_letter_strict`; add `b'v'|b'V'` to `is_nonliteral_class_escape`. Member path and
+  hex/octal/control decode untouched. No new rule / no new primitive.
+- [x] **ADDRESSED (verified)** — every matrix cell flips to the `pcre2test` 10.47 verdict: the 3 accepts-invalid
+  `[\v-x]` `[\V-x]` `[a-\v]` now REJECT (`E_PARSE_FAILURE` from the validator's err-150 path); `[a-\V]` stays
+  REJECT; the members `[\v]` `[\V]` `[a\vb]` and the hex/octal ranges `[\x0b-\x0c]` `[\013-\014]` stay ACCEPT;
+  `[\h-x]`/`[\d-x]` unchanged. New validator unit pin `rejects_vertical_whitespace_shorthand_class_range_endpoints`.
+- [x] **NO REGRESSION** — `regex_pcre2_compile_oracle_gate` NET IMPROVEMENT (false_accept drops by the
+  default-mode `\v`/`\V` accepts-invalid corpus cells; env baseline re-pinned). regex cert-coverage
+  `239/239 UNKNOWN=0 fully_certified=true spf=0` at seeds 0/7/42 (UNCHANGED — the rule count and reachability
+  are unaffected; `class_range_literal_escape_letter_strict` still witnessed via its remaining terminals);
+  `--lint-grammar` 0 errors (239 rules); `duality_hunt_gate` 9 lanes NO new/vanished signature (the generator
+  no longer emits `\v`-ranges — the range endpoint was removed — so it now shares `\h`/`\H`'s generation profile,
+  and the oracle verdict on `[\v-x]` was already reject before this change surfaced it); `parse_harness_equivalence_gate`
+  regex byte-identical (interpreter tracks the regenerated grammar); `ast_shape_contract` inventory 221 UNCHANGED
+  (no `\v`/`\V` range samples pinned); dual `--lib` suite green (new pin passes; the 2 version-drift gates
+  satisfied by the `REGEX-0106` ledger row).
+- [x] **LOCKSTEP** — `grammars/regex.ebnf` (range-letter set); `regex_compile_validation.rs` (fix + test);
+  regenerated `generated/regex_parser.rs`; `parser_registry.rs` version pin; `embedding_api.rs` consts
+  `1.1.96`/`1.1.98`; `regex_parser_integration_contract_v1.json`; `regex_pcre2_compile_oracle_lightweight_v0.env`
+  (re-baseline); ledger `REGEX-0106`; contract `1.1.96`/`1.1.98` Highlights + Identity; regex book
+  `compile-contract-validator.md` + `changelog-index.md` + tracked HTML; top book `parser-families.md`;
+  `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 
@@ -1829,6 +1937,24 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-09, session #79)** `.4.5.a.1` LANDED (`PGEN-REGEX-PCRE2-0032`, RELEASED regex slice — release
+  `1.1.95`→`1.1.96`, contract `1.1.97`→`1.1.98`, schema `1`, ledger `REGEX-0106`) — the `\v` / `\V` class-range
+  accepts-invalid FIX (a genuine correctness fix, sibling of `REGEX-0105`), surfaced by the `.4.5.b` tools-first
+  investigation. The vertical-whitespace shorthands `\v` / `\V` were treated as LITERAL range endpoints, so
+  `[\v-x]` / `[\V-x]` / `[a-\v]` were accepted where PCRE2 10.47 rejects err 150; two-halved root cause —
+  `is_nonliteral_class_escape` omitted `v`/`V` (validator) and `class_range_literal_escape_letter_strict`
+  listed `v`/`V` (grammar). FIX makes `\v`/`\V` byte-identical to `\h`/`\H`: dropped `'V'`/`'v'` from the
+  range-letter set (members via `class_simple_escape` untouched ⇒ `[\v]`/`[\V]` valid; stops `\v`-range
+  generation ⇒ duality-safe) + added `b'v'|b'V'` to `is_nonliteral_class_escape` (err-150 reject). Behavior-CHANGING
+  (3 cells flip ACCEPT→REJECT); regenerated `generated/regex_parser.rs`; cert 239 / ast_shape 221 UNCHANGED;
+  oracle byte-identical `2189/1867/274/48` (corpus-invisible). Full release-probe matrix == oracle (0
+  divergences); duality 9 lanes no new/vanished; equivalence byte-identical; new validator pin
+  `rejects_vertical_whitespace_shorthand_class_range_endpoints`. The class-range family stays validator-owned
+  pending `.4.5.b`/`.4.5.c`, now over a UNIFORMLY-correct nonliteral family (`d D h H s S v V w W p P`).
+  Frontier → **`.4.5.b`** (grammar-migrate the nonliteral class-range family; a negative-lookahead
+  `!invalid_class_range` at `class_item`, nonliteral atom set = shorthand `\d\D\h\H\s\S\v\V\w\W` + property
+  `\p\P`, NOT single-char escapes) → `.4.5.c` (descending, engine-tier `value_compare` codepoint-widening) →
+  `.4.7`..`.4.12` → final `.4` deletion → `.5`.
 - **(2026-07-09, session #78)** `.4.5.a` LANDED (`PGEN-REGEX-PCRE2-0031`, RELEASED regex slice — release
   `1.1.94`→`1.1.95`, contract `1.1.96`→`1.1.97`, schema `1`, ledger `REGEX-0105`) — the `-[` / `-||`
   class-range accepts-invalid FIX. A range whose right endpoint began with `[` or `||` inside a NORMAL class
