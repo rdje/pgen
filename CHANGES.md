@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-RAWCAP-TRANSFORM-PATH-0003 (RAWCAP-TRANSFORM-PATH.2) — fix-shape (C) landed: raw capture on the non-`Or` transform path for positional raw-view predicates
+
+`.2` closes the tree. A raw-view POSITIONAL (`$N`) `@predicate` on a non-`Or` rule that ALSO carries a `->`
+return transform now resolves against the raw body content captured before the transform shadows it — the
+un-worked-around `REGEX-PCRE2-FIDELITY.4.3` shape. Implementation (parser-agnostic engine/codegen tier):
+- `semantic_runtime.rs`: `CompiledSemanticRuntimeAnnotations::needs_positional_raw_post_capture_for_rule`
+  (narrower than `needs_raw_post_capture_for_rule` — Raw-view post-predicate AND a positional arg) + free
+  `predicate_arg_is_positional_reference` (a `RuleReference` whose text is `$`+digit — positional refs
+  freeze sigil-PRESERVED per `POSITIONAL-PAYLOAD-REFS.2`, a bug caught + fixed before regen).
+- `ast_based_generator.rs`: a CODEGEN-TIME gate `rule_needs_positional_raw_post_capture` + a new
+  `semantic_nonor_positional_raw_capture_tokens` Or/non-`Or` split (mirroring `semantic_span_transform_tokens`)
+  emits `semantic_raw_content = Some(result.clone());` between the parse logic and the return transform —
+  ONLY for a rule that actually has a positional raw-view predicate. `generate_or_logic` + the shared
+  `needs_raw_post_capture_for_rule` are untouched. Because no shipped grammar has such a predicate, the
+  regenerated regex + SV parsers are **byte-identical to `.4.3`** (0 capture sites, `grep`-confirmed).
+- `parse_harness_interpreter.rs`: the same narrow gate mirrored in `parse_rule_body`'s non-`Or` arm, so
+  the differential-equivalence contract holds.
+- `parse_harness_semantic_suite.rs`: new pin `sem_value_compare_under_transform` + construct
+  `ValueCompareUnderTransform` — a non-`Or` `->` Sequence rule with a positional `value_compare` that
+  hard-errored pre-fix and now decides the verdict, byte-identical interpreter vs oracle.
+
+NAMED refs on `->` rules are DELIBERATELY unaffected — they keep resolving against the shaped Json
+(`SEMREF-SHAPED`), so the SV `declared_*` family and regex `numeric_backreference` cannot regress (the
+`.1` audit rejected the naive mirror-fix for exactly this reason). Verified: semantic gate **32/32 CLEAN**,
+equivalence **11/11 byte-identical**, combinator **27/27**, SV cert union (canonical=12/union=1/witness=1332/
+residual `context_member_method_call`, seeds 0/7/42), regex cert **239/239/0** ×0/7/42, regex oracle
+`2189/1858/285/46`, duality 9 lanes unchanged, full dual lib, clippy source clean. 🔎 FINDING: the
+pre-existing `sem_value_compare_backtrack` case passed pre-fix for the WRONG reason (`ordered` always
+hard-errored and lost, so "1-2!" was `any_pick` not the documented `ordered_pick`); post-fix its gate
+genuinely discriminates (verdict unchanged, interp==oracle green). Lockstep: normative spec item 7, book
+*Parse Harness* semantic-suite table, TOOLBOX (32 cases), `SEMREF-SHAPED` reconciliation, MEMORY/DEV/LIVE +
+tree + TASK_TREE. No engine release-version bump (shipped parsers byte-identical).
+
 ## 2026-07-09 - PGEN-RAWCAP-TRANSFORM-PATH-0002 (RAWCAP-TRANSFORM-PATH.1, PURE-DOCS) — blast-radius audit + fix-shape DECISION (C)
 
 `.1` EVIDENCE + DESIGN closed (no code — Code-Change-Doctrine precursor). Enumerated every shipped-grammar
@@ -12,10 +45,13 @@ naive mirror-fix (A) is NON-EMPTY** — the SV `declared_*` family (10 rules, `d
 [regex_capture_group, $index]`) resolve their default-Raw NAMED refs against the shaped Json via the
 `SEMREF-SHAPED` branch today; (A) would flip them to a failing raw-tree walk → **(A) rejected**. **DECISION =
 (C)**: a NEW positional-aware gate (`needs_positional_raw_post_capture_for_rule`) drives raw capture on the
-non-`Or` path ONLY; the shared helper + the entire `Or` path stay byte-identical. Because **zero shipped
-grammars have a positional-ref Raw-view post-predicate** (grep-proven), (C) fires for zero rules ⇒ inert on
-every shipped grammar ⇒ zero regression by construction, and only becomes live when a future positional
-consumer lands. `.2` (the codegen+interpreter fix + `parse_harness_semantic_suite` REJECT→ACCEPT pin +
+non-`Or` path ONLY; the shared helper + the entire `Or` path stay untouched. Because **zero shipped
+grammars have a positional-ref Raw-view post-predicate** (grep-proven), (C) fires for zero rules ⇒
+BEHAVIORALLY inert on every shipped grammar ⇒ zero regression by construction, and only becomes live when a
+future positional consumer lands. (Impl in `.2`: the capture is a CODEGEN-TIME gate — the capture token is
+emitted only for a rule that actually has a positional raw-view post-predicate, so a rule without one —
+every shipped rule today — regenerates byte-identical to `.4.3`, confirmed by `grep` = 0 capture sites in
+the regenerated regex/SV parsers.) `.2` (the codegen+interpreter fix + `parse_harness_semantic_suite` REJECT→ACCEPT pin +
 byte-identical regen-all + lockstep) is now unblocked and active; precise implementation recorded in the
 tree §4 `.2`. Reconciles with `SEMREF-SHAPED` (named-ref shaped resolution untouched) and unblocks
 `POSITIONAL-PAYLOAD-REFS` (F4) on the non-`Or` transform path.

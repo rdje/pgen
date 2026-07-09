@@ -194,6 +194,17 @@ pub enum SemanticConstruct {
     /// gated alternative that fails its comparison loses to a sibling (verdict still ACCEPT); WHICH
     /// branch wins is pinned by the byte-identical AST comparison.
     ValueCompareBacktrack,
+    /// RAWCAP-TRANSFORM-PATH.2: a POSITIONAL (`$N`) raw-view post-predicate on a non-`Or` rule that
+    /// ALSO carries a `->` return transform. The transform shadows the rule's `result` with the
+    /// shaped Json, so the positional `$N` (which has no slot in a Json object) can ONLY resolve if
+    /// codegen captured the RAW body content before the transform. The `Or` path always captured it;
+    /// the non-`Or` transform path did NOT until this fix (`needs_positional_raw_post_capture_for_rule`
+    /// now gates a non-`Or` raw capture). The sibling `ValueCompare` case proves the SAME positional
+    /// `value_compare` WITHOUT a `->` (raw never shadowed — POSITIONAL-PAYLOAD-REFS.2); this case adds
+    /// the `->` that used to make it hard-error. Pre-fix: `$N` unresolvable → hard error → REJECT on
+    /// both implementations (the un-worked-around `REGEX-PCRE2-FIDELITY.4.3` shape). Post-fix: raw
+    /// captured → the comparison decides the verdict, byte-identical interpreter vs oracle.
+    ValueCompareUnderTransform,
 }
 
 impl SemanticConstruct {
@@ -229,6 +240,7 @@ impl SemanticConstruct {
         SemanticConstruct::ValueGuardBacktrack,
         SemanticConstruct::ValueCompare,
         SemanticConstruct::ValueCompareBacktrack,
+        SemanticConstruct::ValueCompareUnderTransform,
     ];
 }
 
@@ -985,6 +997,45 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         note: "a value_compare post-rejection is BACKTRACKABLE: the gated `ordered` alternative loses \
                the tournament to its ungated sibling `any_pair` (verdict still ACCEPT); which branch \
                wins is pinned by the byte-identical AST comparison",
+    },
+    // ── RAWCAP-TRANSFORM-PATH.2: positional raw-view predicate on a non-`Or` `->` rule ──────────────
+    SemanticCase {
+        name: "sem_value_compare_under_transform",
+        construct: SemanticConstruct::ValueCompareUnderTransform,
+        // The un-worked-around REGEX-PCRE2-FIDELITY.4.3 shape: a POSITIONAL value_compare on a non-`Or`
+        // Sequence rule that ALSO carries a `->` return transform. `checked_pair` is the TOP-LEVEL
+        // entry (no recovering sibling `Or`), so the pre-fix positional hard-error is FATAL → REJECT.
+        // The `->` shadows `result` with the shaped Json `{min,max}`; a positional `$N` has no slot in
+        // a Json object, so pre-fix `resolve_positional_semantic_reference` returns None on the Json
+        // (`ast_based_generator.rs` `_ => None`) → `resolve_semantic_predicate_spec_against_content`
+        // hard-errors ("could not resolve attribute reference '$1'") → REJECT for EVERY input. The
+        // RAWCAP-TRANSFORM-PATH.2 fix captures the raw body content before the transform (gated to the
+        // narrow positional case by `needs_positional_raw_post_capture_for_rule`), so post-fix `$1`/`$3`
+        // resolve against the ordered raw captures and the comparison decides the verdict. The sibling
+        // `sem_value_compare` proves the SAME positional value_compare WITHOUT a `->` already works
+        // (POSITIONAL-PAYLOAD-REFS.2 — raw never shadowed); this case adds the `->` that used to break
+        // it. Byte-identical interpreter vs oracle by construction (both carry the fix).
+        grammar_body: "@predicate: { name: value_compare, args: [$1, le, $3], phase: post }\n\
+                       checked_pair := num \",\" num -> { min: $1, max: $3 }\n\
+                       num := /[0-9]+/\n",
+        inputs: &[
+            // Post-fix: $1=1 le $3=2 → accept; the `->` still shapes the AST to {min,max}.
+            ("1,2", true),
+            // Post-fix: boundary $1=2 le $3=2 → accept.
+            ("2,2", true),
+            // Post-fix: $1=2 le $3=1 false → post-predicate rejects the top-level rule → REJECT.
+            ("2,1", false),
+            // NUMERIC (not lexical) coercion: 05 le 4 is 5<=4 false → REJECT (lexical "05"<="4" true).
+            ("05,4", false),
+            // Structural reject control (num needs digits).
+            ("a,b", false),
+        ],
+        entry_rule: None,
+        note: "RAWCAP-TRANSFORM-PATH.2: a POSITIONAL ($N) raw-view value_compare on a non-`Or` rule \
+               that ALSO carries a `->` transform resolves against the raw body content captured before \
+               the transform shadows it (pre-fix it hard-errored → REJECT; the un-worked-around \
+               REGEX-PCRE2-FIDELITY.4.3 shape). Named refs on `->` rules keep resolving against the \
+               shaped Json (SEMREF-SHAPED), so this narrow positional capture cannot regress them",
     },
 ];
 

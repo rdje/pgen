@@ -2063,6 +2063,20 @@ impl<'g, 'i> Interp<'g, 'i> {
             }
             _ => {
                 let raw = self.parse_node(body, rule_name, capture_raw, raw_out)?;
+                // RAWCAP-TRANSFORM-PATH.2: mirror the generated non-`Or`
+                // `#semantic_nonor_positional_raw_capture_tokens` — capture the raw
+                // body content before the return-annotation transform shadows it, so
+                // a POSITIONAL (`$N`) raw-view post-predicate resolves against the
+                // ordered raw captures. Gated to the narrow positional case only
+                // (named refs keep resolving against the shaped Json, SEMREF-SHAPED),
+                // symmetric with the generated codegen; inert until a positional
+                // consumer exists.
+                if self
+                    .compiled_sem
+                    .needs_positional_raw_post_capture_for_rule(rule_name)
+                {
+                    *raw_out = Some(raw.clone());
+                }
                 let ann = self.resolve_branch_annotation(rule_name, 0, body);
                 Ok(match ann {
                     Some(a) => self.apply_return_annotation(&a, &raw, start_pos),

@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-RAWCAP-TRANSFORM-PATH-0003 — RAWCAP-TRANSFORM-PATH.2: raw capture on the non-`Or` transform path (positional raw-view predicates)
+
+**Root cause (pinned by direct source read).** A raw-view POST `@predicate` resolves its args against
+`raw_content = semantic_raw_content.unwrap_or(&node.content)`. On the `Or` rule-body path codegen captures the
+raw body into `semantic_raw_content` before the per-branch transform; on the **non-`Or`** path
+(`ast_based_generator.rs` `rule_body_inner`) it never did, so `#post_parse_transform_tokens` shadowed
+`result` with the shaped `ParseContent::Json` and a POSITIONAL `$N` (no slot in a Json object) fell to
+`resolve_positional_semantic_reference`'s `_ => None` (Json arm) → the hard resolver
+(`resolve_semantic_predicate_spec_against_content`, `:2145`/`:2490`) errored `"could not resolve attribute
+reference '$1'"`. Surfaced by `REGEX-PCRE2-FIDELITY.4.3` (worked around there with `view: shaped` + named
+refs).
+
+**`.1` blast-radius audit → fix-shape (C).** The naive mirror-fix (always capture raw on the non-`Or` path)
+would flip the SV `declared_*` family (10 rules, `declared_X := X_identifier -> {body:$1.body}` +
+`@predicate has_fact [<kind>, $body]`) and regex `numeric_backreference` from shaped-Json resolution
+(the `SEMREF-SHAPED` contract for NAMED refs) to a failing raw-tree walk (`find_semantic_named_descendant`
+does not descend into Json / find flattened chain names). So the capture is NARROWED to the positional case:
+a new `needs_positional_raw_post_capture_for_rule` (Raw-view post-predicate AND a positional arg) drives it;
+named-ref rules keep `semantic_raw_content = None` → shaped-Json resolution unchanged.
+
+**Positional-ref detection subtlety (bug caught pre-regen).** A compiled `$ref` freezes as
+`UnifiedSemanticValue::RuleReference`, but the `$` sigil is RETAINED only for positional (digit-headed) refs
+(`$1` → `RuleReference("$1")`; `POSITIONAL-PAYLOAD-REFS.2`) while a named `$body` freezes stripped
+(`RuleReference("body")`). The first classifier (all-digits) would never match `"$1"` — the gate would have
+been silently inert. Corrected to `$`-prefix + digit-after, mirroring the resolver dispatch
+(`resolve_semantic_reference`, `:5832`).
+
+**Codegen-time gate (not runtime).** The capture token is a codegen-time Or/non-`Or` split mirroring
+`semantic_span_transform_tokens`: `AstBasedGenerator::rule_needs_positional_raw_post_capture` (reusing the
+compiled `needs_positional_raw_post_capture_for_rule`, with a fast path skipping rules that carry no
+directives) decides whether to emit `semantic_raw_content = Some(result.clone());`. A first runtime-`if`
+variant added an `unused_assignments` warning per non-`Or` rule (the same class the `Or` path already
+produces for post-predicate-less rules); switching to the codegen-time gate emits the token ONLY for a
+positional-predicate rule, so shipped parsers regen byte-identical to `.4.3` (0 capture sites, `grep`-confirmed)
+with no new debt. The interpreter (`parse_harness_interpreter.rs`) applies the identical gate at runtime, so
+codegen (emit) and interpreter (runtime check) agree — the differential-equivalence gate holds.
+
+**Verification.** semantic gate 32/32 CLEAN (pin `sem_value_compare_under_transform`: `1,2`/`2,2` accept,
+`2,1`/`05,4`/`a,b` reject, interp==oracle); equivalence 11/11 byte-identical; combinator 27/27; SV cert union
+canonical=12/union=1/witness=1332/residual `context_member_method_call` seeds 0/7/42; regex cert 239/239/0
+×0/7/42; regex oracle `2189/1858/285/46`; duality 9 lanes unchanged; dual lib; clippy source clean. 🔎 The
+pre-existing `sem_value_compare_backtrack` case passed pre-fix for the wrong reason (`ordered` always
+hard-errored and lost to `any_pair`; "1-2!" was `any_pick`, not the documented `ordered_pick`); the fix makes
+its gate genuinely discriminate — verdict unchanged, interp==oracle stays green. No engine release-version
+bump (shipped parsers byte-identical).
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0029 — REGEX-PCRE2-FIDELITY.4.3: counted-quantifier min>max ORDER is grammar-owned (first `value_compare` consumer)
 
 The counted-quantifier `{n,m}` min>max ORDER reject (PCRE2 err 104, `x{5,4}`) migrated from the out-of-band

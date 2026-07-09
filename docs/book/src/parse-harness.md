@@ -642,6 +642,9 @@ The 29 isolating cases cover the orchestration surface:
 | **`@range` value guard** | `@range: [0, 255]` on `token := /[0-9a-z]+/` | inclusive boundaries `0`/`255` accept; `256` rejects; a non-numeric match (`zz`) rejects through the f64-parse arm |
 | **`@len` value guard** | `@len: [2, 3]` on `token := /[a-z]+/` | `chars().count()` bounds — one-off lengths on both sides reject |
 | **value-guard backtracking** | `program := small "!" \| wide "!"`, `@range: [0, 9]` on `small` only | a guard rejection is an ordinary backtrackable `Err`: `42!` still ACCEPTs via `wide` — and the byte-identical AST comparison pins *which* branch wins (pre-mirror the interpreter accepted via the guard-blind `small`: same verdict, wrong tree) |
+| **value comparison (`value_compare`)** | six ops `lt`/`le`/`gt`/`ge`/`eq`/`ne` over two positional captures `[$2, <op>, $4]` (RULE-SPAN-VALUE-CONSTRAINT.2) | a cross-capture value comparison gates the rule; numeric when both operands parse as `i64` (leading-zeros coerced: `05`==`5`, `05`<`4` false), lexical fallback otherwise — the `.4.3` counted-quantifier `{min,max}` order proving shape |
+| **value comparison backtracking** | a `value_compare`-gated `ordered` alternative vs an ungated `any_pair` sibling | a `value_compare` post-rejection is BACKTRACKABLE (loses the tournament, verdict still ACCEPT); the byte-identical AST comparison pins which branch wins |
+| **positional value_compare under a `->` transform** | `checked_pair := num "," num -> {min:$1,max:$3}` + `@predicate value_compare [$1, le, $3]` (RAWCAP-TRANSFORM-PATH.2) | a POSITIONAL raw-view predicate on a non-`Or` rule that ALSO carries a `->` resolves against the raw body captured *before* the transform shadows it — pre-fix it hard-errored (REJECT); named refs on `->` rules keep resolving against the shaped JSON (SEMREF-SHAPED), so this narrow positional capture cannot regress them |
 
 ### Grammar-author facts this suite established (tools-first)
 

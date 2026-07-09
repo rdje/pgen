@@ -1492,6 +1492,34 @@ impl CompiledSemanticRuntimeAnnotations {
             .any(|directive| directive.predicate_view() == Some(SemanticPredicateContentView::Raw))
     }
 
+    /// `RAWCAP-TRANSFORM-PATH.2`: the NARROW capture gate for the non-`Or`
+    /// transform path — true iff some Raw-view POST predicate on `rule_name`
+    /// references a POSITIONAL capture (`$N`, compiled to a `RuleReference`
+    /// whose text is all-digits). A positional `$N` has no slot in a rule's
+    /// shaped `->` Json, so it MUST resolve against the raw body content, which
+    /// the non-`Or` `rule_body_inner` only captures when this returns true (the
+    /// `Or` path captures inline in `generate_or_logic` regardless). Named refs
+    /// (`$body` → `RuleReference("body")`) are DELIBERATELY excluded: on a `->`
+    /// rule they resolve against the shaped Json (the `SEMREF-SHAPED` contract),
+    /// so capturing raw for them would flip resolution to a failing raw-tree walk
+    /// and regress consumers like the SV `declared_*` family and regex
+    /// `numeric_backreference`. This is strictly narrower than
+    /// `needs_raw_post_capture_for_rule` and is used ONLY by the non-`Or` path,
+    /// leaving the shared gate and the `Or` path byte-identical. No shipped
+    /// grammar has a positional Raw-view post-predicate today, so this returns
+    /// false everywhere until such a consumer lands (zero regression by
+    /// construction).
+    pub fn needs_positional_raw_post_capture_for_rule(&self, rule_name: &str) -> bool {
+        self.post_predicates_for_rule(rule_name)
+            .any(|directive| match directive {
+                SemanticRuntimeDirective::Predicate(spec) => {
+                    spec.view == SemanticPredicateContentView::Raw
+                        && spec.args.iter().any(predicate_arg_is_positional_reference)
+                }
+                _ => false,
+            })
+    }
+
     pub fn apply_to_rule(&self, state: &mut SemanticRuntimeState, rule_name: &str) -> usize {
         state.apply_compiled_rule(self, rule_name)
     }
@@ -4123,6 +4151,25 @@ fn scalar_text(value: &UnifiedSemanticValue) -> Option<&str> {
         | UnifiedSemanticValue::Number(text) => Some(text.as_str()),
         UnifiedSemanticValue::Boolean(_) | UnifiedSemanticValue::Null => None,
         UnifiedSemanticValue::Array(_) | UnifiedSemanticValue::Object(_) => None,
+    }
+}
+
+/// `RAWCAP-TRANSFORM-PATH.2`: true iff a compiled predicate arg is a POSITIONAL
+/// capture reference. A grammar `$ref` compiles to
+/// `UnifiedSemanticValue::RuleReference(text)`, but the `$` sigil is retained
+/// EXACTLY when the ref is positional (digit-headed): `POSITIONAL-PAYLOAD-REFS.2`
+/// freezes `$1` → `RuleReference("$1")` and `$2.word` → `RuleReference("$2.word")`
+/// (sigil PRESERVED so the runtime positional walk fires), while a NAMED `$body`
+/// freezes sigil-STRIPPED → `RuleReference("body")`. So the discriminator mirrors
+/// the resolver's own dispatch (`resolve_semantic_reference`,
+/// `ast_based_generator.rs:5832-5838`): a `$`-prefix followed by a digit.
+fn predicate_arg_is_positional_reference(arg: &UnifiedSemanticValue) -> bool {
+    match arg {
+        UnifiedSemanticValue::RuleReference(text) => text
+            .strip_prefix('$')
+            .and_then(|rest| rest.as_bytes().first())
+            .is_some_and(|byte| byte.is_ascii_digit()),
+        _ => false,
     }
 }
 

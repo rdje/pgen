@@ -2914,6 +2914,27 @@ impl AstBasedGenerator {
             ASTNode::Or { .. } => quote! {},
             _ => self.generate_post_body_span_transform(rule_name),
         };
+        // RAWCAP-TRANSFORM-PATH.2: on the non-`Or` transform path, capture the raw
+        // body `result` BEFORE `#post_parse_transform_tokens` shadows it with the
+        // shaped `->` Json, so a POSITIONAL (`$N`) raw-view post-predicate resolves
+        // against the ordered raw captures. The `Or` path already captures inline
+        // per-branch in `generate_or_logic` (empty here for `Or` roots — symmetric
+        // with `semantic_span_transform_tokens`). CODEGEN-time-gated to the NARROW
+        // positional case: emitted ONLY for a rule that actually has a positional
+        // raw-view post-predicate, so a rule without one is byte-identical to before
+        // (no inert guard, no `unused_assignments`) — every shipped grammar today,
+        // since none has such a predicate. Named refs keep resolving against the
+        // shaped Json (`SEMREF-SHAPED`), so this cannot regress the SV `declared_*` /
+        // regex `numeric_backreference` family. The interpreter applies the same
+        // narrow gate at runtime (`parse_harness_interpreter.rs`), so the
+        // differential-equivalence contract holds.
+        let semantic_nonor_positional_raw_capture_tokens: TokenStream = match ast_node {
+            ASTNode::Or { .. } => quote! {},
+            _ if self.rule_needs_positional_raw_post_capture(rule_name) => quote! {
+                semantic_raw_content = Some(result.clone());
+            },
+            _ => quote! {},
+        };
         let rule_body_inner = quote! {
             let semantic_capture_raw_for_post =
                 parser.semantic_runtime_annotations
@@ -2922,6 +2943,10 @@ impl AstBasedGenerator {
             let mut semantic_raw_content: Option<ParseContent<'input>> = None;
             // Main parsing logic - produces the 'result' variable
             #parse_logic;
+
+            // RAWCAP-TRANSFORM-PATH.2: capture raw body content for non-`Or`
+            // positional raw-view post-predicates before the transform shadows it.
+            #semantic_nonor_positional_raw_capture_tokens
 
             // Apply rule-level return annotation for non-Or roots
             // (Or roots apply per-branch transforms inline)
@@ -7366,6 +7391,34 @@ impl AstBasedGenerator {
         crate::ast_pipeline::semantic_directive_registry::semantic_directive_name_payload(
             annotation,
         )
+    }
+
+    /// `RAWCAP-TRANSFORM-PATH.2`: codegen-time gate — true iff `rule_name` carries a
+    /// POSITIONAL (`$N`) raw-view POST predicate. Reuses the exact compiled
+    /// classification (`compile_semantic_runtime_annotations` +
+    /// `needs_positional_raw_post_capture_for_rule`) rather than re-parsing the raw
+    /// payload, so it can never drift from the runtime resolver's positional
+    /// dispatch. Decides whether the non-`Or` transform path must capture the raw
+    /// body content before the `->` transform shadows it — emitted for such a rule
+    /// ONLY, so a rule without one (every shipped rule today) is byte-identical to
+    /// the pre-fix codegen. The fast path skips the compile for a rule that carries
+    /// no directives at all (the overwhelming majority), so this is O(rules with
+    /// annotations), not O(all rules).
+    fn rule_needs_positional_raw_post_capture(&self, rule_name: &str) -> bool {
+        let Some(annotations) = &self.annotations else {
+            return false;
+        };
+        if annotations
+            .semantic_annotations
+            .get(rule_name)
+            .is_none_or(|entries| entries.is_empty())
+        {
+            return false;
+        }
+        match compile_semantic_runtime_annotations(annotations) {
+            Ok(compiled) => compiled.needs_positional_raw_post_capture_for_rule(rule_name),
+            Err(_) => false,
+        }
     }
 
     fn rule_branch_policy(&self, rule_name: &str) -> SemanticBranchPolicy {
