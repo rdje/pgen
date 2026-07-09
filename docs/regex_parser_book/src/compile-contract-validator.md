@@ -52,13 +52,13 @@ one instance is the only one and it can only ever shrink.
 
 ## The remaining check families
 
-As of regex release `1.1.98`, the validator dispatches these families (each row is a
+As of regex release `1.1.100`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 
 | Family (what it rejects) | Example load-bearing inputs | Migration leaf |
 |---|---|---|
-| Character-class **RANGE** validity — nonliteral endpoints + descending ranges (**nonliteral shorthand/property endpoints — `.4.5.b`; descending literal ranges with a DECODABLE non-whitespace endpoint — `.4.5.c`; POSIX-class endpoints — `.4.5.d` — now ALL grammar-owned**; only collating/equivalence bracket-token endpoints and quoted/`\u{}`/bare-whitespace-endpoint descending stay validator-owned) | `[!-[.a.]]`/`[!-[=a=]]` (collating/equivalence, `.4.12`), `[\Q..\E-a]`/`[a- ]` (deferred descending) | collating `.4.12` + blocked descending |
+| Character-class **RANGE** validity — nonliteral endpoints + descending ranges (**nonliteral shorthand/property endpoints — `.4.5.b`; descending literal ranges with a DECODABLE non-whitespace endpoint — `.4.5.c`; POSIX-class endpoints — `.4.5.d`; collating/equivalence bracket-token endpoints — `.4.12` — now ALL grammar-owned**; only quoted/`\u{}`/bare-whitespace-endpoint descending stays validator-owned) | `[\Q..\E-a]`/`[a- ]` (deferred blocked-descending endpoints) | blocked descending |
 
 > **`1.1.95` (REGEX-0105, `.4.5.a`) — a range-validity *correctness fix*, not a migration.** A range whose
 > right endpoint began with `[` (or `||`) inside a NORMAL class — `[a-[b]]`, `[x-[:alpha:]]`, `[~-||]`,
@@ -128,12 +128,28 @@ As of regex release `1.1.98`, the validator dispatches these families (each row 
 > PCRE2 rejects err 150. The grammar migration flips that subset **ACCEPT→REJECT** at `--parse`
 > (PCRE2-convergent; one contract success sample moved to failure, counts 92/26). For every other posix-endpoint
 > case the validator already rejected, so those stay behavior-neutral. When this range-check is eventually
-> deleted (once collating/equivalence `.4.12` + the blocked descending endpoints land), the
-> `dash_is_trailing_literal` whitespace-skip hole must be resolved validator-side too, or fully subsumed by the
-> grammar (the grammar already handles it correctly). Only VALID-POSIX-name endpoints migrate here; collating
-> (`[.a.]`) / equivalence (`[=a=]`) endpoints have no grammar recognizer yet (`.4.12`). Cert 249 UNCHANGED,
-> ast_shape 225 UNCHANGED (no new `->` shape), oracle byte-identical `2189/1867/274/48` (flip cells
-> corpus-invisible), duality unchanged.
+> deleted (once the blocked-descending endpoints land — collating/equivalence is now grammar-owned by `.4.12`),
+> the `dash_is_trailing_literal` whitespace-skip hole must be resolved validator-side too, or fully subsumed by
+> the grammar (the grammar already handles it correctly). Only VALID-POSIX-name endpoints migrate here; the
+> collating (`[.a.]`) / equivalence (`[=a=]`) endpoints are handled by the `.4.12` `class_bracket_token`
+> recognizer (below). Cert 249 UNCHANGED, ast_shape 225 UNCHANGED (no new `->` shape), oracle byte-identical
+> `2189/1867/274/48` (flip cells corpus-invisible), duality unchanged.
+>
+> **`1.1.100` (REGEX-0110, `.4.12`) — a genuine accepts-invalid CORRECTION (not a migration): the
+> collating/equivalence bracket-tokens.** A POSIX collating-element `[.….]` or equivalence-class `[=…=]`
+> bracket-token in a class is PCRE2 err 113 (standalone / member / range-LEFT) or err 150 (range-RIGHT). This
+> row's validator NEVER recognised a standalone/member/range collating or equivalence token — and neither did
+> the grammar — so the released parser ACCEPTED all of them (`class_literal` reads the token's `[` as a literal
+> `0x5B`): a single-source-of-truth DOUBLE hole. `.4.12` adds a lookahead-only `class_bracket_token` recognizer
+> (`"[" class_bracket_token_tail`) and blocks the shape at the member position (`!class_bracket_token` on
+> `class_member_literal`/`_nocaret`), the class-OPEN position (`!class_bracket_token_tail` on `char_class`'s
+> no-caret alternative — the opening `[` itself forms the opener, `[.a.]` err 113), and the range-RIGHT position
+> (a `class_atom - class_bracket_token` `invalid_class_range` alternative for an ascending `[!-[.a.]]`). The
+> content scan is escape-aware and stops at an unescaped `]` (`[.].]` ACCEPT, `[.\].]` REJECT). Behavior-CHANGING
+> at `--parse` (accepts-invalid → PCRE2-convergent reject); corpus-invisible + contract-sample-invisible (counts
+> UNCHANGED 92/26). Cert 249→251 (+2 lookahead-only PROOF rules), ast_shape 18/18 (3 inventory entries
+> re-baselined `$2`→`$3`; accepted-AST byte-identical), oracle byte-identical `2189/1867/274/48`, duality
+> unchanged. This does NOT delete the range-check — the blocked-descending endpoints still keep it wired.
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
 | **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |

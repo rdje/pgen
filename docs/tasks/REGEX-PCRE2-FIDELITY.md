@@ -1218,8 +1218,9 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   current `validate_regex_compile_contract` check (validator is shape-only here) — a genuine
   released-parser accepts-invalid divergence (ledger `REGEX-0098`). **WHOLE-PATTERN two-pass**, same class
   as `.4.7`. The `.3.22` oracle matrix is its frozen acceptance spec.
-- ID: `.4.12` Status: `pending` (🔎 NEW divergence surfaced by the `.4.5.a` tools-first BUILD, session #78 —
-  NOT in the investigation's frozen matrix) Goal: encode STANDALONE collating-element / equivalence-class
+- ID: `.4.12` Status: **`done`** (`PGEN-REGEX-PCRE2-0037`, session #83; release `1.1.99`→`1.1.100`, contract
+  `1.1.101`→`1.1.102`, schema `1`, ledger `REGEX-0110`; see the `.4.12` implementation section + Acceptance
+  Checklist below) Goal: encode STANDALONE collating-element / equivalence-class
   reject — a `[.coll.]` / `[=equiv=]` token used as a plain class MEMBER (not a range endpoint). `pcre2test`
   10.47: `[[.a.]]` / `[[=a=]]` → err 113 "POSIX collating elements are not supported"; the released parser
   ACCEPTS both (grammar reads `[` as a literal member; the validator has no standalone collating/equivalence
@@ -1771,6 +1772,89 @@ also resolved on the validator side, or the whole range-check is deleted with th
   `rules-char-class.md` + `changelog-index.md` + `compile-contract-validator.md` + tracked HTML; `CHANGES.md`;
   `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`. (ast_shape manifest
   UNCHANGED — no new shape.)
+
+### REGEX-PCRE2-FIDELITY.4.12 — collating-element / equivalence-class bracket-token is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0037`, session #83)
+
+**Tools-first root cause (grammar-only via the certified interpreter — reproduced by the permanent test
+`rust/tests/regex_class_bracket_token_grammar_migration.rs`, run against the pre-fix grammar).** A POSIX
+collating-element `[.….]` or equivalence-class `[=…=]` bracket-token in a character class is REJECTED by
+`pcre2test` 10.47 — err 113 "POSIX collating elements are not supported" as a standalone / member / range-LEFT
+token, and err 150 "invalid range in character class" as a range-RIGHT endpoint (the `-` triggers the range
+error first). The released parser ACCEPTED all of these: `grammars/regex.ebnf`'s `class_literal` reads a class
+`[` as a `class_safe_special` literal 0x5B, so the surrounding `.`/`a`/`=` fell through to separate literal
+members and neither the grammar nor the out-of-band `validate_regex_compile_contract` ever recognised the token
+(a genuine released-parser accepts-invalid gap — NOT a validator→grammar migration; ledger `REGEX-0110`). The
+pre-fix interpreter run flipped 21 tokens grammar-ACCEPT; the 3 DESCENDING range-right cells
+(`[a-[.a.]]` `[z-[.a.]]` `[a-[=a=]]`) already rejected via `.4.5.c`'s `descending_class_range` (regression pins).
+
+**Tokenization is PCRE2-EXACT — every case oracle-verified against `pcre2test` 10.47 directly (NOT task-note
+annotations; the [[feedback_report_expected_verify_against_oracle]] discipline).** The `0036` scoping had only
+captured the range-endpoint err codes; the live oracle surfaced three subtleties it missed: (1) the opener `[`
+can be the CLASS-OPENING bracket itself, not only a member `[` — `[.a.]` (single leading bracket) is err 113;
+(2) an opener is formed ONLY when `.`/`=` IMMEDIATELY follows `[` — a `^` negation or an invisible `\E`/`\Q\E`
+between breaks it (`[^.a.]`, `[\E.a.]` ACCEPT); (3) the content scan is escape-aware and stops at an UNESCAPED
+`]` (the class close) — `[.].]` ACCEPT (class `[.]` closes at the first `]`, then `.]` are body literals),
+`[.\].]` REJECT (the escaped `\]` is crossed as content, the `.]` terminator found), and `\` escapes ONLY `]`,
+not the terminator dot (`[.a\.]` REJECT — the `.]` still terminates). A lone `.`/`=` is a literal (`[.]`/`[=]`
+ACCEPT); an empty token still rejects (`[..]` err 113).
+
+**Fix (grammar tier — a new `class_bracket_token` recognizer + three lookahead guards, `feedback_no_workarounds_fix_hierarchy`
+tier 1).** `class_bracket_token = "[" class_bracket_token_tail`; `class_bracket_token_tail = "." ( "\\" "]" |
+!".]" !"]" builtin_any_char )* ".]" | "=" ( "\\" "]" | !"=]" !"]" builtin_any_char )* "=]"`. Referenced ONLY
+inside `!(…)` lookaheads (and inside the already-lookahead-only `invalid_class_range`), so both rules are
+lookahead-only / positively-unreachable → certified by PROOF (cert `total` 249→251, proof 7→9). Three guard
+sites block the shape wherever a class `[` reads as a literal: (1) the MEMBER guard `!class_bracket_token` on
+`class_member_literal` / `class_member_literal_nocaret` (`-> $2`→`-> $3` for the inserted lookahead; mirrors the
+`.4.6` `[:name:]` posix idiom); (2) the class-OPEN guard `!class_bracket_token_tail` in `char_class`'s no-caret
+alternative (`body: $2`→`body: $3`) — placed BEFORE the `class_zero_width*` prefix so it fires ONLY when `.`/`=`
+is literally the first char after `[` (an invisible/`^` structurally routes the parse away, matching PCRE2);
+(3) the range-RIGHT `class_atom … "-" … class_bracket_token` alternative on `invalid_class_range` (an ASCENDING
+`[!-[.a.]]` (33 < 91) not caught by `.4.5.c`'s descending guard). The class-open guard sits only on the no-caret
+alternative because the initial-`]` alternative (needs `]` after `[`) and the caret alternative (needs `^`) both
+structurally exclude a `.`/`=`-immediate opener.
+
+**Scope + the validator range-check deletion.** This closes the collating/equivalence half of the `.4.5.d`
+deferred residual. The remaining class-range residual is the **blocked descending** endpoints (`\Q..\E`/`\u{}`
+whose `$text` decodes `None`, and bare-whitespace whose `$text` is empty —
+[[project_dollar_text_whitespace_empty_in_predicate_arg]]). The `find_invalid_char_class_construct` range-check
+DELETION still waits until those land (and the `dash_is_trailing_literal` whitespace-skip hole is resolved), so
+the validator stays wired for now — behavior-changing here only because the grammar now REJECTS the
+collating/equivalence tokens the validator never recognised.
+
+#### `.4.12` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — the permanent test `rust/tests/regex_class_bracket_token_grammar_migration.rs` run
+  against the pre-fix grammar via `interpret_parse("grammars/regex.ebnf", <pat>, pcre2)`: 21 collating/equivalence
+  tokens (`[.a.]` `[=a=]` `[..]` `[[.a.]]` `[a[.a.]b]` `[[.a.]-z]` `[!-[.a.]]` `[.\].]` `[.a\.]` …) `accepted=true`
+  where `pcre2test` 10.47 = err 113/150; the 3 descending range-right cells already rejected via `.4.5.c`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf::class_literal` (via `class_safe_special`) reads a class
+  `[` as literal 0x5B, so a `[.`/`[=` token decomposes into separate literal members and no recognizer fires;
+  the err-113/150 reject existed in NEITHER the grammar NOR `validate_regex_compile_contract` (a genuine
+  accepts-invalid gap, not a masked migration). Tokenization boundaries (class-open opener, `^`/invisible break,
+  escape-aware `]`-stopping terminator) established string-by-string against `pcre2test` 10.47.
+- [x] **FIX** — grammar tier (fix-hierarchy 1): new lookahead-only `class_bracket_token` / `class_bracket_token_tail`
+  recognizer + `!class_bracket_token` member guards + `!class_bracket_token_tail` class-open guard + a
+  `class_atom … "-" … class_bracket_token` `invalid_class_range` alternative. No engine/codegen change.
+- [x] **ADDRESSED (verified)** — `regex_class_bracket_token_grammar_migration.rs` GREEN: all 21 tokens flip grammar
+  ACCEPT→REJECT, the 3 descending controls stay REJECT (regression pins), and all 23 carve-outs stay ACCEPT
+  (`[.]` `[=]` `[a.b]` `[[]` `[[.]` `[.].]` `[.a].]` `[^.a.]` `[\E.a.]` `[].a.]` `[\.a.]` `[\[.a.]` `[[:alpha:]]`
+  `[a-z]` …) — every string verified against `pcre2test` 10.47. Behavior-CHANGING at the released `--parse`
+  surface (accepts-invalid → PCRE2-convergent reject).
+- [x] **NO REGRESSION** — regex cert `total=251 proof=9 witness=242 UNKNOWN=0 fully_certified=true
+  sample_parse_failures=0` at seeds 0/7/42 (249→251: +2 lookahead-only PROOF rules, witness/UNKNOWN unchanged);
+  `--lint-grammar` 0 errors (251 rules, 0 unreachable/undefined); `regex_pcre2_compile_oracle_gate` byte-identical
+  `2189/1867/274/48` (collating cells corpus-invisible; probe recompiled fresh); `duality_hunt_gate` 9 lanes no
+  new/vanished (generator never emits the tokens); `parse_harness_equivalence_gate` regex byte-identical (11
+  certified grammars); `ast_shape_contract` 18/18 (3 inventory entries re-baselined `$2`→`$3`, count 225 —
+  accepted-AST shape byte-identical); `parse_harness_combinator_gate` + `parse_harness_semantic_gate` green
+  (shared engine untouched); regex integration-contract lib tests green (`metadata_is_stable` at `1.1.100`/`1.1.102`,
+  sample counts UNCHANGED 92/26 — contract-sample-invisible); only regex regenerated.
+- [x] **LOCKSTEP** — `grammars/regex.ebnf` (+2 rules, 3 guard sites); regenerated `generated/regex_parser.rs`;
+  new test `rust/tests/regex_class_bracket_token_grammar_migration.rs`; `embedding_api.rs` consts
+  `1.1.100`/`1.1.102`; `regex_v1.json` ast_shape inventory (`char_class` branch 2 + `class_member_literal`(_nocaret)
+  `$2`→`$3`); ledger `REGEX-0110`; contract `1.1.100`/`1.1.102` Highlights + Identity; regex book
+  `rules-char-class.md` + `changelog-index.md` + `compile-contract-validator.md` + tracked HTML; top book
+  `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`;
+  `docs/TASK_TREE.md`.
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 

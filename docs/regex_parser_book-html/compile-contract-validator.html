@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-473aae60.js";
+            window.path_to_searchindex_js = "searchindex-14334204.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -223,7 +223,7 @@ the EBNF becomes the sole source of truth.</p>
 CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.98</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.100</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">
@@ -232,7 +232,7 @@ one instance is the only one and it can only ever shrink.</p>
 <tr><th>Family (what it rejects)</th><th>Example load-bearing inputs</th><th>Migration leaf</th></tr>
 </thead>
 <tbody>
-<tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges (<strong>nonliteral shorthand/property endpoints — <code>.4.5.b</code>; descending literal ranges with a DECODABLE non-whitespace endpoint — <code>.4.5.c</code>; POSIX-class endpoints — <code>.4.5.d</code> — now ALL grammar-owned</strong>; only collating/equivalence bracket-token endpoints and quoted/<code>\u{}</code>/bare-whitespace-endpoint descending stay validator-owned)</td><td><code>[!-[.a.]]</code>/<code>[!-[=a=]]</code> (collating/equivalence, <code>.4.12</code>), <code>[\Q..\E-a]</code>/<code>[a- ]</code> (deferred descending)</td><td>collating <code>.4.12</code> + blocked descending</td></tr>
+<tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges (<strong>nonliteral shorthand/property endpoints — <code>.4.5.b</code>; descending literal ranges with a DECODABLE non-whitespace endpoint — <code>.4.5.c</code>; POSIX-class endpoints — <code>.4.5.d</code>; collating/equivalence bracket-token endpoints — <code>.4.12</code> — now ALL grammar-owned</strong>; only quoted/<code>\u{}</code>/bare-whitespace-endpoint descending stays validator-owned)</td><td><code>[\Q..\E-a]</code>/<code>[a- ]</code> (deferred blocked-descending endpoints)</td><td>blocked descending</td></tr>
 </tbody>
 </table>
 </div>
@@ -301,12 +301,27 @@ NonLiteral POSIX class — so the validator ACCEPTED <code>[[:digit:]-   ]</code
 PCRE2 rejects err 150. The grammar migration flips that subset <strong>ACCEPT→REJECT</strong> at <code>--parse</code>
 (PCRE2-convergent; one contract success sample moved to failure, counts 92/26). For every other posix-endpoint
 case the validator already rejected, so those stay behavior-neutral. When this range-check is eventually
-deleted (once collating/equivalence <code>.4.12</code> + the blocked descending endpoints land), the
-<code>dash_is_trailing_literal</code> whitespace-skip hole must be resolved validator-side too, or fully subsumed by the
-grammar (the grammar already handles it correctly). Only VALID-POSIX-name endpoints migrate here; collating
-(<code>[.a.]</code>) / equivalence (<code>[=a=]</code>) endpoints have no grammar recognizer yet (<code>.4.12</code>). Cert 249 UNCHANGED,
-ast_shape 225 UNCHANGED (no new <code>-&gt;</code> shape), oracle byte-identical <code>2189/1867/274/48</code> (flip cells
-corpus-invisible), duality unchanged.
+deleted (once the blocked-descending endpoints land — collating/equivalence is now grammar-owned by <code>.4.12</code>),
+the <code>dash_is_trailing_literal</code> whitespace-skip hole must be resolved validator-side too, or fully subsumed by
+the grammar (the grammar already handles it correctly). Only VALID-POSIX-name endpoints migrate here; the
+collating (<code>[.a.]</code>) / equivalence (<code>[=a=]</code>) endpoints are handled by the <code>.4.12</code> <code>class_bracket_token</code>
+recognizer (below). Cert 249 UNCHANGED, ast_shape 225 UNCHANGED (no new <code>-&gt;</code> shape), oracle byte-identical
+<code>2189/1867/274/48</code> (flip cells corpus-invisible), duality unchanged.</p>
+<p><strong><code>1.1.100</code> (REGEX-0110, <code>.4.12</code>) — a genuine accepts-invalid CORRECTION (not a migration): the
+collating/equivalence bracket-tokens.</strong> A POSIX collating-element <code>[.….]</code> or equivalence-class <code>[=…=]</code>
+bracket-token in a class is PCRE2 err 113 (standalone / member / range-LEFT) or err 150 (range-RIGHT). This
+row’s validator NEVER recognised a standalone/member/range collating or equivalence token — and neither did
+the grammar — so the released parser ACCEPTED all of them (<code>class_literal</code> reads the token’s <code>[</code> as a literal
+<code>0x5B</code>): a single-source-of-truth DOUBLE hole. <code>.4.12</code> adds a lookahead-only <code>class_bracket_token</code> recognizer
+(<code>"[" class_bracket_token_tail</code>) and blocks the shape at the member position (<code>!class_bracket_token</code> on
+<code>class_member_literal</code>/<code>_nocaret</code>), the class-OPEN position (<code>!class_bracket_token_tail</code> on <code>char_class</code>’s
+no-caret alternative — the opening <code>[</code> itself forms the opener, <code>[.a.]</code> err 113), and the range-RIGHT position
+(a <code>class_atom - class_bracket_token</code> <code>invalid_class_range</code> alternative for an ascending <code>[!-[.a.]]</code>). The
+content scan is escape-aware and stops at an unescaped <code>]</code> (<code>[.].]</code> ACCEPT, <code>[.\].]</code> REJECT). Behavior-CHANGING
+at <code>--parse</code> (accepts-invalid → PCRE2-convergent reject); corpus-invisible + contract-sample-invisible (counts
+UNCHANGED 92/26). Cert 249→251 (+2 lookahead-only PROOF rules), ast_shape 18/18 (3 inventory entries
+re-baselined <code>$2</code>→<code>$3</code>; accepted-AST byte-identical), oracle byte-identical <code>2189/1867/274/48</code>, duality
+unchanged. This does NOT delete the range-check — the blocked-descending endpoints still keep it wired.
 | Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code> | <code>.4.7</code> |
 | <strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix | <code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code> | <code>.4.8</code> |
 | <strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded | <code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code> | <code>.4.9</code> |

@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.101`
+  - `1.1.102`
 - Parser release version:
-  - `1.1.99`
+  - `1.1.100`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-07-09`
+  - `2026-07-10`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -96,6 +96,26 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.100 / Contract 1.1.102 Highlights — REGEX-0110: collating-element / equivalence-class bracket-tokens are now GRAMMAR-owned (a genuine accepts-invalid correction — NOT behavior-neutral)
+
+**Bug ledger:** `REGEX-0110` — internal, `REGEX-PCRE2-FIDELITY.4.12`. **A genuine released-parser accepts-invalid correction (NOT a validator→grammar migration).** A POSIX collating-element `[.….]` or equivalence-class `[=…=]` bracket-token inside a character class is REJECTED by PCRE2 — err 113 "POSIX collating elements are not supported" as a standalone / member / range-LEFT token, and err 150 "invalid range in character class" as a range-RIGHT endpoint (the `-` triggers the range error first). The released parser ACCEPTED all of these at BOTH layers: `class_literal` (via `class_safe_special`) reads a class `[` as a literal `0x5B`, so a `[.`/`[=` token decomposed into a `[` member plus the surrounding `.`/`a`/`=` literal members, and neither the grammar NOR the out-of-band `validate_regex_compile_contract` ever recognised the token (unlike the class-range holes `REGEX-0107`/`0108`/`0109`, where the validator did reject — here it was a single-source-of-truth DOUBLE hole). This slice adds a grammar recognizer, so every collating/equivalence token now REJECTs (`E_PARSE_FAILURE`), PCRE2-convergently.
+
+**What changed.** A new lookahead-only recognizer `class_bracket_token = "[" class_bracket_token_tail` (with `class_bracket_token_tail` matching `[.` … `.]` and `[=` … `=]`) blocks the shape at three sites: (1) a MEMBER guard `!class_bracket_token` on `class_member_literal`/`_nocaret` (mirrors the `.4.6` `[:name:]` POSIX idiom); (2) a class-OPEN guard `!class_bracket_token_tail` on `char_class`'s no-caret alternative — the OPENING `[` itself forms the `[.`/`[=` opener (`[.a.]` err 113); (3) a range-RIGHT `class_atom … "-" … class_bracket_token` alternative on `invalid_class_range` (an ASCENDING `[!-[.a.]]`, not caught by `.4.5.c`'s descending guard). The tokenization is PCRE2-exact (every case oracle-verified): the opener `[` must be IMMEDIATELY followed by `.`/`=` — a `^` negation or an invisible `\E`/`\Q\E` between breaks it; the content scan is escape-aware and stops at an UNESCAPED `]` (the class close). Both recognizer rules are referenced only inside `!(…)` lookaheads ⇒ lookahead-only / PROOF-certified (cert `total` 249→251, `proof` 7→9).
+
+| Rule | Example | Grammar verdict (before) | Grammar verdict (`1.1.100`) = PCRE2 10.47 | Released `--parse` (before → `1.1.100`) |
+|---|---|---|---|---|
+| **collating/equivalence token — standalone / member / range-LEFT (err 113)** | `[[.a.]]` · `[.a.]` · `[a[.a.]b]` · `[[.a.]-z]` · `[[=a=]]` · `[..]` | ACCEPT (`[` read as literal 0x5B) | **REJECT** | **ACCEPT → REJECT** (correctness fix) |
+| **collating/equivalence token — ASCENDING range-RIGHT (err 150)** | `[!-[.a.]]` · `[!-[=a=]]` | ACCEPT (ascending `!-[` range) | **REJECT** | **ACCEPT → REJECT** (correctness fix) |
+| escape-aware content (crosses `\]`, `\` escapes only `]`) | `[.\].]` · `[.a\.]` · `[=a\=]` | ACCEPT | **REJECT** | **ACCEPT → REJECT** |
+| descending range-RIGHT (already owned `.4.5.c`) | `[a-[.a.]]` · `[z-[.a.]]` · `[a-[=a=]]` | REJECT | REJECT | REJECT → REJECT |
+| lone `.`/`=`, no `.]`/`=]` terminator, opener broken, class closes first (carve-outs, unchanged) | `[.]` · `[=]` · `[a.b]` · `[[]` · `[[.]` · `[.].]` · `[^.a.]` · `[\E.a.]` · `[\.a.]` · `[\[.a.]` | ACCEPT | ACCEPT | ACCEPT → ACCEPT |
+
+**Scope:** this closes the collating/equivalence half of the `.4.5.d` deferred class-range residual. The blocked-descending endpoints (`\Q..\E`/`\u{}` whose `$text` decodes `None`, and bare-whitespace whose `$text` is empty) stay validator-owned; the `find_invalid_char_class_construct` range-check is deleted only once those also land.
+
+**Conformance:** `regex_pcre2_compile_oracle_gate` (`pcre2test` 10.47) — byte-identical `2189/1867/274/48` (the collating/equivalence cells are not in the corpus ⇒ corpus-invisible). regex cert-coverage `251/251 UNKNOWN=0 fully_certified=true` at seeds 0/7/42 (249→251: +2 lookahead-only PROOF rules), `--lint-grammar` 0 errors (251 rules, 0 unreachable/undefined), `duality_hunt_gate` 9 lanes no new/vanished signature, `parse_harness_equivalence_gate` regex byte-identical (11 certified grammars), `ast_shape_contract` 18/18 (3 inventory entries re-baselined `$2`→`$3` for the inserted lookaheads; accepted-AST shape byte-identical), AST-dump schema stays `1`. Contract manifest success/failure sample counts UNCHANGED (92/26 — contract-sample-invisible, unlike `.4.5.d`). Grammar verdicts verified string-by-string against `pcre2test` 10.47 via `rust/tests/regex_class_bracket_token_grammar_migration.rs`.
+
+**Action for downstream (RGX):** a PCRE2-convergent tightening. Character classes containing a POSIX collating-element (`[.ch.]`) or equivalence-class (`[=ch=]`) bracket-token — anywhere in the class, in any position — now correctly REJECT with `E_PARSE_FAILURE` (they were an accepts-invalid divergence before). Every OTHER accepted pattern and its AST are byte-identical to `1.1.99`. Continue matching on the diagnostic **code**, never message text.
 
 ## Release 1.1.99 / Contract 1.1.101 Highlights — REGEX-0109: POSIX-class class-range endpoint reject is now GRAMMAR-owned (behavior-NEUTRAL validator→grammar migration)
 

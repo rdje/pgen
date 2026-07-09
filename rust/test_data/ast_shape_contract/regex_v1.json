@@ -406,7 +406,7 @@
         "rule": "char_class",
         "branch_index": 2,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: [], initial_close: [], body: $2}"
+        "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: [], initial_close: [], body: $3}"
       },
       {
         "rule": "class_body_nonempty",
@@ -454,13 +454,13 @@
         "rule": "class_member_literal",
         "branch_index": 0,
         "annotation_type": "return_scalar",
-        "normalized_text": "$2"
+        "normalized_text": "$3"
       },
       {
         "rule": "class_member_literal_nocaret",
         "branch_index": 0,
         "annotation_type": "return_scalar",
-        "normalized_text": "$2"
+        "normalized_text": "$3"
       },
       {
         "rule": "class_negated_open",

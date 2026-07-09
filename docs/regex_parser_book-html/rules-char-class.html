@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-473aae60.js";
+            window.path_to_searchindex_js = "searchindex-14334204.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -427,9 +427,10 @@ alternative matches and it ACCEPTs — exactly like PCRE2. Ordinary POSIX-class 
 (<code>[[:alpha:]a]</code>, <code>[a-z[:digit:]]</code>, <code>[[:alpha:][:digit:]]</code>) are unaffected: they carry no range
 dash. The <em>descending</em> POSIX-right cases (<code>[x-[:alpha:]]</code>, where the literal <code>[</code>=0x5B is below the
 left endpoint) are already rejected by <code>descending_class_range</code> above.</p>
-<p>Only <strong>valid POSIX names</strong> migrate here. The collating (<code>[.a.]</code>) and equivalence (<code>[=a=]</code>)
-bracket-tokens have no grammar recognizer yet (they join the standalone-token work,
-<code>REGEX-PCRE2-FIDELITY.4.12</code>).</p>
+<p>Only <strong>valid POSIX names</strong> migrate here. A range whose endpoint is a collating (<code>[.a.]</code>) or
+equivalence (<code>[=a=]</code>) bracket-token is handled separately, by the <code>class_bracket_token</code> recognizer
+— see <a href="#collating-element--equivalence-class-bracket-tokens-the-class_bracket_token-guard">Collating-element / equivalence-class bracket-tokens</a>
+below (<code>REGEX-PCRE2-FIDELITY.4.12</code>).</p>
 <blockquote>
 <p><strong>Note (behavior change, PCRE2-convergent).</strong> This migration mostly encodes a reject the
 out-of-band validator already made, but it also closes a validator accepts-invalid hole:
@@ -441,10 +442,57 @@ zero-width <code>[[:alpha:]-\Q\E]</code> carve-out (dash then an empty <code>\Q\
 matching PCRE2.</p>
 </blockquote>
 <p><strong>Scope:</strong> shorthand + property endpoints (<code>.4.5.b</code>), descending literal ranges with a decodable
-non-whitespace endpoint (<code>.4.5.c</code>), and POSIX-class endpoints (<code>.4.5.d</code>) are grammar-owned; the
-collating/equivalence endpoints (<code>[!-[.a.]]</code>, <code>.4.12</code>) and the quoted/<code>\u{}</code>/bare-whitespace-endpoint
+non-whitespace endpoint (<code>.4.5.c</code>), POSIX-class endpoints (<code>.4.5.d</code>), and collating/equivalence
+bracket-tokens (<code>.4.12</code>, below) are grammar-owned; only the quoted/<code>\u{}</code>/bare-whitespace-endpoint
 descending cases stay validator-owned. The out-of-band <code>find_invalid_char_class_construct</code>
 range-check is deleted only once the whole class-range family is grammar-owned.</p>
+<h3 id="collating-element--equivalence-class-bracket-tokens-the-class_bracket_token-guard"><a class="header" href="#collating-element--equivalence-class-bracket-tokens-the-class_bracket_token-guard">Collating-element / equivalence-class bracket-tokens (the <code>class_bracket_token</code> guard)</a></h3>
+<p>A POSIX <strong>collating-element</strong> <code>[.….]</code> or <strong>equivalence-class</strong> <code>[=…=]</code> bracket-token inside a
+character class is rejected by PCRE2 — err 113 “POSIX collating elements are not supported” as a
+standalone / member / range-LEFT token, and err 150 “invalid range” as a range-RIGHT endpoint (the
+<code>-</code> triggers the range error first). PCRE2 does not support them at all
+(<code>REGEX-PCRE2-FIDELITY.4.12</code>, ledger <code>REGEX-0110</code>). Without a recognizer the grammar over-accepts
+every one: <code>class_literal</code> reads the token’s <code>[</code> as a <code>class_safe_special</code> literal <code>0x5B</code>, so the
+surrounding <code>.</code>/<code>a</code>/<code>=</code> fall through to separate literal members. The <code>class_bracket_token</code>
+recognizer matches the shape from its leading <code>[</code> and a <code>.]</code> / <code>=]</code> terminator:</p>
+<pre><code class="language-ebnf">class_bracket_token      = "[" class_bracket_token_tail
+class_bracket_token_tail = "." ( "\\" "]" | !".]" !"]" builtin_any_char )* ".]"
+                         | "=" ( "\\" "]" | !"=]" !"]" builtin_any_char )* "=]"
+</code></pre>
+<p>It is referenced only inside <code>!(…)</code> lookaheads (and inside the lookahead-only <code>invalid_class_range</code>),
+so both rules are lookahead-only / positively-unreachable → certified by PROOF. The recognizer blocks
+the shape at <strong>three</strong> positions a class <code>[</code> can be read as a literal:</p>
+<ul>
+<li>the <strong>member</strong> position — <code>!class_bracket_token</code> on <code>class_member_literal</code> / <code>class_member_literal_nocaret</code>
+(the same idiom as the <a href="#posix-name-validity-the-class_member_literal-guard">POSIX name validity</a>
+guard), so <code>[[.a.]]</code>, <code>[a[.a.]b]</code>, <code>[[.a.]-z]</code> reject;</li>
+<li>the <strong>class-open</strong> position — <code>!class_bracket_token_tail</code> right after the opening <code>"["</code> in the
+no-caret <code>char_class</code> alternative, because the <em>opening</em> bracket itself forms the opener: <code>[.a.]</code>
+(a single leading <code>[</code>) is err 113. The guard sits before the invisible-prefix slot, so it fires only
+when <code>.</code>/<code>=</code> is literally the first char after <code>[</code>;</li>
+<li>the <strong>range-RIGHT</strong> endpoint — a <code>class_atom … "-" … class_bracket_token</code> alternative on
+<code>invalid_class_range</code>, so an <em>ascending</em> <code>[!-[.a.]]</code> (not caught by <code>descending_class_range</code>) rejects.</li>
+</ul>
+<p>The tokenization is PCRE2-exact (every case oracle-verified against <code>pcre2test</code> 10.47):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[.a.]</code> <code>[=a=]</code> <code>[..]</code> <code>[[.a.]]</code> <code>[a[.a.]b]</code> <code>[[.a.]-z]</code></td><td><strong>REJECT</strong></td><td>a <code>[.</code>/<code>[=</code> opener with a <code>.]</code>/<code>=]</code> terminator</td></tr>
+<tr><td><code>[!-[.a.]]</code> <code>[!-[=a=]]</code></td><td><strong>REJECT</strong></td><td>ascending range with a collating/equivalence RIGHT endpoint (err 150)</td></tr>
+<tr><td><code>[.\].]</code> <code>[.a\.]</code></td><td><strong>REJECT</strong></td><td>content scan crosses an escaped <code>\]</code>; <code>\</code> escapes only <code>]</code>, not the terminator dot</td></tr>
+<tr><td><code>[.]</code> <code>[=]</code></td><td>ACCEPT</td><td>a lone <code>.</code>/<code>=</code> is a literal — no <code>.]</code>/<code>=]</code> terminator</td></tr>
+<tr><td><code>[[.]</code> <code>[.ab]</code></td><td>ACCEPT</td><td>opener with no terminator before the class closes</td></tr>
+<tr><td><code>[.].]</code> <code>[.a].]</code></td><td>ACCEPT</td><td>the class closes at the first unescaped <code>]</code>; the scan stops there</td></tr>
+<tr><td><code>[^.a.]</code> <code>[\E.a.]</code></td><td>ACCEPT</td><td>a <code>^</code> negation or an invisible <code>\E</code>/<code>\Q\E</code> breaks the class-open opener</td></tr>
+<tr><td><code>[a.b]</code> <code>[x.a.]</code> <code>[\.a.]</code> <code>[\[.a.]</code></td><td>ACCEPT</td><td>no <code>[.</code>/<code>[=</code> opener (the <code>.</code> is not immediately after a <code>[</code>, or the <code>[</code>/<code>.</code> is escaped)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <em>descending</em> range-RIGHT cases (<code>[a-[.a.]]</code>, <code>[z-[.a.]]</code>, where the left endpoint’s code point is
+above <code>[</code>=0x5B) were already rejected by <code>descending_class_range</code>.</p>
 <h2 id="walking-a-class-body"><a class="header" href="#walking-a-class-body">Walking a class body</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

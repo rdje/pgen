@@ -607,7 +607,7 @@ posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_star
 # class_range zero-width precedent).
 char_class     = "[" class_negated_open? class_zero_width* class_initial_close class_body "]"    -> {type: "atom", kind: "char_class", negated: $2, initial_close: $4, body: $5}
                | "[" class_negated_open class_body_nonempty "]"              -> {type: "atom", kind: "char_class", negated: $2, initial_close: [], body: $3}
-               | "[" class_body_nonempty_nocaret "]"                         -> {type: "atom", kind: "char_class", negated: [], initial_close: [], body: $2}
+               | "[" !class_bracket_token_tail class_body_nonempty_nocaret "]"  -> {type: "atom", kind: "char_class", negated: [], initial_close: [], body: $3}
 class_initial_close = "]"                                            -> true
 
 # REGEX-PCRE2-FIDELITY.3.15: the PCRE2 class-open negation — the FIRST non-invisible char
@@ -748,14 +748,17 @@ empty_quoted_class_literal = "\\Q" "\\E"   -> {type: "class_quoted_literal", bod
 # already reject via `descending_class_range`.) Mirrors the shorthand/property shapes above, but references the
 # EXISTING positively-reachable `posix_class` rule (so no new lookahead-only rule / no cert-count change). The
 # `class_atom`-after-`-` requirement keeps the trailing-dash carve-out (`[[:alpha:]-]` ACCEPT). The
-# collating/equivalence bracket-tokens (`[.a.]` / `[=a=]`) have no grammar recognizer yet and stay
-# validator-owned (joins `.4.12`); only VALID-POSIX-name endpoints migrate here. NOTE: alternatives must stay
-# CONTIGUOUS — a comment line between `|` branches terminates the rule in the EBNF frontend.
+# REGEX-PCRE2-FIDELITY.4.12 last alternative rejects a range whose RIGHT endpoint is a collating/equivalence
+# bracket-token (`[!-[.a.]]` / `[a-[=a=]]` — err 150, an ASCENDING range not caught by `.4.5.c`'s descending
+# guard), referencing the lookahead-only `class_bracket_token` recognizer defined below; the standalone / member
+# / range-LEFT collating cases are owned by the member + class-open `!class_bracket_token(_tail)` guards. NOTE:
+# alternatives must stay CONTIGUOUS — a comment line between `|` branches terminates the rule in the EBNF frontend.
 invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
                     | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
                     | descending_class_range
                     | posix_class class_zero_width* "-" class_zero_width* class_atom
                     | class_atom class_zero_width* "-" class_zero_width* posix_class
+                    | class_atom class_zero_width* "-" class_zero_width* class_bracket_token
 # The NONLITERAL class atoms `.4.5.b` forbids as a range endpoint: the shorthand character-class
 # escapes and the Unicode property escapes. Used ONLY inside the `invalid_class_range` lookahead, so
 # no return shape is needed (a lookahead discards its value). `property_escape` (already positively
@@ -763,6 +766,35 @@ invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_ze
 class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
                             | "\\" property_escape
 class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
+# REGEX-PCRE2-FIDELITY.4.12 (PGEN-REGEX-PCRE2-0037): a POSIX collating-element `[.….]` or
+# equivalence-class `[=…=]` bracket-token is REJECTED by PCRE2 — err 113 as a standalone /
+# member / range-LEFT token, err 150 as a range-RIGHT endpoint (the `-` triggers the range
+# error first) — oracle `pcre2test` 10.47. The released parser ACCEPTED all of these: the
+# class `[` reads as a `class_safe_special` literal 0x5B and the surrounding `.`/`a`/`=` become
+# separate members, so neither the grammar nor the out-of-band validator ever recognised the
+# token (a genuine released-parser accepts-invalid gap, ledger REGEX-0110). `class_bracket_token`
+# recognises the shape from its leading `[` and blocks it at every position a class `[` can be
+# read as a literal: (1) the MEMBER guard `!class_bracket_token` on `class_member_literal` /
+# `class_member_literal_nocaret` (mirrors the `.4.6` `[:name:]` posix idiom); (2) the class-OPEN
+# guard `!class_bracket_token_tail` in `char_class`'s no-caret alternative — the OPENING `[`
+# itself forms the `[.`/`[=` opener (`[.a.]` err 113); (3) the range-RIGHT
+# `class_atom … "-" … class_bracket_token` alternative on `invalid_class_range` above — an
+# ASCENDING `[!-[.a.]]` (33 < 91) not caught by `.4.5.c`'s descending guard. Referenced ONLY
+# inside `!(…)` lookaheads (and inside the already-lookahead-only `invalid_class_range`), so both
+# rules are lookahead-only / positively-unreachable → certified by PROOF; generation is unchanged
+# (duality-neutral). Tokenization is PCRE2-EXACT (every case oracle-verified): the opener `[`
+# must be IMMEDIATELY followed by `.`/`=` — a `^` negation or invisible `\E`/`\Q\E` between breaks
+# it (`[^.a.]` / `[\E.a.]` ACCEPT), handled structurally because the member guard sits at the
+# member `[` and the class-open guard sits BEFORE the `class_zero_width*` prefix (so an invisible
+# routes the parse away from the guard) while `[^…]` routes through the caret alternative. The
+# content scan is escape-aware and stops at an UNESCAPED `]` (the class close): `[.].]` ACCEPT
+# (class `[.]` closes at the first `]`, then `.]` are body literals), `[.\].]` REJECT (the escaped
+# `\]` is crossed as content, the `.]` terminator found). `\` escapes ONLY `]`, not the terminator
+# dot (`[.a\.]` REJECT — the `.]` still terminates). A lone `.`/`=` is a literal (`[.]`/`[=]`
+# ACCEPT); the token needs a real `.]`/`=]` terminator (empty `[..]` REJECT).
+class_bracket_token = "[" class_bracket_token_tail
+class_bracket_token_tail = "." ( "\\" "]" | !".]" !"]" builtin_any_char )* ".]"
+                         | "=" ( "\\" "]" | !"=]" !"]" builtin_any_char )* "=]"
 # REGEX-PCRE2-FIDELITY.4.5.c: a DESCENDING class range — two LITERAL endpoints whose left code point
 # exceeds the right (`[z-a]`, `[9-0]`, `[\x39-\x30]`, `[\x{100}-a]`) — is PCRE2 err 108 "range out of
 # order in character class" (oracle `pcre2test` 10.47). The grammar ACCEPTS these today (the
@@ -849,8 +881,8 @@ class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
 # `:]` across BOTH escaped and unescaped `]`, whereas PCRE2's posix-name boundary stops at an UNESCAPED `]`
 # (`[x[:foo]bar:]y]` ACCEPT in PCRE2). That validator↔PCRE2 divergence pre-dates this slice and is left
 # for a dedicated PCRE2-exact-boundary follow-up (a name-`]`-boundary primitive), not this migration.
-class_member_literal         = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal         -> $2
-class_member_literal_nocaret = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal_nocaret -> $2
+class_member_literal         = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) !class_bracket_token class_literal         -> $3
+class_member_literal_nocaret = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) !class_bracket_token class_literal_nocaret -> $3
 
 # REGEX-SELF-HOSTING.5c: `class_safe_special` = the in-class ASCII punctuation literal ordered-choice
 # (`'"'`=double-quote, `"'"`=single-quote; NO backslash inside a class).

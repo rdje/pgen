@@ -283,9 +283,10 @@ alternative matches and it ACCEPTs — exactly like PCRE2. Ordinary POSIX-class 
 dash. The *descending* POSIX-right cases (`[x-[:alpha:]]`, where the literal `[`=0x5B is below the
 left endpoint) are already rejected by `descending_class_range` above.
 
-Only **valid POSIX names** migrate here. The collating (`[.a.]`) and equivalence (`[=a=]`)
-bracket-tokens have no grammar recognizer yet (they join the standalone-token work,
-`REGEX-PCRE2-FIDELITY.4.12`).
+Only **valid POSIX names** migrate here. A range whose endpoint is a collating (`[.a.]`) or
+equivalence (`[=a=]`) bracket-token is handled separately, by the `class_bracket_token` recognizer
+— see [Collating-element / equivalence-class bracket-tokens](#collating-element--equivalence-class-bracket-tokens-the-class_bracket_token-guard)
+below (`REGEX-PCRE2-FIDELITY.4.12`).
 
 > **Note (behavior change, PCRE2-convergent).** This migration mostly encodes a reject the
 > out-of-band validator already made, but it also closes a validator accepts-invalid hole:
@@ -297,10 +298,57 @@ bracket-tokens have no grammar recognizer yet (they join the standalone-token wo
 > matching PCRE2.
 
 **Scope:** shorthand + property endpoints (`.4.5.b`), descending literal ranges with a decodable
-non-whitespace endpoint (`.4.5.c`), and POSIX-class endpoints (`.4.5.d`) are grammar-owned; the
-collating/equivalence endpoints (`[!-[.a.]]`, `.4.12`) and the quoted/`\u{}`/bare-whitespace-endpoint
+non-whitespace endpoint (`.4.5.c`), POSIX-class endpoints (`.4.5.d`), and collating/equivalence
+bracket-tokens (`.4.12`, below) are grammar-owned; only the quoted/`\u{}`/bare-whitespace-endpoint
 descending cases stay validator-owned. The out-of-band `find_invalid_char_class_construct`
 range-check is deleted only once the whole class-range family is grammar-owned.
+
+### Collating-element / equivalence-class bracket-tokens (the `class_bracket_token` guard)
+
+A POSIX **collating-element** `[.….]` or **equivalence-class** `[=…=]` bracket-token inside a
+character class is rejected by PCRE2 — err 113 "POSIX collating elements are not supported" as a
+standalone / member / range-LEFT token, and err 150 "invalid range" as a range-RIGHT endpoint (the
+`-` triggers the range error first). PCRE2 does not support them at all
+(`REGEX-PCRE2-FIDELITY.4.12`, ledger `REGEX-0110`). Without a recognizer the grammar over-accepts
+every one: `class_literal` reads the token's `[` as a `class_safe_special` literal `0x5B`, so the
+surrounding `.`/`a`/`=` fall through to separate literal members. The `class_bracket_token`
+recognizer matches the shape from its leading `[` and a `.]` / `=]` terminator:
+
+```ebnf
+class_bracket_token      = "[" class_bracket_token_tail
+class_bracket_token_tail = "." ( "\\" "]" | !".]" !"]" builtin_any_char )* ".]"
+                         | "=" ( "\\" "]" | !"=]" !"]" builtin_any_char )* "=]"
+```
+
+It is referenced only inside `!(…)` lookaheads (and inside the lookahead-only `invalid_class_range`),
+so both rules are lookahead-only / positively-unreachable → certified by PROOF. The recognizer blocks
+the shape at **three** positions a class `[` can be read as a literal:
+
+- the **member** position — `!class_bracket_token` on `class_member_literal` / `class_member_literal_nocaret`
+  (the same idiom as the [POSIX name validity](#posix-name-validity-the-class_member_literal-guard)
+  guard), so `[[.a.]]`, `[a[.a.]b]`, `[[.a.]-z]` reject;
+- the **class-open** position — `!class_bracket_token_tail` right after the opening `"["` in the
+  no-caret `char_class` alternative, because the *opening* bracket itself forms the opener: `[.a.]`
+  (a single leading `[`) is err 113. The guard sits before the invisible-prefix slot, so it fires only
+  when `.`/`=` is literally the first char after `[`;
+- the **range-RIGHT** endpoint — a `class_atom … "-" … class_bracket_token` alternative on
+  `invalid_class_range`, so an *ascending* `[!-[.a.]]` (not caught by `descending_class_range`) rejects.
+
+The tokenization is PCRE2-exact (every case oracle-verified against `pcre2test` 10.47):
+
+| Input | Verdict | Why |
+|---|---|---|
+| `[.a.]` `[=a=]` `[..]` `[[.a.]]` `[a[.a.]b]` `[[.a.]-z]` | **REJECT** | a `[.`/`[=` opener with a `.]`/`=]` terminator |
+| `[!-[.a.]]` `[!-[=a=]]` | **REJECT** | ascending range with a collating/equivalence RIGHT endpoint (err 150) |
+| `[.\].]` `[.a\.]` | **REJECT** | content scan crosses an escaped `\]`; `\` escapes only `]`, not the terminator dot |
+| `[.]` `[=]` | ACCEPT | a lone `.`/`=` is a literal — no `.]`/`=]` terminator |
+| `[[.]` `[.ab]` | ACCEPT | opener with no terminator before the class closes |
+| `[.].]` `[.a].]` | ACCEPT | the class closes at the first unescaped `]`; the scan stops there |
+| `[^.a.]` `[\E.a.]` | ACCEPT | a `^` negation or an invisible `\E`/`\Q\E` breaks the class-open opener |
+| `[a.b]` `[x.a.]` `[\.a.]` `[\[.a.]` | ACCEPT | no `[.`/`[=` opener (the `.` is not immediately after a `[`, or the `[`/`.` is escaped) |
+
+The *descending* range-RIGHT cases (`[a-[.a.]]`, `[z-[.a.]]`, where the left endpoint's code point is
+above `[`=0x5B) were already rejected by `descending_class_range`.
 
 ## Walking a class body
 
