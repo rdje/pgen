@@ -433,7 +433,6 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
         if bytes[index] == b'-'
             && bytes.get(index + 1) != Some(&b']')
             && !dash_is_trailing_literal(bytes, index)
-            && !dash_starts_alt_extended_class_operator(bytes, index)
             && let Some(left) = previous_atom
         {
             let (right, after_right) = read_substantive_class_atom(bytes, index + 1)?;
@@ -486,7 +485,6 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             && bytes[after_left] == b'-'
             && bytes.get(after_left + 1) != Some(&b']')
             && !dash_is_trailing_literal(bytes, after_left)
-            && !dash_starts_alt_extended_class_operator(bytes, after_left)
         {
             let (right_atom, after_right) = read_substantive_class_atom(bytes, after_left + 1)?;
             let Some(right_atom) = right_atom else {
@@ -660,6 +658,15 @@ fn read_substantive_class_atom(
     mut index: usize,
 ) -> Result<(Option<ClassAtomKind>, usize), RegexCompileValidationError> {
     while index < bytes.len() && bytes[index] != b']' {
+        // REGEX-PCRE2-FIDELITY.4.5.a: a `[`-introduced POSIX bracket token used as a range's RIGHT
+        // endpoint — `[:name:]` (posix class), `[.coll.]` (collating element), or `[=equiv=]`
+        // (equivalence class) — is a NON-LITERAL endpoint. PCRE2 10.47 rejects `atom-[:..:]` /
+        // `atom-[...]` / `atom-[=..=]` with err 150 "invalid range in character class" REGARDLESS of
+        // order (so `[!-[:alpha:]]`, `!` < `[`, still rejects). A bare `[` NOT opening such a token is
+        // the literal code point `0x5B` (`read_class_atom` below), which orders normally.
+        if let Some(after_token) = scan_class_bracket_token(bytes, index) {
+            return Ok((Some(ClassAtomKind::NonLiteral), after_token));
+        }
         let (atom, after_atom) = read_class_atom(bytes, index)?;
         if atom.is_substantive() {
             return Ok((Some(atom), after_atom));
@@ -713,9 +720,32 @@ fn dash_is_trailing_literal(bytes: &[u8], dash_index: usize) -> bool {
     bytes.get(index) == Some(&b']')
 }
 
-fn dash_starts_alt_extended_class_operator(bytes: &[u8], dash_index: usize) -> bool {
-    bytes.get(dash_index + 1) == Some(&b'[')
-        || (bytes.get(dash_index + 1) == Some(&b'|') && bytes.get(dash_index + 2) == Some(&b'|'))
+/// `REGEX-PCRE2-FIDELITY.4.5.a`: recognize a `[`-introduced POSIX bracket token — `[:name:]` (posix
+/// class), `[.coll.]` (collating element), or `[=equiv=]` (equivalence class) — as a class-range
+/// endpoint. Returns the index past the closing `X]` (`:]`/`.]`/`=]`) if `index` starts such a token,
+/// else `None` (a bare `[` is the literal code point `0x5B`). All three are NON-LITERAL range endpoints
+/// (PCRE2 err 150). Scanning to the first matching `X]` mirrors `scan_posix_class`'s recognition span.
+///
+/// Formerly this site held `dash_starts_alt_extended_class_operator`, which suppressed range detection
+/// whenever the char after `-` was `[` or `||`. That guard belongs to PCRE2's ALTERNATE extended-class
+/// syntax `(?[...])`, but `scan_char_class` is dispatched ONLY for NORMAL classes
+/// (`find_invalid_char_class_construct` gates on `!is_extended_class_start`), where `-[` / `-||` is
+/// ALWAYS a range — so the guard was unconditionally mis-applied and accepted invalid ranges
+/// (`[a-[b]]` descending, `[x-[:alpha:]]` nonliteral, `[~-||]` descending). The guard is removed from
+/// both range branches; a `[`-token right endpoint now classifies NON-LITERAL and a bare `[` a literal.
+fn scan_class_bracket_token(bytes: &[u8], index: usize) -> Option<usize> {
+    let kind = match (bytes.get(index), bytes.get(index + 1)) {
+        (Some(b'['), Some(&k @ (b':' | b'.' | b'='))) => k,
+        _ => return None,
+    };
+    let mut cursor = index + 2;
+    while cursor + 1 < bytes.len() {
+        if bytes[cursor] == kind && bytes[cursor + 1] == b']' {
+            return Some(cursor + 2);
+        }
+        cursor += 1;
+    }
+    None
 }
 
 /// `REGEX-PCRE2-FIDELITY.4.6` (`PGEN-REGEX-PCRE2-0024`): POSIX class NAME validity is now
@@ -1315,6 +1345,46 @@ mod tests {
     }
 
     #[test]
+    fn rejects_bracket_token_class_range_endpoints() {
+        // REGEX-PCRE2-FIDELITY.4.5.a: a range whose RIGHT endpoint begins with `[` (opening a posix
+        // `[:..:]`, collating `[...]`, or equivalence `[=..=]` token) is a NON-LITERAL endpoint —
+        // `pcre2test` 10.47 err 150 REGARDLESS of order. Formerly the `dash_starts_alt_extended_class_operator`
+        // guard suppressed range detection for `-[`, so all of these were accepts-invalid.
+        for input in [
+            r"[x-[:alpha:]]",
+            r"[a-[:digit:]]",
+            r"[a-[.-.]]",
+            r"[!-[:alpha:]]", // ascending-left (`!` < `[`) still rejects: the endpoint is nonliteral.
+            r"[!-[.a.]]",
+            r"[!-[=a=]]",
+            r"[a-[=a=]]",
+            r"[\d-[z]]", // NON-LITERAL left (`\d`) to a `[` right — the guard formerly hid the reject.
+            r"[\d-||z]", // NON-LITERAL left (`\d`) to a `||`/`|` right — same masked reject.
+            r"[\w-[a]]",
+        ] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("must reject bracket-token range endpoint");
+            assert!(error.message.contains("range"), "{input:?}: {error:?}");
+        }
+        // A bare `[` (not opening a posix/collating/equivalence token) is the literal `0x5B`, so the
+        // range orders normally: descending → reject (err 108), ascending/equal → accept. The `-||`
+        // right endpoint `|` (`0x7C`) is likewise a literal, formerly skipped by the same mis-scoped guard.
+        for input in [r"[a-[b]]", r"[z-[a]]", r"[a-[]", r"[~-||]", r"[}-||]"] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("must reject descending bracket/pipe range endpoint");
+            assert!(error.message.contains("descending"), "{input:?}: {error:?}");
+        }
+        // Ascending literal `-[` / `-||` ranges and the leading-dash carve-outs stay ACCEPT
+        // (`pcre2test` 10.47 compiles all of these clean).
+        for input in [
+            r"[!-[]", r"[+-[]", r"[Z-[]", r"[[-a]", r"[--[]", r"[a-||b]", r"[|-||]",
+        ] {
+            validate_regex_compile_contract(input)
+                .unwrap_or_else(|err| panic!("{input:?} is a valid ascending range: {err:?}"));
+        }
+    }
+
+    #[test]
     fn allows_single_literal_quoted_class_range_endpoints() {
         validate_regex_compile_contract(r"^[\Qa\E-\Qz\E]+")
             .expect("single literal quoted endpoints form a PCRE2 class range");
@@ -1398,14 +1468,13 @@ mod tests {
             .expect("bad_escape_is_literal oracle class keeps malformed braced escapes literal");
     }
 
-    #[test]
-    fn allows_alt_extended_class_dash_operators_after_shorthand_escape() {
-        for input in [r"[\d-[z]]", r"[\d-||z]"] {
-            validate_regex_compile_contract(input).unwrap_or_else(|err| {
-                panic!("{input:?} should not be treated as a range: {err:?}")
-            });
-        }
-    }
+    // REGEX-PCRE2-FIDELITY.4.5.a: `allows_alt_extended_class_dash_operators_after_shorthand_escape`
+    // (`[\d-[z]]` / `[\d-||z]` "should not be treated as a range") was DELETED — it encoded the
+    // accepts-invalid behavior of the removed `dash_starts_alt_extended_class_operator` guard. Both
+    // patterns are a range with a NON-LITERAL left endpoint (`\d`) to a `[` / `||` right endpoint, which
+    // `pcre2test` 10.47 rejects with err 150 "invalid range in character class". They are now correctly
+    // rejected and pinned in `rejects_bracket_token_class_range_endpoints` and in the parser_registry
+    // parity pin `regex_class_range_bracket_endpoint_rejects_pcre2_faithfully`.
 
     #[test]
     fn allows_literal_backslash_inside_quoted_literal() {

@@ -52,13 +52,24 @@ one instance is the only one and it can only ever shrink.
 
 ## The remaining check families
 
-As of regex release `1.1.94`, the validator dispatches these families (each row is a
+As of regex release `1.1.95`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 
 | Family (what it rejects) | Example load-bearing inputs | Migration leaf |
 |---|---|---|
 | Character-class **RANGE** validity — nonliteral endpoints + descending ranges | `[\d-x]`, `[a-\p{Lu}]`, `[z-a]`, `[\x{100}-z]` | `.4.5` |
+
+> **`1.1.95` (REGEX-0105, `.4.5.a`) — a range-validity *correctness fix*, not a migration.** A range whose
+> right endpoint began with `[` (or `||`) inside a NORMAL class — `[a-[b]]`, `[x-[:alpha:]]`, `[~-||]`,
+> `[\d-[z]]` — was **accepts-invalid**: the validator's `scan_char_class` gated range detection on a guard
+> (`dash_starts_alt_extended_class_operator`) meant for the ALTERNATE extended-class syntax `(?[...])`, but
+> `scan_char_class` only ever runs on normal classes, so the guard was mis-scoped and skipped the check. The
+> guard was removed and the range right-endpoint reader now classifies a `[:..:]`/`[...]`/`[=..=]` bracket
+> token NON-LITERAL. The class-range family **stays validator-owned** (the grammar migration is the deferred
+> `.4.5.b`/`.4.5.c`); this release just makes the existing check correct. A **separate** newly-found divergence
+> — STANDALONE collating `[[.a.]]` / equivalence `[[=a=]]` members (PCRE2 err 113, PGEN accepts) — is tracked
+> as `.4.12` and NOT addressed here.
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
 | **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |

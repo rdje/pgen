@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.96`
+  - `1.1.97`
 - Parser release version:
-  - `1.1.94`
+  - `1.1.95`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,23 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.95 / Contract 1.1.97 Highlights — REGEX-0105: `-[` / `-||` class-range validity fix (a genuine accepts-invalid correction — NOT behavior-neutral)
+
+**Bug ledger:** `REGEX-0105` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.4.5` tools-first BUILD. **This is a behavior-CHANGING correctness fix, unlike the recent neutral migrations (`REGEX-0101`/`0102`/`0104`).** A character-class RANGE whose right endpoint begins with `[` (or `||`) inside a NORMAL class was **accepts-invalid** — the released parser (grammar **and** the out-of-band validator) BOTH accepted patterns that PCRE2 rejects. Root cause (WHERE): `regex_compile_validation::scan_char_class`'s two range branches gated range detection on `!dash_starts_alt_extended_class_operator`, which suppressed the range whenever the char after `-` was `[` or `||`. That guard belongs to PCRE2's ALTERNATE extended-class syntax `(?[...])`, but `scan_char_class` runs ONLY on normal classes (never dispatched for `(?[...])`), where `-[` / `-||` is ALWAYS a range — so the guard was unconditionally mis-applied and skipped the validity check.
+
+**What changed (verdict FLIPS — real inputs go from ACCEPT to REJECT).** In PCRE2 (oracle `pcre2test` 10.47) a range whose right endpoint is a POSIX bracket token (`[:..:]` / `[...]` / `[=..=]`) is err 150 "invalid range" REGARDLESS of order; a literal-`[`/`|` descending range is err 108 "range out of order". The fix removes the mis-scoped guard from both range branches and teaches the range right-endpoint reader (`read_substantive_class_atom`) to classify a `[`-introduced bracket token NON-LITERAL. A bare `[` still reads as the literal code point `0x5B` and orders normally, so ascending literal `-[` ranges stay valid. **VALIDATOR-tier fix** (the whole class-range validity family stays validator-owned pending the deferred `.4.5.b`/`.4.5.c` grammar migration, which need PEG-ordering + a codepoint-comparison primitive) — this corrects an existing mis-scoped check; the grammar, codegen, and generated parser are byte-identical.
+
+| Rule | Example | Verdict `1.1.94` (before) | Verdict `1.1.95` = PCRE2 10.47 |
+|---|---|---|---|
+| **nonliteral bracket-token right endpoint (err 150)** | `[x-[:alpha:]]` · `[a-[:digit:]]` · `[a-[.-.]]` · `[!-[:alpha:]]` · `[!-[=a=]]` · `[\d-[z]]` · `[\d-\|\|z]` | ACCEPT (invalid) | **REJECT** |
+| **literal `[`/`\|` descending range (err 108)** | `[a-[b]]` · `[z-[a]]` · `[a-[]` · `[~-\|\|]` · `[}-\|\|]` | ACCEPT (invalid) | **REJECT** |
+| ascending literal `-[` / `-\|\|` range (unchanged) | `[!-[]` · `[+-[]` · `[Z-[]` · `[[-a]` · `[--[]` · `[a-\|\|b]` · `[\|-\|\|]` | ACCEPT | ACCEPT |
+| leading-dash carve-outs / plain range (unchanged) | `[a-]` · `[-a]` · `[--/]` · `[a-z]` | ACCEPT | ACCEPT |
+
+**Conformance:** `regex_pcre2_compile_oracle_gate` (`pcre2test` 10.47) — a NET IMPROVEMENT: the fix flips ~11 DEFAULT-mode corpus cells from false-accept to correct reject (e.g. `[a-[:digit:]]+`, `[a-[.xxx.]]+`, `[a-[=xxx=]]+`, `[[:digit:]-[:print:]]`, `[z-[:space:]]` — all PCRE2 err 150 in default mode). New true-measured `2189/1867/274/48` (was `2189/1858/285/46`): false-accepts 285→274, matches 1858→1867. The false-reject ratchet moves 46→48 for the two cells `[\d-[z]]` / `[\d-||z]`, which the corpus tests under the `alt_extended_class` modifier (`PCRE2_ALT_EXTENDED_CLASS`, a NON-default mode PGEN does not model) — PGEN correctly rejects them in its default-PCRE2 model (same documented divergence class as the existing `[A--B]` class-set-operation false-rejects). `[!-[]` (the case that MASKED the bug — both endpoints ascending literals) stays ACCEPT.
+
+**Action for downstream (RGX):** these patterns were malformed PCRE2 that PGEN previously mis-accepted; PGEN now rejects them PCRE2-faithfully with `E_PARSE_FAILURE`. If any downstream fixture relied on the (incorrect) acceptance of a `-[` / `-||` class range, update it. Match on the diagnostic **code**, never message text.
 
 ## Release 1.1.94 / Contract 1.1.96 Highlights — REGEX-0104: counted-quantifier `{n,m}` min>max ORDER is now grammar-owned (behavior-neutral validator→grammar migration)
 

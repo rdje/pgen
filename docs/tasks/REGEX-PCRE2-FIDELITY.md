@@ -1076,6 +1076,14 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   (b) non-`[` nonliteral migration (grammar ACCEPTS as split members today, validator rejects) — STRUCTURAL
   PEG-ordering; (c) non-`[` descending migration (grammar accepts, validator rejects via codepoint decode) —
   needs the `codepoint`-coercion `value_compare` widening. Frozen oracle matrix in the section below.
+- ID: `.4.5.a` Status: **`done`** (`PGEN-REGEX-PCRE2-0031`, session #78; release `1.1.94`→`1.1.95`, contract
+  `1.1.96`→`1.1.97`, schema `1`, ledger `REGEX-0105`) Goal: fix the `-[` (and `-||`) accepts-invalid class-RANGE
+  divergence — a range whose right endpoint begins with `[` or `||` inside a NORMAL class. VALIDATOR-tier fix
+  (corrects a mis-scoped check; grammar-migration of the whole class-range family stays the deferred `.4.5.b`/
+  `.4.5.c` — those need the PEG-ordering + `value_compare` codepoint-widening primitives). BUILD-time refinement
+  of the investigation's root cause (AST-dump-proven): the grammar ALREADY forms `class_range` correctly for
+  `-[` (treats `[` as literal `0x5B`) — the divergence is ENTIRELY the validator's `dash_starts_alt_extended_class_operator`
+  guard skipping range detection. See the `.4.5.a` implementation section + Acceptance Checklist below.
 - ID: `.4.6` Status: **`done`** (`PGEN-REGEX-PCRE2-0024`, session #74; release `1.1.90`→`1.1.91`, contract
   `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) Goal: encode POSIX class NAME validity — unknown
   `[[:foo:]]` reject + the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
@@ -1106,6 +1114,15 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   current `validate_regex_compile_contract` check (validator is shape-only here) — a genuine
   released-parser accepts-invalid divergence (ledger `REGEX-0098`). **WHOLE-PATTERN two-pass**, same class
   as `.4.7`. The `.3.22` oracle matrix is its frozen acceptance spec.
+- ID: `.4.12` Status: `pending` (🔎 NEW divergence surfaced by the `.4.5.a` tools-first BUILD, session #78 —
+  NOT in the investigation's frozen matrix) Goal: encode STANDALONE collating-element / equivalence-class
+  reject — a `[.coll.]` / `[=equiv=]` token used as a plain class MEMBER (not a range endpoint). `pcre2test`
+  10.47: `[[.a.]]` / `[[=a=]]` → err 113 "POSIX collating elements are not supported"; the released parser
+  ACCEPTS both (grammar reads `[` as a literal member; the validator has no standalone collating/equivalence
+  recognition). A genuine released-parser accepts-invalid gap, ledger `REGEX-00xx` candidate. DISTINCT from
+  `.4.5.a` (which is the `-[` RANGE endpoint, err 150/108): the standalone-member reject is err 113 and needs
+  its own recognizer (validator or grammar). `.4.5.a` deliberately did NOT fix this (surgical one-defect scope).
+  Sequence after the remaining `.4.5.b`/`.4.5.c` class-range family, alongside the other `.4.7`..`.4.11` residuals.
 - ID: `.5`  Status: `pending`  Goal: verification — full `regex_pcre2_compile_oracle_gate` parity
   (default), relaxed-mode test suite, cert-coverage at floor, RGX conformance ratchet, lockstep.
 
@@ -1203,6 +1220,110 @@ accepts-invalid gap (a `.4.11`-style divergence, ledger `REGEX-00xx` candidate �
 Unicode-only note ([[feedback_rgx_unicode_only_8bit_test_divergence]]): `[\x{100}-z]` etc. tested with
 `utf` for the RGX code-point-faithful reading; the local `pcre2test` is 8-bit — width-only negatives stay
 consumer-owned. No code/grammar change this slice (investigation + reframe only).
+
+### REGEX-PCRE2-FIDELITY.4.5.a — the `-[` / `-||` accepts-invalid class-range fix (`PGEN-REGEX-PCRE2-0031`, session #78)
+
+**BUILD-time refinement of the investigation's root cause (tools-first, AST-dump-proven).** The `.4.5`
+INVESTIGATION note said the grammar "mirrors the miss (bare mid-class `-` before `[` parses as a literal
+member)". `--parse-dump-ast-pretty` DISPROVED that: the grammar ALREADY forms a `class_range` for every
+`-[` case — `[a-[b]]` → `{class_range, start:"a", end:"["}`, `[!-[]` → `start:"!", end:"["`,
+`[x-[:alpha:]]` → `start:"x", end:"["` (the `[` is a `class_safe_special` literal `0x5B`; the trailing
+`:alpha:]` are separate literal members). So the divergence is **ENTIRELY the out-of-band validator**, not
+the grammar. The grammar's `@validate: ord($1) <= ord($5)` on `class_range` is not parse-gating (proven:
+`[a-[b]]` = `a`(97) > `[`(91) accepts), so the class-range descending/nonliteral reject is validator-owned
+for ALL cases — `.4.5.a` corrects that validator, keeping the family uniformly validator-owned until the
+wholesale grammar migration in `.4.5.b`/`.4.5.c`.
+
+**🔎 ROOT CAUSE (WHY + WHERE).** `scan_char_class` (`regex_compile_validation.rs`) has two range-detection
+branches (the `previous_atom` branch + the after-`left_atom` branch). Both gated range detection on
+`!dash_starts_alt_extended_class_operator(bytes, dash)`, which returns true when the char after `-` is `[`
+or `||` — a guard for PCRE2's ALTERNATE extended-class syntax `(?[...])`. But `scan_char_class` is
+dispatched ONLY for NORMAL classes (`find_invalid_char_class_construct` gates `b'[' if !is_extended_class_start`,
+and `is_extended_class_start` = preceded by `(?`), where `-[` / `-||` is ALWAYS a range. So the guard was
+UNCONDITIONALLY mis-applied: it made the validator treat `-` as a literal and skip the range check, so
+every `-[` / `-||` range was accepts-invalid. Additionally `read_class_atom` classifies any bare `[` as
+`Literal(0x5B)` — it did not recognize a `[:..:]` / `[...]` / `[=..=]` bracket token as a NON-LITERAL
+range endpoint.
+
+**Extended oracle matrix (`pcre2test` 10.47, the acceptance spec — the frozen `.4.5` matrix PLUS the
+ascending-left nonliteral + `-||` + `\d-[` variants the BUILD surfaced).**
+- err 150 (nonliteral endpoint, REGARDLESS of order): `[x-[:alpha:]]` `[a-[:digit:]]` `[a-[.-.]]`
+  `[!-[:alpha:]]` `[!-[.a.]]` `[!-[=a=]]` `[a-[=a=]]` `[\d-[z]]` `[\d-||z]` `[\w-[a]]` (a nonliteral
+  LEFT or a bracket-token RIGHT ⇒ invalid range).
+- err 108 (literal descending): `[a-[b]]` `[z-[a]]` `[a-[]` `[a-[` `[~-||]` `[}-||]` (`[`=0x5B / `|`=0x7C
+  literal endpoint, left > right).
+- ACCEPT (ascending literal `-[`/`-||` + literal-dash carve-outs): `[!-[]` (the MASKING case: `!`(33) <
+  `[`(91)) `[+-[]` `[Z-[]` `[[-a]` `[--[]` `[a-||b]` `[|-||]` `[a-]` `[-a]` `[--/]` `[!--/]`.
+
+**FIX (validator tier — corrects an existing mis-scoped check; fix-hierarchy justification).** The whole
+class-range validity family (`.4.5.b` non-`[` nonliteral, `.4.5.c` descending) is validator-owned, its
+grammar migration deliberately deferred because it needs the hard PEG-ordering (`.4.5.b`) + the
+`value_compare` codepoint-coercion WIDENING (`.4.5.c`) primitives. `.4.5.a` is the cheap structural
+correctness fix sequenced first (per the investigation): (1) remove `!dash_starts_alt_extended_class_operator(...)`
+from BOTH range branches and delete the now-unused function; (2) add `scan_class_bracket_token` (recognizes
+`[:..:]`/`[...]`/`[=..=]` by scanning to the first `:]`/`.]`/`=]`) and check it FIRST in
+`read_substantive_class_atom` (the range right-endpoint reader, used only at the 2 range branches) so a
+bracket-token right endpoint classifies `NonLiteral` → err 150. A bare `[` still reads `Literal(0x5B)` and
+orders normally. No grammar / codegen / generated-parser change ⇒ the released parser is byte-identical
+except for the validator; cert rule-count, ast_shape inventory, and duality signatures are unchanged.
+
+**Behavior change (NOT a neutral migration — unlike `.4.4`/`.4.6`).** This flips real accepts-invalid inputs
+to reject (the released parser+validator BOTH accepted them before). `[!-[]` and the ascending/carve-out
+controls stay ACCEPT. A stale test `allows_alt_extended_class_dash_operators_after_shorthand_escape`
+(`[\d-[z]]`/`[\d-||z]` "should not be treated as a range", added way back at `8ed45af9` regex `1.1.27`) had
+LOCKED IN the bug — `pcre2test` 10.47 rejects both err 150 — so it was DELETED and the cases re-pinned as
+rejects.
+
+**🔎 NEW divergence surfaced (out of `.4.5.a` scope, tracked as `.4.12`).** STANDALONE collating `[[.a.]]`
+and equivalence `[[=a=]]` tokens (used as plain class MEMBERS, not range endpoints) → `pcre2test` 10.47
+err 113 "POSIX collating elements are not supported"; the released parser ACCEPTS both. Distinct class
+(err 113 vs the range err 150/108); needs its own recognizer. `.4.5.a` deliberately did not fix it
+(surgical one-defect scope).
+
+#### `.4.5.a` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — released `parseability_probe --parse regex --profile pcre2` (11:22 `1.1.94`
+  build): `[a-[b]]` `[z-[a]]` `[x-[:alpha:]]` `[a-[:digit:]]` `[a-[.-.]]` `[!-[:alpha:]]` `[!-[.a.]]`
+  `[!-[=a=]]` `[\d-[z]]` `[\d-||z]` `[~-||]` `[}-||]` all "parse_full passed" (grammar AND validator ACCEPT)
+  where `pcre2test` 10.47 `/PATTERN/utf` rejects them (err 150 nonliteral / err 108 descending) ⇒ a genuine
+  released-parser accepts-invalid. `[a-[` already rejected (unterminated-class, same verdict). `[!-[]`
+  (masking case) accepts on both.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `regex_compile_validation.rs::scan_char_class` two range branches gated
+  on `!dash_starts_alt_extended_class_operator(bytes, dash)` (returns true on `-[`/`-||`), a guard for the
+  ALTERNATE extended-class syntax `(?[...])`; but `scan_char_class` runs ONLY on NORMAL classes
+  (`find_invalid_char_class_construct` gates `!is_extended_class_start`), so it was unconditionally mis-scoped.
+  `read_class_atom` also classified any bare `[` as `Literal(0x5B)`, never recognizing a `[:..:]`/`[...]`/`[=..=]`
+  token as a NON-LITERAL endpoint. `--parse-dump-ast-pretty` DISPROVED the investigation's "grammar splits `-`
+  into a literal member" note — the grammar forms `class_range` correctly; the divergence is ENTIRELY the validator.
+- [x] **FIX** — VALIDATOR tier (fix-hierarchy: corrects an existing mis-scoped check; the class-range validity
+  FAMILY stays validator-owned pending the deferred `.4.5.b`/`.4.5.c` grammar migration, which need
+  PEG-ordering + `value_compare` codepoint-widening — `.4.5.a` is the cheap structural fix sequenced first).
+  Removed `!dash_starts_alt_extended_class_operator(...)` from both range branches + deleted the function;
+  added `scan_class_bracket_token` (recognizes `[:..:]`/`[...]`/`[=..=]` by scanning to the first
+  `:]`/`.]`/`=]`) checked first in `read_substantive_class_atom` → a bracket-token right endpoint classifies
+  NON-LITERAL. A bare `[` still reads `Literal(0x5B)`. NO grammar/codegen/generated-parser change.
+- [x] **ADDRESSED (verified)** — every frozen+extended-matrix cell flips to the `pcre2test` 10.47 verdict:
+  the 15 accepts-invalid now REJECT (`E_PARSE_FAILURE`), the 11 controls (`[!-[]` `[+-[]` `[Z-[]` `[[-a]`
+  `[--[]` `[a-||b]` `[|-||]` `[a-]` `[-a]` `[--/]` `[a-z]`) stay ACCEPT. New pins green:
+  `regex_class_range_bracket_endpoint_rejects_pcre2_faithfully` (13 reject + 10 accept + 3 relaxed) +
+  validator unit test `rejects_bracket_token_class_range_endpoints`. The stale
+  `allows_alt_extended_class_dash_operators_after_shorthand_escape` (from `1.1.27`) DELETED — it had locked
+  in the bug.
+- [x] **NO REGRESSION** — `regex_pcre2_compile_oracle_gate` NET IMPROVEMENT, true-measured `2189/1867/274/48`
+  (was `2189/1858/285/46`): ~11 DEFAULT-mode `-[`/`-[.`/`-[=` accepts-invalid corpus cells now correctly
+  reject (false_accept 285→274), false-reject 46→48 for the 2 `alt_extended_class`-modifier cells
+  `[\d-[z]]`/`[\d-||z]` (PCRE2_ALT_EXTENDED_CLASS — a NON-default mode PGEN does not model; same documented
+  divergence class as `[A--B]`); env baseline v11→v12. regex cert-coverage `239/239 UNKNOWN=0
+  fully_certified=true spf=0` at seeds 0/7/42 (UNCHANGED); `--lint-grammar` 0 errors (239 rules);
+  `duality_hunt_gate` 9 lanes NO new/vanished signature (validator-only); `parse_harness_equivalence_gate`
+  regex byte-identical; `ast_shape_contract` inventory 221 UNCHANGED; dual `--lib` suite green (my 2 pins
+  pass; only the 2 version-drift gates flipped, satisfied by the `REGEX-0105` ledger row). cert rule-count,
+  ast_shape, and duality all unchanged because there is NO grammar/generated change.
+- [x] **LOCKSTEP** — `regex_compile_validation.rs` (fix + test); `parser_registry.rs` pin; `embedding_api.rs`
+  consts `1.1.95`/`1.1.97`; `regex_parser_integration_contract_v1.json`; `regex_pcre2_compile_oracle_lightweight_v0.env`
+  (v12, ratchet 48); ledger `REGEX-0105`; contract `1.1.95`/`1.1.97` Highlights + Identity; regex book
+  `compile-contract-validator.md` + `changelog-index.md` + tracked HTML; top book `parser-families.md`;
+  `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`;
+  the new `.4.12` leaf (standalone collating/equivalence divergence).
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 
@@ -1708,6 +1829,24 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-09, session #78)** `.4.5.a` LANDED (`PGEN-REGEX-PCRE2-0031`, RELEASED regex slice — release
+  `1.1.94`→`1.1.95`, contract `1.1.96`→`1.1.97`, schema `1`, ledger `REGEX-0105`) — the `-[` / `-||`
+  class-range accepts-invalid FIX. A range whose right endpoint began with `[` or `||` inside a NORMAL class
+  (`[a-[b]]` descending, `[x-[:alpha:]]` nonliteral, `[~-||]` descending, `[\d-[z]]`) was accepted by the
+  released parser (grammar AND validator) but PCRE2 10.47 rejects it — the validator's `scan_char_class`
+  gated range detection on the mis-scoped `dash_starts_alt_extended_class_operator` guard (an ALTERNATE
+  extended-class `(?[...])` operator, but `scan_char_class` runs only on NORMAL classes). VALIDATOR-tier fix
+  (the class-range family stays validator-owned pending `.4.5.b`/`.4.5.c`): guard removed from both branches
+  + deleted; new `scan_class_bracket_token` makes `read_substantive_class_atom` classify a `[:..:]`/`[...]`/`[=..=]`
+  right endpoint NON-LITERAL. AST-dump PROVED the grammar already forms the range correctly (the investigation's
+  grammar-side note was imprecise) ⇒ NO grammar/codegen/generated change (cert 239, ast_shape 221, duality
+  UNCHANGED). Oracle NET IMPROVEMENT `2189/1867/274/48` (was `2189/1858/285/46`) — ~11 default-mode accepts-invalid
+  fixed; the 2 new false-rejects `[\d-[z]]`/`[\d-||z]` are `alt_extended_class`-modifier corpus cells (a
+  non-default mode PGEN does not model), ratchet 46→48 (env v12). Stale `1.1.27` test that locked in the bug
+  DELETED. 🔎 NEW `.4.12` opened (standalone collating `[[.a.]]`/equivalence `[[=a=]]` = err 113, still accepts-invalid,
+  distinct class). Frontier → `.4.5.b`/`.4.5.c` (grammar-migrate the whole class-range family, then delete the
+  validator range checks) → the other hard/two-pass families (`.4.7`,`.4.8`,`.4.9`,`.4.10`,`.4.11`,`.4.12`) →
+  final `.4` deletion → `.5`.
 - **(2026-07-09, session #76)** `.4.2` LANDED (`PGEN-REGEX-PCRE2-0027`, RELEASED regex slice — release
   `1.1.92`→`1.1.93`, contract `1.1.94`→`1.1.95`, schema `1`, ledger `REGEX-0103`): `\k`/group NAME validity
   is now GRAMMAR-owned — the design-focused session the `.4.2` SCOPING called for. Tool-backed (`pcre2test`

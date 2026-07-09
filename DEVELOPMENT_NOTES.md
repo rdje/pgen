@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0031 — REGEX-PCRE2-FIDELITY.4.5.a: `-[` / `-||` class-range accepts-invalid fix (validator tier)
+
+**Root cause (tools-first, pinned).** `regex_compile_validation.rs::scan_char_class` gated both range
+branches on `!dash_starts_alt_extended_class_operator(bytes, dash)` — a guard for the ALTERNATE
+extended-class `(?[...])` syntax. But `scan_char_class` is dispatched ONLY for NORMAL classes
+(`find_invalid_char_class_construct` → `b'[' if !is_extended_class_start`, and `is_extended_class_start` =
+preceded by `(?`), so `-[`/`-||` is always a range and the guard unconditionally skipped the range check.
+`--parse-dump-ast-pretty` DISPROVED the investigation's grammar-side note: the grammar already forms a
+`class_range` for `[a-[b]]` (`start:"a", end:"["`, the `[` = literal `0x5B`) — the whole divergence is the
+validator. `read_class_atom` also never recognized a `[:..:]`/`[...]`/`[=..=]` bracket token as a NON-LITERAL
+range endpoint.
+
+**Two-part fix.** (1) Removed the guard from both branches + deleted the function. (2) Added
+`scan_class_bracket_token` and checked it first in `read_substantive_class_atom` (the range right-endpoint
+reader, used only at the 2 range branches) → a bracket-token right endpoint classifies NON-LITERAL (err 150).
+A bare `[` still reads `Literal(0x5B)` so ascending `-[` ranges (`[!-[]`) stay valid.
+
+**A subtlety the oracle gate caught (and why it's not a regression).** Removing the guard raised the oracle
+false-reject count 46→48. The 2 new cells `[\d-[z]]`/`[\d-||z]` carry the pcre2test `alt_extended_class`
+modifier (`PCRE2_ALT_EXTENDED_CLASS`) — a NON-default mode where `-[`/`-||` are set operators. A direct
+`/[\d-[z]]/utf` oracle (default mode, which PGEN models) is err 150, so PGEN correctly rejects them; they
+join the SAME documented divergence bucket as the existing `[A--B]` class-set-operation false-rejects. The
+mis-scoped guard was a vestige of partial extended-class support that made PGEN *accidentally* accept those
+two cells while masking ~11 real DEFAULT-mode accepts-invalid (false_accept 285→274). NET conformance
+improvement; env baseline v11→v12, ratchet 46→48.
+
+**Why validator tier, not grammar.** The class-range validity family (`.4.5.b` non-`[` nonliteral, `.4.5.c`
+descending) is uniformly validator-owned; migrating it into the grammar needs the hard PEG-ordering +
+`value_compare` codepoint-widening primitives, deferred to `.4.5.b`/`.4.5.c`. `.4.5.a` corrects an existing
+mis-scoped check — no new engine capability — and is the cheapest structural correctness fix, sequenced
+first per the investigation.
+
+**Also surfaced (tracked as `.4.12`):** STANDALONE collating `[[.a.]]` / equivalence `[[=a=]]` members are
+PCRE2 err 113 but PGEN accepts — a DISTINCT divergence (err 113 vs the range err 150/108), needing its own
+recognizer. Not fixed in `.4.5.a` (surgical one-defect scope).
+
 ## 2026-07-09 - PGEN-RAWCAP-TRANSFORM-PATH-0003 — RAWCAP-TRANSFORM-PATH.2: raw capture on the non-`Or` transform path (positional raw-view predicates)
 
 **Root cause (pinned by direct source read).** A raw-view POST `@predicate` resolves its args against

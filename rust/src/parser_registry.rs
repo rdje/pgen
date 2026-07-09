@@ -2172,6 +2172,67 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.5.a (`PGEN-REGEX-PCRE2-0031`): a class RANGE whose right endpoint begins
+    /// with `[` (or `||`) inside a NORMAL class was accepts-invalid. `scan_char_class`'s two range
+    /// branches gated range detection on `!dash_starts_alt_extended_class_operator`, which suppressed the
+    /// range whenever the char after `-` was `[` or `||` — a guard for PCRE2's ALTERNATE extended-class
+    /// syntax `(?[...])`, but `scan_char_class` runs ONLY on normal classes, where `-[` / `-||` is always
+    /// a range. The guard is removed from both branches and `read_substantive_class_atom` now classifies a
+    /// `[:..:]` / `[...]` / `[=..=]` right endpoint NON-LITERAL. Grammar unchanged (the class-range family
+    /// stays validator-owned pending the `.4.5.b`/`.4.5.c` migration); this fixes an existing mis-scoped
+    /// check. Oracle: `pcre2test` 10.47 (err 150 nonliteral endpoint / err 108 descending).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_class_range_bracket_endpoint_rejects_pcre2_faithfully() {
+        // Right endpoint is a NON-LITERAL bracket token (posix/collating/equivalence): reject err 150,
+        // regardless of order (`[!-[:alpha:]]` is ascending `!` < `[` but the endpoint is nonliteral).
+        // Plus literal `[`/`|` descending ranges: reject err 108. All were accepts-invalid before.
+        let rejects = [
+            "[x-[:alpha:]]",
+            "[a-[:digit:]]",
+            "[a-[.-.]]",
+            "[!-[:alpha:]]",
+            "[!-[.a.]]",
+            "[!-[=a=]]",
+            "[a-[b]]",
+            "[z-[a]]",
+            "[a-[]",
+            "[~-||]",
+            "[}-||]",
+            "[\\d-[z]]", // NON-LITERAL left endpoint to a `[` right — the guard formerly hid this reject.
+            "[\\d-||z]",
+        ];
+        for pattern in rejects {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "invalid `-[`/`-||` class range must reject: {pattern:?}"
+            );
+        }
+        // Controls that MUST stay valid (grammar-accept AND `pcre2test` 10.47-accept): ascending literal
+        // `-[` / `-||` ranges (`[` = 0x5B, `|` = 0x7C), leading-dash carve-outs, and a plain range. `[!-[]`
+        // is the case that MASKED the bug (both endpoints ascending literals, always accepted).
+        let accepts = [
+            "[!-[]", "[+-[]", "[Z-[]", "[[-a]", "[--[]", "[a-||b]", "[|-||]", "[a-z]", "[a-]", "[-a]",
+        ];
+        for pattern in accepts {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "a valid ascending / literal-dash class range must accept: {pattern:?}"
+            );
+        }
+        // The class-range validity check is structural (not profile-gated), so relaxed rejects too.
+        for pattern in ["[x-[:alpha:]]", "[a-[b]]", "[~-||]"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject invalid `-[`/`-||` class range: {pattern}"
+            );
+        }
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width
     /// and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to a quantifier. A quantifier
     /// binds THROUGH the stray `\E` to the preceding repeatable atom (`a\E*` = `a*`), but is
