@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-BOOK-TOOLBOX-0001 — book lockstep: document the message-source probe technique (top book) + the compile-contract validator (regex book)
+
+Pure-docs lockstep (director directive, session #75). Two long-standing debug-toolbox surfaces were
+under-documented in the mdBooks; both are now documented thoroughly. No code change.
+
+- **Top-level book (`docs/book/src/diagnosing-unknowns.md`).** New section *Is a reject grammar-owned or
+  validator-owned? The message-source probe* — the tools-first technique for classifying a regex reject by
+  its message source (ACCEPT / GRAMMAR-reject / VALIDATOR-reject = load-bearing), the parse-then-validate
+  model (`parser_registry.rs` runs the grammar then, only on accept, the validator), a runnable classifier,
+  the ⚠️ classify-by-message-not-exit-code caution (the session #72 "all-shadowed" mistake), and the two jobs
+  it does (scope a validator→grammar migration + prove it behavior-neutral against the oracle gate). Plus an
+  at-a-glance table row and a cross-reference to the source-of-truth chapter.
+- **Regex parser book (new chapter `compile-contract-validator.md`).** *The Compile-Contract Validator* —
+  what `validate_regex_compile_contract` (`rust/src/regex_compile_validation.rs`) is, why it exists and is
+  shrinking (EBNF-source-of-truth doctrine), how it is wired in series after the generated parser (both
+  layers reject with `E_PARSE_FAILURE` — consumers match on the code), the 8 remaining load-bearing check
+  families mapped to their `REGEX-PCRE2-FIDELITY.4.x` migration leaves, the already-migrated audit trail, and
+  the message-source probe cross-reference. SUMMARY + tracked `-html/` rebuilt.
+- **Verified:** `mdbook_docs_gate` ✅, `regex_parser_book_gate` ✅ (mdbook_build + tracked_html_check); the
+  cross-page anchor to the emoji-prefixed source-of-truth heading verified against mdbook's generated id.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0024 — REGEX-PCRE2-FIDELITY.4.6: POSIX character-class NAME validity is now grammar-owned (behavior-neutral validator→grammar migration; release `1.1.91`/`1.1.93`/schema `1`, ledger REGEX-0101)
 
 Session #74. RELEASED regex slice (grammar + regen + full lockstep), the 2nd `.4` deletion-prep child of

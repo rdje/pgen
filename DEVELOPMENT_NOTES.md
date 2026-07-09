@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-BOOK-TOOLBOX-0001 — book lockstep: message-source probe (top book) + compile-contract validator (regex book)
+
+Pure-docs lockstep (director directive, session #75). No code change.
+
+- **Gap.** The message-source probe (the technique used throughout `REGEX-PCRE2-FIDELITY.4.x` to classify a
+  regex reject as grammar-owned vs validator-owned) and the compile-contract validator itself were only
+  referenced in passing, never documented as a technique / component. The director flagged both as lockstep
+  debt ("shall have already been done").
+- **Top book.** `docs/book/src/diagnosing-unknowns.md` gains a dedicated section documenting the probe: the
+  parse-then-validate series model, the three message signatures (exit 0 = ACCEPT / `did not consume full
+  input` = GRAMMAR-reject / any other message = VALIDATOR-reject = load-bearing), the runnable classifier, the
+  classify-by-message caution, and its two uses (scope + behavior-neutral proof).
+- **Regex book.** New chapter `compile-contract-validator.md` (in SUMMARY under Reference): the validator's
+  purpose, the shrinking/transitional framing, the registry wiring, the same-error-code consumer contract, and
+  a table of the 8 remaining check families → their `.4.x` migration leaves + the migrated audit trail.
+- **Anchor detail.** The source-of-truth heading is emoji-prefixed (`## ⚠️ THE EBNF …`); mdbook strips the
+  emoji to a LEADING HYPHEN (`#-the-ebnf-…`), so the cross-page link was corrected from a stray
+  variation-selector form to the generated id.
+- **Verified.** `mdbook_docs_gate` ✅; `regex_parser_book_gate` ✅ (mdbook_build + tracked_html_check).
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0024 — REGEX-PCRE2-FIDELITY.4.6: POSIX class NAME validity grammar-owned (behavior-neutral validator→grammar migration; release `1.1.91`/`1.1.93`/schema `1`, ledger REGEX-0101)
 
 RELEASED regex slice (grammar + regen + full lockstep), the 2nd `.4` deletion-prep child of the re-scoped

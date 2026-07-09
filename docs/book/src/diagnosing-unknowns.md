@@ -25,6 +25,7 @@ the generation-input / memo observability.
 | What AST did the parse produce? | `--parse-dump-ast-pretty` | `parseability_probe --parse-dump-ast-pretty <g> f out.json --profile P` |
 | Which rules dominate a slow/stuck parse? | `--dump-rule-call-counts` | `parseability_probe --parse <g> f --dump-rule-call-counts 20` |
 | Why did a `@predicate` reject a branch? | semantic trace | `PGEN_TRACE_VERBOSITY=debug parseability_probe --parse <g> f --trace-rules <rule>` |
+| **Is a (regex) reject grammar-owned or validator-owned (load-bearing)?** | the message-source probe | `parseability_probe --parse regex f --profile pcre2` → classify by the reject MESSAGE (see [below](#is-a-reject-grammar-owned-or-validator-owned-the-message-source-probe)) |
 | **What is the cert-coverage proof/witness/`UNKNOWN` split?** | `--report-certificate-coverage` | `ast_pipeline g.ebnf --report-certificate-coverage --grammar-profile P --entry-rule R --count 40 --seed 0` |
 | **Union cert-coverage across entries/profiles (certify a rule witnessed-or-proven in ANY supported config)?** | `--cert-union-config` | append `--cert-union-config <entry>[:<profile>]` (repeatable) to the cert command → extra `CERTIFICATE-COVERAGE-UNION:` line |
 | **The FULL list of `UNKNOWN` rules (not the truncated 25)?** | `PGEN_CERT_COVERAGE_DUMP_ALL=1` | prefix the cert command |
@@ -143,6 +144,83 @@ any fix for an `UNKNOWN`.
 
 ---
 
+## Is a reject grammar-owned or validator-owned? The message-source probe
+
+Most PGEN parsers drive acceptance **entirely** from their generated parser. One
+family — **regex** — additionally runs an out-of-band *compile-contract validator*
+(`validate_regex_compile_contract`, `rust/src/regex_compile_validation.rs`) **after**
+the generated parser accepts, to reject a handful of PCRE2-invalid patterns the
+grammar does not yet reject on its own. Why that validator exists, and why it is
+being migrated away one check at a time, is
+[THE EBNF IS THE SINGLE SOURCE OF TRUTH](quality-and-closure-model.md#-the-ebnf-is-the-single-source-of-truth-for-the-accepted-language);
+its regex-specific reference (architecture, the remaining check families, the
+migration roadmap) is the regex parser book's **The Compile-Contract Validator**
+chapter.
+
+The registry runs the two layers **in series** (`parser_registry.rs` calls
+`parse_full_regex()` first, then — only if the grammar accepted — the validator). That
+ordering makes the **rejection message name its own source**, and a one-line probe
+reads it off with zero guessing:
+
+| What you observe | Who rejected | Meaning |
+|---|---|---|
+| exit `0` | nobody | **ACCEPT** — grammar and validator both passed |
+| `Parser did not consume full input …` | the **grammar** | **GRAMMAR-reject** — the validator was never reached (it is *shadowed* / dead for this input) |
+| any other message (e.g. `… character class …`, `unknown POSIX character class name`) | the **validator** | **VALIDATOR-reject** — the grammar *accepted* and only the validator rejected → the reject is **load-bearing** |
+
+**"Load-bearing" is the pivotal concept.** A validator-owned reject is load-bearing
+precisely because *deleting the validator would make that input **accept*** — the
+grammar alone does not reject it. That is the exact test the EBNF-source-of-truth
+migration turns on: the capstone that deletes the validator is safe only once *every*
+load-bearing reject has been re-encoded in the grammar. (A session #72 measurement
+found 8 check families / 54 hand-writable inputs still load-bearing — recorded in the
+decision `project_regex_validator_deletion_blocked_load_bearing`.)
+
+### Running the probe
+
+The release `parseability_probe` embeds the current grammar **and** applies the
+validator, so it is the single authoritative command. Feed each candidate pattern as a
+file and classify by the message — do this on **both** profiles (`pcre2`, `relaxed`)
+when the check is profile-sensitive:
+
+```bash
+PROBE=./rust/target/release/parseability_probe
+classify() {   # $1 = pattern, $2 = profile (pcre2 | relaxed)
+  printf '%s' "$1" > /tmp/rgx_in.txt
+  out=$("$PROBE" --parse regex /tmp/rgx_in.txt --profile "$2" 2>&1); rc=$?
+  if   [ "$rc" -eq 0 ];                                     then echo "ACCEPT"
+  elif echo "$out" | grep -q "did not consume full input"; then echo "GRAMMAR-reject"
+  else                                                          echo "VALIDATOR-reject"   # load-bearing
+  fi
+}
+classify '[[:foo:]]' pcre2      # → VALIDATOR-reject (grammar accepts a bad POSIX name; only the validator rejects)
+classify '[\B]'      pcre2      # → VALIDATOR-reject (escape-in-class the grammar does not yet reject)
+classify '\pL'       pcre2      # → ACCEPT
+```
+
+⚠️ **Classify by MESSAGE, never by exit code alone.** A grammar reject and a validator
+reject are *both* non-zero exits — a first-pass classifier that reads only the exit
+code reports every reject as the same thing (this exact "too-good-to-be-true, all
+shadowed" mistake was made and caught in session #72). The message text is the only
+thing that distinguishes the two layers.
+
+### The two jobs the probe does
+
+1. **Scope a validator→grammar migration.** Before encoding a validator check in the
+   EBNF, run the probe over that check's inputs: the ones that come back
+   `VALIDATOR-reject` are the **load-bearing set** the grammar must learn to reject; the
+   ones already `GRAMMAR-reject` are shadowed (nothing to migrate).
+2. **Prove a migration is behavior-neutral.** After the grammar edit + regen, re-run the
+   probe: every migrated input must flip `VALIDATOR-reject → GRAMMAR-reject`, and every
+   *control* (the inputs that must stay valid) must stay `ACCEPT`. Pair that with the
+   `regex_pcre2_compile_oracle_gate` staying byte-identical (`2189/1858/285/46`) and you
+   have proven the accept/reject **set** is unchanged — only the reject's source (and
+   its message) moved from the validator into the grammar.
+
+This is the technique behind every `REGEX-PCRE2-FIDELITY.4.x` slice.
+
+---
+
 ## Reach-path dump (`PGEN_REACH_PATH_DUMP`)
 
 ```bash
@@ -247,6 +325,9 @@ budget is adequate and the cause is elsewhere (a forcing/store-gate bug).
   predicate self-explaining trace (the parser-level detail this chapter builds on).
 - [Grammar Well-Formedness & Well-Definedness](grammar-wellformedness.md) — what
   proof / witness / `UNKNOWN` mean and why `UNKNOWN`→0 is the trustworthiness number.
+- [The Quality & Closure Model → THE EBNF IS THE SINGLE SOURCE OF TRUTH](quality-and-closure-model.md#-the-ebnf-is-the-single-source-of-truth-for-the-accepted-language)
+  — why the one out-of-band validator exists, why it is a defect class being migrated
+  away, and the load-bearing / deletability distinction the message-source probe measures.
 - [The Semantic Store: Parser Memory](semantic-store.md) — the facts/scope model the
   store-gates query.
 - KM card `cert-coverage-unknown-diagnostics` (`docs/knowledge/`) — the same

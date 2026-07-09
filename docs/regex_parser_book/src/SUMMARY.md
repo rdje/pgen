@@ -44,5 +44,6 @@
 
 # Reference
 
+- [The Compile-Contract Validator](compile-contract-validator.md)
 - [Glossary](glossary.md)
 - [Changelog Index](changelog-index.md)

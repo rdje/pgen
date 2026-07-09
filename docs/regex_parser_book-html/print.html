@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-71a4e589.js";
+            window.path_to_searchindex_js = "searchindex-ee1fb454.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-886313b4.js"></script>
+        <script src="toc-2f537e2b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -5308,6 +5308,103 @@ fn ast_snapshot_for_canonical_inputs() {
 <p>A schema 1.0.0 milestone will land when the task #40 annotation campaign completes — that is, when every rule in <code>regex.ebnf</code> carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.</p>
 <p>Pre-1.0 schema versions (0.x.y) follow semver-ish convention — minor bumps for additive changes, patch for purely-additive within-shape additions, breaking changes are explicitly called out and may bump the minor digit.</p>
 <p>Post-1.0, breaking schema changes become major-version events with a deprecation cycle.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-compile-contract-validator"><a class="header" href="#the-compile-contract-validator">The Compile-Contract Validator</a></h1>
+<blockquote>
+<p><strong>Consumer takeaway up front.</strong> Regex acceptance is
+<code>accepted = (what the grammar accepts) ∩ (what the compile-contract validator accepts)</code>.
+Both layers reject with the <strong>same error code</strong> (<code>E_PARSE_FAILURE</code>); only the message
+text differs. So <strong>match on the code, never on the message</strong> — and treat <em>which</em> layer
+rejected a given pattern as an internal detail that shifts release-to-release as checks
+migrate from the validator into the grammar.</p>
+</blockquote>
+<h2 id="what-it-is-1"><a class="header" href="#what-it-is-1">What it is</a></h2>
+<p>The <code>regex</code> parser is the <strong>one</strong> PGEN family that layers an out-of-band acceptance
+check on top of its generated parser. After the generated parser accepts an input, the
+registry runs a second pass — <code>validate_regex_compile_contract</code>
+(<code>rust/src/regex_compile_validation.rs</code>) — that rejects a small set of patterns which
+<strong>PCRE2 rejects at compile time but the grammar, at the current release, still
+structurally accepts</strong>. If the validator finds a violation, the overall parse fails.</p>
+<p>Concretely, <code>rust/src/parser_registry.rs</code> runs the two layers <strong>in series</strong>:</p>
+<pre><code>parse_full_regex(input)      →  the generated parser (grammars/regex.ebnf → regex_parser.rs)
+        │  accepted?
+        ▼
+validate_regex_compile_contract(input)   →  the out-of-band PCRE2 compile contract
+</code></pre>
+<p>The validator is only consulted <strong>after</strong> the grammar accepts, so a pattern the grammar
+already rejects never reaches it.</p>
+<h2 id="why-it-exists-and-why-it-is-shrinking"><a class="header" href="#why-it-exists-and-why-it-is-shrinking">Why it exists (and why it is shrinking)</a></h2>
+<p>PGEN’s north-star doctrine is that <strong>the EBNF grammar is the single source of truth for
+the accepted language</strong> (see the platform book’s <em>Quality &amp; Closure Model → THE EBNF IS
+THE SINGLE SOURCE OF TRUTH</em>). An acceptance constraint that lives <em>outside</em> the EBNF is
+invisible to the stimuli generator, which derives its samples from the grammar alone — a
+defect class, because the generator can emit structurally-valid samples the parser then
+rejects.</p>
+<p>The compile-contract validator is therefore <strong>transitional</strong>: every check in it is a
+PCRE2 rule that has not <em>yet</em> been expressed in <code>regex.ebnf</code>. The <code>REGEX-PCRE2-FIDELITY</code>
+task tree is migrating them into the grammar one family at a time; each migration is a
+<strong>behavior-neutral</strong> move — the accept/reject <em>set</em> is unchanged (proven byte-identical
+against the <code>pcre2test</code> oracle, <code>regex_pcre2_compile_oracle_gate</code>), only the reject’s
+source (and message) moves from the validator into the grammar. When the last family is
+grammar-owned, the capstone (<code>REGEX-PCRE2-FIDELITY.4</code>) deletes the module entirely and
+the EBNF becomes the sole source of truth.</p>
+<p>A mechanical gate (<code>scripts/check_ebnf_source_of_truth.sh</code>, in the pre-commit hook and
+CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
+one instance is the only one and it can only ever shrink.</p>
+<h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
+<p>As of regex release <code>1.1.91</code>, the validator dispatches these families (each row is a
+<code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
+<code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Family (what it rejects)</th><th>Example load-bearing inputs</th><th>Migration leaf</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\k</code> / group <strong>NAME</strong> validity — charset (letter/digit/<code>_</code>/Unicode, no leading digit) + length ≤ 128</td><td><code>\k</code>, <code>\kabc</code>, <code>\k''</code>, <code>\k&lt;&gt;</code>, a 129-char capture name</td><td><code>.4.2</code></td></tr>
+<tr><td>Counted-quantifier <strong>min &gt; max</strong> order (err 104)</td><td><code>x{5,4}</code>, <code>a{\t5\t,\t2\t}</code></td><td><code>.4.3</code></td></tr>
+<tr><td><strong>Escape not allowed inside <code>[...]</code></strong> — <code>\A \B \C \G \K \N</code>(unbraced)<code>\R \X \Z \z</code></td><td><code>[\B]</code>, <code>[\K]</code>, <code>a[\NB]c</code>, <code>[\A-x]</code></td><td><code>.4.4</code></td></tr>
+<tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges</td><td><code>[\d-x]</code>, <code>[a-\p{Lu}]</code>, <code>[z-a]</code>, <code>[\x{100}-z]</code></td><td><code>.4.5</code></td></tr>
+<tr><td>Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture</td><td><code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code></td><td><code>.4.7</code></td></tr>
+<tr><td><strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix</td><td><code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code></td><td><code>.4.8</code></td></tr>
+<tr><td><strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded</td><td><code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code></td><td><code>.4.9</code></td></tr>
+<tr><td><code>\K</code> inside a <strong>lookaround</strong> body</td><td><code>(?=a\Kb)</code>, <code>(?&lt;=\K.)</code>, <code>(*pla:a\Kb)</code></td><td><code>.4.10</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Already migrated <strong>out</strong> of the validator (now grammar-owned, listed here for the audit
+trail): the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> (<code>.3.1</code>), verb/
+start-option NAME + argument shapes (<code>.3.2</code>/<code>.3.14</code>), quantified anchors (<code>.3.13</code>),
+the class-open visibility model (<code>.3.15</code>), the counted-quantifier VALUE bound + brace
+tokenization (<code>.3.18</code>), the numeric-callout range (<code>.3.16</code>), bare <code>\p</code>/<code>\P</code> property
+escapes (<code>.4.1</code>), and POSIX character-class <strong>NAME</strong> validity (<code>.4.6</code>). A related
+divergence with no validator check at all — the named-reference <em>unknown-name</em>
+inventory (<code>\k&lt;zzz&gt;</code>… @undefined) — is tracked as <code>.4.11</code> (ledger <code>REGEX-0098</code>).</p>
+<h2 id="which-layer-rejected-my-pattern"><a class="header" href="#which-layer-rejected-my-pattern">Which layer rejected my pattern?</a></h2>
+<p>Because the two layers run in series, the <strong>rejection message names its own source</strong>,
+and a one-line probe classifies any reject without guessing. This is the
+<strong>message-source probe</strong>, documented in full in the platform book’s <em>Diagnostic &amp; Debug
+Toolbox → Is a reject grammar-owned or validator-owned?</em>:</p>
+<ul>
+<li>exit <code>0</code> → <strong>ACCEPT</strong> (both layers passed);</li>
+<li><code>Parser did not consume full input …</code> → the <strong>grammar</strong> rejected (the validator was
+never reached);</li>
+<li>any other message (e.g. <code>… character class …</code>) → the <strong>validator</strong> rejected — the
+grammar accepted, so the reject is <strong>load-bearing</strong> (deleting the validator would make
+the input accept).</li>
+</ul>
+<p>Downstream consumers should not depend on this distinction — it is exactly what the
+migration keeps shifting — but it is the authoritative way to scope and verify each
+behavior-neutral validator→grammar slice.</p>
+<h2 id="cross-references"><a class="header" href="#cross-references">Cross-references</a></h2>
+<ul>
+<li>Platform book — <em>Quality &amp; Closure Model → THE EBNF IS THE SINGLE SOURCE OF TRUTH</em> —
+the doctrine that makes the validator a shrinking, transitional layer.</li>
+<li>Platform book — <em>Diagnostic &amp; Debug Toolbox → the message-source probe</em> — the tool
+that measures load-bearing vs shadowed rejects.</li>
+<li><a href="#changelog-index">Changelog Index</a> — the per-release record of which check migrated
+when, and the version each migration shipped in.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <p>Definitions for terms used throughout this book and in the surrounding PGEN documentation. Where a term has both a PGEN-specific meaning and a general regex/parsing meaning, the PGEN-specific one is given.</p>
