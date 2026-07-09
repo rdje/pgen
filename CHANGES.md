@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-RAWCAP-TRANSFORM-PATH-0002 (RAWCAP-TRANSFORM-PATH.1, PURE-DOCS) — blast-radius audit + fix-shape DECISION (C)
+
+`.1` EVIDENCE + DESIGN closed (no code — Code-Change-Doctrine precursor). Enumerated every shipped-grammar
+Raw-view (non-`view:shaped`) post-predicate (`grep grammars/*.ebnf`) and classified each owning rule's
+body-root (`Or` vs non-`Or`), `->` presence, and ref kind (positional `$N` vs named `$name`); pinned the
+capture-gate mechanics by direct source read (`needs_raw_post_capture_for_rule` fires on default-view = Raw;
+the `Or` and non-`Or` paths share one `semantic_capture_raw_for_post` flag). **The regression set for the
+naive mirror-fix (A) is NON-EMPTY** — the SV `declared_*` family (10 rules, `declared_X := X_identifier ->
+{body:$1.body}` + `@predicate has_fact/fact_attribute_equals [<kind>, $body]`) and regex
+`numeric_backreference` (`"\\" backreference_digits -> {…index:$2}` + `@predicate fact_count_at_least
+[regex_capture_group, $index]`) resolve their default-Raw NAMED refs against the shaped Json via the
+`SEMREF-SHAPED` branch today; (A) would flip them to a failing raw-tree walk → **(A) rejected**. **DECISION =
+(C)**: a NEW positional-aware gate (`needs_positional_raw_post_capture_for_rule`) drives raw capture on the
+non-`Or` path ONLY; the shared helper + the entire `Or` path stay byte-identical. Because **zero shipped
+grammars have a positional-ref Raw-view post-predicate** (grep-proven), (C) fires for zero rules ⇒ inert on
+every shipped grammar ⇒ zero regression by construction, and only becomes live when a future positional
+consumer lands. `.2` (the codegen+interpreter fix + `parse_harness_semantic_suite` REJECT→ACCEPT pin +
+byte-identical regen-all + lockstep) is now unblocked and active; precise implementation recorded in the
+tree §4 `.2`. Reconciles with `SEMREF-SHAPED` (named-ref shaped resolution untouched) and unblocks
+`POSITIONAL-PAYLOAD-REFS` (F4) on the non-`Or` transform path.
+
 ## 2026-07-09 - PGEN-RAWCAP-TRANSFORM-PATH (tree-open, PURE-DOCS) — task-tree own the `.4.3`-surfaced codegen raw-capture gap
 
 Opened + owns a new parser-agnostic engine tree [`RAWCAP-TRANSFORM-PATH`](docs/tasks/RAWCAP-TRANSFORM-PATH.md)
