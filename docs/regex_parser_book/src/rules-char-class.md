@@ -206,6 +206,7 @@ migrates the reject into the EBNF, `REGEX-PCRE2-FIDELITY.4.5.b`, ledger `REGEX-0
 ```ebnf
 invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
                     | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
+                    | descending_class_range
 class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
                             | "\\" property_escape
 class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
@@ -222,9 +223,42 @@ used as a range *endpoint* is rejected.
 `invalid_class_range` and its `class_range_nonliteral_*` helpers are referenced only inside
 the `!(…)` lookahead, so they are never positively entered; certificate-coverage certifies
 them by **PROOF** (the lookahead-only / positively-unreachable class), keeping regex
-`UNKNOWN=0`. **Scope:** shorthand + property endpoints only — the POSIX-left (`[[:alpha:]-z]`)
-and `-[`-right (`[a-[:digit:]]`, ledger `REGEX-0105`) cases stay validator-owned pending
-`REGEX-PCRE2-FIDELITY.4.5.c`.
+`UNKNOWN=0`.
+
+### Descending literal ranges (the `descending_class_range` alternative)
+
+The third `invalid_class_range` alternative rejects a range of two **literal** endpoints whose
+left code point exceeds the right — `[z-a]`, `[9-0]`, `[\x39-\x30]`, `[\x{100}-a]` (PCRE2 err
+108 "range out of order in character class"). Unlike the nonliteral shapes, this is a **value**
+constraint, so it is gated by the general `value_compare_codepoint` `@predicate`
+(`RULE-SPAN-VALUE-CONSTRAINT.3`, ledger `REGEX-0108`, `REGEX-PCRE2-FIDELITY.4.5.c`):
+
+```ebnf
+@predicate: { name: value_compare_codepoint, args: [$1, gt, $5], phase: post }
+descending_class_range = class_range_endpoint class_zero_width* "-" class_zero_width* class_range_endpoint
+class_range_endpoint = class_range_decodable_atom                                -> $text
+class_range_decodable_atom = class_range_decodable_escape | letter | digit | class_safe_special | unicode_char
+class_range_decodable_escape = "\\" hex_escape | "\\" octal_escape | "\\" control_escape | "\\" class_range_simple_escape
+```
+
+The predicate DECODES each endpoint's RAW spelling (`class_range_endpoint -> $text` re-emits
+the matched text) to its Unicode code point and matches when left > right — so the rule
+succeeds exactly for a descending range, and the `!invalid_class_range` guard blocks it. The
+braced `[\x{100}-a]` is the code-point discriminator: a textual compare (`\`=92 < `a`=97) would
+wrongly ACCEPT; only decoding (256 > 97) rejects. `class_range_decodable_atom` is restricted to
+endpoints the decoder can recover: bare **non-whitespace** literals plus the hex/octal/control/
+simple escapes. Two endpoint families are deliberately **excluded** because their `$text`
+reaches the predicate as `None` or empty — making the gate inapplicable (non-blocking) and
+over-blocking a *valid* range: an undecodable escape (`\Q..\E`, `\u{}`) and a **bare whitespace**
+literal (a `class_literal → whitespace` match reaches the predicate with an empty raw spelling —
+a latent pipeline finding). So ascending whitespace ranges (`[ -!]`, `[ --]`, `[\t-a]`) keep
+ACCEPTing, and descending ranges with those endpoints stay validator-owned.
+
+**Scope:** shorthand + property endpoints (`.4.5.b`) and descending literal ranges with a
+decodable non-whitespace endpoint (`.4.5.c`) are grammar-owned; the POSIX-left (`[[:alpha:]-z]`),
+`-[`-right (`[a-[:digit:]]`, ledger `REGEX-0105`), and quoted/`\u{}`/bare-whitespace-endpoint
+descending cases stay validator-owned pending `REGEX-PCRE2-FIDELITY.4.5.d`, which then deletes
+the validator range-check entirely.
 
 ## Walking a class body
 

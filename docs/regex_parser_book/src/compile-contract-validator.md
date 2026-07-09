@@ -52,13 +52,13 @@ one instance is the only one and it can only ever shrink.
 
 ## The remaining check families
 
-As of regex release `1.1.97`, the validator dispatches these families (each row is a
+As of regex release `1.1.98`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 
 | Family (what it rejects) | Example load-bearing inputs | Migration leaf |
 |---|---|---|
-| Character-class **RANGE** validity — nonliteral endpoints + descending ranges (**nonliteral shorthand/property endpoints now ALSO grammar-owned — `.4.5.b`**; POSIX-left, descending, and `-[`-right stay validator-owned) | `[[:alpha:]-z]` (posix-left), `[z-a]` (descending), `[a-[:digit:]]` (`-[`-right) | `.4.5.c` |
+| Character-class **RANGE** validity — nonliteral endpoints + descending ranges (**nonliteral shorthand/property endpoints now ALSO grammar-owned — `.4.5.b`; descending literal ranges with a DECODABLE non-whitespace endpoint now ALSO grammar-owned — `.4.5.c`**; POSIX-left, `-[`-right, and quoted/`\u{}`/bare-whitespace-endpoint descending stay validator-owned) | `[[:alpha:]-z]` (posix-left), `[a-[:digit:]]` (`-[`-right), `[\Q..\E-a]`/`[a- ]` (deferred descending) | `.4.5.d` |
 
 > **`1.1.95` (REGEX-0105, `.4.5.a`) — a range-validity *correctness fix*, not a migration.** A range whose
 > right endpoint began with `[` (or `||`) inside a NORMAL class — `[a-[b]]`, `[x-[:alpha:]]`, `[~-||]`,
@@ -95,6 +95,22 @@ As of regex release `1.1.97`, the validator dispatches these families (each row 
 > migration is observable only at the grammar layer (the certified interpreter). The literal-dash carve-outs
 > (`[a-]`, `[-a]`, `[\d-]`, `[\d\-x]`, `[\da-z]`, `[-\d]`) and valid ranges/members stay ACCEPT. Cert 239→245
 > (+3 witnessed `*_core` rules, +3 lookahead-only PROOF rules), oracle byte-identical, duality unchanged.
+>
+> **`1.1.98` (REGEX-0108, `.4.5.c`) — a behavior-NEUTRAL validator→grammar migration (the descending-literal
+> sibling of REGEX-0107).** A class range of two LITERAL endpoints whose left code point exceeds the right —
+> `[z-a]`, `[9-0]`, `[\x39-\x30]`, `[\x{100}-a]` (PCRE2 err 108) — is now rejected at the GRAMMAR layer by a
+> THIRD `!invalid_class_range` alternative `descending_class_range`, gated by the new `value_compare_codepoint`
+> `@predicate` (RULE-SPAN-VALUE-CONSTRAINT.3): it decodes each RAW endpoint spelling (bare non-whitespace
+> literal + `\xHH`/`\x{}`/`\NNN`/`\o{}`/`\cX`/named escapes) to its Unicode code point and matches when left >
+> right. The braced `[\x{100}-a]` is the code-point discriminator — a textual compare (`\`=92 < `a`=97) would
+> wrongly ACCEPT; only decoding (256 > 97) rejects. Endpoints that cannot be reliably decoded stay
+> validator-owned: `\Q..\E`/`\u{}` (decode `None`) and a BARE WHITESPACE endpoint (whose raw `$text` reaches
+> the predicate EMPTY — a latent pipeline finding recorded in the decisions log), so ascending whitespace
+> ranges (`[ -!]`, `[ --]`, `[\t-a]`) keep ACCEPTing. Because the validator still ALSO rejects descending
+> ranges (this row's check is NOT yet deleted — the deletion waits for `.4.5.d`), the released verdict is
+> unchanged; observable only at the grammar layer. Cert 245→249 (+4 lookahead-only PROOF rules), oracle
+> byte-identical `2189/1867/274/48` (an in-slice bare-whitespace over-block regression `48→50` was
+> root-caused + fixed before release), duality unchanged.
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
 | **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |

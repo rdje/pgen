@@ -1119,6 +1119,48 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   interpreter (grammar-only, no validator): grammar ACCEPTS the invalid ranges before → REJECTS after,
   carve-outs (`[a-]` `[-a]` `[\d-]` `[\d\-x]` `[\da-z]` `[-\d]` `[a-z]` `[--/]`) stay ACCEPT. See the
   `.4.5.b` implementation section + Acceptance Checklist below.
+- ID: `.4.5.c` Status: **`done`** (`PGEN-REGEX-PCRE2-0034`, session #81; release `1.1.97`→`1.1.98`, contract
+  `1.1.99`→`1.1.100`, schema `1`, ledger `REGEX-0108`) Goal: migrate the non-`[` DESCENDING class-range
+  reject INTO the grammar — a `class_range` of two LITERAL endpoints whose left code point exceeds the
+  right (`[z-a]`, `[9-0]`, `[\x39-\x30]`, `[\x{100}-a]`, PCRE2 err 108 "range out of order in character
+  class", oracle `pcre2test` 10.47) is accepted by the GRAMMAR today (the `@validate: ord($1)<=ord($5)`
+  is a non-parse-gating codegen annotation, proven `.4.5.a`) and rejected only by
+  `validate_regex_compile_contract`. **VALUE-COMPARISON over DECODED code points** using the new
+  `value_compare_codepoint` `@predicate` (`RULE-SPAN-VALUE-CONSTRAINT.3`, `PGEN-RSVC-0003`), consumed via
+  a THIRD `invalid_class_range` alternative (the `.4.5.b` `!invalid_class_range` lookahead pattern
+  extended to a value constraint), NOT a direct `@predicate` on `class_range`. Three tools-first
+  root-causes drove the final design (each an interpreter/`--parse-dump-ast` finding): (1) a `le` gate ON
+  `class_range` does not work — the failed range branch just BACKTRACKS and the class reparses `z`,`-`,`a`
+  as members → still accepts; the descending range must be BLOCKED at the `class_item` level, so
+  `descending_class_range` (the 5-element `class_range` shape gated `value_compare_codepoint gt`, matching
+  iff descending) is added as an `invalid_class_range` alternative under the existing `!` guard. (2) The
+  endpoints must reach the gate as RAW spellings — a bare ref to `class_atom` gives its typed RETURN
+  value (`{type:escape,…}` for escapes, `scalar_text`→`None`→INAPPLICABLE→over-block ascending), so
+  `class_range_endpoint = … -> $text` re-emits the raw matched text. (3) an UNDECODABLE endpoint
+  (`\Q..\E`, `\u{...}`) → `None` → non-blocking → over-block (cert regression: `quoted_class_range_atom`
+  UNKNOWN), so `class_range_endpoint` matches only the DECODABLE forms (bare literal + hex/octal/control/
+  simple escapes), leaving `\Q..\E`/`\u{}` descending to the validator (join `.4.5.d`). (4) a BARE
+  WHITESPACE endpoint (` `, `\t`, …) is the SAME non-blocking failure mode — caught by the
+  `regex_pcre2_compile_oracle_gate` (false_reject `48→50`, cell `[ --]` + one `--`-operator cell): a
+  `class_literal → whitespace` match reaches the `post` predicate with an EMPTY raw spelling
+  (`value_compare_codepoint("" > "!") → None` for `[ -!]`, EITHER slot — proven by runtime trace; the
+  whitespace-only span is not recovered through `$text` in the predicate-arg path, while every
+  non-whitespace literal AND the escape spellings `\x20`/`\t`/`\040` resolve correctly), so an ASCENDING
+  whitespace range (`[ -!]`, `[ --]`, `[\t-a]`) was wrongly matched and OVER-BLOCKED. FIX: `class_range_
+  decodable_atom` spells out the NON-WHITESPACE `class_literal` alternatives directly (`class_range_
+  decodable_escape | letter | digit | class_safe_special | unicode_char`), dropping the `whitespace`
+  branch → `descending_class_range` does not form for a bare-whitespace endpoint → the range is left to
+  the validator (joins the `.4.5.d` deferred set). The empty-`$text`-for-whitespace-in-a-post-predicate-
+  arg is a GENERAL latent pipeline finding, recorded durably ([[project_dollar_text_whitespace_empty_in_predicate_arg]])
+  for a future engine investigation. Post-fix oracle `2189/1867/274/48` byte-identical. Behavior-NEUTRAL
+  validator→grammar migration (validator STILL rejects, so `--parse` verdict UNCHANGED; before→after
+  proven at the GRAMMAR layer by the certified interpreter). Duality-safe by the `.4.3` empirical argument.
+  SCOPE: non-`[` descending LITERAL (bare + decodable-escape) only; the `-[`-right (`.4.5.a`), POSIX-left,
+  and `\Q..\E`/`\u{}`-endpoint cases stay validator-owned, migrated by the follow-up **`.4.5.d`** which
+  then DELETES the `find_invalid_char_class_construct` range-check. Also surfaced a separate finding
+  (G2/G3 bisect): a POST predicate on a TOP/ENTRY rule with a leading literal + no `->` mis-resolves
+  positional args in the interpreter — recorded for a future investigation; does NOT affect `class_range`
+  (a deep sub-rule). See the `.4.5.c` implementation section + Acceptance Checklist below.
 - ID: `.4.6` Status: **`done`** (`PGEN-REGEX-PCRE2-0024`, session #74; release `1.1.90`→`1.1.91`, contract
   `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) Goal: encode POSIX class NAME validity — unknown
   `[[:foo:]]` reject + the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
@@ -1516,6 +1558,87 @@ rejects); the effect is observable only at the grammar layer.
   `REGEX-0107`; contract `1.1.97`/`1.1.99` Highlights + Identity; regex book `rules-char-class.md` +
   `changelog-index.md` + `compile-contract-validator.md` + tracked HTML; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
   `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
+
+### REGEX-PCRE2-FIDELITY.4.5.c — non-`[` DESCENDING class-range reject is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0034`, session #81)
+
+**Tools-first root cause (grammar-only via the certified interpreter).** A `class_range` of two LITERAL
+endpoints whose left code point exceeds the right (`[z-a]`, `[9-0]`, `[\x39-\x30]`, `[\x{100}-a]`) is PCRE2 err
+108 "range out of order in character class" (`pcre2test` 10.47). The GRAMMAR accepted these — `class_range`
+forms for any two literals and its `@validate: ord($1)<=ord($5)` is a NON-parse-gating codegen annotation
+(proven `.4.5.a`), so the reject lived only in `validate_regex_compile_contract`. This is the descending-literal
+sibling of the nonliteral-endpoint hole `.4.5.b`/`REGEX-0107`.
+
+**Fix (grammar tier — consumes the RSVC.3 engine primitive, `feedback_no_workarounds_fix_hierarchy` tier 3
+"new annotation" only because the general `value_compare` could not widen char-escapes to code points).** A
+THIRD `invalid_class_range` alternative `descending_class_range = class_range_endpoint zw* "-" zw*
+class_range_endpoint`, gated by `@predicate { name: value_compare_codepoint, args: [$1, gt, $5], phase: post }`
+(`RULE-SPAN-VALUE-CONSTRAINT.3`, `PGEN-RSVC-0003`): the predicate DECODES each raw endpoint spelling to its
+Unicode code point (bare char + `\xHH`/`\x{}`/`\NNN`/`\o{}`/`\cX`/named escapes) and matches iff left > right.
+Because it is an alternative of the zero-width `!invalid_class_range` guard (the `.4.5.b` infrastructure), a
+descending range is BLOCKED at the `class_item` level and cannot fall back to being reparsed as separate
+members. `class_range_endpoint = class_range_decodable_atom -> $text` re-emits the RAW matched text so the
+predicate sees uniform spellings.
+
+**Four tools-first findings drove the final endpoint set (each an interpreter/`--parse-dump-ast`/runtime-trace
+result — never eyeballed).** (1) A `le` gate directly ON `class_range` does NOT reject: the failed range branch
+just backtracks and the class reparses `z`,`-`,`a` as members → the descending gate must live on the
+`class_item` guard, not on `class_range`. (2) A bare positional ref to `class_atom` yields its TYPED return
+(`{type:escape,…}` for escapes → `scalar_text` `None` → non-blocking → over-block ascending), so
+`class_range_endpoint -> $text` returns the raw spelling. (3) an UNDECODABLE endpoint (`\Q..\E`, `\u{...}`) →
+decode `None` → non-blocking → over-block (cert regression: `quoted_class_range_atom` went UNKNOWN), so the
+endpoint is restricted to DECODABLE forms. (4) **a BARE WHITESPACE endpoint is the same non-blocking failure**
+— caught by `regex_pcre2_compile_oracle_gate` (false_reject `48→50`): a `class_literal → whitespace` match
+reaches the `post` predicate with an EMPTY raw spelling (`value_compare_codepoint("" > "!") → None` for
+`[ -!]`, proven by runtime trace in EITHER endpoint slot; every non-whitespace literal and the ESCAPE spellings
+`\x20`/`\t`/`\040` resolve correctly), so an ASCENDING whitespace range (`[ -!]`, `[ --]`, `[\t-a]`) was wrongly
+OVER-BLOCKED. FIX: `class_range_decodable_atom` spells out the NON-WHITESPACE `class_literal` alternatives
+directly (`class_range_decodable_escape | letter | digit | class_safe_special | unicode_char`), dropping the
+`whitespace` branch — `descending_class_range` simply does not form for a bare-whitespace endpoint; the range is
+left to the validator. The empty-`$text`-for-a-whitespace-match-in-a-`post`-predicate-arg is a GENERAL latent
+pipeline finding, recorded durably (`project_dollar_text_whitespace_empty_in_predicate_arg`) for a future engine
+investigation; a whitespace ESCAPE spelling stays gated.
+
+**Scope + why the validator stays.** Non-`[` descending LITERAL ranges with a DECODABLE (bare non-whitespace +
+hex/octal/control/simple-escape) endpoint only. The `-[`-right (`.4.5.a`), POSIX-left, `\Q..\E`/`\u{}`-endpoint,
+and bare-whitespace-endpoint descending cases stay validator-owned, migrated by the follow-up **`.4.5.d`**,
+which then DELETES the `find_invalid_char_class_construct` range-check. Behavior-NEUTRAL at the released
+`--parse` surface (validator still rejects; the before→after ACCEPT→REJECT is observable only at the GRAMMAR
+layer via the certified interpreter). Also surfaced (NOT fixed): a POST predicate on a TOP/ENTRY rule with a
+leading literal + no `->` mis-resolves positional args (the direct-on-`class_range` attempt) — the named
+guard-rule indirection sidesteps it.
+
+#### `.4.5.c` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — certified interpreter grammar-only (`interpret_parse("grammars/regex.ebnf",
+  "[z-a]", pcre2)`) → `accepted=true` for the 10 descending-literal cells (bare/hex/octal/braced), where
+  `pcre2test` 10.47 `/[z-a]/utf` = err 108 AND the released `--parse` (grammar+validator) already REJECTS.
+  The braced `[\x{100}-a]` is the code-point discriminator (textual `"\x{100}" < "a"` would accept). Pin:
+  `rust/tests/regex_class_range_descending_grammar_migration.rs`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf::class_range` forms for two literals regardless of
+  order; its `@validate: ord($1)<=ord($5)` is a non-parse-gating codegen annotation (`.4.5.a`). The err-108
+  reject lived out-of-band in `regex_compile_validation.rs::find_invalid_char_class_construct` (range ordering).
+- [x] **FIX** — grammar tier consuming `value_compare_codepoint` (`RULE-SPAN-VALUE-CONSTRAINT.3`): third
+  `invalid_class_range` alternative `descending_class_range` + `class_range_endpoint`/`class_range_decodable_atom`/
+  `class_range_decodable_escape` (`grammars/regex.ebnf`). No new engine change (the primitive landed in RSVC.3,
+  commit `20bc0462`). Bare-whitespace endpoints excluded (finding 4).
+- [x] **ADDRESSED (verified)** — the interpreter grammar-only test flips all 10 descending cells ACCEPT→REJECT
+  and keeps the ascending/equal/carve-out controls (`[a-z]` `[a-a]` `[0-9]` `[\x30-\x39]` `[a-\x{100}]` `[a-]`
+  `[-a]` `[\d-]` `[\d\-x]` `[--/]` + members) ACCEPT; ascending WHITESPACE ranges (`[ -!]` `[ --]` `[\t-a]`)
+  stay ACCEPT (finding 4). Released `--parse` verdict UNCHANGED (behavior-neutral).
+- [x] **NO REGRESSION** — regex cert `total=249 proof=7 witness=242 UNKNOWN=0 fully_certified=true
+  sample_parse_failures=0` at seeds 0/7/42 (245→249: +4 lookahead-only PROOF rules); `--lint-grammar` 0 errors
+  (249 rules); `regex_pcre2_compile_oracle_gate` byte-identical `2189/1867/274/48` (the false_reject `48→50`
+  whitespace regression ROOT-CAUSED and fixed before commit); `duality_hunt_gate` 9 lanes no new/vanished;
+  `parse_harness_equivalence_gate` regex byte-identical (certified 4/4 gate tests); `ast_shape_contract` regex
+  inventory 224→225 aligned (+1 `class_range_endpoint` `-> $text`); `parse_harness_combinator_gate` 27/27 +
+  `parse_harness_semantic_gate` 33/33 (shared engine untouched); embedding version-drift + metadata gates green
+  (`1.1.98`/`1.1.100`); other fully-certified grammars' generated parsers untouched (only regex regenerated).
+- [x] **LOCKSTEP** — `grammars/regex.ebnf` (+4 rules, whitespace-excluded endpoint); regenerated
+  `generated/regex_parser.rs`; new test `rust/tests/regex_class_range_descending_grammar_migration.rs`;
+  `embedding_api.rs` consts `1.1.98`/`1.1.100`; `regex_parser_integration_contract_v1.json`;
+  `ast_shape_contract/regex_v1.json` (224→225 re-baseline); ledger `REGEX-0108`; contract `1.1.98`/`1.1.100`
+  Highlights + Identity; regex book `rules-char-class.md` + `changelog-index.md` + `compile-contract-validator.md`
+  + tracked HTML; top book `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`;
+  `MEMORY.md`; `docs/TASK_TREE.md`; durable decision `project_dollar_text_whitespace_empty_in_predicate_arg`.
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 

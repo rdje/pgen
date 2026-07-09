@@ -75,7 +75,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/regex_return_annotations.json",
-    "extracted_at": "2026-07-09 (REGEX-PCRE2-FIDELITY.4.5.b — +3 class_item guard $2 passthroughs; 221->224)",
+    "extracted_at": "2026-07-09 (REGEX-PCRE2-FIDELITY.4.5.c — +1 class_range_endpoint $text raw-spelling wrapper for the descending-range codepoint gate; 224->225)",
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
@@ -473,6 +473,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"class_range\", start: $1, end: $5}"
+      },
+      {
+        "rule": "class_range_endpoint",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "class_range_escape",

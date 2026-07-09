@@ -742,6 +742,7 @@ empty_quoted_class_literal = "\\Q" "\\E"   -> {type: "class_quoted_literal", bod
 # terminal, so `[\d\-x]`'s escaped dash stays a member (no false reject).
 invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
                     | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
+                    | descending_class_range
 # The NONLITERAL class atoms `.4.5.b` forbids as a range endpoint: the shorthand character-class
 # escapes and the Unicode property escapes. Used ONLY inside the `invalid_class_range` lookahead, so
 # no return shape is needed (a lookahead discards its value). `property_escape` (already positively
@@ -749,6 +750,60 @@ invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_ze
 class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
                             | "\\" property_escape
 class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
+# REGEX-PCRE2-FIDELITY.4.5.c: a DESCENDING class range — two LITERAL endpoints whose left code point
+# exceeds the right (`[z-a]`, `[9-0]`, `[\x39-\x30]`, `[\x{100}-a]`) — is PCRE2 err 108 "range out of
+# order in character class" (oracle `pcre2test` 10.47). The grammar ACCEPTS these today (the
+# `@validate: ord($1)<=ord($5)` on `class_range` is a NON-parse-gating codegen annotation, proven
+# `.4.5.a`), so the reject was owned only by the out-of-band `validate_regex_compile_contract`. This
+# migrates it into the EBNF as a THIRD `invalid_class_range` alternative — the `.4.5.b` lookahead
+# pattern extended to a VALUE constraint. `descending_class_range` matches the same 5-element shape as
+# `class_range`, gated by the general `value_compare_codepoint` `@predicate` (RULE-SPAN-VALUE-CONSTRAINT.3):
+# a `post` gate that resolves the two RAW endpoint spellings ($1, $5), decodes each to its Unicode code
+# point (bare char or the standard char-escape vocab), and MATCHES iff left > right (`gt`) — i.e. the
+# rule succeeds exactly for a descending range. Because it is an alternative of the zero-width
+# `!invalid_class_range` guard, a descending range is BLOCKED at the `class_item` level (it cannot fall
+# back to being reparsed as separate literal members `z`,`-`,`a` — the reason a plain `le` `@predicate`
+# ON `class_range` does not work: the failed range branch just backtracks to members and the class still
+# accepts). Nonliteral endpoints are already blocked by the first two alternatives (err 150, before an
+# order question arises), so this alternative only ever sees two LITERAL endpoints. Behavior-NEUTRAL at
+# the released `--parse` surface (the validator still rejects — its range-check deletion is deferred to
+# `.4.5.d`, when the `-[`/POSIX-left cases also become grammar-owned); the effect is observable only at
+# the GRAMMAR layer (the certified interpreter, no validator). Duality-safe by the `.4.3` empirical
+# argument: the duality oracle already rejects descending ranges, so the store-aware generator provably
+# never emits them (no new `duality_hunt_gate` signature).
+@predicate: { name: value_compare_codepoint, args: [$1, gt, $5], phase: post }
+descending_class_range = class_range_endpoint class_zero_width* "-" class_zero_width* class_range_endpoint
+# The `value_compare_codepoint` gate needs each endpoint's RAW input SPELLING (`\x30`, `\101`, `a`) so
+# its char-literal decoder can compute the code point. A bare positional ref to `class_atom` gives that
+# rule's RETURN value instead — a bare string for a literal (`"a"`, which decodes fine) but a typed
+# `{type:"escape", …}` object for an escape endpoint, whose `scalar_text` is `None` → the gate would be
+# INAPPLICABLE (non-blocking) → an ASCENDING escape range would be wrongly matched and blocked. So
+# `class_range_endpoint` re-emits the endpoint's raw matched text (`-> $text`), reaching the predicate as
+# a uniform spelling. It matches ONLY the DECODABLE endpoint forms: a bare NON-WHITESPACE literal plus the
+# char-escapes the general decoder understands (hex `\xHH`/`\x{}`, octal `\NNN`/`\o{}`, control `\cX`, and
+# the simple escapes `\a`/`\-`/`\<char>`). Three families are DELIBERATELY EXCLUDED because their `$text`
+# reaches the predicate EMPTY or as `None`, which — since a non-decodable operand makes the `gt` gate
+# INAPPLICABLE (non-blocking) — would let `descending_class_range` match a VALID range and the guard would
+# OVER-BLOCK it: (1) `quoted_class_range_atom` (`\Q..\E`) and `unicode_escape` (`\u{...}`), whose `$text`
+# the general decoder returns `None` for (a cert regression — `quoted_class_range_atom` went UNKNOWN); and
+# (2) a BARE WHITESPACE literal (` `, `\t`, …): a `class_literal → whitespace` match reaches the `post`
+# predicate with an EMPTY raw spelling (proven by trace: `value_compare_codepoint("" > "!") → None` for
+# `[ -!]`, in EITHER endpoint slot — the whitespace-only span is not recovered through `$text` in the
+# predicate-arg path, while every non-whitespace literal AND the ESCAPE spellings `\x20`/`\t`/`\040`
+# resolve correctly). So `class_range_decodable_atom` spells out the NON-WHITESPACE `class_literal`
+# alternatives directly (dropping the `whitespace` branch — `class_literal` itself is unchanged and still
+# used for members) and `descending_class_range` simply does not form for a bare-whitespace endpoint; the
+# range is left to the validator, joining the `-[`/POSIX-left/`\Q..\E`/`\u{}` cases deferred to `.4.5.d`.
+# (The empty-`$text`-for-whitespace-in-a-post-predicate-arg behavior is a GENERAL latent pipeline finding,
+# recorded durably for a future engine investigation; a bare-whitespace escape spelling stays gated here.)
+# Referenced only inside the `!invalid_class_range` lookahead, so these rules are lookahead-only
+# (PROOF-certified) and their shape is discarded.
+class_range_endpoint = class_range_decodable_atom                                -> $text
+class_range_decodable_atom = class_range_decodable_escape | letter | digit | class_safe_special | unicode_char
+class_range_decodable_escape = "\\" hex_escape
+                             | "\\" octal_escape
+                             | "\\" control_escape
+                             | "\\" class_range_simple_escape
 
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}

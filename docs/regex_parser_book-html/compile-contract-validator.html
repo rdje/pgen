@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8b1ef0ea.js";
+            window.path_to_searchindex_js = "searchindex-f3901f5a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -223,7 +223,7 @@ the EBNF becomes the sole source of truth.</p>
 CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.97</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.98</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">
@@ -232,7 +232,7 @@ one instance is the only one and it can only ever shrink.</p>
 <tr><th>Family (what it rejects)</th><th>Example load-bearing inputs</th><th>Migration leaf</th></tr>
 </thead>
 <tbody>
-<tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges (<strong>nonliteral shorthand/property endpoints now ALSO grammar-owned — <code>.4.5.b</code></strong>; POSIX-left, descending, and <code>-[</code>-right stay validator-owned)</td><td><code>[[:alpha:]-z]</code> (posix-left), <code>[z-a]</code> (descending), <code>[a-[:digit:]]</code> (<code>-[</code>-right)</td><td><code>.4.5.c</code></td></tr>
+<tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges (<strong>nonliteral shorthand/property endpoints now ALSO grammar-owned — <code>.4.5.b</code>; descending literal ranges with a DECODABLE non-whitespace endpoint now ALSO grammar-owned — <code>.4.5.c</code></strong>; POSIX-left, <code>-[</code>-right, and quoted/<code>\u{}</code>/bare-whitespace-endpoint descending stay validator-owned)</td><td><code>[[:alpha:]-z]</code> (posix-left), <code>[a-[:digit:]]</code> (<code>-[</code>-right), <code>[\Q..\E-a]</code>/<code>[a- ]</code> (deferred descending)</td><td><code>.4.5.d</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -269,7 +269,22 @@ validator still ALSO rejects them (this row’s check is NOT yet deleted — the
 family is grammar-owned, <code>.4.5.c</code> + the <code>-[</code>/<code>\v\V</code> cases), the released verdict is unchanged; the
 migration is observable only at the grammar layer (the certified interpreter). The literal-dash carve-outs
 (<code>[a-]</code>, <code>[-a]</code>, <code>[\d-]</code>, <code>[\d\-x]</code>, <code>[\da-z]</code>, <code>[-\d]</code>) and valid ranges/members stay ACCEPT. Cert 239→245
-(+3 witnessed <code>*_core</code> rules, +3 lookahead-only PROOF rules), oracle byte-identical, duality unchanged.
+(+3 witnessed <code>*_core</code> rules, +3 lookahead-only PROOF rules), oracle byte-identical, duality unchanged.</p>
+<p><strong><code>1.1.98</code> (REGEX-0108, <code>.4.5.c</code>) — a behavior-NEUTRAL validator→grammar migration (the descending-literal
+sibling of REGEX-0107).</strong> A class range of two LITERAL endpoints whose left code point exceeds the right —
+<code>[z-a]</code>, <code>[9-0]</code>, <code>[\x39-\x30]</code>, <code>[\x{100}-a]</code> (PCRE2 err 108) — is now rejected at the GRAMMAR layer by a
+THIRD <code>!invalid_class_range</code> alternative <code>descending_class_range</code>, gated by the new <code>value_compare_codepoint</code>
+<code>@predicate</code> (RULE-SPAN-VALUE-CONSTRAINT.3): it decodes each RAW endpoint spelling (bare non-whitespace
+literal + <code>\xHH</code>/<code>\x{}</code>/<code>\NNN</code>/<code>\o{}</code>/<code>\cX</code>/named escapes) to its Unicode code point and matches when left &gt;
+right. The braced <code>[\x{100}-a]</code> is the code-point discriminator — a textual compare (<code>\</code>=92 &lt; <code>a</code>=97) would
+wrongly ACCEPT; only decoding (256 &gt; 97) rejects. Endpoints that cannot be reliably decoded stay
+validator-owned: <code>\Q..\E</code>/<code>\u{}</code> (decode <code>None</code>) and a BARE WHITESPACE endpoint (whose raw <code>$text</code> reaches
+the predicate EMPTY — a latent pipeline finding recorded in the decisions log), so ascending whitespace
+ranges (<code>[ -!]</code>, <code>[ --]</code>, <code>[\t-a]</code>) keep ACCEPTing. Because the validator still ALSO rejects descending
+ranges (this row’s check is NOT yet deleted — the deletion waits for <code>.4.5.d</code>), the released verdict is
+unchanged; observable only at the grammar layer. Cert 245→249 (+4 lookahead-only PROOF rules), oracle
+byte-identical <code>2189/1867/274/48</code> (an in-slice bare-whitespace over-block regression <code>48→50</code> was
+root-caused + fixed before release), duality unchanged.
 | Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code> | <code>.4.7</code> |
 | <strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix | <code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code> | <code>.4.8</code> |
 | <strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded | <code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code> | <code>.4.9</code> |
