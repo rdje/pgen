@@ -1277,6 +1277,36 @@ byte-identical to `1.1.91`, oracle gate `2189/1858/285/46` unchanged).
   `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`;
   `docs/TASK_TREE.md`.
 
+### REGEX-PCRE2-FIDELITY.4.2 — SCOPING (tools-first, session #75, PURE-DOCS)
+
+Message-source probe (release `parseability_probe`, both profiles) + grammar read of the name rules
+(`grammars/regex.ebnf`) **before** any edit, to split `.4.2` into its load-bearing vs already-owned parts:
+
+- **Named-group CHARSET is ALREADY grammar-owned — nothing to migrate.** `name = ( letter | '_' |
+  unicode_char ) ( letter | digit | '_' | unicode_char )*` (`regex.ebnf:528`) already enforces first-char ≠
+  digit + the charset, so `(?<>x)` `(?<1bad>x)` `(?'1bad'x)` `(?P<1bad>x)` `(?<a b>x)` all **GRAMMAR-reject**
+  today (probe: GRAMMAR-reject, not VALIDATOR-reject). The `capture_name`/`named_group_open_*` rules
+  (`:1163`–`:1180`) delegate to `name`, so the named-group charset half is a no-op.
+- **`\k` backreference shape + non-empty name is LOAD-BEARING.** `\k` `\kabc` `\k''` `\k<>` `\k{}` are
+  **VALIDATOR-reject** (grammar accepts) — the `\k` rule does not require a delimiter + non-empty `name` the
+  way `read_delimited_name_at` does. STRUCTURAL: route `\k` through a delimited non-empty `name` (the
+  `named_group_open_*` idiom).
+- **Length ≤ 128 is LOAD-BEARING for BOTH named groups and `\k`, and carries a real design question.** The
+  129-char `(?<a…a>x)` / `\k<a…a>` are **VALIDATOR-reject** (grammar's `name` is unbounded `*`). A bounded
+  quantifier `( first )( rest ){0,127}` is now expressible (BOUNDED-QUANT.1 landed `{N,M}` first-class), so
+  the ASCII case is STRUCTURAL. **BUT** PCRE2's `PCRE2_MAX_NAME_SIZE` is 128 **code units** and the deleted
+  validator uses **byte** `name.len()`, whereas a `{0,127}` char-quantifier counts **characters** — they
+  DIVERGE for a multi-byte Unicode name (`unicode_char` in `name`). So a byte-exact migration needs either a
+  Unicode-aware code-unit bound or a rule-span byte-length primitive; the fix-hierarchy escalation (new
+  primitive) must be justified tools-first against PCRE2's exact code-unit rule before it is chosen.
+
+**Decision.** `.4.2` is NOT a one-shot structural slice like `.4.4`/`.4.6`: the charset half is already
+owned, the `\k` shape half is clean STRUCTURAL, but the length half has a byte-vs-char-count subtlety that
+wants a deliberate design pass (measure PCRE2's exact code-unit limit across widths; decide bounded-quant
+vs a length primitive per the fix hierarchy). Recommended: take `.4.2` up in a FRESH design-focused session
+with this scoping as the starting point. `find_invalid_named_escape_or_group_name` stays validator-owned
+until then.
+
 ## `.2` DESIGN — the explicit `pcre2` default (uncovered scoping `.3.1`, 2026-06-07)
 
 **The wrinkle (tool-backed):** the codegen profile guard `rule_profile_is_enabled`

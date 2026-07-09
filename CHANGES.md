@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0026 — REGEX-PCRE2-FIDELITY.4.2 SCOPING (PURE-DOCS, no code/version change)
+
+Tools-first scoping of the `\k`/group-NAME-validity leaf before any edit (message-source probe both
+profiles + grammar read), recorded in the tree so the next session starts with the design framed.
+
+- **Named-group charset is ALREADY grammar-owned** — `name` (`regex.ebnf:528`) rejects `(?<1bad>x)`/
+  `(?<>x)`/`(?'1bad'x)`/`(?P<1bad>x)`/`(?<a b>x)` at the grammar layer (probe: GRAMMAR-reject). No-op.
+- **`\k` shape + non-empty name is load-bearing** — `\k`/`\kabc`/`\k''`/`\k<>`/`\k{}` are VALIDATOR-reject
+  (grammar accepts). Structural: route `\k` through a delimited non-empty `name`.
+- **Length ≤128 is load-bearing (both) + a design question** — 129-char `(?<…>x)`/`\k<…>` are
+  VALIDATOR-reject (`name` is unbounded `*`). A bounded quantifier `{0,127}` (BOUNDED-QUANT.1) covers ASCII,
+  but PCRE2's limit is 128 CODE UNITS / the validator uses BYTE `name.len()` while `{0,127}` counts CHARS —
+  they diverge for multi-byte Unicode names. Needs a deliberate design pass (Unicode-aware code-unit bound
+  vs a byte-length primitive, justified per the fix hierarchy) → best in a fresh design-focused session.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0025 — REGEX-PCRE2-FIDELITY.4.4: escape-in-class rejects are now grammar-owned (behavior-neutral validator→grammar migration; release `1.1.92`/`1.1.94`/schema `1`, ledger REGEX-0102)
 
 Session #75. RELEASED regex slice (grammar + regen + validator deletion + full lockstep), the 3rd `.4`
