@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f3901f5a.js";
+            window.path_to_searchindex_js = "searchindex-473aae60.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -365,10 +365,14 @@ migrates the reject into the EBNF, <code>REGEX-PCRE2-FIDELITY.4.5.b</code>, ledg
 <pre><code class="language-ebnf">invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
                     | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
                     | descending_class_range
+                    | posix_class class_zero_width* "-" class_zero_width* class_atom
+                    | class_atom class_zero_width* "-" class_zero_width* posix_class
 class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
                             | "\\" property_escape
 class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
 </code></pre>
+<p>(The last two alternatives — the POSIX-class range endpoints — are covered in their own
+subsection below.)</p>
 <p>The guard is deliberately narrow so the <strong>literal-dash carve-outs</strong> stay valid: <code>[a-]</code> and
 <code>[-a]</code> (dash at an edge), <code>[\d-]</code> (a nonliteral followed by a trailing dash and <code>]</code> — shape 1
 requires a real endpoint atom after the <code>-</code>), <code>[\d\-x]</code> (an <em>escaped</em> dash is a literal
@@ -404,11 +408,43 @@ over-blocking a <em>valid</em> range: an undecodable escape (<code>\Q..\E</code>
 literal (a <code>class_literal → whitespace</code> match reaches the predicate with an empty raw spelling —
 a latent pipeline finding). So ascending whitespace ranges (<code>[ -!]</code>, <code>[ --]</code>, <code>[\t-a]</code>) keep
 ACCEPTing, and descending ranges with those endpoints stay validator-owned.</p>
-<p><strong>Scope:</strong> shorthand + property endpoints (<code>.4.5.b</code>) and descending literal ranges with a
-decodable non-whitespace endpoint (<code>.4.5.c</code>) are grammar-owned; the POSIX-left (<code>[[:alpha:]-z]</code>),
-<code>-[</code>-right (<code>[a-[:digit:]]</code>, ledger <code>REGEX-0105</code>), and quoted/<code>\u{}</code>/bare-whitespace-endpoint
-descending cases stay validator-owned pending <code>REGEX-PCRE2-FIDELITY.4.5.d</code>, which then deletes
-the validator range-check entirely.</p>
+<h3 id="posix-class-range-endpoints-the-posix_class-alternatives"><a class="header" href="#posix-class-range-endpoints-the-posix_class-alternatives">POSIX-class range endpoints (the <code>posix_class</code> alternatives)</a></h3>
+<p>The last two <code>invalid_class_range</code> alternatives reject a range whose LEFT or RIGHT endpoint is a
+valid POSIX class (<code>[:name:]</code>) — <code>[[:alpha:]-z]</code> (POSIX left) and <code>[!-[:alpha:]]</code> (POSIX right),
+both PCRE2 err 150 “invalid range in character class” (<code>REGEX-PCRE2-FIDELITY.4.5.d</code>, ledger
+<code>REGEX-0109</code>). Without the guard the grammar over-accepts these: <code>class_atom</code> reads the bracket’s
+<code>[</code> as a <code>class_safe_special</code> literal <code>0x5B</code>, so an <em>ascending</em> <code>!-[</code> range forms and the
+trailing <code>:alpha:]</code> become separate members. The alternatives reference the existing
+positively-reachable <a href="#posix-classes"><code>posix_class</code></a> rule (so no new lookahead-only rule is added,
+and certificate-coverage <code>total</code> is unchanged):</p>
+<pre><code class="language-ebnf">invalid_class_range = …
+                    | posix_class class_zero_width* "-" class_zero_width* class_atom
+                    | class_atom class_zero_width* "-" class_zero_width* posix_class
+</code></pre>
+<p>The <code>class_atom</code>-after-<code>-</code> requirement keeps the trailing-dash carve-out valid: <code>[[:alpha:]-]</code>
+(a POSIX class then a trailing literal dash and <code>]</code>) has no atom after the <code>-</code>, so neither
+alternative matches and it ACCEPTs — exactly like PCRE2. Ordinary POSIX-class members
+(<code>[[:alpha:]a]</code>, <code>[a-z[:digit:]]</code>, <code>[[:alpha:][:digit:]]</code>) are unaffected: they carry no range
+dash. The <em>descending</em> POSIX-right cases (<code>[x-[:alpha:]]</code>, where the literal <code>[</code>=0x5B is below the
+left endpoint) are already rejected by <code>descending_class_range</code> above.</p>
+<p>Only <strong>valid POSIX names</strong> migrate here. The collating (<code>[.a.]</code>) and equivalence (<code>[=a=]</code>)
+bracket-tokens have no grammar recognizer yet (they join the standalone-token work,
+<code>REGEX-PCRE2-FIDELITY.4.12</code>).</p>
+<blockquote>
+<p><strong>Note (behavior change, PCRE2-convergent).</strong> This migration mostly encodes a reject the
+out-of-band validator already made, but it also closes a validator accepts-invalid hole:
+patterns like <code>[[:digit:]-   ]</code> (a POSIX class as a range left endpoint, followed only by
+whitespace before <code>]</code>) were previously <strong>accepted</strong> by the released parser (the validator’s
+trailing-dash heuristic skipped the whitespace even for a nonliteral left endpoint), where
+<code>pcre2test</code> 10.47 rejects them (err 150). The grammar now correctly rejects that subset. The
+zero-width <code>[[:alpha:]-\Q\E]</code> carve-out (dash then an empty <code>\Q\E</code> then <code>]</code>) stays <strong>accepted</strong>,
+matching PCRE2.</p>
+</blockquote>
+<p><strong>Scope:</strong> shorthand + property endpoints (<code>.4.5.b</code>), descending literal ranges with a decodable
+non-whitespace endpoint (<code>.4.5.c</code>), and POSIX-class endpoints (<code>.4.5.d</code>) are grammar-owned; the
+collating/equivalence endpoints (<code>[!-[.a.]]</code>, <code>.4.12</code>) and the quoted/<code>\u{}</code>/bare-whitespace-endpoint
+descending cases stay validator-owned. The out-of-band <code>find_invalid_char_class_construct</code>
+range-check is deleted only once the whole class-range family is grammar-owned.</p>
 <h2 id="walking-a-class-body"><a class="header" href="#walking-a-class-body">Walking a class body</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

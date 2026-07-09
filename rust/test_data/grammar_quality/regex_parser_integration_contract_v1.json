@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.100",
-  "parser_release_version": "1.1.98",
+  "integration_contract_version": "1.1.101",
+  "parser_release_version": "1.1.99",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -86,17 +86,6 @@
         "posix_class": ["[:digit:]"],
         "posix_name": ["digit"]
       }
-    },
-    {
-      "name": "posix_digit_then_literal_dash_and_spaces_class_item_ast",
-      "input": "[[:digit:]-   ]",
-      "required_rule_names": ["char_class", "class_item", "class_literal", "posix_class", "posix_name"],
-      "expected_rule_texts": {
-        "class_literal": ["-", " ", " ", " "],
-        "posix_class": ["[:digit:]"],
-        "posix_name": ["digit"]
-      },
-      "forbidden_rule_names": ["class_range"]
     },
     {
       "name": "pcre2_posix_word_boundary_aliases",
@@ -1030,6 +1019,10 @@
     {
       "name": "empty_quoted_class_literal_does_not_form_posix_range",
       "input": "[[:digit:]\\Q\\E-H]+"
+    },
+    {
+      "name": "posix_class_range_left_endpoint_dash_whitespace_rejects_pcre2_faithfully",
+      "input": "[[:digit:]-   ]"
     }
   ]
 }

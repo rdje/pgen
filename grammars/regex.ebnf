@@ -740,9 +740,22 @@ empty_quoted_class_literal = "\\Q" "\\E"   -> {type: "class_quoted_literal", bod
 # nonliteral RIGHT `<atom> - <nl>`. Shape 1's right side must be an actual endpoint atom (NOT
 # end-of-class), so the literal-trailing-dash carve-out `[\d-]` stays ACCEPT; the `-` is a BARE
 # terminal, so `[\d\-x]`'s escaped dash stays a member (no false reject).
+# REGEX-PCRE2-FIDELITY.4.5.d: the last two alternatives reject a class RANGE whose LEFT or RIGHT endpoint is
+# a valid POSIX class (`[:name:]`) — PCRE2 err 150 "invalid range in character class" (`[[:alpha:]-z]` /
+# `[!-[:alpha:]]`, oracle `pcre2test` 10.47). The grammar otherwise over-accepts these: `class_atom` reads the
+# bracket's `[` as a `class_safe_special` literal 0x5B, so an ASCENDING `!-[` range forms and the trailing
+# `:alpha:]` become separate members. (The DESCENDING posix-right cases `[x-[:alpha:]]` — left>`[`=0x5B —
+# already reject via `descending_class_range`.) Mirrors the shorthand/property shapes above, but references the
+# EXISTING positively-reachable `posix_class` rule (so no new lookahead-only rule / no cert-count change). The
+# `class_atom`-after-`-` requirement keeps the trailing-dash carve-out (`[[:alpha:]-]` ACCEPT). The
+# collating/equivalence bracket-tokens (`[.a.]` / `[=a=]`) have no grammar recognizer yet and stay
+# validator-owned (joins `.4.12`); only VALID-POSIX-name endpoints migrate here. NOTE: alternatives must stay
+# CONTIGUOUS — a comment line between `|` branches terminates the rule in the EBNF frontend.
 invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
                     | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
                     | descending_class_range
+                    | posix_class class_zero_width* "-" class_zero_width* class_atom
+                    | class_atom class_zero_width* "-" class_zero_width* posix_class
 # The NONLITERAL class atoms `.4.5.b` forbids as a range endpoint: the shorthand character-class
 # escapes and the Unicode property escapes. Used ONLY inside the `invalid_class_range` lookahead, so
 # no return shape is needed (a lookahead discards its value). `property_escape` (already positively

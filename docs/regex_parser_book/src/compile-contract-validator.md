@@ -58,7 +58,7 @@ As of regex release `1.1.98`, the validator dispatches these families (each row 
 
 | Family (what it rejects) | Example load-bearing inputs | Migration leaf |
 |---|---|---|
-| Character-class **RANGE** validity — nonliteral endpoints + descending ranges (**nonliteral shorthand/property endpoints now ALSO grammar-owned — `.4.5.b`; descending literal ranges with a DECODABLE non-whitespace endpoint now ALSO grammar-owned — `.4.5.c`**; POSIX-left, `-[`-right, and quoted/`\u{}`/bare-whitespace-endpoint descending stay validator-owned) | `[[:alpha:]-z]` (posix-left), `[a-[:digit:]]` (`-[`-right), `[\Q..\E-a]`/`[a- ]` (deferred descending) | `.4.5.d` |
+| Character-class **RANGE** validity — nonliteral endpoints + descending ranges (**nonliteral shorthand/property endpoints — `.4.5.b`; descending literal ranges with a DECODABLE non-whitespace endpoint — `.4.5.c`; POSIX-class endpoints — `.4.5.d` — now ALL grammar-owned**; only collating/equivalence bracket-token endpoints and quoted/`\u{}`/bare-whitespace-endpoint descending stay validator-owned) | `[!-[.a.]]`/`[!-[=a=]]` (collating/equivalence, `.4.12`), `[\Q..\E-a]`/`[a- ]` (deferred descending) | collating `.4.12` + blocked descending |
 
 > **`1.1.95` (REGEX-0105, `.4.5.a`) — a range-validity *correctness fix*, not a migration.** A range whose
 > right endpoint began with `[` (or `||`) inside a NORMAL class — `[a-[b]]`, `[x-[:alpha:]]`, `[~-||]`,
@@ -111,6 +111,29 @@ As of regex release `1.1.98`, the validator dispatches these families (each row 
 > unchanged; observable only at the grammar layer. Cert 245→249 (+4 lookahead-only PROOF rules), oracle
 > byte-identical `2189/1867/274/48` (an in-slice bare-whitespace over-block regression `48→50` was
 > root-caused + fixed before release), duality unchanged.
+>
+> **`1.1.99` (REGEX-0109, `.4.5.d`) — MOSTLY a behavior-NEUTRAL validator→grammar migration, PLUS a
+> PCRE2-convergent correctness fix for one subset (the POSIX-endpoint sibling of REGEX-0107/0108).** A class
+> range whose LEFT or RIGHT endpoint is a valid POSIX class (`[:name:]`) — `[[:alpha:]-z]` (POSIX left),
+> `[!-[:alpha:]]` (POSIX right, ascending) — is PCRE2 err 150 and is now rejected at the GRAMMAR layer by two
+> new `!invalid_class_range` alternatives (`posix_class - class_atom` / `class_atom - posix_class`) that
+> reference the EXISTING positively-reachable `posix_class` rule. The GRAMMAR previously ACCEPTED these (reading
+> the bracket's `[` as a `class_safe_special` literal `0x5B`). Because `posix_class` is already positively
+> entered, NO new rule is added and cert `total` is unchanged (249) — unlike `.4.5.b`/`.4.5.c`. The
+> `class_atom`-after-`-` requirement keeps the trailing-dash carve-out valid (`[[:alpha:]-]` and the zero-width
+> `[[:alpha:]-\Q\E]` ACCEPT — PCRE2-verified). **This row's check has an accepts-invalid HOLE the migration
+> exposed:** `dash_is_trailing_literal` (used by both `scan_char_class` range branches) skips whitespace/`\Q\E`
+> zero-width after the dash and returns "trailing literal dash" even when the range's LEFT endpoint is a
+> NonLiteral POSIX class — so the validator ACCEPTED `[[:digit:]-   ]` (dash + only whitespace before `]`) where
+> PCRE2 rejects err 150. The grammar migration flips that subset **ACCEPT→REJECT** at `--parse`
+> (PCRE2-convergent; one contract success sample moved to failure, counts 92/26). For every other posix-endpoint
+> case the validator already rejected, so those stay behavior-neutral. When this range-check is eventually
+> deleted (once collating/equivalence `.4.12` + the blocked descending endpoints land), the
+> `dash_is_trailing_literal` whitespace-skip hole must be resolved validator-side too, or fully subsumed by the
+> grammar (the grammar already handles it correctly). Only VALID-POSIX-name endpoints migrate here; collating
+> (`[.a.]`) / equivalence (`[=a=]`) endpoints have no grammar recognizer yet (`.4.12`). Cert 249 UNCHANGED,
+> ast_shape 225 UNCHANGED (no new `->` shape), oracle byte-identical `2189/1867/274/48` (flip cells
+> corpus-invisible), duality unchanged.
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
 | **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |

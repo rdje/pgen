@@ -1161,6 +1161,33 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   (G2/G3 bisect): a POST predicate on a TOP/ENTRY rule with a leading literal + no `->` mis-resolves
   positional args in the interpreter — recorded for a future investigation; does NOT affect `class_range`
   (a deep sub-rule). See the `.4.5.c` implementation section + Acceptance Checklist below.
+- ID: `.4.5.d` Status: **`done`** (`PGEN-REGEX-PCRE2-0035`, session #82; release `1.1.98`→`1.1.99`, contract
+  `1.1.100`→`1.1.101`, schema `1`, ledger `REGEX-0109`) Goal: migrate the still-validator-owned **POSIX-class
+  (`[:name:]`) nonliteral class-range endpoint** reject INTO the grammar — a `class_range` whose LEFT or RIGHT
+  endpoint is a valid POSIX class (`[[:alpha:]-z]`, `[!-[:alpha:]]`) is PCRE2 err 150 "invalid range in
+  character class" (`pcre2test` 10.47). Tools-first (grammar-only interpreter, `zz_diag_class_range_residual`)
+  pinned the EXACT residual: the DESCENDING posix-right cases (`[x-[:alpha:]]`, `[a-[:digit:]]`, left>`[`=0x5B)
+  already reject via `.4.5.c`'s `descending_class_range` (the `[` reads as a `class_safe_special` literal 0x5B),
+  so the genuine grammar-over-accept residual is the ASCENDING posix-right (`[!-[:alpha:]]`, `!`=33 < `[`=91) and
+  the posix-LEFT (`[[:alpha:]-z]`). FIX (grammar tier, `feedback_no_workarounds_fix_hierarchy` tier 1 — the
+  existing `.4.5.b` `!invalid_class_range` lookahead): two new alternatives referencing the EXISTING
+  positively-reachable `posix_class` rule — `posix_class zw* "-" zw* class_atom` (posix LEFT) and `class_atom
+  zw* "-" zw* posix_class` (posix RIGHT). No new rules (cert total stays 249), no engine, no `$text`, no
+  blocker. The `class_atom`-after-`-` requirement preserves the trailing-dash carve-out (`[[:alpha:]-]` stays
+  ACCEPT). **NOT fully behavior-neutral — a genuine PCRE2-CONVERGENT correctness fix for one subset (surfaced
+  when the contract-manifest gate flipped, then root-caused).** For MOST posix-endpoint cases the validator
+  ALREADY rejected them (released `--parse` unchanged), BUT the validator has an accepts-invalid HOLE:
+  `dash_is_trailing_literal` skips whitespace/zero-width after the dash and treats it as a literal trailing dash
+  even for a NonLiteral (posix) LEFT endpoint — so `[[:digit:]-   ]` (dash + only whitespace before `]`) was
+  ACCEPTED by the released parser, where `pcre2test` 10.47 rejects err 150. The grammar migration flips that
+  subset ACCEPT→REJECT at `--parse` (one contract success sample → failure; oracle byte-identical because the
+  flip cells are not in the corpus). SCOPE: valid-POSIX-name
+  endpoints only. The remaining class-range residuals stay validator-owned: the **collating/equivalence**
+  bracket-tokens (`[!-[.a.]]`, `[!-[=a=]]` — no grammar recognizer yet; joins `.4.12`) and the **blocked
+  descending** endpoints (`\Q..\E`/`\u{}` decode-`None`, bare-whitespace empty-`$text` —
+  [[project_dollar_text_whitespace_empty_in_predicate_arg]]). The `find_invalid_char_class_construct`
+  range-check DELETION waits until ALL of these land. See the `.4.5.d` implementation section + Acceptance
+  Checklist below.
 - ID: `.4.6` Status: **`done`** (`PGEN-REGEX-PCRE2-0024`, session #74; release `1.1.90`→`1.1.91`, contract
   `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) Goal: encode POSIX class NAME validity — unknown
   `[[:foo:]]` reject + the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
@@ -1639,6 +1666,99 @@ guard-rule indirection sidesteps it.
   Highlights + Identity; regex book `rules-char-class.md` + `changelog-index.md` + `compile-contract-validator.md`
   + tracked HTML; top book `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`;
   `MEMORY.md`; `docs/TASK_TREE.md`; durable decision `project_dollar_text_whitespace_empty_in_predicate_arg`.
+
+### REGEX-PCRE2-FIDELITY.4.5.d — POSIX-class nonliteral class-range endpoint is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0035`, session #82)
+
+**Tools-first root cause (grammar-only via the certified interpreter — `zz_diag_class_range_residual`, run then
+deleted).** A `class_range` whose LEFT or RIGHT endpoint is a valid POSIX class (`[[:alpha:]-z]`,
+`[!-[:alpha:]]`) is PCRE2 err 150 "invalid range in character class" (`pcre2test` 10.47). A grammar-only
+residual sweep over the whole `.4.5` matrix pinned the EXACT over-accept set: the DESCENDING posix-right cases
+(`[x-[:alpha:]]`, `[a-[:digit:]]`, left code point > `[`=0x5B) ALREADY reject via `.4.5.c`'s
+`descending_class_range` (the bracket's `[` reads as a `class_safe_special` literal 0x5B, so `x-[` is a
+descending literal range), so the genuine grammar-over-accept residual is only the ASCENDING posix-right
+(`[!-[:alpha:]]`, `!`=33 < `[`=91 → not descending) and the posix-LEFT (`[[:alpha:]-z]`). The grammar accepted
+these by forming an ascending `!-[` `class_range` and reading the trailing `:alpha:]` as separate literal
+members, so the err-150 reject lived only in `validate_regex_compile_contract`.
+
+**Fix (grammar tier — the existing `.4.5.b` `!invalid_class_range` lookahead, `feedback_no_workarounds_fix_hierarchy`
+tier 1).** Two new `invalid_class_range` alternatives referencing the EXISTING positively-reachable `posix_class`
+rule: `posix_class zw* "-" zw* class_atom` (posix LEFT) and `class_atom zw* "-" zw* posix_class` (posix RIGHT).
+Because `posix_class` is already positively entered (the first `class_item_core` alternative), no new
+lookahead-only rule is created — cert `total` stays 249 (unlike `.4.5.b`/`.4.5.c`, which added rules). The
+`class_atom`-after-`-` requirement (the `.4.5.b` shape-design) preserves the trailing-dash carve-out:
+`[[:alpha:]-]` (posix then end-of-class dash) has no atom after `-`, so the alternative does not match → ACCEPT,
+exactly like PCRE2. One EBNF hazard re-confirmed the hard way: a comment line inserted BETWEEN `|` alternatives
+TERMINATES the rule in the frontend (the two new branches were silently dropped — grammar-only verdict
+unchanged until the comment was moved ABOVE the rule and the alternatives made contiguous). Recorded on the rule
+and in [[feedback_ebnf_meta_grammar_lockstep]]-adjacent notes.
+
+**🔎 NOT fully behavior-neutral — a validator accepts-invalid HOLE surfaced + closed (tools-first, second
+diagnostic `zz_diag_posix_validator`).** The `regex_parser_integration_contract` success-sample gate FLIPPED on
+`[[:digit:]-   ]` (a declared-success sample). Root cause (a validator/grammar/pcre2 three-way diagnostic, run
+then deleted): the released parser (grammar + validator) had ACCEPTED `[[:digit:]-   ]`, because the validator's
+`dash_is_trailing_literal` (`regex_compile_validation.rs:707`) skips SPACE/TAB (and `\Q\E`/`\E` zero-width) after
+the dash and returns "trailing literal dash" if it then hits `]` — but it applies that skip even when the range's
+LEFT endpoint is a NonLiteral POSIX class, so `[:digit:]-<whitespace>]` skipped the NonLiteral-range reject →
+accepts-invalid. `pcre2test` 10.47 rejects `[[:digit:]-   ]`/`[[:alpha:]- ]`/`[[:digit:]-\t]` err 150. So for
+this **flip subset** (posix-LEFT range, dash followed only by whitespace/zero-width before `]`) the grammar
+migration flips the released `--parse` verdict **ACCEPT→REJECT**, PCRE2-convergently — a genuine correctness fix,
+NOT a neutral migration. It is PERFECTLY PCRE2-convergent (verified string-by-string against `pcre2test`): the
+`\Q\E`-only-trailing carve-out `[[:alpha:]-\Q\E]` stays ACCEPT in both PCRE2 and the grammar (no over-reject).
+The oracle gate stayed byte-identical `2189/1867/274/48` because the flip cells are NOT in the corpus — the
+CONTRACT MANIFEST (a different surface) caught it. One contract success sample (`[[:digit:]-   ]`) moved to
+failure. For every OTHER posix-endpoint case the validator ALREADY rejected, so those stay behavior-neutral.
+
+**Scope + why the validator stays.** VALID-POSIX-name endpoints only. The remaining class-range residuals stay
+validator-owned: the **collating/equivalence** bracket-tokens (`[!-[.a.]]`, `[!-[=a=]]` — no grammar recognizer
+yet; joins the `.4.12` collating/equivalence family) and the **blocked descending** endpoints (`\Q..\E`/`\u{}`
+whose `$text` decodes `None`, and bare-whitespace whose `$text` is empty —
+[[project_dollar_text_whitespace_empty_in_predicate_arg]]). The `find_invalid_char_class_construct` range-check
+DELETION waits until ALL of these land (and until the `dash_is_trailing_literal` whitespace-skip hole above is
+also resolved on the validator side, or the whole range-check is deleted with the grammar owning it).
+
+#### `.4.5.d` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — grammar-only interpreter (`interpret_parse("grammars/regex.ebnf", "[!-[:alpha:]]",
+  pcre2)`) → `accepted=true` for the ascending posix-right (`[!-[:alpha:]]`) and posix-left (`[[:alpha:]-z]`)
+  cells, where `pcre2test` 10.47 = err 150 AND the released `--parse` (grammar+validator) already REJECTS — a
+  grammar-accepts-invalid single-source-of-truth hole. Pin: `rust/tests/regex_class_range_posix_grammar_migration.rs`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf::class_atom` reads the bracket's `[` as a
+  `class_safe_special` literal 0x5B, so an ASCENDING `!-[` `class_range` forms and `:alpha:]` fall through to
+  literal members; `class_range`'s `@validate: ord($1)<=ord($5)` is a non-parse-gating codegen annotation
+  (`.4.5.a`). The err-150 reject lived out-of-band in `regex_compile_validation.rs::find_invalid_char_class_construct`
+  (`ClassAtomKind::NonLiteral` posix endpoint). Descending posix-right was already owned by `.4.5.c`.
+- [x] **FIX** — grammar tier (fix-hierarchy 1, existing negative-lookahead construct): two `invalid_class_range`
+  alternatives `posix_class zw* "-" zw* class_atom` / `class_atom zw* "-" zw* posix_class` referencing the
+  existing `posix_class` rule. No new rule, no engine/codegen change.
+- [x] **ADDRESSED (verified)** — the interpreter grammar-only test flips the posix-endpoint cells
+  (`[!-[:alpha:]]` `[[:alpha:]-z]` `[[:alpha:]-a]` `[[:digit:]-9]` `[[:^alpha:]-z]` `[[:alpha:]-[:digit:]]`
+  `[a-[:alpha:]]` + the whitespace flip subset `[[:digit:]-   ]` `[[:alpha:]- ]` `[[:digit:]-\t]`) grammar
+  ACCEPT→REJECT, keeps the `.4.5.c` descending posix-right (`[x-[:alpha:]]` `[a-[:digit:]]`) REJECT (regression
+  pin), and keeps every carve-out ACCEPT (`[[:alpha:]-]` `[[:alpha:]-\Q\E]` `[[:alpha:]a]` `[a[:alpha:]]`
+  `[a-z[:digit:]]` `[[:alpha:][:digit:]]` `[!-[]` `[a-z]` `[ -!]`) — every string verified against `pcre2test`
+  10.47. Released `--parse` verdict is UNCHANGED for the neutral majority (validator already rejected) but FLIPS
+  ACCEPT→REJECT for the whitespace subset (`[[:digit:]-   ]` family) — PCRE2-convergent (the validator's
+  `dash_is_trailing_literal` accepts-invalid hole); one contract success sample moved to failure.
+- [x] **NO REGRESSION** — regex cert `total=249 proof=7 witness=242 UNKNOWN=0 fully_certified=true
+  sample_parse_failures=0` at seeds 0/7/42 (UNCHANGED — no new rules); `--lint-grammar` 0 errors (249 rules);
+  `regex_pcre2_compile_oracle_gate` byte-identical `2189/1867/274/48` (gate probe recompiled fresh with the new
+  grammar); `duality_hunt_gate` 9 lanes no new/vanished; `parse_harness_equivalence_gate` regex byte-identical;
+  `ast_shape_contract` regex inventory 225 aligned (no new `->` shape — `invalid_class_range` is lookahead-only);
+  `parse_harness_combinator_gate` 2/2 + `parse_harness_semantic_gate` 33/33 (shared engine untouched);
+  embedding version-drift + metadata gates green (`1.1.99`/`1.1.101`; success/failure sample counts re-pinned
+  93/25 → **92/26** for the moved sample); the 18 regex integration-contract lib tests green; other
+  fully-certified grammars' generated parsers untouched (only regex regenerated). NOTE the released-verdict FLIP
+  for the `[[:digit:]-   ]` whitespace subset is a PCRE2-CONVERGENT correctness improvement (not a regression),
+  corpus-invisible, caught by the contract manifest.
+- [x] **LOCKSTEP** — `grammars/regex.ebnf` (+2 alternatives on `invalid_class_range`, no new rule); regenerated
+  `generated/regex_parser.rs`; new test `rust/tests/regex_class_range_posix_grammar_migration.rs` (incl. the flip
+  subset + `\Q\E` carve-out, all pcre2test-verified); `embedding_api.rs` consts `1.1.99`/`1.1.101` + the metadata
+  test (sample counts 92/26, moved-sample name assertion); `regex_parser_integration_contract_v1.json` (sample
+  `[[:digit:]-   ]` moved success→failure as
+  `posix_class_range_left_endpoint_dash_whitespace_rejects_pcre2_faithfully`, version fields
+  `1.1.99`/`1.1.101`); ledger `REGEX-0109`; contract `1.1.99`/`1.1.101` Highlights + Identity; regex book
+  `rules-char-class.md` + `changelog-index.md` + `compile-contract-validator.md` + tracked HTML; `CHANGES.md`;
+  `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`. (ast_shape manifest
+  UNCHANGED — no new shape.)
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 

@@ -207,10 +207,15 @@ migrates the reject into the EBNF, `REGEX-PCRE2-FIDELITY.4.5.b`, ledger `REGEX-0
 invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
                     | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
                     | descending_class_range
+                    | posix_class class_zero_width* "-" class_zero_width* class_atom
+                    | class_atom class_zero_width* "-" class_zero_width* posix_class
 class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
                             | "\\" property_escape
 class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
 ```
+
+(The last two alternatives — the POSIX-class range endpoints — are covered in their own
+subsection below.)
 
 The guard is deliberately narrow so the **literal-dash carve-outs** stay valid: `[a-]` and
 `[-a]` (dash at an edge), `[\d-]` (a nonliteral followed by a trailing dash and `]` — shape 1
@@ -254,11 +259,48 @@ literal (a `class_literal → whitespace` match reaches the predicate with an em
 a latent pipeline finding). So ascending whitespace ranges (`[ -!]`, `[ --]`, `[\t-a]`) keep
 ACCEPTing, and descending ranges with those endpoints stay validator-owned.
 
-**Scope:** shorthand + property endpoints (`.4.5.b`) and descending literal ranges with a
-decodable non-whitespace endpoint (`.4.5.c`) are grammar-owned; the POSIX-left (`[[:alpha:]-z]`),
-`-[`-right (`[a-[:digit:]]`, ledger `REGEX-0105`), and quoted/`\u{}`/bare-whitespace-endpoint
-descending cases stay validator-owned pending `REGEX-PCRE2-FIDELITY.4.5.d`, which then deletes
-the validator range-check entirely.
+### POSIX-class range endpoints (the `posix_class` alternatives)
+
+The last two `invalid_class_range` alternatives reject a range whose LEFT or RIGHT endpoint is a
+valid POSIX class (`[:name:]`) — `[[:alpha:]-z]` (POSIX left) and `[!-[:alpha:]]` (POSIX right),
+both PCRE2 err 150 "invalid range in character class" (`REGEX-PCRE2-FIDELITY.4.5.d`, ledger
+`REGEX-0109`). Without the guard the grammar over-accepts these: `class_atom` reads the bracket's
+`[` as a `class_safe_special` literal `0x5B`, so an *ascending* `!-[` range forms and the
+trailing `:alpha:]` become separate members. The alternatives reference the existing
+positively-reachable [`posix_class`](#posix-classes) rule (so no new lookahead-only rule is added,
+and certificate-coverage `total` is unchanged):
+
+```ebnf
+invalid_class_range = …
+                    | posix_class class_zero_width* "-" class_zero_width* class_atom
+                    | class_atom class_zero_width* "-" class_zero_width* posix_class
+```
+
+The `class_atom`-after-`-` requirement keeps the trailing-dash carve-out valid: `[[:alpha:]-]`
+(a POSIX class then a trailing literal dash and `]`) has no atom after the `-`, so neither
+alternative matches and it ACCEPTs — exactly like PCRE2. Ordinary POSIX-class members
+(`[[:alpha:]a]`, `[a-z[:digit:]]`, `[[:alpha:][:digit:]]`) are unaffected: they carry no range
+dash. The *descending* POSIX-right cases (`[x-[:alpha:]]`, where the literal `[`=0x5B is below the
+left endpoint) are already rejected by `descending_class_range` above.
+
+Only **valid POSIX names** migrate here. The collating (`[.a.]`) and equivalence (`[=a=]`)
+bracket-tokens have no grammar recognizer yet (they join the standalone-token work,
+`REGEX-PCRE2-FIDELITY.4.12`).
+
+> **Note (behavior change, PCRE2-convergent).** This migration mostly encodes a reject the
+> out-of-band validator already made, but it also closes a validator accepts-invalid hole:
+> patterns like `[[:digit:]-   ]` (a POSIX class as a range left endpoint, followed only by
+> whitespace before `]`) were previously **accepted** by the released parser (the validator's
+> trailing-dash heuristic skipped the whitespace even for a nonliteral left endpoint), where
+> `pcre2test` 10.47 rejects them (err 150). The grammar now correctly rejects that subset. The
+> zero-width `[[:alpha:]-\Q\E]` carve-out (dash then an empty `\Q\E` then `]`) stays **accepted**,
+> matching PCRE2.
+
+**Scope:** shorthand + property endpoints (`.4.5.b`), descending literal ranges with a decodable
+non-whitespace endpoint (`.4.5.c`), and POSIX-class endpoints (`.4.5.d`) are grammar-owned; the
+collating/equivalence endpoints (`[!-[.a.]]`, `.4.12`) and the quoted/`\u{}`/bare-whitespace-endpoint
+descending cases stay validator-owned. The out-of-band `find_invalid_char_class_construct`
+range-check is deleted only once the whole class-range family is grammar-owned.
 
 ## Walking a class body
 

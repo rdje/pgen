@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.100`
+  - `1.1.101`
 - Parser release version:
-  - `1.1.98`
+  - `1.1.99`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,26 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.99 / Contract 1.1.101 Highlights — REGEX-0109: POSIX-class class-range endpoint reject is now GRAMMAR-owned (behavior-NEUTRAL validator→grammar migration)
+
+**Bug ledger:** `REGEX-0109` — internal, `REGEX-PCRE2-FIDELITY.4.5.d`. **Mostly a behavior-NEUTRAL migration (the POSIX-endpoint sibling of `REGEX-0107`/`0108`), PLUS a PCRE2-convergent correctness fix for one subset.** A character-class RANGE whose LEFT or RIGHT endpoint is a valid POSIX class (`[:name:]`) — `[[:alpha:]-z]` (POSIX left), `[!-[:alpha:]]` (POSIX right) — is PCRE2 err 150 "invalid range in character class". For most of these the released parser already REJECTED them (via the out-of-band `validate_regex_compile_contract`), while the GRAMMAR alone ACCEPTED them (`class_atom` reads the bracket's `[` as a `class_safe_special` literal `0x5B`, so an ascending `!-[` range forms and the trailing `:alpha:]` become separate members) — a single-source-of-truth hole this slice migrates into the grammar. **BUT the validator had an accepts-invalid HOLE**: `dash_is_trailing_literal` skips SPACE/TAB/zero-width after the dash and treats it as a literal trailing dash even for a NonLiteral (POSIX) left endpoint, so `[[:digit:]-   ]` (dash + only whitespace before `]`) was ACCEPTED by the released parser where PCRE2 rejects err 150. For that subset the grammar migration FLIPS the released `--parse` verdict ACCEPT→REJECT (PCRE2-convergent).
+
+**What changed.** The `!invalid_class_range` guard (added `.4.5.b`) gains two alternatives referencing the EXISTING positively-reachable `posix_class` rule — `posix_class zw* "-" zw* class_atom` (POSIX left) and `class_atom zw* "-" zw* posix_class` (POSIX right). Because `posix_class` is already positively entered (the first `class_item_core` alternative), NO new rule is created and certificate-coverage `total` is unchanged (249) — unlike `.4.5.b`/`.4.5.c`. The `class_atom`-after-`-` requirement preserves the trailing-dash carve-out (`[[:alpha:]-]` ACCEPTs, and the zero-width `[[:alpha:]-\Q\E]` ACCEPTs — PCRE2-verified, no over-reject). The DESCENDING POSIX-right cases (`[x-[:alpha:]]`, left code point > `[`=0x5B) were already rejected by `.4.5.c`'s `descending_class_range`.
+
+| Rule | Example | Grammar verdict (before) | Grammar verdict (`1.1.99`) = PCRE2 10.47 | Released `--parse` (before → `1.1.99`) |
+|---|---|---|---|---|
+| **POSIX class as range endpoint, validator already rejected (err 150)** | `[[:alpha:]-z]` · `[!-[:alpha:]]` · `[[:digit:]-9]` · `[[:^alpha:]-z]` · `[[:alpha:]-[:digit:]]` | ACCEPT (`[` read as literal 0x5B) | **REJECT** | REJECT → REJECT (**neutral**) |
+| **POSIX-left range, dash + whitespace before `]` — validator HOLE (err 150)** | `[[:digit:]-   ]` · `[[:alpha:]- ]` · `[[:digit:]-\t]` | ACCEPT | **REJECT** | **ACCEPT → REJECT** (correctness fix) |
+| descending POSIX-right (already owned `.4.5.c`) | `[x-[:alpha:]]` · `[a-[:digit:]]` | REJECT | REJECT | REJECT → REJECT |
+| POSIX member / trailing-dash / zero-width carve-out (unchanged) | `[[:alpha:]]` · `[[:alpha:]-]` · `[[:alpha:]-\Q\E]` · `[a-z[:digit:]]` | ACCEPT | ACCEPT | ACCEPT → ACCEPT |
+| non-POSIX literal `[` range / member (unchanged) | `[!-[]` · `[a-z]` · `[ -!]` | ACCEPT | ACCEPT | ACCEPT → ACCEPT |
+
+**Scope:** VALID-POSIX-name endpoints only. The collating (`[.a.]`) / equivalence (`[=a=]`) bracket-token endpoints have no grammar recognizer yet (they join `.4.12`), and the quoted/`\u{}`/bare-whitespace-endpoint descending cases stay validator-owned; the `find_invalid_char_class_construct` range-check is deleted only once the whole family is grammar-owned.
+
+**Conformance:** `regex_pcre2_compile_oracle_gate` (`pcre2test` 10.47) — byte-identical `2189/1867/274/48` (the `[[:digit:]-   ]` flip cells are not in the corpus; the CONTRACT MANIFEST caught the flip, moving that sample success→failure, sample counts 93/25→92/26). regex cert-coverage `249/249 UNKNOWN=0 fully_certified=true` at seeds 0/7/42 (**UNCHANGED** — the fix references the existing `posix_class` rule, so no new rule), `--lint-grammar` 0 errors (249 rules), `duality_hunt_gate` 9 lanes no new/vanished signature, `parse_harness_equivalence_gate` regex byte-identical, `ast_shape_contract` inventory 225 **UNCHANGED** (no new `->` shape — `invalid_class_range` is lookahead-only), AST-dump schema stays `1` (every accepted AST byte-identical). Grammar verdicts verified string-by-string against `pcre2test` 10.47 via `rust/tests/regex_class_range_posix_grammar_migration.rs`.
+
+**Action for downstream (RGX):** none required. For the vast majority of patterns the released parser's verdicts and every accepted AST are byte-identical to `1.1.98`. The ONE observable change is a PCRE2-convergent tightening: patterns of the form `[[:name:]-<whitespace>]` (a POSIX class as a range left endpoint followed only by whitespace before `]`) now correctly REJECT with `E_PARSE_FAILURE` (they were an accepts-invalid divergence before). Continue matching on the diagnostic **code**, never message text.
 
 ## Release 1.1.98 / Contract 1.1.100 Highlights — REGEX-0108: DESCENDING literal class-range reject is now GRAMMAR-owned (behavior-NEUTRAL validator→grammar migration)
 

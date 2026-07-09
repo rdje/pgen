@@ -44,10 +44,10 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // integration contract 1.1.79.
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.100";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.101";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.98";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.99";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2373,8 +2373,8 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 93);
-        assert_eq!(manifest.failure_samples.len(), 25);
+        assert_eq!(manifest.success_samples.len(), 92);
+        assert_eq!(manifest.failure_samples.len(), 26);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
             manifest
@@ -2532,12 +2532,18 @@ mod tests {
                 .iter()
                 .any(|sample| sample.name == "posix_digit_then_literal_dash_class_item_ast")
         );
+        // REGEX-PCRE2-FIDELITY.4.5.d (REGEX-0109): `[[:digit:]-   ]` — a POSIX class as a range
+        // LEFT endpoint with the dash followed only by whitespace before `]` — is PCRE2 err 150
+        // "invalid range in character class" (`pcre2test` 10.47), NOT a literal trailing dash. It
+        // was previously an accepts-invalid success sample (the validator's `dash_is_trailing_literal`
+        // whitespace-skip wrongly accepted a NonLiteral left endpoint); the `.4.5.d` grammar migration
+        // rejects it PCRE2-faithfully, so it moved to the failure samples.
         assert!(
             manifest
-                .success_samples
+                .failure_samples
                 .iter()
                 .any(|sample| sample.name
-                    == "posix_digit_then_literal_dash_and_spaces_class_item_ast")
+                    == "posix_class_range_left_endpoint_dash_whitespace_rejects_pcre2_faithfully")
         );
         assert!(
             manifest
