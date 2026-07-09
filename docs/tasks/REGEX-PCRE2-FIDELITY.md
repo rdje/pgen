@@ -1063,11 +1063,19 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `find_invalid_char_class_construct`. **STRUCTURAL** (positive class-escape enumeration; separable from
   ranges). Behavior-NEUTRAL validator→grammar migration; oracle byte-identical. See the `.4.4`
   implementation section + Acceptance Checklist below.
-- ID: `.4.5` Status: `pending` Goal: encode class RANGE validity — nonliteral endpoints (`[\d-x]`,
+- ID: `.4.5` Status: `active` (tools-first INVESTIGATION done 2026-07-09 session #77, `PGEN-REGEX-PCRE2-0030`, PURE-DOCS; BUILD pending) Goal: encode class RANGE validity — nonliteral endpoints (`[\d-x]`,
   `[a-\p{Lu}]`, …) + DESCENDING ranges (`[z-a]`, `[\x{100}-z]`, decoded octal/hex/control endpoints).
   Part of `find_invalid_char_class_construct`. nonliteral = **STRUCTURAL-ish** (a range endpoint must be a
   literal-class atom); descending = **VALUE-COMPARISON over DECODED codepoints** (hard — needs a
   value-constraint primitive that decodes `\x{}`/`\NNN`/`\cX`/`\a`/`\e` endpoints and compares).
+  🔎 INVESTIGATION REFRAMED THE SCOPE (see the `.4.5` section below): three sub-classes, NOT two — (a) a
+  NEW **accepts-invalid divergence** the SCOPING-LOG sample missed: a `-[…` right endpoint in a NORMAL
+  class (`[x-[:alpha:]]` err 150, `[a-[b]]`/`[z-[a]]` err 108) is rejected by PCRE2 but the released
+  parser+validator BOTH ACCEPT it (root: `dash_starts_alt_extended_class_operator` `regex_compile_validation.rs:716`
+  wrongly suppresses range detection for `-[` inside `scan_char_class`, which only runs on normal classes);
+  (b) non-`[` nonliteral migration (grammar ACCEPTS as split members today, validator rejects) — STRUCTURAL
+  PEG-ordering; (c) non-`[` descending migration (grammar accepts, validator rejects via codepoint decode) —
+  needs the `codepoint`-coercion `value_compare` widening. Frozen oracle matrix in the section below.
 - ID: `.4.6` Status: **`done`** (`PGEN-REGEX-PCRE2-0024`, session #74; release `1.1.90`→`1.1.91`, contract
   `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) Goal: encode POSIX class NAME validity — unknown
   `[[:foo:]]` reject + the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
@@ -1140,6 +1148,61 @@ ranges, `.4.7`/`.4.11` two-pass inventories, `.4.8` start-option position, `.4.9
 primitive (value-comparison over decoded ranges / whole-pattern two-pass / contextual gate), the same
 "hard" class flagged in the `.1` table (rows 9/10) and the `.3.18`/`.3.22` deferrals. No engine/grammar
 change this slice (PURE-DOCS scope + re-scope).
+
+### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
+
+**Method (toolbox-first, per [[feedback_systematically_use_debug_toolbox]]).** Built the authoritative
+accept/reject spec with `pcre2test` 10.47 (`/PATTERN/utf`, one pattern per invocation — pcre2test
+consumes subsequent `/…/` lines as SUBJECT data unless blank-separated), then ran the SAME matrix through
+the released `parseability_probe --parse regex` (grammar + `validate_regex_compile_contract` post-check,
+the shipped behavior) and diffed. Then read the validator (`regex_compile_validation.rs`
+`find_invalid_char_class_construct`/`scan_char_class`/`read_class_atom`/`class_escape_literal_codepoint`/
+`read_substantive_class_atom`) + the grammar (`grammars/regex.ebnf` `class_range`:705 / `class_atom`:844).
+
+**Frozen oracle matrix (the acceptance spec for the BUILD).**
+- err 150 "invalid range" — a NONLITERAL range endpoint (either side): `[\d-x]` `[\s-x]` `[\w-x]` `[\D-x]`
+  `[\p{Lu}-x]` `[[:alpha:]-z]` `[a-\d]` `[a-\p{Lu}]` `[x-[:alpha:]]` `[a-[:digit:]]` `[a-[.-.]]`.
+- err 108 "range out of order" — both endpoints literal, left>right after DECODE: `[z-a]` `[b-a]`
+  `[\x{100}-z]` `[\x41-\x30]` `[\x{7a}-\x{61}]` `[\132-\101]` `[\cz-\ca]` `[\e-\a]` `[a-[b]]` `[z-[a]]` `[a-[]`.
+- ACCEPT — literal-dash carve-outs `[a-]` `[-a]` `[a\-z]` `[\d-]` `[\d\-x]` `[--/]` `[!--]`; ascending
+  decoded ranges `[a-z]` `[\x30-\x41]` `[\x{61}-\x{7a}]` `[\101-\132]` `[\ca-\cz]` `[\a-\e]`; equal `[a-a]`;
+  and `[!-[]` (`!`=33 .. `[`=91 ascending — a `-[` range that is VALID).
+
+**Parser-vs-oracle diff — ONE divergence class, everything else already correct.**
+- non-`[` NONLITERAL (`[\d-x]`, `[a-\d]`, `[[:alpha:]-z]`, …): grammar ACCEPTS (splits into separate
+  members — `class_atom`:844 excludes `\d`/`\p`/posix so no `class_range` forms; the bare mid-class `-`
+  parses as a literal member), validator REJECTS (`ClassAtomKind::NonLiteral` endpoint). Probe=R = oracle. ✓
+- non-`[` DESCENDING (`[z-a]`, `[\x41-\x30]`, `[\cz-\ca]`, …): grammar ACCEPTS (structural range),
+  validator REJECTS via `class_escape_literal_codepoint` decode + `left>right`. Probe=R = oracle. ✓
+- `-[…` RIGHT endpoint in a NORMAL class (`[x-[:alpha:]]` `[a-[:digit:]]` `[a-[.-.]]` `[a-[b]]` `[z-[a]]`
+  `[a-[]`): **grammar ACCEPTS *and* validator ACCEPTS → probe=A, oracle=R → ACCEPTS-INVALID DIVERGENCE.**
+
+**🔎 ROOT CAUSE of the divergence (WHY + WHERE, per [[feedback_why_and_where_before_solution]]).**
+`dash_starts_alt_extended_class_operator` (`regex_compile_validation.rs:716`) returns true whenever
+`bytes[dash+1]=='['`, and both range branches (`:436` and `:488-489`) use it to SKIP range detection —
+treating `-` as a literal and the following `[…` as a fresh member. That guard exists for the
+extended-class set-difference operator `-[…]`, but `scan_char_class` is dispatched ONLY for NORMAL classes
+(`find_invalid_char_class_construct:345` gates on `!is_extended_class_start`), where there is NO
+set-difference operator — so `atom-[…` is ALWAYS a range whose right endpoint begins at `[` (a posix/
+collating token ⇒ nonliteral ⇒ err 150; else a literal `[`=91 ⇒ ascending accept `[!-[]` / descending
+err 108 `[a-[b]]`). The grammar mirrors the miss (bare mid-class `-` before `[` parses as a literal
+member). `[!-[]` masks the bug (both accept, same verdict). This is a genuine RELEASED-parser
+accepts-invalid gap (a `.4.11`-style divergence, ledger `REGEX-00xx` candidate — formalize in the BUILD).
+
+**Reframed BUILD decomposition (three sub-slices; fix hierarchy [[feedback_no_workarounds_fix_hierarchy]]).**
+1. `.4.5.a` — the `-[` accepts-invalid fix (NEW divergence; fixes BOTH the grammar range rule AND retires
+   the mis-applied validator guard). Structural. Land first (a real correctness gap, and cheapest).
+2. `.4.5.b` — migrate non-`[` NONLITERAL-endpoint reject into the grammar (grammar must REJECT `\d-x`
+   which it currently splits into members — the hard PEG-ordering: a mid-class `-` after a nonliteral atom
+   before a rangeable atom must fail, without breaking the `[a-]`/`[-a]`/`[\d-]` literal-dash carve-outs).
+3. `.4.5.c` — migrate non-`[` DESCENDING reject into the grammar. Needs the pre-authorized `codepoint`-
+   coercion WIDENING of the `value_compare` primitive (decode `\x{}`/`\NNN`/`\cX`/`\a`/`\e`/char to a
+   Unicode scalar, then `le`) — the engine tier, done with fullest care ([[feedback_correctness_before_speed]]).
+   Only after `.4.5.b`+`.4.5.c` land can the `find_invalid_char_class_construct` range checks be deleted.
+
+Unicode-only note ([[feedback_rgx_unicode_only_8bit_test_divergence]]): `[\x{100}-z]` etc. tested with
+`utf` for the RGX code-point-faithful reading; the local `pcre2test` is 8-bit — width-only negatives stay
+consumer-owned. No code/grammar change this slice (investigation + reframe only).
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 
