@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0029 — REGEX-PCRE2-FIDELITY.4.3: counted-quantifier min>max ORDER is grammar-owned (first `value_compare` consumer)
+
+The counted-quantifier `{n,m}` min>max ORDER reject (PCRE2 err 104, `x{5,4}`) migrated from the out-of-band
+validator into `grammars/regex.ebnf` — the first shipped consumer of the RULE-SPAN `value_compare`
+`@predicate` primitive, and the 12th validator→grammar migration. Behavior-neutral (only the reject message
+moves); regex release `1.1.93`→`1.1.94` / contract `1.1.95`→`1.1.96` / schema `1`; ledger `REGEX-0104`.
+
+- **The `{n,m}` range form** is extracted into `counted_quantifier_range`, gated `@predicate: { name:
+  value_compare, args: [$min, le, $max], phase: post, view: shaped }`. A min>max range loses its
+  (backtrackable) branch; no other body branch fully-consumes the brace and the `literal_open_brace`
+  `digit+` lookahead blocks the literal fallback ⇒ whole-pattern REJECT (no guard change). Leading zeros
+  compare by value (`{05,4}` rejects, `{05,5}` accepts).
+- **🔎 TOOL-SURFACED (WHY+WHERE, `--trace-rules`-traced).** The natural gate `[$1, le, $5]` (raw-view
+  positional) hard-errored ("could not resolve attribute reference '$1'"): a rule with its own `->` has
+  shaped-JSON content (no positional slots), and the raw-content capture for a Raw-view post-predicate is
+  **not emitted** on the sequence-with-return-transform codegen path (`ast_based_generator.rs`, the
+  `semantic_capture_raw_for_post` gate). Fixed with the proven SV `view: shaped` + NAMED refs to the
+  produced `{min,max}` fields. **The codegen raw-capture gap is a latent limitation** — a raw-view
+  positional `@predicate` on any rule that also has a `->` sequence transform will similarly fail to
+  resolve; surfaced for a future engine leaf (see the task leaf's findings callout).
+- **Duality-neutral (empirical):** the generator emits `{0,0}` for range forms (0 min>max / 3000 samples,
+  seeds 0/7/42) and the 2000-sample directed hunt surfaces only the start-option signature; parse-time
+  `@predicate` is not honored generation-side, so generation stays byte-identical — no `@gen_predicate`
+  companion needed. `find_invalid_counted_quantifier` + `validate_counted_quantifier_body` + 3 tests DELETED.
+
 ## 2026-07-09 - PGEN-RSVC-0002 — RULE-SPAN-VALUE-CONSTRAINT.2: land `value_compare` `@predicate` builtin + prove in isolation (ENGINE primitive)
 
 The general rule-span value-constraint primitive, implemented + proven in isolation before any shipped

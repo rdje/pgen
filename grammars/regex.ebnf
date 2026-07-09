@@ -227,10 +227,33 @@ counted_quantifier = "{" brace_ws? counted_quantifier_body brace_ws? "}"
 # `literal_open_brace` guard then blocks the literal fallback, making
 # PCRE2 err 105 grammar-faithful. The `$N` positions are unchanged
 # (`brace_ws?` occupies the same slots `ws?` did).
-counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -> {min: $1, max: $5}
+counted_quantifier_body = counted_quantifier_range                       -> $1
                       | quant_bound_number brace_ws? "," brace_ws?               -> {min: $1, max: null}
                       | quant_bound_number brace_ws?                       -> {min: $1, max: $1}
                       | "," brace_ws? quant_bound_number                   -> {min: 0,  max: $3}
+
+# REGEX-PCRE2-FIDELITY.4.3: the `{n,m}` range form's min>max ORDER (PCRE2 err 104,
+# "numbers out of order in {} quantifier"; `x{5,4}` / `a{\t5\t,\t2\t}` reject) is now
+# GRAMMAR-owned via the general RULE-SPAN `value_compare` `@predicate`
+# (RULE-SPAN-VALUE-CONSTRAINT.2 — a cross-capture value comparison of the two bound
+# numbers). The gate runs on the `view: shaped` output (the produced `{min, max}`
+# object), referencing its fields by NAME — the proven SV `view: shaped` idiom — so it
+# is robust to the unmatched `brace_ws?` optionals AND reuses the `quant_bound_number`
+# `@transform`'d numeric values directly (a positional raw-view ref would fail: this
+# rule's own `->` shapes its content to Json, which has no positional slots — the
+# raw-content capture is not emitted on the sequence-with-return-transform path).
+# `[$min, le, $max]` phase:post holds iff min <= max; `compare_values` is decimal-
+# integer numeric, so `{05,4}` = 5>4 REJECTS and `{05,5}` = 5<=5 ACCEPTS — the leading-
+# zero-hostile case a plain structural gate cannot express (min <= max over two
+# independent [0,65535] numbers is not context-free). A `post` rejection is
+# BACKTRACKABLE, so `{5,4}` loses this branch; no other body branch fully-consumes it
+# (each leaves a trailing char the outer `counted_quantifier` `"}"` cannot close) and
+# the `literal_open_brace` guard's `digit+` lookahead blocks the literal fallback ⇒
+# whole-pattern REJECT, err-104-faithful, with NO change to that guard. Migrated from
+# the out-of-band validator `find_invalid_counted_quantifier`; the EBNF is now the
+# single source of truth ([[project_ebnf_is_single_source_of_truth]]).
+@predicate: { name: value_compare, args: [$min, le, $max], phase: post, view: shaped }
+counted_quantifier_range = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -> {min: $1, max: $5}
 
 # REGEX-PCRE2-FIDELITY.3.18: the counted-quantifier bound is VALUE-bounded
 # to [0, 65535] (PCRE2 err 105 "number too big in {} quantifier";

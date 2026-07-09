@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.95`
+  - `1.1.96`
 - Parser release version:
-  - `1.1.93`
+  - `1.1.94`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,24 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.94 / Contract 1.1.96 Highlights — REGEX-0104: counted-quantifier `{n,m}` min>max ORDER is now grammar-owned (behavior-neutral validator→grammar migration)
+
+**Bug ledger:** `REGEX-0104` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.4` validator-deletion scoping; **behavior-NEUTRAL for the released parser** (no verdict flips). Root cause: the GRAMMAR alone accepted a counted quantifier whose minimum exceeds its maximum (`x{5,4}`); the min>max ORDER reject (PCRE2 err 104) lived only in the out-of-band validator `validate_counted_quantifier_body` — a single-source-of-truth hole. `.3.18` deferred this rule here because it is a cross-number VALUE comparison (leading-zero-hostile) that no context-free structural rule can express.
+
+**What changed.** In PCRE2 (oracle `pcre2test` 10.47), a counted quantifier with min>max is err 104 "numbers out of order in {} quantifier". `regex.ebnf` now owns this via the general RULE-SPAN `value_compare` `@predicate` primitive (the first consumer of RULE-SPAN-VALUE-CONSTRAINT.2): the `{n,m}` range form is a dedicated `counted_quantifier_range` rule gated by `@predicate: { name: value_compare, args: [$min, le, $max], phase: post, view: shaped }` — a cross-capture comparison of the produced `{min,max}` fields (decimal-integer numeric, so a leading-zero operand is compared by value: `{05,4}` = 5>4 rejects, `{05,5}` = 5≤5 accepts). A min>max range loses its (backtrackable) branch and the `literal_open_brace` guard blocks the literal fallback ⇒ whole-pattern REJECT, err-104-faithful. Oracle-verified against `pcre2test` 10.47 (byte-identical gate `2189/1858/285/46`); the regex parser stays differential-CERTIFIED (the interpreter reproduces the `value_compare` gate byte-identically).
+
+| Rule | Example | Verdict (both = PGEN `1.1.94` = PCRE2 10.47) |
+|---|---|---|
+| **min > max (now grammar-REJECT; was validator-reject)** | `x{5,4}` · `a{5,2}` · `a{10,2}` · `a{\t5\t,\t2\t}` · `a{05,4}` | REJECT |
+| min ≤ max ranges (unchanged verdict) | `a{4,5}` · `a{5,5}` · `a{05,5}` · `a{0,65535}` | ACCEPT |
+| open / no-min / single / literal-brace (unchanged verdict) | `a{5,}` · `a{,5}` · `a{5}` · `a{\n5,2\n}` | ACCEPT |
+
+**AST-dump schema stays `1`** — the `{min,max}` typed shape is preserved through the extracted `counted_quantifier_range` rule (`counted_quantifier_body` branch 0 now lifts it via `$1`).
+
+**Rejection-layer.** The rule is now grammar-owned (`E_PARSE_FAILURE`); the validator functions `find_invalid_counted_quantifier` + `validate_counted_quantifier_body` (+ 3 unit tests) were DELETED. Match on the diagnostic **code**, never message text.
+
+**Action for downstream (RGX):** none — every input's accept/reject verdict is unchanged from `1.1.93`. This release only moves the ownership of the min>max ORDER rule from the out-of-band validator into the EBNF (the only observable difference is the rejection message text, which downstream should never match on).
 
 ## Release 1.1.93 / Contract 1.1.95 Highlights — REGEX-0103: `\k`/group NAME validity is now grammar-owned (validator→grammar migration; two fidelity refinements)
 

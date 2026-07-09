@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e049ef88.js";
+            window.path_to_searchindex_js = "searchindex-c2231c2a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -1760,12 +1760,12 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 </table>
 </div>
 <h2 id="counted_quantifier_body"><a class="header" href="#counted_quantifier_body"><code>counted_quantifier_body</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -&gt; {min: $1, max: $5}
+<pre><code class="language-ebnf">counted_quantifier_body = counted_quantifier_range                       -&gt; $1
                       | quant_bound_number brace_ws? "," brace_ws?               -&gt; {min: $1, max: null}
                       | quant_bound_number brace_ws?                       -&gt; {min: $1, max: $1}
                       | "," brace_ws? quant_bound_number                   -&gt; {min: 0,  max: $3}
 </code></pre>
-<p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). Each branch carries its own per-branch annotation producing the same <code>{min, max}</code> shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
+<p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). The <code>{n,m}</code> range form (branch 0) is factored into its own <code>counted_quantifier_range</code> rule (see below) and lifted through with <code>-&gt; $1</code>; the other three branches carry their own per-branch <code>{min, max}</code> annotation. The branches are tried under the default longest-match tournament; the most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
 <pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
@@ -1773,6 +1773,19 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 <h3 id="why-the-four-branches"><a class="header" href="#why-the-four-branches">Why the four branches</a></h3>
 <p>The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.</p>
 <p>The book entry for <a href="#examples-qe-quoted-literals">\Q…\E Quoted Literals</a> and <a href="#examples-quantifiers">Quantifiers</a> shows this typed shape in worked examples.</p>
+<h2 id="counted_quantifier_range-the-nm-range-form--the-min--max-gate"><a class="header" href="#counted_quantifier_range-the-nm-range-form--the-min--max-gate"><code>counted_quantifier_range</code> (the <code>{n,m}</code> range form + the min ≤ max gate)</a></h2>
+<pre><code class="language-ebnf">@predicate: { name: value_compare, args: [$min, le, $max], phase: post, view: shaped }
+counted_quantifier_range = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -&gt; {min: $1, max: $5}
+</code></pre>
+<p><strong>The min ≤ max ORDER rule (PCRE2 err 104), grammar-owned since release 1.1.94.</strong> PCRE2 rejects a counted quantifier whose minimum exceeds its maximum (<code>x{5,4}</code> → error 104 “numbers out of order in {} quantifier”). This is a <em>cross-number VALUE comparison</em> — it compares the two captured bounds against each other, not against a constant — so no context-free structural rule can express it (min ≤ max over two independent <code>[0, 65535]</code> numbers is not context-free, and leading zeros make a lexical rule wrong). It is encoded with the general <strong>RULE-SPAN <code>value_compare</code> <code>@predicate</code></strong> primitive (this rule is its first consumer):</p>
+<ul>
+<li>The gate <code>[$min, le, $max]</code> holds iff <code>min ≤ max</code>. The comparison is <strong>decimal-integer numeric</strong> (<code>compare_values</code>), so a leading-zero operand is compared by value: <code>{05,4}</code> = 5 &gt; 4 REJECTS, <code>{05,5}</code> = 5 ≤ 5 ACCEPTS.</li>
+<li>It runs on the <code>view: shaped</code> output — the produced <code>{min, max}</code> object — referencing its fields by NAME (<code>$min</code>/<code>$max</code>), the proven <code>view: shaped</code> idiom. (A raw-view positional ref <code>[$1, le, $5]</code> does <em>not</em> work here: this rule’s own <code>-&gt;</code> shapes its content to a JSON object, which has no positional slots, so a raw positional ref cannot resolve. The named shaped-view refs are robust to that and to the unmatched <code>brace_ws?</code> optionals.)</li>
+<li>A <code>post</code> rejection is <strong>backtrackable</strong>: on <code>x{5,4}</code> the range branch loses the tournament, no other body branch fully-consumes the brace (each leaves a trailing char the outer <code>counted_quantifier</code>’s <code>"}"</code> cannot close), and the <code>literal_open_brace</code> guard’s <code>digit+</code> lookahead blocks the literal fallback — so the whole pattern REJECTS, err-104-faithfully, with no change to that guard.</li>
+</ul>
+<p>Before release 1.1.94 this rule lived in the out-of-band compile-contract validator (<code>validate_counted_quantifier_body</code>); it is now grammar-owned (single source of truth), and the validator functions were deleted. The rejection layer is <code>E_PARSE_FAILURE</code> — match on the diagnostic <strong>code</strong>, not message text.</p>
+<h3 id="shape-1-2"><a class="header" href="#shape-1-2">Shape</a></h3>
+<p>Identical to the range branch it replaced: <code>{ "min": &lt;usize&gt;, "max": &lt;usize&gt; }</code> (both bounds always present for the <code>{n,m}</code> form).</p>
 <h2 id="quant_bound_number-and-quant_bound_number_body--quant_bound_core"><a class="header" href="#quant_bound_number-and-quant_bound_number_body--quant_bound_core"><code>quant_bound_number</code> (and <code>quant_bound_number_body</code> / <code>quant_bound_core</code>)</a></h2>
 <pre><code class="language-ebnf">@transform: str::parse::&lt;usize&gt;().unwrap_or(0)
 quant_bound_number      = quant_bound_number_body
@@ -1788,14 +1801,14 @@ quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
                         | nonzero_digit
 </code></pre>
 <p><strong>Annotated (<code>@transform</code> on the wrapper).</strong> Release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0092</code>): the counted-quantifier bound is VALUE-bounded to <code>[0, 65535]</code> (PCRE2 err 105) <strong>structurally</strong> — the <a href="#anchors-backreferences-and-misc"><code>callout_number</code></a> <code>[0, 255]</code> idiom scaled up. <code>quant_bound_number_body</code> admits leading zeros plus an optional nonzero-led core whose 9-branch cascade covers exactly <code>1..=65535</code> (the default longest-match tournament picks the full value over any prefix), so an out-of-range digit run has no fully-consuming quantifier parse — and generation draws in-range bounds <strong>by construction</strong>. The wrapper carries the same <code>@transform</code> span parse <code>digits</code> used, so <code>min</code>/<code>max</code> stay typed ints (<code>"065535"</code> → <code>65535</code>) and the AST shape is unchanged.</p>
-<h3 id="shape-1-2"><a class="header" href="#shape-1-2">Shape</a></h3>
+<h3 id="shape-2-1"><a class="header" href="#shape-2-1">Shape</a></h3>
 <p><code>Json(Number(&lt;usize&gt;))</code> in <code>0..=65535</code> — exactly what the former <code>digits</code> slot emitted for in-range values. Out-of-range values (<code>{65536}</code>, <code>{4294967296}</code> — the former u32-overflow hole that skipped every check) no longer parse at all: the quantifier fails AND the <a href="#atom-subtree"><code>literal_open_brace</code> guard</a> blocks the literal fallback, so the pattern REJECTS err-105-faithfully.</p>
 <h2 id="quant_suffix"><a class="header" href="#quant_suffix"><code>quant_suffix</code></a></h2>
 <pre><code class="language-ebnf">quant_suffix = "?" -&gt; "lazy"
              | "+" -&gt; "possessive"
 </code></pre>
 <p><strong>Annotated.</strong> Per-branch annotations emit semantic strings.</p>
-<h3 id="shape-2-1"><a class="header" href="#shape-2-1">Shape</a></h3>
+<h3 id="shape-3-1"><a class="header" href="#shape-3-1">Shape</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1829,7 +1842,7 @@ quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
 digits = /([0-9]+)/
 </code></pre>
 <p><strong>Annotated.</strong> Emits a typed integer via <code>@transform</code>.</p>
-<h3 id="shape-3-1"><a class="header" href="#shape-3-1">Shape</a></h3>
+<h3 id="shape-4-1"><a class="header" href="#shape-4-1">Shape</a></h3>
 <p><code>Json(Number(&lt;usize&gt;))</code> — a non-negative integer.</p>
 <h3 id="where-it-appears"><a class="header" href="#where-it-appears">Where it appears</a></h3>
 <ul>
@@ -1971,7 +1984,7 @@ digits = /([0-9]+)/
 <pre><code class="language-ebnf">dot = "."
 </code></pre>
 <p>The <code>.</code> regex metacharacter (matches any character except newline by default).</p>
-<h3 id="shape-4-1"><a class="header" href="#shape-4-1">Shape</a></h3>
+<h3 id="shape-4-2"><a class="header" href="#shape-4-2">Shape</a></h3>
 <p><code>Terminal(".")</code>. Visible as the string <code>"."</code>.</p>
 <h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
 <p>For atom <code>.</code>: the <code>atom</code> content is <code>"."</code>.</p>
@@ -5403,7 +5416,7 @@ the EBNF becomes the sole source of truth.</p>
 CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.93</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.94</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">
@@ -5412,7 +5425,6 @@ one instance is the only one and it can only ever shrink.</p>
 <tr><th>Family (what it rejects)</th><th>Example load-bearing inputs</th><th>Migration leaf</th></tr>
 </thead>
 <tbody>
-<tr><td>Counted-quantifier <strong>min &gt; max</strong> order (err 104)</td><td><code>x{5,4}</code>, <code>a{\t5\t,\t2\t}</code></td><td><code>.4.3</code></td></tr>
 <tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges</td><td><code>[\d-x]</code>, <code>[a-\p{Lu}]</code>, <code>[z-a]</code>, <code>[\x{100}-z]</code></td><td><code>.4.5</code></td></tr>
 <tr><td>Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture</td><td><code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code></td><td><code>.4.7</code></td></tr>
 <tr><td><strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix</td><td><code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code></td><td><code>.4.8</code></td></tr>
@@ -5430,7 +5442,10 @@ escapes (<code>.4.1</code>), POSIX character-class <strong>NAME</strong> validit
 <strong>escape-in-class</strong> rejects <code>\A \B \C \G \K \N</code>(unbraced)<code>\R \X \Z \z</code> (<code>.4.4</code>), and
 <code>\k</code>/group <strong>NAME</strong> validity — the <code>\k</code> shape + charset + length ≤ 128 code-points
 (<code>.4.2</code>; <code>find_invalid_named_escape_or_group_name</code> + its 5 exclusive helpers +
-<code>PCRE2_MAX_NAME_SIZE</code> DELETED). A related divergence with no validator check at all — the
+<code>PCRE2_MAX_NAME_SIZE</code> DELETED), and the counted-quantifier <strong>min &gt; max</strong> order (err 104)
+— the first consumer of the general RULE-SPAN <code>value_compare</code> <code>@predicate</code> primitive, on
+the new <code>counted_quantifier_range</code> rule (<code>.4.3</code>; <code>find_invalid_counted_quantifier</code> +
+<code>validate_counted_quantifier_body</code> DELETED). A related divergence with no validator check at all — the
 named-reference <em>unknown-name</em> inventory (<code>\k&lt;zzz&gt;</code>… @undefined) — is tracked as <code>.4.11</code>
 (ledger <code>REGEX-0098</code>).</p>
 <h2 id="which-layer-rejected-my-pattern"><a class="header" href="#which-layer-rejected-my-pattern">Which layer rejected my pattern?</a></h2>
@@ -5584,6 +5599,10 @@ when, and the version each migration shipped in.</li>
 </table>
 </div>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
+<h3 id="1194--contract-1196--regex-0104-counted-quantifier-nm-minmax-order-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration"><a class="header" href="#1194--contract-1196--regex-0104-counted-quantifier-nm-minmax-order-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration">1.1.94 / Contract 1.1.96 — REGEX-0104: counted-quantifier <code>{n,m}</code> min&gt;max ORDER is now grammar-owned; behavior-neutral validator→grammar migration</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR-NEUTRAL internal migration (release bump 1.1.93→1.1.94 / contract 1.1.95→1.1.96; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.4.3</code>; oracle <code>pcre2test</code> 10.47). In PCRE2, a counted quantifier whose minimum exceeds its maximum is err 104 “numbers out of order in {} quantifier”. PGEN’s GRAMMAR alone previously ACCEPTED min&gt;max (<code>x{5,4}</code> parsed with min=5, max=4), masked downstream ONLY by the out-of-band <code>regex_compile_validation.rs::validate_counted_quantifier_body</code> — a single-source-of-truth hole. <code>.3.18</code> deferred this rule here because it is a cross-number VALUE comparison (leading-zero-hostile) that no context-free structural rule can express. This slice migrates it into the EBNF via the general RULE-SPAN <code>value_compare</code> <code>@predicate</code> primitive (the FIRST consumer of RULE-SPAN-VALUE-CONSTRAINT.2): the <code>{n,m}</code> range form is extracted into a dedicated <code>counted_quantifier_range</code> rule gated by <code>@predicate: { name: value_compare, args: [$min, le, $max], phase: post, view: shaped }</code> — a cross-capture comparison of the produced <code>{min,max}</code> fields, decimal-integer numeric so <code>{05,4}</code> = 5&gt;4 rejects while <code>{05,5}</code> = 5≤5 accepts. A min&gt;max range loses its (backtrackable) branch and the <code>literal_open_brace</code> guard blocks the literal fallback ⇒ whole-pattern REJECT, err-104-faithful (NO guard change). <strong>No verdict flips</strong> — every input’s accept/reject is byte-identical to <code>1.1.93</code>; oracle gate byte-identical <code>2189/1858/285/46</code>. <strong>Now grammar-REJECT</strong> (was validator-reject): <code>x{5,4}</code> <code>a{5,2}</code> <code>a{10,2}</code> <code>a{\t5\t,\t2\t}</code> (tab is quantifier whitespace) <code>a{05,4}</code> (value 5&gt;4). <strong>ACCEPT</strong> (unchanged verdict): <code>a{4,5}</code> <code>a{5,5}</code> <code>a{05,5}</code> <code>a{0,65535}</code> <code>a{5,}</code> <code>a{,5}</code> <code>a{5}</code> <code>a{\n5,2\n}</code> (<code>\n</code> makes the brace a literal). <strong>Design note:</strong> the gate uses <code>view: shaped</code> + NAMED refs (the proven SV <code>view:shaped</code> idiom), not raw positional <code>[$1,le,$5]</code> — this rule’s own <code>-&gt;</code> shapes its content to Json, and the raw-content capture is not emitted on the sequence-with-return-transform path, so a raw-view positional ref hard-errors (tool-traced). <strong>AST</strong>: every accepted counted quantifier byte-identical, <code>{min,max}</code> shape preserved through the extracted rule (<strong>schema stays <code>1</code></strong>). The only observable change is the rejection MESSAGE — validator text → <code>E_PARSE_FAILURE</code>; match on the <strong>code</strong>, not message text. <code>find_invalid_counted_quantifier</code> + <code>validate_counted_quantifier_body</code> (+ 3 unit tests) DELETED; cert 238→239 / ast_shape 220→221 (the new rule). 5 validator check families remain (capstone <code>.4</code> deletes the rest). Bug ledger: <code>REGEX-0104</code>. <strong>Contract section:</strong> “Release 1.1.94 / Contract 1.1.96 Highlights”. Rules detail: <code>rules-quantifier.md</code> (§ <code>counted_quantifier_range</code>); component reference: <code>compile-contract-validator.md</code>.</p>
+</blockquote>
 <h3 id="1193--contract-1195--regex-0103-kgroup-name-validity-is-now-grammar-owned-validatorgrammar-migration--two-fidelity-refinements"><a class="header" href="#1193--contract-1195--regex-0103-kgroup-name-validity-is-now-grammar-owned-validatorgrammar-migration--two-fidelity-refinements">1.1.93 / Contract 1.1.95 — REGEX-0103: <code>\k</code>/group NAME validity is now grammar-owned; validator→grammar migration + two fidelity refinements</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: validator→grammar migration of the <code>\k</code>-shape + capture/<code>\k</code> NAME charset + NAME length ≤ 128 rule (release bump 1.1.92→1.1.93 / contract 1.1.94→1.1.95; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.4.2</code>; oracle <code>pcre2test</code> 10.47). In PCRE2, <code>\k</code> is ALWAYS a named-backreference introducer needing a non-empty delimited name (<code>\k&lt;n&gt;</code>/<code>\k'n'</code>/<code>\k{n}</code>; bare <code>\k</code>/<code>\kabc</code> = err 169, empty <code>\k''</code>/<code>\k&lt;&gt;</code>/<code>\k{}</code> = err 162), and every name is ≤ 128 code units (err 148). PGEN’s GRAMMAR alone previously ACCEPTED a bare/empty <code>\k</code> (<code>\k</code> matched the <code>simple_escape</code> shorthand catch-all, trailing chars as literals) and an over-length name — masked downstream ONLY by the out-of-band <code>regex_compile_validation.rs::find_invalid_named_escape_or_group_name</code>, a single-source-of-truth hole. Three EBNF edits: (1) <code>name</code>’s continue run bounded <code>{0,127}</code> ⇒ ≤ 128 code-points; (2) <code>!"k"</code> on <code>simple_escape</code> + <code>'k'</code> dropped from <code>simple_escape_letter_strict</code> (the <code>.4.1</code> <code>\p</code>/<code>\P</code> precedent); (3) the missing <code>\k'name'</code> quote branch added to <code>backreference</code>. <strong>Now grammar-REJECT</strong> (was validator-reject): <code>\k</code> <code>\kabc</code> <code>\k''</code> <code>\k&lt;&gt;</code> <code>\k{}</code>, and any ≥ 129-code-unit name (<code>(?&lt;A×129&gt;x)</code>, <code>(?&lt;n&gt;a)\k&lt;A×129&gt;</code>). <strong>ACCEPT</strong> (unchanged verdict): <code>(?&lt;n&gt;a)\k&lt;n&gt;</code>/<code>\k'n'</code>/<code>\k{n}</code>, <code>(?&lt;name&gt;x)</code>, <code>(?'name'x)</code>, <code>(?P&lt;name&gt;x)</code>, the 128-code-point boundary. <strong>Two fidelity refinements (NOT byte-neutral):</strong> (a) <code>\k'name'</code> was silently mis-parsed as a shorthand-<code>k</code> + <code>'</code>/<code>n</code>/<code>'</code> literals (accepted, WRONG shape) — now a proper <code>{type:"backreference",kind:"named"}</code>; (b) the deleted validator used 8-bit BYTE <code>name.len()</code>, the grammar counts CODE POINTS — a non-ASCII name of 65–128 code points is now ACCEPT (was validator-REJECT under byte counting), the Unicode-only-faithful behavior ([[feedback_rgx_unicode_only_8bit_test_divergence]]); pure-ASCII names byte-identical. <strong>AST</strong>: schema stays <code>1</code> (the <code>backreference</code> shape already exists). Oracle gate byte-identical <code>2189/1858/285/46</code>; cert <code>238/238/UNKNOWN=0</code> seeds 0/7/42; differential-CERTIFIED. <code>find_invalid_named_escape_or_group_name</code> (+ its 5 exclusive helpers + <code>PCRE2_MAX_NAME_SIZE</code> + 3 unit tests) DELETED. Bug ledger: <code>REGEX-0103</code>. <strong>Contract section:</strong> “Release 1.1.93 / Contract 1.1.95 Highlights”. Rules detail: <code>rules-escape.md</code> (§ <code>simple_escape</code>), <code>rules-groups.md</code> (named backreferences / name length); component reference: <code>compile-contract-validator.md</code>.</p>

@@ -2121,6 +2121,57 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.3 (ledger `REGEX-0104`, release 1.1.94): the counted-quantifier
+    /// `{n,m}` min>max ORDER reject (PCRE2 err 104 "numbers out of order in {} quantifier") is now
+    /// grammar-owned. The `{n,m}` range form is a dedicated `counted_quantifier_range` rule
+    /// (`grammars/regex.ebnf`) gated by the general RULE-SPAN `value_compare` `@predicate`
+    /// (`[$1, le, $5]` phase:post — a cross-capture value comparison of the two bound captures,
+    /// decimal-integer numeric via `compare_values` so `{05,4}` = 5>4 rejects while `{05,5}` = 5≤5
+    /// accepts). A `post` rejection is BACKTRACKABLE, so a min>max range loses its branch, no other
+    /// body branch fully-consumes the brace, and the `literal_open_brace` guard blocks the literal
+    /// fallback ⇒ whole-pattern REJECT. MIGRATED `regex_compile_validation.rs::find_invalid_counted_quantifier`
+    /// + `validate_counted_quantifier_body` (both deleted) into the EBNF (single source of truth).
+    /// Oracle: `pcre2test` 10.47.
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_counted_quantifier_order_rejects_at_the_grammar_layer_pcre2_faithfully() {
+        // min>max out-of-order forms the grammar now rejects. Every one was VALIDATOR-reject
+        // (load-bearing) before this slice; `pcre2test` 10.47 rejects all with err 104. Includes the
+        // tab-spaced form (tab is quantifier whitespace) and a leading-zero operand (numeric, not
+        // lexical — `{05,4}` = 5>4 rejects where a lexical compare of "05" < "4" would spuriously pass).
+        let rejects = ["x{5,4}", "a{5,2}", "a{\t5\t,\t2\t}", "a{ 5 , 2 }", "a{05,4}", "a{10,2}"];
+        for pattern in rejects {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "min>max counted quantifier must reject at the grammar layer: {pattern:?}"
+            );
+        }
+        // Controls that MUST stay valid (grammar-accept AND `pcre2test` 10.47-accept): min≤max ranges
+        // (incl. equal bounds and a leading-zero operand), the open-max `{n,}` and no-min `{,m}` forms,
+        // the single `{n}` form, and the newline-brace LITERAL (`\n` makes the brace a literal, not a
+        // quantifier, so no order check applies — PCRE2 compiles it clean).
+        let accepts = [
+            "a{4,5}", "a{5,5}", "a{05,5}", "a{0,65535}", "a{5,}", "a{,5}", "a{5}", "a{\n5,2\n}",
+        ];
+        for pattern in accepts {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "a valid (min≤max / open / literal-brace) counted quantifier must accept: {pattern:?}"
+            );
+        }
+        // The min>max rejects are PCRE2-invalid in BOTH profiles (not a relaxed opt-out).
+        for pattern in ["x{5,4}", "a{\t5\t,\t2\t}", "a{05,4}"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject min>max counted quantifier: {pattern}"
+            );
+        }
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width
     /// and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to a quantifier. A quantifier
     /// binds THROUGH the stray `\E` to the preceding repeatable atom (`a\E*` = `a*`), but is

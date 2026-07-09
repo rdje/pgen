@@ -101,13 +101,13 @@ A typed `{min, max}` object, identical to whatever `counted_quantifier_body` emi
 ## `counted_quantifier_body`
 
 ```ebnf
-counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -> {min: $1, max: $5}
+counted_quantifier_body = counted_quantifier_range                       -> $1
                       | quant_bound_number brace_ws? "," brace_ws?               -> {min: $1, max: null}
                       | quant_bound_number brace_ws?                       -> {min: $1, max: $1}
                       | "," brace_ws? quant_bound_number                   -> {min: 0,  max: $3}
 ```
 
-**Annotated.** Four explicit branches, one per logical case (`{n,m}`, `{n,}`, `{n}`, `{,m}`). Each branch carries its own per-branch annotation producing the same `{min, max}` shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so `{2,5}` matches the range form before falling through to `{2,}` or `{2}`.
+**Annotated.** Four explicit branches, one per logical case (`{n,m}`, `{n,}`, `{n}`, `{,m}`). The `{n,m}` range form (branch 0) is factored into its own `counted_quantifier_range` rule (see below) and lifted through with `-> $1`; the other three branches carry their own per-branch `{min, max}` annotation. The branches are tried under the default longest-match tournament; the most specific shapes come first so `{2,5}` matches the range form before falling through to `{2,}` or `{2}`.
 
 ### Current shape
 
@@ -122,6 +122,25 @@ counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound
 The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.
 
 The book entry for [\Q...\E Quoted Literals](examples-quoted-literal.md) and [Quantifiers](examples-quantifiers.md) shows this typed shape in worked examples.
+
+## `counted_quantifier_range` (the `{n,m}` range form + the min ≤ max gate)
+
+```ebnf
+@predicate: { name: value_compare, args: [$min, le, $max], phase: post, view: shaped }
+counted_quantifier_range = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -> {min: $1, max: $5}
+```
+
+**The min ≤ max ORDER rule (PCRE2 err 104), grammar-owned since release 1.1.94.** PCRE2 rejects a counted quantifier whose minimum exceeds its maximum (`x{5,4}` → error 104 "numbers out of order in {} quantifier"). This is a *cross-number VALUE comparison* — it compares the two captured bounds against each other, not against a constant — so no context-free structural rule can express it (min ≤ max over two independent `[0, 65535]` numbers is not context-free, and leading zeros make a lexical rule wrong). It is encoded with the general **RULE-SPAN `value_compare` `@predicate`** primitive (this rule is its first consumer):
+
+- The gate `[$min, le, $max]` holds iff `min ≤ max`. The comparison is **decimal-integer numeric** (`compare_values`), so a leading-zero operand is compared by value: `{05,4}` = 5 > 4 REJECTS, `{05,5}` = 5 ≤ 5 ACCEPTS.
+- It runs on the `view: shaped` output — the produced `{min, max}` object — referencing its fields by NAME (`$min`/`$max`), the proven `view: shaped` idiom. (A raw-view positional ref `[$1, le, $5]` does *not* work here: this rule's own `->` shapes its content to a JSON object, which has no positional slots, so a raw positional ref cannot resolve. The named shaped-view refs are robust to that and to the unmatched `brace_ws?` optionals.)
+- A `post` rejection is **backtrackable**: on `x{5,4}` the range branch loses the tournament, no other body branch fully-consumes the brace (each leaves a trailing char the outer `counted_quantifier`'s `"}"` cannot close), and the `literal_open_brace` guard's `digit+` lookahead blocks the literal fallback — so the whole pattern REJECTS, err-104-faithfully, with no change to that guard.
+
+Before release 1.1.94 this rule lived in the out-of-band compile-contract validator (`validate_counted_quantifier_body`); it is now grammar-owned (single source of truth), and the validator functions were deleted. The rejection layer is `E_PARSE_FAILURE` — match on the diagnostic **code**, not message text.
+
+### Shape
+
+Identical to the range branch it replaced: `{ "min": <usize>, "max": <usize> }` (both bounds always present for the `{n,m}` form).
 
 ## `quant_bound_number` (and `quant_bound_number_body` / `quant_bound_core`)
 

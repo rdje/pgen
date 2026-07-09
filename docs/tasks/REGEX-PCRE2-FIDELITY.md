@@ -1050,10 +1050,13 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `\k`/condition refs, all err 148, measured); (2) `\k` always-introducer: `!"k"` guard on `simple_escape` +
   drop `'k'` from `simple_escape_letter_strict` (the `.4.1` `\p`/`\P` precedent); (3) add the missing
   `\k'name'` quote branch to `backreference`. See the `.4.2` implementation section + Acceptance Checklist below.
-- ID: `.4.3` Status: `pending` Goal: encode counted-quantifier `{N,M}` min>max ORDER (err 104;
-  `x{5,4}`/`a{\t5\t,\t2\t}` reject). Owns the residual of `find_invalid_counted_quantifier`. **VALUE-COMPARISON**
-  (cross-number, leading-zero-hostile) — `.3.18` explicitly deferred it here; likely needs a rule-span
-  value-constraint primitive, not a plain gate.
+- ID: `.4.3` Status: **`done`** (`PGEN-REGEX-PCRE2-0029`, session #77; release `1.1.93`→`1.1.94`, contract
+  `1.1.95`→`1.1.96`, schema `1`, ledger `REGEX-0104`) Goal: encode counted-quantifier `{N,M}` min>max ORDER
+  (err 104; `x{5,4}`/`a{\t5\t,\t2\t}` reject). Owns the residual of `find_invalid_counted_quantifier`.
+  **VALUE-COMPARISON** (cross-number, leading-zero-hostile) — `.3.18` explicitly deferred it here; used the
+  RULE-SPAN `value_compare` `@predicate` primitive (RULE-SPAN-VALUE-CONSTRAINT.2). Behavior-NEUTRAL
+  validator→grammar migration; oracle byte-identical. See the `.4.3` implementation section + Acceptance
+  Checklist below.
 - ID: `.4.4` Status: **`done`** (`PGEN-REGEX-PCRE2-0025`, session #75; release `1.1.91`→`1.1.92`, contract
   `1.1.93`→`1.1.94`, schema `1`, ledger `REGEX-0102`) Goal: encode class shorthand/escape rejects —
   `\A \B \C \G \K \N`(unbraced)`\R \X \Z \z` inside `[...]` (`[\B]`/`[\K]`/`a[\NB]c` reject). Part of
@@ -1395,6 +1398,116 @@ shape already exists; `\k'n'`'s shape change is a fix within the existing carrie
   Highlights; ledger `REGEX-0103`; regex book (`rules-escape` + `rules-groups` + `compile-contract-validator` +
   `changelog-index` + tracked HTML); top book `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
   `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
+
+### REGEX-PCRE2-FIDELITY.4.3 — counted-quantifier `{N,M}` min>max ORDER is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0029`, session #77)
+
+**Design (tool-backed, `pcre2test` 10.47 oracle + empirical duality analysis).** PCRE2 rejects a counted
+quantifier whose minimum exceeds its maximum: `pcre2test` 10.47 gives err 104 "numbers out of order in {}
+quantifier" for `x{5,4}` / `a{\t5\t,\t2\t}`, while `{4,5}` / `{5,5}` / `{5,}` / `{,5}` / `{5}` all compile
+clean. This min>max ORDER rule was the LAST residual of the out-of-band validator
+`find_invalid_counted_quantifier` (`regex_compile_validation.rs:162`) → `validate_counted_quantifier_body`
+(`:400`) — a RULE-SPAN VALUE COMPARISON across the two bound captures that no CONTEXT-FREE structural
+encoding can express (min ≤ max over two independent [0,65535] numbers is not context-free; `.3.18`
+explicitly DEFERRED it here for exactly this reason). It is the first consumer of the general
+`value_compare` `@predicate` primitive (RULE-SPAN-VALUE-CONSTRAINT.2, [[project_rule_span_value_compare_primitive]]).
+
+The GRAMMAR change (STRUCTURAL/DECLARATIVE, fix-hierarchy tier-1 existing annotation, no engine change):
+extract the `{n,m}` range form of `counted_quantifier_body` into a dedicated rule and gate it with the
+value comparison:
+```ebnf
+@predicate: { name: value_compare, args: [$1, le, $5], phase: post }
+counted_quantifier_range = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -> {min: $1, max: $5}
+```
+and reference it as the first body branch (`counted_quantifier_range -> $1`). `$1`/`$5` are the two
+`quant_bound_number` bound captures; `compare_values` is decimal-integer numeric when both parse as i64, so
+`{05,4}` = 5>4 REJECTS and `{05,5}` = 5≤5 ACCEPTS (the leading-zero-hostile case the validator's own comment
+named). Scoping to a dedicated single-sequence rule is the PROVEN idiom (`sem_value_compare`) and avoids the
+`{n,}` null-max branch entirely (where a cross-capture compare would be ill-defined).
+
+**WHY the whole-pattern REJECT is automatic (tool-traced, no guard change).** A `value_compare` `post`
+rejection is BACKTRACKABLE (proven by `sem_value_compare_backtrack`): on `{5,4}` the range branch LOSES the
+`counted_quantifier_body` tournament; the other three body branches each fully-consume only a PREFIX
+(`{n,}`→`5,`, `{n}`→`5`) so the outer `counted_quantifier` `"}"` never follows → `counted_quantifier` fails
+as a whole → `quantifier?` matches empty → the `literal_open_brace` guard's negative lookahead
+(`grammars/regex.ebnf:327`, raw `digit+`) still recognizes `{5,4}` as quantifier-shaped and BLOCKS the
+literal fallback ⇒ whole-pattern REJECT, err-104-faithful. This is the identical mechanism `.3.18` already
+uses for the err-105 out-of-range VALUE bound; the `literal_open_brace` guard needs NO change.
+
+**WHY it is duality-neutral (empirical, tools-first — the `.4.3`-owned generation-satisfaction question).**
+The duality oracle is grammar-parse + `validate_regex_compile_contract`, which ALREADY rejects `{5,4}` today,
+so if the generator emitted min>max it would ALREADY be a pinned duality break — it is NOT (the only pinned
+regex signature is the start-option class, `.4.8`). Confirmed empirically: (a) the 2000-sample directed
+duality hunt at seeds 0/7/42 surfaces ONLY the start-option signature; (b) a 3000-sample plain generation
+(seeds 0/7/42) emits 11 `{n,m}` range forms, ALL `{0,0}` variants — 0 min>max (the generator favors the
+`"0"+` expansion of `quant_bound_number`). Parse-time `@predicate` is not honored generation-side (the
+generator draws only off `@gen_predicate`, never parse-time `@predicate`), so adding the gate leaves
+generation byte-identical and the emitted values already satisfy min≤max ⇒ NO `@gen_predicate` companion
+needed. The `duality_hunt_gate` remains the standing guard if a future generator distribution ever emits
+min>max.
+
+Validator: `find_invalid_counted_quantifier` + `validate_counted_quantifier_body` (both min>max-only) are
+DELETED, plus the `find_invalid_counted_quantifier(input)` call at `validate_regex_compile_contract:46`;
+the entry `.3.18` narrowing comment is updated to record the migration. The min>max validator tests are
+deleted. This ADDS a rule (`counted_quantifier_range`) → cert rule-count 238→239 and ast_shape inventory
++1 (the range rule's `{min,max}` carrier).
+
+Released slice: release `1.1.93`→`1.1.94` / contract `1.1.95`→`1.1.96` / schema `1` (unchanged — the
+`{min,max}` typed shape is preserved through the extracted rule); ledger `REGEX-0104` (internal,
+behavior-neutral downstream; reject CODE `E_PARSE_FAILURE` unchanged, only the reject MESSAGE moves
+validator→grammar; accept/reject SET byte-identical to `1.1.93`, oracle gate `2189/1858/285/46` unchanged).
+
+🔎 **SURFACED FINDING (latent codegen gap — routed for a future engine leaf).** The natural gate
+`@predicate value_compare [$1, le, $5]` (raw-view positional) HARD-ERRORED at parse time —
+`--trace-rules counted_quantifier_range` at `PGEN_TRACE_VERBOSITY=debug` on `A{0,0}` showed
+`❌ Exiting rule 'counted_quantifier_range' with error: "Semantic runtime could not resolve attribute
+reference '$1'"` (cert `A{0,0}` `parsed=false`, UNKNOWN=1). ROOT CAUSE (code-read, `ast_based_generator.rs`):
+a Raw-view post-predicate resolves its `$N` refs against `semantic_raw_content`, which is captured only when
+`semantic_capture_raw_for_post` is true, via `if semantic_capture_raw_for_post { semantic_raw_content =
+Some(result.clone()); }` emitted BEFORE the return transform — but on the **sequence-with-return-transform**
+path (a rule with a `->` object annotation over a sequence body) that raw-capture line is NOT emitted, so
+`semantic_raw_content` stays `None` and falls back to `node.content` = the shaped JSON, where positional
+`$N` resolution returns `None` (JSON has no positional slots) ⇒ hard error. **Any raw-view positional
+`@predicate` on a rule that also has a `->` sequence transform will similarly fail.** Worked around here with
+`view: shaped` + NAMED refs (the proven SV idiom, robust to both the JSON shape and the unmatched
+`brace_ws?` optionals). The codegen fix (emit the raw capture on the transform path too) is a separate,
+parser-agnostic engine leaf — deferred, not needed for `.4.3`.
+
+#### `.4.3` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — `pcre2test` 10.47: `x{5,4}` / `a{\t5\t,\t2\t}` / `a{5,2}` REJECT err 104
+  "numbers out of order in {} quantifier"; `{4,5}` `{5,5}` `{5,}` `{,5}` `{5}` compile-clean. Message-source
+  probe (release `parseability_probe --parse regex`, before the fix): `x{5,4}` REJECTs with the VALIDATOR
+  message ("counted quantifier minimum cannot exceed counted quantifier maximum") firing only AFTER a
+  grammar-accept ⇒ the GRAMMAR ALONE accepts these PCRE2-invalid patterns.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the min>max ORDER reject lived OUT-OF-BAND in
+  `regex_compile_validation.rs::validate_counted_quantifier_body` (`:433-440`, the `minimum > maximum` check),
+  reached from `find_invalid_counted_quantifier` (`:162`), invoked as a post-parse contract at
+  `validate_regex_compile_contract:46` — a single-source-of-truth hole ([[project_ebnf_is_single_source_of_truth]]).
+  The grammar's `counted_quantifier_body` range branch (`grammars/regex.ebnf:230`) accepted min>max structurally.
+  (The `value_compare`-resolution mechanism is the SURFACED FINDING above, WHY+WHERE tool-traced.)
+- [x] **FIX** — fix-hierarchy tier-1 (existing declarative `@predicate` primitive, no engine change): extract
+  `counted_quantifier_range` gated by `@predicate value_compare [$min, le, $max] phase:post view:shaped`
+  (named refs to the shaped `{min,max}` — see the SURFACED FINDING for why raw positional fails); reference it
+  as body branch 0 (`-> $1`). Validator: delete `find_invalid_counted_quantifier` +
+  `validate_counted_quantifier_body` + the call + the 3 min>max tests; ADD the `parser_registry.rs` pin.
+- [x] **ADDRESSED (verified)** — after regen + both-binary rebuild, the message-source probe shows `x{5,4}` /
+  `a{05,4}` / `a{\t5\t,\t2\t}` / `a{ 5 , 2 }` / `a{10,2}` flip to the GRAMMAR message (`Parser did not consume
+  full input`) while the controls `{4,5}` `{5,5}` `{05,5}` `{0,65535}` `{5,}` `{,5}` `{5}` `{\n5,2\n}` stay
+  ACCEPT. Every verdict matches `pcre2test` 10.47. The pin
+  `regex_counted_quantifier_order_rejects_at_the_grammar_layer_pcre2_faithfully` (6 reject + 8 accept + 3
+  relaxed) is GREEN.
+- [x] **NO REGRESSION** — regex cert-coverage `total=239 witness=239 UNKNOWN=0 fully_certified=true spf=0` at
+  seeds 0/7/42; `regex_pcre2_compile_oracle_gate` byte-identical baseline `2189/1858/285/46`;
+  `duality_hunt_gate` regex 3 seeds NO new/vanished signature (only the start-option class);
+  `parse_harness_equivalence_gate` regex byte-identical (4 gate tests pass); `regex_ast_shape_contract_gate`
+  aligned (inventory 220→221); dual `--lib` suite (883 pass with generated_parsers after the version lockstep
+  — −3 deleted validator tests + 1 pin); `--lint-grammar` 0 errors (239 rules); the other 5 fully-certified
+  grammars untouched (only `regex_parser.rs` regenerated).
+- [x] **LOCKSTEP** — `grammars/regex.ebnf`; `regex_compile_validation.rs`; `parser_registry.rs` pin;
+  `embedding_api.rs` consts `1.1.94`/`1.1.96`; `regex_parser_integration_contract_v1.json`; `regex_v1.json`
+  manifest inventory 220→221; contract Identity + `1.1.94`/`1.1.96` Highlights; ledger `REGEX-0104`; regex book
+  (`rules-quantifier` § `counted_quantifier_range` + `compile-contract-validator` + `changelog-index` + tracked
+  HTML); top book `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`;
+  `MEMORY.md`; `docs/TASK_TREE.md`.
 
 ## `.2` DESIGN — the explicit `pcre2` default (uncovered scoping `.3.1`, 2026-06-07)
 

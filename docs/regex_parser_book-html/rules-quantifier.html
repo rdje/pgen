@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e049ef88.js";
+            window.path_to_searchindex_js = "searchindex-c2231c2a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -272,12 +272,12 @@
 </table>
 </div>
 <h2 id="counted_quantifier_body"><a class="header" href="#counted_quantifier_body"><code>counted_quantifier_body</code></a></h2>
-<pre><code class="language-ebnf">counted_quantifier_body = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -&gt; {min: $1, max: $5}
+<pre><code class="language-ebnf">counted_quantifier_body = counted_quantifier_range                       -&gt; $1
                       | quant_bound_number brace_ws? "," brace_ws?               -&gt; {min: $1, max: null}
                       | quant_bound_number brace_ws?                       -&gt; {min: $1, max: $1}
                       | "," brace_ws? quant_bound_number                   -&gt; {min: 0,  max: $3}
 </code></pre>
-<p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). Each branch carries its own per-branch annotation producing the same <code>{min, max}</code> shape. PEG-ordered alternation tries each branch in order; the first match wins. The most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
+<p><strong>Annotated.</strong> Four explicit branches, one per logical case (<code>{n,m}</code>, <code>{n,}</code>, <code>{n}</code>, <code>{,m}</code>). The <code>{n,m}</code> range form (branch 0) is factored into its own <code>counted_quantifier_range</code> rule (see below) and lifted through with <code>-&gt; $1</code>; the other three branches carry their own per-branch <code>{min, max}</code> annotation. The branches are tried under the default longest-match tournament; the most specific shapes come first so <code>{2,5}</code> matches the range form before falling through to <code>{2,}</code> or <code>{2}</code>.</p>
 <h3 id="current-shape-1"><a class="header" href="#current-shape-1">Current shape</a></h3>
 <pre><code class="language-json">{ "min": &lt;usize&gt;, "max": &lt;usize | null&gt; }
 </code></pre>
@@ -285,6 +285,19 @@
 <h3 id="why-the-four-branches"><a class="header" href="#why-the-four-branches">Why the four branches</a></h3>
 <p>The original rule was 2 branches with 4 logical cases compressed inside an optional sub-group of branch 1, which made consumer-side branch detection awkward. Splitting into 4 explicit branches lets each case carry its own annotation, so the output shape is identical regardless of which branch matched.</p>
 <p>The book entry for <a href="examples-quoted-literal.html">\Q…\E Quoted Literals</a> and <a href="examples-quantifiers.html">Quantifiers</a> shows this typed shape in worked examples.</p>
+<h2 id="counted_quantifier_range-the-nm-range-form--the-min--max-gate"><a class="header" href="#counted_quantifier_range-the-nm-range-form--the-min--max-gate"><code>counted_quantifier_range</code> (the <code>{n,m}</code> range form + the min ≤ max gate)</a></h2>
+<pre><code class="language-ebnf">@predicate: { name: value_compare, args: [$min, le, $max], phase: post, view: shaped }
+counted_quantifier_range = quant_bound_number brace_ws? "," brace_ws? quant_bound_number brace_ws?  -&gt; {min: $1, max: $5}
+</code></pre>
+<p><strong>The min ≤ max ORDER rule (PCRE2 err 104), grammar-owned since release 1.1.94.</strong> PCRE2 rejects a counted quantifier whose minimum exceeds its maximum (<code>x{5,4}</code> → error 104 “numbers out of order in {} quantifier”). This is a <em>cross-number VALUE comparison</em> — it compares the two captured bounds against each other, not against a constant — so no context-free structural rule can express it (min ≤ max over two independent <code>[0, 65535]</code> numbers is not context-free, and leading zeros make a lexical rule wrong). It is encoded with the general <strong>RULE-SPAN <code>value_compare</code> <code>@predicate</code></strong> primitive (this rule is its first consumer):</p>
+<ul>
+<li>The gate <code>[$min, le, $max]</code> holds iff <code>min ≤ max</code>. The comparison is <strong>decimal-integer numeric</strong> (<code>compare_values</code>), so a leading-zero operand is compared by value: <code>{05,4}</code> = 5 &gt; 4 REJECTS, <code>{05,5}</code> = 5 ≤ 5 ACCEPTS.</li>
+<li>It runs on the <code>view: shaped</code> output — the produced <code>{min, max}</code> object — referencing its fields by NAME (<code>$min</code>/<code>$max</code>), the proven <code>view: shaped</code> idiom. (A raw-view positional ref <code>[$1, le, $5]</code> does <em>not</em> work here: this rule’s own <code>-&gt;</code> shapes its content to a JSON object, which has no positional slots, so a raw positional ref cannot resolve. The named shaped-view refs are robust to that and to the unmatched <code>brace_ws?</code> optionals.)</li>
+<li>A <code>post</code> rejection is <strong>backtrackable</strong>: on <code>x{5,4}</code> the range branch loses the tournament, no other body branch fully-consumes the brace (each leaves a trailing char the outer <code>counted_quantifier</code>’s <code>"}"</code> cannot close), and the <code>literal_open_brace</code> guard’s <code>digit+</code> lookahead blocks the literal fallback — so the whole pattern REJECTS, err-104-faithfully, with no change to that guard.</li>
+</ul>
+<p>Before release 1.1.94 this rule lived in the out-of-band compile-contract validator (<code>validate_counted_quantifier_body</code>); it is now grammar-owned (single source of truth), and the validator functions were deleted. The rejection layer is <code>E_PARSE_FAILURE</code> — match on the diagnostic <strong>code</strong>, not message text.</p>
+<h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
+<p>Identical to the range branch it replaced: <code>{ "min": &lt;usize&gt;, "max": &lt;usize&gt; }</code> (both bounds always present for the <code>{n,m}</code> form).</p>
 <h2 id="quant_bound_number-and-quant_bound_number_body--quant_bound_core"><a class="header" href="#quant_bound_number-and-quant_bound_number_body--quant_bound_core"><code>quant_bound_number</code> (and <code>quant_bound_number_body</code> / <code>quant_bound_core</code>)</a></h2>
 <pre><code class="language-ebnf">@transform: str::parse::&lt;usize&gt;().unwrap_or(0)
 quant_bound_number      = quant_bound_number_body
@@ -300,14 +313,14 @@ quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
                         | nonzero_digit
 </code></pre>
 <p><strong>Annotated (<code>@transform</code> on the wrapper).</strong> Release <code>1.1.85</code> (<code>REGEX-PCRE2-FIDELITY.3.18</code>, ledger <code>REGEX-0092</code>): the counted-quantifier bound is VALUE-bounded to <code>[0, 65535]</code> (PCRE2 err 105) <strong>structurally</strong> — the <a href="rules-misc.html"><code>callout_number</code></a> <code>[0, 255]</code> idiom scaled up. <code>quant_bound_number_body</code> admits leading zeros plus an optional nonzero-led core whose 9-branch cascade covers exactly <code>1..=65535</code> (the default longest-match tournament picks the full value over any prefix), so an out-of-range digit run has no fully-consuming quantifier parse — and generation draws in-range bounds <strong>by construction</strong>. The wrapper carries the same <code>@transform</code> span parse <code>digits</code> used, so <code>min</code>/<code>max</code> stay typed ints (<code>"065535"</code> → <code>65535</code>) and the AST shape is unchanged.</p>
-<h3 id="shape-1"><a class="header" href="#shape-1">Shape</a></h3>
+<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
 <p><code>Json(Number(&lt;usize&gt;))</code> in <code>0..=65535</code> — exactly what the former <code>digits</code> slot emitted for in-range values. Out-of-range values (<code>{65536}</code>, <code>{4294967296}</code> — the former u32-overflow hole that skipped every check) no longer parse at all: the quantifier fails AND the <a href="rules-atom.html"><code>literal_open_brace</code> guard</a> blocks the literal fallback, so the pattern REJECTS err-105-faithfully.</p>
 <h2 id="quant_suffix"><a class="header" href="#quant_suffix"><code>quant_suffix</code></a></h2>
 <pre><code class="language-ebnf">quant_suffix = "?" -&gt; "lazy"
              | "+" -&gt; "possessive"
 </code></pre>
 <p><strong>Annotated.</strong> Per-branch annotations emit semantic strings.</p>
-<h3 id="shape-2"><a class="header" href="#shape-2">Shape</a></h3>
+<h3 id="shape-3"><a class="header" href="#shape-3">Shape</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -341,7 +354,7 @@ quant_bound_core        = "6553" ("0" | "1" | "2" | "3" | "4" | "5")
 digits = /([0-9]+)/
 </code></pre>
 <p><strong>Annotated.</strong> Emits a typed integer via <code>@transform</code>.</p>
-<h3 id="shape-3"><a class="header" href="#shape-3">Shape</a></h3>
+<h3 id="shape-4"><a class="header" href="#shape-4">Shape</a></h3>
 <p><code>Json(Number(&lt;usize&gt;))</code> — a non-negative integer.</p>
 <h3 id="where-it-appears"><a class="header" href="#where-it-appears">Where it appears</a></h3>
 <ul>

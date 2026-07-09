@@ -39,13 +39,16 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     // `\k<…>`/`\k'…'`/`\k{…}` `backreference` branches), so a bare/empty `\k` hard-REJECTs. The EBNF is
     // the single source of truth ([[project_ebnf_is_single_source_of_truth]]); the out-of-band validator
     // no longer owns it.
-    // REGEX-PCRE2-FIDELITY.3.18: the counted-quantifier check is narrowed to the min>max ORDER
-    // rule (err 104) only — the VALUE bound (err 105, ≤ 65535) and the brace TOKENIZATION model
-    // (valid-syntax brace = always a quantifier; err 109 position class) were MIGRATED into
-    // `grammars/regex.ebnf` (`quant_bound_number` + the `literal_open_brace` guard).
-    if let Some(error) = find_invalid_counted_quantifier(input) {
-        return Err(error);
-    }
+    // REGEX-PCRE2-FIDELITY.4.3: the counted-quantifier min>max ORDER rule (err 104, `x{5,4}`
+    // reject) has been MIGRATED INTO `grammars/regex.ebnf` and `find_invalid_counted_quantifier`
+    // + `validate_counted_quantifier_body` DELETED. The `{n,m}` range form is now a dedicated
+    // `counted_quantifier_range` rule gated by the general RULE-SPAN `value_compare` `@predicate`
+    // (`[$1, le, $5]` phase:post, decimal-integer numeric so `{05,4}` = 5>4 rejects), so a
+    // min>max range loses its (backtrackable) branch, no other body branch fully-consumes the
+    // brace, and the `literal_open_brace` guard blocks the literal fallback ⇒ whole-pattern
+    // REJECT. (The earlier `.3.18` VALUE bound (err 105, ≤ 65535) and brace TOKENIZATION model
+    // were already grammar-owned via `quant_bound_number` + the `literal_open_brace` guard.) The
+    // EBNF is now the single source of truth ([[project_ebnf_is_single_source_of_truth]]).
     // REGEX-PCRE2-FIDELITY.3.16: the numeric-callout range check (`find_invalid_numeric_callout`)
     // was MIGRATED into `grammars/regex.ebnf` — `callout_number` structurally admits only digit
     // runs whose VALUE is ≤ 255 with arbitrary leading zeros (PCRE2 err 138), so `(?C256)`-family
@@ -157,52 +160,6 @@ fn is_short_unicode_property_letter(byte: u8) -> bool {
             | b's'
             | b'z'
     )
-}
-
-fn find_invalid_counted_quantifier(input: &str) -> Option<RegexCompileValidationError> {
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-    let mut in_char_class = false;
-
-    while index < bytes.len() {
-        if in_char_class {
-            if bytes[index] == b'\\' {
-                index = skip_regex_escape(bytes, index);
-                continue;
-            }
-            if bytes[index] == b']' {
-                in_char_class = false;
-            }
-            index += 1;
-            continue;
-        }
-
-        match bytes[index] {
-            b'\\' => index = skip_regex_escape(bytes, index),
-            b'[' => {
-                if is_extended_class_start(bytes, index) {
-                    index += 1;
-                } else {
-                    in_char_class = true;
-                    index += 1;
-                }
-            }
-            b'{' => {
-                if let Some(end) = bytes[index + 1..].iter().position(|byte| *byte == b'}') {
-                    let end = index + 1 + end;
-                    if let Some(error) = validate_counted_quantifier_body(bytes, index + 1, end) {
-                        return Some(error);
-                    }
-                    index = end + 1;
-                } else {
-                    index += 1;
-                }
-            }
-            _ => index += 1,
-        }
-    }
-
-    None
 }
 
 fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationError> {
@@ -377,69 +334,6 @@ fn is_start_option_position(bytes: &[u8], index: usize) -> bool {
         cursor = group_end + 1;
     }
     cursor == index
-}
-
-// REGEX-PCRE2-FIDELITY.3.18: this check is narrowed to the ORDER rule only
-// (PCRE2 err 104 "numbers out of order in {} quantifier"). The VALUE bound
-// (err 105, > 65535 — including the former `parse::<u32>()` overflow hole on
-// bounds > u32) and the brace TOKENIZATION model (a valid-syntax brace is
-// always a quantifier; err 109 at non-repeatable positions) are grammar-owned
-// (`quant_bound_number` + the `literal_open_brace` negative-lookahead guard in
-// `grammars/regex.ebnf`). Order stays validator-owned until capstone `.4` (or
-// a rule-span value-constraint extension): out-of-order needs a cross-number
-// VALUE comparison, which is grammar-hostile with leading zeros.
-//
-// Quantifier whitespace is EXACTLY space + tab (oracle-frozen, pcre2test
-// 10.47 hex cells: `a{\t65536\t}` err 105, but \n/\f/\r/\v anywhere inside
-// the brace makes it a LITERAL). The recognizer must mirror that set both in
-// the byte filter AND in per-part trimming: the pre-`.3.18` code used space
-// only in the filter (missing tab-spaced order violations like
-// `a{\t5\t,\t2\t}`, PCRE2 err 104) and `str::trim` (ALL whitespace) around
-// the body, wrongly rejecting the literal brace `a{\n5,2\n}` that PCRE2
-// compiles clean.
-fn validate_counted_quantifier_body(
-    bytes: &[u8],
-    body_start: usize,
-    body_end: usize,
-) -> Option<RegexCompileValidationError> {
-    let body = std::str::from_utf8(&bytes[body_start..body_end]).ok()?;
-    if body.is_empty()
-        || !body
-            .bytes()
-            .all(|byte| matches!(byte, b'0'..=b'9' | b',' | b' ' | b'\t'))
-    {
-        return None;
-    }
-
-    let parts: Vec<&str> = body
-        .split(',')
-        .map(|part| part.trim_matches([' ', '\t']))
-        .collect();
-    if parts.len() != 2 {
-        return None;
-    }
-
-    let parse_bound = |raw: &str| -> Option<u64> {
-        if raw.is_empty() {
-            None
-        } else {
-            // Saturate instead of failing on > u64 digit runs so an absurdly
-            // large minimum still compares as out-of-order; the value bound
-            // itself is enforced by the grammar, not here.
-            Some(raw.parse::<u64>().unwrap_or(u64::MAX))
-        }
-    };
-
-    if let (Some(minimum), Some(maximum)) = (parse_bound(parts[0]), parse_bound(parts[1]))
-        && minimum > maximum
-    {
-        return Some(RegexCompileValidationError::new(
-            body_start.saturating_sub(1),
-            "counted quantifier minimum cannot exceed counted quantifier maximum",
-        ));
-    }
-
-    None
 }
 
 fn find_invalid_char_class_construct(input: &str) -> Option<RegexCompileValidationError> {
@@ -1367,30 +1261,15 @@ mod tests {
     // accordingly; the behaviour is now proven by the GRAMMAR parse path and the `pcre2test`
     // oracle (`regex_pcre2_compile_oracle_gate`) — the EBNF is the single source of truth.
 
-    #[test]
-    fn rejects_invalid_counted_quantifier_order() {
-        let error = validate_regex_compile_contract("x{5,4}").expect_err("must reject {5,4}");
-        assert!(error.message.contains("minimum"));
-    }
-
-    #[test]
-    fn rejects_tab_spaced_counted_quantifier_order() {
-        // REGEX-PCRE2-FIDELITY.3.18: tab is quantifier whitespace (oracle:
-        // `a{\t5\t,\t2\t}` → PCRE2 err 104); the pre-`.3.18` space-only byte
-        // filter silently accepted this order violation.
-        let error =
-            validate_regex_compile_contract("a{\t5\t,\t2\t}").expect_err("must reject tab order");
-        assert!(error.message.contains("minimum"));
-    }
-
-    #[test]
-    fn allows_newline_brace_as_literal_not_order_violation() {
-        // REGEX-PCRE2-FIDELITY.3.18: a \n inside the brace makes it a LITERAL
-        // in PCRE2 (compiles clean), so the order check must not fire; the
-        // pre-`.3.18` `str::trim` (all-whitespace) wrongly rejected this.
-        validate_regex_compile_contract("a{\n5,2\n}")
-            .expect("newline brace is literal — not an order violation");
-    }
+    // REGEX-PCRE2-FIDELITY.4.3: `rejects_invalid_counted_quantifier_order` (`x{5,4}`),
+    // `rejects_tab_spaced_counted_quantifier_order` (`a{\t5\t,\t2\t}`), and
+    // `allows_newline_brace_as_literal_not_order_violation` (`a{\n5,2\n}`) were removed — the
+    // counted-quantifier min>max ORDER reject (err 104) is now GRAMMAR-owned (`grammars/regex.ebnf`
+    // `counted_quantifier_range` gated by the RULE-SPAN `value_compare` `@predicate`), and
+    // `find_invalid_counted_quantifier` + `validate_counted_quantifier_body` are deleted. The parity
+    // pin `regex_counted_quantifier_order_rejects_at_the_grammar_layer_pcre2_faithfully` in
+    // `parser_registry.rs` proves the whole parse path still rejects out-of-order bounds (including
+    // the tab-spaced form) and accepts the literal newline-brace form.
 
     #[test]
     fn counted_quantifier_value_limit_is_grammar_owned() {

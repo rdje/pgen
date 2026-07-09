@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0029 — REGEX-PCRE2-FIDELITY.4.3: counted-quantifier `{n,m}` min>max ORDER is now GRAMMAR-owned (behavior-neutral validator→grammar migration; first `value_compare` consumer)
+
+The counted-quantifier min>max ORDER reject (PCRE2 err 104 "numbers out of order in {} quantifier",
+`x{5,4}`) — the last min>max residual of the out-of-band compile-contract validator — is migrated into
+`grammars/regex.ebnf`, making the EBNF the single source of truth. This is the FIRST shipped consumer of
+the general RULE-SPAN `value_compare` `@predicate` primitive (RULE-SPAN-VALUE-CONSTRAINT.2), and the 12th
+validator→grammar migration.
+
+- **Grammar** (`grammars/regex.ebnf`): the `{n,m}` range form is extracted into a dedicated
+  `counted_quantifier_range` rule gated by `@predicate: { name: value_compare, args: [$min, le, $max],
+  phase: post, view: shaped }` — a cross-capture comparison of the produced `{min,max}` fields
+  (decimal-integer numeric, so `{05,4}` = 5>4 REJECTS while `{05,5}` = 5≤5 ACCEPTS). A `post` rejection is
+  backtrackable, so a min>max range loses its branch, no other body branch fully-consumes the brace, and
+  the `literal_open_brace` guard's `digit+` lookahead blocks the literal fallback ⇒ whole-pattern REJECT,
+  err-104-faithful (no guard change).
+- **🔎 Tool-surfaced design pivot.** The initial raw-view positional gate `[$1, le, $5]` hard-errored
+  ("could not resolve attribute reference '$1'", tool-traced via `--trace-rules`): this rule's own `->`
+  shapes its content to JSON, and the raw-content capture for a Raw-view post-predicate is **not emitted**
+  on the sequence-with-return-transform codegen path, so a positional ref cannot resolve. Fixed by using
+  the proven SV `view: shaped` idiom with NAMED refs to the produced `{min,max}` fields — robust to that
+  AND to the unmatched `brace_ws?` optionals. (The codegen raw-capture gap is a latent limitation noted for
+  a future engine leaf — see the surfaced-findings callout in the task leaf.)
+- **Validator** (`rust/src/regex_compile_validation.rs`): `find_invalid_counted_quantifier` +
+  `validate_counted_quantifier_body` (both min>max-only) + 3 unit tests DELETED; parity pin
+  `regex_counted_quantifier_order_rejects_at_the_grammar_layer_pcre2_faithfully` ADDED in `parser_registry.rs`.
+- **Duality-neutral (proven empirically).** The generator emits `{0,0}` for range forms (0 min>max in a
+  3000-sample plain generation, seeds 0/7/42) and the 2000-sample directed duality hunt surfaces only the
+  start-option signature; parse-time `@predicate` is not honored generation-side, so the migration leaves
+  generation byte-identical — no `@gen_predicate` companion needed.
+- **Behavior-neutral**: every input's accept/reject verdict is byte-identical to `1.1.93`; the only
+  observable change is the rejection message (`E_PARSE_FAILURE` code unchanged). AST-dump schema stays `1`
+  (the `{min,max}` shape is preserved through the extracted rule).
+- **Versions**: regex release `1.1.93`→`1.1.94` / integration contract `1.1.95`→`1.1.96` / schema `1`;
+  ledger `REGEX-0104`.
+- **Verified**: `pcre2test` 10.47 matrix (6 reject + 8 accept, message-source probe grammar-layer-confirmed);
+  regex cert `total=239 witness=239 UNKNOWN=0 fully_certified=true spf=0` at seeds 0/7/42 (238→239, the new
+  rule witnessed); `--lint-grammar` 0 errors (239 rules); `regex_pcre2_compile_oracle_gate` byte-identical
+  `2189/1858/285/46`; `duality_hunt_gate` 9 lanes no new/vanished signature; `parse_harness_equivalence_gate`
+  regex byte-identical; `regex_ast_shape_contract_gate` aligned (inventory 220→221); dual `--lib` suite;
+  the other 5 fully-certified grammars untouched.
+
 ## 2026-07-09 - PGEN-RSVC-0002 — RULE-SPAN-VALUE-CONSTRAINT.2: land the `value_compare` `@predicate` builtin + prove it in isolation (ENGINE primitive; tree CORE COMPLETE)
 
 The director-authorized general **rule-span value-constraint** primitive is landed and proven in
