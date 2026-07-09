@@ -1227,6 +1227,18 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `.4.5.a` (which is the `-[` RANGE endpoint, err 150/108): the standalone-member reject is err 113 and needs
   its own recognizer (validator or grammar). `.4.5.a` deliberately did NOT fix this (surgical one-defect scope).
   Sequence after the remaining `.4.5.b`/`.4.5.c` class-range family, alongside the other `.4.7`..`.4.11` residuals.
+  **🔎 ORACLE-SCOPED 2026-07-09 session #82 (post-`.4.5.d`; `pcre2test` 10.47, verified — NOT annotated):** PCRE2
+  rejects a collating `[.x.]` / equivalence `[=x=]` bracket-token in a class **UNCONDITIONALLY** — `[[.a.]]`
+  `[[=a=]]` (standalone) / `[a[.a.]b]` `[a[=a=]b]` (member) / `[[.a.]-z]` `[[=a=]-z]` (range LEFT) all err **113**
+  "POSIX collating elements are not supported"; ONLY as a range RIGHT endpoint (`[a-[.a.]]` `[!-[.a.]]`
+  `[!-[=a=]]`) does the `-` trigger err **150** first. This UNIFIES the standalone `.4.12` gap with the residual
+  range-endpoint cases (the `.4.5.d` deferred collating/equivalence family): a SINGLE grammar recognizer that
+  matches the `[.` … `.]` / `[=` … `=]` shape and REJECTS it (default/pcre2 profile) subsumes all of them — the
+  `-` never even needs a range interpretation. Design: recognize the shape at the class-member position and make
+  it non-parseable (or profile-gate to `relaxed`), mirroring the `.4.6` `class_member_literal` inline-lookahead
+  idiom for the `[:...:]` posix shape. Careful boundary: `[.]`/`[=]` (single literal `.`/`=` member) and
+  `[a.b]`/`[a=b]` (literals, no `[.`/`[=` opener) must stay ACCEPT; the opener is specifically `[.`/`[=`. This is
+  the next slice after `.4.5.d` (a NEW recognizer, its own full lockstep + ledger `REGEX-00xx`).
 - ID: `.5`  Status: `pending`  Goal: verification — full `regex_pcre2_compile_oracle_gate` parity
   (default), relaxed-mode test suite, cert-coverage at floor, RGX conformance ratchet, lockstep.
 
