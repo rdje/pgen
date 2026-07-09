@@ -2245,6 +2245,19 @@ impl SemanticRuntimeState {
             .filter(move |node| node.parent == Some(id))
     }
 
+    /// `SCOPE-CONTEXT-PREDICATE.1`: does any currently-open (active) scope — the
+    /// innermost frame OR any enclosing ancestor up to and including root — have
+    /// this kind? The shared walk behind the `in_scope_kind` /
+    /// `not_in_scope_kind` predicates. Reads the LIVE `active_chain`, so it
+    /// auto-unwinds the instant a scope closes (unlike the global+monotonic fact
+    /// index, which `close_scope` never retracts). O(active-depth).
+    fn active_scope_chain_has_kind(&self, kind: &SemanticScopeKind) -> bool {
+        self.active_chain
+            .iter()
+            .filter_map(|id| self.scope_node(*id))
+            .any(|node| &node.kind == kind)
+    }
+
     // -------------------------------------------------------------------------
     // `.3.3.4.b.5.1.4` resolve_path — multi-segment dotted lookup through
     // the scope tree.
@@ -2898,6 +2911,44 @@ impl SemanticRuntimeState {
                         .as_ref()
                         .is_some_and(|name| semantic_runtime_values_match(name, &expected_name)),
                 )
+            }
+            // `SCOPE-CONTEXT-PREDICATE.1`: the whole-active-chain generalization
+            // of `current_scope_is`. TRUE iff ANY currently-open scope — the
+            // innermost frame or any enclosing ancestor up to root — has this
+            // kind. Answers the lexical-containment question ("am I inside a
+            // lookaround / a function / a loop, at ANY nesting depth?") that
+            // `current_scope_is` (innermost-only) and the global+monotonic fact
+            // predicates cannot. Auto-unwinds on `@close_scope` because it reads
+            // the LIVE `active_chain`. Parser-agnostic: a grammar picks which
+            // rule `@open_scope`s which kind and which rule gates on containment.
+            "in_scope_kind" => {
+                let expected_kind = predicate.args.first().and_then(SemanticScopeKind::parse)?;
+                let result = self.active_scope_chain_has_kind(&expected_kind);
+                // Self-explaining verdict (the "annotations explain themselves"
+                // doctrine) — WHO is querying + the containment answer.
+                crate::pgen_trace_high!(
+                    "🔎 in_scope_kind(kind={}) → {} caller={}",
+                    expected_kind.label(),
+                    result,
+                    self.rule_context_path(),
+                );
+                Some(result)
+            }
+            // `SCOPE-CONTEXT-PREDICATE.1`: boolean complement of `in_scope_kind`
+            // (the `has_fact`/`lacks_fact` pairing), so a grammar can express the
+            // common "reject X inside Y" gate — a `pre` gate that PASSES only
+            // when NOT inside a scope of this kind — without a `@predicate_def`
+            // negation wrapper (e.g. reject `\K` inside a lookaround).
+            "not_in_scope_kind" => {
+                let expected_kind = predicate.args.first().and_then(SemanticScopeKind::parse)?;
+                let result = !self.active_scope_chain_has_kind(&expected_kind);
+                crate::pgen_trace_high!(
+                    "🔎 not_in_scope_kind(kind={}) → {} caller={}",
+                    expected_kind.label(),
+                    result,
+                    self.rule_context_path(),
+                );
+                Some(result)
             }
             // `.3.3.4.b.5.1.1`: index-backed O(1)-avg existence check.
             "has_fact" => {
@@ -3948,6 +3999,12 @@ const ENGINE_BUILTIN_PREDICATE_NAMES: &[&str] = &[
     // each operand as a character literal to its Unicode code point, then
     // compares numerically (the `.4.5.c` class-range-order enabler).
     "value_compare_codepoint",
+    // SCOPE-CONTEXT-PREDICATE.1: the scope-ancestry containment pair — is the
+    // parser currently inside an open scope of a given kind, at ANY nesting
+    // depth (the whole-active-chain generalization of `current_scope_is`)? The
+    // `.4.10` `\K`-in-lookaround enabler; general "reject X inside Y" gate.
+    "in_scope_kind",
+    "not_in_scope_kind",
 ];
 
 /// `SV-EXH-PROOF.3.3.4.b.5.1.2` + `.b.5.1.5`: scan a list of directives,
@@ -5045,6 +5102,92 @@ mod tests {
                 view: SemanticPredicateContentView::Raw,
             }),
             Some(true)
+        );
+    }
+
+    #[test]
+    fn in_scope_kind_predicates_walk_the_active_scope_chain() {
+        // `SCOPE-CONTEXT-PREDICATE.1`: the scope-ancestry containment pair,
+        // proven in isolation against the exact `\K`-in-lookaround semantics the
+        // primitive exists for (the `REGEX-PCRE2-FIDELITY.4.10` consumer):
+        // nested-depth TRUE, post-close FALSE (auto-unwind), root-global TRUE,
+        // malformed None — and the KEY contrast with innermost-only
+        // `current_scope_is`.
+        fn probe(state: &SemanticRuntimeState, name: &str, kind: &str) -> Option<bool> {
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: name.to_string(),
+                args: vec![UnifiedSemanticValue::Identifier(kind.to_string())],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            })
+        }
+        let lookaround = || SemanticScopeSpec {
+            kind: SemanticScopeKind::Custom("lookaround".to_string()),
+            name: None,
+        };
+
+        let mut state = SemanticRuntimeState::new();
+
+        // At root: not inside a lookaround; always inside the global scope.
+        assert_eq!(probe(&state, "in_scope_kind", "lookaround"), Some(false));
+        assert_eq!(probe(&state, "not_in_scope_kind", "lookaround"), Some(true));
+        assert_eq!(probe(&state, "in_scope_kind", "global"), Some(true));
+
+        // Enter a lookaround scope — the gate flips.
+        state.open_scope(lookaround());
+        assert_eq!(probe(&state, "in_scope_kind", "lookaround"), Some(true));
+        assert_eq!(probe(&state, "not_in_scope_kind", "lookaround"), Some(false));
+        assert_eq!(probe(&state, "current_scope_is", "lookaround"), Some(true));
+
+        // Enter a nested BLOCK scope (a plain group nested inside the
+        // lookaround). THE KEY CONTRAST — the ancestry walk still sees the
+        // enclosing lookaround at depth, but innermost-only `current_scope_is`
+        // does NOT. This is exactly the `(?=a(b\Kc))` oracle-REJECT case.
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Block,
+            name: None,
+        });
+        assert_eq!(probe(&state, "in_scope_kind", "lookaround"), Some(true));
+        assert_eq!(probe(&state, "not_in_scope_kind", "lookaround"), Some(false));
+        assert_eq!(probe(&state, "current_scope_is", "lookaround"), Some(false));
+
+        // Leave the nested block; still inside the lookaround.
+        assert!(state.close_scope(&SemanticCloseScopeSpec {
+            kind: Some(SemanticScopeKind::Block),
+            name: None,
+        }));
+        assert_eq!(probe(&state, "in_scope_kind", "lookaround"), Some(true));
+
+        // Leave the lookaround — AUTO-UNWIND: the active chain shrinks, so the
+        // gate flips back to allow. This is the property the global+monotonic
+        // fact predicates (never retracted on close) cannot provide.
+        assert!(state.close_scope(&SemanticCloseScopeSpec {
+            kind: Some(SemanticScopeKind::Custom("lookaround".to_string())),
+            name: None,
+        }));
+        assert_eq!(probe(&state, "in_scope_kind", "lookaround"), Some(false));
+        assert_eq!(probe(&state, "not_in_scope_kind", "lookaround"), Some(true));
+
+        // Malformed / empty kind → None (the `?`-on-malformed convention shared
+        // with `current_scope_is`), so a broken payload is non-blocking rather
+        // than silently gating.
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "in_scope_kind".to_string(),
+                args: vec![],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            None
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "not_in_scope_kind".to_string(),
+                args: vec![UnifiedSemanticValue::Identifier(String::new())],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            None
         );
     }
 

@@ -400,6 +400,43 @@ character literal makes the comparison *inapplicable* (non-blocking), the same
 convention `value_compare` follows. It decodes character literals, not grammar
 constructs, so it is fully parser-agnostic.
 
+### Scope-context predicates: `in_scope_kind` / `not_in_scope_kind`
+
+Some rules are legal only *inside* — or only *outside* — an enclosing
+construct, at any nesting depth. `in_scope_kind` and its complement
+`not_in_scope_kind` are the built-ins for that **lexical-containment** question.
+Each takes a single scope-*kind* argument and asks whether the parser is
+currently inside an open scope of that kind:
+
+```ebnf
+# Reject \K anywhere inside a lookaround body (PCRE2 err 199), but accept it
+# elsewhere: the lookaround open-marker opens a `lookaround` scope, and the
+# keep-out anchor only parses when NOT inside one.
+@predicate: { name: not_in_scope_kind, args: [lookaround], phase: pre }
+keep_out_anchor := "\\K" -> {type: "anchor", kind: "keep_out"}
+```
+
+- `in_scope_kind(kind)` holds iff **any** currently-open scope — the innermost
+  frame *or any enclosing ancestor up to and including the global scope* — has
+  that kind. `not_in_scope_kind(kind)` is its boolean complement (the
+  `has_fact`/`lacks_fact` pairing), so "reject X inside Y" needs no
+  `@predicate_def` negation wrapper.
+- It is the **whole-active-chain** generalization of the innermost-only
+  `current_scope_is`: where `current_scope_is(lookaround)` sees only the deepest
+  frame (and so *misses* a `\K` nested inside a plain group inside the
+  lookaround — `(?=a(b\Kc))`), `in_scope_kind(lookaround)` walks the entire
+  active chain and still sees the enclosing lookaround.
+- It reads the **live** scope chain, so it **auto-unwinds** the instant an
+  `@close_scope` pops the scope — a `\K` written *after* the lookaround
+  (`(?=ab)\K`) is allowed again. This is the property the store's
+  facts cannot provide: emitted facts are global and never retracted on
+  `@close_scope`, so a leak-free containment gate has to read scopes, not facts.
+- The argument is a scope *kind* only (a built-in kind such as `function` /
+  `block`, or any custom label like `lookaround`); a name-filtered variant is a
+  possible future extension. A missing/empty kind evaluates to *inapplicable*
+  (non-blocking), the same convention every built-in follows. It reads only the
+  scope chain, so it is fully parser-agnostic.
+
 ## 7. Stage 4 — SCOPE: `@open_scope` / `@close_scope`
 
 Facts live in scopes. Scopes form a tree. You declare scope boundaries with:
