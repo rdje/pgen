@@ -1925,6 +1925,64 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         );
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.6 (ledger `REGEX-0101`, release 1.1.91): POSIX class NAME validity is
+    /// grammar-owned — a `[:name:]` token inside a class is a POSIX-class ATTEMPT (PCRE2 err 130 for
+    /// an unknown name), never a literal fallback. Encoded structurally: the class-member `[` literal
+    /// is guarded by an inline negative lookahead for the `[:…:]` posix-token shape
+    /// (`class_member_literal` / `class_member_literal_nocaret`), so `posix_class` (valid 14 names,
+    /// optional `^`) wins for a good name and an INVALID name leaves the class unclosable → reject.
+    /// BEHAVIOR-NEUTRAL migration: the guard scans to the FIRST `:]` exactly like the deleted validator
+    /// `regex_compile_validation.rs::find_invalid_char_class_construct`'s `is_valid_posix_class_name`
+    /// (`scan_posix_class`), so the SET of rejected inputs is byte-identical (only the reject source/message
+    /// moves validator→grammar); `scan_posix_class` recognition stays for range analysis (`.4.5`). Honest
+    /// bound (pre-existing, out of scope): the scan crosses BOTH escaped and unescaped `]`, whereas PCRE2's
+    /// posix-name boundary stops at an UNESCAPED `]` — a validator↔PCRE2 divergence left for a follow-up.
+    /// Oracle: `pcre2test` 10.47 (`regex_pcre2_compile_oracle_gate`, byte-identical `2189/1858/285/46`).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_posix_class_names_reject_at_the_grammar_layer_pcre2_faithfully() {
+        // Unknown / malformed POSIX name (incl. negated, mid-class, empty, spaced, `]`-free extra colon):
+        // REJECT — the grammar no longer falls back to literals. All err 130 under pcre2test 10.47.
+        for pattern in [
+            "[[:foo:]]", "[[:foo:]",   // unknown name (with / without the outer close)
+            "[a[:<:]]", "[a[:>:]]",     // word-boundary alias SPELLING inside a larger class (name `<`/`>`)
+            "[[::]]", "[[:^:]]",        // empty name (plain / negated)
+            "[[:al pha:]]",             // space in name
+            "[x[:foo:]y]", "[[:foo:]x]", // posix attempt not at the class start
+            "[^[:foo:]]", "[[:^foo:]]", // negated class / negated posix name
+            "[[:foo:bar:]]", "[[:al:num:]]", // extra `:` in the (still `]`-free) name
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "unknown POSIX class name must reject at the grammar layer: {pattern}"
+            );
+        }
+        // Valid names / non-posix `[:` shapes / aliases / quoted: ACCEPT (unchanged from the validator era).
+        for pattern in [
+            "[[:alpha:]]", "[[:^alpha:]]", "[[:word:]]", "[[:xdigit:]]", // valid (plain / negated)
+            "[[:alnum:][:digit:]]", "[^[:alpha:]]", "[x[:alpha:]y]",     // valid, multi / negated / embedded
+            "[[:<:]]", "[[:>:]]", "[[:<:]]red[[:>:]]", "[[:<:]]+", "red[[:>:]]+", // word-boundary anchor aliases
+            "[[:foo]",                     // no `:]` terminator before class end → `[:` is literal
+            "[[:]]", "[[:]", "([[:]+)",    // `[:` with no `:]` terminator → literal
+            "[a:foo:]", "[]:foo:]",        // no `[:` opener at all (first-`]`-literal in the 2nd)
+            "[\\Q[:foo:]\\E]",             // `[:foo:]` quoted inside \Q...\E is literal
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "valid POSIX class / non-posix `[:` shape must accept: {pattern}"
+            );
+        }
+        // The guard is unconditional (the migrated validator ran in BOTH profiles): relaxed also rejects.
+        assert!(
+            super::parse_sample_detail_with_profile("regex", "[[:foo:]]", Some("relaxed"))
+                .expect("regex registered")
+                .is_err(),
+            "relaxed must also reject an unknown POSIX class name"
+        );
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width
     /// and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to a quantifier. A quantifier
     /// binds THROUGH the stray `\E` to the preceding repeatable atom (`a\E*` = `a*`), but is

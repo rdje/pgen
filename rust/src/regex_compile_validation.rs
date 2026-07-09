@@ -698,7 +698,7 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
 
         if bytes[index] == b'['
             && bytes.get(index + 1) == Some(&b':')
-            && let Some(after_posix_class) = scan_posix_class(bytes, index)?
+            && let Some(after_posix_class) = scan_posix_class(bytes, index)
         {
             index = after_posix_class;
             previous_atom = Some(ClassAtomKind::NonLiteral);
@@ -953,49 +953,25 @@ fn dash_starts_alt_extended_class_operator(bytes: &[u8], dash_index: usize) -> b
         || (bytes.get(dash_index + 1) == Some(&b'|') && bytes.get(dash_index + 2) == Some(&b'|'))
 }
 
-fn scan_posix_class(
-    bytes: &[u8],
-    start: usize,
-) -> Result<Option<usize>, RegexCompileValidationError> {
+/// `REGEX-PCRE2-FIDELITY.4.6` (`PGEN-REGEX-PCRE2-0024`): POSIX class NAME validity is now
+/// GRAMMAR-owned (`grammars/regex.ebnf` — the `class_member_literal` / `class_member_literal_nocaret`
+/// guard rejects a `[:...:]` token whose name is not one of the 14 valid POSIX names). This helper
+/// is now a pure structural SPAN scanner: it recognizes a `[:...:]` posix token (any name) so
+/// `scan_char_class` can mark it a NON-LITERAL range endpoint — the `[[:alpha:]-z]` / `[a-[:alpha:]]`
+/// invalid-range check, owned by `.4.5`. It never rejects a name; an unknown name is caught earlier
+/// at the grammar layer, so by the time this pass runs every accepted `[:...:]` span has a valid name.
+fn scan_posix_class(bytes: &[u8], start: usize) -> Option<usize> {
     let mut index = start + 2;
     if index < bytes.len() && bytes[index] == b'^' {
         index += 1;
     }
-    let name_start = index;
     while index + 1 < bytes.len() {
         if bytes[index] == b':' && bytes[index + 1] == b']' {
-            let name = std::str::from_utf8(&bytes[name_start..index]).unwrap_or("");
-            if !is_valid_posix_class_name(name) {
-                return Err(RegexCompileValidationError::new(
-                    start,
-                    "unknown POSIX character class name",
-                ));
-            }
-            return Ok(Some(index + 2));
+            return Some(index + 2);
         }
         index += 1;
     }
-    Ok(None)
-}
-
-fn is_valid_posix_class_name(name: &str) -> bool {
-    matches!(
-        name,
-        "alnum"
-            | "alpha"
-            | "ascii"
-            | "blank"
-            | "cntrl"
-            | "digit"
-            | "graph"
-            | "lower"
-            | "print"
-            | "punct"
-            | "space"
-            | "upper"
-            | "word"
-            | "xdigit"
-    )
+    None
 }
 
 fn find_invalid_scan_substring_capture_list(input: &str) -> Option<RegexCompileValidationError> {
@@ -1762,12 +1738,14 @@ mod tests {
             .expect("\\K remains accepted outside lookaround contexts");
     }
 
-    #[test]
-    fn rejects_unknown_posix_character_class_name() {
-        let error = validate_regex_compile_contract("[[:foo:]]")
-            .expect_err("must reject unknown POSIX class");
-        assert!(error.message.contains("POSIX"));
-    }
+    // REGEX-PCRE2-FIDELITY.4.6 (PGEN-REGEX-PCRE2-0024): the POSIX class NAME-validity rejects
+    // (`rejects_unknown_posix_character_class_name` on `[[:foo:]]` and
+    // `rejects_mixed_pcre2_posix_word_boundary_alias` on `[a[:<:]]`) moved to the GRAMMAR layer
+    // (`grammars/regex.ebnf` `class_member_literal` guard); the validator no longer owns them.
+    // The full accept/reject matrix is now pinned end-to-end through the generated parser by
+    // `parser_registry::tests::regex_posix_class_names_reject_at_the_grammar_layer_pcre2_faithfully`.
+    // The two ACCEPT tests below stay: the validator's `scan_posix_class` recognition + the
+    // `[[:<:]]`/`[[:>:]]` word-boundary alias skip are still validator-owned (range analysis, `.4.5`).
 
     #[test]
     fn allows_known_posix_character_class_name() {
@@ -1781,13 +1759,6 @@ mod tests {
             validate_regex_compile_contract(input)
                 .unwrap_or_else(|err| panic!("{input:?} should be accepted: {err:?}"));
         }
-    }
-
-    #[test]
-    fn rejects_mixed_pcre2_posix_word_boundary_alias() {
-        let error = validate_regex_compile_contract("[a[:<:]] should give error")
-            .expect_err("PCRE2 only accepts exact [[:<:]]/[[:>:]] aliases");
-        assert!(error.message.contains("POSIX"));
     }
 
     #[test]

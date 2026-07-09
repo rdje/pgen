@@ -1053,9 +1053,13 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   Part of `find_invalid_char_class_construct`. nonliteral = **STRUCTURAL-ish** (a range endpoint must be a
   literal-class atom); descending = **VALUE-COMPARISON over DECODED codepoints** (hard — needs a
   value-constraint primitive that decodes `\x{}`/`\NNN`/`\cX`/`\a`/`\e` endpoints and compares).
-- ID: `.4.6` Status: `pending` Goal: encode POSIX class NAME validity — unknown `[[:foo:]]` reject +
-  the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
-  `find_invalid_char_class_construct`. **STRUCTURAL** (keyword set of the ~14 POSIX names + the 2 aliases).
+- ID: `.4.6` Status: **`done`** (`PGEN-REGEX-PCRE2-0024`, session #74; release `1.1.90`→`1.1.91`, contract
+  `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) Goal: encode POSIX class NAME validity — unknown
+  `[[:foo:]]` reject + the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
+  `find_invalid_char_class_construct`. **STRUCTURAL** (an inline negative-lookahead guard on the class-member
+  `[` literal for the `[:…:]` posix-token shape — the `literal_open_brace` `!(…) X -> $2` precedent).
+  Behavior-NEUTRAL migration (scans to first `:]` like the deleted validator); oracle byte-identical. See the
+  `.4.6` implementation section + Acceptance Checklist below.
 - ID: `.4.7` Status: `pending` Goal: encode scan-substring capture inventory — `(*scs:(N))`/`(*scs:(<name>))`
   must reference an AVAILABLE capture (`(*scs:(1)…)`@0-groups, `(*scs:(0)…)`, `(*scs:(<name>)…)`@unknown
   reject; forward refs LEGAL). Owns `find_invalid_scan_substring_capture_list`. **WHOLE-PATTERN two-pass**
@@ -1121,6 +1125,81 @@ ranges, `.4.7`/`.4.11` two-pass inventories, `.4.8` start-option position, `.4.9
 primitive (value-comparison over decoded ranges / whole-pattern two-pass / contextual gate), the same
 "hard" class flagged in the `.1` table (rows 9/10) and the `.3.18`/`.3.22` deferrals. No engine/grammar
 change this slice (PURE-DOCS scope + re-scope).
+
+### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
+
+**Design (tool-backed, `pcre2test` 10.47 oracle + message-source probe).** PCRE2 treats a `[:name:]` token
+inside a class as a POSIX-class ATTEMPT: the name (after an optional `^`) must be one of the 14 valid names,
+else err 130 "unknown POSIX class name"; with no `:]` terminator before the class ends, `[:` is ordinary
+literals (`[[:foo]` ACCEPT). The `[[:<:]]`/`[[:>:]]` word-boundary aliases are anchor atoms (already
+`posix_word_boundary_alias`, matched before `char_class`); inside a larger class `[a[:<:]]` the `[:<:]` is an
+invalid-name attempt → reject.
+
+This slice is a BEHAVIOR-NEUTRAL migration (the `.4.1` precedent): the grammar guard scans to the FIRST `:]`
+EXACTLY like the deleted validator `scan_posix_class`, so the accept/reject SET is byte-identical (oracle gate
+stays `2189/1858/285/46`) — only the reject source/message moves validator→grammar. Honest bound (pre-existing,
+out of `.4.6` scope): the validator (and thus this guard) scan to the first `:]` across BOTH escaped and
+unescaped `]`, whereas PCRE2's posix-name boundary stops at an UNESCAPED `]` (`[x[:foo]bar:]y]` ACCEPT in PCRE2,
+REJECT in PGEN both before and after this slice). A first PCRE2-exact-boundary attempt (`!"]"` in the run)
+introduced a +1 oracle false-accept on the corpus's escaped-`]` case `[abc[:x\]pqr:]]` — reverted for
+zero-regression; the PCRE2-exact `]`-boundary (a name-`]`-boundary primitive) is a dedicated follow-up.
+
+The grammar's `posix_class` (`"[:" posix_negation? posix_name ":]"`) already accepts the 14 valid names and
+wins the `class_item` tournament by longest-match; the DEFECT was the LITERAL FALLBACK — when `posix_class`
+fails on a bad name, the `[`/`:`/letters matched as `class_literal`s, so the grammar ACCEPTED `[[:foo:]]`
+(only the out-of-band `find_invalid_char_class_construct` rejected it — the single-source-of-truth hole).
+
+FIX (grammar tier, DECLARATIVE): guard the class-member `[` literal with an inline negative lookahead for
+the `[:…:]` posix-token shape, at the 3 member positions (`class_item`, `class_item_visible`,
+`class_item_visible_nocaret`) via two wrapper rules `class_member_literal` / `class_member_literal_nocaret`
+(`!( "[:" "^"? ( !":]" !"]" builtin_any_char )* ":]" ) class_literal[_nocaret] -> $2`). Name-agnostic on
+purpose: for a VALID name `posix_class` wins so blocking the literal is inert; for an INVALID name the literal
+is blocked and the class cannot close → reject. `scan_posix_class` recognition STAYS in the validator (range
+analysis `[[:alpha:]-z]` err 150, owned by `.4.5`); only its name-reject + `is_valid_posix_class_name` are
+deleted. Zero-width guard → generation unchanged (duality-neutral); `-> $2` preserves the bare-string
+class-member value (the `literal_open_brace` regex.ebnf:327 precedent).
+
+Released slice: release `1.1.90`→`1.1.91` / contract `1.1.92`→`1.1.93` / schema `1` (unchanged — no
+AST-shape change on accepted inputs); ledger `REGEX-0101` (internal, behavior-neutral downstream; reject
+CODE `E_PARSE_FAILURE` unchanged, only the reject MESSAGE moves validator→grammar; accept/reject SET
+byte-identical to `1.1.90`, oracle gate `2189/1858/285/46` unchanged).
+
+#### `.4.6` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — message-source probe (release `parseability_probe --parse regex --profile pcre2`,
+  the `.4` SCOPING-LOG technique): `[[:foo:]]` `[[:foo:]` `[a[:<:]]` `[a[:>:]]` `[[::]]` `[[:al pha:]]`
+  `[x[:foo:]y]` `[[:foo:]x]` `[^[:foo:]]` `[[:^foo:]]` `[[:foo:bar:]]` `[[:al:num:]]` all REJECT with the
+  VALIDATOR message `unknown POSIX character class name` (fires only AFTER a grammar-accept) ⇒ the GRAMMAR
+  ALONE accepts these 13 PCRE2-invalid patterns (`pcre2test` 10.47 rejects all 13, err 130).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf`: `posix_class` fails on an invalid name, so the
+  `[`/`:`/letters fall back to `class_literal` (via `class_safe_special`, incl. `[` and `:`) →
+  `char_class` closes as a class of literals. The PCRE2 name-validity rule lived OUT-OF-BAND in
+  `find_invalid_char_class_construct` → `scan_posix_class` → `is_valid_posix_class_name`
+  (`rust/src/regex_compile_validation.rs`), invisible to the single-source-of-truth EBNF
+  ([[project_ebnf_is_single_source_of_truth]]).
+- [x] **FIX** — fix-hierarchy GRAMMAR tier (no engine change): the `class_member_literal` /
+  `class_member_literal_nocaret` inline-lookahead wrappers (`!( "[:" "^"? ( !":]" builtin_any_char )* ":]" )
+  class_literal[_nocaret] -> $2`) block the `[` literal for the `[:…:]` shape at the 3 member positions
+  (`class_item`, `class_item_visible`, `class_item_visible_nocaret`); `is_valid_posix_class_name` + its call
+  + 2 validator unit tests deleted same-slice; `scan_posix_class` recognition retained for range analysis.
+- [x] **ADDRESSED (verified)** — 33-cell before→after matrix: the 13 REJECT now via the GRAMMAR message
+  (`Parser did not consume full input at position 0`, both profiles), the ≥20 controls stay ACCEPT; EVERY
+  verdict matches `pcre2test` 10.47 (incl. the escaped-`]` corpus case `[abc[:x\]pqr:]]` REJECT). The 4
+  contract-pinned POSIX AST shapes (`[[:space:]]+` `[[:blank:]]+` `^[:a[:digit:]]+` `^[:a[:digit:]:b]+`)
+  byte-identical + 5 baseline class ASTs (`[abc]`/`[a-z]`/`[[:alpha:]]`/`[^xy]`/`[]x]`) byte-identical.
+- [x] **NO REGRESSION** — regex cert-coverage `total=238 witness=238 UNKNOWN=0 fully_certified=true spf=0` at
+  seeds 0/7/42 (236→238, the 2 net-new wrapper rules witnessed); `regex_pcre2_compile_oracle_gate` EXACTLY
+  byte-identical baseline `2189/1858/285/46` (a first `!"]"` PCRE2-exact attempt regressed +1 false-accept on
+  `[abc[:x\]pqr:]]` and was reverted); `duality_hunt_gate` 9 lanes NO new signature; `parse_harness_equivalence_gate`
+  regex byte-identical (differential-CERTIFIED); `regex_ast_shape_contract_gate` aligned (inventory 217→219);
+  dual `--lib` suite **891/0/29** (892 − 2 deleted validator tests + 1 new pin); `--lint-grammar` 0 errors
+  (238 rules); the other 5 fully-certified grammars untouched (only `regex_parser.rs` regenerated); clippy
+  no-new-findings (pre-existing codegen `ToTokens`/`Span`/`Range` debt only).
+- [x] **LOCKSTEP** — `grammars/regex.ebnf`; `regex_compile_validation.rs`; `parser_registry.rs` pin
+  `regex_posix_class_names_reject_at_the_grammar_layer_pcre2_faithfully`; `embedding_api.rs` consts
+  `1.1.91`/`1.1.93`; `regex_parser_integration_contract_v1.json`; contract Identity + `1.1.91`/`1.1.93`
+  Highlights; ledger `REGEX-0101`; `ast_shape_contract/regex_v1.json` (+2 inventory entries); regex book
+  (`rules-char-class` § POSIX-name-validity + `changelog-index` + tracked HTML); top book `parser-families.md`;
+  `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
 
 ## `.2` DESIGN — the explicit `pcre2` default (uncovered scoping `.3.1`, 2026-06-07)
 
@@ -1253,6 +1332,20 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-09, session #74)** `.4.6` LANDED (`PGEN-REGEX-PCRE2-0024`, RELEASED regex slice — release
+  `1.1.90`→`1.1.91`, contract `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) — POSIX character-class NAME
+  validity is now GRAMMAR-owned (behavior-NEUTRAL validator→grammar migration, the 2nd `.4` deletion-prep
+  child). The class-member `[` literal is guarded by an inline `[:…:]`-posix-shape negative lookahead
+  (`class_member_literal`/`class_member_literal_nocaret`), so an unknown name has no fully-consuming parse →
+  grammar-REJECT; `is_valid_posix_class_name` + 2 validator tests deleted (`scan_posix_class` recognition
+  retained for range analysis). VERIFIED: 33-cell matrix 100% == `pcre2test` 10.47; cert 238/238/0 spf=0
+  ×seeds 0/7/42; oracle byte-identical `2189/1858/285/46` (a first `!"]"` PCRE2-exact attempt regressed +1
+  false-accept on the escaped-`]` case `[abc[:x\]pqr:]]` — reverted); duality 9 lanes no new signature;
+  equivalence + ast_shape (217→219) green; dual lib 891/0. Honest bound (pre-existing): the scan crosses
+  escaped/unescaped `]` (like the validator) vs PCRE2's unescaped-only boundary (`[x[:foo]bar:]y]`) — a
+  PCRE2-exact `]`-boundary follow-up. Frontier per the standing PNT order → `.4.4` (`\B`/`\K`/`\N`-in-class,
+  STRUCTURAL) → `.4.2` (name charset+len) → the hard/primitive-needing families (`.4.3`,`.4.5`,`.4.7`,`.4.8`,
+  `.4.9`,`.4.10`,`.4.11`) → final `.4` deletion → `.5`.
 - **(2026-07-09, session #72)** `.4` capstone RE-SCOPED (`PGEN-REGEX-PCRE2-0022`, PURE-DOCS — no
   release/contract/schema bump; stays `1.1.89`/`1.1.91`/`1`). 🔎 Tool-backed finding: the `MEMORY`
   "only the start-option POSITION rule remains validator-owned" was WRONG. A message-source probe (the

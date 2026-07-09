@@ -427,6 +427,18 @@
         "normalized_text": "true"
       },
       {
+        "rule": "class_member_literal",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "class_member_literal_nocaret",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
         "rule": "class_negated_open",
         "branch_index": 0,
         "annotation_type": "return_scalar",

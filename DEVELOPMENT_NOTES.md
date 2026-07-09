@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0024 — REGEX-PCRE2-FIDELITY.4.6: POSIX class NAME validity grammar-owned (behavior-neutral validator→grammar migration; release `1.1.91`/`1.1.93`/schema `1`, ledger REGEX-0101)
+
+RELEASED regex slice (grammar + regen + full lockstep), the 2nd `.4` deletion-prep child of the re-scoped
+capstone. TOOLBOX-FIRST throughout.
+
+- **Diagnosis.** Message-source probe (parse path rejects with a GRAMMAR vs a VALIDATOR message): `[[:foo:]]`
+  `[[:foo:]` `[a[:<:]]` `[a[:>:]]` `[[::]]` `[[:^:]]` `[[:al pha:]]` `[x[:foo:]y]` `[[:foo:]x]` `[^[:foo:]]`
+  `[[:^foo:]]` `[[:foo:bar:]]` `[[:al:num:]]` all rejected with `unknown POSIX character class name` (the
+  VALIDATOR, firing after a grammar-accept) ⇒ the grammar alone accepted them. `pcre2test` 10.47 rejects all
+  13 (err 130).
+- **Mechanism.** `class_item`/`class_item_visible` used `class_literal`; `class_item_visible_nocaret` used
+  `class_literal_nocaret`; both draw `[` from `class_safe_special`. When `posix_class` fails on a bad name the
+  `[` fell back to a literal. Guarding those 3 member positions (leaving `class_atom` ranges and quoted
+  literals untouched) is the minimal blast radius.
+- **Design choice (recorded).** A first PCRE2-EXACT boundary (`( !":]" !"]" builtin_any_char )*`, name has no
+  `]`) matched PCRE2 on the 33-cell hand matrix INCLUDING `[x[:foo]bar:]y]`, but regressed the oracle corpus
+  +1 false-accept on the escaped-`]` case `[abc[:x\]pqr:]]` (PCRE2 scans across `\]`; the `!"]"` stopped at
+  it). Reverted to the behavior-neutral `( !":]" builtin_any_char )*` (scan to first `:]`, exactly the deleted
+  validator) → zero-regression, oracle byte-identical `2189/1858/285/46`. The PCRE2-exact `]`-boundary
+  (escaped vs unescaped) is a tracked follow-up, not this migration.
+- **AST parity.** `class_literal`'s `@semantic_value`/`@generate`/`@optimize` are inert legacy (the running AST
+  is bare-string members, confirmed by dump); the wrappers pass through with `-> $2`, so accepted-class ASTs
+  are byte-identical (the 4 contract-pinned POSIX shapes verified).
+- **Verification.** cert 238/238/0 spf=0 ×seeds 0/7/42; oracle byte-identical; duality 9 lanes no new signature;
+  equivalence gate regex byte-identical; ast_shape 217→219 aligned; dual lib suite 891/0 (net −1); lint 0 errors
+  (238 rules); clippy no-new-findings; only regex regenerated.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0023 — REGEX-PCRE2-FIDELITY.4.1: bare `\p`/`\P` property escape grammar-owned (behavior-neutral validator→grammar migration; release `1.1.90`/`1.1.92`/schema `1`, ledger REGEX-0100)
 
 RELEASED regex slice (grammar + regen + full lockstep), the first `.4` deletion-prep child of the

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f6ed8392.js";
+            window.path_to_searchindex_js = "searchindex-71a4e589.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -2356,10 +2356,13 @@ that caret would have been the negation.</p>
                | stray_class_end_quote
                | class_range
                | quoted_class_literal
-               | class_literal
+               | class_member_literal
                | class_escape
 </code></pre>
-<p>The unrestricted item (used after the first visible member / after an initial <code>]</code>-literal).</p>
+<p>The unrestricted item (used after the first visible member / after an initial <code>]</code>-literal).
+Branch 4 is <code>class_member_literal</code> (a guarded one-char literal — see
+<a href="#posix-name-validity-the-class_member_literal-guard">POSIX name validity</a>), whose value is
+the same bare-string char as the underlying <code>class_literal</code>.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2370,7 +2373,7 @@ that caret would have been the negation.</p>
 <tr><td>1</td><td>stray <code>\E</code> (zero-width)</td><td><code>"\\E"</code> (string)</td></tr>
 <tr><td>2</td><td><code>a-z</code> etc.</td><td><code>{"type": "class_range", "start": &lt;atom&gt;, "end": &lt;atom&gt;}</code></td></tr>
 <tr><td>3</td><td><code>\Q…\E</code> (possibly empty)</td><td><code>{"type": "class_quoted_literal", "body": [&lt;chars&gt;]}</code></td></tr>
-<tr><td>4</td><td>one literal char</td><td><code>"&lt;char&gt;"</code> (string)</td></tr>
+<tr><td>4</td><td>one literal char (<code>class_member_literal</code>)</td><td><code>"&lt;char&gt;"</code> (string)</td></tr>
 <tr><td>5</td><td><code>\d</code>, <code>\x41</code>, …</td><td>the typed escape object — see <a href="#escape-subtree">Escape Subtree</a></td></tr>
 </tbody>
 </table>
@@ -2379,16 +2382,16 @@ that caret would have been the negation.</p>
 <pre><code class="language-ebnf">class_item_visible = posix_class
                    | class_range
                    | quoted_class_literal_nonempty
-                   | class_literal
+                   | class_member_literal
                    | class_escape
 class_item_visible_nocaret = posix_class
                            | class_range
                            | quoted_class_literal_nonempty
-                           | class_literal_nocaret
+                           | class_member_literal_nocaret
                            | class_escape
 </code></pre>
 <p><code>class_item</code> minus the invisible forms (branch 1 stray <code>\E</code>; the <em>empty</em> <code>\Q\E</code>), preserving
-the same relative alternative order. The <code>_nocaret</code> variant swaps in <code>class_literal_nocaret</code>
+the same relative alternative order. The <code>_nocaret</code> variant swaps in <code>class_member_literal_nocaret</code>
 so a bare <code>^</code> cannot fill the first-visible slot of a non-negated class. Their values are the
 same typed values as the matching <code>class_item</code> branches — consumers never see a difference.</p>
 <h2 id="walking-a-class-body"><a class="header" href="#walking-a-class-body">Walking a class body</a></h2>
@@ -2433,6 +2436,41 @@ posix_class    = "[:" posix_negation? posix_name ":]"
 </tbody>
 </table>
 </div>
+<h3 id="posix-name-validity--the-class_member_literal-guard"><a class="header" href="#posix-name-validity--the-class_member_literal-guard">POSIX name validity — the <code>class_member_literal</code> guard</a></h3>
+<p><code>posix_name</code> lists exactly the 14 valid POSIX names. A <code>[:name:]</code> token whose name is <strong>not</strong> one
+of them is a compile error in PCRE2 (err 130, <em>“unknown POSIX class name”</em>), not a set of literal
+characters. Since <strong><code>REGEX-0101</code></strong> (release <code>1.1.91</code>, <code>REGEX-PCRE2-FIDELITY.4.6</code>) the grammar owns
+this rule — previously it lived only in an out-of-band validator, so the grammar alone wrongly
+accepted <code>[[:foo:]]</code> (as the literals <code>[</code>, <code>:</code>, <code>f</code>, <code>o</code>, <code>o</code>, <code>:</code>).</p>
+<p>The mechanism is a guard on the class-member <code>[</code> literal:</p>
+<pre><code class="language-ebnf">class_member_literal         = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal         -&gt; $2
+class_member_literal_nocaret = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal_nocaret -&gt; $2
+</code></pre>
+<p>A <code>[</code> that opens a <code>:]</code>-terminated <code>[:…:]</code> token can no longer be a literal. For a <strong>valid</strong> name
+<code>posix_class</code> wins the longest-match tournament (so the guard is inert); for an <strong>invalid</strong> name
+<code>posix_class</code> fails <em>and</em> the <code>[</code> literal is blocked, so the class cannot close and the pattern is
+rejected at the grammar layer (<code>E_PARSE_FAILURE</code> — match on the code, never the message). The value
+is the same bare-string char as <code>class_literal</code>, so accepted-class ASTs are byte-identical.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict (PGEN = PCRE2 10.47)</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[[:alpha:]]</code>, <code>[[:^alpha:]]</code>, <code>[[:alnum:][:digit:]]</code></td><td>ACCEPT</td><td>valid name(s) → <code>posix_class</code></td></tr>
+<tr><td><code>[[:foo:]]</code>, <code>[a[:&lt;:]]</code>, <code>[[::]]</code>, <code>[x[:foo:]y]</code>, <code>[^[:foo:]]</code></td><td>REJECT</td><td>unknown / empty name → err 130</td></tr>
+<tr><td><code>[[:foo]</code>, <code>[[:]]</code>, <code>([[:]+)</code>, <code>[a:foo:]</code></td><td>ACCEPT</td><td>no <code>:]</code> terminator → <code>[:</code> is literal</td></tr>
+<tr><td><code>[\Q[:foo:]\E]</code></td><td>ACCEPT</td><td>quoted inside <code>\Q…\E</code> → literal</td></tr>
+<tr><td><code>[[:&lt;:]]</code>, <code>[[:&gt;:]]</code></td><td>ACCEPT</td><td>word-boundary anchor aliases (matched before <code>char_class</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Honest bound (pre-existing).</strong> The guard scans to the first <code>:]</code> across both escaped and
+unescaped <code>]</code>, exactly replicating the validator it replaced. PCRE2’s posix-name boundary stops at
+an <em>unescaped</em> <code>]</code>, so <code>[x[:foo]bar:]y]</code> accepts in PCRE2 but rejects in PGEN (both before and after
+this release). A PCRE2-exact <code>]</code>-boundary is a tracked follow-up.</p>
+</blockquote>
 <h2 id="class_range"><a class="header" href="#class_range"><code>class_range</code></a></h2>
 <pre><code class="language-ebnf">class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom   -&gt; {type: "class_range", start: $1, end: $5}
 </code></pre>
@@ -5396,6 +5434,10 @@ fn ast_snapshot_for_canonical_inputs() {
 </table>
 </div>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
+<h3 id="1191--contract-1193--regex-0101-posix-character-class-name-validity-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration"><a class="header" href="#1191--contract-1193--regex-0101-posix-character-class-name-validity-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration">1.1.91 / Contract 1.1.93 — REGEX-0101: POSIX character-class NAME validity is now grammar-owned; behavior-neutral validator→grammar migration</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR-NEUTRAL internal migration (release bump 1.1.90→1.1.91 / contract 1.1.92→1.1.93; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.4.6</code>; oracle <code>pcre2test</code> 10.47). In PCRE2, a <code>[:name:]</code> token inside a character class is a POSIX-class ATTEMPT — the name (after an optional <code>^</code>) MUST be one of the 14 valid names (<code>alnum alpha ascii blank cntrl digit graph lower print punct space upper word xdigit</code>) or it is a compile error (err 130). PGEN’s GRAMMAR alone previously ACCEPTED an unknown name (<code>[[:foo:]]</code> parsed as a class of literals <code>[:foo:</code> — <code>posix_class</code> failed on the bad name and the <code>[</code>/<code>:</code>/letters fell back to <code>class_literal</code>), masked downstream ONLY by the out-of-band <code>regex_compile_validation.rs::find_invalid_char_class_construct</code> — a single-source-of-truth hole. This slice migrates the rule into the EBNF so the grammar owns it: the class-member <code>[</code> literal is guarded by an inline negative lookahead for the <code>[:…:]</code> posix-token shape (two wrapper rules <code>class_member_literal</code> / <code>class_member_literal_nocaret</code>, <code>-&gt; $2</code>), so a valid name is won by <code>posix_class</code> and an invalid name leaves the class unclosable → reject. <strong>No verdict flips</strong> — every input’s accept/reject is byte-identical to <code>1.1.90</code> (the validator rejected <code>[[:foo:]]</code>/<code>[a[:&lt;:]]</code>/<code>[[::]]</code> before, the grammar rejects them now, in BOTH profiles); oracle gate byte-identical <code>2189/1858/285/46</code>. <strong>Now grammar-REJECT</strong> (was validator-reject): <code>[[:foo:]]</code> <code>[[:foo:]</code> <code>[a[:&lt;:]]</code> <code>[a[:&gt;:]]</code> <code>[[::]]</code> <code>[[:^foo:]]</code> <code>[x[:foo:]y]</code> <code>[[:foo:]x]</code> <code>[^[:foo:]]</code> <code>[[:al pha:]]</code> <code>[[:foo:bar:]]</code> <code>[[:al:num:]]</code>. <strong>ACCEPT</strong> (unchanged): valid <code>[[:alpha:]]</code> <code>[[:^alpha:]]</code> <code>[[:alnum:][:digit:]]</code> <code>[^[:alpha:]]</code> <code>[x[:alpha:]y]</code> <code>[[:space:]]+</code>; aliases <code>[[:&lt;:]]</code> <code>[[:&gt;:]]</code> <code>[[:&lt;:]]red[[:&gt;:]]</code>; non-posix <code>[[:foo]</code> <code>[[:]]</code> <code>([[:]+)</code> <code>[a:foo:]</code> <code>[]:foo:]</code> <code>[\Q[:foo:]\E]</code>. <strong>AST</strong>: every accepted class byte-identical incl. the 4 contract-pinned POSIX shapes (<strong>schema stays <code>1</code></strong>). The only observable change is the rejection MESSAGE — validator text → <code>E_PARSE_FAILURE</code>; match on the <strong>code</strong>, not message text. <code>is_valid_posix_class_name</code> (+ 2 unit tests) deleted; <code>scan_posix_class</code> recognition stays for range analysis. <strong>Honest bound (unchanged, pre-existing):</strong> the scan crosses both escaped/unescaped <code>]</code> (like the validator), whereas PCRE2 stops at an unescaped <code>]</code> (<code>[x[:foo]bar:]y]</code> accepts in PCRE2, rejects in PGEN — before AND after); a PCRE2-exact <code>]</code>-boundary follow-up. Bug ledger: <code>REGEX-0101</code>. <strong>Contract section:</strong> “Release 1.1.91 / Contract 1.1.93 Highlights”. Rules detail: <code>rules-char-class.md</code> (§ <code>posix_class</code>).</p>
+</blockquote>
 <h3 id="1190--contract-1192--regex-0100-the-bare-pp-unicode-property-escape-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration"><a class="header" href="#1190--contract-1192--regex-0100-the-bare-pp-unicode-property-escape-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration">1.1.90 / Contract 1.1.92 — REGEX-0100: the bare <code>\p</code>/<code>\P</code> Unicode-property escape is now grammar-owned; behavior-neutral validator→grammar migration</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: BEHAVIOR-NEUTRAL internal migration (release bump 1.1.89→1.1.90 / contract 1.1.91→1.1.92; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.4.1</code>; oracle <code>pcre2test</code> 10.47). In PCRE2, <code>\p</code>/<code>\P</code> are ALWAYS Unicode-property introducers — a bare (un-braced) one MUST be followed by a valid one-letter general category (<code>\pL</code>, <code>\PN</code>, …) or the <code>{name}</code> form; anything else is a compile error. PGEN’s GRAMMAR alone previously ACCEPTED a bad bare form (<code>\pA</code> parsed as <code>\p</code> shorthand + <code>A</code> literal), masked downstream ONLY by the out-of-band <code>regex_compile_validation.rs::find_invalid_property_escape</code> — a single-source-of-truth hole. This slice migrates the rule into the EBNF so the grammar owns it: <code>'P'</code>/<code>'p'</code> dropped from <code>simple_escape_letter_strict</code> (positive exclusion, generation-faithful), and the <code>!"p{"</code>/<code>!"P{"</code> guards broadened to whole-letter <code>!"p"</code>/<code>!"P"</code> on <code>simple_escape</code> + both <code>class_simple_escape</code> variants. <strong>No verdict flips</strong> — every input’s accept/reject is byte-identical to <code>1.1.89</code> (the validator rejected <code>\pA</code>/<code>\P_</code>/<code>\p</code>/<code>[\pA]</code> before, the grammar rejects them now, in BOTH profiles). <strong>Now grammar-REJECT</strong> (was validator-reject): <code>\pA</code> <code>\P_</code> (bad category), <code>\p</code> <code>\P</code> (at EOF), <code>[\pA]</code> <code>[\P_]</code> (class), <code>a\pAb</code> <code>x\p</code> (mid-pattern). <strong>ACCEPT</strong> (unchanged): <code>\pL</code> <code>\PN</code> <code>\pl</code> <code>\Pn</code> <code>\pC</code> <code>\pZ</code> (short categories), <code>[\pL\PN]</code>, <code>\p{Lu}</code> <code>\P{Han}</code> <code>[\p{L}]</code> (braced). <strong>AST</strong>: every accepted property-escape byte-identical (<strong>schema stays <code>1</code></strong>). The only observable change is the rejection MESSAGE — validator text → <code>E_PARSE_FAILURE</code>; match on the <strong>code</strong>, not message text. <code>find_invalid_property_escape</code> (+ its 2 unit tests) deleted; 7 of the 8 validator check families remain (capstone <code>.4</code> deletes the rest). Bug ledger: <code>REGEX-0100</code>. <strong>Contract section:</strong> “Release 1.1.90 / Contract 1.1.92 Highlights”. Rules detail: <code>rules-escape.md</code> (§ <code>simple_escape</code>, § <code>property_escape</code>).</p>

@@ -621,12 +621,12 @@ class_body_nonempty_nocaret = class_zero_width* class_item_visible_nocaret class
 class_item_visible = posix_class
                    | class_range
                    | quoted_class_literal_nonempty
-                   | class_literal
+                   | class_member_literal
                    | class_escape
 class_item_visible_nocaret = posix_class
                            | class_range
                            | quoted_class_literal_nonempty
-                           | class_literal_nocaret
+                           | class_member_literal_nocaret
                            | class_escape
 class_literal_nocaret = letter | digit | whitespace | class_safe_special_nocaret | unicode_char
 class_safe_special_nocaret = '[' | '!' | '@' | '#' | '$' | '%' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
@@ -644,7 +644,7 @@ class_item     = posix_class
                | stray_class_end_quote
                | class_range
                | quoted_class_literal
-               | class_literal
+               | class_member_literal
                | class_escape
 
 # `quoted_class_literal` annotated to surface the typed
@@ -682,6 +682,33 @@ empty_quoted_class_literal = "\\Q" "\\E"   -> {type: "class_quoted_literal", bod
 # REGEX-SELF-HOSTING.5c: `class_literal` = letter|digit|whitespace|class_safe_special|unicode_char
 # (its original set: those plus `[^\x00-\x7F]`). One-char Terminal per branch (shape preserved).
 class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
+
+# REGEX-PCRE2-FIDELITY.4.6 (PGEN-REGEX-PCRE2-0024): a class-member `[` that opens a
+# `:]`-terminated POSIX token (`[:name:]`, optional negation `[:^name:]`) is a POSIX-class
+# ATTEMPT, never a literal — PCRE2 rejects an unknown name with err 130. `posix_class` (tried
+# first, longest-match) accepts the 14 valid names + optional `^`; this guard blocks the `[`
+# LITERAL fallback for the SAME `[:...:]` shape, so an INVALID name (`posix_class` fails) leaves
+# the class unclosable → REJECT, matching PCRE2. The migration deletes the name half of
+# `find_invalid_char_class_construct` (`scan_posix_class` recognition stays for range analysis,
+# owned by `.4.5`). Name-agnostic on purpose: for a VALID name `posix_class` wins the tournament
+# so blocking the literal is inert; for an INVALID name the literal must be blocked.
+# BEHAVIOR-NEUTRAL migration: this replicates the deleted validator's `scan_posix_class` EXACTLY —
+# `[:` (optional `^`) then a run scanned to the FIRST `:]` terminator (`( !":]" builtin_any_char )*`),
+# with the terminator matched by `":]"`. No `:]` before end-of-input ⇒ the inner match fails ⇒ `!(…)`
+# succeeds ⇒ `[` is a literal (PCRE2 `[[:foo]` ACCEPT). So the SET of rejected inputs is byte-identical
+# to the pre-migration validator (an invalid name still rejects; a valid name is won by `posix_class`).
+# The 2 word-boundary aliases `[[:<:]]`/`[[:>:]]` are anchor atoms (`posix_word_boundary_alias`, matched
+# before `char_class`); inside a larger class `[a[:<:]]` the `[:<:]` is an invalid-name attempt → REJECT.
+# The guard is zero-width so `class_literal`/`class_literal_nocaret` GENERATION is unchanged
+# (duality-neutral); `-> $2` preserves the exact bare-string class-member value (the `literal_open_brace`
+# `!(…) X -> $2` precedent, regex.ebnf:327). Both wrappers are POSITIVELY referenced (below) so they stay
+# coverage-witnessed; the guard content is INLINE so it creates no lookahead-only un-witnessable rule.
+# Honest bound (pre-existing, out of `.4.6` scope): the validator (and thus this guard) scan to the first
+# `:]` across BOTH escaped and unescaped `]`, whereas PCRE2's posix-name boundary stops at an UNESCAPED `]`
+# (`[x[:foo]bar:]y]` ACCEPT in PCRE2). That validator↔PCRE2 divergence pre-dates this slice and is left
+# for a dedicated PCRE2-exact-boundary follow-up (a name-`]`-boundary primitive), not this migration.
+class_member_literal         = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal         -> $2
+class_member_literal_nocaret = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal_nocaret -> $2
 
 # REGEX-SELF-HOSTING.5c: `class_safe_special` = the in-class ASCII punctuation literal ordered-choice
 # (`'"'`=double-quote, `"'"`=single-quote; NO backslash inside a class).

@@ -148,11 +148,14 @@ class_item     = posix_class
                | stray_class_end_quote
                | class_range
                | quoted_class_literal
-               | class_literal
+               | class_member_literal
                | class_escape
 ```
 
 The unrestricted item (used after the first visible member / after an initial `]`-literal).
+Branch 4 is `class_member_literal` (a guarded one-char literal — see
+[POSIX name validity](#posix-name-validity-the-class_member_literal-guard)), whose value is
+the same bare-string char as the underlying `class_literal`.
 
 | Branch | Form | Typed value |
 |---|---|---|
@@ -160,7 +163,7 @@ The unrestricted item (used after the first visible member / after an initial `]
 | 1 | stray `\E` (zero-width) | `"\\E"` (string) |
 | 2 | `a-z` etc. | `{"type": "class_range", "start": <atom>, "end": <atom>}` |
 | 3 | `\Q…\E` (possibly empty) | `{"type": "class_quoted_literal", "body": [<chars>]}` |
-| 4 | one literal char | `"<char>"` (string) |
+| 4 | one literal char (`class_member_literal`) | `"<char>"` (string) |
 | 5 | `\d`, `\x41`, … | the typed escape object — see [Escape Subtree](rules-escape.md) |
 
 ## `class_item_visible` / `class_item_visible_nocaret`
@@ -169,17 +172,17 @@ The unrestricted item (used after the first visible member / after an initial `]
 class_item_visible = posix_class
                    | class_range
                    | quoted_class_literal_nonempty
-                   | class_literal
+                   | class_member_literal
                    | class_escape
 class_item_visible_nocaret = posix_class
                            | class_range
                            | quoted_class_literal_nonempty
-                           | class_literal_nocaret
+                           | class_member_literal_nocaret
                            | class_escape
 ```
 
 `class_item` minus the invisible forms (branch 1 stray `\E`; the *empty* `\Q\E`), preserving
-the same relative alternative order. The `_nocaret` variant swaps in `class_literal_nocaret`
+the same relative alternative order. The `_nocaret` variant swaps in `class_member_literal_nocaret`
 so a bare `^` cannot fill the first-visible slot of a non-negated class. Their values are the
 same typed values as the matching `class_item` branches — consumers never see a difference.
 
@@ -224,6 +227,40 @@ Typed object. `negated` is `true` for `[[:^alpha:]]`, `[]` when no `^` was match
 |---|---|
 | `[[:alpha:]]` | `{"type": "posix_class", "name": "alpha", "negated": []}` |
 | `[[:^digit:]]` | `{"type": "posix_class", "name": "digit", "negated": true}` |
+
+### POSIX name validity — the `class_member_literal` guard
+
+`posix_name` lists exactly the 14 valid POSIX names. A `[:name:]` token whose name is **not** one
+of them is a compile error in PCRE2 (err 130, *"unknown POSIX class name"*), not a set of literal
+characters. Since **`REGEX-0101`** (release `1.1.91`, `REGEX-PCRE2-FIDELITY.4.6`) the grammar owns
+this rule — previously it lived only in an out-of-band validator, so the grammar alone wrongly
+accepted `[[:foo:]]` (as the literals `[`, `:`, `f`, `o`, `o`, `:`).
+
+The mechanism is a guard on the class-member `[` literal:
+
+```ebnf
+class_member_literal         = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal         -> $2
+class_member_literal_nocaret = !( "[:" "^"? ( !":]" builtin_any_char )* ":]" ) class_literal_nocaret -> $2
+```
+
+A `[` that opens a `:]`-terminated `[:…:]` token can no longer be a literal. For a **valid** name
+`posix_class` wins the longest-match tournament (so the guard is inert); for an **invalid** name
+`posix_class` fails *and* the `[` literal is blocked, so the class cannot close and the pattern is
+rejected at the grammar layer (`E_PARSE_FAILURE` — match on the code, never the message). The value
+is the same bare-string char as `class_literal`, so accepted-class ASTs are byte-identical.
+
+| Input | Verdict (PGEN = PCRE2 10.47) | Why |
+|---|---|---|
+| `[[:alpha:]]`, `[[:^alpha:]]`, `[[:alnum:][:digit:]]` | ACCEPT | valid name(s) → `posix_class` |
+| `[[:foo:]]`, `[a[:<:]]`, `[[::]]`, `[x[:foo:]y]`, `[^[:foo:]]` | REJECT | unknown / empty name → err 130 |
+| `[[:foo]`, `[[:]]`, `([[:]+)`, `[a:foo:]` | ACCEPT | no `:]` terminator → `[:` is literal |
+| `[\Q[:foo:]\E]` | ACCEPT | quoted inside `\Q…\E` → literal |
+| `[[:<:]]`, `[[:>:]]` | ACCEPT | word-boundary anchor aliases (matched before `char_class`) |
+
+> **Honest bound (pre-existing).** The guard scans to the first `:]` across both escaped and
+> unescaped `]`, exactly replicating the validator it replaced. PCRE2's posix-name boundary stops at
+> an *unescaped* `]`, so `[x[:foo]bar:]y]` accepts in PCRE2 but rejects in PGEN (both before and after
+> this release). A PCRE2-exact `]`-boundary is a tracked follow-up.
 
 ## `class_range`
 

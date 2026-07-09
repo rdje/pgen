@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0024 — REGEX-PCRE2-FIDELITY.4.6: POSIX character-class NAME validity is now grammar-owned (behavior-neutral validator→grammar migration; release `1.1.91`/`1.1.93`/schema `1`, ledger REGEX-0101)
+
+Session #74. RELEASED regex slice (grammar + regen + full lockstep), the 2nd `.4` deletion-prep child of
+the re-scoped capstone (the 9th compile-contract check migrated into the EBNF). TOOLBOX-FIRST throughout.
+
+- **Root cause (tool-backed, message-source probe).** The GRAMMAR alone accepted an unknown POSIX class name
+  (`[[:foo:]]`/`[a[:<:]]`/`[[::]]`/`[x[:foo:]y]`/`[^[:foo:]]`): `posix_class` fails on a name outside the
+  14-name set, so the `[`/`:`/letters fall back to `class_literal` and `char_class` closes as literals. The
+  reject lived only in the out-of-band validator `find_invalid_char_class_construct` → `is_valid_posix_class_name`
+  — a single-source-of-truth hole ([[project_ebnf_is_single_source_of_truth]]).
+- **Fix (grammar tier, no engine).** The class-member `[` literal is guarded by an inline negative lookahead for
+  the `[:…:]` posix-token shape (`!( "[:" "^"? ( !":]" builtin_any_char )* ":]" )`) at the 3 member positions
+  (`class_item`, `class_item_visible`, `class_item_visible_nocaret`) via two new wrapper rules
+  `class_member_literal` / `class_member_literal_nocaret` (`-> $2`, the `literal_open_brace` precedent).
+  Name-agnostic: a valid name is won by `posix_class` (longest-match), an invalid name blocks the `[` literal so
+  the class cannot close → grammar-REJECT. `is_valid_posix_class_name` + its call + 2 validator unit tests deleted;
+  `scan_posix_class` recognition retained for range analysis (`.4.5`).
+- **Behavior-neutral.** The guard scans to the first `:]` exactly like the deleted validator, so every accept/reject
+  verdict is byte-identical to `1.1.90` (both profiles); only the reject MESSAGE moves validator→grammar.
+- **Verified.** 33-cell matrix 100% == `pcre2test` 10.47; 4 contract-pinned POSIX AST shapes byte-identical; regex
+  cert 238/238/0 spf=0 ×seeds 0/7/42 (236→238, 2 net-new rules witnessed); oracle gate byte-identical
+  `2189/1858/285/46` (a first `!"]"` PCRE2-exact attempt regressed +1 false-accept on the escaped-`]` case
+  `[abc[:x\]pqr:]]` — reverted); duality 9 lanes no new signature; equivalence gate regex byte-identical;
+  ast_shape 217→219 aligned; dual lib suite 891/0; new pin `regex_posix_class_names_reject_at_the_grammar_layer_pcre2_faithfully`.
+- **Honest bound (pre-existing).** The scan crosses both escaped/unescaped `]` (like the validator); PCRE2 stops at
+  an unescaped `]` (`[x[:foo]bar:]y]` accepts in PCRE2, rejects in PGEN both before/after) — a PCRE2-exact `]`-boundary follow-up.
+- **Lockstep.** ledger `REGEX-0101` + consts + tracked contract JSON (1.1.91/1.1.93); contract Identity + Highlights;
+  regex book (changelog + `rules-char-class` POSIX-name-validity + HTML); top book parser-families chain; manifest
+  217→219; the tree + `docs/TASK_TREE.md` + `MEMORY.md` + `LIVE_ACHIEVEMENT_STATUS.md` + `DEVELOPMENT_NOTES.md`.
+
 ## 2026-07-09 - PGEN-REGEX-ROADMAP-0003 (regex roadmap logged): SPEED (RGX-0078) elevated as THE critical regex issue + REGEX-CODE-HOOKS tree for `(??{...})` + corrected Perl5 note (PURE-DOCS)
 
 Session #73. Pure-docs logging of the director's regex-roadmap direction (no code/grammar/regen). Sequencing:

@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.92`
+  - `1.1.93`
 - Parser release version:
-  - `1.1.90`
+  - `1.1.91`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,29 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.91 / Contract 1.1.93 Highlights — REGEX-0101: POSIX character-class NAME validity is now grammar-owned (behavior-neutral validator→grammar migration)
+
+**Bug ledger:** `REGEX-0101` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.4` validator-deletion scoping; **behavior-NEUTRAL for the released parser** (no verdict flips). Root cause: the GRAMMAR alone accepted an unknown POSIX class name (`[[:foo:]]` parsed as a class of literals `[:foo:` because `posix_class` failed on the bad name and the `[`/`:`/letters fell back to `class_literal`); the rejection lived only in the out-of-band validator `find_invalid_char_class_construct` — a single-source-of-truth hole.
+
+**What changed.** In PCRE2, a `[:name:]` token inside a character class is a POSIX-class ATTEMPT: the name (after an optional `^`) must be one of the 14 valid names (`alnum alpha ascii blank cntrl digit graph lower print punct space upper word xdigit`), else it is a compile error (err 130). `regex.ebnf` now owns this: the class-member `[` literal is guarded by an inline negative lookahead for the `[:…:]` posix-token shape (two wrapper rules `class_member_literal` / `class_member_literal_nocaret`), so a valid name is matched by `posix_class` and an invalid name leaves the class unclosable → reject. Oracle-verified against `pcre2test` 10.47 (byte-identical gate `2189/1858/285/46`); the regex parser stays differential-CERTIFIED (interpreter byte-identical).
+
+| Rule | Example | Verdict (both = PGEN `1.1.91` = PCRE2 10.47) |
+|---|---|---|
+| **Unknown / malformed name (now grammar-REJECT; was validator-reject)** | `[[:foo:]]` · `[a[:<:]]` · `[[::]]` · `[[:^foo:]]` · `[x[:foo:]y]` · `[^[:foo:]]` · `[[:al pha:]]` | REJECT |
+| Valid name — plain / negated / multi / embedded (unchanged) | `[[:alpha:]]` · `[[:^alpha:]]` · `[[:alnum:][:digit:]]` · `[x[:alpha:]y]` · `[[:space:]]+` | ACCEPT (unchanged) |
+| Word-boundary anchor aliases (unchanged) | `[[:<:]]` · `[[:>:]]` · `[[:<:]]red[[:>:]]` | ACCEPT (unchanged) |
+| Non-posix `[:` — no `:]` terminator (unchanged) | `[[:foo]` · `[[:]]` · `([[:]+)` · `[a:foo:]` · `[\Q[:foo:]\E]` | ACCEPT (unchanged) |
+
+**AST shape.** Every accepted class is byte-identical — the 4 contract-pinned POSIX shapes (`[[:space:]]+`, `[[:blank:]]+`, `^[:a[:digit:]]+`, `^[:a[:digit:]:b]+`) are unchanged; no new AST vocabulary, **AST-dump schema stays `1`**.
+
+**Relaxed profile.** POSIX class names are core PCRE2 syntax, not a relaxed extension: the unknown-name rejection applies in both profiles (identical to the validator it replaces).
+
+**Rejection-layer.** The rule is now grammar-owned (`E_PARSE_FAILURE`); the validator's `is_valid_posix_class_name` reject (+ 2 unit tests) was deleted (`scan_posix_class` recognition stays for range analysis). Match on the diagnostic **code**, never message text.
+
+**Honest bound (unchanged, pre-existing).** The grammar (like the validator it replaces) scans to the first `:]` across both escaped and unescaped `]`, whereas PCRE2's posix-name boundary stops at an unescaped `]` (`[x[:foo]bar:]y]` accepts in PCRE2, rejects in PGEN — before AND after this release). This validator↔PCRE2 divergence is unchanged by this slice and is tracked for a dedicated PCRE2-exact-boundary follow-up.
+
+**Action for downstream (RGX):** none — every input's accept/reject verdict is unchanged from `1.1.90`. This release only moves the ownership of the POSIX-name rule from the out-of-band validator into the EBNF (the only observable difference is the rejection message text, which downstream should never match on).
 
 ## Release 1.1.90 / Contract 1.1.92 Highlights — REGEX-0100: the bare `\p`/`\P` Unicode-property escape is now grammar-owned (behavior-neutral validator→grammar migration)
 
