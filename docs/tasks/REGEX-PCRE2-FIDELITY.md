@@ -1101,6 +1101,24 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   flip to reject) — oracle NET improvement. The class-range family stays validator-owned pending the deferred
   `.4.5.b`/`.4.5.c` grammar migration, which now migrates a CONSISTENT nonliteral family (`d D h H s S v V w W
   p P`). See the `.4.5.a.1` implementation section + Acceptance Checklist below.
+- ID: `.4.5.b` Status: **`done`** (`PGEN-REGEX-PCRE2-0033`, session #80; release `1.1.96`→`1.1.97`, contract `1.1.98`→`1.1.99`, schema `1`, ledger `REGEX-0107`) Goal: migrate the non-`[` NONLITERAL class-range reject
+  from the out-of-band validator INTO the grammar — a `class_range` whose LEFT or RIGHT endpoint is a
+  NONLITERAL SHORTHAND (`\d \D \h \H \s \S \v \V \w \W`) or PROPERTY (`\p… \P…`) escape is PCRE2 err 150
+  "invalid range" (oracle `pcre2test` 10.47), but the grammar today SPLITS it into separate members
+  (`class_atom` excludes the shorthand/property escapes so `class_range` never forms → the mid-class `-`
+  falls through to a literal member) so the GRAMMAR ACCEPTS it and only `validate_regex_compile_contract`
+  rejects it. **STRUCTURAL** (a negative-lookahead `!invalid_class_range` guarding `class_item` /
+  `class_item_visible` / `class_item_visible_nocaret`; two shapes — nonliteral-LEFT `<nl> - <atom>` and
+  literal-LEFT/nonliteral-RIGHT `<atom> - <nl>`), duality-safe because the store-aware generator never
+  emits these ranges (the oracle already rejects them). SCOPE (per the frontier design note + the
+  resume-pointer migration set `d D h H s S v V w W p P` + `\p{}`): shorthand + property endpoints only;
+  the POSIX-left (`[[:alpha:]-z]`) and the `-[`-right cases (`.4.5.a`, `[a-[:digit:]]`) stay
+  validator-owned, migrated with `.4.5.c`. Because the validator STILL rejects these post-`.4.5.b` (its
+  range-check deletion is deferred to after `.4.5.c`), the released `--parse` verdict is UNCHANGED — the
+  migration's EFFECT is observable only at the GRAMMAR layer, so the before→after proof is the certified
+  interpreter (grammar-only, no validator): grammar ACCEPTS the invalid ranges before → REJECTS after,
+  carve-outs (`[a-]` `[-a]` `[\d-]` `[\d\-x]` `[\da-z]` `[-\d]` `[a-z]` `[--/]`) stay ACCEPT. See the
+  `.4.5.b` implementation section + Acceptance Checklist below.
 - ID: `.4.6` Status: **`done`** (`PGEN-REGEX-PCRE2-0024`, session #74; release `1.1.90`→`1.1.91`, contract
   `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) Goal: encode POSIX class NAME validity — unknown
   `[[:foo:]]` reject + the exact `[[:<:]]`/`[[:>:]]` word-boundary aliases (mixed `[a[:<:]]` reject). Part of
@@ -1432,6 +1450,72 @@ a NEW duality break; the grammar half (stop generation) is required for duality-
   (re-baseline); ledger `REGEX-0106`; contract `1.1.96`/`1.1.98` Highlights + Identity; regex book
   `compile-contract-validator.md` + `changelog-index.md` + tracked HTML; top book `parser-families.md`;
   `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
+
+### REGEX-PCRE2-FIDELITY.4.5.b — non-`[` NONLITERAL class-range reject is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0033`, session #80)
+
+**Tools-first root cause (grammar-only via the certified interpreter).** The `.4.5` investigation established
+that a range with a nonliteral shorthand/property endpoint (`[\d-x]`, `[a-\d]`, …) is grammar-ACCEPT /
+validator-REJECT. This slice PROVED it decisively with the interpreter (`interpret_parse`, which runs the
+grammar WITHOUT `validate_regex_compile_contract`): all 23 nonliteral-endpoint cells `accepted=true` (the
+grammar splits `[\d-x]` into 3 members `\d`,`-`,`x`, because `class_atom = quoted_class_range_atom |
+class_range_escape | class_literal` excludes the shorthand escapes — `\d` isn't in `class_range_escape`'s
+letter set — and the property escapes — `property_escape` isn't in `class_range_escape_unit` — so
+`class_range` never forms and the mid-class `-` falls through to a literal member). `pcre2test` 10.47
+`/…/utf` = err 150 for all 23 (frozen oracle). The reject lived only in `find_invalid_char_class_construct`.
+
+**Fix (grammar tier — no engine, `feedback_no_workarounds_fix_hierarchy` tier 1).** A zero-width negative
+lookahead `!invalid_class_range` on the three class-item positions (`class_item`, `class_item_visible`,
+`class_item_visible_nocaret`), each delegating to a NAMED `*_core` passthrough (`-> $2`). `invalid_class_range`
+= two shapes: `class_range_nonliteral_atom zw* "-" zw* ( class_range_nonliteral_atom | class_atom )` (nonliteral
+LEFT) and `class_atom zw* "-" zw* class_range_nonliteral_atom` (literal-LEFT/nonliteral-RIGHT), where
+`class_range_nonliteral_atom = "\\" (class_range_nonliteral_shorthand | property_escape)` and
+`class_range_nonliteral_shorthand = d|D|h|H|s|S|v|V|w|W`. Shape 1's right side must be a real endpoint atom
+(so `[\d-]` — dash then `]` — stays ACCEPT); the `-` is a BARE terminal (so `[\d\-x]`'s escaped dash stays a
+member).
+
+**Two engineering findings.** (1) The initial inline wiring `class_item = !invalid_class_range ( <alt> ) -> $2`
+produced `<invalid_sequence_access>` for the `posix_class` branch (byte-parity pre-check caught it) — the
+"inline alternation corrupts positions" hazard (`feedback_quantified_group_extraction`); fixed by the NAMED
+`*_core` rule so `$2` is a single rule ref (the `.4.6` precedent). (2) `invalid_class_range` + its sub-rules
+are referenced ONLY inside `!(…)` ⇒ lookahead-only / positively-unreachable ⇒ certified by PROOF
+(`gather_verified_proof_covered_rules`), so cert stays `UNKNOWN=0` while total grows 239→245.
+
+**Scope + why the validator stays.** Shorthand + property endpoints only; POSIX-left (`[[:alpha:]-z]`) and the
+`-[`-right cases (`.4.5.a`, `[a-[:digit:]]`) stay validator-owned. The validator range-check is NOT deleted —
+its deletion waits until the WHOLE class-range family (nonliteral + descending `.4.5.c` + the `.4.5.a`/`.4.5.a.1`
+cases) is grammar-owned. So this slice is behavior-NEUTRAL at the released `--parse` surface (validator still
+rejects); the effect is observable only at the grammar layer.
+
+#### `.4.5.b` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — certified interpreter grammar-only (`interpret_parse("grammars/regex.ebnf",
+  "[\\d-x]", pcre2)`) → `accepted=true` for all 23 nonliteral-endpoint cells (shorthand+property, both sides),
+  where `pcre2test` 10.47 `/[\d-x]/utf` = err 150 AND the released `--parse` (grammar+validator) already
+  REJECTS — a grammar-accepts-invalid single-source-of-truth hole. Pin: `rust/tests/regex_class_range_nonliteral_grammar_migration.rs` (FAILS on all 23 REJECT cases before the edit).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf::class_atom` (the range-endpoint reader) excludes the
+  shorthand escapes (`\d` etc. not in `class_range_escape`'s letter set) and property escapes (`property_escape`
+  not in `class_range_escape_unit`), so `class_range` never forms for a nonliteral endpoint and the item
+  alternation falls through to `class_escape` (member) + a literal `-`. The err-150 reject lived out-of-band in
+  `regex_compile_validation.rs::find_invalid_char_class_construct` (`ClassAtomKind::NonLiteral` endpoint).
+- [x] **FIX** — grammar tier (fix-hierarchy 1, existing declarative construct — negative lookahead): new
+  `!invalid_class_range` guard + `class_range_nonliteral_atom` / `class_range_nonliteral_shorthand` +
+  `class_item*_core` passthroughs (`grammars/regex.ebnf`). No engine/codegen change.
+- [x] **ADDRESSED (verified)** — the interpreter grammar-only test flips all 23 nonliteral-endpoint cells
+  ACCEPT→REJECT and keeps all 16 carve-outs (`[a-]` `[-a]` `[\d-]` `[\d\-x]` `[\da-z]` `[-\d]` `[--/]` `[!--]`
+  `[a-z]` `[\n-\r]` `[\x30-\x39]` + members) ACCEPT; 22 valid-class ASTs byte-identical interp==generated
+  (`accepted_class_inputs_keep_byte_identical_ast_through_the_guard`). Released `--parse` matrix 28/28 unchanged.
+- [x] **NO REGRESSION** — regex cert `total=245 proof=3 witness=242 UNKNOWN=0 fully_certified=true
+  sample_parse_failures=0` at seeds 0/7/42 (239→245: +3 witnessed `*_core`, +3 lookahead-only PROOF rules);
+  `--lint-grammar` 0 errors (245 rules); `regex_pcre2_compile_oracle_gate` byte-identical `2189/1867/274/48`;
+  `duality_hunt_gate` 9 lanes no new/vanished; `parse_harness_equivalence_gate` regex byte-identical (certified
+  11/11); `ast_shape_contract` regex inventory 221→224 aligned; `parse_harness_combinator_gate` 27/27 +
+  `parse_harness_semantic_gate` 32/32 (shared engine untouched); embedding version-drift + metadata gates green
+  (`1.1.97`/`1.1.99`); the other fully-certified grammars' generated parsers untouched (only regex regenerated).
+- [x] **LOCKSTEP** — `grammars/regex.ebnf` (+6 rules); regenerated `generated/regex_parser.rs`; new test
+  `rust/tests/regex_class_range_nonliteral_grammar_migration.rs`; `embedding_api.rs` consts `1.1.97`/`1.1.99`;
+  `regex_parser_integration_contract_v1.json`; `ast_shape_contract/regex_v1.json` (221→224 re-baseline); ledger
+  `REGEX-0107`; contract `1.1.97`/`1.1.99` Highlights + Identity; regex book `rules-char-class.md` +
+  `changelog-index.md` + `compile-contract-validator.md` + tracked HTML; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
+  `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 
@@ -1937,6 +2021,21 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-09, session #80)** `.4.5.b` LANDED (`PGEN-REGEX-PCRE2-0033`, RELEASED regex slice — release
+  `1.1.96`→`1.1.97`, contract `1.1.98`→`1.1.99`, schema `1`, ledger `REGEX-0107`) — the non-`[` NONLITERAL
+  class-range reject (shorthand `\d \D \h \H \s \S \v \V \w \W` + property `\p…`/`\P…` endpoints, err 150) is now
+  GRAMMAR-owned via a zero-width `!invalid_class_range` negative lookahead on the three class-item positions
+  (`*_core` passthroughs `-> $2` — a NAMED core rule, since inline `(…)` corrupts positional refs). Behavior-NEUTRAL
+  at the released `--parse` surface (the validator still rejects — its range-check deletion waits until the whole
+  family is grammar-owned), so the before→after is proven at the GRAMMAR layer by the certified interpreter
+  (`rust/tests/regex_class_range_nonliteral_grammar_migration.rs`: 23 invalid ranges flip ACCEPT→REJECT, 16
+  carve-outs + 22 valid ASTs stay identical). cert **245/245 UNKNOWN=0** ×0/7/42 (239→245: +3 witnessed `*_core`,
+  +3 lookahead-only PROOF rules); oracle byte-identical `2189/1867/274/48`; duality 9 lanes; equivalence + combinator
+  27/27 + semantic 32/32; ast_shape 221→224. SCOPE: shorthand + property only; POSIX-left + the `-[`-right (`.4.5.a`)
+  stay validator-owned. Frontier → **`.4.5.c`** (non-`[` DESCENDING reject to grammar; engine-tier `value_compare`
+  codepoint-coercion WIDENING decoding `\x{}`/`\NNN`/`\cX`/`\a`/`\e` — MUST also migrate the `.4.5.a` (`-[`) +
+  `.4.5.a.1` (`\v`/`\V`) + POSIX-left cases so the whole class-range family is grammar-owned, THEN delete the
+  `find_invalid_char_class_construct` range-check) → `.4.7`..`.4.12` → final `.4` deletion → `.5`.
 - **(2026-07-09, session #79)** `.4.5.a.1` LANDED (`PGEN-REGEX-PCRE2-0032`, RELEASED regex slice — release
   `1.1.95`→`1.1.96`, contract `1.1.97`→`1.1.98`, schema `1`, ledger `REGEX-0106`) — the `\v` / `\V` class-range
   accepts-invalid FIX (a genuine correctness fix, sibling of `REGEX-0105`), surfaced by the `.4.5.b` tools-first

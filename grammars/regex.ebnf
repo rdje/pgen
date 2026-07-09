@@ -651,29 +651,42 @@ class_body_nonempty_nocaret = class_zero_width* class_item_visible_nocaret class
 # REGEX-PCRE2-FIDELITY.3.15: the PCRE2-VISIBLE class members — `class_item` minus the
 # invisible forms (`stray_class_end_quote`, the empty `quoted_class_literal`). Same relative
 # alternative order as `class_item`.
-class_item_visible = posix_class
-                   | class_range
-                   | quoted_class_literal_nonempty
-                   | class_member_literal
-                   | class_escape
-class_item_visible_nocaret = posix_class
-                           | class_range
-                           | quoted_class_literal_nonempty
-                           | class_member_literal_nocaret
-                           | class_escape
+# REGEX-PCRE2-FIDELITY.4.5.b: `!invalid_class_range` rejects a nonliteral-endpoint class range at
+# the first-visible-member position (`[\d-x]` / `[a-\d]` / `[\p{Lu}-x]`); `-> $2` passes the matched
+# item through unchanged (byte-parity — the `regex.ebnf:350` `!(…) X -> $2` precedent). The
+# alternation is lifted to a NAMED `*_core` rule (not an inline `(…)` group) because `-> $N` over an
+# inline alternation corrupts positional refs for some branches (`<invalid_sequence_access>` on
+# `posix_class`); a single-rule-ref `$2` resolves cleanly, exactly like `.4.6`'s `class_member_literal`.
+class_item_visible = !invalid_class_range class_item_visible_core       -> $2
+class_item_visible_core = posix_class
+                        | class_range
+                        | quoted_class_literal_nonempty
+                        | class_member_literal
+                        | class_escape
+class_item_visible_nocaret = !invalid_class_range class_item_visible_nocaret_core -> $2
+class_item_visible_nocaret_core = posix_class
+                                | class_range
+                                | quoted_class_literal_nonempty
+                                | class_member_literal_nocaret
+                                | class_escape
 class_literal_nocaret = letter | digit | whitespace | class_safe_special_nocaret | unicode_char
 class_safe_special_nocaret = '[' | '!' | '@' | '#' | '$' | '%' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 # REGEX-PCRE2-FIDELITY.3.15: the VISIBLE (>=1 quoted char) `\Q...\E` form for the visible-member
 # slot; emits the same `{type:"class_quoted_literal", body}` shape as `quoted_class_literal`.
 quoted_class_literal_nonempty = "\\Q" quoted_class_literal_char+ "\\E"        -> {type: "class_quoted_literal", body: $2}
 
+# REGEX-PCRE2-FIDELITY.4.5.b: `!invalid_class_range` rejects a nonliteral-endpoint range at any
+# repeated-member position (`[x\d-y]` / `[a-\d]`); `-> $2` passes the matched item (a single ref to
+# the NAMED `class_item_core` alternation — an inline `(…)` group corrupts positional refs) through
+# unchanged. The guard is zero-width, so the item value is byte-identical to the pre-guard alternation.
+class_item     = !invalid_class_range class_item_core                   -> $2
 @dispatch: {
     "range": generate_range_check($1.start, $1.end),
     "literal": generate_literal_check($1.char),
     "escape": generate_escape_check($1.pattern),
     "posix": generate_posix_check($1.name)
 }
-class_item     = posix_class
+class_item_core = posix_class
                | stray_class_end_quote
                | class_range
                | quoted_class_literal
@@ -708,6 +721,34 @@ class_zero_width = stray_class_end_quote | empty_quoted_class_literal
 # leading `\Q\E` routed through `class_zero_width` keeps the exact byte shape it had when it
 # routed through `class_item`/`quoted_class_literal`.
 empty_quoted_class_literal = "\\Q" "\\E"   -> {type: "class_quoted_literal", body: []}
+
+# REGEX-PCRE2-FIDELITY.4.5.b: reject a class RANGE whose LEFT or RIGHT endpoint is a NONLITERAL
+# shorthand (`\d \D \h \H \s \S \v \V \w \W`) or property (`\p… \P…`) escape — PCRE2 err 150
+# "invalid range" (oracle `pcre2test` 10.47). The grammar otherwise ACCEPTS these by SPLITTING them
+# into separate members: `class_atom` (the range-endpoint reader) excludes the shorthand/property
+# escapes, so `class_range` never forms and the mid-class `-` falls through to a literal member —
+# the reject was therefore owned only by the out-of-band `validate_regex_compile_contract`. This
+# migrates it into the EBNF (`find_invalid_char_class_construct` range half; the POSIX-left
+# `[[:alpha:]-z]` and the `-[`-right cases (`.4.5.a`) stay validator-owned pending `.4.5.c`).
+# `invalid_class_range` is a zero-width NEGATIVE-LOOKAHEAD guard on `class_item` /
+# `class_item_visible` / `class_item_visible_nocaret`, referenced ONLY inside `!(…)`, so it — and
+# its `class_range_nonliteral_atom` / `class_range_nonliteral_shorthand` sub-rules — are
+# lookahead-only / positively-unreachable → certified by PROOF (never positively entered, so the
+# transactional witness can never record them; `gather_verified_proof_covered_rules`). Duality-safe:
+# the store-aware generator never emits these ranges (the oracle already rejects them), so no
+# generator⟷parser break. Two shapes: nonliteral LEFT `<nl> - <endpoint>` and literal LEFT /
+# nonliteral RIGHT `<atom> - <nl>`. Shape 1's right side must be an actual endpoint atom (NOT
+# end-of-class), so the literal-trailing-dash carve-out `[\d-]` stays ACCEPT; the `-` is a BARE
+# terminal, so `[\d\-x]`'s escaped dash stays a member (no false reject).
+invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
+                    | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
+# The NONLITERAL class atoms `.4.5.b` forbids as a range endpoint: the shorthand character-class
+# escapes and the Unicode property escapes. Used ONLY inside the `invalid_class_range` lookahead, so
+# no return shape is needed (a lookahead discards its value). `property_escape` (already positively
+# witnessed via `class_escape_unit`/`escape_unit`) covers `\p{…}` / `\P{…}` / `\pL` / `\PL`.
+class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
+                            | "\\" property_escape
+class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
 
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}

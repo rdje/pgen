@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8d27c87b.js";
+            window.path_to_searchindex_js = "searchindex-8b1ef0ea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -305,7 +305,8 @@ the pre-<code>1.1.84</code> shape for every previously-accepted input. The <code
 the no-negation alternative) excludes a bare <code>^</code> from the <em>first visible</em> position only —
 that caret would have been the negation.</p>
 <h2 id="class_item"><a class="header" href="#class_item"><code>class_item</code></a></h2>
-<pre><code class="language-ebnf">class_item     = posix_class
+<pre><code class="language-ebnf">class_item     = !invalid_class_range class_item_core   -&gt; $2
+class_item_core = posix_class
                | stray_class_end_quote
                | class_range
                | quoted_class_literal
@@ -313,7 +314,11 @@ that caret would have been the negation.</p>
                | class_escape
 </code></pre>
 <p>The unrestricted item (used after the first visible member / after an initial <code>]</code>-literal).
-Branch 4 is <code>class_member_literal</code> (a guarded one-char literal — see
+The leading <code>!invalid_class_range</code> is a zero-width guard that rejects a class range with a
+nonliteral endpoint (see <a href="#nonliteral-class-range-endpoints-the-invalid_class_range-guard">Nonliteral class-range endpoints</a>
+below); <code>-&gt; $2</code> passes the matched <code>class_item_core</code> value through unchanged, so the typed
+value is byte-identical to the pre-guard alternation. Branch 4 of <code>class_item_core</code> is
+<code>class_member_literal</code> (a guarded one-char literal — see
 <a href="#posix-name-validity-the-class_member_literal-guard">POSIX name validity</a>), whose value is
 the same bare-string char as the underlying <code>class_literal</code>.</p>
 <div class="table-wrapper">
@@ -332,21 +337,50 @@ the same bare-string char as the underlying <code>class_literal</code>.</p>
 </table>
 </div>
 <h2 id="class_item_visible--class_item_visible_nocaret"><a class="header" href="#class_item_visible--class_item_visible_nocaret"><code>class_item_visible</code> / <code>class_item_visible_nocaret</code></a></h2>
-<pre><code class="language-ebnf">class_item_visible = posix_class
-                   | class_range
-                   | quoted_class_literal_nonempty
-                   | class_member_literal
-                   | class_escape
-class_item_visible_nocaret = posix_class
-                           | class_range
-                           | quoted_class_literal_nonempty
-                           | class_member_literal_nocaret
-                           | class_escape
+<pre><code class="language-ebnf">class_item_visible = !invalid_class_range class_item_visible_core   -&gt; $2
+class_item_visible_core = posix_class
+                        | class_range
+                        | quoted_class_literal_nonempty
+                        | class_member_literal
+                        | class_escape
+class_item_visible_nocaret = !invalid_class_range class_item_visible_nocaret_core -&gt; $2
+class_item_visible_nocaret_core = posix_class
+                                | class_range
+                                | quoted_class_literal_nonempty
+                                | class_member_literal_nocaret
+                                | class_escape
 </code></pre>
 <p><code>class_item</code> minus the invisible forms (branch 1 stray <code>\E</code>; the <em>empty</em> <code>\Q\E</code>), preserving
-the same relative alternative order. The <code>_nocaret</code> variant swaps in <code>class_member_literal_nocaret</code>
-so a bare <code>^</code> cannot fill the first-visible slot of a non-negated class. Their values are the
-same typed values as the matching <code>class_item</code> branches — consumers never see a difference.</p>
+the same relative alternative order, each carrying the same <code>!invalid_class_range</code> guard. The
+<code>_nocaret</code> variant swaps in <code>class_member_literal_nocaret</code> so a bare <code>^</code> cannot fill the
+first-visible slot of a non-negated class. Their values are the same typed values as the
+matching <code>class_item</code> branches — consumers never see a difference.</p>
+<h2 id="nonliteral-class-range-endpoints-the-invalid_class_range-guard"><a class="header" href="#nonliteral-class-range-endpoints-the-invalid_class_range-guard">Nonliteral class-range endpoints (the <code>invalid_class_range</code> guard)</a></h2>
+<p>A character-class range whose LEFT or RIGHT endpoint is a <strong>nonliteral</strong> shorthand
+(<code>\d \D \h \H \s \S \v \V \w \W</code>) or property (<code>\p…</code> / <code>\P…</code>) escape is malformed in PCRE2
+(err 150 “invalid range”): <code>[\d-x]</code>, <code>[a-\d]</code>, <code>[\p{Lu}-x]</code>, <code>[a-\p{Lu}]</code>, <code>[\d-\w]</code>. A
+zero-width negative lookahead at each class-item position rejects them at the grammar layer
+(they were previously rejected only by the out-of-band compile-contract validator — this
+migrates the reject into the EBNF, <code>REGEX-PCRE2-FIDELITY.4.5.b</code>, ledger <code>REGEX-0107</code>):</p>
+<pre><code class="language-ebnf">invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
+                    | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
+class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
+                            | "\\" property_escape
+class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
+</code></pre>
+<p>The guard is deliberately narrow so the <strong>literal-dash carve-outs</strong> stay valid: <code>[a-]</code> and
+<code>[-a]</code> (dash at an edge), <code>[\d-]</code> (a nonliteral followed by a trailing dash and <code>]</code> — shape 1
+requires a real endpoint atom after the <code>-</code>), <code>[\d\-x]</code> (an <em>escaped</em> dash is a literal
+member — the <code>-</code> in the guard is a bare terminal), <code>[\da-z]</code> and <code>[-\d]</code> (a nonliteral member
+adjacent to but not part of a range). Valid literal-escape ranges (<code>[\n-\r]</code>, <code>[\x30-\x39]</code>)
+and nonliteral <strong>members</strong> (<code>[\d]</code>, <code>[\p{Lu}]</code>, <code>[\s\w]</code>) are unaffected — only a nonliteral
+used as a range <em>endpoint</em> is rejected.</p>
+<p><code>invalid_class_range</code> and its <code>class_range_nonliteral_*</code> helpers are referenced only inside
+the <code>!(…)</code> lookahead, so they are never positively entered; certificate-coverage certifies
+them by <strong>PROOF</strong> (the lookahead-only / positively-unreachable class), keeping regex
+<code>UNKNOWN=0</code>. <strong>Scope:</strong> shorthand + property endpoints only — the POSIX-left (<code>[[:alpha:]-z]</code>)
+and <code>-[</code>-right (<code>[a-[:digit:]]</code>, ledger <code>REGEX-0105</code>) cases stay validator-owned pending
+<code>REGEX-PCRE2-FIDELITY.4.5.c</code>.</p>
 <h2 id="walking-a-class-body"><a class="header" href="#walking-a-class-body">Walking a class body</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

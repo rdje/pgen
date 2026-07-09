@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8d27c87b.js";
+            window.path_to_searchindex_js = "searchindex-8b1ef0ea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -223,7 +223,7 @@ the EBNF becomes the sole source of truth.</p>
 CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.96</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.97</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">
@@ -232,7 +232,7 @@ one instance is the only one and it can only ever shrink.</p>
 <tr><th>Family (what it rejects)</th><th>Example load-bearing inputs</th><th>Migration leaf</th></tr>
 </thead>
 <tbody>
-<tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges</td><td><code>[\d-x]</code>, <code>[a-\p{Lu}]</code>, <code>[z-a]</code>, <code>[\x{100}-z]</code></td><td><code>.4.5</code></td></tr>
+<tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges (<strong>nonliteral shorthand/property endpoints now ALSO grammar-owned — <code>.4.5.b</code></strong>; POSIX-left, descending, and <code>-[</code>-right stay validator-owned)</td><td><code>[[:alpha:]-z]</code> (posix-left), <code>[z-a]</code> (descending), <code>[a-[:digit:]]</code> (<code>-[</code>-right)</td><td><code>.4.5.c</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -257,7 +257,19 @@ horizontal analogs <code>\h</code> / <code>\H</code>: dropped from the grammar r
 untouched; duality-safe) and added to <code>is_nonliteral_class_escape</code> (err-150 reject). Members <code>[\v]</code> / <code>[\V]</code>
 and hex/octal endpoints of the same code point (<code>[\x0b-\x0c]</code>) stay valid. The class-range family <strong>stays
 validator-owned</strong> pending <code>.4.5.b</code>/<code>.4.5.c</code>. Oracle byte-identical (<code>2189/1867/274/48</code> — corpus-invisible,
-proven by the direct <code>pcre2test</code> sweep + the unit pin).
+proven by the direct <code>pcre2test</code> sweep + the unit pin).</p>
+<p><strong><code>1.1.97</code> (REGEX-0107, <code>.4.5.b</code>) — a behavior-NEUTRAL validator→grammar migration (NOT a correctness
+fix).</strong> The nonliteral-shorthand/property half of the range family is now GRAMMAR-owned: a class range
+whose LEFT or RIGHT endpoint is a shorthand (<code>\d \D \h \H \s \S \v \V \w \W</code>) or property (<code>\p…</code> / <code>\P…</code>)
+escape — <code>[\d-x]</code>, <code>[a-\d]</code>, <code>[\p{Lu}-x]</code>, <code>[a-\p{Lu}]</code> — is rejected by a new zero-width negative
+lookahead <code>!invalid_class_range</code> on the three class-item positions. The GRAMMAR previously ACCEPTED these
+(splitting <code>[\d-x]</code> into members <code>\d</code>, <code>-</code>, <code>x</code>, because <code>class_atom</code> excludes the shorthand/property
+escapes) and only THIS validator rejected them; the reject is now encoded in the EBNF. Because the
+validator still ALSO rejects them (this row’s check is NOT yet deleted — the deletion waits until the whole
+family is grammar-owned, <code>.4.5.c</code> + the <code>-[</code>/<code>\v\V</code> cases), the released verdict is unchanged; the
+migration is observable only at the grammar layer (the certified interpreter). The literal-dash carve-outs
+(<code>[a-]</code>, <code>[-a]</code>, <code>[\d-]</code>, <code>[\d\-x]</code>, <code>[\da-z]</code>, <code>[-\d]</code>) and valid ranges/members stay ACCEPT. Cert 239→245
+(+3 witnessed <code>*_core</code> rules, +3 lookahead-only PROOF rules), oracle byte-identical, duality unchanged.
 | Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code> | <code>.4.7</code> |
 | <strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix | <code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code> | <code>.4.8</code> |
 | <strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded | <code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code> | <code>.4.9</code> |

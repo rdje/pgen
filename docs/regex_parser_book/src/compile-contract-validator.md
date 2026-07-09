@@ -52,13 +52,13 @@ one instance is the only one and it can only ever shrink.
 
 ## The remaining check families
 
-As of regex release `1.1.96`, the validator dispatches these families (each row is a
+As of regex release `1.1.97`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 
 | Family (what it rejects) | Example load-bearing inputs | Migration leaf |
 |---|---|---|
-| Character-class **RANGE** validity — nonliteral endpoints + descending ranges | `[\d-x]`, `[a-\p{Lu}]`, `[z-a]`, `[\x{100}-z]` | `.4.5` |
+| Character-class **RANGE** validity — nonliteral endpoints + descending ranges (**nonliteral shorthand/property endpoints now ALSO grammar-owned — `.4.5.b`**; POSIX-left, descending, and `-[`-right stay validator-owned) | `[[:alpha:]-z]` (posix-left), `[z-a]` (descending), `[a-[:digit:]]` (`-[`-right) | `.4.5.c` |
 
 > **`1.1.95` (REGEX-0105, `.4.5.a`) — a range-validity *correctness fix*, not a migration.** A range whose
 > right endpoint began with `[` (or `||`) inside a NORMAL class — `[a-[b]]`, `[x-[:alpha:]]`, `[~-||]`,
@@ -82,6 +82,19 @@ As of regex release `1.1.96`, the validator dispatches these families (each row 
 > and hex/octal endpoints of the same code point (`[\x0b-\x0c]`) stay valid. The class-range family **stays
 > validator-owned** pending `.4.5.b`/`.4.5.c`. Oracle byte-identical (`2189/1867/274/48` — corpus-invisible,
 > proven by the direct `pcre2test` sweep + the unit pin).
+>
+> **`1.1.97` (REGEX-0107, `.4.5.b`) — a behavior-NEUTRAL validator→grammar migration (NOT a correctness
+> fix).** The nonliteral-shorthand/property half of the range family is now GRAMMAR-owned: a class range
+> whose LEFT or RIGHT endpoint is a shorthand (`\d \D \h \H \s \S \v \V \w \W`) or property (`\p…` / `\P…`)
+> escape — `[\d-x]`, `[a-\d]`, `[\p{Lu}-x]`, `[a-\p{Lu}]` — is rejected by a new zero-width negative
+> lookahead `!invalid_class_range` on the three class-item positions. The GRAMMAR previously ACCEPTED these
+> (splitting `[\d-x]` into members `\d`, `-`, `x`, because `class_atom` excludes the shorthand/property
+> escapes) and only THIS validator rejected them; the reject is now encoded in the EBNF. Because the
+> validator still ALSO rejects them (this row's check is NOT yet deleted — the deletion waits until the whole
+> family is grammar-owned, `.4.5.c` + the `-[`/`\v\V` cases), the released verdict is unchanged; the
+> migration is observable only at the grammar layer (the certified interpreter). The literal-dash carve-outs
+> (`[a-]`, `[-a]`, `[\d-]`, `[\d\-x]`, `[\da-z]`, `[-\d]`) and valid ranges/members stay ACCEPT. Cert 239→245
+> (+3 witnessed `*_core` rules, +3 lookahead-only PROOF rules), oracle byte-identical, duality unchanged.
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
 | **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |

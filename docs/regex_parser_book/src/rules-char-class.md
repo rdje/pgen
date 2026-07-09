@@ -144,7 +144,8 @@ that caret would have been the negation.
 ## `class_item`
 
 ```ebnf
-class_item     = posix_class
+class_item     = !invalid_class_range class_item_core   -> $2
+class_item_core = posix_class
                | stray_class_end_quote
                | class_range
                | quoted_class_literal
@@ -153,7 +154,11 @@ class_item     = posix_class
 ```
 
 The unrestricted item (used after the first visible member / after an initial `]`-literal).
-Branch 4 is `class_member_literal` (a guarded one-char literal — see
+The leading `!invalid_class_range` is a zero-width guard that rejects a class range with a
+nonliteral endpoint (see [Nonliteral class-range endpoints](#nonliteral-class-range-endpoints-the-invalid_class_range-guard)
+below); `-> $2` passes the matched `class_item_core` value through unchanged, so the typed
+value is byte-identical to the pre-guard alternation. Branch 4 of `class_item_core` is
+`class_member_literal` (a guarded one-char literal — see
 [POSIX name validity](#posix-name-validity-the-class_member_literal-guard)), whose value is
 the same bare-string char as the underlying `class_literal`.
 
@@ -169,22 +174,57 @@ the same bare-string char as the underlying `class_literal`.
 ## `class_item_visible` / `class_item_visible_nocaret`
 
 ```ebnf
-class_item_visible = posix_class
-                   | class_range
-                   | quoted_class_literal_nonempty
-                   | class_member_literal
-                   | class_escape
-class_item_visible_nocaret = posix_class
-                           | class_range
-                           | quoted_class_literal_nonempty
-                           | class_member_literal_nocaret
-                           | class_escape
+class_item_visible = !invalid_class_range class_item_visible_core   -> $2
+class_item_visible_core = posix_class
+                        | class_range
+                        | quoted_class_literal_nonempty
+                        | class_member_literal
+                        | class_escape
+class_item_visible_nocaret = !invalid_class_range class_item_visible_nocaret_core -> $2
+class_item_visible_nocaret_core = posix_class
+                                | class_range
+                                | quoted_class_literal_nonempty
+                                | class_member_literal_nocaret
+                                | class_escape
 ```
 
 `class_item` minus the invisible forms (branch 1 stray `\E`; the *empty* `\Q\E`), preserving
-the same relative alternative order. The `_nocaret` variant swaps in `class_member_literal_nocaret`
-so a bare `^` cannot fill the first-visible slot of a non-negated class. Their values are the
-same typed values as the matching `class_item` branches — consumers never see a difference.
+the same relative alternative order, each carrying the same `!invalid_class_range` guard. The
+`_nocaret` variant swaps in `class_member_literal_nocaret` so a bare `^` cannot fill the
+first-visible slot of a non-negated class. Their values are the same typed values as the
+matching `class_item` branches — consumers never see a difference.
+
+## Nonliteral class-range endpoints (the `invalid_class_range` guard)
+
+A character-class range whose LEFT or RIGHT endpoint is a **nonliteral** shorthand
+(`\d \D \h \H \s \S \v \V \w \W`) or property (`\p…` / `\P…`) escape is malformed in PCRE2
+(err 150 "invalid range"): `[\d-x]`, `[a-\d]`, `[\p{Lu}-x]`, `[a-\p{Lu}]`, `[\d-\w]`. A
+zero-width negative lookahead at each class-item position rejects them at the grammar layer
+(they were previously rejected only by the out-of-band compile-contract validator — this
+migrates the reject into the EBNF, `REGEX-PCRE2-FIDELITY.4.5.b`, ledger `REGEX-0107`):
+
+```ebnf
+invalid_class_range = class_range_nonliteral_atom class_zero_width* "-" class_zero_width* ( class_range_nonliteral_atom | class_atom )
+                    | class_atom class_zero_width* "-" class_zero_width* class_range_nonliteral_atom
+class_range_nonliteral_atom = "\\" class_range_nonliteral_shorthand
+                            | "\\" property_escape
+class_range_nonliteral_shorthand = 'd' | 'D' | 'h' | 'H' | 's' | 'S' | 'v' | 'V' | 'w' | 'W'
+```
+
+The guard is deliberately narrow so the **literal-dash carve-outs** stay valid: `[a-]` and
+`[-a]` (dash at an edge), `[\d-]` (a nonliteral followed by a trailing dash and `]` — shape 1
+requires a real endpoint atom after the `-`), `[\d\-x]` (an *escaped* dash is a literal
+member — the `-` in the guard is a bare terminal), `[\da-z]` and `[-\d]` (a nonliteral member
+adjacent to but not part of a range). Valid literal-escape ranges (`[\n-\r]`, `[\x30-\x39]`)
+and nonliteral **members** (`[\d]`, `[\p{Lu}]`, `[\s\w]`) are unaffected — only a nonliteral
+used as a range *endpoint* is rejected.
+
+`invalid_class_range` and its `class_range_nonliteral_*` helpers are referenced only inside
+the `!(…)` lookahead, so they are never positively entered; certificate-coverage certifies
+them by **PROOF** (the lookahead-only / positively-unreachable class), keeping regex
+`UNKNOWN=0`. **Scope:** shorthand + property endpoints only — the POSIX-left (`[[:alpha:]-z]`)
+and `-[`-right (`[a-[:digit:]]`, ledger `REGEX-0105`) cases stay validator-owned pending
+`REGEX-PCRE2-FIDELITY.4.5.c`.
 
 ## Walking a class body
 

@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.98`
+  - `1.1.99`
 - Parser release version:
-  - `1.1.96`
+  - `1.1.97`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,25 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.97 / Contract 1.1.99 Highlights — REGEX-0107: nonliteral class-range endpoints are now GRAMMAR-owned (behavior-NEUTRAL validator→grammar migration)
+
+**Bug ledger:** `REGEX-0107` — internal, `REGEX-PCRE2-FIDELITY.4.5.b`. **This is a behavior-NEUTRAL migration (a sibling of `REGEX-0101`/`0102`/`0104`), NOT a verdict change.** A character-class RANGE whose LEFT or RIGHT endpoint is a NONLITERAL SHORTHAND (`\d \D \h \H \s \S \v \V \w \W`) or PROPERTY (`\p…` / `\P…`) escape is PCRE2 err 150 "invalid range" — the released parser already REJECTED these, but the reject was owned only by the out-of-band `validate_regex_compile_contract`. The GRAMMAR alone ACCEPTED them: `class_atom` (the range-endpoint reader) excludes the shorthand/property escapes, so `class_range` never forms and the mid-class `-` falls through to a literal member (a class of three members `\d`, `-`, `x`) — a single-source-of-truth hole (the EBNF did not encode the rule). This slice migrates the reject INTO the grammar.
+
+**What changed (verdicts are byte-identical — NEUTRAL downstream).** A new zero-width negative-lookahead `!invalid_class_range` guards the three class-item positions (`class_item` / `class_item_visible` / `class_item_visible_nocaret`, via `*_core` passthrough rules `-> $2`). It rejects two shapes — nonliteral LEFT (`[\d-x]`, `[\p{Lu}-x]`) and literal-LEFT/nonliteral-RIGHT (`[a-\d]`, `[a-\p{Lu}]`) — so the GRAMMAR now rejects them on its own. Because the validator still also rejects them (its range-check deletion is deferred until the whole class-range family is grammar-owned — `.4.5.c` + the `-[` / `\v\V` cases), the released `--parse` verdict is UNCHANGED. The migration's effect is observable only at the grammar layer (proven by the certified interpreter, which runs the grammar WITHOUT the validator). The literal-dash carve-outs stay ACCEPT (the `-` must be a BARE endpoint-flanked dash): `[a-]`, `[-a]`, `[\d-]`, `[\d\-x]`, `[\da-z]`, `[-\d]`, `[--/]`, `[a-z]`.
+
+| Rule | Example | Grammar verdict (before) | Grammar verdict (`1.1.97`) = PCRE2 10.47 | Released `--parse` (both) |
+|---|---|---|---|---|
+| **nonliteral shorthand/property range endpoint (err 150)** | `[\d-x]` · `[\w-x]` · `[\p{Lu}-x]` · `[a-\d]` · `[a-\p{Lu}]` · `[\d-\w]` | ACCEPT (split members) | **REJECT** | REJECT (unchanged) |
+| literal-dash carve-out (unchanged) | `[a-]` · `[-a]` · `[\d-]` · `[\d\-x]` · `[\da-z]` · `[-\d]` · `[--/]` | ACCEPT | ACCEPT | ACCEPT |
+| plain range / valid literal-escape range (unchanged) | `[a-z]` · `[\n-\r]` · `[\x30-\x39]` | ACCEPT | ACCEPT | ACCEPT |
+| shorthand/property as a class MEMBER (unchanged) | `[\d]` · `[\p{Lu}]` · `[\s\w]` · `[a\d]` | ACCEPT | ACCEPT | ACCEPT |
+
+**Scope:** shorthand + property endpoints only. The POSIX-left (`[[:alpha:]-z]`) and the `-[`-right cases (`REGEX-0105` / `.4.5.a`) stay validator-owned, migrated with `.4.5.c`; the `find_invalid_char_class_construct` range-check is deleted only once the whole family is grammar-owned.
+
+**Conformance:** `regex_pcre2_compile_oracle_gate` (`pcre2test` 10.47) — byte-identical `2189/1867/274/48` (the released verdicts are unchanged, so the corpus is invisible to the migration; proven instead at the grammar layer). regex cert-coverage `245/245 UNKNOWN=0 fully_certified=true` at seeds 0/7/42 (**239→245**: +3 `*_core` witnessed rules, +3 lookahead-only PROOF rules — `invalid_class_range`, `class_range_nonliteral_atom`, `class_range_nonliteral_shorthand`, never positively entered), `--lint-grammar` 0 errors (245 rules), `duality_hunt_gate` 9 lanes no new/vanished signature (the generator never emits these ranges), `parse_harness_equivalence_gate` regex byte-identical (interpreter reproduces the guard), `ast_shape_contract` inventory 221→224 aligned (the 3 new `-> $2` passthroughs), AST-dump schema stays `1` (every accepted AST byte-identical).
+
+**Action for downstream (RGX):** none — the released parser's accept/reject verdicts and every accepted AST are byte-identical to `1.1.96`. This is an internal single-source-of-truth hardening (the EBNF now encodes what the validator enforced). Continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), never message text.
 
 ## Release 1.1.96 / Contract 1.1.98 Highlights — REGEX-0106: `\v` / `\V` class-range validity fix (a genuine accepts-invalid correction — NOT behavior-neutral)
 

@@ -75,7 +75,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/regex_return_annotations.json",
-    "extracted_at": "2026-07-09",
+    "extracted_at": "2026-07-09 (REGEX-PCRE2-FIDELITY.4.5.b — +3 class_item guard $2 passthroughs; 221->224)",
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
@@ -431,6 +431,24 @@
         "branch_index": 0,
         "annotation_type": "return_scalar",
         "normalized_text": "true"
+      },
+      {
+        "rule": "class_item",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "class_item_visible",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "class_item_visible_nocaret",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
       },
       {
         "rule": "class_member_literal",

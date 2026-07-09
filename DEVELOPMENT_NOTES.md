@@ -1,4 +1,16 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0033 — REGEX-PCRE2-FIDELITY.4.5.b: non-`[` NONLITERAL class-range reject migrated into the grammar (behavior-neutral)
+
+**What & why.** Migrated the nonliteral-shorthand/property half of the char-class RANGE validity check out of the out-of-band `validate_regex_compile_contract` and INTO `grammars/regex.ebnf`. A range whose LEFT or RIGHT endpoint is a shorthand (`\d \D \h \H \s \S \v \V \w \W`) or property (`\p…`/`\P…`) escape is PCRE2 err 150; the released parser already rejected these (validator), but the GRAMMAR alone accepted them by splitting into members (`class_atom` excludes the shorthand/property escapes ⇒ `class_range` never forms). Single-source-of-truth hole, encoded now.
+
+**Two engineering findings worth recording (tools-first).**
+1. **Grammar-only proof is mandatory here.** Because the validator range-check deletion is deferred (until the whole class-range family — `.4.5.c` + the `.4.5.a`/`.4.5.a.1` cases — is grammar-owned), the released `--parse` verdict is UNCHANGED (validator still rejects). So the migration's before→after is INVISIBLE to `--parse` and to the oracle corpus; the authoritative proof is the certified interpreter (`interpret_parse`, which runs the grammar WITHOUT the validator), pinned by `rust/tests/regex_class_range_nonliteral_grammar_migration.rs` (23 invalid ranges flip grammar ACCEPT→REJECT; 16 carve-outs + 22 valid-AST byte-parity stay green).
+2. **Inline alternation under `-> $N` corrupts positional refs.** The first wiring `class_item = !invalid_class_range ( <alt> ) -> $2` produced `<invalid_sequence_access>` for the `posix_class` branch specifically (the byte-parity pre-check caught it). Per `feedback_quantified_group_extraction` ("inline alternation corrupts positions"), the fix is to lift the alternation to a NAMED `*_core` rule so `$2` references a single rule ref (exactly the `.4.6` `class_member_literal = !(…) X -> $2` pattern). All 22 valid-class ASTs then went byte-identical interp==gen.
+
+**Certificate-coverage of lookahead-only rules.** `invalid_class_range` / `class_range_nonliteral_atom` / `class_range_nonliteral_shorthand` are referenced ONLY inside `!(…)`, so they are structurally reachable but positively-UNREACHABLE. `detect_lookahead_only_rules` → `gather_verified_proof_covered_rules` certifies them by verified PROOF (the certifying dual of a witness), NOT as UNKNOWNs — so cert stays `fully_certified UNKNOWN=0` while the total grows 239→245 (+3 PROOF + 3 witnessed `*_core`).
+
+**Scope kept surgical.** Shorthand + property endpoints only. POSIX-left (`[[:alpha:]-z]`) and the `-[`-right cases (`.4.5.a`, `[a-[:digit:]]`) stay validator-owned; they migrate with `.4.5.c` (which needs the `value_compare` codepoint-coercion widening for the descending case), and only then is the `find_invalid_char_class_construct` range-check deleted.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0032 — REGEX-PCRE2-FIDELITY.4.5.a.1: `\v` / `\V` class-range accepts-invalid fix (grammar + validator tier)
 
 **Surfaced by the `.4.5.b` investigation (tools-first).** While mapping the COMPLETE nonliteral class-range
