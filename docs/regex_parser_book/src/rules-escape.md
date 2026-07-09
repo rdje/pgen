@@ -58,12 +58,19 @@ PCRE2's `\C` — match one code unit. `Terminal("C")`.
 ## `simple_escape`
 
 ```ebnf
-simple_escape  = !"o{" !"x{" !"p" !"P" simple_escape_tail
+simple_escape  = !"o{" !"x{" !"p" !"P" !"k" simple_escape_tail
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
 simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
 ```
 
-The catch-all single-char escape. Emits the typed shorthand object `{type: "escape", kind: "shorthand", char: <char>}` (positional ref `char: $5`) — the character that follows the backslash.
+The catch-all single-char escape. Emits the typed shorthand object `{type: "escape", kind: "shorthand", char: <char>}` (positional ref `char: $6`) — the character that follows the backslash.
+
+> **`\k` note (REGEX-PCRE2-FIDELITY.4.2, release 1.1.93):** lowercase `k` is excluded from the
+> catch-all (the `!"k"` guard + its drop from `simple_escape_letter_strict`) — `\k` is ALWAYS a
+> named-backreference introducer (owned by `backreference`'s `\k<…>`/`\k'…'`/`\k{…}` branches,
+> see [Named backreferences](rules-misc.md)), never a bare shorthand. A malformed `\k`
+> (`\k`/`\kabc` err 169, empty `\k''`/`\k<>`/`\k{}` err 162 in PCRE2) now hard-REJECTs at the
+> grammar layer — the exact `\p`/`\P` precedent from `.4.1`.
 
 For `\d`: the inner shape is `{type:"escape",kind:"shorthand",char:"d"}` — the standard PCRE2 metacharacter is just text from the parser's perspective; semantic interpretation (`\d` = digit-class) is downstream.
 

@@ -4,8 +4,6 @@ pub struct RegexCompileValidationError {
     pub byte_offset: usize,
 }
 
-const PCRE2_MAX_NAME_SIZE: usize = 128;
-
 impl RegexCompileValidationError {
     fn new(byte_offset: usize, message: impl Into<String>) -> Self {
         Self {
@@ -31,9 +29,16 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     // that is not a valid one-letter category or `{name}` form (`\pA`, `\P_`,
     // `\p`@EOF, `[\pA]`) hard-REJECTs at the grammar layer. The EBNF is the single
     // source of truth; the out-of-band validator no longer owns it.
-    if let Some(error) = find_invalid_named_escape_or_group_name(input) {
-        return Err(error);
-    }
+    // REGEX-PCRE2-FIDELITY.4.2: the `\k` shape + `\k`/capture-group NAME charset + NAME length ≤ 128
+    // check (`find_invalid_named_escape_or_group_name`) has been MIGRATED INTO `grammars/regex.ebnf`
+    // and `find_invalid_named_escape_or_group_name` (+ its 5 exclusive helpers + `PCRE2_MAX_NAME_SIZE`)
+    // DELETED. The grammar now owns all three: (1) charset — the `name` rule (already grammar-owned);
+    // (2) length ≤ 128 code-points — `name`'s `{0,127}`-bounded continue run (RGX is Unicode-only, so
+    // the faithful unit is CODE POINTS, matching PCRE2's 32-bit code-unit err 148); (3) `\k` shape —
+    // `\k` is always a named-backreference introducer (`!"k"` on `simple_escape` + the three
+    // `\k<…>`/`\k'…'`/`\k{…}` `backreference` branches), so a bare/empty `\k` hard-REJECTs. The EBNF is
+    // the single source of truth ([[project_ebnf_is_single_source_of_truth]]); the out-of-band validator
+    // no longer owns it.
     // REGEX-PCRE2-FIDELITY.3.18: the counted-quantifier check is narrowed to the min>max ORDER
     // rule (err 104) only — the VALUE bound (err 105, ≤ 65535) and the brace TOKENIZATION model
     // (valid-syntax brace = always a quantifier; err 109 position class) were MIGRATED into
@@ -135,133 +140,6 @@ fn skip_quoted_literal_escape(bytes: &[u8], start: usize) -> usize {
 // note on `validate_regex_compile_contract`). `is_short_unicode_property_letter` is
 // retained: `skip_regex_escape` still uses it to advance past a valid `\pL` when the
 // OTHER checks below scan the pattern.
-fn find_invalid_named_escape_or_group_name(input: &str) -> Option<RegexCompileValidationError> {
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-
-    while index < bytes.len() {
-        match bytes[index] {
-            b'\\' => match bytes.get(index + 1).copied() {
-                Some(b'Q') => {
-                    index = skip_quoted_literal_escape(bytes, index);
-                }
-                Some(b'k') => {
-                    let name_start = index + 2;
-                    let Some((name, after_name)) = read_delimited_name_at(bytes, name_start) else {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "malformed named backreference escape",
-                        ));
-                    };
-                    if !is_pcre2_capture_name(name) {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "invalid named backreference escape",
-                        ));
-                    }
-                    index = after_name;
-                }
-                _ => index = skip_regex_escape(bytes, index),
-            },
-            b'[' if !is_extended_class_start(bytes, index) => {
-                index = skip_char_class_for_group(bytes, index)
-                    .map(|end| end + 1)
-                    .unwrap_or(index + 1);
-            }
-            b'(' => {
-                if let Some((name, after_name)) = read_named_group_name_at(bytes, index) {
-                    if !is_pcre2_capture_name(name) {
-                        return Some(RegexCompileValidationError::new(
-                            index,
-                            "invalid capture group name",
-                        ));
-                    }
-                    index = after_name;
-                } else {
-                    index += 1;
-                }
-            }
-            _ => index += 1,
-        }
-    }
-
-    None
-}
-
-fn read_delimited_name_at(bytes: &[u8], start: usize) -> Option<(&str, usize)> {
-    let (name_start, terminator) = match bytes.get(start).copied()? {
-        b'<' => (start + 1, b'>'),
-        b'\'' => (start + 1, b'\''),
-        b'{' => (start + 1, b'}'),
-        _ => return None,
-    };
-    let close = bytes[name_start..]
-        .iter()
-        .position(|byte| *byte == terminator)
-        .map(|offset| name_start + offset)?;
-
-    let mut trimmed_start = name_start;
-    let mut trimmed_end = close;
-    if terminator == b'}' {
-        while matches!(bytes.get(trimmed_start), Some(b' ' | b'\t')) && trimmed_start < close {
-            trimmed_start += 1;
-        }
-        while trimmed_end > trimmed_start
-            && matches!(bytes.get(trimmed_end - 1), Some(b' ' | b'\t'))
-        {
-            trimmed_end -= 1;
-        }
-    }
-
-    let name = std::str::from_utf8(&bytes[trimmed_start..trimmed_end]).ok()?;
-    Some((name, close + 1))
-}
-
-fn read_named_group_name_at(bytes: &[u8], start: usize) -> Option<(&str, usize)> {
-    if bytes.get(start) != Some(&b'(') || bytes.get(start + 1) != Some(&b'?') {
-        return None;
-    }
-
-    match bytes.get(start + 2).copied()? {
-        b'<' => {
-            if matches!(bytes.get(start + 3), Some(b'=') | Some(b'!')) {
-                return None;
-            }
-            read_delimited_name_at(bytes, start + 2)
-        }
-        b'\'' => read_delimited_name_at(bytes, start + 2),
-        b'P' if bytes.get(start + 3) == Some(&b'<') => read_delimited_name_at(bytes, start + 3),
-        _ => None,
-    }
-}
-
-fn is_pcre2_capture_name(name: &str) -> bool {
-    if name.is_empty() || name.len() > PCRE2_MAX_NAME_SIZE {
-        return false;
-    }
-
-    let mut chars = name.chars();
-    let Some(first) = chars.next() else {
-        return false;
-    };
-    if is_pcre2_name_digit(first) {
-        return false;
-    }
-    if !is_pcre2_name_char(first) {
-        return false;
-    }
-
-    chars.all(is_pcre2_name_char)
-}
-
-fn is_pcre2_name_char(ch: char) -> bool {
-    ch == '_' || ch.is_alphabetic() || is_pcre2_name_digit(ch)
-}
-
-fn is_pcre2_name_digit(ch: char) -> bool {
-    ch.is_ascii_digit() || (!ch.is_ascii() && ch.is_numeric())
-}
-
 fn is_short_unicode_property_letter(byte: u8) -> bool {
     matches!(
         byte,
@@ -1833,32 +1711,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn allows_unicode_capture_names_and_named_backreferences() {
-        validate_regex_compile_contract("(?'ABáC'...)\u{5c}g{ABáC}")
-            .expect("PCRE2 UTF-mode names may contain Unicode letters");
-        validate_regex_compile_contract("(?<ABáC>...)\u{5c}k<ABáC>")
-            .expect("named backreference accepts the same Unicode name shape");
-    }
-
-    #[test]
-    fn rejects_malformed_named_backreference_escapes() {
-        for input in [r"\k", r"\kabc", r"\k''", r"\k<>", r"\k{}"] {
-            let error = validate_regex_compile_contract(input)
-                .expect_err("malformed named backreference must be rejected");
-            assert!(error.message.contains("named backreference"));
-        }
-    }
-
-    #[test]
-    fn rejects_capture_names_beyond_pcre2_limit() {
-        let too_long_name = "abcdefghijklmnopqrstuvwxyzABCDEFGabcdefghijklmnopqrstuvwxyzABCDEabcdefghijklmnopqrstuvwxyzABCDEabcdefghijklmnopqrstuvwxyzABCDEFGH";
-        let input = format!("(?'{too_long_name}'toolong)");
-        let error = validate_regex_compile_contract(&input)
-            .expect_err("PCRE2 limits capture names to MAX_NAME_SIZE bytes");
-        assert!(error.message.contains("capture group name"));
-    }
-
+    // REGEX-PCRE2-FIDELITY.4.2: `allows_unicode_capture_names_and_named_backreferences`,
+    // `rejects_malformed_named_backreference_escapes`, and `rejects_capture_names_beyond_pcre2_limit`
+    // were DELETED — `\k` shape + NAME charset + NAME length ≤ 128 are now grammar-owned (see the
+    // migration note on `validate_regex_compile_contract`). The grammar-layer replacement is
+    // `parser_registry::tests::regex_named_names_reject_at_the_grammar_layer_pcre2_faithfully`.
     #[test]
     fn rejects_descending_class_range() {
         let error = validate_regex_compile_contract("[z-a]").expect_err("must reject [z-a]");

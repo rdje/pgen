@@ -164,6 +164,7 @@ See [Examples: Anchors and Boundaries](examples-anchors.md) for the full set wit
 ```ebnf
 backreference = "\\" backreference_digits                              -> {type: "backreference", kind: "numeric",                index: $2}
               | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
+              | "\\k" "'" name "'"                                      -> {type: "backreference", kind: "named",                  ref:   $3}
               | "\\k" braced_name_ref                                   -> {type: "backreference", kind: "named_braced",           ref:   $2}
               | "\\g" "<" name ">"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
               | "\\g" "<" signed_digits ">"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
@@ -174,7 +175,7 @@ backreference = "\\" backreference_digits                              -> {type:
               | "\\g" signed_digits                                     -> {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 ```
 
-10-way Or, **annotated** as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination).
+11-way Or, **annotated** as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination) + **REGEX-PCRE2-FIDELITY.4.2** (release 1.1.93: the explicit `\k'name'` quote branch — same `kind:"named"` as the angle form; previously `\k'name'` silently decomposed to a `simple_escape` shorthand + literals, a WRONG-shape accept — and `\k` is now always a named-backref introducer via the `!"k"` guard on `simple_escape`). Also as of `.4.2` the `name` rule is bounded `{0,127}` ⇒ every capture/backref NAME is ≤ 128 code-points (PCRE2 err 148), so a ≥ 129-code-unit name hard-REJECTs at the grammar layer.
 
 ### Shape
 

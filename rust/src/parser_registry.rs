@@ -2049,6 +2049,78 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.2 (ledger `REGEX-0103`, release 1.1.93): `\k` shape + `\k`/capture-group
+    /// NAME charset + NAME length ≤ 128 are grammar-owned. Encoded three ways in `grammars/regex.ebnf`:
+    /// (1) `name` (`:528`) bounds the continue run `{0,127}` ⇒ ≤ 128 code-points (RGX is Unicode-only, so
+    /// the faithful unit is CODE POINTS — PCRE2's 32-bit code-unit err 148 "subpattern name is too long
+    /// (maximum 128 code units)"; the deleted validator used 8-bit BYTE `name.len()`); (2) `\k` is ALWAYS
+    /// a named-backreference introducer — `!"k"` on `simple_escape` + `'k'` dropped from
+    /// `simple_escape_letter_strict` (the `.4.1` `\p`/`\P` precedent), so a bare `\k`/`\kabc` (err 169) or
+    /// empty `\k''`/`\k<>`/`\k{}` (err 162) has no rule ⇒ hard-REJECT; (3) the missing `\k'name'` quote
+    /// branch was added to `backreference`, so all three delimited forms are proper backreferences.
+    /// MIGRATED `regex_compile_validation.rs::find_invalid_named_escape_or_group_name` (+ its 5 exclusive
+    /// helpers + `PCRE2_MAX_NAME_SIZE`, now deleted) into the EBNF (single source of truth). Oracle:
+    /// `pcre2test` 10.47.
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_named_names_reject_at_the_grammar_layer_pcre2_faithfully() {
+        let n129 = "a".repeat(129); // 129-char name: PCRE2 err 148 in EVERY name position
+        let n128 = "a".repeat(128); // 128-char name: the accepted boundary
+        // Malformed `\k` (shape) + over-length names the grammar now rejects. Every one was
+        // VALIDATOR-reject (load-bearing) before this slice; `pcre2test` 10.47 rejects all.
+        let rejects = [
+            // `\k` shape: bare / no-delimiter / empty-name (err 169 / 162)
+            r"\k".to_string(),
+            r"\kabc".to_string(),
+            r"\k''".to_string(),
+            r"\k<>".to_string(),
+            r"\k{}".to_string(),
+            // over-length capture DEFINITIONS (err 148) — all three delimiter forms
+            format!("(?<{n129}>x)"),
+            format!("(?'{n129}'x)"),
+            format!("(?P<{n129}>x)"),
+            // over-length `\k` REFERENCES (err 148) — all three delimiter forms, group defined
+            format!("(?<n>a)\\k<{n129}>"),
+            format!("(?<n>a)\\k'{n129}'"),
+            format!("(?<n>a)\\k{{{n129}}}"),
+        ];
+        for pattern in &rejects {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "malformed/over-length name must reject at the grammar layer: {pattern:?}"
+            );
+        }
+        // Controls that MUST stay valid (grammar-accept AND `pcre2test` 10.47-accept): the three valid
+        // `\k` delimiter forms over a defined group, valid capture definitions, and the 128-char boundary.
+        let accepts = [
+            r"(?<n>a)\k<n>".to_string(),
+            r"(?<n>a)\k'n'".to_string(),
+            r"(?<n>a)\k{n}".to_string(),
+            r"(?<name>x)".to_string(),
+            r"(?'name'x)".to_string(),
+            r"(?P<name>x)".to_string(),
+            format!("(?<{n128}>x)"),
+            format!("(?<n>a)\\k<{}>", "n".repeat(1)),
+        ];
+        for pattern in &accepts {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "a valid `\\k` reference / capture name must accept: {pattern:?}"
+            );
+        }
+        // The malformed-`\k` rejects are PCRE2-invalid in BOTH profiles (not a relaxed opt-out).
+        for pattern in [r"\k", r"\kabc", r"\k''", r"\k<>", r"\k{}"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject malformed `\\k`: {pattern}"
+            );
+        }
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width
     /// and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to a quantifier. A quantifier
     /// binds THROUGH the stray `\E` to the preceding repeatable atom (`a\E*` = `a*`), but is

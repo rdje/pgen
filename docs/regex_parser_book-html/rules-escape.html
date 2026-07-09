@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0ebb6d46.js";
+            window.path_to_searchindex_js = "searchindex-e049ef88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -229,11 +229,19 @@ the escape-in-class rejects (<code>\A \B \C \G \K \N</code>-unbraced <code>\R \X
 validator into the EBNF — behavior-neutral, <code>E_PARSE_FAILURE</code> unchanged.</p>
 </blockquote>
 <h2 id="simple_escape"><a class="header" href="#simple_escape"><code>simple_escape</code></a></h2>
-<pre><code class="language-ebnf">simple_escape  = !"o{" !"x{" !"p" !"P" simple_escape_tail
+<pre><code class="language-ebnf">simple_escape  = !"o{" !"x{" !"p" !"P" !"k" simple_escape_tail
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
 simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
 </code></pre>
-<p>The catch-all single-char escape. Emits the typed shorthand object <code>{type: "escape", kind: "shorthand", char: &lt;char&gt;}</code> (positional ref <code>char: $5</code>) — the character that follows the backslash.</p>
+<p>The catch-all single-char escape. Emits the typed shorthand object <code>{type: "escape", kind: "shorthand", char: &lt;char&gt;}</code> (positional ref <code>char: $6</code>) — the character that follows the backslash.</p>
+<blockquote>
+<p><strong><code>\k</code> note (REGEX-PCRE2-FIDELITY.4.2, release 1.1.93):</strong> lowercase <code>k</code> is excluded from the
+catch-all (the <code>!"k"</code> guard + its drop from <code>simple_escape_letter_strict</code>) — <code>\k</code> is ALWAYS a
+named-backreference introducer (owned by <code>backreference</code>’s <code>\k&lt;…&gt;</code>/<code>\k'…'</code>/<code>\k{…}</code> branches,
+see <a href="rules-misc.html">Named backreferences</a>), never a bare shorthand. A malformed <code>\k</code>
+(<code>\k</code>/<code>\kabc</code> err 169, empty <code>\k''</code>/<code>\k&lt;&gt;</code>/<code>\k{}</code> err 162 in PCRE2) now hard-REJECTs at the
+grammar layer — the exact <code>\p</code>/<code>\P</code> precedent from <code>.4.1</code>.</p>
+</blockquote>
 <p>For <code>\d</code>: the inner shape is <code>{type:"escape",kind:"shorthand",char:"d"}</code> — the standard PCRE2 metacharacter is just text from the parser’s perspective; semantic interpretation (<code>\d</code> = digit-class) is downstream.</p>
 <p><strong>Since release 1.1.82 (REGEX-PCRE2-FIDELITY.3.13)</strong> the letter component is a <strong>positive enumeration</strong> instead of negative-lookahead guards over <code>any_char</code> (the stimuli generator is lookahead-blind, so guard-based exclusions were invisible to generation; a positive set is generation-faithful). Same accepted set per profile as before, minus the 7 escape-anchor letters (see below):</p>
 <ul>

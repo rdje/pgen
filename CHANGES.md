@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0027 — REGEX-PCRE2-FIDELITY.4.2: `\k`/group NAME validity is GRAMMAR-owned (RELEASED regex slice: release 1.1.92→1.1.93 / contract 1.1.94→1.1.95, schema 1, ledger REGEX-0103)
+
+The design-focused session the `.4.2` SCOPING called for. Tool-backed design (`pcre2test` 10.47): a name is
+capped at 128 **code units** (err 148) UNIFORMLY in every position (defs + `\g`/`(?&`/`(?P=`/`\k`/condition
+refs); the code-unit is byte@8-bit / code-point@32-bit. RGX is Unicode-only, so the faithful limit is **128
+code points**, which PGEN's `name` counts natively ⇒ a pure-grammar `{0,127}` bound (BOUNDED-QUANT.1), **no
+new primitive**. Three STRUCTURAL/DECLARATIVE grammar edits (fix-hierarchy GRAMMAR tier):
+
+- **`name` bounded `{0,127}`** (was `*`) — every name ≤ 128 code-points, matching PCRE2 err 148.
+- **`\k` is always a named-backref introducer** — `!"k"` on `simple_escape` + `'k'` dropped from
+  `simple_escape_letter_strict` (the `.4.1` `\p`/`\P` precedent), so bare `\k`/`\kabc` (err 169) and empty
+  `\k''`/`\k<>`/`\k{}` (err 162) hard-REJECT at the grammar layer in BOTH profiles.
+- **`\k'name'` quote branch added** to `backreference` (the angle/braced forms already existed).
+
+`regex_compile_validation.rs::find_invalid_named_escape_or_group_name` + its 5 exclusive helpers +
+`PCRE2_MAX_NAME_SIZE` + 3 unit tests DELETED (11th validator→grammar migration; 4th `.4` deletion-prep child;
+the function is fully retired). New pin `parser_registry::regex_named_names_reject_at_the_grammar_layer_pcre2_faithfully`.
+
+**Two fidelity refinements (NOT byte-neutral):** (a) `\k'name'` was silently mis-parsed as shorthand-`k` +
+`'`/`n`/`'` literals (accepted, WRONG shape) — now a proper `{type:"backreference",kind:"named"}`; (b) a
+non-ASCII name of 65–128 code points is now ACCEPT (was validator-REJECT under 8-bit BYTE counting) — the
+Unicode-only-faithful behavior. Pure-ASCII names byte-identical; AST-dump schema stays `1`.
+
+Verified: cert `238/238/UNKNOWN=0` seeds 0/7/42; oracle byte-identical `2189/1858/285/46`; duality 9 lanes no
+new sig; differential-equiv regex byte-identical (CERTIFIED); ast_shape inventory 219→220 aligned; dual `--lib`
+suite `887/0`; `--lint-grammar` 0 errors. Books/contract/ledger in lockstep.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0026 — REGEX-PCRE2-FIDELITY.4.2 SCOPING (PURE-DOCS, no code/version change)
 
 Tools-first scoping of the `\k`/group-NAME-validity leaf before any edit (message-source probe both

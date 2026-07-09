@@ -409,6 +409,7 @@ anchor         = "^"   -> {type: "anchor", kind: "start_of_line"}
 backreference  = numeric_backreference                                  -> $1
                | numeric_backreference_single                            -> $1
                | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
+               | "\\k" "'" name "'"                                      -> {type: "backreference", kind: "named",                  ref:   $3}
                | "\\k" braced_name_ref                                   -> {type: "backreference", kind: "named_braced",           ref:   $2}
                | "\\g" "<" name ">"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
                | "\\g" "<" signed_digits ">"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
@@ -525,7 +526,16 @@ sign           = "+" | "-"
 # as the Terminal value (the standard regex-literal codegen path).
 # REGEX-SELF-HOSTING.5c: `name` = name_start name_continue* with `-> $text` (clean string).
 # name_start = letter|'_'|unicode_char; name_continue = letter|digit|'_'|unicode_char.
-name           = ( letter | '_' | unicode_char ) ( letter | digit | '_' | unicode_char )* -> $text
+# REGEX-PCRE2-FIDELITY.4.2: the `name_continue` run is bounded `{0,127}` (was `*`) so a name is
+# ≤ 128 code-points. PCRE2 (oracle `pcre2test` 10.47) caps every name — capture DEFINITIONS
+# `(?<…>` AND every REFERENCE `\g<…>`/`(?&…)`/`(?P=…)`/`\k<…>`/condition `(?(…)…)` — at 128 code
+# units UNIFORMLY (err 148 "subpattern name is too long"); this single shared bound is that limit
+# in one place (gen+parse share the rule ⇒ duality-safe). RGX is Unicode-only
+# ([[feedback_rgx_unicode_only_8bit_test_divergence]]) ⇒ the faithful unit is CODE POINTS (128),
+# which `name` counts natively — matching PCRE2's 32-bit code-unit semantics exactly, no primitive
+# needed (BOUNDED-QUANT.1 made `{N,M}` first-class). Migrates the length half of
+# `regex_compile_validation.rs::is_pcre2_capture_name` (which used 8-bit BYTE `name.len()`) into the EBNF.
+name           = ( letter | '_' | unicode_char ) ( letter | digit | '_' | unicode_char ){0,127} -> $text
 # GRAMMAR-WELLFORMED.H.10.1: the former `name_start` / `name_continue`
 # helpers (inlined into `name` above by REGEX-SELF-HOSTING.5c) were
 # removed as proven-dead (unreachable_from_entry).
@@ -976,12 +986,20 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 # the `simple_escape_letter_strict` positive set below so generation never emits
 # a bare `\p` (a lookahead is generator-blind; the positive set is the
 # generation-faithful half of the `.3.13` duality contract).
-simple_escape  = !"o{" !"x{" !"p" !"P" simple_escape_tail -> {type: "escape", kind: "shorthand", char: $5}
+# REGEX-PCRE2-FIDELITY.4.2: `!"k"` added — `\k` is ALWAYS a named-backreference introducer in PCRE2
+# (owned by `backreference`'s three `\k<…>`/`\k'…'`/`\k{…}` branches), NEVER a bare shorthand. Bare
+# `\k`/`\kabc` = err 169, empty `\k''`/`\k<>`/`\k{}` = err 162 (oracle `pcre2test` 10.47). The
+# lowercase-`k` drop from `simple_escape_letter_strict` below is the generation-faithful half — the
+# exact `.4.1` `\p`/`\P` precedent. Guard count 4→5 ⇒ tail is now `$6`.
+simple_escape  = !"o{" !"x{" !"p" !"P" !"k" simple_escape_tail -> {type: "escape", kind: "shorthand", char: $6}
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
 simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxed
-# 35 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
+# 34 letters = 52 minus the 7 escape-anchors (`A B G K Z b z`) minus the 6
 # PCRE2-unsupported fidelity letters (`F L U i l u`) minus `E` and `Q` minus the
-# 2 Unicode-property introducers (`P p`, REGEX-PCRE2-FIDELITY.4.1: `\p` / `\P` are
+# 2 Unicode-property introducers (`P p`) minus lowercase `k`
+# (REGEX-PCRE2-FIDELITY.4.2: `\k` is ALWAYS a named-backreference introducer, never a bare
+# shorthand — the generation-faithful half of the `!"k"` lookahead on `simple_escape` above,
+# the exact `.4.1` `\p`/`\P` precedent). (REGEX-PCRE2-FIDELITY.4.1: `\p` / `\P` are
 # ALWAYS property escapes owned by `property_escape`, never bare shorthands — the
 # positive-set drop is the generation-faithful half of the `!"p"` / `!"P"`
 # lookahead broadening on `simple_escape` above)
@@ -997,7 +1015,7 @@ simple_escape_letter = simple_escape_letter_strict | simple_escape_letter_relaxe
 # the LOWERCASE `\q` stays a shorthand). Uppercase-anchor letters, `E`, and
 # `Q` are the piece-level zero-width / quoting forms owned outside `simple_escape`.
 simple_escape_letter_strict = 'C' | 'D' | 'H' | 'I' | 'J' | 'M' | 'N' | 'O' | 'R' | 'S' | 'T' | 'V' | 'W' | 'X' | 'Y'
-                            | 'a' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'j' | 'k' | 'm' | 'n' | 'o' | 'q' | 'r' | 's' | 't' | 'v' | 'w' | 'x' | 'y'
+                            | 'a' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'j' | 'm' | 'n' | 'o' | 'q' | 'r' | 's' | 't' | 'v' | 'w' | 'x' | 'y'
 @profiles: ["relaxed"]
 simple_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'
 

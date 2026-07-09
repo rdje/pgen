@@ -52,13 +52,12 @@ one instance is the only one and it can only ever shrink.
 
 ## The remaining check families
 
-As of regex release `1.1.92`, the validator dispatches these families (each row is a
+As of regex release `1.1.93`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 
 | Family (what it rejects) | Example load-bearing inputs | Migration leaf |
 |---|---|---|
-| `\k` / group **NAME** validity — charset (letter/digit/`_`/Unicode, no leading digit) + length ≤ 128 | `\k`, `\kabc`, `\k''`, `\k<>`, a 129-char capture name | `.4.2` |
 | Counted-quantifier **min > max** order (err 104) | `x{5,4}`, `a{\t5\t,\t2\t}` | `.4.3` |
 | Character-class **RANGE** validity — nonliteral endpoints + descending ranges | `[\d-x]`, `[a-\p{Lu}]`, `[z-a]`, `[\x{100}-z]` | `.4.5` |
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
@@ -71,10 +70,13 @@ trail): the six PCRE2-unsupported escape letters `\i \F \l \L \u \U` (`.3.1`), v
 start-option NAME + argument shapes (`.3.2`/`.3.14`), quantified anchors (`.3.13`),
 the class-open visibility model (`.3.15`), the counted-quantifier VALUE bound + brace
 tokenization (`.3.18`), the numeric-callout range (`.3.16`), bare `\p`/`\P` property
-escapes (`.4.1`), POSIX character-class **NAME** validity (`.4.6`), and the
-**escape-in-class** rejects `\A \B \C \G \K \N`(unbraced)`\R \X \Z \z` (`.4.4`). A related
-divergence with no validator check at all — the named-reference *unknown-name*
-inventory (`\k<zzz>`… @undefined) — is tracked as `.4.11` (ledger `REGEX-0098`).
+escapes (`.4.1`), POSIX character-class **NAME** validity (`.4.6`), the
+**escape-in-class** rejects `\A \B \C \G \K \N`(unbraced)`\R \X \Z \z` (`.4.4`), and
+`\k`/group **NAME** validity — the `\k` shape + charset + length ≤ 128 code-points
+(`.4.2`; `find_invalid_named_escape_or_group_name` + its 5 exclusive helpers +
+`PCRE2_MAX_NAME_SIZE` DELETED). A related divergence with no validator check at all — the
+named-reference *unknown-name* inventory (`\k<zzz>`… @undefined) — is tracked as `.4.11`
+(ledger `REGEX-0098`).
 
 ## Which layer rejected my pattern?
 

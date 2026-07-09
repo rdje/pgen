@@ -1036,11 +1036,20 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   Highlights; regex book (`rules-escape.md` § `simple_escape`/`property_escape` + `changelog-index.md` +
   tracked `-html`); top book `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
   `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
-- ID: `.4.2` Status: `pending` Goal: encode `\k`/group NAME validity — charset (letter/digit/`_`/Unicode,
-  no leading digit) + length ≤ 128 (`\k`/`\kabc`/`\k''`/`\k<>`/`\k{}` + a 129-char capture name reject).
-  Owns `find_invalid_named_escape_or_group_name`. charset = **STRUCTURAL** (the `name` rule); length ≤128 =
-  a `len_bounds` `@predicate` (value-constraint) — assess whether the atom-scoped constraint machinery
-  reaches a `$text` name rule (cf. the `.3.16` atom-scope finding).
+- ID: `.4.2` Status: **`done`** (`PGEN-REGEX-PCRE2-0027`, session #76; release `1.1.92`→`1.1.93`, contract `1.1.94`→`1.1.95`, schema `1`, ledger `REGEX-0103`) Goal: encode `\k`/group NAME
+  validity — charset (letter/digit/`_`/Unicode, no leading digit) + length ≤ 128
+  (`\k`/`\kabc`/`\k''`/`\k<>`/`\k{}` + a 129-char capture name reject). Owns
+  `find_invalid_named_escape_or_group_name`. **DESIGN RESOLVED tools-first (session #76)** — the length half's
+  byte-vs-code-unit question (SCOPING §`.4.2`) is settled: `pcre2test` 10.47 gives err 148 "subpattern name
+  is too long (maximum 128 **code units**)" and the code-unit is width-dependent (8-bit → byte, 32-bit →
+  code-point; measured: 64×'é'=128B OK/65×'é' REJECT @8-bit, 128×'é' OK/129 REJECT @32-bit). RGX is
+  Unicode-only ([[feedback_rgx_unicode_only_8bit_test_divergence]]) ⇒ the faithful limit is **128 code
+  points**, which PGEN's `name` rule counts natively ⇒ a pure-grammar `{0,127}` bound (BOUNDED-QUANT.1),
+  **NO new primitive**. All three fixes are STRUCTURAL/DECLARATIVE (fix-hierarchy GRAMMAR tier): (1) bound the
+  shared `name` rule `* → {0,127}` (PCRE2 enforces 128 UNIFORMLY on every name — defs AND `\g`/`(?&`/`(?P=`/
+  `\k`/condition refs, all err 148, measured); (2) `\k` always-introducer: `!"k"` guard on `simple_escape` +
+  drop `'k'` from `simple_escape_letter_strict` (the `.4.1` `\p`/`\P` precedent); (3) add the missing
+  `\k'name'` quote branch to `backreference`. See the `.4.2` implementation section + Acceptance Checklist below.
 - ID: `.4.3` Status: `pending` Goal: encode counted-quantifier `{N,M}` min>max ORDER (err 104;
   `x{5,4}`/`a{\t5\t,\t2\t}` reject). Owns the residual of `find_invalid_counted_quantifier`. **VALUE-COMPARISON**
   (cross-number, leading-zero-hostile) — `.3.18` explicitly deferred it here; likely needs a rule-span
@@ -1307,6 +1316,86 @@ vs a length primitive per the fix hierarchy). Recommended: take `.4.2` up in a F
 with this scoping as the starting point. `find_invalid_named_escape_or_group_name` stays validator-owned
 until then.
 
+### REGEX-PCRE2-FIDELITY.4.2 — `\k`/group NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0027`, session #76)
+
+**Design (tool-backed, `pcre2test` 10.47 oracle + message-source probe).** The fresh design-focused session
+the SCOPING called for. Three tool-backed facts settle it:
+- **Name length = 128 code units, UNIFORM across ALL name positions.** `pcre2test` gives err 148 "subpattern
+  name is too long (maximum 128 code units)" for a 129-char name in EVERY position — def `(?<…>x)` AND refs
+  `\g<…>` / `(?&…)` / `(?P=…)` / `\k<…>` / condition `(?(…)a)` (all measured). ⇒ bounding the SHARED `name`
+  rule is the faithful, simplest, duality-safe (gen+parse share the rule) encoding, orthogonal to `.4.11`
+  (existence, not length).
+- **The code-unit is width-dependent; RGX is Unicode-only ⇒ 128 code POINTS.** 8-bit: 64×'é' (128 bytes) OK /
+  65×'é' (130 bytes) REJECT (code-unit = byte). 32-bit: 128×'é' OK / 129×'é' REJECT (code-unit = code-point).
+  Per [[feedback_rgx_unicode_only_8bit_test_divergence]] RGX matches the Unicode (code-point) semantics, so
+  the faithful limit is 128 code-points. PGEN's `name` counts Unicode scalars natively ⇒ `( first )( rest ){0,127}`
+  = max 128 code-points = EXACT. **NO new primitive** (BOUNDED-QUANT.1 made `{N,M}` first-class). The deleted
+  validator used BYTE `name.len()` (8-bit semantics); the grammar's code-point count is MORE correct for RGX —
+  the only behavior change is multi-byte names of 65–128 code-points, now ACCEPT (was validator-REJECT), which
+  is the ratified Unicode-only posture, not a fidelity regression.
+- **`\k` shape.** `pcre2test`: bare `\k` / `\kabc` → err 169 "\k is not followed by a braced, angle-bracketed,
+  or quoted name"; empty `\k''` / `\k<>` / `\k{}` → err 162 "subpattern name expected"; `\k<n>` / `\k'n'` /
+  `\k{n}` → COMPILE-OK. So `\k` is ALWAYS a named-backref introducer (never a bare shorthand), needing a
+  non-empty delimited name. The GRAMMAR alone accepted `\k`/`\kabc`/`\k<>`/…: lowercase `k` was in
+  `simple_escape_letter_strict`, so `\k` matched the `simple_escape` catch-all (`{kind:"shorthand",char:"k"}`)
+  and the trailing chars parsed as literals — the `.4.1` `\p`/`\P` reach-path exactly. (Bonus latent fix:
+  `\k'n'` was silently mis-parsed as shorthand-`k` + `'`/`n`/`'` literals — NO `\k'…'` branch existed — so its
+  AST shape was WRONG though ACCEPTED; this slice makes it a proper `{type:"backreference",kind:"named"}`.)
+
+Three grammar edits (STRUCTURAL/DECLARATIVE, fix-hierarchy GRAMMAR tier, no engine change):
+1. **Length** — `name = ( letter | '_' | unicode_char ) ( letter | digit | '_' | unicode_char ){0,127} -> $text`
+   (was `*`). Bounds every name to ≤128 code-points, matching PCRE2 err 148 uniformly.
+2. **`\k` always-introducer** — `!"k"` guard added to `simple_escape` (`char:$5`→`$6`) + `'k'` dropped from
+   `simple_escape_letter_strict`. `\k` never matches the shorthand catch-all in EITHER profile (relaxed does
+   not re-admit `k`), so a malformed `\k` has no rule ⇒ hard REJECT.
+3. **`\k'name'` quote branch** — `| "\\k" "'" name "'" -> {type:"backreference", kind:"named", ref:$3}` added
+   to `backreference` (the angle/braced forms already exist via `name_ref`/`braced_name_ref`).
+
+Validator: `find_invalid_named_escape_or_group_name` + its 5 EXCLUSIVE helpers (`read_delimited_name_at`,
+`read_named_group_name_at`, `is_pcre2_capture_name`, `is_pcre2_name_char`, `is_pcre2_name_digit`) + the
+`PCRE2_MAX_NAME_SIZE` const are DELETED (charset was already grammar-owned per SCOPING; shape+length now are
+too). Shared helpers (`skip_char_class_for_group` / `is_extended_class_start` / `skip_quoted_literal_escape`
+/ `is_short_unicode_property_letter`) STAY. 3 validator tests deleted
+(`allows_unicode_capture_names_and_named_backreferences` / `rejects_malformed_named_backreference_escapes` /
+`rejects_capture_names_beyond_pcre2_limit`); ADD `parser_registry.rs` pin
+`regex_named_names_reject_at_the_grammar_layer_pcre2_faithfully`. This is the 4th `.4` deletion-prep child +
+the 11th compile-contract check migrated; `find_invalid_named_escape_or_group_name` fully retired.
+
+Released slice: release `1.1.92`→`1.1.93` / contract `1.1.94`→`1.1.95` / schema `1` (the backreference typed
+shape already exists; `\k'n'`'s shape change is a fix within the existing carrier, no schema bump); ledger
+`REGEX-0103`.
+
+#### `.4.2` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — message-source probe (release `parseability_probe --parse regex --profile
+  {pcre2,relaxed}`) + `pcre2test` 10.47: `\k` `\kabc` `\k''` `\k<>` `\k{}` REJECT with the VALIDATOR message
+  ("malformed/invalid named backreference escape") firing only AFTER a grammar-accept; a 129-char capture
+  name / `\k` name REJECT with the VALIDATOR "capture group name" message ⇒ the GRAMMAR ALONE accepts these
+  PCRE2-invalid patterns.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf`: (1) `name` (`:528`) was unbounded `*` (no length
+  gate); (2) `simple_escape_letter_strict` (`:1000`) listed lowercase `k`, so `\k` matched the `simple_escape`
+  (`:979`) catch-all as a shorthand and trailing chars parsed as literals; (3) no `\k'…'` branch existed in
+  `backreference` (`:409`). The shape+length rejects lived OUT-OF-BAND in
+  `regex_compile_validation.rs::find_invalid_named_escape_or_group_name` (`:138`) — a single-source-of-truth
+  hole ([[project_ebnf_is_single_source_of_truth]]).
+- [x] **FIX** — fix-hierarchy GRAMMAR tier (no engine change): (1) `name` `*`→`{0,127}`; (2) `!"k"` guard on
+  `simple_escape` + drop `'k'` from `simple_escape_letter_strict`; (3) add `"\\k" "'" name "'"` branch.
+  Validator: delete `find_invalid_named_escape_or_group_name` + its 5 exclusive helpers + `PCRE2_MAX_NAME_SIZE`
+  + 3 tests; ADD the `parser_registry.rs` pin.
+- [x] **ADDRESSED (verified)** — after regen + both-binary rebuild, the message-source probe shows the malformed
+  `\k` forms + the 129-char names flip to the GRAMMAR message (`Parser did not consume full input`, both
+  profiles) and the controls (`\k<n>`/`\k'n'`/`\k{n}`, valid + 128-char + Unicode names) stay ACCEPT; `\k'n'`
+  now dumps a `backreference` AST. Every verdict matches `pcre2test` 10.47.
+- [x] **NO REGRESSION** — regex cert-coverage `total=238 witness=238 UNKNOWN=0 fully_certified=true spf=0` at
+  seeds 0/7/42; `regex_pcre2_compile_oracle_gate` byte-identical baseline `2189/1858/285/46`; `duality_hunt_gate`
+  9 lanes NO new/vanished signature; `parse_harness_equivalence_gate` regex byte-identical; `regex_ast_shape_contract_gate`
+  aligned; dual `--lib` suite (−3 deleted validator tests + 1 new pin); `--lint-grammar` 0 errors; the other 5
+  fully-certified grammars untouched; clippy no-new-findings.
+- [x] **LOCKSTEP** — `grammars/regex.ebnf`; `regex_compile_validation.rs`; `parser_registry.rs` pin;
+  `embedding_api.rs` consts `1.1.93`/`1.1.95`; `regex_parser_integration_contract_v1.json`; contract Identity +
+  Highlights; ledger `REGEX-0103`; regex book (`rules-escape` + `rules-groups` + `compile-contract-validator` +
+  `changelog-index` + tracked HTML); top book `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
+  `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
+
 ## `.2` DESIGN — the explicit `pcre2` default (uncovered scoping `.3.1`, 2026-06-07)
 
 **The wrinkle (tool-backed):** the codegen profile guard `rule_profile_is_enabled`
@@ -1438,6 +1527,22 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-09, session #76)** `.4.2` LANDED (`PGEN-REGEX-PCRE2-0027`, RELEASED regex slice — release
+  `1.1.92`→`1.1.93`, contract `1.1.94`→`1.1.95`, schema `1`, ledger `REGEX-0103`): `\k`/group NAME validity
+  is now GRAMMAR-owned — the design-focused session the `.4.2` SCOPING called for. Tool-backed (`pcre2test`
+  10.47): name ≤ 128 CODE UNITS (err 148) UNIFORM across every position; code-unit = byte@8-bit /
+  code-point@32-bit; RGX Unicode-only ⇒ 128 code points ⇒ pure-grammar `{0,127}` (BOUNDED-QUANT.1), NO new
+  primitive. 3 grammar edits: `name` `*`→`{0,127}`; `!"k"` on `simple_escape` + `'k'` dropped from
+  `simple_escape_letter_strict` (`.4.1` `\p`/`\P` precedent); `\k'name'` quote branch added to `backreference`.
+  `find_invalid_named_escape_or_group_name` + 5 exclusive helpers + `PCRE2_MAX_NAME_SIZE` + 3 tests DELETED
+  (11th check migrated, 4th `.4` deletion-prep child; function FULLY retired). NOT byte-neutral — 2 fidelity
+  refinements: `\k'name'` shape corrected (shorthand+literals→`backreference`) + multi-byte 65–128 code-point
+  names now ACCEPT (was 8-bit-BYTE validator-REJECT), Unicode-only-faithful. VERIFIED tools-first: message-source
+  probe 10 malformed `\k` flip VALIDATOR→GRAMMAR-reject both profiles; `\k'n'`→proper backref AST; `\d`→
+  `char:d` (`$5`→`$6` correct); 128 ACCEPT/129 REJECT (ASCII); 65×é ACCEPT/129×é REJECT (code-point, =32-bit
+  PCRE2). cert 238/238/0 ×seeds 0/7/42; oracle byte-identical `2189/1858/285/46`; duality 9 lanes; differential
+  CERTIFIED; ast_shape 219→220; dual lib `887/0`; drift gate green. Frontier → the hard/primitive families
+  (`.4.3`,`.4.5`,`.4.7`,`.4.8`,`.4.9`,`.4.10`,`.4.11`) → final `.4` deletion → `.5`.
 - **(2026-07-09, session #75)** `.4.4` LANDED (`PGEN-REGEX-PCRE2-0025`, RELEASED regex slice — release
   `1.1.91`→`1.1.92`, contract `1.1.93`→`1.1.94`, schema `1`, ledger `REGEX-0102`) — the escape-in-class
   rejects (`\A \B \C \G \K \N`-unbraced `\R \X \Z \z`) are now GRAMMAR-owned (behavior-NEUTRAL

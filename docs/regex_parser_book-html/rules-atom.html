@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0ebb6d46.js";
+            window.path_to_searchindex_js = "searchindex-e049ef88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -282,6 +282,7 @@
 <h2 id="backreference"><a class="header" href="#backreference"><code>backreference</code></a></h2>
 <pre><code class="language-ebnf">backreference = "\\" backreference_digits                              -&gt; {type: "backreference", kind: "numeric",                index: $2}
               | "\\k" name_ref                                          -&gt; {type: "backreference", kind: "named",                  ref:   $2}
+              | "\\k" "'" name "'"                                      -&gt; {type: "backreference", kind: "named",                  ref:   $3}
               | "\\k" braced_name_ref                                   -&gt; {type: "backreference", kind: "named_braced",           ref:   $2}
               | "\\g" "&lt;" name "&gt;"                                      -&gt; {type: "backreference", kind: "subroutine_named",       ref:   $3}
               | "\\g" "&lt;" signed_digits "&gt;"                             -&gt; {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
@@ -291,7 +292,7 @@
               | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $4}
               | "\\g" signed_digits                                     -&gt; {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 </code></pre>
-<p>10-way Or, <strong>annotated</strong> as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination).</p>
+<p>11-way Or, <strong>annotated</strong> as of slice 10 (initial 4-way) + PGEN-RGX-0081 fix (post-1.1.75 expanded to 10 branches with bracket-form discrimination) + <strong>REGEX-PCRE2-FIDELITY.4.2</strong> (release 1.1.93: the explicit <code>\k'name'</code> quote branch — same <code>kind:"named"</code> as the angle form; previously <code>\k'name'</code> silently decomposed to a <code>simple_escape</code> shorthand + literals, a WRONG-shape accept — and <code>\k</code> is now always a named-backref introducer via the <code>!"k"</code> guard on <code>simple_escape</code>). Also as of <code>.4.2</code> the <code>name</code> rule is bounded <code>{0,127}</code> ⇒ every capture/backref NAME is ≤ 128 code-points (PCRE2 err 148), so a ≥ 129-code-unit name hard-REJECTs at the grammar layer.</p>
 <h3 id="shape-6"><a class="header" href="#shape-6">Shape</a></h3>
 <pre><code class="language-json">{"type": "backreference", "kind": &lt;form&gt;, ...form-specific-fields...}
 </code></pre>

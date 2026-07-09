@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0027 — REGEX-PCRE2-FIDELITY.4.2: `\k`/group NAME validity grammar-owned (validator→grammar migration + 2 fidelity refinements; release `1.1.93`/`1.1.95`/schema `1`, ledger REGEX-0103)
+
+RELEASED regex slice, the 4th `.4` deletion-prep child (11th compile-contract check migrated;
+`find_invalid_named_escape_or_group_name` FULLY retired). TOOLBOX-FIRST — the design-focused session the
+`.4.2` SCOPING called for.
+
+- **Design (tools-first, `pcre2test` 10.47).** The SCOPING's open byte-vs-code-unit question, settled: a name
+  is capped at **128 code units** (err 148) UNIFORMLY in every position — def `(?<…>x)` AND every ref
+  `\g<…>`/`(?&…)`/`(?P=…)`/`\k<…>`/condition `(?(…)…)` (all measured). The code-unit is width-dependent:
+  8-bit → byte (64×'é'=128B OK / 65×'é'=130B REJECT), 32-bit → code-point (128×'é' OK / 129 REJECT). RGX is
+  Unicode-only ([[feedback_rgx_unicode_only_8bit_test_divergence]]) ⇒ the faithful unit is CODE POINTS (128),
+  which PGEN's `name` counts natively ⇒ a pure-grammar `{0,127}` bound (BOUNDED-QUANT.1), **no new primitive**.
+  `\k` shape: bare `\k`/`\kabc` err 169, empty `\k''`/`\k<>`/`\k{}` err 162, `\k<n>`/`\k'n'`/`\k{n}` OK.
+- **Diagnosis (WHY the grammar accepted the invalid forms).** lowercase `k` was in
+  `simple_escape_letter_strict`, so `\k` matched the `simple_escape` shorthand catch-all and trailing chars
+  parsed as literals; `name` was unbounded `*`; there was NO `\k'…'` branch (so `\k'n'` silently decomposed to
+  shorthand-`k` + `'`/`n`/`'` literals — accepted, WRONG shape). The rejects lived out-of-band in
+  `find_invalid_named_escape_or_group_name`.
+- **Fix (3 grammar edits, grammar tier, no engine).** (1) `name` `*`→`{0,127}`; (2) `!"k"` on `simple_escape`
+  (`char:$5`→`$6`) + `'k'` dropped from `simple_escape_letter_strict` (the `.4.1` `\p`/`\P` precedent); (3) the
+  missing `\k'name'` quote branch added to `backreference`. Validator: `find_invalid_named_escape_or_group_name`
+  + 5 exclusive helpers (`read_delimited_name_at`/`read_named_group_name_at`/`is_pcre2_capture_name`/
+  `is_pcre2_name_char`/`is_pcre2_name_digit`) + `PCRE2_MAX_NAME_SIZE` + 3 unit tests DELETED; new pin
+  `regex_named_names_reject_at_the_grammar_layer_pcre2_faithfully`.
+- **Two fidelity refinements (NOT byte-neutral, documented honestly).** (a) `\k'name'` shape corrected
+  (shorthand+literals → proper `backreference`); (b) a non-ASCII name of 65–128 code points now ACCEPT (was
+  validator-REJECT under 8-bit BYTE counting) — the Unicode-only-faithful behavior. Pure-ASCII byte-identical;
+  the invalid-`\k` / over-128-ASCII rejects are neutral (reject SOURCE moves validator→grammar). Schema stays `1`.
+- **Verified (NO REGRESSION).** cert `238/238/UNKNOWN=0 fully_certified spf=0` ×seeds 0/7/42 (rule-count
+  unchanged); `--lint-grammar` 0 errors (238); oracle `regex_pcre2_compile_oracle_gate` byte-identical
+  `2189/1858/285/46` (behavior change touches no corpus case); `duality_hunt_gate` 9 lanes no new/vanished sig;
+  `parse_harness_equivalence_gate` regex differential-CERTIFIED (byte-identical); `ast_shape_contract`
+  219→220 aligned; dual `--lib` `887/0`; version drift gate green.
+
 ## 2026-07-09 - PGEN-REGEX-PCRE2-0025 — REGEX-PCRE2-FIDELITY.4.4: escape-in-class rejects grammar-owned (behavior-neutral validator→grammar migration; release `1.1.92`/`1.1.94`/schema `1`, ledger REGEX-0102)
 
 RELEASED regex slice, the 3rd `.4` deletion-prep child (10th compile-contract check migrated). TOOLBOX-FIRST.

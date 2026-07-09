@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0ebb6d46.js";
+            window.path_to_searchindex_js = "searchindex-e049ef88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -223,7 +223,7 @@ the EBNF becomes the sole source of truth.</p>
 CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.92</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.93</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">
@@ -232,7 +232,6 @@ one instance is the only one and it can only ever shrink.</p>
 <tr><th>Family (what it rejects)</th><th>Example load-bearing inputs</th><th>Migration leaf</th></tr>
 </thead>
 <tbody>
-<tr><td><code>\k</code> / group <strong>NAME</strong> validity — charset (letter/digit/<code>_</code>/Unicode, no leading digit) + length ≤ 128</td><td><code>\k</code>, <code>\kabc</code>, <code>\k''</code>, <code>\k&lt;&gt;</code>, a 129-char capture name</td><td><code>.4.2</code></td></tr>
 <tr><td>Counted-quantifier <strong>min &gt; max</strong> order (err 104)</td><td><code>x{5,4}</code>, <code>a{\t5\t,\t2\t}</code></td><td><code>.4.3</code></td></tr>
 <tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges</td><td><code>[\d-x]</code>, <code>[a-\p{Lu}]</code>, <code>[z-a]</code>, <code>[\x{100}-z]</code></td><td><code>.4.5</code></td></tr>
 <tr><td>Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture</td><td><code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code></td><td><code>.4.7</code></td></tr>
@@ -247,10 +246,13 @@ trail): the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> 
 start-option NAME + argument shapes (<code>.3.2</code>/<code>.3.14</code>), quantified anchors (<code>.3.13</code>),
 the class-open visibility model (<code>.3.15</code>), the counted-quantifier VALUE bound + brace
 tokenization (<code>.3.18</code>), the numeric-callout range (<code>.3.16</code>), bare <code>\p</code>/<code>\P</code> property
-escapes (<code>.4.1</code>), POSIX character-class <strong>NAME</strong> validity (<code>.4.6</code>), and the
-<strong>escape-in-class</strong> rejects <code>\A \B \C \G \K \N</code>(unbraced)<code>\R \X \Z \z</code> (<code>.4.4</code>). A related
-divergence with no validator check at all — the named-reference <em>unknown-name</em>
-inventory (<code>\k&lt;zzz&gt;</code>… @undefined) — is tracked as <code>.4.11</code> (ledger <code>REGEX-0098</code>).</p>
+escapes (<code>.4.1</code>), POSIX character-class <strong>NAME</strong> validity (<code>.4.6</code>), the
+<strong>escape-in-class</strong> rejects <code>\A \B \C \G \K \N</code>(unbraced)<code>\R \X \Z \z</code> (<code>.4.4</code>), and
+<code>\k</code>/group <strong>NAME</strong> validity — the <code>\k</code> shape + charset + length ≤ 128 code-points
+(<code>.4.2</code>; <code>find_invalid_named_escape_or_group_name</code> + its 5 exclusive helpers +
+<code>PCRE2_MAX_NAME_SIZE</code> DELETED). A related divergence with no validator check at all — the
+named-reference <em>unknown-name</em> inventory (<code>\k&lt;zzz&gt;</code>… @undefined) — is tracked as <code>.4.11</code>
+(ledger <code>REGEX-0098</code>).</p>
 <h2 id="which-layer-rejected-my-pattern"><a class="header" href="#which-layer-rejected-my-pattern">Which layer rejected my pattern?</a></h2>
 <p>Because the two layers run in series, the <strong>rejection message names its own source</strong>,
 and a one-line probe classifies any reject without guessing. This is the

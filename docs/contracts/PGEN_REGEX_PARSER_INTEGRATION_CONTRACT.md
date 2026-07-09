@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.94`
+  - `1.1.95`
 - Parser release version:
-  - `1.1.92`
+  - `1.1.93`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -96,6 +96,29 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.93 / Contract 1.1.95 Highlights — REGEX-0103: `\k`/group NAME validity is now grammar-owned (validator→grammar migration; two fidelity refinements)
+
+**Bug ledger:** `REGEX-0103` — internal, surfaced during the `REGEX-PCRE2-FIDELITY.4` validator-deletion scoping. Root cause: `\k`-shape + capture/`\k` NAME charset + NAME length ≤ 128 were enforced only in the out-of-band validator `find_invalid_named_escape_or_group_name` — a single-source-of-truth hole. The GRAMMAR alone accepted a bare/empty `\k` (`\k`/`\kabc`/`\k''`/`\k<>`/`\k{}` — `\k` matched the `simple_escape` shorthand catch-all, trailing chars as literals) and an over-length name.
+
+**What changed.** In PCRE2 (oracle `pcre2test` 10.47), `\k` is ALWAYS a named-backreference introducer needing a non-empty delimited name (`\k<n>` / `\k'n'` / `\k{n}`; bare `\k`/`\kabc` = err 169, empty `\k''`/`\k<>`/`\k{}` = err 162), and every name (definition AND reference) is capped at 128 code units (err 148). `regex.ebnf` now owns all three: (1) `name`'s continue run is bounded `{0,127}` ⇒ ≤ 128 code-points; (2) `\k` is always a backref introducer (`!"k"` on `simple_escape` + `'k'` dropped from `simple_escape_letter_strict`); (3) the missing `\k'name'` quote branch was added to `backreference`. Oracle-verified against `pcre2test` 10.47 (byte-identical gate `2189/1858/285/46`); the regex parser stays differential-CERTIFIED (interpreter byte-identical).
+
+| Rule | Example | Verdict (both = PGEN `1.1.93` = PCRE2 10.47) |
+|---|---|---|
+| **Malformed `\k` (now grammar-REJECT; was validator-reject)** | `\k` · `\kabc` · `\k''` · `\k<>` · `\k{}` | REJECT |
+| **Over-length name ≥ 129 code-units (now grammar-REJECT; was validator-reject)** | `(?<A×129>x)` · `(?P<A×129>x)` · `(?<n>a)\k<A×129>` | REJECT |
+| Valid `\k` references over a defined group (unchanged verdict) | `(?<n>a)\k<n>` · `(?<n>a)\k'n'` · `(?<n>a)\k{n}` | ACCEPT |
+| Valid capture definitions & the 128-code-point boundary (unchanged verdict) | `(?<name>x)` · `(?'name'x)` · `(?P<name>x)` · `(?<A×128>x)` | ACCEPT |
+
+**Two fidelity refinements (NOT behavior-neutral — read if you consume the `\k` AST or use non-ASCII names).**
+- **`\k'name'` AST shape corrected.** Before, `\k'n'` was silently mis-parsed as a shorthand-`k` escape followed by three literal atoms (`'`, `n`, `'`) — accepted, but the WRONG shape. It now parses as a proper `{type:"backreference", kind:"named", ref:"n"}`, matching the `\k<n>` angle form. Downstream consumers that walk the AST of a `\k'…'` backreference will see the corrected `backreference` node.
+- **Multi-byte name length is now code-point-faithful.** The deleted validator used an 8-bit BYTE length (`name.len() > 128`); the grammar counts CODE POINTS. RGX is Unicode-only, so the faithful limit is 128 code points (PCRE2's 32-bit code-unit semantics). A non-ASCII name of 65–128 code points (129–512 UTF-8 bytes) is now ACCEPT (was validator-REJECT under 8-bit byte counting) — a correctness improvement aligning with RGX's Unicode-only posture, not a regression. Pure-ASCII names are byte-identical to before (128 chars = 128 bytes).
+
+**AST-dump schema stays `1`** — the `backreference` typed shape already exists; the `\k'name'` fix reuses it within the existing carrier.
+
+**Rejection-layer.** The rule is now grammar-owned (`E_PARSE_FAILURE`); the validator function `find_invalid_named_escape_or_group_name` (+ its 5 exclusive helpers + `PCRE2_MAX_NAME_SIZE` + 3 unit tests) was DELETED. Match on the diagnostic **code**, never message text.
+
+**Action for downstream (RGX):** the invalid-`\k` and over-length-name verdicts are unchanged (the validator rejected them before, the grammar rejects them now). Two things to note: (a) if you inspect the AST of a `\k'name'` quoted backreference, it is now a `backreference` node (was a shorthand-escape + literals); (b) if you use non-ASCII group names, the length limit is now code-point-based (Unicode-faithful) rather than byte-based.
 
 ## Release 1.1.92 / Contract 1.1.94 Highlights — REGEX-0102: escape-in-class rejects are now grammar-owned (behavior-neutral validator→grammar migration)
 
