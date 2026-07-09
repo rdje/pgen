@@ -460,13 +460,13 @@
         "rule": "class_simple_escape_relaxed",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $7}"
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $17}"
       },
       {
         "rule": "class_simple_escape_strict",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $13}"
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $23}"
       },
       {
         "rule": "code_block_lang",

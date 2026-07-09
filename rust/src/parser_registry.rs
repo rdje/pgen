@@ -1983,6 +1983,72 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         );
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.4 (ledger `REGEX-0102`, release 1.1.92): the escape letters PCRE2
+    /// forbids as a class member — `\A \B \C \G \K \R \X \Z \z` (unconditional) and `\N` UNLESS
+    /// braced (`\N{…}` stays a valid member) — now hard-REJECT at the grammar layer. Encoded three
+    /// ways in `grammars/regex.ebnf`: `class_escape_unit` drops `single_byte_escape` (`\C`);
+    /// `class_simple_escape_{strict,relaxed}` carry the guards
+    /// `!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )`; and `A`/`G`/`z` are dropped
+    /// from `class_range_literal_escape_letter_strict` (they were reachable as a range ENDPOINT —
+    /// e.g. `[\A-x]` / `[\z-\x{FFFF}]` parse via the RANGE path, which the member guards do not
+    /// cover). BEHAVIOR-NEUTRAL migration of the escape-in-class half of
+    /// `regex_compile_validation.rs::find_invalid_char_class_construct` (the `\N`-unbraced +
+    /// `A|B|C|G|K|Q|R|X|Z|z` `read_class_atom` rejects, now deleted): the accept/reject SET is
+    /// byte-identical, only the reject source/message moves validator→grammar. Oracle: `pcre2test`
+    /// 10.47 (`regex_pcre2_compile_oracle_gate`, byte-identical `2189/1858/285/46`).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_class_escapes_reject_at_the_grammar_layer_pcre2_faithfully() {
+        // Escape-in-class the grammar now rejects — member, mid-pattern, and range-endpoint forms.
+        // Every one was VALIDATOR-reject (load-bearing) before this slice; pcre2test 10.47 rejects all.
+        for pattern in [
+            r"[\A]", r"[\B]", r"[\C]", r"[\G]", r"[\K]", r"[\N]", r"[\R]", r"[\X]", r"[\Z]", r"[\z]",
+            r"a[\NB]c", r"[a\Kb]", // mid-pattern / mid-class
+            r"[\B-x]", r"[a-\B]", r"[\K-x]", // reject letter that is NOT a range-letter → member path
+            r"[\A-x]", r"[\G-x]", // reject letter that WAS a range-letter (upper)
+            r"[\z-\x{FFFF}]", r"[\A-\x{FFFF}]", // ascending range via the range path (past @validate)
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "escape-in-class must reject at the grammar layer: {pattern}"
+            );
+        }
+        // Controls that MUST stay valid: legal class shorthands / c-escapes, braced `\N{…}`, the
+        // lowercase / non-reject letters kept as literal transport, and ascending literal ranges.
+        for pattern in [
+            r"[\b]", r"[\d]", r"[\D]", r"[\w]", r"[\s]", r"[\n]", r"[\t]", r"[\a]", r"[\e]",
+            r"[\g]", r"[\j]", r"[\k]", r"[\r]", r"[\x41]", // lowercase non-reject letters + hex escape
+            r"[\N{U+00E9}]",                               // braced \N{…} stays valid
+            r"[\pL]",                                      // property escape
+            r"[\I-x]", r"[\a-x]", r"[\g-x]", r"[abc]",     // ascending ranges + a plain class
+        ] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "a valid class member / range must accept: {pattern}"
+            );
+        }
+        // Pattern-BODY context is untouched — these escapes are valid OUTSIDE a class and must
+        // still accept (the migration only guards the class-member / class-range paths).
+        for pattern in [r"\C", r"\B", r"\K", r"\N", r"\Nx", r"\A", r"\Z", r"\z"] {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "escape must stay valid in pattern-body context: {pattern}"
+            );
+        }
+        // The rejects are PCRE2-invalid in BOTH profiles (not a relaxed opt-out): relaxed rejects too.
+        for pattern in [r"[\B]", r"[\C]", r"[\K]", r"[\N]", r"[\z]", r"[\A-x]"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject escape-in-class: {pattern}"
+            );
+        }
+    }
+
     /// REGEX-PCRE2-FIDELITY.3.19: a stray `\E` (an unmatched end-of-quote) is PCRE2 zero-width
     /// and — unlike an anchor (opaque, `.3.13`) — TRANSPARENT to a quantifier. A quantifier
     /// binds THROUGH the stray `\E` to the preceding repeatable atom (`a\E*` = `a*`), but is

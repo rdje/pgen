@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0025 — REGEX-PCRE2-FIDELITY.4.4: escape-in-class rejects grammar-owned (behavior-neutral validator→grammar migration; release `1.1.92`/`1.1.94`/schema `1`, ledger REGEX-0102)
+
+RELEASED regex slice, the 3rd `.4` deletion-prep child (10th compile-contract check migrated). TOOLBOX-FIRST.
+
+- **Diagnosis (message-source probe, both profiles).** 18 forms — member `[\A]`..`[\z]`, mid `a[\NB]c`
+  `[a\Kb]`, range `[\B-x]` `[a-\B]` `[\A-x]` `[\G-x]` `[\z-\x{FFFF}]` — were VALIDATOR-reject (load-bearing):
+  the grammar alone accepted them, the out-of-band `read_class_atom` (the `\N`-unbraced check + the
+  `A|B|C|G|K|Q|R|X|Z|z` `matches!`) rejected them. `pcre2test` 10.47 rejects all.
+- **Mechanism.** Three grammar reach paths admitted the escapes: (1) `class_simple_escape_{strict,relaxed}`
+  matched `\<letter>` via `any_char`; (2) `class_escape_unit`'s first alt `single_byte_escape = "C"` matched
+  `\C`; (3) `class_range_literal_escape_letter_strict` listed `A`/`G`/`z`, so `[\A-x]`/`[\z-\x{FFFF}]` parsed
+  via the RANGE path (which the member guards do not cover). All three closed this slice.
+- **Why `!( "N" !"{" )`.** A bare `\N` is invalid in a class but `\N{…}` is valid; the conditional guard
+  rejects `\N` only when NOT followed by `{`, so `[\N{U+00E9}]` still accepts (as `\N` shorthand + literal
+  braces, byte-identical to before). Verified: `[\N]`/`a[\NB]c` reject, `[\N{U+00E9}]` accepts.
+- **No new rule** (`single_byte_escape` stays in `escape_unit`) → cert rule-count stays 238, ast_shape
+  inventory stays 219. The only manifest change is the two annotation-text positional bumps (`$7`→`$17`,
+  `$13`→`$23`) — the produced AST is byte-identical (`structural_ok=true`, drift aligned).
+- **Verification.** Oracle byte-identical `2189/1858/285/46`; cert `238/238/UNKNOWN=0` seeds 0/7/42; duality
+  9 lanes no new signature; parse-harness-equivalence regex byte-identical; the pin
+  `regex_class_escapes_reject_at_the_grammar_layer_pcre2_faithfully` GREEN; version drift gate GREEN
+  (`1.1.92`/`1.1.94` match ledger).
+
 ## 2026-07-09 - PGEN-BOOK-TOOLBOX-0001 — book lockstep: message-source probe (top book) + compile-contract validator (regex book)
 
 Pure-docs lockstep (director directive, session #75). No code change.

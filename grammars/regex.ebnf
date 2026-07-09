@@ -741,8 +741,12 @@ class_safe_special = '[' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' |
 # byte-identical to pre-1.1.78 (same `{escape,kind:shorthand,char}`
 # shape — no new vocab).
 class_escape   = "\\" class_escape_unit -> $2
-class_escape_unit = single_byte_escape
-                  | hex_escape
+# REGEX-PCRE2-FIDELITY.4.4: `single_byte_escape` (`\C`, the single-code-unit escape) is DROPPED
+# from the class-context alternation — PCRE2 forbids `\C` inside a character class (it is a
+# pattern-BODY atom, still reachable via `escape_unit`). Together with the `!"C"` guard on
+# `class_simple_escape_*` below, `[\C]` now hard-REJECTs at the grammar layer — the escape-in-class
+# half of `find_invalid_char_class_construct` migrated into the EBNF (behavior-neutral).
+class_escape_unit = hex_escape
                   | unicode_escape
                   | octal_escape
                   | control_escape
@@ -765,8 +769,9 @@ class_escape_unit = single_byte_escape
 # default (validator → grammar). Relaxed re-admits them. No digit guards here
 # (RGX-0088: class context admits `\<digit>` octal).
 class_simple_escape = class_simple_escape_strict | class_simple_escape_relaxed
-# Strict: 4 guards (`\o{` `\x{` + the whole-letter `\p` `\P`) PLUS the 6 letters
-# PLUS `Q`/`E` (`.3.15`) → 12 lookaheads, `any_char` = `$13`.
+# Strict: the original 12 lookaheads (`\o{` `\x{` + the whole-letter `\p` `\P` + `\i \F \l \L
+# \u \U` + `\Q` `\E`) PLUS the 10 `REGEX-PCRE2-FIDELITY.4.4` escape-in-class guards → 22
+# lookaheads, `any_char` = `$23`.
 # REGEX-PCRE2-FIDELITY.3.15: `!"Q"` / `!"E"` in BOTH profiles — `\Q` inside a class is ALWAYS
 # the quote-opener in PCRE2 (never a shorthand escape: `[\Q]`/`[\Qa]` are unterminated
 # classes, err 106 — the `]` is quoted), and `\E` is always the stray/quote-end marker.
@@ -775,10 +780,18 @@ class_simple_escape = class_simple_escape_strict | class_simple_escape_relaxed
 # `property_escape`, tried first in `class_escape_unit`), so a bad-letter form (`[\pA]`)
 # hard-REJECTs instead of decomposing into `\p` + literal (migrating the class half of
 # `find_invalid_property_escape` into the EBNF).
-class_simple_escape_strict = !"o{" !"x{" !"p" !"P" !"i" !"F" !"l" !"L" !"u" !"U" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $13}
-# Relaxed opt-out: the class catch-all + the `.3.15` `Q`/`E` + the `.4.1` `\p`/`\P` guards (6 lookaheads, `any_char` = `$7`).
+# REGEX-PCRE2-FIDELITY.4.4: the escape letters PCRE2 forbids as a class member —
+# `\A \B \C \G \K \R \X \Z \z` (unconditional) and `\N` UNLESS braced (`\N{…}` stays a valid
+# member) — are excluded here (`\C` is also dropped from `class_escape_unit` above), so
+# `[\B]`/`[\K]`/`a[\NB]c`/`[\C]` hard-REJECT at the grammar layer instead of matching `any_char`
+# as a shorthand. `!( "N" !"{" )` rejects a bare `\N` while a following `{` keeps `\N{…}` valid.
+# This migrates the escape-in-class half of `find_invalid_char_class_construct` into the EBNF.
+class_simple_escape_strict = !"o{" !"x{" !"p" !"P" !"i" !"F" !"l" !"L" !"u" !"U" !"Q" !"E" !"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" ) any_char -> {type: "escape", kind: "shorthand", char: $23}
+# Relaxed opt-out: the `.3.1` catch-all + the `.3.15` `Q`/`E` + the `.4.1` `\p`/`\P` + the `.4.4`
+# escape-in-class guards (`\A \B \C \G \K \R \X \Z \z` + braced-only `\N`) — 16 lookaheads,
+# `any_char` = `$17`. The `.4.4` rejects are PCRE2-invalid in BOTH profiles, not a relaxed opt-out.
 @profiles: ["relaxed"]
-class_simple_escape_relaxed = !"o{" !"x{" !"p" !"P" !"Q" !"E" any_char -> {type: "escape", kind: "shorthand", char: $7}
+class_simple_escape_relaxed = !"o{" !"x{" !"p" !"P" !"Q" !"E" !"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" ) any_char -> {type: "escape", kind: "shorthand", char: $17}
 
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
@@ -824,8 +837,13 @@ class_range_any_char_no_orphan_quote_end = class_range_literal_escape_letter | d
 # (The sibling alts digit/whitespace/special_char/unicode_char cannot match an
 # ASCII letter, so dropping the letters here is sufficient.)
 class_range_literal_escape_letter = class_range_literal_escape_letter_strict | class_range_literal_escape_letter_relaxed
-class_range_literal_escape_letter_strict = 'A' | 'G' | 'I' | 'J' | 'M' | 'O' | 'T' | 'V' | 'Y'
-                                         | 'a' | 'b' | 'e' | 'f' | 'g' | 'j' | 'k' | 'm' | 'n' | 'o' | 'q' | 'r' | 't' | 'v' | 'x' | 'y' | 'z'
+# REGEX-PCRE2-FIDELITY.4.4: `A` / `G` (upper) and `z` (lower) are DROPPED from the class-range
+# escape-letter set — PCRE2 forbids `\A \G \z` as a class member, and because they were range
+# letters they were reachable as a range ENDPOINT (`[\A-x]` / `[\z-\x{FFFF}]` parse via the RANGE
+# path, which the member-side `class_simple_escape_*` guards do not cover). Dropping them here,
+# together with the member guards, makes every `\A`/`\G`/`\z`-in-class form hard-REJECT.
+class_range_literal_escape_letter_strict = 'I' | 'J' | 'M' | 'O' | 'T' | 'V' | 'Y'
+                                         | 'a' | 'b' | 'e' | 'f' | 'g' | 'j' | 'k' | 'm' | 'n' | 'o' | 'q' | 'r' | 't' | 'v' | 'x' | 'y'
 @profiles: ["relaxed"]
 class_range_literal_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'
 letter_no_upper_e = 'A' | 'B' | 'C' | 'D' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'

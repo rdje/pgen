@@ -262,6 +262,35 @@ is the same bare-string char as `class_literal`, so accepted-class ASTs are byte
 > an *unescaped* `]`, so `[x[:foo]bar:]y]` accepts in PCRE2 but rejects in PGEN (both before and after
 > this release). A PCRE2-exact `]`-boundary is a tracked follow-up.
 
+### Escape validity inside a class — the escape-in-class guards
+
+Inside a character class PCRE2 forbids the anchor / assertion / special escapes
+`\A \B \C \G \K \R \X \Z \z`, and allows `\N` only in its braced named-codepoint form `\N{…}`
+(bare `\N` is invalid). Since **`REGEX-0102`** (release `1.1.92`, `REGEX-PCRE2-FIDELITY.4.4`) the
+grammar owns this rule — previously it lived only in the out-of-band validator, so the grammar alone
+wrongly accepted `[\B]`, `[\C]`, and even `[\A-x]` (via the range path). Three edits close the three
+reach paths:
+
+1. Both `class_simple_escape` variants carry the guards
+   `!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )` — the only conditional one,
+   `!( "N" !"{" )`, rejects a bare `\N` while a following `{` keeps `\N{…}` a valid member.
+2. `single_byte_escape` (`\C`) is dropped from the class-context `class_escape_unit` (it stays valid
+   in the pattern body via `escape_unit`).
+3. `A`, `G`, `z` are dropped from `class_range_literal_escape_letter_strict` — they were reachable as
+   a range *endpoint* (`[\A-x]`, `[\z-\x{FFFF}]`), which the member-side guards do not cover.
+
+| Input | Verdict (PGEN = PCRE2 10.47) | Why |
+|---|---|---|
+| `[\B]`, `[\K]`, `[\C]`, `a[\NB]c`, `[\A-x]`, `[a-\B]`, `[\z-\x{FFFF}]` | REJECT | escape invalid as a class member (err 137/108) |
+| `[\d]`, `[\w]`, `[\s]`, `[\b]` (backspace), `[\n]`, `[\a]`, `[\e]` | ACCEPT | legal class shorthand / c-escape |
+| `[\N{U+00E9}]`, `[\pL]`, `[\x41]`, `[\g]`, `[\j]`, `[\k]` | ACCEPT | braced `\N{…}` / property / hex / literal-transport letter |
+| `[\I-x]`, `[\a-x]`; body `\B`, `\K`, `\A`, `\z` (outside a class) | ACCEPT | valid literal range / valid pattern-body anchor |
+
+Behavior-neutral: every accept/reject verdict is byte-identical to `1.1.91` (validator rejected these
+before, the grammar rejects them now — only the message moved). `\N{…}` and all lowercase / non-reject
+letters (`\g`, `\j`, `\k`, `\r`, …) stay literal-transport members, so accepted-class ASTs are
+unchanged.
+
 ## `class_range`
 
 ```ebnf

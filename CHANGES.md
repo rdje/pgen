@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-REGEX-PCRE2-0025 — REGEX-PCRE2-FIDELITY.4.4: escape-in-class rejects are now grammar-owned (behavior-neutral validator→grammar migration; release `1.1.92`/`1.1.94`/schema `1`, ledger REGEX-0102)
+
+Session #75. RELEASED regex slice (grammar + regen + validator deletion + full lockstep), the 3rd `.4`
+deletion-prep child of the re-scoped capstone (the 10th compile-contract check migrated into the EBNF).
+TOOLBOX-FIRST throughout.
+
+- **Root cause (tool-backed, message-source probe).** PCRE2 forbids `\A \B \C \G \K \R \X \Z \z` as a
+  character-class member and allows `\N` only in its braced form `\N{…}`; the GRAMMAR alone accepted them
+  all — `[\B]` via the `class_simple_escape` catch-all, `[\C]` via `single_byte_escape`, and
+  `[\A-x]`/`[\z-\x{FFFF}]` via the range path. The reject lived only in the out-of-band
+  `find_invalid_char_class_construct` (`read_class_atom`) — a single-source-of-truth hole.
+- **Fix (grammar tier, no engine).** 10 guards `!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )`
+  on both `class_simple_escape` variants (`char:$23`/`$17`); `single_byte_escape` dropped from
+  `class_escape_unit` (kept in `escape_unit` for the pattern body); `A`/`G`/`z` dropped from
+  `class_range_literal_escape_letter_strict` (range-endpoint reachable). `!( "N" !"{" )` keeps `\N{…}` valid.
+  The two `read_class_atom` reject blocks + 3 validator unit tests deleted; a `parser_registry.rs` pin added.
+- **Behavior-neutral (proven).** Message-source probe: 18 reject forms flip VALIDATOR-reject→GRAMMAR-reject
+  (both profiles), 20 controls + 8 pattern-body forms stay ACCEPT. Oracle byte-identical `2189/1858/285/46`;
+  cert `238/238/UNKNOWN=0` at seeds 0/7/42; duality 9 lanes no new/vanished signature; differential-equiv
+  byte-identical; ast_shape aligned (manifest `$7`→`$17` / `$13`→`$23`, text-only positional bump). Reject
+  CODE stays `E_PARSE_FAILURE` — only the message moves validator→grammar.
+
 ## 2026-07-09 - PGEN-BOOK-TOOLBOX-0001 — book lockstep: document the message-source probe technique (top book) + the compile-contract validator (regex book)
 
 Pure-docs lockstep (director directive, session #75). Two long-standing debug-toolbox surfaces were

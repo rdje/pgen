@@ -1045,9 +1045,12 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `x{5,4}`/`a{\t5\t,\t2\t}` reject). Owns the residual of `find_invalid_counted_quantifier`. **VALUE-COMPARISON**
   (cross-number, leading-zero-hostile) — `.3.18` explicitly deferred it here; likely needs a rule-span
   value-constraint primitive, not a plain gate.
-- ID: `.4.4` Status: `pending` Goal: encode class shorthand/escape rejects — `\B`/`\K`/`\N` inside `[...]`
-  (`[\B]`/`[\K]`/`a[\NB]c` reject). Part of `find_invalid_char_class_construct`. **STRUCTURAL** (positive
-  class-escape enumeration; separable from ranges).
+- ID: `.4.4` Status: **`done`** (`PGEN-REGEX-PCRE2-0025`, session #75; release `1.1.91`→`1.1.92`, contract
+  `1.1.93`→`1.1.94`, schema `1`, ledger `REGEX-0102`) Goal: encode class shorthand/escape rejects —
+  `\A \B \C \G \K \N`(unbraced)`\R \X \Z \z` inside `[...]` (`[\B]`/`[\K]`/`a[\NB]c` reject). Part of
+  `find_invalid_char_class_construct`. **STRUCTURAL** (positive class-escape enumeration; separable from
+  ranges). Behavior-NEUTRAL validator→grammar migration; oracle byte-identical. See the `.4.4`
+  implementation section + Acceptance Checklist below.
 - ID: `.4.5` Status: `pending` Goal: encode class RANGE validity — nonliteral endpoints (`[\d-x]`,
   `[a-\p{Lu}]`, …) + DESCENDING ranges (`[z-a]`, `[\x{100}-z]`, decoded octal/hex/control endpoints).
   Part of `find_invalid_char_class_construct`. nonliteral = **STRUCTURAL-ish** (a range endpoint must be a
@@ -1201,6 +1204,79 @@ byte-identical to `1.1.90`, oracle gate `2189/1858/285/46` unchanged).
   (`rules-char-class` § POSIX-name-validity + `changelog-index` + tracked HTML); top book `parser-families.md`;
   `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
 
+### REGEX-PCRE2-FIDELITY.4.4 — escape-in-class rejects are GRAMMAR-owned (`PGEN-REGEX-PCRE2-0025`, session #75)
+
+**Design (tool-backed, message-source probe + `pcre2test` 10.47 oracle).** Inside a character class PCRE2
+forbids the anchor / assertion / special escapes `\A \B \C \G \K \R \X \Z \z` outright, and `\N` unless it
+is the braced named-codepoint form `\N{…}`. These were the escape-in-class half of the out-of-band
+`find_invalid_char_class_construct` (`read_class_atom`'s `\N`-unbraced check + the `A|B|C|G|K|Q|R|X|Z|z`
+`matches!`). The message-source probe (both profiles) proved every reject form is **VALIDATOR-reject =
+load-bearing** — the GRAMMAR alone accepted `[\B]`/`[\K]`/`a[\NB]c`/`[\C]`/`[\A-x]`/`[a-\B]`/`[\z-\x{FFFF}]`
+— and every control (`[\b]`/`[\d]`/`[\N{U+00E9}]`/`[\g]`/`[\j]`/`[\I-x]` + all pattern-body `\C`/`\B`/`\K`/`\N`)
+stays ACCEPT.
+
+Three grammar reach paths admitted these escapes and all three are closed this slice (STRUCTURAL, DECLARATIVE):
+1. **Class-member catch-all** — `class_simple_escape_{strict,relaxed}` matched `\<letter>` via `any_char`.
+   Guarded with `!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )` (positions shift → `char:$23`
+   strict / `char:$17` relaxed). `!( "N" !"{" )` is the only conditional guard — it rejects a bare `\N`
+   while a following `{` keeps `\N{…}` a valid member.
+2. **`\C` via `single_byte_escape`** — the FIRST alt of `class_escape_unit` unconditionally matched `\C`.
+   `single_byte_escape` is DROPPED from `class_escape_unit` (it stays in `escape_unit` for the pattern body,
+   where `\C` is valid); the `!"C"` guard then also blocks the catch-all.
+3. **Range endpoint** — `A`/`G` (and lowercase `z`) were in `class_range_literal_escape_letter_strict`, so
+   `[\A-x]`/`[\G-x]`/`[\z-\x{FFFF}]` parsed via the RANGE path (which the member guards do not cover). `A`,
+   `G`, `z` are dropped from that rule; the other range letters (`I J M O T V Y` + lowercase) are untouched
+   (out of the `.4.4` reject set — `\I` etc. are owned by `.3.11`/`.4.5`).
+
+Name-agnostic and duality-neutral: the guards are zero-width lookaheads, and the removed productions were
+never part of a NET-accepted input (each was validator-rejected), so generation is unchanged and no NET
+accept/reject verdict flips — only the reject SOURCE/message moves validator→grammar. The validator's two
+`read_class_atom` reject blocks are deleted (dead post-migration); `scan_char_class` range analysis
+(`.4.5`) is untouched. NO new rule (`single_byte_escape` still exists), so cert rule-count stays 238 and
+ast_shape inventory stays 219.
+
+Released slice: release `1.1.91`→`1.1.92` / contract `1.1.93`→`1.1.94` / schema `1` (unchanged — no
+AST-shape change on accepted inputs); ledger `REGEX-0102` (internal, behavior-neutral downstream; reject
+CODE `E_PARSE_FAILURE` unchanged, only the reject MESSAGE moves validator→grammar; accept/reject SET
+byte-identical to `1.1.91`, oracle gate `2189/1858/285/46` unchanged).
+
+#### `.4.4` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — message-source probe (release `parseability_probe --parse regex --profile
+  {pcre2,relaxed}`, the `.4` SCOPING-LOG technique): `[\A]` `[\B]` `[\C]` `[\G]` `[\K]` `[\N]` `[\R]` `[\X]`
+  `[\Z]` `[\z]` `a[\NB]c` `[a\Kb]` and the range forms `[\B-x]` `[a-\B]` `[\A-x]` `[\G-x]` `[\z-\x{FFFF}]`
+  all REJECT with the VALIDATOR message (`… character class …` / `\N is not accepted …`), firing only AFTER
+  a grammar-accept ⇒ the GRAMMAR ALONE accepts these PCRE2-invalid patterns (`pcre2test` 10.47 rejects all).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf`: (1) `class_simple_escape_{strict,relaxed}`
+  (`:778`/`:781`) matched `\<reject-letter>` via `any_char`; (2) `class_escape_unit` (`:744`) tried
+  `single_byte_escape = "C"` first, so `[\C]` accepted; (3) `class_range_literal_escape_letter_strict`
+  (`:827-828`) listed `A`/`G`/`z`, so `[\A-x]`/`[\z-\x{FFFF}]` parsed via the RANGE path. The reject lived
+  OUT-OF-BAND in `regex_compile_validation.rs::read_class_atom` (`:778-792`: `\N`-unbraced + the
+  `A|B|C|G|K|Q|R|X|Z|z` `matches!`) — a single-source-of-truth hole ([[project_ebnf_is_single_source_of_truth]]).
+- [x] **FIX** — fix-hierarchy GRAMMAR tier (no engine change): the 10 member guards on both
+  `class_simple_escape` variants + drop `single_byte_escape` from `class_escape_unit` + drop `A`/`G`/`z`
+  from `class_range_literal_escape_letter_strict`. Validator: delete the two `read_class_atom` reject blocks
+  + the 3 unit tests (`rejects_invalid_class_escape` / `rejects_keep_out_escape_in_character_class` /
+  `rejects_not_newline_escape_in_character_class`); ADD the `parser_registry.rs` pin
+  `regex_class_escapes_reject_at_the_grammar_layer_pcre2_faithfully`.
+- [x] **ADDRESSED (verified)** — after regen + both-binary rebuild, the message-source probe shows the 18
+  reject forms (member/mid/range) flip to the GRAMMAR message (`Parser did not consume full input`, both
+  profiles) and the 28 controls (20 class members incl. braced `\N{…}` + 8 pattern-body) stay ACCEPT. The
+  pin `regex_class_escapes_reject_at_the_grammar_layer_pcre2_faithfully` (19 reject + 20 accept + 8 body + 6
+  relaxed cells) is GREEN. Every verdict matches `pcre2test` 10.47.
+- [x] **NO REGRESSION** — regex cert-coverage `total=238 witness=238 UNKNOWN=0 fully_certified=true spf=0` at
+  seeds 0/7/42 (rule-count unchanged); `regex_pcre2_compile_oracle_gate` EXACTLY byte-identical baseline
+  `2189/1858/285/46`; `duality_hunt_gate` 9 lanes NO new/vanished signature; `parse_harness_equivalence_gate`
+  regex byte-identical (differential-CERTIFIED); `regex_ast_shape_contract_gate` aligned (inventory 219,
+  unchanged); dual `--lib` suite (−3 deleted validator tests + 1 new pin); `--lint-grammar` 0 errors (238
+  rules); the other 5 fully-certified grammars untouched (only `regex_parser.rs` regenerated); clippy
+  no-new-findings.
+- [x] **LOCKSTEP** — `grammars/regex.ebnf`; `regex_compile_validation.rs`; `parser_registry.rs` pin;
+  `embedding_api.rs` consts `1.1.92`/`1.1.94`; `regex_parser_integration_contract_v1.json`; contract Identity
+  + `1.1.92`/`1.1.94` Highlights; ledger `REGEX-0102`; regex book (`rules-char-class` § escape-in-class +
+  `rules-escape` + `compile-contract-validator` + `changelog-index` + tracked HTML); top book
+  `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`;
+  `docs/TASK_TREE.md`.
+
 ## `.2` DESIGN — the explicit `pcre2` default (uncovered scoping `.3.1`, 2026-06-07)
 
 **The wrinkle (tool-backed):** the codegen profile guard `rule_profile_is_enabled`
@@ -1332,6 +1408,22 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
+- **(2026-07-09, session #75)** `.4.4` LANDED (`PGEN-REGEX-PCRE2-0025`, RELEASED regex slice — release
+  `1.1.91`→`1.1.92`, contract `1.1.93`→`1.1.94`, schema `1`, ledger `REGEX-0102`) — the escape-in-class
+  rejects (`\A \B \C \G \K \N`-unbraced `\R \X \Z \z`) are now GRAMMAR-owned (behavior-NEUTRAL
+  validator→grammar migration, the 3rd `.4` deletion-prep child, the 10th compile-contract check migrated).
+  Three reach paths closed: 10 guards `!"A"…!"z" !( "N" !"{" )` on both `class_simple_escape` variants
+  (`char:$23`/`$17`); `single_byte_escape` dropped from `class_escape_unit` (kept in `escape_unit` for the
+  pattern body); `A`/`G`/`z` dropped from `class_range_literal_escape_letter_strict` (range-endpoint
+  reachable). `!( "N" !"{" )` keeps `\N{…}` valid. The two `read_class_atom` reject blocks + 3 validator unit
+  tests deleted; `parser_registry.rs` pin `regex_class_escapes_reject_at_the_grammar_layer_pcre2_faithfully`
+  added. VERIFIED: message-source probe 18 reject forms flip VALIDATOR→GRAMMAR-reject (both profiles), 28
+  controls stay ACCEPT (`pcre2test` 10.47 agrees); cert 238/238/0 spf=0 ×seeds 0/7/42; oracle byte-identical
+  `2189/1858/285/46`; duality 9 lanes no new signature; equivalence byte-identical; ast_shape aligned
+  (manifest `$7`→`$17` / `$13`→`$23`, text-only positional bump; inventory stays 219). NO new rule → cert
+  stays 238. Frontier per the standing PNT order → `.4.2` (`\k`/group NAME charset+len) → the
+  hard/primitive-needing families (`.4.3`,`.4.5`,`.4.7`,`.4.8`,`.4.9`,`.4.10`,`.4.11`) → final `.4`
+  deletion → `.5`.
 - **(2026-07-09, session #74)** `.4.6` LANDED (`PGEN-REGEX-PCRE2-0024`, RELEASED regex slice — release
   `1.1.90`→`1.1.91`, contract `1.1.92`→`1.1.93`, schema `1`, ledger `REGEX-0101`) — POSIX character-class NAME
   validity is now GRAMMAR-owned (behavior-NEUTRAL validator→grammar migration, the 2nd `.4` deletion-prep

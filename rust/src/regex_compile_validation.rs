@@ -775,21 +775,14 @@ fn read_class_atom(
         if next == b'E' {
             return Ok((ClassAtomKind::ZeroWidth, index + 2));
         }
-        if next == b'N' && bytes.get(index + 2) != Some(&b'{') {
-            return Err(RegexCompileValidationError::new(
-                index,
-                "\\N is not accepted inside a character class by the regex compile contract",
-            ));
-        }
-        if matches!(
-            next,
-            b'A' | b'B' | b'C' | b'G' | b'K' | b'Q' | b'R' | b'X' | b'Z' | b'z'
-        ) {
-            return Err(RegexCompileValidationError::new(
-                index,
-                "escape is not accepted inside a character class by the regex compile contract",
-            ));
-        }
+        // REGEX-PCRE2-FIDELITY.4.4: the escape-in-class rejects (`\A \B \C \G \K \N`-unbraced
+        // `\R \X \Z \z`) were MIGRATED into `grammars/regex.ebnf` — `class_escape_unit` drops
+        // `single_byte_escape` (`\C`), `class_simple_escape_{strict,relaxed}` carry the guards
+        // `!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )`, and the range path drops
+        // `A`/`G`/`z` from `class_range_literal_escape_letter_strict`. Any class containing one of
+        // these escapes is now grammar-rejected before this validator ever runs, so the checks
+        // that lived here are dead post-migration and were removed. The EBNF is the single source
+        // of truth ([[project_ebnf_is_single_source_of_truth]]).
         let after_escape = skip_regex_escape(bytes, index);
         if is_nonliteral_class_escape(bytes, index, after_escape) {
             return Ok((ClassAtomKind::NonLiteral, after_escape));
@@ -1535,24 +1528,12 @@ mod tests {
         }
     }
 
-    #[test]
-    fn rejects_invalid_class_escape() {
-        let error = validate_regex_compile_contract(r"[\B]").expect_err("must reject \\B");
-        assert!(error.message.contains("class"));
-    }
-
-    #[test]
-    fn rejects_keep_out_escape_in_character_class() {
-        let error = validate_regex_compile_contract(r"[\K]").expect_err("must reject \\K");
-        assert!(error.message.contains("class"));
-    }
-
-    #[test]
-    fn rejects_not_newline_escape_in_character_class() {
-        let error =
-            validate_regex_compile_contract(r"a[\NB]c").expect_err("must reject \\N in class");
-        assert!(error.message.contains("\\N"));
-    }
+    // REGEX-PCRE2-FIDELITY.4.4: `rejects_invalid_class_escape` (`[\B]`),
+    // `rejects_keep_out_escape_in_character_class` (`[\K]`), and
+    // `rejects_not_newline_escape_in_character_class` (`a[\NB]c`) were removed — the
+    // escape-in-class rejects are now GRAMMAR-owned (`grammars/regex.ebnf`), and the parity
+    // pin `regex_class_escapes_reject_at_the_grammar_layer_pcre2_faithfully` in
+    // `parser_registry.rs` proves the whole parse path still rejects them.
 
     #[test]
     fn rejects_nonliteral_class_range_endpoints() {

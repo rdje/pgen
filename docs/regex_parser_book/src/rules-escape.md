@@ -47,6 +47,14 @@ single_byte_escape = "C"
 
 PCRE2's `\C` — match one code unit. `Terminal("C")`.
 
+> **Pattern-body only (REGEX-PCRE2-FIDELITY.4.4, release 1.1.92).** `single_byte_escape` is reachable
+> from `escape_unit` (the pattern body) but **not** from `class_escape_unit` — PCRE2 forbids `\C`
+> inside a character class, so `[\C]` hard-REJECTS at the grammar layer (together with the
+> escape-in-class guards on `class_simple_escape_*` and the `A`/`G`/`z` drop from the class-range
+> escape letters; see the Character Class chapter → *Escape validity inside a class*). This migrated
+> the escape-in-class rejects (`\A \B \C \G \K \N`-unbraced `\R \X \Z \z`) out of the out-of-band
+> validator into the EBNF — behavior-neutral, `E_PARSE_FAILURE` unchanged.
+
 ## `simple_escape`
 
 ```ebnf

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ee1fb454.js";
+            window.path_to_searchindex_js = "searchindex-0ebb6d46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -424,6 +424,39 @@ unescaped <code>]</code>, exactly replicating the validator it replaced. PCRE2�
 an <em>unescaped</em> <code>]</code>, so <code>[x[:foo]bar:]y]</code> accepts in PCRE2 but rejects in PGEN (both before and after
 this release). A PCRE2-exact <code>]</code>-boundary is a tracked follow-up.</p>
 </blockquote>
+<h3 id="escape-validity-inside-a-class--the-escape-in-class-guards"><a class="header" href="#escape-validity-inside-a-class--the-escape-in-class-guards">Escape validity inside a class — the escape-in-class guards</a></h3>
+<p>Inside a character class PCRE2 forbids the anchor / assertion / special escapes
+<code>\A \B \C \G \K \R \X \Z \z</code>, and allows <code>\N</code> only in its braced named-codepoint form <code>\N{…}</code>
+(bare <code>\N</code> is invalid). Since <strong><code>REGEX-0102</code></strong> (release <code>1.1.92</code>, <code>REGEX-PCRE2-FIDELITY.4.4</code>) the
+grammar owns this rule — previously it lived only in the out-of-band validator, so the grammar alone
+wrongly accepted <code>[\B]</code>, <code>[\C]</code>, and even <code>[\A-x]</code> (via the range path). Three edits close the three
+reach paths:</p>
+<ol>
+<li>Both <code>class_simple_escape</code> variants carry the guards
+<code>!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )</code> — the only conditional one,
+<code>!( "N" !"{" )</code>, rejects a bare <code>\N</code> while a following <code>{</code> keeps <code>\N{…}</code> a valid member.</li>
+<li><code>single_byte_escape</code> (<code>\C</code>) is dropped from the class-context <code>class_escape_unit</code> (it stays valid
+in the pattern body via <code>escape_unit</code>).</li>
+<li><code>A</code>, <code>G</code>, <code>z</code> are dropped from <code>class_range_literal_escape_letter_strict</code> — they were reachable as
+a range <em>endpoint</em> (<code>[\A-x]</code>, <code>[\z-\x{FFFF}]</code>), which the member-side guards do not cover.</li>
+</ol>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict (PGEN = PCRE2 10.47)</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[\B]</code>, <code>[\K]</code>, <code>[\C]</code>, <code>a[\NB]c</code>, <code>[\A-x]</code>, <code>[a-\B]</code>, <code>[\z-\x{FFFF}]</code></td><td>REJECT</td><td>escape invalid as a class member (err 137/108)</td></tr>
+<tr><td><code>[\d]</code>, <code>[\w]</code>, <code>[\s]</code>, <code>[\b]</code> (backspace), <code>[\n]</code>, <code>[\a]</code>, <code>[\e]</code></td><td>ACCEPT</td><td>legal class shorthand / c-escape</td></tr>
+<tr><td><code>[\N{U+00E9}]</code>, <code>[\pL]</code>, <code>[\x41]</code>, <code>[\g]</code>, <code>[\j]</code>, <code>[\k]</code></td><td>ACCEPT</td><td>braced <code>\N{…}</code> / property / hex / literal-transport letter</td></tr>
+<tr><td><code>[\I-x]</code>, <code>[\a-x]</code>; body <code>\B</code>, <code>\K</code>, <code>\A</code>, <code>\z</code> (outside a class)</td><td>ACCEPT</td><td>valid literal range / valid pattern-body anchor</td></tr>
+</tbody>
+</table>
+</div>
+<p>Behavior-neutral: every accept/reject verdict is byte-identical to <code>1.1.91</code> (validator rejected these
+before, the grammar rejects them now — only the message moved). <code>\N{…}</code> and all lowercase / non-reject
+letters (<code>\g</code>, <code>\j</code>, <code>\k</code>, <code>\r</code>, …) stay literal-transport members, so accepted-class ASTs are
+unchanged.</p>
 <h2 id="class_range"><a class="header" href="#class_range"><code>class_range</code></a></h2>
 <pre><code class="language-ebnf">class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom   -&gt; {type: "class_range", start: $1, end: $5}
 </code></pre>

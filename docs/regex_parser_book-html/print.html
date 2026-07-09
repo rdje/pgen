@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ee1fb454.js";
+            window.path_to_searchindex_js = "searchindex-0ebb6d46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -2471,6 +2471,39 @@ unescaped <code>]</code>, exactly replicating the validator it replaced. PCRE2�
 an <em>unescaped</em> <code>]</code>, so <code>[x[:foo]bar:]y]</code> accepts in PCRE2 but rejects in PGEN (both before and after
 this release). A PCRE2-exact <code>]</code>-boundary is a tracked follow-up.</p>
 </blockquote>
+<h3 id="escape-validity-inside-a-class--the-escape-in-class-guards"><a class="header" href="#escape-validity-inside-a-class--the-escape-in-class-guards">Escape validity inside a class — the escape-in-class guards</a></h3>
+<p>Inside a character class PCRE2 forbids the anchor / assertion / special escapes
+<code>\A \B \C \G \K \R \X \Z \z</code>, and allows <code>\N</code> only in its braced named-codepoint form <code>\N{…}</code>
+(bare <code>\N</code> is invalid). Since <strong><code>REGEX-0102</code></strong> (release <code>1.1.92</code>, <code>REGEX-PCRE2-FIDELITY.4.4</code>) the
+grammar owns this rule — previously it lived only in the out-of-band validator, so the grammar alone
+wrongly accepted <code>[\B]</code>, <code>[\C]</code>, and even <code>[\A-x]</code> (via the range path). Three edits close the three
+reach paths:</p>
+<ol>
+<li>Both <code>class_simple_escape</code> variants carry the guards
+<code>!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )</code> — the only conditional one,
+<code>!( "N" !"{" )</code>, rejects a bare <code>\N</code> while a following <code>{</code> keeps <code>\N{…}</code> a valid member.</li>
+<li><code>single_byte_escape</code> (<code>\C</code>) is dropped from the class-context <code>class_escape_unit</code> (it stays valid
+in the pattern body via <code>escape_unit</code>).</li>
+<li><code>A</code>, <code>G</code>, <code>z</code> are dropped from <code>class_range_literal_escape_letter_strict</code> — they were reachable as
+a range <em>endpoint</em> (<code>[\A-x]</code>, <code>[\z-\x{FFFF}]</code>), which the member-side guards do not cover.</li>
+</ol>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict (PGEN = PCRE2 10.47)</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[\B]</code>, <code>[\K]</code>, <code>[\C]</code>, <code>a[\NB]c</code>, <code>[\A-x]</code>, <code>[a-\B]</code>, <code>[\z-\x{FFFF}]</code></td><td>REJECT</td><td>escape invalid as a class member (err 137/108)</td></tr>
+<tr><td><code>[\d]</code>, <code>[\w]</code>, <code>[\s]</code>, <code>[\b]</code> (backspace), <code>[\n]</code>, <code>[\a]</code>, <code>[\e]</code></td><td>ACCEPT</td><td>legal class shorthand / c-escape</td></tr>
+<tr><td><code>[\N{U+00E9}]</code>, <code>[\pL]</code>, <code>[\x41]</code>, <code>[\g]</code>, <code>[\j]</code>, <code>[\k]</code></td><td>ACCEPT</td><td>braced <code>\N{…}</code> / property / hex / literal-transport letter</td></tr>
+<tr><td><code>[\I-x]</code>, <code>[\a-x]</code>; body <code>\B</code>, <code>\K</code>, <code>\A</code>, <code>\z</code> (outside a class)</td><td>ACCEPT</td><td>valid literal range / valid pattern-body anchor</td></tr>
+</tbody>
+</table>
+</div>
+<p>Behavior-neutral: every accept/reject verdict is byte-identical to <code>1.1.91</code> (validator rejected these
+before, the grammar rejects them now — only the message moved). <code>\N{…}</code> and all lowercase / non-reject
+letters (<code>\g</code>, <code>\j</code>, <code>\k</code>, <code>\r</code>, …) stay literal-transport members, so accepted-class ASTs are
+unchanged.</p>
 <h2 id="class_range"><a class="header" href="#class_range"><code>class_range</code></a></h2>
 <pre><code class="language-ebnf">class_range    = class_atom class_zero_width* "-" class_zero_width* class_atom   -&gt; {type: "class_range", start: $1, end: $5}
 </code></pre>
@@ -2951,6 +2984,15 @@ escape = "\\" escape_unit
 <pre><code class="language-ebnf">single_byte_escape = "C"
 </code></pre>
 <p>PCRE2’s <code>\C</code> — match one code unit. <code>Terminal("C")</code>.</p>
+<blockquote>
+<p><strong>Pattern-body only (REGEX-PCRE2-FIDELITY.4.4, release 1.1.92).</strong> <code>single_byte_escape</code> is reachable
+from <code>escape_unit</code> (the pattern body) but <strong>not</strong> from <code>class_escape_unit</code> — PCRE2 forbids <code>\C</code>
+inside a character class, so <code>[\C]</code> hard-REJECTS at the grammar layer (together with the
+escape-in-class guards on <code>class_simple_escape_*</code> and the <code>A</code>/<code>G</code>/<code>z</code> drop from the class-range
+escape letters; see the Character Class chapter → <em>Escape validity inside a class</em>). This migrated
+the escape-in-class rejects (<code>\A \B \C \G \K \N</code>-unbraced <code>\R \X \Z \z</code>) out of the out-of-band
+validator into the EBNF — behavior-neutral, <code>E_PARSE_FAILURE</code> unchanged.</p>
+</blockquote>
 <h2 id="simple_escape"><a class="header" href="#simple_escape"><code>simple_escape</code></a></h2>
 <pre><code class="language-ebnf">simple_escape  = !"o{" !"x{" !"p" !"P" simple_escape_tail
 simple_escape_tail = simple_escape_letter | whitespace | special_char | unicode_char
@@ -5352,7 +5394,7 @@ the EBNF becomes the sole source of truth.</p>
 CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.91</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.92</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">
@@ -5363,7 +5405,6 @@ one instance is the only one and it can only ever shrink.</p>
 <tbody>
 <tr><td><code>\k</code> / group <strong>NAME</strong> validity — charset (letter/digit/<code>_</code>/Unicode, no leading digit) + length ≤ 128</td><td><code>\k</code>, <code>\kabc</code>, <code>\k''</code>, <code>\k&lt;&gt;</code>, a 129-char capture name</td><td><code>.4.2</code></td></tr>
 <tr><td>Counted-quantifier <strong>min &gt; max</strong> order (err 104)</td><td><code>x{5,4}</code>, <code>a{\t5\t,\t2\t}</code></td><td><code>.4.3</code></td></tr>
-<tr><td><strong>Escape not allowed inside <code>[...]</code></strong> — <code>\A \B \C \G \K \N</code>(unbraced)<code>\R \X \Z \z</code></td><td><code>[\B]</code>, <code>[\K]</code>, <code>a[\NB]c</code>, <code>[\A-x]</code></td><td><code>.4.4</code></td></tr>
 <tr><td>Character-class <strong>RANGE</strong> validity — nonliteral endpoints + descending ranges</td><td><code>[\d-x]</code>, <code>[a-\p{Lu}]</code>, <code>[z-a]</code>, <code>[\x{100}-z]</code></td><td><code>.4.5</code></td></tr>
 <tr><td>Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture</td><td><code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code></td><td><code>.4.7</code></td></tr>
 <tr><td><strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix</td><td><code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code></td><td><code>.4.8</code></td></tr>
@@ -5377,7 +5418,8 @@ trail): the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> 
 start-option NAME + argument shapes (<code>.3.2</code>/<code>.3.14</code>), quantified anchors (<code>.3.13</code>),
 the class-open visibility model (<code>.3.15</code>), the counted-quantifier VALUE bound + brace
 tokenization (<code>.3.18</code>), the numeric-callout range (<code>.3.16</code>), bare <code>\p</code>/<code>\P</code> property
-escapes (<code>.4.1</code>), and POSIX character-class <strong>NAME</strong> validity (<code>.4.6</code>). A related
+escapes (<code>.4.1</code>), POSIX character-class <strong>NAME</strong> validity (<code>.4.6</code>), and the
+<strong>escape-in-class</strong> rejects <code>\A \B \C \G \K \N</code>(unbraced)<code>\R \X \Z \z</code> (<code>.4.4</code>). A related
 divergence with no validator check at all — the named-reference <em>unknown-name</em>
 inventory (<code>\k&lt;zzz&gt;</code>… @undefined) — is tracked as <code>.4.11</code> (ledger <code>REGEX-0098</code>).</p>
 <h2 id="which-layer-rejected-my-pattern"><a class="header" href="#which-layer-rejected-my-pattern">Which layer rejected my pattern?</a></h2>
@@ -5531,6 +5573,10 @@ when, and the version each migration shipped in.</li>
 </table>
 </div>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
+<h3 id="1192--contract-1194--regex-0102-escape-in-class-rejects-are-now-grammar-owned-behavior-neutral-validatorgrammar-migration"><a class="header" href="#1192--contract-1194--regex-0102-escape-in-class-rejects-are-now-grammar-owned-behavior-neutral-validatorgrammar-migration">1.1.92 / Contract 1.1.94 — REGEX-0102: escape-in-class rejects are now grammar-owned; behavior-neutral validator→grammar migration</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: BEHAVIOR-NEUTRAL internal migration (release bump 1.1.91→1.1.92 / contract 1.1.93→1.1.94; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.4.4</code>; oracle <code>pcre2test</code> 10.47). In PCRE2 the escapes <code>\A \B \C \G \K \R \X \Z \z</code> are invalid as a character-class member, and <code>\N</code> is valid inside a class only in its braced named-codepoint form <code>\N{…}</code> (bare <code>\N</code> invalid). PGEN’s GRAMMAR alone previously ACCEPTED all of them — <code>[\B]</code> as a shorthand escape, <code>[\C]</code> via <code>single_byte_escape</code>, and <code>[\A-x]</code>/<code>[\z-\x{FFFF}]</code> via the range path — masked downstream ONLY by the out-of-band <code>regex_compile_validation.rs::find_invalid_char_class_construct</code> (<code>read_class_atom</code>), a single-source-of-truth hole. This slice migrates the rule into the EBNF via three edits: (1) both <code>class_simple_escape</code> variants carry <code>!"A" !"B" !"C" !"G" !"K" !"R" !"X" !"Z" !"z" !( "N" !"{" )</code> (the <code>!( "N" !"{" )</code> keeps <code>\N{…}</code> valid); (2) <code>single_byte_escape</code> (<code>\C</code>) dropped from <code>class_escape_unit</code> (stays in <code>escape_unit</code> for the pattern body); (3) <code>A</code>/<code>G</code>/<code>z</code> dropped from <code>class_range_literal_escape_letter_strict</code> (range-endpoint reachable). <strong>No verdict flips</strong> — every input’s accept/reject is byte-identical to <code>1.1.91</code> in BOTH profiles; oracle gate byte-identical <code>2189/1858/285/46</code>. <strong>Now grammar-REJECT</strong> (was validator-reject): member <code>[\A]</code> <code>[\B]</code> <code>[\C]</code> <code>[\G]</code> <code>[\K]</code> <code>[\N]</code> <code>[\R]</code> <code>[\X]</code> <code>[\Z]</code> <code>[\z]</code>, mid-pattern <code>a[\NB]c</code> <code>[a\Kb]</code>, range-endpoint <code>[\B-x]</code> <code>[a-\B]</code> <code>[\A-x]</code> <code>[\G-x]</code> <code>[\z-\x{FFFF}]</code>. <strong>ACCEPT</strong> (unchanged): legal shorthands/c-escapes <code>[\d]</code> <code>[\w]</code> <code>[\s]</code> <code>[\b]</code>(backspace) <code>[\n]</code> <code>[\a]</code> <code>[\e]</code>; braced <code>[\N{U+00E9}]</code>; property/hex <code>[\pL]</code> <code>[\x41]</code>; literal-transport letters <code>[\g]</code> <code>[\j]</code> <code>[\k]</code> <code>[\r]</code>; ranges <code>[\I-x]</code> <code>[\a-x]</code> <code>[\g-x]</code>; plain <code>[abc]</code>; all pattern-body forms <code>\C</code> <code>\B</code> <code>\K</code> <code>\N</code> <code>\A</code> <code>\Z</code> <code>\z</code>. <strong>AST</strong>: every accepted class member/range byte-identical (<strong>schema stays <code>1</code></strong>). The only observable change is the rejection MESSAGE — validator text → <code>E_PARSE_FAILURE</code>; match on the <strong>code</strong>, not message text. The two <code>read_class_atom</code> reject blocks (+ 3 unit tests) deleted; <code>scan_char_class</code> range analysis stays. 7 of the (original 8) validator check families remain (capstone <code>.4</code> deletes the rest). Bug ledger: <code>REGEX-0102</code>. <strong>Contract section:</strong> “Release 1.1.92 / Contract 1.1.94 Highlights”. Rules detail: <code>rules-char-class.md</code> (§ <em>Escape validity inside a class</em>), <code>rules-escape.md</code> (§ <code>single_byte_escape</code>); component reference: <code>compile-contract-validator.md</code>.</p>
+</blockquote>
 <h3 id="1191--contract-1193--regex-0101-posix-character-class-name-validity-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration"><a class="header" href="#1191--contract-1193--regex-0101-posix-character-class-name-validity-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration">1.1.91 / Contract 1.1.93 — REGEX-0101: POSIX character-class NAME validity is now grammar-owned; behavior-neutral validator→grammar migration</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: BEHAVIOR-NEUTRAL internal migration (release bump 1.1.90→1.1.91 / contract 1.1.92→1.1.93; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (<code>REGEX-PCRE2-FIDELITY.4.6</code>; oracle <code>pcre2test</code> 10.47). In PCRE2, a <code>[:name:]</code> token inside a character class is a POSIX-class ATTEMPT — the name (after an optional <code>^</code>) MUST be one of the 14 valid names (<code>alnum alpha ascii blank cntrl digit graph lower print punct space upper word xdigit</code>) or it is a compile error (err 130). PGEN’s GRAMMAR alone previously ACCEPTED an unknown name (<code>[[:foo:]]</code> parsed as a class of literals <code>[:foo:</code> — <code>posix_class</code> failed on the bad name and the <code>[</code>/<code>:</code>/letters fell back to <code>class_literal</code>), masked downstream ONLY by the out-of-band <code>regex_compile_validation.rs::find_invalid_char_class_construct</code> — a single-source-of-truth hole. This slice migrates the rule into the EBNF so the grammar owns it: the class-member <code>[</code> literal is guarded by an inline negative lookahead for the <code>[:…:]</code> posix-token shape (two wrapper rules <code>class_member_literal</code> / <code>class_member_literal_nocaret</code>, <code>-&gt; $2</code>), so a valid name is won by <code>posix_class</code> and an invalid name leaves the class unclosable → reject. <strong>No verdict flips</strong> — every input’s accept/reject is byte-identical to <code>1.1.90</code> (the validator rejected <code>[[:foo:]]</code>/<code>[a[:&lt;:]]</code>/<code>[[::]]</code> before, the grammar rejects them now, in BOTH profiles); oracle gate byte-identical <code>2189/1858/285/46</code>. <strong>Now grammar-REJECT</strong> (was validator-reject): <code>[[:foo:]]</code> <code>[[:foo:]</code> <code>[a[:&lt;:]]</code> <code>[a[:&gt;:]]</code> <code>[[::]]</code> <code>[[:^foo:]]</code> <code>[x[:foo:]y]</code> <code>[[:foo:]x]</code> <code>[^[:foo:]]</code> <code>[[:al pha:]]</code> <code>[[:foo:bar:]]</code> <code>[[:al:num:]]</code>. <strong>ACCEPT</strong> (unchanged): valid <code>[[:alpha:]]</code> <code>[[:^alpha:]]</code> <code>[[:alnum:][:digit:]]</code> <code>[^[:alpha:]]</code> <code>[x[:alpha:]y]</code> <code>[[:space:]]+</code>; aliases <code>[[:&lt;:]]</code> <code>[[:&gt;:]]</code> <code>[[:&lt;:]]red[[:&gt;:]]</code>; non-posix <code>[[:foo]</code> <code>[[:]]</code> <code>([[:]+)</code> <code>[a:foo:]</code> <code>[]:foo:]</code> <code>[\Q[:foo:]\E]</code>. <strong>AST</strong>: every accepted class byte-identical incl. the 4 contract-pinned POSIX shapes (<strong>schema stays <code>1</code></strong>). The only observable change is the rejection MESSAGE — validator text → <code>E_PARSE_FAILURE</code>; match on the <strong>code</strong>, not message text. <code>is_valid_posix_class_name</code> (+ 2 unit tests) deleted; <code>scan_posix_class</code> recognition stays for range analysis. <strong>Honest bound (unchanged, pre-existing):</strong> the scan crosses both escaped/unescaped <code>]</code> (like the validator), whereas PCRE2 stops at an unescaped <code>]</code> (<code>[x[:foo]bar:]y]</code> accepts in PCRE2, rejects in PGEN — before AND after); a PCRE2-exact <code>]</code>-boundary follow-up. Bug ledger: <code>REGEX-0101</code>. <strong>Contract section:</strong> “Release 1.1.91 / Contract 1.1.93 Highlights”. Rules detail: <code>rules-char-class.md</code> (§ <code>posix_class</code>).</p>
