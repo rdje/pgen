@@ -13,6 +13,15 @@ metadata:
 
 **User-set policy (2026-05-24, emphatic + repeated):** correctness first, speed second. Universal. Applies to every parser pgen generates.
 
+**⛔ HARDENED for the SPEED PHASE (director 2026-07-09, session #73, emphatic):** *"The speed effort shall
+not compromise the feature accuracy and parity. Any speed optimization that creates regressions or breaks
+parity shall be rejected without any second thought."* This is the non-negotiable operating rule for the
+speed phase itself: correctness/parity is a FLOOR, never a variable to trade for latency. A candidate that
+is faster but flips ANY correctness/parity oracle — one new PCRE2 false-accept/false-reject, a cert
+`fully_certified` loss, an equivalence/duality/ast_shape/conformance break — does NOT land; revert it
+immediately and find another lever, no deliberation and no "net win" rationalization. Enforced concretely
+as the RGX-0078 tree's ⛔ HARD CONSTRAINT (every correctness oracle green at its pre-optimization value).
+
 **REINFORCED + BROADENED (user 2026-06-03):** *"It is always functionality & accuracy then speed, in that order."* The user SUSPECTS pgen parsers may not run as fast as they possibly can — but speed work waits until a parser is accurate and does its job (parses its target language source). Implication: there is a **deliberate SPEED PHASE, across ALL parser families, that begins once each is accurate.** First instances now entering that phase: **regex** (conformant → `RGX-0078`, [[project_rgx_0078_regex_slowness_followup]], geomean PGEN/PCRE2 < 5×) and **SV's super-linearity** (the parser is accurate — corpus 14/14 — so its O(N²) `with_semantic_runtime_rule_transaction` clone is fair game: `PARSE-TERMINATION.3`, [[stateful-packrat-not-linear]]). Both are SPEED-on-an-already-ACCURATE-parser → in-scope; both must be PROFILED first (tools, not guessing) and must not regress accuracy/conformance.
 
 **Frame of reference:**
