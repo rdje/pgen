@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-07-09 - PGEN-RSVC-0002 — RULE-SPAN-VALUE-CONSTRAINT.2: land the `value_compare` `@predicate` builtin + prove it in isolation (ENGINE primitive; tree CORE COMPLETE)
+
+The director-authorized general **rule-span value-constraint** primitive is landed and proven in
+isolation before any shipped consumer. `value_compare` is now a first-class `@predicate` builtin —
+`@predicate: { name: value_compare, args: [$lhs, <op>, $rhs], phase: post }`, `<op>` ∈
+`lt`/`le`/`gt`/`ge`/`eq`/`ne` — that gates a rule on a comparison between two of its own resolved
+captures (a RULE-SPAN constraint, distinct from the ATOM-scoped `@range`/`@len`/`@enum`/`@regex`
+guards). Parser-agnostic, capability-gated (a grammar opts in by writing it), byte-identical in the
+generated parser and the interpreter (both call the shared semantic runtime).
+
+- **Implementation** (`predicate_expr.rs` `CompareOp::from_word`; `semantic_runtime.rs` a
+  `value_compare` dispatch arm + `ENGINE_BUILTIN_PREDICATE_NAMES` entry + a new `compare_values`
+  helper; `parse_harness_semantic_suite.rs` two isolating constructs/cases). Codegen / interpreter /
+  grammar unchanged (shared runtime; args generic).
+- **🔎 Tool-surfaced refinement.** The isolation proof caught, before any consumer, that the existing
+  `compare_predicate_values` makes `eq`/`ne` **textual** (so `"05" != "5"`) while the ordering ops are
+  numeric — not signoff-grade for a primitive named *value_compare*. So `value_compare` uses a
+  dedicated `compare_values` that is uniformly value-oriented (numeric for all six ops when both
+  operands parse as `i64`, lexical/textual fallback otherwise); the shared `compare_predicate_values`
+  is untouched (zero `@predicate_def` blast radius). The two leading-zero anchors (`05 lt 4` → reject,
+  `05 eq 5` → accept) decisively prove uniform numeric coercion.
+- **Proven** — `parse_harness_semantic_gate` GREEN: `sem_value_compare` CLEAN (9 samples, all six ops
+  each verdict-changing + numeric-coercion anchors) + `sem_value_compare_backtrack` CLEAN (a
+  post-rejection loses the tournament to a sibling, tree-observable), interpreter == compile-and-run
+  oracle byte-identical. **No regression** — `parse_harness_equivalence_gate` GREEN (6 fully-certified
+  grammars byte-identical; `value_compare` inert on every shipped grammar); dual lib suite 887/0;
+  clippy source-clean.
+- LIVE_ACHIEVEMENT_STATUS unchanged (an internal engine capability, no live-status row). First
+  consumer (separate tree): `REGEX-PCRE2-FIDELITY.4.3` (counted-quantifier `{min,max}` order).
+
 ## 2026-07-09 - PGEN-RSVC-0001 — RULE-SPAN-VALUE-CONSTRAINT.1: open the tree + tools-first DESIGN of a general `@predicate` value-comparison primitive (PURE-DOCS)
 
 Task-tree-first (mandatory before any code) for the director-authorized (2026-07-09) **rule-span

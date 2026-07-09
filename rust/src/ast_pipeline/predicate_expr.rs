@@ -135,6 +135,29 @@ impl fmt::Display for CompareOp {
     }
 }
 
+impl CompareOp {
+    /// Parse a WORD-form operator (`lt`/`le`/`gt`/`ge`/`eq`/`ne`, case-insensitive)
+    /// into a `CompareOp`.
+    ///
+    /// The symbolic forms (`<=`, `<`, …) are lexed by this module's tokenizer for the
+    /// composed-`@predicate_def` body language. The word forms are the surface a
+    /// grammar author writes as a single bare-identifier argument inside a
+    /// `@predicate value_compare args:[$lhs, <op>, $rhs]` payload — the RULE-SPAN
+    /// value-comparison builtin (RULE-SPAN-VALUE-CONSTRAINT.2). Word forms are used
+    /// there because a payload argument is a scalar token, not a symbolic operator.
+    pub fn from_word(word: &str) -> Option<CompareOp> {
+        match word.trim().to_ascii_lowercase().as_str() {
+            "lt" => Some(CompareOp::Lt),
+            "le" => Some(CompareOp::Le),
+            "gt" => Some(CompareOp::Gt),
+            "ge" => Some(CompareOp::Ge),
+            "eq" => Some(CompareOp::Eq),
+            "ne" => Some(CompareOp::Ne),
+            _ => None,
+        }
+    }
+}
+
 // =============================================================================
 // Lexer
 // =============================================================================

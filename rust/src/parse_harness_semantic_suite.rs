@@ -181,6 +181,19 @@ pub enum SemanticConstruct {
     /// a guarded alternative that fails its constraint loses to a sibling instead of killing the
     /// parse — and WHICH branch wins is tree-observable via the byte-identical AST comparison.
     ValueGuardBacktrack,
+    /// RULE-SPAN-VALUE-CONSTRAINT.2: the general `value_compare` `@predicate` builtin — a value
+    /// comparison between two of a rule's RESOLVED captures (`args:[$lhs, <op>, $rhs]`, `<op>` one of
+    /// `lt`/`le`/`gt`/`ge`/`eq`/`ne`), uniformly value-oriented via `compare_values`: numeric for all
+    /// six ops when both operands parse as `i64` (leading-zeros coerced: `05`==`5`, `05`<`4` false),
+    /// deterministic lexical/textual fallback otherwise. A RULE-SPAN (cross-capture) constraint,
+    /// distinct from the ATOM-scoped `@range`/`@len`/`@enum`/`@regex` guards above. `post`-phase
+    /// failure rejects the rule.
+    ValueCompare,
+    /// RULE-SPAN-VALUE-CONSTRAINT.2 sibling: a `value_compare` `post`-predicate rejection is
+    /// BACKTRACKABLE (the same tournament-`Err` flow as `ValueGuardBacktrack`) — a `value_compare`-
+    /// gated alternative that fails its comparison loses to a sibling (verdict still ACCEPT); WHICH
+    /// branch wins is pinned by the byte-identical AST comparison.
+    ValueCompareBacktrack,
 }
 
 impl SemanticConstruct {
@@ -214,6 +227,8 @@ impl SemanticConstruct {
         SemanticConstruct::ValueRangeGuard,
         SemanticConstruct::ValueLenGuard,
         SemanticConstruct::ValueGuardBacktrack,
+        SemanticConstruct::ValueCompare,
+        SemanticConstruct::ValueCompareBacktrack,
     ];
 }
 
@@ -899,6 +914,77 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         note: "a value-guard rejection is BACKTRACKABLE: the guarded alternative loses the \
                tournament to its sibling (verdict still ACCEPT); which branch wins is pinned by \
                the byte-identical AST comparison",
+    },
+    // ── RULE-SPAN-VALUE-CONSTRAINT.2: the general value_compare builtin ──────────────────────────────
+    SemanticCase {
+        name: "sem_value_compare",
+        construct: SemanticConstruct::ValueCompare,
+        // Six `value_compare` post-gates, one per op, over two positional captures ($2, $4) of each
+        // pair rule (`<letter> num "," num`). The whole `program` sequence requires all six pairs, so
+        // flipping ONE pair to violate its op yields a whole-program REJECT — a live, per-op
+        // discriminating anchor. `num := /[0-9]+/`; the leading letters delimit the pairs (no layout
+        // needed). The comparison is the shared `compare_predicate_values` (decimal-integer when both
+        // parse, lexical fallback otherwise; eq/ne textual).
+        grammar_body: "program := lt_p le_p gt_p ge_p eq_p ne_p\n\
+                       @predicate: { name: value_compare, args: [$2, lt, $4], phase: post }\n\
+                       lt_p := \"a\" num \",\" num\n\
+                       @predicate: { name: value_compare, args: [$2, le, $4], phase: post }\n\
+                       le_p := \"b\" num \",\" num\n\
+                       @predicate: { name: value_compare, args: [$2, gt, $4], phase: post }\n\
+                       gt_p := \"c\" num \",\" num\n\
+                       @predicate: { name: value_compare, args: [$2, ge, $4], phase: post }\n\
+                       ge_p := \"d\" num \",\" num\n\
+                       @predicate: { name: value_compare, args: [$2, eq, $4], phase: post }\n\
+                       eq_p := \"e\" num \",\" num\n\
+                       @predicate: { name: value_compare, args: [$2, ne, $4], phase: post }\n\
+                       ne_p := \"f\" num \",\" num\n\
+                       num := /[0-9]+/\n",
+        inputs: &[
+            // All six ops satisfied → ACCEPT. a:1<2 b:2<=2 c:3>1 d:2>=2 e:5==5 f:1!=2.
+            ("a1,2b2,2c3,1d2,2e5,5f1,2", true),
+            // One op violated at a time (rest satisfied) → whole-program REJECT (per-op discriminating).
+            ("a2,1b2,2c3,1d2,2e5,5f1,2", false), // lt: 2<1 false
+            ("a1,2b3,2c3,1d2,2e5,5f1,2", false), // le: 3<=2 false
+            ("a1,2b2,2c1,3d2,2e5,5f1,2", false), // gt: 1>3 false
+            ("a1,2b2,2c3,1d1,2e5,5f1,2", false), // ge: 1>=2 false
+            ("a1,2b2,2c3,1d2,2e5,6f1,2", false), // eq: 5==6 false
+            ("a1,2b2,2c3,1d2,2e5,5f2,2", false), // ne: 2!=2 false
+            // NUMERIC coercion, not lexical: lt on "05" vs "4" is 5<4=false → REJECT (lexical
+            // "05"<"4" would be TRUE, so a REJECT here proves the i64 numeric path).
+            ("a05,4b2,2c3,1d2,2e5,5f1,2", false),
+            // NUMERIC eq: "05"=="5" is 5==5=true → ACCEPT (lexical "05"=="5" is false, so an ACCEPT
+            // here proves numeric equality of the eq op with a leading-zero operand).
+            ("a1,2b2,2c3,1d2,2e05,5f1,2", true),
+        ],
+        entry_rule: None,
+        note: "value_compare over positional captures: all six ops (lt/le/gt/ge/eq/ne) each \
+               verdict-changing, plus leading-zero anchors proving decimal-integer (not lexical) \
+               coercion — the proving shape for REGEX-PCRE2-FIDELITY.4.3 counted-quantifier order",
+    },
+    SemanticCase {
+        name: "sem_value_compare_backtrack",
+        construct: SemanticConstruct::ValueCompareBacktrack,
+        // Mirrors sem_value_guard_backtrack with a value_compare gate: `ordered` is post-gated on
+        // $1 lt $3; `any_pair` is the ungated same-shape sibling. When the gate fails the parse
+        // does NOT die — `ordered` loses the tournament to `any_pair` (backtrackable Err).
+        grammar_body: "program := ordered \"!\" | any_pair \"!\"\n\
+                       @predicate: { name: value_compare, args: [$1, lt, $3], phase: post }\n\
+                       ordered := num \"-\" num -> { kind: \"ordered_pick\" }\n\
+                       any_pair := num \"-\" num -> { kind: \"any_pick\" }\n\
+                       num := /[0-9]+/\n",
+        inputs: &[
+            // ordered's gate 2<1 fails → branch 1 loses → any_pair wins → any_pick. SAME verdict
+            // (ACCEPT), the winning branch (tree) is what the byte-identical AST comparison pins.
+            ("2-1!", true),
+            // ordered's gate 1<2 passes → branch 1 wins the equal-length tie → ordered_pick.
+            ("1-2!", true),
+            // Both branches fail structurally (num needs digits) → reject control.
+            ("x-y!", false),
+        ],
+        entry_rule: None,
+        note: "a value_compare post-rejection is BACKTRACKABLE: the gated `ordered` alternative loses \
+               the tournament to its ungated sibling `any_pair` (verdict still ACCEPT); which branch \
+               wins is pinned by the byte-identical AST comparison",
     },
 ];
 

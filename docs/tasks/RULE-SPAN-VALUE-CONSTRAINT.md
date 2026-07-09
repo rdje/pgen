@@ -3,7 +3,9 @@
 ## Metadata
 
 - Tree ID: `RULE-SPAN-VALUE-CONSTRAINT`
-- Status: `active` (created 2026-07-09, session #77). FRONTIER = `.2`.
+- Status: `active` — **CORE COMPLETE** (`.1`+`.2` done 2026-07-09, session #77). The general primitive
+  is landed + proven in isolation; the remaining work is the downstream CONSUMER
+  `REGEX-PCRE2-FIDELITY.4.3` (a leaf of a different tree), so the FRONTIER passes to that tree.
 - Family / slice-id prefix: `PGEN-RSVC-<NNNN>` (abbreviation of the tree name; used in commit subjects)
 - Roadmap lane: cross-cutting engine correctness — a **parser-agnostic** value-comparison predicate
   that lets the EBNF express a *rule-span* value constraint (compare two of a rule's resolved
@@ -212,10 +214,92 @@ entries / more surface for no expressive gain; the director's framing lists ops 
 - ID: `.1`  Status: **`done`** (`PGEN-RSVC-0001`, session #77)  Goal: tools-first scoping + design of
   the `value_compare` rule-span value-comparison primitive; touch-map; surface decision; the
   STALE-FRAMING finding. Acceptance: the §`.1` section above + the checklist. PURE-DOCS.
-- ID: `.2`  Status: `pending` (FRONTIER)  Goal: implement `value_compare` as a first-class
-  `@predicate` builtin (op-word map + dispatch arm + registry) and PROVE IN ISOLATION (semantic suite
-  construct + cases, semantic gate + equivalence gate green), byte-identical codegen⟷interpreter;
-  full NO-REGRESSION; book + decision-record lockstep. No shipped consumer in this slice.
+- ID: `.2`  Status: **`done`** (`PGEN-RSVC-0002`, session #77)  Goal: implement `value_compare` as a
+  first-class `@predicate` builtin (op-word map + dispatch arm + registry) and PROVE IN ISOLATION
+  (semantic suite construct + cases, semantic gate + equivalence gate green), byte-identical
+  codegen⟷interpreter; full NO-REGRESSION; book + decision-record lockstep. No shipped consumer in
+  this slice. See the §`.2` implementation section + Acceptance Checklist below.
+
+### `.2` IMPLEMENTATION (`PGEN-RSVC-0002`, 2026-07-09, session #77)
+
+**What landed (per the §`.1` touch-map, with one tool-surfaced refinement).**
+
+1. `rust/src/ast_pipeline/predicate_expr.rs` — `CompareOp::from_word(&str) -> Option<CompareOp>`
+   (`lt`/`le`/`gt`/`ge`/`eq`/`ne`, case-insensitive).
+2. `rust/src/ast_pipeline/semantic_runtime.rs` — a `"value_compare"` arm in `evaluate_predicate`
+   (exactly-3-args; `scalar_text` lhs/rhs + `CompareOp::from_word` op; `compare_values`; malformed →
+   `None`) + registration in `ENGINE_BUILTIN_PREDICATE_NAMES`.
+3. `rust/src/parse_harness_semantic_suite.rs` — two isolating constructs + cases:
+   `sem_value_compare` (9 samples: all six ops each verdict-changing + two leading-zero anchors) and
+   `sem_value_compare_backtrack` (3 samples: a `value_compare` post-rejection loses the tournament to
+   an ungated sibling, tree-observable).
+4. Codegen / interpreter / grammar: **NO change** (both call the shared runtime; args are generic).
+
+**🔎 Tool-surfaced design refinement (`compare_values`, not `compare_predicate_values`).** The `.1`
+touch-map planned to reuse `compare_predicate_values` verbatim. The isolation proof caught, BEFORE any
+shipped consumer, that its `eq`/`ne` are **textual** (so `"05" != "5"`) while `lt`/`le`/`gt`/`ge` are
+numeric — an asymmetry not signoff-grade for a primitive named *value_compare*. `value_compare`
+therefore uses a dedicated `compare_values` (`semantic_runtime.rs`) that is **uniformly** value-oriented
+(numeric for all six ops when both operands parse as `i64`, deterministic lexical/textual fallback
+otherwise). The shared `compare_predicate_values` is **unchanged** (composed-`@predicate_def` bodies
+keep their historical textual-eq semantics — zero blast radius). The two leading-zero anchors
+(`05 lt 4` → reject; `05 eq 5` → accept) now DECISIVELY prove uniform numeric coercion. This is the
+value of proving-in-isolation-first.
+
+**Semantics (final).** Holds iff `resolve($lhs) <op> resolve($rhs)` under `compare_values`; a
+`post`-failure rejects the rule **backtrackably** (a gated alternative loses to a sibling). A malformed
+shape → `None` (INAPPLICABLE / non-blocking); an unresolvable `$ref` hard-errors in the resolution
+layer (rule fails loudly). Byte-identical codegen⟷interpreter by shared-runtime construction.
+
+#### `.2` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — before this slice `value_compare` was not a builtin
+  (`ENGINE_BUILTIN_PREDICATE_NAMES` had 11 names, none a value comparison); the cross-capture VALUE
+  comparison the proving consumer needs (`regex_compile_validation.rs:433-434` `minimum > maximum`)
+  had no grammar-expressible form (only the composed-`@predicate_def` path reached
+  `compare_predicate_values`, and it hard-errored positional `$N` before POSITIONAL-PAYLOAD-REFS.2).
+- [x] **ROOT CAUSE (WHY + WHERE)** — the comparison mechanism existed (`compare_values` /
+  `compare_predicate_values`, `semantic_runtime.rs`) but was not exposed as a first-class `@predicate`
+  builtin; the dispatch (`evaluate_predicate:2853`) + registry (`:3830`) had no `value_compare`. Both
+  the codegen POST/BRANCH loops (`ast_based_generator.rs:2133-2178`/`:3537-3600`) and the interpreter
+  (`parse_harness_interpreter.rs:948-977`) CALL the shared runtime method, so one new arm serves both.
+  Toolbox demonstration via the scratch slot (`scratch := "{" lo "," hi "}"` gated `@predicate
+  value_compare [$2, le, $4] phase:post`, then `focus_scratch` + release-probe rebuild), the
+  self-explaining predicate trace (`PGEN_TRACE_VERBOSITY=debug … --parse scratch … --trace-rules
+  scratch`) on `{5,4}`:
+  ```
+  ⚖️ value_compare("5" <= "4") → false caller=scratch
+  🚫 Rule 'scratch' rejected by post predicate 'value_compare [Number("5"), Identifier("le"), Number("4")]'
+  ```
+  — the primitive rejects lo>hi at the exact rule (WHERE) for the exact comparison (WHY).
+- [x] **FIX** — fix-tier ENGINE (a new GENERAL parser-agnostic primitive, tier-5, director-authorized
+  since no lower tier can express a two-capture numeric comparison): the `value_compare` builtin +
+  `compare_values` + `CompareOp::from_word`, reusing the existing positional-`$N` resolution and
+  content-aware predicate plumbing (no new syntax, no codegen/grammar change).
+- [x] **ADDRESSED (verified)** — `make -C rust parse_harness_semantic_gate` GREEN: `sem_value_compare`
+  CLEAN (9 samples, diverge=0, anchor_miss=0) + `sem_value_compare_backtrack` CLEAN (3 samples), both
+  gate tests pass (`every_semantic_construct_is_byte_identical` + `semantic_construct_coverage_is_
+  complete`). The 6 ops each verdict-changing; the leading-zero anchors prove numeric (not lexical)
+  coercion; the backtrack case proves a post-rejection loses to a sibling (tree-observable). Interpreter
+  == compile-and-run oracle byte-identical throughout. Independently, the scratch-slot release probe
+  (`--parse scratch`): `{5,4}` REJECT (rc=1, the `rejected by post predicate 'value_compare …'` trace
+  above), `{4,5}` `parse_full passed for grammar 'scratch'` (rc=0), `{05,4}` REJECT (rc=1 — numeric
+  5>4, not lexical `"05"<"4"`).
+- [x] **NO REGRESSION** — `make -C rust parse_harness_equivalence_gate` GREEN (all 4 tests incl.
+  `certified_grammars_are_byte_identical`: the 11 certified grammars, incl. the 6 fully-certified, are
+  byte-identical — `value_compare` inert on every shipped grammar, none declares it); full dual lib
+  suite `887 passed; 0 failed; 29 ignored` (unchanged baseline — the 2 new cases are enumerated data,
+  not new `#[test]`s); `clippy_on_rust_change` source-clean (the 178-eq_op generated debt is
+  pre-existing, non-strict). Cert-coverage is unaffected by construction (no grammar/codegen/cert
+  logic touched; the equivalence gate exercises generation at seeds 0/7/42 with zero divergence). The
+  two flagged inert sites confirmed: `grammar_wellformedness.rs:914 FACT_QUERY_PRIMITIVES` (a fixed
+  `.contains()` set — `value_compare` isn't a fact-query) and `stimuli_generator.rs` store-aware
+  witnessing (not a store-prelude gate).
+- [x] **LOCKSTEP** — platform book *Semantic Store* (Value-comparison predicates section) + *Annotation
+  System* (rule-span value comparison subsection); `semantic_annotation` parser book steering-directives
+  catalog; both rebuilt (`mdbook_docs_gate` + `semantic_annotation_parser_book_gate` GREEN, tracked HTML
+  regenerated); decision record [[project_rule_span_value_compare_primitive]] + INDEX; `CHANGES.md`;
+  `DEVELOPMENT_NOTES.md`; `MEMORY.md`; `docs/TASK_TREE.md`. No parser EBNF touched ⇒ no per-parser
+  contract/ledger/release change (this is an ENGINE primitive, inert until a consumer adopts it).
 
 ## Downstream consumers (separate trees — consume this primitive AFTER `.2` proves it)
 

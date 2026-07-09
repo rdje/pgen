@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-09 - PGEN-RSVC-0002 — RULE-SPAN-VALUE-CONSTRAINT.2: land `value_compare` `@predicate` builtin + prove in isolation (ENGINE primitive)
+
+The general rule-span value-constraint primitive, implemented + proven in isolation before any shipped
+consumer (director-authorized 2026-07-09).
+
+- **Files.** `predicate_expr.rs` — `CompareOp::from_word` (word ops `lt`/`le`/`gt`/`ge`/`eq`/`ne`).
+  `semantic_runtime.rs` — a `"value_compare"` arm in `evaluate_predicate` (3 args; `scalar_text`
+  lhs/rhs + `CompareOp::from_word` op; `compare_values`; malformed → `None`), registration in
+  `ENGINE_BUILTIN_PREDICATE_NAMES`, and a new `compare_values` helper. `parse_harness_semantic_suite.rs`
+  — two `SemanticConstruct`s (`ValueCompare`, `ValueCompareBacktrack`) + `::ALL` + two `SemanticCase`s.
+  Codegen / interpreter / grammar UNCHANGED: both the generated parser and the interpreter call the
+  shared runtime `evaluate_content_aware_predicate` → `evaluate_predicate`, so one arm is byte-identical
+  across both by construction; `@predicate` args are generic `annotation_value`s (op = bare identifier,
+  `$lhs`/`$rhs` = references) so the grammar needs no change.
+- **Semantics.** `value_compare` holds iff `resolve($lhs) <op> resolve($rhs)` under `compare_values`.
+  A `post`-failure rejects the rule **backtrackably** (a gated alternative loses to a sibling, not the
+  whole parse — the emitted guard's tournament-`Err` flow). A malformed shape (wrong arity / unknown
+  op word) → `None` (INAPPLICABLE, non-blocking); an unresolvable `$ref` hard-errors in
+  `resolve_semantic_predicate_spec_against_content` (the rule fails loudly).
+- **🔎 `compare_values` vs `compare_predicate_values` (tool-surfaced).** The `.1` plan was to reuse
+  `compare_predicate_values`. The isolation proof's anchor for `e05,5` (leading-zero equality) FAILED
+  with `diverge=0 anchor_miss=1` — both implementations AGREED but the result was `false`, revealing
+  that `compare_predicate_values` makes `eq`/`ne` TEXTUAL (`"05" != "5"`) while `lt`/`le`/`gt`/`ge` are
+  numeric. That asymmetry is not signoff-grade for a "value" comparison, so `value_compare` uses a
+  dedicated `compare_values` that is uniformly value-oriented (numeric for ALL six ops when both parse
+  as `i64`, else delegates to `compare_predicate_values` for the lexical/textual fallback). The shared
+  helper is untouched (composed `@predicate_def` bodies keep textual-eq — zero blast radius). This is
+  the value of proving-in-isolation-first: a semantic subtlety caught + corrected before any consumer.
+- **Isolation proof.** `parse_harness_semantic_gate`: `sem_value_compare` (grammar with six op sub-rules
+  `<letter> num "," num`, each `value_compare [$2, <op>, $4] post`; 9 samples — one all-satisfy accept,
+  six one-op-violated rejects, and two leading-zero anchors `a05,4`→reject / `e05,5`→accept proving
+  numeric-not-lexical) CLEAN; `sem_value_compare_backtrack` (`ordered "!" | any_pair "!"`, `ordered`
+  gated `[$1, lt, $3]`; `2-1!`→any_pick, `1-2!`→ordered_pick, both ACCEPT — which branch wins pinned by
+  the byte-identical AST) CLEAN. Both gate tests pass; interpreter == compile-and-run oracle byte-
+  identical.
+- **NO REGRESSION.** `parse_harness_equivalence_gate` GREEN (all 4 tests incl. the 6 fully-certified
+  byte-identical — `value_compare` inert on every shipped grammar); dual lib suite 887/0 (unchanged
+  baseline — the 2 cases are enumerated data); clippy source-clean (178-eq_op generated debt
+  pre-existing). Inert sites confirmed: `grammar_wellformedness.rs FACT_QUERY_PRIMITIVES` (a fixed
+  `.contains()` set), `stimuli_generator.rs` store-aware witnessing (not a store-prelude gate).
+- Lockstep: platform book (Semantic Store + Annotation System) + `semantic_annotation` parser book +
+  decision [[project_rule_span_value_compare_primitive]] + INDEX + tree. No parser EBNF touched ⇒ no
+  per-parser contract/release/schema change (ENGINE primitive, inert until a consumer adopts it).
+
 ## 2026-07-09 - PGEN-RSVC-0001 — RULE-SPAN-VALUE-CONSTRAINT.1: DESIGN of a general `@predicate` value-comparison primitive (PURE-DOCS, tree opened)
 
 Task-tree-first for the director-authorized rule-span value-constraint engine primitive. TOOLBOX-FIRST /

@@ -3043,6 +3043,44 @@ impl SemanticRuntimeState {
                 let path = scalar_text(predicate.args.first()?)?;
                 Some(self.resolve_path(path).is_resolved())
             }
+            // RULE-SPAN-VALUE-CONSTRAINT.2: the general value-comparison builtin.
+            // Compares two of a rule's RESOLVED captures as VALUES (`compare_values`:
+            // numeric when BOTH sides parse as `i64` — for all six ops, so `05`==`5`
+            // and `05`<`4` is false — deterministic lexical/textual fallback
+            // otherwise). Exposed as a first-class `@predicate` builtin so a grammar
+            // can gate a rule on a RULE-SPAN cross-capture constraint (e.g.
+            // counted-quantifier `{min,max}` order) declaratively. Categorically
+            // distinct from the ATOM-scoped value guards (`@range`/`@len`/`@enum`/
+            // `@regex`), which constrain a SINGLE atom's matched text against a
+            // constant.
+            //
+            // Shape: `@predicate value_compare args:[$lhs, <op>, $rhs]`, `<op>` one
+            // of `lt`/`le`/`gt`/`ge`/`eq`/`ne`. The args are already resolved to
+            // concrete values by `resolve_semantic_predicate_spec_against_content`
+            // before this point (an unresolvable `$ref` hard-errors in that layer,
+            // so the rule fails loudly). A malformed SHAPE here — wrong arity or an
+            // unknown op word — yields `None` (INAPPLICABLE / non-blocking), the
+            // same `?`-on-malformed convention every other builtin follows.
+            "value_compare" => {
+                if predicate.args.len() != 3 {
+                    return None;
+                }
+                let lhs = scalar_text(predicate.args.first()?)?;
+                let op = super::predicate_expr::CompareOp::from_word(scalar_text(
+                    predicate.args.get(1)?,
+                )?)?;
+                let rhs = scalar_text(predicate.args.get(2)?)?;
+                let result = compare_values(lhs, op, rhs);
+                crate::pgen_trace_high!(
+                    "⚖️ value_compare({:?} {} {:?}) → {} caller={}",
+                    lhs,
+                    op,
+                    rhs,
+                    result,
+                    self.rule_context_path(),
+                );
+                Some(result)
+            }
             // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: not a built-in predicate name.
             // Dispatch to a composed `@predicate_def:` if one is registered
             // under this name. The predicate-def registry is keyed by the
@@ -3839,6 +3877,8 @@ const ENGINE_BUILTIN_PREDICATE_NAMES: &[&str] = &[
     "fact_count_at_least",
     "resolve_path",
     "content_kind_is",
+    // RULE-SPAN-VALUE-CONSTRAINT.2: the general value-comparison builtin.
+    "value_compare",
 ];
 
 /// `SV-EXH-PROOF.3.3.4.b.5.1.2` + `.b.5.1.5`: scan a list of directives,
@@ -4165,6 +4205,37 @@ fn compare_predicate_values(
                 },
             }
         }
+    }
+}
+
+/// RULE-SPAN-VALUE-CONSTRAINT.2: the comparison contract for the `value_compare`
+/// `@predicate` builtin. A **value** comparison is uniformly value-oriented: when
+/// BOTH operands parse as `i64` the comparison is numeric for **all six** ops — so
+/// `value_compare("05", eq, "5")` is TRUE (5 == 5) and `value_compare("05", lt, "4")`
+/// is FALSE (5 < 4) despite the leading zeros. When either operand is not an integer
+/// it delegates to [`compare_predicate_values`] (deterministic lexical ordering /
+/// textual equality), so a non-numeric comparison still has well-defined behavior.
+///
+/// This differs from [`compare_predicate_values`] ONLY for `eq`/`ne` on two numeric
+/// operands: the composed-`@predicate_def` body language keeps textual equality
+/// (its historical, unchanged semantics — zero blast radius), while a `value_compare`
+/// treats equality as a value comparison, matching the primitive's name and intent.
+/// The tool-surfaced motivation (the isolation-proof anchor that caught the textual-eq
+/// asymmetry BEFORE any shipped consumer) is recorded in
+/// `docs/tasks/RULE-SPAN-VALUE-CONSTRAINT.md`.
+fn compare_values(lhs: &str, op: super::predicate_expr::CompareOp, rhs: &str) -> bool {
+    use super::predicate_expr::CompareOp;
+    if let (Ok(l), Ok(r)) = (lhs.parse::<i64>(), rhs.parse::<i64>()) {
+        match op {
+            CompareOp::Eq => l == r,
+            CompareOp::Ne => l != r,
+            CompareOp::Lt => l < r,
+            CompareOp::Le => l <= r,
+            CompareOp::Gt => l > r,
+            CompareOp::Ge => l >= r,
+        }
+    } else {
+        compare_predicate_values(lhs, op, rhs)
     }
 }
 

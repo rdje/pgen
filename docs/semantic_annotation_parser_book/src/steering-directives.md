@@ -32,6 +32,25 @@ Built-in predicate functions (the store-query vocabulary):
 | `fact_count_at_least(kind, n)` | at least `n` facts of `kind` exist (up to this position) |
 | `len_bounds(min, max)` | the matched text length is within `[min, max]` |
 | `numeric_bounds(min, max)` | the matched numeric value is within `[min, max]` |
+| `value_compare(lhs, op, rhs)` | the two resolved captures compare true under `op` (see below) |
+
+**`value_compare` — a rule-span value comparison (not a store query).** Unlike the fact predicates
+above, `value_compare` reads no store: it gates a rule on a comparison between **two of the rule's own
+resolved captures**. `op` is a word form — `lt` · `le` · `gt` · `ge` · `eq` · `ne` — and both operands
+are ordinary payload references (`$1`, `$name`, dotted/indexed):
+
+```ebnf
+@predicate: { name: value_compare, args: [$min, le, $max], phase: post }
+counted_quantifier := "{" min:number "," max:number "}"
+```
+
+The comparison is value-oriented: numeric for every op when both operands parse as integers (`05`
+equals `5`, `05 < 4` is false), with a deterministic lexical/textual fallback otherwise. It lets a
+grammar own a cross-capture accept/reject rule (e.g. a `{5,4}`-is-out-of-order reject) declaratively.
+This is a **rule-span** constraint — distinct from the **atom-scoped** value guards
+`@range`/`@len`/`@enum`/`@regex` (and `len_bounds`/`numeric_bounds` above), which each constrain a
+*single* matched value against a constant. A malformed shape is inapplicable (non-blocking); an
+unresolvable reference fails the rule loudly.
 
 Phasing and composition:
 

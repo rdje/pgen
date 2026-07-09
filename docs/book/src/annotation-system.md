@@ -94,6 +94,23 @@ There are **two distinct surfaces** for parsing semantic-annotation source, and 
 
 Changes to "what `$<ref>` accepts" must therefore touch **both** surfaces in lockstep so the language definition (the EBNF) stays consistent with the runtime that actually parses payloads from real grammars. The `SV-EXH-PROOF.3.3.4.a.1` slice surfaced this distinction — initial regex-only edits to `semantic_annotation.ebnf` were no-ops for grammar directive payloads until the hand-rolled `parse_rule_reference` was also extended. Full bootstrap-mode details: see `docs/BOOTSTRAP_MODE_SPECIFICATION.md`.
 
+#### Rule-span value comparison: `value_compare` (RULE-SPAN-VALUE-CONSTRAINT)
+
+Most `@predicate` built-ins read the semantic store. `value_compare` instead gates a rule on a
+**comparison between two of the rule's own resolved captures** — `@predicate: { name: value_compare,
+args: [$lhs, <op>, $rhs], phase: post }`, where `<op>` is a word-form operator (`lt`/`le`/`gt`/`ge`/
+`eq`/`ne`). The comparison is value-oriented (numeric for all ops when both operands parse as
+integers — `05` equals `5`, `05 < 4` is false — deterministic lexical/textual fallback otherwise),
+so a grammar can declaratively own an accept/reject rule that previously required out-of-band Rust
+(the motivating case is a counted-quantifier `{min,max}` order rule like PCRE2's `{5,4}` reject).
+
+This is a **rule-span** constraint (it spans two *different* captures), categorically distinct from
+the **atom-scoped** value guards `@range`/`@len`/`@enum`/`@regex`, each of which constrains a *single*
+atom's matched text against a constant. It is parser-agnostic and enabled for every grammar — a
+grammar opts in simply by writing the predicate — and evaluates byte-identically in the generated
+parser and the parse-harness interpreter (both call the shared semantic runtime). Full semantics: the
+*Value-comparison predicates* section of [The Semantic Store](semantic-store.md).
+
 ## Semantic Seeds, Linters, And Front-End Workbenches
 
 The next major widening for semantic annotations is not "more random annotation flexibility." It is a disciplined semantic-seed layer that downstream tools can trust.

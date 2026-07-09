@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-502eb58c.js";
+            window.path_to_searchindex_js = "searchindex-6cdfad2f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -210,9 +210,24 @@ known_type_identifier := identifier
 <tr><td><code>fact_count_at_least(kind, n)</code></td><td>at least <code>n</code> facts of <code>kind</code> exist (up to this position)</td></tr>
 <tr><td><code>len_bounds(min, max)</code></td><td>the matched text length is within <code>[min, max]</code></td></tr>
 <tr><td><code>numeric_bounds(min, max)</code></td><td>the matched numeric value is within <code>[min, max]</code></td></tr>
+<tr><td><code>value_compare(lhs, op, rhs)</code></td><td>the two resolved captures compare true under <code>op</code> (see below)</td></tr>
 </tbody>
 </table>
 </div>
+<p><strong><code>value_compare</code> — a rule-span value comparison (not a store query).</strong> Unlike the fact predicates
+above, <code>value_compare</code> reads no store: it gates a rule on a comparison between <strong>two of the rule’s own
+resolved captures</strong>. <code>op</code> is a word form — <code>lt</code> · <code>le</code> · <code>gt</code> · <code>ge</code> · <code>eq</code> · <code>ne</code> — and both operands
+are ordinary payload references (<code>$1</code>, <code>$name</code>, dotted/indexed):</p>
+<pre><code class="language-ebnf">@predicate: { name: value_compare, args: [$min, le, $max], phase: post }
+counted_quantifier := "{" min:number "," max:number "}"
+</code></pre>
+<p>The comparison is value-oriented: numeric for every op when both operands parse as integers (<code>05</code>
+equals <code>5</code>, <code>05 &lt; 4</code> is false), with a deterministic lexical/textual fallback otherwise. It lets a
+grammar own a cross-capture accept/reject rule (e.g. a <code>{5,4}</code>-is-out-of-order reject) declaratively.
+This is a <strong>rule-span</strong> constraint — distinct from the <strong>atom-scoped</strong> value guards
+<code>@range</code>/<code>@len</code>/<code>@enum</code>/<code>@regex</code> (and <code>len_bounds</code>/<code>numeric_bounds</code> above), which each constrain a
+<em>single</em> matched value against a constant. A malformed shape is inapplicable (non-blocking); an
+unresolvable reference fails the rule loudly.</p>
 <p>Phasing and composition:</p>
 <ul>
 <li><code>phase:</code> routes evaluation — <code>@predicate: {phase: branch, …}</code> makes the predicate <strong>branch-local</strong>

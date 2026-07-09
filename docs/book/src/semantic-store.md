@@ -334,6 +334,44 @@ comparisons (`==`, `!=`, `<`, ...), set membership (`in [...]`), attribute
 access (`.attribute("name")`). No recursion, no arithmetic — predicates are
 *decisions*, not computations.
 
+### Value-comparison predicates: `value_compare`
+
+Not every predicate reads the store. `value_compare` is a built-in that gates a
+rule on a **comparison between two of the rule's own resolved captures** — a
+*rule-span value constraint*:
+
+```ebnf
+# Reject when the counted-quantifier minimum exceeds the maximum:
+@predicate: { name: value_compare, args: [$min, le, $max], phase: post }
+counted_quantifier := "{" min:number "," max:number "}"
+```
+
+- `<op>` is one of `lt` · `le` · `gt` · `ge` · `eq` · `ne` (word forms — the op
+  is a plain identifier argument, not a symbol).
+- `$lhs` / `$rhs` are any resolvable payload reference (`$1`, `$name`, dotted
+  `$a.b`, indexed `$a[0]`), resolved against the rule's captured content just
+  like every other directive-payload reference.
+- The comparison is **value-oriented**: when both operands parse as integers the
+  comparison is numeric for *all* ops — so `05` equals `5` and `05 < 4` is false,
+  regardless of leading zeros — with a deterministic lexical/textual fallback for
+  non-numeric operands. It holds iff `resolve($lhs) <op> resolve($rhs)` is true;
+  a `post`-phase failure rejects the rule (and backs out its emissions).
+
+This is the primitive that lets a grammar own an accept/reject rule that only
+compile-time Rust used to express (the motivating case is PCRE2's
+`{5,4}`-is-out-of-order rule). It is deliberately distinct from two neighbours:
+
+- it is **not** a store query — it never touches facts, so it needs no
+  `@fact_kind`/`@emit_fact` and rolls back nothing store-related;
+- it is a **rule-span** constraint (it compares two *different* captures),
+  categorically distinct from the **atom-scoped** value guards
+  (`@range`/`@len`/`@enum`/`@regex`), each of which constrains a *single* atom's
+  matched text against a constant.
+
+Like every built-in predicate, a malformed shape (wrong arity, or an unknown op
+word) evaluates to *inapplicable* (non-blocking); an **unresolvable** `$ref`
+argument is a loud grammar-author error (the rule fails), never a silent pass.
+
 ## 7. Stage 4 — SCOPE: `@open_scope` / `@close_scope`
 
 Facts live in scopes. Scopes form a tree. You declare scope boundaries with:
