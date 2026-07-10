@@ -1203,8 +1203,14 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - ID: `.4.8` Status: `pending` Goal: encode start-option POSITION — a recognized `(*UTF)`… start option
   must appear only at the start-option prefix (`a(*CR)b`/`a(*LIMIT_HEAP=500)`/`(*FAIL)(*LIMIT_HEAP=5)a`
   reject). Owns the residual of `find_invalid_verb_construct` + the `STIMULI-SIGNOFF.13.3` duality pin
-  (re-baseline `duality_hunt_gate_contract_v0.json` same-commit). **WHOLE-PATTERN two-pass** (contextual —
-  "every group before this is itself a start option"). The known long-standing `.4` target.
+  (re-baseline `duality_hunt_gate_contract_v0.json` same-commit). **LEFT-CONTEXT single-pass — NO new
+  primitive** (the validator test `is_start_option_position(bytes, index)` examines ONLY bytes BEFORE the
+  position — "every group before this is itself a start option"); expressible today with the EXISTING store
+  (a monotonic `@emit_fact` "prefix ended" set by the first non-start-option construct + a
+  `@predicate lacks_fact(...) phase:pre` gate on the start-option rule — the `.4.10` gate shape, a
+  left-context fact rather than a scope-ancestry walk). See the `.4` PRIMITIVE-GAP SCOPING below (the `.4`
+  SCOPING LOG's "contextual — may need a new primitive" was IMPRECISE for `.4.8`). The known long-standing
+  `.4` target; the CHEAPEST remaining residual.
 - ID: `.4.9` Status: `pending` Goal: encode unbounded-lookbehind — a variable-length lookbehind body must
   be bounded (`(?<=a+)b`/`(?<=a*)b`/`(?<=a{2,})b`/`(?<=…(c+)…)` reject; fixed `(?<=a{2})b` accept). Owns
   `find_unbounded_quantified_lookbehind`. **LOOKBEHIND-LENGTH ANALYSIS** (hard — the body's max match
@@ -1285,6 +1291,80 @@ ranges, `.4.7`/`.4.11` two-pass inventories, `.4.8` start-option position, `.4.9
 primitive (value-comparison over decoded ranges / whole-pattern two-pass / contextual gate), the same
 "hard" class flagged in the `.1` table (rows 9/10) and the `.3.18`/`.3.22` deferrals. No engine/grammar
 change this slice (PURE-DOCS scope + re-scope).
+
+### REGEX-PCRE2-FIDELITY.4 residual family — PRIMITIVE-GAP SCOPING (`PGEN-REGEX-PCRE2-0039`, 2026-07-10, session #84, tool-backed, PURE-DOCS)
+
+**Trigger.** With `.4.10` landed (`\K`-in-lookaround grammar-owned), the residual `.4` family is
+`.4.7`/`.4.8`/`.4.9`/`.4.11` + the blocked-descending class-range endpoints. The `.4` SCOPING LOG (above)
+lumped `.4.7`/`.4.8`/`.4.11` as "two-pass / contextual — several likely need a NEW primitive." A tools-first
+read of the ACTUAL engine + validators SHARPENS which primitive each needs — they do NOT all share one, and
+`.4.8` needs none.
+
+**Method (toolbox-first, per [[feedback_systematically_use_debug_toolbox]]).** Read the engine's
+`@predicate` phase enum (`semantic_runtime.rs`) and the residual validators
+(`find_invalid_scan_substring_capture_list`:783 + its `capture_inventory_before`:840,
+`find_invalid_verb_construct`:170 + `is_start_option_position`; confirmed `.4.11` has NO validator — only
+4 checks remain dispatched: verb / char-class / scs / lookbehind). Grepped the shared engine for any
+whole-pattern / deferred / end-of-parse / two-pass / pre-scan hook.
+
+**Decisive engine fact (WHY the primitive boundary is where it is).** `SemanticPredicatePhase` is EXACTLY
+`Pre | Branch | Post` (`semantic_runtime.rs`; `@predicate.phase` parsing rejects anything else, `:4202`).
+ALL THREE fire at the rule's LEFT-TO-RIGHT parse position — `Post` fires after the rule BODY but STILL at
+that position, seeing only what has parsed SO FAR. There is NO whole-pattern pre-scan, no deferred /
+end-of-parse resolution phase, no two-pass hook anywhere in the shared engine (grep: zero hits). So NO
+existing phase can consult a capture that is defined LATER in the pattern (a legal forward reference). That
+is the exact primitive boundary: a left-context/prior-state question is answerable today; a
+whole-pattern/forward question is not.
+
+**Per-leaf primitive gap (the sharpened map).**
+- `.4.8` start-option POSITION — **LEFT-CONTEXT, single-pass; NO new primitive.** The validator's whole test
+  is `is_start_option_position(bytes, index)` — "is every group before this position itself a start option",
+  examining ONLY bytes BEFORE the position. Expressible today with the existing store: a monotonic
+  `@emit_fact` "start-option prefix ended" set by the first non-start-option construct + a
+  `@predicate lacks_fact(prefix_ended) phase:pre` gate on the start-option rule (the `.4.10` gate shape, but
+  a monotonic left-context fact rather than a scope-ancestry walk — a monotonic fact is CORRECT here because
+  once the prefix ends it never re-opens). ⇒ the CHEAPEST residual; owns the `STIMULI-SIGNOFF.13.3` duality
+  pin (re-baseline `duality_hunt_gate` same-commit). The `.4` SCOPING LOG's "may need a new primitive" was
+  imprecise for `.4.8`.
+- `.4.7` scan-substring `(*scs:(N))`/`(*scs:(<name>))` inventory — **FORWARD-LOOKING; needs the new
+  primitive.** Forward refs are LEGAL, so a ref must validate against the WHOLE-PATTERN capture inventory
+  (captures defined AFTER the ref, not yet parsed). The validator is the reference two-pass:
+  `capture_inventory_before(bytes, bytes.len())` (full, for forward refs) + `capture_inventory_before(bytes,
+  index)` (prior). No left-to-right phase can produce `full` at the ref's position.
+- `.4.11` named-reference UNKNOWN-name inventory — **FORWARD-LOOKING; needs the new primitive; the ONLY real
+  correctness FIX.** Forward/subroutine refs accept; backward-defined names must exist. `.4.11` has NO
+  validator at all → the released parser genuinely ACCEPTS-INVALID undefined `\k<zzz>`/`(?P=zzz)`/`(?&zzz)`/
+  `\g{zzz}` (ledger `REGEX-0098`). `.4.7`/`.4.8` are behavior-NEUTRAL migrations; `.4.11` closes an ACTUAL
+  released-parser divergence ([[feedback_correctness_before_speed]]). Frozen acceptance spec = the `.3.22`
+  oracle matrix.
+- `.4.9` unbounded-lookbehind — **LOOKBEHIND-LENGTH ANALYSIS; a DIFFERENT new primitive.** The body's max
+  match length must be finite (`(?<=a+)b`/`(?<=a*)b`/`(?<=a{2,})b` reject; `(?<=a{2})b` accept). Not an
+  inventory question — a bounded-length property computed over the body's sub-AST. Owns
+  `find_unbounded_quantified_lookbehind`.
+
+**🔎 SURFACED — the one genuinely-novel architectural direction (level-5 general engine primitive).**
+`.4.7` + `.4.11` share ONE missing parser-agnostic capability: a WHOLE-PATTERN semantic inventory available
+to a forward reference. SOTA anchor: PCRE2 itself runs a compile-time PRE-PASS to count captures / resolve
+forward names before the main compile — the standard way to admit legal forward refs. Two candidate forms:
+  (A) a true TWO-PASS parse — a pre-pass collects all capture definitions into the store, the main pass gates
+      refs against the now-complete store; or
+  (B) a DEFERRED-OBLIGATION terminal phase — during the single pass a ref registers a "must resolve against
+      the FINAL inventory" obligation; at parse-completion all obligations are checked against the completed
+      store (a new terminal phase, far smaller than a full re-parse, reusing the existing single-pass store +
+      scope tree, and mirroring the existing `Post`-effect model).
+(B) looks minimal, general, and idiomatic to the current engine; a design + SOTA-citation slice will settle
+A-vs-B BEFORE any engine code ([[feedback_research_grounded_sota_no_trial_and_revert]],
+[[feedback_no_workarounds_fix_hierarchy]] — nothing lower in the hierarchy works: the Pre/Branch/Post
+enumeration is the proof that no existing annotation/store/phase can see a forward capture). Building this ONE
+primitive unlocks BOTH `.4.7` and `.4.11`. This is the parser-agnostic, all-parsers primitive the whole `.4`
+capstone has been converging on — flagged here for the director per [[feedback_surface_insights_prominently]].
+
+**Recommended sequence (structural/cheap first, correctness-weighted).** `.4.8` (single-pass, no primitive,
+in the `.4.10` groove, shrinks the validator by one check) → design + build the whole-pattern-inventory
+primitive (SOTA-cited A-vs-B decision slice, then the engine slice) → apply to `.4.11` FIRST (the real
+accepts-invalid fix, `REGEX-0098`) then `.4.7` → `.4.9` (its own lookbehind-length primitive) →
+blocked-descending class-range endpoints → DELETE the `find_invalid_char_class_construct` range-check →
+final `.4` deletion → `.5`. No engine/grammar change this slice (PURE-DOCS scope + sharpen).
 
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 
