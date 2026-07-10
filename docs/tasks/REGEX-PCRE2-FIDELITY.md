@@ -1506,6 +1506,43 @@ speed?"). Three corrections came out of it, recorded so they survive `/clear`:
   on it (no rework), under two non-negotiables — zero hot-path cost when unused, and a measured before/after
   parse-speed delta. **DECISION PENDING director direction (A′ vs commit-to-B-first).** No code touched.
 
+**✅ DECISION (director, 2026-07-10, session #85): "let's go for A′ now + B later."** Land `.4.8` on the
+refined grammar design A′ NOW (correct + speed-safe + no engine risk); pursue the general on-entry-effect
+primitive (B) LATER as a deliberately SOTA-designed, zero-cost-when-unused + idempotent platform capability in
+the engine-lifecycle workstream, then optionally migrate `.4.8` onto it. Additional oracle facts gathered this
+session (`pcre2test` 10.47, for the A′ BUILD spec — the grammar restructure must honor ALL of these):
+- `(*CRLF)` ALONE -> **ACCEPT** (a start-option-only pattern, no body, is valid) — so `concatenation` must admit
+  a leading-start-option run with ZERO following body pieces.
+- `(*CRLF)|a` -> ACCEPT, `(*CRLF)a|(*LF)b` -> REJECT, `a(*CRLF)|b` -> REJECT — start options bind to the very
+  start of the WHOLE pattern, NEVER per-alternative (so the `regex_body_started` fact, set by the FIRST
+  alternative's first non-SO piece, correctly blocks a start option in a later alternative — the monotonic
+  global fact is exactly right here; a per-alternative scope would be WRONG).
+- empty pattern -> ACCEPT (current parser) — so `alternative = concatenation?` must stay able to match empty;
+  the restructured `concatenation` must NOT itself become empty-matchable (else the `?` shape drifts).
+- **⚠️ AST-shape RISK (verify FIRST, toolbox): the two-spread `[$1**, $3**]` is UNPROVEN** — no grammar uses it;
+  `return_annotation.ebnf:63` + `regex.ebnf:1512` note mixed-spread "doesn't flatten in the mixed position."
+  So A′'s flat-piece-list output MUST be verified byte-identical in the scratch slot (1.3) BEFORE relying on it,
+  OR structured to avoid two-spread (e.g. a helper rule that returns a single flat Sequence which the parent
+  flattens with the PROVEN single `[$1**]`).
+- **A′ concatenation structure (candidate, honors the above):**
+  `concatenation = start_option_piece+ body_boundary regular_piece* -> <flat> | body_boundary regular_piece+ -> <flat>`
+  — branch 1 = a leading start-option run (incl. start-option-only, zero following regular pieces) then the
+  boundary emit then the rest; branch 2 = no start options, boundary emit first then >=1 regular piece. Both emit
+  `regex_body_started` exactly once via the zero-width `body_boundary`; NEITHER matches empty (so
+  `concatenation?` empty semantics are preserved); every group is a `regular_piece` entered AFTER the boundary,
+  so nested start options are blocked with NO per-opener markers. Gate the extracted `start_option_piece` with
+  `@predicate lacks_fact(regex_body_started, body) phase:post` (NOT `pre` — post evals only after a real
+  `(*NAME)` start-option token matched, near-zero hot-path cost) + `!quantifier`. `<flat>` = the two-spread to
+  verify/replace per the RISK note above.
+- IMPLEMENTATION SEQUENCE (fresh session): (1) scratch-verify the flat-list annotation; (2) split start options
+  out of `directive_verb_nonquant` -> `start_option_piece` (gated `phase:post`); (3) restructure `concatenation`
+  + `body_boundary` emit; (4) regen regex parser, run the FROZEN oracle matrix (ACCEPT/FLAT-reject/NESTED-reject
+  + these edge cases) via released `--parse` byte-identical; (5) cert seeds 0/7/42, `duality_hunt_gate`
+  rebaseline (`STIMULI-SIGNOFF.13.3` pin), `regex_pcre2_compile_oracle_gate`, differential-equivalence +
+  ast_shape gates; (6) DELETE `find_invalid_verb_construct` + `is_start_option_position` + now-exclusive helpers;
+  (7) lockstep book/contract/ledger/schema + release bump. Behavior-NEUTRAL (released `--parse` verdict
+  byte-identical before/after).
+
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 
 **Method (toolbox-first, per [[feedback_systematically_use_debug_toolbox]]).** Built the authoritative
