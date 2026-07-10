@@ -1466,6 +1466,46 @@ the endorsed engine-primitive workstream later, NOT to block `.4.8`. Per [[feedb
 this is a recommendation with a noted alternative, not a menu — the tools prove Option A is correct and
 within-principle, so `.4.8` proceeds on Option A unless the director redirects.
 
+**⟳ DECISION REOPENED — director challenge, session #85 (2026-07-10): the A-vs-B choice reconsidered on SPEED
++ long-term-elegance grounds.** The director pushed back on the reflexive Option-A recommendation ("why is a
+3rd engine primitive bad? Option B feels the cleaner, most elegant long-term route — and which impacts runtime
+speed?"). Three corrections came out of it, recorded so they survive `/clear`:
+- **"3rd primitive" is NOT a real cost — the framing is RETRACTED.** A GENERAL, parser-agnostic engine
+  capability that lets the EBNF cleanly express the language is an asset, not debt
+  ([[feedback_features_parser_agnostic_enable_all_parsers]], [[feedback_prefer_grammar_leave_engine_alone]]'s
+  "engine features that let the EBNF cleanly express the language ARE on the table"). What matters is
+  generality + net-complexity reduction + parse-harness-suite verification — the count of primitives is
+  irrelevant. A pre-body/on-entry effect (the missing symmetry: the engine has POST-body effects but NO
+  pre-body ones) passes all three.
+- **Option A above was UNDER-DESIGNED (a strawman at ~19 sites). The refined grammar design A′ is ~2 sites,
+  no engine change, and future-proof.** A′: a single ZERO-WIDTH boundary marker in `concatenation`
+  (`concatenation = start_option_piece* body_boundary regular_piece*`) that emits `regex_body_started` ONCE —
+  after the leading start-option run, BEFORE the body. Because every group is a `regular_piece` entered AFTER
+  that boundary, `regex_body_started` is ALREADY set when we descend into ANY group, so a nested start option
+  is blocked with NO per-opener markers — and a FUTURE nesting construct is auto-covered (no footgun). Removes
+  the per-opener emits (design step 3 above) AND the per-piece emits (step 2). ⚠️ VERIFY before landing: the
+  two-spread AST shape `[$1**, $3**]` byte-identity (mixed spread caveat, [[feedback_annotation_no_mixed_spread]]),
+  the empty-concatenation interaction (`piece+`→boundary must not make `concatenation` match empty and change
+  `alternative = concatenation?`), and boundary rollback on backtrack.
+- **SPEED is the decisive axis (RGX-0078 imminent), and it cuts ACROSS A/B, not between them — driven by EMIT
+  + GATE FREQUENCY on the parse hot path (inside the backtracking loop), NOT grammar-vs-engine.** Naive-A emits
+  per-piece O(chars); naive-B (on-entry emit on `atom`) emits per ATOM-ATTEMPT incl. backtracked ones + rollback
+  (potentially WORSE); A′ emits O(concatenations) (naturally minimal, no engine change). The GATE must be
+  `phase:post` (evaluate `lacks_fact` only AFTER a real `(*NAME)` start-option token matched — near-zero for
+  normal patterns), NOT `phase:pre` (a store lookup on EVERY piece attempt — the design steps above wrongly say
+  `phase:pre`; A′/B both should use `phase:post`). So a well-designed grammar approach (A′) is at least as fast
+  as B and faster than naive-B; B is only speed-competitive if deliberately designed for zero-cost-when-unused +
+  IDEMPOTENT (emit-if-absent) semantics. The actual delta MUST be MEASURED vs the RGX-0078 baseline, not asserted
+  ([[project_uvm_memory_not_the_memo]] "profile, don't infer"; correctness AND speed are BOTH floors now,
+  [[feedback_correctness_before_speed]] ⛔ hardening).
+- **Refined recommendation (mine): land `.4.8` on A′** (correct + speed-safe + no engine risk, `phase:post`
+  gate + single boundary emit), and pursue the general on-entry-effect primitive (B) as a DELIBERATELY
+  SOTA-designed platform capability inside the engine-lifecycle workstream (with the whole-pattern-inventory
+  primitive) — designed for zero-cost-when-unused + idempotent emit + measured — then OPTIONALLY migrate `.4.8`
+  onto it. **Alternative (if the director commits to B as the direction):** build B first, land `.4.8` directly
+  on it (no rework), under two non-negotiables — zero hot-path cost when unused, and a measured before/after
+  parse-speed delta. **DECISION PENDING director direction (A′ vs commit-to-B-first).** No code touched.
+
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 
 **Method (toolbox-first, per [[feedback_systematically_use_debug_toolbox]]).** Built the authoritative
