@@ -1199,7 +1199,11 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   must reference an AVAILABLE capture (`(*scs:(1)…)`@0-groups, `(*scs:(0)…)`, `(*scs:(<name>)…)`@unknown
   reject; forward refs LEGAL). Owns `find_invalid_scan_substring_capture_list`. **WHOLE-PATTERN two-pass**
   (capture count + name inventory) — the same store-aware class as `.3.22`; forward-ref legality forbids a
-  single-pass `has_fact`. Needs the store-aware / two-pass primitive.
+  single-pass `has_fact`. Needs the store-aware / two-pass primitive. **PRIMITIVE NOW DESIGNED** — the
+  `phase: final` deferred-obligation predicate, tree `FINAL-PHASE-PREDICATE` (`.1` design done
+  `PGEN-FPP-0001`, `.2` build pending); consumer mapping: named item → `has_fact(regex_capture_name,$name)
+  phase: final`, plain-numeric → `fact_count_at_least(regex_capture_group,$N) phase: final`, relative
+  `+N`/`-N` → prior-count resolution in this leaf's BUILD. Sequenced AFTER `FINAL-PHASE-PREDICATE.2` lands.
 - ID: `.4.8` Status: `pending` Goal: encode start-option POSITION — a recognized `(*UTF)`… start option
   must appear only at the very start of the ENTIRE pattern, before any other construct AND not nested
   (`a(*CR)b`/`a(*LIMIT_HEAP=500)`/`(*FAIL)(*LIMIT_HEAP=5)a` FLAT-reject; `((*CRLF)a)`/`(?:(*CRLF)a)`/
@@ -1250,7 +1254,13 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   (`\k<zzz>`/`(?P=zzz)`/`(?&zzz)`/`\g{zzz}`… @undefined reject; forward/subroutine refs accept). **NOT** a
   current `validate_regex_compile_contract` check (validator is shape-only here) — a genuine
   released-parser accepts-invalid divergence (ledger `REGEX-0098`). **WHOLE-PATTERN two-pass**, same class
-  as `.4.7`. The `.3.22` oracle matrix is its frozen acceptance spec.
+  as `.4.7`. The `.3.22` oracle matrix is its frozen acceptance spec. **PRIMITIVE NOW DESIGNED** — the
+  `phase: final` deferred-obligation predicate, tree `FINAL-PHASE-PREDICATE` (`.1` design done
+  `PGEN-FPP-0001`, `.2` build pending); consumer mapping: parse-side `@emit_fact regex_capture_name` on
+  every group-name definition (currently `@gen_emit_fact`-only) + `has_fact(regex_capture_name,$name) phase:
+  final` on the 5 reference rule families (`backreference`/`subroutine_named`/`named_braced`/
+  `subroutine_call`/`python_named_backreference`). The FIRST consumer of the primitive (the real
+  accepts-invalid fix); sequenced AFTER `FINAL-PHASE-PREDICATE.2` lands.
 - ID: `.4.12` Status: **`done`** (`PGEN-REGEX-PCRE2-0037`, session #83; release `1.1.99`→`1.1.100`, contract
   `1.1.101`→`1.1.102`, schema `1`, ledger `REGEX-0110`; see the `.4.12` implementation section + Acceptance
   Checklist below) Goal: encode STANDALONE collating-element / equivalence-class
@@ -1401,6 +1411,44 @@ choice is settled in a SOTA-cited DESIGN slice BEFORE any engine code, and the c
 fix-hierarchy level it lands at + why nothing lower works ([[feedback_no_workarounds_fix_hierarchy]]). The
 director opened a fresh session immediately after (deliberate `/clear`); the `MEMORY.md` resume pointer +
 this section are the handoff.
+
+### REGEX-PCRE2-FIDELITY — WHOLE-PATTERN-INVENTORY PRIMITIVE: A-vs-B DECIDED + tree spun out (`PGEN-FPP-0001`, 2026-07-10 session #86, PURE-DOCS)
+
+**What this slice did.** Executed the director-authorized SOTA-cited DESIGN slice for the SURFACED
+whole-pattern-inventory primitive (the shared `.4.7`+`.4.11` unlock). Two tool-backed research streams
+(engine ground-truth by `file:line`; SOTA literature survey with primary-source citations), then synthesis.
+The primitive is spun out to its own GENERAL, parser-agnostic tree — **`FINAL-PHASE-PREDICATE`** (the RSVC/SCP
+model: a general engine primitive gets its own tree + decision record, consumed by the regex leaves) — with
+`.1` DESIGN DONE and `.2` BUILD pending. Full record: decision [[project_final_phase_deferred_predicate_primitive]].
+
+**The primitive (chosen shape).** A fourth `@predicate` phase, **`phase: final`**: checked ONCE at
+whole-input parse completion (`parse_full` success, `ast_based_generator.rs:1649-1663`) against the
+now-complete store — so it sees facts emitted ANYWHERE, including LATER than the carrying rule (a legal
+forward reference). Realized via DEFERRED OBLIGATIONS (resolve args at rule-commit → enqueue a transactional
+obligation → terminal discharge at completion) = backpatching generalized to a semantic check.
+
+**A-vs-B → B (single pass + deferred obligations, terminal discharge), not A (two-pass pre-scan).** The
+SOTA discriminator (survey, primary sources): a pre-pass (PCRE2 `parse_regex`, .NET `CountCaptures`) is
+warranted ONLY when an *irreversible pre-emission global aggregate* forces the count to be known before the
+main pass (PCRE2 memory-sizing/opcode selection — `HACKING`: "full knowledge of group names and numbers
+throughout"). A reference **validator** has no such dependency, so it defers — the LLVM `ForwardRefVals`→
+`validateEndOfModule` / Dragon §6.7 backpatching / Rust-Roslyn late-binding pattern. B reuses PGEN's one
+authoritative parse + the store that already survives to a clean whole-pattern state at completion, so the
+check cannot diverge from the parse; A would force re-running the grammar's structural recognition. Theory
+backbone: a forward reference is a non-L-attributed right-to-left dependency ⇒ provably not
+single-left-to-right-evaluable (Dragon §5.2.3–5.2.4; Knuth 1968; Bochmann 1976, Algol-60 scope example) ⇒
+defer-or-pre-scan is REQUIRED (fix-hierarchy tier-5 proof nothing lower works).
+
+**Duality-clean (no `.4.8`-style break).** `phase: final` gates no branch during the single pass, so the
+stimuli generator ignores it safely; each consumer keeps its existing conservative `@gen_predicate` draw
+(references only already-emitted names ⇒ sound). NO new generation primitive — the trap that killed `.4.8`'s
+fact-based A′ ([[project_gen_side_no_lacks_fact_branch_prune]]) does not recur here.
+
+**Frozen BUILD SPEC + consumer mapping** live in the decision record and `docs/tasks/FINAL-PHASE-PREDICATE.md`.
+Sequencing (updated): **`FINAL-PHASE-PREDICATE.2` (engine BUILD)** → apply to **`.4.11`** FIRST (the real
+accepts-invalid fix, `REGEX-0098`) → **`.4.7`** → `.4.9` (its own lookbehind-length primitive) →
+blocked-descending class-range endpoints → DELETE `find_invalid_char_class_construct` range-check → final
+`.4` deletion → `.5`.
 
 ### REGEX-PCRE2-FIDELITY.4.8 — NESTED-CASE DISCOVERY + DESIGN (`PGEN-REGEX-PCRE2-0041`, 2026-07-10, session #85, tool-backed, PURE-DOCS)
 
