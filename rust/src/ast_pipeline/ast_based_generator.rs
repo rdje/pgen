@@ -1646,6 +1646,29 @@ impl AstBasedGenerator {
                 parse_outcome
             }
 
+            /// FINAL-PHASE-PREDICATE.2: discharge whole-input `phase: final`
+            /// obligations against the now-complete semantic store at top-level
+            /// parse completion. A `phase: final` predicate resolved+enqueued a
+            /// deferred obligation at its rule's commit; here — once the whole
+            /// input has been consumed and the store holds the complete
+            /// inventory — each obligation is evaluated, and the first that
+            /// fails (e.g. a named reference whose definition never appeared
+            /// anywhere in the input) fails the whole parse at the obligation's
+            /// source position (validator first-error-by-position semantics). A
+            /// no-op — and byte-identical to before — for any grammar with no
+            /// `phase: final` predicate (the worklist is empty).
+            fn discharge_final_phase_obligations(&self) -> ParseResult<()> {
+                match self.semantic_runtime_state.discharge_deferred_obligations() {
+                    Ok(()) => Ok(()),
+                    Err((position, message)) => Err(ParseError::ContextualError {
+                        message,
+                        position,
+                        rule_stack: Vec::new(),
+                        input_context: String::new(),
+                    }),
+                }
+            }
+
             pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
                 let parsed = self.parse()?;
                 if #allow_trailing_layout {
@@ -1653,6 +1676,10 @@ impl AstBasedGenerator {
                     self.consume_layout_for_terminal("<EOF>");
                 }
                 if self.position == self.input.len() {
+                    // FINAL-PHASE-PREDICATE.2: whole-input obligations discharge
+                    // here, after full consumption is confirmed and the store is
+                    // complete.
+                    self.discharge_final_phase_obligations()?;
                     Ok(parsed)
                 } else {
                     Err(ParseError::InvalidSyntax {
@@ -1677,6 +1704,10 @@ impl AstBasedGenerator {
                     self.consume_layout_for_terminal("<EOF>");
                 }
                 if self.position == self.input.len() {
+                    // FINAL-PHASE-PREDICATE.2: whole-input obligations discharge
+                    // on the entry-aware path too (drives cert witnesses +
+                    // `--entry-rule`), byte-identical to `parse_full`.
+                    self.discharge_final_phase_obligations()?;
                     Ok(parsed)
                 } else {
                     Err(ParseError::InvalidSyntax {
@@ -2221,6 +2252,41 @@ impl AstBasedGenerator {
                                 position: node.span.start,
                             });
                         }
+                            // FINAL-PHASE-PREDICATE.2: enqueue this rule's
+                            // `phase: final` obligations. Each is resolved
+                            // against the rule's captured content EXACTLY like a
+                            // post predicate (so `$name` becomes the concrete
+                            // captured string) — but instead of gating inline it
+                            // registers a DEFERRED OBLIGATION on the
+                            // transaction's state (transactional: a rollback
+                            // discards it, and the tournament delta path replays
+                            // only the winner's). It is discharged ONCE at
+                            // `parse_full` success against the completed store,
+                            // so it can validate a LEGAL FORWARD REFERENCE a
+                            // `post` gate cannot (the definition may appear
+                            // LATER than this rule). Reached only when no post
+                            // predicate blocked (the early `return Err` skips it).
+                            for directive in self
+                                .semantic_runtime_annotations
+                                .final_predicates_for_rule(rule_name)
+                            {
+                                if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec) =
+                                    directive
+                                {
+                                    let resolved_spec = self
+                                        .resolve_semantic_predicate_spec_against_content(
+                                            spec,
+                                            semantic_raw_content,
+                                            &node.content,
+                                        )?;
+                                    semantic_runtime_transaction
+                                        .state_mut()
+                                        .enqueue_deferred_obligation(
+                                            resolved_spec,
+                                            node.span.start,
+                                        );
+                                }
+                            }
                             // `SV-EXH-PROOF.3.3.4.a` MVP-0: process
                             // `@export_to_library` here — AFTER the rule's
                             // body has emitted all its facts (so the artifact
@@ -2938,7 +3004,14 @@ impl AstBasedGenerator {
         let rule_body_inner = quote! {
             let semantic_capture_raw_for_post =
                 parser.semantic_runtime_annotations
-                    .needs_raw_post_capture_for_rule(#rule_name);
+                    .needs_raw_post_capture_for_rule(#rule_name)
+                // FINAL-PHASE-PREDICATE.2: a raw-view `phase: final` predicate
+                // resolves `$name`/`$N` against the rule's raw body exactly like
+                // a raw-view `post` predicate, so it needs the same raw capture.
+                // Byte-identical for a rule without a raw-view final predicate
+                // (`needs_raw_final_capture_for_rule` returns false).
+                || parser.semantic_runtime_annotations
+                    .needs_raw_final_capture_for_rule(#rule_name);
             let mut semantic_selected_branch_index: Option<usize> = None;
             let mut semantic_raw_content: Option<ParseContent<'input>> = None;
             // Main parsing logic - produces the 'result' variable
@@ -7241,6 +7314,11 @@ impl AstBasedGenerator {
             }
             crate::ast_pipeline::SemanticPredicatePhase::Post => {
                 quote! { crate::ast_pipeline::SemanticPredicatePhase::Post }
+            }
+            // FINAL-PHASE-PREDICATE.2: round-trip the whole-input phase into the
+            // generated parser so it reconstructs a `phase: final` predicate.
+            crate::ast_pipeline::SemanticPredicatePhase::Final => {
+                quote! { crate::ast_pipeline::SemanticPredicatePhase::Final }
             }
         }
     }

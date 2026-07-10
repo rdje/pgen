@@ -216,6 +216,24 @@ pub enum SemanticConstruct {
     /// An operand that is not a single decodable character literal → `None`
     /// (INAPPLICABLE / non-blocking). `post`-phase failure rejects the rule.
     ValueCompareCodepoint,
+    /// FINAL-PHASE-PREDICATE.2: the whole-input `phase: final` gate on a LEGAL
+    /// FORWARD REFERENCE — a `has_fact` obligation enqueued at the reference's
+    /// rule commit and discharged ONCE at parse completion against the complete
+    /// store, so it sees a definition that appears LATER than the reference
+    /// (`use a; decl a;`). This is the capability a `post` gate provably cannot
+    /// express (a `post has_fact` would fire before the later `decl` and reject
+    /// the legal forward reference). The undefined-reference input proves the
+    /// obligation genuinely fails the whole parse at completion.
+    FinalForwardGate,
+    /// FINAL-PHASE-PREDICATE.2: a `phase: final` obligation enqueued inside a
+    /// SUCCESSFUL-BUT-LOSING tournament branch must NOT survive to discharge
+    /// (the C3-B rollback discipline extended to obligations), while the WINNING
+    /// branch's obligation must. Proven by a longest-match tie where the short
+    /// branch (which enqueues the obligation) loses to the longer branch (which
+    /// does not): the parse ACCEPTs (loser's obligation discarded) — and would
+    /// REJECT if the obligation leaked. The shorter-only input pins the winning
+    /// branch's obligation actually discharging (REJECT: the name is undefined).
+    FinalRollbackSpeculation,
 }
 
 impl SemanticConstruct {
@@ -253,6 +271,8 @@ impl SemanticConstruct {
         SemanticConstruct::ValueCompareBacktrack,
         SemanticConstruct::ValueCompareUnderTransform,
         SemanticConstruct::ValueCompareCodepoint,
+        SemanticConstruct::FinalForwardGate,
+        SemanticConstruct::FinalRollbackSpeculation,
     ];
 }
 
@@ -1099,6 +1119,63 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
                hex/octal/control/named-escape endpoints, code-point-vs-textual discriminators \
                (\\x{FF} vs \\x{100}; \\a vs \\x07; descending literal z-a), and a None-non-blocking \
                anchor — the proving shape for REGEX-PCRE2-FIDELITY.4.5.c class-range order",
+    },
+    // ── FINAL-PHASE-PREDICATE.2: the whole-input forward-reference gate ──────────────────────────────
+    SemanticCase {
+        name: "sem_final_forward_gate",
+        construct: SemanticConstruct::FinalForwardGate,
+        // The reference `use` parses and COMMITS (enqueuing a `has_fact` obligation resolved to the
+        // concrete name) BEFORE `decl` — so a `post` gate on `use` would fire against a store that does
+        // not yet hold the definition and REJECT the legal forward reference. `phase: final` defers the
+        // check to parse completion, when `decl`'s `@emit_fact` is already in the store.
+        grammar_body: "@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
+                       program := use decl\n\
+                       @predicate: { name: has_fact, args: [name_decl, $body], phase: final }\n\
+                       use := \"use \" word \";\" -> { body: $2.body }\n\
+                       @emit_fact: { kind: name_decl, name: $body, family: var }\n\
+                       decl := \"decl \" word \";\" -> { body: $2.body }\n\
+                       word := /[a-z]+/ -> { body: $1 }\n",
+        inputs: &[
+            // Forward reference: `use a` references `a`, whose `decl a` appears LATER — the whole-input
+            // obligation holds at completion → ACCEPT. A `post` gate could NOT accept this.
+            ("use a;decl a;", true),
+            // The referenced name (`a`) is never declared anywhere (only `b` is) → the obligation fails
+            // at completion → whole-parse REJECT.
+            ("use a;decl b;", false),
+        ],
+        entry_rule: None,
+        note: "phase:final has_fact over a LEGAL FORWARD REFERENCE: definition-appears-later ACCEPTs \
+               (post cannot), name-never-defined REJECTs at parse completion",
+    },
+    // ── FINAL-PHASE-PREDICATE.2: obligation rollback under speculation (C3-B for obligations) ────────
+    SemanticCase {
+        name: "sem_final_rollback_speculation",
+        construct: SemanticConstruct::FinalRollbackSpeculation,
+        // `choice` is a longest-match tournament. `shortref` carries the `phase: final` obligation and
+        // commits (enqueuing it); `longref` is longer and carries none. When `longref` wins, `shortref`'s
+        // obligation must be DISCARDED with its losing branch — otherwise discharge would check an
+        // undefined name and wrongly reject the valid parse.
+        grammar_body: "@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
+                       program := choice\n\
+                       @predicate: { name: has_fact, args: [name_decl, $body], phase: final }\n\
+                       shortref := \"use \" word \";\" -> { body: $2.body }\n\
+                       longref := \"use \" word \";more\"\n\
+                       choice := shortref | longref\n\
+                       word := /[a-z]+/ -> { body: $1 }\n",
+        inputs: &[
+            // `longref` (10 chars) beats `shortref` (6 chars) on longest-match. `shortref` committed and
+            // enqueued a `has_fact(name_decl, a)` obligation, but LOST — it must not survive. With no
+            // obligation left, discharge is empty → ACCEPT. A LEAKED obligation would REJECT (a undefined).
+            ("use a;more", true),
+            // `longref` needs a trailing `more`; on `use a;` it fails, so `shortref` WINS and its
+            // obligation persists to discharge: `has_fact(name_decl, a)` with `a` never declared →
+            // whole-parse REJECT. Pins the winning branch's obligation actually firing.
+            ("use a;", false),
+        ],
+        entry_rule: None,
+        note: "a phase:final obligation enqueued by a LOSING tournament branch is discarded (ACCEPT), \
+               the WINNING branch's obligation discharges (REJECT) — the C3-B rollback discipline \
+               extended to deferred obligations",
     },
 ];
 

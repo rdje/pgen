@@ -94,7 +94,7 @@ stages — no opt-outs, no inventing parallel patterns. This is the
 |---|---|---|---|
 | **1 — DECLARE** | grammar compile-time | `@fact_kind: {...}` | Defines a new fact-kind (its attributes, requireds, indexes, scope, exportability). |
 | **2 — EMIT** | rule commit (parse-time) | `@emit_fact: { kind: K, ... }` | Records one fact in the store. |
-| **3 — QUERY** | rule pre / branch / post (parse-time) | `@predicate <name>(...)` | Reads from the store to gate or steer parsing. |
+| **3 — QUERY** | rule pre / branch / post (parse-time) + whole-input `final` (parse-completion) | `@predicate <name>(...)` | Reads from the store to gate or steer parsing; `final` defers a whole-input check (forward references) to parse completion. |
 | **4 — SCOPE** | rule entry / exit (parse-time) | `@open_scope` / `@close_scope` | Pushes / pops a scope node on the tree. |
 | **5 — EXPORT** | scope close (automatic) | declared via `exportable: true` | Writes facts to a library artefact for cross-file reuse. |
 | **6 — IMPORT** | rule body (parse-time) | `@import_from_library: {...}` | Lazily loads facts from a library artefact into the current scope. |
@@ -300,6 +300,50 @@ The `phase:` modifier tells the engine *when* to check:
 - `branch` — inside an ordered choice, gating which branch fires.
 - `post` — after the rule's body parses, before committing the
   transaction. Failure backs out the rule plus its fact emissions.
+- `final` — **not** an inline gate on its own rule: a whole-input assertion
+  checked **once, after the top-level parse succeeds and consumes the full
+  input**, against the now-complete store. Use it to validate a **legal forward
+  reference** — a reference whose definition may appear *later* in the input
+  than the reference itself (see below).
+
+#### `phase: final` — whole-input / forward-reference checks
+
+`pre`, `branch`, and `post` all fire at the reference's *own* parse position, so
+they can only see facts emitted *so far*. That is fine for declare-before-use,
+but it cannot express **use-before-declare**: a `post has_fact` gate on a
+reference fires *before* a later definition is emitted and would wrongly reject
+a legal forward reference. `phase: final` closes this gap.
+
+A `final` predicate resolves its args against the carrying rule's captured
+content **at rule commit** (so `$name` becomes the concrete captured string),
+enqueues a **deferred obligation**, and is discharged **once** at whole-input
+parse completion against the complete store. It rides speculation rollback
+exactly like `@emit_fact` — an obligation registered on a losing/failed branch
+never survives — and obligations discharge in ascending source-position order,
+so the first that fails reports a validator-style first-error-by-position.
+It composes with the entire predicate vocabulary (`has_fact`,
+`fact_count_at_least`, …): `final` is the *when*, not the *what* — the
+whole-input generalization of `post`.
+
+```ebnf
+# Accept `\k<aa>(?'aa'x)` (forward reference), reject a name defined nowhere.
+@emit_fact: { kind: capture_name, name: $name }              # a definition, anywhere
+named_group := "(?'" capture_name "'" body ")"
+
+@predicate: { name: has_fact, args: [capture_name, $name], phase: final }
+backreference := "\\k<" capture_name ">"                     # a use — order-independent
+```
+
+**Grammar-author rule of thumb.** For "reference X must resolve against a
+definition that may appear anywhere, including later," use `phase: final` — not
+`post` (which rejects the legal forward reference) and not an out-of-band host
+validator (invisible to the stimuli generator, against the
+EBNF-single-source-of-truth doctrine). Reserve a real two-pass pre-scan only for
+an *irreversible pre-emission global aggregate*; a pure reference validator has
+no such dependency, so it defers. `final` predicates are generation-neutral (they
+gate no branch during the pass), so a consumer keeps its existing conservative
+`@gen_predicate` draw — the generator only ever references already-emitted
+names, so it never produces an invalid forward reference.
 
 ### Composed predicates
 
@@ -698,7 +742,7 @@ change needed.
 @emit_fact: { kind: <kind>, <attr>: <expr>, ... }
 <rule_name> := <body> -> <return_shape>
 
-# Query (any phase: pre / branch / post):
+# Query (any phase: pre / branch / post / final):
 @predicate <name> args:[<args>] phase: <phase>
 <rule_name> := <body>
 

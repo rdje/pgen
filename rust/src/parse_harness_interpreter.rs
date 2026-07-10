@@ -401,14 +401,34 @@ fn interpret_parse_gen_ast_core(
                 interp.consume_layout_for_terminal("<EOF>");
             }
             if interp.position == interp.input.len() {
-                let ast_json = serde_json::to_value(&node).map_err(|e| {
-                    InterpretError::Load(format!("failed to serialize typed AST: {e}"))
-                })?;
-                ParseOutcome {
-                    accepted: true,
-                    furthest_position: interp.furthest_position,
-                    error: None,
-                    ast_json: Some(ast_json),
+                // FINAL-PHASE-PREDICATE.2: discharge whole-input `phase: final`
+                // obligations against the now-complete store — the interpreter
+                // mirror of the generated parser's `parse_full` discharge. A
+                // failing obligation (e.g. a named reference whose definition
+                // never appeared) turns the full-consume parse into a REJECT.
+                // The `compare` comparator asserts verdict + furthest_position +
+                // typed AST only, and discharge leaves `furthest_position`
+                // untouched, so a discharge-reject is byte-identical to the
+                // oracle's `ContextualError` reject regardless of the free-form
+                // error string.
+                match interp.semantic_state.discharge_deferred_obligations() {
+                    Ok(()) => {
+                        let ast_json = serde_json::to_value(&node).map_err(|e| {
+                            InterpretError::Load(format!("failed to serialize typed AST: {e}"))
+                        })?;
+                        ParseOutcome {
+                            accepted: true,
+                            furthest_position: interp.furthest_position,
+                            error: None,
+                            ast_json: Some(ast_json),
+                        }
+                    }
+                    Err((_position, message)) => ParseOutcome {
+                        accepted: false,
+                        furthest_position: interp.furthest_position,
+                        error: Some(message),
+                        ast_json: None,
+                    },
                 }
             } else {
                 ParseOutcome {
@@ -851,7 +871,13 @@ impl<'g, 'i> Interp<'g, 'i> {
         let interned_rule = intern(rule_name);
         self.with_rule_transaction(interned_rule, |s| {
             s.memoized_call(interned_rule, |s| {
-                let capture_raw = s.compiled_sem.needs_raw_post_capture_for_rule(interned_rule);
+                // FINAL-PHASE-PREDICATE.2: a raw-view `phase: final` predicate
+                // resolves against the rule's raw body exactly like a raw-view
+                // `post` predicate, so it needs the same raw capture — mirrors
+                // the generated `semantic_capture_raw_for_post` gate. Byte-neutral
+                // for rules without a raw-view final predicate.
+                let capture_raw = s.compiled_sem.needs_raw_post_capture_for_rule(interned_rule)
+                    || s.compiled_sem.needs_raw_final_capture_for_rule(interned_rule);
                 let mut semantic_raw_content: Option<ParseContent<'i>> = None;
                 let content = s.parse_rule_body(
                     body,
@@ -978,6 +1004,24 @@ impl<'g, 'i> Interp<'g, 'i> {
                     return Err(ParseError::Backtrack {
                         position: node.span.start,
                     });
+                }
+                // FINAL-PHASE-PREDICATE.2: enqueue this rule's `phase: final`
+                // obligations — resolved against the rule's captured content
+                // EXACTLY like a post predicate, but registered as a DEFERRED
+                // OBLIGATION on the transaction's state instead of gating
+                // inline. Discharged once at top-level completion against the
+                // completed store. Byte-identical mirror of the generated
+                // parser's post-body enqueue (`ast_based_generator.rs`).
+                for directive in s.compiled_sem.final_predicates_for_rule(rule_name) {
+                    if let SemanticRuntimeDirective::Predicate(spec) = directive {
+                        let resolved_spec = s.resolve_predicate_spec_against_content(
+                            spec,
+                            semantic_raw_content,
+                            &node.content,
+                        )?;
+                        txn.state_mut()
+                            .enqueue_deferred_obligation(resolved_spec, node.span.start);
+                    }
                 }
                 for directive in s.compiled_sem.library_exports_for_rule(rule_name) {
                     if let SemanticRuntimeDirective::ExportToLibrary(_spec) = directive {

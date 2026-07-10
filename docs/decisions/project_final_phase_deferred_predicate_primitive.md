@@ -1,6 +1,6 @@
 ---
 name: project-final-phase-deferred-predicate-primitive
-description: The `phase: final` @predicate phase — a GENERAL, parser-agnostic WHOLE-INPUT / parse-completion predicate that is checked ONCE, after the top-level parse succeeds, against the now-complete semantic store. Realized via DEFERRED OBLIGATIONS (each `phase: final` predicate resolves its args at rule-commit and enqueues a check; a terminal discharge pass runs them all at `parse_full` success) — backpatching generalized to a semantic check (LLVM `ForwardRefVals`→`validateEndOfModule`). Lets the EBNF own LEGAL-FORWARD-REFERENCE validation (a reference whose definition appears LATER in the input) that Pre/Branch/Post cannot express. A-vs-B DESIGN DECIDED (Option B, SOTA-cited) 2026-07-10; BUILD pending FINAL-PHASE-PREDICATE.2. Unlocks REGEX-PCRE2-FIDELITY .4.11 (named-ref UNKNOWN-name, the real accepts-invalid fix, REGEX-0098) + .4.7 (scs capture inventory).
+description: The `phase: final` @predicate phase — a GENERAL, parser-agnostic WHOLE-INPUT / parse-completion predicate that is checked ONCE, after the top-level parse succeeds, against the now-complete semantic store. Realized via DEFERRED OBLIGATIONS (each `phase: final` predicate resolves its args at rule-commit and enqueues a check; a terminal discharge pass runs them all at `parse_full` success) — backpatching generalized to a semantic check (LLVM `ForwardRefVals`→`validateEndOfModule`). Lets the EBNF own LEGAL-FORWARD-REFERENCE validation (a reference whose definition appears LATER in the input) that Pre/Branch/Post cannot express. A-vs-B DESIGN DECIDED (Option B, SOTA-cited) 2026-07-10; BUILD LANDED FINAL-PHASE-PREDICATE.2 2026-07-10 (engine + codegen + interpreter mirror + semantic-suite cases, proven in isolation before any consumer). Unlocks REGEX-PCRE2-FIDELITY .4.11 (named-ref UNKNOWN-name, the real accepts-invalid fix, REGEX-0098) + .4.7 (scs capture inventory).
 metadata:
   node_type: memory
   type: project
@@ -153,3 +153,43 @@ umbrella (2026-07-09/2026-07-10) as [[project_rule_span_value_compare_primitive]
 [[project_scope_context_predicate_primitive]]; grounded in [[feedback_research_grounded_sota_no_trial_and_revert]],
 [[feedback_no_workarounds_fix_hierarchy]], [[feedback_features_parser_agnostic_enable_all_parsers]],
 [[feedback_correctness_before_speed]].
+
+**BUILD LANDED (FINAL-PHASE-PREDICATE.2, 2026-07-10, session #86).** Implemented exactly per the frozen
+spec, all anchors as-shipped (line numbers approximate — grep the markers):
+
+- **Shared core** (`rust/src/ast_pipeline/semantic_runtime.rs`): `SemanticPredicatePhase::Final` +
+  `parse` aliases (`final`/`parse_complete`/`whole_input`) + widened reject message +
+  `SemanticRuntimeDirective::is_final_predicate()`; accessors `final_predicates_for_rule` /
+  `has_final_predicates_for_rule` / `needs_raw_final_capture_for_rule`; `DeferredObligation { spec,
+  source_position }`; `SemanticRuntimeState.deferred_obligations`; `SemanticRuntimeCheckpoint.deferred_len`
+  (recorded in `checkpoint()`, truncated in `rollback_to_named`); `SemanticRuntimeDelta.new_obligations`
+  (captured in `extract_delta_since`, replayed in `apply_delta`, folded into `is_empty`);
+  `enqueue_deferred_obligation` + `discharge_deferred_obligations() -> Result<(), (usize, String)>`
+  (ascending source-position, first `Some(false)` fails). Obligations NEVER bump `write_epoch` (inert
+  until discharge ⇒ cannot taint the memo).
+- **Codegen** (`rust/src/ast_pipeline/ast_based_generator.rs`, all emitted into the generated parser):
+  the emitted `discharge_final_phase_obligations` helper + its call in `parse_full` AND `parse_full_from`
+  after full-consume (Err → `ParseError::ContextualError`); the post-body enqueue loop (resolve args like
+  a post predicate via `resolve_semantic_predicate_spec_against_content`, then
+  `state_mut().enqueue_deferred_obligation(resolved_spec, node.span.start)`), placed AFTER the post-gate
+  block so a post-rejected rule never enqueues; the raw-capture gate OR-in of
+  `needs_raw_final_capture_for_rule`; the phase serializer `Final` arm. A rule with a `final` predicate
+  gets the semantic wrapper for free (`@predicate` is runtime-relevant in `rule_has_no_semantic_annotations`).
+- **Interpreter mirror** (`rust/src/parse_harness_interpreter.rs`): the identical post-body enqueue loop +
+  raw-capture OR-in; discharge at top-level completion in `interpret_parse_gen_ast_core` (Err → an
+  `accepted:false` `ParseOutcome`; byte-identical to the oracle because `compare` asserts only
+  verdict + `furthest_position` + typed AST, and discharge leaves `furthest_position` untouched).
+- **Gates** (`rust/src/parse_harness_semantic_suite.rs`): two new constructs `FinalForwardGate`
+  (`sem_final_forward_gate`: `use a;decl a;` forward-ACCEPT vs `use a;decl b;` undefined-REJECT) +
+  `FinalRollbackSpeculation` (`sem_final_rollback_speculation`: a losing longest-match branch's obligation
+  discarded — `use a;more` ACCEPT — vs the winner's obligation discharging — `use a;` REJECT); coverage gate
+  recognizes both.
+- **Proven in isolation before any consumer** (the RSVC/SCP model): scratch-slot generated parser —
+  `use a;decl a;` ACCEPT (rc 0), `use a;decl b;` REJECT (rc 1, `whole-input predicate 'has_fact' not
+  satisfied at parse completion`, furthest_position=11); the `.6.2` semantic gate certifies the interpreter
+  byte-identical to the compile-and-run oracle on both new cases plus independent accept/reject anchors.
+- **Inert on shipped grammars by construction**: no shipped grammar uses `phase: final`, the enqueue loop
+  iterates an empty `final_predicates_for_rule`, the raw-capture OR-in returns false, and the `parse_full`
+  discharge is a no-op with an empty worklist — so every shipped parser's behavior is unchanged
+  (`parse_harness_equivalence_gate` still byte-identical). Consumers (`REGEX-PCRE2-FIDELITY.4.11` then
+  `.4.7`) are leaves of a DIFFERENT tree; the frontier passes there now that the primitive exists.

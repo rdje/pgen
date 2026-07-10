@@ -1004,6 +1004,21 @@ pub enum SemanticPredicatePhase {
     Pre,
     Branch,
     Post,
+    /// FINAL-PHASE-PREDICATE.2: the WHOLE-INPUT / parse-completion phase. A
+    /// `final` predicate is NOT an inline gate on its own rule (the rule has
+    /// already committed). It resolves its args against the carrying rule's
+    /// captured content **at rule commit** and enqueues a DEFERRED OBLIGATION
+    /// (transactional — it rides the same speculation rollback as `@emit_fact`);
+    /// the obligation is checked ONCE, after the top-level parse succeeds and
+    /// consumes the full input, against the now-complete semantic store — so it
+    /// can see facts emitted ANYWHERE, including LATER than the rule that
+    /// carries it. This is the whole-input generalization of `post` and the
+    /// missing capability for validating a LEGAL FORWARD REFERENCE (a reference
+    /// whose definition appears later than the reference). Realized via
+    /// [`SemanticRuntimeState::enqueue_deferred_obligation`] +
+    /// [`SemanticRuntimeState::discharge_deferred_obligations`]; see the
+    /// decision record `project_final_phase_deferred_predicate_primitive`.
+    Final,
 }
 
 impl SemanticPredicatePhase {
@@ -1013,6 +1028,8 @@ impl SemanticPredicatePhase {
             "pre" | "rule_entry" | "rule-entry" => Some(Self::Pre),
             "branch" | "branch_local" | "branch-local" => Some(Self::Branch),
             "post" | "rule_exit" | "rule-exit" => Some(Self::Post),
+            // FINAL-PHASE-PREDICATE.2: aliases for the whole-input phase.
+            "final" | "parse_complete" | "whole_input" => Some(Self::Final),
             _ => None,
         }
     }
@@ -1115,6 +1132,16 @@ impl SemanticRuntimeDirective {
 
     pub fn is_branch_predicate(&self) -> bool {
         self.predicate_phase() == Some(SemanticPredicatePhase::Branch)
+    }
+
+    /// FINAL-PHASE-PREDICATE.2: true for a `@predicate … phase: final`. A
+    /// `final` predicate is NOT an inline gate — the generator/interpreter
+    /// route it through the post-body effect path (resolve args at commit,
+    /// enqueue a deferred obligation) rather than evaluating it inline; the
+    /// obligation is discharged once at top-level parse completion. See
+    /// [`SemanticRuntimeState::discharge_deferred_obligations`].
+    pub fn is_final_predicate(&self) -> bool {
+        self.predicate_phase() == Some(SemanticPredicatePhase::Final)
     }
 
     pub fn is_effect(&self) -> bool {
@@ -1413,6 +1440,22 @@ impl CompiledSemanticRuntimeAnnotations {
             .filter(|directive| directive.is_post_predicate())
     }
 
+    /// FINAL-PHASE-PREDICATE.2: the rule's `phase: final` predicates. These are
+    /// NOT inline gates — the generator/interpreter resolve their args against
+    /// the rule's captured content at commit (exactly like a `post` predicate)
+    /// and enqueue a deferred obligation instead of evaluating inline; the
+    /// obligation is discharged once at top-level parse completion. Mirrors
+    /// [`Self::post_predicates_for_rule`] so a `final` predicate reuses the same
+    /// raw/shaped content-resolution path a `post` predicate already has.
+    pub fn final_predicates_for_rule<'a>(
+        &'a self,
+        rule_name: &'a str,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.directives_for_rule(rule_name)
+            .iter()
+            .filter(|directive| directive.is_final_predicate())
+    }
+
     /// `SV-EXH-PROOF.3.3.4.a` MVP-0: library imports for the rule (fired at
     /// rule entry, before pre-predicates, by the generator-emitted
     /// `with_semantic_runtime_rule_transaction`).
@@ -1489,6 +1532,24 @@ impl CompiledSemanticRuntimeAnnotations {
 
     pub fn needs_raw_post_capture_for_rule(&self, rule_name: &str) -> bool {
         self.post_predicates_for_rule(rule_name)
+            .any(|directive| directive.predicate_view() == Some(SemanticPredicateContentView::Raw))
+    }
+
+    /// FINAL-PHASE-PREDICATE.2: true iff the rule carries any `phase: final`
+    /// predicate. A `final` predicate resolves its args against the rule's
+    /// captured content at commit (exactly like a `post` predicate), so the
+    /// generator/interpreter's content-capture decision for a rule is
+    /// `has_post_predicates_for_rule || has_final_predicates_for_rule`.
+    pub fn has_final_predicates_for_rule(&self, rule_name: &str) -> bool {
+        self.final_predicates_for_rule(rule_name).next().is_some()
+    }
+
+    /// FINAL-PHASE-PREDICATE.2: raw-content capture gate for `final`
+    /// predicates — the `final` mirror of [`Self::needs_raw_post_capture_for_rule`]
+    /// (a Raw-view `final` predicate resolves `$name`/`$N` against the rule's
+    /// raw body just as a Raw-view `post` predicate does).
+    pub fn needs_raw_final_capture_for_rule(&self, rule_name: &str) -> bool {
+        self.final_predicates_for_rule(rule_name)
             .any(|directive| directive.predicate_view() == Some(SemanticPredicateContentView::Raw))
     }
 
@@ -1664,10 +1725,47 @@ pub struct ScopeNode {
     pub depth_when_opened: usize,
 }
 
+/// FINAL-PHASE-PREDICATE.2: a WHOLE-INPUT predicate obligation deferred to
+/// parse completion.
+///
+/// A `@predicate … phase: final` is not evaluated inline (its rule may have
+/// committed before the definition it references is even parsed — the legal
+/// forward-reference case). Instead, at rule commit the generator/interpreter
+/// resolves the predicate's args against the carrying rule's captured content
+/// (so `$name` becomes the concrete captured string) and enqueues one of these
+/// onto [`SemanticRuntimeState::deferred_obligations`]. After the top-level
+/// parse succeeds and consumes the full input,
+/// [`SemanticRuntimeState::discharge_deferred_obligations`] evaluates every
+/// enqueued obligation against the now-complete store.
+///
+/// The obligation is TRANSACTIONAL: it rides the same speculation rollback as
+/// an emitted fact (`SemanticRuntimeCheckpoint.deferred_len` truncates it, and
+/// the [`SemanticRuntimeDelta`] captures/replays it), so only obligations on
+/// the FINAL successful parse tree survive to discharge.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DeferredObligation {
+    /// The predicate to evaluate at discharge. Its `args` are ALREADY resolved
+    /// to concrete literals at enqueue time (the `$name`/`$N` capture references
+    /// were substituted while the carrying rule's content still existed), so
+    /// discharge is a pure store query — [`SemanticRuntimeState::evaluate_predicate`]
+    /// needs no parse content.
+    pub spec: SemanticPredicateSpec,
+    /// Input byte position of the carrying reference (the rule's start offset).
+    /// Obligations discharge in ascending position order and the first that
+    /// evaluates to `Some(false)` fails the whole parse at this position, so a
+    /// grammar author gets a validator-style first-error-by-position report.
+    pub source_position: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SemanticRuntimeCheckpoint {
     scope_len: usize,
     fact_len: usize,
+    /// FINAL-PHASE-PREDICATE.2: number of deferred obligations enqueued at
+    /// checkpoint time. On rollback the obligation worklist truncates back to
+    /// this length, so a speculative branch that enqueued a `phase: final`
+    /// obligation and then failed discards it — mirrors `fact_len`.
+    deferred_len: usize,
     /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: arena length at checkpoint time. On
     /// rollback the arena truncates back to this point — nodes allocated
     /// during the speculative tx vanish.
@@ -1709,16 +1807,27 @@ pub struct SemanticRuntimeDelta {
     /// active_chain; kept in lockstep with the active chain since other
     /// code still consults `scopes`).
     final_scopes: Vec<SemanticScopeFrame>,
+    /// FINAL-PHASE-PREDICATE.2: the `phase: final` obligations the branch
+    /// enqueued (records appended past the checkpoint's `deferred_len`). Only
+    /// the WINNING branch's obligations are replayed by `apply_delta`, so a
+    /// losing-but-successful branch's `final` obligation never survives to
+    /// discharge (the C3-B discipline extended to obligations).
+    new_obligations: Vec<DeferredObligation>,
 }
 
 impl SemanticRuntimeDelta {
     /// True iff this delta has no semantic effects (no new facts,
-    /// no new scope nodes, no scope closures). Used by codegen to skip
-    /// the `apply_delta` call when the winner emitted nothing.
+    /// no new scope nodes, no scope closures, no deferred obligations). Used by
+    /// codegen to skip the `apply_delta` call when the winner emitted nothing.
+    /// FINAL-PHASE-PREDICATE.2: obligations count as an effect here so a
+    /// winning branch that enqueued ONLY a `phase: final` obligation (and no
+    /// fact/scope change) is still applied — otherwise the obligation would be
+    /// dropped on winner-replay.
     pub fn is_empty(&self) -> bool {
         self.new_facts.is_empty()
             && self.new_scope_nodes.is_empty()
             && self.closed_scope_ids.is_empty()
+            && self.new_obligations.is_empty()
     }
 }
 
@@ -2038,6 +2147,16 @@ pub struct SemanticRuntimeState {
     /// wrapped in a per-rule transaction); each entry/exit
     /// push/pops the innermost frame.
     current_rule_context_stack: Vec<String>,
+    /// FINAL-PHASE-PREDICATE.2: the worklist of `phase: final` obligations
+    /// enqueued (with args already resolved) during the parse. Appended by
+    /// [`Self::enqueue_deferred_obligation`], truncated on rollback (via
+    /// `SemanticRuntimeCheckpoint.deferred_len`), captured/replayed across the
+    /// tournament delta path (via `SemanticRuntimeDelta.new_obligations`), and
+    /// drained ONCE at top-level parse success by
+    /// [`Self::discharge_deferred_obligations`]. Not consulted by any predicate
+    /// during the pass (obligations are inert until discharge), so it never
+    /// taints the memo (`write_epoch` is untouched by enqueue).
+    deferred_obligations: Vec<DeferredObligation>,
 }
 
 #[derive(Debug)]
@@ -2089,6 +2208,9 @@ impl SemanticRuntimeState {
             // generated parser's per-rule IIFE pushes/pops via
             // `push_rule_context` / `pop_rule_context`.
             current_rule_context_stack: Vec::new(),
+            // FINAL-PHASE-PREDICATE.2 — empty worklist; `phase: final`
+            // predicates enqueue obligations during the parse.
+            deferred_obligations: Vec::new(),
         }
     }
 
@@ -2436,6 +2558,10 @@ impl SemanticRuntimeState {
         SemanticRuntimeCheckpoint {
             scope_len: self.scopes.len(),
             fact_len: self.facts.len(),
+            // FINAL-PHASE-PREDICATE.2: record the obligation worklist length so
+            // a rollback to this checkpoint discards obligations enqueued after
+            // it (mirrors `fact_len`).
+            deferred_len: self.deferred_obligations.len(),
             scope_arena_len: self.scope_arena.len(),
             active_chain_snapshot: self.active_chain.clone(),
         }
@@ -2484,12 +2610,21 @@ impl SemanticRuntimeState {
             .filter(|id| !self.active_chain.contains(id))
             .copied()
             .collect();
+        // FINAL-PHASE-PREDICATE.2: obligations appended past the checkpoint's
+        // `deferred_len` are this branch's; capture them so `apply_delta` can
+        // replay only the winning branch's onto committed state.
+        let new_obligations = if checkpoint.deferred_len <= self.deferred_obligations.len() {
+            self.deferred_obligations[checkpoint.deferred_len..].to_vec()
+        } else {
+            Vec::new()
+        };
         SemanticRuntimeDelta {
             new_facts,
             new_scope_nodes,
             closed_scope_ids,
             final_active_chain: self.active_chain.clone(),
             final_scopes: self.scopes.clone(),
+            new_obligations,
         }
     }
 
@@ -2498,11 +2633,19 @@ impl SemanticRuntimeState {
     /// On success the state is fast-forwarded to whatever the source-
     /// transaction's end state was.
     pub fn apply_delta(&mut self, delta: SemanticRuntimeDelta) {
-        // MEMO-STORE-SOUNDNESS.2 — a non-empty delta mutates the store
-        // (facts appended / scopes opened / scopes closed). Callers already
-        // skip apply_delta for empty deltas; guard anyway so a no-op apply
-        // never invalidates tainted memo entries.
-        if !delta.is_empty() {
+        // MEMO-STORE-SOUNDNESS.2 — a delta taints the memo only when it mutates
+        // STORE state a predicate can read (facts appended / scopes opened /
+        // scopes closed). FINAL-PHASE-PREDICATE.2: deferred obligations are
+        // deliberately EXCLUDED from this condition — no predicate reads the
+        // obligation worklist during the pass (obligations are inert until
+        // discharge), so replaying a winning branch's obligation-only delta
+        // must not evict tainted memo entries. Callers already skip apply_delta
+        // for fully-empty deltas; guard anyway so a no-op apply never
+        // invalidates tainted memo entries.
+        if !delta.new_facts.is_empty()
+            || !delta.new_scope_nodes.is_empty()
+            || !delta.closed_scope_ids.is_empty()
+        {
             self.write_epoch += 1;
         }
         // Push new scope_arena nodes (preserving their `closed` flag —
@@ -2524,6 +2667,12 @@ impl SemanticRuntimeState {
             self.facts.push(fact);
             self.counters.facts_emitted += 1;
         }
+        // FINAL-PHASE-PREDICATE.2: replay the winning branch's deferred
+        // obligations onto committed state, preserving their enqueue order
+        // (discharge re-sorts by source_position, so append order is
+        // immaterial). A losing branch's obligations were captured in ITS delta
+        // and discarded with it, so only the winner's survive to discharge.
+        self.deferred_obligations.extend(delta.new_obligations);
         // Restore active_chain + scopes to the branch's end state.
         self.active_chain = delta.final_active_chain;
         self.scopes = delta.final_scopes;
@@ -2627,6 +2776,13 @@ impl SemanticRuntimeState {
             );
         }
         self.facts.truncate(fact_len);
+        // FINAL-PHASE-PREDICATE.2: discard obligations enqueued after the
+        // checkpoint — a speculative branch that registered a `phase: final`
+        // obligation and then failed must not leave it on the worklist (mirrors
+        // the fact truncation above). Obligations do not taint the memo, so
+        // this does not touch `write_epoch`.
+        let deferred_len = checkpoint.deferred_len.min(self.deferred_obligations.len());
+        self.deferred_obligations.truncate(deferred_len);
         // `.3.3.4.b.5.1.3`: truncate the arena to checkpoint length —
         // nodes opened during the rolled-back tx are discarded.
         self.scope_arena.truncate(scope_arena_len);
@@ -2663,6 +2819,79 @@ impl SemanticRuntimeState {
         checkpoint.scope_len <= self.scopes.len()
             && checkpoint.fact_len <= self.facts.len()
             && checkpoint.scope_arena_len <= self.scope_arena.len()
+    }
+
+    /// FINAL-PHASE-PREDICATE.2: register a `phase: final` obligation.
+    ///
+    /// Called from the post-body effect path (generator + interpreter) with the
+    /// predicate's args ALREADY resolved to concrete literals against the
+    /// carrying rule's captured content, plus the rule's start byte offset. The
+    /// obligation is inert until [`Self::discharge_deferred_obligations`] drains
+    /// it at top-level parse success. Transactional: it is appended past the
+    /// current checkpoint's `deferred_len`, so a later rollback discards it (and
+    /// the tournament delta path captures/replays it). Does NOT bump
+    /// `write_epoch` — no predicate reads the worklist during the pass, so an
+    /// enqueue can never taint a memoized store-consulting body.
+    pub fn enqueue_deferred_obligation(
+        &mut self,
+        spec: SemanticPredicateSpec,
+        source_position: usize,
+    ) {
+        crate::pgen_trace_high!(
+            "⏳ enqueue phase:final obligation — predicate '{}' at position {} caller={}",
+            spec.name,
+            source_position,
+            self.rule_context_path(),
+        );
+        self.deferred_obligations
+            .push(DeferredObligation { spec, source_position });
+    }
+
+    /// FINAL-PHASE-PREDICATE.2: number of `phase: final` obligations currently
+    /// enqueued. Exposed for the parse-harness gates + isolation proofs.
+    pub fn deferred_obligation_count(&self) -> usize {
+        self.deferred_obligations.len()
+    }
+
+    /// FINAL-PHASE-PREDICATE.2: discharge every enqueued `phase: final`
+    /// obligation against the now-COMPLETE store.
+    ///
+    /// Called ONCE, at top-level `parse_full` success (generator) / top-level
+    /// completion (interpreter), after full-input consumption is confirmed.
+    /// Obligations are evaluated in ascending `source_position` order (stable in
+    /// enqueue order for ties). Returns the `(position, message)` of the FIRST
+    /// obligation that evaluates to `Some(false)` — validator
+    /// first-error-by-position semantics — or `Ok(())` if all hold. An
+    /// obligation that evaluates to `None` (inapplicable / unresolvable args) is
+    /// non-blocking: only a definite `Some(false)` fails the parse, per the
+    /// frozen design (a `final` predicate is an ASSERTION, not a filter — an
+    /// unevaluable assertion is not a violation).
+    pub fn discharge_deferred_obligations(&self) -> Result<(), (usize, String)> {
+        if self.deferred_obligations.is_empty() {
+            return Ok(());
+        }
+        // A whole-input parse carries few obligations, so the clone + stable
+        // sort is negligible; sorting by position (not enqueue order) gives the
+        // grammar author a first-error-by-position report regardless of the
+        // order the parse happened to enqueue them.
+        let mut ordered: Vec<&DeferredObligation> = self.deferred_obligations.iter().collect();
+        ordered.sort_by_key(|obligation| obligation.source_position);
+        for obligation in ordered {
+            if self.evaluate_predicate(&obligation.spec) == Some(false) {
+                let message = format!(
+                    "whole-input predicate '{}' not satisfied at parse completion \
+                     (phase:final obligation unresolved: args {:?})",
+                    obligation.spec.name, obligation.spec.args,
+                );
+                crate::pgen_trace_high!(
+                    "🚫 phase:final obligation FAILED at position {} — {}",
+                    obligation.source_position,
+                    message,
+                );
+                return Err((obligation.source_position, message));
+            }
+        }
+        Ok(())
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.6.2.34` (Architecture B — REVERTED, no-op stub).
@@ -4199,7 +4428,7 @@ fn parse_predicate(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective,
                 };
                 let phase = match property(properties, "phase") {
                     Some(value) => SemanticPredicatePhase::parse(value).ok_or_else(|| {
-                        "Directive '@predicate.phase' must be one of 'pre', 'branch', or 'post'."
+                        "Directive '@predicate.phase' must be one of 'pre', 'branch', 'post', or 'final'."
                             .to_string()
                     })?,
                     None => SemanticPredicatePhase::Pre,

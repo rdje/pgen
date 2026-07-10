@@ -3,10 +3,13 @@
 ## Metadata
 
 - Tree ID: `FINAL-PHASE-PREDICATE`
-- Status: `active` — **`.1` DESIGN DECIDED** (2026-07-10, session #86, `PGEN-FPP-0001`, PURE-DOCS): the
-  A-vs-B choice is settled (Option B, SOTA-cited) and the engine BUILD SPEC is frozen. **`.2` BUILD is
-  the next slice** (engine code, mirrored + gated). The director explicitly required the A-vs-B choice to
-  be settled in a SOTA-cited DESIGN slice BEFORE any engine code, so this tree splits design from build.
+- Status: `complete` — **`.1` DESIGN DECIDED** (2026-07-10, session #86, `PGEN-FPP-0001`, PURE-DOCS):
+  Option B, SOTA-cited, engine BUILD SPEC frozen. **`.2` BUILD LANDED** (2026-07-10, session #86,
+  `PGEN-FPP-0002`): the `phase: final` engine primitive shipped identically in the shared runtime, codegen,
+  and interpreter mirror, with new semantic-suite cases + coverage, proven in isolation before any consumer.
+  The director required the A-vs-B choice settled in a SOTA-cited DESIGN slice BEFORE any engine code, so
+  this tree split design from build; both are now landed. The proving CONSUMERS (`REGEX-PCRE2-FIDELITY.4.11`
+  then `.4.7`) are leaves of a DIFFERENT tree whose frontier now passes (the RSVC/SCP model).
 - Family / slice-id prefix: `PGEN-FPP-<NNNN>` (abbreviation of the tree name; used in commit subjects)
 - Roadmap lane: cross-cutting engine correctness — a **parser-agnostic** WHOLE-INPUT predicate phase that
   lets the EBNF validate a **legal forward reference** (a reference whose definition may appear LATER in the
@@ -109,9 +112,58 @@ Expose a **general, parser-agnostic** fourth `@predicate` phase on the existing 
   regex-tree cross-refs (`REGEX-PCRE2-FIDELITY.4.7`/`.4.11` notes) + resume-pointer update; no code change.
   Method: two tool-backed research streams (engine ground-truth by `file:line`; SOTA literature survey),
   then synthesis. Evidence: see §Design.
-- ID: `.2`  Status: `pending`  Goal: BUILD the `phase: final` primitive per the frozen spec in §Design /
-  the decision record. Acceptance: the `.2` acceptance criteria above, proven in isolation before any
-  consumer, full parse-harness lockstep. Fix-hierarchy tier-5 (engine). This is the next slice.
+- ID: `.2`  Status: **`done`** (`PGEN-FPP-0002`, 2026-07-10 session #86)  Goal: BUILD the `phase: final`
+  primitive per the frozen spec in §Design / the decision record. Acceptance: the `.2` acceptance criteria
+  above, proven in isolation before any consumer, full parse-harness lockstep. Fix-hierarchy tier-5
+  (engine). Landed identically in `semantic_runtime.rs` (shared core: `Final` phase, `DeferredObligation`,
+  worklist, checkpoint `deferred_len` + rollback truncation, delta capture/replay, enqueue + discharge),
+  `ast_based_generator.rs` (codegen: enqueue-at-commit + `parse_full`/`parse_full_from` discharge + raw
+  gate + phase serializer), `parse_harness_interpreter.rs` (mirror). Semantic suite gains
+  `FinalForwardGate` + `FinalRollbackSpeculation`; coverage-completeness recognizes both. Proven in
+  isolation (scratch-slot generated parser: forward-ACCEPT `use a;decl a;` rc 0, undefined-REJECT
+  `use a;decl b;` rc 1) BEFORE any consumer. See the Acceptance Checklist below.
+
+## Acceptance Checklist (enforced) — `.2` BUILD
+
+- [x] **REPRODUCE / ISSUE** — A grammar cannot validate a **legal forward reference** (definition
+  appears LATER than the reference). Tool-verified (session #86): the `@predicate` phase enum is exactly
+  `Pre | Branch | Post` (`semantic_runtime.rs`, `enum SemanticPredicatePhase`), all per-rule; every
+  fact-producing effect fires post-body left-to-right; engine-wide grep for a whole-input/terminal phase =
+  0 hits. So a `has_fact`/`post` gate on a reference fires BEFORE a later definition is emitted and would
+  REJECT the legal forward reference. The proving consumer is `REGEX-PCRE2-FIDELITY.4.11` (`.3.22` oracle:
+  9 unknown-name spellings → err 115; `\k<aa>(?'aa'x)` / `(?&a)(?<a>x)` forward-ACCEPT).
+- [x] **ROOT CAUSE (WHY + WHERE)** — the **attribute-grammar impossibility**: a forward reference is a
+  right-to-left (non-L-attributed) dependency ⇒ provably not single-left-to-right-evaluable (Dragon
+  §5.2.3–5.2.4; Knuth 1968; Bochmann 1976). WHERE: the phase enumeration (`semantic_runtime.rs`
+  `SemanticPredicatePhase`) has no terminal/whole-input phase; `parse_full` (`ast_based_generator.rs`) had
+  no discharge hook. Not a fact-schema or annotation-shape gap — the facts + query vocabulary already
+  exist; the missing piece is a PHASE that discharges once the store is complete. Fix-hierarchy tier-5
+  (engine): lower tiers exhausted tools-first (see the decision record).
+- [x] **FIX** — the `phase: final` deferred-obligation predicate (tier-5 engine), landed identically in
+  the shared core (`semantic_runtime.rs`: `Final` phase + `DeferredObligation` + worklist + checkpoint
+  `deferred_len` + rollback truncation + delta capture/replay + `enqueue_deferred_obligation` +
+  `discharge_deferred_obligations`), codegen (`ast_based_generator.rs`: enqueue-at-commit +
+  `parse_full`/`parse_full_from` discharge + raw gate + phase serializer), and interpreter mirror
+  (`parse_harness_interpreter.rs`). Per the frozen BUILD SPEC; no lower tier can see a forward reference.
+- [x] **ADDRESSED (verified)** — **isolation proof in a REAL generated parser** (scratch slot): forward
+  reference `use a;decl a;` → ACCEPT (rc 0); undefined `use a;decl b;` → REJECT (rc 1: `whole-input
+  predicate 'has_fact' not satisfied at parse completion`, `furthest_position=11`). A `post` gate could
+  NOT accept the forward case — the exact discriminator. The `.6.2` semantic gate's two new cases —
+  `sem_final_forward_gate` and `sem_final_rollback_speculation` — are **CLEAN (`diverge=0 anchor_miss=0`)**:
+  the interpreter is byte-identical to the compile-and-run oracle AND the independent accept/reject anchors
+  hold (forward-accept, undefined-reject, losing-branch-obligation-discarded, winning-branch-discharge).
+- [x] **NO REGRESSION** — `parse_harness_semantic_gate` **35/35 CLEAN** (`2 passed; 0 failed`,
+  finished 244s): the 33 pre-existing cases stay `diverge=0` ⇒ the codegen+interpreter changes are
+  byte-neutral for them. `parse_harness_equivalence_gate` — the 11 shipped/certified grammars still
+  byte-identical (inert on shipped grammars: no grammar uses `phase: final`, the enqueue loop iterates an
+  empty `final_predicates_for_rule`, the raw-capture OR-in returns false, the discharge is a no-op with an
+  empty worklist). `parse_harness_combinator_gate` — 27/27 structural intact. `cargo check`/clippy clean.
+  Determinism: the suite is fixed grammars × curated inputs (no seeds).
+- [x] **LOCKSTEP** — book `docs/book/src/semantic-store.md` (the `final` phase + forward-reference
+  subsection + quick-refs) + `docs/book/src/parse-harness.md` (2 construct rows + case count 29→35) +
+  `TOOLBOX.md` §1.8 (32→35 + the `final` construct) + decision record `BUILD LANDED` anchors + this tree +
+  `MEMORY.md` + `CHANGES.md`. No downstream contract/ledger/schema bump (a new engine capability, inert on
+  every shipped parser — no released-parser behavior changed).
 
 ## Design
 

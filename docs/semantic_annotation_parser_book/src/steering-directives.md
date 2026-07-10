@@ -74,7 +74,11 @@ grammar constructs, so it is parser-agnostic like every other built-in.
 Phasing and composition:
 
 - `phase:` routes evaluation — `@predicate: {phase: branch, …}` makes the predicate **branch-local**
-  (gates one OR alternative); the defaults are pre-rule / post-rule predicates.
+  (gates one OR alternative); the defaults are pre-rule / post-rule predicates. `phase: final` defers the
+  check to **whole-input parse completion** (a deferred obligation discharged once the store is complete),
+  so it can validate a **legal forward reference** — a reference whose definition appears *later* in the
+  input than the reference — which `pre`/`branch`/`post` (all at the reference's own position) cannot. See
+  [The Semantic Store → Phases](semantic-store.md) in the platform book.
 - `@predicate_def:` defines a **named composed predicate** (a reusable boolean of the built-ins) that a
   later `@predicate` can invoke by name.
 
