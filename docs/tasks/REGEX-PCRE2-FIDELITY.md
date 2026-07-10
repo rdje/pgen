@@ -1201,16 +1201,20 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   (capture count + name inventory) — the same store-aware class as `.3.22`; forward-ref legality forbids a
   single-pass `has_fact`. Needs the store-aware / two-pass primitive.
 - ID: `.4.8` Status: `pending` Goal: encode start-option POSITION — a recognized `(*UTF)`… start option
-  must appear only at the start-option prefix (`a(*CR)b`/`a(*LIMIT_HEAP=500)`/`(*FAIL)(*LIMIT_HEAP=5)a`
-  reject). Owns the residual of `find_invalid_verb_construct` + the `STIMULI-SIGNOFF.13.3` duality pin
-  (re-baseline `duality_hunt_gate_contract_v0.json` same-commit). **LEFT-CONTEXT single-pass — NO new
-  primitive** (the validator test `is_start_option_position(bytes, index)` examines ONLY bytes BEFORE the
-  position — "every group before this is itself a start option"); expressible today with the EXISTING store
-  (a monotonic `@emit_fact` "prefix ended" set by the first non-start-option construct + a
-  `@predicate lacks_fact(...) phase:pre` gate on the start-option rule — the `.4.10` gate shape, a
-  left-context fact rather than a scope-ancestry walk). See the `.4` PRIMITIVE-GAP SCOPING below (the `.4`
-  SCOPING LOG's "contextual — may need a new primitive" was IMPRECISE for `.4.8`). The known long-standing
-  `.4` target; the CHEAPEST remaining residual.
+  must appear only at the very start of the ENTIRE pattern, before any other construct AND not nested
+  (`a(*CR)b`/`a(*LIMIT_HEAP=500)`/`(*FAIL)(*LIMIT_HEAP=5)a` FLAT-reject; `((*CRLF)a)`/`(?:(*CRLF)a)`/
+  `(?=(*CRLF)a)`/`(*CRLF)((*LF)a)` NESTED-reject — all err 160). Owns the residual of
+  `find_invalid_verb_construct` + the `STIMULI-SIGNOFF.13.3` duality pin (re-baseline
+  `duality_hunt_gate_contract_v0.json` same-commit). **NO new primitive; grammar-only via the `.4.10`
+  open-marker idiom.** ⚠️ SHARPENED `PGEN-REGEX-PCRE2-0041` (session #85, tool-backed, see the
+  `.4.8 — NESTED-CASE DISCOVERY + DESIGN` section below): the earlier "LEFT-CONTEXT single-pass / CHEAPEST
+  residual" framing was INCOMPLETE — it missed the NESTED-group rejects, which the released validator ALSO
+  enforces (`is_start_option_position`), so behavior-neutrality needs the grammar to reject them too. Because
+  the engine has NO pre-body emit, a monotonic `@emit_fact regex_body_started` must be set AT EVERY nesting
+  OPENER (before the inner body) plus post-body on top-level flat pieces, gated by a single
+  `@predicate lacks_fact(regex_body_started, body) phase:pre` on the extracted `start_option_piece`. This is
+  a BROAD grammar migration (~8 new open-markers + ~11 existing-marker emits), NOT the cheapest residual. A
+  future general pre-body-emit primitive (Option B) is SURFACED in that section but NOT taken this slice.
 - ID: `.4.9` Status: `pending` Goal: encode unbounded-lookbehind — a variable-length lookbehind body must
   be bounded (`(?<=a+)b`/`(?<=a*)b`/`(?<=a{2,})b`/`(?<=…(c+)…)` reject; fixed `(?<=a{2})b` accept). Owns
   `find_unbounded_quantified_lookbehind`. **LOOKBEHIND-LENGTH ANALYSIS** (hard — the body's max match
@@ -1377,6 +1381,90 @@ choice is settled in a SOTA-cited DESIGN slice BEFORE any engine code, and the c
 fix-hierarchy level it lands at + why nothing lower works ([[feedback_no_workarounds_fix_hierarchy]]). The
 director opened a fresh session immediately after (deliberate `/clear`); the `MEMORY.md` resume pointer +
 this section are the handoff.
+
+### REGEX-PCRE2-FIDELITY.4.8 — NESTED-CASE DISCOVERY + DESIGN (`PGEN-REGEX-PCRE2-0041`, 2026-07-10, session #85, tool-backed, PURE-DOCS)
+
+**Trigger / the scope-changing finding.** The resume pointer + the `.4` PRIMITIVE-GAP SCOPING framed `.4.8`
+as "the CHEAPEST residual — a single monotonic `@emit_fact` prefix-ended fact + a `@predicate lacks_fact`
+gate, LEFT-CONTEXT single-pass, NO new primitive, in the `.4.10` groove." A tools-first read BEFORE any code
+found that framing **INCOMPLETE**: it modelled only the FLAT top-level ordering and MISSED the NESTED-group
+cases — which the released validator ALSO rejects, so behavior-neutrality REQUIRES the grammar to reject them
+too. `.4.8` is therefore NOT cheap; it is a broad (grammar-only) migration touching every pattern-nesting
+opener. Recorded here per [[feedback_be_alert_root_cause_fishy_immediately]] +
+[[feedback_surface_insights_prominently]] (I should never let the director be the one to notice a plan/reality
+gap).
+
+**Method (toolbox-first, per [[feedback_systematically_use_debug_toolbox]]).** (1) Froze the authoritative
+accept/reject spec with `pcre2test` 10.47 (one pattern per invocation, blank-line-separated). (2) Read the
+engine's effect-application timing in `rust/src/ast_pipeline/ast_based_generator.rs` (branch-start inline
+effects + rule-level `@emit_fact`). (3) Enumerated the residual validator (`find_invalid_verb_construct` +
+`is_start_option_position`, `regex_compile_validation.rs:170`/`:310`) and every grammar rule with an inner
+`pattern` (the nesting constructs).
+
+**Frozen oracle matrix (the acceptance spec for the BUILD; `pcre2test` 10.47, verified string-by-string).**
+- ACCEPT (start-option prefix at byte 0, contiguous, then the body): `(*CRLF)abc`, `(*UTF)abc`,
+  `(*CRLF)(*LIMIT_MATCH=123)abc`, `(*CRLF)(*UTF)(?:x)`, `(*CRLF)(a)`, `(*CRLF)a|b`, `((*ACCEPT))` (ACCEPT is a
+  VERB, not a start option — verbs are valid ANYWHERE incl. nested).
+- REJECT err 160 — FLAT (a top-level non-start-option precedes it): `a(*CR)b`, `a(*LIMIT_HEAP=500)`,
+  `(*FAIL)(*LIMIT_HEAP=5)a` (a verb ends the prefix), `(a)(*CRLF)` (after a group).
+- REJECT err 160 — **NESTED (start option inside ANY group; the cases the scoping MISSED):** `((*CRLF)a)`
+  (capture), `(?:(*CRLF)a)` (non-capture), `(?=(*CRLF)a)` (lookaround), `(*CRLF)((*LF)a)` (group after a start
+  option, still in prefix), `(*sr:(*CRLF)a)` (script-run), `(*scs:(1)(*CRLF)a)` (scan-substring),
+  `(?i:(*CRLF)a)` (scoped modifiers), `(?|(*CRLF)a)` (branch-reset). PCRE2 requires a start option at the very
+  start of the ENTIRE pattern, before any other construct AND not nested at any depth.
+
+**Decisive engine fact (WHY the nested case is hard).** `SemanticRuntimeDirective::EmitFact` is an EFFECT that
+fires POST-body: rule-level `@emit_fact` after the whole rule, and "branch-start" inline effects (INLINE-ACTIONS.2)
+ALSO fire after the winning branch's body (`ast_based_generator.rs:3885` — "fire here — after the winner's body
+delta is replayed"). There is NO pre-body emit anywhere in the engine. So a fact CANNOT be set before descending
+into a group's inner `pattern` — a naive post-body monotonic fact leaves a nested start option (e.g. the FIRST
+inner piece of a first-position group `((*CRLF)a)`) seeing the fact still UNSET ⇒ wrongly ACCEPTED. The
+released validator rejects it (`is_start_option_position` walks from byte 0 and requires every prior `(*…)` to
+be a start option — a `(` group-opener at byte 0 fails immediately), so a post-body-only migration would be an
+accepts-invalid REGRESSION vs the released parser. The fix must set the fact AT THE OPENER, before the inner body.
+
+**Design (Option A — grammar-only, the `.4.10` `capture_open` open-marker idiom; NO new primitive; CHOSEN).**
+A single monotonic fact (kind `regex_body_started`, name `body`) means "a non-start-option construct has begun /
+the start-option prefix has ended." It is CORRECT to be monotonic: once ANY top-level non-SO piece OR any group
+has been entered, NO start option is ever valid again (a group is itself a non-SO construct, and a start option
+is never valid inside one) — so the fact never needs retraction (unlike `.4.10`'s scope, which must auto-unwind).
+  1. **Gate.** Split the start options (`directive_limit_named | directive_option_named`) out of the shared
+     `directive_verb_nonquant` into a dedicated `start_option_piece` gated
+     `@predicate { name: lacks_fact, args: [regex_body_started, body], phase: pre }` + `!quantifier` (preserving
+     the err-109 non-quantifiable shape), emitting NOTHING. The verbs/MARK stay in `directive_verb_nonquant`.
+  2. **Top-level ordering.** Wrap the non-SO `piece` branches so they carry `@emit_fact {regex_body_started, body}`
+     (post-body — fires after each top-level flat piece / group, blocking a LATER top-level start option:
+     `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a`, `(a)(*CRLF)`).
+  3. **Nesting.** Add `@emit_fact {regex_body_started, body}` to EVERY pattern-nesting OPENER MARKER (fires
+     right after the opener token, BEFORE the inner body — the proven `capture_open`/lookaround-open idiom), so a
+     start option nested at the start of a first-position group is blocked. Openers: reuse the EXISTING markers
+     `capture_open`, `named_group_open_angle`/`_quote`, `python_named_group_open`, and the 7 lookaround `*_open`
+     + `alpha_lookaround_open` (add the emit alongside their current `@emit_fact regex_capture_group` /
+     `@open_scope lookaround`); CREATE byte-identity-preserving open-markers (the `.4.10` split) for the ~8
+     currently-INLINE nesting constructs: `noncapturing_group` `(?:`, `atomic_group` `(?>` and `(*atomic:`,
+     `scan_substring_group` `(*scs:…`, `script_run_group` `(*sr:…`, `scoped_inline_modifiers` `(?flags:`,
+     `branch_reset_group` `(?|`, and `conditional` `(?(…)` (nests via `conditional_branch = piece*`).
+  4. **Deletion.** With the grammar fully owning the position rule, DELETE `find_invalid_verb_construct` +
+     `is_start_option_position` + the now-exclusive helpers (`find_star_verb_end`, `is_pcre2_start_option_name`,
+     `is_pcre2_verb_name`, `is_non_verb_star_group_name` — keeping any still shared), the `.3.1`/`.3.2`/`.4.10`
+     standalone-deletion precedent. Re-baseline `duality_hunt_gate_contract_v0.json` same-commit (the
+     `STIMULI-SIGNOFF.13.3` start-option-class duality pin this leaf owns).
+
+**🔎 SURFACED — Option B (a future general elegance; NOT taken this slice).** A general **pre-body `@emit_fact`
+phase** (an "on-enter" effect symmetric to the existing post-body effect) would let ONE `@emit_fact
+{regex_body_started, body} phase:pre` on the `atom` rule cover ALL nesting in a single place (every group is an
+`atom`; entering it emits before its inner body), collapsing Option A's ~19 emit sites + ~8 new markers to ~5
+sites AND auto-covering any FUTURE nesting construct (Option A's residual maintainability footgun: a new nesting
+construct added without the emit would silently accept an invalid nested start option). Option B is an ENGINE
+change — it needs the SOTA-cited design slice + parse-harness combinator/semantic-suite coverage + the
+interpreter mirror, and it MAY compose with the already-endorsed whole-pattern-inventory primitive
+(`.4.7`/`.4.11`). **Recommendation:** land `.4.8` via Option A (correctness-first, behavior-neutral,
+grammar-only, leaves the stable engine alone per [[feedback_prefer_grammar_leave_engine_alone]], stays within
+the endorsed "no primitive for `.4.8`" plan), and mitigate the footgun with a coverage guard test (assert every
+nesting construct sets `regex_body_started`). Option B is flagged for the director as a candidate to FOLD into
+the endorsed engine-primitive workstream later, NOT to block `.4.8`. Per [[feedback_pinpoint_real_blocker_not_menu]]
+this is a recommendation with a noted alternative, not a menu — the tools prove Option A is correct and
+within-principle, so `.4.8` proceeds on Option A unless the director redirects.
 
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 
