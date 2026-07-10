@@ -19,18 +19,67 @@
 # the same compiled value. (This directive replaced the retired engine-side
 # `== "regex" → "pcre2"` name literals.)
 #
-# Entry point. The body is `pattern` (not `pattern?`) — emptiness is
-# already handled by the inner `alternative = concatenation?` rule so the
-# pattern reference is total. With `pattern?` here the annotation `$1`
-# would (correctly) resolve to the whole `Quantified-?` wrapper instead
-# of the inner pattern content (per the doctrine that `$N` on a
-# Quantified body is "the whole capture group" — see annotation-system.md).
+# Entry point. The body is the DISTINGUISHED `entry_alternation` (not the
+# shared `pattern`) so PCRE2 start options can be admitted at exactly one
+# place — the very start of the WHOLE pattern (REGEX-PCRE2-FIDELITY.4.8,
+# grammar design A″). `entry_alternation` mirrors the shared `alternation`
+# byte-for-byte except that its FIRST alternative is `entry_alternative`
+# (which alone may carry a leading start-option run); every later
+# alternative and every NESTED pattern (inside a group) routes through the
+# shared `alternative`/`concatenation`, which have NO start-option branch.
+# So a start option is reachable ONLY as a contiguous prefix of the entire
+# pattern, before any other construct AND not nested at any depth — exactly
+# PCRE2's rule (`pcre2test` 10.47: `a(*CR)b`, `(a)(*CRLF)`, `((*CRLF)a)`,
+# `(?:(*CRLF)a)`, `(*CRLF)a|(*LF)b` all reject err 160). Because the rule is
+# STRUCTURAL (a start option simply has no derivation off the entry prefix),
+# the position is enforced with NO semantic fact / predicate on the parse
+# hot path, and — critically — the STIMULI GENERATOR cannot emit a
+# mis-positioned start option either (no grammar derivation reaches one), so
+# the generator↔parser duality is closed BY CONSTRUCTION with no
+# generation-side steering. This replaces the out-of-band validator position
+# check (`find_invalid_verb_construct` + `is_start_option_position`, DELETED)
+# and is byte-identical to the pre-`.4.8` AST on every accepted pattern.
+# Emptiness is still handled by the inner `entry_alternative =
+# entry_concatenation?` (mirroring `alternative = concatenation?`), so the
+# reference stays total (no `?` here — see the `$N`-on-Quantified doctrine in
+# annotation-system.md).
 @whitespace_sensitive: true
 @default_profile: pcre2
-regex          = pattern
+regex          = entry_alternation
 -> {type: "regex", pattern: $1}
 
-# Alternation and concatenation
+# The distinguished entry chain (A″). Each rule mirrors its shared
+# counterpart's shape EXACTLY (structural passthrough / optional), so the
+# emitted AST is unchanged; only the FIRST alternative differs by admitting
+# a leading start-option run.
+entry_alternation = entry_alternative ("|" alternative)*
+entry_alternative = entry_concatenation?
+# `entry_concatenation` = the top-level-first-alternative concatenation. It
+# is the ONLY concatenation whose leading pieces may be start options.
+#   * Branch 1: a leading start-option run (>= 1) then zero+ body pieces —
+#     so a start-option-only pattern (`(*CRLF)`) with an empty body accepts.
+#   * Branch 2: no start options — >= 1 ordinary piece (identical to the
+#     shared `concatenation`).
+# Neither branch matches empty (each forces >= 1 piece), so the empty
+# pattern still falls through `entry_alternative = entry_concatenation?` →
+# `[]` (oracle: empty accepts) and the optional shape is preserved.
+# Annotation shape is byte-identical to the shared `concatenation`'s
+# `[$1**]`: `$2**` deep-flatten-spreads the body `piece*` exactly as before
+# (unwrapping each `piece_quoted_run_quantified` Sequence — one piece per
+# `\Q...\E` char, trailing quantifier on the last, PGEN-RGX-0074), and `$1*`
+# shallow-spreads the leading start-option run (each `start_option_piece` is
+# a flat object, never a nested Sequence, so single-level spread suffices)
+# and prepends it. (A single mixed run keeps `**` in the one array position
+# it flattens cleanly — a two-spread `[$1**, $2**]` collides two peel-helpers
+# in one scope, codegen E0428, tool-proven in the scratch slot.)
+entry_concatenation = start_option_piece+ piece*
+-> [$1*, $2**]
+                    | piece+
+-> [$1**]
+
+# Alternation and concatenation (the SHARED chain — every nested pattern and
+# every non-first alternative; NO start-option branch, so start options are
+# structurally impossible off the entry prefix).
 pattern        = alternation
 -> $1
 alternation    = alternative ("|" alternative)*
@@ -113,6 +162,23 @@ piece          = piece_quoted_run_quantified -> $1
                | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
                | atom zero_width+ quantifier
 -> {type: "piece", atom: $1, quantifier: $3}
+
+# REGEX-PCRE2-FIDELITY.4.8: the start-option piece. A PCRE2 start option
+# (`(*UTF)`, `(*LIMIT_HEAP=5)`, `(*CRLF)`, …) is peeled OUT of the shared
+# `directive_verb_nonquant` (which keeps only the 6 non-ACCEPT verbs, MARK,
+# and the `(*:x)` shorthand — all valid ANYWHERE, incl. nested `((*ACCEPT))`)
+# into this dedicated rule, which is referenced ONLY from `entry_concatenation`
+# (grammar design A″). So a start option has a derivation ONLY as a leading
+# piece of the whole pattern — never in a later alternative, never nested —
+# which IS the PCRE2 position rule, enforced structurally (no fact/predicate).
+# `!quantifier` preserves the err-109 non-quantifiable shape (a start option
+# never takes a following quantifier — the anchor/`directive_verb_nonquant`
+# idiom). The AST is byte-identical to the pre-`.4.8` shape a start option had
+# through the `directive_verb_nonquant` piece branch: `{type:"piece", atom:{
+# type:"atom", kind:"directive_verb", body:{kind:"named", …}}, quantifier:[]}`.
+start_option_piece = start_option_verb !quantifier -> {type: "piece", atom: $1, quantifier: []}
+start_option_verb  = "(*" start_option_body ")" -> {type: "atom", kind: "directive_verb", body: $2}
+start_option_body  = directive_limit_named | directive_option_named
 
 # Match `\Q` + (zero or more prefix chars) + (one trailing char) + `\E`
 # + a required quantifier. The annotation flat-emits `[prefix*, last]`
@@ -1763,14 +1829,19 @@ directive_verb    = "(*" directive_body_quantifiable ")"           -> {type: "at
 directive_verb_nonquant = "(*" directive_body_nonquantifiable ")"  -> {type: "atom", kind: "directive_verb", body: $2}
 # The quantifiable body: the ACCEPT verb (`directive_accept_named`) + the
 # `@profiles:["relaxed"]` unknown-name catch-all. The non-quantifiable body: the
-# 6 non-ACCEPT verbs, MARK, the `(*:x)` shorthand, LIMIT, and the bare start
-# options. Each named branch keeps its released `{kind:"named", name, payload}` /
-# `{kind:"mark_shorthand", payload}` carrier byte-identically.
+# 6 non-ACCEPT verbs, MARK, and the `(*:x)` shorthand. Each named branch keeps
+# its released `{kind:"named", name, payload}` / `{kind:"mark_shorthand", payload}`
+# carrier byte-identically.
+# REGEX-PCRE2-FIDELITY.4.8: the bare start options (LIMIT + option names) were
+# PEELED OUT of this shared non-quantifiable body into the dedicated
+# `start_option_piece` (reached ONLY from `entry_concatenation`) so they can
+# appear ONLY at the whole-pattern start; `directive_limit_named` /
+# `directive_option_named` are now referenced solely from `start_option_body`.
+# The remaining members (verbs / MARK / shorthand) stay valid anywhere,
+# including nested, matching the oracle (`(*PRUNE)`, `((*ACCEPT))`).
 directive_body_quantifiable    = directive_accept_named | directive_relaxed_named
 directive_body_nonquantifiable = directive_mark_named
                                | directive_verb_named
-                               | directive_limit_named
-                               | directive_option_named
                                | directive_mark_shorthand
 # PGEN-REGEX-PCRE2-0012 (`REGEX-PCRE2-FIDELITY.3.14`): name-class-conditional
 # argument SHAPES — the EBNF now owns PCRE2's per-name-class verb/start-option

@@ -1215,6 +1215,26 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `@predicate lacks_fact(regex_body_started, body) phase:pre` on the extracted `start_option_piece`. This is
   a BROAD grammar migration (~8 new open-markers + ~11 existing-marker emits), NOT the cheapest residual. A
   future general pre-body-emit primitive (Option B) is SURFACED in that section but NOT taken this slice.
+  ✅ **IMPLEMENTED via grammar design A″ (STRUCTURAL, not the fact-based A′), `PGEN-REGEX-PCRE2-0044`, session
+  #86 — see the `.4.8 — IMPLEMENTATION LOG + A′→A″ PIVOT` section.** A′ (fact-based) was built + parse-derisked
+  green, but its `@emit_fact`/`lacks_fact` gate is un-mirrorable on the GENERATION side (the stimuli generator
+  has no `lacks_fact` branch-prune), so the generator emitted mis-positioned start options the A′ grammar then
+  rejected (cert spf 0→65 — a duality break). A″ makes `start_option_piece` reachable ONLY off the whole-pattern
+  `entry_concatenation` chain → position enforced STRUCTURALLY (no fact/predicate, zero hot-path cost, generation
+  duality-clean by construction). Byte-identical (interpreter, 60+ patterns) + full oracle matrix (flat/nested/
+  global-alternation) green; validator `find_invalid_verb_construct` + `is_start_option_position` DELETED; duality
+  gate rebaselined (start-option class CLOSED). Migration test `regex_start_option_position_grammar_migration`.
+- ID: `.4.8.1` Status: `pending` Goal: TIGHTEN the regex stimuli generator so it stops emitting PCRE2-INVALID
+  patterns (be-alert tracking leaf, opened `PGEN-REGEX-PCRE2-0044`). **Not a `.4.8` regression** — a PRE-EXISTING
+  generator over-approximation that A″ merely SURFACED: closing the dominant start-option duality-break class let
+  the directed duality hunter re-target the next-easiest frontier, the generic `"Parser did not consume full
+  input at position #"` signature. WHY+WHERE: the generator emits patterns PCRE2 10.47 ALSO rejects — a quantifier
+  on a `(?#)` comment (`(?#)?+`, err 109), unbalanced parens (err 114), and conditional / nested `\Q\Q` forms —
+  which the parser CORRECTLY rejects (verdict+furthest-pos identical on the pre-`.4.8` grammar, so pre-existing;
+  NOT a parser rejects-valid bug). Currently PINNED in `duality_hunt_gate_contract_v0.json` (all 6 regex lanes,
+  owner `.4.8.1`) so the gate stays honest while tracked. Cross-ref `STIMULI-SIGNOFF` (the generator-signoff
+  vision + the 13.3 duality gate). Fix = constrain generation of quantifier-after-zero-width / conditional /
+  nested-quoted-run so the generator never emits an invalid pattern; MEASURE the pinned-signature set shrinks.
 - ID: `.4.9` Status: `pending` Goal: encode unbounded-lookbehind — a variable-length lookbehind body must
   be bounded (`(?<=a+)b`/`(?<=a*)b`/`(?<=a{2,})b`/`(?<=…(c+)…)` reject; fixed `(?<=a{2})b` accept). Owns
   `find_unbounded_quantified_lookbehind`. **LOOKBEHIND-LENGTH ANALYSIS** (hard — the body's max match
@@ -1542,6 +1562,89 @@ session (`pcre2test` 10.47, for the A′ BUILD spec — the grammar restructure 
   ast_shape gates; (6) DELETE `find_invalid_verb_construct` + `is_start_option_position` + now-exclusive helpers;
   (7) lockstep book/contract/ledger/schema + release bump. Behavior-NEUTRAL (released `--parse` verdict
   byte-identical before/after).
+
+### REGEX-PCRE2-FIDELITY.4.8 — IMPLEMENTATION LOG + A′→A″ PIVOT (`PGEN-REGEX-PCRE2-0044`, 2026-07-10, session #86, tool-backed)
+
+**Built A′ (fact-based) first, exactly per the frozen spec; interpreter-derisked it GREEN (parse), then the
+cert surfaced a generation defect that forced a within-principle pivot to A″ (structural). Recorded here so the
+pivot survives `/clear`.** Method was toolbox-first throughout ([[feedback_systematically_use_debug_toolbox]],
+[[feedback_be_alert_root_cause_fishy_immediately]]).
+
+- **STEP 1 (scratch slot).** The two-spread `[$1**, $3**]` is HARD-BROKEN at codegen: two `**` peel-helpers
+  (`__pgen_peel_alternative`) land in one lexical scope → **E0428 duplicate-definition** (not the "silent nest"
+  the spec feared — a compile error). Tool-proven in the scratch slot. FIX: a single mixed run keeps `**` in the
+  one array position it flattens cleanly — `[$1*, $2**]` (shallow-spread the leading start-option run, which is
+  flat objects; deep-spread the body `piece*`). Verified byte-identical.
+- **STEPS 2–4 (A′ built + interpreter-derisked).** Built A′: epsilon `body_boundary = "" @emit_fact
+  regex_body_started` in a 2-branch `concatenation`, `start_option_piece` gated `@predicate
+  lacks_fact(regex_body_started, body) phase:post`. The certified interpreter (`interpret_parse`, byte-identical
+  to the generated parser) proved, WITHOUT regen: (a) A′ is byte-identical to pristine on 60+ valid patterns
+  (shape-neutral); (b) A′'s grammar-only verdict matches the FULL `pcre2test` 10.47 oracle — flat rejects,
+  NESTED rejects inside capture/noncapture/lookaround/script-run/scan-substring/scoped-mod/branch-reset, and the
+  GLOBAL-alternation cases (`(*CRLF)a|(*LF)b` reject, `(*CRLF)|a` accept); (c) pristine ACCEPTED all 14
+  violations (the single-source hole). `lacks_fact` queries the GLOBAL `fact_index` (`any_with_name`,
+  `semantic_runtime.rs:2987`), so one boundary emit is visible inside every nested scope — the nesting works.
+- **THE DEFECT (cert, post-regen).** Cert `fully_certified=true UNKNOWN=0` BUT **`sample_parse_failures=65`**
+  (was **0** pre-`.4.8`). The failing samples are the GENERATOR emitting start options in invalid positions
+  (`||(*CR)…` in later alternatives, mid-pattern `…(*UTF)…`) which the A′ grammar now REJECTS — a
+  generator↔parser DUALITY BREAK ([[feedback_be_alert_root_cause_fishy_immediately]]). ROOT CAUSE (WHY+WHERE):
+  the stimuli generator's store-aware machinery (`stimuli_generator.rs`) supports `fact_count_at_least` (a
+  count-PRUNE: backtrack if too FEW facts) and `has_fact` (a NAME-DRAW), but there is **NO `lacks_fact`
+  branch-prune** (backtrack if a fact IS present). So `@gen_predicate lacks_fact` is inert for gating a branch —
+  the generator freely picks `concatenation` branch 1 (`start_option_piece+`) in later/nested concatenations.
+  Making A′'s generation clean would need a NEW gen-engine primitive (a `lacks_fact` prune) — an ENGINE change.
+- **PIVOT → A″ (structural, grammar-only, CHOSEN).** Per the fix hierarchy (grammar before engine,
+  [[feedback_no_workarounds_fix_hierarchy]], [[feedback_prefer_grammar_leave_engine_alone]]) and "one clean fix"
+  ([[feedback_pinpoint_real_blocker_not_menu]]): make `start_option_piece` reachable at EXACTLY ONE place — the
+  whole-pattern entry — via a distinguished entry chain (`regex = entry_alternation`; `entry_alternation =
+  entry_alternative ("|" alternative)*`; `entry_alternative = entry_concatenation?`; `entry_concatenation =
+  start_option_piece+ piece* -> [$1*, $2**] | piece+ -> [$1**]`). Every LATER alternative and every NESTED
+  pattern routes through the SHARED `alternative`/`concatenation` (no start-option branch), so a start option
+  has NO derivation off the entry prefix. The position rule is now PURELY STRUCTURAL: NO fact, NO predicate, NO
+  `body_boundary`, NO gen-dual, and ZERO fact-queries on the parse hot path (so it is also the FASTEST option —
+  aligns with the RGX-0078 speed priority). Generation is duality-clean BY CONSTRUCTION (no grammar derivation
+  reaches a mis-positioned start option). A″ re-derisked GREEN on the same interpreter suite (byte-identical +
+  full oracle). 265 rules (pristine 259 +6: entry_alternation/entry_alternative/entry_concatenation +
+  start_option_piece/start_option_verb/start_option_body); lint 0/0.
+- **🔎 SURFACED to the director (this is a mechanism change from the explicitly-named A′).** A″ keeps the
+  DECISION's essence (grammar-only, byte-neutral, no engine change, correct+fast, land now) and is strictly
+  cleaner (no semantic-runtime interaction), so it is a within-principle technical decision — but because the
+  director named "A′ (fact-based)" specifically, the pivot is flagged in the resume pointer + the reply callout
+  for explicit feedback ([[feedback_surface_insights_prominently]]). Option B (the general on-entry-effect
+  primitive) is UNAFFECTED — still the future platform capability; note it would ALSO need the dual gen-side
+  `lacks_fact`-prune primitive to make a fact-based approach generation-clean, which is itself a candidate
+  general stimuli-generator capability for the engine-lifecycle workstream.
+
+**ORACLE-VERIFICATION INVESTIGATION (session #86, tool-backed — a `274 vs 270` discrepancy caught before commit).**
+While consuming the compile-oracle gate, the corpus probe reported `false_accept_total=270`, but the draft
+`.4.8` docs (copied from the REGEX-0111 sibling entry) claimed "oracle byte-identical `2189/1867/274/48`".
+Toolbox-first ([[feedback_systematically_use_debug_toolbox]], [[feedback_be_alert_root_cause_fishy_immediately]]),
+built a throwaway grammar-verdict flip-diff (`interpret_parse` on the pristine grammar `git show HEAD:…` vs A″,
+over all **283 corpus `(*`-containing patterns**, no regen). Findings:
+- **Exactly ONE grammar-verdict diff:** `a(*CR)b` (pcre2 rejects err 160) — pristine grammar ACCEPTED (the
+  single-source hole), A″ grammar REJECTS. Every other star pattern (and, by the entry-chain falling through to
+  the shared `piece+`, every non-star pattern) is **grammar-identical** to pristine. So the A″ grammar change is
+  minimal and exactly the intended target.
+- **Released verdict for `a(*CR)b` is UNCHANGED** (⇒ `.4.8` is genuinely behavior-neutral / corpus-invisible):
+  pristine-released = grammar-accept AND validator-`is_start_option_position`-REJECT (the `a` before `(*CR)`
+  fails the byte-0 walk) = REJECT; A″-released = grammar-REJECT = REJECT. Both MATCH pcre2. The reject LAYER
+  moved validator→grammar, the verdict did not.
+- **The gate asserts BOUNDS, not the tuple.** `regex_pcre2_compile_oracle_lightweight_v0.env` pins
+  `MIN_MATCH_TOTAL=1845`, `MAX_MISMATCH_TOTAL=344`, `MAX_FALSE_ACCEPT_TOTAL=299`, `MAX_FALSE_REJECT_TOTAL=48`.
+  A″ (subset 2188, line-1340 excluded): `match=1870, mismatch=318, fa=270, fr=48` — all within bounds; `fr=48`
+  is EXACTLY at the ceiling, confirming A″ adds **zero** new false-rejects (the one change is fa→match, the safe
+  direction). Full 2189 adds line-1340 (a non-changed pcre2-accept match) ⇒ `~2189/1871/270/48`.
+- **🔎 SURFACED (pre-existing doc-integrity drift, NOT caused by `.4.8`):** the exact tuple `2189/1867/274/48` is
+  STALE — it appears verbatim in **17 doc locations** (every REGEX-0105…0111 release entry) but the live
+  false-accept count is `270` (drifted 274→270 at an earlier release — a corpus cell the "byte-identical" copy
+  never re-measured, likely REGEX-0110's collating fix). `.4.8`'s OWN entries are corrected to the accurate
+  framing (the `a(*CR)b`-only neutrality + the gate's real bounds + the measured tuple); the 17 historical
+  occurrences are logged as a follow-up doc-drift sweep (a separate leaf, not rewritten mid-`.4.8`).
+
+**ACCEPTANCE CHECKLIST (`.4.8` / `PGEN-REGEX-PCRE2-0044`).**
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: a recognized `(*UTF)`/`(*CRLF)`/`(*LIMIT_HEAP=…)`-class start option was an UNGATED member of `directive_body_nonquantifiable` (matched by the `directive_verb_nonquant` piece branch, reachable in ANY piece position at ANY nesting depth), while the PCRE2 err-160 POSITION rule (a start option is valid only as a contiguous prefix at the very start of the WHOLE pattern) lived OUT-OF-BAND in `regex_compile_validation.rs::find_invalid_verb_construct` → `is_start_option_position` (a byte-0 walk) — invisible to generation ([[project_ebnf_is_single_source_of_truth]]). WHERE (tool signatures): the certified interpreter (`interpret_parse`, grammar-only) shows pristine ACCEPTS all 14 mis-positioned forms; a grammar-verdict flip-diff over ALL 283 corpus `(*` patterns isolates the change to EXACTLY ONE cell (`a(*CR)b`: pristine grammar `accepted=true` → A″ `accepted=false`); the released `--parse` 27-case oracle matrix matches `pcre2test` 10.47.
+- [x] **ADDRESSED (verified)** — verdict matrix pre→post: EXACTLY the 14 mis-positioned forms (flat `a(*CR)b` `a(*LIMIT_HEAP=500)` `(*FAIL)(*LIMIT_HEAP=5)a` `(a)(*CRLF)`; nested `((*CRLF)a)` `(?:(*CRLF)a)` `(?=(*CRLF)a)` `(*CRLF)((*LF)a)` `(*sr:…` `(*scs:…` `(?i:…` `(?|…`; post-`|` `(*CRLF)a|(*LF)b` `a(*CRLF)|b`) flip grammar ACCEPT→REJECT; leading runs / `(*CRLF)` alone / empty / `(*CRLF)|a` / verbs-anywhere stay ACCEPT — permanent test `rust/tests/regex_start_option_position_grammar_migration.rs` 2/2, plus released `--parse` 27/27 all matching `pcre2test` 10.47 (behavior-neutral: the deleted `is_start_option_position` rejected the SAME set from byte 0).
+- [x] **NO REGRESSION** — regex cert-coverage `total=265 UNKNOWN=0 fully_certified=true` at seeds 0/7/42 (259→265: +6 structural rules; `sample_parse_failures` 4/4/6 = the PRE-EXISTING generic "did not consume full input" generator over-approximation, tracked `.4.8.1`, NOT a `.4.8` regression — verdict+furthest-pos identical on the pre-`.4.8` grammar); `--lint-grammar` 0 errors (265 rules); `regex_pcre2_compile_oracle_gate` bounds SATISFIED — A″ = `2189/1871/270/48` (match 1871 ≥ 1845, false-accept 270 ≤ 299, false-reject 48 ≤ 48 at the ceiling ⇒ ZERO new false-rejects), **byte-identical to the pristine-HEAD gate result**. HOW MEASURED (the full DEBUG gate could NOT complete this session — the RGX-0078 line-1340 80-deep-nested-paren pattern super-exponentially backtracks, killed at 5h45m; ORTHOGONAL to `.4.8`, which adds only O(1) top-level): (a) a fresh captured probe on the 2188 NON-pathological patterns (line-1340 excluded) = `1870/270/48`; (b) line-1340 is a pcre2-accept, non-changed match (`a(*CR)b`-only flip-diff ⇒ A″ = pristine on it) whose verdict is captured in the pristine-HEAD 00:19 full-gate summary `2189/1871/270/48`; (a)+(b) ⇒ A″ full = `2189/1871/270/48`. The flip-diff proves the sole grammar change `a(*CR)b` is released-neutral. ⚠️ NB the historical `2189/1867/274/48` tuple is stale (pre-existing drift, `fa` 274→270); `parse_harness_equivalence_gate` regex byte-identical; `ast_shape_contract` regex aligned (inventory 232→236, accepted-AST byte-identical); `duality_hunt_gate` regex lanes rebaselined (start-option-prefix signature VANISHED; residual = the `.4.8.1` over-approximation); 36 `regex_compile_validation` unit tests green; `metadata_is_stable` + version-drift gate `1.1.102`/`1.1.104` match the `REGEX-0112` ledger row.
 
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 

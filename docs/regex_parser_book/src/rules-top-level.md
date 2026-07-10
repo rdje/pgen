@@ -5,11 +5,21 @@ These five rules together describe how the top-level structure of a regex is sha
 ## `regex`
 
 ```ebnf
-regex = pattern
+regex = entry_alternation
 -> {type: "regex", pattern: $1}
 ```
 
 The entry rule. Always emits `Json(Object({"type": "regex", "pattern": <pattern-content>}))`.
+
+**REGEX-PCRE2-FIDELITY.4.8 — the entry is `entry_alternation`, not the shared `pattern`.** This is
+the *distinguished entry chain* (grammar design A″) that encodes PCRE2's start-option **position**
+rule structurally. `entry_alternation` mirrors the shared `alternation` byte-for-byte, except its
+first alternative (`entry_alternative → entry_concatenation`) alone may carry a leading start-option
+run. Every later `|`-alternative and every nested pattern (inside a group) routes through the shared
+`alternative`/`concatenation`, which have no start-option branch — so a `(*UTF)`/`(*CRLF)`-class start
+option is reachable ONLY as a contiguous prefix of the whole pattern, before any construct and not
+nested at any depth. See [`entry_concatenation`](#entry_concatenation--concatenation) below. The
+emitted `pattern` shape is unchanged (the entry rules mirror the shared rules exactly).
 
 (Pre-1.1.34 the rule was `regex = pattern?` — the trailing `?` was redundant: `pattern → alternation → alternative = concatenation?` already handles emptiness, and the `?` only existed to compensate for a since-fixed codegen bug — see [PGEN-RGX-0075 in the changelog](changelog-index.md#1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation).)
 
@@ -204,6 +214,50 @@ The `piece_quoted_run_quantified` branch emits a `Sequence` of pieces, which `co
 ```
 
 Same flat shape as `abc` — the `\Q...\E` quoted-run is invisible in the output, exactly as PCRE2 semantics dictate (the runtime behavior of `\Qab*\E{2,}` and `ab\*{2,}` is identical).
+
+## the entry chain — `entry_alternation` / `entry_alternative` / `entry_concatenation`
+
+```ebnf
+entry_alternation = entry_alternative ("|" alternative)*
+entry_alternative = entry_concatenation?
+entry_concatenation = start_option_piece+ piece*
+-> [$1*, $2**]
+                    | piece+
+-> [$1**]
+```
+
+**REGEX-PCRE2-FIDELITY.4.8 (grammar design A″).** `regex` enters through this chain instead of the
+shared `pattern`. The three rules mirror their shared counterparts' shape byte-for-byte — the only
+difference is that `entry_concatenation` has a first branch that admits a leading run of
+[`start_option_piece`](rules-piece.md#piece) (a `(*UTF)`/`(*CRLF)`/`(*LIMIT_HEAP=…)`-class start
+option). Because `start_option_piece` is referenced ONLY here, and every later `|`-alternative
+(`("|" alternative)*`) and every nested pattern uses the shared `alternative`/`concatenation` (no
+start-option branch), a start option is valid ONLY as a contiguous prefix of the whole pattern:
+
+| Input | Verdict | Why |
+|---|---|---|
+| `(*CRLF)abc` | ACCEPT | leading start-option run, then body |
+| `(*CRLF)` | ACCEPT | start-option-only pattern (empty body — branch 1's `piece*` is zero) |
+| `(*CRLF)a\|b` | ACCEPT | start option in the first (entry) alternative |
+| `` (empty) | ACCEPT | `entry_alternative = entry_concatenation?` matches empty |
+| `a(*CR)b` | REJECT (err 160) | a body piece precedes the start option — no derivation |
+| `(a)(*CRLF)` | REJECT | after a group |
+| `((*CRLF)a)` | REJECT | nested inside a group (uses shared `concatenation`) |
+| `(*CRLF)a\|(*LF)b` | REJECT | start option in a *later* alternative (uses shared `alternative`) |
+
+The rule is enforced **purely structurally** — no semantic fact or predicate, so it costs nothing on
+the parse hot path, and the stimuli generator cannot emit a mis-positioned start option either (the
+generator↔parser duality is closed by construction). This replaced the out-of-band validator
+position check (`find_invalid_verb_construct` + `is_start_option_position`, now DELETED — see the
+[compile-contract validator](compile-contract-validator.md)).
+
+### Shape
+
+Byte-identical to the shared `concatenation`. Branch 1's annotation `[$1*, $2**]` shallow-spreads the
+leading start-option run (`$1`, each element a flat `{type:"piece",…}` object) then deep-flatten-spreads
+the body `piece*` (`$2`, unwrapping any `piece_quoted_run_quantified` Sequence) — the same flat array of
+piece objects a start-option pattern produced before `.4.8`. Branch 2 (`piece+ -> [$1**]`) is identical
+to the shared `concatenation`.
 
 ## Putting it together — the navigation pattern
 

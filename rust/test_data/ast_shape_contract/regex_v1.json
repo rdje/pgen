@@ -75,7 +75,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/regex_return_annotations.json",
-    "extracted_at": "2026-07-10 (REGEX-PCRE2-FIDELITY.4.10 -- \\K-in-lookaround gate: +7 lookaround open-markers ($OPEN -> {type:atom,kind:lookaround_open}; alpha_lookaround_open -> $2) + keep_out (extracted from anchor branch 8), anchor branch 8 return-object removed, alpha_lookaround name:$2,body:$4 -> name:$1,body:$2; 225->232)",
+    "extracted_at": "2026-07-10 (REGEX-PCRE2-FIDELITY.4.8 -- start-option POSITION grammar migration, design A\" STRUCTURAL entry chain: +entry_alternation/entry_alternative (structural, no return-annotation), +entry_concatenation branch0 [$1*, $2**] / branch1 [$1**], +start_option_piece {type:piece,atom:$1,quantifier:[]}, +start_option_verb {type:atom,kind:directive_verb,body:$2}; start_option_body structural; regex entry rule pattern->entry_alternation (no annotation change); 232->236)",
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
@@ -751,6 +751,18 @@
         "normalized_text": "{type: \"atom\", kind: \"quoted_literal\", body: []}"
       },
       {
+        "rule": "entry_concatenation",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1*, $2**]"
+      },
+      {
+        "rule": "entry_concatenation",
+        "branch_index": 1,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1**]"
+      },
+      {
         "rule": "escape",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -1391,6 +1403,18 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"single_byte\"}"
+      },
+      {
+        "rule": "start_option_piece",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"piece\", atom: $1, quantifier: []}"
+      },
+      {
+        "rule": "start_option_verb",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"directive_verb\", body: $2}"
       },
       {
         "rule": "stray_end_quote_escape",

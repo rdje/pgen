@@ -13,10 +13,10 @@
       "seed": 0,
       "expected_signatures": [
         {
-          "signature": "PCRE# start option must appear at the start-option prefix",
-          "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). REGEX-PCRE2-FIDELITY.3.20 closed the quantified-verb class in this lane; the position class now surfaces here (RNG-stream shift, not a novel class).",
-          "example_reproducer": "|(*CR)"
+          "signature": "Parser did not consume full input at position #",
+          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "example_reproducer": "*"
         }
       ]
     },
@@ -29,10 +29,10 @@
       "seed": 7,
       "expected_signatures": [
         {
-          "signature": "PCRE# start option must appear at the start-option prefix",
-          "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). Surfaced in this lane after REGEX-PCRE2-FIDELITY.3.20 shifted the RNG stream (not a novel class).",
-          "example_reproducer": "()(*NOTEMPTY)"
+          "signature": "Parser did not consume full input at position #",
+          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "example_reproducer": "\\"
         }
       ]
     },
@@ -45,10 +45,10 @@
       "seed": 42,
       "expected_signatures": [
         {
-          "signature": "PCRE# start option must appear at the start-option prefix",
-          "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound)",
-          "example_reproducer": "E(*UTF)"
+          "signature": "Parser did not consume full input at position #",
+          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "example_reproducer": "+"
         }
       ]
     },
@@ -88,10 +88,10 @@
       "seed": 0,
       "expected_signatures": [
         {
-          "signature": "PCRE# start option must appear at the start-option prefix",
-          "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). REGEX-PCRE2-FIDELITY.3.20 closed the quantified-verb class pinned here.",
-          "example_reproducer": "E(*CASELESS_RESTRICT)"
+          "signature": "Parser did not consume full input at position #",
+          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "example_reproducer": "*"
         }
       ]
     },
@@ -104,10 +104,10 @@
       "seed": 7,
       "expected_signatures": [
         {
-          "signature": "PCRE# start option must appear at the start-option prefix",
-          "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). Surfaced in this lane after REGEX-PCRE2-FIDELITY.3.20 shifted the RNG stream (not a novel class).",
-          "example_reproducer": "()(*NOTEMPTY)"
+          "signature": "Parser did not consume full input at position #",
+          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "example_reproducer": "\\"
         }
       ]
     },
@@ -120,10 +120,10 @@
       "seed": 42,
       "expected_signatures": [
         {
-          "signature": "PCRE# start option must appear at the start-option prefix",
-          "owner": "REGEX-PCRE2-FIDELITY.4",
-          "owner_note": "start-option POSITION check is contextual — validator-owned until the capstone finds a grammar shape (.3.14 ratified honest bound). REGEX-PCRE2-FIDELITY.3.20 closed the quantified-verb class pinned here.",
-          "example_reproducer": "E(*UTF32)"
+          "signature": "Parser did not consume full input at position #",
+          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "example_reproducer": "\\"
         }
       ]
     }

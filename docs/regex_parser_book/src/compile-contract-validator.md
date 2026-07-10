@@ -151,7 +151,6 @@ As of regex release `1.1.100`, the validator dispatches these families (each row
 > re-baselined `$2`→`$3`; accepted-AST byte-identical), oracle byte-identical `2189/1867/274/48`, duality
 > unchanged. This does NOT delete the range-check — the blocked-descending endpoints still keep it wired.
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
-| **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |
 
 Already migrated **out** of the validator (now grammar-owned, listed here for the audit
@@ -173,7 +172,18 @@ lookahead-only `class_bracket_token` recognizer), and **`\K` inside a lookaround
 each lookaround opens a `lookaround` scope and the extracted `keep_out` rule carries
 `@predicate not_in_scope_kind(lookaround)`, the first consumer of the scope-ancestry
 predicate primitive `SCOPE-CONTEXT-PREDICATE.1`; behavior-neutral, the deleted validator
-rejected exactly the same set). A related divergence with no validator check at all — the
+rejected exactly the same set), and the **start-option POSITION** rule — a recognized
+`(*UTF)`-class start option is valid only as a contiguous run at the very start of the whole
+pattern, never after any construct / in a later alternative / nested (`a(*CR)b`, `(a)(*CRLF)`,
+`((*CRLF)a)`, `(*CRLF)a|(*LF)b` all err 160) — migrated PURELY STRUCTURALLY (`.4.8`, grammar
+design A″: `find_invalid_verb_construct` + `is_start_option_position` DELETED). Start options
+now derive ONLY off the distinguished `entry_concatenation` (the top-level-first-alternative
+concatenation off the `entry_alternation` chain); every later alternative and every nested
+pattern uses the shared `alternative`/`concatenation`, which have no start-option branch — so a
+mis-positioned start option has no derivation and fails to parse, with NO semantic
+fact/predicate (zero hot-path cost) and NO generator-side steering (the stimuli generator cannot
+emit one either — the duality is closed by construction). Behavior-neutral; byte-identical AST
+on every accepted pattern. A related divergence with no validator check at all — the
 named-reference *unknown-name* inventory (`\k<zzz>`… @undefined) — is tracked as `.4.11`
 (ledger `REGEX-0098`).
 

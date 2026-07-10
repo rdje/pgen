@@ -221,15 +221,24 @@ grammar (`(*PRUNE)+`, `(*:x)+`, `(*UTF)+`, `(*LIMIT_HEAP=5)+` all err 109; ledge
 directive_body_quantifiable    = directive_accept_named | directive_relaxed_named
 directive_body_nonquantifiable = directive_mark_named
                                | directive_verb_named
-                               | directive_limit_named
-                               | directive_option_named
                                | directive_mark_shorthand
 ```
 
 The quantifiable body is the ACCEPT verb + the `@profiles:["relaxed"]` unknown-name catch-all (so
-relaxed `(*foo)+` stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, the
-`(*:x)` shorthand, LIMIT, and the bare start options. Both bodies pass their branch's object through
-unchanged.
+relaxed `(*foo)+` stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, and the
+`(*:x)` shorthand. Both bodies pass their branch's object through unchanged.
+
+**REGEX-PCRE2-FIDELITY.4.8 — the bare start options were PEELED OUT of `directive_body_nonquantifiable`.**
+`directive_limit_named` / `directive_option_named` (the `(*LIMIT_HEAP=…)` / `(*UTF)`-class start
+options) are no longer members of `directive_verb_nonquant`; they moved into a dedicated
+`start_option_body` (`= directive_limit_named | directive_option_named`) under the
+[`start_option_piece`](rules-piece.md#piece) rule, which is reachable ONLY from the distinguished
+[`entry_concatenation`](rules-top-level.md). That structural move is what encodes the PCRE2
+start-option **position** rule — a start option is valid only as a contiguous run at the very start of
+the whole pattern (`(*CRLF)abc` ACCEPT; `a(*CR)b`, `(a)(*CRLF)`, `((*CRLF)a)`, `(*CRLF)a|(*LF)b` all
+err 160) — with no semantic fact/predicate and no validator walk (`find_invalid_verb_construct` +
+`is_start_option_position` DELETED). The verbs / MARK / shorthand that remain in
+`directive_verb_nonquant` stay valid **anywhere** (including nested — `((*ACCEPT))`, `a(*PRUNE)b`).
 
 ### the named-directive classes — name-class-conditional argument shapes
 

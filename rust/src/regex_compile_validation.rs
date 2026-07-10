@@ -53,9 +53,13 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     // was MIGRATED into `grammars/regex.ebnf` — `callout_number` structurally admits only digit
     // runs whose VALUE is ≤ 255 with arbitrary leading zeros (PCRE2 err 138), so `(?C256)`-family
     // forms now reject at the grammar layer and generation is in-range by construction.
-    if let Some(error) = find_invalid_verb_construct(input) {
-        return Err(error);
-    }
+    // REGEX-PCRE2-FIDELITY.4.8: the start-option POSITION check
+    // (`find_invalid_verb_construct` + `is_start_option_position`) was MIGRATED into
+    // `grammars/regex.ebnf` and both functions DELETED. Start options now have a grammar
+    // derivation ONLY off the whole-pattern entry chain (`entry_concatenation`, grammar
+    // design A″), so a mid-pattern / nested / later-alternative start option (`a(*CR)b`,
+    // `((*CRLF)a)`, `(*CRLF)a|(*LF)b`) fails at the grammar layer — no out-of-band position
+    // walk, and the stimuli generator cannot emit one either (closed by construction).
     if let Some(error) = find_invalid_char_class_construct(input) {
         return Err(error);
     }
@@ -167,73 +171,6 @@ fn is_short_unicode_property_letter(byte: u8) -> bool {
     )
 }
 
-fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationError> {
-    // REGEX-PCRE2-FIDELITY.3.20: the quantified-verb rule (only `(*ACCEPT)` may be quantified) was
-    // MIGRATED into `grammars/regex.ebnf` — the non-ACCEPT directives are a non-quantifiable `piece`
-    // branch (`directive_verb_nonquant !quantifier`), so `(*PRUNE)+` `(*:x)+` `(*MARK:x)+` `(*UTF)+`
-    // `(*LIMIT_HEAP=5)+` all reject at the grammar layer (err-109-faithful). The ONLY rule this
-    // function still owns is the start-option POSITION rule (contextual — "every group before this
-    // one is a start option" — which the grammar cannot express without a whole-pattern restructure;
-    // validator-owned until capstone `.4`). Verb/start-option NAME acceptance and per-name ARGUMENT
-    // shapes are already grammar-owned (`.3.2`/`.3.14`); this walk therefore only re-checks position
-    // for a recognized start option and advances past every other `(*...)` construct.
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-
-    while index + 2 < bytes.len() {
-        match bytes[index] {
-            b'\\' => index = skip_regex_escape(bytes, index),
-            b'[' if !is_extended_class_start(bytes, index) => {
-                index = skip_char_class_for_group(bytes, index)
-                    .map(|end| end + 1)
-                    .unwrap_or(index + 1);
-            }
-            b'(' if bytes.get(index + 1) == Some(&b'*') => {
-                let name_start = index + 2;
-                let mut cursor = name_start;
-                while let Some(byte) = bytes.get(cursor).copied() {
-                    if matches!(byte, b':' | b')' | b'=') {
-                        break;
-                    }
-                    cursor += 1;
-                }
-
-                if bytes.get(cursor).is_none() {
-                    // Unterminated `(*` construct — nothing further to check here.
-                    index += 1;
-                    continue;
-                }
-                let name = std::str::from_utf8(&bytes[name_start..cursor]).ok()?;
-
-                if is_non_verb_star_group_name(name) {
-                    index += 1;
-                    continue;
-                }
-
-                if is_pcre2_start_option_name(name) && !is_start_option_position(bytes, index) {
-                    // The start-option POSITION rule (contextual; covers bare and `=`-value forms).
-                    return Some(RegexCompileValidationError::new(
-                        index,
-                        "PCRE2 start option must appear at the start-option prefix",
-                    ));
-                }
-
-                // Every other `(*...)` construct — verbs, MARK, the `(*:x)` shorthand, LIMIT/option
-                // argument shapes, quantifiability, and unrecognized names — is grammar-owned now;
-                // just advance past it.
-                if let Some(group_end) = find_star_verb_end(bytes, index) {
-                    index = group_end + 1;
-                    continue;
-                }
-                index += 1;
-            }
-            _ => index += 1,
-        }
-    }
-
-    None
-}
-
 fn find_star_verb_end(bytes: &[u8], start: usize) -> Option<usize> {
     bytes[start + 2..]
         .iter()
@@ -305,40 +242,6 @@ fn is_pcre2_start_option_name(name: &str) -> bool {
             | "BSR_ANYCRLF"
             | "BSR_UNICODE"
     )
-}
-
-fn is_start_option_position(bytes: &[u8], index: usize) -> bool {
-    let mut cursor = 0usize;
-    while cursor < index {
-        if bytes.get(cursor) != Some(&b'(') || bytes.get(cursor + 1) != Some(&b'*') {
-            return false;
-        }
-        let Some(group_end) = find_matching_group_end(bytes, cursor) else {
-            return false;
-        };
-        let mut name_start = cursor + 2;
-        while bytes
-            .get(name_start)
-            .is_some_and(|byte| matches!(*byte, b' ' | b'\t'))
-        {
-            name_start += 1;
-        }
-        let mut name_end = name_start;
-        while bytes
-            .get(name_end)
-            .is_some_and(|byte| !matches!(*byte, b')' | b'='))
-        {
-            name_end += 1;
-        }
-        let Ok(name) = std::str::from_utf8(&bytes[name_start..name_end]) else {
-            return false;
-        };
-        if !is_pcre2_start_option_name(name) {
-            return false;
-        }
-        cursor = group_end + 1;
-    }
-    cursor == index
 }
 
 fn find_invalid_char_class_construct(input: &str) -> Option<RegexCompileValidationError> {
@@ -1484,21 +1387,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn rejects_mid_pattern_pcre2_start_option() {
-        // REGEX-PCRE2-FIDELITY.3.14: verb/start-option argument SHAPES (`(*MARK)`, `(*:)`,
-        // `(*SKIP=)`, `(*LIMIT_MATCH=)`, bare `(*LIMIT_HEAP)`, `(*UTF=5)`, …) are grammar-owned
-        // now — proven at the parse layer by the parser_registry arg-shape pin, not here. The
-        // contextual POSITION rule stays validator-owned until capstone `.4`, and since `.3.14`
-        // it also covers `=`-value forms (ledger REGEX-0090: `a(*LIMIT_HEAP=500)` was wrongly
-        // accepted; PCRE2 10.47 rejects err 160).
-        for input in ["a(*CR)b", "a(*LIMIT_HEAP=500)", "(*FAIL)(*LIMIT_HEAP=5)a"] {
-            let error = validate_regex_compile_contract(input)
-                .expect_err("must reject mid-pattern start option");
-            assert!(error.message.contains("start-option"));
-        }
-    }
-
+    // REGEX-PCRE2-FIDELITY.4.8: the former `rejects_mid_pattern_pcre2_start_option` test was
+    // DELETED with the validator's position check (`find_invalid_verb_construct` +
+    // `is_start_option_position`). The start-option POSITION rule is now grammar-owned (the
+    // structural entry chain — start options derive ONLY off `entry_concatenation`), so
+    // `a(*CR)b` / `a(*LIMIT_HEAP=500)` / `(*FAIL)(*LIMIT_HEAP=5)a` reject at the grammar layer,
+    // proven by the interpreter migration test `regex_start_option_position_grammar_migration`.
+    // The validator no longer inspects start-option position at all.
     #[test]
     fn allows_valid_pcre2_start_options() {
         for input in [
