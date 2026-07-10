@@ -1366,6 +1366,18 @@ accepts-invalid fix, `REGEX-0098`) then `.4.7` → `.4.9` (its own lookbehind-le
 blocked-descending class-range endpoints → DELETE the `find_invalid_char_class_construct` range-check →
 final `.4` deletion → `.5`. No engine/grammar change this slice (PURE-DOCS scope + sharpen).
 
+**✅ DIRECTOR ENDORSEMENT (2026-07-10, session #84 close).** On seeing this SURFACED primitive, the director
+replied verbatim: *"Please do what you see fit to achieve sota, signoff level quality."* — i.e. the
+whole-pattern-inventory primitive is AUTHORIZED to be built at signoff grade. Binding constraints carried
+forward: (1) survey the literature FIRST and act on a citation + worked mapping, not trial-and-revert
+([[feedback_research_grounded_sota_no_trial_and_revert]]); (2) it is a parser-AGNOSTIC, all-parsers primitive
+([[feedback_ast_pipeline_parser_agnostic]], [[feedback_features_parser_agnostic_enable_all_parsers]]) —
+never regex-name-gated; (3) correctness is the floor ([[feedback_correctness_before_speed]]); (4) the A-vs-B
+choice is settled in a SOTA-cited DESIGN slice BEFORE any engine code, and the commit states which
+fix-hierarchy level it lands at + why nothing lower works ([[feedback_no_workarounds_fix_hierarchy]]). The
+director opened a fresh session immediately after (deliberate `/clear`); the `MEMORY.md` resume pointer +
+this section are the handoff.
+
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 
 **Method (toolbox-first, per [[feedback_systematically_use_debug_toolbox]]).** Built the authoritative
