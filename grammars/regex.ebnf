@@ -413,7 +413,29 @@ anchor         = "^"   -> {type: "anchor", kind: "start_of_line"}
                | "\\b" -> {type: "anchor", kind: "word_boundary"}
                | "\\B" -> {type: "anchor", kind: "non_word_boundary"}
                | "\\G" -> {type: "anchor", kind: "match_start"}
-               | "\\K" -> {type: "anchor", kind: "keep_out"}
+               | keep_out
+
+# REGEX-PCRE2-FIDELITY.4.10: `\K` (keep_out) is REJECTED inside any lookaround
+# body — `pcre2test` 10.47 err 199 "\K is not allowed in lookarounds" for every
+# lookaround form (`(?=a\Kb)` `(?!…)` `(?<=…)` `(?<!…)` `(?*…)` `(?<*…)`
+# `(*pla:…)`/`(*plb:…)`/`(*nla:…)`…), INCLUDING when nested inside a group inside
+# the lookaround (`(?=a(b\Kc))` / `((?=x\Ky))`); ACCEPTED everywhere else
+# (`a\Kb`, atomic `(?>a\Kb)`, capture `(a\Kb)`, and `(?=ab)\K` AFTER the
+# lookaround). This is inherently CONTEXTUAL — it depends on an ENCLOSING
+# construct, possibly several levels up — so it is gated by the parser-agnostic
+# scope-ancestry `@predicate not_in_scope_kind(lookaround)`
+# (SCOPE-CONTEXT-PREDICATE.1): TRUE iff NO currently-open scope — the innermost
+# frame OR any ancestor up to root — is a `lookaround`. Each lookaround OPENS a
+# `lookaround` scope at its opener and CLOSES it after its body (see the
+# `lookaround` rules below). The whole-active-chain walk is why the innermost-only
+# `current_scope_is` is insufficient (`\K` can sit inside a capture group inside
+# the lookaround) and why the global+monotonic `has_fact` is wrong (`close_scope`
+# never retracts it, so it would leak past the lookaround close and wrongly reject
+# the valid `(?=ab)\K`). `\K` has a single parse (`K` ∉ `simple_escape_letter_strict`,
+# no literal fallback), so gating this one rule is complete. `phase: pre` — the
+# predicate reads no capture, so it short-circuits before consuming `\K`.
+@predicate: { name: not_in_scope_kind, args: [lookaround], phase: pre }
+keep_out       = "\\K" -> {type: "anchor", kind: "keep_out"}
 
 # Backreferences. Typed `{type:"backreference", kind:<form>, ...}` so
 # consumers can dispatch on `kind` directly:
@@ -1398,13 +1420,46 @@ comment_text         = ( !")" builtin_any_char )* -> $text
 # the `name` field; consumers map by name to dispatch on the
 # semantic equivalent.
 lookaround           = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg | non_atomic_lookahead_pos | non_atomic_lookbehind_pos | alpha_lookaround
-lookahead_pos        = "(?=" pattern ")"            -> {type: "atom", kind: "lookahead", positive: true, body: $2}
-lookahead_neg        = "(?!" pattern ")"            -> {type: "atom", kind: "lookahead", positive: false, body: $2}
-lookbehind_pos       = "(?<=" pattern ")"           -> {type: "atom", kind: "lookbehind", positive: true, body: $2}
-lookbehind_neg       = "(?<!" pattern ")"           -> {type: "atom", kind: "lookbehind", positive: false, body: $2}
-non_atomic_lookahead_pos  = "(?*" pattern ")"       -> {type: "atom", kind: "non_atomic_lookahead", positive: true, body: $2}
-non_atomic_lookbehind_pos = "(?<*" pattern ")"      -> {type: "atom", kind: "non_atomic_lookbehind", positive: true, body: $2}
-alpha_lookaround     = "(*" alpha_lookaround_name ":" pattern? ")"  -> {type: "atom", kind: "alpha_lookaround", name: $2, body: $4}
+# REGEX-PCRE2-FIDELITY.4.10: every lookaround OPENS a `lookaround` scope at its
+# opener so an inner `\K` (`keep_out`, above) is rejected by
+# `not_in_scope_kind(lookaround)`. `@open_scope` fires as an EFFECT *after* its
+# rule body, so it MUST bind to a small OPEN-MARKER rule matching just the opener
+# token (the proven `capture_open` / `named_group_open` idiom) — binding it to the
+# whole `"(?=" pattern ")"` rule would open the scope only after the body already
+# parsed, too late to gate an inner `\K`. `@close_scope` binds to the outer rule
+# (fires post-body); opens/closes are LIFO so arbitrary lookaround nesting
+# balances. The marker's output ($1) is discarded by the parent's `-> {…, body: $2}`,
+# so the shaped AST is byte-identical to the pre-marker form (the alpha marker's
+# `-> $2` surfaces the name so the parent's `name:$1` is likewise shape-preserving,
+# exactly mirroring `named_group_open_angle`).
+@open_scope: { kind: lookaround }
+lookahead_pos_open        = "(?="                   -> {type: "atom", kind: "lookaround_open"}
+@close_scope: { kind: lookaround }
+lookahead_pos        = lookahead_pos_open pattern ")"            -> {type: "atom", kind: "lookahead", positive: true, body: $2}
+@open_scope: { kind: lookaround }
+lookahead_neg_open        = "(?!"                   -> {type: "atom", kind: "lookaround_open"}
+@close_scope: { kind: lookaround }
+lookahead_neg        = lookahead_neg_open pattern ")"            -> {type: "atom", kind: "lookahead", positive: false, body: $2}
+@open_scope: { kind: lookaround }
+lookbehind_pos_open       = "(?<="                  -> {type: "atom", kind: "lookaround_open"}
+@close_scope: { kind: lookaround }
+lookbehind_pos       = lookbehind_pos_open pattern ")"           -> {type: "atom", kind: "lookbehind", positive: true, body: $2}
+@open_scope: { kind: lookaround }
+lookbehind_neg_open       = "(?<!"                  -> {type: "atom", kind: "lookaround_open"}
+@close_scope: { kind: lookaround }
+lookbehind_neg       = lookbehind_neg_open pattern ")"           -> {type: "atom", kind: "lookbehind", positive: false, body: $2}
+@open_scope: { kind: lookaround }
+non_atomic_lookahead_pos_open  = "(?*"              -> {type: "atom", kind: "lookaround_open"}
+@close_scope: { kind: lookaround }
+non_atomic_lookahead_pos  = non_atomic_lookahead_pos_open pattern ")"       -> {type: "atom", kind: "non_atomic_lookahead", positive: true, body: $2}
+@open_scope: { kind: lookaround }
+non_atomic_lookbehind_pos_open = "(?<*"             -> {type: "atom", kind: "lookaround_open"}
+@close_scope: { kind: lookaround }
+non_atomic_lookbehind_pos = non_atomic_lookbehind_pos_open pattern ")"      -> {type: "atom", kind: "non_atomic_lookbehind", positive: true, body: $2}
+@open_scope: { kind: lookaround }
+alpha_lookaround_open     = "(*" alpha_lookaround_name ":"       -> $2
+@close_scope: { kind: lookaround }
+alpha_lookaround     = alpha_lookaround_open pattern? ")"        -> {type: "atom", kind: "alpha_lookaround", name: $1, body: $2}
 alpha_lookaround_name = atomic_alpha_lookaround_name | non_atomic_alpha_lookaround_name
 atomic_alpha_lookaround_name = "pla"
                     | "positive_lookahead"

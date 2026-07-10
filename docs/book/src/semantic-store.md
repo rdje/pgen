@@ -437,6 +437,14 @@ keep_out_anchor := "\\K" -> {type: "anchor", kind: "keep_out"}
   (non-blocking), the same convention every built-in follows. It reads only the
   scope chain, so it is fully parser-agnostic.
 
+This is **live in the shipped regex grammar** as of parser release `1.1.101`
+(`REGEX-PCRE2-FIDELITY.4.10`): each of the seven lookaround rules opens a
+`lookaround` scope at its opener (via a small open-marker rule, since
+`@open_scope` fires *after* the rule body), and the `keep_out` rule carries
+`@predicate not_in_scope_kind(lookaround)` — the first grammar consumer of this
+primitive. It replaced an out-of-band host validator check (single source of
+truth), byte-neutral at the released parse surface.
+
 ## 7. Stage 4 — SCOPE: `@open_scope` / `@close_scope`
 
 Facts live in scopes. Scopes form a tree. You declare scope boundaries with:

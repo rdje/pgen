@@ -169,6 +169,8 @@ lookaround = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg
 
 `alpha_lookaround_name` is itself a 2-way Or between atomic and non-atomic alpha forms — see the rules in `regex.ebnf`.
 
+**`\K` is rejected inside a lookaround (release `1.1.101`, `REGEX-PCRE2-FIDELITY.4.10`).** As of `1.1.101`, each of the seven lookaround branches consumes its opener through a small **open-marker** rule (`lookahead_pos_open = "(?="`, …, `alpha_lookaround_open = "(*" alpha_lookaround_name ":"`) that opens a `lookaround` semantic scope, and closes it after the body. That scope lets the `keep_out` anchor (`\K`) reject when it is anywhere inside a lookaround body (PCRE2 error 199) — see [the anchors chapter](./examples-anchors.md#k-is-rejected-inside-a-lookaround-release-111101-regex-pcre2-fidelity410). The refactor is **AST-shape-neutral**: the marker's own output is discarded by the parent's `-> {…, body: $2}`, so every accepted lookaround AST is byte-identical to before (the alpha form's `name`/`body` still carry the alpha name and inner pattern).
+
 ## `subroutine_call`
 
 ```ebnf

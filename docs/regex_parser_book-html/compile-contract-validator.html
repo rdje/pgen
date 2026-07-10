@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-14334204.js";
+            window.path_to_searchindex_js = "searchindex-6e41a809.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -324,8 +324,7 @@ re-baselined <code>$2</code>→<code>$3</code>; accepted-AST byte-identical), or
 unchanged. This does NOT delete the range-check — the blocked-descending endpoints still keep it wired.
 | Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code> | <code>.4.7</code> |
 | <strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix | <code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code> | <code>.4.8</code> |
-| <strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded | <code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code> | <code>.4.9</code> |
-| <code>\K</code> inside a <strong>lookaround</strong> body | <code>(?=a\Kb)</code>, <code>(?&lt;=\K.)</code>, <code>(*pla:a\Kb)</code> | <code>.4.10</code> |</p>
+| <strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded | <code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code> | <code>.4.9</code> |</p>
 </blockquote>
 <p>Already migrated <strong>out</strong> of the validator (now grammar-owned, listed here for the audit
 trail): the six PCRE2-unsupported escape letters <code>\i \F \l \L \u \U</code> (<code>.3.1</code>), verb/
@@ -339,7 +338,14 @@ escapes (<code>.4.1</code>), POSIX character-class <strong>NAME</strong> validit
 <code>PCRE2_MAX_NAME_SIZE</code> DELETED), and the counted-quantifier <strong>min &gt; max</strong> order (err 104)
 — the first consumer of the general RULE-SPAN <code>value_compare</code> <code>@predicate</code> primitive, on
 the new <code>counted_quantifier_range</code> rule (<code>.4.3</code>; <code>find_invalid_counted_quantifier</code> +
-<code>validate_counted_quantifier_body</code> DELETED). A related divergence with no validator check at all — the
+<code>validate_counted_quantifier_body</code> DELETED), the collating-element / equivalence-class
+bracket-tokens <code>[.a.]</code>/<code>[=a=]</code> (<code>.4.12</code>; a genuine accepts-invalid correction via the
+lookahead-only <code>class_bracket_token</code> recognizer), and <strong><code>\K</code> inside a lookaround</strong> body
+(<code>.4.10</code>; <code>find_invalid_keep_out_escape_in_lookaround</code> + its 4 exclusive helpers DELETED —
+each lookaround opens a <code>lookaround</code> scope and the extracted <code>keep_out</code> rule carries
+<code>@predicate not_in_scope_kind(lookaround)</code>, the first consumer of the scope-ancestry
+predicate primitive <code>SCOPE-CONTEXT-PREDICATE.1</code>; behavior-neutral, the deleted validator
+rejected exactly the same set). A related divergence with no validator check at all — the
 named-reference <em>unknown-name</em> inventory (<code>\k&lt;zzz&gt;</code>… @undefined) — is tracked as <code>.4.11</code>
 (ledger <code>REGEX-0098</code>).</p>
 <h2 id="which-layer-rejected-my-pattern"><a class="header" href="#which-layer-rejected-my-pattern">Which layer rejected my pattern?</a></h2>

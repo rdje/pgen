@@ -153,7 +153,6 @@ As of regex release `1.1.100`, the validator dispatches these families (each row
 | Scan-substring capture **inventory** — `(*scs:(N))`/`(*scs:(<name>))` must reference an available capture | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7` |
 | **Start-option POSITION** — a recognized `(*UTF)`-class start option may appear only in the start-option prefix | `a(*CR)b`, `(*FAIL)(*LIMIT_HEAP=5)a` | `.4.8` |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |
-| `\K` inside a **lookaround** body | `(?=a\Kb)`, `(?<=\K.)`, `(*pla:a\Kb)` | `.4.10` |
 
 Already migrated **out** of the validator (now grammar-owned, listed here for the audit
 trail): the six PCRE2-unsupported escape letters `\i \F \l \L \u \U` (`.3.1`), verb/
@@ -167,7 +166,14 @@ escapes (`.4.1`), POSIX character-class **NAME** validity (`.4.6`), the
 `PCRE2_MAX_NAME_SIZE` DELETED), and the counted-quantifier **min > max** order (err 104)
 — the first consumer of the general RULE-SPAN `value_compare` `@predicate` primitive, on
 the new `counted_quantifier_range` rule (`.4.3`; `find_invalid_counted_quantifier` +
-`validate_counted_quantifier_body` DELETED). A related divergence with no validator check at all — the
+`validate_counted_quantifier_body` DELETED), the collating-element / equivalence-class
+bracket-tokens `[.a.]`/`[=a=]` (`.4.12`; a genuine accepts-invalid correction via the
+lookahead-only `class_bracket_token` recognizer), and **`\K` inside a lookaround** body
+(`.4.10`; `find_invalid_keep_out_escape_in_lookaround` + its 4 exclusive helpers DELETED —
+each lookaround opens a `lookaround` scope and the extracted `keep_out` rule carries
+`@predicate not_in_scope_kind(lookaround)`, the first consumer of the scope-ancestry
+predicate primitive `SCOPE-CONTEXT-PREDICATE.1`; behavior-neutral, the deleted validator
+rejected exactly the same set). A related divergence with no validator check at all — the
 named-reference *unknown-name* inventory (`\k<zzz>`… @undefined) — is tracked as `.4.11`
 (ledger `REGEX-0098`).
 

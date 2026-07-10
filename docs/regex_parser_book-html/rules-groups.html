@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-14334204.js";
+            window.path_to_searchindex_js = "searchindex-6e41a809.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -304,6 +304,7 @@ aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0
 </table>
 </div>
 <p><code>alpha_lookaround_name</code> is itself a 2-way Or between atomic and non-atomic alpha forms — see the rules in <code>regex.ebnf</code>.</p>
+<p><strong><code>\K</code> is rejected inside a lookaround (release <code>1.1.101</code>, <code>REGEX-PCRE2-FIDELITY.4.10</code>).</strong> As of <code>1.1.101</code>, each of the seven lookaround branches consumes its opener through a small <strong>open-marker</strong> rule (<code>lookahead_pos_open = "(?="</code>, …, <code>alpha_lookaround_open = "(*" alpha_lookaround_name ":"</code>) that opens a <code>lookaround</code> semantic scope, and closes it after the body. That scope lets the <code>keep_out</code> anchor (<code>\K</code>) reject when it is anywhere inside a lookaround body (PCRE2 error 199) — see <a href="./examples-anchors.html#k-is-rejected-inside-a-lookaround-release-111101-regex-pcre2-fidelity410">the anchors chapter</a>. The refactor is <strong>AST-shape-neutral</strong>: the marker’s own output is discarded by the parent’s <code>-&gt; {…, body: $2}</code>, so every accepted lookaround AST is byte-identical to before (the alpha form’s <code>name</code>/<code>body</code> still carry the alpha name and inner pattern).</p>
 <h2 id="subroutine_call"><a class="header" href="#subroutine_call"><code>subroutine_call</code></a></h2>
 <pre><code class="language-ebnf">subroutine_call = "(?" returned_capture_subroutine ")"
                 | "(?" subroutine_target ")"

@@ -144,8 +144,24 @@ anchor = "^"   -> {type: "anchor", kind: "start_of_line"}
        | "\\b" -> {type: "anchor", kind: "word_boundary"}
        | "\\B" -> {type: "anchor", kind: "non_word_boundary"}
        | "\\G" -> {type: "anchor", kind: "match_start"}
-       | "\\K" -> {type: "anchor", kind: "keep_out"}
+       | keep_out
+
+# \K is extracted into its own rule so it can be gated (see below).
+@predicate: { name: not_in_scope_kind, args: [lookaround], phase: pre }
+keep_out = "\\K" -> {type: "anchor", kind: "keep_out"}
 ```
+
+The `\K` AST is unchanged — `{"type":"anchor","kind":"keep_out"}` — so the consumer table above and the dispatch below are unaffected.
+
+### `\K` is rejected inside a lookaround (release `1.1.101`, `REGEX-PCRE2-FIDELITY.4.10`)
+
+PCRE2 forbids `\K` inside any lookaround body — `pcre2test` 10.47 rejects `(?=a\Kb)`, `(?!…)`, `(?<=…)`, `(?<!…)`, `(?*…)`, `(?<*…)`, and every alpha form (`(*pla:a\Kb)`…) with error 199 *"\K is not allowed in lookarounds"*, **including** when the `\K` sits inside a group nested in the lookaround (`(?=a(b\Kc))`, `((?=x\Ky))`). Every such pattern REJECTs with `E_PARSE_FAILURE`.
+
+`\K` is still accepted **everywhere else** — bare (`a\Kb`, `\Kword`), inside an atomic group (`(?>a\Kb)`), a capturing group (`(a\Kb)`), a non-capturing group (`(?:a\Kb)`), and **after** a lookaround has closed (`(?=ab)\K`).
+
+**This release is behavior-neutral for downstream consumers.** The released parser already rejected `\K`-in-lookaround before `1.1.101` — but via an out-of-band host validator (`find_invalid_keep_out_escape_in_lookaround`), while the *grammar alone* accepted it (a single-source-of-truth hole). `1.1.101` migrates the reject **into `grammars/regex.ebnf`** and deletes the standalone validator check, so the EBNF is now the single source of truth. The accept/reject verdict of the released parser is unchanged; only the layer that owns the rule moved.
+
+The gate is declarative, with no engine change: each lookaround opens a `lookaround` semantic scope at its opener and closes it after its body, and `keep_out` carries `@predicate not_in_scope_kind(lookaround)` — the parser-agnostic scope-ancestry gate (`SCOPE-CONTEXT-PREDICATE.1`) that is true only when no currently-open scope (the innermost frame *or any ancestor*) is a lookaround. The whole-ancestor walk is what makes the nested `(?=a(b\Kc))` case reject, and the scope closing at the lookaround's end is what keeps the trailing `(?=ab)\K` accepted.
 
 ## POSIX word-boundary aliases — `[[:<:]]` and `[[:>:]]`
 

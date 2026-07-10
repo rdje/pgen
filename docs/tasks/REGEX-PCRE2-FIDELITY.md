@@ -1209,10 +1209,13 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   be bounded (`(?<=a+)b`/`(?<=a*)b`/`(?<=a{2,})b`/`(?<=…(c+)…)` reject; fixed `(?<=a{2})b` accept). Owns
   `find_unbounded_quantified_lookbehind`. **LOOKBEHIND-LENGTH ANALYSIS** (hard — the body's max match
   length must be finite; needs a new parser-agnostic primitive).
-- ID: `.4.10` Status: `pending` Goal: encode `\K`-in-lookaround — `\K` inside any lookaround body rejects
+- ID: `.4.10` Status: **`done`** (`PGEN-REGEX-PCRE2-0038`, session #84; release `1.1.100`→`1.1.101`, contract
+  `1.1.102`→`1.1.103`, schema `1`, ledger `REGEX-0111`; see the `.4.10` implementation section + Acceptance
+  Checklist below) Goal: encode `\K`-in-lookaround — `\K` inside any lookaround body rejects
   (`(?=a\Kb)`/`(?<=\K.)`/`(*pla:a\Kb)` reject; `\Kword` outside accepts). Owns
-  `find_invalid_keep_out_escape_in_lookaround`. **CONTEXTUAL** — the original `.1` table row 10 "hard one"
-  (depends on the enclosing construct); needs a contextual gate primitive.
+  `find_invalid_keep_out_escape_in_lookaround` (MIGRATED to the grammar + DELETED). **CONTEXTUAL** — the
+  original `.1` table row 10 "hard one" (depends on the enclosing construct); the first grammar consumer of the
+  scope-ancestry `@predicate` primitive `not_in_scope_kind` (`SCOPE-CONTEXT-PREDICATE.1`, landed `PGEN-SCP-0001`).
 - ID: `.4.11` Status: `pending` Goal: encode the named-reference UNKNOWN-name inventory scoped by `.3.22`
   (`\k<zzz>`/`(?P=zzz)`/`(?&zzz)`/`\g{zzz}`… @undefined reject; forward/subroutine refs accept). **NOT** a
   current `validate_regex_compile_contract` check (validator is shape-only here) — a genuine
@@ -1855,6 +1858,109 @@ collating/equivalence tokens the validator never recognised.
   `rules-char-class.md` + `changelog-index.md` + `compile-contract-validator.md` + tracked HTML; top book
   `parser-families.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`;
   `docs/TASK_TREE.md`.
+
+### REGEX-PCRE2-FIDELITY.4.10 — `\K`-in-lookaround is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0038`, session #84)
+
+**Tools-first root cause (oracle-frozen, grammar-only via the certified interpreter — reproduced by the
+permanent test `rust/tests/regex_keep_out_in_lookaround_grammar_migration.rs`).** `pcre2test` 10.47 rejects
+`\K` inside ANY lookaround body with err 199 "\K is not allowed in lookarounds" — every form (`(?=`/`(?!`/
+`(?<=`/`(?<!`/`(?*`/`(?<*` + the alpha `(*pla:`…`(*naplb:`), INCLUDING when the `\K` sits inside a group
+nested in the lookaround (`(?=a(b\Kc))`, `((?=x\Ky))`, `(?=a(?:b\Kc))`, `(?:(?=a\Kb))`, `(?=a|b\Kc)`,
+`(?=(?<=x\Ky))`) — and ACCEPTS it everywhere else (`a\Kb`, `\Kword`, `(?>a\Kb)`, `(a\Kb)`, `(?:a\Kb)`,
+`(?<name>a\Kb)`, and AFTER a lookaround closes: `(?=ab)\K`, `(?<=ab)\Kc`, `(*pla:ab)\K`, `a(?=b)\Kc`). Every
+one of the 19 reject + 16 accept cells was verified string-by-string against `pcre2test` 10.47 (the
+[[feedback_report_expected_verify_against_oracle]] discipline). The released parser already REJECTED all the
+`\K`-in-lookaround forms — but via the **out-of-band validator** `find_invalid_keep_out_escape_in_lookaround`
+(`regex_compile_validation.rs`), while the GRAMMAR ALONE ACCEPTED them (`keep_out`/`\K` was an ungated `anchor`
+branch). A single-source-of-truth hole, so this is a **behavior-NEUTRAL validator→grammar migration** (NOT a
+released-parser accepts-invalid gap): the released `--parse` accept/reject verdict is byte-identical before and
+after; only the owning layer moves.
+
+**Why the whole-active-chain scope walk (and not the innermost-only `current_scope_is` or the global
+`has_fact`).** `\K`-in-lookaround is inherently CONTEXTUAL — it depends on an ENCLOSING construct that can be
+several levels up (`(?=a(b\Kc))` — the `\K` is inside a capture group inside the lookaround). It is the
+original `.1` table row 10 "hard one" flagged as needing a new parser-agnostic primitive. That primitive is
+`not_in_scope_kind(lookaround)` (`SCOPE-CONTEXT-PREDICATE.1`, landed source-only in `PGEN-SCP-0001`): TRUE iff
+NO currently-open scope — the innermost frame OR any ancestor up to root — is a `lookaround`. The innermost-only
+`current_scope_is` misses the nested case; the global+monotonic `has_fact` is wrong because `close_scope` never
+retracts it, so it would leak past the lookaround close and wrongly reject the valid `(?=ab)\K`. The
+active-chain walk auto-unwinds the instant the scope closes — the honest, robust, general expression (fix
+hierarchy tier 5 justified: no lower tier can express a whole-ancestor contextual gate). **This is the first
+GRAMMAR consumer of the scope-tree `@open_scope`/`@close_scope` directives.**
+
+**Fix (grammar tier + validator deletion, `feedback_no_workarounds_fix_hierarchy`).** (1) Each lookaround OPENS
+a `lookaround` scope at its opener and CLOSES it after its body. `@open_scope` fires as an EFFECT *after* its
+rule body, so it MUST bind to a small OPEN-MARKER rule matching just the opener token (the proven
+`capture_open`/`named_group_open` idiom) — binding it to the whole `"(?=" pattern ")"` rule would open the scope
+only after the body already parsed, too late to gate an inner `\K`. Seven markers: `lookahead_pos_open`,
+`lookahead_neg_open`, `lookbehind_pos_open`, `lookbehind_neg_open`, `non_atomic_lookahead_pos_open`,
+`non_atomic_lookbehind_pos_open` (`-> {type:atom, kind:lookaround_open}`) and `alpha_lookaround_open` (`-> $2`,
+surfacing the alpha name so the parent's `name:$1` stays shape-preserving). `@close_scope` binds to each outer
+rule (fires post-body); opens/closes are LIFO so arbitrary lookaround nesting balances, and a FAILED lookaround
+rolls the scope back via the checkpoint snapshot. The marker's output ($1) is discarded by the parent's
+`-> {…, body: $2}`, so every accepted lookaround AST is BYTE-IDENTICAL to the pre-marker form. (2) `\K` is
+extracted from the `anchor` alternation into its own `keep_out` rule gated by
+`@predicate { name: not_in_scope_kind, args: [lookaround], phase: pre }` — `\K` has a single parse
+(`K` ∉ `simple_escape_letter_strict`, no literal fallback), so gating this one rule is complete; `phase: pre`
+short-circuits (the predicate reads no capture). (3) Because the grammar now fully owns the reject (proven
+grammar-only by the migration test), the STANDALONE validator check `find_invalid_keep_out_escape_in_lookaround`
++ its 4 exclusive helpers (`lookaround_body_start_at`, `alpha_lookaround_body_start_at`,
+`is_alpha_lookaround_name`, `find_keep_out_escape`) were DELETED (the `.3.1`/`.3.2`/`.3.16` standalone-deletion
+precedent; the shared `find_matching_group_end` is kept — 7 other refs). The deleted validator's
+`find_matching_group_end` is depth-tracked and `find_keep_out_escape` descends into nested groups, and its
+`is_alpha_lookaround_name` set equals the grammar's `alpha_lookaround_name` — so the grammar rejects EXACTLY the
+validator's set (deletion is behavior-neutral).
+
+**Duality (empirical, the `.4.5.c` argument).** The generator honors only `@gen_predicate`, never parse-time
+`@predicate`, and does NOT maintain a scope chain during generation — so a gen-side scope dual is unavailable.
+The migration is duality-safe by measurement: the store-aware generator provably never emits `\K` inside a
+lookaround — `duality_hunt_gate` shows no new/vanished signature across 9 lanes (canonical + scaled 2000-sample,
+seeds 0/7/42), and cert `sample_parse_failures=0` over 600 samples. (Root-caused a red-herring during
+verification: the oracle gate's DEBUG probe grinds ~20 min on ONE pre-existing pathological corpus pattern
+`((((…(x))))` — deeply-nested balanced capture groups, catastrophic `capturing_group` backtracking, RGX-0078.
+Proven ORTHOGONAL to this slice by construction: that pattern's charset is `( ) 0 8 \ x` — no `(?`/`(*`/`\K`, so
+none of the 7 markers or the `keep_out` gate can engage; the lookbehind-heavy `(?<=(()()…` corpus pattern, which
+DOES open scopes, parses in 0.44 s. Not a regression — `.4.12`'s gate ran the same corpus.)
+
+#### `.4.10` Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — the permanent test `rust/tests/regex_keep_out_in_lookaround_grammar_migration.rs`
+  run against the pre-fix grammar via `interpret_parse("grammars/regex.ebnf", <pat>, pcre2)`: all 19
+  `\K`-in-lookaround forms (`(?=a\Kb)` … `(?=(?<=x\Ky))`) `accepted=true` where `pcre2test` 10.47 = err 199,
+  while the released `--parse` already REJECTED them (via the out-of-band validator) — the single-source-of-truth
+  hole. Every one of the 19 reject + 16 accept cells oracle-verified against `pcre2test` 10.47.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/regex.ebnf::keep_out`/`\K` was an ungated `anchor` branch (grammar
+  ACCEPTED `\K` anywhere); the err-199 reject lived ONLY in `regex_compile_validation.rs::find_invalid_keep_out_escape_in_lookaround`.
+  The reject is inherently CONTEXTUAL (an enclosing lookaround, possibly several groups up), so no lower fix
+  tier can express it — it needs the whole-active-chain scope-ancestry gate `not_in_scope_kind`.
+- [x] **FIX** — grammar tier (fix-hierarchy grammar + engine-primitive-consumer): 7 lookaround open-markers with
+  `@open_scope {kind: lookaround}` + `@close_scope {kind: lookaround}` on the outer rules; `keep_out` extracted
+  from `anchor` and gated `@predicate not_in_scope_kind(lookaround) phase:pre`; the standalone validator check
+  `find_invalid_keep_out_escape_in_lookaround` + 4 exclusive helpers DELETED. First grammar consumer of the
+  `SCOPE-CONTEXT-PREDICATE.1` primitive (landed `PGEN-SCP-0001`). No engine change this slice.
+- [x] **ADDRESSED (verified)** — `regex_keep_out_in_lookaround_grammar_migration.rs` GREEN: all 19
+  `\K`-in-lookaround forms REJECT and all 16 controls ACCEPT at the GRAMMAR layer (certified interpreter, no
+  validator). Released `--parse` (grammar + remaining validator, post-deletion probe): the 21-case oracle matrix
+  21/21 (11 reject + 10 accept), byte-identical to the pre-change verdict — behavior-NEUTRAL migration confirmed.
+  37 remaining `regex_compile_validation` unit tests pass (deletion clean).
+- [x] **NO REGRESSION** — regex cert `total=259 proof=9 witness=250 UNKNOWN=0 fully_certified=true
+  sample_parse_failures=0` at seeds 0/7/42 (251→259: +8 WITNESSED rules — 7 lookaround open-markers + `keep_out`;
+  proof/UNKNOWN unchanged); `--lint-grammar` 0 errors (259 rules, 0 unreachable/undefined/shadowing);
+  `regex_pcre2_compile_oracle_gate` byte-identical `2189/1867/274/48` (`\K`-in-lookaround cells corpus-invisible;
+  probe recompiled fresh with the validator deletion); `duality_hunt_gate` 9 lanes no new/vanished signature (the
+  store-aware generator never emits `\K`-in-lookaround); `parse_harness_equivalence_gate` regex byte-identical (11
+  certified grammars — the interpreter reproduces the new `@open_scope`/`@close_scope`/`not_in_scope_kind` parse);
+  `ast_shape_contract` 4 aligned / drift=0, inventory 225→232 (+7 markers +`keep_out`, −`anchor` branch 8,
+  `alpha_lookaround` `name:$2,body:$4`→`name:$1,body:$2`; accepted-AST shape byte-identical);
+  `parse_harness_combinator_gate` 2/2 + `parse_harness_semantic_gate` 2/2 (shared engine untouched);
+  `metadata_is_stable` at `1.1.101`/`1.1.103`; AST-dump schema stays `1`. Only regex regenerated; the pathological
+  corpus-pattern slowness is pre-existing RGX-0078, proven orthogonal.
+- [x] **LOCKSTEP** — `grammars/regex.ebnf` (+7 markers, +`keep_out`, `anchor` branch → rule-ref); regenerated
+  `generated/regex_parser.rs`; `rust/src/regex_compile_validation.rs` (check + 4 helpers + 2 tests DELETED, note
+  added); new test `rust/tests/regex_keep_out_in_lookaround_grammar_migration.rs`; `embedding_api.rs` consts +
+  `regex_parser_integration_contract_v1.json` manifest `1.1.101`/`1.1.103`; `regex_v1.json` ast_shape inventory
+  (225→232); ledger `REGEX-0111`; contract `1.1.101`/`1.1.103` Highlights + Identity; regex book
+  `examples-anchors.md` + `rules-groups.md` + `compile-contract-validator.md` + `changelog-index.md` + tracked
+  HTML; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `LIVE_ACHIEVEMENT_STATUS.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
 
 ### REGEX-PCRE2-FIDELITY.4.6 — POSIX class NAME validity is GRAMMAR-owned (`PGEN-REGEX-PCRE2-0024`, session #74)
 

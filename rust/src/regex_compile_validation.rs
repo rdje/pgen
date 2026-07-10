@@ -69,9 +69,14 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     if let Some(error) = find_unbounded_quantified_lookbehind(input) {
         return Err(error);
     }
-    if let Some(error) = find_invalid_keep_out_escape_in_lookaround(input) {
-        return Err(error);
-    }
+    // REGEX-PCRE2-FIDELITY.4.10: the `\K`-in-lookaround check
+    // (`find_invalid_keep_out_escape_in_lookaround`) was MIGRATED into
+    // `grammars/regex.ebnf` and its standalone validator implementation DELETED. Each
+    // lookaround now opens a `lookaround` semantic scope at its opener and the extracted
+    // `keep_out` rule carries `@predicate not_in_scope_kind(lookaround)`, so `\K` inside any
+    // lookaround body (incl. nested groups) rejects at the grammar layer — the EBNF is the
+    // single source of truth ([[project_ebnf_is_single_source_of_truth]]). Behavior-neutral:
+    // the deleted validator already rejected exactly the same set.
     Ok(())
 }
 
@@ -1020,118 +1025,6 @@ fn find_unbounded_quantified_lookbehind(input: &str) -> Option<RegexCompileValid
     None
 }
 
-fn find_invalid_keep_out_escape_in_lookaround(input: &str) -> Option<RegexCompileValidationError> {
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-
-    while index < bytes.len() {
-        match bytes[index] {
-            b'\\' => index = skip_regex_escape(bytes, index),
-            b'[' if !is_extended_class_start(bytes, index) => {
-                index = skip_char_class_for_group(bytes, index)
-                    .map(|end| end + 1)
-                    .unwrap_or(index + 1);
-            }
-            b'(' => {
-                let Some(body_start) = lookaround_body_start_at(bytes, index) else {
-                    index += 1;
-                    continue;
-                };
-                let Some(body_end) = find_matching_group_end(bytes, index) else {
-                    index += 1;
-                    continue;
-                };
-                if let Some(offset) = find_keep_out_escape(bytes, body_start, body_end) {
-                    return Some(RegexCompileValidationError::new(
-                        offset,
-                        "\\K is not accepted inside a lookaround by the regex compile contract",
-                    ));
-                }
-                index = body_end + 1;
-            }
-            _ => index += 1,
-        }
-    }
-
-    None
-}
-
-fn lookaround_body_start_at(bytes: &[u8], index: usize) -> Option<usize> {
-    if bytes.get(index) != Some(&b'(') {
-        return None;
-    }
-
-    if bytes.get(index + 1) == Some(&b'?') {
-        match bytes.get(index + 2).copied() {
-            Some(b'=') | Some(b'!') => return Some(index + 3),
-            Some(b'*') => return Some(index + 3),
-            Some(b'<') => match bytes.get(index + 3).copied() {
-                Some(b'=') | Some(b'!') | Some(b'*') => return Some(index + 4),
-                _ => {}
-            },
-            _ => {}
-        }
-    }
-
-    if bytes.get(index + 1) == Some(&b'*') {
-        return alpha_lookaround_body_start_at(bytes, index);
-    }
-
-    None
-}
-
-fn alpha_lookaround_body_start_at(bytes: &[u8], index: usize) -> Option<usize> {
-    let name_start = index + 2;
-    let name_end = bytes[name_start..]
-        .iter()
-        .position(|byte| matches!(*byte, b':' | b')'))
-        .map(|offset| name_start + offset)?;
-    if bytes.get(name_end) != Some(&b':') {
-        return None;
-    }
-    let name = std::str::from_utf8(&bytes[name_start..name_end]).ok()?;
-    is_alpha_lookaround_name(name).then_some(name_end + 1)
-}
-
-fn is_alpha_lookaround_name(name: &str) -> bool {
-    matches!(
-        name,
-        "pla"
-            | "positive_lookahead"
-            | "nla"
-            | "negative_lookahead"
-            | "plb"
-            | "positive_lookbehind"
-            | "nlb"
-            | "negative_lookbehind"
-            | "napla"
-            | "non_atomic_positive_lookahead"
-            | "naplb"
-            | "non_atomic_positive_lookbehind"
-    )
-}
-
-fn find_keep_out_escape(bytes: &[u8], start: usize, end: usize) -> Option<usize> {
-    let mut index = start;
-    while index < end {
-        match bytes[index] {
-            b'\\' => {
-                if bytes.get(index + 1) == Some(&b'K') {
-                    return Some(index);
-                }
-                index = skip_regex_escape(bytes, index);
-            }
-            b'[' => {
-                index = skip_char_class_for_group(bytes, index)
-                    .map(|class_end| class_end + 1)
-                    .unwrap_or(index + 1);
-            }
-            _ => index += 1,
-        }
-    }
-    None
-}
-
 fn find_matching_group_end(bytes: &[u8], start: usize) -> Option<usize> {
     let mut depth = 1usize;
     let mut index = start + 1;
@@ -1536,20 +1429,17 @@ mod tests {
             .expect("quoted literal escapes remain valid outside character classes");
     }
 
-    #[test]
-    fn rejects_keep_out_escape_in_lookaround() {
-        for input in [r"(?=a\Kb)ab", r"(?<=\K.)x", r"(*pla:a\Kb)ab"] {
-            let error =
-                validate_regex_compile_contract(input).expect_err("must reject \\K in lookaround");
-            assert!(error.message.contains("\\K"));
-        }
-    }
-
-    #[test]
-    fn allows_keep_out_escape_outside_lookaround() {
-        validate_regex_compile_contract(r"\Kword")
-            .expect("\\K remains accepted outside lookaround contexts");
-    }
+    // REGEX-PCRE2-FIDELITY.4.10 (PGEN-REGEX-PCRE2-0038): the `\K`-in-lookaround reject
+    // (`find_invalid_keep_out_escape_in_lookaround`, previously tested here by
+    // `rejects_keep_out_escape_in_lookaround` / `allows_keep_out_escape_outside_lookaround`)
+    // MIGRATED to the GRAMMAR layer and its standalone validator implementation was DELETED
+    // (each lookaround opens a `lookaround` scope; the extracted `keep_out` rule carries
+    // `@predicate not_in_scope_kind(lookaround)`). The grammar-layer verdict — every
+    // lookaround form + nested cases REJECT, `\K` elsewhere ACCEPT, all oracle-verified
+    // against `pcre2test` 10.47 — is now proven by the certified interpreter in the permanent
+    // test `rust/tests/regex_keep_out_in_lookaround_grammar_migration.rs`. `\Kword` and other
+    // out-of-lookaround forms remain accepted (the validator never rejected them and the
+    // grammar accepts them).
 
     // REGEX-PCRE2-FIDELITY.4.6 (PGEN-REGEX-PCRE2-0024): the POSIX class NAME-validity rejects
     // (`rejects_unknown_posix_character_class_name` on `[[:foo:]]` and
