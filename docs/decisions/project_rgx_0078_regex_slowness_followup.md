@@ -129,3 +129,54 @@ a hot regex parse (`sample`) + capture `MEMO_STATS`; profile json/vhdl too to co
   (3) reduce per-speculation ParseContent/Vec churn; (4) first-set predictive dispatch (deeper, later);
   (5) defer the generated `try_parse` Err-arm trace strings (codegen/regen). One change at a time, measure
   the GLOBAL geomean before→after, correctness floor NEVER traded ([[feedback_correctness_before_speed]] ⛔).
+
+**🎯 GOAL FRAMING (director, 2026-07-11 — CORRECTED thesis: the gap is generator MATURITY, not
+"generated vs hand-tuned").** The director's decisive point: hand-tuned code is *just code written with
+certain techniques*; a code generator can emit those SAME techniques — and more (per-rule specialization no
+human would maintain) — so generated code CAN match hand-tuned code. There is no expressiveness barrier;
+codegen is a SUPERSET of hand-writing. Empirically true (Ragel/re2c/flex/protobuf codegen match-or-beat
+hand-written). So the gap is **"the generator currently emits a NAIVE pattern (per-backtrack alloc,
+try-every-branch tournament) vs the FAST pattern it could emit (arena, first-set dispatch, specialized
+per-rule code)"** — a maturity gap that CLOSES, not an intrinsic one. **Correction to the earlier caution:
+we are NOT racing a JIT.** PCRE2's JIT is its *matching* engine; RGX-0078 races PCRE2's *compile* step (=
+our parse time), and PCRE2's compiler is **just hand-written C** — no JIT on the parse-time side. The only
+thing reserved for hand-code+JIT is runtime data-dependent specialization to a specific pattern (a
+*matching* concern, irrelevant to a one-shot parse). **⇒ For the parse-time goal there is NO intrinsic
+barrier; the ceiling is hand-tuned-C parse speed, not "5× is the best a generator can do."** STRATEGY
+CONSEQUENCE (aligns with PGEN's founding doctrine): **every speed lever lands as a codegen / shared-engine
+primitive** (teach the generator to emit the fast pattern) ⇒ every win is parser-AGNOSTIC (SV/VHDL/JSON/RTL
+all inherit it) — strictly better than hand-tuning one parser. Honest about EFFORT (arena/dispatch/
+specialization are real codegen work, one measured step at a time) but not about CEILINGS. Captured in the
+book chapter *The gap is generator maturity, not "generated vs hand-tuned"*
+(`docs/book/src/inside-parser-performance.md`).
+
+---
+
+**✅ FIRST LEVER LANDED (RGX-0078·1, session #90/#91, 2026-07-11).** The rollback scope-restoration
+guard is committed. Root cause (profiled, `.2`): `SemanticRuntimeState::rollback_to_named` was ~24% of
+regex parse self-time — an UNCONDITIONAL `active_chain.clone()` + `scopes = …collect()` rebuild on every
+failed speculation, even when the speculation changed no scope state (the common case under the
+`longest_match` atom-tournament). Fix (`semantic_runtime.rs:2800`, shared engine, parser-agnostic, no
+codegen/regen): gate the restoration on `scope_arena.len() > scope_arena_len || active_chain !=
+snapshot` — sound because `scopes` is kept lockstep with `active_chain` by `open_scope`/`close_scope`,
+so a no-change backtrack leaves `scopes` already correct and the skip is a no-op.
+
+- **Speed:** decisive stash baseline (stash ONLY the code file, rebuild, re-measure) → **422µs → 344µs
+  = −18.6%** geomean of noise-floor mins on the 8-pattern bench.
+- **Correctness floor DECISIVELY intact** (the ⛔ HARD constraint, every oracle green at its
+  pre-optimization value):
+  - PCRE2 compile-oracle **BYTE-IDENTICAL** — fix-vs-no-fix debug-probe diff on the normalized corpus
+    (the tracked 80-deep-paren catastrophic cell, line 1340, excluded up front; it has no named
+    scopes/lookaround so the change is a provable no-op on it) returns `1878/310/262/48` either way,
+    canonical-JSON diff EMPTY → not one new false-accept/false-reject.
+  - cert `fully_certified`; spf spf-NEUTRAL (with-fix == no-fix `0/1/1` at seeds 0/7/42, `--count 40`);
+    equivalence byte-identical; semantic 36/36; duality-hunt no new signature; ast-shape contract 1 passed;
+    clippy exit 0.
+- **Method note (kept for the next lever):** the full oracle gate uses a DEBUG probe over the FULL corpus
+  and grinds for hours on line 1340 — do NOT run it whole. Exclude the tracked cell up front, run the fast
+  remainder (release or debug), and diff fix-vs-no-fix. See [[feedback_dont_run_jobs_that_hit_known_pathological_inputs]].
+
+**Next levers (this decision's queue, each profile-driven + re-run the full gate battery before landing):**
+free AOT build flags first (LTO / `codegen-units=1` / `target-cpu=native` / PGO — the release build currently
+uses cargo defaults, so these are unclaimed wins), then FxHash annotation-table lookups, first-set predictive
+dispatch, and a parse cache. Every lever lands as a shared-engine / codegen primitive so all parsers inherit it.

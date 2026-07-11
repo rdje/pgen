@@ -2783,35 +2783,53 @@ impl SemanticRuntimeState {
         // this does not touch `write_epoch`.
         let deferred_len = checkpoint.deferred_len.min(self.deferred_obligations.len());
         self.deferred_obligations.truncate(deferred_len);
-        // `.3.3.4.b.5.1.3`: truncate the arena to checkpoint length —
-        // nodes opened during the rolled-back tx are discarded.
-        self.scope_arena.truncate(scope_arena_len);
-        // Restore the active chain to its checkpoint snapshot exactly.
-        // Every entry in the snapshot must reference a node that survives
-        // truncation (invariant: nodes in the active chain at checkpoint
-        // time had id < arena.len() at that time = scope_arena_len).
-        self.active_chain = checkpoint.active_chain_snapshot.clone();
-        // Re-open every node in the restored active chain — the rolled-back
-        // tx may have called `close_scope` on any subset of them. Reset
-        // their `closed` flag to mirror the checkpoint state.
-        for &id in &self.active_chain {
-            if let Some(node) = self.scope_arena.get_mut(id.index()) {
-                node.closed = false;
-            }
-        }
-        // Rebuild the legacy `scopes` Vec in lockstep with the restored
-        // active_chain (one frame per active node, in chain order).
-        self.scopes = self
-            .active_chain
-            .iter()
-            .map(|&id| {
-                let node = &self.scope_arena[id.index()];
-                SemanticScopeFrame {
-                    kind: node.kind.clone(),
-                    name: node.name.clone(),
+        // RGX-0078.3 (SPEED): the scope-state restoration below (arena truncate +
+        // active-chain clone + closed-flag reset + legacy `scopes` rebuild) is a NO-OP
+        // whenever the rolled-back speculation had zero net effect on scope state. That is
+        // provable: `self.scopes` is maintained in lockstep with `self.active_chain`
+        // (`open_scope` pushes BOTH; `close_scope` pops BOTH), so when the arena did not
+        // grow AND the active chain already equals the checkpoint snapshot, `self.scopes`
+        // (and the arena, and every `closed` flag on a surviving node) is already exactly
+        // the checkpoint state. Any real scope mutation surfaces in one of the two guard
+        // terms: an `open_scope` grows the arena; a net `close_scope` (or an open-then-close
+        // that changed ids) makes `active_chain != snapshot`. Gating removes the
+        // UNCONDITIONAL `active_chain` clone + `scopes` `.collect()` rebuild from every
+        // failed speculation's backtrack — profiled (session #90) as ~24% of regex parse
+        // self-time (`rollback_to_named`). Parser-AGNOSTIC (every generated parser + the
+        // interpreter share this method) and correctness-neutral (a no-op skip).
+        let scope_state_changed = self.scope_arena.len() > scope_arena_len
+            || self.active_chain != checkpoint.active_chain_snapshot;
+        if scope_state_changed {
+            // `.3.3.4.b.5.1.3`: truncate the arena to checkpoint length —
+            // nodes opened during the rolled-back tx are discarded.
+            self.scope_arena.truncate(scope_arena_len);
+            // Restore the active chain to its checkpoint snapshot exactly.
+            // Every entry in the snapshot must reference a node that survives
+            // truncation (invariant: nodes in the active chain at checkpoint
+            // time had id < arena.len() at that time = scope_arena_len).
+            self.active_chain = checkpoint.active_chain_snapshot.clone();
+            // Re-open every node in the restored active chain — the rolled-back
+            // tx may have called `close_scope` on any subset of them. Reset
+            // their `closed` flag to mirror the checkpoint state.
+            for &id in &self.active_chain {
+                if let Some(node) = self.scope_arena.get_mut(id.index()) {
+                    node.closed = false;
                 }
-            })
-            .collect();
+            }
+            // Rebuild the legacy `scopes` Vec in lockstep with the restored
+            // active_chain (one frame per active node, in chain order).
+            self.scopes = self
+                .active_chain
+                .iter()
+                .map(|&id| {
+                    let node = &self.scope_arena[id.index()];
+                    SemanticScopeFrame {
+                        kind: node.kind.clone(),
+                        name: node.name.clone(),
+                    }
+                })
+                .collect();
+        }
         debug_assert_eq!(self.scopes.len(), checkpoint.scope_len);
     }
 

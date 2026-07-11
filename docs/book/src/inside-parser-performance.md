@@ -140,3 +140,155 @@ should follow before claiming any performance win:
 These mechanisms are parser-agnostic: they live in the engine and the code generator,
 so every grammar PGEN compiles — SystemVerilog, VHDL, regex, the RTL front-ends —
 inherits the same bounded-time, bounded-memory behavior for free.
+
+---
+
+## The latency campaign: closing the gap to PCRE2 (small-input speed)
+
+The section above is about the *big* input (uvm, ~3 MB) staying **bounded**. This section
+is about the opposite end — the *small* input being **fast**. They are different problems
+with different profiles, and this is the story of the second one, told as a running
+scoreboard so it can be watched as it improves.
+
+### Why it matters, and what "fast enough" means
+
+PGEN's regex parser is the compile front-end for [RGX](parser-families.md). When a tool
+compiles thousands of regular expressions, PGEN's *parse time per pattern* is that tool's
+*compile time per pattern* — so it is measured not against "is it linear?" but against the
+industrial baseline for the same job: **PCRE2's compiler**. The closure target is a
+**relative** one:
+
+> geomean( PGEN-parse-time / PCRE2-no-JIT-compile-time ) **< 5×** over the PCRE2 test corpus.
+
+Correctness is the floor, never the trade: in this campaign **any** optimization that flips
+a single conformance verdict or breaks parity is rejected outright, no matter how much
+faster it is. Speed is earned only on top of a parser that stays exactly as accurate as it
+was. (This is the operational form of *correctness before speed*.)
+
+### The systemic thesis
+
+The slowness is **not** a regex quirk — it is hypothesized to be inherent to the *shared*
+parse machinery every PGEN grammar uses, so it slows JSON, VHDL and SystemVerilog too. That
+thesis is testable, and we test it rather than assume it: every profile below is taken
+across **regex + JSON + VHDL**, and a lever only counts as a real win if the cost it removes
+lives in **shared engine code** (so all parsers benefit), measured globally.
+
+### Where the small-input time actually goes (profile, not guess)
+
+Same discipline as the memory story: profile first. A release-build `sample` profile of a
+hot regex parse (macOS, 1 ms) attributes the self-time like this:
+
+| Cost centre | Share of self-time | What it is |
+|---|---|---|
+| `libsystem_malloc` (alloc/free/memmove) | **~59%** | the *symptom* — the parser allocates a great deal |
+| Backtrack/rollback path | ~24% (call-graph) | work done on **every failed speculation** |
+| Per-rule annotation-table lookups (SipHash) | ~6% | a hash lookup per rule entry, even when the table is empty |
+| String formatting | ~4% | trace-context strings built and discarded |
+
+The headline is that the dominant cost is **allocation**, and the dominant *source* of that
+allocation is the **backtracking itself**. PGEN's `|` is a longest-match tournament: at each
+position it tries *every* viable alternative and keeps the longest. Parsing a 4-character
+literal like `"test"` therefore tries ~30 `atom` alternatives per character, and **most of
+them fail and backtrack** — so the per-backtrack overhead is multiplied by a very large
+number. That is why a trivial pattern still costs ~130–160 µs: it is not the matching, it is
+the machinery around each speculative attempt.
+
+A red herring worth recording (the chapter's recurring lesson): the parser rebuilds a
+per-grammar directive table in its constructor, and that *looked* like an obvious ~160 µs
+fixed cost. The profile refuted it — construction is **~0.7%** of the time; the parse
+dominates. We did not act on the guess.
+
+The systemic check held: JSON (a predicate-free grammar) and VHDL (a predicate-carrying one)
+show the *same* shape — the same allocator dominance, the same shared `RecursionGuard` and
+backtrack-path costs — confirming the cost is in the engine, not any one grammar.
+
+### The scoreboard
+
+Regex 8-pattern micro-bench, release build, geomean of per-pattern parse time. Because the
+bench machine is often shared, the **noise-floor minimum** per pattern is the reported
+statistic (it is immune to unrelated CPU contention and reproduces exactly run-to-run);
+every delta is proven by a *decisive baseline* — stash only the change, rebuild, re-measure
+back-to-back, so the difference is caused by the change and nothing else.
+
+| # | Lever | Layer | Regex geomean | Δ | Status |
+|---|---|---|---|---|---|
+| RGX-0073 | Optim #1–#16 (rule-names `&'static`, `FxHashMap` memo, anchored terminals, borrow-in-place, predicate-free fast-paths, worker cache, …) | engine + codegen | — | ~2–3× under the pre-optim reference | landed |
+| 6.0 | Memo split by outcome | engine | — | ~20% faster (uvm) | landed |
+| RGX-0078 · 1 | **Rollback scope-restoration guard** — skip the active-chain clone + `scopes` rebuild on the backtrack path when no scope state changed | engine (shared runtime) | 422 µs → **344 µs** | **−18.6%** | **landed** ✓ |
+
+**Lever RGX-0078·1 in plain terms.** Every failed speculation calls the semantic runtime's
+*rollback*, which restored scope bookkeeping by cloning a vector and rebuilding another —
+*unconditionally*. But the overwhelmingly common backtrack changes no scope at all, and the
+restored state is provably already correct in that case (the bookkeeping is kept in lockstep
+as scopes open and close). Guarding the restoration on "did scope state actually change?"
+removes that per-backtrack work on the hot path. It is a pure engine change (no grammar, no
+regeneration), it benefits every parser and the interpreter identically, and it changes no
+observable output — a correctness-neutral skip. Measured decisive delta: **−18.6%** at the
+noise floor across all eight patterns.
+
+That "changes no observable output" claim is not asserted — it is *proven*, gate by gate, at
+the change's pre-optimization value. The PCRE2 compile-oracle over the real corpus returns
+**byte-identical** verdicts with and without the change (a decisive fix-vs-no-fix diff:
+`1878/310/262/48` either way — not a single new false-accept or false-reject); the
+certificate-coverage generator↔parser duality is unchanged (identical sample-parse-failure
+counts with and without); the duality-hunt gate finds no new break signature; the interpreter
+and generated parser stay byte-identical to each other; and the generated-AST shape contract
+still holds against the running parser. Correctness is the floor here, never traded for the
+latency — so a speed lever only lands once every one of those oracles is re-proven green.
+
+### What is left, and the honest gap
+
+The ranked, profile-indicated levers still ahead:
+
+1. **The per-rule annotation-table lookups.** Every rule entry hashes its name into the
+   directive table even for grammars with no annotations on that rule; a faster hasher
+   and/or generating the lookup away for annotation-free rules removes it.
+2. **Per-speculation allocation churn.** The parse nodes built for each attempted branch and
+   dropped on backtrack are the bulk of the 59%; arena/reuse strategies target this directly.
+3. **First-set predictive dispatch.** The deepest lever: skip alternatives that *cannot*
+   match the next character instead of trying them all. This attacks the multiplier itself
+   rather than the per-attempt cost — larger, and sequenced last because it is the most
+   structural.
+4. **Backtrack-path trace strings.** The ~4% spent formatting rollback-context strings that
+   are discarded when tracing is off — a codegen change, sequenced after the engine wins.
+
+### The gap is generator maturity, not "generated vs hand-tuned"
+
+It is tempting to frame this as "a *generated* parser can never catch *hand-tuned* C." That
+framing is wrong, and it is worth being precise about why, because it sets the ceiling for the
+whole campaign.
+
+**Code generation is a *superset* of hand-writing, not a weaker cousin.** Anything a
+performance-obsessed engineer would write, a generator can emit — there is no expressiveness
+barrier. And it can go *further*: no human will hand-specialize hundreds of parse rules into
+individually inlined, unrolled, allocation-free functions and then *maintain* them — a
+generator emits exactly that, uniformly, without tiring. This is not theory. The fastest
+scanners and parsers in the wild are *generated* — Ragel, re2c, flex, protobuf/Cap'n Proto
+codegen — and they routinely match or beat hand-written equivalents. **Generated is not slow;
+generated-but-naive is slow.**
+
+So the real gap is not "generated vs hand-tuned." It is **"the generator currently emits a
+naive pattern vs the fast pattern it could emit."** Today codegen emits generic
+recursive-descent packrat with per-backtrack allocation and try-every-alternative tournaments.
+Teach the generator to emit the *fast* pattern — arena allocation, first-set dispatch,
+specialized per-rule code, no per-speculation overhead — and the **output is the same native
+code a hand-tuner would write**. That is a *maturity* gap, and maturity gaps close.
+
+**A correction worth stating plainly: we are not racing a JIT.** PCRE2's JIT is its *matching*
+engine. What this campaign races is PCRE2's **compile** step (RGX's compile time = our parse
+time), and PCRE2's compiler is *just hand-written C* — no JIT on the other side of the parse-time
+race. The only thing genuinely reserved for hand-code-plus-JIT is *runtime, data-dependent*
+specialization to a specific pattern, and that is a *matching* concern — irrelevant to a
+one-shot parse. So for the goal that actually matters here, **there is no intrinsic barrier.**
+
+This reframes the campaign and — not by accident — aligns it with PGEN's founding doctrine:
+**every speed lever should land as a codegen or shared-engine-primitive capability** (teach the
+generator to emit the fast pattern), so every win is *parser-agnostic* — SystemVerilog, VHDL,
+JSON and the RTL front-ends all get faster from the same change. That is strictly better than
+hand-tuning one parser: we tune the *compiler*, and every language it compiles inherits the win.
+
+Honest about effort, not about ceilings: reaching hand-tuned quality is real work — arena
+allocation, predictive dispatch and per-rule specialization are non-trivial codegen changes,
+landed one measured step at a time. But the ceiling is *hand-tuned-C parse speed*, not "5× is
+the best a generator can do." The scoreboard exists so the distance to that ceiling is always
+visible, and so every step toward it is a *measured* step, not a hopeful one.
