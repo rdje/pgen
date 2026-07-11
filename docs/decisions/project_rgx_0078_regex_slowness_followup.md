@@ -256,3 +256,31 @@ build-process investment (modest, uncertain, with a shipping decision) or the co
 work (higher-EV, attacks the profiled malloc). Both are substantial. My lean: do the PGO measurement next
 (it completes `.4` and is low-correctness-risk since a build can't change semantics), deferring the PGO
 *shipping* decision until the number is in hand; then take the `.5` engine levers as fresh, careful slices.
+
+**[director steered → "PGO next"]**
+
+---
+
+**✗ PGO MEASURED MODEST, NOT LANDED (RGX-0078·4.c, session #92, 2026-07-12) — the build-flag phase is COMPLETE.**
+Director chose "PGO next," so it was measured (feasible: `llvm-profdata` in the rustup llvm-tools sysroot).
+Ceiling probe (single-binary, train+measure on the bench = optimistic upper bound): instrument build (redone
+WITHOUT fat-LTO after `-Cprofile-generate`+`lto=fat` proved pathologically slow — the correct methodology, LTO
+belongs on the optimized build) → train → `llvm-profdata merge` → optimized build (fat-LTO + `-Cprofile-use`)
+→ alternate vs the saved fat-LTO-only binary. **Result: fat-LTO `308.6µs` vs fat-LTO+PGO `305.4µs` = ~−1.0%**
+(consistent both rounds). ⚠️ LOWER BOUND: 10,322 `no profile data available` warnings — the non-LTO/cu=16
+instrument vs fat-LTO/cu=1 optimize inline differently, so PGO only partially applied (the hot leaf functions
+most likely matched, so ~−1% is a reasonable-if-conservative estimate). **DECISION (autonomous, robust to the
+exact number): do NOT land PGO.** (1) Bounded ceiling — the `.2` profile pins 59% malloc, which PGO cannot
+reduce (it improves layout, not allocation), so it structurally can't be a large win (even the optimistic
+overfit ceiling was ~−1%). (2) Shipping burden — landing PGO means baking an instrument→train→merge→rebuild
+pipeline + a reproducible training corpus into RGX's build, unjustified by ~1-few% when the `.5` engine levers
+attack the actual bottleneck with simpler parser-agnostic source changes. The exact clean number (needs the
+~30 min fat-LTO instrument) is NOT decision-relevant. NO code change; NO shipping decision to surface.
+
+**FREE-AOT BUILD-FLAG PHASE (`.4`) COMPLETE.** Scoreboard: `.4.a` LTO+cu=1 **LANDED −6.7%** (shipped) · `.4.b`
+target-cpu=native **REJECTED** (~+4% regression) · `.4.c` PGO **measured-modest** (~−1% lower bound, not landed).
+The takeaway for the campaign: the cheap, safe, correctness-neutral build-flag wins are exhausted (one real
+win); the remaining speed lives in the profile-indicated **`.5` SOURCE/ENGINE levers** — per-speculation
+arena/reuse (the 59% malloc), FxHash/codegen-elided per-rule annotation lookups (~6% SipHash), first-set
+predictive dispatch (the backtracking multiplier) — which are higher-EV but correctness-RISKY (each must pass
+the full oracle battery under the ⛔ HARD constraint) and deserve fresh, dedicated slices.

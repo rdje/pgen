@@ -1,4 +1,16 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-12 - PGEN-RGX-0078-0005 — RGX-0078.4.c: PGO measured modest (~−1% lower bound), NOT landed — build-flag phase complete
+
+**What.** No code change. Measured PGO's benefit on the shipped fat-LTO config (director steered "PGO next").
+
+**Method + gotcha (kept).** Single-binary ceiling probe (train+measure on the bench = optimistic upper bound). The instrument build with `-Cprofile-generate` + `lto=fat` is PATHOLOGICALLY slow (killed at 23 min, still going) — instrumentation counters on every function then whole-program LTO over them. The correct methodology: instrument WITHOUT fat-LTO (`CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`, 16m53s — the instrument build only records branch weights; LTO belongs on the optimized build). Then: run the instrumented binary → 16 `.profraw`; `llvm-profdata merge` (via the rustup llvm-tools sysroot binary) → 20 MB `merged.profdata`; optimized build `RUSTFLAGS="-Cprofile-use=… -Cllvm-args=-pgo-warn-missing-function"` (fat-LTO + cu=1 from Cargo.toml, 10m30s); alternate back-to-back vs the saved fat-LTO-only binary.
+
+**Result.** fat-LTO `309,369 / 307,841 ns` vs fat-LTO+PGO `305,745 / 305,151 ns` = **~−1.0%** (PGO consistently faster both rounds, distinct sha256). ⚠️ LOWER BOUND: **10,322** `no profile data available for function` warnings — the non-LTO/cu=16 instrument and fat-LTO/cu=1 optimize builds inline differently, so most functions' CFG hashes didn't match and PGO only partially applied. The hot leaf functions (called often, less likely to be inlined away) most likely matched, so ~−1% is a reasonable-if-conservative estimate; a fully-clean number needs the ~30 min fat-LTO instrument.
+
+**Decision (autonomous, robust to the exact number): do NOT land PGO.** (1) Bounded ceiling — the `.2` profile pins 59% malloc, which PGO cannot reduce (it improves layout, not allocation), so it structurally can't be a large win (even the optimistic overfit ceiling was ~−1%). (2) Shipping burden — landing PGO means baking an instrument→train→merge→rebuild pipeline + a reproducible training corpus into RGX's build, unjustified by ~1-few% vs the `.5` engine levers (simpler parser-agnostic source changes attacking the actual malloc). **This completes the free-AOT build-flag phase (`.4`):** `.4.a` LTO+cu=1 landed −6.7%, `.4.b` target-cpu rejected (+4%), `.4.c` PGO modest/not-landed. The real remaining speed is the `.5` source/engine levers.
+
+**Also (artifact cleanup, per the directive).** Freed ~86G disk: `target/debug/deps` (59G) + `target/debug/incremental` (14G) — pure build cache; the standalone `ast_pipeline`/`regex_corpus_probe` debug binaries survive (a rebuild recompiles the cache) — plus isolated regenerable gate target-dirs (`parse_harness_*`, `ebnf_frontend_build`, ~11G) and stale `/tmp` binaries. Disk 41G→127G free. Safe during the in-flight release build (disjoint: the release build touches only `target/release/`).
+
 ## 2026-07-11 - PGEN-RGX-0078-0004 — RGX-0078.4.b: `target-cpu=native` measured and REJECTED (a negative result worth recording)
 
 **What.** No code change. Measured whether `RUSTFLAGS="-C target-cpu=native"` (on top of the `.4.a` fat-LTO release profile) speeds up the regex parse, and it does NOT — it regresses it ~4%. Recorded so no future session re-treads it.

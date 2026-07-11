@@ -217,6 +217,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 1 | **Rollback scope-restoration guard** — skip the active-chain clone + `scopes` rebuild on the backtrack path when no scope state changed | engine (shared runtime) | 422 µs → **344 µs** | **−18.6%** | **landed** ✓ |
 | RGX-0078 · 4.a | **Free AOT build flags** — `[profile.release] lto="fat" + codegen-units=1` (was cargo defaults: no LTO, 16 codegen units) | build config (parser-agnostic) | 332 µs → **310 µs** | **−6.7%** | **landed** ✓ |
 | RGX-0078 · 4.b | `target-cpu=native` (on top of 4.a) — commonly assumed a free win | build flag (machine-specific) | 313 µs → 324–327 µs | **+4% (worse)** | **rejected** ✗ |
+| RGX-0078 · 4.c | PGO (profile-guided optimization, on top of 4.a) | build process | 308.6 µs → 305.4 µs | −1% (lower bound) | **not landed** ✗ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -243,6 +244,19 @@ native-codegen SIMD setup only bloats the code and hurts instruction-cache local
 that a build flag's reputation is no substitute for a measurement: this one was rejected, and it is also
 machine-specific (a `native` binary is not portable), so it is left off entirely — downstream consumers
 should not assume `target-cpu` helps their workload without measuring it.
+
+**Lever RGX-0078·4.c (PGO) — measured modest, not landed.** The last build-flag lever is profile-guided
+optimization: build an instrumented binary, run it on a training workload to record which branches are hot,
+then rebuild using that profile so the compiler lays out and inlines for the real execution pattern. It is
+the closest AOT analog to what a JIT does. Measured on top of fat-LTO, it came in at about **−1%** (a
+conservative lower bound — the instrument and optimized builds inlined differently, so the profile only
+partially applied). It is a small, real win, but it is *not landed*, for two reasons that hold regardless of
+the exact number. First, its ceiling is bounded: the profile shows the dominant cost is allocation (59%),
+and PGO improves code layout, not allocation volume — so it structurally cannot be a large win here. Second,
+unlike a drop-in flag, PGO is a build *process* — it would require baking an instrument→train→rebuild
+pipeline (and a representative, reproducible training corpus) into how the parser ships, a real complexity
+cost that a low-single-digit gain does not justify when the engine levers below attack the actual bottleneck
+directly.
 
 **Lever RGX-0078·1 in plain terms.** Every failed speculation calls the semantic runtime's
 *rollback*, which restored scope bookkeeping by cloning a vector and rebuilding another —
