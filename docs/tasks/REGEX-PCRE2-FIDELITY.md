@@ -1214,23 +1214,37 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
     interpreter-probed, see the `.4.7.a` implementation section). `scs_capture_name_ref` extracts `$2.name` to
     keep the embedded `captures` AST byte-identical. Validator's NAMED branch + `CaptureInventory.names` DELETED
     (behavior-neutral migration). Full evidence: the `.4.7.a` implementation section + Acceptance Checklist below.
-  - ID: `.4.7.b` Status: `pending` Goal: ABSOLUTE numeric (`(*scs:(N))`, N≥1 → `fact_count_at_least(
-    regex_capture_group, $value) phase: final`) + BACKWARD-relative (`(*scs:(-N))`, N≥1 → `fact_count_at_least(
-    regex_capture_group, $value) phase: post` = prior_count ≥ N) scan-substring refs grammar-owned, plus the
-    RELATIVE-ZERO correctness fix (`(*scs:(0))`/`(*scs:(+0))`/`(*scs:(-0))` reject structurally — value 0 is
-    never valid: absolute-0 = PCRE2 err 115, relative-0 = err 126). ⚠️ The released validator currently
-    **accepts-invalid** `(*scs:(+0))` (resolves to prior_count, e.g. 1 → accepts) — a pre-existing divergence
-    this leaf FIXES (ledger `REGEX-00xx`). Requires splitting `scs_capture_number` by sign into homogeneous
-    absolute/`+`/`-` rules (preserving the `{sign, value}` shape), gating absolute at `final` and `-N` at
-    `post`. Shrinks `validate_scan_substring_capture_refs` to `+N`-only.
-  - ID: `.4.7.c` Status: `pending` (BLOCKED on a new primitive) Goal: FORWARD-relative `(*scs:(+N))` (N≥1)
-    grammar-owned → final `find_invalid_scan_substring_capture_list` deletion. `+N` valid ⟺
+  - ID: `.4.7.b` Status: **`done`** (`PGEN-REGEX-PCRE2-0047`, session #89; behavior-CHANGING accepts-invalid FIX,
+    release `1.1.103`→`1.1.104` / contract `1.1.105`→`1.1.106` / schema `1` / ledger `REGEX-0113` per the `.4.11`
+    precedent) Goal (REVISED): the RELATIVE-ZERO correctness fix ONLY — `(*scs:(+0))`/`(*scs:(-0))` (incl.
+    leading-zero `+00`/`-00`) now REJECT (PCRE2 err 126 "a relative value of zero is not allowed"). The released
+    validator ACCEPTED-invalid these (`+0`→prior_count, `-0`→prior_count+1, both in range). Fixed with a SINGLE
+    validator guard (`is_relative_reference && reference == 0` in `validate_scan_substring_capture_refs`); absolute
+    `0`/`00` already rejected (resolved index 0). **The grammar sign-split migration (absolute `phase:final` +
+    backward `-N` `phase:post`) was BUILT + oracle-proven in-slice, then REVERTED and ABSORBED into `.4.7.c` — a
+    WITNESSING WALL (below) makes it not-cleanly-achievable now, and it carries ZERO correctness value (the
+    validator already handles absolute/backward correctly), so only the real bug is fixed.** See the `.4.7.b`
+    implementation section + Acceptance Checklist below.
+  - ID: `.4.7.c` Status: `pending` (BLOCKED on a new primitive) Goal: migrate the scan-substring NUMERIC refs
+    (ABSOLUTE `(*scs:(N))`, BACKWARD `(*scs:(-N))`, FORWARD `(*scs:(+N))`) into the grammar → final
+    `find_invalid_scan_substring_capture_list` deletion. **🧱 WITNESSING WALL (discovered `PGEN-REGEX-PCRE2-0047`,
+    tools-first cert-coverage):** sound scs generation is ABSOLUTE-ONLY — the `@gen_predicate
+    fact_count_at_least(regex_capture_group, $value)` compiles to a VALUE-DRAW `IndexUpTo` that replaces
+    `scs_capture_number`'s whole render with an integer in `1..=prior_count` (empirically 0 signed scs refs in 60k
+    stimuli). So a sign-split into `scs_capture_number_{absolute,backward,forward}` rules cannot keep BOTH
+    `fully_certified` AND `spf=0`: with whole-render-replace the signed rules are never generated ⇒ `UNKNOWN=2`
+    (cert regress, measured); with generation DESCENT the forward `+N` branch draws N≤prior_count and renders
+    `+N` — UNSOUND (no group at-or-after) ⇒ the validator rejects it ⇒ `spf` spike. Backward `-N` alone IS
+    soundly generatable (literal `-` + int≤prior) but cannot be isolated from forward without a branch-suppression
+    mechanism that does not exist (no `@gen_weight`/`@gen_never`); and any scs-specific signed rule loses the
+    shared-`signed_digits`-via-subroutines witness the current design relies on. Forward `+N` valid ⟺
     `prior_count + N ≤ full_count` ⟺ "≥ N capture groups defined AT-OR-AFTER this position" — a SUFFIX/forward
-    count no existing predicate expresses (`fact_count_at_least phase:final` = whole-pattern total; `phase:post`
-    = prior only; neither is position-relative-suffix, and there is no count arithmetic). Needs a new
-    parser-agnostic **forward/suffix-count** primitive (or the count-plus-offset extension). 🔎 SURFACED for the
-    director (see the Changelog callout). Until then `+N` (N≥1) stays in the shrunken validator — correctness
-    preserved (PCRE2-faithful), full deletion deferred.
+    count no predicate expresses AND the cert reach-driver cannot synthesize (its target-own-structure pass forces
+    the rule but not a trailing group, so `+N` probes fail to re-parse ⇒ `SelectedButFailed`). **Needs a new
+    parser-agnostic forward/suffix-count primitive** (which ALSO unblocks sound forward generation/witnessing).
+    🔎 SURFACED for the director (see the Changelog callout + `docs/decisions/`). Until then ALL numeric scs refs
+    stay validator-owned — correctness is PCRE2-faithful (the `.4.7.b` relative-zero fix included), full validator
+    deletion deferred.
 - ID: `.4.8` Status: `pending` Goal: encode start-option POSITION — a recognized `(*UTF)`… start option
   must appear only at the very start of the ENTIRE pattern, before any other construct AND not nested
   (`a(*CR)b`/`a(*LIMIT_HEAP=500)`/`(*FAIL)(*LIMIT_HEAP=5)a` FLAT-reject; `((*CRLF)a)`/`(?:(*CRLF)a)`/
@@ -1824,6 +1838,67 @@ test `.4.11` left behind, NOT a `.4.7.a` regression (the rules `python_named_bac
   `regex_v1.json` re-synced (3 entries); regex book (`scan-substring` / scs reference doc) + top-book + this
   tree + `MEMORY.md` + `CHANGES.md`. No ledger row (behavior-neutral migration; the accepts-invalid FIX is
   `.4.7.b`'s relative-zero).
+
+### REGEX-PCRE2-FIDELITY.4.7.b — relative-zero scan-substring accepts-invalid FIX + the numeric-migration WITNESSING WALL (`PGEN-REGEX-PCRE2-0047`, session #89)
+
+**What landed.** A behavior-CHANGING accepts-invalid FIX: a RELATIVE scan-substring capture reference of value
+zero (`(*scs:(+0))` / `(*scs:(-0))`, incl. leading-zero `+00`/`-00`) now REJECTS (PCRE2 err 126). One validator
+guard in `validate_scan_substring_capture_refs` (`is_relative_reference && reference == 0`). Release
+`1.1.103`→`1.1.104`, contract `1.1.105`→`1.1.106`, schema `1`, ledger `REGEX-0113` (per the `.4.11` precedent).
+
+**🧱 WHY it is ONLY the validator fix (the numeric grammar migration was built, oracle-proven, then REVERTED).**
+The original `.4.7.b` plan (split `scs_capture_number` by sign → absolute `phase:final` + backward `-N`
+`phase:post`, shrink the validator to `+N`) was fully implemented AND verified correct at the grammar layer
+(interpreter de-risk 14/14; full-pipeline oracle matrix green). But cert-coverage then exposed a WITNESSING WALL
+(tools-first — the cert `UNKNOWN` list named the exact rules):
+- Sound scs generation is ABSOLUTE-ONLY. The `@gen_predicate fact_count_at_least(regex_capture_group, $value)`
+  compiles to a VALUE-DRAW `IndexUpTo` that replaces `scs_capture_number`'s WHOLE render with an integer in
+  `1..=prior_count` (`stimuli_generator.rs:1190`), never descending into the sign branches — empirically **0
+  signed scs refs across 60k stimuli** (3 seeds × 20k).
+- With whole-render-replace kept, the split's `scs_capture_number_backward`/`_forward` rules are never generated
+  ⇒ cert `UNKNOWN=2 fully_certified=false` (**measured**, seed 0) — a `fully_certified` regress.
+- With generation DESCENT + a leaf value-draw, backward `-N` becomes sound+witnessed, but the forward `+N` branch
+  draws N≤prior_count and renders `+N` (unsound — no group at-or-after) ⇒ the validator rejects it ⇒ **spf spike**
+  (the [[project_gen_side_no_lacks_fact_branch_prune]] class, the `.4.8` A′ trap). There is no branch-suppression
+  mechanism (`@gen_weight`/`@gen_never` do not exist), and forward `+N` is the exact blocked class of `.4.7.c`
+  (its validity is a SUFFIX/forward count the reach-driver cannot synthesize — `SelectedButFailed`).
+- The migration also carries ZERO correctness value (the validator already handles absolute/backward correctly;
+  only `+0`/`-0` is a real bug). So the split was reverted and the numeric migration ABSORBED into `.4.7.c` (to
+  land as a UNIT when the forward/suffix-count primitive exists, which also unblocks sound forward witnessing).
+
+**`.4.7.b` Acceptance Checklist** (root cause + addressed + no regression):
+- [x] **REPRODUCE / ISSUE** — `parseability_probe --parse regex '()(*scs:(+0)a)'` → ACCEPT (full pipeline,
+  parse+validator), where `pcre2test` 10.47 `/()(*scs:(+0)a)/` = err 126. Confirmed on the LIVE released pipeline
+  (the probe applies the validator — proven by the `(0)`-rejects/`(+0)`-accepts asymmetry). Accepts-invalid set:
+  `()(*scs:(+0)a)` `()(*scs:(-0)a)()` `()(*scs:(+00)a)` `()(*scs:(-00)a)()` `()(*scs:(1,+0)a)`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — tools-first (`pcre2test` oracle + validator source read + probe): WHERE =
+  `rust/src/regex_compile_validation.rs::validate_scan_substring_capture_refs`; WHY = it resolves a relative ref
+  by arithmetic (`+N`→prior_count+N, `-N`→prior_count+1-N) and rejects only a 0/out-of-range RESOLVED index, with
+  NO guard on the relative reference VALUE being 0 — so `+0`→prior_count (≥1) and `-0`→prior_count+1 pass. PCRE2
+  rejects a relative value of ZERO structurally (err 126) before resolution. The oracle also fixed the design:
+  leading zeros are LEGAL and value-decoded (`(01)`=1 ACCEPT) but all-zero rejects (`(00)`=0), so the reject is
+  VALUE-based, not digit-prefix-based.
+- [x] **FIX** — fix-hierarchy **level 2** (the existing owner: the scs numeric refs are validator-owned and stay
+  so until `.4.7.c`). One guard: `if is_relative_reference && reference == 0 { reject }`. NO grammar/generated
+  change (grammar byte-unchanged ⇒ generated parser byte-unchanged). The grammar migration (fix-hierarchy level 1)
+  was attempted first and is DEFERRED for the witnessing-wall reason above (documented, not a shortcut).
+- [x] **ADDRESSED (verified)** — `pcre2test` 10.47 oracle (err 126); validator unit test
+  `rejects_scan_substring_relative_zero_capture_refs`; full-pipeline registry pin
+  `regex_scan_substring_relative_zero_refs_reject_pcre2_faithfully` (5 rejects incl. mixed list + leading-zeros,
+  4 nonzero-accept regression guards, both profiles reject the zero forms). `+0`/`-0` flip ACCEPT→REJECT;
+  absolute `0`/`00` unchanged (already rejected); every nonzero ref unchanged.
+- [x] **NO REGRESSION** — grammar byte-unchanged ⇒ regex cert-coverage `total=267 witness=258 UNKNOWN=0
+  fully_certified=true spf=0` at seeds 0/7/42 (fully_certified PRESERVED — the wall avoided); the `.4.7.a` named
+  test + all scs validator/registry tests green; `regex_parser_pgen_rgx_0086_embedding_version_consts_match_ledger`
+  + `regex_parser_integration_contract_metadata_is_stable` green (consts↔ledger↔manifest = 1.1.104/1.1.106);
+  clippy source-strict exit 0. Equivalence/semantic/shape-contract gates structurally unaffected (grammar
+  byte-identical).
+- [x] **LOCKSTEP** — release+contract bump (embedding_api consts + JSON manifest `regex_parser_integration_contract_v1.json`
+  + contract doc identity + a new "Release 1.1.104 / Contract 1.1.106 Highlights"); ledger `REGEX-0113`; regex
+  book `changelog-index.md` + `compile-contract-validator.md` (scs numeric row: relative-zero fix, still
+  validator-owned) + HTML regen; top-book `parser-families.md` handoff changelog; `.4.7.c` updated (absorbs the
+  numeric migration + the witnessing wall); a durable decision note in `docs/decisions/`; this tree + `TASK_TREE.md`
+  + `LIVE_ACHIEVEMENT_STATUS.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
 
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 

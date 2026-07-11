@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-11 - PGEN-REGEX-PCRE2-0047 — REGEX-PCRE2-FIDELITY.4.7.b: relative-zero scan-substring reject (accepts-invalid FIX) + the numeric-migration WITNESSING WALL
+
+**What.** Release `1.1.103`→`1.1.104`, contract `1.1.105`→`1.1.106`, schema `1`, ledger `REGEX-0113`. A RELATIVE scan-substring capture ref of value zero — `(*scs:(+0))` / `(*scs:(-0))`, incl. leading-zero `+00`/`-00` — now REJECTs (PCRE2 err 126); the released validator ACCEPTED-invalid these (`+0`→prior_count, `-0`→prior_count+1). One validator guard; grammar byte-unchanged.
+
+**Why only the validator fix (the WALL).** The planned sign-split grammar migration (absolute `phase:final` + backward `-N` `phase:post`, shrink validator to `+N`) was built + oracle-proven, then REVERTED. cert-coverage showed sound scs generation is ABSOLUTE-ONLY (the `@gen_predicate` `IndexUpTo` value-draw whole-render-replaces `scs_capture_number` with `1..=prior_count`; 0 signed refs in 60k), so a sign-split cannot keep both `fully_certified` (signed rules `UNKNOWN=2`, measured) and `spf=0` (descent renders unsound `+N` → validator reject → spf). Forward `+N` is the blocked `.4.7.c` forward/suffix-count class. Migration ABSORBED into `.4.7.c`; only the real bug fixed. Decision: `docs/decisions/project_scs_numeric_migration_witnessing_wall.md`. **General rule:** sound generation gates a validator→grammar per-branch migration.
+
+**Verification.** `pcre2test` 10.47 (err 126); `parseability_probe` confirmed the pre-fix accept; new validator + full-pipeline registry pins (both profiles); regex cert `267/267 UNKNOWN=0 fully_certified=true spf=0` seeds 0/7/42 (grammar byte-unchanged); consts↔ledger↔manifest drift gates green (`1.1.104`/`1.1.106`); clippy source-strict exit 0.
+
 ## 2026-07-11 - PGEN-REGEX-PCRE2-0046 — REGEX-PCRE2-FIDELITY.4.7.a: NAMED scan-substring capture references are GRAMMAR-owned (2nd consumer of `phase: final`; behavior-neutral)
 
 **What.** NAMED scan-substring refs `(*scs:(<name>))` / `(*scs:('name')` are now grammar-owned via a

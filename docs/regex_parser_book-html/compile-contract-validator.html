@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fe666487.js";
+            window.path_to_searchindex_js = "searchindex-e9201350.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -322,7 +322,7 @@ at <code>--parse</code> (accepts-invalid → PCRE2-convergent reject); corpus-in
 UNCHANGED 92/26). Cert 249→251 (+2 lookahead-only PROOF rules), ast_shape 18/18 (3 inventory entries
 re-baselined <code>$2</code>→<code>$3</code>; accepted-AST byte-identical), oracle byte-identical <code>2189/1867/274/48</code>, duality
 unchanged. This does NOT delete the range-check — the blocked-descending endpoints still keep it wired.
-| Scan-substring <strong>NUMERIC</strong> capture inventory — <code>(*scs:(N))</code> must reference an available numbered capture (the NAMED half migrated out in <code>.4.7.a</code>) | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code> | <code>.4.7.b</code>/<code>.4.7.c</code> |
+| Scan-substring <strong>NUMERIC</strong> capture inventory — <code>(*scs:(N))</code>/<code>(*scs:(±N))</code> must reference an available capture; a RELATIVE reference of value zero (<code>(*scs:(+0))</code>/<code>(*scs:(-0))</code>) is rejected (<code>.4.7.b</code>, ledger <code>REGEX-0113</code> — PCRE2 err 126; the NAMED half migrated out in <code>.4.7.a</code>) | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code>, <code>()(*scs:(+0)a)</code> | <code>.4.7.c</code> (grammar migration BLOCKED — witnessing wall) |
 | <strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded | <code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code> | <code>.4.9</code> |</p>
 </blockquote>
 <p>Already migrated <strong>out</strong> of the validator (now grammar-owned, listed here for the audit
@@ -363,9 +363,14 @@ pattern (forward references legal) — is now grammar-owned too (<code>.4.7.a</c
 of the <code>phase: final</code> whole-input deferred-obligation primitive after <code>.4.11</code>: a
 <code>has_fact(regex_defined_capture_name, $name) phase: final</code> gate on <code>scs_capture_name</code>, reshaped
 <code>-&gt; { name: $1 }</code> so <code>$name</code> resolves; behavior-neutral, the validator’s NAMED branch +
-<code>CaptureInventory.names</code> DELETED). The NUMERIC scan-substring inventory stays validator-owned
-pending <code>.4.7.b</code> (absolute + <code>-N</code>) / <code>.4.7.c</code> (<code>+N</code>, which needs a new forward/suffix-count
-primitive).</p>
+<code>CaptureInventory.names</code> DELETED). The NUMERIC scan-substring inventory stays validator-owned:
+<code>.4.7.b</code> (ledger <code>REGEX-0113</code>) fixed the one real accepts-invalid in it — a RELATIVE reference of
+value zero (<code>(*scs:(+0))</code>/<code>(*scs:(-0))</code>, PCRE2 err 126) was ACCEPTED (it resolved <code>+0</code>→prior_count,
+<code>-0</code>→prior_count+1) and now REJECTS via a single value guard. The full grammar migration of the
+numeric refs is DEFERRED to <code>.4.7.c</code> (a WITNESSING WALL: sound scan-substring generation is
+absolute-only, so a sign-split regresses <code>fully_certified</code> or <code>spf</code> — see
+<code>docs/decisions/project_scs_numeric_migration_witnessing_wall.md</code>; forward <code>+N</code> also needs a new
+forward/suffix-count primitive).</p>
 <h2 id="which-layer-rejected-my-pattern"><a class="header" href="#which-layer-rejected-my-pattern">Which layer rejected my pattern?</a></h2>
 <p>Because the two layers run in series, the <strong>rejection message names its own source</strong>,
 and a one-line probe classifies any reject without guessing. This is the

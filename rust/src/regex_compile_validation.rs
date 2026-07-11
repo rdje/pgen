@@ -856,6 +856,7 @@ fn validate_scan_substring_capture_refs(
         // they never reach this validator on a defined name and fall through here to
         // the numeric parse below, which fails to parse them and skips (no error).
 
+        let is_relative_reference = item.starts_with('+') || item.starts_with('-');
         let numeric_reference = item
             .strip_prefix('+')
             .or_else(|| item.strip_prefix('-'))
@@ -863,6 +864,22 @@ fn validate_scan_substring_capture_refs(
         let Ok(reference) = numeric_reference.parse::<usize>() else {
             continue;
         };
+
+        // REGEX-PCRE2-FIDELITY.4.7.b (ledger `REGEX-0113`): a RELATIVE reference of value zero
+        // (`+0` / `-0`, including leading-zero forms like `+00` / `-000`) is PCRE2 err 126 ("a
+        // relative value of zero is not allowed"). The released validator ACCEPTED these
+        // accepts-invalid: `+0` resolved to `prior_count` and `-0` to `prior_count + 1`, both in
+        // range. Reject them up front. (An ABSOLUTE `0` / `00` already rejects below because its
+        // `resolved_reference` is 0.) The grammar migration of the numeric refs is deferred to
+        // `.4.7.c` — a sign-split creates scs-specific `+N` / `-N` rules the generator cannot
+        // witness soundly (forward `+N` needs the blocked forward/suffix-count primitive), so the
+        // numeric refs stay validator-owned for now (this is the surgical correctness fix only).
+        if is_relative_reference && reference == 0 {
+            return Some(RegexCompileValidationError::new(
+                start,
+                "scan_substring capture list references an unavailable capture",
+            ));
+        }
 
         let resolved_reference = if item.starts_with('+') {
             prior_inventory.count.saturating_add(reference)
@@ -1416,10 +1433,33 @@ mod tests {
         // `()()(*scs:(1,2,'XYZ'))`) moved to the grammar-layer test
         // `parser_registry::tests::regex_scan_substring_named_refs_reject_at_the_grammar_layer`
         // — the validator no longer checks named references, so it would return Ok on
-        // them here. These pure-NUMERIC cases stay validator-owned until `.4.7.b`.
+        // them here. These pure-NUMERIC cases stay validator-owned until `.4.7.c`.
         for input in ["(*scs:(1)a|b)", "(*scs:(0)a)", "()(*scs:(1,2))"] {
             let error = validate_regex_compile_contract(input)
                 .expect_err("must reject unavailable scan_substring capture");
+            assert!(error.message.contains("scan_substring"));
+        }
+    }
+
+    #[test]
+    fn rejects_scan_substring_relative_zero_capture_refs() {
+        // REGEX-PCRE2-FIDELITY.4.7.b (ledger `REGEX-0113`): a RELATIVE reference of value zero
+        // (`+0`/`-0`, incl. leading-zero forms) is PCRE2 err 126 ("a relative value of zero is
+        // not allowed"). The released validator ACCEPTED-INVALID these (`+0` → prior_count, `-0`
+        // → prior_count+1, both in range). `()` supplies a prior group so the OLD resolve landed
+        // in range (isolating the fix from the plain out-of-range path). Mixed lists reject on the
+        // zero item. Absolute `0`/`00` already rejected pre-fix (`resolved == 0`).
+        // `+0` resolves to prior_count (in range with 1 prior group); `-0` to prior_count+1 (needs
+        // a TRAILING group to have been OLD-accepted rather than rejected as out-of-range).
+        for input in [
+            "()(*scs:(+0)a)",
+            "()(*scs:(-0)a)()",
+            "()(*scs:(+00)a)",
+            "()(*scs:(-00)a)()",
+            "()(*scs:(1,+0)a)",
+        ] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("a relative-zero scan_substring reference must reject (PCRE2 err 126)");
             assert!(error.message.contains("scan_substring"));
         }
     }

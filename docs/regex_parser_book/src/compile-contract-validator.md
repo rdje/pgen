@@ -150,7 +150,7 @@ As of regex release `1.1.100`, the validator dispatches these families (each row
 > UNCHANGED 92/26). Cert 249→251 (+2 lookahead-only PROOF rules), ast_shape 18/18 (3 inventory entries
 > re-baselined `$2`→`$3`; accepted-AST byte-identical), oracle byte-identical `2189/1867/274/48`, duality
 > unchanged. This does NOT delete the range-check — the blocked-descending endpoints still keep it wired.
-| Scan-substring **NUMERIC** capture inventory — `(*scs:(N))` must reference an available numbered capture (the NAMED half migrated out in `.4.7.a`) | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)` | `.4.7.b`/`.4.7.c` |
+| Scan-substring **NUMERIC** capture inventory — `(*scs:(N))`/`(*scs:(±N))` must reference an available capture; a RELATIVE reference of value zero (`(*scs:(+0))`/`(*scs:(-0))`) is rejected (`.4.7.b`, ledger `REGEX-0113` — PCRE2 err 126; the NAMED half migrated out in `.4.7.a`) | `(*scs:(1)a)`@0-groups, `(*scs:(0)…)`, `()(*scs:(+0)a)` | `.4.7.c` (grammar migration BLOCKED — witnessing wall) |
 | **Unbounded quantified lookbehind** — a variable-length lookbehind body must be bounded | `(?<=a+)b`, `(?<=a{2,})b` | `.4.9` |
 
 Already migrated **out** of the validator (now grammar-owned, listed here for the audit
@@ -191,9 +191,14 @@ pattern (forward references legal) — is now grammar-owned too (`.4.7.a`; the *
 of the `phase: final` whole-input deferred-obligation primitive after `.4.11`: a
 `has_fact(regex_defined_capture_name, $name) phase: final` gate on `scs_capture_name`, reshaped
 `-> { name: $1 }` so `$name` resolves; behavior-neutral, the validator's NAMED branch +
-`CaptureInventory.names` DELETED). The NUMERIC scan-substring inventory stays validator-owned
-pending `.4.7.b` (absolute + `-N`) / `.4.7.c` (`+N`, which needs a new forward/suffix-count
-primitive).
+`CaptureInventory.names` DELETED). The NUMERIC scan-substring inventory stays validator-owned:
+`.4.7.b` (ledger `REGEX-0113`) fixed the one real accepts-invalid in it — a RELATIVE reference of
+value zero (`(*scs:(+0))`/`(*scs:(-0))`, PCRE2 err 126) was ACCEPTED (it resolved `+0`→prior_count,
+`-0`→prior_count+1) and now REJECTS via a single value guard. The full grammar migration of the
+numeric refs is DEFERRED to `.4.7.c` (a WITNESSING WALL: sound scan-substring generation is
+absolute-only, so a sign-split regresses `fully_certified` or `spf` — see
+`docs/decisions/project_scs_numeric_migration_witnessing_wall.md`; forward `+N` also needs a new
+forward/suffix-count primitive).
 
 ## Which layer rejected my pattern?
 

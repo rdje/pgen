@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.105`
+  - `1.1.106`
 - Parser release version:
-  - `1.1.103`
+  - `1.1.104`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -108,6 +108,21 @@ This is the document downstream projects such as RGX should read first when deci
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.104 / Contract 1.1.106 Highlights — REGEX-0113: relative-zero scan-substring capture reference now REJECTS (a genuine accepts-invalid correction — behavior-CHANGING; validator-owned)
+
+A **RELATIVE scan-substring capture reference of value zero** — `(*scs:(+0)…)` or `(*scs:(-0)…)`, including leading-zero forms like `(*scs:(+00))` — now **REJECTS** (`E_PARSE_FAILURE`; PCRE2 10.47 err 126 "a relative value of zero is not allowed"). The released validator ACCEPTED-invalid these: it resolved `+0` to `prior_count` and `-0` to `prior_count + 1` and only rejected an out-of-range or literally-zero *resolved* index — it had no guard on the relative reference **value** itself being 0.
+
+| scan-substring ref | Example | Verdict (before → `1.1.104`) = PCRE2 10.47 |
+| --- | --- | --- |
+| relative `+0` | `()(*scs:(+0)a)` | ACCEPT → **REJECT** (err 126) |
+| relative `-0` | `()(*scs:(-0)a)()` | ACCEPT → **REJECT** (err 126) |
+| relative leading-zero `+00`/`-00` | `()(*scs:(+00)a)` `()(*scs:(-00)a)()` | ACCEPT → **REJECT** (err 126) |
+| mixed list with a `+0` item | `()(*scs:(1,+0)a)` | ACCEPT → **REJECT** (err 126) |
+| Control: absolute `0`/`00` | `(a)(*scs:(0)x)` `(a)(*scs:(00)x)` | REJECT == REJECT (unchanged; err 115) |
+| Control: nonzero absolute/backward/forward | `(a)(*scs:(1)x)` `(a)(*scs:(-1)x)` `(*scs:(+1)a)(b)` `(a)(*scs:(01)x)` | ACCEPT == ACCEPT (unchanged) |
+
+**Scope note.** This is a **validator-tier** correctness fix (a single guard in `regex_compile_validation.rs::validate_scan_substring_capture_refs`): scan-substring **numeric** references stay validator-owned. The grammar migration of the numeric refs is **deferred to `REGEX-PCRE2-FIDELITY.4.7.c`**: a sign-split creates scs-specific `+N`/`-N` rules the stimulus generator cannot witness soundly — sound scs generation is absolute-only (the value-draw draws `1..=prior_count`), so descent generates unsound `+N` (an spf spike) while whole-render-replace leaves the signed rules `UNKNOWN` (a `fully_certified` regress). Forward `+N` is the exact blocked class of `.4.7.c` (it needs a forward/suffix-count primitive the reach-driver cannot synthesize). **Conformance:** `pcre2test` 10.47 oracle (err 126); regex cert-coverage `UNKNOWN=0 fully_certified=true spf=0` at seeds 0/7/42 (grammar byte-unchanged); AST-dump schema stays `1`. **Action for downstream (RGX):** a relative-zero scan-substring reference is PCRE2-invalid — match on the diagnostic **code** (`E_PARSE_FAILURE`), not message text.
 
 ## Release 1.1.103 / Contract 1.1.105 Highlights — REGEX-0098: named-reference UNKNOWN-name reject is now GRAMMAR-owned (a genuine accepts-invalid correction — behavior-CHANGING; the FIRST consumer of the `phase: final` primitive)
 

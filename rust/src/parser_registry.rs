@@ -2178,6 +2178,57 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.7.b (ledger `REGEX-0113`, release bump): a RELATIVE scan-substring
+    /// capture reference of value zero (`(*scs:(+0))` / `(*scs:(-0))`, including leading-zero forms)
+    /// is PCRE2 err 126 ("a relative value of zero is not allowed") and now REJECTS through the full
+    /// pipeline. This FIXES a pre-existing accepts-invalid: the released validator resolved `+0` to
+    /// `prior_count` and `-0` to `prior_count + 1` (both in range) and ACCEPTED them (confirmed on
+    /// the live pipeline via `parseability_probe`). The numeric refs stay validator-owned (the
+    /// sign-split grammar migration is deferred to `.4.7.c` — a forward `+N` rule is unwitnessable
+    /// without the blocked forward/suffix-count primitive). Oracle: `pcre2test` 10.47 err 126.
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_scan_substring_relative_zero_refs_reject_pcre2_faithfully() {
+        // `+0` needs 1 prior group (resolved = prior_count, in range pre-fix); `-0` needs a trailing
+        // group too (resolved = prior_count+1). These ACCEPTED before the fix — they now reject.
+        let rejects = [
+            "()(*scs:(+0)a)",
+            "()(*scs:(-0)a)()",
+            "()(*scs:(+00)a)",
+            "()(*scs:(1,+0)a)",
+        ];
+        for pattern in rejects {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "a relative-zero scan_substring reference must reject: {pattern:?}"
+            );
+        }
+        // Regression guard: valid relative/absolute numeric refs (nonzero) still ACCEPT.
+        let accepts = [
+            "(*scs:(+1)a)(b)", // forward +1, one group AT-OR-AFTER (resolved = prior+1 = 1 = full)
+            "(a)(*scs:(-1)x)", // backward -1, prior=1
+            "(a)(*scs:(1)x)",  // absolute 1
+            "(a)(*scs:(01)x)", // leading-zero absolute => 1
+        ];
+        for pattern in accepts {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "a valid nonzero numeric scan_substring reference must still accept: {pattern:?}"
+            );
+        }
+        // The relative-zero reject is PCRE2-invalid in BOTH profiles (not a relaxed opt-out).
+        for pattern in ["()(*scs:(+0)a)", "()(*scs:(-0)a)()"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject a relative-zero scan_substring reference: {pattern}"
+            );
+        }
+    }
+
     /// REGEX-PCRE2-FIDELITY.4.3 (ledger `REGEX-0104`, release 1.1.94): the counted-quantifier
     /// `{n,m}` min>max ORDER reject (PCRE2 err 104 "numbers out of order in {} quantifier") is now
     /// grammar-owned. The `{n,m}` range form is a dedicated `counted_quantifier_range` rule
