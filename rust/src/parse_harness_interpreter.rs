@@ -1200,6 +1200,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                     .resolve_unified_semantic_properties_against_content(
                         &spec.attributes,
                         root_content,
+                        // FINAL-PHASE-PREDICATE.3: `@emit_fact` is an effect, not a
+                        // predicate — it resolves against the single rule/branch content,
+                        // so its own content is the (inert) fallback and behavior is
+                        // byte-identical to the pre-fallback single-content resolution.
+                        root_content,
                     )?;
                 Ok(transaction.apply_directive(&SemanticRuntimeDirective::EmitFact(
                     SemanticFactSpec {
@@ -1233,6 +1238,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                 let resolved_attributes = self
                     .resolve_unified_semantic_properties_against_content(
                         &spec.attributes,
+                        root_content,
+                        // FINAL-PHASE-PREDICATE.3: `@emit_fact` is an effect, not a
+                        // predicate — it resolves against the single rule/branch content,
+                        // so its own content is the (inert) fallback and behavior is
+                        // byte-identical to the pre-fallback single-content resolution.
                         root_content,
                     )?;
                 Some(SemanticRuntimeDirective::EmitFact(SemanticFactSpec {
@@ -1354,10 +1364,22 @@ impl<'g, 'i> Interp<'g, 'i> {
         &self,
         value: &UnifiedSemanticValue,
         root_content: &ParseContent<'i>,
+        fallback_content: &ParseContent<'i>,
     ) -> ParseResult<UnifiedSemanticValue> {
         match value {
             UnifiedSemanticValue::RuleReference(reference) => self
                 .resolve_semantic_reference(root_content, reference)
+                .or_else(|| {
+                    // FINAL-PHASE-PREDICATE.3: a NAMED / object-key reference absent
+                    // from the primary view falls back to the OTHER content view;
+                    // positional `$N` walks the raw tree structurally and is never
+                    // retried against the other view.
+                    if Self::semantic_reference_is_named(reference) {
+                        self.resolve_semantic_reference(fallback_content, reference)
+                    } else {
+                        None
+                    }
+                })
                 .map(|resolved| self.coerce_unified_semantic_scalar(&resolved))
                 .ok_or_else(|| {
                     self.create_contextual_error(&format!(
@@ -1374,13 +1396,20 @@ impl<'g, 'i> Interp<'g, 'i> {
             UnifiedSemanticValue::Array(elements) => {
                 let mut resolved = Vec::with_capacity(elements.len());
                 for element in elements {
-                    resolved
-                        .push(self.resolve_unified_semantic_value_against_content(element, root_content)?);
+                    resolved.push(self.resolve_unified_semantic_value_against_content(
+                        element,
+                        root_content,
+                        fallback_content,
+                    )?);
                 }
                 Ok(UnifiedSemanticValue::Array(resolved))
             }
             UnifiedSemanticValue::Object(properties) => Ok(UnifiedSemanticValue::Object(
-                self.resolve_unified_semantic_properties_against_content(properties, root_content)?,
+                self.resolve_unified_semantic_properties_against_content(
+                    properties,
+                    root_content,
+                    fallback_content,
+                )?,
             )),
         }
     }
@@ -1392,10 +1421,21 @@ impl<'g, 'i> Interp<'g, 'i> {
         &self,
         value: &UnifiedSemanticValue,
         root_content: &ParseContent<'i>,
+        fallback_content: &ParseContent<'i>,
     ) -> ParseResult<Option<UnifiedSemanticValue>> {
         match value {
             UnifiedSemanticValue::RuleReference(reference) => Ok(self
                 .resolve_semantic_reference(root_content, reference)
+                .or_else(|| {
+                    // FINAL-PHASE-PREDICATE.3: named-reference fallback to the OTHER
+                    // content view (see the hard resolver's note); positional `$N` is
+                    // never retried.
+                    if Self::semantic_reference_is_named(reference) {
+                        self.resolve_semantic_reference(fallback_content, reference)
+                    } else {
+                        None
+                    }
+                })
                 .map(|resolved| self.coerce_unified_semantic_scalar(&resolved))),
             UnifiedSemanticValue::String(text) => {
                 Ok(Some(UnifiedSemanticValue::String(text.clone())))
@@ -1411,8 +1451,12 @@ impl<'g, 'i> Interp<'g, 'i> {
             UnifiedSemanticValue::Array(elements) => {
                 let mut resolved = Vec::with_capacity(elements.len());
                 for element in elements {
-                    let Some(resolved_element) =
-                        self.try_resolve_unified_semantic_value_against_content(element, root_content)?
+                    let Some(resolved_element) = self
+                        .try_resolve_unified_semantic_value_against_content(
+                            element,
+                            root_content,
+                            fallback_content,
+                        )?
                     else {
                         return Ok(None);
                     };
@@ -1424,7 +1468,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                 let mut resolved = Vec::with_capacity(properties.len());
                 for property in properties {
                     let Some(resolved_value) = self
-                        .try_resolve_unified_semantic_value_against_content(&property.value, root_content)?
+                        .try_resolve_unified_semantic_value_against_content(
+                            &property.value,
+                            root_content,
+                            fallback_content,
+                        )?
                     else {
                         return Ok(None);
                     };
@@ -1443,13 +1491,17 @@ impl<'g, 'i> Interp<'g, 'i> {
         &self,
         properties: &[UnifiedSemanticProperty],
         root_content: &ParseContent<'i>,
+        fallback_content: &ParseContent<'i>,
     ) -> ParseResult<Vec<UnifiedSemanticProperty>> {
         let mut resolved = Vec::with_capacity(properties.len());
         for property in properties {
             resolved.push(UnifiedSemanticProperty {
                 key: property.key.clone(),
-                value: self
-                    .resolve_unified_semantic_value_against_content(&property.value, root_content)?,
+                value: self.resolve_unified_semantic_value_against_content(
+                    &property.value,
+                    root_content,
+                    fallback_content,
+                )?,
             });
         }
         Ok(resolved)
@@ -1464,14 +1516,21 @@ impl<'g, 'i> Interp<'g, 'i> {
         raw_content: &ParseContent<'i>,
         shaped_content: &ParseContent<'i>,
     ) -> ParseResult<SemanticPredicateSpec> {
-        let selected_content = match spec.view {
-            SemanticPredicateContentView::Raw => raw_content,
-            SemanticPredicateContentView::Shaped => shaped_content,
+        // FINAL-PHASE-PREDICATE.3 (mirror of the generated resolver): the `view`
+        // selects the PRIMARY content; the OTHER view is the named-reference
+        // fallback, so a MULTI-BRANCH rule's shaped-key `$name` under the default
+        // `view: raw` resolves exactly as a single-branch rule already does.
+        let (selected_content, fallback_content) = match spec.view {
+            SemanticPredicateContentView::Raw => (raw_content, shaped_content),
+            SemanticPredicateContentView::Shaped => (shaped_content, raw_content),
         };
         let mut resolved_args = Vec::with_capacity(spec.args.len());
         for arg in &spec.args {
-            resolved_args
-                .push(self.resolve_unified_semantic_value_against_content(arg, selected_content)?);
+            resolved_args.push(self.resolve_unified_semantic_value_against_content(
+                arg,
+                selected_content,
+                fallback_content,
+            )?);
         }
         Ok(SemanticPredicateSpec {
             name: spec.name.clone(),
@@ -1489,14 +1548,19 @@ impl<'g, 'i> Interp<'g, 'i> {
         raw_content: &ParseContent<'i>,
         shaped_content: &ParseContent<'i>,
     ) -> ParseResult<Option<SemanticPredicateSpec>> {
-        let selected_content = match spec.view {
-            SemanticPredicateContentView::Raw => raw_content,
-            SemanticPredicateContentView::Shaped => shaped_content,
+        // FINAL-PHASE-PREDICATE.3: same primary/fallback view split as the hard
+        // resolver above (mirror of the generated resolver).
+        let (selected_content, fallback_content) = match spec.view {
+            SemanticPredicateContentView::Raw => (raw_content, shaped_content),
+            SemanticPredicateContentView::Shaped => (shaped_content, raw_content),
         };
         let mut resolved_args = Vec::with_capacity(spec.args.len());
         for arg in &spec.args {
-            let Some(resolved_arg) =
-                self.try_resolve_unified_semantic_value_against_content(arg, selected_content)?
+            let Some(resolved_arg) = self.try_resolve_unified_semantic_value_against_content(
+                arg,
+                selected_content,
+                fallback_content,
+            )?
             else {
                 return Ok(None);
             };
@@ -1584,6 +1648,25 @@ impl<'g, 'i> Interp<'g, 'i> {
             Some(resolved.chars().count().to_string())
         } else {
             Some(resolved)
+        }
+    }
+
+    /// FINAL-PHASE-PREDICATE.3 (mirror of the generated `semantic_reference_is_named`):
+    /// is this `$reference` a NAMED / object-key reference (eligible for the other-view
+    /// fallback) rather than a POSITIONAL `$N` one? `$` followed by a digit is positional
+    /// (walks the raw tree by index — never retried against the other view); everything
+    /// else (`$name`, dotted `$a.b`, a bare `name`) is named.
+    fn semantic_reference_is_named(reference: &str) -> bool {
+        let normalized = reference.trim();
+        let core = normalized.strip_suffix(".len").unwrap_or(normalized);
+        match core.strip_prefix('$') {
+            Some(body) => !body
+                .trim()
+                .as_bytes()
+                .first()
+                .map(|byte| byte.is_ascii_digit())
+                .unwrap_or(false),
+            None => !core.trim().is_empty(),
         }
     }
 

@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `FINAL-PHASE-PREDICATE`
-- Status: `active` — REOPENED 2026-07-11 (session #87) with **`.3`** (the multi-branch `view` resolver-robustness follow-up surfaced by the FIRST consumer `REGEX-PCRE2-FIDELITY.4.11`; decision made + build spec frozen, build routed to a fresh session). **`.1` DESIGN DECIDED** (2026-07-10, session #86, `PGEN-FPP-0001`, PURE-DOCS):
+- Status: **`complete`** — all three children landed. **`.3` BUILD LANDED** 2026-07-11 (session #88, `PGEN-FPP-0004`): the multi-branch `view` resolver-robustness follow-up (surfaced by the FIRST consumer `REGEX-PCRE2-FIDELITY.4.11`) — the Option (b)-refined other-view fallback on a NAMED-reference miss, retiring the per-consumer `view: shaped` workaround; INERT on all 11 shipped grammars (byte-identical), semantic-suite 36/36 CLEAN. **`.1` DESIGN DECIDED** (2026-07-10, session #86, `PGEN-FPP-0001`, PURE-DOCS):
   Option B, SOTA-cited, engine BUILD SPEC frozen. **`.2` BUILD LANDED** (2026-07-10, session #86,
   `PGEN-FPP-0002`): the `phase: final` engine primitive shipped identically in the shared runtime, codegen,
   and interpreter mirror, with new semantic-suite cases + coverage, proven in isolation before any consumer.
@@ -122,9 +122,14 @@ Expose a **general, parser-agnostic** fourth `@predicate` phase on the existing 
   `FinalForwardGate` + `FinalRollbackSpeculation`; coverage-completeness recognizes both. Proven in
   isolation (scratch-slot generated parser: forward-ACCEPT `use a;decl a;` rc 0, undefined-REJECT
   `use a;decl b;` rc 1) BEFORE any consumer. See the Acceptance Checklist below.
-- ID: `.3`  Status: `pending` (routed 2026-07-11 session #87 by `PGEN-REGEX-PCRE2-0045`, PURE-DOCS —
-  **decision MADE + build spec FROZEN**; the BUILD is deferred to a fresh session so its multi-build gate
-  re-verification lands at signoff quality on a clean repo)  Goal: CLOSE the multi-branch `view` FOOTGUN
+- ID: `.3`  Status: **`done`** (`PGEN-FPP-0004`, BUILD LANDED 2026-07-11 session #88 on a clean repo, per
+  the frozen spec routed by `PGEN-REGEX-PCRE2-0045`; decision MADE + build spec FROZEN in session #87. The
+  Option (b)-refined resolver fallback shipped identically in the codegen-emitted resolver
+  (`ast_based_generator.rs`) + interpreter mirror (`parse_harness_interpreter.rs`) with the new
+  `semantic_reference_is_named` named-vs-positional helper; `semantic_runtime.rs:3572` needed no change
+  (`content_kind_is` resolves no `$ref`). New MULTI-BRANCH default-view semantic-suite case
+  `sem_final_multibranch_shaped_ref`. See the Acceptance Checklist `.3` below.)  Goal:
+  CLOSE the multi-branch `view` FOOTGUN
   that the FIRST consumer (`REGEX-PCRE2-FIDELITY.4.11`) surfaced — make the shared semantic-predicate
   ARGUMENT RESOLVER resolve a NAMED reference against whichever content-view actually holds it, so a `final`
   (or any-phase) predicate on a MULTI-BRANCH rule resolves a shaped-key `$ref`/`$name` under the DEFAULT
@@ -221,6 +226,61 @@ Expose a **general, parser-agnostic** fourth `@predicate` phase on the existing 
   `TOOLBOX.md` §1.8 (32→35 + the `final` construct) + decision record `BUILD LANDED` anchors + this tree +
   `MEMORY.md` + `CHANGES.md`. No downstream contract/ledger/schema bump (a new engine capability, inert on
   every shipped parser — no released-parser behavior changed).
+
+## Acceptance Checklist (enforced) — `.3` BUILD
+
+- [x] **REPRODUCE / ISSUE** — a MULTI-BRANCH rule carrying a `phase: final` predicate whose arg is a
+  SHAPED object-key `$ref` under the DEFAULT `view: raw` REJECTS even a DEFINED name. Root-caused
+  tools-first in session #87 via `PGEN_TRACE_VERBOSITY=debug … --trace-rules named_backreference` (the
+  trace named the exact resolver error *"could not resolve attribute reference 'ref'"* + rule stack): a
+  multi-branch tournament captures the winner's raw `Sequence` for the final-predicate view, so the shaped
+  key cannot resolve against a `Sequence` (there is no `ref` element); a single-branch rule resolves it
+  only by the `semantic_raw_content == None` shaped-fallback ACCIDENT — the exact case the `.2`
+  single-branch isolation proof missed.
+- [x] **ROOT CAUSE (WHY + WHERE)** — an engine-resolution INCONSISTENCY between single-branch and
+  multi-branch carriers. WHERE (tool-verified by re-reading before editing): the codegen-emitted
+  argument resolver `ast_based_generator.rs`
+  `resolve_semantic_predicate_spec_against_content` / `try_…` (the *"could not resolve attribute
+  reference"* error at the `RuleReference` arm of `resolve_unified_semantic_value_against_content`) +
+  its interpreter mirror `parse_harness_interpreter.rs`. `semantic_runtime.rs:3572`
+  (`evaluate_content_aware_predicate`) consumes `selected_content` only for `content_kind_is` (a
+  content-KIND query, not a `$ref` resolution), so it has no reference to fall back on → NO change there.
+  The `final`-obligation enqueue resolves against `(semantic_raw_content, node.content)` at
+  `ast_based_generator.rs:~2276`.
+- [x] **FIX** — Option (b)-refined resolver fallback (fix-hierarchy tier-5 engine; lower tiers can only
+  offer the per-consumer `view: shaped` workaround this leaf retires). Each predicate-spec resolver
+  computes `(selected_content, fallback_content)` from `spec.view` (the OTHER view is the fallback); the
+  `RuleReference` arm resolves against `selected_content` then, on a miss, retries against
+  `fallback_content` **iff** `Self::semantic_reference_is_named(reference)` (a new shared helper mirroring
+  `resolve_semantic_reference`'s named-vs-positional split — `$`+digit is positional and NEVER retried, so
+  positional `$N` / `$text` semantics are UNCHANGED; a key absent from BOTH views still errors). Threaded
+  through the value/try/properties resolvers. `@emit_fact` (an effect, not a predicate) passes its own
+  content as the inert fallback (byte-identical). Landed identically in codegen + interpreter mirror.
+- [x] **ADDRESSED (verified)** — scratch-slot isolation in a REAL generated parser: multi-branch `ref :=
+  "k<" word ">" -> {r:$2.body} | "g<" word ">" -> {r:$2.body}` with `has_fact(name_decl, $r) phase: final`
+  (DEFAULT view) → `k<a>decl a;` ACCEPT (rc 0), `g<a>decl a;` ACCEPT (rc 0, the OTHER branch),
+  `k<a>decl b;` REJECT (rc 1: `whole-input predicate 'has_fact' not satisfied … args [Identifier("name_decl"),
+  Identifier("a")]` — the shaped key `$r` resolved to the concrete `a` VIA the fallback, then correctly
+  failed as undefined). Before the fix this REJECTED even the defined name. `parse_harness_semantic_gate`
+  **36/36 CLEAN** — the new `sem_final_multibranch_shaped_ref` is byte-identical (interpreter ==
+  compile-and-run oracle) with all 3 anchors holding; `semantic_construct_coverage_is_complete` recognizes
+  the new `FinalMultiBranchShapedRef` construct.
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate`
+  `certified_grammars_are_byte_identical` GREEN over all **11** shipped parsers **regenerated with the new
+  codegen** (INERT-ON-SHIPPED confirmed — regex's `.4.11` gates keep explicit `view: shaped`, resolving
+  in-primary and never touching the fallback); `parse_harness_combinator_gate` 27/27; the 35 prior
+  semantic cases stay `diverge=0`; `duality_hunt_gate` pinned signatures unchanged (regex+svpp, seeds
+  0/7/42); `regex_ast_shape_contract_gate` aligned=4 drift=0; regex cert `--entry-rule regex --count 40`
+  seeds 0/7/42 **UNKNOWN=0 fully_certified=true** (witness 258, spf 0/1/1 — byte-identical to the `.4.11`
+  baseline); named-ref spot-check `\k<aa>(?'aa'x)` / `(?&a)(?<a>x)` ACCEPT + `\k<zzz>` REJECT intact;
+  Stage-1 source clippy exit 0.
+- [x] **LOCKSTEP** — book `docs/book/src/semantic-store.md` (`view` note softened from "REQUIRED" to
+  "optional self-documentation" + example drops explicit `view: shaped`) + `docs/book/src/parse-harness.md`
+  (new construct row + case count 35→36) + `TOOLBOX.md` §1.8 (35→36 + the multi-branch case) + decision
+  record `[[project_final_phase_deferred_predicate_primitive]]` `.3 BUILD LANDED` anchor + this tree +
+  `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `LIVE_ACHIEVEMENT_STATUS.md` + `MEMORY.md`. No
+  release/contract/schema/ledger bump (a general engine-robustness improvement, inert on every shipped
+  parser — no released-parser behavior changed).
 
 ## Design
 

@@ -1,6 +1,6 @@
 ---
 name: project-final-phase-deferred-predicate-primitive
-description: The `phase: final` @predicate phase — a GENERAL, parser-agnostic WHOLE-INPUT / parse-completion predicate that is checked ONCE, after the top-level parse succeeds, against the now-complete semantic store. Realized via DEFERRED OBLIGATIONS (each `phase: final` predicate resolves its args at rule-commit and enqueues a check; a terminal discharge pass runs them all at `parse_full` success) — backpatching generalized to a semantic check (LLVM `ForwardRefVals`→`validateEndOfModule`). Lets the EBNF own LEGAL-FORWARD-REFERENCE validation (a reference whose definition appears LATER in the input) that Pre/Branch/Post cannot express. A-vs-B DESIGN DECIDED (Option B, SOTA-cited) 2026-07-10; BUILD LANDED FINAL-PHASE-PREDICATE.2 2026-07-10 (engine + codegen + interpreter mirror + semantic-suite cases, proven in isolation before any consumer). Unlocks REGEX-PCRE2-FIDELITY .4.11 (named-ref UNKNOWN-name, the real accepts-invalid fix, REGEX-0098) + .4.7 (scs capture inventory).
+description: The `phase: final` @predicate phase — a GENERAL, parser-agnostic WHOLE-INPUT / parse-completion predicate that is checked ONCE, after the top-level parse succeeds, against the now-complete semantic store. Realized via DEFERRED OBLIGATIONS (each `phase: final` predicate resolves its args at rule-commit and enqueues a check; a terminal discharge pass runs them all at `parse_full` success) — backpatching generalized to a semantic check (LLVM `ForwardRefVals`→`validateEndOfModule`). Lets the EBNF own LEGAL-FORWARD-REFERENCE validation (a reference whose definition appears LATER in the input) that Pre/Branch/Post cannot express. A-vs-B DESIGN DECIDED (Option B, SOTA-cited) 2026-07-10; BUILD LANDED FINAL-PHASE-PREDICATE.2 2026-07-10 (engine + codegen + interpreter mirror + semantic-suite cases, proven in isolation before any consumer). Unlocks REGEX-PCRE2-FIDELITY .4.11 (named-ref UNKNOWN-name, the real accepts-invalid fix, REGEX-0098) + .4.7 (scs capture inventory). .3 RESOLVER FALLBACK LANDED 2026-07-11 (session #88): the multi-branch `view: raw` shaped-key footgun the first consumer surfaced is closed by an other-view fallback on a NAMED-reference miss (codegen + interpreter mirror), retiring the per-consumer `view: shaped` workaround; INERT on all shipped grammars.
 metadata:
   node_type: memory
   type: project
@@ -230,3 +230,30 @@ coverage-gap fix = a MULTI-BRANCH `phase: final` shaped-key case (DEFAULT view) 
 acceptance = `docs/tasks/FINAL-PHASE-PREDICATE.md` leaf `.3`. This finding + the book note (`semantic-store.md`
 `phase: final` section) discharge the "prove-in-isolation misses multi-branch" lesson for the next consumer. Grounded in [[feedback_no_workarounds_fix_hierarchy]],
 [[feedback_features_parser_agnostic_enable_all_parsers]], [[feedback_systematically_use_debug_toolbox]].
+
+**`.3` BUILD LANDED (FINAL-PHASE-PREDICATE.3, 2026-07-11, session #88, `PGEN-FPP-0004`).** The Option
+(b)-refined resolver fallback shipped identically at the two argument-resolution sites — the
+codegen-emitted resolver (`ast_based_generator.rs` `resolve_semantic_predicate_spec_against_content` +
+`try_…`, threaded through `resolve_unified_semantic_value_against_content` + `try_…` +
+`resolve_unified_semantic_properties_against_content`) and its interpreter mirror
+(`parse_harness_interpreter.rs`). The seam: each predicate-spec resolver now computes
+`(selected_content, fallback_content)` from `spec.view` (the OTHER view is the fallback), and the
+`RuleReference` arm resolves against `selected_content` then, on a miss, retries against
+`fallback_content` **iff** `semantic_reference_is_named(reference)` (a new shared helper mirroring
+`resolve_semantic_reference`'s named-vs-positional split: `$`+digit is positional and never retried).
+`@emit_fact` is an effect, not a predicate — its single-content `resolve_unified_semantic_properties_against_content`
+call passes its own content as the inert fallback (byte-identical). The `semantic_runtime.rs:3572`
+archetype (`evaluate_content_aware_predicate`) needed NO change: it consumes `selected_content` only for
+`content_kind_is` (a content-KIND query, not a `$ref` resolution), so there is no reference to fall back
+on. **Proven (all re-runnable oracles):** scratch-slot isolation in a REAL generated parser
+(`k<a>decl a;` / `g<a>decl a;` forward-ACCEPT via the fallback, `k<a>decl b;` REJECT with the obligation
+args resolved to `Identifier("a")` — proving the shaped key resolved through the fallback);
+`parse_harness_semantic_gate` **36/36 CLEAN** (new `sem_final_multibranch_shaped_ref` byte-identical +
+its 3 anchors, the 35 prior cases unchanged); `parse_harness_equivalence_gate`
+`certified_grammars_are_byte_identical` over all **11** regenerated shipped parsers (INERT-ON-SHIPPED
+confirmed — regex's `.4.11` gates keep explicit `view: shaped`, so they resolve in-primary and never hit
+the fallback). Fix-hierarchy tier-5 (engine): the footgun is an engine-resolution inconsistency, not
+fixable below the engine except by the per-consumer `view: shaped` workaround this leaf retires; the book
+`view` note is softened from "REQUIRED" to "optional self-documentation". No
+release/contract/schema/ledger bump (a general engine-robustness improvement, inert on every shipped
+parser).

@@ -1519,6 +1519,10 @@ impl AstBasedGenerator {
                                 .resolve_unified_semantic_properties_against_content(
                                     &spec.attributes,
                                     root_content,
+                                    // FINAL-PHASE-PREDICATE.3: `@emit_fact` is an effect,
+                                    // not a predicate — single-content resolution, so its
+                                    // own content is the inert fallback (byte-identical).
+                                    root_content,
                                 )?;
                             Some(crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(
                                 crate::ast_pipeline::SemanticFactSpec {
@@ -2425,6 +2429,10 @@ impl AstBasedGenerator {
                             .resolve_unified_semantic_properties_against_content(
                                 &spec.attributes,
                                 root_content,
+                                // FINAL-PHASE-PREDICATE.3: `@emit_fact` is an effect, not a
+                                // predicate — single-content resolution, so its own content
+                                // is the inert fallback (byte-identical).
+                                root_content,
                             )?;
                         Ok(transaction.apply_directive(
                             &crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(
@@ -2472,6 +2480,7 @@ impl AstBasedGenerator {
                 &self,
                 properties: &[crate::ast_pipeline::UnifiedSemanticProperty],
                 root_content: &ParseContent<'input>,
+                fallback_content: &ParseContent<'input>,
             ) -> ParseResult<Vec<crate::ast_pipeline::UnifiedSemanticProperty>> {
                 let mut resolved = Vec::with_capacity(properties.len());
                 for property in properties {
@@ -2480,6 +2489,7 @@ impl AstBasedGenerator {
                         value: self.resolve_unified_semantic_value_against_content(
                             &property.value,
                             root_content,
+                            fallback_content,
                         )?,
                     });
                 }
@@ -2492,15 +2502,29 @@ impl AstBasedGenerator {
                 raw_content: &ParseContent<'input>,
                 shaped_content: &ParseContent<'input>,
             ) -> ParseResult<crate::ast_pipeline::SemanticPredicateSpec> {
-                let selected_content = match spec.view {
-                    crate::ast_pipeline::SemanticPredicateContentView::Raw => raw_content,
-                    crate::ast_pipeline::SemanticPredicateContentView::Shaped => shaped_content,
+                // FINAL-PHASE-PREDICATE.3: the `view` selects the PRIMARY content; the
+                // OTHER view is the fallback. A NAMED / object-key reference absent from
+                // the primary view resolves against the fallback before the hard
+                // unresolved-attribute error, so a MULTI-BRANCH rule's shaped-key `$name`
+                // under the default `view: raw` resolves exactly as a single-branch rule
+                // already does (whose raw capture is `None`, so both views coincide).
+                let (selected_content, fallback_content) = match spec.view {
+                    crate::ast_pipeline::SemanticPredicateContentView::Raw => {
+                        (raw_content, shaped_content)
+                    }
+                    crate::ast_pipeline::SemanticPredicateContentView::Shaped => {
+                        (shaped_content, raw_content)
+                    }
                 };
 
                 let mut resolved_args = Vec::with_capacity(spec.args.len());
                 for arg in &spec.args {
                     resolved_args.push(
-                        self.resolve_unified_semantic_value_against_content(arg, selected_content)?,
+                        self.resolve_unified_semantic_value_against_content(
+                            arg,
+                            selected_content,
+                            fallback_content,
+                        )?,
                     );
                 }
 
@@ -2518,9 +2542,15 @@ impl AstBasedGenerator {
                 raw_content: &ParseContent<'input>,
                 shaped_content: &ParseContent<'input>,
             ) -> ParseResult<Option<crate::ast_pipeline::SemanticPredicateSpec>> {
-                let selected_content = match spec.view {
-                    crate::ast_pipeline::SemanticPredicateContentView::Raw => raw_content,
-                    crate::ast_pipeline::SemanticPredicateContentView::Shaped => shaped_content,
+                // FINAL-PHASE-PREDICATE.3: same primary/fallback view split as the
+                // hard resolver above (see its note).
+                let (selected_content, fallback_content) = match spec.view {
+                    crate::ast_pipeline::SemanticPredicateContentView::Raw => {
+                        (raw_content, shaped_content)
+                    }
+                    crate::ast_pipeline::SemanticPredicateContentView::Shaped => {
+                        (shaped_content, raw_content)
+                    }
                 };
 
                 let mut resolved_args = Vec::with_capacity(spec.args.len());
@@ -2529,6 +2559,7 @@ impl AstBasedGenerator {
                         self.try_resolve_unified_semantic_value_against_content(
                             arg,
                             selected_content,
+                            fallback_content,
                         )?
                     else {
                         return Ok(None);
@@ -2548,10 +2579,24 @@ impl AstBasedGenerator {
                 &self,
                 value: &crate::ast_pipeline::UnifiedSemanticValue,
                 root_content: &ParseContent<'input>,
+                fallback_content: &ParseContent<'input>,
             ) -> ParseResult<crate::ast_pipeline::UnifiedSemanticValue> {
                 match value {
                     crate::ast_pipeline::UnifiedSemanticValue::RuleReference(reference) => self
                         .resolve_semantic_reference(root_content, reference)
+                        .or_else(|| {
+                            // FINAL-PHASE-PREDICATE.3: a NAMED / object-key reference
+                            // absent from the primary view falls back to the OTHER
+                            // content view. Positional `$N` references walk the raw tree
+                            // structurally and are NEVER retried against the other view
+                            // (their index means something different there), so `$text` /
+                            // `$N` semantics are unchanged.
+                            if Self::semantic_reference_is_named(reference) {
+                                self.resolve_semantic_reference(fallback_content, reference)
+                            } else {
+                                None
+                            }
+                        })
                         .map(|resolved| self.coerce_unified_semantic_scalar(&resolved))
                         .ok_or_else(|| {
                             self.create_contextual_error(&format!(
@@ -2581,6 +2626,7 @@ impl AstBasedGenerator {
                                 self.resolve_unified_semantic_value_against_content(
                                     element,
                                     root_content,
+                                    fallback_content,
                                 )?,
                             );
                         }
@@ -2591,6 +2637,7 @@ impl AstBasedGenerator {
                             self.resolve_unified_semantic_properties_against_content(
                                 properties,
                                 root_content,
+                                fallback_content,
                             )?,
                         ),
                     ),
@@ -2601,10 +2648,21 @@ impl AstBasedGenerator {
                 &self,
                 value: &crate::ast_pipeline::UnifiedSemanticValue,
                 root_content: &ParseContent<'input>,
+                fallback_content: &ParseContent<'input>,
             ) -> ParseResult<Option<crate::ast_pipeline::UnifiedSemanticValue>> {
                 match value {
                     crate::ast_pipeline::UnifiedSemanticValue::RuleReference(reference) => Ok(
                         self.resolve_semantic_reference(root_content, reference)
+                            .or_else(|| {
+                                // FINAL-PHASE-PREDICATE.3: named-reference fallback to the
+                                // OTHER content view (see the hard resolver's note);
+                                // positional `$N` is never retried.
+                                if Self::semantic_reference_is_named(reference) {
+                                    self.resolve_semantic_reference(fallback_content, reference)
+                                } else {
+                                    None
+                                }
+                            })
                             .map(|resolved| self.coerce_unified_semantic_scalar(&resolved)),
                     ),
                     crate::ast_pipeline::UnifiedSemanticValue::String(text) => Ok(Some(
@@ -2629,6 +2687,7 @@ impl AstBasedGenerator {
                                 self.try_resolve_unified_semantic_value_against_content(
                                     element,
                                     root_content,
+                                    fallback_content,
                                 )?
                             else {
                                 return Ok(None);
@@ -2644,6 +2703,7 @@ impl AstBasedGenerator {
                                 self.try_resolve_unified_semantic_value_against_content(
                                     &property.value,
                                     root_content,
+                                    fallback_content,
                                 )?
                             else {
                                 return Ok(None);
@@ -5922,6 +5982,25 @@ impl AstBasedGenerator {
                     Some(resolved.chars().count().to_string())
                 } else {
                     Some(resolved)
+                }
+            }
+            /// FINAL-PHASE-PREDICATE.3: is this `$reference` a NAMED / object-key
+            /// reference (eligible for the other-view fallback) rather than a
+            /// POSITIONAL `$N` one? Mirrors the named-vs-positional split in
+            /// `resolve_semantic_reference`: `$` followed by a digit is positional
+            /// (walks the raw tree by index — never retried against the other view);
+            /// everything else (`$name`, dotted `$a.b`, a bare `name`) is named.
+            fn semantic_reference_is_named(reference: &str) -> bool {
+                let normalized = reference.trim();
+                let core = normalized.strip_suffix(".len").unwrap_or(normalized);
+                match core.strip_prefix('$') {
+                    Some(body) => !body
+                        .trim()
+                        .as_bytes()
+                        .first()
+                        .map(|byte| byte.is_ascii_digit())
+                        .unwrap_or(false),
+                    None => !core.trim().is_empty(),
                 }
             }
             fn resolve_positional_semantic_reference(

@@ -234,6 +234,18 @@ pub enum SemanticConstruct {
     /// REJECT if the obligation leaked. The shorter-only input pins the winning
     /// branch's obligation actually discharging (REJECT: the name is undefined).
     FinalRollbackSpeculation,
+    /// FINAL-PHASE-PREDICATE.3: a `phase: final` predicate whose arg is a SHAPED
+    /// object-key `$name` on a MULTI-BRANCH (`Or`) rule under the DEFAULT
+    /// `view: raw` (no explicit `view: shaped`). A multi-branch tournament
+    /// captures the winner's RAW `Sequence` as the raw-view content, so the
+    /// shaped key `$r` (produced by each branch's `-> { r: … }`) cannot resolve
+    /// in the raw view — it resolves only via the FINAL-PHASE-PREDICATE.3
+    /// other-view fallback (a single-branch rule resolves the same key by the
+    /// `semantic_raw_content == None` accident, which is precisely why the `.2`
+    /// single-branch `FinalForwardGate`/`FinalRollbackSpeculation` cases could
+    /// not exercise this path). Forward-ACCEPT (both branches) vs
+    /// undefined-REJECT pins the fallback resolving the defined name.
+    FinalMultiBranchShapedRef,
 }
 
 impl SemanticConstruct {
@@ -273,6 +285,7 @@ impl SemanticConstruct {
         SemanticConstruct::ValueCompareCodepoint,
         SemanticConstruct::FinalForwardGate,
         SemanticConstruct::FinalRollbackSpeculation,
+        SemanticConstruct::FinalMultiBranchShapedRef,
     ];
 }
 
@@ -1176,6 +1189,40 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         note: "a phase:final obligation enqueued by a LOSING tournament branch is discarded (ACCEPT), \
                the WINNING branch's obligation discharges (REJECT) — the C3-B rollback discipline \
                extended to deferred obligations",
+    },
+    // ── FINAL-PHASE-PREDICATE.3: multi-branch shaped-key final predicate under the DEFAULT view ──────
+    SemanticCase {
+        name: "sem_final_multibranch_shaped_ref",
+        construct: SemanticConstruct::FinalMultiBranchShapedRef,
+        // `ref` is a MULTI-BRANCH (`Or`) rule; each branch produces a shaped `-> { r: … }`. The
+        // `phase: final has_fact(name_decl, $r)` uses the DEFAULT `view: raw` (no explicit
+        // `view: shaped`). A multi-branch tournament captures the winner's RAW `Sequence` as the
+        // raw-view content, so `$r` (a shaped object key) MISSES the raw view and resolves ONLY via
+        // the FINAL-PHASE-PREDICATE.3 other-view fallback. A single-branch rule resolved the same
+        // key by the `semantic_raw_content == None` accident — which is exactly why the `.2`
+        // single-branch final cases could not exercise this path.
+        grammar_body: "@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
+                       program := ref decl\n\
+                       @predicate: { name: has_fact, args: [name_decl, $r], phase: final }\n\
+                       ref := \"k<\" word \">\" -> { r: $2.body } | \"g<\" word \">\" -> { r: $2.body }\n\
+                       @emit_fact: { kind: name_decl, name: $body, family: var }\n\
+                       decl := \"decl \" word \";\" -> { body: $2.body }\n\
+                       word := /[a-z]+/ -> { body: $1 }\n",
+        inputs: &[
+            // Branch 1 (`k<a>`) wins and enqueues `has_fact(name_decl, a)` — its shaped `$r` resolves
+            // only via the other-view fallback. `decl a;` declares `a` LATER → obligation holds at
+            // completion → ACCEPT. Before FINAL-PHASE-PREDICATE.3 this REJECTed even the defined name.
+            ("k<a>decl a;", true),
+            // Branch 2 (`g<a>`) wins — exercises the OTHER branch through the same fallback → ACCEPT.
+            ("g<a>decl a;", true),
+            // The referenced name (`a`) is never declared (only `b` is) → obligation fails → REJECT,
+            // proving the fallback resolves the concrete name (not a blanket accept).
+            ("k<a>decl b;", false),
+        ],
+        entry_rule: None,
+        note: "phase:final shaped-key $r on a MULTI-BRANCH rule under the DEFAULT view: the shaped key \
+               misses the raw-view winner Sequence and resolves via the .3 other-view fallback — \
+               forward-ACCEPT on both branches, undefined-REJECT",
     },
 ];
 

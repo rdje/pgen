@@ -330,23 +330,29 @@ whole-input generalization of `post`.
 @emit_fact: { kind: capture_name, name: $name }              # a definition, anywhere
 named_group := "(?'" capture_name "'" body ")"
 
-@predicate: { name: has_fact, args: [capture_name, $name], phase: final, view: shaped }
+@predicate: { name: has_fact, args: [capture_name, $name], phase: final }
 backreference := "\\k<" capture_name ">"  -> { ref: $2 }     # a use — order-independent
 ```
 
-**`view: shaped` on a shaped-key reference is load-bearing, not decorative.** A
-`@predicate` defaults to `view: raw`, and a `final` predicate resolves its args at
-rule commit. For a **single-branch** rule that raw view is harmless — the rule
-captures no separate raw content, so resolution falls back to the shaped `-> {…}`
-object and `$ref` resolves anyway. But for a **multi-branch** rule (a `|`
-tournament), the winning branch's **raw `Sequence`** content *is* captured as the
-final-predicate view, and a shaped-key reference like `$ref` cannot resolve against
-a `Sequence` (there is no `ref` element) — so the rule would raise *"could not
-resolve attribute reference 'ref'"* and **reject even a defined name**. Whenever a
-`final` predicate references a key produced by the rule's `-> {…}` transform
-(`$ref`, `$name`, …), write `view: shaped` explicitly. The three regex
-named-reference gates (`named_backreference`, `named_subroutine_target`,
-`python_named_backreference`, `REGEX-PCRE2-FIDELITY.4.11`) are the worked example.
+**Named-reference resolution falls back across views (`view: shaped` is now
+optional self-documentation).** A `@predicate` defaults to `view: raw` and a
+`final` predicate resolves its args at rule commit. A **named / object-key**
+reference (`$name`, `$ref`, dotted `$a.b`) that is absent from the view-selected
+content **falls back to the other content view** before raising the
+unresolved-attribute error (`FINAL-PHASE-PREDICATE.3`). So a shaped-key reference
+resolves under the default `view: raw` on **any** rule shape — a single-branch
+rule (whose raw capture coincides with the shaped `-> {…}` object) *and* a
+**multi-branch** tournament (whose winning branch captures a raw `Sequence` that
+holds no `ref` element — the reference then resolves against the shaped view via
+the fallback). The fallback fires **only** on a named-reference miss; positional
+`$N` references walk the raw tree structurally and are never retried against the
+other view, and a key absent from **both** views still errors (a real typo is never
+masked). Writing `view: shaped` explicitly is therefore optional — it documents
+intent and pins resolution to the produced object, but is no longer required for
+correctness. The three regex named-reference gates (`named_backreference`,
+`named_subroutine_target`, `python_named_backreference`,
+`REGEX-PCRE2-FIDELITY.4.11`) keep their explicit `view: shaped` as
+self-documentation.
 
 **Grammar-author rule of thumb.** For "reference X must resolve against a
 definition that may appear anywhere, including later," use `phase: final` — not

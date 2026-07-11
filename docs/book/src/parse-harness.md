@@ -609,7 +609,7 @@ memo is **taint-gated with write-epoch validation**: a body that transitively co
 cached *epoch-stamped* and replayable only while the store is unchanged, so a same-position retry
 after a store change evicts the stale entry and honestly re-parses).
 
-The 35 isolating cases (one or more per construct) cover the orchestration surface:
+The 36 isolating cases (one or more per construct) cover the orchestration surface:
 
 | Construct | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -647,6 +647,7 @@ The 35 isolating cases (one or more per construct) cover the orchestration surfa
 | **positional value_compare under a `->` transform** | `checked_pair := num "," num -> {min:$1,max:$3}` + `@predicate value_compare [$1, le, $3]` (RAWCAP-TRANSFORM-PATH.2) | a POSITIONAL raw-view predicate on a non-`Or` rule that ALSO carries a `->` resolves against the raw body captured *before* the transform shadows it — pre-fix it hard-errored (REJECT); named refs on `->` rules keep resolving against the shaped JSON (SEMREF-SHAPED), so this narrow positional capture cannot regress them |
 | **`phase: final` forward-reference gate** | `program := use decl`, `has_fact(name_decl, $body)` with `phase: final` on `use` (FINAL-PHASE-PREDICATE.2) | a whole-input obligation enqueued at the reference's commit and discharged at parse completion: `use a;decl a;` (definition appears LATER) ACCEPTs — a `post` gate could not — while a reference to a never-declared name REJECTs at completion |
 | **`phase: final` obligation rollback under speculation** | `choice := shortref \| longref`, `phase: final` on the shorter `shortref` only | a `final` obligation enqueued by a SUCCESSFUL-but-LOSING longest-match branch is discarded with its branch (`use a;more` ACCEPTs — the longer `longref` wins, carries none), while the WINNING branch's obligation discharges (`use a;` → `shortref` wins → REJECT: `a` undefined) — the C3-B rollback discipline extended to deferred obligations |
+| **`phase: final` multi-branch shaped-key ref (default view)** | `ref := "k<" word ">" -> {r:$2.body} \| "g<" word ">" -> {r:$2.body}`, `has_fact(name_decl, $r)` with `phase: final` and the DEFAULT `view: raw` (FINAL-PHASE-PREDICATE.3) | on a MULTI-BRANCH rule the winner's raw `Sequence` holds no `r` key, so the shaped-key `$r` resolves only via the **other-view fallback** — `k<a>decl a;` and `g<a>decl a;` (both branches) forward-ACCEPT, `k<a>decl b;` REJECTs; the case the single-branch `.2` cases could not exercise (a single-branch rule resolves the same key by the `semantic_raw_content == None` accident) |
 
 ### Grammar-author facts this suite established (tools-first)
 
