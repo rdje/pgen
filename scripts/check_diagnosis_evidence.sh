@@ -9,7 +9,9 @@
 # unticked or missing required box BLOCKS the commit. Exits NONZERO on any breach.
 #
 # The required checklist (label keywords are flexible; the [x] and the keyword are what matter):
-#   - [x] ROOT CAUSE (WHY + WHERE) ........ backed by a DIAGNOSIS tool signature
+#   - [x] ROOT CAUSE (WHY + WHERE) ........ backed by a DIAGNOSIS tool signature (correctness:
+#                                           cert/probe/trace/reach/lint; performance/SPEED phase:
+#                                           a profiler — `sample`/`flamegraph` self-time+call-graph)
 #   - [x] ADDRESSED (verified)  ........... the issue is resolved (before->after on the symptom)
 #   - [x] NO REGRESSION ................... backed by a global-gate signature (seeds 0/7/42, etc.)
 # (REPRODUCE/FIX/LOCKSTEP boxes are recommended by the template but not hard-required here, to
@@ -77,7 +79,15 @@ checked()   { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*($1)"
 unchecked() { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]].*($1)" "${staged_tasks[@]}"; }
 
 # Evidence signatures that must BACK the ticked boxes.
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast'
+# The first group is the CORRECTNESS-defect diagnosis toolbox (cert/probe/trace/reach/lint — "why
+# does this parse WRONG / where"). The second group (added for the SPEED phase, director 2026-07-11
+# — speed is now a first-class, continuously-tracked deliverable) is the PERFORMANCE-defect diagnosis
+# toolbox: a slowness defect is legitimately root-caused by a PROFILER (macOS `sample`, `cargo
+# flamegraph`) via self-time / call-graph attribution, NOT by a correctness tool. Tokens are kept
+# tight so they cannot match unrelated text (e.g. `self-time`/`call-graph`/`flamegraph` never appear
+# inside `sample_parse_failures`). Rationale + the case that motivated it (RGX-0078.3):
+# docs/decisions/project_speed_phase_profiler_root_cause_signature.md.
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph'
 NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
 
 fails=()
