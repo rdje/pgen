@@ -1666,13 +1666,34 @@ returned_capture_group_list = "(" returned_capture_group ("," returned_capture_g
 returned_capture_group = scs_capture_number | scs_capture_name_ref
 @gen_predicate: { name: fact_count_at_least, args: [regex_capture_group, $value], phase: post }
 scs_capture_number = signed_digits -> $1
-# Mirrors `name_ref`'s two syntactic forms + `-> $2` name surfacing exactly
-# (shape-preserving; `name_ref` itself stays untouched for the
-# backreference/condition sites, which the validator checks separately).
-scs_capture_name_ref = "<" scs_capture_name ">"  -> $2
-                     | "'" scs_capture_name "'"  -> $2
+# Mirrors `name_ref`'s two syntactic forms. Surfaces the name via `$2.name` (was
+# `$2`) because REGEX-PCRE2-FIDELITY.4.7 reshaped `scs_capture_name` to a `{name}`
+# object so the whole-input `phase: final` gate can resolve `$name` (see below);
+# `$2.name` re-extracts the bare name string, so the embedded `captures` AST is
+# byte-identical to the former `-> $2`.
+scs_capture_name_ref = "<" scs_capture_name ">"  -> $2.name
+                     | "'" scs_capture_name "'"  -> $2.name
+# REGEX-PCRE2-FIDELITY.4.7: the NAMED scan-substring capture reference is now
+# GRAMMAR-owned (was `validate_scan_substring_capture_refs`'s named branch). A
+# `(*scs:(<name>))` / `(*scs:('name'))` must reference a capture NAME defined
+# SOMEWHERE in the pattern; PCRE2 accepts FORWARD references
+# (`(*scs:(<a>)…)(?<a>…)` — pcre2test 10.47 err 115 only when undefined), so the
+# check is the whole-input `phase: final` deferred-obligation gate (the second
+# consumer of the FINAL-PHASE-PREDICATE primitive after the `.4.11` named
+# backreferences) against the `regex_defined_capture_name` inventory emitted by
+# `named_group` / `python_named_group`. `scs_capture_name` is reshaped to `{name:
+# $1}` (was bare `-> $1`) SOLELY so `$name` resolves: a parse `@predicate` arg
+# resolves against the rule's produced structure, and only a shaped OBJECT-KEY
+# reference resolves — a bare-string carrier's `$text` and positional `$1` do NOT
+# (interpreter-probed, REGEX-PCRE2-FIDELITY.4.7 design). Single-branch, so no
+# `view: shaped` is needed (the `.3` other-view fallback covers the default `raw`
+# view). The `@gen_predicate` above stays: `$text` is the matched name (the `->`
+# reshape does not change matched text), so generation still draws only
+# already-defined names (duality-clean, the `regex_capture_name` gen-source vs
+# `regex_defined_capture_name` parse-inventory split from `.4.11`).
 @gen_predicate: { name: has_fact, args: [regex_capture_name, $text], phase: post }
-scs_capture_name = name -> $1
+@predicate: { name: has_fact, args: [regex_defined_capture_name, $name], phase: final }
+scs_capture_name = name -> { name: $1 }
 # `subroutine_target` per-branch typed `{kind:<form>, ...}`.
 # `kind:"python_named"` parallels slices 19/22 (preserve Python syntax
 # origin even though semantically equivalent to `kind:"named"`).

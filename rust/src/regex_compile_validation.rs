@@ -734,10 +734,15 @@ fn scan_substring_capture_list_start(bytes: &[u8], index: usize) -> Option<usize
     None
 }
 
+// REGEX-PCRE2-FIDELITY.4.7: the `names` inventory was removed — named scan-substring
+// capture references (`(*scs:(<name>))` / `(*scs:('name'))`) are now GRAMMAR-owned (a
+// whole-input `phase: final` gate on `scs_capture_name` against `regex_defined_capture_name`),
+// so this validator only resolves the NUMERIC references still pending migration. The
+// remaining `+N` forward-relative upper-bound is `.4.7.c` (needs a forward/suffix-count
+// primitive); absolute + `-N` land in `.4.7.b`.
 #[derive(Default)]
 struct CaptureInventory {
     count: usize,
-    names: std::collections::BTreeSet<String>,
 }
 
 fn capture_inventory_before(bytes: &[u8], end: usize) -> CaptureInventory {
@@ -761,9 +766,11 @@ fn capture_inventory_before(bytes: &[u8], end: usize) -> CaptureInventory {
                         .unwrap_or(end);
                     continue;
                 }
-                if let Some((name, after_name)) = capture_name_at(bytes, index) {
+                if let Some((_name, after_name)) = capture_name_at(bytes, index) {
+                    // REGEX-PCRE2-FIDELITY.4.7: still count named groups (they ARE
+                    // capturing) and skip past the name, but no longer record the
+                    // name string — the named-reference check moved to the grammar.
                     inventory.count += 1;
-                    inventory.names.insert(name.to_string());
                     index = after_name;
                 } else {
                     index += 1;
@@ -844,22 +851,10 @@ fn validate_scan_substring_capture_refs(
         if item.is_empty() {
             continue;
         }
-        if let Some(name) = item
-            .strip_prefix('<')
-            .and_then(|value| value.strip_suffix('>'))
-            .or_else(|| {
-                item.strip_prefix('\'')
-                    .and_then(|value| value.strip_suffix('\''))
-            })
-        {
-            if !full_inventory.names.contains(name) {
-                return Some(RegexCompileValidationError::new(
-                    start,
-                    "scan_substring capture list references an unknown named capture",
-                ));
-            }
-            continue;
-        }
+        // REGEX-PCRE2-FIDELITY.4.7: NAMED references (`<name>` / `'name'`) are now
+        // rejected at the GRAMMAR (a `phase: final` gate on `scs_capture_name`), so
+        // they never reach this validator on a defined name and fall through here to
+        // the numeric parse below, which fails to parse them and skips (no error).
 
         let numeric_reference = item
             .strip_prefix('+')
@@ -1417,13 +1412,12 @@ mod tests {
 
     #[test]
     fn rejects_scan_substring_unknown_capture_refs() {
-        for input in [
-            "(*scs:(1)a|b)",
-            "(*scs:(0)a)",
-            "(*scs:(<name>)a|b)",
-            "()(*scs:(1,2))",
-            "()()(*scs:(1,2,'XYZ'))",
-        ] {
+        // REGEX-PCRE2-FIDELITY.4.7: the NAMED cases (`(*scs:(<name>)a|b)`,
+        // `()()(*scs:(1,2,'XYZ'))`) moved to the grammar-layer test
+        // `parser_registry::tests::regex_scan_substring_named_refs_reject_at_the_grammar_layer`
+        // — the validator no longer checks named references, so it would return Ok on
+        // them here. These pure-NUMERIC cases stay validator-owned until `.4.7.b`.
+        for input in ["(*scs:(1)a|b)", "(*scs:(0)a)", "()(*scs:(1,2))"] {
             let error = validate_regex_compile_contract(input)
                 .expect_err("must reject unavailable scan_substring capture");
             assert!(error.message.contains("scan_substring"));

@@ -1299,20 +1299,20 @@
       {
         "rule": "scs_capture_name",
         "branch_index": 0,
-        "annotation_type": "return_scalar",
-        "normalized_text": "$1"
+        "annotation_type": "return_object",
+        "normalized_text": "{ name: $1 }"
       },
       {
         "rule": "scs_capture_name_ref",
         "branch_index": 0,
         "annotation_type": "return_scalar",
-        "normalized_text": "$2"
+        "normalized_text": "$2.name"
       },
       {
         "rule": "scs_capture_name_ref",
         "branch_index": 1,
         "annotation_type": "return_scalar",
-        "normalized_text": "$2"
+        "normalized_text": "$2.name"
       },
       {
         "rule": "scs_capture_number",

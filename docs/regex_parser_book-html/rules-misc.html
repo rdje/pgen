@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6e41a809.js";
+            window.path_to_searchindex_js = "searchindex-fe666487.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -322,14 +322,22 @@ grammar (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <cod
 <pre><code class="language-ebnf">directive_body_quantifiable    = directive_accept_named | directive_relaxed_named
 directive_body_nonquantifiable = directive_mark_named
                                | directive_verb_named
-                               | directive_limit_named
-                               | directive_option_named
                                | directive_mark_shorthand
 </code></pre>
 <p>The quantifiable body is the ACCEPT verb + the <code>@profiles:["relaxed"]</code> unknown-name catch-all (so
-relaxed <code>(*foo)+</code> stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, the
-<code>(*:x)</code> shorthand, LIMIT, and the bare start options. Both bodies pass their branch’s object through
-unchanged.</p>
+relaxed <code>(*foo)+</code> stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, and the
+<code>(*:x)</code> shorthand. Both bodies pass their branch’s object through unchanged.</p>
+<p><strong>REGEX-PCRE2-FIDELITY.4.8 — the bare start options were PEELED OUT of <code>directive_body_nonquantifiable</code>.</strong>
+<code>directive_limit_named</code> / <code>directive_option_named</code> (the <code>(*LIMIT_HEAP=…)</code> / <code>(*UTF)</code>-class start
+options) are no longer members of <code>directive_verb_nonquant</code>; they moved into a dedicated
+<code>start_option_body</code> (<code>= directive_limit_named | directive_option_named</code>) under the
+<a href="rules-piece.html#piece"><code>start_option_piece</code></a> rule, which is reachable ONLY from the distinguished
+<a href="rules-top-level.html"><code>entry_concatenation</code></a>. That structural move is what encodes the PCRE2
+start-option <strong>position</strong> rule — a start option is valid only as a contiguous run at the very start of
+the whole pattern (<code>(*CRLF)abc</code> ACCEPT; <code>a(*CR)b</code>, <code>(a)(*CRLF)</code>, <code>((*CRLF)a)</code>, <code>(*CRLF)a|(*LF)b</code> all
+err 160) — with no semantic fact/predicate and no validator walk (<code>find_invalid_verb_construct</code> +
+<code>is_start_option_position</code> DELETED). The verbs / MARK / shorthand that remain in
+<code>directive_verb_nonquant</code> stay valid <strong>anywhere</strong> (including nested — <code>((*ACCEPT))</code>, <code>a(*PRUNE)b</code>).</p>
 <h3 id="the-named-directive-classes--name-class-conditional-argument-shapes"><a class="header" href="#the-named-directive-classes--name-class-conditional-argument-shapes">the named-directive classes — name-class-conditional argument shapes</a></h3>
 <pre><code class="language-ebnf">directive_accept_named = "ACCEPT" directive_payload_colon?
 directive_mark_named   = "MARK" directive_payload_colon_required

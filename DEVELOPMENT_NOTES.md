@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-11 - PGEN-REGEX-PCRE2-0046 — REGEX-PCRE2-FIDELITY.4.7.a: NAMED scan-substring capture references are GRAMMAR-owned (2nd consumer of `phase: final`; behavior-neutral)
+
+**What.** NAMED scan-substring refs `(*scs:(<name>))` / `(*scs:('name')` are now grammar-owned via a
+whole-input `phase: final` `has_fact(regex_defined_capture_name, $name)` gate on `scs_capture_name` — the
+second consumer of the `FINAL-PHASE-PREDICATE` primitive after `.4.11`. Surface- & conformance-neutral, NO
+version bump. The `.4.7` leaf is decomposed `.4.7.a` (named, done) / `.4.7.b` (absolute + `-N` numeric +
+relative-zero fix, pending) / `.4.7.c` (`+N` forward-relative + validator deletion, BLOCKED on a new
+forward/suffix-count primitive).
+
+**Why the reshape (the reusable finding).** A parse `@predicate` arg resolves against the rule's PRODUCED
+STRUCTURE. `scs_capture_name` was a bare-string `-> $1`, and an interpreter probe (`interpret_parse`, three
+candidate designs, no regen) proved that on a bare-string carrier at `phase: final` ONLY a shaped object-key
+reference (`$name` on `-> { name: $1 }`) resolves — positional `$1` and `$text` do NOT (`$text` routes to an
+object-key "text" lookup that misses a bare string; positional `$N` is unresolved in a directive payload).
+So the carrier is reshaped `-> { name: $1 }` and gated `$name`; `scs_capture_name_ref` extracts `-> $2.name`
+to keep the embedded `captures` AST byte-identical. This is the general rule for any future `phase: final`
+name gate on a bare-string carrier: reshape to a `{ field }` object, don't reach for `$text`/`$N`.
+
+**How.** `grammars/regex.ebnf` only (fix-hierarchy level 1, declarative — zero engine change);
+`validate_scan_substring_capture_refs`'s named branch + `CaptureInventory.names` DELETED. Numeric refs stay
+validator-owned pending `.4.7.b`/`.4.7.c`.
+
+**🔎 Surfaced (be-alert).** The `.4.7` regen brought the local generated parser current with the committed
+`.4.11` grammar and surfaced two STALE assertions (`(?P=name)` / `(?&name)` undefined asserted `Some(true)`,
+now correctly `Some(false)` per `.4.11`/PCRE2 err 115) — a `.4.11` test-staleness fixed here, not a `.4.7.a`
+regression. ALSO surfaced: the `.4.7.c` **forward/suffix-count primitive gap** — `+N` needs "≥ N groups defined
+at-or-after this position", which no existing predicate expresses (raised for the director).
+
+**Verification.** Named scs oracle 8/8 vs `pcre2test` 10.47; AST byte-identical 4/4; regex cert
+`267/258 UNKNOWN=0 fully_certified` spf 0/1/1 = `.4.11` baseline; `ast_shape_contract` aligned=4 drift=0;
+`parse_harness_equivalence` regex CLEAN 57/57; new grammar-layer test + 36 validator tests green. LOCKSTEP:
+regex book (`compile-contract-validator.md` + `rules-groups.md`), manifest `regex_v1.json`, tree, `CHANGES.md`,
+`MEMORY.md`.
+
 ## 2026-07-11 - PGEN-FPP-0004 — FINAL-PHASE-PREDICATE.3: multi-branch `view` footgun closed via an other-view resolver FALLBACK (tier-5 engine robustness; INERT on every shipped parser)
 
 **What.** Completes the `FINAL-PHASE-PREDICATE` tree (all three children landed). No release/contract/schema/ledger bump — byte-identical on every shipped parser. Retires the per-consumer `view: shaped` workaround `.4.11` had to use for its named-reference gates.

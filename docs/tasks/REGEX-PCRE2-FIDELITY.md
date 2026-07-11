@@ -1195,15 +1195,42 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `[` literal for the `[:…:]` posix-token shape — the `literal_open_brace` `!(…) X -> $2` precedent).
   Behavior-NEUTRAL migration (scans to first `:]` like the deleted validator); oracle byte-identical. See the
   `.4.6` implementation section + Acceptance Checklist below.
-- ID: `.4.7` Status: `pending` Goal: encode scan-substring capture inventory — `(*scs:(N))`/`(*scs:(<name>))`
-  must reference an AVAILABLE capture (`(*scs:(1)…)`@0-groups, `(*scs:(0)…)`, `(*scs:(<name>)…)`@unknown
-  reject; forward refs LEGAL). Owns `find_invalid_scan_substring_capture_list`. **WHOLE-PATTERN two-pass**
-  (capture count + name inventory) — the same store-aware class as `.3.22`; forward-ref legality forbids a
-  single-pass `has_fact`. Needs the store-aware / two-pass primitive. **PRIMITIVE NOW DESIGNED** — the
-  `phase: final` deferred-obligation predicate, tree `FINAL-PHASE-PREDICATE` (`.1` design done
-  `PGEN-FPP-0001`, `.2` build pending); consumer mapping: named item → `has_fact(regex_capture_name,$name)
-  phase: final`, plain-numeric → `fact_count_at_least(regex_capture_group,$N) phase: final`, relative
-  `+N`/`-N` → prior-count resolution in this leaf's BUILD. Sequenced AFTER `FINAL-PHASE-PREDICATE.2` lands.
+- ID: `.4.7` Status: `in_progress` (decomposed into `.4.7.a`/`.4.7.b`/`.4.7.c`) Goal: encode scan-substring
+  capture inventory — `(*scs:(N))`/`(*scs:(<name>))` must reference an AVAILABLE capture (`(*scs:(1)…)`@0-groups,
+  `(*scs:(0)…)`, `(*scs:(<name>)…)`@unknown reject; forward refs LEGAL). Owns
+  `find_invalid_scan_substring_capture_list`. **WHOLE-PATTERN two-pass** (capture count + name inventory) — the
+  same store-aware class as `.3.22`; forward-ref legality forbids a single-pass `has_fact`. Consumes the
+  `FINAL-PHASE-PREDICATE` primitive (tree COMPLETE). **DECOMPOSED tools-first** (`PGEN-REGEX-PCRE2-0046`,
+  session #89) once the numeric sub-cases were PCRE2-oracled (`pcre2test` 10.47): the absolute + `-N` + named
+  cases are cleanly expressible via `phase: final`/`phase: post`, but `+N` FORWARD-relative needs
+  `prior_count + N ≤ full_count` — arithmetic the predicate vocabulary lacks (no "N groups defined at-or-after
+  this position" fact). So:
+  - ID: `.4.7.a` Status: **`done`** (`PGEN-REGEX-PCRE2-0046`, session #89; surface- & conformance-NEUTRAL, no
+    version bump — the `.3.16`/`.3.17` precedent) Goal: NAMED scan-substring refs (`(*scs:(<name>))` /
+    `(*scs:('name'))`) grammar-owned. The **second consumer** of `FINAL-PHASE-PREDICATE` after `.4.11`:
+    `has_fact(regex_defined_capture_name, $name) phase: final` on `scs_capture_name`, reshaped `-> { name: $1 }`
+    (from bare `-> $1`) so `$name` resolves — a parse `@predicate` arg resolves against the produced STRUCTURE,
+    and ONLY a shaped object-key ref resolves (a bare carrier's `$text` and positional `$1` do NOT —
+    interpreter-probed, see the `.4.7.a` implementation section). `scs_capture_name_ref` extracts `$2.name` to
+    keep the embedded `captures` AST byte-identical. Validator's NAMED branch + `CaptureInventory.names` DELETED
+    (behavior-neutral migration). Full evidence: the `.4.7.a` implementation section + Acceptance Checklist below.
+  - ID: `.4.7.b` Status: `pending` Goal: ABSOLUTE numeric (`(*scs:(N))`, N≥1 → `fact_count_at_least(
+    regex_capture_group, $value) phase: final`) + BACKWARD-relative (`(*scs:(-N))`, N≥1 → `fact_count_at_least(
+    regex_capture_group, $value) phase: post` = prior_count ≥ N) scan-substring refs grammar-owned, plus the
+    RELATIVE-ZERO correctness fix (`(*scs:(0))`/`(*scs:(+0))`/`(*scs:(-0))` reject structurally — value 0 is
+    never valid: absolute-0 = PCRE2 err 115, relative-0 = err 126). ⚠️ The released validator currently
+    **accepts-invalid** `(*scs:(+0))` (resolves to prior_count, e.g. 1 → accepts) — a pre-existing divergence
+    this leaf FIXES (ledger `REGEX-00xx`). Requires splitting `scs_capture_number` by sign into homogeneous
+    absolute/`+`/`-` rules (preserving the `{sign, value}` shape), gating absolute at `final` and `-N` at
+    `post`. Shrinks `validate_scan_substring_capture_refs` to `+N`-only.
+  - ID: `.4.7.c` Status: `pending` (BLOCKED on a new primitive) Goal: FORWARD-relative `(*scs:(+N))` (N≥1)
+    grammar-owned → final `find_invalid_scan_substring_capture_list` deletion. `+N` valid ⟺
+    `prior_count + N ≤ full_count` ⟺ "≥ N capture groups defined AT-OR-AFTER this position" — a SUFFIX/forward
+    count no existing predicate expresses (`fact_count_at_least phase:final` = whole-pattern total; `phase:post`
+    = prior only; neither is position-relative-suffix, and there is no count arithmetic). Needs a new
+    parser-agnostic **forward/suffix-count** primitive (or the count-plus-offset extension). 🔎 SURFACED for the
+    director (see the Changelog callout). Until then `+N` (N≥1) stays in the shrunken validator — correctness
+    preserved (PCRE2-faithful), full deletion deferred.
 - ID: `.4.8` Status: `pending` Goal: encode start-option POSITION — a recognized `(*UTF)`… start option
   must appear only at the very start of the ENTIRE pattern, before any other construct AND not nested
   (`a(*CR)b`/`a(*LIMIT_HEAP=500)`/`(*FAIL)(*LIMIT_HEAP=5)a` FLAT-reject; `((*CRLF)a)`/`(?:(*CRLF)a)`/
@@ -1724,6 +1751,79 @@ over all **283 corpus `(*`-containing patterns**, no regen). Findings:
 - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: a recognized `(*UTF)`/`(*CRLF)`/`(*LIMIT_HEAP=…)`-class start option was an UNGATED member of `directive_body_nonquantifiable` (matched by the `directive_verb_nonquant` piece branch, reachable in ANY piece position at ANY nesting depth), while the PCRE2 err-160 POSITION rule (a start option is valid only as a contiguous prefix at the very start of the WHOLE pattern) lived OUT-OF-BAND in `regex_compile_validation.rs::find_invalid_verb_construct` → `is_start_option_position` (a byte-0 walk) — invisible to generation ([[project_ebnf_is_single_source_of_truth]]). WHERE (tool signatures): the certified interpreter (`interpret_parse`, grammar-only) shows pristine ACCEPTS all 14 mis-positioned forms; a grammar-verdict flip-diff over ALL 283 corpus `(*` patterns isolates the change to EXACTLY ONE cell (`a(*CR)b`: pristine grammar `accepted=true` → A″ `accepted=false`); the released `--parse` 27-case oracle matrix matches `pcre2test` 10.47.
 - [x] **ADDRESSED (verified)** — verdict matrix pre→post: EXACTLY the 14 mis-positioned forms (flat `a(*CR)b` `a(*LIMIT_HEAP=500)` `(*FAIL)(*LIMIT_HEAP=5)a` `(a)(*CRLF)`; nested `((*CRLF)a)` `(?:(*CRLF)a)` `(?=(*CRLF)a)` `(*CRLF)((*LF)a)` `(*sr:…` `(*scs:…` `(?i:…` `(?|…`; post-`|` `(*CRLF)a|(*LF)b` `a(*CRLF)|b`) flip grammar ACCEPT→REJECT; leading runs / `(*CRLF)` alone / empty / `(*CRLF)|a` / verbs-anywhere stay ACCEPT — permanent test `rust/tests/regex_start_option_position_grammar_migration.rs` 2/2, plus released `--parse` 27/27 all matching `pcre2test` 10.47 (behavior-neutral: the deleted `is_start_option_position` rejected the SAME set from byte 0).
 - [x] **NO REGRESSION** — regex cert-coverage `total=265 UNKNOWN=0 fully_certified=true` at seeds 0/7/42 (259→265: +6 structural rules; `sample_parse_failures` 4/4/6 = the PRE-EXISTING generic "did not consume full input" generator over-approximation, tracked `.4.8.1`, NOT a `.4.8` regression — verdict+furthest-pos identical on the pre-`.4.8` grammar); `--lint-grammar` 0 errors (265 rules); `regex_pcre2_compile_oracle_gate` bounds SATISFIED — A″ = `2189/1871/270/48` (match 1871 ≥ 1845, false-accept 270 ≤ 299, false-reject 48 ≤ 48 at the ceiling ⇒ ZERO new false-rejects), **byte-identical to the pristine-HEAD gate result**. HOW MEASURED (the full DEBUG gate could NOT complete this session — the RGX-0078 line-1340 80-deep-nested-paren pattern super-exponentially backtracks, killed at 5h45m; ORTHOGONAL to `.4.8`, which adds only O(1) top-level): (a) a fresh captured probe on the 2188 NON-pathological patterns (line-1340 excluded) = `1870/270/48`; (b) line-1340 is a pcre2-accept, non-changed match (`a(*CR)b`-only flip-diff ⇒ A″ = pristine on it) whose verdict is captured in the pristine-HEAD 00:19 full-gate summary `2189/1871/270/48`; (a)+(b) ⇒ A″ full = `2189/1871/270/48`. The flip-diff proves the sole grammar change `a(*CR)b` is released-neutral. ⚠️ NB the historical `2189/1867/274/48` tuple is stale (pre-existing drift, `fa` 274→270); `parse_harness_equivalence_gate` regex byte-identical; `ast_shape_contract` regex aligned (inventory 232→236, accepted-AST byte-identical); `duality_hunt_gate` regex lanes rebaselined (start-option-prefix signature VANISHED; residual = the `.4.8.1` over-approximation); 36 `regex_compile_validation` unit tests green; `metadata_is_stable` + version-drift gate `1.1.102`/`1.1.104` match the `REGEX-0112` ledger row.
+
+### REGEX-PCRE2-FIDELITY.4.7.a — NAMED scan-substring refs are GRAMMAR-owned (`PGEN-REGEX-PCRE2-0046`, session #89)
+
+**What landed.** The NAMED scan-substring capture reference (`(*scs:(<name>))` / `(*scs:('name'))`) is now
+grammar-owned — the **second consumer** of the `FINAL-PHASE-PREDICATE` whole-input deferred-obligation
+primitive after `.4.11`. A `phase: final` `has_fact(regex_defined_capture_name, $name)` gate on
+`scs_capture_name` checks the referenced name against the whole-pattern capture-name inventory (emitted by
+`named_group` / `python_named_group`, `.4.11`'s parse-side `regex_defined_capture_name` fact); a name defined
+NOWHERE rejects at parse completion (PCRE2 err 115), a legal FORWARD reference accepts. The validator's NAMED
+branch (`validate_scan_substring_capture_refs`'s `<name>`/`'name'` handling) + `CaptureInventory.names` are
+DELETED. Numeric refs stay validator-owned (`.4.7.b`/`.4.7.c`).
+
+**The reshape + the tools-first reference-resolution finding (the non-obvious part).** `scs_capture_name`
+was `name -> $1` (a BARE STRING). A parse `@predicate` arg resolves against the rule's PRODUCED STRUCTURE,
+and — proven by an in-process interpreter probe on three candidate designs (`interpret_parse`, no regen) —
+ONLY a shaped OBJECT-KEY reference resolves on a bare-string carrier at `phase: final`:
+| design | gate arg | carrier | forward-ref `ua;da;` | undefined `ua;db;` |
+|---|---|---|---|---|
+| A | positional `$1` | `-> $1` | **REJECT (wrong)** | reject |
+| B | `$text` | `-> $1` | **REJECT (wrong)** | reject |
+| C | `$name` | `-> { name: $1 }` | **ACCEPT (correct)** | reject |
+Positional `$N` and `$text` do NOT resolve as parse-`@predicate` args (`$text` routes to an object-key
+"text" lookup that misses a bare string; positional `$N` is unresolved in a directive payload). So
+`scs_capture_name` is reshaped `-> { name: $1 }` and gated with `$name` (the proven `.4.11` `$ref`/`$name`
+shaped-field idiom). `scs_capture_name_ref`'s two branches extract `-> $2.name` (was `-> $2`) so the embedded
+`captures` AST is byte-identical. Single-branch, so no `view: shaped` needed (the `.3` other-view fallback
+covers the default `raw` view). The pre-existing `@gen_predicate has_fact(regex_capture_name, $text)` stays —
+`$text` (matched name) is unchanged by the `->` reshape, so generation still draws only defined names
+(duality-clean, the `.4.11` gen-source/parse-inventory two-fact split).
+
+**Behavior-neutral migration ⇒ NO version bump** (surface- & conformance-neutral, the `.3.16`/`.3.17`
+precedent): the validator already rejected undefined named scs refs; the grammar now does so PCRE2-faithfully
+(the check moved, the accept/reject language is unchanged), and all accepted-scs ASTs are byte-identical.
+
+**🔎 SURFACED in-slice (be-alert):** the `.4.7` regen brought the local `generated/regex_parser.rs` current
+with the committed `.4.11` grammar and surfaced TWO STALE assertions in
+`parser_registry::tests::regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage`: standalone
+`(?P=name)` / `(?&name)` (UNDEFINED name) were asserted `Some(true)` (pre-`.4.11` accepts-invalid) but
+`.4.11` (REGEX-0098) correctly rejects them (`pcre2test` 10.47: err 115). Fixed to `Some(false)` — a stale
+test `.4.11` left behind, NOT a `.4.7.a` regression (the rules `python_named_backreference` /
+`named_subroutine_target` are untouched by this slice). Root-caused per [[feedback_be_alert_root_cause_fishy_immediately]].
+
+**`.4.7.a` Acceptance Checklist** (root cause + addressed + no regression):
+- [x] **REPRODUCE / ISSUE** — `parseability_probe --parse regex '(*scs:(<zzz>)a)' --profile pcre2` rejected
+  via the VALIDATOR (`scan_substring capture list references an unknown named capture`) — load-bearing; the
+  grammar ALONE accepted it. Goal: move the named check into the grammar (validator shrink toward `.4` capstone).
+- [x] **ROOT CAUSE (WHY + WHERE)** — tools-first, NOT eyeballed: (1) rejection-LAYER probe (grammar
+  vs validator message source) confirmed named scs = validator-owned; (2) the interpreter reference-resolution
+  probe (table above) proved WHY a bare-string carrier needs the `-> { name }` reshape (WHERE: the parse-arg
+  resolver `resolve_semantic_reference` → `resolve_named_semantic_reference`, an object-key lookup); (3) the
+  post-fix rejection is the self-explaining engine line `whole-input predicate 'has_fact' not satisfied at
+  parse completion (phase:final obligation unresolved: args [regex_defined_capture_name, zzz])`.
+- [x] **FIX** — fix-hierarchy **level 1** (existing declarative mechanism): a `phase: final` `@predicate` +
+  a return-annotation reshape in `grammars/regex.ebnf`; ZERO engine/Rust-runtime change. Validator's named
+  branch + `names` field deleted (the migrated code). `generated/*` DERIVED (regenerated).
+- [x] **ADDRESSED (verified)** — named scs oracle 8/8 vs `pcre2test` 10.47: undefined `(*scs:(<zzz>)a)` /
+  `(*scs:('zzz')a)` / `(*scs:(<name>)a|b)` / `()()(*scs:(1,2,'XYZ'))` REJECT (at the grammar `phase:final`
+  gate); defined forward+backward across all three definition delimiters (`(?<>`,`(?'`,`(?P<`) + mixed
+  numeric+named ACCEPT. New grammar-layer test
+  `parser_registry::tests::regex_scan_substring_named_refs_reject_at_the_grammar_layer_pcre2_faithfully`.
+- [x] **NO REGRESSION** — AST byte-identical 4/4 named-scs accept cases (`--parse-dump-ast-pretty` before/after
+  regen); regex cert-coverage `total=267 witness=258 UNKNOWN=0 fully_certified=true`, `sample_parse_failures`
+  **0/1/1** at seeds 0/7/42 = the `.4.11` baseline (unchanged; the seed-7/42 residual is the tracked pre-existing
+  `\Q\E`/verb generator sample); `--lint-grammar` 0 errors (267 rules); `ast_shape_contract` regex **aligned=4
+  drift=0 regression_lock_failures=0** (inventory re-synced: 3 changed return-annotation entries, accepted-AST
+  byte-identical); `parse_harness_equivalence` regex **CLEAN 57/57** (interpreter mirrors the new `phase:final`
+  gate) + full gate `certified_grammars_are_byte_identical`; `parse_harness_semantic_gate` 36/36; 36
+  `regex_compile_validation` unit tests + all `parser_registry` regex grammar-layer tests green (incl. the 2
+  fixed stale `.4.11` assertions); clippy source clean.
+- [x] **LOCKSTEP** — NO version bump (surface- & conformance-neutral); `ast_shape_contract` manifest
+  `regex_v1.json` re-synced (3 entries); regex book (`scan-substring` / scs reference doc) + top-book + this
+  tree + `MEMORY.md` + `CHANGES.md`. No ledger row (behavior-neutral migration; the accepts-invalid FIX is
+  `.4.7.b`'s relative-zero).
 
 ### REGEX-PCRE2-FIDELITY.4.5 — TOOLS-FIRST INVESTIGATION (`PGEN-REGEX-PCRE2-0030`, 2026-07-09, session #77, PURE-DOCS)
 

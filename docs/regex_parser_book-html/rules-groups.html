@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6e41a809.js";
+            window.path_to_searchindex_js = "searchindex-fe666487.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -324,6 +324,12 @@ aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0
 <pre><code class="language-ebnf">scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
 </code></pre>
 <p>5-element Sequence starting <code>(*scs:</code> or <code>(*scan_substring:</code>.</p>
+<p>A <strong>NAMED</strong> capture reference in the list (<code>(*scs:(&lt;name&gt;))</code> / <code>(*scs:('name')</code>) must reference a capture
+name defined SOMEWHERE in the pattern — a forward reference (defined later) is legal, an undefined name
+REJECTs at parse completion (PCRE2 err 115). This is grammar-owned since <code>REGEX-PCRE2-FIDELITY.4.7.a</code> via a
+whole-input <code>phase: final</code> <code>has_fact(regex_defined_capture_name, $name)</code> gate (the second consumer of the
+deferred-obligation primitive after the <code>.4.11</code> named backreferences). NUMERIC references (<code>(*scs:(N))</code>)
+remain validator-owned pending <code>.4.7.b</code>/<code>.4.7.c</code>. The accepted AST shape is unchanged by the gate.</p>
 <h2 id="script_run_group"><a class="header" href="#script_run_group"><code>script_run_group</code></a></h2>
 <pre><code class="language-ebnf">script_run_group = "(*" script_run_name ":" pattern? ")"
 </code></pre>

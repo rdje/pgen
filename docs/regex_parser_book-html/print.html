@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6e41a809.js";
+            window.path_to_searchindex_js = "searchindex-fe666487.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -1342,10 +1342,19 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <h1 id="top-level-rules-regex-pattern-alternation-alternative-concatenation"><a class="header" href="#top-level-rules-regex-pattern-alternation-alternative-concatenation">Top-Level Rules: regex, pattern, alternation, alternative, concatenation</a></h1>
 <p>These five rules together describe how the top-level structure of a regex is shaped. Reading order: outermost (<code>regex</code>) inward to where pieces live (<code>concatenation</code>).</p>
 <h2 id="regex"><a class="header" href="#regex"><code>regex</code></a></h2>
-<pre><code class="language-ebnf">regex = pattern
+<pre><code class="language-ebnf">regex = entry_alternation
 -&gt; {type: "regex", pattern: $1}
 </code></pre>
 <p>The entry rule. Always emits <code>Json(Object({"type": "regex", "pattern": &lt;pattern-content&gt;}))</code>.</p>
+<p><strong>REGEX-PCRE2-FIDELITY.4.8 — the entry is <code>entry_alternation</code>, not the shared <code>pattern</code>.</strong> This is
+the <em>distinguished entry chain</em> (grammar design A″) that encodes PCRE2’s start-option <strong>position</strong>
+rule structurally. <code>entry_alternation</code> mirrors the shared <code>alternation</code> byte-for-byte, except its
+first alternative (<code>entry_alternative → entry_concatenation</code>) alone may carry a leading start-option
+run. Every later <code>|</code>-alternative and every nested pattern (inside a group) routes through the shared
+<code>alternative</code>/<code>concatenation</code>, which have no start-option branch — so a <code>(*UTF)</code>/<code>(*CRLF)</code>-class start
+option is reachable ONLY as a contiguous prefix of the whole pattern, before any construct and not
+nested at any depth. See <a href="#entry_concatenation--concatenation"><code>entry_concatenation</code></a> below. The
+emitted <code>pattern</code> shape is unchanged (the entry rules mirror the shared rules exactly).</p>
 <p>(Pre-1.1.34 the rule was <code>regex = pattern?</code> — the trailing <code>?</code> was redundant: <code>pattern → alternation → alternative = concatenation?</code> already handles emptiness, and the <code>?</code> only existed to compensate for a since-fixed codegen bug — see <a href="#1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation">PGEN-RGX-0075 in the changelog</a>.)</p>
 <h3 id="shape"><a class="header" href="#shape">Shape</a></h3>
 <div class="table-wrapper">
@@ -1482,6 +1491,49 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 ]
 </code></pre>
 <p>Same flat shape as <code>abc</code> — the <code>\Q...\E</code> quoted-run is invisible in the output, exactly as PCRE2 semantics dictate (the runtime behavior of <code>\Qab*\E{2,}</code> and <code>ab\*{2,}</code> is identical).</p>
+<h2 id="the-entry-chain--entry_alternation--entry_alternative--entry_concatenation"><a class="header" href="#the-entry-chain--entry_alternation--entry_alternative--entry_concatenation">the entry chain — <code>entry_alternation</code> / <code>entry_alternative</code> / <code>entry_concatenation</code></a></h2>
+<pre><code class="language-ebnf">entry_alternation = entry_alternative ("|" alternative)*
+entry_alternative = entry_concatenation?
+entry_concatenation = start_option_piece+ piece*
+-&gt; [$1*, $2**]
+                    | piece+
+-&gt; [$1**]
+</code></pre>
+<p><strong>REGEX-PCRE2-FIDELITY.4.8 (grammar design A″).</strong> <code>regex</code> enters through this chain instead of the
+shared <code>pattern</code>. The three rules mirror their shared counterparts’ shape byte-for-byte — the only
+difference is that <code>entry_concatenation</code> has a first branch that admits a leading run of
+<a href="#piece"><code>start_option_piece</code></a> (a <code>(*UTF)</code>/<code>(*CRLF)</code>/<code>(*LIMIT_HEAP=…)</code>-class start
+option). Because <code>start_option_piece</code> is referenced ONLY here, and every later <code>|</code>-alternative
+(<code>("|" alternative)*</code>) and every nested pattern uses the shared <code>alternative</code>/<code>concatenation</code> (no
+start-option branch), a start option is valid ONLY as a contiguous prefix of the whole pattern:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(*CRLF)abc</code></td><td>ACCEPT</td><td>leading start-option run, then body</td></tr>
+<tr><td><code>(*CRLF)</code></td><td>ACCEPT</td><td>start-option-only pattern (empty body — branch 1’s <code>piece*</code> is zero)</td></tr>
+<tr><td><code>(*CRLF)a|b</code></td><td>ACCEPT</td><td>start option in the first (entry) alternative</td></tr>
+<tr><td>`` (empty)</td><td>ACCEPT</td><td><code>entry_alternative = entry_concatenation?</code> matches empty</td></tr>
+<tr><td><code>a(*CR)b</code></td><td>REJECT (err 160)</td><td>a body piece precedes the start option — no derivation</td></tr>
+<tr><td><code>(a)(*CRLF)</code></td><td>REJECT</td><td>after a group</td></tr>
+<tr><td><code>((*CRLF)a)</code></td><td>REJECT</td><td>nested inside a group (uses shared <code>concatenation</code>)</td></tr>
+<tr><td><code>(*CRLF)a|(*LF)b</code></td><td>REJECT</td><td>start option in a <em>later</em> alternative (uses shared <code>alternative</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The rule is enforced <strong>purely structurally</strong> — no semantic fact or predicate, so it costs nothing on
+the parse hot path, and the stimuli generator cannot emit a mis-positioned start option either (the
+generator↔parser duality is closed by construction). This replaced the out-of-band validator
+position check (<code>find_invalid_verb_construct</code> + <code>is_start_option_position</code>, now DELETED — see the
+<a href="#the-compile-contract-validator">compile-contract validator</a>).</p>
+<h3 id="shape-5"><a class="header" href="#shape-5">Shape</a></h3>
+<p>Byte-identical to the shared <code>concatenation</code>. Branch 1’s annotation <code>[$1*, $2**]</code> shallow-spreads the
+leading start-option run (<code>$1</code>, each element a flat <code>{type:"piece",…}</code> object) then deep-flatten-spreads
+the body <code>piece*</code> (<code>$2</code>, unwrapping any <code>piece_quoted_run_quantified</code> Sequence) — the same flat array of
+piece objects a start-option pattern produced before <code>.4.8</code>. Branch 2 (<code>piece+ -&gt; [$1**]</code>) is identical
+to the shared <code>concatenation</code>.</p>
 <h2 id="putting-it-together--the-navigation-pattern"><a class="header" href="#putting-it-together--the-navigation-pattern">Putting it together — the navigation pattern</a></h2>
 <p>A consumer that wants to iterate the pieces of a non-alternated concatenation does:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1531,7 +1583,7 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <li><strong>Anchor branch</strong>: <code>anchor !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. Anchors (<code>^ $ \A \Z \z \b \B \G \K</code>) are <strong>non-quantifiable</strong> in PCRE2 (err 109) — and, crucially, OPAQUE: a quantifier after an anchor errors <em>even when a repeatable atom precedes</em> (<code>a^*</code> REJECTS). So an anchor forms a piece with NO quantifier slot; the <code>!quantifier</code> lookahead makes <code>^*</code>/<code>$*</code>/<code>\b*</code>/<code>\A{2}</code>-style patterns REJECT while non-quantifier braces (<code>${</code>, <code>\A{a}</code>, <code>\A{}</code>) still parse as anchor + literal-brace pieces. <code>anchor</code> is no longer an <code>atom</code> alternative. See ledger <code>REGEX-0088</code>.</li>
 <li><strong>Zero-width STANDALONE branch</strong> (<code>.3.19</code>/<code>.3.23</code>): <code>zero_width !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. A stray <code>\E</code> <strong>or an empty <code>\Q\E</code></strong> (<code>zero_width</code> — see below) is PCRE2 zero-width but, <em>unlike</em> an anchor, TRANSPARENT. On its own it forms a non-quantifiable piece; a bare <code>\E*</code> / <code>\Q\E*</code> REJECTS (err 109) because the standalone branch’s <code>!quantifier</code> fails and no other branch matches. Byte-identical to the pre-<code>1.1.86</code>/pre-<code>1.1.89</code> shapes.</li>
 <li><strong>Unterminated-quote branch</strong> (<code>.3.23</code>): <code>unterminated_quoted_literal -&gt; {type: "piece", atom: $1, quantifier: []}</code>. A <code>\Q…</code> with no closing <code>\E</code> quotes to END-OF-PATTERN as literal (see <a href="#unterminated_quoted_literal"><code>unterminated_quoted_literal</code></a>), so <code>\Q)</code> / <code>\Q(</code> / <code>\Q^</code> / <code>\Q(?:</code> are ONE literal run, not live regex. It is a NON-atom greedy-to-end piece — deliberately, so the ABSORPTION branch can never pick a bare <code>\Q</code> as its atom (which would let the lookahead-blind generator emit <code>\Q\E&lt;quantifier&gt;</code> — a duality break). See ledger <code>REGEX-0099</code>.</li>
-<li><strong>Non-quantifiable-directive branch</strong> (<code>.3.20</code>): <code>directive_verb_nonquant !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. In PCRE2 only <code>(*ACCEPT)</code> may take a quantifier; every other <code>(*...)</code> directive (the 6 non-ACCEPT verbs, MARK, the <code>(*:x)</code> shorthand, LIMIT, and the bare start options) quantified is err 109. Those directives are matched by <code>directive_verb_nonquant</code> (see the <a href="#directive_verb">directives chapter</a>) and form a non-quantifiable piece. Because <code>directive_verb</code> — the quantifiable directive rule kept in <code>atom</code> — now matches only <code>(*ACCEPT...)</code> and the relaxed unknown-name catch-all, a quantified non-ACCEPT directive fails this <code>!quantifier</code> lookahead AND finds no matching atom, so the whole parse REJECTS (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <code>(*LIMIT_HEAP=5)+</code> all err 109). See ledger <code>REGEX-0096</code>.</li>
+<li><strong>Non-quantifiable-directive branch</strong> (<code>.3.20</code>): <code>directive_verb_nonquant !quantifier -&gt; {type: "piece", atom: $1, quantifier: []}</code>. In PCRE2 only <code>(*ACCEPT)</code> may take a quantifier; every other <code>(*...)</code> directive (the 6 non-ACCEPT verbs, MARK, and the <code>(*:x)</code> shorthand) quantified is err 109. Those directives are matched by <code>directive_verb_nonquant</code> (see the <a href="#directive_verb">directives chapter</a>) and form a non-quantifiable piece. Because <code>directive_verb</code> — the quantifiable directive rule kept in <code>atom</code> — now matches only <code>(*ACCEPT...)</code> and the relaxed unknown-name catch-all, a quantified non-ACCEPT directive fails this <code>!quantifier</code> lookahead AND finds no matching atom, so the whole parse REJECTS (<code>(*PRUNE)+</code>, <code>(*:x)+</code> all err 109). See ledger <code>REGEX-0096</code>. <strong><code>.4.8</code>:</strong> the bare <strong>start options</strong> (<code>(*UTF)</code>/<code>(*CRLF)</code>/<code>(*LIMIT_HEAP=…)</code>-class) are NO LONGER in this branch — they were peeled into a dedicated <code>start_option_piece</code> (<code>= start_option_verb !quantifier -&gt; {type:"piece", atom:$1, quantifier:[]}</code>; same non-quantifiable piece shape, so <code>(*UTF)+</code>/<code>(*LIMIT_HEAP=5)+</code> still err 109) referenced ONLY from <a href="#the-entry-chain--entry_alternation--entry_alternative--entry_concatenation"><code>entry_concatenation</code></a>, which is what enforces the start-option position rule structurally.</li>
 <li><strong>Standard atom branch</strong>: <code>atom quantifier? -&gt; {type: "piece", atom: $1, quantifier: $2}</code>. A single atom with an optional quantifier — the common case. <code>(*ACCEPT)+</code> accepts here (the ACCEPT directive is a quantifiable <code>atom</code>).</li>
 <li><strong>Zero-width ABSORPTION branch</strong> (<code>.3.19</code>/<code>.3.23</code>): <code>atom zero_width+ quantifier -&gt; {type: "piece", atom: $1, quantifier: $3}</code>. Placed LAST. A quantifier reaches THROUGH ≥1 transparent <code>zero_width</code> (a stray <code>\E</code> or an empty <code>\Q\E</code>) to bind the preceding atom (<code>a\E*</code> = <code>a*</code>, <code>a\Q\E*</code> = <code>a*</code>), with the zero-widths <strong>elided</strong> (PCRE2’s delete model). The <code>+</code> confines this branch to exactly the <code>&lt;atom&gt; &lt;zero_width&gt;+ &lt;quantifier&gt;</code> case, so a plain <code>x*</code> is untouched. Since <code>1.1.89</code> (<code>.3.23</code>), <code>\Q\E*</code> has NO leading atom (empty <code>\Q\E</code> is itself a <code>zero_width</code>, and <code>\Q</code> is no longer an escape atom), so it REJECTS via branch 3 — the pre-<code>1.1.89</code> “deferred accepts-invalid” note is resolved.</li>
 </ol>
@@ -1615,7 +1667,7 @@ empty_quoted_literal = "\\Q" "\\E" -&gt; {type: "atom", kind: "quoted_literal", 
 <li><code>$2**</code> — the prefix chars wrapped as pieces by <code>quoted_run_inner_piece</code>’s annotation, flatten-spread.</li>
 <li><code>{type: "piece", atom: $3, quantifier: $5}</code> — the trailing char paired with the quantifier.</li>
 </ul>
-<h3 id="shape-5"><a class="header" href="#shape-5">Shape</a></h3>
+<h3 id="shape-6"><a class="header" href="#shape-6">Shape</a></h3>
 <pre><code class="language-json">[
   { "type": "piece", "atom": &lt;prefix-char-1&gt;, "quantifier": [] },
   { "type": "piece", "atom": &lt;prefix-char-2&gt;, "quantifier": [] },
@@ -1675,7 +1727,7 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 -&gt; {type: "quantifier", min: $1.min, max: $1.max, greediness: $2}
 </code></pre>
 <p><strong>Annotated.</strong> Emits a typed <code>{type, min, max, greediness}</code> object directly.</p>
-<h3 id="shape-6"><a class="header" href="#shape-6">Shape</a></h3>
+<h3 id="shape-7"><a class="header" href="#shape-7">Shape</a></h3>
 <pre><code class="language-json">{
   "type": "quantifier",
   "min": &lt;usize&gt;,
@@ -1950,7 +2002,7 @@ digits = /([0-9]+)/
 <pre><code class="language-ebnf">literal = literal_char | literal_open_brace
 </code></pre>
 <p>Two disjoint branches (release <code>1.1.85</code>): <code>literal_char</code> covers every literal character except <code>{</code>, and <code>literal_open_brace</code> covers the guarded literal <code>{</code>. <strong>Un-annotated</strong> — the matched branch’s shape passes straight through.</p>
-<h3 id="shape-7"><a class="header" href="#shape-7">Shape</a></h3>
+<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
 <p><code>Terminal(&lt;one-char&gt;)</code> — visible as a bare string in JSON.</p>
 <h3 id="examples-2"><a class="header" href="#examples-2">Examples</a></h3>
 <p>For atom <code>a</code>: the <code>atom</code> content is <code>"a"</code> (JSON string). For the <code>{</code> in <code>a{}</code>: the <code>atom</code> content is <code>"{"</code> — byte-identical to pre-<code>1.1.85</code> releases.</p>
@@ -2157,7 +2209,7 @@ digits = /([0-9]+)/
                           | "[[:&gt;:]]" -&gt; {type: "anchor", kind: "posix_word_end"}
 </code></pre>
 <p>PCRE2’s BSD-style word-boundary aliases. 2-way Or, <strong>annotated</strong> as of slice 9 (post-1.1.37). Joins the same typed anchor family as the <code>anchor</code> rule.</p>
-<h3 id="shape-8"><a class="header" href="#shape-8">Shape</a></h3>
+<h3 id="shape-8-1"><a class="header" href="#shape-8-1">Shape</a></h3>
 <pre><code class="language-json">{"type": "anchor", "kind": "posix_word_start"}    // for [[:&lt;:]]
 {"type": "anchor", "kind": "posix_word_end"}      // for [[:&gt;:]]
 </code></pre>
@@ -2919,6 +2971,12 @@ aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0
 <pre><code class="language-ebnf">scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
 </code></pre>
 <p>5-element Sequence starting <code>(*scs:</code> or <code>(*scan_substring:</code>.</p>
+<p>A <strong>NAMED</strong> capture reference in the list (<code>(*scs:(&lt;name&gt;))</code> / <code>(*scs:('name')</code>) must reference a capture
+name defined SOMEWHERE in the pattern — a forward reference (defined later) is legal, an undefined name
+REJECTs at parse completion (PCRE2 err 115). This is grammar-owned since <code>REGEX-PCRE2-FIDELITY.4.7.a</code> via a
+whole-input <code>phase: final</code> <code>has_fact(regex_defined_capture_name, $name)</code> gate (the second consumer of the
+deferred-obligation primitive after the <code>.4.11</code> named backreferences). NUMERIC references (<code>(*scs:(N))</code>)
+remain validator-owned pending <code>.4.7.b</code>/<code>.4.7.c</code>. The accepted AST shape is unchanged by the gate.</p>
 <h2 id="script_run_group"><a class="header" href="#script_run_group"><code>script_run_group</code></a></h2>
 <pre><code class="language-ebnf">script_run_group = "(*" script_run_name ":" pattern? ")"
 </code></pre>
@@ -3547,14 +3605,22 @@ grammar (<code>(*PRUNE)+</code>, <code>(*:x)+</code>, <code>(*UTF)+</code>, <cod
 <pre><code class="language-ebnf">directive_body_quantifiable    = directive_accept_named | directive_relaxed_named
 directive_body_nonquantifiable = directive_mark_named
                                | directive_verb_named
-                               | directive_limit_named
-                               | directive_option_named
                                | directive_mark_shorthand
 </code></pre>
 <p>The quantifiable body is the ACCEPT verb + the <code>@profiles:["relaxed"]</code> unknown-name catch-all (so
-relaxed <code>(*foo)+</code> stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, the
-<code>(*:x)</code> shorthand, LIMIT, and the bare start options. Both bodies pass their branch’s object through
-unchanged.</p>
+relaxed <code>(*foo)+</code> stays accepted). The non-quantifiable body is the 6 non-ACCEPT verbs, MARK, and the
+<code>(*:x)</code> shorthand. Both bodies pass their branch’s object through unchanged.</p>
+<p><strong>REGEX-PCRE2-FIDELITY.4.8 — the bare start options were PEELED OUT of <code>directive_body_nonquantifiable</code>.</strong>
+<code>directive_limit_named</code> / <code>directive_option_named</code> (the <code>(*LIMIT_HEAP=…)</code> / <code>(*UTF)</code>-class start
+options) are no longer members of <code>directive_verb_nonquant</code>; they moved into a dedicated
+<code>start_option_body</code> (<code>= directive_limit_named | directive_option_named</code>) under the
+<a href="#piece"><code>start_option_piece</code></a> rule, which is reachable ONLY from the distinguished
+<a href="#top-level-rules-regex-pattern-alternation-alternative-concatenation"><code>entry_concatenation</code></a>. That structural move is what encodes the PCRE2
+start-option <strong>position</strong> rule — a start option is valid only as a contiguous run at the very start of
+the whole pattern (<code>(*CRLF)abc</code> ACCEPT; <code>a(*CR)b</code>, <code>(a)(*CRLF)</code>, <code>((*CRLF)a)</code>, <code>(*CRLF)a|(*LF)b</code> all
+err 160) — with no semantic fact/predicate and no validator walk (<code>find_invalid_verb_construct</code> +
+<code>is_start_option_position</code> DELETED). The verbs / MARK / shorthand that remain in
+<code>directive_verb_nonquant</code> stay valid <strong>anywhere</strong> (including nested — <code>((*ACCEPT))</code>, <code>a(*PRUNE)b</code>).</p>
 <h3 id="the-named-directive-classes--name-class-conditional-argument-shapes"><a class="header" href="#the-named-directive-classes--name-class-conditional-argument-shapes">the named-directive classes — name-class-conditional argument shapes</a></h3>
 <pre><code class="language-ebnf">directive_accept_named = "ACCEPT" directive_payload_colon?
 directive_mark_named   = "MARK" directive_payload_colon_required
@@ -5679,8 +5745,7 @@ at <code>--parse</code> (accepts-invalid → PCRE2-convergent reject); corpus-in
 UNCHANGED 92/26). Cert 249→251 (+2 lookahead-only PROOF rules), ast_shape 18/18 (3 inventory entries
 re-baselined <code>$2</code>→<code>$3</code>; accepted-AST byte-identical), oracle byte-identical <code>2189/1867/274/48</code>, duality
 unchanged. This does NOT delete the range-check — the blocked-descending endpoints still keep it wired.
-| Scan-substring capture <strong>inventory</strong> — <code>(*scs:(N))</code>/<code>(*scs:(&lt;name&gt;))</code> must reference an available capture | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code> | <code>.4.7</code> |
-| <strong>Start-option POSITION</strong> — a recognized <code>(*UTF)</code>-class start option may appear only in the start-option prefix | <code>a(*CR)b</code>, <code>(*FAIL)(*LIMIT_HEAP=5)a</code> | <code>.4.8</code> |
+| Scan-substring <strong>NUMERIC</strong> capture inventory — <code>(*scs:(N))</code> must reference an available numbered capture (the NAMED half migrated out in <code>.4.7.a</code>) | <code>(*scs:(1)a)</code>@0-groups, <code>(*scs:(0)…)</code> | <code>.4.7.b</code>/<code>.4.7.c</code> |
 | <strong>Unbounded quantified lookbehind</strong> — a variable-length lookbehind body must be bounded | <code>(?&lt;=a+)b</code>, <code>(?&lt;=a{2,})b</code> | <code>.4.9</code> |</p>
 </blockquote>
 <p>Already migrated <strong>out</strong> of the validator (now grammar-owned, listed here for the audit
@@ -5702,9 +5767,28 @@ lookahead-only <code>class_bracket_token</code> recognizer), and <strong><code>\
 each lookaround opens a <code>lookaround</code> scope and the extracted <code>keep_out</code> rule carries
 <code>@predicate not_in_scope_kind(lookaround)</code>, the first consumer of the scope-ancestry
 predicate primitive <code>SCOPE-CONTEXT-PREDICATE.1</code>; behavior-neutral, the deleted validator
-rejected exactly the same set). A related divergence with no validator check at all — the
+rejected exactly the same set), and the <strong>start-option POSITION</strong> rule — a recognized
+<code>(*UTF)</code>-class start option is valid only as a contiguous run at the very start of the whole
+pattern, never after any construct / in a later alternative / nested (<code>a(*CR)b</code>, <code>(a)(*CRLF)</code>,
+<code>((*CRLF)a)</code>, <code>(*CRLF)a|(*LF)b</code> all err 160) — migrated PURELY STRUCTURALLY (<code>.4.8</code>, grammar
+design A″: <code>find_invalid_verb_construct</code> + <code>is_start_option_position</code> DELETED). Start options
+now derive ONLY off the distinguished <code>entry_concatenation</code> (the top-level-first-alternative
+concatenation off the <code>entry_alternation</code> chain); every later alternative and every nested
+pattern uses the shared <code>alternative</code>/<code>concatenation</code>, which have no start-option branch — so a
+mis-positioned start option has no derivation and fails to parse, with NO semantic
+fact/predicate (zero hot-path cost) and NO generator-side steering (the stimuli generator cannot
+emit one either — the duality is closed by construction). Behavior-neutral; byte-identical AST
+on every accepted pattern. A related divergence with no validator check at all — the
 named-reference <em>unknown-name</em> inventory (<code>\k&lt;zzz&gt;</code>… @undefined) — is tracked as <code>.4.11</code>
-(ledger <code>REGEX-0098</code>).</p>
+(ledger <code>REGEX-0098</code>), and the <strong>NAMED scan-substring</strong> reference inventory — a
+<code>(*scs:(&lt;name&gt;))</code>/<code>(*scs:('name'))</code> must reference a capture name defined somewhere in the
+pattern (forward references legal) — is now grammar-owned too (<code>.4.7.a</code>; the <strong>second consumer</strong>
+of the <code>phase: final</code> whole-input deferred-obligation primitive after <code>.4.11</code>: a
+<code>has_fact(regex_defined_capture_name, $name) phase: final</code> gate on <code>scs_capture_name</code>, reshaped
+<code>-&gt; { name: $1 }</code> so <code>$name</code> resolves; behavior-neutral, the validator’s NAMED branch +
+<code>CaptureInventory.names</code> DELETED). The NUMERIC scan-substring inventory stays validator-owned
+pending <code>.4.7.b</code> (absolute + <code>-N</code>) / <code>.4.7.c</code> (<code>+N</code>, which needs a new forward/suffix-count
+primitive).</p>
 <h2 id="which-layer-rejected-my-pattern"><a class="header" href="#which-layer-rejected-my-pattern">Which layer rejected my pattern?</a></h2>
 <p>Because the two layers run in series, the <strong>rejection message names its own source</strong>,
 and a one-line probe classifies any reject without guessing. This is the
@@ -5856,6 +5940,11 @@ when, and the version each migration shipped in.</li>
 </table>
 </div>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
+<h3 id="11102--contract-11104--regex-0112-start-option-verb-position-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration--validator-check-deletion"><a class="header" href="#11102--contract-11104--regex-0112-start-option-verb-position-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration--validator-check-deletion">1.1.102 / Contract 1.1.104 — REGEX-0112: start-option verb POSITION is now grammar-owned; behavior-neutral validator→grammar migration + validator-check deletion</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: a BEHAVIOR-NEUTRAL migration (release bump 1.1.101→1.1.102 / contract 1.1.103→1.1.104; <strong>schema stays <code>1</code></strong>), no action required. PCRE2 allows a start-option verb — the newline/UTF/mode class <code>(*UTF)</code> <code>(*UCP)</code> <code>(*CRLF)</code> <code>(*LF)</code> <code>(*ANYCRLF)</code> <code>(*NO_AUTO_POSSESS)</code> <code>(*NO_START_OPT)</code> … and the heap/match/depth-limit forms <code>(*LIMIT_HEAP=…)</code> <code>(*LIMIT_MATCH=…)</code> <code>(*LIMIT_DEPTH=…)</code> — <strong>only at the very start of the whole pattern</strong> (a leading run of them, before any other atom); anywhere else they are err 160 “(*VERB) not recognized or malformed” / err 168-class. The released parser already REJECTED a mis-positioned start option via the out-of-band validator (<code>find_invalid_verb_construct</code> / <code>is_start_option_position</code>), while the GRAMMAR alone ACCEPTED it (<code>directive_body_nonquantifiable</code> carried <code>directive_limit_named | directive_option_named</code> on the general <code>piece</code>, reachable anywhere) — a single-source-of-truth hole. <code>REGEX-PCRE2-FIDELITY.4.8</code> migrates the position rule INTO <code>grammars/regex.ebnf</code> and DELETES the standalone validator checks.</p>
+<p><strong>Grammar design — the A′→A″ pivot (surfaced to the director).</strong> The rule is POSITIONAL, not contextual: a start option is legal in the leading prefix and illegal everywhere else (mid-pattern, nested inside ANY group, or after the first <code>|</code> branch). The originally-endorsed design <strong>A′</strong> made it <em>fact-based</em> — emit a <code>seen_atom</code> fact and gate the start option on <code>@predicate lacks_fact(seen_atom)</code>. A′ broke GENERATION duality: the store-aware stimuli generator has no <code>lacks_fact</code> branch-prune (it supports <code>fact_count_at_least</code> count-prune and <code>has_fact</code> name-draw, but cannot suppress a branch on the ABSENCE of a fact), so it emitted mis-positioned start options the A′ grammar then rejected — a fresh duality break (cert spf 0→65). We <strong>pivoted to a purely STRUCTURAL design A″</strong> (grammar-only, no facts/predicates — fix-hierarchy-preferred): the whole pattern is peeled so the start-option run can only derive in the leading position. <code>regex = entry_alternation</code>; the entry chain <code>entry_alternation = entry_alternative ("|" alternative)*</code> / <code>entry_alternative = entry_concatenation?</code> / <code>entry_concatenation = start_option_piece+ piece* -&gt; [$1*, $2**] | piece+ -&gt; [$1**]</code> admits a leading <code>start_option_piece+</code> run ONLY on the first concatenation of the first branch; every nested/subsequent context routes through the ordinary <code>piece</code>, which no longer carries the start-option verbs. <code>start_option_piece = start_option_verb !quantifier</code>; <code>start_option_verb = "(*" start_option_body ")"</code>; <code>start_option_body = directive_limit_named | directive_option_named</code> (peeled out of <code>directive_body_nonquantifiable</code>, now <code>directive_mark_named | directive_verb_named | directive_mark_shorthand</code>). The <code>!quantifier</code> guard preserves the PCRE2 err-that a start option cannot be quantified. <strong>Verdict UNCHANGED</strong> at the released <code>--parse</code> surface: a leading run <code>(*UTF)(*CRLF)abc</code> still ACCEPTs; a mid-pattern <code>a(*UTF)</code>, nested <code>(a(*UTF))</code>, or post-<code>|</code> <code>a|(*UTF)b</code> start option still REJECTs (<code>E_PARSE_FAILURE</code>); ordinary verbs <code>(*ACCEPT)</code> <code>(*FAIL)</code> <code>(*MARK:x)</code> still parse anywhere. Only the owning layer moved validator→grammar. <strong>Conformance</strong>: <code>.4.8</code> is corpus-invisible / released-neutral, proven by a grammar-verdict flip-diff over ALL 283 corpus <code>(*</code> patterns — EXACTLY ONE grammar verdict changes, <code>a(*CR)b</code> (pristine grammar accepted it, A″ rejects it), and the released validator’s <code>is_start_option_position</code> ALREADY rejected it, so the RELEASED oracle verdict is unchanged on every corpus cell. The <code>regex_pcre2_compile_oracle_gate</code> asserts BOUNDS (not an exact tuple): <code>match ≥ 1845</code>, <code>false-accept ≤ 299</code>, <code>false-reject ≤ 48</code>; A″ measures <code>match 1870 / false-accept 270 / false-reject 48</code> on the 2188 non-pathological patterns (all within envelope — <code>fr=48</code> sits at the ceiling ⇒ zero new false-rejects), plus the non-changed line-1340 pcre2-accept match. ⚠️ NB the <code>2189/1867/274/48</code> tuple quoted in prior release entries is STALE (false-accepts drifted 274→270 at an earlier release; the gate’s bounds masked it — a separate doc-drift follow-up, not a <code>.4.8</code> change). Verified string-by-string via <code>rust/tests/regex_start_option_position_grammar_migration.rs</code> (MUST_REJECT flat/nested/post-<code>|</code> + MUST_ACCEPT leading-run/empty/verbs-anywhere). regex cert <code>265/265 UNKNOWN=0 fully_certified=true</code> seeds 0/7/42 (259→265: +6 structural rules <code>entry_alternation</code> / <code>entry_alternative</code> / <code>entry_concatenation</code> / <code>start_option_piece</code> / <code>start_option_verb</code> / <code>start_option_body</code>), <code>--lint-grammar</code> 0 errors (265 rules), <code>duality_hunt_gate</code> regex lanes rebaselined (the <code>"start option must appear at the start-option prefix"</code> lane VANISHED with its validator; the residual <code>"Parser did not consume full input at position N"</code> lane is a PRE-EXISTING generator over-approximation — <code>(?#)?+</code> err 109 / unbalanced-paren err 114 — tracked as <code>.4.8.1</code>, NOT a regression), <code>parse_harness_equivalence_gate</code> regex byte-identical, <code>ast_shape</code> aligned (inventory 232→236; accepted-AST byte-identical). <strong>AST</strong>: schema stays <code>1</code>. Bug ledger: <code>REGEX-0112</code>. <strong>Contract section:</strong> “Release 1.1.102 / Contract 1.1.104 Highlights”. Rules detail: <code>rules-top-level.md</code> (§ <code>regex</code> / the entry-alternation chain) + <code>rules-piece.md</code> (§ start-option peel) + <code>rules-misc.md</code> (§ <code>directive_body_nonquantifiable</code>); component reference: <code>compile-contract-validator.md</code>.</p>
+</blockquote>
 <h3 id="11101--contract-11103--regex-0111-k-in-lookaround-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration--validator-check-deletion"><a class="header" href="#11101--contract-11103--regex-0111-k-in-lookaround-is-now-grammar-owned-behavior-neutral-validatorgrammar-migration--validator-check-deletion">1.1.101 / Contract 1.1.103 — REGEX-0111: <code>\K</code>-in-lookaround is now grammar-owned; behavior-neutral validator→grammar migration + validator-check deletion</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: a BEHAVIOR-NEUTRAL migration (release bump 1.1.100→1.1.101 / contract 1.1.102→1.1.103; <strong>schema stays <code>1</code></strong>), no action required. PCRE2 forbids <code>\K</code> inside any lookaround body (<code>pcre2test</code> 10.47 err 199 “\K is not allowed in lookarounds”) — every form <code>(?=</code> <code>(?!</code> <code>(?&lt;=</code> <code>(?&lt;!</code> <code>(?*</code> <code>(?&lt;*</code> <code>(*pla:</code>…, including when nested inside a group inside the lookaround (<code>(?=a(b\Kc))</code>, <code>((?=x\Ky))</code>). The released parser already REJECTED all of these via the out-of-band validator <code>find_invalid_keep_out_escape_in_lookaround</code>, while the GRAMMAR alone ACCEPTED them (<code>\K</code>/<code>keep_out</code> was an ungated <code>anchor</code> branch) — a single-source-of-truth hole. <code>REGEX-PCRE2-FIDELITY.4.10</code> migrates the reject into <code>grammars/regex.ebnf</code> and DELETES the standalone validator check. Because <code>\K</code>-in-lookaround is CONTEXTUAL (its legality depends on an enclosing lookaround possibly several groups up), it is gated by the parser-agnostic scope-ancestry <code>@predicate not_in_scope_kind(lookaround)</code> (<code>SCOPE-CONTEXT-PREDICATE.1</code>, the first grammar consumer): each of the 7 lookaround rules opens a <code>lookaround</code> scope at its opener (via a small open-marker rule, the <code>capture_open</code> idiom) and closes it after its body; the extracted <code>keep_out</code> rule carries the predicate. <strong>Verdict UNCHANGED</strong> at the released <code>--parse</code> surface: <code>\K</code>-in-lookaround still REJECTs (<code>E_PARSE_FAILURE</code>), <code>\K</code> bare / in atomic-capturing-noncapturing groups / after a closed lookaround (<code>(?=ab)\K</code>) still ACCEPTs — only the owning layer moved validator→grammar. <strong>Conformance</strong>: oracle byte-identical <code>2189/1867/274/48</code> (the <code>\K</code>-in-lookaround cells are corpus-invisible; verified string-by-string via <code>rust/tests/regex_keep_out_in_lookaround_grammar_migration.rs</code>, 19 reject + 16 accept cells). regex cert <code>259/259 UNKNOWN=0 fully_certified=true</code> seeds 0/7/42 (251→259: +8 WITNESSED rules — 7 lookaround open-markers + <code>keep_out</code>), <code>--lint-grammar</code> 0 errors (259 rules), <code>duality_hunt_gate</code> 9 lanes no new/vanished, <code>parse_harness_equivalence_gate</code> regex byte-identical, <code>ast_shape</code> 4 aligned (inventory 225→232; accepted-AST byte-identical). <strong>AST</strong>: schema stays <code>1</code>. Bug ledger: <code>REGEX-0111</code>. <strong>Contract section:</strong> “Release 1.1.101 / Contract 1.1.103 Highlights”. Rules detail: <code>examples-anchors.md</code> (§ <code>\K</code> is rejected inside a lookaround) + <code>rules-groups.md</code> (§ <code>lookaround</code>); component reference: <code>compile-contract-validator.md</code>.</p>

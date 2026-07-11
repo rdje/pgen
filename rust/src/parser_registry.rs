@@ -2121,6 +2121,63 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         }
     }
 
+    /// REGEX-PCRE2-FIDELITY.4.7 (`.4.7.a`): a NAMED scan-substring capture reference
+    /// (`(*scs:(<name>))` / `(*scs:('name'))`) that references a name defined NOWHERE in the
+    /// pattern now rejects at the GRAMMAR (a whole-input `phase: final` gate on
+    /// `scs_capture_name` against the `regex_defined_capture_name` inventory — the second
+    /// consumer of the FINAL-PHASE-PREDICATE primitive). Every reject here was
+    /// `validate_scan_substring_capture_refs`'s NAMED branch (load-bearing) before this slice;
+    /// its named handling is DELETED (behavior-neutral migration). Forward references are LEGAL
+    /// (definition may appear later). Oracle: `pcre2test` 10.47 (err 115 only when undefined).
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_scan_substring_named_refs_reject_at_the_grammar_layer_pcre2_faithfully() {
+        // Undefined named scs references — PCRE2 err 115. Both delimiter forms (`<>` / `''`),
+        // alone and mixed into a multi-item list with valid numeric refs (the whole list rejects
+        // on the undefined name). `()()` supplies the two groups that make `1,2` numeric-valid,
+        // isolating the rejection to the named `'XYZ'` item.
+        let rejects = [
+            "(*scs:(<name>)a)",
+            "(*scs:('name')a)",
+            "(*scs:(<name>)a|b)",
+            "()()(*scs:(1,2,'XYZ'))",
+        ];
+        for pattern in rejects {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(false),
+                "undefined named scan_substring reference must reject at the grammar layer: {pattern:?}"
+            );
+        }
+        // Valid: a named reference to a group defined LATER (forward, err-115-free), a named
+        // reference to a prior group, all three definition delimiters (`(?<>`, `(?'`, `(?P<`),
+        // and a mixed numeric+named list where both are defined.
+        let accepts = [
+            "(*scs:(<name>)a)(?<name>a)",
+            "(*scs:('name')a)(?<name>a)",
+            "(?<name>a)(*scs:(<name>)b)",
+            "(?'name'a)(*scs:(<name>)b)",
+            "(?P<name>a)(*scs:(<name>)b)",
+            "(?<name>a)(*scs:(1,<name>)b)",
+        ];
+        for pattern in accepts {
+            assert_eq!(
+                parse_sample("regex", pattern),
+                Some(true),
+                "a defined (forward or backward) named scan_substring reference must accept: {pattern:?}"
+            );
+        }
+        // The undefined-name rejects are PCRE2-invalid in BOTH profiles (not a relaxed opt-out).
+        for pattern in ["(*scs:(<name>)a)", "(*scs:('name')a)"] {
+            assert!(
+                super::parse_sample_detail_with_profile("regex", pattern, Some("relaxed"))
+                    .expect("regex registered")
+                    .is_err(),
+                "relaxed must also reject an undefined named scan_substring reference: {pattern}"
+            );
+        }
+    }
+
     /// REGEX-PCRE2-FIDELITY.4.3 (ledger `REGEX-0104`, release 1.1.94): the counted-quantifier
     /// `{n,m}` min>max ORDER reject (PCRE2 err 104 "numbers out of order in {} quantifier") is now
     /// grammar-owned. The `{n,m}` range form is a dedicated `counted_quantifier_range` rule
@@ -2965,11 +3022,16 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "a]"), Some(true));
         assert_eq!(parse_sample("regex", "(?|a|b)"), Some(true));
         assert_eq!(parse_sample("regex", "(?P<name>a)"), Some(true));
-        assert_eq!(parse_sample("regex", "(?P=name)"), Some(true));
+        // REGEX-PCRE2-FIDELITY.4.11 (REGEX-0098) made an UNDEFINED named reference reject
+        // (PCRE2 err 115); this standalone `(?P=name)` / `(?&name)` never defines `name`. The
+        // stale `Some(true)` (pre-`.4.11` accepts-invalid) was surfaced when the `.4.7` regen
+        // brought the local generated parser current with `.4.11`. `pcre2test` 10.47: err 115.
+        assert_eq!(parse_sample("regex", "(?P=name)"), Some(false));
         assert_eq!(parse_sample("regex", "^(?P<A>a)?(?(A)a|b)"), Some(true));
         assert_eq!(parse_sample("regex", "^(?(+1)X|Y)(.)"), Some(true));
         assert_eq!(parse_sample("regex", "(?<A>tom|bon)-\\k{A}"), Some(true));
-        assert_eq!(parse_sample("regex", "(?&name)"), Some(true));
+        // Undefined named subroutine call — PCRE2 err 115 (see the `(?P=name)` note above).
+        assert_eq!(parse_sample("regex", "(?&name)"), Some(false));
         assert_eq!(parse_sample("regex", "(?R)"), Some(true));
         assert_eq!(parse_sample("regex", "(?R1)"), Some(false));
         assert_eq!(parse_sample("regex", "\\g{1}"), Some(true));

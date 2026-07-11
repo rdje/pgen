@@ -196,6 +196,13 @@ scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list 
 
 5-element Sequence starting `(*scs:` or `(*scan_substring:`.
 
+A **NAMED** capture reference in the list (`(*scs:(<name>))` / `(*scs:('name')`) must reference a capture
+name defined SOMEWHERE in the pattern — a forward reference (defined later) is legal, an undefined name
+REJECTs at parse completion (PCRE2 err 115). This is grammar-owned since `REGEX-PCRE2-FIDELITY.4.7.a` via a
+whole-input `phase: final` `has_fact(regex_defined_capture_name, $name)` gate (the second consumer of the
+deferred-obligation primitive after the `.4.11` named backreferences). NUMERIC references (`(*scs:(N))`)
+remain validator-owned pending `.4.7.b`/`.4.7.c`. The accepted AST shape is unchanged by the gate.
+
 ## `script_run_group`
 
 ```ebnf

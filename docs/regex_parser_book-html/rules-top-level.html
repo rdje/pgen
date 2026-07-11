@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6e41a809.js";
+            window.path_to_searchindex_js = "searchindex-fe666487.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -183,10 +183,19 @@
                         <h1 id="top-level-rules-regex-pattern-alternation-alternative-concatenation"><a class="header" href="#top-level-rules-regex-pattern-alternation-alternative-concatenation">Top-Level Rules: regex, pattern, alternation, alternative, concatenation</a></h1>
 <p>These five rules together describe how the top-level structure of a regex is shaped. Reading order: outermost (<code>regex</code>) inward to where pieces live (<code>concatenation</code>).</p>
 <h2 id="regex"><a class="header" href="#regex"><code>regex</code></a></h2>
-<pre><code class="language-ebnf">regex = pattern
+<pre><code class="language-ebnf">regex = entry_alternation
 -&gt; {type: "regex", pattern: $1}
 </code></pre>
 <p>The entry rule. Always emits <code>Json(Object({"type": "regex", "pattern": &lt;pattern-content&gt;}))</code>.</p>
+<p><strong>REGEX-PCRE2-FIDELITY.4.8 — the entry is <code>entry_alternation</code>, not the shared <code>pattern</code>.</strong> This is
+the <em>distinguished entry chain</em> (grammar design A″) that encodes PCRE2’s start-option <strong>position</strong>
+rule structurally. <code>entry_alternation</code> mirrors the shared <code>alternation</code> byte-for-byte, except its
+first alternative (<code>entry_alternative → entry_concatenation</code>) alone may carry a leading start-option
+run. Every later <code>|</code>-alternative and every nested pattern (inside a group) routes through the shared
+<code>alternative</code>/<code>concatenation</code>, which have no start-option branch — so a <code>(*UTF)</code>/<code>(*CRLF)</code>-class start
+option is reachable ONLY as a contiguous prefix of the whole pattern, before any construct and not
+nested at any depth. See <a href="#entry_concatenation--concatenation"><code>entry_concatenation</code></a> below. The
+emitted <code>pattern</code> shape is unchanged (the entry rules mirror the shared rules exactly).</p>
 <p>(Pre-1.1.34 the rule was <code>regex = pattern?</code> — the trailing <code>?</code> was redundant: <code>pattern → alternation → alternative = concatenation?</code> already handles emptiness, and the <code>?</code> only existed to compensate for a since-fixed codegen bug — see <a href="changelog-index.html#1134--contract-1136--pgen-rgx-0075-typed-shape-correctness-for-multi-piece-concatenation">PGEN-RGX-0075 in the changelog</a>.)</p>
 <h3 id="shape"><a class="header" href="#shape">Shape</a></h3>
 <div class="table-wrapper">
@@ -323,6 +332,49 @@
 ]
 </code></pre>
 <p>Same flat shape as <code>abc</code> — the <code>\Q...\E</code> quoted-run is invisible in the output, exactly as PCRE2 semantics dictate (the runtime behavior of <code>\Qab*\E{2,}</code> and <code>ab\*{2,}</code> is identical).</p>
+<h2 id="the-entry-chain--entry_alternation--entry_alternative--entry_concatenation"><a class="header" href="#the-entry-chain--entry_alternation--entry_alternative--entry_concatenation">the entry chain — <code>entry_alternation</code> / <code>entry_alternative</code> / <code>entry_concatenation</code></a></h2>
+<pre><code class="language-ebnf">entry_alternation = entry_alternative ("|" alternative)*
+entry_alternative = entry_concatenation?
+entry_concatenation = start_option_piece+ piece*
+-&gt; [$1*, $2**]
+                    | piece+
+-&gt; [$1**]
+</code></pre>
+<p><strong>REGEX-PCRE2-FIDELITY.4.8 (grammar design A″).</strong> <code>regex</code> enters through this chain instead of the
+shared <code>pattern</code>. The three rules mirror their shared counterparts’ shape byte-for-byte — the only
+difference is that <code>entry_concatenation</code> has a first branch that admits a leading run of
+<a href="rules-piece.html#piece"><code>start_option_piece</code></a> (a <code>(*UTF)</code>/<code>(*CRLF)</code>/<code>(*LIMIT_HEAP=…)</code>-class start
+option). Because <code>start_option_piece</code> is referenced ONLY here, and every later <code>|</code>-alternative
+(<code>("|" alternative)*</code>) and every nested pattern uses the shared <code>alternative</code>/<code>concatenation</code> (no
+start-option branch), a start option is valid ONLY as a contiguous prefix of the whole pattern:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Input</th><th>Verdict</th><th>Why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(*CRLF)abc</code></td><td>ACCEPT</td><td>leading start-option run, then body</td></tr>
+<tr><td><code>(*CRLF)</code></td><td>ACCEPT</td><td>start-option-only pattern (empty body — branch 1’s <code>piece*</code> is zero)</td></tr>
+<tr><td><code>(*CRLF)a|b</code></td><td>ACCEPT</td><td>start option in the first (entry) alternative</td></tr>
+<tr><td>`` (empty)</td><td>ACCEPT</td><td><code>entry_alternative = entry_concatenation?</code> matches empty</td></tr>
+<tr><td><code>a(*CR)b</code></td><td>REJECT (err 160)</td><td>a body piece precedes the start option — no derivation</td></tr>
+<tr><td><code>(a)(*CRLF)</code></td><td>REJECT</td><td>after a group</td></tr>
+<tr><td><code>((*CRLF)a)</code></td><td>REJECT</td><td>nested inside a group (uses shared <code>concatenation</code>)</td></tr>
+<tr><td><code>(*CRLF)a|(*LF)b</code></td><td>REJECT</td><td>start option in a <em>later</em> alternative (uses shared <code>alternative</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The rule is enforced <strong>purely structurally</strong> — no semantic fact or predicate, so it costs nothing on
+the parse hot path, and the stimuli generator cannot emit a mis-positioned start option either (the
+generator↔parser duality is closed by construction). This replaced the out-of-band validator
+position check (<code>find_invalid_verb_construct</code> + <code>is_start_option_position</code>, now DELETED — see the
+<a href="compile-contract-validator.html">compile-contract validator</a>).</p>
+<h3 id="shape-5"><a class="header" href="#shape-5">Shape</a></h3>
+<p>Byte-identical to the shared <code>concatenation</code>. Branch 1’s annotation <code>[$1*, $2**]</code> shallow-spreads the
+leading start-option run (<code>$1</code>, each element a flat <code>{type:"piece",…}</code> object) then deep-flatten-spreads
+the body <code>piece*</code> (<code>$2</code>, unwrapping any <code>piece_quoted_run_quantified</code> Sequence) — the same flat array of
+piece objects a start-option pattern produced before <code>.4.8</code>. Branch 2 (<code>piece+ -&gt; [$1**]</code>) is identical
+to the shared <code>concatenation</code>.</p>
 <h2 id="putting-it-together--the-navigation-pattern"><a class="header" href="#putting-it-together--the-navigation-pattern">Putting it together — the navigation pattern</a></h2>
 <p>A consumer that wants to iterate the pieces of a non-alternated concatenation does:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
