@@ -98,3 +98,34 @@ a hot regex parse (`sample`) + capture `MEMO_STATS`; profile json/vhdl too to co
 "systemic"; report WHERE the time goes BEFORE any change. EXCLUDE the pathological corpus cells
 (catastrophic `\(…\)` line 878/881 + 80-deep-paren line 1340) up front
 ([[feedback_dont_run_jobs_that_hit_known_pathological_inputs]]).
+
+---
+
+**✅ PROFILE LANDED (session #90, 2026-07-11) — WHERE + WHY, tool-backed + systemic.** `sample` (release,
+1 ms) on regex (`regex_perf_probe` hot loop) + json (740 KB `--parse json`) + vhdl (146 KB `--parse vhdl`).
+
+- **Baseline:** regex 8-pattern-bench geomean ≈ **496µs/parse** (Optim #1–#16 already put it ~2–3× under
+  the RGX-0073 reference). `pgen_iteration_flow` NOT vendored ⇒ PCRE2-relative closure number deferred to `.4`.
+- **WHERE (regex self-time, 9630 leaf samples):** **59.4% `libsystem_malloc`** (symptom) · 6.9%
+  semantic-runtime · 6.0% SipHash/hashmap · 4.4% string-formatting · 1.5% clone/drop.
+- **Attribution (call graph):** **`SemanticRuntimeState::rollback_to_named` ≈ 24% of total** — the single
+  biggest allocation source, on the backtrack path of every failed speculation. Its allocating children
+  are the UNCONDITIONAL `self.scopes = active_chain.iter().map(..).collect()` (`semantic_runtime.rs:2804`)
+  + `active_chain_snapshot.clone()` (`:2793`).
+- **SYSTEMIC — CONFIRMED:** json (`create_contextual_error` 174, `RecursionGuard::check_cycle` 130) + vhdl
+  (same top malloc/SipHash/clone frames) burn in the SAME shared engine code — the slowness is inherent to
+  the shared parse machinery, not a regex path. Confirms the director's "systemic" hypothesis.
+- **REFUTED (profile > inference — the [[project_uvm_memory_not_the_memo]] lesson, again):** ranked
+  hypothesis #4-ish "per-parser construction rebuilds the annotation table ⇒ ~160µs floor" — `new()` is
+  ~0.7%, `parse_full` is the 9584 samples. The parse (per-char `atom`-tournament under `longest_match`,
+  constant backtracking) dominates, confirming ranked hypothesis **#1 as the DRIVER** and **#2
+  (per-speculation overhead) as the COST**.
+- **CORRECTED prior:** the 2026-06-03 "regex has no semantic predicates → takes the clone-skipping
+  fast-path" note is too strong — regex emits `regex_capture_group` facts + opens/closes lookaround
+  scopes, so `SemanticRuntimeState` IS on its hot path (that is exactly why `rollback_to_named` is 24%).
+- **Ranked levers → `.3`+ (tree `docs/tasks/RGX-0078.md`):** (1) gate the rollback active-chain/scopes
+  restore on scope-state-changed — no regen, correctness-neutral, sound (scopes lockstep w/ active_chain);
+  (2) FxHash / codegen-elide the per-rule annotation-table SipHash lookups for annotation-free rules;
+  (3) reduce per-speculation ParseContent/Vec churn; (4) first-set predictive dispatch (deeper, later);
+  (5) defer the generated `try_parse` Err-arm trace strings (codegen/regen). One change at a time, measure
+  the GLOBAL geomean before→after, correctness floor NEVER traded ([[feedback_correctness_before_speed]] ⛔).

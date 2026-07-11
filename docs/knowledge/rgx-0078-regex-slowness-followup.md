@@ -32,3 +32,18 @@ help regex. Regex's bottleneck is elsewhere (general parse machinery vs PCRE2's 
 
 Full plan + candidate techniques in the decision record [[project-rgx-0078-regex-slowness-followup]].
 Cross-repo: issue in `rgx/pgen-issues/`; work on pgen's `grammars/regex.ebnf` + engine.
+
+---
+
+**PROFILE LANDED (session #90, 2026-07-11) — the WHERE is now known.** `sample` (release, 1 ms) on
+regex/json/vhdl. Regex baseline geomean ≈ **496µs/parse** (8-pattern bench). Self-time: **59% in
+`libsystem_malloc`** (the symptom). Call-graph attribution: **`SemanticRuntimeState::rollback_to_named`
+≈ 24% of total** — the backtrack path taken by every failed speculation; its allocation is the
+unconditional `active_chain.clone()` (`semantic_runtime.rs:2793`) + `self.scopes = …collect()` rebuild
+(`:2804`). **SYSTEMIC: confirmed** — json (`create_contextual_error` 174, `RecursionGuard::check_cycle`
+130) + vhdl show the same shared-engine cost shape. **Two priors CORRECTED:** (1) regex is NOT fully
+predicate-free — it emits `regex_capture_group` facts + opens/closes lookaround scopes, so the semantic
+runtime IS on its hot path (the 2026-06-03 "no semantic predicates" note above is too strong). (2) The
+"per-parser construction rebuilds the annotation table ⇒ 160µs floor" guess was **REFUTED** — `new()` is
+~0.7%; the PARSE dominates (the per-char `atom`-tournament under `longest_match` backtracks constantly).
+`.3` = gate the rollback active-chain/scopes restore on scope-state-changed (no regen, correctness-neutral).
