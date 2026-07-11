@@ -207,8 +207,52 @@ grammar inherits it); NO source / grammar / codegen / regeneration. Machine-INDE
   makes the delta attributable. The [[feedback_prove_independence_with_decisive_baseline]] discipline for a
   build-config change = stash only the one file, rebuild, re-measure back-to-back.
 
-**Still queued:** `.4.b` `target-cpu` (machine-specific — a bake-vs-consumer decision, since a `target-cpu=native`
-binary is not portable across CPUs; likely leave to consumers via `.cargo/config` guidance rather than bake),
-`.4.c` PGO (the AOT analog of PCRE2's JIT benefit — needs a repeatable training run over the bench corpus),
-then the source levers (`.5`: FxHash annotation-table lookups, per-speculation arena, first-set predictive
-dispatch, parse cache).
+**Still queued:** `.4.c` PGO (the AOT analog of PCRE2's JIT benefit — needs a repeatable training run over
+the bench corpus), then the source levers (`.5`: FxHash annotation-table lookups, per-speculation arena,
+first-set predictive dispatch, parse cache).
+
+---
+
+**✗ LEVER REJECTED (RGX-0078·4.b, session #92, 2026-07-11) — `target-cpu=native` is a MEASURED REGRESSION.**
+The commonly-assumed "free" win was TESTED, not assumed (the profile>inference discipline). Built
+`regex_perf_probe` with `RUSTFLAGS="-C target-cpu=native"` on top of the `.4.a` fat-LTO profile (distinct
+sha256), measured ALTERNATELY back-to-back against the saved fat-LTO-only binary: fat-LTO-only `313µs` vs
++native `324–327µs` = **+3.5…+4.6% SLOWER**, uniformly across 7 of 8 patterns (only `literal_simple` flat),
+three alternated readings with zero overlap. Cause: PGEN's parser is branchy, control-flow-bound, small-input
+(the `.2` profile: 59% malloc + per-char `longest_match` tournament — nothing data-parallel), so
+native-codegen autovectorization/apple-m4 instruction selection bloats the code with SIMD setup that never
+pays off and hurts I-cache locality. **DECISION (autonomous — two independent reasons):** do NOT bake it —
+(1) it is a measured regression here; (2) it is machine-specific (non-portable), so it could not ship in a
+tracked config anyway. `RUSTFLAGS` was never written to a tracked file, so the committed config is unchanged
+(fat-LTO only). NO code change; NO bake-vs-consumer decision to surface (nothing worth shipping).
+**Consumer-guidance takeaway:** downstream (RGX) should NOT assume `target-cpu=<host>` helps — measure the
+target workload first. **General lesson (durable):** a build flag's reputation is no substitute for a
+measurement — `target-cpu=native` is NOT a universal win and regresses branch-heavy, small-input parsers.
+
+---
+
+**⏸ STRATEGIC STATE / RECOMMENDATION at the build-flag phase boundary (session #92, 2026-07-11) — surfaced for the director.**
+The cheap, safe, correctness-neutral build-flag phase of `.4` is essentially explored: **`.4.a` LTO+cu=1
+LANDED −6.7%** (a real parser-agnostic win, shipped), **`.4.b` target-cpu=native REJECTED** (measured +4%
+regression). One build-flag lever remains — **`.4.c` PGO** — and it is a DIFFERENT character worth an explicit
+call:
+- **PGO is a build-PROCESS change, not a drop-in flag.** It needs instrument-build → train-on-a-corpus →
+  `llvm-profdata` merge → optimized rebuild (feasible: llvm-tools present). A *win* would raise a genuine
+  SHIPPING/REPRODUCIBILITY question — how does RGX reproduce the PGO build, and train on what corpus? — which
+  is a real-world side effect (director-owned per [[feedback_user_is_director_not_engineer]]).
+- **Its value here is uncertain and likely modest.** The `.2` profile pins the real cost at **59% malloc +
+  the per-char `longest_match` backtracking tournament**. PGO improves branch layout / inlining from a real
+  profile, but does NOT reduce the malloc volume — so its ceiling on this workload is bounded (control-flow
+  overhead only, not the dominant allocation). And an honest measurement must train on a DIVERSE corpus and
+  measure on a held-out set (training+measuring on the 8-pattern bench overfits).
+- **The profile-indicated REAL remaining win is the `.5` SOURCE/ENGINE levers**, which attack the measured
+  bottleneck directly: per-speculation arena/reuse (the 59% malloc), FxHash/codegen-elided per-rule
+  annotation-table lookups (~6% SipHash), first-set predictive dispatch (the backtracking multiplier). These
+  are parser-agnostic and higher-EV — but they are **correctness-RISKY engine changes** (each must pass the
+  full `.3`/`.4.a` oracle battery under the ⛔ HARD constraint) and deserve careful, dedicated slices.
+
+**RECOMMENDATION:** the safe build-flag wins are banked; the next real speed requires either the PGO
+build-process investment (modest, uncertain, with a shipping decision) or the correctness-risky `.5` engine
+work (higher-EV, attacks the profiled malloc). Both are substantial. My lean: do the PGO measurement next
+(it completes `.4` and is low-correctness-risk since a build can't change semantics), deferring the PGO
+*shipping* decision until the number is in hand; then take the `.5` engine levers as fresh, careful slices.

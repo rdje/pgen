@@ -216,6 +216,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | 6.0 | Memo split by outcome | engine | — | ~20% faster (uvm) | landed |
 | RGX-0078 · 1 | **Rollback scope-restoration guard** — skip the active-chain clone + `scopes` rebuild on the backtrack path when no scope state changed | engine (shared runtime) | 422 µs → **344 µs** | **−18.6%** | **landed** ✓ |
 | RGX-0078 · 4.a | **Free AOT build flags** — `[profile.release] lto="fat" + codegen-units=1` (was cargo defaults: no LTO, 16 codegen units) | build config (parser-agnostic) | 332 µs → **310 µs** | **−6.7%** | **landed** ✓ |
+| RGX-0078 · 4.b | `target-cpu=native` (on top of 4.a) — commonly assumed a free win | build flag (machine-specific) | 313 µs → 324–327 µs | **+4% (worse)** | **rejected** ✗ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -231,6 +232,17 @@ semantics, so the correctness floor is even more robust here than for an engine 
 still proven: the fat-LTO release binary returns **byte-identical** PCRE2-compile-oracle verdicts to
 the unchanged reference across all 2 188 corpus cells (`1878/310/262/48`, `diff` empty — not a single
 new false-accept or false-reject), and certificate-coverage stays `fully_certified` (UNKNOWN=0).
+
+**Lever RGX-0078·4.b (`target-cpu=native`) — measured and rejected.** The obvious next build flag is
+`target-cpu=native`, which lets the compiler use the host CPU's full instruction set. It is *commonly
+assumed* to be a free win — so it is worth stating plainly that, measured decisively (built on top of 4.a,
+compared alternately against the fat-LTO-only binary), it made the regex parse **~4% slower**, uniformly
+across seven of the eight patterns. The reason is the shape of the workload: PGEN's parser is branchy,
+control-flow-bound, and runs on tiny inputs — there is nothing data-parallel to vectorize, so the
+native-codegen SIMD setup only bloats the code and hurts instruction-cache locality. It is a good reminder
+that a build flag's reputation is no substitute for a measurement: this one was rejected, and it is also
+machine-specific (a `native` binary is not portable), so it is left off entirely — downstream consumers
+should not assume `target-cpu` helps their workload without measuring it.
 
 **Lever RGX-0078·1 in plain terms.** Every failed speculation calls the semantic runtime's
 *rollback*, which restored scope bookkeeping by cloning a vector and rebuilding another —

@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-11 - PGEN-RGX-0078-0004 — RGX-0078.4.b: `target-cpu=native` measured and REJECTED (a negative result worth recording)
+
+**What.** No code change. Measured whether `RUSTFLAGS="-C target-cpu=native"` (on top of the `.4.a` fat-LTO release profile) speeds up the regex parse, and it does NOT — it regresses it ~4%. Recorded so no future session re-treads it.
+
+**Method (decisive, drift-controlled).** Built `regex_perf_probe` with `RUSTFLAGS="-C target-cpu=native"` (10m10s, distinct sha256 from the fat-LTO-only binary), then measured it ALTERNATELY back-to-back against the saved fat-LTO-only binary (`regex_perf_probe` 2000/200, geomean of noise-floor mins). `RUSTFLAGS` lived only in the build command's env, never written to a tracked file, so the committed config is unchanged.
+
+**Result.** fat-LTO-only `313,008 / 313,163 / 313,303 ns` vs +native `327,219 / 327,822 / 324,212 ns` = **+3.5…+4.6% SLOWER**, three alternated readings with zero overlap; per-pattern 7 of 8 ~+4% slower (digit_sequence +4.6%, character_class +3.8%, alternation +4.2%, capture_groups +3.6%, url_simple +4.0%, email_basic +4.2%, anchor_complex +3.8%), only `literal_simple` flat. Systematic, not an outlier.
+
+**Why + decision.** PGEN's parser is branchy, control-flow-bound, small-input (the `.2` profile: 59% malloc + per-char `longest_match` tournament — nothing data-parallel to vectorize), so `target-cpu=native` codegen bloats the code with SIMD setup that never pays off and hurts I-cache locality. DECISION (autonomous, two reasons): do NOT bake it — measured regression + machine-specific (non-portable). Consumer takeaway: RGX should NOT assume `target-cpu=<host>` helps; measure. **Durable lesson:** a build flag's reputation is no substitute for a measurement — `target-cpu=native` is not a universal win and regresses branch-heavy small-input parsers.
+
 ## 2026-07-11 - PGEN-RGX-0078-0003 — RGX-0078.4.a: free AOT build flags `lto="fat" + codegen-units=1` (second landed SPEED lever)
 
 **What.** `rust/Cargo.toml` — added a `[profile.release]` section with `lto = "fat"` + `codegen-units = 1` (the release build previously used cargo defaults: `lto=false`, `codegen-units=16`). Build-configuration change; parser-AGNOSTIC (every release binary/grammar inherits it); NO source, grammar, codegen, or regeneration. `git diff --stat` = `rust/Cargo.toml` + `docs/tasks/RGX-0078.md` only.
