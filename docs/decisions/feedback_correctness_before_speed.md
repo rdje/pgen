@@ -24,6 +24,23 @@ as the RGX-0078 tree's ⛔ HARD CONSTRAINT (every correctness oracle green at it
 
 **REINFORCED + BROADENED (user 2026-06-03):** *"It is always functionality & accuracy then speed, in that order."* The user SUSPECTS pgen parsers may not run as fast as they possibly can — but speed work waits until a parser is accurate and does its job (parses its target language source). Implication: there is a **deliberate SPEED PHASE, across ALL parser families, that begins once each is accurate.** First instances now entering that phase: **regex** (conformant → `RGX-0078`, [[project_rgx_0078_regex_slowness_followup]], geomean PGEN/PCRE2 < 5×) and **SV's super-linearity** (the parser is accurate — corpus 14/14 — so its O(N²) `with_semantic_runtime_rule_transaction` clone is fair game: `PARSE-TERMINATION.3`, [[stateful-packrat-not-linear]]). Both are SPEED-on-an-already-ACCURATE-parser → in-scope; both must be PROFILED first (tools, not guessing) and must not regress accuracy/conformance.
 
+**⭐ ELEVATED — SPEED is a FIRST-CLASS, CONTINUOUSLY-TRACKED deliverable (director 2026-07-11):**
+*"PGEN needs to account speed as a first-class deliverable. Accuracy AND speed are as important, so both
+need to be tracked, monitored — like milk on the fire. But there is an order: accuracy comes first, then
+speed. Accuracy without speed is a toy, not usable in real life; speed without accuracy is nonsensical.
+Accuracy must be achieved first AND MAINTAINED — not regressed through speed optimization."* Two shifts
+from the prior framing: (1) speed is no longer a one-off "phase" bolted after accuracy — it is a
+**standing, co-equal, continuously-monitored deliverable** (track a speed metric alongside the accuracy
+oracles, watched constantly, so a regression is caught the moment it appears); (2) the ORDER is a strict
+precedence, not a weighting — **accuracy is the immovable FLOOR** (achieved first, then never traded), and
+speed is maximized ONLY on top of a maintained-accurate parser. A usable real-world parser needs BOTH:
+accuracy-without-speed = a toy; speed-without-accuracy = nonsense. **Observed at SCALE:** RGX surfaced the
+slowness by running the PCRE2 conformance suite over the **FULL PCRE2 test data** (not just the 8-pattern
+bench) — so the speed metric should be measured/tracked over the full conformance corpus, and the
+slowness is hypothesized SYSTEMIC across ALL PGEN-generated parsers (see
+[[project_rgx_0078_regex_slowness_followup]] reframing). Toward the [[project_horizon_universal_parser]]
+north star, a universal parser platform must be respected on BOTH axes.
+
 **Frame of reference:**
 - Commercial SV compilers parse `uvm_pkg.sv` (3MB, ~90K preprocessed lines) in **<1 second**.
 - A chip design contains **hundreds to thousands** of SV/VHDL/Verilog files; full compilation must still be fast (commercial tools do whole-design elaboration in seconds-to-minutes).

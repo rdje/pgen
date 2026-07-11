@@ -12,6 +12,7 @@
 - ⛔ A code change MUST pass the **acceptance checklist** (ROOT CAUSE + ADDRESSED + NO REGRESSION, evidence-backed) in its task leaf — enforced by `scripts/check_doctrines.sh` via `.githooks/pre-commit` (run `git config core.hooksPath .githooks` once per clone).
 
 ## North star (standing; director 2026-07-11)
+- ⭐ SPEED is a FIRST-CLASS, CONTINUOUSLY-TRACKED deliverable, CO-EQUAL in importance with accuracy (both "watched like milk on the fire") — BUT strict order: **accuracy first + never regressed** (the immovable floor), speed maximized only on top of a maintained-accurate parser. Accuracy-without-speed = a toy; speed-without-accuracy = nonsense. Track a speed metric (geomean vs PCRE2 on the FULL conformance corpus) alongside the accuracy oracles. RGX surfaced the slowness on the full PCRE2 test data; hypothesized SYSTEMIC across all PGEN parsers. See [[feedback_correctness_before_speed]] (elevated) + [[project_rgx_0078_regex_slowness_followup]].
 - HORIZON GOAL: PGEN shall gain the **minimally-required feature set to accurately parse ANY precisely-described real-world machine-readable language** — JS, Perl5, Raku, all markup (HTML/XML/…), any LRM. The architecture is the right foundation; the horizon is COMPLETING the primitive set, pursued via a capability-gap audit, with every primitive **duality-complete** (parse + SOUND generation — the witnessing wall is the precedent). Prefer the next slice that strengthens a GENERAL capability. See [[project_horizon_universal_parser]].
 
 ## Current state (OVERWRITE this block each update — do not append)
