@@ -152,6 +152,22 @@ regex_typed_differential_gate = ["generated_parsers"]
 # build + run + restore.
 regex_typed_perf_probe = ["generated_parsers"]
 
+# RGX-0078.4.a (SPEED PHASE): free AOT build-flag wins. The release build
+# previously used cargo DEFAULTS (`lto = false`, `codegen-units = 16`), which
+# fragments the crate into 16 independently-optimized units with no cross-unit
+# inlining and blocks cross-crate inlining. PGEN's generated recursive-descent +
+# packrat parser is branchy native code that benefits directly from whole-program
+# optimization. `lto = "fat"` + `codegen-units = 1` is a classic 5-20% win on
+# compute-heavy native code, is parser-AGNOSTIC (every release binary/grammar
+# inherits it), machine-INDEPENDENT (reproducible, unlike target-cpu/PGO), and
+# correctness-neutral by construction (a build-profile setting cannot change
+# program semantics). Cost: slower release builds. Measured before->after via
+# `regex_perf_probe` geomean-of-mins with the full correctness oracle battery
+# re-run byte-identical. See docs/tasks/RGX-0078.md leaf .4.a.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
 [dev-dependencies]
 serde_json = "1.0"
 tempfile = "3"

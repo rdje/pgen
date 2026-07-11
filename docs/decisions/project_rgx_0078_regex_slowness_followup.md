@@ -180,3 +180,35 @@ so a no-change backtrack leaves `scopes` already correct and the skip is a no-op
 free AOT build flags first (LTO / `codegen-units=1` / `target-cpu=native` / PGO — the release build currently
 uses cargo defaults, so these are unclaimed wins), then FxHash annotation-table lookups, first-set predictive
 dispatch, and a parse cache. Every lever lands as a shared-engine / codegen primitive so all parsers inherit it.
+
+---
+
+**✅ SECOND LEVER LANDED (RGX-0078·4.a, session #92, 2026-07-11).** The first free AOT build-flag win is
+committed: `rust/Cargo.toml` gained a `[profile.release]` section with `lto = "fat"` + `codegen-units = 1`
+(the release build previously used cargo defaults — `lto=false`, `codegen-units=16`, measured: no
+`[profile.release]`, no `.cargo/config`). Build-configuration change; parser-AGNOSTIC (every release binary/
+grammar inherits it); NO source / grammar / codegen / regeneration. Machine-INDEPENDENT and reproducible
+(unlike the `.4.b` `target-cpu` / `.4.c` PGO levers still queued).
+
+- **Speed:** DECISIVE drift-controlled back-to-back — saved the fat-LTO binaries, stashed ONLY `Cargo.toml`,
+  rebuilt the default-profile binary (distinct sha256), measured BOTH ALTERNATELY (so background CPU load
+  cancels): DEFAULT `331,856 / 332,946 ns` vs FAT-LTO+cu=1 `310,919 / 309,290 ns` = **−6.7%** (≈332→310µs),
+  all 8 patterns improved monotonically, zero overlap between the two profiles' floors.
+- **Correctness floor byte-identical** (the ⛔ HARD constraint): a `[profile.release]`-only change touches
+  ONLY release binaries — the debug profile is untouched, so the debug-built oracles (cert, equivalence,
+  semantic, duality-hunt, ast-shape) are byte-identical BY CONSTRUCTION. Directly re-verified the two that
+  matter: the fat-LTO RELEASE `regex_corpus_probe` observations are `diff`-EMPTY vs the UNCHANGED debug
+  reference across 2188 corpus cells (`1878/310/262/48`, not one new false-accept/false-reject; 80-deep-paren
+  cell `line_4674` excluded up front), and regex cert stays `fully_certified` UNKNOWN=0 / spf `0/1/1` at
+  seeds 0/7/42.
+- **Measurement-integrity lesson (kept):** for a modest (~6%) build-flag delta the noise-floor min alone is
+  insufficient — a before and an after measured minutes apart can drift with background load. Build BOTH
+  binaries to disk, then measure ALTERNATELY in one tight loop; the clean zero-overlap separation is what
+  makes the delta attributable. The [[feedback_prove_independence_with_decisive_baseline]] discipline for a
+  build-config change = stash only the one file, rebuild, re-measure back-to-back.
+
+**Still queued:** `.4.b` `target-cpu` (machine-specific — a bake-vs-consumer decision, since a `target-cpu=native`
+binary is not portable across CPUs; likely leave to consumers via `.cargo/config` guidance rather than bake),
+`.4.c` PGO (the AOT analog of PCRE2's JIT benefit — needs a repeatable training run over the bench corpus),
+then the source levers (`.5`: FxHash annotation-table lookups, per-speculation arena, first-set predictive
+dispatch, parse cache).

@@ -215,6 +215,22 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0073 | Optim #1–#16 (rule-names `&'static`, `FxHashMap` memo, anchored terminals, borrow-in-place, predicate-free fast-paths, worker cache, …) | engine + codegen | — | ~2–3× under the pre-optim reference | landed |
 | 6.0 | Memo split by outcome | engine | — | ~20% faster (uvm) | landed |
 | RGX-0078 · 1 | **Rollback scope-restoration guard** — skip the active-chain clone + `scopes` rebuild on the backtrack path when no scope state changed | engine (shared runtime) | 422 µs → **344 µs** | **−18.6%** | **landed** ✓ |
+| RGX-0078 · 4.a | **Free AOT build flags** — `[profile.release] lto="fat" + codegen-units=1` (was cargo defaults: no LTO, 16 codegen units) | build config (parser-agnostic) | 332 µs → **310 µs** | **−6.7%** | **landed** ✓ |
+
+**Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
+optimization off, and the crate split into sixteen independently-optimized units. That fragments the
+generated parser and the shared engine (which span many modules) into pieces the optimizer never
+inlines across. Turning on **fat LTO** and collapsing to a **single codegen unit** lets the whole
+program optimize together — a classic win on branchy, compute-heavy native code. It is the cheapest
+possible lever: *zero* source or grammar change, it applies to every release binary and every grammar
+(parser-agnostic), and it is reproducible on any machine (unlike the machine-specific `target-cpu` and
+PGO levers that follow it). Measured decisive delta: **−6.7%** geomean at the noise floor, every one
+of the eight patterns improved, proven by a drift-controlled back-to-back (both binaries built, then
+measured alternately so shared CPU load cancels out). A build-profile setting cannot change program
+semantics, so the correctness floor is even more robust here than for an engine change — and it was
+still proven: the fat-LTO release binary returns **byte-identical** PCRE2-compile-oracle verdicts to
+the unchanged reference across all 2 188 corpus cells (`1878/310/262/48`, `diff` empty — not a single
+new false-accept or false-reject), and certificate-coverage stays `fully_certified` (UNKNOWN=0).
 
 **Lever RGX-0078·1 in plain terms.** Every failed speculation calls the semantic runtime's
 *rollback*, which restored scope bookkeeping by cloning a vector and rebuilding another —
