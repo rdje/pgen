@@ -218,6 +218,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 4.a | **Free AOT build flags** — `[profile.release] lto="fat" + codegen-units=1` (was cargo defaults: no LTO, 16 codegen units) | build config (parser-agnostic) | 332 µs → **310 µs** | **−6.7%** | **landed** ✓ |
 | RGX-0078 · 4.b | `target-cpu=native` (on top of 4.a) — commonly assumed a free win | build flag (machine-specific) | 313 µs → 324–327 µs | **+4% (worse)** | **rejected** ✗ |
 | RGX-0078 · 4.c | PGO (profile-guided optimization, on top of 4.a) | build process | 308.6 µs → 305.4 µs | −1% (lower bound) | **not landed** ✗ |
+| RGX-0078 · 5.a | **FxHash the per-rule annotation-table lookups** — swap the two per-rule-entry directive maps (`directives_by_rule` + `branch_directives_by_rule`) from the std SipHash to `FxHashMap` | engine (shared runtime) | 320 µs → **303 µs** | **−5.4%** | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -278,13 +279,34 @@ and generated parser stay byte-identical to each other; and the generated-AST sh
 still holds against the running parser. Correctness is the floor here, never traded for the
 latency — so a speed lever only lands once every one of those oracles is re-proven green.
 
+**Lever RGX-0078·5.a in plain terms.** The parser keeps its semantic-annotation directives in a
+table keyed by rule name, and it consults that table on *every* rule entry — "does this rule have a
+pre-predicate? a post-predicate that needs the raw text? any branch directives?" — and on every
+backtrack, of which the per-character alternative tournament generates a great many. Those tables were
+std hash maps, which default to **SipHash**: a cryptographically strong, deliberately slow hash chosen
+to resist denial-of-service attacks on hash tables exposed to untrusted keys. But these keys are the
+grammar's own fixed rule names — there is no adversary — so the DoS resistance buys nothing and the
+hashing cost is pure overhead (the profile put it at ~6% of parse self-time). Switching the two
+per-rule-entry tables to **FxHash** (`rustc_hash`, the same fast non-cryptographic hash already used
+for the packrat memo) removes it. The public constructors still take a std map and convert once at
+construction, so the *generated* parser is untouched — no regeneration. And because those two tables
+are only ever read by point lookup (never iterated in a way that reaches the output), swapping the
+hash function cannot change what the parser produces: it is byte-identical *by construction*, and then
+proven so by the same full oracle battery — PCRE2 compile-oracle `diff`-empty (`1878/310/262/48`),
+certificate-coverage `fully_certified`, interpreter↔parser equivalence, the semantic suite, the
+duality-hunt gate, and the AST-shape contract all green at their pre-optimization values. Measured
+decisive delta: **−5.4%** geomean of the noise-floor minimums (drift-controlled, both binaries built
+and measured alternately), every one of the eight patterns faster in every round.
+
 ### What is left, and the honest gap
 
 The ranked, profile-indicated levers still ahead:
 
 1. **The per-rule annotation-table lookups.** Every rule entry hashes its name into the
-   directive table even for grammars with no annotations on that rule; a faster hasher
-   and/or generating the lookup away for annotation-free rules removes it.
+   directive table even for grammars with no annotations on that rule. The *faster-hasher*
+   half of this is now **landed** (lever 5.a above: FxHash instead of SipHash, −5.4%); the
+   remaining half — *generating the lookup away entirely* for annotation-free rules, so those
+   grammars pay nothing at all — is still open as a codegen change.
 2. **Per-speculation allocation churn.** The parse nodes built for each attempted branch and
    dropped on backtrack are the bulk of the 59%; arena/reuse strategies target this directly.
 3. **First-set predictive dispatch.** The deepest lever: skip alternatives that *cannot*

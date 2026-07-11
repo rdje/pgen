@@ -284,3 +284,38 @@ win); the remaining speed lives in the profile-indicated **`.5` SOURCE/ENGINE le
 arena/reuse (the 59% malloc), FxHash/codegen-elided per-rule annotation lookups (~6% SipHash), first-set
 predictive dispatch (the backtracking multiplier) — which are higher-EV but correctness-RISKY (each must pass
 the full oracle battery under the ⛔ HARD constraint) and deserve fresh, dedicated slices.
+
+---
+
+**✅ THIRD LEVER LANDED (RGX-0078·5.a, session #93, 2026-07-12) — the first `.5` SOURCE/ENGINE lever: FxHash the
+per-rule annotation-table lookups.** The `.5` phase opens with the lowest-risk profile-indicated lever (natural
+successor to `.3`): in `CompiledSemanticRuntimeAnnotations` (`rust/src/ast_pipeline/semantic_runtime.rs`), the two
+per-rule-entry lookup maps `directives_by_rule` + `branch_directives_by_rule` were switched from the std `HashMap`
+(SipHash) to `rustc_hash::FxHashMap`. Root cause (`.2` profile): the SipHash/hashmap bucket was 6.0% of regex
+parse self-time, the call-graph naming `has_rule` / `pre_predicates_for_rule` / `needs_raw_post_capture_for_rule`
+/ `needs_raw_final_capture_for_rule` — all `directives_by_rule.get(rule_name)` — run on every rule entry and every
+backtrack under the `longest_match` tournament. SipHash (cryptographic, DoS-resistant, slow) is pointless for the
+grammar's own fixed rule-name keys; FxHash is the fast non-cryptographic hash already used for the memo (Optim #6).
+
+- **Parser-AGNOSTIC, NO codegen/regen.** The struct is shared by every grammar's generated parser AND the
+  interpreter. The public constructors keep taking `std::HashMap` and convert at the boundary (`.into_iter()
+  .collect()`), so the generated parser's emitted `from_parts(...)` / `set_fact_kinds(...)` calls are unchanged.
+  `fact_kinds` / `predicate_defs` left std (not the profile-named hot path).
+- **Speed:** decisive drift-controlled — built BOTH release binaries (fat-LTO, distinct sha256), measured
+  ALTERNATELY back-to-back (`regex_perf_probe` 2000/200, geomean of mins, 3 rounds): no-fix `323 / 319 / 318 µs`
+  vs with-fix `304 / 298 / 306 µs` = **≈ −5.4% geomean** (per-round −5.9% / −6.5% / −3.7%), clean separation,
+  every one of the 8 patterns faster in every round.
+- **Correctness floor byte-identical** (the ⛔ HARD constraint): byte-identity is ARGUED by construction — the
+  two maps are read exclusively by point lookup (`get`/`contains_key`), only ever counted via `.keys()` in
+  `len()`, never iterated for output, so a hasher swap cannot change output (and FxHash's fixed seed is strictly
+  more deterministic than the std `RandomState`, which already randomizes order per process while the oracles stay
+  deterministic — independent proof nothing depends on these maps' order) — then PROVEN by the re-run oracles:
+  PCRE2 compile-oracle fix-vs-no-fix `diff` EMPTY (`1878/310/262/48`, safe 2188-cell subset, 80-deep-paren excluded
+  up front); regex cert `fully_certified` UNKNOWN=0 spf `0/1/1` seeds 0/7/42; equivalence + semantic (36/36) +
+  duality-hunt (no new signature) + regex ast-shape all green; clippy strict-source exit 0.
+- **General lesson (durable):** a hasher swap on a POINT-LOOKUP-ONLY map (never iterated for output) is a
+  byte-identical, correctness-neutral speed lever — a repeatable pattern for the remaining SipHash-keyed tables.
+
+**Next `.5` lever:** per-speculation arena/reuse (the 59% malloc — the biggest remaining lever, most
+correctness-risky), then first-set predictive dispatch, then a parse cache. Each a fresh dedicated slice passing
+this same full oracle battery.

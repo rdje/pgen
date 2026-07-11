@@ -5,6 +5,7 @@ use super::{
 use super::predicate_expr::{
     PredicateDef, PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
+use rustc_hash::FxHashMap;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1171,8 +1172,25 @@ impl SemanticRuntimeDirective {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CompiledSemanticRuntimeAnnotations {
-    directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
-    branch_directives_by_rule: HashMap<String, Vec<Vec<SemanticRuntimeDirective>>>,
+    // `RGX-0078.5.a` (speed): the two per-rule-entry lookup maps use `FxHashMap`
+    // (rustc-hash), not the std `SipHash` default. The `.2` profile pinned the
+    // per-rule SipHash lookups of these tables at ~6% of regex parse self-time
+    // (`has_rule` / `directives_for_rule` / `pre_predicates_for_rule` /
+    // `needs_raw_post_capture_for_rule` all funnel through
+    // `directives_by_rule.get(rule_name)`, evaluated on EVERY rule entry and
+    // every backtrack under the `longest_match` atom-tournament). FxHash is a
+    // faster non-cryptographic hash for short string keys (same Optim-#6
+    // precedent as the parser memo). This is a semantic-preserving hasher swap on
+    // POINT-LOOKUP-ONLY maps — they are read exclusively via `get`/`contains_key`
+    // and only ever *counted* (`.keys()` in `len()`), never iterated for any
+    // output-affecting purpose — so the swap is byte-identical to parser output
+    // BY CONSTRUCTION (and FxHash's fixed seed is strictly more deterministic than
+    // the std `RandomState`). Parser-AGNOSTIC (every grammar's parser + the
+    // interpreter share this) with NO codegen/regen: the public constructors keep
+    // taking `std::HashMap` (the generated parser is unchanged) and convert to
+    // `FxHashMap` at the construction boundary (a one-time O(rules) cost).
+    directives_by_rule: FxHashMap<String, Vec<SemanticRuntimeDirective>>,
+    branch_directives_by_rule: FxHashMap<String, Vec<Vec<SemanticRuntimeDirective>>>,
     /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: registry of `@fact_kind:` declarations
     /// collected at compile time. Keys are kind names (case-sensitive, as
     /// declared); values are the parsed + locally-validated `FactKindDecl`.
@@ -1223,8 +1241,12 @@ impl CompiledSemanticRuntimeAnnotations {
         directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
     ) -> Self {
         Self {
-            directives_by_rule,
-            branch_directives_by_rule: HashMap::new(),
+            // `RGX-0078.5.a`: convert the std-`HashMap` public input to the
+            // internal `FxHashMap` at the boundary (a one-time O(rules) cost),
+            // keeping this constructor's signature stable so the generated
+            // parser is unchanged (no codegen/regen).
+            directives_by_rule: directives_by_rule.into_iter().collect(),
+            branch_directives_by_rule: FxHashMap::default(),
             fact_kinds: HashMap::new(),
             predicate_defs: HashMap::new(),
             layout_sensitivity: None,
@@ -1238,8 +1260,10 @@ impl CompiledSemanticRuntimeAnnotations {
         branch_directives_by_rule: HashMap<String, Vec<Vec<SemanticRuntimeDirective>>>,
     ) -> Self {
         Self {
-            directives_by_rule,
-            branch_directives_by_rule,
+            // `RGX-0078.5.a`: std-`HashMap` in (stable signature — the generated
+            // parser's `from_parts(...)` call is unchanged), `FxHashMap` stored.
+            directives_by_rule: directives_by_rule.into_iter().collect(),
+            branch_directives_by_rule: branch_directives_by_rule.into_iter().collect(),
             fact_kinds: HashMap::new(),
             predicate_defs: HashMap::new(),
             layout_sensitivity: None,
@@ -4128,8 +4152,13 @@ where
 pub fn compile_semantic_runtime_annotations(
     annotations: &Annotations,
 ) -> Result<CompiledSemanticRuntimeAnnotations, String> {
-    let mut directives_by_rule = HashMap::new();
-    let mut branch_directives_by_rule = HashMap::new();
+    // `RGX-0078.5.a`: the two per-rule-entry lookup maps are `FxHashMap` (built
+    // directly here so the struct-literal shorthand at the tail matches the field
+    // types — no boundary conversion on the compile path).
+    let mut directives_by_rule: FxHashMap<String, Vec<SemanticRuntimeDirective>> =
+        FxHashMap::default();
+    let mut branch_directives_by_rule: FxHashMap<String, Vec<Vec<SemanticRuntimeDirective>>> =
+        FxHashMap::default();
     // `SV-EXH-PROOF.3.3.4.b.5.1.2`: collect `@fact_kind:` declarations
     // from every rule's annotations. V-DECL-1 (uniqueness across the grammar)
     // is checked HERE; V-DECL-2..5, V-DECL-7 are already enforced at parse
