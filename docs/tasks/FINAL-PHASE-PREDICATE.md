@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `FINAL-PHASE-PREDICATE`
-- Status: `complete` — **`.1` DESIGN DECIDED** (2026-07-10, session #86, `PGEN-FPP-0001`, PURE-DOCS):
+- Status: `active` — REOPENED 2026-07-11 (session #87) with **`.3`** (the multi-branch `view` resolver-robustness follow-up surfaced by the FIRST consumer `REGEX-PCRE2-FIDELITY.4.11`; decision made + build spec frozen, build routed to a fresh session). **`.1` DESIGN DECIDED** (2026-07-10, session #86, `PGEN-FPP-0001`, PURE-DOCS):
   Option B, SOTA-cited, engine BUILD SPEC frozen. **`.2` BUILD LANDED** (2026-07-10, session #86,
   `PGEN-FPP-0002`): the `phase: final` engine primitive shipped identically in the shared runtime, codegen,
   and interpreter mirror, with new semantic-suite cases + coverage, proven in isolation before any consumer.
@@ -105,7 +105,7 @@ Expose a **general, parser-agnostic** fourth `@predicate` phase on the existing 
 
 ## Task Tree
 
-- ID: `FINAL-PHASE-PREDICATE`  Status: `active`  Children: `.1`, `.2`
+- ID: `FINAL-PHASE-PREDICATE`  Status: `active`  Children: `.1`, `.2`, `.3`
 - ID: `.1`  Status: **`done`** (`PGEN-FPP-0001`, 2026-07-10 session #86, PURE-DOCS)  Goal: settle the
   A-vs-B design (Option B, SOTA-cited) + freeze the engine BUILD SPEC + fix-hierarchy tier-5 justification.
   Acceptance: the decision record [[project_final_phase_deferred_predicate_primitive]] + this tree + the
@@ -122,6 +122,63 @@ Expose a **general, parser-agnostic** fourth `@predicate` phase on the existing 
   `FinalForwardGate` + `FinalRollbackSpeculation`; coverage-completeness recognizes both. Proven in
   isolation (scratch-slot generated parser: forward-ACCEPT `use a;decl a;` rc 0, undefined-REJECT
   `use a;decl b;` rc 1) BEFORE any consumer. See the Acceptance Checklist below.
+- ID: `.3`  Status: `pending` (routed 2026-07-11 session #87 by `PGEN-REGEX-PCRE2-0045`, PURE-DOCS —
+  **decision MADE + build spec FROZEN**; the BUILD is deferred to a fresh session so its multi-build gate
+  re-verification lands at signoff quality on a clean repo)  Goal: CLOSE the multi-branch `view` FOOTGUN
+  that the FIRST consumer (`REGEX-PCRE2-FIDELITY.4.11`) surfaced — make the shared semantic-predicate
+  ARGUMENT RESOLVER resolve a NAMED reference against whichever content-view actually holds it, so a `final`
+  (or any-phase) predicate on a MULTI-BRANCH rule resolves a shaped-key `$ref`/`$name` under the DEFAULT
+  `view: raw` EXACTLY as a single-branch rule already does — removing the per-consumer `view: shaped`
+  workaround `.4.11` had to use.
+
+  **DECISION (director-authorized 2026-07-11, verbatim *"take whatever decision, route you need to take
+  because you are the expert coder here … it needs to be sota level, signoff level quality"*): Option
+  (b)-refined — a resolver FALLBACK, NOT a default-flip.** When a NAMED / object-key reference
+  (`$name`/`$ref`/dotted/name-indexed) is ABSENT from the `view`-selected content, fall back to the OTHER
+  view's content BEFORE raising the unresolved-attribute error. Chosen over Option (a) "default `final`
+  predicates to `view: shaped`" because (b): (1) fixes the ROOT INCONSISTENCY — single-branch rules resolve
+  shaped keys under the `view: raw` default only by the `semantic_raw_content=None` shaped-fallback ACCIDENT
+  (see [[project_final_phase_deferred_predicate_primitive]] FIRST-CONSUMER FINDING), while a multi-branch
+  tournament captures the winner's raw `Sequence` and cannot; (b) makes them IDENTICAL; (2) applies to ALL
+  phases (pre/branch/post/final), not just final; (3) changes NO default (no surprise for a raw/positional
+  `$N`/`$text`-intending predicate); (4) NEVER masks a real typo — a key absent from BOTH views still errors.
+
+  **WHERE (tools-first map — VERIFY by re-reading before editing; the FPP.2 3-place mirror discipline):**
+  view→content selection archetype `rust/src/ast_pipeline/semantic_runtime.rs:3572-3574`
+  (`match predicate.view { Raw => raw_content, Shaped => shaped_content }`); the codegen-emitted parallel
+  raises `"Semantic runtime could not resolve attribute reference '{}'"` at
+  `rust/src/ast_pipeline/ast_based_generator.rs:~2558` (emitted into every generated parser via
+  `resolve_semantic_predicate_spec_against_content`); the interpreter mirror is in
+  `rust/src/parse_harness_interpreter.rs`. Apply the fallback at EVERY resolution site. The fallback fires
+  ONLY on a NAMED-reference miss in the primary view — positional `$N` / `$text` semantics are UNCHANGED.
+
+  **INERT-ON-SHIPPED (the no-regression proof to reproduce):** NO shipped grammar has a `view: raw`
+  MULTI-BRANCH shaped-key predicate — regex's three `.4.11` named-ref gates carry EXPLICIT `view: shaped`
+  (resolve shaped directly, never hitting the fallback), and every other predicate is either single-branch
+  (already `None`-fallback) or explicit-shaped ⇒ byte-identical across all 11 certified grammars + the regex
+  `.3.22` matrix 17/17. AFTER landing, the regex explicit `view: shaped` MAY be simplified to the default
+  (a stronger proof the fixed default works) OR kept as self-documenting intent — leaf-decision (keeping
+  avoids a regex regen + re-verify; either is signoff-clean).
+
+  **COVERAGE-GAP FIX (mandatory — the exact case the `.2` proof missed):** add a MULTI-BRANCH `phase: final`
+  shaped-key case to `rust/src/parse_harness_semantic_suite.rs` that uses the DEFAULT view (NO explicit
+  `view: shaped`) — e.g. a 2-branch reference rule `ref := "\\k<" name ">" -> {t:"a", r:$2} | "\\g<" name
+  ">" -> {t:"b", r:$2}` with `@predicate has_fact(decl, $r) phase: final` — forward-ACCEPT vs
+  undefined-REJECT. This is PRECISELY the case the single-branch `FinalForwardGate`/`FinalRollbackSpeculation`
+  (session #86) could not exercise; the coverage-completeness recognizer must accept it. A scratch-slot
+  multi-branch `view: raw` shaped-key repro (accept/reject rc) is the isolation proof, mirroring FPP.2.
+
+  **ACCEPTANCE (signoff):** root cause already proven (`.4.11`, `--trace-rules`); the new multi-branch
+  semantic-suite case passes under the DEFAULT view (compiled parser AND interpreter byte-identical);
+  `parse_harness_semantic_gate` all-CLEAN; `parse_harness_equivalence_gate` 11/11 byte-identical;
+  `parse_harness_combinator_gate` intact; regex `.3.22` matrix 17/17; regex cert `fully_certified`;
+  `ast_shape_contract` aligned; `duality_hunt`; clippy; full lockstep (book `semantic-store.md` `view` note
+  softened from "`view: shaped` is REQUIRED" to "resolution falls back to whichever view holds the key;
+  explicit `view: shaped` is now optional self-documentation" + this tree + decision record +
+  CHANGES/DEVELOPMENT_NOTES/LIVE_ACHIEVEMENT_STATUS/MEMORY). NO release/contract/schema/ledger bump expected
+  (a general engine-robustness improvement, INERT on every shipped parser). Fix-hierarchy tier-5 (engine) —
+  the footgun is an engine-resolution inconsistency, not fixable at grammar/annotation tier except by the
+  per-consumer `view: shaped` workaround this leaf retires.
 
 ## Acceptance Checklist (enforced) — `.2` BUILD
 

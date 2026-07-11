@@ -210,12 +210,23 @@ this binds resolution to the produced `{…, ref}` object unconditionally and ma
 correct-by-design rather than by the `None`-fallback coincidence. Proven: `.3.22` oracle matrix 17/17,
 `certified_grammars_are_byte_identical` byte-identical for regex (the interpreter mirror honors `view: shaped`
 identically), cert UNKNOWN 2→0 (`fully_certified=true`), spf pre-existing (clean-main baseline 2/2/0 vs .4.11
-0/1/1 — a NET improvement, not a regression). **CANDIDATE ENGINE FOLLOW-UP (own FPP leaf, NOT done here):** a
-`final` predicate almost always references a shaped captured value, so the primitive's `view: raw` DEFAULT is a
-footgun for future multi-branch consumers. Two general options, both parser-agnostic: (a) make `final` predicates
-default to `view: shaped`; or (b) have the `raw` resolver fall back to the shaped object when the raw content
-lacks the named attribute (unifying the single/multi-branch behavior). Deferred as a deliberate primitive-wide
-default change with broad blast radius; the grammar-level `view: shaped` fully closes `.4.11` without it. This
-finding + the book note (`semantic-store.md` `phase: final` section) discharge the "prove-in-isolation misses
-multi-branch" lesson for the next consumer. Grounded in [[feedback_no_workarounds_fix_hierarchy]],
+0/1/1 — a NET improvement, not a regression). **ENGINE FOLLOW-UP — DECIDED 2026-07-11 (session #87), routed as `FINAL-PHASE-PREDICATE.3` (build deferred to
+a fresh session for signoff-quality multi-build verification on a clean repo).** Director authorized the call
+directly (verbatim *"take whatever decision, route you need to take because you are the expert coder here … it
+needs to be sota level, signoff level quality"*). The primitive's `view: raw` DEFAULT is a footgun for future
+multi-branch consumers whose `final` predicate references a shaped captured value. Two options were weighed:
+(a) default `final` predicates to `view: shaped`; (b) have the resolver fall back to the OTHER view's content
+when a NAMED reference is absent from the `view`-selected content. **DECISION: (b)-refined.** Rationale — (b)
+fixes the ROOT INCONSISTENCY (single-branch resolves shaped keys under the `view: raw` default only by the
+`semantic_raw_content=None` shaped-fallback ACCIDENT; multi-branch captures the winner's raw `Sequence` and
+cannot — (b) makes them IDENTICAL), applies to ALL phases (not just `final`), changes NO default (no surprise
+for a raw/positional-intending predicate), and NEVER masks a real typo (a key absent from BOTH views still
+errors). Site map (verify tools-first): the view→content selection `semantic_runtime.rs:3572-3574` + the
+codegen-emitted resolver `ast_based_generator.rs:~2558` (the "could not resolve attribute reference" error) +
+the `parse_harness_interpreter.rs` mirror (the FPP.2 3-place discipline). INERT on all shipped grammars (regex's
+`.4.11` gates carry explicit `view: shaped`, so byte-identical across the 11 certified grammars is provable);
+coverage-gap fix = a MULTI-BRANCH `phase: final` shaped-key case (DEFAULT view) in
+`parse_harness_semantic_suite.rs` — the exact case the single-branch `.2` proof missed. Full frozen build spec +
+acceptance = `docs/tasks/FINAL-PHASE-PREDICATE.md` leaf `.3`. This finding + the book note (`semantic-store.md`
+`phase: final` section) discharge the "prove-in-isolation misses multi-branch" lesson for the next consumer. Grounded in [[feedback_no_workarounds_fix_hierarchy]],
 [[feedback_features_parser_agnostic_enable_all_parsers]], [[feedback_systematically_use_debug_toolbox]].
