@@ -8,7 +8,7 @@
 - Roadmap lane: `Platform expansion — make PGEN agent-controllable (north-star
   trust goal + signoff/breathtaking vision)`
 - Created: `2026-06-14`
-- Last updated: `2026-06-14`
+- Last updated: `2026-07-11` (session #90 refinement — LIVE in-flight introspection + stall detection)
 - Owner: repo-local workflow
 - Slice ID for this capture: `PGEN-MCP-0001` (pure-docs; no code)
 
@@ -81,6 +81,11 @@ second.** MCP is an integration *adapter*, never baked into the engine.
   `reach_classification` (`reachable_by_plan` / `no_reach_path` / …).
 - `pgen://parse/<run>/ast` and `pgen://parse/<run>/trace` — structured
   parse/generation AST + trace (`none/low/medium/high/debug`).
+- `pgen://parse/<run>/live-status` — ⭐ **LIVE in-flight introspection** (session #90
+  refinement): while a parse RUNS, its current rule + input position + recursion depth
+  (piggyback the recursion-guard `parse_stack`), `furthest_position` as a progress signal,
+  memo hit/miss, current input case, and a **stall metric** (`furthest_position` Δ/sec — the
+  signature of spinning-not-progressing). See the refinement section below.
 - the per-parser books + `docs/contracts/`.
 
 ### Tools (actions; writes are gated — see Security)
@@ -155,6 +160,50 @@ and PGEN already has the machinery):
 - Phase 5: packaged workflow prompts (the four above).
 - Phase 6: multi-tool orchestration (git, issue tracker, regression).
 
+## Refinement (session #90, 2026-07-11) — LIVE in-flight introspection + stall detection
+
+Director conversation, born from concrete pain: the `regex_pcre2_compile_oracle_gate` ground for
+**~2.5 hours** on a catastrophic-backtracking corpus cell (a DEBUG probe) with **zero live visibility**
+into WHICH case / how deep / progressing-vs-spinning; the only recovery was `kill`. Director's ask
+(re-surfaced — this IS part of the MCP vision above): *"a way to interact with jobs via an API to know
+what they are doing … deep semantic introspection exposed via a clean API used through MCP, in debug mode,
+zero runtime cost in release."* Post-mortem `kill` is not observability.
+
+This refines — does not replace — the MCP vision: the resources above are STATIC/post-hoc (a completed
+run's AST/trace/cert). The missing dimension is **LIVE, in-flight** self-report ("what is the parser doing
+RIGHT NOW, while it spins"). Two tiers:
+
+- **Tier 1 — sweep/harness progress + stall detection (cheap, highest value/effort).** The corpus/gate
+  runner emits a per-case heartbeat (`case N/M, elapsed, furthest_position, Δ-since-last`); a stall detector
+  (`furthest_position` flat while call-count climbs) classifies a case as **catastrophic-backtracking
+  suspected → skip + record** under a per-case budget. This alone turns today's 2.5h-blind into a one-minute
+  "case 878 is pathological, skipped." Audit + extend the corpus harness's existing timeout. Consumable by a
+  `Monitor`/`tail`; the natural MCP resource is `pgen://sweep/<run>/progress`.
+- **Tier 2 — the generated-parser LIVE introspection channel** (`pgen://parse/<run>/live-status` above):
+  cfg-gated to **debug** (`#[cfg(debug_assertions)]` / a `pgen_introspect` feature) so the RELEASE parser has
+  ZERO added instructions (prove via a codegen-diff + release-artifact size/disasm check). Two access modes:
+  (1) a **periodic status-file heartbeat** the parser rewrites **at rule boundaries** (robust — it keeps
+  reporting even while the parser spins in catastrophic backtracking, and avoids async-signal-safety hazards);
+  (2) an **on-demand `SIGINFO`/`SIGUSR1` snapshot** ("ask the stuck process what it's doing"). MCP exposes
+  these as the `live-status` resource / a `live_status(run)` tool.
+
+**Zero-release-cost** matches the project's deferred posture [[feedback_debug_only_trace_deferred]] (debug-only
+trace/counter gating, deferred until parsers released — now TIMELY: regex is released). **Double duty:** the
+same live introspection (memo stats, furthest_position progress, per-rule depth/timing) IS perf-attribution
+infra — it directly serves the RGX-0078 SPEED campaign (WHERE-does-the-time-go, live). Build once, use for
+both live debugging AND profiling. **Parser-AGNOSTIC:** a codegen/engine capability (teach the generator to
+emit the cfg-gated introspection hooks) ⇒ every generated parser (SV/VHDL/JSON/regex) inherits it — the same
+generator-maturity thesis as `project_rgx_0078_regex_slowness_followup`.
+
+**Seeds already in-tree** (this is an evolution, not a greenfield): `--dump-rule-call-counts` (a live 250ms
+dashboard — but terminal-attached, not a queryable API), always-on `furthest_position`, `PGEN_REPORT_MEMO_STATS`.
+The refinement makes them queryable + semantic-position-aware + sweep-level + stall-classifying.
+
+**Sequencing:** still `parked` (this refinement does NOT activate the tree). When prioritized, Tier 1 is a
+cheap near-term win worth pulling forward (it prevents recurrence of the 2.5h-blind failure); Tier 2 slots
+into Phase 1 (read-only introspection) as the live-status resource. Not part of RGX-0078, though it doubles
+as its profiling substrate.
+
 ## Non-Goals
 - No simulation-kernel analogues (waveforms, X/Z, run_until) — PGEN does not
   execute designs. The translation: trace / coverage-DB / gap-DB / semantic-store
@@ -205,3 +254,8 @@ and PGEN already has the machinery):
 
 ## Changelog
 - `2026-06-14`: Created parked brainstorm capture (`PGEN-MCP-0001`).
+- `2026-07-11` (session #90): Refinement — added the **LIVE in-flight introspection + stall detection**
+  dimension (Tier 1 sweep-progress + Tier 2 debug-only zero-release-cost parser live-status via
+  heartbeat + `SIGINFO` snapshot), motivated by the 2.5h-blind `regex_pcre2_compile_oracle_gate` grind.
+  Reconciled a mistakenly-created duplicate `PARSER-INTROSPECTION` tree back into here (the director had
+  already filed this vision as MCP-CONTROL). Still `parked`; Tier 1 flagged as a cheap near-term win.
