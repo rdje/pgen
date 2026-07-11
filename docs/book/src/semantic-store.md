@@ -330,9 +330,23 @@ whole-input generalization of `post`.
 @emit_fact: { kind: capture_name, name: $name }              # a definition, anywhere
 named_group := "(?'" capture_name "'" body ")"
 
-@predicate: { name: has_fact, args: [capture_name, $name], phase: final }
-backreference := "\\k<" capture_name ">"                     # a use — order-independent
+@predicate: { name: has_fact, args: [capture_name, $name], phase: final, view: shaped }
+backreference := "\\k<" capture_name ">"  -> { ref: $2 }     # a use — order-independent
 ```
+
+**`view: shaped` on a shaped-key reference is load-bearing, not decorative.** A
+`@predicate` defaults to `view: raw`, and a `final` predicate resolves its args at
+rule commit. For a **single-branch** rule that raw view is harmless — the rule
+captures no separate raw content, so resolution falls back to the shaped `-> {…}`
+object and `$ref` resolves anyway. But for a **multi-branch** rule (a `|`
+tournament), the winning branch's **raw `Sequence`** content *is* captured as the
+final-predicate view, and a shaped-key reference like `$ref` cannot resolve against
+a `Sequence` (there is no `ref` element) — so the rule would raise *"could not
+resolve attribute reference 'ref'"* and **reject even a defined name**. Whenever a
+`final` predicate references a key produced by the rule's `-> {…}` transform
+(`$ref`, `$name`, …), write `view: shaped` explicitly. The three regex
+named-reference gates (`named_backreference`, `named_subroutine_target`,
+`python_named_backreference`, `REGEX-PCRE2-FIDELITY.4.11`) are the worked example.
 
 **Grammar-author rule of thumb.** For "reference X must resolve against a
 definition that may appear anywhere, including later," use `phase: final` — not

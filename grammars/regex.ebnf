@@ -519,16 +519,61 @@ keep_out       = "\\K" -> {type: "anchor", kind: "keep_out"}
 #     `subroutine_ref` helper cluster).
 backreference  = numeric_backreference                                  -> $1
                | numeric_backreference_single                            -> $1
-               | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
-               | "\\k" "'" name "'"                                      -> {type: "backreference", kind: "named",                  ref:   $3}
-               | "\\k" braced_name_ref                                   -> {type: "backreference", kind: "named_braced",           ref:   $2}
-               | "\\g" "<" name ">"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
+               | named_backreference                                     -> $1
                | "\\g" "<" signed_digits ">"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
-               | "\\g" "'" name "'"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
                | "\\g" "'" signed_digits "'"                             -> {type: "backreference", kind: "subroutine_numeric",     ref:   $3}
-               | "\\g" "{" brace_ws? name brace_ws? "}"                  -> {type: "backreference", kind: "named_braced",           ref:   $4}
                | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -> {type: "backreference", kind: "numeric_backreference",  ref:   $4}
                | "\\g" signed_digits                                     -> {type: "backreference", kind: "numeric_backreference",  ref:   $2}
+
+# REGEX-PCRE2-FIDELITY.4.11: the NAMED reference forms peeled out of the mixed
+# `backreference` rule (above) into this HOMOGENEOUS rule so the whole-input
+# `@predicate has_fact(regex_defined_capture_name, $ref) phase: final` gate binds
+# to every named `\k…` / `\g…name` branch AND NEVER to the numeric siblings (whose
+# `ref` is a number, not a capture name). `phase: final` is the
+# FINAL-PHASE-PREDICATE.2 whole-input DEFERRED-OBLIGATION gate: a reference to a
+# name defined NOWHERE in the pattern REJECTs at parse completion (PCRE2 err 115,
+# "reference to non-existent subpattern"), while a legal FORWARD reference
+# (`\k<aa>(?'aa'x)` — definition appears later) ACCEPTs — which the per-rule
+# pre/branch/post phases provably cannot express (a right-to-left / non-L-attributed
+# dependency). `$ref` resolves the produced `{…, ref}` object's `ref` field (the
+# name string) — the proven `$index` shaped-resolution idiom. `view: shaped` is
+# REQUIRED, not decorative: the `@predicate` default view is `raw`, and for a
+# MULTI-BRANCH rule the tournament captures the winner's RAW `Sequence` content
+# (`["\k","<","a",">"]`, which has no `ref` key) as the final-predicate view — so
+# `$ref` would raise "could not resolve attribute reference 'ref'" and REJECT even a
+# DEFINED name. (A single-branch rule leaves the raw capture `None` and so falls
+# back to the shaped object by accident — a coincidence this rule cannot rely on.)
+# `view: shaped` binds resolution to the produced `{…, ref}` object unconditionally.
+# The generation dual lives on `reference_name` (below); `phase: final` gates no
+# branch during the single pass, so the stimuli generator ignores it safely (no
+# `.4.8`-style break). Ledger REGEX-0098; frozen acceptance spec = `.3.22` oracle.
+@predicate: { name: has_fact, args: [regex_defined_capture_name, $ref], phase: final, view: shaped }
+named_backreference = "\\k" "<" reference_name ">"                       -> {type: "backreference", kind: "named",              ref: $3}
+                    | "\\k" "'" reference_name "'"                       -> {type: "backreference", kind: "named",              ref: $3}
+                    | "\\k" "{" brace_ws? reference_name brace_ws? "}"   -> {type: "backreference", kind: "named_braced",       ref: $4}
+                    | "\\g" "<" reference_name ">"                       -> {type: "backreference", kind: "subroutine_named",   ref: $3}
+                    | "\\g" "'" reference_name "'"                       -> {type: "backreference", kind: "subroutine_named",   ref: $3}
+                    | "\\g" "{" brace_ws? reference_name brace_ws? "}"   -> {type: "backreference", kind: "named_braced",       ref: $4}
+
+# REGEX-PCRE2-FIDELITY.4.11: the shared capture-NAME carrier of every named
+# reference (`\k…` / `\g…name` / `(?&name)` / `(?P>name)` / `(?P=name)`). A bare
+# `name` pass-through, so the reference AST value stays the exact name string
+# (byte-identical). Carries ONLY the GENERATION-side draw (mirrors
+# `scs_capture_name`): during stimuli generation the rendered name is drawn from
+# the live `regex_capture_name` facts (registered by `capture_name`'s
+# `@gen_emit_fact`), so the generator emits only already-DEFINED names — never an
+# invalid forward ref (duality-clean). The parse-side whole-input check rides the
+# peeled reference rules' `phase: final` gate, NOT here: this rule's `-> $1`
+# bare-string shape exposes no field for a parse predicate to resolve, whereas the
+# gen draw keys on `$text` (the rendered name). Note the deliberate TWO-KIND split:
+# `regex_capture_name` is the gen-draw SOURCE (a bare-name producer whose WHOLE
+# RENDER is the name — the generator's fact-draw uses the producer's whole render),
+# while `regex_defined_capture_name` (emitted by the shaped `named_group` /
+# `python_named_group` rules) is the parse-side inventory the `phase: final` gate
+# checks; keeping them distinct stops the generator from splicing a whole
+# `(?<name>…)` group render into a reference position.
+@gen_predicate: { name: has_fact, args: [regex_capture_name, $text], phase: post }
+reference_name = name -> $1
 
 # PCRE2's `\N…` octal-vs-backref disambiguation (pcre2pattern(3)
 # BACKREFERENCES) is keyed on the numeric VALUE N:
@@ -611,9 +656,13 @@ backreference_digits = nonzero_digit digit+
 backreference_digits_single = nonzero_digit
 # Named-reference forms — surface the matched name string directly so
 # consumers don't walk the raw `["<", <name>, ">"]` Sequence wrapping.
+# `name_ref` stays for the OUT-OF-SCOPE `condition` site (`(?(<name>)…)`); the
+# named `\k…`/`\g…` backreference forms no longer use it (peeled + inlined into
+# `named_backreference` via `reference_name`, REGEX-PCRE2-FIDELITY.4.11). The
+# former `braced_name_ref` helper (only user was `\k{name}`) was removed with that
+# peel (its `{ … }` shape is now inlined in `named_backreference`).
 name_ref       = "<" name ">"  -> $2
                | "'" name "'"  -> $2
-braced_name_ref = "{" brace_ws? name brace_ws? "}" -> $3
 # GRAMMAR-WELLFORMED.H.10.1: the former `subroutine_ref` /
 # `braced_subroutine_ref` / `signed_digits_or_name` helper cluster was
 # removed as proven-dead (unreachable_from_entry — the `\g…` forms are
@@ -1443,6 +1492,18 @@ capture_name         = name                            -> $1
 named_group_open_angle = "(?<" capture_name ">"        -> $2
 @emit_fact: { kind: regex_capture_group, name: capture }
 named_group_open_quote = "(?'" capture_name "'"        -> $2
+# REGEX-PCRE2-FIDELITY.4.11: parse-side capture-NAME inventory. Emits a
+# `regex_defined_capture_name` fact carrying the group's declared name, checked at
+# whole-input completion by the named-reference `phase: final` gates. Rides the
+# FULL group rule (whose shaped `{…, name}` output lets `@emit_fact` resolve
+# `$name` — emit resolves against the rule's SHAPED content), NOT the bare
+# `capture_name` carrier. DISTINCT kind from the gen-draw source
+# `regex_capture_name` on purpose (see `reference_name`): a parse `@emit_fact` is
+# also folded into the generator's fact-draw pool keyed on the PRODUCER'S WHOLE
+# RENDER, so a producer whose render is the whole `(?<name>…)` group must not feed
+# a name draw. Nothing draws `regex_defined_capture_name` on the generation side,
+# so this producer is inert there.
+@emit_fact: { kind: regex_defined_capture_name, name: $name }
 named_group          = named_group_open_angle pattern? ")"    -> {type: "atom", kind: "named_group", name: $1, body: $2}
                      | named_group_open_quote pattern? ")"    -> {type: "atom", kind: "named_group", name: $1, body: $2}
 # Python-style `(?P<name>...)`. Distinct `kind:"python_named_group"`
@@ -1456,6 +1517,8 @@ named_group          = named_group_open_angle pattern? ")"    -> {type: "atom", 
 # (`name:$1` via the marker's `-> $2`; `body:$2` = `pattern?`).
 @emit_fact: { kind: regex_capture_group, name: capture }
 python_named_group_open = "(?P<" capture_name ">"     -> $2
+# REGEX-PCRE2-FIDELITY.4.11: parse-side capture-NAME inventory (see `named_group`).
+@emit_fact: { kind: regex_defined_capture_name, name: $name }
 python_named_group   = python_named_group_open pattern? ")"   -> {type: "atom", kind: "python_named_group", name: $1, body: $2}
 
 atomic_group         = "(?>" pattern? ")"             -> {type: "atom", kind: "atomic_group", body: $2}
@@ -1617,8 +1680,21 @@ scs_capture_name = name -> $1
 # signed-digits refs — `value` and `sign` are inlined from
 # signed_digits' `{sign, value}` typed shape (slice 13). Consumer
 # reads `target.value` / `target.sign` / `target.name` directly.
-subroutine_target    = "&" name                                    -> {kind: "named", name: $2}
-                    | "P>" name                                    -> {kind: "python_named", name: $2}
+# REGEX-PCRE2-FIDELITY.4.11: the NAMED subroutine targets peeled into a
+# homogeneous rule carrying the whole-input `phase: final` gate (an undefined
+# named subroutine call — `(?&zzz)` / `(?P>zzz)` — is PCRE2 err 115). `$name`
+# resolves the produced `{kind, name}` object's `name` field; `view: shaped` is
+# REQUIRED for the same multi-branch raw-`Sequence` reason documented on
+# `named_backreference` above (the `@predicate` default view is `raw`). Uses
+# `reference_name` so generation draws only already-DEFINED names (duality-clean).
+# Reached from BOTH `subroutine_call` (plain `(?&name)`/`(?P>name)`) and
+# `returned_capture_subroutine` (the scs-with-captures form) via the
+# `subroutine_target` delegation below — both require a defined subroutine target in
+# PCRE2, so gating both is correct.
+@predicate: { name: has_fact, args: [regex_defined_capture_name, $name], phase: final, view: shaped }
+named_subroutine_target = "&" reference_name                       -> {kind: "named", name: $2}
+                        | "P>" reference_name                      -> {kind: "python_named", name: $2}
+subroutine_target    = named_subroutine_target                     -> $1
                     | "R"                                          -> {kind: "recursion"}
                     | signed_digits                                -> {kind: "numeric", value: $1.value, sign: $1.sign}
 # Annotated to surface the same `{type:"backreference", kind:<form>, ref:<string>}`
@@ -1626,7 +1702,17 @@ subroutine_target    = "&" name                                    -> {kind: "na
 # distinct value `"python_named"` so consumers can dispatch on Python-specific
 # semantics (PCRE2 treats it as functionally equivalent to `\k<name>` for
 # matching, but the syntax origin is preserved in `kind` for tooling).
-python_named_backreference = "(?P=" name ")"   -> {type: "backreference", kind: "python_named", ref: $2}
+# REGEX-PCRE2-FIDELITY.4.11: whole-input `phase: final` gate — `(?P=zzz)` for an
+# undefined name is PCRE2 err 115. Homogeneous single form, so the gate binds
+# directly (no peel needed); `$ref` resolves the produced `{…, ref}` name field.
+# `view: shaped` is stated explicitly for correctness-by-design and parity with the
+# named-backreference/subroutine gates: a single-branch rule would resolve `$ref`
+# correctly under the `raw` default too (its raw capture stays `None`, falling back
+# to the shaped object), but relying on that coincidence is exactly the trap the
+# multi-branch rules hit — so all three named-reference gates bind `view: shaped`.
+# `reference_name` keeps generation drawing only defined names.
+@predicate: { name: has_fact, args: [regex_defined_capture_name, $ref], phase: final, view: shaped }
+python_named_backreference = "(?P=" reference_name ")"   -> {type: "backreference", kind: "python_named", ref: $2}
 
 # Inline modifier changes: global and scoped. `spec` carries the
 # raw modifier_spec shape; modifier_spec sub-rule typing is a

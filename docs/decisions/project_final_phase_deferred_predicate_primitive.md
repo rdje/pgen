@@ -193,3 +193,29 @@ spec, all anchors as-shipped (line numbers approximate — grep the markers):
   discharge is a no-op with an empty worklist — so every shipped parser's behavior is unchanged
   (`parse_harness_equivalence_gate` still byte-identical). Consumers (`REGEX-PCRE2-FIDELITY.4.11` then
   `.4.7`) are leaves of a DIFFERENT tree; the frontier passes there now that the primitive exists.
+
+**FIRST-CONSUMER FINDING (REGEX-PCRE2-FIDELITY.4.11, 2026-07-11, session #87) — the multi-branch `view`
+footgun.** The first real consumer surfaced a gap the isolation proof missed. The FPP.2 gates
+(`FinalForwardGate` / `FinalRollbackSpeculation`) and the scratch derisk all used **single-branch** carrier
+rules. A `@predicate` defaults to `view: raw`; a `final` predicate that references a **shaped transform key**
+(`$ref`/`$name` naming a `-> {…}` object field) resolves correctly under that default ONLY for a single-branch
+rule — because a single-branch rule leaves `semantic_raw_content = None`, so the resolver falls back to the
+shaped `node.content` by accident. On a **multi-branch tournament rule** the winner's **raw `Sequence`** content
+IS captured for the final-predicate view (`needs_raw_final_capture_for_rule` OR-in), so a shaped-key `$ref`
+cannot resolve against the `Sequence` and the rule raises *"could not resolve attribute reference 'ref'"* and
+REJECTS even a DEFINED name. Root-caused tools-first via `--trace-rules named_backreference` (the trace named the
+exact resolver error + rule stack), NOT by eyeballing. **Consumer fix (fix-hierarchy level 1, existing annotation
+option):** every named-reference `phase: final` gate in `grammars/regex.ebnf` carries `view: shaped` explicitly —
+this binds resolution to the produced `{…, ref}` object unconditionally and makes single-branch rules
+correct-by-design rather than by the `None`-fallback coincidence. Proven: `.3.22` oracle matrix 17/17,
+`certified_grammars_are_byte_identical` byte-identical for regex (the interpreter mirror honors `view: shaped`
+identically), cert UNKNOWN 2→0 (`fully_certified=true`), spf pre-existing (clean-main baseline 2/2/0 vs .4.11
+0/1/1 — a NET improvement, not a regression). **CANDIDATE ENGINE FOLLOW-UP (own FPP leaf, NOT done here):** a
+`final` predicate almost always references a shaped captured value, so the primitive's `view: raw` DEFAULT is a
+footgun for future multi-branch consumers. Two general options, both parser-agnostic: (a) make `final` predicates
+default to `view: shaped`; or (b) have the `raw` resolver fall back to the shaped object when the raw content
+lacks the named attribute (unifying the single/multi-branch behavior). Deferred as a deliberate primitive-wide
+default change with broad blast radius; the grammar-level `view: shaped` fully closes `.4.11` without it. This
+finding + the book note (`semantic-store.md` `phase: final` section) discharge the "prove-in-isolation misses
+multi-branch" lesson for the next consumer. Grounded in [[feedback_no_workarounds_fix_hierarchy]],
+[[feedback_features_parser_agnostic_enable_all_parsers]], [[feedback_systematically_use_debug_toolbox]].

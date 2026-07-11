@@ -1250,17 +1250,48 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   `find_invalid_keep_out_escape_in_lookaround` (MIGRATED to the grammar + DELETED). **CONTEXTUAL** — the
   original `.1` table row 10 "hard one" (depends on the enclosing construct); the first grammar consumer of the
   scope-ancestry `@predicate` primitive `not_in_scope_kind` (`SCOPE-CONTEXT-PREDICATE.1`, landed `PGEN-SCP-0001`).
-- ID: `.4.11` Status: `pending` Goal: encode the named-reference UNKNOWN-name inventory scoped by `.3.22`
+- ID: `.4.11` Status: **`done`** (`PGEN-REGEX-PCRE2-0045`, session #87; release `1.1.101`→`1.1.102`, contract
+  `1.1.103`→`1.1.104`, schema `1`, ledger `REGEX-0098` Deferred→Fixed; see the `.4.11` implementation section +
+  Acceptance Checklist below) Goal: encode the named-reference UNKNOWN-name inventory scoped by `.3.22`
   (`\k<zzz>`/`(?P=zzz)`/`(?&zzz)`/`\g{zzz}`… @undefined reject; forward/subroutine refs accept). **NOT** a
   current `validate_regex_compile_contract` check (validator is shape-only here) — a genuine
   released-parser accepts-invalid divergence (ledger `REGEX-0098`). **WHOLE-PATTERN two-pass**, same class
-  as `.4.7`. The `.3.22` oracle matrix is its frozen acceptance spec. **PRIMITIVE NOW DESIGNED** — the
-  `phase: final` deferred-obligation predicate, tree `FINAL-PHASE-PREDICATE` (`.1` design done
-  `PGEN-FPP-0001`, `.2` build pending); consumer mapping: parse-side `@emit_fact regex_capture_name` on
-  every group-name definition (currently `@gen_emit_fact`-only) + `has_fact(regex_capture_name,$name) phase:
-  final` on the 5 reference rule families (`backreference`/`subroutine_named`/`named_braced`/
-  `subroutine_call`/`python_named_backreference`). The FIRST consumer of the primitive (the real
-  accepts-invalid fix); sequenced AFTER `FINAL-PHASE-PREDICATE.2` lands.
+  as `.4.7`. The `.3.22` oracle matrix (17 cells) is its frozen acceptance spec — **17/17 PASS**.
+  **FIRST CONSUMER of the `FINAL-PHASE-PREDICATE` primitive** (`.1` `PGEN-FPP-0001`, `.2` `PGEN-FPP-0002`).
+  **As-built (differs from the pre-build sketch):** (1) a two-kind fact split — `regex_defined_capture_name`
+  (parse INVENTORY, `@emit_fact name=$name` on the shaped `named_group`/`python_named_group` rules) vs
+  `regex_capture_name` (gen-draw SOURCE, `@gen_emit_fact` on the bare `capture_name`) — the split stops the
+  stimuli generator (which keys fact-draws on the producer rule's WHOLE RENDER) from splicing a whole
+  `(?<name>…)` group into a reference slot; (2) named forms PEELED into HOMOGENEOUS rules so the gate binds
+  to every named branch and never the numeric siblings — `named_backreference` (6 br) out of `backreference`,
+  `named_subroutine_target` (2 br) out of `subroutine_target`, `reference_name` carrier added, `braced_name_ref`
+  removed; (3) `has_fact(regex_defined_capture_name, $ref|$name) phase: final, **view: shaped**` on the three
+  named-reference gates. **Root cause of the multi-branch reject-even-when-defined bug (PROVEN tools-first,
+  `--trace-rules named_backreference`):** a `@predicate` defaults to `view: raw`; a multi-branch tournament
+  captures the winner's raw `Sequence` for the final-predicate view, so a shaped-key `$ref` cannot resolve
+  ("could not resolve attribute reference 'ref'") and the rule REJECTS a defined name. Single-branch rules only
+  worked by the `semantic_raw_content=None` shaped-fallback accident (why the FPP.2 single-branch isolation
+  proof missed it — see [[project_final_phase_deferred_predicate_primitive]] FIRST-CONSUMER FINDING). **Fix
+  (hierarchy level 1, existing annotation option):** `view: shaped`. A second bug — `\g<zzz>` accepting undefined
+  — SELF-RESOLVED: once `named_backreference` no longer fails structurally, longest-match routes `\g<zzz>`
+  (7 chars) to it over `simple_escape` (2 chars); no `!"g"` guard needed.
+
+  **`.4.11` Acceptance Checklist** (root cause + addressed + no regression):
+  - **Root cause:** proven tools-first via `--trace-rules` (multi-branch `phase:final` shaped-key `$ref`
+    resolved against raw `Sequence` under the `view:raw` default) — NOT eyeballed. WHY+WHERE both surfaced
+    (resolver error + rule stack `…backreference > named_backreference`).
+  - **Addressed:** `view: shaped` on the three named-reference `phase:final` gates in `grammars/regex.ebnf`
+    (the lowest fix-hierarchy level that cleanly solves it — an existing annotation option). Zero engine/Rust
+    change; `generated/*` are DERIVED (regenerated).
+  - **No regression (tool-backed):** `.3.22` oracle matrix **17/17**; regex cert-coverage seeds 0/7/42
+    **UNKNOWN 2→0, `fully_certified=true`**, witness 256→258; `ast_shape_contract` regex **aligned=4 drift=0
+    regression_lock_failures=0** (inventory 236→238 re-synced; accepted-AST shapes byte-identical — `view` is a
+    predicate, not a return-shape); `certified_grammars_are_byte_identical` regex byte-identical (interpreter
+    mirror honors `view: shaped`); `duality_hunt` pass; `regex_pcre2_compile_oracle_gate` [result recorded in
+    the implementation section]. **spf independence PROVEN by decisive clean-main baseline** (git-restored
+    `regex.ebnf`, full regen+rebuild): clean-main spf **2/2/0** vs `.4.11` **0/1/1** — a NET IMPROVEMENT, so the
+    residual seed-7/42 spf=1 (`\Q\E`/conditional/verb generator sample) is pre-existing and separately tracked,
+    NOT a `.4.11` regression ([[feedback_prove_independence_with_decisive_baseline]]).
 - ID: `.4.12` Status: **`done`** (`PGEN-REGEX-PCRE2-0037`, session #83; release `1.1.99`→`1.1.100`, contract
   `1.1.101`→`1.1.102`, schema `1`, ledger `REGEX-0110`; see the `.4.12` implementation section + Acceptance
   Checklist below) Goal: encode STANDALONE collating-element / equivalence-class
