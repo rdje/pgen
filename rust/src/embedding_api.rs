@@ -1371,8 +1371,10 @@ fn parse_generated_return(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(feature = "generated_parsers")]
     {
         use crate::generated_parsers::return_annotation::Return_annotationParser;
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = Return_annotationParser::new(
             input,
+            &node_arena,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.return_annotation"),
         );
         parser
@@ -1393,8 +1395,10 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(feature = "generated_parsers")]
     {
         use crate::generated_parsers::semantic_annotation::Semantic_annotationParser;
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = Semantic_annotationParser::new(
             input,
+            &node_arena,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.semantic_annotation"),
         );
         parser
@@ -1418,8 +1422,10 @@ fn parse_generated_systemverilog(
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     {
         use crate::generated_parsers::systemverilog::SystemverilogParser;
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = SystemverilogParser::new(
             input,
+            &node_arena,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
         );
         parser.set_grammar_profile(grammar_profile);
@@ -1444,8 +1450,10 @@ fn parse_generated_systemverilog_ast_json(
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     {
         use crate::generated_parsers::systemverilog::SystemverilogParser;
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = SystemverilogParser::new(
             input,
+            &node_arena,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
         );
         parser.set_grammar_profile(grammar_profile);
@@ -1472,8 +1480,10 @@ fn parse_generated_vhdl(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     {
         use crate::generated_parsers::vhdl::VhdlParser;
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = VhdlParser::new(
             input,
+            &node_arena,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
         );
         return parser
@@ -1494,8 +1504,10 @@ fn parse_generated_vhdl_ast_json(input: &str) -> Result<JsonValue, ParseDiagnost
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     {
         use crate::generated_parsers::vhdl::VhdlParser;
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = VhdlParser::new(
             input,
+            &node_arena,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
         );
         let parsed = parser
@@ -1519,8 +1531,10 @@ fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
     {
         run_generated_regex_on_dedicated_stack(input, |owned_input| {
             use crate::generated_parsers::regex::RegexParser;
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser = RegexParser::new(
                 &owned_input,
+                &node_arena,
                 crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
             );
             // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: the `regex_default` embedding path is
@@ -1549,8 +1563,10 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
     {
         run_generated_regex_on_dedicated_stack(input, |owned_input| {
             use crate::generated_parsers::regex::RegexParser;
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser = RegexParser::new(
                 &owned_input,
+                &node_arena,
                 crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
             );
             // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: PCRE2-faithful default — the generated

@@ -710,6 +710,22 @@ impl std::fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
+/// The per-parse node arena (RGX-0078.5.d.4.i, candidate B).
+///
+/// Every `ParseNode` a parse produces lives in one of these; children are held
+/// as `&'input` borrows INTO the arena rather than as owned `Box`/`Vec`. The
+/// arena is created at the boundary, passed into the parser by reference, and
+/// dropped once the boundary has walked the tree to owned output — a single
+/// mass free that ALSO runs each leaf's `String`/`serde_json::Value` destructor
+/// (`typed_arena::Arena` is drop-correct, unlike a bump allocator). The lifetime
+/// `'input` is unified to the ARENA's scope: input terminals are reborrowed from
+/// the true input (which outlives the arena) down to `'input`, so a SINGLE
+/// lifetime parameter expresses both "borrows input" and "borrows arena" — no
+/// viral second lifetime. `#[derive(Serialize)]`/`PartialEq` stay byte-identical
+/// because serde/Eq see through the `&'input` borrow exactly as through the old
+/// `Box`/`Vec`.
+pub type NodeArena<'input> = typed_arena::Arena<ParseNode<'input>>;
+
 /// Parse content types
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub enum ParseContent<'input> {
@@ -719,9 +735,9 @@ pub enum ParseContent<'input> {
     /// property/array access results. Avoids the runtime serialise/parse/serialise
     /// roundtrip the older `TransformedTerminal(stringified-json)` path used.
     Json(serde_json::Value),
-    Sequence(Vec<ParseNode<'input>>),
-    Alternative(Box<ParseNode<'input>>),
-    Quantified(Vec<ParseNode<'input>>, &'static str),
+    Sequence(Vec<&'input ParseNode<'input>>),
+    Alternative(&'input ParseNode<'input>),
+    Quantified(Vec<&'input ParseNode<'input>>, &'static str),
 }
 
 impl<'input> ParseContent<'input> {
@@ -772,6 +788,12 @@ pub struct ParseNode<'input> {
 /// pure storage reshape, zero linearity impact.
 #[derive(Debug, Clone)]
 pub struct MemoEntry<'input> {
+    /// RGX-0078.5.d.4.i — the memoized subtree root stays OWNED, but its
+    /// `.5.d.3` deep-clone cost is already gone: the node's CHILDREN are now
+    /// arena `&'input` borrows, so a cache-HIT `node.clone()` is a cheap shallow
+    /// clone (a `Vec` of `Copy` references), not a recursive deep copy. Keeping
+    /// the field owned means the generated `memoized_call` (`Some(node.clone())`
+    /// on insert, `node.clone()` on hit) is unchanged.
     pub result: Option<ParseNode<'input>>,
     pub raw_semantic_content: Option<ParseContent<'input>>,
     pub end_pos: usize,
@@ -2736,8 +2758,10 @@ impl RustASTPipeline {
 
             #[cfg(feature = "generated_parsers")]
             {
+                let node_arena = NodeArena::new();
                 let mut parser = Return_annotationParser::new(
                     content,
+                    &node_arena,
                     runtime_logger_box("pipeline.return_annotation.generated"),
                 );
                 match parser.parse_full_return_annotation() {
@@ -2914,8 +2938,10 @@ impl RustASTPipeline {
         #[cfg(feature = "generated_parsers")]
         {
             let logger = runtime_logger("pipeline.semantic_annotation.generated");
+            let node_arena = NodeArena::new();
             let mut parser = Semantic_annotationParser::new(
                 annotation_text,
+                &node_arena,
                 runtime_logger_box("pipeline.semantic_annotation.generated"),
             );
             let parse_tree = parser.parse_full_semantic_annotation().map_err(|err| {
@@ -2965,8 +2991,10 @@ impl RustASTPipeline {
 
         #[cfg(feature = "generated_parsers")]
         {
+            let node_arena = NodeArena::new();
             let mut parser = Return_annotationParser::new(
                 annotation_content,
+                &node_arena,
                 runtime_logger_box("pipeline.return_annotation.backend_validate"),
             );
             return parser.parse_full_return_annotation().is_ok();
@@ -2989,8 +3017,10 @@ impl RustASTPipeline {
 
         #[cfg(feature = "generated_parsers")]
         {
+            let node_arena = NodeArena::new();
             let mut parser = Semantic_annotationParser::new(
                 annotation_text,
+                &node_arena,
                 runtime_logger_box("pipeline.semantic_annotation.backend_validate"),
             );
             return parser.parse_full_semantic_annotation().is_ok();

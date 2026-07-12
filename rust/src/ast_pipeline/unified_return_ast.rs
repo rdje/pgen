@@ -2736,7 +2736,7 @@ impl UnifiedReturnAST {
 
     fn parse_generated_parenthesized_sequence<'input>(
         input: &'input str,
-        elements: &[ParseNode<'input>],
+        elements: &[&'input ParseNode<'input>],
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         let expr_node = Self::sequence_child_rule(elements, "expression")
@@ -2784,7 +2784,7 @@ impl UnifiedReturnAST {
     fn sequence_elements<'a, 'input>(
         node: &'a ParseNode<'input>,
         context: &str,
-    ) -> Result<&'a [ParseNode<'input>], String> {
+    ) -> Result<&'a [&'input ParseNode<'input>], String> {
         match &node.content {
             ParseContent::Sequence(elements) => Ok(elements.as_slice()),
             other => Err(format!(
@@ -2795,7 +2795,7 @@ impl UnifiedReturnAST {
     }
 
     fn sequence_child_rule<'a, 'input>(
-        elements: &'a [ParseNode<'input>],
+        elements: &'a [&'input ParseNode<'input>],
         target_rule: &str,
     ) -> Option<&'a ParseNode<'input>> {
         for element in elements {
@@ -2829,7 +2829,7 @@ impl UnifiedReturnAST {
 
     fn quantified_items<'a, 'input>(
         node: &'a ParseNode<'input>,
-    ) -> Option<&'a [ParseNode<'input>]> {
+    ) -> Option<&'a [&'input ParseNode<'input>]> {
         match &node.content {
             ParseContent::Quantified(items, _) => Some(items.as_slice()),
             _ => None,
@@ -3518,7 +3518,9 @@ mod tests {
         ];
 
         for (input, expected) in samples {
-            let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser =
+                Return_annotationParser::new(input, &node_arena, Box::new(crate::NoOpLogger));
             let parse_tree = parser
                 .parse_full_return_annotation()
                 .expect("generated parser should parse sample");
@@ -3549,7 +3551,9 @@ mod tests {
         ];
 
         for input in samples {
-            let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser =
+                Return_annotationParser::new(input, &node_arena, Box::new(crate::NoOpLogger));
             let parse_tree = parser
                 .parse_full_return_annotation()
                 .expect("generated parser should parse sample");
@@ -3575,7 +3579,9 @@ mod tests {
         let samples = vec!["-> $0", "-> $+0", "-> $00", "-> $0::first", "-> $+0.A[0]"];
 
         for input in samples {
-            let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser =
+                Return_annotationParser::new(input, &node_arena, Box::new(crate::NoOpLogger));
             let parse_tree = parser
                 .parse_full_return_annotation()
                 .expect("generated parser should parse sample");
@@ -3599,7 +3605,9 @@ mod tests {
 
         let logger = crate::test_runner::NoOpLogger;
         let input = "-> $-1";
-        let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut parser =
+            Return_annotationParser::new(input, &node_arena, Box::new(crate::NoOpLogger));
         let parse_tree = parser
             .parse_full_return_annotation()
             .expect("generated parser should lex/parse signed integer reference");
@@ -3650,8 +3658,12 @@ mod tests {
                     continue;
                 }
 
-                let mut parser =
-                    Return_annotationParser::new(&test.input, Box::new(crate::NoOpLogger));
+                let node_arena = crate::ast_pipeline::NodeArena::new();
+                let mut parser = Return_annotationParser::new(
+                    &test.input,
+                    &node_arena,
+                    Box::new(crate::NoOpLogger),
+                );
                 let parse_tree = parser.parse_full_return_annotation().unwrap_or_else(|err| {
                     panic!(
                         "generated parser should parse return corpus case '{} / {}' (input='{}'): {}",

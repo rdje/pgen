@@ -3774,10 +3774,10 @@ mod tests {
         use crate::ast_pipeline::{ParseContent, ParseNode};
         let leaf = ParseNode { rule_name: "leaf", content: ParseContent::Terminal("x"), span: 0..1 };
         let inner =
-            ParseNode { rule_name: "inner", content: ParseContent::Sequence(vec![leaf]), span: 0..1 };
+            ParseNode { rule_name: "inner", content: ParseContent::Sequence(vec![&leaf]), span: 0..1 };
         let root = ParseNode {
             rule_name: "root",
-            content: ParseContent::Alternative(Box::new(inner)),
+            content: ParseContent::Alternative(&inner),
             span: 0..1,
         };
         let covered = parse_node_covered_rules(&root);

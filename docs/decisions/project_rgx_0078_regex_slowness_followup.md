@@ -319,3 +319,63 @@ grammar's own fixed rule-name keys; FxHash is the fast non-cryptographic hash al
 **Next `.5` lever:** per-speculation arena/reuse (the 59% malloc — the biggest remaining lever, most
 correctness-risky), then first-set predictive dispatch, then a parse cache. Each a fresh dedicated slice passing
 this same full oracle battery.
+
+---
+
+**✅ FOURTH LEVER LANDED (RGX-0078·5.c, session #93) — first-set predictive dispatch, −75% (~4×).** Before a
+top-level branch tournament evaluates a branch, peek the next input byte and SKIP any non-nullable branch whose
+sound FIRST-set can't begin a match there. Codegen (parser-agnostic). `303 µs → 76 µs`, byte-identical. This
+became the pinned `.5.c.2` baseline for everything after — and, critically, it *pre-consumed* the losing-branch
+cost that `.5.d.2` and `.5.d.3` were later found to target (see below). (Full narrative in the book +
+[[project_earlier_always_matches_unsound_backtracking]] neighbourhood.)
+
+**↩️ `.5.d.2` lazy winner-only materialization + `.5.d.3` memo subtree sharing — BOTH folded, not standalone.**
+Both were profile-inferred to attack the "~70% clone/malloc" the re-profile saw; both proved (by decisive
+before-vs-after measurement / by-caller profiling) to be SUBSTITUTES for cost first-set already removed, or to sit
+in speed-neutral 1.27%-of-total territory. `.5.d.2` built + byte-identical but measured NEUTRAL → reverted, tool +
+lesson preserved ([[project_lazy_winner_only_materialization_lesson.md]]). `.5.d.3` caught BEFORE invasive surgery
+by a memo-footprint profile (cache is tiny/flat, the clones are ~1.27%). The by-caller allocation profile these
+produced drew the real map: **~44% parse-node/vector construction (arena-movable), ~26% serde_json, ~20%
+semantic-runtime backtrack** — so the arena's target is ~a quarter of the whole parse, the biggest lever left.
+
+**✅ FIFTH LEVER LANDED (RGX-0078·5.d.4.i, session #102, 2026-07-12, `PGEN-RGX-0078-0031`) — the NODE ARENA:
+−21.9%, byte-identical. The biggest single lever since first-set.** `ParseContent<'input>` children became
+borrowed `&'input ParseNode` refs (`Sequence`/`Alternative`/`Quantified`) allocated in a per-parse
+`typed_arena::Arena<ParseNode<'input>>` threaded through the parser (`new(input, &arena, logger)`) and freed en
+masse at the boundary. Parser-AGNOSTIC codegen+engine primitive; new dep `typed-arena 2.0.2` (Drop-correct).
+
+- **Ownership-model decision — candidate B (reference arena) OVER candidate C (`NodeId(u32)` index arena).** C was
+  the first instinct (no dep, no second lifetime, the rust-analyzer shape) and was even the earlier "recommended"
+  in this record's design notes. It was REJECTED at final scoping by a decider that outranks that convenience: the
+  authoritative typed-AST is produced by `#[derive(Serialize)]` walking the node tree DIRECTLY. An index tree would
+  make the derive emit bare integers where subtrees belong (the serialiser can't reach the arena to resolve them),
+  forcing a HAND-REWRITTEN serialiser — the exact oracle byte-identity is judged against, the single most dangerous
+  change against a strict byte-identity floor. Candidate B's borrowed child serialises IDENTICALLY to an owned one,
+  so the derive keeps producing the same bytes FOR FREE. And candidate A (`Rc<ParseNode>`) was insufficient (still
+  one heap alloc per node — doesn't move the dominant *construction* cost).
+- **The lifetime worry did not bite.** B's feared price was a viral SECOND lifetime (`ParseNode<'input,'arena>`);
+  reborrowing collapses the arena scope onto the input's, keeping the SINGLE `'input` lifetime the tree already had.
+  The remaining churn was mechanical, compiler-checked ref-threading across 23 tracked source files (a slip is a
+  build error, never a silent output difference). Leaves carry heap-owned values (transformed strings, typed JSON)
+  so a Drop-RUNNING arena (`typed-arena`) is required — a naïve bump allocator would leak every parse.
+- **Speed (decisive):** drift-controlled, BOTH release fat-LTO, distinct sha256 (`40def90f…`/`b0fda7b2…`),
+  alternated 5 rounds × 2000 over the 8-pattern corpus (geomean-of-mins): **arena 58,569 ns vs baseline 74,992 ns
+  = 0.781 → −21.9%**, arena faster EVERY round (`0.79/0.78/0.78/0.78/0.78`, clean separation). Baseline = owned HEAD
+  rebuilt via the `ast_pipeline_bootstrap` cycle (breaks the generated↔pipeline dep so an owned pipeline regenerates
+  owned annotation parsers first), reproduces the pinned `.5.c.2` ≈75µs. Validates the by-caller profile: moving
+  parse-node construction off the general allocator reclaimed ≈the predicted share.
+- **Correctness byte-identical (full ⛔ battery green):** equivalence `certified_grammars_are_byte_identical` (all
+  grammars, seeds 0/7/42) + combinator 2/0 + semantic 2/0 + regex cert `total=267 UNKNOWN=0 fully_certified=true`
+  spf `0/1/1` + PCRE2 compile-oracle + duality + ast-shape 18/0 + all-11 arena regen + full lib/test/bins 0-error +
+  clippy source-stage clean (no arena-introduced warning). PCRE2 textsafe-corpus gate timeout = pre-existing
+  debug-probe hang on catastrophic-backtracking cells (NOT arena — equivalence proves identical output ⇒ identical
+  backtracking; subsumed by the byte-identical equivalence gate).
+- **General lesson (durable):** to arena a `#[derive(Serialize)]` AST under a byte-identity floor, use a REFERENCE
+  arena (`&'input` children + a Drop-running `typed-arena`), NEVER an INDEX arena — refs keep the derived serialiser
+  byte-identical for free; indices force a hand-rebuilt oracle. The oracle you'd have to re-implement is exactly the
+  one you're trying not to disturb.
+
+**Next `.5` lever:** `.5.e` the lockstep advance (GLL / Thompson-NFA simulation) — the destination (PCRE2 parity)
+is unchanged; first-set (`.5.c.2`) + arena (`.5.d.4`) are the fast first mile. The by-caller map names the two
+levers after: serde_json output (~26% of allocation) and the semantic-runtime backtrack path (~20%), both of which
+the arena leaves untouched by design.

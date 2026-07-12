@@ -59,6 +59,11 @@ pub mod test_discovery;
 // Re-export Logger trait for generated parsers
 pub use ast_pipeline::Logger;
 pub use ast_pipeline::NoOpLogger;
+// RGX-0078.5.d.4.i — the per-parse node arena (candidate B). Re-exported at the
+// crate root so boundary sites and the compile-and-run harness template can
+// create one (`pgen::NodeArena::new()`) and pass `&arena` into a generated
+// parser's `new(input, arena, logger)`.
+pub use ast_pipeline::NodeArena;
 
 #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 pub mod ebnf_generated_parser {

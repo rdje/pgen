@@ -150,7 +150,9 @@ fn snippet_at(input: &str, position: usize, radius: usize) -> String {
 }
 
 fn attempt_parse(input: &str, full: bool) -> ParseAttempt {
-    let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_dual_run_diff"));
+    let node_arena = pgen::ast_pipeline::NodeArena::new();
+    let mut parser =
+        EbnfParser::new(input, &node_arena, runtime_logger_box("generated.ebnf_dual_run_diff"));
     let result = if full {
         parser.parse_full_grammar_file()
     } else {

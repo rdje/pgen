@@ -230,11 +230,12 @@ impl AstReturnTransformer {
                                 }
                             }
                             other => {
-                                array_elements.push(ParseNode {
+                                // RGX-0078.5.d.4.i — arena-alloc the wrapper node.
+                                array_elements.push(parser.arena.alloc(ParseNode {
                                     rule_name: "spread_element",
                                     content: other,
                                     span: 0..0,
-                                });
+                                }));
                             }
                         }
                     });
@@ -280,8 +281,11 @@ impl AstReturnTransformer {
                             content: ParseContent<'__pgen_input>,
                         ) -> ParseContent<'__pgen_input> {
                             let mut current = content;
+                            // RGX-0078.5.d.4.i — `node` is an arena `&` borrow, so
+                            // clone its content out (shallow: children are `Copy`
+                            // refs) rather than moving it.
                             while let ParseContent::Alternative(node) = current {
-                                current = node.content;
+                                current = node.content.clone();
                             }
                             current
                         }
@@ -290,7 +294,8 @@ impl AstReturnTransformer {
                                 for node in nodes {
                                     let span_for_inherit = node.span.clone();
                                     let rule_name_for_inherit = node.rule_name;
-                                    let peeled = __pgen_peel_alternative(node.content);
+                                    // RGX-0078.5.d.4.i — clone content out of the arena ref.
+                                    let peeled = __pgen_peel_alternative(node.content.clone());
                                     match peeled {
                                         ParseContent::Sequence(inner_nodes)
                                         | ParseContent::Quantified(inner_nodes, _) => {
@@ -305,29 +310,32 @@ impl AstReturnTransformer {
                                             // own ParseNode so consumers see N flat
                                             // entries, not [<N entries>].
                                             for value in values {
-                                                array_elements.push(ParseNode {
+                                                // RGX-0078.5.d.4.i — arena-alloc.
+                                                array_elements.push(parser.arena.alloc(ParseNode {
                                                     rule_name: rule_name_for_inherit,
                                                     content: ParseContent::Json(value),
                                                     span: span_for_inherit.clone(),
-                                                });
+                                                }));
                                             }
                                         }
                                         other_content => {
-                                            array_elements.push(ParseNode {
+                                            // RGX-0078.5.d.4.i — arena-alloc.
+                                            array_elements.push(parser.arena.alloc(ParseNode {
                                                 rule_name: rule_name_for_inherit,
                                                 content: other_content,
                                                 span: span_for_inherit,
-                                            });
+                                            }));
                                         }
                                     }
                                 }
                             }
                             other => {
-                                array_elements.push(ParseNode {
+                                // RGX-0078.5.d.4.i — arena-alloc.
+                                array_elements.push(parser.arena.alloc(ParseNode {
                                     rule_name: "flatten_spread_element",
                                     content: other,
                                     span: 0..0,
-                                });
+                                }));
                             }
                         }
                     });
@@ -336,11 +344,12 @@ impl AstReturnTransformer {
                     let elem_code = Self::generate_transform(element, captured_vars, "")?;
                     let elem_name = format!("element_{}", idx);
                     element_codes.push(quote! {
-                        array_elements.push(ParseNode {
+                        // RGX-0078.5.d.4.i — arena-alloc the array element.
+                        array_elements.push(parser.arena.alloc(ParseNode {
                             rule_name: #elem_name,
                             content: #elem_code,
                             span: 0..0,
-                        });
+                        }));
                     });
                 }
             }
@@ -348,7 +357,9 @@ impl AstReturnTransformer {
 
         Ok(quote! {
             {
-                let mut array_elements = Vec::new();
+                // RGX-0078.5.d.4.i — explicit element type so the `&mut` from
+                // `arena.alloc` coerces to the shared `&'input` the Vec holds.
+                let mut array_elements: Vec<&'input ParseNode<'input>> = Vec::new();
                 #(#element_codes)*
                 ParseContent::Sequence(array_elements)
             }
@@ -498,11 +509,12 @@ impl AstReturnTransformer {
             match #base_code {
                 ParseContent::Sequence(elements) => ParseContent::Sequence(elements),
                 ParseContent::Quantified(elements, q) => ParseContent::Quantified(elements, q),
-                other => ParseContent::Sequence(vec![ParseNode {
+                // RGX-0078.5.d.4.i — arena-alloc the degenerate single wrapper.
+                other => ParseContent::Sequence(vec![parser.arena.alloc(ParseNode {
                     rule_name: "spread_base",
                     content: other,
                     span: 0..0,
-                }]),
+                })]),
             }
         })
     }
@@ -665,12 +677,14 @@ impl AstReturnTransformer {
                 // ParseContent::clone() is not.
                 match &#base_expr {
                     ParseContent::Quantified(elements, _) => {
-                        let extracted: Vec<ParseNode> = elements
+                        // RGX-0078.5.d.4.i — children are `&'input` refs; the
+                        // extracted vector holds the `Copy` refs directly (no clone).
+                        let extracted: Vec<&ParseNode<'input>> = elements
                             .iter()
                             .filter_map(|node| {
                                 match &node.content {
                                     ParseContent::Sequence(subelems) if subelems.len() > #extraction_idx => {
-                                        Some(subelems[#extraction_idx].clone())
+                                        Some(subelems[#extraction_idx])
                                     }
                                     _ => None,
                                 }
@@ -848,11 +862,13 @@ mod tests {
         assert_eq!(raw.to_json_value(), serde_json::Value::String("plain".into()));
 
         // Sequence -> Value::Array
-        let seq = ParseContent::Sequence(vec![ParseNode {
+        // RGX-0078.5.d.4.i — children are arena `&'input` refs.
+        let arena = crate::ast_pipeline::NodeArena::new();
+        let seq = ParseContent::Sequence(vec![arena.alloc(ParseNode {
             rule_name: "x",
             content: ParseContent::Terminal("a"),
             span: 0..1,
-        }]);
+        })]);
         assert_eq!(
             seq.to_json_value(),
             serde_json::json!([serde_json::Value::String("a".into())])

@@ -221,6 +221,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.a | **FxHash the per-rule annotation-table lookups** — swap the two per-rule-entry directive maps (`directives_by_rule` + `branch_directives_by_rule`) from the std SipHash to `FxHashMap` | engine (shared runtime) | 320 µs → **303 µs** | **−5.4%** | **landed** ✓ |
 | RGX-0078 · 5.c | **First-set predictive dispatch** — before a top-level branch tournament evaluates a branch, peek the next input byte and SKIP any non-nullable branch whose sound FIRST-set can't begin a match there | codegen (parser-agnostic) | 303 µs → **76 µs** | **−75% (~4×)** | **landed** ✓ |
 | RGX-0078 · 5.d.2 | **Lazy winner-only materialization** — defer each branch's return-annotation transform + clone and run it once, for the winner only (explore in lockstep, don't re-do work per candidate) | codegen (parser-agnostic) | 75.5 µs ≈ 75.9 µs | **~0% (neutral)** | **reverted** ✗ (idea preserved) |
+| RGX-0078 · 5.d.4 | **Node arena** — allocate every child `ParseNode` in a per-parse bump arena (`typed-arena`) and hold children as `&'input` references instead of `Box`/`Vec<ParseNode>`, so the profiled ~55% construction-`malloc` collapses to a handful of arena growths freed in one shot | codegen + engine (parser-agnostic) | 75.0 µs → **58.6 µs** | **−21.9%** | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -471,8 +472,9 @@ arena's real target is about **a quarter of the whole parse** — comfortably th
 left, so the surgery is justified. It also draws the map for *after* the arena: the serde_json output
 (a quarter of allocation) and the semantic-runtime path (a fifth) are the next two levers, because the
 arena, by design, leaves them untouched. The arena will not reach PCRE2 parity by itself — but it is
-the right next step, and now a measured one. The first code increment — the lockstep advance folded
-together with the arena on the regex `atom` tournament — is what the scoreboard measures next.
+the biggest single lever left, and now a measured one. It landed as a **standalone** step (the
+reference-arena migration recorded below), decoupled from the lockstep advance it was designed to
+compose with — that advance is the step that follows.
 
 A final pre-code scoping pass then settled the ownership shape — and, along the way, corrected the
 first instinct. The tempting shape is an *index* arena (a single vector of nodes, children referenced
@@ -498,6 +500,34 @@ frees its whole block (and runs every leaf's destructor) at the boundary, lets t
 by handing back a cheap borrowed handle, and keeps the derived serialiser byte-identical by
 construction. The whole change is proved byte-identical by the cheap differential gates *before* any
 expensive optimized build, so a slip is caught early and cheaply.
+
+### The arena landed — −21.9%, byte-identical
+
+The reference arena is **in**. Every child `ParseNode` is now allocated in a per-parse
+destructor-running arena and held as a borrowed `&'input` reference (`Sequence`, `Alternative`,
+`Quantified` all carry references, not owned boxes/vectors); the arena is threaded through the
+generated parser's constructor and freed in one shot at the parse boundary. The single feared risk —
+a *viral second lifetime* — did not materialize: reborrowing collapses the arena's lifetime onto the
+input's, so the tree keeps the **single** `'input` lifetime it always had. And the decisive design
+bet paid off exactly as scoped: because a borrowed child serialises identically to an owned one, the
+`#[derive(Serialize)]` that produces the authoritative typed-AST kept emitting the same bytes **for
+free** — no hand-written serialiser, no oracle to re-prove by hand.
+
+The measurement is decisive and drift-controlled — both binaries built at release fat-LTO with
+distinct hashes, measured alternately five rounds of 2 000 parses so shared CPU load cancels out. The
+arena parses the 8-pattern corpus at a **58.6 µs** geomean against the owned baseline's **75.0 µs** —
+a **−21.9%** win, arena faster in *every* round (per-round ratios `0.79 / 0.78 / 0.78 / 0.78 / 0.78`,
+clean separation with no overlap). That makes it the single biggest lever since first-set dispatch,
+and it validates the by-caller profile above: moving just the parse-node construction allocation off
+the general allocator reclaimed almost exactly the share the profile predicted.
+
+Correctness held to the byte: the full ⛔ hard-constraint battery is green — the interpreter-vs-generated
+equivalence gate byte-identical across every grammar and seed, combinator and semantic differential
+gates `2/0`, the regex certificate `fully_certified` with `UNKNOWN=0` and an identical spurious-failure
+profile, the PCRE2 compile-oracle verdicts unchanged, and the AST-shape contract `18/0`. The arena is a
+*parser-agnostic* codegen-plus-engine primitive, so SystemVerilog, VHDL, JSON and every other grammar
+inherit the same allocation win from the same change — the founding doctrine, once more: tune the
+compiler, and every language it compiles gets faster.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 

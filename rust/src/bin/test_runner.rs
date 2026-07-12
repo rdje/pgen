@@ -55,7 +55,9 @@ impl GeneratedReturnAnnotationParser {
 impl Parser for GeneratedReturnAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Create a parser instance for this specific input
-        let mut parser = Return_annotationParser::new(input, self.logger.clone_box());
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
+        let mut parser =
+            Return_annotationParser::new(input, &node_arena, self.logger.clone_box());
         let has_arrow_prefix = input.trim_start().starts_with("->");
 
         // Parse the input
@@ -108,7 +110,9 @@ impl GeneratedSemanticAnnotationParser {
 impl Parser for GeneratedSemanticAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Create a parser instance for this specific input
-        let mut parser = Semantic_annotationParser::new(input, self.logger.clone_box());
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
+        let mut parser =
+            Semantic_annotationParser::new(input, &node_arena, self.logger.clone_box());
 
         // Parse the input
         match parser.parse_full_semantic_annotation() {

@@ -1055,8 +1055,12 @@ mod tests {
 
         let logger = crate::test_runner::NoOpLogger;
         let transform_input = "@transform: $1";
-        let mut transform_parser =
-            Semantic_annotationParser::new(transform_input, Box::new(crate::NoOpLogger));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut transform_parser = Semantic_annotationParser::new(
+            transform_input,
+            &node_arena,
+            Box::new(crate::NoOpLogger),
+        );
         let transform_tree = transform_parser
             .parse_full_semantic_annotation()
             .expect("generated parser should parse transform sample");
@@ -1073,7 +1077,9 @@ mod tests {
         ));
 
         let raw_input = "@priority: [9, 1]";
-        let mut raw_parser = Semantic_annotationParser::new(raw_input, Box::new(crate::NoOpLogger));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut raw_parser =
+            Semantic_annotationParser::new(raw_input, &node_arena, Box::new(crate::NoOpLogger));
         let raw_tree = raw_parser
             .parse_full_semantic_annotation()
             .expect("generated parser should parse non-transform sample");
@@ -1093,7 +1099,9 @@ mod tests {
 
         let logger = crate::test_runner::NoOpLogger;
         let input = "@priority: [9, 1]";
-        let mut parser = Semantic_annotationParser::new(input, Box::new(crate::NoOpLogger));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut parser =
+            Semantic_annotationParser::new(input, &node_arena, Box::new(crate::NoOpLogger));
         let parse_tree = parser
             .parse_full_semantic_annotation()
             .expect("generated parser should parse sample");
@@ -1150,8 +1158,12 @@ mod tests {
                     continue;
                 }
 
-                let mut parser =
-                    Semantic_annotationParser::new(&test.input, Box::new(crate::NoOpLogger));
+                let node_arena = crate::ast_pipeline::NodeArena::new();
+                let mut parser = Semantic_annotationParser::new(
+                    &test.input,
+                    &node_arena,
+                    Box::new(crate::NoOpLogger),
+                );
                 let parse_tree = parser.parse_full_semantic_annotation().unwrap_or_else(|err| {
                     panic!(
                         "generated parser should parse semantic corpus case '{} / {}' (input='{}'): {}",
@@ -1206,8 +1218,12 @@ mod tests {
 
                 let payload = ast_payload(&entry_ast).to_string();
                 let canonical = format!("@{}: {}", name, payload);
-                let mut canonical_parser =
-                    Semantic_annotationParser::new(&canonical, Box::new(crate::NoOpLogger));
+                let node_arena = crate::ast_pipeline::NodeArena::new();
+                let mut canonical_parser = Semantic_annotationParser::new(
+                    &canonical,
+                    &node_arena,
+                    Box::new(crate::NoOpLogger),
+                );
                 let canonical_tree = canonical_parser
                     .parse_full_semantic_annotation()
                     .unwrap_or_else(|err| {

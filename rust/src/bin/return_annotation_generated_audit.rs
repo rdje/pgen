@@ -68,7 +68,8 @@ fn parse_generated_return_annotation(
     use pgen::generated_parsers::return_annotation::Return_annotationParser;
 
     let parser_logger = runtime_logger_box("generated.return_annotation.audit.parse");
-    let mut parser = Return_annotationParser::new(sample, parser_logger);
+    let node_arena = pgen::ast_pipeline::NodeArena::new();
+    let mut parser = Return_annotationParser::new(sample, &node_arena, parser_logger);
     let parse_tree = parser
         .parse_full_return_annotation()
         .map_err(|err| format!("generated parser failed for '{}': {}", sample, err))?;

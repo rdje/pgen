@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-12 - PGEN-RGX-0078-0031 — RGX-0078.5.d.4.i candidate-B NODE ARENA **LANDED** (−21.9%, byte-identical)
+
+**What.** The `typed_arena` node arena is IN. `ParseContent<'input>` children are now borrowed `&'input ParseNode` references allocated in a per-parse `typed_arena::Arena<ParseNode<'input>>` threaded through the parser (`new(input, &arena, logger)`) and freed en masse at the boundary. 23 tracked source files migrated (codegen templates in `ast_based_generator.rs`/`ast_return_transform.rs`, `mod.rs` type + enum, `parser_registry`, `embedding_api`, `ebnf_frontend`, `ast_shape_contract`, interpreter, fixtures, bins). All 11 generated parsers regenerated to arena form. New dep `typed-arena 2.0.2`.
+
+**Why B not C.** Candidate C (`NodeId(u32)` index arena, the rust-analyzer-style shape) was the first instinct — no dep, no second lifetime. It was REJECTED at scoping because `#[derive(Serialize)]` on an index tree would emit bare integers where subtrees belong (the serialiser can't reach the arena), forcing a hand-written serialiser — the exact oracle byte-identity is judged against. Candidate B's borrowed children serialise identically to owned ones ⇒ the derive stays byte-identical FOR FREE. That single property was the decider.
+
+**The lifetime worry that didn't bite.** The feared cost of B was a viral SECOND lifetime (`ParseNode<'input,'arena>`). It collapsed: reborrowing the arena onto the input scope keeps the tree at the SINGLE `'input` lifetime it already had. The churn that remained was mechanical, compiler-checked ref-threading — a slip is a build error, never a silent output difference.
+
+**The codegen crux (carried from -0030).** `typed_arena::Arena::alloc(&self, T) -> &mut T`; a child accumulator `Vec` left to inference binds `Vec<&mut ParseNode>` and then can't coerce. Fix: explicitly type child accumulators `Vec<&'input ParseNode<'input>>` so the `&mut` coerces to the shared `&` the Vec holds. Emitted in the quote! templates.
+
+**Speed (decisive).** Drift-controlled, both release fat-LTO, distinct sha256, alternated 5×2000: **arena 58,569 ns vs baseline 74,992 ns = −21.9%**, faster every round (`0.79/0.78/0.78/0.78/0.78`). Baseline = owned HEAD rebuilt via the `ast_pipeline_bootstrap` cycle (breaks the generated↔pipeline dependency so an owned pipeline can regenerate owned annotation parsers first), reproduces the pinned ≈75µs.
+
+**Correctness byte-identical.** Full ⛔ battery green: equivalence `certified_grammars_are_byte_identical` (all grammars/seeds) + combinator 2/0 + semantic 2/0 + regex cert `UNKNOWN=0 fully_certified=true` spf `0/1/1` + PCRE2 compile-oracle + duality + ast-shape 18/0 + clippy source clean. PCRE2 textsafe-corpus gate timeout = pre-existing debug-probe hang on catastrophic-backtracking cells (NOT arena; equivalence ⇒ identical backtracking; subsumed).
+
+**Durable lesson.** To arena a `#[derive(Serialize)]` AST under a byte-identity floor, use a REFERENCE arena (`&'input` children + `typed-arena`), never an INDEX arena — refs keep the derived serialiser byte-identical for free; indices force a hand-rebuilt oracle. Recorded in the decision record + `MEMORY.md`.
+
 ## 2026-07-12 - PGEN-RGX-0078-0030 — RGX-0078.5.d.4.i candidate-B arena codegen WRITTEN + VALIDATED TO COMPILE (continuity checkpoint; code parked in git stash)
 
 **What.** Session #101 popped the #100 stash (interpreter/lib arena diff) and wrote the whole codegen half: `ast_based_generator.rs` + `ast_return_transform.rs` quote! templates emit arena-based parsers, plus the LIB boundary (`parser_registry.rs`/`mod.rs`/`embedding_api.rs`/`lib.rs`/`parse_harness.rs`). Docs-only commit; the code diff (10 tracked files, +293/−124) is parked in `git stash`.

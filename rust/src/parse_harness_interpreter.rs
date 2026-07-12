@@ -72,7 +72,7 @@ use crate::ast_pipeline::semantic_directive_registry::{
 use crate::ast_pipeline::stimuli_generator::BranchSelectionLogEntry;
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, CompiledSemanticRuntimeAnnotations,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, CompiledSemanticRuntimeAnnotations, NodeArena,
     ParseContent, ParseError, ParseNode, ParseResult, SemanticAnnotation, SemanticCloseScopeSpec,
     SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
     SemanticRuntimeDelta, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeTransaction,
@@ -371,7 +371,15 @@ fn interpret_parse_gen_ast_core(
         })
         .collect();
 
+    // RGX-0078.5.d.4.i — the node arena is a local created BEFORE the interpreter,
+    // so `'i` (the node/borrow lifetime) unifies to this scope; the `input` borrow
+    // is reborrowed down to it, and the whole tree is walked to owned JSON before
+    // this function returns (the arena drops here = mass free + runs each leaf's
+    // String/Value destructor). Nothing carrying `'i` escapes (`ParseOutcome` is
+    // fully owned).
+    let node_arena = NodeArena::new();
     let mut interp = Interp {
+        arena: &node_arena,
         grammar: grammar_tree,
         annotations,
         layout: grammar_layout_policy(&compiled_sem),
@@ -675,6 +683,12 @@ impl SelectionRecorder {
 }
 
 struct Interp<'g, 'i> {
+    /// RGX-0078.5.d.4.i — the per-parse node arena (candidate B). Children built
+    /// during interpretation are allocated here and referenced as `&'i` borrows,
+    /// mirroring the generated parser's arena so the typed AST is byte-identical.
+    /// Created in `interpret_parse_gen_ast_core` and passed by reference, so `'i`
+    /// unifies to the arena's scope (input is reborrowed down to it).
+    arena: &'i NodeArena<'i>,
     grammar: &'g HashMap<String, ASTNode>,
     annotations: Option<&'g Annotations>,
     /// The grammar's layout/whitespace-skipping policy (PARSE-HARNESS.5.1) — consulted by
@@ -1678,10 +1692,10 @@ impl<'g, 'i> Interp<'g, 'i> {
     ) -> Option<String> {
         let (index, path_segments) = Self::parse_semantic_reference_segments(reference)?;
         let mut current_node = match root_content {
-            ParseContent::Sequence(elements) => elements.get(index.saturating_sub(1))?,
+            ParseContent::Sequence(elements) => *elements.get(index.saturating_sub(1))?,
             ParseContent::Alternative(node) => {
                 if index == 1 {
-                    node.as_ref()
+                    *node
                 } else {
                     return None;
                 }
@@ -1787,9 +1801,9 @@ impl<'g, 'i> Interp<'g, 'i> {
     ) -> Option<&'a ParseNode<'i>> {
         match content {
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
-                elements.get(index)
+                elements.get(index).copied()
             }
-            ParseContent::Alternative(node) if index == 0 => Some(node.as_ref()),
+            ParseContent::Alternative(node) if index == 0 => Some(*node),
             _ => None,
         }
     }
@@ -1804,7 +1818,7 @@ impl<'g, 'i> Interp<'g, 'i> {
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                 for node in elements {
                     if node.rule_name == target_name {
-                        return Some(node);
+                        return Some(*node);
                     }
                     if let Some(found) =
                         Self::find_semantic_named_descendant(&node.content, target_name)
@@ -1816,7 +1830,7 @@ impl<'g, 'i> Interp<'g, 'i> {
             }
             ParseContent::Alternative(node) => {
                 if node.rule_name == target_name {
-                    Some(node)
+                    Some(*node)
                 } else {
                     Self::find_semantic_named_descendant(&node.content, target_name)
                 }
@@ -2490,7 +2504,7 @@ impl<'g, 'i> Interp<'g, 'i> {
         capture_raw: bool,
         raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
-        let mut sequence_elements: Vec<ParseNode<'i>> = Vec::with_capacity(elements.len());
+        let mut sequence_elements: Vec<&'i ParseNode<'i>> = Vec::with_capacity(elements.len());
         for (idx, element) in elements.iter().enumerate() {
             let element_start = self.position;
             let element_content = match element {
@@ -2504,11 +2518,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                 _ => self.parse_node(element, rule_name, capture_raw, raw_out)?,
             };
             let element_end = self.position;
-            sequence_elements.push(ParseNode {
+            sequence_elements.push(self.arena.alloc(ParseNode {
                 rule_name: intern(&format!("element_{idx}")),
                 content: element_content,
                 span: element_start..element_end,
-            });
+            }));
         }
         Ok(ParseContent::Sequence(sequence_elements))
     }
@@ -2531,7 +2545,7 @@ impl<'g, 'i> Interp<'g, 'i> {
         let (min, max) = parse_quantifier_bounds(quantifier).unwrap_or((0, None));
         let quantifier_start = self.position;
 
-        let mut results: Vec<ParseNode<'i>> = Vec::new();
+        let mut results: Vec<&'i ParseNode<'i>> = Vec::new();
         let mut last_position = self.position;
         let mut iteration_count = 0usize;
         loop {
@@ -2553,11 +2567,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                     }
                     // The generated per-iteration node is rule_name "quantified", span 0..0 (a fixed
                     // synthetic wrapper — the real spans live on the element's own sub-nodes).
-                    results.push(ParseNode {
+                    results.push(self.arena.alloc(ParseNode {
                         rule_name: intern("quantified"),
                         content,
                         span: 0..0,
-                    });
+                    }));
                     last_position = current_position;
                     iteration_count += 1;
                 }
@@ -2623,7 +2637,7 @@ impl<'g, 'i> Interp<'g, 'i> {
         match tag.as_str() {
             "rule_reference" => {
                 let node = self.parse_rule(val)?;
-                Ok(ParseContent::Alternative(Box::new(node)))
+                Ok(ParseContent::Alternative(self.arena.alloc(node)))
             }
             "regex" => {
                 let matched = self.match_regex(val, true)?;
@@ -3122,11 +3136,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                 match self.fold_return(inner, base, start_pos) {
                     ParseContent::Sequence(elems) => ParseContent::Sequence(elems),
                     ParseContent::Quantified(elems, q) => ParseContent::Quantified(elems, q),
-                    other => ParseContent::Sequence(vec![ParseNode {
+                    other => ParseContent::Sequence(vec![self.arena.alloc(ParseNode {
                         rule_name: intern("spread_base"),
                         content: other,
                         span: 0..0,
-                    }]),
+                    })]),
                 }
             }
             UnifiedReturnAST::PropertyAccess { base: inner, property } => {
@@ -3210,7 +3224,7 @@ impl<'g, 'i> Interp<'g, 'i> {
         base: &ParseContent<'i>,
         start_pos: usize,
     ) -> ParseContent<'i> {
-        let mut array_elements: Vec<ParseNode<'i>> = Vec::new();
+        let mut array_elements: Vec<&'i ParseNode<'i>> = Vec::new();
         for (idx, element) in elements.iter().enumerate() {
             match element {
                 UnifiedReturnAST::Spread { base: inner } => {
@@ -3220,11 +3234,11 @@ impl<'g, 'i> Interp<'g, 'i> {
                                 array_elements.push(node);
                             }
                         }
-                        other => array_elements.push(ParseNode {
+                        other => array_elements.push(self.arena.alloc(ParseNode {
                             rule_name: intern("spread_element"),
                             content: other,
                             span: 0..0,
-                        }),
+                        })),
                     }
                 }
                 UnifiedReturnAST::FlattenSpread { base: inner } => {
@@ -3233,7 +3247,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                             for node in nodes {
                                 let span_for_inherit = node.span.clone();
                                 let rule_name_for_inherit = node.rule_name;
-                                let peeled = peel_alternative(node.content);
+                                let peeled = peel_alternative(node.content.clone());
                                 match peeled {
                                     ParseContent::Sequence(inner_nodes)
                                     | ParseContent::Quantified(inner_nodes, _) => {
@@ -3243,33 +3257,33 @@ impl<'g, 'i> Interp<'g, 'i> {
                                     }
                                     ParseContent::Json(serde_json::Value::Array(values)) => {
                                         for value in values {
-                                            array_elements.push(ParseNode {
+                                            array_elements.push(self.arena.alloc(ParseNode {
                                                 rule_name: rule_name_for_inherit,
                                                 content: ParseContent::Json(value),
                                                 span: span_for_inherit.clone(),
-                                            });
+                                            }));
                                         }
                                     }
-                                    other_content => array_elements.push(ParseNode {
+                                    other_content => array_elements.push(self.arena.alloc(ParseNode {
                                         rule_name: rule_name_for_inherit,
                                         content: other_content,
                                         span: span_for_inherit.clone(),
-                                    }),
+                                    })),
                                 }
                             }
                         }
-                        other => array_elements.push(ParseNode {
+                        other => array_elements.push(self.arena.alloc(ParseNode {
                             rule_name: intern("flatten_spread_element"),
                             content: other,
                             span: 0..0,
-                        }),
+                        })),
                     }
                 }
-                _ => array_elements.push(ParseNode {
+                _ => array_elements.push(self.arena.alloc(ParseNode {
                     rule_name: intern(&format!("element_{idx}")),
                     content: self.fold_return(element, base, start_pos),
                     span: 0..0,
-                }),
+                })),
             }
         }
         ParseContent::Sequence(array_elements)
@@ -3304,11 +3318,11 @@ impl<'g, 'i> Interp<'g, 'i> {
         };
         match &base_expr {
             ParseContent::Quantified(elements, _) => {
-                let extracted: Vec<ParseNode<'i>> = elements
+                let extracted: Vec<&'i ParseNode<'i>> = elements
                     .iter()
                     .filter_map(|node| match &node.content {
                         ParseContent::Sequence(subelems) if subelems.len() > extraction_idx => {
-                            Some(subelems[extraction_idx].clone())
+                            Some(subelems[extraction_idx])
                         }
                         _ => None,
                     })
@@ -3371,8 +3385,11 @@ fn synthesize_default_passthrough(body: &ASTNode) -> Option<BranchAnnotation> {
 /// Peel `Alternative` wrappers one level at a time (the codegen's `__pgen_peel_alternative`).
 fn peel_alternative(content: ParseContent<'_>) -> ParseContent<'_> {
     let mut current = content;
+    // RGX-0078.5.d.4.i — `node` is now an arena `&` borrow, so its content is
+    // cloned out (shallow: the children it holds are `Copy` `&` borrows) rather
+    // than moved.
     while let ParseContent::Alternative(node) = current {
-        current = node.content;
+        current = node.content.clone();
     }
     current
 }
@@ -3461,7 +3478,7 @@ mod tests {
     fn peel_alternative_unwraps_to_the_core_content() {
         let inner = ParseContent::Terminal("core");
         let node = ParseNode { rule_name: "r", content: inner, span: 0..4 };
-        let wrapped = ParseContent::Alternative(Box::new(node));
+        let wrapped = ParseContent::Alternative(&node);
         assert_eq!(peel_alternative(wrapped), ParseContent::Terminal("core"));
     }
 

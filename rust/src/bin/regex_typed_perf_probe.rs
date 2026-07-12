@@ -131,8 +131,10 @@ fn parse_args() -> (usize, usize) {
 #[cfg(all(feature = "generated_parsers", feature = "regex_typed_perf_probe"))]
 fn time_one_parse(input: &str) -> u64 {
     let start = Instant::now();
+    let node_arena = pgen::ast_pipeline::NodeArena::new();
     let mut parser = RegexParser::new(
         input,
+        &node_arena,
         pgen::ast_pipeline::runtime_logger_box("regex_typed_perf_probe"),
     );
     let _ = parser.parse_regex_typed();

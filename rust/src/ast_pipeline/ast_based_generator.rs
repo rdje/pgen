@@ -576,7 +576,7 @@ impl AstBasedGenerator {
             use std::ops::Range;
             #regex_import
             use crate::ast_pipeline::{
-                Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, RuleId, CycleType, RecursionGuard
+                Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, NodeArena, RuleId, CycleType, RecursionGuard
             };
         }
     }
@@ -644,6 +644,17 @@ impl AstBasedGenerator {
             /// High-performance parser with memoization and zero-copy parsing
             pub struct #parser_name<'input> {
                 input: &'input str,
+                // RGX-0078.5.d.4.i (candidate B) — the per-parse node arena.
+                // Every child `ParseNode` combined into a `ParseContent::{Sequence,
+                // Alternative,Quantified}` is `arena.alloc`'d and held as an
+                // `&'input` borrow instead of an owned `Box`/`Vec` element. The
+                // arena is created at the boundary, borrowed in here, and dropped
+                // once the boundary has serialized the tree to owned JSON — one
+                // mass free (with each leaf's `String`/`Value` destructor run,
+                // since `typed_arena::Arena` is Drop-correct). A single `'input`
+                // lifetime spans "borrows input" and "borrows arena" (input is
+                // reborrowed down to the arena's scope), so no viral 2nd lifetime.
+                arena: &'input NodeArena<'input>,
                 position: usize,
                 // Optim #6: FxHashMap (rustc-hash) for the memo. Hit on every rule
                 // entry, with internal (RuleId, usize) integer keys — no DoS exposure,
@@ -1115,7 +1126,7 @@ impl AstBasedGenerator {
         };
 
         Ok(quote! {
-            pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
+            pub fn new(input: &'input str, arena: &'input NodeArena<'input>, logger: Box<dyn Logger>) -> Self {
                 let logger_enabled = logger.is_enabled();
                 // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: build the compiled
                 // annotations first, then seed the semantic-runtime state
@@ -1131,6 +1142,8 @@ impl AstBasedGenerator {
                     .set_predicate_defs(semantic_runtime_annotations.clone_predicate_defs());
                 Self {
                     input,
+                    // RGX-0078.5.d.4.i — the per-parse node arena (candidate B).
+                    arena,
                     position: 0,
                     // Optim #7: pre-size memo to skip the 4-→8-→16-→...-→256 rehash
                     // chain during parse. Even small regex patterns produce ~50-200
@@ -4191,7 +4204,9 @@ impl AstBasedGenerator {
         }
 
         Ok(quote! {
-            let mut sequence_elements = Vec::with_capacity(#element_count);
+            // RGX-0078.5.d.4.i — explicit element type so the `&mut` from
+            // `arena.alloc` coerces to the shared `&'input` the Vec holds.
+            let mut sequence_elements: Vec<&'input ParseNode<'input>> = Vec::with_capacity(#element_count);
             #(#element_parsers)*
             let result = ParseContent::Sequence(sequence_elements)
         })
@@ -4245,11 +4260,13 @@ impl AstBasedGenerator {
                 let element_content = #element_logic;
                 let element_end = parser.position;
 
-                sequence_elements.push(ParseNode {
+                // RGX-0078.5.d.4.i — arena-alloc the child element and store the
+                // `&'input` borrow (the `ParseContent::Sequence` Vec holds refs).
+                sequence_elements.push(parser.arena.alloc(ParseNode {
                     rule_name: #element_name,
                     content: element_content,
                     span: element_start..element_end,
-                });
+                }));
             }
         })
     }
@@ -4315,7 +4332,12 @@ impl AstBasedGenerator {
                         );
                         let method = format_ident!("parse_{}", token_value_str);
                         Ok(quote! {
-                            let result = ParseContent::Alternative(Box::new(parser.#method()?))
+                            // RGX-0078.5.d.4.i — the child rule returns an owned
+                            // `ParseNode`; arena-alloc it and wrap the `&'input`
+                            // borrow (hoisted so the `&mut self` call finishes
+                            // before the arena read, mirroring the interpreter).
+                            let __pgen_alt_child = parser.#method()?;
+                            let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
                         })
                     }
                     "regex" => {
@@ -4574,7 +4596,9 @@ impl AstBasedGenerator {
             // quantifier-level atomicity is delegated to this explicit
             // save/restore (elided for min == 0 since `*`/`?` always succeed).
             #quantifier_start_position_bind
-            let mut results = Vec::new();
+            // RGX-0078.5.d.4.i — explicit element type so the `&mut` from
+            // `arena.alloc` coerces to the shared `&'input` the Vec holds.
+            let mut results: Vec<&'input ParseNode<'input>> = Vec::new();
             let mut last_position = parser.position;
             let mut iteration_count: usize = 0;
             const SAFETY_LIMIT: usize = 10_000;
@@ -4616,7 +4640,9 @@ impl AstBasedGenerator {
                         break;
                     }
 
-                    results.push(node);
+                    // RGX-0078.5.d.4.i — arena-alloc the per-iteration node and
+                    // store the `&'input` borrow (`ParseContent::Quantified` Vec).
+                    results.push(parser.arena.alloc(node));
                     last_position = current_position;
                     iteration_count += 1;
                 } else {
@@ -6155,15 +6181,17 @@ impl AstBasedGenerator {
             ) -> Option<String> {
                 let (index, path_segments) = self.parse_semantic_reference_segments(reference)?;
                 let mut current_node = match root_content {
-                    ParseContent::Sequence(elements) => elements.get(index.saturating_sub(1))?,
+                    // RGX-0078.5.d.4.i — children are `&'input` refs; deref the
+                    // `&&ParseNode` from `.get()` / the matched ref to `&ParseNode`.
+                    ParseContent::Sequence(elements) => *elements.get(index.saturating_sub(1))?,
                     ParseContent::Alternative(node) => {
                         if index == 1 {
-                            node.as_ref()
+                            *node
                         } else {
                             return None;
                         }
                     }
-                    ParseContent::Quantified(elements, _) => elements.get(index.saturating_sub(1))?,
+                    ParseContent::Quantified(elements, _) => *elements.get(index.saturating_sub(1))?,
                     _ => return None,
                 };
 
@@ -6331,9 +6359,11 @@ impl AstBasedGenerator {
                 // index 0 returns the wrapped node. For non-array-like
                 // content, returns `None`.
                 match content {
+                    // RGX-0078.5.d.4.i — `.copied()` turns `Option<&&ParseNode>`
+                    // into `Option<&'input ParseNode>`; `*node` derefs the ref.
                     ParseContent::Sequence(elements)
-                    | ParseContent::Quantified(elements, _) => elements.get(index),
-                    ParseContent::Alternative(node) if index == 0 => Some(node.as_ref()),
+                    | ParseContent::Quantified(elements, _) => elements.get(index).copied(),
+                    ParseContent::Alternative(node) if index == 0 => Some(*node),
                     _ => None,
                 }
             }
@@ -6346,7 +6376,8 @@ impl AstBasedGenerator {
                     ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                         for node in elements {
                             if node.rule_name == target_name {
-                                return Some(node);
+                                // RGX-0078.5.d.4.i — deref `&&ParseNode` to `&ParseNode`.
+                                return Some(*node);
                             }
                             if let Some(found) =
                                 self.find_semantic_named_descendant(&node.content, target_name)
@@ -6358,7 +6389,8 @@ impl AstBasedGenerator {
                     }
                     ParseContent::Alternative(node) => {
                         if node.rule_name == target_name {
-                            Some(node)
+                            // RGX-0078.5.d.4.i — deref `&&ParseNode` to `&ParseNode`.
+                            Some(*node)
                         } else {
                             self.find_semantic_named_descendant(&node.content, target_name)
                         }
@@ -6965,9 +6997,11 @@ impl AstBasedGenerator {
                     ParseContent::Terminal(_) => 0,
                     ParseContent::TransformedTerminal(_) => 0,
                     ParseContent::Json(_) => 0,
-                    ParseContent::Sequence(items) => items.iter().map(Self::parse_node_size_proxy).sum(),
+                    // RGX-0078.5.d.4.i — `.copied()` turns the `&&ParseNode` items
+                    // into `&ParseNode` for the fn-pointer map.
+                    ParseContent::Sequence(items) => items.iter().copied().map(Self::parse_node_size_proxy).sum(),
                     ParseContent::Alternative(inner) => Self::parse_node_size_proxy(inner),
-                    ParseContent::Quantified(items, _) => items.iter().map(Self::parse_node_size_proxy).sum(),
+                    ParseContent::Quantified(items, _) => items.iter().copied().map(Self::parse_node_size_proxy).sum(),
                 }
             }
 
@@ -8327,7 +8361,8 @@ fn generate_tests(parser_name: &Ident) -> TokenStream {
             fn test_basic_parsing() {
                 let input = "$1";
                 let logger = Box::new(crate::ast_pipeline::NoOpLogger);
-                let mut parser = #parser_name::new(input, logger);
+                let node_arena = crate::ast_pipeline::NodeArena::new();
+                let mut parser = #parser_name::new(input, &node_arena, logger);
                 let _ = parser.parse();
             }
         }

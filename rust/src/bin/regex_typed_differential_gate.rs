@@ -75,8 +75,10 @@ fn run() -> i32 {
 
     for (name, input) in PATTERNS {
         // 1. Reference path: legacy parse + ParseContent::to_json_value().
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
         let mut parser_reference = RegexParser::new(
             input,
+            &node_arena,
             pgen::ast_pipeline::runtime_logger_box("differential_gate_reference"),
         );
         let reference_value = match parser_reference.parse_regex() {
@@ -93,6 +95,7 @@ fn run() -> i32 {
         // 2. Hook-emitted typed path.
         let mut parser_typed = RegexParser::new(
             input,
+            &node_arena,
             pgen::ast_pipeline::runtime_logger_box("differential_gate_typed"),
         );
         let typed_value = match parser_typed.parse_regex_typed() {

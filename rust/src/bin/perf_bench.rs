@@ -459,7 +459,8 @@ fn parse_once(parser_kind: ParserKind, backend_kind: BackendKind, input: &str) -
                 .map_err(|e| anyhow!("bootstrap return parse error: {}", e))
         }
         (ParserKind::Return, BackendKind::Generated) => {
-            let mut parser = Return_annotationParser::new(input, Box::new(NoOpLogger));
+            let node_arena = pgen::ast_pipeline::NodeArena::new();
+            let mut parser = Return_annotationParser::new(input, &node_arena, Box::new(NoOpLogger));
             parser
                 .parse_full_return_annotation()
                 .map(|_| ())
@@ -472,7 +473,8 @@ fn parse_once(parser_kind: ParserKind, backend_kind: BackendKind, input: &str) -
                 .map_err(|e| anyhow!("bootstrap semantic parse error: {}", e))
         }
         (ParserKind::Semantic, BackendKind::Generated) => {
-            let mut parser = Semantic_annotationParser::new(input, Box::new(NoOpLogger));
+            let node_arena = pgen::ast_pipeline::NodeArena::new();
+            let mut parser = Semantic_annotationParser::new(input, &node_arena, Box::new(NoOpLogger));
             parser
                 .parse_full_semantic_annotation()
                 .map(|_| ())

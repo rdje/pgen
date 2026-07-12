@@ -556,7 +556,11 @@ pub fn run_manifest<F>(
     mut parse_sample: F,
 ) -> ContractReport
 where
-    F: for<'input> FnMut(&'input str, &str) -> Result<ParseNode<'input>, String>,
+    F: for<'input> FnMut(
+        &'input str,
+        &str,
+        &'input crate::ast_pipeline::NodeArena<'input>,
+    ) -> Result<ParseNode<'input>, String>,
 {
     let mut report = ContractReport::default();
 
@@ -612,7 +616,8 @@ where
     }
 
     for sample in &manifest.samples {
-        let parsed = match parse_sample(&sample.input, &sample.rule_under_test) {
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let parsed = match parse_sample(&sample.input, &sample.rule_under_test, &node_arena) {
             Ok(node) => node,
             Err(err) => {
                 let detail = format!(
@@ -865,8 +870,9 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, _rule| {
-            let mut parser = RegexParser::new(input, runtime_logger_box("ast_shape_contract.regex"));
+        let report = run_manifest(&manifest, |input, _rule, arena| {
+            let mut parser =
+                RegexParser::new(input, arena, runtime_logger_box("ast_shape_contract.regex"));
             parser.parse_full_regex().map_err(|err| err.to_string())
         });
         assert_report("regex", &report);
@@ -882,9 +888,10 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, _rule| {
+        let report = run_manifest(&manifest, |input, _rule, arena| {
             let mut parser = ReturnAnnotationParser::new(
                 input,
+                arena,
                 runtime_logger_box("ast_shape_contract.return_annotation"),
             );
             parser
@@ -904,9 +911,10 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, _rule| {
+        let report = run_manifest(&manifest, |input, _rule, arena| {
             let mut parser = SemanticAnnotationParser::new(
                 input,
+                arena,
                 runtime_logger_box("ast_shape_contract.semantic_annotation"),
             );
             parser
@@ -926,9 +934,10 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, _rule| {
+        let report = run_manifest(&manifest, |input, _rule, arena| {
             let mut parser = RtlConstExprParser::new(
                 input,
+                arena,
                 runtime_logger_box("ast_shape_contract.rtl_const_expr"),
             );
             parser
@@ -948,9 +957,10 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, _rule| {
+        let report = run_manifest(&manifest, |input, _rule, arena| {
             let mut parser = RtlFrontendParser::new(
                 input,
+                arena,
                 runtime_logger_box("ast_shape_contract.rtl_frontend"),
             );
             parser
@@ -977,9 +987,10 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, rule| {
+        let report = run_manifest(&manifest, |input, rule, arena| {
             let mut parser = SystemverilogParser::new(
                 input,
+                arena,
                 runtime_logger_box("ast_shape_contract.systemverilog"),
             );
             // Non-root `rule_under_test` support (GRAMMAR-WELLFORMED.H.14.3.1):
@@ -1187,8 +1198,10 @@ mod tests {
         use crate::ast_pipeline::runtime_logger_box;
         use crate::generated_parsers::systemverilog::SystemverilogParser;
 
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let parser = SystemverilogParser::new(
             "",
+            &node_arena,
             runtime_logger_box("ast_shape_contract.systemverilog.fact_kinds"),
         );
         let annotations = parser.semantic_runtime_annotations();
@@ -1251,8 +1264,10 @@ mod tests {
         use crate::ast_pipeline::runtime_logger_box;
         use crate::generated_parsers::systemverilog::SystemverilogParser;
 
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = SystemverilogParser::new(
             "module m; int alpha, beta; endmodule",
+            &node_arena,
             runtime_logger_box("ast_shape_contract.systemverilog.variable_binding"),
         );
         parser
@@ -1290,8 +1305,12 @@ mod tests {
         // before the `if`, so the context-gated branch fires and the 3-level
         // chain `a.b.c(x)` parses (it did NOT before `.b.6.2`).
         let source = "module m; int a; initial if (a.b.c(x)) ; endmodule";
-        let mut parser =
-            SystemverilogParser::new(source, runtime_logger_box("ast_shape_contract.sv.ctx_chain"));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut parser = SystemverilogParser::new(
+            source,
+            &node_arena,
+            runtime_logger_box("ast_shape_contract.sv.ctx_chain"),
+        );
         assert!(
             parser.parse_full_systemverilog_file().is_ok(),
             "a 3-level method chain on a known-variable head must parse",
@@ -1326,8 +1345,12 @@ mod tests {
             ),
         ];
         for (label, src) in cases {
-            let mut parser =
-                SystemverilogParser::new(src, runtime_logger_box("ast_shape_contract.sv.ctx_chain"));
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = SystemverilogParser::new(
+                src,
+                &node_arena,
+                runtime_logger_box("ast_shape_contract.sv.ctx_chain"),
+            );
             assert!(
                 parser.parse_full_systemverilog_file().is_ok(),
                 "context-gated method chain must parse: {}",
@@ -1355,8 +1378,12 @@ mod tests {
             ("C: typedef refs ordinary id  ", "package p; class C; typedef bit U; typedef U V; endclass endpackage"),
         ];
         for (label, src) in cases {
-            let mut parser =
-                SystemverilogParser::new(src, runtime_logger_box("ast_shape_contract.sv.b627"));
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = SystemverilogParser::new(
+                src,
+                &node_arena,
+                runtime_logger_box("ast_shape_contract.sv.b627"),
+            );
             let parsed = parser.parse_full_systemverilog_file().is_ok();
             let facts = parser.semantic_runtime_state().facts();
             println!("\nb627-diag [{}] parse_ok={} fact_count={}", label, parsed, facts.len());
@@ -1397,9 +1424,10 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, _rule| {
+        let report = run_manifest(&manifest, |input, _rule, arena| {
             let mut parser = SystemverilogPreprocessorParser::new(
                 input,
+                arena,
                 runtime_logger_box("ast_shape_contract.systemverilog_preprocessor"),
             );
             parser
@@ -1419,8 +1447,9 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input, _rule| {
-            let mut parser = VhdlParser::new(input, runtime_logger_box("ast_shape_contract.vhdl"));
+        let report = run_manifest(&manifest, |input, _rule, arena| {
+            let mut parser =
+                VhdlParser::new(input, arena, runtime_logger_box("ast_shape_contract.vhdl"));
             parser.parse_full_vhdl_file().map_err(|err| err.to_string())
         });
         assert_report("vhdl", &report);
@@ -1456,8 +1485,10 @@ mod tests {
             "interface i #  (  ) ;timeunit 09 ns/633 s;endinterface",
         ];
         for sample in samples {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser = SystemverilogParser::new(
                 sample,
+                &node_arena,
                 runtime_logger_box("ast_shape_contract.sv_hash_not_stolen"),
             );
             parser.set_grammar_profile(Some("sv_2017"));
@@ -1491,8 +1522,10 @@ mod tests {
         // (1) `C a;` at module scope must parse AND emit a `variable_binding`
         // fact for `a` — the signature of the `data_declaration`/`variable_decl`
         // path. A `net_declaration` (the pre-fix mis-route) emits no such fact.
+        let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = SystemverilogParser::new(
             "class C; endclass module m; C a; endmodule",
+            &node_arena,
             runtime_logger_box("ast_shape_contract.sv_class_handle_decl"),
         );
         parser.set_grammar_profile(Some("sv_2017"));
@@ -1521,8 +1554,10 @@ mod tests {
             "module m; wire a; endmodule",
         ];
         for sample in must_parse {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser = SystemverilogParser::new(
                 sample,
+                &node_arena,
                 runtime_logger_box("ast_shape_contract.sv_class_handle_decl"),
             );
             parser.set_grammar_profile(Some("sv_2017"));
@@ -1563,8 +1598,10 @@ mod tests {
             "module m; sequence s; a *3; endsequence endmodule",
         ];
         for sample in must_parse {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser = SystemverilogParser::new(
                 sample,
+                &node_arena,
                 runtime_logger_box("ast_shape_contract.sv_sequence_repetition_brackets"),
             );
             parser.set_grammar_profile(Some("sv_2017"));
@@ -1601,8 +1638,10 @@ mod tests {
             "architecture a of e is signal i:t:=3374;begin end;",
         ];
         for sample in samples {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser = VhdlParser::new(
                 sample,
+                &node_arena,
                 runtime_logger_box("ast_shape_contract.vhdl_based_literal"),
             );
             assert!(

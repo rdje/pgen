@@ -129,6 +129,7 @@ rustc-hash = "2.1"
 # decision — but the perf probe binary opts in via the `mimalloc_perf`
 # feature so we can measure the impact independently.
 mimalloc = { version = "0.1", default-features = false, optional = true }
+typed-arena = "2.0.2"
 
 [features]
 default = ["normal"]

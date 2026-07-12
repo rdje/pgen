@@ -59,7 +59,9 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     // it without compile-time circular dependencies.
     #[cfg(has_generated_ebnf_parser)]
     if !has_inline_semantic_annotations && !has_lexical_annotations {
-        let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut parser =
+            EbnfParser::new(input, &node_arena, runtime_logger_box("generated.ebnf_frontend"));
         if let Err(err) = parser.parse_full_grammar_file() {
             if !has_multiline_annotations && generated_verify_required() {
                 return Err(anyhow!("Rust EBNF parser failed: {}", err));

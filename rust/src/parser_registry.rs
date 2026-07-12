@@ -204,14 +204,16 @@ impl GeneratedParserRegistryEntry {
 }
 
 fn parse_with_return_annotation(sample: &str) -> bool {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
+        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
     parser.parse_full_return_annotation().is_ok()
 }
 
 fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
+        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
     parser
         .parse_full_return_annotation()
         .map(|_| ())
@@ -219,8 +221,9 @@ fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
 }
 
 fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
+        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
     let parsed = parser
         .parse_full_return_annotation()
         .map_err(|err| err.to_string())?;
@@ -228,14 +231,16 @@ fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, Stri
 }
 
 fn parse_with_semantic_annotation(sample: &str) -> bool {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
+        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
     parser.parse_full_semantic_annotation().is_ok()
 }
 
 fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
+        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
     parser
         .parse_full_semantic_annotation()
         .map(|_| ())
@@ -243,8 +248,9 @@ fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
 }
 
 fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
+        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
     let parsed = parser
         .parse_full_semantic_annotation()
         .map_err(|err| err.to_string())?;
@@ -290,13 +296,15 @@ fn parse_with_builtin_semantic_annotation_ast_json(sample: &str) -> Result<JsonV
 
 #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 fn parse_with_ebnf(sample: &str) -> bool {
-    let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
     parser.parse_full_grammar_file().is_ok()
 }
 
 #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
-    let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
     parser
         .parse_full_grammar_file()
         .map(|_| ())
@@ -305,7 +313,8 @@ fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
 
 #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
 fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
     let parsed = parser
         .parse_full_grammar_file()
         .map_err(|err| err.to_string())?;
@@ -314,13 +323,15 @@ fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
 
 #[cfg(has_generated_json_parser)]
 fn parse_with_json(sample: &str) -> bool {
-    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
     parser.parse_full_json().is_ok()
 }
 
 #[cfg(has_generated_json_parser)]
 fn parse_with_json_detail(sample: &str) -> Result<(), String> {
-    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
     parser
         .parse_full_json()
         .map(|_| ())
@@ -329,7 +340,8 @@ fn parse_with_json_detail(sample: &str) -> Result<(), String> {
 
 #[cfg(has_generated_json_parser)]
 fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
     let parsed = parser.parse_full_json().map_err(|err| err.to_string())?;
     parse_node_to_json(&parsed)
 }
@@ -346,7 +358,8 @@ pub fn parse_and_cover_json(
     _grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
-    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
     parser.enable_coverage();
     // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
     let outcome = match entry {
@@ -388,7 +401,8 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
     // restores the grammar-declared `@default_profile` (owned into the 'static worker closure).
     let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
-        let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
         parser.set_grammar_profile(profile.as_deref());
         parser.parse_full_regex().map_err(|err| err.to_string())?;
         validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)
@@ -401,7 +415,8 @@ fn parse_with_regex_ast_json(sample: &str, grammar_profile: Option<&str>) -> Res
     // the artifact (`set_grammar_profile(None)` restores the declared `@default_profile`).
     let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
-        let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
         parser.set_grammar_profile(profile.as_deref());
         let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
         validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)?;
@@ -427,7 +442,8 @@ pub fn parse_and_cover_regex(
     // GRAMMAR-WELLFORMED.H.12.8.4.3: own the entry into the 'static worker closure; `None` ⇒ canonical.
     let entry_owned = entry.map(|e| e.to_string());
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
-        let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        let node_arena = crate::ast_pipeline::NodeArena::new();
+        let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
         parser.set_grammar_profile(profile.as_deref());
         parser.enable_coverage();
         let outcome = match entry_owned.as_deref() {
@@ -444,15 +460,17 @@ pub fn parse_and_cover_regex(
 
 #[cfg(has_generated_rtl_const_expr_parser)]
 fn parse_with_rtl_const_expr(sample: &str) -> bool {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
     parser.parse_full_rtl_const_expr().is_ok()
 }
 
 #[cfg(has_generated_rtl_const_expr_parser)]
 fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
     parser
         .parse_full_rtl_const_expr()
         .map(|_| ())
@@ -461,8 +479,9 @@ fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
 
 #[cfg(has_generated_rtl_const_expr_parser)]
 fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
     let parsed = parser
         .parse_full_rtl_const_expr()
         .map_err(|err| err.to_string())?;
@@ -480,8 +499,9 @@ pub fn parse_and_cover_rtl_const_expr(
     _grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
     parser.enable_coverage();
     // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
     let outcome = match entry {
@@ -496,13 +516,15 @@ pub fn parse_and_cover_rtl_const_expr(
 
 #[cfg(has_generated_rtl_frontend_parser)]
 fn parse_with_rtl_frontend(sample: &str) -> bool {
-    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
     parser.parse_full_rtl_frontend_file().is_ok()
 }
 
 #[cfg(has_generated_rtl_frontend_parser)]
 fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
-    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
     parser
         .parse_full_rtl_frontend_file()
         .map(|_| ())
@@ -511,7 +533,8 @@ fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
 
 #[cfg(has_generated_rtl_frontend_parser)]
 fn parse_with_rtl_frontend_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
     let parsed = parser
         .parse_full_rtl_frontend_file()
         .map_err(|err| err.to_string())?;
@@ -530,7 +553,8 @@ pub fn parse_and_cover_rtl_frontend(
     _grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
-    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
     parser.enable_coverage();
     // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
     let outcome = match entry {
@@ -569,8 +593,9 @@ fn maybe_spawn_call_count_dashboard(
 
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>) -> bool {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
     let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
@@ -638,8 +663,9 @@ pub fn parse_and_cover_systemverilog(
     grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
     let normalized_profile = normalize_generated_grammar_profile("systemverilog", grammar_profile);
     parser.set_grammar_profile(normalized_profile);
     if preload_systemverilog_stdlib(&mut parser, normalized_profile).is_err() {
@@ -681,8 +707,9 @@ fn parse_with_systemverilog_detail_profile_entry(
     grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> Result<(), String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
     let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
@@ -739,8 +766,9 @@ fn parse_with_systemverilog_detail_profile_with_library(
     grammar_profile: Option<&str>,
     library_options: &LibraryOptions,
 ) -> Result<(), String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
     let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
@@ -815,8 +843,9 @@ fn parse_with_systemverilog_ast_json_profile(
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Result<JsonValue, String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
     let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
@@ -843,8 +872,9 @@ fn parse_with_systemverilog_ast_json_from_entry(
     grammar_profile: Option<&str>,
     entry: &str,
 ) -> Result<JsonValue, String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
-        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
     parser.set_trace_rules(current_trace_rules());
     let normalized_profile = normalize_generated_grammar_profile("systemverilog", grammar_profile);
     parser.set_grammar_profile(normalized_profile);
@@ -858,18 +888,20 @@ fn parse_with_systemverilog_ast_json_from_entry(
 
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
 fn parse_with_systemverilog_preprocessor(sample: &str) -> bool {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = SystemverilogPreprocessorParser::new(
         sample,
-        runtime_logger_box("generated.systemverilog_preprocessor"),
+        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
     );
     parser.parse_full_systemverilog_preprocessor_file().is_ok()
 }
 
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
 fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = SystemverilogPreprocessorParser::new(
         sample,
-        runtime_logger_box("generated.systemverilog_preprocessor"),
+        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
     );
     parser
         .parse_full_systemverilog_preprocessor_file()
@@ -891,9 +923,10 @@ fn parse_with_systemverilog_preprocessor_detail_profile(
 
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
 fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = SystemverilogPreprocessorParser::new(
         sample,
-        runtime_logger_box("generated.systemverilog_preprocessor"),
+        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
     );
     let parsed = parser
         .parse_full_systemverilog_preprocessor_file()
@@ -913,9 +946,10 @@ pub fn parse_and_cover_systemverilog_preprocessor(
     _grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = SystemverilogPreprocessorParser::new(
         sample,
-        runtime_logger_box("generated.systemverilog_preprocessor"),
+        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
     );
     parser.enable_coverage();
     // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
@@ -931,13 +965,15 @@ pub fn parse_and_cover_systemverilog_preprocessor(
 
 #[cfg(has_generated_vhdl_parser)]
 fn parse_with_vhdl(sample: &str) -> bool {
-    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
     parser.parse_full_vhdl_file().is_ok()
 }
 
 #[cfg(has_generated_vhdl_parser)]
 fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
-    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
     parser
         .parse_full_vhdl_file()
         .map(|_| ())
@@ -946,7 +982,8 @@ fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
 
 #[cfg(has_generated_vhdl_parser)]
 fn parse_with_vhdl_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
     let parsed = parser
         .parse_full_vhdl_file()
         .map_err(|err| err.to_string())?;
@@ -965,7 +1002,8 @@ pub fn parse_and_cover_vhdl(
     _grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
-    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
     parser.enable_coverage();
     // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
     let outcome = match entry {
@@ -997,7 +1035,8 @@ pub fn parse_and_cover_vhdl(
 
 #[cfg(has_generated_scratch_parser)]
 fn parse_with_scratch(sample: &str) -> bool {
-    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
     parser.set_trace_rules(current_trace_rules());
     parser.parse_full().is_ok()
 }
@@ -1017,7 +1056,8 @@ fn parse_with_scratch_detail(sample: &str, _grammar_profile: Option<&str>) -> Re
 /// either way.
 #[cfg(has_generated_scratch_parser)]
 fn parse_with_scratch_detail_entry(sample: &str, entry: Option<&str>) -> Result<(), String> {
-    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
     parser.set_trace_rules(current_trace_rules());
     let result = match entry {
         Some(e) => parser.parse_full_from(e).map(|_| ()),
@@ -1047,7 +1087,8 @@ pub fn parse_and_cover_scratch(
     _grammar_profile: Option<&str>,
     entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
-    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
     parser.enable_coverage();
     let outcome = match entry {
         Some(e) => parser.parse_full_from(e),
@@ -1061,7 +1102,8 @@ pub fn parse_and_cover_scratch(
 
 #[cfg(has_generated_scratch_parser)]
 fn parse_with_scratch_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
     parser.set_trace_rules(current_trace_rules());
     let parsed = parser.parse_full().map_err(|err| err.to_string())?;
     parse_node_to_json(&parsed)
@@ -1073,7 +1115,8 @@ fn parse_with_scratch_ast_json(sample: &str) -> Result<JsonValue, String> {
 /// isolation (directly useful for the A2.3 shadowing probes).
 #[cfg(has_generated_scratch_parser)]
 fn parse_with_scratch_ast_json_from_entry(sample: &str, entry: &str) -> Result<JsonValue, String> {
-    let mut parser = ScratchParser::new(sample, runtime_logger_box("generated.scratch"));
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
     parser.set_trace_rules(current_trace_rules());
     let parsed = parser.parse_full_from(entry).map_err(|err| err.to_string())?;
     parse_node_to_json(&parsed)
@@ -1347,7 +1390,8 @@ pub fn parse_sample_detail_from_entry(
         )),
         #[cfg(has_generated_json_parser)]
         "json" => {
-            let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
             Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
         }
         #[cfg(has_generated_regex_parser)]
@@ -1357,8 +1401,9 @@ pub fn parse_sample_detail_from_entry(
                 normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
             let entry_owned = entry.to_string();
             Some(run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
+                let node_arena = crate::ast_pipeline::NodeArena::new();
                 let mut parser =
-                    RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+                    RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
                 parser.set_grammar_profile(profile.as_deref());
                 parser
                     .parse_full_from(&entry_owned)
@@ -1368,27 +1413,31 @@ pub fn parse_sample_detail_from_entry(
         }
         #[cfg(has_generated_rtl_const_expr_parser)]
         "rtl_const_expr" => {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser =
-                RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+                RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
             Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
         }
         #[cfg(has_generated_rtl_frontend_parser)]
         "rtl_frontend" => {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser =
-                RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+                RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
             Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
         }
         #[cfg(has_generated_systemverilog_preprocessor_parser)]
         "systemverilog_preprocessor" => {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
             let mut parser = SystemverilogPreprocessorParser::new(
                 sample,
-                runtime_logger_box("generated.systemverilog_preprocessor"),
+                &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
             );
             Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
         }
         #[cfg(has_generated_vhdl_parser)]
         "vhdl" => {
-            let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
             Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
         }
         #[cfg(has_generated_scratch_parser)]

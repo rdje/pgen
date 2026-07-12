@@ -440,7 +440,8 @@ fn main() {{
     let profile: Option<&str> = args.get(3).map(|s| s.as_str()).filter(|s| !s.is_empty());
     let input = std::fs::read_to_string(input_path).expect("read input file");
 
-    let mut parser = generated::{struct_name}::new(&input, Box::new(pgen::NoOpLogger));
+    let node_arena = pgen::NodeArena::new();
+    let mut parser = generated::{struct_name}::new(&input, &node_arena, Box::new(pgen::NoOpLogger));
     if let Some(requested) = profile {{
         parser.set_grammar_profile(Some(requested));
     }}
