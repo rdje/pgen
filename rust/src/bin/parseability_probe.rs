@@ -82,6 +82,13 @@ struct GlobalOptions {
     /// handling) don't steal display slots. Empty (default) = no
     /// filtering.
     dump_rule_call_counts_exclude: Option<Vec<String>>,
+    /// `RGX-0078.5.h.1` — machine-readable per-rule ENTRY-COUNT dump: after a
+    /// `--parse`, write the parser's monotone rule-entry counters (successful
+    /// AND backtracked entries — the fusibility census's dynamic input) as
+    /// JSON to this path. `None` = disabled (default). The machine-readable
+    /// dual of the live `--dump-rule-call-counts` dashboard, which is
+    /// stderr-only and refresh-based (useless for a sub-millisecond parse).
+    dump_rule_entry_counts_json: Option<String>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -265,6 +272,22 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             idx += 2;
             continue;
         }
+        // RGX-0078.5.h.1 — the JSON entry-count dump. Must also come before
+        // --dump-rule-call-counts in the prefix chain (longer spelling first).
+        if args[idx] == "--dump-rule-entry-counts-json" {
+            if options.dump_rule_entry_counts_json.is_some() {
+                bail!("--dump-rule-entry-counts-json cannot be specified multiple times");
+            }
+            let value = args.get(idx + 1).ok_or_else(|| {
+                anyhow::anyhow!("--dump-rule-entry-counts-json requires an output file path")
+            })?;
+            if value.starts_with("--") || value.trim().is_empty() {
+                bail!("--dump-rule-entry-counts-json requires an output file path");
+            }
+            options.dump_rule_entry_counts_json = Some(value.clone());
+            idx += 2;
+            continue;
+        }
         if args[idx] == "--dump-rule-call-counts" {
             if options.dump_rule_call_counts.is_some() {
                 bail!("--dump-rule-call-counts cannot be specified multiple times");
@@ -319,6 +342,15 @@ fn configure_runtime_trace(options: &GlobalOptions) -> Result<()> {
         .as_ref()
         .map(|v| v.iter().cloned().collect());
     pgen::parser_registry::set_global_dump_rule_call_counts_exclude(exclude);
+    // RGX-0078.5.h.1 — propagate the machine-readable entry-count dump path.
+    // The registry's per-grammar detail-parse functions snapshot the counters
+    // after the parse and write the JSON (see `set_global_dump_rule_entry_counts_json`).
+    pgen::parser_registry::set_global_dump_rule_entry_counts_json(
+        options
+            .dump_rule_entry_counts_json
+            .as_ref()
+            .map(std::path::PathBuf::from),
+    );
     Ok(())
 }
 

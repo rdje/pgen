@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0042 — RGX-0078.5.h.1 STEP-0 FUSIBILITY CENSUS: tools BUILT + ceiling MEASURED — increment-(i) token-rule fusion UNLANDABLE on the regex bench (≈1.04×); road decision SURFACED
+
+The agreed STEP-0 gate for the derived-scanner rung, delivered as two read-only, parser-agnostic tools plus the
+11-grammar measurement (nothing in codegen/grammar/engine behavior changed).
+
+- **Tool 1 — `ast_pipeline <g>.ebnf --report-fusibility-census`** (`rust/src/ast_pipeline/fusibility_census.rs`; JSON
+  output, entry-counts join, `PGEN_FUSIBILITY_DUMP_ALL=1`): classifies every rule against the section-F increment-1
+  capability gate (regular + effect-free + text-folding + policy-encodable + layout-contiguous), each criterion
+  mirroring the engine's own resolution (compiled directive maps, `effective_rule_*` accessors, the exact
+  `match_string`/`match_regex` layout-skip semantics, `-> $text`/`-> $N` value forms); separates shape-encodable from
+  fusible; reports maximal fusible roots + the grammar's `match_regex` atom-site surface. 4 unit tests.
+- **Tool 2 — `parseability_probe --parse <g> <in> --dump-rule-entry-counts-json FILE`**: machine-readable per-rule
+  ENTRY counts (monotone counters, baseline-delta, worker-thread-safe) — the deterministic dual of the live dashboard.
+- **THE MEASUREMENT (tree `.5.h.1` section):** regex 8-pattern bench = 2389 entries; increment-1 fusion eliminates 83
+  (conservative ceiling ≈1.04×; absolute per-rule bound ≈1.8×) — the section-D "~70–80% fused ⇒ ~3–5×" estimate is
+  REFUTED: the per-char cost is the STRUCTURAL cascade (~76% of entries), increment-(ii) merged-choice territory.
+  SV/VHDL rule-fusion ≈0; their real surface = the `match_regex` engine replacement (SV **322 sites** measured ≈ the
+  recorded 323; regex 0 — self-hosting reproduced). Cross-check: `test` = 50 raw entries reconciling the `.5.e` 45
+  (memo-table entries; delta = memo-hit re-entries).
+- **Residual ticketed (`.5.h.1.t1`):** regex cert @ seeds 7/42 `sample_parse_failures=1` (seed 0 = 0;
+  `UNKNOWN=0 fully_certified=true` all seeds) — stash-proven byte-identical pre-change AND = the long-recorded
+  battery baseline `spf 0/1/1` (sessions #91–#103); failing sample captured for the first time
+  (a `(*LIMIT_…)`/`\Q…\E`-class over-generation + a failure-label gap).
+- **Road consequence SURFACED (tree section G, awaiting the director):** recommendation = extend STEP-0 with a
+  choice-SITE census (`.5.h.1b`) before building anything; then re-adjudicate the rung.
+- **Lockstep:** TOOLBOX.md §3.4/§5.3 + chooser rows; book `diagnosing-unknowns.md` + `parseability-probe-debug.md`;
+  tree `.5.h.1` section + checklist + section G; TASK_TREE frontier; MEMORY.md overwrite. Status rows UNCHANGED.
+
 ## 2026-07-13 - PGEN-RGX-0078-0040 — RGX-0078 ROAD **AGREED** with the director (docs-only): the **DERIVED-SCANNER rung** — leaf `.5.h` OPENED; first slice `.5.h.1` STEP-0 fusibility census
 
 The strategic fork opened by the `-0034` GLL refutation is RESOLVED by explicit director agreement (sessions #104–#105 discussion; captured once at the agreement point per the new discussion-mode discipline).

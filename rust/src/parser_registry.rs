@@ -49,6 +49,12 @@ std::thread_local! {
     // whitespace handling) don't steal display slots from the rules
     // the user actually wants to see. None = no filtering.
     static DUMP_RULE_CALL_COUNTS_EXCLUDE: std::cell::RefCell<Option<std::collections::HashSet<String>>> = const { std::cell::RefCell::new(None) };
+    // RGX-0078.5.h.1 — machine-readable per-rule ENTRY-COUNT dump. When set, the
+    // detail-parse path snapshots the parser's monotone rule-entry counters after the
+    // parse and writes them as JSON to this path (the fusibility census's dynamic
+    // input; the dashboard above is stderr-only and refresh-based, useless for a
+    // sub-millisecond parse). None (default) = no dump, zero overhead.
+    static DUMP_RULE_ENTRY_COUNTS_JSON: std::cell::RefCell<Option<std::path::PathBuf>> = const { std::cell::RefCell::new(None) };
 }
 
 /// SV-EXH-PROOF.3.3.4.b.6.2.17 — set the rule-level trace filter for parser
@@ -89,6 +95,106 @@ pub fn set_global_dump_rule_call_counts_exclude(
 
 fn current_dump_rule_call_counts_exclude() -> std::collections::HashSet<String> {
     DUMP_RULE_CALL_COUNTS_EXCLUDE.with(|c| c.borrow().clone().unwrap_or_default())
+}
+
+/// RGX-0078.5.h.1 — set the per-rule ENTRY-COUNT JSON dump path for detail-parse
+/// invocations on the current thread. `None` (default) disables the dump. When set,
+/// `parse_sample_detail_with_profile`'s per-grammar detail functions snapshot the
+/// parser's monotone rule-entry counters (the always-on `fetch_add` at every rule
+/// entry — successful AND backtracked) after the parse and write them as JSON:
+/// `{"grammar": …, "accepted": …, "total_entries": N, "rule_entry_counts": {rule: n}}`.
+/// This is the machine-readable dual of the live `--dump-rule-call-counts` dashboard,
+/// built as the fusibility census's dynamic input (deterministic for a deterministic
+/// parser, so it is a re-runnable oracle).
+pub fn set_global_dump_rule_entry_counts_json(path: Option<std::path::PathBuf>) {
+    DUMP_RULE_ENTRY_COUNTS_JSON.with(|c| *c.borrow_mut() = path);
+}
+
+fn current_dump_rule_entry_counts_json() -> Option<std::path::PathBuf> {
+    DUMP_RULE_ENTRY_COUNTS_JSON.with(|c| c.borrow().clone())
+}
+
+/// RGX-0078.5.h.1 — snapshot a parser's per-rule entry counters (minus a pre-parse
+/// baseline, so construction-time work like the SV stdlib preload never pollutes the
+/// measured parse) and write them as sorted JSON. Grammar-agnostic: callers pass the
+/// generated parser's own index-aligned `rule_call_counts()` / `rule_names()` surfaces.
+/// A write failure is a loud unconditional warning (severity doctrine), never a panic —
+/// the parse verdict itself is unaffected.
+fn dump_rule_entry_counts_json(
+    dump_path: &std::path::Path,
+    grammar_name: &str,
+    rule_names: &'static [&'static str],
+    baseline: &[u64],
+    counts: &[std::sync::atomic::AtomicU64],
+    accepted: bool,
+) {
+    let mut entries = serde_json::Map::new();
+    let mut total: u64 = 0;
+    let mut named: Vec<(&str, u64)> = Vec::new();
+    for (i, name) in rule_names.iter().enumerate() {
+        let end = counts
+            .get(i)
+            .map(|c| c.load(std::sync::atomic::Ordering::Relaxed))
+            .unwrap_or(0);
+        let start = baseline.get(i).copied().unwrap_or(0);
+        let delta = end.saturating_sub(start);
+        if delta > 0 {
+            named.push((name, delta));
+            total += delta;
+        }
+    }
+    named.sort_by(|a, b| a.0.cmp(b.0));
+    for (name, delta) in named {
+        entries.insert(name.to_string(), serde_json::Value::from(delta));
+    }
+    let payload = serde_json::json!({
+        "grammar": grammar_name,
+        "accepted": accepted,
+        "total_entries": total,
+        "rule_entry_counts": serde_json::Value::Object(entries),
+    });
+    let rendered = serde_json::to_string_pretty(&payload)
+        .unwrap_or_else(|e| format!("{{\"error\": \"serialization failed: {e}\"}}"));
+    if let Err(e) = std::fs::write(dump_path, rendered) {
+        eprintln!(
+            "WARNING: failed to write rule-entry-count dump '{}': {e}",
+            dump_path.display()
+        );
+    }
+}
+
+/// RGX-0078.5.h.1 — the pre-parse counter baseline for `dump_rule_entry_counts_json`.
+fn rule_entry_counts_baseline(counts: &[std::sync::atomic::AtomicU64]) -> Vec<u64> {
+    counts
+        .iter()
+        .map(|c| c.load(std::sync::atomic::Ordering::Relaxed))
+        .collect()
+}
+
+/// RGX-0078.5.h.1 — run `$parse` on `$parser`, dumping the per-rule entry-count DELTA to
+/// the thread-local JSON path when one is set (zero overhead otherwise). Expands at the
+/// point where the parser is constructed and ready (post-preload), so the baseline
+/// excludes any construction-time parsing. Grammar-agnostic: works for every generated
+/// parser type (they all emit index-aligned `rule_call_counts()` / `rule_names()`).
+macro_rules! with_rule_entry_count_dump {
+    ($grammar:literal, $parser:ident, $parser_ty:ty, $parse:expr) => {{
+        let __entry_dump = current_dump_rule_entry_counts_json();
+        let __entry_baseline = __entry_dump
+            .as_ref()
+            .map(|_| rule_entry_counts_baseline(&$parser.rule_call_counts()));
+        let __outcome = $parse;
+        if let Some(__path) = __entry_dump {
+            dump_rule_entry_counts_json(
+                &__path,
+                $grammar,
+                <$parser_ty>::rule_names(),
+                __entry_baseline.as_deref().unwrap_or(&[]),
+                &$parser.rule_call_counts(),
+                __outcome.is_ok(),
+            );
+        }
+        __outcome
+    }};
 }
 #[cfg(has_generated_regex_parser)]
 // PCRE2 conformance includes deeply nested and grammar-like recursive regexes.
@@ -214,10 +320,15 @@ fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
         Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
-    parser
-        .parse_full_return_annotation()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "return_annotation",
+        parser,
+        Return_annotationParser,
+        parser
+            .parse_full_return_annotation()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
@@ -241,10 +352,15 @@ fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
         Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
-    parser
-        .parse_full_semantic_annotation()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "semantic_annotation",
+        parser,
+        Semantic_annotationParser,
+        parser
+            .parse_full_semantic_annotation()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
@@ -305,10 +421,15 @@ fn parse_with_ebnf(sample: &str) -> bool {
 fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
-    parser
-        .parse_full_grammar_file()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "ebnf",
+        parser,
+        EbnfParser,
+        parser
+            .parse_full_grammar_file()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
@@ -332,10 +453,15 @@ fn parse_with_json(sample: &str) -> bool {
 fn parse_with_json_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
-    parser
-        .parse_full_json()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "json",
+        parser,
+        JsonParser,
+        parser
+            .parse_full_json()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 #[cfg(has_generated_json_parser)]
@@ -400,12 +526,29 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
     // `relaxed` opt-out. The default now comes from the ARTIFACT: `set_grammar_profile(None)`
     // restores the grammar-declared `@default_profile` (owned into the 'static worker closure).
     let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
+    // RGX-0078.5.h.1: thread-locals do not cross into the dedicated worker thread —
+    // capture the entry-count dump path here and move it into the closure.
+    let entry_dump = current_dump_rule_entry_counts_json();
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
         parser.set_grammar_profile(profile.as_deref());
-        parser.parse_full_regex().map_err(|err| err.to_string())?;
-        validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)
+        let outcome = parser
+            .parse_full_regex()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+            .and_then(|()| validate_regex_compile_contract(&owned_sample).map_err(|err| err.message));
+        if let Some(path) = entry_dump {
+            dump_rule_entry_counts_json(
+                &path,
+                "regex",
+                RegexParser::rule_names(),
+                &[],
+                &parser.rule_call_counts(),
+                outcome.is_ok(),
+            );
+        }
+        outcome
     })
 }
 
@@ -471,10 +614,15 @@ fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
         RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
-    parser
-        .parse_full_rtl_const_expr()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "rtl_const_expr",
+        parser,
+        RtlConstExprParser,
+        parser
+            .parse_full_rtl_const_expr()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 #[cfg(has_generated_rtl_const_expr_parser)]
@@ -525,10 +673,15 @@ fn parse_with_rtl_frontend(sample: &str) -> bool {
 fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
-    parser
-        .parse_full_rtl_frontend_file()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "rtl_frontend",
+        parser,
+        RtlFrontendParser,
+        parser
+            .parse_full_rtl_frontend_file()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 #[cfg(has_generated_rtl_frontend_parser)]
@@ -718,10 +871,17 @@ fn parse_with_systemverilog_detail_profile_entry(
     parser.set_grammar_profile(normalized_profile);
     preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    let result = match entry {
-        Some(e) => parser.parse_full_from(e).map(|_| ()),
-        None => parser.parse_full_systemverilog_file().map(|_| ()),
-    };
+    // RGX-0078.5.h.1: the baseline inside the macro is captured HERE — after the stdlib
+    // preload — so a dumped entry-count delta measures the requested parse only.
+    let result = with_rule_entry_count_dump!(
+        "systemverilog",
+        parser,
+        SystemverilogParser,
+        match entry {
+            Some(e) => parser.parse_full_from(e).map(|_| ()),
+            None => parser.parse_full_systemverilog_file().map(|_| ()),
+        }
+    );
     // SV-EXH-PROOF.3.3.4.b.6.2.25 — on failure, augment the error with the
     // furthest byte the parser reached on any branch (even backtracked
     // branches). The surface `position` in the error message is the
@@ -903,10 +1063,15 @@ fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), Stri
         sample,
         &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
     );
-    parser
-        .parse_full_systemverilog_preprocessor_file()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "systemverilog_preprocessor",
+        parser,
+        SystemverilogPreprocessorParser,
+        parser
+            .parse_full_systemverilog_preprocessor_file()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 /// GRAMMAR-WELLFORMED.H.5.1 — `ParseDetailFn`-shaped adapter (`fn(&str, Option<&str>) -> Result<(),
@@ -974,10 +1139,15 @@ fn parse_with_vhdl(sample: &str) -> bool {
 fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
-    parser
-        .parse_full_vhdl_file()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    with_rule_entry_count_dump!(
+        "vhdl",
+        parser,
+        VhdlParser,
+        parser
+            .parse_full_vhdl_file()
+            .map(|_| ())
+            .map_err(|err| err.to_string())
+    )
 }
 
 #[cfg(has_generated_vhdl_parser)]
@@ -1059,10 +1229,15 @@ fn parse_with_scratch_detail_entry(sample: &str, entry: Option<&str>) -> Result<
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
     parser.set_trace_rules(current_trace_rules());
-    let result = match entry {
-        Some(e) => parser.parse_full_from(e).map(|_| ()),
-        None => parser.parse_full().map(|_| ()),
-    };
+    let result = with_rule_entry_count_dump!(
+        "scratch",
+        parser,
+        ScratchParser,
+        match entry {
+            Some(e) => parser.parse_full_from(e).map(|_| ()),
+            None => parser.parse_full().map(|_| ()),
+        }
+    );
     result.map_err(|err| {
         let furthest = parser.furthest_position();
         let err_str = err.to_string();

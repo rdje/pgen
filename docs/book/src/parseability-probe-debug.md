@@ -15,6 +15,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 - [Trace Output Format](#trace-output-format)
 - [Per-Rule Call-Count Dashboard (`--dump-rule-call-counts`)](#per-rule-call-count-dashboard---dump-rule-call-counts)
 - [Excluding Noisy Rules from the Dashboard](#excluding-noisy-rules-from-the-dashboard)
+- [Machine-Readable Entry Counts (`--dump-rule-entry-counts-json`)](#machine-readable-entry-counts---dump-rule-entry-counts-json)
 - [Furthest-Position Error Diagnostic](#furthest-position-error-diagnostic)
 - [Predicate Self-Explaining Trace](#predicate-self-explaining-trace)
 - [Workflow Recipes](#workflow-recipes)
@@ -39,6 +40,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--trace-log-file [FILE]` | Write trace to a file (defaults to `trace.log`) | [Trace](#trace-output-format) |
 | `--dump-rule-call-counts [N]` | Live top-N per-rule call dashboard | [Dashboard](#per-rule-call-count-dashboard---dump-rule-call-counts) |
 | `--dump-rule-call-counts-exclude R1,R2,...` | Hide noisy rules from dashboard | [Exclusion](#excluding-noisy-rules-from-the-dashboard) |
+| `--dump-rule-entry-counts-json FILE` | Write exact per-rule entry counts as JSON after `--parse` | [Entry-count dump](#machine-readable-entry-counts---dump-rule-entry-counts-json) |
 | `--max-bytes N` | Bound AST dump size | [Basic](#basic-usage) |
 | `--lib-in DIR` | Read `@import_from_library` artifacts from `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--lib-out DIR` | Write `@export_to_library` artifacts to `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
@@ -290,6 +292,34 @@ lbrace                             70
 ### Dynamic ranking
 
 Counters are monotone (only grow), but their **rank changes over time**. Early in a parse, structural rules like `white_space`/`identifier` dominate; mid-parse may shift to `expression`/`statement`; late may shift to type-resolution rules. The dashboard re-snapshots and re-sorts every 250ms, so a previously-top rule can drop out of the top-N as the parse moves through different grammar regions. Empty display slots are blanked, not stale.
+
+---
+
+## Machine-Readable Entry Counts (`--dump-rule-entry-counts-json`)
+
+The dashboard above is a live stderr display — great for watching a stuck multi-second parse, useless for a parse that finishes in microseconds. `--dump-rule-entry-counts-json FILE` is its **machine-readable dual**: after a `--parse`, the probe writes the parser's per-rule entry counters as JSON.
+
+```bash
+parseability_probe --parse regex /tmp/pattern.txt --dump-rule-entry-counts-json /tmp/counts.json
+```
+
+```json
+{
+  "grammar": "regex",
+  "accepted": true,
+  "total_entries": 50,
+  "rule_entry_counts": { "atom": 10, "letter": 4, "literal": 5, "...": 0 }
+}
+```
+
+Key properties:
+
+- **Every entry counts** — the counters are the always-on monotone per-rule `fetch_add` on rule-method entry, so backtracked attempts and memo-hit re-entries are included (this is what a cost model like "~262ns per rule entry" needs, not just the accepted tree).
+- **Delta past a baseline** — the snapshot subtracts a pre-parse baseline, so construction-time work (e.g. the SystemVerilog stdlib preload) never pollutes the measured parse.
+- **Deterministic** — a deterministic parser produces identical counts on every run and in every build mode (a debug-build probe gives the same numbers as release), so a counts file is a re-runnable oracle.
+- Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`); zero-count rules are omitted; rules are sorted.
+
+This dump is the dynamic input of the **fusibility census** (`ast_pipeline --report-fusibility-census --fusibility-entry-counts …`, see the diagnosing-UNKNOWNs chapter's tool table) — the derived-scanner capability-gate report introduced by `RGX-0078.5.h.1`.
 
 ---
 

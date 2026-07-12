@@ -36,6 +36,8 @@ the generation-input / memo observability.
 | The normalized grammar IR the generators consume? | `--dump-gen-ast` | `ast_pipeline g.ebnf --generate-parser --dump-gen-ast gen.json …` |
 | Static well-formedness (LR / non-terminating / shadowing)? | `--lint-grammar` | `ast_pipeline g.ebnf --lint-grammar` |
 | Packrat memo hit/miss statistics? | `PGEN_REPORT_MEMO_STATS=1` | prefix a parse/generate command |
+| EXACT per-rule entry counts for a parse (machine-readable JSON)? | `--dump-rule-entry-counts-json` | `parseability_probe --parse <g> f --dump-rule-entry-counts-json c.json` |
+| Which rules a derived DFA scanner could fuse + the measured ceiling? | `--report-fusibility-census` | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c.json]` |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
 > Build note: cert-coverage and any `.ebnf`-direct mode need the debug binary
@@ -314,6 +316,8 @@ budget is adequate and the cause is elsewhere (a forcing/store-gate bug).
 | Normalized grammar IR | `ast_pipeline g.ebnf --generate-parser --dump-gen-ast gen.json --dump-gen-ast-pretty …` | the exact AST the generators consume (after LR-elimination etc.) |
 | Static well-formedness | `ast_pipeline g.ebnf --lint-grammar` | left-recursion info, non-terminating errors, ordered-choice shadowing |
 | Memo statistics | `PGEN_REPORT_MEMO_STATS=1 parseability_probe --parse <g> f` | packrat hit/miss counts (perf triage) |
+| Per-rule entry counts (exact, JSON) | `parseability_probe --parse <g> f --dump-rule-entry-counts-json c.json` | every rule-method entry (successful and backtracked) — the machine-readable dual of the live dashboard; deterministic, so a re-runnable cost-model oracle |
+| Fusibility census (derived-scanner gate) | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c1.json,…] [--fusibility-census-json out.json]` | per-rule scanner-compilability tiers, maximal fusible roots, disqualification histogram, regex-atom (`match_regex`) site count, and — joined with entry counts — the measured fusion ceiling (`PGEN_FUSIBILITY_DUMP_ALL=1` for per-rule verdicts) |
 | Well-formedness gen-AST (tests) | `PGEN_WELLFORMEDNESS_GEN_AST=<path> cargo test --lib …` | the gen-AST a well-formedness test loads |
 
 ---

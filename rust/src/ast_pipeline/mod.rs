@@ -4528,6 +4528,8 @@ pub mod ast_code_generator;
 pub mod ast_generator_direct;
 pub mod ast_return_transform;
 pub mod first_set;
+// RGX-0078.5.h.1 — STEP-0 fusibility census (read-only capability-gate classifier).
+pub mod fusibility_census;
 pub mod grammar_wellformedness;
 pub mod grouped_quantifier_parser;
 pub mod library;

@@ -91,6 +91,26 @@ struct Args {
     #[arg(long)]
     lint_grammar: bool,
 
+    /// RGX-0078.5.h.1 (STEP-0 fusibility census): opt-in read-only FUSIBILITY-CENSUS report for
+    /// the DERIVED-SCANNER rung. Classifies every rule against the increment-1 capability gate
+    /// (regular + effect-free + text-folding + policy-encodable + layout-contiguous) over the
+    /// gen-AST, prints per-tier counts, the maximal fusible roots (future `scan_*` sites), and a
+    /// disqualification histogram, then exits. `PGEN_FUSIBILITY_DUMP_ALL=1` prints every per-rule
+    /// verdict. Read-only; no codegen change.
+    #[arg(long)]
+    report_fusibility_census: bool,
+
+    /// RGX-0078.5.h.1: optional machine-readable JSON output for the fusibility census.
+    #[arg(long, value_name = "FILE", requires = "report_fusibility_census")]
+    fusibility_census_json: Option<String>,
+
+    /// RGX-0078.5.h.1: comma-separated rule-entry-count JSON files (written by
+    /// `parseability_probe --parse <g> <input> --dump-rule-entry-counts-json FILE`) to join with
+    /// the census — prints the measured FUSIBILITY-ENTRY-SHARE (the share of bench rule entries
+    /// a derived scanner would eliminate, the `.5.h.2+` gating ceiling).
+    #[arg(long, value_name = "FILES", requires = "report_fusibility_census")]
+    fusibility_entry_counts: Option<String>,
+
     /// STIMULI-SIGNOFF.2.3 (adoption D): opt-in k-path coverage REPORT at depth N. Generates
     /// `--count` samples from `--entry-rule` (or the first rule) and prints covered/universe
     /// k-paths (Havrikov-Zeller). Read-only; does not change generation. Use small N (2-3).
@@ -1006,6 +1026,22 @@ fn main() -> Result<()> {
             args.grammar_profile.as_deref(),
         )?;
         return run_grammar_lint(&grammar, &unfiltered_grammar);
+    }
+
+    // RGX-0078.5.h.1: opt-in read-only fusibility census (the derived-scanner STEP-0 gate).
+    // Runs on the UNFILTERED bundle — codegen always compiles the FULL grammar (profile
+    // selection is a runtime guard), and the census mirrors what codegen would fuse.
+    if args.report_fusibility_census {
+        let grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
+        return run_fusibility_census_report(
+            &grammar,
+            args.fusibility_census_json.as_deref(),
+            args.fusibility_entry_counts.as_deref(),
+        );
     }
 
     // STIMULI-SIGNOFF.2.3 (adoption D): opt-in k-path coverage report.
@@ -3698,6 +3734,49 @@ fn run_certificate_coverage_report(
         }
     }
 
+    Ok(())
+}
+
+/// RGX-0078.5.h.1 — the STEP-0 fusibility census report (read-only; the derived-scanner
+/// capability-gate classifier over the loaded gen-AST). Prints the census (and, when
+/// entry-count files are given, the measured entry share), optionally writes the full
+/// machine-readable census as JSON, then exits.
+fn run_fusibility_census_report(
+    grammar: &LoadedGrammar,
+    census_json_path: Option<&str>,
+    entry_counts_spec: Option<&str>,
+) -> Result<()> {
+    use pgen::ast_pipeline::fusibility_census::{print_fusibility_census, run_fusibility_census};
+
+    let entry_counts_files: Vec<std::path::PathBuf> = entry_counts_spec
+        .map(|spec| {
+            spec.split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(std::path::PathBuf::from)
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let census = run_fusibility_census(
+        &grammar.grammar_name,
+        &grammar.grammar_tree,
+        &grammar.rule_order,
+        grammar.annotations.as_ref(),
+        &entry_counts_files,
+    )
+    .map_err(|e| anyhow::anyhow!("fusibility census failed: {e}"))?;
+
+    let dump_all = std::env::var("PGEN_FUSIBILITY_DUMP_ALL").is_ok_and(|v| v == "1");
+    print_fusibility_census(&census, dump_all);
+
+    if let Some(path) = census_json_path {
+        let json = serde_json::to_string_pretty(&census)
+            .map_err(|e| anyhow::anyhow!("fusibility census JSON serialization failed: {e}"))?;
+        std::fs::write(path, json)
+            .map_err(|e| anyhow::anyhow!("cannot write fusibility census JSON '{path}': {e}"))?;
+        println!("  census JSON written to {path}");
+    }
     Ok(())
 }
 

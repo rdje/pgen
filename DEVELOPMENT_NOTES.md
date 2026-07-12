@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0042 — RGX-0078.5.h.1 STEP-0 fusibility census: the classifier, the counts dump, and why the measured ceiling refutes the estimate
+
+**What.** Two read-only tools + the 11-grammar measurement for the derived-scanner STEP-0 gate. No codegen, grammar,
+or engine-behavior change; the only Rust-source additions are an analysis module, a report dispatch, and an opt-in
+observability dump.
+
+**The classifier (`rust/src/ast_pipeline/fusibility_census.rs`).** Judges each rule of the UNFILTERED tree (codegen's
+view) against the section-F increment-1 gate. Design decisions that matter:
+- **Mirror, never re-derive:** effect-freedom reads `compile_semantic_runtime_annotations` +
+  `directives_for_rule`/`branch_directives_for_rule` (the exact per-rule maps the generated parser consults — steering
+  directives never enter them, so `@branch_policy` et al. correctly don't disqualify); policy encodability reads the
+  shared `effective_rule_branch_policy/associativity/deterministic_partition/value_constraints` accessors; layout
+  contiguity mirrors `ast_based_generator.rs` byte-for-byte (`match_string` skips iff `!layout.terminals`;
+  `match_regex` skips iff `!layout.regex_tokens` minus the `string_content_double|single` name special-case).
+- **The shape/value split is load-bearing:** `shape_ok` (language encodability — value-agnostic) vs `fusible`
+  (shape + text-folding value). A lookahead OPERAND and everything under a `-> $text` (`UnifiedReturnAST::MatchedText`)
+  branch need only `shape_ok` — the first census draft required full fusibility there and wrongly blocked
+  `literal_open_brace` (via `brace_ws` inside its negative lookahead) and every `X+ -> $text` token rule; regex.ebnf
+  carries 35 `-> $text` annotations, so this fix moved the regex fusible set 41→68.
+- **Conservative by construction:** cycles, unknown atom tags, `nonassoc`, `@deterministic_group`, value constraints,
+  `[> …]` restrictions, mid-sequence inline actions, `@transform` and `@profiles` (flagged as distinct increment-2
+  classes) all disqualify; quantified default folds are lists, multi-lexeme bodies under a skipping layout facet are
+  out. Verdicts are sound under-approximations ⇒ the ceiling never over-promises.
+
+**The counts dump.** `--dump-rule-entry-counts-json` snapshots the always-on per-rule `AtomicU64` entry counters
+(`ast_based_generator.rs:3302`) as a baseline-delta after a `--parse` — the SV stdlib preload stays out of the
+measurement, the regex worker thread gets the path captured before spawn (thread-locals don't cross). Deterministic
+and build-mode-independent (debug == release counts), so census joins are re-runnable oracles.
+
+**The verdict and its reading.** On the 8-pattern bench: 2389 entries; fusible-rule entries 578 (24.2%) but only 83
+eliminable under per-rule aggregation (every fusible regex rule keeps ≥1 non-fusible referrer) ⇒ ceiling ≈1.04×
+conservative, ≈1.8× absolute. The `test` cascade shows why: per char, only `literal_char`→`letter` (+ the
+`unicode_char` probe) are token-shaped; `piece`/`atom`/`literal`-dispatch and the failing `quantifier`/`zero_width`
+probes — the majority — carry structural `{type: …}` annotations that a span cannot rebuild. That structural probing
+spine is exactly what increment-(ii) merged-choice DFA pre-discrimination at choice SITES would kill, which is why the
+surfaced recommendation is a choice-site census (`.5.h.1b`) before any build. The SV/VHDL story inverts: rule fusion
+≈0 (internal layout), but SV's 322 `match_regex` atom sites (census-measured; the recorded figure was 323) are the
+self-hosting/engine-replacement surface — real, but a per-call constant, not an entry-count multiplier.
+
+**Fishy-result handling.** (1) `test` = 50 raw entries vs the `.5.e` 45: reconciled — memo stats count distinct memo
+TABLE entries (24 success + 21 cached failures); the counter counts raw entries incl. memo-hit re-entries. (2) regex
+cert @ seeds 7/42 `sample_parse_failures=1`: git-stash decisive baseline reproduced it byte-identically pre-change,
+and it turns out to BE the long-recorded battery baseline `spf 0/1/1` (carried spf-neutrally through every landed
+`.3`–`.5.g` lever) — now finally ticketed with a captured failing sample as `.5.h.1.t1` (includes the odd
+`(no detail-capable parser registered)` failure label).
+
 ## 2026-07-12 - PGEN-RGX-0078-0034 — RGX-0078 `.5.e` design spike: GLL refuted; the gap is architectural (99× measured)
 
 **What.** Docs-only adjudication of the research-grade `.5.e` (GLL + GSS + SPPF) rung, per its literature-first mandate. Nothing built.
