@@ -329,23 +329,34 @@ allocation); it ships the big regex win now while that engine work is scoped.
 
 ### What is left, and the honest gap
 
-The ranked, profile-indicated levers still ahead:
+After the −75% first-set lever landed, the profile was *re-taken* — because pruning 23-of-24
+branches per character changes the shape, and a stale profile would steer the next lever wrong.
+The re-profile is decisive: **allocation is still the dominant cost.** malloc holds at **~56%**
+(barely moved from 59% — the win removed losing-branch work *proportionally*), and together with
+the parse-structure *clone* (~7%) and *drop* (~8%) it is roughly **70% of self-time spent building,
+cloning and freeing parse structures** (`ParseNode`, `ParseContent`, the JSON value, the small
+maps). The per-character matching work of the *surviving* branches is only ~14%; the string
+formatting that was 6% has collapsed to ~2% (its losing-branch `format!`s are no longer evaluated,
+exactly as predicted). So the ranked levers still ahead, now re-ordered by that fresh measurement:
 
-1. **The per-rule annotation-table lookups.** Every rule entry hashes its name into the
-   directive table even for grammars with no annotations on that rule. The *faster-hasher*
-   half of this is now **landed** (lever 5.a above: FxHash instead of SipHash, −5.4%); the
-   remaining half — *generating the lookup away entirely* for annotation-free rules, so those
-   grammars pay nothing at all — is still open as a codegen change.
-2. **Per-speculation allocation churn.** The parse nodes built for each attempted branch and
-   dropped on backtrack are the bulk of the 59%; arena/reuse strategies target this directly.
-3. **First-set predictive dispatch.** The deepest lever: skip alternatives that *cannot*
-   match the next character instead of trying them all. This attacks the multiplier itself
-   rather than the per-attempt cost. **Now landed** (lever 5.c above, −75%); the top-level
-   tournament case is done, with nested-tournament pruning and the fuller lockstep-simulation
-   automaton (Thompson-NFA / GLL) as sequenced follow-ons.
-4. **Backtrack-path trace strings.** The ~4% spent formatting rollback-context strings that
-   are discarded when tracing is off — a codegen change; after 5.c, most of that cost is
-   already gone because the branches that built those strings are no longer evaluated.
+1. **Per-speculation allocation churn — the confirmed #1 remaining lever.** The ~70% of time in
+   allocate/clone/free of parse structures is the prize, and it is *structural*: arena/bump
+   allocation for parse nodes, eliding the clone-in/clone-out around the memo and the tournament's
+   candidate copies, and interning input slices instead of copying them. It is also the riskiest
+   (parse-node ownership threads through AST-to-JSON serialization), so it starts with a design
+   spike rather than a blind edit.
+2. **Nested-tournament first-set pruning.** Extends the landed top-level prune (lever 5.c) into
+   *nested* alternations. Deferred deliberately: it attacks only the ~14% matching bucket — about
+   a quarter of the allocation prize — and needs the `furthest_position` bookkeeping worked out
+   first, so it is sequenced after the allocation lever.
+3. **The fuller lockstep-simulation automaton** (Thompson-NFA / RE2 / GLL): advance all live
+   branches together, no backtracking, no per-branch allocation. This eliminates the allocation at
+   the *root* rather than pooling it, and is the real path to hand-tuned-C parse speed — a
+   research-grade engine effort, scoped after the incremental allocation lever measures how far it
+   gets on its own.
+4. **The per-rule annotation-table lookups (remaining half).** The faster-hasher half is landed
+   (lever 5.a, FxHash instead of SipHash); *generating the lookup away entirely* for annotation-free
+   rules is still open as a codegen change — small (a few percent), a cheap parallel slice.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
