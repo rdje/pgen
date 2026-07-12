@@ -441,9 +441,23 @@ So a terminal branch can only ever push it to the choice's own start, which is a
 grouped branch hands off to ordinary recursion the instant its opening marker is recognized — which
 records the same positions it always did. The lockstep advance is therefore *furthest-neutral by
 construction*, for the same reason the earlier first-set prune was, and the byte-identical differential
-gate checks that position explicitly as a backstop. The remaining design question — how a
-build-once-and-share arena coexists with the borrow the parse tree already holds on the input — is the
-next piece to work out before any code is written.
+gate checks that position explicitly as a backstop.
+
+The second and last design question was then worked out too: how a build-once-and-share arena coexists
+with the borrow the parse tree already holds on the input. The key observation is that the borrowed
+parse tree never leaves the parser — every public entry point returns *owned* output (a JSON value, or
+its serialized string), produced by walking the tree once at the boundary — so an arena is a purely
+*internal* detail that no consumer can observe. That frees the design to pick the cheapest shape rather
+than the one that appeases the public API. Three were weighed: reference-counted shared handles (cheap
+to share, but still one heap allocation per node — so it does not touch the dominant *construction*
+cost); a bump arena of self-referential borrows (moves the cost, but at the price of a second lifetime
+threaded through the internals); and a single growable vector of nodes addressed by small integer
+indices (moves the same cost with *no* second lifetime and no new dependency, paying instead a
+mechanical "pass the node vector to the tree-walkers" refactor). The third is the recommended shape: it
+allocates all nodes in one contiguous, cache-friendly block freed en masse, lets the memo share a
+subtree by handing back an index instead of deep-copying it, and keeps the single input lifetime the
+tree already has. Both design hurdles cleared, the first code increment — the lockstep advance on the
+regex `atom` tournament — is what the scoreboard measures next.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
