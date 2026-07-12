@@ -25,6 +25,27 @@ byte-identical against the `pcre2test` oracle. Downstream consumers need not cha
 here because some integrators care that the regex parser carries no Rust-regex-engine dependency. (Every
 *other* PGEN parser remains free to use Rust's regex engine; only the regex parser is held to this bar.)
 
+## Parse-time performance (live note, updated 2026-07-13)
+
+The regex parser is under an active, tracked **speed campaign** (`RGX-0078`): as of 2026-07-12 the
+measured parse cost is a geomean of **≈57µs per pattern** on the 8-pattern RGX bench corpus
+(release build, fat-LTO, noise-floor-minimum statistic) — down **8.76×** from ≈496µs at the
+campaign's activation, through six landed engine/codegen levers. Every speed lever lands under a
+hard **byte-identical constraint**: the accepted language, verdicts, error codes, and the runtime
+AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
+certificate-coverage, and PCRE2-compile-oracle gates), so **performance work never moves the
+AST-dump schema** — exactly the "pure performance optimizations" carve-out in the
+schema-versioning chapter.
+
+Integration guidance for consumers:
+
+- Parse cost is **per pattern compile**. If your workload re-compiles recurring patterns, cache
+  `pattern → AST` on your side — the AST is a plain value, safe to clone and reuse. (A PGEN-side
+  persistent parse cache is on the campaign roadmap, `RGX-0078.7`.)
+- The campaign's methodology, scoreboard, and honest ceiling analysis live in the top-level book
+  chapter *Inside parser performance* (`docs/book/src/inside-parser-performance.md`); live status
+  and steering in `docs/tasks/RGX-0078.md`.
+
 ## What this book is
 
 - The **single source of truth** for the regex parser's runtime AST shape, by rule and by example.

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e9201350.js";
+            window.path_to_searchindex_js = "searchindex-1faac864.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -201,6 +201,25 @@ AST shape, the error codes, or any version in the contract — every conversion 
 byte-identical against the <code>pcre2test</code> oracle. Downstream consumers need not change anything; the note is
 here because some integrators care that the regex parser carries no Rust-regex-engine dependency. (Every
 <em>other</em> PGEN parser remains free to use Rust’s regex engine; only the regex parser is held to this bar.)</p>
+<h2 id="parse-time-performance-live-note-updated-2026-07-13"><a class="header" href="#parse-time-performance-live-note-updated-2026-07-13">Parse-time performance (live note, updated 2026-07-13)</a></h2>
+<p>The regex parser is under an active, tracked <strong>speed campaign</strong> (<code>RGX-0078</code>): as of 2026-07-12 the
+measured parse cost is a geomean of <strong>≈57µs per pattern</strong> on the 8-pattern RGX bench corpus
+(release build, fat-LTO, noise-floor-minimum statistic) — down <strong>8.76×</strong> from ≈496µs at the
+campaign’s activation, through six landed engine/codegen levers. Every speed lever lands under a
+hard <strong>byte-identical constraint</strong>: the accepted language, verdicts, error codes, and the runtime
+AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
+certificate-coverage, and PCRE2-compile-oracle gates), so <strong>performance work never moves the
+AST-dump schema</strong> — exactly the “pure performance optimizations” carve-out in the
+schema-versioning chapter.</p>
+<p>Integration guidance for consumers:</p>
+<ul>
+<li>Parse cost is <strong>per pattern compile</strong>. If your workload re-compiles recurring patterns, cache
+<code>pattern → AST</code> on your side — the AST is a plain value, safe to clone and reuse. (A PGEN-side
+persistent parse cache is on the campaign roadmap, <code>RGX-0078.7</code>.)</li>
+<li>The campaign’s methodology, scoreboard, and honest ceiling analysis live in the top-level book
+chapter <em>Inside parser performance</em> (<code>docs/book/src/inside-parser-performance.md</code>); live status
+and steering in <code>docs/tasks/RGX-0078.md</code>.</li>
+</ul>
 <h2 id="what-this-book-is"><a class="header" href="#what-this-book-is">What this book is</a></h2>
 <ul>
 <li>The <strong>single source of truth</strong> for the regex parser’s runtime AST shape, by rule and by example.</li>

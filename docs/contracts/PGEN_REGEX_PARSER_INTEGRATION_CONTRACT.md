@@ -34,6 +34,23 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-13 — RGX-0078 SPEED CAMPAIGN status (PERFORMANCE-ONLY; SURFACE-NEUTRAL; release/contract/schema versions UNCHANGED)
+
+**What this is.** A performance status note, not a surface change. The `RGX-0078` speed campaign has landed six
+parser-agnostic engine/codegen levers (rollback scope-restoration guard, fat-LTO build profile, FxHash directive
+lookups, first-set predictive dispatch, per-parse node arena, per-process construction cache): regex parse cost is
+now a geomean of **≈57µs per pattern** on the 8-pattern bench corpus, down **8.76×** from ≈496µs at activation
+(2026-07-11). Every lever landed under the hard byte-identical constraint — accepted language, verdicts, error
+codes, and the runtime AST are bit-for-bit unchanged, proven per lever by the differential-equivalence gate
+(seeds 0/7/42), regex certificate-coverage (`UNKNOWN=0 fully_certified=true`), and the PCRE2 compile-oracle gate.
+Therefore **nothing downstream re-pins**: parser release stays `1.1.104`, contract `1.1.106`, AST-dump schema
+unchanged (the schema-versioning "pure performance optimizations" carve-out applies).
+
+**Consumer guidance.** Parse cost is per pattern compile; workloads that re-compile recurring patterns should
+cache `pattern → AST` consumer-side (the AST is a plain value, safe to clone/reuse). A PGEN-side persistent parse
+cache is on the campaign roadmap (`RGX-0078.7`). Campaign methodology + scoreboard: the top-level book chapter
+*Inside parser performance* (`docs/book/src/inside-parser-performance.md`); live steering: `docs/tasks/RGX-0078.md`.
+
 ## Maintenance Update 2026-07-11 — REGEX-PCRE2-FIDELITY.4.7.a: the NAMED scan-substring reference check moved from the host validator INTO the grammar (IMPLEMENTATION-ONLY; SURFACE-NEUTRAL; release/contract versions UNCHANGED)
 
 **What this is.** A behavior-neutral validator→grammar migration of the NAMED half of the scan-substring capture-reference check. The `.3.17` note above said the scs inventory check "cannot move into the grammar as a parse-time gate" and must "stay in the post-parse compile contract" — that was true **until** the `FINAL-PHASE-PREDICATE` whole-input deferred-obligation primitive was built (`FPP.1`/`.2`) and first consumed by `.4.11`. `.4.7.a` is its **second consumer**: a NAMED reference `(*scs:(<name>))` / `(*scs:('name')` is now checked by a `has_fact(regex_defined_capture_name, $name) phase: final` gate on `scs_capture_name` (in `grammars/regex.ebnf`) against the whole-pattern capture-name inventory — so a legal FORWARD reference still ACCEPTs and an undefined name REJECTs, exactly as before. The host validator's NAMED branch (and its `CaptureInventory.names`) is DELETED. The NUMERIC half (`(*scs:(N))`) stays in the compile contract pending `.4.7.b` (absolute + `-N`) / `.4.7.c` (`+N`, which needs a new forward/suffix-count primitive).
