@@ -220,6 +220,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 4.c | PGO (profile-guided optimization, on top of 4.a) | build process | 308.6 µs → 305.4 µs | −1% (lower bound) | **not landed** ✗ |
 | RGX-0078 · 5.a | **FxHash the per-rule annotation-table lookups** — swap the two per-rule-entry directive maps (`directives_by_rule` + `branch_directives_by_rule`) from the std SipHash to `FxHashMap` | engine (shared runtime) | 320 µs → **303 µs** | **−5.4%** | **landed** ✓ |
 | RGX-0078 · 5.c | **First-set predictive dispatch** — before a top-level branch tournament evaluates a branch, peek the next input byte and SKIP any non-nullable branch whose sound FIRST-set can't begin a match there | codegen (parser-agnostic) | 303 µs → **76 µs** | **−75% (~4×)** | **landed** ✓ |
+| RGX-0078 · 5.d.2 | **Lazy winner-only materialization** — defer each branch's return-annotation transform + clone and run it once, for the winner only (explore in lockstep, don't re-do work per candidate) | codegen (parser-agnostic) | 75.5 µs ≈ 75.9 µs | **~0% (neutral)** | **reverted** ✗ (idea preserved) |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -365,6 +366,38 @@ The standalone "arena / bump allocation" idea from the technique menu is **not**
 here: on its own it would only make each allocation cheaper while leaving the backtracking and the
 build-then-clone pattern in place — a bounded win. It is instead one of the three composing pieces of
 the lockstep road above, which is why the allocation is *eliminated* rather than pooled.
+
+### An elegant tool that didn't pay off yet — and why (lever 5.d.2, the *substitutes* lesson)
+
+Lever **5.d.2 (lazy winner-only materialization)** is worth recording *because* it was reverted — it
+is a clean example of a discipline this campaign keeps. The idea is elegant: in a branch tournament,
+the naive code builds each successful branch's return value (a JSON fold + a clone) and then throws
+all but the winner's away — *"fold twenty-four, keep one."* But the winner is chosen from cheap
+metadata alone (how far it matched, its priority), never from the built value — so you can **decide
+the winner first and build only the survivor's value**, once. It is the *parallel-not-sequential*
+principle in miniature: explore the candidates in lockstep, defer each one's expensive work, and
+materialize once for the one that wins. It was implemented, and proven **100% byte-identical** (the
+interpreter-vs-generated differential across all eleven grammars, the 27 structural combinators
+including the `a|ab` longest-match tie-break, the 36 semantic constructs, and a PCRE2 per-case diff
+that came back *empty* over 2 188 corpus cells).
+
+And it made **no measurable difference** — a decisive seven-round, drift-controlled measurement put
+it at ~75.5 µs against the ~75.9 µs baseline: heavy overlap, no separation. The reason is the useful
+lesson: **first-set dispatch (lever 5.c) and lazy materialization are two different solutions to the
+*same* observable problem — the cost of the losing branches — so they are *substitutes*, not
+complements.** First-set removes a losing branch *before* it is ever tried; lazy removes its build
+work *after* it is tried. Since the −75% first-set lever already deletes those branches up front,
+lazy materialization arrives to find almost nothing left to defer. The durable rule: *before landing
+a speed lever, ask whether an already-landed lever attacks the same cost — and measure the marginal
+gain against the current baseline, not the original one.* The decisive before-vs-after measurement is
+exactly what caught a lever that "obviously should help" delivering nothing.
+
+The tool is **kept, not thrown away.** Its worked design and the full lesson live in the decision
+record *lazy winner-only materialization* and the `RGX-0078.5.d.2` task leaf, and the tool is in fact
+*structurally required* by the lockstep DFA advance above (item 1) — a lockstep automaton **cannot**
+build per-branch values as it advances all branches together, so it *must* materialize the winner
+only. Lazy materialization returns there, where it composes with the DFA advance into a real win
+rather than standing alone as a substitute for a lever already landed.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
