@@ -1,4 +1,16 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-12 - PGEN-RGX-0078-0032 — RGX-0078 `.5` RE-PROFILE #4 (docs-only): the post-arena map + the `.5.g` construction-cache proposal
+
+**What.** Steering re-profile on the landed-arena baseline (the RE-PROFILE #2/#3 discipline). Probe rebuilt from HEAD (fat-LTO, sha `8b463969…`), sanity ≈60.1µs (pinned ≈58.6µs reproduces), `sample` 30s @ 1ms → 24,956 timed samples. Raw: session scratchpad `sample_reprofile4.txt` + `analyze_sample.py`.
+
+**Finding 1 — arena verified.** Alloc-family self-time 54.6% → **17.7%**. Residual alloc: PARSE 53.4% (arena chunk growth, `Vec<&ParseNode>` accumulators, memo inserts, Strings) / SEM 18.2% / SERDE 17.9%.
+
+**Finding 2 — the construction floor is now the top bucket.** `RegexParser::new` subtree = **2962/24,956 = 11.9%**: the generated constructor (emitted by `ast_based_generator.rs`) rebuilds the grammar-constant annotation tables per parse — std::HashMap SipHash inserts (1360 samples), 92 `to_string`, std→Fx double hash in `from_parts`, full table drop at parse end. The session-#90 refutation ("new() ~0.7%") was correct THEN; 8.5× faster parses made the fixed cost dominant. The probe pattern matches the real embedding boundary (a parser per parse), so the cost is real.
+
+**Finding 3 — the profile is flat now.** Rule-call machinery ~12% but DISTRIBUTED (no hotspot ⇒ exactly the regime where `.5.e` GLL/lockstep is the structural answer, and where its per-lever risk/reward is worst); SEM ~8%; SERDE ~6%; clones ~4.5%.
+
+**Proposal `.5.g` (surfaced, not started).** Cache the compiled annotation table once per process (`OnceLock<Arc<CompiledSemanticRuntimeAnnotations>>` emitted in the generated parser; `new()` clones the Arc). Byte-identical by construction (same values; point-lookup-only maps — the `.5.a` proof). Verify-plan: confirm no post-construction per-instance mutation of the table (`set_fact_kinds` is inside the build; `set_grammar_profile`/library dirs are other fields), debug oracle battery, fat-LTO alternated measure, land iff faster + byte-identical. Ceiling ≈8–11%. Sequence recommendation `.5.g` → `.5.e` put to the director per the no-silent-drift discipline.
+
 ## 2026-07-12 - PGEN-RGX-0078-0031 — RGX-0078.5.d.4.i candidate-B NODE ARENA **LANDED** (−21.9%, byte-identical)
 
 **What.** The `typed_arena` node arena is IN. `ParseContent<'input>` children are now borrowed `&'input ParseNode` references allocated in a per-parse `typed_arena::Arena<ParseNode<'input>>` threaded through the parser (`new(input, &arena, logger)`) and freed en masse at the boundary. 23 tracked source files migrated (codegen templates in `ast_based_generator.rs`/`ast_return_transform.rs`, `mod.rs` type + enum, `parser_registry`, `embedding_api`, `ebnf_frontend`, `ast_shape_contract`, interpreter, fixtures, bins). All 11 generated parsers regenerated to arena form. New dep `typed-arena 2.0.2`.

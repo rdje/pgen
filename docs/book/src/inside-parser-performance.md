@@ -222,6 +222,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.c | **First-set predictive dispatch** — before a top-level branch tournament evaluates a branch, peek the next input byte and SKIP any non-nullable branch whose sound FIRST-set can't begin a match there | codegen (parser-agnostic) | 303 µs → **76 µs** | **−75% (~4×)** | **landed** ✓ |
 | RGX-0078 · 5.d.2 | **Lazy winner-only materialization** — defer each branch's return-annotation transform + clone and run it once, for the winner only (explore in lockstep, don't re-do work per candidate) | codegen (parser-agnostic) | 75.5 µs ≈ 75.9 µs | **~0% (neutral)** | **reverted** ✗ (idea preserved) |
 | RGX-0078 · 5.d.4 | **Node arena** — allocate every child `ParseNode` in a per-parse bump arena (`typed-arena`) and hold children as `&'input` references instead of `Box`/`Vec<ParseNode>`, so the profiled ~55% construction-`malloc` collapses to a handful of arena growths freed in one shot | codegen + engine (parser-agnostic) | 75.0 µs → **58.6 µs** | **−21.9%** | **landed** ✓ |
+| RGX-0078 · 5.g | **Construction cache** (proposed) — the post-arena re-profile found ~12% of every parse is spent REBUILDING the grammar-constant compiled annotation tables (std-map SipHash inserts, ~92 small strings, every key hashed twice, full drop at parse end); build them once per process and share a handle | codegen + engine (parser-agnostic) | 58.6 µs → ? | ceiling ≈8–11% | **proposed** (awaiting sequencing vs the lockstep/GLL rung) |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -528,6 +529,31 @@ profile, the PCRE2 compile-oracle verdicts unchanged, and the AST-shape contract
 *parser-agnostic* codegen-plus-engine primitive, so SystemVerilog, VHDL, JSON and every other grammar
 inherit the same allocation win from the same change — the founding doctrine, once more: tune the
 compiler, and every language it compiles gets faster.
+
+### After the arena: the re-profile that found the construction floor
+
+The discipline after every landed lever is the same: **re-profile on the new baseline before
+choosing the next one** — each big win reshapes the cost landscape, and yesterday's "too small to
+matter" can become today's dominant bucket. The post-arena re-profile confirmed the arena did
+exactly what the by-caller profile predicted (allocation fell from ~55% of self-time to **under
+18%**) — and then surfaced something genuinely new.
+
+The single largest coherent cost is now **parser construction**: ~12% of the whole timed parse is
+spent *before the first input byte is examined*, rebuilding tables that never change. The generated
+constructor assembles the grammar's compiled annotation tables — scope directives, fact emissions,
+predicate specs — into hash maps, allocating nearly a hundred small strings, hashing every key
+*twice* (once into the standard library's map, then again while converting to the faster map the
+engine actually uses), and then drops the whole structure at the end of the parse. All of it is
+**grammar-constant**: every parse of every input builds and destroys the identical tables. At the
+496 µs baseline this was ~0.7% and correctly dismissed; after an 8.5× speedup, the same fixed cost
+is the top item on the board — a textbook illustration of why the re-profile step is not optional.
+
+The indicated lever — proposed to the director as the next slice, ahead of the research-grade
+lockstep/GLL rung — is a **construction cache**: build the compiled annotation tables *once per
+process* and hand every parser instance a cheap shared handle. Same values, same lookups,
+byte-identical by construction; just built once instead of on every parse. The remaining map after
+that: the distributed rule-call machinery (~12%, the lockstep/GLL target), the semantic-runtime
+residue (~8%), and the return-annotation JSON output (~6%).
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 

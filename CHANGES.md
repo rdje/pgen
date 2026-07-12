@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-07-12 - PGEN-RGX-0078-0032 — RGX-0078 `.5` RE-PROFILE #4 (docs-only steering): arena effect CONFIRMED (alloc 54.6%→17.7%); NEW #1 bucket = per-parse CONSTRUCTION of grammar-constant tables (11.9%) → `.5.g` construction-cache leaf PROPOSED; `.5.d` honestly rolled up `done`
+
+Docs-only steering slice (NO code change) — the land→re-profile→steer discipline applied to the new ≈58.6µs arena baseline.
+
+- **Method.** Arena `regex_perf_probe` rebuilt from HEAD `961b1781` (fat-LTO, sha256 `8b463969…`; the stale on-disk release binary was the owned baseline `b0fda7b2…`). Drift-control sanity PASSED: geomean-of-mins ≈60.1µs single-round (pinned ≈58.6µs; owned ≈75µs). macOS `sample` 30s @ 1ms: 25,189 samples, 24,956 in `time_one_parse`.
+- **Arena effect confirmed:** allocation-family leaves **54.6% → 17.7%** of self-time — the RE-PROFILE #3 prediction (the 54.6% construction malloc WAS the lever) verified post-landing.
+- **NEW #1 coherent bucket: `RegexParser::new` = 11.9%** of the timed subtree. Mechanism (tool-named): every parse re-builds the GRAMMAR-CONSTANT compiled annotation tables — 30 `directives_by_rule` inserts into a std::HashMap (SipHash; 1360 insert samples under `new()`), 92 `.to_string()` allocs, then `from_parts` re-hashes every key into `FxHashMap` (double hash), then the table is DROPPED at parse end. Invisible at the 496µs baseline (~0.7%, correctly refuted in session #90); at 58.6µs the fixed cost is the top bucket. Real consumer cost (the embedding boundary constructs a parser per parse).
+- **Rest of the (now flat) profile:** rule-call machinery ~12% distributed (the `.5.e` GLL target, no single hotspot) / SEM residual ~8% / SERDE output ~6% / Vec-slice clones ~4.5% / residual parse-time SipHash fact-emission inserts ~1.5%.
+- **Steering (surfaced to the director, no unilateral re-sequencing):** proposed NEW leaf **`.5.g` CONSTRUCTION CACHE** — build the grammar-constant `CompiledSemanticRuntimeAnnotations` once per process (`OnceLock`+`Arc`), `new()` clones the handle; parser-agnostic codegen/engine; byte-identical by construction; ceiling ≈8–11% concentrated, LOW risk. Recommended sequence `.5.g` → `.5.e` (destination unchanged).
+- **Tree hygiene:** `.5.d` + `.5.d.4` top-node statuses rolled up to `done` (they still read `queued`/`DESIGN` after the `.5.d.4.i` arena landed); `.5.e` annotated with the steering gate.
+- **Housekeeping:** harness auto-memory index compacted (flagged at session #99; outside-repo).
+
 ## 2026-07-12 - PGEN-RGX-0078-0031 — RGX-0078.5.d.4.i candidate-B NODE ARENA **LANDED** (SPEED PHASE): regex geomean **−21.9%** (≈75µs→≈58.6µs), byte-identical
 
 The candidate-B `typed_arena` node arena is **IN** — the biggest single speed lever since first-set dispatch (`.5.c.2`, −75%), landed under the ⛔ HARD CONSTRAINT (faster AND byte-identical; revert if neutral). Parser-AGNOSTIC codegen+engine primitive — every grammar inherits it.
