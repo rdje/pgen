@@ -474,6 +474,23 @@ arena, by design, leaves them untouched. The arena will not reach PCRE2 parity b
 the right next step, and now a measured one. The first code increment — the lockstep advance folded
 together with the arena on the regex `atom` tournament — is what the scoreboard measures next.
 
+A final pre-code scoping pass locked the ownership shape in and put it on firmer footing. Two things
+firmed the choice of the integer-index arena over the reference-borrow one. First, a correctness
+decider: the parse tree's leaves carry heap-owning values (transformed strings, typed JSON), so the
+node store **must** run their destructors when it is freed. A plain vector of nodes does that for free
+when it drops; a bump arena of borrows does *not* run destructors, so it would leak those values on
+every parse — disqualifying the naïve bump shape, and leaving the index arena (or a destructor-running
+reference arena that adds both a dependency and a second lifetime). Second, a durability decider: the
+node type is touched by more than a dozen files, and a second lifetime threaded through all of them is
+a permanent tax on every future change — which is exactly why large, long-lived syntax-tree codebases
+(rust-analyzer among them) deliberately pick *index* arenas over reference arenas. The one genuine
+subtlety the scoping surfaced is that the return-annotation transform — the most correctness-sensitive
+generated code — manipulates child nodes as *owned, movable* values (it moves them between
+accumulators and builds fresh wrapper nodes mid-transform), so those few sites are reworked with a
+disciplined "read everything first, then append" order rather than a blind index swap. The whole change
+is proved byte-identical by the cheap differential gates *before* any expensive optimized build, so a
+slip is caught early and cheaply.
+
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
 It is tempting to frame this as "a *generated* parser can never catch *hand-tuned* C." That
