@@ -10,6 +10,7 @@ use super::{
     parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_runtime_directive,
     parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec,
 };
+use super::first_set::{self, FirstSetSummary};
 use regex::Regex;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -95,13 +96,6 @@ pub struct AnnotationValidatorConfig {
 #[derive(Debug, Clone, Default)]
 pub struct AnnotationValidator {
     config: AnnotationValidatorConfig,
-}
-
-#[derive(Debug, Clone, Default)]
-struct FirstSetSummary {
-    terminals: HashSet<String>,
-    nullable: bool,
-    unresolved: bool,
 }
 
 impl AnnotationValidator {
@@ -2020,7 +2014,7 @@ impl AnnotationValidator {
             let mut branch_first_sets = Vec::with_capacity(branches.len());
             for (idx, branch) in branches.iter().enumerate() {
                 let mut visiting_rules = HashSet::new();
-                let summary = self.branch_first_set(
+                let summary = first_set::branch_first_set(
                     branch,
                     grammar_tree,
                     &mut first_set_cache,
@@ -2145,253 +2139,6 @@ impl AnnotationValidator {
             Some(format!("'{}'", token_value))
         } else {
             None
-        }
-    }
-
-    fn branch_first_set(
-        &self,
-        node: &ASTNode,
-        grammar_tree: &HashMap<String, ASTNode>,
-        first_set_cache: &mut HashMap<String, FirstSetSummary>,
-        visiting_rules: &mut HashSet<String>,
-        depth: usize,
-    ) -> FirstSetSummary {
-        const MAX_FIRST_SET_DEPTH: usize = 24;
-        if depth > MAX_FIRST_SET_DEPTH {
-            return FirstSetSummary {
-                terminals: HashSet::new(),
-                nullable: false,
-                unresolved: true,
-            };
-        }
-
-        match node {
-            ASTNode::Sequence { elements } => {
-                let mut result = FirstSetSummary {
-                    terminals: HashSet::new(),
-                    nullable: true,
-                    unresolved: false,
-                };
-
-                if elements.is_empty() {
-                    return result;
-                }
-
-                for element in elements {
-                    let element_first = self.branch_first_set(
-                        element,
-                        grammar_tree,
-                        first_set_cache,
-                        visiting_rules,
-                        depth + 1,
-                    );
-                    result
-                        .terminals
-                        .extend(element_first.terminals.iter().cloned());
-                    result.unresolved |= element_first.unresolved;
-                    if !element_first.nullable {
-                        result.nullable = false;
-                        return result;
-                    }
-                }
-
-                result
-            }
-            ASTNode::Or { alternatives } => {
-                let mut result = FirstSetSummary {
-                    terminals: HashSet::new(),
-                    nullable: false,
-                    unresolved: false,
-                };
-
-                if alternatives.is_empty() {
-                    result.nullable = true;
-                    return result;
-                }
-
-                for alternative in alternatives {
-                    let alternative_first = self.branch_first_set(
-                        alternative,
-                        grammar_tree,
-                        first_set_cache,
-                        visiting_rules,
-                        depth + 1,
-                    );
-                    result
-                        .terminals
-                        .extend(alternative_first.terminals.iter().cloned());
-                    result.nullable |= alternative_first.nullable;
-                    result.unresolved |= alternative_first.unresolved;
-                }
-
-                result
-            }
-            ASTNode::Atom { value } => self.atom_first_set(
-                value,
-                grammar_tree,
-                first_set_cache,
-                visiting_rules,
-                depth + 1,
-            ),
-            ASTNode::Quantified {
-                element,
-                quantifier,
-            } => {
-                let mut element_first = self.branch_first_set(
-                    element,
-                    grammar_tree,
-                    first_set_cache,
-                    visiting_rules,
-                    depth + 1,
-                );
-                let min_repeat = self.quantifier_min_repeat(quantifier);
-                if min_repeat == 0 {
-                    element_first.nullable = true;
-                }
-                element_first
-            }
-            ASTNode::Lookahead { element, .. } => {
-                let mut element_first = self.branch_first_set(
-                    element,
-                    grammar_tree,
-                    first_set_cache,
-                    visiting_rules,
-                    depth + 1,
-                );
-                element_first.nullable = true;
-                element_first
-            }
-        }
-    }
-
-    fn atom_first_set(
-        &self,
-        value: &ASTValue,
-        grammar_tree: &HashMap<String, ASTNode>,
-        first_set_cache: &mut HashMap<String, FirstSetSummary>,
-        visiting_rules: &mut HashSet<String>,
-        depth: usize,
-    ) -> FirstSetSummary {
-        match value {
-            ASTValue::Node(node) => self.branch_first_set(
-                node,
-                grammar_tree,
-                first_set_cache,
-                visiting_rules,
-                depth + 1,
-            ),
-            ASTValue::Token(parts) => {
-                if parts.len() < 2 {
-                    return FirstSetSummary {
-                        terminals: HashSet::new(),
-                        nullable: false,
-                        unresolved: true,
-                    };
-                }
-
-                let token_type = match &parts[0] {
-                    super::TokenValue::String(token_type) => token_type.as_str(),
-                };
-                let token_value = match &parts[1] {
-                    super::TokenValue::String(token_value) => token_value.as_str(),
-                };
-
-                match token_type {
-                    "quoted_string" => {
-                        let mut terminals = HashSet::new();
-                        if !token_value.is_empty() {
-                            terminals.insert(format!("'{}'", token_value));
-                        }
-                        FirstSetSummary {
-                            terminals,
-                            nullable: token_value.is_empty(),
-                            unresolved: false,
-                        }
-                    }
-                    "rule_reference" => self.rule_first_set(
-                        token_value,
-                        grammar_tree,
-                        first_set_cache,
-                        visiting_rules,
-                        depth + 1,
-                    ),
-                    "regex" => {
-                        let nullable = Regex::new(token_value)
-                            .ok()
-                            .and_then(|re| re.find(""))
-                            .map(|m| m.start() == 0 && m.end() == 0)
-                            .unwrap_or(false);
-                        FirstSetSummary {
-                            terminals: HashSet::new(),
-                            nullable,
-                            unresolved: true,
-                        }
-                    }
-                    _ => FirstSetSummary {
-                        terminals: HashSet::new(),
-                        nullable: false,
-                        unresolved: true,
-                    },
-                }
-            }
-        }
-    }
-
-    fn rule_first_set(
-        &self,
-        rule_name: &str,
-        grammar_tree: &HashMap<String, ASTNode>,
-        first_set_cache: &mut HashMap<String, FirstSetSummary>,
-        visiting_rules: &mut HashSet<String>,
-        depth: usize,
-    ) -> FirstSetSummary {
-        if let Some(cached) = first_set_cache.get(rule_name) {
-            return cached.clone();
-        }
-
-        if !visiting_rules.insert(rule_name.to_string()) {
-            return FirstSetSummary {
-                terminals: HashSet::new(),
-                nullable: false,
-                unresolved: true,
-            };
-        }
-
-        let result = if let Some(rule_ast) = grammar_tree.get(rule_name) {
-            self.branch_first_set(
-                rule_ast,
-                grammar_tree,
-                first_set_cache,
-                visiting_rules,
-                depth + 1,
-            )
-        } else {
-            FirstSetSummary {
-                terminals: HashSet::new(),
-                nullable: false,
-                unresolved: true,
-            }
-        };
-
-        visiting_rules.remove(rule_name);
-        first_set_cache.insert(rule_name.to_string(), result.clone());
-        result
-    }
-
-    fn quantifier_min_repeat(&self, quantifier: &str) -> usize {
-        let trimmed = quantifier.trim();
-        match trimmed {
-            "?" | "*" => 0,
-            "+" => 1,
-            _ if trimmed.starts_with('{') && trimmed.ends_with('}') => {
-                let inner = trimmed[1..trimmed.len() - 1].trim();
-                if inner.is_empty() || inner.starts_with(',') {
-                    return 0;
-                }
-                let min_part = inner.split(',').next().unwrap_or(inner).trim();
-                min_part.parse::<usize>().unwrap_or(1)
-            }
-            _ => 1,
         }
     }
 

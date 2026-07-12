@@ -135,6 +135,17 @@ pub struct AstBasedGenerator {
     /// does not link Rust's `regex` crate. Interior-mutable so it can be set behind `&self` during
     /// codegen; computed once after the rule methods are generated, before imports/helpers are emitted.
     pub uses_match_regex: std::cell::Cell<bool>,
+    /// RGX-0078.5.c.2 — snapshot of the normalized (post-LR-elimination) gen-AST
+    /// `grammar_tree`, taken at the `&self` generation entry
+    /// (`generate_parser` / `generate_parser_tokens`) so `generate_or_logic` can
+    /// compute per-branch FIRST-set first-byte prune guards WITHOUT threading
+    /// `grammar_tree` through the whole `generate_*` chain. Interior-mutable to be
+    /// settable behind `&self` (mirrors `uses_match_regex`). Empty until an entry
+    /// populates it; the guard is emitted ONLY when it is populated, so a direct
+    /// `generate_node_parsing_logic` / `generate_or_logic` unit-test call (which
+    /// never populates it) resolves every rule reference as `unresolved` and emits
+    /// no guard — byte-identical to the pre-feature codegen.
+    pub first_set_grammar_tree: std::cell::RefCell<HashMap<String, ASTNode>>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -343,6 +354,7 @@ impl AstBasedGenerator {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -415,6 +427,14 @@ impl AstBasedGenerator {
         rule_order: &[String],
         filename: &str,
     ) -> Result<TokenStream> {
+        // RGX-0078.5.c.2 — snapshot the normalized gen-AST so `generate_or_logic`
+        // can compute per-branch FIRST-set first-byte prune guards. This is the
+        // single choke point: `generate_parser` reaches rule-method generation only
+        // through here, and a direct `generate_parser_tokens` caller lands here too.
+        // The tree is the SAME one every rule method is emitted from, so transitive
+        // rule-reference resolution runs against exactly the codegen's own view.
+        *self.first_set_grammar_tree.borrow_mut() = grammar_tree.clone();
+
         eprintln!(
             "   🔧  Starting parser code generation for {} rules using AST-based approach",
             rule_order.len()
@@ -2883,8 +2903,19 @@ impl AstBasedGenerator {
         );
 
         eprintln!();
-        // Generate the parsing logic based on AST node type
-        let parse_logic = self.generate_node_parsing_logic(ast_node, rule_name, filename)?;
+        // Generate the parsing logic based on AST node type.
+        // RGX-0078.5.c.2 — dispatch a TOP-LEVEL `Or` body directly to
+        // `generate_or_logic` with `top_level = true` so it may emit the FIRST-set
+        // prune guard (furthest_position-neutral only when `parse_start` is the
+        // rule-entry position — which holds exactly for the rule body). Every other
+        // node shape (incl. a nested `Or`) goes through `generate_node_parsing_logic`,
+        // which passes `top_level = false`.
+        let parse_logic = match ast_node {
+            ASTNode::Or { alternatives } => {
+                self.generate_or_logic(alternatives, rule_name, filename, true)?
+            }
+            _ => self.generate_node_parsing_logic(ast_node, rule_name, filename)?,
+        };
 
         eprintln!();
         eprintln!(
@@ -3349,7 +3380,11 @@ impl AstBasedGenerator {
                     file!(),
                     line!()
                 );
-                self.generate_or_logic(alternatives, rule_name, filename)
+                // Nested `Or` (inside a sequence / quantifier / lookahead): NOT a
+                // rule's top-level body, so no FIRST-set prune guard (its
+                // `parse_start` may exceed the rule-entry position that recorded
+                // `furthest_position`). RGX-0078.5.c.2.
+                self.generate_or_logic(alternatives, rule_name, filename, false)
             }
             ASTNode::Sequence { elements } => {
                 eprintln!(
@@ -3462,6 +3497,12 @@ impl AstBasedGenerator {
         alternatives: &[ASTNode],
         rule_name: &str,
         filename: &str,
+        // RGX-0078.5.c.2 — true iff this `Or` is a rule's TOP-LEVEL body (not a
+        // nested alternation). Only then is the FIRST-set prune guard emitted:
+        // `parse_start` equals the rule-entry position that already recorded
+        // `furthest_position`, so pruning a char-1-failing branch is
+        // furthest_position-neutral by construction. See `generate_rule_method_with_recursion`.
+        top_level: bool,
     ) -> Result<TokenStream> {
         let branch_count = alternatives.len();
 
@@ -3611,6 +3652,18 @@ impl AstBasedGenerator {
             };
 
             let mut branch_attempt_arms = Vec::new();
+            // RGX-0078.5.c.2 — FIRST-set predictive dispatch. Emit a per-branch
+            // prune guard ONLY for a top-level `Or` (so `parse_start` is the
+            // rule-entry position already folded into `furthest_position` ⇒ pruning
+            // is furthest-neutral) in a grammar whose TERMINALS are
+            // whitespace-sensitive (no leading-layout skip before a terminal match ⇒
+            // peeking the raw next byte is sound). Otherwise no guard is emitted:
+            // byte-identical codegen, no regression, no win there.
+            let emit_first_set_guard = top_level && self.layout_sensitivity().terminals;
+            let mut first_set_cache: std::collections::HashMap<
+                String,
+                super::first_set::FirstSetSummary,
+            > = std::collections::HashMap::new();
             for idx in 0..branch_count {
                 let alternative = &alternatives[idx];
                 eprintln!();
@@ -3642,8 +3695,15 @@ impl AstBasedGenerator {
                 let branch_num = idx + 1;
                 let branch_priority = branch_priorities.get(idx).copied().unwrap_or(0);
                 let branch_index = idx;
-                branch_attempt_arms.push(quote! {
-                    #branch_index => {
+                // RGX-0078.5.c.2 — the FIRST-set prune guard for this branch
+                // (`None` ⇒ the branch is always tried: nullable / unresolved /
+                // guarding disabled).
+                let first_set_prune_guard = self.first_set_prune_guard_for_branch(
+                    alternative,
+                    emit_first_set_guard,
+                    &mut first_set_cache,
+                );
+                let arm_inner = quote! {
                         if #branch_policy_mode == "ordered" && best_content.is_some() {
                             // Ordered branch policy keeps first successful branch.
                         } else {
@@ -3909,8 +3969,31 @@ impl AstBasedGenerator {
                                 parser.logger.log_info(#filename, parser.position as u32, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                             }
                         }
-                    }
-                });
+                };
+                // RGX-0078.5.c.2 — wrap the branch body in the FIRST-set prune
+                // guard when one applies; otherwise emit the arm unchanged
+                // (byte-identical to the pre-feature codegen).
+                let arm = match first_set_prune_guard {
+                    Some(guard_condition) => quote! {
+                        #branch_index => {
+                            // RGX-0078.5.c.2 — this non-nullable branch's leading
+                            // terminals cannot begin at the next input byte, so it
+                            // would fail at char 1. Skip its entire body: it
+                            // contributes nothing to the longest_match tournament,
+                            // and pruning is furthest_position-neutral (the rule
+                            // entry already recorded parse_start).
+                            if #guard_condition {
+                                #arm_inner
+                            }
+                        }
+                    },
+                    None => quote! {
+                        #branch_index => {
+                            #arm_inner
+                        }
+                    },
+                };
+                branch_attempt_arms.push(arm);
             }
 
             // INLINE-ACTIONS.2: apply the WINNING branch's branch-start inline
@@ -4028,6 +4111,68 @@ impl AstBasedGenerator {
                 }
             })
         }
+    }
+
+    /// RGX-0078.5.c.2 — compute the FIRST-set predictive-dispatch prune guard for one
+    /// tournament branch, or `None` when the branch must always be tried.
+    ///
+    /// Returns `Some(cond)` — a boolean token expression that is TRUE iff the branch
+    /// could begin a match at the next input byte (`parse_start`) — ONLY for a branch
+    /// that is provably prunable: guarding enabled (`emit`), the branch is NOT nullable
+    /// and NOT `unresolved` (so its FIRST terminal set is exhaustive), and every FIRST
+    /// terminal yields an extractable first byte. In every other case it returns `None`
+    /// (always try the branch), which is the SOUND default: the guard can only ever
+    /// remove a branch that would have failed at char 1, so soundness rests entirely on
+    /// never pruning a branch that could match. The generated condition
+    /// (`parse_start < input.len() && matches!(next_byte, …)`) skips the whole branch
+    /// body when false. Uses the interior-mutable `first_set_grammar_tree` snapshot so
+    /// transitive rule-reference FIRST sets resolve against codegen's own normalized
+    /// tree; `cache` is reused across a rule's branches.
+    fn first_set_prune_guard_for_branch(
+        &self,
+        branch: &ASTNode,
+        emit: bool,
+        cache: &mut std::collections::HashMap<String, super::first_set::FirstSetSummary>,
+    ) -> Option<TokenStream> {
+        if !emit {
+            return None;
+        }
+
+        let grammar_tree = self.first_set_grammar_tree.borrow();
+        let mut visiting_rules = std::collections::HashSet::new();
+        let summary =
+            super::first_set::branch_first_set(branch, &grammar_tree, cache, &mut visiting_rules, 0);
+
+        // Prune ONLY a resolved, non-nullable branch — the `terminals` set is a
+        // sound EXHAUSTIVE over-approximation only then. Anything uncertain
+        // (nullable, `unresolved`, or a branch with no terminal FIRST set) is
+        // always tried.
+        if summary.nullable || summary.unresolved || summary.terminals.is_empty() {
+            return None;
+        }
+
+        // Collect the sorted set of admissible first bytes. If ANY terminal's first
+        // byte cannot be extracted, DO NOT prune (an unknown first byte is not a
+        // sound over-approximation). BTreeSet keeps the emitted literals sorted so
+        // codegen is deterministic (byte-identical regen).
+        let mut first_bytes: std::collections::BTreeSet<u8> = std::collections::BTreeSet::new();
+        for terminal in &summary.terminals {
+            match super::first_set::terminal_first_byte(terminal) {
+                Some(byte) => {
+                    first_bytes.insert(byte);
+                }
+                None => return None,
+            }
+        }
+        if first_bytes.is_empty() {
+            return None;
+        }
+
+        let first_byte_patterns: Vec<u8> = first_bytes.into_iter().collect();
+        Some(quote! {
+            parse_start < parser.input.len()
+                && matches!(parser.input.as_bytes()[parse_start], #(#first_byte_patterns)|*)
+        })
     }
 
     fn generate_sequence_logic(
@@ -8241,6 +8386,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -8273,6 +8419,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -8323,6 +8470,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -8375,6 +8523,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -8461,6 +8610,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -8572,6 +8722,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -8637,6 +8788,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -8707,6 +8859,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -8932,6 +9085,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let logic = generator
@@ -10037,6 +10191,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         assert_eq!(
@@ -10069,6 +10224,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
@@ -10098,6 +10254,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         assert_eq!(
@@ -10162,6 +10319,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let (
@@ -10236,6 +10394,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let logic = generator
@@ -10294,6 +10453,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let logic = generator
@@ -10321,6 +10481,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator.generate_types().to_string();
@@ -10349,6 +10510,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
@@ -10402,6 +10564,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -10610,6 +10773,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator
@@ -10667,6 +10831,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let policy = generator.rule_coverage_target_policy("stmt");
@@ -10687,6 +10852,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -10751,6 +10917,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let method = generator
@@ -10793,6 +10960,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator
@@ -10849,6 +11017,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let policy = generator.rule_negative_case_policy("stmt");
@@ -10869,6 +11038,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -10928,6 +11098,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let method = generator
@@ -10967,6 +11138,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator
@@ -11017,6 +11189,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let policy = generator.rule_deterministic_partition_policy("stmt");
@@ -11037,6 +11210,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -11111,6 +11285,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let method = generator
@@ -11149,6 +11324,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator
@@ -11218,6 +11394,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let logic = generator
@@ -11254,6 +11431,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator
@@ -11298,6 +11476,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         assert_eq!(
@@ -11339,6 +11518,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         assert_eq!(
@@ -11380,6 +11560,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let logic = generator
@@ -11437,6 +11618,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let logic = generator
@@ -11485,6 +11667,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let logic = generator
@@ -11537,6 +11720,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -11583,6 +11767,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -11635,6 +11820,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let method = generator
@@ -11679,6 +11865,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator
@@ -11714,6 +11901,7 @@ mod semantic_usage_tests {
             parser_hook_registry: None,
             ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
         };
 
         let rendered = generator

@@ -4497,6 +4497,7 @@ pub mod call_count_dashboard;
 pub mod ast_code_generator;
 pub mod ast_generator_direct;
 pub mod ast_return_transform;
+pub mod first_set;
 pub mod grammar_wellformedness;
 pub mod grouped_quantifier_parser;
 pub mod library;

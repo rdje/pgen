@@ -219,6 +219,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 4.b | `target-cpu=native` (on top of 4.a) — commonly assumed a free win | build flag (machine-specific) | 313 µs → 324–327 µs | **+4% (worse)** | **rejected** ✗ |
 | RGX-0078 · 4.c | PGO (profile-guided optimization, on top of 4.a) | build process | 308.6 µs → 305.4 µs | −1% (lower bound) | **not landed** ✗ |
 | RGX-0078 · 5.a | **FxHash the per-rule annotation-table lookups** — swap the two per-rule-entry directive maps (`directives_by_rule` + `branch_directives_by_rule`) from the std SipHash to `FxHashMap` | engine (shared runtime) | 320 µs → **303 µs** | **−5.4%** | **landed** ✓ |
+| RGX-0078 · 5.c | **First-set predictive dispatch** — before a top-level branch tournament evaluates a branch, peek the next input byte and SKIP any non-nullable branch whose sound FIRST-set can't begin a match there | codegen (parser-agnostic) | 303 µs → **76 µs** | **−75% (~4×)** | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -298,6 +299,34 @@ duality-hunt gate, and the AST-shape contract all green at their pre-optimizatio
 decisive delta: **−5.4%** geomean of the noise-floor minimums (drift-controlled, both binaries built
 and measured alternately), every one of the eight patterns faster in every round.
 
+**Lever RGX-0078·5.c (first-set predictive dispatch) — the deepest lever, and the biggest single
+win.** The bulk of regex parse time is one rule: `atom`, a ~24-way branch tournament tried at every
+input character. Under longest-match semantics the engine evaluates *every* alternative and keeps the
+longest — so at a plain `a` it still sets up, tries, and rolls back the `.`-branch, the `[`-branch,
+the `(`-branches, the `\`-branch, and twenty more, each paying a try + delta-extract + a rollback
+label `format!` + the per-attempt allocation. That is the profiled 59%-malloc / 6%-string cost seen
+twice: *"evaluate every branch, then discard most."* The fix is classic predictive parsing (LL(1)
+director sets, re2c/flex first-char dispatch): compute, at codegen time, a sound **over-approximation
+of the first bytes** that can begin each branch, and emit a one-byte guard — if the next input byte is
+not in a non-nullable branch's first-set, skip that branch's whole body. At `a`, twenty-three of the
+twenty-four `atom` branches are pruned; only the branches that could actually match are tried.
+
+It is a **prune, never a commit**: a skipped branch is one that would have failed at character 1, so
+it contributes nothing to the tournament — the longest-match winner is *identical*. Soundness rests
+entirely on the first-set being a superset (when uncertain — a regex token, an unresolved reference, a
+nullable branch, a `.`/lookahead/anchor — the branch is *always* tried, never pruned). It is
+parser-agnostic (a codegen primitive, gated only on the grammar's declared `@whitespace_sensitive`
+policy so the raw next-byte peek is sound, and restricted to a rule's top-level tournament so pruning
+is `furthest_position`-neutral), so every whitespace-sensitive grammar inherits it. Measured decisive
+delta: **−75%** geomean (≈303 µs → 76 µs, a ~4× speedup), stable across three alternated rounds, with
+the parse output proven **byte-identical** — the interpreter↔generated differential-equivalence gate
+(verdict + AST + `furthest_position`, every grammar, seeds 0/7/42), the 27-combinator suite (including
+the `a|ab` longest-match discrimination), the 36-construct semantic suite, certificate coverage
+(`UNKNOWN=0`, unchanged), and the byte-identical regen of all nine non-regex parsers all green at their
+pre-optimization values. This is the sound *first mile* of a fuller lockstep-simulation road
+(Thompson-NFA / RE2 / GLL — advance all live branches together, no backtracking, no per-branch
+allocation); it ships the big regex win now while that engine work is scoped.
+
 ### What is left, and the honest gap
 
 The ranked, profile-indicated levers still ahead:
@@ -311,10 +340,12 @@ The ranked, profile-indicated levers still ahead:
    dropped on backtrack are the bulk of the 59%; arena/reuse strategies target this directly.
 3. **First-set predictive dispatch.** The deepest lever: skip alternatives that *cannot*
    match the next character instead of trying them all. This attacks the multiplier itself
-   rather than the per-attempt cost — larger, and sequenced last because it is the most
-   structural.
+   rather than the per-attempt cost. **Now landed** (lever 5.c above, −75%); the top-level
+   tournament case is done, with nested-tournament pruning and the fuller lockstep-simulation
+   automaton (Thompson-NFA / GLL) as sequenced follow-ons.
 4. **Backtrack-path trace strings.** The ~4% spent formatting rollback-context strings that
-   are discarded when tracing is off — a codegen change, sequenced after the engine wins.
+   are discarded when tracing is off — a codegen change; after 5.c, most of that cost is
+   already gone because the branches that built those strings are no longer evaluated.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
