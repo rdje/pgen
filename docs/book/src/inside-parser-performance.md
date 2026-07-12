@@ -456,8 +456,23 @@ indices (moves the same cost with *no* second lifetime and no new dependency, pa
 mechanical "pass the node vector to the tree-walkers" refactor). The third is the recommended shape: it
 allocates all nodes in one contiguous, cache-friendly block freed en masse, lets the memo share a
 subtree by handing back an index instead of deep-copying it, and keeps the single input lifetime the
-tree already has. Both design hurdles cleared, the first code increment — the lockstep advance on the
-regex `atom` tournament — is what the scoreboard measures next.
+tree already has.
+
+One more measurement gated the invasive surgery before it began — the same discipline that caught the
+two earlier levers. The concern: that "construction malloc" bucket is *all* parse-structure
+allocation, and it includes the return-annotation's serde_json output — which an arena over *parse
+nodes* does not touch (the parser builds JSON objects during the parse, at a couple of dozen sites,
+and those live in the standard allocator regardless). So before a change that threads a node-index
+through more than a dozen files, the allocation was profiled *by caller* to split the arena-movable
+part from the irreducible part. The result is decisive: of all the allocation time, **~44% is parse-node
+and vector construction (arena-movable), ~26% is serde_json output, ~20% is the semantic-runtime
+backtrack path, and the rest is hashing and formatting.** Since allocation is ~55% of the total, the
+arena's real target is about **a quarter of the whole parse** — comfortably the biggest single lever
+left, so the surgery is justified. It also draws the map for *after* the arena: the serde_json output
+(a quarter of allocation) and the semantic-runtime path (a fifth) are the next two levers, because the
+arena, by design, leaves them untouched. The arena will not reach PCRE2 parity by itself — but it is
+the right next step, and now a measured one. The first code increment — the lockstep advance folded
+together with the arena on the regex `atom` tournament — is what the scoreboard measures next.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
