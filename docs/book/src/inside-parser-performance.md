@@ -337,26 +337,34 @@ the parse-structure *clone* (~7%) and *drop* (~8%) it is roughly **70% of self-t
 cloning and freeing parse structures** (`ParseNode`, `ParseContent`, the JSON value, the small
 maps). The per-character matching work of the *surviving* branches is only ~14%; the string
 formatting that was 6% has collapsed to ~2% (its losing-branch `format!`s are no longer evaluated,
-exactly as predicted). So the ranked levers still ahead, now re-ordered by that fresh measurement:
+exactly as predicted). The measurement points straight at the planned destination — so the ranked
+work ahead is:
 
-1. **Per-speculation allocation churn — the confirmed #1 remaining lever.** The ~70% of time in
-   allocate/clone/free of parse structures is the prize, and it is *structural*: arena/bump
-   allocation for parse nodes, eliding the clone-in/clone-out around the memo and the tournament's
-   candidate copies, and interning input slices instead of copying them. It is also the riskiest
-   (parse-node ownership threads through AST-to-JSON serialization), so it starts with a design
-   spike rather than a blind edit.
+1. **The lockstep-simulation automaton — the agreed next direction, and where parity is reached.**
+   Advance all live branches together, dead ones drop in place, the survivor moves the cursor
+   forward: no backtracking, and the winner's AST built *once* and shared — so the ~70%
+   allocate/clone/free is *eliminated at the root*, not merely pooled. This is exactly how the
+   hand-tuned C engines this campaign races (re2c, Hyperscan) work, which is why it is the road whose
+   ceiling reaches PCRE2 parity. It is built by composing three pieces the engine *already holds*:
+   the packrat memo as a shared parse forest (build-once, share by the `(rule, start, end)` key), a
+   copy-on-write overlay for the semantic store (per-branch deltas, not per-branch clones), and a
+   single arena freed en masse. The tractable-now first step is the **lexical DFA** for the regular
+   sub-language (the `atom` choice, keyword sets, any terminal choice), which captures the bulk of
+   the regex win; the fully general recursive form (a GLL graph-structured stack) follows as a
+   research-grade engine effort. Each step starts with a design spike and lands only once the
+   `parse_harness_*` differential proves it byte-identical.
 2. **Nested-tournament first-set pruning.** Extends the landed top-level prune (lever 5.c) into
-   *nested* alternations. Deferred deliberately: it attacks only the ~14% matching bucket — about
-   a quarter of the allocation prize — and needs the `furthest_position` bookkeeping worked out
-   first, so it is sequenced after the allocation lever.
-3. **The fuller lockstep-simulation automaton** (Thompson-NFA / RE2 / GLL): advance all live
-   branches together, no backtracking, no per-branch allocation. This eliminates the allocation at
-   the *root* rather than pooling it, and is the real path to hand-tuned-C parse speed — a
-   research-grade engine effort, scoped after the incremental allocation lever measures how far it
-   gets on its own.
-4. **The per-rule annotation-table lookups (remaining half).** The faster-hasher half is landed
+   *nested* alternations. Deferred deliberately: it attacks only the ~14% matching bucket, and needs
+   the `furthest_position` bookkeeping worked out first — a smaller, later increment than the
+   lockstep road.
+3. **The per-rule annotation-table lookups (remaining half).** The faster-hasher half is landed
    (lever 5.a, FxHash instead of SipHash); *generating the lookup away entirely* for annotation-free
    rules is still open as a codegen change — small (a few percent), a cheap parallel slice.
+
+The standalone "arena / bump allocation" idea from the technique menu is **not** a separate lever
+here: on its own it would only make each allocation cheaper while leaving the backtracking and the
+build-then-clone pattern in place — a bounded win. It is instead one of the three composing pieces of
+the lockstep road above, which is why the allocation is *eliminated* rather than pooled.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
