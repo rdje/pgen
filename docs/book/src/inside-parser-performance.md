@@ -223,6 +223,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.d.2 | **Lazy winner-only materialization** — defer each branch's return-annotation transform + clone and run it once, for the winner only (explore in lockstep, don't re-do work per candidate) | codegen (parser-agnostic) | 75.5 µs ≈ 75.9 µs | **~0% (neutral)** | **reverted** ✗ (idea preserved) |
 | RGX-0078 · 5.d.4 | **Node arena** — allocate every child `ParseNode` in a per-parse bump arena (`typed-arena`) and hold children as `&'input` references instead of `Box`/`Vec<ParseNode>`, so the profiled ~55% construction-`malloc` collapses to a handful of arena growths freed in one shot | codegen + engine (parser-agnostic) | 75.0 µs → **58.6 µs** | **−21.9%** | **landed** ✓ |
 | RGX-0078 · 5.g | **Construction cache** — the post-arena re-profile found ~12% of every parse was spent REBUILDING the grammar-constant compiled annotation tables (std-map SipHash inserts, ~92 small strings, every key hashed twice, full drop at parse end); they are now built once per process and every parser instance shares the one table | codegen + engine (parser-agnostic) | 58.6 µs → **56.8 µs** | **−3.8%** | **landed** ✓ |
+| RGX-0078 · 5.e | **GLL + graph-structured stack** (the research-grade general lockstep form) — adjudicated by a literature-first design spike instead of a build: the engine is already a memoized, first-set-pruned, near-deterministic recursive-descent parser (backtrack residue ~2.2%), exactly the regime where the literature shows GLL's descriptor/GSS/SPPF bookkeeping costs orders of magnitude more than adaptive top-down parsing buys | (not built — design spike only) | — | predicted net-negative | **refuted** ✗ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -560,6 +561,40 @@ bucket, because the constructor also does genuinely per-parse work (memo pre-siz
 init) that the cache correctly leaves alone. The remaining map: the distributed rule-call
 machinery (~12%, the lockstep/GLL target), the semantic-runtime residue (~8%), and the
 return-annotation JSON output (~6%).
+
+### The measured distance — and why the next lever is architectural, not another bucket
+
+With the profile now flat (no bucket above ~12%), the campaign measured, for the first time, the
+actual distance to its destination. On the same machine and the same eight patterns, PCRE2 10.47
+compiles each pattern in **0.34–0.86 µs** (`pcre2test -t`); PGEN parses them in 11.8–150.8 µs.
+Geometric-mean ratio: **≈99×**, against the campaign's closure bound of **<5×**. Five landed levers
+have already closed 8.76× (496 µs → 56.8 µs); reaching the bound needs roughly **20× more** — and
+every named bucket left on the board sums to ~32%, worth at most ~1.5× even if it all vanished.
+Bucket-shaving is over as a road to the destination.
+
+Where the 20× actually lives is visible with one small tool run: parsing the four-character
+pattern `test` makes **45 rule entries** (the `piece → atom → literal → literal_char → letter`
+cascade plus the per-character quantifier/escape probes — about eleven entries per input
+character), at ≈262 ns per entry. PCRE2 compiles the *entire pattern* in roughly the cost of
+*one* PGEN rule entry. The dominant cost is the **rule-cascade-per-character execution model**
+itself, and it is addressable only by executing *fewer rule entries*, not cheaper buckets:
+either don't parse at all (a persistent pattern→AST **parse cache** — real regex workloads
+recompile the same patterns constantly, so amortized cost collapses), or make the generator emit
+*fused* code for the cascades and token-shaped sublanguages (collapse eleven entries per
+character toward one or two — the direct-coded-scanner form that re2c and Ragel emit).
+
+This measurement is also what retired the long-queued **GLL rung** (the scoreboard's `5.e`).
+GLL generalizes recursive descent to arbitrary context-free grammars with a graph-structured
+stack and a shared parse forest — machinery whose value is taming *nondeterminism*. But after
+first-set dispatch and packrat memoization, this engine's measured backtracking residue is
+~2.2%, and the parsing literature's own comparison is unambiguous: adaptive top-down prediction
+(ANTLR's ALL(\*)) outperforms GLL and GLR *by orders of magnitude* on real, near-deterministic
+grammars. Adopting GLL here would add descriptor and stack bookkeeping to every one of those
+~262 ns rule entries in exchange for removing almost nothing — a predicted net *slowdown*,
+adjudicated and refuted by a design spike for the cost of a document instead of a rewrite. That
+is the land-iff-faster discipline working exactly as intended: the same gate that reverted a
+byte-identical-but-neutral optimization also refuses a plausible-sounding research rewrite that
+the numbers do not support.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 

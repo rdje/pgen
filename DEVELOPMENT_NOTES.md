@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-12 - PGEN-RGX-0078-0034 — RGX-0078 `.5.e` design spike: GLL refuted; the gap is architectural (99× measured)
+
+**What.** Docs-only adjudication of the research-grade `.5.e` (GLL + GSS + SPPF) rung, per its literature-first mandate. Nothing built.
+
+**The three tool measurements.** (1) Probe sanity: HEAD fat-LTO `regex_perf_probe` (sha `d954f897…`) geomean-of-mins ≈56.6µs — pinned `.5.g` value reproduces. (2) First PGEN↔PCRE2 distance measurement: `pcre2test -t 10000` on the same 8 patterns (scratchpad `pcre2_bench_patterns.txt`, `"…"`-delimited because `url_simple` contains `/`) → 0.337–0.859µs per compile, geomean ≈0.57µs ⇒ **ratio ≈99×** (honest bounds: 8-pattern preview, PGEN=min vs PCRE2=mean — second-order vs a 99× verdict). (3) Rule-entry census: `PGEN_REPORT_MEMO_STATS=1 parseability_probe --parse regex` on `test` → 45 entries (5×`piece/atom/literal/literal_char/unicode_char` + 4×`letter/quantifier/quant_base/zero_width` + 4 entry rules) ⇒ ≈262ns/entry, ≈11 entries/char.
+
+**Why GLL loses here.** GLL's target (shared re-exploration of nondeterministic continuations) is already covered in PGEN by packrat memoization + `.5.c.2` first-set pruning + delta-based winner-only effects; the uncovered residue is the backtrack machinery (`rollback_to_named` 1.30% + `extract_delta_since` 0.85% ≈ 2.2%). GLL replaces native call/return with heap descriptors + GSS bookkeeping on EVERY entry — i.e. it raises the very ~262ns/entry constant that dominates. Literature anchor: ALL(*) (OOPSLA'14) beats GLL/GLR by orders of magnitude on near-deterministic real grammars; regex.ebnf post-pruning is near-deterministic (singleton-or-small survivor sets), and its tournament is deterministic winner-selection — an SPPF has no ambiguity to share. Verdict: predicted net-negative; cannot satisfy land-iff-faster.
+
+**The road-level consequence.** `<5×` needs ≈20× more; all profiled buckets sum ≈32%. The only levers that change the ENTRIES×COST product: the `.7` parse-cache (entries→0 on repeats; the real RGX workload), cascade fusion / scanner compilation of token-shaped sublanguages (entries/char ~11→~2, ceiling ~3–5×), or re-baselining the bound. Surfaced to the director; recommendation `.7` first + vendor `pgen_iteration_flow` (the `.6` prerequisite regardless).
+
 ## 2026-07-12 - PGEN-RGX-0078-0033 — RGX-0078.5.g construction cache LANDED (−3.8%, byte-identical)
 
 **What.** The emitted parser constructor no longer rebuilds the grammar-constant compiled annotation tables per parse: a new emitted `shared_semantic_runtime_annotations()` holds them in a per-process `static OnceLock`, and `new()` takes the `&'static` handle. Field type `CompiledSemanticRuntimeAnnotations` → `&'static …`; accessor returns the ref; `transaction_for_rule` drops its extra `&`. 3 emission sites in `ast_based_generator.rs`; all 11 parsers regenerated.
