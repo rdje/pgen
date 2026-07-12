@@ -399,6 +399,36 @@ build per-branch values as it advances all branches together, so it *must* mater
 only. Lazy materialization returns there, where it composes with the DFA advance into a real win
 rather than standing alone as a substitute for a lever already landed.
 
+### The same discipline, applied one step earlier (lever 5.d.3, the memo-clone premise)
+
+The very next queued lever — **5.d.3 (memo subtree sharing)** — was to replace the packrat memo's
+deep clone (it copies a rule's whole parse subtree both when it caches a result and when it replays
+one) with a cheap shared handle, on the theory that *those* clones were the "~70% allocate/clone/free"
+the re-profile saw. That theory was an **inference**, and the lesson from 5.d.2 is precisely *don't
+infer — measure the marginal gain against the current baseline first.* So before building the change
+(which is genuinely invasive — it entangles a shared-ownership handle with the parser's input
+lifetime), the memo-clone cost was profiled *specifically*.
+
+It does not hold up. A memo-footprint report shows the cache is **tiny and flat** — the busiest
+pattern caches under four hundred subtree-nodes across the whole parse, averaging under two nodes per
+entry, and most of those are string-slice leaves whose "clone" is a pointer copy that allocates
+nothing. And the sampled self-time puts the two clone operations the lever targets at **1.27% of the
+total** — the same speed-neutral territory 5.d.2 turned out to occupy. The biggest *clone* in the
+profile is not the memo at all; it is the winner's JSON return value (a `serde_json` object, which is
+a small map, cloned and dropped) — which this lever does not touch. The real ~55% is broad
+*construction* allocation spread across every parse structure, and the only thing that removes it is
+the arena-plus-lockstep advance (item 1 above), not sharing the memo's node.
+
+So 5.d.3, like 5.d.2, is a **composing piece of the lockstep road, not a standalone win** — and this
+time the discipline caught it *before* a day of invasive lifetime surgery rather than after. The
+profile did surface two genuinely separable levers to weigh, though: the arena/lockstep advance
+itself (the only lever that moves the 55%), and a smaller, byte-identical one outside that road —
+**precompiling the predicate expression.** A semantic predicate like `a == b || c != d` is today
+re-parsed from its source string on *every* evaluation (split on `||`, then `&&`, then each
+comparison operator, recursively); parsing it once into a small tree and evaluating that tree instead
+would reclaim the ~3% the string-splitting costs, with the same result byte-for-byte. Which of these
+comes next is a sequencing decision for the director, since it touches the agreed lockstep plan.
+
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
 It is tempting to frame this as "a *generated* parser can never catch *hand-tuned* C." That
