@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0040 — RGX-0078 ROAD **AGREED** with the director (docs-only): the **DERIVED-SCANNER rung** — leaf `.5.h` OPENED; first slice `.5.h.1` STEP-0 fusibility census
+
+The strategic fork opened by the `-0034` GLL refutation is RESOLVED by explicit director agreement (sessions #104–#105 discussion; captured once at the agreement point per the new discussion-mode discipline).
+
+- **The agreed design (tree `.5.e` section F — the interface contract):** codegen gains a FUSIBILITY pass (capability gate: regular + no store-touching directives + text-reconstructible output + DFA-encodable choice semantics + layout policy) and a SCANNER EMITTER (per maximal fusible subtree, a branch-tagged DFA emitted as direct-coded `scan_*` functions into the same generated parser). Parse-time communication is PULL-BASED with **no token stream**: `scan_R(pos) -> (accept_tag, len)` called at exactly the former rule-call sites, building the SAME ParseNode/folded value — context-dependent tokenization correct by construction.
+- **Two increments:** token-RULE fusion (also replacing SV's ~323 external `match_regex` Rust-regex-engine calls ⇒ platform-wide self-hosting) and MERGED-CHOICE scanning (token-shaped tournaments → one multi-accept DFA sweep). Regex's win = cascade fusion (char-grained tokens).
+- **Untouched:** `.ebnf` + return/semantic annotations (sole source of truth preserved — the director's acceptance frame), gen-AST, semantic runtime/store, typed AST + schema (byte-identical ⛔ floor), duality/stimuli, the interpreter (stays unfused as the reference oracle). OUT of scope: batch pre-lexing. Risks R-i..R-iv pre-registered (testimony synthesis, furthest-position parity, gate breadth, generated-code size).
+- **Steer context recorded:** RGX-side/workload thread EXCLUDED by the director ("I can't control RGX; I can control how fast PGEN runs"); RGX-side data point PGEN ≈80% of overall compile slowness (timestamp = minor open item). `.7` cache re-sequenced after the rung; `.6` re-baseline dropped.
+- **Next:** `.5.h.1` STEP-0 FUSIBILITY CENSUS — the capability-gate classifier over the gen-AST + per-grammar measured ceiling, gating the DFA-emission increments.
+- **Lockstep:** tree (section F + `.5.h`/`.5.h.1` leaves + `.5.e` status resolved), TASK_TREE frontier row, MEMORY.md layer-A overwrite. Status rows UNCHANGED (design agreement, nothing built).
+
 ## 2026-07-12 - PGEN-RGX-0078-0034 — RGX-0078 `.5.e` DESIGN SPIKE (docs-only): **GLL REFUTED** as a speed rung; distance-to-destination MEASURED for the first time — geomean(PGEN/PCRE2) ≈ **99×** vs the `<5×` bound ⇒ the residual gap is ARCHITECTURAL; road steering surfaced to the director
 
 Docs-only research adjudication (NO code change; nothing built, nothing reverted) — the `.5.e` leaf's own mandate executed: literature survey FIRST, worked mapping, and the `.5.d.2`/`.5.d.3` lesson applied (measure the marginal premise BEFORE building the high-risk change).
