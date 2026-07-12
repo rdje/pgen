@@ -685,7 +685,15 @@ impl AstBasedGenerator {
                 deterministic_partition_events: Vec<DeterministicPartitionEvent>,
                 deterministic_partition_rule_hits: HashMap<String, usize>,
                 deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode,
-                semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
+                // `RGX-0078.5.g` (construction cache): the compiled annotation
+                // table is grammar-CONSTANT, so every parser instance shares
+                // one process-wide table (built once in
+                // `shared_semantic_runtime_annotations`) instead of rebuilding
+                // and dropping it per parse. RE-PROFILE #4 pinned the per-parse
+                // rebuild at 11.9% of total parse time (std-HashMap SipHash
+                // inserts + a std→Fx re-hash of every key + ~92 short-string
+                // allocs + the full table drop).
+                semantic_runtime_annotations: &'static crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
                 semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
                 // `SV-EXH-PROOF.3.3.4.a` MVP-0: parser-agnostic library plumbing.
                 // `library_in_dir`  — root for `@import_from_library`
@@ -1126,17 +1134,32 @@ impl AstBasedGenerator {
         };
 
         Ok(quote! {
+            /// `RGX-0078.5.g` (construction cache): the grammar-constant
+            /// compiled annotation table, built ONCE per process on first
+            /// use and shared by every parser instance. The table is
+            /// immutable after construction (`set_fact_kinds` is part of
+            /// the build) and all parse-time access is `&self` point
+            /// lookups, so sharing is output-neutral by construction.
+            fn shared_semantic_runtime_annotations() -> &'static crate::ast_pipeline::CompiledSemanticRuntimeAnnotations {
+                static COMPILED_SEMANTIC_RUNTIME_ANNOTATIONS: std::sync::OnceLock<
+                    crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
+                > = std::sync::OnceLock::new();
+                COMPILED_SEMANTIC_RUNTIME_ANNOTATIONS
+                    .get_or_init(|| #compiled_semantic_runtime_annotations)
+            }
+
             pub fn new(input: &'input str, arena: &'input NodeArena<'input>, logger: Box<dyn Logger>) -> Self {
                 let logger_enabled = logger.is_enabled();
-                // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: build the compiled
+                // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: take the compiled
                 // annotations first, then seed the semantic-runtime state
                 // with the composed-predicate registry so a runtime
                 // `@predicate <user-defined-name>` call can dispatch to its
                 // `@predicate_def:` body (built-in predicate names are
                 // handled directly by `evaluate_predicate`; user-defined
                 // names fall through to the registry).
-                let semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations =
-                    #compiled_semantic_runtime_annotations;
+                // `RGX-0078.5.g`: the table is the process-wide shared one.
+                let semantic_runtime_annotations: &'static crate::ast_pipeline::CompiledSemanticRuntimeAnnotations =
+                    Self::shared_semantic_runtime_annotations();
                 let mut semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
                 semantic_runtime_state
                     .set_predicate_defs(semantic_runtime_annotations.clone_predicate_defs());
@@ -1763,7 +1786,7 @@ impl AstBasedGenerator {
             pub fn semantic_runtime_annotations(
                 &self,
             ) -> &crate::ast_pipeline::CompiledSemanticRuntimeAnnotations {
-                &self.semantic_runtime_annotations
+                self.semantic_runtime_annotations
             }
 
             pub fn semantic_runtime_state(&self) -> &crate::ast_pipeline::SemanticRuntimeState {
@@ -1781,7 +1804,7 @@ impl AstBasedGenerator {
                 rule_name: &str,
             ) -> (crate::ast_pipeline::SemanticRuntimeTransaction<'_>, usize) {
                 self.semantic_runtime_state
-                    .transaction_for_rule(&self.semantic_runtime_annotations, rule_name)
+                    .transaction_for_rule(self.semantic_runtime_annotations, rule_name)
             }
 
             fn semantic_predicate_debug_label(

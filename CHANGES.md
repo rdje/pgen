@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-07-12 - PGEN-RGX-0078-0033 — RGX-0078.5.g CONSTRUCTION CACHE **LANDED** (SPEED PHASE): regex geomean **−3.8%** (≈58.6µs→≈56.8µs), byte-identical, faster every round
+
+The grammar-constant compiled annotation tables are now built ONCE per process and shared by every parser instance — the per-parse rebuild (RE-PROFILE #4's 11.9% bucket) is gone. Parser-AGNOSTIC codegen change; all 11 parsers inherit it. Sequencing director-agreed same session ("`.5.g` first, then `.5.e`").
+
+- **The change (3 emission sites in `ast_based_generator.rs`):** new emitted `shared_semantic_runtime_annotations()` (a `static OnceLock<CompiledSemanticRuntimeAnnotations>` wrapping the entire former per-parse construction block incl. `set_fact_kinds`); the parser-struct field became `&'static CompiledSemanticRuntimeAnnotations`; `new()` takes the shared handle; accessor/`transaction_for_rule` deref fixes.
+- **Soundness (tool-verified pre-build):** `set_fact_kinds` is the table's ONLY `&mut self` method and is called only inside the construction block ⇒ immutable after build; all parse-time access is `&self` point lookups (the `.5.a` proof); no interior mutability in the table ⇒ `Sync`.
+- **Speed (decisive, drift-controlled):** BOTH release fat-LTO, distinct sha256 (`8b463969…` baseline / `d954f897…` cache), alternated 5 rounds × 2000: ratios `0.951/0.975/0.956/0.971/0.957` = **−3.8% geomean**, faster EVERY round; baseline reproduces the pinned ≈58.6µs. Honest: below the 8–11% ceiling — `new()` also does genuinely per-parse init (memo pre-size, runtime state) the cache correctly keeps.
+- **Correctness byte-identical (full ⛔ battery green):** equivalence gate 4/4 (interp builds its table FRESH per parse vs generated SHARES one — byte-identical outputs, all grammars, seeds 0/7/42) + combinator 2/0 + semantic 2/0 + regex cert seeds 0/7/42 `total=267 proof=9 witness=258 UNKNOWN=0 fully_certified=true` spf `0/1/1` + ast-shape + duality + PCRE2 compile-oracle + full lib/test 0-error + clippy strict-source (generated stage = pre-existing debt only, 0 mentions of the new emission).
+- **Lockstep:** tree `.5.g` checklist all `[x]`; book scoreboard row + "After the arena" section; LIVE tracker note; MEMORY.md. Regex stays Done ⇒ no contract/schema bump. `generated/` regen-from-source (gitignored).
+
 ## 2026-07-12 - PGEN-RGX-0078-0032 — RGX-0078 `.5` RE-PROFILE #4 (docs-only steering): arena effect CONFIRMED (alloc 54.6%→17.7%); NEW #1 bucket = per-parse CONSTRUCTION of grammar-constant tables (11.9%) → `.5.g` construction-cache leaf PROPOSED; `.5.d` honestly rolled up `done`
 
 Docs-only steering slice (NO code change) — the land→re-profile→steer discipline applied to the new ≈58.6µs arena baseline.

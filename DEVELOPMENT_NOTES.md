@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-12 - PGEN-RGX-0078-0033 — RGX-0078.5.g construction cache LANDED (−3.8%, byte-identical)
+
+**What.** The emitted parser constructor no longer rebuilds the grammar-constant compiled annotation tables per parse: a new emitted `shared_semantic_runtime_annotations()` holds them in a per-process `static OnceLock`, and `new()` takes the `&'static` handle. Field type `CompiledSemanticRuntimeAnnotations` → `&'static …`; accessor returns the ref; `transaction_for_rule` drops its extra `&`. 3 emission sites in `ast_based_generator.rs`; all 11 parsers regenerated.
+
+**Soundness argument (verified BEFORE building).** The compiled table has exactly one `&mut self` method (`set_fact_kinds`), called exactly once, inside the emitted construction block — so after construction the table is immutable and all parse-time access is `&self` point lookups (`.5.a` established those maps are never iterated for output). No interior mutability in the table (the `Cell` in the file is `SemanticRuntimeState`'s, per-parse) ⇒ `Sync`, and the `static` is sound. The interpreter deliberately keeps building its tables fresh per parse — which turns the equivalence gate into a pointed oracle: fresh-per-parse vs shared-once must produce byte-identical output, and does (4/4, all grammars, seeds 0/7/42).
+
+**Why the win is −3.8%, not the 11.9% bucket.** The `new()` subtree also contains genuinely per-parse work the cache must keep: the memo pre-size allocation, `SemanticRuntimeState::new`, `clone_predicate_defs`, struct init. The removable share was the table build alone. Faster every round (`0.951/0.975/0.956/0.971/0.957`, alternated fat-LTO, distinct sha256) — small but decisive, and it also deletes the std→Fx double-hash and ~92 per-parse string allocs from every grammar's parser.
+
+**Verification trap resolved honestly.** The post-regen `cargo build --bin ast_pipeline` "finished in 0.33s" — suspicious staleness ([[feedback_verify_sv_parser_regen_mtime]]); resolved by `nm`: 33 `shared_semantic_runtime` symbols in the binary (the make gates had already rebuilt it with the new parsers), so the cert/gate evidence stands.
+
 ## 2026-07-12 - PGEN-RGX-0078-0032 — RGX-0078 `.5` RE-PROFILE #4 (docs-only): the post-arena map + the `.5.g` construction-cache proposal
 
 **What.** Steering re-profile on the landed-arena baseline (the RE-PROFILE #2/#3 discipline). Probe rebuilt from HEAD (fat-LTO, sha `8b463969…`), sanity ≈60.1µs (pinned ≈58.6µs reproduces), `sample` 30s @ 1ms → 24,956 timed samples. Raw: session scratchpad `sample_reprofile4.txt` + `analyze_sample.py`.

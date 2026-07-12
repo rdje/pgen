@@ -222,7 +222,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.c | **First-set predictive dispatch** — before a top-level branch tournament evaluates a branch, peek the next input byte and SKIP any non-nullable branch whose sound FIRST-set can't begin a match there | codegen (parser-agnostic) | 303 µs → **76 µs** | **−75% (~4×)** | **landed** ✓ |
 | RGX-0078 · 5.d.2 | **Lazy winner-only materialization** — defer each branch's return-annotation transform + clone and run it once, for the winner only (explore in lockstep, don't re-do work per candidate) | codegen (parser-agnostic) | 75.5 µs ≈ 75.9 µs | **~0% (neutral)** | **reverted** ✗ (idea preserved) |
 | RGX-0078 · 5.d.4 | **Node arena** — allocate every child `ParseNode` in a per-parse bump arena (`typed-arena`) and hold children as `&'input` references instead of `Box`/`Vec<ParseNode>`, so the profiled ~55% construction-`malloc` collapses to a handful of arena growths freed in one shot | codegen + engine (parser-agnostic) | 75.0 µs → **58.6 µs** | **−21.9%** | **landed** ✓ |
-| RGX-0078 · 5.g | **Construction cache** (proposed) — the post-arena re-profile found ~12% of every parse is spent REBUILDING the grammar-constant compiled annotation tables (std-map SipHash inserts, ~92 small strings, every key hashed twice, full drop at parse end); build them once per process and share a handle | codegen + engine (parser-agnostic) | 58.6 µs → ? | ceiling ≈8–11% | **proposed** (awaiting sequencing vs the lockstep/GLL rung) |
+| RGX-0078 · 5.g | **Construction cache** — the post-arena re-profile found ~12% of every parse was spent REBUILDING the grammar-constant compiled annotation tables (std-map SipHash inserts, ~92 small strings, every key hashed twice, full drop at parse end); they are now built once per process and every parser instance shares the one table | codegen + engine (parser-agnostic) | 58.6 µs → **56.8 µs** | **−3.8%** | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -548,12 +548,18 @@ engine actually uses), and then drops the whole structure at the end of the pars
 496 µs baseline this was ~0.7% and correctly dismissed; after an 8.5× speedup, the same fixed cost
 is the top item on the board — a textbook illustration of why the re-profile step is not optional.
 
-The indicated lever — proposed to the director as the next slice, ahead of the research-grade
-lockstep/GLL rung — is a **construction cache**: build the compiled annotation tables *once per
+The indicated lever — agreed with the director as the next slice, ahead of the research-grade
+lockstep/GLL rung — was a **construction cache**: build the compiled annotation tables *once per
 process* and hand every parser instance a cheap shared handle. Same values, same lookups,
-byte-identical by construction; just built once instead of on every parse. The remaining map after
-that: the distributed rule-call machinery (~12%, the lockstep/GLL target), the semantic-runtime
-residue (~8%), and the return-annotation JSON output (~6%).
+byte-identical by construction; just built once instead of on every parse. It landed the same
+day: **−3.8%** (58.6 µs → 56.8 µs), faster in every measured round, with the full byte-identity
+battery green — the differential-equivalence gate is a particularly pointed oracle here, since the
+interpreter side still builds its tables fresh per parse while the generated side shares one, and
+the outputs must (and do) match to the byte. The honest note: the win is smaller than the profile
+bucket, because the constructor also does genuinely per-parse work (memo pre-sizing, runtime-state
+init) that the cache correctly leaves alone. The remaining map: the distributed rule-call
+machinery (~12%, the lockstep/GLL target), the semantic-runtime residue (~8%), and the
+return-annotation JSON output (~6%).
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
