@@ -427,7 +427,23 @@ itself (the only lever that moves the 55%), and a smaller, byte-identical one ou
 re-parsed from its source string on *every* evaluation (split on `||`, then `&&`, then each
 comparison operator, recursively); parsing it once into a small tree and evaluating that tree instead
 would reclaim the ~3% the string-splitting costs, with the same result byte-for-byte. Which of these
-comes next is a sequencing decision for the director, since it touches the agreed lockstep plan.
+comes next was a sequencing decision for the director, since it touches the agreed lockstep plan — and
+the call was to **advance to the lockstep road itself**, the only lever that moves the dominant ~55%,
+folding the memo-sharing and the lazy-materialization tool in as the pieces they turned out to be.
+
+The design of that lockstep advance then cleared its first and hardest correctness hurdle. The worry
+with advancing all branches together and dropping the dead ones in place is that the parser's
+"furthest position" — the deepest byte any branch reached, which is what turns a parse failure into a
+precise error locus rather than a shrug — might come out different from the honest serial version that
+tries every branch to its end. It does not: that value is written in exactly one place in the whole
+generated parser (the moment a rule is entered), it only ever moves forward, and it is never rewound.
+So a terminal branch can only ever push it to the choice's own start, which is already recorded, and a
+grouped branch hands off to ordinary recursion the instant its opening marker is recognized — which
+records the same positions it always did. The lockstep advance is therefore *furthest-neutral by
+construction*, for the same reason the earlier first-set prune was, and the byte-identical differential
+gate checks that position explicitly as a backstop. The remaining design question — how a
+build-once-and-share arena coexists with the borrow the parse tree already holds on the input — is the
+next piece to work out before any code is written.
 
 ### The gap is generator maturity, not "generated vs hand-tuned"
 
