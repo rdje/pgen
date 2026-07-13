@@ -210,6 +210,7 @@ fn dump_rule_outcome_counts_json(
     baseline: &[u64],
     counts: &[std::sync::atomic::AtomicU64],
     committed: &[u64],
+    store_counter_deltas: [u64; 6],
     accepted: bool,
 ) {
     let mut entry_map = serde_json::Map::new();
@@ -247,6 +248,20 @@ fn dump_rule_outcome_counts_json(
         "total_committed": total_committed,
         "rule_entry_counts": serde_json::Value::Object(entry_map),
         "rule_committed_counts": serde_json::Value::Object(committed_map),
+        // RGX-0078.5.i.1 — the parse's semantic-store counter DELTAS (already
+        // maintained by the engine; this only reports them). `rollbacks` is the
+        // parse's total `rollback_to_named` calls = failed `try_parse`
+        // speculations + C3-B tournament branch cleanups — the speculation-count
+        // side of the cost-decomposition census that per-rule entry counts
+        // cannot see.
+        "store_counters": {
+            "rollbacks": store_counter_deltas[0],
+            "facts_emitted": store_counter_deltas[1],
+            "facts_rolled_back": store_counter_deltas[2],
+            "scopes_opened": store_counter_deltas[3],
+            "scopes_closed": store_counter_deltas[4],
+            "predicate_evaluations": store_counter_deltas[5],
+        },
     });
     let rendered = serde_json::to_string_pretty(&payload)
         .unwrap_or_else(|e| format!("{{\"error\": \"serialization failed: {e}\"}}"));
@@ -274,6 +289,22 @@ macro_rules! with_rule_entry_count_dump {
         let __outcome_dump = current_dump_rule_outcome_counts_json();
         let __entry_baseline = (__entry_dump.is_some() || __outcome_dump.is_some())
             .then(|| rule_entry_counts_baseline(&$parser.rule_call_counts()));
+        // RGX-0078.5.i.1 — snapshot the semantic-store counters so the dump can
+        // report the parse's DELTAS (baseline-delta discipline, same as the entry
+        // counters above: construction/preload work never pollutes the numbers).
+        // Uses the emitted `semantic_runtime_state()` accessor every generated
+        // parser already has; zero cost when the outcome dump is unset.
+        let __store_baseline = __outcome_dump.is_some().then(|| {
+            let __c = $parser.semantic_runtime_state().counters();
+            [
+                __c.rollbacks,
+                __c.facts_emitted,
+                __c.facts_rolled_back,
+                __c.scopes_opened,
+                __c.scopes_closed,
+                __c.predicate_evaluations.get(),
+            ]
+        });
         if __outcome_dump.is_some() {
             $parser.enable_coverage();
         }
@@ -289,6 +320,18 @@ macro_rules! with_rule_entry_count_dump {
             );
         }
         if let Some(__path) = __outcome_dump {
+            let __store_deltas = {
+                let __c = $parser.semantic_runtime_state().counters();
+                let __b = __store_baseline.unwrap_or([0u64; 6]);
+                [
+                    __c.rollbacks.saturating_sub(__b[0]),
+                    __c.facts_emitted.saturating_sub(__b[1]),
+                    __c.facts_rolled_back.saturating_sub(__b[2]),
+                    __c.scopes_opened.saturating_sub(__b[3]),
+                    __c.scopes_closed.saturating_sub(__b[4]),
+                    __c.predicate_evaluations.get().saturating_sub(__b[5]),
+                ]
+            };
             dump_rule_outcome_counts_json(
                 &__path,
                 $grammar,
@@ -296,6 +339,7 @@ macro_rules! with_rule_entry_count_dump {
                 __entry_baseline.as_deref().unwrap_or(&[]),
                 &$parser.rule_call_counts(),
                 &$parser.exercised_rule_entry_counts(),
+                __store_deltas,
                 __outcome.is_ok(),
             );
         }
@@ -660,6 +704,20 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
             );
         }
         if let Some(path) = outcome_dump {
+            // RGX-0078.5.i.1 — store-counter deltas. The worker thread's parser is
+            // freshly constructed with no preload, so the baseline is zero and the
+            // counters ARE the parse's deltas.
+            let store_deltas = {
+                let c = parser.semantic_runtime_state().counters();
+                [
+                    c.rollbacks,
+                    c.facts_emitted,
+                    c.facts_rolled_back,
+                    c.scopes_opened,
+                    c.scopes_closed,
+                    c.predicate_evaluations.get(),
+                ]
+            };
             dump_rule_outcome_counts_json(
                 &path,
                 "regex",
@@ -667,6 +725,7 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
                 &[],
                 &parser.rule_call_counts(),
                 &parser.exercised_rule_entry_counts(),
+                store_deltas,
                 outcome.is_ok(),
             );
         }

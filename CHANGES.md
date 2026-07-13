@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0046 — RGX-0078.5.i.1 STEP-0 COST-DECOMPOSITION CENSUS **MEASURED**: ≈32% of the regex bench is UNCONDITIONAL bookkeeping waste; a NEW pass **P0 (lazy/no-alloc protocol hygiene, ≈−25% landable)** discovered; planner order fixed **P0→P2→P1→P3→P4**; regen-path drift incident caught + canonically fixed (`.5.i.1.t1`)
+
+The planner rung's step 0 (session #108). Method: six MEASUREMENT-ONLY strip-variants of the generated regex
+parser (all REVERTED, nothing landed), each alternated 5×2000 vs the canonical fat-LTO baseline (≈56.7µs,
+reproduces the pinned ≈56.8µs) and each proven AST-BYTE-IDENTICAL on the 8-pattern bench before its time was
+trusted; plus counts (new store-counters dump), unit microbench, and a mix-weighted `sample` profile.
+
+- **The measured ablation table:** V1 per-entry rule-context String **−4.3%**; V2 rollback-naming strings
+  (2×String per failed speculation + 1×`format!` per SUCCESSFUL tournament branch — consumed only under
+  trace) **−14.7%**; V3 tournament bookkeeping allocs (`(0..n).collect()` eval-order Vec + unconditional
+  partition-group String per Or-body) **−6.5%**; V4 observability (counter+coverage+furthest+trace gates)
+  **−3.4%**; V5 recursion guard **−3.8%**; **V6 all five combined −31.7%** (56.7µs → 38.7µs) — exceeds the
+  product of the five (allocator-pressure synergy). New count: **2676 rollbacks** on the bench (> 1 per raw
+  entry). Non-ablatable buckets modeled + profiler-triangulated: memo ≈17–22%, serde ≈5–6%,
+  annotation-table probes ≈4–6%, value-constraint expression RE-parsing ≈2–4% (payloads still interpreted
+  from source text per evaluation), structural remainder ≈15–20%.
+- **⇒ P0 (NEW) ahead of all planner passes:** lazy/no-alloc protocol hygiene — build trace-naming payloads
+  only when trace consumes them; iterate branch order without materializing. NO grammar analysis; preserves
+  every observability feature; measured landable ceiling ≈−25%. Then P2 (830 killable discards) → P1 (~290
+  of 617 committed entries are wrapper frames) → P3 (memo/guard selectivity) → P4 (value folding +
+  expression pre-compilation). ⛔ land-iff-faster + byte-identical per increment, unchanged.
+- **`.5.i.1.t1` incident (caught by the census's own byte-identity oracle):** last session's chicken-and-egg
+  regen (feature-gated pipeline without the generated annotation parsers) silently fell back to
+  BOOTSTRAP-mode annotation parsing, which lacks the `null` literal ⇒ regex quantifier `max: null` degraded
+  to the STRING `"null"` (regex-only: the 5 `null`-literal sites; counts/acceptance unaffected). All 8
+  focus-target parsers canonically re-regenerated; `parse_harness_equivalence_gate` GREEN (`ok. 4 passed`)
+  on the canonical state — the interpreter side IS the tripwire for this class. Queued enforcement: the
+  bootstrap annotation parser must loudly refuse constructs beyond its subset; non-canonical regen flows
+  must be followed by the equivalence gate.
+- **Landed code (observability tier only):** the `.5.h.1b` outcome dump now also reports the parse's
+  semantic-store counter DELTAS (`store_counters` JSON block: rollbacks/facts/scopes/predicates) — lib-only
+  (`parser_registry.rs`, macro + regex worker paths), baseline-delta discipline, zero cost unset, no regen
+  needed. The parse path is byte-identical to before the slice.
+- **Lockstep:** tree (`.5.i.1` results + checklist + `.5.i.1.t1`), book `inside-parser-performance.md`
+  (census section + scoreboard row), DEV-NOTES, MEMORY.md overwrite. Status rows UNCHANGED (measurement
+  slice; nothing user-facing changed behavior).
+
 ## 2026-07-13 - PGEN-RGX-0078-0045 — RGX-0078 ROAD **AGREED** with the director (docs-only): the **OPTIMIZING-COMPILER ("planner") rung** — `.5.i` OPENED, `.5.h` scanner rung PARKED; first slice `.5.i.1` STEP-0 cost-decomposition census
 
 The §G.1 fork opened by the `.5.h.1`/`.5.h.1b` measurement refutation is RESOLVED by explicit director agreement

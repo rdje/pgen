@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0046 — RGX-0078.5.i.1: the ablation method, the five WHY+WHEREs, and the drift incident's exact mechanism
+
+**Ablation discipline (what makes the numbers decisive).** Each variant = ONE machinery piece stripped
+(codegen edit + `make focus_regex` regen, or lib edit for the context-String variant), full fat-LTO release
+rebuild, measured ALTERNATELY vs the saved canonical baseline binary 5 rounds × 2000 samples
+(geomean-of-per-pattern-mins per round; per-round ratios all < 1 for every variant), and — BEFORE trusting the
+time — a debug-probe rebuild + `--parse-dump-ast-pretty` byte-compare on all 8 bench patterns vs the canonical
+reference dumps. All edits reverted after; `git status` carries only the dump extension + docs. V5 isolation
+detail: with the guard stack ablated, the `try_parse` Err arm was pinned to the SAME two allocations as
+baseline (`Some(black_box("speculative_rule").to_string())`) so the guard number doesn't leak V2's bucket.
+
+**The five WHY+WHEREs (exact sites):** V1 `semantic_runtime.rs` `push_rule_context` —
+`rule_name.to_string()` per entry (2389×; the no-alloc dual measured 0.09ns vs 9.96ns in the unit bench).
+V2 codegen `try_parse` Err arm — `entry.0.to_string()` + `format!("{} (try_parse Err)")` per failed
+speculation, PLUS `generate_or_logic`'s C3-B cleanup `format!("{} (C3-B branch i/n cleanup)")` per
+SUCCESSFUL branch (`ast_based_generator.rs:3988`); 2676 rollbacks measured on the bench via the new
+store-counters dump. V3 `generate_or_logic` — `evaluation_order: Vec<usize> = (0..n).collect()` (:4110) +
+`effective_deterministic_partition_group` returning a fresh String UNCONDITIONALLY (computed before the
+enabled check; usually `format!("rule.{}")` ≈38ns) per Or-body execution. V4 — prologue counter
+`fetch_add`, coverage branch, furthest-position update, `trace_rules` Option probe, and `trace_enabled()`
+(`logger_enabled && …`) at every log site. V5 — `recursion_guard.enter/exit` per entry + `check_cycle`
+linear stack scan on recursive rules (emitted per Optim #16's recursive-only gate).
+
+**Rollback-count semantics.** `SemanticStoreCounters::rollbacks` counts BOTH failed-`try_parse` rollbacks
+AND C3-B per-successful-branch cleanups — both allocate naming strings today, which is why V2's surface is
+2676 events, not just the failed-speculation count. The split is not observable at rule granularity; the
+V2 wall-clock number prices the union directly.
+
+**Drift incident mechanism (`.5.i.1.t1`).** `grammars/regex.ebnf` uses JSON `null` literals in 5 return
+annotations (`{min: 0, max: null}` etc.; the grammar's own comment pins "non-negative integer OR JSON
+null"). The canonical annotation path lowers `null` → `serde_json::Value::Null`
+(`unified_return_ast.rs:76`). The BOOTSTRAP-mode return-annotation parser
+(`return_annotation_handler.rs`) predates the `null` literal and has no branch for it — it degrades to the
+string `"null"`. The `.5.h.1b` chicken-and-egg regen used the `ebnf_dual_run`-only feature-gated pipeline
+(no generated annotation parsers) ⇒ bootstrap fallback ⇒ the on-disk regex parser emitted `"max": "null"`.
+Caught 4/8 bench dumps differing; proven NOT the ablation's doing by regenerating at clean HEAD via
+canonical `make focus_regex` (same 4/8 differ vs the stale reference; V2's dumps == clean-HEAD dumps
+byte-identically). Counts reproduce exactly on the canonical parser (2389/617/2676) — payload values do
+not steer parse flow here. Canonical re-regen of all 8 focus targets + equivalence gate green closes the
+operational side; the loud-refusal fix for the bootstrap parser is the queued enforcement follow-up.
+
 ## 2026-07-13 - PGEN-RGX-0078-0044 — RGX-0078.5.h.1.t1: why the spf residual's label was blank, and why the parser (not the sample) wins the over-generation dispute
 
 **The label pathway.** `main.rs`'s cert failure-labeler calls `parser_registry::parse_error()`, which dispatches
