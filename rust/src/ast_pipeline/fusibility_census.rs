@@ -140,6 +140,13 @@ pub struct FusibilityCensus {
     pub reason_histogram: Vec<(String, usize)>,
     pub rules: BTreeMap<String, RuleCensus>,
     pub entry_share: Option<EntryShare>,
+    /// RGX-0078.5.h.1b — every choice (Or) site with ≥2 branches, classified for the
+    /// increment-(ii) merged-choice gate. Deterministic order: rule-universe order,
+    /// then pre-order within the rule.
+    pub choice_sites: Vec<ChoiceSiteCensus>,
+    /// RGX-0078.5.h.1b — the measured raw/committed/discarded decomposition (present
+    /// iff `--fusibility-outcome-counts` files were joined).
+    pub outcome_share: Option<OutcomeShare>,
 }
 
 /// The JSON shape `parseability_probe --dump-rule-entry-counts-json` writes; consumed by
@@ -151,6 +158,111 @@ struct RuleEntryCountsFile {
     accepted: bool,
     #[serde(default)]
     rule_entry_counts: BTreeMap<String, u64>,
+}
+
+/// RGX-0078.5.h.1b — the JSON shape `parseability_probe --dump-rule-outcome-counts-json`
+/// writes (raw + COMMITTED per-rule entry counts); consumed by
+/// `--fusibility-outcome-counts`. `raw − committed` = the rule's FAILED-speculation
+/// entries (committed keeps C3-B semantics: winners + successful-but-losing branches).
+#[derive(Debug, serde::Deserialize)]
+struct RuleOutcomeCountsFile {
+    grammar: String,
+    #[allow(dead_code)]
+    accepted: bool,
+    #[serde(default)]
+    rule_entry_counts: BTreeMap<String, u64>,
+    #[serde(default)]
+    rule_committed_counts: BTreeMap<String, u64>,
+}
+
+/// RGX-0078.5.h.1b — one branch of a choice (Or) site, classified for the
+/// increment-(ii) MERGED-CHOICE gate.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ChoiceBranchVerdict {
+    /// 1-based branch index (matches the trace's `branch N/M` numbering).
+    pub index: usize,
+    /// The branch LANGUAGE is DFA-decidable (value-agnostic shape gate + layout
+    /// contiguity) — a multi-accept DFA at the site can answer this branch's
+    /// match/no-match + length in one scan.
+    pub encodable: bool,
+    /// The branch value is also a matched-text fold (increment-1 tier): the winning
+    /// descent itself could be replaced, not just the failing probes.
+    pub text_folding: bool,
+    /// Rule references appearing anywhere in the branch subtree (deduped, sorted).
+    pub direct_refs: Vec<String>,
+    /// Of `direct_refs`: rules whose EVERY grammar-wide reference occurrence lives in
+    /// this branch subtree — their measured entries are attributable to THIS site
+    /// (the sound per-site attribution basis; a rule referenced from several sites
+    /// cannot be split with per-rule aggregate counters).
+    pub sole_refs: Vec<String>,
+}
+
+/// RGX-0078.5.h.1b — one choice (Or) site of the grammar: where a merged-choice
+/// multi-accept DFA could pre-discriminate the token-shaped branch subset.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ChoiceSiteCensus {
+    pub rule: String,
+    /// Site id within the rule: `or#N` in pre-order walk order (`or#0` = the rule's
+    /// top-level alternation when the body is an Or).
+    pub site: String,
+    /// True for the rule's top-level Or (branch return annotations align by index
+    /// there, so the per-branch text judgment uses them; nested sites judge the
+    /// default fold).
+    pub top_level: bool,
+    pub branches: usize,
+    pub encodable_branches: usize,
+    /// Every branch is encodable — the full section-F increment-(ii) shape (ONE
+    /// multi-accept DFA replaces the whole tournament).
+    pub all_encodable: bool,
+    pub branch_verdicts: Vec<ChoiceBranchVerdict>,
+    /// Measured DISCARDED entries on this site's sole-attributable encodable-branch
+    /// rules (only meaningful when outcome counts were joined; 0 otherwise). Sound
+    /// attribution to this site's encodable branch SUBTREES (every occurrence of a
+    /// sole ref lives here, and an encodable rule's closure is encodable, so all its
+    /// failing work is DFA-killable within this subtree — at this site or an inner
+    /// one). A lower bound: shared-reference rules and in-branch terminal probing
+    /// are invisible to per-rule aggregates.
+    pub attributable_discarded: u64,
+}
+
+/// RGX-0078.5.h.1b — the measured outcome-share join (census × raw+committed counts):
+/// the increment-(ii) decomposition of real parse work.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct OutcomeShare {
+    pub count_files: usize,
+    pub total_entries: u64,
+    /// Entries surviving all speculative rollbacks (C3-B: winners + successful-but-
+    /// losing tournament branches). This work builds/validates the accepted parse —
+    /// no site discriminator can remove the non-encodable part of it.
+    pub total_committed: u64,
+    /// `total_entries − total_committed`: entries inside failed speculations — the
+    /// probing waste. The increment-(ii) target surface.
+    pub total_discarded: u64,
+    /// Of `total_discarded`: entries on SHAPE-ENCODABLE rules — every such failing
+    /// attempt is answerable by a derived-DFA test at its call site (choice branch,
+    /// optional group, or iteration attempt alike), so this is the sound
+    /// increment-(ii) kill surface under the uniform per-entry cost model.
+    pub discarded_on_encodable: u64,
+    /// Of `total_discarded`: entries on NON-encodable (structural) rules — killable
+    /// only by prefix-approximation discrimination (out of increment-(ii) scope).
+    pub discarded_on_non_encodable: u64,
+    /// Of `total_committed`: entries on shape-encodable rules (context — the
+    /// increment-(i)-adjacent surface already measured by `EntryShare`).
+    pub committed_on_encodable: u64,
+    /// Rule names present in the counts files but absent from the census.
+    pub unmatched_rules: Vec<String>,
+    pub unmatched_entries: u64,
+    /// `total / (total − discarded_on_encodable)` — the measured increment-(ii)
+    /// ceiling under the uniform per-entry cost model (scan calls ≈ a terminal
+    /// match, first-order 0; memo-hit re-entries counted at full weight — both
+    /// caveats carried from `.5.h.1`).
+    pub ceiling_estimate: f64,
+    /// Sum of per-rule `committed − raw` excess (a committed count exceeding the raw
+    /// entry delta — possible when a positive-lookahead success's coverage pushes
+    /// survive AND the later real parse memo-hits, replaying the cached delta without
+    /// re-entering descendants). Per-rule discards use `saturating_sub`, so overshoot
+    /// is never silently negative; a nonzero value is reported loudly.
+    pub committed_overshoot: u64,
 }
 
 /// How many lexemes a node consumes, for the layout-contiguity gate.
@@ -733,6 +845,286 @@ fn collect_refs(node: &ASTNode, out: &mut HashSet<String>, regex_patterns: &mut 
     }
 }
 
+/// RGX-0078.5.h.1b — count every `rule_reference` occurrence (with multiplicity) in a
+/// subtree. The grammar-wide totals feed the sole-reference attribution test: a rule
+/// whose every occurrence lives inside one choice branch has all its measured entries
+/// attributable to that site.
+fn collect_ref_occurrences(node: &ASTNode, out: &mut HashMap<String, usize>) {
+    match node {
+        ASTNode::Or { alternatives } => alternatives
+            .iter()
+            .for_each(|a| collect_ref_occurrences(a, out)),
+        ASTNode::Sequence { elements } => elements
+            .iter()
+            .for_each(|e| collect_ref_occurrences(e, out)),
+        ASTNode::Quantified { element, .. } | ASTNode::Lookahead { element, .. } => {
+            collect_ref_occurrences(element, out)
+        }
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => collect_ref_occurrences(inner, out),
+            ASTValue::Token(parts) => {
+                if parts.len() >= 2 {
+                    let TokenValue::String(token_type) = &parts[0];
+                    let TokenValue::String(token_value) = &parts[1];
+                    if token_type == "rule_reference" {
+                        *out.entry(token_value.clone()).or_default() += 1;
+                    }
+                }
+            }
+        },
+    }
+}
+
+/// RGX-0078.5.h.1b — enumerate and classify every choice (Or) site with ≥2 branches.
+/// Pre-order per rule; `or#0` is the first Or encountered (the top-level alternation
+/// when the rule body is an Or). Branch encodability mirrors the rule-level shape gate
+/// (`node_facts` + the layout-contiguity exclusion); the per-branch text judgment uses
+/// the rule's branch return annotations at the TOP-LEVEL site (they align by index
+/// there) and the default fold at nested sites.
+fn enumerate_choice_sites(
+    classifier: &mut Classifier,
+    universe: &[String],
+    grammar_wide_refs: &HashMap<String, usize>,
+) -> Vec<ChoiceSiteCensus> {
+    let mut sites = Vec::new();
+    for rule in universe {
+        let Some(body) = classifier.tree.get(rule.as_str()) else {
+            continue;
+        };
+        let mut or_counter = 0usize;
+        walk_for_choice_sites(
+            classifier,
+            rule,
+            body,
+            true,
+            &mut or_counter,
+            grammar_wide_refs,
+            &mut sites,
+        );
+    }
+    sites
+}
+
+#[allow(clippy::too_many_arguments)]
+fn walk_for_choice_sites(
+    classifier: &mut Classifier,
+    rule: &str,
+    node: &ASTNode,
+    is_rule_body: bool,
+    or_counter: &mut usize,
+    grammar_wide_refs: &HashMap<String, usize>,
+    sites: &mut Vec<ChoiceSiteCensus>,
+) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            let site_index = *or_counter;
+            *or_counter += 1;
+            if alternatives.len() >= 2 {
+                let empty: Vec<Option<super::BranchAnnotation>> = Vec::new();
+                let branch_annotations = if is_rule_body {
+                    classifier
+                        .annotations
+                        .and_then(|a| a.branch_return_annotations.get(rule))
+                        .unwrap_or(&empty)
+                        .clone()
+                } else {
+                    empty
+                };
+                let mut branch_verdicts = Vec::with_capacity(alternatives.len());
+                for (i, branch) in alternatives.iter().enumerate() {
+                    let facts = classifier.node_facts(branch, rule);
+                    let encodable =
+                        facts.ok && !(facts.skipping_atom && facts.arity == Arity::Multi);
+                    let text_folding = if is_rule_body {
+                        let annotation = branch_annotations.get(i).and_then(|a| a.as_ref());
+                        classifier.branch_value_is_text(branch, annotation, rule)
+                    } else {
+                        facts.is_text
+                    };
+                    let mut branch_refs: HashMap<String, usize> = HashMap::new();
+                    collect_ref_occurrences(branch, &mut branch_refs);
+                    let mut direct_refs: Vec<String> = branch_refs.keys().cloned().collect();
+                    direct_refs.sort();
+                    let mut sole_refs: Vec<String> = branch_refs
+                        .iter()
+                        .filter(|(name, n)| {
+                            grammar_wide_refs.get(name.as_str()).copied() == Some(**n)
+                        })
+                        .map(|(name, _)| name.clone())
+                        .collect();
+                    sole_refs.sort();
+                    branch_verdicts.push(ChoiceBranchVerdict {
+                        index: i + 1,
+                        encodable,
+                        text_folding,
+                        direct_refs,
+                        sole_refs,
+                    });
+                }
+                let encodable_branches =
+                    branch_verdicts.iter().filter(|b| b.encodable).count();
+                sites.push(ChoiceSiteCensus {
+                    rule: rule.to_string(),
+                    site: format!("or#{site_index}"),
+                    top_level: is_rule_body,
+                    branches: alternatives.len(),
+                    encodable_branches,
+                    all_encodable: encodable_branches == alternatives.len(),
+                    branch_verdicts,
+                    attributable_discarded: 0,
+                });
+            }
+            for branch in alternatives {
+                walk_for_choice_sites(
+                    classifier,
+                    rule,
+                    branch,
+                    false,
+                    or_counter,
+                    grammar_wide_refs,
+                    sites,
+                );
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for element in elements {
+                walk_for_choice_sites(
+                    classifier,
+                    rule,
+                    element,
+                    false,
+                    or_counter,
+                    grammar_wide_refs,
+                    sites,
+                );
+            }
+        }
+        ASTNode::Quantified { element, .. } | ASTNode::Lookahead { element, .. } => {
+            walk_for_choice_sites(
+                classifier,
+                rule,
+                element,
+                false,
+                or_counter,
+                grammar_wide_refs,
+                sites,
+            );
+        }
+        ASTNode::Atom { value } => {
+            if let ASTValue::Node(inner) = value {
+                walk_for_choice_sites(
+                    classifier,
+                    rule,
+                    inner,
+                    false,
+                    or_counter,
+                    grammar_wide_refs,
+                    sites,
+                );
+            }
+        }
+    }
+}
+
+/// RGX-0078.5.h.1b — join outcome-count files (raw + committed) into the measured
+/// discarded-work decomposition, and fill each choice site's sole-attributable
+/// discarded total.
+fn join_outcome_counts(
+    grammar_name: &str,
+    rules: &BTreeMap<String, RuleCensus>,
+    choice_sites: &mut [ChoiceSiteCensus],
+    files: &[std::path::PathBuf],
+) -> Result<OutcomeShare, String> {
+    let mut entries_sum: BTreeMap<String, u64> = BTreeMap::new();
+    let mut committed_sum: BTreeMap<String, u64> = BTreeMap::new();
+    for path in files {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| format!("cannot read outcome-counts file '{}': {e}", path.display()))?;
+        let parsed: RuleOutcomeCountsFile = serde_json::from_str(&text)
+            .map_err(|e| format!("cannot parse outcome-counts file '{}': {e}", path.display()))?;
+        if parsed.grammar != grammar_name {
+            return Err(format!(
+                "outcome-counts file '{}' is for grammar '{}', census is for '{}'",
+                path.display(),
+                parsed.grammar,
+                grammar_name
+            ));
+        }
+        for (rule, count) in parsed.rule_entry_counts {
+            *entries_sum.entry(rule).or_default() += count;
+        }
+        for (rule, count) in parsed.rule_committed_counts {
+            *committed_sum.entry(rule).or_default() += count;
+        }
+    }
+
+    let mut share = OutcomeShare {
+        count_files: files.len(),
+        total_entries: 0,
+        total_committed: 0,
+        total_discarded: 0,
+        discarded_on_encodable: 0,
+        discarded_on_non_encodable: 0,
+        committed_on_encodable: 0,
+        unmatched_rules: Vec::new(),
+        unmatched_entries: 0,
+        ceiling_estimate: 1.0,
+        committed_overshoot: 0,
+    };
+    let mut discarded_by_rule: BTreeMap<String, u64> = BTreeMap::new();
+    let rule_universe: std::collections::BTreeSet<&String> =
+        entries_sum.keys().chain(committed_sum.keys()).collect();
+    for rule in rule_universe {
+        let entries = entries_sum.get(rule).copied().unwrap_or(0);
+        let committed = committed_sum.get(rule).copied().unwrap_or(0);
+        share.total_entries += entries;
+        share.total_committed += committed;
+        share.committed_overshoot += committed.saturating_sub(entries);
+        let discarded = entries.saturating_sub(committed);
+        share.total_discarded += discarded;
+        discarded_by_rule.insert(rule.clone(), discarded);
+        match rules.get(rule) {
+            Some(census) if census.shape_encodable => {
+                share.discarded_on_encodable += discarded;
+                share.committed_on_encodable += committed.min(entries);
+            }
+            Some(_) => {
+                share.discarded_on_non_encodable += discarded;
+            }
+            None => {
+                share.unmatched_rules.push(rule.clone());
+                share.unmatched_entries += entries;
+                // Conservative: unmatched rules never count toward the kill surface.
+                share.discarded_on_non_encodable += discarded;
+            }
+        }
+    }
+    let remaining = share.total_entries - share.discarded_on_encodable.min(share.total_entries);
+    share.ceiling_estimate = if remaining == 0 {
+        f64::INFINITY
+    } else {
+        share.total_entries as f64 / remaining as f64
+    };
+
+    // Per-site sole-attribution (a sound lower bound; see `attributable_discarded`).
+    for site in choice_sites.iter_mut() {
+        let mut counted: HashSet<&String> = HashSet::new();
+        let mut total = 0u64;
+        for branch in &site.branch_verdicts {
+            if !branch.encodable {
+                continue;
+            }
+            for sole in &branch.sole_refs {
+                if counted.insert(sole) {
+                    total += discarded_by_rule.get(sole).copied().unwrap_or(0);
+                }
+            }
+        }
+        site.attributable_discarded = total;
+    }
+    Ok(share)
+}
+
 /// Run the census over a grammar (the UNFILTERED tree — the view codegen compiles), and
 /// optionally join per-parse rule-entry-count files into the measured entry share.
 pub fn run_fusibility_census(
@@ -741,6 +1133,7 @@ pub fn run_fusibility_census(
     rule_order: &[String],
     annotations: Option<&Annotations>,
     entry_counts_files: &[std::path::PathBuf],
+    outcome_counts_files: &[std::path::PathBuf],
 ) -> Result<FusibilityCensus, String> {
     let mut classifier = Classifier::new(grammar_tree, annotations)?;
 
@@ -840,6 +1233,24 @@ pub fn run_fusibility_census(
         )?)
     };
 
+    // RGX-0078.5.h.1b — the choice-site census (static), then the outcome join
+    // (raw + committed decomposition + per-site attribution) when files were given.
+    let mut grammar_wide_refs: HashMap<String, usize> = HashMap::new();
+    for rule in &universe {
+        collect_ref_occurrences(&grammar_tree[rule], &mut grammar_wide_refs);
+    }
+    let mut choice_sites = enumerate_choice_sites(&mut classifier, &universe, &grammar_wide_refs);
+    let outcome_share = if outcome_counts_files.is_empty() {
+        None
+    } else {
+        Some(join_outcome_counts(
+            grammar_name,
+            &rules,
+            &mut choice_sites,
+            outcome_counts_files,
+        )?)
+    };
+
     Ok(FusibilityCensus {
         grammar_name: grammar_name.to_string(),
         total_rules: universe.len(),
@@ -853,6 +1264,8 @@ pub fn run_fusibility_census(
         reason_histogram,
         rules,
         entry_share,
+        choice_sites,
+        outcome_share,
     })
 }
 
@@ -1006,6 +1419,112 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             );
         }
     }
+
+    // RGX-0078.5.h.1b — the choice-site census + the measured outcome decomposition.
+    let with_subset = census
+        .choice_sites
+        .iter()
+        .filter(|s| s.encodable_branches >= 1)
+        .count();
+    let all_encodable = census
+        .choice_sites
+        .iter()
+        .filter(|s| s.all_encodable)
+        .count();
+    println!(
+        "CHOICE-SITE-CENSUS: grammar={} sites={} (top_level={}) with_encodable_subset={} all_encodable={}",
+        census.grammar_name,
+        census.choice_sites.len(),
+        census.choice_sites.iter().filter(|s| s.top_level).count(),
+        with_subset,
+        all_encodable,
+    );
+    if let Some(share) = &census.outcome_share {
+        println!(
+            "OUTCOME-SHARE: grammar={} files={} total_entries={} committed={} discarded={} (on_encodable={} on_structural={}) committed_on_encodable={} unmatched={} ceiling≈{:.2}x",
+            census.grammar_name,
+            share.count_files,
+            share.total_entries,
+            share.total_committed,
+            share.total_discarded,
+            share.discarded_on_encodable,
+            share.discarded_on_non_encodable,
+            share.committed_on_encodable,
+            share.unmatched_entries,
+            share.ceiling_estimate,
+        );
+        println!(
+            "  model: discarded = raw − committed (failed-speculation work; committed keeps C3-B successful losers); kill surface = discarded entries on shape-encodable rules (choice/optional/iteration attempts alike); uniform per-entry cost, scan ≈ terminal match"
+        );
+        if share.committed_overshoot > 0 {
+            println!(
+                "  WARNING: committed_overshoot={} (committed > raw on some rules — lookahead-success coverage + memo replay; discards use saturating_sub)",
+                share.committed_overshoot
+            );
+        }
+        if !share.unmatched_rules.is_empty() {
+            println!(
+                "  unmatched outcome-file rules (absent from census): {}",
+                share.unmatched_rules.join(", ")
+            );
+        }
+        let mut ranked: Vec<&ChoiceSiteCensus> = census
+            .choice_sites
+            .iter()
+            .filter(|s| s.attributable_discarded > 0)
+            .collect();
+        ranked.sort_by(|a, b| {
+            b.attributable_discarded
+                .cmp(&a.attributable_discarded)
+                .then(a.rule.cmp(&b.rule))
+                .then(a.site.cmp(&b.site))
+        });
+        if !ranked.is_empty() {
+            println!("  top choice sites by sole-attributable discarded entries (lower bounds):");
+            for site in ranked.iter().take(15) {
+                println!(
+                    "    {:>6}  {}@{} ({} branches, {} encodable{})",
+                    site.attributable_discarded,
+                    site.rule,
+                    site.site,
+                    site.branches,
+                    site.encodable_branches,
+                    if site.all_encodable { ", ALL" } else { "" },
+                );
+            }
+        }
+    }
+    if dump_all && !census.choice_sites.is_empty() {
+        println!("  per-site choice verdicts (PGEN_FUSIBILITY_DUMP_ALL):");
+        for site in &census.choice_sites {
+            let subset: Vec<String> = site
+                .branch_verdicts
+                .iter()
+                .map(|b| {
+                    format!(
+                        "{}{}{}",
+                        b.index,
+                        if b.encodable { ":enc" } else { ":-" },
+                        if b.text_folding { "+text" } else { "" }
+                    )
+                })
+                .collect();
+            println!(
+                "    {}@{}{}: {}/{} encodable [{}]{}",
+                site.rule,
+                site.site,
+                if site.top_level { " (top)" } else { "" },
+                site.encodable_branches,
+                site.branches,
+                subset.join(" "),
+                if site.attributable_discarded > 0 {
+                    format!(" attributable_discarded={}", site.attributable_discarded)
+                } else {
+                    String::new()
+                },
+            );
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1034,7 +1553,8 @@ mod tests {
         order: Vec<String>,
         annotations: Option<Annotations>,
     ) -> FusibilityCensus {
-        run_fusibility_census("t", &tree, &order, annotations.as_ref(), &[]).expect("census runs")
+        run_fusibility_census("t", &tree, &order, annotations.as_ref(), &[], &[])
+            .expect("census runs")
     }
 
     /// The regex leaf-cascade shape: an unannotated Or over quoted terminals folds to
@@ -1133,5 +1653,126 @@ mod tests {
         );
         let census = census_of(tree, vec!["digits".to_string()], None);
         assert_eq!(census.rules["digits"].tier, FusibilityTier::NotFusible);
+    }
+
+    /// RGX-0078.5.h.1b — the regex `piece`-cascade shape: a structural rule whose
+    /// top-level Or mixes an encodable (token-shaped) branch and a recursive
+    /// (non-encodable) branch. The site census must find the site, classify exactly
+    /// the token branch as encodable, and mark the token rule as a SOLE ref of that
+    /// branch (its only grammar-wide reference).
+    #[test]
+    fn choice_site_census_classifies_mixed_sites_and_sole_refs() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "tok".to_string(),
+            or(vec![atom("quoted_string", "*"), atom("quoted_string", "+")]),
+        );
+        // top := tok | "(" top ")"   — branch 1 encodable, branch 2 recursive.
+        tree.insert(
+            "top".to_string(),
+            or(vec![
+                rule_ref("tok"),
+                ASTNode::Sequence {
+                    elements: vec![
+                        atom("quoted_string", "("),
+                        rule_ref("top"),
+                        atom("quoted_string", ")"),
+                    ],
+                },
+            ]),
+        );
+        let census = census_of(tree, vec!["top".to_string(), "tok".to_string()], None);
+        // Two sites: top@or#0 (mixed) and tok@or#0 (all-encodable).
+        assert_eq!(census.choice_sites.len(), 2);
+        let top_site = census
+            .choice_sites
+            .iter()
+            .find(|s| s.rule == "top")
+            .expect("top site present");
+        assert!(top_site.top_level);
+        assert_eq!(top_site.branches, 2);
+        assert_eq!(top_site.encodable_branches, 1);
+        assert!(!top_site.all_encodable);
+        assert!(top_site.branch_verdicts[0].encodable);
+        assert!(!top_site.branch_verdicts[1].encodable);
+        // `tok` is referenced exactly once grammar-wide — sole to branch 1.
+        assert_eq!(top_site.branch_verdicts[0].sole_refs, vec!["tok".to_string()]);
+        // `top` recursion in branch 2: NOT sole there (also the entry / self-ref
+        // counts as one occurrence — it IS the only occurrence, so sole applies;
+        // but the branch is non-encodable so it never feeds attribution).
+        let tok_site = census
+            .choice_sites
+            .iter()
+            .find(|s| s.rule == "tok")
+            .expect("tok site present");
+        assert!(tok_site.all_encodable);
+    }
+
+    /// RGX-0078.5.h.1b — the outcome join decomposes raw/committed into the
+    /// discarded kill surface (encodable vs structural) and fills per-site
+    /// sole-attribution. Uses a temp file to exercise the real file path.
+    #[test]
+    fn outcome_join_decomposes_discarded_work_and_attributes_sites() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "tok".to_string(),
+            or(vec![atom("quoted_string", "*"), atom("quoted_string", "+")]),
+        );
+        tree.insert(
+            "top".to_string(),
+            or(vec![
+                rule_ref("tok"),
+                ASTNode::Sequence {
+                    elements: vec![
+                        atom("quoted_string", "("),
+                        rule_ref("top"),
+                        atom("quoted_string", ")"),
+                    ],
+                },
+            ]),
+        );
+        let payload = serde_json::json!({
+            "grammar": "t",
+            "accepted": true,
+            "total_entries": 30,
+            "total_committed": 12,
+            // tok: 20 raw, 2 committed → 18 discarded on an ENCODABLE rule.
+            // top: 10 raw, 10 committed → 0 discarded (structural spine).
+            "rule_entry_counts": {"tok": 20, "top": 10},
+            "rule_committed_counts": {"tok": 2, "top": 10},
+        });
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!(
+            "pgen_fusibility_outcome_test_{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, serde_json::to_string(&payload).unwrap()).unwrap();
+        let census = run_fusibility_census(
+            "t",
+            &tree,
+            &["top".to_string(), "tok".to_string()],
+            None,
+            &[],
+            std::slice::from_ref(&path),
+        )
+        .expect("census runs");
+        std::fs::remove_file(&path).ok();
+        let share = census.outcome_share.as_ref().expect("outcome share joined");
+        assert_eq!(share.total_entries, 30);
+        assert_eq!(share.total_committed, 12);
+        assert_eq!(share.total_discarded, 18);
+        assert_eq!(share.discarded_on_encodable, 18); // tok is shape-encodable
+        assert_eq!(share.discarded_on_non_encodable, 0);
+        assert_eq!(share.committed_overshoot, 0);
+        // ceiling = 30 / (30 − 18) = 2.5×
+        assert!((share.ceiling_estimate - 2.5).abs() < 1e-9);
+        // The mixed top site attributes tok's 18 discarded entries (sole ref of its
+        // encodable branch).
+        let top_site = census
+            .choice_sites
+            .iter()
+            .find(|s| s.rule == "top")
+            .expect("top site present");
+        assert_eq!(top_site.attributable_discarded, 18);
     }
 }

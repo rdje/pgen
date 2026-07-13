@@ -16,6 +16,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 - [Per-Rule Call-Count Dashboard (`--dump-rule-call-counts`)](#per-rule-call-count-dashboard---dump-rule-call-counts)
 - [Excluding Noisy Rules from the Dashboard](#excluding-noisy-rules-from-the-dashboard)
 - [Machine-Readable Entry Counts (`--dump-rule-entry-counts-json`)](#machine-readable-entry-counts---dump-rule-entry-counts-json)
+- [Committed-vs-Discarded Outcome Counts (`--dump-rule-outcome-counts-json`)](#committed-vs-discarded-outcome-counts---dump-rule-outcome-counts-json)
 - [Furthest-Position Error Diagnostic](#furthest-position-error-diagnostic)
 - [Predicate Self-Explaining Trace](#predicate-self-explaining-trace)
 - [Workflow Recipes](#workflow-recipes)
@@ -41,6 +42,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--dump-rule-call-counts [N]` | Live top-N per-rule call dashboard | [Dashboard](#per-rule-call-count-dashboard---dump-rule-call-counts) |
 | `--dump-rule-call-counts-exclude R1,R2,...` | Hide noisy rules from dashboard | [Exclusion](#excluding-noisy-rules-from-the-dashboard) |
 | `--dump-rule-entry-counts-json FILE` | Write exact per-rule entry counts as JSON after `--parse` | [Entry-count dump](#machine-readable-entry-counts---dump-rule-entry-counts-json) |
+| `--dump-rule-outcome-counts-json FILE` | Write raw + COMMITTED per-rule counts as JSON (`raw − committed` = failed-speculation work) | [Outcome-count dump](#committed-vs-discarded-outcome-counts---dump-rule-outcome-counts-json) |
 | `--max-bytes N` | Bound AST dump size | [Basic](#basic-usage) |
 | `--lib-in DIR` | Read `@import_from_library` artifacts from `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--lib-out DIR` | Write `@export_to_library` artifacts to `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
@@ -320,6 +322,36 @@ Key properties:
 - Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`); zero-count rules are omitted; rules are sorted.
 
 This dump is the dynamic input of the **fusibility census** (`ast_pipeline --report-fusibility-census --fusibility-entry-counts …`, see the diagnosing-UNKNOWNs chapter's tool table) — the derived-scanner capability-gate report introduced by `RGX-0078.5.h.1`.
+
+---
+
+## Committed-vs-Discarded Outcome Counts (`--dump-rule-outcome-counts-json`)
+
+The entry-count dump above answers "how many times was each rule entered". Its `.5.h.1b` sibling additionally answers **how much of that work survived**: `--dump-rule-outcome-counts-json FILE` runs the parse with the transactional coverage stack enabled and writes BOTH histograms.
+
+```bash
+parseability_probe --parse regex /tmp/pattern.txt --dump-rule-outcome-counts-json /tmp/outcome.json
+```
+
+```json
+{
+  "grammar": "regex",
+  "accepted": true,
+  "total_entries": 50,
+  "total_committed": 24,
+  "rule_entry_counts":     { "atom": 10, "quantifier": 4, "...": 0 },
+  "rule_committed_counts": { "atom": 5,  "...": 0 }
+}
+```
+
+Key properties:
+
+- **`raw − committed` = failed-speculation work** — every rule entry made inside a speculation that `try_parse` later rolled back (a failing choice branch, optional group, iteration attempt, or a deeper backtrack). This is the parse's probing waste, per rule.
+- **Committed keeps C3-B semantics** — tournament winners AND successful-but-losing branches both survive (`try_parse` keeps coverage pushes on success), so the successful-loser share is not separable at rule granularity.
+- **Opt-in and behavior-neutral** — without the flag the coverage stack stays disabled; with it, the parse verdict and AST are unchanged (coverage is read-only bookkeeping). Committed counts are meaningful only for an accepted parse.
+- Deterministic and build-mode-independent, like the entry-count dump.
+
+This dump is the dynamic input of the **choice-site census** (`ast_pipeline --report-fusibility-census --fusibility-outcome-counts …`) — the increment-(ii) merged-choice measurement introduced by `RGX-0078.5.h.1b`: the census classifies every choice site's token-shaped branch subset and joins these files into the measured discarded-work kill surface (`OUTCOME-SHARE`).
 
 ---
 

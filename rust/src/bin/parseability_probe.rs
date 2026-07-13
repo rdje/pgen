@@ -89,6 +89,13 @@ struct GlobalOptions {
     /// dual of the live `--dump-rule-call-counts` dashboard, which is
     /// stderr-only and refresh-based (useless for a sub-millisecond parse).
     dump_rule_entry_counts_json: Option<String>,
+    /// `RGX-0078.5.h.1b` — machine-readable per-rule OUTCOME-COUNT dump: after a
+    /// `--parse` run with the transactional coverage stack enabled, write BOTH the
+    /// raw entry counters AND the committed (surviving) counts as JSON to this
+    /// path. `raw − committed` = the rule's FAILED-speculation entry count — the
+    /// choice-site census's dynamic input. `None` = disabled (default; coverage
+    /// stays off, behavior byte-identical).
+    dump_rule_outcome_counts_json: Option<String>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -288,6 +295,21 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             idx += 2;
             continue;
         }
+        // RGX-0078.5.h.1b — the JSON outcome-count dump (raw + committed entries).
+        if args[idx] == "--dump-rule-outcome-counts-json" {
+            if options.dump_rule_outcome_counts_json.is_some() {
+                bail!("--dump-rule-outcome-counts-json cannot be specified multiple times");
+            }
+            let value = args.get(idx + 1).ok_or_else(|| {
+                anyhow::anyhow!("--dump-rule-outcome-counts-json requires an output file path")
+            })?;
+            if value.starts_with("--") || value.trim().is_empty() {
+                bail!("--dump-rule-outcome-counts-json requires an output file path");
+            }
+            options.dump_rule_outcome_counts_json = Some(value.clone());
+            idx += 2;
+            continue;
+        }
         if args[idx] == "--dump-rule-call-counts" {
             if options.dump_rule_call_counts.is_some() {
                 bail!("--dump-rule-call-counts cannot be specified multiple times");
@@ -348,6 +370,15 @@ fn configure_runtime_trace(options: &GlobalOptions) -> Result<()> {
     pgen::parser_registry::set_global_dump_rule_entry_counts_json(
         options
             .dump_rule_entry_counts_json
+            .as_ref()
+            .map(std::path::PathBuf::from),
+    );
+    // RGX-0078.5.h.1b — propagate the outcome-count dump path (raw + committed);
+    // when set, the detail-parse functions enable transactional coverage before
+    // the parse (see `set_global_dump_rule_outcome_counts_json`).
+    pgen::parser_registry::set_global_dump_rule_outcome_counts_json(
+        options
+            .dump_rule_outcome_counts_json
             .as_ref()
             .map(std::path::PathBuf::from),
     );

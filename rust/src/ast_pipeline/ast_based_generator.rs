@@ -1270,6 +1270,25 @@ impl AstBasedGenerator {
                     .collect()
             }
 
+            /// RGX-0078.5.h.1b — the COMMITTED (surviving) rule-entry COUNTS of the
+            /// accepted parse: a fold of the transactional `coverage_stack` into a
+            /// per-RuleId histogram. Same soundness as `exercised_rule_names` (failed
+            /// speculations are truncated by `try_parse`, so only committed successes
+            /// remain — C3-B semantics: winners AND successful-but-losing tournament
+            /// branches both count), but keeps multiplicity instead of deduplicating,
+            /// so `rule_call_counts()[id] − committed[id]` is the rule's
+            /// FAILED-speculation entry count. Read-only; meaningful only after a
+            /// successful parse made with coverage enabled. Indexed like RULE_NAMES.
+            pub fn exercised_rule_entry_counts(&self) -> Vec<u64> {
+                let mut counts = vec![0u64; Self::RULE_COUNT];
+                for &id in self.coverage_stack.iter() {
+                    if let Some(slot) = counts.get_mut(id as usize) {
+                        *slot += 1;
+                    }
+                }
+                counts
+            }
+
             /// SV-EXH-PROOF.3.3.4.b.6.2.17 — opt in to RULE-LEVEL TARGETED TRACE.
             /// Pass `Some(set_of_rule_names)` to restrict trace output to the
             /// call-tree of the listed rules (any rule whose name matches is the
@@ -9380,6 +9399,7 @@ mod semantic_usage_tests {
             "saved_coverage_len", // try_parse snapshot of the stack length
             "enable_coverage",  // public opt-in accessor
             "exercised_rule_names", // public read-back accessor
+            "exercised_rule_entry_counts", // RGX-0078.5.h.1b — committed-count histogram accessor
         ] {
             assert!(
                 rendered.contains(needle),

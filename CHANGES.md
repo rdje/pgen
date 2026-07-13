@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0043 — RGX-0078.5.h.1b STEP-0b CHOICE-SITE CENSUS: increment-(ii) merged-choice ceiling MEASURED ≈1.53× — the scanner-rung SPEED claim is REFUTED BY MEASUREMENT (§G.1); recommendation = re-scope to self-hosting-only
+
+The section-G recommended measurement, delivered as three read-only, parser-agnostic instruments plus the joined
+verdict (no parse-behavior change; dumps opt-in; verdict-neutral 8/8 bench patterns).
+
+- **Instrument 1 — codegen accessor `exercised_rule_entry_counts()`**: the COMMITTED-count histogram fold of the
+  transactional coverage stack (sibling of `exercised_rule_names`; multiplicity kept, so `raw − committed` = the
+  rule's failed-speculation entries; C3-B semantics — successful losers count as committed). Zero hot-path cost
+  (no new parse-time work). All 11 generated parsers REGENERATED (the accessor-before-artifact cycle resolved by
+  building the `ebnf_dual_run`-only pipeline first — `parser_registry` is feature-gated out of that build).
+- **Instrument 2 — `parseability_probe --parse <g> <in> --dump-rule-outcome-counts-json FILE`**: raw + committed
+  per-rule counts as JSON (shared macro expansion with the `.5.h.1` entry dump; regex worker-thread capture
+  mirrored; opt-in thread-local — unset ⇒ coverage stays disabled ⇒ byte-identical behavior).
+- **Instrument 3 — the census CHOICE-SITE pass + `--fusibility-outcome-counts` join** (`fusibility_census.rs`):
+  every Or site ≥2 branches classified (encodable-branch subset via the `.5.h.1` shape classifier, per-branch text
+  tier, sole-reference attribution) + the measured `OUTCOME-SHARE` decomposition (committed/discarded ×
+  encodable/structural, per-site attributable discards, `committed_overshoot` guard). 2 new unit tests (6/6 green).
+- **THE MEASUREMENT (8-pattern bench; tree `.5.h.1b` section):** 2389 entries = 617 committed + 1773 discarded —
+  **74% of the bench is failing-probe work** — but only **830 discarded entries sit on shape-encodable rules**
+  (the DFA-answerable kill surface) vs 943 on the recursive structural spine (`atom`/`class_atom`/`quantifier`/
+  `quant_base`/`piece` probing). **Increment-(ii) ceiling ≈1.53×** (optimistic: memo-hit entries at full weight,
+  scans costed ~0). Combined (i)+(ii) absolute bound ≈1.78× — the same 1045-entry surface the `.5.h.1` static
+  tiers computed (cross-instrument-reproduced). Static site census: regex 133/148 sites with an encodable subset;
+  all other grammars ≈none (SV 9/535, vhdl 0/39, …).
+- **Cross-validations:** `test` raw dump 50 entries/`atom`=10 byte-identical to `.5.h.1` ON the regenerated
+  parsers; `test` committed = **24** = the `.5.e` memo-stats "24 success" half EXACTLY, per-rule; deterministic
+  byte-identical re-runs.
+- **Verdict (tree §G.1):** even perfect execution of the ENTIRE agreed scanner-rung scope stays under 2× on the
+  regex bench (vs the original ~3–5× estimate; residual ≈20× vs PCRE2 is architectural, `.5.e`). Single
+  recommendation to the director: **RE-SCOPE the rung to SELF-HOSTING-ONLY** (the `match_regex` atom-site engine
+  replacement — SV 322 sites, semantic_annotation 136, vhdl 102, …) as a dependency-removal/self-hosting
+  deliverable, or park; `.7` batch+parse-cache = the next speed-rung candidate. Awaiting the pick; no `.5.h.2`
+  build without it.
+- **No regression:** regex cert seeds 0/7/42 `UNKNOWN=0 fully_certified=true`, spf `0/1/1` byte-identical to the
+  recorded baseline (`.5.h.1.t1`); clippy strict-source clean (generated-stage `eq_op` debt pre-existing,
+  non-strict lane); mdbook_docs_gate green.
+- **Lockstep:** TOOLBOX.md §3.5 (new) + §5.3 + chooser rows; book `parseability-probe-debug.md` (new section +
+  TOC + reference card) + `diagnosing-unknowns.md` (both tables); tree `.5.h.1b` + §G.1; TASK_TREE frontier;
+  MEMORY.md overwrite. Status rows UNCHANGED (measurement + observability tools; nothing shipped changed).
+
 ## 2026-07-13 - PGEN-RGX-0078-0042 — RGX-0078.5.h.1 STEP-0 FUSIBILITY CENSUS: tools BUILT + ceiling MEASURED — increment-(i) token-rule fusion UNLANDABLE on the regex bench (≈1.04×); road decision SURFACED
 
 The agreed STEP-0 gate for the derived-scanner rung, delivered as two read-only, parser-agnostic tools plus the

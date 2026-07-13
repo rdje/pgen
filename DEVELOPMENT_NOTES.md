@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0043 — RGX-0078.5.h.1b STEP-0b choice-site census: the committed/discarded instrument, the merged-choice ceiling, and why the scanner rung's speed claim dies
+
+**What.** Three read-only instruments + the joined measurement that closes section G's open question. The only
+behavior-relevant addition is a codegen-emitted accessor (`exercised_rule_entry_counts()` — a read-only fold of the
+existing transactional coverage stack); everything else is opt-in observability and analysis.
+
+**The instrument insight (zero new hot-path work).** The engine ALREADY separates productive from wasted work: the
+always-on monotone entry counters count every rule entry, and the transactional `coverage_stack` (pushes rolled back
+by `try_parse` on failed speculation, replayed on memo hits) records exactly the COMMITTED entries. `raw − committed`
+therefore measures failed-speculation work per rule with no new instrumentation in the parse path — only a fold
+accessor was missing (the existing `exercised_rule_names` dedups to a set, which is useless for counting).
+Sharp edges pinned in code/docs: committed keeps C3-B semantics (successful-but-LOSING tournament branches survive,
+so the successful-loser share is not separable at rule granularity), and `committed > raw` is possible in a narrow
+lookahead-success + memo-replay corner (`committed_overshoot`, measured 1 entry on the whole bench, saturating-sub
+guarded, loudly reported).
+
+**The bootstrap order matters.** The registry's detail-parse functions now call the new accessor, so the lib with
+`generated_parsers` cannot build against pre-accessor artifacts. Regen sequence: build the `ebnf_dual_run`-only
+`ast_pipeline` (its feature gate excludes `parser_registry`) + the bootstrap binary → regenerate all 11 artifacts
+(the exact Makefile recipe flags: `--generate-parser --debug --trace --eliminate-left-recursion`, ebnf without
+`--trace`, annotations via `--bootstrap-mode`) → then the full-feature builds. Debug builds suffice for measurement
+(counts are build-mode-independent); the release bench binary was deliberately NOT rebuilt (no perf claim).
+
+**The measured verdict (why the rung dies).** 8-pattern bench: 2389 entries = 617 committed + 1773 discarded. The
+waste is enormous (74%) — but the kill surface is the minority of it: 830 discarded entries sit on shape-encodable
+rules (`unicode_char` 158, `class_zero_width` 134, `zero_width` 87 — the lookahead-guard probes), while 943 sit on
+the recursive STRUCTURAL rules (`atom` 111, `class_atom` 66, `quantifier` 50, `quant_base` 45, `piece` 27 …) whose
+language a site DFA cannot decide exactly (they close over the `group`/class cycle). Ceiling arithmetic:
+2389/(2389−830) ≈ **1.53×**; absorbing every encodable entry (discarded + committed = 1045) gives 2389/1344 ≈ 1.78×
+— numerically identical to the `.5.h.1` static-tier bound (83+495+467 = 1045): two independent decompositions, one
+number. The model is OPTIMISTIC (memo-hit re-entries — cheap — counted at full weight; scan calls costed ~0), so the
+realized landing would sit well below 1.5×. Conclusion recorded in tree §G.1: the scanner-rung speed claim is
+refuted by measurement; recommendation = re-scope to the self-hosting `match_regex` replacement surface or park.
+
+**Cross-validation chain.** `test`: raw 50 (`atom`=10) byte-identical to `.5.h.1` on the REGENERATED parsers (regen
+soundness signal); committed 24 = the `.5.e` memo-stats success half exactly, per-rule; deterministic re-runs
+byte-identical; verdict-neutral 8/8 with/without the dump; cert seeds 0/7/42 spf `0/1/1` = the recorded baseline.
+
 ## 2026-07-13 - PGEN-RGX-0078-0042 — RGX-0078.5.h.1 STEP-0 fusibility census: the classifier, the counts dump, and why the measured ceiling refutes the estimate
 
 **What.** Two read-only tools + the 11-grammar measurement for the derived-scanner STEP-0 gate. No codegen, grammar,

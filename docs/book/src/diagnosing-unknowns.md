@@ -37,7 +37,8 @@ the generation-input / memo observability.
 | Static well-formedness (LR / non-terminating / shadowing)? | `--lint-grammar` | `ast_pipeline g.ebnf --lint-grammar` |
 | Packrat memo hit/miss statistics? | `PGEN_REPORT_MEMO_STATS=1` | prefix a parse/generate command |
 | EXACT per-rule entry counts for a parse (machine-readable JSON)? | `--dump-rule-entry-counts-json` | `parseability_probe --parse <g> f --dump-rule-entry-counts-json c.json` |
-| Which rules a derived DFA scanner could fuse + the measured ceiling? | `--report-fusibility-census` | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c.json]` |
+| How much parse work is DISCARDED (failed speculation), per rule? | `--dump-rule-outcome-counts-json` | `parseability_probe --parse <g> f --dump-rule-outcome-counts-json o.json` |
+| Which rules a derived DFA scanner could fuse + the measured ceiling? the choice-site / merged-choice surface? | `--report-fusibility-census` | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c.json] [--fusibility-outcome-counts o.json]` |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
 > Build note: cert-coverage and any `.ebnf`-direct mode need the debug binary
@@ -317,7 +318,8 @@ budget is adequate and the cause is elsewhere (a forcing/store-gate bug).
 | Static well-formedness | `ast_pipeline g.ebnf --lint-grammar` | left-recursion info, non-terminating errors, ordered-choice shadowing |
 | Memo statistics | `PGEN_REPORT_MEMO_STATS=1 parseability_probe --parse <g> f` | packrat hit/miss counts (perf triage) |
 | Per-rule entry counts (exact, JSON) | `parseability_probe --parse <g> f --dump-rule-entry-counts-json c.json` | every rule-method entry (successful and backtracked) — the machine-readable dual of the live dashboard; deterministic, so a re-runnable cost-model oracle |
-| Fusibility census (derived-scanner gate) | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c1.json,…] [--fusibility-census-json out.json]` | per-rule scanner-compilability tiers, maximal fusible roots, disqualification histogram, regex-atom (`match_regex`) site count, and — joined with entry counts — the measured fusion ceiling (`PGEN_FUSIBILITY_DUMP_ALL=1` for per-rule verdicts) |
+| Per-rule outcome counts (raw + committed, JSON) | `parseability_probe --parse <g> f --dump-rule-outcome-counts-json o.json` | the same raw counters PLUS the committed (surviving) histogram from the transactional coverage stack — `raw − committed` = failed-speculation work per rule (committed keeps C3-B successful losers); the choice-site census's dynamic input |
+| Fusibility census (derived-scanner gate) | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c1.json,…] [--fusibility-outcome-counts o1.json,…] [--fusibility-census-json out.json]` | per-rule scanner-compilability tiers, maximal fusible roots, disqualification histogram, regex-atom (`match_regex`) site count, the CHOICE-SITE census (every Or site's token-shaped branch subset), and — joined with entry/outcome counts — the measured fusion ceiling and the discarded-work (merged-choice) kill surface (`PGEN_FUSIBILITY_DUMP_ALL=1` for per-rule + per-site verdicts) |
 | Well-formedness gen-AST (tests) | `PGEN_WELLFORMEDNESS_GEN_AST=<path> cargo test --lib …` | the gen-AST a well-formedness test loads |
 
 ---

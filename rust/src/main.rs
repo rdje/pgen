@@ -111,6 +111,14 @@ struct Args {
     #[arg(long, value_name = "FILES", requires = "report_fusibility_census")]
     fusibility_entry_counts: Option<String>,
 
+    /// RGX-0078.5.h.1b: comma-separated rule-OUTCOME-count JSON files (written by
+    /// `parseability_probe --parse <g> <input> --dump-rule-outcome-counts-json FILE`) to join
+    /// with the census — prints the measured OUTCOME-SHARE (raw/committed/discarded
+    /// decomposition; the discarded-on-encodable kill surface = the increment-(ii)
+    /// merged-choice ceiling) and fills the per-choice-site sole-attribution table.
+    #[arg(long, value_name = "FILES", requires = "report_fusibility_census")]
+    fusibility_outcome_counts: Option<String>,
+
     /// STIMULI-SIGNOFF.2.3 (adoption D): opt-in k-path coverage REPORT at depth N. Generates
     /// `--count` samples from `--entry-rule` (or the first rule) and prints covered/universe
     /// k-paths (Havrikov-Zeller). Read-only; does not change generation. Use small N (2-3).
@@ -1041,6 +1049,7 @@ fn main() -> Result<()> {
             &grammar,
             args.fusibility_census_json.as_deref(),
             args.fusibility_entry_counts.as_deref(),
+            args.fusibility_outcome_counts.as_deref(),
         );
     }
 
@@ -3745,18 +3754,23 @@ fn run_fusibility_census_report(
     grammar: &LoadedGrammar,
     census_json_path: Option<&str>,
     entry_counts_spec: Option<&str>,
+    outcome_counts_spec: Option<&str>,
 ) -> Result<()> {
     use pgen::ast_pipeline::fusibility_census::{print_fusibility_census, run_fusibility_census};
 
-    let entry_counts_files: Vec<std::path::PathBuf> = entry_counts_spec
-        .map(|spec| {
+    let split_spec = |spec: Option<&str>| -> Vec<std::path::PathBuf> {
+        spec.map(|spec| {
             spec.split(',')
                 .map(str::trim)
                 .filter(|s| !s.is_empty())
                 .map(std::path::PathBuf::from)
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_default()
+    };
+    let entry_counts_files = split_spec(entry_counts_spec);
+    // RGX-0078.5.h.1b — the raw+committed outcome files for the merged-choice join.
+    let outcome_counts_files = split_spec(outcome_counts_spec);
 
     let census = run_fusibility_census(
         &grammar.grammar_name,
@@ -3764,6 +3778,7 @@ fn run_fusibility_census_report(
         &grammar.rule_order,
         grammar.annotations.as_ref(),
         &entry_counts_files,
+        &outcome_counts_files,
     )
     .map_err(|e| anyhow::anyhow!("fusibility census failed: {e}"))?;
 

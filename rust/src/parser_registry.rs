@@ -55,6 +55,14 @@ std::thread_local! {
     // input; the dashboard above is stderr-only and refresh-based, useless for a
     // sub-millisecond parse). None (default) = no dump, zero overhead.
     static DUMP_RULE_ENTRY_COUNTS_JSON: std::cell::RefCell<Option<std::path::PathBuf>> = const { std::cell::RefCell::new(None) };
+    // RGX-0078.5.h.1b — machine-readable per-rule OUTCOME-COUNT dump (raw entries +
+    // COMMITTED entries). When set, the detail-parse path enables the transactional
+    // coverage stack before the parse and writes both counters as JSON to this path:
+    // raw − committed = the rule's FAILED-speculation entry count (the choice-site
+    // census's dynamic input). Committed semantics are C3-B: tournament winners AND
+    // successful-but-losing branches both survive. None (default) = no dump, and the
+    // coverage stack stays disabled — zero overhead, byte-identical behavior.
+    static DUMP_RULE_OUTCOME_COUNTS_JSON: std::cell::RefCell<Option<std::path::PathBuf>> = const { std::cell::RefCell::new(None) };
 }
 
 /// SV-EXH-PROOF.3.3.4.b.6.2.17 — set the rule-level trace filter for parser
@@ -114,6 +122,24 @@ fn current_dump_rule_entry_counts_json() -> Option<std::path::PathBuf> {
     DUMP_RULE_ENTRY_COUNTS_JSON.with(|c| c.borrow().clone())
 }
 
+/// RGX-0078.5.h.1b — set the per-rule OUTCOME-COUNT JSON dump path for detail-parse
+/// invocations on the current thread. `None` (default) disables the dump. When set,
+/// the detail-parse functions enable the parser's transactional coverage stack before
+/// the parse and write BOTH counters after it:
+/// `{"grammar": …, "accepted": …, "total_entries": N, "total_committed": M,
+///   "rule_entry_counts": {rule: n}, "rule_committed_counts": {rule: m}}`.
+/// `total_entries − total_committed` is the parse's FAILED-speculation work (every
+/// entry inside a speculation `try_parse` rolled back); committed counts keep C3-B
+/// semantics (winners + successful-but-losing tournament branches). This is the
+/// choice-site census's dynamic input (`--report-fusibility-census` join).
+pub fn set_global_dump_rule_outcome_counts_json(path: Option<std::path::PathBuf>) {
+    DUMP_RULE_OUTCOME_COUNTS_JSON.with(|c| *c.borrow_mut() = path);
+}
+
+fn current_dump_rule_outcome_counts_json() -> Option<std::path::PathBuf> {
+    DUMP_RULE_OUTCOME_COUNTS_JSON.with(|c| c.borrow().clone())
+}
+
 /// RGX-0078.5.h.1 — snapshot a parser's per-rule entry counters (minus a pre-parse
 /// baseline, so construction-time work like the SV stdlib preload never pollutes the
 /// measured parse) and write them as sorted JSON. Grammar-agnostic: callers pass the
@@ -171,6 +197,67 @@ fn rule_entry_counts_baseline(counts: &[std::sync::atomic::AtomicU64]) -> Vec<u6
         .collect()
 }
 
+/// RGX-0078.5.h.1b — write the per-rule OUTCOME counts (raw entry delta + committed
+/// count) as sorted JSON. Grammar-agnostic like `dump_rule_entry_counts_json`; the
+/// committed histogram comes from the generated parser's own
+/// `exercised_rule_entry_counts()` (a fold of the transactional coverage stack, so it
+/// needs no baseline — `enable_coverage` clears the stack at parse start). A write
+/// failure is a loud unconditional warning (severity doctrine), never a panic.
+fn dump_rule_outcome_counts_json(
+    dump_path: &std::path::Path,
+    grammar_name: &str,
+    rule_names: &'static [&'static str],
+    baseline: &[u64],
+    counts: &[std::sync::atomic::AtomicU64],
+    committed: &[u64],
+    accepted: bool,
+) {
+    let mut entry_map = serde_json::Map::new();
+    let mut committed_map = serde_json::Map::new();
+    let mut total_entries: u64 = 0;
+    let mut total_committed: u64 = 0;
+    let mut named: Vec<(&str, u64, u64)> = Vec::new();
+    for (i, name) in rule_names.iter().enumerate() {
+        let end = counts
+            .get(i)
+            .map(|c| c.load(std::sync::atomic::Ordering::Relaxed))
+            .unwrap_or(0);
+        let start = baseline.get(i).copied().unwrap_or(0);
+        let entries = end.saturating_sub(start);
+        let committed_n = committed.get(i).copied().unwrap_or(0);
+        if entries > 0 || committed_n > 0 {
+            named.push((name, entries, committed_n));
+            total_entries += entries;
+            total_committed += committed_n;
+        }
+    }
+    named.sort_by(|a, b| a.0.cmp(b.0));
+    for (name, entries, committed_n) in named {
+        if entries > 0 {
+            entry_map.insert(name.to_string(), serde_json::Value::from(entries));
+        }
+        if committed_n > 0 {
+            committed_map.insert(name.to_string(), serde_json::Value::from(committed_n));
+        }
+    }
+    let payload = serde_json::json!({
+        "grammar": grammar_name,
+        "accepted": accepted,
+        "total_entries": total_entries,
+        "total_committed": total_committed,
+        "rule_entry_counts": serde_json::Value::Object(entry_map),
+        "rule_committed_counts": serde_json::Value::Object(committed_map),
+    });
+    let rendered = serde_json::to_string_pretty(&payload)
+        .unwrap_or_else(|e| format!("{{\"error\": \"serialization failed: {e}\"}}"));
+    if let Err(e) = std::fs::write(dump_path, rendered) {
+        eprintln!(
+            "WARNING: failed to write rule-outcome-count dump '{}': {e}",
+            dump_path.display()
+        );
+    }
+}
+
 /// RGX-0078.5.h.1 — run `$parse` on `$parser`, dumping the per-rule entry-count DELTA to
 /// the thread-local JSON path when one is set (zero overhead otherwise). Expands at the
 /// point where the parser is constructed and ready (post-preload), so the baseline
@@ -179,9 +266,17 @@ fn rule_entry_counts_baseline(counts: &[std::sync::atomic::AtomicU64]) -> Vec<u6
 macro_rules! with_rule_entry_count_dump {
     ($grammar:literal, $parser:ident, $parser_ty:ty, $parse:expr) => {{
         let __entry_dump = current_dump_rule_entry_counts_json();
-        let __entry_baseline = __entry_dump
-            .as_ref()
-            .map(|_| rule_entry_counts_baseline(&$parser.rule_call_counts()));
+        // RGX-0078.5.h.1b — the OUTCOME dump shares the same expansion point: it
+        // additionally enables the transactional coverage stack BEFORE the parse
+        // (cleared by `enable_coverage`, so committed counts need no baseline) and
+        // writes raw + committed histograms after it. Unset ⇒ coverage stays
+        // disabled and behavior is byte-identical.
+        let __outcome_dump = current_dump_rule_outcome_counts_json();
+        let __entry_baseline = (__entry_dump.is_some() || __outcome_dump.is_some())
+            .then(|| rule_entry_counts_baseline(&$parser.rule_call_counts()));
+        if __outcome_dump.is_some() {
+            $parser.enable_coverage();
+        }
         let __outcome = $parse;
         if let Some(__path) = __entry_dump {
             dump_rule_entry_counts_json(
@@ -190,6 +285,17 @@ macro_rules! with_rule_entry_count_dump {
                 <$parser_ty>::rule_names(),
                 __entry_baseline.as_deref().unwrap_or(&[]),
                 &$parser.rule_call_counts(),
+                __outcome.is_ok(),
+            );
+        }
+        if let Some(__path) = __outcome_dump {
+            dump_rule_outcome_counts_json(
+                &__path,
+                $grammar,
+                <$parser_ty>::rule_names(),
+                __entry_baseline.as_deref().unwrap_or(&[]),
+                &$parser.rule_call_counts(),
+                &$parser.exercised_rule_entry_counts(),
                 __outcome.is_ok(),
             );
         }
@@ -529,10 +635,15 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
     // RGX-0078.5.h.1: thread-locals do not cross into the dedicated worker thread —
     // capture the entry-count dump path here and move it into the closure.
     let entry_dump = current_dump_rule_entry_counts_json();
+    // RGX-0078.5.h.1b: same capture for the outcome-count dump.
+    let outcome_dump = current_dump_rule_outcome_counts_json();
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let node_arena = crate::ast_pipeline::NodeArena::new();
         let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
         parser.set_grammar_profile(profile.as_deref());
+        if outcome_dump.is_some() {
+            parser.enable_coverage();
+        }
         let outcome = parser
             .parse_full_regex()
             .map(|_| ())
@@ -545,6 +656,17 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
                 RegexParser::rule_names(),
                 &[],
                 &parser.rule_call_counts(),
+                outcome.is_ok(),
+            );
+        }
+        if let Some(path) = outcome_dump {
+            dump_rule_outcome_counts_json(
+                &path,
+                "regex",
+                RegexParser::rule_names(),
+                &[],
+                &parser.rule_call_counts(),
+                &parser.exercised_rule_entry_counts(),
                 outcome.is_ok(),
             );
         }

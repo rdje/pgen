@@ -106,7 +106,8 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
-| "Which rules could a derived DFA scanner fuse? the measured ceiling?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
+| "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
+| "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
 
 ---
 
@@ -301,6 +302,15 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** the JSON file (rules sorted, zero-count rules omitted). Counts are build-mode-independent (a debug probe gives the same numbers as release).
 
+### 3.5 `--dump-rule-outcome-counts-json`
+- **WHAT:** after a `--parse` run with the transactional coverage stack enabled, write BOTH the raw monotone per-rule entry counters AND the COMMITTED (surviving) per-rule counts as JSON `{grammar, accepted, total_entries, total_committed, rule_entry_counts, rule_committed_counts}`. `raw − committed` = the rule's FAILED-speculation entries (every entry `try_parse` rolled back — the parse's probing waste). Committed semantics are C3-B: tournament winners AND successful-but-losing branches both survive. Deterministic ⇒ a re-runnable oracle; committed counts are meaningful only for an ACCEPTED parse. RGX-0078.5.h.1b.
+- **WHEN:** quantifying wasted vs productive parse work per rule; feeding the choice-site census's dynamic input (5.3 `--fusibility-outcome-counts`); any "how much of this parse was failing probes" question.
+- **HOW:**
+  ```bash
+  ./rust/target/debug/parseability_probe --parse regex /tmp/pattern.txt --dump-rule-outcome-counts-json /tmp/outcome.json
+  ```
+- **OUTPUT:** the JSON file (rules sorted; zero-count rules omitted per map). Opt-in: unset ⇒ the coverage stack stays disabled and behavior is byte-identical. Build-mode-independent like 3.4.
+
 ---
 
 ## 4. Certificate-coverage — the `UNKNOWN` / trustworthiness toolbox (`ast_pipeline`)
@@ -377,14 +387,17 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 
 ### 5.3 `--report-fusibility-census`
 - **WHAT:** the DERIVED-SCANNER capability-gate classifier (RGX-0078.5.h STEP-0, `rust/src/ast_pipeline/fusibility_census.rs`) — for every rule of the UNFILTERED grammar, is its subtree compilable to a direct-coded DFA `scan_R(pos)` under the increment-1 strict gate (regular + effect-free + text-folding + policy-encodable + layout-contiguous, each criterion mirroring the engine's own resolution)? Prints per-tier counts (`fusible_token`/`fusible_lookahead`/`not_fusible`, plus `shape_only` = language-encodable but value-blocked), the MAXIMAL fusible roots (future `scan_*` sites), a disqualification histogram, and the grammar's regex-literal ATOM-site count (the `match_regex`/self-hosting surface). With `--fusibility-entry-counts F1,F2,…` (files from 3.4) it prints the measured `FUSIBILITY-ENTRY-SHARE` — the share of real parse entries fusion would eliminate and the implied ceiling (a conservative lower bound). Read-only; verdicts are sound under-approximations.
-- **WHEN:** gating/sizing any scanner-fusion or token-DFA work (which rules, how many real entries, what ceiling); asking "why is rule R not token-shaped?" (`PGEN_FUSIBILITY_DUMP_ALL=1` per-rule reasons); measuring a grammar's "token-shapedness" as a standing metric.
+- **WHEN:** gating/sizing any scanner-fusion or token-DFA work (which rules, how many real entries, what ceiling); asking "why is rule R not token-shaped?" (`PGEN_FUSIBILITY_DUMP_ALL=1` per-rule reasons + per-site verdicts); measuring a grammar's "token-shapedness" as a standing metric; measuring the increment-(ii) MERGED-CHOICE surface (every Or site's token-shaped branch subset + the measured discarded-work kill surface — RGX-0078.5.h.1b).
 - **HOW:**
   ```bash
   ./rust/target/debug/ast_pipeline grammars/regex.ebnf --report-fusibility-census \
     --fusibility-entry-counts /tmp/c1.json,/tmp/c2.json --fusibility-census-json /tmp/census.json
+  # the .5.h.1b merged-choice join (files from 3.5):
+  ./rust/target/debug/ast_pipeline grammars/regex.ebnf --report-fusibility-census \
+    --fusibility-outcome-counts /tmp/o1.json,/tmp/o2.json
   PGEN_FUSIBILITY_DUMP_ALL=1 ./rust/target/debug/ast_pipeline grammars/regex.ebnf --report-fusibility-census
   ```
-- **OUTPUT:** `FUSIBILITY-CENSUS: grammar=regex rules=274 fusible=68 (token=40 lookahead=28) not_fusible=206 (shape_only=75) maximal_roots=57 static_share=24.8%` + the roots list + histogram; with counts: `FUSIBILITY-ENTRY-SHARE: … eliminated_below_roots=83 at_roots=495 … ceiling≈1.04x`. The full 11-grammar census + method notes live in the `.5.h.1` section of `docs/tasks/RGX-0078.md`.
+- **OUTPUT:** `FUSIBILITY-CENSUS: grammar=regex rules=274 fusible=68 (token=40 lookahead=28) not_fusible=206 (shape_only=75) maximal_roots=57 static_share=24.8%` + the roots list + histogram; with entry counts: `FUSIBILITY-ENTRY-SHARE: … eliminated_below_roots=83 at_roots=495 … ceiling≈1.04x`. Always also prints `CHOICE-SITE-CENSUS: … sites=N with_encodable_subset=M all_encodable=A` (every Or site classified for merged-choice); with outcome counts (3.5): `OUTCOME-SHARE: … total_entries=… committed=… discarded=… (on_encodable=… on_structural=…) ceiling≈…x` — discarded = raw − committed (failed-speculation work), and the kill surface = discarded entries on shape-encodable rules (choice/optional/iteration attempts alike), plus the top choice sites by sole-attributable discarded entries. The full 11-grammar census + method notes live in the `.5.h.1`/`.5.h.1b` sections of `docs/tasks/RGX-0078.md`.
 
 ---
 
