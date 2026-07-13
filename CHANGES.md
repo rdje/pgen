@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0058 — RGX-0078.5.i.5 OPENED (docs-only): P3 SELECTIVE MACHINERY AT METHOD FRAMES is the next planner slice
+
+Leaf spec recorded (session #113): with P1 closed, all residual per-frame machinery sits at
+METHOD frames — three priced sub-increments: **P3a** recursion-guard elision at acyclic method
+rules (gate (a), V5 ≈9ns/frame, trace/error-payload-only delta); **P3b** memo elision at
+method rules with a MEASURED low-value verdict (the P1b soundness argument + the post-P1b
+314-residual-hit data; ⛔ cycle-participating rules KEEP the memo unconditionally — the
+session-#49 117× packrat-protection lesson); **P3c** residual-wrapper classification (may be
+empty). STEP-0 method-frame machinery census FIRST (per-rule verdicts, named blockers,
+falsifiable per-increment ceilings recorded before any emission). Hard constraint verbatim
+(land-iff-faster + full oracle battery). MEMORY + TASK_TREE frontier updated.
+
 ## 2026-07-13 - PGEN-RGX-0078-0057 — RGX-0078.5.i.4 P1b LANDED: memo elision at inlined frames — regex geomean ≈−7–12% (≈36µs → ≈32µs, cumulative 496µs → ≈32µs ≈ 15.5×); ASTs/committed counts/cert pins byte-identical, raw counters truthfully changed
 
 The P1b emission (session #113). The emitted `inlined_frame_call` helper runs the inlined rule
