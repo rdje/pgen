@@ -155,6 +155,22 @@ pub struct AstBasedGenerator {
     /// EMITTED table (which that method produces) — this one is never emitted.
     pub analysis_runtime_annotations:
         std::cell::OnceCell<Option<crate::ast_pipeline::CompiledSemanticRuntimeAnnotations>>,
+    /// RGX-0078.5.i.4 (P1a) — the inline-EMISSION decision set: rules whose call
+    /// sites receive the rule body inline under `inlined_frame_call` (memo
+    /// preserved, per-frame observability verbatim). Computed ONCE per generation
+    /// from the SHARED census decision function
+    /// (`fusibility_census::compute_inline_decisions` — gates (a)–(d) + the
+    /// measured code-size budget), so the census's `INLINE-DECISIONS` report and
+    /// the emission cannot drift. `None` inside the cell = no inlining (analysis
+    /// annotation-table compile failure, or zero decided rules) — the sound
+    /// default, and the state for direct `generate_*` unit-test calls that never
+    /// populate it (those stay byte-identical to the pre-P1a emission).
+    pub inline_decided_rules: std::cell::OnceCell<Option<HashSet<String>>>,
+    /// RGX-0078.5.i.4 (P1a) — codegen-time re-entry guard for the inline-emission
+    /// walk. The decided subgraph is provably acyclic (gate (a)); re-entry here
+    /// means the shared verdict and the emission disagree — a loud hard error,
+    /// never an infinite emission recursion.
+    pub inline_emission_stack: std::cell::RefCell<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -368,6 +384,88 @@ impl AstBasedGenerator {
             })
     }
 
+    /// RGX-0078.5.i.4 (P1a) — build the inline-emission decision set from the
+    /// SHARED census decision function (`fusibility_census::compute_inline_decisions`
+    /// — gates (a)–(d) + the measured code-size budget). Called once per generation
+    /// from `generate_parser_tokens`. Analysis-table compile failure ⇒ no inlining
+    /// (the sound default). No silent caps: the eligible-but-over-budget set is
+    /// logged by name.
+    fn build_inline_emission_plan(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+        entry_rule: &str,
+    ) {
+        let plan: Option<HashSet<String>> = (|| {
+            let compiled = self.analysis_runtime_annotations()?;
+            let decisions = crate::ast_pipeline::fusibility_census::compute_inline_decisions(
+                grammar_tree,
+                self.annotations.as_ref(),
+                Some(compiled),
+                Some(entry_rule),
+            );
+            let decided: HashSet<String> = decisions
+                .iter()
+                .filter(|(_, d)| d.decided)
+                .map(|(rule, _)| rule.clone())
+                .collect();
+            let over_budget: Vec<&String> = decisions
+                .iter()
+                .filter(|(_, d)| d.eligible && !d.decided)
+                .map(|(rule, _)| rule)
+                .collect();
+            eprintln!(
+                "        P1a inline-emission plan: {} rule(s) inlined at call sites, {} eligible over budget",
+                decided.len(),
+                over_budget.len(),
+            );
+            if !over_budget.is_empty() {
+                eprintln!("        over-budget (stay method calls): {:?}", over_budget);
+            }
+            if decided.is_empty() {
+                None
+            } else {
+                Some(decided)
+            }
+        })();
+        // Second `generate_parser_tokens` call on the same generator instance keeps
+        // the first plan (OnceCell) — the tree snapshot choke point above guarantees
+        // both calls saw the same tree, so the plan is identical anyway.
+        let _ = self.inline_decided_rules.set(plan);
+    }
+
+    /// RGX-0078.5.i.4 (P1a) — is `rule` in the inline-emission decision set?
+    /// False when no plan was built (unit-test direct calls; analysis-table
+    /// failure) — the pre-P1a emission shape.
+    fn inline_decided(&self, rule: &str) -> bool {
+        self.inline_decided_rules
+            .get()
+            .and_then(|plan| plan.as_ref())
+            .is_some_and(|decided| decided.contains(rule))
+    }
+
+    /// RGX-0078.5.i.4 (P1a) — does the plan have ≥1 decided rule (gates emission
+    /// of the `inlined_frame_call` engine helper)?
+    fn inline_plan_active(&self) -> bool {
+        self.inline_decided_rules
+            .get()
+            .and_then(|plan| plan.as_ref())
+            .is_some_and(|decided| !decided.is_empty())
+    }
+
+    /// RGX-0078.5.i.4 (P1a) — the needs_raw ride-along fold gate: true iff the
+    /// ANALYSIS annotation table (the SAME compiled resolution the parser burns
+    /// in) proves BOTH `needs_raw_post_capture_for_rule` and
+    /// `needs_raw_final_capture_for_rule` are false for this rule, so the body
+    /// head may bind `semantic_capture_raw_for_post = false` instead of paying
+    /// the two per-body-execution table probes. Analysis-table failure keeps the
+    /// probes (sound default).
+    fn rule_needs_raw_capture_statically_false(&self, rule_name: &str) -> bool {
+        self.analysis_runtime_annotations().is_some_and(|compiled| {
+            !compiled.needs_raw_post_capture_for_rule(rule_name)
+                && !compiled.needs_raw_final_capture_for_rule(rule_name)
+        })
+    }
+
     /// INLINE-ACTIONS.2: does ANY rule in the grammar carry a branch-start
     /// inline ACTION annotation? Used to gate emission of the
     /// `apply_branch_start_effect_directive` helper method so grammars that do
@@ -405,6 +503,8 @@ impl AstBasedGenerator {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -501,6 +601,11 @@ impl AstBasedGenerator {
 
         eprintln!("        Entry rule determined: '{}'", entry_rule);
         eprintln!("        File: {}:{}", file!(), line!());
+
+        // RGX-0078.5.i.4 (P1a) — compute the inline-emission decision set ONCE
+        // per generation from the SHARED census decision function, so the
+        // census's `INLINE-DECISIONS` report and this emission cannot drift.
+        self.build_inline_emission_plan(grammar_tree, &entry_rule);
 
         let parser_name = format_ident!(
             "{}Parser",
@@ -2995,24 +3100,23 @@ impl AstBasedGenerator {
         self.generate_rule_method_with_recursion(rule_name, ast_node, rule_order, filename, true)
     }
 
-    fn generate_rule_method_with_recursion(
+    /// RGX-0078.5.i.4 (P1a) — the rule BODY (the closure body handed to
+    /// `memoized_call`): parse logic + return-annotation transforms + relational
+    /// guards + coverage/partition observability + the `(ParseNode, raw)` result.
+    /// Factored out of `generate_rule_method_with_recursion` so an inlined call
+    /// site (`generate_inlined_frame`) emits the IDENTICAL body the rule method
+    /// carries — identical-by-construction, no drift. Context contract: the
+    /// emitted tokens reference `parser` (a `&mut Self`) and a `start_pos`
+    /// binding visible at the point of insertion (the method binds it before the
+    /// memoized closure; the inlined frame binds it at the closure head — the
+    /// same value, since `memoized_call`'s miss path does not move `position`
+    /// before running the body).
+    fn generate_rule_body_inner(
         &self,
         rule_name: &str,
         ast_node: &ASTNode,
-        rule_order: &[String],
         filename: &str,
-        is_recursive: bool,
     ) -> Result<TokenStream> {
-        let method_name = format_ident!("parse_{}", rule_name);
-        let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
-
-        eprintln!(
-            "        ↳   Entering rule processing block - File: {}:{}",
-            file!(),
-            line!()
-        );
-
-        eprintln!();
         // Generate the parsing logic based on AST node type.
         // RGX-0078.5.c.2 — dispatch a TOP-LEVEL `Or` body directly to
         // `generate_or_logic` with `top_level = true` so it may emit the FIRST-set
@@ -3026,13 +3130,6 @@ impl AstBasedGenerator {
             }
             _ => self.generate_node_parsing_logic(ast_node, rule_name, filename)?,
         };
-
-        eprintln!();
-        eprintln!(
-            "            File: {}:{}: Exiting rule processing block",
-            file!(),
-            line!()
-        );
 
         // Apply rule-level return annotation for non-Or roots. The Or path
         // (`generate_or_logic`) already applies per-branch transforms inline,
@@ -3085,15 +3182,11 @@ impl AstBasedGenerator {
         let coverage_target_policy = self.rule_coverage_target_policy(rule_name);
         let coverage_target_weight = coverage_target_policy.coverage_target_weight;
         let coverage_critical_path = coverage_target_policy.critical_path;
-        let negative_case_policy = self.rule_negative_case_policy(rule_name);
-        let negative_case_enabled = negative_case_policy.invalid_case;
-        let negative_case_strict = negative_case_policy.negative;
         let deterministic_partition_policy = self.rule_deterministic_partition_policy(rule_name);
         let deterministic_partition_enabled = deterministic_partition_policy.enabled;
         let deterministic_partition_group = deterministic_partition_policy
             .group_label
             .unwrap_or_else(|| format!("rule.{}", rule_name));
-        let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
 
         // Optim #15: elide / lazify per-rule observability hooks that
         // the previous emit ran unconditionally on every rule entry.
@@ -3157,21 +3250,6 @@ impl AstBasedGenerator {
             }
         };
 
-        // Optim #14: conditionally emit the semantic-runtime transaction
-        // wrapper per rule. The inner `memoized_call` body is identical
-        // in both arms; only the surrounding wrapper differs. The Optim
-        // #13 grammar-level gate is generalized here to a per-rule check
-        // so a partially-annotated grammar (e.g. `regex`, where most
-        // rules have no semantic annotations) can elide the wrapper on
-        // its non-annotated rules too.
-        //
-        // Optim #16: when the rule is statically non-recursive, the
-        // `memoized_call` wrapper is also dead weight. Memoization gives
-        // Packrat its linear-time guarantee in the presence of recursive
-        // / shared-sub-parse calls; for a rule that never re-enters
-        // itself directly or transitively, the cache cannot observe a
-        // hit it could not avoid by simply running the body once. The
-        // emitted body is the same; only the wrapping differs.
         // REGEX-SELF-HOSTING.4c: a rule's `@transform` applied to the matched SPAN text, for the
         // case its body is NOT a single terminal (so the terminal-path `@transform` at the atom
         // codegen did not fire — e.g. `digits = digit+` after self-hosting). The emitted block is a
@@ -3202,17 +3280,32 @@ impl AstBasedGenerator {
             },
             _ => quote! {},
         };
-        let rule_body_inner = quote! {
-            let semantic_capture_raw_for_post =
-                parser.semantic_runtime_annotations
-                    .needs_raw_post_capture_for_rule(#rule_name)
-                // FINAL-PHASE-PREDICATE.2: a raw-view `phase: final` predicate
-                // resolves `$name`/`$N` against the rule's raw body exactly like
-                // a raw-view `post` predicate, so it needs the same raw capture.
-                // Byte-identical for a rule without a raw-view final predicate
-                // (`needs_raw_final_capture_for_rule` returns false).
-                || parser.semantic_runtime_annotations
-                    .needs_raw_final_capture_for_rule(#rule_name);
+        // RGX-0078.5.i.4 (P1a) — the needs_raw ride-along fold: when the ANALYSIS
+        // table proves both probes false for this rule (every directive-free
+        // rule), bind the constant instead of paying two FxHash probes per body
+        // execution. Provably behavior-identical: the fold only replaces a lookup
+        // whose runtime result is statically known.
+        let semantic_capture_raw_head: TokenStream =
+            if self.rule_needs_raw_capture_statically_false(rule_name) {
+                quote! {
+                    let semantic_capture_raw_for_post = false;
+                }
+            } else {
+                quote! {
+                    let semantic_capture_raw_for_post =
+                        parser.semantic_runtime_annotations
+                            .needs_raw_post_capture_for_rule(#rule_name)
+                        // FINAL-PHASE-PREDICATE.2: a raw-view `phase: final` predicate
+                        // resolves `$name`/`$N` against the rule's raw body exactly like
+                        // a raw-view `post` predicate, so it needs the same raw capture.
+                        // Byte-identical for a rule without a raw-view final predicate
+                        // (`needs_raw_final_capture_for_rule` returns false).
+                        || parser.semantic_runtime_annotations
+                            .needs_raw_final_capture_for_rule(#rule_name);
+                }
+            };
+        Ok(quote! {
+            #semantic_capture_raw_head
             let mut semantic_selected_branch_index: Option<usize> = None;
             let mut semantic_raw_content: Option<ParseContent<'input>> = None;
             // Main parsing logic - produces the 'result' variable
@@ -3244,7 +3337,112 @@ impl AstBasedGenerator {
                 },
                 semantic_raw_content,
             ))
+        })
+    }
+
+    /// RGX-0078.5.i.4 (P1a) — an INLINED wrapper frame for a decided rule at one
+    /// of its call sites: the rule's body (identical-by-construction via
+    /// `generate_rule_body_inner`) run under the emitted `inlined_frame_call`
+    /// engine helper, which preserves the per-frame observability verbatim
+    /// (entry `fetch_add`, coverage push, furthest-position, `memoized_call` with
+    /// the memo PRESERVED, the method-identical exit trace lines and
+    /// negative-case recording). Elided vs the method call: recursion-guard
+    /// enter/exit (gate (a): provably non-load-bearing), rule-context push/pop
+    /// and the `--trace-rules` scope probe (both proven trace-only), and the
+    /// method call frame itself.
+    fn generate_inlined_frame(&self, rule_name: &str, filename: &str) -> Result<TokenStream> {
+        {
+            let mut stack = self.inline_emission_stack.borrow_mut();
+            if stack.iter().any(|entry| entry == rule_name) {
+                return Err(anyhow::anyhow!(
+                    "P1a inline emission re-entered rule '{}' (emission stack: {:?}) — \
+                     the decided subgraph must be acyclic by gate (a); this is a \
+                     census/emission drift bug",
+                    rule_name,
+                    stack
+                ));
+            }
+            stack.push(rule_name.to_string());
+        }
+        let body_ast = {
+            let tree = self.first_set_grammar_tree.borrow();
+            tree.get(rule_name).cloned().ok_or_else(|| {
+                anyhow::anyhow!(
+                    "P1a inline emission: decided rule '{}' missing from the gen-AST snapshot",
+                    rule_name
+                )
+            })?
         };
+        let body = self.generate_rule_body_inner(rule_name, &body_ast, filename)?;
+        self.inline_emission_stack.borrow_mut().pop();
+        let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
+        let negative_case_policy = self.rule_negative_case_policy(rule_name);
+        let negative_case_enabled = negative_case_policy.invalid_case;
+        let negative_case_strict = negative_case_policy.negative;
+        Ok(quote! {
+            parser.inlined_frame_call(
+                Self::#rule_const,
+                #rule_name,
+                #negative_case_enabled,
+                #negative_case_strict,
+                |parser| {
+                    let start_pos = parser.position;
+                    #body
+                },
+            )
+        })
+    }
+
+    fn generate_rule_method_with_recursion(
+        &self,
+        rule_name: &str,
+        ast_node: &ASTNode,
+        rule_order: &[String],
+        filename: &str,
+        is_recursive: bool,
+    ) -> Result<TokenStream> {
+        let method_name = format_ident!("parse_{}", rule_name);
+        let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
+
+        eprintln!(
+            "        ↳   Entering rule processing block - File: {}:{}",
+            file!(),
+            line!()
+        );
+
+        eprintln!();
+        // RGX-0078.5.i.4 (P1a) — the body is factored into
+        // `generate_rule_body_inner` so an inlined call site emits the IDENTICAL
+        // body this method carries (identical-by-construction, no drift).
+        let rule_body_inner = self.generate_rule_body_inner(rule_name, ast_node, filename)?;
+
+        eprintln!();
+        eprintln!(
+            "            File: {}:{}: Exiting rule processing block",
+            file!(),
+            line!()
+        );
+
+        let negative_case_policy = self.rule_negative_case_policy(rule_name);
+        let negative_case_enabled = negative_case_policy.invalid_case;
+        let negative_case_strict = negative_case_policy.negative;
+        let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
+
+        // Optim #14: conditionally emit the semantic-runtime transaction
+        // wrapper per rule. The inner `memoized_call` body is identical
+        // in both arms; only the surrounding wrapper differs. The Optim
+        // #13 grammar-level gate is generalized here to a per-rule check
+        // so a partially-annotated grammar (e.g. `regex`, where most
+        // rules have no semantic annotations) can elide the wrapper on
+        // its non-annotated rules too.
+        //
+        // Optim #16: when the rule is statically non-recursive, the
+        // `memoized_call` wrapper is also dead weight. Memoization gives
+        // Packrat its linear-time guarantee in the presence of recursive
+        // / shared-sub-parse calls; for a rule that never re-enters
+        // itself directly or transitively, the cache cannot observe a
+        // hit it could not avoid by simply running the body once. The
+        // emitted body is the same; only the wrapping differs.
         // SV-EXH-PROOF.3.3.4.b.6.2.15 — UNIVERSAL PACKRAT MEMOIZATION.
         // Pre-fix: memoization was only applied to RECURSIVE rules (rules
         // that call themselves transitively). Non-recursive leaf rules
@@ -4602,6 +4800,28 @@ impl AstBasedGenerator {
                         })
                     }
                     "rule_reference" => {
+                        // RGX-0078.5.i.4 (P1a) — a call site of a DECIDED rule
+                        // receives the rule body inline under the emitted
+                        // `inlined_frame_call` engine helper (memo preserved,
+                        // per-frame observability verbatim) instead of the
+                        // method call. Decision from the SHARED census function
+                        // (gates (a)–(d) + budget) via the once-per-generation
+                        // plan; no plan (unit tests / analysis failure) ⇒ the
+                        // method call below, byte-identical to pre-P1a.
+                        if self.inline_decided(token_value_str) {
+                            eprintln!(
+                                "        Inlining rule reference '{}' (P1a) - File: {}:{}",
+                                token_value_str,
+                                file!(),
+                                line!()
+                            );
+                            let inlined_frame =
+                                self.generate_inlined_frame(token_value_str, filename)?;
+                            return Ok(quote! {
+                                let __pgen_alt_child = #inlined_frame?;
+                                let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
+                            });
+                        }
                         eprintln!(
                             "        Generating rule reference call to '{}' - File: {}:{}",
                             token_value_str,
@@ -5430,6 +5650,76 @@ impl AstBasedGenerator {
         filename: &str,
         grammar_tree: &HashMap<String, ASTNode>,
     ) -> TokenStream {
+        // RGX-0078.5.i.4 (P1a) — the inlined-wrapper-frame engine helper, emitted
+        // ONLY when ≥1 rule is decided for inlining (grammars with no decided
+        // rule regenerate without a dead helper). ONE definition carries the
+        // preserved per-frame observability for EVERY inlined site — entry
+        // `fetch_add`, transactional coverage push, furthest-position,
+        // `memoized_call` (memo PRESERVED), and the method-identical exit trace
+        // lines + negative-case recording — so an inlined site duplicates only
+        // the rule body and the observability protocol cannot drift from the
+        // rule-method emission. Elided vs a method call: recursion-guard
+        // enter/exit (callers are gated on gate (a) acyclicity), rule-context
+        // push/pop and the `--trace-rules` scope probe (both proven trace-only),
+        // and the method call frame.
+        let inlined_frame_call_helper: TokenStream = if self.inline_plan_active() {
+            quote! {
+                fn inlined_frame_call<F>(
+                    &mut self,
+                    rule_id: RuleId,
+                    rule_name: &'static str,
+                    negative_case_enabled: bool,
+                    negative_case_strict: bool,
+                    f: F,
+                ) -> ParseResult<ParseNode<'input>>
+                where
+                    F: FnOnce(&mut Self) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
+                {
+                    self.rule_call_counts[rule_id as usize]
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    if self.coverage_enabled {
+                        self.coverage_stack.push(rule_id as u32);
+                    }
+                    if self.position > self.furthest_position {
+                        self.furthest_position = self.position;
+                    }
+                    let start_pos = self.position;
+                    let result: ParseResult<ParseNode<'input>> =
+                        self.memoized_call(rule_id, f).map(|(node, _raw)| node);
+                    match &result {
+                        Ok(node) => {
+                            if self.trace_enabled() {
+                                let consumed = node.span.end - start_pos;
+                                if consumed > 0 {
+                                    let consumed_preview = self.byte_window_lossy(start_pos, node.span.end);
+                                    self.logger.log_success(#filename, self.position as u32, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')", rule_name, start_pos, node.span.end, consumed, consumed_preview));
+                                } else {
+                                    self.logger.log_warning(#filename, self.position as u32, &format!("⚠️ Rule '{}' matched with zero length at position {}", rule_name, start_pos));
+                                }
+                                self.logger.log_success(#filename, self.position as u32, &format!("✅ Exiting rule '{}' successfully - advanced from {} to {}", rule_name, start_pos, self.position));
+                            }
+                        }
+                        Err(e) => {
+                            if negative_case_enabled {
+                                self.record_negative_case_failure(
+                                    rule_name,
+                                    start_pos,
+                                    self.position,
+                                    negative_case_strict,
+                                    &format!("{:?}", e),
+                                );
+                            }
+                            if self.trace_enabled() {
+                                self.logger.log_error(#filename, self.position as u32, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", rule_name, e, self.position));
+                            }
+                        }
+                    }
+                    result
+                }
+            }
+        } else {
+            quote! {}
+        };
         // `WS-DIRECTIVE.2`: the layout policy comes from the grammar-level
         // `@whitespace_sensitive:` directive (the grammar-NAME gate is
         // retired) — see `Self::layout_sensitivity`.
@@ -7344,6 +7634,8 @@ impl AstBasedGenerator {
                 }
             }
 
+            #inlined_frame_call_helper
+
             fn memoized_call<F>(
                 &mut self,
                 rule_id: RuleId,
@@ -8719,6 +9011,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -8753,6 +9047,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -8805,6 +9101,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -8859,6 +9157,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -8947,6 +9247,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -9060,6 +9362,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -9127,6 +9431,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -9199,6 +9505,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -9426,6 +9734,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let logic = generator
@@ -9759,7 +10069,15 @@ mod semantic_usage_tests {
     /// who want a different transform must declare it explicitly.
     #[test]
     fn quantified_bodied_rule_with_no_annotation_does_not_get_synthetic_dollar_one() {
-        // Build `r = a+` (no return annotation). a is just a token reference.
+        // Build `r = a+` (no return annotation). `a` is a TWO-element sequence
+        // deliberately: since RGX-0078.5.i.4 (P1a) the tiny leaf `a` is
+        // inline-DECIDED, so its body is emitted INSIDE `parse_r` — and a
+        // single-element `a` would carry its own legitimate synthetic `-> $1`
+        // passthrough, tripping this test's textual carve of `fn parse_r`
+        // (the assertion targets R's transform, not the inlined child's).
+        // A multi-element Sequence gets no synthetic transform, keeping the
+        // carve unambiguous while still exercising the production emission
+        // path (plan built, `a` inlined).
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
             "r".to_string(),
@@ -9768,7 +10086,12 @@ mod semantic_usage_tests {
                 quantifier: "+".to_string(),
             },
         );
-        grammar_tree.insert("a".to_string(), token("quoted_string", "a"));
+        grammar_tree.insert(
+            "a".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "a"), token("quoted_string", "b")],
+            },
+        );
         let rule_order = vec!["r".to_string(), "a".to_string()];
 
         let mut generator = AstBasedGenerator::new("quant_no_synthetic_test".to_string());
@@ -10540,6 +10863,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         assert_eq!(
@@ -10574,6 +10899,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
@@ -10605,6 +10932,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         assert_eq!(
@@ -10671,6 +11000,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let (
@@ -10747,6 +11078,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let logic = generator
@@ -10807,6 +11140,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let logic = generator
@@ -10836,6 +11171,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator.generate_types().to_string();
@@ -10866,6 +11203,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
@@ -10921,6 +11260,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -11131,6 +11472,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator
@@ -11190,6 +11533,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let policy = generator.rule_coverage_target_policy("stmt");
@@ -11212,6 +11557,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -11278,6 +11625,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let method = generator
@@ -11322,6 +11671,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator
@@ -11380,6 +11731,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let policy = generator.rule_negative_case_policy("stmt");
@@ -11402,6 +11755,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -11463,6 +11818,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let method = generator
@@ -11504,6 +11861,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator
@@ -11556,6 +11915,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let policy = generator.rule_deterministic_partition_policy("stmt");
@@ -11578,6 +11939,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -11654,6 +12017,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let method = generator
@@ -11694,6 +12059,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator
@@ -11765,6 +12132,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let logic = generator
@@ -11807,6 +12176,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator
@@ -11853,6 +12224,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         assert_eq!(
@@ -11896,6 +12269,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         assert_eq!(
@@ -11939,6 +12314,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let logic = generator
@@ -11998,6 +12375,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let logic = generator
@@ -12048,6 +12427,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let logic = generator
@@ -12102,6 +12483,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -12150,6 +12533,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -12204,6 +12589,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let method = generator
@@ -12250,6 +12637,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator
@@ -12287,6 +12676,8 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
         };
 
         let rendered = generator

@@ -341,6 +341,10 @@ pub struct InlineRuleCensus {
     pub reference_sites: usize,
     /// Gen-AST node count of the rule body — the per-site duplication size.
     pub body_nodes: usize,
+    /// RGX-0078.5.i.4 (P1a) — the EMISSION decision under the shared code-size
+    /// budget ([`compute_inline_decisions`]): true iff codegen inlines this
+    /// rule's body at its call sites. `eligible && !decided` = over-budget.
+    pub decided: bool,
 }
 
 /// RGX-0078.5.i.4 (P1 STEP-0) — the measured inline-exposure join (inline census ×
@@ -527,79 +531,24 @@ impl<'a> Classifier<'a> {
     }
 
     /// RGX-0078.5.i.4 (P1 STEP-0) — one rule's INLINE-eligibility verdict under the
-    /// P1 gates (leaf spec a–d), with every failing gate NAMED. Facts come from the
-    /// SAME compiled runtime-annotation table the generated parser consults (the
-    /// no-drift discipline the P2 census established). Deterministic blocker order:
-    /// cycle, runtime directives (sorted kinds), mid-sequence, follow restriction,
-    /// value constraint, branch predicate/effect, rule-level @transform, @profiles,
-    /// entry rule.
+    /// P1 gates (leaf spec a–d). Thin wrapper over the SHARED free function
+    /// [`rule_inline_verdict`] so this census verdict and codegen's P1a inline
+    /// emission gate cannot drift (the P2 `first_set::branch_dispatch_first_bytes`
+    /// precedent).
     fn inline_rule_verdict(
         &self,
         rule: &str,
         on_cycle: bool,
         is_entry: bool,
     ) -> (bool, Vec<String>) {
-        let mut blockers: Vec<String> = Vec::new();
-        // Gate (a) — acyclicity: the recursion guard is load-bearing on a cycle.
-        if on_cycle {
-            blockers.push("reference cycle (recursion guard is load-bearing)".to_string());
-        }
-        // Gate (b) — directive-free frame: any runtime semantic directive (any
-        // phase, rule- or branch-attached) makes the frame's transactional /
-        // context role real, not trace-naming-only.
-        if let Some(kinds) = self.directives_by_rule.get(rule) {
-            for kind in kinds {
-                blockers.push(format!("runtime directive @{kind}"));
-            }
-        }
-        if let Some(ann) = self.annotations {
-            if ann
-                .branch_mid_sequence_semantic_annotations
-                .get(rule)
-                .is_some_and(|branches| branches.iter().any(|b| !b.is_empty()))
-            {
-                blockers.push("mid-sequence inline directive".to_string());
-            }
-            if ann.lexical_follow_restrictions.contains_key(rule) {
-                blockers.push("lexical follow restriction [> …]".to_string());
-            }
-        }
-        if !effective_rule_value_constraints(self.annotations, rule).is_empty() {
-            blockers.push("value constraint (@enum/@regex/@range/@len)".to_string());
-        }
-        let branch_count = match self.tree.get(rule) {
-            Some(ASTNode::Or { alternatives }) => alternatives.len(),
-            _ => 1,
-        };
-        let (has_branch_predicates, has_branch_start_effects) =
-            self.rule_branch_predicate_effect_facts(rule, branch_count);
-        if has_branch_predicates {
-            blockers.push("branch-phase predicate".to_string());
-        }
-        if has_branch_start_effects {
-            blockers.push("branch-start effect directive".to_string());
-        }
-        if let Some(ann) = self.annotations {
-            for name in rule_level_directive_names(ann, rule) {
-                match name.as_str() {
-                    // A rule-level matched-text transform is reproducible in
-                    // principle but out of the P1 emission increment —
-                    // conservatively blocked (a blocked rule is never falsely
-                    // eligible).
-                    "transform" => blockers.push("rule-level @transform".to_string()),
-                    // Gate (d) — a profile-gated rule must resolve identically at
-                    // every call site under every declared profile; blocked.
-                    "profiles" => blockers.push("@profiles dialect gate".to_string()),
-                    _ => {}
-                }
-            }
-        }
-        // Gate (c) — the entry rule keeps its method as the parse entry point
-        // (vacuous for exposure: it has no call sites; named for honesty).
-        if is_entry {
-            blockers.push("entry rule".to_string());
-        }
-        (blockers.is_empty(), blockers)
+        rule_inline_verdict(
+            self.tree,
+            self.annotations,
+            self.compiled.as_ref(),
+            rule,
+            on_cycle,
+            is_entry,
+        )
     }
 
     /// Classify one rule (memoized; cycle-guarded — re-entry means the reference closure
@@ -1130,6 +1079,253 @@ fn rule_reaches_itself(rule: &str, forward: &HashMap<String, HashSet<String>>) -
         }
     }
     false
+}
+
+/// RGX-0078.5.i.4 (P1) — one rule's INLINE-eligibility verdict under the P1 gates
+/// (leaf spec a–d), with every failing gate NAMED. THE shared predicate: both the
+/// census (`INLINE-CENSUS` reporting) and codegen's P1a inline emission consume this
+/// one function, so the two cannot drift (the P2 `first_set` precedent). Facts come
+/// from the SAME compiled runtime-annotation table the generated parser consults.
+/// Deterministic blocker order: cycle, runtime directives (sorted kinds),
+/// mid-sequence, follow restriction, value constraint, branch predicate/effect,
+/// rule-level @transform, @profiles, entry rule.
+pub fn rule_inline_verdict(
+    tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+    compiled: Option<&CompiledSemanticRuntimeAnnotations>,
+    rule: &str,
+    on_cycle: bool,
+    is_entry: bool,
+) -> (bool, Vec<String>) {
+    let mut blockers: Vec<String> = Vec::new();
+    // Gate (a) — acyclicity: the recursion guard is load-bearing on a cycle.
+    if on_cycle {
+        blockers.push("reference cycle (recursion guard is load-bearing)".to_string());
+    }
+    // Gate (b) — directive-free frame: any runtime semantic directive (any
+    // phase, rule- or branch-attached) makes the frame's transactional /
+    // context role real, not trace-naming-only.
+    if let Some(compiled) = compiled {
+        let mut kinds: Vec<String> = compiled
+            .directives_for_rule(rule)
+            .iter()
+            .map(directive_kind_name)
+            .collect();
+        for branch in compiled.branch_directives_for_rule(rule) {
+            kinds.extend(branch.iter().map(directive_kind_name));
+        }
+        kinds.sort();
+        kinds.dedup();
+        for kind in kinds {
+            blockers.push(format!("runtime directive @{kind}"));
+        }
+    }
+    if let Some(ann) = annotations {
+        if ann
+            .branch_mid_sequence_semantic_annotations
+            .get(rule)
+            .is_some_and(|branches| branches.iter().any(|b| !b.is_empty()))
+        {
+            blockers.push("mid-sequence inline directive".to_string());
+        }
+        if ann.lexical_follow_restrictions.contains_key(rule) {
+            blockers.push("lexical follow restriction [> …]".to_string());
+        }
+    }
+    if !effective_rule_value_constraints(annotations, rule).is_empty() {
+        blockers.push("value constraint (@enum/@regex/@range/@len)".to_string());
+    }
+    let branch_count = match tree.get(rule) {
+        Some(ASTNode::Or { alternatives }) => alternatives.len(),
+        _ => 1,
+    };
+    if let Some(compiled) = compiled {
+        let has_branch_predicates = compiled.branch_predicates_for_rule(rule).next().is_some()
+            || (0..branch_count).any(|i| {
+                compiled
+                    .branch_predicates_for_rule_branch(rule, i)
+                    .next()
+                    .is_some()
+            });
+        let has_branch_start_effects = (0..branch_count).any(|i| {
+            compiled
+                .branch_effect_directives_for_rule_branch(rule, i)
+                .next()
+                .is_some()
+        });
+        if has_branch_predicates {
+            blockers.push("branch-phase predicate".to_string());
+        }
+        if has_branch_start_effects {
+            blockers.push("branch-start effect directive".to_string());
+        }
+    }
+    if let Some(ann) = annotations {
+        for name in rule_level_directive_names(ann, rule) {
+            match name.as_str() {
+                // A rule-level matched-text transform is reproducible in
+                // principle but out of the P1 emission increment —
+                // conservatively blocked (a blocked rule is never falsely
+                // eligible).
+                "transform" => blockers.push("rule-level @transform".to_string()),
+                // Gate (d) — a profile-gated rule must resolve identically at
+                // every call site under every declared profile; blocked.
+                "profiles" => blockers.push("@profiles dialect gate".to_string()),
+                _ => {}
+            }
+        }
+    }
+    // Gate (c) — the entry rule keeps its method as the parse entry point
+    // (vacuous for exposure: it has no call sites; named for honesty).
+    if is_entry {
+        blockers.push("entry rule".to_string());
+    }
+    (blockers.is_empty(), blockers)
+}
+
+/// RGX-0078.5.i.4 (P1a) — the emission EXPANSION cap: a rule whose capped-transitive
+/// inlined-body weight (gen-AST nodes, decided children expanded) exceeds this stays
+/// a method call. Chosen from the measured weight model over the 8-pattern bench
+/// outcome dumps (leaf `.5.i.4` P1a design record): T=12 keeps ~49% of the eligible
+/// bench-entry exposure at ×1.75 emitted-body growth on regex.
+pub const INLINE_EXPANSION_CAP: usize = 12;
+
+/// RGX-0078.5.i.4 (P1a) — the emission DUPLICATION cap: a rule whose
+/// `weight × grammar-wide reference sites` exceeds this stays a method call (its
+/// total body duplication would dominate the emitted-code growth; `digit` at 11
+/// nodes × 124 sites is the canonical exclusion). Same measured basis as
+/// [`INLINE_EXPANSION_CAP`].
+pub const INLINE_DUPLICATION_CAP: usize = 192;
+
+/// RGX-0078.5.i.4 (P1a) — one rule's inline-emission decision under the budget.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct InlineDecision {
+    /// The gates (a)–(d) verdict from [`rule_inline_verdict`].
+    pub eligible: bool,
+    /// Capped-transitive inlined-body weight (gen-AST nodes; decided children
+    /// expanded, undecided references stay method calls contributing nothing).
+    pub weight: usize,
+    /// Grammar-wide reference OCCURRENCES of this rule (the duplication factor).
+    pub sites: usize,
+    /// `eligible && weight ≤ INLINE_EXPANSION_CAP && weight×sites ≤
+    /// INLINE_DUPLICATION_CAP` — the rule's call sites receive its body inline.
+    pub decided: bool,
+}
+
+/// RGX-0078.5.i.4 (P1a) — the SHARED inline-emission decision map: gates (a)–(d)
+/// plus the measured code-size budget, computed bottom-up over the (provably
+/// acyclic) eligible reference subgraph. Codegen consumes this for the P1a
+/// emission; the census reports it (`INLINE-DECISIONS`), so the two cannot drift.
+/// Deterministic: memoized structural recursion; `BTreeMap` output.
+pub fn compute_inline_decisions(
+    tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+    compiled: Option<&CompiledSemanticRuntimeAnnotations>,
+    entry_rule: Option<&str>,
+) -> BTreeMap<String, InlineDecision> {
+    // Reference closure + occurrence counts via the census's OWN collectors
+    // (one implementation of "what is a reference" for verdicts and budget).
+    let mut forward: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut regex_pattern_sink: Vec<String> = Vec::new();
+    let mut body_occurrences: HashMap<String, HashMap<String, usize>> = HashMap::new();
+    let mut sites: HashMap<String, usize> = HashMap::new();
+    let mut local_nodes: HashMap<String, usize> = HashMap::new();
+    for (rule, body) in tree {
+        let mut refs = HashSet::new();
+        collect_refs(body, &mut refs, &mut regex_pattern_sink);
+        forward.insert(rule.clone(), refs);
+        let mut occ = HashMap::new();
+        collect_ref_occurrences(body, &mut occ);
+        for (target, n) in &occ {
+            *sites.entry(target.clone()).or_default() += n;
+        }
+        body_occurrences.insert(rule.clone(), occ);
+        local_nodes.insert(rule.clone(), count_nodes(body));
+    }
+    let eligible: HashMap<&str, bool> = tree
+        .keys()
+        .map(|rule| {
+            let on_cycle = rule_reaches_itself(rule, &forward);
+            let is_entry = Some(rule.as_str()) == entry_rule;
+            (
+                rule.as_str(),
+                rule_inline_verdict(tree, annotations, compiled, rule, on_cycle, is_entry).0,
+            )
+        })
+        .collect();
+
+    struct Ctx<'a> {
+        eligible: &'a HashMap<&'a str, bool>,
+        body_occurrences: &'a HashMap<String, HashMap<String, usize>>,
+        local_nodes: &'a HashMap<String, usize>,
+        sites: &'a HashMap<String, usize>,
+        weight_memo: HashMap<String, usize>,
+        decided_memo: HashMap<String, bool>,
+        visiting: HashSet<String>,
+    }
+    impl Ctx<'_> {
+        fn weight(&mut self, rule: &str) -> usize {
+            if let Some(&w) = self.weight_memo.get(rule) {
+                return w;
+            }
+            if !self.visiting.insert(rule.to_string()) {
+                // A cycle among decided rules is impossible by gate (a);
+                // defensively price re-entry as over-budget so the emitter
+                // can never recurse into it.
+                return usize::MAX / 4;
+            }
+            let mut w = self.local_nodes.get(rule).copied().unwrap_or(0);
+            if let Some(occ) = self.body_occurrences.get(rule) {
+                let targets: Vec<(String, usize)> =
+                    occ.iter().map(|(t, n)| (t.clone(), *n)).collect();
+                for (target, n) in targets {
+                    if self.decided(&target) {
+                        w = w.saturating_add(self.weight(&target).saturating_mul(n));
+                    }
+                }
+            }
+            self.visiting.remove(rule);
+            self.weight_memo.insert(rule.to_string(), w);
+            w
+        }
+        fn decided(&mut self, rule: &str) -> bool {
+            if let Some(&d) = self.decided_memo.get(rule) {
+                return d;
+            }
+            let d = self.eligible.get(rule).copied().unwrap_or(false) && {
+                let w = self.weight(rule);
+                w <= INLINE_EXPANSION_CAP
+                    && w.saturating_mul(self.sites.get(rule).copied().unwrap_or(0))
+                        <= INLINE_DUPLICATION_CAP
+            };
+            self.decided_memo.insert(rule.to_string(), d);
+            d
+        }
+    }
+    let mut ctx = Ctx {
+        eligible: &eligible,
+        body_occurrences: &body_occurrences,
+        local_nodes: &local_nodes,
+        sites: &sites,
+        weight_memo: HashMap::new(),
+        decided_memo: HashMap::new(),
+        visiting: HashSet::new(),
+    };
+    tree.keys()
+        .map(|rule| {
+            let decided = ctx.decided(rule);
+            let weight = ctx.weight(rule);
+            (
+                rule.clone(),
+                InlineDecision {
+                    eligible: eligible.get(rule.as_str()).copied().unwrap_or(false),
+                    weight,
+                    sites: sites.get(rule).copied().unwrap_or(0),
+                    decided,
+                },
+            )
+        })
+        .collect()
 }
 
 /// RGX-0078.5.i.4 (P1 STEP-0) — the body-shape class of an inline-eligible rule.
@@ -1688,6 +1884,14 @@ pub fn run_fusibility_census(
         collect_refs(&grammar_tree[rule], &mut refs, &mut regex_pattern_sink);
         forward_refs.insert(rule.clone(), refs);
     }
+    // RGX-0078.5.i.4 (P1a) — the SHARED emission decisions (gates + budget), the
+    // same map codegen consumes for the inline emission.
+    let inline_decisions = compute_inline_decisions(
+        grammar_tree,
+        annotations,
+        classifier.compiled.as_ref(),
+        entry_rule.as_deref(),
+    );
     let inline_rules: BTreeMap<String, InlineRuleCensus> = universe
         .iter()
         .map(|rule| {
@@ -1703,6 +1907,9 @@ pub fn run_fusibility_census(
                     wrapper_class: eligible.then(|| inline_wrapper_class(body)),
                     reference_sites: grammar_wide_refs.get(rule).copied().unwrap_or(0),
                     body_nodes: count_nodes(body),
+                    decided: inline_decisions
+                        .get(rule)
+                        .is_some_and(|decision| decision.decided),
                 },
             )
         })
@@ -2000,8 +2207,20 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             println!("    {count:>5}  {reason}");
         }
     }
+    // RGX-0078.5.i.4 (P1a) — the EMISSION decisions under the shared budget
+    // (`compute_inline_decisions`, the same map codegen consumes). No silent
+    // caps: the over-budget count is always printed.
+    let decided_count = eligible.iter().filter(|(_, c)| c.decided).count();
+    println!(
+        "INLINE-DECISIONS: grammar={} decided_under_budget={} over_budget={} (expansion_cap={} duplication_cap={})",
+        census.grammar_name,
+        decided_count,
+        eligible.len() - decided_count,
+        INLINE_EXPANSION_CAP,
+        INLINE_DUPLICATION_CAP,
+    );
     if dump_all && !eligible.is_empty() {
-        println!("  inline-eligible rules (PGEN_FUSIBILITY_DUMP_ALL; class, reference sites, body nodes):");
+        println!("  inline-eligible rules (PGEN_FUSIBILITY_DUMP_ALL; class, reference sites, body nodes, emission decision):");
         for (rule, c) in &eligible {
             let class = match c.wrapper_class {
                 Some(InlineWrapperClass::PassThrough) => "pass_through",
@@ -2010,8 +2229,10 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                 None => unreachable!("eligible rules carry a wrapper class by construction"),
             };
             println!(
-                "    {rule}: {class} refs={} body_nodes={}",
-                c.reference_sites, c.body_nodes
+                "    {rule}: {class} refs={} body_nodes={} {}",
+                c.reference_sites,
+                c.body_nodes,
+                if c.decided { "INLINED" } else { "over-budget" },
             );
         }
     }
@@ -2575,10 +2796,12 @@ mod tests {
         assert!(leaf.body_nodes >= 1 && wrapper.body_nodes >= 1);
     }
 
-    /// RGX-0078.5.i.4 (P1 STEP-0) — the verdict names runtime-directive blockers
-    /// from the same compiled-facts surface the generated parser consults
-    /// (exercised directly on the classifier, the `site_degeneracy_verdict`
-    /// pure-unit precedent).
+    /// RGX-0078.5.i.4 (P1 STEP-0, re-anchored by the P1a refactor) — the verdict
+    /// names runtime-directive blockers from the same COMPILED table the
+    /// generated parser consults: the shared free function
+    /// (`rule_inline_verdict`) reads `compiled` directly, so the test builds
+    /// REAL annotations and lets `Classifier::new` compile them (no map
+    /// injection — stronger than the original, which faked the derived map).
     #[test]
     fn inline_rule_verdict_names_directive_blockers() {
         let mut tree = HashMap::new();
@@ -2587,10 +2810,32 @@ mod tests {
             "leaf".to_string(),
             or(vec![atom("quoted_string", "a"), atom("quoted_string", "b")]),
         );
-        let mut classifier = Classifier::new(&tree, None).expect("classifier builds");
-        classifier
-            .directives_by_rule
-            .insert("gated".to_string(), vec!["emit_fact".to_string()]);
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "gated".to_string(),
+            vec![super::super::SemanticAnnotation::Named {
+                name: "emit_fact".to_string(),
+                ast: super::super::UnifiedSemanticAST::Structured {
+                    canonical: "{ kind: typedef, name: $1 }".to_string(),
+                    value: super::super::UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: super::super::UnifiedSemanticValue::Identifier(
+                                "typedef".to_string(),
+                            ),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: super::super::UnifiedSemanticValue::RuleReference(
+                                "$1".to_string(),
+                            ),
+                        },
+                    ]),
+                },
+            }],
+        );
+        let classifier =
+            Classifier::new(&tree, Some(&annotations)).expect("classifier builds");
         let (eligible, blockers) = classifier.inline_rule_verdict("gated", false, false);
         assert!(!eligible);
         assert!(blockers.iter().any(|b| b == "runtime directive @emit_fact"));
@@ -2598,6 +2843,59 @@ mod tests {
         let (eligible, blockers) = classifier.inline_rule_verdict("leaf", false, false);
         assert!(eligible, "blockers: {blockers:?}");
         assert!(blockers.is_empty());
+    }
+
+    /// RGX-0078.5.i.4 (P1a) — the SHARED emission-decision function: the budget
+    /// admits a small wrapper, prices a decided child into its parent's
+    /// capped-transitive weight, and excludes a rule whose `weight × sites`
+    /// exceeds the duplication cap — with cycle/entry rules never decided.
+    #[test]
+    fn compute_inline_decisions_applies_budget_and_gates() {
+        let mut tree = HashMap::new();
+        // entry -> wrapper -> leaf; `popular` is tiny but referenced from more
+        // sites than the duplication cap admits; `cyclic` references itself.
+        tree.insert("entry".to_string(), rule_ref("wrapper"));
+        tree.insert("wrapper".to_string(), rule_ref("leaf"));
+        tree.insert(
+            "leaf".to_string(),
+            or(vec![atom("quoted_string", "a"), atom("quoted_string", "b")]),
+        );
+        let popular_sites: Vec<ASTNode> = (0..INLINE_DUPLICATION_CAP + 1)
+            .map(|_| rule_ref("popular"))
+            .collect();
+        tree.insert(
+            "hub".to_string(),
+            ASTNode::Sequence {
+                elements: popular_sites,
+            },
+        );
+        tree.insert("popular".to_string(), atom("quoted_string", "p"));
+        tree.insert(
+            "cyclic".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom("quoted_string", "c"), rule_ref("cyclic")],
+            },
+        );
+        let decisions = compute_inline_decisions(&tree, None, None, Some("entry"));
+        assert!(!decisions["entry"].decided, "entry rule is never decided");
+        assert!(!decisions["cyclic"].eligible && !decisions["cyclic"].decided);
+        assert!(decisions["leaf"].decided, "{:?}", decisions["leaf"]);
+        // wrapper's weight prices leaf's inlined body in and stays under the
+        // caps (wrapper has ONE reference site, so the duplication cap holds).
+        assert!(decisions["wrapper"].decided, "{:?}", decisions["wrapper"]);
+        assert!(
+            decisions["wrapper"].weight > decisions["leaf"].weight,
+            "decided child expands into the parent weight: {:?} vs {:?}",
+            decisions["wrapper"],
+            decisions["leaf"]
+        );
+        // popular: weight ≥1 × sites (> cap) ⇒ over budget, never decided.
+        assert!(decisions["popular"].eligible);
+        assert!(
+            !decisions["popular"].decided,
+            "duplication cap must exclude it: {:?}",
+            decisions["popular"]
+        );
     }
 
     /// RGX-0078.5.i.4 (P1 STEP-0) — the exposure join decomposes eligible-rule

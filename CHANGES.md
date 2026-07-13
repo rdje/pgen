@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0055 — RGX-0078.5.i.4 P1a LANDED: memo-preserving cascade/wrapper inlining — regex geomean ≈−4–7% (≈39.7µs → ≈36µs, cumulative 496µs → ≈36µs ≈ 13.8×), counters/AST/cert pins byte-identical BY MEASUREMENT
+
+The P1a emission (session #112). A call site of a budget-DECIDED wrapper rule receives the rule's
+BODY inline under a new emitted `inlined_frame_call` engine helper instead of a method call; the
+packrat memo is fully preserved (`memoized_call` intact under the helper).
+
+- **Shared decision, no census/codegen drift (the P2 `first_set.rs` precedent):** gates (a)–(d)
+  (`rule_inline_verdict`) AND the code-size budget (`compute_inline_decisions`;
+  `INLINE_EXPANSION_CAP=12` capped-transitive gen-AST body weight, `INLINE_DUPLICATION_CAP=192`
+  weight×reference-sites) live in `fusibility_census.rs` as pure pub functions; codegen consumes
+  them via a once-per-generation plan, the census reports them (`INLINE-DECISIONS: …
+  decided_under_budget=… over_budget=…`; per-rule `INLINED`/`over-budget` under
+  `PGEN_FUSIBILITY_DUMP_ALL`). Over-budget eligible rules are LOGGED at codegen (no silent caps).
+- **Identical-by-construction body:** the rule method's body construction is factored into
+  `generate_rule_body_inner`, used by BOTH the method and the inlined frame (the inlined closure
+  binds `let start_pos = parser.position;` at its head — provably the method's binding, since
+  `memoized_call`'s miss path does not move `position` before running the body).
+- **Preserved verbatim per inlined frame (inside the ONE helper):** entry `fetch_add`,
+  transactional coverage push, furthest-position, memoized dispatch, method-identical ✅/⚠️/❌ exit
+  trace lines + negative-case recording. **Elided:** recursion-guard enter/exit (gate (a): acyclic ⇒
+  `check_cycle` keys on the rule's OWN name), rule-context push/pop + `--trace-rules` scope probe
+  (every consumer proven trace-only), the two `needs_raw` table probes (statically folded to
+  `false` for EVERY directive-free rule — a ride-along fold that applies to rule METHODS too), and
+  the call frame. Documented trace-payload deltas: rollback labels/guard stacks inside an inlined
+  subtree name the enclosing method frame; `--trace-rules <wrapper>` no longer scopes at inlined
+  sites.
+- **Measured (fat-LTO, alternated 5×2000, geomean-of-mins; probes differ ONLY in
+  `generated/regex_parser.rs`):** three sessions −3.5% / −3.9% / −6.7% ⇒ **≈−4–7%**, ≈36µs. The
+  budget was chosen BY MEASUREMENT: a tighter T=8/C=64 variant (105 rules, ×1.28 source) lost the
+  interleaved head-to-head (−3.8% vs −6.7%) ⇒ T=12/C=192 kept (128/204 regex rules inlined,
+  emitted source ×1.86).
+- **Byte-identity (measured, not asserted):** 8-pattern outcome dumps byte-identical
+  (`2389/617/568` raw/committed/memo-hits, per-pattern `cmp` clean); 8/8 typed-AST dumps
+  byte-identical; regex cert seeds 0/7/42 pins byte-identical (`267/9/258/0`,
+  `fully_certified=true`, spf `0/1/1`); regen determinism (restored toolchain reproduces the
+  measured candidate byte-identically).
+- **Cross-grammar (capability-gated, never name-gated):** all 11 parsers regenerated canonically —
+  decided rules: SV 659 (of 844 eligible; 123.7MB ×1.80), vhdl 125 (10.0MB), rtl_frontend 104
+  (8.9MB), ebnf 84 of 108 eligible (9.9MB), svpp 41, rtl_const_expr 32, annotation parsers via
+  their bootstrap-canonical targets, json 2, scratch 1.
+- **Battery:** full lib suite + equivalence/combinator/semantic/ast-shape/duality/PCRE2-oracle
+  gates — results recorded in the leaf's P1a acceptance checklist (`docs/tasks/RGX-0078.md`).
+- **Next:** P1b (memo elision at inlined frames — separately priced, counters change truthfully at
+  the 399 former hits), then re-run the degeneracy census (P2 exposure may grow as wrappers
+  collapse).
+
 ## 2026-07-13 - PGEN-RGX-0078-0054 — RGX-0078.5.i.4 STEP-0: the P1 INLINE-CENSUS scout — 204/274 regex rules inline-eligible, 70.0% of bench entries are collapsible wrapper frames; NEW per-rule memo-hit counter (the `.5.i.1` "613 hits" corrected to 568); falsifiable ceilings P1a ≈−9–11% / P1b additional ≈−10–18% recorded BEFORE emission
 
 The P1 (cascade/wrapper inlining) slice's tools-first STEP-0 (session #111; leaf opened docs-only as

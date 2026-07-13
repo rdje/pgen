@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0055 — RGX-0078.5.i.4 P1a: emission notes (the ONE-helper consolidation, the budget-by-measurement, and two test-tier traps)
+
+**Why one emitted helper instead of open-coded frames.** The obvious P1a emission open-codes the
+preserved observability (entry counter, coverage push, furthest, exit trace match) at every inlined
+site — ~60 lines × every site, and two copies of the observability protocol to keep in lockstep
+(method vs inline). Emitting ONE `inlined_frame_call` helper per parser makes the per-site cost the
+child body alone and makes drift structurally impossible; LLVM inlines the helper at fat-LTO, so the
+runtime cost is nil. Rule of thumb: when an emission duplicates a PROTOCOL (not just logic), emit the
+protocol once and parameterize.
+
+**The budget was chosen by measurement, and the measurement surprised.** The weight model priced
+T=8/C=64 (105 rules, ×1.28 source) as the safer bet vs T=12/C=192 (128 rules, ×1.86). The interleaved
+head-to-head said otherwise: T12 −6.7% vs T8 −3.8% — the extra collapsed frames beat the extra i-cache
+pressure at these sizes. Don't trust a code-size intuition where an alternated bench can answer.
+
+**Per-pattern mins are noisy; the geomean is the signal.** `literal_simple` swung −14.9% → +2.2%
+between sessions on identical binaries. Any per-pattern claim needs the alternated protocol AND
+multiple sessions; land/revert decisions read the geomean only.
+
+**Test-tier trap 1 — textual carves break under inlining.** A codegen-pin test that carves
+`fn parse_r`'s text now sees the INLINED child bodies too (`quantified_bodied_rule_…` matched the
+child's legitimate synthetic `-> $1` string). When pinning "rule R's emission does NOT contain X",
+either scope the assertion to R's own memoized closure or shape the fixture so no inlined child can
+carry X (the fix used a two-element child — no synthetic transform).
+
+**Test-tier trap 2 — the harness needs the dual-feature `ast_pipeline`.** The `make focus_*` chain
+leaves `target/debug/ast_pipeline` built WITHOUT `ebnf_dual_run`; the parse-harness suites (which
+shell out to it) then fail with "requires building with --features ebnf_dual_run" — a stale-binary
+plumbing failure, not a code defect. After any regen sweep, rebuild
+`cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline` before the lib suite.
+
+**SV source growth is the accepted price (recorded).** systemverilog_parser.rs 68.9 → 123.7MB
+(×1.80) at T=12/C=192; the full lib test build+run stayed ≈4m31s on this machine, judged acceptable.
+If future build times regress, the knob is `INLINE_DUPLICATION_CAP` (one constant, budget re-measured
+per the leaf's protocol) — never a grammar-name gate.
+
 ## 2026-07-13 - PGEN-RGX-0078-0054 — RGX-0078.5.i.4 STEP-0: inline-census scout notes (why the hit counter lives in the ENGINE, and what the 613→568 correction teaches)
 
 **Why the memo-hit counter is engine-state, not a new emitted accessor.** The `.5.h.1b` committed-count

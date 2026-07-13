@@ -227,6 +227,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.i.1 | **Cost-decomposition census** (the planner rung's step 0) — six measurement-only strip-variants of the generated parser, each byte-identity-proven, pricing every piece of per-entry machinery; discovered that ≈32% of the parse is unconditional bookkeeping waste (trace-naming strings, tournament allocs, context strings) and fixed the planner pass order (see the census section below) | (measurement only — nothing landed) | 56.7 µs → 38.7 µs with all strips applied | **−31.7% measured ceiling** | **measured** — P0 landed as 5.i.2 |
 | RGX-0078 · 5.i.2 | **P0 — lazy/no-alloc protocol hygiene** (the census's V1+V2+V3 surfaces made permanent, observability-preserving): rollback labels travel as a cheap `Copy` enum materialized into text only inside the trace-enabled branch (was: two `String`s per failed speculation + a `format!` per successful tournament branch, consumed only under trace); the branch tournament iterates its rotated order as `(step + offset) % n` instead of collecting a `Vec` per execution, and the partition-group string is built only when partitioning is enabled; the rule-context stack stores `Cow<'static, str>` pushed borrow-only from rule-name literals (generated parsers) and interned names (interpreter). Trace output with tracing ON is byte-for-byte unchanged — proven by a 923-line trace-payload diff | engine + codegen (parser-agnostic) | 56.7 µs → **42.0 µs** | **−25.8%** | **landed** ✓ |
 | RGX-0078 · 5.i.3 | **P2 — degenerate-tournament byte-switch dispatch**: where FIRST-set analysis PROVES a rule's top-level branch tournament degenerate (every branch's admissible first bytes decided and pairwise DISJOINT, terminals whitespace-sensitive, no branch predicates or branch-start effects), the generated rule dispatches with ONE `match` on the next byte straight to the only branch that could match — eliding the per-branch guard-scan loop, the tournament semantic checkpoint, the winner's delta-extract/rollback/replay round-trip, and the `should_take` cascade (the sole candidate still runs under `try_parse`, so failure restores state exactly as before). 41 of regex's 112 top-level choice sites qualify (the single-char alternation leaves — `letter`'s 52-arm tournament becomes one byte switch); a new DEGENERACY census (`--report-fusibility-census`) measured the surface and predicted −3–7% before any code | codegen (parser-agnostic; census-verified gate) | 42.0 µs → **39.7 µs** | **−5.3%** | **landed** ✓ |
+| RGX-0078 · 5.i.4 | **P1a — cascade/wrapper inlining, memo preserved**: a call site of a provably collapsible wrapper rule (on no reference cycle, no semantic directive in any phase, not the entry rule, not dialect-gated — the inline census's gates) receives the rule's BODY inline under a new emitted `inlined_frame_call` engine helper instead of a method call. The helper preserves the per-frame observability verbatim (entry counter, transactional coverage push, furthest-position, `memoized_call` with the memo intact, the method-identical exit trace lines), so rule-entry counters, outcome dumps, ASTs, and certification pins stay byte-identical BY MEASUREMENT; elided per frame: recursion-guard enter/exit, rule-context push/pop, the `--trace-rules` scope probe, the two needs-raw annotation probes (statically folded for every directive-free rule — a ride-along that applies to rule methods too), and the call frame itself. A measured code-size budget (capped-transitive body weight ≤ 12 gen-AST nodes, weight × reference-sites ≤ 192, shared with the census's `INLINE-DECISIONS` report) bounds the duplication: 128 of regex's 204 eligible rules are inlined; a tighter budget variant was built and measured — and lost | codegen + one emitted helper (parser-agnostic; census-shared gate + budget) | ≈39.7 µs → **≈36 µs** | **≈−4–7%** (alternated sessions −3.5/−3.9/−6.7%) | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -743,6 +744,34 @@ is elided at inlined frames — and unlike predictive dispatch, this surface is 
 (SystemVerilog: 844 of 1 466 rules eligible; VHDL 186/216; every family has one), so a landed
 emission is a platform-wide primitive. The emission itself is the next slice; the ceiling dies
 or survives by measurement, like every number on the scoreboard.
+
+**The memo-preserving emission (P1a) has now landed (scoreboard lever 5.i.4): measured ≈−4–7%
+across three alternated benchmark sessions, ≈39.7 µs → ≈36 µs.** At a call site of a *decided*
+rule, the generated code no longer calls the rule's method: the rule's body is emitted inline
+under a new `inlined_frame_call` engine helper that performs, verbatim, exactly the per-frame
+work that must survive — the rule-entry counter, the transactional coverage push, the
+furthest-position update, the memoized dispatch (the packrat memo is fully preserved in this
+increment), and the method-identical exit trace lines. Because the helper exists once per
+generated parser and the inlined body is produced by the *same* body generator the rule method
+uses, the collapse is identical-by-construction — and the identity was then verified by
+measurement, not asserted: per-pattern outcome dumps (raw, committed, and memo-hit counts),
+all eight typed-AST dumps, and the certification pins at three seeds are byte-identical between
+the baseline and the inlined parser. What each collapsed frame stops paying: the recursion-guard
+push/pop (the census only admits rules that can never re-enter themselves), the rule-context
+push/pop and the `--trace-rules` scope probe (both proven to feed trace output only), the two
+needs-raw annotation-table probes (statically folded to a constant for every directive-free
+rule — a fold that legally rides along in every rule *method* too), and the call frame itself.
+Two honest structural notes, recorded as documented deltas: inside an inlined frame, a rollback
+trace label and the recursion-guard error stack name the nearest *enclosing* method frame (the
+wrapper no longer appears — trace-payload only), and `--trace-rules <wrapper>` no longer
+activates scoped tracing at inlined sites of that wrapper. Code size is governed by a measured
+budget shared with the census's `INLINE-DECISIONS` report (capped-transitive body weight ≤ 12
+gen-AST nodes and weight × reference-sites ≤ 192): 128 of regex's 204 eligible rules land under
+it (the emitted source grows ×1.86), the 76 over-budget rules are logged by name, and the budget
+itself was chosen by measurement — a tighter variant (105 rules, ×1.28) was built, benchmarked
+head-to-head in the same alternated session, and *lost* (−3.8% vs −6.7%), so the wider budget
+stayed. The memo-eliding variant (P1b), whose counters change truthfully where the 399 cached
+hits would re-execute, remains a separately-priced next increment.
 
 One incidental find from the same session is worth recording for transparency: the census's
 byte-identity oracle caught a *regeneration-path* divergence — parsers regenerated through a
