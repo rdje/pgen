@@ -1,4 +1,17 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0059 — RGX-0078.5.i.5 STEP-0 (docs-only): method-frame machinery census MEASURED from existing instruments — P3a ≈−2% (thin), P3b ≈−4–8%; RE-PROFILE before any P3 emission
+
+Zero new code: the post-P1b outcome dumps + census JSON + the structural fact that a decided
+rule's reference sites are all inlined (method entries ≈ 0; cross-check 1223+1280=2503 ✓)
+yield the full P3 pricing. Method frames = 1280 entries (51.1%): 796 on acyclic rules (P3a
+guard surface, ≈7µs ⇒ ≈−2% — below the reliable solo signal threshold, measure COMBINED with
+P3b), 484 on the cyclic spine (guard stays). All 314 residual memo hits sit at method frames;
+140 on cyclic rules are UNTOUCHABLE (hard bound), P3b's 84 candidate rules carry 570 entries /
+144 hits ⇒ ceiling ≈−4–8%. Recorded next action: re-profile the ≈32µs bench (the `.2`
+discipline) BEFORE emission — post-P0/P2/P1a/P1b the residual may be dominated by surfaces P3
+cannot touch; the profile adjudicates P3a+P3b (≈−6–10% combined) vs P4 value folding.
+MEMORY + TASK_TREE frontier updated.
+
 ## 2026-07-13 - PGEN-RGX-0078-0058 — RGX-0078.5.i.5 OPENED (docs-only): P3 SELECTIVE MACHINERY AT METHOD FRAMES is the next planner slice
 
 Leaf spec recorded (session #113): with P1 closed, all residual per-frame machinery sits at
