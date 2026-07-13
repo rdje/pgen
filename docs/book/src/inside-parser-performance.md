@@ -851,3 +851,17 @@ dynamically (an O(1) "store unchanged since checkpoint" fast path, the same writ
 memo already uses for its soundness validation). The scoreboard's next rows are those two
 pricings — each of which will land, or die, by measurement, like everything else in this
 chapter.
+
+The first pricing is already in: a four-counter classification added to the store's own
+operation counters (recorded inside the rollback routine from values it already computes, and
+reported through the same outcome-dump JSON the earlier censuses used) measured, on the
+benchmark, that **98.8% of all speculation rollbacks and 93.6% of all tournament delta
+extractions happen with a provably unchanged store** — every one of those extractions paid two
+unconditional vector clones and a delta drop to describe *nothing* — and that every checkpoint
+clones a non-empty scope chain, because the root scope is always open. The instrument's totals
+reproduce the previous landing's counter pins byte-exactly, and a unit test pins the one case an
+epoch check alone would miss (a deferred `phase: final` obligation deliberately does not bump
+the write epoch, so the fast path must also compare the obligation count — both checks are
+O(1)). The priced increment, recorded before any code: an engine-only fast path with a
+falsifiable ceiling of ≈−5–8%, the checkpoint-side clone explicitly logged as the margin a later
+static elision could still claim.

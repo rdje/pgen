@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0061 — RGX-0078.5.i.5 P3c PRICING SCOUT: 98.8% of rollbacks / 93.6% of delta extractions are provably-unchanged no-ops; priced increment = the engine-only epoch fast path (ceiling ≈−5–8%)
+
+The exposure instrument + measurement behind the P3c increment (session #114). Four cumulative
+counters added to `SemanticStoreCounters`, recorded by `rollback_to_labeled` from values it
+already computes (the hoisted write-epoch guard verdict + one O(1) deferred-length compare + a
+structural `RollbackLabel` match): `rollbacks_unchanged`, `rollbacks_tournament` (1:1 with
+`extract_delta_since`), `rollbacks_tournament_unchanged` (empty-delta extractions), and
+`rollbacks_nonempty_chain`; dumped through the existing `store_counters` surface in both the
+macro and regex-worker paths (lib-only — NO parser regen; old dumps stay loadable). Measured on
+the 8-pattern bench: **2733 rollbacks — 2701 (98.8%) provably unchanged; 424 extracts — 397
+(93.6%) empty** (each paid `extract_delta_since`'s two unconditional clones + the delta drop for
+a delta empty by construction); **100% of checkpoints clone a non-empty chain** (the root scope
+is always open; no bench pattern opens another). Instrument integrity: totals reproduce the P1b
+pins byte-exactly (2503/617/314), dump re-run `cmp`-identical, unit test pins all four
+classifications including the epoch-blind deferred-obligation case; full dual-feature lib suite
+green (904 passed / 0 failed). Priced increment recorded before any emission: **P3c-i, the
+engine-only epoch fast path** (checkpoint stamps `write_epoch`; unchanged-epoch + unchanged
+deferred length ⇒ canonical empty delta + no-op rollback skip; parser-agnostic, the interpreter
+inherits it) with falsifiable ceiling ≈−5–8%, capped by the measured 8.4–10.0% profile bucket;
+the checkpoint-side chain clone (≥2733 allocs/pass) recorded as the P3c-ii/iii margin. TOOLBOX
+§3.5 + leaf + TASK_TREE + MEMORY + book lockstep.
+
 ## 2026-07-13 - PGEN-RGX-0078-0060 — RGX-0078.5.i.5 RE-PROFILE #5 (docs-only): P3a+P3b REFUTED by profile (guard 0.4–0.5%, ENTIRE memo 2.8–3.2%); the ≈32µs residual is VALUE/ALLOC-dominated — serde ≈26–29% (P4), C3-B tournament delta protocol ≈8–10% (P3c)
 
 The `.2`-discipline re-profile (session #114) that the STEP-0 census mandated before any P3

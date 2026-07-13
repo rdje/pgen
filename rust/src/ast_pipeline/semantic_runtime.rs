@@ -2079,6 +2079,31 @@ pub struct SemanticStoreCounters {
     pub scopes_closed: u64,
     /// `rollback_to` calls.
     pub rollbacks: u64,
+    /// RGX-0078.5.i.5 (P3c scout) — rollbacks where the store was PROVABLY
+    /// unchanged since the checkpoint: the write-epoch guard condition was
+    /// false (no facts discarded, no arena growth, active chain == snapshot)
+    /// AND the deferred-obligation worklist length is unchanged (obligations
+    /// do not bump the epoch, so they need their own O(1) check). This is the
+    /// population an O(1) "nothing changed" fast path in the checkpoint/
+    /// delta/rollback protocol would serve.
+    pub rollbacks_unchanged: u64,
+    /// RGX-0078.5.i.5 (P3c scout) — rollbacks labeled `C3bBranchCleanup`
+    /// (the per-successful-branch tournament cleanup). Each such rollback is
+    /// paired 1:1 with an immediately-preceding `extract_delta_since`, so
+    /// this also counts the tournament delta extractions.
+    pub rollbacks_tournament: u64,
+    /// RGX-0078.5.i.5 (P3c scout) — the intersection: tournament cleanups
+    /// with an unchanged store. Each one paid `extract_delta_since`'s two
+    /// unconditional clones (`final_active_chain` + `final_scopes`) plus the
+    /// delta drop for a delta that is empty by construction — the direct
+    /// savings population of the empty-delta fast path.
+    pub rollbacks_tournament_unchanged: u64,
+    /// RGX-0078.5.i.5 (P3c scout) — rollbacks whose checkpoint carried a
+    /// NON-empty `active_chain_snapshot` (i.e. `checkpoint()` paid a real
+    /// chain clone alloc). Proxy for the additional margin a STATIC
+    /// effect-free-site elision (which skips the checkpoint entirely) has
+    /// over the dynamic fast path.
+    pub rollbacks_nonempty_chain: u64,
     /// MEMO-STORE-SOUNDNESS.2 — store-consulting predicate evaluations
     /// (`evaluate_predicate` entries; the content-only `content_kind_is`
     /// short-circuit is deliberately exempt — its verdict depends on parse
@@ -2884,11 +2909,31 @@ impl SemanticRuntimeState {
         // different active chain; the ubiquitous zero-change speculation
         // rollback must NOT invalidate tainted memo entries (that would
         // re-collapse the memo on store-heavy grammars).
-        if facts_being_rolled_back > 0
+        let store_changed = facts_being_rolled_back > 0
             || self.scope_arena.len() > scope_arena_len
-            || self.active_chain != checkpoint.active_chain_snapshot
-        {
+            || self.active_chain != checkpoint.active_chain_snapshot;
+        if store_changed {
             self.write_epoch += 1;
+        }
+        // RGX-0078.5.i.5 (P3c scout) — classify this rollback for the
+        // checkpoint/delta-protocol exposure census. `store_changed` is the
+        // write-epoch guard already computed above; the deferred-obligation
+        // length check is the one condition the epoch cannot see (enqueue
+        // deliberately does not bump it). The label match is structural —
+        // nothing is materialized. Counters only; no behavioral effect.
+        let rollback_unchanged = !store_changed
+            && checkpoint.deferred_len == self.deferred_obligations.len();
+        if rollback_unchanged {
+            self.counters.rollbacks_unchanged += 1;
+        }
+        if matches!(label, RollbackLabel::C3bBranchCleanup { .. }) {
+            self.counters.rollbacks_tournament += 1;
+            if rollback_unchanged {
+                self.counters.rollbacks_tournament_unchanged += 1;
+            }
+        }
+        if !checkpoint.active_chain_snapshot.is_empty() {
+            self.counters.rollbacks_nonempty_chain += 1;
         }
         // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining rollback trace.
         // Pair with emit_fact + has_fact traces to spot C3-B style bugs
@@ -8463,6 +8508,74 @@ mod tests {
 
         state.close_scope(&SemanticCloseScopeSpec { kind: None, name: None });
         assert_eq!(state.counters().scopes_closed, 1);
+    }
+
+    #[test]
+    fn rollback_classification_counters_track_protocol_exposure() {
+        // RGX-0078.5.i.5 (P3c scout) — the checkpoint/delta-protocol exposure
+        // classification recorded by `rollback_to_labeled`.
+        use super::RollbackLabel;
+        let mut state = SemanticRuntimeState::new();
+
+        // 1. A zero-change speculation rollback (the try_parse Err shape) is
+        //    UNCHANGED, non-tournament, and — because `new()` seeds the active
+        //    chain with the root scope — its checkpoint carried a non-empty
+        //    chain snapshot.
+        let cp = state.checkpoint();
+        state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.counters().rollbacks, 1);
+        assert_eq!(state.counters().rollbacks_unchanged, 1);
+        assert_eq!(state.counters().rollbacks_tournament, 0);
+        assert_eq!(state.counters().rollbacks_tournament_unchanged, 0);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 1);
+
+        // 2. A zero-change TOURNAMENT cleanup counts in both tournament
+        //    buckets (this is the empty-delta-extraction population).
+        let cp = state.checkpoint();
+        state.rollback_to_labeled(
+            cp,
+            RollbackLabel::C3bBranchCleanup { rule: "r", branch: 1, total: 2 },
+        );
+        assert_eq!(state.counters().rollbacks_unchanged, 2);
+        assert_eq!(state.counters().rollbacks_tournament, 1);
+        assert_eq!(state.counters().rollbacks_tournament_unchanged, 1);
+
+        // 3. A tournament cleanup that discards a fact is CHANGED — it counts
+        //    as tournament but not as unchanged.
+        let cp = state.checkpoint();
+        state.emit_fact(SemanticFactSpec {
+            kind: "k".to_string(),
+            name: ident("spec"),
+            attributes: vec![],
+        });
+        state.rollback_to_labeled(
+            cp,
+            RollbackLabel::C3bBranchCleanup { rule: "r", branch: 2, total: 2 },
+        );
+        assert_eq!(state.counters().rollbacks_unchanged, 2);
+        assert_eq!(state.counters().rollbacks_tournament, 2);
+        assert_eq!(state.counters().rollbacks_tournament_unchanged, 1);
+
+        // 4. A rollback that discards ONLY a deferred obligation is CHANGED
+        //    for classification purposes even though obligations never bump
+        //    the write epoch — the one condition an epoch-only fast path
+        //    would miss (the soundness pin for any future O(1) gate).
+        let cp = state.checkpoint();
+        state.enqueue_deferred_obligation(
+            SemanticPredicateSpec {
+                name: "has_fact".to_string(),
+                args: vec![],
+                phase: SemanticPredicatePhase::Final,
+                view: SemanticPredicateContentView::default(),
+            },
+            0,
+        );
+        state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.counters().rollbacks, 4);
+        assert_eq!(state.counters().rollbacks_unchanged, 2);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 4);
+        // The obligation itself was discarded by the rollback.
+        assert_eq!(state.deferred_obligation_count(), 0);
     }
 
     #[test]

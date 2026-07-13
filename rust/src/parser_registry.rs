@@ -216,7 +216,7 @@ fn dump_rule_outcome_counts_json(
     counts: &[std::sync::atomic::AtomicU64],
     committed: &[u64],
     memo_hits: &[u64],
-    store_counter_deltas: [u64; 6],
+    store_counter_deltas: [u64; 10],
     accepted: bool,
 ) {
     let mut entry_map = serde_json::Map::new();
@@ -282,6 +282,18 @@ fn dump_rule_outcome_counts_json(
             "scopes_opened": store_counter_deltas[3],
             "scopes_closed": store_counter_deltas[4],
             "predicate_evaluations": store_counter_deltas[5],
+            // RGX-0078.5.i.5 (P3c scout) — checkpoint/delta-protocol exposure:
+            // `rollbacks_unchanged` = store provably unchanged since checkpoint
+            // (epoch-guard false + deferred-obligation length unchanged — the
+            // O(1)-fast-path-eligible population); `rollbacks_tournament` =
+            // C3-B branch cleanups (1:1 with `extract_delta_since` calls);
+            // `..._tournament_unchanged` = empty-delta extractions (each paid
+            // two unconditional clones for nothing); `..._nonempty_chain` =
+            // rollbacks whose checkpoint paid a real active-chain clone.
+            "rollbacks_unchanged": store_counter_deltas[6],
+            "rollbacks_tournament": store_counter_deltas[7],
+            "rollbacks_tournament_unchanged": store_counter_deltas[8],
+            "rollbacks_nonempty_chain": store_counter_deltas[9],
         },
     });
     let rendered = serde_json::to_string_pretty(&payload)
@@ -324,6 +336,12 @@ macro_rules! with_rule_entry_count_dump {
                 __c.scopes_opened,
                 __c.scopes_closed,
                 __c.predicate_evaluations.get(),
+                // RGX-0078.5.i.5 (P3c scout) — the checkpoint/delta-protocol
+                // exposure classification (same delta discipline).
+                __c.rollbacks_unchanged,
+                __c.rollbacks_tournament,
+                __c.rollbacks_tournament_unchanged,
+                __c.rollbacks_nonempty_chain,
             ]
         });
         // RGX-0078.5.i.4 (P1 STEP-0) — memo-hit baseline (same delta discipline;
@@ -349,7 +367,7 @@ macro_rules! with_rule_entry_count_dump {
         if let Some(__path) = __outcome_dump {
             let __store_deltas = {
                 let __c = $parser.semantic_runtime_state().counters();
-                let __b = __store_baseline.unwrap_or([0u64; 6]);
+                let __b = __store_baseline.unwrap_or([0u64; 10]);
                 [
                     __c.rollbacks.saturating_sub(__b[0]),
                     __c.facts_emitted.saturating_sub(__b[1]),
@@ -357,6 +375,10 @@ macro_rules! with_rule_entry_count_dump {
                     __c.scopes_opened.saturating_sub(__b[3]),
                     __c.scopes_closed.saturating_sub(__b[4]),
                     __c.predicate_evaluations.get().saturating_sub(__b[5]),
+                    __c.rollbacks_unchanged.saturating_sub(__b[6]),
+                    __c.rollbacks_tournament.saturating_sub(__b[7]),
+                    __c.rollbacks_tournament_unchanged.saturating_sub(__b[8]),
+                    __c.rollbacks_nonempty_chain.saturating_sub(__b[9]),
                 ]
             };
             let __memo_hit_deltas: Vec<u64> = {
@@ -754,6 +776,11 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
                     c.scopes_opened,
                     c.scopes_closed,
                     c.predicate_evaluations.get(),
+                    // RGX-0078.5.i.5 (P3c scout) — protocol-exposure counters.
+                    c.rollbacks_unchanged,
+                    c.rollbacks_tournament,
+                    c.rollbacks_tournament_unchanged,
+                    c.rollbacks_nonempty_chain,
                 ]
             };
             dump_rule_outcome_counts_json(
