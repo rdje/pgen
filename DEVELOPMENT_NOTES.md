@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0044 — RGX-0078.5.h.1.t1: why the spf residual's label was blank, and why the parser (not the sample) wins the over-generation dispute
+
+**The label pathway.** `main.rs`'s cert failure-labeler calls `parser_registry::parse_error()`, which dispatches
+through the registry entry's `parse_detail: Option<ParseDetailFn>`. That hook was wired grammar-by-grammar when
+G.4.7 landed (SV, svpp, scratch) and regex was simply never added — even though `parse_with_regex_detail` (the
+probe's own detail path) already had the exact required signature. The one-line wiring closes it. Semantic check
+that made the one-liner safe: the detail fn ALSO applies the PCRE2 compile-validation contract, but the label
+pathway only runs for samples whose GRAMMAR parse failed (`parse_and_cover` = false), and the deterministic
+re-parse fails before the contract executes — so the emitted label is always the grammar-parse error, matching
+`parse_and_cover` semantics (which intentionally skips the contract).
+
+**The over-generation adjudication (oracle-first).** The captured 117-byte sample fails at byte 90 — the `(` of
+`(?(51)…`. Mechanism: the `\Q` opened inside the conditional quotes to the FIRST subsequent `\E`, which is the
+final `\E` of the pattern, so the conditional's `)` and the following `*?^…` are consumed as literal content and
+the group never closes. Verified against the authoritative executable oracle, not reasoned from the spec:
+pcre2test 10.47 on the exact sample → `error 114 at offset 117: missing closing parenthesis`. Verdict: the
+parser's reject is PCRE2-faithful; the GENERATOR is the defective side (it emitted a quoting piece whose
+rendered text re-parses differently than generated — the generated structural close is absorbed lexically).
+This is the svpp `H.5.5` round-trip-absorption class and the gen-side-no-`lacks_fact`-prune family; the
+preferred fix shape is a structural grammar peel (position-restrict the quoting forms whose content can absorb
+following structural text), which is regex.ebnf surgery + full battery + book/contract lockstep. Deferred with
+the class documented: the residual is bounded and stable (spf ≤1 per seed, sessions #91–#107), and the pending
+§G.1 road decision owns regex priorities. The ⛔ battery continues to assert spf-NEUTRALITY vs `0/1/1`.
+
 ## 2026-07-13 - PGEN-RGX-0078-0043 — RGX-0078.5.h.1b STEP-0b choice-site census: the committed/discarded instrument, the merged-choice ceiling, and why the scanner rung's speed claim dies
 
 **What.** Three read-only instruments + the joined measurement that closes section G's open question. The only

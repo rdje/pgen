@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0044 — RGX-0078.5.h.1.t1 — the regex cert `spf 0/1/1` residual ADJUDICATED: failure-label gap FIXED (one-line registry wiring); the 117-byte over-generation ORACLE-CLASSIFIED (\Q-quoting round-trip absorption; parser PCRE2-faithful-correct, fix deferred-tracked)
+
+- **(a) Label gap FIXED:** the regex registry entry had `parse_detail: None` (the G.4.7 hook was never wired for
+  regex — only SV/svpp/scratch), so a cert sample-parse failure was labeled `(no detail-capable parser
+  registered)`. One-line wiring of the EXISTING `parse_with_regex_detail` (exact `ParseDetailFn` signature; its
+  PCRE2 compile contract never runs on this pathway — the label is only consulted for grammar-parse failures,
+  which deterministically fail before the contract). Before→after (seed 7): the placeholder → `Parser did not
+  consume full input at position 90`. Cert headline byte-identical at seeds 0/7/42
+  (`total=267 proof=9 witness=258 UNKNOWN=0 fully_certified=true`, spf `0/1/1` = the recorded baseline).
+- **(b) Over-generation ORACLE-CLASSIFIED:** the captured sample's `(?(51)\Q…` tail quotes to the pattern's
+  FINAL `\E`, absorbing the conditional's closing `)` — pcre2test 10.47 rejects the exact sample
+  (`error 114 at offset 117: missing closing parenthesis`), so the parser's reject is PCRE2-FAITHFUL and the
+  defect is the GENERATOR emitting a quoted-literal piece whose rendered text absorbs enclosing structural
+  close on re-parse (the svpp `H.5.5` round-trip-absorption class; gen-side-no-`lacks_fact`-prune family).
+  Adjudication: DOCUMENTED-TRACKED, structural grammar peel DEFERRED (bounded stable residual — spf ≤1/seed
+  across sessions #91–#107; the pending §G.1 road pick owns regex priorities). Battery keeps spf-NEUTRALITY vs
+  `0/1/1`.
+- **Lockstep:** tree `.5.h.1.t1` section + checklist; MEMORY/DEVELOPMENT_NOTES. Status rows UNCHANGED.
+
 ## 2026-07-13 - PGEN-RGX-0078-0043 — RGX-0078.5.h.1b STEP-0b CHOICE-SITE CENSUS: increment-(ii) merged-choice ceiling MEASURED ≈1.53× — the scanner-rung SPEED claim is REFUTED BY MEASUREMENT (§G.1); recommendation = re-scope to self-hosting-only
 
 The section-G recommended measurement, delivered as three read-only, parser-agnostic instruments plus the joined

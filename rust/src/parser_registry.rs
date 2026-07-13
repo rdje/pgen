@@ -1467,7 +1467,14 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "regex",
         parse_sample: parse_with_regex,
         parse_and_cover: Some(parse_and_cover_regex),
-        parse_detail: None,
+        // RGX-0078.5.h.1.t1 — wire the existing detail parser so a cert-coverage
+        // sample-parse failure carries the REAL parse error instead of
+        // "(no detail-capable parser registered)". The detail fn also applies the
+        // PCRE2 compile contract, but the label pathway is only consulted for
+        // samples whose GRAMMAR parse failed (parse_and_cover=false), where the
+        // deterministic re-parse fails before the contract runs — so the label is
+        // always the grammar-parse error, matching parse_and_cover semantics.
+        parse_detail: Some(parse_with_regex_detail),
     },
     #[cfg(has_generated_rtl_const_expr_parser)]
     GeneratedParserRegistryEntry {
