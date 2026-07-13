@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0057 — RGX-0078.5.i.4 P1b emission notes (why committed counts could not move, and the stale-binary trap again)
+
+**Committed counts were predicted unchanged, and the mechanism is worth naming.** A memo hit
+under P1a replayed the cached COVERAGE delta (GRAMMAR-WELLFORMED.H.10.2.2), so the committed
+record already contained the child entries of the original execution. P1b re-executes those
+bodies live — the coverage stack receives the same entries in the same order, so per-rule
+committed counts are byte-identical BY MECHANISM, not coincidence. Raw entry counters (the
+always-on `fetch_add`, no replay concept) grow truthfully instead. If a future increment ever
+shows a committed-count delta, that is a REAL behavioral signal, not counter noise.
+
+**The stale-single-feature `ast_pipeline` trap fired again (second session in a row).** The
+`make focus_*` chain rebuilds `target/debug/ast_pipeline` WITHOUT `ebnf_dual_run`; the four
+parse-harness compile-and-run tests then fail with `requires building with --features
+ebnf_dual_run` — which reads like a codegen defect but is purely a stale-binary artifact.
+Rule: after ANY `make focus_*`, rebuild `cargo build --features "generated_parsers
+ebnf_dual_run" --bin ast_pipeline` before running the lib suite. (P1a hit the same; recorded
+there as "the harness's dual-feature ast_pipeline rebuild requirement".)
+
+**Truncated background-job output hides failure names.** Piping a full test run through
+`tail -5` for the background log kept only the summary line — the four failing test names had
+to be re-derived by a re-run. Capture at least the failure list (`grep -E "FAILED"` untruncated)
+in background batteries.
+
 ## 2026-07-13 - PGEN-RGX-0078-0056 — RGX-0078.5.i.4 P1b pricing: measure the DECIDED subset, not the eligible superset
 
 **A budget makes "eligible" the wrong pricing universe.** The STEP-0 ceilings priced P1 on the

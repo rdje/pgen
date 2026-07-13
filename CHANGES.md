@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0057 — RGX-0078.5.i.4 P1b LANDED: memo elision at inlined frames — regex geomean ≈−7–12% (≈36µs → ≈32µs, cumulative 496µs → ≈32µs ≈ 15.5×); ASTs/committed counts/cert pins byte-identical, raw counters truthfully changed
+
+The P1b emission (session #113). The emitted `inlined_frame_call` helper runs the inlined rule
+body DIRECTLY instead of through `memoized_call` — ONE emitted-helper hunk (the whole regenerated
+`regex_parser.rs` diff vs the P1a artifact is exactly that hunk). Elided per inlined entry: the
+packrat probe cascade (fail-set / tainted-map / success-map); per inlined success: the memo
+insert (`node.clone()` + semantic-delta/coverage extraction + map insert). The rule METHOD keeps
+its `memoized_call` untouched.
+
+- **Result-neutral by construction:** the memo is a pure, taint-gated cache (replay ≡
+  re-execution wherever replay was legal — MEMO-STORE-SOUNDNESS.2); the inlined subgraph is
+  additionally acyclic + directive-free (census gates); re-executed bodies call their
+  non-inlined children's still-memoized methods.
+- **Speed (fat-LTO, alternated 5×2000, geomean-of-mins; probes differ ONLY in
+  `generated/regex_parser.rs`):** candidate faster EVERY round (−7.2…−12.2%); geomean-of-best-mins
+  **35.13µs → 31.53µs (−10.3%)**, ALL 8 patterns faster ⇒ **≈−7–12%, ≈32µs** — inside the `-0056`
+  priced band ≈−6–18%. Cumulative RGX-0078: 496µs → ≈32µs ≈ **15.5×**.
+- **Identity by measurement:** 8/8 bench AST dumps byte-identical; per-rule COMMITTED counts
+  byte-identical on all 8 patterns (the H.10.2.2 coverage replay already counted children);
+  regex cert seeds 0/7/42 pins byte-identical (`267/9/258/0 fully_certified=true`, spf `0/1/1`).
+  TRUTHFUL deltas (documented): raw entries 2389→2503 (former hits re-execute), memo hits
+  568→314 (decided-frame hits vanish; child-level hits appear), `memo_hits_on_decided=0`
+  census-confirmed.
+- **Battery:** lib **903/903** (equivalence — all 11 certified grammars byte-identical over the
+  P1b parsers — combinator 27/27, semantic 36/36); ast-shape, duality-hunt, PCRE2 compile-oracle,
+  mdbook gates green; clippy strict-source clean; all 11 parsers regenerated canonically (9 show
+  exactly the one helper hunk; the 2 bootstrap annotation parsers regenerated twice
+  byte-identical); regex regen determinism proven (`009e1485…` reproduced).
+- **Degeneracy census re-run (queued follow-up):** static 41/112 UNCHANGED, exposure flat
+  (`318/124/194` vs `306/124/182`) ⇒ no new P2 surface opened by the collapse.
+- Lockstep: book `inside-parser-performance.md` (scoreboard row + landed narrative), tree
+  (design + first-contact + speed + checklist), TASK_TREE frontier, CHANGES/DEV-NOTES/MEMORY.
+
 ## 2026-07-13 - PGEN-RGX-0078-0056 — RGX-0078.5.i.4 P1b PRICED AT THE LANDED BUDGET: census decided-exposure join — 1179 decided entries (49.4%), 324 lost hits, ceiling ≈−6–18% (recorded BEFORE emission)
 
 The P1b pricing instrument (session #113). The census outcome join reported only the ELIGIBLE

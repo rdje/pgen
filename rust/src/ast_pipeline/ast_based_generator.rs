@@ -3340,16 +3340,17 @@ impl AstBasedGenerator {
         })
     }
 
-    /// RGX-0078.5.i.4 (P1a) — an INLINED wrapper frame for a decided rule at one
-    /// of its call sites: the rule's body (identical-by-construction via
+    /// RGX-0078.5.i.4 (P1a + P1b) — an INLINED wrapper frame for a decided rule
+    /// at one of its call sites: the rule's body (identical-by-construction via
     /// `generate_rule_body_inner`) run under the emitted `inlined_frame_call`
     /// engine helper, which preserves the per-frame observability verbatim
-    /// (entry `fetch_add`, coverage push, furthest-position, `memoized_call` with
-    /// the memo PRESERVED, the method-identical exit trace lines and
-    /// negative-case recording). Elided vs the method call: recursion-guard
-    /// enter/exit (gate (a): provably non-load-bearing), rule-context push/pop
-    /// and the `--trace-rules` scope probe (both proven trace-only), and the
-    /// method call frame itself.
+    /// (entry `fetch_add`, coverage push, furthest-position, the
+    /// method-identical exit trace lines and negative-case recording). Elided
+    /// vs the method call: recursion-guard enter/exit (gate (a): provably
+    /// non-load-bearing), rule-context push/pop and the `--trace-rules` scope
+    /// probe (both proven trace-only), the method call frame itself, and —
+    /// since P1b — the packrat memo at the inlined frame (the body runs
+    /// directly; the rule METHOD keeps its memoized_call).
     fn generate_inlined_frame(&self, rule_name: &str, filename: &str) -> Result<TokenStream> {
         {
             let mut stack = self.inline_emission_stack.borrow_mut();
@@ -5650,18 +5651,20 @@ impl AstBasedGenerator {
         filename: &str,
         grammar_tree: &HashMap<String, ASTNode>,
     ) -> TokenStream {
-        // RGX-0078.5.i.4 (P1a) — the inlined-wrapper-frame engine helper, emitted
-        // ONLY when ≥1 rule is decided for inlining (grammars with no decided
-        // rule regenerate without a dead helper). ONE definition carries the
-        // preserved per-frame observability for EVERY inlined site — entry
-        // `fetch_add`, transactional coverage push, furthest-position,
-        // `memoized_call` (memo PRESERVED), and the method-identical exit trace
-        // lines + negative-case recording — so an inlined site duplicates only
-        // the rule body and the observability protocol cannot drift from the
-        // rule-method emission. Elided vs a method call: recursion-guard
-        // enter/exit (callers are gated on gate (a) acyclicity), rule-context
-        // push/pop and the `--trace-rules` scope probe (both proven trace-only),
-        // and the method call frame.
+        // RGX-0078.5.i.4 (P1a + P1b) — the inlined-wrapper-frame engine helper,
+        // emitted ONLY when ≥1 rule is decided for inlining (grammars with no
+        // decided rule regenerate without a dead helper). ONE definition carries
+        // the preserved per-frame observability for EVERY inlined site — entry
+        // `fetch_add`, transactional coverage push, furthest-position, and the
+        // method-identical exit trace lines + negative-case recording — so an
+        // inlined site duplicates only the rule body and the observability
+        // protocol cannot drift from the rule-method emission. Elided vs a
+        // method call: recursion-guard enter/exit (callers are gated on gate (a)
+        // acyclicity), rule-context push/pop and the `--trace-rules` scope probe
+        // (both proven trace-only), the method call frame, and — since P1b — the
+        // packrat memo (probes + inserts; the body runs directly, result-neutral
+        // by the memo's soundness contract; counters change truthfully where
+        // former hits re-execute). The rule METHOD keeps its memoized_call.
         let inlined_frame_call_helper: TokenStream = if self.inline_plan_active() {
             quote! {
                 fn inlined_frame_call<F>(
@@ -5684,8 +5687,21 @@ impl AstBasedGenerator {
                         self.furthest_position = self.position;
                     }
                     let start_pos = self.position;
+                    // RGX-0078.5.i.4 (P1b) — the memo is ELIDED at inlined
+                    // frames: the body runs directly, paying neither the
+                    // fail-set/tainted-map/success-map probes nor the
+                    // success-insert (node.clone() + delta/coverage
+                    // extraction). Result-neutral by the memo's own soundness
+                    // contract (a pure, taint-gated cache — replay ≡
+                    // re-execution wherever a replay was legal); a former hit
+                    // re-executes the acyclic, budget-capped body, whose
+                    // non-decided children keep their own memoized methods.
+                    // Rule-entry counters change TRUTHFULLY where former hits
+                    // re-execute (they count real executions); the 💾 memo
+                    // trace lines vanish at inlined frames (trace-only). The
+                    // rule METHOD keeps its memoized_call untouched.
                     let result: ParseResult<ParseNode<'input>> =
-                        self.memoized_call(rule_id, f).map(|(node, _raw)| node);
+                        f(self).map(|(node, _raw)| node);
                     match &result {
                         Ok(node) => {
                             if self.trace_enabled() {

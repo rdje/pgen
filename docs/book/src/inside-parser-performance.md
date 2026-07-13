@@ -228,6 +228,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.i.2 | **P0 — lazy/no-alloc protocol hygiene** (the census's V1+V2+V3 surfaces made permanent, observability-preserving): rollback labels travel as a cheap `Copy` enum materialized into text only inside the trace-enabled branch (was: two `String`s per failed speculation + a `format!` per successful tournament branch, consumed only under trace); the branch tournament iterates its rotated order as `(step + offset) % n` instead of collecting a `Vec` per execution, and the partition-group string is built only when partitioning is enabled; the rule-context stack stores `Cow<'static, str>` pushed borrow-only from rule-name literals (generated parsers) and interned names (interpreter). Trace output with tracing ON is byte-for-byte unchanged — proven by a 923-line trace-payload diff | engine + codegen (parser-agnostic) | 56.7 µs → **42.0 µs** | **−25.8%** | **landed** ✓ |
 | RGX-0078 · 5.i.3 | **P2 — degenerate-tournament byte-switch dispatch**: where FIRST-set analysis PROVES a rule's top-level branch tournament degenerate (every branch's admissible first bytes decided and pairwise DISJOINT, terminals whitespace-sensitive, no branch predicates or branch-start effects), the generated rule dispatches with ONE `match` on the next byte straight to the only branch that could match — eliding the per-branch guard-scan loop, the tournament semantic checkpoint, the winner's delta-extract/rollback/replay round-trip, and the `should_take` cascade (the sole candidate still runs under `try_parse`, so failure restores state exactly as before). 41 of regex's 112 top-level choice sites qualify (the single-char alternation leaves — `letter`'s 52-arm tournament becomes one byte switch); a new DEGENERACY census (`--report-fusibility-census`) measured the surface and predicted −3–7% before any code | codegen (parser-agnostic; census-verified gate) | 42.0 µs → **39.7 µs** | **−5.3%** | **landed** ✓ |
 | RGX-0078 · 5.i.4 | **P1a — cascade/wrapper inlining, memo preserved**: a call site of a provably collapsible wrapper rule (on no reference cycle, no semantic directive in any phase, not the entry rule, not dialect-gated — the inline census's gates) receives the rule's BODY inline under a new emitted `inlined_frame_call` engine helper instead of a method call. The helper preserves the per-frame observability verbatim (entry counter, transactional coverage push, furthest-position, `memoized_call` with the memo intact, the method-identical exit trace lines), so rule-entry counters, outcome dumps, ASTs, and certification pins stay byte-identical BY MEASUREMENT; elided per frame: recursion-guard enter/exit, rule-context push/pop, the `--trace-rules` scope probe, the two needs-raw annotation probes (statically folded for every directive-free rule — a ride-along that applies to rule methods too), and the call frame itself. A measured code-size budget (capped-transitive body weight ≤ 12 gen-AST nodes, weight × reference-sites ≤ 192, shared with the census's `INLINE-DECISIONS` report) bounds the duplication: 128 of regex's 204 eligible rules are inlined; a tighter budget variant was built and measured — and lost | codegen + one emitted helper (parser-agnostic; census-shared gate + budget) | ≈39.7 µs → **≈36 µs** | **≈−4–7%** (alternated sessions −3.5/−3.9/−6.7%) | **landed** ✓ |
+| RGX-0078 · 5.i.4 | **P1b — memo elision at inlined frames**: the inlined-frame helper runs the body DIRECTLY instead of through `memoized_call` — eliding, per inlined entry, the packrat probe cascade (fail-set, tainted-map, success-map) and, per inlined success, the memo insert (`node.clone()` + semantic-delta/coverage extraction + map insert). Result-neutral by the memo's own soundness contract (a pure, taint-gated cache — replay ≡ re-execution wherever a replay was legal; the inlined subgraph is additionally acyclic and directive-free by the census gates); a former cached hit re-executes the budget-capped body, whose non-inlined children keep their own memoized methods. ASTs, per-rule COMMITTED counts, and certification pins stay byte-identical BY MEASUREMENT; raw-entry counters change *truthfully* where former hits re-execute (the census priced 324 lost hits at the budget, ceiling ≈−6–18%, recorded before emission) | codegen (one emitted-helper hunk; parser-agnostic) | ≈36 µs → **≈32 µs** | **≈−7–12%** (five alternated rounds −7.2…−12.2%, all 8 patterns faster; best-mins −10.3%) | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -771,7 +772,31 @@ it (the emitted source grows ×1.86), the 76 over-budget rules are logged by nam
 itself was chosen by measurement — a tighter variant (105 rules, ×1.28) was built, benchmarked
 head-to-head in the same alternated session, and *lost* (−3.8% vs −6.7%), so the wider budget
 stayed. The memo-eliding variant (P1b), whose counters change truthfully where the 399 cached
-hits would re-execute, remains a separately-priced next increment.
+hits would re-execute, was landed as its own separately-priced increment — next paragraph.
+
+**The memo-eliding increment (P1b) has now landed too: measured ≈−7–12% across five alternated
+rounds, ≈36 µs → ≈32 µs — cumulatively 496 µs → ≈32 µs, ≈15.5× since the campaign opened.**
+First the price was re-measured at the *landed* budget rather than the eligibility ceiling: the
+census exposure join gained the budget-decided subset (`INLINE-EXPOSURE-DECIDED`), which showed
+the emission plan covers 1 179 of the bench's 2 389 rule entries (49.4%) and that 324 of the 568
+packrat-cache hits sit on inlined frames — the honest lost-hit population, recorded with a
+falsifiable ≈−6–18% ceiling *before* any emission code. The change itself is one hunk in the
+emitted helper: the inlined frame runs the rule body directly instead of through the memoized
+dispatch, shedding the three-way cache probe on every inlined entry and the success-path insert
+(a node clone plus semantic-delta and coverage extraction) on every inlined success. Dropping a
+cache can never change a correct parse — the packrat memo is a pure, taint-gated cache whose own
+soundness contract guarantees replay and re-execution agree — and the identity was verified by
+measurement anyway: all eight typed-AST dumps and the certification pins at three seeds are
+byte-identical, and the per-rule *committed* counts are unchanged on every pattern (the coverage
+system already counted replayed children under P1a, so live re-execution produces the identical
+committed record). What changes, truthfully: raw entry counters grow where former hits now
+re-execute (+114 on the bench, concentrated under the hit-heavy character-class leaves), the
+cache-hit counter at inlined frames drops to zero by construction, and re-executed bodies now
+probe their children's still-memoized methods. The measured result — every round faster, every
+pattern faster at best-mins — confirmed the census's leaf-dominated hit population re-executes
+cheaper than the replay clone it replaced. A post-landing re-run of the degeneracy census also
+answered the standing question of whether collapsing wrappers would open new predictive-dispatch
+surface: it does not (the 41 qualified sites and their committed exposure are unchanged).
 
 One incidental find from the same session is worth recording for transparency: the census's
 byte-identity oracle caught a *regeneration-path* divergence — parsers regenerated through a
