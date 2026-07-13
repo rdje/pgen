@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0045 — RGX-0078 ROAD **AGREED** with the director (docs-only): the **OPTIMIZING-COMPILER ("planner") rung** — `.5.i` OPENED, `.5.h` scanner rung PARKED; first slice `.5.i.1` STEP-0 cost-decomposition census
+
+The §G.1 fork opened by the `.5.h.1`/`.5.h.1b` measurement refutation is RESOLVED by explicit director agreement
+(session #107 discussion; captured once at the agreement point per the discussion-mode discipline).
+
+- **The agreed framing (tree §H):** a spec language should NOT capture speed (SQL/planner, regex/engine
+  precedents) — the EBNF+annotations capture functionality and remain the sole semantic source of truth; speed
+  is MANUFACTURED by the compiler. PGEN has 2/3 of the system (spec + proof halves at full strength); the
+  compiler half is a TRANSLITERATOR (1:1 construct→generic-machinery mapping — the measured ~236ns/entry × ~11
+  entries/char protocol, 74% of bench entries discarded probing). The rung builds the missing third.
+- **`.5.i` — the optimizing middle-end** (mixed-mode, capability-gated per region, ANALYSIS-derived — grammar
+  authors never see speed; hints if ever = provably acceptance-neutral): P1 cascade/wrapper inlining, P2
+  predictive dispatch (FIRST-disjointness proves the longest-match tournament degenerate ⇒ byte-switch, no
+  speculation), P3 selective memo/rollback/store-transaction emission, P4 compile-time value folding.
+  Store-gated rules / genuine nondeterminism / `@transform` / profile gates always take the general path.
+  ⛔ HARD CONSTRAINT per increment: land iff measured faster + byte-identical (full oracle battery; the
+  interpreter stays the unoptimized reference).
+- **`.5.h` scanner rung PARKED** (speed claim stays measurement-refuted); the censused `match_regex`
+  self-hosting surface (SV 322 sites etc.) remains an orthogonal deliverable awaiting explicit prioritization.
+- **Next:** `.5.i.1` STEP-0 COST-DECOMPOSITION CENSUS — where the ~236ns/entry actually goes (memo probe /
+  guards / counters / tournament bookkeeping / rollback / node construction / call overhead), microbench +
+  profiler cross-check, joined with the `.5.h.1b` committed/discarded split ⇒ falsifiable per-pass ceilings
+  fixing the P1–P4 build order. Measure-first, same discipline that killed the scanner rung for ~2 days of
+  tooling instead of weeks of building.
+- **Also this session (recorded):** local annotated tag `checkpoint/rgx-0078-speed-56.8us-release` on
+  `143252de` (= origin/main, the pushed 56.8µs release state); director: tag-only, NO push.
+- **Lockstep:** tree (§G.1 resolution + §H + `.5.h` parked + `.5.i`/`.5.i.1` leaves), TASK_TREE frontier row,
+  MEMORY.md overwrite. Status rows UNCHANGED (road agreement, nothing built).
+
 ## 2026-07-13 - PGEN-RGX-0078-0044 — RGX-0078.5.h.1.t1 — the regex cert `spf 0/1/1` residual ADJUDICATED: failure-label gap FIXED (one-line registry wiring); the 117-byte over-generation ORACLE-CLASSIFIED (\Q-quoting round-trip absorption; parser PCRE2-faithful-correct, fix deferred-tracked)
 
 - **(a) Label gap FIXED:** the regex registry entry had `parse_detail: None` (the G.4.7 hook was never wired for
