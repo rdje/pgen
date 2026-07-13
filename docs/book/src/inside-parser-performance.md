@@ -224,7 +224,8 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.d.4 | **Node arena** — allocate every child `ParseNode` in a per-parse bump arena (`typed-arena`) and hold children as `&'input` references instead of `Box`/`Vec<ParseNode>`, so the profiled ~55% construction-`malloc` collapses to a handful of arena growths freed in one shot | codegen + engine (parser-agnostic) | 75.0 µs → **58.6 µs** | **−21.9%** | **landed** ✓ |
 | RGX-0078 · 5.g | **Construction cache** — the post-arena re-profile found ~12% of every parse was spent REBUILDING the grammar-constant compiled annotation tables (std-map SipHash inserts, ~92 small strings, every key hashed twice, full drop at parse end); they are now built once per process and every parser instance shares the one table | codegen + engine (parser-agnostic) | 58.6 µs → **56.8 µs** | **−3.8%** | **landed** ✓ |
 | RGX-0078 · 5.e | **GLL + graph-structured stack** (the research-grade general lockstep form) — adjudicated by a literature-first design spike instead of a build: the engine is already a memoized, first-set-pruned, near-deterministic recursive-descent parser (backtrack residue ~2.2%), exactly the regime where the literature shows GLL's descriptor/GSS/SPPF bookkeeping costs orders of magnitude more than adaptive top-down parsing buys | (not built — design spike only) | — | predicted net-negative | **refuted** ✗ |
-| RGX-0078 · 5.i.1 | **Cost-decomposition census** (the planner rung's step 0) — six measurement-only strip-variants of the generated parser, each byte-identity-proven, pricing every piece of per-entry machinery; discovered that ≈32% of the parse is unconditional bookkeeping waste (trace-naming strings, tournament allocs, context strings) and fixed the planner pass order (see the census section below) | (measurement only — nothing landed) | 56.7 µs → 38.7 µs with all strips applied | **−31.7% measured ceiling** | **measured** — P0 queued |
+| RGX-0078 · 5.i.1 | **Cost-decomposition census** (the planner rung's step 0) — six measurement-only strip-variants of the generated parser, each byte-identity-proven, pricing every piece of per-entry machinery; discovered that ≈32% of the parse is unconditional bookkeeping waste (trace-naming strings, tournament allocs, context strings) and fixed the planner pass order (see the census section below) | (measurement only — nothing landed) | 56.7 µs → 38.7 µs with all strips applied | **−31.7% measured ceiling** | **measured** — P0 landed as 5.i.2 |
+| RGX-0078 · 5.i.2 | **P0 — lazy/no-alloc protocol hygiene** (the census's V1+V2+V3 surfaces made permanent, observability-preserving): rollback labels travel as a cheap `Copy` enum materialized into text only inside the trace-enabled branch (was: two `String`s per failed speculation + a `format!` per successful tournament branch, consumed only under trace); the branch tournament iterates its rotated order as `(step + offset) % n` instead of collecting a `Vec` per execution, and the partition-group string is built only when partitioning is enabled; the rule-context stack stores `Cow<'static, str>` pushed borrow-only from rule-name literals (generated parsers) and interned names (interpreter). Trace output with tracing ON is byte-for-byte unchanged — proven by a 923-line trace-payload diff | engine + codegen (parser-agnostic) | 56.7 µs → **42.0 µs** | **−25.8%** | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -677,13 +678,27 @@ That measurement fixes the planner's build order. A new pass zero — **lazy, al
 protocol hygiene** — comes before all the analysis-driven passes: build the trace-naming payloads
 *only when trace consumes them*, iterate branch orders without materializing them. It needs no
 grammar analysis at all, preserves every observability feature, applies to every parser, and its
-measured ceiling is ≈−25% of the whole parse. Only then come the analysis-gated passes in
-measured-surface order: predictive dispatch (kill the ~830 failing probes a first-byte check can
-refuse), cascade inlining (~290 of the 617 committed entries are single-child wrapper frames),
-selective machinery (emit memo/guard/snapshot wrappers only where analysis says they can matter),
-and compile-time value folding (pre-compile constraint expressions, fold `$text`-class shapes).
-Each lands under the same hard constraint as every lever before it: measurably faster *and*
-byte-identical under the full oracle battery, or it does not land.
+measured ceiling is ≈−25% of the whole parse.
+
+**Pass zero has now landed (scoreboard lever 5.i.2): measured −25.8%, ≈56.7 µs → ≈42.0 µs —
+the census's prediction confirmed almost exactly.** The rollback-owner labels now travel as a
+cheap copyable value (a couple of pointers and integers) that is turned into text only inside the
+trace-enabled branch; the tournament iterates its rotated branch order arithmetically instead of
+building a `Vec` per choice execution (and computes the partition-group string only when
+partitioning is actually enabled); and the rule-context stack borrows the rule-name literals the
+generated parser already carries (`Cow<'static, str>`) instead of copying them on every entry.
+Nothing observable changed: the typed ASTs are byte-identical, and with tracing *enabled* the
+rollback/backtrack trace lines are byte-for-byte the same as before (proven by diffing 923
+normalized trace-payload lines across the old and new builds) — the strings are simply no longer
+built for the overwhelmingly common case where nobody reads them. Every parser inherits the win.
+
+Next come the analysis-gated passes in measured-surface order: predictive dispatch (kill the ~830
+failing probes a first-byte check can refuse), cascade inlining (~290 of the 617 committed entries
+are single-child wrapper frames), selective machinery (emit memo/guard/snapshot wrappers only
+where analysis says they can matter), and compile-time value folding (pre-compile constraint
+expressions, fold `$text`-class shapes). Each lands under the same hard constraint as every lever
+before it: measurably faster *and* byte-identical under the full oracle battery, or it does not
+land.
 
 One incidental find from the same session is worth recording for transparency: the census's
 byte-identity oracle caught a *regeneration-path* divergence — parsers regenerated through a

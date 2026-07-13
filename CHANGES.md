@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0048 — RGX-0078.5.i.2 **P0 LAZY/NO-ALLOC PROTOCOL HYGIENE LANDED**: regex geomean **−25.8%** (≈56.7µs → ≈42.0µs), byte-identical, observability-preserving; the planner's pass zero confirmed the census prediction (≈−25%) almost exactly
+
+The first LANDED planner-rung pass (session #109). The `.5.i.1` census's V1+V2+V3 unconditional-waste
+surfaces made permanent WITHOUT losing any trace/error feature — engine + codegen, parser-AGNOSTIC (all
+parsers inherit; canonical regen of all 8 focus targets).
+
+- **(a) Lazy rollback naming (V2, −14.7% measured):** new `Copy` enum `RollbackLabel<'a>`
+  (`Unspecified`/`Str`/`TryParseErr`/`C3bBranchCleanup`) + `SemanticRuntimeState::rollback_to_labeled`;
+  labels `materialize()` ONLY inside the trace-enabled branch and reproduce the previous eager strings
+  byte-for-byte. The generated `try_parse` Err arm captures its owning rule as a FREE `Option<&'static
+  str>` copy (parse_stack is `Vec<(&'static str, usize)>`); the C3-B per-successful-branch cleanup passes
+  rule/branch/total as plain values. Kills 2×`String` per failed speculation + 1×`format!` per successful
+  tournament branch (2676 rollbacks/bench). `rollback_to_named(Option<&str>)` kept as a thin
+  compatibility wrapper.
+- **(b) No-Vec branch order + conditional partition-group (V3, −6.5% measured):** the multi-branch
+  tournament iterates `(step + offset) % n` (provably the `rotate_left` sequence; identity when
+  offset=0) instead of collecting an `evaluation_order: Vec<usize>` per Or-body execution; the
+  partition-group String is computed only inside the effectively-enabled branch. Behavior identical
+  under all three runtime partition modes.
+- **(c) No-alloc rule-context stack (V1, −4.3% measured):** `current_rule_context_stack:
+  Vec<Cow<'static, str>>` + `push_rule_context_static(&'static str)` (borrow-only push); the emitted
+  rule-transaction helper's `rule_name` param is now `&'static str` (all call sites pass literals); the
+  interpreter pushes its interned names borrow-only too. The allocating `push_rule_context(&str)` is
+  KEPT deliberately so the canonical `make focus_*` toolchain (embedding the previous generation's
+  parsers) still compiles — avoiding the `.5.i.1.t1` non-canonical-regen drift trap by construction.
+- **Speed (decisive):** both release fat-LTO, distinct sha256 (baseline `d43bc6a0…` — REBUILT from clean
+  HEAD and reproducing the recorded canonical sha BIT-FOR-BIT — vs candidate `23bf4f30…`), alternated
+  5×2000: per-round ratios `0.749/0.756/0.734/0.743/0.729`, **candidate faster EVERY round; all 8
+  patterns faster in ALL 5 rounds** (per-pattern 0.69–0.78). Geomean-of-mins **56.66µs → 42.05µs**.
+- **Correctness byte-identical (full ⛔ battery green):** AST dumps 8/8 `diff`-empty (old vs new debug
+  probes); **trace-payload OBSERVABILITY PARITY 923/923 lines** (`🔙`+`♻️` payloads, ANSI-stripped,
+  emitter-metadata-normalized — C3-B labels + chains byte-for-byte under `PGEN_TRACE_VERBOSITY=high`);
+  regex cert seeds 0/7/42 `total=267 proof=9 witness=258 UNKNOWN=0 fully_certified=true` spf `0/1/1`
+  (identical pins); equivalence 4/4 + combinator 2/2 (27/27) + semantic 2/2 (36/36) + ast-shape 18/18 +
+  duality-hunt (no novel signature) + PCRE2 compile-oracle green; clippy strict-source clean (generated
+  stage = the pre-existing `eq_op`/IIFE debt classes only, 0 new classes); `cargo check` green against
+  the PREVIOUS generation's parsers before regen (compat proof).
+- **`.5.i.2.t1` (found during the battery):** the `.5.g` construction cache changed the emitted
+  annotation-table field to the shared `&'static` form without updating the pinned contract test
+  `generated_parser_runtime_contract_owns_semantic_runtime_fields` — RED at HEAD since `.5.g` (its
+  commit diff has 0 mentions of the test); surfaced (not caused) by this slice's battery; re-pinned to
+  the post-`.5.g` contract.
+- **MEMORY drift corrected:** the on-disk release probe was a STALE pre-regen build (`a6bf0553…`);
+  rebuilding from clean HEAD reproduced the recorded canonical baseline sha `d43bc6a0…` bit-for-bit
+  (deterministic build confirmed); MEMORY.md now names the candidate build as on-disk.
+- Next planner pass per the census-fixed order: **P2 predictive dispatch** (≈1.53× pre-P0 surface;
+  shrinks toward ~1.3–1.4× post-P0), then P1 → P3 → P4.
+
 ## 2026-07-13 - PGEN-RGX-0078-0046 — RGX-0078.5.i.1 STEP-0 COST-DECOMPOSITION CENSUS **MEASURED**: ≈32% of the regex bench is UNCONDITIONAL bookkeeping waste; a NEW pass **P0 (lazy/no-alloc protocol hygiene, ≈−25% landable)** discovered; planner order fixed **P0→P2→P1→P3→P4**; regen-path drift incident caught + canonically fixed (`.5.i.1.t1`)
 
 The planner rung's step 0 (session #108). Method: six MEASUREMENT-ONLY strip-variants of the generated regex

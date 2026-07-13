@@ -2030,9 +2030,14 @@ impl AstBasedGenerator {
                 }
             }
 
+            // RGX-0078.5.i.2 (P0): `rule_name` is `&'static str` — every call
+            // site passes the rule-name literal, and the static lifetime lets
+            // `push_rule_context_static` store it as `Cow::Borrowed` with NO
+            // per-entry allocation (the measured V1 census surface, ≈−4.3% of
+            // the bench).
             pub fn with_semantic_runtime_rule_transaction<F>(
                 &mut self,
-                rule_name: &str,
+                rule_name: &'static str,
                 f: F,
             ) -> ParseResult<ParseNode<'input>>
             where
@@ -2059,7 +2064,7 @@ impl AstBasedGenerator {
                     // trace events include the full call chain. The unannotated
                     // rule itself emits nothing, but it CAN call into
                     // annotated child rules.
-                    self.semantic_runtime_state.push_rule_context(rule_name);
+                    self.semantic_runtime_state.push_rule_context_static(rule_name);
                     let result = f(self);
                     self.semantic_runtime_state.pop_rule_context();
                     let (node, _raw) = result?;
@@ -2071,7 +2076,7 @@ impl AstBasedGenerator {
                 // place, so the pushed context is on the same state the checkpoint snapshots and
                 // the rollback restores). The matching pop runs after the err-restore regardless
                 // of result.is_err().
-                self.semantic_runtime_state.push_rule_context(rule_name);
+                self.semantic_runtime_state.push_rule_context_static(rule_name);
 
                 // PARSE-TERMINATION.3.1: O(1) checkpoint REPLACES the former O(N) full-state
                 // clone (`take` + `.clone()`), which was the O(N^2) per-rule cost behind the
@@ -3226,7 +3231,7 @@ impl AstBasedGenerator {
             // pushes per rule entry; negligible vs the rule's parse cost.
             quote! {
                 let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
-                    parser.semantic_runtime_state.push_rule_context(#rule_name);
+                    parser.semantic_runtime_state.push_rule_context_static(#rule_name);
                     let inner_result = #memoized_inner;
                     parser.semantic_runtime_state.pop_rule_context();
                     inner_result.map(|(node, _raw)| node)
@@ -3985,15 +3990,21 @@ impl AstBasedGenerator {
                                 // owning rule + branch index so the trace
                                 // event identifies WHO cleaned up. Per
                                 // [[feedback_why_and_where_before_solution]].
-                                let cb_branch_context = format!(
-                                    "{} (C3-B branch {}/{} cleanup)",
-                                    #rule_name, #branch_num, #branch_count,
-                                );
+                                // RGX-0078.5.i.2 (P0): the label travels as a
+                                // deferred `RollbackLabel` — the previous eager
+                                // `format!` here ran on EVERY successful
+                                // tournament branch and was only consumed
+                                // under trace (part of the measured −14.7% V2
+                                // census surface).
                                 parser
                                     .semantic_runtime_state
-                                    .rollback_to_named(
+                                    .rollback_to_labeled(
                                         tournament_semantic_checkpoint.clone(),
-                                        Some(&cb_branch_context),
+                                        crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
+                                            rule: #rule_name,
+                                            branch: #branch_num,
+                                            total: #branch_count,
+                                        },
                                     );
 
                                 if should_take {
@@ -4097,9 +4108,14 @@ impl AstBasedGenerator {
                     Option<crate::ast_pipeline::SemanticRuntimeDelta> = None;
                 let deterministic_partition_effective_enabled = parser
                     .effective_deterministic_partition_enabled(#deterministic_partition_annotation_enabled);
-                let deterministic_partition_effective_group = parser
-                    .effective_deterministic_partition_group(#rule_name, #deterministic_partition_annotation_group);
+                // RGX-0078.5.i.2 (P0): the partition-group String is computed
+                // ONLY when partitioning is effectively enabled — the previous
+                // emit built it unconditionally per Or-body execution (part of
+                // the measured −6.5% V3 census surface), even though the
+                // disabled path never consumed it.
                 let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                    let deterministic_partition_effective_group = parser
+                        .effective_deterministic_partition_group(#rule_name, #deterministic_partition_annotation_group);
                     parser.deterministic_partition_offset_runtime(
                         &deterministic_partition_effective_group,
                         #branch_count,
@@ -4107,14 +4123,14 @@ impl AstBasedGenerator {
                 } else {
                     0usize
                 };
-                let mut evaluation_order: Vec<usize> = (0..#branch_count).collect();
-                if deterministic_partition_effective_enabled
-                    && #branch_count > 1
-                    && deterministic_partition_offset > 0
-                {
-                    evaluation_order.rotate_left(deterministic_partition_offset);
-                }
-                for branch_index in evaluation_order {
+                // RGX-0078.5.i.2 (P0): iterate the rotated branch order
+                // directly as `(step + offset) % n` — provably the same
+                // sequence `rotate_left(offset)` produced (offset==0 ⇒ the
+                // identity order) — instead of collecting a `Vec<usize>` per
+                // Or-body execution (the other half of the V3 census surface).
+                for evaluation_step in 0..#branch_count {
+                    let branch_index =
+                        (evaluation_step + deterministic_partition_offset) % #branch_count;
                     match branch_index {
                         #(#branch_attempt_arms,)*
                         _ => {}
@@ -7004,23 +7020,28 @@ impl AstBasedGenerator {
                         // rollback trace event identifies the failing
                         // speculation's owning rule. Per
                         // [[feedback_why_and_where_before_solution]].
-                        let try_parse_rule = self
+                        // RGX-0078.5.i.2 (P0): the capture is a free
+                        // `&'static str` copy and the label travels as a
+                        // deferred `RollbackLabel` — the previous eager
+                        // 2×`String` here ran on EVERY failed speculation
+                        // and was only consumed under trace (the dominant
+                        // part of the measured −14.7% V2 census surface,
+                        // 2676 rollbacks on the 8-pattern bench).
+                        let try_parse_rule: Option<&'static str> = self
                             .recursion_guard
                             .parse_stack
                             .last()
-                            .map(|entry| entry.0.to_string());
+                            .map(|entry| entry.0);
                         self.recursion_guard.parse_stack.truncate(saved_stack_len);
                         // .b.6.2.7: also undo semantic side-effects of the
                         // failed speculation (see the block-comment above).
-                        let try_parse_context = try_parse_rule
-                            .as_deref()
-                            .map(|name| format!("{} (try_parse Err)", name))
-                            .unwrap_or_else(|| "<top-level try_parse> (try_parse Err)".to_string());
-                        self.semantic_runtime_state
-                            .rollback_to_named(saved_semantic_checkpoint, Some(&try_parse_context));
+                        self.semantic_runtime_state.rollback_to_labeled(
+                            saved_semantic_checkpoint,
+                            crate::ast_pipeline::RollbackLabel::TryParseErr(try_parse_rule),
+                        );
 
                         if self.trace_enabled() {
-                            self.logger.log_warning(#filename, self.position as u32, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {} (rule={})", e, saved_pos, try_parse_rule.as_deref().unwrap_or("<top-level>")));
+                            self.logger.log_warning(#filename, self.position as u32, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {} (rule={})", e, saved_pos, try_parse_rule.unwrap_or("<top-level>")));
                         }
 
                         None
@@ -8620,7 +8641,7 @@ mod semantic_usage_tests {
             "a rule annotated ONLY with @quantified_separator must keep the fast-path emission"
         );
         assert!(
-            rendered.contains(r#"push_rule_context("item")"#),
+            rendered.contains(r#"push_rule_context_static("item")"#),
             "the fast-path body still pushes the rule context for trace parity"
         );
     }
@@ -9671,11 +9692,17 @@ mod semantic_usage_tests {
     fn generated_parser_runtime_contract_owns_semantic_runtime_fields() {
         let rendered = pre_runtime_rendered_parser();
 
+        // RGX-0078.5.i.2.t1 — re-pinned to the post-`.5.g` contract: the
+        // compiled annotation table is the process-shared `&'static` one
+        // (construction cache), not a per-instance owned copy. The `.5.g`
+        // commit changed the emission without updating this pin.
         assert!(
             rendered.contains(
-                "semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations"
+                "semantic_runtime_annotations: &'static crate::ast_pipeline::CompiledSemanticRuntimeAnnotations"
+            ) || rendered.contains(
+                "semantic_runtime_annotations : & 'static crate :: ast_pipeline :: CompiledSemanticRuntimeAnnotations"
             ),
-            "generated parser should own compiled semantic runtime annotations, got: {}",
+            "generated parser should reference the shared compiled semantic runtime annotations table (RGX-0078.5.g), got: {}",
             rendered
         );
         assert!(
@@ -11479,17 +11506,21 @@ mod semantic_usage_tests {
             .generate_node_parsing_logic(&or_rule_three(), "expr", "semantic_usage.rs")
             .expect("or-node logic generation should succeed");
         let rendered = logic.to_string();
-        let has_rotate = rendered
-            .contains("evaluation_order . rotate_left (deterministic_partition_offset)")
+        // RGX-0078.5.i.2 (P0): the rotated evaluation order is emitted as
+        // direct `(step + offset) % n` iteration (no per-execution
+        // `Vec<usize>` + `rotate_left`), and the partition-group String is
+        // computed only inside the effectively-enabled branch.
+        let has_modulo_order = rendered
+            .contains("(evaluation_step + deterministic_partition_offset) % 3usize")
             || rendered
-                .contains("evaluation_order . rotate_left ( deterministic_partition_offset )");
+                .contains("( evaluation_step + deterministic_partition_offset ) % 3usize");
 
         assert!(
             rendered.contains("effective_deterministic_partition_enabled")
                 && rendered.contains("effective_deterministic_partition_group")
                 && rendered.contains("deterministic_partition_offset_runtime")
-                && has_rotate
-                && rendered.contains("for branch_index in evaluation_order")
+                && has_modulo_order
+                && !rendered.contains("rotate_left")
                 && rendered.contains("match branch_index"),
             "ordered OR logic should compute deterministic partition order at parser runtime, got rendered: {}",
             rendered

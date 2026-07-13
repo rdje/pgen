@@ -943,13 +943,13 @@ impl<'g, 'i> Interp<'g, 'i> {
         f: impl FnOnce(&mut Self) -> ParseResult<(ParseNode<'i>, Option<ParseContent<'i>>)>,
     ) -> ParseResult<ParseNode<'i>> {
         if self.compiled_sem.is_empty() || !self.compiled_sem.has_rule(rule_name) {
-            self.semantic_state.push_rule_context(rule_name);
+            self.semantic_state.push_rule_context_static(rule_name);
             let result = f(self);
             self.semantic_state.pop_rule_context();
             let (node, _raw) = result?;
             return Ok(node);
         }
-        self.semantic_state.push_rule_context(rule_name);
+        self.semantic_state.push_rule_context_static(rule_name);
         let semantic_checkpoint = self.semantic_state.checkpoint();
         let result: ParseResult<ParseNode<'i>> = (|s: &mut Self| -> ParseResult<ParseNode<'i>> {
             // PRE predicates — evaluated content-free (`evaluate_directive_predicate`), before the body.

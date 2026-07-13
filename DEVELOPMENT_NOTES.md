@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0048 — RGX-0078.5.i.2: P0 implementation notes (the compat split, the observability-parity oracle, the two incident finds)
+
+**The backward-compat split is the load-bearing design decision.** The canonical regen toolchain
+(`make focus_*` → `cargo build --features generated_parsers --bin ast_pipeline`) EMBEDS the previous
+generation's parsers, so any breaking change to an engine API the emitted code calls creates a
+chicken-and-egg that forces the non-canonical bootstrap regen — the exact path that caused the
+`.5.i.1.t1` null→`"null"` annotation-payload drift. Hence: `push_rule_context(&str)` KEPT (allocating,
+for old emitted code + non-static callers) alongside the new `push_rule_context_static(&'static str)`
+(borrow-only; new emission + interpreter); `rollback_to_named(Option<&str>)` KEPT as a wrapper over the
+new `rollback_to_labeled(RollbackLabel)`. Proof sequence: `cargo check --features "generated_parsers
+ebnf_dual_run"` GREEN against the OLD parsers BEFORE regen, then canonical regen of all 8 focus targets
+(mtime-verified), then the full battery on the new artifacts.
+
+**Observability-parity oracle (new, reusable).** "Observability-preserving" is a testable claim, not
+prose: run old + new debug probes with `PGEN_TRACE_VERBOSITY=high` on bench patterns, ANSI-strip, keep
+the `🔙`/`♻️` lines, normalize away the emitter's own metadata (`[file:line]` + function name — those
+legitimately changed with the body move to `rollback_to_labeled`), and `diff` the payloads. 923/923
+lines identical (anchor_complex 454, capture_groups 469), including the `♻️ rollback_to(...,
+caller=group (C3-B branch 1/4 cleanup), chain=regex > … > group)` lines whose labels are now built
+lazily. The one intentional trace-visible difference class: `rollback_to_labeled` gates the whole
+label+chain block on `trace_enabled(High)` explicitly (previously the label/chain Strings were built
+whenever facts were discarded even with trace off — a small, incidental part of the same waste class).
+
+**Incident finds (both tracked in the tree):** (1) `.5.i.2.t1` — the `.5.g` construction cache changed
+the emitted annotation-table field to `&'static` without re-pinning
+`generated_parser_runtime_contract_owns_semantic_runtime_fields`; red at HEAD since `.5.g`
+(`git show 250c94c3` contains 0 mentions of the test); re-pinned. (2) MEMORY.md's ON-DISK note named
+sha `d43bc6a0…` but the disk binary was `a6bf0553…` — a stale pre-regen build; a clean-HEAD rebuild
+reproduced `d43bc6a0…` BIT-FOR-BIT (13m27s fat-LTO), simultaneously proving the recorded baseline
+correct, the build deterministic, and the disk binary stale. Baseline geomean sanity: 55.78–56.66µs
+across runs ≈ the pinned ≈56.7µs.
+
+**Bench + scripts:** `bench_alternate.sh` (alternated A/B rounds, geomean-of-mins per round, awk filter
+`$2 ~ /^[0-9]+$/` to skip the header) + `dump_asts.sh` (8-pattern typed-AST dumps) in the session
+scratchpad; both trivially re-derivable from the tree's method notes. Result: ratios
+`0.7487/0.7561/0.7335/0.7430/0.7293`, overall 0.7421 (−25.8%), all 8 patterns faster in all 5 rounds.
+
 ## 2026-07-13 - PGEN-RGX-0078-0046 — RGX-0078.5.i.1: the ablation method, the five WHY+WHEREs, and the drift incident's exact mechanism
 
 **Ablation discipline (what makes the numbers decisive).** Each variant = ONE machinery piece stripped

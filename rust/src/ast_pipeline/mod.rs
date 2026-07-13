@@ -4567,7 +4567,7 @@ pub use semantic_directive_registry::{
 };
 pub use semantic_runtime::{
     CompiledSemanticRuntimeAnnotations, FactFilter, FactKindDecl, LayoutSensitivity, QueryExplain,
-    ResolveResult, ScopeId, ScopeNode, SemanticCloseScopeSpec, SemanticFactRecord,
+    ResolveResult, RollbackLabel, ScopeId, ScopeNode, SemanticCloseScopeSpec, SemanticFactRecord,
     SemanticFactSpec, SemanticLibraryExportSpec, SemanticLibraryImportSpec,
     SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
     SemanticRuntimeCheckpoint, SemanticRuntimeDelta, SemanticRuntimeDirective,

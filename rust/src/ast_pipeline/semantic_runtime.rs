@@ -6,6 +6,7 @@ use super::predicate_expr::{
     PredicateDef, PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
 use rustc_hash::FxHashMap;
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2170,7 +2171,13 @@ pub struct SemanticRuntimeState {
     /// transactions nest (parent rule calls child rule which is itself
     /// wrapped in a per-rule transaction); each entry/exit
     /// push/pops the innermost frame.
-    current_rule_context_stack: Vec<String>,
+    ///
+    /// RGX-0078.5.i.2 (P0) — entries are `Cow<'static, str>` so the two parse
+    /// hot paths push allocation-free: generated parsers pass `&'static str`
+    /// rule-name literals and the interpreter passes interned `&'static str`
+    /// names (both `Cow::Borrowed`). Owners of non-static names (the stimuli
+    /// generator) pass an owned `String` (`Cow::Owned`) — unchanged cost.
+    current_rule_context_stack: Vec<Cow<'static, str>>,
     /// FINAL-PHASE-PREDICATE.2: the worklist of `phase: final` obligations
     /// enqueued (with args already resolved) during the parse. Appended by
     /// [`Self::enqueue_deferred_obligation`], truncated on rollback (via
@@ -2195,6 +2202,59 @@ pub struct SemanticRuntimeTransaction<'a> {
     /// every issue / unexpected behaviour needs WHY (cause) and WHERE
     /// (rule/function); rollback events without rule_name only gave us WHY.
     rule_name: Option<String>,
+}
+
+/// RGX-0078.5.i.2 (P0) — a DEFERRED rollback label: the parts needed to name a
+/// rollback's owner, materialized into a string ONLY inside the trace-enabled
+/// branch of [`SemanticRuntimeState::rollback_to_labeled`].
+///
+/// WHY: the `.5.i.1` cost census measured that building these labels EAGERLY —
+/// two `String`s per failed `try_parse` speculation plus one `format!` per
+/// successful tournament branch (C3-B cleanup), consumed only under trace —
+/// cost ≈14.7% of the whole regex bench (2676 rollbacks/bench, ~31ns each).
+/// Carrying the label as cheap parts (`Copy`: a couple of pointers + integers)
+/// keeps the always-on WHO/WHY observability contract intact while making the
+/// trace-off hot path allocation-free.
+///
+/// The materialized forms reproduce the previous eager strings byte-for-byte,
+/// so enabled-trace output is unchanged.
+#[derive(Clone, Copy)]
+pub enum RollbackLabel<'a> {
+    /// No context available (legacy `rollback_to` / tests / library-import).
+    Unspecified,
+    /// A plain borrowed label (a rule name or a fixed literal).
+    Str(&'a str),
+    /// A failed `try_parse` speculation owned by `rule` (`None` = top-level).
+    TryParseErr(Option<&'a str>),
+    /// A C3-B per-successful-branch tournament cleanup
+    /// (`branch` is 1-based, matching the branch-entry trace lines).
+    C3bBranchCleanup {
+        rule: &'a str,
+        branch: usize,
+        total: usize,
+    },
+}
+
+impl RollbackLabel<'_> {
+    /// Materialize the label text. Call ONLY inside a trace-enabled branch —
+    /// the whole point of this type is that the hot path never runs this.
+    fn materialize(&self) -> Cow<'_, str> {
+        match self {
+            RollbackLabel::Unspecified => Cow::Borrowed("<unspecified>"),
+            RollbackLabel::Str(label) => Cow::Borrowed(label),
+            RollbackLabel::TryParseErr(Some(rule)) => {
+                Cow::Owned(format!("{} (try_parse Err)", rule))
+            }
+            RollbackLabel::TryParseErr(None) => {
+                Cow::Borrowed("<top-level try_parse> (try_parse Err)")
+            }
+            RollbackLabel::C3bBranchCleanup {
+                rule,
+                branch,
+                total,
+            } => Cow::Owned(format!("{} (C3-B branch {}/{} cleanup)", rule, branch, total)),
+        }
+    }
 }
 
 impl Default for SemanticRuntimeState {
@@ -2243,8 +2303,27 @@ impl SemanticRuntimeState {
     /// `push_rule_context(rule)` and the matching `pop_rule_context()` will
     /// include the rule name. Stack discipline: every push must be paired
     /// with exactly one pop (the generated IIFE handles this).
+    ///
+    /// Allocating form — kept signature-compatible so PREVIOUSLY-generated
+    /// parsers still compile against this lib (the canonical `make focus_*`
+    /// regen builds `ast_pipeline` WITH the old `generated_parsers`; a
+    /// breaking signature here would force the non-canonical bootstrap regen
+    /// path that caused the `.5.i.1.t1` annotation-payload drift incident).
+    /// Hot paths use [`Self::push_rule_context_static`] instead.
     pub fn push_rule_context(&mut self, rule_name: &str) {
-        self.current_rule_context_stack.push(rule_name.to_string());
+        self.current_rule_context_stack
+            .push(Cow::Owned(rule_name.to_string()));
+    }
+
+    /// RGX-0078.5.i.2 (P0) — the no-alloc form: a `&'static str` rule name
+    /// (generated parsers pass rule-name literals; the interpreter passes
+    /// interned names) is pushed as `Cow::Borrowed`, with NO per-entry
+    /// allocation. The previous `&str`-only signature forced a `to_string()`
+    /// on EVERY rule entry (the measured V1 census surface, ≈−4.3% of the
+    /// regex bench).
+    pub fn push_rule_context_static(&mut self, rule_name: &'static str) {
+        self.current_rule_context_stack
+            .push(Cow::Borrowed(rule_name));
     }
 
     /// Pair with `push_rule_context`. Pops the innermost frame.
@@ -2257,7 +2336,7 @@ impl SemanticRuntimeState {
     pub fn current_rule_context(&self) -> Option<&str> {
         self.current_rule_context_stack
             .last()
-            .map(|s| s.as_str())
+            .map(|s| s.as_ref())
     }
 
     /// SV-EXH-PROOF.3.3.4.b.6.2.36.2 — return the FULL nested call chain
@@ -2725,10 +2804,32 @@ impl SemanticRuntimeState {
     /// short label that helps diagnose which speculation owned the
     /// checkpoint. Pass `None` (or use `rollback_to`) when no context is
     /// available (legacy / tests / library-import).
+    ///
+    /// RGX-0078.5.i.2 (P0): hot-path callers whose label needs a `format!`
+    /// (failed `try_parse` speculations, C3-B branch cleanups) should use
+    /// [`Self::rollback_to_labeled`] with a [`RollbackLabel`] instead, so the
+    /// label text is built only when trace actually consumes it.
     pub fn rollback_to_named(
         &mut self,
         checkpoint: SemanticRuntimeCheckpoint,
         caller_context: Option<&str>,
+    ) {
+        let label = match caller_context {
+            Some(context) => RollbackLabel::Str(context),
+            None => RollbackLabel::Unspecified,
+        };
+        self.rollback_to_labeled(checkpoint, label);
+    }
+
+    /// Same as [`Self::rollback_to_named`], but the caller context arrives as
+    /// a DEFERRED [`RollbackLabel`] materialized only inside the trace-enabled
+    /// branch (RGX-0078.5.i.2 P0 — kills the 2×`String` per failed speculation
+    /// + the per-successful-branch `format!` the `.5.i.1` census measured at
+    /// ≈14.7% of the regex bench, while preserving the WHO/WHY trace contract).
+    pub fn rollback_to_labeled(
+        &mut self,
+        checkpoint: SemanticRuntimeCheckpoint,
+        label: RollbackLabel<'_>,
     ) {
         let fact_len = checkpoint.fact_len.min(self.facts.len());
         let scope_arena_len = checkpoint.scope_arena_len.max(1).min(self.scope_arena.len());
@@ -2759,14 +2860,18 @@ impl SemanticRuntimeState {
         // Pair with emit_fact + has_fact traces to spot C3-B style bugs
         // where a fact emitted on the eventual-winning parse path gets
         // wiped by a peer speculation's rollback.
-        if facts_being_rolled_back > 0 || self.scope_arena.len() > scope_arena_len {
-            // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — include caller_context AND
+        if (facts_being_rolled_back > 0 || self.scope_arena.len() > scope_arena_len)
+            && crate::ast_pipeline::trace_enabled(crate::ast_pipeline::TraceLevel::High)
+        {
+            // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — include the caller label AND
             // the full nested rule_context_path in the trace so the rollback
             // event identifies WHO triggered it (full call chain).
-            // `caller_context` adds local detail like "(try_parse Err)" or
+            // The label adds local detail like "(try_parse Err)" or
             // "(C3-B branch 2/4 cleanup)"; `rule_context_path` gives the
-            // outer call chain.
-            let local_label = caller_context.unwrap_or("<unspecified>");
+            // outer call chain. RGX-0078.5.i.2 (P0): both strings are built
+            // ONLY here, inside the trace-enabled branch — `materialize` is
+            // where a deferred label's `format!` finally runs.
+            let local_label = label.materialize();
             let chain = self.rule_context_path();
             crate::pgen_trace_high!(
                 "♻️ rollback_to(checkpoint fact_len={}, scope_arena_len={}, caller={}, chain={}) — discarding {} fact(s) + {} scope-arena node(s)",
