@@ -13,6 +13,7 @@
 
 ## North star (standing; director 2026-07-11)
 - ⭐ SPEED is a FIRST-CLASS, CONTINUOUSLY-TRACKED deliverable, CO-EQUAL with accuracy — strict order: **accuracy first + never regressed** (the immovable floor), speed maximized on top. Track geomean vs PCRE2 on the full conformance corpus alongside the accuracy oracles. See [[feedback_correctness_before_speed]] + [[project_rgx_0078_regex_slowness_followup]].
+- 🎯 RGX-0078 CLOSURE BAR (director 2026-07-13, session #110): **regex COLD parse geomean ≈≤1µs, EBNF (+annotations) = the SOLE source of truth** — hit it ⇒ campaign CLOSES, focus pivots to other parsers. Supersedes the `<5×`-vs-PCRE2 relative bound. Deep-specialization planner extensions ON-ROAD after P1/P3/P4 until met; `.7` cache = bonus, closure = COLD. See [[project_rgx_0078_sub_1us_closure_target]].
 - HORIZON GOAL: the **minimally-required feature set to parse ANY precisely-described language** (JS/Perl5/Raku/markup/LRMs) via a capability-gap audit; every primitive duality-complete. See [[project_horizon_universal_parser]].
 
 ## Current state (OVERWRITE this block each update — do not append)
