@@ -282,6 +282,46 @@ fn quantifier_min_repeat(quantifier: &str) -> usize {
     }
 }
 
+/// RGX-0078.5.i.3 (P2) — the branch's admissible DISPATCH first bytes (sorted), or the
+/// NAMED reason the branch is not first-byte-decided.
+///
+/// This is the SHARED eligibility predicate behind BOTH consumers — the degeneracy
+/// census (`fusibility_census.rs`) and codegen's degenerate-dispatch gate
+/// (`generate_or_logic`) — so the census verdict and the emitted dispatch can never
+/// drift: a branch is first-byte-decided iff its FIRST summary is resolved +
+/// non-nullable + non-empty and EVERY FIRST terminal yields an extractable first byte
+/// (exactly the `.5.c.2` prune-guard eligibility). `Err` = "always try this branch"
+/// — a site containing such a branch can never dispatch degenerately.
+pub(crate) fn branch_dispatch_first_bytes(
+    branch: &ASTNode,
+    grammar_tree: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+) -> Result<Vec<u8>, String> {
+    let mut visiting_rules = HashSet::new();
+    let summary = branch_first_set(branch, grammar_tree, first_set_cache, &mut visiting_rules, 0);
+    if summary.nullable {
+        return Err("nullable (can match empty)".to_string());
+    }
+    if summary.unresolved {
+        return Err("unresolved FIRST set (regex token / cycle / depth cutoff)".to_string());
+    }
+    if summary.terminals.is_empty() {
+        return Err("empty FIRST terminal set".to_string());
+    }
+    let mut bytes: std::collections::BTreeSet<u8> = std::collections::BTreeSet::new();
+    for terminal in &summary.terminals {
+        match terminal_first_byte(terminal) {
+            Some(byte) => {
+                bytes.insert(byte);
+            }
+            None => {
+                return Err(format!("unextractable first byte for terminal {terminal}"));
+            }
+        }
+    }
+    Ok(bytes.into_iter().collect())
+}
+
 /// RGX-0078.5.c.2 — the first BYTE of a quoted terminal literal.
 ///
 /// Terminals are stored as `format!("'{}'", value)`, so `'X..'` → the first byte of

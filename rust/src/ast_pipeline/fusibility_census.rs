@@ -422,40 +422,11 @@ impl<'a> Classifier<'a> {
     }
 
     /// RGX-0078.5.i.3 (P2) — the branch's admissible dispatch FIRST bytes, or the
-    /// NAMED reason the branch is not first-byte-decided. Mirrors the codegen prune
-    /// guard's eligibility EXACTLY (`first_set_prune_guard_for_branch`): a resolved,
-    /// non-nullable summary whose every FIRST terminal yields an extractable first
-    /// byte; anything uncertain means "always try" — the site cannot dispatch.
+    /// NAMED reason the branch is not first-byte-decided. Thin wrapper over the
+    /// SHARED eligibility predicate (`first_set::branch_dispatch_first_bytes`) so
+    /// this census verdict and codegen's degenerate-dispatch gate cannot drift.
     fn branch_dispatch_first_bytes(&mut self, branch: &ASTNode) -> Result<Vec<u8>, String> {
-        let mut visiting = HashSet::new();
-        let summary = super::first_set::branch_first_set(
-            branch,
-            self.tree,
-            &mut self.first_set_cache,
-            &mut visiting,
-            0,
-        );
-        if summary.nullable {
-            return Err("nullable (can match empty)".to_string());
-        }
-        if summary.unresolved {
-            return Err("unresolved FIRST set (regex token / cycle / depth cutoff)".to_string());
-        }
-        if summary.terminals.is_empty() {
-            return Err("empty FIRST terminal set".to_string());
-        }
-        let mut bytes: std::collections::BTreeSet<u8> = std::collections::BTreeSet::new();
-        for terminal in &summary.terminals {
-            match super::first_set::terminal_first_byte(terminal) {
-                Some(byte) => {
-                    bytes.insert(byte);
-                }
-                None => {
-                    return Err(format!("unextractable first byte for terminal {terminal}"));
-                }
-            }
-        }
-        Ok(bytes.into_iter().collect())
+        super::first_set::branch_dispatch_first_bytes(branch, self.tree, &mut self.first_set_cache)
     }
 
     /// RGX-0078.5.i.3 (P2) — gate (e): does the rule carry any Branch-phase

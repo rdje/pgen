@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0051 — RGX-0078.5.i.3 **P2 DEGENERATE-DISPATCH LANDED**: regex geomean **−5.3%** (≈42.0µs → ≈39.7µs), byte-identical; the STEP-0 census prediction (≈−3–7%) confirmed; cumulative 496µs → **39.7µs (12.5×)**
+
+The second landed planner-rung pass (session #110). Codegen-only, parser-agnostic, capability-gated.
+
+- **The change:** where FIRST-set analysis proves a rule's top-level tournament DEGENERATE (all branches
+  first-byte-decided + pairwise-disjoint + terminal-ws-sensitive + no branch predicates / branch-start
+  effects), `generate_or_logic` now emits ONE `match` on the next input byte straight to the sole candidate
+  branch (still under `try_parse`), eliding the per-branch guard-scan loop, the tournament semantic
+  checkpoint, the winner's `extract_delta`/C3-B-rollback/`apply_delta` round-trip, the `should_take`
+  cascade, and the partition-offset computation. 41 of regex's 112 top-level sites qualify (`letter`'s
+  52-arm tournament → one byte switch).
+- **No census/codegen drift by construction:** the per-branch eligibility moved to `first_set.rs`
+  (`branch_dispatch_first_bytes`) and BOTH the degeneracy census and the codegen gate consume it; the
+  emitted dispatch sites were audited to match the census's 41 rules one-for-one. New codegen gate helper
+  `rule_has_branch_phase_predicates` reads a lazily-compiled analysis copy of the runtime-annotation table.
+- **Speed (decisive):** P0 baseline sha `23bf4f30…` (sha-verified on disk) vs candidate `7057eb61…`,
+  alternated 5×2000: per-round ratios `0.950/0.937/0.957/0.957/0.950` (faster EVERY round);
+  geomean-of-best-mins **41.89µs → 39.68µs (−5.3%)**; all 8 patterns faster (0.923–0.974).
+- **Byte-identity/battery:** 8/8 AST dumps identical; 8/8 raw+committed rule-count dumps identical
+  (counters/coverage preserved); equivalence + combinator (incl. `a|ab`) + semantic + ast-shape +
+  duality-hunt + PCRE2 compile-oracle green; cert seeds 0/7/42 pins byte-identical
+  (`267/9/258/0`, spf `0/1/1`); 766/766 lib tests; clippy strict-source clean; all 9 non-regex parsers
+  regen byte-identical (regex is the only terminal-ws-sensitive grammar — declared capability, not name).
+- **Observability delta (documented in the tree):** the C3-B cleanup rollback event vanishes at the 41
+  sites (protocol that provably no longer exists); the 🚪/✅/❌/🏁 trace lines and every counter are
+  preserved (trace-verified).
+- Lockstep: book `inside-parser-performance.md` (scoreboard row 5.i.3 + planner paragraph), tree results +
+  acceptance checklist, TASK_TREE frontier (next: P1 cascade/wrapper inlining), MEMORY.
+
 ## 2026-07-13 - PGEN-RGX-0078-0050 — RGX-0078.5.i.3 STEP-0: the P2 DEGENERACY-CENSUS scout — 41 qualified regex sites, 12.8% entry exposure, 36.9% of tournament loop iterations; falsifiable prediction ≈ −3–7% recorded BEFORE emission
 
 The P2 (predictive dispatch) slice's tools-first STEP-0 (session #110). Read-only analysis extension —

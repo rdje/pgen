@@ -226,6 +226,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.e | **GLL + graph-structured stack** (the research-grade general lockstep form) — adjudicated by a literature-first design spike instead of a build: the engine is already a memoized, first-set-pruned, near-deterministic recursive-descent parser (backtrack residue ~2.2%), exactly the regime where the literature shows GLL's descriptor/GSS/SPPF bookkeeping costs orders of magnitude more than adaptive top-down parsing buys | (not built — design spike only) | — | predicted net-negative | **refuted** ✗ |
 | RGX-0078 · 5.i.1 | **Cost-decomposition census** (the planner rung's step 0) — six measurement-only strip-variants of the generated parser, each byte-identity-proven, pricing every piece of per-entry machinery; discovered that ≈32% of the parse is unconditional bookkeeping waste (trace-naming strings, tournament allocs, context strings) and fixed the planner pass order (see the census section below) | (measurement only — nothing landed) | 56.7 µs → 38.7 µs with all strips applied | **−31.7% measured ceiling** | **measured** — P0 landed as 5.i.2 |
 | RGX-0078 · 5.i.2 | **P0 — lazy/no-alloc protocol hygiene** (the census's V1+V2+V3 surfaces made permanent, observability-preserving): rollback labels travel as a cheap `Copy` enum materialized into text only inside the trace-enabled branch (was: two `String`s per failed speculation + a `format!` per successful tournament branch, consumed only under trace); the branch tournament iterates its rotated order as `(step + offset) % n` instead of collecting a `Vec` per execution, and the partition-group string is built only when partitioning is enabled; the rule-context stack stores `Cow<'static, str>` pushed borrow-only from rule-name literals (generated parsers) and interned names (interpreter). Trace output with tracing ON is byte-for-byte unchanged — proven by a 923-line trace-payload diff | engine + codegen (parser-agnostic) | 56.7 µs → **42.0 µs** | **−25.8%** | **landed** ✓ |
+| RGX-0078 · 5.i.3 | **P2 — degenerate-tournament byte-switch dispatch**: where FIRST-set analysis PROVES a rule's top-level branch tournament degenerate (every branch's admissible first bytes decided and pairwise DISJOINT, terminals whitespace-sensitive, no branch predicates or branch-start effects), the generated rule dispatches with ONE `match` on the next byte straight to the only branch that could match — eliding the per-branch guard-scan loop, the tournament semantic checkpoint, the winner's delta-extract/rollback/replay round-trip, and the `should_take` cascade (the sole candidate still runs under `try_parse`, so failure restores state exactly as before). 41 of regex's 112 top-level choice sites qualify (the single-char alternation leaves — `letter`'s 52-arm tournament becomes one byte switch); a new DEGENERACY census (`--report-fusibility-census`) measured the surface and predicted −3–7% before any code | codegen (parser-agnostic; census-verified gate) | 42.0 µs → **39.7 µs** | **−5.3%** | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -692,13 +693,33 @@ rollback/backtrack trace lines are byte-for-byte the same as before (proven by d
 normalized trace-payload lines across the old and new builds) — the strings are simply no longer
 built for the overwhelmingly common case where nobody reads them. Every parser inherits the win.
 
-Next come the analysis-gated passes in measured-surface order: predictive dispatch (kill the ~830
-failing probes a first-byte check can refuse), cascade inlining (~290 of the 617 committed entries
-are single-child wrapper frames), selective machinery (emit memo/guard/snapshot wrappers only
-where analysis says they can matter), and compile-time value folding (pre-compile constraint
-expressions, fold `$text`-class shapes). Each lands under the same hard constraint as every lever
-before it: measurably faster *and* byte-identical under the full oracle battery, or it does not
-land.
+**Predictive dispatch — the first analysis-gated pass — has now landed too (scoreboard lever
+5.i.3): measured −5.3%, ≈42.0 µs → ≈39.7 µs.** Its step 0 extended the census with a
+*degeneracy* classification: for every rule-top-level choice site, can the compiler PROVE the
+longest-match tournament degenerate — every branch's admissible first bytes decided by the same
+sound FIRST-set analysis the prune guards trust, the byte sets pairwise *disjoint* (so at most
+one branch can begin a match at any next byte), terminals whitespace-sensitive (so peeking the
+raw byte is sound), and no branch predicates or branch-start effects (which would need the
+tournament's rollback-and-continue machinery)? Where the proof holds — 41 of regex's 112
+top-level sites, the single-character alternation leaves like `letter`'s 52-way tournament — the
+generated rule is now a single `match` on the next input byte that jumps straight to the only
+branch that could match. The tournament *protocol* vanishes at those sites: no per-branch
+guard-scan loop, no tournament checkpoint, no delta-extract/rollback/replay round-trip for a
+winner that provably has no competitors (the candidate still runs under the speculation wrapper,
+so a failed parse restores state exactly as before). An honest modeling note the census forced:
+a first-byte switch skips exactly the branches the landed prune guards already skip, so this
+pass kills *protocol*, not rule entries — the census measured the exposure (12.8% of bench
+entries, 36.9% of all tournament loop iterations) and predicted −3–7% before a line of emission
+code was written; the measurement landed at −5.3%, with the typed ASTs, rule-entry counters, and
+certification pins all byte-identical, and every non-regex parser regenerating byte-identically
+(regex is today's only terminal-whitespace-sensitive grammar; the gate is a declared capability,
+never a grammar name).
+
+Next in the fixed order: cascade inlining (~290 of the 617 committed entries are single-child
+wrapper frames), selective machinery (emit memo/guard/snapshot wrappers only where analysis says
+they can matter), and compile-time value folding (pre-compile constraint expressions, fold
+`$text`-class shapes). Each lands under the same hard constraint as every lever before it:
+measurably faster *and* byte-identical under the full oracle battery, or it does not land.
 
 One incidental find from the same session is worth recording for transparency: the census's
 byte-identity oracle caught a *regeneration-path* divergence — parsers regenerated through a

@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0051 — RGX-0078.5.i.3: P2 emission notes (why the sole candidate keeps `try_parse`, and the delta round-trip identity question)
+
+**The sole candidate stays under `try_parse` deliberately.** The single-branch rule emission runs its body
+bare (rule-level wrappers restore on failure), but the degenerate multi-branch emission keeps the
+speculation wrapper: (1) the multi-branch failure contract is `Backtrack{parse_start}` with position AND
+semantic state restored BEFORE the recovery path runs — `try_parse` provides exactly that restoration
+([[feedback_try_parse_must_snapshot_semantic_state]]); (2) it keeps the 🚪/✅ trace lines and the 🔙
+failed-speculation event byte-compatible with the general path. What is elided is only the TOURNAMENT
+protocol around the wrapper (checkpoint clone, delta extract, C3-B rollback, winner replay, should_take),
+which exists solely to arbitrate multiple candidates.
+
+**Winner-effects-in-place vs the delta round-trip.** The general path extracts the winner's semantic delta,
+rolls back to the tournament checkpoint, then re-applies the delta; the degenerate path just leaves the
+winner's effects in place. C3-B's own invariant ("applying the winner's delta restores exactly the state
+the winning branch produced") makes these equivalent; the proof obligations that would catch any lie are
+the semantic gate (36/36), the equivalence gate, and the identical facts in the 8/8 AST dumps. Note the
+elision can only REDUCE store-epoch churn (fewer rollback events ⇒ fewer memo taints ⇒ never fewer memo
+hits), and the identical raw+committed count dumps prove the parse-flow effect is nil on the bench.
+
+**Baseline hygiene.** The on-disk release probe was sha-verified against the recorded P0 candidate
+(`23bf4f30…`) BEFORE being trusted as the baseline — the `.5.i.2` session's stale-binary incident made
+this check standing procedure.
+
 ## 2026-07-13 - PGEN-RGX-0078-0050 — RGX-0078.5.i.3 STEP-0: degeneracy-census scout notes (why exposure ≠ entry-kill, and what the verdict reads)
 
 **The load-bearing modeling point:** at ONE-byte granularity, a dispatch switch skips EXACTLY the
