@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0054 — RGX-0078.5.i.4 STEP-0: the P1 INLINE-CENSUS scout — 204/274 regex rules inline-eligible, 70.0% of bench entries are collapsible wrapper frames; NEW per-rule memo-hit counter (the `.5.i.1` "613 hits" corrected to 568); falsifiable ceilings P1a ≈−9–11% / P1b additional ≈−10–18% recorded BEFORE emission
+
+The P1 (cascade/wrapper inlining) slice's tools-first STEP-0 (session #111; leaf opened docs-only as
+`-0053`). Read-only analysis extension + one opt-in engine counter — no parse-behavior change.
+
+- **Instruments:** (1) `memoized_call`'s three hit paths now record per-rule memo HITS on
+  `SemanticRuntimeState::record_memo_hit` — gated on the parser's `coverage_enabled` flag (the outcome
+  dump's opt-in; ordinary parsing pays nothing; unset ⇒ byte-identical by construction). Engine-owned so
+  the registry reads it via the EXISTING `semantic_runtime_state()` accessor — NO new generated-parser
+  API, the previous parser generation keeps compiling, and the `.5.i.1.t1` bootstrap-regen trap is
+  structurally avoided. (2) `--dump-rule-outcome-counts-json` gains `rule_memo_hit_counts` +
+  `total_memo_hits` (`raw − hits` = body executions). (3) `--report-fusibility-census` gains the
+  INLINE-CENSUS: per-rule P1 eligibility (acyclic + directive-free frame + non-entry + no
+  `@profiles`/`@transform`), NAMED blockers, wrapper classes (pass_through/alternation_leaf/shaped),
+  reference-site + body-node counts, and the INLINE-EXPOSURE outcome join. 3 new unit tests (12/12 green).
+- **Measured (8-pattern bench):** `INLINE-CENSUS: rules=274 inline_eligible=204`;
+  `INLINE-EXPOSURE: eligible_entries=1672 (70.0%) committed=431 discarded=1241 memo_hits_on_eligible=399
+  (total_memo_hits=568)`. Blockers: cycle ×38, predicates/effects/scopes ×~28, `@profiles` ×7,
+  `@transform` ×5, entry ×1. Cross-grammar surface (unlike P2): SV 844/1466, VHDL 186/216, ebnf 108/131.
+- **Cross-validated:** OUTCOME-SHARE reproduces every `.5.h.1b` pin byte-exactly (2389/617/1773/830/943/
+  215/1.53×); `test` = 50 raw / 24 committed / 5 hits ⇒ 45 body executions = the `.5.e` memo occupancy
+  exactly; dumps deterministic (re-run `cmp` clean). **Corrected a derived figure:** `.5.i.1`'s "613 memo
+  hits" (= raw − occupancy) was an upper bound including 45 recursion-machinery cycle-break entries on the
+  two group-bearing patterns (27+18, reconciled per-pattern via `PGEN_REPORT_MEMO_STATS`); true hits = 568.
+- **Regen:** all 10 makeable parsers regenerated canonically (`make focus_*` + the two bootstrap-canonical
+  annotation targets); diff audit = EXACTLY the 3 hit-path insertions per parser. `generated/ebnf.rs` was
+  found a generation stale (pre-P0 vintage) and re-regenerated via its canonical recipe — the equivalence
+  gate (green) is the behavior tripwire.
+- **Battery:** cert seeds 0/7/42 pins byte-identical (`267/9/258/0`, spf `0/1/1`); equivalence gate 4/4;
+  ast-shape gate green; lib tests **902/902**; clippy strict-source clean.
+- **`.5.i.4.t1` (found during the battery, fixed):** two embedding regex tests RED at HEAD since
+  `.4.11` (2026-07-11) — their samples referenced named groups never defined (`\g<n>` bare; the
+  `returned_capture_named_subroutine` contract sample). Independence stash-baseline-proven; pcre2test
+  oracle confirms bare `\g<n>` REJECTS (error 115) ⇒ parser PCRE2-faithful, tests stale. Samples now
+  define their groups (each pcre2test-verified accepted); contract manifest sample updated same-slice.
+- **Falsifiable ceilings (recorded before emission):** P1a (frame collapse, memo preserved — counters
+  byte-identical) ≈ −9–11%; P1b (memo elided at inlined frames — result-neutral, counters change
+  truthfully where the 399 hits re-execute) additional ≈ −10–18%. Scope decision: land P1a first, then
+  P1b separately. Lockstep: TOOLBOX §3.5/§5.3, book `parseability-probe-debug.md` +
+  `diagnosing-unknowns.md` + `inside-parser-performance.md`, tree results + checklist, TASK_TREE frontier,
+  MEMORY.
+
 ## 2026-07-13 - PGEN-RGX-0078-0051 — RGX-0078.5.i.3 **P2 DEGENERATE-DISPATCH LANDED**: regex geomean **−5.3%** (≈42.0µs → ≈39.7µs), byte-identical; the STEP-0 census prediction (≈−3–7%) confirmed; cumulative 496µs → **39.7µs (12.5×)**
 
 The second landed planner-rung pass (session #110). Codegen-only, parser-agnostic, capability-gated.

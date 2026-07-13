@@ -715,11 +715,34 @@ certification pins all byte-identical, and every non-regex parser regenerating b
 (regex is today's only terminal-whitespace-sensitive grammar; the gate is a declared capability,
 never a grammar name).
 
-Next in the fixed order: cascade inlining (~290 of the 617 committed entries are single-child
-wrapper frames), selective machinery (emit memo/guard/snapshot wrappers only where analysis says
-they can matter), and compile-time value folding (pre-compile constraint expressions, fold
-`$text`-class shapes). Each lands under the same hard constraint as every lever before it:
-measurably faster *and* byte-identical under the full oracle battery, or it does not land.
+Next in the fixed order: cascade inlining, then selective machinery (emit memo/guard/snapshot
+wrappers only where analysis says they can matter), and compile-time value folding (pre-compile
+constraint expressions, fold `$text`-class shapes). Each lands under the same hard constraint as
+every lever before it: measurably faster *and* byte-identical under the full oracle battery, or
+it does not land.
+
+**Cascade/wrapper inlining's step 0 — the inline census — has now been measured.** The census
+gained a per-rule *inline-eligibility* verdict: a rule's call frame is provably collapsible into
+its call sites when the rule sits on no reference cycle (so its recursion guard can never fire),
+carries no semantic directive in any phase (so its frame's transactional role is trace-naming
+only), is not the entry rule, and is not dialect-gated. On regex, **204 of 274 rules qualify,
+and 70% of all bench rule entries (1 672 of 2 389) are entries into such collapsible wrapper
+frames** — each paying the full guard/context/annotation-probe/memo-dispatch/call protocol to do
+essentially nothing. The blockers on the other 70 rules are named per rule (38 sit on the
+recursive grammar spine; the rest carry real directives, dialect gates, or transforms). The
+outcome dump also gained a per-rule *memo-hit* counter (recorded only under the coverage opt-in,
+so ordinary parsing pays nothing): 568 of the bench's entries are answered from the packrat
+cache, 399 of them on eligible rules — the honest price tag for the variant of inlining that
+also drops the memo at inlined frames, since each such hit would become a body re-execution.
+(Direct counting also corrected an earlier derived figure: the cost census's "613 memo hits" was
+an upper bound that silently included 45 recursion-machinery cycle-break entries on the two
+group-bearing patterns; the true hit count is 568, reconciled per-pattern against the memo-stats
+occupancy.) The recorded falsifiable ceilings, priced from the measured cost buckets before any
+emission code: ≈−9–11% for the counter-preserving frame collapse, a further ≈−10–18% if the memo
+is elided at inlined frames — and unlike predictive dispatch, this surface is *cross-grammar*
+(SystemVerilog: 844 of 1 466 rules eligible; VHDL 186/216; every family has one), so a landed
+emission is a platform-wide primitive. The emission itself is the next slice; the ceiling dies
+or survives by measurement, like every number on the scoreboard.
 
 One incidental find from the same session is worth recording for transparency: the census's
 byte-identity oracle caught a *regeneration-path* divergence — parsers regenerated through a

@@ -651,7 +651,7 @@
     },
     {
       "name": "returned_capture_named_subroutine",
-      "input": "(?&callee(+1,<cap>,'alt'))",
+      "input": "(?<callee>(?<cap>x)(?<alt>y))(?&callee(+1,<cap>,'alt'))",
       "required_rule_names": [
         "subroutine_call",
         "returned_capture_subroutine",
@@ -668,7 +668,7 @@
         "returned_capture_group": ["+1", "<cap>", "'alt'"],
         "signed_digits": ["+1"],
         "name_ref": ["<cap>", "'alt'"],
-        "name": ["callee", "cap", "alt"]
+        "name": ["callee", "cap", "alt", "callee", "cap", "alt"]
       },
       "forbidden_rule_names": ["inline_modifiers"]
     },

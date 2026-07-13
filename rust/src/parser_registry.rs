@@ -127,11 +127,16 @@ fn current_dump_rule_entry_counts_json() -> Option<std::path::PathBuf> {
 /// the detail-parse functions enable the parser's transactional coverage stack before
 /// the parse and write BOTH counters after it:
 /// `{"grammar": …, "accepted": …, "total_entries": N, "total_committed": M,
-///   "rule_entry_counts": {rule: n}, "rule_committed_counts": {rule: m}}`.
+///   "rule_entry_counts": {rule: n}, "rule_committed_counts": {rule: m},
+///   "rule_memo_hit_counts": {rule: h}, "total_memo_hits": H}`.
 /// `total_entries − total_committed` is the parse's FAILED-speculation work (every
 /// entry inside a speculation `try_parse` rolled back); committed counts keep C3-B
 /// semantics (winners + successful-but-losing tournament branches). This is the
 /// choice-site census's dynamic input (`--report-fusibility-census` join).
+/// RGX-0078.5.i.4 (P1 STEP-0): `rule_memo_hit_counts` are the parse's per-rule memo
+/// HITS (fail-set + valid tainted-failure + success replays), recorded by
+/// `memoized_call` under the same coverage opt-in; `raw − hits` = a rule's body
+/// executions — the inline census's P1b lost-hit surface.
 pub fn set_global_dump_rule_outcome_counts_json(path: Option<std::path::PathBuf>) {
     DUMP_RULE_OUTCOME_COUNTS_JSON.with(|c| *c.borrow_mut() = path);
 }
@@ -210,14 +215,17 @@ fn dump_rule_outcome_counts_json(
     baseline: &[u64],
     counts: &[std::sync::atomic::AtomicU64],
     committed: &[u64],
+    memo_hits: &[u64],
     store_counter_deltas: [u64; 6],
     accepted: bool,
 ) {
     let mut entry_map = serde_json::Map::new();
     let mut committed_map = serde_json::Map::new();
+    let mut memo_hit_map = serde_json::Map::new();
     let mut total_entries: u64 = 0;
     let mut total_committed: u64 = 0;
-    let mut named: Vec<(&str, u64, u64)> = Vec::new();
+    let mut total_memo_hits: u64 = 0;
+    let mut named: Vec<(&str, u64, u64, u64)> = Vec::new();
     for (i, name) in rule_names.iter().enumerate() {
         let end = counts
             .get(i)
@@ -226,19 +234,26 @@ fn dump_rule_outcome_counts_json(
         let start = baseline.get(i).copied().unwrap_or(0);
         let entries = end.saturating_sub(start);
         let committed_n = committed.get(i).copied().unwrap_or(0);
-        if entries > 0 || committed_n > 0 {
-            named.push((name, entries, committed_n));
+        // RGX-0078.5.i.4 (P1 STEP-0) — per-rule memo hits (already delta'd by the
+        // caller; the engine Vec is grow-on-demand, so a short slice means zero).
+        let hits = memo_hits.get(i).copied().unwrap_or(0);
+        if entries > 0 || committed_n > 0 || hits > 0 {
+            named.push((name, entries, committed_n, hits));
             total_entries += entries;
             total_committed += committed_n;
+            total_memo_hits += hits;
         }
     }
     named.sort_by(|a, b| a.0.cmp(b.0));
-    for (name, entries, committed_n) in named {
+    for (name, entries, committed_n, hits) in named {
         if entries > 0 {
             entry_map.insert(name.to_string(), serde_json::Value::from(entries));
         }
         if committed_n > 0 {
             committed_map.insert(name.to_string(), serde_json::Value::from(committed_n));
+        }
+        if hits > 0 {
+            memo_hit_map.insert(name.to_string(), serde_json::Value::from(hits));
         }
     }
     let payload = serde_json::json!({
@@ -246,8 +261,14 @@ fn dump_rule_outcome_counts_json(
         "accepted": accepted,
         "total_entries": total_entries,
         "total_committed": total_committed,
+        "total_memo_hits": total_memo_hits,
         "rule_entry_counts": serde_json::Value::Object(entry_map),
         "rule_committed_counts": serde_json::Value::Object(committed_map),
+        // RGX-0078.5.i.4 (P1 STEP-0) — per-rule memo HITS (fail-set + valid
+        // tainted-failure + success replays), recorded by `memoized_call` under
+        // the coverage opt-in. `rule_entry_counts − rule_memo_hit_counts` = the
+        // rule's body executions; the inline census's P1b lost-hit input.
+        "rule_memo_hit_counts": serde_json::Value::Object(memo_hit_map),
         // RGX-0078.5.i.1 — the parse's semantic-store counter DELTAS (already
         // maintained by the engine; this only reports them). `rollbacks` is the
         // parse's total `rollback_to_named` calls = failed `try_parse`
@@ -305,6 +326,12 @@ macro_rules! with_rule_entry_count_dump {
                 __c.predicate_evaluations.get(),
             ]
         });
+        // RGX-0078.5.i.4 (P1 STEP-0) — memo-hit baseline (same delta discipline;
+        // hits are only recorded while coverage is enabled, so this is normally
+        // all-zero — kept for the same construction/preload-pollution honesty).
+        let __memo_hit_baseline = __outcome_dump
+            .is_some()
+            .then(|| $parser.semantic_runtime_state().memo_hit_counts().to_vec());
         if __outcome_dump.is_some() {
             $parser.enable_coverage();
         }
@@ -332,6 +359,16 @@ macro_rules! with_rule_entry_count_dump {
                     __c.predicate_evaluations.get().saturating_sub(__b[5]),
                 ]
             };
+            let __memo_hit_deltas: Vec<u64> = {
+                let __b = __memo_hit_baseline.unwrap_or_default();
+                $parser
+                    .semantic_runtime_state()
+                    .memo_hit_counts()
+                    .iter()
+                    .enumerate()
+                    .map(|(i, end)| end.saturating_sub(__b.get(i).copied().unwrap_or(0)))
+                    .collect()
+            };
             dump_rule_outcome_counts_json(
                 &__path,
                 $grammar,
@@ -339,6 +376,7 @@ macro_rules! with_rule_entry_count_dump {
                 __entry_baseline.as_deref().unwrap_or(&[]),
                 &$parser.rule_call_counts(),
                 &$parser.exercised_rule_entry_counts(),
+                &__memo_hit_deltas,
                 __store_deltas,
                 __outcome.is_ok(),
             );
@@ -725,6 +763,9 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
                 &[],
                 &parser.rule_call_counts(),
                 &parser.exercised_rule_entry_counts(),
+                // RGX-0078.5.i.4 — fresh worker parser, zero baseline: the
+                // counters ARE the parse's memo-hit deltas.
+                parser.semantic_runtime_state().memo_hit_counts(),
                 store_deltas,
                 outcome.is_ok(),
             );

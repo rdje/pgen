@@ -3598,22 +3598,27 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
     fn regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form() {
+        // REGEX-PCRE2-FIDELITY.4.11 made unknown-name references a GRAMMAR-owned
+        // reject (phase:final `regex_defined_capture_name` obligation), so every
+        // referenced group must be defined in the pattern — exactly PCRE2's rule
+        // (pcre2test 10.47: bare `\g<n>` = error 115 "reference to non-existent
+        // subpattern"; each pattern below verified accepted). RGX-0078.5.i.4.t1.
         let cases: &[(&str, &str)] = &[
             // angle/apostrophe forms = subroutine call
-            ("\\g<n>", "subroutine_named"),
-            ("\\g'n'", "subroutine_named"),
-            ("\\g<1>", "subroutine_numeric"),
-            ("\\g'1'", "subroutine_numeric"),
+            ("(?<n>x)\\g<n>", "subroutine_named"),
+            ("(?<n>x)\\g'n'", "subroutine_named"),
+            ("(x)\\g<1>", "subroutine_numeric"),
+            ("(x)\\g'1'", "subroutine_numeric"),
             // brace form = back-reference (named or numeric depending
             // on inner content)
-            ("\\g{n}", "named_braced"),
-            ("\\g{1}", "numeric_backreference"),
+            ("(?<n>x)\\g{n}", "named_braced"),
+            ("(x)\\g{1}", "numeric_backreference"),
             // bare digit form = numeric back-reference
-            ("\\g1", "numeric_backreference"),
+            ("(x)\\g1", "numeric_backreference"),
             // existing kinds still produced for the \k family
-            ("\\k<n>", "named"),
-            ("\\k{n}", "named_braced"),
-            ("\\1", "numeric"),
+            ("(?<n>x)\\k<n>", "named"),
+            ("(?<n>x)\\k{n}", "named_braced"),
+            ("(x)\\1", "numeric"),
         ];
 
         for (pattern, expected_kind) in cases {

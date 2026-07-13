@@ -2188,6 +2188,18 @@ pub struct SemanticRuntimeState {
     /// during the pass (obligations are inert until discharge), so it never
     /// taints the memo (`write_epoch` is untouched by enqueue).
     deferred_obligations: Vec<DeferredObligation>,
+    /// RGX-0078.5.i.4 (P1 STEP-0) — per-rule-id memo-HIT counters, recorded by the
+    /// generated parser's `memoized_call` hit paths (fail-set, valid tainted-failure,
+    /// success replay) ONLY while its transactional coverage stack is enabled (the
+    /// same opt-in that gates the outcome dump), so ordinary parsing pays nothing.
+    /// Engine-owned deliberately — reachable through the EXISTING emitted
+    /// `semantic_runtime_state()` accessor, so the registry's outcome dump needs NO
+    /// new generated-parser API and PREVIOUSLY-generated parsers keep compiling
+    /// (the `.5.i.1.t1` lesson: a new emitted-API requirement forces the
+    /// non-canonical bootstrap regen path). Cumulative like every counter here:
+    /// truncation rollbacks never rewind it. `raw entries − hits` = body executions
+    /// per rule — the P1b lost-hit surface the inline census prices.
+    memo_hit_counts: Vec<u64>,
 }
 
 #[derive(Debug)]
@@ -2295,6 +2307,9 @@ impl SemanticRuntimeState {
             // FINAL-PHASE-PREDICATE.2 — empty worklist; `phase: final`
             // predicates enqueue obligations during the parse.
             deferred_obligations: Vec::new(),
+            // RGX-0078.5.i.4 (P1 STEP-0) — empty until a coverage-enabled parse
+            // records memo hits; grown on demand by `record_memo_hit`.
+            memo_hit_counts: Vec::new(),
         }
     }
 
@@ -2361,6 +2376,25 @@ impl SemanticRuntimeState {
     /// Snapshot of the cumulative operation counters.
     pub fn counters(&self) -> &SemanticStoreCounters {
         &self.counters
+    }
+
+    /// RGX-0078.5.i.4 (P1 STEP-0) — record one memo HIT for `rule_id`. Called by the
+    /// generated parser's `memoized_call` hit paths, gated on its `coverage_enabled`
+    /// flag (zero cost for ordinary parsing). Grow-on-demand so the engine never
+    /// needs the grammar's rule count up front. Cumulative — never rewound by
+    /// truncation rollbacks (the standing counter semantics).
+    pub fn record_memo_hit(&mut self, rule_id: usize) {
+        if self.memo_hit_counts.len() <= rule_id {
+            self.memo_hit_counts.resize(rule_id + 1, 0);
+        }
+        self.memo_hit_counts[rule_id] += 1;
+    }
+
+    /// RGX-0078.5.i.4 (P1 STEP-0) — the per-rule-id memo-hit counters (index =
+    /// generated rule id; may be shorter than the grammar's rule count — absent
+    /// tail entries are zero). Empty unless a coverage-enabled parse recorded hits.
+    pub fn memo_hit_counts(&self) -> &[u64] {
+        &self.memo_hit_counts
     }
 
     /// MEMO-STORE-SOUNDNESS.2 — the cumulative store-consulting predicate

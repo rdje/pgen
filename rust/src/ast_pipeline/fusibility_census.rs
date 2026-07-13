@@ -148,6 +148,11 @@ pub struct FusibilityCensus {
     /// RGX-0078.5.h.1b — the measured raw/committed/discarded decomposition (present
     /// iff `--fusibility-outcome-counts` files were joined).
     pub outcome_share: Option<OutcomeShare>,
+    /// RGX-0078.5.i.4 (P1 STEP-0) — the per-rule inline-eligibility census.
+    pub inline_rules: BTreeMap<String, InlineRuleCensus>,
+    /// RGX-0078.5.i.4 (P1 STEP-0) — the measured inline-exposure join (present iff
+    /// `--fusibility-outcome-counts` files were joined).
+    pub inline_exposure: Option<InlineExposure>,
 }
 
 /// The JSON shape `parseability_probe --dump-rule-entry-counts-json` writes; consumed by
@@ -174,6 +179,11 @@ struct RuleOutcomeCountsFile {
     rule_entry_counts: BTreeMap<String, u64>,
     #[serde(default)]
     rule_committed_counts: BTreeMap<String, u64>,
+    /// RGX-0078.5.i.4 (P1 STEP-0) — per-rule memo HITS (fail-set + valid
+    /// tainted-failure + success replays). `#[serde(default)]` keeps pre-`.5.i.4`
+    /// dump files loadable (they report zero hits).
+    #[serde(default)]
+    rule_memo_hit_counts: BTreeMap<String, u64>,
 }
 
 /// RGX-0078.5.h.1b — one branch of a choice (Or) site, classified for the
@@ -291,6 +301,69 @@ pub struct OutcomeShare {
     pub degenerate_site_committed: u64,
     /// Of `degenerate_site_entries`: the discarded (failed-speculation) part.
     pub degenerate_site_discarded: u64,
+}
+
+/// RGX-0078.5.i.4 (P1 STEP-0) — the body shape of an inline-ELIGIBLE rule, for
+/// sizing the emission increments (which shapes dominate the collapsible frames).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InlineWrapperClass {
+    /// The body is (after unwrapping single-element shells) exactly one rule
+    /// reference — the `entry_alternation`-style delegation frame.
+    PassThrough,
+    /// A top-level alternation (≥2 branches) whose subtree contains NO rule
+    /// references — the `letter`/`digit` terminal-leaf shape (post-P2 these are
+    /// the byte-switch bodies).
+    AlternationLeaf,
+    /// Any other eligible body (mixed terminals + refs, sequences, quantifiers).
+    Shaped,
+}
+
+/// RGX-0078.5.i.4 (P1 STEP-0) — one rule's INLINE-eligibility verdict under the
+/// P1 gates (leaf spec a–d): (a) the rule participates in no reference cycle (its
+/// recursion guard is provably non-load-bearing), (b) it carries no semantic
+/// directives in any phase / no value constraints / no follow restrictions (its
+/// frame's transactional role is trace-naming only), (c) it is not the entry rule,
+/// (d) it is not `@profiles`-gated. Verdicts are conservative under-approximations
+/// (a blocked rule is never falsely eligible).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct InlineRuleCensus {
+    pub eligible: bool,
+    /// NAMED failing gates (empty iff `eligible`). Deterministic order: cycle,
+    /// runtime directives (sorted kinds), mid-sequence, follow restriction, value
+    /// constraint, branch predicate/effect, rule-level @transform, @profiles, entry.
+    pub blockers: Vec<String>,
+    /// Present iff `eligible`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub wrapper_class: Option<InlineWrapperClass>,
+    /// Grammar-wide reference OCCURRENCES of this rule — the code-duplication
+    /// factor an inlining emission pays (every call site receives a body copy).
+    pub reference_sites: usize,
+    /// Gen-AST node count of the rule body — the per-site duplication size.
+    pub body_nodes: usize,
+}
+
+/// RGX-0078.5.i.4 (P1 STEP-0) — the measured inline-exposure join (inline census ×
+/// raw/committed/memo-hit outcome counts): how much real parse work sits on
+/// collapsible wrapper frames, and how much of it is memo-hit replay (the P1b
+/// lost-hit surface — each such hit becomes a body re-execution if the memo is
+/// elided at inlined sites).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct InlineExposure {
+    /// Raw entries on inline-eligible rules — the collapsible frame count.
+    pub eligible_entries: u64,
+    /// Of `eligible_entries`: the committed (C3-B surviving) part.
+    pub eligible_committed: u64,
+    /// Of `eligible_entries`: the discarded (failed-speculation) part.
+    pub eligible_discarded: u64,
+    /// Memo HITS on eligible rules (from `rule_memo_hit_counts`; requires dumps
+    /// written by a parser generation that records them — older dump files
+    /// deserialize with zero hits, loudly visible as `total_memo_hits=0`).
+    pub eligible_memo_hits: u64,
+    /// Memo hits across ALL rules (context for the eligible share).
+    pub total_memo_hits: u64,
+    /// Top eligible rules by raw entries: (rule, entries, committed, memo_hits).
+    pub top_eligible_rules: Vec<(String, u64, u64, u64)>,
 }
 
 /// How many lexemes a node consumes, for the layout-contiguity gate.
@@ -451,6 +524,82 @@ impl<'a> Classifier<'a> {
                 .is_some()
         });
         (has_branch_predicates, has_branch_start_effects)
+    }
+
+    /// RGX-0078.5.i.4 (P1 STEP-0) — one rule's INLINE-eligibility verdict under the
+    /// P1 gates (leaf spec a–d), with every failing gate NAMED. Facts come from the
+    /// SAME compiled runtime-annotation table the generated parser consults (the
+    /// no-drift discipline the P2 census established). Deterministic blocker order:
+    /// cycle, runtime directives (sorted kinds), mid-sequence, follow restriction,
+    /// value constraint, branch predicate/effect, rule-level @transform, @profiles,
+    /// entry rule.
+    fn inline_rule_verdict(
+        &self,
+        rule: &str,
+        on_cycle: bool,
+        is_entry: bool,
+    ) -> (bool, Vec<String>) {
+        let mut blockers: Vec<String> = Vec::new();
+        // Gate (a) — acyclicity: the recursion guard is load-bearing on a cycle.
+        if on_cycle {
+            blockers.push("reference cycle (recursion guard is load-bearing)".to_string());
+        }
+        // Gate (b) — directive-free frame: any runtime semantic directive (any
+        // phase, rule- or branch-attached) makes the frame's transactional /
+        // context role real, not trace-naming-only.
+        if let Some(kinds) = self.directives_by_rule.get(rule) {
+            for kind in kinds {
+                blockers.push(format!("runtime directive @{kind}"));
+            }
+        }
+        if let Some(ann) = self.annotations {
+            if ann
+                .branch_mid_sequence_semantic_annotations
+                .get(rule)
+                .is_some_and(|branches| branches.iter().any(|b| !b.is_empty()))
+            {
+                blockers.push("mid-sequence inline directive".to_string());
+            }
+            if ann.lexical_follow_restrictions.contains_key(rule) {
+                blockers.push("lexical follow restriction [> …]".to_string());
+            }
+        }
+        if !effective_rule_value_constraints(self.annotations, rule).is_empty() {
+            blockers.push("value constraint (@enum/@regex/@range/@len)".to_string());
+        }
+        let branch_count = match self.tree.get(rule) {
+            Some(ASTNode::Or { alternatives }) => alternatives.len(),
+            _ => 1,
+        };
+        let (has_branch_predicates, has_branch_start_effects) =
+            self.rule_branch_predicate_effect_facts(rule, branch_count);
+        if has_branch_predicates {
+            blockers.push("branch-phase predicate".to_string());
+        }
+        if has_branch_start_effects {
+            blockers.push("branch-start effect directive".to_string());
+        }
+        if let Some(ann) = self.annotations {
+            for name in rule_level_directive_names(ann, rule) {
+                match name.as_str() {
+                    // A rule-level matched-text transform is reproducible in
+                    // principle but out of the P1 emission increment —
+                    // conservatively blocked (a blocked rule is never falsely
+                    // eligible).
+                    "transform" => blockers.push("rule-level @transform".to_string()),
+                    // Gate (d) — a profile-gated rule must resolve identically at
+                    // every call site under every declared profile; blocked.
+                    "profiles" => blockers.push("@profiles dialect gate".to_string()),
+                    _ => {}
+                }
+            }
+        }
+        // Gate (c) — the entry rule keeps its method as the parse entry point
+        // (vacuous for exposure: it has no call sites; named for honesty).
+        if is_entry {
+            blockers.push("entry rule".to_string());
+        }
+        (blockers.is_empty(), blockers)
     }
 
     /// Classify one rule (memoized; cycle-guarded — re-entry means the reference closure
@@ -944,6 +1093,83 @@ fn collect_ref_occurrences(node: &ASTNode, out: &mut HashMap<String, usize>) {
     }
 }
 
+/// RGX-0078.5.i.4 (P1 STEP-0) — gen-AST node count of a subtree (the per-site
+/// duplication size an inlining emission pays).
+fn count_nodes(node: &ASTNode) -> usize {
+    1 + match node {
+        ASTNode::Or { alternatives } => alternatives.iter().map(count_nodes).sum(),
+        ASTNode::Sequence { elements } => elements.iter().map(count_nodes).sum(),
+        ASTNode::Quantified { element, .. } | ASTNode::Lookahead { element, .. } => {
+            count_nodes(element)
+        }
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => count_nodes(inner),
+            ASTValue::Token(_) => 0,
+        },
+    }
+}
+
+/// RGX-0078.5.i.4 (P1 STEP-0) — does `rule` reach ITSELF through ≥1 reference edge?
+/// Exactly the fact that makes its recursion guard load-bearing (the guard detects
+/// (rule, position) re-entry; a rule off every cycle can never re-enter itself).
+/// Unresolved references (codegen builtins / undefined) expand to nothing.
+fn rule_reaches_itself(rule: &str, forward: &HashMap<String, HashSet<String>>) -> bool {
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut stack: Vec<&str> = forward
+        .get(rule)
+        .map(|s| s.iter().map(String::as_str).collect())
+        .unwrap_or_default();
+    while let Some(current) = stack.pop() {
+        if current == rule {
+            return true;
+        }
+        if seen.insert(current) {
+            if let Some(next) = forward.get(current) {
+                stack.extend(next.iter().map(String::as_str));
+            }
+        }
+    }
+    false
+}
+
+/// RGX-0078.5.i.4 (P1 STEP-0) — the body-shape class of an inline-eligible rule.
+fn inline_wrapper_class(body: &ASTNode) -> InlineWrapperClass {
+    fn effective(node: &ASTNode) -> &ASTNode {
+        match node {
+            ASTNode::Sequence { elements } if elements.len() == 1 => effective(&elements[0]),
+            ASTNode::Or { alternatives } if alternatives.len() == 1 => {
+                effective(&alternatives[0])
+            }
+            ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } => effective(inner),
+            other => other,
+        }
+    }
+    let core = effective(body);
+    if let ASTNode::Atom {
+        value: ASTValue::Token(parts),
+    } = core
+    {
+        if parts.len() >= 2 {
+            let TokenValue::String(token_type) = &parts[0];
+            if token_type == "rule_reference" {
+                return InlineWrapperClass::PassThrough;
+            }
+        }
+    }
+    if let ASTNode::Or { alternatives } = core {
+        if alternatives.len() >= 2 {
+            let mut refs: HashMap<String, usize> = HashMap::new();
+            collect_ref_occurrences(body, &mut refs);
+            if refs.is_empty() {
+                return InlineWrapperClass::AlternationLeaf;
+            }
+        }
+    }
+    InlineWrapperClass::Shaped
+}
+
 /// RGX-0078.5.i.3 (P2) — the per-site degeneracy verdict: can this choice site
 /// dispatch as a degenerate tournament (ONE byte-switch, no speculation protocol)?
 /// Pure over its inputs so the gate logic is unit-testable in isolation. Blockers
@@ -1184,11 +1410,13 @@ fn walk_for_choice_sites(
 fn join_outcome_counts(
     grammar_name: &str,
     rules: &BTreeMap<String, RuleCensus>,
+    inline_rules: &BTreeMap<String, InlineRuleCensus>,
     choice_sites: &mut [ChoiceSiteCensus],
     files: &[std::path::PathBuf],
-) -> Result<OutcomeShare, String> {
+) -> Result<(OutcomeShare, InlineExposure), String> {
     let mut entries_sum: BTreeMap<String, u64> = BTreeMap::new();
     let mut committed_sum: BTreeMap<String, u64> = BTreeMap::new();
+    let mut memo_hits_sum: BTreeMap<String, u64> = BTreeMap::new();
     for path in files {
         let text = std::fs::read_to_string(path)
             .map_err(|e| format!("cannot read outcome-counts file '{}': {e}", path.display()))?;
@@ -1207,6 +1435,9 @@ fn join_outcome_counts(
         }
         for (rule, count) in parsed.rule_committed_counts {
             *committed_sum.entry(rule).or_default() += count;
+        }
+        for (rule, count) in parsed.rule_memo_hit_counts {
+            *memo_hits_sum.entry(rule).or_default() += count;
         }
     }
 
@@ -1294,7 +1525,43 @@ fn join_outcome_counts(
         }
         site.attributable_discarded = total;
     }
-    Ok(share)
+
+    // RGX-0078.5.i.4 (P1 STEP-0) — the inline-exposure join: real parse work on
+    // inline-eligible rules, split raw/committed/discarded, plus the memo-hit
+    // share (the P1b lost-hit surface). Each rule counted once (rule-keyed sums).
+    let mut exposure = InlineExposure {
+        eligible_entries: 0,
+        eligible_committed: 0,
+        eligible_discarded: 0,
+        eligible_memo_hits: 0,
+        total_memo_hits: memo_hits_sum.values().sum(),
+        top_eligible_rules: Vec::new(),
+    };
+    let exposure_universe: std::collections::BTreeSet<&String> = entries_sum
+        .keys()
+        .chain(committed_sum.keys())
+        .chain(memo_hits_sum.keys())
+        .collect();
+    for rule in exposure_universe {
+        if !inline_rules.get(rule.as_str()).is_some_and(|c| c.eligible) {
+            continue;
+        }
+        let entries = entries_sum.get(rule).copied().unwrap_or(0);
+        let committed = committed_sum.get(rule).copied().unwrap_or(0);
+        let hits = memo_hits_sum.get(rule).copied().unwrap_or(0);
+        exposure.eligible_entries += entries;
+        exposure.eligible_committed += committed.min(entries);
+        exposure.eligible_discarded += entries.saturating_sub(committed);
+        exposure.eligible_memo_hits += hits;
+        exposure
+            .top_eligible_rules
+            .push((rule.clone(), entries, committed, hits));
+    }
+    exposure
+        .top_eligible_rules
+        .sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+
+    Ok((share, exposure))
 }
 
 /// Run the census over a grammar (the UNFILTERED tree — the view codegen compiles), and
@@ -1412,15 +1679,46 @@ pub fn run_fusibility_census(
         collect_ref_occurrences(&grammar_tree[rule], &mut grammar_wide_refs);
     }
     let mut choice_sites = enumerate_choice_sites(&mut classifier, &universe, &grammar_wide_refs);
-    let outcome_share = if outcome_counts_files.is_empty() {
-        None
+
+    // RGX-0078.5.i.4 (P1 STEP-0) — the per-rule INLINE-eligibility census.
+    let mut forward_refs: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut regex_pattern_sink: Vec<String> = Vec::new();
+    for rule in &universe {
+        let mut refs = HashSet::new();
+        collect_refs(&grammar_tree[rule], &mut refs, &mut regex_pattern_sink);
+        forward_refs.insert(rule.clone(), refs);
+    }
+    let inline_rules: BTreeMap<String, InlineRuleCensus> = universe
+        .iter()
+        .map(|rule| {
+            let on_cycle = rule_reaches_itself(rule, &forward_refs);
+            let is_entry = Some(rule) == entry_rule.as_ref();
+            let (eligible, blockers) = classifier.inline_rule_verdict(rule, on_cycle, is_entry);
+            let body = &grammar_tree[rule];
+            (
+                rule.clone(),
+                InlineRuleCensus {
+                    eligible,
+                    blockers,
+                    wrapper_class: eligible.then(|| inline_wrapper_class(body)),
+                    reference_sites: grammar_wide_refs.get(rule).copied().unwrap_or(0),
+                    body_nodes: count_nodes(body),
+                },
+            )
+        })
+        .collect();
+
+    let (outcome_share, inline_exposure) = if outcome_counts_files.is_empty() {
+        (None, None)
     } else {
-        Some(join_outcome_counts(
+        let (share, exposure) = join_outcome_counts(
             grammar_name,
             &rules,
+            &inline_rules,
             &mut choice_sites,
             outcome_counts_files,
-        )?)
+        )?;
+        (Some(share), Some(exposure))
     };
 
     Ok(FusibilityCensus {
@@ -1438,6 +1736,8 @@ pub fn run_fusibility_census(
         entry_share,
         choice_sites,
         outcome_share,
+        inline_rules,
+        inline_exposure,
     })
 }
 
@@ -1662,6 +1962,59 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             println!("    {count:>5}  {reason}");
         }
     }
+    // RGX-0078.5.i.4 (P1 STEP-0) — the inline-eligibility census + what blocks it.
+    let eligible: Vec<(&String, &InlineRuleCensus)> = census
+        .inline_rules
+        .iter()
+        .filter(|(_, c)| c.eligible)
+        .collect();
+    let class_count = |class: InlineWrapperClass| {
+        eligible
+            .iter()
+            .filter(|(_, c)| c.wrapper_class == Some(class))
+            .count()
+    };
+    println!(
+        "INLINE-CENSUS: grammar={} rules={} inline_eligible={} (pass_through={} alternation_leaf={} shaped={})",
+        census.grammar_name,
+        census.inline_rules.len(),
+        eligible.len(),
+        class_count(InlineWrapperClass::PassThrough),
+        class_count(InlineWrapperClass::AlternationLeaf),
+        class_count(InlineWrapperClass::Shaped),
+    );
+    println!(
+        "  gate: acyclic (guard non-load-bearing) + directive-free frame + non-entry + no @profiles/@transform — RGX-0078.5.i.4 (P1)"
+    );
+    let mut inline_blocker_histogram: HashMap<String, usize> = HashMap::new();
+    for census_entry in census.inline_rules.values() {
+        for blocker in &census_entry.blockers {
+            *inline_blocker_histogram.entry(blocker.clone()).or_default() += 1;
+        }
+    }
+    if !inline_blocker_histogram.is_empty() {
+        let mut ranked: Vec<(String, usize)> = inline_blocker_histogram.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        println!("  inline blocker histogram (rule occurrences):");
+        for (reason, count) in &ranked {
+            println!("    {count:>5}  {reason}");
+        }
+    }
+    if dump_all && !eligible.is_empty() {
+        println!("  inline-eligible rules (PGEN_FUSIBILITY_DUMP_ALL; class, reference sites, body nodes):");
+        for (rule, c) in &eligible {
+            let class = match c.wrapper_class {
+                Some(InlineWrapperClass::PassThrough) => "pass_through",
+                Some(InlineWrapperClass::AlternationLeaf) => "alternation_leaf",
+                Some(InlineWrapperClass::Shaped) => "shaped",
+                None => unreachable!("eligible rules carry a wrapper class by construction"),
+            };
+            println!(
+                "    {rule}: {class} refs={} body_nodes={}",
+                c.reference_sites, c.body_nodes
+            );
+        }
+    }
     if let Some(share) = &census.outcome_share {
         println!(
             "OUTCOME-SHARE: grammar={} files={} total_entries={} committed={} discarded={} (on_encodable={} on_structural={}) committed_on_encodable={} unmatched={} ceiling≈{:.2}x",
@@ -1734,6 +2087,35 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                     site.encodable_branches,
                     if site.all_encodable { ", ALL" } else { "" },
                 );
+            }
+        }
+        // RGX-0078.5.i.4 (P1 STEP-0) — the measured inline exposure.
+        if let Some(exposure) = &census.inline_exposure {
+            let entry_pct = if share.total_entries == 0 {
+                0.0
+            } else {
+                100.0 * exposure.eligible_entries as f64 / share.total_entries as f64
+            };
+            println!(
+                "INLINE-EXPOSURE: grammar={} eligible_entries={} ({:.1}% of total) committed={} discarded={} memo_hits_on_eligible={} (total_memo_hits={})",
+                census.grammar_name,
+                exposure.eligible_entries,
+                entry_pct,
+                exposure.eligible_committed,
+                exposure.eligible_discarded,
+                exposure.eligible_memo_hits,
+                exposure.total_memo_hits,
+            );
+            println!(
+                "  model: each eligible-rule entry is a collapsible wrapper frame — P1a elides guard/context/annotation-probe/call protocol with the memo preserved (counters byte-identical); P1b additionally elides the memo probes/inserts, so each memo_hits_on_eligible replay becomes a body re-execution (counters change truthfully). Hits need dumps from a `.5.i.4`+ parser generation — total_memo_hits=0 on older dumps."
+            );
+            if !exposure.top_eligible_rules.is_empty() {
+                println!("  top inline-eligible rules by raw entries (entries/committed/memo_hits):");
+                for (rule, entries, committed, hits) in
+                    exposure.top_eligible_rules.iter().take(15)
+                {
+                    println!("    {entries:>6} {committed:>6} {hits:>6}  {rule}");
+                }
             }
         }
     }
@@ -2126,5 +2508,165 @@ mod tests {
             .find(|s| s.rule == "top")
             .expect("top site present");
         assert_eq!(top_site.attributable_discarded, 18);
+    }
+
+    /// RGX-0078.5.i.4 (P1 STEP-0) — the inline census classifies the wrapper shapes
+    /// (pass-through / alternation-leaf / shaped) and NAMES the cycle and entry
+    /// blockers.
+    #[test]
+    fn inline_census_classifies_wrapper_shapes_and_names_blockers() {
+        let mut tree = HashMap::new();
+        // top (entry) := wrapper | '(' top ')'   — entry AND on a cycle.
+        tree.insert(
+            "top".to_string(),
+            or(vec![
+                rule_ref("wrapper"),
+                ASTNode::Sequence {
+                    elements: vec![
+                        atom("quoted_string", "("),
+                        rule_ref("top"),
+                        atom("quoted_string", ")"),
+                    ],
+                },
+            ]),
+        );
+        // wrapper := leaf   — a pure delegation frame.
+        tree.insert("wrapper".to_string(), rule_ref("leaf"));
+        // leaf := 'a' | 'b'   — a terminal alternation leaf.
+        tree.insert(
+            "leaf".to_string(),
+            or(vec![atom("quoted_string", "a"), atom("quoted_string", "b")]),
+        );
+        // mixed := leaf 'x'   — eligible but neither pass-through nor leaf.
+        tree.insert(
+            "mixed".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("leaf"), atom("quoted_string", "x")],
+            },
+        );
+        let census = census_of(
+            tree,
+            vec![
+                "top".to_string(),
+                "wrapper".to_string(),
+                "leaf".to_string(),
+                "mixed".to_string(),
+            ],
+            None,
+        );
+        let top = &census.inline_rules["top"];
+        assert!(!top.eligible);
+        assert!(top
+            .blockers
+            .iter()
+            .any(|b| b.contains("reference cycle")));
+        assert!(top.blockers.iter().any(|b| b == "entry rule"));
+        let wrapper = &census.inline_rules["wrapper"];
+        assert!(wrapper.eligible, "blockers: {:?}", wrapper.blockers);
+        assert_eq!(wrapper.wrapper_class, Some(InlineWrapperClass::PassThrough));
+        assert_eq!(wrapper.reference_sites, 1);
+        let leaf = &census.inline_rules["leaf"];
+        assert!(leaf.eligible, "blockers: {:?}", leaf.blockers);
+        assert_eq!(leaf.wrapper_class, Some(InlineWrapperClass::AlternationLeaf));
+        assert_eq!(leaf.reference_sites, 2); // wrapper + mixed
+        let mixed = &census.inline_rules["mixed"];
+        assert!(mixed.eligible, "blockers: {:?}", mixed.blockers);
+        assert_eq!(mixed.wrapper_class, Some(InlineWrapperClass::Shaped));
+        assert!(leaf.body_nodes >= 1 && wrapper.body_nodes >= 1);
+    }
+
+    /// RGX-0078.5.i.4 (P1 STEP-0) — the verdict names runtime-directive blockers
+    /// from the same compiled-facts surface the generated parser consults
+    /// (exercised directly on the classifier, the `site_degeneracy_verdict`
+    /// pure-unit precedent).
+    #[test]
+    fn inline_rule_verdict_names_directive_blockers() {
+        let mut tree = HashMap::new();
+        tree.insert("gated".to_string(), rule_ref("leaf"));
+        tree.insert(
+            "leaf".to_string(),
+            or(vec![atom("quoted_string", "a"), atom("quoted_string", "b")]),
+        );
+        let mut classifier = Classifier::new(&tree, None).expect("classifier builds");
+        classifier
+            .directives_by_rule
+            .insert("gated".to_string(), vec!["emit_fact".to_string()]);
+        let (eligible, blockers) = classifier.inline_rule_verdict("gated", false, false);
+        assert!(!eligible);
+        assert!(blockers.iter().any(|b| b == "runtime directive @emit_fact"));
+        // The unblocked dual on the same classifier.
+        let (eligible, blockers) = classifier.inline_rule_verdict("leaf", false, false);
+        assert!(eligible, "blockers: {blockers:?}");
+        assert!(blockers.is_empty());
+    }
+
+    /// RGX-0078.5.i.4 (P1 STEP-0) — the exposure join decomposes eligible-rule
+    /// entries (raw/committed/discarded) and surfaces the memo-hit share from the
+    /// extended outcome dump (pre-`.5.i.4` files deserialize with zero hits).
+    #[test]
+    fn inline_exposure_joins_outcome_and_memo_hit_counts() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "top".to_string(),
+            or(vec![
+                rule_ref("tok_wrapper"),
+                ASTNode::Sequence {
+                    elements: vec![
+                        atom("quoted_string", "("),
+                        rule_ref("top"),
+                        atom("quoted_string", ")"),
+                    ],
+                },
+            ]),
+        );
+        tree.insert("tok_wrapper".to_string(), rule_ref("tok"));
+        tree.insert(
+            "tok".to_string(),
+            or(vec![atom("quoted_string", "*"), atom("quoted_string", "+")]),
+        );
+        let payload = serde_json::json!({
+            "grammar": "t",
+            "accepted": true,
+            "total_entries": 50,
+            "total_committed": 14,
+            "total_memo_hits": 8,
+            "rule_entry_counts": {"tok_wrapper": 20, "tok": 20, "top": 10},
+            "rule_committed_counts": {"tok_wrapper": 2, "tok": 2, "top": 10},
+            "rule_memo_hit_counts": {"tok": 5, "top": 3},
+        });
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!(
+            "pgen_inline_exposure_test_{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, serde_json::to_string(&payload).unwrap()).unwrap();
+        let census = run_fusibility_census(
+            "t",
+            &tree,
+            &[
+                "top".to_string(),
+                "tok_wrapper".to_string(),
+                "tok".to_string(),
+            ],
+            None,
+            &[],
+            std::slice::from_ref(&path),
+        )
+        .expect("census runs");
+        std::fs::remove_file(&path).ok();
+        let exposure = census.inline_exposure.as_ref().expect("exposure joined");
+        // top is entry + cyclic ⇒ ineligible; tok_wrapper + tok are eligible.
+        assert_eq!(exposure.eligible_entries, 40);
+        assert_eq!(exposure.eligible_committed, 4);
+        assert_eq!(exposure.eligible_discarded, 36);
+        assert_eq!(exposure.eligible_memo_hits, 5); // tok only — top's 3 are blocked
+        assert_eq!(exposure.total_memo_hits, 8);
+        // Sorted by raw entries desc, then name: tok (20) before tok_wrapper (20).
+        assert_eq!(exposure.top_eligible_rules[0].0, "tok");
+        assert_eq!(exposure.top_eligible_rules[0], ("tok".to_string(), 20, 2, 5));
+        assert_eq!(
+            exposure.top_eligible_rules[1],
+            ("tok_wrapper".to_string(), 20, 2, 0)
+        );
     }
 }

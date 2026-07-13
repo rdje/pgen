@@ -42,7 +42,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--dump-rule-call-counts [N]` | Live top-N per-rule call dashboard | [Dashboard](#per-rule-call-count-dashboard---dump-rule-call-counts) |
 | `--dump-rule-call-counts-exclude R1,R2,...` | Hide noisy rules from dashboard | [Exclusion](#excluding-noisy-rules-from-the-dashboard) |
 | `--dump-rule-entry-counts-json FILE` | Write exact per-rule entry counts as JSON after `--parse` | [Entry-count dump](#machine-readable-entry-counts---dump-rule-entry-counts-json) |
-| `--dump-rule-outcome-counts-json FILE` | Write raw + COMMITTED per-rule counts as JSON (`raw − committed` = failed-speculation work) | [Outcome-count dump](#committed-vs-discarded-outcome-counts---dump-rule-outcome-counts-json) |
+| `--dump-rule-outcome-counts-json FILE` | Write raw + COMMITTED + memo-HIT per-rule counts as JSON (`raw − committed` = failed-speculation work; `raw − memo_hits` = body executions) | [Outcome-count dump](#committed-vs-discarded-outcome-counts---dump-rule-outcome-counts-json) |
 | `--max-bytes N` | Bound AST dump size | [Basic](#basic-usage) |
 | `--lib-in DIR` | Read `@import_from_library` artifacts from `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--lib-out DIR` | Write `@export_to_library` artifacts to `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
@@ -339,19 +339,22 @@ parseability_probe --parse regex /tmp/pattern.txt --dump-rule-outcome-counts-jso
   "accepted": true,
   "total_entries": 50,
   "total_committed": 24,
+  "total_memo_hits": 5,
   "rule_entry_counts":     { "atom": 10, "quantifier": 4, "...": 0 },
-  "rule_committed_counts": { "atom": 5,  "...": 0 }
+  "rule_committed_counts": { "atom": 5,  "...": 0 },
+  "rule_memo_hit_counts":  { "atom": 5,  "...": 0 }
 }
 ```
 
 Key properties:
 
 - **`raw − committed` = failed-speculation work** — every rule entry made inside a speculation that `try_parse` later rolled back (a failing choice branch, optional group, iteration attempt, or a deeper backtrack). This is the parse's probing waste, per rule.
+- **`raw − memo_hits` = body executions** — a memo HIT (cached failure, valid tainted failure, or success replay) answers a rule entry from cache without running the body. The per-rule hit counts (`RGX-0078.5.i.4`) are recorded by `memoized_call` under the same coverage opt-in and are the inline census's lost-hit input: a memo-eliding inline emission would re-execute exactly these entries.
 - **Committed keeps C3-B semantics** — tournament winners AND successful-but-losing branches both survive (`try_parse` keeps coverage pushes on success), so the successful-loser share is not separable at rule granularity.
 - **Opt-in and behavior-neutral** — without the flag the coverage stack stays disabled; with it, the parse verdict and AST are unchanged (coverage is read-only bookkeeping). Committed counts are meaningful only for an accepted parse.
 - Deterministic and build-mode-independent, like the entry-count dump.
 
-This dump is the dynamic input of the **choice-site census** (`ast_pipeline --report-fusibility-census --fusibility-outcome-counts …`) — the increment-(ii) merged-choice measurement introduced by `RGX-0078.5.h.1b`: the census classifies every choice site's token-shaped branch subset and joins these files into the measured discarded-work kill surface (`OUTCOME-SHARE`). The same join also feeds the **degeneracy census** (`RGX-0078.5.i.3`): per rule-top-level choice site, whether FIRST-set pairwise-disjointness qualifies it for the P2 degenerate-tournament byte-switch (blockers named per site), and the measured Or-body-execution exposure at qualified sites (`DEGENERACY-EXPOSURE`).
+This dump is the dynamic input of the **choice-site census** (`ast_pipeline --report-fusibility-census --fusibility-outcome-counts …`) — the increment-(ii) merged-choice measurement introduced by `RGX-0078.5.h.1b`: the census classifies every choice site's token-shaped branch subset and joins these files into the measured discarded-work kill surface (`OUTCOME-SHARE`). The same join also feeds the **degeneracy census** (`RGX-0078.5.i.3`): per rule-top-level choice site, whether FIRST-set pairwise-disjointness qualifies it for the P2 degenerate-tournament byte-switch (blockers named per site), and the measured Or-body-execution exposure at qualified sites (`DEGENERACY-EXPOSURE`). And it feeds the **inline census** (`RGX-0078.5.i.4`): which rules are inline-eligible wrapper frames (acyclic + directive-free + non-entry + no `@profiles`/`@transform`, blockers named per rule), their measured frame exposure, and the memo-hit share a memo-eliding inline (P1b) would re-execute (`INLINE-CENSUS` / `INLINE-EXPOSURE`).
 
 ---
 

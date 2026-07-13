@@ -7362,6 +7362,13 @@ impl AstBasedGenerator {
                     if self.trace_enabled() {
                         self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memo hit for rule {} at position {} - cached failure", rule_id, self.position));
                     }
+                    // RGX-0078.5.i.4 (P1 STEP-0) — per-rule memo-HIT counter,
+                    // recorded only under the transactional-coverage opt-in
+                    // (the outcome dump's flag): ordinary parsing pays one
+                    // predictable bool check on the hit path, nothing more.
+                    if self.coverage_enabled {
+                        self.semantic_runtime_state.record_memo_hit(rule_id as usize);
+                    }
                     return Err(ParseError::Backtrack {
                         position: key.1,
                     });
@@ -7378,6 +7385,10 @@ impl AstBasedGenerator {
                     if epoch == self.semantic_runtime_state.write_epoch() {
                         if self.trace_enabled() {
                             self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memo hit for rule {} at position {} - cached tainted failure (store epoch unchanged)", rule_id, self.position));
+                        }
+                        // RGX-0078.5.i.4 (P1 STEP-0) — see the fail-set hit above.
+                        if self.coverage_enabled {
+                            self.semantic_runtime_state.record_memo_hit(rule_id as usize);
                         }
                         return Err(ParseError::Backtrack {
                             position: key.1,
@@ -7442,6 +7453,8 @@ impl AstBasedGenerator {
                             if let Some(coverage) = &entry.coverage_delta {
                                 self.coverage_stack.extend_from_slice(coverage);
                             }
+                            // RGX-0078.5.i.4 (P1 STEP-0) — see the fail-set hit above.
+                            self.semantic_runtime_state.record_memo_hit(rule_id as usize);
                         }
 
                         return Ok((node.clone(), entry.raw_semantic_content.clone()));

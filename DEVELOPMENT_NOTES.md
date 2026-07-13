@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0054 — RGX-0078.5.i.4 STEP-0: inline-census scout notes (why the hit counter lives in the ENGINE, and what the 613→568 correction teaches)
+
+**Why the memo-hit counter is engine-state, not a new emitted accessor.** The `.5.h.1b` committed-count
+accessor (`exercised_rule_entry_counts`) required regenerating parsers BEFORE `parser_registry` could
+compile — the chicken-and-egg that pushed that session onto the feature-gated regen path and caused the
+`.5.i.1.t1` null→`"null"` annotation-payload drift. The hit counter avoids the class structurally:
+`record_memo_hit`/`memo_hit_counts` live on `SemanticRuntimeState` (engine lib), reached through the
+`semantic_runtime_state()` accessor EVERY generated parser has carried since `.5.i.1` — so the registry
+compiles against old and new artifacts alike, and the canonical `make focus_*` toolchain (which embeds
+the previous generation) never breaks. Rule: when an instrument needs a new per-parse surface, prefer a
+lib-owned carrier behind an existing emitted accessor over a new emitted API.
+
+**Gating on `coverage_enabled` (not a new env/flag).** The hit paths already sit next to
+coverage-gated work (the success path replays the coverage delta inside `if self.coverage_enabled`);
+reusing that flag means zero new hot-path state, zero cost for ordinary parses (the bench never enables
+coverage), and the counter is automatically live exactly where its consumer (the outcome dump) runs.
+
+**The 613→568 correction — derived counts vs counted counts.** `.5.i.1` derived memo hits as
+`raw − memo-occupancy`, implicitly assuming every non-inserting entry was a hit. Direct counting found
+568; the 45-entry gap reconciles per-pattern (27 on capture_groups + 18 on anchor_complex, 0 on all six
+others) to recursion-machinery cycle-break entries — rule entries that bump the raw counter but return
+through the guard/LR-chain path without probing-and-hitting or inserting. Grammar-shape fingerprint:
+only the two group-bearing patterns (the recursive spine) carry them. Lesson (standing): a DERIVED
+census number is an upper/lower bound until an instrument counts the event directly; name the residual
+class instead of absorbing it.
+
+**`generated/ebnf.rs` staleness find.** The regen diff-audit exposed that `ebnf.rs` was still pre-P0
+(allocating `push_rule_context`, old trace-path strings) — it has no `make focus_*` lane, so the P0/P2
+sessions never regenerated it, and it kept compiling via P0's deliberate signature-compat shim. It is
+now re-regenerated through its canonical recipe (frontend Step B + generated-parsers `ast_pipeline`
+Step C, make-identical `../generated/` paths) and verified by the equivalence gate (ebnf is a CERTIFIED
+grammar there). Follow-up worth tracking: give `ebnf.rs` a first-class regen lane so codegen-affecting
+slices cannot silently skip it.
+
 ## 2026-07-13 - PGEN-RGX-0078-0051 — RGX-0078.5.i.3: P2 emission notes (why the sole candidate keeps `try_parse`, and the delta round-trip identity question)
 
 **The sole candidate stays under `try_parse` deliberately.** The single-branch rule emission runs its body
