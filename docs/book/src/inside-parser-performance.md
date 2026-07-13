@@ -806,3 +806,48 @@ were regenerated through the canonical path, the equivalence gate — whose inte
 uses the canonical annotation pipeline — is exactly the tripwire for this class, and a loud-refusal
 fix for the bootstrap parser is queued. The incident is a small, useful proof of why every
 measurement here insists on the byte-identity check first.
+
+### The re-profile that killed a pass before it was written
+
+With P0, P2, and both P1 increments landed, the planner's next pass on paper was **P3 —
+selective machinery at method frames**: stop paying the recursion guard at rules that provably
+cannot re-enter themselves, and stop paying the packrat cache at rules where a census shows the
+cache no longer earns its keep. A census over the existing instruments had priced those two
+increments at roughly −2% and −4–8% — but every number in that estimate was a *per-event cost
+model* (nanoseconds per probe, per insert, per guard push) carried forward from microbenchmarks
+taken when the benchmark was almost twice as slow. So before any code, the discipline that opened
+the campaign was repeated: profile the real binary and let the wall clock adjudicate.
+
+The setup made drift impossible to hide: the freshly rebuilt release probe reproduced
+**byte-identical** (same SHA-256) to the binary that had measured the P1b landing, and its sanity
+rounds reproduced the pinned ≈32 µs geomean. Two 30-second sampling windows — the benchmark runs
+its eight patterns sequentially, so a single window cannot see them all — covered the full corpus
+between them, agreed on every headline bucket, and put 99.5% of samples inside the timed parse.
+
+The profile refuted both paper increments outright. The *entire* memoization machinery — every
+cache probe, every insert, the hit-replay path, and all its allocation traffic, on every rule
+including the recursive spine — now costs 2.8–3.2% of the parse. The recursion guard costs
+0.4–0.5%. The addressable slices of those numbers sit well below the benchmark's own ±1–3% round
+noise, so both increments were closed *refuted by measurement*, with no emission built and
+nothing to revert. This is the planner's scout protocol doing precisely what it exists to do: a
+pass priced on a stale cost model dies at the profile, not after a week of emission work.
+
+What the profile found instead is where the next real levers live. Half of all samples are still
+allocator traffic — but no longer parse-node traffic (the arena already moved that): it is
+**JSON value traffic**. Building, cloning, and dropping the `serde_json::Value` trees that
+return annotations shape costs ≈26–29% of the parse, and the single largest site is the output
+boundary itself, which *re-clones* the winner's value tree rather than moving it; the
+string-splitting re-parse of value-constraint expressions, priced at 2–4% by an earlier census,
+is now a named 1.9% leaf symbol of its own. That is the **P4 — value folding** surface, and it
+is now the dominant addressable bucket. The second find is the **C3-B tournament delta
+protocol** at ≈8–10%: every multi-branch choice that succeeds pays a store-delta
+extract → rollback → re-apply round-trip so branches compete from identical semantic state — paid
+even when the store is untouched, which on this benchmark is six of the eight patterns (the
+protocol's rollback routine is the profile's single hottest named symbol). That is a real
+*selective-machinery* target — the P3 idea, aimed at the piece of machinery the profile says
+actually costs something — and it can be gated two ways, both to be priced before any emission:
+statically (elide the protocol where analysis proves the subtree cannot touch the store) or
+dynamically (an O(1) "store unchanged since checkpoint" fast path, the same write-epoch idea the
+memo already uses for its soundness validation). The scoreboard's next rows are those two
+pricings — each of which will land, or die, by measurement, like everything else in this
+chapter.

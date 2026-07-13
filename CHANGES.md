@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0060 — RGX-0078.5.i.5 RE-PROFILE #5 (docs-only): P3a+P3b REFUTED by profile (guard 0.4–0.5%, ENTIRE memo 2.8–3.2%); the ≈32µs residual is VALUE/ALLOC-dominated — serde ≈26–29% (P4), C3-B tournament delta protocol ≈8–10% (P3c)
+
+The `.2`-discipline re-profile (session #114) that the STEP-0 census mandated before any P3
+emission. Probe rebuilt from HEAD reproduced **byte-identical to the session-#113 measured P1b
+candidate** (`0ee787e1…` — zero build drift); sanity 33.7/32.5µs vs the pinned ≈32µs; TWO macOS
+`sample` 30s@1ms windows (25,096 + 22,820 root samples, 99.5% in `time_one_parse`, union = all
+8 patterns, headline buckets stable across both). VERDICTS: **P3a and P3b are refuted as
+increments** — the profiler bounds the TOTAL recursion-guard cost at 0.4–0.5% and the ENTIRE
+memo machinery (probes + inserts + hit replay + allocs, cyclic included) at 2.8–3.2%, so the
+census ceilings (−2% / −4–8%) were stale-cost-basis estimates; both are closed with NO emission
+(the fabricated-ceiling class the re-profile step exists to kill). **P3c is confirmed real
+(≈−8–10%)**: the C3-B tournament delta protocol — `rollback_to_labeled` (the profile's top named
+PGEN leaf, 718 samples) + `extract_delta_since` + `SemanticRuntimeDelta` build/drop, every
+generated site at a `tournament_semantic_checkpoint`, paid on every multi-branch success
+regardless of store activity (6/8 bench patterns emit zero facts). **P4 is confirmed dominant
+(≈26–29% + adjacents)**: `to_json_value` re-CLONES `Value` subtrees at the output boundary (the
+largest single site, 1,189 clone samples), in-parse shaped-view `Value` clones, `drop<Value>`
+churn, and `split_semantic_top_level` expression re-parsing (a named 1.9% leaf); alloc-family
+leaves ≈52% of ALL samples — post-arena, the residual allocator traffic is Value/owned-clone,
+not ParseNode. STEER (planner order unchanged): next = the P3c pricing scout (static
+effect-freedom gate vs O(1) write-epoch empty-delta fast path), then P4. Leaf + TASK_TREE +
+MEMORY + book (`inside-parser-performance.md`) updated.
+
 ## 2026-07-13 - PGEN-RGX-0078-0059 — RGX-0078.5.i.5 STEP-0 (docs-only): method-frame machinery census MEASURED from existing instruments — P3a ≈−2% (thin), P3b ≈−4–8%; RE-PROFILE before any P3 emission
 
 Zero new code: the post-P1b outcome dumps + census JSON + the structural fact that a decided
