@@ -1803,6 +1803,15 @@ pub struct SemanticRuntimeCheckpoint {
     /// uses of `SemanticRuntimeCheckpoint` are owned values that can clone
     /// cheaply since the snapshot is bounded by parser nesting depth.)
     active_chain_snapshot: Vec<ScopeId>,
+    /// RGX-0078.5.i.5 P3c-i: the state's `write_epoch` at checkpoint time.
+    /// Every delta-visible store mutation bumps the (monotone) epoch, EXCEPT
+    /// a deferred-obligation enqueue (deliberately epoch-blind — it never
+    /// taints the memo), so `epoch unchanged && deferred_len unchanged` is an
+    /// O(1) proof that NOTHING changed since this checkpoint. That proof
+    /// powers the empty-delta fast path in `extract_delta_since` and the
+    /// no-op fast path in `rollback_to_labeled` (mutation-site audit in the
+    /// `.5.i.5` P3c sections of `docs/tasks/RGX-0078.md`).
+    write_epoch: u64,
 }
 
 /// `SV-EXH-PROOF.3.3.4.b.6.2.33` (C3-B fix): the captured semantic effects
@@ -2726,6 +2735,7 @@ impl SemanticRuntimeState {
             deferred_len: self.deferred_obligations.len(),
             scope_arena_len: self.scope_arena.len(),
             active_chain_snapshot: self.active_chain.clone(),
+            write_epoch: self.write_epoch,
         }
     }
 
@@ -2753,6 +2763,33 @@ impl SemanticRuntimeState {
     /// any later point (provided the state's checkpoint matches the one
     /// used to extract this delta).
     pub fn extract_delta_since(&self, checkpoint: &SemanticRuntimeCheckpoint) -> SemanticRuntimeDelta {
+        // RGX-0078.5.i.5 P3c-i — the O(1) empty fast path. The write epoch is
+        // monotone and bumped by EVERY delta-visible mutation (mutation-site
+        // audit in the task leaf); a deferred-obligation enqueue is the one
+        // deliberate exception, covered by the explicit length compare. When
+        // both are unchanged the delta is empty BY PROOF, so skip the two
+        // unconditional clones (`final_active_chain` + `final_scopes`), the
+        // subslice copies, and the closed-scope filter — measured on the
+        // 8-pattern bench, 93.6% of tournament extractions (and the memo
+        // success-insert extractions on top) take this path. An empty delta's
+        // `final_*` fields are never consumed: every `apply_delta` call site
+        // (codegen + interpreter, audited) is guarded by `!delta.is_empty()`,
+        // which ignores `final_*` by design.
+        if self.write_epoch == checkpoint.write_epoch
+            && self.deferred_obligations.len() == checkpoint.deferred_len
+        {
+            debug_assert_eq!(self.facts.len(), checkpoint.fact_len);
+            debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
+            debug_assert_eq!(self.active_chain, checkpoint.active_chain_snapshot);
+            return SemanticRuntimeDelta {
+                new_facts: Vec::new(),
+                new_scope_nodes: Vec::new(),
+                closed_scope_ids: Vec::new(),
+                final_active_chain: Vec::new(),
+                final_scopes: Vec::new(),
+                new_obligations: Vec::new(),
+            };
+        }
         let new_facts = if checkpoint.fact_len <= self.facts.len() {
             self.facts[checkpoint.fact_len..].to_vec()
         } else {
@@ -2890,6 +2927,34 @@ impl SemanticRuntimeState {
         checkpoint: SemanticRuntimeCheckpoint,
         label: RollbackLabel<'_>,
     ) {
+        // RGX-0078.5.i.5 P3c-i — the O(1) no-op fast path (same proof as the
+        // `extract_delta_since` fast path: monotone epoch + the epoch-blind
+        // deferred-obligation length). Nothing was mutated since the
+        // checkpoint, so the fact-index walk, the truncations, and both
+        // active-chain compares are skipped; the classification counters (an
+        // oracle surface) record EXACTLY what the slow path would have — this
+        // state is `rollbacks_unchanged` by construction. Measured on the
+        // 8-pattern bench, 98.8% of all rollbacks take this path. No trace
+        // delta: an unchanged rollback never satisfied the trace condition
+        // (facts discarded / arena shrink) on the slow path either.
+        if self.write_epoch == checkpoint.write_epoch
+            && self.deferred_obligations.len() == checkpoint.deferred_len
+        {
+            debug_assert_eq!(self.facts.len(), checkpoint.fact_len);
+            debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
+            debug_assert_eq!(self.active_chain, checkpoint.active_chain_snapshot);
+            debug_assert_eq!(self.scopes.len(), checkpoint.scope_len);
+            self.counters.rollbacks += 1;
+            self.counters.rollbacks_unchanged += 1;
+            if matches!(label, RollbackLabel::C3bBranchCleanup { .. }) {
+                self.counters.rollbacks_tournament += 1;
+                self.counters.rollbacks_tournament_unchanged += 1;
+            }
+            if !checkpoint.active_chain_snapshot.is_empty() {
+                self.counters.rollbacks_nonempty_chain += 1;
+            }
+            return;
+        }
         let fact_len = checkpoint.fact_len.min(self.facts.len());
         let scope_arena_len = checkpoint.scope_arena_len.max(1).min(self.scope_arena.len());
         // `.3.3.4.b.5.1.1`: extend rollback to undo the per-kind index entries
@@ -8576,6 +8641,81 @@ mod tests {
         assert_eq!(state.counters().rollbacks_nonempty_chain, 4);
         // The obligation itself was discarded by the rollback.
         assert_eq!(state.deferred_obligation_count(), 0);
+    }
+
+    #[test]
+    fn epoch_fast_path_is_equivalent_to_the_slow_path() {
+        // RGX-0078.5.i.5 P3c-i — the O(1) unchanged-store fast path in
+        // `extract_delta_since` / `rollback_to_labeled` must be observably
+        // identical to the slow path it shortcuts.
+        use super::RollbackLabel;
+        let mut state = SemanticRuntimeState::new();
+
+        // 1. Unchanged store ⇒ the extract fast path fires: the delta is
+        //    empty (so every guarded `apply_delta` site skips it), exactly as
+        //    the slow path's delta would have been.
+        let cp = state.checkpoint();
+        let delta = state.extract_delta_since(&cp);
+        assert!(delta.is_empty());
+
+        // 2. A changed store bypasses the fast path and captures the change.
+        let cp = state.checkpoint();
+        state.emit_fact(SemanticFactSpec {
+            kind: "k".to_string(),
+            name: ident("f"),
+            attributes: vec![],
+        });
+        let delta = state.extract_delta_since(&cp);
+        assert!(!delta.is_empty());
+        assert_eq!(delta.new_facts.len(), 1);
+        state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.facts.len(), 0);
+
+        // 3. The epoch-blind mutation: an enqueued `phase: final` obligation
+        //    must defeat BOTH fast paths (the deferred-length check) — the
+        //    delta carries the obligation, and the rollback truncates it.
+        let cp = state.checkpoint();
+        state.enqueue_deferred_obligation(
+            SemanticPredicateSpec {
+                name: "has_fact".to_string(),
+                args: vec![],
+                phase: SemanticPredicatePhase::Final,
+                view: SemanticPredicateContentView::default(),
+            },
+            0,
+        );
+        let delta = state.extract_delta_since(&cp);
+        assert!(!delta.is_empty());
+        assert_eq!(delta.new_obligations.len(), 1);
+        state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.deferred_obligation_count(), 0);
+
+        // 4. Scope open/close bumps the epoch, so a scope-touching branch
+        //    bypasses the fast path and the rollback restores the chain.
+        let chain_before = state.active_chain.clone();
+        let cp = state.checkpoint();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("C")),
+        });
+        let delta = state.extract_delta_since(&cp);
+        assert!(!delta.is_empty());
+        assert_eq!(delta.new_scope_nodes.len(), 1);
+        state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.active_chain, chain_before);
+
+        // 5. Counter equivalence on the fast path: a no-op tournament cleanup
+        //    classifies exactly as the slow path would (see the sibling
+        //    classification test for the slow-path pins).
+        let rollbacks_before = state.counters().rollbacks;
+        let unchanged_before = state.counters().rollbacks_unchanged;
+        let cp = state.checkpoint();
+        state.rollback_to_labeled(
+            cp,
+            RollbackLabel::C3bBranchCleanup { rule: "r", branch: 1, total: 2 },
+        );
+        assert_eq!(state.counters().rollbacks, rollbacks_before + 1);
+        assert_eq!(state.counters().rollbacks_unchanged, unchanged_before + 1);
     }
 
     #[test]

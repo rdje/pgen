@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0062 — RGX-0078.5.i.5 P3c-i LANDED: the epoch fast path — regex geomean −11.2% (all 5 rounds, ALL 8 patterns faster), ≈35µs-era → ≈31µs, cumulative 496µs → ≈31µs ≈ 16×
+
+The P3c emission (session #114) — ENGINE-only, parser-agnostic, no codegen change, no regen; the
+interpreter inherits it automatically. `SemanticRuntimeCheckpoint` now stamps the store's
+monotone `write_epoch`; `extract_delta_since` and `rollback_to_labeled` gain the O(1) fast path
+`epoch unchanged && deferred_len unchanged` — the extract returns the canonical empty delta
+(skipping its two unconditional clones, subslice copies, and closed-scope filter) and the
+rollback skips the fact-index walk, truncations, and both chain compares while recording the
+classification counters exactly as the slow path would. Soundness: the mutation-site audit
+(every delta-visible mutation bumps the epoch; the deliberately epoch-blind obligation enqueue
+is covered by the explicit length compare); all four `apply_delta` sites are `!is_empty()`-
+guarded so an empty delta's `final_*` fields are never consumed; `debug_assert`s pin
+state-equality on the fast path throughout the debug battery. Measured (fat-LTO alternated
+5×2000, geomean-of-mins) against the PRE-instrument P1b baseline `0ee787e1…`: ratios
+0.870/0.889/0.886/0.896/0.899 ⇒ **−11.2%**, best-mins 34.51→30.63µs, all 8 patterns faster
+(0.827–0.945) — exceeding the scout's −5–8% ceiling (the memo success-insert extraction
+population was an uncounted second caller, plus allocator-pressure synergy), and proving the
+`-0061` counters net-absorbed. Battery: dual-feature lib suite 905/905; 8/8 outcome dumps
+byte-identical fast-vs-slow (the full counter oracle surface); regex cert seeds 0/7/42 pins
+`267/9/258/0 fully_certified` (the spf `0/2/1`-vs-recorded-`0/1/1` deviation proven pre-existing
+by decisive stash-baseline); ast-shape + duality + PCRE2-oracle gates green; clippy source
+clean; mdbook gate green. Unit test `epoch_fast_path_is_equivalent_to_the_slow_path` pins the
+fast/slow equivalence incl. the obligation and scope cases.
+
 ## 2026-07-13 - PGEN-RGX-0078-0061 — RGX-0078.5.i.5 P3c PRICING SCOUT: 98.8% of rollbacks / 93.6% of delta extractions are provably-unchanged no-ops; priced increment = the engine-only epoch fast path (ceiling ≈−5–8%)
 
 The exposure instrument + measurement behind the P3c increment (session #114). Four cumulative
