@@ -351,7 +351,7 @@ Key properties:
 - **Opt-in and behavior-neutral** — without the flag the coverage stack stays disabled; with it, the parse verdict and AST are unchanged (coverage is read-only bookkeeping). Committed counts are meaningful only for an accepted parse.
 - Deterministic and build-mode-independent, like the entry-count dump.
 
-This dump is the dynamic input of the **choice-site census** (`ast_pipeline --report-fusibility-census --fusibility-outcome-counts …`) — the increment-(ii) merged-choice measurement introduced by `RGX-0078.5.h.1b`: the census classifies every choice site's token-shaped branch subset and joins these files into the measured discarded-work kill surface (`OUTCOME-SHARE`).
+This dump is the dynamic input of the **choice-site census** (`ast_pipeline --report-fusibility-census --fusibility-outcome-counts …`) — the increment-(ii) merged-choice measurement introduced by `RGX-0078.5.h.1b`: the census classifies every choice site's token-shaped branch subset and joins these files into the measured discarded-work kill surface (`OUTCOME-SHARE`). The same join also feeds the **degeneracy census** (`RGX-0078.5.i.3`): per rule-top-level choice site, whether FIRST-set pairwise-disjointness qualifies it for the P2 degenerate-tournament byte-switch (blockers named per site), and the measured Or-body-execution exposure at qualified sites (`DEGENERACY-EXPOSURE`).
 
 ---
 

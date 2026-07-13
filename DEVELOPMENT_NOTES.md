@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0050 — RGX-0078.5.i.3 STEP-0: degeneracy-census scout notes (why exposure ≠ entry-kill, and what the verdict reads)
+
+**The load-bearing modeling point:** at ONE-byte granularity, a dispatch switch skips EXACTLY the
+branches the landed `.5.c.2` guards already skip — so P2's value is NOT killing rule entries (the census
+row's entry-derived ≈1.3–1.4× was the wrong model, corrected at leaf open). The honest surface is
+per-site PROTOCOL elision at sites where disjointness proves the tournament degenerate: the n-arm
+guard-scan loop (measured: 5258 of 14237 top-level tournament iterations sit at qualified sites — 36.9%,
+`letter`'s 52-arm loop alone 2964), the winner's checkpoint-clone/`extract_delta_since`/C3-B
+rollback/`apply_delta` round-trip (124 successes/bench), the `should_take` cascade, and the
+compile-time-elided branch-predicate table probes (gate (e) sites provably have none).
+
+**Verdict mechanics:** per-branch `first_bytes` mirrors `first_set_prune_guard_for_branch` EXACTLY
+(resolved + non-nullable + non-empty + every `terminal_first_byte` extractable — same shared
+`first_set.rs`); disjointness = no byte owned by ≥2 decided branches (BTreeMap-deterministic, blockers
+name the byte + branches, e.g. ``first byte 0x2B ('+') shared by branches 1,2``); gate (e) reads
+`branch_predicates_for_rule(_branch)` / `branch_effect_directives_for_rule_branch` from the compiled
+table (the read-the-resolution-codegen-emits discipline). The pure verdict fn is unit-tested in
+isolation; the census path is tested end-to-end both ways (qualified + multi-blocker).
+
+**Scope confirmation:** only regex qualifies anywhere (R2 — terminal whitespace-sensitivity); svpp is
+`regex_tokens`-only. So the P2 emission will be parser-agnostic + capability-gated with non-regex
+grammars byte-identical by construction — the `.5.c.2` proof shape carries.
+
 ## 2026-07-13 - PGEN-RGX-0078-0048 — RGX-0078.5.i.2: P0 implementation notes (the compat split, the observability-parity oracle, the two incident finds)
 
 **The backward-compat split is the load-bearing design decision.** The canonical regen toolchain

@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0050 — RGX-0078.5.i.3 STEP-0: the P2 DEGENERACY-CENSUS scout — 41 qualified regex sites, 12.8% entry exposure, 36.9% of tournament loop iterations; falsifiable prediction ≈ −3–7% recorded BEFORE emission
+
+The P2 (predictive dispatch) slice's tools-first STEP-0 (session #110). Read-only analysis extension —
+no codegen/parse-behavior change.
+
+- **Instrument:** `--report-fusibility-census` now classifies every choice site for DEGENERATE-TOURNAMENT
+  byte-switch dispatch (`fusibility_census.rs`): per-branch admissible dispatch FIRST bytes (exactly the
+  `.5.c.2` codegen prune-guard eligibility, shared `first_set` module), per-site `degenerate_dispatch`
+  verdict + NAMED blockers (R1 nesting / R2 layout / undecided branches / per-byte overlaps with branch
+  lists / branch-phase predicates / branch-start effects — the predicate/effect facts read from the SAME
+  compiled runtime-annotation table the generated parser consults). New output: `DEGENERACY-CENSUS:` +
+  blocker histogram; with the outcome join, `DEGENERACY-EXPOSURE:` (raw/committed/discarded entries on
+  qualified-site rules). 3 new unit tests; 9/9 module tests green.
+- **Cross-validation:** the joined OUTCOME-SHARE reproduces every `.5.h.1b` pin byte-exactly on fresh
+  8-pattern dumps (`2389/617/1773/830/943/215/1.53x`, unmatched=0).
+- **The measured P2 surface (regex, 8-pattern bench):** 41 of 112 top-level sites qualify — the
+  single-char alternation leaves (`letter` 52 branches/2964 iterations, `simple_escape_letter_strict`,
+  `class_safe_special`, `digit`, `quant_base`, …); exposure = 306 entries (12.8%) = 124 committed + 182
+  discarded; **5258 of 14237 top-level tournament loop iterations (36.9%)**. Blockers elsewhere:
+  first-byte overlap ×116 (the `\`/`(` clusters — multi-char territory, out of P2 scope), undecided ×41.
+  All other grammars: `degenerate_dispatch=0` (R2 — regex is the only terminal-ws-sensitive grammar), so
+  non-regex parsers stay byte-identical by construction, `.5.c.2`-style.
+- **Honest ceiling (recorded before any emission code):** pure PROTOCOL elision (guard-scan loop +
+  winner checkpoint/delta/rollback/replay + elided predicate probes) ⇒ predicted geomean **≈ −3–7%**
+  (≈42.0µs → ≈39–41µs). First-byte dispatch kills NO rule entries beyond the landed `.5.c.2` guards —
+  confirmed: the 830 encodable discards sit at overlap-BLOCKED sites. ⛔ land-iff-faster decides.
+- Lockstep: TOOLBOX.md §5.3, book `diagnosing-unknowns.md` + `parseability-probe-debug.md`, tree
+  `.5.i.3` STEP-0 results + acceptance checklist, MEMORY.
+
 ## 2026-07-13 - PGEN-RGX-0078-0048 — RGX-0078.5.i.2 **P0 LAZY/NO-ALLOC PROTOCOL HYGIENE LANDED**: regex geomean **−25.8%** (≈56.7µs → ≈42.0µs), byte-identical, observability-preserving; the planner's pass zero confirmed the census prediction (≈−25%) almost exactly
 
 The first LANDED planner-rung pass (session #109). The `.5.i.1` census's V1+V2+V3 unconditional-waste

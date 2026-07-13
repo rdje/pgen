@@ -47,7 +47,8 @@ use super::semantic_directive_registry::{
     SemanticAssociativity,
 };
 use super::semantic_runtime::{
-    compile_semantic_runtime_annotations, LayoutSensitivity, SemanticRuntimeDirective,
+    compile_semantic_runtime_annotations, CompiledSemanticRuntimeAnnotations, LayoutSensitivity,
+    SemanticRuntimeDirective,
 };
 use super::{
     parse_quantifier_bounds, ASTNode, ASTValue, Annotations, TokenValue, UnifiedReturnAST,
@@ -195,6 +196,12 @@ pub struct ChoiceBranchVerdict {
     /// (the sound per-site attribution basis; a rule referenced from several sites
     /// cannot be split with per-rule aggregate counters).
     pub sole_refs: Vec<String>,
+    /// RGX-0078.5.i.3 (P2) — the branch's admissible FIRST bytes (sorted) when the
+    /// branch is first-byte-DECIDED: its FIRST-set summary is resolved + non-nullable
+    /// and every FIRST terminal's first byte is extractable (exactly the codegen
+    /// prune-guard eligibility, `first_set_prune_guard_for_branch`). `None` = the
+    /// branch must always be tried, so its site can never dispatch degenerately.
+    pub first_bytes: Option<Vec<u8>>,
 }
 
 /// RGX-0078.5.h.1b — one choice (Or) site of the grammar: where a merged-choice
@@ -223,6 +230,18 @@ pub struct ChoiceSiteCensus {
     /// one). A lower bound: shared-reference rules and in-branch terminal probing
     /// are invisible to per-rule aggregates.
     pub attributable_discarded: u64,
+    /// RGX-0078.5.i.3 (P2) — the site qualifies for DEGENERATE-TOURNAMENT byte-switch
+    /// dispatch: rule-top-level + terminal-whitespace-sensitive layout + EVERY branch
+    /// first-byte-decided + pairwise-DISJOINT first-byte sets + no branch-phase
+    /// predicates / branch-start effect directives on the rule. At such a site at most
+    /// ONE branch can begin a match at any next byte, so the longest-match tournament
+    /// (checkpoint / delta-extract / rollback / replay / `should_take`) is provably
+    /// protocol-only — the P2 emission surface.
+    pub degenerate_dispatch: bool,
+    /// The NAMED failing P2 gates (empty iff `degenerate_dispatch`). Deterministic
+    /// order: R1 nesting, R2 layout, per-branch undecided (by index), first-byte
+    /// overlaps (by byte), branch predicates, branch-start effects.
+    pub degeneracy_blockers: Vec<String>,
 }
 
 /// RGX-0078.5.h.1b — the measured outcome-share join (census × raw+committed counts):
@@ -263,6 +282,15 @@ pub struct OutcomeShare {
     /// re-entering descendants). Per-rule discards use `saturating_sub`, so overshoot
     /// is never silently negative; a nonzero value is reported loudly.
     pub committed_overshoot: u64,
+    /// RGX-0078.5.i.3 (P2) — raw entries on rules whose TOP-LEVEL choice site is
+    /// `degenerate_dispatch`: the Or-body executions the P2 emission strips of
+    /// tournament protocol. Memo-hit re-entries (which never execute the body) are
+    /// counted at full weight — the standing census caveat, carried.
+    pub degenerate_site_entries: u64,
+    /// Of `degenerate_site_entries`: the committed (C3-B surviving) part.
+    pub degenerate_site_committed: u64,
+    /// Of `degenerate_site_entries`: the discarded (failed-speculation) part.
+    pub degenerate_site_discarded: u64,
 }
 
 /// How many lexemes a node consumes, for the layout-contiguity gate.
@@ -334,6 +362,13 @@ struct Classifier<'a> {
     annotations: Option<&'a Annotations>,
     directives_by_rule: HashMap<String, Vec<String>>,
     layout: LayoutSensitivity,
+    /// RGX-0078.5.i.3 (P2) — the FULL compiled runtime-annotation table (the same
+    /// resolution the generated parser burns in), kept for the per-rule branch-phase
+    /// predicate / branch-start effect queries behind the degeneracy gate (e).
+    compiled: Option<CompiledSemanticRuntimeAnnotations>,
+    /// RGX-0078.5.i.3 (P2) — shared FIRST-set cache for the per-branch dispatch
+    /// first-byte analysis (the same `first_set` module codegen's prune guard uses).
+    first_set_cache: HashMap<String, super::first_set::FirstSetSummary>,
     memo: HashMap<String, RuleOutcome>,
     visiting: HashSet<String>,
 }
@@ -346,7 +381,7 @@ impl<'a> Classifier<'a> {
         // Compile once: the SAME per-rule runtime-directive resolution codegen burns into
         // the generated parser (the shared-delegate precedent — the census must read the
         // resolution codegen actually emits, never re-derive its own).
-        let (directives_by_rule, layout) = match annotations {
+        let (directives_by_rule, layout, compiled) = match annotations {
             Some(ann) => {
                 let compiled = compile_semantic_runtime_annotations(ann)
                     .map_err(|e| format!("annotations failed to compile: {e}"))?;
@@ -370,18 +405,81 @@ impl<'a> Classifier<'a> {
                         map.insert(rule.clone(), kinds);
                     }
                 }
-                (map, compiled.layout_sensitivity())
+                (map, compiled.layout_sensitivity(), Some(compiled))
             }
-            None => (HashMap::new(), LayoutSensitivity::default()),
+            None => (HashMap::new(), LayoutSensitivity::default(), None),
         };
         Ok(Classifier {
             tree,
             annotations,
             directives_by_rule,
             layout,
+            compiled,
+            first_set_cache: HashMap::new(),
             memo: HashMap::new(),
             visiting: HashSet::new(),
         })
+    }
+
+    /// RGX-0078.5.i.3 (P2) — the branch's admissible dispatch FIRST bytes, or the
+    /// NAMED reason the branch is not first-byte-decided. Mirrors the codegen prune
+    /// guard's eligibility EXACTLY (`first_set_prune_guard_for_branch`): a resolved,
+    /// non-nullable summary whose every FIRST terminal yields an extractable first
+    /// byte; anything uncertain means "always try" — the site cannot dispatch.
+    fn branch_dispatch_first_bytes(&mut self, branch: &ASTNode) -> Result<Vec<u8>, String> {
+        let mut visiting = HashSet::new();
+        let summary = super::first_set::branch_first_set(
+            branch,
+            self.tree,
+            &mut self.first_set_cache,
+            &mut visiting,
+            0,
+        );
+        if summary.nullable {
+            return Err("nullable (can match empty)".to_string());
+        }
+        if summary.unresolved {
+            return Err("unresolved FIRST set (regex token / cycle / depth cutoff)".to_string());
+        }
+        if summary.terminals.is_empty() {
+            return Err("empty FIRST terminal set".to_string());
+        }
+        let mut bytes: std::collections::BTreeSet<u8> = std::collections::BTreeSet::new();
+        for terminal in &summary.terminals {
+            match super::first_set::terminal_first_byte(terminal) {
+                Some(byte) => {
+                    bytes.insert(byte);
+                }
+                None => {
+                    return Err(format!("unextractable first byte for terminal {terminal}"));
+                }
+            }
+        }
+        Ok(bytes.into_iter().collect())
+    }
+
+    /// RGX-0078.5.i.3 (P2) — gate (e): does the rule carry any Branch-phase
+    /// predicate (rule-level or branch-local) or branch-start effect directive?
+    /// Queried against the SAME compiled table the generated parser consults at
+    /// runtime, never re-derived from raw annotations.
+    fn rule_branch_predicate_effect_facts(&self, rule: &str, branch_count: usize) -> (bool, bool) {
+        let Some(compiled) = &self.compiled else {
+            return (false, false);
+        };
+        let has_branch_predicates = compiled.branch_predicates_for_rule(rule).next().is_some()
+            || (0..branch_count).any(|i| {
+                compiled
+                    .branch_predicates_for_rule_branch(rule, i)
+                    .next()
+                    .is_some()
+            });
+        let has_branch_start_effects = (0..branch_count).any(|i| {
+            compiled
+                .branch_effect_directives_for_rule_branch(rule, i)
+                .next()
+                .is_some()
+        });
+        (has_branch_predicates, has_branch_start_effects)
     }
 
     /// Classify one rule (memoized; cycle-guarded — re-entry means the reference closure
@@ -875,6 +973,69 @@ fn collect_ref_occurrences(node: &ASTNode, out: &mut HashMap<String, usize>) {
     }
 }
 
+/// RGX-0078.5.i.3 (P2) — the per-site degeneracy verdict: can this choice site
+/// dispatch as a degenerate tournament (ONE byte-switch, no speculation protocol)?
+/// Pure over its inputs so the gate logic is unit-testable in isolation. Blockers
+/// are named per the leaf spec's gates (a)–(e), in deterministic order; the site
+/// qualifies iff NO blocker fires.
+fn site_degeneracy_verdict(
+    top_level: bool,
+    layout_terminals: bool,
+    has_branch_phase_predicates: bool,
+    has_branch_start_effects: bool,
+    branch_first_bytes: &[Result<Vec<u8>, String>],
+) -> (bool, Vec<String>) {
+    let mut blockers: Vec<String> = Vec::new();
+    if !top_level {
+        blockers.push("nested Or site (rule-top-level only — R1 furthest-position neutrality)".to_string());
+    }
+    if !layout_terminals {
+        blockers.push("terminals skip leading layout (R2 raw-byte peek unsound)".to_string());
+    }
+    for (i, bytes) in branch_first_bytes.iter().enumerate() {
+        if let Err(reason) = bytes {
+            blockers.push(format!("branch {} not first-byte-decided: {reason}", i + 1));
+        }
+    }
+    // Pairwise disjointness over the DECIDED branches: any byte admissible for two or
+    // more branches keeps the tournament real (several candidates on that byte).
+    let mut byte_owners: BTreeMap<u8, Vec<usize>> = BTreeMap::new();
+    for (i, bytes) in branch_first_bytes.iter().enumerate() {
+        if let Ok(bytes) = bytes {
+            for byte in bytes {
+                byte_owners.entry(*byte).or_default().push(i + 1);
+            }
+        }
+    }
+    for (byte, owners) in &byte_owners {
+        if owners.len() >= 2 {
+            let printable = if byte.is_ascii_graphic() {
+                format!(" ('{}')", *byte as char)
+            } else {
+                String::new()
+            };
+            blockers.push(format!(
+                "first byte 0x{byte:02X}{printable} shared by branches {}",
+                owners
+                    .iter()
+                    .map(|n| n.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ));
+        }
+    }
+    if has_branch_phase_predicates {
+        blockers.push(
+            "rule has branch-phase predicates (a rejected sole candidate must roll back and continue the tournament)"
+                .to_string(),
+        );
+    }
+    if has_branch_start_effects {
+        blockers.push("rule has branch-start effect directives".to_string());
+    }
+    (blockers.is_empty(), blockers)
+}
+
 /// RGX-0078.5.h.1b — enumerate and classify every choice (Or) site with ≥2 branches.
 /// Pre-order per rule; `or#0` is the first Or encountered (the top-level alternation
 /// when the rule body is an Or). Branch encodability mirrors the rule-level shape gate
@@ -930,6 +1091,13 @@ fn walk_for_choice_sites(
                 } else {
                     empty
                 };
+                // RGX-0078.5.i.3 (P2) — per-branch dispatch first-byte analysis
+                // (computed for every site so nested/blocked sites still report
+                // their byte sets for steering).
+                let branch_dispatch_bytes: Vec<Result<Vec<u8>, String>> = alternatives
+                    .iter()
+                    .map(|branch| classifier.branch_dispatch_first_bytes(branch))
+                    .collect();
                 let mut branch_verdicts = Vec::with_capacity(alternatives.len());
                 for (i, branch) in alternatives.iter().enumerate() {
                     let facts = classifier.node_facts(branch, rule);
@@ -959,10 +1127,21 @@ fn walk_for_choice_sites(
                         text_folding,
                         direct_refs,
                         sole_refs,
+                        first_bytes: branch_dispatch_bytes[i].as_ref().ok().cloned(),
                     });
                 }
                 let encodable_branches =
                     branch_verdicts.iter().filter(|b| b.encodable).count();
+                // RGX-0078.5.i.3 (P2) — the site degeneracy verdict (gates a–e).
+                let (has_branch_predicates, has_branch_start_effects) = classifier
+                    .rule_branch_predicate_effect_facts(rule, alternatives.len());
+                let (degenerate_dispatch, degeneracy_blockers) = site_degeneracy_verdict(
+                    is_rule_body,
+                    classifier.layout.terminals,
+                    has_branch_predicates,
+                    has_branch_start_effects,
+                    &branch_dispatch_bytes,
+                );
                 sites.push(ChoiceSiteCensus {
                     rule: rule.to_string(),
                     site: format!("or#{site_index}"),
@@ -972,6 +1151,8 @@ fn walk_for_choice_sites(
                     all_encodable: encodable_branches == alternatives.len(),
                     branch_verdicts,
                     attributable_discarded: 0,
+                    degenerate_dispatch,
+                    degeneracy_blockers,
                 });
             }
             for branch in alternatives {
@@ -1070,6 +1251,9 @@ fn join_outcome_counts(
         unmatched_entries: 0,
         ceiling_estimate: 1.0,
         committed_overshoot: 0,
+        degenerate_site_entries: 0,
+        degenerate_site_committed: 0,
+        degenerate_site_discarded: 0,
     };
     let mut discarded_by_rule: BTreeMap<String, u64> = BTreeMap::new();
     let rule_universe: std::collections::BTreeSet<&String> =
@@ -1105,6 +1289,23 @@ fn join_outcome_counts(
     } else {
         share.total_entries as f64 / remaining as f64
     };
+
+    // RGX-0078.5.i.3 (P2) — the degenerate-dispatch exposure: raw/committed entries
+    // on rules whose TOP-LEVEL site qualifies (one top-level site per rule, so each
+    // rule is counted at most once).
+    let mut degenerate_rules_counted: HashSet<&str> = HashSet::new();
+    for site in choice_sites.iter() {
+        if site.top_level
+            && site.degenerate_dispatch
+            && degenerate_rules_counted.insert(site.rule.as_str())
+        {
+            let entries = entries_sum.get(&site.rule).copied().unwrap_or(0);
+            let committed = committed_sum.get(&site.rule).copied().unwrap_or(0);
+            share.degenerate_site_entries += entries;
+            share.degenerate_site_committed += committed.min(entries);
+            share.degenerate_site_discarded += entries.saturating_sub(committed);
+        }
+    }
 
     // Per-site sole-attribution (a sound lower bound; see `attributable_discarded`).
     for site in choice_sites.iter_mut() {
@@ -1439,6 +1640,57 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
         with_subset,
         all_encodable,
     );
+    // RGX-0078.5.i.3 (P2) — the degenerate-dispatch surface + what blocks it.
+    let top_level_sites: Vec<&ChoiceSiteCensus> =
+        census.choice_sites.iter().filter(|s| s.top_level).collect();
+    let degenerate_sites: Vec<&ChoiceSiteCensus> = top_level_sites
+        .iter()
+        .copied()
+        .filter(|s| s.degenerate_dispatch)
+        .collect();
+    println!(
+        "DEGENERACY-CENSUS: grammar={} top_level_sites={} degenerate_dispatch={}",
+        census.grammar_name,
+        top_level_sites.len(),
+        degenerate_sites.len(),
+    );
+    println!(
+        "  gate: top-level + terminal-ws-sensitive + all branches first-byte-decided + pairwise-disjoint + no branch predicates/effects — RGX-0078.5.i.3 (P2)"
+    );
+    if !degenerate_sites.is_empty() {
+        let names: Vec<String> = degenerate_sites
+            .iter()
+            .map(|s| format!("{}({})", s.rule, s.branches))
+            .collect();
+        println!("  degenerate sites (rule(branches)): {}", names.join(" "));
+    }
+    let mut blocker_histogram: HashMap<String, usize> = HashMap::new();
+    for site in &top_level_sites {
+        for blocker in &site.degeneracy_blockers {
+            // Fold per-branch/per-byte detail out of the histogram key so the
+            // histogram answers "what blocks degeneracy most", not "where".
+            let key = blocker
+                .split_once(':')
+                .map(|(head, _)| head)
+                .unwrap_or(blocker.as_str());
+            let key = if key.starts_with("first byte ") {
+                "first-byte overlap between branches"
+            } else if key.starts_with("branch ") {
+                "branch not first-byte-decided"
+            } else {
+                key
+            };
+            *blocker_histogram.entry(key.to_string()).or_default() += 1;
+        }
+    }
+    if !blocker_histogram.is_empty() {
+        let mut ranked: Vec<(String, usize)> = blocker_histogram.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        println!("  degeneracy blocker histogram (top-level site occurrences):");
+        for (reason, count) in &ranked {
+            println!("    {count:>5}  {reason}");
+        }
+    }
     if let Some(share) = &census.outcome_share {
         println!(
             "OUTCOME-SHARE: grammar={} files={} total_entries={} committed={} discarded={} (on_encodable={} on_structural={}) committed_on_encodable={} unmatched={} ceiling≈{:.2}x",
@@ -1455,6 +1707,26 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
         );
         println!(
             "  model: discarded = raw − committed (failed-speculation work; committed keeps C3-B successful losers); kill surface = discarded entries on shape-encodable rules (choice/optional/iteration attempts alike); uniform per-entry cost, scan ≈ terminal match"
+        );
+        // RGX-0078.5.i.3 (P2) — the measured exposure of the degenerate-dispatch
+        // emission: Or-body executions at qualified sites (protocol-elision surface,
+        // NOT an entry-kill surface — dispatch skips exactly the branches the
+        // `.5.c.2` guards already skip).
+        let entry_share_pct = if share.total_entries == 0 {
+            0.0
+        } else {
+            100.0 * share.degenerate_site_entries as f64 / share.total_entries as f64
+        };
+        println!(
+            "DEGENERACY-EXPOSURE: grammar={} degenerate_site_entries={} ({:.1}% of total) committed={} discarded={}",
+            census.grammar_name,
+            share.degenerate_site_entries,
+            entry_share_pct,
+            share.degenerate_site_committed,
+            share.degenerate_site_discarded,
+        );
+        println!(
+            "  model: entries on rules whose top-level site dispatches degenerately — each such Or-body execution sheds the tournament checkpoint/delta/rollback/replay + guard-scan protocol (memo-hit re-entries counted at full weight)"
         );
         if share.committed_overshoot > 0 {
             println!(
@@ -1510,7 +1782,7 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                 })
                 .collect();
             println!(
-                "    {}@{}{}: {}/{} encodable [{}]{}",
+                "    {}@{}{}: {}/{} encodable [{}]{}{}",
                 site.rule,
                 site.site,
                 if site.top_level { " (top)" } else { "" },
@@ -1519,6 +1791,19 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                 subset.join(" "),
                 if site.attributable_discarded > 0 {
                     format!(" attributable_discarded={}", site.attributable_discarded)
+                } else {
+                    String::new()
+                },
+                if site.degenerate_dispatch {
+                    " [DEGENERATE]".to_string()
+                } else if site.top_level {
+                    format!(
+                        " blocked: {}",
+                        site.degeneracy_blockers
+                            .first()
+                            .map(String::as_str)
+                            .unwrap_or("<none>")
+                    )
                 } else {
                     String::new()
                 },
@@ -1706,6 +1991,102 @@ mod tests {
             .find(|s| s.rule == "tok")
             .expect("tok site present");
         assert!(tok_site.all_encodable);
+    }
+
+    /// RGX-0078.5.i.3 (P2) — a `@whitespace_sensitive: true` grammar whose top-level
+    /// site has pairwise-disjoint single-byte terminal branches qualifies for
+    /// degenerate dispatch, with the per-branch byte sets reported.
+    #[test]
+    fn degenerate_dispatch_qualifies_disjoint_terminal_site() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "top".to_string(),
+            or(vec![atom("quoted_string", "+"), atom("quoted_string", "*")]),
+        );
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "top".to_string(),
+            vec![super::super::SemanticAnnotation::Named {
+                name: "whitespace_sensitive".to_string(),
+                ast: super::super::UnifiedSemanticAST::Structured {
+                    canonical: String::new(),
+                    value: super::super::UnifiedSemanticValue::Boolean(true),
+                },
+            }],
+        );
+        let census = census_of(tree, vec!["top".to_string()], Some(annotations));
+        let site = census
+            .choice_sites
+            .iter()
+            .find(|s| s.rule == "top")
+            .expect("top site present");
+        assert!(site.degenerate_dispatch, "blockers: {:?}", site.degeneracy_blockers);
+        assert!(site.degeneracy_blockers.is_empty());
+        assert_eq!(site.branch_verdicts[0].first_bytes, Some(vec![b'+']));
+        assert_eq!(site.branch_verdicts[1].first_bytes, Some(vec![b'*']));
+    }
+
+    /// RGX-0078.5.i.3 (P2) — blockers are NAMED: the layout-insensitive default fails
+    /// R2, an overlapping first byte fails disjointness, and a nullable branch is not
+    /// first-byte-decided. Nested sites fail R1.
+    #[test]
+    fn degeneracy_blockers_name_layout_overlap_and_undecided_branches() {
+        let mut tree = HashMap::new();
+        // top := '+' | '+' 'x' | 'a'?   — branches 1/2 share first byte '+',
+        // branch 3 is nullable.
+        tree.insert(
+            "top".to_string(),
+            or(vec![
+                atom("quoted_string", "+"),
+                ASTNode::Sequence {
+                    elements: vec![atom("quoted_string", "+"), atom("quoted_string", "x")],
+                },
+                ASTNode::Quantified {
+                    element: Box::new(atom("quoted_string", "a")),
+                    quantifier: "?".to_string(),
+                },
+            ]),
+        );
+        // No annotations ⇒ whitespace-INSENSITIVE default ⇒ the R2 blocker fires too.
+        let census = census_of(tree, vec!["top".to_string()], None);
+        let site = census
+            .choice_sites
+            .iter()
+            .find(|s| s.rule == "top")
+            .expect("top site present");
+        assert!(!site.degenerate_dispatch);
+        assert!(site
+            .degeneracy_blockers
+            .iter()
+            .any(|b| b.contains("R2 raw-byte peek unsound")));
+        assert!(site
+            .degeneracy_blockers
+            .iter()
+            .any(|b| b.contains("shared by branches 1,2")));
+        assert!(site
+            .degeneracy_blockers
+            .iter()
+            .any(|b| b.starts_with("branch 3 not first-byte-decided: nullable")));
+        assert_eq!(site.branch_verdicts[2].first_bytes, None);
+    }
+
+    /// RGX-0078.5.i.3 (P2) — the pure verdict names the gate-(e) blockers and the
+    /// R1 nesting blocker (exercised directly: compiling a branch predicate through
+    /// the full annotation path is out of scope for this unit).
+    #[test]
+    fn site_degeneracy_verdict_names_predicate_effect_and_nesting_blockers() {
+        let decided = vec![Ok(vec![b'a']), Ok(vec![b'b'])];
+        let (degenerate, blockers) = site_degeneracy_verdict(false, true, true, true, &decided);
+        assert!(!degenerate);
+        assert!(blockers.iter().any(|b| b.contains("nested Or site")));
+        assert!(blockers.iter().any(|b| b.contains("branch-phase predicates")));
+        assert!(blockers
+            .iter()
+            .any(|b| b.contains("branch-start effect directives")));
+        // And the all-gates-pass dual.
+        let (degenerate, blockers) = site_degeneracy_verdict(true, true, false, false, &decided);
+        assert!(degenerate);
+        assert!(blockers.is_empty());
     }
 
     /// RGX-0078.5.h.1b — the outcome join decomposes raw/committed into the
