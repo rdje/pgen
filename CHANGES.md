@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-07-13 - PGEN-RGX-0078-0056 — RGX-0078.5.i.4 P1b PRICED AT THE LANDED BUDGET: census decided-exposure join — 1179 decided entries (49.4%), 324 lost hits, ceiling ≈−6–18% (recorded BEFORE emission)
+
+The P1b pricing instrument (session #113). The census outcome join reported only the ELIGIBLE
+exposure; the budget-DECIDED subset (what the landed P1a emission actually collapses, and what
+P1b's memo elision prices) was model-estimated in the P1a design record, never measured.
+
+- `InlineExposure` gains `decided_entries/decided_committed/decided_discarded/decided_memo_hits`,
+  summed where the per-rule census `decided` flag (the SAME shared `compute_inline_decisions` map
+  codegen consumes) holds; new `INLINE-EXPOSURE-DECIDED` report line. Read-only analysis — no
+  emitted-parser change.
+- **Measured on fresh 8-pattern dumps (P1a pins `2389/617/568` reproduced byte-exactly):**
+  `decided_entries=1179 (49.4% of total) committed=184 discarded=995 memo_hits_on_decided=324` —
+  the P1a design model's "1179/2389 = 49%" reproduced EXACTLY by direct measurement. Lost-hit
+  population leaf-dominated (`class_zero_width` 108 / `class_atom` 56 / `nonzero_digit` 39 /
+  `unicode_char` 29 = 72%), all post-P2 byte-switch leaves.
+- **Falsifiable P1b ceiling at the budget (recorded before emission):** probes 12–17µs +
+  success-inserts 23–48µs + fail-inserts 2–5µs − lost-hit re-execution 0–13µs ≈ net 24–70µs on
+  the ≈368–380µs post-P1a bench sum ⇒ **≈−6–18% geomean expectation**, land-iff-faster decides.
+- Exposure unit test extended with an eligible-but-over-budget rule (weight > expansion cap) so
+  decided ⊊ eligible is discriminated; census module tests 13/13. Eligible sums + OUTCOME-SHARE +
+  DEGENERACY-EXPOSURE pins all byte-identical to the STEP-0 record.
+- Lockstep: TOOLBOX §5.3, book `parseability-probe-debug.md`, tree `RGX-0078.5.i.4` (pricing
+  section + instrument checklist), TASK_TREE frontier, MEMORY.
+
 ## 2026-07-13 - PGEN-RGX-0078-0055 — RGX-0078.5.i.4 P1a LANDED: memo-preserving cascade/wrapper inlining — regex geomean ≈−4–7% (≈39.7µs → ≈36µs, cumulative 496µs → ≈36µs ≈ 13.8×), counters/AST/cert pins byte-identical BY MEASUREMENT
 
 The P1a emission (session #112). A call site of a budget-DECIDED wrapper rule receives the rule's

@@ -366,6 +366,18 @@ pub struct InlineExposure {
     pub eligible_memo_hits: u64,
     /// Memo hits across ALL rules (context for the eligible share).
     pub total_memo_hits: u64,
+    /// RGX-0078.5.i.4 (P1b pricing) — the DECIDED subset of the eligible sums:
+    /// entries on rules the shared budget actually inlines
+    /// ([`compute_inline_decisions`]). This is the exposure the landed P1a
+    /// emission collapses, and the surface P1b's memo elision prices —
+    /// `decided_memo_hits` is the lost-hit population that would re-execute.
+    pub decided_entries: u64,
+    /// Of `decided_entries`: the committed (C3-B surviving) part.
+    pub decided_committed: u64,
+    /// Of `decided_entries`: the discarded (failed-speculation) part.
+    pub decided_discarded: u64,
+    /// Memo hits on decided rules — the P1b lost-hit surface at the budget.
+    pub decided_memo_hits: u64,
     /// Top eligible rules by raw entries: (rule, entries, committed, memo_hits).
     pub top_eligible_rules: Vec<(String, u64, u64, u64)>,
 }
@@ -1731,6 +1743,10 @@ fn join_outcome_counts(
         eligible_discarded: 0,
         eligible_memo_hits: 0,
         total_memo_hits: memo_hits_sum.values().sum(),
+        decided_entries: 0,
+        decided_committed: 0,
+        decided_discarded: 0,
+        decided_memo_hits: 0,
         top_eligible_rules: Vec::new(),
     };
     let exposure_universe: std::collections::BTreeSet<&String> = entries_sum
@@ -1739,9 +1755,9 @@ fn join_outcome_counts(
         .chain(memo_hits_sum.keys())
         .collect();
     for rule in exposure_universe {
-        if !inline_rules.get(rule.as_str()).is_some_and(|c| c.eligible) {
+        let Some(census) = inline_rules.get(rule.as_str()).filter(|c| c.eligible) else {
             continue;
-        }
+        };
         let entries = entries_sum.get(rule).copied().unwrap_or(0);
         let committed = committed_sum.get(rule).copied().unwrap_or(0);
         let hits = memo_hits_sum.get(rule).copied().unwrap_or(0);
@@ -1749,6 +1765,14 @@ fn join_outcome_counts(
         exposure.eligible_committed += committed.min(entries);
         exposure.eligible_discarded += entries.saturating_sub(committed);
         exposure.eligible_memo_hits += hits;
+        // RGX-0078.5.i.4 (P1b pricing) — the budget-DECIDED subset: the frames
+        // the landed emission actually collapses, and the memo hits P1b loses.
+        if census.decided {
+            exposure.decided_entries += entries;
+            exposure.decided_committed += committed.min(entries);
+            exposure.decided_discarded += entries.saturating_sub(committed);
+            exposure.decided_memo_hits += hits;
+        }
         exposure
             .top_eligible_rules
             .push((rule.clone(), entries, committed, hits));
@@ -2329,6 +2353,26 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             );
             println!(
                 "  model: each eligible-rule entry is a collapsible wrapper frame — P1a elides guard/context/annotation-probe/call protocol with the memo preserved (counters byte-identical); P1b additionally elides the memo probes/inserts, so each memo_hits_on_eligible replay becomes a body re-execution (counters change truthfully). Hits need dumps from a `.5.i.4`+ parser generation — total_memo_hits=0 on older dumps."
+            );
+            // RGX-0078.5.i.4 (P1b pricing) — the budget-DECIDED subset of the
+            // exposure: what the landed P1a emission actually collapses, and
+            // the memo-hit population P1b's elision re-executes.
+            let decided_pct = if share.total_entries == 0 {
+                0.0
+            } else {
+                100.0 * exposure.decided_entries as f64 / share.total_entries as f64
+            };
+            println!(
+                "INLINE-EXPOSURE-DECIDED: grammar={} decided_entries={} ({:.1}% of total) committed={} discarded={} memo_hits_on_decided={}",
+                census.grammar_name,
+                exposure.decided_entries,
+                decided_pct,
+                exposure.decided_committed,
+                exposure.decided_discarded,
+                exposure.decided_memo_hits,
+            );
+            println!(
+                "  model: the same sums restricted to rules the shared budget DECIDES for inlining (compute_inline_decisions — the emission plan): decided_entries = frames P1a collapses at call sites; memo_hits_on_decided = the P1b lost-hit surface at the budget (each becomes a body re-execution)."
             );
             if !exposure.top_eligible_rules.is_empty() {
                 println!("  top inline-eligible rules by raw entries (entries/committed/memo_hits):");
@@ -2922,15 +2966,25 @@ mod tests {
             "tok".to_string(),
             or(vec![atom("quoted_string", "*"), atom("quoted_string", "+")]),
         );
+        // RGX-0078.5.i.4 (P1b pricing) — an ELIGIBLE-but-OVER-BUDGET rule: a
+        // 14-branch alternation whose capped-transitive weight exceeds
+        // INLINE_EXPANSION_CAP (12), so it stays a method call. Its counts must
+        // land in the eligible sums but NOT the decided sums.
+        tree.insert(
+            "fat".to_string(),
+            or((0..14)
+                .map(|i| atom("quoted_string", &format!("k{i}")))
+                .collect()),
+        );
         let payload = serde_json::json!({
             "grammar": "t",
             "accepted": true,
-            "total_entries": 50,
-            "total_committed": 14,
-            "total_memo_hits": 8,
-            "rule_entry_counts": {"tok_wrapper": 20, "tok": 20, "top": 10},
-            "rule_committed_counts": {"tok_wrapper": 2, "tok": 2, "top": 10},
-            "rule_memo_hit_counts": {"tok": 5, "top": 3},
+            "total_entries": 62,
+            "total_committed": 17,
+            "total_memo_hits": 10,
+            "rule_entry_counts": {"tok_wrapper": 20, "tok": 20, "top": 10, "fat": 12},
+            "rule_committed_counts": {"tok_wrapper": 2, "tok": 2, "top": 10, "fat": 3},
+            "rule_memo_hit_counts": {"tok": 5, "top": 3, "fat": 2},
         });
         let dir = std::env::temp_dir();
         let path = dir.join(format!(
@@ -2945,6 +2999,7 @@ mod tests {
                 "top".to_string(),
                 "tok_wrapper".to_string(),
                 "tok".to_string(),
+                "fat".to_string(),
             ],
             None,
             &[],
@@ -2952,13 +3007,26 @@ mod tests {
         )
         .expect("census runs");
         std::fs::remove_file(&path).ok();
+        // The budget split the test relies on: fat is eligible but over the
+        // expansion cap (weight > 12), so it must never be decided.
+        let fat = &census.inline_rules["fat"];
+        assert!(fat.eligible, "fat must be eligible: {fat:?}");
+        assert!(!fat.decided, "fat must be over-budget: {fat:?}");
+        assert!(census.inline_rules["tok"].decided);
+        assert!(census.inline_rules["tok_wrapper"].decided);
         let exposure = census.inline_exposure.as_ref().expect("exposure joined");
-        // top is entry + cyclic ⇒ ineligible; tok_wrapper + tok are eligible.
-        assert_eq!(exposure.eligible_entries, 40);
-        assert_eq!(exposure.eligible_committed, 4);
-        assert_eq!(exposure.eligible_discarded, 36);
-        assert_eq!(exposure.eligible_memo_hits, 5); // tok only — top's 3 are blocked
-        assert_eq!(exposure.total_memo_hits, 8);
+        // top is entry + cyclic ⇒ ineligible; tok_wrapper + tok + fat are eligible.
+        assert_eq!(exposure.eligible_entries, 52);
+        assert_eq!(exposure.eligible_committed, 7);
+        assert_eq!(exposure.eligible_discarded, 45);
+        assert_eq!(exposure.eligible_memo_hits, 7); // tok 5 + fat 2 — top's 3 are blocked
+        assert_eq!(exposure.total_memo_hits, 10);
+        // RGX-0078.5.i.4 (P1b pricing) — the DECIDED sums exclude the
+        // over-budget fat rule (and, as before, the ineligible top).
+        assert_eq!(exposure.decided_entries, 40);
+        assert_eq!(exposure.decided_committed, 4);
+        assert_eq!(exposure.decided_discarded, 36);
+        assert_eq!(exposure.decided_memo_hits, 5);
         // Sorted by raw entries desc, then name: tok (20) before tok_wrapper (20).
         assert_eq!(exposure.top_eligible_rules[0].0, "tok");
         assert_eq!(exposure.top_eligible_rules[0], ("tok".to_string(), 20, 2, 5));

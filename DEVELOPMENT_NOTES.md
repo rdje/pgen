@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-13 - PGEN-RGX-0078-0056 — RGX-0078.5.i.4 P1b pricing: measure the DECIDED subset, not the eligible superset
+
+**A budget makes "eligible" the wrong pricing universe.** The STEP-0 ceilings priced P1 on the
+1672-entry ELIGIBLE exposure; the landed P1a emission collapses only the 128 budget-DECIDED rules
+(1179 entries, 49.4%). Any increment priced on the eligible superset overstates its surface by
+~40%. The decided join reads the SAME `compute_inline_decisions` map codegen consumes, so the
+priced universe and the emitted plan cannot drift — the P1a design model's "1179" was reproduced
+EXACTLY, which is the cross-validation that the join is wired to the real plan.
+
+**The dump cannot split body executions into success/fail.** The memo insert cost (the largest
+P1b elision bucket) scales with SUCCESSES on decided rules, but the outcome dump only gives
+committed (184, a lower bound — C3-B losers also insert) and body executions (855, an upper
+bound). The recorded ceiling states the bounded range + the occupancy-derived model (~53% success
+share ⇒ ≈340–470) instead of a point estimate; the alternated bench is the decider, as always.
+
 ## 2026-07-13 - PGEN-RGX-0078-0055 — RGX-0078.5.i.4 P1a: emission notes (the ONE-helper consolidation, the budget-by-measurement, and two test-tier traps)
 
 **Why one emitted helper instead of open-coded frames.** The obvious P1a emission open-codes the
