@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-14 - PGEN-RGX-0078-0073 — `.5.i.7` D0.1 + D1 STEP-0: engineering notes
+
+**A "shared predicate" is only drift-proof if its CACHE is context-free.** The P2 doctrine
+put census and codegen on the same eligibility function, assuming same-function ⇒
+same-verdict. The function was pure; its memo was not — values computed mid-cycle or at
+inherited depth encoded their query's context, and whoever populated the cache first decided
+what everyone later read. The instrument that exposed it did nothing wrong: it merely added
+new traversal orders. Rule for any memoized analysis shared across consumers: the cache
+admission predicate must prove the value CONTEXT-FREE (here: no in-progress ancestor's cycle
+guard fired beneath it, no depth/chain cap involved), or the memo must be scoped to the
+query. We now do both — a taint-gated persistent cache plus a per-query transient memo.
+
+**Conservative-direction bugs hide until an optimization gives them teeth.** Both poisoning
+channels existed since `.5.c.2`; they were invisible because regex-token-led chains were
+uniformly `unresolved` anyway, and every consumer degrades `unresolved` to "always try". D0
+made resolution real, and the very next instrument tripped over the incoherence. Corollary
+worth keeping: when an analysis becomes load-bearing, its dormant conservatisms become
+measurable defects — re-audit the analysis's caching/state assumptions at that moment, not
+after a drift bites.
+
+**Memoization inside cycle scopes is a PERFORMANCE invariant, not a nicety.** The honest
+first fix (cache only outermost, context-free by construction) was correct and hung SV
+codegen for 85 minutes: under a cycle root, nothing memoizes and the subtree recomputes
+exponentially. The guard's timeout kill (exit 99) turned an invisible hang into a bounded,
+diagnosable failure — exactly what the HOST-RAM directive's wrapper is for. The per-query
+transient memo restores the old traversal's linearity while confining context-dependent
+values to the query that computed them: 85 min → 2.47 s at SV scale, with coherence kept.
+
+**`len1_possible` is the honest boundary of two-byte dispatch.** A branch whose match can
+consume exactly one byte constrains nothing at byte 2 — it must sit in EVERY second-byte
+arm (including end-of-input). Treating it as a blocker would forfeit real sites; treating
+it as dispatchable-and-ignorable would be unsound. It is a WILDCARD: legal, counted per
+site (`wildcard_limited=12` of the 23), and a cap on the kill the emission can claim.
+
 ## 2026-07-14 - PGEN-RGX-0078-0072 — `.5.i.7` post-D0 re-census: engineering notes
 
 **An analysis landing invalidates its own census — re-run it before pricing the next

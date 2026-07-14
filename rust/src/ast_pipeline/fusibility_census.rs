@@ -252,6 +252,21 @@ pub struct ChoiceSiteCensus {
     /// order: R1 nesting, R2 layout, per-branch undecided (by index), first-byte
     /// overlaps (by byte), branch predicates, branch-start effects.
     pub degeneracy_blockers: Vec<String>,
+    /// RGX-0078.5.i.7 (D1 STEP-0) — the site qualifies for TWO-LEVEL (FIRST₂) prefix
+    /// dispatch: the P2 gates minus first-byte disjointness, plus for every first
+    /// byte shared by ≥2 branches the admitting subset has RESOLVED second-byte
+    /// facts and its non-WILDCARD members are pairwise-disjoint on second bytes. A
+    /// byte-2 WILDCARD (`len1_possible` — some one-byte match leaves byte 2
+    /// unconstrained) is legal (it joins every second-byte arm) but caps the kill;
+    /// see `prefix2_wildcard_branches`. Judged independently of
+    /// `degenerate_dispatch` (a degenerate site needs no second level — consumers
+    /// filter on `!degenerate_dispatch`).
+    pub prefix2_dispatchable: bool,
+    /// The NAMED failing FIRST₂ gates (empty iff `prefix2_dispatchable`).
+    pub prefix2_blockers: Vec<String>,
+    /// Branch indices (1-based, sorted, deduped) that are byte-2 WILDCARDS inside
+    /// some shared-first-byte subset.
+    pub prefix2_wildcard_branches: Vec<usize>,
 }
 
 /// RGX-0078.5.h.1b — the measured outcome-share join (census × raw+committed counts):
@@ -301,6 +316,14 @@ pub struct OutcomeShare {
     pub degenerate_site_committed: u64,
     /// Of `degenerate_site_entries`: the discarded (failed-speculation) part.
     pub degenerate_site_discarded: u64,
+    /// RGX-0078.5.i.7 (D1 STEP-0) — raw entries on rules whose TOP-LEVEL site is
+    /// `prefix2_dispatchable` but NOT `degenerate_dispatch` (the D1 emission
+    /// surface — a P2 site needs no second level).
+    pub prefix2_site_entries: u64,
+    /// Of `prefix2_site_entries`: the committed part.
+    pub prefix2_site_committed: u64,
+    /// Of `prefix2_site_entries`: the discarded part.
+    pub prefix2_site_discarded: u64,
 }
 
 /// RGX-0078.5.i.4 (P1 STEP-0) — the body shape of an inline-ELIGIBLE rule, for
@@ -458,6 +481,8 @@ struct Classifier<'a> {
     /// RGX-0078.5.i.3 (P2) — shared FIRST-set cache for the per-branch dispatch
     /// first-byte analysis (the same `first_set` module codegen's prune guard uses).
     first_set_cache: HashMap<String, super::first_set::FirstSetSummary>,
+    /// RGX-0078.5.i.7 (D1 STEP-0) — shared SECOND-byte cache (the FIRST₂ analysis).
+    second_byte_cache: HashMap<String, super::first_set::SecondByteSummary>,
     memo: HashMap<String, RuleOutcome>,
     visiting: HashSet<String>,
 }
@@ -505,6 +530,7 @@ impl<'a> Classifier<'a> {
             layout,
             compiled,
             first_set_cache: HashMap::new(),
+            second_byte_cache: HashMap::new(),
             memo: HashMap::new(),
             visiting: HashSet::new(),
         })
@@ -526,6 +552,32 @@ impl<'a> Classifier<'a> {
             &mut self.first_set_cache,
             self.layout.regex_tokens,
         )
+    }
+
+    /// RGX-0078.5.i.7 (D1 STEP-0) — the branch's SECOND-byte facts under the same
+    /// layout-trust discipline as the level-1 predicate: regex-token-derived facts
+    /// are honored only when regex tokens are whitespace-sensitive; otherwise the
+    /// whole summary degrades to unresolved (never a partial byte set).
+    fn branch_second_byte_summary(
+        &mut self,
+        branch: &ASTNode,
+    ) -> super::first_set::SecondByteSummary {
+        let mut visiting = super::first_set::RuleVisit::default();
+        let summary = super::first_set::branch_second_byte_summary(
+            branch,
+            self.tree,
+            &mut self.first_set_cache,
+            &mut self.second_byte_cache,
+            &mut visiting,
+            0,
+        );
+        if summary.regex_token_derived && !self.layout.regex_tokens {
+            return super::first_set::SecondByteSummary {
+                unresolved: true,
+                ..Default::default()
+            };
+        }
+        summary
     }
 
     /// RGX-0078.5.i.3 (P2) — gate (e): does the rule carry any Branch-phase
@@ -1451,6 +1503,106 @@ fn site_degeneracy_verdict(
     (blockers.is_empty(), blockers)
 }
 
+/// RGX-0078.5.i.7 (D1 STEP-0) — the per-site FIRST₂ (two-level prefix dispatch)
+/// verdict: can the site dispatch on byte 1 to an admitting subset and, within an
+/// overlapping subset, on byte 2 to (at most) one non-wildcard candidate? Pure over
+/// its inputs (unit-testable in isolation). Gates = the P2 gates MINUS first-byte
+/// disjointness, PLUS per shared first byte: every admitting branch's second-byte
+/// facts RESOLVED, and the non-WILDCARD members pairwise-disjoint on second bytes.
+/// A `len1_possible` member is a byte-2 wildcard — legal (it joins every byte-2 arm,
+/// including end-of-input) but it caps the kill; reported, never a blocker.
+fn site_prefix2_verdict(
+    top_level: bool,
+    layout_terminals: bool,
+    has_branch_phase_predicates: bool,
+    has_branch_start_effects: bool,
+    branch_first_bytes: &[Result<Vec<u8>, String>],
+    branch_seconds: &[super::first_set::SecondByteSummary],
+) -> (bool, Vec<String>, Vec<usize>) {
+    let mut blockers: Vec<String> = Vec::new();
+    let mut wildcards: std::collections::BTreeSet<usize> = std::collections::BTreeSet::new();
+    if !top_level {
+        blockers.push(
+            "nested Or site (rule-top-level only — R1 furthest-position neutrality)".to_string(),
+        );
+        return (false, blockers, Vec::new());
+    }
+    if !layout_terminals {
+        blockers.push("terminals skip leading layout (R2 raw-byte peek unsound)".to_string());
+    }
+    for (i, bytes) in branch_first_bytes.iter().enumerate() {
+        if let Err(reason) = bytes {
+            blockers.push(format!("branch {} not first-byte-decided: {reason}", i + 1));
+        }
+    }
+    if has_branch_phase_predicates {
+        blockers.push(
+            "rule has branch-phase predicates (a rejected sole candidate must roll back and continue the tournament)"
+                .to_string(),
+        );
+    }
+    if has_branch_start_effects {
+        blockers.push("rule has branch-start effect directives".to_string());
+    }
+    let mut byte_owners: BTreeMap<u8, Vec<usize>> = BTreeMap::new();
+    for (i, bytes) in branch_first_bytes.iter().enumerate() {
+        if let Ok(bytes) = bytes {
+            for byte in bytes {
+                byte_owners.entry(*byte).or_default().push(i + 1);
+            }
+        }
+    }
+    for (byte, owners) in &byte_owners {
+        if owners.len() < 2 {
+            continue;
+        }
+        let printable = if byte.is_ascii_graphic() {
+            format!(" ('{}')", *byte as char)
+        } else {
+            String::new()
+        };
+        let mut second_owners: BTreeMap<u8, Vec<usize>> = BTreeMap::new();
+        for &owner in owners {
+            let second = &branch_seconds[owner - 1];
+            if second.unresolved {
+                blockers.push(format!(
+                    "first byte 0x{byte:02X}{printable}: branch {owner} second bytes UNRESOLVED"
+                ));
+                continue;
+            }
+            if second.len1_possible || second.nullable {
+                wildcards.insert(owner);
+                continue;
+            }
+            for second_byte in &second.second_bytes {
+                second_owners.entry(*second_byte).or_default().push(owner);
+            }
+        }
+        for (second_byte, second_shared) in &second_owners {
+            if second_shared.len() >= 2 {
+                let printable2 = if second_byte.is_ascii_graphic() {
+                    format!(" ('{}')", *second_byte as char)
+                } else {
+                    String::new()
+                };
+                blockers.push(format!(
+                    "first byte 0x{byte:02X}{printable}: SECOND byte 0x{second_byte:02X}{printable2} shared by branches {}",
+                    second_shared
+                        .iter()
+                        .map(|n| n.to_string())
+                        .collect::<Vec<_>>()
+                        .join(",")
+                ));
+            }
+        }
+    }
+    (
+        blockers.is_empty(),
+        blockers,
+        wildcards.into_iter().collect(),
+    )
+}
+
 /// RGX-0078.5.h.1b — enumerate and classify every choice (Or) site with ≥2 branches.
 /// Pre-order per rule; `or#0` is the first Or encountered (the top-level alternation
 /// when the rule body is an Or). Branch encodability mirrors the rule-level shape gate
@@ -1557,6 +1709,34 @@ fn walk_for_choice_sites(
                     has_branch_start_effects,
                     &branch_dispatch_bytes,
                 );
+                // RGX-0078.5.i.7 (D1 STEP-0) — the FIRST₂ verdict. Second-byte
+                // summaries are computed only for top-level sites (nested sites are
+                // R1-blocked at level 2 exactly as at level 1).
+                let (prefix2_dispatchable, prefix2_blockers, prefix2_wildcard_branches) =
+                    if is_rule_body {
+                        let branch_seconds: Vec<super::first_set::SecondByteSummary> =
+                            alternatives
+                                .iter()
+                                .map(|branch| classifier.branch_second_byte_summary(branch))
+                                .collect();
+                        site_prefix2_verdict(
+                            is_rule_body,
+                            classifier.layout.terminals,
+                            has_branch_predicates,
+                            has_branch_start_effects,
+                            &branch_dispatch_bytes,
+                            &branch_seconds,
+                        )
+                    } else {
+                        (
+                            false,
+                            vec![
+                                "nested Or site (rule-top-level only — R1 furthest-position neutrality)"
+                                    .to_string(),
+                            ],
+                            Vec::new(),
+                        )
+                    };
                 sites.push(ChoiceSiteCensus {
                     rule: rule.to_string(),
                     site: format!("or#{site_index}"),
@@ -1568,6 +1748,9 @@ fn walk_for_choice_sites(
                     attributable_discarded: 0,
                     degenerate_dispatch,
                     degeneracy_blockers,
+                    prefix2_dispatchable,
+                    prefix2_blockers,
+                    prefix2_wildcard_branches,
                 });
             }
             for branch in alternatives {
@@ -1674,6 +1857,9 @@ fn join_outcome_counts(
         degenerate_site_entries: 0,
         degenerate_site_committed: 0,
         degenerate_site_discarded: 0,
+        prefix2_site_entries: 0,
+        prefix2_site_committed: 0,
+        prefix2_site_discarded: 0,
     };
     let mut discarded_by_rule: BTreeMap<String, u64> = BTreeMap::new();
     let rule_universe: std::collections::BTreeSet<&String> =
@@ -1724,6 +1910,23 @@ fn join_outcome_counts(
             share.degenerate_site_entries += entries;
             share.degenerate_site_committed += committed.min(entries);
             share.degenerate_site_discarded += entries.saturating_sub(committed);
+        }
+    }
+
+    // RGX-0078.5.i.7 (D1 STEP-0) — the FIRST₂-dispatch exposure: entries on rules
+    // whose top-level site is prefix2-dispatchable and NOT already degenerate.
+    let mut prefix2_rules_counted: HashSet<&str> = HashSet::new();
+    for site in choice_sites.iter() {
+        if site.top_level
+            && site.prefix2_dispatchable
+            && !site.degenerate_dispatch
+            && prefix2_rules_counted.insert(site.rule.as_str())
+        {
+            let entries = entries_sum.get(&site.rule).copied().unwrap_or(0);
+            let committed = committed_sum.get(&site.rule).copied().unwrap_or(0);
+            share.prefix2_site_entries += entries;
+            share.prefix2_site_committed += committed.min(entries);
+            share.prefix2_site_discarded += entries.saturating_sub(committed);
         }
     }
 
@@ -2203,6 +2406,70 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             println!("    {count:>5}  {reason}");
         }
     }
+    // RGX-0078.5.i.7 (D1 STEP-0) — the FIRST₂ two-level-dispatch surface.
+    let blocked_sites: Vec<&ChoiceSiteCensus> = top_level_sites
+        .iter()
+        .copied()
+        .filter(|s| !s.degenerate_dispatch)
+        .collect();
+    let prefix2_sites: Vec<&ChoiceSiteCensus> = blocked_sites
+        .iter()
+        .copied()
+        .filter(|s| s.prefix2_dispatchable)
+        .collect();
+    let wildcard_limited = prefix2_sites
+        .iter()
+        .filter(|s| !s.prefix2_wildcard_branches.is_empty())
+        .count();
+    println!(
+        "PREFIX2-CENSUS: grammar={} blocked_top_level_sites={} prefix2_dispatchable={} (wildcard_limited={})",
+        census.grammar_name,
+        blocked_sites.len(),
+        prefix2_sites.len(),
+        wildcard_limited,
+    );
+    println!(
+        "  gate: the P2 gates minus first-byte disjointness + per shared first byte: resolved second-byte facts + non-wildcard members pairwise-disjoint on byte 2 — RGX-0078.5.i.7 (D1)"
+    );
+    if !prefix2_sites.is_empty() {
+        let names: Vec<String> = prefix2_sites
+            .iter()
+            .map(|s| {
+                if s.prefix2_wildcard_branches.is_empty() {
+                    format!("{}({})", s.rule, s.branches)
+                } else {
+                    format!("{}({},w{})", s.rule, s.branches, s.prefix2_wildcard_branches.len())
+                }
+            })
+            .collect();
+        println!("  prefix2 sites (rule(branches[,wildcards])): {}", names.join(" "));
+    }
+    let mut prefix2_blocker_histogram: HashMap<String, usize> = HashMap::new();
+    for site in &blocked_sites {
+        for blocker in &site.prefix2_blockers {
+            let key = if blocker.contains("SECOND byte") {
+                "second-byte overlap between branches"
+            } else if blocker.contains("second bytes UNRESOLVED") {
+                "branch second bytes unresolved"
+            } else if blocker.starts_with("branch ") {
+                "branch not first-byte-decided"
+            } else {
+                blocker
+                    .split_once(':')
+                    .map(|(head, _)| head)
+                    .unwrap_or(blocker.as_str())
+            };
+            *prefix2_blocker_histogram.entry(key.to_string()).or_default() += 1;
+        }
+    }
+    if !prefix2_blocker_histogram.is_empty() {
+        let mut ranked: Vec<(String, usize)> = prefix2_blocker_histogram.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        println!("  prefix2 blocker histogram (blocked-site occurrences):");
+        for (reason, count) in &ranked {
+            println!("    {count:>5}  {reason}");
+        }
+    }
     // RGX-0078.5.i.4 (P1 STEP-0) — the inline-eligibility census + what blocks it.
     let eligible: Vec<(&String, &InlineRuleCensus)> = census
         .inline_rules
@@ -2306,6 +2573,23 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
         );
         println!(
             "  model: entries on rules whose top-level site dispatches degenerately — each such Or-body execution sheds the tournament checkpoint/delta/rollback/replay + guard-scan protocol (memo-hit re-entries counted at full weight)"
+        );
+        // RGX-0078.5.i.7 (D1 STEP-0) — the FIRST₂-dispatch exposure.
+        let prefix2_share_pct = if share.total_entries == 0 {
+            0.0
+        } else {
+            100.0 * share.prefix2_site_entries as f64 / share.total_entries as f64
+        };
+        println!(
+            "PREFIX2-EXPOSURE: grammar={} prefix2_site_entries={} ({:.1}% of total) committed={} discarded={}",
+            census.grammar_name,
+            share.prefix2_site_entries,
+            prefix2_share_pct,
+            share.prefix2_site_committed,
+            share.prefix2_site_discarded,
+        );
+        println!(
+            "  model: entries on rules whose top-level site is prefix2-dispatchable (and not already P2-degenerate) — a two-level byte dispatch admits at most one non-wildcard candidate, so byte-1-admitted/byte-2-refuted branch attempts are never entered"
         );
         if share.committed_overshoot > 0 {
             println!(
@@ -2424,10 +2708,30 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                 },
                 if site.degenerate_dispatch {
                     " [DEGENERATE]".to_string()
+                } else if site.top_level && site.prefix2_dispatchable {
+                    format!(
+                        " [PREFIX2{}]",
+                        if site.prefix2_wildcard_branches.is_empty() {
+                            String::new()
+                        } else {
+                            format!(
+                                " wildcards={}",
+                                site.prefix2_wildcard_branches
+                                    .iter()
+                                    .map(|n| n.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join(",")
+                            )
+                        }
+                    )
                 } else if site.top_level {
                     format!(
-                        " blocked: {}",
+                        " blocked: {} | prefix2: {}",
                         site.degeneracy_blockers
+                            .first()
+                            .map(String::as_str)
+                            .unwrap_or("<none>"),
+                        site.prefix2_blockers
                             .first()
                             .map(String::as_str)
                             .unwrap_or("<none>")
@@ -2715,6 +3019,74 @@ mod tests {
         let (degenerate, blockers) = site_degeneracy_verdict(true, true, false, false, &decided);
         assert!(degenerate);
         assert!(blockers.is_empty());
+    }
+
+    /// RGX-0078.5.i.7 (D1 STEP-0) — the FIRST₂ verdict: a same-first-byte site with
+    /// DISJOINT second bytes qualifies; a shared second byte or an unresolved second
+    /// summary blocks with a named reason; a len1 member is a counted WILDCARD, not
+    /// a blocker.
+    #[test]
+    fn site_prefix2_verdict_discriminates_on_second_bytes() {
+        use crate::ast_pipeline::first_set::SecondByteSummary;
+        let second = |bytes: &[u8]| SecondByteSummary {
+            second_bytes: bytes.iter().copied().collect(),
+            ..SecondByteSummary::default()
+        };
+        // The zero_width shape: both branches admit '\'; second bytes 'b' vs 'B'.
+        let firsts = vec![Ok(vec![b'\\']), Ok(vec![b'\\'])];
+        let seconds = vec![second(&[b'b']), second(&[b'B'])];
+        let (ok, blockers, wildcards) =
+            site_prefix2_verdict(true, true, false, false, &firsts, &seconds);
+        assert!(ok, "blockers: {blockers:?}");
+        assert!(wildcards.is_empty());
+
+        // A shared SECOND byte blocks with a named reason.
+        let seconds = vec![second(&[b'b']), second(&[b'b', b'B'])];
+        let (ok, blockers, _) =
+            site_prefix2_verdict(true, true, false, false, &firsts, &seconds);
+        assert!(!ok);
+        assert!(
+            blockers.iter().any(|b| b.contains("SECOND byte 0x62")),
+            "blockers: {blockers:?}"
+        );
+
+        // An unresolved second summary blocks with a named reason.
+        let seconds = vec![
+            second(&[b'b']),
+            SecondByteSummary {
+                unresolved: true,
+                ..SecondByteSummary::default()
+            },
+        ];
+        let (ok, blockers, _) =
+            site_prefix2_verdict(true, true, false, false, &firsts, &seconds);
+        assert!(!ok);
+        assert!(
+            blockers.iter().any(|b| b.contains("second bytes UNRESOLVED")),
+            "blockers: {blockers:?}"
+        );
+
+        // A len1 member is a byte-2 WILDCARD: legal, counted, never a blocker.
+        let seconds = vec![
+            second(&[b'b']),
+            SecondByteSummary {
+                len1_possible: true,
+                ..SecondByteSummary::default()
+            },
+        ];
+        let (ok, blockers, wildcards) =
+            site_prefix2_verdict(true, true, false, false, &firsts, &seconds);
+        assert!(ok, "blockers: {blockers:?}");
+        assert_eq!(wildcards, vec![2]);
+
+        // Disjoint FIRST bytes need no second level: trivially dispatchable, and
+        // the wildcard set stays empty (no shared byte-1 subset exists).
+        let firsts = vec![Ok(vec![b'a']), Ok(vec![b'b'])];
+        let seconds = vec![second(&[b'x']), second(&[b'x'])];
+        let (ok, blockers, wildcards) =
+            site_prefix2_verdict(true, true, false, false, &firsts, &seconds);
+        assert!(ok, "blockers: {blockers:?}");
+        assert!(wildcards.is_empty());
     }
 
     /// RGX-0078.5.h.1b — the outcome join decomposes raw/committed into the

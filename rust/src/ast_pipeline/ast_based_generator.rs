@@ -4652,7 +4652,7 @@ impl AstBasedGenerator {
         }
 
         let grammar_tree = self.first_set_grammar_tree.borrow();
-        let mut visiting_rules = std::collections::HashSet::new();
+        let mut visiting_rules = super::first_set::RuleVisit::default();
         let summary =
             super::first_set::branch_first_set(branch, &grammar_tree, cache, &mut visiting_rules, 0);
 

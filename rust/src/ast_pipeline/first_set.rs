@@ -63,14 +63,52 @@ pub(crate) struct FirstSetSummary {
     pub(crate) byte_decided: bool,
 }
 
+/// Intra-BODY structural recursion bound (a body is a finite tree, so this is
+/// belt-and-braces against pathological nesting, not a termination requirement).
 const MAX_FIRST_SET_DEPTH: usize = 24;
+
+/// D0.1 CACHE-COHERENCE — rule-CHAIN bound. Depth RESETS at rule boundaries so a
+/// rule's computed (and cached) summary never depends on how deep the QUERY that
+/// first reached it happened to start — the depth-context dual of the
+/// visiting-context poisoning (tool-proven: a level-2 fold's inherited depth made
+/// `quant_bound_core` hit the intra-body cutoff mid-chain and cache `unresolved`,
+/// flipping a site verdict that resolves fine from a fresh query). Termination
+/// across rules is owned by `visiting_rules` (cycle guard); this cap is the
+/// absolute stack bound for pathological reference chains. Real grammars sit far
+/// below it, so it never fires in practice; if it ever does, the affected value is
+/// conservative (`unresolved`) and NOT cached.
+const MAX_RULE_CHAIN_DEPTH: usize = 64;
+
+/// D0.1 CACHE-COHERENCE — the traversal state of ONE top-level FIRST / second-byte
+/// query.
+///
+/// - `visiting` — the in-progress rule stack (the cycle guard).
+/// - `tainted` — markers for in-progress rules whose cycle guard FIRED: a value
+///   computed while any marker is live absorbed an ancestor-context `unresolved`
+///   and must not enter the PERSISTENT cache (it would make later fresh queries
+///   order-dependent — the poisoning class this struct exists to kill).
+/// - `transient` — the per-QUERY memo for exactly those context-dependent values:
+///   sound within the query (conservative direction only — extra `unresolved`,
+///   never a smaller resolved set) and discarded with it. This is what keeps deep
+///   cyclic grammars (SV: 1466 rules) LINEAR — without it, cycle-scoped subtrees
+///   recompute exponentially (tool-proven: the SV regen hung for 85 minutes under
+///   outermost-only caching with no transient memo).
+/// - `cap_fired` — the rule-chain cap fired somewhere in this query (chain-length
+///   context ⇒ nothing later in the query may enter the persistent cache).
+#[derive(Debug, Default)]
+pub(crate) struct RuleVisit<T> {
+    visiting: HashSet<String>,
+    tainted: HashSet<String>,
+    transient: HashMap<String, T>,
+    cap_fired: bool,
+}
 
 /// FIRST set of an arbitrary grammar node (branch body / rule body / sub-expression).
 pub(crate) fn branch_first_set(
     node: &ASTNode,
     grammar_tree: &HashMap<String, ASTNode>,
     first_set_cache: &mut HashMap<String, FirstSetSummary>,
-    visiting_rules: &mut HashSet<String>,
+    visiting_rules: &mut RuleVisit<FirstSetSummary>,
     depth: usize,
 ) -> FirstSetSummary {
     if depth > MAX_FIRST_SET_DEPTH {
@@ -253,7 +291,7 @@ fn atom_first_set(
     value: &ASTValue,
     grammar_tree: &HashMap<String, ASTNode>,
     first_set_cache: &mut HashMap<String, FirstSetSummary>,
-    visiting_rules: &mut HashSet<String>,
+    visiting_rules: &mut RuleVisit<FirstSetSummary>,
     depth: usize,
 ) -> FirstSetSummary {
     match value {
@@ -345,14 +383,35 @@ fn rule_first_set(
     rule_name: &str,
     grammar_tree: &HashMap<String, ASTNode>,
     first_set_cache: &mut HashMap<String, FirstSetSummary>,
-    visiting_rules: &mut HashSet<String>,
-    depth: usize,
+    visiting_rules: &mut RuleVisit<FirstSetSummary>,
+    // D0.1 — the query's depth deliberately does NOT reach the body (depth resets
+    // per rule so cached summaries are depth-context-free); the chain cap on the
+    // visiting stack is the recursion bound.
+    _depth: usize,
 ) -> FirstSetSummary {
     if let Some(cached) = first_set_cache.get(rule_name) {
         return cached.clone();
     }
+    if let Some(transient) = visiting_rules.transient.get(rule_name) {
+        return transient.clone();
+    }
 
-    if !visiting_rules.insert(rule_name.to_string()) {
+    if !visiting_rules.visiting.insert(rule_name.to_string()) {
+        // Cycle guard: the hit taints every value computed while this rule is
+        // still in progress (they absorb an ancestor-context `unresolved`).
+        visiting_rules.tainted.insert(rule_name.to_string());
+        return FirstSetSummary {
+            unresolved: true,
+            ..FirstSetSummary::default()
+        };
+    }
+
+    // D0.1 CACHE-COHERENCE — the rule-chain cap (the absolute recursion bound now
+    // that depth resets per body). Chain length is query context, so nothing
+    // computed after a cap hit may enter the persistent cache.
+    if visiting_rules.visiting.len() > MAX_RULE_CHAIN_DEPTH {
+        visiting_rules.cap_fired = true;
+        visiting_rules.visiting.remove(rule_name);
         return FirstSetSummary {
             unresolved: true,
             ..FirstSetSummary::default()
@@ -360,13 +419,9 @@ fn rule_first_set(
     }
 
     let result = if let Some(rule_ast) = grammar_tree.get(rule_name) {
-        branch_first_set(
-            rule_ast,
-            grammar_tree,
-            first_set_cache,
-            visiting_rules,
-            depth + 1,
-        )
+        // D0.1 — depth 0: a rule's summary is computed from its OWN body root,
+        // never from the query's inherited depth (depth-context-free caching).
+        branch_first_set(rule_ast, grammar_tree, first_set_cache, visiting_rules, 0)
     } else if let Some(builtin) = native_builtin_first_set(rule_name) {
         // D0 — a reference undefined in the grammar tree resolves to codegen's
         // native builtin matcher (`generate_unresolved_reference_method`); the
@@ -380,8 +435,23 @@ fn rule_first_set(
         }
     };
 
-    visiting_rules.remove(rule_name);
-    first_set_cache.insert(rule_name.to_string(), result.clone());
+    visiting_rules.visiting.remove(rule_name);
+    // A guard hit ON this rule is part of its own true conservative value, not
+    // context-dependence for anyone else — clear the marker now that it left the
+    // in-progress stack.
+    visiting_rules.tainted.remove(rule_name);
+    // D0.1 CACHE-COHERENCE — the PERSISTENT cache admits only CONTEXT-FREE values
+    // (no live taint marker, no cap hit); everything else goes to the per-query
+    // transient memo, which keeps the traversal linear without letting an
+    // ancestor-context value leak into later, fresh queries (tool-proven: the
+    // census's degeneracy count flipped 60→56 purely from a changed traversal
+    // order, drifting from codegen's own emission decisions).
+    if visiting_rules.tainted.is_empty() && !visiting_rules.cap_fired {
+        first_set_cache.insert(rule_name.to_string(), result.clone());
+    }
+    visiting_rules
+        .transient
+        .insert(rule_name.to_string(), result.clone());
     result
 }
 
@@ -621,7 +691,7 @@ pub(crate) fn branch_dispatch_first_bytes(
     first_set_cache: &mut HashMap<String, FirstSetSummary>,
     trust_regex_token_bytes: bool,
 ) -> Result<Vec<u8>, String> {
-    let mut visiting_rules = HashSet::new();
+    let mut visiting_rules = RuleVisit::default();
     let summary = branch_first_set(branch, grammar_tree, first_set_cache, &mut visiting_rules, 0);
     if summary.nullable {
         return Err("nullable (can match empty)".to_string());
@@ -649,6 +719,445 @@ pub(crate) fn branch_dispatch_first_bytes(
         }
     }
     Ok(bytes.into_iter().collect())
+}
+
+/// RGX-0078.5.i.7 D1 STEP-0 — a node's SECOND-byte facts (global over all admitting
+/// first bytes — exact for the singleton-FIRST families D1 targets, a sound
+/// over-approximation everywhere else).
+///
+/// # Soundness contract (mirrors the FIRST carrier)
+/// A consumer may exclude a branch at a two-byte prefix `(b1, b2)` ONLY when the
+/// branch's level-1 summary admits `b1`, this summary is `!unresolved`, and
+/// `b2 ∉ second_bytes` **and** `!len1_possible` **and** `!nullable`. `len1_possible`
+/// means some match consumes EXACTLY ONE byte, so byte 2 is unconstrained — the
+/// branch must be admitted in every second-byte arm (including at end-of-input).
+/// `regex_token_derived` carries the same layout-trust obligation as the FIRST
+/// carrier (anchored `match_regex` peeking is sound only without a leading layout
+/// skip).
+#[derive(Debug, Clone, Default)]
+pub(crate) struct SecondByteSummary {
+    /// Sound over-approximation of every possible SECOND byte of a non-empty match.
+    pub(crate) second_bytes: BTreeSet<u8>,
+    /// Some match may consume exactly one byte ⇒ byte-2 wildcard.
+    pub(crate) len1_possible: bool,
+    /// The node can match the empty string (mirrors `FirstSetSummary::nullable`).
+    pub(crate) nullable: bool,
+    /// Analysis incomplete ⇒ `second_bytes` is NOT exhaustive ⇒ never exclude on it.
+    pub(crate) unresolved: bool,
+    /// Any fact came from a `/regex/` terminal (layout-trust obligation).
+    pub(crate) regex_token_derived: bool,
+}
+
+impl SecondByteSummary {
+    fn unresolved() -> Self {
+        SecondByteSummary {
+            unresolved: true,
+            ..SecondByteSummary::default()
+        }
+    }
+}
+
+/// The union of a FIRST summary's admissible first BYTES (quoted-terminal first
+/// bytes ∪ the D0 `first_bytes`), or `None` when any terminal's first byte is
+/// unextractable — the composition helper the second-byte fold uses for "an element
+/// beginning at offset 1 contributes its FIRST bytes as sequence second bytes".
+fn summary_all_first_bytes(summary: &FirstSetSummary) -> Option<BTreeSet<u8>> {
+    let mut bytes = summary.first_bytes.clone();
+    for terminal in &summary.terminals {
+        bytes.insert(terminal_first_byte(terminal)?);
+    }
+    Some(bytes)
+}
+
+/// SECOND-byte facts of an arbitrary grammar node. Composes with
+/// [`branch_first_set`] (level 1) through the shared caches.
+pub(crate) fn branch_second_byte_summary(
+    node: &ASTNode,
+    grammar_tree: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+    second_byte_cache: &mut HashMap<String, SecondByteSummary>,
+    visiting_rules: &mut RuleVisit<SecondByteSummary>,
+    depth: usize,
+) -> SecondByteSummary {
+    if depth > MAX_FIRST_SET_DEPTH {
+        return SecondByteSummary::unresolved();
+    }
+
+    match node {
+        ASTNode::Sequence { elements } => {
+            let mut result = SecondByteSummary::default();
+            // `at0` / `at1` — a path can reach the CURRENT element having consumed
+            // exactly 0 / exactly 1 byte(s). Elements past both frontiers cannot
+            // affect the first two bytes.
+            let mut at0 = true;
+            let mut at1 = false;
+            for element in elements {
+                if !at0 && !at1 {
+                    break;
+                }
+                let mut fs_visiting = RuleVisit::default();
+                let element_first = branch_first_set(
+                    element,
+                    grammar_tree,
+                    first_set_cache,
+                    &mut fs_visiting,
+                    depth + 1,
+                );
+                let element_second = branch_second_byte_summary(
+                    element,
+                    grammar_tree,
+                    first_set_cache,
+                    second_byte_cache,
+                    visiting_rules,
+                    depth + 1,
+                );
+                if at0 {
+                    // Matches of the element starting at offset 0 contribute their
+                    // own second bytes.
+                    result
+                        .second_bytes
+                        .extend(element_second.second_bytes.iter().copied());
+                    result.unresolved |= element_second.unresolved;
+                    result.regex_token_derived |= element_second.regex_token_derived;
+                }
+                if at1 {
+                    // The element begins at offset 1 ⇒ its FIRST bytes are the
+                    // sequence's second bytes.
+                    match summary_all_first_bytes(&element_first) {
+                        Some(bytes) => result.second_bytes.extend(bytes),
+                        None => result.unresolved = true,
+                    }
+                    result.unresolved |= element_first.unresolved;
+                    result.regex_token_derived |= element_first.regex_token_derived;
+                }
+                let next_at0 = at0 && element_first.nullable;
+                let next_at1 =
+                    (at1 && element_first.nullable) || (at0 && element_second.len1_possible);
+                at0 = next_at0;
+                at1 = next_at1;
+            }
+            result.nullable = at0;
+            result.len1_possible = at1;
+            result
+        }
+        ASTNode::Or { alternatives } => {
+            let mut result = SecondByteSummary::default();
+            if alternatives.is_empty() {
+                result.nullable = true;
+                return result;
+            }
+            for alternative in alternatives {
+                let alt = branch_second_byte_summary(
+                    alternative,
+                    grammar_tree,
+                    first_set_cache,
+                    second_byte_cache,
+                    visiting_rules,
+                    depth + 1,
+                );
+                result.second_bytes.extend(alt.second_bytes.iter().copied());
+                result.len1_possible |= alt.len1_possible;
+                result.nullable |= alt.nullable;
+                result.unresolved |= alt.unresolved;
+                result.regex_token_derived |= alt.regex_token_derived;
+            }
+            result
+        }
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => branch_second_byte_summary(
+                inner,
+                grammar_tree,
+                first_set_cache,
+                second_byte_cache,
+                visiting_rules,
+                depth + 1,
+            ),
+            ASTValue::Token(parts) => {
+                if parts.len() < 2 {
+                    return SecondByteSummary::unresolved();
+                }
+                let TokenValue::String(token_type) = &parts[0];
+                let TokenValue::String(token_value) = &parts[1];
+                match token_type.as_str() {
+                    "quoted_string" => {
+                        let bytes = token_value.as_bytes();
+                        SecondByteSummary {
+                            second_bytes: bytes.get(1).copied().into_iter().collect(),
+                            len1_possible: bytes.len() == 1,
+                            nullable: bytes.is_empty(),
+                            ..SecondByteSummary::default()
+                        }
+                    }
+                    "rule_reference" => rule_second_byte_summary(
+                        token_value,
+                        grammar_tree,
+                        first_set_cache,
+                        second_byte_cache,
+                        visiting_rules,
+                        depth + 1,
+                    ),
+                    "regex" => match regex_syntax::Parser::new()
+                        .parse(token_value)
+                        .ok()
+                        .and_then(|hir| regex_hir_second(&hir))
+                    {
+                        Some(mut summary) => {
+                            summary.regex_token_derived = true;
+                            summary
+                        }
+                        None => SecondByteSummary::unresolved(),
+                    },
+                    _ => SecondByteSummary::unresolved(),
+                }
+            }
+        },
+        ASTNode::Quantified {
+            element,
+            quantifier,
+        } => {
+            let mut result = branch_second_byte_summary(
+                element,
+                grammar_tree,
+                first_set_cache,
+                second_byte_cache,
+                visiting_rules,
+                depth + 1,
+            );
+            let min_repeat = quantifier_min_repeat(quantifier);
+            if min_repeat == 0 {
+                result.nullable = true;
+            }
+            // A second repetition can begin at offset 1 when the first consumed
+            // exactly one byte — its FIRST bytes join the second-byte set.
+            if result.len1_possible && quantifier_max_allows_second_repeat(quantifier) {
+                let mut fs_visiting = RuleVisit::default();
+                let element_first = branch_first_set(
+                    element,
+                    grammar_tree,
+                    first_set_cache,
+                    &mut fs_visiting,
+                    depth + 1,
+                );
+                match summary_all_first_bytes(&element_first) {
+                    Some(bytes) => result.second_bytes.extend(bytes),
+                    None => result.unresolved = true,
+                }
+                result.unresolved |= element_first.unresolved;
+                result.regex_token_derived |= element_first.regex_token_derived;
+            }
+            // `len1_possible` stays as the element's (over-approximating it is the
+            // conservative, no-exclusion direction).
+            result
+        }
+        ASTNode::Lookahead { element, .. } => {
+            // Zero-width: contributes nothing at either offset; conservative
+            // unresolvedness propagation mirrors the level-1 arm.
+            let element_second = branch_second_byte_summary(
+                element,
+                grammar_tree,
+                first_set_cache,
+                second_byte_cache,
+                visiting_rules,
+                depth + 1,
+            );
+            SecondByteSummary {
+                nullable: true,
+                unresolved: element_second.unresolved,
+                regex_token_derived: element_second.regex_token_derived,
+                ..SecondByteSummary::default()
+            }
+        }
+    }
+}
+
+fn rule_second_byte_summary(
+    rule_name: &str,
+    grammar_tree: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+    second_byte_cache: &mut HashMap<String, SecondByteSummary>,
+    visiting_rules: &mut RuleVisit<SecondByteSummary>,
+    // D0.1 — see `rule_first_set`: depth resets per rule body.
+    _depth: usize,
+) -> SecondByteSummary {
+    if let Some(cached) = second_byte_cache.get(rule_name) {
+        return cached.clone();
+    }
+    if let Some(transient) = visiting_rules.transient.get(rule_name) {
+        return transient.clone();
+    }
+    if !visiting_rules.visiting.insert(rule_name.to_string()) {
+        visiting_rules.tainted.insert(rule_name.to_string());
+        return SecondByteSummary::unresolved();
+    }
+    // D0.1 CACHE-COHERENCE — chain cap + per-body depth reset (see `rule_first_set`).
+    if visiting_rules.visiting.len() > MAX_RULE_CHAIN_DEPTH {
+        visiting_rules.cap_fired = true;
+        visiting_rules.visiting.remove(rule_name);
+        return SecondByteSummary::unresolved();
+    }
+
+    let result = if let Some(rule_ast) = grammar_tree.get(rule_name) {
+        branch_second_byte_summary(
+            rule_ast,
+            grammar_tree,
+            first_set_cache,
+            second_byte_cache,
+            visiting_rules,
+            0,
+        )
+    } else {
+        native_builtin_second_byte_summary(rule_name)
+            .unwrap_or_else(SecondByteSummary::unresolved)
+    };
+    visiting_rules.visiting.remove(rule_name);
+    visiting_rules.tainted.remove(rule_name);
+    // D0.1 CACHE-COHERENCE — persistent cache admits context-free values only;
+    // the per-query transient memo carries the rest (see `rule_first_set`).
+    if visiting_rules.tainted.is_empty() && !visiting_rules.cap_fired {
+        second_byte_cache.insert(rule_name.to_string(), result.clone());
+    }
+    visiting_rules
+        .transient
+        .insert(rule_name.to_string(), result.clone());
+    result
+}
+
+/// The native builtins' SECOND-byte facts (mirrors `native_builtin_first_set`):
+/// both char builtins can consume exactly one byte (ASCII) ⇒ byte-2 wildcard;
+/// `builtin_any_char` additionally spans multi-byte scalars whose second byte is a
+/// UTF-8 continuation byte.
+fn native_builtin_second_byte_summary(rule_name: &str) -> Option<SecondByteSummary> {
+    match rule_name {
+        "builtin_ascii_char" => Some(SecondByteSummary {
+            len1_possible: true,
+            ..SecondByteSummary::default()
+        }),
+        "builtin_any_char" => Some(SecondByteSummary {
+            second_bytes: (0x80u8..=0xBF).collect(),
+            len1_possible: true,
+            ..SecondByteSummary::default()
+        }),
+        "true" | "false" => Some(SecondByteSummary {
+            nullable: true,
+            ..SecondByteSummary::default()
+        }),
+        _ => None,
+    }
+}
+
+/// SECOND-byte facts of a regex pattern's HIR (the level-2 sibling of
+/// [`regex_hir_prefix`]). `None` = underivable (caller falls back to unresolved).
+fn regex_hir_second(hir: &regex_syntax::hir::Hir) -> Option<SecondByteSummary> {
+    use regex_syntax::hir::{Class, HirKind};
+    match hir.kind() {
+        HirKind::Empty => Some(SecondByteSummary {
+            nullable: true,
+            ..SecondByteSummary::default()
+        }),
+        HirKind::Literal(literal) => Some(SecondByteSummary {
+            second_bytes: literal.0.get(1).copied().into_iter().collect(),
+            len1_possible: literal.0.len() == 1,
+            nullable: literal.0.is_empty(),
+            ..SecondByteSummary::default()
+        }),
+        HirKind::Class(class) => {
+            let mut summary = SecondByteSummary::default();
+            match class {
+                Class::Unicode(ranges) => {
+                    for range in ranges.ranges() {
+                        if (range.start() as u32) <= 0x7F {
+                            summary.len1_possible = true;
+                        }
+                        if (range.end() as u32) > 0x7F {
+                            // Multi-byte scalar ⇒ its second byte is a UTF-8
+                            // continuation byte (sound over-approximation).
+                            summary.second_bytes.extend(0x80u8..=0xBF);
+                        }
+                    }
+                }
+                Class::Bytes(_) => {
+                    summary.len1_possible = true;
+                }
+            }
+            Some(summary)
+        }
+        HirKind::Look(_) => Some(SecondByteSummary {
+            nullable: true,
+            ..SecondByteSummary::default()
+        }),
+        HirKind::Repetition(repetition) => {
+            let mut result = regex_hir_second(&repetition.sub)?;
+            if repetition.min == 0 {
+                result.nullable = true;
+            }
+            if result.len1_possible && repetition.max.map_or(true, |max| max >= 2) {
+                let prefix = regex_hir_prefix(&repetition.sub)?;
+                result.second_bytes.extend(prefix.bytes.iter().copied());
+            }
+            Some(result)
+        }
+        HirKind::Capture(capture) => regex_hir_second(&capture.sub),
+        HirKind::Concat(parts) => {
+            let mut result = SecondByteSummary::default();
+            let mut at0 = true;
+            let mut at1 = false;
+            for part in parts {
+                if !at0 && !at1 {
+                    break;
+                }
+                let part_second = regex_hir_second(part)?;
+                let part_prefix = regex_hir_prefix(part)?;
+                if at0 {
+                    result
+                        .second_bytes
+                        .extend(part_second.second_bytes.iter().copied());
+                }
+                if at1 {
+                    result.second_bytes.extend(part_prefix.bytes.iter().copied());
+                }
+                let next_at0 = at0 && part_prefix.nullable;
+                let next_at1 = (at1 && part_prefix.nullable) || (at0 && part_second.len1_possible);
+                at0 = next_at0;
+                at1 = next_at1;
+            }
+            result.nullable = at0;
+            result.len1_possible = at1;
+            Some(result)
+        }
+        HirKind::Alternation(alternatives) => {
+            let mut result = SecondByteSummary::default();
+            for alternative in alternatives {
+                let alt = regex_hir_second(alternative)?;
+                result.second_bytes.extend(alt.second_bytes.iter().copied());
+                result.len1_possible |= alt.len1_possible;
+                result.nullable |= alt.nullable;
+            }
+            Some(result)
+        }
+    }
+}
+
+/// Does the quantifier's MAX bound allow a second repetition? (`?`/`{1}`/`{0,1}`
+/// forbid it; `*`/`+`/`{n,}`/`{n,m≥2}` allow it.)
+fn quantifier_max_allows_second_repeat(quantifier: &str) -> bool {
+    let trimmed = quantifier.trim();
+    match trimmed {
+        "?" => false,
+        "*" | "+" => true,
+        _ if trimmed.starts_with('{') && trimmed.ends_with('}') => {
+            let inner = trimmed[1..trimmed.len() - 1].trim();
+            if inner.is_empty() {
+                return true;
+            }
+            let max_part = match inner.split_once(',') {
+                None => inner.trim(),                  // {N}
+                Some((_, max)) if max.trim().is_empty() => return true, // {N,}
+                Some((_, max)) => max.trim(),          // {N,M} / {,M}
+            };
+            max_part.parse::<usize>().map_or(true, |max| max >= 2)
+        }
+        _ => true,
+    }
 }
 
 /// RGX-0078.5.c.2 — the first BYTE of a quoted terminal literal.
@@ -704,7 +1213,7 @@ mod tests {
 
     fn summarize(node: &ASTNode, tree: &HashMap<String, ASTNode>) -> FirstSetSummary {
         let mut cache = HashMap::new();
-        let mut visiting = HashSet::new();
+        let mut visiting = RuleVisit::default();
         branch_first_set(node, tree, &mut cache, &mut visiting, 0)
     }
 
@@ -882,5 +1391,152 @@ mod tests {
         let summary = summarize(&regex_atom("(unclosed"), &HashMap::new());
         assert!(summary.unresolved);
         assert!(summary.first_bytes.is_empty());
+    }
+
+    fn summarize2(node: &ASTNode, tree: &HashMap<String, ASTNode>) -> SecondByteSummary {
+        let mut first_cache = HashMap::new();
+        let mut second_cache = HashMap::new();
+        let mut visiting = RuleVisit::default();
+        branch_second_byte_summary(
+            node,
+            tree,
+            &mut first_cache,
+            &mut second_cache,
+            &mut visiting,
+            0,
+        )
+    }
+
+    #[test]
+    fn second_bytes_of_escape_alternation_regex() {
+        // The zero_width shape: 2-byte literals sharing the `\` first byte — the
+        // second byte is the D1 discriminator.
+        let summary = summarize2(&regex_atom(r"\\b|\\B|\\A"), &HashMap::new());
+        assert!(!summary.unresolved);
+        assert!(!summary.len1_possible);
+        assert!(!summary.nullable);
+        assert!(summary.regex_token_derived);
+        assert_eq!(
+            summary.second_bytes,
+            BTreeSet::from([b'A', b'B', b'b'])
+        );
+    }
+
+    #[test]
+    fn second_bytes_of_group_open_sequence() {
+        // The `(`-cluster shape: quoted '(' then '?' — byte 2 discriminates.
+        let seq = ASTNode::Sequence {
+            elements: vec![quoted_atom("("), quoted_atom("?")],
+        };
+        let summary = summarize2(&seq, &HashMap::new());
+        assert!(!summary.unresolved);
+        assert!(!summary.len1_possible);
+        assert_eq!(summary.second_bytes, BTreeSet::from([b'?']));
+    }
+
+    #[test]
+    fn single_byte_terminal_is_len1_wildcard() {
+        let summary = summarize2(&quoted_atom("x"), &HashMap::new());
+        assert!(summary.len1_possible, "byte-2 must be unconstrained");
+        assert!(summary.second_bytes.is_empty());
+        // A multi-byte terminal pins its second byte instead.
+        let summary = summarize2(&quoted_atom("ab"), &HashMap::new());
+        assert!(!summary.len1_possible);
+        assert_eq!(summary.second_bytes, BTreeSet::from([b'b']));
+    }
+
+    #[test]
+    fn builtin_second_bytes_mirror_native_matchers() {
+        let any = summarize2(&rule_ref("builtin_any_char"), &HashMap::new());
+        assert!(any.len1_possible);
+        assert_eq!(any.second_bytes, (0x80u8..=0xBF).collect::<BTreeSet<u8>>());
+        let ascii = summarize2(&rule_ref("builtin_ascii_char"), &HashMap::new());
+        assert!(ascii.len1_possible && ascii.second_bytes.is_empty());
+        let undefined = summarize2(&rule_ref("no_such_rule"), &HashMap::new());
+        assert!(undefined.unresolved);
+    }
+
+    #[test]
+    fn quantified_second_repetition_contributes_first_bytes() {
+        // 'a'+ — a second repetition can begin at offset 1.
+        let quant = ASTNode::Quantified {
+            element: Box::new(quoted_atom("a")),
+            quantifier: "+".to_string(),
+        };
+        let summary = summarize2(&quant, &HashMap::new());
+        assert!(summary.len1_possible);
+        assert_eq!(summary.second_bytes, BTreeSet::from([b'a']));
+        // 'ab'? — max 1 repetition: only the literal's own second byte, nullable.
+        let quant = ASTNode::Quantified {
+            element: Box::new(quoted_atom("ab")),
+            quantifier: "?".to_string(),
+        };
+        let summary = summarize2(&quant, &HashMap::new());
+        assert!(summary.nullable);
+        assert!(!summary.len1_possible);
+        assert_eq!(summary.second_bytes, BTreeSet::from([b'b']));
+    }
+
+    #[test]
+    fn regex_bounded_repeat_second_bytes() {
+        // `[0-9]{1,2}` — a single-byte class with a possible second repetition.
+        let summary = summarize2(&regex_atom("[0-9]{1,2}"), &HashMap::new());
+        assert!(!summary.unresolved);
+        assert!(summary.len1_possible);
+        assert_eq!(
+            summary.second_bytes,
+            (b'0'..=b'9').collect::<BTreeSet<u8>>()
+        );
+    }
+
+    #[test]
+    fn second_byte_cycle_is_unresolved() {
+        let mut tree = HashMap::new();
+        tree.insert("looper".to_string(), rule_ref("looper"));
+        let summary = summarize2(&rule_ref("looper"), &tree);
+        assert!(summary.unresolved);
+    }
+
+    /// D0.1 CACHE-COHERENCE — a summary computed mid-cycle (an ancestor still on
+    /// the visiting stack) must never be cached: the pre-fix code returned the
+    /// poisoned ancestor-context value on later fresh queries, making verdicts
+    /// call-ORDER-dependent (tool-proven on the real grammar: the census's
+    /// degeneracy count flipped 60→56 from a changed traversal order alone).
+    #[test]
+    fn rule_cache_stores_only_context_free_summaries() {
+        let mut tree = HashMap::new();
+        tree.insert("entry".to_string(), rule_ref("inner"));
+        tree.insert(
+            "inner".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![
+                            ASTNode::Quantified {
+                                element: Box::new(quoted_atom("a")),
+                                quantifier: "?".to_string(),
+                            },
+                            rule_ref("entry"),
+                        ],
+                    },
+                    quoted_atom("b"),
+                ],
+            },
+        );
+        // Fresh-cache truth for `entry`.
+        let fresh = summarize(&rule_ref("entry"), &tree);
+        assert!(fresh.terminals.contains("'a'") && fresh.terminals.contains("'b'"));
+        // A shared cache that first computes `inner` (whose recursion finishes
+        // `entry` while `inner` is still in progress), then queries `entry` —
+        // the answer must equal the fresh-cache truth. Pre-fix, the poisoned
+        // mid-cycle `entry` value (EMPTY terminals) was cached and returned.
+        let mut cache = HashMap::new();
+        let mut visiting = RuleVisit::default();
+        let _ = branch_first_set(&rule_ref("inner"), &tree, &mut cache, &mut visiting, 0);
+        let mut visiting = RuleVisit::default();
+        let after = branch_first_set(&rule_ref("entry"), &tree, &mut cache, &mut visiting, 0);
+        assert_eq!(after.terminals, fresh.terminals);
+        assert_eq!(after.unresolved, fresh.unresolved);
+        assert_eq!(after.nullable, fresh.nullable);
     }
 }

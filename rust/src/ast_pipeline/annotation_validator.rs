@@ -2013,7 +2013,7 @@ impl AnnotationValidator {
             let mut first_set_cache: HashMap<String, FirstSetSummary> = HashMap::new();
             let mut branch_first_sets = Vec::with_capacity(branches.len());
             for (idx, branch) in branches.iter().enumerate() {
-                let mut visiting_rules = HashSet::new();
+                let mut visiting_rules = first_set::RuleVisit::default();
                 let summary = first_set::branch_first_set(
                     branch,
                     grammar_tree,

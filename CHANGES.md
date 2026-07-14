@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0073 — `.5.i.7` D0.1 FIRST-cache coherence defect FIXED (order-dependent verdicts, census-vs-emission drift class) + the D1 FIRST₂ census instrument LANDED: 23/52 blocked sites measured two-level dispatchable (exposure 363 entries / 319 discarded), D1 emission re-priced ≈−6–12%; ALL 11 artifacts byte-identical
+
+Wiring the D1 second-byte census flipped the DEGENERACY count 60 → 56 with untouched
+level-1 code — a read-only instrument moved a supposedly-shared verdict. Root cause
+(`first_set.rs::rule_first_set`): the shared cache admitted values computed MID-CYCLE
+(absorbing an in-progress ancestor's guard-`unresolved`) or at INHERITED depth (the
+cross-rule depth accumulation pushed mid-chain rules past the cutoff) — both
+order-dependent, so the census and codegen could drift from the SAME shared predicate.
+
+- **The landed `-0071` emission was never wrong:** every poisoned value provably carries
+  `unresolved: true` (the guard return survives every composition arm), and consumers treat
+  `unresolved` as always-try — poisoning could only SUPPRESS optimization. Proof by regen:
+  under the fix, ALL 11 generated artifacts are BYTE-IDENTICAL (regex stays `5d8881b2…`),
+  so no bench was owed.
+- **The fix:** `RuleVisit<T>` — taint-tracked persistent-cache admission (a value enters
+  the durable cache only when no in-progress rule's cycle guard fired beneath it and no
+  chain-cap hit), a per-QUERY transient memo for the context-dependent remainder
+  (conservative within its query, discarded with it), and per-body depth reset with an
+  explicit rule-chain cap. The first attempt (outermost-only caching, no transient memo)
+  HUNG the SV regen for 85 minutes — cycle-scoped subtrees recompute exponentially without
+  intra-query memoization; the final scheme measures 2.47s at SV scale. Census now stable
+  at 60 across runs and instrument paths; level-2 resolution unblocked 15 → 23 sites.
+- **The D1 instrument:** `SecondByteSummary` (second bytes / len-1 byte-2-wildcard /
+  nullable / trust flags, derived from quoted terminals, regex HIR, native builtins, rule
+  refs) + the census `PREFIX2-CENSUS`/`PREFIX2-EXPOSURE` surfaces with the pure
+  `site_prefix2_verdict` (P2 gates minus byte-1 disjointness + per-shared-byte resolved,
+  pairwise-disjoint second bytes; wildcards legal and counted). 9 new unit pins.
+- **Measured D1 surface:** 23/52 blocked sites dispatchable — the `\`-family core
+  (`zero_width`, `class_zero_width`, `anchor`, `escape_unit`, `class_atom`, `hex_escape`,
+  `property_escape`, `atomic_group`, …); exposure 363 entries (16.8%) / 319 discarded
+  direct + nested kills. The `(`-cluster stays blocked at level 2 (the `(?` prefix collides
+  pairwise — byte-3 territory, a recorded unpriced D1-ii candidate). **D1 emission
+  re-priced ≈−6–12% (min-basis)**; frontier = the two-level dispatch emission.
+
 ## 2026-07-14 - PGEN-RGX-0078-0072 — `.5.i.7` POST-D0 RE-CENSUS (docs-only): the unresolved-FIRST blocked class is EMPTY; byte-1 machinery is EXHAUSTED — **D1 = FIRST₂/prefix dispatch**, population named (≈650–830 of 1540 residual discards addressable), re-priced ≈−8–16% min-basis
 
 The re-census the D0 land mandated, on fresh post-D0 dumps (8/8 entry dumps, determinism
