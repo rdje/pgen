@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-14 - PGEN-RGX-0078-0070 — `.5.i.7` STEP-0 scout: engineering notes
+
+**Verify binary identity by hash, not by resume-pointer prose.** The resume pointer said the
+on-disk bench probe was "rebuilt from the reverted state"; its sha256 prefix `eaf80bba…`
+matched the `-0069` measurement record's own transcribed CANDIDATE hash — the folded binary,
+not a reverted rebuild (the 13:04 session kill pre-empted the rebuild step and the pointer
+recorded intent as fact). A one-line `shasum` against the tree's transcribed hashes settled
+it before any timing was trusted. Corollary: transcribing probe hashes into the tree at
+measurement time (done since `-0066`) is what made this checkable at all.
+
+**The FIRST-set analyzer's `regex`-token arm is the single biggest measured leverage point
+left.** `first_set.rs:206–217` maps every regex-literal terminal to `unresolved` (sound,
+never-prune), and the soundness contract propagates that up every chain that touches one —
+so `atom`'s `literal` branch (via `unicode_char = !builtin_ascii_char builtin_any_char`) is
+"always try" at all 24-branch tournament entries. The fresh outcome dumps put numbers on it:
+`unicode_char` 160 entries / 0 committed, `zero_width` family 147/0, bench-wide discards
+1886/2503 = 75.4%. A regex pattern's admissible FIRST BYTES are statically computable
+(sound over-approximation, `unresolved` fallback retained), and both consumers of the
+summary — the `.5.c.2` emitted prune and the P2 byte-switch gate — amplify at regen with no
+new emission machinery. That is the D0 increment.
+
+**Profile-method note.** The `.5.i.7` scout profile uses SELF-TIME leaf attribution (stack
+walker with per-node self = count − children), a complementary cut to the #7 inclusive-bucket
+method; both windows' raws are preserved in the session scratchpad and the shares are
+transcribed in the tree. Post-reboot the system allocator is Apple xzone malloc (`_xzm_*`
+self frames 39–40%) — pre/post-reboot allocator-frame comparisons are partly environmental,
+another reason the campaign metric stays geomean-of-mins on alternated same-host builds.
+
+**Memory-guard operational note.** The canonical fat-LTO rebuild peaked at 12238 MB tree RSS
+— within 50 MB of the guard's 12288 default budget. Expected and acceptable (the guard's job
+is exactly this ceiling); if a future fat-LTO link crosses it, raise `--budget-mb` explicitly
+for that build rather than disabling the guard.
+
 ## 2026-07-14 - PGEN-OPS-MEMSAFE-0002 — three portable lessons from the memory-guard fratricide
 
 **awk `!arr[k]` is a membership BUG, not a membership test.** Reading `arr[k]` auto-vivifies

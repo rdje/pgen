@@ -1036,3 +1036,44 @@ byte-identical to its predecessor. What remains between here and the cold-parse 
 not another bucket to shave but a change of altitude: the deep-specialization extensions,
 where the generator stops trimming the interpreter-shaped machinery and starts emitting
 code specialized to what each rule actually is.
+
+## The deep-specialization scout: three quarters of the work is thrown away
+
+The deep-specialization campaign opened, as every rung before it, with a scout — and the
+scout's first finding was about evidence, not speed. A host crash had wiped the previous
+sessions' scratch directories, taking the byte-identity reference dumps with them, so the
+first order of business was re-deriving all of them from the canonical artifacts and
+transcribing their hashes into the durable task tree. In the process, a hash check caught
+the on-disk benchmark binary claiming to be something it wasn't: it was the reverted fold's
+*candidate* build, left behind when the session that meant to rebuild it was killed. The
+canonical probe was rebuilt from the verified tree, and it reproduced the era on cue. The
+lesson is worth a sentence in a book about performance: a benchmark number is only as
+trustworthy as the identity of the binary that produced it, and identity is a hash, not a
+recollection.
+
+The measurement itself reframed the residual. Counting every rule entry across the
+benchmark and splitting it into work that survived into the final parse versus work that was
+attempted and rolled back, **just over three quarters of all rule entries — 1,886 of 2,503 —
+are discarded speculation**, and the share is highest in exactly the patterns that parse
+slowest. The parser is not slow because the surviving work is expensive; it is slow because
+for every entry that contributes to the answer, three are tried and thrown away — along with
+their share of checkpointing, rollback, and allocator traffic.
+
+And the reason so much is tried turned out to have a single, named address. The shared
+FIRST-set analysis — the one that already powers the landed predictive prune and the
+byte-switch dispatch — deliberately gives up on any branch that begins with a regex-literal
+terminal, classifying it as "unresolved, always try." That is sound, but it blinds both
+consumers to precisely the branches that matter: the literal-matching spine of the regex
+grammar reaches such a terminal, so the busiest choice site in the grammar attempts its
+literal branch at every metacharacter position, knowing nothing about what bytes could
+possibly begin it. A regex literal's admissible first bytes are perfectly computable from
+the pattern itself. Teaching the analyzer that one thing — with the conservative fallback
+intact for genuinely undecidable patterns — lets the two already-landed emissions prune and
+dispatch dozens of additional sites at the next regeneration, with no new machinery at all.
+That analysis increment, followed by a re-census and then a subset-dispatch emission for the
+sites whose branches genuinely share a first byte (the parenthesis and backslash families,
+where the *second* byte discriminates), is the priced, ordered road; region fusion and
+memo-necessity analysis were priced honestly against the fresh numbers and parked. Every
+ceiling was recorded against the metric's own basis — the discipline the refuted fold paid
+for — and every one is falsifiable by the same alternated benchmark that will judge the
+emissions.

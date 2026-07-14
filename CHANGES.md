@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0070 — `.5.i.7` DEEP-SPECIALIZATION EXTENSIONS opened + STEP-0 scout DONE (docs-only): 75.4% of all bench entries measured as discarded speculation; the FIRST-set analyzer is blind to regex-literal terminals (`first_set.rs:206–217`) — D0/D1 priced ≈−8–14% / ≈−6–12%; post-crash byte-identity refs re-derived; the on-disk bench probe proved to be the `-0069` folded candidate and was rebuilt canonical
+
+The deep-specialization planner-extensions leaf (`RGX-0078.5.i.7` — director 2026-07-13:
+ON-ROAD after P4 until COLD ≤1µs) is open with its STEP-0 scout complete, tools-first:
+
+- **Post-crash mandate executed.** Fresh byte-identity reference dumps re-derived from the
+  canonical artifacts (8/8 `--parse-dump-ast-pretty` + 8/8 outcome + 8/8 entry dumps,
+  determinism `cmp`-clean) with every sha256 TRANSCRIBED into the tree; aggregate counters
+  `2503/617/1886/314` byte-continuous with the P1b-era pins.
+- **Probe-identity correction (fishy result root-caused by hash).** The on-disk release
+  `regex_perf_probe` hashed `eaf80bba…` = the `-0069` FOLDED-CANDIDATE binary (the 13:04
+  session kill pre-empted the recorded post-revert rebuild). Canonical fat-LTO probe rebuilt
+  under the memory guard (9m18s; peak tree RSS 12238 MB — within 50 MB of the default
+  budget) → `49158bed…`; era reproduced (solo 5×2000 geomean-of-mins 25.5–26.0 µs vs the
+  ≈27.4 µs alternated era). MEMORY's stale on-disk claim corrected. Post-reboot environment
+  note: the system allocator is now Apple xzone malloc (`_xzm_*` frames).
+- **The central measurement (fresh census join over the fresh dumps): 1886 of 2503 bench
+  rule entries (75.4%) are DISCARDED speculation work**, concentrated exactly in the slowest
+  patterns (anchor_complex 78.8% / capture_groups 82.8% / character_class 77.2%). WHY+WHERE:
+  `first_set.rs:206–217` returns `unresolved` for EVERY regex-literal terminal, so BOTH the
+  landed `.5.c.2` runtime prune (`ast_based_generator.rs:4640–4642` emits always-try) and
+  the P2 degeneracy gate are blind to regex-token-led branches — `atom`'s `literal` branch
+  (via `unicode_char = !builtin_ascii_char builtin_any_char`) is attempted at every metachar
+  position. Census: 112 top-level choice sites = 41 P2-degenerate (landed) + 33 blocked by
+  unresolved-FIRST (the D0 class) + 38 by genuine shared first byte (the D1 class).
+- **Priced increments (falsifiable, min-basis-valid — discard elimination is fixed
+  per-parse compute, the P0/P4-i class):** D0 = FIRST-set resolution THROUGH regex-literal
+  terminals (analysis-only; the landed prune + P2 dispatch amplify at regen; ceiling
+  ≈−8–14%) → mandatory re-census → D1 = subset/prefix dispatch at overlap sites (dispatch at
+  the first diverging byte, tournament verbatim within the admitted subset; ceiling ≈−6–12%)
+  → re-profile → adjudicate D2 (parked: fresh census reproduces the thin `.5.h` fusion share
+  ≈1.04×) / D3 (parked: memo self 1.7–2.6%). Fresh profile raws captured (2×30s@1ms,
+  22.7k/22.8k roots) and transcribed: alloc 39–40%, rule_method_self 17–21%,
+  snapshot_rollback ≈7%, memcpy 7–8% self.
+
+Details: `docs/tasks/RGX-0078.md` (the `.5.i.7` leaf + STEP-0 section); book performance
+chapter updated in lockstep. Next: the D0 emission increment.
+
 ## 2026-07-14 - PGEN-OPS-MEMSAFE-0002 — memory-guard wrapper DELIVERED (`OPS-MEMSAFE.1` DONE): its own T2 test caught a fatal tree-walk defect (first build killed the host's user session); root-caused + fixed + T1–T9 23/23
 
 `scripts/run_with_memory_guard.sh` (the HOST-RAM BUDGET DIRECTIVE's mechanical enforcement)
