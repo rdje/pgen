@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0075 — `.5.i.7` RE-PROFILE #8 + residual adjudication (docs-only): allocator self ≈38% shape-preserved, D1 guards profile-invisible; the top residual discards are QUANTIFIED-SITE rule entries ⇒ NEW increment Q-GUARD named (FIRST-guarded min-0 quantifier attempt elision + exact furthest emulation, ≈−7–15% extrapolated); D1-ii thin, D2/D3 stay parked
+
+Two 30s@1ms `sample` windows on the canonical D1 probe (tree-only truncation, self-time
+leaf attribution): allocator 39.9/37.0%, rule_method_self 20.1/22.7%, memcpy 9.4/7.6%,
+rollback 5.8/6.3%, drops ≈5%, memo 0.2–0.3%, guards <0.1%. The shape is the #7-era shape
+at lower volume — discard elimination remains the only lever that shrinks the alloc
+bucket. The post-D1 dumps name where the 999 residual discards live: `class_zero_width`
+134/134 (untouched — entered via `class_range`'s `class_zero_width*`, a QUANTIFIED
+sequence element outside every top-level-Or guard), the class-range endpoint family, the
+quantifier/digit probes. Q-GUARD closes that structural gap: at a min-0 quantified site,
+skip the element attempt when the next byte refutes its FIRST set and emit
+`if p > furthest { furthest = p }` — EXACT emulation, sound precisely where the D1
+Or-branch emulation was rejected, because a min-0 quantifier always attempts its element
+once. STEP-0 census lane prices it before any emission. character_class's 1.018 best-min
+is explained by this class (455 of its discards). D1-ii re-priced thin on the residual
+(`atom` 63 ⇒ ≈−1.5–2%, parked behind Q-guard).
+
 ## 2026-07-14 - PGEN-RGX-0078-0074 — `.5.i.7` D1 LANDED: per-branch FIRST₂ prune guards — regex geomean −19.8% (all 5 alternated rounds, best-mins 23.59µs → 18.91µs), cumulative 496µs → ≈18.9µs ≈ 26×; 541/1540 residual discards killed with committed Σ617 EXACTLY unchanged; only `regex_parser.rs` changed at regen (296 two-byte guards)
 
 The `-0073` census named the residual: byte-1-admitted, byte-2-refuted speculation (the
