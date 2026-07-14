@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0068 — RGX-0078.5.i.6 P4-iii/ii DESIGN SPIKE (docs-only): the serde bucket decomposed by context + metric window; dominant mechanism named = the $N/branch-default materializing extraction (≈9–12% in-window); P4-iii structural-reference fold priced ≈−10–13%; P4-ii REFUTED for the metric; P4-iv subsumed
+
+The value-ownership design spike (session #116) — zero new instrument: a context-attribution
+walker over the EXISTING RE-PROFILE #7 raws, splitting every occurrence of the four named
+mechanisms by nearest discriminating ancestor AND by metric window (the bench times only
+`parse_full_regex()`; the root-result temporary drops in-window, parser+arena teardown drops
+after `start.elapsed()` — profile-visible but metric-INVISIBLE). Cross-check: the walker
+reproduces all four recorded #7 mechanism shares exactly. Findings: (1) the dominant in-window
+surface — 9.05/11.66% of roots — is the `$N`/branch-default extraction
+(`ast_return_transform.rs:170–196`; bare-Or rules carry the implicit `-> $1`) deep-copying the
+child's whole shaped `Json` at every Or/pass-through level, tournament losers included,
+spine-concentrated (atom/piece/regex/entry_alternation) — O(depth×size) compounding whose dead
+copies also inflate the memo/arena teardown; (2) `drop<Value>` 13.9/17.4% decomposes into
+root-output discard 5.5/6.0% IN-window (protocol-pinned, claimed by nothing) + POST-window
+teardown 7.5/9.6% + churn ≈0.4–1.75%; (3) ⛔ P4-ii (memo-Value ownership, was ≈−4–6%) REFUTED
+for the reported metric — its surface is post-window teardown (in-window 0.4–1.4%, sub-noise;
+the same stale-window class as the P3a/P3b kills); (4) P4-iv subsumed. The priced increment:
+the P4-iii STRUCTURAL-REFERENCE FOLD (codegen-only) — preserve `ParseContent::Alternative(node)`
+refs in the `$1`/branch-default extraction instead of materializing (value-equal by
+`to_json_value` definition; `@transform`/value_compare sites verbatim; interpreter needs no
+mirror — gates compare ast_json), falsifiable ceiling ≈−10–13%, soundness obligations
+inventoried in the leaf. Research-grounded: Wadler deforestation + red-green trees
+(Roslyn/Rowan); Rc/CoW and arena-tape (simdjson) surveyed and NOT taken — their surfaces are
+mostly post-window here. Closure math: ceiling ≈27.4µs → ≈24µs ≈ 24× from the COLD ≤1µs bar;
+deep-specialization stays ON-ROAD after P4. Docs-only: tree + TASK_TREE + MEMORY + book.
+
 ## 2026-07-14 - PGEN-RGX-0078-0067 — RGX-0078.5.i.6 RE-PROFILE #7 (docs-only): the P4-i harvest CONFIRMED in-profile (split_semantic_top_level 0.0% both windows); serde Value traffic 26–32% = the only remaining >5% addressable surface
 
 The land→re-profile→steer pass over the landed P4-i binary (session #115). Probe = the landed

@@ -958,3 +958,42 @@ fix but a design question — who *owns* a shaped value as it crosses capture bo
 in the memo, and leaves through the output boundary — and it will be priced the way every
 pass in this chapter was: a falsifiable ceiling against the fresh profile, recorded before any
 code is written.
+
+### The design spike: cutting one bucket by who-pays-when
+
+The ownership question was answered not by choosing a clever value representation but by
+re-cutting the existing profile along two axes nobody had separated yet: *which code path*
+holds each value operation, and *whether the benchmark's stopwatch is still running when it
+happens*. The second axis sounds pedantic and is anything but. The benchmark times exactly the
+parse call; the parser and its node arena are torn down after the clock stops. Re-attributed
+that way, nearly all of the profile's headline "dropping value trees" cost splits three ways:
+about six percent is the benchmark discarding its own finished output (real, timed, and
+untouchable without changing what the benchmark means), seven to ten percent is teardown after
+the clock — CPU the profiler sees but the reported number never contains — and under two
+percent is genuine in-parse churn. That one cut refuted an entire planned increment before a
+line of it was written: re-homing the memo's stored values had been priced at four to six
+percent, but its surface lives almost wholly after the clock. The same mistake the profile
+killed twice before — pricing against a bucket the metric doesn't actually contain — now has a
+name in this campaign: the stale-window ceiling.
+
+What survived the cut is a single, precisely named mechanism, and it is the best kind of
+finding: a structural one. When a rule's result passes through unchanged — an explicit `-> $1`,
+or the implicit default every bare alternation gets — the generated code does not *pass it
+through*: it deep-copies the child's entire shaped JSON subtree and makes the copy this rule's
+own content. Every level of the grammar's spine repeats this on the whole accumulated tree,
+and in a tournament every *losing* branch that parsed successfully performs its copy before
+being discarded. The copies then outlive their usefulness inside the arena and the memo, which
+is exactly the teardown the profiler was pointing at after the clock. Nine to twelve percent
+of the timed parse goes to these copies alone.
+
+The priced fix is the oldest idea in the functional-compilation literature — deforestation,
+eliminating intermediate trees between a producer and its consumer — expressed in one line of
+the generator: where extraction means "the child's value, unchanged," emit a *reference* to
+the child node instead of a copy of its content. The output boundary already knows how to
+follow such references, so the final JSON is equal by definition; a value gets deeply built
+once per genuine object or array template rather than once per level passed through. The
+ceiling, recorded before any code: ten to thirteen percent, with the teardown shrink as an
+unclaimed bonus. The heavier designs the spike was expected to choose between — reference-
+counted values, copy-on-write, an arena tape à la simdjson — were surveyed and declined with
+reasons: their surfaces are mostly after the clock here, at many times the blast radius. The
+fold is next on the scoreboard.
