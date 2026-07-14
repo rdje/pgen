@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0074 — `.5.i.7` D1 LANDED: per-branch FIRST₂ prune guards — regex geomean −19.8% (all 5 alternated rounds, best-mins 23.59µs → 18.91µs), cumulative 496µs → ≈18.9µs ≈ 26×; 541/1540 residual discards killed with committed Σ617 EXACTLY unchanged; only `regex_parser.rs` changed at regen (296 two-byte guards)
+
+The `-0073` census named the residual: byte-1-admitted, byte-2-refuted speculation (the
+`\`-escape families). D1 kills it at the guard, not the dispatcher — the landed `.5.c.2`
+per-branch prune guard now also checks the SECOND byte where a new license admits it, and
+the tournament stays verbatim by construction.
+
+- **The guard-form refinement (deviation from the STEP-0 nested-match sketch, flagged
+  with the why in the tree):** `furthest_position` is written at RULE ENTRY only, so a
+  byte-2-refuted branch that would still enter a rule at offset ≥1 (the
+  `hex_escape = "x" payload_rule` shape) is NOT furthest-neutral to prune — rejected-parse
+  diagnostics are a contract surface (the differential-equivalence gate compares them).
+  The license is therefore per-BRANCH: a new `SecondByteSummary::offset1_rule_entry` flag
+  (sequence-fold at the offset-1 frontier via `contains_rule_reference_shallow`,
+  conservative-true), consumed by the SHARED predicate
+  `first_set::branch_prefix2_guard_bytes` — codegen emits the licensed second conjunct,
+  the census reclassifies unlicensed members as byte-2 WILDCARDS (the D0.1 no-drift
+  discipline). Explicitly rejected: emulating the counterfactual furthest bump (a refuted
+  attempt does not always reach its offset-1 entry ⇒ emulation can over-advance).
+- **Guards beat the site model they refine:** the nested-match model needs the subset's
+  second bytes pairwise-DISJOINT; a per-branch guard needs only the branch's own set, so
+  it fires at numeric-collision and partially-licensed sites too. Measured: 541 discards
+  killed vs the census's 319-direct estimate; committed Σ617 exactly unchanged (the
+  soundness signature); counter pins superseded to 1616/617/999/183.
+- **Speed (⛔ HARD CONSTRAINT battery):** baseline probe hash-verified `f2156063…` vs
+  fresh fat-LTO candidate `6134ebc0…`, alternated 5×2000 — candidate faster EVERY round
+  (0.815/0.808/0.792/0.797/0.794); geomean-of-best-mins **23.59µs → 18.91µs = −19.8%**;
+  capture_groups 0.519, anchor_complex 0.658; character_class 1.018 = the sole ≥1
+  (inside the ±1–3% noise floor; a named re-profile question).
+- **Correctness:** AST dumps 8/8 byte-identical to the `-0070` refs; cert seeds 0/7/42
+  `267/9/258/0` spf `0/1/1` byte-exact; dual-feature lib 932/0 (928 + 4 new pins) incl.
+  the 3 interpreter differential gates (interpreter untouched — the furthest-parity
+  license is what keeps it byte-identical); ast-shape 18/18; mdbook, clippy-source,
+  PCRE2 compile-oracle green. Regen audit: ONLY `regex_parser.rs` changed
+  (`027ca49a…`); 10 other artifacts byte-identical (ebnf re-derived via the canonical
+  Steps B/C, bit-exact).
+- **Recorded, not fixed:** `AST_PIPELINE_SOURCES` in `rust/Makefile` omits
+  `first_set.rs`/`fusibility_census.rs` (cargo's own change-tracking saves the regen;
+  make-level mtime reasoning is incomplete) — build-hygiene leaf candidate.
+
 ## 2026-07-14 - PGEN-RGX-0078-0073 — `.5.i.7` D0.1 FIRST-cache coherence defect FIXED (order-dependent verdicts, census-vs-emission drift class) + the D1 FIRST₂ census instrument LANDED: 23/52 blocked sites measured two-level dispatchable (exposure 363 entries / 319 discarded), D1 emission re-priced ≈−6–12%; ALL 11 artifacts byte-identical
 
 Wiring the D1 second-byte census flipped the DEGENERACY count 60 → 56 with untouched

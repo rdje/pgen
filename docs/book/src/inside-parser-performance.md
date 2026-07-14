@@ -1110,3 +1110,35 @@ backslash — escape-family branches that legitimately *can* start at every esca
 and only fail on their second byte. Those were never analysis-blindness; they are the
 subset-dispatch family the next increment exists for, and the re-census now knows their
 names in advance.
+
+## The second byte: guards instead of nested switches
+
+The follow-up increment attacked exactly that reclassified family, and its final shape is
+a small lesson in letting a soundness fact pick the emission form. The plan sketched a
+nested two-level `match` — dispatch on byte one to the subset of branches that admit it,
+then on byte two within the subset. What landed instead is simpler: the per-branch prune
+guard that already checks the first byte learned to check the *second* byte too, so a
+branch like `\Q` in a tournament full of `\`-escapes is skipped outright when the input
+reads `\b`. The tournament itself stays byte-for-byte the machinery it always was; the
+guard is just a sharper admission test.
+
+What forced the refinement is observable behavior on *rejected* inputs. PGEN reports the
+deepest byte position any attempt reached (`furthest_position`), and that value is written
+exactly once per rule entry. A branch shaped like `"x"` followed by a payload *rule* enters
+that rule at offset one even when the attempt is doomed — so pruning it on byte two would
+silently change the failure diagnostics a caller sees. The analysis therefore carries one
+more fact per branch: whether a two-byte-refuted attempt could enter any rule past offset
+zero. Only branches provably free of that side effect earn a second-byte guard; the rest
+keep their first-byte guard, no worse than before. The census instrument classifies those
+members exactly like byte-2 wildcards, so the diagnostic surface and the emitted code keep
+telling the same story.
+
+The guard form also turned out to be *stronger* than the sketched dispatch, not weaker: a
+nested switch needs the subset's second bytes to be pairwise disjoint, but a guard only
+needs each branch's own second-byte set, so it fires even at sites where two escapes
+collide on a digit. The counters made that visible at the first regeneration — 541 of the
+remaining 1,540 discarded speculation entries vanished, half again more than the census's
+site-based model had priced, with committed counts once more exactly unchanged. The
+alternated benchmark measured **−19.8%** — roughly 23.6µs to **18.9µs**, faster in all
+five rounds, with the two capture-heavy patterns dropping by a third and a half — putting
+the campaign at about **26× faster** than its starting point on analysis alone.

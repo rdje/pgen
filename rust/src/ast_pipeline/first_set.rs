@@ -746,14 +746,52 @@ pub(crate) struct SecondByteSummary {
     pub(crate) unresolved: bool,
     /// Any fact came from a `/regex/` terminal (layout-trust obligation).
     pub(crate) regex_token_derived: bool,
+    /// RGX-0078.5.i.7 D1 — a byte-2-REFUTED attempt of this node may still ENTER a
+    /// rule method (or native-builtin / inlined frame — all carry the
+    /// furthest-position preamble) at offset ≥ 1. `furthest_position` is written at
+    /// rule entry ONLY, so pruning such a branch on byte 2 is NOT
+    /// furthest-position-neutral: the counterfactual attempt would have recorded
+    /// `parse_start + 1` on rejected inputs. A byte-2 exclusion is licensed ONLY
+    /// when this is `false`. Over-approximating (`true` when uncertain) is the
+    /// sound, no-exclusion direction.
+    pub(crate) offset1_rule_entry: bool,
 }
 
 impl SecondByteSummary {
     fn unresolved() -> Self {
         SecondByteSummary {
             unresolved: true,
+            offset1_rule_entry: true,
             ..SecondByteSummary::default()
         }
+    }
+}
+
+/// RGX-0078.5.i.7 D1 — does this node's SUBTREE (not following rule references)
+/// contain any rule reference? Used at the sequence fold's offset-1 frontier: an
+/// element ATTEMPTED at offset 1 may enter any rule referenced anywhere in its
+/// subtree before failing (alternatives/optionals are tried even when they fail),
+/// and every such entry writes `furthest_position`. Over-approximating (refs behind
+/// consuming units are unreachable in a byte-2-refuted attempt, but still count
+/// here) is the sound, no-exclusion direction. Unknown token kinds count as
+/// references (conservative).
+fn contains_rule_reference_shallow(node: &ASTNode) -> bool {
+    match node {
+        ASTNode::Sequence { elements } => elements.iter().any(contains_rule_reference_shallow),
+        ASTNode::Or { alternatives } => {
+            alternatives.iter().any(contains_rule_reference_shallow)
+        }
+        ASTNode::Quantified { element, .. } => contains_rule_reference_shallow(element),
+        ASTNode::Lookahead { element, .. } => contains_rule_reference_shallow(element),
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => contains_rule_reference_shallow(inner),
+            ASTValue::Token(parts) => {
+                let Some(TokenValue::String(token_type)) = parts.first() else {
+                    return true;
+                };
+                !matches!(token_type.as_str(), "quoted_string" | "regex")
+            }
+        },
     }
 }
 
@@ -819,6 +857,9 @@ pub(crate) fn branch_second_byte_summary(
                         .extend(element_second.second_bytes.iter().copied());
                     result.unresolved |= element_second.unresolved;
                     result.regex_token_derived |= element_second.regex_token_derived;
+                    // D1 — the element's own offset-≥1 rule entries are at
+                    // sequence offset ≥1 too.
+                    result.offset1_rule_entry |= element_second.offset1_rule_entry;
                 }
                 if at1 {
                     // The element begins at offset 1 ⇒ its FIRST bytes are the
@@ -829,6 +870,9 @@ pub(crate) fn branch_second_byte_summary(
                     }
                     result.unresolved |= element_first.unresolved;
                     result.regex_token_derived |= element_first.regex_token_derived;
+                    // D1 — an element ATTEMPTED at offset 1 may enter any rule its
+                    // subtree references before failing (furthest write at +1).
+                    result.offset1_rule_entry |= contains_rule_reference_shallow(element);
                 }
                 let next_at0 = at0 && element_first.nullable;
                 let next_at1 =
@@ -860,6 +904,7 @@ pub(crate) fn branch_second_byte_summary(
                 result.nullable |= alt.nullable;
                 result.unresolved |= alt.unresolved;
                 result.regex_token_derived |= alt.regex_token_derived;
+                result.offset1_rule_entry |= alt.offset1_rule_entry;
             }
             result
         }
@@ -944,6 +989,8 @@ pub(crate) fn branch_second_byte_summary(
                 }
                 result.unresolved |= element_first.unresolved;
                 result.regex_token_derived |= element_first.regex_token_derived;
+                // D1 — the second repetition is ATTEMPTED at offset 1.
+                result.offset1_rule_entry |= contains_rule_reference_shallow(element);
             }
             // `len1_possible` stays as the element's (over-approximating it is the
             // conservative, no-exclusion direction).
@@ -964,6 +1011,10 @@ pub(crate) fn branch_second_byte_summary(
                 nullable: true,
                 unresolved: element_second.unresolved,
                 regex_token_derived: element_second.regex_token_derived,
+                // D1 — the lookahead's inner attempt runs at offset 0; its own
+                // offset-≥1 rule entries still write furthest (monotone, never
+                // restored by the lookahead's position rollback).
+                offset1_rule_entry: element_second.offset1_rule_entry,
                 ..SecondByteSummary::default()
             }
         }
@@ -1043,6 +1094,61 @@ fn native_builtin_second_byte_summary(rule_name: &str) -> Option<SecondByteSumma
         }),
         _ => None,
     }
+}
+
+/// RGX-0078.5.i.7 D1 — the branch's admissible SECOND bytes for a FIRST₂ prune
+/// guard (sorted), or the NAMED reason the branch must not be byte-2-guarded.
+///
+/// This is the SHARED licensing predicate behind BOTH consumers — the FIRST₂ census
+/// (`fusibility_census.rs`) and codegen's prune-guard emission
+/// (`first_set_prune_guard_for_branch`) — the same no-drift discipline as
+/// [`branch_dispatch_first_bytes`] at level 1. A branch is byte-2-guardable iff its
+/// second-byte summary is resolved + non-nullable + `!len1_possible` (a 1-byte match
+/// leaves byte 2 unconstrained) + non-empty + trust-gated for regex-token-derived
+/// facts, AND `!offset1_rule_entry` — the furthest-position-parity license: a
+/// refuted attempt must not have entered any rule at offset ≥ 1, or pruning it
+/// changes rejected-parse `furthest_position` (a contract surface). `Err` = "guard
+/// on byte 1 only" — the branch simply keeps today's level-1 behavior.
+pub(crate) fn branch_prefix2_guard_bytes(
+    branch: &ASTNode,
+    grammar_tree: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+    second_byte_cache: &mut HashMap<String, SecondByteSummary>,
+    trust_regex_token_bytes: bool,
+) -> Result<Vec<u8>, String> {
+    let mut visiting_rules = RuleVisit::default();
+    let summary = branch_second_byte_summary(
+        branch,
+        grammar_tree,
+        first_set_cache,
+        second_byte_cache,
+        &mut visiting_rules,
+        0,
+    );
+    if summary.unresolved {
+        return Err("unresolved SECOND-byte facts (regex token / cycle / depth cutoff)".to_string());
+    }
+    if summary.nullable {
+        return Err("nullable (can match empty)".to_string());
+    }
+    if summary.len1_possible {
+        return Err("a 1-byte match is possible (byte-2 wildcard)".to_string());
+    }
+    if summary.regex_token_derived && !trust_regex_token_bytes {
+        return Err(
+            "regex-token-derived second bytes under layout-skipping regex tokens".to_string(),
+        );
+    }
+    if summary.offset1_rule_entry {
+        return Err(
+            "a refuted attempt may enter a rule at offset ≥1 (furthest-position parity)"
+                .to_string(),
+        );
+    }
+    if summary.second_bytes.is_empty() {
+        return Err("empty SECOND-byte set".to_string());
+    }
+    Ok(summary.second_bytes.iter().copied().collect())
 }
 
 /// SECOND-byte facts of a regex pattern's HIR (the level-2 sibling of
@@ -1495,6 +1601,146 @@ mod tests {
         tree.insert("looper".to_string(), rule_ref("looper"));
         let summary = summarize2(&rule_ref("looper"), &tree);
         assert!(summary.unresolved);
+    }
+
+    /// D1 — the furthest-position-parity flag: a rule reference ATTEMPTED at
+    /// offset 1 (the `hex_escape = "x" payload_rule` shape) writes
+    /// `furthest_position` even when the attempt fails, so the branch must not be
+    /// byte-2-pruned. Pure-terminal 2-byte prefixes refute without any offset-≥1
+    /// rule entry and stay licensed.
+    #[test]
+    fn offset1_rule_entry_flags_ref_at_offset_one() {
+        let mut tree = HashMap::new();
+        tree.insert("payload".to_string(), quoted_atom("ab"));
+        // "x" payload — the payload rule is entered at offset 1.
+        let seq = ASTNode::Sequence {
+            elements: vec![quoted_atom("x"), rule_ref("payload")],
+        };
+        let summary = summarize2(&seq, &tree);
+        assert!(!summary.unresolved);
+        assert!(summary.offset1_rule_entry);
+        // "\Q" "\E" — both units are 2-byte quoted terminals: the offset-1
+        // frontier never crosses a rule reference.
+        let seq = ASTNode::Sequence {
+            elements: vec![quoted_atom("\\Q"), quoted_atom("\\E")],
+        };
+        let summary = summarize2(&seq, &tree);
+        assert!(!summary.offset1_rule_entry);
+        assert_eq!(summary.second_bytes, BTreeSet::from([b'Q']));
+    }
+
+    /// D1 — the flag resolves THROUGH rule references (a branch that is a bare
+    /// ref to an offending rule inherits its body's verdict), and an at-offset-0
+    /// lookahead's inner offset-≥1 entries propagate (furthest is monotone —
+    /// the lookahead's position rollback never restores it).
+    #[test]
+    fn offset1_rule_entry_propagates_through_rules_and_lookaheads() {
+        let mut tree = HashMap::new();
+        tree.insert("payload".to_string(), quoted_atom("ab"));
+        tree.insert(
+            "offender".to_string(),
+            ASTNode::Sequence {
+                elements: vec![quoted_atom("x"), rule_ref("payload")],
+            },
+        );
+        tree.insert("clean".to_string(), quoted_atom("\\E"));
+        let summary = summarize2(&rule_ref("offender"), &tree);
+        assert!(summary.offset1_rule_entry);
+        let summary = summarize2(&rule_ref("clean"), &tree);
+        assert!(!summary.offset1_rule_entry);
+        // &("x" payload) "yz" — the lookahead's inner attempt enters `payload`
+        // at offset 1 before the sequence's own terminals run.
+        let seq = ASTNode::Sequence {
+            elements: vec![
+                ASTNode::Lookahead {
+                    element: Box::new(ASTNode::Sequence {
+                        elements: vec![quoted_atom("x"), rule_ref("payload")],
+                    }),
+                    positive: true,
+                },
+                quoted_atom("yz"),
+            ],
+        };
+        let summary = summarize2(&seq, &tree);
+        assert!(summary.offset1_rule_entry);
+    }
+
+    /// D1 — a second repetition beginning at offset 1 attempts its element there:
+    /// a rule-reference element flags, a terminal element does not.
+    #[test]
+    fn offset1_rule_entry_from_quantified_second_repetition() {
+        let mut tree = HashMap::new();
+        tree.insert("one".to_string(), quoted_atom("a"));
+        let quant = ASTNode::Quantified {
+            element: Box::new(rule_ref("one")),
+            quantifier: "+".to_string(),
+        };
+        let summary = summarize2(&quant, &tree);
+        assert!(summary.offset1_rule_entry);
+        let quant = ASTNode::Quantified {
+            element: Box::new(quoted_atom("a")),
+            quantifier: "+".to_string(),
+        };
+        let summary = summarize2(&quant, &tree);
+        assert!(!summary.offset1_rule_entry);
+    }
+
+    /// D1 — the SHARED emission-licensing predicate: every refusal is NAMED, and
+    /// the licensed shape returns its sorted second-byte guard set.
+    #[test]
+    fn branch_prefix2_guard_bytes_license_matrix() {
+        let mut tree = HashMap::new();
+        tree.insert("payload".to_string(), quoted_atom("ab"));
+        let mut fs_cache = HashMap::new();
+        let mut sb_cache = HashMap::new();
+        // Licensed: 2-byte quoted prefix.
+        let seq = ASTNode::Sequence {
+            elements: vec![quoted_atom("\\Q"), quoted_atom("\\E")],
+        };
+        assert_eq!(
+            branch_prefix2_guard_bytes(&seq, &tree, &mut fs_cache, &mut sb_cache, true),
+            Ok(vec![b'Q'])
+        );
+        // Licensed: regex-token escape alternation (under regex-token trust).
+        let node = regex_atom(r"\\b|\\B");
+        assert_eq!(
+            branch_prefix2_guard_bytes(&node, &tree, &mut fs_cache, &mut sb_cache, true),
+            Ok(vec![b'B', b'b'])
+        );
+        // Refused: the same summary without regex-token layout trust.
+        let err = branch_prefix2_guard_bytes(&node, &tree, &mut fs_cache, &mut sb_cache, false)
+            .unwrap_err();
+        assert!(err.contains("layout-skipping"), "{err}");
+        // Refused: a 1-byte match leaves byte 2 unconstrained.
+        let err =
+            branch_prefix2_guard_bytes(&quoted_atom("x"), &tree, &mut fs_cache, &mut sb_cache, true)
+                .unwrap_err();
+        assert!(err.contains("1-byte match"), "{err}");
+        // Refused: nullable.
+        let opt = ASTNode::Quantified {
+            element: Box::new(quoted_atom("ab")),
+            quantifier: "?".to_string(),
+        };
+        let err = branch_prefix2_guard_bytes(&opt, &tree, &mut fs_cache, &mut sb_cache, true)
+            .unwrap_err();
+        assert!(err.contains("nullable"), "{err}");
+        // Refused: furthest-position parity (rule entry at offset 1).
+        let seq = ASTNode::Sequence {
+            elements: vec![quoted_atom("x"), rule_ref("payload")],
+        };
+        let err = branch_prefix2_guard_bytes(&seq, &tree, &mut fs_cache, &mut sb_cache, true)
+            .unwrap_err();
+        assert!(err.contains("furthest-position parity"), "{err}");
+        // Refused: unresolved (undefined reference).
+        let err = branch_prefix2_guard_bytes(
+            &rule_ref("no_such_rule"),
+            &tree,
+            &mut fs_cache,
+            &mut sb_cache,
+            true,
+        )
+        .unwrap_err();
+        assert!(err.contains("unresolved"), "{err}");
     }
 
     /// D0.1 CACHE-COHERENCE — a summary computed mid-cycle (an ancestor still on

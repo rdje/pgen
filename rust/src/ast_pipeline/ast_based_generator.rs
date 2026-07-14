@@ -3990,6 +3990,12 @@ impl AstBasedGenerator {
                 String,
                 super::first_set::FirstSetSummary,
             > = std::collections::HashMap::new();
+            // RGX-0078.5.i.7 D1 — the FIRST₂ sibling cache (per-Or, like the level-1
+            // cache; both are persistent-taint-gated inside the analysis).
+            let mut second_byte_cache: std::collections::HashMap<
+                String,
+                super::first_set::SecondByteSummary,
+            > = std::collections::HashMap::new();
 
             // RGX-0078.5.i.3 (P2) — DEGENERATE-TOURNAMENT BYTE-SWITCH DISPATCH.
             // When FIRST-set pairwise-disjointness proves at most ONE branch can
@@ -4150,6 +4156,7 @@ impl AstBasedGenerator {
                     alternative,
                     emit_first_set_guard,
                     &mut first_set_cache,
+                    &mut second_byte_cache,
                 );
                 let arm_inner = quote! {
                         if #branch_policy_mode == "ordered" && best_content.is_some() {
@@ -4641,11 +4648,26 @@ impl AstBasedGenerator {
     /// body when false. Uses the interior-mutable `first_set_grammar_tree` snapshot so
     /// transitive rule-reference FIRST sets resolve against codegen's own normalized
     /// tree; `cache` is reused across a rule's branches.
+    ///
+    /// RGX-0078.5.i.7 D1 — FIRST₂ refinement: when the SHARED licensing predicate
+    /// `first_set::branch_prefix2_guard_bytes` admits the branch (resolved +
+    /// non-nullable + no 1-byte match + trust-gated + furthest-position-neutral,
+    /// i.e. a byte-2-refuted attempt enters no rule at offset ≥ 1), the guard also
+    /// checks the SECOND byte: `parse_start + 1 < input.len() && matches!(b[ps], F₁)
+    /// && matches!(b[ps+1], F₂)`. At end-of-input the licensed branch is pruned —
+    /// correct because the license implies a match needs ≥ 2 bytes. A branch whose
+    /// FIRST₂ excludes the 2-byte prefix fails within its first two bytes today, so
+    /// pruning it is selection-semantics-identical (the `.5.c.2` argument at level
+    /// 2) and — by the license — furthest-position-neutral.
     fn first_set_prune_guard_for_branch(
         &self,
         branch: &ASTNode,
         emit: bool,
         cache: &mut std::collections::HashMap<String, super::first_set::FirstSetSummary>,
+        second_byte_cache: &mut std::collections::HashMap<
+            String,
+            super::first_set::SecondByteSummary,
+        >,
     ) -> Option<TokenStream> {
         if !emit {
             return None;
@@ -4689,6 +4711,23 @@ impl AstBasedGenerator {
         }
 
         let first_byte_patterns: Vec<u8> = first_bytes.into_iter().collect();
+
+        // D1 — the licensed FIRST₂ refinement (level-1 guard unchanged when the
+        // shared predicate refuses the branch).
+        if let Ok(second_byte_patterns) = super::first_set::branch_prefix2_guard_bytes(
+            branch,
+            &grammar_tree,
+            cache,
+            second_byte_cache,
+            self.layout_sensitivity().regex_tokens,
+        ) {
+            return Some(quote! {
+                parse_start + 1 < parser.input.len()
+                    && matches!(parser.input.as_bytes()[parse_start], #(#first_byte_patterns)|*)
+                    && matches!(parser.input.as_bytes()[parse_start + 1], #(#second_byte_patterns)|*)
+            });
+        }
+
         Some(quote! {
             parse_start < parser.input.len()
                 && matches!(parser.input.as_bytes()[parse_start], #(#first_byte_patterns)|*)

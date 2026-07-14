@@ -1510,7 +1510,10 @@ fn site_degeneracy_verdict(
 /// disjointness, PLUS per shared first byte: every admitting branch's second-byte
 /// facts RESOLVED, and the non-WILDCARD members pairwise-disjoint on second bytes.
 /// A `len1_possible` member is a byte-2 wildcard — legal (it joins every byte-2 arm,
-/// including end-of-input) but it caps the kill; reported, never a blocker.
+/// including end-of-input) but it caps the kill; reported, never a blocker. An
+/// `offset1_rule_entry` member (the D1 emission's furthest-position-parity license)
+/// is classified the same way: the guard emission cannot byte-2-prune it, so it
+/// joins every second-byte arm exactly like a wildcard.
 fn site_prefix2_verdict(
     top_level: bool,
     layout_terminals: bool,
@@ -1570,7 +1573,10 @@ fn site_prefix2_verdict(
                 ));
                 continue;
             }
-            if second.len1_possible || second.nullable {
+            if second.len1_possible || second.nullable || second.offset1_rule_entry {
+                // `offset1_rule_entry` (D1 emission license): a member the guard
+                // emission cannot byte-2-prune (furthest-position parity) behaves
+                // exactly like a wildcard — it joins every second-byte arm.
                 wildcards.insert(owner);
                 continue;
             }
@@ -3087,6 +3093,23 @@ mod tests {
             site_prefix2_verdict(true, true, false, false, &firsts, &seconds);
         assert!(ok, "blockers: {blockers:?}");
         assert!(wildcards.is_empty());
+
+        // D1 emission license — an `offset1_rule_entry` member (byte-2-refuted
+        // attempts may enter a rule at offset ≥1 ⇒ un-prunable for
+        // furthest-position parity) is classified a WILDCARD, exactly like len1:
+        // it joins every second-byte arm, capping the kill but never blocking.
+        let firsts = vec![Ok(vec![b'\\']), Ok(vec![b'\\'])];
+        let seconds = vec![
+            second(&[b'b']),
+            SecondByteSummary {
+                offset1_rule_entry: true,
+                ..second(&[b'B'])
+            },
+        ];
+        let (ok, blockers, wildcards) =
+            site_prefix2_verdict(true, true, false, false, &firsts, &seconds);
+        assert!(ok, "blockers: {blockers:?}");
+        assert_eq!(wildcards, vec![2]);
     }
 
     /// RGX-0078.5.h.1b — the outcome join decomposes raw/committed into the

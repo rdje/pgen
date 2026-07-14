@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-14 - PGEN-RGX-0078-0074 — `.5.i.7` D1 emission: engineering notes
+
+**Let the soundness fact pick the emission form.** The sketch said "nested two-level
+`match`"; the mechanism said otherwise. The decisive fact was found by reading the
+runtime, not the sketch: `furthest_position` is written exactly once per RULE ENTRY
+(rule-method preamble + `inlined_frame_call`), never by terminal-match progress. From
+that, the whole design falls out: pruning is furthest-neutral iff the refuted attempt
+performs no rule entry at offset ≥1, the license is inherently per-BRANCH (one site can
+hold licensed and unlicensed members), and only a guard-form emission lets a partially
+licensed site keep its licensed kills. The nested-match form would have needed whole-site
+gates and byte-2 disjointness and would have duplicated every wildcard member's body per
+arm — and it still would have delivered LESS: guards fire wherever a single branch's own
+second-byte set refutes, disjoint or not. Measured consequence: 541 kills against the
+site model's 319.
+
+**Prove the refutation cannot consume the byte it refutes on.** The furthest-parity
+argument needs one lemma: a byte-2-refuted attempt never consumes offset 1. Any unit
+covering offset 1 either starts at offset 0 with length ≥2 (its declared second byte
+would be in `second_bytes` — contradiction) or starts at offset 1 (its first byte is an
+at1-frontier contribution — contradiction). So the only observable side channel is a
+rule ENTRY at offset ≥1, which is exactly what `offset1_rule_entry` over-approximates
+(any rule reference in an at1-visited element's subtree counts, because failing
+alternatives are still attempted — entry precedes matching).
+
+**Emulation of a counterfactual is a trap in both directions.** The tempting fix for
+unlicensed branches — bump `furthest = max(furthest, parse_start+1)` on byte-2 refusal —
+is UNSOUND the other way: the real attempt may die at byte 1 inside an earlier in-branch
+alternative and never reach the offset-1 entry, so the bump can over-advance. When a
+counterfactual's observable depends on which internal path would have run, don't emulate
+it; license around it.
+
+**Same-slice census coherence is cheap; drift is not.** The D0.1 lesson was applied
+forward: the license lives in ONE shared function (`branch_prefix2_guard_bytes`) and the
+census's wildcard classification consumes the same flag, so `PREFIX2-CENSUS` moved
+23→32 dispatchable (unlicensed members reclassify as wildcards and stop blocking
+disjointness) in the SAME commit that changed emission. An instrument that reports the
+old model against the new emission is worse than no instrument.
+
 ## 2026-07-14 - PGEN-RGX-0078-0073 — `.5.i.7` D0.1 + D1 STEP-0: engineering notes
 
 **A "shared predicate" is only drift-proof if its CACHE is context-free.** The P2 doctrine
