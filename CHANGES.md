@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0078 — `.5.i.7` RE-PROFILE #9 + residual adjudication (docs-only): allocator ≈40% shape-preserved a third time, the residual 715 discards broadly distributed (top rule 8.8%) — the guard/dispatch discard-elimination program is EXHAUSTED vs the ≤1µs bar (perfect endgame ≈12.5–16µs); STRATEGIC FORK surfaced to the director (recommendation: the D2 full-cascade-folding STEP-0 scout)
+
+Two 30s@1ms `sample` windows on the Q-guard canonical probe (`5277848e…`; 25,158/25,027
+roots, self-sums reconcile exactly): allocator 39.9/39.7%, rule_method_self 19.3/19.4%
+(the COMMITTED spine — `parse_piece`/`parse_atom` closures lead), memops ≈10%,
+rollback 6.5%, drops ≈5%, memo 0.2% — the 123 Q-guards profile-invisible. The residual
+census names the program's end: no family exceeds `atom`'s 63/715 (8.8%) — every
+concentrated byte-1 surface is consumed. Re-prices (per-population exchange rate):
+D1-ii ≈−1–2.8% thin, mixed-frontier v2 <−1–2% thin, D3 dead. The honest program bound:
+even 100% residual-discard elimination lands ≈12.5–16µs, an order of magnitude above
+the ≤1µs closure bar ⇒ the bar requires changing what the committed path EXECUTES —
+the `.5.e` architectural conclusion re-measured at 27×. Fork recorded in the tree with
+a single recommendation (D2 STEP-0 pricing scout before any build); the RGX road
+pauses for the director per the strategic-fork discipline.
+
 ## 2026-07-15 - PGEN-RGX-0078-0077 — `.5.i.7` Q-GUARD EMISSION LANDED: FIRST-guarded attempt elision at min-0 quantified sites — regex geomean −4.3% (all 5 alternated rounds, best-mins 19.02µs → 18.19µs; character_class −12.7% = the predicted anchor), 285/999 residual discards killed with committed Σ617 EXACTLY unchanged; cumulative 496µs → ≈18.2µs ≈ 27×
 
 Two emission sites (the census's one `Quantified` node maps to two codegen paths — a
