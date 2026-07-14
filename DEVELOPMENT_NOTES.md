@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-14 - PGEN-RGX-0078-0076 — `.5.i.7` Q-GUARD STEP-0: engineering notes
+
+**Attribution is the hard half of a quantified-site census.** The choice-site census's
+per-site `sole_refs` basis (every grammar-wide occurrence within THIS site's subtree)
+would silently miss the single most important rule in the population:
+`class_zero_width` lives under TWO `class_range` quantified sites, so it is sole at
+neither. The lane therefore attributes at POPULATION level — a rule counts when every
+grammar-wide occurrence sits under *some* guardable min-0 site's element subtree — with
+occurrences counted only at OUTERMOST guardable sites so a guardable site nested inside
+another's element never double-counts (equality against `grammar_wide_refs` would
+otherwise fail in the conservative-but-wrong direction). Per-site `sole_refs` is kept
+too (it still names `quant_suffix`@`quantifier@q#0(?)`), but the priced lane is the
+population one.
+
+**The census exists to shrink an extrapolation, and it did.** `-0075` extrapolated
+250–400 kills from per-rule residual families; the measured lane says the attributable
+core is 192 (155 byte-1-shaped) because the class-range *endpoint* families
+(`class_atom`, `class_literal`, `class_bracket_token*`, ~180 discards) sit BARE in
+sequences — no quantifier wraps them, so no Q-guard reaches them. Also learned:
+`brace_ws`'s 37 discards are attributable but almost certainly unkillable — they occur
+inside byte-1-ADMITTED `{`-led counted-quantifier attempts, which the guard never
+refuses. Both facts are printed as honest bounds in the report itself
+(over-approximation direction + terminal-only-site invisibility), so the emission slice
+inherits them without re-derivation. Re-price ≈−6–12% min-basis; GO.
+
+**Reused license machinery, zero drift surface.** Gate 3 is literally
+`first_set::branch_dispatch_first_bytes` — the same predicate codegen's prune guards
+and the P2/D1 census consume — so the future emission cannot disagree with this census
+(the D0.1 lesson). The two Q-specific gates are cheap wrappers: the R2 terminal-layout
+peek gate (SV correctly reports guardable=0 — 1113 min-0 sites refused wholesale under
+skipping layout) and a transitive `reachable_rules` closure filtered through the
+compiled branch-predicate/effect table (the `-0075` P2-(e) mirror; zero regex blockers
+in practice, but the gate is what keeps counters/diagnostics honest by exclusion).
+
 ## 2026-07-14 - PGEN-RGX-0078-0074 — `.5.i.7` D1 emission: engineering notes
 
 **Let the soundness fact pick the emission form.** The sketch said "nested two-level

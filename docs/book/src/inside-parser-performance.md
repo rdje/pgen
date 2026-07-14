@@ -1142,3 +1142,34 @@ site-based model had priced, with committed counts once more exactly unchanged. 
 alternated benchmark measured **−19.8%** — roughly 23.6µs to **18.9µs**, faster in all
 five rounds, with the two capture-heavy patterns dropping by a third and a half — putting
 the campaign at about **26× faster** than its starting point on analysis alone.
+
+## The quantifier frontier: attempts no guard sees yet
+
+Profiling the 18.9µs parser re-told a familiar story — allocator traffic still tracks
+discarded speculation, and the 296 new guards themselves are invisible in the profile —
+but the *census* of what still gets discarded named something new. The largest surviving
+families are not alternation branches at all. They are rule entries made by **min-0
+quantified sites**: shapes like `class_zero_width*` inside a character-class range, where
+the loop dutifully *attempts* its element once at every position, enters the rule, fails
+on the first byte, and rolls back. Every guard landed so far lives at a rule's top-level
+branch dispatch, so these attempts sail past all of them by construction — the
+character-class benchmark pattern, the one pattern the second-byte increment left
+untouched, turns out to be made of exactly this class.
+
+The same FIRST-set machinery prices the fix before any emission, through a new lane in
+the census (`QUANT-SITE-CENSUS` / `QUANT-EXPOSURE` in `--report-fusibility-census`): every
+quantified site in the grammar, classified for a *guarded attempt elision* — skip the
+element's attempt outright when the next byte cannot start it. The soundness argument is
+the branch-guard one at offset zero, plus one fact the alternation case lacks: a min-0
+quantifier *always* attempts its element exactly once at the current position, so the
+skipped attempt's only observable trace — the furthest-position diagnostic — can be
+emulated exactly. On the regex grammar the lane reports 118 min-0 sites of which **102
+are guardable** (the 16 blocked ones all wrap nullable optional payloads, correctly
+refused), and joining the benchmark's outcome dumps attributes **192 discarded entries**
+to rules that live *only* under guardable sites — 134 of them the character-class family
+the profile named. The census states its own honest bounds: a byte-1-admitted attempt
+that dies later survives the guard, and terminal-only sites never show up in per-rule
+counters at all. On a whitespace-skipping grammar like full SystemVerilog the lane
+reports its 1,113 min-0 sites and zero guardable — the raw-byte peek is unsound under an
+implicit layout skip, and the census says so rather than over-promising. The guarded
+emission itself is the next increment; the instrument, as always, goes first.

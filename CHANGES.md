@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0076 — `.5.i.7` Q-GUARD STEP-0: the QUANT census lane landed in `--report-fusibility-census` — regex 140 quantified sites / 118 min-0 / 102 GUARDABLE; exposure population-attributed 18 rules / 192 discards (`class_zero_width` 134 = the anchor); the `-0075` extrapolation re-priced ≈−6–12% min-basis, GO for Q-GUARD emission
+
+The census-before-emission discipline, applied to the `-0075`-named quantified-site
+class. New lane in `fusibility_census.rs`: every `Quantified` site classified for
+FIRST-guarded attempt elision — gates = min-0 quantifier + terminal whitespace
+sensitivity (the R2 raw-byte peek) + element first-byte-decided via the SHARED
+`first_set::branch_dispatch_first_bytes` predicate (the P2/D1 no-drift discipline) + a
+branch-predicate/effect-free reachable closure; blockers named per site; sites censused
+at ANY nesting (the elision is local to the quantifier loop — a min-0 quantifier always
+attempts its element exactly once at the current position, so the furthest-position
+diagnostic is EXACTLY emulable). Exposure join is POPULATION-attributed: a rule counts
+only when every grammar-wide reference occurrence sits under a guardable site's element
+subtree (outermost-counted, so nesting never double-counts) — per-site sole-attribution
+would miss `class_zero_width`, which lives under TWO `class_range` sites. Measured on
+fresh pin-verified dumps (1616/617/999/183 byte-exact): attributable 18 rules /
+221 entries / 192 discards — `class_zero_width` 134/0/134 in-lane, `brace_ws` 37 flagged
+likely-unkillable (its entries sit inside byte-1-ADMITTED `{`-led attempts),
+`quant_suffix` 18; shared lane 19 rules / 121 discards (upper-bound context). The
+`-0075` 250–400-kill extrapolation was TOO BROAD: bare `class_atom`/`class_literal`
+sequence probes are not Q-killable. Re-priced ≈−6–12% min-basis at the D0/D1 exchange
+rate — the pricing shape D1 over-delivered from — GO. Honesty checks: census re-run
+byte-identical; SV (whitespace-skipping) reports 1113 min-0 sites and guardable=0 (the
+layout gate refuses the raw-byte peek) in 4.2s. 3 new unit tests; census module 17/17;
+dual-feature lib 935/0. Docs lockstep: TOOLBOX census OUTPUT, book
+(inside-parser-performance §"The quantifier frontier", parseability-probe-debug,
+diagnosing-unknowns table), tree + TASK_TREE row + MEMORY.
+
 ## 2026-07-14 - PGEN-RGX-0078-0075 — `.5.i.7` RE-PROFILE #8 + residual adjudication (docs-only): allocator self ≈38% shape-preserved, D1 guards profile-invisible; the top residual discards are QUANTIFIED-SITE rule entries ⇒ NEW increment Q-GUARD named (FIRST-guarded min-0 quantifier attempt elision + exact furthest emulation, ≈−7–15% extrapolated); D1-ii thin, D2/D3 stay parked
 
 Two 30s@1ms `sample` windows on the canonical D1 probe (tree-only truncation, self-time

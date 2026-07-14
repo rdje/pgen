@@ -153,6 +153,13 @@ pub struct FusibilityCensus {
     /// RGX-0078.5.i.4 (P1 STEP-0) — the measured inline-exposure join (present iff
     /// `--fusibility-outcome-counts` files were joined).
     pub inline_exposure: Option<InlineExposure>,
+    /// RGX-0078.5.i.7 (Q-GUARD STEP-0) — every quantified site, classified for
+    /// the min-0 attempt-elision gate. Deterministic order: rule-universe order,
+    /// then pre-order within the rule.
+    pub quant_sites: Vec<QuantSiteCensus>,
+    /// RGX-0078.5.i.7 (Q-GUARD STEP-0) — the measured quantified-site exposure
+    /// join (present iff `--fusibility-outcome-counts` files were joined).
+    pub quant_exposure: Option<QuantExposure>,
 }
 
 /// The JSON shape `parseability_probe --dump-rule-entry-counts-json` writes; consumed by
@@ -403,6 +410,78 @@ pub struct InlineExposure {
     pub decided_memo_hits: u64,
     /// Top eligible rules by raw entries: (rule, entries, committed, memo_hits).
     pub top_eligible_rules: Vec<(String, u64, u64, u64)>,
+}
+
+/// RGX-0078.5.i.7 (Q-GUARD STEP-0) — one QUANTIFIED site of the grammar: where a
+/// FIRST-guarded attempt elision (skip the element's `try_parse` when
+/// `input[p] ∉ FIRST(element)`, with the EXACT furthest emulation
+/// `if p > furthest { furthest = p }`) could replace the refuted attempt.
+/// Unlike the Or-branch guards there is NO rule-top-level restriction: a min-0
+/// quantifier ALWAYS attempts its element exactly once at the current position,
+/// and a byte-1-refuted attempt performs every rule entry AT that position (the
+/// `-0075` exactness lemma), so the emulation is exact wherever the site sits.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QuantSiteCensus {
+    pub rule: String,
+    /// Site id within the rule: `q#N` in pre-order walk order.
+    pub site: String,
+    /// The literal quantifier text (`*`, `?`, `+`, `{,M}`, …).
+    pub quantifier: String,
+    /// The quantifier's minimum repeat count is 0 (`*` / `?` / `{,M}` / `{0,M}`)
+    /// — the attempt-elision lane (min>0 sites are censused for steering only).
+    pub min_zero: bool,
+    /// ALL Q-guard gates pass: min-0 + terminal-layout trust + element
+    /// first-byte-decided + predicate/effect-free reachable closure.
+    pub guardable: bool,
+    /// The NAMED failing gates (empty iff `guardable`). Deterministic order:
+    /// min>0, layout, element FIRST verdict, reachable predicate/effect rules.
+    pub blockers: Vec<String>,
+    /// The guard byte set (sorted) when the element is first-byte-decided —
+    /// present even on sites blocked by OTHER gates, for steering.
+    pub first_bytes: Option<Vec<u8>>,
+    /// Rule references anywhere in the element subtree (deduped, sorted).
+    pub element_refs: Vec<String>,
+    /// Of `element_refs`: rules whose EVERY grammar-wide reference occurrence
+    /// lives in THIS site's element subtree (the per-site sound attribution
+    /// basis, mirroring `ChoiceBranchVerdict::sole_refs`). A rule referenced
+    /// from several quantified sites (the `class_zero_width` shape) is NOT
+    /// site-sole — the population lanes in [`QuantExposure`] cover it.
+    pub sole_refs: Vec<String>,
+    /// Measured DISCARDED entries on this site's `sole_refs` (only meaningful
+    /// when outcome counts were joined; 0 otherwise).
+    pub sole_attributable_discarded: u64,
+}
+
+/// RGX-0078.5.i.7 (Q-GUARD STEP-0) — the measured quantified-site exposure join.
+/// POPULATION-level attribution: per-rule aggregate counters cannot split a rule
+/// referenced from several sites, so a rule counts as ATTRIBUTABLE only when every
+/// grammar-wide reference occurrence sits inside a GUARDABLE site's element
+/// subtree (occurrences are counted at OUTERMOST guardable sites, so a guardable
+/// site nested inside another guardable site's element never double-counts).
+/// HONEST BOUNDS: `attributable_discarded` OVER-approximates the guard's kill —
+/// a byte-1-ADMITTED, byte-2+-refuted attempt survives the guard (the D1 residual
+/// lesson) — while guardable sites whose element is pure terminal probing are
+/// invisible to per-rule counters entirely (an uncounted upside).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QuantExposure {
+    /// Quantified sites censused / the min-0 subset / the guardable subset.
+    pub total_sites: usize,
+    pub min_zero_sites: usize,
+    pub guardable_sites: usize,
+    /// Rules attributable to guardable sites (every occurrence under one),
+    /// sorted, with their raw/committed/discarded sums.
+    pub attributable_rules: Vec<String>,
+    pub attributable_entries: u64,
+    pub attributable_committed: u64,
+    pub attributable_discarded: u64,
+    /// Rules under ≥1 guardable site but ALSO referenced elsewhere — exposure
+    /// context (an upper bound on top of the attributable lane), never priced.
+    pub shared_rules: Vec<String>,
+    pub shared_entries: u64,
+    pub shared_discarded: u64,
+    /// Top attributable rules by discarded entries:
+    /// (rule, entries, committed, discarded).
+    pub top_attributable_rules: Vec<(String, u64, u64, u64)>,
 }
 
 /// How many lexemes a node consumes, for the layout-contiguity gate.
@@ -1811,16 +1890,248 @@ fn walk_for_choice_sites(
     }
 }
 
+/// RGX-0078.5.i.7 (Q-GUARD STEP-0) — the transitive rule-reference closure from a
+/// seed set: an over-approximation of the rules a refuted element attempt could
+/// enter before its first terminal match fails (references behind consuming units
+/// are unreachable in a byte-1-refuted attempt but still count — the sound,
+/// no-elision direction, mirroring `contains_rule_reference_shallow`'s stance).
+fn reachable_rules(
+    tree: &HashMap<String, ASTNode>,
+    seeds: impl Iterator<Item = String>,
+) -> Vec<String> {
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut stack: Vec<String> = seeds.collect();
+    while let Some(rule) = stack.pop() {
+        if !seen.insert(rule.clone()) {
+            continue;
+        }
+        if let Some(body) = tree.get(rule.as_str()) {
+            let mut refs: HashMap<String, usize> = HashMap::new();
+            collect_ref_occurrences(body, &mut refs);
+            for name in refs.keys() {
+                if !seen.contains(name) {
+                    stack.push(name.clone());
+                }
+            }
+        }
+    }
+    seen.into_iter().collect()
+}
+
+/// RGX-0078.5.i.7 (Q-GUARD STEP-0) — enumerate and classify every QUANTIFIED site.
+/// Pre-order per rule (`q#N`). Also returns the per-rule reference-occurrence
+/// counts inside OUTERMOST guardable element subtrees — the [`QuantExposure`]
+/// population-attribution basis (outermost-only, so a guardable site nested inside
+/// another guardable site's element never double-counts its references).
+fn enumerate_quant_sites(
+    classifier: &mut Classifier,
+    universe: &[String],
+    grammar_wide_refs: &HashMap<String, usize>,
+) -> (Vec<QuantSiteCensus>, HashMap<String, usize>) {
+    let mut sites = Vec::new();
+    let mut guardable_occurrences: HashMap<String, usize> = HashMap::new();
+    for rule in universe {
+        let Some(body) = classifier.tree.get(rule.as_str()) else {
+            continue;
+        };
+        let mut q_counter = 0usize;
+        walk_for_quant_sites(
+            classifier,
+            rule,
+            body,
+            false,
+            &mut q_counter,
+            grammar_wide_refs,
+            &mut sites,
+            &mut guardable_occurrences,
+        );
+    }
+    (sites, guardable_occurrences)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn walk_for_quant_sites(
+    classifier: &mut Classifier,
+    rule: &str,
+    node: &ASTNode,
+    inside_counted_element: bool,
+    q_counter: &mut usize,
+    grammar_wide_refs: &HashMap<String, usize>,
+    sites: &mut Vec<QuantSiteCensus>,
+    guardable_occurrences: &mut HashMap<String, usize>,
+) {
+    match node {
+        ASTNode::Quantified {
+            element,
+            quantifier,
+        } => {
+            let site_index = *q_counter;
+            *q_counter += 1;
+            let min_zero = parse_quantifier_bounds(quantifier)
+                .map(|(min, _)| min == 0)
+                .unwrap_or(false);
+            let mut blockers: Vec<String> = Vec::new();
+            // Gate 1 — lane scope: attempt elision replaces the ONE guaranteed
+            // attempt of a min-0 site with its zero-iteration path; a min>0 site's
+            // refuted first attempt fails the whole quantifier instead (a different
+            // emission, out of this lane).
+            if !min_zero {
+                blockers.push(format!(
+                    "min>0 quantifier '{quantifier}' (attempt elision targets min-0 sites)"
+                ));
+            }
+            // Gate 2 — the P2 R2 mirror: the guard peeks `input[p]` directly;
+            // unsound under an implicit leading terminal-layout skip.
+            if !classifier.layout.terminals {
+                blockers
+                    .push("terminal layout skipping (R2 raw-byte peek unsound)".to_string());
+            }
+            // Gate 3 — the SHARED first-byte-decided predicate (non-nullable +
+            // resolved + regex-token layout-trust + extractable bytes): the same
+            // no-census-vs-emission-drift discipline as P2/D1. Nullable elision is
+            // structurally meaningless anyway — a nullable element's zero-length
+            // success is a COMMITTED attempt the skip would drop.
+            let first_bytes = match classifier.branch_dispatch_first_bytes(element) {
+                Ok(bytes) => Some(bytes),
+                Err(reason) => {
+                    blockers.push(format!("element not first-byte-decided: {reason}"));
+                    None
+                }
+            };
+            // Gate 4 — the `-0075` P2-(e) mirror: no rule REACHABLE from the
+            // element subtree carries Branch-phase predicates or branch-start
+            // effect directives (rolled back on failure anyway; excluded so
+            // counters/diagnostics stay honest by exclusion).
+            let mut element_ref_occurrences: HashMap<String, usize> = HashMap::new();
+            collect_ref_occurrences(element, &mut element_ref_occurrences);
+            let mut effectful: Vec<String> =
+                reachable_rules(classifier.tree, element_ref_occurrences.keys().cloned())
+                    .into_iter()
+                    .filter(|reached| {
+                        let branch_count = match classifier.tree.get(reached.as_str()) {
+                            Some(ASTNode::Or { alternatives }) => alternatives.len(),
+                            _ => 1,
+                        };
+                        let (predicates, effects) = classifier
+                            .rule_branch_predicate_effect_facts(reached, branch_count);
+                        predicates || effects
+                    })
+                    .collect();
+            effectful.sort();
+            for reached in &effectful {
+                blockers.push(format!(
+                    "reachable rule '{reached}' carries branch predicates/effects"
+                ));
+            }
+            let guardable = blockers.is_empty();
+            let mut element_refs: Vec<String> =
+                element_ref_occurrences.keys().cloned().collect();
+            element_refs.sort();
+            let mut sole_refs: Vec<String> = element_ref_occurrences
+                .iter()
+                .filter(|(name, n)| grammar_wide_refs.get(name.as_str()).copied() == Some(**n))
+                .map(|(name, _)| name.clone())
+                .collect();
+            sole_refs.sort();
+            if guardable && !inside_counted_element {
+                for (name, n) in &element_ref_occurrences {
+                    *guardable_occurrences.entry(name.clone()).or_default() += n;
+                }
+            }
+            sites.push(QuantSiteCensus {
+                rule: rule.to_string(),
+                site: format!("q#{site_index}"),
+                quantifier: quantifier.clone(),
+                min_zero,
+                guardable,
+                blockers,
+                first_bytes,
+                element_refs,
+                sole_refs,
+                sole_attributable_discarded: 0,
+            });
+            walk_for_quant_sites(
+                classifier,
+                rule,
+                element,
+                inside_counted_element || guardable,
+                q_counter,
+                grammar_wide_refs,
+                sites,
+                guardable_occurrences,
+            );
+        }
+        ASTNode::Sequence { elements } => {
+            for element in elements {
+                walk_for_quant_sites(
+                    classifier,
+                    rule,
+                    element,
+                    inside_counted_element,
+                    q_counter,
+                    grammar_wide_refs,
+                    sites,
+                    guardable_occurrences,
+                );
+            }
+        }
+        ASTNode::Or { alternatives } => {
+            for branch in alternatives {
+                walk_for_quant_sites(
+                    classifier,
+                    rule,
+                    branch,
+                    inside_counted_element,
+                    q_counter,
+                    grammar_wide_refs,
+                    sites,
+                    guardable_occurrences,
+                );
+            }
+        }
+        ASTNode::Lookahead { element, .. } => {
+            walk_for_quant_sites(
+                classifier,
+                rule,
+                element,
+                inside_counted_element,
+                q_counter,
+                grammar_wide_refs,
+                sites,
+                guardable_occurrences,
+            );
+        }
+        ASTNode::Atom { value } => {
+            if let ASTValue::Node(inner) = value {
+                walk_for_quant_sites(
+                    classifier,
+                    rule,
+                    inner,
+                    inside_counted_element,
+                    q_counter,
+                    grammar_wide_refs,
+                    sites,
+                    guardable_occurrences,
+                );
+            }
+        }
+    }
+}
+
 /// RGX-0078.5.h.1b — join outcome-count files (raw + committed) into the measured
 /// discarded-work decomposition, and fill each choice site's sole-attributable
 /// discarded total.
+#[allow(clippy::too_many_arguments)]
 fn join_outcome_counts(
     grammar_name: &str,
     rules: &BTreeMap<String, RuleCensus>,
     inline_rules: &BTreeMap<String, InlineRuleCensus>,
     choice_sites: &mut [ChoiceSiteCensus],
+    quant_sites: &mut [QuantSiteCensus],
+    q_guardable_occurrences: &HashMap<String, usize>,
+    grammar_wide_refs: &HashMap<String, usize>,
     files: &[std::path::PathBuf],
-) -> Result<(OutcomeShare, InlineExposure), String> {
+) -> Result<(OutcomeShare, InlineExposure, QuantExposure), String> {
     let mut entries_sum: BTreeMap<String, u64> = BTreeMap::new();
     let mut committed_sum: BTreeMap<String, u64> = BTreeMap::new();
     let mut memo_hits_sum: BTreeMap<String, u64> = BTreeMap::new();
@@ -2000,7 +2311,57 @@ fn join_outcome_counts(
         .top_eligible_rules
         .sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
 
-    Ok((share, exposure))
+    // RGX-0078.5.i.7 (Q-GUARD STEP-0) — per-site sole attribution + the population
+    // exposure lanes (attribution + honest-bound rules on [`QuantExposure`]).
+    for site in quant_sites.iter_mut() {
+        site.sole_attributable_discarded = site
+            .sole_refs
+            .iter()
+            .map(|sole| discarded_by_rule.get(sole).copied().unwrap_or(0))
+            .sum();
+    }
+    let mut q_exposure = QuantExposure {
+        total_sites: quant_sites.len(),
+        min_zero_sites: quant_sites.iter().filter(|s| s.min_zero).count(),
+        guardable_sites: quant_sites.iter().filter(|s| s.guardable).count(),
+        attributable_rules: Vec::new(),
+        attributable_entries: 0,
+        attributable_committed: 0,
+        attributable_discarded: 0,
+        shared_rules: Vec::new(),
+        shared_entries: 0,
+        shared_discarded: 0,
+        top_attributable_rules: Vec::new(),
+    };
+    let mut q_touched: Vec<&String> = q_guardable_occurrences.keys().collect();
+    q_touched.sort();
+    for rule in q_touched {
+        let occurrences = q_guardable_occurrences[rule];
+        let entries = entries_sum.get(rule).copied().unwrap_or(0);
+        let committed = committed_sum.get(rule).copied().unwrap_or(0);
+        let discarded = entries.saturating_sub(committed);
+        if grammar_wide_refs.get(rule.as_str()).copied() == Some(occurrences) {
+            q_exposure.attributable_rules.push(rule.clone());
+            q_exposure.attributable_entries += entries;
+            q_exposure.attributable_committed += committed.min(entries);
+            q_exposure.attributable_discarded += discarded;
+            q_exposure.top_attributable_rules.push((
+                rule.clone(),
+                entries,
+                committed.min(entries),
+                discarded,
+            ));
+        } else {
+            q_exposure.shared_rules.push(rule.clone());
+            q_exposure.shared_entries += entries;
+            q_exposure.shared_discarded += discarded;
+        }
+    }
+    q_exposure
+        .top_attributable_rules
+        .sort_by(|a, b| b.3.cmp(&a.3).then(a.0.cmp(&b.0)));
+
+    Ok((share, exposure, q_exposure))
 }
 
 /// Run the census over a grammar (the UNFILTERED tree — the view codegen compiles), and
@@ -2119,6 +2480,11 @@ pub fn run_fusibility_census(
     }
     let mut choice_sites = enumerate_choice_sites(&mut classifier, &universe, &grammar_wide_refs);
 
+    // RGX-0078.5.i.7 (Q-GUARD STEP-0) — the quantified-site census + the
+    // population-attribution occurrence basis.
+    let (mut quant_sites, q_guardable_occurrences) =
+        enumerate_quant_sites(&mut classifier, &universe, &grammar_wide_refs);
+
     // RGX-0078.5.i.4 (P1 STEP-0) — the per-rule INLINE-eligibility census.
     let mut forward_refs: HashMap<String, HashSet<String>> = HashMap::new();
     let mut regex_pattern_sink: Vec<String> = Vec::new();
@@ -2158,17 +2524,20 @@ pub fn run_fusibility_census(
         })
         .collect();
 
-    let (outcome_share, inline_exposure) = if outcome_counts_files.is_empty() {
-        (None, None)
+    let (outcome_share, inline_exposure, quant_exposure) = if outcome_counts_files.is_empty() {
+        (None, None, None)
     } else {
-        let (share, exposure) = join_outcome_counts(
+        let (share, exposure, q_exposure) = join_outcome_counts(
             grammar_name,
             &rules,
             &inline_rules,
             &mut choice_sites,
+            &mut quant_sites,
+            &q_guardable_occurrences,
+            &grammar_wide_refs,
             outcome_counts_files,
         )?;
-        (Some(share), Some(exposure))
+        (Some(share), Some(exposure), Some(q_exposure))
     };
 
     Ok(FusibilityCensus {
@@ -2188,6 +2557,8 @@ pub fn run_fusibility_census(
         outcome_share,
         inline_rules,
         inline_exposure,
+        quant_sites,
+        quant_exposure,
     })
 }
 
@@ -2474,6 +2845,82 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
         println!("  prefix2 blocker histogram (blocked-site occurrences):");
         for (reason, count) in &ranked {
             println!("    {count:>5}  {reason}");
+        }
+    }
+    // RGX-0078.5.i.7 (Q-GUARD STEP-0) — the quantified-site attempt-elision surface.
+    let min_zero_sites = census.quant_sites.iter().filter(|s| s.min_zero).count();
+    let guardable_sites: Vec<&QuantSiteCensus> = census
+        .quant_sites
+        .iter()
+        .filter(|s| s.guardable)
+        .collect();
+    println!(
+        "QUANT-SITE-CENSUS: grammar={} quantified_sites={} min_zero={} guardable={}",
+        census.grammar_name,
+        census.quant_sites.len(),
+        min_zero_sites,
+        guardable_sites.len(),
+    );
+    println!(
+        "  gate: min-0 quantifier + terminal-ws-sensitive + element first-byte-decided + predicate/effect-free reachable closure — RGX-0078.5.i.7 (Q-GUARD)"
+    );
+    if !guardable_sites.is_empty() {
+        let names: Vec<String> = guardable_sites
+            .iter()
+            .map(|s| format!("{}@{}({})", s.rule, s.site, s.quantifier))
+            .collect();
+        println!("  guardable sites (rule@site(quantifier)): {}", names.join(" "));
+    }
+    let mut quant_blocker_histogram: HashMap<String, usize> = HashMap::new();
+    for site in census.quant_sites.iter().filter(|s| s.min_zero && !s.guardable) {
+        for blocker in &site.blockers {
+            // Fold per-site detail out of the key (the choice-census convention).
+            let key = if blocker.starts_with("element not first-byte-decided") {
+                "element not first-byte-decided"
+            } else if blocker.starts_with("reachable rule") {
+                "reachable rule carries branch predicates/effects"
+            } else {
+                blocker
+                    .split_once(':')
+                    .map(|(head, _)| head)
+                    .unwrap_or(blocker.as_str())
+            };
+            *quant_blocker_histogram.entry(key.to_string()).or_default() += 1;
+        }
+    }
+    if !quant_blocker_histogram.is_empty() {
+        let mut ranked: Vec<(String, usize)> = quant_blocker_histogram.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        println!("  quant blocker histogram (blocked min-0 site occurrences):");
+        for (reason, count) in &ranked {
+            println!("    {count:>5}  {reason}");
+        }
+    }
+    if let Some(exposure) = &census.quant_exposure {
+        println!(
+            "QUANT-EXPOSURE: grammar={} attributable_rules={} entries={} committed={} discarded={} | shared_rules={} shared_entries={} shared_discarded={}",
+            census.grammar_name,
+            exposure.attributable_rules.len(),
+            exposure.attributable_entries,
+            exposure.attributable_committed,
+            exposure.attributable_discarded,
+            exposure.shared_rules.len(),
+            exposure.shared_entries,
+            exposure.shared_discarded,
+        );
+        println!(
+            "  attribution: a rule counts only when EVERY grammar-wide occurrence sits under a guardable min-0 site's element; discarded is an UPPER bound on the guard's kill (byte-1-admitted refutations survive); terminal-only guardable sites are invisible to per-rule counters"
+        );
+        if !exposure.top_attributable_rules.is_empty() {
+            println!("  top attributable rules (rule: entries/committed/discarded):");
+            for (rule, entries, committed, discarded) in
+                exposure.top_attributable_rules.iter().take(16)
+            {
+                println!("    {rule}: {entries}/{committed}/{discarded}");
+            }
+        }
+        if !exposure.shared_rules.is_empty() {
+            println!("  shared-exposure rules: {}", exposure.shared_rules.join(", "));
         }
     }
     // RGX-0078.5.i.4 (P1 STEP-0) — the inline-eligibility census + what blocks it.
@@ -3178,6 +3625,239 @@ mod tests {
             .find(|s| s.rule == "top")
             .expect("top site present");
         assert_eq!(top_site.attributable_discarded, 18);
+    }
+
+    fn whitespace_sensitive_annotations(rule: &str) -> Annotations {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            rule.to_string(),
+            vec![super::super::SemanticAnnotation::Named {
+                name: "whitespace_sensitive".to_string(),
+                ast: super::super::UnifiedSemanticAST::Structured {
+                    canonical: String::new(),
+                    value: super::super::UnifiedSemanticValue::Boolean(true),
+                },
+            }],
+        );
+        annotations
+    }
+
+    /// RGX-0078.5.i.7 (Q-GUARD STEP-0) — a min-0 quantified site with a
+    /// first-byte-decided element under terminal-sensitive layout is GUARDABLE
+    /// with the element's byte set; a nullable element and a min>0 quantifier are
+    /// blocked with NAMED reasons (the min>0 site still reports its byte set for
+    /// steering). Sites are censused at ANY nesting (no rule-top-level gate).
+    #[test]
+    fn quant_census_classifies_min0_sites_and_names_blockers() {
+        let mut tree = HashMap::new();
+        // top := 'a'* nullable_opt? 't'+   (three quantified sites)
+        tree.insert(
+            "top".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(atom("quoted_string", "a")),
+                        quantifier: "*".to_string(),
+                    },
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("nullable_opt")),
+                        quantifier: "?".to_string(),
+                    },
+                    ASTNode::Quantified {
+                        element: Box::new(atom("quoted_string", "t")),
+                        quantifier: "+".to_string(),
+                    },
+                ],
+            },
+        );
+        // nullable_opt := 'x'?   — nullable ⇒ not first-byte-decided; its own
+        // inner site ('x'?) is guardable in its own right.
+        tree.insert(
+            "nullable_opt".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(atom("quoted_string", "x")),
+                quantifier: "?".to_string(),
+            },
+        );
+        let census = census_of(
+            tree,
+            vec!["top".to_string(), "nullable_opt".to_string()],
+            Some(whitespace_sensitive_annotations("top")),
+        );
+        let top_sites: Vec<&QuantSiteCensus> = census
+            .quant_sites
+            .iter()
+            .filter(|s| s.rule == "top")
+            .collect();
+        assert_eq!(top_sites.len(), 3);
+        let star = top_sites.iter().find(|s| s.site == "q#0").unwrap();
+        assert!(star.min_zero && star.guardable, "blockers: {:?}", star.blockers);
+        assert_eq!(star.first_bytes, Some(vec![b'a']));
+        let opt = top_sites.iter().find(|s| s.site == "q#1").unwrap();
+        assert!(opt.min_zero && !opt.guardable);
+        assert!(opt
+            .blockers
+            .iter()
+            .any(|b| b.starts_with("element not first-byte-decided: nullable")));
+        assert_eq!(opt.element_refs, vec!["nullable_opt".to_string()]);
+        let plus = top_sites.iter().find(|s| s.site == "q#2").unwrap();
+        assert!(!plus.min_zero && !plus.guardable);
+        assert!(plus.blockers.iter().any(|b| b.starts_with("min>0 quantifier")));
+        assert_eq!(plus.first_bytes, Some(vec![b't']));
+        let inner = census
+            .quant_sites
+            .iter()
+            .find(|s| s.rule == "nullable_opt")
+            .expect("inner site present");
+        assert!(inner.guardable, "blockers: {:?}", inner.blockers);
+        assert_eq!(inner.first_bytes, Some(vec![b'x']));
+    }
+
+    /// RGX-0078.5.i.7 (Q-GUARD STEP-0) — without terminal whitespace-sensitivity
+    /// the R2 layout blocker fires on every site (the next-byte peek is unsound
+    /// under an implicit leading skip).
+    #[test]
+    fn quant_census_names_the_layout_blocker() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "top".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(atom("quoted_string", "a")),
+                quantifier: "*".to_string(),
+            },
+        );
+        let census = census_of(tree, vec!["top".to_string()], None);
+        let site = &census.quant_sites[0];
+        assert!(!site.guardable);
+        assert!(site
+            .blockers
+            .iter()
+            .any(|b| b.contains("R2 raw-byte peek unsound")));
+    }
+
+    /// RGX-0078.5.i.7 (Q-GUARD STEP-0) — the exposure join attributes a rule ONLY
+    /// when every grammar-wide occurrence sits under a guardable min-0 site's
+    /// element (two sites in the same rule — the `class_zero_width` shape — still
+    /// attribute), routes rules with non-quantified references to the SHARED lane,
+    /// and never double-counts references under NESTED guardable sites.
+    #[test]
+    fn quant_exposure_attributes_population_and_shared_lanes() {
+        let mut tree = HashMap::new();
+        // range := z* '-' z* s*   (z under TWO guardable sites; s also bare in `other`)
+        tree.insert(
+            "range".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("z")),
+                        quantifier: "*".to_string(),
+                    },
+                    atom("quoted_string", "-"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("z")),
+                        quantifier: "*".to_string(),
+                    },
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("s")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        // other := s 'k'   (the bare reference that keeps s in the shared lane)
+        tree.insert(
+            "other".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("s"), atom("quoted_string", "k")],
+            },
+        );
+        // nested := ('p' n*)*   — outer guardable site whose element hosts an inner
+        // guardable site; n's single occurrence must count ONCE (outermost-only).
+        tree.insert(
+            "nested".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(ASTNode::Sequence {
+                    elements: vec![
+                        atom("quoted_string", "p"),
+                        ASTNode::Quantified {
+                            element: Box::new(rule_ref("n")),
+                            quantifier: "*".to_string(),
+                        },
+                    ],
+                }),
+                quantifier: "*".to_string(),
+            },
+        );
+        tree.insert("z".to_string(), atom("quoted_string", "z"));
+        tree.insert("s".to_string(), atom("quoted_string", "s"));
+        tree.insert("n".to_string(), atom("quoted_string", "n"));
+        let payload = serde_json::json!({
+            "grammar": "t",
+            "accepted": true,
+            "rule_entry_counts": {"z": 10u64, "s": 8u64, "n": 5u64, "range": 1u64},
+            "rule_committed_counts": {"z": 4u64, "s": 8u64, "n": 2u64, "range": 1u64},
+        });
+        let path = std::env::temp_dir().join(format!(
+            "pgen_quant_exposure_test_{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, serde_json::to_string(&payload).unwrap()).unwrap();
+        let order = vec![
+            "range".to_string(),
+            "other".to_string(),
+            "nested".to_string(),
+            "z".to_string(),
+            "s".to_string(),
+            "n".to_string(),
+        ];
+        let census = run_fusibility_census(
+            "t",
+            &tree,
+            &order,
+            Some(whitespace_sensitive_annotations("range")).as_ref(),
+            &[],
+            std::slice::from_ref(&path),
+        )
+        .expect("census runs");
+        std::fs::remove_file(&path).ok();
+        let exposure = census.quant_exposure.as_ref().expect("quant exposure joined");
+        assert_eq!(exposure.total_sites, 5);
+        assert_eq!(exposure.min_zero_sites, 5);
+        assert_eq!(exposure.guardable_sites, 5);
+        // z (10/4) + n (5/2) attributable; s shared (bare ref in `other`).
+        assert_eq!(
+            exposure.attributable_rules,
+            vec!["n".to_string(), "z".to_string()]
+        );
+        assert_eq!(exposure.attributable_entries, 15);
+        assert_eq!(exposure.attributable_committed, 6);
+        assert_eq!(exposure.attributable_discarded, 9);
+        assert_eq!(exposure.shared_rules, vec!["s".to_string()]);
+        assert_eq!(exposure.shared_entries, 8);
+        assert_eq!(exposure.shared_discarded, 0);
+        assert_eq!(
+            exposure.top_attributable_rules,
+            vec![
+                ("z".to_string(), 10, 4, 6),
+                ("n".to_string(), 5, 2, 3),
+            ]
+        );
+        // Per-site sole attribution: z (2 grammar-wide occurrences) is sole at
+        // NEITHER range site; n (1 occurrence) is sole at the nested inner site.
+        let range_q0 = census
+            .quant_sites
+            .iter()
+            .find(|s| s.rule == "range" && s.site == "q#0")
+            .unwrap();
+        assert!(range_q0.sole_refs.is_empty());
+        assert_eq!(range_q0.sole_attributable_discarded, 0);
+        let inner_n = census
+            .quant_sites
+            .iter()
+            .find(|s| s.rule == "nested" && s.site == "q#1")
+            .unwrap();
+        assert_eq!(inner_n.sole_refs, vec!["n".to_string()]);
+        assert_eq!(inner_n.sole_attributable_discarded, 3);
     }
 
     /// RGX-0078.5.i.4 (P1 STEP-0) — the inline census classifies the wrapper shapes
