@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-14 - PGEN-RGX-0078-0072 — `.5.i.7` post-D0 re-census: engineering notes
+
+**An analysis landing invalidates its own census — re-run it before pricing the next
+increment.** D0 didn't just kill discards; it MOVED the blocked-site taxonomy: the 33
+"unresolved FIRST" sites didn't all become degenerate (41→60 = +19 did) — the rest became
+*genuine-overlap* sites, and the overlap class GREW its measured occurrence count (116 →
+1104) because resolution made overlaps visible that were previously hidden behind
+`unresolved`. A D1 priced on the pre-D0 census would have chased a byte-1 subset-dispatch
+that the landed guards already made a no-op. This is the `-0069` stale-cost lesson at the
+census level: every analysis change re-shapes the measurement that priced it.
+
+**Guarded-admission is the new residual signature.** Post-D0, a discarded entry means "byte
+1 admitted it, byte 2+ refuted it" — the per-branch guards see to the rest. That inverts
+the optimization target: no single-byte mechanism (prune, subset, switch) can touch the
+residual; only prefix depth ≥2 discriminates. The measured families confirm it: the
+`\`-family's second byte is the discriminator (`\b` vs `\d` vs `\1`), the `(`-cluster's
+second-and-third (`(?:` vs `(?=` vs `(?P<`).
+
+**`committed_overshoot` is a documented census class, not a bug to chase.** committed=2 >
+raw=1 on `quant_bound_core` looked alarming mid-battery; the census itself WARNS about the
+class (lookahead-success coverage + memo replay commit testimony without a fresh method
+entry) and clamps per-rule discards via `saturating_sub`. The adjudication that mattered:
+bit-exact in the pre-D0 pinned dumps + zero per-rule committed drift pre→post — ten
+minutes of hash comparison against the `-0070` chain of custody, no code read required.
+
 ## 2026-07-14 - PGEN-RGX-0078-0071 — `.5.i.7` D0 emission: engineering notes
 
 **Subtraction demands exactness, union tolerates slop.** The FIRST-set carrier is an

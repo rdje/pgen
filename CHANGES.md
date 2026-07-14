@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0072 — `.5.i.7` POST-D0 RE-CENSUS (docs-only): the unresolved-FIRST blocked class is EMPTY; byte-1 machinery is EXHAUSTED — **D1 = FIRST₂/prefix dispatch**, population named (≈650–830 of 1540 residual discards addressable), re-priced ≈−8–16% min-basis
+
+The re-census the D0 land mandated, on fresh post-D0 dumps (8/8 entry dumps, determinism
+spot-checked `cmp`-clean, full census join):
+
+- **Blocker histogram: 1104 × first-byte-overlap and NOTHING else** — D0 fully eliminated
+  the pre-D0 33-site unresolved-FIRST class; the 52 remaining blocked top-level sites are
+  ALL genuine same-first-byte overlap. Degenerate sites 60/112 confirmed static.
+- **The central finding (kills the naive D1 form):** every branch at an overlap site now
+  carries its own emitted `.5.c.2` guard, so a byte-1 subset dispatch can no longer kill
+  anything — the residual discards are byte-1-ADMITTED, byte-2-refuted (`zero_width`
+  entered 87× at `\d`-positions, dying on byte 2). D1 must dispatch at the first DIVERGING
+  byte: a FIRST₂ (second-byte conditional on first) analysis + a two-level P2-style
+  emission, selection-semantics-identical by the `.5.c.2` argument applied per level.
+- **Population sized from the dumps:** `\`-family ≈415 (zero_width 87 + inner 60 +
+  class_zero_width 134 + anchor 21 + keep_out 23 + the backreference chain ≈90),
+  `(`-cluster 233 (the 17-rule group family, bytes 2–3 discriminate), quoted-literal
+  family ≈94, numeric-bound probing ≈90; unkillable: `brace_ws` 37 (nullable) + structural
+  spine partials. Ceiling ≈−8–16% (min-basis; D0's 0.029%/discard exchange rate
+  extrapolates higher, but the D1 families are shallower frames) — RE-PRICE at D1 STEP-0
+  once the FIRST₂ census instrument measures the exact killable set.
+- **Census arithmetic adjudicated:** OUTCOME-SHARE 2157/617/1541 uses per-rule
+  `saturating_sub`; the ±1 vs the unclamped 1540 is the census's own WARNED
+  `committed_overshoot` class (`quant_bound_core` 2-committed/1-raw — lookahead-success
+  coverage + memo replay), verified PRE-EXISTING bit-exact in the `-0070` pins with zero
+  per-rule committed drift. D2 stays parked (`FUSIBILITY-ENTRY-SHARE ceiling ≈1.02×`); D3
+  stays parked (276 hits, 140 cyclic-untouchable).
+
+Frontier: **D1 STEP-0 — the FIRST₂ census instrument + design spike**, then the two-level
+dispatch emission under the ⛔ HARD CONSTRAINT battery.
+
 ## 2026-07-14 - PGEN-RGX-0078-0071 — `.5.i.7` D0 LANDED: FIRST-set resolution THROUGH regex-literal terminals — regex geomean **−10.0%** (all 5 rounds, all 8 patterns), ≈27.4µs → **≈24.7µs ≈ 20.1×**; 346 discards killed with committed entries EXACTLY unchanged; P2 byte-switch sites 41 → 60 at regen with zero new emission machinery
 
 The deep-specialization D0 increment (analysis-only, engine tier) landed under the ⛔ HARD
