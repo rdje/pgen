@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0066 — RGX-0078.5.i.6 P4-i LANDED: the @constraint constant-fold — regex geomean −12.1% (all 5 rounds faster), ≈31µs-era → ≈27.4µs, cumulative 496µs → ≈27.4µs ≈ 18.1×
+
+The first P4 emission (session #115) — codegen-only, parser-agnostic; engine and grammars
+untouched. `semantic_relational_constraint_tokens` now consults the generation-time gate
+`relational_constraint_is_provably_truthy` and, when a rule's whole relational policy is
+exactly {constant-true `@constraint`, no `@requires` refs, no `@implies`}, emits NOTHING —
+the rule-exit guard is dead code by construction (no trace/store/error surface;
+`enforce_relational_requires(&[])` is a pure no-op). The gate is strictly narrower than the
+emitted evaluator, each banned character mapping to one evaluator feature, PLUS the
+bare-dotted-identifier-chain exclusion (the verification near-miss: `semantic_reference_syntax`
+accepts `$`-less identifiers, which resolve against parse content and can reject — a naive
+prose gate would have mis-folded them). Non-constant expressions keep the runtime path
+verbatim. Two new pins: the classifier truth table (8 live strings fold; 30 adversarial shapes
+don't) and the emission-level both-directions test. Measured (fat-LTO alternated 5×2000,
+geomean-of-mins; baseline = the preserved landed P3c-i probe `09b20e98…`, candidate
+`f5506c88…`): ratios 0.884/0.887/0.877/0.879/0.868 ⇒ **−12.1%**, best-mins 31.30→27.38µs,
+per-pattern skew matching the scout's population map (email_basic −31.0%, digit_sequence
+−26.3%; the two zero-evaluation patterns within noise/layout-jitter). Exceeds the −5–8%
+ceiling (evaluator tail + ≈9-allocs/eval relief + I-cache). Battery: all-11 canonical regen
+with diff audit — ONLY regex_parser.rs changed (15→0 constraint sites; the other 10 incl. the
+re-derived ebnf.rs byte-identical); dual-feature lib suite 907/907; 8/8 outcome dumps + 8/8
+ASTs byte-identical old-vs-new (chain-of-custody: the preserved pre-fold debug probe
+reproduces the session-#114 landed reference dumps bit-exact); cert seeds 0/7/42
+`267/9/258/0 fully_certified` + spf `0/2/1` byte-exact vs the `-0062` record; ast-shape +
+duality-hunt + PCRE2-compile-oracle gates green; clippy source clean; mdbook gate green.
+Honest bound carried: the interpreter never evaluates `@constraint` (pre-existing latent
+class, not widened by the fold). NEXT = re-profile the ≈27.4µs bench, then the P4-iii/ii
+value-ownership design spike.
+
 ## 2026-07-14 - PGEN-RGX-0078-0064 — RGX-0078.5.i.5 P4 STEP-0 PRICING SCOUT (docs-only): the 6–8% split_semantic_top_level mechanism = 18 evaluations/pass of grammar-constant prose @constraint strings at ≈0.7–1.4µs each — P4-i codegen constant-fold priced at ≈−5–8%
 
 The P4 pricing scout (session #115) — zero new instruments: generated-parser + codegen source

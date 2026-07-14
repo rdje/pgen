@@ -8702,6 +8702,21 @@ impl AstBasedGenerator {
             return quote! {};
         };
 
+        // P4-i (RGX-0078.5.i.6): a `@constraint` whose expression is provably
+        // constant-true — and whose policy consults nothing else (no
+        // `@requires` references, no `@implies`) — compiles to a rule-exit
+        // check that can never fail and has no observable surface (no trace
+        // line, no store effect, an error branch that is dead by
+        // construction; `enforce_relational_requires` with an empty slice is
+        // a pure no-op). Fold it at generation time instead of re-parsing
+        // the constant string on every rule exit at runtime.
+        if policy.requires_references.is_empty()
+            && policy.implication.is_none()
+            && relational_constraint_is_provably_truthy(&constraint_expression)
+        {
+            return quote! {};
+        }
+
         let requires_references = policy.requires_references;
         let implication_guard = if let Some((antecedent, consequent)) = policy.implication {
             quote! {
@@ -8971,6 +8986,64 @@ fn generate_tests(parser_name: &Ident) -> TokenStream {
             }
         }
     }
+}
+
+/// P4-i (RGX-0078.5.i.6): decide at GENERATION time whether a `@constraint`
+/// expression is provably constant-true under the emitted relational
+/// evaluator's own decision procedure, so the whole rule-exit guard can be
+/// elided as dead code.
+///
+/// The gate is deliberately STRICTLY NARROWER than the emitted evaluator.
+/// Each banned character maps to one evaluator feature the expression must
+/// not be able to reach: `|`/`&` (top-level `||`/`&&` splits), `!`
+/// (negation), `<`/`>`/`=` (the six comparison operators), `$`
+/// (capture-reference syntax), `"`/`'` (quote handling in both the
+/// splitter's quote-state tracking and `semantic_unquote`), `(`/`)`
+/// (full-parenthesis stripping and split depth tracking). What remains must
+/// also NOT be a bare dotted-identifier chain — `semantic_reference_syntax`
+/// accepts `name` / `a.b.c` WITHOUT a `$` sigil, and such a reference
+/// resolves against parse content (it can even reject the rule when
+/// unresolved), so it is never a constant. It must NOT parse as `f64`
+/// (numeric truthiness: `0`/`inf`/`nan`-class values decide differently)
+/// and must not be one of the boolean/falsy words the evaluator special-
+/// cases (`true`/`false` and `semantic_truthy`'s falsy set) — a deliberate
+/// boolean or a (defective) constant-false constraint keeps its exact
+/// runtime behavior. Every surviving expression provably runs the emitted
+/// evaluator into `semantic_truthy(non-empty prose) == true` with zero side
+/// effects.
+fn relational_constraint_is_provably_truthy(expression: &str) -> bool {
+    let normalized = expression.trim();
+    if normalized.is_empty() {
+        return false;
+    }
+    if normalized.chars().any(|c| {
+        matches!(
+            c,
+            '|' | '&' | '!' | '<' | '>' | '=' | '$' | '"' | '\'' | '(' | ')'
+        )
+    }) {
+        return false;
+    }
+    let bare_identifier_chain = normalized.split('.').all(|segment| {
+        let bytes = segment.as_bytes();
+        match bytes.first() {
+            Some(&first) if first == b'_' || first.is_ascii_alphabetic() => bytes[1..]
+                .iter()
+                .all(|byte| *byte == b'_' || byte.is_ascii_alphanumeric()),
+            _ => false,
+        }
+    });
+    if bare_identifier_chain {
+        return false;
+    }
+    if normalized.parse::<f64>().is_ok() {
+        return false;
+    }
+    let lowered = normalized.to_ascii_lowercase();
+    !matches!(
+        lowered.as_str(),
+        "true" | "false" | "0" | "no" | "off" | "none" | "null"
+    )
 }
 
 #[cfg(test)]
@@ -12906,6 +12979,99 @@ mod semantic_usage_tests {
         assert!(
             methods.is_empty(),
             "known in-grammar rule references should not emit fallback methods"
+        );
+    }
+
+    /// P4-i (RGX-0078.5.i.6): the generation-time constant-truth gate for
+    /// `@constraint` folding — the truth table pins every mirror obligation
+    /// against the emitted evaluator's decision procedure.
+    #[test]
+    fn relational_constraint_constant_truth_gate() {
+        // Every live regex-grammar constraint string folds (all prose).
+        for prose in [
+            "produces control character",
+            "interpretation depends on escaped character",
+            "may be disabled by compile options or UTF/lookbehind validation",
+            "property name must be valid Unicode property",
+            "must produce valid character value",
+            "must be valid Unicode code point",
+            "must be valid octal digits 0-7",
+            "must be valid hexadecimal digits",
+        ] {
+            assert!(
+                relational_constraint_is_provably_truthy(prose),
+                "live prose constraint must fold: {prose:?}"
+            );
+        }
+        // Prose that merely starts with a digit still folds (not an
+        // identifier chain, not an f64).
+        assert!(relational_constraint_is_provably_truthy("0-7 range prose"));
+
+        // Structural / content-dependent / boolean shapes must NOT fold —
+        // each line names the evaluator feature it could reach.
+        for expression in [
+            "",                    // empty -> runtime ERROR path, not truthy
+            "   ",                 // trim-empty
+            "a || b",              // top-level disjunction
+            "a && b",              // top-level conjunction
+            "!negated",            // negation
+            "$1 <= $2",            // comparison + references
+            "min <= max",          // comparison operators
+            "x == y",              // equality
+            "value<other>",        // bare '<'
+            "a|b",                 // any '|' (split machinery)
+            "a&b",                 // any '&'
+            "$name",               // dollar reference
+            "\"quoted\"",          // quote handling
+            "'quoted'",            // quote handling
+            "(grouped prose)",     // parenthesis stripping
+            "validated",           // bare identifier -> reference resolution
+            "_private",            // bare identifier (underscore lead)
+            "a.b.c",               // bare dotted reference
+            "config.enabled",      // bare dotted reference
+            "1.5",                 // numeric truthiness
+            "-2",                  // numeric truthiness
+            "0",                   // falsy numeric
+            "inf",                 // parses as f64
+            "nan",                 // parses as f64
+            "true",                // boolean special case
+            "false",               // boolean special case
+            "no",                  // semantic_truthy falsy word
+            "off",                 // semantic_truthy falsy word
+            "none",                // semantic_truthy falsy word
+            "null",                // semantic_truthy falsy word
+        ] {
+            assert!(
+                !relational_constraint_is_provably_truthy(expression),
+                "must NOT fold: {expression:?}"
+            );
+        }
+    }
+
+    /// P4-i: a provably constant-true `@constraint` (with no `@requires` and
+    /// no `@implies`) emits NO rule-exit guard; a real relational expression
+    /// keeps the runtime path.
+    #[test]
+    fn constant_true_constraint_folds_to_no_emission() {
+        let folded = generator_with_named_semantic(
+            "control_escape",
+            vec![("constraint", "\"produces control character\"")],
+        );
+        assert!(
+            folded
+                .semantic_relational_constraint_tokens("control_escape")
+                .is_empty(),
+            "constant-true prose constraint must emit nothing"
+        );
+
+        let kept = generator_with_named_semantic(
+            "counted_rule",
+            vec![("constraint", "\"$min <= $max\"")],
+        );
+        let tokens = kept.semantic_relational_constraint_tokens("counted_rule");
+        assert!(
+            tokens.to_string().contains("evaluate_relational_expression"),
+            "a real relational expression must keep the runtime guard"
         );
     }
 }
