@@ -947,3 +947,14 @@ per-pattern deltas read like the population census predicted: the escape-heavy p
 26–31%, and the two patterns that never evaluate a constraint moved only within noise. What
 remains of the value-folding surface — the drop churn and capture-clone class behind the
 remaining ~30% — now waits on the next re-profile and the value-ownership design spike.
+
+The post-landing re-profile is in, and it closes the loop cleanly: the folded mechanism
+registers **zero** samples in both windows — not merely cheaper, *gone* — and what remains is
+now a one-item list. Building, cloning, and dropping the JSON value trees that return
+annotations shape is the only cost bucket left above five percent of the parse; the store
+protocol's residue, the packrat cache, and the recursion guard all sit in low single digits,
+exactly where the previous landings left them. The next step is therefore not another point
+fix but a design question — who *owns* a shaped value as it crosses capture boundaries, lives
+in the memo, and leaves through the output boundary — and it will be priced the way every
+pass in this chapter was: a falsifiable ceiling against the fresh profile, recorded before any
+code is written.

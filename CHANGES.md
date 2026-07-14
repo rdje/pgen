@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0067 — RGX-0078.5.i.6 RE-PROFILE #7 (docs-only): the P4-i harvest CONFIRMED in-profile (split_semantic_top_level 0.0% both windows); serde Value traffic 26–32% = the only remaining >5% addressable surface
+
+The land→re-profile→steer pass over the landed P4-i binary (session #115). Probe = the landed
+candidate by identity (`f5506c88…`); sanity ≈28.0µs solo (the ≈27.4µs alternated era
+reproducing); two 30s@1ms windows (22,831/22,818 roots, all 8 patterns, tree-only method).
+Verified at the profile level: **`split_semantic_top_level` = 0.0% in both windows** (was
+6.3/8.2% — the fold removed the mechanism, not just the cost). Fresh residual: serde_json_out
+26.4/32.3% — `drop<Value>` 13.9/17.4% inclusive, `clone_subtree` 12.2/14.9%,
+`ParseContent::clone` 11.6/13.7%, boundary `to_json_value` ≈4% — the ONLY bucket above 5%;
+protocol residue ≈4–5%, memo ≈3–4%, guard <1% all stay refuted/parked. STEER: the P4-iii/ii
+value-ownership design spike is decisively next (value representation at capture boundaries,
+memo-entry Value ownership, boundary move-not-clone — research-grounded, ceilings priced
+against this profile before any emission). Closure math: ≈27.4µs vs the COLD ≤1µs bar ≈ 27× —
+P4 completion alone cannot close it; the deep-specialization planner extensions remain ON-ROAD
+after P4 per the director's 2026-07-13 direction. Docs-only: tree + TASK_TREE + MEMORY + book.
+
 ## 2026-07-14 - PGEN-RGX-0078-0066 — RGX-0078.5.i.6 P4-i LANDED: the @constraint constant-fold — regex geomean −12.1% (all 5 rounds faster), ≈31µs-era → ≈27.4µs, cumulative 496µs → ≈27.4µs ≈ 18.1×
 
 The first P4 emission (session #115) — codegen-only, parser-agnostic; engine and grammars
