@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0080 — `.5.i.7.t1` AST_PIPELINE_SOURCES wildcard derivation: engineering notes
+
+**Why wildcard, not a completed hand list.** Completing the enumeration reproduces the defect
+class on the next added module — the drift is structural, not an oversight (per
+[[feedback_duplicated_metadata_needs_derived_drift_gate]]: duplicated metadata wants a DERIVED
+source, and where derivation is available it beats a drift gate). The dep list's only job is
+"should make invoke cargo?"; cargo owns precise tracking, so the correct make-side posture is a
+cheap conservative superset of the crate's sources.
+
+**The clean-instrument lesson.** The first reproduction attempt was contaminated: the freshly
+re-derived `generated/ebnf.rs` was newer than the frontend binary, so the dry-run showed a
+rebuild cascade that had nothing to do with the touched file. Staleness claims about make need a
+SETTLED tree first (run the target to fixpoint, prove idempotence, then touch exactly one file).
+Both directions instrumented: unlisted → 0 `cargo build`, listed control → 3.
+
 ## 2026-07-15 - PGEN-RGX-0078-0079 — `.5.i.1.t2` loud-refusal enforcement: engineering notes
 
 **Agreement beats refusal where the canonical path shares the surface.** The queued enforcement

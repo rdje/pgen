@@ -73,20 +73,19 @@ DIFFERENTIAL_STRICT ?= 0
 
 PERFORMANCE_GATE_REPORT_DIR = $(RUST_DIR)/target/performance_gate
 
-# Source dependencies for AST pipeline - if any of these change, parsers need regeneration
-AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
-                      $(RUST_DIR)/src/lib.rs \
-                      $(RUST_DIR)/src/ebnf_frontend.rs \
-                      $(RUST_DIR)/src/ast_pipeline/mod.rs \
-                      $(RUST_DIR)/src/ast_pipeline/ast_based_generator.rs \
-                      $(RUST_DIR)/src/ast_pipeline/ast_code_generator.rs \
-                      $(RUST_DIR)/src/ast_pipeline/ast_generator_direct.rs \
-                      $(RUST_DIR)/src/ast_pipeline/ast_return_transform.rs \
-                      $(RUST_DIR)/src/ast_pipeline/grouped_quantifier_parser.rs \
-                      $(RUST_DIR)/src/ast_pipeline/mutual_recursion_handler.rs \
-                      $(RUST_DIR)/src/ast_pipeline/return_annotation_handler.rs \
-                      $(RUST_DIR)/src/ast_pipeline/unified_return_ast.rs \
-                      $(RUST_DIR)/src/ast_pipeline/unified_semantic_ast.rs \
+# Source dependencies for AST pipeline - if any of these change, parsers need regeneration.
+# DERIVED via $(wildcard), never hand-enumerated (RGX-0078.5.i.7.t1): a hand list drifted
+# behind the crate (first_set.rs / fusibility_census.rs et al. were omitted), so a make-only
+# flow after editing an unlisted codegen source skipped the rebuild AND the parser regen —
+# silently stale artifacts. Over-approximation is safe: cargo no-ops fast and codegen is
+# deterministic, so a spurious regen is byte-identical. Covers every module compiled into the
+# three pipeline binaries (ast_pipeline / ast_pipeline_bootstrap / the ebnf frontend build).
+AST_PIPELINE_SOURCES = $(wildcard $(RUST_DIR)/src/*.rs) \
+                      $(wildcard $(RUST_DIR)/src/ast_pipeline/*.rs) \
+                      $(wildcard $(RUST_DIR)/src/bin/*.rs) \
+                      $(wildcard $(RUST_DIR)/src/parser_hooks/*.rs) \
+                      $(wildcard $(RUST_DIR)/src/test_runner/*.rs) \
+                      $(RUST_DIR)/build.rs \
                       $(RUST_DIR)/Cargo.toml
 
 # Tools

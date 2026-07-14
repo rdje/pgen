@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0080 — `.5.i.7.t1` BUILD-HYGIENE: `AST_PIPELINE_SOURCES` is now `$(wildcard)`-DERIVED (the `-0074` Makefile finding closed) — a make-only flow after editing an unlisted codegen source (e.g. `first_set.rs`) no longer emits silently-STALE artifacts
+
+Reproduced on a settled tree: touching `first_set.rs`+`fusibility_census.rs` (unlisted;
+first_set.rs decides the emitted guards) → `make -n focus_regex` = 0 `cargo build` commands;
+touching a LISTED source → 3. The hand list (13 files) omitted 9/22 `ast_pipeline/*.rs` +
+13/16 top-level `src/*.rs`. Fix: derive via `$(wildcard)` over the five source dirs +
+`build.rs` + `Cargo.toml` (over-approximation safe — cargo no-ops, deterministic codegen ⇒
+spurious regen byte-identical). Verified: post-fix the same touch triggers the full 3-binary
+chain; the triggered regen re-lands regex `ff072136…` byte-identical; dry-run idempotent
+before and after. Makefile-only change.
+
 ## 2026-07-15 - PGEN-RGX-0078-0079 — `.5.i.1.t2` LOUD-REFUSAL ENFORCEMENT LANDED (the `.5.i.1.t1` queued follow-up, PNT while the `.5.i.7` fork awaits the director): the silent non-bootstrap → bootstrap annotation fallback now hard-refuses (opt-in `PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1` + once-per-process NON-CANONICAL banner), and `parse_bootstrap` lowers `null` → `NullLiteral` like the canonical path — the incident's 24-site `null`→`"null"` drift closed at the root; 11/11 canonical artifacts byte-identical at re-regen, lib 941/0
 
 Reproduced on demand with the incident-shaped binary (`ebnf_dual_run`-only, non-bootstrap,
