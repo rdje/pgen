@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0069 — RGX-0078.5.i.6 P4-iii EMISSION REFUTED AT THE LAND GATE; P4 COMPLETE, the leaf and the `.5.i` planner program CLOSED at ≈27.4µs ≈ 18.1×
+
+The structural-reference fold was implemented in FULL (session #116): a new
+`ParseContent::JsonRef(&'input Value)` carrier serde-renamed to `"Json"` (dumped ASTs cannot
+tell the carriers apart), the extraction fold at every `$N`/branch-default/value-extraction
+site, twin arms at every `Json`-pattern site (engine + interpreter + emitted runtime), and a
+STAGED regen that discovered-and-fixed a real bootstrap trap: two EXHAUSTIVE emitted
+`ParseContent` matches (`semantic_content_scalar`, `parse_node_size_proxy`) make any additive
+engine-enum variant break the embedding toolchain — bridged via a worktree regen carrying only
+two wildcard arms (audited +4 lines per parser, all 11), which are KEPT as the permanent
+compile-affordance. The folded parsers passed the ENTIRE oracle battery: 8/8 outcome dumps +
+8/8 pretty ASTs byte-identical vs the landed P4-i references, lib 907/907 (incl. the
+equivalence/combinator/semantic differential gates), cert seeds 0/7/42 `267/9/258/0` spf
+`0/2/1` byte-exact, ast-shape/duality green, PCRE2 compile-oracle real tuple `2189/1879/262/48`
+byte-exact, clippy source clean. Then the land gate: fat-LTO alternated 5×2000 ×2 run-sets vs
+the landed P4-i probe by identity — geomean **−0.4% and −2.2%** vs the −10–13% ceiling; the
+pre-registered sub-noise falsifier FIRED ⇒ NO LAND, reverted (cold-bootstrap regen; an 11-hash
+tripwire proved the restored artifacts bit-exact to the bridge). NEW ceiling-failure class
+named and made a binding scout-discipline amendment: **SAMPLED-SHARE vs MIN-METRIC MISMATCH**
+— a sampled profile share covers all iterations, while geomean-of-mins barely contains
+allocator-churn cost (it lives above the min); sampled ceilings are valid only for
+fixed-compute mechanisms — which is also exactly why P4-i (−12.1% on a 6–8% surface) and
+P3c-i (−11.2%) EXCEEDED theirs. P4 adjudication: P4-i landed / P4-ii refuted (post-window) /
+P4-iii refuted (min-metric) / P4-iv subsumed→moot ⇒ the planner program P0→P2→P1→P3→P4 is
+COMPLETE: **496µs → ≈27.4µs ≈ 18.1×**, every landing byte-identical. Next: open the
+deep-specialization planner-extensions leaf (director 2026-07-13 road; COLD ≤1µs ≈ 27× away).
+
+Commit note (salvage): the host crashed after this slice completed but BEFORE its commit
+(jetsam evidence: a co-resident non-PGEN process at ≈52 GB resident on the 24 GB host; no
+PGEN process implicated). The post-reboot salvage session re-verified the on-disk state
+against the recorded tripwires (regex `83a68f23…`, 2 compile-affordance arms, 0 `JsonRef`,
+11/11 parsers) before committing. The reboot wiped the #114–#116 session scratchpads
+(`/private/tmp`) — bench logs, probe binaries, and the `p4i_dumps`/`p4i_ast` byte-identity
+reference dumps are lost; the transcribed record in the tree stands, and fresh reference
+dumps must be re-derived at the next unit's STEP-0.
+
 ## 2026-07-14 - PGEN-RGX-0078-0068 — RGX-0078.5.i.6 P4-iii/ii DESIGN SPIKE (docs-only): the serde bucket decomposed by context + metric window; dominant mechanism named = the $N/branch-default materializing extraction (≈9–12% in-window); P4-iii structural-reference fold priced ≈−10–13%; P4-ii REFUTED for the metric; P4-iv subsumed
 
 The value-ownership design spike (session #116) — zero new instrument: a context-attribution

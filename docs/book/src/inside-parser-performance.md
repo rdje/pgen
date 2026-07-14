@@ -995,5 +995,44 @@ once per genuine object or array template rather than once per level passed thro
 ceiling, recorded before any code: ten to thirteen percent, with the teardown shrink as an
 unclaimed bonus. The heavier designs the spike was expected to choose between — reference-
 counted values, copy-on-write, an arena tape à la simdjson — were surveyed and declined with
-reasons: their surfaces are mostly after the clock here, at many times the blast radius. The
-fold is next on the scoreboard.
+reasons: their surfaces are mostly after the clock here, at many times the blast radius.
+
+### The fold that was right about everything except the stopwatch
+
+The fold was built exactly as designed — a borrowed value carrier that serializes
+indistinguishably from the owned one, so a dumped tree cannot tell whether a copy or a
+reference sits inside it — and it earned every proof the campaign demands: all eight
+benchmark ASTs and outcome dumps reproduced byte-for-byte, all nine-hundred-odd differential
+and certification oracles stayed pinned, and the generated parsers shed every one of the six
+thousand pass-through deep copies they used to perform. Landing it even surfaced and fixed a
+real piece of technical debt: two generated helper functions match exhaustively over the
+engine's content type, which means *any* future addition to that enum would have broken the
+regeneration toolchain against its own previous output; the emitted code now carries an
+unreachable fallback arm, so the next such change will not need the staged two-pass
+regeneration this one did.
+
+And then the stopwatch said no: two independent five-round benchmark sets measured the fold
+at under half a percent and just over two — against a ten-to-thirteen percent ceiling. The
+pre-registered falsifier fired, and the campaign's constitution is unambiguous about what
+happens next: no landing, full revert, and the restored parsers were proven bit-identical to
+the pre-fold generation by hash. What makes the episode worth its place in this chapter is
+*why* the ceiling was wrong, because the reason is now a permanent rule of the pricing
+discipline. A sampling profiler charges each mechanism with its share of *all* CPU time; the
+campaign's metric is the geometric mean of per-pattern *minimums*. Allocator churn — the
+malloc-and-free traffic of building and dropping copies — concentrates in the iterations
+*above* the minimum, where the allocator hits its slow paths; the minimum iteration, the one
+the metric keeps, barely contains it. So a mechanism that is nine to twelve percent of
+sampled time can be worth one to two percent of the reported number. The passes that
+*over*-delivered — the constant-fold and the checkpoint fast path — were the mirror image:
+fixed compute paid identically in every iteration, minimums included. The rule, recorded
+where every future scout will trip over it: a sampled share prices a fixed-compute mechanism;
+for allocator-churn surfaces it prices only the profile, not the metric.
+
+With that, the optimizing-compiler rung is complete. Five passes landed (protocol hygiene,
+predictive dispatch, two rounds of wrapper inlining, the checkpoint fast path, the
+constant-fold), four were refuted by measurement before or at the land gate — and the
+scoreboard reads 496 µs to about 27.4 µs, better than eighteen times, with every landing
+byte-identical to its predecessor. What remains between here and the cold-parse target is
+not another bucket to shave but a change of altitude: the deep-specialization extensions,
+where the generator stops trimming the interpreter-shaped machinery and starts emitting
+code specialized to what each rule actually is.

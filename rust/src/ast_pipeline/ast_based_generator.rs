@@ -7008,6 +7008,12 @@ impl AstBasedGenerator {
                             Some(merged)
                         }
                     }
+                    // Compile-affordance wildcard (RGX-0078.5.i.6): lets THIS
+                    // generation keep compiling if the engine's ParseContent
+                    // gains a variant before this parser is regenerated
+                    // (unreachable today).
+                    #[allow(unreachable_patterns)]
+                    _ => None,
                 }
             }
             fn semantic_reference_syntax(&self, reference: &str) -> bool {
@@ -7591,6 +7597,13 @@ impl AstBasedGenerator {
                     ParseContent::Sequence(items) => items.iter().copied().map(Self::parse_node_size_proxy).sum(),
                     ParseContent::Alternative(inner) => Self::parse_node_size_proxy(inner),
                     ParseContent::Quantified(items, _) => items.iter().copied().map(Self::parse_node_size_proxy).sum(),
+                    // Compile-affordance wildcard (RGX-0078.5.i.6): lets THIS
+                    // generation keep compiling if the engine's ParseContent
+                    // gains a variant before this parser is regenerated
+                    // (unreachable today). Without it, ANY additive
+                    // ParseContent change forces a two-stage regen bootstrap.
+                    #[allow(unreachable_patterns)]
+                    _ => 0,
                 }
             }
 
