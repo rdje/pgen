@@ -795,6 +795,71 @@ fn contains_rule_reference_shallow(node: &ASTNode) -> bool {
     }
 }
 
+/// RGX-0078.5.i.7 Q-GUARD — the furthest-emulation FRONTIER class of a min-0
+/// quantified site's ELEMENT: does a byte-1-REFUTED attempt of the element enter a
+/// rule (writing `furthest_position` at the attempt position)?
+///
+/// - `BareRef` — the element (unwrapping group shells and single-element sequences)
+///   is exactly a rule/builtin reference: a refuted attempt ALWAYS executes that
+///   entry's preamble at the attempt position ⇒ the emulation
+///   `if p > furthest { furthest = p }` is EXACT. The memo-hit case is exact by
+///   MONOTONICITY: a cached failure at p implies an earlier REAL entry already
+///   bumped furthest ≥ p, so the counterfactual hit (no preamble) and the emulation
+///   both no-op.
+/// - `NoRefs` — the element subtree contains NO rule reference (pure quoted/regex
+///   probing): only rule methods / native builtins / inlined frames write
+///   `furthest_position`, so a refuted attempt writes nothing ⇒ NO emulation is
+///   EXACT.
+/// - `Mixed` — anything else: whether a refuted attempt enters a rule depends on
+///   inner alternative/optional structure; consumers must NOT guard (either
+///   emulation guess can diverge — over-advance or lost diagnostics).
+///
+/// SHARED between the census (`QuantSiteCensus::frontier`) and codegen's Q-guard
+/// emission — the same no-drift discipline as `branch_dispatch_first_bytes`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum QuantFrontier {
+    BareRef,
+    NoRefs,
+    Mixed,
+}
+
+impl QuantFrontier {
+    /// Stable snake_case name (the census's serialized form).
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            QuantFrontier::BareRef => "bare_ref",
+            QuantFrontier::NoRefs => "no_refs",
+            QuantFrontier::Mixed => "mixed",
+        }
+    }
+}
+
+pub(crate) fn quantified_element_frontier(element: &ASTNode) -> QuantFrontier {
+    fn unwrap_shells(node: &ASTNode) -> &ASTNode {
+        match node {
+            ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } => unwrap_shells(inner),
+            ASTNode::Sequence { elements } if elements.len() == 1 => unwrap_shells(&elements[0]),
+            _ => node,
+        }
+    }
+    if let ASTNode::Atom {
+        value: ASTValue::Token(parts),
+    } = unwrap_shells(element)
+    {
+        if let Some(TokenValue::String(token_type)) = parts.first() {
+            if token_type == "rule_reference" {
+                return QuantFrontier::BareRef;
+            }
+        }
+    }
+    if !contains_rule_reference_shallow(element) {
+        return QuantFrontier::NoRefs;
+    }
+    QuantFrontier::Mixed
+}
+
 /// The union of a FIRST summary's admissible first BYTES (quoted-terminal first
 /// bytes ∪ the D0 `first_bytes`), or `None` when any terminal's first byte is
 /// unextractable — the composition helper the second-byte fold uses for "an element
@@ -1784,5 +1849,57 @@ mod tests {
         assert_eq!(after.terminals, fresh.terminals);
         assert_eq!(after.unresolved, fresh.unresolved);
         assert_eq!(after.nullable, fresh.nullable);
+    }
+
+    /// RGX-0078.5.i.7 Q-GUARD — the furthest-emulation frontier classification:
+    /// a bare rule reference (through group shells / single-element sequences) is
+    /// `BareRef`; a pure quoted/regex subtree is `NoRefs`; a mix (a refuted
+    /// attempt MAY or may not enter a rule) is `Mixed`; an unknown token kind is
+    /// conservatively a reference (never `NoRefs`).
+    #[test]
+    fn quantified_element_frontier_classifies_emulation_exactness() {
+        assert_eq!(
+            quantified_element_frontier(&rule_ref("class_zero_width")),
+            QuantFrontier::BareRef
+        );
+        // Group shell + single-element sequence unwrap to the bare reference.
+        let shelled = ASTNode::Atom {
+            value: ASTValue::Node(Box::new(ASTNode::Sequence {
+                elements: vec![rule_ref("r")],
+            })),
+        };
+        assert_eq!(quantified_element_frontier(&shelled), QuantFrontier::BareRef);
+        assert_eq!(
+            quantified_element_frontier(&quoted_atom("a")),
+            QuantFrontier::NoRefs
+        );
+        assert_eq!(
+            quantified_element_frontier(&ASTNode::Sequence {
+                elements: vec![quoted_atom("a"), regex_atom("[0-9]")],
+            }),
+            QuantFrontier::NoRefs
+        );
+        assert_eq!(
+            quantified_element_frontier(&ASTNode::Sequence {
+                elements: vec![quoted_atom("a"), rule_ref("r")],
+            }),
+            QuantFrontier::Mixed
+        );
+        assert_eq!(
+            quantified_element_frontier(&ASTNode::Or {
+                alternatives: vec![quoted_atom("a"), rule_ref("r")],
+            }),
+            QuantFrontier::Mixed
+        );
+        let unknown_token = ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("mystery_kind".to_string()),
+                TokenValue::String("payload".to_string()),
+            ]),
+        };
+        assert_eq!(
+            quantified_element_frontier(&unknown_token),
+            QuantFrontier::Mixed
+        );
     }
 }

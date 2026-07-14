@@ -439,6 +439,13 @@ pub struct QuantSiteCensus {
     /// The guard byte set (sorted) when the element is first-byte-decided —
     /// present even on sites blocked by OTHER gates, for steering.
     pub first_bytes: Option<Vec<u8>>,
+    /// RGX-0078.5.i.7 Q-GUARD EMISSION — the furthest-emulation frontier class of
+    /// the element (`bare_ref` / `no_refs` / `mixed`, the SHARED
+    /// `first_set::quantified_element_frontier` verdict). The emission guards ONLY
+    /// `bare_ref` (guard + exact `furthest` emulation) and `no_refs` (guard, no
+    /// emulation) sites; `mixed` sites stay unguarded (exact emulation undecidable
+    /// at this granularity) even when `guardable` is true.
+    pub frontier: String,
     /// Rule references anywhere in the element subtree (deduped, sorted).
     pub element_refs: Vec<String>,
     /// Of `element_refs`: rules whose EVERY grammar-wide reference occurrence
@@ -1169,7 +1176,7 @@ fn collect_refs(node: &ASTNode, out: &mut HashSet<String>, regex_patterns: &mut 
 /// subtree. The grammar-wide totals feed the sole-reference attribution test: a rule
 /// whose every occurrence lives inside one choice branch has all its measured entries
 /// attributable to that site.
-fn collect_ref_occurrences(node: &ASTNode, out: &mut HashMap<String, usize>) {
+pub(crate) fn collect_ref_occurrences(node: &ASTNode, out: &mut HashMap<String, usize>) {
     match node {
         ASTNode::Or { alternatives } => alternatives
             .iter()
@@ -1895,7 +1902,7 @@ fn walk_for_choice_sites(
 /// enter before its first terminal match fails (references behind consuming units
 /// are unreachable in a byte-1-refuted attempt but still count — the sound,
 /// no-elision direction, mirroring `contains_rule_reference_shallow`'s stance).
-fn reachable_rules(
+pub(crate) fn reachable_rules(
     tree: &HashMap<String, ASTNode>,
     seeds: impl Iterator<Item = String>,
 ) -> Vec<String> {
@@ -2046,6 +2053,9 @@ fn walk_for_quant_sites(
                 guardable,
                 blockers,
                 first_bytes,
+                frontier: super::first_set::quantified_element_frontier(element)
+                    .name()
+                    .to_string(),
                 element_refs,
                 sole_refs,
                 sole_attributable_discarded: 0,
@@ -2854,15 +2864,24 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
         .iter()
         .filter(|s| s.guardable)
         .collect();
+    let frontier_count = |class: &str| {
+        guardable_sites
+            .iter()
+            .filter(|s| s.frontier == class)
+            .count()
+    };
     println!(
-        "QUANT-SITE-CENSUS: grammar={} quantified_sites={} min_zero={} guardable={}",
+        "QUANT-SITE-CENSUS: grammar={} quantified_sites={} min_zero={} guardable={} (bare_ref={} no_refs={} mixed={})",
         census.grammar_name,
         census.quant_sites.len(),
         min_zero_sites,
         guardable_sites.len(),
+        frontier_count("bare_ref"),
+        frontier_count("no_refs"),
+        frontier_count("mixed"),
     );
     println!(
-        "  gate: min-0 quantifier + terminal-ws-sensitive + element first-byte-decided + predicate/effect-free reachable closure — RGX-0078.5.i.7 (Q-GUARD)"
+        "  gate: min-0 quantifier + terminal-ws-sensitive + element first-byte-decided + predicate/effect-free reachable closure — RGX-0078.5.i.7 (Q-GUARD); the EMISSION guards bare_ref (+ exact furthest emulation) and no_refs sites only"
     );
     if !guardable_sites.is_empty() {
         let names: Vec<String> = guardable_sites
@@ -3693,8 +3712,10 @@ mod tests {
         let star = top_sites.iter().find(|s| s.site == "q#0").unwrap();
         assert!(star.min_zero && star.guardable, "blockers: {:?}", star.blockers);
         assert_eq!(star.first_bytes, Some(vec![b'a']));
+        assert_eq!(star.frontier, "no_refs");
         let opt = top_sites.iter().find(|s| s.site == "q#1").unwrap();
         assert!(opt.min_zero && !opt.guardable);
+        assert_eq!(opt.frontier, "bare_ref");
         assert!(opt
             .blockers
             .iter()

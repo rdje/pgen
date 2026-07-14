@@ -1171,5 +1171,26 @@ the profile named. The census states its own honest bounds: a byte-1-admitted at
 that dies later survives the guard, and terminal-only sites never show up in per-rule
 counters at all. On a whitespace-skipping grammar like full SystemVerilog the lane
 reports its 1,113 min-0 sites and zero guardable — the raw-byte peek is unsound under an
-implicit layout skip, and the census says so rather than over-promising. The guarded
-emission itself is the next increment; the instrument, as always, goes first.
+implicit layout skip, and the census says so rather than over-promising.
+
+The guarded emission followed the census immediately, with one exactness rule doing the
+soundness work. Skipping an attempt must not change what a failed parse *reports*: PGEN's
+deepest-position diagnostic is written once per rule entry, so the guard emits a one-line
+emulation of the entry the skipped attempt would have made — but only where that
+counterfactual is *decidable*. A site whose element is a bare rule reference always
+enters that rule, so the emulation is exact (even against memoized failures, which imply
+an earlier real entry already recorded the position); a site whose element is pure
+terminal matching enters nothing, so no emulation is exact; anything in between stays
+unguarded rather than guess. That classification splits the 102 guardable sites into 78
+bare-reference and 2 terminal-only guarded sites, with 22 mixed sites left for a possible
+later refinement. The regenerated parser carries the guards at every emission instance —
+the optional-element fast path included — and the counters told the usual story at first
+regeneration: 285 of the 999 remaining discarded speculation entries vanished
+(`class_zero_width` all 134 of them), committed counts exactly unchanged, every abstract
+syntax tree byte-identical. The alternated benchmark measured **−4.3%** — roughly 19.0µs
+to **18.2µs**, faster in all five rounds, with the character-class pattern (the one the
+previous increment could not touch) dropping **12.7%**. One honest note the numbers
+force: the priced ceiling had assumed each killed attempt cost what the earlier
+increments' kills cost, but these attempts were already cheap — refuted at their first
+branch guard — so the per-kill payoff was smaller. The census counted the kills exactly
+right; the exchange rate belonged to a different population.

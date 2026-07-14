@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0077 — `.5.i.7` Q-GUARD emission: engineering notes
+
+**One census site, two codegen paths.** The design section's most valuable line came
+from reading the generator before writing it: `?`-optionals that are DIRECT sequence
+elements never reach `generate_quantified_logic` — `generate_sequence_element` has a
+fast-path arm that emits the `try_parse`/empty-fallback inline. An emission built only
+into the quantifier loop would have silently missed `piece = atom quantifier?` (the
+`quantifier`+`quant_base` 90→8 kill — a third of the win). The census's `Quantified`
+node is one concept; the emission surface is wherever codegen lowers it.
+
+**The memo-hit monotonicity argument.** The furthest emulation is exact for bare-ref
+elements even though a memoized FAILURE hit skips the rule preamble: a fail-set hit at
+p implies an earlier REAL attempt at p already bumped `furthest ≥ p`, so the
+counterfactual (no write) and the emulation (`if p > furthest`) both no-op. Monotone
+state plus idempotent max = the whole proof. The enforcement is not the argument but
+the gates: the interpreter (untouched, guard-free) must produce identical
+rejected-parse diagnostics through the differential/equivalence suites — it does.
+
+**The exchange-rate lesson (why −4.3% against a −6–12% price).** The census counted
+kills exactly (285 measured vs 192 attributable + nested upside — the count
+over-delivered). The µs-per-kill did not: these attempts were already refuted at their
+first branch guard post-D0/D1 (~a few byte compares each ≈ 2.9ns/kill), unlike the D1
+population (full tournament descents ≈ 8ns/kill). A residual that earlier increments
+made fail-fast pays less per kill by construction. Future STEP-0 pricing must multiply
+kills by the population's OWN per-attempt cost (measurable from the profile's
+rule-method self-time over entries), not the campaign-average exchange rate.
+
+**`brace_ws` humility note.** The `-0076` census flagged its 37 discards
+"likely unkillable inside byte-1-admitted `{`-led attempts" — measurement says 37→0.
+The reasoning error: those entries came from counted-quantifier attempts REFUTED at
+byte 1 (guarded at their enclosing sites), not from `{`-admitted ones. Census bounds
+are for pricing; only counters adjudicate.
+
 ## 2026-07-14 - PGEN-RGX-0078-0076 — `.5.i.7` Q-GUARD STEP-0: engineering notes
 
 **Attribution is the hard half of a quantified-site census.** The choice-site census's

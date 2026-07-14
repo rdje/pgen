@@ -4734,6 +4734,82 @@ impl AstBasedGenerator {
         })
     }
 
+    /// RGX-0078.5.i.7 Q-GUARD — the min-0 quantified-site ATTEMPT-ELISION license:
+    /// the element's admissible FIRST bytes plus whether the guard must emit the
+    /// EXACT furthest emulation. `None` = always attempt (the sound default).
+    /// The gates mirror the census lane (`QuantSiteCensus`) one-for-one:
+    /// - terminal-layout trust (`layout_sensitivity().terminals` — the R2 raw-byte
+    ///   peek, same gate as `emit_first_set_guard`);
+    /// - the SHARED dispatch predicate `first_set::branch_dispatch_first_bytes`
+    ///   (non-nullable + resolved + regex-token trust + extractable bytes — census
+    ///   gate 3, so the census verdict and this emission cannot drift);
+    /// - the SHARED frontier classification
+    ///   (`first_set::quantified_element_frontier`): `BareRef` ⇒ guard + emulation
+    ///   (a refuted attempt always executes the referenced entry's furthest
+    ///   preamble at the attempt position; the memo-hit case is exact by
+    ///   monotonicity), `NoRefs` ⇒ guard without emulation (no furthest writer
+    ///   exists in a pure-terminal attempt), `Mixed` ⇒ unguarded (exact emulation
+    ///   undecidable at this granularity);
+    /// - the census gate-4 mirror: NO rule reachable from the element subtree
+    ///   carries Branch-phase predicates or branch-start effect directives
+    ///   (rolled back on failure anyway; excluded so counters/diagnostics stay
+    ///   honest by exclusion — the `-0075` P2-(e) mirror), queried against the
+    ///   SAME compiled table the census consults.
+    fn quantified_prune_guard_for_element(&self, element: &ASTNode) -> Option<(Vec<u8>, bool)> {
+        if !self.layout_sensitivity().terminals {
+            return None;
+        }
+        let emulate = match super::first_set::quantified_element_frontier(element) {
+            super::first_set::QuantFrontier::BareRef => true,
+            super::first_set::QuantFrontier::NoRefs => false,
+            super::first_set::QuantFrontier::Mixed => return None,
+        };
+        let grammar_tree = self.first_set_grammar_tree.borrow();
+        let mut cache: std::collections::HashMap<String, super::first_set::FirstSetSummary> =
+            std::collections::HashMap::new();
+        let bytes = super::first_set::branch_dispatch_first_bytes(
+            element,
+            &grammar_tree,
+            &mut cache,
+            self.layout_sensitivity().regex_tokens,
+        )
+        .ok()?;
+        let mut element_refs: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
+        super::fusibility_census::collect_ref_occurrences(element, &mut element_refs);
+        let reachable = super::fusibility_census::reachable_rules(
+            &grammar_tree,
+            element_refs.keys().cloned(),
+        );
+        for rule in &reachable {
+            let branch_count = match grammar_tree.get(rule.as_str()) {
+                Some(ASTNode::Or { alternatives }) => alternatives.len(),
+                _ => 1,
+            };
+            if self.rule_has_branch_phase_predicates(rule, branch_count)
+                || self.rule_has_branch_start_effects(rule)
+            {
+                return None;
+            }
+        }
+        Some((bytes, emulate))
+    }
+
+    /// RGX-0078.5.i.7 Q-GUARD — the emitted EXACT furthest emulation (`BareRef`
+    /// sites), or nothing (`NoRefs` sites). Shared by both emission sites (the
+    /// quantifier loop and the optional-element fast path).
+    fn quantified_guard_emulation_tokens(emulate: bool) -> TokenStream {
+        if emulate {
+            quote! {
+                if parser.position > parser.furthest_position {
+                    parser.furthest_position = parser.position;
+                }
+            }
+        } else {
+            quote! {}
+        }
+    }
+
     fn generate_sequence_logic(
         &self,
         elements: &[ASTNode],
@@ -4774,7 +4850,7 @@ impl AstBasedGenerator {
                 // Optional element
                 eprintln!();
                 let inner_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
-                quote! {
+                let attempt = quote! {
                     if let Some(content) = parser.try_parse(|p| {
                         let parser = p;
                         #inner_logic;
@@ -4784,6 +4860,31 @@ impl AstBasedGenerator {
                     } else {
                         ParseContent::Sequence(Vec::new())
                     }
+                };
+                // RGX-0078.5.i.7 Q-GUARD — the optional-element fast path is the
+                // SECOND emission site of the min-0 attempt elision (this arm
+                // bypasses `generate_quantified_logic`): when the next byte
+                // cannot start the element, take the empty arm directly with
+                // exact furthest parity (see
+                // `quantified_prune_guard_for_element`). Unguarded sites emit
+                // the `attempt` tokens verbatim (byte-identical codegen).
+                match self.quantified_prune_guard_for_element(element) {
+                    Some((bytes, emulate)) => {
+                        let emulation = Self::quantified_guard_emulation_tokens(emulate);
+                        quote! {
+                            if parser.position < parser.input.len()
+                                && matches!(parser.input.as_bytes()[parser.position], #(#bytes)|*)
+                            {
+                                #attempt
+                            } else {
+                                // RGX-0078.5.i.7 Q-GUARD: FIRST-refuted optional
+                                // — the attempt would fail at byte 1; elide it.
+                                #emulation
+                                ParseContent::Sequence(Vec::new())
+                            }
+                        }
+                    }
+                    None => attempt,
                 }
             }
             _ => {
@@ -5154,6 +5255,38 @@ impl AstBasedGenerator {
         };
         let quantifier_label = quantifier;
 
+        // RGX-0078.5.i.7 Q-GUARD — FIRST-guarded ATTEMPT ELISION at min-0 sites:
+        // when the next byte cannot start the element, the iteration attempt
+        // would fail at byte 1 (the `.5.c.2` argument at the quantifier
+        // boundary), so skip it and take the loop's exit path directly. Fires at
+        // EVERY iteration boundary (iteration 0 = the elided sole attempt;
+        // iteration k>0 = the elided loop-EXIT attempt). min>0 sites are out of
+        // scope (a refuted first attempt fails the whole quantifier — a
+        // different emission). Furthest-position parity is EXACT per the
+        // license's frontier class (see `quantified_prune_guard_for_element`).
+        let quant_prune_guard = if min == 0 {
+            self.quantified_prune_guard_for_element(element)
+        } else {
+            None
+        };
+        let quant_guard_tokens = match &quant_prune_guard {
+            Some((bytes, emulate)) => {
+                let emulation = Self::quantified_guard_emulation_tokens(*emulate);
+                quote! {
+                    // RGX-0078.5.i.7 Q-GUARD: FIRST-refuted next byte ⇒ the
+                    // attempt would fail at byte 1 — elide it (exit the loop
+                    // with the iterations committed so far).
+                    if parser.position >= parser.input.len()
+                        || !matches!(parser.input.as_bytes()[parser.position], #(#bytes)|*)
+                    {
+                        #emulation
+                        break;
+                    }
+                }
+            }
+            None => quote! {},
+        };
+
         Ok(quote! {
             // SV-EXH-PROOF.3.3.4.b.3 (Layer 0): the quantifier is ATOMIC at
             // its own boundary. When min > 0 we save the cursor at the start;
@@ -5184,6 +5317,7 @@ impl AstBasedGenerator {
 
                 #stop_at_rule_boundary_on_break
                 #max_check_tokens
+                #quant_guard_tokens
 
                 if let Some(node) = parser.try_parse(|p| {
                     let parser = p;
@@ -9818,6 +9952,155 @@ mod semantic_usage_tests {
             !rendered.contains("branch_effect_directives_for_rule_branch"),
             "a branch-predicate-only grammar must not look up branch-start effects, got: {}",
             rendered
+        );
+    }
+
+    /// RGX-0078.5.i.7 Q-GUARD test scaffolding: a minimal generator with an
+    /// optional grammar-level `@whitespace_sensitive: true` (the R2 gate).
+    fn quant_guard_generator(annotations: Option<Annotations>) -> AstBasedGenerator {
+        AstBasedGenerator {
+            grammar_name: "quant_guard_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations,
+            branch_return_annotations: HashMap::new(),
+            emit_typed_entry_skeleton: false,
+            enable_debug: false,
+            parser_hook_registry: None,
+            ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+        }
+    }
+
+    fn quant_guard_ws_annotations() -> Annotations {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "top".to_string(),
+            vec![crate::ast_pipeline::SemanticAnnotation::Named {
+                name: "whitespace_sensitive".to_string(),
+                ast: crate::ast_pipeline::UnifiedSemanticAST::Structured {
+                    canonical: String::new(),
+                    value: crate::ast_pipeline::UnifiedSemanticValue::Boolean(true),
+                },
+            }],
+        );
+        annotations
+    }
+
+    fn nospace(rendered: &str) -> String {
+        rendered.chars().filter(|c| !c.is_whitespace()).collect()
+    }
+
+    /// RGX-0078.5.i.7 Q-GUARD — a min-0 `*` site over a BARE rule reference in a
+    /// terminal-ws-sensitive grammar gets the loop guard (peek at
+    /// `parser.position`, NOT the Or-guards' `parse_start`) plus the EXACT
+    /// furthest emulation.
+    #[test]
+    fn quantified_loop_emits_first_guard_with_furthest_emulation_for_bare_ref() {
+        let generator = quant_guard_generator(Some(quant_guard_ws_annotations()));
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "top".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(token("rule_reference", "zref")),
+                        quantifier: "*".to_string(),
+                    },
+                    token("quoted_string", "z"),
+                ],
+            },
+        );
+        grammar_tree.insert("zref".to_string(), token("quoted_string", "k"));
+        let rule_order = vec!["top".to_string(), "zref".to_string()];
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "quant_guard_test.rs")
+            .expect("parser generation should succeed");
+        let flat = nospace(&rendered);
+        assert!(
+            flat.contains("!matches!(parser.input.as_bytes()[parser.position],107u8)"),
+            "the min-0 loop should peek the next byte against FIRST(zref) = {{'k'}}, got: {rendered}"
+        );
+        assert!(
+            flat.contains("parser.furthest_position=parser.position"),
+            "a bare-ref site must emit the exact furthest emulation, got: {rendered}"
+        );
+    }
+
+    /// RGX-0078.5.i.7 Q-GUARD — an optional (`?`) element mid-sequence takes the
+    /// fast-path emission site; a NoRefs element (pure terminal) gets the guard
+    /// WITHOUT the furthest emulation (no furthest writer exists to emulate).
+    #[test]
+    fn optional_fast_path_emits_guard_without_emulation_for_no_refs_element() {
+        let generator = quant_guard_generator(Some(quant_guard_ws_annotations()));
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "top".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(token("quoted_string", "q")),
+                        quantifier: "?".to_string(),
+                    },
+                    token("quoted_string", "z"),
+                ],
+            },
+        );
+        let rule_order = vec!["top".to_string()];
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "quant_guard_test.rs")
+            .expect("parser generation should succeed");
+        let flat = nospace(&rendered);
+        assert!(
+            flat.contains("matches!(parser.input.as_bytes()[parser.position],113u8)"),
+            "the optional fast path should peek the next byte against FIRST('q'), got: {rendered}"
+        );
+        assert!(
+            !flat.contains("parser.furthest_position=parser.position"),
+            "a NoRefs site must NOT emit the furthest emulation, got: {rendered}"
+        );
+    }
+
+    /// RGX-0078.5.i.7 Q-GUARD — without `@whitespace_sensitive` terminals (the R2
+    /// raw-byte-peek gate) NO quantified-site guard is emitted: byte-identical
+    /// codegen for layout-skipping grammars.
+    #[test]
+    fn quantified_guard_not_emitted_under_layout_skipping_terminals() {
+        let generator = quant_guard_generator(None);
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "top".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(token("rule_reference", "zref")),
+                        quantifier: "*".to_string(),
+                    },
+                    ASTNode::Quantified {
+                        element: Box::new(token("quoted_string", "q")),
+                        quantifier: "?".to_string(),
+                    },
+                    token("quoted_string", "z"),
+                ],
+            },
+        );
+        grammar_tree.insert("zref".to_string(), token("quoted_string", "k"));
+        let rule_order = vec!["top".to_string(), "zref".to_string()];
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "quant_guard_test.rs")
+            .expect("parser generation should succeed");
+        let flat = nospace(&rendered);
+        assert!(
+            !flat.contains("parser.input.as_bytes()[parser.position]"),
+            "layout-skipping grammars must not peek the raw next byte at quantified sites, got: {rendered}"
+        );
+        assert!(
+            !flat.contains("parser.furthest_position=parser.position"),
+            "layout-skipping grammars must not emit the furthest emulation, got: {rendered}"
         );
     }
 

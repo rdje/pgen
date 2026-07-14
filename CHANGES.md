@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0077 — `.5.i.7` Q-GUARD EMISSION LANDED: FIRST-guarded attempt elision at min-0 quantified sites — regex geomean −4.3% (all 5 alternated rounds, best-mins 19.02µs → 18.19µs; character_class −12.7% = the predicted anchor), 285/999 residual discards killed with committed Σ617 EXACTLY unchanged; cumulative 496µs → ≈18.2µs ≈ 27×
+
+Two emission sites (the census's one `Quantified` node maps to two codegen paths — a
+design-section discovery): the `generate_quantified_logic` (min,max)-loop gains a
+pre-`try_parse` guard (`if pos >= len || byte ∉ FIRST(element) { «emulation» break }`,
+firing at every iteration boundary — the elided sole attempt AND the elided loop-exit
+attempt), and `generate_sequence_element`'s optional-`?` fast path gains the same guard
+around its attempt. License = the SHARED predicates (census gate-for-gate, no drift):
+`branch_dispatch_first_bytes` + the R2 terminal-layout gate + the reachable
+predicate/effect closure + the NEW `first_set::quantified_element_frontier` — the
+furthest-emulation exactness classes: `bare_ref` ⇒ emit `if p > furthest {furthest=p}`
+(EXACT — a refuted attempt always executes the referenced entry's preamble at p, and
+the memo-hit counterfactual is exact by monotonicity), `no_refs` ⇒ no emulation (no
+furthest writer exists), `mixed` ⇒ unguarded (22 of 102 guardable sites; the recorded
+v2 surface). 123 guard instances emitted (121 emulating + 2 bare) across P1a inline
+copies. Kill decomposition: `class_zero_width` 134→0 (the `-0076` anchor, complete),
+`brace_ws` 37→0 (the "likely unkillable" flag wrong in the good direction — those
+discards were byte-1-refuted counted-quantifier attempts), `quantifier`+`quant_base`
+90→8 (nested kills); NO rule increased; per-rule committed byte-exact; pins superseded
+1616/617/999/183 → 1331/617/714/180; post-census attributable exposure 192→0. Battery:
+regen audit ONLY regex_parser.rs (`ff072136…`, deterministic; ebnf Steps-B/C reproduced
+`892d2d77…`, json delta = the embedded generated_at timestamp only); ASTs 8/8
+byte-identical; cert 0/7/42 tuple+spf byte-exact; dual-feature lib 939/0 incl. the
+interpreter differential + equivalence gates (the furthest-parity enforcement,
+interpreter untouched); ast-shape 18/18; duality-hunt; PCRE2 compile-oracle;
+clippy-source 0 errors; mdbook. Measurement: alternated 5×2000 vs the sha-verified
+preserved D1 baseline (`6134ebc0…`), candidate `5277848e…`, fat-LTO under the memory
+guard (peak 11714MB/12800) — ratios 0.946/0.954/0.951/0.959/0.972. CEILING MISS
+adjudicated (≈2.9ns/kill vs the −6–12% price at ≈7.8–8.7): the killed attempts were
+already D1-guard-cheap — NEW pricing lesson: extrapolate with a per-POPULATION exchange
+rate, never the campaign average. NEXT: RE-PROFILE #9.
+
 ## 2026-07-14 - PGEN-RGX-0078-0076 — `.5.i.7` Q-GUARD STEP-0: the QUANT census lane landed in `--report-fusibility-census` — regex 140 quantified sites / 118 min-0 / 102 GUARDABLE; exposure population-attributed 18 rules / 192 discards (`class_zero_width` 134 = the anchor); the `-0075` extrapolation re-priced ≈−6–12% min-basis, GO for Q-GUARD emission
 
 The census-before-emission discipline, applied to the `-0075`-named quantified-site
