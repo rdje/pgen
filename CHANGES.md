@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-OPS-MEMSAFE-0002 — memory-guard wrapper DELIVERED (`OPS-MEMSAFE.1` DONE): its own T2 test caught a fatal tree-walk defect (first build killed the host's user session); root-caused + fixed + T1–T9 23/23
+
+`scripts/run_with_memory_guard.sh` (the HOST-RAM BUDGET DIRECTIVE's mechanical enforcement)
+is delivered and verified. The FIRST build's in-session battery run ended the running AI
+session at 2026-07-14 13:04: T2's 300 MB balloon triggered a breach verdict of
+`tree RSS 12597MB (pids=645)` — the tree-membership walk had marked the ENTIRE process
+table — and the guard TERM/KILL'd every user-owned process on the host (the AI session's
+node, Terminal children, the test battery, and the guard itself, whose INT/TERM trap then
+re-fired in a loop). ROOT CAUSE (tool-backed, live-reproduced at 602 pids / 12,215 MB with a
+lone `sleep` as root): awk ARRAY AUTO-VIVIFICATION — `!mark[p]` READS `mark[p]` and thereby
+CREATES key `p`, after which `ppid[p] in mark` (an existence test) is true for every process.
+FIX: `!(p in mark)` in a single shared walk + three kill-path fail-safes (insane-sample
+voiding when the walk implicates pid 1/the guard/its ancestors; kernel-scoped group kill as
+the primary; `signal_tree` refuses pid ≤ 1 and the guard) + trap-reset on breach/interrupt
+(no re-entry loop, no marker overwrite). Battery extended with T8 (walk-scoping regression:
+max sampled pids=1 vs 602 pre-fix) and T9 (guard-interrupted: exit 130, trap fires once);
+T1–T9 = 23/23 PASS in-session (T2 breach now `603MB (pids=1)`, T3 `621MB (pids=4)`).
+Heavy jobs are UNBLOCKED and MUST run under the guard (README → Standard Commands; book
+Operations chapter §Host-Resource Governance; tree `docs/tasks/OPS-MEMSAFE.md`).
+
 ## 2026-07-14 - PGEN-OPS-MEMSAFE-0001 — ⛔ HOST-RAM BUDGET DIRECTIVE recorded (docs-only): no spawned job may exhaust host RAM; memory-guard wrapper = the FIRST item of the next session
 
 Standing director directive (2026-07-14, after the host crash — jetsam-evidenced culprit was

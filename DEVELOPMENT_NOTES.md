@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-14 - PGEN-OPS-MEMSAFE-0002 — three portable lessons from the memory-guard fratricide
+
+**awk `!arr[k]` is a membership BUG, not a membership test.** Reading `arr[k]` auto-vivifies
+key `k`; the `in` operator then tests key EXISTENCE, not truthiness. One sweep of
+`if (!mark[p] && ...)` over the process table inserted every pid as an empty-valued `mark`
+key, and the "descendant closure" became the whole system. Membership in awk is spelled
+`(k in arr)` / `!(k in arr)` — exclusively. This single token difference was the entire
+distance between "kill one 300 MB balloon" and "kill every user process on the host".
+
+**A kill list computed from a sampled walk is UNTRUSTED input to a kill path.** The fixed
+guard holds three independent rails: an insane-sample check that voids any walk implicating
+pid 1/the guard/its ancestors (a warned no-op, never a kill), the kernel-scoped process-group
+kill (`kill -- -pgid`, needs no walk) as the primary mechanism, and a signal wrapper that
+refuses pid ≤ 1 and the guard's own pid. Enforcement tooling must be MORE defensive than the
+jobs it polices — its failure mode is the disaster it exists to prevent.
+
+**Reset a signal trap before killing your own surroundings.** The first build's INT/TERM trap
+called the kill path, which TERM'd the guard itself, which re-entered the trap — hundreds of
+re-fires, and the breach marker was overwritten (`rss-budget` → `guard-interrupted`), nearly
+erasing the root-cause evidence. `trap - INT TERM` on entry to the teardown handler; the
+always-written marker (background-job observability doctrine) is what preserved the incident
+record across the session's death.
+
 ## 2026-07-13 - PGEN-RGX-0078-0057 — RGX-0078.5.i.4 P1b emission notes (why committed counts could not move, and the stale-binary trap again)
 
 **Committed counts were predicted unchanged, and the mechanism is worth naming.** A memo hit

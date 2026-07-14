@@ -28,14 +28,16 @@ accountable that **no spawned job can exhaust host RAM**. Be very cautious.
    two heavy jobs concurrently; never overlap a bench with a build.
 2. **Pre-flight check.** Before launching any heavy job, check free RAM
    (`memory_pressure -Q`) and do not launch into a pressured system.
-3. **Memory-guard wrapper (mechanical enforcement).** Heavy/background jobs run
+3. **Memory-guard wrapper (mechanical enforcement) — ✅ DELIVERED 2026-07-14
+   (`OPS-MEMSAFE.1`, `PGEN-OPS-MEMSAFE-0002`).** Heavy/background jobs run
    under `scripts/run_with_memory_guard.sh`: samples the job's process-tree RSS
    on an interval, kills the tree (with a breach marker + log line) when it
    exceeds a budget (default ≈12 GB = half RAM) OR when system-free drops below
-   a floor (default ≈10%). **Building this wrapper is the tracked FIRST work
-   item of the next session — task-tree-owned like any code change — and gates
-   any heavy job.** Until it exists, heavy jobs are limited to the known-safe
-   classes (regex-family builds/benches) run serially.
+   a floor (default ≈10%). Verified by battery T1–T9 (23/23). Incident note:
+   the FIRST build's own T2 test killed the host's user session (awk
+   auto-vivification made the tree walk system-wide; 2026-07-14 13:04) —
+   root-caused, fixed, and pinned by regression test T8 plus three kill-path
+   fail-safes; full record in `docs/tasks/OPS-MEMSAFE.md`.
 4. Composes with `feedback_background_job_observability.md` (completion marker +
    bounded timeout + liveness probe; no self-matching `pgrep`) and
    `feedback_dont_run_jobs_that_hit_known_pathological_inputs.md`.
