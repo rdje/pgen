@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0079 — `.5.i.1.t2` LOUD-REFUSAL ENFORCEMENT LANDED (the `.5.i.1.t1` queued follow-up, PNT while the `.5.i.7` fork awaits the director): the silent non-bootstrap → bootstrap annotation fallback now hard-refuses (opt-in `PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1` + once-per-process NON-CANONICAL banner), and `parse_bootstrap` lowers `null` → `NullLiteral` like the canonical path — the incident's 24-site `null`→`"null"` drift closed at the root; 11/11 canonical artifacts byte-identical at re-regen, lib 941/0
+
+Reproduced on demand with the incident-shaped binary (`ebnf_dual_run`-only, non-bootstrap,
+regex.json): rc=0, COMPLETELY silent at default verbosity, 24× `Value::String("null")` where
+canonical emits `Value::Null` — the only warning is routed through the `mod.rs:492` `eprintln!`
+shadow into DEBUG-gated tracing (a severity-doctrine gap in itself, surfaced as a finding; the
+`.5.i.1.t1` citation of `return_annotation_handler.rs` corrected — that module is dead code, the
+live surface is `UnifiedReturnAST::parse_bootstrap`). Fix prong A: `parse_value` recognizes bare
+`null` → `NullLiteral` BEFORE the identifier branch (agreement, not refusal — the canonical path
+itself delegates text fallbacks to `parse_bootstrap`, so a refusal there could break canonical
+parsing). Fix prong B: `require_bootstrap_annotation_fallback_license` at BOTH feature-absent
+lanes (return + semantic) errors `REFUSED: …` through the existing `Result` plumbing
+(`parse_return_annotation_ast` → `Result<Option<…>>`); the opt-in banner uses `std::eprintln!`
+to bypass the debug-gated shadow. Verified: un-opted rc=1 (semantic lane fired first — both
+lanes proven), opted-in artifact byte-identical to canonical modulo embedded output paths
+(0 substantive diff lines). Battery: 11/11 canonical regen byte-identical (8 focus + 2
+bootstrap-annotation + ebnf Steps B/C; regex `ff072136…`, ebnf `892d2d77…` reproduced), all 3
+build configs compile, lib 941/0 (+2 tests), clippy source-strict ok (generated debt unchanged
+at 186), mdbook gate green. Lockstep: annotation-system book chapter,
+`docs/BOOTSTRAP_MODE_SPECIFICATION.md` (the old "transparent automatic fallback" text
+superseded), decision record `project_bootstrap_annotation_fallback_loud_refusal` + INDEX.
+
 ## 2026-07-15 - PGEN-RGX-0078-0078 — `.5.i.7` RE-PROFILE #9 + residual adjudication (docs-only): allocator ≈40% shape-preserved a third time, the residual 715 discards broadly distributed (top rule 8.8%) — the guard/dispatch discard-elimination program is EXHAUSTED vs the ≤1µs bar (perfect endgame ≈12.5–16µs); STRATEGIC FORK surfaced to the director (recommendation: the D2 full-cascade-folding STEP-0 scout)
 
 Two 30s@1ms `sample` windows on the Q-guard canonical probe (`5277848e…`; 25,158/25,027

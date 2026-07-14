@@ -61,6 +61,13 @@ When the two diverge, the runtime is what actually parses grammar payloads — s
 - **Keys must be simple identifiers**: `name`, `type`, `value`, etc.
 - **Values must be scalars or simple quantified references**: `$1`, `$2*`
 
+#### Keyword literals
+- `true` / `false` → JSON booleans
+- `null` → JSON `null` (`NullLiteral`) — aligned with the canonical generated path since
+  `RGX-0078.5.i.1.t2`; previously the bootstrap parser silently re-interpreted `null` as the
+  identifier/STRING `"null"` (the `.5.i.1.t1` regen-drift incident, e.g. regex's
+  `{min: $1, max: null}` quantifier bounds)
+
 ### ❌ Unsupported Patterns (Fall Back to Raw)
 
 #### Nesting (Strictly Forbidden)
@@ -90,17 +97,30 @@ Despite limitations, bootstrap mode handles the majority of common annotation pa
 
 ## Implementation Notes
 
-### Bootstrap Mode Activation - Automatic Fallback
+### Bootstrap Mode Activation — explicit, or LOUDLY licensed (never silent)
 
-**Important**: Bootstrap mode normally operates as an **automatic fallback mechanism**, but the CLI still exposes `--bootstrap-mode` as a forcing/debug path for regeneration workflows and proof gates.
+**Important**: `--bootstrap-mode` is the explicit, licensed path for regeneration workflows and
+proof gates (it is how the annotation parsers themselves are generated). The historical
+*silent* automatic fallback — a **non-bootstrap** pipeline built **without**
+`--features generated_parsers` quietly parsing annotations through the hand-rolled bootstrap
+surface — is **refused** since `RGX-0078.5.i.1.t2` (it silently re-interpreted constructs beyond
+the bootstrap subset; see the `null` → `"null"` drift incident `RGX-0078.5.i.1.t1`):
 
-1. **Primary Attempt**: AST pipeline first tries to use external annotation parsers
-2. **Automatic Fallback**: When external parsers fail/unavailable, bootstrap mode activates automatically
-3. **No User Intervention**: This happens transparently - no special flags needed
-4. **Logged Behavior**: You'll see messages like:
+1. **Explicit bootstrap** (`--bootstrap-mode`): the bootstrap parsers are the selected backend —
+   unchanged, fully licensed.
+2. **Canonical non-bootstrap** (built with `--features generated_parsers`): the generated
+   annotation parsers are the backend — unchanged. A payload the generated backend rejects is
+   warned and dropped (validation-failed lane), not silently re-interpreted.
+3. **Non-bootstrap WITHOUT the generated backend**: the run now **hard-errors** on the first
+   annotation with `REFUSED: <kind> annotation '…' needs the generated annotation backend …`
+   (both the return and semantic lanes). To run the legitimate cold-bootstrap /
+   chicken-and-egg recovery flow, set **`PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1`**: the
+   fallback is then licensed and a once-per-process, verbosity-independent banner marks the run:
    ```
-   Warning: External return parser failed, falling back to bootstrap mode: {...}
+   ⚠️ PGEN NON-CANONICAL REGEN: bootstrap annotation fallback ACTIVE …
    ```
+   Artifacts emitted under the opt-in are **NON-CANONICAL** until re-derived via
+   `make -C rust focus_<grammar>` and verified by `make -C rust parse_harness_equivalence_gate`.
 
 ## Bootstrap Architecture Notes
 

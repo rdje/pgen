@@ -212,6 +212,30 @@ The `regex.ebnf` example above is the canonical motivating case (PGEN-RGX-0074):
 
 The hand-written bootstrap parser (`UnifiedReturnAST::parse_bootstrap` in `rust/src/ast_pipeline/unified_return_ast.rs`) historically parses `$N**` as nested `Spread(Spread($N))` — semantically different from `FlattenSpread`. Bootstrap-chain grammars (`return_annotation.ebnf`, `semantic_annotation.ebnf`, `builtin_*.ebnf`) do not use `**`, so this divergence is benign. Tooling that calls `parse_bootstrap` on a `**`-using annotation (e.g. `auto_return_annotation_shape_gate`) maps to `ShapeKind::Passthrough` and skips shape verification gracefully. If a future bootstrap grammar needs `**`, the bootstrap parser will need to be aligned in a separate slice.
 
+### The `null` keyword and the loud-refusal guard (RGX-0078.5.i.1.t2)
+
+Two hardenings close the bootstrap-drift class exposed by the RGX-0078.5.i.1.t1 incident (a
+feature-gated regen silently degraded annotation `null` literals to the *string* `"null"` in the
+emitted parser):
+
+- **`null` lowers faithfully.** `parse_bootstrap` now recognizes the bare keyword `null` as
+  `NullLiteral` → `serde_json::Value::Null`, exactly like the canonical generated-parser path
+  (`null_literal := 'null' -> {type: "null"}` in `return_annotation.ebnf`). Previously it fell into
+  the identifier branch and serialized as the string `"null"`. Identifiers merely prefixed by the
+  keyword (`nullable`, `null_value`, …) still parse as identifiers.
+- **The silent fallback is refused loudly.** A pipeline running in **non-bootstrap** mode but built
+  **without** `--features generated_parsers` used to fall back to the hand-rolled bootstrap
+  annotation parsers with only a debug-gated warning — the exact flow that produced the drift. It
+  now **hard-errors** (`REFUSED: … annotation … needs the generated annotation backend …`) for both
+  the return and semantic annotation lanes, unless `PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1`
+  explicitly opts in (the legitimate cold-bootstrap / chicken-and-egg recovery flow). The opt-in
+  prints a once-per-process, verbosity-independent banner declaring the emitted artifacts
+  **NON-CANONICAL** until re-derived via `make -C rust focus_<grammar>` and verified by
+  `make -C rust parse_harness_equivalence_gate`. The canonical flows are unaffected: `make focus_*`
+  builds the pipeline with `generated_parsers`, the annotation parsers regenerate under
+  `--bootstrap-mode` (explicitly licensed), and the `ebnf_dual_run`-only frontend binary only
+  performs standalone raw-AST export, which parses no annotations.
+
 ## Implicit `-> $1` default — what it does and what it doesn't
 
 When a rule body is a **single Atom** (one terminal, one regex, one rule-reference) or a **single-element Sequence**, and the author has not declared a return annotation, the codegen synthesizes an implicit `-> $1` so the matched value flows through cleanly. This is what lets `boolean_literal := 'true' | 'false'` produce a clean string output without forcing per-branch `-> $1` everywhere.

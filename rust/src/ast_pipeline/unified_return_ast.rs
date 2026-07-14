@@ -927,6 +927,15 @@ impl UnifiedReturnAST {
             _ => {}
         }
 
+        // `null` keyword — must lower to `NullLiteral` exactly like the canonical
+        // generated-parser path (`null_literal := 'null' -> {type: "null"}` →
+        // `serde_json::Value::Null`). Checked BEFORE the identifier branch, which
+        // would otherwise silently re-interpret it as the identifier/STRING
+        // "null" (the RGX-0078.5.i.1.t1 regen-drift incident).
+        if trimmed == "null" {
+            return Ok(UnifiedReturnAST::NullLiteral);
+        }
+
         // Check for identifier literal
         if Self::is_identifier_literal(trimmed) {
             return Ok(UnifiedReturnAST::Identifier {
@@ -2872,6 +2881,53 @@ mod tests {
 
         let ast = UnifiedReturnAST::parse_bootstrap("$42", &logger).unwrap();
         assert_eq!(ast, UnifiedReturnAST::PositionalRef { index: 42 });
+    }
+
+    /// RGX-0078.5.i.1.t2 — the bootstrap surface must lower `null` exactly like
+    /// the canonical generated path (`NullLiteral` → `serde_json::Value::Null`),
+    /// never re-interpret it as the identifier/STRING "null" (the `.5.i.1.t1`
+    /// regen-drift incident: regex `{min: 0, max: null}` emitted `"null"`).
+    #[test]
+    fn bootstrap_null_keyword_lowers_to_null_literal_like_the_canonical_path() {
+        let logger = crate::test_runner::NoOpLogger;
+
+        // Bare keyword.
+        let ast = UnifiedReturnAST::parse_bootstrap("null", &logger).unwrap();
+        assert_eq!(ast, UnifiedReturnAST::NullLiteral);
+
+        // The exact incident payload shape (regex `quant_base`).
+        let ast = UnifiedReturnAST::parse_bootstrap("{min: 0, max: null}", &logger).unwrap();
+        match ast {
+            UnifiedReturnAST::Object { ref properties } => {
+                assert_eq!(
+                    properties.get("max").unwrap().as_ref(),
+                    &UnifiedReturnAST::NullLiteral,
+                    "object value `null` must be NullLiteral, not Identifier(\"null\")"
+                );
+            }
+            other => panic!("Expected Object, got {other:?}"),
+        }
+
+        // Array element position.
+        let ast = UnifiedReturnAST::parse_bootstrap("[null, $1]", &logger).unwrap();
+        match ast {
+            UnifiedReturnAST::Array { ref elements } => {
+                assert_eq!(elements[0], UnifiedReturnAST::NullLiteral);
+            }
+            other => panic!("Expected Array, got {other:?}"),
+        }
+
+        // Boundary: identifiers merely PREFIXED by the keyword stay identifiers.
+        for ident in ["nullx", "nullable", "null_value"] {
+            let ast = UnifiedReturnAST::parse_bootstrap(ident, &logger).unwrap();
+            assert_eq!(
+                ast,
+                UnifiedReturnAST::Identifier {
+                    name: ident.to_string()
+                },
+                "'{ident}' must remain an identifier"
+            );
+        }
     }
 
     #[test]

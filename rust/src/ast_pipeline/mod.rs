@@ -2552,7 +2552,7 @@ impl RustASTPipeline {
                         );
                         continue;
                     };
-                    let parsed_ast = self.parse_return_annotation_ast(annotation_content);
+                    let parsed_ast = self.parse_return_annotation_ast(annotation_content)?;
 
                     // Determine target branch range. If the annotation
                     // immediately follows a group_close at the rule top
@@ -2740,10 +2740,71 @@ impl RustASTPipeline {
         })
     }
 
-    fn parse_return_annotation_ast(&self, annotation_content: &str) -> Option<UnifiedReturnAST> {
+    /// RGX-0078.5.i.1.t2 loud-refusal enforcement — the pure opt-in decision.
+    /// A non-bootstrap pipeline built WITHOUT `--features generated_parsers` may
+    /// route annotation parsing through the hand-rolled bootstrap surface ONLY
+    /// under the explicit `PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1` opt-in
+    /// (the legitimate chicken-and-egg recovery flow). Anything else refuses:
+    /// the bootstrap surface silently re-interprets constructs beyond its
+    /// subset (the `.5.i.1.t1` `null` → `"null"` regen-drift incident).
+    /// (Compiled only where used: feature-absent builds + the unit test.)
+    #[cfg(any(not(feature = "generated_parsers"), test))]
+    pub(crate) fn bootstrap_annotation_fallback_allowed(opt_in: Option<&str>) -> bool {
+        matches!(opt_in.map(str::trim), Some("1"))
+    }
+
+    /// RGX-0078.5.i.1.t2 — refuse the silent non-bootstrap → bootstrap
+    /// annotation fallback, or (under the explicit opt-in) license it while
+    /// stamping the run NON-CANONICAL with a once-per-process banner.
+    #[cfg(not(feature = "generated_parsers"))]
+    fn require_bootstrap_annotation_fallback_license(
+        annotation_kind: &str,
+        payload: &str,
+    ) -> Result<()> {
+        static NON_CANONICAL_BANNER: std::sync::Once = std::sync::Once::new();
+        let opted_in = Self::bootstrap_annotation_fallback_allowed(
+            std::env::var("PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK")
+                .ok()
+                .as_deref(),
+        );
+        if !opted_in {
+            return Err(anyhow!(
+                "REFUSED: {} annotation '{}' needs the generated annotation backend, but this \
+                 binary was built WITHOUT `--features generated_parsers` and is not running in \
+                 --bootstrap-mode. Parsing it through the hand-rolled bootstrap surface can \
+                 silently re-interpret constructs beyond its subset (the RGX-0078.5.i.1.t1 \
+                 `null` -> \"null\" drift incident). Either regenerate through the canonical \
+                 path (`make -C rust focus_<grammar>`, whose ast_pipeline is built with \
+                 `--features generated_parsers`), or set \
+                 PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1 to accept NON-CANONICAL artifacts \
+                 that MUST be re-derived canonically and pass \
+                 `make -C rust parse_harness_equivalence_gate` before being trusted.",
+                annotation_kind,
+                payload
+            ));
+        }
+        NON_CANONICAL_BANNER.call_once(|| {
+            // Deliberately `std::eprintln!`: the module-local `eprintln!` shadow
+            // routes to debug-gated tracing, and this banner must be
+            // unconditional (severity is never gated by verbosity).
+            std::eprintln!(
+                "⚠️ PGEN NON-CANONICAL REGEN: bootstrap annotation fallback ACTIVE \
+                 (PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1; no generated_parsers backend in \
+                 this binary). Emitted artifacts are NOT canonical until re-derived via \
+                 `make -C rust focus_<grammar>` and verified by \
+                 `make -C rust parse_harness_equivalence_gate`."
+            );
+        });
+        Ok(())
+    }
+
+    fn parse_return_annotation_ast(
+        &self,
+        annotation_content: &str,
+    ) -> Result<Option<UnifiedReturnAST>> {
         let content = annotation_content.trim();
         if content.is_empty() {
-            return None;
+            return Ok(None);
         }
 
         let logger = runtime_logger("pipeline.return_annotation.bootstrap");
@@ -2753,7 +2814,7 @@ impl RustASTPipeline {
                     "[mod.rs][parse_return_annotation_ast()] ⚠️ selected backend could not validate return annotation '{}'",
                     content
                 );
-                return None;
+                return Ok(None);
             }
 
             #[cfg(feature = "generated_parsers")]
@@ -2771,13 +2832,13 @@ impl RustASTPipeline {
                             &parse_tree,
                             &logger,
                         ) {
-                            Ok(ast) => Some(ast),
+                            Ok(ast) => Ok(Some(ast)),
                             Err(err) => {
                                 eprintln!(
                                     "[mod.rs][parse_return_annotation_ast()] ⚠️ generated return tree -> typed AST failed for '{}' ({})",
                                     content, err
                                 );
-                                None
+                                Ok(None)
                             }
                         };
                     }
@@ -2786,20 +2847,25 @@ impl RustASTPipeline {
                             "[mod.rs][parse_return_annotation_ast()] ⚠️ generated parser failed for '{}' ({})",
                             content, err
                         );
-                        return None;
+                        return Ok(None);
                     }
                 }
             }
+
+            // Reached ONLY when the generated backend is not compiled in: the
+            // cfg block above returns on every path when the feature exists.
+            #[cfg(not(feature = "generated_parsers"))]
+            Self::require_bootstrap_annotation_fallback_license("return", content)?;
         }
 
         match UnifiedReturnAST::parse_bootstrap(content, &logger) {
-            Ok(ast) => Some(ast),
+            Ok(ast) => Ok(Some(ast)),
             Err(err) => {
                 eprintln!(
                     "[mod.rs][parse_return_annotation_ast()] ⚠️ failed to build typed return AST for '{}' ({})",
                     content, err
                 );
-                None
+                Ok(None)
             }
         }
     }
@@ -2968,7 +3034,10 @@ impl RustASTPipeline {
 
         #[cfg(not(feature = "generated_parsers"))]
         {
-            let _ = annotation_text;
+            // RGX-0078.5.i.1.t2: same silent-fallback class as the return lane —
+            // without the generated backend a named semantic annotation would
+            // silently degrade to the hand-rolled `semantic_named_ast` path.
+            Self::require_bootstrap_annotation_fallback_license("semantic", annotation_text)?;
             Ok(None)
         }
     }
@@ -3804,6 +3873,32 @@ pub(crate) fn syntax_is_single_whole_body_group(syntax_elements: &[serde_json::V
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// RGX-0078.5.i.1.t2 — the loud-refusal opt-in accepts EXACTLY "1"
+    /// (whitespace-trimmed); everything else refuses the silent
+    /// non-bootstrap → bootstrap annotation fallback.
+    #[test]
+    fn bootstrap_annotation_fallback_opt_in_accepts_exactly_one() {
+        for allowed in [Some("1"), Some(" 1 "), Some("1\n")] {
+            assert!(
+                RustASTPipeline::bootstrap_annotation_fallback_allowed(allowed),
+                "{allowed:?} should license the fallback"
+            );
+        }
+        for refused in [
+            None,
+            Some(""),
+            Some("0"),
+            Some("true"),
+            Some("yes"),
+            Some("11"),
+        ] {
+            assert!(
+                !RustASTPipeline::bootstrap_annotation_fallback_allowed(refused),
+                "{refused:?} must refuse the fallback"
+            );
+        }
+    }
 
     #[test]
     fn transform_from_raw_ast_preserves_return_and_semantic_annotations() {

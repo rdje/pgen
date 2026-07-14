@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0079 — `.5.i.1.t2` loud-refusal enforcement: engineering notes
+
+**Agreement beats refusal where the canonical path shares the surface.** The queued enforcement
+said "the bootstrap parser must REJECT payload constructs beyond its subset" — but tracing showed
+the canonical generated path itself delegates node-text fallbacks to `parse_bootstrap`
+(`unified_return_ast.rs` Terminal/postfix/text-fallback sites). An outright `null` refusal inside
+`parse_bootstrap` could therefore break CANONICAL parsing. The correct decomposition: make the
+hand-rolled surface FAITHFUL on the construct (`null` → `NullLiteral`, next to the existing
+`true`/`false` keyword branch), and put the REFUSAL at the actual silence — the feature-absent
+fallback choke points in `mod.rs`, where `bootstrap_mode == false` guarantees the caller *wanted*
+the generated backend.
+
+**The silence had two layers.** Layer 1: the `#[cfg(feature)]` fall-through itself (no message at
+all on the return lane's happy path). Layer 2: the one warning that did exist
+(`validate_return_annotation_backend`) is routed through the module-local `eprintln!` shadow
+(`mod.rs:492` → `pgen_trace_debug!`) — i.e. EVERY `eprintln!`-spelled ⚠️ in `mod.rs` (and
+`ast_based_generator.rs`, same shadow) is DEBUG-verbosity-gated. That is why the incident regen
+was 2 log lines at default verbosity. The new banner deliberately spells `std::eprintln!` to
+bypass the shadow; the refusal itself is an `Err` so no logging policy can hide it. The shadow
+class is recorded as a standing severity-doctrine finding for a dedicated leaf (director-surfaced).
+
+**Measured bonus: the opted-in fallback is now byte-faithful for regex.** With prong A landed, an
+opted-in bootstrap-fallback regen of regex differs from canonical ONLY in the embedded output-path
+strings (0 substantive diff lines) — the null degradation was the entire drift for this grammar.
+The NON-CANONICAL banner stays: other grammars/constructs keep known bootstrap gaps (e.g. the
+`\"`-escape class), and byte-faithfulness on one grammar is not a license.
+
+**Chicken-and-egg flows still work.** The annotation parsers regenerate under `--bootstrap-mode`
+(bootstrap is the SELECTED backend — exempt by the `!bootstrap_mode` guard); the cold-bootstrap
+recovery flow (core-type change, `generated/` empty) sets the env opt-in consciously. Canonical
+ebnf Step B (the `ebnf_dual_run`-only frontend) is standalone raw-AST export — parses no
+annotations, needs no license (verified by running the full canonical recipe un-opted: 11/11
+byte-identical, zero refusals).
+
 ## 2026-07-15 - PGEN-RGX-0078-0077 — `.5.i.7` Q-GUARD emission: engineering notes
 
 **One census site, two codegen paths.** The design section's most valuable line came
