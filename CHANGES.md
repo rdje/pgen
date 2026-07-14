@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0071 — `.5.i.7` D0 LANDED: FIRST-set resolution THROUGH regex-literal terminals — regex geomean **−10.0%** (all 5 rounds, all 8 patterns), ≈27.4µs → **≈24.7µs ≈ 20.1×**; 346 discards killed with committed entries EXACTLY unchanged; P2 byte-switch sites 41 → 60 at regen with zero new emission machinery
+
+The deep-specialization D0 increment (analysis-only, engine tier) landed under the ⛔ HARD
+CONSTRAINT battery:
+
+- **The mechanism.** `first_set.rs` now derives sound first-byte over-approximations for
+  regex-literal terminals from the pattern's HIR (`regex-syntax`, the same dialect the
+  anchored `match_regex` compiles): classes (incl. negated) map to UTF-8 lead-byte bands,
+  concat/alternation/repetition propagate structurally, zero-width `Look`s stay
+  prefix-transparent, underivable patterns keep the `unresolved` fallback. References to the
+  native builtins resolve like codegen's own matchers (`builtin_ascii_char` ⇒ `0x00–0x7F`
+  byte-decided, `builtin_any_char` ⇒ all UTF-8 lead bytes, `true`/`false` ⇒ nullable
+  zero-width; `semantic_annotation` stays unresolved — its matcher skips layout). An EXACT
+  negative-lookahead subtraction (`!X rest` ⇒ FIRST(rest) − bytes(X), licensed only by the
+  new `byte_decided` exactness flag) resolves the scout's central case
+  `unicode_char := !builtin_ascii_char builtin_any_char` to precisely the non-ASCII lead
+  bytes. Regex-token-derived bytes are trusted only where regex tokens are
+  whitespace-SENSITIVE (the anchored-match soundness argument); codegen's FIRST snapshot now
+  rewrites regex atoms through `effective_regex_pattern` so analysis and emission can never
+  diverge on pattern text. 12 new unit tests pin every mechanism.
+- **Blast radius exactly as designed.** All-11 canonical regen: ONLY `generated/
+  regex_parser.rs` changed (`83a68f23…` → `5d8881b2…`); the other 10 byte-identical with
+  fresh mtimes. The landed `.5.c.2` prune and the P2 degenerate dispatch amplified at regen —
+  DEGENERACY-CENSUS 41 → 60 byte-switched sites.
+- **Mechanism confirmed by counters.** Bench aggregate `2503/617/1886/314` →
+  `2157/617/1540/276`: 346 discards killed (13.8% of all entries) with committed entries
+  EXACTLY unchanged per pattern — the prune killed only failing speculation. Kill map:
+  `unicode_char` 160→5, the `literal` metachar walk 102→0. Residual reclassification: the
+  `\`-escape families (≈281 discards) are D1-class (second-byte discrimination), `brace_ws`
+  is nullable-unprunable — the scout's D0 estimate over-attributed those.
+- **The decisive measure.** Alternated 5×2000 geomean-of-mins, baseline `49158bed…` vs
+  candidate `f2156063…`: per-round **0.918/0.875/0.908/0.904/0.895 ⇒ geomean 0.900 =
+  −10.0%**, candidate faster every round, ALL 8 patterns faster at best-mins (literal_simple
+  0.847 … digit_sequence 0.964). Inside the priced ≈−8–14% ceiling. Cumulative: 496µs →
+  ≈24.7µs ≈ **20.1×**.
+- **Battery.** 8/8 ASTs byte-identical vs the `-0070` transcribed refs (pre-D0 probe
+  chain-of-custody re-validated first); cert seeds 0/7/42 `267/9/258/0 fully_certified=true`
+  spf `0/2/1` byte-exact; dual-feature lib suite **919/0** incl. the three interpreter
+  differential gates; ast-shape 18/18; duality-hunt, PCRE2-compile-oracle green; clippy
+  source strict OK (generated-stage errors are pre-existing deny-lints in the byte-identical
+  SV/svpp parsers); mdbook gate green. One correctness hardening rode along: regex-token
+  nullability is now structurally over-approximated (a leading `\b` is nullable mid-input —
+  the old `find("")` probe under-approximated; harmless pre-D0, load-bearing now).
+
+Frontier: the mandated post-D0 RE-CENSUS → the D1 subset/prefix-dispatch design (the
+`(`-cluster + `\`-family, dispatch at the first DIVERGING byte).
+
 ## 2026-07-14 - PGEN-RGX-0078-0070 — `.5.i.7` DEEP-SPECIALIZATION EXTENSIONS opened + STEP-0 scout DONE (docs-only): 75.4% of all bench entries measured as discarded speculation; the FIRST-set analyzer is blind to regex-literal terminals (`first_set.rs:206–217`) — D0/D1 priced ≈−8–14% / ≈−6–12%; post-crash byte-identity refs re-derived; the on-disk bench probe proved to be the `-0069` folded candidate and was rebuilt canonical
 
 The deep-specialization planner-extensions leaf (`RGX-0078.5.i.7` — director 2026-07-13:

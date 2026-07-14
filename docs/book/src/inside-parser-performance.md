@@ -1077,3 +1077,36 @@ memo-necessity analysis were priced honestly against the fresh numbers and parke
 ceiling was recorded against the metric's own basis — the discipline the refuted fold paid
 for — and every one is falsifiable by the same alternated benchmark that will judge the
 emissions.
+
+## Seeing through regex literals: another 10% from pure analysis
+
+The first deep-specialization increment landed exactly where the scout pointed, and it is
+the campaign's purest example of analysis paying for emission that already exists. Nothing
+about the generated parser's *machinery* changed: the FIRST-set analyzer simply learned to
+derive the admissible first bytes of a regex-literal terminal from the pattern's own
+syntax tree — character classes (negated ones included) map to ranges of UTF-8 lead bytes,
+literals contribute their first byte, and anything genuinely undecidable keeps the old
+conservative "always try" answer. References to the built-in single-character matchers
+resolve the same way, and one carefully licensed subtraction handles the grammar's
+negated-class idiom: a negative lookahead whose inner matcher is *exactly decided by one
+byte* may subtract its bytes from what follows, which is how "not an ASCII character,
+then any character" resolves to precisely the non-ASCII lead bytes. Exactness is the
+license — subtracting an over-approximation would prune branches that could match, so
+anything not provably byte-decided keeps the loose union. At the next regeneration the
+two already-landed emissions did the rest by themselves: the predictive prune began
+guarding the literal-matching spine (the always-tried literal branch at metacharacter
+positions simply stopped being entered), and the byte-switch dispatch flipped nineteen
+more choice sites — 41 to 60 — because their branches' first bytes were suddenly known
+and disjoint.
+
+The counters tell the soundness story better than any argument: across the benchmark, 346
+of the 1,886 discarded speculation entries vanished while the *committed* entry counts
+stayed exactly identical, pattern by pattern — the analysis removed only work that was
+always going to fail. The alternated benchmark judged the result at **−10.0%**, faster in
+all five rounds and on all eight patterns, inside the priced ceiling: roughly 27.4µs to
+**24.7µs**, about **20× faster** than where the campaign began. Just as valuable is what
+the landing reclassified: most of the discards that survived turn out to begin with a
+backslash — escape-family branches that legitimately *can* start at every escape position
+and only fail on their second byte. Those were never analysis-blindness; they are the
+subset-dispatch family the next increment exists for, and the re-census now knows their
+names in advance.

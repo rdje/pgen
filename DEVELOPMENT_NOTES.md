@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-14 - PGEN-RGX-0078-0071 — `.5.i.7` D0 emission: engineering notes
+
+**Subtraction demands exactness, union tolerates slop.** The FIRST-set carrier is an
+over-approximation, and every union in it stays sound however loose the inputs. The one new
+operation that is NOT union-shaped is the negative-lookahead subtraction — removing bytes is
+only sound when the subtracted set is EXACT in both directions (`b ∈ set ⇒ definite match`,
+`b ∉ set ⇒ definite fail`). That is what the new `byte_decided` flag licenses, and why it is
+deliberately conservative (single-byte terminals, pure-ASCII single-char classes, the two
+char builtins, unions/min-1 repetitions thereof — nothing else). Subtracting an
+over-approximated set would silently under-approximate FIRST and mis-prune: the exactness
+license is the soundness boundary of the whole increment.
+
+**`find("")` is not a nullability oracle for position-dependent zero-width patterns.** The
+pre-D0 regex arm computed `nullable` by matching the pattern against the empty string — but
+`\b` matches empty at a mid-input word boundary while failing on `""`. That
+under-approximation was harmless only because the summary stayed `unresolved` (never-prune).
+The moment D0 flips `unresolved` off, nullability becomes load-bearing: the HIR walk now
+over-approximates it structurally (`Look` counts as possibly-empty) and the exact probe is
+kept only as belt-and-braces. Pinned by `leading_word_boundary_is_conservatively_nullable`.
+
+**A layout skip breaks the anchored-match identity — gate at the consumer, never fall back
+to partial bytes.** Regex-token first bytes rest on `match_regex` being anchored at the
+parse position (`\A(?:…)`); a grammar whose regex tokens skip leading layout breaks the
+"match first byte = byte at parse_start" identity. The trust gate treats such a summary as
+unresolved OUTRIGHT — reducing it to its non-regex bytes instead would under-approximate
+(the regex branch's admissible bytes would be missing from the guard). Builtin-derived bytes
+need no gate: the native matchers never skip. Only `regex.ebnf` is terminals-sensitive today,
+so exactly ONE parser changed at regen — svpp's `{ regex_tokens: true }` leaves its
+terminals INsensitive, which keeps its prune-emission gate off entirely.
+
+**Scout attribution vs emission truth: the `\`-families were D1 all along.** The scout
+priced D0 at ≈500–700 discard kills; the landed prune killed 346. The gap is not a
+shortfall — the census's "blocked by unresolved FIRST" bucket contained rules
+(`class_zero_width` 134, `zero_width` 87, the stray-escape pair 60) whose FIRST byte
+resolves to `\`, which legitimately ADMITS them at every escape position; they discard at
+byte 2+. Resolving FIRST moved them from "unresolved" to "genuine same-first-byte overlap" —
+exactly D1's subset-dispatch surface. The re-census before D1 (already mandated) now has its
+population named in advance. `brace_ws` (37) is nullable and correctly unprunable forever.
+
 ## 2026-07-14 - PGEN-RGX-0078-0070 — `.5.i.7` STEP-0 scout: engineering notes
 
 **Verify binary identity by hash, not by resume-pointer prose.** The resume pointer said the

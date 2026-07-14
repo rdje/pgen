@@ -583,7 +583,24 @@ impl AstBasedGenerator {
         // through here, and a direct `generate_parser_tokens` caller lands here too.
         // The tree is the SAME one every rule method is emitted from, so transitive
         // rule-reference resolution runs against exactly the codegen's own view.
-        *self.first_set_grammar_tree.borrow_mut() = grammar_tree.clone();
+        //
+        // RGX-0078.5.i.7 D0 — every regex atom is rewritten through
+        // `effective_regex_pattern` first, so the FIRST analysis derives prefix
+        // bytes from EXACTLY the pattern the emitted `match_regex` will compile
+        // (`@token_class`/`@charset`/explicit-pattern steering + the
+        // semantic_annotation `identifier_literal` special case). Idempotent for
+        // the P1a inline-emission path, which re-applies `effective_regex_pattern`
+        // at the atom site: steering returns its replacement regardless of input,
+        // and the special case keys on the RAW spelling.
+        *self.first_set_grammar_tree.borrow_mut() = grammar_tree
+            .iter()
+            .map(|(rule, node)| {
+                (
+                    rule.clone(),
+                    self.rewrite_regex_atoms_to_effective_patterns(rule, node),
+                )
+            })
+            .collect();
 
         eprintln!(
             "   🔧  Starting parser code generation for {} rules using AST-based approach",
@@ -4587,11 +4604,17 @@ impl AstBasedGenerator {
             return None;
         }
         let grammar_tree = self.first_set_grammar_tree.borrow();
+        let trust_regex_token_bytes = self.layout_sensitivity().regex_tokens;
         let mut sets: Vec<Vec<u8>> = Vec::with_capacity(alternatives.len());
         let mut seen: std::collections::HashSet<u8> = std::collections::HashSet::new();
         for branch in alternatives {
-            let bytes =
-                super::first_set::branch_dispatch_first_bytes(branch, &grammar_tree, cache).ok()?;
+            let bytes = super::first_set::branch_dispatch_first_bytes(
+                branch,
+                &grammar_tree,
+                cache,
+                trust_regex_token_bytes,
+            )
+            .ok()?;
             for byte in &bytes {
                 if !seen.insert(*byte) {
                     // Overlap: a real tournament remains on this byte.
@@ -4633,11 +4656,18 @@ impl AstBasedGenerator {
         let summary =
             super::first_set::branch_first_set(branch, &grammar_tree, cache, &mut visiting_rules, 0);
 
-        // Prune ONLY a resolved, non-nullable branch — the `terminals` set is a
-        // sound EXHAUSTIVE over-approximation only then. Anything uncertain
-        // (nullable, `unresolved`, or a branch with no terminal FIRST set) is
-        // always tried.
-        if summary.nullable || summary.unresolved || summary.terminals.is_empty() {
+        // Prune ONLY a resolved, non-nullable branch — the byte set (quoted-terminal
+        // first bytes ∪ the D0 regex-token/builtin `first_bytes`) is a sound
+        // EXHAUSTIVE over-approximation only then. Anything uncertain (nullable,
+        // `unresolved`, or an empty byte set) is always tried.
+        if summary.nullable || summary.unresolved {
+            return None;
+        }
+        // D0 layout gate: regex-token-derived bytes rest on the ANCHORED
+        // `match_regex` peeking the byte at the parse position — a leading layout
+        // skip before regex tokens breaks that identity, so such a summary is
+        // treated as unresolved (never reduced to its non-regex bytes).
+        if summary.regex_token_derived && !self.layout_sensitivity().regex_tokens {
             return None;
         }
 
@@ -4645,7 +4675,7 @@ impl AstBasedGenerator {
         // byte cannot be extracted, DO NOT prune (an unknown first byte is not a
         // sound over-approximation). BTreeSet keeps the emitted literals sorted so
         // codegen is deterministic (byte-identical regen).
-        let mut first_bytes: std::collections::BTreeSet<u8> = std::collections::BTreeSet::new();
+        let mut first_bytes: std::collections::BTreeSet<u8> = summary.first_bytes.clone();
         for terminal in &summary.terminals {
             match super::first_set::terminal_first_byte(terminal) {
                 Some(byte) => {
@@ -8663,6 +8693,72 @@ impl AstBasedGenerator {
 
         effective.shrink_to_fit();
         effective
+    }
+
+    /// RGX-0078.5.i.7 D0 — clone `node` with every regex atom's pattern replaced by
+    /// its `effective_regex_pattern` under `rule_name`'s steering policy. Feeds the
+    /// `first_set_grammar_tree` snapshot so the FIRST analysis and the emitted
+    /// `match_regex` calls can never diverge on the pattern text (see the snapshot
+    /// choke point in `generate_parser_tokens`).
+    fn rewrite_regex_atoms_to_effective_patterns(
+        &self,
+        rule_name: &str,
+        node: &ASTNode,
+    ) -> ASTNode {
+        match node {
+            ASTNode::Or { alternatives } => ASTNode::Or {
+                alternatives: alternatives
+                    .iter()
+                    .map(|alt| self.rewrite_regex_atoms_to_effective_patterns(rule_name, alt))
+                    .collect(),
+            },
+            ASTNode::Sequence { elements } => ASTNode::Sequence {
+                elements: elements
+                    .iter()
+                    .map(|el| self.rewrite_regex_atoms_to_effective_patterns(rule_name, el))
+                    .collect(),
+            },
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => ASTNode::Quantified {
+                element: Box::new(
+                    self.rewrite_regex_atoms_to_effective_patterns(rule_name, element),
+                ),
+                quantifier: quantifier.clone(),
+            },
+            ASTNode::Lookahead { element, positive } => ASTNode::Lookahead {
+                element: Box::new(
+                    self.rewrite_regex_atoms_to_effective_patterns(rule_name, element),
+                ),
+                positive: *positive,
+            },
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => ASTNode::Atom {
+                    value: ASTValue::Node(Box::new(
+                        self.rewrite_regex_atoms_to_effective_patterns(rule_name, inner),
+                    )),
+                },
+                ASTValue::Token(parts) => {
+                    if parts.len() >= 2 {
+                        let (TokenValue::String(token_type), TokenValue::String(token_value)) =
+                            (&parts[0], &parts[1]);
+                        if token_type == "regex" {
+                            let effective =
+                                self.effective_regex_pattern(rule_name, token_value);
+                            if effective != *token_value {
+                                let mut rewritten = parts.clone();
+                                rewritten[1] = TokenValue::String(effective);
+                                return ASTNode::Atom {
+                                    value: ASTValue::Token(rewritten),
+                                };
+                            }
+                        }
+                    }
+                    node.clone()
+                }
+            },
+        }
     }
 
     fn rule_relational_constraints(&self, rule_name: &str) -> SemanticRelationalConstraintPolicy {

@@ -514,8 +514,18 @@ impl<'a> Classifier<'a> {
     /// NAMED reason the branch is not first-byte-decided. Thin wrapper over the
     /// SHARED eligibility predicate (`first_set::branch_dispatch_first_bytes`) so
     /// this census verdict and codegen's degenerate-dispatch gate cannot drift.
+    /// The D0 trust flag mirrors codegen's `layout_sensitivity().regex_tokens`.
+    /// HONEST BOUND (D0): the census analyzes the RAW gen-AST, while codegen's
+    /// snapshot rewrites regex atoms through `effective_regex_pattern` (token
+    /// steering) — drift is currently ∅ (no tracked grammar steers tokens; the sole
+    /// live special case is first-byte-equivalent) and the census is diagnostic-only.
     fn branch_dispatch_first_bytes(&mut self, branch: &ASTNode) -> Result<Vec<u8>, String> {
-        super::first_set::branch_dispatch_first_bytes(branch, self.tree, &mut self.first_set_cache)
+        super::first_set::branch_dispatch_first_bytes(
+            branch,
+            self.tree,
+            &mut self.first_set_cache,
+            self.layout.regex_tokens,
+        )
     }
 
     /// RGX-0078.5.i.3 (P2) — gate (e): does the rule carry any Branch-phase
