@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0064 — RGX-0078.5.i.5 P4 STEP-0 PRICING SCOUT (docs-only): the 6–8% split_semantic_top_level mechanism = 18 evaluations/pass of grammar-constant prose @constraint strings at ≈0.7–1.4µs each — P4-i codegen constant-fold priced at ≈−5–8%
+
+The P4 pricing scout (session #115) — zero new instruments: generated-parser + codegen source
+reading joined with the existing session-#114 outcome dumps and the RE-PROFILE #6 inclusive
+subtree shares. Mechanism fully mapped: `semantic_relational_constraint_tokens`
+(`ast_based_generator.rs:8699`) emits, at every exit of a `@constraint`-carrying rule, a call
+to the string relational evaluator with a GRAMMAR-CONSTANT string; the emitted evaluator
+re-parses that constant on every evaluation (trim → paren-strip → `||` split → `&&` split →
+up to six operator once-splits, each a full byte-walk + Vec alloc → reference/unquote/f64
+probes → `to_ascii_lowercase` String alloc → truthy fallback ≈9 walks + ≈9 allocs). Population
+(dump join): 18 evaluations per bench pass, all on `simple_escape` (email 6 / anchor 4 /
+digit 3 / capture 3 / class 1 / url 1); profile cap 6.3–8.2% inclusive ⇒ ≈0.7–1.4µs per
+evaluation of prose. All 15 generated sites are provably constant-TRUE (8 distinct
+operator-free, reference-free, unquoted, non-numeric prose strings; `semantic_truthy` =
+non-empty ∧ ∉ {false,0,no,off,none,null}; requires-refs empty 15/15; `@implies` unused;
+regex = the only live `@constraint` user). Priced increments (falsifiable, profile-capped,
+recorded BEFORE any emission): **P4-i** — codegen constant-fold (narrowest sound gate ⇒ emit
+nothing at constant-true sites; non-constant keeps the runtime path) **ceiling ≈−5–8%**;
+**P4-ii** — memo-stored-Value ownership ≈−4–6% (drop<RegexParser> 5.4–5.5% + MemoEntry churn);
+**P4-iii** — shaped-view capture-clone folding ≈−9–13% (largest, class-wide, needs the
+value-representation design spike); **P4-iv** — boundary move-not-clone ≈−3%. Honest bound:
+the interpreter never evaluates `@constraint` (a pre-existing latent divergence class the fold
+does not widen; durable closure = a separate leaf). NEXT = the P4-i emission slice (full ⛔
+battery), then re-profile → P4-iii/ii. Docs-only: tree + TASK_TREE row + MEMORY + book.
+
 ## 2026-07-14 - PGEN-RGX-0078-0063 — RGX-0078.5.i.5 RE-PROFILE #6 (docs-only): the P3c-i harvest CONFIRMED in-profile; P4 decisively next at 29–32% with a fresh site ordering; the #5 "to_json_value = largest single site" claim adjudicated a counting artifact
 
 The land→re-profile→steer pass over the landed P3c-i binary (session #115). Method: probe = the

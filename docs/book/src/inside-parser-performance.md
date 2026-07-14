@@ -909,3 +909,22 @@ grammar constants that can be compiled once). The residual store protocol prices
 is parked until value folding lands; the guard and the packrat cache remain refuted at under 1%
 and ≈3%. The next scoreboard row will be the value-folding pricing scout — ceilings recorded
 before code, as always.
+
+That scout is now in, and its headline find is almost comic: the profile's top named symbol —
+six to eight percent of the whole parse — turns out to be the parser *re-reading its own
+documentation*. Grammar authors can attach a `@constraint:` annotation to a rule; its payload
+may be a real relational expression, but every live use in the regex grammar is descriptive
+prose like "produces control character". The generated rule exit cannot know that, so on every
+successful parse of such a rule it feeds the constant string through the full expression
+machine — two structural splits, up to six operator probes (each a fresh byte-walk and a vector
+allocation), a reference probe, a number probe, and a lowercasing pass that allocates a string —
+all to conclude, every time, that non-empty prose means "true". Measured: eighteen evaluations
+per benchmark pass at roughly a microsecond each — a quarter of an entire `literal_simple`
+parse, per evaluation, spent re-deriving a compile-time constant. The fix is the planner's
+cleanest kind: the constraint string is a grammar constant, so the *generator* can run the same
+classification once, at code-generation time, and simply emit nothing for a provably
+constant-true check (it has no observable surface — no trace line, no store effect, an error
+branch that can never fire). The pricing, recorded before any code: ≈−5–8% for that fold; the
+deeper value-ownership work behind the remaining drop/clone churn (≈−9–13% for capture-clone
+folding, ≈−4–6% for memo-value ownership, ≈−3% at the boundary) queues behind it, pending a
+design spike. The fold is next on the scoreboard.
