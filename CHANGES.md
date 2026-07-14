@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-RGX-0078-0063 — RGX-0078.5.i.5 RE-PROFILE #6 (docs-only): the P3c-i harvest CONFIRMED in-profile; P4 decisively next at 29–32% with a fresh site ordering; the #5 "to_json_value = largest single site" claim adjudicated a counting artifact
+
+The land→re-profile→steer pass over the landed P3c-i binary (session #115). Method: probe = the
+measured landed candidate BY IDENTITY (sha256 `09b20e98…` on disk — provenance stronger than a
+rebuild); sanity 27.7/28.6µs geomean-of-mins (the ≈31µs era on the fast side of an idle machine;
+era not re-baselined on a sanity round); two 30s@1ms `sample` windows (25,188/25,176 roots,
+union = all 8 patterns, every headline bucket agreeing across windows ⇒ verdict STABLE).
+**Method fix (be-alert class, root-caused this slice):** `analyze_sample.py` also parsed
+`sample`'s flat trailing sections ("Total number in stack…", "Sort by top of stack…") as
+call-tree nodes — inflating categorized self-samples ≈1.5× and phantom-attributing ≈15% of
+allocs to `harness`; truncating at the call-tree boundary and re-running the same script
+reproduces the published RE-PROFILE #5 bucket table EXACTLY (the #5 table and steer STAND), but
+the #5 "`to_json_value` boundary re-clone = the largest single site (1,189 clone samples)"
+claim does NOT survive — the inclusive `to_json_value` subtree is 3.5–4.1% in both profiles;
+that count had included the flat sections. Fresh results: the P3c-i harvest is visible exactly
+where predicted (snapshot_rollback bucket 10.0/8.5% → 4.3/4.5%; `extract_delta_since` 4.5/4.1%
+→ 1.0/1.3%; `rollback_to_labeled` dethroned as top named leaf, 718 → 470/430 self; vec_clone
+HALVED 5.3/4.6% → 2.3/2.4% — the elided empty-delta subslice copies). P4 = decisively the next
+pass at **29.1–32.0%** with the site ordering re-measured: (1) Value-DROP churn 16.2–17.9%
+inclusive (owners named: `time_one_parse` end-of-parse ≈6.3%, `drop<RegexParser>` ≈5.5%
+memo-stored Values, `drop<Vec<ParseNode>>` ≈3.2–3.7% discarded speculation, MemoEntry churn);
+(2) in-parse shaped-view cloning ≈11–14% inclusive (a class-wide surface, no dominant site);
+(3) `split_semantic_top_level` 6.3–8.2% inclusive — the NEW top named PGEN leaf (614/885 self);
+(4) boundary `to_json_value` ≈4%. P3c-ii/iii re-priced at the ≈4.3–4.5% residual and PARKED
+(checkpoint is fully inlined; re-price post-P4); P3a/P3b stay refuted (guard 0.6–0.8%, entire
+memo 3.0–3.6%). NEXT = the P4 STEP-0 pricing scout (falsifiable per-increment ceilings BEFORE
+any emission). Docs-only: tree + TASK_TREE row + MEMORY + book performance chapter in lockstep.
+
 ## 2026-07-13 - PGEN-RGX-0078-0062 — RGX-0078.5.i.5 P3c-i LANDED: the epoch fast path — regex geomean −11.2% (all 5 rounds, ALL 8 patterns faster), ≈35µs-era → ≈31µs, cumulative 496µs → ≈31µs ≈ 16×
 
 The P3c emission (session #114) — ENGINE-only, parser-agnostic, no codegen change, no regen; the

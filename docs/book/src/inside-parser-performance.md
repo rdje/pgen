@@ -881,3 +881,31 @@ the fast path's own state-equality assertions live in the debug build), the cert
 at three seeds, the shape/duality/PCRE2-oracle gates, and — because the benchmark baseline was
 deliberately the *pre-instrument* binary — the measurement also proved the scout's counters cost
 nothing that the fast path did not pay back many times over.
+
+### The re-profile after the harvest — and the claim that did not survive it
+
+The discipline repeats after every landing: profile the new binary before pricing the next
+pass. The fresh profile (two sampling windows over the exact binary that measured the −11.2%
+landing — provenance by SHA-256 identity, so build drift is impossible rather than merely
+controlled) confirmed the harvest precisely where the fast path predicted it: the
+checkpoint/delta/rollback bucket fell from ≈10% to ≈4.4%, the delta-extraction routine from
+≈4.5% to ≈1%, and the rollback routine lost its place as the profile's hottest named symbol.
+
+The same pass also caught — and corrected — a defect in the *measurement method itself*. The
+sampling report ends with flat summary sections after the call tree; the analysis script had
+been parsing those as tree nodes, inflating its totals by half and mis-attributing about 15% of
+allocation samples to the timing harness. Re-run with the call tree alone, the script reproduces
+the previous profile's headline table *exactly* — so every bucket number and every steering
+decision taken from it stands — but one subsidiary claim does not survive: the output-boundary
+value conversion, previously described as "the largest single site" on the strength of a clone
+count taken over the whole file, actually bounds at ≈4% of the parse. The correction matters
+because it re-orders the value-folding pass's targets. What the clean profile names, in order:
+**dropping `serde_json::Value` trees** (16–18% — the parser teardown cascading the memo's stored
+values, the end-of-parse result teardown, and discarded speculation trees), **cloning value
+trees during the parse** (≈11–14%, spread class-wide across the shaped-view capture closures
+with no dominant site), and the **value-constraint expression re-parse** (6–8%, now the
+profile's top named symbol — the cleanest single-mechanism increment, since the expressions are
+grammar constants that can be compiled once). The residual store protocol prices at ≈4.4% and
+is parked until value folding lands; the guard and the packrat cache remain refuted at under 1%
+and ≈3%. The next scoreboard row will be the value-folding pricing scout — ceilings recorded
+before code, as always.
