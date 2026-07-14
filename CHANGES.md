@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-07-14 - PGEN-OPS-MEMSAFE-0001 — ⛔ HOST-RAM BUDGET DIRECTIVE recorded (docs-only): no spawned job may exhaust host RAM; memory-guard wrapper = the FIRST item of the next session
+
+Standing director directive (2026-07-14, after the host crash — jetsam-evidenced culprit was
+a co-resident non-PGEN ≈52 GB process; pgen exonerated but accountable going forward): the
+machine (24 GB) runs ONLY this project until the RGX-0078 goal is met, and no spawned job may
+exhaust host RAM. Recorded as `docs/decisions/feedback_host_ram_budget_all_jobs.md` (+ INDEX
+row + MEMORY.md standing line): ONE heavy job at a time (fat-LTO builds, full-corpus
+benches/profilers, the SV/UVM ≈14 GB-residual parse class), pre-flight free-RAM check, and a
+memory-guard wrapper `scripts/run_with_memory_guard.sh` (process-tree RSS budget ≈12 GB +
+system-free floor ≈10%, kill+marker on breach) whose build is the tracked, task-tree-owned
+FIRST work item of the next session — it gates any heavy job.
+
 ## 2026-07-14 - PGEN-RGX-0078-0069 — RGX-0078.5.i.6 P4-iii EMISSION REFUTED AT THE LAND GATE; P4 COMPLETE, the leaf and the `.5.i` planner program CLOSED at ≈27.4µs ≈ 18.1×
 
 The structural-reference fold was implemented in FULL (session #116): a new
