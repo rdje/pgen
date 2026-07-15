@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0095 — `.5`-lever decided (engineer-owned): re-reading the −0.9%, and the ≤1µs arithmetic
+
+**The `-0094` −0.9% is not a refutation of match-then-build — it is a confirmation of proportionality, and I mis-framed it under first-shock caution.** MTB-A killed ~1.9% of alloc COUNT and returned −0.9% time. Plotted honestly, that is a *proportional* return on the *smallest, cheapest* alloc population in the graph (the acyclic leaves: 84% of discarded ENTRIES, ~2% of ALLOCATIONS). The lesson from `-0094` stands — discarded-ENTRY share ≠ alloc-cost, and alloc-COUNT ≠ TIME — but the *corollary* I wrote ("the thesis may be falsified; the real cost may be compute") over-reached on one data point. The profiler is unambiguous: `_xzm_free` alone is 21.5/18.5% (freeing dead value trees) and the allocator 41.4/40.8%; MTB-B's population is 95.6% of alloc BYTES. The heavy doomed allocations MTB-A left eager are exactly where that time lives. So MTB-B is *supported*, not refuted — provided a cheap probe confirms alloc-time tracks alloc-bytes here rather than count.
+
+**Why STEP-0 is an allocator-behaviour probe, not more design.** The `-0092` discipline: before paying a risky core-type migration (`ThinMemoEntry` payload change = the `-0090` bootstrap-drift class), buy a falsifiable ceiling for pennies. Swapping the perf-probe's parse-path allocator to a bump/never-free arena (no free calls → directly deletes the 21.5% `_xzm_free`) and/or a faster global allocator is a `#[global_allocator]`/feature-flag change in ONE binary — no codegen, no migration, one fat-LTO build. If the geomean drops ~40%, the value/alloc lever (and thus MTB-B + the representation change) is proven the road. If it barely moves, the profile is misattributed and I pivot to the ~29% compute *without* having touched a core type. Either way the probe is decisive and disposable.
+
+**The arithmetic that reframes the whole endgame.** value/alloc ≈71% of 14.0µs ⇒ perfect elimination floors at ≈4µs — 4× over the bar. This is the `-0091` bar-sharpening made quantitative: ≤1µs is unreachable by killing doomed *work* alone; it requires killing the *cost of the committed values* (serde `Value`/`BTreeMap` → spans/arena) and shaving the matching/dispatch compute. MTB-B is the first increment because it is the largest single doomed-value population, but it is explicitly *not* the last. The roadmap is now sequenced end-to-end against the bar, not lever-by-lever.
+
+**Process note.** The director delegated the lever outright ("you do not need my input to reach ≤1µs"); the `-0094` PAUSE is lifted and the `.5` decision is engineer-owned from here. Repo left handoff-ready with STEP-0 as the crisp next action.
+
 ## 2026-07-15 - PGEN-RGX-0078-0094 — MTB-A emission REFUTED-as-standalone: engineering notes
 
 **The single most important lesson of this slice: an allocation-COUNT instrument does
