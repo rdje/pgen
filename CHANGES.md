@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0085 — `.5.i.7` D2 EMISSION DESIGN (docs-only, recorded BEFORE emission): the OBSERVABILITY-TWIN region form + increments **D2-A acyclic sub-region fold (honest −18–25%)** → **D2-B cyclic-spine + epoch-stamped thin memo** (re-priced post-A toward the −45–61% full fold)
+
+The design (tree section `.5.i.7 D2 EMISSION DESIGN`; the D0/D1/Q record-before-emission
+discipline). **The form:** bare parses run a compact fused graph — one `cascade_<rule>` fn
+per region-internal rule (byte/FIRST₂ dispatch lowered from the SHARED `first_set` facts,
+subsuming the landed D1/Q guards inside regions under the same furthest licenses; plain
+position-restore speculation under the effect-free license; furthest max-update at every
+internal-call head = EXACT because furthest is written at rule entry ONLY, 275 sites
+verified; eager-build values — the static final shape per rule, no per-level Alternative
+wrapper/raw-clone/transform re-walk). EVERY diagnostic consumer (cert-coverage, counter
+dumps/dashboard, trace, memo-stats) flag-routes at the region-root memoized body to the
+UNTOUCHED protocol graph ⇒ outcome pins 1331/617/714/180 stay byte-exact forever, cert
+witness records stay exact transactional testimony, and NO documented-delta counter protocol
+is needed (a battery simplification vs D0/D1/Q; the `-0084` coverage-append-lane obligation
+superseded by refinement, recorded honestly). **Two ⛔ C3-B/store soundness rules:** a fused
+speculation scope that can reach a boundary call-out carries the semantic-checkpoint
+snapshot (the try_parse-must-snapshot doctrine at fused granularity); an Or site with a
+boundary-reaching branch keeps the protocol tournament as a site ISLAND — demotion refuted
+by measurement (D2-A exposure 541→320 entries, −18–25% → −11–15%). **Thin memo (D2-B):**
+cycle-participating fused rules keep memo unconditionally (the session-#49 117× bound) via
+`(rule,pos)→{end,value,write_epoch}` with the stamp VALIDATED at replay (MEMO-STORE-
+SOUNDNESS.2 semantics — required because cyclic subtrees reach fact-writing boundaries);
+acyclic fused rules drop memo with a boundedness proof (static caller-multiplicity ⇒ linear;
+measured lost hits = 64 on two leaf bodies). Design facts measured this session (fresh dumps
+byte-exact to the pins; census reproduces `-0084`; gen-AST reference-graph join
+cross-checked 541+188+250=979): the 125 internal memo hits sit on exactly 3 rules (`atom` 61
+CYCLIC, `class_literal` 57, `class_safe_special` 7); acyclic sub-regions = 56 roots/149
+internal/541 entries (40.6%; `character_class` 72.9% = the anchor). **Increments + falsifiable
+ceilings:** D2-A honest −18/−22/−25% at P=60/70/80 (optimistic 1.48×) → re-census +
+re-profile → D2-B (the stale-cost-basis lesson: re-priced post-A) → re-profile; D2-C
+root/boundary thinning + store-family folding = the named bar-complete horizon; match-then-
+build = the recorded v2 lever vs the ≈40% speculation-shaped allocator bucket. Census→
+emission single implementation: `build_cascade_emission_plan` consuming the SHARED
+`fusibility_census` cascade verdicts (the P1a `compute_inline_decisions` precedent);
+parser-agnostic (vhdl 216/216 = ONE region is the platform prize). ⛔ the `.5.i.6` battery
+verbatim governs every emission landing. NEXT = the D2-A EMISSION slice.
+
 ## 2026-07-15 - PGEN-RGX-0078-0084 — `.5.i.7` D2 STEP-0 SCOUT: the CASCADE census lane LANDED + MEASURED — the full-cascade-fold gate exposes **73.6% of all bench entries (the committed spine INCLUDED)**, committed protocol entries 617 → **99** first-order; priced **−45–61% honest / 4.34× optimistic bound** ⇒ 🔎 even the optimistic bound ≈4.2µs ≫ the ≤1µs bar
 
 The instrument (read-only analysis, no codegen/parser change): `CASCADE-CENSUS` +

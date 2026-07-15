@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0085 — D2 emission design: engineering notes
+
+**Why the observability twin instead of the append lane.** The `-0084` floor named a
+coverage-append lane so cert witnesses survive fused regions. Designing it exposed the
+general problem: coverage is only ONE of four diagnostic consumers (coverage, the always-on
+entry counters read by the dumps/dashboard, trace, memo-stats), and interleaving flag checks
+for all four back into fused code re-grows exactly the protocol the fold exists to delete.
+The twin dispatch solves all four at once: ONE cached-bool branch inside each region-root
+`memoized_call` body routes any diagnostic run onto today's method graph VERBATIM. The
+consequences are strong — witness records remain real transactional testimony (not an
+equivalent reconstruction), the outcome pins stay byte-exact permanently (no documented-delta
+protocol, unlike D0/D1/Q), and the fused graph stays clean enough to verify by eye. The cost
+is a second code graph per region; it is compact (no protocol boilerplate, no trace string
+tables) and the P1a budget discipline stands by if compile time moves. The protocol graph
+must stay CLOSED (protocol bodies call methods, never fused fns) — entry-relative parses and
+every diagnostic surface then behave exactly as today.
+
+**The two soundness traps the design pins.** (1) `try_parse` snapshots the SEMANTIC
+checkpoint, not just position — so "plain position-restore speculation" is licensed only
+where no boundary call-out is reachable inside the speculation scope; boundary-reaching
+scopes carry the snapshot, statically decided from the census graph. (2) A thin memo without
+epoch validation is UNSOUND for cyclic rules whose subtrees reach fact-writing boundaries
+(`atom → python_named_backreference`, `capturing_group → capture_open`): replay would skip a
+store state-change. The stamp-validate-evict semantics of MEMO-STORE-SOUNDNESS.2 carry over
+at one u64 compare per replay. Both traps were found by reading the emitted machinery, not
+by test failure — the reason the design-before-emission discipline exists.
+
+**Why D2-A slices at acyclicity.** The exposure split (541 acyclic-internal vs 250
+cyclic-internal + 188 promoted) puts 40.6% of entries in regions with NO memo question, NO
+recursion, and trivially bounded re-probes — every novel mechanism (twin dispatch, fused
+lowering, value construction, furthest emulation, islands) gets proven on the low-risk
+population first, and the D2-B re-price then stands on a fresh census + profile instead of
+today's cost model (the P3a/P3b stale-basis kill, applied prospectively).
+
 ## 2026-07-15 - PGEN-RGX-0078-0084 — D2 STEP-0 cascade census: engineering notes
 
 **Why the D2 gate is effect-freedom only.** The scanner tier gate answers "can a DFA replace
