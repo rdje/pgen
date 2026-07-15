@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0094 — MTB-A emission REFUTED-as-standalone: engineering notes
+
+**The single most important lesson of this slice: an allocation-COUNT instrument does
+not predict TIME, and a discarded-ENTRY census does not predict allocation.** The
+`-0092` `f_spec` instrument measured that 90% of in-metric alloc EVENTS on the fused
+graph are doomed, and the `-0093` dump-join measured that 84% of discarded rule ENTRIES
+are on the acyclic population. Both are true. Neither predicted the outcome. MTB-A
+eliminated value construction for exactly that acyclic 84%-of-entries population, the
+emitter is provably value-free (0 `ParseContent`/`arena.alloc` lines in any
+`cascade_match_*` fn) and byte-identical (16/16 tripwire) — and the parse got **−0.9%
+faster**, within noise. The alloc census on the resulting artifact explained why in one
+line: in-metric allocs barely moved (9518 vs 9706). The acyclic leaves it folded are
+`digit`/`letter` — `Terminal` values, ~zero-cost — so they were 84% of the *entries*
+but ~2% of the *allocations*. The expensive `Sequence(Vec)`/`Json` allocations live in
+the cyclic spine (`pattern`/`alternation`/`concatenation`/`atom`), which increment A
+leaves eager by definition.
+
+**Why this was foreseeable and yet was not caught by the design battery.** The `-0093`
+design explicitly named the P4-iii "sampled-share ≠ min-metric" risk and said the gate
+stays "land-iff-faster on the min metric" — that discipline is exactly what caught it,
+cheaply, before anything shipped. What the design got wrong was the CEILING arithmetic:
+it multiplied the profile's 70.9% "value/alloc complex" by the entry-share products
+(0.821 × 0.841), treating discarded entries as uniformly costly. The right basis was
+the ALLOCATION distribution, which the alloc census already had the shape of (the heavy
+patterns are the alloc-heavy ones), had anyone cross-checked entry-share against
+alloc-share before pricing. Recorded so the MTB-B re-price starts from the allocation
+distribution (spine ≈ 98% of allocs), not entry counts.
+
+**Why MTB-B is not an automatic "do it next".** The tempting read is "A folded the cheap
+population, so B (the spine) is where the win is — proceed." But the deeper signal is
+that even the IN-METRIC doomed allocs (90% of events) are cheap in TIME: eliminating
+84% of them moved the metric −0.9%. If the spine's allocations are ALSO cheap-in-time
+(arena bump + small heap Vec/Json, freed lazily), MTB-B delivers little too, and the
+match-then-build thesis — value allocation is the dominant in-metric cost — is
+falsified. The in-metric time is then dominated by the matching/dispatch COMPUTE (byte
+comparisons, recursive descent, tournament dispatch), which MTB does not touch. MTB-B
+also pays the `-0090` `ThinMemoEntry` core-type migration cost (a real bootstrap-drift
+hazard) for an unproven ceiling. So the honest next step is a cheap SPINE-ONLY
+alloc-vs-time micro-probe (e.g. an A/B on the spine's value construction alone), not a
+multi-day core-type migration on faith. That is a director-level lever decision, hence
+the PNT pause.
+
+**The revert mechanics (recorded because they were non-trivial and are re-usable).** A
+core-type-adjacent change (adding `DerivEvent` + `deriv_*` struct fields) leaves the
+on-disk generated artifacts referencing symbols the reverted source no longer defines,
+so `--features generated_parsers` will not compile and the canonical `make focus_*`
+regen (which builds a `generated_parsers` `ast_pipeline`) cannot run — the same
+bootstrap cycle the `-0090` note warns about. The recovery that worked, without the
+`PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK` bypass and without a bulk artifact wipe: (1)
+restore the one artifact you have a byte-exact backup of (regex `8c26c97f` from the
+`-0090` d2b_emit stash); (2) move the other stale `*.rs` artifacts aside by name (they
+are gitignored + regeneratable); (3) regenerate the two annotation parsers DIRECTLY with
+`ast_pipeline_bootstrap --generate-parser --bootstrap-mode` from the retained
+`generated/*_annotation.json` (no ebnf.rs dependency, no fallback — the builtin
+annotation grammars are bootstrap-safe); (4) now that regex + both annotation parsers
+are D2-B, `cargo build --features generated_parsers ast_pipeline` compiles; (5)
+regenerate ebnf.rs with THAT binary (the real backend, no refusal), then the 7 focus
+targets. Determinism did the rest — regex came back to `8c26c97f` exactly and the 16/16
+tripwire reproduced the pre-session references. The stale placeholders from
+`create_placeholder_parser.sh` are NOT usable here (they define an old type name and
+collide) — regenerate the real annotation parsers instead.
+
 ## 2026-07-15 - PGEN-RGX-0078-0093 — the MTB v2 emission design: engineering notes
 
 **Why the derivation tape and not "re-run the winner in build mode".** The obvious

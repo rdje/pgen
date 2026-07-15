@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0094 — `.5.i.7` MTB-A EMISSION **ATTEMPTED + REFUTED-AS-STANDALONE** (docs-only after revert): the derivation-tape emitter was built, unit-tested, regenerated across all 11 grammars (**16/16 regex tripwire byte-identical**, pins 1331/617/714/180 exact — correctness floor HELD), and BENCHED — measured **−0.9% (14002.6→13882.0ns, rounds straddling 1.0)** ≪ the −40–47% ceiling ⇒ **land-iff-faster FAILS; REVERTED to D2-B (≈14.0µs).** 🚨 the whole MTB thesis is now in question — PNT PAUSED for the director.
+
+The `-0093` MTB-A design was implemented in full (engine `DerivEvent` POD enum;
+`cascade.rs` `cascade_match_*`/`cascade_build_*`/orchestrator families + the A/B
+partition-drift tripwires; plan-gated tape struct fields), 9/9 cascade unit tests
+green, all 11 artifacts regenerated + compiling. The **correctness floor was proven**
+during the attempt (16/16 tripwire byte-identical: 8 AST via the bare→MTB path + 8
+outcome via the twin→protocol path; pins 1331/617/714/180 exact) — the derivation-tape
+design is SOUND. It simply **does not move the speed metric.**
+
+🔎 **ROOT CAUSE (tools-first — a roadmap-altering finding).** fat-LTO alternated 5×2000
+geomean-of-mins = **−0.9%** with per-round ratios straddling 1.0 (rounds 4–5 SLOWER);
+per-pattern, only the alloc-heavy `character_class` (−7.7%) / `alternation` (−5.4%) won
+while the low-alloc `digit_sequence` (+4.4%) / `capture_groups` (+2.1%) REGRESSED on
+tape overhead. The DECISIVE diagnostic: `regex_alloc_census_probe` on the MTB artifact
+showed in-metric allocs **9518 vs the D2-B baseline 9706 (−1.9%)**, f_spec UNCHANGED at
+80–93% — MTB-A eliminated almost NO allocations. Confirmed the match fns are value-free
+(0 `ParseContent`/`arena.alloc` lines) and the cyclic spine (`pattern`/`concatenation`/
+`atom`) is EAGER, only cheap leaves (`digit`/`letter`) got the match/build split. ⇒ **the
+acyclic population MTB-A folds holds 84.1% of discarded ENTRIES but only ~2% of
+ALLOCATIONS**; the allocation-heavy doomed traffic (`Sequence(Vec)`, `Json`) is in the
+CYCLIC SPINE, which increment A leaves eager. The ceiling was mispriced by using
+discarded-ENTRY share as an ALLOCATION/TIME proxy — the P4-iii sampled-share ≠
+min-metric trap.
+
+🚨 **SURFACED to the director (PNT PAUSED).** MTB-B (folding the spine) is the only place
+the match-then-build thesis could pay off, but its ceiling is now UNPROVEN: even the
+in-metric doomed 90% of alloc events moved the metric only −0.9%, so alloc-share ≠
+time-share may falsify the whole thesis. MTB-B additionally carries the `-0090`
+`ThinMemoEntry` core-type bootstrap-drift trap. Recommendation: re-price MTB-B with a
+spine-only alloc-vs-time micro-probe BEFORE the core-type migration, or pivot the `.5`
+deep-specialization program to the matching/dispatch COMPUTE / committed-value
+representation lever the `-0091` bar-sharpening named. The emitter diff + MTB artifact +
+alloc-census measurement are saved for a future MTB-B session.
+
 ## 2026-07-15 - PGEN-RGX-0078-0093 — `.5.i.7` MTB v2 EMISSION DESIGN (docs-only, recorded BEFORE emission): the **DERIVATION-TAPE two-pass form** — match fns record the committed derivation, build fns construct values ONCE over it; 🔎 the island obligation **REFINED AWAY** (island losers stop building values too); increments **MTB-A ≈−40–47% → ≈7.4–8.4µs** → **MTB-B toward −57→−68% → ≈4.5–6.0µs**
 
 The D0/D1/Q/D2 discipline applied to the `-0092` GO: the full emission form recorded
