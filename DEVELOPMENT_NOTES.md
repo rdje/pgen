@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0091 — RE-PROFILE #11: engineering notes
+
+**Why the measurement is trustworthy without any rebuild.** Unlike #10 (which had to
+rebuild the debug probe — it predated the `-0087` regen), the #126 session rebuilt both
+debug binaries AFTER its final regen, and the `-0090` determinism re-check regenerated
+`generated/regex_parser.rs` byte-identically afterwards (newer mtime, same content
+`8c26c97f…`). The tripwire proves currency the strong way regardless: 16/16 fresh dumps
+`cmp`-byte-exact against the `-0090` refs — a stale probe embedding a different parser
+could not reproduce them.
+
+**Reading the #11 decomposition against #10 — what D2-B actually bought in-profile.**
+The protocol `rule_method_self` bucket halved (8.0/10.2 → 4.1/3.2) while `cascade_self`
+grew (8.4/4.3 → 9.8/8.1): the spine's entries moved from protocol frames into fused
+matching compute, i.e. the fold converted overhead into work. The A/B skew flipped
+side (window A was cascade-heavier this time) — the windows land on different phases of
+the 8-pattern sweep, so per-window skew tracks the pattern mix, not a regression; the
+paired-window protocol exists exactly to expose that spread. The #49-retained machinery
+the `-0090` ceiling-miss adjudication named now has a measured price: guard 0.2/0.6 +
+memo (thin probes + sub-root real memo) 1.3/1.5 ≈ 1.5–2.1% — real, small, and
+cycle-mandated (not a lever).
+
+**Why `_xzm_free` at 21.5/18.5% is the steering fact.** Freeing — not allocating — is
+the single largest named self-cost: the parse builds serde_json `Value`/BTreeMap trees
+speculatively and destroys most of them (discarded 714/1331 entries, plus C3-B
+tournament losers and winner-replay copies on committed sites). Deferring construction
+to the committed walk (match-then-build) attacks the build AND the free AND the
+memcpy/clone/drop traffic of every doomed value — which is why the complex prices at
+≈71% while no single frame-elimination lever remains above ≈10%.
+
+**Why f_spec must be MEASURED before the MTB design is priced.** The complex's 71% is a
+SAMPLED share, and the P4-iii refutation was precisely a sampled alloc-share
+over-pricing a fold by ~5× on the min metric (sampled −10–13% ceiling, measured
+−0.4/−2.2%). The committed-build floor (the final AST still gets built) and the
+min-vs-mean skew (mins may hit allocator fast paths) both deflate f_spec below naive
+expectations. The STEP-0 instrument must attribute value-build traffic to
+committed-vs-doomed entries on the outcome dumps' own split — per-entry build counters
+or an alloc-count A/B — and state its ceiling on the min-metric basis.
+
+**The D2-C cascade-demotion observation (why store-family folding is bigger than its
+142 entries).** 186 of the 210 remaining sub-root entries are four leaf rules
+(`nonzero_digit`, `letter`, `digit`, `class_range_endpoint`) that are census ROOTS only
+because a residual (store-consulting) rule references them — the region-rooting rule
+conservatively pins any eligible rule referenced from outside a region. Fold the 40
+residual rules (store calls inlined, effects kept) and those references become
+in-region ⇒ the leaves demote to internal ⇒ their protocol frames die as a side effect.
+D2-C's honest entry surface is therefore ~328/352 of the remaining protocol entries —
+but its PROFILE surface is still only ≈9.7%, which is why it prices thin regardless.
+
 ## 2026-07-15 - PGEN-RGX-0078-0090 — the D2-B emitter: engineering notes
 
 **Why the thin memo needed the protocol's taint classes, not a global epoch check.** The

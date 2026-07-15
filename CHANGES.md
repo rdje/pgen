@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0091 — `.5.i.7` POST-D2-B RE-CENSUS + RE-PROFILE #11 + BAR-PROGRAM RE-PRICE (docs-only): allocator **41.4/40.8%** shape-preserved a FIFTH time (`_xzm_free` alone 21.5/18.5%); protocol self **COLLAPSED 8.0/10.2 → 4.1/3.2**; D2-C re-priced **THIN**, MATCH-THEN-BUILD v2 = **THE dominant lever**; 🔎 perfect endgame of the named program ≈2.72µs ≫ the ≤1µs bar
+
+The `-0085` emission order's mandated post-increment measurement on the ≈14.0µs (`-0090`)
+basis. TRIPWIRE (tools-first, all fresh): 16/16 dumps (8 outcome + 8 AST) from the
+current-vintage debug probe `cmp`-BYTE-EXACT to the `-0090` refs; pins **1331/617/714/180**
+byte-exact; every census lane reproduces its pin on the fresh dumps (CASCADE-CENSUS
+234/274 (20/214/28), CASCADE-PLAN 56/149/59, CASCADE-PLAN-B 20/214/29/85, CASCADE-EXPOSURE
+979 (73.6%)/518/462/125 floor=99, OUTCOME-SHARE 1331/617/715); census determinism ×2
+report+JSON `cmp`-identical. RE-PROFILE #11 (probe_cand `0e97d43b…` embedding the shipped
+`8c26c97f…`; two sequential 30s@1ms `sample` windows over the 500k-sample 8-pattern sweep;
+25,239/25,262 roots; self-sums reconcile EXACTLY; classifier = the #5–#10 script):
+allocator 41.4/40.8 (freeing dead value trees = the single largest named cost); memcpy
+11.3/10.1; drops 7.2/9.1; dedup 5.7/6.2; BTreeMap clone 3.9/3.7 ⇒ the **value/alloc
+complex = 70.7/71.1%**; method compute SPLIT protocol 4.1/3.2 + cascade_self 9.8/8.1
+(vs #10's 8.0/10.2 + 8.4/4.3 — the D2-B harvest in-profile); snapshot/rollback 3.8/4.6;
+the ⛔ #49-retained machinery MEASURED ≈1.5–2.1% (guard 0.2/0.6 + memo 1.3/1.5). RE-CENSUS:
+the D2-C population = **352/1331 (26.4%)** = 210 sub-root + 142 residual entries
+(recomposition 790−438=352 ✓); structural finding — **88.6% of sub-root entries are 4
+cheap leaf rules** (`nonzero_digit`/`letter`/`digit`/`class_range_endpoint`) pinned to
+protocol only by store-consulting residual references ⇒ store-family folding
+cascade-demotes them. RE-PRICE (13.98µs basis, the target population's OWN
+retained-machinery model per the `-0090` lesson): **D2-C THIN** — its whole
+profile-visible surface ≈9.7%, kill 50/65/80% ⇒ −4.8/−6.3/−7.7% → 12.9–13.3µs;
+**MTB v2 DOMINANT** — attackable = the ≈70.9% complex × f_spec ⇒ at f_spec 50/65/80%
+−35.4/−46.1/−56.7% → 9.02/7.54/6.05µs (⚠️ f_spec UNMEASURED; the P4-iii SAMPLED-SHARE vs
+MIN-METRIC lesson applies to exactly this bucket ⇒ STEP-0 = an INSTRUMENT, not a design;
+the `effect_targets` seam (125 rules) = the eager-build boundary already in hand).
+🔎 BAR SHARPENED (surfaced to the director + durable in the tree): the PERFECT endgame of
+the entire named program leaves ≈**2.72µs ≫ the ≤1µs bar** — bar-complete additionally
+requires the committed-value REPRESENTATION (serde `Value`/BTreeMap → spans/arena) and
+fused-compute increments. PNT order DECIDED (data-driven, recorded loudly): MTB v2 first,
+D2-C parked behind it. NO code/codegen/parser change. Lockstep: tree section + leaf
+frontier + TASK_TREE row + MEMORY + CHANGES + DEVELOPMENT_NOTES; book + TOOLBOX
+deliberately unchanged (the `-0075`/`-0078`/`-0088` re-profile precedent). NEXT = MTB v2
+STEP-0: the `f_spec` instrument (committed-vs-doomed value-build split with min-metric
+falsifiable ceilings) → the MTB design spike.
+
 ## 2026-07-15 - PGEN-RGX-0078-0090 — `.5.i.7` D2-B EMITTER: the CYCLIC-SPINE FUSED FOLD LANDED — regex geomean **−11.4%** (all 5 rounds, best-mins 15.78µs → **13.98µs**, EVERY pattern faster), cumulative 496µs → **≈14.0µs ≈ 35×**; byte-identical under the full battery; all 11 artifacts at the CASCADE-PLAN-B fold
 
 The emitter consumes the `-0089` plan seam at `CascadeIncrement::CyclicSpine`: every
