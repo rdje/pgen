@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0093 — the MTB v2 emission design: engineering notes
+
+**Why the derivation tape and not "re-run the winner in build mode".** The obvious
+two-pass form (attempt branches match-only, then re-execute the winner building
+values) re-matches every committed node once per enclosing `Or` level — and the regex
+committed spine (pattern→alternation→concatenation→piece→atom→group→pattern…) is
+exactly such a nest, so the re-match bill grows with spine depth and the win could
+evaporate the way P4-iii's did. The tape does strictly less work: the match pass
+records decisions as it goes (a `Vec` push per Or/quantifier/optional/boundary), and
+the build pass never touches the input matcher at all. The candidate rejection is
+recorded here so the next session does not re-derive it.
+
+**Why the tape needs almost no events for regex.** Three artifact facts compose: the
+regex parser contains zero `match_regex` calls (every terminal is a static literal or
+an engine builtin); the grammar is layout-insensitive, so no trivia skip ever moves a
+token start off the cursor; and `match_string` leaves the position exactly at token
+end. Together they make every terminal span statically derivable from a replayed
+cursor — only the genuine decision points (which branch won, how many iterations, was
+the optional present, where a boundary value goes) need recording. Grammars with
+`match_regex`/layout record one extra position per dynamic site, statically elided
+elsewhere — the parser-agnostic rule stays "record only what cursor replay cannot
+derive".
+
+**Why `OptPresent` is mandatory but P2 sites need no event.** A `?` whose inner is a
+static literal produces zero events yet advances the cursor — presence is genuinely
+ambiguous from the tape alone, so it is one explicit bit. A P2 byte-switch site is
+the opposite case: the dispatch byte at the replayed cursor is the same byte the
+match pass switched on, so the build pass re-dispatches deterministically for free.
+The general principle: an event exists exactly where the build-time state does not
+already determine the decision.
+
+**Why island losers can stop building values (the obligation refinement).** The
+`-0092` obligation said "eager-build islands at `effect_targets`" on the theory that
+mid-parse `$ref`/`value_compare` consumers need values. Checking the actual license:
+fused rules carry no runtime directives (that is the cascade gate itself), so no
+directive ever consults a FUSED rule's value mid-parse; and the plan partition means
+an ineligible (directive-carrying) rule can only reference fused SUB-ROOTS, whose
+protocol methods return orchestrator-built full values. So the only mid-parse value
+consumers are protocol methods — which are boundaries anyway — and the island's C3-B
+delta machinery (checkpoint/extract/rollback/replay) is entirely value-independent.
+The tournament chain (`should_take`) needs only (end, priority, index). Conclusion:
+islands defer values like every other site; only the store protocol stays eager.
+
+**Why the winner-segment handling is in-tape compaction, not scratch buffers.** A
+tournament candidate's events append after the current best segment; taking the
+candidate memmoves its region down over the old best (POD `u64`s), rejecting it
+truncates. One vec, no per-site allocation, no free-list pool — the machinery cost
+the ceiling must carry is a handful of `memmove`s over structure-only events.
+
+**The two traps carried forward by name.** (1) `ThinMemoEntry`'s payload change is
+the `-0090` EMITTED-type bootstrap-drift class — the generator compiles against the
+previous generation's artifacts, so the migration must be additive (new segment
+payload type alongside, regen all 11 canonically, retire the old shape after) and
+never a bootstrap-binary regen. (2) Tape truncation is position-like restore state —
+it must live in the CALLER's failure arm, never inside the `try_parse` closure, or
+`?` early-returns skip it (the [[feedback_question_bypasses_manual_cleanup]] class at
+tape granularity).
+
+**Why MTB-A's seam is exactly the existing AcyclicSubRegions plan.** Under increment
+A the cyclic rules were protocol boundaries, so by construction cyclic fns never
+reference A-INTERNAL rules — every cyclic→acyclic edge lands on an A-sub-root. That
+means MTB-A can convert the 149 A-internal fns to match/build pairs and the 56
+A-sub-roots to orchestrators while the cyclic spine stays byte-identical eager code,
+with the eager↔deferred seam living entirely at already-existing call boundaries
+(orchestrator signature unchanged; a match fn's reference to a still-eager cyclic fn
+is just one more Boundary event, dissolving in MTB-B). The measured population says
+this cheap increment covers 84.1% of the fused doomed entries.
+
 ## 2026-07-15 - PGEN-RGX-0078-0092 — the f_spec alloc-census instrument: engineering notes
 
 **Why a counting allocator in a SEPARATE bin, not a flag on an existing probe.** The

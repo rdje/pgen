@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0093 — `.5.i.7` MTB v2 EMISSION DESIGN (docs-only, recorded BEFORE emission): the **DERIVATION-TAPE two-pass form** — match fns record the committed derivation, build fns construct values ONCE over it; 🔎 the island obligation **REFINED AWAY** (island losers stop building values too); increments **MTB-A ≈−40–47% → ≈7.4–8.4µs** → **MTB-B toward −57→−68% → ≈4.5–6.0µs**
+
+The D0/D1/Q/D2 discipline applied to the `-0092` GO: the full emission form recorded
+before any code. TRIPWIRE (fresh, this session): 16/16 dumps regenerated from the
+current debug probe `cmp`-byte-exact vs the `-0091` refs; pins **1331/617/714/180**
+byte-exact. NEW measured facts the design consumed: the doomed-entry topology from the
+dump-join vs the census plan lists — fused rules carry **586/714 (82.1%)** of all
+bench discards, the acyclic plan-A population **493/586 (84.1%)** of those
+(`character_class`, the top alloc pattern, 91%+ A-covered); the one heavy sub-root
+(`pattern`) has **ZERO** discarded entries (the orchestrator-grain retained-doom class
+is measured empty, leaf-concentrated otherwise); the regex artifact needs **NO
+terminal tape events at all** (zero `match_regex` calls, layout-insensitive,
+`match_string` post-position == token end — all verified in `8c26c97f…`); the fused
+value surface = 138 `ParseContent::Json` sites, 27 C3-B islands, 259 boundary
+call-outs; transforms verified pure over `content` + spans. THE FORM: one
+parser-owned event tape + boundary side-vec (truncated at every speculation-failure
+restore point, in-tape winner-segment compaction — zero extra allocation); events
+OrWinner/QuantCount(patched)/OptPresent/Boundary + TokEnd/TokStart only where dynamic
+(P2 byte-switch sites re-dispatch deterministically — no event); TWO static fn
+families per MTB rule (`match_<rule>` = today's control flow verbatim minus all value
+construction; `build_<rule>` = the value half over the tape with a replayed cursor +
+an end-parity debug assert); sub-root cascade fns become mark→match→build→truncate
+ORCHESTRATORS at an unchanged signature (twin + method seams untouched). 🔎 REFINED
+(surfaced): C3-B islands keep checkpoint/delta/rollback/replay VERBATIM but lose
+per-branch value building — `should_take` needs only (end, priority, index), so even
+island LOSERS stop building values; license: no fused value is ever consulted
+mid-parse (the cascade gate excludes runtime directives; the plan partition routes
+ineligible references through sub-root methods = orchestrator-built full values).
+Thin memo memoizes the DERIVATION RECORD — (end, event-segment, boundary-segment)
+under the unchanged taint classes + epoch stamps (⛔ the #49 bound held; POD segment
+memcpy vs today's shallow clone, 180 bench hits). The `ThinMemoEntry` payload change
+is named as the `-0090` core-type bootstrap-drift class ⇒ additive transient
+migration, never a bootstrap-binary regen. Cost watch: fn count ≈×2 (regex 234→≈449;
+SV ≈2000 at B) under the 16384MB guard; safety valve = per-rule eager fallback (the
+P1a budget precedent). CEILINGS (13.98µs basis, the #11 70.9% complex × measured
+f_spec × measured splits; entry-share caveat named): MTB-A −39.6/−44.6/−46.9% →
+**≈7.4–8.4µs**; MTB-B re-priced post-A toward the full band → **≈4.5–6.0µs**;
+emission order MTB-A → re-census/re-profile #12 → MTB-B → re-profile #13 → the
+bar-program re-adjudication. NO code/codegen/parser change; generated artifacts +
+every pin untouched. Lockstep: tree section + leaf frontier + TASK_TREE row + MEMORY +
+CHANGES + DEVELOPMENT_NOTES; book + TOOLBOX deliberately unchanged (the `-0085`
+pre-emission-design precedent). NEXT = MTB-A EMISSION (engine tape types + the
+acyclic sub-region match/build pass; the `.5.i.6` battery verbatim + land-iff-faster).
+
 ## 2026-07-15 - PGEN-RGX-0078-0092 — `.5.i.7` MTB v2 STEP-0: the `f_spec` ALLOC-CENSUS INSTRUMENT landed + measured — **f_spec floor 80.7–93.4% per pattern (aggregate 90.9% of alloc events / 95.6% of bytes = DOOMED value traffic)** ⇒ MATCH-THEN-BUILD v2 re-priced **−57→−68% → ≈4.5–6.0µs; GO** to the design spike
 
 New tracked bin `rust/src/bin/regex_alloc_census_probe.rs` (the canonical
