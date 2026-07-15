@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0081 — `.5.i.7` STRATEGIC FORK RESOLVED BY DIRECTOR DELEGATION (docs-only): "you do not need my greenlight to move forward in the proper direction" ⇒ the D2 FULL-CASCADE-FOLDING STEP-0 scout proceeds; NEW leaf `.8` = the speed-journey mdBook chapter (director mandate); the fork-pause discipline AMENDED (surface + recommend + record, then proceed)
+
+Same-session director signals recorded verbatim in the tree: the pushback against stopping
+("throwing our hands in the air? :-)"), the delegation, and the book mandate ("All this breath
+taking journey shall be told in the mdBook"). New standing decision record
+`feedback_director_delegation_proper_direction` (+ INDEX): direction-setting is delegated;
+evidence gates are NOT — STEP-0 pricing still precedes any build, the ⛔ HARD CONSTRAINT
+battery still governs any landing, real-world side effects stay director-owned; the
+discussion-mode file-freeze half of the fork discipline remains in force. Leaf `.8` opened
+with its STEP-0 (audit `inside-parser-performance.md`: extend vs sibling narrative chapter).
+Frontier + TASK_TREE row + MEMORY updated; no code change.
+
 ## 2026-07-15 - PGEN-RGX-0078-0080 — `.5.i.7.t1` BUILD-HYGIENE: `AST_PIPELINE_SOURCES` is now `$(wildcard)`-DERIVED (the `-0074` Makefile finding closed) — a make-only flow after editing an unlisted codegen source (e.g. `first_set.rs`) no longer emits silently-STALE artifacts
 
 Reproduced on a settled tree: touching `first_set.rs`+`fusibility_census.rs` (unlisted;
