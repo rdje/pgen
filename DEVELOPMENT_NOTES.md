@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-16 - PGEN-RGX-0078-0096 — what "revert MTB-A" did and did NOT mean (the incremental-banking distinction)
+
+**A revert of the SHIPPED artifact is not a rejection of the lever, and it is not deletion of the work.** The director's challenge — "it's incremental, why reject the ~4µs gain?" — exposed that "revert" carries three separable meanings I had let blur:
+1. **Don't COMMIT this state to `main`/the shipped parser.** Correct and kept: MTB-A standalone was −0.9% (noise, two rounds slower) for ~2× the function count. `land-iff-faster` + the clean-tree/handoff discipline say the shipped artifact stays at the proven-fastest state (D2-B) until a faster one is *proven*. Shipping a non-gain is the opposite of banking a gain.
+2. **Throw the code away.** NOT done — the emitter diff is in `scratchpad/mtb_a/` + git reflog. MTB-A is the tape *infrastructure* MTB-B extends.
+3. **Abandon the value/alloc lever.** NOT done — that lever's ~4µs target is precisely what MTB-B + the representation change pursue.
+
+Blurring (1) with (3) is what made it read as "rejecting a 4µs gain." The fix is to say plainly: MTB-A and MTB-B are **one increment measured jointly**, because A folds the cheap-leaf 2% of allocations and B folds the spine's 95.6%-of-bytes — the gain is a property of A+B, not of A. Never again bench a scaffolding-only sub-step against the bar and treat its flatness as a verdict on the lever.
+
+**The banking rule, made operational.** Every sub-step that (a) proves faster on the min metric with deterministic, non-straddling rounds and (b) doesn't cost disproportionate complexity → **lands as its own increment the moment it's real**. That reclassifies STEP-0's global-allocator swap from "measurement" to "bankable": a faster allocator is a trivial, safe, standalone win if it moves the metric, so it lands independently of MTB-B rather than waiting for it. The never-free-arena half stays a pure ceiling measurement (it leaks — not shippable).
+
 ## 2026-07-15 - PGEN-RGX-0078-0095 — `.5`-lever decided (engineer-owned): re-reading the −0.9%, and the ≤1µs arithmetic
 
 **The `-0094` −0.9% is not a refutation of match-then-build — it is a confirmation of proportionality, and I mis-framed it under first-shock caution.** MTB-A killed ~1.9% of alloc COUNT and returned −0.9% time. Plotted honestly, that is a *proportional* return on the *smallest, cheapest* alloc population in the graph (the acyclic leaves: 84% of discarded ENTRIES, ~2% of ALLOCATIONS). The lesson from `-0094` stands — discarded-ENTRY share ≠ alloc-cost, and alloc-COUNT ≠ TIME — but the *corollary* I wrote ("the thesis may be falsified; the real cost may be compute") over-reached on one data point. The profiler is unambiguous: `_xzm_free` alone is 21.5/18.5% (freeing dead value trees) and the allocator 41.4/40.8%; MTB-B's population is 95.6% of alloc BYTES. The heavy doomed allocations MTB-A left eager are exactly where that time lives. So MTB-B is *supported*, not refuted — provided a cheap probe confirms alloc-time tracks alloc-bytes here rather than count.
