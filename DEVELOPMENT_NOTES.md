@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0086 — the D2-A emission-plan seam: engineering notes
+
+**Why the plan is a separate landed step.** The emitter's partition (which rules fuse, which
+stay boundaries, which carry snapshot/island obligations) is exactly the kind of duplicated
+metadata that drifts if the census reports one computation and codegen consumes another —
+the P1a lesson institutionalized as `compute_inline_decisions`. Landing the shared function
+FIRST, with the census reporting it and an independent recomputation cross-checking it on
+the real grammar, means the emitter slice starts from a proven, deterministic map instead of
+deriving its own. The 56/149 regex partition reproducing the design's Python pricing basis
+byte-exact is the falsifiable evidence the seam computes what the design priced.
+
+**Why `effect_reaching` spans ALL rules, not just fused ones.** The emitter's per-call
+question is "can THIS call change semantic state?" — and the call target may be a non-fused
+method (a cyclic eligible rule) whose own subtree reaches a fact-writing boundary. The
+fixpoint therefore propagates through every tree rule; an ineligible rule that reaches no
+OTHER ineligible rule is deliberately NOT in the set (the emitter checks call-target
+eligibility separately — membership means "the BODY can reach an effect", not "is an
+effect"). Conservative by construction: `@transform`/`@profiles` targets count as effects
+even though they are value-/gate-side — refining to store-writing-only is a recorded
+emission-time option if measurement demands it.
+
 ## 2026-07-15 - PGEN-RGX-0078-0085 — D2 emission design: engineering notes
 
 **Why the observability twin instead of the append lane.** The `-0084` floor named a

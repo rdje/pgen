@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0086 — `.5.i.7` D2-A STEP-1: the EMISSION-PLAN SEAM landed — `compute_cascade_emission_plan` (the shared census↔codegen map); regex partitions **56 sub-roots / 149 internal / 59 effect-reaching fused** = the design's pricing basis byte-exact
+
+Lib-only (read-only analysis; no codegen/parser change). The SHARED D2-A plan function in
+`fusibility_census.rs` (the P1a `compute_inline_decisions` no-drift precedent):
+`CascadeEmissionPlan { sub_roots, internal, effect_reaching }` — verdicts from the census's
+own `cascade_rule_verdict`, cyclic eligible rules = protocol boundaries in this increment,
+`effect_reaching` = the monotone "ineligible rule reachable from this body" fixpoint over
+ALL tree rules (propagates through non-fused eligible methods) feeding the two ⛔ C3-B/store
+emission rules. The census computes + reports the SAME map: `CASCADE-PLAN:` line,
+`[cascade-plan]` DUMP_ALL verdicts, additive `cascade_plan` JSON field. VERIFIED: regex
+56/149/59 = the `-0085` pricing basis exactly; independent Python recomputation over the
+gen-AST graph agrees on FULL SETS (98 reaching / 59 fused); determinism cmp-clean ×2;
+pre-existing census JSON fields byte-identical on the same inputs; module tests 23/23
+(+3); full lib suite green; clippy gate green (source-strict; generated debt pre-existing);
+mdbook gate green (TOOLBOX §5.3 + parseability-probe-debug + diagnosing-unknowns lockstep).
+NEXT = the D2-A FUSED EMITTER slice.
+
 ## 2026-07-15 - PGEN-RGX-0078-0085 — `.5.i.7` D2 EMISSION DESIGN (docs-only, recorded BEFORE emission): the OBSERVABILITY-TWIN region form + increments **D2-A acyclic sub-region fold (honest −18–25%)** → **D2-B cyclic-spine + epoch-stamped thin memo** (re-priced post-A toward the −45–61% full fold)
 
 The design (tree section `.5.i.7 D2 EMISSION DESIGN`; the D0/D1/Q record-before-emission

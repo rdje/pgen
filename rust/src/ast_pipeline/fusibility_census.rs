@@ -165,6 +165,9 @@ pub struct FusibilityCensus {
     /// RGX-0078.5.i.7 (D2 STEP-0) — the measured cascade-fold exposure join
     /// (present iff `--fusibility-outcome-counts` files were joined).
     pub cascade_exposure: Option<CascadeExposure>,
+    /// RGX-0078.5.i.7 (D2-A) — the SHARED acyclic-sub-region emission plan
+    /// ([`compute_cascade_emission_plan`] — the same map codegen consumes).
+    pub cascade_plan: CascadeEmissionPlan,
 }
 
 /// The JSON shape `parseability_probe --dump-rule-entry-counts-json` writes; consumed by
@@ -2734,6 +2737,9 @@ pub fn run_fusibility_census(
             outcome_counts_files,
         )?)
     };
+    // RGX-0078.5.i.7 (D2-A) — the SAME plan function codegen consumes.
+    let cascade_plan =
+        compute_cascade_emission_plan(grammar_tree, annotations, entry_rule.as_deref())?;
 
     Ok(FusibilityCensus {
         grammar_name: grammar_name.to_string(),
@@ -2756,6 +2762,7 @@ pub fn run_fusibility_census(
         quant_exposure,
         cascade_rules,
         cascade_exposure,
+        cascade_plan,
     })
 }
 
@@ -2847,6 +2854,125 @@ fn join_cascade_outcome_counts(
     top.truncate(12);
     exposure.top_internal_rules = top;
     Ok(exposure)
+}
+
+/// RGX-0078.5.i.7 (D2-A) — the SHARED cascade-emission plan for the ACYCLIC
+/// SUB-REGION increment (the D2 EMISSION DESIGN's D2-A slice): CYCLIC eligible
+/// rules are treated as protocol boundaries, so every fused function in this
+/// increment is non-recursive and needs no memo lane (re-probe multiplicity is
+/// bounded by the grammar's static caller constant). Codegen consumes this plan
+/// for the D2-A emission; the census reports it (`CASCADE-PLAN`), so the two
+/// cannot drift — the P1a `compute_inline_decisions` precedent.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CascadeEmissionPlan {
+    /// Acyclic cascade-eligible rules entered from OUTSIDE the increment's fused
+    /// graph (the entry rule, a rule referenced by an ineligible or cyclic rule,
+    /// or an unreferenced rule): their methods keep the FULL protocol frame and
+    /// gain the observability-twin dispatch to `cascade_<rule>` inside the
+    /// memoized body.
+    pub sub_roots: std::collections::BTreeSet<String>,
+    /// Acyclic cascade-eligible rules referenced ONLY by other acyclic
+    /// cascade-eligible rules: on the bare-parse path they are reached through
+    /// fused `cascade_<rule>` functions exclusively (their methods remain for
+    /// the protocol graph / entry-relative parses).
+    pub internal: std::collections::BTreeSet<String>,
+    /// Rules (ALL tree rules, not only fused ones) from whose body an INELIGIBLE
+    /// tree-defined rule is reachable through tree references — the conservative
+    /// "can this call change semantic state / consult a gate?" set. The emitter
+    /// uses it for the two ⛔ C3-B/store rules: a fused speculation scope whose
+    /// calls can reach this set carries the semantic-checkpoint snapshot, and an
+    /// Or site with an effect-reaching branch keeps the protocol tournament as a
+    /// site island.
+    pub effect_reaching: std::collections::BTreeSet<String>,
+}
+
+/// Compute the D2-A cascade-emission plan. Verdicts come from the census's OWN
+/// `cascade_rule_verdict` (one implementation of the D2 gate for report and
+/// emission); cyclicity from `rule_reaches_itself` over the census's own
+/// reference collector. Deterministic (`BTreeSet` output, monotone fixpoint).
+pub fn compute_cascade_emission_plan(
+    tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+    entry_rule: Option<&str>,
+) -> Result<CascadeEmissionPlan, String> {
+    let classifier = Classifier::new(tree, annotations)?;
+    let mut forward: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut regex_pattern_sink: Vec<String> = Vec::new();
+    for (rule, body) in tree {
+        let mut refs = HashSet::new();
+        collect_refs(body, &mut refs, &mut regex_pattern_sink);
+        forward.insert(rule.clone(), refs);
+    }
+    let mut referenced_by: HashMap<&str, Vec<&str>> = HashMap::new();
+    for (rule, refs) in &forward {
+        for target in refs {
+            if tree.contains_key(target.as_str()) {
+                referenced_by.entry(target).or_default().push(rule);
+            }
+        }
+    }
+    let eligible: HashMap<&str, bool> = tree
+        .keys()
+        .map(|rule| (rule.as_str(), classifier.cascade_rule_verdict(rule).0))
+        .collect();
+    let fused_candidate: HashMap<&str, bool> = tree
+        .keys()
+        .map(|rule| {
+            (
+                rule.as_str(),
+                eligible[rule.as_str()] && !rule_reaches_itself(rule, &forward),
+            )
+        })
+        .collect();
+
+    let mut sub_roots = std::collections::BTreeSet::new();
+    let mut internal = std::collections::BTreeSet::new();
+    for rule in tree.keys() {
+        if !fused_candidate[rule.as_str()] {
+            continue;
+        }
+        let outside_entered = Some(rule.as_str()) == entry_rule
+            || referenced_by
+                .get(rule.as_str())
+                .map(|callers| callers.iter().any(|c| !fused_candidate[c]))
+                .unwrap_or(true);
+        if outside_entered {
+            sub_roots.insert(rule.clone());
+        } else {
+            internal.insert(rule.clone());
+        }
+    }
+
+    // Monotone fixpoint: a rule reaches an effect boundary iff any tree-defined
+    // reference target is ineligible OR itself effect-reaching (propagates
+    // through eligible non-fused rules too — a method call to an effect-free
+    // cyclic rule can still reach a fact-writing descendant).
+    let mut effect_reaching: HashSet<&str> = HashSet::new();
+    loop {
+        let mut changed = false;
+        for (rule, refs) in &forward {
+            if effect_reaching.contains(rule.as_str()) {
+                continue;
+            }
+            let reaches = refs.iter().any(|t| {
+                tree.contains_key(t.as_str())
+                    && (!eligible[t.as_str()] || effect_reaching.contains(t.as_str()))
+            });
+            if reaches {
+                effect_reaching.insert(rule.as_str());
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+
+    Ok(CascadeEmissionPlan {
+        sub_roots,
+        internal,
+        effect_reaching: effect_reaching.into_iter().map(String::from).collect(),
+    })
 }
 
 fn join_entry_counts(
@@ -3276,6 +3402,50 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                 } else {
                     println!("  [cascade] {rule}: BLOCKED — {}", c.reasons.join("; "));
                 }
+            }
+        }
+    }
+    // RGX-0078.5.i.7 (D2-A) — the shared acyclic-sub-region emission plan
+    // (compute_cascade_emission_plan, the same map codegen consumes).
+    {
+        let plan = &census.cascade_plan;
+        let fused_effect_reaching = plan
+            .sub_roots
+            .iter()
+            .chain(plan.internal.iter())
+            .filter(|r| plan.effect_reaching.contains(*r))
+            .count();
+        println!(
+            "CASCADE-PLAN: grammar={} increment=A(acyclic-subregions) sub_roots={} internal={} effect_reaching_fused={} (of {} fused)",
+            census.grammar_name,
+            plan.sub_roots.len(),
+            plan.internal.len(),
+            fused_effect_reaching,
+            plan.sub_roots.len() + plan.internal.len(),
+        );
+        println!(
+            "  model: cyclic eligible rules stay protocol boundaries in this increment (no memo lane, no recursion); sub-roots keep the full protocol frame + the observability-twin dispatch; internal rules run as fused cascade_* functions on the bare-parse path; effect-reaching fused rules carry the C3-B snapshot/island obligations."
+        );
+        if dump_all {
+            for rule in &plan.sub_roots {
+                println!(
+                    "  [cascade-plan] {rule}: SUB-ROOT{}",
+                    if plan.effect_reaching.contains(rule) {
+                        " effect_reaching"
+                    } else {
+                        ""
+                    }
+                );
+            }
+            for rule in &plan.internal {
+                println!(
+                    "  [cascade-plan] {rule}: internal{}",
+                    if plan.effect_reaching.contains(rule) {
+                        " effect_reaching"
+                    } else {
+                        ""
+                    }
+                );
             }
         }
     }
@@ -4645,5 +4815,126 @@ mod tests {
             exposure.top_internal_rules,
             vec![("b".to_string(), 20, 12, 8)]
         );
+    }
+
+    /// RGX-0078.5.i.7 (D2-A) — the acyclic-sub-region plan treats CYCLIC eligible
+    /// rules as protocol boundaries: an acyclic chain hanging off a cycle
+    /// partitions as sub-root (entered from the cyclic caller) + internal
+    /// (referenced only from inside the fused acyclic graph); the cyclic pair
+    /// itself joins NEITHER set in this increment.
+    #[test]
+    fn cascade_plan_partitions_acyclic_subregions_under_cyclic_callers() {
+        let mut tree = HashMap::new();
+        // entry := a ; a := 'x' | b | c ; b := a   (a↔b cyclic, effect-free)
+        // c := d ; d := 'y'                        (the acyclic chain off the cycle)
+        tree.insert("entry".to_string(), or(vec![rule_ref("a")]));
+        tree.insert(
+            "a".to_string(),
+            or(vec![atom("quoted_string", "x"), rule_ref("b"), rule_ref("c")]),
+        );
+        tree.insert("b".to_string(), or(vec![rule_ref("a")]));
+        tree.insert("c".to_string(), or(vec![rule_ref("d")]));
+        tree.insert("d".to_string(), or(vec![atom("quoted_string", "y")]));
+        let plan =
+            compute_cascade_emission_plan(&tree, None, Some("entry")).expect("plan computes");
+        assert!(
+            plan.sub_roots.contains("entry"),
+            "the entry rule is a sub-root: {:?}",
+            plan.sub_roots
+        );
+        assert!(
+            plan.sub_roots.contains("c"),
+            "c is entered from the cyclic caller a: {:?}",
+            plan.sub_roots
+        );
+        assert!(
+            plan.internal.contains("d"),
+            "d is referenced only from the fused acyclic graph: {:?}",
+            plan.internal
+        );
+        for cyclic in ["a", "b"] {
+            assert!(
+                !plan.sub_roots.contains(cyclic) && !plan.internal.contains(cyclic),
+                "cyclic rules stay protocol boundaries in increment A: {cyclic}"
+            );
+        }
+        // Purely structural grammar: nothing reaches an ineligible rule.
+        assert!(plan.effect_reaching.is_empty());
+    }
+
+    /// RGX-0078.5.i.7 (D2-A) — effect-reachability is transitive and propagates
+    /// through NON-fused eligible rules too (a method call to an effect-free
+    /// cyclic rule can still reach a fact-writing descendant); an ineligible rule
+    /// that reaches no OTHER ineligible rule is not itself in the set (the
+    /// emitter checks call-target eligibility separately).
+    #[test]
+    fn cascade_plan_effect_reaching_is_transitive_through_methods() {
+        let mut tree = HashMap::new();
+        // p := q ; q := r | 'z' q  (q cyclic eligible — NOT fused) ; r(@transform).
+        tree.insert("p".to_string(), or(vec![rule_ref("q")]));
+        tree.insert(
+            "q".to_string(),
+            or(vec![
+                rule_ref("r"),
+                ASTNode::Sequence {
+                    elements: vec![atom("quoted_string", "z"), rule_ref("q")],
+                },
+            ]),
+        );
+        tree.insert("r".to_string(), or(vec![atom("quoted_string", "w")]));
+        let ann = transform_annotations("r");
+        let plan =
+            compute_cascade_emission_plan(&tree, Some(&ann), Some("p")).expect("plan computes");
+        assert!(
+            plan.effect_reaching.contains("q"),
+            "q references the ineligible r directly: {:?}",
+            plan.effect_reaching
+        );
+        assert!(
+            plan.effect_reaching.contains("p"),
+            "p reaches r THROUGH the non-fused cyclic q: {:?}",
+            plan.effect_reaching
+        );
+        assert!(
+            !plan.effect_reaching.contains("r"),
+            "r is ineligible but reaches no ineligible rule itself"
+        );
+        assert!(plan.sub_roots.contains("p"), "p is the entry sub-root");
+        assert!(
+            !plan.sub_roots.contains("q") && !plan.internal.contains("q"),
+            "cyclic q stays a protocol boundary"
+        );
+    }
+
+    /// RGX-0078.5.i.7 (D2-A) — the entry rule and unreferenced eligible acyclic
+    /// rules are sub-roots (entered from outside the fused graph by definition),
+    /// and the census carries the SAME plan codegen consumes (no drift).
+    #[test]
+    fn cascade_plan_entry_and_unreferenced_rules_are_sub_roots() {
+        let mut tree = HashMap::new();
+        tree.insert("entry".to_string(), or(vec![rule_ref("leaf")]));
+        tree.insert("leaf".to_string(), or(vec![atom("quoted_string", "x")]));
+        tree.insert("orphan".to_string(), or(vec![atom("quoted_string", "o")]));
+        let plan =
+            compute_cascade_emission_plan(&tree, None, Some("entry")).expect("plan computes");
+        assert!(plan.sub_roots.contains("entry"));
+        assert!(
+            plan.sub_roots.contains("orphan"),
+            "unreferenced rules are entered from outside the fused graph: {:?}",
+            plan.sub_roots
+        );
+        assert!(plan.internal.contains("leaf"));
+        let census = census_of(
+            tree,
+            vec![
+                "entry".to_string(),
+                "leaf".to_string(),
+                "orphan".to_string(),
+            ],
+            None,
+        );
+        assert_eq!(census.cascade_plan.sub_roots, plan.sub_roots);
+        assert_eq!(census.cascade_plan.internal, plan.internal);
+        assert_eq!(census.cascade_plan.effect_reaching, plan.effect_reaching);
     }
 }
