@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0089 — the increment-B plan seam: engineering notes
+
+**Why an increment parameter instead of a second function.** The B partition differs from
+A in exactly one predicate (the fused-candidate gate keeps or drops `rule_reaches_itself`),
+while the sub-root rule, the reference graph, and the effect fixpoint are shared logic. A
+forked `compute_cascade_emission_plan_b` would duplicate that logic and reopen the
+census-vs-emission drift class the seam exists to close; the enum keeps the landed D2-A
+emitter's call site byte-compatible (the wrapper delegates) and gives the D2-B emitter the
+same single map.
+
+**Why `thin_memo` includes cyclic SUB-ROOTS (regex: `pattern`).** The #49 bound protects
+cycle-participating FUSED FUNCTIONS, not partition classes: a cyclic sub-root's method keeps
+the real packrat memo on the protocol path, but its `cascade_*` fn is entered recursively
+from inside the fused graph (e.g. a group body re-entering the pattern spine), where only
+the thin memo stands between a same-position re-probe and exponential re-execution. So the
+set is computed over ALL fused rules — 28 internal-cyclic + 1 cyclic root for regex.
+
+**Why the effect fixpoint needed a proof of increment-independence.** The fixpoint ranges
+over ALL tree rules and consults only eligibility — not the fused partition — so A and B
+must agree exactly. That is now pinned twice (a unit test and an equal-sets check on the
+artifact JSON) because a future refactor that computed reachability over the FUSED graph
+instead of the tree would silently weaken the C3-B obligation set under one increment while
+the other kept masking it.
+
 ## 2026-07-15 - PGEN-RGX-0078-0088 — the post-D2-A measurement: method notes
 
 **Why the debug probe had to be rebuilt before the tripwire.** The probe embeds the

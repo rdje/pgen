@@ -168,6 +168,13 @@ pub struct FusibilityCensus {
     /// RGX-0078.5.i.7 (D2-A) — the SHARED acyclic-sub-region emission plan
     /// ([`compute_cascade_emission_plan`] — the same map codegen consumes).
     pub cascade_plan: CascadeEmissionPlan,
+    /// RGX-0078.5.i.7 (D2-B plan seam) — the CYCLIC-SPINE increment's plan
+    /// ([`compute_cascade_emission_plan_for_increment`] at
+    /// [`CascadeIncrement::CyclicSpine`]): every cascade-eligible rule fused,
+    /// sub-roots = the census's own full-fold roots, `thin_memo` = the cycle
+    /// participants (the ⛔ #49 carriers). Reported (`CASCADE-PLAN-B`) ahead of
+    /// the D2-B emitter consuming it — the same no-drift seam as `cascade_plan`.
+    pub cascade_plan_b: CascadeEmissionPlan,
 }
 
 /// The JSON shape `parseability_probe --dump-rule-entry-counts-json` writes; consumed by
@@ -2781,6 +2788,13 @@ pub fn run_fusibility_census(
     // RGX-0078.5.i.7 (D2-A) — the SAME plan function codegen consumes.
     let cascade_plan =
         compute_cascade_emission_plan(grammar_tree, annotations, entry_rule.as_deref())?;
+    // RGX-0078.5.i.7 (D2-B plan seam) — the cyclic-spine increment's plan.
+    let cascade_plan_b = compute_cascade_emission_plan_for_increment(
+        grammar_tree,
+        annotations,
+        entry_rule.as_deref(),
+        CascadeIncrement::CyclicSpine,
+    )?;
 
     Ok(FusibilityCensus {
         grammar_name: grammar_name.to_string(),
@@ -2804,6 +2818,7 @@ pub fn run_fusibility_census(
         cascade_rules,
         cascade_exposure,
         cascade_plan,
+        cascade_plan_b,
     })
 }
 
@@ -2934,16 +2949,62 @@ pub struct CascadeEmissionPlan {
     /// monotone fixpoint above), so membership is a sound per-reference test with no
     /// further closure walk needed at the emission site.
     pub effect_targets: std::collections::BTreeSet<String>,
+    /// RGX-0078.5.i.7 (D2-B plan seam) — the CYCLE-PARTICIPATING fused rules: every
+    /// fused rule that can reach itself through tree references. EMPTY under
+    /// increment A by construction (cyclic eligible rules are protocol boundaries
+    /// there, never fused). Under increment B these are the rules whose fused
+    /// `cascade_*` functions recurse, and the ⛔ session-#49 bound applies: they
+    /// NEVER lose memo protection — the emitter gives each an epoch-stamped thin
+    /// memo (`(rule, pos) → {end, value, write_epoch}` validated at replay, the
+    /// MEMO-STORE-SOUNDNESS.2 semantics) so packrat asymptotics are preserved.
+    pub thin_memo: std::collections::BTreeSet<String>,
 }
 
-/// Compute the D2-A cascade-emission plan. Verdicts come from the census's OWN
-/// `cascade_rule_verdict` (one implementation of the D2 gate for report and
-/// emission); cyclicity from `rule_reaches_itself` over the census's own
-/// reference collector. Deterministic (`BTreeSet` output, monotone fixpoint).
+/// RGX-0078.5.i.7 (D2-B plan seam) — which cascade-fold increment a plan is
+/// computed for. The partition logic is ONE implementation; the increment only
+/// widens the fused-candidate gate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CascadeIncrement {
+    /// D2-A: acyclic sub-regions only — a cyclic eligible rule stays a protocol
+    /// boundary (no recursion, no memo lane; re-probe multiplicity bounded by
+    /// the grammar's static caller constant).
+    AcyclicSubRegions,
+    /// D2-B: the cyclic spine folds too — every cascade-eligible rule is fused;
+    /// cycle participants carry the epoch-stamped thin memo (the #49 bound).
+    CyclicSpine,
+}
+
+/// Compute the D2-A cascade-emission plan (the increment consumed by the LANDED
+/// `-0087` emitter). Verdicts come from the census's OWN `cascade_rule_verdict`
+/// (one implementation of the D2 gate for report and emission); cyclicity from
+/// `rule_reaches_itself` over the census's own reference collector.
+/// Deterministic (`BTreeSet` output, monotone fixpoint).
 pub fn compute_cascade_emission_plan(
     tree: &HashMap<String, ASTNode>,
     annotations: Option<&Annotations>,
     entry_rule: Option<&str>,
+) -> Result<CascadeEmissionPlan, String> {
+    compute_cascade_emission_plan_for_increment(
+        tree,
+        annotations,
+        entry_rule,
+        CascadeIncrement::AcyclicSubRegions,
+    )
+}
+
+/// RGX-0078.5.i.7 (D2-B plan seam) — the increment-parameterized plan: ONE
+/// implementation of the fused-candidate gate + sub-root/internal partition +
+/// effect fixpoint for both increments, so the census report, the D2-A emitter,
+/// and the D2-B emitter cannot drift. Under `CyclicSpine` the fused-candidate
+/// gate drops the acyclicity requirement (fused = cascade-eligible), the
+/// sub-root partition therefore reproduces the census's OWN full-fold
+/// root/internal split, and `thin_memo` names the cycle participants (the ⛔
+/// #49 carriers).
+pub fn compute_cascade_emission_plan_for_increment(
+    tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+    entry_rule: Option<&str>,
+    increment: CascadeIncrement,
 ) -> Result<CascadeEmissionPlan, String> {
     let classifier = Classifier::new(tree, annotations)?;
     let mut forward: HashMap<String, HashSet<String>> = HashMap::new();
@@ -2970,9 +3031,16 @@ pub fn compute_cascade_emission_plan(
         .map(|rule| {
             (
                 rule.as_str(),
-                eligible[rule.as_str()] && !rule_reaches_itself(rule, &forward),
+                eligible[rule.as_str()]
+                    && (increment == CascadeIncrement::CyclicSpine
+                        || !rule_reaches_itself(rule, &forward)),
             )
         })
+        .collect();
+    let thin_memo: std::collections::BTreeSet<String> = tree
+        .keys()
+        .filter(|rule| fused_candidate[rule.as_str()] && rule_reaches_itself(rule, &forward))
+        .cloned()
         .collect();
 
     let mut sub_roots = std::collections::BTreeSet::new();
@@ -3029,6 +3097,7 @@ pub fn compute_cascade_emission_plan(
         internal,
         effect_reaching: effect_reaching.into_iter().map(String::from).collect(),
         effect_targets,
+        thin_memo,
     })
 }
 
@@ -3497,6 +3566,52 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             for rule in &plan.internal {
                 println!(
                     "  [cascade-plan] {rule}: internal{}",
+                    if plan.effect_reaching.contains(rule) {
+                        " effect_reaching"
+                    } else {
+                        ""
+                    }
+                );
+            }
+        }
+    }
+    // RGX-0078.5.i.7 (D2-B plan seam) — the cyclic-spine increment's plan
+    // (compute_cascade_emission_plan_for_increment at CyclicSpine — the map the
+    // D2-B emitter will consume).
+    {
+        let plan = &census.cascade_plan_b;
+        let fused_effect_reaching = plan
+            .sub_roots
+            .iter()
+            .chain(plan.internal.iter())
+            .filter(|r| plan.effect_reaching.contains(*r))
+            .count();
+        println!(
+            "CASCADE-PLAN-B: grammar={} increment=B(cyclic-spine) sub_roots={} internal={} thin_memo={} effect_reaching_fused={} (of {} fused)",
+            census.grammar_name,
+            plan.sub_roots.len(),
+            plan.internal.len(),
+            plan.thin_memo.len(),
+            fused_effect_reaching,
+            plan.sub_roots.len() + plan.internal.len(),
+        );
+        println!(
+            "  model: EVERY cascade-eligible rule fused (sub-roots = the census's full-fold roots, keeping the protocol frame + twin dispatch); cycle-participating fused rules carry the epoch-stamped thin memo (⛔ the #49 bound — they never lose memo protection); effect obligations as in increment A."
+        );
+        if dump_all {
+            for rule in plan.sub_roots.iter().chain(plan.internal.iter()) {
+                println!(
+                    "  [cascade-plan-b] {rule}: {}{}{}",
+                    if plan.sub_roots.contains(rule) {
+                        "SUB-ROOT"
+                    } else {
+                        "internal"
+                    },
+                    if plan.thin_memo.contains(rule) {
+                        " thin_memo"
+                    } else {
+                        ""
+                    },
                     if plan.effect_reaching.contains(rule) {
                         " effect_reaching"
                     } else {
@@ -4993,5 +5108,179 @@ mod tests {
         assert_eq!(census.cascade_plan.sub_roots, plan.sub_roots);
         assert_eq!(census.cascade_plan.internal, plan.internal);
         assert_eq!(census.cascade_plan.effect_reaching, plan.effect_reaching);
+    }
+
+    /// RGX-0078.5.i.7 (D2-B plan seam) — under the CYCLIC-SPINE increment the
+    /// fused-candidate gate drops acyclicity: the cyclic pair fuses as internal
+    /// rules carrying the thin-memo obligation (⛔ the #49 bound), the acyclic
+    /// chain off the cycle is PROMOTED to internal (its cyclic caller now folds),
+    /// and increment A's plan on the same grammar carries an EMPTY thin_memo.
+    #[test]
+    fn cascade_plan_b_fuses_the_cyclic_spine_with_thin_memo() {
+        let mut tree = HashMap::new();
+        // entry := a ; a := 'x' | b | c ; b := a   (a↔b cyclic, effect-free)
+        // c := d ; d := 'y'                        (the acyclic chain off the cycle)
+        tree.insert("entry".to_string(), or(vec![rule_ref("a")]));
+        tree.insert(
+            "a".to_string(),
+            or(vec![atom("quoted_string", "x"), rule_ref("b"), rule_ref("c")]),
+        );
+        tree.insert("b".to_string(), or(vec![rule_ref("a")]));
+        tree.insert("c".to_string(), or(vec![rule_ref("d")]));
+        tree.insert("d".to_string(), or(vec![atom("quoted_string", "y")]));
+        let plan_a =
+            compute_cascade_emission_plan(&tree, None, Some("entry")).expect("plan computes");
+        assert!(
+            plan_a.thin_memo.is_empty(),
+            "increment A never fuses a cycle participant: {:?}",
+            plan_a.thin_memo
+        );
+        let plan_b = compute_cascade_emission_plan_for_increment(
+            &tree,
+            None,
+            Some("entry"),
+            CascadeIncrement::CyclicSpine,
+        )
+        .expect("plan computes");
+        assert!(plan_b.sub_roots.contains("entry"), "{:?}", plan_b.sub_roots);
+        for fused_internal in ["a", "b", "c", "d"] {
+            assert!(
+                plan_b.internal.contains(fused_internal),
+                "{fused_internal} fuses as internal under B (c/d promoted — the cyclic caller folds): {:?}",
+                plan_b.internal
+            );
+        }
+        assert_eq!(
+            plan_b.thin_memo,
+            ["a", "b"].iter().map(|s| s.to_string()).collect(),
+            "thin memo = exactly the cycle participants"
+        );
+        // A's fused set is a strict subset of B's (the increment only widens).
+        for rule in plan_a.sub_roots.iter().chain(plan_a.internal.iter()) {
+            assert!(
+                plan_b.sub_roots.contains(rule) || plan_b.internal.contains(rule),
+                "increment B fuses everything A fused: {rule}"
+            );
+        }
+    }
+
+    /// RGX-0078.5.i.7 (D2-B plan seam) — plan B's sub-roots reproduce the census's
+    /// OWN full-fold root partition (fused = eligible ⇒ outside-entered = the
+    /// census `root` flag), and the census carries the SAME B plan the emitter
+    /// will consume (no drift, the `-0086` precedent).
+    #[test]
+    fn cascade_plan_b_sub_roots_equal_the_census_full_fold_roots() {
+        let mut tree = HashMap::new();
+        // gate(@transform, ineligible) := x ; x := y | 'z' x (cyclic) ; y := 'w'
+        // entry := gate  — so x is entered from an INELIGIBLE caller (a full-fold root).
+        tree.insert("entry".to_string(), or(vec![rule_ref("gate")]));
+        tree.insert("gate".to_string(), or(vec![rule_ref("x")]));
+        tree.insert(
+            "x".to_string(),
+            or(vec![
+                rule_ref("y"),
+                ASTNode::Sequence {
+                    elements: vec![atom("quoted_string", "z"), rule_ref("x")],
+                },
+            ]),
+        );
+        tree.insert("y".to_string(), or(vec![atom("quoted_string", "w")]));
+        let ann = transform_annotations("gate");
+        let plan_b = compute_cascade_emission_plan_for_increment(
+            &tree,
+            None,
+            Some("entry"),
+            CascadeIncrement::CyclicSpine,
+        )
+        .expect("plan computes");
+        // Without annotations everything is eligible; with the @transform gate the
+        // census census_of run below carries the SAME partition — assert both layers.
+        let census = census_of(
+            tree,
+            vec![
+                "entry".to_string(),
+                "gate".to_string(),
+                "x".to_string(),
+                "y".to_string(),
+            ],
+            Some(ann),
+        );
+        let census_roots: std::collections::BTreeSet<String> = census
+            .cascade_rules
+            .iter()
+            .filter(|(_, c)| c.eligible && c.root)
+            .map(|(r, _)| r.clone())
+            .collect();
+        assert_eq!(
+            census.cascade_plan_b.sub_roots, census_roots,
+            "plan B sub-roots == the census full-fold roots"
+        );
+        let census_internal: std::collections::BTreeSet<String> = census
+            .cascade_rules
+            .iter()
+            .filter(|(_, c)| c.eligible && !c.root)
+            .map(|(r, _)| r.clone())
+            .collect();
+        assert_eq!(
+            census.cascade_plan_b.internal, census_internal,
+            "plan B internal == the census full-fold internal rules"
+        );
+        let census_cyclic_fused: std::collections::BTreeSet<String> = census
+            .cascade_rules
+            .iter()
+            .filter(|(_, c)| c.eligible && c.on_cycle)
+            .map(|(r, _)| r.clone())
+            .collect();
+        assert_eq!(
+            census.cascade_plan_b.thin_memo, census_cyclic_fused,
+            "plan B thin memo == the census's eligible cycle participants"
+        );
+        // The annotation-free standalone plan (everything eligible) is a sanity
+        // shape: x cyclic-fused with thin memo, entered only by fused callers.
+        assert!(plan_b.thin_memo.contains("x"));
+        assert!(plan_b.internal.contains("x"));
+    }
+
+    /// RGX-0078.5.i.7 (D2-B plan seam) — the effect fixpoint is INCREMENT-
+    /// INDEPENDENT (it ranges over all tree rules), so plan A and plan B agree on
+    /// `effect_reaching`/`effect_targets`; under B a fused CYCLIC rule that
+    /// reaches an ineligible descendant is exactly the design's snapshot/island
+    /// carrier (the `atom → python_named_backreference` class): fused + thin-memo
+    /// + effect-reaching simultaneously.
+    #[test]
+    fn cascade_plan_b_effect_fixpoint_matches_increment_a() {
+        let mut tree = HashMap::new();
+        // p := q ; q := r | 'z' q  (q cyclic eligible) ; r(@transform, ineligible).
+        tree.insert("p".to_string(), or(vec![rule_ref("q")]));
+        tree.insert(
+            "q".to_string(),
+            or(vec![
+                rule_ref("r"),
+                ASTNode::Sequence {
+                    elements: vec![atom("quoted_string", "z"), rule_ref("q")],
+                },
+            ]),
+        );
+        tree.insert("r".to_string(), or(vec![atom("quoted_string", "w")]));
+        let ann = transform_annotations("r");
+        let plan_a =
+            compute_cascade_emission_plan(&tree, Some(&ann), Some("p")).expect("plan computes");
+        let plan_b = compute_cascade_emission_plan_for_increment(
+            &tree,
+            Some(&ann),
+            Some("p"),
+            CascadeIncrement::CyclicSpine,
+        )
+        .expect("plan computes");
+        assert_eq!(plan_a.effect_reaching, plan_b.effect_reaching);
+        assert_eq!(plan_a.effect_targets, plan_b.effect_targets);
+        assert!(
+            plan_b.internal.contains("q") && plan_b.thin_memo.contains("q"),
+            "q fuses under B with the thin-memo obligation"
+        );
+        assert!(
+            plan_b.effect_reaching.contains("q"),
+            "q is the fused-cyclic-and-effect-reaching carrier the design names"
+        );
     }
 }

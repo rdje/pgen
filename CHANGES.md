@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0089 — `.5.i.7` D2-B STEP-1: the INCREMENT-B PLAN SEAM (lib-only) — `compute_cascade_emission_plan_for_increment` at `CyclicSpine`; regex **sub_roots=20 internal=214 thin_memo=29 effect_reaching_fused=85 (of 234 fused)**; plan A byte-identical; census JSON additive-only
+
+The `-0088` GO's mandated seam-first slice (the P1a/`-0086` no-drift precedent). ONE
+implementation parameterized by the new `CascadeIncrement` enum: the D2-A emitter's
+`compute_cascade_emission_plan` delegates at `AcyclicSubRegions` (signature + semantics
+unchanged); `CyclicSpine` drops the acyclicity gate so the partition reproduces the
+census's OWN full-fold root/internal split by construction. `CascadeEmissionPlan` gains
+`thin_memo` — the cycle-participating fused rules (EMPTY under A): the ⛔ session-#49
+carriers the D2-B emitter must give the epoch-stamped thin memo (`(rule,pos) →
+{end, value, write_epoch}` validated at replay, MEMO-STORE-SOUNDNESS.2 per the `-0085`
+design). Census computes + reports BOTH plans: `CASCADE-PLAN` verbatim + the NEW
+`CASCADE-PLAN-B` line + `[cascade-plan-b]` DUMP_ALL verdicts + the additive
+`cascade_plan_b` JSON field. VERIFIED: regex 20/214/29/85 with thin_memo = the 28
+internal-cyclic + the cyclic root `pattern` (the spine named: atom/piece/alternation/
+pattern/concatenation/the group+conditional families = the `-0088` kill-set rules); plan A
+`56/149/59` byte-identical; effect fixpoint proven increment-INDEPENDENT (equal
+`effect_reaching`/`effect_targets` sets — unit pin + artifact JSON); JSON additive-only
+proven against the same-session pre-change census JSON on the SAME dump inputs (only
+`cascade_plan_b` + `cascade_plan.thin_memo=[]` new; report line-identical modulo the
+PLAN-B block); determinism ×2 `cmp`-identical; module tests 26/26 (+3: cyclic-spine fusing
+with thin-memo exactness + A⊂B; plan-B == census root/on_cycle flags; increment-independent
+fixpoint + the fused-cyclic-effect-reaching carrier); full dual-feature lib suite **953/0**
+incl. the all-grammar equivalence oracle; clippy gate exit 0 (source-strict pass;
+generated-stage debt pre-existing); mdbook gate green. Lockstep: tree
+section + leaf frontier + TASK_TREE row + MEMORY + CHANGES + DEVELOPMENT_NOTES + TOOLBOX
+§5.3 + parseability-probe-debug + diagnosing-unknowns. NEXT = the D2-B EMITTER slice
+(recursive `cascade_*` fns + the thin memo; twin relocation 20-keep/37-demote; the
+`.5.i.6` battery verbatim; priced `-0088` −28/−34.7/−41.1% ⇒ ≈8.6–11.1µs).
+
 ## 2026-07-15 - PGEN-RGX-0078-0088 — `.5.i.7` POST-D2-A RE-CENSUS + RE-PROFILE #10 + D2-B RE-PRICE (docs-only): allocator ≈40% shape-preserved a 4TH time; the method bucket SPLIT by the fold (protocol 8.0/10.2% + `cascade_self` 8.4/4.3%); D2-B re-priced **−28–41% honest band → ≈8.6–11.1µs from 15.35µs; GO**
 
 The `-0085` design's mandated between-increment measurement (the P3a/P3b stale-cost-basis
