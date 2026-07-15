@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0088 — the post-D2-A measurement: method notes
+
+**Why the debug probe had to be rebuilt before the tripwire.** The probe embeds the
+generated parser at COMPILE time (`include!`), so the 08:53 session-#124 binary carried the
+pre-D2A `ff072136…` parser even though the on-disk artifact was already `d8173f31…`. The
+outcome dumps would have been numerically identical either way (they route to the protocol
+twin, which the fold left verbatim), but "identical by inference" is not the tripwire —
+the rebuilt probe makes the pins a statement about the CURRENT artifact. The rebuild was a
+35s relink (the lib was already compiled at the `-0087` battery); it still ran under the
+memory guard at the recalibrated 16384MB per the host-RAM directive.
+
+**The kill-set derivation trap (root-flag exclusion).** The first join of `eligible ∧
+on_cycle` and plan `sub_roots` against the dumps produced 256+392=648 entries — WRONG. The
+census classifies 20 rules as full-fold REGION ROOTS whose entries live in the `roots=210`
+exposure bucket; one cyclic-eligible rule and 19 of the 56 plan sub-roots are such roots and
+stay protocol in EVERY increment. Filtering on the per-rule `root` flag reproduces the
+`-0085` decomposition exactly (250+188, recomposition 979). The same session also discarded
+an absolute-ns pricing model (D2-A realized ns/entry × kill count): extrapolated at a 2×
+spine multiplier it priced two patterns below zero — a linear-in-ns model has no share cap.
+The recorded model prices in SHARES (`1 − P × shareB`), which is bounded by construction
+and lets P carry the population's realized frame cost.
+
+**Why P_eff is calibrated from the D2-A landing.** `P_eff[p] = (1 − t_cand/t_base) /
+shareA[p]` back-solves the protocol fraction each pattern ACTUALLY surrendered per unit of
+entry share folded — absorbing I-cache/layout effects, the P1a overlap, and the leaf
+population's cheapness into one realized number (23.1–75.2% across patterns). Applying it
+to D2-B is conservative in two named ways (cyclic frames were never P1a-inlined; spine
+frames are the top protocol self-frames) and optimistic in one (small-pattern P_eff rides
+best-min jitter) — hence the banded floor/central/high presentation rather than a point
+estimate.
+
 ## 2026-07-15 - PGEN-RGX-0078-0087 — the D2-A fused emitter: engineering notes
 
 **Why the twin dispatch lives INSIDE the memoized body.** Placing `if parser.bare_parse {

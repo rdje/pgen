@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0088 — `.5.i.7` POST-D2-A RE-CENSUS + RE-PROFILE #10 + D2-B RE-PRICE (docs-only): allocator ≈40% shape-preserved a 4TH time; the method bucket SPLIT by the fold (protocol 8.0/10.2% + `cascade_self` 8.4/4.3%); D2-B re-priced **−28–41% honest band → ≈8.6–11.1µs from 15.35µs; GO**
+
+The `-0085` design's mandated between-increment measurement (the P3a/P3b stale-cost-basis
+lesson). TRIPWIRE: the debug `parseability_probe` REBUILT against the on-disk D2-A parser
+`d8173f31…` (memory guard at the recalibrated 16384MB; a 35s relink, peak 5.5GB) — 8/8
+outcome + 8/8 AST dumps `cmp`-byte-exact to the `-0087` refs, pins **1331/617/714/180**;
+census determinism ×2 `cmp`-identical; `CASCADE-CENSUS 234/274 (20/214/28)` +
+`CASCADE-PLAN 56/149/59` + `CASCADE-EXPOSURE 979 (73.6%)/518/125/99` all reproduce the
+`-0084`/`-0086` basis byte-exact on fresh current-vintage dumps. RE-CENSUS: the D2-B kill
+set re-derived from the census JSON + fresh dumps — **438 of the 790 protocol entries
+remaining on the bare path (55.4%)** = 250 cyclic-internal (28 rules; `atom` 122, `piece`
+80) + 188 promoted sub-roots (37 of the 56 plan sub-roots are census-internal);
+recomposition 541+250+188=979 byte-exact to the design. RE-PROFILE #10 (`probe_cand`
+`23772633…`, two 30s@1ms windows, 22,967/22,996 roots, self-attribution reconciles
+exactly): allocator self **39.3/40.0%** — the 4th consecutive shape-preservation; the
+method-frame bucket SPLIT — protocol `rule_method_self` **8.0/10.2%** + fused
+`cascade_self` **8.4/4.3%** (vs RE-PROFILE #9's combined 19.3/19.4% — the D2-A harvest
+visible in-profile); the remaining protocol self is the CYCLIC SPINE (`parse_piece` 1.4/2.5
++ `parse_atom` —/1.8 = the top named PGEN self-frames — exactly the D2-B population);
+snapshot/rollback 6.6/6.3 → **4.3/4.6** (plain-restore speculation inside fused regions);
+memo 1.1/1.0; the value/alloc complex (alloc + memcpy 11.4/10.1 + drops 8.0/9.2 + clones +
+dedup) ≈60% = the recorded match-then-build v2 territory, untouched by frame folding.
+D2-B RE-PRICE (per-pattern → geomean; `t_new = t_cand × (1 − P × shareB)` with P
+SELF-CALIBRATED per pattern from the `-0087` landing itself, `P_eff = measuredΔ / shareA`,
+range 23.1–75.2%): **floor (P_eff verbatim) −28.0% → 11.06µs / central (×1.25) −34.7% →
+10.03µs / high (×1.5) −41.1% → 9.05µs; flat design-band P=60/70% → −37.5/−44.1% →
+9.60/8.58µs.** Directional asymmetries named both ways: above-floor plausible (the P1a
+frame-overlap miss cause is STRUCTURALLY ABSENT for cyclic rules — the P1a gate required
+acyclic; spine frames are the most expensive protocol frames + sub-root kills also elide
+the memo probe and twin-dispatch indirection); capping (character_class — the D2-A anchor —
+has only 24.4% shareB left, so the harvest concentrates on small/medium patterns whose
+P_eff carries best-min jitter). ADJUDICATION: D2-B stays the largest single remaining
+lever; even the high band ≫ the ≤1µs bar ⇒ the `-0084` bar adjudication UNCHANGED. GO:
+NEXT = D2-B STEP-1 (the increment-B plan seam in `compute_cascade_emission_plan`) → the
+D2-B emitter (recursive `cascade_*` fns + epoch-stamped thin memo; the `.5.i.6` battery
+verbatim; ⛔ the #49 bound). Docs-only slice: tree section + leaf frontier + TASK_TREE row +
+MEMORY + CHANGES + DEVELOPMENT_NOTES; book + TOOLBOX deliberately unchanged (no new
+instrument, no landed-behavior change — the `-0075`/`-0078` precedent).
+
 ## 2026-07-15 - PGEN-RGX-0078-0087 — `.5.i.7` D2-A FUSED EMITTER LANDED: the observability-twin cascade graph — regex geomean **−13.6%** (all 5 rounds, 17.76µs → **15.35µs**; character_class **−27.6%**), cumulative 496µs → **≈15.4µs ≈ 32×**; byte-identical under the full battery; parser-agnostic (all 11 artifacts fused)
 
 The D2-A acyclic sub-region fold per the `-0085` design. NEW
