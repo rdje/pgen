@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0082 — `.8.t1` BOOK-SURFACE AUDIT DE-DRIFTED: `audit_docs_book_surface` is now DERIVED from `SUMMARY.md` (the hand allowlist had silently drifted 9 chapters behind the tracked live book)
+
+Found during the `.8` STEP-0 book audit: `ci_workflow_local_gate.sh` carried a hand-maintained
+19-entry allowlist of the live-book files while the tracked surface is 28 — 9 chapters
+(diagnosing-unknowns, inside-parser-performance, semantic-store, …) landed in `SUMMARY.md`
+without the list following, so the audit has been failing whenever the full gate runs (the
+`-0080` duplicated-metadata class; `check_doctrines.sh` does not run this audit, which is why
+nothing tripped). Fix (derived beats gated): the expected set is now derived from
+`docs/book/src/SUMMARY.md` — every tracked `docs/book/src/**.md` chapter must be
+SUMMARY-referenced AND every SUMMARY reference must be tracked (mdbook silently creates missing
+chapter files at build, so the dangling direction matters). Verified standalone: FAIL → PASS on
+the current 26-chapter surface; both failure directions falsified live (stray tracked chapter /
+dangling ref probes, reverted). Script-only change.
+
 ## 2026-07-15 - PGEN-RGX-0078-0081 — `.5.i.7` STRATEGIC FORK RESOLVED BY DIRECTOR DELEGATION (docs-only): "you do not need my greenlight to move forward in the proper direction" ⇒ the D2 FULL-CASCADE-FOLDING STEP-0 scout proceeds; NEW leaf `.8` = the speed-journey mdBook chapter (director mandate); the fork-pause discipline AMENDED (surface + recommend + record, then proceed)
 
 Same-session director signals recorded verbatim in the tree: the pushback against stopping

@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0082 — `.8.t1` book-surface audit derivation: engineering notes
+
+**Why SUMMARY.md is the derivation source.** mdbook builds exactly the chapters `SUMMARY.md`
+references — a chapter file not listed there is invisible to the rendered book, and a listed
+chapter without a file is silently CREATED as an empty stub at build time. So SUMMARY.md is
+already the deliberate-curation record the old allowlist tried to be by hand; deriving from it
+keeps the audit's intent (no uncurated strays, no dangling refs) with zero duplicated metadata.
+The two-direction assertion is the drift gate the doctrine card asks for
+([[feedback_duplicated_metadata_needs_derived_drift_gate]]): parse the authoritative source,
+assert the copies (here: the tracked file set) equal it.
+
+**Why nothing tripped for months.** The enforcer battery (`check_doctrines.sh`, pre-commit, the
+make gates in routine use) never runs `ci_workflow_local_gate`'s audits; the audit only fires
+when the full workflow-parity gate is replayed, which had not happened since the 9 chapters
+landed. A failing check nobody runs is indistinguishable from no check — worth remembering when
+adding audit surfaces: wire them into a gate that actually runs on the change class they govern
+(here impractical — the full gate is heavy — so the fix removes the drift possibility instead).
+
 ## 2026-07-15 - PGEN-RGX-0078-0080 — `.5.i.7.t1` AST_PIPELINE_SOURCES wildcard derivation: engineering notes
 
 **Why wildcard, not a completed hand list.** Completing the enumeration reproduces the defect

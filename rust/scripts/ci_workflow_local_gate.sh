@@ -307,49 +307,52 @@ audit_reference_docs_surface() {
 }
 
 audit_docs_book_surface() {
-  local -a expected_book_files=(
-    "docs/book/book.toml"
-    "docs/book/src/SUMMARY.md"
-    "docs/book/src/annotation-system.md"
-    "docs/book/src/cli-and-workflows.md"
-    "docs/book/src/contracts-and-support.md"
-    "docs/book/src/developer-architecture.md"
-    "docs/book/src/documentation-model.md"
-    "docs/book/src/embedding-and-downstream-integration.md"
-    "docs/book/src/getting-started.md"
-    "docs/book/src/how-to-use-this-book.md"
-    "docs/book/src/index.md"
-    "docs/book/src/operations-and-governance.md"
-    "docs/book/src/parser-families.md"
-    "docs/book/src/platform-overview.md"
-    "docs/book/src/quality-and-closure-model.md"
-    "docs/book/src/roadmap-and-live-status.md"
-    "docs/book/src/source-map.md"
-    "docs/book/src/stimuli-and-quality.md"
-    "docs/book/src/user-facing-surfaces.md"
-  )
-  local -a actual_book_files=()
+  # The expected set is DERIVED from docs/book/src/SUMMARY.md — the curation source
+  # of truth (mdbook builds exactly the chapters SUMMARY references). A tracked
+  # chapter file is legitimate iff SUMMARY.md references it (no stray uncurated
+  # chapters), and every SUMMARY.md chapter reference must be a tracked file
+  # (mdbook silently CREATES a missing chapter file at build time, so dangling
+  # references matter too). The former hand-maintained allowlist here drifted 9
+  # chapters behind the tracked surface — the duplicated-metadata class: a hand
+  # copy of a derivable set silently rots (RGX-0078.8.t1).
+  local -a summary_refs=()
+  local -a tracked_chapters=()
   local expected_snapshot
   local actual_snapshot
   local line
 
-  note "auditing docs/book allowlist"
+  note "auditing docs/book surface (derived from SUMMARY.md)"
+
+  for line in docs/book/book.toml docs/book/src/SUMMARY.md; do
+    if ! (cd "$ROOT_DIR" && git ls-files --error-unmatch "$line" >/dev/null 2>&1); then
+      fail "docs/book surface: required file '$line' is not tracked"
+    fi
+  done
+
   while IFS= read -r line; do
-    actual_book_files+=("$line")
+    summary_refs+=("docs/book/src/$line")
+  done < <(
+    cd "$ROOT_DIR" &&
+      perl -ne 'print "$1\n" while /\]\(([^()\s]+\.md)\)/g' docs/book/src/SUMMARY.md |
+      sort -u
+  )
+
+  while IFS= read -r line; do
+    tracked_chapters+=("$line")
   done < <(
     cd "$ROOT_DIR" &&
       git ls-files -z |
-      perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/book\/(?:book\.toml|src\/[^\/]+\.md)\z/ }' |
+      perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/book\/src\/.+\.md\z/ && $_ ne "docs/book/src/SUMMARY.md" }' |
       sort
   )
 
-  expected_snapshot="$(printf '%s\n' "${expected_book_files[@]}" | sort)"
-  actual_snapshot="$(printf '%s\n' "${actual_book_files[@]}")"
+  expected_snapshot="$(printf '%s\n' ${summary_refs[@]+"${summary_refs[@]}"})"
+  actual_snapshot="$(printf '%s\n' ${tracked_chapters[@]+"${tracked_chapters[@]}"})"
 
   if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
-    printf 'expected docs/book surface:\n%s\n' "$expected_snapshot" >&2
-    printf 'actual docs/book surface:\n%s\n' "$actual_snapshot" >&2
-    fail "docs/book allowlist drift detected; curate the live book surface deliberately"
+    printf 'SUMMARY.md-referenced chapters:\n%s\n' "$expected_snapshot" >&2
+    printf 'tracked docs/book/src chapters:\n%s\n' "$actual_snapshot" >&2
+    fail "docs/book surface drift: tracked chapters and SUMMARY.md chapter references must match exactly"
   fi
 }
 
