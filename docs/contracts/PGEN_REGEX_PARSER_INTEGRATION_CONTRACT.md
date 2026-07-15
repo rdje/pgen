@@ -34,6 +34,32 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-16 — RGX-0078.5.i.7 `-0097`: RECOMMENDED ALLOCATOR — use a mimalloc-class global allocator (PERFORMANCE-ONLY; SURFACE-NEUTRAL; release/contract/schema versions UNCHANGED)
+
+**What this is.** A performance RECOMMENDATION to embedders, not a surface change. The regex parser's cold-parse
+cost is allocator-bound: a value/alloc-elimination micro-probe (a never-free bump `#[global_allocator]` swapped into
+the perf bench) shows that eliminating `malloc`/`free` cost buys **−40.0%** of the min-metric parse time (the parse
+builds and drops many short-lived value nodes). On macOS the default `libsystem_malloc` + its `_xzm_free` dominate
+that cost.
+
+**The recommendation.** PGEN is a library and DELIBERATELY does not set a `#[global_allocator]` — that remains the
+embedder's decision. Embedders that care about regex cold-parse throughput (RGX in particular) SHOULD set a
+mimalloc-class global allocator in their final binary:
+
+```rust
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+```
+
+**Measured effect.** With mimalloc as the global allocator, regex cold-parse geomean is **−29.2%** vs system malloc
+(fat-LTO, alternated 5×2000 geomean-of-mins, deterministic across rounds, every pattern in the 8-pattern bench
+faster) — capturing 73% of the never-free-arena ceiling from a one-line swap. This is **correctness-neutral by
+construction**: an allocator cannot change program semantics for a program with no allocation-address dependence, so
+the accepted language, verdicts, error codes, and the runtime AST are bit-for-bit unchanged. **Nothing re-pins**:
+parser release / contract / AST-dump schema unchanged. The campaign now tracks the regex closure metric with a
+mimalloc-class allocator (the recommended production configuration) as its baseline. Live steering:
+`docs/tasks/RGX-0078.md` (leaf `.5.i.7`, slice `-0097`).
+
 ## Maintenance Update 2026-07-13 — RGX-0078 SPEED CAMPAIGN status (PERFORMANCE-ONLY; SURFACE-NEUTRAL; release/contract/schema versions UNCHANGED)
 
 **What this is.** A performance status note, not a surface change. The `RGX-0078` speed campaign has landed six

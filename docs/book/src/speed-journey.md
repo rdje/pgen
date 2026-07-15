@@ -8,13 +8,14 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #121 — five calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈18.2 µs**: about
-**27× faster**, with every single landing proven **byte-identical** on its full oracle
-battery before its speed number was believed. Fifteen levers landed. A dozen more were
-refuted, rejected, or reverted — most of them for the price of a document rather than a
-build. This chapter is the story of both lists, because the refusals are as much the
-method as the landings.
+Between sessions #90 and #130 — six calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈9.77 µs** with a
+mimalloc-class global allocator (**≈14 µs** on the platform default): about **51× faster**
+(≈36× before the allocator recommendation), with every single landing proven
+**byte-identical** on its full oracle battery before its speed number was believed.
+Eighteen levers landed. More than a dozen others were refuted, rejected, or reverted —
+most of them for the price of a document rather than a build. This chapter is the story of
+both lists, because the refusals are as much the method as the landings.
 
 ## Why the journey happened
 
@@ -314,4 +315,32 @@ per-entry taint class, and a controlled A/B in which only that rule changed turn
 regressions into wins. The remaining road to the ≤1 µs bar runs through the named
 bar-complete program: root/boundary protocol thinning (D2-C) and the match-then-build
 value model, each to be re-priced on a fresh census and profile the way every increment
-before them was. The method decides — and the story continues here.
+before them was.
+
+## The allocator, priced and banked
+
+One increment did not need the compiler at all. Every re-profile of the campaign found
+the same shape: roughly two-fifths of the parse burns inside the platform allocator —
+`malloc` for the short-lived value nodes the parse builds, and `free` for the far larger
+number it immediately throws away as failed speculation. Sampled profiles say "allocator
+≈41% + `_xzm_free` ≈21%", but the campaign had learned (lesson: *sampled share ≠
+min-metric*) not to trust a sampled share on the geomean-of-minimums metric. So it built a
+measurement, not an argument: a never-free bump `#[global_allocator]` swapped into the
+bench — every `malloc` a pointer bump, every `free` a no-op, the arena reset between
+samples so page faults never enter the timed region. That prices the *falsifiable ceiling*
+of the whole allocation axis. It measured **−40.0%**: the value/alloc cost is real on the
+min metric, not a sampling artifact.
+
+The bankable half followed immediately. A mature production allocator (mimalloc) captured
+**−29.2%** — 73% of that ceiling — from a one-line global-allocator swap, deterministic
+across rounds, every pattern faster, and correctness-neutral by construction (an allocator
+cannot change program semantics for a program that never depends on an allocation's
+address — the same reasoning that made the fat-LTO build profile safe). Because a *library*
+must never impose a global allocator on the binaries that embed it, this is not a lib code
+change: it is banked as the **recommended production configuration** — documented in the
+regex integration contract, adopted as the campaign's baseline — and it takes the
+scoreboard to **496 µs → ≈9.77 µs, about 51×**. The honest arithmetic it leaves behind is
+sharp: even a *perfect* allocator (the never-free floor, ≈8.3 µs) sits an order of
+magnitude above the ≤1 µs bar, so the road from here must also cheapen what the *committed*
+path computes — the match-then-build value model and the committed-value representation
+itself. The method decides — and the story continues here.

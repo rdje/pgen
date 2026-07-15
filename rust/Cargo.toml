@@ -121,13 +121,15 @@ rustfmt-wrapper = "0.2.1"
 # rustc uses internally — small crate, no transitive deps, ~3-4× faster on small
 # integer keys per the standard rustc-hash benchmarks.
 rustc-hash = "2.1"
-# Optim #10 (PGEN-RGX-0073): mimalloc as opt-in global allocator for the
-# perf probe binary. macOS's libsystem_malloc accounts for ~30% of self-time
-# on the regex parser hot path per samply profiling; mimalloc is a high-
-# performance drop-in replacement with no additional transitive deps. The
-# library itself does NOT set a global allocator — that's an embedder
-# decision — but the perf probe binary opts in via the `mimalloc_perf`
-# feature so we can measure the impact independently.
+# mimalloc as the perf-probe global allocator — LANDED (RGX-0078.5.i.7 `-0097`,
+# the recommended-production allocator). macOS's libsystem_malloc + `_xzm_free`
+# dominate the value/alloc self-time; MEASURED −29.2% vs system malloc (fat-LTO
+# alternated 5×2000 geomean-of-mins, deterministic), capturing 73% of the
+# never-free bump-arena ceiling. Kept OPTIONAL (non-default) BY DESIGN: a
+# library must NOT impose a `#[global_allocator]` on its consumers, so mimalloc
+# is not pulled into the pgen lib / downstream (RGX) dependency tree; the perf
+# probe opts in via `mimalloc_perf` (the standard closure-bench config) and the
+# regex integration contract recommends a mimalloc-class allocator to embedders.
 mimalloc = { version = "0.1", default-features = false, optional = true }
 typed-arena = "2.0.2"
 
@@ -138,6 +140,13 @@ bootstrap = []
 generated_parsers = []
 ebnf_dual_run = []
 mimalloc_perf = ["dep:mimalloc"]
+# RGX-0078.5.i.7 STEP-0 part (a): the never-free (reset-per-sample) bump arena
+# global allocator in `regex_perf_probe`. Measurement-only: it prices the
+# FALSIFIABLE CEILING of killing the value/alloc complex (RE-PROFILE #11:
+# allocator ~41% + `_xzm_free` ~21.5% of self-time) by making every in-parse
+# `malloc` a pointer bump and every `free` a no-op. Mutually exclusive with
+# `mimalloc_perf` (both set `#[global_allocator]`). No extra deps — std System.
+never_free_arena_perf = []
 # Slice 3 / M2 differential validation gate. Enables the
 # `regex_typed_differential_gate` binary to reference
 # `parser.parse_regex_typed()`. The typed methods only exist when the
