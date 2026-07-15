@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0083 — leaf `.8` speed-journey chapter: engineering notes
+
+**Why a sibling chapter and not an extension.** The mechanics chapter already tells each lever
+well — but it is organized as a reference (scoreboard + per-lever sections) and reads bottom-up.
+The journey chapter's job is different: the METHOD as first-class content, the refutations as a
+coherent second scoreboard, and the lessons as a transferable catalog. Mixing the two in one
+1,500-line chapter would damage both. The split leaves a clean contract: the mechanics chapter
+owns per-lever WHAT/HOW (and stays the currency surface for future landings); the journey
+chapter owns WHY/HOW-WE-DECIDED and only ever gains story-level updates (e.g. how the D2 road
+adjudicates).
+
+**No new numbers.** Every figure in the new chapter is a transcription from the task tree or
+CHANGES — the chapter cites its pinning explicitly in the intro. This keeps the book's
+honest-numbers property: a chapter claim is always re-derivable from a durable primary record.
+
 ## 2026-07-15 - PGEN-RGX-0078-0082 — `.8.t1` book-surface audit derivation: engineering notes
 
 **Why SUMMARY.md is the derivation source.** mdbook builds exactly the chapters `SUMMARY.md`

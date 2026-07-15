@@ -150,6 +150,11 @@ is about the opposite end — the *small* input being **fast**. They are differe
 with different profiles, and this is the story of the second one, told as a running
 scoreboard so it can be watched as it improves.
 
+> The campaign's full narrative — the method, the refuted roads, and the named lessons —
+> is told in its own chapter, [The Speed Journey: 496 µs → 18 µs](speed-journey.md).
+> This section is the *mechanics* record: what each lever is, how it works, and what it
+> measured.
+
 ### Why it matters, and what "fast enough" means
 
 PGEN's regex parser is the compile front-end for [RGX](parser-families.md). When a tool
@@ -231,6 +236,9 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.i.4 | **P1b — memo elision at inlined frames**: the inlined-frame helper runs the body DIRECTLY instead of through `memoized_call` — eliding, per inlined entry, the packrat probe cascade (fail-set, tainted-map, success-map) and, per inlined success, the memo insert (`node.clone()` + semantic-delta/coverage extraction + map insert). Result-neutral by the memo's own soundness contract (a pure, taint-gated cache — replay ≡ re-execution wherever a replay was legal; the inlined subgraph is additionally acyclic and directive-free by the census gates); a former cached hit re-executes the budget-capped body, whose non-inlined children keep their own memoized methods. ASTs, per-rule COMMITTED counts, and certification pins stay byte-identical BY MEASUREMENT; raw-entry counters change *truthfully* where former hits re-execute (the census priced 324 lost hits at the budget, ceiling ≈−6–18%, recorded before emission) | codegen (one emitted-helper hunk; parser-agnostic) | ≈36 µs → **≈32 µs** | **≈−7–12%** (five alternated rounds −7.2…−12.2%, all 8 patterns faster; best-mins −10.3%) | **landed** ✓ |
 | RGX-0078 · 5.i.5 | **P3c-i — the store's epoch fast path**: a re-profile of the harvested benchmark refuted the remaining "selective machinery" paper ceilings (the whole packrat cache now costs ~3%, the recursion guard ~0.5%) and named the real residue — the C3-B tournament's checkpoint/delta/rollback protocol, paid in full even when the semantic store never changed (98.8% of all rollbacks and 93.6% of all delta extractions, measured by a four-counter census). The fix is one engine-side O(1) proof: the checkpoint stamps the store's monotone write epoch, and when the epoch and the deferred-obligation count are both unchanged, the delta extraction returns a canonical empty delta (skipping its two unconditional clones) and the rollback returns immediately (skipping the index walk, truncations, and chain compares) — counters, traces, and every parse output byte-identical | engine (`semantic_runtime.rs` only; every parser + the interpreter inherit it, no regeneration) | ≈35 µs-era → **≈31 µs** | **−11.2%** (five alternated rounds 0.870–0.899, all 8 patterns faster; best-mins 34.51 → 30.63 µs) | **landed** ✓ |
 | RGX-0078 · 5.i.6 | **P4-i — the `@constraint` constant-fold**: the fresh profile's top named symbol (6–8% of the parse) was the generated rule exits re-evaluating grammar-constant `@constraint` strings — every live one descriptive prose like "produces control character" — through the full relational-expression machine (~9 byte-walks + ~9 allocations per evaluation, ≈1 µs each) to conclude, every time, that non-empty prose means "true". The generator now runs the same classification once, at code-generation time, under a gate strictly narrower than the runtime evaluator (every banned character maps to one evaluator feature; bare identifier chains are excluded because a `$`-less reference resolves against parse content), and emits *nothing* for a provably constant-true check — dead code by construction, no observable surface; real relational expressions keep the runtime path verbatim | codegen only (`ast_based_generator.rs`; regenerated parsers, engine + grammars untouched) | ≈31 µs-era → **≈27.4 µs** | **−12.1%** (five alternated rounds 0.868–0.887, all faster; best-mins 31.30 → 27.38 µs; the evaluation-heavy patterns −26…−31%) | **landed** ✓ |
+| RGX-0078 · 5.i.7 D0 | **FIRST-set resolution through regex-literal terminals** — the shared FIRST analysis learns to derive a regex terminal's admissible first bytes from the pattern's own syntax tree (character classes — negated included — map to UTF-8 lead-byte ranges, literals contribute their first byte, an exactness-licensed subtraction handles the negative-lookahead idiom, anything undecidable keeps the conservative "always try"); pure analysis — the two already-landed emissions (prune guards + byte-switch dispatch) simply see more at the next regeneration (byte-switch sites 41 → 60, the literal-matching spine guarded) | analysis only (`first_set.rs`; parsers regenerate, engine untouched) | ≈27.4 µs → **≈24.7 µs** | **−10.0%** (all 5 rounds, all 8 patterns faster; 346 discarded entries killed, committed counts exactly unchanged) | **landed** ✓ |
+| RGX-0078 · 5.i.7 D1 | **Second-byte (FIRST₂) prune guards** — the per-branch prune guard learns to refuse on the *second* byte too (a `\Q` branch skipped outright when the input reads `\b`), licensed branch-by-branch by a furthest-position-parity proof (only branches that provably enter no rule past offset 0 earn the sharper guard); the guard form needs no pairwise disjointness, so it fires beyond the sketched nested-switch model | codegen analysis + guard emission (parser-agnostic) | ≈23.6 µs → **≈18.9 µs** | **−19.8%** (all 5 rounds; 541 of 1,540 residual discards killed, committed exactly unchanged — over-delivered the −6–12% ceiling) | **landed** ✓ |
+| RGX-0078 · 5.i.7 Q | **Quantifier attempt-elision guards** — min-0 quantified/optional sites skip their element's doomed attempt when the next byte cannot start it, under an exact one-line furthest-position emulation emitted only where the counterfactual is decidable (bare-reference elements; terminal-only sites need none; mixed frontiers stay unguarded rather than guess) | codegen (parser-agnostic; census-priced) | ≈19.0 µs → **≈18.2 µs** | **−4.3%** (all 5 rounds; 285 of 999 residual discards killed, `class_zero_width` 134 → 0; character_class −12.7%) | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -1194,3 +1202,33 @@ force: the priced ceiling had assumed each killed attempt cost what the earlier
 increments' kills cost, but these attempts were already cheap — refuted at their first
 branch guard — so the per-kill payoff was smaller. The census counted the kills exactly
 right; the exchange rate belonged to a different population.
+
+## The endgame of discard elimination — and where the road goes next
+
+The ninth re-profile, taken on the 18.2 µs parser, adjudicated the whole guard/dispatch
+program rather than pricing another increment. Three findings close it. First, the
+allocator's ≈40% share of self-time is **shape-preserved for the third consecutive
+re-profile** — every round of discard elimination removed allocation *volume* without
+changing its shape, because the shape belongs to the speculation protocol itself, not to
+any family of failed attempts. Second, the residual discarded speculation (715 entries
+bench-wide) is now **broadly distributed**: the largest family holds 8.8% of the
+residual, where every earlier re-profile had a dominant family to aim at — the byte-1
+and byte-2 guard machinery has consumed every concentrated surface, and each parked
+follow-up (byte-3 dispatch, the mixed quantifier frontiers, memo-necessity analysis)
+re-prices at a few percent or less on its own population's exchange rate. Third — the
+decisive bound — pricing a **perfect endgame** in which every last residual discard is
+eliminated lands the parse at ≈12.5–16 µs: an order of magnitude short of the ≤1 µs
+closure bar even at 100% success.
+
+The conclusion is architectural, and it is the second time this campaign has reached it
+from independent evidence (the measured-distance section above drew it at 99×; this
+re-profile re-draws it at 27×): the remaining gap does not live in failed attempts — it
+lives in what the **committed** path executes. Roughly eleven rule entries per input
+character, each paying the per-entry protocol and its speculation-shaped allocation,
+where a hand-written parser would run straight-line code. The road that attacks exactly
+that — **full cascade folding**, emitting one fused direct-coded matcher for a provably
+simple grammar region with its value build folded to the annotated result — is the next
+scout on the scoreboard, opened under the same discipline as every row above it: a
+falsifiable price recorded before any build, and a land gate that only passes measurably
+faster *and* byte-identical. The campaign's story so far, including every refuted road,
+is told in [The Speed Journey](speed-journey.md).

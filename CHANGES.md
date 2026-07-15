@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0083 — leaf `.8` THE SPEED-JOURNEY CHAPTER LANDED (director mandate: "All this breath taking journey shall be told in the mdBook"): new top-level book chapter `speed-journey.md` + mechanics-chapter currency top-up; `mdbook_docs_gate` green
+
+STEP-0 audit verdict (full read of the 1,196-line `inside-parser-performance.md`): SIBLING
+chapter, not an extension — the existing chapter is the *mechanics* scoreboard (current through
+Q-guard) and would bloat past usefulness carrying the story too. The new chapter tells the
+campaign as curated narrative: the mandate + the moved bar (<5× relative → ≤1µs COLD absolute),
+the METHOD as protagonist (profile → scout → falsifiable price → land-or-refute; the
+interpreter-twin + byte-identity battery as the safety net that made radical codegen rewrites
+affordable), the five-act arc (engine levers → structural levers → the 99× architectural
+verdict → the planner P0–P4 → deep specialization D0/D1/Q + the RE-PROFILE #9 exhaustion
+adjudication), a 12-road refuted-roads table (each: how far it got / why it died / what it
+bought), the 10 named lessons, and the D2 road ahead. Currency top-up to the mechanics chapter
+(drift found by the audit): 3 scoreboard rows (D0 −10.0% / D1 −19.8% / Q −4.3%) + a new tail
+section "The endgame of discard elimination" (RE-PROFILE #9: allocator shape-preserved ×3,
+residual broadly distributed, perfect-endgame ≈12.5–16µs ≫ ≤1µs ⇒ program exhausted, committed
+path next) + cross-links both ways. All numbers transcribed from tree/CHANGES records — no new
+measurement claims. SUMMARY-wired (Part II); the `-0082` derived book audit PASS.
+
 ## 2026-07-15 - PGEN-RGX-0078-0082 — `.8.t1` BOOK-SURFACE AUDIT DE-DRIFTED: `audit_docs_book_surface` is now DERIVED from `SUMMARY.md` (the hand allowlist had silently drifted 9 chapters behind the tracked live book)
 
 Found during the `.8` STEP-0 book audit: `ci_workflow_local_gate.sh` carried a hand-maintained
