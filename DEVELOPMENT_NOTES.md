@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0092 — the f_spec alloc-census instrument: engineering notes
+
+**Why a counting allocator in a SEPARATE bin, not a flag on an existing probe.** The
+counter costs two relaxed atomic increments per allocator event; compiled into
+`regex_perf_probe` it would perturb every canonical timing run, and compiled into
+`parseability_probe` it would tax the shipped diagnostic surface. A sibling bin gets
+exact counts with zero risk to either — and allocation events are semantic (unlike
+time), so the cheap debug build measures the same numbers a fat-LTO build would, with
+no 10-minute relink. The one first-order caveat (release could in principle elide a
+Vec growth pattern debug keeps) is noted in the bin header; the determinism assertion
+(`--repeat`, counts identical or exit 1) makes any such drift loud if the bin is ever
+rebuilt in another mode.
+
+**Why the segments sit at the stopwatch boundaries and nowhere else.** The P4-iii
+refutation (a sampled alloc share over-pricing a fold ≈5× on the min metric) and the
+P4-ii refutation (a surface living entirely in post-`elapsed()` teardown) are both
+segmentation failures: traffic attributed to the metric that the metric never times.
+The census's IN/TEARDOWN split is copied from `time_one_parse` verbatim — arena
+construction inside, result/parser/arena drops outside — so every counted in-metric
+event is one the stopwatch actually pays. The measured shape vindicates the split:
+teardown allocates NOTHING (td_alloc=0 across all patterns) and absorbs 60–71% of the
+in-metric allocation count as its mass free — had we priced MTB on total process
+traffic, most of the free-side "win" would have been metric-invisible.
+
+**Why `in_alloc − in_free == td_free` holding exactly is the instrument's own
+soundness proof.** Every allocation made inside the metric region is either freed
+inside it (transient/doomed traffic: 26.6–42.3%) or freed at teardown (arena-held
+nodes + parser state). The identity held on all 8 patterns with td_alloc=0 — no
+leaked, no double-counted, no misattributed events — so the committed-proxy division
+is operating on a closed, verified ledger.
+
+**Reading f_spec against the #49/thin-memo design constraint (the next spike's hard
+question).** The thin memo currently caches VALUES for cyclic fused rules; under MTB
+a fused body no longer builds values speculatively, so a thin entry must carry the
+committed-derivation record (spans + choice indices) instead, and the ⛔ #49 bound
+(cycle-participating rules never lose memo protection) applies to that record's
+replay exactly as it did to values. The design spike owns this: the memo's taint
+classes (PURE / STORE-READ / STORE-MUTATING) transfer unchanged, but what is stored
+and what replay reconstructs both change shape.
+
 ## 2026-07-15 - PGEN-RGX-0078-0091 — RE-PROFILE #11: engineering notes
 
 **Why the measurement is trustworthy without any rebuild.** Unlike #10 (which had to

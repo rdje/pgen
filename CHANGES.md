@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0092 — `.5.i.7` MTB v2 STEP-0: the `f_spec` ALLOC-CENSUS INSTRUMENT landed + measured — **f_spec floor 80.7–93.4% per pattern (aggregate 90.9% of alloc events / 95.6% of bytes = DOOMED value traffic)** ⇒ MATCH-THEN-BUILD v2 re-priced **−57→−68% → ≈4.5–6.0µs; GO** to the design spike
+
+New tracked bin `rust/src/bin/regex_alloc_census_probe.rs` (the canonical
+`regex_perf_probe` timing instrument deliberately untouched): a counting `GlobalAlloc`
+wrapper around the SAME bare parse the perf probe times (bare ⇒ the FUSED graph = the
+MTB target population), segmented at EXACTLY the stopwatch boundaries — IN-METRIC
+(arena + parser + `parse_full_regex()`), TEARDOWN (the post-`elapsed()` arena mass
+free, reported separately so no ceiling is priced on metric-invisible traffic — the
+P4-ii/P4-iii lesson mechanized), and the COMMITTED proxy (counted
+`serde_json::to_value` over a fresh parse; proxy bounds named both directions ⇒ the
+derived f_spec is a FLOOR). Warmup pass + `--repeat` determinism assertion. MEASURED
+(×3 identical): per-pattern f_alloc 80.7–93.4% / f_bytes 94.9–97.2%; 26.6–42.3% of
+in-metric allocs freed BEFORE the stopwatch (doomed by construction — the proxy-free
+second signal); internal reconciliation EXACT on every pattern (`in_alloc − in_free ==
+td_free`, `td_alloc = 0`). Aggregates: 9,706 in-metric allocs vs 885 committed-proxy
+(90.9%); 2,325,178 vs 102,573 bytes (95.6%). RE-PRICE (the #11 ≈70.9% time complex ×
+the measured f_spec): conservative −57.2% → 5.98µs / aggregate-events −64.4% → 4.97µs /
+bytes-basis −67.8% → 4.50µs — the `-0091` band's top half confirmed and tightened.
+Caveats named: event share ≠ time share (P4-iii; the emission gate stays
+land-iff-faster on the min metric); the denominator includes parser construction
+(≈0.7% of time); teardown harvest priced at zero. VERIFIED: build green under the
+memory guard (peak 5.4GB); `clippy_on_rust_change` source-strict PASS (the new bin
+lints clean; generated-stage debt = the pre-existing adjudicated `eq_op`/bool classes);
+bin-only addition — NO lib/engine/codegen change, generated artifacts + every pin
+untouched. Lockstep: tree section + leaf frontier + TASK_TREE row + MEMORY + CHANGES +
+DEVELOPMENT_NOTES; book + TOOLBOX unchanged (the `regex_perf_probe` precedent —
+campaign bench scaffolding is tree-documented). NEXT = the MTB v2 DESIGN SPIKE
+(two-pass match-then-build over the fused graph; eager islands at `effect_targets`;
+C3-B losers = lengths only; the thin-memo×MTB interaction under the ⛔ #49 bound; the
+observability twin unchanged; the `.5.i.6` battery verbatim).
+
 ## 2026-07-15 - PGEN-RGX-0078-0091 — `.5.i.7` POST-D2-B RE-CENSUS + RE-PROFILE #11 + BAR-PROGRAM RE-PRICE (docs-only): allocator **41.4/40.8%** shape-preserved a FIFTH time (`_xzm_free` alone 21.5/18.5%); protocol self **COLLAPSED 8.0/10.2 → 4.1/3.2**; D2-C re-priced **THIN**, MATCH-THEN-BUILD v2 = **THE dominant lever**; 🔎 perfect endgame of the named program ≈2.72µs ≫ the ≤1µs bar
 
 The `-0085` emission order's mandated post-increment measurement on the ≈14.0µs (`-0090`)
