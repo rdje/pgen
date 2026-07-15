@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0084 — `.5.i.7` D2 STEP-0 SCOUT: the CASCADE census lane LANDED + MEASURED — the full-cascade-fold gate exposes **73.6% of all bench entries (the committed spine INCLUDED)**, committed protocol entries 617 → **99** first-order; priced **−45–61% honest / 4.34× optimistic bound** ⇒ 🔎 even the optimistic bound ≈4.2µs ≫ the ≤1µs bar
+
+The instrument (read-only analysis, no codegen/parser change): `CASCADE-CENSUS` +
+`CASCADE-EXPOSURE` in `--report-fusibility-census` — per-rule D2 eligibility =
+EFFECT-freedom + policy-encodability ONLY (cycles/layout/lookahead/value shapes are named
+facts, not blockers: a fused *matcher* is strictly more expressive than a DFA, and every
+`UnifiedReturnAST` variant is a static shape), regions rooted at protocol boundaries,
+eligible→ineligible references reported as boundary call-outs; exposure join partitions
+entries internal/roots/residual with `committed_floor` = the post-fold protocol-paying
+committed entries. Measured on the canonical state (probe `5277848e…`, parser `ff072136…`,
+fresh dump pins 1331/617/714/180 byte-exact): regex **234/274 eligible** (20 roots / 214
+internal / 28 internal-cyclic), residual 40 = exactly the directive carriers; internal
+exposure **979/1331 = 73.6%** (committed 518 — top internal BY COMMITTED = `piece` 63 /
+`atom` 59, the RE-PROFILE #9 committed-spine leaders the scanner model structurally could
+not see, old entry share ≈1.04×). Per-pattern pricing (geomean): entry-count model **4.34×**
+(optimistic bound, internal work free); protocol-fraction P=60/70/80% → **1.83/2.12/2.54×**
+(−45/−53/−61%). Cross-grammar: SV 1047/1466 (427 roots); **vhdl 216/216 = ONE region** (the
+whole grammar); json 9/9 — a platform-wide primitive. Emission obligations NAMED now
+(observability floor): coverage-append lane (cert witnesses re-verify through coverage),
+furthest emulation licenses, interpreter-twin oracle, memo re-probe boundedness proof (125
+internal hits), truthful counters. ADJUDICATION surfaced to the director: D2 = the largest
+remaining lever by far AND not bar-sufficient alone (bar needs D2 + the 40 store-consulting
+residual rules + boundary protocol — the full generator-maturity horizon). NEXT = the D2
+EMISSION DESIGN SPIKE. Battery: module 20/20 (3 new tests), lib **944/0**, census re-run
+byte-identical, clippy source ok (0 warnings on the new code; generated debt pre-existing),
+mdbook gate green (census docs lockstep: TOOLBOX §5.3 + parseability-probe-debug +
+diagnosing-unknowns).
+
 ## 2026-07-15 - PGEN-RGX-0078-0083 — leaf `.8` THE SPEED-JOURNEY CHAPTER LANDED (director mandate: "All this breath taking journey shall be told in the mdBook"): new top-level book chapter `speed-journey.md` + mechanics-chapter currency top-up; `mdbook_docs_gate` green
 
 STEP-0 audit verdict (full read of the 1,196-line `inside-parser-performance.md`): SIBLING

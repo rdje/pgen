@@ -160,6 +160,11 @@ pub struct FusibilityCensus {
     /// RGX-0078.5.i.7 (Q-GUARD STEP-0) — the measured quantified-site exposure
     /// join (present iff `--fusibility-outcome-counts` files were joined).
     pub quant_exposure: Option<QuantExposure>,
+    /// RGX-0078.5.i.7 (D2 STEP-0) — the per-rule CASCADE-FOLD census.
+    pub cascade_rules: BTreeMap<String, CascadeRuleCensus>,
+    /// RGX-0078.5.i.7 (D2 STEP-0) — the measured cascade-fold exposure join
+    /// (present iff `--fusibility-outcome-counts` files were joined).
+    pub cascade_exposure: Option<CascadeExposure>,
 }
 
 /// The JSON shape `parseability_probe --dump-rule-entry-counts-json` writes; consumed by
@@ -491,6 +496,79 @@ pub struct QuantExposure {
     pub top_attributable_rules: Vec<(String, u64, u64, u64)>,
 }
 
+/// RGX-0078.5.i.7 (D2 STEP-0) — one rule's CASCADE-FOLD verdict: can the rule live
+/// INSIDE a fused direct-coded region ("emit what a hand-written parser would be"
+/// for the committed descent)? This gate is deliberately DIFFERENT from the
+/// scanner-rung tier gate above, because a fused *matcher* (specialized straight-line
+/// / recursive Rust) is strictly more expressive than a DFA:
+/// - reference CYCLES are ALLOWED (a region emits specialized recursive functions;
+///   `on_cycle` is a named fact, not a blocker — the emission design owns the memo
+///   soundness obligations it raises),
+/// - multi-lexeme / layout-skipping bodies are ALLOWED (a fused matcher skips layout
+///   inline where the protocol descent does today),
+/// - lookahead is ALLOWED (position-reset probes are cheap in an effect-free region),
+/// - EVERY `UnifiedReturnAST` value shape is emittable (all variants are static
+///   constructors/selectors over child results — there is no dynamic value form),
+///   so the value side blocks only on `@transform` and value constraints.
+///
+/// What DOES block: runtime semantic directives in any phase (store effects and
+/// predicates need the transactional protocol), mid-sequence inline directives,
+/// lexical follow restrictions, `@profiles` dialect gates, `@transform`,
+/// `@associativity nonassoc`, and `@deterministic_group` rotation.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CascadeRuleCensus {
+    pub eligible: bool,
+    /// Named blockers (empty for eligible rules).
+    pub reasons: Vec<String>,
+    /// Eligible AND (the entry rule, referenced by ≥1 INELIGIBLE rule, or
+    /// unreferenced): a fused-region ROOT — the protocol↔fused boundary where a
+    /// specialized region function would be called from ordinary generated code.
+    /// Entries at roots are NOT counted as eliminated (conservative: a rule
+    /// referenced from both inside and outside regions is classed a root, so its
+    /// inside-region entries are under-counted as kills).
+    pub root: bool,
+    /// The rule sits on a reference cycle (named fact — allowed inside a region).
+    pub on_cycle: bool,
+    /// Tree-defined rules this rule references that are NOT cascade-eligible: the
+    /// region's protocol call-outs (a fused function calls the ordinary generated
+    /// method at these edges). Sorted, deduped; empty for ineligible rules.
+    pub boundary_refs: Vec<String>,
+}
+
+/// RGX-0078.5.i.7 (D2 STEP-0) — the measured cascade-fold exposure join (census ×
+/// per-parse outcome counts): how much of the bench's COMMITTED work sits inside
+/// fused regions. `internal_*` = entries on eligible non-root rules (the per-entry
+/// protocol a fold eliminates outright); `root_*` = entries on region roots (each
+/// becomes one specialized-function call — kept, first-order); `residual_*` =
+/// entries on ineligible rules (untouched). `committed_floor` = root_committed +
+/// residual_committed: the first-order post-fold count of protocol-paying committed
+/// entries — the honest denominator for any D2 pricing.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CascadeExposure {
+    pub count_files: usize,
+    pub total_entries: u64,
+    pub internal_entries: u64,
+    pub internal_committed: u64,
+    pub internal_discarded: u64,
+    /// Memo hits on internal rules: replays a memo-free fused region re-executes
+    /// (named fact; the emission design owns the re-probe boundedness proof).
+    pub internal_memo_hits: u64,
+    pub root_entries: u64,
+    pub root_committed: u64,
+    pub root_discarded: u64,
+    pub root_memo_hits: u64,
+    pub residual_entries: u64,
+    pub residual_committed: u64,
+    pub residual_discarded: u64,
+    /// Rule names present in the counts files but absent from the census (e.g.
+    /// LR-elimination-synthesized helpers). Never silently dropped.
+    pub unmatched_rules: Vec<String>,
+    pub unmatched_entries: u64,
+    pub committed_floor: u64,
+    /// Top internal rules by committed entries: (rule, entries, committed, discarded).
+    pub top_internal_rules: Vec<(String, u64, u64, u64)>,
+}
+
 /// How many lexemes a node consumes, for the layout-contiguity gate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Arity {
@@ -709,6 +787,56 @@ impl<'a> Classifier<'a> {
             on_cycle,
             is_entry,
         )
+    }
+
+    /// RGX-0078.5.i.7 (D2 STEP-0) — one rule's CASCADE-FOLD eligibility (see
+    /// [`CascadeRuleCensus`]): the EFFECT-freedom + policy-encodability subset of the
+    /// scanner gate, with the cycle / layout-contiguity / text-folding / DFA-shape
+    /// criteria deliberately absent (a fused matcher handles all four). Local (no
+    /// closure walk): a reference to an ineligible rule is a region BOUNDARY, never
+    /// a blocker.
+    fn cascade_rule_verdict(&self, rule: &str) -> (bool, Vec<String>) {
+        let mut reasons: Vec<String> = Vec::new();
+        if let Some(kinds) = self.directives_by_rule.get(rule) {
+            for kind in kinds {
+                reasons.push(format!("runtime directive @{kind}"));
+            }
+        }
+        if let Some(ann) = self.annotations {
+            if ann
+                .branch_mid_sequence_semantic_annotations
+                .get(rule)
+                .is_some_and(|branches| branches.iter().any(|b| !b.is_empty()))
+            {
+                reasons.push("mid-sequence inline directive".to_string());
+            }
+            if ann.lexical_follow_restrictions.contains_key(rule) {
+                reasons.push("lexical follow restriction [> …]".to_string());
+            }
+            for name in rule_level_directive_names(ann, rule) {
+                match name.as_str() {
+                    "transform" => reasons.push("matched-text @transform".to_string()),
+                    "profiles" => reasons.push("@profiles dialect gate".to_string()),
+                    _ => {}
+                }
+            }
+        }
+        if !effective_rule_value_constraints(self.annotations, rule).is_empty() {
+            reasons.push("value constraint (@enum/@regex/@range/@len)".to_string());
+        }
+        if effective_rule_associativity(self.annotations, rule) == SemanticAssociativity::NonAssoc {
+            reasons.push("@associativity nonassoc (equal-tie failure semantics)".to_string());
+        }
+        if effective_rule_deterministic_partition_policy(self.annotations, rule).enabled {
+            reasons.push("@deterministic_group evaluation-order rotation".to_string());
+        }
+        let mut deduped: Vec<String> = Vec::new();
+        for r in reasons {
+            if !deduped.contains(&r) {
+                deduped.push(r);
+            }
+        }
+        (deduped.is_empty(), deduped)
     }
 
     /// Classify one rule (memoized; cycle-guarded — re-entry means the reference closure
@@ -2534,6 +2662,54 @@ pub fn run_fusibility_census(
         })
         .collect();
 
+    // RGX-0078.5.i.7 (D2 STEP-0) — the CASCADE-FOLD census: per-rule eligibility
+    // (effect-freedom + policy-encodability; cycles/layout/lookahead/value shapes
+    // are named facts, not blockers), the root/internal partition (the EntryShare
+    // maximal-root logic under the D2 gate), and the region boundary edges.
+    let cascade_verdicts: BTreeMap<String, (bool, Vec<String>)> = universe
+        .iter()
+        .map(|rule| (rule.clone(), classifier.cascade_rule_verdict(rule)))
+        .collect();
+    let cascade_rules: BTreeMap<String, CascadeRuleCensus> = universe
+        .iter()
+        .map(|rule| {
+            let (eligible, reasons) = cascade_verdicts[rule].clone();
+            let root = eligible
+                && (Some(rule) == entry_rule.as_ref()
+                    || referenced_by
+                        .get(rule)
+                        .map(|parents| parents.iter().any(|p| !cascade_verdicts[p].0))
+                        .unwrap_or(true));
+            let boundary_refs: Vec<String> = if eligible {
+                let mut v: Vec<String> = forward_refs[rule]
+                    .iter()
+                    .filter(|target| {
+                        grammar_tree.contains_key(target.as_str())
+                            && !cascade_verdicts
+                                .get(target.as_str())
+                                .map(|(ok, _)| *ok)
+                                .unwrap_or(false)
+                    })
+                    .cloned()
+                    .collect();
+                v.sort();
+                v
+            } else {
+                Vec::new()
+            };
+            (
+                rule.clone(),
+                CascadeRuleCensus {
+                    eligible,
+                    reasons,
+                    root,
+                    on_cycle: rule_reaches_itself(rule, &forward_refs),
+                    boundary_refs,
+                },
+            )
+        })
+        .collect();
+
     let (outcome_share, inline_exposure, quant_exposure) = if outcome_counts_files.is_empty() {
         (None, None, None)
     } else {
@@ -2548,6 +2724,15 @@ pub fn run_fusibility_census(
             outcome_counts_files,
         )?;
         (Some(share), Some(exposure), Some(q_exposure))
+    };
+    let cascade_exposure = if outcome_counts_files.is_empty() {
+        None
+    } else {
+        Some(join_cascade_outcome_counts(
+            grammar_name,
+            &cascade_rules,
+            outcome_counts_files,
+        )?)
     };
 
     Ok(FusibilityCensus {
@@ -2569,7 +2754,99 @@ pub fn run_fusibility_census(
         inline_exposure,
         quant_sites,
         quant_exposure,
+        cascade_rules,
+        cascade_exposure,
     })
+}
+
+/// RGX-0078.5.i.7 (D2 STEP-0) — join the cascade census with per-parse outcome
+/// counts. Per-rule discarded = `raw.saturating_sub(committed)` (mirroring
+/// `join_outcome_counts`' handling of the documented ±1 committed-overshoot class).
+fn join_cascade_outcome_counts(
+    grammar_name: &str,
+    cascade_rules: &BTreeMap<String, CascadeRuleCensus>,
+    files: &[std::path::PathBuf],
+) -> Result<CascadeExposure, String> {
+    let mut exposure = CascadeExposure {
+        count_files: 0,
+        total_entries: 0,
+        internal_entries: 0,
+        internal_committed: 0,
+        internal_discarded: 0,
+        internal_memo_hits: 0,
+        root_entries: 0,
+        root_committed: 0,
+        root_discarded: 0,
+        root_memo_hits: 0,
+        residual_entries: 0,
+        residual_committed: 0,
+        residual_discarded: 0,
+        unmatched_rules: Vec::new(),
+        unmatched_entries: 0,
+        committed_floor: 0,
+        top_internal_rules: Vec::new(),
+    };
+    let mut unmatched: BTreeMap<String, u64> = BTreeMap::new();
+    let mut internal_by_rule: BTreeMap<String, (u64, u64, u64)> = BTreeMap::new();
+
+    for path in files {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| format!("cannot read outcome-counts file {}: {e}", path.display()))?;
+        let parsed: RuleOutcomeCountsFile = serde_json::from_str(&text)
+            .map_err(|e| format!("cannot parse outcome-counts file {}: {e}", path.display()))?;
+        if parsed.grammar != grammar_name {
+            return Err(format!(
+                "outcome-counts file {} is for grammar '{}', census is for '{}'",
+                path.display(),
+                parsed.grammar,
+                grammar_name
+            ));
+        }
+        exposure.count_files += 1;
+        for (rule, raw) in &parsed.rule_entry_counts {
+            let committed = parsed.rule_committed_counts.get(rule).copied().unwrap_or(0);
+            let hits = parsed.rule_memo_hit_counts.get(rule).copied().unwrap_or(0);
+            let discarded = raw.saturating_sub(committed);
+            exposure.total_entries += raw;
+            match cascade_rules.get(rule) {
+                Some(census) if census.eligible && !census.root => {
+                    exposure.internal_entries += raw;
+                    exposure.internal_committed += committed;
+                    exposure.internal_discarded += discarded;
+                    exposure.internal_memo_hits += hits;
+                    let slot = internal_by_rule.entry(rule.clone()).or_insert((0, 0, 0));
+                    slot.0 += raw;
+                    slot.1 += committed;
+                    slot.2 += discarded;
+                }
+                Some(census) if census.eligible => {
+                    exposure.root_entries += raw;
+                    exposure.root_committed += committed;
+                    exposure.root_discarded += discarded;
+                    exposure.root_memo_hits += hits;
+                }
+                Some(_) => {
+                    exposure.residual_entries += raw;
+                    exposure.residual_committed += committed;
+                    exposure.residual_discarded += discarded;
+                }
+                None => {
+                    *unmatched.entry(rule.clone()).or_default() += raw;
+                }
+            }
+        }
+    }
+    exposure.unmatched_entries = unmatched.values().sum();
+    exposure.unmatched_rules = unmatched.into_keys().collect();
+    exposure.committed_floor = exposure.root_committed + exposure.residual_committed;
+    let mut top: Vec<(String, u64, u64, u64)> = internal_by_rule
+        .into_iter()
+        .map(|(rule, (raw, committed, discarded))| (rule, raw, committed, discarded))
+        .collect();
+    top.sort_by(|a, b| b.2.cmp(&a.2).then(a.0.cmp(&b.0)));
+    top.truncate(12);
+    exposure.top_internal_rules = top;
+    Ok(exposure)
 }
 
 fn join_entry_counts(
@@ -2940,6 +3217,104 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
         }
         if !exposure.shared_rules.is_empty() {
             println!("  shared-exposure rules: {}", exposure.shared_rules.join(", "));
+        }
+    }
+    // RGX-0078.5.i.7 (D2 STEP-0) — the CASCADE-FOLD census + exposure.
+    {
+        let eligible_rules: Vec<(&String, &CascadeRuleCensus)> = census
+            .cascade_rules
+            .iter()
+            .filter(|(_, c)| c.eligible)
+            .collect();
+        let roots = eligible_rules.iter().filter(|(_, c)| c.root).count();
+        let internal = eligible_rules.len() - roots;
+        let internal_cyclic = eligible_rules
+            .iter()
+            .filter(|(_, c)| !c.root && c.on_cycle)
+            .count();
+        let boundary_edges: usize = eligible_rules
+            .iter()
+            .map(|(_, c)| c.boundary_refs.len())
+            .sum();
+        println!(
+            "CASCADE-CENSUS: grammar={} rules={} cascade_eligible={} (roots={} internal={} internal_cyclic={}) residual={} boundary_edges={}",
+            census.grammar_name,
+            census.cascade_rules.len(),
+            eligible_rules.len(),
+            roots,
+            internal,
+            internal_cyclic,
+            census.cascade_rules.len() - eligible_rules.len(),
+            boundary_edges,
+        );
+        println!(
+            "  gate: effect-free + policy-encodable ONLY — cycles/layout/lookahead/value shapes are emittable by a fused matcher (named facts, not blockers) — RGX-0078.5.i.7 (D2)"
+        );
+        let mut cascade_blocker_histogram: HashMap<String, usize> = HashMap::new();
+        for census_entry in census.cascade_rules.values() {
+            for reason in &census_entry.reasons {
+                *cascade_blocker_histogram.entry(reason.clone()).or_default() += 1;
+            }
+        }
+        if !cascade_blocker_histogram.is_empty() {
+            let mut ranked: Vec<(String, usize)> = cascade_blocker_histogram.into_iter().collect();
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+            println!("  cascade blocker histogram (rule occurrences):");
+            for (reason, count) in &ranked {
+                println!("    {count:>5}  {reason}");
+            }
+        }
+        if dump_all {
+            for (rule, c) in &census.cascade_rules {
+                if c.eligible {
+                    println!(
+                        "  [cascade] {rule}: {} on_cycle={} boundary_refs=[{}]",
+                        if c.root { "ROOT" } else { "internal" },
+                        c.on_cycle,
+                        c.boundary_refs.join(", "),
+                    );
+                } else {
+                    println!("  [cascade] {rule}: BLOCKED — {}", c.reasons.join("; "));
+                }
+            }
+        }
+    }
+    if let Some(exposure) = &census.cascade_exposure {
+        let pct = |part: u64| {
+            if exposure.total_entries == 0 {
+                0.0
+            } else {
+                part as f64 * 100.0 / exposure.total_entries as f64
+            }
+        };
+        println!(
+            "CASCADE-EXPOSURE: grammar={} files={} total_entries={} | internal={} ({:.1}%) committed={} discarded={} memo_hits={} | roots={} committed={} | residual={} committed={} | committed_floor={} unmatched={}",
+            census.grammar_name,
+            exposure.count_files,
+            exposure.total_entries,
+            exposure.internal_entries,
+            pct(exposure.internal_entries),
+            exposure.internal_committed,
+            exposure.internal_discarded,
+            exposure.internal_memo_hits,
+            exposure.root_entries,
+            exposure.root_committed,
+            exposure.residual_entries,
+            exposure.residual_committed,
+            exposure.committed_floor,
+            exposure.unmatched_entries,
+        );
+        println!(
+            "  first-order model: internal entries (and their per-entry protocol) are eliminated by a fold; root entries become one specialized-function call each; committed_floor = the post-fold protocol-paying committed entries. Memo hits on internal rules re-execute (the emission design owns the re-probe boundedness proof)."
+        );
+        if !exposure.top_internal_rules.is_empty() {
+            println!("  top internal rules by committed (rule: entries/committed/discarded):");
+            for (rule, entries, committed, discarded) in exposure.top_internal_rules.iter() {
+                println!("    {rule}: {entries}/{committed}/{discarded}");
+            }
+        }
+        if !exposure.unmatched_rules.is_empty() {
+            println!("  unmatched rules: {}", exposure.unmatched_rules.join(", "));
         }
     }
     // RGX-0078.5.i.4 (P1 STEP-0) — the inline-eligibility census + what blocks it.
@@ -4139,6 +4514,136 @@ mod tests {
         assert_eq!(
             exposure.top_eligible_rules[1],
             ("tok_wrapper".to_string(), 20, 2, 0)
+        );
+    }
+
+    fn transform_annotations(rule: &str) -> Annotations {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            rule.to_string(),
+            vec![super::super::SemanticAnnotation::Named {
+                name: "transform".to_string(),
+                ast: super::super::UnifiedSemanticAST::Structured {
+                    canonical: String::new(),
+                    value: super::super::UnifiedSemanticValue::Boolean(true),
+                },
+            }],
+        );
+        annotations
+    }
+
+    /// RGX-0078.5.i.7 (D2 STEP-0) — the cascade gate ALLOWS cycles (unlike the
+    /// scanner tier gate): an effect-free mutually-recursive pair under an
+    /// ineligible (@transform-carrying) parent partitions as one region rooted at
+    /// the protocol boundary, with the cycle recorded as a named fact.
+    #[test]
+    fn cascade_gate_allows_cycles_and_roots_at_the_protocol_boundary() {
+        let mut tree = HashMap::new();
+        // top(@transform) := a ; a := 'x' | b ; b := a   (a↔b cycle, effect-free)
+        tree.insert("top".to_string(), or(vec![rule_ref("a")]));
+        tree.insert(
+            "a".to_string(),
+            or(vec![atom("quoted_string", "x"), rule_ref("b")]),
+        );
+        tree.insert("b".to_string(), or(vec![rule_ref("a")]));
+        let census = census_of(
+            tree,
+            vec!["top".to_string(), "a".to_string(), "b".to_string()],
+            Some(transform_annotations("top")),
+        );
+        let top = &census.cascade_rules["top"];
+        assert!(!top.eligible);
+        assert!(top.reasons.iter().any(|r| r.contains("@transform")));
+        let a = &census.cascade_rules["a"];
+        assert!(a.eligible, "cycle must not block: {:?}", a.reasons);
+        assert!(a.root, "a is referenced by the ineligible top");
+        assert!(a.on_cycle);
+        let b = &census.cascade_rules["b"];
+        assert!(b.eligible);
+        assert!(!b.root, "b is referenced only from inside the region");
+        assert!(b.on_cycle);
+        // The scanner tier gate REJECTS the same pair (cycle) — the two lanes must
+        // keep disagreeing here by design.
+        assert_eq!(census.rules["a"].tier, FusibilityTier::NotFusible);
+    }
+
+    /// RGX-0078.5.i.7 (D2 STEP-0) — a reference from an eligible rule to an
+    /// ineligible one is a BOUNDARY call-out (named per rule), never a blocker.
+    #[test]
+    fn cascade_boundary_refs_name_ineligible_callouts() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "x".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom("quoted_string", "("), rule_ref("y")],
+            },
+        );
+        tree.insert("y".to_string(), or(vec![atom("quoted_string", "z")]));
+        let census = census_of(
+            tree,
+            vec!["x".to_string(), "y".to_string()],
+            Some(transform_annotations("y")),
+        );
+        let x = &census.cascade_rules["x"];
+        assert!(x.eligible);
+        assert_eq!(x.boundary_refs, vec!["y".to_string()]);
+        assert!(!census.cascade_rules["y"].eligible);
+    }
+
+    /// RGX-0078.5.i.7 (D2 STEP-0) — the exposure join partitions entries into
+    /// internal (eliminated) / roots (kept as fused calls) / residual (untouched),
+    /// with unmatched rules surfaced and the committed floor = roots + residual.
+    #[test]
+    fn cascade_exposure_join_partitions_entries() {
+        let mut tree = HashMap::new();
+        // top(@transform, ineligible) := a ; a := 'x' | b ; b := 'y'
+        // ⇒ a = ROOT (referenced by ineligible top), b = internal.
+        tree.insert("top".to_string(), or(vec![rule_ref("a")]));
+        tree.insert(
+            "a".to_string(),
+            or(vec![atom("quoted_string", "x"), rule_ref("b")]),
+        );
+        tree.insert("b".to_string(), or(vec![atom("quoted_string", "y")]));
+        let payload = serde_json::json!({
+            "grammar": "t",
+            "accepted": true,
+            "rule_entry_counts": {"top": 10, "a": 8, "b": 20, "zz_unknown": 2},
+            "rule_committed_counts": {"top": 6, "a": 5, "b": 12},
+            "rule_memo_hit_counts": {"a": 1, "b": 3},
+        });
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!(
+            "pgen_cascade_outcome_test_{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, serde_json::to_string(&payload).unwrap()).unwrap();
+        let census = run_fusibility_census(
+            "t",
+            &tree,
+            &["top".to_string(), "a".to_string(), "b".to_string()],
+            Some(transform_annotations("top")).as_ref(),
+            &[],
+            std::slice::from_ref(&path),
+        )
+        .expect("census runs");
+        std::fs::remove_file(&path).ok();
+        let exposure = census.cascade_exposure.as_ref().expect("exposure joined");
+        assert_eq!(exposure.total_entries, 40);
+        assert_eq!(exposure.internal_entries, 20);
+        assert_eq!(exposure.internal_committed, 12);
+        assert_eq!(exposure.internal_discarded, 8);
+        assert_eq!(exposure.internal_memo_hits, 3);
+        assert_eq!(exposure.root_entries, 8);
+        assert_eq!(exposure.root_committed, 5);
+        assert_eq!(exposure.root_memo_hits, 1);
+        assert_eq!(exposure.residual_entries, 10);
+        assert_eq!(exposure.residual_committed, 6);
+        assert_eq!(exposure.unmatched_rules, vec!["zz_unknown".to_string()]);
+        assert_eq!(exposure.unmatched_entries, 2);
+        assert_eq!(exposure.committed_floor, 11);
+        assert_eq!(
+            exposure.top_internal_rules,
+            vec![("b".to_string(), 20, 12, 8)]
         );
     }
 }

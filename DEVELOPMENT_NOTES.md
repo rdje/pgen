@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0084 — D2 STEP-0 cascade census: engineering notes
+
+**Why the D2 gate is effect-freedom only.** The scanner tier gate answers "can a DFA replace
+this rule?" — cycles, multi-lexeme layout, non-text values all disqualify because a DFA
+cannot express them. A fused *matcher* (specialized recursive Rust, the D2 emission form)
+expresses all of them natively: cycles become recursive specialized functions, layout skips
+inline, and every `UnifiedReturnAST` variant is a static constructor a code generator can
+emit directly. What a fused matcher genuinely cannot absorb without re-growing the protocol
+is the SEMANTIC STORE surface — predicates/facts/scopes need the transactional machinery —
+plus dialect gates and runtime transforms. Hence: effect-freedom + policy-encodability, and
+nothing else. The measured consequence: the gate flips the exposure from the scanner model's
+≈4% to 73.6%, and the committed spine (piece/atom) — the exact rule_method leaders RE-PROFILE
+#9 named — is inside.
+
+**Why pricing carries two models.** The entry-count model (internal work free) is the
+optimistic BOUND — honest as a bound, wrong as an estimate, because the fused code still does
+the matching compute and the boundary value builds. The protocol-fraction model prices only
+the P share of per-entry cost that is protocol/alloc — P bracketed 60–80% from the RE-PROFILE
+#9 buckets, tempered by the P4-iii sampled-share-vs-min-metric lesson (the alloc-churn share
+prices the profile, not the metric). Recording both, with bases named, is what makes the
+ceiling falsifiable instead of hopeful — the discipline every prior scout paid for.
+
+**The bar adjudication.** Even at the impossible bound (4.34×) the landing zone is ≈4.2µs vs
+the ≤1µs bar. That is a finding for the director, not a reason to stop: D2 remains the
+largest measured lever by an order of magnitude over every parked increment, and the bar-gap
+decomposition (D2 + residual store-family folding + boundary protocol) is now explicit and
+durable rather than implied.
+
 ## 2026-07-15 - PGEN-RGX-0078-0083 — leaf `.8` speed-journey chapter: engineering notes
 
 **Why a sibling chapter and not an extension.** The mechanics chapter already tells each lever
