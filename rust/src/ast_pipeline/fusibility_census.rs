@@ -833,6 +833,47 @@ impl<'a> Classifier<'a> {
         if effective_rule_deterministic_partition_policy(self.annotations, rule).enabled {
             reasons.push("@deterministic_group evaluation-order rotation".to_string());
         }
+        // RGX-0078.5.i.7 (D2-A) — four outcome-relevant rule-policy knobs the compiled
+        // runtime-directive table does NOT carry (they are codegen-time policies, not
+        // store directives), found by the emission slice's soundness audit of every
+        // behavior knob `generate_rule_body_inner`/`generate_or_logic` consult. Each is
+        // read through the SAME shared registry resolution codegen emits from, so gate
+        // and emission cannot drift:
+        // - `@stop_at_rule_boundary` family: quantifier-loop break/error policy;
+        // - `@recover`: tournament failure-path recovery;
+        // - nonzero `@coverage_target`: an unconditional `record_coverage_target_event`
+        //   at the rule tail (observable parser state on every parse);
+        // - `@invalid_case`: `record_negative_case_failure` on the method failure path.
+        if super::semantic_directive_registry::effective_rule_bool_directive(
+            self.annotations,
+            rule,
+            &[
+                "stop_at_rule_boundary",
+                "stop_on_rule_boundary",
+                "line_delimited_sequence",
+            ],
+        ) {
+            reasons.push("@stop_at_rule_boundary quantifier break policy".to_string());
+        }
+        if super::semantic_directive_registry::effective_rule_recovery_enabled(
+            self.annotations,
+            rule,
+        ) {
+            reasons.push("@recover failure-path recovery".to_string());
+        }
+        if super::semantic_directive_registry::effective_rule_coverage_target_weight(
+            self.annotations,
+            rule,
+        ) != 0
+        {
+            reasons.push("@coverage_target event recording".to_string());
+        }
+        if super::semantic_directive_registry::effective_rule_negative_case_enabled(
+            self.annotations,
+            rule,
+        ) {
+            reasons.push("@invalid_case negative-case recording".to_string());
+        }
         let mut deduped: Vec<String> = Vec::new();
         for r in reasons {
             if !deduped.contains(&r) {
@@ -2884,6 +2925,15 @@ pub struct CascadeEmissionPlan {
     /// Or site with an effect-reaching branch keeps the protocol tournament as a
     /// site island.
     pub effect_reaching: std::collections::BTreeSet<String>,
+    /// RGX-0078.5.i.7 (D2-A emitter) — the per-SITE form of the same obligation: a
+    /// speculation scope (branch attempt / quantifier iteration / optional attempt /
+    /// lookahead) inside a fused body reaches semantic effects iff its subtree
+    /// references ANY rule in this set. It is exactly `{ r ∈ tree : ¬eligible(r) } ∪
+    /// effect_reaching` — an ineligible target may itself carry a directive, and an
+    /// eligible target may reach a fact-writing descendant (already closed under the
+    /// monotone fixpoint above), so membership is a sound per-reference test with no
+    /// further closure walk needed at the emission site.
+    pub effect_targets: std::collections::BTreeSet<String>,
 }
 
 /// Compute the D2-A cascade-emission plan. Verdicts come from the census's OWN
@@ -2968,10 +3018,17 @@ pub fn compute_cascade_emission_plan(
         }
     }
 
+    let effect_targets: std::collections::BTreeSet<String> = tree
+        .keys()
+        .filter(|rule| !eligible[rule.as_str()] || effect_reaching.contains(rule.as_str()))
+        .cloned()
+        .collect();
+
     Ok(CascadeEmissionPlan {
         sub_roots,
         internal,
         effect_reaching: effect_reaching.into_iter().map(String::from).collect(),
+        effect_targets,
     })
 }
 

@@ -278,10 +278,10 @@ surprise, each now applied as standing discipline:
 
 ## Where it stands, and the road ahead
 
-The scoreboard reads **496 µs → ≈18.2 µs — about 27×** — with every landing
-byte-identical and every refutation recorded. Against the ≤1 µs bar, the ninth re-profile
-was unambiguous: no amount of further discard elimination gets there, because even the
-perfect endgame lands an order of magnitude short. The remaining gap lives in what the
+At the ninth re-profile the scoreboard read **496 µs → ≈18.2 µs — about 27×** — with
+every landing byte-identical and every refutation recorded. Against the ≤1 µs bar, that
+re-profile was unambiguous: no amount of further discard elimination gets there, because
+even the perfect endgame lands an order of magnitude short. The remaining gap lives in what the
 **committed path** executes — the per-entry rule protocol and its speculation-shaped
 allocation, ~11 rule entries per input character where a hand-written parser would run
 straight-line code.
@@ -289,8 +289,22 @@ straight-line code.
 The road opened next is **D2 — full cascade folding**: teach the generator to emit, for
 provably simple regions of the grammar, the fused direct-coded matcher a performance
 engineer would write by hand — collapsing the committed descent itself rather than
-pruning failed attempts around it. It begins the way every road in this chapter began:
+pruning failed attempts around it. It began the way every road in this chapter began:
 with a docs-and-instrument-only scout and a falsifiable price recorded before any build,
 under the same hard constraint as everything before it — measurably faster and
-byte-identical under the full battery, or it does not land. It may land; it may join the
-refuted-roads table. Either way, the method decides — and the story will be told here.
+byte-identical under the full battery, or it does not land.
+
+**Its first increment has landed.** The scout priced the exposure, the design record
+answered the honesty problem with the *observability twin* — every foldable region is
+emitted twice, a fused bare-parse graph beside the untouched protocol methods, with any
+diagnostic consumer routed to the protocol graph so every counter, witness, and trace
+line stays the exact machinery it always was — and the acyclic-sub-region increment
+(D2-A) then measured **−13.6%**, faster in all five alternated rounds: **496 µs →
+≈15.4 µs, about 32×**, byte-identical under the full battery, landed platform-wide
+across every generated parser. The measurement also re-taught lesson 6 (the
+per-population exchange rate: the folded frames were already cheap, so the landing
+priced below its band), and the profile showed the fused functions carrying the parse —
+the first time in the campaign a bare parse executes something other than the per-rule
+protocol. The cyclic-spine increment (D2-B) is next, re-priced on the fresh cost basis
+the way every increment before it was. The method decides — and the story continues
+here.

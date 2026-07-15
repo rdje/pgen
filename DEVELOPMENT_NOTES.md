@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0087 — the D2-A fused emitter: engineering notes
+
+**Why the twin dispatch lives INSIDE the memoized body.** Placing `if parser.bare_parse {
+return parser.cascade_<rule>(); }` at the head of the rule-body closure (not around the
+method) keeps the sub-root's ENTIRE protocol frame — memo probe/insert, coverage push,
+counters, trace scope, the rule transaction — live on the bare path. The memo then caches
+values the cascade fn computed, which is sound because the fused value is byte-identical to
+the protocol value (the first-contact oracle), and it keeps the committed-floor cost model
+the census priced (root entries pay one protocol frame each). The dispatch also lands inside
+P1a inlined frames of a decided sub-root via the shared `generate_rule_body_inner` — dead
+there by construction, since protocol bodies only execute when `bare_parse` is false.
+
+**Why the counters flag is set by the accessor.** Entry counters are always-on atomics with
+no consumer registration, so "is anyone reading the counters?" had no signal. Every consumer
+(the dashboard, the entry/outcome dumps) grabs the `rule_call_counts()` Arc BEFORE its parse
+— the dumps for their baselines, the dashboard for its polling thread — so making the
+accessor itself set `counters_observed` turns "taking the handle" into the routing request.
+A future counter consumer cannot forget to ask; observability affecting routing is the
+DESIGN here (a counters reader needs truthful counters, which only the protocol graph
+ticks).
+
+**The speculation split, precisely.** A fused speculation scope uses plain
+`saved_pos`-restore only when its subtree references NO rule in the plan's `effect_targets`
+(= ineligible rules ∪ the effect-reaching fixpoint). That license holds because within such
+a scope: the store cannot move (no reachable directive carrier), coverage is off on the bare
+path, no fused fn pushes parse-stack frames, and boundary METHODS balance their own frames
+on every path. Everywhere else the scope runs under the ordinary `try_parse` — the same
+snapshot/rollback the protocol pays — and an Or site with an effect-reaching branch keeps
+the full tournament island (checkpoint, per-branch delta extraction + labeled rollback,
+winner replay) because C3-B semantics are store-visible: plain restore would leak
+losing-successful branches' facts, and skipping the winner replay would drop them.
+
+**The gate audit (how the four knobs were found).** Before emitting, every behavior knob
+consulted by `generate_rule_body_inner` / `generate_or_logic` / `generate_quantified_logic`
+was enumerated and checked against `cascade_rule_verdict`'s exclusions. Four are codegen-time
+policies that never enter the compiled runtime-directive table: the `@stop_at_rule_boundary`
+bool family (quantifier break/error paths), `@recover` (tournament failure-path recovery),
+nonzero `@coverage_target` (records events UNCONDITIONALLY at the rule tail — bare parses
+included), and `@invalid_case` (failure-path negative-case recording). Each got a shared
+reader in `semantic_directive_registry.rs` extracted verbatim from the generator's policy
+parser (which now delegates), so the gate and the emitted behavior read one resolution. The
+live carriers: ebnf's `sequence` (stop-at-boundary; `cascade_sequence` provably absent from
+the regenerated artifact) and one SV rule (`@coverage_target: 4`).
+
+**The SV size false alarm.** The regenerated SV artifact reads 137.6MB against a remembered
+"68.9MB" — but the cascade impl measures 7.2MB (844 fns), so the pre-D2A artifact was
+≈130.4MB: the 68.9MB figure predates P1a's ×1.73–1.9 inlining growth. Lesson: cost baselines
+must name their codegen era. The real D2-A cost: regex ×1.11, SV +5.5%; the heavy-compile
+peaks DID grow past the guard's default budget (12403MB test compile, ≈12.5GB fat-LTO) —
+recalibrated to an explicit 16384MB per job, floor protection unchanged.
+
+**Ceiling accounting.** −13.6% vs the −18–25% honest band: the internal-entry population is
+leaf-heavy (its per-entry protocol share sits below the P=60 floor after P0 already stripped
+the frame's expensive parts), and P1a had ALREADY collapsed many of the same frames at
+protocol call sites — the bare path gains only the fused-vs-inlined delta there. Both
+directions were named caveats in the design record; the per-population exchange-rate lesson
+(first named at Q-guard) now has a second confirming instance.
+
 ## 2026-07-15 - PGEN-RGX-0078-0086 — the D2-A emission-plan seam: engineering notes
 
 **Why the plan is a separate landed step.** The emitter's partition (which rules fuse, which

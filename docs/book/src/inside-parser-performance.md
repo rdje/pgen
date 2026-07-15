@@ -239,6 +239,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.i.7 D0 | **FIRST-set resolution through regex-literal terminals** — the shared FIRST analysis learns to derive a regex terminal's admissible first bytes from the pattern's own syntax tree (character classes — negated included — map to UTF-8 lead-byte ranges, literals contribute their first byte, an exactness-licensed subtraction handles the negative-lookahead idiom, anything undecidable keeps the conservative "always try"); pure analysis — the two already-landed emissions (prune guards + byte-switch dispatch) simply see more at the next regeneration (byte-switch sites 41 → 60, the literal-matching spine guarded) | analysis only (`first_set.rs`; parsers regenerate, engine untouched) | ≈27.4 µs → **≈24.7 µs** | **−10.0%** (all 5 rounds, all 8 patterns faster; 346 discarded entries killed, committed counts exactly unchanged) | **landed** ✓ |
 | RGX-0078 · 5.i.7 D1 | **Second-byte (FIRST₂) prune guards** — the per-branch prune guard learns to refuse on the *second* byte too (a `\Q` branch skipped outright when the input reads `\b`), licensed branch-by-branch by a furthest-position-parity proof (only branches that provably enter no rule past offset 0 earn the sharper guard); the guard form needs no pairwise disjointness, so it fires beyond the sketched nested-switch model | codegen analysis + guard emission (parser-agnostic) | ≈23.6 µs → **≈18.9 µs** | **−19.8%** (all 5 rounds; 541 of 1,540 residual discards killed, committed exactly unchanged — over-delivered the −6–12% ceiling) | **landed** ✓ |
 | RGX-0078 · 5.i.7 Q | **Quantifier attempt-elision guards** — min-0 quantified/optional sites skip their element's doomed attempt when the next byte cannot start it, under an exact one-line furthest-position emulation emitted only where the counterfactual is decidable (bare-reference elements; terminal-only sites need none; mixed frontiers stay unguarded rather than guess) | codegen (parser-agnostic; census-priced) | ≈19.0 µs → **≈18.2 µs** | **−4.3%** (all 5 rounds; 285 of 999 residual discards killed, `class_zero_width` 134 → 0; character_class −12.7%) | **landed** ✓ |
+| RGX-0078 · 5.i.7 D2-A | **The observability twin & the fused cascade graph** — every acyclic, provably effect-free grammar region is emitted twice: the untouched protocol methods (memoization, counters, coverage, trace — everything the diagnostic surfaces read), and a compact fused `cascade_` function per region rule with the per-rule protocol frame elided; a parse with no diagnostic consumer runs the fused graph, and any consumer routes to the protocol graph automatically, so every observable pin stays byte-exact by construction (see the twin section below) | codegen (parser-agnostic; census-planned, all 11 parsers) | ≈17.8 µs → **≈15.4 µs** | **−13.6%** (all 5 rounds; every pattern faster; character_class −27.6% = the planned anchor; fused execution proven by live-stack profile) | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -1227,8 +1228,61 @@ lives in what the **committed** path executes. Roughly eleven rule entries per i
 character, each paying the per-entry protocol and its speculation-shaped allocation,
 where a hand-written parser would run straight-line code. The road that attacks exactly
 that — **full cascade folding**, emitting one fused direct-coded matcher for a provably
-simple grammar region with its value build folded to the annotated result — is the next
-scout on the scoreboard, opened under the same discipline as every row above it: a
-falsifiable price recorded before any build, and a land gate that only passes measurably
-faster *and* byte-identical. The campaign's story so far, including every refuted road,
+simple grammar region with its value build folded to the annotated result — opened as the
+next scout under the same discipline as every row above it: a falsifiable price recorded
+before any build, and a land gate that only passes measurably faster *and* byte-identical.
+Its first increment has now landed; the next section tells how.
+
+## The observability twin — running the parser without its instruments, without losing them
+
+Every lever above made the *protocol* cheaper. The cascade-folding road asks a different
+question: what if a bare parse — no coverage, no trace, no counter reader, no memo
+statistics — simply did not execute the per-rule protocol at all?
+
+The obstacle was never speed; it was honesty. The per-rule protocol frame *is* the
+observability contract: the entry counters feed the diagnostic dashboards, the
+transactional coverage stack is what certificate witnesses are made of, the memoization
+table is what the memo-statistics report describes. Deleting any of it would make those
+surfaces lie. The landed answer is the **observability twin**: the generator now emits
+each provably-foldable grammar region twice. The protocol methods stay byte-for-byte as
+they were. Alongside them, each region rule gains a compact fused `cascade_` function —
+the same parse decisions, the same guards the earlier levers landed (the byte-switch
+dispatch, the two-byte prune guards, the quantifier attempt elision, all reused through
+the same shared analysis), and the same annotated value construction, with the frame
+elided: no recursion-guard bookkeeping, no counter increment, no coverage push, no trace
+scope, no memoization probe (the folded regions are acyclic, so a repeated probe at the
+same position is bounded by the grammar's own shape), and speculation that restores only
+the input position wherever the region provably cannot touch the semantic store.
+
+Which graph runs is decided once, at parse start. A parse with no diagnostic consumer
+takes the fused graph. The moment anything asks to observe — certificate coverage, a
+trace flag, the memo-statistics switch, or any reader of the per-rule counters (taking
+the counter handle *is* the request, so a future diagnostic surface cannot forget to
+ask) — the parse runs the protocol graph, and every counter, witness record, and trace
+line is the exact machinery it always was, not an emulation. That is why every
+diagnostic pin in this chapter survives the landing byte-exact.
+
+Two store-soundness rules survive into the fused code, both computed statically from the
+same census plan the report prints (one implementation, so the plan and the emission
+cannot drift). A fused speculation that could reach a fact-writing rule keeps the full
+semantic snapshot; an alternation with such a branch keeps the protocol's tournament —
+winners replayed, losers rolled back — as an island inside the fused code, because plain
+backtracking there would visibly change what the semantic store remembers.
+
+The landing followed the standing discipline. The fused graph produced byte-identical
+syntax trees on the full benchmark before any speed was measured; the
+interpreter-equivalence oracle re-proved every registered grammar byte-identical through
+its fused graph; the 2,189-case PCRE2 conformance corpus ran through the fused code and
+reproduced its pinned verdicts; and a live stack profile showed the `cascade_` functions
+actually carrying the parse. The alternated benchmark then measured **−13.6%** — roughly
+17.8µs to **15.4µs**, faster in all five rounds, with the character-class pattern (the
+region the plan had identified as the anchor, nearly three-quarters of its entries
+foldable) dropping **27.6%**. One honest note: the priced ceiling band was −18–25%, and
+the measurement landed below it for a now-familiar reason — the folded population's
+frames were already cheap (the protocol-hygiene and inlining levers had stripped them
+first), so each folded entry paid out less than the average frame. The same emission
+landed platform-wide: every generated parser now carries its own fused regions, sized by
+its own census plan.
+
+The campaign's story so far, including every refuted road,
 is told in [The Speed Journey](speed-journey.md).

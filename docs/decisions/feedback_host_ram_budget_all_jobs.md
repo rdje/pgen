@@ -41,3 +41,20 @@ accountable that **no spawned job can exhaust host RAM**. Be very cautious.
 4. Composes with `feedback_background_job_observability.md` (completion marker +
    bounded timeout + liveness probe; no self-matching `pgrep`) and
    `feedback_dont_run_jobs_that_hit_known_pathological_inputs.md`.
+
+## Budget calibration (amended 2026-07-15, `PGEN-RGX-0078-0087`)
+
+The D2-A fused cascade emission grew every generated artifact (regex ×1.11, SV +5.5%,
+fused graphs in all 11 parsers), which pushed the two heavy compile classes past the
+12288 MB default budget on this 24 GB host:
+
+- the dual-feature test-binary compile (`cargo test --features "generated_parsers
+  ebnf_dual_run" --lib`) peaked **12403 MB** — the guard correctly killed it (exit 97);
+- the fat-LTO release builds now peak **≈12.5 GB** (previously ≈12.1–12.2 GB).
+
+Calibrated posture: run BOTH classes under the guard at an explicit
+`--budget-mb 16384`, keeping the 10% system-free floor (the actual host-exhaustion
+backstop) unchanged. Measured green peaks at that budget: 12076 MB (cold test compile),
+7389 MB (warm test run), 12531/12360 MB (fat-LTO A/B builds). The default in the script
+stays 12288 so casual jobs keep the tighter bound; the 16384 figure is the recorded
+per-job choice for these two named classes.

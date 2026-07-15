@@ -14,7 +14,7 @@ use crate::ast_pipeline::{
     compile_semantic_runtime_annotations,
     parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_charset,
-    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+    parse_semantic_constraint_expression,
     parse_semantic_implication,
     parse_semantic_nonnegative_usize,
     parse_quantifier_bounds, parse_semantic_pattern, parse_semantic_reference_list,
@@ -171,7 +171,20 @@ pub struct AstBasedGenerator {
     /// means the shared verdict and the emission disagree — a loud hard error,
     /// never an infinite emission recursion.
     pub inline_emission_stack: std::cell::RefCell<Vec<String>>,
+    /// RGX-0078.5.i.7 (D2-A) — the CASCADE emission plan: the acyclic-sub-region
+    /// partition (sub-roots with the observability-twin dispatch, internal rules as
+    /// fused `cascade_<rule>` functions) plus the per-site C3-B effect-target set.
+    /// Computed ONCE per generation from the SHARED census plan function
+    /// (`fusibility_census::compute_cascade_emission_plan`), so the census's
+    /// `CASCADE-PLAN` report and the emission cannot drift. `None` inside the cell =
+    /// no fused graph (analysis annotation-table compile failure, or an empty fused
+    /// set) — the sound default, and the state for direct `generate_*` unit-test
+    /// calls that never populate it (those stay byte-identical to the pre-D2-A
+    /// emission).
+    pub(crate) cascade_emission_plan: std::cell::OnceCell<Option<cascade::CascadeCodegenPlan>>,
 }
+
+pub(crate) mod cascade;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct SemanticRelationalConstraintPolicy {
@@ -505,6 +518,7 @@ impl AstBasedGenerator {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -624,6 +638,11 @@ impl AstBasedGenerator {
         // census's `INLINE-DECISIONS` report and this emission cannot drift.
         self.build_inline_emission_plan(grammar_tree, &entry_rule);
 
+        // RGX-0078.5.i.7 (D2-A) — compute the cascade-emission plan ONCE per
+        // generation from the SHARED census plan function, so the census's
+        // `CASCADE-PLAN` report and this emission cannot drift.
+        self.build_cascade_emission_plan_for_codegen(grammar_tree, &entry_rule);
+
         let parser_name = format_ident!(
             "{}Parser",
             self.grammar_name
@@ -664,6 +683,13 @@ impl AstBasedGenerator {
         )?;
         eprintln!("        Generated parser implementation with all rule methods");
         eprintln!("        File: {}:{}", file!(), line!());
+
+        // RGX-0078.5.i.7 (D2-A) — the FUSED cascade graph: one compact
+        // `cascade_<rule>` fn per plan rule (sub-roots + internal), entered on the
+        // bare-parse path via the observability-twin dispatch inside each
+        // sub-root's memoized body. Empty tokens when the plan is inactive
+        // (byte-identical pre-D2-A emission).
+        let cascade_impl = self.generate_cascade_impl(&parser_name, filename)?;
 
         // Generate tests
         let tests = generate_tests(&parser_name);
@@ -720,6 +746,7 @@ impl AstBasedGenerator {
             #types
             #parser_struct
             #parser_impl
+            #cascade_impl
             #typed_parser_impl
             #extension_impl
             #tests
@@ -811,6 +838,33 @@ impl AstBasedGenerator {
 
     fn generate_parser_struct(&self, parser_name: &Ident) -> TokenStream {
         let grammar_name_upper = self.grammar_name.to_uppercase();
+
+        // RGX-0078.5.i.7 (D2-A) — the observability-twin routing state, emitted only
+        // when the cascade plan is active so plan-inactive grammars stay
+        // byte-identical to the pre-D2-A emission.
+        let cascade_struct_fields: TokenStream = if self.cascade_plan_active() {
+            quote! {
+                // RGX-0078.5.i.7 (D2-A) — BARE-PARSE ROUTING. Cached once at
+                // `parse()` start: true iff NO diagnostic consumer is active
+                // (coverage, trace/logger, a rule-call-counter reader, memo
+                // stats). A bare parse routes each plan sub-root's memoized
+                // body to its fused `cascade_<rule>` fn; any diagnostic
+                // consumer keeps the full protocol graph so every counter,
+                // witness record, and trace line stays byte-exact.
+                // Entry-relative parses (`parse_from`) always run the
+                // protocol graph.
+                bare_parse: bool,
+                // RGX-0078.5.i.7 (D2-A) — set by the `rule_call_counts()`
+                // accessor (interior-mutable behind `&self`): any consumer
+                // that takes the counter Arc — the probe dashboard, the
+                // entry/outcome count dumps (both grab their baseline BEFORE
+                // the parse) — thereby requests truthful per-rule counters
+                // and routes the parse to the protocol graph automatically.
+                counters_observed: std::cell::Cell<bool>,
+            }
+        } else {
+            quote! {}
+        };
 
         quote! {
             /// High-performance parser with memoization and zero-copy parsing
@@ -946,6 +1000,7 @@ impl AstBasedGenerator {
                 // Parser-AGNOSTIC: every generated parser gains it identically.
                 coverage_stack: Vec<u32>,
                 coverage_enabled: bool,
+                #cascade_struct_fields
             }
         }
     }
@@ -1295,6 +1350,29 @@ impl AstBasedGenerator {
         let compiled_semantic_runtime_annotations =
             self.generate_compiled_semantic_runtime_annotations_tokens()?;
         let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
+        // RGX-0078.5.i.7 (D2-A) — twin-routing state init (plan-active only; see
+        // `generate_parser_struct`). `bare_parse` starts false: the real verdict is
+        // computed at `parse()` start, and `parse_from` (entry-relative) keeps it
+        // false so those parses always run the protocol graph.
+        let cascade_field_init: TokenStream = if self.cascade_plan_active() {
+            quote! {
+                bare_parse: false,
+                counters_observed: std::cell::Cell::new(false),
+            }
+        } else {
+            quote! {}
+        };
+        // RGX-0078.5.i.7 (D2-A) — taking the counter Arc IS the counters-consumer
+        // signal: every reader (dashboard, entry/outcome dumps) grabs it BEFORE the
+        // parse it wants counted, so the routing to the protocol graph is automatic
+        // and cannot be forgotten by a future consumer.
+        let counters_observed_mark: TokenStream = if self.cascade_plan_active() {
+            quote! {
+                self.counters_observed.set(true);
+            }
+        } else {
+            quote! {}
+        };
         // `DEFAULT-PROFILE.2`: a directive-bearing grammar's parser starts on
         // its declared default profile — the artifact carries its own default,
         // so no caller has to remember to set it. Grammars without the
@@ -1386,6 +1464,7 @@ impl AstBasedGenerator {
                     // (opt-in via enable_coverage); empty stack = zero cost.
                     coverage_stack: Vec::new(),
                     coverage_enabled: false,
+                    #cascade_field_init
                 }
             }
 
@@ -1407,6 +1486,7 @@ impl AstBasedGenerator {
             /// can poll the live counters without locking. Each index is the
             /// rule's RuleId; RULE_NAMES gives the corresponding name.
             pub fn rule_call_counts(&self) -> std::sync::Arc<Vec<std::sync::atomic::AtomicU64>> {
+                #counters_observed_mark
                 self.rule_call_counts.clone()
             }
 
@@ -1619,6 +1699,33 @@ impl AstBasedGenerator {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
         let allow_trailing_layout = !self.layout_sensitivity().trailing;
+
+        // RGX-0078.5.i.7 (D2-A) — the BARE-PARSE verdict, cached once per parse:
+        // true iff NO diagnostic consumer is active. Each clause routes one
+        // observability surface to the protocol graph: `coverage_enabled` =
+        // cert-coverage + the outcome dump; `logger_enabled` = every `--trace`
+        // form; `counters_observed` = any taker of the `rule_call_counts()` Arc
+        // (dashboard + entry/outcome dumps, marked by the accessor itself);
+        // the env probe = `PGEN_REPORT_MEMO_STATS` (fused internal rules skip
+        // their memo lane, so memo stats are truthful only on the protocol
+        // graph). `parse_from` (entry-relative) always clears the flag.
+        let bare_parse_compute: TokenStream = if self.cascade_plan_active() {
+            quote! {
+                self.bare_parse = !self.coverage_enabled
+                    && !self.logger_enabled
+                    && !self.counters_observed.get()
+                    && std::env::var("PGEN_REPORT_MEMO_STATS").is_err();
+            }
+        } else {
+            quote! {}
+        };
+        let bare_parse_clear: TokenStream = if self.cascade_plan_active() {
+            quote! {
+                self.bare_parse = false;
+            }
+        } else {
+            quote! {}
+        };
 
         // `DEFAULT-PROFILE.2`: a directive-bearing grammar's parser CARRIES its
         // declared default profile (`@default_profile`) — an associated const
@@ -1872,6 +1979,7 @@ impl AstBasedGenerator {
 
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.prepare_parse_state();
+                #bare_parse_compute
                 let parse_outcome = self.#parse_method();
                 // PARSE-TERMINATION.6 (WHY+WHERE): opt-in memo footprint report.
                 if std::env::var("PGEN_REPORT_MEMO_STATS").is_ok() {
@@ -1887,6 +1995,7 @@ impl AstBasedGenerator {
             /// behavior-identical to `parse()` for single-entry grammars.
             pub fn parse_from(&mut self, entry: &str) -> ParseResult<ParseNode<'input>> {
                 self.prepare_parse_state();
+                #bare_parse_clear
                 let parse_outcome = match entry {
                     #( #entry_arm_names => self.#entry_arm_methods(), )*
                     _ => self.#parse_method(),
@@ -3321,7 +3430,30 @@ impl AstBasedGenerator {
                             .needs_raw_final_capture_for_rule(#rule_name);
                 }
             };
+        // RGX-0078.5.i.7 (D2-A) — the OBSERVABILITY-TWIN dispatch: a plan SUB-ROOT's
+        // memoized body routes a bare parse (no coverage / trace / counters /
+        // memo-stats consumer — see the `bare_parse` computation in `parse()`) to its
+        // compact fused `cascade_<rule>` fn; every diagnostic consumer keeps the
+        // protocol body VERBATIM below, so the outcome pins and cert witnesses stay
+        // byte-exact by construction. The raw half of the tuple is `None` exactly as
+        // the protocol path computes for a plan rule (directive-free ⇒ the analysis
+        // table proves `needs_raw_post/final` false ⇒ `semantic_raw_content` is never
+        // set). Also spliced into P1a inlined frames of a decided sub-root — dead
+        // there by construction (inlined frames execute only inside protocol bodies,
+        // which run only when `bare_parse` is false).
+        let cascade_twin_dispatch: TokenStream = if self.cascade_sub_root(rule_name) {
+            let cascade_fn = format_ident!("cascade_{}", rule_name);
+            quote! {
+                if parser.bare_parse {
+                    return parser.#cascade_fn().map(|node| (node, None));
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         Ok(quote! {
+            #cascade_twin_dispatch
             #semantic_capture_raw_head
             let mut semantic_selected_branch_index: Option<usize> = None;
             let mut semantic_raw_content: Option<ParseContent<'input>> = None;
@@ -8513,32 +8645,14 @@ impl AstBasedGenerator {
     }
 
     fn rule_has_semantic_bool_directive(&self, rule_name: &str, names: &[&str]) -> bool {
-        let Some(annotations) = &self.annotations else {
-            return false;
-        };
-        let Some(semantic_annotations) = annotations.semantic_annotations.get(rule_name) else {
-            return false;
-        };
-
-        semantic_annotations.iter().any(|annotation| {
-            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
-                return false;
-            };
-            let name_matches = names
-                .iter()
-                .any(|candidate| name.eq_ignore_ascii_case(candidate));
-            if !name_matches {
-                return false;
-            }
-
-            // Presence implies true; explicit falsy payload disables the gate.
-            let normalized = payload
-                .trim()
-                .trim_matches('"')
-                .trim_matches('\'')
-                .to_ascii_lowercase();
-            !matches!(normalized.as_str(), "false" | "0" | "no" | "off")
-        })
+        // RGX-0078.5.i.7 (D2-A): the derivation moved to the shared registry function so the
+        // fusibility census's cascade gate reads the exact resolution codegen emits from
+        // (the `effective_rule_branch_policy` shared-delegate precedent).
+        crate::ast_pipeline::semantic_directive_registry::effective_rule_bool_directive(
+            self.annotations.as_ref(),
+            rule_name,
+            names,
+        )
     }
 
     fn semantic_directive_parts(annotation: &SemanticAnnotation) -> Option<(String, String)> {
@@ -8594,22 +8708,22 @@ impl AstBasedGenerator {
         };
 
         let mut policy = SemanticCoverageTargetPolicy::default();
+        // RGX-0078.5.i.7 (D2-A): the weight resolution moved to the shared registry function
+        // so the fusibility census's cascade gate reads the exact resolution codegen emits
+        // `record_coverage_target_event` from.
+        policy.coverage_target_weight =
+            crate::ast_pipeline::semantic_directive_registry::effective_rule_coverage_target_weight(
+                self.annotations.as_ref(),
+                rule_name,
+            );
         for annotation in entries {
             let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
                 continue;
             };
-            match name.as_str() {
-                "coverage_target" => {
-                    if let Some(weight) = parse_semantic_coverage_target_weight(&payload) {
-                        policy.coverage_target_weight = weight;
-                    }
+            if name == "critical_path" {
+                if let Some(enabled) = parse_semantic_bool(&payload) {
+                    policy.critical_path = enabled;
                 }
-                "critical_path" => {
-                    if let Some(enabled) = parse_semantic_bool(&payload) {
-                        policy.critical_path = enabled;
-                    }
-                }
-                _ => {}
             }
         }
 
@@ -8625,22 +8739,22 @@ impl AstBasedGenerator {
         };
 
         let mut policy = SemanticNegativeCasePolicy::default();
+        // RGX-0078.5.i.7 (D2-A): the enable resolution moved to the shared registry function
+        // so the fusibility census's cascade gate reads the exact resolution codegen emits
+        // `record_negative_case_failure` from.
+        policy.invalid_case =
+            crate::ast_pipeline::semantic_directive_registry::effective_rule_negative_case_enabled(
+                self.annotations.as_ref(),
+                rule_name,
+            );
         for annotation in entries {
             let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
                 continue;
             };
-            match name.as_str() {
-                "invalid_case" => {
-                    if let Some(enabled) = parse_semantic_bool(&payload) {
-                        policy.invalid_case = enabled;
-                    }
+            if name == "negative" {
+                if let Some(enabled) = parse_semantic_bool(&payload) {
+                    policy.negative = enabled;
                 }
-                "negative" => {
-                    if let Some(enabled) = parse_semantic_bool(&payload) {
-                        policy.negative = enabled;
-                    }
-                }
-                _ => {}
             }
         }
 
@@ -8722,7 +8836,14 @@ impl AstBasedGenerator {
             return (false, Vec::new(), Vec::new(), None, None, None);
         };
 
-        let mut recover_enabled = false;
+        // RGX-0078.5.i.7 (D2-A): the enable resolution moved to the shared registry function
+        // so the fusibility census's cascade gate reads the exact resolution codegen routes
+        // the tournament failure path through `recover_with_hints` from.
+        let recover_enabled =
+            crate::ast_pipeline::semantic_directive_registry::effective_rule_recovery_enabled(
+                self.annotations.as_ref(),
+                rule_name,
+            );
         let mut sync_tokens = Vec::new();
         let mut panic_until_tokens = Vec::new();
         let mut recover_budget = None;
@@ -8733,11 +8854,6 @@ impl AstBasedGenerator {
                 continue;
             };
             match name.as_str() {
-                "recover" => {
-                    if let Some(parsed) = parse_semantic_bool(&payload) {
-                        recover_enabled = parsed;
-                    }
-                }
                 "sync" => {
                     if let Some(parsed) = parse_semantic_string_list(&payload) {
                         sync_tokens = parsed;
@@ -9384,6 +9500,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9420,6 +9537,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9474,6 +9592,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9530,6 +9649,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -9620,6 +9740,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -9735,6 +9856,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9804,6 +9926,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9878,6 +10001,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9973,6 +10097,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -10037,6 +10162,12 @@ mod semantic_usage_tests {
     #[test]
     fn optional_fast_path_emits_guard_without_emulation_for_no_refs_element() {
         let generator = quant_guard_generator(Some(quant_guard_ws_annotations()));
+        // RGX-0078.5.i.7 (D2-A): pin the PROTOCOL-graph Q-guard surface in
+        // isolation — every fused `cascade_<rule>` fn legitimately carries the
+        // rule-entry furthest max-update at its head, which this test's
+        // whole-parser negative assertion would otherwise trip on. Disabling the
+        // cascade plan reproduces the plan-inactive emission this test pins.
+        let _ = generator.cascade_emission_plan.set(None);
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
             "top".to_string(),
@@ -10071,6 +10202,10 @@ mod semantic_usage_tests {
     #[test]
     fn quantified_guard_not_emitted_under_layout_skipping_terminals() {
         let generator = quant_guard_generator(None);
+        // RGX-0078.5.i.7 (D2-A): see the fast-path test above — this test's
+        // whole-parser negative assertions pin the PROTOCOL Q-guard surface;
+        // the fused fns' rule-entry furthest heads are out of its scope.
+        let _ = generator.cascade_emission_plan.set(None);
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
             "top".to_string(),
@@ -10256,6 +10391,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -11385,6 +11521,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -11421,6 +11558,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
@@ -11454,6 +11592,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -11522,6 +11661,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let (
@@ -11600,6 +11740,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -11662,6 +11803,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -11693,6 +11835,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator.generate_types().to_string();
@@ -11725,6 +11868,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
@@ -11782,6 +11926,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -11994,6 +12139,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12055,6 +12201,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_coverage_target_policy("stmt");
@@ -12079,6 +12226,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -12147,6 +12295,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -12193,6 +12342,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12253,6 +12403,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_negative_case_policy("stmt");
@@ -12277,6 +12428,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -12340,6 +12492,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -12383,6 +12536,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12437,6 +12591,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_deterministic_partition_policy("stmt");
@@ -12461,6 +12616,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -12539,6 +12695,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -12581,6 +12738,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12654,6 +12812,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -12698,6 +12857,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12746,6 +12906,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -12791,6 +12952,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -12836,6 +12998,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -12897,6 +13060,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -12949,6 +13113,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -13005,6 +13170,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -13055,6 +13221,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -13111,6 +13278,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -13159,6 +13327,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -13198,6 +13367,7 @@ mod semantic_usage_tests {
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator

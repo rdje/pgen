@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0087 — `.5.i.7` D2-A FUSED EMITTER LANDED: the observability-twin cascade graph — regex geomean **−13.6%** (all 5 rounds, 17.76µs → **15.35µs**; character_class **−27.6%**), cumulative 496µs → **≈15.4µs ≈ 32×**; byte-identical under the full battery; parser-agnostic (all 11 artifacts fused)
+
+The D2-A acyclic sub-region fold per the `-0085` design. NEW
+`ast_based_generator/cascade.rs`: one compact `cascade_<rule>` fn per plan rule (sub-roots +
+internal; regex 205 = the plan's 56+149 EXACT; 1666 fns platform-wide) — the per-rule
+protocol frame elided (no guard/counter/coverage/trace/transaction/memo; furthest max-update
+at fn head = the rule-entry mirror, EXACT parity), plain position-restore speculation at
+effect-free scopes, `try_parse` at effect-reaching scopes (⛔ C3-B rule 1) and the protocol
+tournament ISLAND at effect-reaching Or sites (⛔ C3-B rule 2) — both driven per-site by the
+plan's NEW `effect_targets` set; P2 byte-switch + D1 FIRST/FIRST₂ + Q-guards + return
+transforms reused via the SAME shared helpers (licenses verbatim). Twin dispatch inside each
+sub-root's memoized body; `bare_parse` computed once per `parse()` (any diagnostic consumer
+⇒ the protocol graph; the `rule_call_counts()` accessor itself marks counter consumers, so
+routing cannot be forgotten); `parse_from` always protocol. AUDIT-DRIVEN GATE REFINEMENT:
+four outcome-relevant policies invisible to the compiled directive table
+(`@stop_at_rule_boundary` / `@recover` / `@coverage_target` / `@invalid_case`) added to
+`cascade_rule_verdict` through four NEW shared registry readers (codegen delegates — one
+resolution): regex partition UNCHANGED (56/149/59), ebnf 131→130 (exactly the
+stop-at-boundary carrier, proven absent from the artifact), SV 1047→1046. VERIFIED: 8/8
+bench ASTs from the FUSED graph byte-identical to the pre-change protocol references;
+outcome pins 1331/617/714/180 + cert 267/9/258/0 spf 0/1/1 byte-exact via the twin; lib
+950/0 incl. the all-grammar equivalence oracle (interpreter vs the fused graphs) +
+combinator 27/27 + semantic 36/36; duality-hunt, ast-shape 18/18, PCRE2 compile-oracle
+(2189 cases through the fused graph), clippy source-strict, mdbook gates green; regen
+deterministic; fused execution PROVEN by live-stack sampling (327 `cascade_*` frames).
+Speed: fat-LTO alternated 5×2000, probes `f724374d…`/`23772633…` differing only in
+`regex_parser.rs` (`ff072136…` → `d8173f31…`) — faster ALL rounds; ceiling miss (−13.6% vs
+the honest −18–25%) adjudicated: per-population exchange rate + P1a frame overlap (named
+design caveats). ⚠️ RAM-budget recalibration recorded: the fused artifacts push the
+dual-feature test compile to 12403MB and fat-LTO to ≈12.5GB — both classes now run at
+explicit `--budget-mb 16384` (host floor intact). NEXT = the post-D2-A re-census +
+re-profile → re-price D2-B on the fresh cost basis.
+
 ## 2026-07-15 - PGEN-RGX-0078-0086 — `.5.i.7` D2-A STEP-1: the EMISSION-PLAN SEAM landed — `compute_cascade_emission_plan` (the shared census↔codegen map); regex partitions **56 sub-roots / 149 internal / 59 effect-reaching fused** = the design's pricing basis byte-exact
 
 Lib-only (read-only analysis; no codegen/parser change). The SHARED D2-A plan function in

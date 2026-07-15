@@ -724,6 +724,141 @@ pub fn effective_rule_deterministic_partition_policy(
     policy
 }
 
+/// RGX-0078.5.i.7 (D2-A) — the effective boolean-directive verdict codegen resolves for
+/// `rule_name` under any of the given directive `names` (case-insensitive): presence implies
+/// `true`; an explicit falsy payload (`false`/`0`/`no`/`off`) disables it. Extracted VERBATIM
+/// from codegen's `rule_has_semantic_bool_directive` so the fusibility census's cascade gate
+/// reads the SAME resolution the generated parser's behavior is emitted from (the
+/// `effective_rule_branch_policy` shared-delegate precedent). Codegen's consumer is the
+/// `@stop_at_rule_boundary` / `@stop_on_rule_boundary` / `@line_delimited_sequence` quantifier
+/// break/error family — an outcome-relevant loop policy a fused emission must not silently drop.
+pub fn effective_rule_bool_directive(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+    names: &[&str],
+) -> bool {
+    let Some(annotations) = annotations else {
+        return false;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return false;
+    };
+
+    entries.iter().any(|annotation| {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            return false;
+        };
+        let name_matches = names
+            .iter()
+            .any(|candidate| name.eq_ignore_ascii_case(candidate));
+        if !name_matches {
+            return false;
+        }
+
+        // Presence implies true; explicit falsy payload disables the gate.
+        let normalized = payload
+            .trim()
+            .trim_matches('"')
+            .trim_matches('\'')
+            .to_ascii_lowercase();
+        !matches!(normalized.as_str(), "false" | "0" | "no" | "off")
+    })
+}
+
+/// RGX-0078.5.i.7 (D2-A) — the effective `@coverage_target` weight codegen resolves for
+/// `rule_name` (last parseable directive wins; absent ⇒ `0`). Mirrors the weight half of
+/// codegen's `rule_coverage_target_policy`, which emits an UNCONDITIONAL
+/// `record_coverage_target_event` call at the rule body's tail whenever the weight is nonzero —
+/// observable parser state a fused emission must not silently drop, so the census cascade gate
+/// excludes such rules through this shared resolution.
+pub fn effective_rule_coverage_target_weight(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+) -> u64 {
+    let Some(annotations) = annotations else {
+        return 0;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return 0;
+    };
+
+    let mut weight = 0u64;
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        if name == "coverage_target" {
+            if let Some(parsed) = parse_semantic_coverage_target_weight(&payload) {
+                weight = parsed;
+            }
+        }
+    }
+    weight
+}
+
+/// RGX-0078.5.i.7 (D2-A) — the effective `@recover` verdict codegen resolves for `rule_name`
+/// (last parseable directive wins; absent ⇒ disabled). Mirrors the enable half of codegen's
+/// `rule_recovery_hints`, which routes a rule's tournament failure path through
+/// `recover_with_hints` when enabled — outcome-changing recovery behavior a fused emission must
+/// not silently drop, so the census cascade gate excludes such rules through this shared
+/// resolution.
+pub fn effective_rule_recovery_enabled(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+) -> bool {
+    let Some(annotations) = annotations else {
+        return false;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return false;
+    };
+
+    let mut recover_enabled = false;
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        if name == "recover" {
+            if let Some(parsed) = parse_semantic_bool(&payload) {
+                recover_enabled = parsed;
+            }
+        }
+    }
+    recover_enabled
+}
+
+/// RGX-0078.5.i.7 (D2-A) — the effective `@invalid_case` verdict codegen resolves for
+/// `rule_name` (last parseable directive wins; absent ⇒ disabled). Mirrors the enable half of
+/// codegen's `rule_negative_case_policy`, which emits a `record_negative_case_failure` call on
+/// the rule method's failure path when enabled — observable parser state a fused emission must
+/// not silently drop, so the census cascade gate excludes such rules through this shared
+/// resolution. (The `negative` strictness flag rides on `invalid_case` and needs no separate
+/// gate: with `invalid_case` off codegen forces it off too.)
+pub fn effective_rule_negative_case_enabled(
+    annotations: Option<&Annotations>,
+    rule_name: &str,
+) -> bool {
+    let Some(annotations) = annotations else {
+        return false;
+    };
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return false;
+    };
+
+    let mut invalid_case = false;
+    for annotation in entries {
+        let Some((name, payload)) = semantic_directive_name_payload(annotation) else {
+            continue;
+        };
+        if name == "invalid_case" {
+            if let Some(parsed) = parse_semantic_bool(&payload) {
+                invalid_case = parsed;
+            }
+        }
+    }
+    invalid_case
+}
+
 pub fn parse_semantic_numeric_list(payload: &str) -> Option<Vec<i64>> {
     let normalized = payload.trim();
     if normalized.is_empty() {

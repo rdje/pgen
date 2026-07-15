@@ -1,6 +1,33 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-07-08
+Last updated: 2026-07-15
+
+## Recent Architecture Change Note (2026-07-15)
+
+**The observability twin — dual-graph parser emission (`RGX-0078.5.i.7` D2-A,
+`PGEN-RGX-0078-0087`, session #124).** Every generated parser is now emitted with TWO parse
+graphs. The protocol methods (`parse_<rule>`) are unchanged — memoization, counters,
+transactional coverage, trace, semantic transactions. Alongside them, the census-planned
+acyclic effect-free regions gain one compact fused function per rule
+(`cascade_<rule>`), emitted by the new child module
+[rust/src/ast_pipeline/ast_based_generator/cascade.rs](../../rust/src/ast_pipeline/ast_based_generator/cascade.rs)
+from the SHARED plan `fusibility_census::compute_cascade_emission_plan` (the
+`compute_inline_decisions` no-drift pattern). Routing is a per-parse boolean
+(`bare_parse`): a parse with no diagnostic consumer (no coverage, no trace, no
+counter-handle taker, no memo-stats env) enters the fused graph through a dispatch at each
+plan sub-root's memoized body; ANY diagnostic consumer keeps the full protocol graph, so
+every counter/witness/trace surface remains the exact machinery rather than an emulation.
+Store soundness inside fused code is per-site: speculation scopes whose subtree can reach
+a semantic effect (the plan's `effect_targets`) run under `try_parse`, and alternations
+with such branches keep the protocol tournament as an island. Integration seams to know:
+the `rule_call_counts()` accessor now MARKS the parser as counter-observed
+(interior-mutable `Cell` — taking the handle is the routing request), and
+`parse_from` (entry-relative) always runs the protocol graph. Byte-identity is enforced
+by the interpreter-equivalence gate (all registered grammars run their fused graphs on
+bare parses), the AST-dump oracles, and the PCRE2 conformance corpus. Cost note: the
+fused graphs grew every artifact (regex ×1.11; SV +5.5%) and pushed the heavy compile
+classes to ≈12.4–12.5 GB peaks — the memory-guard budget for those jobs is now an
+explicit 16384 MB (see the host-RAM decision record).
 
 ## Recent Architecture Change Note (2026-07-08)
 
