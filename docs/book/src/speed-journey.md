@@ -294,17 +294,24 @@ with a docs-and-instrument-only scout and a falsifiable price recorded before an
 under the same hard constraint as everything before it — measurably faster and
 byte-identical under the full battery, or it does not land.
 
-**Its first increment has landed.** The scout priced the exposure, the design record
+**Both increments have landed.** The scout priced the exposure, the design record
 answered the honesty problem with the *observability twin* — every foldable region is
 emitted twice, a fused bare-parse graph beside the untouched protocol methods, with any
 diagnostic consumer routed to the protocol graph so every counter, witness, and trace
-line stays the exact machinery it always was — and the acyclic-sub-region increment
-(D2-A) then measured **−13.6%**, faster in all five alternated rounds: **496 µs →
-≈15.4 µs, about 32×**, byte-identical under the full battery, landed platform-wide
-across every generated parser. The measurement also re-taught lesson 6 (the
-per-population exchange rate: the folded frames were already cheap, so the landing
-priced below its band), and the profile showed the fused functions carrying the parse —
-the first time in the campaign a bare parse executes something other than the per-rule
-protocol. The cyclic-spine increment (D2-B) is next, re-priced on the fresh cost basis
-the way every increment before it was. The method decides — and the story continues
-here.
+line stays the exact machinery it always was. The acyclic-sub-region increment (D2-A)
+measured **−13.6%**, faster in all five alternated rounds, and the cyclic-spine
+increment (D2-B) — recursive fused functions through the grammar's core, with a
+taint-classed thin memo preserving packrat protection on the cycle — measured a further
+**−11.4%**, faster in every round and every pattern: **496 µs → ≈14.0 µs, about 35×**,
+byte-identical under the full battery, landed platform-wide across every generated
+parser. Both measurements re-taught lesson 6 in a new costume (the acyclic fold's
+frames were already cheap; the spine fold's price had treated the cycle-mandated guard
+and memo machinery as killable when soundness requires keeping it), and the spine
+landing added a sharper lesson of its own: its first cut validated thin-memo entries
+against a *global* store-unchanged check, and the benchmark immediately regressed the
+two fact-writing patterns — the fix was to give each entry the protocol memo's own
+per-entry taint class, and a controlled A/B in which only that rule changed turned both
+regressions into wins. The remaining road to the ≤1 µs bar runs through the named
+bar-complete program: root/boundary protocol thinning (D2-C) and the match-then-build
+value model, each to be re-priced on a fresh census and profile the way every increment
+before them was. The method decides — and the story continues here.

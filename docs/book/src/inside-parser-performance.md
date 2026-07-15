@@ -240,6 +240,7 @@ back-to-back, so the difference is caused by the change and nothing else.
 | RGX-0078 · 5.i.7 D1 | **Second-byte (FIRST₂) prune guards** — the per-branch prune guard learns to refuse on the *second* byte too (a `\Q` branch skipped outright when the input reads `\b`), licensed branch-by-branch by a furthest-position-parity proof (only branches that provably enter no rule past offset 0 earn the sharper guard); the guard form needs no pairwise disjointness, so it fires beyond the sketched nested-switch model | codegen analysis + guard emission (parser-agnostic) | ≈23.6 µs → **≈18.9 µs** | **−19.8%** (all 5 rounds; 541 of 1,540 residual discards killed, committed exactly unchanged — over-delivered the −6–12% ceiling) | **landed** ✓ |
 | RGX-0078 · 5.i.7 Q | **Quantifier attempt-elision guards** — min-0 quantified/optional sites skip their element's doomed attempt when the next byte cannot start it, under an exact one-line furthest-position emulation emitted only where the counterfactual is decidable (bare-reference elements; terminal-only sites need none; mixed frontiers stay unguarded rather than guess) | codegen (parser-agnostic; census-priced) | ≈19.0 µs → **≈18.2 µs** | **−4.3%** (all 5 rounds; 285 of 999 residual discards killed, `class_zero_width` 134 → 0; character_class −12.7%) | **landed** ✓ |
 | RGX-0078 · 5.i.7 D2-A | **The observability twin & the fused cascade graph** — every acyclic, provably effect-free grammar region is emitted twice: the untouched protocol methods (memoization, counters, coverage, trace — everything the diagnostic surfaces read), and a compact fused `cascade_` function per region rule with the per-rule protocol frame elided; a parse with no diagnostic consumer runs the fused graph, and any consumer routes to the protocol graph automatically, so every observable pin stays byte-exact by construction (see the twin section below) | codegen (parser-agnostic; census-planned, all 11 parsers) | ≈17.8 µs → **≈15.4 µs** | **−13.6%** (all 5 rounds; every pattern faster; character_class −27.6% = the planned anchor; fused execution proven by live-stack profile) | **landed** ✓ |
+| RGX-0078 · 5.i.7 D2-B | **The cyclic-spine fold + the thin memo** — the fused graph extends through the grammar's recursive core (for regex: pattern/alternation/concatenation/piece/atom and the group families), so a bare parse descends the whole spine in fused code; cycle-participating rules keep exactly the protocol parts that are load-bearing on a cycle, in lean form: the recursion-guard check (infinite/left-recursion detection is exact only if every cyclic rule participates) and a thin memo whose entries carry the protocol memo's own taint classes — a pure entry (no store read, no store write) replays at any store state, a store-reading entry replays only while the store is provably unchanged (the write-epoch license), and a store-mutating body is never cached, re-executing honestly instead (a value-only replay would skip effects the protocol re-applies from its stored delta) | codegen + one engine type (parser-agnostic; census-planned at the cyclic-spine increment, all 11 parsers) | ≈15.8 µs → **≈14.0 µs** | **−11.4%** (all 5 rounds; every pattern faster; the first cut validated entries against a global store-unchanged check and *regressed* the two fact-writing patterns +3/+15% — the per-entry taint classes are what fixed it, proven by a controlled A/B) | **landed** ✓ |
 
 **Lever RGX-0078·4.a in plain terms.** The release build was using cargo's *defaults* — link-time
 optimization off, and the crate split into sixteen independently-optimized units. That fragments the
@@ -1249,10 +1250,34 @@ they were. Alongside them, each region rule gains a compact fused `cascade_` fun
 the same parse decisions, the same guards the earlier levers landed (the byte-switch
 dispatch, the two-byte prune guards, the quantifier attempt elision, all reused through
 the same shared analysis), and the same annotated value construction, with the frame
-elided: no recursion-guard bookkeeping, no counter increment, no coverage push, no trace
-scope, no memoization probe (the folded regions are acyclic, so a repeated probe at the
-same position is bounded by the grammar's own shape), and speculation that restores only
-the input position wherever the region provably cannot touch the semantic store.
+elided: no counter increment, no coverage push, no trace scope, no transaction wrapper,
+and speculation that restores only the input position wherever the region provably
+cannot touch the semantic store. An *acyclic* fused rule also drops the recursion-guard
+bookkeeping and the memoization probe entirely (it can never re-enter itself, and a
+repeated probe at the same position is bounded by the grammar's own shape).
+
+The second increment extended the fold through the grammar's **cyclic spine** — for the
+regex grammar, the pattern/alternation/concatenation/piece/atom core that every parse
+descends — so a bare parse now runs fused code end to end. A cycle-participating rule
+keeps exactly the two protocol parts that are load-bearing on a cycle, in lean form.
+First, the recursion-guard check: infinite-recursion and left-recursion detection scan
+the parse stack for that same rule's in-flight frames, which is exact only if every
+cyclic rule pushes a frame in both graphs — so each cyclic fused function carries the
+protocol's own check, minus the trace lines a bare parse can never enable. Second, a
+**thin memo** (the packrat protection a recursive descent cannot lose — an earlier
+campaign incident measured a 117× collapse without it): entries are only `position →
+(end, value)`, with no stored effect deltas, so an entry is cached only when value-only
+replay is provably equivalent to re-execution. Each entry carries the protocol memo's
+own taint classes, measured across the body by three engine counters: a **pure** body
+(no store read, no store write) replays at any later store state; a **store-reading**
+body replays only while the store is provably unchanged since (the same write-epoch
+license the protocol's taint-gated memo uses); a **store-mutating** body is never
+cached — a value-only replay would silently skip the facts it wrote, so every re-probe
+honestly re-executes. That last distinction was not theoretical: the first cut validated
+every entry against a global "store unchanged" check, and the alternated benchmark
+promptly *regressed* the two fact-writing patterns (+3% and +15%) because every capture
+fact evicted the whole spine's entries — the per-entry classes recovered them to 9% and
+6% wins, a controlled A/B in which only the validity rule changed.
 
 Which graph runs is decided once, at parse start. A parse with no diagnostic consumer
 takes the fused graph. The moment anything asks to observe — certificate coverage, a
@@ -1269,20 +1294,24 @@ semantic snapshot; an alternation with such a branch keeps the protocol's tourna
 winners replayed, losers rolled back — as an island inside the fused code, because plain
 backtracking there would visibly change what the semantic store remembers.
 
-The landing followed the standing discipline. The fused graph produced byte-identical
-syntax trees on the full benchmark before any speed was measured; the
+Both landings followed the standing discipline. Each time, the fused graph produced
+byte-identical syntax trees on the full benchmark before any speed was measured; the
 interpreter-equivalence oracle re-proved every registered grammar byte-identical through
 its fused graph; the 2,189-case PCRE2 conformance corpus ran through the fused code and
 reproduced its pinned verdicts; and a live stack profile showed the `cascade_` functions
-actually carrying the parse. The alternated benchmark then measured **−13.6%** — roughly
-17.8µs to **15.4µs**, faster in all five rounds, with the character-class pattern (the
-region the plan had identified as the anchor, nearly three-quarters of its entries
-foldable) dropping **27.6%**. One honest note: the priced ceiling band was −18–25%, and
-the measurement landed below it for a now-familiar reason — the folded population's
-frames were already cheap (the protocol-hygiene and inlining levers had stripped them
-first), so each folded entry paid out less than the average frame. The same emission
-landed platform-wide: every generated parser now carries its own fused regions, sized by
-its own census plan.
+actually carrying the parse. The acyclic increment measured **−13.6%** — roughly 17.8µs
+to **15.4µs**, faster in all five rounds, with the character-class pattern (the region
+the plan had identified as the anchor, nearly three-quarters of its entries foldable)
+dropping **27.6%**. The cyclic-spine increment then measured **−11.4%** — to roughly
+**14.0µs**, again faster in every round and every pattern. One honest note each: the
+acyclic increment priced below its −18–25% band because the folded population's frames
+were already cheap (the protocol-hygiene and inlining levers had stripped them first);
+the spine increment priced below its band because the machinery a cycle must *keep* —
+the guard check, the thin-memo probe and insert — is real per-entry cost the price
+model had treated as killed. The same emission landed platform-wide both times: every
+generated parser carries its own fused regions, sized by its own census plan at the
+cyclic-spine increment — the VHDL parser folds into a single region rooted at its entry
+rule, 216 rules of fused descent.
 
 The campaign's story so far, including every refuted road,
 is told in [The Speed Journey](speed-journey.md).

@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-15 - PGEN-RGX-0078-0090 — the D2-B emitter: engineering notes
+
+**Why the thin memo needed the protocol's taint classes, not a global epoch check.** The
+design's `(rule,pos) → {end, value, write_epoch}` reads naturally as "valid while the
+store is unchanged" — and that global reading is SOUND but measurably wrong-shaped: one
+capture fact write invalidates every entry on the spine, so the exact patterns that
+write facts lose all packrat protection and run SLOWER than the D2-A base (whose
+protocol memo replays untainted entries at any epoch). The landed semantics restrict
+each entry by what ITS body actually did — pure / store-read / store-mutating — which is
+precisely `memoized_call`'s own license with the delta-carrying class degraded to
+re-execution (a thin entry has no delta to re-apply). The sweep-#1→#2 controlled A/B
+(only the validity rule changed) is the strongest live evidence the thin memo serves
+hits: capture_groups moved 1.154 → 0.941 on that change alone.
+
+**Why cyclic sub-roots get neither guard nor thin memo in their cascade fn (a
+refinement of the `-0089` note).** The `-0089` engineering note argued `thin_memo` must
+include cyclic sub-roots because "its cascade fn is entered recursively from inside the
+fused graph". The landed emitter keeps the A-emitter invariant instead: a fused body
+references a SUB-ROOT through its protocol METHOD (only internal rules get direct
+`cascade_*` calls), so every bare-path entry to a cyclic sub-root passes `check_cycle`,
+the parse-stack push, and the REAL memo — strictly stronger protection than the thin
+memo. Duplicating the guard inside `cascade_pattern` would scan the parse stack while
+`parse_pattern`'s own frame is in flight at the same position and falsely report
+`Infinite`. The exclusion is pinned by a unit test; the plan seam's `thin_memo` set is
+unchanged (the emitter intersects it with `internal`).
+
+**Why the recursion guard is emitted at all (and only) on cyclic internal fused fns.**
+`check_cycle`'s Infinite/LeftRecursive verdicts scan for the SAME rule's in-flight
+frames, so they fire only for rules that can transitively re-enter themselves — eliding
+the frame on acyclic fused rules is exact (the D2-A license), and restoring it on every
+cyclic fused rule makes both graphs push the same cyclic frames at the same positions.
+The whole-stack depth ceiling (4096) keeps the landed D2-A margin semantics: the
+bare-path stack omits acyclic fused frames in both increments, so a depth-marginal input
+could diverge there — a corpus-invisible class carried since D2-A, now narrower. The
+census's `rule_reaches_itself` and the generator's `compute_recursive_rules` resolve the
+same cyclicity claim through two collectors; `generate_cascade_impl` hard-bails on any
+fused rule where they disagree, so the drift class dies loudly at regen, not silently at
+parse time.
+
+**The emitted-type migration trap.** `ThinMemoEntry` is constructed by GENERATED code,
+so changing its fields orphaned the same morning's artifacts and broke every generator
+build against them (make also deletes the in-flight target on failure — the missing
+`regex_parser.rs` was restored from the scratchpad copy). The unbreak that preserves
+canonical-regen integrity: migrate the transient artifacts in place with an
+exact-semantics transform (`stamp: Some((epoch, deferred))` ≡ the old validity), then
+replace them all via `focus_*`. The tempting shortcut — regenerate via the bootstrap
+binary, which compiles without generated includes — was rejected because a
+bootstrap-emitted `ebnf.rs` carries the known `null→"null"` annotation-payload
+degradation and would poison every downstream raw-AST.
+
 ## 2026-07-15 - PGEN-RGX-0078-0089 — the increment-B plan seam: engineering notes
 
 **Why an increment parameter instead of a second function.** The B partition differs from

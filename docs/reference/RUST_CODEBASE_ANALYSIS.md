@@ -2,6 +2,31 @@
 
 Last updated: 2026-07-15
 
+## Recent Architecture Change Note (2026-07-15, second)
+
+**The cyclic-spine fold + the taint-classed thin memo (`RGX-0078.5.i.7` D2-B,
+`PGEN-RGX-0078-0090`, session #126).** The fused cascade graph (see the D2-A note below)
+now extends through each grammar's RECURSIVE core: the emitter consumes the shared plan
+at `CascadeIncrement::CyclicSpine`, so every cascade-eligible rule fuses (regex 234 fns;
+VHDL folds into ONE region rooted at its entry rule) and fused functions may recurse.
+Two lean protocol parts are retained exactly where a cycle makes them load-bearing, on
+cyclic INTERNAL fused rules only: (1) the protocol-mirror recursion-guard frame
+(`check_cycle` + `enter`/`exit` — infinite/left-recursion detection scans for same-rule
+in-flight frames, exact iff every cyclic rule pushes in both graphs); (2) a THIN memo —
+the new engine type `ThinMemoEntry` in `ast_pipeline/mod.rs`: `position → (end, value)`
+with NO stored deltas, so entries carry the protocol memo's own taint classes measured
+across the body by three engine counters (write epoch / deferred-obligation count /
+predicate evaluations): PURE replays at any store state, STORE-READ replays under the
+unchanged-epoch license, STORE-MUTATING is never cached (honest re-execution — a
+value-only replay would skip effects). Cyclic SUB-ROOTS get neither lane: fused bodies
+reference sub-roots through their protocol METHODS (real memo + guard). Integration
+seams to know: the emitter hard-bails if the census's `rule_reaches_itself` and the
+generator's `compute_recursive_rules` ever disagree on a fused rule (one cyclicity
+resolution), and CHANGING AN EMITTED TYPE's fields (the `MemoEntry`/`ThinMemoEntry`
+class) breaks every generator build against the on-disk artifacts — the recorded unbreak
+is an exact-semantics transient migration of `generated/*.rs`, never a bootstrap-binary
+regen (annotation-payload degradation).
+
 ## Recent Architecture Change Note (2026-07-15)
 
 **The observability twin — dual-graph parser emission (`RGX-0078.5.i.7` D2-A,

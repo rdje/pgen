@@ -839,6 +839,18 @@ impl AstBasedGenerator {
     fn generate_parser_struct(&self, parser_name: &Ident) -> TokenStream {
         let grammar_name_upper = self.grammar_name.to_uppercase();
 
+        // RGX-0078.5.i.7 (D2-B) — the fused graph's THIN memo for
+        // cycle-participating internal rules (⛔ the #49 bound), emitted only
+        // when the plan carries ≥ 1 such rule so a fully-acyclic grammar's
+        // artifact stays byte-identical to the D2-A emission. Same lifecycle as
+        // the protocol memo maps: constructor-fresh, never cleared per parse.
+        let thin_memo_struct_field: TokenStream = if self.cascade_thin_memo_active() {
+            quote! {
+                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinMemoEntry<'input>>,
+            }
+        } else {
+            quote! {}
+        };
         // RGX-0078.5.i.7 (D2-A) — the observability-twin routing state, emitted only
         // when the cascade plan is active so plan-inactive grammars stay
         // byte-identical to the pre-D2-A emission.
@@ -861,6 +873,7 @@ impl AstBasedGenerator {
                 // the parse) — thereby requests truthful per-rule counters
                 // and routes the parse to the protocol graph automatically.
                 counters_observed: std::cell::Cell<bool>,
+                #thin_memo_struct_field
             }
         } else {
             quote! {}
@@ -1355,9 +1368,19 @@ impl AstBasedGenerator {
         // computed at `parse()` start, and `parse_from` (entry-relative) keeps it
         // false so those parses always run the protocol graph.
         let cascade_field_init: TokenStream = if self.cascade_plan_active() {
+            // RGX-0078.5.i.7 (D2-B) — the thin memo mirrors the protocol memo
+            // maps' lifecycle: constructor-fresh, never cleared per parse.
+            let thin_memo_init: TokenStream = if self.cascade_thin_memo_active() {
+                quote! {
+                    thin_memo: rustc_hash::FxHashMap::default(),
+                }
+            } else {
+                quote! {}
+            };
             quote! {
                 bare_parse: false,
                 counters_observed: std::cell::Cell::new(false),
+                #thin_memo_init
             }
         } else {
             quote! {}

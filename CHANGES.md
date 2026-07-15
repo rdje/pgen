@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-07-15 - PGEN-RGX-0078-0090 — `.5.i.7` D2-B EMITTER: the CYCLIC-SPINE FUSED FOLD LANDED — regex geomean **−11.4%** (all 5 rounds, best-mins 15.78µs → **13.98µs**, EVERY pattern faster), cumulative 496µs → **≈14.0µs ≈ 35×**; byte-identical under the full battery; all 11 artifacts at the CASCADE-PLAN-B fold
+
+The emitter consumes the `-0089` plan seam at `CascadeIncrement::CyclicSpine`: every
+cascade-eligible rule fuses (regex 234 = 20 sub-roots + 214 internal; vhdl = ONE region
+root over its entire 216-rule grammar; SV 1046). Twin-dispatch RELOCATION as obligated
+(the 20 B sub-roots keep protocol + twin; the 37 former A sub-roots demote to fused
+internals — artifact dispatch sites 195→108). Cycle-participating INTERNAL rules carry
+exactly the protocol parts that are load-bearing on a cycle, lean: the protocol-mirror
+recursion guard (`check_cycle` + `enter`/`exit` — Infinite/LeftRecursive detection is
+exact iff every cyclic rule pushes in both graphs) and the **TAINT-CLASSED thin memo**
+(`ThinMemoEntry`, engine-owned): PURE bodies (no store read/write) replay at any store
+state; STORE-READ bodies replay under the unchanged epoch+deferred stamp
+(MEMO-STORE-SOUNDNESS.2 — ⛔ the #49 bound held); STORE-MUTATING bodies are never cached
+(value-only replay would skip effects; honest re-execution). Cyclic SUB-ROOTS
+(regex `pattern`) are protected by their method's REAL memo — fused references to
+sub-roots stay METHOD calls (pinned; a duplicated guard would falsely fire `Infinite`).
+MEASURED REFINEMENT recorded honestly: the first cut validated entries against a GLOBAL
+store-unchanged pair and REGRESSED the two fact-writing bench patterns (+3.4/+15.4% —
+root-caused from the outcome dumps' `facts_emitted` split); the per-entry taint classes
+fixed it, proven by a controlled A/B (capture_groups 1.154 → 0.941, anchor_complex
+1.034 → 0.906). VERIFIED: 8/8 fused-B ASTs byte-identical to the protocol references;
+outcome pins 1331/617/714/180 byte-exact via the twin; cert 0/7/42 `267/9/258/0` spf
+`0/1/1` byte-exact; full dual-feature lib suite **956/0** (+3 emitter tests) incl. the
+all-grammar equivalence oracle through the fused B graphs; duality-hunt + ast-shape +
+PCRE2 compile-oracle (2189 cases) + clippy source-strict + mdbook ALL green; regen
+deterministic ×2; census↔artifact single implementation proven live (plan-B counts ==
+emitted fn counts, all grammars); fused execution proven by a 638-frame live-stack
+sample; the cyclicity drift assert (census `rule_reaches_itself` vs generator
+`compute_recursive_rules`) held across all 11 regens. Speed (fat-LTO alternated 5×2000,
+probes differing ONLY in `generated/regex_parser.rs` — `d8173f31…` → `8c26c97f…`):
+faster all 5 rounds (0.883–0.892), geomean-of-mins −11.4%. CEILING MISS vs the `-0088`
+−28% floor adjudicated: the retained cycle-mandated machinery (guard scan + thin
+probe/insert) was priced as killed — the 3rd per-population-pricing lesson. Trap
+recorded: an EMITTED-type field change breaks the generator against its own artifacts
+(the core-type bootstrap-drift class) — unbroken via an exact-semantics transient
+migration; the bootstrap-binary regen shortcut explicitly rejected (the null→"null"
+payload-degradation trap). Lockstep: tree section + leaf frontier + TASK_TREE row +
+MEMORY + CHANGES + DEVELOPMENT_NOTES + TOOLBOX §5.3 + book (scoreboard row + the twin
+section's cyclic-spine story + speed-journey + parseability-probe-debug). NEXT = the
+POST-D2-B RE-CENSUS + RE-PROFILE #11 on the ≈14.0µs basis → re-price D2-C +
+match-then-build.
+
 ## 2026-07-15 - PGEN-RGX-0078-0089 — `.5.i.7` D2-B STEP-1: the INCREMENT-B PLAN SEAM (lib-only) — `compute_cascade_emission_plan_for_increment` at `CyclicSpine`; regex **sub_roots=20 internal=214 thin_memo=29 effect_reaching_fused=85 (of 234 fused)**; plan A byte-identical; census JSON additive-only
 
 The `-0088` GO's mandated seam-first slice (the P1a/`-0086` no-drift precedent). ONE

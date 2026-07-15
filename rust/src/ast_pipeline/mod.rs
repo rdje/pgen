@@ -838,6 +838,49 @@ pub struct MemoEntry<'input> {
     pub coverage_delta: Option<Vec<u32>>,
 }
 
+/// RGX-0078.5.i.7 (D2-B) — one entry of the fused cascade graph's THIN memo:
+/// the ⛔ session-#49 bound's carrier for CYCLE-PARTICIPATING fused rules
+/// (`CascadeEmissionPlan::thin_memo`), which must never lose memo protection.
+///
+/// Unlike [`MemoEntry`], a thin entry carries NO semantic/coverage delta —
+/// replay is `position = end; return value` (or the cached failure) and
+/// nothing else, so an entry is cached ONLY when value-only replay is provably
+/// equivalent to re-execution. The entry's `stamp` carries the protocol memo's
+/// own taint classes, measured across the body with three engine counters (the
+/// store write epoch — monotone, bumped by EVERY delta-visible mutation — the
+/// deferred-obligation count — the one deliberately epoch-blind mutation — and
+/// the predicate-evaluation counter, the store's only read path into parsing):
+///
+/// - **PURE** (`stamp: None`) — the body neither read a predicate nor mutated
+///   the store: its outcome is a function of (input, position) alone, and a
+///   replay skips nothing, so it is valid at ANY later store state — exactly
+///   the protocol's untainted-entry license. (The first thin-memo emission
+///   validated every entry against the global "store unchanged since insert"
+///   pair instead; measured on the 8-pattern bench that evicted the whole
+///   spine's entries on every capture fact write and REGRESSED the two
+///   fact-writing patterns +3.4/+15.4% — the per-entry class is the fix.)
+/// - **STORE-READ** (`stamp: Some((write_epoch, deferred_len))`) — the body
+///   evaluated ≥1 predicate but mutated nothing: replayable only while both
+///   stamps are unchanged (predicates are pure functions of position + store,
+///   the MEMO-STORE-SOUNDNESS.2 license); evicted and re-executed otherwise.
+/// - **STORE-MUTATING** — the body changed the epoch or enqueued an
+///   obligation: NOT cached at all. A value-only replay would skip the
+///   mutation the protocol memo re-applies from its stored delta, so every
+///   re-probe honestly re-executes (deterministic ⇒ same outcome + same
+///   effects).
+#[derive(Debug, Clone)]
+pub struct ThinMemoEntry<'input> {
+    /// `None` = PURE (valid forever); `Some((write_epoch, deferred_len))` =
+    /// STORE-READ, both captured at body entry and validated at replay.
+    pub stamp: Option<(u64, usize)>,
+    /// `Some((end_pos, node))` for a successful parse (the node's children are
+    /// arena borrows, so the clone-on-hit is shallow — the [`MemoEntry`]
+    /// economics); `None` for a cached failure, replayed as the protocol memo
+    /// replays every cached failure: `ParseError::Backtrack` at the probe key's
+    /// position.
+    pub outcome: Option<(usize, ParseNode<'input>)>,
+}
+
 /// Rule ID type for memoization
 pub type RuleId = u16;
 

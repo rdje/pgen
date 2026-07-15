@@ -1,15 +1,27 @@
-//! RGX-0078.5.i.7 (D2-A) — the FUSED CASCADE emitter: the acyclic-sub-region fold.
+//! RGX-0078.5.i.7 (D2-A + D2-B) — the FUSED CASCADE emitter: the full cascade
+//! fold (acyclic sub-regions + the cyclic spine).
 //!
 //! For every rule in the cascade emission plan (the SHARED
-//! `fusibility_census::compute_cascade_emission_plan` — sub-roots + internal rules,
-//! all acyclic and cascade-eligible), this module emits one compact
-//! `cascade_<rule>` function: the rule's parse logic and return-annotation value
-//! construction VERBATIM in semantics, with the per-rule protocol frame elided —
-//! no recursion-guard/parse-stack frame, no per-rule entry counter, no coverage
-//! push, no trace scope/lines, no rule transaction, no memo lane (acyclic ⇒
-//! same-position re-probe multiplicity is bounded by the grammar's static caller
-//! constant), and plain position-restore speculation wherever the speculation
-//! scope provably cannot reach a semantic effect.
+//! `fusibility_census::compute_cascade_emission_plan_for_increment` at
+//! `CascadeIncrement::CyclicSpine` — sub-roots + internal rules, every
+//! cascade-eligible rule), this module emits one compact `cascade_<rule>`
+//! function: the rule's parse logic and return-annotation value construction
+//! VERBATIM in semantics, with the per-rule protocol frame elided — no per-rule
+//! entry counter, no coverage push, no trace scope/lines, no rule transaction —
+//! and plain position-restore speculation wherever the speculation scope
+//! provably cannot reach a semantic effect.
+//!
+//! ACYCLIC fused rules additionally elide the recursion-guard/parse-stack frame
+//! (`check_cycle` is load-bearing only on a cycle — the Optim #16 argument) and
+//! every memo lane (same-position re-probe multiplicity is bounded by the
+//! grammar's static caller constant). CYCLE-PARTICIPATING internal fused rules
+//! (the plan's `thin_memo`, D2-B) keep both, in lean form: the protocol-mirror
+//! `check_cycle` + `enter`/`exit` guard frame, and the epoch-stamped THIN memo
+//! (⛔ the session-#49 bound — a cyclic fused rule never loses memo
+//! protection; see `ThinMemoEntry` for the value-only-replay soundness
+//! argument). A cycle-participating SUB-ROOT needs neither in its cascade fn:
+//! fused bodies call sub-roots as protocol METHODS, whose full frame already
+//! carries the guard and the real memo.
 //!
 //! The fused graph is reached ONLY on the bare-parse path via the
 //! observability-twin dispatch inside each sub-root's memoized body (see
@@ -59,6 +71,19 @@ pub(crate) struct CascadeCodegenPlan {
     /// iff its subtree references any rule in here (ineligible rules ∪ the
     /// effect-reaching fixpoint — see `CascadeEmissionPlan::effect_targets`).
     pub(crate) effect_targets: HashSet<String>,
+    /// RGX-0078.5.i.7 (D2-B) — the cycle-participating INTERNAL fused rules
+    /// (`CascadeEmissionPlan::thin_memo ∩ internal`): each one's `cascade_<rule>`
+    /// fn carries the recursion-guard frame (`check_cycle` + `enter`/`exit` —
+    /// load-bearing exactly on a cycle, the Optim #16 argument inverted) and the
+    /// epoch-stamped THIN memo (⛔ the session-#49 bound: a cyclic fused rule
+    /// never loses memo protection). A cycle-participating SUB-ROOT is
+    /// deliberately NOT in here: every bare-path entry to it goes through its
+    /// protocol method (fused bodies call sub-roots as methods), whose full
+    /// frame already provides `check_cycle`, the parse-stack frame, and the
+    /// REAL memo — a second guard frame inside its cascade fn would see the
+    /// method's own in-flight `(rule, position)` frame and falsely report
+    /// `Infinite`.
+    pub(crate) thin_memo_internal: HashSet<String>,
     /// All fused rules (sub-roots + internal), sorted — the deterministic
     /// emission order for the `cascade_<rule>` fns.
     pub(crate) fused_order: Vec<String>,
@@ -78,11 +103,18 @@ impl AstBasedGenerator {
     ) {
         let plan: Option<CascadeCodegenPlan> = (|| {
             let _compiled = self.analysis_runtime_annotations()?;
+            // RGX-0078.5.i.7 (D2-B) — the emitter now consumes the CYCLIC-SPINE
+            // increment of the SHARED census plan: every cascade-eligible rule
+            // is fused, sub-roots are the census's own full-fold region roots,
+            // and `thin_memo` names the cycle participants (the ⛔ #49
+            // carriers). The A increment remains computed by the census for
+            // its report lanes; the partition logic is ONE implementation.
             let census_plan =
-                crate::ast_pipeline::fusibility_census::compute_cascade_emission_plan(
+                crate::ast_pipeline::fusibility_census::compute_cascade_emission_plan_for_increment(
                     grammar_tree,
                     self.annotations.as_ref(),
                     Some(entry_rule),
+                    crate::ast_pipeline::fusibility_census::CascadeIncrement::CyclicSpine,
                 )
                 .ok()?;
             if census_plan.sub_roots.is_empty() {
@@ -95,16 +127,24 @@ impl AstBasedGenerator {
                 .cloned()
                 .collect();
             fused_order.sort();
+            let thin_memo_internal: HashSet<String> = census_plan
+                .thin_memo
+                .iter()
+                .filter(|rule| census_plan.internal.contains(*rule))
+                .cloned()
+                .collect();
             crate::pgen_trace_debug!(
-                "        D2-A cascade-emission plan: {} sub-root(s) with twin dispatch, {} internal rule(s) fused, {} effect target(s)",
+                "        D2-B cascade-emission plan: {} sub-root(s) with twin dispatch, {} internal rule(s) fused ({} thin-memo cyclic), {} effect target(s)",
                 census_plan.sub_roots.len(),
                 census_plan.internal.len(),
+                thin_memo_internal.len(),
                 census_plan.effect_targets.len(),
             );
             Some(CascadeCodegenPlan {
                 sub_roots: census_plan.sub_roots.into_iter().collect(),
                 internal: census_plan.internal.into_iter().collect(),
                 effect_targets: census_plan.effect_targets.into_iter().collect(),
+                thin_memo_internal,
                 fused_order,
             })
         })();
@@ -141,6 +181,23 @@ impl AstBasedGenerator {
             .is_some_and(|plan| plan.internal.contains(rule))
     }
 
+    /// RGX-0078.5.i.7 (D2-B) — is `rule` a cycle-participating INTERNAL fused
+    /// rule (its `cascade_<rule>` fn carries the recursion-guard frame + the
+    /// epoch-stamped thin memo)?
+    fn cascade_thin_memo_internal(&self, rule: &str) -> bool {
+        self.cascade_plan()
+            .is_some_and(|plan| plan.thin_memo_internal.contains(rule))
+    }
+
+    /// RGX-0078.5.i.7 (D2-B) — does this generation carry ≥ 1 thin-memo rule
+    /// (gates the `thin_memo` parser-struct field + its constructor init, so a
+    /// fully-acyclic grammar's artifact stays byte-identical to the D2-A
+    /// emission)?
+    pub(super) fn cascade_thin_memo_active(&self) -> bool {
+        self.cascade_plan()
+            .is_some_and(|plan| !plan.thin_memo_internal.is_empty())
+    }
+
     /// ⛔ C3-B rule 1's per-SITE test: does `node`'s subtree reference any rule
     /// from whose body a semantic effect is reachable (the plan's
     /// `effect_targets` — ineligible rules ∪ the effect-reaching fixpoint)? A
@@ -175,6 +232,29 @@ impl AstBasedGenerator {
         // through `effective_regex_pattern`, which is idempotent at the atom
         // site — the P1a inlined-frame precedent).
         let grammar_tree = self.first_set_grammar_tree.borrow().clone();
+        // RGX-0078.5.i.7 (D2-B) — the guard-frame license is a CYCLICITY claim
+        // resolved twice (the census's `rule_reaches_itself` behind the plan's
+        // `thin_memo`, and the generator's own `compute_recursive_rules` behind
+        // the protocol methods' `check_cycle` emission). The two walk the same
+        // rule-reference edges, so they must agree on every fused rule; a
+        // disagreement means the fused graph and the protocol graph would guard
+        // DIFFERENT rule sets — a loud codegen error, never a silent divergence
+        // (the P1a re-entry-guard precedent).
+        let recursive_rules = Self::compute_recursive_rules(&grammar_tree);
+        for rule_name in &fused_order {
+            let generator_cyclic = recursive_rules.contains(rule_name);
+            let plan_thin = plan.thin_memo_internal.contains(rule_name);
+            if plan_thin && !generator_cyclic {
+                anyhow::bail!(
+                    "cascade emission plan marks rule '{rule_name}' thin-memo (census-cyclic) but the generator's recursion analysis calls it non-recursive — the two cyclicity analyses drifted"
+                );
+            }
+            if plan.internal.contains(rule_name) && !plan_thin && generator_cyclic {
+                anyhow::bail!(
+                    "generator recursion analysis calls fused internal rule '{rule_name}' recursive but the census plan carries no thin memo for it — the two cyclicity analyses drifted"
+                );
+            }
+        }
         for rule_name in &fused_order {
             let Some(ast_node) = grammar_tree.get(rule_name) else {
                 anyhow::bail!(
@@ -184,11 +264,13 @@ impl AstBasedGenerator {
             cascade_fns.push(self.generate_cascade_rule_fn(rule_name, ast_node, filename)?);
         }
         Ok(quote! {
-            /// RGX-0078.5.i.7 (D2-A) — the FUSED cascade graph: compact per-rule
-            /// functions for the bare-parse path (no coverage / trace / counters /
-            /// memo-stats consumer). Entered exclusively through the
+            /// RGX-0078.5.i.7 (D2-A + D2-B) — the FUSED cascade graph: compact
+            /// per-rule functions for the bare-parse path (no coverage / trace /
+            /// counters / memo-stats consumer). Entered exclusively through the
             /// observability-twin dispatch at plan sub-root memoized bodies;
             /// every diagnostic consumer runs the untouched protocol methods.
+            /// Cycle-participating internal rules carry the recursion-guard
+            /// frame and the epoch-stamped thin memo (the ⛔ #49 bound).
             impl<'input> #parser_name<'input> {
                 #(#cascade_fns)*
             }
@@ -248,6 +330,163 @@ impl AstBasedGenerator {
             }
         };
 
+        // The rule's core body — shared verbatim between the plain (acyclic)
+        // form and the D2-B thin-memo (cyclic) form, so the acyclic emission is
+        // token-identical to the landed D2-A shape.
+        let core_body = quote! {
+            let start_pos = parser.position;
+            #parse_logic;
+            #post_parse_transform_tokens
+            let end_pos = parser.position;
+            Ok(ParseNode {
+                rule_name: #rule_name,
+                content: result,
+                span: start_pos..end_pos,
+            })
+        };
+
+        if self.cascade_thin_memo_internal(rule_name) {
+            // RGX-0078.5.i.7 (D2-B) — a CYCLE-PARTICIPATING internal fused rule:
+            // the protocol frame parts that are load-bearing exactly on a cycle
+            // are carried over, everything else stays elided.
+            //
+            // 1. RECURSION GUARD — `check_cycle`'s `Infinite`/`LeftRecursive`
+            //    verdicts scan the parse stack for THIS rule's in-flight frames,
+            //    so they are exact iff every cyclic rule pushes in both graphs:
+            //    each thin-memo fn mirrors the protocol method's
+            //    check/enter/exit (reject arms identical minus the trace lines,
+            //    which a bare parse can never enable). The whole-stack depth
+            //    ceiling keeps the landed D2-A margin semantics (the bare-path
+            //    stack omits acyclic fused frames in both increments).
+            // 2. THIN MEMO — the ⛔ #49 bound: probe/insert around the body,
+            //    with the protocol memo's own per-entry taint classes (PURE /
+            //    STORE-READ / STORE-MUTATING — see `ThinMemoEntry`), measured
+            //    across the body by the write epoch, the deferred-obligation
+            //    count, and the predicate-evaluation counter. Cached failures
+            //    replay as `Backtrack` at the probe position, exactly as the
+            //    protocol memo replays every cached failure.
+            //
+            // The body runs inside a closure so every `?`/early-return path
+            // still passes `recursion_guard.exit()` and the thin-memo insert
+            // (the [[feedback_question_bypasses_manual_cleanup]] IIFE pattern).
+            let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
+            let recursion_guard_max_depth = super::GENERATED_RECURSION_GUARD_MAX_DEPTH;
+            return Ok(quote! {
+                fn #cascade_fn(&mut self) -> ParseResult<ParseNode<'input>> {
+                    let parser = self;
+                    // The protocol method's rule-entry furthest update — the only
+                    // furthest write site — mirrored one-for-one for exact parity.
+                    if parser.position > parser.furthest_position {
+                        parser.furthest_position = parser.position;
+                    }
+                    let position = parser.position;
+                    match parser.recursion_guard.check_cycle(#rule_name, position) {
+                        CycleType::Infinite => {
+                            return Err(ParseError::InvalidSyntax {
+                                message: "Infinite recursion detected",
+                                position,
+                            });
+                        }
+                        CycleType::LeftRecursive => {
+                            return Err(ParseError::InvalidSyntax {
+                                message: "Left recursion detected",
+                                position,
+                            });
+                        }
+                        CycleType::MutualRecursive { depth, .. } if depth >= #recursion_guard_max_depth => {
+                            return Err(ParseError::RecursionDepthExceeded {
+                                position,
+                                depth,
+                            });
+                        }
+                        _ => {}
+                    }
+                    let __pgen_thin_key = (Self::#rule_const, position);
+                    let __pgen_thin_epoch = parser.semantic_runtime_state.write_epoch();
+                    let __pgen_thin_deferred = parser.semantic_runtime_state.deferred_obligation_count();
+                    let mut __pgen_thin_stale = false;
+                    if let Some(__pgen_thin_entry) = parser.thin_memo.get(&__pgen_thin_key) {
+                        let __pgen_thin_valid = match __pgen_thin_entry.stamp {
+                            // PURE — neither read nor mutated: valid at any store state.
+                            None => true,
+                            // STORE-READ — valid while the store is unchanged since.
+                            Some((__pgen_thin_e, __pgen_thin_d)) => {
+                                __pgen_thin_e == __pgen_thin_epoch
+                                    && __pgen_thin_d == __pgen_thin_deferred
+                            }
+                        };
+                        if __pgen_thin_valid {
+                            match &__pgen_thin_entry.outcome {
+                                Some((__pgen_thin_end, __pgen_thin_node)) => {
+                                    let __pgen_thin_end = *__pgen_thin_end;
+                                    let __pgen_thin_node = __pgen_thin_node.clone();
+                                    parser.position = __pgen_thin_end;
+                                    return Ok(__pgen_thin_node);
+                                }
+                                None => {
+                                    return Err(ParseError::Backtrack { position });
+                                }
+                            }
+                        }
+                        __pgen_thin_stale = true;
+                    }
+                    if __pgen_thin_stale {
+                        parser.thin_memo.remove(&__pgen_thin_key);
+                    }
+                    let __pgen_thin_preds = parser.semantic_runtime_state.predicate_evaluations();
+                    parser.recursion_guard.enter(#rule_name, position);
+                    let __pgen_thin_result: ParseResult<ParseNode<'input>> =
+                        (|parser: &mut Self| -> ParseResult<ParseNode<'input>> {
+                            #core_body
+                        })(parser);
+                    parser.recursion_guard.exit();
+                    // Classify the body per the ThinMemoEntry taint classes: a
+                    // store-MUTATING body is never cached (value-only replay
+                    // would skip its effects); a store-READ body is cached with
+                    // the unchanged-epoch stamp; a PURE body is cached
+                    // unconditionally (the protocol's untainted license).
+                    let __pgen_thin_mutated =
+                        parser.semantic_runtime_state.write_epoch() != __pgen_thin_epoch
+                            || parser.semantic_runtime_state.deferred_obligation_count()
+                                != __pgen_thin_deferred;
+                    if !__pgen_thin_mutated {
+                        let __pgen_thin_stamp =
+                            if parser.semantic_runtime_state.predicate_evaluations()
+                                == __pgen_thin_preds
+                            {
+                                None
+                            } else {
+                                Some((__pgen_thin_epoch, __pgen_thin_deferred))
+                            };
+                        match &__pgen_thin_result {
+                            Ok(__pgen_thin_node) => {
+                                parser.thin_memo.insert(
+                                    __pgen_thin_key,
+                                    crate::ast_pipeline::ThinMemoEntry {
+                                        stamp: __pgen_thin_stamp,
+                                        outcome: Some((
+                                            __pgen_thin_node.span.end,
+                                            __pgen_thin_node.clone(),
+                                        )),
+                                    },
+                                );
+                            }
+                            Err(_) => {
+                                parser.thin_memo.insert(
+                                    __pgen_thin_key,
+                                    crate::ast_pipeline::ThinMemoEntry {
+                                        stamp: __pgen_thin_stamp,
+                                        outcome: None,
+                                    },
+                                );
+                            }
+                        }
+                    }
+                    __pgen_thin_result
+                }
+            });
+        }
+
         Ok(quote! {
             fn #cascade_fn(&mut self) -> ParseResult<ParseNode<'input>> {
                 let parser = self;
@@ -256,15 +495,7 @@ impl AstBasedGenerator {
                 if parser.position > parser.furthest_position {
                     parser.furthest_position = parser.position;
                 }
-                let start_pos = parser.position;
-                #parse_logic;
-                #post_parse_transform_tokens
-                let end_pos = parser.position;
-                Ok(ParseNode {
-                    rule_name: #rule_name,
-                    content: result,
-                    span: start_pos..end_pos,
-                })
+                #core_body
             }
         })
     }
@@ -790,10 +1021,12 @@ impl AstBasedGenerator {
 
     /// The `Atom` mirror: terminals through the SAME `match_string` /
     /// `match_regex` helpers (layout policy inherited by construction);
-    /// plan-internal rule references become direct `cascade_<rule>` calls
-    /// (furthest updated at the callee's head — the method-entry mirror); every
-    /// other reference (sub-roots, cyclic-eligible rules, ineligible rules,
-    /// engine builtins) stays a protocol method call-out.
+    /// plan-internal rule references (including the D2-B cyclic spine) become
+    /// direct `cascade_<rule>` calls (furthest updated at the callee's head —
+    /// the method-entry mirror); every other reference (sub-roots, ineligible
+    /// rules, engine builtins) stays a protocol method call-out — a sub-root
+    /// call-out is what gives a cyclic sub-root its guard + real-memo
+    /// protection on the bare path.
     fn cascade_atom_logic(&self, value: &ASTValue, rule_name: &str) -> Result<TokenStream> {
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
@@ -1308,6 +1541,234 @@ mod tests {
         assert!(
             generator.cascade_sub_root("clean"),
             "the eligible rule referenced by the ineligible entry is a sub-root"
+        );
+    }
+
+    /// RGX-0078.5.i.7 (D2-B) — a CYCLE-PARTICIPATING internal rule fuses under
+    /// the CyclicSpine increment: its cascade fn recurses through direct
+    /// cascade calls and carries the recursion-guard frame + the epoch-stamped
+    /// thin memo; an acyclic rule in the same plan keeps the frame-free D2-A
+    /// shape.
+    #[test]
+    fn cascade_cyclic_internal_rule_gets_guard_frame_and_thin_memo() {
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_ref("cyc"), atom_ref("leaf")],
+            },
+        );
+        // cyc → "(" cyc? — reaches itself, so it is census-cyclic AND
+        // generator-recursive (the drift assert's agreeing case).
+        tree.insert(
+            "cyc".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    atom_lit("("),
+                    ASTNode::Quantified {
+                        element: Box::new(atom_ref("cyc")),
+                        quantifier: "?".to_string(),
+                    },
+                ],
+            },
+        );
+        tree.insert(
+            "leaf".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_lit("x")],
+            },
+        );
+
+        let generator = generator_for(Some(Annotations::default()));
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+
+        assert!(generator.cascade_plan_active(), "plan must be active");
+        assert!(
+            generator.cascade_internal("cyc"),
+            "the cyclic rule fuses as internal under the CyclicSpine increment"
+        );
+        assert!(
+            generator.cascade_thin_memo_active(),
+            "a cyclic internal rule activates the thin memo"
+        );
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+
+        // The cyclic fn: guard frame + thin memo + recursive direct cascade call.
+        let cyc_fn_start = rendered
+            .find("fn cascade_cyc")
+            .expect("cyclic rule gets a cascade fn");
+        let leaf_fn_start = rendered
+            .find("fn cascade_leaf")
+            .expect("acyclic rule gets a cascade fn");
+        let cyc_body = &rendered[cyc_fn_start
+            ..rendered[cyc_fn_start + 1..]
+                .find("fn cascade_")
+                .map(|off| cyc_fn_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            cyc_body.contains("check_cycle")
+                && cyc_body.contains("recursion_guard . enter")
+                && cyc_body.contains("recursion_guard . exit"),
+            "the cyclic fn carries the protocol-mirror guard frame, got: {cyc_body}"
+        );
+        assert!(
+            cyc_body.contains("thin_memo")
+                && cyc_body.contains("write_epoch")
+                && cyc_body.contains("deferred_obligation_count")
+                && cyc_body.contains("ThinMemoEntry"),
+            "the cyclic fn carries the epoch-stamped thin memo, got: {cyc_body}"
+        );
+        assert!(
+            cyc_body.contains("cascade_cyc ()"),
+            "the cyclic self-reference is a direct recursive cascade call, got: {cyc_body}"
+        );
+        // The acyclic fn keeps the frame-free D2-A shape.
+        let leaf_body = &rendered[leaf_fn_start
+            ..rendered[leaf_fn_start + 1..]
+                .find("fn cascade_")
+                .map(|off| leaf_fn_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            !leaf_body.contains("recursion_guard") && !leaf_body.contains("thin_memo"),
+            "an acyclic fused rule carries neither guard nor memo, got: {leaf_body}"
+        );
+    }
+
+    /// RGX-0078.5.i.7 (D2-B) — a CYCLE-PARTICIPATING SUB-ROOT keeps the twin
+    /// dispatch in its protocol method but gets NO guard frame and NO thin memo
+    /// in its cascade fn: every bare-path entry to it goes through the method
+    /// (fused bodies call sub-roots as methods), whose full frame already
+    /// provides `check_cycle` + the real memo — a duplicated guard frame would
+    /// see the method's own in-flight frame and falsely report `Infinite`.
+    #[test]
+    fn cascade_cyclic_sub_root_keeps_protocol_protection_not_thin_memo() {
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        // The entry itself is the cycle: entry → "(" entry? ")".
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    atom_lit("("),
+                    ASTNode::Quantified {
+                        element: Box::new(atom_ref("entry")),
+                        quantifier: "?".to_string(),
+                    },
+                    atom_lit(")"),
+                ],
+            },
+        );
+
+        let generator = generator_for(Some(Annotations::default()));
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+
+        assert!(generator.cascade_plan_active(), "plan must be active");
+        assert!(
+            generator.cascade_sub_root("entry"),
+            "the cyclic entry is a sub-root"
+        );
+        assert!(
+            !generator.cascade_thin_memo_active(),
+            "a cyclic SUB-ROOT activates no thin memo (its method's real memo protects it)"
+        );
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+        assert!(
+            !rendered.contains("recursion_guard") && !rendered.contains("thin_memo"),
+            "the cyclic sub-root's cascade fn carries neither guard nor thin memo, got: {rendered}"
+        );
+        assert!(
+            rendered.contains("parse_entry ()"),
+            "the cyclic self-reference routes through the protocol METHOD (guard + real memo), got: {rendered}"
+        );
+        // The twin dispatch stays at the sub-root's protocol method.
+        let entry_body = generator
+            .generate_rule_body_inner("entry", tree.get("entry").unwrap(), "cascade_test.rs")
+            .expect("entry body generation should succeed")
+            .to_string();
+        assert!(
+            entry_body.contains("bare_parse") && entry_body.contains("cascade_entry"),
+            "the cyclic sub-root keeps the twin dispatch, got: {entry_body}"
+        );
+    }
+
+    /// RGX-0078.5.i.7 (D2-B) — twin-dispatch RELOCATION: an acyclic rule whose
+    /// only caller is a cyclic rule was a SUB-ROOT under increment A (its
+    /// caller was a protocol boundary there) and demotes to a plain fused
+    /// INTERNAL under the CyclicSpine increment — its references become direct
+    /// cascade calls and its protocol method loses the twin dispatch.
+    #[test]
+    fn cascade_former_a_sub_root_demotes_to_internal_under_cyclic_spine() {
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_ref("cyc")],
+            },
+        );
+        tree.insert(
+            "cyc".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    atom_lit("("),
+                    atom_ref("leaf"),
+                    ASTNode::Quantified {
+                        element: Box::new(atom_ref("cyc")),
+                        quantifier: "?".to_string(),
+                    },
+                ],
+            },
+        );
+        tree.insert(
+            "leaf".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_lit("x")],
+            },
+        );
+
+        let generator = generator_for(Some(Annotations::default()));
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+
+        // Under increment A `leaf` was a sub-root (referenced by the cyclic —
+        // then non-fused — `cyc`); under B its every caller is fused, so it is
+        // plain internal (the -0088 "188 promoted sub-root entries" class).
+        assert!(
+            generator.cascade_internal("leaf") && !generator.cascade_sub_root("leaf"),
+            "the former A sub-root demotes to internal under the CyclicSpine increment"
+        );
+        assert!(
+            generator.cascade_internal("cyc"),
+            "the cyclic caller fuses as internal"
+        );
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+        assert!(
+            rendered.contains("cascade_leaf ()") && !rendered.contains("parse_leaf ()"),
+            "fused references to the demoted rule are direct cascade calls, got: {rendered}"
+        );
+        // The demoted rule's protocol method carries no twin dispatch anymore.
+        let leaf_body = generator
+            .generate_rule_body_inner("leaf", tree.get("leaf").unwrap(), "cascade_test.rs")
+            .expect("leaf body generation should succeed")
+            .to_string();
+        assert!(
+            !leaf_body.contains("bare_parse"),
+            "a demoted internal rule's method loses the twin dispatch, got: {leaf_body}"
         );
     }
 }
