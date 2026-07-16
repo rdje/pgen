@@ -5040,7 +5040,9 @@ fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
     match content {
         ParseContent::Terminal(_) => "terminal",
         ParseContent::TransformedTerminal(_) => "transformed_terminal",
-        ParseContent::Json(_) => "json",
+        // `Shaped` is the arena representation of the same logical carrier —
+        // diagnostics must not distinguish the two (it serializes as "Json").
+        ParseContent::Json(_) | ParseContent::Shaped(_) => "json",
         ParseContent::Sequence(_) => "sequence",
         ParseContent::Alternative(_) => "alternative",
         ParseContent::Quantified(_, _) => "quantified",

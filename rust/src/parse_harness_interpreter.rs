@@ -1853,6 +1853,14 @@ impl<'g, 'i> Interp<'g, 'i> {
                 serde_json::Value::Null => None,
                 other => Some(other.to_string()),
             },
+            // Byte-exact mirror of the `Json` arm over the arena carrier:
+            // `to_serde_value().to_string()` renders exactly what the owned
+            // `Value`'s `Display` renders for the same logical value.
+            ParseContent::Shaped(value) => match value {
+                crate::ast_pipeline::PgenValue::Str(s) => Some((*s).to_string()),
+                crate::ast_pipeline::PgenValue::Null => None,
+                other => Some(other.to_serde_value().to_string()),
+            },
             ParseContent::Alternative(node) => self.semantic_node_scalar(node),
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                 let mut merged = String::new();

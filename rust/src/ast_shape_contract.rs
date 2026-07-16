@@ -143,6 +143,18 @@ impl ContentKind {
                 serde_json::Value::Bool(_) => ContentKind::JsonBool,
                 serde_json::Value::Null => ContentKind::JsonNull,
             },
+            // The arena carrier classifies identically to the owned one — the
+            // shape contract must be representation-blind.
+            ParseContent::Shaped(value) => match value {
+                crate::ast_pipeline::PgenValue::Object(_) => ContentKind::JsonObject,
+                crate::ast_pipeline::PgenValue::Array(_) => ContentKind::JsonArray,
+                crate::ast_pipeline::PgenValue::Str(_) => ContentKind::JsonString,
+                crate::ast_pipeline::PgenValue::Int(_)
+                | crate::ast_pipeline::PgenValue::UInt(_)
+                | crate::ast_pipeline::PgenValue::Float(_) => ContentKind::JsonNumber,
+                crate::ast_pipeline::PgenValue::Bool(_) => ContentKind::JsonBool,
+                crate::ast_pipeline::PgenValue::Null => ContentKind::JsonNull,
+            },
             ParseContent::Sequence(_) => ContentKind::Sequence,
             ParseContent::Alternative(_) => ContentKind::Alternative,
             ParseContent::Quantified(_, _) => ContentKind::Quantified,

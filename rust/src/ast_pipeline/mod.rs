@@ -1,5 +1,7 @@
 use anyhow::{Result, anyhow};
 use serde;
+
+pub use self::pgen_value::PgenValue;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs::{File, OpenOptions};
@@ -743,7 +745,76 @@ impl std::error::Error for ParseError {}
 /// viral second lifetime. `#[derive(Serialize)]`/`PartialEq` stay byte-identical
 /// because serde/Eq see through the `&'input` borrow exactly as through the old
 /// `Box`/`Vec`.
-pub type NodeArena<'input> = typed_arena::Arena<ParseNode<'input>>;
+/// RGX-0078.5.i.7 REPRESENTATION (`PGEN-RGX-0078-0104`): `NodeArena` grew from
+/// a bare `typed_arena::Arena<ParseNode>` alias into a struct that ALSO owns
+/// the arenas backing [`PgenValue`]'s composite slices and rendered strings.
+/// The swap is source-compatible by the `-0103` verified fact that every
+/// consumer (lib + all generated artifacts, 22,029 sites) touches the arena
+/// ONLY through `NodeArena::new()` and `.alloc(node)` — both preserved with
+/// identical signatures — so on-disk artifacts keep compiling unchanged.
+pub struct NodeArena<'input> {
+    nodes: typed_arena::Arena<ParseNode<'input>>,
+    shaped_values: typed_arena::Arena<PgenValue<'input>>,
+    shaped_pairs: typed_arena::Arena<(&'input str, PgenValue<'input>)>,
+    /// Owned rendered strings (transform outputs and other non-input-slice
+    /// text) interned for the parse's lifetime; `typed_arena` is drop-correct,
+    /// so they are freed with the arena exactly like node payloads.
+    rendered_strings: typed_arena::Arena<String>,
+}
+
+impl<'input> NodeArena<'input> {
+    pub fn new() -> Self {
+        NodeArena {
+            nodes: typed_arena::Arena::new(),
+            shaped_values: typed_arena::Arena::new(),
+            shaped_pairs: typed_arena::Arena::new(),
+            rendered_strings: typed_arena::Arena::new(),
+        }
+    }
+
+    /// The historical node allocation — signature identical to the
+    /// `typed_arena::Arena::alloc` every generated artifact already calls.
+    #[inline]
+    pub fn alloc(&self, node: ParseNode<'input>) -> &mut ParseNode<'input> {
+        self.nodes.alloc(node)
+    }
+
+    /// Allocate a contiguous shaped-value slice (a `PgenValue::Array` body).
+    #[inline]
+    pub fn alloc_shaped_values<I>(&self, values: I) -> &mut [PgenValue<'input>]
+    where
+        I: IntoIterator<Item = PgenValue<'input>>,
+    {
+        self.shaped_values.alloc_extend(values)
+    }
+
+    /// Allocate a contiguous, ALREADY key-sorted/deduped pair slice (a
+    /// `PgenValue::Object` body — build it with
+    /// [`pgen_value::insert_object_pair`]).
+    #[inline]
+    pub fn alloc_shaped_pairs<I>(
+        &self,
+        pairs: I,
+    ) -> &mut [(&'input str, PgenValue<'input>)]
+    where
+        I: IntoIterator<Item = (&'input str, PgenValue<'input>)>,
+    {
+        self.shaped_pairs.alloc_extend(pairs)
+    }
+
+    /// Intern an owned rendered string for the parse's lifetime and hand back
+    /// the borrow `PgenValue::Str` needs.
+    #[inline]
+    pub fn alloc_rendered_string(&self, text: String) -> &str {
+        self.rendered_strings.alloc(text).as_str()
+    }
+}
+
+impl Default for NodeArena<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Parse content types
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
@@ -753,7 +824,20 @@ pub enum ParseContent<'input> {
     /// Typed structured carrier for return-annotation object/array literals and
     /// property/array access results. Avoids the runtime serialise/parse/serialise
     /// roundtrip the older `TransformedTerminal(stringified-json)` path used.
+    ///
+    /// TRANSITIONAL (`PGEN-RGX-0078-0104`): being replaced by [`Shaped`] (the
+    /// arena-`Copy` representation). Retires via the `-0090` additive
+    /// transient-migration discipline once no regenerated artifact constructs
+    /// it (the `ThinMemoEntry` retirement pattern).
     Json(serde_json::Value),
+    /// The arena-`Copy` shaped-value carrier (RGX-0078.5.i.7 REPRESENTATION,
+    /// `PGEN-RGX-0078-0104`) — replaces eager `serde_json::Value` construction
+    /// inside the parse. Serializes as `"Json"` (Serialize-only enum, so the
+    /// duplicate wire name is legal), keeping the released typed-AST JSON
+    /// carrier byte-identical: same variant tag, same value bytes (the
+    /// [`PgenValue`] `Serialize` mirror), no schema bump.
+    #[serde(rename = "Json")]
+    Shaped(PgenValue<'input>),
     Sequence(Vec<&'input ParseNode<'input>>),
     Alternative(&'input ParseNode<'input>),
     Quantified(Vec<&'input ParseNode<'input>>, &'static str),
@@ -775,6 +859,7 @@ impl<'input> ParseContent<'input> {
                     .unwrap_or_else(|_| serde_json::Value::String(s.clone()))
             }
             ParseContent::Json(value) => value.clone(),
+            ParseContent::Shaped(value) => value.to_serde_value(),
             ParseContent::Alternative(node) => node.content.to_json_value(),
             ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
                 serde_json::Value::Array(
@@ -4734,6 +4819,7 @@ mod tests {
 
 pub mod annotation_validator;
 pub mod ast_based_generator;
+pub mod pgen_value;
 // SV-EXH-PROOF.3.3.4.b.6.2.22 — live per-rule call-counter dashboard.
 pub mod call_count_dashboard;
 pub mod ast_code_generator;

@@ -2013,7 +2013,9 @@ impl UnifiedReturnAST {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
-            ParseContent::Json(_) => Self::parse_generated_value_node(input, node, logger),
+            ParseContent::Json(_) | ParseContent::Shaped(_) => {
+                Self::parse_generated_value_node(input, node, logger)
+            }
             ParseContent::Alternative(inner) => {
                 if inner.rule_name == "arrow" {
                     Ok(UnifiedReturnAST::Passthrough)
@@ -2049,6 +2051,11 @@ impl UnifiedReturnAST {
         // shape.
         if let ParseContent::Json(ref value) = node.content {
             return Self::parse_typed_return_value(value);
+        }
+        if let ParseContent::Shaped(value) = node.content {
+            // Same fast path through the owned-value reader; this runs on the
+            // annotation-grammar self-parse boundary, not the hot parse path.
+            return Self::parse_typed_return_value(&value.to_serde_value());
         }
         match node.rule_name {
             "return_annotation" => {
@@ -2105,7 +2112,7 @@ impl UnifiedReturnAST {
                     "Unsupported generated return parse node '{}' with terminal payload",
                     node.rule_name
                 )),
-                ParseContent::Json(_) => Err(format!(
+                ParseContent::Json(_) | ParseContent::Shaped(_) => Err(format!(
                     "Unsupported generated return parse node '{}' with json payload",
                     node.rule_name
                 )),
@@ -2786,7 +2793,8 @@ impl UnifiedReturnAST {
             }
             ParseContent::Terminal(_)
             | ParseContent::TransformedTerminal(_)
-            | ParseContent::Json(_) => None,
+            | ParseContent::Json(_)
+            | ParseContent::Shaped(_) => None,
         }
     }
 

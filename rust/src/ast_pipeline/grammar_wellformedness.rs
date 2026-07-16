@@ -2106,7 +2106,8 @@ fn collect_covered_rules(node: &super::ParseNode<'_>, out: &mut HashSet<String>)
         super::ParseContent::Alternative(child) => collect_covered_rules(child, out),
         super::ParseContent::Terminal(_)
         | super::ParseContent::TransformedTerminal(_)
-        | super::ParseContent::Json(_) => {}
+        | super::ParseContent::Json(_)
+        | super::ParseContent::Shaped(_) => {}
     }
 }
 
