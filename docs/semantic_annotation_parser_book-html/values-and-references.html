@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-89654881.js";
+            window.path_to_searchindex_js = "searchindex-918f50ca.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -272,7 +272,7 @@ See <a href="backends.html">Backends</a>.</p>
 <h3 id="shaped-vs-raw-reference-resolution"><a class="header" href="#shaped-vs-raw-reference-resolution">Shaped vs. raw reference resolution</a></h3>
 <p>When a <code>$name</code> / <code>$a.b</code> reference resolves against a rule X (SEMREF-SHAPED, 2026-05-18):</p>
 <ul>
-<li>if X has a <code>-&gt;</code> return annotation that produces an object (<code>ParseContent::Json</code>), <code>$name</code> is a
+<li>if X has a <code>-&gt;</code> return annotation that produces an object (<code>ParseContent::Shaped</code>, serialized as <code>"Json"</code>), <code>$name</code> is a
 key/path lookup into the <strong>shaped</strong> structure down to a scalar leaf (String/Number/Bool as-is; an
 absent key, a non-object intermediate, <code>Null</code>, or a non-scalar leaf → unresolved);</li>
 <li>if X has no <code>-&gt;</code>, resolution is the raw sub-rule-name descendant search.</li>

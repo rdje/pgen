@@ -9,7 +9,7 @@ Every parse — from a one-character pattern like `a` to a complex multi-thousan
 ```rust
 ParseNode {
     rule_name: "regex",
-    content: ParseContent::Json(...),
+    content: ParseContent::Shaped(...),   // the typed carrier — serialized as "Json"
     span: 0..N,
 }
 ```
@@ -84,14 +84,14 @@ For input `a` (one ASCII letter):
 Walking layer by layer:
 
 - **Layer 1**: `ParseNode { rule_name: "regex", span: 0..1, content: ... }`.
-- **Layer 2**: `content` is `ParseContent::Json(<value>)`. The `<value>` is whatever the `regex` rule's annotation produced.
+- **Layer 2**: `content` is `ParseContent::Shaped(<value>)` — the arena typed-value carrier (`PgenValue`), which serializes under the `"Json"` wire tag. The `<value>` is whatever the `regex` rule's annotation produced.
 - **Layer 3**: The `regex` rule's annotation is `-> {type: "regex", pattern: $1}`, so the value is `{"type": "regex", "pattern": <$1>}` where `$1` is the matched `pattern` content.
 
 The `pattern` field's value `[[[{...}]], []]` is the raw shape of `pattern -> alternation -> alternative -> concatenation`; see [Top-Level Rules](rules-top-level.md) for why it has that nesting depth.
 
 ## A quick map of where Json appears
 
-The `Json` carrier replaces the recursive `Sequence`/`Alternative` envelope **wherever a rule has an explicit return annotation in `grammars/regex.ebnf`**. Currently that includes:
+The `Json` carrier (Rust-side: `ParseContent::Shaped`, serialized as `"Json"`) replaces the recursive `Sequence`/`Alternative` envelope **wherever a rule has an explicit return annotation in `grammars/regex.ebnf`**. Currently that includes:
 
 - `regex` — top level, always Json.
 - `pattern` — `-> $1`, content unwraps to the inner alternation's shape.

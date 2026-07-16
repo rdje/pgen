@@ -28,8 +28,11 @@ fn walk_content(content: &ParseContent<'_>, depth: usize) {
         ParseContent::TransformedTerminal(s) => {
             println!("{}TransformedTerminal({:?})", indent, s);
         }
-        ParseContent::Json(value) => {
-            walk_json(value, depth);
+        ParseContent::Shaped(shaped) => {
+            // The arena typed carrier (serialized as "Json") — convert once
+            // to the owned serde_json::Value view for the semantic layer.
+            let value = shaped.to_serde_value();
+            walk_json(&value, depth);
         }
         ParseContent::Sequence(nodes) => {
             println!("{}Sequence", indent);

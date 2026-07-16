@@ -246,10 +246,9 @@ impl AstReturnTransformer {
                     //     `piece_quoted_run_quantified` emits a typed array of
                     //     pieces, and the parent `concatenation = piece+ ->
                     //     [$1**]` failed to spread. (`-0105`: the arm now
-                    //     matches `Shaped` — emitted constructions no longer
-                    //     produce `Json`, and referencing the transitional
-                    //     variant nowhere keeps the artifact ready for its
-                    //     lib-side retirement.)
+                    //     matches `Shaped`; emitted constructions reference
+                    //     the retired `Json` variant nowhere, so its `-0106`
+                    //     lib-side retirement never touched artifacts.)
                     let base_code = Self::generate_transform(base, captured_vars, "")?;
                     element_codes.push(quote! {
                         // Inner helper: peel `Alternative` one level recursively
@@ -774,9 +773,8 @@ mod tests {
     /// constructor over ONE `alloc_shaped_pairs` arena bump, with the static
     /// keys pre-sorted at codegen time — and none of the retired machinery:
     /// no `serde_json::Map`, no key `.to_string()`, no `ParseContent::Json`
-    /// reference at all (the artifact must be ready for the transitional
-    /// variant's lib-side retirement), no `serde_json::to_string`, no
-    /// `TransformedTerminal` wrapping.
+    /// reference at all (the `Json` variant was retired lib-side at `-0106`),
+    /// no `serde_json::to_string`, no `TransformedTerminal` wrapping.
     #[test]
     fn object_literal_transform_emits_shaped_carrier_with_presorted_static_keys() {
         let mut props: std::collections::HashMap<String, Box<UnifiedReturnAST>> =
@@ -872,8 +870,8 @@ mod tests {
 
     /// Phase 2 typed-carrier contract: `to_json_value` is the carrier-agnostic
     /// helper that lets transform paths cross between the legacy
-    /// `Sequence`/`Quantified`/`Terminal` carriers and the typed `Json` carrier
-    /// without re-stringifying. This pins the helper's translation rules.
+    /// `Sequence`/`Quantified`/`Terminal` carriers and the typed `Shaped`
+    /// carrier without re-stringifying. This pins the helper's translation rules.
     #[test]
     fn parse_content_to_json_value_translates_each_variant() {
         use crate::ast_pipeline::{ParseContent, ParseNode};
@@ -882,10 +880,9 @@ mod tests {
         let t = ParseContent::Terminal("abc");
         assert_eq!(t.to_json_value(), serde_json::Value::String("abc".into()));
 
-        // Json -> identity
-        let v = serde_json::json!({"k": 1});
-        let j = ParseContent::Json(v.clone());
-        assert_eq!(j.to_json_value(), v);
+        // Shaped -> the owned Value the Serialize mirror guarantees
+        let s = ParseContent::Shaped(crate::ast_pipeline::PgenValue::Int(1));
+        assert_eq!(s.to_json_value(), serde_json::json!(1));
 
         // TransformedTerminal carrying valid JSON -> parsed value
         let parsed = ParseContent::TransformedTerminal("{\"k\":1}".to_string());
@@ -928,7 +925,6 @@ mod tests {
             ParseContent::TransformedTerminal("{\"k\":1}".to_string()),
             ParseContent::TransformedTerminal("18446744073709551615".to_string()),
             ParseContent::TransformedTerminal("plain".to_string()),
-            ParseContent::Json(serde_json::json!({"k": [1, 2.5, null]})),
             ParseContent::Shaped(PgenValue::Array(shaped_items)),
             ParseContent::Sequence(vec![&*inner]),
             ParseContent::Alternative(&*inner),

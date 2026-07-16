@@ -821,19 +821,13 @@ impl Default for NodeArena<'_> {
 pub enum ParseContent<'input> {
     Terminal(&'input str),
     TransformedTerminal(String),
-    /// Typed structured carrier for return-annotation object/array literals and
-    /// property/array access results. Avoids the runtime serialise/parse/serialise
-    /// roundtrip the older `TransformedTerminal(stringified-json)` path used.
-    ///
-    /// TRANSITIONAL (`PGEN-RGX-0078-0104`): being replaced by [`Shaped`] (the
-    /// arena-`Copy` representation). Retires via the `-0090` additive
-    /// transient-migration discipline once no regenerated artifact constructs
-    /// it (the `ThinMemoEntry` retirement pattern).
-    Json(serde_json::Value),
-    /// The arena-`Copy` shaped-value carrier (RGX-0078.5.i.7 REPRESENTATION,
-    /// `PGEN-RGX-0078-0104`) — replaces eager `serde_json::Value` construction
-    /// inside the parse. Serializes as `"Json"` (Serialize-only enum, so the
-    /// duplicate wire name is legal), keeping the released typed-AST JSON
+    /// The typed structured carrier for return-annotation object/array
+    /// literals and property/array access results (RGX-0078.5.i.7
+    /// REPRESENTATION, `PGEN-RGX-0078-0104/-0105/-0106`) — an arena-`Copy`
+    /// shaped value built directly inside the parse, with no runtime
+    /// serialise/parse/serialise roundtrip and no owned `serde_json::Value`
+    /// construction. Serializes as `"Json"`, the wire tag of the retired
+    /// owned-`Value` variant it replaced, keeping the released typed-AST JSON
     /// carrier byte-identical: same variant tag, same value bytes (the
     /// [`PgenValue`] `Serialize` mirror), no schema bump.
     #[serde(rename = "Json")]
@@ -858,7 +852,6 @@ impl<'input> ParseContent<'input> {
                 serde_json::from_str::<serde_json::Value>(s)
                     .unwrap_or_else(|_| serde_json::Value::String(s.clone()))
             }
-            ParseContent::Json(value) => value.clone(),
             ParseContent::Shaped(value) => value.to_serde_value(),
             ParseContent::Alternative(node) => node.content.to_json_value(),
             ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
@@ -886,7 +879,6 @@ impl<'input> ParseContent<'input> {
                     Err(_) => PgenValue::Str(arena.alloc_rendered_string(text.clone())),
                 }
             }
-            ParseContent::Json(value) => PgenValue::from_serde(value, arena),
             ParseContent::Shaped(value) => *value,
             ParseContent::Alternative(node) => node.content.to_shaped_value(arena),
             ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {

@@ -580,9 +580,10 @@ fn generate_typed_quantified_value_expr(
 /// Spread / QuantifiedExtraction / Identifier return `None` and the
 /// caller falls back to the slice-2 passthrough body.
 ///
-/// **Byte-equivalence:** the legacy emit for annotated rules produces
-/// `ParseContent::Json(transformed_value)` whose `to_json_value()`
-/// returns `value.clone()`. The typed body builds the same JSON
+/// **Byte-equivalence:** the standard emit for annotated rules produces
+/// `ParseContent::Shaped(transformed_value)` whose `to_json_value()`
+/// yields the identical owned `Value` (the `PgenValue` `Serialize`
+/// mirror). The typed body builds the same JSON
 /// structure directly. Positional ref semantics: `$N` over a
 /// `?`-Quantified element returns the inner value or `Value::Null`
 /// (NOT `Value::Array(vec![])` — annotation-side positional refs

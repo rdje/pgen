@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0b5538cc.js";
+            window.path_to_searchindex_js = "searchindex-c176ac8c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -188,7 +188,7 @@
 </span><span class="boring">fn main() {
 </span>ParseNode {
     rule_name: "regex",
-    content: ParseContent::Json(...),
+    content: ParseContent::Shaped(...),   // the typed carrier — serialized as "Json"
     span: 0..N,
 }
 <span class="boring">}</span></code></pre>
@@ -249,12 +249,12 @@
 <p>Walking layer by layer:</p>
 <ul>
 <li><strong>Layer 1</strong>: <code>ParseNode { rule_name: "regex", span: 0..1, content: ... }</code>.</li>
-<li><strong>Layer 2</strong>: <code>content</code> is <code>ParseContent::Json(&lt;value&gt;)</code>. The <code>&lt;value&gt;</code> is whatever the <code>regex</code> rule’s annotation produced.</li>
+<li><strong>Layer 2</strong>: <code>content</code> is <code>ParseContent::Shaped(&lt;value&gt;)</code> — the arena typed-value carrier (<code>PgenValue</code>), which serializes under the <code>"Json"</code> wire tag. The <code>&lt;value&gt;</code> is whatever the <code>regex</code> rule’s annotation produced.</li>
 <li><strong>Layer 3</strong>: The <code>regex</code> rule’s annotation is <code>-&gt; {type: "regex", pattern: $1}</code>, so the value is <code>{"type": "regex", "pattern": &lt;$1&gt;}</code> where <code>$1</code> is the matched <code>pattern</code> content.</li>
 </ul>
 <p>The <code>pattern</code> field’s value <code>[[[{...}]], []]</code> is the raw shape of <code>pattern -&gt; alternation -&gt; alternative -&gt; concatenation</code>; see <a href="rules-top-level.html">Top-Level Rules</a> for why it has that nesting depth.</p>
 <h2 id="a-quick-map-of-where-json-appears"><a class="header" href="#a-quick-map-of-where-json-appears">A quick map of where Json appears</a></h2>
-<p>The <code>Json</code> carrier replaces the recursive <code>Sequence</code>/<code>Alternative</code> envelope <strong>wherever a rule has an explicit return annotation in <code>grammars/regex.ebnf</code></strong>. Currently that includes:</p>
+<p>The <code>Json</code> carrier (Rust-side: <code>ParseContent::Shaped</code>, serialized as <code>"Json"</code>) replaces the recursive <code>Sequence</code>/<code>Alternative</code> envelope <strong>wherever a rule has an explicit return annotation in <code>grammars/regex.ebnf</code></strong>. Currently that includes:</p>
 <ul>
 <li><code>regex</code> — top level, always Json.</li>
 <li><code>pattern</code> — <code>-&gt; $1</code>, content unwraps to the inner alternation’s shape.</li>

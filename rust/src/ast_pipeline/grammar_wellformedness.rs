@@ -2082,7 +2082,8 @@ where
 /// STRUCTURAL `ParseNode` content.
 ///
 /// ⚠️ NOT a valid parse-coverage source for ANNOTATED grammars (G.4.6 finding). A rule carrying a
-/// `-> {…}` return annotation folds its whole subtree into `ParseContent::Json`, which has no child
+/// `-> {…}` return annotation folds its whole subtree into the typed carrier
+/// (`ParseContent::Shaped`, serialized as `"Json"`), which has no child
 /// `ParseNode`s — so this walk stops at the first annotated rule and never sees the rules folded
 /// beneath it. On heavily-annotated grammars (e.g. SystemVerilog) it collapses to ~one rule. The
 /// production witness-coverage path is the PARSER'S OWN transactional record
@@ -2106,7 +2107,6 @@ fn collect_covered_rules(node: &super::ParseNode<'_>, out: &mut HashSet<String>)
         super::ParseContent::Alternative(child) => collect_covered_rules(child, out),
         super::ParseContent::Terminal(_)
         | super::ParseContent::TransformedTerminal(_)
-        | super::ParseContent::Json(_)
         | super::ParseContent::Shaped(_) => {}
     }
 }

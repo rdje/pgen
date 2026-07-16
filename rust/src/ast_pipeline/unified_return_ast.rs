@@ -157,8 +157,9 @@ pub struct LrChainWrapperSpec {
 }
 
 impl UnifiedReturnAST {
-    /// Convert a transform-applied AST (`ParseContent::Json(value)`) into a
-    /// `UnifiedReturnAST` directly, without walking sub-rule ParseNodes. The
+    /// Convert a transform-applied AST (the typed value behind
+    /// `ParseContent::Shaped`) into a `UnifiedReturnAST` directly, without
+    /// walking sub-rule ParseNodes. The
     /// generated parser's inline return-annotation transforms produce typed
     /// values whose shape is dictated by the grammar's annotation; this
     /// reader maps each typed shape to the corresponding `UnifiedReturnAST`
@@ -794,13 +795,9 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         // Fast path for transform-applied AST: the parser's inline return
-        // annotation has already produced a typed shaped value (the
-        // transitional `Json(Value::Object{...})` or the `-0105` arena
+        // annotation has already produced a typed shaped value (the arena
         // `Shaped(PgenValue::Object(...))`) at the top level. Read the typed
         // value directly instead of walking sub-rule ParseNodes.
-        if let ParseContent::Json(ref value) = parse_tree.content {
-            return Self::parse_typed_return_value(value);
-        }
         if let ParseContent::Shaped(shaped) = &parse_tree.content {
             return Self::parse_typed_return_value(&shaped.to_serde_value());
         }
@@ -1692,7 +1689,7 @@ impl UnifiedReturnAST {
             )),
 
             UnifiedReturnAST::NullLiteral => Ok(format!(
-                "{}ParseContent::Json(serde_json::Value::Null)",
+                "{}ParseContent::Shaped(PgenValue::Null)",
                 indent
             )),
 
@@ -2017,7 +2014,7 @@ impl UnifiedReturnAST {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
-            ParseContent::Json(_) | ParseContent::Shaped(_) => {
+            ParseContent::Shaped(_) => {
                 Self::parse_generated_value_node(input, node, logger)
             }
             ParseContent::Alternative(inner) => {
@@ -2048,14 +2045,11 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         // Fast path: if the parser applied an inline return-annotation
-        // transform, the rule's content is `Json(value)` and the typed value
+        // transform, the rule's content is `Shaped(value)` and the typed value
         // already encodes the shape declared by the annotation. Read the
         // typed value directly instead of dispatching to a per-rule walker
         // that would expect the no-transform `Sequence(...)`/`Alternative(...)`
         // shape.
-        if let ParseContent::Json(ref value) = node.content {
-            return Self::parse_typed_return_value(value);
-        }
         if let ParseContent::Shaped(value) = node.content {
             // Same fast path through the owned-value reader; this runs on the
             // annotation-grammar self-parse boundary, not the hot parse path.
@@ -2116,7 +2110,7 @@ impl UnifiedReturnAST {
                     "Unsupported generated return parse node '{}' with terminal payload",
                     node.rule_name
                 )),
-                ParseContent::Json(_) | ParseContent::Shaped(_) => Err(format!(
+                ParseContent::Shaped(_) => Err(format!(
                     "Unsupported generated return parse node '{}' with json payload",
                     node.rule_name
                 )),
@@ -2797,7 +2791,6 @@ impl UnifiedReturnAST {
             }
             ParseContent::Terminal(_)
             | ParseContent::TransformedTerminal(_)
-            | ParseContent::Json(_)
             | ParseContent::Shaped(_) => None,
         }
     }

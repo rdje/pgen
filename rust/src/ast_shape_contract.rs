@@ -135,16 +135,9 @@ impl ContentKind {
         match content {
             ParseContent::Terminal(_) => ContentKind::Terminal,
             ParseContent::TransformedTerminal(_) => ContentKind::TransformedTerminal,
-            ParseContent::Json(value) => match value {
-                serde_json::Value::Object(_) => ContentKind::JsonObject,
-                serde_json::Value::Array(_) => ContentKind::JsonArray,
-                serde_json::Value::String(_) => ContentKind::JsonString,
-                serde_json::Value::Number(_) => ContentKind::JsonNumber,
-                serde_json::Value::Bool(_) => ContentKind::JsonBool,
-                serde_json::Value::Null => ContentKind::JsonNull,
-            },
-            // The arena carrier classifies identically to the owned one — the
-            // shape contract must be representation-blind.
+            // The arena carrier classifies exactly as the retired owned
+            // `serde_json::Value` carrier did — the shape contract is
+            // representation-blind.
             ParseContent::Shaped(value) => match value {
                 crate::ast_pipeline::PgenValue::Object(_) => ContentKind::JsonObject,
                 crate::ast_pipeline::PgenValue::Array(_) => ContentKind::JsonArray,
@@ -664,13 +657,12 @@ where
             }
 
             if matches!(sample.expected_content_kind, ContentKind::JsonObject) {
-                // RGX-0078.5.i.7 (`-0105`): accept BOTH shaped carriers — the
-                // transitional `Json` and the arena `Shaped` regenerated
-                // artifacts emit. `to_serde_value()` reproduces the exact
-                // `Value`, so the key/value locks below are carrier-blind.
+                // RGX-0078.5.i.7 (`-0105`/`-0106`): `to_serde_value()` on the
+                // arena `Shaped` carrier reproduces the exact owned `Value`,
+                // so the key/value locks below see the same map the retired
+                // owned carrier provided.
                 let json_object_view: Option<serde_json::Map<String, serde_json::Value>> =
                     match &parsed.content {
-                        ParseContent::Json(serde_json::Value::Object(map)) => Some(map.clone()),
                         ParseContent::Shaped(shaped) => match shaped.to_serde_value() {
                             serde_json::Value::Object(map) => Some(map),
                             _ => None,

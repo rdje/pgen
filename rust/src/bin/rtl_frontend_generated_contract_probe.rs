@@ -34,7 +34,8 @@ struct RtlFrontendGeneratedSample {
 /// Rule-participation testimony from the REAL parser's transactional coverage record
 /// (`enable_coverage` + `exercised_rule_names`). This is the typed-era replacement for
 /// walking the dumped AST for `rule_name` keys: return annotations fold annotated rules
-/// into typed `ParseContent::Json` (no `rule_name` children survive), while the coverage
+/// into the typed carrier (`ParseContent::Shaped`, serialized as `"Json"` — no
+/// `rule_name` children survive), while the coverage
 /// record keeps exactly the rules of the ACCEPTED parse — sound (backtracked attempts
 /// are truncated) and complete (annotation folding cannot hide a rule entry).
 #[cfg(has_generated_rtl_frontend_parser)]

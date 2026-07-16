@@ -125,13 +125,11 @@ impl UnifiedSemanticAST {
         // text by slicing the input across root.span and parsing past the
         // `@<name>:` prefix. The semantic_annotation grammar guarantees
         // the `@<name>:` prefix shape, so a single `:` split is robust.
-        // RGX-0078.5.i.7 (`-0105`): the typed fast path accepts BOTH shaped
-        // carriers — `Json` (transitional, pre-regen artifacts + owned
-        // producers) and `Shaped` (the arena representation regenerated
-        // artifacts emit). `to_serde_value()` reproduces the exact `Value`
-        // the eager path built, so the body below is carrier-blind.
+        // RGX-0078.5.i.7 (`-0105`/`-0106`): the typed fast path reads the
+        // arena `Shaped` carrier; `to_serde_value()` reproduces the exact
+        // `Value` the eager path built, so the body below works on the owned
+        // view.
         let typed_fast_path_value: Option<serde_json::Value> = match &root.content {
-            ParseContent::Json(value) => Some(value.clone()),
             ParseContent::Shaped(shaped) => Some(shaped.to_serde_value()),
             _ => None,
         };
@@ -359,7 +357,7 @@ impl UnifiedSemanticAST {
                     }
                 }
             }
-            ParseContent::Json(_) | ParseContent::Shaped(_) => {}
+            ParseContent::Shaped(_) => {}
             ParseContent::Alternative(child) => {
                 if let Some(found) = Self::find_first_rule_node(child, rule_name) {
                     return Some(found);

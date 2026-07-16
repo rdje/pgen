@@ -54,13 +54,13 @@ An owned String typically produced by `@transform` semantic annotations that coe
 
 **When it appears:**
 
-In the regex parser today, `digits` uses `@transform: str::parse::<usize>().unwrap_or(0)` to coerce its match to an integer. The integer becomes a `serde_json::Value::Number` carried via `Json`, NOT a `TransformedTerminal`. So in **current** regex output, `TransformedTerminal` rarely appears at the top of the AST.
+In the regex parser today, `digits` uses `@transform: str::parse::<usize>().unwrap_or(0)` to coerce its match to an integer. The integer becomes a typed number carried via the shaped carrier, NOT a `TransformedTerminal`. So in **current** regex output, `TransformedTerminal` rarely appears at the top of the AST.
 
-It may still appear in deeper subtrees for legacy / fallback cases, especially during transitional builds. Consumers should handle it analogously to `Terminal` — it's a leaf scalar.
+It may still appear in deeper subtrees for legacy / fallback cases. Consumers should handle it analogously to `Terminal` — it's a leaf scalar.
 
-## Variant: `Json(serde_json::Value)`
+## Variant: `Shaped(PgenValue<'input>)` — serialized as `"Json"`
 
-The typed structured carrier. Holds any `serde_json::Value` shape — object, array, string, number, boolean, **or null** (the `null` literal landed in the slice that introduced typed `counted_quantifier_body` to mark the unbounded `{n,}` form).
+The typed structured carrier (since the REPRESENTATION landing, 2026-07-16; earlier releases carried the same logical value as `Json(serde_json::Value)`, retired 2026-07-17). `PgenValue` is an arena-backed `Copy` value mirroring the six JSON value types variant-for-variant — `Null` / `Bool` / `Int`+`UInt`+`Float` / `Str` / `Array` / `Object` (objects key-sorted exactly like `serde_json::Map`) — so it holds any JSON shape, including **null** (the `null` literal landed in the slice that introduced typed `counted_quantifier_body` to mark the unbounded `{n,}` form). It serializes under the `"Json"` wire tag with byte-identical output, so dumps and downstream JSON consumers see no difference from the retired owned-`Value` carrier.
 
 **JSON form:**
 
@@ -72,27 +72,34 @@ The typed structured carrier. Holds any `serde_json::Value` shape — object, ar
 
 Whenever a grammar rule carries an explicit return annotation that produces a typed shape:
 
-- Object literal: `-> {type: "regex", pattern: $1}` produces `Json(Object(...))`.
-- Array literal: `-> [$1, $2*]` produces `Json(Array(...))`.
-- String literal: `-> "lazy"` produces `Json(String("lazy"))`.
-- Number literal: `-> 0` produces `Json(Number(0))` (integer-preserving).
-- Boolean literal: `-> true` produces `Json(Bool(true))`.
+- Object literal: `-> {type: "regex", pattern: $1}` produces `Shaped(Object(...))`.
+- Array literal: `-> [$1, $2*]` produces `Shaped(Array(...))`.
+- String literal: `-> "lazy"` produces `Shaped(Str("lazy"))`.
+- Number literal: `-> 0` produces `Shaped(Int(0))` (integer-preserving).
+- Boolean literal: `-> true` produces `Shaped(Bool(true))`.
 
-For the regex parser today, `Json` is the dominant top-level variant because the entry rule (`regex`) is annotated.
+For the regex parser today, `Shaped` is the dominant top-level variant because the entry rule (`regex`) is annotated.
 
-**Walking a Json variant:**
+**Walking a Shaped variant:**
 
-The inner `serde_json::Value` is just a normal `serde_json` value. Use `as_object()`, `as_array()`, `as_str()`, `as_i64()`, etc. Or pattern-match on the `Value` enum directly.
+Either convert once at your boundary — `to_serde_value()` yields the byte-identical owned `serde_json::Value` — or pattern-match `PgenValue` natively to skip the copy (objects are key-sorted pair slices):
 
 ```rust
+use pgen::ast_pipeline::PgenValue;
+
 match &node.content {
-    ParseContent::Json(value) => {
+    ParseContent::Shaped(value) => {
         match value {
-            serde_json::Value::Object(map) => {
-                let kind = map.get("type").and_then(|v| v.as_str());
+            PgenValue::Object(pairs) => {
+                // key-sorted — binary_search is the Map::get equivalent
+                // (the same idiom the generated parser emits internally)
+                let kind = pairs
+                    .binary_search_by(|(key, _)| key.as_bytes().cmp("type".as_bytes()))
+                    .ok()
+                    .map(|i| pairs[i].1);
                 // ... handle each "type" discriminator
             }
-            serde_json::Value::Array(items) => {
+            PgenValue::Array(items) => {
                 // ... iterate items
             }
             // ...
@@ -177,7 +184,7 @@ Consumers should be aware of three interactions between variants:
 |---|---|
 | `Terminal(s)` | `Value::String(s.to_owned())` |
 | `TransformedTerminal(s)` | parsed-as-JSON if valid, else `Value::String(s)` |
-| `Json(v)` | `v.clone()` |
+| `Shaped(v)` | `v.to_serde_value()` (the byte-identical owned `Value`) |
 | `Sequence(nodes)` | `Value::Array(<each node's content.to_json_value()>)` |
 | `Alternative(node)` | `node.content.to_json_value()` (transparent unwrap) |
 | `Quantified(nodes, _)` | `Value::Array(<each node's content.to_json_value()>)` |
@@ -192,7 +199,7 @@ In `parse-dump-ast-pretty` output (the raw envelope-level dump), `Alternative` v
 
 ### 3. The Json carrier "swallows" inner structure
 
-When a rule emits `Json(typed_value)`, the typed value is a fully-flattened `serde_json::Value`. If a consumer wants the source spans of inner sub-rules that contributed to that typed value, they're not directly accessible from inside `Json` — only the values are. The spans would have to come from walking the un-`to_json_value()`d `ParseNode` tree, which means traversing the legacy recursive variants for unannotated subrules.
+When a rule emits the typed carrier (`Shaped(typed_value)`), the typed value is a fully-flattened value tree. If a consumer wants the source spans of inner sub-rules that contributed to that typed value, they're not directly accessible from inside the carrier — only the values are. The spans would have to come from walking the un-`to_json_value()`d `ParseNode` tree, which means traversing the legacy recursive variants for unannotated subrules.
 
 This is a known tradeoff: typed-Json output is consumer-convenient but loses span fidelity at the layer where the annotation flattened. Fully-annotated grammars (the eventual goal of task #40) will need either:
 

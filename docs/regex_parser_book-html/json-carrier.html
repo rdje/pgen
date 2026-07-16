@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0b5538cc.js";
+            window.path_to_searchindex_js = "searchindex-c176ac8c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -220,7 +220,7 @@ the same <code>NodeArena</code> whose lifetime already governs <code>ParseNode</
 <li><code>Value::Null</code> — for <code>-&gt; null</code> annotations (added in the slice that introduced typed <code>counted_quantifier_body</code> <code>{min, max:null}</code> for the unbounded <code>{n,}</code> form).</li>
 </ul>
 <h2 id="when-it-appears"><a class="header" href="#when-it-appears">When it appears</a></h2>
-<p>The codegen emits <code>ParseContent::Json(...)</code> whenever a rule has an explicit return annotation that lifts the rule’s output into a typed shape. The current set of annotated rules in <code>grammars/regex.ebnf</code>:</p>
+<p>The codegen emits <code>ParseContent::Shaped(...)</code> (serialized as <code>"Json"</code>) whenever a rule has an explicit return annotation that lifts the rule’s output into a typed shape. The current set of annotated rules in <code>grammars/regex.ebnf</code>:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -422,9 +422,6 @@ fn walk(node: &amp;ParseNode) {
         ParseContent::Quantified(nodes, _marker) =&gt; nodes.iter().for_each(walk),
         ParseContent::Terminal(s) =&gt; leaf_terminal(s),
         ParseContent::TransformedTerminal(s) =&gt; leaf_terminal(s),
-        // Transitional pre-REPRESENTATION artifacts carried the same shape
-        // as an owned `serde_json::Value` under `ParseContent::Json`.
-        other =&gt; walk_json(&amp;other.to_json_value()),
     }
 }
 

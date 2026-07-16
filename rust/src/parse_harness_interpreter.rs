@@ -1716,7 +1716,7 @@ impl<'g, 'i> Interp<'g, 'i> {
     }
 
     /// Mirror of the generated `resolve_named_semantic_reference` (SEMREF-SHAPED: against a
-    /// `ParseContent::Shaped` (or the transitional `Json`) the dotted path walks the shaped object;
+    /// `ParseContent::Shaped` the dotted path walks the shaped object;
     /// otherwise the raw named-descendant walk).
     fn resolve_named_semantic_reference(
         &self,
@@ -1761,26 +1761,6 @@ impl<'g, 'i> Interp<'g, 'i> {
                     serde_json::Number::from_f64(number).map(|rendered| rendered.to_string())
                 }
                 PgenValue::Bool(boolean) => Some(boolean.to_string()),
-                _ => None,
-            };
-        }
-        // Transitional twin until the `Json` variant's lib-side retirement.
-        if let ParseContent::Json(value) = root_content {
-            let mut current = value;
-            for segment in &lexed_segments {
-                if let Some(index) = Self::parse_bracketed_index(segment) {
-                    current = current.get(index)?;
-                } else {
-                    if !Self::semantic_identifier(segment) {
-                        return None;
-                    }
-                    current = current.get(*segment)?;
-                }
-            }
-            return match current {
-                serde_json::Value::String(text) => Some(text.clone()),
-                serde_json::Value::Number(number) => Some(number.to_string()),
-                serde_json::Value::Bool(boolean) => Some(boolean.to_string()),
                 _ => None,
             };
         }
@@ -1887,14 +1867,8 @@ impl<'g, 'i> Interp<'g, 'i> {
         match content {
             ParseContent::Terminal(value) => Some((*value).to_string()),
             ParseContent::TransformedTerminal(value) => Some(value.clone()),
-            ParseContent::Json(value) => match value {
-                serde_json::Value::String(s) => Some(s.clone()),
-                serde_json::Value::Null => None,
-                other => Some(other.to_string()),
-            },
-            // Byte-exact mirror of the `Json` arm over the arena carrier:
-            // `to_serde_value().to_string()` renders exactly what the owned
-            // `Value`'s `Display` renders for the same logical value.
+            // `to_serde_value().to_string()` renders exactly what the retired
+            // owned `Value`'s `Display` rendered for the same logical value.
             ParseContent::Shaped(value) => match value {
                 crate::ast_pipeline::PgenValue::Str(s) => Some((*s).to_string()),
                 crate::ast_pipeline::PgenValue::Null => None,
@@ -3231,16 +3205,6 @@ impl<'g, 'i> Interp<'g, 'i> {
                         };
                         ParseContent::Shaped(elem)
                     }
-                    // Transitional: `Json` content no longer originates from this
-                    // fold, but the arm stays byte-equivalent until the variant's
-                    // lib-side retirement.
-                    ParseContent::Json(value) => {
-                        let elem = match value {
-                            serde_json::Value::Array(ref arr) if arr.len() > idx => arr[idx].clone(),
-                            _ => serde_json::Value::Null,
-                        };
-                        ParseContent::Json(elem)
-                    }
                     _ => ParseContent::Terminal(intern("<invalid_array_access>")),
                 }
             }
@@ -3336,18 +3300,6 @@ impl<'g, 'i> Interp<'g, 'i> {
                                             array_elements.push(self.arena.alloc(ParseNode {
                                                 rule_name: rule_name_for_inherit,
                                                 content: ParseContent::Shaped(*value),
-                                                span: span_for_inherit.clone(),
-                                            }));
-                                        }
-                                    }
-                                    // Transitional twin until the `Json` variant's
-                                    // lib-side retirement (nothing constructs it
-                                    // in this fold any more).
-                                    ParseContent::Json(serde_json::Value::Array(values)) => {
-                                        for value in values {
-                                            array_elements.push(self.arena.alloc(ParseNode {
-                                                rule_name: rule_name_for_inherit,
-                                                content: ParseContent::Json(value),
                                                 span: span_for_inherit.clone(),
                                             }));
                                         }

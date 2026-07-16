@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-89654881.js";
+            window.path_to_searchindex_js = "searchindex-918f50ca.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -456,7 +456,7 @@ See <a href="#backends-bootstrap-vs-generated">Backends</a>.</p>
 <h3 id="shaped-vs-raw-reference-resolution"><a class="header" href="#shaped-vs-raw-reference-resolution">Shaped vs. raw reference resolution</a></h3>
 <p>When a <code>$name</code> / <code>$a.b</code> reference resolves against a rule X (SEMREF-SHAPED, 2026-05-18):</p>
 <ul>
-<li>if X has a <code>-&gt;</code> return annotation that produces an object (<code>ParseContent::Json</code>), <code>$name</code> is a
+<li>if X has a <code>-&gt;</code> return annotation that produces an object (<code>ParseContent::Shaped</code>, serialized as <code>"Json"</code>), <code>$name</code> is a
 key/path lookup into the <strong>shaped</strong> structure down to a scalar leaf (String/Number/Bool as-is; an
 absent key, a non-object intermediate, <code>Null</code>, or a non-scalar leaf → unresolved);</li>
 <li>if X has no <code>-&gt;</code>, resolution is the raw sub-rule-name descendant search.</li>
@@ -557,7 +557,11 @@ grammar constructs, so it is parser-agnostic like every other built-in.</p>
 <p>Phasing and composition:</p>
 <ul>
 <li><code>phase:</code> routes evaluation — <code>@predicate: {phase: branch, …}</code> makes the predicate <strong>branch-local</strong>
-(gates one OR alternative); the defaults are pre-rule / post-rule predicates.</li>
+(gates one OR alternative); the defaults are pre-rule / post-rule predicates. <code>phase: final</code> defers the
+check to <strong>whole-input parse completion</strong> (a deferred obligation discharged once the store is complete),
+so it can validate a <strong>legal forward reference</strong> — a reference whose definition appears <em>later</em> in the
+input than the reference — which <code>pre</code>/<code>branch</code>/<code>post</code> (all at the reference’s own position) cannot. See
+<a href="#the-semantic-store">The Semantic Store → Phases</a> in the platform book.</li>
 <li><code>@predicate_def:</code> defines a <strong>named composed predicate</strong> (a reusable boolean of the built-ins) that a
 later <code>@predicate</code> can invoke by name.</li>
 </ul>

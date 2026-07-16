@@ -85,7 +85,7 @@ swallowed.
 
 When a `$name` / `$a.b` reference resolves against a rule X (SEMREF-SHAPED, 2026-05-18):
 
-- if X has a `->` return annotation that produces an object (`ParseContent::Json`), `$name` is a
+- if X has a `->` return annotation that produces an object (`ParseContent::Shaped`, serialized as `"Json"`), `$name` is a
   key/path lookup into the **shaped** structure down to a scalar leaf (String/Number/Bool as-is; an
   absent key, a non-object intermediate, `Null`, or a non-scalar leaf → unresolved);
 - if X has no `->`, resolution is the raw sub-rule-name descendant search.

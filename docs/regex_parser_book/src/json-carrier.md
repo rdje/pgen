@@ -41,7 +41,7 @@ The Json carrier is the runtime representation of the typed shape that a grammar
 
 ## When it appears
 
-The codegen emits `ParseContent::Json(...)` whenever a rule has an explicit return annotation that lifts the rule's output into a typed shape. The current set of annotated rules in `grammars/regex.ebnf`:
+The codegen emits `ParseContent::Shaped(...)` (serialized as `"Json"`) whenever a rule has an explicit return annotation that lifts the rule's output into a typed shape. The current set of annotated rules in `grammars/regex.ebnf`:
 
 | Rule | Annotation | Json shape produced |
 |---|---|---|
@@ -240,9 +240,6 @@ fn walk(node: &ParseNode) {
         ParseContent::Quantified(nodes, _marker) => nodes.iter().for_each(walk),
         ParseContent::Terminal(s) => leaf_terminal(s),
         ParseContent::TransformedTerminal(s) => leaf_terminal(s),
-        // Transitional pre-REPRESENTATION artifacts carried the same shape
-        // as an owned `serde_json::Value` under `ParseContent::Json`.
-        other => walk_json(&other.to_json_value()),
     }
 }
 

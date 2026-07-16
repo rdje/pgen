@@ -89,8 +89,8 @@ impl<'input> PgenValue<'input> {
 
     /// Convert an owned `serde_json::Value` tree into the arena representation
     /// (the boundary in the OTHER direction from [`Self::to_serde_value`]) —
-    /// used by `ParseContent::to_shaped_value` for the transitional `Json`
-    /// variant and for `TransformedTerminal` JSON-text payloads (which can
+    /// used by `ParseContent::to_shaped_value` for `TransformedTerminal`
+    /// JSON-text payloads (which can
     /// carry ANY JSON, including u64-range numbers and arrays — the `-0103`
     /// named edge). Numbers take the canonicalizing split (`as_i64` first, so
     /// the i64-representable range is always `Int`); strings are interned via

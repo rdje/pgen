@@ -7427,10 +7427,9 @@ impl AstBasedGenerator {
                     // `Json` arm byte-exactly (`Str` → the raw text, `Null` →
                     // no scalar, everything else → its compact-JSON rendering
                     // — `to_serde_value().to_string()` = the owned `Value`'s
-                    // `Display` bytes). The transitional `Json` variant is
-                    // deliberately NOT referenced (it falls to the wildcard,
-                    // unreachable at runtime) so its lib-side retirement never
-                    // touches this artifact.
+                    // `Display` bytes). The retired `Json` variant was
+                    // referenced nowhere, so its `-0106` lib-side retirement
+                    // never touched this artifact.
                     ParseContent::Shaped(value) => match value {
                         PgenValue::Str(text) => Some((*text).to_string()),
                         PgenValue::Null => None,
@@ -11210,10 +11209,11 @@ mod semantic_usage_tests {
         // on the content variant so the raw (no-`->`) path is
         // untouched. `-0105` REPRESENTATION vintage: the shaped
         // carrier is `Shaped(PgenValue)`; the emitted resolver must
-        // reference the transitional `Json` variant NOWHERE (checked
-        // as a code ref, `Json(`) so its lib-side retirement never
-        // touches artifacts. prettyplease line-breaks long patterns,
-        // so match on the whitespace-stripped source.
+        // reference the retired `Json` variant NOWHERE (checked as a
+        // code ref, `Json(`) — the permanent tripwire that kept the
+        // `-0106` lib-side retirement regen-free. prettyplease
+        // line-breaks long patterns, so match on the
+        // whitespace-stripped source.
         let rendered_nows: String = rendered.chars().filter(|c| !c.is_whitespace()).collect();
         assert!(
             rendered_nows.contains("ParseContent::Shaped(shaped_root)=root_content"),
@@ -11222,7 +11222,7 @@ mod semantic_usage_tests {
         );
         assert!(
             !rendered_nows.contains("ParseContent::Json("),
-            "generated parser must not reference the transitional ParseContent::Json variant (retirement readiness)"
+            "generated parser must not reference the retired ParseContent::Json variant"
         );
         // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027) via `-0105`:
         // the segment dispatch handles BOTH `.name` property access and

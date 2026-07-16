@@ -1053,7 +1053,8 @@ pub fn parse_error(
 /// Coverage = the parser's OWN transactional record of the rules in the ACCEPTED parse
 /// (`enable_coverage` + `exercised_rule_names`), NOT a walk of the output AST. The earlier
 /// AST-walk (`parse_node_covered_rules`) collapsed to ~one rule on annotated grammars because a
-/// `-> {…}` return annotation folds a rule's whole subtree into `ParseContent::Json`, erasing the
+/// `-> {…}` return annotation folds a rule's whole subtree into the typed carrier
+/// (`ParseContent::Shaped`, serialized as `"Json"`), erasing the
 /// children's rule identities. The transactional `coverage_stack` records rule ENTRIES and rolls
 /// them back with `try_parse` on speculation failure, so the surviving set is sound (committed
 /// successes only, no backtracked attempts — what a call counter would over-count) AND complete

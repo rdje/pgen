@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0b5538cc.js";
+            window.path_to_searchindex_js = "searchindex-c176ac8c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -633,7 +633,7 @@ assert!(contract.supports_regex_generated_backend);
 </span><span class="boring">fn main() {
 </span>ParseNode {
     rule_name: "regex",
-    content: ParseContent::Json(...),
+    content: ParseContent::Shaped(...),   // the typed carrier — serialized as "Json"
     span: 0..N,
 }
 <span class="boring">}</span></code></pre>
@@ -694,12 +694,12 @@ assert!(contract.supports_regex_generated_backend);
 <p>Walking layer by layer:</p>
 <ul>
 <li><strong>Layer 1</strong>: <code>ParseNode { rule_name: "regex", span: 0..1, content: ... }</code>.</li>
-<li><strong>Layer 2</strong>: <code>content</code> is <code>ParseContent::Json(&lt;value&gt;)</code>. The <code>&lt;value&gt;</code> is whatever the <code>regex</code> rule’s annotation produced.</li>
+<li><strong>Layer 2</strong>: <code>content</code> is <code>ParseContent::Shaped(&lt;value&gt;)</code> — the arena typed-value carrier (<code>PgenValue</code>), which serializes under the <code>"Json"</code> wire tag. The <code>&lt;value&gt;</code> is whatever the <code>regex</code> rule’s annotation produced.</li>
 <li><strong>Layer 3</strong>: The <code>regex</code> rule’s annotation is <code>-&gt; {type: "regex", pattern: $1}</code>, so the value is <code>{"type": "regex", "pattern": &lt;$1&gt;}</code> where <code>$1</code> is the matched <code>pattern</code> content.</li>
 </ul>
 <p>The <code>pattern</code> field’s value <code>[[[{...}]], []]</code> is the raw shape of <code>pattern -&gt; alternation -&gt; alternative -&gt; concatenation</code>; see <a href="#top-level-rules-regex-pattern-alternation-alternative-concatenation">Top-Level Rules</a> for why it has that nesting depth.</p>
 <h2 id="a-quick-map-of-where-json-appears"><a class="header" href="#a-quick-map-of-where-json-appears">A quick map of where Json appears</a></h2>
-<p>The <code>Json</code> carrier replaces the recursive <code>Sequence</code>/<code>Alternative</code> envelope <strong>wherever a rule has an explicit return annotation in <code>grammars/regex.ebnf</code></strong>. Currently that includes:</p>
+<p>The <code>Json</code> carrier (Rust-side: <code>ParseContent::Shaped</code>, serialized as <code>"Json"</code>) replaces the recursive <code>Sequence</code>/<code>Alternative</code> envelope <strong>wherever a rule has an explicit return annotation in <code>grammars/regex.ebnf</code></strong>. Currently that includes:</p>
 <ul>
 <li><code>regex</code> — top level, always Json.</li>
 <li><code>pattern</code> — <code>-&gt; $1</code>, content unwraps to the inner alternation’s shape.</li>
@@ -755,35 +755,42 @@ assert!(contract.supports_regex_generated_backend);
 <pre><code class="language-json">{ "TransformedTerminal": "transformed_value" }
 </code></pre>
 <p><strong>When it appears:</strong></p>
-<p>In the regex parser today, <code>digits</code> uses <code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code> to coerce its match to an integer. The integer becomes a <code>serde_json::Value::Number</code> carried via <code>Json</code>, NOT a <code>TransformedTerminal</code>. So in <strong>current</strong> regex output, <code>TransformedTerminal</code> rarely appears at the top of the AST.</p>
-<p>It may still appear in deeper subtrees for legacy / fallback cases, especially during transitional builds. Consumers should handle it analogously to <code>Terminal</code> — it’s a leaf scalar.</p>
-<h2 id="variant-jsonserde_jsonvalue"><a class="header" href="#variant-jsonserde_jsonvalue">Variant: <code>Json(serde_json::Value)</code></a></h2>
-<p>The typed structured carrier. Holds any <code>serde_json::Value</code> shape — object, array, string, number, boolean, <strong>or null</strong> (the <code>null</code> literal landed in the slice that introduced typed <code>counted_quantifier_body</code> to mark the unbounded <code>{n,}</code> form).</p>
+<p>In the regex parser today, <code>digits</code> uses <code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code> to coerce its match to an integer. The integer becomes a typed number carried via the shaped carrier, NOT a <code>TransformedTerminal</code>. So in <strong>current</strong> regex output, <code>TransformedTerminal</code> rarely appears at the top of the AST.</p>
+<p>It may still appear in deeper subtrees for legacy / fallback cases. Consumers should handle it analogously to <code>Terminal</code> — it’s a leaf scalar.</p>
+<h2 id="variant-shapedpgenvalueinput--serialized-as-json"><a class="header" href="#variant-shapedpgenvalueinput--serialized-as-json">Variant: <code>Shaped(PgenValue&lt;'input&gt;)</code> — serialized as <code>"Json"</code></a></h2>
+<p>The typed structured carrier (since the REPRESENTATION landing, 2026-07-16; earlier releases carried the same logical value as <code>Json(serde_json::Value)</code>, retired 2026-07-17). <code>PgenValue</code> is an arena-backed <code>Copy</code> value mirroring the six JSON value types variant-for-variant — <code>Null</code> / <code>Bool</code> / <code>Int</code>+<code>UInt</code>+<code>Float</code> / <code>Str</code> / <code>Array</code> / <code>Object</code> (objects key-sorted exactly like <code>serde_json::Map</code>) — so it holds any JSON shape, including <strong>null</strong> (the <code>null</code> literal landed in the slice that introduced typed <code>counted_quantifier_body</code> to mark the unbounded <code>{n,}</code> form). It serializes under the <code>"Json"</code> wire tag with byte-identical output, so dumps and downstream JSON consumers see no difference from the retired owned-<code>Value</code> carrier.</p>
 <p><strong>JSON form:</strong></p>
 <pre><code class="language-json">{ "Json": &lt;any-json-value&gt; }
 </code></pre>
 <p><strong>When it appears:</strong></p>
 <p>Whenever a grammar rule carries an explicit return annotation that produces a typed shape:</p>
 <ul>
-<li>Object literal: <code>-&gt; {type: "regex", pattern: $1}</code> produces <code>Json(Object(...))</code>.</li>
-<li>Array literal: <code>-&gt; [$1, $2*]</code> produces <code>Json(Array(...))</code>.</li>
-<li>String literal: <code>-&gt; "lazy"</code> produces <code>Json(String("lazy"))</code>.</li>
-<li>Number literal: <code>-&gt; 0</code> produces <code>Json(Number(0))</code> (integer-preserving).</li>
-<li>Boolean literal: <code>-&gt; true</code> produces <code>Json(Bool(true))</code>.</li>
+<li>Object literal: <code>-&gt; {type: "regex", pattern: $1}</code> produces <code>Shaped(Object(...))</code>.</li>
+<li>Array literal: <code>-&gt; [$1, $2*]</code> produces <code>Shaped(Array(...))</code>.</li>
+<li>String literal: <code>-&gt; "lazy"</code> produces <code>Shaped(Str("lazy"))</code>.</li>
+<li>Number literal: <code>-&gt; 0</code> produces <code>Shaped(Int(0))</code> (integer-preserving).</li>
+<li>Boolean literal: <code>-&gt; true</code> produces <code>Shaped(Bool(true))</code>.</li>
 </ul>
-<p>For the regex parser today, <code>Json</code> is the dominant top-level variant because the entry rule (<code>regex</code>) is annotated.</p>
-<p><strong>Walking a Json variant:</strong></p>
-<p>The inner <code>serde_json::Value</code> is just a normal <code>serde_json</code> value. Use <code>as_object()</code>, <code>as_array()</code>, <code>as_str()</code>, <code>as_i64()</code>, etc. Or pattern-match on the <code>Value</code> enum directly.</p>
+<p>For the regex parser today, <code>Shaped</code> is the dominant top-level variant because the entry rule (<code>regex</code>) is annotated.</p>
+<p><strong>Walking a Shaped variant:</strong></p>
+<p>Either convert once at your boundary — <code>to_serde_value()</code> yields the byte-identical owned <code>serde_json::Value</code> — or pattern-match <code>PgenValue</code> natively to skip the copy (objects are key-sorted pair slices):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match &amp;node.content {
-    ParseContent::Json(value) =&gt; {
+</span>use pgen::ast_pipeline::PgenValue;
+
+match &amp;node.content {
+    ParseContent::Shaped(value) =&gt; {
         match value {
-            serde_json::Value::Object(map) =&gt; {
-                let kind = map.get("type").and_then(|v| v.as_str());
+            PgenValue::Object(pairs) =&gt; {
+                // key-sorted — binary_search is the Map::get equivalent
+                // (the same idiom the generated parser emits internally)
+                let kind = pairs
+                    .binary_search_by(|(key, _)| key.as_bytes().cmp("type".as_bytes()))
+                    .ok()
+                    .map(|i| pairs[i].1);
                 // ... handle each "type" discriminator
             }
-            serde_json::Value::Array(items) =&gt; {
+            PgenValue::Array(items) =&gt; {
                 // ... iterate items
             }
             // ...
@@ -847,7 +854,7 @@ assert!(contract.supports_regex_generated_backend);
 <tbody>
 <tr><td><code>Terminal(s)</code></td><td><code>Value::String(s.to_owned())</code></td></tr>
 <tr><td><code>TransformedTerminal(s)</code></td><td>parsed-as-JSON if valid, else <code>Value::String(s)</code></td></tr>
-<tr><td><code>Json(v)</code></td><td><code>v.clone()</code></td></tr>
+<tr><td><code>Shaped(v)</code></td><td><code>v.to_serde_value()</code> (the byte-identical owned <code>Value</code>)</td></tr>
 <tr><td><code>Sequence(nodes)</code></td><td><code>Value::Array(&lt;each node's content.to_json_value()&gt;)</code></td></tr>
 <tr><td><code>Alternative(node)</code></td><td><code>node.content.to_json_value()</code> (transparent unwrap)</td></tr>
 <tr><td><code>Quantified(nodes, _)</code></td><td><code>Value::Array(&lt;each node's content.to_json_value()&gt;)</code></td></tr>
@@ -859,7 +866,7 @@ assert!(contract.supports_regex_generated_backend);
 <p>Because <code>Alternative.to_json_value()</code> unwraps, the JSON output never has <code>{"Alternative": ...}</code> keys at the JSON-serialisation level for <code>to_json_value()</code> paths. The <code>Alternative</code> variant is visible only when consumers walk the <code>ParseNode</code> tree directly, not when they <code>to_json_value()</code> it.</p>
 <p>In <code>parse-dump-ast-pretty</code> output (the raw envelope-level dump), <code>Alternative</code> variants ARE visible because that path uses <code>serde::Serialize</code> on the <code>ParseContent</code> enum.</p>
 <h3 id="3-the-json-carrier-swallows-inner-structure"><a class="header" href="#3-the-json-carrier-swallows-inner-structure">3. The Json carrier “swallows” inner structure</a></h3>
-<p>When a rule emits <code>Json(typed_value)</code>, the typed value is a fully-flattened <code>serde_json::Value</code>. If a consumer wants the source spans of inner sub-rules that contributed to that typed value, they’re not directly accessible from inside <code>Json</code> — only the values are. The spans would have to come from walking the un-<code>to_json_value()</code>d <code>ParseNode</code> tree, which means traversing the legacy recursive variants for unannotated subrules.</p>
+<p>When a rule emits the typed carrier (<code>Shaped(typed_value)</code>), the typed value is a fully-flattened value tree. If a consumer wants the source spans of inner sub-rules that contributed to that typed value, they’re not directly accessible from inside the carrier — only the values are. The spans would have to come from walking the un-<code>to_json_value()</code>d <code>ParseNode</code> tree, which means traversing the legacy recursive variants for unannotated subrules.</p>
 <p>This is a known tradeoff: typed-Json output is consumer-convenient but loses span fidelity at the layer where the annotation flattened. Fully-annotated grammars (the eventual goal of task #40) will need either:</p>
 <ul>
 <li>Source-span preservation via a different annotation primitive (future feature); or</li>
@@ -907,7 +914,7 @@ the same <code>NodeArena</code> whose lifetime already governs <code>ParseNode</
 <li><code>Value::Null</code> — for <code>-&gt; null</code> annotations (added in the slice that introduced typed <code>counted_quantifier_body</code> <code>{min, max:null}</code> for the unbounded <code>{n,}</code> form).</li>
 </ul>
 <h2 id="when-it-appears"><a class="header" href="#when-it-appears">When it appears</a></h2>
-<p>The codegen emits <code>ParseContent::Json(...)</code> whenever a rule has an explicit return annotation that lifts the rule’s output into a typed shape. The current set of annotated rules in <code>grammars/regex.ebnf</code>:</p>
+<p>The codegen emits <code>ParseContent::Shaped(...)</code> (serialized as <code>"Json"</code>) whenever a rule has an explicit return annotation that lifts the rule’s output into a typed shape. The current set of annotated rules in <code>grammars/regex.ebnf</code>:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1109,9 +1116,6 @@ fn walk(node: &amp;ParseNode) {
         ParseContent::Quantified(nodes, _marker) =&gt; nodes.iter().for_each(walk),
         ParseContent::Terminal(s) =&gt; leaf_terminal(s),
         ParseContent::TransformedTerminal(s) =&gt; leaf_terminal(s),
-        // Transitional pre-REPRESENTATION artifacts carried the same shape
-        // as an owned `serde_json::Value` under `ParseContent::Json`.
-        other =&gt; walk_json(&amp;other.to_json_value()),
     }
 }
 
@@ -1191,8 +1195,11 @@ fn walk_content(content: &amp;ParseContent&lt;'_&gt;, depth: usize) {
         ParseContent::TransformedTerminal(s) =&gt; {
             println!("{}TransformedTerminal({:?})", indent, s);
         }
-        ParseContent::Json(value) =&gt; {
-            walk_json(value, depth);
+        ParseContent::Shaped(shaped) =&gt; {
+            // The arena typed carrier (serialized as "Json") — convert once
+            // to the owned serde_json::Value view for the semantic layer.
+            let value = shaped.to_serde_value();
+            walk_json(&amp;value, depth);
         }
         ParseContent::Sequence(nodes) =&gt; {
             println!("{}Sequence", indent);
