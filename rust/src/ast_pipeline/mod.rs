@@ -857,13 +857,25 @@ pub struct MemoEntry<'input> {
     pub coverage_delta: Option<Vec<u32>>,
 }
 
-/// RGX-0078.5.i.7 (D2-B) — one entry of the fused cascade graph's THIN memo:
-/// the ⛔ session-#49 bound's carrier for CYCLE-PARTICIPATING fused rules
-/// (`CascadeEmissionPlan::thin_memo`), which must never lose memo protection.
+/// RGX-0078.5.i.7 (D2-B + MTB-B) — one entry of the fused cascade graph's
+/// THIN memo: the ⛔ session-#49 bound's carrier for CYCLE-PARTICIPATING fused
+/// rules (`CascadeEmissionPlan::thin_memo`), which must never lose memo
+/// protection. The payload is a committed derivation SEGMENT (the MTB-B form —
+/// `PGEN-RGX-0078-0101`; the eager value-carrying `ThinMemoEntry` was retired
+/// with it, an additive transient migration completed once no artifact
+/// referenced the old type): a valid HIT splices the cached
+/// `(end, event-segment, boundary-segment)` onto the live tape and jumps the
+/// position; the build pass constructs the value ONCE from the spliced events —
+/// so a memoized sub-derivation on a DOOMED path is truncated un-built. Events
+/// are tape-index-free (`DerivEvent` carries input positions / counts / branch
+/// indices only), so a segment is position-independent within the tape; the
+/// memo key pins the input position, so the absolute input positions inside
+/// the segment replay exactly. Boundary values are arena refs (`Copy`), alive
+/// for the whole parse — the eager entry's shallow-replay economics.
 ///
 /// Unlike [`MemoEntry`], a thin entry carries NO semantic/coverage delta —
-/// replay is `position = end; return value` (or the cached failure) and
-/// nothing else, so an entry is cached ONLY when value-only replay is provably
+/// replay is `position = end` plus the tape splice (or the cached failure) and
+/// nothing else, so an entry is cached ONLY when splice-replay is provably
 /// equivalent to re-execution. The entry's `stamp` carries the protocol memo's
 /// own taint classes, measured across the body with three engine counters (the
 /// store write epoch — monotone, bumped by EVERY delta-visible mutation — the
@@ -883,21 +895,64 @@ pub struct MemoEntry<'input> {
 ///   stamps are unchanged (predicates are pure functions of position + store,
 ///   the MEMO-STORE-SOUNDNESS.2 license); evicted and re-executed otherwise.
 /// - **STORE-MUTATING** — the body changed the epoch or enqueued an
-///   obligation: NOT cached at all. A value-only replay would skip the
+///   obligation: NOT cached at all. A splice-only replay would skip the
 ///   mutation the protocol memo re-applies from its stored delta, so every
 ///   re-probe honestly re-executes (deterministic ⇒ same outcome + same
 ///   effects).
 #[derive(Debug, Clone)]
-pub struct ThinMemoEntry<'input> {
+pub struct ThinDerivMemoEntry<'input> {
     /// `None` = PURE (valid forever); `Some((write_epoch, deferred_len))` =
     /// STORE-READ, both captured at body entry and validated at replay.
     pub stamp: Option<(u64, usize)>,
-    /// `Some((end_pos, node))` for a successful parse (the node's children are
-    /// arena borrows, so the clone-on-hit is shallow — the [`MemoEntry`]
-    /// economics); `None` for a cached failure, replayed as the protocol memo
-    /// replays every cached failure: `ParseError::Backtrack` at the probe key's
-    /// position.
-    pub outcome: Option<(usize, ParseNode<'input>)>,
+    /// `Some((end_pos, event_segment, boundary_segment))` for a successful
+    /// match; `None` for a cached failure, replayed as
+    /// `ParseError::Backtrack` at the probe key's position.
+    #[allow(clippy::type_complexity)]
+    pub outcome: Option<(usize, Vec<DerivEvent>, Vec<&'input ParseNode<'input>>)>,
+}
+
+/// RGX-0078.5.i.7 (MTB-A) — one committed-derivation TAPE event of the fused
+/// graph's match-then-build split (`docs/tasks/RGX-0078.md`, the `-0093`
+/// design). `cascade_match_*` functions run today's fused control flow minus
+/// ALL value construction, appending the decisions a later `cascade_build_*`
+/// pass cannot re-derive from cursor replay alone; the build pass walks the
+/// committed tape ONCE, constructing the exact `ParseContent`/`ParseNode`
+/// values with a replayed position cursor. Events are POD `Copy` so
+/// tournament winner-segment compaction is a `copy_within` + `truncate`
+/// (zero allocation), and they never encode absolute tape indices (input
+/// positions / counts / branch indices only), so compaction moves are safe.
+///
+/// Statically elided wherever the build cursor can re-derive the fact:
+/// - `OrWinner` only at multi-branch non-byte-switch `Or` sites (a degenerate
+///   byte-switch site re-dispatches on the input byte at the replayed cursor,
+///   deterministic by construction);
+/// - `TokStart`/`TokEnd` only where a terminal's span is dynamic (a layout
+///   skip may precede it / its length is regex-matched) — a layout-sensitive
+///   grammar's static literals need NO terminal events at all;
+/// - `OptPresent` is mandatory at `?` fast-path sites (a static-literal inner
+///   produces zero events yet advances the cursor);
+/// - boundary call-out VALUES live in the parser's `deriv_boundary` side vec
+///   in append order (implicit — no event).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DerivEvent {
+    /// The committed winner's branch index at a multi-branch tournament site
+    /// (placeholder pushed before the attempts, patched once the tournament
+    /// concludes).
+    OrWinner(usize),
+    /// The committed iteration count of a quantified site (placeholder pushed
+    /// at loop entry, patched at loop exit; enclosing-failure truncation keeps
+    /// it consistent).
+    QuantCount(usize),
+    /// Presence of a `?` fast-path optional element (placeholder `false`
+    /// pushed before the attempt, patched to `true` on success).
+    OptPresent(bool),
+    /// A dynamic terminal's start position (emitted only where a layout skip
+    /// can precede the terminal, so the build cursor cannot derive it).
+    TokStart(usize),
+    /// A dynamic terminal's end position (emitted where the terminal's length
+    /// is not a static literal length, or where a layout skip made the start
+    /// dynamic — the literal start is then `end − literal_len`).
+    TokEnd(usize),
 }
 
 /// Rule ID type for memoization

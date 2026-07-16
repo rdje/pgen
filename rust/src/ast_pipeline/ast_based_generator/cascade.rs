@@ -1,15 +1,55 @@
-//! RGX-0078.5.i.7 (D2-A + D2-B) — the FUSED CASCADE emitter: the full cascade
-//! fold (acyclic sub-regions + the cyclic spine).
+//! RGX-0078.5.i.7 (D2-A + D2-B + MTB-A + MTB-B) — the FUSED CASCADE emitter:
+//! the full cascade fold (acyclic sub-regions + the cyclic spine), emitted
+//! ENTIRELY in MATCH-THEN-BUILD form (the `-0093` derivation-tape design; the
+//! `-0101` B increment extended the split across the cyclic spine — the
+//! population carrying 95.6% of the doomed alloc BYTES per the `-0092`/`-0100`
+//! census — so no eager fused value construction remains).
 //!
 //! For every rule in the cascade emission plan (the SHARED
 //! `fusibility_census::compute_cascade_emission_plan_for_increment` at
 //! `CascadeIncrement::CyclicSpine` — sub-roots + internal rules, every
-//! cascade-eligible rule), this module emits one compact `cascade_<rule>`
-//! function: the rule's parse logic and return-annotation value construction
-//! VERBATIM in semantics, with the per-rule protocol frame elided — no per-rule
-//! entry counter, no coverage push, no trace scope/lines, no rule transaction —
-//! and plain position-restore speculation wherever the speculation scope
-//! provably cannot reach a semantic effect.
+//! cascade-eligible rule), this module emits the rule's fused form: the rule's
+//! parse logic VERBATIM in semantics, with the per-rule protocol frame elided —
+//! no per-rule entry counter, no coverage push, no trace scope/lines, no rule
+//! transaction — and plain position-restore speculation wherever the
+//! speculation scope provably cannot reach a semantic effect.
+//!
+//! EVERY fused rule splits into TWO static fn families (MTB-A
+//! `PGEN-RGX-0078-0094` for the acyclic population; MTB-B `PGEN-RGX-0078-0101`
+//! for the cyclic spine):
+//!
+//! - `cascade_match_<rule>` — the control flow VERBATIM minus ALL value
+//!   construction, appending the committed-derivation TAPE
+//!   (`crate::ast_pipeline::DerivEvent`: `OrWinner`/`QuantCount`/`OptPresent`
+//!   placeholder-push-then-patch; `TokStart`/`TokEnd` only where a terminal
+//!   span is dynamic) plus the boundary side vec (eager call-out values in
+//!   append order). Every speculation-failure restore point truncates both to
+//!   its marks IN THE CALLER'S FAILURE ARM (the
+//!   [[feedback_question_bypasses_manual_cleanup]] rule applied to the tape);
+//!   tournament winner segments compact IN-TAPE (`copy_within` + `truncate`).
+//!   C3-B islands keep checkpoint / per-branch delta extraction + rollback /
+//!   winner-delta replay VERBATIM, but island LOSERS build no values —
+//!   `should_take` consumes only (end, priority, index). LICENSE: a fused rule
+//!   carries no runtime directive (the cascade gate), so no fused value is
+//!   ever consulted mid-parse; ineligible rules reference only SUB-ROOTS,
+//!   whose orchestrators return full values.
+//! - `cascade_build_<rule>` — the value half only, walked ONCE over the
+//!   committed tape with the replayed `deriv_pos` cursor: the exact structural
+//!   `ParseContent` + the rule/branch transforms (pure over content + spans).
+//!   No matching, no guards; an out-of-shape tape read is a loud
+//!   `unreachable!` (codegen drift), never an input error.
+//!
+//! SUB-ROOT `cascade_<rule>` fns become mark→match→build→truncate
+//! ORCHESTRATORS at an UNCHANGED signature, so the observability-twin dispatch
+//! and every fused/method call seam are untouched; INTERNAL rules get no
+//! `cascade_<rule>` fn at all (only match/build fns reference them — the plan
+//! partition). CYCLIC internal rules keep the D2-B protocol-mirror frame
+//! inside their match fn — the recursion guard verbatim plus the thin memo
+//! with a derivation-SEGMENT payload (`ThinDerivMemoEntry`): a valid hit
+//! splices the cached `(end, event-segment, boundary-segment)` onto the live
+//! tape and jumps the position (⛔ #49 — cycle participants never lose memo
+//! protection); cyclic SUB-ROOTS keep their guard + real-memo protection at
+//! the protocol frame that wraps the twin dispatch, exactly as under D2-B.
 //!
 //! ACYCLIC fused rules additionally elide the recursion-guard/parse-stack frame
 //! (`check_cycle` is load-bearing only on a cycle — the Optim #16 argument) and
@@ -18,8 +58,8 @@
 //! (the plan's `thin_memo`, D2-B) keep both, in lean form: the protocol-mirror
 //! `check_cycle` + `enter`/`exit` guard frame, and the epoch-stamped THIN memo
 //! (⛔ the session-#49 bound — a cyclic fused rule never loses memo
-//! protection; see `ThinMemoEntry` for the value-only-replay soundness
-//! argument). A cycle-participating SUB-ROOT needs neither in its cascade fn:
+//! protection; see `ThinDerivMemoEntry` for the segment splice-replay
+//! soundness argument). A cycle-participating SUB-ROOT needs neither in its cascade fn:
 //! fused bodies call sub-roots as protocol METHODS, whose full frame already
 //! carries the guard and the real memo.
 //!
@@ -86,6 +126,12 @@ pub(crate) struct CascadeCodegenPlan {
     pub(crate) thin_memo_internal: HashSet<String>,
     /// All fused rules (sub-roots + internal), sorted — the deterministic
     /// emission order for the `cascade_<rule>` fns.
+    ///
+    /// RGX-0078.5.i.7 (MTB-B) — the ENTIRE fused partition is the
+    /// match-then-build population: internal rules are
+    /// `cascade_match_<rule>`/`cascade_build_<rule>` pairs (cyclic ones with
+    /// the guard frame + the derivation-SEGMENT thin memo), sub-roots are
+    /// mark→match→build→truncate orchestrators at the unchanged twin seam.
     pub(crate) fused_order: Vec<String>,
 }
 
@@ -120,6 +166,15 @@ impl AstBasedGenerator {
             if census_plan.sub_roots.is_empty() {
                 return None;
             }
+            // RGX-0078.5.i.7 (MTB-B) — the match-then-build population is the
+            // WHOLE fused partition: every internal rule (acyclic AND cyclic)
+            // is a `cascade_match_<rule>`/`cascade_build_<rule>` pair — cyclic
+            // internals additionally carry the recursion-guard frame and the
+            // derivation-SEGMENT thin memo (⛔ #49 held) — and every sub-root's
+            // `cascade_<rule>` fn is a mark→match→build→truncate orchestrator
+            // at the unchanged twin-dispatch signature. No eager fused value
+            // construction remains; doomed derivations are truncated as tape
+            // segments, never built.
             let mut fused_order: Vec<String> = census_plan
                 .sub_roots
                 .iter()
@@ -198,6 +253,28 @@ impl AstBasedGenerator {
             .is_some_and(|plan| !plan.thin_memo_internal.is_empty())
     }
 
+    /// RGX-0078.5.i.7 (MTB-B) — is the match-then-build split active? Under
+    /// the B increment the MTB population IS the fused partition, so this is
+    /// exactly plan-active. Gates the derivation-tape parser-struct fields +
+    /// their init and the tape clear at `parse()` start.
+    pub(super) fn cascade_mtb_active(&self) -> bool {
+        self.cascade_plan_active()
+    }
+
+    /// RGX-0078.5.i.7 (MTB-B) — is `rule` an MTB SUB-ROOT (its
+    /// `cascade_<rule>` fn is a mark→match→build→truncate orchestrator)?
+    /// Under the B increment: every plan sub-root.
+    fn mtb_sub_root(&self, rule: &str) -> bool {
+        self.cascade_sub_root(rule)
+    }
+
+    /// RGX-0078.5.i.7 (MTB-B) — is `rule` MTB-INTERNAL (reached as a direct
+    /// `cascade_match_<rule>`/`cascade_build_<rule>` pair from match/build fns
+    /// exclusively)? Under the B increment: every plan-internal rule.
+    fn mtb_internal(&self, rule: &str) -> bool {
+        self.cascade_internal(rule)
+    }
+
     /// ⛔ C3-B rule 1's per-SITE test: does `node`'s subtree reference any rule
     /// from whose body a semantic effect is reachable (the plan's
     /// `effect_targets` — ineligible rules ∪ the effect-reaching fixpoint)? A
@@ -254,6 +331,42 @@ impl AstBasedGenerator {
                     "generator recursion analysis calls fused internal rule '{rule_name}' recursive but the census plan carries no thin memo for it — the two cyclicity analyses drifted"
                 );
             }
+            // RGX-0078.5.i.7 (MTB-B) — `cascade_match_<a>`/`cascade_build_<a>`
+            // share the `cascade_` namespace with `cascade_<b>`: a fused rule
+            // literally named `match_<a>`/`build_<a>` for a fused rule `<a>`
+            // would collide. Loud error, never a silent shadow.
+            for prefix in ["match_", "build_"] {
+                let colliding = format!("{prefix}{rule_name}");
+                if plan.sub_roots.contains(&colliding) || plan.internal.contains(&colliding) {
+                    anyhow::bail!(
+                        "fused rule '{colliding}' collides with the emitted cascade_{prefix}{rule_name} function of fused rule '{rule_name}' — rename one of the grammar rules"
+                    );
+                }
+            }
+        }
+        // RGX-0078.5.i.7 (MTB-A) — the derivation-tape read helpers, emitted
+        // once per artifact when the match-then-build split is active.
+        if self.cascade_mtb_active() {
+            cascade_fns.push(quote! {
+                /// RGX-0078.5.i.7 (MTB-A) — consume the next committed
+                /// derivation-tape event (build pass only; the tape segment a
+                /// build walks is committed by construction, so an
+                /// out-of-shape read is a codegen drift, not an input error).
+                #[inline]
+                fn deriv_next_event(&mut self) -> crate::ast_pipeline::DerivEvent {
+                    let event = self.deriv_events[self.deriv_ev_cursor];
+                    self.deriv_ev_cursor += 1;
+                    event
+                }
+                /// RGX-0078.5.i.7 (MTB-A) — consume the next boundary call-out
+                /// value (side-vec order is the implicit Boundary record).
+                #[inline]
+                fn deriv_next_boundary(&mut self) -> &'input ParseNode<'input> {
+                    let node = self.deriv_boundary[self.deriv_b_cursor];
+                    self.deriv_b_cursor += 1;
+                    node
+                }
+            });
         }
         for rule_name in &fused_order {
             let Some(ast_node) = grammar_tree.get(rule_name) else {
@@ -261,118 +374,145 @@ impl AstBasedGenerator {
                     "cascade emission plan names rule '{rule_name}' absent from the gen-AST tree"
                 );
             };
-            cascade_fns.push(self.generate_cascade_rule_fn(rule_name, ast_node, filename)?);
+            // RGX-0078.5.i.7 (MTB-B) — EVERY fused rule is match-then-build:
+            // the match/build pair (cyclic internals get the guard frame +
+            // the derivation-SEGMENT thin memo inside the match fn), plus the
+            // orchestrator at sub-roots (the unchanged `cascade_<rule>` twin
+            // seam). Internal rules get NO `cascade_<rule>` fn — by the plan
+            // partition only match/build fns reference them.
+            cascade_fns.push(self.generate_mtb_match_rule_fn(rule_name, ast_node, filename)?);
+            cascade_fns.push(self.generate_mtb_build_rule_fn(rule_name, ast_node)?);
+            if self.mtb_sub_root(rule_name) {
+                cascade_fns.push(self.generate_mtb_orchestrator_fn(rule_name));
+            }
         }
         Ok(quote! {
-            /// RGX-0078.5.i.7 (D2-A + D2-B) — the FUSED cascade graph: compact
-            /// per-rule functions for the bare-parse path (no coverage / trace /
-            /// counters / memo-stats consumer). Entered exclusively through the
-            /// observability-twin dispatch at plan sub-root memoized bodies;
-            /// every diagnostic consumer runs the untouched protocol methods.
-            /// Cycle-participating internal rules carry the recursion-guard
-            /// frame and the epoch-stamped thin memo (the ⛔ #49 bound).
+            /// RGX-0078.5.i.7 (D2-A + D2-B + MTB-A) — the FUSED cascade graph:
+            /// compact per-rule functions for the bare-parse path (no coverage /
+            /// trace / counters / memo-stats consumer). Entered exclusively
+            /// through the observability-twin dispatch at plan sub-root memoized
+            /// bodies; every diagnostic consumer runs the untouched protocol
+            /// methods. Cycle-participating internal rules carry the
+            /// recursion-guard frame and the epoch-stamped thin memo (the ⛔ #49
+            /// bound). ACYCLIC rules run match-then-build: `cascade_match_*`
+            /// records the committed derivation on the tape, `cascade_build_*`
+            /// constructs values ONCE over it, and sub-root `cascade_*` fns are
+            /// mark→match→build→truncate orchestrators at an unchanged
+            /// signature.
             impl<'input> #parser_name<'input> {
                 #(#cascade_fns)*
             }
         })
     }
 
-    /// One fused rule function. Mirrors `generate_rule_body_inner`'s semantics
-    /// with the protocol frame elided: furthest max-update at the head (the
-    /// method's rule-entry update — the ONLY furthest write site, so parity is
-    /// exact), parse logic, the rule-level return transform for non-`Or` roots,
-    /// and the `ParseNode` result. Every protocol tail the plan gate statically
-    /// excludes (relational guards, span `@transform`, coverage-target /
-    /// partition events, raw capture for post/final predicates) is provably
-    /// absent for a plan rule and not emitted.
-    fn generate_cascade_rule_fn(
+    /// A tournament branch's value transform over the captured `content` —
+    /// resolution identical to the protocol emission (explicit annotation, else
+    /// the synthetic `-> $1` single-element default, else pass-through). The
+    /// fused form binds `content` by MOVE (the protocol's `raw_content.clone()`
+    /// exists only to also feed the post/final raw capture, which is statically
+    /// absent for a plan rule).
+    fn cascade_branch_transform(
+        &self,
+        rule_name: &str,
+        branch_index: usize,
+        alternative: &ASTNode,
+    ) -> Result<TokenStream> {
+        let explicit_annotation: Option<BranchAnnotation> = self
+            .branch_return_annotations
+            .get(rule_name)
+            .and_then(|branches| branches.get(branch_index).cloned())
+            .flatten();
+        let resolved_annotation: Option<BranchAnnotation> = explicit_annotation.or_else(|| {
+            Self::synthesize_default_passthrough_for_single_element_branch(alternative)
+        });
+        Ok(match resolved_annotation {
+            Some(annotation) => {
+                self.generate_return_transform(&annotation, rule_name, &["content".to_string()])?
+            }
+            None => quote! { content },
+        })
+    }
+
+    /// Does `rule_name` carry a rule-level matched-text `@transform` (the atom
+    /// path the fused emission must never silently drop)? Mirrors the protocol
+    /// atom path's detection: any semantic annotation named `transform`.
+    fn cascade_rule_has_matched_text_transform(&self, rule_name: &str) -> bool {
+        let Some(annotations) = &self.annotations else {
+            return false;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return false;
+        };
+        entries.iter().any(|annotation| {
+            crate::ast_pipeline::semantic_directive_registry::semantic_directive_name_payload(
+                annotation,
+            )
+            .is_some_and(|(name, _)| name == "transform")
+        })
+    }
+
+    // ------------------------------------------------------------------
+    // RGX-0078.5.i.7 (MTB-A + MTB-B) — the MATCH pass: the fused control
+    // flow VERBATIM (guards, prune licenses, speculation classes, furthest
+    // updates, C3-B island machinery) minus ALL value construction,
+    // appending the committed-derivation tape (`DerivEvent`) + the boundary
+    // side vec. Every fragment is a fully-terminated statement sequence.
+    // Under MTB-B this is the ONLY fused emission: every fused rule is a
+    // match/build pair; cyclic internals wrap the match fn in the guard
+    // frame + the derivation-SEGMENT thin memo (⛔ #49).
+    // ------------------------------------------------------------------
+
+    /// The match half of a fused rule: `cascade_match_<rule>`. Control-flow
+    /// mirror of the retired eager `cascade_<rule>` form with the value half
+    /// (bindings, transforms, `ParseNode` creation) removed; cyclic internal
+    /// rules additionally carry the D2-B protocol-mirror frame (recursion
+    /// guard + thin memo, segment payload).
+    fn generate_mtb_match_rule_fn(
         &self,
         rule_name: &str,
         ast_node: &ASTNode,
         filename: &str,
     ) -> Result<TokenStream> {
-        let cascade_fn = format_ident!("cascade_{}", rule_name);
-
+        let match_fn = format_ident!("cascade_match_{}", rule_name);
         let parse_logic = match ast_node {
             ASTNode::Or { alternatives } => {
-                self.cascade_or_logic(alternatives, rule_name, filename, true)?
+                self.mtb_match_or_logic(alternatives, rule_name, filename, true)?
             }
-            _ => self.cascade_node_logic(ast_node, rule_name, filename)?,
-        };
-
-        // Rule-level return annotation for non-`Or` roots (the `Or` path applies
-        // per-branch transforms inline) — the `generate_rule_body_inner` mirror,
-        // with the assignment expressed as a shadowing rebind (value-identical;
-        // no `mut` requirement on the body's `result` binding).
-        let post_parse_transform_tokens: TokenStream = match ast_node {
-            ASTNode::Or { .. } => quote! {},
-            _ => {
-                let annotation_opt = self
-                    .branch_return_annotations
-                    .get(rule_name)
-                    .and_then(|branches| branches.first().cloned())
-                    .flatten()
-                    .or_else(|| {
-                        Self::synthesize_default_passthrough_for_single_element_branch(ast_node)
-                    });
-                if let Some(annotation) = annotation_opt {
-                    let transform = self.generate_return_transform(
-                        &annotation,
-                        rule_name,
-                        &["result".to_string()],
-                    )?;
-                    quote! {
-                        let result = { #transform };
-                    }
-                } else {
-                    quote! {}
-                }
-            }
-        };
-
-        // The rule's core body — shared verbatim between the plain (acyclic)
-        // form and the D2-B thin-memo (cyclic) form, so the acyclic emission is
-        // token-identical to the landed D2-A shape.
-        let core_body = quote! {
-            let start_pos = parser.position;
-            #parse_logic;
-            #post_parse_transform_tokens
-            let end_pos = parser.position;
-            Ok(ParseNode {
-                rule_name: #rule_name,
-                content: result,
-                span: start_pos..end_pos,
-            })
+            _ => self.mtb_match_node_logic(ast_node, rule_name, filename)?,
         };
 
         if self.cascade_thin_memo_internal(rule_name) {
-            // RGX-0078.5.i.7 (D2-B) — a CYCLE-PARTICIPATING internal fused rule:
-            // the protocol frame parts that are load-bearing exactly on a cycle
-            // are carried over, everything else stays elided.
+            // RGX-0078.5.i.7 (MTB-B) — a CYCLE-PARTICIPATING internal rule in
+            // match form: the D2-B protocol-mirror frame carries over verbatim
+            // (⛔ #49 — cycle participants never lose memo protection), with
+            // the memo PAYLOAD now a derivation SEGMENT instead of a value:
             //
-            // 1. RECURSION GUARD — `check_cycle`'s `Infinite`/`LeftRecursive`
-            //    verdicts scan the parse stack for THIS rule's in-flight frames,
-            //    so they are exact iff every cyclic rule pushes in both graphs:
-            //    each thin-memo fn mirrors the protocol method's
-            //    check/enter/exit (reject arms identical minus the trace lines,
-            //    which a bare parse can never enable). The whole-stack depth
-            //    ceiling keeps the landed D2-A margin semantics (the bare-path
-            //    stack omits acyclic fused frames in both increments).
-            // 2. THIN MEMO — the ⛔ #49 bound: probe/insert around the body,
-            //    with the protocol memo's own per-entry taint classes (PURE /
-            //    STORE-READ / STORE-MUTATING — see `ThinMemoEntry`), measured
-            //    across the body by the write epoch, the deferred-obligation
-            //    count, and the predicate-evaluation counter. Cached failures
-            //    replay as `Backtrack` at the probe position, exactly as the
-            //    protocol memo replays every cached failure.
+            // 1. RECURSION GUARD — identical check/enter/exit to the eager
+            //    D2-B form (the two-graph parity argument is unchanged).
+            // 2. SEGMENT THIN MEMO — same key, same taint classes (PURE /
+            //    STORE-READ via the stamp; a store-MUTATING body is never
+            //    cached), same staleness eviction; a valid HIT splices the
+            //    cached `(end, event-segment, boundary-segment)` onto the live
+            //    tape and jumps the cursor — the build pass later constructs
+            //    the value ONCE from the spliced events, so a memoized
+            //    sub-derivation on a DOOMED path is truncated un-built. Events
+            //    are tape-index-free (input positions / counts / branch
+            //    indices only — the MTB-A compaction license), so a segment is
+            //    position-independent within the tape and splicing is sound;
+            //    input positions are absolute and the memo key pins the input
+            //    position, so a hit replays at the exact recorded position.
+            //    Boundary values are arena refs (`Copy`), alive for the whole
+            //    parse — the same replay economics as the eager entry's
+            //    arena-borrow clone.
             //
-            // The body runs inside a closure so every `?`/early-return path
-            // still passes `recursion_guard.exit()` and the thin-memo insert
-            // (the [[feedback_question_bypasses_manual_cleanup]] IIFE pattern).
+            // Failure-arm tape hygiene stays with the CALLER's speculation
+            // scope (the [[feedback_question_bypasses_manual_cleanup]] rule):
+            // a failed body's pushes are truncated by the enclosing scope's
+            // marks, and a cached FAILURE carries no segment.
             let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
             let recursion_guard_max_depth = super::GENERATED_RECURSION_GUARD_MAX_DEPTH;
             return Ok(quote! {
-                fn #cascade_fn(&mut self) -> ParseResult<ParseNode<'input>> {
+                fn #match_fn(&mut self) -> ParseResult<()> {
                     let parser = self;
                     // The protocol method's rule-entry furthest update — the only
                     // furthest write site — mirrored one-for-one for exact parity.
@@ -417,11 +557,14 @@ impl AstBasedGenerator {
                         };
                         if __pgen_thin_valid {
                             match &__pgen_thin_entry.outcome {
-                                Some((__pgen_thin_end, __pgen_thin_node)) => {
-                                    let __pgen_thin_end = *__pgen_thin_end;
-                                    let __pgen_thin_node = __pgen_thin_node.clone();
-                                    parser.position = __pgen_thin_end;
-                                    return Ok(__pgen_thin_node);
+                                Some((__pgen_thin_end, __pgen_thin_ev_seg, __pgen_thin_b_seg)) => {
+                                    // Disjoint-field borrows: `thin_memo` is
+                                    // shared-borrowed while the tape vecs are
+                                    // mutably borrowed — distinct places.
+                                    parser.deriv_events.extend_from_slice(__pgen_thin_ev_seg);
+                                    parser.deriv_boundary.extend_from_slice(__pgen_thin_b_seg);
+                                    parser.position = *__pgen_thin_end;
+                                    return Ok(());
                                 }
                                 None => {
                                     return Err(ParseError::Backtrack { position });
@@ -434,16 +577,19 @@ impl AstBasedGenerator {
                         parser.thin_memo.remove(&__pgen_thin_key);
                     }
                     let __pgen_thin_preds = parser.semantic_runtime_state.predicate_evaluations();
+                    let __pgen_thin_ev_mark = parser.deriv_events.len();
+                    let __pgen_thin_b_mark = parser.deriv_boundary.len();
                     parser.recursion_guard.enter(#rule_name, position);
-                    let __pgen_thin_result: ParseResult<ParseNode<'input>> =
-                        (|parser: &mut Self| -> ParseResult<ParseNode<'input>> {
-                            #core_body
+                    let __pgen_thin_result: ParseResult<()> =
+                        (|parser: &mut Self| -> ParseResult<()> {
+                            #parse_logic
+                            Ok(())
                         })(parser);
                     parser.recursion_guard.exit();
-                    // Classify the body per the ThinMemoEntry taint classes: a
-                    // store-MUTATING body is never cached (value-only replay
-                    // would skip its effects); a store-READ body is cached with
-                    // the unchanged-epoch stamp; a PURE body is cached
+                    // Classify the body per the taint classes: a store-MUTATING
+                    // body is never cached (segment replay would skip its
+                    // effects); a store-READ body is cached with the
+                    // unchanged-epoch stamp; a PURE body is cached
                     // unconditionally (the protocol's untainted license).
                     let __pgen_thin_mutated =
                         parser.semantic_runtime_state.write_epoch() != __pgen_thin_epoch
@@ -459,14 +605,19 @@ impl AstBasedGenerator {
                                 Some((__pgen_thin_epoch, __pgen_thin_deferred))
                             };
                         match &__pgen_thin_result {
-                            Ok(__pgen_thin_node) => {
+                            Ok(()) => {
+                                let __pgen_thin_ev_seg =
+                                    parser.deriv_events[__pgen_thin_ev_mark..].to_vec();
+                                let __pgen_thin_b_seg =
+                                    parser.deriv_boundary[__pgen_thin_b_mark..].to_vec();
                                 parser.thin_memo.insert(
                                     __pgen_thin_key,
-                                    crate::ast_pipeline::ThinMemoEntry {
+                                    crate::ast_pipeline::ThinDerivMemoEntry {
                                         stamp: __pgen_thin_stamp,
                                         outcome: Some((
-                                            __pgen_thin_node.span.end,
-                                            __pgen_thin_node.clone(),
+                                            parser.position,
+                                            __pgen_thin_ev_seg,
+                                            __pgen_thin_b_seg,
                                         )),
                                     },
                                 );
@@ -474,7 +625,7 @@ impl AstBasedGenerator {
                             Err(_) => {
                                 parser.thin_memo.insert(
                                     __pgen_thin_key,
-                                    crate::ast_pipeline::ThinMemoEntry {
+                                    crate::ast_pipeline::ThinDerivMemoEntry {
                                         stamp: __pgen_thin_stamp,
                                         outcome: None,
                                     },
@@ -488,20 +639,21 @@ impl AstBasedGenerator {
         }
 
         Ok(quote! {
-            fn #cascade_fn(&mut self) -> ParseResult<ParseNode<'input>> {
+            fn #match_fn(&mut self) -> ParseResult<()> {
                 let parser = self;
                 // The protocol method's rule-entry furthest update — the only
                 // furthest write site — mirrored one-for-one for exact parity.
                 if parser.position > parser.furthest_position {
                     parser.furthest_position = parser.position;
                 }
-                #core_body
+                #parse_logic
+                Ok(())
             }
         })
     }
 
-    /// Construct dispatch — the `generate_node_parsing_logic` mirror.
-    fn cascade_node_logic(
+    /// Construct dispatch for the match pass — the `cascade_node_logic` mirror.
+    fn mtb_match_node_logic(
         &self,
         ast_node: &ASTNode,
         rule_name: &str,
@@ -509,48 +661,54 @@ impl AstBasedGenerator {
     ) -> Result<TokenStream> {
         match ast_node {
             ASTNode::Or { alternatives } => {
-                // Nested `Or`: no FIRST prune guard (same license restriction as
-                // the protocol emission — `parse_start` may exceed the recorded
-                // rule-entry position).
-                self.cascade_or_logic(alternatives, rule_name, filename, false)
+                self.mtb_match_or_logic(alternatives, rule_name, filename, false)
             }
             ASTNode::Sequence { elements } => {
-                self.cascade_sequence_logic(elements, rule_name, filename)
+                self.mtb_match_sequence_logic(elements, rule_name, filename)
             }
-            ASTNode::Atom { value } => self.cascade_atom_logic(value, rule_name),
+            ASTNode::Atom { value } => self.mtb_match_atom_logic(value, rule_name),
             ASTNode::Quantified {
                 element,
                 quantifier,
-            } => self.cascade_quantified_logic(element, quantifier, rule_name, filename),
+            } => self.mtb_match_quantified_logic(element, quantifier, rule_name, filename),
             ASTNode::Lookahead { element, positive } => {
-                self.cascade_lookahead_logic(element, *positive, rule_name, filename)
+                self.mtb_match_lookahead_logic(element, *positive, rule_name, filename)
             }
         }
     }
 
-    /// One speculation scope: binds `__pgen_attempt: Option<T>` from a `body`
-    /// producing `ParseResult<T>`. Effect-reaching subtrees run under
-    /// `try_parse` (⛔ C3-B rule 1 — semantic snapshot/rollback exactly as the
-    /// protocol's speculation wrapper); effect-free subtrees use plain position
-    /// save/restore (nothing else can have changed: no store write, no coverage
-    /// push, and boundary methods balance their own parse-stack frames on every
-    /// path).
-    fn cascade_speculation_tokens(&self, subtree: &ASTNode, body: TokenStream) -> TokenStream {
+    /// One match-pass speculation scope over a `ParseResult<()>` body — the
+    /// `cascade_speculation_tokens` mirror plus TAPE hygiene: the derivation
+    /// tape is position-like state `try_parse` does not manage, so the
+    /// truncation lives in the CALLER's failure arm, never inside the closure
+    /// (the [[feedback_question_bypasses_manual_cleanup]] rule applied to the
+    /// tape).
+    fn mtb_match_speculation_tokens(&self, subtree: &ASTNode, body: TokenStream) -> TokenStream {
         if self.cascade_subtree_reaches_effects(subtree) {
             quote! {
+                let __pgen_spec_ev_mark = parser.deriv_events.len();
+                let __pgen_spec_b_mark = parser.deriv_boundary.len();
                 let __pgen_attempt = parser.try_parse(|p| {
                     let parser = p;
                     #body
                 });
+                if __pgen_attempt.is_none() {
+                    parser.deriv_events.truncate(__pgen_spec_ev_mark);
+                    parser.deriv_boundary.truncate(__pgen_spec_b_mark);
+                }
             }
         } else {
             quote! {
                 let __pgen_attempt = {
                     let __pgen_spec_start = parser.position;
+                    let __pgen_spec_ev_mark = parser.deriv_events.len();
+                    let __pgen_spec_b_mark = parser.deriv_boundary.len();
                     match (|parser: &mut Self| -> ParseResult<_> { #body })(parser) {
                         Ok(__pgen_speculated) => Some(__pgen_speculated),
                         Err(_) => {
                             parser.position = __pgen_spec_start;
+                            parser.deriv_events.truncate(__pgen_spec_ev_mark);
+                            parser.deriv_boundary.truncate(__pgen_spec_b_mark);
                             None
                         }
                     }
@@ -559,14 +717,15 @@ impl AstBasedGenerator {
         }
     }
 
-    /// The `Or` mirror: single-branch pass-through, the P2 degenerate
-    /// byte-switch, or the tournament (plain for effect-free sites; the protocol
-    /// ISLAND — checkpoint / per-branch delta extraction + rollback /
-    /// winner-delta replay — when ≥ 1 branch reaches effects, ⛔ C3-B rule 2).
-    /// Branch predicates, branch-start effects, partition rotation, recovery
-    /// hints, and `nonassoc` ties are all statically excluded by the shared
-    /// cascade gate, so their machinery is not emitted.
-    fn cascade_or_logic(
+    /// The `Or` match mirror: single-branch pass-through (no event), the P2
+    /// byte-switch (no event — the build pass re-dispatches on the committed
+    /// input byte), or the tournament with the `OrWinner`
+    /// placeholder-push-then-patch and IN-TAPE winner-segment compaction
+    /// (`copy_within` + `truncate` — POD moves, zero allocation). `should_take`
+    /// consumes only (end, priority, index) — island LOSERS build no values
+    /// (the `-0093` island refinement; the checkpoint / per-branch delta
+    /// extraction + rollback / winner-delta replay machinery stays VERBATIM).
+    fn mtb_match_or_logic(
         &self,
         alternatives: &[ASTNode],
         rule_name: &str,
@@ -576,35 +735,8 @@ impl AstBasedGenerator {
         let branch_count = alternatives.len();
 
         if branch_count == 1 {
-            let branch = &alternatives[0];
-            let branch_logic = self.cascade_node_logic(branch, rule_name, filename)?;
-            let resolved_annotation: Option<BranchAnnotation> = self
-                .branch_return_annotations
-                .get(rule_name)
-                .and_then(|branches| branches.first().cloned())
-                .flatten()
-                .or_else(|| {
-                    Self::synthesize_default_passthrough_for_single_element_branch(branch)
-                });
-            if let Some(annotation) = resolved_annotation {
-                let transform = self.generate_return_transform(
-                    &annotation,
-                    rule_name,
-                    &["result".to_string()],
-                )?;
-                if transform.to_string() == "result" {
-                    return Ok(quote! {
-                        #branch_logic;
-                    });
-                }
-                return Ok(quote! {
-                    #branch_logic;
-                    let result = { #transform };
-                });
-            }
-            return Ok(quote! {
-                #branch_logic;
-            });
+            let branch_logic = self.mtb_match_node_logic(&alternatives[0], rule_name, filename)?;
+            return Ok(branch_logic);
         }
 
         let branch_priorities = self.rule_branch_priorities(rule_name, branch_count);
@@ -623,9 +755,9 @@ impl AstBasedGenerator {
             super::super::first_set::SecondByteSummary,
         > = std::collections::HashMap::new();
 
-        // The P2 DEGENERATE byte-switch (pairwise-disjoint FIRST bytes ⇒ at most
-        // one candidate per next byte) — the SAME shared gate as the protocol
-        // emission, so both graphs dispatch identically.
+        // The P2 DEGENERATE byte-switch — the SAME shared gate as the eager
+        // emission (and as `mtb_build_or_logic`, which re-runs it on identical
+        // inputs), so match, build, and protocol graphs dispatch identically.
         if let Some(branch_byte_sets) = self.degenerate_dispatch_byte_sets(
             alternatives,
             rule_name,
@@ -634,30 +766,19 @@ impl AstBasedGenerator {
         ) {
             let mut dispatch_arms = Vec::new();
             for (idx, alternative) in alternatives.iter().enumerate() {
-                let branch_logic = self.cascade_node_logic(alternative, rule_name, filename)?;
-                let transform = self.cascade_branch_transform(rule_name, idx, alternative)?;
+                let branch_logic = self.mtb_match_node_logic(alternative, rule_name, filename)?;
                 let byte_patterns = &branch_byte_sets[idx];
-                // The sole candidate runs speculatively (failure arm restores);
-                // on success its effects stay in place — no losers ran (the
-                // protocol's P2 semantics, mirrored per-branch by the
-                // effect-aware speculation helper).
-                let speculation = self.cascade_speculation_tokens(
+                let speculation = self.mtb_match_speculation_tokens(
                     alternative,
                     quote! {
-                        #branch_logic;
-                        Ok(result)
+                        #branch_logic
+                        Ok(())
                     },
                 );
                 dispatch_arms.push(quote! {
                     #(#byte_patterns)|* => {
                         #speculation
-                        if let Some(content) = __pgen_attempt {
-                            let transformed = {
-                                let content = content;
-                                #transform
-                            };
-                            result = transformed;
-                        } else {
+                        if __pgen_attempt.is_none() {
                             return Err(ParseError::Backtrack {
                                 position: parse_start,
                             });
@@ -667,7 +788,6 @@ impl AstBasedGenerator {
             }
             return Ok(quote! {
                 let parse_start = parser.position;
-                let mut result = ParseContent::Sequence(Vec::new());
                 if parse_start < parser.input.len() {
                     match parser.input.as_bytes()[parse_start] {
                         #(#dispatch_arms,)*
@@ -692,8 +812,7 @@ impl AstBasedGenerator {
 
         let mut branch_attempt_blocks: Vec<TokenStream> = Vec::new();
         for (idx, alternative) in alternatives.iter().enumerate() {
-            let branch_logic = self.cascade_node_logic(alternative, rule_name, filename)?;
-            let transform = self.cascade_branch_transform(rule_name, idx, alternative)?;
+            let branch_logic = self.mtb_match_node_logic(alternative, rule_name, filename)?;
             let branch_num = idx + 1;
             let branch_priority = branch_priorities.get(idx).copied().unwrap_or(0);
             let branch_index = idx;
@@ -704,15 +823,14 @@ impl AstBasedGenerator {
                 &mut second_byte_cache,
             );
 
-            // The winner-selection cascade — the protocol's exact chain (the
-            // policy/associativity string compares are compile-time constants
-            // that fold at opt time; `nonassoc` is statically excluded by the
-            // shared gate, so its tie arm is provably dead and not emitted).
+            // The winner-selection cascade — the protocol's exact chain over
+            // (end, priority, index); `best_content.is_none()` becomes
+            // `!__pgen_best_found` (no values exist on the match pass).
             let should_take_chain = quote! {
                 let should_take = if #branch_policy_mode == "ordered" {
-                    best_content.is_none()
+                    !__pgen_best_found
                 } else if #branch_policy_mode == "priority_first" {
-                    if best_content.is_none() {
+                    if !__pgen_best_found {
                         true
                     } else if candidate_priority > best_priority {
                         true
@@ -728,7 +846,7 @@ impl AstBasedGenerator {
                             _ => false,
                         }
                     }
-                } else if best_content.is_none() {
+                } else if !__pgen_best_found {
                     true
                 } else if candidate_end > best_end {
                     true
@@ -746,28 +864,36 @@ impl AstBasedGenerator {
                 };
             };
 
+            // IN-TAPE winner-segment compaction: the candidate segment
+            // (appended after the current best segment) memmoves down over
+            // the best; when the best is empty the copy is a no-op onto
+            // itself. Events carry no absolute tape indices, so the move is
+            // safe by construction.
+            let take_compaction = quote! {
+                let __pgen_cand_ev_len = parser.deriv_events.len() - __pgen_cand_ev_start;
+                parser.deriv_events.copy_within(__pgen_cand_ev_start.., __pgen_or_ev_mark + 1);
+                parser.deriv_events.truncate(__pgen_or_ev_mark + 1 + __pgen_cand_ev_len);
+                let __pgen_cand_b_len = parser.deriv_boundary.len() - __pgen_cand_b_start;
+                parser.deriv_boundary.copy_within(__pgen_cand_b_start.., __pgen_or_b_mark);
+                parser.deriv_boundary.truncate(__pgen_or_b_mark + __pgen_cand_b_len);
+            };
+
             let arm_inner = if island {
-                // The protocol tournament island: per-branch `try_parse`
-                // (semantic rollback on failure), then delta extraction +
-                // rollback to the tournament checkpoint; the winner's delta is
-                // replayed once the tournament concludes.
                 quote! {
-                    if #branch_policy_mode == "ordered" && best_content.is_some() {
+                    if #branch_policy_mode == "ordered" && __pgen_best_found {
                         // Ordered branch policy keeps the first successful branch.
                     } else {
                         parser.position = parse_start;
-                        if let Some(content) = parser.try_parse(|p| {
+                        let __pgen_cand_ev_start = parser.deriv_events.len();
+                        let __pgen_cand_b_start = parser.deriv_boundary.len();
+                        if let Some(()) = parser.try_parse(|p| {
                             let parser = p;
-                            #branch_logic;
-                            Ok(result)
+                            #branch_logic
+                            Ok(())
                         }) {
                             let candidate_end = parser.position;
                             let candidate_priority: i64 = #branch_priority;
                             let current_branch_index: usize = #branch_index;
-                            let transformed = {
-                                let content = content;
-                                #transform
-                            };
                             parser.position = parse_start;
                             #should_take_chain
                             let candidate_delta = parser
@@ -782,47 +908,55 @@ impl AstBasedGenerator {
                                 },
                             );
                             if should_take {
+                                #take_compaction
                                 best_end = candidate_end;
                                 best_priority = candidate_priority;
                                 best_branch_index = current_branch_index;
-                                best_content = Some(transformed);
+                                __pgen_best_found = true;
                                 best_semantic_delta = Some(candidate_delta);
+                            } else {
+                                parser.deriv_events.truncate(__pgen_cand_ev_start);
+                                parser.deriv_boundary.truncate(__pgen_cand_b_start);
                             }
+                        } else {
+                            // Tape hygiene in the CALLER's failure arm —
+                            // `try_parse` restores position/semantics only.
+                            parser.deriv_events.truncate(__pgen_cand_ev_start);
+                            parser.deriv_boundary.truncate(__pgen_cand_b_start);
                         }
                     }
                 }
             } else {
-                // Effect-free site: plain position-restore tournament — the
-                // semantic checkpoint/delta machinery is provably a no-op here
-                // (no branch subtree can reach a store write).
-                let speculation = self.cascade_speculation_tokens(
+                let speculation = self.mtb_match_speculation_tokens(
                     alternative,
                     quote! {
-                        #branch_logic;
-                        Ok(result)
+                        #branch_logic
+                        Ok(())
                     },
                 );
                 quote! {
-                    if #branch_policy_mode == "ordered" && best_content.is_some() {
+                    if #branch_policy_mode == "ordered" && __pgen_best_found {
                         // Ordered branch policy keeps the first successful branch.
                     } else {
                         parser.position = parse_start;
+                        let __pgen_cand_ev_start = parser.deriv_events.len();
+                        let __pgen_cand_b_start = parser.deriv_boundary.len();
                         #speculation
-                        if let Some(content) = __pgen_attempt {
+                        if let Some(()) = __pgen_attempt {
                             let candidate_end = parser.position;
                             let candidate_priority: i64 = #branch_priority;
                             let current_branch_index: usize = #branch_index;
-                            let transformed = {
-                                let content = content;
-                                #transform
-                            };
                             parser.position = parse_start;
                             #should_take_chain
                             if should_take {
+                                #take_compaction
                                 best_end = candidate_end;
                                 best_priority = candidate_priority;
                                 best_branch_index = current_branch_index;
-                                best_content = Some(transformed);
+                                __pgen_best_found = true;
+                            } else {
+                                parser.deriv_events.truncate(__pgen_cand_ev_start);
+                                parser.deriv_boundary.truncate(__pgen_cand_b_start);
                             }
                         }
                     }
@@ -872,20 +1006,24 @@ impl AstBasedGenerator {
 
         Ok(quote! {
             let parse_start = parser.position;
-            let mut best_content: Option<ParseContent<'input>> = None;
+            let mut __pgen_best_found = false;
             let mut best_end = parse_start;
             let mut best_priority: i64 = i64::MIN;
             let mut best_branch_index: usize = 0usize;
-            let mut result = ParseContent::Sequence(Vec::new());
+            let __pgen_or_ev_mark = parser.deriv_events.len();
+            parser.deriv_events.push(crate::ast_pipeline::DerivEvent::OrWinner(0));
+            let __pgen_or_b_mark = parser.deriv_boundary.len();
             #island_prologue
             // Branches evaluate in declaration order (partition rotation is
             // statically excluded by the shared cascade gate).
             #(#branch_attempt_blocks)*
-            if let Some(content) = best_content {
+            if __pgen_best_found {
                 parser.position = best_end;
+                parser.deriv_events[__pgen_or_ev_mark] =
+                    crate::ast_pipeline::DerivEvent::OrWinner(best_branch_index);
                 #island_winner_replay
-                result = content;
             } else {
+                parser.deriv_events.truncate(__pgen_or_ev_mark);
                 return Err(ParseError::Backtrack {
                     position: parse_start,
                 });
@@ -893,87 +1031,54 @@ impl AstBasedGenerator {
         })
     }
 
-    /// A tournament branch's value transform over the captured `content` —
-    /// resolution identical to the protocol emission (explicit annotation, else
-    /// the synthetic `-> $1` single-element default, else pass-through). The
-    /// fused form binds `content` by MOVE (the protocol's `raw_content.clone()`
-    /// exists only to also feed the post/final raw capture, which is statically
-    /// absent for a plan rule).
-    fn cascade_branch_transform(
-        &self,
-        rule_name: &str,
-        branch_index: usize,
-        alternative: &ASTNode,
-    ) -> Result<TokenStream> {
-        let explicit_annotation: Option<BranchAnnotation> = self
-            .branch_return_annotations
-            .get(rule_name)
-            .and_then(|branches| branches.get(branch_index).cloned())
-            .flatten();
-        let resolved_annotation: Option<BranchAnnotation> = explicit_annotation.or_else(|| {
-            Self::synthesize_default_passthrough_for_single_element_branch(alternative)
-        });
-        Ok(match resolved_annotation {
-            Some(annotation) => {
-                self.generate_return_transform(&annotation, rule_name, &["content".to_string()])?
-            }
-            None => quote! { content },
-        })
-    }
-
-    /// The `Sequence` mirror.
-    fn cascade_sequence_logic(
+    /// The `Sequence` match mirror.
+    fn mtb_match_sequence_logic(
         &self,
         elements: &[ASTNode],
         rule_name: &str,
         filename: &str,
     ) -> Result<TokenStream> {
-        let element_count = elements.len();
         let mut element_parsers = Vec::new();
-        for (idx, element) in elements.iter().enumerate() {
-            element_parsers.push(self.cascade_sequence_element(element, idx, rule_name, filename)?);
+        for element in elements.iter() {
+            element_parsers.push(self.mtb_match_sequence_element(element, rule_name, filename)?);
         }
         Ok(quote! {
-            let mut sequence_elements: Vec<&'input ParseNode<'input>> = Vec::with_capacity(#element_count);
             #(#element_parsers)*
-            let result = ParseContent::Sequence(sequence_elements)
         })
     }
 
-    /// One sequence element — the `generate_sequence_element` mirror, including
-    /// the optional-element fast path with the Q-guard attempt elision (the same
-    /// shared license helpers as the protocol emission).
-    fn cascade_sequence_element(
+    /// One sequence element on the match pass — the `cascade_sequence_element`
+    /// mirror. The `?` fast path pushes the MANDATORY `OptPresent` placeholder
+    /// (a static-literal inner produces zero events yet advances the build
+    /// cursor) before the attempt and patches it on success; the Q-guard
+    /// attempt elision keeps the placeholder at `false`.
+    fn mtb_match_sequence_element(
         &self,
         element: &ASTNode,
-        index: usize,
         rule_name: &str,
         filename: &str,
     ) -> Result<TokenStream> {
-        let element_logic = match element {
+        match element {
             ASTNode::Quantified {
                 element: inner,
                 quantifier,
             } if quantifier == "?" => {
-                let inner_logic = self.cascade_node_logic(inner, rule_name, filename)?;
-                let speculation = self.cascade_speculation_tokens(
+                let inner_logic = self.mtb_match_node_logic(inner, rule_name, filename)?;
+                let speculation = self.mtb_match_speculation_tokens(
                     inner,
                     quote! {
-                        #inner_logic;
-                        Ok(result)
+                        #inner_logic
+                        Ok(())
                     },
                 );
                 let attempt = quote! {
-                    {
-                        #speculation
-                        if let Some(content) = __pgen_attempt {
-                            content
-                        } else {
-                            ParseContent::Sequence(Vec::new())
-                        }
+                    #speculation
+                    if __pgen_attempt.is_some() {
+                        parser.deriv_events[__pgen_opt_ev_mark] =
+                            crate::ast_pipeline::DerivEvent::OptPresent(true);
                     }
                 };
-                match self.quantified_prune_guard_for_element(inner) {
+                let attempt_with_guard = match self.quantified_prune_guard_for_element(inner) {
                     Some((bytes, emulate)) => {
                         let emulation = Self::quantified_guard_emulation_tokens(emulate);
                         quote! {
@@ -986,82 +1091,90 @@ impl AstBasedGenerator {
                                 // would fail at byte 1; elide it (exact furthest
                                 // parity per the shared license).
                                 #emulation
-                                ParseContent::Sequence(Vec::new())
                             }
                         }
                     }
                     None => attempt,
-                }
+                };
+                Ok(quote! {
+                    {
+                        let __pgen_opt_ev_mark = parser.deriv_events.len();
+                        parser.deriv_events.push(crate::ast_pipeline::DerivEvent::OptPresent(false));
+                        #attempt_with_guard
+                    }
+                })
             }
             _ => {
-                let inner_logic = self.cascade_node_logic(element, rule_name, filename)?;
-                quote! {
+                let inner_logic = self.mtb_match_node_logic(element, rule_name, filename)?;
+                Ok(quote! {
                     {
-                        #inner_logic;
-                        result
+                        #inner_logic
                     }
-                }
+                })
             }
-        };
-
-        let element_name = format!("element_{}", index);
-        Ok(quote! {
-            {
-                let element_start = parser.position;
-                let element_content = #element_logic;
-                let element_end = parser.position;
-                sequence_elements.push(parser.arena.alloc(ParseNode {
-                    rule_name: #element_name,
-                    content: element_content,
-                    span: element_start..element_end,
-                }));
-            }
-        })
+        }
     }
 
-    /// The `Atom` mirror: terminals through the SAME `match_string` /
-    /// `match_regex` helpers (layout policy inherited by construction);
-    /// plan-internal rule references (including the D2-B cyclic spine) become
-    /// direct `cascade_<rule>` calls (furthest updated at the callee's head —
-    /// the method-entry mirror); every other reference (sub-roots, ineligible
-    /// rules, engine builtins) stays a protocol method call-out — a sub-root
-    /// call-out is what gives a cyclic sub-root its guard + real-memo
-    /// protection on the bare path.
-    fn cascade_atom_logic(&self, value: &ASTValue, rule_name: &str) -> Result<TokenStream> {
+    /// The `Atom` match mirror: terminals through the SAME `match_string` /
+    /// `match_regex` helpers (layout policy inherited by construction), with
+    /// terminal tape events STATICALLY ELIDED wherever the build cursor can
+    /// re-derive the span (a layout-sensitive grammar's static literals emit
+    /// none — the regex artifact carries ZERO terminal events). References:
+    /// A-internal targets become `cascade_match_<rule>` calls; every other
+    /// target (A-sub-root orchestrators, cyclic fused fns, sub-root/ineligible
+    /// methods) stays an EAGER value call-out whose node is arena-allocated
+    /// once and pushed to the boundary side vec (order is the implicit
+    /// Boundary record).
+    fn mtb_match_atom_logic(&self, value: &ASTValue, rule_name: &str) -> Result<TokenStream> {
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
                 let TokenValue::String(token_type) = &parts[0];
                 let TokenValue::String(token_value) = &parts[1];
                 match token_type.as_str() {
                     "quoted_string" | "number" | "probability" | "include_dir" | "include_file"
-                    | "rule" => Ok(quote! {
-                        let matched_str = parser.match_string(#token_value)?;
-                        let result = ParseContent::Terminal(matched_str)
-                    }),
-                    "rule_reference" => {
-                        if self.cascade_internal(token_value) {
-                            let cascade_target = format_ident!("cascade_{}", token_value);
+                    | "rule" => {
+                        if self.layout_sensitivity().terminals {
+                            // No layout skip can precede this literal: the
+                            // build cursor derives start AND end statically.
                             Ok(quote! {
-                                let __pgen_alt_child = parser.#cascade_target()?;
-                                let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
+                                parser.match_string(#token_value)?;
                             })
                         } else {
+                            // A layout skip may precede the literal: record
+                            // the dynamic end (start = end − literal length).
+                            Ok(quote! {
+                                parser.match_string(#token_value)?;
+                                parser.deriv_events.push(
+                                    crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
+                                );
+                            })
+                        }
+                    }
+                    "rule_reference" => {
+                        if self.mtb_internal(token_value) {
+                            // RGX-0078.5.i.7 (MTB-B) — EVERY fused internal
+                            // rule (acyclic and cyclic alike) is a match-fn
+                            // call; cyclic targets carry their own guard +
+                            // segment thin memo inside `cascade_match_<r>`.
+                            let match_target = format_ident!("cascade_match_{}", token_value);
+                            Ok(quote! {
+                                parser.#match_target()?;
+                            })
+                        } else {
+                            // A sub-root or an ineligible rule: a BOUNDARY
+                            // call-out — the protocol method returns a full
+                            // value, recorded on the side vec in append order.
                             let method = format_ident!("parse_{}", token_value);
                             Ok(quote! {
                                 let __pgen_alt_child = parser.#method()?;
-                                let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
+                                parser.deriv_boundary.push(parser.arena.alloc(__pgen_alt_child));
                             })
                         }
                     }
                     "regex" => {
-                        // A rule-level matched-text `@transform` is ineligible at
-                        // the shared cascade gate; if one is ever seen here the
-                        // gate and the emission disagree — a loud hard error,
-                        // never a silent semantics drop (the P1a re-entry-guard
-                        // precedent).
                         if self.cascade_rule_has_matched_text_transform(rule_name) {
                             anyhow::bail!(
-                                "cascade emission reached regex atom of rule '{rule_name}' which carries a matched-text @transform — the shared cascade gate must have excluded it"
+                                "cascade match emission reached regex atom of rule '{rule_name}' which carries a matched-text @transform — the shared cascade gate must have excluded it"
                             );
                         }
                         let skip_leading_whitespace = !matches!(
@@ -1070,52 +1183,52 @@ impl AstBasedGenerator {
                         );
                         let effective_regex_pattern =
                             self.effective_regex_pattern(rule_name, token_value);
-                        Ok(quote! {
-                            let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
-                            let result = ParseContent::Terminal(matched_str)
-                        })
+                        // The emitted `match_regex` skips layout iff the site
+                        // requests it AND the grammar's regex tokens are
+                        // layout-insensitive — mirror that static product for
+                        // the TokStart elision.
+                        let start_dynamic =
+                            skip_leading_whitespace && !self.layout_sensitivity().regex_tokens;
+                        if start_dynamic {
+                            Ok(quote! {
+                                let __pgen_matched =
+                                    parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                parser.deriv_events.push(crate::ast_pipeline::DerivEvent::TokStart(
+                                    parser.position - __pgen_matched.len(),
+                                ));
+                                parser.deriv_events.push(
+                                    crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
+                                );
+                            })
+                        } else {
+                            Ok(quote! {
+                                parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                parser.deriv_events.push(
+                                    crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
+                                );
+                            })
+                        }
                     }
-                    _ => Ok(quote! {
-                        let result = ParseContent::Terminal("")
-                    }),
+                    _ => Ok(quote! {}),
                 }
             }
-            _ => Ok(quote! {
-                let result = ParseContent::Terminal("")
-            }),
+            _ => Ok(quote! {}),
         }
     }
 
-    /// Does `rule_name` carry a rule-level matched-text `@transform` (the atom
-    /// path the fused emission must never silently drop)? Mirrors the protocol
-    /// atom path's detection: any semantic annotation named `transform`.
-    fn cascade_rule_has_matched_text_transform(&self, rule_name: &str) -> bool {
-        let Some(annotations) = &self.annotations else {
-            return false;
-        };
-        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return false;
-        };
-        entries.iter().any(|annotation| {
-            crate::ast_pipeline::semantic_directive_registry::semantic_directive_name_payload(
-                annotation,
-            )
-            .is_some_and(|(name, _)| name == "transform")
-        })
-    }
-
-    /// The `Quantified` mirror: the unified (min, max) loop with the Q-guard
-    /// attempt elision, the zero-length-match guard, and the safety limit —
-    /// `@stop_at_rule_boundary` is statically excluded by the shared cascade
-    /// gate, so its break/error checks are not emitted.
-    fn cascade_quantified_logic(
+    /// The `Quantified` match mirror: the unified (min, max) loop with the
+    /// Q-guard attempt elision, the zero-length-match guard (the discarded
+    /// zero-length success also discards its tape segment — the eager loop
+    /// never pushes that value), the safety limit, and the `QuantCount`
+    /// placeholder-push-then-patch.
+    fn mtb_match_quantified_logic(
         &self,
         element: &ASTNode,
         quantifier: &str,
         rule_name: &str,
         filename: &str,
     ) -> Result<TokenStream> {
-        let element_logic = self.cascade_node_logic(element, rule_name, filename)?;
+        let element_logic = self.mtb_match_node_logic(element, rule_name, filename)?;
         let (min, max) = match parse_quantifier_bounds(quantifier) {
             Some(bounds) => bounds,
             None => anyhow::bail!("Unknown quantifier: {}", quantifier),
@@ -1148,7 +1261,6 @@ impl AstBasedGenerator {
         } else {
             (quote! {}, quote! {})
         };
-        let quantifier_label = quantifier;
 
         let quant_prune_guard = if min == 0 {
             self.quantified_prune_guard_for_element(element)
@@ -1172,21 +1284,18 @@ impl AstBasedGenerator {
             None => quote! {},
         };
 
-        let speculation = self.cascade_speculation_tokens(
+        let speculation = self.mtb_match_speculation_tokens(
             element,
             quote! {
-                #element_logic;
-                Ok(ParseNode {
-                    rule_name: "quantified",
-                    content: result,
-                    span: 0..0,
-                })
+                #element_logic
+                Ok(())
             },
         );
 
         Ok(quote! {
             #quantifier_start_position_bind
-            let mut results: Vec<&'input ParseNode<'input>> = Vec::new();
+            let __pgen_quant_ev_mark = parser.deriv_events.len();
+            parser.deriv_events.push(crate::ast_pipeline::DerivEvent::QuantCount(0));
             let mut last_position = parser.position;
             let mut iteration_count: usize = 0;
             const SAFETY_LIMIT: usize = 10_000;
@@ -1199,15 +1308,20 @@ impl AstBasedGenerator {
                 #max_check_tokens
                 #quant_guard_tokens
 
+                let __pgen_iter_ev_mark = parser.deriv_events.len();
+                let __pgen_iter_b_mark = parser.deriv_boundary.len();
                 #speculation
-                if let Some(node) = __pgen_attempt {
+                if let Some(()) = __pgen_attempt {
                     let current_position = parser.position;
                     // Zero-length match guard — prevent infinite loops on rules
-                    // that can match the empty string.
+                    // that can match the empty string. The eager loop discards
+                    // the zero-length value (break without push): discard its
+                    // tape segment identically.
                     if current_position == last_position {
+                        parser.deriv_events.truncate(__pgen_iter_ev_mark);
+                        parser.deriv_boundary.truncate(__pgen_iter_b_mark);
                         break;
                     }
-                    results.push(parser.arena.alloc(node));
                     last_position = current_position;
                     iteration_count += 1;
                 } else {
@@ -1217,26 +1331,28 @@ impl AstBasedGenerator {
 
             #min_check_tokens
 
-            let result = ParseContent::Quantified(results, #quantifier_label);
+            parser.deriv_events[__pgen_quant_ev_mark] =
+                crate::ast_pipeline::DerivEvent::QuantCount(iteration_count);
         })
     }
 
-    /// The `Lookahead` mirror. On an effect-reaching subtree the attempt runs
-    /// under `try_parse` — semantic effects roll back on inner FAILURE and
-    /// persist on inner SUCCESS, exactly the protocol's observable behavior
-    /// (only the position is restored after a successful probe).
-    fn cascade_lookahead_logic(
+    /// The `Lookahead` match mirror. The probe's VALUE is discarded in the
+    /// eager form (content is always the empty sequence), so its tape segment
+    /// is truncated on success AND failure; semantic effects keep the
+    /// protocol's observable behavior via the shared speculation helper (roll
+    /// back on inner failure, persist on inner success).
+    fn mtb_match_lookahead_logic(
         &self,
         element: &ASTNode,
         positive: bool,
         rule_name: &str,
         filename: &str,
     ) -> Result<TokenStream> {
-        let inner_logic = self.cascade_node_logic(element, rule_name, filename)?;
-        let speculation = self.cascade_speculation_tokens(
+        let inner_logic = self.mtb_match_node_logic(element, rule_name, filename)?;
+        let speculation = self.mtb_match_speculation_tokens(
             element,
             quote! {
-                #inner_logic;
+                #inner_logic
                 Ok(())
             },
         );
@@ -1247,15 +1363,539 @@ impl AstBasedGenerator {
         };
         Ok(quote! {
             let lookahead_start = parser.position;
+            let __pgen_la_ev_mark = parser.deriv_events.len();
+            let __pgen_la_b_mark = parser.deriv_boundary.len();
             #speculation
             parser.position = lookahead_start;
+            parser.deriv_events.truncate(__pgen_la_ev_mark);
+            parser.deriv_boundary.truncate(__pgen_la_b_mark);
             if #failure_condition {
                 return Err(ParseError::Backtrack {
                     position: lookahead_start,
                 });
             }
-            let result = ParseContent::Sequence(Vec::new())
         })
+    }
+
+    // ------------------------------------------------------------------
+    // RGX-0078.5.i.7 (MTB-A) — the BUILD pass: the value half only, walked
+    // ONCE over the committed tape with the replayed `deriv_pos` cursor. No
+    // matching, no guards, no speculation — an out-of-shape tape read is a
+    // codegen drift (loud `unreachable!`), never an input error.
+    // ------------------------------------------------------------------
+
+    /// RGX-0078.5.i.7 (MTB-B, the `-0101` $text fix) — the shared transform
+    /// emission slices `$text`/MatchedText as
+    /// `input[start_pos..parser.position]`, written for the protocol/eager
+    /// context where `parser.position` IS the rule end at transform time. In
+    /// a build fn the cursor is `deriv_pos` and `parser.position` is frozen
+    /// at the WHOLE match phase's end (measured: `(*LIMIT_HEAP=00700)a`
+    /// carried value `"00700)a"` — the slice ran to parse end; the regex/svpp
+    /// equivalence divergences were the same class). At a build-side
+    /// transform site `deriv_pos` equals exactly what `position` was at the
+    /// eager transform point, so a sync immediately before the transform is
+    /// semantics-exact; the orchestrator restores `position` to the recorded
+    /// match end after every build walk. Emitted ONLY when the rendered
+    /// transform actually references `parser.position` (checked on the real
+    /// emission tokens, so the guard cannot drift from the transform
+    /// generator).
+    fn build_transform_position_sync(transform: &TokenStream) -> TokenStream {
+        if transform.to_string().contains("parser . position") {
+            quote! {
+                parser.position = parser.deriv_pos;
+            }
+        } else {
+            quote! {}
+        }
+    }
+
+    /// The build half of an A-population rule: `cascade_build_<rule>`.
+    /// Value mirror of `generate_cascade_rule_fn` (structural `ParseContent`
+    /// + the rule/branch transforms + the `ParseNode` with the replayed span).
+    fn generate_mtb_build_rule_fn(&self, rule_name: &str, ast_node: &ASTNode) -> Result<TokenStream> {
+        let build_fn = format_ident!("cascade_build_{}", rule_name);
+        let build_logic = match ast_node {
+            ASTNode::Or { alternatives } => {
+                self.mtb_build_or_logic(alternatives, rule_name, true)?
+            }
+            _ => self.mtb_build_node_logic(ast_node, rule_name)?,
+        };
+
+        // Rule-level return annotation for non-`Or` roots — the eager tail
+        // verbatim (the `Or` path applies per-branch transforms inline).
+        let post_parse_transform_tokens: TokenStream = match ast_node {
+            ASTNode::Or { .. } => quote! {},
+            _ => {
+                let annotation_opt = self
+                    .branch_return_annotations
+                    .get(rule_name)
+                    .and_then(|branches| branches.first().cloned())
+                    .flatten()
+                    .or_else(|| {
+                        Self::synthesize_default_passthrough_for_single_element_branch(ast_node)
+                    });
+                if let Some(annotation) = annotation_opt {
+                    let transform = self.generate_return_transform(
+                        &annotation,
+                        rule_name,
+                        &["result".to_string()],
+                    )?;
+                    // The `-0101` $text fix — see `build_transform_position_sync`.
+                    let position_sync = Self::build_transform_position_sync(&transform);
+                    quote! {
+                        #position_sync
+                        let result = { #transform };
+                    }
+                } else {
+                    quote! {}
+                }
+            }
+        };
+
+        Ok(quote! {
+            fn #build_fn(&mut self) -> ParseNode<'input> {
+                let parser = self;
+                let start_pos = parser.deriv_pos;
+                #build_logic
+                #post_parse_transform_tokens
+                let end_pos = parser.deriv_pos;
+                ParseNode {
+                    rule_name: #rule_name,
+                    content: result,
+                    span: start_pos..end_pos,
+                }
+            }
+        })
+    }
+
+    /// Construct dispatch for the build pass — the `cascade_node_logic` mirror.
+    fn mtb_build_node_logic(&self, ast_node: &ASTNode, rule_name: &str) -> Result<TokenStream> {
+        match ast_node {
+            ASTNode::Or { alternatives } => self.mtb_build_or_logic(alternatives, rule_name, false),
+            ASTNode::Sequence { elements } => self.mtb_build_sequence_logic(elements, rule_name),
+            ASTNode::Atom { value } => self.mtb_build_atom_logic(value, rule_name),
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => self.mtb_build_quantified_logic(element, quantifier, rule_name),
+            ASTNode::Lookahead { .. } => Ok(quote! {
+                let result = ParseContent::Sequence(Vec::new());
+            }),
+        }
+    }
+
+    /// The `Or` build mirror: single-branch pass-through, the P2 byte-switch
+    /// re-dispatch on the committed input byte at the replayed cursor
+    /// (deterministic by construction — no event), or the `OrWinner`-driven
+    /// winner build + branch transform. The committed tape holds ONLY the
+    /// winner's segment (losers were compacted away on the match pass).
+    fn mtb_build_or_logic(
+        &self,
+        alternatives: &[ASTNode],
+        rule_name: &str,
+        top_level: bool,
+    ) -> Result<TokenStream> {
+        let branch_count = alternatives.len();
+
+        if branch_count == 1 {
+            let branch = &alternatives[0];
+            let branch_logic = self.mtb_build_node_logic(branch, rule_name)?;
+            let resolved_annotation: Option<BranchAnnotation> = self
+                .branch_return_annotations
+                .get(rule_name)
+                .and_then(|branches| branches.first().cloned())
+                .flatten()
+                .or_else(|| {
+                    Self::synthesize_default_passthrough_for_single_element_branch(branch)
+                });
+            if let Some(annotation) = resolved_annotation {
+                let transform = self.generate_return_transform(
+                    &annotation,
+                    rule_name,
+                    &["result".to_string()],
+                )?;
+                if transform.to_string() == "result" {
+                    return Ok(branch_logic);
+                }
+                // The `-0101` $text fix — see `build_transform_position_sync`.
+                let position_sync = Self::build_transform_position_sync(&transform);
+                return Ok(quote! {
+                    #branch_logic
+                    #position_sync
+                    let result = { #transform };
+                });
+            }
+            return Ok(branch_logic);
+        }
+
+        let emit_first_set_guard = top_level && self.layout_sensitivity().terminals;
+        let mut first_set_cache: std::collections::HashMap<
+            String,
+            super::super::first_set::FirstSetSummary,
+        > = std::collections::HashMap::new();
+
+        // The SAME shared P2 gate on IDENTICAL inputs as the match pass — the
+        // two passes cannot disagree about a site's dispatch form.
+        if let Some(branch_byte_sets) = self.degenerate_dispatch_byte_sets(
+            alternatives,
+            rule_name,
+            emit_first_set_guard,
+            &mut first_set_cache,
+        ) {
+            let mut dispatch_arms = Vec::new();
+            for (idx, alternative) in alternatives.iter().enumerate() {
+                let branch_logic = self.mtb_build_node_logic(alternative, rule_name)?;
+                let transform = self.cascade_branch_transform(rule_name, idx, alternative)?;
+                // The `-0101` $text fix — see `build_transform_position_sync`.
+                let position_sync = Self::build_transform_position_sync(&transform);
+                let byte_patterns = &branch_byte_sets[idx];
+                dispatch_arms.push(quote! {
+                    #(#byte_patterns)|* => {
+                        #branch_logic
+                        {
+                            #position_sync
+                            let content = result;
+                            #transform
+                        }
+                    }
+                });
+            }
+            return Ok(quote! {
+                let result = match parser.input.as_bytes()[parser.deriv_pos] {
+                    #(#dispatch_arms,)*
+                    __pgen_byte => unreachable!(
+                        "derivation-tape drift in rule '{}': no byte-switch arm admits committed byte {}",
+                        #rule_name,
+                        __pgen_byte,
+                    ),
+                };
+            });
+        }
+
+        let mut winner_arms: Vec<TokenStream> = Vec::new();
+        for (idx, alternative) in alternatives.iter().enumerate() {
+            let branch_logic = self.mtb_build_node_logic(alternative, rule_name)?;
+            let transform = self.cascade_branch_transform(rule_name, idx, alternative)?;
+            // The `-0101` $text fix — see `build_transform_position_sync`.
+            let position_sync = Self::build_transform_position_sync(&transform);
+            winner_arms.push(quote! {
+                #idx => {
+                    #branch_logic
+                    {
+                        #position_sync
+                        let content = result;
+                        #transform
+                    }
+                }
+            });
+        }
+        Ok(quote! {
+            let __pgen_or_winner = match parser.deriv_next_event() {
+                crate::ast_pipeline::DerivEvent::OrWinner(__pgen_idx) => __pgen_idx,
+                __pgen_other => unreachable!(
+                    "derivation-tape drift in rule '{}': expected OrWinner, found {:?}",
+                    #rule_name,
+                    __pgen_other,
+                ),
+            };
+            let result = match __pgen_or_winner {
+                #(#winner_arms,)*
+                __pgen_idx => unreachable!(
+                    "derivation-tape drift in rule '{}': winner index {} out of range",
+                    #rule_name,
+                    __pgen_idx,
+                ),
+            };
+        })
+    }
+
+    /// The `Sequence` build mirror — the eager element wrappers verbatim
+    /// (`element_<i>` names, replayed spans, arena allocation).
+    fn mtb_build_sequence_logic(&self, elements: &[ASTNode], rule_name: &str) -> Result<TokenStream> {
+        let element_count = elements.len();
+        let mut element_parsers = Vec::new();
+        for (idx, element) in elements.iter().enumerate() {
+            element_parsers.push(self.mtb_build_sequence_element(element, idx, rule_name)?);
+        }
+        Ok(quote! {
+            let mut sequence_elements: Vec<&'input ParseNode<'input>> = Vec::with_capacity(#element_count);
+            #(#element_parsers)*
+            let result = ParseContent::Sequence(sequence_elements);
+        })
+    }
+
+    /// One sequence element on the build pass. The `?` fast path consumes its
+    /// mandatory `OptPresent` event; everything else derives from cursor
+    /// replay.
+    fn mtb_build_sequence_element(
+        &self,
+        element: &ASTNode,
+        index: usize,
+        rule_name: &str,
+    ) -> Result<TokenStream> {
+        let element_logic = match element {
+            ASTNode::Quantified {
+                element: inner,
+                quantifier,
+            } if quantifier == "?" => {
+                let inner_logic = self.mtb_build_node_logic(inner, rule_name)?;
+                quote! {
+                    {
+                        let __pgen_opt_present = match parser.deriv_next_event() {
+                            crate::ast_pipeline::DerivEvent::OptPresent(__pgen_p) => __pgen_p,
+                            __pgen_other => unreachable!(
+                                "derivation-tape drift in rule '{}': expected OptPresent, found {:?}",
+                                #rule_name,
+                                __pgen_other,
+                            ),
+                        };
+                        if __pgen_opt_present {
+                            #inner_logic
+                            result
+                        } else {
+                            ParseContent::Sequence(Vec::new())
+                        }
+                    }
+                }
+            }
+            _ => {
+                let inner_logic = self.mtb_build_node_logic(element, rule_name)?;
+                quote! {
+                    {
+                        #inner_logic
+                        result
+                    }
+                }
+            }
+        };
+
+        let element_name = format!("element_{}", index);
+        Ok(quote! {
+            {
+                let element_start = parser.deriv_pos;
+                let element_content = #element_logic;
+                let element_end = parser.deriv_pos;
+                sequence_elements.push(parser.arena.alloc(ParseNode {
+                    rule_name: #element_name,
+                    content: element_content,
+                    span: element_start..element_end,
+                }));
+            }
+        })
+    }
+
+    /// The `Atom` build mirror: terminal spans from cursor replay (+ the
+    /// `TokStart`/`TokEnd` events exactly where the match pass emitted them);
+    /// A-internal references build recursively; every other reference splices
+    /// the next boundary side-vec node (the eagerly-built call-out value) and
+    /// advances the cursor to its span end.
+    fn mtb_build_atom_logic(&self, value: &ASTValue, rule_name: &str) -> Result<TokenStream> {
+        match value {
+            ASTValue::Token(parts) if parts.len() >= 2 => {
+                let TokenValue::String(token_type) = &parts[0];
+                let TokenValue::String(token_value) = &parts[1];
+                match token_type.as_str() {
+                    "quoted_string" | "number" | "probability" | "include_dir" | "include_file"
+                    | "rule" => {
+                        let lit_len = token_value.len();
+                        if self.layout_sensitivity().terminals {
+                            Ok(quote! {
+                                let __pgen_input: &'input str = parser.input;
+                                let __pgen_tok_start = parser.deriv_pos;
+                                parser.deriv_pos = __pgen_tok_start + #lit_len;
+                                let result = ParseContent::Terminal(
+                                    &__pgen_input[__pgen_tok_start..parser.deriv_pos],
+                                );
+                            })
+                        } else {
+                            Ok(quote! {
+                                let __pgen_tok_end = match parser.deriv_next_event() {
+                                    crate::ast_pipeline::DerivEvent::TokEnd(__pgen_e) => __pgen_e,
+                                    __pgen_other => unreachable!(
+                                        "derivation-tape drift in rule '{}': expected TokEnd, found {:?}",
+                                        #rule_name,
+                                        __pgen_other,
+                                    ),
+                                };
+                                let __pgen_input: &'input str = parser.input;
+                                let result = ParseContent::Terminal(
+                                    &__pgen_input[__pgen_tok_end - #lit_len..__pgen_tok_end],
+                                );
+                                parser.deriv_pos = __pgen_tok_end;
+                            })
+                        }
+                    }
+                    "rule_reference" => {
+                        if self.mtb_internal(token_value) {
+                            let build_target = format_ident!("cascade_build_{}", token_value);
+                            Ok(quote! {
+                                let __pgen_alt_child = parser.#build_target();
+                                let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child));
+                            })
+                        } else {
+                            Ok(quote! {
+                                let __pgen_alt_node = parser.deriv_next_boundary();
+                                parser.deriv_pos = __pgen_alt_node.span.end;
+                                let result = ParseContent::Alternative(__pgen_alt_node);
+                            })
+                        }
+                    }
+                    "regex" => {
+                        if self.cascade_rule_has_matched_text_transform(rule_name) {
+                            anyhow::bail!(
+                                "cascade build emission reached regex atom of rule '{rule_name}' which carries a matched-text @transform — the shared cascade gate must have excluded it"
+                            );
+                        }
+                        let skip_leading_whitespace = !matches!(
+                            rule_name,
+                            "string_content_double" | "string_content_single"
+                        );
+                        let start_dynamic =
+                            skip_leading_whitespace && !self.layout_sensitivity().regex_tokens;
+                        let start_tokens = if start_dynamic {
+                            quote! {
+                                let __pgen_tok_start = match parser.deriv_next_event() {
+                                    crate::ast_pipeline::DerivEvent::TokStart(__pgen_s) => __pgen_s,
+                                    __pgen_other => unreachable!(
+                                        "derivation-tape drift in rule '{}': expected TokStart, found {:?}",
+                                        #rule_name,
+                                        __pgen_other,
+                                    ),
+                                };
+                            }
+                        } else {
+                            quote! {
+                                let __pgen_tok_start = parser.deriv_pos;
+                            }
+                        };
+                        Ok(quote! {
+                            #start_tokens
+                            let __pgen_tok_end = match parser.deriv_next_event() {
+                                crate::ast_pipeline::DerivEvent::TokEnd(__pgen_e) => __pgen_e,
+                                __pgen_other => unreachable!(
+                                    "derivation-tape drift in rule '{}': expected TokEnd, found {:?}",
+                                    #rule_name,
+                                    __pgen_other,
+                                ),
+                            };
+                            let __pgen_input: &'input str = parser.input;
+                            let result = ParseContent::Terminal(
+                                &__pgen_input[__pgen_tok_start..__pgen_tok_end],
+                            );
+                            parser.deriv_pos = __pgen_tok_end;
+                        })
+                    }
+                    _ => Ok(quote! {
+                        let result = ParseContent::Terminal("");
+                    }),
+                }
+            }
+            _ => Ok(quote! {
+                let result = ParseContent::Terminal("");
+            }),
+        }
+    }
+
+    /// The `Quantified` build mirror: `QuantCount` names the committed
+    /// iteration count; each iteration rebuilds its element at the replayed
+    /// cursor (the eager iteration nodes' `span: 0..0` is reproduced
+    /// verbatim).
+    fn mtb_build_quantified_logic(
+        &self,
+        element: &ASTNode,
+        quantifier: &str,
+        rule_name: &str,
+    ) -> Result<TokenStream> {
+        let element_logic = self.mtb_build_node_logic(element, rule_name)?;
+        let quantifier_label = quantifier;
+        Ok(quote! {
+            let __pgen_quant_n = match parser.deriv_next_event() {
+                crate::ast_pipeline::DerivEvent::QuantCount(__pgen_n) => __pgen_n,
+                __pgen_other => unreachable!(
+                    "derivation-tape drift in rule '{}': expected QuantCount, found {:?}",
+                    #rule_name,
+                    __pgen_other,
+                ),
+            };
+            let mut results: Vec<&'input ParseNode<'input>> = Vec::new();
+            for _ in 0..__pgen_quant_n {
+                #element_logic
+                results.push(parser.arena.alloc(ParseNode {
+                    rule_name: "quantified",
+                    content: result,
+                    span: 0..0,
+                }));
+            }
+            let result = ParseContent::Quantified(results, #quantifier_label);
+        })
+    }
+
+    /// RGX-0078.5.i.7 (MTB-A) — an A-SUB-ROOT's `cascade_<rule>` fn as a
+    /// mark→match→build→truncate ORCHESTRATOR at the UNCHANGED signature: the
+    /// twin dispatch, every fused reference, and every cyclic-spine call seam
+    /// are untouched. Nesting (a sub-root called mid-match as a boundary
+    /// call-out) is a clean stack discipline on the single tape: the inner
+    /// orchestrator truncates back to its own marks before returning, and
+    /// build never suspends into match, so the three build cursors are only
+    /// live within one build walk at a time.
+    fn generate_mtb_orchestrator_fn(&self, rule_name: &str) -> TokenStream {
+        let cascade_fn = format_ident!("cascade_{}", rule_name);
+        let match_fn = format_ident!("cascade_match_{}", rule_name);
+        let build_fn = format_ident!("cascade_build_{}", rule_name);
+        quote! {
+            fn #cascade_fn(&mut self) -> ParseResult<ParseNode<'input>> {
+                let parser = self;
+                let __pgen_orch_ev_mark = parser.deriv_events.len();
+                let __pgen_orch_b_mark = parser.deriv_boundary.len();
+                let __pgen_orch_start = parser.position;
+                match parser.#match_fn() {
+                    Ok(()) => {
+                        let __pgen_match_end = parser.position;
+                        parser.deriv_ev_cursor = __pgen_orch_ev_mark;
+                        parser.deriv_b_cursor = __pgen_orch_b_mark;
+                        parser.deriv_pos = __pgen_orch_start;
+                        let __pgen_node = parser.#build_fn();
+                        // The end-parity drift tripwires: the built winner must
+                        // land exactly on the recorded match end with the tape
+                        // segment fully consumed.
+                        debug_assert_eq!(
+                            __pgen_node.span.end,
+                            __pgen_match_end,
+                            "derivation-tape drift in rule '{}': build end != match end",
+                            #rule_name,
+                        );
+                        debug_assert_eq!(
+                            parser.deriv_ev_cursor,
+                            parser.deriv_events.len(),
+                            "derivation-tape drift in rule '{}': unconsumed tape events",
+                            #rule_name,
+                        );
+                        debug_assert_eq!(
+                            parser.deriv_b_cursor,
+                            parser.deriv_boundary.len(),
+                            "derivation-tape drift in rule '{}': unconsumed boundary nodes",
+                            #rule_name,
+                        );
+                        parser.deriv_events.truncate(__pgen_orch_ev_mark);
+                        parser.deriv_boundary.truncate(__pgen_orch_b_mark);
+                        // The `-0101` $text fix — a build-side transform may
+                        // have synced `position` to its own site's cursor;
+                        // restore the recorded match end so every enclosing
+                        // seam (protocol memo insert, boundary caller) sees
+                        // exactly the position the match pass established.
+                        parser.position = __pgen_match_end;
+                        Ok(__pgen_node)
+                    }
+                    Err(__pgen_err) => {
+                        // Tape hygiene in the failure arm — the tape is
+                        // position-like state the error path must unwind.
+                        parser.deriv_events.truncate(__pgen_orch_ev_mark);
+                        parser.deriv_boundary.truncate(__pgen_orch_b_mark);
+                        Err(__pgen_err)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1362,17 +2002,40 @@ mod tests {
             .expect("cascade impl generation should succeed")
             .to_string();
 
+        // RGX-0078.5.i.7 (MTB-A) — a fully-acyclic plan is entirely in the
+        // match-then-build population: the sub-root's `cascade_<rule>` fn is
+        // the mark→match→build→truncate ORCHESTRATOR, internal rules get
+        // match/build pairs and NO `cascade_<rule>` fn at all.
         assert!(
-            rendered.contains("fn cascade_entry"),
-            "sub-root gets a cascade fn too, got: {rendered}"
+            generator.cascade_mtb_active()
+                && generator.mtb_sub_root("entry")
+                && generator.mtb_internal("wrapper")
+                && generator.mtb_internal("leaf"),
+            "the acyclic plan is the MTB population"
         );
         assert!(
-            rendered.contains("fn cascade_wrapper") && rendered.contains("fn cascade_leaf"),
-            "internal rules get cascade fns, got: {rendered}"
+            rendered.contains("fn cascade_entry")
+                && rendered.contains("fn cascade_match_entry")
+                && rendered.contains("fn cascade_build_entry"),
+            "the sub-root gets the orchestrator + its match/build pair, got: {rendered}"
         );
         assert!(
-            rendered.contains("cascade_wrapper ()") && rendered.contains("cascade_leaf ()"),
-            "internal references are direct cascade calls, got: {rendered}"
+            rendered.contains("fn cascade_match_wrapper")
+                && rendered.contains("fn cascade_build_wrapper")
+                && rendered.contains("fn cascade_match_leaf")
+                && rendered.contains("fn cascade_build_leaf"),
+            "internal rules get match/build pairs, got: {rendered}"
+        );
+        assert!(
+            !rendered.contains("fn cascade_wrapper") && !rendered.contains("fn cascade_leaf"),
+            "A-internal rules get no eager cascade fn, got: {rendered}"
+        );
+        assert!(
+            rendered.contains("cascade_match_wrapper ()")
+                && rendered.contains("cascade_match_leaf ()")
+                && rendered.contains("cascade_build_wrapper ()")
+                && rendered.contains("cascade_build_leaf ()"),
+            "internal references are direct match/build calls, got: {rendered}"
         );
         assert!(
             !rendered.contains("parse_wrapper ()"),
@@ -1381,6 +2044,15 @@ mod tests {
         assert!(
             !rendered.contains("memoized_call") && !rendered.contains("recursion_guard"),
             "the fused graph carries no protocol frame, got: {rendered}"
+        );
+        // The orchestrator shape: marks, match→build, the end-parity drift
+        // tripwires, truncation on both arms.
+        assert!(
+            rendered.contains("__pgen_orch_ev_mark")
+                && rendered.contains("deriv_ev_cursor")
+                && rendered.contains("debug_assert_eq !")
+                && rendered.contains("deriv_events . truncate"),
+            "the orchestrator marks, builds over the segment, asserts parity, and truncates, got: {rendered}"
         );
 
         // The twin dispatch: present in the SUB-ROOT's body, absent from an
@@ -1464,8 +2136,10 @@ mod tests {
             "the directive carrier is not fused"
         );
 
+        // RGX-0078.5.i.7 (MTB-B) — the match mirror is the ONLY fused Or
+        // emission now; the island/plain verdicts are unchanged.
         let clean = generator
-            .cascade_or_logic(
+            .mtb_match_or_logic(
                 match tree.get("clean_pair").unwrap() {
                     ASTNode::Or { alternatives } => alternatives,
                     _ => unreachable!(),
@@ -1482,7 +2156,7 @@ mod tests {
         );
 
         let dirty = generator
-            .cascade_or_logic(
+            .mtb_match_or_logic(
                 match tree.get("dirty_pair").unwrap() {
                     ASTNode::Or { alternatives } => alternatives,
                     _ => unreachable!(),
@@ -1544,11 +2218,12 @@ mod tests {
         );
     }
 
-    /// RGX-0078.5.i.7 (D2-B) — a CYCLE-PARTICIPATING internal rule fuses under
-    /// the CyclicSpine increment: its cascade fn recurses through direct
-    /// cascade calls and carries the recursion-guard frame + the epoch-stamped
-    /// thin memo; an acyclic rule in the same plan keeps the frame-free D2-A
-    /// shape.
+    /// RGX-0078.5.i.7 (D2-B + MTB-B) — a CYCLE-PARTICIPATING internal rule
+    /// fuses under the CyclicSpine increment as a match/build pair: its MATCH
+    /// fn recurses through direct match calls and carries the recursion-guard
+    /// frame + the epoch-stamped thin memo with a derivation-SEGMENT payload
+    /// (`ThinDerivMemoEntry` — hits splice, inserts capture the segment); an
+    /// acyclic rule in the same plan keeps the frame-free match/build shape.
     #[test]
     fn cascade_cyclic_internal_rule_gets_guard_frame_and_thin_memo() {
         let mut tree: HashMap<String, ASTNode> = HashMap::new();
@@ -1599,13 +2274,42 @@ mod tests {
             .expect("cascade impl generation should succeed")
             .to_string();
 
-        // The cyclic fn: guard frame + thin memo + recursive direct cascade call.
+        // RGX-0078.5.i.7 (MTB-B) — EVERY fused rule is in the MTB population:
+        // internal rules (acyclic `leaf` AND cyclic `cyc`) get match/build
+        // pairs with no eager `cascade_<rule>` fn; the sub-root `entry` gets
+        // the orchestrator plus its own pair. The cyclic internal rule's
+        // MATCH fn carries the protocol-mirror frame (guard + thin memo) with
+        // the memo payload now a derivation SEGMENT (`ThinDerivMemoEntry`).
+        assert!(
+            generator.cascade_mtb_active()
+                && generator.mtb_sub_root("entry")
+                && generator.mtb_internal("leaf")
+                && generator.mtb_internal("cyc"),
+            "the whole fused partition is the MTB population under B"
+        );
+        assert!(
+            !rendered.contains("fn cascade_leaf") && !rendered.contains("fn cascade_cyc "),
+            "internal rules get no eager cascade fn, got: {rendered}"
+        );
+        let entry_match_start = rendered
+            .find("fn cascade_match_entry")
+            .expect("the sub-root gets a match fn");
+        let entry_match_body = &rendered[entry_match_start
+            ..rendered[entry_match_start + 1..]
+                .find("fn cascade_")
+                .map(|off| entry_match_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            entry_match_body.contains("cascade_match_cyc ()")
+                && !entry_match_body.contains("deriv_boundary . push"),
+            "a match-fn reference to a cyclic INTERNAL rule is a direct match call (no boundary call-out), got: {entry_match_body}"
+        );
         let cyc_fn_start = rendered
-            .find("fn cascade_cyc")
-            .expect("cyclic rule gets a cascade fn");
+            .find("fn cascade_match_cyc")
+            .expect("the cyclic internal rule gets a match fn");
         let leaf_fn_start = rendered
-            .find("fn cascade_leaf")
-            .expect("acyclic rule gets a cascade fn");
+            .find("fn cascade_match_leaf")
+            .expect("acyclic internal rule gets a match fn");
         let cyc_body = &rendered[cyc_fn_start
             ..rendered[cyc_fn_start + 1..]
                 .find("fn cascade_")
@@ -1615,20 +2319,41 @@ mod tests {
             cyc_body.contains("check_cycle")
                 && cyc_body.contains("recursion_guard . enter")
                 && cyc_body.contains("recursion_guard . exit"),
-            "the cyclic fn carries the protocol-mirror guard frame, got: {cyc_body}"
+            "the cyclic match fn carries the protocol-mirror guard frame, got: {cyc_body}"
         );
         assert!(
             cyc_body.contains("thin_memo")
                 && cyc_body.contains("write_epoch")
                 && cyc_body.contains("deferred_obligation_count")
-                && cyc_body.contains("ThinMemoEntry"),
-            "the cyclic fn carries the epoch-stamped thin memo, got: {cyc_body}"
+                && cyc_body.contains("ThinDerivMemoEntry"),
+            "the cyclic match fn carries the epoch-stamped SEGMENT thin memo, got: {cyc_body}"
         );
         assert!(
-            cyc_body.contains("cascade_cyc ()"),
-            "the cyclic self-reference is a direct recursive cascade call, got: {cyc_body}"
+            cyc_body.contains("extend_from_slice"),
+            "a thin-memo hit splices the cached segment onto the live tape, got: {cyc_body}"
         );
-        // The acyclic fn keeps the frame-free D2-A shape.
+        assert!(
+            cyc_body.contains("__pgen_thin_ev_mark") && cyc_body.contains("to_vec"),
+            "a thin-memo insert captures the body's tape segment, got: {cyc_body}"
+        );
+        assert!(
+            cyc_body.contains("cascade_match_cyc ()"),
+            "the cyclic self-reference is a direct recursive match call, got: {cyc_body}"
+        );
+        // The cyclic rule's BUILD fn exists and walks the tape without guards.
+        let cyc_build_start = rendered
+            .find("fn cascade_build_cyc")
+            .expect("the cyclic internal rule gets a build fn");
+        let cyc_build_body = &rendered[cyc_build_start
+            ..rendered[cyc_build_start + 1..]
+                .find("fn cascade_")
+                .map(|off| cyc_build_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            !cyc_build_body.contains("recursion_guard") && !cyc_build_body.contains("thin_memo"),
+            "the build fn walks the committed tape with no guard/memo, got: {cyc_build_body}"
+        );
+        // The acyclic match fn keeps the frame-free shape.
         let leaf_body = &rendered[leaf_fn_start
             ..rendered[leaf_fn_start + 1..]
                 .find("fn cascade_")
@@ -1677,6 +2402,13 @@ mod tests {
             !generator.cascade_thin_memo_active(),
             "a cyclic SUB-ROOT activates no thin memo (its method's real memo protects it)"
         );
+        // RGX-0078.5.i.7 (MTB-B) — the match-then-build split covers the
+        // cyclic spine too: even a fully-cyclic plan is MTB-active, and the
+        // cyclic sub-root becomes an orchestrator with its match/build pair.
+        assert!(
+            generator.cascade_mtb_active(),
+            "a fully-cyclic plan is MTB-active under the B increment"
+        );
 
         let parser_name = quote::format_ident!("CascadeTestParser");
         let rendered = generator
@@ -1684,8 +2416,14 @@ mod tests {
             .expect("cascade impl generation should succeed")
             .to_string();
         assert!(
+            rendered.contains("fn cascade_entry")
+                && rendered.contains("fn cascade_match_entry")
+                && rendered.contains("fn cascade_build_entry"),
+            "the cyclic sub-root gets the orchestrator + its match/build pair, got: {rendered}"
+        );
+        assert!(
             !rendered.contains("recursion_guard") && !rendered.contains("thin_memo"),
-            "the cyclic sub-root's cascade fn carries neither guard nor thin memo, got: {rendered}"
+            "the cyclic sub-root's fused fns carry neither guard nor thin memo (its protocol frame protects every bare-path entry), got: {rendered}"
         );
         assert!(
             rendered.contains("parse_entry ()"),
@@ -1758,8 +2496,8 @@ mod tests {
             .expect("cascade impl generation should succeed")
             .to_string();
         assert!(
-            rendered.contains("cascade_leaf ()") && !rendered.contains("parse_leaf ()"),
-            "fused references to the demoted rule are direct cascade calls, got: {rendered}"
+            rendered.contains("cascade_match_leaf ()") && !rendered.contains("parse_leaf ()"),
+            "fused references to the demoted rule are direct match calls, got: {rendered}"
         );
         // The demoted rule's protocol method carries no twin dispatch anymore.
         let leaf_body = generator
@@ -1769,6 +2507,258 @@ mod tests {
         assert!(
             !leaf_body.contains("bare_parse"),
             "a demoted internal rule's method loses the twin dispatch, got: {leaf_body}"
+        );
+        // RGX-0078.5.i.7 (MTB-B) — the MTB population is the fused partition
+        // itself: the demoted `leaf` is MTB-INTERNAL (match/build pair, no
+        // eager fn, no orchestrator), and the cyclic `cyc` is too — its match
+        // fn carries the guard + segment thin memo.
+        assert!(
+            generator.mtb_internal("leaf")
+                && !generator.mtb_sub_root("leaf")
+                && generator.mtb_internal("cyc")
+                && generator.mtb_sub_root("entry"),
+            "the demoted rule and the cyclic rule are MTB-internal; the entry is the sub-root"
+        );
+        assert!(
+            !rendered.contains("fn cascade_leaf ")
+                && rendered.contains("fn cascade_match_leaf")
+                && rendered.contains("fn cascade_build_leaf"),
+            "the demoted internal rule gets a match/build pair and no eager fn, got: {rendered}"
+        );
+    }
+
+    /// RGX-0078.5.i.7 (MTB-A) — the match pass strips ALL value construction
+    /// (no `ParseContent`, no arena writes, no transforms) while keeping the
+    /// tournament control flow, and records the committed derivation
+    /// (`OrWinner` placeholder-push-then-patch, in-tape compaction,
+    /// `QuantCount`, `OptPresent`); the build pass constructs values ONCE over
+    /// the tape (no `match_string`, no speculation) with the replayed cursor.
+    #[test]
+    fn mtb_match_strips_values_and_build_constructs_over_the_tape() {
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        // entry := ("a" "b" | "c") inner? inner*
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Or {
+                        alternatives: vec![
+                            ASTNode::Sequence {
+                                elements: vec![atom_lit("a"), atom_lit("b")],
+                            },
+                            atom_lit("c"),
+                        ],
+                    },
+                    ASTNode::Quantified {
+                        element: Box::new(atom_ref("inner")),
+                        quantifier: "?".to_string(),
+                    },
+                    ASTNode::Quantified {
+                        element: Box::new(atom_ref("inner")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        tree.insert(
+            "inner".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_lit("x")],
+            },
+        );
+
+        let generator = generator_for(Some(Annotations::default()));
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+        assert!(generator.cascade_mtb_active(), "the acyclic plan is MTB-active");
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+
+        let match_start = rendered
+            .find("fn cascade_match_entry")
+            .expect("entry gets a match fn");
+        let match_body = &rendered[match_start
+            ..rendered[match_start + 1..]
+                .find("fn cascade_")
+                .map(|off| match_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            !match_body.contains("ParseContent")
+                && !match_body.contains("sequence_elements")
+                && !match_body.contains("arena . alloc"),
+            "the match fn builds no values (no boundary call-outs in this fixture), got: {match_body}"
+        );
+        assert!(
+            match_body.contains("OrWinner (0)")
+                && match_body.contains("copy_within")
+                && match_body.contains("QuantCount")
+                && match_body.contains("OptPresent"),
+            "the match fn records the committed derivation with in-tape compaction, got: {match_body}"
+        );
+        assert!(
+            match_body.contains("match_string"),
+            "the match fn keeps the terminal matching control flow, got: {match_body}"
+        );
+        // The fixture generator carries no `@whitespace_sensitive` directive,
+        // so terminals are layout-SKIPPING (the default posture) and each
+        // literal records its dynamic end. (The regex artifact's ZERO-event
+        // claim is verified against the regenerated artifact itself — its
+        // grammar declares layout sensitivity, which elides these statically.)
+        assert!(
+            match_body.contains("TokEnd"),
+            "a skipping literal records its dynamic end, got: {match_body}"
+        );
+
+        let build_start = rendered
+            .find("fn cascade_build_entry")
+            .expect("entry gets a build fn");
+        let build_body = &rendered[build_start
+            ..rendered[build_start + 1..]
+                .find("fn cascade_")
+                .map(|off| build_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            !build_body.contains("match_string")
+                && !build_body.contains("try_parse")
+                && !build_body.contains("furthest_position"),
+            "the build fn matches nothing, got: {build_body}"
+        );
+        assert!(
+            build_body.contains("deriv_next_event")
+                && build_body.contains("ParseContent :: Sequence")
+                && build_body.contains("deriv_pos"),
+            "the build fn constructs values over the tape with the replayed cursor, got: {build_body}"
+        );
+    }
+
+    /// RGX-0078.5.i.7 (MTB-A) — an effect-reaching `Or` inside an acyclic rule
+    /// keeps the C3-B island machinery VERBATIM on the match pass (checkpoint,
+    /// per-branch delta extraction + rollback, winner-delta replay) while
+    /// building NO values: island losers stop building values too (the `-0093`
+    /// island refinement — `should_take` consumes only end/priority/index).
+    #[test]
+    fn mtb_match_island_keeps_delta_machinery_without_values() {
+        let mut annotations = Annotations::default();
+        annotations
+            .semantic_annotations
+            .insert("fact_writer".to_string(), vec![transform_annotation()]);
+
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![atom_lit("e"), atom_lit("f")],
+                    },
+                    ASTNode::Sequence {
+                        elements: vec![atom_lit("g"), atom_ref("fact_writer")],
+                    },
+                ],
+            },
+        );
+        tree.insert(
+            "fact_writer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_lit("z")],
+            },
+        );
+
+        let generator = generator_for(Some(annotations));
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+        assert!(
+            generator.cascade_mtb_active() && generator.mtb_sub_root("entry"),
+            "the effect-reaching acyclic entry still fuses (MTB sub-root)"
+        );
+
+        let match_or = generator
+            .mtb_match_or_logic(
+                match tree.get("entry").unwrap() {
+                    ASTNode::Or { alternatives } => alternatives,
+                    _ => unreachable!(),
+                },
+                "entry",
+                "cascade_test.rs",
+                true,
+            )
+            .expect("match Or generation should succeed")
+            .to_string();
+        assert!(
+            match_or.contains("tournament_semantic_checkpoint")
+                && match_or.contains("C3bBranchCleanup")
+                && match_or.contains("apply_delta")
+                && match_or.contains("try_parse"),
+            "the island machinery survives on the match pass, got: {match_or}"
+        );
+        assert!(
+            !match_or.contains("ParseContent") && !match_or.contains("transformed"),
+            "island branches build no values on the match pass, got: {match_or}"
+        );
+        assert!(
+            match_or.contains("parse_fact_writer")
+                && match_or.contains("deriv_boundary . push"),
+            "the boundary call-out stays a protocol method whose value joins the side vec, got: {match_or}"
+        );
+    }
+
+    /// RGX-0078.5.i.7 (MTB-A) — a layout-INSENSITIVE grammar records the
+    /// dynamic terminal facts the build cursor cannot re-derive: `TokEnd` for
+    /// literals behind a possible layout skip (start = end − literal length),
+    /// and the build pass consumes them.
+    #[test]
+    fn mtb_layout_skipping_literals_record_tok_end_events() {
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_lit("kw")],
+            },
+        );
+
+        let generator = generator_for(Some(Annotations::default()));
+        // No `@whitespace_sensitive` directive ⇒ terminals are
+        // layout-INSENSITIVE (skipping) — the default-grammar posture.
+        assert!(
+            !generator.layout_sensitivity().terminals,
+            "fixture precondition: terminals skip layout"
+        );
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+        assert!(generator.cascade_mtb_active(), "the acyclic plan is MTB-active");
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+        let match_start = rendered
+            .find("fn cascade_match_entry")
+            .expect("entry gets a match fn");
+        let match_body = &rendered[match_start
+            ..rendered[match_start + 1..]
+                .find("fn cascade_")
+                .map(|off| match_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            match_body.contains("TokEnd (parser . position)"),
+            "a skipping literal records its dynamic end, got: {match_body}"
+        );
+        let build_start = rendered
+            .find("fn cascade_build_entry")
+            .expect("entry gets a build fn");
+        let build_body = &rendered[build_start
+            ..rendered[build_start + 1..]
+                .find("fn cascade_")
+                .map(|off| build_start + 1 + off)
+                .unwrap_or(rendered.len())];
+        assert!(
+            build_body.contains("TokEnd (__pgen_e)"),
+            "the build pass consumes the recorded end, got: {build_body}"
         );
     }
 }

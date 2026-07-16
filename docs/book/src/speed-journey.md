@@ -8,12 +8,12 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #131 — six calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈9.54 µs** with a
-mimalloc-class global allocator (**≈13.6 µs** on the platform default): about **52× faster**
+Between sessions #90 and #132 — six calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈8.90 µs** with a
+mimalloc-class global allocator: about **56× faster**
 (≈36× before the allocator recommendation), with every single landing proven
 **byte-identical** on its full oracle battery before its speed number was believed.
-Nineteen levers landed. More than a dozen others were refuted, rejected, or reverted —
+Twenty levers landed. More than a dozen others were refuted, rejected, or reverted —
 most of them for the price of a document rather than a build. This chapter is the story of
 both lists, because the refusals are as much the method as the landings.
 
@@ -343,4 +343,16 @@ scoreboard to **496 µs → ≈9.77 µs, about 51×**. The honest arithmetic it 
 sharp: even a *perfect* allocator (the never-free floor, ≈8.3 µs) sits an order of
 magnitude above the ≤1 µs bar, so the road from here must also cheapen what the *committed*
 path computes — the match-then-build value model and the committed-value representation
-itself. The method decides — and the story continues here.
+itself.
+
+The match-then-build fold is now landed (session #132, after a getenv hoist trimmed
+another −2.3%): no fused rule constructs a value during matching — the match pass records
+a tape of POD *decisions*, failed speculation truncates its segment, and only the
+committed derivation is built, once. Even the cyclic spine's memo keeps its protection
+with derivation *segments* as the payload. It measured **−8.8%** (every round, every
+pattern) against a directional model that said −45…−53% — the fourth reminder that a
+sampled profile share is a reason to attempt, never a price — and it takes the scoreboard
+to **496 µs → ≈8.90 µs, about 56×**. Its most valuable output wasn't the number: the
+differential-equivalence oracle caught a subtle build-side `$text` slicing defect that had
+been latent since the fold's first (reverted) attempt — proof that the battery, not the
+tripwire, is what a landing means. The method decides — and the story continues here.

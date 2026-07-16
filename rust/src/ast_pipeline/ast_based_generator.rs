@@ -845,8 +845,32 @@ impl AstBasedGenerator {
         // artifact stays byte-identical to the D2-A emission. Same lifecycle as
         // the protocol memo maps: constructor-fresh, never cleared per parse.
         let thin_memo_struct_field: TokenStream = if self.cascade_thin_memo_active() {
+            // RGX-0078.5.i.7 (MTB-B) — the thin memo now carries derivation
+            // SEGMENTS (`ThinDerivMemoEntry`), not constructed values: hits
+            // splice the cached segment onto the live tape inside
+            // `cascade_match_<rule>`.
             quote! {
-                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinMemoEntry<'input>>,
+                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinDerivMemoEntry<'input>>,
+            }
+        } else {
+            quote! {}
+        };
+        // RGX-0078.5.i.7 (MTB-A) — the DERIVATION TAPE of the match-then-build
+        // split, emitted only when the plan carries ≥ 1 acyclic-increment rule
+        // (a fully-cyclic grammar's artifact stays byte-identical to the D2-B
+        // emission). `deriv_events`/`deriv_boundary` are position-like state:
+        // match fns append, every speculation-failure restore point truncates
+        // to its marks, and each sub-root orchestrator nets its segment to
+        // zero — the vecs retain capacity across parses (cleared defensively
+        // at `parse()` start). The three cursors are build-walk scratch, live
+        // only inside one `cascade_build_*` walk at a time.
+        let mtb_struct_fields: TokenStream = if self.cascade_mtb_active() {
+            quote! {
+                deriv_events: Vec<crate::ast_pipeline::DerivEvent>,
+                deriv_boundary: Vec<&'input ParseNode<'input>>,
+                deriv_ev_cursor: usize,
+                deriv_b_cursor: usize,
+                deriv_pos: usize,
             }
         } else {
             quote! {}
@@ -874,6 +898,7 @@ impl AstBasedGenerator {
                 // and routes the parse to the protocol graph automatically.
                 counters_observed: std::cell::Cell<bool>,
                 #thin_memo_struct_field
+                #mtb_struct_fields
             }
         } else {
             quote! {}
@@ -1377,10 +1402,25 @@ impl AstBasedGenerator {
             } else {
                 quote! {}
             };
+            // RGX-0078.5.i.7 (MTB-A) — derivation-tape init (see
+            // `generate_parser_struct`): constructor-fresh empty vecs +
+            // zeroed build cursors.
+            let mtb_init: TokenStream = if self.cascade_mtb_active() {
+                quote! {
+                    deriv_events: Vec::new(),
+                    deriv_boundary: Vec::new(),
+                    deriv_ev_cursor: 0,
+                    deriv_b_cursor: 0,
+                    deriv_pos: 0,
+                }
+            } else {
+                quote! {}
+            };
             quote! {
                 bare_parse: false,
                 counters_observed: std::cell::Cell::new(false),
                 #thin_memo_init
+                #mtb_init
             }
         } else {
             quote! {}
@@ -1733,11 +1773,23 @@ impl AstBasedGenerator {
         // their memo lane, so memo stats are truthful only on the protocol
         // graph). `parse_from` (entry-relative) always clears the flag.
         let bare_parse_compute: TokenStream = if self.cascade_plan_active() {
+            // RGX-0078.5.i.7 (MTB-A) — defensive per-parse tape reset (each
+            // orchestrator already nets its segment to zero on both arms; the
+            // clear keeps capacity and guards against any leaked prefix).
+            let mtb_tape_reset: TokenStream = if self.cascade_mtb_active() {
+                quote! {
+                    self.deriv_events.clear();
+                    self.deriv_boundary.clear();
+                }
+            } else {
+                quote! {}
+            };
             quote! {
                 self.bare_parse = !self.coverage_enabled
                     && !self.logger_enabled
                     && !self.counters_observed.get()
                     && !crate::ast_pipeline::report_memo_stats_enabled();
+                #mtb_tape_reset
             }
         } else {
             quote! {}
@@ -10590,32 +10642,46 @@ mod semantic_usage_tests {
         let transform_anchor = "lettransformed=";
         let rollback_anchor = "parser.position=parse_start;";
 
+        // RGX-0078.5.i.7 (MTB-B) — the rendered parser now carries TWO
+        // tournament families: the protocol arms (which evaluate transforms
+        // inline — the ordering obligation applies) and the fused
+        // `cascade_match_*` arms (which evaluate NO transforms by design —
+        // values are built once over the derivation tape, where the `$text`
+        // end is the build cursor). Each arm's window is bounded by the next
+        // arm anchor so a later arm's transform can never satisfy an earlier
+        // arm's check.
         let mut arm_count = 0usize;
+        let mut transform_arm_count = 0usize;
         let mut search_from = 0usize;
         while let Some(rel) = compact[search_from..].find(arm_anchor) {
             arm_count += 1;
             let arm_start = search_from + rel + arm_anchor.len();
-            let tail = &compact[arm_start..];
-            let transform_idx = tail.find(transform_anchor).unwrap_or_else(|| {
-                panic!("branch arm {} has no transform binding", arm_count)
-            });
-            let rollback_idx = tail.find(rollback_anchor).unwrap_or_else(|| {
+            let window_end = compact[arm_start..]
+                .find(arm_anchor)
+                .map(|off| arm_start + off)
+                .unwrap_or(compact.len());
+            let window = &compact[arm_start..window_end];
+            let rollback_idx = window.find(rollback_anchor).unwrap_or_else(|| {
                 panic!("branch arm {} has no position rollback", arm_count)
             });
-            assert!(
-                transform_idx < rollback_idx,
-                "branch arm {}: the transform must be evaluated BEFORE the \
-                 position rollback (transform at {}, rollback at {}) — \
-                 rollback-first re-introduces the empty-span `$text` defect",
-                arm_count,
-                transform_idx,
-                rollback_idx
-            );
+            if let Some(transform_idx) = window.find(transform_anchor) {
+                transform_arm_count += 1;
+                assert!(
+                    transform_idx < rollback_idx,
+                    "branch arm {}: the transform must be evaluated BEFORE the \
+                     position rollback (transform at {}, rollback at {}) — \
+                     rollback-first re-introduces the empty-span `$text` defect",
+                    arm_count,
+                    transform_idx,
+                    rollback_idx
+                );
+            }
             search_from = arm_start;
         }
         assert!(
-            arm_count >= 2,
-            "expected a 2-branch tournament (found {} candidate_end arms)",
+            transform_arm_count >= 2,
+            "expected a 2-branch value-evaluating tournament (found {} transform arms of {} total)",
+            transform_arm_count,
             arm_count
         );
 
@@ -10623,6 +10689,14 @@ mod semantic_usage_tests {
         assert!(
             compact.contains("&parser.input[start_pos..parser.position]"),
             "MatchedText transform should slice the input span"
+        );
+        // The MTB dual of the ordering obligation (the `-0101` $text fix): a
+        // build-side transform that reads `parser.position` is preceded by
+        // the sync to the build cursor, so the slice end is the BRANCH end —
+        // never the frozen whole-match end.
+        assert!(
+            compact.contains("parser.position=parser.deriv_pos;"),
+            "a build-side $text transform must sync position to the build cursor"
         );
     }
 
