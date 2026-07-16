@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1faac864.js";
+            window.path_to_searchindex_js = "searchindex-0b5538cc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -265,15 +265,25 @@ match &amp;node.content {
     _ =&gt; unreachable!(),
 }
 
-// 1.1.30+
+// 1.1.30+ (REPRESENTATION vintage, 2026-07-16: the typed shape is the arena
+// carrier `Shaped(PgenValue)`; `to_serde_value()` yields the byte-identical
+// owned `serde_json::Value` earlier releases carried under `Json`)
 match &amp;node.content {
-    ParseContent::Json(value) =&gt; walk_typed(value),
+    ParseContent::Shaped(shaped) =&gt; {
+        let value = shaped.to_serde_value();
+        walk_typed(&amp;value)
+    }
     // recursive variants still apply for unannotated rules — keep handlers
     ParseContent::Sequence(children) =&gt; walk_recursive(children),
     ParseContent::Alternative(boxed) =&gt; walk_recursive_one(boxed),
     ParseContent::Quantified(items, _) =&gt; walk_recursive(items),
     ParseContent::Terminal(s) =&gt; leaf(s),
     ParseContent::TransformedTerminal(s) =&gt; leaf(s),
+    // pre-REPRESENTATION artifacts: same shape as an owned Value
+    other =&gt; {
+        let value = other.to_json_value();
+        walk_typed(&amp;value)
+    }
 }
 <span class="boring">}</span></code></pre>
 <p>For most regex-walking, the entry point is <code>walk_typed(value)</code> where <code>value</code> is the inner <code>serde_json::Value</code>. Recursive-envelope handlers are still needed because the atom subtree (and most of its descendants) hasn’t been annotated yet.</p>
@@ -316,7 +326,7 @@ match &amp;node.content {
 <h2 id="pre-1130--current-quick-reference"><a class="header" href="#pre-1130--current-quick-reference">Pre-1.1.30 → current quick reference</a></h2>
 <p>If you have a working pre-1.1.30 walker, here’s the short-list of changes:</p>
 <ol>
-<li>Add a <code>ParseContent::Json(value)</code> arm to your top-level match.</li>
+<li>Add a typed-carrier arm to your top-level match — <code>ParseContent::Shaped(shaped)</code> (current, convert via <code>shaped.to_serde_value()</code>) or <code>ParseContent::Json(value)</code> on pre-REPRESENTATION artifacts.</li>
 <li>Inside that arm, switch on <code>value.get("type").as_str()</code> for the discriminator.</li>
 <li>Read <code>pattern</code> field directly off the regex object — it’s a 2-element array <code>[&lt;head&gt;, &lt;tail&gt;]</code> where <code>head</code> is the first alternative and <code>tail</code> is the rest.</li>
 <li>Keep your recursive-envelope handlers around for the atom subtree — they still apply.</li>

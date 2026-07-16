@@ -8,12 +8,12 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #132 — six calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈8.90 µs** with a
-mimalloc-class global allocator: about **56× faster**
+Between sessions #90 and #136 — six calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈6.11 µs** with a
+mimalloc-class global allocator: about **81× faster**
 (≈36× before the allocator recommendation), with every single landing proven
 **byte-identical** on its full oracle battery before its speed number was believed.
-Twenty levers landed. More than a dozen others were refuted, rejected, or reverted —
+Twenty-one levers landed. More than a dozen others were refuted, rejected, or reverted —
 most of them for the price of a document rather than a build. This chapter is the story of
 both lists, because the refusals are as much the method as the landings.
 
@@ -351,8 +351,18 @@ a tape of POD *decisions*, failed speculation truncates its segment, and only th
 committed derivation is built, once. Even the cyclic spine's memo keeps its protection
 with derivation *segments* as the payload. It measured **−8.8%** (every round, every
 pattern) against a directional model that said −45…−53% — the fourth reminder that a
-sampled profile share is a reason to attempt, never a price — and it takes the scoreboard
-to **496 µs → ≈8.90 µs, about 56×**. Its most valuable output wasn't the number: the
-differential-equivalence oracle caught a subtle build-side `$text` slicing defect that had
-been latent since the fold's first (reverted) attempt — proof that the battery, not the
-tripwire, is what a landing means. The method decides — and the story continues here.
+sampled profile share is a reason to attempt, never a price. Its most valuable output
+wasn't the number: the differential-equivalence oracle caught a subtle build-side `$text`
+slicing defect that had been latent since the fold's first (reverted) attempt — proof
+that the battery, not the tripwire, is what a landing means.
+
+The committed-value **representation** change followed (session #136): the values a parse
+*commits* are no longer eagerly-built `serde_json::Value` trees (`BTreeMap` nodes, cloned
+`String` keys, a double deep-clone per nested reference) but arena-slice `PgenValue`s —
+`Copy` machine words whose serialized bytes are identical by construction, with template
+object keys sorted at *codegen* time so an emitted object is one arena bump of a
+stack-built array. It measured **−32.0%** — every round, every pattern — the largest
+single landing since pass zero, and this time the sampled-share model (≈25–30%) slightly
+*under*-priced the win: the removed machinery had been feeding the allocator and the
+teardown path too. The scoreboard now reads **496 µs → ≈6.11 µs, about 81×**. The method
+decides — and the story continues here.

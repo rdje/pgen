@@ -71,9 +71,10 @@ use crate::ast_pipeline::semantic_directive_registry::{
 };
 use crate::ast_pipeline::stimuli_generator::BranchSelectionLogEntry;
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
+use crate::ast_pipeline::pgen_value::insert_object_pair;
 use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, CompiledSemanticRuntimeAnnotations, NodeArena,
-    ParseContent, ParseError, ParseNode, ParseResult, SemanticAnnotation, SemanticCloseScopeSpec,
+    ParseContent, ParseError, ParseNode, ParseResult, PgenValue, SemanticAnnotation, SemanticCloseScopeSpec,
     SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
     SemanticRuntimeDelta, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeTransaction,
     SemanticRuntimeValue, SemanticScopeSpec, TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty,
@@ -1715,8 +1716,8 @@ impl<'g, 'i> Interp<'g, 'i> {
     }
 
     /// Mirror of the generated `resolve_named_semantic_reference` (SEMREF-SHAPED: against a
-    /// `ParseContent::Json` the dotted path walks the shaped object; otherwise the raw named-descendant
-    /// walk).
+    /// `ParseContent::Shaped` (or the transitional `Json`) the dotted path walks the shaped object;
+    /// otherwise the raw named-descendant walk).
     fn resolve_named_semantic_reference(
         &self,
         root_content: &ParseContent<'i>,
@@ -1726,6 +1727,44 @@ impl<'g, 'i> Interp<'g, 'i> {
         if lexed_segments.is_empty() {
             return None;
         }
+        // RGX-0078.5.i.7 (`-0105`) mirror of the generated resolver's Shaped
+        // walk: `[N]` indexes only arrays, `.name` binary-searches the sorted
+        // pair slice, scalar leaves render through serde's own formatters.
+        if let ParseContent::Shaped(shaped_root) = root_content {
+            let mut current = *shaped_root;
+            for segment in &lexed_segments {
+                if let Some(index) = Self::parse_bracketed_index(segment) {
+                    current = match current {
+                        PgenValue::Array(items) => *items.get(index)?,
+                        _ => return None,
+                    };
+                } else {
+                    if !Self::semantic_identifier(segment) {
+                        return None;
+                    }
+                    current = match current {
+                        PgenValue::Object(pairs) => match pairs
+                            .binary_search_by(|(key, _)| key.as_bytes().cmp(segment.as_bytes()))
+                        {
+                            Ok(found) => pairs[found].1,
+                            Err(_) => return None,
+                        },
+                        _ => return None,
+                    };
+                }
+            }
+            return match current {
+                PgenValue::Str(text) => Some(text.to_string()),
+                PgenValue::Int(number) => Some(serde_json::Number::from(number).to_string()),
+                PgenValue::UInt(number) => Some(serde_json::Number::from(number).to_string()),
+                PgenValue::Float(number) => {
+                    serde_json::Number::from_f64(number).map(|rendered| rendered.to_string())
+                }
+                PgenValue::Bool(boolean) => Some(boolean.to_string()),
+                _ => None,
+            };
+        }
+        // Transitional twin until the `Json` variant's lib-side retirement.
         if let ParseContent::Json(value) = root_content {
             let mut current = value;
             for segment in &lexed_segments {
@@ -3122,22 +3161,31 @@ impl<'g, 'i> Interp<'g, 'i> {
             UnifiedReturnAST::PositionalRef { index } => self.resolve_positional(*index, base),
             UnifiedReturnAST::StringLiteral { value } => ParseContent::Terminal(intern(value)),
             UnifiedReturnAST::NumberLiteral { value } => {
-                ParseContent::Json(number_to_json(*value))
+                ParseContent::Shaped(number_to_shaped(*value))
             }
             UnifiedReturnAST::BooleanLiteral { value } => {
-                ParseContent::Json(serde_json::Value::Bool(*value))
+                ParseContent::Shaped(PgenValue::Bool(*value))
             }
-            UnifiedReturnAST::NullLiteral => ParseContent::Json(serde_json::Value::Null),
+            UnifiedReturnAST::NullLiteral => ParseContent::Shaped(PgenValue::Null),
             UnifiedReturnAST::Identifier { name } => ParseContent::Terminal(intern(name)),
             UnifiedReturnAST::Array { elements } => self.fold_array(elements, base, start_pos),
             UnifiedReturnAST::Object { properties } => {
-                let mut obj = serde_json::Map::new();
+                // RGX-0078.5.i.7 (`-0105`) mirror of `generate_object_transform`:
+                // the shaped object is a key-sorted pair slice on the arena.
+                // Template keys are interned (the annotation AST's `String`
+                // keys don't carry the arena lifetime); `insert_object_pair`
+                // preserves the sorted/last-wins `BTreeMap` mirror invariant.
                 let mut sorted: Vec<_> = properties.iter().collect();
                 sorted.sort_by(|(l, _), (r, _)| l.cmp(r));
+                let mut pairs: Vec<(&'i str, PgenValue<'i>)> = Vec::with_capacity(sorted.len());
                 for (key, value_ast) in sorted {
-                    obj.insert(key.clone(), self.fold_value(value_ast, base, start_pos));
+                    insert_object_pair(
+                        &mut pairs,
+                        intern(key),
+                        self.fold_shaped_value(value_ast, base, start_pos),
+                    );
                 }
-                ParseContent::Json(serde_json::Value::Object(obj))
+                ParseContent::Shaped(PgenValue::Object(self.arena.alloc_shaped_pairs(pairs)))
             }
             UnifiedReturnAST::Spread { base: inner } | UnifiedReturnAST::FlattenSpread { base: inner } => {
                 // Outside an array a (flatten-)spread degenerates to the shape-preserving identity.
@@ -3152,9 +3200,19 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
             }
             UnifiedReturnAST::PropertyAccess { base: inner, property } => {
-                let value = self.fold_return(inner, base, start_pos).to_json_value();
-                let prop = value.get(property).cloned().unwrap_or(serde_json::Value::Null);
-                ParseContent::Json(prop)
+                // Mirror of `generate_property_access`: sorted-pair binary
+                // search = `serde_json::Map::get`; non-object/missing → Null.
+                let value = self.fold_return(inner, base, start_pos).to_shaped_value(self.arena);
+                let prop = match value {
+                    PgenValue::Object(pairs) => match pairs
+                        .binary_search_by(|(key, _)| key.as_bytes().cmp(property.as_bytes()))
+                    {
+                        Ok(found) => pairs[found].1,
+                        Err(_) => PgenValue::Null,
+                    },
+                    _ => PgenValue::Null,
+                };
+                ParseContent::Shaped(prop)
             }
             UnifiedReturnAST::ArrayAccess { base: inner, index } => {
                 let idx = match index.as_ref() {
@@ -3166,6 +3224,16 @@ impl<'g, 'i> Interp<'g, 'i> {
                     ParseContent::Quantified(elems, _) if elems.len() > idx => {
                         elems[idx].content.clone()
                     }
+                    ParseContent::Shaped(value) => {
+                        let elem = match value {
+                            PgenValue::Array(items) if items.len() > idx => items[idx],
+                            _ => PgenValue::Null,
+                        };
+                        ParseContent::Shaped(elem)
+                    }
+                    // Transitional: `Json` content no longer originates from this
+                    // fold, but the arm stays byte-equivalent until the variant's
+                    // lib-side retirement.
                     ParseContent::Json(value) => {
                         let elem = match value {
                             serde_json::Value::Array(ref arr) if arr.len() > idx => arr[idx].clone(),
@@ -3186,16 +3254,16 @@ impl<'g, 'i> Interp<'g, 'i> {
         }
     }
 
-    /// The object-field / array-index value extraction: fold, then convert to a typed `serde_json`
-    /// value (`generate_value_extraction` reduces to exactly this — the scalar arms build the same
-    /// `Value` the fold's `to_json_value()` yields).
-    fn fold_value(
+    /// The object-field / array-index value extraction: fold, then convert to the typed arena
+    /// [`PgenValue`] (`generate_value_extraction` reduces to exactly this — the scalar arms build
+    /// the same value the fold's `to_shaped_value()` yields).
+    fn fold_shaped_value(
         &self,
         ast: &UnifiedReturnAST,
         base: &ParseContent<'i>,
         start_pos: usize,
-    ) -> serde_json::Value {
-        self.fold_return(ast, base, start_pos).to_json_value()
+    ) -> PgenValue<'i> {
+        self.fold_return(ast, base, start_pos).to_shaped_value(self.arena)
     }
 
     /// `$N` against the single base (the len==1 `generate_positional_ref` rule).
@@ -3263,6 +3331,18 @@ impl<'g, 'i> Interp<'g, 'i> {
                                             array_elements.push(inner_node);
                                         }
                                     }
+                                    ParseContent::Shaped(PgenValue::Array(values)) => {
+                                        for value in values {
+                                            array_elements.push(self.arena.alloc(ParseNode {
+                                                rule_name: rule_name_for_inherit,
+                                                content: ParseContent::Shaped(*value),
+                                                span: span_for_inherit.clone(),
+                                            }));
+                                        }
+                                    }
+                                    // Transitional twin until the `Json` variant's
+                                    // lib-side retirement (nothing constructs it
+                                    // in this fold any more).
                                     ParseContent::Json(serde_json::Value::Array(values)) => {
                                         for value in values {
                                             array_elements.push(self.arena.alloc(ParseNode {
@@ -3413,6 +3493,21 @@ fn number_to_json(value: f64) -> serde_json::Value {
         serde_json::Value::from(value as i64)
     } else {
         serde_json::Value::from(value)
+    }
+}
+
+/// The [`number_to_json`] twin on the arena carrier (RGX-0078.5.i.7 `-0105`, matching
+/// `AstReturnTransformer`'s Shaped emission): an integral `f64` becomes `Int`, otherwise
+/// `from_f64` (whose non-finite → `Null` rule mirrors `serde_json::Value::from(f64)`).
+fn number_to_shaped(value: f64) -> PgenValue<'static> {
+    if value.is_finite()
+        && value.fract() == 0.0
+        && value >= i64::MIN as f64
+        && value <= i64::MAX as f64
+    {
+        PgenValue::Int(value as i64)
+    } else {
+        PgenValue::from_f64(value)
     }
 }
 

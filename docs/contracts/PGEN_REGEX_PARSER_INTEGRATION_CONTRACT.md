@@ -34,6 +34,26 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-16 — RGX-0078.5.i.7 `-0105`: COMMITTED-VALUE REPRESENTATION — the typed carrier is now `ParseContent::Shaped(PgenValue)` (WIRE-FORMAT UNCHANGED; Rust-embedding note; parse −32%)
+
+**What this is.** A Rust-embedding-level representation change with **zero wire-format change** — no contract bump, no
+release bump, AST-dump schema stays `1`. Annotated rules now carry their typed shape as the arena-`Copy`
+`ParseContent::Shaped(PgenValue)` instead of an eagerly-built `ParseContent::Json(serde_json::Value)`. The serialized
+typed-AST JSON is **byte-identical** (`Shaped` serializes under the same `"Json"` wire tag through a `Serialize` mirror
+of `serde_json::Value`'s formatter; proven by a byte-identity oracle suite, the all-grammar differential-equivalence
+gate, a 16/16 dump tripwire vs the prior vintage, and the typed-hook differential gate).
+
+**Action for downstream (RGX).**
+- Consumers of the serialized typed-AST JSON (the normal path, incl. `parse_node_to_json`/AST dumps): **no action** —
+  not one byte changes.
+- Native-Rust embedders matching `ParseContent::Json(value)` directly: match `ParseContent::Shaped(value)` (a `Copy`
+  `PgenValue` mirroring the six JSON value types; objects key-sorted like `serde_json::Map`), or call
+  `content.to_json_value()` at your boundary to obtain the same owned `serde_json::Value` as before.
+- Motivation: the eager serde construction (`BTreeMap` nodes, cloned template keys, double deep-clones) was the
+  profile-dominant committed-value compute; removing it measured **−32.0%** on the standard closure bench
+  (fat-LTO alternated 5×2000 geomean-of-mins, mimalloc; cold-parse floor ≈8.90µs → **≈6.11µs**, ≈81× vs the 496µs
+  campaign origin). See the regex book's "The Json Carrier" chapter for the full embedder note.
+
 ## Maintenance Update 2026-07-16 — RGX-0078.5.i.7 `-0097`: RECOMMENDED ALLOCATOR — use a mimalloc-class global allocator (PERFORMANCE-ONLY; SURFACE-NEUTRAL; release/contract/schema versions UNCHANGED)
 
 **What this is.** A performance RECOMMENDATION to embedders, not a surface change. The regex parser's cold-parse

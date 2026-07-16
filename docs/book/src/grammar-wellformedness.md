@@ -335,7 +335,7 @@ last clause hides a subtlety worth being precise about, because the obvious way 
 The naive approach is to parse the input and then *walk the output AST*, collecting the rule name of
 every node. On a grammar with **return annotations** this silently fails. A rule written
 `r := … -> { … }` does not return a structural subtree — its annotation *folds the whole subtree into
-a single JSON value* (`ParseContent::Json`), which has no child nodes. So an AST walk stops at the
+a single typed value* (`ParseContent::Shaped`), which has no child nodes. So an AST walk stops at the
 first annotated rule and never sees anything beneath it. On a heavily-annotated grammar like
 SystemVerilog the walk collapses to **one** rule for an entire file — it would report almost
 everything as un-witnessed, even though the parse genuinely exercised hundreds of rules. (The other

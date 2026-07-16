@@ -794,11 +794,15 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         // Fast path for transform-applied AST: the parser's inline return
-        // annotation has already produced a typed `Json(Value::Object{...})`
-        // (or similar typed shape) at the top level. Read the typed value
-        // directly instead of walking sub-rule ParseNodes.
+        // annotation has already produced a typed shaped value (the
+        // transitional `Json(Value::Object{...})` or the `-0105` arena
+        // `Shaped(PgenValue::Object(...))`) at the top level. Read the typed
+        // value directly instead of walking sub-rule ParseNodes.
         if let ParseContent::Json(ref value) = parse_tree.content {
             return Self::parse_typed_return_value(value);
+        }
+        if let ParseContent::Shaped(shaped) = &parse_tree.content {
+            return Self::parse_typed_return_value(&shaped.to_serde_value());
         }
         let root = if parse_tree.rule_name == "return_annotation" {
             parse_tree

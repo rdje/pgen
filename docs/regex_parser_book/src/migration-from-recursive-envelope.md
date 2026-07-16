@@ -100,15 +100,25 @@ match &node.content {
     _ => unreachable!(),
 }
 
-// 1.1.30+
+// 1.1.30+ (REPRESENTATION vintage, 2026-07-16: the typed shape is the arena
+// carrier `Shaped(PgenValue)`; `to_serde_value()` yields the byte-identical
+// owned `serde_json::Value` earlier releases carried under `Json`)
 match &node.content {
-    ParseContent::Json(value) => walk_typed(value),
+    ParseContent::Shaped(shaped) => {
+        let value = shaped.to_serde_value();
+        walk_typed(&value)
+    }
     // recursive variants still apply for unannotated rules — keep handlers
     ParseContent::Sequence(children) => walk_recursive(children),
     ParseContent::Alternative(boxed) => walk_recursive_one(boxed),
     ParseContent::Quantified(items, _) => walk_recursive(items),
     ParseContent::Terminal(s) => leaf(s),
     ParseContent::TransformedTerminal(s) => leaf(s),
+    // pre-REPRESENTATION artifacts: same shape as an owned Value
+    other => {
+        let value = other.to_json_value();
+        walk_typed(&value)
+    }
 }
 ```
 
@@ -157,7 +167,7 @@ The PGEN-RGX-0074 fix is **semantically incompatible** with pre-1.1.31 consumers
 
 If you have a working pre-1.1.30 walker, here's the short-list of changes:
 
-1. Add a `ParseContent::Json(value)` arm to your top-level match.
+1. Add a typed-carrier arm to your top-level match — `ParseContent::Shaped(shaped)` (current, convert via `shaped.to_serde_value()`) or `ParseContent::Json(value)` on pre-REPRESENTATION artifacts.
 2. Inside that arm, switch on `value.get("type").as_str()` for the discriminator.
 3. Read `pattern` field directly off the regex object — it's a 2-element array `[<head>, <tail>]` where `head` is the first alternative and `tail` is the rest.
 4. Keep your recursive-envelope handlers around for the atom subtree — they still apply.

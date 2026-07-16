@@ -24,35 +24,33 @@ impl AstReturnTransformer {
                 Ok(quote! { ParseContent::Terminal(#value) })
             }
             UnifiedReturnAST::NumberLiteral { value } => {
-                // Emit the typed JSON number, integer-preserving when the
-                // literal has no fractional part (matches the value-extraction
-                // path's behaviour). Pre-fix this emitted
-                // `ParseContent::Terminal(<value.to_string()>)` — a string
-                // Terminal that JSON-serialised as a quoted string instead of
-                // a number, breaking any consumer reading the field as a
-                // number. Mirrors the fix applied to BooleanLiteral below.
+                // Emit the typed number on the arena carrier, integer-
+                // preserving when the literal has no fractional part (matches
+                // the value-extraction path's behaviour). `PgenValue::Int`
+                // serializes via the same `serialize_i64` path as
+                // `serde_json::Value::from(i64)`, and `from_f64` mirrors
+                // `Value::from(f64)`'s non-finite → Null rule, so the emitted
+                // bytes are unchanged.
                 if value.is_finite() && value.fract() == 0.0
                     && *value >= i64::MIN as f64
                     && *value <= i64::MAX as f64
                 {
                     let int_value = *value as i64;
-                    Ok(quote! { ParseContent::Json(serde_json::Value::from(#int_value)) })
+                    Ok(quote! { ParseContent::Shaped(PgenValue::Int(#int_value)) })
                 } else {
                     let v = *value;
-                    Ok(quote! { ParseContent::Json(serde_json::Value::from(#v)) })
+                    Ok(quote! { ParseContent::Shaped(PgenValue::from_f64(#v)) })
                 }
             }
             UnifiedReturnAST::BooleanLiteral { value } => {
-                // Emit the typed JSON boolean directly. Pre-fix this emitted
-                // `ParseContent::Terminal(<value.to_string()>)` — a string
-                // Terminal `"true"` or `"false"`, which JSON-serialised as a
-                // quoted string and broke `negated: $2` style fields where a
-                // boolean is expected. Surfaced by PGEN-RGX-0076.
+                // Emit the typed boolean directly (on the arena carrier). The
+                // string-Terminal `"true"`/`"false"` mis-typing this replaced
+                // was PGEN-RGX-0076.
                 let bool_lit = *value;
-                Ok(quote! { ParseContent::Json(serde_json::Value::Bool(#bool_lit)) })
+                Ok(quote! { ParseContent::Shaped(PgenValue::Bool(#bool_lit)) })
             }
             UnifiedReturnAST::NullLiteral => Ok(quote! {
-                ParseContent::Json(serde_json::Value::Null)
+                ParseContent::Shaped(PgenValue::Null)
             }),
             UnifiedReturnAST::Identifier { name } => Ok(quote! { ParseContent::Terminal(#name) }),
             UnifiedReturnAST::Array { elements } => {
@@ -101,34 +99,18 @@ impl AstReturnTransformer {
         }
     }
 
-    /// Convert a runtime `ParseContent` into a `String` for object-key/value
-    /// extraction. The non-typed fallback uses `to_json_value().to_string()` so
-    /// structured shapes serialise as JSON rather than as Rust Debug output.
-    fn parse_content_to_string(content_expr: TokenStream) -> TokenStream {
+    /// Convert a runtime `ParseContent` into a [`PgenValue`] without going
+    /// through string-encoded or owned-`serde_json::Value` intermediates. Used
+    /// by object-literal field extraction and property access to keep typed
+    /// shapes typed end-to-end on the arena carrier (RGX-0078.5.i.7
+    /// REPRESENTATION, `PGEN-RGX-0078-0105` — replaced the
+    /// `parse_content_to_json_value` emission that fed the profile-dominant
+    /// `to_json_value` deep-clone).
+    fn parse_content_to_shaped_value(content_expr: TokenStream) -> TokenStream {
         quote! {
             {
                 let __pgen_content = #content_expr;
-                match __pgen_content {
-                    ParseContent::Terminal(s) => s.to_string(),
-                    ParseContent::TransformedTerminal(s) => s,
-                    ParseContent::Json(value) => match value {
-                        serde_json::Value::String(s) => s,
-                        other => other.to_string(),
-                    },
-                    other => other.to_json_value().to_string(),
-                }
-            }
-        }
-    }
-
-    /// Convert a runtime `ParseContent` into a `serde_json::Value` without
-    /// going through string-encoded intermediates. Used by object-literal
-    /// field extraction to keep typed shapes typed end-to-end.
-    fn parse_content_to_json_value(content_expr: TokenStream) -> TokenStream {
-        quote! {
-            {
-                let __pgen_content = #content_expr;
-                __pgen_content.to_json_value()
+                __pgen_content.to_shaped_value(parser.arena)
             }
         }
     }
@@ -253,16 +235,21 @@ impl AstReturnTransformer {
                     //     packaging of a multi-element body.
                     //   - ParseContent::Quantified(nodes, _) — codegen-produced
                     //     packaging of a `?`/`*`/`+` Quantified body.
-                    //   - ParseContent::Json(Value::Array(_))— typed-Json array
-                    //     produced by an upstream annotation like
+                    //   - ParseContent::Shaped(PgenValue::Array(_)) — typed
+                    //     shaped array produced by an upstream annotation like
                     //     `child = ... -> [$2**, ...]`. PGEN-RGX-0077 was the
-                    //     missing-arm regression: pre-fix, a Json(Array)
-                    //     pushed-child fell into `other_content` and the
-                    //     whole array got wrapped as ONE element instead of
-                    //     each member spreading inline. Surfaced by
-                    //     `\Qab*\E{2,}` family — `piece_quoted_run_quantified`
-                    //     emits a Json(Array) of pieces, and the parent
-                    //     `concatenation = piece+ -> [$1**]` failed to spread.
+                    //     missing-arm regression on this route's `Json(Array)`
+                    //     predecessor: pre-fix, a typed-array pushed-child fell
+                    //     into `other_content` and the whole array got wrapped
+                    //     as ONE element instead of each member spreading
+                    //     inline. Surfaced by `\Qab*\E{2,}` family —
+                    //     `piece_quoted_run_quantified` emits a typed array of
+                    //     pieces, and the parent `concatenation = piece+ ->
+                    //     [$1**]` failed to spread. (`-0105`: the arm now
+                    //     matches `Shaped` — emitted constructions no longer
+                    //     produce `Json`, and referencing the transitional
+                    //     variant nowhere keeps the artifact ready for its
+                    //     lib-side retirement.)
                     let base_code = Self::generate_transform(base, captured_vars, "")?;
                     element_codes.push(quote! {
                         // Inner helper: peel `Alternative` one level recursively
@@ -303,17 +290,18 @@ impl AstReturnTransformer {
                                                 array_elements.push(inner_node);
                                             }
                                         }
-                                        ParseContent::Json(serde_json::Value::Array(values)) => {
-                                            // Typed-Json array (post-collapse from a
+                                        ParseContent::Shaped(PgenValue::Array(values)) => {
+                                            // Typed shaped array (post-collapse from a
                                             // child annotation that built [$N**, ...]
                                             // or similar). Spread each value as its
                                             // own ParseNode so consumers see N flat
-                                            // entries, not [<N entries>].
+                                            // entries, not [<N entries>]. The values
+                                            // are `Copy` arena refs — no clone.
                                             for value in values {
                                                 // RGX-0078.5.d.4.i — arena-alloc.
                                                 array_elements.push(parser.arena.alloc(ParseNode {
                                                     rule_name: rule_name_for_inherit,
-                                                    content: ParseContent::Json(value),
+                                                    content: ParseContent::Shaped(*value),
                                                     span: span_for_inherit.clone(),
                                                 }));
                                             }
@@ -366,47 +354,63 @@ impl AstReturnTransformer {
         })
     }
 
-    /// Generate object transformation. Builds a typed `serde_json::Value::Object`
-    /// at runtime and wraps it as `ParseContent::Json(value)`. This replaces an
-    /// older path that built a `serde_json::Value`, serialised it to a `String`,
-    /// and stuffed the string into `ParseContent::TransformedTerminal(String)` —
-    /// which forced any subsequent property/array access to deserialise the
-    /// string back, look up the field, and re-stringify per access.
+    /// Generate object transformation. Builds a typed `PgenValue::Object` on
+    /// the node arena and wraps it as `ParseContent::Shaped(value)`
+    /// (RGX-0078.5.i.7 REPRESENTATION, `PGEN-RGX-0078-0105`). This replaces
+    /// the `serde_json::Map::new()` + per-key `String` + `BTreeMap`-insert
+    /// emission that RE-PROFILE #13 pinned as the dominant committed-value
+    /// compute (416 object-build sites in the regex artifact alone).
+    ///
+    /// The emitted shape is a stack ARRAY of `(key, value)` tuples handed to
+    /// one `alloc_shaped_pairs` bump: template keys are static string
+    /// literals, unique by construction (`HashMap` source) and sorted HERE at
+    /// codegen time by the same byte order `BTreeMap` iterates in — so the
+    /// pair slice is born satisfying the `PgenValue::Object` sorted/deduped
+    /// invariant with zero runtime map machinery. Evaluating every element
+    /// expression inside the array literal BEFORE the arena call also
+    /// satisfies `alloc_extend`'s no-reentrant-allocation constraint (nested
+    /// object/array values allocate while being evaluated, not during the
+    /// outer bump).
     fn generate_object_transform(
         properties: &std::collections::HashMap<String, Box<UnifiedReturnAST>>,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
-        let mut field_assignments = Vec::new();
-
-        // Stabilize field emission order so generated parser code is deterministic
-        // across process runs (HashMap iteration order is randomized).
+        // Sorting also stabilizes field emission order so generated parser
+        // code is deterministic across process runs (HashMap iteration order
+        // is randomized). `String::cmp` = byte order = `BTreeMap`'s.
         let mut sorted_properties: Vec<_> = properties.iter().collect();
         sorted_properties.sort_by(|(left_key, _), (right_key, _)| left_key.cmp(right_key));
 
+        let mut field_entries = Vec::new();
         for (key, value_ast) in sorted_properties {
             let value_code = Self::generate_value_extraction(value_ast, captured_vars)?;
-            field_assignments.push(quote! {
-                __pgen_obj.insert(#key.to_string(), #value_code);
+            field_entries.push(quote! {
+                (#key, #value_code)
             });
         }
 
+        if field_entries.is_empty() {
+            return Ok(quote! { ParseContent::Shaped(PgenValue::Object(&[])) });
+        }
+
         Ok(quote! {
-            {
-                let mut __pgen_obj = serde_json::Map::new();
-                #(#field_assignments)*
-                ParseContent::Json(serde_json::Value::Object(__pgen_obj))
-            }
+            ParseContent::Shaped(PgenValue::Object(parser.arena.alloc_shaped_pairs([
+                #(#field_entries),*
+            ])))
         })
     }
 
     /// Generate code to extract value for object property
-    /// Build a TokenStream that evaluates to a `serde_json::Value` at runtime.
+    /// Build a TokenStream that evaluates to a [`PgenValue`] at runtime
+    /// (RGX-0078.5.i.7 REPRESENTATION — previously a `serde_json::Value`).
     /// Used to populate object-literal field values without going through a
-    /// stringified intermediate. For positional refs the captured `ParseContent`
-    /// is converted via `to_json_value()`; for primitive literals the matching
-    /// `serde_json::Value::*` constructor is emitted directly; for nested
-    /// transforms the inner `ParseContent` is again converted via
-    /// `to_json_value()`. No `serde_json::to_string`, no `from_str`.
+    /// stringified intermediate. For positional refs the captured
+    /// `ParseContent` is converted via `to_shaped_value()` (a `Copy` for
+    /// already-shaped content, a zero-copy `Str` borrow for terminals — where
+    /// `to_json_value()` deep-cloned); for primitive literals the matching
+    /// `PgenValue` constructor is emitted directly; for nested transforms the
+    /// inner `ParseContent` is again converted via `to_shaped_value()`.
+    /// No `serde_json::to_string`, no `from_str`, no owned tree.
     fn generate_value_extraction(
         ast: &UnifiedReturnAST,
         captured_vars: &[String],
@@ -415,7 +419,7 @@ impl AstReturnTransformer {
             UnifiedReturnAST::PositionalRef { index } => {
                 if *index == 0 {
                     return Ok(quote! {
-                        serde_json::Value::String("<invalid_ref_0>".to_string())
+                        PgenValue::Str("<invalid_ref_0>")
                     });
                 }
 
@@ -428,7 +432,7 @@ impl AstReturnTransformer {
                     // element Sequence wrapping (artificial codegen packaging)
                     // is still peeled.
                     if element_index == 0 {
-                        return Ok(Self::parse_content_to_json_value(quote! {
+                        return Ok(Self::parse_content_to_shaped_value(quote! {
                             {
                                 match &#base_expr {
                                     ParseContent::Sequence(elements) if !elements.is_empty() => {
@@ -440,7 +444,7 @@ impl AstReturnTransformer {
                             }
                         }));
                     }
-                    return Ok(Self::parse_content_to_json_value(quote! {
+                    return Ok(Self::parse_content_to_shaped_value(quote! {
                         {
                             match &#base_expr {
                                 ParseContent::Sequence(elements) if elements.len() > #element_index => {
@@ -454,46 +458,51 @@ impl AstReturnTransformer {
 
                 if *index <= captured_vars.len() {
                     let expr = Self::parse_capture_expr(&captured_vars[index - 1]);
-                    return Ok(Self::parse_content_to_json_value(quote! { (#expr).clone() }));
+                    return Ok(Self::parse_content_to_shaped_value(quote! { (#expr).clone() }));
                 }
 
-                let invalid_index = *index;
+                // The index is a codegen-time constant, so the sentinel label
+                // is rendered HERE — the artifact carries a static literal
+                // where it used to carry a runtime `format!` (byte-identical
+                // output, one less allocation).
+                let invalid_label = format!("<invalid_ref_{}>", index);
                 Ok(quote! {
-                    serde_json::Value::String(format!("<invalid_ref_{}>", #invalid_index))
+                    PgenValue::Str(#invalid_label)
                 })
             }
             UnifiedReturnAST::StringLiteral { value } => {
-                Ok(quote! { serde_json::Value::String(#value.to_string()) })
+                Ok(quote! { PgenValue::Str(#value) })
             }
             UnifiedReturnAST::NumberLiteral { value } => {
                 // Preserve integer typing when the literal has no fractional
-                // part. `serde_json::Value::from(0.0_f64)` serialises as
-                // `0.0`; `Value::from(0_i64)` serialises as `0`. Most typed-
-                // AST shapes (e.g. min/max counts in counted_quantifier_body)
-                // want integers and would otherwise mix `0.0` (literal) with
-                // `2` (from a `digits` capture) in the same field.
+                // part. `PgenValue::Float(0.0)` serialises as `0.0`;
+                // `PgenValue::Int(0)` serialises as `0` (the serde parity the
+                // step-1 oracle tests pin). Most typed-AST shapes (e.g.
+                // min/max counts in counted_quantifier_body) want integers and
+                // would otherwise mix `0.0` (literal) with `2` (from a
+                // `digits` capture) in the same field.
                 if value.is_finite() && value.fract() == 0.0
                     && *value >= i64::MIN as f64
                     && *value <= i64::MAX as f64
                 {
                     let int_value = *value as i64;
-                    Ok(quote! { serde_json::Value::from(#int_value) })
+                    Ok(quote! { PgenValue::Int(#int_value) })
                 } else {
-                    Ok(quote! { serde_json::Value::from(#value) })
+                    Ok(quote! { PgenValue::from_f64(#value) })
                 }
             }
             UnifiedReturnAST::BooleanLiteral { value } => {
-                Ok(quote! { serde_json::Value::Bool(#value) })
+                Ok(quote! { PgenValue::Bool(#value) })
             }
             UnifiedReturnAST::NullLiteral => {
-                Ok(quote! { serde_json::Value::Null })
+                Ok(quote! { PgenValue::Null })
             }
             UnifiedReturnAST::Identifier { name } => {
-                Ok(quote! { serde_json::Value::String(#name.to_string()) })
+                Ok(quote! { PgenValue::Str(#name) })
             }
             _ => {
                 let nested = Self::generate_transform(ast, captured_vars, "")?;
-                Ok(Self::parse_content_to_json_value(quote! { #nested }))
+                Ok(Self::parse_content_to_shaped_value(quote! { #nested }))
             }
         }
     }
@@ -520,10 +529,12 @@ impl AstReturnTransformer {
     }
 
     /// Generate property access transformation. Operates on the typed
-    /// `serde_json::Value` carrier directly — no `from_str`/`to_string`
-    /// roundtrip. The previous path stringified the base, deserialised the
-    /// string back into a `serde_json::Value`, looked up the property, and
-    /// re-stringified before wrapping again as `TransformedTerminal(String)`.
+    /// [`PgenValue`] carrier directly (RGX-0078.5.i.7 REPRESENTATION) — no
+    /// `to_json_value()` owned-tree conversion, no clone: the pair slice is
+    /// key-sorted (the `PgenValue::Object` invariant), so a binary search is
+    /// the byte-exact equivalent of `serde_json::Map::get`, and the looked-up
+    /// value is a `Copy`. A non-object base or a missing key yields `Null`,
+    /// exactly like `Value::get(str)`.
     fn generate_property_access(
         base: &UnifiedReturnAST,
         property: &str,
@@ -534,20 +545,25 @@ impl AstReturnTransformer {
         Ok(quote! {
             {
                 let __pgen_base: ParseContent = #base_code;
-                let __pgen_value = __pgen_base.to_json_value();
-                let __pgen_prop = __pgen_value
-                    .get(#property)
-                    .cloned()
-                    .unwrap_or(serde_json::Value::Null);
-                ParseContent::Json(__pgen_prop)
+                let __pgen_value = __pgen_base.to_shaped_value(parser.arena);
+                let __pgen_prop = match __pgen_value {
+                    PgenValue::Object(pairs) => match pairs
+                        .binary_search_by(|(key, _)| key.as_bytes().cmp(#property.as_bytes()))
+                    {
+                        Ok(found) => pairs[found].1,
+                        Err(_) => PgenValue::Null,
+                    },
+                    _ => PgenValue::Null,
+                };
+                ParseContent::Shaped(__pgen_prop)
             }
         })
     }
 
     /// Generate array access transformation. Handles both the legacy
     /// `Sequence`/`Quantified` carrier (used by raw grammar captures) and the
-    /// typed `Json(Value::Array)` carrier produced by chained property access
-    /// or array-literal transforms.
+    /// typed `Shaped(PgenValue::Array)` carrier produced by chained property
+    /// access or array-literal transforms.
     fn generate_array_access(
         base: &UnifiedReturnAST,
         index: &UnifiedReturnAST,
@@ -573,14 +589,14 @@ impl AstReturnTransformer {
                     ParseContent::Quantified(elements, _) if elements.len() > #index_code => {
                         elements[#index_code].content.clone()
                     }
-                    ParseContent::Json(value) => {
+                    ParseContent::Shaped(value) => {
                         let __pgen_elem = match value {
-                            serde_json::Value::Array(ref arr) if arr.len() > #index_code => {
-                                arr[#index_code].clone()
+                            PgenValue::Array(items) if items.len() > #index_code => {
+                                items[#index_code]
                             }
-                            _ => serde_json::Value::Null,
+                            _ => PgenValue::Null,
                         };
-                        ParseContent::Json(__pgen_elem)
+                        ParseContent::Shaped(__pgen_elem)
                     }
                     _ => ParseContent::Terminal("<invalid_array_access>"),
                 }
@@ -753,14 +769,16 @@ mod tests {
         }
     }
 
-    /// Phase 2 typed-carrier contract: object literal annotations must emit a
-    /// `ParseContent::Json(serde_json::Value::Object(...))` constructor with no
-    /// `serde_json::to_string` and no `ParseContent::TransformedTerminal`
-    /// wrapping. The earlier path serialised the assembled `Value` to a `String`
-    /// before wrapping; that stringification is what produced the per-property
-    /// serialise/parse/serialise roundtrip the user flagged.
+    /// Typed-carrier contract (`-0105` REPRESENTATION vintage): object literal
+    /// annotations must emit a `ParseContent::Shaped(PgenValue::Object(...))`
+    /// constructor over ONE `alloc_shaped_pairs` arena bump, with the static
+    /// keys pre-sorted at codegen time — and none of the retired machinery:
+    /// no `serde_json::Map`, no key `.to_string()`, no `ParseContent::Json`
+    /// reference at all (the artifact must be ready for the transitional
+    /// variant's lib-side retirement), no `serde_json::to_string`, no
+    /// `TransformedTerminal` wrapping.
     #[test]
-    fn object_literal_transform_emits_typed_json_carrier_without_stringify() {
+    fn object_literal_transform_emits_shaped_carrier_with_presorted_static_keys() {
         let mut props: std::collections::HashMap<String, Box<UnifiedReturnAST>> =
             std::collections::HashMap::new();
         props.insert(
@@ -780,31 +798,43 @@ mod tests {
         let rendered = render(stream);
 
         assert!(
-            rendered.contains("ParseContent :: Json (serde_json :: Value :: Object")
-                || rendered.contains("ParseContent::Json(serde_json::Value::Object"),
-            "object literal must emit typed Json/Object carrier; rendered = {}",
+            rendered.contains("ParseContent :: Shaped (PgenValue :: Object"),
+            "object literal must emit the Shaped/Object carrier; rendered = {}",
             rendered
         );
         assert!(
-            !rendered.contains("serde_json :: to_string")
-                && !rendered.contains("serde_json::to_string"),
-            "object literal must NOT serialise to a String; rendered = {}",
+            rendered.contains("alloc_shaped_pairs"),
+            "object literal must build through one alloc_shaped_pairs bump; rendered = {}",
             rendered
         );
+        // Keys sorted at codegen time: "pattern" precedes "type" in the array.
+        let pattern_at = rendered.find("\"pattern\"").expect("pattern key emitted");
+        let type_at = rendered.find("\"type\"").expect("type key emitted");
         assert!(
-            !rendered.contains("ParseContent :: TransformedTerminal")
-                && !rendered.contains("ParseContent::TransformedTerminal"),
-            "object literal must NOT wrap as TransformedTerminal(String); rendered = {}",
+            pattern_at < type_at,
+            "static keys must be emitted pre-sorted (BTreeMap byte order); rendered = {}",
             rendered
         );
+        for forbidden in [
+            "serde_json :: Map",
+            "ParseContent :: Json",
+            "serde_json :: to_string",
+            "ParseContent :: TransformedTerminal",
+        ] {
+            assert!(
+                !rendered.contains(forbidden),
+                "object literal must not emit {forbidden}; rendered = {rendered}"
+            );
+        }
     }
 
-    /// Phase 2 typed-carrier contract: property access on a base value must
-    /// operate on the typed `serde_json::Value` directly. The earlier path
-    /// stringified the base, then `serde_json::from_str`'d the string back to a
-    /// `serde_json::Value`, then re-stringified the looked-up property.
+    /// Typed-carrier contract (`-0105` REPRESENTATION vintage): property
+    /// access on a base value must operate on the typed [`PgenValue`] carrier
+    /// directly — `to_shaped_value` + sorted-slice binary search — with no
+    /// `to_json_value` owned-tree conversion, no string deserialisation, and
+    /// no `ParseContent::Json` reference.
     #[test]
-    fn property_access_transform_avoids_serialise_parse_serialise_roundtrip() {
+    fn property_access_transform_operates_on_the_shaped_carrier() {
         let base = UnifiedReturnAST::PositionalRef { index: 1 };
         let captured_vars = vec!["sequence_elements[0]".to_string()];
         let stream =
@@ -813,27 +843,31 @@ mod tests {
         let rendered = render(stream);
 
         assert!(
-            rendered.contains("to_json_value"),
-            "property access must call ParseContent::to_json_value; rendered = {}",
+            rendered.contains("to_shaped_value"),
+            "property access must call ParseContent::to_shaped_value; rendered = {}",
             rendered
         );
         assert!(
-            !rendered.contains("from_str") && !rendered.contains("from_str ::"),
-            "property access must NOT deserialise a string; rendered = {}",
+            rendered.contains("binary_search_by"),
+            "property access must look up via the sorted-pair binary search; rendered = {}",
             rendered
         );
         assert!(
-            !rendered.contains("ParseContent :: TransformedTerminal")
-                && !rendered.contains("ParseContent::TransformedTerminal"),
-            "property access must NOT wrap as TransformedTerminal(String); rendered = {}",
+            rendered.contains("ParseContent :: Shaped"),
+            "property access must wrap the result as ParseContent::Shaped; rendered = {}",
             rendered
         );
-        assert!(
-            rendered.contains("ParseContent :: Json")
-                || rendered.contains("ParseContent::Json"),
-            "property access must wrap the result as ParseContent::Json; rendered = {}",
-            rendered
-        );
+        for forbidden in [
+            "to_json_value",
+            "from_str",
+            "ParseContent :: TransformedTerminal",
+            "ParseContent :: Json",
+        ] {
+            assert!(
+                !rendered.contains(forbidden),
+                "property access must not emit {forbidden}; rendered = {rendered}"
+            );
+        }
     }
 
     /// Phase 2 typed-carrier contract: `to_json_value` is the carrier-agnostic
@@ -872,6 +906,45 @@ mod tests {
         assert_eq!(
             seq.to_json_value(),
             serde_json::json!([serde_json::Value::String("a".into())])
+        );
+    }
+
+    /// `-0105` REPRESENTATION: `to_shaped_value` is the arena twin of
+    /// `to_json_value` — for every carrier variant the two conversions must
+    /// yield the same logical JSON value (hence identical serialized bytes).
+    #[test]
+    fn parse_content_to_shaped_value_mirrors_to_json_value_per_variant() {
+        use crate::ast_pipeline::{NodeArena, ParseContent, ParseNode, PgenValue};
+
+        let arena = NodeArena::new();
+        let inner = arena.alloc(ParseNode {
+            rule_name: "x",
+            content: ParseContent::Terminal("a"),
+            span: 0..1,
+        });
+        let shaped_items = arena.alloc_shaped_values([PgenValue::Int(1), PgenValue::Str("s")]);
+        let contents: Vec<ParseContent> = vec![
+            ParseContent::Terminal("abc"),
+            ParseContent::TransformedTerminal("{\"k\":1}".to_string()),
+            ParseContent::TransformedTerminal("18446744073709551615".to_string()),
+            ParseContent::TransformedTerminal("plain".to_string()),
+            ParseContent::Json(serde_json::json!({"k": [1, 2.5, null]})),
+            ParseContent::Shaped(PgenValue::Array(shaped_items)),
+            ParseContent::Sequence(vec![&*inner]),
+            ParseContent::Alternative(&*inner),
+        ];
+        for content in &contents {
+            assert_eq!(
+                content.to_shaped_value(&arena).to_serde_value(),
+                content.to_json_value(),
+                "to_shaped_value diverged from to_json_value for {content:?}"
+            );
+        }
+        // The zero-copy terminal contract: no rendered-string interning, a
+        // plain input borrow.
+        assert_eq!(
+            ParseContent::Terminal("abc").to_shaped_value(&arena),
+            PgenValue::Str("abc")
         );
     }
 }

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1faac864.js";
+            window.path_to_searchindex_js = "searchindex-0b5538cc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -181,9 +181,36 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
-<p><code>ParseContent::Json(serde_json::Value)</code> is the variant downstream consumers will spend most of their time inside. This chapter explains where it comes from, when it appears, and how consumers should treat it.</p>
+<p>The <strong>Json carrier</strong> is the typed shape a grammar rule’s return annotation produces — the variant downstream consumers will spend most of their time inside. This chapter explains where it comes from, when it appears, and how consumers should treat it.</p>
+<blockquote>
+<p><strong>Representation update (2026-07-16, <code>PGEN-RGX-0078-0105</code>).</strong> The parser now carries
+this typed shape natively as <strong><code>ParseContent::Shaped(PgenValue)</code></strong> — an arena-backed,
+<code>Copy</code> value representation that replaced the eager <code>serde_json::Value</code> construction
+inside the parse (a −32% parse-time landing). Three facts keep this a non-event for
+almost every consumer:</p>
+<ol>
+<li><strong>The serialized typed-AST JSON is byte-identical.</strong> <code>Shaped</code> serializes under the
+same <code>"Json"</code> wire tag, and <code>PgenValue</code>’s serializer mirrors <code>serde_json::Value</code>’s
+formatter exactly (proven by a byte-identity oracle suite plus the all-grammar
+differential-equivalence gate). If you consume the parser’s JSON output — the
+normal integration path — nothing changed, not by one byte.</li>
+<li><strong>Native-Rust embedders match <code>Shaped</code> instead of <code>Json</code>.</strong> A <code>match</code> arm reading
+<code>ParseContent::Json(value)</code> should become <code>ParseContent::Shaped(value)</code> over
+<code>PgenValue</code>, or call <code>content.to_json_value()</code> to obtain the same owned
+<code>serde_json::Value</code> as before (one conversion, at your boundary instead of inside
+the parse).</li>
+<li><strong>Every shape documented below is unchanged.</strong> The tables and examples in this
+chapter describe the <em>logical</em> JSON shapes, which are identical in both
+representations; where a snippet shows a <code>Json(value)</code> arm, read it as the
+serialized view or use the <code>Shaped</code>/<code>to_json_value()</code> forms above natively.</li>
+</ol>
+<p><code>PgenValue</code> mirrors the six JSON value types variant-for-variant
+(<code>Null</code>/<code>Bool</code>/<code>Int</code>+<code>UInt</code>+<code>Float</code>/<code>Str</code>/<code>Array</code>/<code>Object</code>); objects are key-sorted
+exactly like <code>serde_json::Map</code>, and its composite payloads are arena slices owned by
+the same <code>NodeArena</code> whose lifetime already governs <code>ParseNode</code>.</p>
+</blockquote>
 <h2 id="what-it-is"><a class="header" href="#what-it-is">What it is</a></h2>
-<p>A <code>Json(serde_json::Value)</code> is the runtime representation of the typed shape that a grammar rule’s return annotation produces. It carries any of the six JSON value types:</p>
+<p>The Json carrier is the runtime representation of the typed shape that a grammar rule’s return annotation produces. It carries any of the six JSON value types:</p>
 <ul>
 <li><code>Value::Object(Map&lt;String, Value&gt;)</code> — for <code>-&gt; {...}</code> annotations.</li>
 <li><code>Value::Array(Vec&lt;Value&gt;)</code> — for <code>-&gt; [...]</code> annotations.</li>
@@ -382,12 +409,22 @@
 
 fn walk(node: &amp;ParseNode) {
     match &amp;node.content {
-        ParseContent::Json(value) =&gt; walk_json(value),
+        // REPRESENTATION (2026-07-16): the typed shape arrives as the arena
+        // carrier. Convert once at your boundary — `to_serde_value()` yields
+        // the byte-identical owned `serde_json::Value` the parser used to
+        // build eagerly — or walk `PgenValue` natively to skip the copy.
+        ParseContent::Shaped(shaped) =&gt; {
+            let value = shaped.to_serde_value();
+            walk_json(&amp;value)
+        }
         ParseContent::Sequence(nodes) =&gt; nodes.iter().for_each(walk),
         ParseContent::Alternative(boxed) =&gt; walk(boxed),
         ParseContent::Quantified(nodes, _marker) =&gt; nodes.iter().for_each(walk),
         ParseContent::Terminal(s) =&gt; leaf_terminal(s),
         ParseContent::TransformedTerminal(s) =&gt; leaf_terminal(s),
+        // Transitional pre-REPRESENTATION artifacts carried the same shape
+        // as an owned `serde_json::Value` under `ParseContent::Json`.
+        other =&gt; walk_json(&amp;other.to_json_value()),
     }
 }
 

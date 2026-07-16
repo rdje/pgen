@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1faac864.js";
+            window.path_to_searchindex_js = "searchindex-0b5538cc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -217,7 +217,7 @@
 <h2 id="greediness-mode"><a class="header" href="#greediness-mode">Greediness mode</a></h2>
 <p>For quantifiers, the suffix that determines match strategy: nothing = greedy (default), <code>?</code> = lazy (minimum match), <code>+</code> = possessive (no backtrack). The <code>quant_suffix</code> rule emits <code>[]</code> (greedy), <code>"lazy"</code>, or <code>"possessive"</code> accordingly.</p>
 <h2 id="json-carrier"><a class="header" href="#json-carrier">Json carrier</a></h2>
-<p>The <code>ParseContent::Json(serde_json::Value)</code> variant. Carries the typed shape produced by a return annotation. See <a href="json-carrier.html">The Json Carrier</a>.</p>
+<p>The typed shape produced by a return annotation. Since the REPRESENTATION landing (2026-07-16) it is carried natively as <code>ParseContent::Shaped(PgenValue)</code> — an arena-backed <code>Copy</code> value that serializes under the same <code>"Json"</code> wire tag with byte-identical output (earlier releases carried it as <code>ParseContent::Json(serde_json::Value)</code>; <code>to_json_value()</code>/<code>to_serde_value()</code> convert). See <a href="json-carrier.html">The Json Carrier</a>.</p>
 <h2 id="lookaround"><a class="header" href="#lookaround">Lookaround</a></h2>
 <p><code>(?=...)</code>, <code>(?!...)</code>, <code>(?&lt;=...)</code>, <code>(?&lt;!...)</code>, plus PCRE2’s non-atomic and alpha-form variants. Zero-width assertions matched without consuming input. See <a href="examples-groups-alt.html">Groups and Alternations</a>.</p>
 <h2 id="or-rule--alternation-rule"><a class="header" href="#or-rule--alternation-rule">Or rule / alternation rule</a></h2>

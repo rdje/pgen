@@ -775,7 +775,7 @@ impl AstBasedGenerator {
             use std::ops::Range;
             #regex_import
             use crate::ast_pipeline::{
-                Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, NodeArena, RuleId, CycleType, RecursionGuard
+                Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, NodeArena, PgenValue, RuleId, CycleType, RecursionGuard
             };
         }
     }
@@ -1010,8 +1010,9 @@ impl AstBasedGenerator {
                 // The certifying linter's WITNESS side needs the rules a
                 // SUCCESSFUL parse genuinely exercises — i.e. the rules of the
                 // ACCEPTED parse tree, NOT (a) the output AST's `rule_name`s
-                // (return annotations fold whole subtrees into
-                // `ParseContent::Json`, erasing the children's rule identities)
+                // (return annotations fold whole subtrees into the shaped
+                // `ParseContent::Shaped` carrier, erasing the children's rule
+                // identities)
                 // and NOT (b) `rule_call_counts` (monotone entry counts that
                 // include speculative attempts later backtracked). Both are
                 // wrong: (a) under-counts, (b) over-counts.
@@ -1574,7 +1575,7 @@ impl AstBasedGenerator {
             /// parse, as names. Sound + complete for the witness side: it is the
             /// de-duplicated set of rule entries that survived all speculative
             /// rollbacks (so: committed successes only — no backtracked attempts,
-            /// and immune to return-annotation `ParseContent::Json` folding,
+            /// and immune to return-annotation `ParseContent::Shaped` folding,
             /// since it records entries rather than output nodes). Meaningful
             /// only after a successful parse made with coverage enabled; returns
             /// an empty set otherwise. Indices map through `RULE_NAMES`.
@@ -7216,7 +7217,7 @@ impl AstBasedGenerator {
                 reference: &str,
             ) -> Option<String> {
                 // SEMREF-SHAPED: when the rule's content is a shaped
-                // `->` return-annotation structure (`ParseContent::Json`),
+                // `->` return-annotation structure (`ParseContent::Shaped`),
                 // a semantic-annotation `$name` / `$a.b` reference
                 // resolves **against that produced structure** — a
                 // JSON object-key path lookup down to a scalar leaf —
@@ -7247,24 +7248,45 @@ impl AstBasedGenerator {
                     return None;
                 }
 
-                if let ParseContent::Json(value) = root_content {
-                    let mut current = value;
+                // RGX-0078.5.i.7 (`-0105`): the shaped `->` carrier is now
+                // `Shaped` (arena `PgenValue`); the walk mirrors the retired
+                // `Json` walk byte-exactly — `[N]` indexes only arrays,
+                // `.name` looks up only objects (the sorted-pair binary
+                // search = `serde_json::Map::get`), any mismatch or missing
+                // key is a resolution failure, and scalar leaves render
+                // through serde's OWN formatters (`serde_json::Number`), so
+                // the produced text is identical by construction.
+                if let ParseContent::Shaped(shaped_root) = root_content {
+                    let mut current = *shaped_root;
                     for segment in &lexed_segments {
                         if let Some(index) = Self::parse_bracketed_index(segment) {
-                            // serde_json::Value::get accepts usize for
-                            // array indexing.
-                            current = current.get(index)?;
+                            current = match current {
+                                PgenValue::Array(items) => *items.get(index)?,
+                                _ => return None,
+                            };
                         } else {
                             if !self.semantic_identifier(segment) {
                                 return None;
                             }
-                            current = current.get(*segment)?;
+                            current = match current {
+                                PgenValue::Object(pairs) => match pairs
+                                    .binary_search_by(|(key, _)| key.as_bytes().cmp(segment.as_bytes()))
+                                {
+                                    Ok(found) => pairs[found].1,
+                                    Err(_) => return None,
+                                },
+                                _ => return None,
+                            };
                         }
                     }
                     return match current {
-                        serde_json::Value::String(text) => Some(text.clone()),
-                        serde_json::Value::Number(number) => Some(number.to_string()),
-                        serde_json::Value::Bool(boolean) => Some(boolean.to_string()),
+                        PgenValue::Str(text) => Some(text.to_string()),
+                        PgenValue::Int(number) => Some(serde_json::Number::from(number).to_string()),
+                        PgenValue::UInt(number) => Some(serde_json::Number::from(number).to_string()),
+                        PgenValue::Float(number) => {
+                            serde_json::Number::from_f64(number).map(|rendered| rendered.to_string())
+                        }
+                        PgenValue::Bool(boolean) => Some(boolean.to_string()),
                         // Null / Array / Object: not a scalar leaf →
                         // resolution failure (loud upstream).
                         _ => None,
@@ -7400,10 +7422,19 @@ impl AstBasedGenerator {
                 match content {
                     ParseContent::Terminal(value) => Some((*value).to_string()),
                     ParseContent::TransformedTerminal(value) => Some(value.clone()),
-                    ParseContent::Json(value) => match value {
-                        serde_json::Value::String(s) => Some(s.clone()),
-                        serde_json::Value::Null => None,
-                        other => Some(other.to_string()),
+                    // RGX-0078.5.i.7 (`-0105`): the shaped `->` carrier is now
+                    // `Shaped` (arena `PgenValue`); the arm mirrors the retired
+                    // `Json` arm byte-exactly (`Str` → the raw text, `Null` →
+                    // no scalar, everything else → its compact-JSON rendering
+                    // — `to_serde_value().to_string()` = the owned `Value`'s
+                    // `Display` bytes). The transitional `Json` variant is
+                    // deliberately NOT referenced (it falls to the wildcard,
+                    // unreachable at runtime) so its lib-side retirement never
+                    // touches this artifact.
+                    ParseContent::Shaped(value) => match value {
+                        PgenValue::Str(text) => Some((*text).to_string()),
+                        PgenValue::Null => None,
+                        other => Some(other.to_serde_value().to_string()),
                     },
                     ParseContent::Alternative(node) => self.semantic_node_scalar(node),
                     ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
@@ -8002,7 +8033,7 @@ impl AstBasedGenerator {
                 1 + match &node.content {
                     ParseContent::Terminal(_) => 0,
                     ParseContent::TransformedTerminal(_) => 0,
-                    ParseContent::Json(_) => 0,
+                    ParseContent::Shaped(_) => 0,
                     // RGX-0078.5.d.4.i — `.copied()` turns the `&&ParseNode` items
                     // into `&ParseNode` for the fn-pointer map.
                     ParseContent::Sequence(items) => items.iter().copied().map(Self::parse_node_size_proxy).sum(),
@@ -10559,11 +10590,14 @@ mod semantic_usage_tests {
 
         // The fix: rule `r` (Atom root) must now apply its object-literal
         // transform inline. The typed-carrier work emits
-        // `ParseContent::Json(serde_json::Value::Object(...))`.
+        // `ParseContent::Shaped(PgenValue::Object(...))` (`-0105`
+        // REPRESENTATION vintage — previously `Json(Value::Object)`).
+        // prettyplease line-breaks long constructor chains, so match on the
+        // whitespace-stripped source.
+        let rendered_nows: String = rendered.chars().filter(|c| !c.is_whitespace()).collect();
         assert!(
-            rendered.contains("ParseContent :: Json (serde_json :: Value :: Object")
-                || rendered.contains("ParseContent::Json(serde_json::Value::Object"),
-            "non-Or rule with object-literal return annotation must emit typed Json/Object carrier; rendered did not contain it. snippet around fn parse_r: {}",
+            rendered_nows.contains("ParseContent::Shaped(PgenValue::Object("),
+            "non-Or rule with object-literal return annotation must emit the typed Shaped/Object carrier; rendered did not contain it. snippet around fn parse_r: {}",
             rendered
                 .lines()
                 .skip_while(|l| !l.contains("fn parse_r"))
@@ -11171,32 +11205,49 @@ mod semantic_usage_tests {
             rendered
         );
         // SEMREF-SHAPED.2: a `$name`/`$a.b` ref on a rule whose
-        // content is a shaped `->` `ParseContent::Json` resolves
-        // against that produced structure (object-key path → scalar),
-        // keyed purely on the content variant so the raw (no-`->`)
-        // path is untouched.
+        // content is a shaped `->` structure resolves against that
+        // produced structure (object-key path → scalar), keyed purely
+        // on the content variant so the raw (no-`->`) path is
+        // untouched. `-0105` REPRESENTATION vintage: the shaped
+        // carrier is `Shaped(PgenValue)`; the emitted resolver must
+        // reference the transitional `Json` variant NOWHERE (checked
+        // as a code ref, `Json(`) so its lib-side retirement never
+        // touches artifacts. prettyplease line-breaks long patterns,
+        // so match on the whitespace-stripped source.
+        let rendered_nows: String = rendered.chars().filter(|c| !c.is_whitespace()).collect();
         assert!(
-            rendered.contains("ParseContent::Json(value) = root_content"),
-            "generated resolver should resolve named refs against a shaped -> Json structure, got: {}",
-            rendered
-        );
-        // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): the segment
-        // dispatch now also handles `[N]` indexed-access; the property
-        // branch reads `current.get(*segment)` (segments are now
-        // collected into a `Vec<&str>` and iterated as `&&str`, hence
-        // the deref). Assert on the substring shared between the
-        // dotted-property branch AND the indexed branch — `current.get(`
-        // — so the test is resilient to either shape and still captures
-        // the semantic intent ("the generated resolver walks the ref as
-        // a JSON object-key / array-index path on Value::get").
-        assert!(
-            rendered.contains("current.get("),
-            "generated resolver should walk the ref as a JSON object-key (or array-index) path on `Value::get`, got: {}",
+            rendered_nows.contains("ParseContent::Shaped(shaped_root)=root_content"),
+            "generated resolver should resolve named refs against a shaped -> structure, got: {}",
             rendered
         );
         assert!(
-            rendered.contains("serde_json::Value::Number(number) => Some(number.to_string())"),
-            "generated resolver should coerce scalar shaped fields (Number) to a string, got: {}",
+            !rendered_nows.contains("ParseContent::Json("),
+            "generated parser must not reference the transitional ParseContent::Json variant (retirement readiness)"
+        );
+        // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027) via `-0105`:
+        // the segment dispatch handles BOTH `.name` property access and
+        // `[N]` indexed access on the shaped carrier — the property
+        // branch binary-searches the key-sorted pair slice (the
+        // byte-exact `serde_json::Map::get` equivalent) and the indexed
+        // branch reads `items.get(index)`. Assert one needle per branch.
+        assert!(
+            rendered_nows.contains("pairs.binary_search_by("),
+            "generated resolver should walk `.name` segments via the sorted-pair binary search, got: {}",
+            rendered
+        );
+        assert!(
+            rendered_nows.contains("items.get(index)"),
+            "generated resolver should walk `[N]` segments via the shaped array index, got: {}",
+            rendered
+        );
+        // Scalar-leaf coercion renders through serde's own formatter
+        // (`serde_json::Number`), never a hand-rolled renderer. Two
+        // needles (the arm pattern + the coercion call) rather than one,
+        // so the assertion is independent of the formatter's brace style.
+        assert!(
+            rendered_nows.contains("PgenValue::Int(number)")
+                && rendered_nows.contains("serde_json::Number::from(number).to_string()"),
+            "generated resolver should coerce scalar shaped fields (Int) through serde_json::Number, got: {}",
             rendered
         );
     }

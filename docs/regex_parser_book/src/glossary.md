@@ -72,7 +72,7 @@ For quantifiers, the suffix that determines match strategy: nothing = greedy (de
 
 ## Json carrier
 
-The `ParseContent::Json(serde_json::Value)` variant. Carries the typed shape produced by a return annotation. See [The Json Carrier](json-carrier.md).
+The typed shape produced by a return annotation. Since the REPRESENTATION landing (2026-07-16) it is carried natively as `ParseContent::Shaped(PgenValue)` — an arena-backed `Copy` value that serializes under the same `"Json"` wire tag with byte-identical output (earlier releases carried it as `ParseContent::Json(serde_json::Value)`; `to_json_value()`/`to_serde_value()` convert). See [The Json Carrier](json-carrier.md).
 
 ## Lookaround
 

@@ -125,7 +125,17 @@ impl UnifiedSemanticAST {
         // text by slicing the input across root.span and parsing past the
         // `@<name>:` prefix. The semantic_annotation grammar guarantees
         // the `@<name>:` prefix shape, so a single `:` split is robust.
-        if let ParseContent::Json(ref value) = root.content {
+        // RGX-0078.5.i.7 (`-0105`): the typed fast path accepts BOTH shaped
+        // carriers — `Json` (transitional, pre-regen artifacts + owned
+        // producers) and `Shaped` (the arena representation regenerated
+        // artifacts emit). `to_serde_value()` reproduces the exact `Value`
+        // the eager path built, so the body below is carrier-blind.
+        let typed_fast_path_value: Option<serde_json::Value> = match &root.content {
+            ParseContent::Json(value) => Some(value.clone()),
+            ParseContent::Shaped(shaped) => Some(shaped.to_serde_value()),
+            _ => None,
+        };
+        if let Some(ref value) = typed_fast_path_value {
             let map = value.as_object().ok_or_else(|| {
                 format!(
                     "semantic_annotation typed Json must be an Object; got {}",

@@ -664,7 +664,20 @@ where
             }
 
             if matches!(sample.expected_content_kind, ContentKind::JsonObject) {
-                if let ParseContent::Json(serde_json::Value::Object(map)) = &parsed.content {
+                // RGX-0078.5.i.7 (`-0105`): accept BOTH shaped carriers — the
+                // transitional `Json` and the arena `Shaped` regenerated
+                // artifacts emit. `to_serde_value()` reproduces the exact
+                // `Value`, so the key/value locks below are carrier-blind.
+                let json_object_view: Option<serde_json::Map<String, serde_json::Value>> =
+                    match &parsed.content {
+                        ParseContent::Json(serde_json::Value::Object(map)) => Some(map.clone()),
+                        ParseContent::Shaped(shaped) => match shaped.to_serde_value() {
+                            serde_json::Value::Object(map) => Some(map),
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                if let Some(map) = &json_object_view {
                     for key in &sample.expected_json_object_keys_present {
                         if !map.contains_key(key) {
                             details.push(format!("missing required key '{}'", key));

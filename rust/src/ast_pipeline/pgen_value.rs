@@ -87,6 +87,67 @@ impl<'input> PgenValue<'input> {
         }
     }
 
+    /// Convert an owned `serde_json::Value` tree into the arena representation
+    /// (the boundary in the OTHER direction from [`Self::to_serde_value`]) —
+    /// used by `ParseContent::to_shaped_value` for the transitional `Json`
+    /// variant and for `TransformedTerminal` JSON-text payloads (which can
+    /// carry ANY JSON, including u64-range numbers and arrays — the `-0103`
+    /// named edge). Numbers take the canonicalizing split (`as_i64` first, so
+    /// the i64-representable range is always `Int`); strings are interned via
+    /// the arena. Round-trips losslessly through [`Self::to_serde_value`], so
+    /// serialization bytes are unchanged by construction.
+    ///
+    /// ⚠️ Composite conversion materializes each level into a `Vec` BEFORE
+    /// the arena `alloc_extend` call: `typed_arena::alloc_extend` drains its
+    /// iterator while holding the arena's internal borrow, so the iterator
+    /// must never itself allocate from the same arena.
+    pub fn from_serde(
+        value: &serde_json::Value,
+        arena: &'input super::NodeArena<'input>,
+    ) -> Self {
+        match value {
+            serde_json::Value::Null => PgenValue::Null,
+            serde_json::Value::Bool(boolean) => PgenValue::Bool(*boolean),
+            serde_json::Value::Number(number) => {
+                if let Some(int) = number.as_i64() {
+                    PgenValue::Int(int)
+                } else if let Some(uint) = number.as_u64() {
+                    PgenValue::UInt(uint)
+                } else {
+                    // A `serde_json::Number` (without `arbitrary_precision`)
+                    // that is neither i64 nor u64 is always a finite float;
+                    // `from_f64` keeps the defensive non-finite → Null parity.
+                    PgenValue::from_f64(number.as_f64().unwrap_or(f64::NAN))
+                }
+            }
+            serde_json::Value::String(text) => {
+                PgenValue::Str(arena.alloc_rendered_string(text.clone()))
+            }
+            serde_json::Value::Array(items) => {
+                let converted: Vec<PgenValue<'input>> = items
+                    .iter()
+                    .map(|item| PgenValue::from_serde(item, arena))
+                    .collect();
+                PgenValue::Array(arena.alloc_shaped_values(converted))
+            }
+            serde_json::Value::Object(map) => {
+                // `serde_json::Map` (BTreeMap) iterates key-sorted with unique
+                // keys, so the pair list is born satisfying the `Object`
+                // invariant — no re-sort/dedup needed.
+                let converted: Vec<(&'input str, PgenValue<'input>)> = map
+                    .iter()
+                    .map(|(key, item)| {
+                        (
+                            arena.alloc_rendered_string(key.clone()) as &'input str,
+                            PgenValue::from_serde(item, arena),
+                        )
+                    })
+                    .collect();
+                PgenValue::Object(arena.alloc_shaped_pairs(converted))
+            }
+        }
+    }
+
     /// Convert to an owned `serde_json::Value` (the boundary escape hatch —
     /// dump paths, fact rendering, and any consumer that needs an owned tree).
     /// Produces exactly the `Value` today's eager construction would have
@@ -314,6 +375,39 @@ mod tests {
             "inner": { "list": [2.5, 9223372036854775808u64], "empty": {} }
         });
         assert_byte_identical(&pgen, &oracle);
+    }
+
+    /// `from_serde` → `to_serde_value` must round-trip losslessly (the
+    /// `-0105` conversion oracle), including the `TransformedTerminal` edge
+    /// payloads: u64-range numbers, floats, nested arrays/objects.
+    #[test]
+    fn from_serde_round_trips_losslessly_through_to_serde_value() {
+        let arena = crate::ast_pipeline::NodeArena::new();
+        for oracle in [
+            serde_json::Value::Null,
+            serde_json::json!(true),
+            serde_json::json!(-42),
+            serde_json::json!(i64::MAX),
+            serde_json::json!(u64::MAX),
+            serde_json::json!(2.5),
+            serde_json::json!("text with \"escapes\""),
+            serde_json::json!([1, "two", null, [3.5], {"k": false}]),
+            serde_json::json!({"zeta": 1, "alpha": {"nested": [9223372036854775808u64]}, "empty": {}}),
+        ] {
+            let shaped = PgenValue::from_serde(&oracle, &arena);
+            assert_eq!(
+                shaped.to_serde_value(),
+                oracle,
+                "from_serde/to_serde_value round-trip diverged"
+            );
+            assert_byte_identical(&shaped, &oracle);
+        }
+        // The canonicalizing number split: an i64-representable JSON number
+        // arrives as `Int` regardless of sign or spelling.
+        assert_eq!(
+            PgenValue::from_serde(&serde_json::json!(3u64), &arena),
+            PgenValue::Int(3)
+        );
     }
 
     #[test]

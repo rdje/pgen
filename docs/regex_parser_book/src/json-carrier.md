@@ -1,10 +1,36 @@
 # The Json Carrier
 
-`ParseContent::Json(serde_json::Value)` is the variant downstream consumers will spend most of their time inside. This chapter explains where it comes from, when it appears, and how consumers should treat it.
+The **Json carrier** is the typed shape a grammar rule's return annotation produces — the variant downstream consumers will spend most of their time inside. This chapter explains where it comes from, when it appears, and how consumers should treat it.
+
+> **Representation update (2026-07-16, `PGEN-RGX-0078-0105`).** The parser now carries
+> this typed shape natively as **`ParseContent::Shaped(PgenValue)`** — an arena-backed,
+> `Copy` value representation that replaced the eager `serde_json::Value` construction
+> inside the parse (a −32% parse-time landing). Three facts keep this a non-event for
+> almost every consumer:
+>
+> 1. **The serialized typed-AST JSON is byte-identical.** `Shaped` serializes under the
+>    same `"Json"` wire tag, and `PgenValue`'s serializer mirrors `serde_json::Value`'s
+>    formatter exactly (proven by a byte-identity oracle suite plus the all-grammar
+>    differential-equivalence gate). If you consume the parser's JSON output — the
+>    normal integration path — nothing changed, not by one byte.
+> 2. **Native-Rust embedders match `Shaped` instead of `Json`.** A `match` arm reading
+>    `ParseContent::Json(value)` should become `ParseContent::Shaped(value)` over
+>    `PgenValue`, or call `content.to_json_value()` to obtain the same owned
+>    `serde_json::Value` as before (one conversion, at your boundary instead of inside
+>    the parse).
+> 3. **Every shape documented below is unchanged.** The tables and examples in this
+>    chapter describe the *logical* JSON shapes, which are identical in both
+>    representations; where a snippet shows a `Json(value)` arm, read it as the
+>    serialized view or use the `Shaped`/`to_json_value()` forms above natively.
+>
+> `PgenValue` mirrors the six JSON value types variant-for-variant
+> (`Null`/`Bool`/`Int`+`UInt`+`Float`/`Str`/`Array`/`Object`); objects are key-sorted
+> exactly like `serde_json::Map`, and its composite payloads are arena slices owned by
+> the same `NodeArena` whose lifetime already governs `ParseNode`.
 
 ## What it is
 
-A `Json(serde_json::Value)` is the runtime representation of the typed shape that a grammar rule's return annotation produces. It carries any of the six JSON value types:
+The Json carrier is the runtime representation of the typed shape that a grammar rule's return annotation produces. It carries any of the six JSON value types:
 
 - `Value::Object(Map<String, Value>)` — for `-> {...}` annotations.
 - `Value::Array(Vec<Value>)` — for `-> [...]` annotations.
@@ -201,12 +227,22 @@ use serde_json::Value;
 
 fn walk(node: &ParseNode) {
     match &node.content {
-        ParseContent::Json(value) => walk_json(value),
+        // REPRESENTATION (2026-07-16): the typed shape arrives as the arena
+        // carrier. Convert once at your boundary — `to_serde_value()` yields
+        // the byte-identical owned `serde_json::Value` the parser used to
+        // build eagerly — or walk `PgenValue` natively to skip the copy.
+        ParseContent::Shaped(shaped) => {
+            let value = shaped.to_serde_value();
+            walk_json(&value)
+        }
         ParseContent::Sequence(nodes) => nodes.iter().for_each(walk),
         ParseContent::Alternative(boxed) => walk(boxed),
         ParseContent::Quantified(nodes, _marker) => nodes.iter().for_each(walk),
         ParseContent::Terminal(s) => leaf_terminal(s),
         ParseContent::TransformedTerminal(s) => leaf_terminal(s),
+        // Transitional pre-REPRESENTATION artifacts carried the same shape
+        // as an owned `serde_json::Value` under `ParseContent::Json`.
+        other => walk_json(&other.to_json_value()),
     }
 }
 

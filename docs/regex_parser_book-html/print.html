@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1faac864.js";
+            window.path_to_searchindex_js = "searchindex-0b5538cc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -868,9 +868,36 @@ assert!(contract.supports_regex_generated_backend);
 <p>For RGX’s current adapter refactor, the typed-Json shape is sufficient for matching/compilation; if span reporting is needed it can come from the un-walked envelope.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
-<p><code>ParseContent::Json(serde_json::Value)</code> is the variant downstream consumers will spend most of their time inside. This chapter explains where it comes from, when it appears, and how consumers should treat it.</p>
+<p>The <strong>Json carrier</strong> is the typed shape a grammar rule’s return annotation produces — the variant downstream consumers will spend most of their time inside. This chapter explains where it comes from, when it appears, and how consumers should treat it.</p>
+<blockquote>
+<p><strong>Representation update (2026-07-16, <code>PGEN-RGX-0078-0105</code>).</strong> The parser now carries
+this typed shape natively as <strong><code>ParseContent::Shaped(PgenValue)</code></strong> — an arena-backed,
+<code>Copy</code> value representation that replaced the eager <code>serde_json::Value</code> construction
+inside the parse (a −32% parse-time landing). Three facts keep this a non-event for
+almost every consumer:</p>
+<ol>
+<li><strong>The serialized typed-AST JSON is byte-identical.</strong> <code>Shaped</code> serializes under the
+same <code>"Json"</code> wire tag, and <code>PgenValue</code>’s serializer mirrors <code>serde_json::Value</code>’s
+formatter exactly (proven by a byte-identity oracle suite plus the all-grammar
+differential-equivalence gate). If you consume the parser’s JSON output — the
+normal integration path — nothing changed, not by one byte.</li>
+<li><strong>Native-Rust embedders match <code>Shaped</code> instead of <code>Json</code>.</strong> A <code>match</code> arm reading
+<code>ParseContent::Json(value)</code> should become <code>ParseContent::Shaped(value)</code> over
+<code>PgenValue</code>, or call <code>content.to_json_value()</code> to obtain the same owned
+<code>serde_json::Value</code> as before (one conversion, at your boundary instead of inside
+the parse).</li>
+<li><strong>Every shape documented below is unchanged.</strong> The tables and examples in this
+chapter describe the <em>logical</em> JSON shapes, which are identical in both
+representations; where a snippet shows a <code>Json(value)</code> arm, read it as the
+serialized view or use the <code>Shaped</code>/<code>to_json_value()</code> forms above natively.</li>
+</ol>
+<p><code>PgenValue</code> mirrors the six JSON value types variant-for-variant
+(<code>Null</code>/<code>Bool</code>/<code>Int</code>+<code>UInt</code>+<code>Float</code>/<code>Str</code>/<code>Array</code>/<code>Object</code>); objects are key-sorted
+exactly like <code>serde_json::Map</code>, and its composite payloads are arena slices owned by
+the same <code>NodeArena</code> whose lifetime already governs <code>ParseNode</code>.</p>
+</blockquote>
 <h2 id="what-it-is"><a class="header" href="#what-it-is">What it is</a></h2>
-<p>A <code>Json(serde_json::Value)</code> is the runtime representation of the typed shape that a grammar rule’s return annotation produces. It carries any of the six JSON value types:</p>
+<p>The Json carrier is the runtime representation of the typed shape that a grammar rule’s return annotation produces. It carries any of the six JSON value types:</p>
 <ul>
 <li><code>Value::Object(Map&lt;String, Value&gt;)</code> — for <code>-&gt; {...}</code> annotations.</li>
 <li><code>Value::Array(Vec&lt;Value&gt;)</code> — for <code>-&gt; [...]</code> annotations.</li>
@@ -1069,12 +1096,22 @@ assert!(contract.supports_regex_generated_backend);
 
 fn walk(node: &amp;ParseNode) {
     match &amp;node.content {
-        ParseContent::Json(value) =&gt; walk_json(value),
+        // REPRESENTATION (2026-07-16): the typed shape arrives as the arena
+        // carrier. Convert once at your boundary — `to_serde_value()` yields
+        // the byte-identical owned `serde_json::Value` the parser used to
+        // build eagerly — or walk `PgenValue` natively to skip the copy.
+        ParseContent::Shaped(shaped) =&gt; {
+            let value = shaped.to_serde_value();
+            walk_json(&amp;value)
+        }
         ParseContent::Sequence(nodes) =&gt; nodes.iter().for_each(walk),
         ParseContent::Alternative(boxed) =&gt; walk(boxed),
         ParseContent::Quantified(nodes, _marker) =&gt; nodes.iter().for_each(walk),
         ParseContent::Terminal(s) =&gt; leaf_terminal(s),
         ParseContent::TransformedTerminal(s) =&gt; leaf_terminal(s),
+        // Transitional pre-REPRESENTATION artifacts carried the same shape
+        // as an owned `serde_json::Value` under `ParseContent::Json`.
+        other =&gt; walk_json(&amp;other.to_json_value()),
     }
 }
 
@@ -5392,15 +5429,25 @@ match &amp;node.content {
     _ =&gt; unreachable!(),
 }
 
-// 1.1.30+
+// 1.1.30+ (REPRESENTATION vintage, 2026-07-16: the typed shape is the arena
+// carrier `Shaped(PgenValue)`; `to_serde_value()` yields the byte-identical
+// owned `serde_json::Value` earlier releases carried under `Json`)
 match &amp;node.content {
-    ParseContent::Json(value) =&gt; walk_typed(value),
+    ParseContent::Shaped(shaped) =&gt; {
+        let value = shaped.to_serde_value();
+        walk_typed(&amp;value)
+    }
     // recursive variants still apply for unannotated rules — keep handlers
     ParseContent::Sequence(children) =&gt; walk_recursive(children),
     ParseContent::Alternative(boxed) =&gt; walk_recursive_one(boxed),
     ParseContent::Quantified(items, _) =&gt; walk_recursive(items),
     ParseContent::Terminal(s) =&gt; leaf(s),
     ParseContent::TransformedTerminal(s) =&gt; leaf(s),
+    // pre-REPRESENTATION artifacts: same shape as an owned Value
+    other =&gt; {
+        let value = other.to_json_value();
+        walk_typed(&amp;value)
+    }
 }
 <span class="boring">}</span></code></pre>
 <p>For most regex-walking, the entry point is <code>walk_typed(value)</code> where <code>value</code> is the inner <code>serde_json::Value</code>. Recursive-envelope handlers are still needed because the atom subtree (and most of its descendants) hasn’t been annotated yet.</p>
@@ -5443,7 +5490,7 @@ match &amp;node.content {
 <h2 id="pre-1130--current-quick-reference"><a class="header" href="#pre-1130--current-quick-reference">Pre-1.1.30 → current quick reference</a></h2>
 <p>If you have a working pre-1.1.30 walker, here’s the short-list of changes:</p>
 <ol>
-<li>Add a <code>ParseContent::Json(value)</code> arm to your top-level match.</li>
+<li>Add a typed-carrier arm to your top-level match — <code>ParseContent::Shaped(shaped)</code> (current, convert via <code>shaped.to_serde_value()</code>) or <code>ParseContent::Json(value)</code> on pre-REPRESENTATION artifacts.</li>
 <li>Inside that arm, switch on <code>value.get("type").as_str()</code> for the discriminator.</li>
 <li>Read <code>pattern</code> field directly off the regex object — it’s a 2-element array <code>[&lt;head&gt;, &lt;tail&gt;]</code> where <code>head</code> is the first alternative and <code>tail</code> is the rest.</li>
 <li>Keep your recursive-envelope handlers around for the atom subtree — they still apply.</li>
@@ -5876,7 +5923,7 @@ when, and the version each migration shipped in.</li>
 <h2 id="greediness-mode"><a class="header" href="#greediness-mode">Greediness mode</a></h2>
 <p>For quantifiers, the suffix that determines match strategy: nothing = greedy (default), <code>?</code> = lazy (minimum match), <code>+</code> = possessive (no backtrack). The <code>quant_suffix</code> rule emits <code>[]</code> (greedy), <code>"lazy"</code>, or <code>"possessive"</code> accordingly.</p>
 <h2 id="json-carrier"><a class="header" href="#json-carrier">Json carrier</a></h2>
-<p>The <code>ParseContent::Json(serde_json::Value)</code> variant. Carries the typed shape produced by a return annotation. See <a href="#the-json-carrier">The Json Carrier</a>.</p>
+<p>The typed shape produced by a return annotation. Since the REPRESENTATION landing (2026-07-16) it is carried natively as <code>ParseContent::Shaped(PgenValue)</code> — an arena-backed <code>Copy</code> value that serializes under the same <code>"Json"</code> wire tag with byte-identical output (earlier releases carried it as <code>ParseContent::Json(serde_json::Value)</code>; <code>to_json_value()</code>/<code>to_serde_value()</code> convert). See <a href="#the-json-carrier">The Json Carrier</a>.</p>
 <h2 id="lookaround-1"><a class="header" href="#lookaround-1">Lookaround</a></h2>
 <p><code>(?=...)</code>, <code>(?!...)</code>, <code>(?&lt;=...)</code>, <code>(?&lt;!...)</code>, plus PCRE2’s non-atomic and alpha-form variants. Zero-width assertions matched without consuming input. See <a href="#examples-groups-and-alternations">Groups and Alternations</a>.</p>
 <h2 id="or-rule--alternation-rule"><a class="header" href="#or-rule--alternation-rule">Or rule / alternation rule</a></h2>
@@ -5964,6 +6011,10 @@ when, and the version each migration shipped in.</li>
 </table>
 </div>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
+<h3 id="representation-migration-no-releasecontract-bump--pgen-rgx-0078-0105-the-typed-carrier-is-now-parsecontentshapedpgenvalue-serialized-output-byte-identical-parse-32"><a class="header" href="#representation-migration-no-releasecontract-bump--pgen-rgx-0078-0105-the-typed-carrier-is-now-parsecontentshapedpgenvalue-serialized-output-byte-identical-parse-32">Representation migration (no release/contract bump) — PGEN-RGX-0078-0105: the typed carrier is now <code>ParseContent::Shaped(PgenValue)</code>; serialized output byte-identical; parse −32%</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: a Rust-embedding-level representation change with <strong>zero wire-format change</strong> — no release bump, no contract bump, <strong>schema stays <code>1</code></strong>. Annotated rules now carry their typed shape as the arena-<code>Copy</code> <code>ParseContent::Shaped(PgenValue)</code> instead of eagerly building <code>ParseContent::Json(serde_json::Value)</code> (the profile-dominant <code>serde_json::Map</code>/key-<code>String</code>/double-deep-clone machinery is gone from the parse — measured <strong>−32.0%</strong> on the fat-LTO 5×2000 geomean-of-mins bench, every round and every pattern faster; floor ≈8.90µs → ≈6.11µs). <code>Shaped</code> serializes under the same <code>"Json"</code> wire tag with byte-identical bytes (byte-identity oracle suite + the all-grammar differential-equivalence gate + a 16/16 dump tripwire vs the prior vintage). <strong>Action for downstream (RGX):</strong> none if you consume the serialized typed-AST JSON. Native-Rust embedders matching <code>ParseContent::Json(value)</code> switch to <code>ParseContent::Shaped(value)</code> (or call <code>content.to_json_value()</code> at their boundary for the same owned <code>Value</code>). See <a href="#the-json-carrier">The Json Carrier</a> for the full note. <strong>Conformance</strong>: lib suite 970/970 incl. equivalence all-11; cert seeds 0/7/42 <code>267/9/258/0 fully_certified=true</code>; shape/duality/PCRE2-oracle/typed-hook gates green.</p>
+</blockquote>
 <h3 id="11104--contract-11106--regex-0113-relative-zero-scan-substring-capture-reference-now-rejects-behavior-changing-accepts-invalid-fix-validator-owned"><a class="header" href="#11104--contract-11106--regex-0113-relative-zero-scan-substring-capture-reference-now-rejects-behavior-changing-accepts-invalid-fix-validator-owned">1.1.104 / Contract 1.1.106 — REGEX-0113: relative-zero scan-substring capture reference now REJECTS; behavior-CHANGING accepts-invalid fix (validator-owned)</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: a BEHAVIOR-CHANGING accepts-invalid fix (release bump 1.1.103→1.1.104 / contract 1.1.105→1.1.106; <strong>schema stays <code>1</code></strong>). A RELATIVE scan-substring capture reference of value zero — <code>(*scs:(+0)…)</code> / <code>(*scs:(-0)…)</code>, including leading-zero forms <code>(*scs:(+00))</code> / <code>(*scs:(-00))</code> — now <strong>REJECTS</strong> (<code>E_PARSE_FAILURE</code>; PCRE2 10.47 err 126 “a relative value of zero is not allowed”). The released validator ACCEPTED-invalid these: it resolved <code>+0</code>→<code>prior_count</code> and <code>-0</code>→<code>prior_count+1</code> and rejected only a 0-or-out-of-range <em>resolved</em> index, with no guard on the relative reference <em>value</em> being 0. Absolute <code>0</code>/<code>00</code> were already rejected (resolved index 0); every nonzero ref (<code>(*scs:(1))</code> <code>(*scs:(-1))</code> <code>(*scs:(+1))</code> <code>(*scs:(01))</code>) is unchanged. <strong>Action for downstream (RGX):</strong> treat a relative-zero scan-substring reference as PCRE2-invalid; match on the diagnostic <strong>code</strong> (<code>E_PARSE_FAILURE</code>), not message text.</p>

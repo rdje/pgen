@@ -868,6 +868,39 @@ impl<'input> ParseContent<'input> {
             }
         }
     }
+
+    /// Convert any `ParseContent` shape to the arena-`Copy` [`PgenValue`]
+    /// representation — the [`Self::to_json_value`] twin for the committed-value
+    /// migration (RGX-0078.5.i.7 REPRESENTATION, `PGEN-RGX-0078-0105`), mirrored
+    /// variant-for-variant so the two carriers serialize byte-identically:
+    /// `Terminal` → `Str` (zero-copy, where `to_json_value` allocated a `String`),
+    /// `TransformedTerminal` best-effort-parses JSON text with the same
+    /// `from_str`-or-wrap-as-string rule, `Sequence`/`Quantified` → `Array`,
+    /// `Alternative` recurses, `Shaped` is a plain copy.
+    pub fn to_shaped_value(&self, arena: &'input NodeArena<'input>) -> PgenValue<'input> {
+        match self {
+            ParseContent::Terminal(text) => PgenValue::Str(text),
+            ParseContent::TransformedTerminal(text) => {
+                match serde_json::from_str::<serde_json::Value>(text) {
+                    Ok(value) => PgenValue::from_serde(&value, arena),
+                    Err(_) => PgenValue::Str(arena.alloc_rendered_string(text.clone())),
+                }
+            }
+            ParseContent::Json(value) => PgenValue::from_serde(value, arena),
+            ParseContent::Shaped(value) => *value,
+            ParseContent::Alternative(node) => node.content.to_shaped_value(arena),
+            ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
+                // Materialize BEFORE the arena call: `alloc_extend` drains its
+                // iterator while holding the arena's internal borrow, and the
+                // per-child conversion may itself allocate from this arena.
+                let converted: Vec<PgenValue<'input>> = nodes
+                    .iter()
+                    .map(|node| node.content.to_shaped_value(arena))
+                    .collect();
+                PgenValue::Array(arena.alloc_shaped_values(converted))
+            }
+        }
+    }
 }
 
 /// Parse node
