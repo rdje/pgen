@@ -1,0 +1,47 @@
+RE-PROFILE #13 STEP-2 — the post-MTB-B malloc-free compute decomposition (PGEN-RGX-0078-0102)
+Date: 2026-07-16 (session #134)
+Instrument: /usr/bin/sample @1ms for 18s, leaf top-of-stack categorization (categorize13.py — the
+            MTB-B-aware #12 categorizer: cascade_build_* -> CONSTRUCT, deriv-tape bucket added)
+Build: non-LTO + debuginfo, --features "generated_parsers never_free_arena_perf" (NeverFreeBump = malloc-free)
+       DIRECTOR-RUN Terminal build (the -0102 SPLIT after 5 in-harness kills): caffeinate -is + memory guard
+       + CARGO_INCREMENTAL=1 -> exit 0, elapsed 3810s (~63.5min), peak_rss 12816MB < 16384MB budget (guard green)
+Binary: rust/target/profile13_build/release/regex_perf_probe (2026-07-16 17:48, 9931824 bytes)
+Probe: regex_perf_probe --samples 6000000 (built-in warmup 50), pid 47124, MTB-B artifacts (regex 6e4ee1c1 vintage)
+Window/mix: pattern order literal_simple -> digit_sequence -> character_class -> ...; sample attached at +8s,
+            18s window = ~37% literal_simple (finished ~+14.6s) + ~63% digit_sequence (in flight when the
+            probe was killed post-sample, by design). Same first-patterns-dominated instrument as RE-PROFILE
+            #12 => the #12->#13 comparison is like-for-like; shares are DIRECTIONAL (sampled-share caveat),
+            NOT the 8-pattern geomean population.
+
+===== nfa-post-mtbb-13 — total leaf samples in section: 13693 =====      [#12 nfa, pre-MTB-B]
+  CONSTRUCT          3173   23.2% of all   23.3% of parse   (25 syms)    [26.1%]
+  MATCH/DISPATCH     2505   18.3% of all   18.4% of parse   (25 syms)    [18.9%]
+  ALLOC/FREE         2124   15.5% of all   15.6% of parse   ( 4 syms)    [13.9%]
+  TEARDOWN/DROP      1805   13.2% of all   13.3% of parse   (17 syms)    [18.8%]
+  UNKNOWN            1451   10.6% of all   10.7% of parse   (43 syms)    [ 6.8%]
+  MEMOPS             1405   10.3% of all   10.3% of parse   ( 3 syms)    [ 7.4%]
+  ARENA               616    4.5% of all    4.5% of parse   ( 2 syms)    [ ~0  ]
+  SEMANTIC-RT         538    3.9% of all    4.0% of parse   ( 6 syms)    [ 4.9%]
+  ENV-LOOKUP            0      —                                         [ 3.1%] -> ELIMINATED (P-env -0099)
+  TAPE-MACHINERY        0 leaf self-time (deriv/segment fns fully inlined; splice cost lands as leaf memmove
+                          in MEMOPS — bounded above by the MEMOPS+UNKNOWN growth vs #12: +2.9 + +3.9 pts)
+  z-TIMING(excl)       76    0.6%
+  parse-only total (excl timing): 13617
+
+Top symbols per bucket (full leaf section: sample13_nfa_leaves.txt):
+  CONSTRUCT:  String::clone 516 | BTreeMap::clone_subtree 416 | ParseContent::clone 382 |
+              ParseContent::to_json_value 271 | HashMap::insert 210 | RawTable::reserve_rehash 195 |
+              BTreeMap::insert + VacantEntry::insert_entry 368  => the committed-value serde signature
+  TEARDOWN:   BTreeMap IntoIter::dying_next 654 | drop_in_place<serde_json::Value> 452 |
+              drop_in_place<ParseContent> 172  => serde-signed as well
+  ALLOC/FREE: NeverFreeBump::alloc 1773 | no_alloc_shim 223 | __rust_dealloc 121
+  MEMOPS:     _platform_memmove 1169 | memcpy stub 140 | _platform_memset 96
+  MATCH:      cascade_match_piece 402 | cascade_match_atom(+closure) 515 | _platform_memcmp 283 |
+              parse_letter closure 186 | match_string 171 | memoized_call 123
+  UNKNOWN:    ~281 samples are parse_* rule closures (nonzero_digit / quant_bound_number / digit) —
+              MATCH-adjacent spillover => matching ~20.5% honest upper read
+  SEMANTIC:   rollback_to_labeled 248 | RecursionGuard::check_cycle 127 | extract_delta_since 100
+
+probe.out (completed rows only — the probe is killed after the sample window by design):
+  pattern            min(ns)  p50(ns)  mean(ns)  p99(ns)  samples
+  literal_simple        1916     2375      2430     2500  6000000
