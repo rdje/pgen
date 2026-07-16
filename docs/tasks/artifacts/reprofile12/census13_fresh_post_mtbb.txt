@@ -1,0 +1,18 @@
+# Regex allocation-census probe — MTB v2 STEP-0 f_spec instrument (RGX-0078.5.i.7)
+# segments: IN = arena+parser+parse (the min-metric region) | TD = post-stopwatch teardown | COMM = serde_json::to_value committed proxy
+# repeat=3 (counts asserted identical across repeats)
+
+pattern             ok  in_alloc   in_bytes   in_free  td_alloc   td_free  co_alloc   co_bytes  f_alloc  f_bytes  free_in
+------------------------------------------------------------------------------------------------------------------------------
+literal_simple       y       204     186945        60         0       144        41       5429    79.9%    97.1%    29.4%
+digit_sequence       y       584     232973       191         0       393        83      10080    85.8%    95.7%    32.7%
+character_class      y      1786     343879       810         0       976       158      16536    91.2%    95.2%    45.4%
+alternation          y       483     222149       136         0       347        86       9815    82.2%    95.6%    28.2%
+capture_groups       y      1574     324667       559         0      1015       125      14418    92.1%    95.6%    35.5%
+url_simple           y       530     232549       147         0       383        89      10852    83.2%    95.3%    27.7%
+email_basic          y       721     250795       214         0       507       109      13431    84.9%    94.6%    29.7%
+anchor_complex       y      2290     384369       800         0      1490       194      22012    91.5%    94.3%    34.9%
+
+# f_alloc/f_bytes = 1 - committed_proxy/in_metric (proxy over-counts committed borrows -> these are FLOORS for f_spec)
+# free_in = frees inside the min-metric region / in-metric allocs (mid-parse frees are doomed/transient traffic only)
+# determinism: counts identical across 3 repeats for every pattern
