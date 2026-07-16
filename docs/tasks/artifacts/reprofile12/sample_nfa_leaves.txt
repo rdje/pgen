@@ -1,0 +1,201 @@
+Sort by top of stack, same collapsed (when >= 5):
+        _$LT$regex_perf_probe..never_free_arena..NeverFreeBump$u20$as$u20$core..alloc..global..GlobalAlloc$GT$::alloc::hc6aad80f3bfb0df7  (in regex_perf_probe_nfa)        1622
+        _platform_memmove  (in libsystem_platform.dylib)        829
+        pgen::generated_parsers::regex::RegexParser::cascade_piece::_$u7b$$u7b$closure$u7d$$u7d$::hfa3a129121212cee  (in regex_perf_probe_nfa)        657
+        <deduplicated_symbol>  (in regex_perf_probe_nfa)        633
+        alloc::raw_vec::RawVecInner$LT$A$GT$::try_allocate_in::h11c3aa07f441a0a0  (in regex_perf_probe_nfa)        632
+        alloc::collections::btree::map::IntoIter$LT$K$C$V$C$A$GT$::dying_next::h160ebb91cb7ea97c  (in regex_perf_probe_nfa)        568
+        pgen::generated_parsers::regex::RegexParser::cascade_atom::_$u7b$$u7b$closure$u7d$$u7d$::h73ba168736f6d1fe  (in regex_perf_probe_nfa)        438
+        _RNvXs4_NtCs1OjIl8oxbrv_5alloc6stringNtB5_6StringNtNtCsl8K0bEFm1U0_4core5clone5Clone5clone  (in regex_perf_probe_nfa)        402
+        core::hash::BuildHasher::hash_one::hc575aeb3a4ee281b  (in regex_perf_probe_nfa)        378
+        pgen::generated_parsers::regex::RegexParser::cascade_entry_concatenation::h98c9d53416e20ca6  (in regex_perf_probe_nfa)        376
+        __findenv_locked  (in libsystem_c.dylib)        375
+        alloc::collections::btree::navigate::_$LT$impl$u20$alloc..collections..btree..node..Handle$LT$alloc..collections..btree..node..NodeRef$LT$alloc..collections..btree..node..marker..Dying$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$$C$alloc..collections..btree..node..marker..Edge$GT$$GT$::deallocating_next::hcdf760ed5e343be5  (in regex_perf_probe_nfa)        350
+        _$LT$pgen..ast_pipeline..ParseContent$u20$as$u20$core..clone..Clone$GT$::clone::h0e0e38f4cb5a2b84  (in regex_perf_probe_nfa)        290
+        _$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$::clone::clone_subtree::h7f3e1458efdf20c8  (in regex_perf_probe_nfa)        289
+        _RNvCsfLfy6EI15iL_7___rustc14___rust_dealloc  (in regex_perf_probe_nfa)        289
+        pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState::rollback_to_labeled::h5f44983e4ce8592c  (in regex_perf_probe_nfa)        285
+        hashbrown::map::HashMap$LT$K$C$V$C$S$C$A$GT$::insert::ha50d8be79369dd7a  (in regex_perf_probe_nfa)        265
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h71645dd65dbb29c1  (in regex_perf_probe_nfa)        262
+        core::ptr::drop_in_place$LT$serde_json..value..Value$GT$::h41633b85e87db394  (in regex_perf_probe_nfa)        255
+        core::ptr::drop_in_place$LT$pgen..ast_pipeline..ParseContent$GT$::hb02ca2136adb5d59  (in regex_perf_probe_nfa)        227
+        hashbrown::raw::RawTable$LT$T$C$A$GT$::reserve_rehash::h4a896f538265963a  (in regex_perf_probe_nfa)        227
+        pgen::generated_parsers::regex::RegexParser::parse_letter::_$u7b$$u7b$closure$u7d$$u7d$::h3628ae9a4da14a3f  (in regex_perf_probe_nfa)        225
+        pgen::generated_parsers::regex::RegexParser::memoized_call::hed5989bbbd515166  (in regex_perf_probe_nfa)        215
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$::clone::hdac79aaf90a6c0f4  (in regex_perf_probe_nfa)        204
+        _RNvCsfLfy6EI15iL_7___rustc35___rust_no_alloc_shim_is_unstable_v2  (in regex_perf_probe_nfa)        170
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x4990
+        _$LT$alloc..raw_vec..RawVec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h431bb4290737bc02  (in regex_perf_probe_nfa)        155
+        alloc::collections::btree::map::BTreeMap$LT$K$C$V$C$A$GT$::entry::h99c6852058a64d55  (in regex_perf_probe_nfa)        155
+        alloc::collections::btree::navigate::LazyLeafRange$LT$BorrowType$C$K$C$V$GT$::init_front::h746557a7fb5c56a0  (in regex_perf_probe_nfa)        153
+        pgen::generated_parsers::regex::RegexParser::cascade_letter::h26e4423412895634  (in regex_perf_probe_nfa)        151
+        alloc::collections::btree::map::BTreeMap$LT$K$C$V$C$A$GT$::insert::hafc27512147a1a9c  (in regex_perf_probe_nfa)        137
+        DYLD-STUB$$memcpy  (in regex_perf_probe_nfa)        133
+        pgen::ast_pipeline::ParseContent::to_json_value::h741d4ea8be82e303  (in regex_perf_probe_nfa)        132
+        pgen::generated_parsers::regex::RegexParser::cascade_zero_width::hb2b698beca63bd9c  (in regex_perf_probe_nfa)        128
+        _platform_memset  (in libsystem_platform.dylib)        126
+        alloc::collections::btree::navigate::LazyLeafRange$LT$alloc..collections..btree..node..marker..Dying$C$K$C$V$GT$::take_front::h337fd596ef75e614  (in regex_perf_probe_nfa)        122
+        pgen::generated_parsers::regex::RegexParser::cascade_atom::h99185ce74d568963  (in regex_perf_probe_nfa)        116
+        pgen::generated_parsers::regex::RegexParser::cascade_piece::hc7354b683f8682b7  (in regex_perf_probe_nfa)        113
+        _$LT$alloc..collections..btree..map..IntoIter$LT$K$C$V$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h8fae7a1410abae0f  (in regex_perf_probe_nfa)        108
+        pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState::extract_delta_since::h3afe87f15f4b7e51  (in regex_perf_probe_nfa)        104
+        _platform_memcmp  (in libsystem_platform.dylib)        102
+        _$LT$core..iter..adapters..map..Map$LT$I$C$F$GT$$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::fold::hd3178684d778ed56  (in regex_perf_probe_nfa)        98
+        alloc::collections::btree::node::Handle$LT$alloc..collections..btree..node..NodeRef$LT$alloc..collections..btree..node..marker..Mut$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$$C$alloc..collections..btree..node..marker..Edge$GT$::insert_recursing::hb0a82cffeb2d31a4  (in regex_perf_probe_nfa)        97
+        pgen::ast_pipeline::RecursionGuard::check_cycle::h67fa75c144d065ca  (in regex_perf_probe_nfa)        96
+        pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState::checkpoint::hede64194f7863c2e  (in regex_perf_probe_nfa)        87
+        hashbrown::map::HashMap$LT$K$C$V$C$S$C$A$GT$::insert::h9df98d9520b3f6ed  (in regex_perf_probe_nfa)        86
+        _$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h0bec4cce2c366ed9  (in regex_perf_probe_nfa)        85
+        mach_absolute_time  (in libsystem_kernel.dylib)        82
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h4c80282a09022022  (in regex_perf_probe_nfa)        73
+        _$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$::from_iter::h34c37a692feae6d8  (in regex_perf_probe_nfa)        73
+        alloc::collections::btree::map::entry::VacantEntry$LT$K$C$V$C$A$GT$::insert_entry::he75984678767171f  (in regex_perf_probe_nfa)        71
+        _$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h38daf341a82632ad  (in regex_perf_probe_nfa)        64
+        pgen::ast_pipeline::RecursionGuard::enter::hb03d12ab7fd63d5d  (in regex_perf_probe_nfa)        64
+        pgen::generated_parsers::regex::RegexParser::match_string::hdc5ead61a28f6638  (in regex_perf_probe_nfa)        63
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h30623c2386fbf9b3  (in regex_perf_probe_nfa)        60
+        pgen::generated_parsers::regex::RegexParser::parse_letter::h31fbbf58734f1e0f  (in regex_perf_probe_nfa)        57
+        pgen::generated_parsers::regex::RegexParser::new::hd9c15d0843824597  (in regex_perf_probe_nfa)        54
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x53cc
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h263f5f87b9859869  (in regex_perf_probe_nfa)        47
+        core::ptr::drop_in_place$LT$pgen..ast_pipeline..ParseContent$GT$::h41dacabcd3a8066c  (in regex_perf_probe_nfa)        46
+        core::ptr::drop_in_place$LT$pgen..ast_pipeline..ParseError$GT$::h66c3f0a2a058d9c0  (in regex_perf_probe_nfa)        45
+        _$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::hdbcc6fc69e2c3434  (in regex_perf_probe_nfa)        43
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h132882297cf4d7dd  (in regex_perf_probe_nfa)        37
+        _$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$::from_iter::hfc51935a8731e4fe  (in regex_perf_probe_nfa)        37
+        hashbrown::map::HashMap$LT$K$C$V$C$S$GT$::with_capacity_and_hasher::hbad4235d59bf8e31  (in regex_perf_probe_nfa)        37
+        _RNvMs3_NtNtCsl8K0bEFm1U0_4core3ffi5c_strNtB5_4CStr19from_bytes_with_nul  (in regex_perf_probe_nfa)        34
+        hashbrown::raw::RawTableInner::fallible_with_capacity::h7808221d240be54a  (in regex_perf_probe_nfa)        31
+        std::thread::local::LocalKey$LT$T$GT$::with::hd17afc0d6613f084  (in regex_perf_probe_nfa)        28
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x5320
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x53e4
+        _$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$::clone::hdfe15d8f01140b05  (in regex_perf_probe_nfa)        27
+        pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState::new::h0088b8193805751c  (in regex_perf_probe_nfa)        27
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::hfd3ac64b8934c67b  (in regex_perf_probe_nfa)        26
+        pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState::push_rule_context_static::hde16a394c49872ba  (in regex_perf_probe_nfa)        26
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h1b64268403c1ac41  (in regex_perf_probe_nfa)        25
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h76f3a2fcaf0c8456  (in regex_perf_probe_nfa)        25
+        alloc::collections::btree::node::NodeRef$LT$alloc..collections..btree..node..marker..Mut$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$::push_with_handle::h821990dcacc9b92d  (in regex_perf_probe_nfa)        25
+        core::ptr::drop_in_place$LT$core..option..Option$LT$pgen..ast_pipeline..MemoEntry$GT$$GT$::h051fd5edb1a03f0c  (in regex_perf_probe_nfa)        25
+        alloc::collections::btree::navigate::_$LT$impl$u20$alloc..collections..btree..node..Handle$LT$alloc..collections..btree..node..NodeRef$LT$alloc..collections..btree..node..marker..Dying$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$$C$alloc..collections..btree..node..marker..Edge$GT$$GT$::deallocating_end::hf3d7fb7ed803c6ca  (in regex_perf_probe_nfa)        24
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::hbde469cf45bca706  (in regex_perf_probe_nfa)        23
+        pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState::pop_rule_context::hc647e931b6a694b7  (in regex_perf_probe_nfa)        23
+        core::ops::function::FnOnce::call_once::he277771013420394  (in regex_perf_probe_nfa)        22
+        DYLD-STUB$$memcmp  (in regex_perf_probe_nfa)        21
+        _$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h46946d307dd1c574  (in regex_perf_probe_nfa)        20
+        alloc::raw_vec::RawVecInner$LT$A$GT$::finish_grow::h41c2989ba75a7490  (in regex_perf_probe_nfa)        20
+        pgen::generated_parsers::regex::RegexParser::parse_regex::ha3d52dc02a754bb1  (in regex_perf_probe_nfa)        20
+        _RNCNvNtNtNtCsg55jX0GwzBC_3std3sys3env4unix6getenv0B9_  (in regex_perf_probe_nfa)        19
+        _$LT$alloc..raw_vec..RawVec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h4089b70042c97443  (in regex_perf_probe_nfa)        17
+        _RNvNtNtNtCsg55jX0GwzBC_3std3sys3env4unix13env_read_lock  (in regex_perf_probe_nfa)        17
+        core::ptr::swap_nonoverlapping_bytes::swap_nonoverlapping_chunks::hd2271ae79737e6b6  (in regex_perf_probe_nfa)        16
+        pgen::generated_parsers::regex::RegexParser::parse_letter::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$::h8f33f251f3b31ea0  (in regex_perf_probe_nfa)        16
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x52e0
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x533c
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h623685c1f9e9d80b  (in regex_perf_probe_nfa)        15
+        _$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::hc908f1d76389f5f1  (in regex_perf_probe_nfa)        15
+        alloc::raw_vec::RawVec$LT$T$C$A$GT$::grow_one::h17aeb6abf27b956b  (in regex_perf_probe_nfa)        15
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x537c
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x53b0
+        typed_arena::Arena$LT$T$GT$::alloc_slow_path::h94a5ad709e49c9f4  (in regex_perf_probe_nfa)        14
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$alloc..vec..spec_extend..SpecExtend$LT$T$C$I$GT$$GT$::spec_extend::hf18a06ef915cbde1  (in regex_perf_probe_nfa)        13
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h3d19e64599e3ae4f  (in regex_perf_probe_nfa)        13
+        pgen::generated_parsers::regex::RegexParser::prepare_parse_state::h951734f25ed900e0  (in regex_perf_probe_nfa)        13
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x52c0
+        _RNvNtCsg55jX0GwzBC_3std3env4__var  (in regex_perf_probe_nfa)        11
+        _tlv_get_addr  (in libdyld.dylib)        11
+        pgen::ast_pipeline::semantic_runtime::CompiledSemanticRuntimeAnnotations::clone_predicate_defs::h14219c0b58ee9487  (in regex_perf_probe_nfa)        11
+        pgen::generated_parsers::regex::RegexParser::parse_full::h74dc8ddece4995f7  (in regex_perf_probe_nfa)        11
+        clock_gettime  (in libsystem_c.dylib)        10
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x53c8
+        hashbrown::map::HashMap$LT$K$C$V$C$S$C$A$GT$::contains_key::h08d12d38f0747812  (in regex_perf_probe_nfa)        9
+        pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState::set_predicate_defs::ha75ea9759fe86c94  (in regex_perf_probe_nfa)        9
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x5338
+        core::ptr::drop_in_place$LT$core..option..Option$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDelta$GT$$GT$::h817302317da4777f  (in regex_perf_probe_nfa)        8
+        core::ptr::drop_in_place$LT$core..result..Result$LT$alloc..string..String$C$std..env..VarError$GT$$GT$::h30b375627fce95c6  (in regex_perf_probe_nfa)        8
+        regex_perf_probe::main::h153fd3229313f978  (in regex_perf_probe_nfa)        8
+        DYLD-STUB$$mach_timebase_info  (in libsystem_c.dylib)        7
+        _$LT$Q$u20$as$u20$hashbrown..Equivalent$LT$K$GT$$GT$::equivalent::h515a852f60b8ec07  (in regex_perf_probe_nfa)        7
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x52fc
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x5358
+        _$LT$alloc..vec..into_iter..IntoIter$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h27fa2b5ac97967b0  (in regex_perf_probe_nfa)        6
+        core::ptr::drop_in_place$LT$pgen..generated_parsers..regex..RegexParser$GT$::hd51b6d54c6e5dc4a  (in regex_perf_probe_nfa)        6
+        typed_arena::ChunkList$LT$T$GT$::reserve::hac6302df51bf81d5  (in regex_perf_probe_nfa)        6
+        ???  (in regex_perf_probe_nfa)  load address 0x100ba4000 + 0x5300
+        _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h17caf87af8533a1a  (in regex_perf_probe_nfa)        5
+        _$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h80cbde5ca3937aa0  (in regex_perf_probe_nfa)        5
+        _RNvMNtNtNtNtCsg55jX0GwzBC_3std3sys3pal4unix4timeNtB2_8Timespec3now  (in regex_perf_probe_nfa)        5
+        alloc::raw_vec::RawVec$LT$T$C$A$GT$::grow_one::h0ba9aaaaaa7f7472  (in regex_perf_probe_nfa)        5
+        core::ptr::drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDelta$GT$::he9b3fb78d17f4d4d  (in regex_perf_probe_nfa)        5
+        getenv  (in libsystem_c.dylib)        5
+
+Binary Images:
+       0x100ba4000 -        0x101527073 +regex_perf_probe_nfa (0) <712CB74A-1A97-3A3F-A04D-814FAF7B5307> /tmp/*/regex_perf_probe_nfa
+       0x18f400000 -        0x18f452b4b  libobjc.A.dylib (951.7) <FF1D8AE4-ABEF-35F1-A30A-1183B9CB414F> /usr/lib/libobjc.A.dylib
+       0x18f453000 -        0x18f487d07  libdyld.dylib (1378) <B147D877-D0C2-388F-B38D-D3132E39905F> /usr/lib/system/libdyld.dylib
+       0x18f488000 -        0x18f52e217  dyld (1.0.0 - 1378) <F924BDD3-4365-3466-9580-8B1B3FA8F857> /usr/lib/dyld
+       0x18f52f000 -        0x18f532228  libsystem_blocks.dylib (96) <CC947089-488D-316B-A9C7-46DEC0F73145> /usr/lib/system/libsystem_blocks.dylib
+       0x18f533000 -        0x18f58755f  libxpc.dylib (3102.120.13) <C40FCAE8-7A17-3D82-87CB-3DA4802ADEF1> /usr/lib/system/libxpc.dylib
+       0x18f588000 -        0x18f5a89ff  libsystem_trace.dylib (1861.120.4) <D0FABAB3-5AE7-3F10-8C62-60CBF5D70850> /usr/lib/system/libsystem_trace.dylib
+       0x18f5a9000 -        0x18f6575f7  libcorecrypto.dylib (1922.121.1) <A01A158D-6FE7-3B1C-A2C4-6BCB90D7314A> /usr/lib/system/libcorecrypto.dylib
+       0x18f658000 -        0x18f6a81d7  libsystem_malloc.dylib (812.100.31) <5FAE4807-4D2B-3A95-A63A-DD96D3DA11B4> /usr/lib/system/libsystem_malloc.dylib
+       0x18f6a9000 -        0x18f6f023f  libdispatch.dylib (1542.100.32) <F071EFE4-299F-3089-ACC4-0025B8FFB52A> /usr/lib/system/libdispatch.dylib
+       0x18f6f1000 -        0x18f6f3ffb  libsystem_featureflags.dylib (103) <71FCFFBD-85F8-3365-AFE0-BECEA4369122> /usr/lib/system/libsystem_featureflags.dylib
+       0x18f6f4000 -        0x18f774d9f  libsystem_c.dylib (1752.120.2) <694B7881-1BF3-3D0F-8F19-B50AE4E8EF8A> /usr/lib/system/libsystem_c.dylib
+       0x18f775000 -        0x18f805ae7  libc++.1.dylib (2100.43) <5013C0F8-84A9-3B56-9FEB-C353816A750F> /usr/lib/libc++.1.dylib
+       0x18f806000 -        0x18f82075f  libc++abi.dylib (2100.43) <E482D257-E5A0-3816-BD97-7B39342958DA> /usr/lib/libc++abi.dylib
+       0x18f821000 -        0x18f85e2af  libsystem_kernel.dylib (12377.121.10) <FCA53B98-3D6A-38B2-A0EC-DF0F7E05F171> /usr/lib/system/libsystem_kernel.dylib
+       0x18f85f000 -        0x18f86bb3b  libsystem_pthread.dylib (539.100.4) <4F33683C-18C8-39A1-800B-2E3BD43BCC13> /usr/lib/system/libsystem_pthread.dylib
+       0x18f86c000 -        0x18f874963  libsystem_platform.dylib (375.120.2) <160FD864-8D15-36FC-9E97-9725388CFAFE> /usr/lib/system/libsystem_platform.dylib
+       0x18f875000 -        0x18f8a46eb  libsystem_info.dylib (600) <3D62F2D9-F516-31BF-83C7-E203D872300B> /usr/lib/system/libsystem_info.dylib
+       0x18f8a5000 -        0x18fe0331f  com.apple.CoreFoundation (6.9 - 5026.5.4.1.402) <4BBD0DA8-C600-3F3A-A38B-6664652FA04A> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+       0x18fe04000 -        0x19011ebff  com.apple.LaunchServices (1141.1 - 1141.1) <F32798D4-CA63-3935-B694-F45DAFFE5655> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/LaunchServices
+       0x19011f000 -        0x1903079bf  com.apple.gpusw.MetalTools (1.0 - 1) <2C2180C9-E027-3712-BED5-73645D651BFD> /System/Library/PrivateFrameworks/MetalTools.framework/Versions/A/MetalTools
+       0x190308000 -        0x190b024bf  libBLAS.dylib (1551.100.26) <F078C775-D8DC-3C4D-879F-A9BB228DBE06> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+       0x190b03000 -        0x190c1235f  com.apple.Lexicon-framework (1.0 - 195.12) <16E3C45A-3C24-33D7-AD1C-1F6A215E57E7> /System/Library/PrivateFrameworks/Lexicon.framework/Versions/A/Lexicon
+       0x190c13000 -        0x190d80417  libSparse.dylib (184.80.2) <C479DB8D-CF22-336C-B455-0CF900D96647> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libSparse.dylib
+       0x190d81000 -        0x190e140ff  com.apple.SystemConfiguration (1.21 - 1.21) <3E3C91CD-C9CE-3186-B49F-FBF3E6F1696B> /System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration
+       0x190e15000 -        0x190e4957b  libCRFSuite.dylib (55) <5220F98F-4B63-31DF-B1BA-F507F9441C35> /usr/lib/libCRFSuite.dylib
+       0x191112000 -        0x1920f441f  com.apple.Foundation (6.9 - 5026.5.4.1.402) <0C8C2A94-A688-3529-B2BB-4640DF195105> /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
+       0x1922a4000 -        0x1923c4cbf  com.apple.CoreDisplay (291.4 - 291.4) <C5ACFCC5-A8E3-3DA5-BEB8-F3F3B932BD63> /System/Library/Frameworks/CoreDisplay.framework/Versions/A/CoreDisplay
+       0x1923c5000 -        0x192787c1f  com.apple.audio.AudioToolboxCore (1.0 - 1556.604) <868DF717-7563-39D0-95EB-19AB37629A5A> /System/Library/PrivateFrameworks/AudioToolboxCore.framework/Versions/A/AudioToolboxCore
+       0x192788000 -        0x1929b0f3f  com.apple.CoreText (877.5.0.1 - 877.5.0.1) <9F6BA277-F8CA-38F6-80D3-897B304A0D4F> /System/Library/Frameworks/CoreText.framework/Versions/A/CoreText
+       0x1929b1000 -        0x193146e7f  com.apple.audio.CoreAudio (5.0 - 5.0) <242B3E7E-7A94-33DA-9D5B-C6739557CEB9> /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+       0x193147000 -        0x193565aff  com.apple.security (7.0 - 61901.120.67) <8FDCF5BF-61B9-3D69-BF9E-D134D220B8D9> /System/Library/Frameworks/Security.framework/Versions/A/Security
+       0x193566000 -        0x19383bd53  libicucore.A.dylib (76142.5.1.200) <EB0C6EA9-E934-3776-9FD1-AF5E473552AA> /usr/lib/libicucore.A.dylib
+       0x19383c000 -        0x193845e5f  libsystem_darwin.dylib (1752.120.2) <8858F025-745A-388E-9544-080781CC9A69> /usr/lib/system/libsystem_darwin.dylib
+       0x193846000 -        0x193b3dcbf  com.apple.CoreServices.CarbonCore (1333 - 1333) <D5517285-3BB1-37C7-9ECA-B9E6D99DF7CF> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/CarbonCore
+       0x193b3e000 -        0x193b7dc1b  com.apple.CoreServicesInternal (505 - 505) <0FBC8F4C-B825-381C-8728-762844E11392> /System/Library/PrivateFrameworks/CoreServicesInternal.framework/Versions/A/CoreServicesInternal
+       0x193b7e000 -        0x193bbd1bf  com.apple.CSStore (1141.1 - 1141.1) <1E543EF0-6C96-389F-9B2A-9614B625D198> /System/Library/PrivateFrameworks/CoreServicesStore.framework/Versions/A/CoreServicesStore
+       0x193bbe000 -        0x193ca625f  com.apple.framework.IOKit (2.0.2 - 100231.120.3) <13C5D661-B23A-3AD8-88BB-2DE56023B840> /System/Library/Frameworks/IOKit.framework/Versions/A/IOKit
+       0x193ca7000 -        0x193cb91b6  libsystem_notify.dylib (348.120.4) <64D76451-1E0C-369B-A631-54DA3140E083> /usr/lib/system/libsystem_notify.dylib
+       0x1955f3000 -        0x1956093ff  com.apple.UniformTypeIdentifiers (709 - 709) <D24AEC54-C332-3707-A7CC-BB0710F6D193> /System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers
+       0x195ae5000 -        0x195bbd95f  libboringssl.dylib (532.120.8) <611779E1-4B3F-310E-B070-1062D4707AA4> /usr/lib/libboringssl.dylib
+       0x195bbe000 -        0x195f731df  com.apple.CFNetwork (1.0 - 3860.600.21) <96293549-E281-3713-8ABF-886F0F966951> /System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork
+       0x195f74000 -        0x195f8ef7b  libsystem_networkextension.dylib (2226.121.1) <0331EE20-A1FB-3C0D-990A-F65939CFF505> /usr/lib/system/libsystem_networkextension.dylib
+       0x195f8f000 -        0x195f90067  libenergytrace.dylib (23) <E59503ED-FB38-3FBC-8999-83124D31645B> /usr/lib/libenergytrace.dylib
+       0x195f91000 -        0x196010f3f  libMobileGestalt.dylib (1484.120.3) <FA923504-DDCB-3138-ACC5-FB1D38183C78> /usr/lib/libMobileGestalt.dylib
+       0x196011000 -        0x196028fdf  libsystem_asl.dylib (406) <F40838DF-2F15-3F62-970F-DEE25706BF1B> /usr/lib/system/libsystem_asl.dylib
+       0x196029000 -        0x19604c797  com.apple.TCC (1.0 - 1) <46AC4453-DB23-3C07-A0EB-A68277A24098> /System/Library/PrivateFrameworks/TCC.framework/Versions/A/TCC
+       0x19604d000 -        0x196603bbf  com.apple.SkyLight (1.600.0 - 922.7) <6F1978A2-1B8A-3A44-903D-532EED7106EB> /System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLight
+       0x196604000 -        0x196d5903f  com.apple.CoreGraphics (2.0 - 1965.5.1) <3B96EADF-571C-3690-B5CE-7672B45CE859> /System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics
+       0x196d5a000 -        0x196f01b8b  com.apple.ColorSync (4.13.0 - 3813.5.1) <24C07C0F-03C6-302B-9E54-5ED3A01B730E> /System/Library/Frameworks/ColorSync.framework/Versions/A/ColorSync
+       0x197356000 -        0x197743f5f  com.apple.CoreData (120 - 1526) <0A6EBD87-B6D8-3CFB-88A9-A091CE155610> /System/Library/Frameworks/CoreData.framework/Versions/A/CoreData
+       0x197744000 -        0x19775fd5f  com.apple.ProtocolBuffer (1 - 310.25.2.9.2) <52A2B4A4-4DB3-3FC3-B3F1-21E64D2F2003> /System/Library/PrivateFrameworks/ProtocolBuffer.framework/Versions/A/ProtocolBuffer
+       0x197760000 -        0x197948a2f  libsqlite3.dylib (382) <2197AD4A-E0F8-38FF-924C-D9A97343680F> /usr/lib/libsqlite3.dylib
+       0x1979eb000 -        0x197adc49f  com.apple.BaseBoard (732.1.1 - 732.1.1) <03F3FD64-6BF3-326A-8004-C4EE9563571A> /System/Library/PrivateFrameworks/BaseBoard.framework/Versions/A/BaseBoard
+       0x197add000 -        0x197b4893f  com.apple.RunningBoardServices (1.0 - 1015.100.16) <38F6DAD8-C5D2-37D8-9915-1CE94A572062> /System/Library/PrivateFrameworks/RunningBoardServices.framework/Versions/A/RunningBoardServices
+       0x197b49000 -        0x197bbcc37  com.apple.AE (944 - 944) <0B347618-0BCF-3104-84B4-C0C0909E9C80> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/AE.framework/Versions/A/AE
+       0x197bbd000 -        0x197bced87  libdns_services.dylib (2881.120.11) <E8717AA2-B706-36BB-A8FF-7EB3E64E58D5> /usr/lib/libdns_services.dylib
+       0x197bcf000 -        0x197bd7387  libsystem_symptoms.dylib (2169.120.7) <F5029F5C-1BF3-31C7-892E-BC8606AC829E> /usr/lib/system/libsystem_symptoms.dylib
+       0x197bd8000 -        0x1993f575f  com.apple.Network (1.0 - 5812.121.1) <C901F589-30E9-3847-B8FD-0DA14F3E8A09> /System/Library/Frameworks/Network.framework/Versions/A/Network
+       0x1993f6000 -        0x199425ddf  com.apple.analyticsd (1.0 - 1) <5F3582B5-C44E-3B5A-8C3D-E4DA63B8C6D8> /System/Library/PrivateFrameworks/CoreAnalytics.framework/Versions/A/CoreAnalytics
+       0x199426000 -        0x1994278bb  libDiagnosticMessagesClient.dylib (113) <0770F750-6155-3991-9FDE-968CB42647DF> /usr/lib/libDiagnosticMessagesClient.dylib
+       0x199428000 -        0x19949433f  com.apple.spotlight.metadata.utilities (1.0 - 2418.5.9.101) <B4AB943C-5D50-3ADF-8175-4B56301C6DC3> /System/Library/PrivateFrameworks/MetadataUtilities.framework/Versions/A/MetadataUtilities
+       0x199495000 -        0x199520b5f  com.apple.Metadata (26.5 - 2418.5.9.101) <E968E783-21CF-32A8-9C69-6C6870C36CDC> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Metadata
+       0x199521000 -        0x19952a1eb  com.apple.DiskArbitration (2.7 - 2.7) <18127B89-B783-3D13-882D-4F601449EA8A> /System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration
+       0x19952b000 -        0x19994f063  com.apple.vImage (8.1 - 632.120.2) <F2338A5A-848F-3745-9C95-92835FED69BC> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/vImage
+       0x199950000 -        0x199d65cdf  com.apple.QuartzCore (1195.14.4 - 1195.14.4) <4D34EB4E-2BBB-3751-A362-8E2EB74656E8> /System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore
+       0x199d66000 -        0x199db74ff  libFontRegistry.dylib (408.4.0.1) <3480BBE1-4AE8-3066-BCB7-EAA15F37C64E> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontRegistry.dylib
+       0x19a07e000 -        0x19a08baff  com.apple.OpenDirectory (26.5 - 666.100.1) <96F04359-D02E-3990-B798-4FE4448067BE> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/OpenDirectory
+       0x19a08c000 -        0x19a0b527f  com.apple.CFOpenDirectory (26.5 - 666.100.1) <270997B5-219E-3253-AFDD-619027EFDC6B> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/Frameworks/CFOpenDirectory.framework/Versions/A/CFOpenDirectory

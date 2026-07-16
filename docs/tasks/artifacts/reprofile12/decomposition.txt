@@ -1,0 +1,26 @@
+
+===== NFA (malloc-free) — total leaf samples in section: 15080 =====
+  CONSTRUCT          3915   26.0% of all   26.1% of parse   (28 syms)
+  MATCH/DISPATCH     2826   18.7% of all   18.9% of parse   (20 syms)
+  TEARDOWN/DROP      2818   18.7% of all   18.8% of parse   (35 syms)
+  ALLOC/FREE         2081   13.8% of all   13.9% of parse   (3 syms)
+  MEMOPS             1104    7.3% of all    7.4% of parse   (4 syms)
+  UNKNOWN            1019    6.8% of all    6.8% of parse   (17 syms)
+  SEMANTIC-RT         732    4.9% of all    4.9% of parse   (10 syms)
+  ENV-LOOKUP          461    3.1% of all    3.1% of parse   (6 syms)
+  z-TIMING(excl)      104    0.7% of all    0.7% of parse   (4 syms)
+  ARENA                20    0.1% of all    0.1% of parse   (2 syms)
+  parse-only total (excl timing): 14976
+
+===== MIMALLOC (baseline) — total leaf samples in section: 15032 =====
+  CONSTRUCT          3885   25.8% of all   26.0% of parse   (28 syms)
+  MATCH/DISPATCH     2626   17.5% of all   17.6% of parse   (19 syms)
+  TEARDOWN/DROP      2288   15.2% of all   15.3% of parse   (34 syms)
+  UNKNOWN            2162   14.4% of all   14.5% of parse   (26 syms)
+  ALLOC/FREE         2011   13.4% of all   13.5% of parse   (7 syms)
+  MEMOPS              966    6.4% of all    6.5% of parse   (4 syms)
+  SEMANTIC-RT         564    3.8% of all    3.8% of parse   (9 syms)
+  ENV-LOOKUP          406    2.7% of all    2.7% of parse   (5 syms)
+  z-TIMING(excl)       91    0.6% of all    0.6% of parse   (3 syms)
+  ARENA                33    0.2% of all    0.2% of parse   (2 syms)
+  parse-only total (excl timing): 14941
