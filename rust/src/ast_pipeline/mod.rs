@@ -141,6 +141,25 @@ pub fn trace_verbosity_from_env() -> Option<TraceVerbosity> {
         .and_then(TraceVerbosity::parse)
 }
 
+/// Process-once cache of the `PGEN_REPORT_MEMO_STATS` diagnostic switch.
+///
+/// RGX-0078.5.i.7 `P-env`: every generated `parse()` consulted this flag via
+/// `std::env::var("PGEN_REPORT_MEMO_STATS")` on the hot path — twice per parse
+/// (the `bare_parse` observability-twin routing compute + the post-parse memo
+/// report gate) — each call a `getenv`/`__findenv_locked` locked linear
+/// `environ` scan. RE-PROFILE #12 (`-0098`) priced it at ≈3% of the regex
+/// parse, and because it is codegen-emitted every generated parser paid it
+/// every parse. The flag is a process-launch diagnostic switch (no code path
+/// sets it via `set_var` — verified by grep), so reading it ONCE per process is
+/// behavior-identical and removes the per-parse syscall. Correctness-neutral:
+/// the fused-vs-protocol routing decision is a process-level constant, so no
+/// parse output changes (like `trace_verbosity`, already atomic-hoisted).
+static REPORT_MEMO_STATS_ENABLED: OnceLock<bool> = OnceLock::new();
+
+pub fn report_memo_stats_enabled() -> bool {
+    *REPORT_MEMO_STATS_ENABLED.get_or_init(|| std::env::var("PGEN_REPORT_MEMO_STATS").is_ok())
+}
+
 fn trace_sink() -> &'static Mutex<Option<File>> {
     TRACE_OUTPUT_SINK.get_or_init(|| Mutex::new(None))
 }

@@ -1737,7 +1737,7 @@ impl AstBasedGenerator {
                 self.bare_parse = !self.coverage_enabled
                     && !self.logger_enabled
                     && !self.counters_observed.get()
-                    && std::env::var("PGEN_REPORT_MEMO_STATS").is_err();
+                    && !crate::ast_pipeline::report_memo_stats_enabled();
             }
         } else {
             quote! {}
@@ -2005,7 +2005,8 @@ impl AstBasedGenerator {
                 #bare_parse_compute
                 let parse_outcome = self.#parse_method();
                 // PARSE-TERMINATION.6 (WHY+WHERE): opt-in memo footprint report.
-                if std::env::var("PGEN_REPORT_MEMO_STATS").is_ok() {
+                // RGX-0078.5.i.7 P-env: process-once cached (was a per-parse getenv).
+                if crate::ast_pipeline::report_memo_stats_enabled() {
                     self.report_memo_stats();
                 }
                 parse_outcome
@@ -2023,7 +2024,7 @@ impl AstBasedGenerator {
                     #( #entry_arm_names => self.#entry_arm_methods(), )*
                     _ => self.#parse_method(),
                 };
-                if std::env::var("PGEN_REPORT_MEMO_STATS").is_ok() {
+                if crate::ast_pipeline::report_memo_stats_enabled() {
                     self.report_memo_stats();
                 }
                 parse_outcome
