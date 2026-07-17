@@ -38,13 +38,17 @@ That risk is governed mechanically, not by discipline alone
 - and `scripts/run_with_memory_guard.sh`, a sampling supervisor every
   heavy/background job runs under.
 
-The guard pre-flights system free memory, samples the job's process-tree RSS on
-an interval, and kills the whole tree — with an always-written marker file and
-an unconditional log line — when the tree exceeds its RSS budget (default
-≈12 GB), when system-wide free memory drops below a floor (default 10%), or when
-an optional wall-clock timeout expires. Well-behaved jobs pass their own exit
-code through; guard verdicts use distinct codes (96 preflight-refused,
-97 rss-budget, 98 free-floor, 99 timeout, 130 guard-interrupted) so callers can
+The guard pre-flights system free memory AND free disk space on its working
+filesystem, samples the job's process-tree RSS on an interval, and kills the
+whole tree — with an always-written marker file and an unconditional log line —
+when the tree exceeds its RSS budget (default ≈12 GB), when system-wide free
+memory drops below a floor (default 10%), when free disk drops below a floor
+(default 8 GB; `--disk-floor-gb 0` disables — added after a 2026-07-18 build
+died mid-compile on a 100%-full disk and corrupted its own incremental state),
+or when an optional wall-clock timeout expires. Well-behaved jobs pass their own
+exit code through; guard verdicts use distinct codes (96 preflight-refused —
+RAM or disk, the marker's `reason=` field disambiguates — 97 rss-budget,
+98 free-floor, 95 disk-floor, 99 timeout, 130 guard-interrupted) so callers can
 branch mechanically. See `README.md` → Standard Commands for usage.
 
 Two design rules from its verification history are worth teaching:

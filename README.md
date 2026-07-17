@@ -148,12 +148,14 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `bash scripts/check_doctrines.sh`
 - Memory guard (MANDATORY for heavy/background jobs — HOST-RAM BUDGET DIRECTIVE,
   `docs/decisions/feedback_host_ram_budget_all_jobs.md`):
-  - `scripts/run_with_memory_guard.sh [--budget-mb N] [--floor-pct N] [--interval-s N] [--timeout-s N] [--marker FILE] -- <command> [args...]`
-  - pre-flights system free RAM, samples the job's process-tree RSS, and kills the
-    whole tree (TERM→grace→KILL, always-written marker) on budget breach (default
-    12288 MB), system-free floor breach (default 10%), or timeout
+  - `scripts/run_with_memory_guard.sh [--budget-mb N] [--floor-pct N] [--disk-floor-gb N] [--interval-s N] [--timeout-s N] [--marker FILE] -- <command> [args...]`
+  - pre-flights system free RAM AND free disk on the working filesystem, samples the
+    job's process-tree RSS, and kills the whole tree (TERM→grace→KILL, always-written
+    marker) on budget breach (default 12288 MB), system-free floor breach (default
+    10%), disk-floor breach (default 8 GB free; 0 disables), or timeout
   - exit codes are mechanically branchable: the child's own code on normal
-    completion; 96 preflight-refused / 97 rss-budget / 98 free-floor / 99 timeout /
+    completion; 96 preflight-refused (RAM or disk — marker `reason=` disambiguates) /
+    97 rss-budget / 98 free-floor / 95 disk-floor / 99 timeout /
     130 guard-interrupted
   - example: `scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 7200 -- make -C rust SHELL=/bin/bash sota_exit_gate`
 - Aggregate policy gate:

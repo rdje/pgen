@@ -6,23 +6,28 @@
 # on this 24 GB single-project machine, NO spawned job may exhaust host RAM.
 #
 # What it does:
-#   1. PRE-FLIGHT: refuses to launch the job if system-wide free memory is already
-#      below the floor (never launch into a pressured system).
+#   1. PRE-FLIGHT: refuses to launch the job if system-wide free memory OR free disk
+#      space (on the guard's working filesystem) is already below its floor
+#      (never launch into a pressured system — OPS-MEMSAFE.2 added the disk axis
+#      after the 2026-07-18 ENOSPC build death).
 #   2. Runs the command in its OWN PROCESS GROUP and samples the job's process-tree
 #      RSS (process-group members ∪ parent-child descendant closure) on an interval.
 #   3. KILLS the whole tree (TERM → grace → KILL) and writes an observable breach
 #      MARKER + an always-on log line when:
 #        - the tree's summed RSS exceeds the budget (default 12288 MB ≈ half RAM), or
 #        - system-wide free memory drops below the floor (default 10%), or
+#        - free disk on the working filesystem drops below --disk-floor-gb (default 8), or
 #        - the optional wall-clock timeout expires.
 #   4. Always writes a completion marker (composes with the background-job
 #      observability doctrine: completion marker + bounded timeout + liveness).
 #
 # Exit codes (mechanically branchable by callers):
 #   child's own exit code   — the job completed on its own (guard transparent)
-#   96  preflight-refused   — system already below the free floor; job NEVER started
+#   96  preflight-refused   — free RAM or free disk already below its floor; job NEVER
+#                             started (marker reason= free-floor | disk-floor)
 #   97  rss-budget breach   — tree RSS exceeded --budget-mb
 #   98  free-floor breach   — system free % dropped below --floor-pct mid-run
+#   95  disk-floor breach   — free disk dropped below --disk-floor-gb mid-run
 #   99  timeout             — --timeout-s expired
 #   130 guard-interrupted   — the guard itself received INT/TERM (tree killed too)
 #   2   usage error
@@ -30,21 +35,25 @@
 # Usage:
 #   scripts/run_with_memory_guard.sh [options] -- <command> [args...]
 # Options:
-#   --budget-mb N    process-tree RSS budget in MB        (default 12288)
-#   --floor-pct N    minimum system-wide free memory %    (default 10)
-#   --interval-s N   sampling interval in seconds         (default 5)
-#   --timeout-s N    wall-clock timeout in seconds, 0=off (default 0)
-#   --marker FILE    marker file path (default rust/target/generated_logs/memory_guard/guard.<pid>.marker)
-#   --log FILE       also append guard lines to FILE
+#   --budget-mb N     process-tree RSS budget in MB        (default 12288)
+#   --floor-pct N     minimum system-wide free memory %    (default 10)
+#   --disk-floor-gb N minimum free disk (GB) on the guard's working filesystem,
+#                     0=disable the disk axis               (default 8)
+#   --interval-s N    sampling interval in seconds         (default 5)
+#   --timeout-s N     wall-clock timeout in seconds, 0=off (default 0)
+#   --marker FILE     marker file path (default rust/target/generated_logs/memory_guard/guard.<pid>.marker)
+#   --log FILE        also append guard lines to FILE
 #
 # Verbosity: PGEN_TRACE_VERBOSITY ∈ none|low|medium|high|debug (default low).
 #   Periodic sample lines print at medium+; per-PID breakdown at debug.
 #   Breaches, kills, and warnings print UNCONDITIONALLY — severity is never gated
 #   by verbosity (docs/decisions/feedback_severity_never_gated_by_verbosity.md).
 #
-# Test seam (deterministic floor-path testing only):
-#   PGEN_MEMORY_GUARD_FAKE_FREE_PCT_FILE=<file> — read the free % from <file>
+# Test seams (deterministic floor-path testing only):
+#   PGEN_MEMORY_GUARD_FAKE_FREE_PCT_FILE=<file>     — read the free RAM % from <file>
 #   (re-read every sample) instead of `memory_pressure -Q`.
+#   PGEN_MEMORY_GUARD_FAKE_DISK_FREE_GB_FILE=<file> — read the free disk GB from
+#   <file> (re-read every sample) instead of `df -Pk .`.
 #
 # Honest limit: a descendant that re-parents AND changes its own process group
 # escapes both accounting and the kill. Jobs PGEN spawns (make/cargo/bench/parse)
@@ -55,12 +64,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 BUDGET_MB=12288
 FLOOR_PCT=10
+DISK_FLOOR_GB=8
 INTERVAL_S=5
 TIMEOUT_S=0
 MARKER=""
 LOG_FILE=""
 
-usage() { sed -n '2,50p' "${BASH_SOURCE[0]}" | grep -E '^# ?' | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,59p' "${BASH_SOURCE[0]}" | grep -E '^# ?' | sed 's/^# \{0,1\}//'; }
 
 is_uint() { [[ "$1" =~ ^[0-9]+$ ]]; }
 
@@ -68,6 +78,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --budget-mb)  BUDGET_MB="${2:-}"; shift 2 ;;
     --floor-pct)  FLOOR_PCT="${2:-}"; shift 2 ;;
+    --disk-floor-gb) DISK_FLOOR_GB="${2:-}"; shift 2 ;;
     --interval-s) INTERVAL_S="${2:-}"; shift 2 ;;
     --timeout-s)  TIMEOUT_S="${2:-}"; shift 2 ;;
     --marker)     MARKER="${2:-}"; shift 2 ;;
@@ -78,7 +89,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 if [ $# -eq 0 ]; then echo "memory-guard: no command given (usage: $0 [options] -- cmd args...)" >&2; exit 2; fi
-for v in "$BUDGET_MB" "$FLOOR_PCT" "$INTERVAL_S" "$TIMEOUT_S"; do
+for v in "$BUDGET_MB" "$FLOOR_PCT" "$DISK_FLOOR_GB" "$INTERVAL_S" "$TIMEOUT_S"; do
   is_uint "$v" || { echo "memory-guard: option values must be non-negative integers (got '$v')" >&2; exit 2; }
 done
 [ "$INTERVAL_S" -ge 1 ] || { echo "memory-guard: --interval-s must be >= 1" >&2; exit 2; }
@@ -116,9 +127,11 @@ write_marker() { # write_marker <status> <reason> <exit> <peak_rss_kb> <last_fre
     printf 'exit=%s\n'          "$3"
     printf 'budget_mb=%s\n'     "$BUDGET_MB"
     printf 'floor_pct=%s\n'     "$FLOOR_PCT"
+    printf 'disk_floor_gb=%s\n' "$DISK_FLOOR_GB"
     printf 'timeout_s=%s\n'     "$TIMEOUT_S"
     printf 'peak_rss_mb=%s\n'   "$(( ${4:-0} / 1024 ))"
     printf 'last_free_pct=%s\n' "${5:--}"
+    printf 'last_disk_free_gb=%s\n' "${7:--}"
     printf 'elapsed_s=%s\n'     "${6:-0}"
     printf 'cmd=%s\n'           "$CMD_STR"
     printf 'ended_at=%s\n'      "$(date '+%Y-%m-%dT%H:%M:%S%z')"
@@ -132,6 +145,20 @@ free_pct() {
     out="$(cat "$PGEN_MEMORY_GUARD_FAKE_FREE_PCT_FILE" 2>/dev/null | tr -d '[:space:]')"
   else
     out="$(memory_pressure -Q 2>/dev/null | sed -n 's/^System-wide memory free percentage: \([0-9][0-9]*\)%$/\1/p')"
+  fi
+  if is_uint "${out:-}"; then printf '%s\n' "$out"; else printf '\n'; fi
+}
+
+# ---- free disk (GB, guard's working filesystem) ----------------------------
+# POSIX `df -Pk .` guarantees line 2 column 4 = available 1K-blocks. The guard
+# is launched from the directory the job builds under (repo convention), so
+# "." is the filesystem the job will fill.
+free_disk_gb() {
+  local out
+  if [ -n "${PGEN_MEMORY_GUARD_FAKE_DISK_FREE_GB_FILE:-}" ]; then
+    out="$(cat "$PGEN_MEMORY_GUARD_FAKE_DISK_FREE_GB_FILE" 2>/dev/null | tr -d '[:space:]')"
+  else
+    out="$(df -Pk . 2>/dev/null | awk 'NR==2 { print int($4 / 1048576) }')"
   fi
   if is_uint "${out:-}"; then printf '%s\n' "$out"; else printf '\n'; fi
 }
@@ -208,15 +235,27 @@ terminate_tree() { # terminate_tree <root-pid>
 
 # ---- pre-flight ------------------------------------------------------------
 PRE_FREE="$(free_pct)"
+PRE_DISK="$(free_disk_gb)"
 if [ -z "$PRE_FREE" ]; then
   emit "WARNING: could not read system free memory (memory_pressure) — pre-flight check skipped"
 elif [ "$PRE_FREE" -lt "$FLOOR_PCT" ]; then
   # marker path may reference the child pid; none exists yet — use the guard's pid
   MARKER="${MARKER:-$ROOT/rust/target/generated_logs/memory_guard/guard.$$.marker}"
   emit "PRE-FLIGHT REFUSED: system free ${PRE_FREE}% < floor ${FLOOR_PCT}% — NOT launching: $CMD_STR"
-  write_marker "preflight-refused" "free-floor" "-" 0 "$PRE_FREE" 0
+  write_marker "preflight-refused" "free-floor" "-" 0 "$PRE_FREE" 0 "${PRE_DISK:--}"
   emit "marker written: $MARKER"
   exit 96
+fi
+if [ "$DISK_FLOOR_GB" -gt 0 ]; then
+  if [ -z "$PRE_DISK" ]; then
+    emit "WARNING: could not read free disk space (df) — disk pre-flight check skipped"
+  elif [ "$PRE_DISK" -lt "$DISK_FLOOR_GB" ]; then
+    MARKER="${MARKER:-$ROOT/rust/target/generated_logs/memory_guard/guard.$$.marker}"
+    emit "PRE-FLIGHT REFUSED: free disk ${PRE_DISK}GB < floor ${DISK_FLOOR_GB}GB — NOT launching: $CMD_STR"
+    write_marker "preflight-refused" "disk-floor" "-" 0 "${PRE_FREE:--}" 0 "$PRE_DISK"
+    emit "marker written: $MARKER"
+    exit 96
+  fi
 fi
 
 # ---- launch (own process group via job control) ----------------------------
@@ -225,16 +264,17 @@ set -m
 CHILD=$!
 set +m
 MARKER="${MARKER:-$ROOT/rust/target/generated_logs/memory_guard/guard.$CHILD.marker}"
-info 1 "started pid=$CHILD pgid=$CHILD budget=${BUDGET_MB}MB floor=${FLOOR_PCT}% interval=${INTERVAL_S}s timeout=${TIMEOUT_S}s free=${PRE_FREE:-?}% cmd: $CMD_STR"
+info 1 "started pid=$CHILD pgid=$CHILD budget=${BUDGET_MB}MB floor=${FLOOR_PCT}% disk_floor=${DISK_FLOOR_GB}GB interval=${INTERVAL_S}s timeout=${TIMEOUT_S}s free=${PRE_FREE:-?}% disk=${PRE_DISK:-?}GB cmd: $CMD_STR"
 
 PEAK_RSS_KB=0
 LAST_FREE="$PRE_FREE"
+LAST_DISK="$PRE_DISK"
 START_S=$SECONDS
 
 breach() { # breach <reason> <detail> <exit-code>
   trap - INT TERM   # no re-entry while we are already tearing the tree down
   emit "BREACH ($1): $2 — killing process tree of pid $CHILD (TERM, ${GRACE_S}s grace, KILL)"
-  write_marker "killed" "$1" "$3" "$PEAK_RSS_KB" "${LAST_FREE:--}" "$(( SECONDS - START_S ))"
+  write_marker "killed" "$1" "$3" "$PEAK_RSS_KB" "${LAST_FREE:--}" "$(( SECONDS - START_S ))" "${LAST_DISK:--}"
   terminate_tree "$CHILD"
   wait "$CHILD" 2>/dev/null
   emit "process tree killed; marker written: $MARKER"
@@ -244,7 +284,7 @@ breach() { # breach <reason> <detail> <exit-code>
 on_guard_signal() {
   trap - INT TERM   # no re-entry while we are already tearing the tree down
   emit "guard received INT/TERM — killing the guarded tree (pid $CHILD)"
-  write_marker "killed" "guard-interrupted" "130" "$PEAK_RSS_KB" "${LAST_FREE:--}" "$(( SECONDS - START_S ))"
+  write_marker "killed" "guard-interrupted" "130" "$PEAK_RSS_KB" "${LAST_FREE:--}" "$(( SECONDS - START_S ))" "${LAST_DISK:--}"
   terminate_tree "$CHILD"
   wait "$CHILD" 2>/dev/null
   exit 130
@@ -290,12 +330,24 @@ while kill -0 "$CHILD" 2>/dev/null; do
   else
     emit "WARNING: could not read system free memory this interval — floor check skipped"
   fi
+
+  if [ "$DISK_FLOOR_GB" -gt 0 ]; then
+    d="$(free_disk_gb)"
+    if [ -n "$d" ]; then
+      LAST_DISK="$d"
+      if [ "$d" -lt "$DISK_FLOOR_GB" ]; then
+        breach "disk-floor" "free disk ${d}GB < floor ${DISK_FLOOR_GB}GB" 95
+      fi
+    else
+      emit "WARNING: could not read free disk space this interval — disk-floor check skipped"
+    fi
+  fi
 done
 
 # ---- normal completion -----------------------------------------------------
 wait "$CHILD"
 RC=$?
 trap - INT TERM
-write_marker "completed" "none" "$RC" "$PEAK_RSS_KB" "${LAST_FREE:--}" "$(( SECONDS - START_S ))"
+write_marker "completed" "none" "$RC" "$PEAK_RSS_KB" "${LAST_FREE:--}" "$(( SECONDS - START_S ))" "${LAST_DISK:--}"
 info 1 "completed exit=$RC peak_tree_rss=$(( PEAK_RSS_KB / 1024 ))MB elapsed=$(( SECONDS - START_S ))s; marker: $MARKER"
 exit "$RC"
