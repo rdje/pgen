@@ -1,0 +1,70 @@
+THIN-MEMO SPINE PRICING — RGX-0078.5.i.13 STEP-0 (PGEN-RGX-0078-0116)
+census artifact: 4b0d8242 (must be 4b0d8242)
+
+inputs (pattern / cand-min ns / spine_e / rest_e):
+  alternation        3333    37    44
+  anchor_complex    17167    75   189
+  capture_groups    11625    43   118
+  character_class   14000    16   453
+  digit_sequence     3416    16   109
+  email_basic        3416    22    96
+  literal_simple     1291    13    20
+  url_simple         3000    28    52
+
+== Model A: T = c0 + cS*spine_e + cR*rest_e (n=8) ==
+  full fit: c0=-3190.8 cS=194.3 cR=31.6 (ns)
+  leave-one-out (identifiability record):
+    drop alternation      c0= -2789.8 cS=  199.2 cR=  29.9
+    drop anchor_complex   c0= -3551.6 cS=  207.9 cR=  32.0
+    drop capture_groups   c0= -3252.4 cS=  181.3 cR=  32.0
+    drop character_class  c0= -3364.2 cS=  169.3 cR=  43.3
+    drop digit_sequence   c0= -3210.4 cS=  194.6 cR=  31.6
+    drop email_basic      c0= -2969.7 cS=  191.7 cR=  31.4
+    drop literal_simple   c0= -4053.3 cS=  206.6 cR=  33.3
+    drop url_simple       c0= -2925.6 cS=  193.1 cR=  31.0
+  LOO bands: cS [169.3, 207.9]  cR [29.9, 43.3]
+  READING: cS bundles the ENTIRE spine fn cost (tournament dispatch + guard +
+  memo machinery + child-call overhead) minus what rest_e absorbs — an upper
+  anchor for 'cost at a spine entry', NOT the elidable machinery price.
+
+== The machinery inventory price (the band's real basis) ==
+per-entry elidable components — each coefficient BOUNDED by its visible #15
+symbol share (the honest-anchor discipline; the 9.1% cascade fn-self time is
+tournament/dispatch code and is NOT claimed by this slice):
+  C1 guard scan (cE, per SPINE ENTRY): check_cycle = O(stack-depth) &str-
+     compare scan per entry; #15 symbol 163/15074 = 1.1% in-window =>
+     ~42ns per digit parse / 16 spine entries ~= 2.7ns/entry visible +
+     invisible push/pop + iterator overhead => cE band 2/3/5 ns/entry;
+     the own-rule-scan redesign retains ~0.5ns (equivalence argument:
+     check_cycle only ever compares SAME-rule frames).
+  C2 insert/rehash amortization (cP, per TOTAL ENTRY — both maps, spine
+     thin-memo AND residual protocol memo, pre-sized at construction):
+     reserve_rehash 1.6% + growth share of HashMap::insert (~0.5 of 1.7%)
+     in-window, spread over ~125 total entries/digit parse => cP band
+     0.3/0.5/0.7 ns/entry.
+  C3 success-segment malloc pair (cM, per COMMITTED SPINE SUCCESS): 2x
+     to_vec (DerivEvent is 16B POD => memcpy) per success; bounded by the
+     ALLOC/FREE bucket share attributable to ~20 of ~75 real mallocs per
+     digit parse (~2.9% of parse) => cM band 5/8/11 ns/success.
+
+corpus counts: spine entries 250, body executions 189,
+               committed successes 157, hits 61
+
+== The census-fitted ceiling (geomean over the 8 cand mins) ==
+   save_p = cE*spine_e + cP*total_e + cM*spine_committed
+  LOW  (cE=2 cP=0.3 cM=5 ns): geomean 5047 -> 4842 ns = -4.1%
+        top per-pattern: alternation -6.5%, literal_simple -5.9%, url_simple -5.7%
+  MID  (cE=3 cP=0.5 cM=8 ns): geomean 5047 -> 4722 ns = -6.4%
+        top per-pattern: alternation -10.3%, literal_simple -9.3%, url_simple -8.9%
+  HIGH (cE=5 cP=0.7 cM=11 ns): geomean 5047 -> 4569 ns = -9.5%
+        top per-pattern: alternation -15.2%, literal_simple -13.6%, url_simple -13.1%
+
+cross-check (#15 in-window arithmetic, digit-heavy window, MID):
+  MID digit save = 3*16 + 0.5*125 + 8*10 ~= 190ns / 3416 = 5.6%; the
+  visible elidable symbol budget = check_cycle 1.1 + reserve_rehash 1.6 +
+  insert-growth ~0.5 + to_vec alloc share ~2.9 = ~6.1% => MID is inside the
+  profile bound; LOW (3.5%) comfortably inside; HIGH (8.1%) leans on the
+  invisible inlined shares (push/pop, growth branches) and is the optimistic
+  edge, NOT the expectation. Expectation band = LOW..MID; the fat first-cut
+  bands (cE=5..14/cM=15..35 => -9..-24%) were REJECTED for exceeding the
+  whole measured compound — recorded here per the honest-anchor discipline.

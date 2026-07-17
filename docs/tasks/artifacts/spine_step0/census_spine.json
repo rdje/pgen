@@ -1,0 +1,109 @@
+{
+ "artifact_sha8": "4b0d8242",
+ "carriers": [
+  "alpha_condition_assertion",
+  "alternation",
+  "alternative",
+  "atom",
+  "atomic_group",
+  "branch_reset_group",
+  "capturing_group",
+  "code_balanced_braces",
+  "code_content",
+  "code_element",
+  "concatenation",
+  "condition",
+  "condition_assertion",
+  "condition_callout_assertion",
+  "conditional",
+  "conditional_branch",
+  "extended_class_content",
+  "extended_class_element",
+  "extended_class_nested",
+  "group",
+  "lookaround",
+  "no_branch",
+  "noncapturing_group",
+  "piece",
+  "scan_substring_group",
+  "scoped_inline_modifiers",
+  "script_run_group",
+  "yes_branch"
+ ],
+ "corpus": {
+  "atom_e": 122,
+  "atom_h": 61,
+  "piece_e": 80,
+  "piece_h": 0,
+  "spine": 250,
+  "spine_c": 157,
+  "spine_h": 61,
+  "total": 1331
+ },
+ "per_pattern": {
+  "alternation": {
+   "atom": 20,
+   "piece": 13,
+   "spine": 37,
+   "spine_c": 24,
+   "spine_h": 10,
+   "total": 81
+  },
+  "anchor_complex": {
+   "atom": 26,
+   "piece": 20,
+   "spine": 75,
+   "spine_c": 44,
+   "spine_h": 13,
+   "total": 264
+  },
+  "capture_groups": {
+   "atom": 16,
+   "piece": 12,
+   "spine": 43,
+   "spine_c": 31,
+   "spine_h": 8,
+   "total": 161
+  },
+  "character_class": {
+   "atom": 10,
+   "piece": 6,
+   "spine": 16,
+   "spine_c": 10,
+   "spine_h": 5,
+   "total": 469
+  },
+  "digit_sequence": {
+   "atom": 10,
+   "piece": 6,
+   "spine": 16,
+   "spine_c": 10,
+   "spine_h": 5,
+   "total": 125
+  },
+  "email_basic": {
+   "atom": 14,
+   "piece": 8,
+   "spine": 22,
+   "spine_c": 12,
+   "spine_h": 7,
+   "total": 118
+  },
+  "literal_simple": {
+   "atom": 8,
+   "piece": 5,
+   "spine": 13,
+   "spine_c": 8,
+   "spine_h": 4,
+   "total": 33
+  },
+  "url_simple": {
+   "atom": 18,
+   "piece": 10,
+   "spine": 28,
+   "spine_c": 18,
+   "spine_h": 9,
+   "total": 80
+  }
+ }
+}

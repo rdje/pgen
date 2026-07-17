@@ -1,0 +1,71 @@
+THIN-MEMO SPINE CENSUS — RGX-0078.5.i.13 STEP-0 (PGEN-RGX-0078-0116)
+artifact: generated/regex_parser.rs sha256[:8]=4b0d8242
+
+== STATIC: the thin-memo carrier population ==
+cascade_match_* fns total=234; thin-memo carriers (cyclic fused internals)=28
+per-entry machinery (every carrier): string-keyed recursion_guard.check_cycle + guard enter/exit + (RULE_ID,pos) HashMap thin-memo probe + epoch/deferred validation + ThinDerivMemoEntry insert on EVERY completion (success AND failure); success additionally clones the event+boundary tape segments (.to_vec() x2).
+carriers with a tournament checkpoint() preamble: 7 (atom, atomic_group, condition, condition_assertion, group, lookaround, piece)
+
+carrier list (rule / thin_refs / to_vec_sites / insert_sites / ckpt):
+  alpha_condition_assertion              thin=5 to_vec=2 insert=2 ckpt=0
+  alternation                            thin=5 to_vec=2 insert=2 ckpt=0
+  alternative                            thin=5 to_vec=2 insert=2 ckpt=0
+  atom                                   thin=5 to_vec=2 insert=2 ckpt=1
+  atomic_group                           thin=5 to_vec=2 insert=2 ckpt=1
+  branch_reset_group                     thin=5 to_vec=2 insert=2 ckpt=0
+  capturing_group                        thin=5 to_vec=2 insert=2 ckpt=0
+  code_balanced_braces                   thin=5 to_vec=2 insert=2 ckpt=0
+  code_content                           thin=5 to_vec=2 insert=2 ckpt=0
+  code_element                           thin=5 to_vec=2 insert=2 ckpt=0
+  concatenation                          thin=5 to_vec=2 insert=2 ckpt=0
+  condition                              thin=5 to_vec=2 insert=2 ckpt=1
+  condition_assertion                    thin=5 to_vec=2 insert=2 ckpt=1
+  condition_callout_assertion            thin=5 to_vec=2 insert=2 ckpt=0
+  conditional                            thin=5 to_vec=2 insert=2 ckpt=0
+  conditional_branch                     thin=5 to_vec=2 insert=2 ckpt=0
+  extended_class_content                 thin=5 to_vec=2 insert=2 ckpt=0
+  extended_class_element                 thin=5 to_vec=2 insert=2 ckpt=0
+  extended_class_nested                  thin=5 to_vec=2 insert=2 ckpt=0
+  group                                  thin=5 to_vec=2 insert=2 ckpt=1
+  lookaround                             thin=5 to_vec=2 insert=2 ckpt=1
+  no_branch                              thin=5 to_vec=2 insert=2 ckpt=0
+  noncapturing_group                     thin=5 to_vec=2 insert=2 ckpt=0
+  piece                                  thin=5 to_vec=2 insert=2 ckpt=1
+  scan_substring_group                   thin=5 to_vec=2 insert=2 ckpt=0
+  scoped_inline_modifiers                thin=5 to_vec=2 insert=2 ckpt=0
+  script_run_group                       thin=5 to_vec=2 insert=2 ckpt=0
+  yes_branch                             thin=5 to_vec=2 insert=2 ckpt=0
+
+== DYNAMIC: the 8-pattern outcome-dump aggregation (PROTOCOL-graph counts;
+   boundary-join onto the bare cascade graph per the .5.i.9 method) ==
+pattern           total_e  spine_e  spine%  atom_e  atom_h  piece_e  piece_h  other_sp
+literal_simple         33       13   39.4%       8       4        5        0         0
+digit_sequence        125       16   12.8%      10       5        6        0         0
+character_class       469       16    3.4%      10       5        6        0         0
+alternation            81       37   45.7%      20      10       13        0         4
+capture_groups        161       43   26.7%      16       8       12        0        15
+anchor_complex        264       75   28.4%      26      13       20        0        29
+email_basic           118       22   18.6%      14       7        8        0         0
+url_simple             80       28   35.0%      18       9       10        0         0
+--------------------------------------------------------------------------------------
+CORPUS               1331      250   18.8%     122      61       80        0        48
+
+corpus spine committed=157 memo_hits=61 (hit rate 24.4% of spine entries; body executions = 189)
+
+== per-carrier corpus totals (entries/committed/hits; zero-entry carriers named) ==
+  atom                                   e=  122 c=   59 h=   61
+  piece                                  e=   80 c=   63 h=    0
+  alternative                            e=    9 c=    9 h=    0
+  concatenation                          e=    9 c=    9 h=    0
+  alternation                            e=    6 c=    6 h=    0
+  capturing_group                        e=    6 c=    4 h=    0
+  group                                  e=    6 c=    6 h=    0
+  atomic_group                           e=    2 c=    0 h=    0
+  branch_reset_group                     e=    2 c=    0 h=    0
+  conditional                            e=    2 c=    0 h=    0
+  lookaround                             e=    2 c=    0 h=    0
+  noncapturing_group                     e=    2 c=    1 h=    0
+  scoped_inline_modifiers                e=    2 c=    0 h=    0
+  zero-entry carriers on this corpus (15): alpha_condition_assertion, code_balanced_braces, code_content, code_element, condition, condition_assertion, condition_callout_assertion, conditional_branch, extended_class_content, extended_class_element, extended_class_nested, no_branch, scan_substring_group, script_run_group, yes_branch
+
+machine-readable extract: docs/tasks/artifacts/spine_step0/census_spine.json
