@@ -1,0 +1,2053 @@
+{
+ "cascade_exposure": {
+  "committed_floor": 99,
+  "count_files": 8,
+  "internal_committed": 518,
+  "internal_discarded": 462,
+  "internal_entries": 979,
+  "internal_memo_hits": 125,
+  "residual_committed": 14,
+  "residual_discarded": 128,
+  "residual_entries": 142,
+  "root_committed": 85,
+  "root_discarded": 125,
+  "root_entries": 210,
+  "root_memo_hits": 40,
+  "top_internal_rules": [
+   [
+    "piece",
+    80,
+    63,
+    17
+   ],
+   [
+    "atom",
+    122,
+    59,
+    63
+   ],
+   [
+    "literal",
+    34,
+    34,
+    0
+   ],
+   [
+    "literal_char",
+    34,
+    34,
+    0
+   ],
+   [
+    "class_literal",
+    80,
+    28,
+    52
+   ],
+   [
+    "quant_base",
+    22,
+    18,
+    4
+   ],
+   [
+    "quantifier",
+    22,
+    18,
+    4
+   ],
+   [
+    "class_atom",
+    70,
+    16,
+    54
+   ],
+   [
+    "escape",
+    18,
+    16,
+    2
+   ],
+   [
+    "escape_unit",
+    18,
+    16,
+    2
+   ],
+   [
+    "simple_escape",
+    16,
+    16,
+    0
+   ],
+   [
+    "simple_escape_tail",
+    16,
+    16,
+    0
+   ]
+  ],
+  "total_entries": 1331,
+  "unmatched_entries": 0,
+  "unmatched_rules": []
+ },
+ "cascade_plan_b": {
+  "effect_reaching": [
+   "alpha_condition_assertion",
+   "alpha_lookaround",
+   "alternation",
+   "alternative",
+   "anchor",
+   "atom",
+   "atomic_group",
+   "backreference",
+   "branch_reset_group",
+   "callout",
+   "callout_arg",
+   "capturing_group",
+   "char_class",
+   "class_atom",
+   "class_body",
+   "class_body_nonempty",
+   "class_body_nonempty_nocaret",
+   "class_escape",
+   "class_escape_unit",
+   "class_item",
+   "class_item_core",
+   "class_item_visible",
+   "class_item_visible_core",
+   "class_item_visible_nocaret",
+   "class_item_visible_nocaret_core",
+   "class_range",
+   "class_range_any_char_no_orphan_quote_end",
+   "class_range_decodable_atom",
+   "class_range_decodable_escape",
+   "class_range_endpoint",
+   "class_range_escape",
+   "class_range_escape_unit",
+   "class_range_literal_escape_letter",
+   "class_range_simple_escape",
+   "class_simple_escape",
+   "concatenation",
+   "condition",
+   "condition_assertion",
+   "condition_callout",
+   "condition_callout_assertion",
+   "conditional",
+   "conditional_branch",
+   "counted_quantifier",
+   "counted_quantifier_body",
+   "counted_quantifier_range",
+   "descending_class_range",
+   "directive_body_quantifiable",
+   "directive_relaxed_named",
+   "directive_verb",
+   "entry_alternation",
+   "entry_alternative",
+   "entry_concatenation",
+   "escape",
+   "escape_unit",
+   "extended_class",
+   "extended_class_content",
+   "extended_class_element",
+   "extended_class_nested",
+   "group",
+   "invalid_class_range",
+   "lookahead_neg",
+   "lookahead_pos",
+   "lookaround",
+   "lookbehind_neg",
+   "lookbehind_pos",
+   "named_group",
+   "no_branch",
+   "non_atomic_lookahead_pos",
+   "non_atomic_lookbehind_pos",
+   "noncapturing_group",
+   "numeric_backreference",
+   "numeric_backreference_single",
+   "pattern",
+   "piece",
+   "piece_quoted_run_quantified",
+   "python_named_group",
+   "quant_base",
+   "quantifier",
+   "recursion_condition",
+   "regex",
+   "returned_capture_group",
+   "returned_capture_group_list",
+   "returned_capture_subroutine",
+   "scan_substring_group",
+   "scoped_inline_modifiers",
+   "script_run_group",
+   "scs_capture_name_ref",
+   "scs_capture_number",
+   "signed_digits",
+   "simple_escape",
+   "simple_escape_letter",
+   "simple_escape_tail",
+   "start_option_piece",
+   "subroutine_call",
+   "subroutine_target",
+   "version_condition",
+   "version_number",
+   "yes_branch"
+  ],
+  "effect_targets": [
+   "alpha_condition_assertion",
+   "alpha_lookaround",
+   "alpha_lookaround_open",
+   "alternation",
+   "alternative",
+   "anchor",
+   "atom",
+   "atomic_group",
+   "backreference",
+   "backreference_digits",
+   "backreference_digits_single",
+   "branch_reset_group",
+   "callout",
+   "callout_arg",
+   "callout_number",
+   "capture_open",
+   "capturing_group",
+   "char_class",
+   "class_atom",
+   "class_body",
+   "class_body_nonempty",
+   "class_body_nonempty_nocaret",
+   "class_escape",
+   "class_escape_unit",
+   "class_item",
+   "class_item_core",
+   "class_item_visible",
+   "class_item_visible_core",
+   "class_item_visible_nocaret",
+   "class_item_visible_nocaret_core",
+   "class_range",
+   "class_range_any_char_no_orphan_quote_end",
+   "class_range_decodable_atom",
+   "class_range_decodable_escape",
+   "class_range_endpoint",
+   "class_range_escape",
+   "class_range_escape_unit",
+   "class_range_literal_escape_letter",
+   "class_range_literal_escape_letter_relaxed",
+   "class_range_simple_escape",
+   "class_simple_escape",
+   "class_simple_escape_relaxed",
+   "concatenation",
+   "condition",
+   "condition_assertion",
+   "condition_callout",
+   "condition_callout_assertion",
+   "conditional",
+   "conditional_branch",
+   "counted_quantifier",
+   "counted_quantifier_body",
+   "counted_quantifier_range",
+   "descending_class_range",
+   "digits",
+   "directive_body_quantifiable",
+   "directive_name_relaxed",
+   "directive_payload_suffix",
+   "directive_relaxed_named",
+   "directive_verb",
+   "entry_alternation",
+   "entry_alternative",
+   "entry_concatenation",
+   "escape",
+   "escape_unit",
+   "extended_class",
+   "extended_class_content",
+   "extended_class_element",
+   "extended_class_nested",
+   "group",
+   "invalid_class_range",
+   "keep_out",
+   "lookahead_neg",
+   "lookahead_neg_open",
+   "lookahead_pos",
+   "lookahead_pos_open",
+   "lookaround",
+   "lookbehind_neg",
+   "lookbehind_neg_open",
+   "lookbehind_pos",
+   "lookbehind_pos_open",
+   "named_backreference",
+   "named_group",
+   "named_group_open_angle",
+   "named_group_open_quote",
+   "named_subroutine_target",
+   "no_branch",
+   "non_atomic_lookahead_pos",
+   "non_atomic_lookahead_pos_open",
+   "non_atomic_lookbehind_pos",
+   "non_atomic_lookbehind_pos_open",
+   "noncapturing_group",
+   "numeric_backreference",
+   "numeric_backreference_single",
+   "pattern",
+   "piece",
+   "piece_quoted_run_quantified",
+   "python_named_backreference",
+   "python_named_group",
+   "python_named_group_open",
+   "quant_base",
+   "quant_bound_number",
+   "quantifier",
+   "recursion_condition",
+   "regex",
+   "returned_capture_group",
+   "returned_capture_group_list",
+   "returned_capture_subroutine",
+   "scan_substring_group",
+   "scoped_inline_modifiers",
+   "script_run_group",
+   "scs_capture_name",
+   "scs_capture_name_ref",
+   "scs_capture_number",
+   "signed_digits",
+   "simple_escape",
+   "simple_escape_letter",
+   "simple_escape_letter_relaxed",
+   "simple_escape_tail",
+   "start_option_piece",
+   "subroutine_call",
+   "subroutine_target",
+   "unicode_escape",
+   "version_condition",
+   "version_number",
+   "yes_branch"
+  ],
+  "internal": [
+   "alpha_condition_assertion",
+   "alternation",
+   "alternative",
+   "anchor",
+   "ascii_restrict_modifier",
+   "atom",
+   "atomic_alpha_lookaround_name",
+   "atomic_group",
+   "backreference",
+   "branch_reset_group",
+   "callout",
+   "callout_arg",
+   "callout_backtick_payload",
+   "callout_backtick_string",
+   "callout_brace_payload",
+   "callout_brace_string",
+   "callout_caret_payload",
+   "callout_caret_string",
+   "callout_dollar_payload",
+   "callout_dollar_string",
+   "callout_double_payload",
+   "callout_double_string",
+   "callout_hash_payload",
+   "callout_hash_string",
+   "callout_number_core",
+   "callout_percent_payload",
+   "callout_percent_string",
+   "callout_single_payload",
+   "callout_single_string",
+   "callout_string",
+   "capturing_group",
+   "char_class",
+   "class_atom",
+   "class_body",
+   "class_body_nonempty",
+   "class_body_nonempty_nocaret",
+   "class_bracket_token",
+   "class_bracket_token_tail",
+   "class_escape",
+   "class_escape_unit",
+   "class_initial_close",
+   "class_item",
+   "class_item_core",
+   "class_item_visible",
+   "class_item_visible_core",
+   "class_item_visible_nocaret",
+   "class_item_visible_nocaret_core",
+   "class_literal",
+   "class_literal_nocaret",
+   "class_member_literal",
+   "class_member_literal_nocaret",
+   "class_negated_open",
+   "class_range",
+   "class_range_any_char_no_orphan_quote_end",
+   "class_range_decodable_atom",
+   "class_range_decodable_escape",
+   "class_range_escape",
+   "class_range_escape_unit",
+   "class_range_literal_escape_letter",
+   "class_range_literal_escape_letter_strict",
+   "class_range_nonliteral_atom",
+   "class_range_nonliteral_shorthand",
+   "class_range_simple_escape",
+   "class_safe_special",
+   "class_safe_special_nocaret",
+   "class_simple_escape",
+   "class_simple_escape_strict",
+   "code_balanced_braces",
+   "code_block",
+   "code_block_lang",
+   "code_block_plain",
+   "code_content",
+   "code_element",
+   "code_escaped_char",
+   "code_lang",
+   "code_not_quote_or_backslash",
+   "code_not_squote_or_backslash",
+   "code_regular_char",
+   "code_safe_special",
+   "code_string_double",
+   "code_string_double_char",
+   "code_string_escape",
+   "code_string_single",
+   "code_string_single_char",
+   "comment_group",
+   "comment_text",
+   "concatenation",
+   "condition",
+   "condition_assertion",
+   "condition_callout",
+   "condition_callout_assertion",
+   "conditional",
+   "conditional_branch",
+   "control_escape",
+   "counted_quantifier",
+   "counted_quantifier_body",
+   "define_condition",
+   "directive_accept_named",
+   "directive_body_nonquantifiable",
+   "directive_body_quantifiable",
+   "directive_limit_named",
+   "directive_limit_value_body",
+   "directive_limit_value_core",
+   "directive_mark_named",
+   "directive_mark_shorthand",
+   "directive_option_named",
+   "directive_payload_colon",
+   "directive_payload_colon_required",
+   "directive_payload_core",
+   "directive_payload_digits",
+   "directive_payload_equals",
+   "directive_payload_required",
+   "directive_verb",
+   "directive_verb_named",
+   "directive_verb_nonquant",
+   "dot",
+   "empty_quoted_class_literal",
+   "empty_quoted_literal",
+   "entry_alternation",
+   "entry_alternative",
+   "entry_concatenation",
+   "escape",
+   "escape_unit",
+   "extended_class",
+   "extended_class_content",
+   "extended_class_element",
+   "extended_class_nested",
+   "extended_class_regular",
+   "extended_class_special",
+   "group",
+   "hex_digit",
+   "hex_escape",
+   "hex_escape_short_payload",
+   "inline_modifiers",
+   "invalid_class_range",
+   "letter_no_upper_e",
+   "literal",
+   "literal_char",
+   "literal_open_brace",
+   "lookaround",
+   "modifier_char",
+   "modifier_group",
+   "modifier_item",
+   "modifier_seq",
+   "modifier_spec",
+   "name_ref",
+   "negation",
+   "no_branch",
+   "non_atomic_alpha_lookaround_name",
+   "noncapturing_group",
+   "numeric_backreference_single",
+   "octal_digit",
+   "octal_digits",
+   "octal_escape",
+   "octal_escape_short_payload",
+   "piece",
+   "piece_quoted_run_quantified",
+   "posix_class",
+   "posix_name",
+   "posix_negation",
+   "posix_word_boundary_alias",
+   "prop_name",
+   "property_escape",
+   "quant_base",
+   "quant_bound_core",
+   "quant_suffix",
+   "quantifier",
+   "quoted_class_literal",
+   "quoted_class_literal_char",
+   "quoted_class_literal_escaped_char",
+   "quoted_class_literal_nonempty",
+   "quoted_class_range_atom",
+   "quoted_literal",
+   "quoted_literal_char",
+   "quoted_literal_escape_tail",
+   "quoted_literal_escaped_char",
+   "quoted_run_inner_piece",
+   "recursion_condition",
+   "returned_capture_group",
+   "returned_capture_group_list",
+   "returned_capture_subroutine",
+   "scan_substring_group",
+   "scan_substring_name",
+   "scoped_inline_modifiers",
+   "script_run_group",
+   "script_run_name",
+   "scs_capture_name_ref",
+   "scs_capture_number",
+   "short_prop_letter",
+   "sign",
+   "signed_digits",
+   "simple_escape",
+   "simple_escape_letter",
+   "simple_escape_letter_strict",
+   "simple_escape_tail",
+   "single_byte_escape",
+   "special_char",
+   "start_option_body",
+   "start_option_piece",
+   "start_option_verb",
+   "stray_class_end_quote",
+   "stray_end_quote_escape",
+   "subroutine_call",
+   "subroutine_target",
+   "unicode_char",
+   "unterminated_quoted_literal",
+   "version_condition",
+   "version_number",
+   "version_operator",
+   "whitespace",
+   "whitespace_literal",
+   "ws",
+   "yes_branch",
+   "zero_width"
+  ],
+  "sub_roots": [
+   "alpha_lookaround_name",
+   "any_char",
+   "brace_ws",
+   "callout_number_body",
+   "capture_name",
+   "class_range_endpoint",
+   "class_zero_width",
+   "digit",
+   "directive_limit_name",
+   "directive_option_name",
+   "directive_payload_simple",
+   "directive_verb_name_nonaccept",
+   "hex_digits",
+   "letter",
+   "name",
+   "nonzero_digit",
+   "pattern",
+   "quant_bound_number_body",
+   "reference_name",
+   "regex"
+  ],
+  "thin_memo": [
+   "alpha_condition_assertion",
+   "alternation",
+   "alternative",
+   "atom",
+   "atomic_group",
+   "branch_reset_group",
+   "capturing_group",
+   "code_balanced_braces",
+   "code_content",
+   "code_element",
+   "concatenation",
+   "condition",
+   "condition_assertion",
+   "condition_callout_assertion",
+   "conditional",
+   "conditional_branch",
+   "extended_class_content",
+   "extended_class_element",
+   "extended_class_nested",
+   "group",
+   "lookaround",
+   "no_branch",
+   "noncapturing_group",
+   "pattern",
+   "piece",
+   "scan_substring_group",
+   "scoped_inline_modifiers",
+   "script_run_group",
+   "yes_branch"
+  ]
+ },
+ "cascade_rules_ineligible": {
+  "alpha_lookaround": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @close_scope"
+   ],
+   "root": false
+  },
+  "alpha_lookaround_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @open_scope"
+   ],
+   "root": false
+  },
+  "backreference_digits": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "matched-text @transform"
+   ],
+   "root": false
+  },
+  "backreference_digits_single": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "matched-text @transform"
+   ],
+   "root": false
+  },
+  "callout_number": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "matched-text @transform"
+   ],
+   "root": false
+  },
+  "capture_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @emit_fact"
+   ],
+   "root": false
+  },
+  "class_range_literal_escape_letter_relaxed": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "@profiles dialect gate"
+   ],
+   "root": false
+  },
+  "class_simple_escape_relaxed": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "@profiles dialect gate"
+   ],
+   "root": false
+  },
+  "counted_quantifier_range": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "descending_class_range": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "digits": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "matched-text @transform"
+   ],
+   "root": false
+  },
+  "directive_name_relaxed": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "@profiles dialect gate"
+   ],
+   "root": false
+  },
+  "directive_payload_suffix": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "@profiles dialect gate"
+   ],
+   "root": false
+  },
+  "directive_relaxed_named": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "@profiles dialect gate"
+   ],
+   "root": false
+  },
+  "keep_out": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "lookahead_neg": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @close_scope"
+   ],
+   "root": false
+  },
+  "lookahead_neg_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @open_scope"
+   ],
+   "root": false
+  },
+  "lookahead_pos": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @close_scope"
+   ],
+   "root": false
+  },
+  "lookahead_pos_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @open_scope"
+   ],
+   "root": false
+  },
+  "lookbehind_neg": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @close_scope"
+   ],
+   "root": false
+  },
+  "lookbehind_neg_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @open_scope"
+   ],
+   "root": false
+  },
+  "lookbehind_pos": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @close_scope"
+   ],
+   "root": false
+  },
+  "lookbehind_pos_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @open_scope"
+   ],
+   "root": false
+  },
+  "named_backreference": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "named_group": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @emit_fact"
+   ],
+   "root": false
+  },
+  "named_group_open_angle": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @emit_fact"
+   ],
+   "root": false
+  },
+  "named_group_open_quote": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @emit_fact"
+   ],
+   "root": false
+  },
+  "named_subroutine_target": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "non_atomic_lookahead_pos": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @close_scope"
+   ],
+   "root": false
+  },
+  "non_atomic_lookahead_pos_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @open_scope"
+   ],
+   "root": false
+  },
+  "non_atomic_lookbehind_pos": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @close_scope"
+   ],
+   "root": false
+  },
+  "non_atomic_lookbehind_pos_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @open_scope"
+   ],
+   "root": false
+  },
+  "numeric_backreference": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "python_named_backreference": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "python_named_group": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": true,
+   "reasons": [
+    "runtime directive @emit_fact"
+   ],
+   "root": false
+  },
+  "python_named_group_open": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @emit_fact"
+   ],
+   "root": false
+  },
+  "quant_bound_number": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "matched-text @transform"
+   ],
+   "root": false
+  },
+  "scs_capture_name": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "runtime directive @predicate"
+   ],
+   "root": false
+  },
+  "simple_escape_letter_relaxed": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "@profiles dialect gate"
+   ],
+   "root": false
+  },
+  "unicode_escape": {
+   "boundary_refs": [],
+   "eligible": false,
+   "on_cycle": false,
+   "reasons": [
+    "@profiles dialect gate"
+   ],
+   "root": false
+  }
+ },
+ "grammar_name": "regex",
+ "rule_tiers": {
+  "alpha_condition_assertion": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "alpha_lookaround": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "alpha_lookaround_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "alpha_lookaround_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "alternation": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "alternative": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "anchor": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "any_char": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "ascii_restrict_modifier": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "atom": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "atomic_alpha_lookaround_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "atomic_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "backreference": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "backreference_digits": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "backreference_digits_single": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "brace_ws": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "branch_reset_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "callout": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "callout_arg": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "callout_backtick_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_backtick_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_brace_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_brace_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_caret_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_caret_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_dollar_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_dollar_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_double_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_double_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_hash_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_hash_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_number": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "callout_number_body": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_number_core": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_percent_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_percent_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_single_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "callout_single_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "callout_string": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "capture_name": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "capture_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "capturing_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "char_class": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_atom": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_body": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_body_nonempty": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_body_nonempty_nocaret": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_bracket_token": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "class_bracket_token_tail": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "class_escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_escape_unit": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_initial_close": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "class_item": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_item_core": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_item_visible": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_item_visible_core": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_item_visible_nocaret": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_item_visible_nocaret_core": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_literal": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "class_literal_nocaret": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "class_member_literal": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "class_member_literal_nocaret": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "class_negated_open": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "class_range": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_any_char_no_orphan_quote_end": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_decodable_atom": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_decodable_escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_endpoint": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_escape_unit": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_literal_escape_letter": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_literal_escape_letter_relaxed": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_range_literal_escape_letter_strict": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "class_range_nonliteral_atom": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "class_range_nonliteral_shorthand": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "class_range_simple_escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_safe_special": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "class_safe_special_nocaret": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "class_simple_escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_simple_escape_relaxed": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "class_simple_escape_strict": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "class_zero_width": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "code_balanced_braces": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "code_block": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "code_block_lang": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "code_block_plain": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "code_content": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "code_element": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "code_escaped_char": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "code_lang": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "code_not_quote_or_backslash": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "code_not_squote_or_backslash": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "code_regular_char": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "code_safe_special": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "code_string_double": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "code_string_double_char": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "code_string_escape": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "code_string_single": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "code_string_single_char": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "comment_group": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "comment_text": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "concatenation": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "condition": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "condition_assertion": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "condition_callout": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "condition_callout_assertion": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "conditional": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "conditional_branch": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "control_escape": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "counted_quantifier": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "counted_quantifier_body": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "counted_quantifier_range": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "define_condition": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "descending_class_range": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "digit": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "digits": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "directive_accept_named": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_body_nonquantifiable": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_body_quantifiable": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "directive_limit_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "directive_limit_named": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_limit_value_body": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_limit_value_core": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_mark_named": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_mark_shorthand": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_name_relaxed": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "directive_option_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "directive_option_named": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_payload_colon": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_payload_colon_required": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_payload_core": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "directive_payload_digits": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "directive_payload_equals": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_payload_required": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "directive_payload_simple": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "directive_payload_suffix": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "directive_relaxed_named": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "directive_verb": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "directive_verb_name_nonaccept": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "directive_verb_named": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "directive_verb_nonquant": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "dot": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "empty_quoted_class_literal": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "empty_quoted_literal": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "entry_alternation": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "entry_alternative": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "entry_concatenation": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "escape_unit": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "extended_class": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "extended_class_content": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "extended_class_element": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "extended_class_nested": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "extended_class_regular": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "extended_class_special": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "hex_digit": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "hex_digits": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "hex_escape": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "hex_escape_short_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "inline_modifiers": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "invalid_class_range": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "keep_out": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "letter": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "letter_no_upper_e": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "literal": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "literal_char": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "literal_open_brace": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "lookahead_neg": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookahead_neg_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookahead_pos": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookahead_pos_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookaround": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookbehind_neg": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookbehind_neg_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookbehind_pos": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "lookbehind_pos_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "modifier_char": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "modifier_group": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "modifier_item": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "modifier_seq": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "modifier_spec": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "name": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "name_ref": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "named_backreference": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "named_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "named_group_open_angle": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "named_group_open_quote": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "named_subroutine_target": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "negation": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "no_branch": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "non_atomic_alpha_lookaround_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "non_atomic_lookahead_pos": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "non_atomic_lookahead_pos_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "non_atomic_lookbehind_pos": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "non_atomic_lookbehind_pos_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "noncapturing_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "nonzero_digit": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "numeric_backreference": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "numeric_backreference_single": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "octal_digit": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "octal_digits": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "octal_escape": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "octal_escape_short_payload": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "pattern": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "piece": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "piece_quoted_run_quantified": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "posix_class": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "posix_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "posix_negation": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "posix_word_boundary_alias": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "prop_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "property_escape": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "python_named_backreference": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "python_named_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "python_named_group_open": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "quant_base": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "quant_bound_core": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quant_bound_number": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "quant_bound_number_body": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quant_suffix": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quantifier": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "quoted_class_literal": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_class_literal_char": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_class_literal_escaped_char": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_class_literal_nonempty": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_class_range_atom": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_literal": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_literal_char": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_literal_escape_tail": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "quoted_literal_escaped_char": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "quoted_run_inner_piece": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "recursion_condition": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "reference_name": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "regex": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "returned_capture_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "returned_capture_group_list": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "returned_capture_subroutine": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "scan_substring_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "scan_substring_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "scoped_inline_modifiers": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "script_run_group": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "script_run_name": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "scs_capture_name": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "scs_capture_name_ref": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "scs_capture_number": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "short_prop_letter": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "sign": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "signed_digits": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "simple_escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "simple_escape_letter": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "simple_escape_letter_relaxed": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "simple_escape_letter_strict": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "simple_escape_tail": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "single_byte_escape": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "special_char": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "start_option_body": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "start_option_piece": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "start_option_verb": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "stray_class_end_quote": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "stray_end_quote_escape": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "subroutine_call": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "subroutine_target": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "unicode_char": {
+   "shape_encodable": true,
+   "tier": "fusible_lookahead"
+  },
+  "unicode_escape": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "unterminated_quoted_literal": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "version_condition": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "version_number": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "version_operator": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "whitespace": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "whitespace_literal": {
+   "shape_encodable": true,
+   "tier": "fusible_token"
+  },
+  "ws": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  },
+  "yes_branch": {
+   "shape_encodable": false,
+   "tier": "not_fusible"
+  },
+  "zero_width": {
+   "shape_encodable": true,
+   "tier": "not_fusible"
+  }
+ }
+}

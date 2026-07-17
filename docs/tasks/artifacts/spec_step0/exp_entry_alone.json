@@ -1,0 +1,9 @@
+{
+  "accepted": true,
+  "grammar": "regex",
+  "rule_entry_counts": {
+    "letter": 4,
+    "regex": 1
+  },
+  "total_entries": 5
+}

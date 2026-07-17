@@ -1,0 +1,32 @@
+{
+  "accepted": true,
+  "grammar": "regex",
+  "rule_entry_counts": {
+    "anchor": 6,
+    "atom": 14,
+    "backreference": 6,
+    "backreference_digits": 6,
+    "backreference_digits_single": 6,
+    "entry_alternation": 1,
+    "entry_alternative": 1,
+    "entry_concatenation": 1,
+    "escape": 6,
+    "escape_unit": 6,
+    "literal": 1,
+    "literal_char": 1,
+    "nonzero_digit": 12,
+    "numeric_backreference": 6,
+    "numeric_backreference_single": 6,
+    "piece": 8,
+    "quant_base": 5,
+    "quantifier": 5,
+    "regex": 1,
+    "simple_escape": 4,
+    "simple_escape_letter": 3,
+    "simple_escape_letter_strict": 3,
+    "simple_escape_tail": 4,
+    "special_char": 1,
+    "zero_width": 5
+  },
+  "total_entries": 118
+}

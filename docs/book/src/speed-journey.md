@@ -1,4 +1,4 @@
-# The Speed Journey: 496 µs → ≈9.5 µs
+# The Speed Journey: 496 µs → ≈6.11 µs
 
 > **Part II · Inside PGEN.** This chapter is the companion to
 > [Inside the Parser: Termination & Performance](inside-parser-performance.md). That
