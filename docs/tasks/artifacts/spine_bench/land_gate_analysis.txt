@@ -1,0 +1,32 @@
+rounds=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]  patterns=8
+
+per-round geomean-of-mins (base -> cand, ratio):
+  round 1:   5184.6 ->   4881.4  ratio=0.9415  (-5.85%)
+  round 2:   5547.1 ->   4873.7  ratio=0.8786  (-12.14%)
+  round 3:   5516.0 ->   4791.1  ratio=0.8686  (-13.14%)
+  round 4:   5549.2 ->   4757.0  ratio=0.8572  (-14.28%)
+  round 5:   5498.8 ->   4786.0  ratio=0.8704  (-12.96%)
+  round 6:   5362.4 ->   4805.9  ratio=0.8962  (-10.38%)
+  round 7:   5371.0 ->   4640.9  ratio=0.8641  (-13.59%)
+  round 8:   5423.6 ->   4620.7  ratio=0.8520  (-14.80%)
+  round 9:   5240.0 ->   4739.4  ratio=0.9045  (-9.55%)
+  round 10:   5343.8 ->   4680.6  ratio=0.8759  (-12.41%)
+  round 11:   5211.6 ->   4784.5  ratio=0.9180  (-8.20%)
+  round 12:   5442.3 ->   4683.4  ratio=0.8606  (-13.94%)
+  round 13:   5371.4 ->   4719.9  ratio=0.8787  (-12.13%)
+  round 14:   5345.8 ->   4729.3  ratio=0.8847  (-11.53%)
+  round 15:   5339.5 ->   4725.5  ratio=0.8850  (-11.50%)
+
+per-pattern best-min (base -> cand, ratio):
+  alternation              3333 ->     2916  ratio=0.8749  (-12.51%)
+  anchor_complex          16125 ->    14250  ratio=0.8837  (-11.63%)
+  capture_groups          10583 ->    10000  ratio=0.9449  (-5.51%)
+  character_class         14000 ->    13625  ratio=0.9732  (-2.68%)
+  digit_sequence           3500 ->     2916  ratio=0.8331  (-16.69%)
+  email_basic              3417 ->     2875  ratio=0.8414  (-15.86%)
+  literal_simple           1333 ->     1208  ratio=0.9062  (-9.38%)
+  url_simple               3083 ->     2458  ratio=0.7973  (-20.27%)
+
+=== GEOMEAN-OF-BEST-MINS: base 5001.2ns -> cand 4401.8ns ===
+=== RATIO cand/base = 0.8801  =>  -11.99% ===
+=== falsification bar -2.0% (ratio<0.98): LAND (faster) ===

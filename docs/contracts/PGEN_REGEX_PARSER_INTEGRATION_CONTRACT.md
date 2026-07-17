@@ -41,6 +41,12 @@ This is the document downstream projects such as RGX should read first when deci
 - The **48 false-rejects** are the ratcheted, documented strict-default divergence classes (empty `[]`, class-set operations, extended `(?[...])`, MARK/verb edge cases, `alt_extended_class`-modifier cells, …) — patterns PGEN's strict default deliberately rejects; the ratchet (`MAX_FALSE_REJECT_TOTAL=48`) is EXACT and re-baselined only through a released fidelity slice. The **262 false-accepts** are the remaining tracked accepts-invalid surface — the open debt the `REGEX-PCRE2-FIDELITY` migration campaign continues to burn down.
 - Per-release **Highlights** sections in this contract are historical records: each cites the tuple at its own era. Only THIS section is maintained as the current snapshot.
 
+## Maintenance Update 2026-07-18 — RGX-0078.5.i.14 `-0118`: THIN-MEMO SPINE MACHINERY — cold-parse floor ≈5.05µs → ≈4.40µs (≈113×); new transitive `smallvec` dep (WIRE-FORMAT UNCHANGED)
+
+**What this is.** A performance-only engine/codegen change with **zero wire-format change** — no contract bump, no release bump, AST-dump schema unchanged; the emitted typed-AST JSON is proven **byte-identical** by the all-11 differential-equivalence gate. Three internal machinery elisions on the fused cascade's recursion-guard cycle scan, the memo/tape pre-sizing, and the thin-memo segment storage lowered the mimalloc cold-parse geomean floor from ≈5.05µs to **≈4.40µs (≈113×** from the 496µs origin), measured −12.0% on the fat-LTO alternated 15×2000 land gate.
+
+**Embedder note (dependency).** The generated parser's thin memo now uses `smallvec` for inline-small segment storage. `smallvec` is a **transitive dependency of the `pgen` crate** (the same class as `rustc-hash`), so embedders consuming the parser through the stable `pgen::embedding_api` surface get it automatically — **no consumer-facing action and no integration-contract change**. Only a bespoke standalone-compile of a generated parser outside `pgen` (e.g. the internal compile-and-run harness) needs `smallvec` listed directly; the canonical embedding path does not.
+
 ## Maintenance Update 2026-07-16 — RGX-0078.5.i.7 `-0105`: COMMITTED-VALUE REPRESENTATION — the typed carrier is now `ParseContent::Shaped(PgenValue)` (WIRE-FORMAT UNCHANGED; Rust-embedding note; parse −32%)
 
 **What this is.** A Rust-embedding-level representation change with **zero wire-format change** — no contract bump, no

@@ -871,12 +871,14 @@ impl AstBasedGenerator {
         // artifact stays byte-identical to the D2-A emission. Same lifecycle as
         // the protocol memo maps: constructor-fresh, never cleared per parse.
         let thin_memo_struct_field: TokenStream = if self.cascade_thin_memo_active() {
-            // RGX-0078.5.i.7 (MTB-B) — the thin memo now carries derivation
-            // SEGMENTS (`ThinDerivMemoEntry`), not constructed values: hits
-            // splice the cached segment onto the live tape inside
-            // `cascade_match_<rule>`.
+            // RGX-0078.5.i.7 (MTB-B) — the thin memo carries derivation
+            // SEGMENTS, not constructed values: hits splice the cached segment
+            // onto the live tape inside `cascade_match_<rule>`.
+            // RGX-0078.5.i.14 (C3) — the segment vectors are inline-small
+            // (`ThinDerivSegMemoEntry`) so the common short segment is stored
+            // without a per-success heap allocation.
             quote! {
-                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinDerivMemoEntry<'input>>,
+                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinDerivSegMemoEntry<'input>>,
             }
         } else {
             quote! {}
@@ -1423,8 +1425,16 @@ impl AstBasedGenerator {
             // RGX-0078.5.i.7 (D2-B) — the thin memo mirrors the protocol memo
             // maps' lifecycle: constructor-fresh, never cleared per parse.
             let thin_memo_init: TokenStream = if self.cascade_thin_memo_active() {
+                // RGX-0078.5.i.14 (C2) — adaptive pre-size, mirroring the
+                // protocol memo's `Optim #7` 256-bucket reservation but capped
+                // to the input length so a tiny pattern never eats a 256-bucket
+                // upfront allocation (the tiny-input hazard). Correctness-neutral
+                // capacity hint; the thin memo's contents are unchanged.
                 quote! {
-                    thin_memo: rustc_hash::FxHashMap::default(),
+                    thin_memo: rustc_hash::FxHashMap::with_capacity_and_hasher(
+                        (input.len() + 1).min(256),
+                        Default::default(),
+                    ),
                 }
             } else {
                 quote! {}
@@ -1433,9 +1443,13 @@ impl AstBasedGenerator {
             // `generate_parser_struct`): constructor-fresh empty vecs +
             // zeroed build cursors.
             let mtb_init: TokenStream = if self.cascade_mtb_active() {
+                // RGX-0078.5.i.14 (C2) — small-constant pre-size for the
+                // derivation tape so a cold parse skips the first handful of
+                // 0→4→8→… reallocations. Correctness-neutral capacity hints;
+                // the tape's contents/lifecycle are unchanged.
                 quote! {
-                    deriv_events: Vec::new(),
-                    deriv_boundary: Vec::new(),
+                    deriv_events: Vec::with_capacity(64),
+                    deriv_boundary: Vec::with_capacity(16),
                     deriv_ev_cursor: 0,
                     deriv_b_cursor: 0,
                     deriv_pos: 0,
@@ -1514,8 +1528,19 @@ impl AstBasedGenerator {
                     // case without growth; FxHashMap doubles past that. The cost is
                     // a one-time allocation at parser construction (cheap).
                     memo: rustc_hash::FxHashMap::with_capacity_and_hasher(256, Default::default()),
-                    memo_fail: rustc_hash::FxHashSet::default(),
-                    memo_fail_tainted: rustc_hash::FxHashMap::default(),
+                    // RGX-0078.5.i.14 (C2) — adaptive pre-size for the failure
+                    // sets (the #15 census attributed `reserve_rehash` cost to
+                    // their default-sized growth on the bench). Capped to input
+                    // length so a tiny pattern pays only a proportional
+                    // reservation (the tiny-input hazard); correctness-neutral.
+                    memo_fail: rustc_hash::FxHashSet::with_capacity_and_hasher(
+                        (input.len() + 1).min(256),
+                        Default::default(),
+                    ),
+                    memo_fail_tainted: rustc_hash::FxHashMap::with_capacity_and_hasher(
+                        (input.len() + 1).min(256),
+                        Default::default(),
+                    ),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     #grammar_profile_init
                     recovery_events: Vec::new(),
@@ -3769,7 +3794,7 @@ impl AstBasedGenerator {
         // messages keep an accurate rule frame.
         let cycle_check_emit = if is_recursive {
             quote! {
-                let cycle_type = self.recursion_guard.check_cycle(#rule_name, position);
+                let cycle_type = self.recursion_guard.check_cycle_id(Self::#rule_const, position);
 
                 match cycle_type {
                     CycleType::Infinite => {
@@ -3816,7 +3841,7 @@ impl AstBasedGenerator {
 
                 #profile_guard
 
-                self.recursion_guard.enter(#rule_name, position);
+                self.recursion_guard.enter_id(Self::#rule_const, #rule_name, position);
 
                 // SV-EXH-PROOF.3.3.4.b.6.2.22 — PER-RULE CALL COUNTER.
                 // Single Relaxed atomic add on rule entry (~1ns; lock-free).
@@ -8117,7 +8142,7 @@ impl AstBasedGenerator {
                             .parse_stack
                             .last()
                             .map(|entry| entry.0);
-                        self.recursion_guard.parse_stack.truncate(saved_stack_len);
+                        self.recursion_guard.truncate_stack(saved_stack_len);
                         // .b.6.2.7: also undo semantic side-effects of the
                         // failed speculation (see the block-comment above).
                         self.semantic_runtime_state.rollback_to_labeled(

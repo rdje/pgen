@@ -967,21 +967,22 @@ pub struct MemoEntry<'input> {
     pub coverage_delta: Option<Vec<u32>>,
 }
 
-/// RGX-0078.5.i.7 (D2-B + MTB-B) — one entry of the fused cascade graph's
-/// THIN memo: the ⛔ session-#49 bound's carrier for CYCLE-PARTICIPATING fused
-/// rules (`CascadeEmissionPlan::thin_memo`), which must never lose memo
-/// protection. The payload is a committed derivation SEGMENT (the MTB-B form —
-/// `PGEN-RGX-0078-0101`; the eager value-carrying `ThinMemoEntry` was retired
-/// with it, an additive transient migration completed once no artifact
-/// referenced the old type): a valid HIT splices the cached
-/// `(end, event-segment, boundary-segment)` onto the live tape and jumps the
-/// position; the build pass constructs the value ONCE from the spliced events —
-/// so a memoized sub-derivation on a DOOMED path is truncated un-built. Events
-/// are tape-index-free (`DerivEvent` carries input positions / counts / branch
-/// indices only), so a segment is position-independent within the tape; the
-/// memo key pins the input position, so the absolute input positions inside
-/// the segment replay exactly. Boundary values are arena refs (`Copy`), alive
-/// for the whole parse — the eager entry's shallow-replay economics.
+/// RGX-0078.5.i.7 (D2-B + MTB-B) / RGX-0078.5.i.14 (C3) — one entry of the fused
+/// cascade graph's THIN memo: the ⛔ session-#49 bound's carrier for
+/// CYCLE-PARTICIPATING fused rules (`CascadeEmissionPlan::thin_memo`), which must
+/// never lose memo protection. The payload is a committed derivation SEGMENT (the
+/// MTB-B form — `PGEN-RGX-0078-0101`; the eager value-carrying `ThinMemoEntry`
+/// was retired with it, then the `Vec`-backed `ThinDerivMemoEntry` was retired by
+/// C3 in favor of this inline-small form — each an additive transient migration
+/// completed once no regenerated artifact referenced the old type): a valid HIT
+/// splices the cached `(end, event-segment, boundary-segment)` onto the live tape
+/// and jumps the position; the build pass constructs the value ONCE from the
+/// spliced events — so a memoized sub-derivation on a DOOMED path is truncated
+/// un-built. Events are tape-index-free (`DerivEvent` carries input positions /
+/// counts / branch indices only), so a segment is position-independent within the
+/// tape; the memo key pins the input position, so the absolute input positions
+/// inside the segment replay exactly. Boundary values are arena refs (`Copy`),
+/// alive for the whole parse — the eager entry's shallow-replay economics.
 ///
 /// Unlike [`MemoEntry`], a thin entry carries NO semantic/coverage delta —
 /// replay is `position = end` plus the tape splice (or the cached failure) and
@@ -1009,8 +1010,20 @@ pub struct MemoEntry<'input> {
 ///   mutation the protocol memo re-applies from its stored delta, so every
 ///   re-probe honestly re-executes (deterministic ⇒ same outcome + same
 ///   effects).
+///
+/// RGX-0078.5.i.14 (C3) — INLINE-SMALL SEGMENTS: the two committed-segment
+/// vectors are `SmallVec`s with an inline capacity, so the common short segment
+/// (an `OrWinner` plus 0–2 tok events, and 0–1 boundary refs — the STEP-0 census
+/// shape) is stored inline and the per-success `Vec` malloc PAIR (and its later
+/// free) is elided. `DerivEvent` is `Copy` POD and a `&'input ParseNode` is a
+/// `Copy` arena borrow, so `SmallVec::from_slice` is a plain memcpy, and a hit
+/// still splices the segment onto the live tape via `extend_from_slice`
+/// (`SmallVec` derefs to a slice, exactly like the `Vec` form). Inline caps 4
+/// (events) / 2 (boundary) cover the overwhelming majority of committed segments;
+/// a longer segment spills to the heap exactly as the `Vec` form did — same worst
+/// case, cheaper common case.
 #[derive(Debug, Clone)]
-pub struct ThinDerivMemoEntry<'input> {
+pub struct ThinDerivSegMemoEntry<'input> {
     /// `None` = PURE (valid forever); `Some((write_epoch, deferred_len))` =
     /// STORE-READ, both captured at body entry and validated at replay.
     pub stamp: Option<(u64, usize)>,
@@ -1018,7 +1031,11 @@ pub struct ThinDerivMemoEntry<'input> {
     /// match; `None` for a cached failure, replayed as
     /// `ParseError::Backtrack` at the probe key's position.
     #[allow(clippy::type_complexity)]
-    pub outcome: Option<(usize, Vec<DerivEvent>, Vec<&'input ParseNode<'input>>)>,
+    pub outcome: Option<(
+        usize,
+        smallvec::SmallVec<[DerivEvent; 4]>,
+        smallvec::SmallVec<[&'input ParseNode<'input>; 2]>,
+    )>,
 }
 
 /// RGX-0078.5.i.7 (MTB-A) — one committed-derivation TAPE event of the fused
@@ -1080,7 +1097,23 @@ pub enum CycleType {
 /// Recursion guard
 #[derive(Debug, Clone)]
 pub struct RecursionGuard {
+    /// The active parse stack, oldest frame first: `(rule_name, position)`.
+    /// The legacy name-scan cycle check keys on this, and the three emitted
+    /// call sites that read a frame's rule name (`try_parse` rollback label,
+    /// the debug stack-path log, `create_contextual_error`) read `entry.0`
+    /// here — so its 2-tuple shape is kept byte-compatible with every on-disk
+    /// artifact (RGX-0078.5.i.14/C1: the id lives in the parallel stack below,
+    /// not by widening this frame).
     pub parse_stack: Vec<(&'static str, usize)>,
+    /// RGX-0078.5.i.14 (C1) — a dense parallel `(RuleId, position)` stack kept
+    /// in lockstep with `parse_stack` (same length, same order, same push/pop/
+    /// truncate points). [`Self::check_cycle_id`] scans THIS instead of the
+    /// name stack, replacing the per-frame `&'static str` content (length +
+    /// `memcmp`) compare with a single `RuleId` integer compare, and it is
+    /// self-contained (position travels with the id) so the hot scan never
+    /// touches the wider name frames. A legacy name-scan parser fills the id
+    /// slot with a `RuleId::MAX` placeholder it never reads.
+    pub rule_id_stack: Vec<(RuleId, usize)>,
     pub max_depth: usize,
     pub cycle_cache: HashMap<(String, usize), CycleType>,
 }
@@ -1089,11 +1122,15 @@ impl RecursionGuard {
     pub fn new(max_depth: usize) -> Self {
         Self {
             parse_stack: Vec::new(),
+            rule_id_stack: Vec::new(),
             max_depth,
             cycle_cache: HashMap::new(),
         }
     }
 
+    /// Legacy NAME-scan cycle check — byte-for-byte the pre-C1 behavior, used
+    /// by the bootstrap (`ast_code_generator`) emitter and any caller without a
+    /// `RuleId`.
     pub fn check_cycle(&mut self, rule_name: &'static str, position: usize) -> CycleType {
         for (r, p) in self.parse_stack.iter() {
             if *r == rule_name && *p == position {
@@ -1113,12 +1150,66 @@ impl RecursionGuard {
         CycleType::None
     }
 
+    /// RGX-0078.5.i.14 (C1) — id-aware cycle check. Scans the dense
+    /// `rule_id_stack` (`RuleId` integer compare) instead of the name stack.
+    /// Because `rule_id_stack` is kept in lockstep with `parse_stack` (same
+    /// length/order, and its position column mirrors `parse_stack`'s) and a
+    /// parser's `RuleId`↔rule-name mapping is a bijection, `*rid == rule_id`
+    /// holds for exactly the frames `*r == rule_name` would — so the
+    /// Infinite/LeftRecursive/MutualRecursive verdict, its `rules` payload
+    /// (still read from `parse_stack`), and the oldest-first total-depth walk
+    /// (including the `max_depth` ceiling) are byte-identical to
+    /// [`Self::check_cycle`].
+    pub fn check_cycle_id(&mut self, rule_id: RuleId, position: usize) -> CycleType {
+        for (rid, p) in self.rule_id_stack.iter() {
+            if *rid == rule_id && *p == position {
+                return CycleType::Infinite;
+            }
+            if *rid == rule_id && *p > position {
+                return CycleType::LeftRecursive;
+            }
+        }
+        if self.parse_stack.len() >= self.max_depth {
+            let rules: Vec<&'static str> = self.parse_stack.iter().map(|(r, _)| *r).collect();
+            return CycleType::MutualRecursive {
+                depth: self.parse_stack.len(),
+                rules,
+            };
+        }
+        CycleType::None
+    }
+
+    /// Legacy name-only push. Mirrors the frame into `rule_id_stack` with a
+    /// `RuleId::MAX` placeholder so the two stacks stay length-synced even for a
+    /// bootstrap parser (which only ever reads the name via
+    /// [`Self::check_cycle`]).
     pub fn enter(&mut self, rule_name: &'static str, position: usize) {
         self.parse_stack.push((rule_name, position));
+        self.rule_id_stack.push((RuleId::MAX, position));
+    }
+
+    /// RGX-0078.5.i.14 (C1) — id-carrying push used by the protocol + cascade
+    /// emitters so [`Self::check_cycle_id`] can scan by integer. The name is
+    /// still pushed to `parse_stack` for the `MutualRecursive` payload, the
+    /// error/trace text, and the three name-reading call sites.
+    pub fn enter_id(&mut self, rule_id: RuleId, rule_name: &'static str, position: usize) {
+        self.parse_stack.push((rule_name, position));
+        self.rule_id_stack.push((rule_id, position));
     }
 
     pub fn exit(&mut self) {
         self.parse_stack.pop();
+        self.rule_id_stack.pop();
+    }
+
+    /// RGX-0078.5.i.14 (C1) — truncate BOTH stacks to `len`, the `try_parse`
+    /// rollback restore. Keeps `rule_id_stack` in lockstep with `parse_stack`
+    /// when a failed speculation left unbalanced `enter_id`/`exit` frames (the
+    /// `?`-bypass path). `len` is a prior `parse_stack.len()`, which equals
+    /// `rule_id_stack.len()` by the lockstep invariant.
+    pub fn truncate_stack(&mut self, len: usize) {
+        self.parse_stack.truncate(len);
+        self.rule_id_stack.truncate(len);
     }
 }
 

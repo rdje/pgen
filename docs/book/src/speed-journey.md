@@ -1,4 +1,4 @@
-# The Speed Journey: 496 µs → ≈5.05 µs
+# The Speed Journey: 496 µs → ≈4.40 µs
 
 > **Part II · Inside PGEN.** This chapter is the companion to
 > [Inside the Parser: Termination & Performance](inside-parser-performance.md). That
@@ -8,12 +8,12 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #143 — six calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈5.05 µs** with a
-mimalloc-class global allocator: about **98× faster**
-(≈36× before the allocator recommendation), with every single landing proven
+Between sessions #90 and #145 — seven calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈4.40 µs** with a
+mimalloc-class global allocator: about **113× faster**
+(≈41× before the allocator recommendation), with every single landing proven
 **byte-identical** on its full oracle battery before its speed number was believed.
-Twenty-two levers landed. More than a dozen others were refuted, rejected, or reverted —
+Twenty-three levers landed. More than a dozen others were refuted, rejected, or reverted —
 most of them for the price of a document rather than a build. This chapter is the story of
 both lists, because the refusals are as much the method as the landings.
 
@@ -388,5 +388,14 @@ regex parser, 78.5% one-byte, 100% ASCII), a bench-minima-fitted model priced it
 honestly at −4…−7% bench-wide (the profile window's 14.5% headline was
 digit-pattern-weighted — the census caught the over-price *before* emission this
 time), and the landed `match_lit_ascii` fast path measured **−4.8%**, inside the band.
-The scoreboard now reads **496 µs → ≈5.05 µs, about 98×**. The method decides — and
+Then the **thin-memo spine machinery** (lever 5.i.14) landed three compounding
+elisions on the fused cascade's cycle-participating spine — an integer-compare
+recursion guard scan (a parallel dense id stack, refined mid-slice from the design's
+tuple-widening after the mandated compile check caught three emitted sites reading the
+name stack's shape directly), adaptive memo pre-sizing, and inline-small `SmallVec`
+segment storage that elides the per-committed-sub-derivation malloc pair — measured
+**−12.0%**, which honestly *exceeded* the census-fit HIGH ceiling of −9.5%: the first
+over-delivery of the campaign, most plausibly a super-additive alloc/cache compound the
+additive census under-priced, named for a future re-profile rather than smoothed over.
+The scoreboard now reads **496 µs → ≈4.40 µs, about 113×**. The method decides — and
 the story continues here.

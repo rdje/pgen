@@ -1,0 +1,300 @@
+== round 1 base ==
+pattern min
+literal_simple 1333
+digit_sequence 3541
+character_class 14000
+alternation 3333
+capture_groups 11250
+url_simple 3250
+email_basic 4000
+anchor_complex 16208
+== round 1 cand ==
+pattern min
+literal_simple 1333
+digit_sequence 3375
+character_class 15375
+alternation 2958
+capture_groups 11084
+url_simple 2792
+email_basic 3250
+anchor_complex 15666
+== round 2 base ==
+pattern min
+literal_simple 1458
+digit_sequence 4000
+character_class 15916
+alternation 3458
+capture_groups 11709
+url_simple 3250
+email_basic 4125
+anchor_complex 17792
+== round 2 cand ==
+pattern min
+literal_simple 1291
+digit_sequence 3375
+character_class 14959
+alternation 3000
+capture_groups 11167
+url_simple 2833
+email_basic 3250
+anchor_complex 15833
+== round 3 base ==
+pattern min
+literal_simple 1458
+digit_sequence 4000
+character_class 15583
+alternation 3416
+capture_groups 11584
+url_simple 3250
+email_basic 4083
+anchor_complex 17958
+== round 3 cand ==
+pattern min
+literal_simple 1250
+digit_sequence 3208
+character_class 14875
+alternation 2916
+capture_groups 11125
+url_simple 2833
+email_basic 3250
+anchor_complex 15584
+== round 4 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3958
+character_class 15792
+alternation 3500
+capture_groups 11875
+url_simple 3291
+email_basic 4083
+anchor_complex 17667
+== round 4 cand ==
+pattern min
+literal_simple 1291
+digit_sequence 3333
+character_class 15000
+alternation 2917
+capture_groups 10916
+url_simple 2791
+email_basic 3208
+anchor_complex 14250
+== round 5 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3958
+character_class 15500
+alternation 3375
+capture_groups 11875
+url_simple 3250
+email_basic 4042
+anchor_complex 17750
+== round 5 cand ==
+pattern min
+literal_simple 1250
+digit_sequence 3250
+character_class 15041
+alternation 2958
+capture_groups 11000
+url_simple 2792
+email_basic 3208
+anchor_complex 15458
+== round 6 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3958
+character_class 15416
+alternation 3375
+capture_groups 10750
+url_simple 3250
+email_basic 4042
+anchor_complex 16125
+== round 6 cand ==
+pattern min
+literal_simple 1291
+digit_sequence 3333
+character_class 14917
+alternation 2958
+capture_groups 10791
+url_simple 2750
+email_basic 3250
+anchor_complex 15542
+== round 7 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3916
+character_class 15541
+alternation 3416
+capture_groups 10625
+url_simple 3208
+email_basic 4083
+anchor_complex 16417
+== round 7 cand ==
+pattern min
+literal_simple 1250
+digit_sequence 3000
+character_class 13708
+alternation 2958
+capture_groups 10333
+url_simple 2791
+email_basic 3166
+anchor_complex 15500
+== round 8 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3916
+character_class 14083
+alternation 3375
+capture_groups 11958
+url_simple 3209
+email_basic 4041
+anchor_complex 17791
+== round 8 cand ==
+pattern min
+literal_simple 1291
+digit_sequence 2916
+character_class 14958
+alternation 2958
+capture_groups 10000
+url_simple 2709
+email_basic 3167
+anchor_complex 14541
+== round 9 base ==
+pattern min
+literal_simple 1416
+digit_sequence 3500
+character_class 15375
+alternation 3375
+capture_groups 11708
+url_simple 3083
+email_basic 3541
+anchor_complex 17291
+== round 9 cand ==
+pattern min
+literal_simple 1291
+digit_sequence 3333
+character_class 14750
+alternation 2916
+capture_groups 10958
+url_simple 2750
+email_basic 3166
+anchor_complex 14417
+== round 10 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3875
+character_class 14375
+alternation 3375
+capture_groups 10583
+url_simple 3208
+email_basic 4083
+anchor_complex 17500
+== round 10 cand ==
+pattern min
+literal_simple 1250
+digit_sequence 3250
+character_class 14750
+alternation 2958
+capture_groups 10958
+url_simple 2750
+email_basic 2875
+anchor_complex 15000
+== round 11 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3500
+character_class 15583
+alternation 3375
+capture_groups 11000
+url_simple 3083
+email_basic 3417
+anchor_complex 17500
+== round 11 cand ==
+pattern min
+literal_simple 1291
+digit_sequence 3291
+character_class 14958
+alternation 2916
+capture_groups 10917
+url_simple 2750
+email_basic 3167
+anchor_complex 15584
+== round 12 base ==
+pattern min
+literal_simple 1458
+digit_sequence 3958
+character_class 14125
+alternation 3416
+capture_groups 11833
+url_simple 3208
+email_basic 4083
+anchor_complex 17833
+== round 12 cand ==
+pattern min
+literal_simple 1250
+digit_sequence 3333
+character_class 13875
+alternation 2958
+capture_groups 10958
+url_simple 2458
+email_basic 3208
+anchor_complex 15666
+== round 13 base ==
+pattern min
+literal_simple 1416
+digit_sequence 3916
+character_class 15625
+alternation 3334
+capture_groups 11625
+url_simple 3208
+email_basic 3667
+anchor_complex 17542
+== round 13 cand ==
+pattern min
+literal_simple 1250
+digit_sequence 3292
+character_class 14958
+alternation 2958
+capture_groups 10375
+url_simple 2791
+email_basic 3250
+anchor_complex 14375
+== round 14 base ==
+pattern min
+literal_simple 1416
+digit_sequence 3875
+character_class 15625
+alternation 3375
+capture_groups 10750
+url_simple 3208
+email_basic 4041
+anchor_complex 16541
+== round 14 cand ==
+pattern min
+literal_simple 1291
+digit_sequence 3125
+character_class 14792
+alternation 2916
+capture_groups 10959
+url_simple 2750
+email_basic 3208
+anchor_complex 14875
+== round 15 base ==
+pattern min
+literal_simple 1416
+digit_sequence 3542
+character_class 15459
+alternation 3416
+capture_groups 10791
+url_simple 3208
+email_basic 4041
+anchor_complex 17833
+== round 15 cand ==
+pattern min
+literal_simple 1208
+digit_sequence 3333
+character_class 13625
+alternation 3000
+capture_groups 10916
+url_simple 2791
+email_basic 3208
+anchor_complex 15458

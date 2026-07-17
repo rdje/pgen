@@ -132,6 +132,14 @@ rustc-hash = "2.1"
 # regex integration contract recommends a mimalloc-class allocator to embedders.
 mimalloc = { version = "0.1", default-features = false, optional = true }
 typed-arena = "2.0.2"
+# RGX-0078.5.i.14 (C3): inline-small storage for the fused cascade's thin-memo
+# derivation segments. The overwhelming majority of committed sub-derivations
+# are a handful of POD `DerivEvent`s + 0–1 boundary refs, so a `SmallVec` inline
+# capacity elides the per-success `Vec` malloc pair (and its free). Tiny,
+# no-transitive-deps utility crate in the spirit of `rustc-hash`; unlike the
+# mimalloc allocator it is a plain data-structure dep, so it imposes no global
+# state on consumers (the README allocator architecture is unaffected).
+smallvec = "1"
 
 [features]
 default = ["normal"]

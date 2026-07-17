@@ -23,7 +23,8 @@
 //! A generated parser's source hard-codes `use crate::ast_pipeline::{…}`. Inside `pgen` that resolves
 //! against the whole crate (including `pub(crate)` items); an **external** crate sees only `pub` items.
 //! A static audit of every `generated/*_parser.rs` shows they reach **only** `crate::ast_pipeline::*`
-//! (22 distinct symbols, all `pub`) plus the externs `regex` / `rustc_hash` / `serde_json`. So a
+//! (22 distinct symbols, all `pub`) plus the externs `regex` / `rustc_hash` / `smallvec` /
+//! `serde_json` (`smallvec` since RGX-0078.5.i.14/C3's inline-small thin-memo segments). So a
 //! throwaway crate that (a) path-depends on `pgen`, (b) adds the single shim `use pgen::ast_pipeline;`
 //! at its crate root — which makes the generated file's `crate::ast_pipeline::…` paths resolve to
 //! `pgen`'s — and (c) `include!`s the generated parser, **compiles and runs**. [`ParseNode`] derives
@@ -408,6 +409,7 @@ path = "src/main.rs"
 [dependencies]
 pgen = {{ path = {pgen:?} }}
 rustc-hash = "2.1"
+smallvec = "1"
 regex = "1.7"
 serde_json = "1.0"
 

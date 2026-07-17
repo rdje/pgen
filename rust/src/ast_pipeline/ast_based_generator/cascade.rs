@@ -45,7 +45,7 @@
 //! `cascade_<rule>` fn at all (only match/build fns reference them — the plan
 //! partition). CYCLIC internal rules keep the D2-B protocol-mirror frame
 //! inside their match fn — the recursion guard verbatim plus the thin memo
-//! with a derivation-SEGMENT payload (`ThinDerivMemoEntry`): a valid hit
+//! with a derivation-SEGMENT payload (`ThinDerivSegMemoEntry`): a valid hit
 //! splices the cached `(end, event-segment, boundary-segment)` onto the live
 //! tape and jumps the position (⛔ #49 — cycle participants never lose memo
 //! protection); cyclic SUB-ROOTS keep their guard + real-memo protection at
@@ -58,7 +58,7 @@
 //! (the plan's `thin_memo`, D2-B) keep both, in lean form: the protocol-mirror
 //! `check_cycle` + `enter`/`exit` guard frame, and the epoch-stamped THIN memo
 //! (⛔ the session-#49 bound — a cyclic fused rule never loses memo
-//! protection; see `ThinDerivMemoEntry` for the segment splice-replay
+//! protection; see `ThinDerivSegMemoEntry` for the segment splice-replay
 //! soundness argument). A cycle-participating SUB-ROOT needs neither in its cascade fn:
 //! fused bodies call sub-roots as protocol METHODS, whose full frame already
 //! carries the guard and the real memo.
@@ -520,7 +520,7 @@ impl AstBasedGenerator {
                         parser.furthest_position = parser.position;
                     }
                     let position = parser.position;
-                    match parser.recursion_guard.check_cycle(#rule_name, position) {
+                    match parser.recursion_guard.check_cycle_id(Self::#rule_const, position) {
                         CycleType::Infinite => {
                             return Err(ParseError::InvalidSyntax {
                                 message: "Infinite recursion detected",
@@ -579,7 +579,7 @@ impl AstBasedGenerator {
                     let __pgen_thin_preds = parser.semantic_runtime_state.predicate_evaluations();
                     let __pgen_thin_ev_mark = parser.deriv_events.len();
                     let __pgen_thin_b_mark = parser.deriv_boundary.len();
-                    parser.recursion_guard.enter(#rule_name, position);
+                    parser.recursion_guard.enter_id(Self::#rule_const, #rule_name, position);
                     let __pgen_thin_result: ParseResult<()> =
                         (|parser: &mut Self| -> ParseResult<()> {
                             #parse_logic
@@ -606,13 +606,21 @@ impl AstBasedGenerator {
                             };
                         match &__pgen_thin_result {
                             Ok(()) => {
-                                let __pgen_thin_ev_seg =
-                                    parser.deriv_events[__pgen_thin_ev_mark..].to_vec();
-                                let __pgen_thin_b_seg =
-                                    parser.deriv_boundary[__pgen_thin_b_mark..].to_vec();
+                                // RGX-0078.5.i.14 (C3) — the committed segment is
+                                // copied into inline-small `SmallVec`s (POD
+                                // `Copy` memcpy), eliding the `Vec` malloc pair
+                                // for the common short segment. The target inline
+                                // capacities are inferred from
+                                // `ThinDerivSegMemoEntry::outcome`.
+                                let __pgen_thin_ev_seg = smallvec::SmallVec::from_slice(
+                                    &parser.deriv_events[__pgen_thin_ev_mark..],
+                                );
+                                let __pgen_thin_b_seg = smallvec::SmallVec::from_slice(
+                                    &parser.deriv_boundary[__pgen_thin_b_mark..],
+                                );
                                 parser.thin_memo.insert(
                                     __pgen_thin_key,
-                                    crate::ast_pipeline::ThinDerivMemoEntry {
+                                    crate::ast_pipeline::ThinDerivSegMemoEntry {
                                         stamp: __pgen_thin_stamp,
                                         outcome: Some((
                                             parser.position,
@@ -625,7 +633,7 @@ impl AstBasedGenerator {
                             Err(_) => {
                                 parser.thin_memo.insert(
                                     __pgen_thin_key,
-                                    crate::ast_pipeline::ThinDerivMemoEntry {
+                                    crate::ast_pipeline::ThinDerivSegMemoEntry {
                                         stamp: __pgen_thin_stamp,
                                         outcome: None,
                                     },
@@ -2236,7 +2244,7 @@ mod tests {
     /// fuses under the CyclicSpine increment as a match/build pair: its MATCH
     /// fn recurses through direct match calls and carries the recursion-guard
     /// frame + the epoch-stamped thin memo with a derivation-SEGMENT payload
-    /// (`ThinDerivMemoEntry` — hits splice, inserts capture the segment); an
+    /// (`ThinDerivSegMemoEntry` — hits splice, inserts capture the segment); an
     /// acyclic rule in the same plan keeps the frame-free match/build shape.
     #[test]
     fn cascade_cyclic_internal_rule_gets_guard_frame_and_thin_memo() {
@@ -2293,7 +2301,7 @@ mod tests {
         // pairs with no eager `cascade_<rule>` fn; the sub-root `entry` gets
         // the orchestrator plus its own pair. The cyclic internal rule's
         // MATCH fn carries the protocol-mirror frame (guard + thin memo) with
-        // the memo payload now a derivation SEGMENT (`ThinDerivMemoEntry`).
+        // the memo payload now a derivation SEGMENT (`ThinDerivSegMemoEntry`).
         assert!(
             generator.cascade_mtb_active()
                 && generator.mtb_sub_root("entry")
@@ -2339,7 +2347,7 @@ mod tests {
             cyc_body.contains("thin_memo")
                 && cyc_body.contains("write_epoch")
                 && cyc_body.contains("deferred_obligation_count")
-                && cyc_body.contains("ThinDerivMemoEntry"),
+                && cyc_body.contains("ThinDerivSegMemoEntry"),
             "the cyclic match fn carries the epoch-stamped SEGMENT thin memo, got: {cyc_body}"
         );
         assert!(
@@ -2347,8 +2355,8 @@ mod tests {
             "a thin-memo hit splices the cached segment onto the live tape, got: {cyc_body}"
         );
         assert!(
-            cyc_body.contains("__pgen_thin_ev_mark") && cyc_body.contains("to_vec"),
-            "a thin-memo insert captures the body's tape segment, got: {cyc_body}"
+            cyc_body.contains("__pgen_thin_ev_mark") && cyc_body.contains("from_slice"),
+            "a thin-memo insert captures the body's tape segment (RGX-0078.5.i.14/C3: inline-small SmallVec), got: {cyc_body}"
         );
         assert!(
             cyc_body.contains("cascade_match_cyc ()"),
