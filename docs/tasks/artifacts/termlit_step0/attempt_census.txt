@@ -1,0 +1,10 @@
+== RGX-0078.5.i.11 dynamic terminal-literal attempt census (traced protocol graph) ==
+literal_simple     accepted=True total=    5  1B=    5  2-4B=   0  >=5B=  0  non_ascii=0  top=[('t', 2), ('e', 1), ('s', 1), ('|', 1)]
+digit_sequence     accepted=True total=   69  1B=   63  2-4B=   6  >=5B=  0  non_ascii=0  top=[('\\', 9), ('2', 7), ('3', 7), ('4', 7), (',', 6)]
+character_class    accepted=True total=  192  1B=  165  2-4B=  27  >=5B=  0  non_ascii=0  top=[('-', 77), ('[', 34), ('[:', 25), (']', 6), ('2', 5)]
+alternation        accepted=True total=   13  1B=   13  2-4B=   0  >=5B=  0  non_ascii=0  top=[('|', 3), ('d', 2), ('c', 1), ('a', 1), ('t', 1)]
+capture_groups     accepted=True total=   84  1B=   78  2-4B=   6  >=5B=  0  non_ascii=0  top=[('2', 11), ('\\', 9), ('4', 7), (',', 6), ('|', 4)]
+url_simple         accepted=True total=   20  1B=   18  2-4B=   2  >=5B=  0  non_ascii=0  top=[('\\', 3), ('t', 2), ('p', 2), ('/', 2), ('h', 1)]
+email_basic        accepted=True total=   49  1B=   39  2-4B=  10  >=5B=  0  non_ascii=0  top=[('\\', 18), ('o{', 4), ('x{', 4), ('p', 4), ('P', 4)]
+anchor_complex     accepted=True total=  122  1B=   67  2-4B=  55  >=5B=  0  non_ascii=0  top=[('\\', 12), ('(?', 8), ('|', 5), (')', 5), ('_', 5)]
+TOTAL              attempts=554  1B=448 (80.9%)  2-4B=106  >=5B=0  non_ascii=0

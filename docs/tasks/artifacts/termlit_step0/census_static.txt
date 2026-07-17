@@ -1,0 +1,22 @@
+== RGX-0078.5.i.11 static terminal-literal call-site census ==
+ebnf.rs                                      [3686d307] sites=  390  1B=  226 (57.9%)  2-4B= 113  >=5B=  51  non_ascii=6  ascii_le8=378 ( 96.9%)
+                                                         contexts: {'cascade_match': 148, 'protocol_body': 242}
+json_parser.rs                               [d1c23841] sites=0
+regex_parser.rs                              [d2decb51] sites= 2862  1B= 2247 (78.5%)  2-4B= 443  >=5B= 172  non_ascii=0  ascii_le8=2774 ( 96.9%)
+                                                         contexts: {'cascade_match': 897, 'helper': 3, 'protocol_body': 1741, 'scan': 221}
+return_annotation_parser.rs                  [083d3624] sites=   98  1B=   72 (73.5%)  2-4B=  20  >=5B=   6  non_ascii=0  ascii_le8=98 (100.0%)
+                                                         contexts: {'cascade_match': 38, 'protocol_body': 60}
+rtl_const_expr_parser.rs                     [ccc21b9a] sites=   80  1B=   52 (65.0%)  2-4B=  28  >=5B=   0  non_ascii=0  ascii_le8=80 (100.0%)
+                                                         contexts: {'cascade_match': 24, 'protocol_body': 56}
+rtl_frontend_parser.rs                       [66d9e076] sites=  243  1B=  202 (83.1%)  2-4B=  41  >=5B=   0  non_ascii=0  ascii_le8=243 (100.0%)
+                                                         contexts: {'cascade_match': 35, 'protocol_body': 208}
+scratch_parser.rs                            [cb4c6eb9] sites=   10  1B=    2 (20.0%)  2-4B=   3  >=5B=   5  non_ascii=0  ascii_le8=10 (100.0%)
+                                                         contexts: {'cascade_match': 4, 'protocol_body': 6}
+semantic_annotation_parser.rs                [fa021cd5] sites=  613  1B=  194 (31.6%)  2-4B= 139  >=5B= 280  non_ascii=2  ascii_le8=511 ( 83.4%)
+                                                         contexts: {'cascade_match': 281, 'protocol_body': 332}
+systemverilog_parser.rs                      [b6f6cbd5] sites=  513  1B=  293 (57.1%)  2-4B= 214  >=5B=   6  non_ascii=0  ascii_le8=513 (100.0%)
+                                                         contexts: {'cascade_match': 76, 'protocol_body': 437}
+systemverilog_preprocessor_parser.rs         [82195e39] sites=   43  1B=   37 (86.0%)  2-4B=   6  >=5B=   0  non_ascii=0  ascii_le8=43 (100.0%)
+                                                         contexts: {'cascade_match': 10, 'protocol_body': 33}
+vhdl_parser.rs                               [b62498dc] sites=0
+TOTAL (all artifacts)                                   sites= 4852  1B= 3325 (68.5%)  2-4B=1007  >=5B= 520  non_ascii=8  ascii_le8=4650 ( 95.8%)

@@ -1,0 +1,21 @@
+== RGX-0078.5.i.11 pricing model ==
+pattern            T_min(ns) E(entries) N(attempts)
+alternation             3167         81          13
+anchor_complex         16792        264         122
+capture_groups         11791        161          84
+character_class        16041        469         192
+digit_sequence          3875        125          69
+email_basic             3500        118          49
+literal_simple          1375         33           5
+url_simple              2959         80          20
+
+Model A  T = cE*E + cN*N        : cE=   -4.1  cN=  109.6  R2=0.793
+Model B  T = c0 + cE*E + cN*N   : c0= 1446.5  cE=  -15.3  cN=  123.2  R2=0.815
+LOO band on cN (Model A): min=59.2  max=159.5  (identifiability record — the band IS the result at n=8)
+
+Profile cross-check: 14.5% x digit_sequence T_min 3875ns / 69 attempts = 8.1 ns/attempt all-in (window digit-heavy => directional; traced-vs-bare count deltas fold into this band)
+
+Falsifiable ceiling (geomean impact of saving c_save per attempt; N from the traced census):
+  LOW  c_save=4ns/attempt: geomean 5224 -> 5034 ns  (-3.7%)   per-pattern: alternation:1.6% anchor:2.9% capture:2.8% character:4.8% digit:7.1% email:5.6% literal:1.5% url:2.7%
+  MID  c_save=6ns/attempt: geomean 5224 -> 4938 ns  (-5.5%)   per-pattern: alternation:2.5% anchor:4.4% capture:4.3% character:7.2% digit:10.7% email:8.4% literal:2.2% url:4.1%
+  HIGH c_save=8ns/attempt: geomean 5224 -> 4841 ns  (-7.3%)   per-pattern: alternation:3.3% anchor:5.8% capture:5.7% character:9.6% digit:14.2% email:11.2% literal:2.9% url:5.4%
