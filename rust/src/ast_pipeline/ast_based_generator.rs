@@ -182,9 +182,21 @@ pub struct AstBasedGenerator {
     /// calls that never populate it (those stay byte-identical to the pre-D2-A
     /// emission).
     pub(crate) cascade_emission_plan: std::cell::OnceCell<Option<cascade::CascadeCodegenPlan>>,
+    /// RGX-0078.5.i.9 (D3) — the BOUNDARY-SCANNER emission plan: per plan rule a
+    /// direct-coded frameless `scan_<rule>` serves BARE-path call sites in place of
+    /// the full-frame protocol method (the protocol twin stays VERBATIM). Computed
+    /// ONCE per generation from the SHARED census gate
+    /// (`fusibility_census::compute_boundary_scanner_plan`), so the census's
+    /// `BOUNDARY-SCANNER-PLAN` report and the emission cannot drift. `None` inside
+    /// the cell = no scan graph (cascade plan inactive / annotation-table compile
+    /// failure / zero qualifying rules) — the sound default, and the state for
+    /// direct `generate_*` unit-test calls that never populate it (those stay
+    /// byte-identical to the pre-D3 emission).
+    pub(crate) scan_emission_plan: std::cell::OnceCell<Option<scan::ScanCodegenPlan>>,
 }
 
 pub(crate) mod cascade;
+pub(crate) mod scan;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct SemanticRelationalConstraintPolicy {
@@ -519,6 +531,7 @@ impl AstBasedGenerator {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -643,6 +656,11 @@ impl AstBasedGenerator {
         // `CASCADE-PLAN` report and this emission cannot drift.
         self.build_cascade_emission_plan_for_codegen(grammar_tree, &entry_rule);
 
+        // RGX-0078.5.i.9 (D3) — compute the boundary-scanner plan ONCE per
+        // generation from the SHARED census gate, so the census's
+        // `BOUNDARY-SCANNER-PLAN` report and this emission cannot drift.
+        self.build_scan_emission_plan_for_codegen(grammar_tree, &entry_rule);
+
         let parser_name = format_ident!(
             "{}Parser",
             self.grammar_name
@@ -690,6 +708,13 @@ impl AstBasedGenerator {
         // sub-root's memoized body. Empty tokens when the plan is inactive
         // (byte-identical pre-D2-A emission).
         let cascade_impl = self.generate_cascade_impl(&parser_name, filename)?;
+
+        // RGX-0078.5.i.9 (D3) — the BOUNDARY-SCANNER graph: one direct-coded
+        // frameless `scan_<rule>` fn per plan rule (+ interior recognizer
+        // helpers), serving BARE-path call sites while the protocol twin stays
+        // verbatim. Empty tokens when the plan is inactive (byte-identical
+        // pre-D3 emission).
+        let scan_impl = self.generate_scan_impl(&parser_name)?;
 
         // Generate tests
         let tests = generate_tests(&parser_name);
@@ -747,6 +772,7 @@ impl AstBasedGenerator {
             #parser_struct
             #parser_impl
             #cascade_impl
+            #scan_impl
             #typed_parser_impl
             #extension_impl
             #tests
@@ -5180,6 +5206,19 @@ impl AstBasedGenerator {
                         })
                     }
                     "rule_reference" => {
+                        // RGX-0078.5.i.9 (D3) — a call site of a boundary-scanner
+                        // plan rule dispatches to the frameless `scan_<rule>` on
+                        // the BARE path (the D2-A twin-dispatch precedent at call
+                        // granularity); the protocol arm below stays byte-VERBATIM
+                        // for every diagnostic consumer. Plan-inactive generations
+                        // emit the unchanged protocol call only.
+                        let scan_dispatch: Option<TokenStream> = if self.scan_rule(token_value_str)
+                        {
+                            let scan_target = Self::scan_fn_ident(token_value_str);
+                            Some(quote! { parser.#scan_target() })
+                        } else {
+                            None
+                        };
                         // RGX-0078.5.i.4 (P1a) — a call site of a DECIDED rule
                         // receives the rule body inline under the emitted
                         // `inlined_frame_call` engine helper (memo preserved,
@@ -5197,6 +5236,16 @@ impl AstBasedGenerator {
                             );
                             let inlined_frame =
                                 self.generate_inlined_frame(token_value_str, filename)?;
+                            if let Some(scan_call) = scan_dispatch {
+                                return Ok(quote! {
+                                    let __pgen_alt_child = if parser.bare_parse {
+                                        #scan_call
+                                    } else {
+                                        #inlined_frame
+                                    }?;
+                                    let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
+                                });
+                            }
                             return Ok(quote! {
                                 let __pgen_alt_child = #inlined_frame?;
                                 let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
@@ -5209,6 +5258,16 @@ impl AstBasedGenerator {
                             line!()
                         );
                         let method = format_ident!("parse_{}", token_value_str);
+                        if let Some(scan_call) = scan_dispatch {
+                            return Ok(quote! {
+                                let __pgen_alt_child = if parser.bare_parse {
+                                    #scan_call
+                                } else {
+                                    parser.#method()
+                                }?;
+                                let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
+                            });
+                        }
                         Ok(quote! {
                             // RGX-0078.5.d.4.i — the child rule returns an owned
                             // `ParseNode`; arena-alloc it and wrap the `&'input`
@@ -9607,6 +9666,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9644,6 +9704,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9699,6 +9760,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -9756,6 +9818,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -9847,6 +9910,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -9963,6 +10027,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -10033,6 +10098,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -10108,6 +10174,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -10204,6 +10271,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -10498,6 +10566,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -11671,6 +11740,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -11708,6 +11778,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
@@ -11742,6 +11813,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -11811,6 +11883,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let (
@@ -11890,6 +11963,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -11953,6 +12027,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -11985,6 +12060,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator.generate_types().to_string();
@@ -12018,6 +12094,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
@@ -12076,6 +12153,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 
@@ -12289,6 +12367,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12351,6 +12430,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_coverage_target_policy("stmt");
@@ -12376,6 +12456,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -12445,6 +12526,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -12492,6 +12574,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12553,6 +12636,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_negative_case_policy("stmt");
@@ -12578,6 +12662,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -12642,6 +12727,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -12686,6 +12772,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12741,6 +12828,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_deterministic_partition_policy("stmt");
@@ -12766,6 +12854,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -12845,6 +12934,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -12888,6 +12978,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -12962,6 +13053,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -13007,6 +13099,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -13056,6 +13149,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -13102,6 +13196,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         assert_eq!(
@@ -13148,6 +13243,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -13210,6 +13306,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -13263,6 +13360,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let logic = generator
@@ -13320,6 +13418,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -13371,6 +13470,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -13428,6 +13528,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let method = generator
@@ -13477,6 +13578,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator
@@ -13517,6 +13619,7 @@ mod semantic_usage_tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         };
 
         let rendered = generator

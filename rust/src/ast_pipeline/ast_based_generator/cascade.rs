@@ -1160,6 +1160,18 @@ impl AstBasedGenerator {
                             Ok(quote! {
                                 parser.#match_target()?;
                             })
+                        } else if self.scan_rule(token_value) {
+                            // RGX-0078.5.i.9 (D3) — a boundary reference to a
+                            // scan-plan rule: fused bodies run ONLY on the bare
+                            // path, so the frameless `scan_<rule>` replaces the
+                            // full-frame protocol method unconditionally; its
+                            // value rides the side vec exactly as before (the
+                            // build pass is untouched).
+                            let scan_target = format_ident!("scan_{}", token_value);
+                            Ok(quote! {
+                                let __pgen_alt_child = parser.#scan_target()?;
+                                parser.deriv_boundary.push(parser.arena.alloc(__pgen_alt_child));
+                            })
                         } else {
                             // A sub-root or an ineligible rule: a BOUNDARY
                             // call-out — the protocol method returns a full
@@ -1956,6 +1968,7 @@ mod tests {
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
             cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
         }
     }
 

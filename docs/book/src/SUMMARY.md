@@ -24,7 +24,7 @@
 
 - [Developer Architecture](developer-architecture.md)
 - [Inside the Parser: Termination & Performance](inside-parser-performance.md)
-- [The Speed Journey: 496 µs → ≈6.11 µs](speed-journey.md)
+- [The Speed Journey: 496 µs → ≈5.22 µs](speed-journey.md)
 - [Grammar Well-Formedness & Well-Definedness](grammar-wellformedness.md)
 - [The Parse Harness](parse-harness.md)
 - [Lexical Annotations — the 4th Pillar](lexical-annotations.md)

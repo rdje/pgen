@@ -1,0 +1,63 @@
+BOUNDARY-SCANNER-PLAN: grammar=regex rules=19 (text=13 span_transform=5 shaped_object=1; sub_roots=13 residual=6; post_predicates=1) dropped_candidates=40
+  model: per plan rule a direct-coded frameless scan_<rule> serves BARE-path call sites (protocol twin verbatim; exact furthest emulation; acyclic O(k) memo-loss) — RGX-0078.5.i.9 (D3)
+  [scanner-plan] alpha_lookaround_name: Text SUB-ROOT
+  [scanner-plan] any_char: Text SUB-ROOT
+  [scanner-plan] backreference_digits: SpanTransform residual
+  [scanner-plan] backreference_digits_single: SpanTransform residual
+  [scanner-plan] callout_number: SpanTransform residual
+  [scanner-plan] capture_name: Text SUB-ROOT
+  [scanner-plan] digit: Text SUB-ROOT
+  [scanner-plan] digits: SpanTransform residual
+  [scanner-plan] directive_limit_name: Text SUB-ROOT
+  [scanner-plan] directive_option_name: Text SUB-ROOT
+  [scanner-plan] directive_payload_simple: Text SUB-ROOT
+  [scanner-plan] directive_verb_name_nonaccept: Text SUB-ROOT
+  [scanner-plan] hex_digits: Text SUB-ROOT
+  [scanner-plan] letter: Text SUB-ROOT
+  [scanner-plan] name: Text SUB-ROOT
+  [scanner-plan] nonzero_digit: Text SUB-ROOT
+  [scanner-plan] numeric_backreference: ShapedObject residual post_predicates
+  [scanner-plan] quant_bound_number: SpanTransform residual
+  [scanner-plan] reference_name: Text SUB-ROOT
+  [scanner-plan] alpha_lookaround: DROPPED — runtime directive @close_scope (not scan-eligible)
+  [scanner-plan] alpha_lookaround_open: DROPPED — runtime directive @open_scope (not scan-eligible)
+  [scanner-plan] brace_ws: DROPPED — no return annotation (and not text-folding)
+  [scanner-plan] callout_number_body: DROPPED — no return annotation (and not text-folding)
+  [scanner-plan] capture_open: DROPPED — runtime directive @emit_fact (not scan-eligible)
+  [scanner-plan] class_range_endpoint: DROPPED — interior rule 'class_range_literal_escape_letter_relaxed' has a @profiles gate
+  [scanner-plan] class_range_literal_escape_letter_relaxed: DROPPED — @profiles dialect gate
+  [scanner-plan] class_simple_escape_relaxed: DROPPED — @profiles dialect gate
+  [scanner-plan] class_zero_width: DROPPED — no return annotation (and not text-folding)
+  [scanner-plan] counted_quantifier_range: DROPPED — element 2 shape Quantified { element: Atom { value: Token([String("rule_reference"), String("brace_ws")]) }, quantifier: "?" } outside the value-mode vocabulary
+  [scanner-plan] descending_class_range: DROPPED — positional raw-view post @predicate (raw capture)
+  [scanner-plan] directive_name_relaxed: DROPPED — @profiles dialect gate
+  [scanner-plan] directive_payload_suffix: DROPPED — @profiles dialect gate
+  [scanner-plan] directive_relaxed_named: DROPPED — @profiles dialect gate
+  [scanner-plan] keep_out: DROPPED — pre-phase @predicate (scan tails are post-match)
+  [scanner-plan] lookahead_neg: DROPPED — runtime directive @close_scope (not scan-eligible)
+  [scanner-plan] lookahead_neg_open: DROPPED — runtime directive @open_scope (not scan-eligible)
+  [scanner-plan] lookahead_pos: DROPPED — runtime directive @close_scope (not scan-eligible)
+  [scanner-plan] lookahead_pos_open: DROPPED — runtime directive @open_scope (not scan-eligible)
+  [scanner-plan] lookbehind_neg: DROPPED — runtime directive @close_scope (not scan-eligible)
+  [scanner-plan] lookbehind_neg_open: DROPPED — runtime directive @open_scope (not scan-eligible)
+  [scanner-plan] lookbehind_pos: DROPPED — runtime directive @close_scope (not scan-eligible)
+  [scanner-plan] lookbehind_pos_open: DROPPED — runtime directive @open_scope (not scan-eligible)
+  [scanner-plan] named_backreference: DROPPED — final-phase @predicate (enqueues deferred obligations)
+  [scanner-plan] named_group: DROPPED — runtime directive @emit_fact (not scan-eligible)
+  [scanner-plan] named_group_open_angle: DROPPED — runtime directive @emit_fact (not scan-eligible)
+  [scanner-plan] named_group_open_quote: DROPPED — runtime directive @emit_fact (not scan-eligible)
+  [scanner-plan] named_subroutine_target: DROPPED — final-phase @predicate (enqueues deferred obligations)
+  [scanner-plan] non_atomic_lookahead_pos: DROPPED — runtime directive @close_scope (not scan-eligible)
+  [scanner-plan] non_atomic_lookahead_pos_open: DROPPED — runtime directive @open_scope (not scan-eligible)
+  [scanner-plan] non_atomic_lookbehind_pos: DROPPED — runtime directive @close_scope (not scan-eligible)
+  [scanner-plan] non_atomic_lookbehind_pos_open: DROPPED — runtime directive @open_scope (not scan-eligible)
+  [scanner-plan] pattern: DROPPED — interior rule 'counted_quantifier_range' carries runtime directives
+  [scanner-plan] python_named_backreference: DROPPED — final-phase @predicate (enqueues deferred obligations)
+  [scanner-plan] python_named_group: DROPPED — runtime directive @emit_fact (not scan-eligible)
+  [scanner-plan] python_named_group_open: DROPPED — runtime directive @emit_fact (not scan-eligible)
+  [scanner-plan] quant_bound_number_body: DROPPED — no return annotation (and not text-folding)
+  [scanner-plan] scs_capture_name: DROPPED — final-phase @predicate (enqueues deferred obligations)
+  [scanner-plan] simple_escape_letter_relaxed: DROPPED — @profiles dialect gate
+  [scanner-plan] unicode_escape: DROPPED — @profiles dialect gate
+INLINE-CENSUS: grammar=regex rules=274 inline_eligible=204 (pass_through=8 alternation_leaf=31 shaped=165)
+  gate: acyclic (guard non-load-bearing) + directive-free frame + non-entry + no @profiles/@transform — RGX-0078.5.i.4 (P1)

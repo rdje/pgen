@@ -1,0 +1,17 @@
+literal_simple: AST byte-identical
+literal_simple: outcome byte-identical
+email_basic: AST byte-identical
+email_basic: outcome byte-identical
+url_simple: AST byte-identical
+url_simple: outcome byte-identical
+digit_sequence: AST byte-identical
+digit_sequence: outcome byte-identical
+alternation: AST byte-identical
+alternation: outcome byte-identical
+character_class: AST byte-identical
+character_class: outcome byte-identical
+capture_groups: AST byte-identical
+capture_groups: outcome byte-identical
+anchor_complex: AST byte-identical
+anchor_complex: outcome byte-identical
+tripwire_exit=0

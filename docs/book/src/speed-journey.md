@@ -1,4 +1,4 @@
-# The Speed Journey: 496 µs → ≈6.11 µs
+# The Speed Journey: 496 µs → ≈5.22 µs
 
 > **Part II · Inside PGEN.** This chapter is the companion to
 > [Inside the Parser: Termination & Performance](inside-parser-performance.md). That
@@ -8,12 +8,12 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #136 — six calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈6.11 µs** with a
-mimalloc-class global allocator: about **81× faster**
+Between sessions #90 and #140 — six calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈5.22 µs** with a
+mimalloc-class global allocator: about **95× faster**
 (≈36× before the allocator recommendation), with every single landing proven
 **byte-identical** on its full oracle battery before its speed number was believed.
-Twenty-one levers landed. More than a dozen others were refuted, rejected, or reverted —
+Twenty-two levers landed. More than a dozen others were refuted, rejected, or reverted —
 most of them for the price of a document rather than a build. This chapter is the story of
 both lists, because the refusals are as much the method as the landings.
 
@@ -364,5 +364,18 @@ object keys sorted at *codegen* time so an emitted object is one arena bump of a
 stack-built array. It measured **−32.0%** — every round, every pattern — the largest
 single landing since pass zero, and this time the sampled-share model (≈25–30%) slightly
 *under*-priced the win: the removed machinery had been feeding the allocator and the
-teardown path too. The scoreboard now reads **496 µs → ≈6.11 µs, about 81×**. The method
-decides — and the story continues here.
+teardown path too.
+
+The next landing attacked what the re-profile of that 6.11 µs artifact named dominant:
+the **protocol-boundary frames** around the token-shaped leaf rules the fused cascade
+kept calling as full methods. A census cost model priced a boundary entry at roughly
+four times a fused-internal one and — before a line of emission — recorded a falsifiable
+expectation band (−9…−15%) with a refutation bar. The D3 **boundary scanners** landed
+direct-coded frameless `scan_<rule>` functions for the census-qualified population
+(19 rules in the regex artifact), reached only on the bare path while every diagnostic
+consumer keeps the untouched protocol twin. It measured **−15.5%** — every round, every
+pattern — squarely inside the recorded band: the first landing whose census model was
+CONFIRMED rather than surprised. And the all-11 equivalence oracle earned its keep
+again, catching a span-vs-token value fold divergence in SystemVerilog before the land
+decision — a defect the regex-only tripwire could never see. The scoreboard now reads
+**496 µs → ≈5.22 µs, about 95×**. The method decides — and the story continues here.

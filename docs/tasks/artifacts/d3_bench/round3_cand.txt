@@ -1,0 +1,17 @@
+# Regex parse perf probe — PGEN-RGX-0073 baseline
+# samples=2000 warmup=200 build=release feature=generated_parsers
+
+pattern                  min (ns)       p50 (ns)      mean (ns)       p99 (ns)       max (ns)    samples
+------------------------------------------------------------------------------------------------------
+literal_simple               1375           1500           1507           1625           2792       2000
+digit_sequence               3958           4125           4115           4250          13875       2000
+character_class             16458          16833          16840          17167          22584       2000
+alternation                  3167           3375           3371           3541           8417       2000
+capture_groups              11833          12167          12187          12541          18125       2000
+url_simple                   3000           3167           3178           3333           8583       2000
+email_basic                  3583           3709           3723           3875           8917       2000
+anchor_complex              16916          17250          17267          17584          22709       2000
+
+# RGX bug-bundle reference (rgx_compile_phase_split.txt, 1000 samples, 50 warmup, Apple M4 Pro):
+# literal_simple ~407ns p50  digit_sequence ~819ns  character_class ~2.35ms  alternation ~1.02ms
+# capture_groups ~1.56ms     url_simple ~1.45ms      email_basic ~1.17ms     anchor_complex ~2.70ms

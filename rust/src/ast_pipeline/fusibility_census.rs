@@ -175,6 +175,10 @@ pub struct FusibilityCensus {
     /// participants (the ⛔ #49 carriers). Reported (`CASCADE-PLAN-B`) ahead of
     /// the D2-B emitter consuming it — the same no-drift seam as `cascade_plan`.
     pub cascade_plan_b: CascadeEmissionPlan,
+    /// RGX-0078.5.i.9 (D3) — the boundary-scanner emission plan
+    /// ([`compute_boundary_scanner_plan`] — the same map the scan emitter
+    /// consumes). Reported (`BOUNDARY-SCANNER-PLAN`) — the same no-drift seam.
+    pub boundary_scanner_plan: BoundaryScannerPlan,
 }
 
 /// The JSON shape `parseability_probe --dump-rule-entry-counts-json` writes; consumed by
@@ -2796,6 +2800,11 @@ pub fn run_fusibility_census(
         CascadeIncrement::CyclicSpine,
     )?;
 
+    // RGX-0078.5.i.9 (D3) — the boundary-scanner plan (the same SHARED function the
+    // scan emitter consumes), reported ahead of emission — the no-drift seam.
+    let boundary_scanner_plan =
+        compute_boundary_scanner_plan(grammar_tree, annotations, entry_rule.as_deref())?;
+
     Ok(FusibilityCensus {
         grammar_name: grammar_name.to_string(),
         total_rules: universe.len(),
@@ -2819,6 +2828,7 @@ pub fn run_fusibility_census(
         cascade_exposure,
         cascade_plan,
         cascade_plan_b,
+        boundary_scanner_plan,
     })
 }
 
@@ -3099,6 +3109,709 @@ pub fn compute_cascade_emission_plan_for_increment(
         effect_targets,
         thin_memo,
     })
+}
+
+/// RGX-0078.5.i.9 (D3) — the VALUE class of one boundary-scanner plan rule: how the
+/// emitted `scan_<rule>` reproduces the committed value the protocol body folds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ScannerValueClass {
+    /// Census text-folding (`FusibleToken`/`FusibleLookahead`): the value is exactly
+    /// the matched text — `ParseContent::Terminal(&input[start..end])`, zero-copy.
+    Text,
+    /// A rule-level matched-text `@transform` over a NON-single-terminal body (the
+    /// span-fallback path): `ParseContent::TransformedTerminal(span.trim().parse::<T>()
+    /// .unwrap_or(D).to_string())` — the generator's own span-transform emission reused.
+    SpanTransform,
+    /// A single-branch static-key `-> {…}` object template over value-reproducible
+    /// elements (quoted terminals / plan-rule references): the raw element `Sequence`
+    /// is built exactly as the protocol does (minus frames) and the generator's own
+    /// template emission is reused over it.
+    ShapedObject,
+}
+
+/// One boundary-scanner plan rule (see [`compute_boundary_scanner_plan`]).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct BoundaryScannerRule {
+    pub class: ScannerValueClass,
+    /// PLAN-B sub-root (`true`) vs residual ineligible rule (`false`) — report flavor.
+    pub sub_root: bool,
+    /// The rule carries read-only post-phase `@predicate`s: the emitted scan evaluates
+    /// them via the same content-aware machinery after the value fold (fresh on every
+    /// entry — ≥ the epoch-validated memo-replay guarantee).
+    pub post_predicates: bool,
+}
+
+/// RGX-0078.5.i.9 (D3) — the boundary-scanner emission plan: the SHARED census gate
+/// (`docs/tasks/RGX-0078.md` `.5.i.8` §5.d.1) consumed by BOTH the census report and
+/// the codegen scan emitter, so the two cannot drift (the cascade-plan precedent).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct BoundaryScannerPlan {
+    /// Qualified rules, deterministic order.
+    pub rules: BTreeMap<String, BoundaryScannerRule>,
+    /// CANDIDATE rules (PLAN-B boundaries) that failed a gate, with the NAMED
+    /// reasons — the report's honest residue (never silently dropped).
+    pub dropped: BTreeMap<String, Vec<String>>,
+}
+
+/// RGX-0078.5.i.9 (D3) — the audit walker behind the boundary-scanner plan: is this
+/// rule's body (transitively) inside the scan-emitter vocabulary, with every interior
+/// reference either a char builtin (`builtin_any_char`/`builtin_ascii_char` — the
+/// frameless engine methods, called directly) or an inlinable effect-free rule
+/// (emitted as a per-rule recognizer helper carrying the rule-entry furthest update
+/// the bare-path graph performs today)? Every failure is a NAMED reason
+/// (conservative under-approximation — the census doctrine). The codegen scan
+/// emitter (`ast_based_generator/scan.rs`) consumes the SAME plan and mirrors this
+/// vocabulary one-for-one, bailing loudly on anything outside it.
+pub(crate) struct ScanAudit<'a> {
+    tree: &'a HashMap<String, ASTNode>,
+    annotations: Option<&'a Annotations>,
+    compiled: Option<&'a CompiledSemanticRuntimeAnnotations>,
+    /// Memoized per-rule interior verdicts (`Ok` / named reason).
+    verdicts: HashMap<String, Result<(), String>>,
+    visiting: HashSet<String>,
+}
+
+impl<'a> ScanAudit<'a> {
+    /// The literal-token atom types the mtb/protocol emitters compile to
+    /// `match_string` — the scan vocabulary mirrors the same set.
+    const LITERAL_TOKEN_TYPES: &'static [&'static str] = &[
+        "quoted_string",
+        "number",
+        "probability",
+        "include_dir",
+        "include_file",
+        "rule",
+    ];
+
+    fn interior_ref_ok(&mut self, target: &str) -> Result<(), String> {
+        if !self.tree.contains_key(target) {
+            return match target {
+                "builtin_any_char" | "builtin_ascii_char" => Ok(()),
+                other => Err(format!("unresolved reference '{other}'")),
+            };
+        }
+        self.audit_interior_rule(target)
+    }
+
+    /// An INTERIOR rule (referenced from inside a scan body in recognizer position):
+    /// its acceptance semantics must be pure control flow — value-only directives
+    /// (a matched-text `@transform`, whose result is discarded in recognizer
+    /// position) are the only residue allowed.
+    fn audit_interior_rule(&mut self, rule: &str) -> Result<(), String> {
+        if let Some(v) = self.verdicts.get(rule) {
+            return v.clone();
+        }
+        if self.visiting.contains(rule) {
+            // Witness frame only (the classifier precedent): the outer frame owns
+            // and memoizes the rule's real verdict.
+            return Err(format!("reference cycle through '{rule}'"));
+        }
+        self.visiting.insert(rule.to_string());
+        let verdict = self.audit_interior_rule_uncached(rule);
+        self.visiting.remove(rule);
+        self.verdicts.insert(rule.to_string(), verdict.clone());
+        verdict
+    }
+
+    fn audit_interior_rule_uncached(&mut self, rule: &str) -> Result<(), String> {
+        // Acceptance-relevant directives: NONE allowed on interior rules (a store
+        // gate would change accept/reject; an effect would need C3-B machinery).
+        if let Some(compiled) = self.compiled {
+            if !compiled.directives_for_rule(rule).is_empty()
+                || compiled
+                    .branch_directives_for_rule(rule)
+                    .iter()
+                    .any(|b| !b.is_empty())
+            {
+                return Err(format!("interior rule '{rule}' carries runtime directives"));
+            }
+        }
+        self.audit_rule_policies(rule)?;
+        if let Some(ann) = self.annotations {
+            for name in rule_level_directive_names(ann, rule) {
+                match name.as_str() {
+                    // Value-only: discarded in recognizer position.
+                    "transform" => {}
+                    "profiles" => {
+                        return Err(format!("interior rule '{rule}' has a @profiles gate"))
+                    }
+                    _ => {}
+                }
+            }
+        }
+        let body = self
+            .tree
+            .get(rule)
+            .ok_or_else(|| format!("rule '{rule}' not defined"))?;
+        self.audit_node(body, rule)
+    }
+
+    /// The codegen-time rule policies that alter control flow or observable parser
+    /// state — the same knob list the cascade gate audits (`cascade_rule_verdict`).
+    fn audit_rule_policies(&self, rule: &str) -> Result<(), String> {
+        if let Some(ann) = self.annotations {
+            if ann
+                .branch_mid_sequence_semantic_annotations
+                .get(rule)
+                .is_some_and(|branches| branches.iter().any(|b| !b.is_empty()))
+            {
+                return Err(format!("rule '{rule}' has mid-sequence inline directives"));
+            }
+            if ann.lexical_follow_restrictions.contains_key(rule) {
+                return Err(format!("rule '{rule}' has a lexical follow restriction"));
+            }
+        }
+        if !effective_rule_value_constraints(self.annotations, rule).is_empty() {
+            return Err(format!("rule '{rule}' has value constraints"));
+        }
+        if effective_rule_associativity(self.annotations, rule) == SemanticAssociativity::NonAssoc {
+            return Err(format!("rule '{rule}' is @associativity nonassoc"));
+        }
+        if effective_rule_deterministic_partition_policy(self.annotations, rule).enabled {
+            return Err(format!("rule '{rule}' has @deterministic_group rotation"));
+        }
+        if super::semantic_directive_registry::effective_rule_bool_directive(
+            self.annotations,
+            rule,
+            &[
+                "stop_at_rule_boundary",
+                "stop_on_rule_boundary",
+                "line_delimited_sequence",
+            ],
+        ) {
+            return Err(format!("rule '{rule}' has a quantifier break policy"));
+        }
+        if super::semantic_directive_registry::effective_rule_recovery_enabled(
+            self.annotations,
+            rule,
+        ) {
+            return Err(format!("rule '{rule}' has @recover"));
+        }
+        if super::semantic_directive_registry::effective_rule_coverage_target_weight(
+            self.annotations,
+            rule,
+        ) != 0
+        {
+            return Err(format!("rule '{rule}' records @coverage_target events"));
+        }
+        if super::semantic_directive_registry::effective_rule_negative_case_enabled(
+            self.annotations,
+            rule,
+        ) {
+            return Err(format!("rule '{rule}' records @invalid_case failures"));
+        }
+        Ok(())
+    }
+
+    fn audit_node(&mut self, node: &ASTNode, rule: &str) -> Result<(), String> {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for alt in alternatives {
+                    self.audit_node(alt, rule)?;
+                }
+                Ok(())
+            }
+            ASTNode::Sequence { elements } => {
+                for el in elements {
+                    self.audit_node(el, rule)?;
+                }
+                Ok(())
+            }
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                if super::parse_quantifier_bounds(quantifier).is_none() {
+                    return Err(format!("rule '{rule}': unknown quantifier '{quantifier}'"));
+                }
+                self.audit_node(element, rule)
+            }
+            ASTNode::Lookahead { element, .. } => self.audit_node(element, rule),
+            ASTNode::Atom { value } => match value {
+                ASTValue::Token(parts) if parts.len() >= 2 => {
+                    let TokenValue::String(token_type) = &parts[0];
+                    let TokenValue::String(token_value) = &parts[1];
+                    if Self::LITERAL_TOKEN_TYPES.contains(&token_type.as_str())
+                        || token_type == "regex"
+                    {
+                        return Ok(());
+                    }
+                    if token_type == "rule_reference" {
+                        self.interior_ref_ok(token_value)?;
+                        return Ok(());
+                    }
+                    Err(format!(
+                        "rule '{rule}': atom token type '{token_type}' outside the scan vocabulary"
+                    ))
+                }
+                other => Err(format!(
+                    "rule '{rule}': atom shape {other:?} outside the scan vocabulary"
+                )),
+            },
+        }
+    }
+}
+
+/// RGX-0078.5.i.9 (D3) — compute the boundary-scanner emission plan (the `.5.i.8`
+/// §5.d.1 SHARED census gate). A rule qualifies iff:
+///
+/// 1. it is a PLAN-B protocol boundary (a CyclicSpine sub-root, or an ineligible
+///    residual rule) and not the grammar entry;
+/// 2. its OWN directive residue is within {rule-level matched-text `@transform`,
+///    read-only post-phase `@predicate`} — every scope/fact effect, library
+///    directive, pre/final/branch-phase predicate, value constraint, follow
+///    restriction, and observability policy (`@coverage_target`/`@invalid_case`/
+///    `@recover`/quantifier-break) disqualifies;
+/// 3. its body (transitively) stays inside the scan-emitter vocabulary with every
+///    interior reference a char builtin or an inlinable effect-free rule
+///    ([`ScanAudit`]) — in particular the closure is acyclic (memo-loss soundness:
+///    a lost hit re-runs an O(k) token-bounded scan);
+/// 4. its committed VALUE is reproducible from spans + nested plan values
+///    ([`ScannerValueClass`]).
+///
+/// Every dropped CANDIDATE carries its named reasons (`dropped`) — conservative
+/// under-approximation, never a silent narrowing.
+pub fn compute_boundary_scanner_plan(
+    tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+    entry_rule: Option<&str>,
+) -> Result<BoundaryScannerPlan, String> {
+    let cascade_plan = compute_cascade_emission_plan_for_increment(
+        tree,
+        annotations,
+        entry_rule,
+        CascadeIncrement::CyclicSpine,
+    )?;
+    let mut classifier = Classifier::new(tree, annotations)?;
+    // A second compile of the SAME table the classifier holds (the classifier's copy
+    // stays private to its own verdicts; both come from the one shared resolution
+    // codegen burns in, so they cannot disagree).
+    let compiled = match annotations {
+        Some(ann) => Some(
+            compile_semantic_runtime_annotations(ann)
+                .map_err(|e| format!("annotations failed to compile: {e}"))?,
+        ),
+        None => None,
+    };
+    let mut audit = ScanAudit {
+        tree,
+        annotations,
+        compiled: compiled.as_ref(),
+        verdicts: HashMap::new(),
+        visiting: HashSet::new(),
+    };
+
+    // Candidates = the PLAN-B protocol boundaries: sub-roots (fused rules entered
+    // through their full-frame methods) + residual ineligible rules.
+    let mut candidates: Vec<(String, bool)> = Vec::new();
+    for rule in tree.keys() {
+        if Some(rule.as_str()) == entry_rule {
+            continue;
+        }
+        if cascade_plan.sub_roots.contains(rule) {
+            candidates.push((rule.clone(), true));
+        } else if !cascade_plan.internal.contains(rule) {
+            candidates.push((rule.clone(), false));
+        }
+    }
+    candidates.sort();
+
+    let mut rules: BTreeMap<String, BoundaryScannerRule> = BTreeMap::new();
+    let mut dropped: BTreeMap<String, Vec<String>> = BTreeMap::new();
+
+    // PASS 1 — Text and SpanTransform classes (no cross-plan dependency).
+    for (rule, sub_root) in &candidates {
+        let (branch_count, or_rooted) = match tree.get(rule.as_str()) {
+            Some(ASTNode::Or { alternatives }) => (alternatives.len(), true),
+            _ => (1, false),
+        };
+        let mut reasons: Vec<String> = Vec::new();
+        let directive_audit = scanner_rule_directive_audit(
+            annotations,
+            compiled.as_ref(),
+            rule,
+            branch_count,
+            or_rooted,
+            &mut reasons,
+        );
+        let Some(directive_audit) = directive_audit else {
+            dropped.insert(rule.clone(), reasons);
+            continue;
+        };
+        if let Err(reason) = audit.audit_rule_policies(rule) {
+            dropped.insert(rule.clone(), vec![reason]);
+            continue;
+        }
+        let body = &tree[rule.as_str()];
+        if let Err(reason) = audit.audit_node(body, rule) {
+            dropped.insert(rule.clone(), vec![reason]);
+            continue;
+        }
+
+        if directive_audit.matched_text_transform {
+            // SpanTransform: the span-fallback path only — the generator splices
+            // `generate_post_body_span_transform` for NON-`Or` roots (Or roots
+            // apply transforms per-branch), and a single REGEX-terminal body takes
+            // the atom-path transform instead (a different emission over the token
+            // text, not the trimmed span) — both dropped, mirroring the emitter.
+            if rule_has_return_annotations(annotations, rule) {
+                dropped.insert(
+                    rule.clone(),
+                    vec!["matched-text @transform combined with return annotations".to_string()],
+                );
+                continue;
+            }
+            if matches!(body, ASTNode::Or { .. }) {
+                dropped.insert(
+                    rule.clone(),
+                    vec!["Or-rooted @transform body (per-branch transform emission)".to_string()],
+                );
+                continue;
+            }
+            let is_regex_terminal_atom = matches!(
+                body,
+                ASTNode::Atom {
+                    value: ASTValue::Token(parts)
+                } if parts.len() >= 2 && {
+                    let TokenValue::String(token_type) = &parts[0];
+                    token_type == "regex"
+                }
+            );
+            if is_regex_terminal_atom {
+                dropped.insert(
+                    rule.clone(),
+                    vec!["single regex-terminal @transform body (atom-path emission)".to_string()],
+                );
+                continue;
+            }
+            if !scanner_transform_is_emittable(annotations, rule) {
+                dropped.insert(
+                    rule.clone(),
+                    vec!["@transform expression not canonical/emittable".to_string()],
+                );
+                continue;
+            }
+            rules.insert(
+                rule.clone(),
+                BoundaryScannerRule {
+                    class: ScannerValueClass::SpanTransform,
+                    sub_root: *sub_root,
+                    post_predicates: directive_audit.post_predicates,
+                },
+            );
+            continue;
+        }
+
+        // Text: the census's own text-folding verdict (tier != NotFusible implies a
+        // directive-free closure whose value is exactly the matched text) — WITH the
+        // layout-skipping span/token distinction the SV equivalence divergence
+        // exposed: `Terminal(&input[start..end])` equals the protocol fold either
+        // when EVERY branch is an explicit `-> $text` (the protocol folds the whole
+        // span, trivia included) or when NO atom in the closure skips leading layout
+        // (span == token text by construction). A token-fold rule over a skipping
+        // closure would embed skipped trivia the protocol's `Terminal(matched_str)`
+        // excludes — dropped, named.
+        let outcome = classifier.classify_rule(rule);
+        if outcome.fusible {
+            if directive_audit.post_predicates {
+                dropped.insert(
+                    rule.clone(),
+                    vec!["text-fold rule with predicates not classed (v1)".to_string()],
+                );
+                continue;
+            }
+            let span_fold = annotations
+                .and_then(|a| a.branch_return_annotations.get(rule))
+                .is_some_and(|branches| {
+                    !branches.is_empty()
+                        && branches.iter().all(|b| {
+                            matches!(
+                                b.as_ref().and_then(|a| a.parsed_ast.as_ref()),
+                                Some(UnifiedReturnAST::MatchedText)
+                            )
+                        })
+                });
+            if !span_fold && outcome.skipping_atom {
+                dropped.insert(
+                    rule.clone(),
+                    vec!["layout-skipping token fold (span ≠ token text)".to_string()],
+                );
+                continue;
+            }
+            rules.insert(
+                rule.clone(),
+                BoundaryScannerRule {
+                    class: ScannerValueClass::Text,
+                    sub_root: *sub_root,
+                    post_predicates: false,
+                },
+            );
+            continue;
+        }
+        // Neither class matched in pass 1: defer to pass 2 (ShapedObject) — record
+        // the text-fold reasons only if pass 2 also fails.
+    }
+
+    // PASS 2 — ShapedObject (element references must resolve to PASS-1 plan rules).
+    for (rule, sub_root) in &candidates {
+        if rules.contains_key(rule) || dropped.contains_key(rule) {
+            continue;
+        }
+        let (branch_count, or_rooted) = match tree.get(rule.as_str()) {
+            Some(ASTNode::Or { alternatives }) => (alternatives.len(), true),
+            _ => (1, false),
+        };
+        let mut reasons: Vec<String> = Vec::new();
+        let directive_audit = scanner_rule_directive_audit(
+            annotations,
+            compiled.as_ref(),
+            rule,
+            branch_count,
+            or_rooted,
+            &mut reasons,
+        );
+        let Some(directive_audit) = directive_audit else {
+            dropped.insert(rule.clone(), reasons);
+            continue;
+        };
+        match shaped_object_class_verdict(tree, annotations, rule, &rules) {
+            Ok(()) => {
+                rules.insert(
+                    rule.clone(),
+                    BoundaryScannerRule {
+                        class: ScannerValueClass::ShapedObject,
+                        sub_root: *sub_root,
+                        post_predicates: directive_audit.post_predicates,
+                    },
+                );
+            }
+            Err(reason) => {
+                dropped.insert(rule.clone(), vec![reason]);
+            }
+        }
+    }
+
+    Ok(BoundaryScannerPlan { rules, dropped })
+}
+
+/// The per-rule directive audit behind the plan (gate 2 above). Returns `None` and
+/// pushes reasons on any disqualifying directive; otherwise reports the allowed
+/// residue found.
+struct ScannerDirectiveAudit {
+    matched_text_transform: bool,
+    post_predicates: bool,
+}
+
+fn scanner_rule_directive_audit(
+    annotations: Option<&Annotations>,
+    compiled: Option<&CompiledSemanticRuntimeAnnotations>,
+    rule: &str,
+    branch_count: usize,
+    or_rooted: bool,
+    reasons: &mut Vec<String>,
+) -> Option<ScannerDirectiveAudit> {
+    let mut post_predicates = false;
+    if let Some(compiled) = compiled {
+        for directive in compiled.directives_for_rule(rule) {
+            match directive {
+                SemanticRuntimeDirective::Predicate(_) => {}
+                other => reasons.push(format!(
+                    "runtime directive @{} (not scan-eligible)",
+                    directive_kind_name(other)
+                )),
+            }
+        }
+        if compiled.pre_predicates_for_rule(rule).next().is_some() {
+            reasons.push("pre-phase @predicate (scan tails are post-match)".to_string());
+        }
+        if compiled.final_predicates_for_rule(rule).next().is_some() {
+            reasons.push("final-phase @predicate (enqueues deferred obligations)".to_string());
+        }
+        post_predicates = compiled.post_predicates_for_rule(rule).next().is_some();
+        let has_branch_predicates = compiled.branch_predicates_for_rule(rule).next().is_some()
+            || (0..branch_count).any(|i| {
+                compiled
+                    .branch_predicates_for_rule_branch(rule, i)
+                    .next()
+                    .is_some()
+            });
+        if has_branch_predicates {
+            reasons.push("branch-phase @predicate".to_string());
+        }
+        if (0..branch_count).any(|i| {
+            compiled
+                .branch_effect_directives_for_rule_branch(rule, i)
+                .next()
+                .is_some()
+        }) {
+            reasons.push("branch-start effect directive".to_string());
+        }
+        // The RAW-content capture mirror: on the non-`Or` path the EMITTER captures
+        // raw only for a POSITIONAL raw-view post predicate (the RAWCAP-TRANSFORM-
+        // PATH.2 narrow gate) — named refs resolve against the shaped content, which
+        // is exactly what a scan tail passes for both views. A positional raw-view
+        // predicate (no shipped grammar has one) or an `Or`-rooted predicated rule
+        // (that path captures raw per-branch regardless) cannot be mirrored — drop.
+        if post_predicates && compiled.needs_positional_raw_post_capture_for_rule(rule) {
+            reasons.push("positional raw-view post @predicate (raw capture)".to_string());
+        }
+        if post_predicates && or_rooted {
+            reasons.push("Or-rooted rule with post @predicate (per-branch raw capture)".to_string());
+        }
+    }
+    let mut matched_text_transform = false;
+    if let Some(ann) = annotations {
+        for name in rule_level_directive_names(ann, rule) {
+            match name.as_str() {
+                "transform" => matched_text_transform = true,
+                "profiles" => reasons.push("@profiles dialect gate".to_string()),
+                _ => {}
+            }
+        }
+    }
+    if reasons.is_empty() {
+        Some(ScannerDirectiveAudit {
+            matched_text_transform,
+            post_predicates,
+        })
+    } else {
+        None
+    }
+}
+
+/// Does the rule carry any (rule- or branch-level) return annotation?
+fn rule_has_return_annotations(annotations: Option<&Annotations>, rule: &str) -> bool {
+    annotations
+        .and_then(|a| a.branch_return_annotations.get(rule))
+        .is_some_and(|branches| branches.iter().any(|b| b.is_some()))
+}
+
+/// Mirror of the generator's span-fallback emission condition
+/// (`generate_post_body_span_transform`): the `@transform` expression must be
+/// canonical AND its target type / default expression must be syn-parseable —
+/// otherwise the protocol body would NOT rebind to a `TransformedTerminal` and the
+/// scan value would diverge.
+fn scanner_transform_is_emittable(annotations: Option<&Annotations>, rule: &str) -> bool {
+    let Some(ann) = annotations else {
+        return false;
+    };
+    let Some(entries) = ann.semantic_annotations.get(rule) else {
+        return false;
+    };
+    for annotation in entries {
+        let Some((name, _)) =
+            super::semantic_directive_registry::semantic_directive_name_payload(annotation)
+        else {
+            continue;
+        };
+        if name != "transform" {
+            continue;
+        }
+        if let super::UnifiedSemanticAST::TransformExpr { expression } = annotation.ast() {
+            if let Some(transform) =
+                super::semantic_transform::parse_canonical_transform_expression(expression)
+            {
+                return syn::parse_str::<syn::Type>(&transform.target_type).is_ok()
+                    && syn::parse_str::<syn::Expr>(&transform.default_expr).is_ok();
+            }
+        }
+        return false;
+    }
+    false
+}
+
+/// The ShapedObject class gate (pass 2): a single-branch rule whose return
+/// annotation is a static-key object template over literal values and positional
+/// refs, and whose body is a `Sequence` of quoted terminals and references to
+/// PASS-1 plan rules (each element buildable in value mode exactly as the protocol
+/// builds it, minus frames).
+fn shaped_object_class_verdict(
+    tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+    rule: &str,
+    pass1_rules: &BTreeMap<String, BoundaryScannerRule>,
+) -> Result<(), String> {
+    let Some(ann) = annotations else {
+        return Err("no annotations (no object template)".to_string());
+    };
+    let branches = ann
+        .branch_return_annotations
+        .get(rule)
+        .ok_or_else(|| "no return annotation (and not text-folding)".to_string())?;
+    let body = tree
+        .get(rule)
+        .ok_or_else(|| format!("rule '{rule}' not defined"))?;
+    if matches!(body, ASTNode::Or { .. }) {
+        return Err("Or-rooted body (single-branch templates only, v1)".to_string());
+    }
+    if branches.len() != 1 {
+        return Err(format!(
+            "expected exactly 1 branch annotation, found {}",
+            branches.len()
+        ));
+    }
+    let Some(annotation) = branches[0].as_ref() else {
+        return Err("no return annotation (and not text-folding)".to_string());
+    };
+    let Some(UnifiedReturnAST::Object { properties }) = annotation.parsed_ast.as_ref() else {
+        return Err("return annotation is not an object template".to_string());
+    };
+    let ASTNode::Sequence { elements } = body else {
+        return Err("body is not a Sequence (object templates index elements)".to_string());
+    };
+    for (key, value) in properties {
+        match value.as_ref() {
+            UnifiedReturnAST::StringLiteral { .. }
+            | UnifiedReturnAST::NumberLiteral { .. }
+            | UnifiedReturnAST::BooleanLiteral { .. }
+            | UnifiedReturnAST::NullLiteral => {}
+            UnifiedReturnAST::PositionalRef { index } => {
+                if *index == 0 || *index > elements.len() {
+                    return Err(format!(
+                        "template key '{key}' positional ref {index} outside the {}-element body",
+                        elements.len()
+                    ));
+                }
+            }
+            other => {
+                return Err(format!(
+                    "template key '{key}' value {other:?} outside the v1 template vocabulary"
+                ))
+            }
+        }
+    }
+    for (idx, element) in elements.iter().enumerate() {
+        match element {
+            ASTNode::Atom { value: ASTValue::Token(parts) } if parts.len() >= 2 => {
+                let TokenValue::String(token_type) = &parts[0];
+                let TokenValue::String(token_value) = &parts[1];
+                if ScanAudit::LITERAL_TOKEN_TYPES.contains(&token_type.as_str()) {
+                    continue;
+                }
+                if token_type == "rule_reference" {
+                    if pass1_rules.contains_key(token_value) {
+                        continue;
+                    }
+                    return Err(format!(
+                        "element {} references '{token_value}', not a pass-1 plan rule",
+                        idx + 1
+                    ));
+                }
+                return Err(format!(
+                    "element {} token type '{token_type}' outside the value-mode vocabulary",
+                    idx + 1
+                ));
+            }
+            other => {
+                return Err(format!(
+                    "element {} shape {other:?} outside the value-mode vocabulary",
+                    idx + 1
+                ))
+            }
+        }
+    }
+    Ok(())
 }
 
 fn join_entry_counts(
@@ -3618,6 +4331,47 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                         ""
                     }
                 );
+            }
+        }
+    }
+    // RGX-0078.5.i.9 (D3) — the boundary-scanner plan (the same SHARED function the
+    // scan emitter consumes).
+    {
+        let plan = &census.boundary_scanner_plan;
+        let count_class = |class: ScannerValueClass| {
+            plan.rules.values().filter(|r| r.class == class).count()
+        };
+        let sub_roots = plan.rules.values().filter(|r| r.sub_root).count();
+        println!(
+            "BOUNDARY-SCANNER-PLAN: grammar={} rules={} (text={} span_transform={} shaped_object={}; sub_roots={} residual={}; post_predicates={}) dropped_candidates={}",
+            census.grammar_name,
+            plan.rules.len(),
+            count_class(ScannerValueClass::Text),
+            count_class(ScannerValueClass::SpanTransform),
+            count_class(ScannerValueClass::ShapedObject),
+            sub_roots,
+            plan.rules.len() - sub_roots,
+            plan.rules.values().filter(|r| r.post_predicates).count(),
+            plan.dropped.len(),
+        );
+        println!(
+            "  model: per plan rule a direct-coded frameless scan_<rule> serves BARE-path call sites (protocol twin verbatim; exact furthest emulation; acyclic O(k) memo-loss) — RGX-0078.5.i.9 (D3)"
+        );
+        if dump_all {
+            for (rule, entry) in &plan.rules {
+                println!(
+                    "  [scanner-plan] {rule}: {:?} {}{}",
+                    entry.class,
+                    if entry.sub_root { "SUB-ROOT" } else { "residual" },
+                    if entry.post_predicates {
+                        " post_predicates"
+                    } else {
+                        ""
+                    },
+                );
+            }
+            for (rule, reasons) in &plan.dropped {
+                println!("  [scanner-plan] {rule}: DROPPED — {}", reasons.join("; "));
             }
         }
     }

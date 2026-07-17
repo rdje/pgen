@@ -1,0 +1,18 @@
+per-round geomeans (ns):
+  round 1: base    6198.9  cand    5263.0  ratio 0.849
+  round 2: base    6213.2  cand    5316.0  ratio 0.856
+  round 3: base    6227.6  cand    5286.8  ratio 0.849
+  round 4: base    6236.2  cand    5286.1  ratio 0.848
+  round 5: base    6249.7  cand    5279.9  ratio 0.845
+
+best-mins per pattern (base -> cand, ratio):
+  alternation             3708 ->      3167  0.854
+  anchor_complex         18583 ->     16792  0.904
+  capture_groups         13166 ->     11791  0.896
+  character_class        19291 ->     16041  0.832
+  digit_sequence          5208 ->      3875  0.744
+  email_basic             4375 ->      3500  0.800
+  literal_simple          1583 ->      1375  0.869
+  url_simple              3375 ->      2959  0.877
+
+GEOMEAN-OF-MINS: base 6181.0 ns -> cand 5224.4 ns  ratio 0.8452  (-15.5%)
