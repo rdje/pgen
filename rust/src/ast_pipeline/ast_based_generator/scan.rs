@@ -427,9 +427,12 @@ impl AstBasedGenerator {
                 let TokenValue::String(token_value) = &parts[1];
                 match token_type.as_str() {
                     "quoted_string" | "number" | "probability" | "include_dir" | "include_file"
-                    | "rule" => Ok(quote! {
-                        parser.match_string(#token_value)?;
-                    }),
+                    | "rule" => {
+                        let match_call = Self::terminal_literal_match_call(token_value);
+                        Ok(quote! {
+                            parser.#match_call?;
+                        })
+                    }
                     "rule_reference" => {
                         if self.scan_rule(token_value) {
                             let scan_target = Self::scan_fn_ident(token_value);
@@ -841,9 +844,10 @@ impl AstBasedGenerator {
                         "quoted_string" | "number" | "probability" | "include_dir"
                             | "include_file" | "rule"
                     ) {
+                        let match_call = Self::terminal_literal_match_call(token_value);
                         quote! {
                             {
-                                let matched_str = parser.match_string(#token_value)?;
+                                let matched_str = parser.#match_call?;
                                 ParseContent::Terminal(matched_str)
                             }
                         }

@@ -5153,6 +5153,24 @@ impl AstBasedGenerator {
         })
     }
 
+    /// RGX-0078.5.i.12 — terminal-literal specialization: the ONE shared
+    /// decision point for every constant-literal emission site (the
+    /// census↔emission single-implementation doctrine). A literal takes the
+    /// emitted `match_lit_ascii` fast path iff it is non-empty, all-ASCII,
+    /// and at most 8 bytes — the population for which a successful byte-match
+    /// proves both UTF-8 slice boundaries (an ASCII byte is never a
+    /// continuation byte) and a const-width compare replaces the libc
+    /// `memcmp` call. Everything else keeps `match_string` verbatim,
+    /// including the 8-bit-unclean and long-literal populations.
+    fn terminal_literal_match_call(literal: &str) -> TokenStream {
+        if !literal.is_empty() && literal.len() <= 8 && literal.is_ascii() {
+            let byte_lit = proc_macro2::Literal::byte_string(literal.as_bytes());
+            quote! { match_lit_ascii(#literal, #byte_lit) }
+        } else {
+            quote! { match_string(#literal) }
+        }
+    }
+
     fn generate_atom_logic(
         &self,
         value: &ASTValue,
@@ -5199,8 +5217,9 @@ impl AstBasedGenerator {
                         );
                         let constraint_guards =
                             self.semantic_value_constraint_tokens(rule_name, &value_constraints);
+                        let match_call = Self::terminal_literal_match_call(token_value_str);
                         Ok(quote! {
-                            let matched_str = parser.match_string(#token_value_str)?;
+                            let matched_str = parser.#match_call?;
                             #constraint_guards
                             let result = ParseContent::Terminal(matched_str)
                         })
@@ -5408,8 +5427,9 @@ impl AstBasedGenerator {
                         );
                         let constraint_guards =
                             self.semantic_value_constraint_tokens(rule_name, &value_constraints);
+                        let match_call = Self::terminal_literal_match_call(token_value_str);
                         Ok(quote! {
-                            let matched_str = parser.match_string(#token_value_str)?;
+                            let matched_str = parser.#match_call?;
                             #constraint_guards
                             let result = ParseContent::Terminal(matched_str)
                         })
@@ -7903,6 +7923,39 @@ impl AstBasedGenerator {
                     || (i + 3 <= len && &bytes[i..i + 3] == b"::=")
                     || (i + 2 <= len && &bytes[i..i + 2] == b":-")
                     || (i + 1 <= len && bytes[i] == b'=')
+            }
+            /// RGX-0078.5.i.12 — the terminal-literal fast path for constant
+            /// literals codegen proved non-empty, all-ASCII, and ≤8 bytes at
+            /// emission. `bare_parse ⇒ !logger_enabled ⇒ !trace_enabled`, so
+            /// the cold fallback keeps every trace byte-exact through
+            /// `match_string` while bench parses never take the branch. For an
+            /// all-ASCII literal a successful byte-match proves both `start`
+            /// and `end` are char boundaries (an ASCII byte is never a UTF-8
+            /// continuation byte), so the success slice cannot panic and its
+            /// internal boundary checks fold under const propagation;
+            /// `position ≤ input.len()` and N ≤ 8 make `start + N` overflow-
+            /// free, matching `bytes_match_at`'s reachable semantics exactly.
+            #[inline(always)]
+            fn match_lit_ascii<const N: usize>(
+                &mut self,
+                expected: &'static str,
+                expected_bytes: &[u8; N],
+            ) -> ParseResult<&'input str> {
+                if self.logger_enabled {
+                    return self.match_string(expected);
+                }
+                if #allow_layout_skip_for_terminals {
+                    self.consume_layout_for_terminal(expected);
+                }
+                let start = self.position;
+                let end = start + N;
+                if end <= self.input.len()
+                    && self.input.as_bytes()[start..end] == *expected_bytes
+                {
+                    self.position = end;
+                    return Ok(&self.input[start..end]);
+                }
+                Err(ParseError::Backtrack { position: start })
             }
             fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
                 if #allow_layout_skip_for_terminals {

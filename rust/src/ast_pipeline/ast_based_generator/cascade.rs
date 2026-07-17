@@ -1133,17 +1133,18 @@ impl AstBasedGenerator {
                 match token_type.as_str() {
                     "quoted_string" | "number" | "probability" | "include_dir" | "include_file"
                     | "rule" => {
+                        let match_call = Self::terminal_literal_match_call(token_value);
                         if self.layout_sensitivity().terminals {
                             // No layout skip can precede this literal: the
                             // build cursor derives start AND end statically.
                             Ok(quote! {
-                                parser.match_string(#token_value)?;
+                                parser.#match_call?;
                             })
                         } else {
                             // A layout skip may precede the literal: record
                             // the dynamic end (start = end − literal length).
                             Ok(quote! {
-                                parser.match_string(#token_value)?;
+                                parser.#match_call?;
                                 parser.deriv_events.push(
                                     crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
                                 );
@@ -2613,7 +2614,7 @@ mod tests {
             "the match fn records the committed derivation with in-tape compaction, got: {match_body}"
         );
         assert!(
-            match_body.contains("match_string"),
+            match_body.contains("match_string") || match_body.contains("match_lit_ascii"),
             "the match fn keeps the terminal matching control flow, got: {match_body}"
         );
         // The fixture generator carries no `@whitespace_sensitive` directive,
@@ -2636,6 +2637,7 @@ mod tests {
                 .unwrap_or(rendered.len())];
         assert!(
             !build_body.contains("match_string")
+                && !build_body.contains("match_lit_ascii")
                 && !build_body.contains("try_parse")
                 && !build_body.contains("furthest_position"),
             "the build fn matches nothing, got: {build_body}"

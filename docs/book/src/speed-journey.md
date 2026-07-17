@@ -1,4 +1,4 @@
-# The Speed Journey: 496 µs → ≈5.22 µs
+# The Speed Journey: 496 µs → ≈5.05 µs
 
 > **Part II · Inside PGEN.** This chapter is the companion to
 > [Inside the Parser: Termination & Performance](inside-parser-performance.md). That
@@ -8,9 +8,9 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #140 — six calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈5.22 µs** with a
-mimalloc-class global allocator: about **95× faster**
+Between sessions #90 and #143 — six calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈5.05 µs** with a
+mimalloc-class global allocator: about **98× faster**
 (≈36× before the allocator recommendation), with every single landing proven
 **byte-identical** on its full oracle battery before its speed number was believed.
 Twenty-two levers landed. More than a dozen others were refuted, rejected, or reverted —
@@ -377,5 +377,16 @@ consumer keeps the untouched protocol twin. It measured **−15.5%** — every r
 pattern — squarely inside the recorded band: the first landing whose census model was
 CONFIRMED rather than surprised. And the all-11 equivalence oracle earned its keep
 again, catching a span-vs-token value fold divergence in SystemVerilog before the land
-decision — a defect the regex-only tripwire could never see. The scoreboard now reads
-**496 µs → ≈5.22 µs, about 95×**. The method decides — and the story continues here.
+decision — a defect the regex-only tripwire could never see.
+
+The next profile (#15) then found the single hottest remaining primitive hiding in
+plain sight: every constant terminal literal — `|`, `(`, `\`, a digit — went through
+`match_string`, whose runtime-`&str` parameter forces a real libc `memcmp` call plus
+two UTF-8 boundary checks per attempt, even though codegen knows the literal at
+emission time. A census over the artifacts measured the population (2862 sites in the
+regex parser, 78.5% one-byte, 100% ASCII), a bench-minima-fitted model priced it
+honestly at −4…−7% bench-wide (the profile window's 14.5% headline was
+digit-pattern-weighted — the census caught the over-price *before* emission this
+time), and the landed `match_lit_ascii` fast path measured **−4.8%**, inside the band.
+The scoreboard now reads **496 µs → ≈5.05 µs, about 98×**. The method decides — and
+the story continues here.
