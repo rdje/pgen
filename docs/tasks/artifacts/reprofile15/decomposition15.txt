@@ -1,0 +1,102 @@
+RE-PROFILE #15 — the POST-D3 malloc-free compute decomposition (PGEN-RGX-0078-0113)
+Date: 2026-07-17 (session #142)
+Instrument: /usr/bin/sample @1ms for 18s, leaf top-of-stack categorization (categorize15.py — the #14
+            categorizer + the D3 needle: 'scan_' (scan_<rule> / scan_rec_* / scan_post_predicate_gate)
+            -> a NEW 'SCAN' bucket, checked before CONSTRUCT and MATCH/DISPATCH. ALL #14 needles KEPT.
+            Regression-proven at leaf open (-0111): on the #14 sample data it reproduces
+            decomposition14.txt EXACTLY ('scan' absent from every #14 symbol => needle inert on old data.)
+Build: non-LTO + debuginfo, --features "generated_parsers never_free_arena_perf" (NeverFreeBump = malloc-free)
+       DIRECTOR-RUN Terminal build (the -0102/-0107 split; THIRD clean start-to-finish for the mechanism):
+       caffeinate -is + memory guard --budget-mb 16384 --timeout-s 7200 + CARGO_INCREMENTAL=1, warm cache
+       -> BUILD EXIT 0 at 15:37:05 (started 14:32, 3849s ~64.2min, peak 11687MB, guard green)
+Binary: rust/target/profile13_build/release/regex_perf_probe (2026-07-17 15:37, 9926704 bytes; mtime > build
+        start VERIFIED — the regen-mtime lesson)
+Artifacts: the -0110 D3 vintage (regex d2decb51 — boundary scanners + Shaped(PgenValue))
+Probe: regex_perf_probe --samples 6000000 (built-in warmup 50), pid 96019 COMM-verified, launched 15:37:40;
+       sample attached at +8s, 18s @1ms -> 15,074 leaf samples
+Window/mix: literal_simple mean 1492ns -> finished at ~+9.0s; window +8..+26s = ~5.5% literal_simple +
+            ~94.5% digit_sequence. ⚠️ #14's window was ~13%/87% (#13: 37/63) — the artifact keeps getting
+            FASTER under the fixed instrument, so the window sits ever deeper in digit_sequence; shares are
+            DIRECTIONAL (the standing sampled-share caveat), and #14->#15 bucket comparisons additionally
+            carry this mix-drift caveat.
+
+===== nfa-post-d3-15 — total leaf samples in section: 15074 =====               [#14 post-REPRESENTATION]
+  MATCH/DISPATCH     4644   30.8% of all   31.2% of parse   (18 syms)            [22.5%]
+  CONSTRUCT          2705   17.9% of all   18.1% of parse   (19 syms)            [19.4%]
+  ARENA              1946   12.9% of all   13.1% of parse   ( 8 syms)            [11.1%]
+  ALLOC/FREE         1665   11.0% of all   11.2% of parse   ( 3 syms)            [ 9.7%]
+  MEMOPS             1123    7.4% of all    7.5% of parse   ( 3 syms)            [ 7.9%]
+  SCAN               1072    7.1% of all    7.2% of parse   ( 9 syms)            [  —  (new)]
+  SEMANTIC-RT         775    5.1% of all    5.2% of parse   ( 5 syms)            [ 5.1%]
+  UNKNOWN             643    4.3% of all    4.3% of parse   (21 syms)            [20.8%]
+  TEARDOWN/DROP       333    2.2% of all    2.2% of parse   ( 9 syms)            [ 3.5%]
+  z-TIMING(excl)      168    1.1%
+  parse-only total (excl timing): 14906
+
+THE D3 LANDING CONFIRMED IN-PROFILE (bucket movement = the signal; the serde-collapse precedent):
+  #14 UNKNOWN 20.8% -> #15 4.3%. The #14 10.1% rule-driver-closure spillover class
+  (parse_nonzero_digit / parse_quant_bound_number / parse_digit / ...) is GONE — replaced by the SCAN
+  bucket at 7.2%, and its top symbols are EXACTLY the same population, scanner-signed:
+  scan_nonzero_digit 358 + scan_rec_quant_bound_core 321 + scan_digit 189 + scan_quant_bound_number 123
+  = 991 of the 1072 SCAN samples. The population also got cheaper in share (10.1% -> 7.2%) while the
+  artifact itself got 13.5% FASTER under the identical instrument (probe literal_simple mean 1724 -> 1492ns;
+  the fat-LTO land was -15.5%).
+  Option::clone — #14's single hottest UNKNOWN symbol (533 = 3.6%, memo/protocol clone machinery) —
+  has VANISHED from the profile: the frameless scanners bypass memo dispatch entirely for the boundary
+  population. Corroborated by the memo/protocol compound halving (below).
+  Serde residual tripwire STABLE: deserialize-signed total = 141 samples = 0.95% of parse
+  (#14: 147 = 0.99%) — the live TransformedTerminal JSON-parse arm, no migration regression.
+
+UNKNOWN sub-decomposition (643 = 4.3% of parse — audited, not left opaque):
+    154   1.0%  try_parse (speculation wrapper machinery)
+    129   0.9%  parse_counted_quantifier_range + its closures (52+45+32) = MATCH-adjacent spillover
+    128   0.9%  semantic-annotation table probes: directives_for_rule 47 + with_semantic_runtime_rule_-
+                transaction 44 + has_rule 37 (PROTOCOL-adjacent)
+    105   0.7%  str::trim 54 + serde_json de 51 (from_str/parse_number/parse_integer — the live JSON arm)
+    127   0.8%  other small syms (HashSet::insert 26, memmove stub 26, fmt 17, 7 syms < 15 ea)
+
+CROSS-BUCKET COMPOUNDS (the steering numbers; % of parse, floor 5224.4ns):
+  matching HONEST read (MATCH/DISPATCH 31.2 + SCAN 7.2 + counted-quant spillover 0.9) = 39.3% ~= 2.05us
+    within it — TERMINAL-LITERAL PRIMITIVE (match_string 1049 + _platform_memcmp 986 + memcmp stub 127)
+      = 2162 = 14.5% of parse ~= 0.76us  <- the single hottest coherent primitive (NEW finding, see below)
+    within it — piece+atom cascade (cascade_match_piece 639 + cascade_match_atom 492+231) = 1362 = 9.1%
+    within it — counted-quantifier machinery (cascade_match_counted_quantifier 277 + spillover 129) = 2.7%
+  arena+allocator compound (NodeArena::alloc 1479 = 9.9% + shaped arenas 428 = 2.9% + typed_arena 33
+    + NeverFreeBump::alloc 1319 = 8.8% + dealloc/shims 346 = 2.3%) = 3605 = 24.2% ~= 1.26us   [#14: 20.8%]
+    — the largest coherent class, still GROWING in share as compute shrinks around it
+  memo/protocol compound (ParseContent::clone 582 + HashMap::insert 250 + reserve_rehash 239 +
+    HashSet::insert 26; Option::clone and Vec::clone GONE) = 1097 = 7.4% ~= 0.38us            [#14: 15.5%]
+    — HALVED by D3; the residue now concentrates on the composite spine (atom/piece), no longer boundaries
+  MTB-B build pass (cascade_build_*) = 826 = 5.5% [4.5%]; to_shaped_value 347 = 2.3% [1.8%];
+  SEMANTIC-RT 5.2% ~= 0.27us (rollback_to_labeled 442, check_cycle 163, extract_delta_since 116)
+
+NEW PROFILE-DISCOVERED LEVER — TERMINAL-LITERAL SPECIALIZATION (on the -0102 matching/dispatch road):
+  match_string routes EVERY constant terminal literal through a runtime-length slice compare
+  (bytes_match_at: &input[start..end] == expected, expected: &str PARAMETER) => a real libc memcmp call
+  per attempt + trace_enabled probe + checked_add/bounds + TWO is_char_boundary checks. Call-site census
+  on the d2decb51 artifact: 2207/2863 = 77% of emitted match_string sites are 1-CHAR literals; ~95% <= 4
+  bytes. Codegen knows the literal AT EMISSION => emit a direct byte-compare for short ASCII literals
+  (a 1-byte ASCII match makes both boundary checks provably unnecessary: an ASCII byte at `start` is a
+  char boundary by UTF-8 construction, and start+1 follows a complete 1-byte char). Parser-AGNOSTIC
+  codegen primitive (all 11 grammars). In-window surface = 14.5% of parse ~= 0.76us; the census-fitted
+  bench-minima model (the per-population pricing lesson) is the land-slice's pricing obligation.
+
+RE-PRICE at the 5224.4ns floor (directional; census prices per the x5 pricing lesson):
+  (NEW) terminal-literal specialization 14.5% ~= 0.76us  — hottest well-defined surface, mechanically
+        simple, parser-agnostic; the profile's #1 verdict
+  (b) atom+piece thin-memo spine: piece+atom cascade 9.1% + the spine-concentrated memo/protocol residue
+        (<= 7.4%) => honest compound target ~= 9-16% ~= 0.5-0.85us — the profile's #2 verdict
+  (a) scanner-plan widening (class_range_endpoint 25e / descending_class_range 15e /
+        counted_quantifier_range 7e): visible in-window surface ~= 2.7% (class shapes additionally
+        UNDER-sampled in this digit-heavy window) — smallest; DEFER behind the two above
+  (c) arena+build cluster 24.2% ~= 1.26us — the biggest number, but the mechanism (fewer allocations /
+        flatter committed representation) is the long road already partially walked; stays the standing
+        strategic item, not the next slice
+  <=1us ARITHMETIC: zeroing ALL matching (2.05us) still leaves ~3.2us >> 1us => the bar continues to
+  need arena+build AND protocol attacked as well; the -0102 multi-front finding STANDS.
+
+probe.out (completed rows only — the probe is killed after the sample window by design):
+  pattern            min(ns)  p50(ns)  mean(ns)  p99(ns)  samples
+  literal_simple        1166     1458      1492     1875  6000000
+  (#14 same row:        1458     1667      1724     2000 — mean -13.5%, the non-LTO probe view of the
+   -0110 D3 landing; the fat-LTO land measured -15.5%)
