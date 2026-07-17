@@ -1,0 +1,78 @@
+RE-PROFILE #14 — the POST-REPRESENTATION malloc-free compute decomposition (PGEN-RGX-0078-0107)
+Date: 2026-07-17 (session #138)
+Instrument: /usr/bin/sample @1ms for 18s, leaf top-of-stack categorization (categorize14.py — the #13
+            categorizer + post-REPRESENTATION needles: PgenValue/to_shaped_value/insert_object_pair/
+            from_serde/binary_search -> CONSTRUCT; NodeArena/alloc_shaped_/alloc_rendered_string -> ARENA;
+            ALL #13 serde needles KEPT as the migration tripwire. Regression-proven: on the #13 sample
+            data it reproduces decomposition13.txt EXACTLY, so the new needles are inert on old data.)
+Build: non-LTO + debuginfo, --features "generated_parsers never_free_arena_perf" (NeverFreeBump = malloc-free)
+       DIRECTOR-RUN Terminal build (the -0102 split recipe verbatim): caffeinate -is + memory guard
+       --budget-mb 16384 --timeout-s 7200 + CARGO_INCREMENTAL=1, warm profile13_build cache
+       -> BUILD EXIT 0 at 01:57:39 (started 00:47, ~70.5min), guard green
+Binary: rust/target/profile13_build/release/regex_perf_probe (2026-07-17 01:57, 9992512 bytes)
+Artifacts: the -0105 REPRESENTATION vintage (regex 97545e7d; ParseContent::Json retired from lib by -0106)
+Probe: regex_perf_probe --samples 6000000 (built-in warmup 50), pid 48088; sample attached at +8s, 18s @1ms
+Window/mix: literal_simple mean 1724ns -> finished at +10.3s; window +8..+26s = ~13% literal_simple +
+            ~87% digit_sequence. ⚠️ #13's window was ~37%/63% — the artifact got FASTER so the same
+            instrument sits deeper in digit_sequence; shares are DIRECTIONAL (the standing sampled-share
+            caveat), and the #13->#14 bucket comparison additionally carries this mix-drift caveat.
+
+===== nfa-post-representation-14 — total leaf samples in section: 15040 =====   [#13 post-MTB-B]
+  MATCH/DISPATCH     3362   22.4% of all   22.5% of parse   (25 syms)            [18.4%]
+  UNKNOWN            3103   20.6% of all   20.8% of parse   (42 syms)            [10.7%]
+  CONSTRUCT          2892   19.2% of all   19.4% of parse   (24 syms)            [23.3%]
+  ARENA              1656   11.0% of all   11.1% of parse   ( 8 syms)            [ 4.5%]
+  ALLOC/FREE         1441    9.6% of all    9.7% of parse   ( 4 syms)            [15.6%]
+  MEMOPS             1180    7.8% of all    7.9% of parse   ( 3 syms)            [10.3%]
+  SEMANTIC-RT         757    5.0% of all    5.1% of parse   ( 6 syms)            [ 4.0%]
+  TEARDOWN/DROP       527    3.5% of all    3.5% of parse   (13 syms)            [13.3%]
+  z-TIMING(excl)      122    0.8%
+  parse-only total (excl timing): 14918
+
+UNKNOWN sub-decomposition (3103 = 20.8% of parse — audited, not left opaque):
+   1510   10.1%  rule-driver closures parse_nonzero_digit/parse_quant_bound_number/parse_digit/... (19 syms)
+                 = MATCH-adjacent spillover (the #13 "honest matching" class; window is digit-heavy)
+    533    3.6%  Option::clone (memo/protocol clone machinery; single hottest UNKNOWN symbol)
+    492    3.3%  speculation/semantic-txn machinery: try_parse / with_semantic_runtime_rule_transaction /
+                 CompiledSemanticRuntimeAnnotations::has_rule (PROTOCOL-adjacent)
+    358    2.4%  other (14 small syms)
+    210    1.4%  HashSet::insert (fail-set/coverage machinery)
+
+THE MIGRATION CONFIRMED IN-PROFILE (the ENV-LOOKUP-0% precedent):
+  residual serde/btree signature TOTAL = 147 samples = 0.99% of parse
+  (#13: CONSTRUCT 23.3% + TEARDOWN 13.3%, BOTH serde-signed: String::clone 516, BTreeMap::clone_subtree 416,
+   dying_next 654, drop<serde_json::Value> 452 — ALL gone; residual = serde_json deserialize 71 (the live
+   TransformedTerminal JSON-parse arm) + drop<Value> 5 + small btree/Value shims.)
+  TEARDOWN collapsed 13.3% -> 3.5%, and what remains is semantic-runtime state drops (DeferredObligation/
+  ScopeFrame/ScopeNode/FactRecord vecs + RegexParser drop), NOT value trees.
+
+CROSS-BUCKET COMPOUNDS (the steering numbers):
+  matching HONEST upper read (MATCH/DISPATCH + rule-driver spillover) = 4872 = 32.7% of parse
+  memo/protocol clone+hash compound (ParseContent::clone 589 + Option::clone 533 + Vec::clone 227 +
+    HashMap::insert 338 + HashSet::insert 210 + reserve_rehash 414) = 2311 = 15.5% of parse
+  arena+allocator compound (NodeArena::alloc 1248 = 8.4% + shaped arenas 355 = 2.4% + typed_arena 44
+    + NeverFreeBump::alloc 1152 = 7.7% + dealloc/shims 289) = 3097 = 20.8% of parse
+  MTB-B build pass (cascade_build_*) ~= 677 = 4.5%; to_shaped_value 268 = 1.8%; SEMANTIC-RT 5.1%
+
+Top symbols per bucket (full leaf section: sample14_nfa_leaves.txt):
+  MATCH:      cascade_match_piece 551 | memcmp 434+65 | cascade_match_atom(+closure) 575 |
+              match_string 380 | cascade_match_counted_quantifier 230 | quant_bound_core 168
+  CONSTRUCT:  ParseContent::clone 589 | to_shaped_value 268 | Vec::clone 227 | HashMap::insert 226+112 |
+              reserve_rehash 222+192 | cascade_build_quantifier/entry_concat/escape/piece/atom 677 |
+              serde deserialize 71 (the live JSON-parse arm)  => protocol/memo-signed, NOT serde-signed
+  ARENA:      NodeArena::alloc 1248 | alloc_shaped_pairs 235 | alloc_shaped_values 120 | typed_arena 44
+  ALLOC/FREE: NeverFreeBump::alloc 1152 | __rust_dealloc 153 | no_alloc_shim 130
+  MEMOPS:     _platform_memmove 913 | memcpy stub 145 | _platform_memset 122
+  TEARDOWN:   semantic-runtime state drops (DeferredObligation 121 / ScopeFrame 81 / ScopeNode 79 /
+              FactRecord 79 / Delta 35) + RegexParser 84 | drop<serde_json::Value> 5
+  SEMANTIC:   rollback_to_labeled 401 | RecursionGuard::check_cycle 152 | extract_delta_since 130
+
+RE-PRICE at the 6110.6ns floor (directional; the census prices, per the x5 pricing lesson):
+  matching+spillover 32.7% ~= 2.00us | memo/protocol 15.5% ~= 0.95us | arena+alloc 20.8% ~= 1.27us
+  Zeroing matching AND memo/protocol entirely still leaves ~3.2us >> 1us => the <=1us bar needs the
+  arena/build machinery attacked as well; REPRESENTATION-was-necessary-not-sufficient stands (-0102).
+
+probe.out (completed rows only — the probe is killed after the sample window by design):
+  pattern            min(ns)  p50(ns)  mean(ns)  p99(ns)  samples
+  literal_simple        1458     1667      1724     2000  6000000
+  (#13 same row:        1916     2375      2430     2500 — the non-LTO probe view of the -0105/-0106 landing)
