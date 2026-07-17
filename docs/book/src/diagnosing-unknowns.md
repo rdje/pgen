@@ -216,9 +216,13 @@ thing that distinguishes the two layers.
 2. **Prove a migration is behavior-neutral.** After the grammar edit + regen, re-run the
    probe: every migrated input must flip `VALIDATOR-reject → GRAMMAR-reject`, and every
    *control* (the inputs that must stay valid) must stay `ACCEPT`. Pair that with the
-   `regex_pcre2_compile_oracle_gate` staying byte-identical (`2189/1858/285/46`) and you
-   have proven the accept/reject **set** is unchanged — only the reject's source (and
-   its message) moved from the validator into the grammar.
+   `regex_pcre2_compile_oracle_gate` tuple staying byte-identical **against your own
+   pre-change run** — the corpus-wide tuple evolves as fidelity fixes land (the gate
+   asserts bounds, so it stays green while the tuple improves; it is
+   `2189/1879/262/48` as of `REGEX-PCRE2-FIDELITY.DOCSYNC.1`, 2026-07-17), so the
+   proof is before→after equality, never equality to a constant from this book — and
+   you have proven the accept/reject **set** is unchanged — only the reject's source
+   (and its message) moved from the validator into the grammar.
 
 This is the technique behind every `REGEX-PCRE2-FIDELITY.4.x` slice.
 

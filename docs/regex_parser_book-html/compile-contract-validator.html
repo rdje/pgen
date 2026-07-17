@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c176ac8c.js";
+            window.path_to_searchindex_js = "searchindex-d4f383bf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -222,8 +222,19 @@ the EBNF becomes the sole source of truth.</p>
 <p>A mechanical gate (<code>scripts/check_ebnf_source_of_truth.sh</code>, in the pre-commit hook and
 CI) forbids any <em>new</em> out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.</p>
+<h2 id="the-current-conformance-snapshot"><a class="header" href="#the-current-conformance-snapshot">The current conformance snapshot</a></h2>
+<p>The oracle gate (<code>regex_pcre2_compile_oracle_gate</code>, <code>pcre2test</code> 10.47) executes a frozen
+2189-cell corpus and asserts <strong>exact</strong> case counts but only <strong>bounds</strong> on the
+match/divergence split — so the gate stays green while the real tuple <em>improves</em> as
+fidelity fixes land. The real tuple (cells / oracle matches / tracked divergences /
+skips) has evolved <code>2189/1858/285/46</code> → <code>2189/1867/274/48</code> → <code>2189/1871/270/48</code> →
+<strong><code>2189/1879/262/48</code></strong> (current as of release <code>1.1.104</code>; the last step is the
+named-reference acceptance fix, ledger <code>REGEX-0098</code>). The per-release notes further down
+this chapter cite the tuple <strong>at their own era</strong> — that is deliberate historical
+accuracy, not drift; only the value in this paragraph is maintained as current
+(<code>REGEX-PCRE2-FIDELITY.DOCSYNC.1</code>, 2026-07-17).</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.100</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.104</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">

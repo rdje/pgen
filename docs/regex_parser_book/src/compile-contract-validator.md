@@ -50,9 +50,22 @@ A mechanical gate (`scripts/check_ebnf_source_of_truth.sh`, in the pre-commit ho
 CI) forbids any *new* out-of-band validator from being wired into the registry, so this
 one instance is the only one and it can only ever shrink.
 
+## The current conformance snapshot
+
+The oracle gate (`regex_pcre2_compile_oracle_gate`, `pcre2test` 10.47) executes a frozen
+2189-cell corpus and asserts **exact** case counts but only **bounds** on the
+match/divergence split — so the gate stays green while the real tuple *improves* as
+fidelity fixes land. The real tuple (cells / oracle matches / tracked divergences /
+skips) has evolved `2189/1858/285/46` → `2189/1867/274/48` → `2189/1871/270/48` →
+**`2189/1879/262/48`** (current as of release `1.1.104`; the last step is the
+named-reference acceptance fix, ledger `REGEX-0098`). The per-release notes further down
+this chapter cite the tuple **at their own era** — that is deliberate historical
+accuracy, not drift; only the value in this paragraph is maintained as current
+(`REGEX-PCRE2-FIDELITY.DOCSYNC.1`, 2026-07-17).
+
 ## The remaining check families
 
-As of regex release `1.1.100`, the validator dispatches these families (each row is a
+As of regex release `1.1.104`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 

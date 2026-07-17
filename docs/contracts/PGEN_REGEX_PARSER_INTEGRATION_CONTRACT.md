@@ -34,6 +34,13 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-17 — REGEX-PCRE2-FIDELITY.DOCSYNC.1: the CURRENT PCRE2-conformance snapshot (DOCS-ONLY; release/contract/schema versions UNCHANGED)
+
+- The `regex_pcre2_compile_oracle_gate` (`pcre2test` 10.47, frozen 2189-cell corpus) asserts **exact** case counts but only **bounds** on the match/divergence split — the gate stays green while the real tuple improves as fidelity fixes land, which is why per-release Highlights below cite different (era-accurate) tuples.
+- The current real tuple (cells / oracle matches / tracked divergences / skips) is **`2189/1879/262/48`** at release `1.1.104` / contract `1.1.106`. Evolution: `2189/1858/285/46` → `2189/1867/274/48` → `2189/1871/270/48` → `2189/1879/262/48` (the last step = the `REGEX-0098` named-reference acceptance fix).
+- The 262 tracked divergences are the documented strict-default divergence classes (including the inherent 8-bit `#forbid_utf` class — see the RGX Unicode-only note); none is an unexplained regression, and the bounds ratchet is re-baselined only through a released fidelity slice.
+- Per-release **Highlights** sections in this contract are historical records: each cites the tuple at its own era. Only THIS section is maintained as the current snapshot.
+
 ## Maintenance Update 2026-07-16 — RGX-0078.5.i.7 `-0105`: COMMITTED-VALUE REPRESENTATION — the typed carrier is now `ParseContent::Shaped(PgenValue)` (WIRE-FORMAT UNCHANGED; Rust-embedding note; parse −32%)
 
 **What this is.** A Rust-embedding-level representation change with **zero wire-format change** — no contract bump, no
