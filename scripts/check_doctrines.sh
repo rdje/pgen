@@ -30,7 +30,7 @@
 #     makes landing a code change with no pasted, reproducible tool output impossible at the gate.
 #
 # Registry below = the source of truth for "which doctrines are enforced by what". The
-# human-readable mirror is docs/decisions/DOCTRINE_ENFORCEMENT.md (kept in lockstep).
+# human-readable mirror is DOCTRINE_ENFORCEMENT.md §10 (kept in lockstep).
 set -uo pipefail   # deliberately NOT `-e`: run ALL checks, collect every result, then report.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 
@@ -45,6 +45,7 @@ DOCTRINES=(
   "REGEX-SELF-HOSTING|the regex grammar self-hosts (gen<->parse duality holds)|scripts/check_regex_self_hosting.sh"
   "KNOWLEDGE-MAP|the derived Knowledge Map is in sync with its fact sources|knowledge-map/scripts/check_knowledge_map.sh"
   "TASK-ACCEPTANCE|a code change's task leaf passes the acceptance checklist (root-cause + addressed + no-regression boxes ticked + evidence-backed)|scripts/check_diagnosis_evidence.sh"
+  "REGEX-ORACLE-ANCHOR-SYNC|the live oracle-tuple anchors agree with each other + the tracked ratchet bounds|scripts/check_regex_oracle_anchor_sync.sh"
 )
 
 fail=0
