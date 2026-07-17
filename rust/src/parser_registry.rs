@@ -748,6 +748,15 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
         if outcome_dump.is_some() {
             parser.enable_coverage();
         }
+        // RGX-0078.5.i.8.t1 — the pre-parse `rule_call_counts()` grab is ALSO the
+        // D2-A counter-consumer routing trigger (`counters_observed` ⇒ the protocol
+        // graph serves the counted parse — TOOLBOX 3.4 ROUTING). This fresh-parser
+        // lane needs no zero baseline, but it MUST still fire the trigger; without
+        // it the fused cascade graph (which ticks no per-rule counters) serves the
+        // parse and only protocol-boundary frames tick (measured: 5 vs 33 entries).
+        if entry_dump.is_some() {
+            let _ = parser.rule_call_counts();
+        }
         let outcome = parser
             .parse_full_regex()
             .map(|_| ())
