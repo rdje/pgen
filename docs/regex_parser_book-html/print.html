@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d4f383bf.js";
+            window.path_to_searchindex_js = "searchindex-70079863.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -5721,11 +5721,15 @@ one instance is the only one and it can only ever shrink.</p>
 <h2 id="the-current-conformance-snapshot"><a class="header" href="#the-current-conformance-snapshot">The current conformance snapshot</a></h2>
 <p>The oracle gate (<code>regex_pcre2_compile_oracle_gate</code>, <code>pcre2test</code> 10.47) executes a frozen
 2189-cell corpus and asserts <strong>exact</strong> case counts but only <strong>bounds</strong> on the
-match/divergence split — so the gate stays green while the real tuple <em>improves</em> as
-fidelity fixes land. The real tuple (cells / oracle matches / tracked divergences /
-skips) has evolved <code>2189/1858/285/46</code> → <code>2189/1867/274/48</code> → <code>2189/1871/270/48</code> →
+match/mismatch split — so the gate stays green while the real tuple <em>improves</em> as
+fidelity fixes land. The real tuple (cells / oracle <strong>matches</strong> / <strong>false-accepts</strong> /
+<strong>false-rejects</strong>; mismatches = false-accepts + false-rejects) has evolved
+<code>2189/1858/285/46</code> → <code>2189/1867/274/48</code> → <code>2189/1871/270/48</code> →
 <strong><code>2189/1879/262/48</code></strong> (current as of release <code>1.1.104</code>; the last step is the
-named-reference acceptance fix, ledger <code>REGEX-0098</code>). The per-release notes further down
+named-reference acceptance fix, ledger <code>REGEX-0098</code>). The 48 false-rejects are the
+ratcheted, documented strict-default divergence classes (patterns the strict default
+deliberately rejects); the 262 false-accepts are the remaining accepts-invalid surface
+this migration campaign continues to burn down. The per-release notes further down
 this chapter cite the tuple <strong>at their own era</strong> — that is deliberate historical
 accuracy, not drift; only the value in this paragraph is maintained as current
 (<code>REGEX-PCRE2-FIDELITY.DOCSYNC.1</code>, 2026-07-17).</p>

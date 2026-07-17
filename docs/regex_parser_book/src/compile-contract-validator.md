@@ -54,11 +54,15 @@ one instance is the only one and it can only ever shrink.
 
 The oracle gate (`regex_pcre2_compile_oracle_gate`, `pcre2test` 10.47) executes a frozen
 2189-cell corpus and asserts **exact** case counts but only **bounds** on the
-match/divergence split — so the gate stays green while the real tuple *improves* as
-fidelity fixes land. The real tuple (cells / oracle matches / tracked divergences /
-skips) has evolved `2189/1858/285/46` → `2189/1867/274/48` → `2189/1871/270/48` →
+match/mismatch split — so the gate stays green while the real tuple *improves* as
+fidelity fixes land. The real tuple (cells / oracle **matches** / **false-accepts** /
+**false-rejects**; mismatches = false-accepts + false-rejects) has evolved
+`2189/1858/285/46` → `2189/1867/274/48` → `2189/1871/270/48` →
 **`2189/1879/262/48`** (current as of release `1.1.104`; the last step is the
-named-reference acceptance fix, ledger `REGEX-0098`). The per-release notes further down
+named-reference acceptance fix, ledger `REGEX-0098`). The 48 false-rejects are the
+ratcheted, documented strict-default divergence classes (patterns the strict default
+deliberately rejects); the 262 false-accepts are the remaining accepts-invalid surface
+this migration campaign continues to burn down. The per-release notes further down
 this chapter cite the tuple **at their own era** — that is deliberate historical
 accuracy, not drift; only the value in this paragraph is maintained as current
 (`REGEX-PCRE2-FIDELITY.DOCSYNC.1`, 2026-07-17).
