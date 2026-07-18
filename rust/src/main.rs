@@ -829,6 +829,18 @@ struct FuzzCorpusCandidate {
 }
 
 fn main() -> Result<()> {
+    // PARSE-HARNESS.10 feature-surface tripwire: report the compile-time feature surface and exit.
+    // Handled BEFORE clap so the probe needs no input file and answers identically in EVERY feature
+    // configuration — a binary that cannot answer it is, by definition, a pre-tripwire vintage. The
+    // marker line is consumed by `pgen::parse_harness` (kept in lockstep with its parser there).
+    if std::env::args().skip(1).any(|a| a == "--report-feature-surface") {
+        println!(
+            "AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run={} generated_parsers={}",
+            cfg!(feature = "ebnf_dual_run"),
+            cfg!(feature = "generated_parsers"),
+        );
+        return Ok(());
+    }
     let args = Args::parse();
     let trace_log_path = args
         .trace_log_file

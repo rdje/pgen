@@ -125,6 +125,12 @@ pub enum HarnessError {
     GrammarNotFound(PathBuf),
     /// The `ast_pipeline` codegen binary was not found at the resolved path.
     ToolNotFound { path: PathBuf, hint: String },
+    /// The `ast_pipeline` binary at the resolved path is STALE for harness use (PARSE-HARNESS.10):
+    /// its compile-time feature surface lacks `ebnf_dual_run`, or it predates the
+    /// `--report-feature-surface` probe entirely. The classic cause is a
+    /// `--features generated_parsers`-only build (a `make focus_*` / census-CLI build) silently
+    /// overwriting the dual-feature binary at `target/debug/ast_pipeline`.
+    StaleTool { path: PathBuf, detail: String },
     /// Codegen (`ast_pipeline <grammar>.ebnf --generate-parser …`) exited non-zero or produced no parser.
     Codegen { status: Option<i32>, stderr: String },
     /// The emitted parser source did not contain the expected single `pub struct <Name>Parser<'input>`.
@@ -147,6 +153,15 @@ impl fmt::Display for HarnessError {
             HarnessError::ToolNotFound { path, hint } => write!(
                 f,
                 "parse-harness: ast_pipeline codegen binary not found at {} — {hint}",
+                path.display()
+            ),
+            HarnessError::StaleTool { path, detail } => write!(
+                f,
+                "parse-harness: stale single-feature ast_pipeline binary at {} — {detail} Rebuild it \
+                 with BOTH features: `cd rust && cargo build --features \"generated_parsers \
+                 ebnf_dual_run\" --bin ast_pipeline`. (A `--features generated_parsers`-only build — \
+                 e.g. `make focus_*` or an ad-hoc census-CLI build — silently overwrites the \
+                 dual-feature binary the parse-harness gates shell out to.)",
                 path.display()
             ),
             HarnessError::Codegen { status, stderr } => write!(
@@ -249,6 +264,11 @@ pub fn compile_and_parse(
                 .to_string(),
         });
     }
+    // PARSE-HARNESS.10 feature-surface tripwire: refuse a stale single-feature binary BEFORE any
+    // codegen/workdir work, with the actionable rebuild message. Probed on EVERY call (no caching) so
+    // a mid-run binary overwrite — the exact trap scenario — is caught on the next probe; the spawn is
+    // noise next to the per-call codegen + rustc compile.
+    assert_tool_feature_surface(&ast_pipeline_bin)?;
 
     // Working dir: caller-provided (reused → warm cache) or a fresh, unique temp dir.
     let (workdir, owns_workdir) = match &opts.workdir {
@@ -526,6 +546,50 @@ fn parse_probe_stdout(stdout: &str) -> Result<ParseOutcome, HarnessError> {
     })
 }
 
+/// The marker line `ast_pipeline --report-feature-surface` prints. Kept in lockstep with the
+/// pre-clap probe in `main.rs`.
+const FEATURE_SURFACE_MARKER: &str = "AST-PIPELINE-FEATURE-SURFACE:";
+
+/// PARSE-HARNESS.10 — the feature-surface tripwire. Probe the resolved `ast_pipeline` binary's
+/// compile-time feature surface and refuse a binary the harness cannot use: one whose surface lacks
+/// `ebnf_dual_run` (the #140-class trap — a `--features generated_parsers`-only build overwrote the
+/// dual-feature binary), or one that predates the probe entirely (a stale vintage). Requiring exactly
+/// `ebnf_dual_run` matches what the harness's codegen step needs — the canonical `focus_*` regen path
+/// is itself an `ebnf_dual_run`-only build — while the error hint recommends the repo-standard
+/// dual-feature rebuild.
+fn assert_tool_feature_surface(bin: &Path) -> Result<(), HarnessError> {
+    let out = Command::new(bin).arg("--report-feature-surface").output()?;
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let Some(line) = stdout
+        .lines()
+        .find(|l| l.trim_start().starts_with(FEATURE_SURFACE_MARKER))
+    else {
+        return Err(HarnessError::StaleTool {
+            path: bin.to_path_buf(),
+            detail: "it does not answer `--report-feature-surface`, so it predates the \
+                     feature-surface tripwire (a stale vintage)."
+                .to_string(),
+        });
+    };
+    if !surface_reports_feature_enabled(line, "ebnf_dual_run") {
+        return Err(HarnessError::StaleTool {
+            path: bin.to_path_buf(),
+            detail: format!(
+                "its feature surface lacks `ebnf_dual_run`, so it cannot read a .ebnf directly \
+                 (reported: `{}`).",
+                line.trim()
+            ),
+        });
+    }
+    Ok(())
+}
+
+/// `true` iff the probe's marker line reports `<feature>=true` as a whitespace-delimited token.
+fn surface_reports_feature_enabled(line: &str, feature: &str) -> bool {
+    let want = format!("{feature}=true");
+    line.split_whitespace().any(|tok| tok == want)
+}
+
 fn fresh_temp_dir() -> Result<PathBuf, HarnessError> {
     // A unique, harness-owned dir under the system temp root. Uniqueness without `Date::now`/randomness
     // (unavailable/nondeterministic here): the process id + a monotonic per-process counter.
@@ -583,6 +647,90 @@ mod tests {
     #[test]
     fn parse_probe_stdout_errors_without_sentinels() {
         assert!(parse_probe_stdout("no sentinels here").is_err());
+    }
+
+    // ── PARSE-HARNESS.10 — the feature-surface tripwire ──────────────────────────────────────────────
+
+    #[test]
+    fn surface_marker_line_parsing_is_exact() {
+        let line = "AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=false";
+        assert!(surface_reports_feature_enabled(line, "ebnf_dual_run"));
+        assert!(!surface_reports_feature_enabled(line, "generated_parsers"));
+        // `=false` and prefix/superstring tokens must NOT count as enabled.
+        assert!(!surface_reports_feature_enabled(
+            "AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=false",
+            "ebnf_dual_run"
+        ));
+        assert!(!surface_reports_feature_enabled(
+            "AST-PIPELINE-FEATURE-SURFACE: xebnf_dual_run=true",
+            "ebnf_dual_run"
+        ));
+    }
+
+    /// Write an executable fake `ast_pipeline` script and a trivial grammar file into a fresh temp
+    /// dir, returning `(fake_bin, grammar)`. Unix-only (the tests spawn the script directly).
+    #[cfg(unix)]
+    fn fake_tool_fixture(script_body: &str) -> (PathBuf, PathBuf) {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = fresh_temp_dir().expect("temp dir");
+        let bin = dir.join("fake_ast_pipeline.sh");
+        std::fs::write(&bin, script_body).expect("write fake tool");
+        std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+        let grammar = dir.join("tiny.ebnf");
+        std::fs::write(&grammar, "tiny := \"a\"\n").expect("write grammar");
+        (bin, grammar)
+    }
+
+    /// The #140-class trap made actionable: a binary whose surface lacks `ebnf_dual_run` (the
+    /// `--features generated_parsers`-only overwrite) is refused UP FRONT with the rebuild message,
+    /// instead of failing deep inside codegen with a generic error.
+    #[cfg(unix)]
+    #[test]
+    fn a_single_feature_binary_is_refused_with_the_actionable_message() {
+        let (bin, grammar) = fake_tool_fixture(
+            "#!/bin/sh\n\
+             if [ \"$1\" = \"--report-feature-surface\" ]; then\n\
+               echo \"AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=false generated_parsers=true\"\n\
+               exit 0\n\
+             fi\n\
+             exit 2\n",
+        );
+        let opts = CompileAndParseOptions {
+            ast_pipeline_bin: Some(bin),
+            ..Default::default()
+        };
+        let err = compile_and_parse(&grammar, "a", &opts).expect_err("must refuse");
+        assert!(matches!(err, HarnessError::StaleTool { .. }), "got: {err:?}");
+        let msg = err.to_string();
+        assert!(msg.contains("ebnf_dual_run"), "message must name the missing feature: {msg}");
+        assert!(
+            msg.contains("cargo build --features \"generated_parsers ebnf_dual_run\""),
+            "message must carry the exact rebuild command: {msg}"
+        );
+    }
+
+    /// A binary that cannot answer the probe at all (the pre-tripwire clap surface errors on the
+    /// unknown flag) is refused as a stale vintage — with the same actionable rebuild message.
+    #[cfg(unix)]
+    #[test]
+    fn a_pre_tripwire_vintage_binary_is_refused() {
+        let (bin, grammar) = fake_tool_fixture(
+            "#!/bin/sh\n\
+             echo \"error: unexpected argument '--report-feature-surface' found\" >&2\n\
+             exit 2\n",
+        );
+        let opts = CompileAndParseOptions {
+            ast_pipeline_bin: Some(bin),
+            ..Default::default()
+        };
+        let err = compile_and_parse(&grammar, "a", &opts).expect_err("must refuse");
+        assert!(matches!(err, HarnessError::StaleTool { .. }), "got: {err:?}");
+        let msg = err.to_string();
+        assert!(msg.contains("predates"), "message must name the vintage cause: {msg}");
+        assert!(
+            msg.contains("cargo build --features \"generated_parsers ebnf_dual_run\""),
+            "message must carry the exact rebuild command: {msg}"
+        );
     }
 
     // ── Authoritative-by-construction integration test (PARSE-HARNESS.3 acceptance) ──────────────────

@@ -206,7 +206,17 @@ The harness adds nothing to the trusted surface beyond this five-step plumbing:
    **byte-identical** parser source (the only difference from `make focus_<grammar>` is the embedded
    diagnostic output-path label, which never appears in the typed AST). The binary must carry
    `--features ebnf_dual_run` to read a `.ebnf` directly; the standard tree's `target/debug/ast_pipeline`
-   does.
+   does. **Feature-surface tripwire (`PARSE-HARNESS.10`).** Because routine builds (`make focus_*`, an
+   ad-hoc census-CLI build) legitimately produce a `--features generated_parsers`-only `ast_pipeline` at
+   the *same path* — silently overwriting the dual-feature binary — the harness probes the binary
+   *before* any codegen: `ast_pipeline --report-feature-surface` is a feature-independent flag (handled
+   before the CLI parser, so it needs no input file) printing
+   `AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=<bool> generated_parsers=<bool>`. A binary whose surface
+   lacks `ebnf_dual_run` — or that cannot answer the probe at all (a pre-tripwire vintage) — is refused
+   up front with `HarnessError::StaleTool`, whose message carries the exact dual-feature rebuild
+   command. This converts the historical "stale single-feature binary" trap (three recorded battery
+   failures with a generic codegen error) into an immediate, actionable refusal. The probe runs on
+   every call (no caching), so a *mid-run* overwrite is caught on the next probe.
 2. **Discover the struct name.** It greps the emitted source for its single
    `pub struct <Name>Parser<'input>` (exactly one per generated file — verified across every shipped
    grammar), so it never has to re-derive the codegen's grammar-name → struct-name mapping.
