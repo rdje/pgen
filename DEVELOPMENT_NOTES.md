@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-18 - PGEN-RGX-0078-0140 — K3 STEP-0 notes: a landed kill invalidates its neighbors' pricing; the memo-stats emitter travels WITH the artifact; rehash cost is set by the FINAL table size
+
+**Re-profile before re-using a sibling lever's price.** K3's "hashing ≈30%" was true when measured (`-0135`) and false two slices later — K1/K1c removed the traffic that made hashing hot, so the surviving K3 letter-name now covers a DIFFERENT population (container growth + per-entry constants). The general rule: after any landed kill, every not-yet-landed lever priced on the old profile is stale until the ladder/profile re-run says otherwise. The leaf now records the refutation explicitly instead of silently re-scoping.
+
+**`PGEN_REPORT_MEMO_STATS=1` works on ANY binary embedding the current generated parser** — the emission lives in the generated artifact, not in a harness binary. That made the memo census free on the release `regex_perf_probe` (the stale debug `parseability_probe` mtime trap was checked and AVOIDED — no ~10-min guard rebuild spent on a fact the floor probe could produce directly).
+
+**Pre-sizing a hash map only pays if it reaches the FINAL size.** Growth cost from any starting capacity is ≈2×final (geometric rehash chain), so raising a cap from 256 to 4096 on a 19K-entry table saves little — the last doublings dominate. The fix must be input-proportional (`K·(len+1)` with a measured K per container) with a hard element cap for memory honesty. Census first, multiplier from the census, cap priced in MB.
+
 ## 2026-07-18 - PGEN-RGX-0078-0139 — K1c notes: build the cross-build oracle BEFORE the gates; an optional's value shape depends on WHERE the `?` sits; a cert run's entry rule is part of the baseline's identity
 
 **The cross-build corpus A/B paid for itself on its first run.** A pure-refactor claim ("same language, same AST") has a perfect oracle: parse the ENTIRE external corpus with the old and new binaries and byte-compare verdict + AST per cell. It costs ~10 minutes of wall time, needs no gate infrastructure, and it caught the design's one wrong assumption (816 mismatching cells) before any heavyweight battery ran — with the failing shape delta readable from any single mismatching cell. The driver is banked (`docs/tasks/artifacts/k1c_factor/ab_ast_corpus.py`); reuse it for every future grammar-shape-neutral claim.
