@@ -60,3 +60,40 @@ representation road (committed-value spans/arena representation + thin-memo repl
 lane, STEP-0 scout first; the parked `.5.i.17` dispatch emission and the queued C4 census are
 subordinate tail levers, to be run only when they compose toward the bar. The accuracy floor
 remains immovable ([[feedback-correctness-before-speed]]).
+
+---
+
+**⭐ BAR REDEFINED — MAXIMUM, PCRE2-CORPUS-WIDE, WITH A STANDING HOLD GATE (director
+2026-07-18, session #150, mid-session directive, verbatim):** *"When I ask to reach this
+sub-1us regex runtime threshold, it means that maximum observable run-time shall be < 1us.
+Meaning the slowing parse time shall less than 1us. this shall be achieved on PCRE2 external
+test corpus. Once we reached that objective then I/we can move to other accuracy related
+tasks. After that, whatever further change is made to the AST pipeline we need to ensure that
+sub-1us holds."* + *"That sub-1us threshold applies only to PGEN regex parser, of cource."*
+
+The four consequences (each a tracked obligation):
+1. **The metric is the MAX, not the geomean** — the slowest parse over the corpus bounds the
+   claim. The 8-pattern bench geomean stays the campaign's steering instrument, but closure is
+   judged on the corpus-wide worst case.
+2. **The population is the PCRE2 external test corpus** (`regex_corpus_bundle` canonical
+   oracle cases; real tuple 2189/1879/262/48) — regex parser only.
+3. **After closure ⇒ pivot to accuracy tasks**, and **every subsequent AST-pipeline change
+   must PRESERVE sub-1µs** — a standing corpus max-time REGRESSION GATE joins the battery at
+   closure (deliverable recorded in the RGX-0078 tree).
+4. **The tracked catastrophic-backtracking corpus cells become BLOCKING pre-closure work**
+   (sweep lines 878/881/1340 — today effectively non-terminating and excluded from sweeps per
+   [[feedback_dont_run_jobs_that_hit_known_pathological_inputs]]): under a max-bound there is
+   no exclusion — a hang IS the maximum.
+
+**Engineer's honest physics + single recommendation (surfaced 2026-07-18, proceeding per the
+2026-07-15 fork-discipline amendment; director veto welcome):** the corpus length profile is
+p50=10 B / p90=32 B / p99=121 B / max=3,511 B (2,189 cases). An ABSOLUTE max < 1µs including
+the 3,511-byte pattern requires ~0.28 ns/byte sustained incl. AST construction — beyond any
+AST-building parser (PCRE2's own compile of such patterns takes multiple µs). RECOMMENDATION:
+read the directive as **max < 1µs for every corpus pattern of typical size (≤ the p99 ≈ 128
+bytes — 99% of the corpus), with the >p99 tail (the ~22 largest patterns) bounded by the SAME
+implied throughput (≤ ~8 ns/byte, i.e. time < len × 8ns)** — so the worst case is bounded
+everywhere and the bar stays physically meaningful; plus the catastrophic-backtracking fixes
+as blocking pre-closure leaves. The measurement deliverable: a corpus-wide per-pattern
+parse-time distribution (max/percentiles vs length) as the new closure baseline, landed after
+the in-flight `.5.j.2` STEP-2a emission (which reduces per-parse cost under any bar reading).
