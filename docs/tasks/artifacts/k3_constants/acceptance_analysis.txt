@@ -1,0 +1,27 @@
+== BENCH (alternated 5x2000, geomean-of-best-mins) ==
+  alternation          base     1792 cand     1750    -2.3%
+  anchor_complex       base     8250 cand     8208    -0.5%
+  capture_groups       base     4250 cand     4250    +0.0%
+  character_class      base    11291 cand    11416    +1.1%
+  digit_sequence       base     2167 cand     2167    +0.0%
+  email_basic          base     2167 cand     2250    +3.8%
+  literal_simple       base      750 cand      708    -5.6%
+  url_simple           base     1625 cand     1541    -5.2%
+  GEOMEAN base 2,825.3 cand 2,793.4 => -1.13%
+== CORPUS: cells=2189 verdict flips=0 ==
+  geomean base 2,097.6 cand 2,053.5 => -2.10%
+  MAX base 1,065,250 (line_725) cand 969,000 (line_725) => -9.04%
+  line_725   base  1,065,250 cand    969,000    -9.0%
+  line_4674  base    165,417 cand    172,208    +4.1%
+  line_6526  base    125,167 cand    126,459    +1.0%
+  line_2880  base    109,417 cand    110,208    +0.7%
+  line_965   base     68,916 cand     67,125    -2.6%
+  line_1224  base     32,416 cand     32,041    -1.2%
+  line_6538  base     17,333 cand     16,500    -4.8%
+== LADDER: rows=39 verdict flips=0 ==
+  nest_80    base    169,500 cand    168,667    -0.5%
+  nestbr_80  base    166,000 cand    168,125    +1.3%
+  orig_4674  base    168,125 cand    171,333    +1.9%
+  orig_6538  base     17,125 cand     16,541    -3.4%
+  flat_160   base     17,042 cand     15,708    -7.8%
+  lookstar_8 base     27,083 cand     25,458    -6.0%

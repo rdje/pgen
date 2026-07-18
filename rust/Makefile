@@ -910,7 +910,15 @@ return_parser: return_annotation_parser
 semantic_parser: semantic_annotation_parser
 
 .PHONY: annotation_parsers
-annotation_parsers: return_semantic_parsers
+# RGX-0078.5.j.4 (-0141 ops rider) — this alias used to point at
+# `return_semantic_parsers`, which hard-depends on `clean` (rm -f
+# generated/* + `cargo clean`). Invoked as an innocent "regenerate the
+# annotation pair" step it destroyed all 11 generated artifacts AND the
+# whole cargo target dir (102.8 GiB incl. every preserved perf probe;
+# 2026-07-18 session #155). The alias now routes to the two direct,
+# NON-destructive per-parser flows; the full clean+rebuild semantic
+# remains available explicitly as `return_semantic_parsers`.
+annotation_parsers: return_annotation_parser semantic_annotation_parser
 
 .PHONY: regex_tests
 regex_tests: regex_parser

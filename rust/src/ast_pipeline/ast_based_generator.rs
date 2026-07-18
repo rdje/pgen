@@ -1425,14 +1425,19 @@ impl AstBasedGenerator {
             // RGX-0078.5.i.7 (D2-B) — the thin memo mirrors the protocol memo
             // maps' lifecycle: constructor-fresh, never cleared per parse.
             let thin_memo_init: TokenStream = if self.cascade_thin_memo_active() {
-                // RGX-0078.5.i.14 (C2) — adaptive pre-size, mirroring the
-                // protocol memo's `Optim #7` 256-bucket reservation but capped
-                // to the input length so a tiny pattern never eats a 256-bucket
-                // upfront allocation (the tiny-input hazard). Correctness-neutral
-                // capacity hint; the thin memo's contents are unchanged.
+                // RGX-0078.5.i.14 (C2) — adaptive pre-size; the tiny-input
+                // hazard is still governed by the input-proportional term.
+                // RGX-0078.5.j.4 (K3a) — the C2 cap of 256 elements is blown
+                // by large inputs (measured: a 3,511 B pattern fills 8,382
+                // success entries ⇒ ~7 growth doublings, each a full rehash —
+                // 13.4% of that cell's profile). Pre-size to the measured
+                // per-byte bound (success ≤ 4.51 entries/B ⇒ K=6 covers every
+                // censused cell) with a 32K-element cap bounding construction
+                // memory on giant inputs. Correctness-neutral capacity hint;
+                // the thin memo's contents are unchanged.
                 quote! {
                     thin_memo: rustc_hash::FxHashMap::with_capacity_and_hasher(
-                        (input.len() + 1).min(256),
+                        ((input.len() + 1) * 6).min(32768),
                         Default::default(),
                     ),
                 }
@@ -1447,9 +1452,13 @@ impl AstBasedGenerator {
                 // derivation tape so a cold parse skips the first handful of
                 // 0→4→8→… reallocations. Correctness-neutral capacity hints;
                 // the tape's contents/lifecycle are unchanged.
+                // RGX-0078.5.j.4 (K3a) — the tape grows with input size; scale
+                // the hint input-proportionally (clamped: the old 64/16 floors
+                // keep tiny inputs unchanged, the caps bound giant inputs) so a
+                // large pattern skips the doubling-memcpy chain.
                 quote! {
-                    deriv_events: Vec::with_capacity(64),
-                    deriv_boundary: Vec::with_capacity(16),
+                    deriv_events: Vec::with_capacity(((input.len() + 1) * 4).clamp(64, 32768)),
+                    deriv_boundary: Vec::with_capacity((input.len() + 1).clamp(16, 8192)),
                     deriv_ev_cursor: 0,
                     deriv_b_cursor: 0,
                     deriv_pos: 0,
@@ -1530,11 +1539,17 @@ impl AstBasedGenerator {
                     memo: rustc_hash::FxHashMap::with_capacity_and_hasher(256, Default::default()),
                     // RGX-0078.5.i.14 (C2) — adaptive pre-size for the failure
                     // sets (the #15 census attributed `reserve_rehash` cost to
-                    // their default-sized growth on the bench). Capped to input
-                    // length so a tiny pattern pays only a proportional
-                    // reservation (the tiny-input hazard); correctness-neutral.
+                    // their default-sized growth on the bench).
+                    // RGX-0078.5.j.4 (K3a) — `memo_fail` scales input-
+                    // proportionally past the old 256-element cap (measured:
+                    // failures ≤ 3.15 entries/B, 11,045 on the 3,511 B corpus
+                    // MAX ⇒ K=6 covers every censused cell; 32K-element cap
+                    // bounds memory). `memo_fail_tainted` deliberately KEEPS
+                    // the 256 cap: tainted populations measured ≤ 54 entries
+                    // across the worst-cell census — scaling it would buy
+                    // nothing and waste the pre-allocation.
                     memo_fail: rustc_hash::FxHashSet::with_capacity_and_hasher(
-                        (input.len() + 1).min(256),
+                        ((input.len() + 1) * 6).min(32768),
                         Default::default(),
                     ),
                     memo_fail_tainted: rustc_hash::FxHashMap::with_capacity_and_hasher(
