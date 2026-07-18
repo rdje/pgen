@@ -10871,12 +10871,17 @@ mod semantic_usage_tests {
             "MatchedText transform should slice the input span"
         );
         // The MTB dual of the ordering obligation (the `-0101` $text fix): a
-        // build-side transform that reads `parser.position` is preceded by
-        // the sync to the build cursor, so the slice end is the BRANCH end —
-        // never the frozen whole-match end.
+        // build-side `$text` end must be the BUILD CURSOR — never the frozen
+        // whole-match end. Two byte-equal forms satisfy it: the verbatim
+        // path's sync-then-read (`position = deriv_pos;` before the
+        // `..parser.position` slice) and — since RGX-0078.5.j.2 STEP-2a — the
+        // in-place VALUE-PURE branch's direct slice to `deriv_pos` (a
+        // MatchedText branch is value-pure, so the fused build computes the
+        // Terminal in place with no `position` involvement at all).
         assert!(
-            compact.contains("parser.position=parser.deriv_pos;"),
-            "a build-side $text transform must sync position to the build cursor"
+            compact.contains("parser.position=parser.deriv_pos;")
+                || compact.contains("&parser.input[start_pos..parser.deriv_pos]"),
+            "a build-side $text transform must end at the build cursor (sync form or direct in-place slice)"
         );
     }
 

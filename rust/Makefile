@@ -82,6 +82,8 @@ PERFORMANCE_GATE_REPORT_DIR = $(RUST_DIR)/target/performance_gate
 # three pipeline binaries (ast_pipeline / ast_pipeline_bootstrap / the ebnf frontend build).
 AST_PIPELINE_SOURCES = $(wildcard $(RUST_DIR)/src/*.rs) \
                       $(wildcard $(RUST_DIR)/src/ast_pipeline/*.rs) \
+                      $(wildcard $(RUST_DIR)/src/ast_pipeline/ast_based_generator/*.rs) \
+                      $(wildcard $(RUST_DIR)/src/ast_pipeline/ast_based_generator/cascade/*.rs) \
                       $(wildcard $(RUST_DIR)/src/bin/*.rs) \
                       $(wildcard $(RUST_DIR)/src/parser_hooks/*.rs) \
                       $(wildcard $(RUST_DIR)/src/test_runner/*.rs) \

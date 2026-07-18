@@ -1,0 +1,1 @@
+base=d12513c0 (the -0118 spine floor probe, spine_bench/probe_cand_full) cand=4bbfb4e9 (STEP-2a full-11 fat-LTO+mimalloc regex_perf_probe; preserved at rust/target/generated_logs/dv_bench/probe_cand)

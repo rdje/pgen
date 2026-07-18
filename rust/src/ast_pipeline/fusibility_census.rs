@@ -3157,8 +3157,9 @@ pub fn compute_cascade_emission_plan_for_increment(
 ///   child content verbatim. Node-form demand propagates PER-REFERENCE: a
 ///   `$N` branch demands exactly element N−1's subtree references; a
 ///   passthrough branch demands the whole branch body's references; a
-///   content-carrying branch demands the elements targeted by the positional
-///   references occurring anywhere in its transform AST.
+///   content-carrying branch of a demanded rule demands the WHOLE branch body
+///   (v1: such branches are emitted verbatim; STEP-2b's in-place input feeding
+///   narrows this to the `$N`-targeted elements).
 /// - Escape roots = the plan's fused SUB-ROOTS: their orchestrators return the
 ///   `ParseNode` to the protocol zone (memo entries, semantic flattening,
 ///   entry-relative parses, the committed root), where the content variant is
@@ -3265,29 +3266,44 @@ pub fn rule_has_matched_text_transform(rule: &str, annotations: Option<&Annotati
 /// The effective (explicit or synthesized) return-transform AST of one branch,
 /// resolved EXACTLY as the build emitter resolves it
 /// (`generate_mtb_build_rule_fn` / `cascade_branch_transform`): the explicit
-/// parsed annotation when present, else the synthesized single-element `-> $1`
-/// (`AstBasedGenerator::body_has_single_element` — the SAME shared predicate),
-/// else `None` = bare passthrough.
+/// parsed annotation when present; the synthesized single-element `-> $1`
+/// (`AstBasedGenerator::body_has_single_element` — the SAME shared predicate)
+/// ONLY when NO annotation slot exists at all; `None` = bare passthrough.
+///
+/// ⚠️ A PRESENT-but-UNPARSED annotation (`parsed_ast: None` — the bootstrap
+/// parse-failure warning path) is NOT synthesized to `$1`: the emitter's
+/// warning path re-emits the WHOLE content (`result.clone()`), which is
+/// passthrough — on a single-element `Sequence` body the two differ (`$1`
+/// peels the element; passthrough keeps the one-element `Sequence` → the
+/// folded `Array`-of-one), so the distinction is byte-visible.
 pub fn resolved_branch_return_ast(
     rule: &str,
     branch_index: usize,
     branch_body: &ASTNode,
     annotations: Option<&Annotations>,
 ) -> Option<crate::ast_pipeline::unified_return_ast::UnifiedReturnAST> {
-    let explicit = annotations
+    let slot = annotations
         .and_then(|a| a.branch_return_annotations.get(rule))
         .and_then(|branches| branches.get(branch_index))
-        .and_then(|opt| opt.as_ref())
-        .and_then(|ann| ann.parsed_ast.clone());
-    explicit.or_else(|| {
-        if AstBasedGenerator::body_has_single_element(branch_body) {
-            Some(crate::ast_pipeline::unified_return_ast::UnifiedReturnAST::PositionalRef {
-                index: 1,
-            })
-        } else {
-            None
+        .and_then(|opt| opt.as_ref());
+    match slot {
+        // An annotation exists: its parsed AST, or (unparsed — the warning
+        // path) the whole-content passthrough.
+        Some(annotation) => annotation.parsed_ast.clone(),
+        // No annotation at all: the emitter synthesizes `-> $1` for
+        // single-element bodies.
+        None => {
+            if AstBasedGenerator::body_has_single_element(branch_body) {
+                Some(
+                    crate::ast_pipeline::unified_return_ast::UnifiedReturnAST::PositionalRef {
+                        index: 1,
+                    },
+                )
+            } else {
+                None
+            }
         }
-    })
+    }
 }
 
 /// The branch bodies of a fused rule exactly as the emitter walks them: an
@@ -3296,6 +3312,106 @@ pub fn rule_branch_bodies(body: &ASTNode) -> Vec<&ASTNode> {
     match body {
         ASTNode::Or { alternatives } => alternatives.iter().collect(),
         _ => vec![body],
+    }
+}
+
+/// EVERY context a rule's branch annotations apply in. The emitter applies
+/// `cascade_branch_transform(rule, idx, alt)` at EVERY `Or` site — nested ones
+/// included (the branch-broadcast semantics: a nested `Or`'s branch INDEX
+/// indexes the rule's branch-annotation list) — so a static audit or demand
+/// walk that only looks at the top-level branch bodies mis-resolves `$N`
+/// against the wrong shape (the ebnf `grammar_file` spread-context bug,
+/// session #150). Returns `(annotation_index, context_body)` pairs: the
+/// top-level body as branch 0 when the body is not an `Or`, plus every `Or`
+/// alternative anywhere in the tree.
+pub fn collect_annotation_contexts(body: &ASTNode) -> Vec<(usize, &ASTNode)> {
+    fn walk<'t>(node: &'t ASTNode, out: &mut Vec<(usize, &'t ASTNode)>) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for (idx, alternative) in alternatives.iter().enumerate() {
+                    out.push((idx, alternative));
+                    walk(alternative, out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for element in elements {
+                    walk(element, out);
+                }
+            }
+            ASTNode::Quantified { element, .. } | ASTNode::Lookahead { element, .. } => {
+                walk(element, out);
+            }
+            ASTNode::Atom { value } => {
+                if let ASTValue::Node(inner) = value {
+                    walk(inner, out);
+                }
+            }
+        }
+    }
+    let mut out = Vec::new();
+    if !matches!(body, ASTNode::Or { .. }) {
+        out.push((0, body));
+    }
+    walk(body, &mut out);
+    out
+}
+
+/// The STATIC runtime variant of a spread base target — the codegen-time
+/// collapse of `generate_spread_transform`'s dispatch (`Sequence`/`Quantified`
+/// SPLICE; everything else WRAPS as one element). `at_sequence_position`
+/// distinguishes the `?` forms: a `?` SEQUENCE element takes the OptPresent
+/// fast path (absent = empty `Sequence` → splice; present = the INNER's
+/// variant — decidable only when the inner is itself a non-`?` quantifier),
+/// while a `?` BODY runs the QuantCount loop (content `Quantified` → splice
+/// unconditionally).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpreadBaseStaticVariant {
+    /// Content statically `Sequence`/`Quantified` — the runtime splices.
+    Splice,
+    /// Content statically NEITHER — the runtime wraps the value as ONE
+    /// element.
+    Wrap,
+    /// The variant depends on runtime state or cross-rule content classes —
+    /// out of the v1 vocabulary (demote).
+    Undecidable,
+}
+
+pub fn spread_base_static_variant(
+    node: &ASTNode,
+    at_sequence_position: bool,
+) -> SpreadBaseStaticVariant {
+    match node {
+        ASTNode::Quantified {
+            element, quantifier
+        } => {
+            if at_sequence_position && quantifier == "?" {
+                match element.as_ref() {
+                    ASTNode::Quantified { quantifier: inner_q, .. } if inner_q != "?" => {
+                        SpreadBaseStaticVariant::Splice
+                    }
+                    _ => SpreadBaseStaticVariant::Undecidable,
+                }
+            } else {
+                SpreadBaseStaticVariant::Splice
+            }
+        }
+        ASTNode::Sequence { .. } | ASTNode::Lookahead { .. } => SpreadBaseStaticVariant::Splice,
+        ASTNode::Atom { value } => match value {
+            ASTValue::Token(parts) if parts.len() >= 2 => {
+                let TokenValue::String(token_type) = &parts[0];
+                if token_type == "rule_reference" {
+                    // The `$1`-peel reaches the CHILD rule's content — its
+                    // variant is a cross-rule content class (the ebnf
+                    // `grammar_file` case folded an include OBJECT here).
+                    SpreadBaseStaticVariant::Undecidable
+                } else {
+                    // Literal / regex terminals → `Terminal` content → wrap.
+                    SpreadBaseStaticVariant::Wrap
+                }
+            }
+            _ => SpreadBaseStaticVariant::Wrap,
+        },
+        ASTNode::Or { .. } => SpreadBaseStaticVariant::Undecidable,
     }
 }
 
@@ -3354,10 +3470,12 @@ pub fn resolve_positional_target(branch_body: &ASTNode, index: usize) -> Positio
     }
 }
 
-/// Collect every `PositionalRef` index occurring anywhere in a transform AST
-/// (the content-carrying demand surface — conservative: value-position `$N`s
-/// inside object properties are included, which can only over-demand).
-fn collect_positional_indices(
+/// Collect every `PositionalRef` index occurring anywhere in a transform AST.
+/// Consumed by the `.5.j.2` value-twin emitter to decide which body elements a
+/// branch BINDS (referenced) vs discard-walks (unreferenced) — conservative:
+/// value-position `$N`s inside object properties are included, which can only
+/// over-bind.
+pub fn collect_positional_indices(
     ast: &crate::ast_pipeline::unified_return_ast::UnifiedReturnAST,
     out: &mut std::collections::BTreeSet<usize>,
 ) {
@@ -3414,14 +3532,6 @@ pub fn branch_value_vocabulary_reasons(
     audit_value_ast(ast, branch_body, fused, false, reasons);
 }
 
-/// Is `element` a spread-safe base — a non-`?` `Quantified` node, whose
-/// runtime content variant is statically `Quantified` (the `?` sequence
-/// element takes the `OptPresent` fast path and is `Sequence`-when-absent /
-/// inner-variant-when-present — dynamic)?
-fn spread_base_statically_quantified(element: &ASTNode) -> bool {
-    matches!(element, ASTNode::Quantified { quantifier, .. } if quantifier != "?")
-}
-
 /// The flatten-spread item audit: every pushed item's content class must be
 /// statically `TransformedTerminal`-free (a `TransformedTerminal` carrying
 /// JSON-array text folds to an `Array` and would SPLICE where today's
@@ -3447,6 +3557,21 @@ fn flatten_items_statically_tt_free(
             }
             _ => false,
         },
+        _ => false,
+    }
+}
+
+/// A FLATTEN base in Splice form needs the per-item TT-freedom guarantee; v1
+/// admits only the non-`?` Quantified shape (inner audited), demoting the
+/// other splice-able shapes conservatively.
+fn flatten_splice_base_auditable(
+    node: &ASTNode,
+    fused: &std::collections::BTreeSet<&str>,
+) -> bool {
+    match node {
+        ASTNode::Quantified {
+            element, quantifier
+        } if quantifier != "?" => flatten_items_statically_tt_free(element, fused),
         _ => false,
     }
 }
@@ -3488,55 +3613,39 @@ fn audit_value_ast(
             let _ = inside_array; // spread semantics are audited identically at
             // array-element and top-level positions.
             let flatten = matches!(ast, U::FlattenSpread { .. });
+            let label = if flatten { "flatten-spread" } else { "spread" };
             let U::PositionalRef { index } = base.as_ref() else {
-                reasons.push(format!(
-                    "{} base is not a positional reference",
-                    if flatten { "flatten-spread" } else { "spread" }
-                ));
+                reasons.push(format!("{label} base is not a positional reference"));
                 return;
             };
-            match resolve_positional_target(branch_body, *index) {
-                PositionalTarget::Element(element) => {
-                    if !spread_base_statically_quantified(element) {
-                        reasons.push(format!(
-                            "{} base ${index} is not a statically-Quantified element (runtime content variant undecidable)",
-                            if flatten { "flatten-spread" } else { "spread" }
-                        ));
+            let (target_node, at_sequence_position): (&ASTNode, bool) =
+                match resolve_positional_target(branch_body, *index) {
+                    PositionalTarget::Element(element) => (element, true),
+                    PositionalTarget::WholeBody => (branch_body, false),
+                    PositionalTarget::StaticSentinel => {
+                        // Static sentinel base: the spread wraps a static
+                        // `Terminal` — emittable.
                         return;
                     }
-                    if flatten {
-                        let ASTNode::Quantified { element: inner, .. } = element else {
-                            unreachable!("guarded by spread_base_statically_quantified");
-                        };
-                        if !flatten_items_statically_tt_free(inner, fused) {
-                            reasons.push(format!(
-                                "flatten-spread ${index} items not statically TransformedTerminal-free (non-fused or structured inner)"
-                            ));
-                        }
-                    }
-                }
-                PositionalTarget::WholeBody => {
-                    if !spread_base_statically_quantified(branch_body) {
+                };
+            match spread_base_static_variant(target_node, at_sequence_position) {
+                SpreadBaseStaticVariant::Splice => {
+                    if flatten && !flatten_splice_base_auditable(target_node, fused) {
                         reasons.push(format!(
-                            "{} base ${index} resolves to the whole body, which is not a statically-Quantified shape",
-                            if flatten { "flatten-spread" } else { "spread" }
+                            "flatten-spread ${index} splice items not statically TransformedTerminal-free (non-fused, structured, or non-Quantified base)"
                         ));
-                        return;
-                    }
-                    if flatten {
-                        let ASTNode::Quantified { element: inner, .. } = branch_body else {
-                            unreachable!("guarded by spread_base_statically_quantified");
-                        };
-                        if !flatten_items_statically_tt_free(inner, fused) {
-                            reasons.push(format!(
-                                "flatten-spread ${index} items not statically TransformedTerminal-free (non-fused or structured inner)"
-                            ));
-                        }
                     }
                 }
-                PositionalTarget::StaticSentinel => {
-                    // Static sentinel base: the spread wraps a static
-                    // `Terminal` — emittable.
+                SpreadBaseStaticVariant::Wrap => {
+                    // The runtime wraps ONE value — no per-item dispatch, no
+                    // TT concern; emittable for spread AND flatten (outside an
+                    // array a flatten degenerates to spread; inside one, the
+                    // wrap arm pushes a single node whose fold is the value).
+                }
+                SpreadBaseStaticVariant::Undecidable => {
+                    reasons.push(format!(
+                        "{label} base ${index} runtime content variant undecidable (rule-reference or dynamic `?` shape)"
+                    ));
                 }
             }
         }
@@ -3604,12 +3713,15 @@ pub fn compute_direct_value_build_plan(
         if rule_has_matched_text_transform(rule, annotations) {
             reasons.push("rule-level matched-text @transform (span-transform tail)".to_string());
         }
-        for (idx, branch_body) in rule_branch_bodies(body).iter().enumerate() {
-            let resolved = resolved_branch_return_ast(rule, idx, branch_body, annotations);
+        // Audit EVERY context the annotations apply in — the top-level
+        // branches AND every nested `Or` site (the branch-broadcast
+        // semantics; session-#150 ebnf `grammar_file` fix).
+        for (idx, context_body) in collect_annotation_contexts(body) {
+            let resolved = resolved_branch_return_ast(rule, idx, context_body, annotations);
             let mut branch_reasons: Vec<String> = Vec::new();
             branch_value_vocabulary_reasons(
                 resolved.as_ref(),
-                branch_body,
+                context_body,
                 &fused,
                 &mut branch_reasons,
             );
@@ -3617,6 +3729,7 @@ pub fn compute_direct_value_build_plan(
                 reasons.push(format!("branch {}: {}", idx + 1, reason));
             }
         }
+        reasons.dedup();
         if !reasons.is_empty() {
             demoted.insert(rule.to_string(), reasons);
         }
@@ -3644,10 +3757,16 @@ pub fn compute_direct_value_build_plan(
             }
             let Some(body) = tree.get(rule) else { continue };
             let mut target_nodes: Vec<&ASTNode> = Vec::new();
-            for (idx, &branch_body) in rule_branch_bodies(body).iter().enumerate() {
+            if is_demoted {
+                // A demoted rule is verbatim on every branch — its whole body
+                // is consumed in node form.
+                target_nodes.push(body);
+            }
+            // Per-context (top-level + nested `Or` sites — the same contexts
+            // the emitter applies annotations in).
+            for (idx, branch_body) in collect_annotation_contexts(body) {
                 if is_demoted {
-                    target_nodes.push(branch_body);
-                    continue;
+                    break;
                 }
                 let resolved = resolved_branch_return_ast(rule, idx, branch_body, annotations);
                 match resolved.as_ref().map(return_ast_fold_class) {
@@ -3668,17 +3787,14 @@ pub fn compute_direct_value_build_plan(
                         }
                     }
                     Some(TransformFoldClass::ContentCarrying) => {
-                        let mut indices = std::collections::BTreeSet::new();
-                        if let Some(ast) = resolved.as_ref() {
-                            collect_positional_indices(ast, &mut indices);
-                        }
-                        for index in indices {
-                            match resolve_positional_target(branch_body, index) {
-                                PositionalTarget::Element(element) => target_nodes.push(element),
-                                PositionalTarget::WholeBody => target_nodes.push(branch_body),
-                                PositionalTarget::StaticSentinel => {}
-                            }
-                        }
+                        // v1: a carrying branch of a DEMANDED rule is emitted
+                        // VERBATIM (whole-body node build feeding today's
+                        // transform code), so the demand must cover the WHOLE
+                        // branch body — not only the `$N`-targeted elements.
+                        // (Per-element in-place input feeding for carrying
+                        // folds is the STEP-2b refinement; when it lands, this
+                        // arm narrows to the targeted elements again.)
+                        target_nodes.push(branch_body);
                     }
                     None => target_nodes.push(branch_body),
                 }
@@ -6568,6 +6684,56 @@ mod tests {
             "a demoted (verbatim) rule demands its fused references even undemanded: {plan:?}"
         );
         assert!(plan.barrier.contains("entry"), "{plan:?}");
+    }
+
+    /// RGX-0078.5.j.2 (session #150, the ebnf `grammar_file` fix) — branch
+    /// annotations apply at EVERY `Or` site (branch-broadcast), so the
+    /// vocabulary audit must check the NESTED contexts too: a spread that is
+    /// statically-Splice against the top-level Quantified body is UNDECIDABLE
+    /// against a nested rule-reference branch (the `$1`-peel reaches the
+    /// child's content, whose variant is a cross-rule class) — the rule is
+    /// demoted with a named reason.
+    #[test]
+    fn direct_value_plan_nested_or_context_demotes_undecidable_spread() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree = HashMap::new();
+        // entry(-> {v:$1}) := list ; list := (a | b)+ -> [$1*] ; a := 'x' ; b := 'y'
+        tree.insert("entry".to_string(), or(vec![rule_ref("list")]));
+        tree.insert(
+            "list".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(or(vec![rule_ref("a"), rule_ref("b")])),
+                quantifier: "+".to_string(),
+            },
+        );
+        tree.insert("a".to_string(), or(vec![atom("quoted_string", "x")]));
+        tree.insert("b".to_string(), or(vec![atom("quoted_string", "y")]));
+        let mut properties = std::collections::HashMap::new();
+        properties.insert("v".to_string(), Box::new(U::PositionalRef { index: 1 }));
+        let mut annotations = Annotations::default();
+        annotations
+            .branch_return_annotations
+            .insert("entry".to_string(), vec![branch_of(U::Object { properties })]);
+        annotations.branch_return_annotations.insert(
+            "list".to_string(),
+            vec![branch_of(U::Array {
+                elements: vec![U::Spread {
+                    base: Box::new(U::PositionalRef { index: 1 }),
+                }],
+            })],
+        );
+        let plan = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan computes");
+        let reasons = plan.demoted.get("list").expect("list is demoted");
+        assert!(
+            reasons.iter().any(|r| r.contains("undecidable")),
+            "the nested-context demotion reason is named: {reasons:?}"
+        );
+        assert!(plan.node_locked.contains("list"), "{plan:?}");
+        assert!(
+            plan.node_locked.contains("a") && plan.node_locked.contains("b"),
+            "the demoted rule's references are node-locked: {plan:?}"
+        );
     }
 
     /// RGX-0078.5.i.7 (D2 STEP-0) — the cascade gate ALLOWS cycles (unlike the

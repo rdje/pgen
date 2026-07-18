@@ -1,0 +1,21 @@
+per-round geomean-of-mins (base -> cand, ratio):
+  round 1:   4767.9 ->   3958.1  ratio=0.8302  (-16.98%)
+  round 2:   4766.5 ->   3905.6  ratio=0.8194  (-18.06%)
+  round 3:   4810.8 ->   3915.7  ratio=0.8140  (-18.60%)
+  round 4:   4754.4 ->   3944.5  ratio=0.8297  (-17.03%)
+  round 5:   4786.5 ->   3914.7  ratio=0.8179  (-18.21%)
+
+per-pattern best-min (base -> cand, ratio):
+  alternation              2916 ->     2416  ratio=0.8285  (-17.15%)
+  anchor_complex          15625 ->    14291  ratio=0.9146  (-8.54%)
+  capture_groups          10875 ->     9916  ratio=0.9118  (-8.82%)
+  character_class         14834 ->    13084  ratio=0.8820  (-11.80%)
+  digit_sequence           3166 ->     2416  ratio=0.7631  (-23.69%)
+  email_basic              3125 ->     2416  ratio=0.7731  (-22.69%)
+  literal_simple           1250 ->      959  ratio=0.7672  (-23.28%)
+  url_simple               2709 ->     2083  ratio=0.7689  (-23.11%)
+
+=== GEOMEAN-OF-BEST-MINS: base 4719.8ns -> cand 3888.1ns ===
+=== RATIO cand/base = 0.8238  =>  -17.62% ===
+=== falsification bar -2.0% (ratio<0.98): LAND (faster) ===
+LAND_GATE_DONE

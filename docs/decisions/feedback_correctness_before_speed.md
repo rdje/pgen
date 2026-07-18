@@ -93,3 +93,9 @@ Consequences (standing, all parser families):
 4. Practical sequencing stays the locked program: the RGX-0078 closure first; the per-family
    speed campaigns follow their accuracy closures (SV reaching `Done` remains the gating
    accuracy debt for its family).
+
+**Addendum (director 2026-07-18, session #150, verbatim):** *"Right now, the only thing that
+matters for any PGEN parser is accuracy and speed, size is irrelevant for now."* — artifact
+and binary SIZE is explicitly a NON-goal: never trade accuracy or speed for smaller generated
+sources/binaries; size-motivated optimizations are out of scope until the director says
+otherwise.

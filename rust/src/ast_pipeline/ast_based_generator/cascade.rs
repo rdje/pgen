@@ -98,6 +98,12 @@ use quote::{format_ident, quote};
 use std::collections::HashSet;
 use syn::Ident;
 
+/// RGX-0078.5.j.2 STEP-2a — the direct-value build emitter (value fns,
+/// in-place fold internals, discard walkers) consuming the corrected
+/// `DirectValueBuildPlan`.
+mod value;
+use value::DvBranchMode;
+
 /// The codegen-side cascade emission plan (the census plan's sets re-keyed for
 /// O(1) per-rule queries plus a deterministic emission order).
 pub(crate) struct CascadeCodegenPlan {
@@ -133,6 +139,15 @@ pub(crate) struct CascadeCodegenPlan {
     /// the guard frame + the derivation-SEGMENT thin memo), sub-roots are
     /// mark→match→build→truncate orchestrators at the unchanged twin seam.
     pub(crate) fused_order: Vec<String>,
+    /// RGX-0078.5.j.2 STEP-2a — the corrected direct-value partition
+    /// (`compute_direct_value_build_plan`): rules whose fold is VALUE-PURE on
+    /// every branch (node-signature build fns with in-place value internals).
+    pub(crate) dv_barrier: HashSet<String>,
+    /// Fused rules whose committed value is computed directly
+    /// (`cascade_build_value_<rule>` — no node scaffolding at all).
+    pub(crate) dv_value: HashSet<String>,
+    /// Vocabulary-demoted rules (⊆ node_locked): verbatim on every branch.
+    pub(crate) dv_demoted: HashSet<String>,
 }
 
 impl AstBasedGenerator {
@@ -188,6 +203,17 @@ impl AstBasedGenerator {
                 .filter(|rule| census_plan.internal.contains(*rule))
                 .cloned()
                 .collect();
+            // RGX-0078.5.j.2 STEP-2a — the direct-value partition from the
+            // SAME census (single implementation). It can only fail where the
+            // cascade plan itself fails (identical inputs), so `.ok()?` is the
+            // same sound "no fused graph" default.
+            let direct_value_plan =
+                crate::ast_pipeline::fusibility_census::compute_direct_value_build_plan(
+                    grammar_tree,
+                    self.annotations.as_ref(),
+                    Some(entry_rule),
+                )
+                .ok()?;
             crate::pgen_trace_debug!(
                 "        D2-B cascade-emission plan: {} sub-root(s) with twin dispatch, {} internal rule(s) fused ({} thin-memo cyclic), {} effect target(s)",
                 census_plan.sub_roots.len(),
@@ -201,6 +227,9 @@ impl AstBasedGenerator {
                 effect_targets: census_plan.effect_targets.into_iter().collect(),
                 thin_memo_internal,
                 fused_order,
+                dv_barrier: direct_value_plan.barrier.into_iter().collect(),
+                dv_value: direct_value_plan.value_licensed.into_iter().collect(),
+                dv_demoted: direct_value_plan.demoted.into_keys().collect(),
             })
         })();
         // Second `generate_parser_tokens` call on the same generator instance
@@ -275,6 +304,37 @@ impl AstBasedGenerator {
         self.cascade_internal(rule)
     }
 
+    /// RGX-0078.5.j.2 STEP-2a — is `rule` VALUE-LICENSED (its build fn is
+    /// `cascade_build_value_<rule>() -> PgenValue`, no node form exists)?
+    fn dv_value_licensed(&self, rule: &str) -> bool {
+        self.cascade_plan()
+            .is_some_and(|plan| plan.dv_value.contains(rule))
+    }
+
+    /// RGX-0078.5.j.2 STEP-2a — is `rule` a direct-value BARRIER (VALUE-PURE
+    /// fold on every branch: node signature, in-place value internals)?
+    fn dv_barrier_rule(&self, rule: &str) -> bool {
+        self.cascade_plan()
+            .is_some_and(|plan| plan.dv_barrier.contains(rule))
+    }
+
+    /// RGX-0078.5.j.2 STEP-2a — is `rule` NODE-LOCKED under the direct-value
+    /// partition (fused, neither barrier nor value-licensed)?
+    fn dv_node_locked_rule(&self, rule: &str) -> bool {
+        self.cascade_plan().is_some_and(|plan| {
+            (plan.sub_roots.contains(rule) || plan.internal.contains(rule))
+                && !plan.dv_barrier.contains(rule)
+                && !plan.dv_value.contains(rule)
+        })
+    }
+
+    /// RGX-0078.5.j.2 STEP-2a — was `rule` vocabulary-DEMOTED (verbatim on
+    /// every branch)?
+    fn dv_demoted_rule(&self, rule: &str) -> bool {
+        self.cascade_plan()
+            .is_some_and(|plan| plan.dv_demoted.contains(rule))
+    }
+
     /// ⛔ C3-B rule 1's per-SITE test: does `node`'s subtree reference any rule
     /// from whose body a semantic effect is reachable (the plan's
     /// `effect_targets` — ineligible rules ∪ the effect-reaching fixpoint)? A
@@ -335,7 +395,7 @@ impl AstBasedGenerator {
             // share the `cascade_` namespace with `cascade_<b>`: a fused rule
             // literally named `match_<a>`/`build_<a>` for a fused rule `<a>`
             // would collide. Loud error, never a silent shadow.
-            for prefix in ["match_", "build_"] {
+            for prefix in ["match_", "build_", "build_value_"] {
                 let colliding = format!("{prefix}{rule_name}");
                 if plan.sub_roots.contains(&colliding) || plan.internal.contains(&colliding) {
                     anyhow::bail!(
@@ -380,8 +440,23 @@ impl AstBasedGenerator {
             // orchestrator at sub-roots (the unchanged `cascade_<rule>` twin
             // seam). Internal rules get NO `cascade_<rule>` fn — by the plan
             // partition only match/build fns reference them.
+            //
+            // RGX-0078.5.j.2 STEP-2a — the build half is emitted per the
+            // direct-value partition: value-licensed rules get the VALUE fn
+            // (`cascade_build_value_*` — no node scaffolding); barrier and
+            // node-locked rules keep the node signature (with per-branch
+            // in-place modes inside `generate_mtb_build_rule_fn`).
             cascade_fns.push(self.generate_mtb_match_rule_fn(rule_name, ast_node, filename)?);
-            cascade_fns.push(self.generate_mtb_build_rule_fn(rule_name, ast_node)?);
+            if self.dv_value_licensed(rule_name) {
+                if self.mtb_sub_root(rule_name) {
+                    anyhow::bail!(
+                        "direct-value partition drift: fused sub-root '{rule_name}' is value-licensed — a sub-root is always demanded (its orchestrator returns the node to the protocol zone)"
+                    );
+                }
+                cascade_fns.push(self.generate_mtb_build_value_fn(rule_name, ast_node)?);
+            } else {
+                cascade_fns.push(self.generate_mtb_build_rule_fn(rule_name, ast_node)?);
+            }
             if self.mtb_sub_root(rule_name) {
                 cascade_fns.push(self.generate_mtb_orchestrator_fn(rule_name));
             }
@@ -1433,8 +1508,33 @@ impl AstBasedGenerator {
     /// The build half of an A-population rule: `cascade_build_<rule>`.
     /// Value mirror of `generate_cascade_rule_fn` (structural `ParseContent`
     /// + the rule/branch transforms + the `ParseNode` with the replayed span).
+    ///
+    /// RGX-0078.5.j.2 STEP-2a — for barrier and node-locked rules the
+    /// per-branch modes apply: an in-place branch computes its fold's content
+    /// directly (no body scaffolding); a verbatim branch keeps today's
+    /// emission byte-for-byte. Non-`Or` bodies resolve their single branch's
+    /// mode here; `Or` bodies resolve per-arm inside `mtb_build_or_logic`.
     fn generate_mtb_build_rule_fn(&self, rule_name: &str, ast_node: &ASTNode) -> Result<TokenStream> {
         let build_fn = format_ident!("cascade_build_{}", rule_name);
+        if !matches!(ast_node, ASTNode::Or { .. }) {
+            let mode = self.dv_branch_build_mode(rule_name, 0, ast_node);
+            if mode != DvBranchMode::Verbatim {
+                let inplace = self.dv_inplace_branch_content(rule_name, 0, ast_node, &mode)?;
+                return Ok(quote! {
+                    fn #build_fn(&mut self) -> ParseNode<'input> {
+                        let parser = self;
+                        let start_pos = parser.deriv_pos;
+                        let result = #inplace;
+                        let end_pos = parser.deriv_pos;
+                        ParseNode {
+                            rule_name: #rule_name,
+                            content: result,
+                            span: start_pos..end_pos,
+                        }
+                    }
+                });
+            }
+        }
         let build_logic = match ast_node {
             ASTNode::Or { alternatives } => {
                 self.mtb_build_or_logic(alternatives, rule_name, true)?
@@ -1520,6 +1620,18 @@ impl AstBasedGenerator {
 
         if branch_count == 1 {
             let branch = &alternatives[0];
+            // RGX-0078.5.j.2 STEP-2a — an in-place single branch at the rule
+            // top level replaces scaffolding + transform with the direct
+            // content computation.
+            if top_level {
+                let mode = self.dv_branch_build_mode(rule_name, 0, branch);
+                if mode != DvBranchMode::Verbatim {
+                    let inplace = self.dv_inplace_branch_content(rule_name, 0, branch, &mode)?;
+                    return Ok(quote! {
+                        let result = #inplace;
+                    });
+                }
+            }
             let branch_logic = self.mtb_build_node_logic(branch, rule_name)?;
             let resolved_annotation: Option<BranchAnnotation> = self
                 .branch_return_annotations
@@ -1565,11 +1677,24 @@ impl AstBasedGenerator {
         ) {
             let mut dispatch_arms = Vec::new();
             for (idx, alternative) in alternatives.iter().enumerate() {
+                let byte_patterns = &branch_byte_sets[idx];
+                // RGX-0078.5.j.2 STEP-2a — per-branch in-place modes at the
+                // rule top level; nested dispatches stay verbatim.
+                if top_level {
+                    let mode = self.dv_branch_build_mode(rule_name, idx, alternative);
+                    if mode != DvBranchMode::Verbatim {
+                        let inplace =
+                            self.dv_inplace_branch_content(rule_name, idx, alternative, &mode)?;
+                        dispatch_arms.push(quote! {
+                            #(#byte_patterns)|* => { #inplace }
+                        });
+                        continue;
+                    }
+                }
                 let branch_logic = self.mtb_build_node_logic(alternative, rule_name)?;
                 let transform = self.cascade_branch_transform(rule_name, idx, alternative)?;
                 // The `-0101` $text fix — see `build_transform_position_sync`.
                 let position_sync = Self::build_transform_position_sync(&transform);
-                let byte_patterns = &branch_byte_sets[idx];
                 dispatch_arms.push(quote! {
                     #(#byte_patterns)|* => {
                         #branch_logic
@@ -1595,6 +1720,19 @@ impl AstBasedGenerator {
 
         let mut winner_arms: Vec<TokenStream> = Vec::new();
         for (idx, alternative) in alternatives.iter().enumerate() {
+            // RGX-0078.5.j.2 STEP-2a — per-branch in-place modes at the rule
+            // top level; nested dispatches stay verbatim.
+            if top_level {
+                let mode = self.dv_branch_build_mode(rule_name, idx, alternative);
+                if mode != DvBranchMode::Verbatim {
+                    let inplace =
+                        self.dv_inplace_branch_content(rule_name, idx, alternative, &mode)?;
+                    winner_arms.push(quote! {
+                        #idx => { #inplace }
+                    });
+                    continue;
+                }
+            }
             let branch_logic = self.mtb_build_node_logic(alternative, rule_name)?;
             let transform = self.cascade_branch_transform(rule_name, idx, alternative)?;
             // The `-0101` $text fix — see `build_transform_position_sync`.
@@ -1748,6 +1886,18 @@ impl AstBasedGenerator {
                     }
                     "rule_reference" => {
                         if self.mtb_internal(token_value) {
+                            // RGX-0078.5.j.2 STEP-2a — the partition-drift
+                            // tripwire: a VERBATIM (node-form) build site may
+                            // never reference a value-licensed rule (its node
+                            // form does not exist). The census demand walk
+                            // node-locks exactly the rules verbatim sites can
+                            // reach; reaching one here means census and
+                            // emission disagreed — fail codegen loudly.
+                            if self.dv_value_licensed(token_value) {
+                                anyhow::bail!(
+                                    "direct-value partition drift: verbatim build site in rule '{rule_name}' references value-licensed rule '{token_value}' (no node form exists) — census demand and emission disagree"
+                                );
+                            }
                             let build_target = format_ident!("cascade_build_{}", token_value);
                             Ok(quote! {
                                 let __pgen_alt_child = parser.#build_target();
@@ -2782,6 +2932,221 @@ mod tests {
         assert!(
             build_body.contains("TokEnd (__pgen_e)"),
             "the build pass consumes the recorded end, got: {build_body}"
+        );
+    }
+
+    /// A parsed return-annotation branch (both the census's `Annotations`
+    /// source AND the emitter's generator-field source must carry it, exactly
+    /// as real generation populates both).
+    fn dv_branch(
+        ast: crate::ast_pipeline::unified_return_ast::UnifiedReturnAST,
+    ) -> Option<super::BranchAnnotation> {
+        Some(super::BranchAnnotation {
+            annotation_type: "return".to_string(),
+            annotation_content: String::new(),
+            parsed_ast: Some(ast),
+        })
+    }
+
+    /// RGX-0078.5.j.2 STEP-2a — a VALUE-PURE (empty-object) entry over a
+    /// transparent chain: the chain gets `cascade_build_value_*` fns (zero
+    /// node scaffolding), the barrier entry keeps the node signature with
+    /// IN-PLACE `Shaped` content and discard-walks its unreferenced child.
+    #[test]
+    fn direct_value_emits_value_fns_and_inplace_barrier_content() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Or {
+                alternatives: vec![atom_ref("mid")],
+            },
+        );
+        tree.insert(
+            "mid".to_string(),
+            ASTNode::Or {
+                alternatives: vec![atom_ref("leaf")],
+            },
+        );
+        tree.insert(
+            "leaf".to_string(),
+            ASTNode::Or {
+                alternatives: vec![atom_lit("x")],
+            },
+        );
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "entry".to_string(),
+            vec![dv_branch(U::Object {
+                properties: std::collections::HashMap::new(),
+            })],
+        );
+        let mut generator = generator_for(Some(annotations.clone()));
+        generator.branch_return_annotations = annotations.branch_return_annotations.clone();
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+        assert!(generator.cascade_plan_active(), "plan must be active");
+        assert!(
+            generator.dv_barrier_rule("entry")
+                && generator.dv_value_licensed("mid")
+                && generator.dv_value_licensed("leaf"),
+            "the census partition drives the emission classes"
+        );
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+
+        assert!(
+            rendered.contains("fn cascade_build_value_mid")
+                && rendered.contains("fn cascade_build_value_leaf"),
+            "value-licensed rules get value fns, got: {rendered}"
+        );
+        assert!(
+            !rendered.contains("fn cascade_build_mid (")
+                && !rendered.contains("fn cascade_build_leaf ("),
+            "value-licensed rules have NO node-form build fn, got: {rendered}"
+        );
+        assert!(
+            rendered.contains("fn cascade_build_entry (")
+                && rendered.contains("ParseContent :: Shaped (PgenValue :: Object"),
+            "the barrier entry keeps the node signature with in-place Shaped content, got: {rendered}"
+        );
+        assert!(
+            rendered.contains("let _ = parser . cascade_build_value_mid ()"),
+            "the barrier's unreferenced child is discard-walked through its value fn, got: {rendered}"
+        );
+        assert!(
+            !rendered.contains("sequence_elements"),
+            "no body scaffolding anywhere in this fixture, got: {rendered}"
+        );
+    }
+
+    /// RGX-0078.5.j.2 STEP-2a — a transparent `-> $2` sub-root builds ONLY
+    /// element 2's content in place; the sibling elements are value-licensed
+    /// and discard-walked; no `sequence_elements` Vec exists anywhere.
+    #[test]
+    fn direct_value_transparent_positional_builds_only_its_target() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![atom_ref("a"), atom_ref("b"), atom_ref("c")],
+            },
+        );
+        for (name, lit) in [("a", "x"), ("b", "y"), ("c", "z")] {
+            tree.insert(
+                name.to_string(),
+                ASTNode::Or {
+                    alternatives: vec![atom_lit(lit)],
+                },
+            );
+        }
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "entry".to_string(),
+            vec![dv_branch(U::PositionalRef { index: 2 })],
+        );
+        let mut generator = generator_for(Some(annotations.clone()));
+        generator.branch_return_annotations = annotations.branch_return_annotations.clone();
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+        assert!(
+            generator.dv_value_licensed("a")
+                && generator.dv_value_licensed("c")
+                && !generator.dv_value_licensed("b"),
+            "$2 demands exactly element 2 (per-reference propagation)"
+        );
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+
+        assert!(
+            rendered.contains("fn cascade_build_value_a")
+                && rendered.contains("fn cascade_build_value_c")
+                && rendered.contains("fn cascade_build_b ("),
+            "siblings are value fns, the target keeps its node fn, got: {rendered}"
+        );
+        assert!(
+            rendered.contains("__pgen_target_content")
+                && rendered.contains("let _ = parser . cascade_build_value_a ()")
+                && rendered.contains("let _ = parser . cascade_build_value_c ()"),
+            "the $2 branch builds only its target element in place, got: {rendered}"
+        );
+        assert!(
+            !rendered.contains("sequence_elements"),
+            "no body scaffolding anywhere in this fixture, got: {rendered}"
+        );
+    }
+
+    /// RGX-0078.5.j.2 STEP-2a — a BARE `?`-Quantified BODY records QuantCount
+    /// on the tape (the OptPresent fast path exists only at true sequence
+    /// positions), so its value fn must walk the QuantCount protocol. The
+    /// `entry_alternative = entry_concatenation?` panic class from the first
+    /// equivalence run, pinned.
+    #[test]
+    fn direct_value_bare_optional_body_walks_quant_count_not_opt_present() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Or {
+                alternatives: vec![atom_ref("mid")],
+            },
+        );
+        tree.insert(
+            "mid".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(atom_ref("leaf")),
+                quantifier: "?".to_string(),
+            },
+        );
+        tree.insert(
+            "leaf".to_string(),
+            ASTNode::Or {
+                alternatives: vec![atom_lit("x")],
+            },
+        );
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "entry".to_string(),
+            vec![dv_branch(U::Object {
+                properties: std::collections::HashMap::new(),
+            })],
+        );
+        let mut generator = generator_for(Some(annotations.clone()));
+        generator.branch_return_annotations = annotations.branch_return_annotations.clone();
+        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
+        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
+        assert!(generator.dv_value_licensed("mid"), "mid is value-licensed");
+
+        let parser_name = quote::format_ident!("CascadeTestParser");
+        let rendered = generator
+            .generate_cascade_impl(&parser_name, "cascade_test.rs")
+            .expect("cascade impl generation should succeed")
+            .to_string();
+        let mid_start = rendered
+            .find("fn cascade_build_value_mid")
+            .expect("mid value fn emitted");
+        let after_marker = mid_start + "fn cascade_build_value_mid".len();
+        let mid_end = rendered[after_marker..]
+            .find("fn cascade_build")
+            .map(|off| after_marker + off)
+            .unwrap_or(rendered.len());
+        let mid_body = &rendered[mid_start..mid_end];
+        assert!(
+            mid_body.contains("QuantCount"),
+            "a bare `?` body walks QuantCount, got: {mid_body}"
+        );
+        assert!(
+            !mid_body.contains("OptPresent"),
+            "a bare `?` body must NOT expect OptPresent, got: {mid_body}"
         );
     }
 }
