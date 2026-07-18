@@ -1,0 +1,40 @@
+== BENCH (alternated 5x2000, geomean-of-best-mins) ==
+  alternation          base     2333  cand     1916  -17.9%
+  anchor_complex       base    11083  cand     8375  -24.4%
+  capture_groups       base     6666  cand     4375  -34.4%
+  character_class      base    11833  cand    11708  -1.1%
+  digit_sequence       base     2250  cand     2125  -5.6%
+  email_basic          base     2250  cand     1958  -13.0%
+  literal_simple       base      958  cand      708  -26.1%
+  url_simple           base     1916  cand     1583  -17.4%
+  geomean base 3425.4 ns | cand 2805.1 ns | delta -18.11%
+
+== LADDER A/B (key rows) ==
+  verdict identity 39/39
+  flat_160               base     24,625  cand     17,125  -30.5%
+  lookstar_8             base     41,708  cand     27,416  -34.3%
+  nest_20                base     76,875  cand     22,875  -70.2%
+  nest_40                base    246,333  cand     59,542  -75.8%
+  nest_80                base    866,708  cand    170,958  -80.3%
+  nestbr_80              base    870,209  cand    173,750  -80.0%
+  orig_4674              base    872,417  cand    170,292  -80.5%
+  orig_6538              base     74,375  cand     17,458  -76.5%
+
+== CORPUS A/B (2,189 cells) ==
+  verdict identity 2189/2189
+  p50: base 2,375 | cand 2,000
+  p90: base 11,583 | cand 8,083
+  p99: base 38,708 | cand 23,041
+  MAX: base 1,312,000 | cand 1,101,875 | delta -16.0%
+  geomean: base 2,646.1 | cand 2,133.7 | delta -19.37%
+  top-10 worst cells (base order):
+    pcre2:testdata/testinput2:line_725            base  1,312,000  cand  1,101,875  -16.0%
+    pcre2:testdata/testinput2:line_4674           base    868,250  cand    175,500  -79.8%
+    pcre2:testdata/testinput2:line_2880           base    485,667  cand    113,458  -76.6%
+    pcre2:testdata/testinput2:line_6526           base    362,708  cand    129,792  -64.2%
+    pcre2:testdata/testinput2:line_965            base     85,666  cand     70,667  -17.5%
+    pcre2:testdata/testinput2:line_967            base     85,000  cand     69,250  -18.5%
+    pcre2:testdata/testinput2:line_6538           base     75,125  cand     17,500  -76.7%
+    pcre2:testdata/testinput2:line_2921           base     59,750  cand     48,875  -18.2%
+    pcre2:testdata/testinput2:line_1228           base     57,708  cand     36,667  -36.5%
+    pcre2:testdata/testinput2:line_6735           base     54,459  cand     21,583  -60.4%

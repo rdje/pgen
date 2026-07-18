@@ -1,0 +1,60 @@
+💾 Memo miss for rule 0 at position 0
+💾 Memo miss for rule 1 at position 0
+🚪 Entering branch 2/2 for rule 'entry_concatenation' at position 0
+💾 Memo miss for rule 8 at position 0
+🚪 Entering branch 6/7 for rule 'piece' at position 0
+💾 Memo miss for rule 26 at position 0
+🚪 Entering branch 24/24 for rule 'atom' at position 0
+💾 Memo miss for rule 123 at position 0
+🚪 Entering branch 1/4 for rule 'group' at position 0
+💾 Memo miss for rule 125 at position 0
+💾 Memo miss for rule 124 at position 0
+💾 Memo miss for rule 4 at position 1
+💾 Memo miss for rule 5 at position 1
+💾 Memo miss for rule 6 at position 1
+💾 Memo miss for rule 7 at position 1
+💾 Memo miss for rule 8 at position 1
+🚪 Entering branch 6/7 for rule 'piece' at position 1
+💾 Memo miss for rule 26 at position 1
+🚪 Entering branch 24/24 for rule 'atom' at position 1
+💾 Memo miss for rule 123 at position 1
+🚪 Entering branch 1/4 for rule 'group' at position 1
+💾 Memo miss for rule 125 at position 1
+💾 Memo miss for rule 124 at position 1
+💾 Memo miss for rule 4 at position 2
+💾 Memo miss for rule 5 at position 2
+💾 Memo miss for rule 6 at position 2
+💾 Memo miss for rule 7 at position 2
+💾 Memo miss for rule 8 at position 2
+🚪 Entering branch 6/7 for rule 'piece' at position 2
+💾 Memo miss for rule 26 at position 2
+🚪 Entering branch 24/24 for rule 'atom' at position 2
+💾 Memo miss for rule 123 at position 2
+🚪 Entering branch 1/4 for rule 'group' at position 2
+💾 Memo miss for rule 125 at position 2
+💾 Memo miss for rule 124 at position 2
+💾 Memo miss for rule 4 at position 3
+💾 Memo miss for rule 5 at position 3
+💾 Memo miss for rule 6 at position 3
+💾 Memo miss for rule 7 at position 3
+💾 Memo miss for rule 8 at position 3
+🚪 Entering branch 6/7 for rule 'piece' at position 3
+💾 Memo miss for rule 26 at position 3
+🚪 Entering branch 1/24 for rule 'atom' at position 3
+🚪 Entering branch 1/2 for rule 'literal' at position 3
+💾 Memo miss for rule 35 at position 3
+🚪 Entering branch 1/23 for rule 'literal_char' at position 3
+💾 Memo miss for rule 261 at position 3
+🚪 Entering branch 50/52 for rule 'letter' at position 3
+🚪 Entering branch 7/7 for rule 'piece' at position 3
+💾 Memo hit for rule 26 at position 4
+💾 Memo miss for rule 8 at position 4
+🚪 Entering branch 7/7 for rule 'piece' at position 2
+💾 Memo hit for rule 26 at position 5
+💾 Memo miss for rule 8 at position 5
+🚪 Entering branch 7/7 for rule 'piece' at position 1
+💾 Memo hit for rule 26 at position 6
+💾 Memo miss for rule 8 at position 6
+🚪 Entering branch 7/7 for rule 'piece' at position 0
+💾 Memo hit for rule 26 at position 7
+💾 Memo miss for rule 8 at position 7

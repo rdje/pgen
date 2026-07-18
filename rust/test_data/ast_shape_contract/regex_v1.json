@@ -75,7 +75,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/regex_return_annotations.json",
-    "extracted_at": "2026-07-11 (REGEX-PCRE2-FIDELITY.4.11 -- named-reference UNKNOWN-name inventory via the phase:final deferred-obligation predicate: peeled named_backreference (6 br) and named_subroutine_target (2 br) out of backreference/subroutine_target; added reference_name; removed braced_name_ref; added view:shaped to the three named-reference phase:final @predicate gates -- a PREDICATE view, NOT a return-shape annotation, so every accepted-AST shape is byte-identical. Return-annotation inventory 236->238.)",
+    "extracted_at": "2026-07-18 (RGX-0078.5.j.4 K1c, PGEN-RGX-0078-0139 -- piece left-factored: the sibling branches `atom quantifier?` and `atom zero_width+ quantifier` merged into `atom piece_tail?` with the new `piece_tail = quantifier -> $1 | zero_width+ quantifier -> $2` rule (the byte-unprunable absorption branch re-ran after every plain win -- the corpus-max depth quadratic). Language and every accepted-AST byte UNCHANGED (cross-build A/B: 0 mismatches over the full 2,189-cell PCRE2 corpus + probes). Return-annotation inventory 238->239.)",
     "optional_grammar_json_crosscheck": "generated/regex.json",
     "annotations": [
       {
@@ -1093,16 +1093,22 @@
         "normalized_text": "{type: \"piece\", atom: $1, quantifier: $2}"
       },
       {
-        "rule": "piece",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"piece\", atom: $1, quantifier: $3}"
-      },
-      {
         "rule": "piece_quoted_run_quantified",
         "branch_index": 0,
         "annotation_type": "return_array",
         "normalized_text": "[$2**, {type: \"piece\", atom: $3, quantifier: $5}]"
+      },
+      {
+        "rule": "piece_tail",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
+        "rule": "piece_tail",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
       },
       {
         "rule": "posix_class",

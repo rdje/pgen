@@ -1,8 +1,8 @@
 {
   "pgen_duality_hunt_gate_contract_version": 1,
   "owning_leaf": "STIMULI-SIGNOFF.13.3",
-  "description": "Pinned per-(grammar, seed) duality-break signature sets for the plain-config duality-hunt gate. This lane is the HONEST plain-configuration duality coverage mandated by the STIMULI-SIGNOFF.13.1 design §6 cert-spf adjudication: the certificate-coverage sample_parse_failures=0 claim is config-scoped (its steered, budgeted pass avoids rare forms), so this gate re-earns the duality picture under the hunter's plain configuration. Class identity is the hunter's digit-normalized rejection signature; occurrences and reproducers are deliberately NOT pinned (class-level granularity). A signature observed but not pinned = a NOVEL break class: the gate fails and the class must be routed to a task-tree leaf (the be-alert doctrine). A pinned signature no longer observed = a STALE contract: the closing slice re-baselines this file same-commit, recording closure progress (the cert-baseline discipline).",
-  "honest_bounds": "The gate sees only generator-emitted-but-parser-REJECTED samples (duality breaks). Accepts-invalid divergences where generator AND parser agree (the REGEX-PCRE2-FIDELITY .3.19/.3.22 classes) are invisible to it by construction — only oracle-differential coverage can see those. Pinned sets are budget- and distribution-scoped: a legitimate grammar/generator change re-baselines them same-slice.",
+  "description": "Pinned per-(grammar, seed) duality-break signature sets for the plain-config duality-hunt gate. This lane is the HONEST plain-configuration duality coverage mandated by the STIMULI-SIGNOFF.13.1 design \u00a76 cert-spf adjudication: the certificate-coverage sample_parse_failures=0 claim is config-scoped (its steered, budgeted pass avoids rare forms), so this gate re-earns the duality picture under the hunter's plain configuration. Class identity is the hunter's digit-normalized rejection signature; occurrences and reproducers are deliberately NOT pinned (class-level granularity). A signature observed but not pinned = a NOVEL break class: the gate fails and the class must be routed to a task-tree leaf (the be-alert doctrine). A pinned signature no longer observed = a STALE contract: the closing slice re-baselines this file same-commit, recording closure progress (the cert-baseline discipline).",
+  "honest_bounds": "The gate sees only generator-emitted-but-parser-REJECTED samples (duality breaks). Accepts-invalid divergences where generator AND parser agree (the REGEX-PCRE2-FIDELITY .3.19/.3.22 classes) are invisible to it by construction \u2014 only oracle-differential coverage can see those. Pinned sets are budget- and distribution-scoped: a legitimate grammar/generator change re-baselines them same-slice.",
   "lanes": [
     {
       "lane_id": "regex_canonical_seed0",
@@ -15,7 +15,7 @@
         {
           "signature": "Parser did not consume full input at position #",
           "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
-          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain \u2014 no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
           "example_reproducer": "*"
         }
       ]
@@ -27,14 +27,8 @@
       "rounds": 20,
       "samples_per_round": 5,
       "seed": 7,
-      "expected_signatures": [
-        {
-          "signature": "Parser did not consume full input at position #",
-          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
-          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
-          "example_reproducer": "\\"
-        }
-      ]
+      "expected_signatures": [],
+      "rebaseline_note": "2026-07-18 RGX-0078.5.j.4 K1c (PGEN-RGX-0078-0139): the pinned 'Parser did not consume full input at position #' signature VANISHED at this seed after the piece left-factoring (branches `atom quantifier?` + `atom zero_width+ quantifier` merged into `atom piece_tail?`): the generation-side walk now takes the factored tail path, and the previously-rejected generated samples at this seed no longer occur. Zero NOVEL signatures in any lane; parser language byte-identically unchanged (cross-build corpus A/B 0 mismatches). The class stays pinned in the scaled lanes, which still observe it."
     },
     {
       "lane_id": "regex_canonical_seed42",
@@ -43,14 +37,8 @@
       "rounds": 20,
       "samples_per_round": 5,
       "seed": 42,
-      "expected_signatures": [
-        {
-          "signature": "Parser did not consume full input at position #",
-          "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
-          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
-          "example_reproducer": "+"
-        }
-      ]
+      "expected_signatures": [],
+      "rebaseline_note": "2026-07-18 RGX-0078.5.j.4 K1c (PGEN-RGX-0078-0139): the pinned 'Parser did not consume full input at position #' signature VANISHED at this seed after the piece left-factoring (branches `atom quantifier?` + `atom zero_width+ quantifier` merged into `atom piece_tail?`): the generation-side walk now takes the factored tail path, and the previously-rejected generated samples at this seed no longer occur. Zero NOVEL signatures in any lane; parser language byte-identically unchanged (cross-build corpus A/B 0 mismatches). The class stays pinned in the scaled lanes, which still observe it."
     },
     {
       "lane_id": "svpp_canonical_seed0",
@@ -90,7 +78,7 @@
         {
           "signature": "Parser did not consume full input at position #",
           "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
-          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain \u2014 no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
           "example_reproducer": "*"
         }
       ]
@@ -106,7 +94,7 @@
         {
           "signature": "Parser did not consume full input at position #",
           "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
-          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain \u2014 no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
           "example_reproducer": "\\"
         }
       ]
@@ -122,7 +110,7 @@
         {
           "signature": "Parser did not consume full input at position #",
           "owner": "REGEX-PCRE2-FIDELITY.4.8.1",
-          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain — no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
+          "owner_note": "REGEX-PCRE2-FIDELITY.4.8 (grammar design A\") STRUCTURALLY closed the start-option position class (start options now reachable only off the whole-pattern entry chain \u2014 no derivation off the prefix), so the former \"start option must appear at the start-option prefix\" break VANISHED and the directed hunter re-targeted the NEXT-easiest frontier: the stimuli generator emits some PCRE2-INVALID patterns (quantifier-on-comment (?#)?+ err 109, unbalanced parens err 114, conditional / nested \\Q\\Q forms) that the parser CORRECTLY rejects (PCRE2 10.47 rejects them too; verdict+furthest-pos identical on the pre-.4.8 grammar, so PRE-EXISTING generator over-approximation, NOT a .4.8 regression and NOT a parser rejects-valid bug). Tracked by REGEX-PCRE2-FIDELITY.4.8.1 for future stimuli-generator tightening (cross-ref STIMULI-SIGNOFF).",
           "example_reproducer": "\\"
         }
       ]

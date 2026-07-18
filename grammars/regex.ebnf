@@ -131,10 +131,11 @@ concatenation  = piece+
 # POSITIVE exclusion, generation-faithful, the `.3.13` idiom) into
 # `zero_width`, and `piece` gains (a) a STANDALONE branch
 # `zero_width !quantifier` (a stray `\E` / empty `\Q\E` never carries its own
-# quantifier) and (b) an ABSORPTION branch `atom zero_width+ quantifier` — the
-# quantifier reaches through ≥1 transparent `zero_width` to bind the atom, the
-# zero-widths ELIDED (PCRE2's delete-model); the `+` confines it to
-# `<atom><zero_width>+<q>` so plain `x*` is untouched.
+# quantifier) and (b) an ABSORPTION arm `zero_width+ quantifier` (in
+# `piece_tail`, below) — the quantifier reaches through ≥1 transparent
+# `zero_width` to bind the atom, the zero-widths ELIDED (PCRE2's
+# delete-model); the `+` confines it to `<atom><zero_width>+<q>` so plain
+# `x*` is untouched.
 # REGEX-PCRE2-FIDELITY.3.23: empty `\Q\E` is now a `zero_width` member (see
 # that rule), so `\Q\E*` REJECTS via the STANDALONE branch's `!quantifier`
 # (err-109-faithful — the pre-`.3.23` deferred divergence) and `a\Q\E*` = `a*`
@@ -159,9 +160,29 @@ piece          = piece_quoted_run_quantified -> $1
                | zero_width !quantifier -> {type: "piece", atom: $1, quantifier: []}
                | unterminated_quoted_literal -> {type: "piece", atom: $1, quantifier: []}
                | directive_verb_nonquant !quantifier -> {type: "piece", atom: $1, quantifier: []}
-               | atom quantifier? -> {type: "piece", atom: $1, quantifier: $2}
-               | atom zero_width+ quantifier
--> {type: "piece", atom: $1, quantifier: $3}
+               | atom piece_tail? -> {type: "piece", atom: $1, quantifier: $2}
+
+# K1c (RGX-0078.5.j.4, PGEN-RGX-0078-0138/-0139): `piece`'s former sibling
+# branches `atom quantifier?` and `atom zero_width+ quantifier` shared the full
+# `atom` FIRST-prefix, so byte dispatch could never prune the absorption branch
+# and it re-ran after EVERY winning plain branch (memo-replaying the
+# fact-emitting atom + the full C3-B tournament delta traffic) — the
+# corpus-max depth-quadratic (`line_4674`). Left-factored: `atom` parses ONCE
+# and the tournament runs over these store-pure tails only. Arm order mirrors
+# the old branch order; a tie is impossible (arm 2 starts with a backslash
+# form `quantifier` can never parse — the arms are byte-DISJOINT: `*+?{` vs
+# `\`), so the merged branch accepts exactly the union the two old branches
+# accepted. The OPTIONALITY stays INLINE in `piece` (`piece_tail?`), not as a
+# bare-`?` body inside the tail rule: the inline form keeps the old
+# present-optional UNWRAP convention (`quantifier: $2` = `[]` when absent, the
+# bare quantifier object when present), whereas a `quantifier? -> $1` tail
+# body wraps the present case in a one-element list (measured cross-build AST
+# divergence on every quantified pattern — the `-0129` bare-`?`-body class).
+# Arm 1 yields the quantifier object (`$1`), arm 2 drops the transparent
+# zero_width run and yields the bare quantifier (`$2`), exactly as the old
+# branch-7 `$3` did.
+piece_tail     = quantifier -> $1
+               | zero_width+ quantifier -> $2
 
 # REGEX-PCRE2-FIDELITY.4.8: the start-option piece. A PCRE2 start option
 # (`(*UTF)`, `(*LIMIT_HEAP=5)`, `(*CRLF)`, …) is peeled OUT of the shared
