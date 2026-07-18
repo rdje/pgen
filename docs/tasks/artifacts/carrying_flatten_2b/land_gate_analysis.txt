@@ -1,0 +1,20 @@
+per-round geomean-of-mins (base -> cand, ratio):
+  round 1:    3916.5 ->    3831.3  ratio=0.9782  (-2.18%)
+  round 2:    3864.5 ->    3875.0  ratio=1.0027  (+0.27%)
+  round 3:    3870.4 ->    3881.1  ratio=1.0028  (+0.28%)
+  round 4:    3834.6 ->    3858.5  ratio=1.0062  (+0.62%)
+  round 5:    3924.2 ->    3870.7  ratio=0.9864  (-1.36%)
+
+per-pattern best-min (base -> cand, ratio):
+  alternation                2375 ->     2292  ratio=0.9651  (-3.49%)
+  anchor_complex            14250 ->    14083  ratio=0.9883  (-1.17%)
+  capture_groups             9833 ->     9792  ratio=0.9958  (-0.42%)
+  character_class           12959 ->    12917  ratio=0.9968  (-0.32%)
+  digit_sequence             2375 ->     2208  ratio=0.9297  (-7.03%)
+  email_basic                2375 ->     2333  ratio=0.9823  (-1.77%)
+  literal_simple              917 ->      959  ratio=1.0458  (+4.58%)
+  url_simple                 2042 ->     2041  ratio=0.9995  (-0.05%)
+
+=== GEOMEAN-OF-BEST-MINS: base 3822.2ns -> cand 3774.1ns ===
+=== RATIO cand/base = 0.9874  =>  -1.26% ===
+=== falsification bar -2.0% (ratio<0.98): REFUSE (bar -2.0% not cleared) ===

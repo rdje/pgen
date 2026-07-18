@@ -1,0 +1,432 @@
+diff --git a/rust/src/ast_pipeline/ast_based_generator/cascade.rs b/rust/src/ast_pipeline/ast_based_generator/cascade.rs
+index 5550e75c..ef7b93ef 100644
+--- a/rust/src/ast_pipeline/ast_based_generator/cascade.rs
++++ b/rust/src/ast_pipeline/ast_based_generator/cascade.rs
+@@ -3085,6 +3085,190 @@ mod tests {
+         );
+     }
+ 
++    /// RGX-0078.5.j.2 STEP-2b — a DEMANDED content-carrying `[$1**]` rule
++    /// over a `ref+` body (the regex `concatenation = piece+ -> [$1**]`
++    /// shape) gets the in-place flatten emission: the item child feeds the
++    /// output `Sequence` directly (no `Alternative`/`"quantified"` iteration
++    /// wrapper allocs, no intermediate `results` Vec, no fold-head clone).
++    #[test]
++    fn direct_value_carrying_flatten_feeds_input_in_place() {
++        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
++        let mut tree: HashMap<String, ASTNode> = HashMap::new();
++        // entry (passthrough, demands its whole body) → cat (carrying) → item.
++        tree.insert(
++            "entry".to_string(),
++            ASTNode::Or {
++                alternatives: vec![atom_ref("cat")],
++            },
++        );
++        tree.insert(
++            "cat".to_string(),
++            ASTNode::Quantified {
++                element: Box::new(atom_ref("item")),
++                quantifier: "+".to_string(),
++            },
++        );
++        tree.insert(
++            "item".to_string(),
++            ASTNode::Or {
++                alternatives: vec![atom_lit("x")],
++            },
++        );
++        let mut annotations = Annotations::default();
++        annotations.branch_return_annotations.insert(
++            "cat".to_string(),
++            vec![dv_branch(U::Array {
++                elements: vec![U::FlattenSpread {
++                    base: Box::new(U::PositionalRef { index: 1 }),
++                }],
++            })],
++        );
++        let mut generator = generator_for(Some(annotations.clone()));
++        generator.branch_return_annotations = annotations.branch_return_annotations.clone();
++        *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
++        generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
++        assert!(
++            generator.dv_node_locked_rule("cat") && generator.dv_node_locked_rule("item"),
++            "the demanded carrying chain stays node-locked (partition unchanged by STEP-2b)"
++        );
++        assert_eq!(
++            generator.dv_branch_build_mode(
++                "cat",
++                0,
++                tree.get("cat").expect("cat rule present"),
++            ),
++            super::value::DvBranchMode::InPlaceCarryingFlatten(None),
++            "the whole-body `[$1**]` over `item+` admits the in-place flatten mode"
++        );
++
++        let parser_name = quote::format_ident!("CascadeTestParser");
++        let rendered = generator
++            .generate_cascade_impl(&parser_name, "cascade_test.rs")
++            .expect("cascade impl generation should succeed")
++            .to_string();
++        let cat_start = rendered
++            .find("fn cascade_build_cat")
++            .expect("cat node fn emitted");
++        let after_marker = cat_start + "fn cascade_build_cat".len();
++        let cat_end = rendered[after_marker..]
++            .find("fn cascade_")
++            .map(|off| after_marker + off)
++            .unwrap_or(rendered.len());
++        let cat_body = &rendered[cat_start..cat_end];
++        assert!(
++            cat_body.contains("__pgen_arr_nodes")
++                && cat_body.contains("parser . cascade_build_item ()"),
++            "cat feeds item children straight into the output array, got: {cat_body}"
++        );
++        assert!(
++            !cat_body.contains("ParseContent :: Alternative (parser . arena . alloc")
++                && !cat_body.contains("rule_name : \"quantified\" , content : result"),
++            "no iteration-wrapper allocs survive in the in-place flatten, got: {cat_body}"
++        );
++        assert!(
++            !cat_body.contains("let mut results"),
++            "no intermediate results Vec survives in the in-place flatten, got: {cat_body}"
++        );
++    }
++
++    /// RGX-0078.5.j.2 STEP-2b — out-of-shape carrying transforms stay
++    /// VERBATIM: a mixed `[$1*, $2**]` array, a plain `[$1*]` spread (its
++    /// wrapper nodes ARE the output), a flatten over a `?` base, and a
++    /// flatten whose item is a literal (non-reference) all fall back.
++    #[test]
++    fn direct_value_carrying_flatten_admission_rejects_out_of_shape() {
++        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
++        let flatten_1 = U::Array {
++            elements: vec![U::FlattenSpread {
++                base: Box::new(U::PositionalRef { index: 1 }),
++            }],
++        };
++        let cases: Vec<(&str, ASTNode, U)> = vec![
++            (
++                "mixed spread array",
++                ASTNode::Sequence {
++                    elements: vec![
++                        ASTNode::Quantified {
++                            element: Box::new(atom_ref("item")),
++                            quantifier: "*".to_string(),
++                        },
++                        ASTNode::Quantified {
++                            element: Box::new(atom_ref("item")),
++                            quantifier: "+".to_string(),
++                        },
++                    ],
++                },
++                U::Array {
++                    elements: vec![
++                        U::Spread {
++                            base: Box::new(U::PositionalRef { index: 1 }),
++                        },
++                        U::FlattenSpread {
++                            base: Box::new(U::PositionalRef { index: 2 }),
++                        },
++                    ],
++                },
++            ),
++            (
++                "plain spread",
++                ASTNode::Quantified {
++                    element: Box::new(atom_ref("item")),
++                    quantifier: "+".to_string(),
++                },
++                U::Array {
++                    elements: vec![U::Spread {
++                        base: Box::new(U::PositionalRef { index: 1 }),
++                    }],
++                },
++            ),
++            (
++                "optional base",
++                ASTNode::Quantified {
++                    element: Box::new(atom_ref("item")),
++                    quantifier: "?".to_string(),
++                },
++                flatten_1.clone(),
++            ),
++            (
++                "literal item",
++                ASTNode::Quantified {
++                    element: Box::new(atom_lit("x")),
++                    quantifier: "+".to_string(),
++                },
++                flatten_1,
++            ),
++        ];
++        for (label, body, transform) in cases {
++            let mut tree: HashMap<String, ASTNode> = HashMap::new();
++            tree.insert(
++                "entry".to_string(),
++                ASTNode::Or {
++                    alternatives: vec![atom_ref("cat")],
++                },
++            );
++            tree.insert("cat".to_string(), body.clone());
++            tree.insert(
++                "item".to_string(),
++                ASTNode::Or {
++                    alternatives: vec![atom_lit("x")],
++                },
++            );
++            let mut annotations = Annotations::default();
++            annotations
++                .branch_return_annotations
++                .insert("cat".to_string(), vec![dv_branch(transform)]);
++            let mut generator = generator_for(Some(annotations.clone()));
++            generator.branch_return_annotations = annotations.branch_return_annotations.clone();
++            *generator.first_set_grammar_tree.borrow_mut() = tree.clone();
++            generator.build_cascade_emission_plan_for_codegen(&tree, "entry");
++            assert_eq!(
++                generator.dv_branch_build_mode("cat", 0, &body),
++                super::value::DvBranchMode::Verbatim,
++                "{label}: out-of-shape carrying stays verbatim"
++            );
++        }
++    }
++
+     /// RGX-0078.5.j.2 STEP-2a — a BARE `?`-Quantified BODY records QuantCount
+     /// on the tape (the OptPresent fast path exists only at true sequence
+     /// positions), so its value fn must walk the QuantCount protocol. The
+diff --git a/rust/src/ast_pipeline/ast_based_generator/cascade/value.rs b/rust/src/ast_pipeline/ast_based_generator/cascade/value.rs
+index 99b95d40..cf500cf8 100644
+--- a/rust/src/ast_pipeline/ast_based_generator/cascade/value.rs
++++ b/rust/src/ast_pipeline/ast_based_generator/cascade/value.rs
+@@ -21,11 +21,15 @@
+ //!   branch builds its `Shaped`/`Terminal` content in place; a transparent
+ //!   `-> $N` branch with a statically-resolved element target builds ONLY that
+ //!   element's content (siblings advance the cursor through discard walkers);
+-//!   everything else (passthrough, content-carrying, `WholeBody` targets,
+-//!   vocabulary-demoted rules) stays VERBATIM — exactly the branches whose
+-//!   references the census demand walk node-locked, so partition and emission
+-//!   cannot disagree (and a drift bails loudly at the verbatim reference
+-//!   site — see `mtb_build_atom_logic`).
++//!   a CONTENT-CARRYING `[$N**]` branch whose base is statically a non-`?`
++//!   `Quantified` over a plain fused node-form reference feeds each
++//!   iteration's child straight into the output `Sequence` (STEP-2b — the
++//!   iteration-wrapper allocs, intermediate Vec, and fold-head clone are
++//!   elided); everything else (passthrough, other carrying shapes, `WholeBody`
++//!   targets, vocabulary-demoted rules) stays VERBATIM — exactly the branches
++//!   whose references the census demand walk node-locked, so partition and
++//!   emission cannot disagree (and a drift bails loudly at the verbatim
++//!   reference site — see `mtb_build_atom_logic`).
+ //!
+ //! Byte-exactness parity edges honoured throughout (each mirrors the runtime
+ //! the fold would have executed):
+@@ -71,6 +75,16 @@ pub(in super::super) enum DvBranchMode {
+     /// Transparent `-> $N` statically out of range: discard-walk everything,
+     /// content = the sentinel `Terminal`.
+     InPlaceTransparentSentinel(&'static str),
++    /// STEP-2b — a demanded CONTENT-CARRYING `[$N**]` branch (an `Array`
++    /// with exactly one `FlattenSpread` element) whose base is statically a
++    /// non-`?` `Quantified` over a plain fused NODE-form rule reference:
++    /// each iteration's child feeds the output `Sequence` directly — the
++    /// `Alternative` + `"quantified"` iteration-wrapper arena allocs, the
++    /// intermediate `results` Vec, and the fold-head `Quantified` clone are
++    /// all elided (none is observable in the fold's output). `None` = the
++    /// whole (non-sequence) body is the target; `Some(k)` = sequence
++    /// element k (siblings discard-walk).
++    InPlaceCarryingFlatten(Option<usize>),
+ }
+ 
+ /// Sentinel spelling context — `generate_positional_ref` (content level) vs
+@@ -163,8 +177,93 @@ impl AstBasedGenerator {
+                 }
+                 _ => DvBranchMode::Verbatim,
+             },
+-            Some(TransformFoldClass::ContentCarrying) | None => DvBranchMode::Verbatim,
++            Some(TransformFoldClass::ContentCarrying) => resolved
++                .as_ref()
++                .and_then(|ast| self.dv_carrying_flatten_mode(branch_body, ast))
++                .unwrap_or(DvBranchMode::Verbatim),
++            None => DvBranchMode::Verbatim,
++        }
++    }
++
++    /// STEP-2b admission — is this resolved CONTENT-CARRYING transform the
++    /// in-place-feedable `[$N**]` shape? All conditions are static, through
++    /// the SAME census fns the plan partition used:
++    /// - the transform is an `Array` with exactly ONE element, a
++    ///   `FlattenSpread` over a positional ref (`$N`, N ≥ 1);
++    /// - the ref resolves to a sequence `Element` or the `WholeBody`
++    ///   (`resolve_positional_target` — a static sentinel stays verbatim);
++    /// - the target is statically SPLICE (`spread_base_static_variant` —
++    ///   rules out `?`-position ambiguity and non-quantified bases);
++    /// - the quantified item is a plain fused NODE-form rule reference
++    ///   (`dv_quantified_item_node_ref`), whose iteration wrapper is exactly
++    ///   `Alternative(alloc(child))` under a `("quantified", 0..0)` node —
++    ///   the shape the in-place loop elides byte-exactly.
++    /// Every other carrying shape keeps today's verbatim emission.
++    fn dv_carrying_flatten_mode(
++        &self,
++        branch_body: &ASTNode,
++        ast: &UnifiedReturnAST,
++    ) -> Option<DvBranchMode> {
++        let UnifiedReturnAST::Array { elements } = ast else {
++            return None;
++        };
++        let [UnifiedReturnAST::FlattenSpread { base }] = elements.as_slice() else {
++            return None;
++        };
++        let UnifiedReturnAST::PositionalRef { index } = base.as_ref() else {
++            return None;
++        };
++        if *index == 0 {
++            return None;
++        }
++        let (target_node, at_seq, target_element): (&ASTNode, bool, Option<usize>) =
++            match census::resolve_positional_target(branch_body, *index) {
++                PositionalTarget::Element(element) => (element, true, Some(*index - 1)),
++                PositionalTarget::WholeBody => (branch_body, false, None),
++                PositionalTarget::StaticSentinel => return None,
++            };
++        if census::spread_base_static_variant(target_node, at_seq)
++            != census::SpreadBaseStaticVariant::Splice
++        {
++            return None;
+         }
++        self.dv_quantified_item_node_ref(target_node)?;
++        Some(DvBranchMode::InPlaceCarryingFlatten(target_element))
++    }
++
++    /// The admissible in-place-flatten target shape: a non-`?` `Quantified`
++    /// whose item is a plain fused NODE-form rule reference. Returns the
++    /// callee rule name. Shared by admission and emission — single
++    /// implementation, so the two cannot disagree.
++    fn dv_quantified_item_node_ref<'t>(&self, target: &'t ASTNode) -> Option<&'t str> {
++        let ASTNode::Quantified {
++            element: inner,
++            quantifier,
++        } = target
++        else {
++            return None;
++        };
++        if quantifier == "?" {
++            return None;
++        }
++        let ASTNode::Atom {
++            value: ASTValue::Token(parts),
++        } = inner.as_ref()
++        else {
++            return None;
++        };
++        if parts.len() < 2 {
++            return None;
++        }
++        let TokenValue::String(token_type) = &parts[0];
++        let TokenValue::String(token_value) = &parts[1];
++        if token_type != "rule_reference" {
++            return None;
++        }
++        if !self.mtb_internal(token_value) || self.dv_value_licensed(token_value) {
++            return None;
++        }
++        Some(token_value)
+     }
+ 
+     // ------------------------------------------------------------------
+@@ -1279,9 +1378,99 @@ impl AstBasedGenerator {
+                     }
+                 })
+             }
++            DvBranchMode::InPlaceCarryingFlatten(target_element) => {
++                let shape = DvShape::of(branch_body);
++                let mut stmts: Vec<TokenStream> = Vec::new();
++                match target_element {
++                    Some(target_idx) => {
++                        if !shape.is_sequence || *target_idx >= shape.elements.len() {
++                            anyhow::bail!(
++                                "InPlaceCarryingFlatten({target_idx}) of rule '{rule_name}' does not address a sequence element — emitter admission drift"
++                            );
++                        }
++                        for (idx, element) in shape.elements.iter().enumerate() {
++                            if idx == *target_idx {
++                                stmts.push(self.dv_carrying_flatten_stmts(element, rule_name)?);
++                            } else {
++                                stmts.push(self.dv_element_discard_stmts(element, rule_name)?);
++                            }
++                        }
++                    }
++                    None => {
++                        stmts.push(self.dv_carrying_flatten_stmts(branch_body, rule_name)?);
++                    }
++                }
++                Ok(quote! {
++                    {
++                        #(#stmts)*
++                        ParseContent::Sequence(__pgen_arr_nodes)
++                    }
++                })
++            }
+         }
+     }
+ 
++    /// The STEP-2b in-place flatten loop over the target `Quantified`:
++    /// declares and fills `__pgen_arr_nodes`. Each iteration builds the item
++    /// child on the STACK and peels `Alternative` wrappers off its content —
++    /// the verbatim fold's peel entered one step late, because the elided
++    /// iteration wrapper's content was exactly `Alternative(alloc(child))` —
++    /// then re-emits through the fold's exact runtime arms with the wrapper's
++    /// inherit constants (`"quantified"`, span `0..0`). Byte-exact with the
++    /// verbatim scaffolding + fold: the elided allocs and the intermediate
++    /// Vec are unobservable in the fold's output.
++    fn dv_carrying_flatten_stmts(&self, target: &ASTNode, rule_name: &str) -> Result<TokenStream> {
++        let Some(child_rule) = self.dv_quantified_item_node_ref(target) else {
++            anyhow::bail!(
++                "in-place carrying flatten target of rule '{rule_name}' is not an admissible quantified node-form reference — emitter admission drift"
++            );
++        };
++        let build_target = format_ident!("cascade_build_{}", child_rule);
++        Ok(quote! {
++            let __pgen_quant_n = match parser.deriv_next_event() {
++                crate::ast_pipeline::DerivEvent::QuantCount(__pgen_n) => __pgen_n,
++                __pgen_other => unreachable!(
++                    "derivation-tape drift in rule '{}': expected QuantCount, found {:?}",
++                    #rule_name,
++                    __pgen_other,
++                ),
++            };
++            let mut __pgen_arr_nodes: Vec<&'input ParseNode<'input>> =
++                Vec::with_capacity(__pgen_quant_n);
++            for _ in 0..__pgen_quant_n {
++                let __pgen_child = parser.#build_target();
++                let mut __pgen_peeled = __pgen_child.content;
++                while let ParseContent::Alternative(__pgen_alt) = __pgen_peeled {
++                    __pgen_peeled = __pgen_alt.content.clone();
++                }
++                match __pgen_peeled {
++                    ParseContent::Sequence(__pgen_inner_nodes)
++                    | ParseContent::Quantified(__pgen_inner_nodes, _) => {
++                        for __pgen_inner_node in __pgen_inner_nodes {
++                            __pgen_arr_nodes.push(__pgen_inner_node);
++                        }
++                    }
++                    ParseContent::Shaped(PgenValue::Array(__pgen_values)) => {
++                        for __pgen_value in __pgen_values {
++                            __pgen_arr_nodes.push(parser.arena.alloc(ParseNode {
++                                rule_name: "quantified",
++                                content: ParseContent::Shaped(*__pgen_value),
++                                span: 0..0,
++                            }));
++                        }
++                    }
++                    __pgen_other_content => {
++                        __pgen_arr_nodes.push(parser.arena.alloc(ParseNode {
++                            rule_name: "quantified",
++                            content: __pgen_other_content,
++                            span: 0..0,
++                        }));
++                    }
++                }
++            }
++        })
++    }
++
+     /// Bind `__pgen_target_content` = the `$N` target element's CONTENT,
+     /// built exactly as the verbatim element interior builds it (the same
+     /// `mtb_build_*` machinery — node-form children and all) minus the
