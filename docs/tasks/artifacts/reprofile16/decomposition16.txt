@@ -1,0 +1,84 @@
+RE-PROFILE #16 — the POST-SPINE malloc-free compute decomposition (PGEN-RGX-0078-0120)
+Date: 2026-07-18 (session #146)
+Instrument: /usr/bin/sample @1ms for 18s, leaf top-of-stack categorization (categorize16.py — the #15
+            categorizer + the -0118/-0115 needles: ThinDerivSegMemoEntry/SmallVec/smallvec -> TAPE-MACHINERY,
+            match_lit_ascii -> MATCH/DISPATCH, both checked after SCAN before ARENA/CONSTRUCT; the id-aware
+            guard methods (check_cycle_id/enter_id/truncate_stack) need no new needle — RecursionGuard:: is
+            already a SEMANTIC-RT needle. ALL #15 needles KEPT. Regression-proven at leaf open (-0119):
+            byte-identical to categorize15 on the #15 sample data; new needles grep-proven absent from it.)
+Build: non-LTO + debuginfo, --features "generated_parsers never_free_arena_perf" (NeverFreeBump = malloc-free)
+       ENGINEER-run guarded harness-background build (the -0117 delegation): caffeinate -is + memory guard
+       --budget-mb 16384 --timeout-s 7200 + CARGO_INCREMENTAL=1
+       -> attempt #1 (00:24) DIED ~5min in: ENOSPC at 100% host disk (1.1GB free) — the incident that
+          produced the OPS-MEMSAFE.2 disk-floor guard axis + the emergency cleanup (~111GB recovered)
+       -> attempt #2 (RELAUNCHED under the HARDENED guard, disk_floor=8GB disk=109GB in the started line):
+          BUILD EXIT 0, elapsed 4385s ~73min, peak 11697MB < 16384, disk never below 102GB, guard green
+Binary: rust/target/profile13_build/release/regex_perf_probe (2026-07-18 01:55:27, 10257072 bytes;
+        mtime = build end > build start VERIFIED — the regen-mtime lesson)
+Artifacts: the -0118 SPINE vintage (regex 36e1f5fb — D3 scanners + Shaped(PgenValue) + match_lit_ascii
+           + C1 rule_id_stack/check_cycle_id + C2 adaptive pre-size + C3 smallvec ThinDerivSegMemoEntry)
+Probe: regex_perf_probe --samples 6000000 (built-in warmup 50), pid 85073 COMM-verified;
+       sample attached at ~+8s, 18s @1ms -> 15,061 leaf samples (#15: 15,074 — like-for-like)
+Window/mix: literal_simple mean 1404ns (probe16.out; #15: 1492ns) -> finished at ~+8.4s; window +8..+26s
+            = ~2% literal_simple + ~98% digit_sequence. ⚠️ #15 was ~5.5/94.5 (#14: 13/87; #13: 37/63) —
+            the artifact keeps getting FASTER under the fixed instrument, the window sits ever deeper in
+            digit_sequence; shares are DIRECTIONAL (the standing sampled-share caveat + mix-drift caveat).
+
+===== nfa-post-spine-16 — total leaf samples in section: 15061 =====            [#15 post-D3]
+  MATCH/DISPATCH     3375   22.4% of all   22.7% of parse   (19 syms)            [31.2%]
+  CONSTRUCT          2604   17.3% of all   17.5% of parse   (18 syms)            [18.1%]
+  ARENA              2301   15.3% of all   15.5% of parse   ( 8 syms)            [13.1%]
+  ALLOC/FREE         1690   11.2% of all   11.4% of parse   ( 5 syms)            [11.2%]
+  SCAN               1523   10.1% of all   10.3% of parse   (10 syms)            [ 7.2%]
+  MEMOPS             1268    8.4% of all    8.5% of parse   ( 3 syms)            [ 7.5%]
+  UNKNOWN             852    5.7% of all    5.7% of parse   (22 syms)            [ 4.3%]
+  SEMANTIC-RT         778    5.2% of all    5.2% of parse   ( 5 syms)            [ 5.2%]
+  TEARDOWN/DROP       457    3.0% of all    3.1% of parse   (14 syms)            [ 3.0%]
+  z-TIMING(excl)      213    1.4% of all    1.4% of parse   ( 6 syms)            [ 1.2%]
+  parse-only total (excl timing): 14848
+  TAPE-MACHINERY: 0 samples (the C3 smallvec segment machinery is below the sampling threshold)
+
+BOTH LANDED LEVERS CONFIRMED IN-PROFILE (bucket/symbol movement = the signal, the serde-collapse precedent):
+  - TERMINAL-LITERAL (-0115): match_string VANISHED from the leaf list entirely (#15: 1049 leaves = 7.0%,
+    + _platform_memcmp 986 = 6.5%); memcmp residue now 188 = 1.2% (ineligible-literal + non-literal users).
+    MATCH/DISPATCH 31.2% -> 22.7% carries the drop.
+  - SPINE MACHINERY (-0118): all three component symbols GONE — RecursionGuard::check_cycle (#15: 163=1.1%)
+    ABSENT (the id-scan is too cheap to sample; C1), hashbrown reserve_rehash (#15: 239+6=1.6%) ABSENT (C2),
+    the per-success segment to_vec malloc pair ABSENT (C3; to_vec residue 21 leaves = 0.1%, unrelated sites).
+    NO -0118 symbol appears in UNKNOWN (needle audit held; TAPE-MACHINERY empty = inline SmallVec invisible).
+  - OVER-DELIVERY ATTRIBUTION (the -0118 -12.0% > census HIGH -9.5% anomaly): the census priced ~6% visible
+    symbol share; the profile now shows the visible share fully removed AND the compound floor moved -12%.
+    The residual (~6%) is cache/allocator second-order (denser guard scan + fewer mallocs on the mimalloc
+    bench build) — invisible to leaf attribution by nature; recorded as CONFIRMED-PLAUSIBLE, not decomposable
+    with this instrument. No further isolation slice warranted (the gain is banked and byte-identical).
+
+THE RESIDUAL SURFACES (per-symbol, % of parse, digit-heavy window — DIRECTIONAL):
+  ① spine tournament/dispatch self-time: cascade_match_piece 833 (5.6%) + cascade_match_atom 536+294=830
+    (5.6%) = 11.2% compound (#15: 9.1% — share UP as the denominator shrank; the named first-byte-indexed
+    dispatch candidate's surface). + counted_quantifier 389 (2.6%) + backreference 264 (1.8%) window-locals.
+  ② value-construction/allocation cluster (the strategic road): ARENA 15.5% (NodeArena::alloc 1726=11.6%)
+    + ALLOC/FREE 11.4% (NeverFreeBump 1345=9.1% = the remaining malloc VOLUME sign) + CONSTRUCT 17.5%
+    (ParseContent::clone 691=4.7% — the thin-memo replay clone, now the largest single CONSTRUCT symbol;
+    to_shaped_value 396=2.7%; cascade_build_* 868=5.8%; HashMap::insert 270=1.8%) + TEARDOWN 3.1%
+    + the memmove share of MEMOPS (1028=6.9%) => compound ≈ 45-50% of parse. Re-priced UP from #15's 24.2%
+    arena+build (the categories overlap differently; like-for-like arena+alloc+teardown ≈ 30.0% vs 24.2%).
+  ③ checkpoint machinery (C4 candidate): rollback_to_labeled 538 (3.6%) + extract_delta_since 139 (0.9%)
+    = 4.6% compound (#15: 2.9%+0.9%).
+  ④ SCAN 10.3% (scan_nonzero_digit 566 + scan_rec_quant_bound_core 391 + scan_digit 235 +
+    scan_quant_bound_number 156 — the D3 scanners now carry the digit window; widening candidates unchanged).
+  ⑤ UNKNOWN 5.7% (852, 22 syms, top: try_parse 206=1.4%, counted_quantifier_range protocol bodies 188=1.3%,
+    with_semantic_runtime_rule_transaction 82, str::trim 53, annotation-table lookups has_rule+directives 92)
+    — protocol-frame residue on rules OUTSIDE the fused cascade + a str::trim curiosity (recorded, minor).
+
+STEERING (the profile's verdict; price on bench minima at STEP-0, never on these sampled shares):
+  NEXT SLICE = the FIRST-BYTE-INDEXED SPINE DISPATCH STEP-0 census/design scout (the -0116-named follow-up,
+  now the hottest coherent NON-construction surface: 11.2% in-window self-time on exactly the two spine
+  tournaments whose machinery -0118 already thinned; the census must measure per-pattern branch-attempt
+  populations + first-byte discriminability on the CANONICAL artifact, then price on bench minima).
+  QUEUED BEHIND IT: C4 checkpoint-elision census (4.6% in-window; 7 static carriers); the ParseContent::clone
+  thin-memo replay-by-reference question (4.7%, NEW named residue — fold into the arena/representation road).
+  STRATEGIC (unchanged, re-affirmed LARGER): the value-construction/allocation cluster ≈45-50% in-window —
+  the ≤1µs bar (needs -77% from 4.40µs) is unreachable by dispatch micro-levers alone; the representation
+  road (arena committed-values, replay-by-reference, build-pass elision) remains the campaign's long pole.
+Raw: rust/target/generated_logs/reprofile16/{sample16_raw.txt, probe16.out, build16.log (ENOSPC attempt),
+     build16b.log (clean attempt #2)}; leaf extract docs/tasks/artifacts/reprofile16/sample16_nfa_leaves.txt.
