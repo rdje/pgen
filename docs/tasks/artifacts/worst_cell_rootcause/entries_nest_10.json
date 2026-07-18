@@ -1,0 +1,24 @@
+{
+  "accepted": true,
+  "grammar": "regex",
+  "rule_entry_counts": {
+    "alternation": 10,
+    "alternative": 10,
+    "atom": 22,
+    "capture_open": 10,
+    "capturing_group": 10,
+    "concatenation": 10,
+    "entry_alternation": 1,
+    "entry_alternative": 1,
+    "entry_concatenation": 1,
+    "group": 10,
+    "letter": 1,
+    "literal": 1,
+    "literal_char": 1,
+    "pattern": 10,
+    "piece": 22,
+    "regex": 1,
+    "zero_width": 11
+  },
+  "total_entries": 132
+}

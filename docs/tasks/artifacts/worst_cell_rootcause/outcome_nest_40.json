@@ -1,0 +1,59 @@
+{
+  "accepted": true,
+  "grammar": "regex",
+  "rule_committed_counts": {
+    "alternation": 40,
+    "alternative": 40,
+    "atom": 41,
+    "capture_open": 40,
+    "capturing_group": 40,
+    "concatenation": 40,
+    "entry_alternation": 1,
+    "entry_alternative": 1,
+    "entry_concatenation": 1,
+    "group": 40,
+    "letter": 1,
+    "literal": 1,
+    "literal_char": 1,
+    "pattern": 40,
+    "piece": 41,
+    "regex": 1
+  },
+  "rule_entry_counts": {
+    "alternation": 40,
+    "alternative": 40,
+    "atom": 82,
+    "capture_open": 40,
+    "capturing_group": 40,
+    "concatenation": 40,
+    "entry_alternation": 1,
+    "entry_alternative": 1,
+    "entry_concatenation": 1,
+    "group": 40,
+    "letter": 1,
+    "literal": 1,
+    "literal_char": 1,
+    "pattern": 40,
+    "piece": 82,
+    "regex": 1,
+    "zero_width": 41
+  },
+  "rule_memo_hit_counts": {
+    "atom": 41
+  },
+  "store_counters": {
+    "facts_emitted": 3360,
+    "facts_rolled_back": 3320,
+    "predicate_evaluations": 0,
+    "rollbacks": 367,
+    "rollbacks_nonempty_chain": 367,
+    "rollbacks_tournament": 123,
+    "rollbacks_tournament_unchanged": 2,
+    "rollbacks_unchanged": 206,
+    "scopes_closed": 0,
+    "scopes_opened": 0
+  },
+  "total_committed": 369,
+  "total_entries": 492,
+  "total_memo_hits": 41
+}
