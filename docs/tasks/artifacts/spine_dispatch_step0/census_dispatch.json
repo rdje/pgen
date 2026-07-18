@@ -1,0 +1,515 @@
+{
+ "artifact": "36e1f5fb",
+ "patterns": {
+  "alternation": {
+   "ap_elided": 308,
+   "attempts": 31,
+   "execs": 23,
+   "lut_lookups": 23,
+   "per_rule": {
+    "atom": {
+     "attempts": 10,
+     "execs": 10
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "piece": {
+     "attempts": 20,
+     "execs": 13
+    }
+   },
+   "tests_elided": 308,
+   "tests_today": 331,
+   "total_entries": 81,
+   "zero_surv_execs": 3
+  },
+  "anchor_complex": {
+   "ap_elided": 419,
+   "attempts": 115,
+   "execs": 50,
+   "lut_lookups": 50,
+   "per_rule": {
+    "anchor": {
+     "attempts": 2,
+     "execs": 0
+    },
+    "atom": {
+     "attempts": 41,
+     "execs": 13
+    },
+    "atomic_group": {
+     "attempts": 2,
+     "execs": 2
+    },
+    "backreference": {
+     "attempts": 8,
+     "execs": 4
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "escape_unit": {
+     "attempts": 4,
+     "execs": 4
+    },
+    "group": {
+     "attempts": 9,
+     "execs": 3
+    },
+    "lookaround": {
+     "attempts": 12,
+     "execs": 2
+    },
+    "piece": {
+     "attempts": 32,
+     "execs": 20
+    },
+    "subroutine_call": {
+     "attempts": 4,
+     "execs": 2
+    }
+   },
+   "tests_elided": 492,
+   "tests_today": 542,
+   "total_entries": 264,
+   "zero_surv_execs": 5
+  },
+  "capture_groups": {
+   "ap_elided": 256,
+   "attempts": 52,
+   "execs": 32,
+   "lut_lookups": 32,
+   "per_rule": {
+    "atom": {
+     "attempts": 11,
+     "execs": 8
+    },
+    "backreference": {
+     "attempts": 6,
+     "execs": 3
+    },
+    "counted_quantifier_body": {
+     "attempts": 9,
+     "execs": 3
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "escape_unit": {
+     "attempts": 3,
+     "execs": 3
+    },
+    "group": {
+     "attempts": 3,
+     "execs": 3
+    },
+    "piece": {
+     "attempts": 19,
+     "execs": 12
+    }
+   },
+   "tests_elided": 310,
+   "tests_today": 342,
+   "total_entries": 161,
+   "zero_surv_execs": 4
+  },
+  "character_class": {
+   "ap_elided": 151,
+   "attempts": 191,
+   "execs": 47,
+   "lut_lookups": 47,
+   "per_rule": {
+    "atom": {
+     "attempts": 6,
+     "execs": 5
+    },
+    "backreference": {
+     "attempts": 2,
+     "execs": 1
+    },
+    "char_class": {
+     "attempts": 9,
+     "execs": 3
+    },
+    "class_atom": {
+     "attempts": 68,
+     "execs": 0
+    },
+    "class_item_core": {
+     "attempts": 24,
+     "execs": 12
+    },
+    "class_item_visible_nocaret_core": {
+     "attempts": 6,
+     "execs": 3
+    },
+    "counted_quantifier_body": {
+     "attempts": 3,
+     "execs": 1
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "escape_unit": {
+     "attempts": 1,
+     "execs": 1
+    },
+    "invalid_class_range": {
+     "attempts": 60,
+     "execs": 15
+    },
+    "piece": {
+     "attempts": 11,
+     "execs": 6
+    }
+   },
+   "tests_elided": 244,
+   "tests_today": 291,
+   "total_entries": 469,
+   "zero_surv_execs": 1
+  },
+  "digit_sequence": {
+   "ap_elided": 151,
+   "attempts": 40,
+   "execs": 20,
+   "lut_lookups": 20,
+   "per_rule": {
+    "atom": {
+     "attempts": 8,
+     "execs": 5
+    },
+    "backreference": {
+     "attempts": 6,
+     "execs": 3
+    },
+    "counted_quantifier_body": {
+     "attempts": 9,
+     "execs": 3
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "escape_unit": {
+     "attempts": 3,
+     "execs": 3
+    },
+    "piece": {
+     "attempts": 13,
+     "execs": 6
+    }
+   },
+   "tests_elided": 196,
+   "tests_today": 216,
+   "total_entries": 125,
+   "zero_surv_execs": 1
+  },
+  "email_basic": {
+   "ap_elided": 209,
+   "attempts": 52,
+   "execs": 27,
+   "lut_lookups": 27,
+   "per_rule": {
+    "anchor": {
+     "attempts": 2,
+     "execs": 0
+    },
+    "atom": {
+     "attempts": 13,
+     "execs": 7
+    },
+    "backreference": {
+     "attempts": 12,
+     "execs": 6
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "escape_unit": {
+     "attempts": 4,
+     "execs": 6
+    },
+    "piece": {
+     "attempts": 20,
+     "execs": 8
+    }
+   },
+   "tests_elided": 281,
+   "tests_today": 308,
+   "total_entries": 118,
+   "zero_surv_execs": 3
+  },
+  "literal_simple": {
+   "ap_elided": 122,
+   "attempts": 13,
+   "execs": 9,
+   "lut_lookups": 9,
+   "per_rule": {
+    "atom": {
+     "attempts": 4,
+     "execs": 4
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "piece": {
+     "attempts": 8,
+     "execs": 5
+    }
+   },
+   "tests_elided": 122,
+   "tests_today": 131,
+   "total_entries": 33,
+   "zero_surv_execs": 1
+  },
+  "url_simple": {
+   "ap_elided": 267,
+   "attempts": 33,
+   "execs": 21,
+   "lut_lookups": 21,
+   "per_rule": {
+    "atom": {
+     "attempts": 10,
+     "execs": 9
+    },
+    "backreference": {
+     "attempts": 2,
+     "execs": 1
+    },
+    "entry_concatenation": {
+     "attempts": 1,
+     "execs": 0
+    },
+    "escape_unit": {
+     "attempts": 1,
+     "execs": 1
+    },
+    "piece": {
+     "attempts": 19,
+     "execs": 10
+    }
+   },
+   "tests_elided": 279,
+   "tests_today": 300,
+   "total_entries": 80,
+   "zero_surv_execs": 1
+  }
+ },
+ "rules": {
+  "anchor": {
+   "G": 9,
+   "K": 9,
+   "U": 0,
+   "first2": 7,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "atom": {
+   "G": 24,
+   "K": 24,
+   "U": 0,
+   "first2": 17,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "atomic_group": {
+   "G": 2,
+   "K": 2,
+   "U": 0,
+   "first2": 2,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "backreference": {
+   "G": 7,
+   "K": 7,
+   "U": 0,
+   "first2": 5,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "char_class": {
+   "G": 3,
+   "K": 3,
+   "U": 0,
+   "first2": 0,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_atom": {
+   "G": 3,
+   "K": 3,
+   "U": 0,
+   "first2": 1,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_escape_unit": {
+   "G": 6,
+   "K": 6,
+   "U": 0,
+   "first2": 1,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_item_core": {
+   "G": 6,
+   "K": 6,
+   "U": 0,
+   "first2": 3,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_item_visible_core": {
+   "G": 5,
+   "K": 5,
+   "U": 0,
+   "first2": 2,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_item_visible_nocaret_core": {
+   "G": 5,
+   "K": 5,
+   "U": 0,
+   "first2": 2,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_range_decodable_escape": {
+   "G": 4,
+   "K": 4,
+   "U": 0,
+   "first2": 0,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_range_escape_unit": {
+   "G": 5,
+   "K": 5,
+   "U": 0,
+   "first2": 1,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "class_simple_escape": {
+   "G": 2,
+   "K": 2,
+   "U": 0,
+   "first2": 0,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "condition": {
+   "G": 9,
+   "K": 9,
+   "U": 0,
+   "first2": 3,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "condition_assertion": {
+   "G": 5,
+   "K": 5,
+   "U": 0,
+   "first2": 4,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "counted_quantifier_body": {
+   "G": 4,
+   "K": 4,
+   "U": 0,
+   "first2": 0,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "directive_body_quantifiable": {
+   "G": 2,
+   "K": 2,
+   "U": 0,
+   "first2": 1,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "entry_concatenation": {
+   "G": 2,
+   "K": 2,
+   "U": 0,
+   "first2": 1,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "escape_unit": {
+   "G": 7,
+   "K": 7,
+   "U": 0,
+   "first2": 1,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "group": {
+   "G": 4,
+   "K": 4,
+   "U": 0,
+   "first2": 3,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "invalid_class_range": {
+   "G": 1,
+   "K": 2,
+   "U": 1,
+   "first2": 0,
+   "identical_across_instances": false,
+   "instances": 2
+  },
+  "lookaround": {
+   "G": 7,
+   "K": 7,
+   "U": 0,
+   "first2": 7,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "piece": {
+   "G": 7,
+   "K": 7,
+   "U": 0,
+   "first2": 4,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "recursion_condition": {
+   "G": 2,
+   "K": 2,
+   "U": 0,
+   "first2": 1,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "subroutine_call": {
+   "G": 2,
+   "K": 2,
+   "U": 0,
+   "first2": 2,
+   "identical_across_instances": true,
+   "instances": 1
+  },
+  "version_number": {
+   "G": 2,
+   "K": 2,
+   "U": 0,
+   "first2": 0,
+   "identical_across_instances": true,
+   "instances": 1
+  }
+ }
+}

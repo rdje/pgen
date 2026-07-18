@@ -1,0 +1,52 @@
+FIRST-BYTE-INDEXED SPINE DISPATCH CENSUS — RGX-0078.5.i.16 STEP-0 (PGEN-RGX-0078-0121)
+artifact: generated/regex_parser.rs sha256[:8]=36e1f5fb
+
+== STATIC: cascade tournament-site inventory (bare-graph fast path) ==
+tournament instances total=27 across 26 cascade fns; distinct rules=26
+
+per-rule structure (instances / branches K / byte-guarded G / unguarded U / first2-guarded / mean+max byte-1 survivors over the 191 seen bench bytes):
+  anchor                           inst=1 K=  9 G=  9 U=0 f2=7 surv(bench-bytes) mean= 0.77 max=7 masks=4
+  atom                             inst=1 K= 24 G= 24 U=0 f2=17 surv(bench-bytes) mean= 1.62 max=16 masks=7
+  atomic_group                     inst=1 K=  2 G=  2 U=0 f2=2 surv(bench-bytes) mean= 0.07 max=2 masks=2
+  backreference                    inst=1 K=  7 G=  7 U=0 f2=5 surv(bench-bytes) mean= 0.75 max=7 masks=2
+  char_class                       inst=1 K=  3 G=  3 U=0 f2=0 surv(bench-bytes) mean= 0.05 max=3 masks=2
+  class_atom                       inst=1 K=  3 G=  3 U=0 f2=1 surv(bench-bytes) mean= 1.09 max=2 masks=3
+  class_escape_unit                inst=1 K=  6 G=  6 U=0 f2=1 surv(bench-bytes) mean= 1.09 max=2 masks=7
+  class_item_core                  inst=1 K=  6 G=  6 U=0 f2=3 surv(bench-bytes) mean= 2.20 max=4 masks=4
+  class_item_visible_core          inst=1 K=  5 G=  5 U=0 f2=2 surv(bench-bytes) mean= 2.09 max=3 masks=4
+  class_item_visible_nocaret_core  inst=1 K=  5 G=  5 U=0 f2=2 surv(bench-bytes) mean= 2.08 max=3 masks=5
+  class_range_decodable_escape     inst=1 K=  4 G=  4 U=0 f2=0 surv(bench-bytes) mean= 0.43 max=4 masks=2
+  class_range_escape_unit          inst=1 K=  5 G=  5 U=0 f2=1 surv(bench-bytes) mean= 0.88 max=2 masks=6
+  class_simple_escape              inst=1 K=  2 G=  2 U=0 f2=0 surv(bench-bytes) mean= 1.99 max=2 masks=2
+  condition                        inst=1 K=  9 G=  9 U=0 f2=3 surv(bench-bytes) mean= 0.68 max=2 masks=10
+  condition_assertion              inst=1 K=  5 G=  5 U=0 f2=4 surv(bench-bytes) mean= 0.07 max=4 masks=3
+  counted_quantifier_body          inst=1 K=  4 G=  4 U=0 f2=0 surv(bench-bytes) mean= 0.20 max=3 masks=3
+  directive_body_quantifiable      inst=1 K=  2 G=  2 U=0 f2=1 surv(bench-bytes) mean= 0.37 max=2 masks=3
+  entry_concatenation              inst=1 K=  2 G=  2 U=0 f2=1 surv(bench-bytes) mean= 0.90 max=2 masks=3
+  escape_unit                      inst=1 K=  7 G=  7 U=0 f2=1 surv(bench-bytes) mean= 0.95 max=2 masks=9
+  group                            inst=1 K=  4 G=  4 U=0 f2=3 surv(bench-bytes) mean= 0.14 max=4 masks=2
+  invalid_class_range              inst=2 K=  2 G=  1 U=1 f2=0 surv(bench-bytes) mean= 1.11 max=2 masks=2  ⚠️ INSTANCES DIFFER
+  lookaround                       inst=1 K=  7 G=  7 U=0 f2=7 surv(bench-bytes) mean= 0.25 max=7 masks=2
+  piece                            inst=1 K=  7 G=  7 U=0 f2=4 surv(bench-bytes) mean= 2.18 max=6 masks=5
+  recursion_condition              inst=1 K=  2 G=  2 U=0 f2=1 surv(bench-bytes) mean= 0.00 max=0 masks=2
+  subroutine_call                  inst=1 K=  2 G=  2 U=0 f2=2 surv(bench-bytes) mean= 0.07 max=2 masks=2
+  version_number                   inst=1 K=  2 G=  2 U=0 f2=0 surv(bench-bytes) mean= 0.13 max=2 masks=2
+
+== DYNAMIC: 8-pattern populations (PROTOCOL-graph counts; boundary-join onto the cascade per the standing caveat) ==
+static↔dynamic survivor cross-validation: 245 (rule,pos) cells checked, 0 inconsistent
+
+== THE PRICED SURFACE: per-pattern guard-test load (today) vs indexed-dispatch load ==
+today per exec: G sequential byte-set tests (+U unguarded bodies always attempted); indexed: 1 LUT lookup + survivors-only iteration
+pattern           execs*  tests_today  attempts  lut_lookups  tests_elided  ap_elided  zero_surv_e
+  (*execs = protocol memo-miss body executions of rules that have a cascade tournament)
+  literal_simple         9          131        13            9           122        122            1
+  digit_sequence        20          216        40           20           196        151            1
+  character_class       47          291       191           47           244        151            1
+  alternation           23          331        31           23           308        308            3
+  capture_groups        32          342        52           32           310        256            4
+  anchor_complex        50          542       115           50           492        419            5
+  email_basic           27          308        52           27           281        209            3
+  url_simple            21          300        33           21           279        267            1
+  CORPUS               229         2461       527          229          2232       1883           19
+
+census_dispatch.json written.
