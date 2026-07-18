@@ -65,3 +65,22 @@ Composes with — does not replace — `GRAMMAR-WELLFORMED` (the grammar-interna
 [[project_stimuli_generator_signoff_vision]] (the generator half), and the existing per-family integration
 contracts. Tracked by the `EXTERNAL-CORPUS` task tree; JSON (`EXTERNAL-CORPUS.2`) is the first concrete
 slice.
+
+---
+
+**⭐ EXTENDED (director 2026-07-18, session #150, verbatim):** *"any PGEN parser shall have its
+extern test corpus for functionality/accuracy and speed. Also by using official external test
+corpus the stimuli generator can learn new things are generate better real-world sample, so it
+is overall a good thing to confront PGEN parsers to external test corpus."*
+
+1. **Per-parser external corpus now covers SPEED too** — every parser family's officially-
+   recognized external corpus serves BOTH the accuracy proof (accept/reject vs the authority)
+   AND the speed measurement (per-sample parse-time distribution, reported as geomean AND max —
+   the RGX `-0129`/`-0130` reporting directive generalized).
+2. **Corpus-informed stimuli generation (new direction, director idea):** external corpora are
+   a LEARNING source for the stimuli generator — mine real-world sample structure to steer
+   generation toward realistic shapes (better coverage of what users actually write, not just
+   what the grammar admits). To be scoped as a capability-gap item under the stimuli-signoff
+   umbrella when prioritized; parser-agnostic by doctrine.
+3. Delegation reaffirmed: engineering decisions engineer-owned; the director throws ideas to
+   adopt or discard.
