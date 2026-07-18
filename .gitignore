@@ -416,3 +416,9 @@ docs/systemverilog/2017/SystemVerilog-LRM-IEEE-1800-2017.pdf
 docs/systemverilog/2023/SystemVerilog-LRM-IEEE-1800-2023.pdf
 docs/vhdl/2019/VHDL-LRM-IEEE-1076-2019.pdf
 docs/verilog/2005/Verilog-LRM-IEEE-1364-2005.pdf
+
+# OPS-MEMSAFE.3: preserved perf-probe binaries — parked OUTSIDE rust/target/
+# so no `cargo clean` can destroy them (the 2026-07-18 incident). Binaries
+# stay untracked; their custody = the banked floor numbers in
+# docs/tasks/artifacts/ + rebuild-with-floor-validation.
+preserved_probes/

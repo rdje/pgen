@@ -115,6 +115,48 @@ and gates any heavy job.
 - Disable switch: `--disk-floor-gb 0` with fake 2 GB free → child runs and exits 0. **PASS**
 - Static sanity: `bash -n` clean; doctrine driver ALL 7 PASS at commit. **PASS**
 
+## Leaf `.3` — destructive-target guard + probe custody relocation (opened 2026-07-19, `PGEN-OPS-MEMSAFE-0004`, status: `done`)
+
+**Trigger (director directive, emphatic, 2026-07-19):** *"Please, please, please, make this
+sort of incident does not happen again"* — in response to the 2026-07-18 incident report:
+`make -C rust annotation_parsers` (name promises "regenerate the annotation pair") aliased
+`return_semantic_parsers`, whose `clean` dep deleted every generated artifact AND ran
+`cargo clean` — 102.8 GiB destroyed, including every preserved perf-probe binary
+(`d9d3d611`/`ee10968c`/`7fd0a31b`/`4bbfb4e9`/`d12513c0`), forcing a full cold bootstrap +
+two cold fat-LTO probe rebuilds (~2 h). The alias itself was de-fanged same-day
+(`PGEN-RGX-0078-0141`); this leaf generalizes the protection so the CLASS is closed.
+
+**Delivered (three legs, mechanical-first):**
+1. **Refuse-by-default destruction** — the `clean` recipe exits **96** with a loud,
+   self-explaining refusal unless `PGEN_CONFIRM_CLEAN=1`; the whole dependent family
+   (`clean-all`, `rebuild`, `return_semantic_parsers`, `bootstrap-test`) is guarded
+   TRANSITIVELY (make stops on the failed dep). Legitimate cleans remain one explicit
+   command: `PGEN_CONFIRM_CLEAN=1 make -C rust clean`.
+2. **Doctrine enforcement** — `scripts/check_destructive_target_guard.sh` (STRUCTURAL
+   archetype): asserts the guard exists in `clean:` BEFORE any destructive line, that
+   `annotation_parsers` does not route into the destructive family, and that the set of
+   targets depending on `clean`/`clean-all` equals the explicit allowlist. Registered in
+   `scripts/check_doctrines.sh` (pre-commit E3 + CI E4). **First-run catch:** the check
+   immediately surfaced a SECOND latent family member (`bootstrap-test: clean-all`) —
+   adjudicated onto the allowlist (transitively guarded).
+3. **Probe custody out of the blast radius** — new top-level gitignored
+   `preserved_probes/` (naming: `<bin>_<slice-tag>_<sha8>`); no `cargo clean` touches it.
+   Current residents: `regex_perf_probe_pre_k3a_15c218d7` + `regex_perf_probe_k3a_1ada62fe`.
+   `rust/target/generated_logs/` is henceforth SCRATCH-ONLY. Durable custody remains the
+   banked numbers in `docs/tasks/artifacts/` (git-tracked) + rebuild-with-floor-validation
+   (exercised successfully during the incident recovery).
+
+Decision record: `docs/decisions/feedback_no_unguarded_destructive_targets.md` (+ INDEX).
+Process rule recorded in MEMORY: `make -n <target>` before any first-time invocation.
+
+## Acceptance Checklist (enforced) — leaf `.3` destructive-target guard
+- [x] **REPRODUCE / ISSUE** — the incident is fully recorded with evidence (`PGEN-RGX-0078-0141` leaf + `docs/tasks/artifacts/k3_constants/`; the destroyed-state inventory and recovery cost named).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: destructive recipes were reachable through innocuously-named aliases/deps with zero friction. WHERE: `rust/Makefile` `clean:` (rm + `cargo clean`), reached via `annotation_parsers → return_semantic_parsers → clean` (and latently `bootstrap-test → clean-all → clean`).
+- [x] **FIX** — refuse-by-default guard on `clean` (exit 96, `PGEN_CONFIRM_CLEAN=1` opt-in) + doctrine check + registry entry + probe relocation + decision record.
+- [x] **ADDRESSED (verified)** — negative test: `make -C rust clean` REFUSES exit 96, nothing deleted; check script PASS on the real Makefile; mutation probe (guard stripped from a Makefile copy) shows the check's guard-detection fails as designed; the check's first real run caught `bootstrap-test`.
+- [x] **NO REGRESSION** — the guard touches ONLY the `clean:` recipe (non-destructive targets never evaluate it); Makefile parse integrity smoke-tested (`make -n focus_regex` OK); `bash scripts/check_doctrines.sh` = ALL 8 enforced doctrines PASS including the new check; the in-flight `-0142` gate chain runs make targets through the guarded Makefile.
+- [x] **LOCKSTEP** — decision record + INDEX + MEMORY (repo) + session memory + this leaf + `docs/TASK_TREE.md` row same-commit.
+
 ## Decisions
 
 - `2026-07-14`: Sampling supervisor design (ps snapshot: process-group members ∪ ppid-descendant closure; macOS `memory_pressure -Q` for the system-free floor; `PGEN_MEMORY_GUARD_FAKE_FREE_PCT_FILE` as the deterministic test seam for the floor paths). Distinct exit codes per outcome (96 preflight-refused / 97 rss-budget / 98 free-floor / 99 timeout / 130 guard-interrupted; otherwise the child's own exit code) so callers can branch on the guard verdict mechanically.
@@ -144,9 +186,11 @@ and gates any heavy job.
 | --- | --- | --- |
 | `OPS-MEMSAFE.1` | `PGEN-OPS-MEMSAFE-0002 (leaf OPS-MEMSAFE.1)` | wrapper + fratricide root-cause fix + T1–T9 battery green + docs lockstep |
 | `OPS-MEMSAFE.2` | `PGEN-OPS-MEMSAFE-0003 (leaf OPS-MEMSAFE.2)` | disk-floor axis (pre-flight + in-flight exit 95) + T10/T11 + regression green + disk-hygiene decision record + docs lockstep |
+| `OPS-MEMSAFE.3` | `PGEN-OPS-MEMSAFE-0004 (leaf OPS-MEMSAFE.3)` | destructive-target guard (refuse-by-default `clean` family, exit 96) + doctrine check registered + `preserved_probes/` relocation + decision record + docs lockstep |
 
 ## Changelog
 
 - `2026-07-14`: Created task tree; leaf `.1` opened as the session's directive-mandated first item.
 - `2026-07-14`: First build's own T2 test killed the host's user session (awk auto-vivification made the tree walk system-wide; the kill list followed). Root-caused with the surviving guard logs + crash reports + a live repro; fixed (`!(p in mark)`) + three kill-path fail-safes; battery extended with T8 (scoping regression) + T9 (guard-interrupted); 23/23 PASS. Leaf `.1` DONE — heavy jobs now run UNDER the guard.
 - `2026-07-18`: Tree REOPENED for leaf `.2` after the RGX-0078 `.5.i.15` probe build died on host-disk exhaustion (100% disk, 1.1 GB free — the guard had no disk axis). Disk floor delivered mirroring the RAM floor's design (pre-flight refusal exit 96 `reason=disk-floor`; in-flight breach exit 95 via the existing kill path; `--disk-floor-gb` default 8, 0 disables; `df -Pk .` + deterministic seam); T10/T11 + full regression PASS; standing disk-hygiene directive recorded (`docs/decisions/feedback_disk_hygiene_proactive.md`). Leaf `.2` DONE — tree `complete` again.
+- `2026-07-19`: Tree REOPENED for leaf `.3` after the destructive-clean incident (director directive, emphatic): `make annotation_parsers` → alias → `clean` destroyed 102.8 GiB incl. every preserved perf probe. Delivered refuse-by-default guard on the `clean` family (exit 96, `PGEN_CONFIRM_CLEAN=1` opt-in), the registered doctrine check `check_destructive_target_guard.sh` (first run caught the latent `bootstrap-test` member), and the `preserved_probes/` relocation outside the `cargo clean` blast radius. Leaf `.3` DONE — tree `complete` again.

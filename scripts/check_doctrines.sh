@@ -46,6 +46,7 @@ DOCTRINES=(
   "KNOWLEDGE-MAP|the derived Knowledge Map is in sync with its fact sources|knowledge-map/scripts/check_knowledge_map.sh"
   "TASK-ACCEPTANCE|a code change's task leaf passes the acceptance checklist (root-cause + addressed + no-regression boxes ticked + evidence-backed)|scripts/check_diagnosis_evidence.sh"
   "REGEX-ORACLE-ANCHOR-SYNC|the live oracle-tuple anchors agree with each other + the tracked ratchet bounds|scripts/check_regex_oracle_anchor_sync.sh"
+  "DESTRUCTIVE-TARGET-GUARD|destructive make targets refuse without PGEN_CONFIRM_CLEAN=1 + no innocuous alias routes into them (OPS-MEMSAFE.3)|scripts/check_destructive_target_guard.sh"
 )
 
 fail=0

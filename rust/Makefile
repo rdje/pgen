@@ -428,7 +428,21 @@ test-parser: $(REGEX_PARSER)
 	cd $(RUST_DIR) && cargo test
 
 .PHONY: clean
+# OPS-MEMSAFE.3 (director directive 2026-07-19, incident 2026-07-18): this
+# recipe DELETES every generated artifact AND runs `cargo clean` — which
+# removes the ENTIRE rust/target/ tree (build caches, generated_logs, any
+# preserved binaries; the incident cost 102.8 GiB incl. every preserved
+# perf probe). It now REFUSES unless explicitly confirmed, so no alias,
+# dep chain, script, or habit can trigger it accidentally. The guard is
+# doctrine-enforced by scripts/check_destructive_target_guard.sh.
 clean:
+	@if [ "$$PGEN_CONFIRM_CLEAN" != "1" ]; then \
+		echo "⛔ REFUSED: 'make clean' deletes ALL generated artifacts ($(GENERATED_DIR)/*) AND runs 'cargo clean'" >&2; \
+		echo "   (the ENTIRE rust/target/ — build caches, generated_logs, preserved binaries)." >&2; \
+		echo "   This destroyed 102.8 GiB incl. every preserved perf probe on 2026-07-18 (OPS-MEMSAFE.3)." >&2; \
+		echo "   If you REALLY mean it:  PGEN_CONFIRM_CLEAN=1 make clean" >&2; \
+		exit 96; \
+	fi
 	@echo "Cleaning generated files..."
 	rm -f $(GENERATED_DIR)/*.pl $(GENERATED_DIR)/*.json $(GENERATED_DIR)/*.rs $(GENERATED_DIR)/*.placeholder $(GENERATED_DIR)/semantic_annotation_parser $(GENERATED_DIR)/return_annotation_parser
 	cd $(RUST_DIR) && cargo clean
