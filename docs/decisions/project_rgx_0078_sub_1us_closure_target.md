@@ -42,3 +42,21 @@ prediction (P0: −25.8% vs ≈−25% predicted; P2: −5.3% vs −3–7% predic
 
 Status snapshot at the directive: geomean ≈39.7µs (496µs → 39.7µs = 12.5×, seven levers,
 all byte-identical); next slice = P1.
+
+---
+
+**⭐ RE-AFFIRMED + ELEVATED TO EXISTENTIAL (director 2026-07-18, session #147, fork answer):**
+presented with the `.5.i.16` strategic fork (micro-seam thinning — first lever with LOW below
+the −2.0% land bar; micro-levers plateau ≈3.8–4.0µs; the construction/allocation cluster
+≈45–50% = the only ≤1µs-scale seam), the director selected **(A) — keep the ≤1µs bar, open the
+REPRESENTATION-ROAD STEP-0 scout**, with this rationale (verbatim, typo preserved): *"I select
+(A), because if we can reach 1us or under, this project will is worthless in the eyes of many
+developers. Achieveing 1us or under developers might take PGEN parsers seriously. So, it is a
+live or die situation. At least that's the way I see it."* — i.e. WITHOUT ≤1µs the project is
+worthless in many developers' eyes; AT ≤1µs developers may take PGEN parsers seriously; the
+bar is **live-or-die for PGEN's credibility**, not a nice-to-have. Consequences: the
+representation road (committed-value spans/arena representation + thin-memo replay-by-reference
++ doomed-construction elision) is now THE road to closure — tracked as the RGX-0078 `.5.j`
+lane, STEP-0 scout first; the parked `.5.i.17` dispatch emission and the queued C4 census are
+subordinate tail levers, to be run only when they compose toward the bar. The accuracy floor
+remains immovable ([[feedback-correctness-before-speed]]).
