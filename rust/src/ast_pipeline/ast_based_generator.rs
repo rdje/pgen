@@ -4422,6 +4422,32 @@ impl AstBasedGenerator {
                         if #branch_policy_mode == "ordered" && best_content.is_some() {
                             // Ordered branch policy keeps first successful branch.
                         } else {
+                            // RGX-0078.5.j.4 K1 — deferred cleanup of the LIVE
+                            // best branch: this branch's body is about to run,
+                            // so the previous winner's effects must leave the
+                            // store (branch isolation). Its delta is extracted
+                            // NOW (it may still win the tournament) and the
+                            // store returns to the checkpoint state — exactly
+                            // what the eager per-branch cleanup used to do,
+                            // paid only when a later branch actually runs.
+                            if live_semantic_branch {
+                                best_semantic_delta = Some(
+                                    parser
+                                        .semantic_runtime_state
+                                        .extract_delta_since(&tournament_semantic_checkpoint),
+                                );
+                                parser
+                                    .semantic_runtime_state
+                                    .rollback_to_labeled(
+                                        tournament_semantic_checkpoint.clone(),
+                                        crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
+                                            rule: #rule_name,
+                                            branch: #branch_num,
+                                            total: #branch_count,
+                                        },
+                                    );
+                                live_semantic_branch = false;
+                            }
                             parser.position = parse_start;
                             if let Some(content) = parser.try_parse(|p| {
                                 let parser = p;
@@ -4627,42 +4653,23 @@ impl AstBasedGenerator {
                                     }
                                 };
 
-                                // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) —
-                                // Extract this branch's semantic delta, then
-                                // ROLLBACK so the next branch starts from the
-                                // tournament checkpoint. The winner's delta
-                                // is replayed once the tournament concludes.
+                                // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) +
+                                // RGX-0078.5.j.4 K1 (lazy refinement) — the
+                                // winner's effects STAY LIVE (its extract+
+                                // rollback is deferred to the next attempted
+                                // branch's preamble; with no later attempt it
+                                // commits in place). A loser is rolled back
+                                // immediately, WITHOUT the extract its delta
+                                // would waste (it is never consumed).
                                 // Predicates have already fired above against
                                 // this branch's state (correct: predicates
-                                // need to see the branch's emissions). After
-                                // predicates, we capture-and-cleanup so no
-                                // branch's effects leak into the next.
-                                let candidate_delta = parser
-                                    .semantic_runtime_state
-                                    .extract_delta_since(&tournament_semantic_checkpoint);
-                                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — tag the
-                                // C3-B per-branch cleanup rollback with the
-                                // owning rule + branch index so the trace
-                                // event identifies WHO cleaned up. Per
-                                // [[feedback_why_and_where_before_solution]].
-                                // RGX-0078.5.i.2 (P0): the label travels as a
-                                // deferred `RollbackLabel` — the previous eager
-                                // `format!` here ran on EVERY successful
-                                // tournament branch and was only consumed
-                                // under trace (part of the measured −14.7% V2
-                                // census surface).
-                                parser
-                                    .semantic_runtime_state
-                                    .rollback_to_labeled(
-                                        tournament_semantic_checkpoint.clone(),
-                                        crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
-                                            rule: #rule_name,
-                                            branch: #branch_num,
-                                            total: #branch_count,
-                                        },
-                                    );
-
+                                // need to see the branch's emissions).
                                 if should_take {
+                                    live_semantic_branch = true;
+                                    // The dethroned previous best's stored
+                                    // delta (if any) is dead — this branch's
+                                    // effects are the live winner state.
+                                    best_semantic_delta = None;
                                     best_end = candidate_end;
                                     best_priority = candidate_priority;
                                     best_branch_index = current_branch_index;
@@ -4671,10 +4678,23 @@ impl AstBasedGenerator {
                                         best_raw_content = Some(raw_content.clone());
                                     }
                                     best_content = Some(transformed);
-                                    // SV-EXH-PROOF.3.3.4.b.6.2.33 — save the
-                                    // winning branch's delta to replay later.
-                                    best_semantic_delta = Some(candidate_delta);
-                                } else if branch_predicate_blocked && parser.logger_enabled {
+                                } else {
+                                    // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — the
+                                    // cleanup rollback stays tagged with the
+                                    // owning rule + branch index (deferred
+                                    // `RollbackLabel`, the P0 discipline).
+                                    parser
+                                        .semantic_runtime_state
+                                        .rollback_to_labeled(
+                                            tournament_semantic_checkpoint.clone(),
+                                            crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
+                                                rule: #rule_name,
+                                                branch: #branch_num,
+                                                total: #branch_count,
+                                            },
+                                        );
+                                }
+                                if !should_take && branch_predicate_blocked && parser.logger_enabled {
                                     parser.logger.log_info(#filename, parser.position as u32, &format!(
                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
                                         #branch_num,
@@ -4761,6 +4781,21 @@ impl AstBasedGenerator {
                     parser.semantic_runtime_state.checkpoint();
                 let mut best_semantic_delta:
                     Option<crate::ast_pipeline::SemanticRuntimeDelta> = None;
+                // RGX-0078.5.j.4 K1 — WINNER-IN-PLACE TOURNAMENT COMMIT.
+                // TRUE ⇔ the current best branch's semantic effects are still
+                // applied (its extract+rollback was DEFERRED). At most one
+                // branch's effects are ever live, and only the current best's:
+                // a later ATTEMPTED branch's preamble extracts the live delta
+                // into `best_semantic_delta` and rolls back before its body
+                // runs (branch isolation exactly as before); a branch that is
+                // never attempted (byte-pruned / ordered-skip) triggers no
+                // cleanup, so a winner with no later attempts commits IN PLACE
+                // — the post-loop `best_semantic_delta` is `None` and the
+                // extract/rollback/apply round-trip never happens. Losers are
+                // rolled back WITHOUT the extract (their delta is never
+                // consumed). End state is identical on every path: checkpoint
+                // + exactly the winner's effects.
+                let mut live_semantic_branch = false;
                 let deterministic_partition_effective_enabled = parser
                     .effective_deterministic_partition_enabled(#deterministic_partition_annotation_enabled);
                 // RGX-0078.5.i.2 (P0): the partition-group String is computed
@@ -4793,6 +4828,21 @@ impl AstBasedGenerator {
                 }
 
                 if nonassoc_tie {
+                    // RGX-0078.5.j.4 K1 — a nonassoc tie fails the WHOLE
+                    // choice: if the (dethroned-by-tie) best branch's effects
+                    // are still live, discard them before backtracking.
+                    if live_semantic_branch {
+                        parser
+                            .semantic_runtime_state
+                            .rollback_to_labeled(
+                                tournament_semantic_checkpoint.clone(),
+                                crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
+                                    rule: #rule_name,
+                                    branch: best_branch,
+                                    total: #branch_count,
+                                },
+                            );
+                    }
                     return Err(ParseError::Backtrack {
                         position: parse_start,
                     });
@@ -4811,14 +4861,16 @@ impl AstBasedGenerator {
                             #branch_policy_mode
                         ));
                     }
-                    // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) — replay ONLY the
-                    // winning branch's semantic effects onto the committed
-                    // state. At this point the state is at tournament
-                    // checkpoint (every branch rolled back after extracting
-                    // its delta). Applying the winner's delta restores
-                    // exactly the state the winning branch produced — no
-                    // loser-branch pollution, no accumulation across
-                    // branches.
+                    // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) + RGX-0078.5.j.4
+                    // K1 — commit ONLY the winning branch's semantic effects.
+                    // Two mutually-exclusive paths to the same end state:
+                    // `live_semantic_branch` ⇒ the winner's effects never left
+                    // the store (`best_semantic_delta` is `None` — nothing to
+                    // do, the round-trip is elided); otherwise the state is at
+                    // the tournament checkpoint and the winner's extracted
+                    // delta is replayed. Either way: checkpoint + exactly the
+                    // winner's effects — no loser-branch pollution, no
+                    // accumulation across branches.
                     if let Some(delta) = best_semantic_delta {
                         if !delta.is_empty() {
                             parser.semantic_runtime_state.apply_delta(delta);
