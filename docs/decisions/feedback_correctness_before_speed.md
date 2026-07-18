@@ -68,3 +68,28 @@ north star, a universal parser platform must be respected on BOTH axes.
 - SV corpus: 10/14 pass; uvm_pkg ×{2017,2023} + uvm_compat_pkg ×{2017,2023} fail.
 - Cumulative uvm_pkg deep parse advance this session: 5521 → 19378 (~15% of 90K).
 - Speed is NOT YET a concern. Get the remaining ~85% of uvm_pkg parsed correctly first.
+
+---
+
+**⭐ UNIVERSALIZED — "MILK ON FIRE" PER-PARSER SPEED MONITORING (director 2026-07-18,
+session #150, verbatim):** *"Parsing time will be a thing to monitor like milk on fire for
+every PGEN generated parser, meaning they shall run as fast as possibly can, no compromise,
+no exception. Meaning once they reach 100% accuracy with their EBNF as the sole source of
+truth, then we should ensure the run lighting fast. With both accuracy and speed requirement
+achieved PGEN will be taken very seriously."*
+
+Consequences (standing, all parser families):
+1. **The two-phase order is now the universal per-parser lifecycle:** (a) 100% accuracy with
+   the EBNF as the sole source of truth (the immovable floor, unchanged), then (b) a SPEED
+   campaign driving the generated parser as fast as it can go — no compromise, no exception.
+2. **Continuous monitoring is part of the deliverable:** every generated parser family gets
+   parse-time tracking as a first-class, continuously-watched metric ("like milk on fire"),
+   not a one-off benchmark — the RGX-0078 apparatus (bench corpus + geomean steering +
+   land-iff-faster gates + the corpus max-time closure/hold gate from the same-day bar
+   redefinition) is the TEMPLATE to replicate per family.
+3. **PGEN's credibility claim = accuracy AND speed together** — consistent with the
+   2026-07-11 co-equal north star and the 2026-07-18 existential ≤1µs bar; this record
+   extends both from "regex campaign" to "every PGEN generated parser".
+4. Practical sequencing stays the locked program: the RGX-0078 closure first; the per-family
+   speed campaigns follow their accuracy closures (SV reaching `Done` remains the gating
+   accuracy debt for its family).
