@@ -6,6 +6,7 @@ use super::predicate_expr::{
     PredicateDef, PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
 use rustc_hash::FxHashMap;
+use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -1664,6 +1665,13 @@ pub struct SemanticFactRecord {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ScopeId(pub u32);
 
+/// RGX-0078.5.j.4 (K3b): the open-scope chain representation. The chain is
+/// NEVER empty (`[ScopeId::ROOT]` at rest, `:2333`) so a plain `Vec` clone in
+/// `checkpoint()` always allocated; inline-8 storage (32 bytes) makes every
+/// checkpoint/delta snapshot allocation-free for scope depth ≤ 8, spilling
+/// transparently for deeper nests. Semantics identical to `Vec<ScopeId>`.
+pub(crate) type ActiveChain = SmallVec<[ScopeId; 8]>;
+
 impl ScopeId {
     /// The implicit global scope, allocated as arena entry 0 at construction.
     pub const ROOT: ScopeId = ScopeId(0);
@@ -1802,7 +1810,13 @@ pub struct SemanticRuntimeCheckpoint {
     /// long. (Removing `Copy` from this struct to accommodate the Vec; all
     /// uses of `SemanticRuntimeCheckpoint` are owned values that can clone
     /// cheaply since the snapshot is bounded by parser nesting depth.)
-    active_chain_snapshot: Vec<ScopeId>,
+    /// RGX-0078.5.j.4 (K3b): `ActiveChain` (inline-8 SmallVec) — the chain is
+    /// never empty (`[ScopeId::ROOT]` at rest), so a `Vec` snapshot paid a
+    /// real malloc+memcpy+free on EVERY `checkpoint()` (every annotated-rule
+    /// entry + every tournament site). Inline storage covers scope depth ≤ 8
+    /// (the corpus-typical case) allocation-free; deeper chains spill to the
+    /// heap with unchanged semantics.
+    active_chain_snapshot: ActiveChain,
     /// RGX-0078.5.i.5 P3c-i: the state's `write_epoch` at checkpoint time.
     /// Every delta-visible store mutation bumps the (monotone) epoch, EXCEPT
     /// a deferred-obligation enqueue (deliberately epoch-blind — it never
@@ -1836,7 +1850,7 @@ pub struct SemanticRuntimeDelta {
     closed_scope_ids: Vec<ScopeId>,
     /// The active_chain at end of transaction (i.e., the scope path
     /// the branch left open).
-    final_active_chain: Vec<ScopeId>,
+    final_active_chain: ActiveChain,
     /// The legacy `scopes` Vec at end of transaction (mirror of the
     /// active_chain; kept in lockstep with the active chain since other
     /// code still consults `scopes`).
@@ -2169,7 +2183,7 @@ pub struct SemanticRuntimeState {
     /// in lockstep with the legacy `scopes` Vec (one entry per active
     /// scope) so existing consumers (predicates that read scope_depth /
     /// current_scope) continue to work unchanged.
-    active_chain: Vec<ScopeId>,
+    active_chain: ActiveChain,
     /// `.3.3.4.b.5.1.5.c`: composed-predicate registry, seeded at parser
     /// construction from `CompiledSemanticRuntimeAnnotations.predicate_defs`
     /// via `set_predicate_defs`. `evaluate_predicate` consults this when a
@@ -2330,7 +2344,7 @@ impl SemanticRuntimeState {
             facts: Vec::new(),
             fact_index: FactIndex::default(),
             scope_arena: vec![root_node],
-            active_chain: vec![ScopeId::ROOT],
+            active_chain: smallvec![ScopeId::ROOT],
             predicate_defs: HashMap::new(),
             counters: SemanticStoreCounters::default(),
             write_epoch: 0,
@@ -2785,7 +2799,7 @@ impl SemanticRuntimeState {
                 new_facts: Vec::new(),
                 new_scope_nodes: Vec::new(),
                 closed_scope_ids: Vec::new(),
-                final_active_chain: Vec::new(),
+                final_active_chain: SmallVec::new(),
                 final_scopes: Vec::new(),
                 new_obligations: Vec::new(),
             };

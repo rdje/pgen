@@ -1,0 +1,11 @@
+== K3b A/B (base = K3a probe 1ada62fe, cand = K3b probe 2620abf8; alternated 5x2000 + corpus samples=1000 + ladder) ==
+BENCH geomean-of-best-mins: base 2,786.1 -> cand 2,460.9 ns = -11.67% (all 8 patterns faster: -6.3%..-18.5%)
+  base custody: 2,786.1 vs the K3a recorded floor 2,793.4 = -0.3% (same binary, thermal-clean)
+CORPUS (2,189 cells, verdict flips = 0): geomean 2,060.8 -> 1,864.8 ns = -9.51%
+  MAX 978,916 -> 886,125 ns = -9.48% (holder line_725 unchanged)
+  worst cells: 725 -9.5% / 4674 -2.7% / 6526 -4.0% / 2880 -6.3% / 965 -9.2% / 1224 -7.0% / 6538 -8.0%
+LADDER (39 rows, verdict flips = 0): nest_80 -4.5% / nestbr_80 -3.8% / orig_4674 -4.2% / orig_6538 -8.6% / lookstar_8 -9.0% / flat_160 +2.1% (noise)
+NEW FLOOR: bench geomean ~=2,460.9 ns (496us origin -> ~=201.6x); corpus MAX 886,125 ns; corpus geomean 1,864.8 ns
+Battery: lib 987/987 (dual-feature; the first run's 4 fails were the StaleTool plumbing class — cleared by the dual-feature rebuild);
+cert x3 268/9/259/0 byte-exact (spf 1/0/2); typed-diff PASS (restore trap 9TH firing, canonical c49c43b3 re-derived + hash-verified);
+PCRE2/shape/duality PASS. Guard peak 13,337MB.
