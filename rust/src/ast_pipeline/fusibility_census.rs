@@ -175,6 +175,12 @@ pub struct FusibilityCensus {
     /// participants (the ⛔ #49 carriers). Reported (`CASCADE-PLAN-B`) ahead of
     /// the D2-B emitter consuming it — the same no-drift seam as `cascade_plan`.
     pub cascade_plan_b: CascadeEmissionPlan,
+    /// RGX-0078.5.j.2 (STEP-1, the plan seam) — the DIRECT-VALUE BUILD
+    /// partition of the fused rule set ([`compute_direct_value_build_plan`] —
+    /// the same map the `.5.j.2` emitter consumes). Reported
+    /// (`DIRECT-VALUE-PLAN`) ahead of emission — the same no-drift seam.
+    /// Additive census-JSON field (the `-0089` additive-only precedent).
+    pub direct_value_plan: DirectValueBuildPlan,
     /// RGX-0078.5.i.9 (D3) — the boundary-scanner emission plan
     /// ([`compute_boundary_scanner_plan`] — the same map the scan emitter
     /// consumes). Reported (`BOUNDARY-SCANNER-PLAN`) — the same no-drift seam.
@@ -2800,6 +2806,11 @@ pub fn run_fusibility_census(
         CascadeIncrement::CyclicSpine,
     )?;
 
+    // RGX-0078.5.j.2 (STEP-1) — the direct-value build plan (the same SHARED
+    // function the value-twin emitter consumes), reported ahead of emission.
+    let direct_value_plan =
+        compute_direct_value_build_plan(grammar_tree, annotations, entry_rule.as_deref())?;
+
     // RGX-0078.5.i.9 (D3) — the boundary-scanner plan (the same SHARED function the
     // scan emitter consumes), reported ahead of emission — the no-drift seam.
     let boundary_scanner_plan =
@@ -2828,6 +2839,7 @@ pub fn run_fusibility_census(
         cascade_exposure,
         cascade_plan,
         cascade_plan_b,
+        direct_value_plan,
         boundary_scanner_plan,
     })
 }
@@ -3108,6 +3120,223 @@ pub fn compute_cascade_emission_plan_for_increment(
         effect_reaching: effect_reaching.into_iter().map(String::from).collect(),
         effect_targets,
         thin_memo,
+    })
+}
+
+/// RGX-0078.5.j.2 (STEP-1, the plan seam) — the DIRECT-VALUE BUILD partition of
+/// the fused (CyclicSpine) rule set: which `cascade_build_*` functions may
+/// construct the rule's committed VALUE directly (no element-wrapper
+/// `ParseNode`s, no `sequence_elements` Vec, no `Sequence` content — the
+/// `.5.j.1` census measured that scaffolding at 100% dead on the bench corpus),
+/// and which must keep today's node-building form because their content VARIANT
+/// is observable.
+///
+/// The soundness model (the `.5.j.1` design, tool-verified):
+/// - `ParseContent::to_shaped_value` is COMPOSITIONAL — converting children
+///   early and assembling the composite value directly produces the same
+///   `PgenValue` as materializing the node tree and converting late
+///   (`Terminal→Str`, `Shaped→copy`, `Alternative→recurse`,
+///   `Sequence`/`Quantified→Array` element-wise, `TransformedTerminal` parses
+///   the SAME text either way). So a rule's scaffolding may be elided wherever
+///   every consumer folds its content to a value.
+/// - A **BARRIER** rule's effective return transform rebuilds the content
+///   (`Shaped(...)`/`Terminal(...)`/`TransformedTerminal(...)`) on every path,
+///   so its content variant is independent of how children were built: its
+///   build internals are ALWAYS value-izable, and it never demands node-form
+///   children (its folds consume child VALUES).
+/// - A **TRANSPARENT** rule (bare `$N`/passthrough/spread or no annotation)
+///   re-emits child content verbatim (or embeds child NODES in
+///   `Sequence`/`Quantified`/`Alternative` content), so ITS content variant is
+///   exactly as observable as its own node is. Node-form demand therefore
+///   propagates from escape roots DOWN through transparent rules only.
+/// - Escape roots = the plan's fused SUB-ROOTS: their orchestrators return the
+///   `ParseNode` to the protocol zone (memo entries, semantic flattening,
+///   entry-relative parses, the committed root), where the content variant is
+///   serialized/observable — they must keep today-form content.
+///
+/// Deterministic (`BTreeSet` output, monotone worklist over sorted sets).
+/// Consumed by BOTH the census report (`DIRECT-VALUE-PLAN`) and the `.5.j.2`
+/// emitter — the `compute_cascade_emission_plan` no-drift precedent.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DirectValueBuildPlan {
+    /// Fused rules whose effective transform is a fold barrier on EVERY branch
+    /// (object/array/scalar literals, property/array access, quantified
+    /// extraction, `$text`, or a rule-level matched-text `@transform`): build
+    /// internals value-izable unconditionally; the node wrapper (content =
+    /// the fold's own `Shaped`/`Terminal` result) survives only where a
+    /// consumer needs the node.
+    pub barrier: std::collections::BTreeSet<String>,
+    /// Fused TRANSPARENT rules NOT reachable from an escape root through
+    /// transparent rules: every consumption path folds their content to a
+    /// value before it can be observed, so the whole build may emit the
+    /// converted value directly (convert-early ≡ convert-late).
+    pub value_licensed: std::collections::BTreeSet<String>,
+    /// Fused TRANSPARENT rules whose content variant IS observable (a fused
+    /// sub-root, or referenced — transitively through transparent rules — by
+    /// one): they keep today's node-building `cascade_build_*` form verbatim.
+    pub node_locked: std::collections::BTreeSet<String>,
+}
+
+/// Is this parsed return-annotation root a FOLD BARRIER (content variant
+/// independent of how children were built)? `PositionalRef`/`Passthrough`
+/// re-emit child content verbatim; `Spread`/`FlattenSpread` are classified
+/// transparent CONSERVATIVELY (their output shape depends on the base
+/// content's variant at runtime).
+fn return_ast_is_fold_barrier(
+    ast: &crate::ast_pipeline::unified_return_ast::UnifiedReturnAST,
+) -> bool {
+    use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+    match ast {
+        U::StringLiteral { .. }
+        | U::NumberLiteral { .. }
+        | U::BooleanLiteral { .. }
+        | U::NullLiteral
+        | U::Identifier { .. }
+        | U::Array { .. }
+        | U::Object { .. }
+        | U::PropertyAccess { .. }
+        | U::ArrayAccess { .. }
+        | U::QuantifiedExtraction { .. }
+        | U::MatchedText => true,
+        U::PositionalRef { .. } | U::Passthrough | U::Spread { .. } | U::FlattenSpread { .. } => {
+            false
+        }
+    }
+}
+
+/// The effective transform class of one fused rule, resolved EXACTLY as the
+/// build emitter resolves it (`generate_mtb_build_rule_fn` /
+/// `cascade_branch_transform`): explicit branch annotations from
+/// `Annotations::branch_return_annotations`; a missing or unparsed annotation
+/// resolves to a passthrough form (the synthesized single-element `$1` or the
+/// bare `content` fallback) — TRANSPARENT either way, so the synthesis rule
+/// itself need not be duplicated here. A rule-level matched-text `@transform`
+/// (the `cascade_rule_has_matched_text_transform` mirror) pins the content to
+/// `TransformedTerminal` at the rule tail — a barrier on every path.
+fn rule_transform_is_fold_barrier(
+    rule: &str,
+    body: &ASTNode,
+    annotations: Option<&Annotations>,
+) -> bool {
+    let Some(annotations) = annotations else {
+        return false;
+    };
+    let has_matched_text_transform = annotations
+        .semantic_annotations
+        .get(rule)
+        .is_some_and(|entries| {
+            entries.iter().any(|annotation| {
+                crate::ast_pipeline::semantic_directive_registry::semantic_directive_name_payload(
+                    annotation,
+                )
+                .is_some_and(|(name, _)| name == "transform")
+            })
+        });
+    if has_matched_text_transform {
+        return true;
+    }
+    let branches = annotations.branch_return_annotations.get(rule);
+    let branch_is_barrier = |index: usize| -> bool {
+        branches
+            .and_then(|b| b.get(index))
+            .and_then(|opt| opt.as_ref())
+            .and_then(|ann| ann.parsed_ast.as_ref())
+            .is_some_and(return_ast_is_fold_barrier)
+    };
+    match body {
+        ASTNode::Or { alternatives } => (0..alternatives.len()).all(branch_is_barrier),
+        _ => branch_is_barrier(0),
+    }
+}
+
+/// Compute the `.5.j.2` direct-value build plan on top of the CyclicSpine
+/// cascade plan (ONE implementation for report and emission).
+pub fn compute_direct_value_build_plan(
+    tree: &HashMap<String, ASTNode>,
+    annotations: Option<&Annotations>,
+    entry_rule: Option<&str>,
+) -> Result<DirectValueBuildPlan, String> {
+    let plan_b = compute_cascade_emission_plan_for_increment(
+        tree,
+        annotations,
+        entry_rule,
+        CascadeIncrement::CyclicSpine,
+    )?;
+    let fused: std::collections::BTreeSet<&str> = plan_b
+        .sub_roots
+        .iter()
+        .chain(plan_b.internal.iter())
+        .map(String::as_str)
+        .collect();
+
+    let mut barrier = std::collections::BTreeSet::new();
+    let mut transparent = std::collections::BTreeSet::new();
+    for &rule in &fused {
+        let Some(body) = tree.get(rule) else { continue };
+        if rule_transform_is_fold_barrier(rule, body, annotations) {
+            barrier.insert(rule.to_string());
+        } else {
+            transparent.insert(rule.to_string());
+        }
+    }
+
+    // References per fused rule (the same collector the cascade plan uses).
+    let mut regex_pattern_sink: Vec<String> = Vec::new();
+    let mut forward: HashMap<&str, HashSet<String>> = HashMap::new();
+    for &rule in &fused {
+        let mut refs = HashSet::new();
+        if let Some(body) = tree.get(rule) {
+            collect_refs(body, &mut refs, &mut regex_pattern_sink);
+        }
+        forward.insert(rule, refs);
+    }
+
+    // Node-form demand: seeded at the fused sub-roots (escape roots), and
+    // propagated DOWN through TRANSPARENT rules only — a barrier rule's folds
+    // consume child VALUES, so it never demands node-form children.
+    let mut demanded: std::collections::BTreeSet<&str> = plan_b
+        .sub_roots
+        .iter()
+        .map(String::as_str)
+        .filter(|rule| fused.contains(rule))
+        .collect();
+    loop {
+        let mut changed = false;
+        let frontier: Vec<&str> = demanded
+            .iter()
+            .copied()
+            .filter(|rule| transparent.contains(*rule))
+            .collect();
+        for rule in frontier {
+            if let Some(refs) = forward.get(rule) {
+                for target in refs {
+                    if let Some(&fused_target) = fused.get(target.as_str()) {
+                        if demanded.insert(fused_target) {
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+
+    let node_locked: std::collections::BTreeSet<String> = transparent
+        .iter()
+        .filter(|rule| demanded.contains(rule.as_str()))
+        .cloned()
+        .collect();
+    let value_licensed: std::collections::BTreeSet<String> = transparent
+        .into_iter()
+        .filter(|rule| !node_locked.contains(rule))
+        .collect();
+
+    Ok(DirectValueBuildPlan {
+        barrier,
+        value_licensed,
+        node_locked,
     })
 }
 
@@ -4331,6 +4560,33 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
                         ""
                     }
                 );
+            }
+        }
+    }
+    // RGX-0078.5.j.2 (STEP-1) — the direct-value build plan (the same SHARED
+    // function the value-twin emitter consumes), reported ahead of emission.
+    {
+        let plan = &census.direct_value_plan;
+        println!(
+            "DIRECT-VALUE-PLAN: grammar={} barrier={} value_licensed={} node_locked={} (of {} fused)",
+            census.grammar_name,
+            plan.barrier.len(),
+            plan.value_licensed.len(),
+            plan.node_locked.len(),
+            plan.barrier.len() + plan.value_licensed.len() + plan.node_locked.len(),
+        );
+        println!(
+            "  model: barrier rules (fold on every branch) build value-internally unconditionally; value-licensed transparent rules convert early (compositional to_shaped_value, no observable variant); node-locked transparent rules keep today's node build (fused sub-root, or reachable from one through transparent rules)."
+        );
+        if dump_all {
+            for rule in &plan.barrier {
+                println!("  [direct-value-plan] {rule}: barrier");
+            }
+            for rule in &plan.value_licensed {
+                println!("  [direct-value-plan] {rule}: value_licensed");
+            }
+            for rule in &plan.node_locked {
+                println!("  [direct-value-plan] {rule}: node_locked");
             }
         }
     }
@@ -5626,6 +5882,123 @@ mod tests {
             }],
         );
         annotations
+    }
+
+    /// RGX-0078.5.j.2 (STEP-1) — a parsed BARRIER branch annotation (an empty
+    /// object literal: content variant `Shaped(Object)` regardless of children).
+    fn barrier_branch() -> Option<super::super::BranchAnnotation> {
+        Some(super::super::BranchAnnotation {
+            annotation_type: "return".to_string(),
+            annotation_content: "{}".to_string(),
+            parsed_ast: Some(
+                crate::ast_pipeline::unified_return_ast::UnifiedReturnAST::Object {
+                    properties: std::collections::HashMap::new(),
+                },
+            ),
+        })
+    }
+
+    /// RGX-0078.5.j.2 (STEP-1) — a fold BARRIER stops node-form demand: under a
+    /// barrier entry, the whole transparent chain below is value-licensed; the
+    /// barrier rule itself never node-locks (its wrapper carries its own fold
+    /// result). Deterministic across recomputation.
+    #[test]
+    fn direct_value_plan_barrier_stops_demand_and_licenses_the_chain() {
+        let mut tree = HashMap::new();
+        // entry(-> {…}) := mid ; mid := leaf ; leaf := 'x'
+        tree.insert("entry".to_string(), or(vec![rule_ref("mid")]));
+        tree.insert("mid".to_string(), or(vec![rule_ref("leaf")]));
+        tree.insert("leaf".to_string(), or(vec![atom("quoted_string", "x")]));
+        let mut annotations = Annotations::default();
+        annotations
+            .branch_return_annotations
+            .insert("entry".to_string(), vec![barrier_branch()]);
+        let plan = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan computes");
+        assert_eq!(
+            plan.barrier,
+            ["entry"].iter().map(|s| s.to_string()).collect(),
+            "the object-annotated entry is a barrier: {plan:?}"
+        );
+        assert_eq!(
+            plan.value_licensed,
+            ["leaf", "mid"].iter().map(|s| s.to_string()).collect(),
+            "the transparent chain under a barrier converts early: {plan:?}"
+        );
+        assert!(plan.node_locked.is_empty(), "{plan:?}");
+        let again = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan recomputes");
+        assert_eq!(format!("{plan:?}"), format!("{again:?}"), "deterministic");
+    }
+
+    /// RGX-0078.5.j.2 (STEP-1) — a TRANSPARENT escape root (fused sub-root with
+    /// no fold) locks itself and everything reachable through transparent rules:
+    /// its content variant is protocol-observable, so today's node build stays.
+    #[test]
+    fn direct_value_plan_transparent_sub_root_locks_the_transparent_chain() {
+        let mut tree = HashMap::new();
+        // entry := mid ; mid := leaf ; leaf := 'x' — no annotations anywhere.
+        tree.insert("entry".to_string(), or(vec![rule_ref("mid")]));
+        tree.insert("mid".to_string(), or(vec![rule_ref("leaf")]));
+        tree.insert("leaf".to_string(), or(vec![atom("quoted_string", "x")]));
+        let plan = compute_direct_value_build_plan(&tree, None, Some("entry"))
+            .expect("plan computes");
+        assert!(plan.barrier.is_empty(), "{plan:?}");
+        assert!(plan.value_licensed.is_empty(), "{plan:?}");
+        assert_eq!(
+            plan.node_locked,
+            ["entry", "leaf", "mid"].iter().map(|s| s.to_string()).collect(),
+            "the transparent sub-root demands node form all the way down: {plan:?}"
+        );
+    }
+
+    /// RGX-0078.5.j.2 (STEP-1) — an INELIGIBLE caller promotes its fused target
+    /// to sub-root (the cascade plan's outside-entered partition), which locks a
+    /// transparent target — while a barrier rule referenced the same way stays
+    /// value-internal (barrier membership is annotation-decided, not position-
+    /// decided). Or-rules: ALL branches must fold for barrier class; one bare
+    /// branch makes the rule transparent.
+    #[test]
+    fn direct_value_plan_sub_root_promotion_locks_transparent_but_not_barrier() {
+        let mut tree = HashMap::new();
+        // entry := gate ; gate(@transform, ineligible) := mid ; mid := leaf | 'z'
+        // leaf(-> {…} | -> {…}) := 'x' | 'y'   (all-branch fold ⇒ barrier)
+        tree.insert("entry".to_string(), or(vec![rule_ref("gate")]));
+        tree.insert("gate".to_string(), or(vec![rule_ref("mid")]));
+        tree.insert(
+            "mid".to_string(),
+            or(vec![rule_ref("leaf"), atom("quoted_string", "z")]),
+        );
+        tree.insert(
+            "leaf".to_string(),
+            or(vec![atom("quoted_string", "x"), atom("quoted_string", "y")]),
+        );
+        let mut annotations = transform_annotations("gate");
+        annotations
+            .branch_return_annotations
+            .insert("leaf".to_string(), vec![barrier_branch(), barrier_branch()]);
+        let plan = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan computes");
+        // gate is ineligible (not fused) ⇒ absent from every partition set.
+        assert!(
+            !plan.barrier.contains("gate")
+                && !plan.value_licensed.contains("gate")
+                && !plan.node_locked.contains("gate"),
+            "{plan:?}"
+        );
+        // mid is outside-entered by the ineligible gate ⇒ fused sub-root; its
+        // second branch is bare ⇒ transparent ⇒ node-locked.
+        assert!(plan.node_locked.contains("mid"), "{plan:?}");
+        // entry: transparent sub-root ⇒ node-locked.
+        assert!(plan.node_locked.contains("entry"), "{plan:?}");
+        // leaf: every branch folds ⇒ barrier stays value-internal even though
+        // its parent mid is node-locked (the wrapper carries the fold result).
+        assert_eq!(
+            plan.barrier,
+            ["leaf"].iter().map(|s| s.to_string()).collect(),
+            "{plan:?}"
+        );
+        assert!(plan.value_licensed.is_empty(), "{plan:?}");
     }
 
     /// RGX-0078.5.i.7 (D2 STEP-0) — the cascade gate ALLOWS cycles (unlike the

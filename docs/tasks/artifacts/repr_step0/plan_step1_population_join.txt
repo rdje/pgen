@@ -1,0 +1,17 @@
+DIRECT-VALUE-PLAN STEP-1 population join (RGX-0078.5.j.2 STEP-1, PGEN-RGX-0078-0124)
+plan: barrier=103 value_licensed=106 node_locked=25 (of 234 fused; census_regex_dvp.txt)
+join: arm-weighted static build-zone node allocs x -0121 committed counts, by plan class
+
+          barrier:    337  (29.5%)
+   value_licensed:    716  (62.6%)
+      node_locked:     90  (7.9%)
+            total:   1143
+
+=> elidable (barrier+value_licensed) share of build-zone node allocs: 92.1%
+
+hot-spine classes: piece/atom/literal/literal_char/class_atom/escape_unit/counted_quantifier
+= value_licensed; concatenation/quantifier = barrier; the 25 node_locked = the boundary-
+called sub-roots (pattern, class_zero_width, brace_ws, capture_name, reference_name, ...)
++ their transparent descendants (letter, digit, nonzero_digit, unicode_char, ...).
+
+no-drift check: CASCADE-PLAN-B reproduces the -0089 partition exactly (20/214/29 of 234).
