@@ -1,0 +1,44 @@
+39,40c39,40
+<   [direct-value-plan] class_body_nonempty_nocaret: barrier
+<   [direct-value-plan] class_body_nonempty: barrier
+---
+>   [direct-value-plan] class_body_nonempty_nocaret: value_licensed
+>   [direct-value-plan] class_body_nonempty: value_licensed
+71c71
+<   [direct-value-plan] class_safe_special: value_licensed
+---
+>   [direct-value-plan] class_safe_special: node_locked
+94c94
+<   [direct-value-plan] concatenation: barrier
+---
+>   [direct-value-plan] concatenation: node_locked
+99c99
+<   [direct-value-plan] conditional_branch: barrier
+---
+>   [direct-value-plan] conditional_branch: value_licensed
+133c133
+<   [direct-value-plan] entry_concatenation: barrier
+---
+>   [direct-value-plan] entry_concatenation: value_licensed
+149c149
+<   [direct-value-plan] letter_no_upper_e: value_licensed
+---
+>   [direct-value-plan] letter_no_upper_e: node_locked
+156c156
+<   [direct-value-plan] modifier_group: barrier
+---
+>   [direct-value-plan] modifier_group: value_licensed
+173,174c173,174
+<   [direct-value-plan] piece_quoted_run_quantified: barrier
+<   [direct-value-plan] piece: value_licensed
+---
+>   [direct-value-plan] piece_quoted_run_quantified: node_locked
+>   [direct-value-plan] piece: node_locked
+191,193c191,193
+<   [direct-value-plan] quoted_literal_char: value_licensed
+<   [direct-value-plan] quoted_literal_escape_tail: value_licensed
+<   [direct-value-plan] quoted_literal_escaped_char: value_licensed
+---
+>   [direct-value-plan] quoted_literal_char: node_locked
+>   [direct-value-plan] quoted_literal_escape_tail: node_locked
+>   [direct-value-plan] quoted_literal_escaped_char: node_locked

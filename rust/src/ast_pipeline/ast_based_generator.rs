@@ -5693,7 +5693,7 @@ impl AstBasedGenerator {
     /// declares one — defaulting to `$1` there would silently drop every
     /// element past the first (e.g. for `'(' expression ')'`, $1 = `'('`,
     /// not the expression payload the author meant).
-    fn body_has_single_element(node: &ASTNode) -> bool {
+    pub(crate) fn body_has_single_element(node: &ASTNode) -> bool {
         match node {
             ASTNode::Sequence { elements } => elements.len() <= 1,
             // A `+`/`*`/`?` body emits a `Quantified(...)` that holds ALL

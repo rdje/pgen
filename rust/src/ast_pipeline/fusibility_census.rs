@@ -3131,7 +3131,9 @@ pub fn compute_cascade_emission_plan_for_increment(
 /// and which must keep today's node-building form because their content VARIANT
 /// is observable.
 ///
-/// The soundness model (the `.5.j.1` design, tool-verified):
+/// The soundness model (the `.5.j.1` design, tool-verified; CORRECTED session
+/// #150 before any emission — the 2-way barrier test mis-classified
+/// content-RE-EMITTING folds as demand-stopping):
 /// - `ParseContent::to_shaped_value` is COMPOSITIONAL — converting children
 ///   early and assembling the composite value directly produces the same
 ///   `PgenValue` as materializing the node tree and converting late
@@ -3139,52 +3141,90 @@ pub fn compute_cascade_emission_plan_for_increment(
 ///   `Sequence`/`Quantified→Array` element-wise, `TransformedTerminal` parses
 ///   the SAME text either way). So a rule's scaffolding may be elided wherever
 ///   every consumer folds its content to a value.
-/// - A **BARRIER** rule's effective return transform rebuilds the content
-///   (`Shaped(...)`/`Terminal(...)`/`TransformedTerminal(...)`) on every path,
-///   so its content variant is independent of how children were built: its
-///   build internals are ALWAYS value-izable, and it never demands node-form
-///   children (its folds consume child VALUES).
-/// - A **TRANSPARENT** rule (bare `$N`/passthrough/spread or no annotation)
-///   re-emits child content verbatim (or embeds child NODES in
-///   `Sequence`/`Quantified`/`Alternative` content), so ITS content variant is
-///   exactly as observable as its own node is. Node-form demand therefore
-///   propagates from escape roots DOWN through transparent rules only.
+/// - A **VALUE-PURE** branch transform (object/scalar literals, identifier,
+///   property access, `$text`, rule-level matched-text `@transform`) consumes
+///   every child reference as a FOLDED VALUE and rebuilds its output content
+///   (`Shaped(...)`/`Terminal(...)`) from scratch: its content variant is
+///   independent of how children were built, and it demands NO node-form
+///   children.
+/// - A **CONTENT-CARRYING** branch transform (array literal, spread,
+///   flatten-spread, array access, quantified extraction) RE-EMITS child
+///   content or child NODES inside its output (`generate_array_transform`
+///   pushes child `ParseNode`s / clones child content), so it is NOT a
+///   demand stop: where the rule's own content is observable, the referenced
+///   children's content is observable through it.
+/// - A **TRANSPARENT** branch (bare `$N`/passthrough/no annotation) re-emits
+///   child content verbatim. Node-form demand propagates PER-REFERENCE: a
+///   `$N` branch demands exactly element N−1's subtree references; a
+///   passthrough branch demands the whole branch body's references; a
+///   content-carrying branch demands the elements targeted by the positional
+///   references occurring anywhere in its transform AST.
 /// - Escape roots = the plan's fused SUB-ROOTS: their orchestrators return the
 ///   `ParseNode` to the protocol zone (memo entries, semantic flattening,
 ///   entry-relative parses, the committed root), where the content variant is
 ///   serialized/observable — they must keep today-form content.
+/// - A **VOCABULARY AUDIT** (the D3 `ScanAudit` precedent) demotes any rule
+///   whose value-form emission would need a static decision the emitter cannot
+///   make (a `Spread` distinguishes `Sequence`/`Quantified` from
+///   `Shaped(Array)` at runtime; a `FlattenSpread` item carrying
+///   `TransformedTerminal` JSON-array text would splice where today it nests;
+///   `ArrayAccess`/`QuantifiedExtraction` are out of the v1 vocabulary) to
+///   verbatim node emission, with NAMED reasons — never a silent drop.
 ///
 /// Deterministic (`BTreeSet` output, monotone worklist over sorted sets).
 /// Consumed by BOTH the census report (`DIRECT-VALUE-PLAN`) and the `.5.j.2`
 /// emitter — the `compute_cascade_emission_plan` no-drift precedent.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DirectValueBuildPlan {
-    /// Fused rules whose effective transform is a fold barrier on EVERY branch
-    /// (object/array/scalar literals, property/array access, quantified
-    /// extraction, `$text`, or a rule-level matched-text `@transform`): build
-    /// internals value-izable unconditionally; the node wrapper (content =
-    /// the fold's own `Shaped`/`Terminal` result) survives only where a
-    /// consumer needs the node.
+    /// Fused rules whose effective transform is VALUE-PURE on EVERY branch and
+    /// inside the value vocabulary: build internals value-izable
+    /// unconditionally (content = the fold's own `Shaped`/`Terminal` result,
+    /// byte-identical however children were built); the node wrapper survives
+    /// only where a consumer needs the node.
     pub barrier: std::collections::BTreeSet<String>,
-    /// Fused TRANSPARENT rules NOT reachable from an escape root through
-    /// transparent rules: every consumption path folds their content to a
-    /// value before it can be observed, so the whole build may emit the
-    /// converted value directly (convert-early ≡ convert-late).
+    /// Fused TRANSPARENT/CONTENT-CARRYING rules NOT demanded through any
+    /// content-position reference chain from an escape root, and inside the
+    /// value vocabulary: every consumption path folds their content to a value
+    /// before it can be observed, so the whole build may emit the converted
+    /// value directly (convert-early ≡ convert-late).
     pub value_licensed: std::collections::BTreeSet<String>,
-    /// Fused TRANSPARENT rules whose content variant IS observable (a fused
-    /// sub-root, or referenced — transitively through transparent rules — by
-    /// one): they keep today's node-building `cascade_build_*` form verbatim.
+    /// Fused rules whose content variant IS observable (a fused sub-root, or
+    /// reachable from one through content-position references of
+    /// transparent/content-carrying/demoted rules), plus every vocabulary
+    /// demotion: node-building `cascade_build_*` emission (verbatim, except
+    /// that in-vocabulary VALUE-PURE branches and `$N`-targeted elements of
+    /// non-demoted rules may still build their fold inputs in place — the
+    /// per-branch modes the emitter derives from the same shared fns).
     pub node_locked: std::collections::BTreeSet<String>,
+    /// The vocabulary-audit demotions (⊆ `node_locked`), each with its NAMED
+    /// reasons — the report's honest residue (the `BoundaryScannerPlan::dropped`
+    /// precedent). Additive JSON field (the `-0089` precedent).
+    pub demoted: BTreeMap<String, Vec<String>>,
 }
 
-/// Is this parsed return-annotation root a FOLD BARRIER (content variant
-/// independent of how children were built)? `PositionalRef`/`Passthrough`
-/// re-emit child content verbatim; `Spread`/`FlattenSpread` are classified
-/// transparent CONSERVATIVELY (their output shape depends on the base
-/// content's variant at runtime).
-fn return_ast_is_fold_barrier(
+/// RGX-0078.5.j.2 (session #150 correction) — the fold class of one parsed
+/// return-annotation root. Shared verbatim by the census partition and the
+/// value-twin emitter (single implementation, no drift).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TransformFoldClass {
+    /// Every child reference is consumed as a folded VALUE; output content is
+    /// rebuilt (`Shaped`/`Terminal`) — variant-independent, demands nothing.
+    ValuePure,
+    /// Output content RE-EMITS child content or nodes (array literal, spread,
+    /// flatten-spread, array access, quantified extraction).
+    ContentCarrying,
+    /// Bare `$N` / passthrough — re-emits child content verbatim.
+    Transparent,
+}
+
+/// Classify one parsed return-annotation root. `Object` is VALUE-PURE even
+/// with nested arrays/spreads inside property values: the whole property value
+/// is folded to a `PgenValue` (compositionality covers the transient), so no
+/// child content escapes.
+pub fn return_ast_fold_class(
     ast: &crate::ast_pipeline::unified_return_ast::UnifiedReturnAST,
-) -> bool {
+) -> TransformFoldClass {
     use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
     match ast {
         U::StringLiteral { .. }
@@ -3192,38 +3232,26 @@ fn return_ast_is_fold_barrier(
         | U::BooleanLiteral { .. }
         | U::NullLiteral
         | U::Identifier { .. }
-        | U::Array { .. }
         | U::Object { .. }
         | U::PropertyAccess { .. }
+        | U::MatchedText => TransformFoldClass::ValuePure,
+        U::Array { .. }
         | U::ArrayAccess { .. }
         | U::QuantifiedExtraction { .. }
-        | U::MatchedText => true,
-        U::PositionalRef { .. } | U::Passthrough | U::Spread { .. } | U::FlattenSpread { .. } => {
-            false
-        }
+        | U::Spread { .. }
+        | U::FlattenSpread { .. } => TransformFoldClass::ContentCarrying,
+        U::PositionalRef { .. } | U::Passthrough => TransformFoldClass::Transparent,
     }
 }
 
-/// The effective transform class of one fused rule, resolved EXACTLY as the
-/// build emitter resolves it (`generate_mtb_build_rule_fn` /
-/// `cascade_branch_transform`): explicit branch annotations from
-/// `Annotations::branch_return_annotations`; a missing or unparsed annotation
-/// resolves to a passthrough form (the synthesized single-element `$1` or the
-/// bare `content` fallback) — TRANSPARENT either way, so the synthesis rule
-/// itself need not be duplicated here. A rule-level matched-text `@transform`
-/// (the `cascade_rule_has_matched_text_transform` mirror) pins the content to
-/// `TransformedTerminal` at the rule tail — a barrier on every path.
-fn rule_transform_is_fold_barrier(
-    rule: &str,
-    body: &ASTNode,
-    annotations: Option<&Annotations>,
-) -> bool {
-    let Some(annotations) = annotations else {
-        return false;
-    };
-    let has_matched_text_transform = annotations
-        .semantic_annotations
-        .get(rule)
+/// Does `rule` carry a rule-level matched-text `@transform`? The
+/// `cascade_rule_has_matched_text_transform` mirror (such a rule pins its
+/// content to `TransformedTerminal` at the rule tail — VALUE-PURE, but demoted
+/// from value emission defensively; the cascade gate excludes it from fusion
+/// anyway).
+pub fn rule_has_matched_text_transform(rule: &str, annotations: Option<&Annotations>) -> bool {
+    annotations
+        .and_then(|a| a.semantic_annotations.get(rule))
         .is_some_and(|entries| {
             entries.iter().any(|annotation| {
                 crate::ast_pipeline::semantic_directive_registry::semantic_directive_name_payload(
@@ -3231,26 +3259,300 @@ fn rule_transform_is_fold_barrier(
                 )
                 .is_some_and(|(name, _)| name == "transform")
             })
-        });
-    if has_matched_text_transform {
-        return true;
-    }
-    let branches = annotations.branch_return_annotations.get(rule);
-    let branch_is_barrier = |index: usize| -> bool {
-        branches
-            .and_then(|b| b.get(index))
-            .and_then(|opt| opt.as_ref())
-            .and_then(|ann| ann.parsed_ast.as_ref())
-            .is_some_and(return_ast_is_fold_barrier)
-    };
+        })
+}
+
+/// The effective (explicit or synthesized) return-transform AST of one branch,
+/// resolved EXACTLY as the build emitter resolves it
+/// (`generate_mtb_build_rule_fn` / `cascade_branch_transform`): the explicit
+/// parsed annotation when present, else the synthesized single-element `-> $1`
+/// (`AstBasedGenerator::body_has_single_element` — the SAME shared predicate),
+/// else `None` = bare passthrough.
+pub fn resolved_branch_return_ast(
+    rule: &str,
+    branch_index: usize,
+    branch_body: &ASTNode,
+    annotations: Option<&Annotations>,
+) -> Option<crate::ast_pipeline::unified_return_ast::UnifiedReturnAST> {
+    let explicit = annotations
+        .and_then(|a| a.branch_return_annotations.get(rule))
+        .and_then(|branches| branches.get(branch_index))
+        .and_then(|opt| opt.as_ref())
+        .and_then(|ann| ann.parsed_ast.clone());
+    explicit.or_else(|| {
+        if AstBasedGenerator::body_has_single_element(branch_body) {
+            Some(crate::ast_pipeline::unified_return_ast::UnifiedReturnAST::PositionalRef {
+                index: 1,
+            })
+        } else {
+            None
+        }
+    })
+}
+
+/// The branch bodies of a fused rule exactly as the emitter walks them: an
+/// `Or` rule's alternatives, else the whole body as branch 0.
+pub fn rule_branch_bodies(body: &ASTNode) -> Vec<&ASTNode> {
     match body {
-        ASTNode::Or { alternatives } => (0..alternatives.len()).all(branch_is_barrier),
-        _ => branch_is_barrier(0),
+        ASTNode::Or { alternatives } => alternatives.iter().collect(),
+        _ => vec![body],
+    }
+}
+
+/// What a `$N` positional reference statically resolves to against a branch
+/// body — the codegen-time collapse of `generate_positional_ref`'s runtime
+/// match (the body's own content variant is statically known per shape).
+#[derive(Debug, Clone, Copy)]
+pub enum PositionalTarget<'tree> {
+    /// A multi-element `Sequence` body's element N−1 (also the single-element
+    /// case: the runtime `Sequence non-empty ⇒ elements[0]` arm).
+    Element(&'tree ASTNode),
+    /// The whole branch body re-emitted: `$1` on an atom body (the
+    /// `Alternative`-peel arm reaches the child's content — the body's own
+    /// reference), `$1` on a `Quantified` body (the whole capture group), or
+    /// the empty-`Sequence` fall-through.
+    WholeBody,
+    /// Statically out of range: the `<invalid_sequence_access>` sentinel — no
+    /// child content is re-emitted.
+    StaticSentinel,
+}
+
+/// Resolve `$index` against `branch_body` (1-based, the annotation spelling).
+pub fn resolve_positional_target(branch_body: &ASTNode, index: usize) -> PositionalTarget<'_> {
+    if index == 0 {
+        // `$0` → the `<invalid_positional_ref>` sentinel.
+        return PositionalTarget::StaticSentinel;
+    }
+    match branch_body {
+        ASTNode::Sequence { elements } => {
+            if elements.is_empty() {
+                // Runtime guard `!elements.is_empty()` fails ⇒ the `other`
+                // arm re-emits the (empty) whole content.
+                PositionalTarget::WholeBody
+            } else if index <= elements.len() {
+                PositionalTarget::Element(&elements[index - 1])
+            } else {
+                PositionalTarget::StaticSentinel
+            }
+        }
+        ASTNode::Quantified { .. } => {
+            if index == 1 {
+                // PGEN-RGX-0075: `$1` on a Quantified body is the WHOLE
+                // capture group.
+                PositionalTarget::WholeBody
+            } else {
+                PositionalTarget::StaticSentinel
+            }
+        }
+        _ => {
+            if index == 1 {
+                PositionalTarget::WholeBody
+            } else {
+                PositionalTarget::StaticSentinel
+            }
+        }
+    }
+}
+
+/// Collect every `PositionalRef` index occurring anywhere in a transform AST
+/// (the content-carrying demand surface — conservative: value-position `$N`s
+/// inside object properties are included, which can only over-demand).
+fn collect_positional_indices(
+    ast: &crate::ast_pipeline::unified_return_ast::UnifiedReturnAST,
+    out: &mut std::collections::BTreeSet<usize>,
+) {
+    use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+    match ast {
+        U::PositionalRef { index } => {
+            out.insert(*index);
+        }
+        U::Array { elements } => {
+            for element in elements {
+                collect_positional_indices(element, out);
+            }
+        }
+        U::Object { properties } => {
+            for value in properties.values() {
+                collect_positional_indices(value, out);
+            }
+        }
+        U::Spread { base }
+        | U::FlattenSpread { base }
+        | U::PropertyAccess { base, .. }
+        | U::QuantifiedExtraction { base, .. } => collect_positional_indices(base, out),
+        U::ArrayAccess { base, index } => {
+            collect_positional_indices(base, out);
+            collect_positional_indices(index, out);
+        }
+        U::StringLiteral { .. }
+        | U::NumberLiteral { .. }
+        | U::BooleanLiteral { .. }
+        | U::NullLiteral
+        | U::Identifier { .. }
+        | U::Passthrough
+        | U::MatchedText => {}
+    }
+}
+
+/// RGX-0078.5.j.2 (session #150) — the v1 VALUE-EMISSION VOCABULARY audit for
+/// one branch. Appends a NAMED reason per static decision the value-twin
+/// emitter cannot make; an empty result means the branch is value-emittable.
+/// Shared by the census (rule demotion) and the emitter (which never emits a
+/// value form outside it — bailing loudly instead, so census and emission
+/// cannot drift).
+pub fn branch_value_vocabulary_reasons(
+    ast: Option<&crate::ast_pipeline::unified_return_ast::UnifiedReturnAST>,
+    branch_body: &ASTNode,
+    fused: &std::collections::BTreeSet<&str>,
+    reasons: &mut Vec<String>,
+) {
+    let Some(ast) = ast else {
+        // Bare passthrough: the value form is the whole-body fold — always
+        // emittable.
+        return;
+    };
+    audit_value_ast(ast, branch_body, fused, false, reasons);
+}
+
+/// Is `element` a spread-safe base — a non-`?` `Quantified` node, whose
+/// runtime content variant is statically `Quantified` (the `?` sequence
+/// element takes the `OptPresent` fast path and is `Sequence`-when-absent /
+/// inner-variant-when-present — dynamic)?
+fn spread_base_statically_quantified(element: &ASTNode) -> bool {
+    matches!(element, ASTNode::Quantified { quantifier, .. } if quantifier != "?")
+}
+
+/// The flatten-spread item audit: every pushed item's content class must be
+/// statically `TransformedTerminal`-free (a `TransformedTerminal` carrying
+/// JSON-array text folds to an `Array` and would SPLICE where today's
+/// node-dispatch NESTS it). v1: the quantified inner must be a literal/regex
+/// terminal (items fold to `Str`) or a FUSED rule reference (fused rules never
+/// emit `TransformedTerminal` content — the cascade gate excludes `@transform`
+/// rules — and their transparent chains re-emit only fused/terminal content
+/// checked the same way at their own audit).
+fn flatten_items_statically_tt_free(
+    inner: &ASTNode,
+    fused: &std::collections::BTreeSet<&str>,
+) -> bool {
+    match inner {
+        ASTNode::Atom { value } => match value {
+            ASTValue::Token(parts) if parts.len() >= 2 => {
+                let TokenValue::String(token_type) = &parts[0];
+                let TokenValue::String(token_value) = &parts[1];
+                match token_type.as_str() {
+                    "rule_reference" => fused.contains(token_value.as_str()),
+                    // Literal / regex terminals fold to `Str` items.
+                    _ => true,
+                }
+            }
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+fn audit_value_ast(
+    ast: &crate::ast_pipeline::unified_return_ast::UnifiedReturnAST,
+    branch_body: &ASTNode,
+    fused: &std::collections::BTreeSet<&str>,
+    inside_array: bool,
+    reasons: &mut Vec<String>,
+) {
+    use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+    match ast {
+        U::PositionalRef { .. }
+        | U::Passthrough
+        | U::StringLiteral { .. }
+        | U::NumberLiteral { .. }
+        | U::BooleanLiteral { .. }
+        | U::NullLiteral
+        | U::Identifier { .. }
+        | U::MatchedText => {}
+        U::Object { properties } => {
+            // Deterministic reason order (HashMap source).
+            let mut sorted: Vec<_> = properties.iter().collect();
+            sorted.sort_by(|(a, _), (b, _)| a.cmp(b));
+            for (_, value) in sorted {
+                audit_value_ast(value, branch_body, fused, false, reasons);
+            }
+        }
+        U::Array { elements } => {
+            for element in elements {
+                audit_value_ast(element, branch_body, fused, true, reasons);
+            }
+        }
+        U::PropertyAccess { base, .. } => {
+            audit_value_ast(base, branch_body, fused, false, reasons);
+        }
+        U::Spread { base } | U::FlattenSpread { base } => {
+            let _ = inside_array; // spread semantics are audited identically at
+            // array-element and top-level positions.
+            let flatten = matches!(ast, U::FlattenSpread { .. });
+            let U::PositionalRef { index } = base.as_ref() else {
+                reasons.push(format!(
+                    "{} base is not a positional reference",
+                    if flatten { "flatten-spread" } else { "spread" }
+                ));
+                return;
+            };
+            match resolve_positional_target(branch_body, *index) {
+                PositionalTarget::Element(element) => {
+                    if !spread_base_statically_quantified(element) {
+                        reasons.push(format!(
+                            "{} base ${index} is not a statically-Quantified element (runtime content variant undecidable)",
+                            if flatten { "flatten-spread" } else { "spread" }
+                        ));
+                        return;
+                    }
+                    if flatten {
+                        let ASTNode::Quantified { element: inner, .. } = element else {
+                            unreachable!("guarded by spread_base_statically_quantified");
+                        };
+                        if !flatten_items_statically_tt_free(inner, fused) {
+                            reasons.push(format!(
+                                "flatten-spread ${index} items not statically TransformedTerminal-free (non-fused or structured inner)"
+                            ));
+                        }
+                    }
+                }
+                PositionalTarget::WholeBody => {
+                    if !spread_base_statically_quantified(branch_body) {
+                        reasons.push(format!(
+                            "{} base ${index} resolves to the whole body, which is not a statically-Quantified shape",
+                            if flatten { "flatten-spread" } else { "spread" }
+                        ));
+                        return;
+                    }
+                    if flatten {
+                        let ASTNode::Quantified { element: inner, .. } = branch_body else {
+                            unreachable!("guarded by spread_base_statically_quantified");
+                        };
+                        if !flatten_items_statically_tt_free(inner, fused) {
+                            reasons.push(format!(
+                                "flatten-spread ${index} items not statically TransformedTerminal-free (non-fused or structured inner)"
+                            ));
+                        }
+                    }
+                }
+                PositionalTarget::StaticSentinel => {
+                    // Static sentinel base: the spread wraps a static
+                    // `Terminal` — emittable.
+                }
+            }
+        }
+        U::ArrayAccess { .. } => {
+            reasons.push("array access is outside the v1 value vocabulary".to_string());
+        }
+        U::QuantifiedExtraction { .. } => {
+            reasons.push("quantified extraction is outside the v1 value vocabulary".to_string());
+        }
     }
 }
 
 /// Compute the `.5.j.2` direct-value build plan on top of the CyclicSpine
-/// cascade plan (ONE implementation for report and emission).
+/// cascade plan (ONE implementation for report and emission; session #150
+/// CORRECTED partition — 3-way fold classes, per-reference demand, vocabulary
+/// demotions).
 pub fn compute_direct_value_build_plan(
     tree: &HashMap<String, ASTNode>,
     annotations: Option<&Annotations>,
@@ -3269,31 +3571,62 @@ pub fn compute_direct_value_build_plan(
         .map(String::as_str)
         .collect();
 
-    let mut barrier = std::collections::BTreeSet::new();
-    let mut transparent = std::collections::BTreeSet::new();
+    // 1. Per-rule classification: VALUE-PURE on every branch ⇒ barrier
+    //    candidate; anything else propagates/receives node-form demand.
+    let mut barrier_pure: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
     for &rule in &fused {
         let Some(body) = tree.get(rule) else { continue };
-        if rule_transform_is_fold_barrier(rule, body, annotations) {
-            barrier.insert(rule.to_string());
+        let all_pure = if rule_has_matched_text_transform(rule, annotations) {
+            true
         } else {
-            transparent.insert(rule.to_string());
+            rule_branch_bodies(body)
+                .iter()
+                .enumerate()
+                .all(|(idx, branch_body)| {
+                    resolved_branch_return_ast(rule, idx, branch_body, annotations)
+                        .as_ref()
+                        .map(return_ast_fold_class)
+                        == Some(TransformFoldClass::ValuePure)
+                })
+        };
+        if all_pure {
+            barrier_pure.insert(rule);
         }
     }
 
-    // References per fused rule (the same collector the cascade plan uses).
-    let mut regex_pattern_sink: Vec<String> = Vec::new();
-    let mut forward: HashMap<&str, HashSet<String>> = HashMap::new();
+    // 2. The vocabulary audit (rule-level demotion; demoted rules emit
+    //    VERBATIM, so they consume — and therefore demand — every fused
+    //    reference of every branch).
+    let mut demoted: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for &rule in &fused {
-        let mut refs = HashSet::new();
-        if let Some(body) = tree.get(rule) {
-            collect_refs(body, &mut refs, &mut regex_pattern_sink);
+        let Some(body) = tree.get(rule) else { continue };
+        let mut reasons: Vec<String> = Vec::new();
+        if rule_has_matched_text_transform(rule, annotations) {
+            reasons.push("rule-level matched-text @transform (span-transform tail)".to_string());
         }
-        forward.insert(rule, refs);
+        for (idx, branch_body) in rule_branch_bodies(body).iter().enumerate() {
+            let resolved = resolved_branch_return_ast(rule, idx, branch_body, annotations);
+            let mut branch_reasons: Vec<String> = Vec::new();
+            branch_value_vocabulary_reasons(
+                resolved.as_ref(),
+                branch_body,
+                &fused,
+                &mut branch_reasons,
+            );
+            for reason in branch_reasons {
+                reasons.push(format!("branch {}: {}", idx + 1, reason));
+            }
+        }
+        if !reasons.is_empty() {
+            demoted.insert(rule.to_string(), reasons);
+        }
     }
 
-    // Node-form demand: seeded at the fused sub-roots (escape roots), and
-    // propagated DOWN through TRANSPARENT rules only — a barrier rule's folds
-    // consume child VALUES, so it never demands node-form children.
+    // 3. Per-reference node-form demand. Seeds: the fused sub-roots (escape
+    //    roots). Sources: demoted rules (verbatim — always, demanded or not,
+    //    since their bodies still build node-form children when called) and
+    //    demanded non-barrier rules (per-branch content-position targets).
+    let mut regex_pattern_sink: Vec<String> = Vec::new();
     let mut demanded: std::collections::BTreeSet<&str> = plan_b
         .sub_roots
         .iter()
@@ -3302,15 +3635,59 @@ pub fn compute_direct_value_build_plan(
         .collect();
     loop {
         let mut changed = false;
-        let frontier: Vec<&str> = demanded
-            .iter()
-            .copied()
-            .filter(|rule| transparent.contains(*rule))
-            .collect();
-        for rule in frontier {
-            if let Some(refs) = forward.get(rule) {
-                for target in refs {
-                    if let Some(&fused_target) = fused.get(target.as_str()) {
+        for &rule in &fused {
+            let is_demoted = demoted.contains_key(rule);
+            let is_source =
+                is_demoted || (demanded.contains(rule) && !barrier_pure.contains(rule));
+            if !is_source {
+                continue;
+            }
+            let Some(body) = tree.get(rule) else { continue };
+            let mut target_nodes: Vec<&ASTNode> = Vec::new();
+            for (idx, &branch_body) in rule_branch_bodies(body).iter().enumerate() {
+                if is_demoted {
+                    target_nodes.push(branch_body);
+                    continue;
+                }
+                let resolved = resolved_branch_return_ast(rule, idx, branch_body, annotations);
+                match resolved.as_ref().map(return_ast_fold_class) {
+                    Some(TransformFoldClass::ValuePure) => {}
+                    Some(TransformFoldClass::Transparent) => {
+                        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+                        match resolved.as_ref() {
+                            Some(U::PositionalRef { index }) => {
+                                match resolve_positional_target(branch_body, *index) {
+                                    PositionalTarget::Element(element) => {
+                                        target_nodes.push(element)
+                                    }
+                                    PositionalTarget::WholeBody => target_nodes.push(branch_body),
+                                    PositionalTarget::StaticSentinel => {}
+                                }
+                            }
+                            _ => target_nodes.push(branch_body),
+                        }
+                    }
+                    Some(TransformFoldClass::ContentCarrying) => {
+                        let mut indices = std::collections::BTreeSet::new();
+                        if let Some(ast) = resolved.as_ref() {
+                            collect_positional_indices(ast, &mut indices);
+                        }
+                        for index in indices {
+                            match resolve_positional_target(branch_body, index) {
+                                PositionalTarget::Element(element) => target_nodes.push(element),
+                                PositionalTarget::WholeBody => target_nodes.push(branch_body),
+                                PositionalTarget::StaticSentinel => {}
+                            }
+                        }
+                    }
+                    None => target_nodes.push(branch_body),
+                }
+            }
+            for target in target_nodes {
+                let mut refs = HashSet::new();
+                collect_refs(target, &mut refs, &mut regex_pattern_sink);
+                for referenced in refs {
+                    if let Some(&fused_target) = fused.get(referenced.as_str()) {
                         if demanded.insert(fused_target) {
                             changed = true;
                         }
@@ -3323,20 +3700,29 @@ pub fn compute_direct_value_build_plan(
         }
     }
 
-    let node_locked: std::collections::BTreeSet<String> = transparent
-        .iter()
-        .filter(|rule| demanded.contains(rule.as_str()))
-        .cloned()
-        .collect();
-    let value_licensed: std::collections::BTreeSet<String> = transparent
-        .into_iter()
-        .filter(|rule| !node_locked.contains(rule))
-        .collect();
+    // 4. The partition. Vocabulary demotions land in node_locked whatever
+    //    their class; a demanded barrier stays barrier (its VALUE-PURE content
+    //    is byte-identical either way, so demand costs it nothing).
+    let mut barrier = std::collections::BTreeSet::new();
+    let mut value_licensed = std::collections::BTreeSet::new();
+    let mut node_locked = std::collections::BTreeSet::new();
+    for &rule in &fused {
+        if demoted.contains_key(rule) {
+            node_locked.insert(rule.to_string());
+        } else if barrier_pure.contains(rule) {
+            barrier.insert(rule.to_string());
+        } else if demanded.contains(rule) {
+            node_locked.insert(rule.to_string());
+        } else {
+            value_licensed.insert(rule.to_string());
+        }
+    }
 
     Ok(DirectValueBuildPlan {
         barrier,
         value_licensed,
         node_locked,
+        demoted,
     })
 }
 
@@ -4568,15 +4954,16 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
     {
         let plan = &census.direct_value_plan;
         println!(
-            "DIRECT-VALUE-PLAN: grammar={} barrier={} value_licensed={} node_locked={} (of {} fused)",
+            "DIRECT-VALUE-PLAN: grammar={} barrier={} value_licensed={} node_locked={} (of {} fused; demoted={})",
             census.grammar_name,
             plan.barrier.len(),
             plan.value_licensed.len(),
             plan.node_locked.len(),
             plan.barrier.len() + plan.value_licensed.len() + plan.node_locked.len(),
+            plan.demoted.len(),
         );
         println!(
-            "  model: barrier rules (fold on every branch) build value-internally unconditionally; value-licensed transparent rules convert early (compositional to_shaped_value, no observable variant); node-locked transparent rules keep today's node build (fused sub-root, or reachable from one through transparent rules)."
+            "  model (session #150 corrected): barrier rules (VALUE-PURE fold on every branch) build value-internally unconditionally; value-licensed rules (undemanded through content-position references) convert early (compositional to_shaped_value); node-locked rules keep node builds (escape root, content-position demand, or a NAMED vocabulary demotion)."
         );
         if dump_all {
             for rule in &plan.barrier {
@@ -4587,6 +4974,9 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             }
             for rule in &plan.node_locked {
                 println!("  [direct-value-plan] {rule}: node_locked");
+            }
+            for (rule, reasons) in &plan.demoted {
+                println!("  [direct-value-plan-demotion] {rule}: {}", reasons.join("; "));
             }
         }
     }
@@ -5999,6 +6389,185 @@ mod tests {
             "{plan:?}"
         );
         assert!(plan.value_licensed.is_empty(), "{plan:?}");
+    }
+
+    /// A parsed branch annotation around an arbitrary return AST.
+    fn branch_of(
+        ast: crate::ast_pipeline::unified_return_ast::UnifiedReturnAST,
+    ) -> Option<super::super::BranchAnnotation> {
+        Some(super::super::BranchAnnotation {
+            annotation_type: "return".to_string(),
+            annotation_content: String::new(),
+            parsed_ast: Some(ast),
+        })
+    }
+
+    /// RGX-0078.5.j.2 (session #150 CORRECTION) — a CONTENT-CARRYING fold
+    /// (`-> [$1**]`, the regex `concatenation` shape) is NOT a demand stop:
+    /// when the carrying rule is demanded, its `$N`-targeted children are
+    /// demanded too (their nodes are re-emitted inside its output content).
+    /// Under the retired 2-way classifier `list` was a "barrier" and `leaf`
+    /// was value-licensed while `list`'s verbatim spread needed `leaf` NODES —
+    /// the inconsistency this correction closes.
+    #[test]
+    fn direct_value_plan_content_carrying_fold_propagates_demand() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree = HashMap::new();
+        // entry := list ; list := leaf+ -> [$1**] ; leaf := 'x'
+        tree.insert("entry".to_string(), or(vec![rule_ref("list")]));
+        tree.insert(
+            "list".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("leaf")),
+                quantifier: "+".to_string(),
+            },
+        );
+        tree.insert("leaf".to_string(), or(vec![atom("quoted_string", "x")]));
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "list".to_string(),
+            vec![branch_of(U::Array {
+                elements: vec![U::FlattenSpread {
+                    base: Box::new(U::PositionalRef { index: 1 }),
+                }],
+            })],
+        );
+        let plan = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan computes");
+        assert!(
+            plan.node_locked.contains("list") && plan.node_locked.contains("leaf"),
+            "a demanded content-carrying fold demands its targeted children: {plan:?}"
+        );
+        assert!(
+            !plan.barrier.contains("list"),
+            "a content-carrying fold is never a barrier: {plan:?}"
+        );
+        assert!(plan.demoted.is_empty(), "in-vocabulary flatten-spread: {plan:?}");
+    }
+
+    /// RGX-0078.5.j.2 (session #150 CORRECTION) — demand propagates
+    /// PER-REFERENCE: a transparent `-> $2` branch demands exactly element 2's
+    /// subtree; the sibling elements' references stay value-licensed.
+    #[test]
+    fn direct_value_plan_transparent_positional_targets_only_its_element() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree = HashMap::new();
+        // entry := a b c -> $2 ; a := 'x' ; b := 'y' ; c := 'z'
+        tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("a"), rule_ref("b"), rule_ref("c")],
+            },
+        );
+        tree.insert("a".to_string(), or(vec![atom("quoted_string", "x")]));
+        tree.insert("b".to_string(), or(vec![atom("quoted_string", "y")]));
+        tree.insert("c".to_string(), or(vec![atom("quoted_string", "z")]));
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "entry".to_string(),
+            vec![branch_of(U::PositionalRef { index: 2 })],
+        );
+        let plan = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan computes");
+        assert!(plan.node_locked.contains("b"), "$2 demands element 2: {plan:?}");
+        assert!(
+            plan.value_licensed.contains("a") && plan.value_licensed.contains("c"),
+            "sibling elements are not demanded by $2: {plan:?}"
+        );
+    }
+
+    /// RGX-0078.5.j.2 (session #150 CORRECTION) — per-BRANCH precision on a
+    /// mixed Or (the regex `piece` shape): the transparent `-> $1` branch
+    /// demands its target, the VALUE-PURE object branch demands nothing.
+    #[test]
+    fn direct_value_plan_mixed_or_propagates_per_branch() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree = HashMap::new();
+        // entry := piece_like ; piece_like := special -> $1 | other 'q' -> {k:$1}
+        tree.insert("entry".to_string(), or(vec![rule_ref("piece_like")]));
+        tree.insert(
+            "piece_like".to_string(),
+            or(vec![
+                rule_ref("special"),
+                ASTNode::Sequence {
+                    elements: vec![rule_ref("other"), atom("quoted_string", "q")],
+                },
+            ]),
+        );
+        tree.insert("special".to_string(), or(vec![atom("quoted_string", "x")]));
+        tree.insert("other".to_string(), or(vec![atom("quoted_string", "y")]));
+        let mut properties = std::collections::HashMap::new();
+        properties.insert(
+            "k".to_string(),
+            Box::new(U::PositionalRef { index: 1 }),
+        );
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "piece_like".to_string(),
+            vec![
+                branch_of(U::PositionalRef { index: 1 }),
+                branch_of(U::Object { properties }),
+            ],
+        );
+        let plan = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan computes");
+        assert!(
+            plan.node_locked.contains("piece_like") && plan.node_locked.contains("special"),
+            "the transparent branch demands its target: {plan:?}"
+        );
+        assert!(
+            plan.value_licensed.contains("other"),
+            "the VALUE-PURE object branch demands nothing: {plan:?}"
+        );
+    }
+
+    /// RGX-0078.5.j.2 (session #150 CORRECTION) — an out-of-vocabulary
+    /// transform (v1: array access) is DEMOTED to node_locked with a NAMED
+    /// reason, and — because its emission is verbatim — it demands its fused
+    /// references even when the rule itself is undemanded (its VALUE-PURE
+    /// caller folds it).
+    #[test]
+    fn direct_value_plan_vocabulary_demotion_is_named_and_propagates() {
+        use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST as U;
+        let mut tree = HashMap::new();
+        // entry(-> {v:$1}) := acc ; acc := inner 'z' -> $1[0] ; inner := 'x'
+        tree.insert("entry".to_string(), or(vec![rule_ref("acc")]));
+        tree.insert(
+            "acc".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("inner"), atom("quoted_string", "z")],
+            },
+        );
+        tree.insert("inner".to_string(), or(vec![atom("quoted_string", "x")]));
+        let mut properties = std::collections::HashMap::new();
+        properties.insert(
+            "v".to_string(),
+            Box::new(U::PositionalRef { index: 1 }),
+        );
+        let mut annotations = Annotations::default();
+        annotations
+            .branch_return_annotations
+            .insert("entry".to_string(), vec![branch_of(U::Object { properties })]);
+        annotations.branch_return_annotations.insert(
+            "acc".to_string(),
+            vec![branch_of(U::ArrayAccess {
+                base: Box::new(U::PositionalRef { index: 1 }),
+                index: Box::new(U::NumberLiteral { value: 0.0 }),
+            })],
+        );
+        let plan = compute_direct_value_build_plan(&tree, Some(&annotations), Some("entry"))
+            .expect("plan computes");
+        let reasons = plan.demoted.get("acc").expect("acc is demoted");
+        assert!(
+            reasons.iter().any(|r| r.contains("array access")),
+            "the demotion reason is named: {reasons:?}"
+        );
+        assert!(plan.node_locked.contains("acc"), "{plan:?}");
+        assert!(
+            plan.node_locked.contains("inner"),
+            "a demoted (verbatim) rule demands its fused references even undemanded: {plan:?}"
+        );
+        assert!(plan.barrier.contains("entry"), "{plan:?}");
     }
 
     /// RGX-0078.5.i.7 (D2 STEP-0) — the cascade gate ALLOWS cycles (unlike the
