@@ -85,6 +85,31 @@ The four consequences (each a tracked obligation):
    [[feedback_dont_run_jobs_that_hit_known_pathological_inputs]]): under a max-bound there is
    no exclusion — a hang IS the maximum.
 
+**⭐ THE GOAL BEHIND THE BAR — PERCEPTION, MEANS DELEGATED (director 2026-07-18, session #151,
+verbatim, typos preserved):** *"I do not want developers to discard PGEN regex parser because
+they see it as slow. To the contrary, they should see it as as a very good alternative to PCRE2
+because it is really fast. How to achieve this perception, is your call."* — The sub-1µs bar is
+the PROXY; the OBJECTIVE is the developer-perception "fast, credible PCRE2 alternative", and the
+operationalization is explicitly ENGINEER-OWNED.
+
+**The engineer's operationalization (decided 2026-07-18 session #151, recorded here as the
+standing reading of the bar):** developers form the speed perception from (a) the headline
+comparison against the incumbent and (b) the absence of pathological outliers. Therefore the
+PERCEPTION BAR = two measured conditions on the PCRE2 external corpus (later also rebar,
+per the queued corpus-expansion record):
+1. **TYPICAL-SPEED** — PGEN regex parse competitive with PCRE2's own compile on the same
+   patterns; the recorded size-normalized reading (absolute <1µs for ≤p99-size cells) stays as
+   the concrete embodiment (PCRE2 ≈0.57µs on bench-typical patterns ⇒ <1µs ≈ within ~1.75×).
+2. **NO-OUTLIER** — a hard LINEAR tail bound corpus-wide (≤ ~8 ns/byte): no cell may look
+   pathological in a published distribution. One 2ms cell does more perception damage than a
+   20% geomean gap ⇒ the `.5.j.4` superlinearity class is PERCEPTION-CRITICAL work.
+New measurement obligation queued: a per-cell **PCRE2 compile-time column** beside the PGEN
+column in the corpus baseline (the exact comparison developers will make; geomean AND max
+reporting per the standing doctrine). The road/battery/land-gate discipline is unchanged;
+`.5.j.4`'s root-cause slice remains the feasibility VERDICT for condition 1's MAX form.
+
+---
+
 **Engineer's honest physics + single recommendation (surfaced 2026-07-18, proceeding per the
 2026-07-15 fork-discipline amendment; director veto welcome):** the corpus length profile is
 p50=10 B / p90=32 B / p99=121 B / max=3,511 B (2,189 cases). An ABSOLUTE max < 1µs including
