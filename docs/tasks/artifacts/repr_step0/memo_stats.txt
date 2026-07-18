@@ -1,0 +1,546 @@
+=== MEMO STATS: 18 success entries (0 tainted) + 1 cached failures (0 tainted) = 19 total, 27 subtree-nodes, 6 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         10 ok=        1 fail=        0  entry_alternation
+  nodes=          4 ok=        4 fail=        1  piece
+  nodes=          4 ok=        4 fail=        0  atom
+  nodes=          4 ok=        4 fail=        0  literal_char
+  nodes=          4 ok=        4 fail=        0  letter
+  nodes=          1 ok=        1 fail=        0  regex
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=        5 ok=        4 fail=        1 nodes=          4  piece
+  total=        4 ok=        4 fail=        0 nodes=          4  atom
+  total=        4 ok=        4 fail=        0 nodes=          4  literal_char
+  total=        4 ok=        4 fail=        0 nodes=          4  letter
+  total=        1 ok=        1 fail=        0 nodes=         10  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+=== MEMO STATS: 35 success entries (0 tainted) + 22 cached failures (0 tainted) = 57 total, 51 subtree-nodes, 19 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         11 ok=        1 fail=        0  entry_alternation
+  nodes=          8 ok=        5 fail=        0  atom
+  nodes=          6 ok=        3 fail=        0  counted_quantifier
+  nodes=          5 ok=        5 fail=        1  piece
+  nodes=          3 ok=        3 fail=        0  counted_quantifier_body
+  nodes=          3 ok=        3 fail=        0  quant_bound_core
+  nodes=          3 ok=        3 fail=        0  escape_unit
+  nodes=          3 ok=        3 fail=        0  simple_escape_tail
+  nodes=          3 ok=        3 fail=        0  quant_bound_number
+  nodes=          3 ok=        3 fail=        0  simple_escape_letter_strict
+  nodes=          2 ok=        2 fail=        0  literal_char
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          0 ok=        0 fail=        3  digit
+  nodes=          0 ok=        0 fail=        3  backreference_digits
+  nodes=          0 ok=        0 fail=        3  backreference_digits_single
+  nodes=          0 ok=        0 fail=        3  counted_quantifier_range
+  nodes=          0 ok=        0 fail=        3  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        3  numeric_backreference
+  nodes=          0 ok=        0 fail=        3  backreference
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=        6 ok=        5 fail=        1 nodes=          5  piece
+  total=        5 ok=        5 fail=        0 nodes=          8  atom
+  total=        3 ok=        3 fail=        0 nodes=          6  counted_quantifier
+  total=        3 ok=        3 fail=        0 nodes=          3  counted_quantifier_body
+  total=        3 ok=        3 fail=        0 nodes=          3  quant_bound_core
+  total=        3 ok=        3 fail=        0 nodes=          3  escape_unit
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_tail
+  total=        3 ok=        3 fail=        0 nodes=          3  quant_bound_number
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_letter_strict
+  total=        3 ok=        0 fail=        3 nodes=          0  digit
+  total=        3 ok=        0 fail=        3 nodes=          0  backreference_digits
+  total=        3 ok=        0 fail=        3 nodes=          0  backreference_digits_single
+  total=        3 ok=        0 fail=        3 nodes=          0  counted_quantifier_range
+  total=        3 ok=        0 fail=        3 nodes=          0  numeric_backreference_single
+  total=        3 ok=        0 fail=        3 nodes=          0  numeric_backreference
+=== MEMO STATS: 121 success entries (14 tainted) + 54 cached failures (8 tainted) = 175 total, 263 subtree-nodes, 35 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         64 ok=        8 fail=        7  descending_class_range
+  nodes=         55 ok=        3 fail=        0  class_body_nonempty_nocaret
+  nodes=         24 ok=       12 fail=        0  class_member_literal
+  nodes=         23 ok=       23 fail=        0  class_literal
+  nodes=         19 ok=       12 fail=        0  class_item_core
+  nodes=         12 ok=       12 fail=        0  letter
+  nodes=         11 ok=        1 fail=        0  entry_alternation
+  nodes=          8 ok=        8 fail=        7  class_range
+  nodes=          7 ok=        7 fail=        0  class_safe_special
+  nodes=          6 ok=        5 fail=        0  atom
+  nodes=          6 ok=        3 fail=        0  class_member_literal_nocaret
+  nodes=          5 ok=        5 fail=        1  piece
+  nodes=          4 ok=        4 fail=        1  digit
+  nodes=          3 ok=        3 fail=        0  class_literal_nocaret
+  nodes=          3 ok=        3 fail=        0  class_item_visible_nocaret_core
+  nodes=          3 ok=        3 fail=        0  char_class
+  nodes=          2 ok=        1 fail=        0  counted_quantifier
+  nodes=          1 ok=        1 fail=        1  quant_bound_number
+  nodes=          1 ok=        1 fail=        0  special_char
+  nodes=          1 ok=        1 fail=        0  simple_escape_tail
+  nodes=          1 ok=        1 fail=        0  literal_char
+  nodes=          1 ok=        1 fail=        0  escape_unit
+  nodes=          1 ok=        1 fail=        0  counted_quantifier_body
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=        0  quant_bound_core
+  nodes=          0 ok=        0 fail=        1  counted_quantifier_range
+  nodes=          0 ok=        0 fail=       10  class_range_nonliteral_atom
+  nodes=          0 ok=        0 fail=        3  class_bracket_token_tail
+  nodes=          0 ok=        0 fail=        1  numeric_backreference
+  nodes=          0 ok=        0 fail=        1  numeric_backreference_single
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       23 ok=       23 fail=        0 nodes=         23  class_literal
+  total=       15 ok=        8 fail=        7 nodes=         64  descending_class_range
+  total=       15 ok=        8 fail=        7 nodes=          8  class_range
+  total=       15 ok=        0 fail=       15 nodes=          0  invalid_class_range
+  total=       12 ok=       12 fail=        0 nodes=         24  class_member_literal
+  total=       12 ok=       12 fail=        0 nodes=         19  class_item_core
+  total=       12 ok=       12 fail=        0 nodes=         12  letter
+  total=       10 ok=        0 fail=       10 nodes=          0  class_range_nonliteral_atom
+  total=        7 ok=        7 fail=        0 nodes=          7  class_safe_special
+  total=        6 ok=        5 fail=        1 nodes=          5  piece
+  total=        5 ok=        5 fail=        0 nodes=          6  atom
+  total=        5 ok=        4 fail=        1 nodes=          4  digit
+  total=        3 ok=        3 fail=        0 nodes=         55  class_body_nonempty_nocaret
+  total=        3 ok=        3 fail=        0 nodes=          6  class_member_literal_nocaret
+  total=        3 ok=        3 fail=        0 nodes=          3  class_literal_nocaret
+=== MEMO STATS: 46 success entries (0 tainted) + 3 cached failures (0 tainted) = 49 total, 91 subtree-nodes, 8 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         28 ok=        1 fail=        0  entry_alternation
+  nodes=         13 ok=        2 fail=        0  alternative
+  nodes=         10 ok=       10 fail=        0  atom
+  nodes=         10 ok=       10 fail=        0  letter
+  nodes=         10 ok=       10 fail=        0  literal_char
+  nodes=         10 ok=       10 fail=        3  piece
+  nodes=          9 ok=        2 fail=        0  concatenation
+  nodes=          1 ok=        1 fail=        0  regex
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       13 ok=       10 fail=        3 nodes=         10  piece
+  total=       10 ok=       10 fail=        0 nodes=         10  atom
+  total=       10 ok=       10 fail=        0 nodes=         10  letter
+  total=       10 ok=       10 fail=        0 nodes=         10  literal_char
+  total=        2 ok=        2 fail=        0 nodes=         13  alternative
+  total=        2 ok=        2 fail=        0 nodes=          9  concatenation
+  total=        1 ok=        1 fail=        0 nodes=         28  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+=== MEMO STATS: 62 success entries (0 tainted) + 25 cached failures (0 tainted) = 87 total, 126 subtree-nodes, 26 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         21 ok=        3 fail=        0  alternation
+  nodes=         21 ok=        3 fail=        0  pattern
+  nodes=         12 ok=        3 fail=        0  alternative
+  nodes=         11 ok=        8 fail=        0  atom
+  nodes=         11 ok=        1 fail=        0  entry_alternation
+  nodes=          8 ok=        8 fail=        4  piece
+  nodes=          6 ok=        3 fail=        0  counted_quantifier
+  nodes=          6 ok=        3 fail=        0  concatenation
+  nodes=          3 ok=        3 fail=        0  capturing_group
+  nodes=          3 ok=        3 fail=        0  capture_open
+  nodes=          3 ok=        3 fail=        0  quant_bound_number
+  nodes=          3 ok=        3 fail=        0  simple_escape_tail
+  nodes=          3 ok=        3 fail=        0  counted_quantifier_body
+  nodes=          3 ok=        3 fail=        0  quant_bound_core
+  nodes=          3 ok=        3 fail=        0  simple_escape_letter_strict
+  nodes=          3 ok=        3 fail=        0  group
+  nodes=          3 ok=        3 fail=        0  escape_unit
+  nodes=          2 ok=        2 fail=        0  literal_char
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          0 ok=        0 fail=        3  digit
+  nodes=          0 ok=        0 fail=        3  backreference_digits
+  nodes=          0 ok=        0 fail=        3  counted_quantifier_range
+  nodes=          0 ok=        0 fail=        3  backreference
+  nodes=          0 ok=        0 fail=        3  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        3  backreference_digits_single
+  nodes=          0 ok=        0 fail=        3  numeric_backreference
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       12 ok=        8 fail=        4 nodes=          8  piece
+  total=        8 ok=        8 fail=        0 nodes=         11  atom
+  total=        3 ok=        3 fail=        0 nodes=         21  alternation
+  total=        3 ok=        3 fail=        0 nodes=         21  pattern
+  total=        3 ok=        3 fail=        0 nodes=         12  alternative
+  total=        3 ok=        3 fail=        0 nodes=          6  counted_quantifier
+  total=        3 ok=        3 fail=        0 nodes=          6  concatenation
+  total=        3 ok=        3 fail=        0 nodes=          3  capturing_group
+  total=        3 ok=        3 fail=        0 nodes=          3  capture_open
+  total=        3 ok=        3 fail=        0 nodes=          3  quant_bound_number
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_tail
+  total=        3 ok=        3 fail=        0 nodes=          3  counted_quantifier_body
+  total=        3 ok=        3 fail=        0 nodes=          3  quant_bound_core
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_letter_strict
+  total=        3 ok=        3 fail=        0 nodes=          3  group
+=== MEMO STATS: 36 success entries (0 tainted) + 6 cached failures (0 tainted) = 42 total, 51 subtree-nodes, 14 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         15 ok=        1 fail=        0  entry_alternation
+  nodes=         10 ok=        9 fail=        0  atom
+  nodes=          9 ok=        9 fail=        1  piece
+  nodes=          8 ok=        8 fail=        0  literal_char
+  nodes=          5 ok=        5 fail=        0  letter
+  nodes=          1 ok=        1 fail=        0  escape_unit
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=        0  simple_escape_letter_strict
+  nodes=          1 ok=        1 fail=        0  simple_escape_tail
+  nodes=          0 ok=        0 fail=        1  backreference_digits
+  nodes=          0 ok=        0 fail=        1  backreference
+  nodes=          0 ok=        0 fail=        1  numeric_backreference
+  nodes=          0 ok=        0 fail=        1  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        1  backreference_digits_single
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       10 ok=        9 fail=        1 nodes=          9  piece
+  total=        9 ok=        9 fail=        0 nodes=         10  atom
+  total=        8 ok=        8 fail=        0 nodes=          8  literal_char
+  total=        5 ok=        5 fail=        0 nodes=          5  letter
+  total=        1 ok=        1 fail=        0 nodes=         15  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  escape_unit
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+  total=        1 ok=        1 fail=        0 nodes=          1  simple_escape_letter_strict
+  total=        1 ok=        1 fail=        0 nodes=          1  simple_escape_tail
+  total=        1 ok=        0 fail=        1 nodes=          0  backreference_digits
+  total=        1 ok=        0 fail=        1 nodes=          0  backreference
+  total=        1 ok=        0 fail=        1 nodes=          0  numeric_backreference
+  total=        1 ok=        0 fail=        1 nodes=          0  numeric_backreference_single
+  total=        1 ok=        0 fail=        1 nodes=          0  backreference_digits_single
+=== MEMO STATS: 27 success entries (0 tainted) + 35 cached failures (0 tainted) = 62 total, 43 subtree-nodes, 14 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         13 ok=        1 fail=        0  entry_alternation
+  nodes=          9 ok=        5 fail=        2  atom
+  nodes=          7 ok=        7 fail=        1  piece
+  nodes=          4 ok=        4 fail=        2  escape_unit
+  nodes=          4 ok=        4 fail=        0  simple_escape_tail
+  nodes=          3 ok=        3 fail=        0  simple_escape_letter_strict
+  nodes=          1 ok=        1 fail=        0  special_char
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=        0  literal_char
+  nodes=          0 ok=        0 fail=        6  backreference_digits_single
+  nodes=          0 ok=        0 fail=        6  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        6  backreference
+  nodes=          0 ok=        0 fail=        6  numeric_backreference
+  nodes=          0 ok=        0 fail=        6  backreference_digits
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=        8 ok=        7 fail=        1 nodes=          7  piece
+  total=        7 ok=        5 fail=        2 nodes=          9  atom
+  total=        6 ok=        4 fail=        2 nodes=          4  escape_unit
+  total=        6 ok=        0 fail=        6 nodes=          0  backreference_digits_single
+  total=        6 ok=        0 fail=        6 nodes=          0  numeric_backreference_single
+  total=        6 ok=        0 fail=        6 nodes=          0  backreference
+  total=        6 ok=        0 fail=        6 nodes=          0  numeric_backreference
+  total=        6 ok=        0 fail=        6 nodes=          0  backreference_digits
+  total=        4 ok=        4 fail=        0 nodes=          4  simple_escape_tail
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_letter_strict
+  total=        1 ok=        1 fail=        0 nodes=         13  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  special_char
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+  total=        1 ok=        1 fail=        0 nodes=          1  literal_char
+=== MEMO STATS: 81 success entries (0 tainted) + 86 cached failures (0 tainted) = 167 total, 180 subtree-nodes, 51 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         32 ok=        3 fail=        0  pattern
+  nodes=         32 ok=        3 fail=        0  alternation
+  nodes=         20 ok=        4 fail=        0  alternative
+  nodes=         17 ok=       13 fail=        0  atom
+  nodes=         15 ok=       15 fail=        5  piece
+  nodes=         13 ok=        1 fail=        0  entry_alternation
+  nodes=         12 ok=        4 fail=        0  concatenation
+  nodes=         10 ok=       10 fail=        1  letter
+  nodes=          6 ok=        6 fail=        0  literal_char
+  nodes=          4 ok=        4 fail=        0  simple_escape_letter_strict
+  nodes=          4 ok=        4 fail=        0  simple_escape_tail
+  nodes=          4 ok=        4 fail=        0  escape_unit
+  nodes=          3 ok=        3 fail=        0  group
+  nodes=          2 ok=        1 fail=        1  python_named_group_open
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=        0  name
+  nodes=          1 ok=        1 fail=        2  capture_open
+  nodes=          1 ok=        1 fail=        1  python_named_group
+  nodes=          1 ok=        1 fail=        2  capturing_group
+  nodes=          1 ok=        1 fail=        1  noncapturing_group
+  nodes=          0 ok=        0 fail=        2  non_atomic_lookbehind_pos
+  nodes=          0 ok=        0 fail=        2  named_group_open_angle
+  nodes=          0 ok=        0 fail=        2  returned_capture_subroutine
+  nodes=          0 ok=        0 fail=        2  lookbehind_pos_open
+  nodes=          0 ok=        0 fail=        2  non_atomic_lookahead_pos
+  nodes=          0 ok=        0 fail=        2  scoped_inline_modifiers
+  nodes=          0 ok=        0 fail=        1  named_subroutine_target
+  nodes=          0 ok=        0 fail=        2  branch_reset_group
+  nodes=          0 ok=        0 fail=        2  named_group
+  nodes=          0 ok=        0 fail=        2  lookahead_neg
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       20 ok=       15 fail=        5 nodes=         15  piece
+  total=       13 ok=       13 fail=        0 nodes=         17  atom
+  total=       11 ok=       10 fail=        1 nodes=         10  letter
+  total=        6 ok=        6 fail=        0 nodes=          6  literal_char
+  total=        4 ok=        4 fail=        0 nodes=         20  alternative
+  total=        4 ok=        4 fail=        0 nodes=         12  concatenation
+  total=        4 ok=        4 fail=        0 nodes=          4  simple_escape_letter_strict
+  total=        4 ok=        4 fail=        0 nodes=          4  simple_escape_tail
+  total=        4 ok=        4 fail=        0 nodes=          4  escape_unit
+  total=        4 ok=        0 fail=        4 nodes=          0  backreference
+  total=        4 ok=        0 fail=        4 nodes=          0  digit
+  total=        4 ok=        0 fail=        4 nodes=          0  numeric_backreference_single
+  total=        4 ok=        0 fail=        4 nodes=          0  backreference_digits
+  total=        4 ok=        0 fail=        4 nodes=          0  backreference_digits_single
+  total=        4 ok=        0 fail=        4 nodes=          0  numeric_backreference
+=== MEMO STATS: 18 success entries (0 tainted) + 1 cached failures (0 tainted) = 19 total, 27 subtree-nodes, 6 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         10 ok=        1 fail=        0  entry_alternation
+  nodes=          4 ok=        4 fail=        1  piece
+  nodes=          4 ok=        4 fail=        0  literal_char
+  nodes=          4 ok=        4 fail=        0  letter
+  nodes=          4 ok=        4 fail=        0  atom
+  nodes=          1 ok=        1 fail=        0  regex
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=        5 ok=        4 fail=        1 nodes=          4  piece
+  total=        4 ok=        4 fail=        0 nodes=          4  literal_char
+  total=        4 ok=        4 fail=        0 nodes=          4  letter
+  total=        4 ok=        4 fail=        0 nodes=          4  atom
+  total=        1 ok=        1 fail=        0 nodes=         10  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+=== MEMO STATS: 35 success entries (0 tainted) + 22 cached failures (0 tainted) = 57 total, 51 subtree-nodes, 19 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         11 ok=        1 fail=        0  entry_alternation
+  nodes=          8 ok=        5 fail=        0  atom
+  nodes=          6 ok=        3 fail=        0  counted_quantifier
+  nodes=          5 ok=        5 fail=        1  piece
+  nodes=          3 ok=        3 fail=        0  simple_escape_tail
+  nodes=          3 ok=        3 fail=        0  quant_bound_core
+  nodes=          3 ok=        3 fail=        0  quant_bound_number
+  nodes=          3 ok=        3 fail=        0  counted_quantifier_body
+  nodes=          3 ok=        3 fail=        0  escape_unit
+  nodes=          3 ok=        3 fail=        0  simple_escape_letter_strict
+  nodes=          2 ok=        2 fail=        0  literal_char
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          0 ok=        0 fail=        3  backreference_digits
+  nodes=          0 ok=        0 fail=        3  counted_quantifier_range
+  nodes=          0 ok=        0 fail=        3  digit
+  nodes=          0 ok=        0 fail=        3  numeric_backreference
+  nodes=          0 ok=        0 fail=        3  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        3  backreference_digits_single
+  nodes=          0 ok=        0 fail=        3  backreference
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=        6 ok=        5 fail=        1 nodes=          5  piece
+  total=        5 ok=        5 fail=        0 nodes=          8  atom
+  total=        3 ok=        3 fail=        0 nodes=          6  counted_quantifier
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_tail
+  total=        3 ok=        3 fail=        0 nodes=          3  quant_bound_core
+  total=        3 ok=        3 fail=        0 nodes=          3  quant_bound_number
+  total=        3 ok=        3 fail=        0 nodes=          3  counted_quantifier_body
+  total=        3 ok=        3 fail=        0 nodes=          3  escape_unit
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_letter_strict
+  total=        3 ok=        0 fail=        3 nodes=          0  backreference_digits
+  total=        3 ok=        0 fail=        3 nodes=          0  counted_quantifier_range
+  total=        3 ok=        0 fail=        3 nodes=          0  digit
+  total=        3 ok=        0 fail=        3 nodes=          0  numeric_backreference
+  total=        3 ok=        0 fail=        3 nodes=          0  numeric_backreference_single
+  total=        3 ok=        0 fail=        3 nodes=          0  backreference_digits_single
+=== MEMO STATS: 121 success entries (14 tainted) + 54 cached failures (8 tainted) = 175 total, 263 subtree-nodes, 35 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         64 ok=        8 fail=        7  descending_class_range
+  nodes=         55 ok=        3 fail=        0  class_body_nonempty_nocaret
+  nodes=         24 ok=       12 fail=        0  class_member_literal
+  nodes=         23 ok=       23 fail=        0  class_literal
+  nodes=         19 ok=       12 fail=        0  class_item_core
+  nodes=         12 ok=       12 fail=        0  letter
+  nodes=         11 ok=        1 fail=        0  entry_alternation
+  nodes=          8 ok=        8 fail=        7  class_range
+  nodes=          7 ok=        7 fail=        0  class_safe_special
+  nodes=          6 ok=        5 fail=        0  atom
+  nodes=          6 ok=        3 fail=        0  class_member_literal_nocaret
+  nodes=          5 ok=        5 fail=        1  piece
+  nodes=          4 ok=        4 fail=        1  digit
+  nodes=          3 ok=        3 fail=        0  char_class
+  nodes=          3 ok=        3 fail=        0  class_literal_nocaret
+  nodes=          3 ok=        3 fail=        0  class_item_visible_nocaret_core
+  nodes=          2 ok=        1 fail=        0  counted_quantifier
+  nodes=          1 ok=        1 fail=        0  literal_char
+  nodes=          1 ok=        1 fail=        0  counted_quantifier_body
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=        0  quant_bound_core
+  nodes=          1 ok=        1 fail=        0  special_char
+  nodes=          1 ok=        1 fail=        0  escape_unit
+  nodes=          1 ok=        1 fail=        1  quant_bound_number
+  nodes=          1 ok=        1 fail=        0  simple_escape_tail
+  nodes=          0 ok=        0 fail=        1  backreference_digits_single
+  nodes=          0 ok=        0 fail=        1  numeric_backreference
+  nodes=          0 ok=        0 fail=        1  backreference
+  nodes=          0 ok=        0 fail=       15  invalid_class_range
+  nodes=          0 ok=        0 fail=       10  class_range_nonliteral_atom
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       23 ok=       23 fail=        0 nodes=         23  class_literal
+  total=       15 ok=        8 fail=        7 nodes=         64  descending_class_range
+  total=       15 ok=        8 fail=        7 nodes=          8  class_range
+  total=       15 ok=        0 fail=       15 nodes=          0  invalid_class_range
+  total=       12 ok=       12 fail=        0 nodes=         24  class_member_literal
+  total=       12 ok=       12 fail=        0 nodes=         19  class_item_core
+  total=       12 ok=       12 fail=        0 nodes=         12  letter
+  total=       10 ok=        0 fail=       10 nodes=          0  class_range_nonliteral_atom
+  total=        7 ok=        7 fail=        0 nodes=          7  class_safe_special
+  total=        6 ok=        5 fail=        1 nodes=          5  piece
+  total=        5 ok=        5 fail=        0 nodes=          6  atom
+  total=        5 ok=        4 fail=        1 nodes=          4  digit
+  total=        3 ok=        3 fail=        0 nodes=         55  class_body_nonempty_nocaret
+  total=        3 ok=        3 fail=        0 nodes=          6  class_member_literal_nocaret
+  total=        3 ok=        3 fail=        0 nodes=          3  char_class
+=== MEMO STATS: 46 success entries (0 tainted) + 3 cached failures (0 tainted) = 49 total, 91 subtree-nodes, 8 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         28 ok=        1 fail=        0  entry_alternation
+  nodes=         13 ok=        2 fail=        0  alternative
+  nodes=         10 ok=       10 fail=        3  piece
+  nodes=         10 ok=       10 fail=        0  atom
+  nodes=         10 ok=       10 fail=        0  letter
+  nodes=         10 ok=       10 fail=        0  literal_char
+  nodes=          9 ok=        2 fail=        0  concatenation
+  nodes=          1 ok=        1 fail=        0  regex
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       13 ok=       10 fail=        3 nodes=         10  piece
+  total=       10 ok=       10 fail=        0 nodes=         10  atom
+  total=       10 ok=       10 fail=        0 nodes=         10  letter
+  total=       10 ok=       10 fail=        0 nodes=         10  literal_char
+  total=        2 ok=        2 fail=        0 nodes=         13  alternative
+  total=        2 ok=        2 fail=        0 nodes=          9  concatenation
+  total=        1 ok=        1 fail=        0 nodes=         28  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+=== MEMO STATS: 62 success entries (0 tainted) + 25 cached failures (0 tainted) = 87 total, 126 subtree-nodes, 26 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         21 ok=        3 fail=        0  alternation
+  nodes=         21 ok=        3 fail=        0  pattern
+  nodes=         12 ok=        3 fail=        0  alternative
+  nodes=         11 ok=        1 fail=        0  entry_alternation
+  nodes=         11 ok=        8 fail=        0  atom
+  nodes=          8 ok=        8 fail=        4  piece
+  nodes=          6 ok=        3 fail=        0  counted_quantifier
+  nodes=          6 ok=        3 fail=        0  concatenation
+  nodes=          3 ok=        3 fail=        0  capture_open
+  nodes=          3 ok=        3 fail=        0  group
+  nodes=          3 ok=        3 fail=        0  simple_escape_tail
+  nodes=          3 ok=        3 fail=        0  simple_escape_letter_strict
+  nodes=          3 ok=        3 fail=        0  counted_quantifier_body
+  nodes=          3 ok=        3 fail=        0  capturing_group
+  nodes=          3 ok=        3 fail=        0  escape_unit
+  nodes=          3 ok=        3 fail=        0  quant_bound_number
+  nodes=          3 ok=        3 fail=        0  quant_bound_core
+  nodes=          2 ok=        2 fail=        0  literal_char
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          0 ok=        0 fail=        3  counted_quantifier_range
+  nodes=          0 ok=        0 fail=        3  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        3  numeric_backreference
+  nodes=          0 ok=        0 fail=        3  backreference_digits_single
+  nodes=          0 ok=        0 fail=        3  backreference
+  nodes=          0 ok=        0 fail=        3  digit
+  nodes=          0 ok=        0 fail=        3  backreference_digits
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       12 ok=        8 fail=        4 nodes=          8  piece
+  total=        8 ok=        8 fail=        0 nodes=         11  atom
+  total=        3 ok=        3 fail=        0 nodes=         21  alternation
+  total=        3 ok=        3 fail=        0 nodes=         21  pattern
+  total=        3 ok=        3 fail=        0 nodes=         12  alternative
+  total=        3 ok=        3 fail=        0 nodes=          6  counted_quantifier
+  total=        3 ok=        3 fail=        0 nodes=          6  concatenation
+  total=        3 ok=        3 fail=        0 nodes=          3  capture_open
+  total=        3 ok=        3 fail=        0 nodes=          3  group
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_tail
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_letter_strict
+  total=        3 ok=        3 fail=        0 nodes=          3  counted_quantifier_body
+  total=        3 ok=        3 fail=        0 nodes=          3  capturing_group
+  total=        3 ok=        3 fail=        0 nodes=          3  escape_unit
+  total=        3 ok=        3 fail=        0 nodes=          3  quant_bound_number
+=== MEMO STATS: 36 success entries (0 tainted) + 6 cached failures (0 tainted) = 42 total, 51 subtree-nodes, 14 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         15 ok=        1 fail=        0  entry_alternation
+  nodes=         10 ok=        9 fail=        0  atom
+  nodes=          9 ok=        9 fail=        1  piece
+  nodes=          8 ok=        8 fail=        0  literal_char
+  nodes=          5 ok=        5 fail=        0  letter
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=        0  simple_escape_letter_strict
+  nodes=          1 ok=        1 fail=        0  simple_escape_tail
+  nodes=          1 ok=        1 fail=        0  escape_unit
+  nodes=          0 ok=        0 fail=        1  backreference_digits
+  nodes=          0 ok=        0 fail=        1  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        1  backreference_digits_single
+  nodes=          0 ok=        0 fail=        1  backreference
+  nodes=          0 ok=        0 fail=        1  numeric_backreference
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       10 ok=        9 fail=        1 nodes=          9  piece
+  total=        9 ok=        9 fail=        0 nodes=         10  atom
+  total=        8 ok=        8 fail=        0 nodes=          8  literal_char
+  total=        5 ok=        5 fail=        0 nodes=          5  letter
+  total=        1 ok=        1 fail=        0 nodes=         15  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+  total=        1 ok=        1 fail=        0 nodes=          1  simple_escape_letter_strict
+  total=        1 ok=        1 fail=        0 nodes=          1  simple_escape_tail
+  total=        1 ok=        1 fail=        0 nodes=          1  escape_unit
+  total=        1 ok=        0 fail=        1 nodes=          0  backreference_digits
+  total=        1 ok=        0 fail=        1 nodes=          0  numeric_backreference_single
+  total=        1 ok=        0 fail=        1 nodes=          0  backreference_digits_single
+  total=        1 ok=        0 fail=        1 nodes=          0  backreference
+  total=        1 ok=        0 fail=        1 nodes=          0  numeric_backreference
+=== MEMO STATS: 27 success entries (0 tainted) + 35 cached failures (0 tainted) = 62 total, 43 subtree-nodes, 14 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         13 ok=        1 fail=        0  entry_alternation
+  nodes=          9 ok=        5 fail=        2  atom
+  nodes=          7 ok=        7 fail=        1  piece
+  nodes=          4 ok=        4 fail=        2  escape_unit
+  nodes=          4 ok=        4 fail=        0  simple_escape_tail
+  nodes=          3 ok=        3 fail=        0  simple_escape_letter_strict
+  nodes=          1 ok=        1 fail=        0  special_char
+  nodes=          1 ok=        1 fail=        0  literal_char
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          0 ok=        0 fail=        6  numeric_backreference
+  nodes=          0 ok=        0 fail=        6  backreference_digits_single
+  nodes=          0 ok=        0 fail=        6  backreference
+  nodes=          0 ok=        0 fail=        6  backreference_digits
+  nodes=          0 ok=        0 fail=        6  numeric_backreference_single
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=        8 ok=        7 fail=        1 nodes=          7  piece
+  total=        7 ok=        5 fail=        2 nodes=          9  atom
+  total=        6 ok=        4 fail=        2 nodes=          4  escape_unit
+  total=        6 ok=        0 fail=        6 nodes=          0  numeric_backreference
+  total=        6 ok=        0 fail=        6 nodes=          0  backreference_digits_single
+  total=        6 ok=        0 fail=        6 nodes=          0  backreference
+  total=        6 ok=        0 fail=        6 nodes=          0  backreference_digits
+  total=        6 ok=        0 fail=        6 nodes=          0  numeric_backreference_single
+  total=        4 ok=        4 fail=        0 nodes=          4  simple_escape_tail
+  total=        3 ok=        3 fail=        0 nodes=          3  simple_escape_letter_strict
+  total=        1 ok=        1 fail=        0 nodes=         13  entry_alternation
+  total=        1 ok=        1 fail=        0 nodes=          1  special_char
+  total=        1 ok=        1 fail=        0 nodes=          1  literal_char
+  total=        1 ok=        1 fail=        0 nodes=          1  regex
+=== MEMO STATS: 81 success entries (0 tainted) + 86 cached failures (0 tainted) = 167 total, 180 subtree-nodes, 51 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=         32 ok=        3 fail=        0  pattern
+  nodes=         32 ok=        3 fail=        0  alternation
+  nodes=         20 ok=        4 fail=        0  alternative
+  nodes=         17 ok=       13 fail=        0  atom
+  nodes=         15 ok=       15 fail=        5  piece
+  nodes=         13 ok=        1 fail=        0  entry_alternation
+  nodes=         12 ok=        4 fail=        0  concatenation
+  nodes=         10 ok=       10 fail=        1  letter
+  nodes=          6 ok=        6 fail=        0  literal_char
+  nodes=          4 ok=        4 fail=        0  simple_escape_tail
+  nodes=          4 ok=        4 fail=        0  escape_unit
+  nodes=          4 ok=        4 fail=        0  simple_escape_letter_strict
+  nodes=          3 ok=        3 fail=        0  group
+  nodes=          2 ok=        1 fail=        1  python_named_group_open
+  nodes=          1 ok=        1 fail=        1  noncapturing_group
+  nodes=          1 ok=        1 fail=        2  capturing_group
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=        2  capture_open
+  nodes=          1 ok=        1 fail=        1  python_named_group
+  nodes=          1 ok=        1 fail=        0  name
+  nodes=          0 ok=        0 fail=        2  lookaround
+  nodes=          0 ok=        0 fail=        2  subroutine_call
+  nodes=          0 ok=        0 fail=        2  branch_reset_group
+  nodes=          0 ok=        0 fail=        2  non_atomic_lookbehind_pos_open
+  nodes=          0 ok=        0 fail=        4  backreference_digits_single
+  nodes=          0 ok=        0 fail=        2  non_atomic_lookbehind_pos
+  nodes=          0 ok=        0 fail=        2  named_group
+  nodes=          0 ok=        0 fail=        2  returned_capture_subroutine
+  nodes=          0 ok=        0 fail=        4  numeric_backreference_single
+  nodes=          0 ok=        0 fail=        4  numeric_backreference
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=       20 ok=       15 fail=        5 nodes=         15  piece
+  total=       13 ok=       13 fail=        0 nodes=         17  atom
+  total=       11 ok=       10 fail=        1 nodes=         10  letter
+  total=        6 ok=        6 fail=        0 nodes=          6  literal_char
+  total=        4 ok=        4 fail=        0 nodes=         20  alternative
+  total=        4 ok=        4 fail=        0 nodes=         12  concatenation
+  total=        4 ok=        4 fail=        0 nodes=          4  simple_escape_tail
+  total=        4 ok=        4 fail=        0 nodes=          4  escape_unit
+  total=        4 ok=        4 fail=        0 nodes=          4  simple_escape_letter_strict
+  total=        4 ok=        0 fail=        4 nodes=          0  backreference_digits_single
+  total=        4 ok=        0 fail=        4 nodes=          0  numeric_backreference_single
+  total=        4 ok=        0 fail=        4 nodes=          0  numeric_backreference
+  total=        4 ok=        0 fail=        4 nodes=          0  backreference
+  total=        4 ok=        0 fail=        4 nodes=          0  digit
+  total=        4 ok=        0 fail=        4 nodes=          0  backreference_digits

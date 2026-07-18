@@ -1,0 +1,71 @@
+pattern            commit   elem  clones    tsv   objs   seqV  allocN
+----------------------------------------------------------------------
+literal_simple         24     50     883     49     25    506     217
+digit_sequence         60    223     980     91     55    663     478
+character_class       174    318    3714    124     64   2132     867
+alternation            58    116    2199    121     61   1252     519
+capture_groups         87    277    1217    130     76    843     673
+url_simple             53    117    1617    120     64    956     485
+email_basic            49    121     812    104     75    552     395
+anchor_complex        112    231    2691    207    129   1626     845
+----------------------------------------------------------------------
+TOTAL                 617   1453   14113    946    549   8530    4479
+
+== top 20 rules by joined build-zone node allocs (corpus-wide) ==
+rule                                   commit  allocN  clones   tsv  objs  seqV
+piece                                      63    1386    1008   756   378  1386
+atom                                       59    1357    2832     0     0  1416
+quant_bound_core                            8     224     400     0     0   264
+entry_concatenation                         8     120      72     0     0    88
+simple_escape                              16     112      16    16    16   112
+escape_unit                                16      96     224     0     0   112
+class_literal                              28      84     280     0     0   140
+quantifier                                 18      72      90    90    18    90
+class_item_core                            12      72     144     0     0    72
+class_range                                 8      72      24    16     8    24
+literal                                    34      68     136     0     0    68
+simple_escape_tail                         16      64     128     0     0    64
+counted_quantifier_body                     7      63      63    28    21    84
+char_class                                  3      63      18    27     9    42
+entry_alternation                           8      56       0     0     0    16
+escape                                     16      48      16     0     0    32
+class_atom                                 16      48      96     0     0    48
+class_member_literal                       12      48      12     0     0    48
+concatenation                               9      45      36     0     0    36
+counted_quantifier                          7      42       7     0     0    28
+
+== top 20 rules by joined build-zone content clones (corpus-wide) ==
+letter                                     47       0    4888     0     0  2444
+atom                                       59    1357    2832     0     0  1416
+literal_char                               34      34    1564     0     0   782
+piece                                      63    1386    1008   756   378  1386
+simple_escape_letter_strict                14       0     952     0     0   476
+class_safe_special                          7       0     420     0     0   210
+quant_bound_core                            8     224     400     0     0   264
+class_literal                              28      84     280     0     0   140
+escape_unit                                16      96     224     0     0   112
+nonzero_digit                               8       0     144     0     0    72
+class_item_core                            12      72     144     0     0    72
+literal                                    34      68     136     0     0    68
+simple_escape_tail                         16      64     128     0     0    64
+special_char                                2       0     124     0     0    62
+digit                                       6       0     120     0     0    60
+class_atom                                 16      48      96     0     0    48
+quantifier                                 18      72      90    90    18    90
+entry_concatenation                         8     120      72     0     0    88
+counted_quantifier_body                     7      63      63    28    21    84
+simple_escape_letter                       14      14      56     0     0    28
+
+== ARM-WEIGHTED corpus-joined BUILD-ZONE population bounds ==
+(lo = per-Or-arm mean weighting — only the winner arm executes;
+ hi = all-sites upper bound; the dynamic arena census is ground truth)
+     elem: lo=   468  hi=  1453
+   clones: lo=  1892  hi= 21012
+      tsv: lo=   162  hi=   946
+     objs: lo=    98  hi=   549
+     seqV: lo=  1233  hi=  8755
+   allocN: lo=  1143  hi=  4479
+
+cross-check: measured arena nodes corpus-wide = 1454 (construction_census.txt);
+build-zone joined allocN lo=1143 => build-zone share ~0.79 of all node allocs,
+the remainder = protocol boundary-zone eager builds + per-iteration wrappers.

@@ -1,0 +1,268 @@
+== cascade_build census (per-invocation static counts) ==
+rule                                       fold           elem qnt opt  or clon tsv objs seqV allocN bnd
+alpha_condition_assertion                  shaped-object     4   0   1   0    2   2    1    4      5   1
+alpha_lookaround_name                      plain             0   0   0   1    4   0    0    2      2   0
+alternation                                plain             4   1   0   0    0   0    0    2      7   0
+alternative                                plain             0   1   0   0    0   0    0    0      2   0
+anchor                                     shaped-object     0   0   0   1    2   0    8    1      0   1
+any_char                                   plain             0   0   0   0   10   0    0    5      3   2
+ascii_restrict_modifier                    plain             0   0   0   0    0   0    0    0      0   0
+atom                                       plain             0   0   0   1   48   0    0   24     23   1
+atomic_alpha_lookaround_name               plain             0   0   0   1   16   0    0    8      0   0
+atomic_group                               shaped-object     6   0   2   1    2   2    2    6      6   2
+backreference                              shaped-object    16   0   2   1   10   4    4   13     21   4
+brace_ws                                   plain             0   1   0   1    4   0    0    2      1   0
+branch_reset_group                         shaped-object     3   0   1   0    1   1    1    3      3   1
+callout                                    shaped-object     3   0   1   0    1   1    1    3      4   0
+callout_arg                                plain             0   0   0   0    4   0    0    2      1   1
+callout_backtick_payload                   plain             2   1   0   1    0   0    0    2      3   1
+callout_backtick_string                    shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_brace_payload                      plain             2   1   0   1    0   0    0    2      3   1
+callout_brace_string                       shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_caret_payload                      plain             2   1   0   1    0   0    0    2      3   1
+callout_caret_string                       shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_dollar_payload                     plain             2   1   0   1    0   0    0    2      3   1
+callout_dollar_string                      shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_double_payload                     plain             2   1   0   1    0   0    0    2      3   1
+callout_double_string                      shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_hash_payload                       plain             2   1   0   1    0   0    0    2      3   1
+callout_hash_string                        shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_number_body                        plain             2   1   1   0    2   0    0    3      5   0
+callout_number_core                        plain            10   0   0   3   24   0    0   16     10   6
+callout_percent_payload                    plain             2   1   0   1    0   0    0    2      3   1
+callout_percent_string                     shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_single_payload                     plain             2   1   0   1    0   0    0    2      3   1
+callout_single_string                      shaped-object     3   0   0   0    1   1    1    2      4   0
+callout_string                             plain             0   0   0   0   16   0    0    8      8   0
+capture_name                               plain             0   0   0   0    2   0    0    1      0   1
+capturing_group                            shaped-object     3   0   1   0    1   1    1    3      3   2
+char_class                                 shaped-object    14   1   1   1    6   9    3   14     21   1
+class_atom                                 plain             0   0   0   1    6   0    0    3      3   0
+class_body                                 plain             0   1   0   0    0   0    0    0      2   0
+class_body_nonempty                        plain             4   2   0   0    4   0    0    7     10   1
+class_body_nonempty_nocaret                plain             4   2   0   0    4   0    0    7     10   1
+class_bracket_token                        plain             2   0   0   0    0   0    0    1      3   0
+class_bracket_token_tail                   plain            16   2   0   2    0   0    0   10     18   2
+class_escape                               plain             2   0   0   0    1   0    0    2      3   0
+class_escape_unit                          plain             0   0   0   1   12   0    0    6      5   1
+class_initial_close                        shaped-other      0   0   0   0    0   0    0    0      0   0
+class_item                                 plain             2   0   0   0    1   0    0    3      3   0
+class_item_core                            plain             0   0   0   1   12   0    0    6      6   0
+class_item_visible                         plain             2   0   0   0    1   0    0    3      3   0
+class_item_visible_core                    plain             0   0   0   1   10   0    0    5      5   0
+class_item_visible_nocaret                 plain             2   0   0   0    1   0    0    3      3   0
+class_item_visible_nocaret_core            plain             0   0   0   1   10   0    0    5      5   0
+class_literal                              plain             0   0   0   0   10   0    0    5      3   2
+class_literal_nocaret                      plain             0   0   0   0   10   0    0    5      3   2
+class_member_literal                       plain             3   0   0   0    1   0    0    4      4   0
+class_member_literal_nocaret               plain             3   0   0   0    1   0    0    4      4   0
+class_negated_open                         plain             3   2   0   0    1   0    0    2      6   2
+class_range                                shaped-object     5   2   0   0    3   2    1    3      9   2
+class_range_any_char_no_orphan_quote_end   plain             0   0   0   0   10   0    0    5      4   1
+class_range_decodable_atom                 plain             0   0   0   0   10   0    0    5      3   2
+class_range_decodable_escape               plain             8   0   0   1    0   0    0    4     12   0
+class_range_endpoint                       plain             0   0   0   0    0   0    0    0      1   0
+class_range_escape                         plain             2   0   0   0    1   0    0    2      3   0
+class_range_escape_unit                    plain             0   0   0   1   10   0    0    5      4   1
+class_range_literal_escape_letter          plain             0   0   0   0    4   0    0    2      1   1
+class_range_literal_escape_letter_strict   plain             0   0   0   0   42   0    0   21      0   0
+class_range_nonliteral_atom                plain             4   0   0   1    0   0    0    2      6   0
+class_range_nonliteral_shorthand           plain             0   0   0   0   20   0    0   10      0   0
+class_range_simple_escape                  plain             0   0   0   0    2   0    0    1      1   0
+class_safe_special                         plain             0   0   0   0   60   0    0   30      0   0
+class_safe_special_nocaret                 plain             0   0   0   0   58   0    0   29      0   0
+class_simple_escape                        plain             0   0   0   1    4   0    0    2      1   1
+class_simple_escape_strict                 shaped-object    23   0   0   0    1   1    1   24     23   1
+class_zero_width                           plain             0   0   0   1    4   0    0    2      2   0
+code_balanced_braces                       plain             3   0   0   0    0   0    0    1      4   0
+code_block                                 plain             0   0   0   1    4   0    0    2      2   0
+code_block_lang                            shaped-object     6   0   1   0    2   2    1    4      9   0
+code_block_plain                           shaped-object     3   0   0   0    1   1    1    2      4   0
+code_content                               plain             0   1   0   0    0   0    0    0      2   0
+code_element                               plain             0   0   0   0   10   0    0    5      5   0
+code_escaped_char                          plain             2   0   0   0    0   0    0    1      2   1
+code_lang                                  plain             0   0   0   1   12   0    0    6      0   0
+code_not_quote_or_backslash                plain             0   0   0   0   16   0    0    8      3   2
+code_not_squote_or_backslash               plain             0   0   0   0   16   0    0    8      3   2
+code_regular_char                          plain             0   0   0   0   10   0    0    5      3   2
+code_safe_special                          plain             0   0   0   0   54   0    0   27      0   0
+code_string_double                         plain             3   1   0   0    0   0    0    1      5   0
+code_string_double_char                    plain             0   0   0   0    4   0    0    2      2   0
+code_string_escape                         plain             2   0   0   0    0   0    0    1      2   1
+code_string_single                         plain             3   1   0   0    0   0    0    1      5   0
+code_string_single_char                    plain             0   0   0   0    4   0    0    2      2   0
+comment_group                              shaped-object     3   0   0   0    1   1    1    2      4   0
+comment_text                               plain             2   1   0   0    0   0    0    2      3   1
+concatenation                              shaped-other      0   1   0   0    4   0    0    4      5   0
+condition                                  plain             0   0   0   1   18   0    0    9      7   2
+condition_assertion                        shaped-object     8   0   0   1    6   4    4    9      9   4
+condition_callout                          shaped-object     3   0   1   0    1   1    1    3      4   0
+condition_callout_assertion                shaped-object     3   0   0   0    3   2    1    3      5   0
+conditional                                shaped-object     8   0   1   0    3   3    1    6     11   0
+conditional_branch                         shaped-other      0   1   0   0    4   0    0    4      5   0
+control_escape                             shaped-object     2   0   0   0    1   1    1    2      2   1
+counted_quantifier                         plain             5   0   2   0    1   0    0    4      6   2
+counted_quantifier_body                    shaped-object     9   0   4   1    9   4    3   12      9   8
+define_condition                           shaped-object     0   0   0   0    0   0    1    0      0   0
+digit                                      plain             0   0   0   0   20   0    0   10      0   0
+directive_accept_named                     shaped-object     2   0   1   0    3   2    1    4      3   0
+directive_body_nonquantifiable             plain             0   0   0   0    6   0    0    3      3   0
+directive_body_quantifiable                plain             0   0   0   1    4   0    0    2      1   1
+directive_limit_name                       plain             0   0   0   1    8   0    0    4      0   0
+directive_limit_named                      shaped-object     2   0   0   0    3   2    1    3      3   1
+directive_limit_value_body                 plain             2   1   1   0    2   0    0    3      5   0
+directive_limit_value_core                 plain           108   0   0  10  102   0    0   69    108  91
+directive_mark_named                       shaped-object     2   0   0   0    3   2    1    3      3   0
+directive_mark_shorthand                   shaped-object     2   0   0   0    1   1    1    2      3   0
+directive_option_name                      plain             0   0   0   1   42   0    0   21      0   0
+directive_option_named                     shaped-object     0   0   0   0    2   2    1    2      0   1
+directive_payload_colon                    shaped-object     2   0   1   0    1   1    1    3      2   1
+directive_payload_colon_required           shaped-object     2   0   0   0    1   1    1    2      3   0
+directive_payload_core                     plain             0   1   0   1    4   0    0    2      1   2
+directive_payload_digits                   plain             0   0   0   0    0   0    0    0      1   0
+directive_payload_equals                   shaped-object     2   0   0   0    1   1    1    2      3   0
+directive_payload_required                 plain             2   1   0   1    2   0    0    3      4   1
+directive_payload_simple                   plain             2   1   0   0    0   0    0    2      3   1
+directive_verb                             shaped-object     3   0   0   0    1   1    1    2      4   0
+directive_verb_name_nonaccept              plain             0   0   0   1   12   0    0    6      0   0
+directive_verb_named                       shaped-object     2   0   1   0    3   2    1    4      3   1
+directive_verb_nonquant                    shaped-object     3   0   0   0    1   1    1    2      4   0
+dot                                        plain             0   0   0   0    2   0    0    1      0   0
+empty_quoted_class_literal                 shaped-object     2   0   0   0    0   1    1    2      2   0
+empty_quoted_literal                       shaped-object     2   0   0   0    0   1    1    2      2   0
+entry_alternation                          plain             4   1   0   0    0   0    0    2      7   0
+entry_alternative                          plain             0   1   0   0    0   0    0    0      2   0
+entry_concatenation                        shaped-other      2   3   0   1    9   0    0   11     15   0
+escape                                     plain             2   0   0   0    1   0    0    2      3   0
+escape_unit                                plain             0   0   0   1   14   0    0    7      6   1
+extended_class                             shaped-object     3   0   0   0    1   1    1    2      4   0
+extended_class_content                     plain             0   1   0   0    0   0    0    0      2   0
+extended_class_element                     plain             0   0   0   0    6   0    0    3      3   0
+extended_class_nested                      plain             3   0   0   0    0   0    0    1      4   0
+extended_class_regular                     plain             0   0   0   0   10   0    0    5      3   2
+extended_class_special                     plain             0   0   0   0   58   0    0   29      0   0
+group                                      plain             0   0   0   1    8   0    0    4      2   2
+hex_digit                                  plain             0   0   0   0   44   0    0   22      0   0
+hex_digits                                 plain             0   1   0   0    0   0    0    0      2   0
+hex_escape                                 shaped-object     7   0   2   1    2   2    2    6      8   3
+hex_escape_short_payload                   plain             2   0   1   0    0   0    0    2      4   0
+inline_modifiers                           shaped-object     3   0   1   0    1   1    1    3      4   0
+invalid_class_range                        plain            25  10   0   2    6   0    0    8     46  11
+letter                                     plain             0   0   0   0  104   0    0   52      0   0
+letter_no_upper_e                          plain             0   0   0   0  102   0    0   51      0   0
+literal                                    plain             0   0   0   0    4   0    0    2      2   0
+literal_char                               plain             0   0   0   0   46   0    0   23      1   2
+literal_open_brace                         plain             2   0   0   0    1   0    0    3      2   0
+lookaround                                 plain             0   0   0   1   14   0    0    7      0   7
+modifier_char                              plain             0   0   0   0   14   0    0    7      0   0
+modifier_group                             shaped-other      0   1   0   0    4   0    0    4      5   0
+modifier_item                              shaped-object     2   0   0   1    3   1    1    3      4   0
+modifier_seq                               shaped-object     5   0   0   1    6   6    3    8      9   0
+modifier_spec                              shaped-object     2   0   1   0    3   2    2    4      4   0
+name                                       plain             2   1   0   2   10   0    0    6      5   3
+name_ref                                   plain             6   0   0   0    2   0    0    4      6   2
+negation                                   shaped-other      0   0   0   0    0   0    0    0      0   0
+no_branch                                  plain             0   0   0   0    2   0    0    1      1   0
+non_atomic_alpha_lookaround_name           plain             0   0   0   1    8   0    0    4      0   0
+noncapturing_group                         shaped-object     3   0   1   0    1   1    1    3      3   1
+nonzero_digit                              plain             0   0   0   0   18   0    0    9      0   0
+numeric_backreference_single               shaped-object    12   0   0   0    1   1    1   12     12   1
+octal_digit                                plain             0   0   0   0   16   0    0    8      0   0
+octal_digits                               plain             0   1   0   0    0   0    0    0      2   0
+octal_escape                               shaped-object     5   0   2   0    3   2    2    5      7   2
+octal_escape_short_payload                 plain             3   0   2   0    0   0    0    3      6   0
+pattern                                    plain             0   0   0   0    2   0    0    1      1   0
+piece                                      shaped-object    11   1   1   1   16  12    6   22     22   0
+piece_quoted_run_quantified                shaped-object     6   1   0   0    5   2    1    7     13   0
+posix_class                                shaped-object     4   0   1   0    2   2    1    4      6   0
+posix_name                                 plain             0   0   0   1   28   0    0   14      0   0
+posix_negation                             shaped-other      0   0   0   0    0   0    0    0      0   0
+posix_word_boundary_alias                  shaped-object     0   0   0   1    0   0    2    0      0   0
+prop_name                                  plain             0   1   0   1   16   0    0    8      2   2
+property_escape                            shaped-object    10   0   0   1    4   4    4    8     14   0
+quant_base                                 shaped-object     0   0   0   0    2   0    3    1      1   0
+quant_bound_core                           plain            28   0   0   6   50   0    0   33     28  20
+quant_bound_number_body                    plain             2   1   1   0    2   0    0    3      5   0
+quant_suffix                               plain             0   0   0   0    0   0    0    0      0   0
+quantifier                                 shaped-object     2   0   1   0    5   5    1    5      4   0
+quoted_class_literal                       shaped-object     3   1   0   0    1   1    1    2      5   0
+quoted_class_literal_char                  plain             0   0   0   0   14   0    0    7      4   2
+quoted_class_literal_escaped_char          plain             2   0   0   0    0   0    0    1      3   0
+quoted_class_literal_nonempty              shaped-object     3   1   0   0    1   1    1    2      5   0
+quoted_class_range_atom                    shaped-object     3   0   0   0    1   1    1    2      4   0
+quoted_literal                             shaped-object     3   1   0   0    1   1    1    2      5   0
+quoted_literal_char                        plain             0   0   0   0   14   0    0    7      4   2
+quoted_literal_escape_tail                 plain             0   0   0   0   12   0    0    6      4   1
+quoted_literal_escaped_char                plain             2   0   0   0    0   0    0    1      3   0
+quoted_run_inner_piece                     shaped-object     2   0   0   0    2   2    1    4      3   0
+recursion_condition                        shaped-object     4   0   1   1    2   2    2    5      4   2
+reference_name                             plain             0   0   0   0    2   0    0    1      0   1
+regex                                      shaped-object     0   0   0   0    2   1    1    1      1   0
+returned_capture_group                     plain             0   0   0   0    4   0    0    2      2   0
+returned_capture_group_list                plain             6   1   0   0    0   0    0    2      9   0
+returned_capture_subroutine                shaped-object     2   0   0   0    3   2    1    3      4   0
+scan_substring_group                       shaped-object     6   0   1   0    3   3    1    5      8   1
+scan_substring_name                        plain             0   0   0   1    4   0    0    2      0   0
+scoped_inline_modifiers                    shaped-object     5   0   1   0    2   2    1    4      6   1
+script_run_group                           shaped-object     5   0   1   0    2   2    1    4      6   1
+script_run_name                            plain             0   0   0   1    8   0    0    4      0   0
+scs_capture_name_ref                       shaped-other      6   0   0   0    2   2    0    4      6   2
+scs_capture_number                         plain             0   0   0   0    2   0    0    1      1   0
+short_prop_letter                          plain             0   0   0   0    0   0    0    0      0   0
+sign                                       plain             0   0   0   0    4   0    0    2      0   0
+signed_digits                              shaped-object     2   0   1   0    3   2    1    4      3   1
+simple_escape                              shaped-object     6   0   0   0    1   1    1    7      7   0
+simple_escape_letter                       plain             0   0   0   0    4   0    0    2      1   1
+simple_escape_letter_strict                plain             0   0   0   0   68   0    0   34      0   0
+simple_escape_tail                         plain             0   0   0   0    8   0    0    4      4   0
+single_byte_escape                         shaped-object     0   0   0   0    0   0    1    0      0   0
+special_char                               plain             0   0   0   0   62   0    0   31      0   0
+start_option_body                          plain             0   0   0   1    4   0    0    2      2   0
+start_option_piece                         shaped-object     2   0   0   0    2   2    1    4      3   0
+start_option_verb                          shaped-object     3   0   0   0    1   1    1    2      4   0
+stray_class_end_quote                      plain             0   0   0   0    2   0    0    1      0   0
+stray_end_quote_escape                     shaped-object     0   0   0   0    0   0    1    0      0   0
+subroutine_call                            shaped-object     6   0   0   1    2   2    2    4      8   0
+subroutine_target                          shaped-object     0   0   0   0    6   4    2    3      1   1
+unicode_char                               plain             2   0   0   0    1   0    0    3      2   1
+unterminated_quoted_literal                shaped-object     2   1   0   0    1   1    1    2      4   0
+version_condition                          shaped-object     3   0   0   0    2   2    1    3      5   0
+version_number                             shaped-object     3   0   0   1    5   3    2    4      3   3
+version_operator                           plain             0   0   0   0    4   0    0    2      0   0
+whitespace                                 plain             0   0   0   0   12   0    0    6      0   0
+whitespace_literal                         plain             0   0   0   0    2   0    0    1      1   0
+ws                                         plain             0   1   0   0    0   0    0    0      2   0
+yes_branch                                 plain             0   0   0   0    2   0    0    1      1   0
+zero_width                                 plain             0   0   0   1    4   0    0    2      2   0
+
+fold-class histogram: {'shaped-object': 79, 'plain': 147, 'shaped-other': 8}
+static totals: {'elem': 632, 'clones': 1821, 'tsv': 148, 'objs': 117, 'seqV': 1303, 'allocN': 1054}
+
+== cascade_match boundary call-outs ==
+alpha_condition_assertion                  pushes= 1  callees: pattern
+branch_reset_group                         pushes= 1  callees: pattern
+capture_name                               pushes= 1  callees: 
+capturing_group                            pushes= 2  callees: capture_open,pattern
+class_body_nonempty                        pushes= 1  callees: class_zero_width
+class_body_nonempty_nocaret                pushes= 1  callees: class_zero_width
+class_negated_open                         pushes= 2  callees: class_zero_width
+class_range                                pushes= 2  callees: class_zero_width
+class_simple_escape_strict                 pushes= 1  callees: 
+code_escaped_char                          pushes= 1  callees: 
+code_string_escape                         pushes= 1  callees: 
+comment_text                               pushes= 1  callees: builtin_any_char
+control_escape                             pushes= 1  callees: 
+counted_quantifier                         pushes= 2  callees: brace_ws
+directive_limit_named                      pushes= 1  callees: 
+directive_option_named                     pushes= 1  callees: 
+directive_payload_colon                    pushes= 1  callees: 
+directive_payload_simple                   pushes= 1  callees: builtin_any_char
+directive_verb_named                       pushes= 1  callees: 
+noncapturing_group                         pushes= 1  callees: pattern
+numeric_backreference_single               pushes= 1  callees: 
+reference_name                             pushes= 1  callees: 
+scan_substring_group                       pushes= 1  callees: pattern
+scoped_inline_modifiers                    pushes= 1  callees: pattern
+script_run_group                           pushes= 1  callees: pattern
+signed_digits                              pushes= 1  callees: 
+unicode_char                               pushes= 2  callees: builtin_any_char,builtin_ascii_char

@@ -808,6 +808,36 @@ impl<'input> NodeArena<'input> {
     pub fn alloc_rendered_string(&self, text: String) -> &str {
         self.rendered_strings.alloc(text).as_str()
     }
+
+    /// RGX-0078.5.j.1 REPRESENTATION-ROAD STEP-0 — the read-only arena
+    /// population census for the construction/allocation scout: how many
+    /// items each of the four arenas allocated over the parse's lifetime.
+    /// Purely an accessor over `typed_arena::Arena::len()` (which counts
+    /// ITEMS, so an `alloc_extend` slice of N values contributes N) — no
+    /// hot-path change, no behavior change.
+    pub fn census(&self) -> NodeArenaCensus {
+        NodeArenaCensus {
+            nodes: self.nodes.len(),
+            shaped_values: self.shaped_values.len(),
+            shaped_pairs: self.shaped_pairs.len(),
+            rendered_strings: self.rendered_strings.len(),
+        }
+    }
+}
+
+/// Arena population counts reported by [`NodeArena::census`] (RGX-0078.5.j.1
+/// construction/allocation census instrument).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NodeArenaCensus {
+    /// `ParseNode` allocations (committed AST nodes + build scaffolding +
+    /// doomed speculative boundary builds).
+    pub nodes: usize,
+    /// `PgenValue` array-slice ITEMS allocated via `alloc_shaped_values`.
+    pub shaped_values: usize,
+    /// `(&str, PgenValue)` object-pair ITEMS allocated via `alloc_shaped_pairs`.
+    pub shaped_pairs: usize,
+    /// Owned rendered strings interned via `alloc_rendered_string`.
+    pub rendered_strings: usize,
 }
 
 impl Default for NodeArena<'_> {

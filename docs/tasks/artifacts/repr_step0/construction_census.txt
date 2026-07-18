@@ -1,0 +1,43 @@
+# Regex construction-census probe — REPRESENTATION-ROAD STEP-0 (RGX-0078.5.j.1)
+# arena_* = items allocated over the parse | cons_* = unique items reachable from the committed AST
+# dead_* = arena - consumed (fold scaffolding + doomed speculation + unconsumed memo-clone copies)
+# repeat=3 (censuses asserted identical across repeats)
+
+pattern             ok  ar_nod  co_nod  dead_n   dead%    refs  ar_val  co_val  dead_v   ar_pr   co_pr  ar_str
+--------------------------------------------------------------------------------------------------------------------------
+literal_simple       y      42       0      42  100.0%       1       7       7       0      14      14       0
+digit_sequence       y     139       0     139  100.0%       1       8       8       0      44      38       0
+character_class      y     481       0     481  100.0%       1      23      23       0      77      71       0
+alternation          y     108       0     108  100.0%       1      21      21       0      32      32       0
+capture_groups       y     211       0     211  100.0%       1      20      20       0      68      56       0
+url_simple           y     104       0     104  100.0%       1      12      12       0      44      40       0
+email_basic          y     123       0     123  100.0%       1      10      10       0      57      51       0
+anchor_complex       y     246       0     246  100.0%       1      31      31       0      99      89       0
+--------------------------------------------------------------------------------------------------------------------------
+TOTAL                     1454       0    1454  100.0%             132     132       0     435     391       0
+
+== per-rule committed (unique) nodes: literal_simple ==
+       1  regex
+
+== per-rule committed (unique) nodes: digit_sequence ==
+       1  regex
+
+== per-rule committed (unique) nodes: character_class ==
+       1  regex
+
+== per-rule committed (unique) nodes: alternation ==
+       1  regex
+
+== per-rule committed (unique) nodes: capture_groups ==
+       1  regex
+
+== per-rule committed (unique) nodes: url_simple ==
+       1  regex
+
+== per-rule committed (unique) nodes: email_basic ==
+       1  regex
+
+== per-rule committed (unique) nodes: anchor_complex ==
+       1  regex
+
+# determinism: censuses identical across 3 repeats for every pattern

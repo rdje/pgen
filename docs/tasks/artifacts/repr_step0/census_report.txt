@@ -1,0 +1,117 @@
+REPRESENTATION-ROAD STEP-0 — construction/allocation census (RGX-0078.5.j.1, PGEN-RGX-0078-0123)
+Date: 2026-07-18 (session #148)
+Artifact: canonical regex 36e1f5fb (the -0118 SPINE vintage; sha re-verified untouched after the census)
+Build: guarded DEBUG feature build of the census bins (exit 0, 206s, peak 10205MB < 16384; disk floor green)
+Instruments (all deterministic, asserted x3):
+  - NEW rust/src/bin/regex_construction_census_probe.rs — arena-population vs committed-AST census on the
+    BARE path (the fused cascade), backed by the NEW read-only NodeArena::census() accessor
+    (typed_arena::Arena::len(), items; lib-ADDITIVE, zero hot-path change, artifacts byte-untouched)
+  - the -0092 regex_alloc_census_probe re-run on the -0118 vintage (malloc EVENTS, in-metric/teardown split)
+  - PGEN_REPORT_MEMO_STATS occupancy on the same bare parses (protocol memo populations)
+  - static per-fn census + arm-weighted static<->dynamic join over the banked -0121 outcome dumps
+    (static_census.py / join_census.py, outputs banked beside this report)
+
+===================== THE HEADLINE =====================
+100.0% of arena-allocated ParseNodes are DEAD on EVERY bench pattern.
+Corpus-wide: 1,454 nodes allocated, 0 reachable from the committed AST.
+The committed output of a regex parse is EXACTLY ONE ParseNode (the by-value root, rule_name="regex")
+whose content is a pure PgenValue tree — proven twice, independently:
+  (1) the pointer-identity walk of the returned root (this probe), and
+  (2) the authoritative --parse-dump-ast-pretty dump: exactly 1 "rule_name" key in the whole JSON.
+The value tree is fully consumed: 132/132 shaped value items; 391/435 shaped pairs (44 dead ~10% =
+doomed builds inside protocol boundary call-outs, e.g. tournament losers under parse_pattern).
+rendered_strings: 0 (the TransformedTerminal fallback path never fires on the bench corpus).
+
+Per-pattern (construction census | malloc census | memo occupancy):
+  pattern           ar_nod dead%   ar_val ar_pr/co_pr | in_alloc free_in% | memo ok/fail (tainted)
+  literal_simple        42 100.0        7    14/14    |      78    69.2   |  18/1
+  digit_sequence       139 100.0        8    44/38    |     182    78.0   |  35/22
+  character_class      481 100.0       23    77/71    |     830    91.8   | 121/54 (14+8 tainted)
+  alternation          108 100.0       21    32/32    |     172    75.0   |  46/3
+  capture_groups       211 100.0       20    68/56    |     608    85.4   |  62/25
+  url_simple           104 100.0       12    44/40    |     149    80.5   |  36/6
+  email_basic          123 100.0       10    57/51    |     190    83.7   |  27/35
+  anchor_complex       246 100.0       31    99/89    |     843    88.0   |  81/86
+  TOTAL              1,454 100.0      132   435/391   |   3,052    86.1   | 426/232
+
+Malloc events (allocator-event census, build-mode-independent): 3,052 in-metric allocs corpus-wide,
+of which 2,627 (86.1%) are freed BEFORE the stopwatch stops = pure transient traffic (Sequence/Quantified
+Vec builds + fold clone Vecs + to_shaped_value materialize Vecs + memo-entry clones + hash growth).
+f_bytes 90.9–97.0% (in_bytes carries the fixed ~180–270KB arena-chunk/table baseline vs 5–22KB committed).
+
+===================== THE MECHANISM (WHY + WHERE) =====================
+Per SHAPED rule, cascade_build_R (generated; e.g. cascade_build_alpha_condition_assertion):
+  1. arena-allocs one wrapper ParseNode PER ELEMENT (rule_name "element_N") — even for plain terminals;
+  2. collects them into a heap Vec `sequence_elements` -> ParseContent::Sequence(Vec);
+  3. the return-annotation fold then extracts `elements[N].content.clone()` -> `.to_shaped_value(arena)`
+     into the Shaped(PgenValue) object — after which the element nodes, the Vec, and the Sequence are
+     GARBAGE (arena nodes: never freed until teardown; the Vec: the mid-parse free traffic above).
+  - The `.clone()` is a pure emitter artifact: to_shaped_value takes &self, so clone-then-convert ==
+    convert. For Terminal/Shaped/Alternative contents the clone is Copy-cheap; for Sequence/Quantified
+    contents it is a Vec malloc + memcpy PER EXTRACTION (the expensive class; counted quantifiers make
+    it the digit-window signature).
+  - Or-passthrough arms end `other => other.clone()` where `other` matches an OWNED local — a move
+    would do (second emitter artifact, same family).
+  - CORRECTION to the #16 label: "ParseContent::clone 4.7% = the thin-memo replay clone" is WRONG —
+    the thin memo replays Copy events + Copy arena refs and clones NO ParseContent. The bare-path
+    clone population is (a) the build-zone fold clones above + (b) protocol memoized_call clones
+    (node.clone() + raw_semantic_content.clone() on EVERY success insert and hit) inside boundary
+    call-outs: 426 success inserts + hits corpus-wide.
+Boundary call-outs (27 cascade_match fns push deriv_boundary): callees include `pattern` itself —
+every nested group body parses EAGERLY through the protocol zone (eager node/Sequence construction +
+memo clones at every level); the 44 dead pairs are this zone's doomed builds.
+Static classification (234 build fns): 79 shaped-object + 8 shaped-other + 147 plain; static site totals
+elem 632 / clones 1,821 / tsv 148 / objs 117 / seqV 1,303 / allocN 1,054. Arm-weighted corpus join:
+build-zone allocN lo=1,143 of the measured 1,454 (~0.79); remainder = protocol/boundary + per-iteration
+wrappers. (The unweighted site x commit join is an upper bound ONLY — Or-fold rules execute one arm.)
+
+===================== DESIGN (the single recommendation) =====================
+`.5.j.2` FUSED-ZONE DIRECT-VALUE BUILD (the "value-twin build pass"):
+  - PLAN SEAM first (the D2 compute_cascade_emission_plan precedent, census<->codegen single
+    implementation): per fused rule an ESCAPE verdict — scaffolding may be elided ONLY where every
+    consumption path folds the rule's node to a value before output (regex: everything under the root
+    fold; grammars whose unannotated node trees ARE the output keep node builds — parser-agnostic,
+    capability-gated, never name-gated).
+  - EMISSION: cascade_build_R computes the rule's VALUE directly from the tape (no element-wrapper
+    nodes, no sequence_elements Vec, no Sequence content); folds read child values in place (subsumes
+    the clone-elision + move-instead-of-clone micro-fixes); unreferenced elements advance deriv_pos
+    without constructing; the ParseNode wrapper survives ONLY at protocol-facing orchestrator
+    boundaries (content = Shaped(value), byte-identical serialization); boundary call-out consumption
+    unchanged.
+  - PARITY EDGES carried in (the fold-parity class lesson): TransformedTerminal from_str-or-wrap;
+    Sequence/Quantified -> Array element-wise conversion order; Alternative recursion;
+    `<invalid_sequence_access>` guard semantics byte-exact; span/$text folds = deriv_pos math only.
+  - NO lib type change (PgenValue + arenas already exist) => NOT the -0090 additive-transient class;
+    codegen + plan-seam lib analysis only. Oracles: differential-equivalence all-11 (the value-shape
+    oracle — its breadth IS the guard) + tripwire 16/16 + the full battery; land gate fat-LTO
+    alternated 5x2000 geomean-of-mins, mimalloc, land bar -2.0%, land-iff-faster.
+
+===================== HONEST PRICE (visible-share-bounded; the x5 caveat LOUD) =====================
+Basis: floor 4401.8ns (-0118 land); #16 shares are DIRECTIONAL (digit-heavy ~2/98 window, mix-drift
+caveat). Component x elidable-fraction (LOW/MID/HIGH):
+  NodeArena::alloc   11.6% x .55/.70/.85 -> 6.38/8.12/9.86   (dead-node share is 100%; fraction =
+                                                              build-zone share of the symbol)
+  NeverFreeBump       9.1% x .35/.50/.65 -> 3.19/4.55/5.92   (transient Vec traffic share)
+  ParseContent::clone 4.7% x .55/.70/.85 -> 2.59/3.29/4.00   (build-zone fold clones)
+  to_shaped_value     2.7% x .50/.65/.80 -> 1.35/1.76/2.16   (folds become direct)
+  cascade_build self  5.8% x .30/.42/.55 -> 1.74/2.44/3.19   (wrapper/Vec machinery share)
+  memmove             6.9% x .20/.32/.45 -> 1.38/2.21/3.11   (Vec clone/materialize copies)
+  TEARDOWN            3.1% x .25/.37/.50 -> 0.78/1.15/1.55   (fewer Vec drops, emptier node arena)
+  SUM                                       LOW -17.4% / MID -23.5% / HIGH -29.8%
+  => 4401.8 -> ~3636 / 3366 / 3091 ns.
+Precedent cuts BOTH ways: -0105 UNDER-priced (landed -32.0% on a "25-30% sampled" estimate — removed
+machinery also fed allocator/teardown second-orders; the same compounding class applies here);
+-0094 OVER-priced (alloc-share != time-share; refuted). FALSIFICATION: a land measurement below ~half
+LOW (< -9%) refutes the scaffold-share model class and forces a re-census before further road slices.
+The land gate prices; the bar is -2.0% as always; correctness floor byte-identical or REJECTED.
+
+===================== ROAD ARITHMETIC (honest, vs the EXISTENTIAL <=1us bar) =====================
+Even HIGH leaves ~3.09us >> 1us. The road CONTINUES post-slice: protocol-zone value-ization + boundary
+doomed-elision (the 44 dead pairs + eager nested-group builds + memo-clone population), then the parked
+.5.i.17 dispatch (MID -3.6%) + C4 ckpt census (4.6%) compose. Perfect-endgame arithmetic: the whole
+~47% cluster + C4 + dispatch ~= -57.6% => ~1.87us — the bar ADDITIONALLY needs the MATCH/SCAN/MEMOPS/
+SEM-RT residual program (22.7/10.3/8.5/5.2%). Consistent with the -0121 plateau finding; the
+representation road is NECESSARY and its full execution is the precondition for any bar-credible endgame.
+
+Raw: rust/target/generated_logs/repr_step0/{build.log, build.marker, construction_census.txt,
+     alloc_census.txt, memo_stats.txt, clippy.log}
