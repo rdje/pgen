@@ -1,0 +1,21 @@
+# Regex corpus parse-time sweep — per-case stats in docs/tasks/artifacts/corpus_max_baseline/corpus_times.jsonl
+# corpus=regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl cases=2189 accepts=1834 rejects=355 expectation_mismatches=321
+# sampling: full=2189 (samples=300 warmup=30) reduced=0 (samples=5 warmup=1, cold parse >= 100 ms) single_shot=0 (cold parse >= 2000 ms)
+# geomean(min_ns)=3029.6 max(min_ns)=2144916 (164 bytes, pcre2:testdata/testinput2:line_4674)
+#
+# slowest 10 cases by min_ns:
+#     min (ns)  pattern bytes id
+#      2144916            164 pcre2:testdata/testinput2:line_4674
+#      1603333           3511 pcre2:testdata/testinput2:line_725
+#       673750            261 pcre2:testdata/testinput2:line_6526
+#       556375            450 pcre2:testdata/testinput2:line_2880
+#        91875             42 pcre2:testdata/testinput2:line_6538
+#        91250            531 pcre2:testdata/testinput2:line_965
+#        90459            526 pcre2:testdata/testinput2:line_967
+#        85250            163 pcre2:testdata/testinput2:line_1228
+#        80834            158 pcre2:testdata/testinput2:line_1226
+#        80041            155 pcre2:testdata/testinput2:line_1224
+
+real	0m6.282s
+user	0m6.262s
+sys	0m0.017s

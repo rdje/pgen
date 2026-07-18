@@ -17,6 +17,20 @@
 //! Usage:
 //!   cargo run --release --features generated_parsers --bin regex_perf_probe
 //!   cargo run --release --features generated_parsers --bin regex_perf_probe -- --samples 5000 --warmup 200
+//!
+//! Corpus mode (RGX-0078.5.j.3 — the corpus-max distribution baseline for the
+//! redefined closure bar "MAX observable parse time < 1µs on the PCRE2 external
+//! corpus"): time EVERY case of a canonical corpus JSONL (expected-fail cells
+//! included — a reject's parse time is observable time) with the same timed
+//! unit as the 8-pattern bench, and emit per-case stats as JSONL. Slow cells
+//! are sampled with an adaptive budget so one pathological case cannot stall
+//! the sweep; the downgrade is recorded per-row (`sampling_mode`), never
+//! silent.
+//!
+//!   regex_perf_probe --corpus-jsonl regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl \
+//!                    --out-jsonl corpus_times.jsonl [--samples N] [--warmup N] \
+//!                    [--slow-cell-threshold-ms 100] [--slow-cell-samples 5] \
+//!                    [--giant-cell-threshold-ms 2000]
 
 // mimalloc as the global allocator — LANDED (RGX-0078.5.i.7 `-0097`, the
 // recommended-production allocator). macOS's libsystem_malloc + `_xzm_free`
@@ -217,6 +231,9 @@ fn arena_mark() -> usize {
 #[inline]
 fn arena_reset_to(_mark: usize) {}
 
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
+use std::path::PathBuf;
 use std::time::Instant;
 
 #[cfg(feature = "generated_parsers")]
@@ -246,6 +263,37 @@ struct Stats {
     max_ns: u64,
 }
 
+/// A canonical corpus case — the subset of the corpus JSONL schema the perf
+/// sweep needs (unknown fields are ignored by serde's default behavior).
+#[derive(serde::Deserialize)]
+struct CorpusCase {
+    id: String,
+    pattern: String,
+    expected: CorpusExpected,
+}
+
+#[derive(serde::Deserialize)]
+struct CorpusExpected {
+    parse: String,
+}
+
+/// One per-case output row of the corpus sweep.
+#[derive(serde::Serialize)]
+struct CorpusRow<'a> {
+    id: &'a str,
+    pattern_bytes: usize,
+    expected_parse: &'a str,
+    actual_parse: &'static str,
+    sampling_mode: &'static str,
+    warmup: usize,
+    samples: usize,
+    min_ns: u64,
+    p50_ns: u64,
+    mean_ns: u64,
+    p99_ns: u64,
+    max_ns: u64,
+}
+
 fn percentile(sorted: &[u64], p: f64) -> u64 {
     if sorted.is_empty() {
         return 0;
@@ -254,24 +302,66 @@ fn percentile(sorted: &[u64], p: f64) -> u64 {
     sorted[idx.min(sorted.len() - 1)]
 }
 
-fn parse_args() -> (usize, usize) {
-    let mut samples = 1000usize;
-    let mut warmup = 50usize;
+struct Config {
+    samples: usize,
+    warmup: usize,
+    corpus_jsonl: Option<PathBuf>,
+    out_jsonl: Option<PathBuf>,
+    slow_cell_threshold_ms: u64,
+    giant_cell_threshold_ms: u64,
+    slow_cell_samples: usize,
+}
+
+fn parse_args() -> Config {
+    let mut cfg = Config {
+        samples: 1000,
+        warmup: 50,
+        corpus_jsonl: None,
+        out_jsonl: None,
+        slow_cell_threshold_ms: 100,
+        giant_cell_threshold_ms: 2000,
+        slow_cell_samples: 5,
+    };
     let args: Vec<String> = std::env::args().collect();
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
             "--samples" => {
                 i += 1;
-                samples = args[i].parse().expect("--samples expects integer");
+                cfg.samples = args[i].parse().expect("--samples expects integer");
             }
             "--warmup" => {
                 i += 1;
-                warmup = args[i].parse().expect("--warmup expects integer");
+                cfg.warmup = args[i].parse().expect("--warmup expects integer");
+            }
+            "--corpus-jsonl" => {
+                i += 1;
+                cfg.corpus_jsonl = Some(PathBuf::from(&args[i]));
+            }
+            "--out-jsonl" => {
+                i += 1;
+                cfg.out_jsonl = Some(PathBuf::from(&args[i]));
+            }
+            "--slow-cell-threshold-ms" => {
+                i += 1;
+                cfg.slow_cell_threshold_ms = args[i]
+                    .parse()
+                    .expect("--slow-cell-threshold-ms expects integer");
+            }
+            "--giant-cell-threshold-ms" => {
+                i += 1;
+                cfg.giant_cell_threshold_ms = args[i]
+                    .parse()
+                    .expect("--giant-cell-threshold-ms expects integer");
+            }
+            "--slow-cell-samples" => {
+                i += 1;
+                cfg.slow_cell_samples =
+                    args[i].parse().expect("--slow-cell-samples expects integer");
             }
             "-h" | "--help" => {
                 eprintln!(
-                    "regex_perf_probe — measure regex parse time on the PGEN-RGX-0073 8-pattern corpus.\n\nUsage:\n  regex_perf_probe [--samples N] [--warmup N]"
+                    "regex_perf_probe — measure regex parse time on the PGEN-RGX-0073 8-pattern corpus,\nor sweep a corpus JSONL for the per-case parse-time distribution.\n\nUsage:\n  regex_perf_probe [--samples N] [--warmup N]\n  regex_perf_probe --corpus-jsonl CASES.jsonl --out-jsonl TIMES.jsonl [--samples N] [--warmup N]\n                   [--slow-cell-threshold-ms M] [--slow-cell-samples N] [--giant-cell-threshold-ms M]"
                 );
                 std::process::exit(0);
             }
@@ -282,11 +372,13 @@ fn parse_args() -> (usize, usize) {
         }
         i += 1;
     }
-    (samples, warmup)
+    cfg
 }
 
+/// One timed parse — parser construction + `parse_full_regex()`, the same unit
+/// the 8-pattern bench has always measured — plus the accept/reject verdict.
 #[cfg(feature = "generated_parsers")]
-fn time_one_parse(input: &str) -> u64 {
+fn parse_once_timed(input: &str) -> (u64, bool) {
     let start = Instant::now();
     let node_arena = pgen::ast_pipeline::NodeArena::new();
     let mut parser = RegexParser::new(
@@ -294,13 +386,17 @@ fn time_one_parse(input: &str) -> u64 {
         &node_arena,
         pgen::ast_pipeline::runtime_logger_box("regex_perf_probe"),
     );
-    let _ = parser.parse_full_regex();
-    start.elapsed().as_nanos() as u64
+    let ok = parser.parse_full_regex().is_ok();
+    (start.elapsed().as_nanos() as u64, ok)
 }
 
 #[cfg(not(feature = "generated_parsers"))]
-fn time_one_parse(_input: &str) -> u64 {
-    0
+fn parse_once_timed(_input: &str) -> (u64, bool) {
+    (0, false)
+}
+
+fn time_one_parse(input: &str) -> u64 {
+    parse_once_timed(input).0
 }
 
 /// Under the never-free arena, assert every pattern still parse-ACCEPTS before
@@ -357,8 +453,194 @@ fn measure(name: &'static str, input: &str, samples: usize, warmup: usize) -> St
     }
 }
 
+/// Corpus mode: time every case of a canonical corpus JSONL and emit per-case
+/// stats as JSONL rows. A cold probe parse per case supplies the accept/reject
+/// verdict and the adaptive-budget signal: cells whose cold parse crosses
+/// `--slow-cell-threshold-ms` are sampled with a reduced budget, and cells
+/// crossing `--giant-cell-threshold-ms` keep the cold parse as their single
+/// sample — every downgrade is recorded in the row's `sampling_mode`.
+fn run_corpus_mode(cfg: &Config) {
+    if cfg!(feature = "never_free_arena_perf") {
+        eprintln!(
+            "corpus mode does not support the never-free measurement arena (it never resets between cases); rebuild without --features never_free_arena_perf"
+        );
+        std::process::exit(2);
+    }
+    let Some(corpus_path) = cfg.corpus_jsonl.as_ref() else {
+        unreachable!("run_corpus_mode is only entered when --corpus-jsonl is set");
+    };
+    let Some(out_path) = cfg.out_jsonl.as_ref() else {
+        eprintln!("corpus mode requires --out-jsonl <path>");
+        std::process::exit(2);
+    };
+
+    let input = File::open(corpus_path).unwrap_or_else(|e| {
+        eprintln!(
+            "failed to open corpus JSONL '{}': {}",
+            corpus_path.display(),
+            e
+        );
+        std::process::exit(2);
+    });
+    let reader = BufReader::new(input);
+    let mut out = std::io::BufWriter::new(File::create(out_path).unwrap_or_else(|e| {
+        eprintln!(
+            "failed to create output JSONL '{}': {}",
+            out_path.display(),
+            e
+        );
+        std::process::exit(2);
+    }));
+
+    let slow_ns = cfg.slow_cell_threshold_ms.saturating_mul(1_000_000);
+    let giant_ns = cfg.giant_cell_threshold_ms.saturating_mul(1_000_000);
+
+    let mut executed = 0usize;
+    let mut accepts = 0usize;
+    let mut rejects = 0usize;
+    let mut expectation_mismatches = 0usize;
+    let mut mode_full = 0usize;
+    let mut mode_reduced = 0usize;
+    let mut mode_single_shot = 0usize;
+    let mut ln_min_sum = 0f64;
+    // (min_ns, pattern_bytes, id) per case, for the corpus-level summary.
+    let mut mins: Vec<(u64, usize, String)> = Vec::new();
+
+    for (index, line) in reader.lines().enumerate() {
+        let line = line.unwrap_or_else(|e| {
+            eprintln!("failed to read corpus line {}: {}", index + 1, e);
+            std::process::exit(2);
+        });
+        if line.trim().is_empty() {
+            continue;
+        }
+        let case: CorpusCase = serde_json::from_str(&line).unwrap_or_else(|e| {
+            eprintln!("failed to decode corpus case at line {}: {}", index + 1, e);
+            std::process::exit(2);
+        });
+
+        // Cold probe parse: verdict + adaptive-budget signal.
+        let (t0, ok) = parse_once_timed(&case.pattern);
+        let (sampling_mode, warmup, samples) = if t0 >= giant_ns {
+            ("single_shot", 0usize, 0usize)
+        } else if t0 >= slow_ns {
+            ("reduced", 1usize, cfg.slow_cell_samples)
+        } else {
+            ("full", cfg.warmup, cfg.samples)
+        };
+
+        let mut times = if samples == 0 {
+            vec![t0]
+        } else {
+            let mut v = Vec::with_capacity(samples);
+            for _ in 0..warmup {
+                let _ = time_one_parse(&case.pattern);
+            }
+            for _ in 0..samples {
+                v.push(time_one_parse(&case.pattern));
+            }
+            v
+        };
+        times.sort_unstable();
+        let mean_ns = (times.iter().sum::<u64>() as f64 / times.len() as f64) as u64;
+        let actual_parse = if ok { "ok" } else { "fail" };
+        let row = CorpusRow {
+            id: &case.id,
+            pattern_bytes: case.pattern.len(),
+            expected_parse: &case.expected.parse,
+            actual_parse,
+            sampling_mode,
+            warmup,
+            samples: times.len(),
+            min_ns: times[0],
+            p50_ns: percentile(&times, 0.50),
+            mean_ns,
+            p99_ns: percentile(&times, 0.99),
+            max_ns: *times.last().unwrap(),
+        };
+        serde_json::to_writer(&mut out, &row).unwrap_or_else(|e| {
+            eprintln!("failed to write output row for '{}': {}", case.id, e);
+            std::process::exit(2);
+        });
+        out.write_all(b"\n").unwrap_or_else(|e| {
+            eprintln!("failed to write output row terminator: {}", e);
+            std::process::exit(2);
+        });
+
+        executed += 1;
+        if ok {
+            accepts += 1;
+        } else {
+            rejects += 1;
+        }
+        if case.expected.parse != "unknown" && case.expected.parse != actual_parse {
+            expectation_mismatches += 1;
+        }
+        match sampling_mode {
+            "full" => mode_full += 1,
+            "reduced" => mode_reduced += 1,
+            _ => mode_single_shot += 1,
+        }
+        ln_min_sum += (times[0].max(1) as f64).ln();
+        mins.push((times[0], case.pattern.len(), case.id));
+    }
+
+    if executed == 0 {
+        eprintln!(
+            "corpus mode executed zero cases from '{}'",
+            corpus_path.display()
+        );
+        std::process::exit(2);
+    }
+    out.flush().unwrap_or_else(|e| {
+        eprintln!("failed to flush output JSONL: {}", e);
+        std::process::exit(2);
+    });
+
+    mins.sort_unstable_by(|a, b| b.0.cmp(&a.0));
+    let geomean_min_ns = (ln_min_sum / executed as f64).exp();
+    println!(
+        "# Regex corpus parse-time sweep — per-case stats in {}",
+        out_path.display()
+    );
+    println!(
+        "# corpus={} cases={} accepts={} rejects={} expectation_mismatches={}",
+        corpus_path.display(),
+        executed,
+        accepts,
+        rejects,
+        expectation_mismatches
+    );
+    println!(
+        "# sampling: full={} (samples={} warmup={}) reduced={} (samples={} warmup=1, cold parse >= {} ms) single_shot={} (cold parse >= {} ms)",
+        mode_full,
+        cfg.samples,
+        cfg.warmup,
+        mode_reduced,
+        cfg.slow_cell_samples,
+        cfg.slow_cell_threshold_ms,
+        mode_single_shot,
+        cfg.giant_cell_threshold_ms
+    );
+    println!(
+        "# geomean(min_ns)={:.1} max(min_ns)={} ({} bytes, {})",
+        geomean_min_ns, mins[0].0, mins[0].1, mins[0].2
+    );
+    println!("#");
+    println!("# slowest 10 cases by min_ns:");
+    println!("# {:>12} {:>14} id", "min (ns)", "pattern bytes");
+    for (min_ns, bytes, id) in mins.iter().take(10) {
+        println!("# {:>12} {:>14} {}", min_ns, bytes, id);
+    }
+}
+
 fn main() {
-    let (samples, warmup) = parse_args();
+    let cfg = parse_args();
+    if cfg.corpus_jsonl.is_some() {
+        run_corpus_mode(&cfg);
+        return;
+    }
+    let (samples, warmup) = (cfg.samples, cfg.warmup);
     verify_arena_accepts();
     println!("# Regex parse perf probe — PGEN-RGX-0073 baseline");
     println!(

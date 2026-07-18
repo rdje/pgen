@@ -1,0 +1,18 @@
+RGX-0078.5.j.3 — corpus-sweep stability check (run1 vs run2, same binary 7fd0a31b)
+==================================================================================
+verdict diffs=0                       (accept/reject fully deterministic)
+geomean(min) run1=3029.6 run2=3029.5  delta=-0.00%
+max cell run1=pcre2:testdata/testinput2:line_4674 2144916ns
+         run2=pcre2:testdata/testinput2:line_4674 2189292ns  delta=+2.07% (same cell)
+top10-by-min_ns set: IDENTICAL
+<=p99-size (110B) bar violations: run1=1705 run2=1707 (of 2167)
+
+Floor validation of the fresh probe binary (5x2000, default 8-pattern mode):
+fresh geomean-of-best-mins 3925.1ns vs recorded -0129 floor 3888.1ns = +0.95%
+(tolerance +/-2.0%) => VALIDATED — see floor_validation.txt / floor_round*.txt.
+
+Binary custody: old release probe == preserved dv_bench floor probe 4bbfb4e9...;
+fresh corpus-mode probe 7fd0a31b... (fat-LTO+mimalloc, generated_parsers,
+guard-built: completed exit=0, peak_rss=11307MB < 16384MB budget, 699s).
+mimalloc linkage verified (nm: 199 mi_* symbols). Canonical regex artifact
+sha-verified 32e27993... before the build.

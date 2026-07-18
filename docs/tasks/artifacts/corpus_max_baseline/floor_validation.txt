@@ -1,0 +1,14 @@
+=== floor validation (geomean-of-best-mins vs the recorded -0129 floor) ===
+rounds=5 patterns=8
+  alternation        best-min     2500 ns
+  anchor_complex     best-min    14542 ns
+  capture_groups     best-min    10084 ns
+  character_class    best-min    13084 ns
+  digit_sequence     best-min     2416 ns
+  email_basic        best-min     2334 ns
+  literal_simple     best-min     1000 ns
+  url_simple         best-min     2083 ns
+fresh geomean-of-best-mins = 3925.1 ns
+recorded floor             = 3888.1 ns
+delta = +0.95% (tolerance ±2.0%)
+verdict: VALIDATED

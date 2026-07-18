@@ -1,0 +1,54 @@
+=== RGX-0078.5.j.3 CORPUS-MAX DISTRIBUTION BASELINE ===
+rows=2189 source=docs/tasks/artifacts/corpus_max_baseline/corpus_times.jsonl
+per-cell statistic: min_ns (best observed parse; p50_ns reported alongside)
+
+--- corpus length profile (bytes) ---
+p50=10 p90=32 p99=110 max=3511
+
+--- parse-time distribution (ns) ---
+all cells (min_ns)           n=2189  p50=2708     p90=13958    p99=48458    p999=673750   max=2144916    geomean=3029.6
+all cells (p50_ns)           n=2189  p50=2833     p90=14208    p99=48958    p999=681834   max=2182625    geomean=3185.1
+accepts (min_ns)             n=1834  p50=3666     p90=15375    p99=55291    p999=673750   max=2144916    geomean=3501.4
+rejects (min_ns)             n=355   p50=1333     p90=4333     p99=11166    p999=39125    max=39125      geomean=1434.3
+
+--- length-band table (min_ns) ---
+0..10 bytes                  n=1122  p50=1125     p90=4084     p99=7292     p999=9875     max=10041      geomean=1426.5
+11..32 bytes                 n=854   p50=5791     p90=13875    p99=20791    p999=28000    max=39125      geomean=5093.2
+33..110 bytes                n=191   p50=17542    p90=38500    p99=64625    p999=91875    max=91875      geomean=17832.2
+111..max bytes               n=22    p50=50125    p90=673750   p99=2144916  p999=2144916  max=2144916    geomean=52791.2
+
+--- BAR COMPLIANCE (bar=1000ns, p99-size=110B, tail=8.0ns/B) ---
+<=p99-size population: n=2167 violations(min_ns>=1000)=1705 (78.7%) max=91875ns (42B, pcre2:testdata/testinput2:line_6538)
+>p99-size tail:        n=22 violations(min_ns>8.0ns/B)=22 worst-throughput=13078.8ns/B (164B, pcre2:testdata/testinput2:line_4674)
+strict-literal reading: corpus-wide max(min_ns)=2144916ns (164B, pcre2:testdata/testinput2:line_4674) — NOT YET (bar work remains)
+
+--- top 20 cells by min_ns ---
+    min_ns     p50_ns  bytes     ns/B  verdict mode         id
+   2144916    2182625    164  13078.8  ok    full         pcre2:testdata/testinput2:line_4674
+   1603333    1618291   3511    456.7  ok    full         pcre2:testdata/testinput2:line_725
+    673750     681834    261   2581.4  ok    full         pcre2:testdata/testinput2:line_6526
+    556375     563916    450   1236.4  ok    full         pcre2:testdata/testinput2:line_2880
+     91875      92792     42   2187.5  ok    full         pcre2:testdata/testinput2:line_6538
+     91250      91792    531    171.8  ok    full         pcre2:testdata/testinput2:line_965
+     90459      91000    526    172.0  ok    full         pcre2:testdata/testinput2:line_967
+     85250      86084    163    523.0  ok    full         pcre2:testdata/testinput2:line_1228
+     80834      81834    158    511.6  ok    full         pcre2:testdata/testinput2:line_1226
+     80041      80583    155    516.4  ok    full         pcre2:testdata/testinput2:line_1224
+     75750      76417    225    336.7  ok    full         pcre2:testdata/testinput2:line_2921
+     73542      74625     51   1442.0  ok    full         pcre2:testdata/testinput2:line_640
+     64625      65167     38   1700.7  ok    full         pcre2:testdata/testinput2:line_4705
+     63833      64291     87    733.7  ok    full         pcre2:testdata/testinput2:line_6735
+     62792      63375     38   1652.4  ok    full         pcre2:testdata/testinput2:line_4701
+     62625      63083     38   1648.0  ok    full         pcre2:testdata/testinput2:line_4703
+     61625      62125    110    560.2  ok    full         pcre2:testdata/testinput2:line_1196
+     59958      60542    102    587.8  ok    full         pcre2:testdata/testinput2:line_1866
+     55291      55834     50   1105.8  ok    full         pcre2:testdata/testinput2:line_4750
+     53084      53959    121    438.7  ok    full         pcre2:testdata/testinput2:line_6841
+
+--- the 3 formerly-'hang' tracked cells (RGX-0078 878/881/1340) ---
+pcre2:testdata/testinput2:line_878: min=7208ns p50=7375ns max=9250ns bytes=21 verdict=ok mode=full
+pcre2:testdata/testinput2:line_881: min=7834ns p50=8125ns max=8792ns bytes=25 verdict=ok mode=full
+pcre2:testdata/testinput2:line_4674: min=2144916ns p50=2182625ns max=2294417ns bytes=164 verdict=ok mode=full
+
+--- sampling modes (no silent caps) --- {'full': 2189}
+--- oracle cross-check --- accepts=1834 rejects=355 expectation_mismatches=321

@@ -1,0 +1,40 @@
+RGX-0078.5.j.3 — timed-unit definition + oracle-tuple reconciliation
+====================================================================
+
+TIMED UNIT (the baseline's): parser construction + parse_full_regex() — the
+SAME unit as the 8-pattern bench (every campaign floor number since -0073).
+This is the SYNTACTIC parse unit. It does NOT include the PCRE2 compile-contract
+semantic validation layer.
+
+REGISTRY UNIT (the oracle gate's): parse_with_regex_detail (rust/src/parser_registry.rs:734)
+= parse_full_regex() .and_then(validate_regex_compile_contract)   [rust/src/regex_compile_validation.rs]
+run on a dedicated worker stack with the grammar-declared profile.
+
+RECONCILIATION (exact, case-enumerated):
+  sweep (syntactic unit):    accepts=1834 rejects=355  (both runs, verdict-deterministic)
+  oracle gate (registry):    accepts=1823 rejects=366  (tuple 2189/1879/262/48)
+  delta = EXACTLY the 11 cells whose syntactic parse accepts but the semantic
+  compile-contract validator rejects (zero divergence in the other direction):
+
+  unbounded variable-length lookbehind (7):
+    pcre2:testdata/testinput2:line_192    abc(?<=a+)b
+    pcre2:testdata/testinput2:line_285    (?<=ab(c+)d)ef
+    pcre2:testdata/testinput2:line_287    (?<=ab(?<=c+)d)ef
+    pcre2:testdata/testinput2:line_397    (?<=x+)y
+    pcre2:testdata/testinput2:line_2895   (a)(?<=b+(?1))
+    pcre2:testdata/testinput2:line_3265   (?<=(abc)+)X
+    pcre2:testdata/testinput2:line_4615   (?<=\bABQ(3(?+7)))
+  scan_substring capture list references an unavailable capture (4):
+    pcre2:testdata/testinput2:line_6675   (*scs:(1)a|b)
+    pcre2:testdata/testinput2:line_6677   (*scs:(0)a)
+    pcre2:testdata/testinput2:line_6679   (*scan_substring:(1)a|b)
+    pcre2:testdata/testinput2:line_6687   ()(*scs:(1,1,1,1,1,1,1,1,2))
+
+  1834 - 11 = 1823 ✓    355 + 11 = 366 ✓    mismatches 321 - 11 = 310 ✓
+
+DECISION (recorded; engineer-owned within the road): the BASELINE uses the bench
+(syntactic) unit for comparability with every campaign number. OPEN QUESTION
+routed to the standing-closure-gate deliverable: whether the closure gate's
+"observable parse time" should be the FULL registry unit (parse + compile-contract
+validation — what an embedding consumer pays on accepts); the validation layer's
+cost must be priced before that gate is authored.
