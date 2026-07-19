@@ -97,6 +97,53 @@ entry count alone**; wrapper chains are 30–50% of entries by the table above.
 (An early plain-char heuristic priced fusion at −30…−47% — recorded as an
 OVER-count; the census's 11% literal-chain share is ground truth. Honest.)
 
+## 3b. ⚠️ CORRECTION (`-0163`, same-session self-audit) — the counter census runs the PROTOCOL TWIN, not the fused path
+
+**Found by reading the emitted code before designing G1, and recorded loudly because
+it changes the MECHANISM story of §3 (not its arithmetic).**
+
+`generated/regex_parser.rs:1224`: `bare_parse = !coverage_enabled && !logger_enabled
+&& !counters_observed.get() && !report_memo_stats_enabled()`. Observing counters
+therefore DISABLES the fused path by design — `--dump-rule-outcome-counts-json`
+routes the parse through the **protocol twin** (`parse_*` methods with
+`rule_call_counts` fetch_add + coverage push + trace probes; only 276 such counter
+sites exist, all in protocol methods). The release perf probe observes nothing and
+runs the **fused cascade** path (`cascade_match_*`), which has NO per-rule frame,
+counter, coverage push, or memo protocol at all. This is an OBSERVER EFFECT BY
+CONSTRUCTION (the `.5.i` observability-twin design, working as intended) — not a bug,
+but a hard limit on what a counter census can say about the hot path.
+
+**What SURVIVES unchanged:** rule-entry counts are a **structural** census of the
+grammar attempts an input provokes, and both paths make the same attempts over the
+same gen-AST (the fused match path is "control flow verbatim minus value
+construction" per the MTB-B/D3 records, and the differential-equivalence gate proves
+all 11 parsers byte-identical between the twins). So the fit
+`min_ns ≈ 306 + 21.3 × entries` remains a valid empirical scaling law: **release
+fused-path time per structural rule attempt**. The entry-population table and the
+−25%-entries ⇒ −21%-geomean arithmetic stand.
+
+**What is CORRECTED:** the §5 G1 framing "each entry costs a rule frame" is WRONG for
+the measured path — in the fused path there is no frame to delete. The per-attempt
+cost is CASCADE work. Reading `cascade_match_literal_char` (the exemplar of the
+12.4% literal chain) shows what a plain char actually pays: a byte-class `match`
+that already PROVES the branch, wrapped in a speculation block that saves
+`position` + `deriv_events.len()` + `deriv_boundary.len()`, calls `scan_letter()`,
+then **`arena.alloc(child)` + `deriv_boundary.push(...)`**, with a rollback arm that
+the byte switch has already made unreachable for the single-byte scan case.
+
+That per-atom arena-alloc + tape-push is exactly the population the RELEASE profiles
+independently show (§2: allocator+memmove+arena cluster **27–31% self** across all
+three bands, `typed_arena::alloc_extend` 5.3–8.6% self, `_platform_memmove`
+5.3–7.4%) — so the lever survives the correction with BETTER evidence than it had:
+it is now supported by release-path sampling, not by a protocol-path counter model.
+
+**The confounded experiment, recorded so nobody re-runs it:** forcing the protocol
+path on the release binary via `PGEN_REPORT_MEMO_STATS=1` (the same predicate) gave
+geomean 343,860 ns vs 1,310 ns fused on the 60-cell selection — but that env var ALSO
+prints per-parse memo stats, so the ratio is dominated by I/O and is **not** a
+measurement of protocol-twin overhead. Banked as `observer_{fused,protocol}.jsonl`
+with this caveat; no number from it is used anywhere.
+
 ## 4. ⛔ The queued post-C1 program is REFUTED for the geomean bar (each population measured)
 
 - **C2 fact-op constants — DEAD for the bar.** `facts_emitted` 0–5/cell on the
@@ -115,16 +162,21 @@ All five stay ADJUDICATED-OUT for the campaign bar (the MAX cell is SETTLED per
 
 ## 5. ▶️ RE-STEER: the G-program (geomean bar, −21% needed)
 
-- **G1 — WRAPPER-CHAIN FUSION (entry-count kill; the primary lever).**
-  Emitter-level, parser-agnostic, license-gated chain-collapse: inline
-  single-alternative pass-through rule bodies (no annotations, no facts, no memo
-  need, value shape = wrapper) into their callers — the literal chain, the class
-  chain, the quantifier/group wrappers. STEP-1 = a fusibility-census lane driven
-  by the SAME license as the emission (the C1 census↔emission discipline verbatim)
-  across ALL 11 grammars, banked BEFORE any regen + a recorded design slice with
-  acceptance bands and a pre-adjudicated revert rule. Every entry eliminated also
-  deletes its checkpoint + arena + memo-insert constant (the 27–31% alloc cluster
-  and 4% memo insert scale with entries).
+- **G1 — PER-ATOM CASCADE WORK ELISION (RE-AIMED by §3b; the primary lever).**
+  ⚠️ Superseded framing: this was "wrapper-chain fusion / delete the rule frame" —
+  corrected, because the measured path has no frames. The real target is the
+  per-attempt CASCADE cost the release profiles show (arena+memmove+alloc 27–31%):
+  (i) **refutation-free speculation elision** — where the enclosing byte-class
+  `match` arm already PROVES the single-byte scan succeeds, the
+  `position`/`deriv_events`/`deriv_boundary` save + the unreachable rollback arm are
+  dead weight (a license predicate must establish "this arm cannot fail", exactly
+  the C1 CANNOT-match discipline pointed inward); (ii) **per-atom tape/arena push
+  reduction** for single-byte scan children. STEP-1 = a census lane driven by the
+  SAME license as the emission (the C1 census↔emission discipline verbatim) across
+  ALL 11 grammars, banked BEFORE any regen, plus a design record with acceptance
+  bands and a pre-adjudicated revert. Chain-collapse of pass-through wrapper rules
+  stays on the list as a SECOND-ORDER effect (it removes cascade bodies, not
+  frames) — priced by the same census, not assumed.
 - **G2 — per-entry constant trim (21.3 ns/entry)** — re-priced AFTER G1 on the
   new floor (populations shift when entries fuse).
 - **G3 — per-parse fixed-cost trim (≈171–306 ns: setup + teardown ≈ 6–8%)** —
@@ -132,8 +184,12 @@ All five stay ADJUDICATED-OUT for the campaign bar (the MAX cell is SETTLED per
   parser/arena/map drops. Helps the sub-1µs band's log-share most; re-priced
   post-G1.
 
-NEXT = **`-0163` G1 STEP-1**: the chain-collapse license + fusibility census +
-design record (one lever per slice; census surprise ⇒ stop).
+NEXT = **G1 STEP-1** (re-aimed per §3b): the cannot-fail-arm license + census lane +
+design record (one lever per slice; census surprise ⇒ stop). ⛔ Prerequisite recorded
+by the §3b correction: the census lane must report a quantity the FUSED path actually
+pays — a counter census alone cannot (it flips the parse to the protocol twin), so
+the lane's numbers must be either static (emission-site counts over the gen-AST, the
+C1 census pattern) or release-path sampled.
 
 ## 6. OPS notes (banked for the record)
 
