@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0172 — `.5.j.4` **SPINE-DISPATCH STEP-0: the "22-25% spine dispatch" population is NOT dispatch — the lever does not exist** (read-only)
+
+Executes the `-0171` NEXT pointer (step 1 of the corrected stack). Instrument: `otool -tV` on `preserved_probes/regex_perf_probe_c1_1d3fa0ee` with **custody asserted in-run** (sha256 prefix `1d3fa0ee`; the script refuses to report on mismatch). Read-only — no build, no regen, no measurement, no gate perturbed.
+
+⛔ **What was under test.** `-0170` named `spine dispatch self` (22-25% self across all three bands) the largest never-priced population in the profile. The **population is real**; the word under test is **"dispatch"**, which entered the record by reading function NAMES at the top of a self-time table and was never checked against the functions themselves.
+
+📊 **Result — two structural tests, both decisive against the label:**
+
+| function | -0162 self | bytes | instrs | mem | ctl | call |
+|---|---|---|---|---|---|---|
+| `cascade_match_piece` | 8.0% | 27,380 | 6,845 | **39.9%** | 25.1% | 4.8% |
+| `cascade_match_atom{closure}` | 6.7% | 76,860 | **19,215** | **40.4%** | 22.5% | 4.4% |
+| `memoized_call` | 5.2% | 15,664 | 3,916 | **34.7%** | 18.7% | 5.7% |
+| `cascade_match_entry_concatenation` | 3.0% | 10,776 | 2,694 | **40.1%** | 25.2% | 4.8% |
+| `parse_pattern` | — | 15,080 | 3,770 | **39.4%** | 18.9% | 5.0% |
+
+⛔ **The label is refuted.** A dispatch function is tens of instructions dominated by compare + branch. These are **2,694-19,215 instructions each** (one is a **77 KB** function), control flow is a **minority in every one**, and **memory traffic is the largest class throughout**.
+
+⭐ **What the population actually is: the fused cascade regions.** The D2-B cyclic-spine emitter fused the rule graph and fat-LTO inlined the callees into a handful of giant functions, so their "self" time **is the matching work itself** — input reads, speculation save/restore, node writes — not an overhead sitting on top of it. Cross-confirmed by the independent `-0169` finding (`CASCADE-EXPOSURE internal=592 = 90.7%`).
+
+▶️ **No dispatch lever exists**, because there is no dispatch to remove: a parser must compare and branch, and even a physically-impossible removal of *every* compare and branch caps at ~`0.22 x 23% ~ 5%` of parse time, with any realistic capture sub-noise.
+
+⚠️ **Scope honesty — the `-0166` lesson applied to this slice's own numbers.** A static instruction mix over a function body is **not** the dynamic retired-instruction mix, and neither is nanoseconds — a cold error path and a hot inner loop weigh the same in that table. This slice **refutes a label; it does not price a lever**, **no acceptance band is derived** from these numbers, and the memory-traffic share is deliberately **not** converted into one (naming and pricing are different acts). Pricing spine memory traffic needs a dynamic instrument — a separate slice.
+
+▶️ **Stack re-orders again:** (1) ~~spine step-0~~ executed, lever absent; (2) **BATCH-1 (enlarged) is now step 1** — G1-B + C2 + G1-C + memo-insert + semantic-runtime as one regen+A/B, combined **>=81.5 ns = 2.8x noise**, landed or reverted **as a unit**, the only remaining step with an attributed floor-clearing estimate; (3) **G3** re-priced on the floor BATCH-1 leaves; (4) **BUILD-VALUE stays closed**.
+
+⛔ **Campaign-level fact for director visibility: three consecutive pricing audits (`-0168`, `-0171`, `-0172`) have each REMOVED a lever the record believed in, and none has added one.** The honest remaining inventory — BATCH-1 (~-6.4%) + G3 (~-4...-7%) — compounds to roughly **-10...-13% against the -20.8%** the <1 us bar needs, i.e. **short of the bar by about half**; closing it requires a mechanism class not yet on the books. ⭐ Per the `-0170` mandate this is reported as a **measured fact, not a call-off question** — every gain is still to be taken and the stack still gets built.
+
+Floor + custody byte-untouched (bench ~1,937.4 ns / corpus MAX 483,583 ns / geomean 1,263.4 ns; regex `e4924024`, probe `1d3fa0ee`); no floor number banked; LIVE tracker unchanged. Evidence `docs/tasks/artifacts/spine_dispatch_pricing/`.
+
 ## 2026-07-20 - PGEN-RGX-0078-0171 — `.5.j.4` **G1-C ATTRIBUTION AUDIT: the `-0168` addressable mass is 6.3x too large and G1-C is BELOW the noise floor — the step-1 heavy chain is STOPPED pre-flight** (read-only)
 
 Executes the `-0170` NEXT pointer (G1-C emission) and stops before the chain, because the per-parse ns estimate the `-0167` standing rule demands does not survive contact with the raw profile. Read-only over banked artifacts — no build, no regen, no measurement, no gate perturbed.

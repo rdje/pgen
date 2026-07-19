@@ -1,0 +1,24 @@
+probe custody sha256=1d3fa0eebb4de19f  expected prefix=1d3fa0ee  OK
+
+========================================================================================
+SPINE POPULATION -- size and instruction mix (STATIC, release floor probe)
+========================================================================================
+function                             -0162 self     bytes   instrs     mem     ctl   call   other
+cascade_match_piece                        8.0%    27,380    6,845   39.9%   25.1%   4.8%   30.2%
+cascade_match_atom{closure}                6.7%    76,860   19,215   40.4%   22.5%   4.4%   32.7%
+memoized_call                              5.2%    15,664    3,916   34.7%   18.7%   5.7%   40.9%
+cascade_match_entry_concatenation          3.0%    10,776    2,694   40.1%   25.2%   4.8%   29.9%
+parse_pattern                                 -    15,080    3,770   39.4%   18.9%   5.0%   36.6%
+
+----------------------------------------------------------------------------------------
+VERDICT
+----------------------------------------------------------------------------------------
+  A dispatch function is tens of instructions dominated by compare+branch.
+  These are 2,694-19,215 instructions with control flow a MINORITY in every
+  one, and MEMORY TRAFFIC the largest class throughout. They are the FUSED
+  CASCADE REGIONS (D2-B emitter + fat-LTO inlining), i.e. the matching work
+  itself -- not a dispatch overhead sitting on top of it.
+
+  => the 'spine dispatch' LABEL is refuted; there is no dispatch lever here.
+  => SCOPE: static mix != dynamic retired mix != nanoseconds. No band is
+     derived from these numbers; pricing needs a DYNAMIC instrument.
