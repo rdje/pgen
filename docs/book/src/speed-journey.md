@@ -1,4 +1,4 @@
-# The Speed Journey: 496 µs → ≈4.40 µs
+# The Speed Journey: 496 µs → ≈1.94 µs
 
 > **Part II · Inside PGEN.** This chapter is the companion to
 > [Inside the Parser: Termination & Performance](inside-parser-performance.md). That
@@ -8,12 +8,13 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #145 — seven calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈4.40 µs** with a
-mimalloc-class global allocator: about **113× faster**
-(≈41× before the allocator recommendation), with every single landing proven
+Between sessions #90 and #166 — nine calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈1.94 µs** with a
+mimalloc-class global allocator: about **256× faster**, with every single landing proven
 **byte-identical** on its full oracle battery before its speed number was believed.
-Twenty-three levers landed. More than a dozen others were refuted, rejected, or reverted —
+On the external PCRE2 corpus the same work put the **maximum** observed parse at ≈484 µs
+and the corpus geomean at ≈1.26 µs.
+Thirty-odd levers landed. More than a dozen others were refuted, rejected, or reverted —
 most of them for the price of a document rather than a build. This chapter is the story of
 both lists, because the refusals are as much the method as the landings.
 

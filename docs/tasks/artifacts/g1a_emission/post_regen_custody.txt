@@ -1,0 +1,18 @@
+# G1-A POST-REGEN custody (all 11) — PGEN-RGX-0078-0166
+# fixed point PROVEN: two independent regen trains byte-identical (11/11)
+# JSON intermediates differ ONLY in the 'generated_at' timestamp (does not reach .rs)
+
+artifact                                    old_bytes    new_bytes    delta  new_sha256_16
+ebnf.rs                                      12193347     12194459    +1112  c2a4290fdd0921a6
+json_parser.rs                                 776253       777365    +1112  f9dd3b12c72f7238
+regex_parser.rs                              43693122     43694234    +1112  e4924024a4bf7a91
+return_annotation_parser.rs                   2454044      2455156    +1112  3e9ced1d3e537cc0
+rtl_const_expr_parser.rs                      2348387      2349499    +1112  b5d0cab5186b4d78
+rtl_frontend_parser.rs                       11443487     11444599    +1112  69d10d9176b5cb88
+scratch_parser.rs                              277101       278213    +1112  a29174c5b8a47e59
+semantic_annotation_parser.rs                14535126     14536238    +1112  b5e87df798a6126b
+systemverilog_parser.rs                     149216580    149217692    +1112  513c42080f90e219
+systemverilog_preprocessor_parser.rs          3245420      3246532    +1112  6f7dc2ae4ca90fe1
+vhdl_parser.rs                               12824901     12826013    +1112  1706971f037894ec
+
+# max artifact growth: 1112 bytes on 776253 (json, smallest) = 0.143% << 5% bar

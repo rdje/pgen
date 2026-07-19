@@ -157,7 +157,7 @@ with different profiles, and this is the story of the second one, told as a runn
 scoreboard so it can be watched as it improves.
 
 > The campaign's full narrative — the method, the refuted roads, and the named lessons —
-> is told in its own chapter, [The Speed Journey: 496 µs → ≈9.5 µs](speed-journey.md).
+> is told in its own chapter, [The Speed Journey: 496 µs → ≈1.94 µs](speed-journey.md).
 > This section is the *mechanics* record: what each lever is, how it works, and what it
 > measured.
 

@@ -1,0 +1,20 @@
+# G1-A binary-level effect — the change DID work, and it still bought nothing
+# Instrument: otool -tV on both fat-LTO+mimalloc probes (the -0164 instrument).
+# base = preserved_probes/regex_perf_probe_c1_1d3fa0ee (the floor probe)
+# cand = preserved_probes/regex_perf_probe_g1a_b33387f3
+
+symbol                       base       cand      delta
+slice_error_fail             1660        681       -979
+slice_index_fail             1354       1340        -14
+SliceIndex                    363        193       -170
+disasm lines              2048367    2027130     -21237
+
+979 slice_error_fail sites (-59%) and 170 SliceIndex refs (-47%) left the binary,
+which shrank ~1%. Corpus geomean moved +0.11% => the removed sites were not a
+material RUNTIME cost. Panic scaffolding is by construction NOT EXECUTED in a run
+with zero panics; removing never-executed code shrinks the image, it does not
+speed up execution. The two boundary checks that ARE executed are a couple of
+perfectly-predicted compares per matched literal atom, below the noise floor.
+
+NOISE FLOOR (same-binary, 8 base runs): 2.28% peak-to-peak; cand 5 runs 2.57%.
+=> +0.11% corpus / +1.11% ladder / -1.02% bench ALL sit inside the noise band.

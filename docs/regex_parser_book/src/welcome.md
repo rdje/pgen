@@ -27,10 +27,11 @@ here because some integrators care that the regex parser carries no Rust-regex-e
 
 ## Parse-time performance (live note, updated 2026-07-13)
 
-The regex parser is under an active, tracked **speed campaign** (`RGX-0078`): as of 2026-07-12 the
-measured parse cost is a geomean of **≈57µs per pattern** on the 8-pattern RGX bench corpus
-(release build, fat-LTO, noise-floor-minimum statistic) — down **8.76×** from ≈496µs at the
-campaign's activation, through six landed engine/codegen levers. Every speed lever lands under a
+The regex parser is under an active, tracked **speed campaign** (`RGX-0078`): as of 2026-07-19 the
+measured parse cost is a geomean of **≈1.94µs per pattern** on the 8-pattern RGX bench corpus
+(release build, fat-LTO, mimalloc-class allocator, noise-floor-minimum statistic) — down **≈256×**
+from ≈496µs at the campaign's activation. On the external PCRE2 corpus the **maximum** observed
+parse is ≈484µs and the corpus geomean ≈1.26µs. Every speed lever lands under a
 hard **byte-identical constraint**: the accepted language, verdicts, error codes, and the runtime
 AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
 certificate-coverage, and PCRE2-compile-oracle gates), so **performance work never moves the

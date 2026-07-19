@@ -8148,10 +8148,28 @@ impl AstBasedGenerator {
             /// `match_string` while bench parses never take the branch. For an
             /// all-ASCII literal a successful byte-match proves both `start`
             /// and `end` are char boundaries (an ASCII byte is never a UTF-8
-            /// continuation byte), so the success slice cannot panic and its
-            /// internal boundary checks fold under const propagation;
+            /// continuation byte), so the success slice cannot panic;
             /// `position ≤ input.len()` and N ≤ 8 make `start + N` overflow-
             /// free, matching `bytes_match_at`'s reachable semantics exactly.
+            ///
+            /// RGX-0078.5.j.4 G1-A (`PGEN-RGX-0078-0165`) — the success arm
+            /// returns the `expected` literal itself, NOT `&self.input[..]`.
+            /// The two are byte-identical BY CONSTRUCTION: the single shared
+            /// emission point (`terminal_literal_match_call`) derives
+            /// `expected_bytes` as `expected.as_bytes()`, so reaching this line
+            /// has already proven `input[start..end] == expected.as_bytes()`,
+            /// and `&'static str` coerces to `&'input str`.
+            ///
+            /// ⚠️ This replaced a DOCUMENTED-BUT-FALSE assumption. The prior
+            /// form asserted the slice's "internal boundary checks fold under
+            /// const propagation" — disassembling the fat-LTO release probe
+            /// (`1d3fa0ee`) refuted it: the per-atom fast path really did call
+            /// `core::str::…SliceIndex::get` with two `is_char_boundary` checks
+            /// and `slice_error_fail` panic scaffolding. The optimizer could
+            /// not fold them because a POTENTIAL PANIC is an observable effect
+            /// it must preserve — not dead code. Returning the literal removes
+            /// the panic path at the source, which is why it is removable at
+            /// all. Evidence: `docs/tasks/artifacts/g1_atom_cost/`.
             #[inline(always)]
             fn match_lit_ascii<const N: usize>(
                 &mut self,
@@ -8170,7 +8188,7 @@ impl AstBasedGenerator {
                     && self.input.as_bytes()[start..end] == *expected_bytes
                 {
                     self.position = end;
-                    return Ok(&self.input[start..end]);
+                    return Ok(expected);
                 }
                 Err(ParseError::Backtrack { position: start })
             }

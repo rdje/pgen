@@ -1,0 +1,15 @@
+# G1-A PRE-CHANGE artifact baseline (all 11), session #166
+# HEAD: edf010e9
+
+artifact                                              bytes  sha256
+ebnf.rs                                            12193347  bac7ae6bc4be80b8
+json_parser.rs                                       776253  92a9fb112567384a
+regex_parser.rs                                    43693122  cb322b7559872aa5
+return_annotation_parser.rs                         2454044  febede7d5d9b90e5
+rtl_const_expr_parser.rs                            2348387  52f517e17bc473d4
+rtl_frontend_parser.rs                             11443487  af3dbd2ff2413cd9
+scratch_parser.rs                                    277101  4baafb00fcdbb59e
+semantic_annotation_parser.rs                      14535126  27ec9dee3dfbfaf3
+systemverilog_parser.rs                           149216580  10190a984e989b1d
+systemverilog_preprocessor_parser.rs                3245420  2dd5fb0849e0d972
+vhdl_parser.rs                                     12824901  140db52ec191bc77
