@@ -1,0 +1,6 @@
+🔓 @open_scope kind=Custom("lookaround") name=None new_id=ScopeId(1) parent=Some(ScopeId(0)) new_depth=2
+🔒 @close_scope OK id=Some(ScopeId(1)) frame=Some((Custom("lookaround"), None)) new_depth=0
+♻️ rollback_to(checkpoint fact_len=0, scope_arena_len=1, caller=lookaround (C3-B branch 4/7 cleanup), chain=regex > entry_alternation > piece > atom > lookaround) — discarding 128 fact(s) + 1 scope-arena node(s)
+🔁 apply_delta — facts now at 128 (was lower), active_chain now 1, chain=regex > entry_alternation > piece > atom > lookaround
+♻️ rollback_to(checkpoint fact_len=0, scope_arena_len=1, caller=atom (C3-B branch 16/24 cleanup), chain=regex > entry_alternation > piece > atom) — discarding 128 fact(s) + 1 scope-arena node(s)
+🔁 apply_delta — facts now at 128 (was lower), active_chain now 1, chain=regex > entry_alternation > piece > atom
