@@ -1,0 +1,1 @@
+{"id":"pcre2:testdata/testinput2:line_2880","pattern_bytes":450,"expected_parse":"ok","actual_parse":"ok","sampling_mode":"full","warmup":50,"samples":1000,"min_ns":107125,"p50_ns":108458,"mean_ns":109235,"p99_ns":118542,"max_ns":177833}

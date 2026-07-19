@@ -1,0 +1,1 @@
+{"id":"nest_80","pattern_bytes":161,"expected_parse":"ok","actual_parse":"ok","sampling_mode":"full","warmup":50,"samples":1000,"min_ns":156750,"p50_ns":172916,"mean_ns":173402,"p99_ns":183666,"max_ns":266417}
