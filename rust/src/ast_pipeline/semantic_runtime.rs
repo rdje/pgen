@@ -1815,6 +1815,30 @@ pub struct ScopeId(pub u32);
 /// transparently for deeper nests. Semantics identical to `Vec<ScopeId>`.
 pub(crate) type ActiveChain = SmallVec<[ScopeId; 8]>;
 
+/// `RGX-0078.5.j.4` (K4a): one recorded `active_chain` mutation — the undo
+/// trail's unit. The chain mutates at exactly four sites (`open_scope` push /
+/// `close_scope` pop / `apply_delta` wholesale replace / the labeled-rollback
+/// restore, which is the UNWIND of this trail rather than a recorded
+/// mutation), so `chain_trail.len()` is a monotone mutation counter within a
+/// speculation: trail-length equality with a checkpoint proves the chain is
+/// bit-identical to its checkpoint state, and unwinding the entries above a
+/// checkpoint's `chain_trail_len` restores that state exactly. This is what
+/// lets `SemanticRuntimeCheckpoint` carry two `usize`s instead of a chain
+/// CONTENT clone (the `-0148`-pinned per-checkpoint copy populations).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum ChainTrailOp {
+    /// `open_scope` pushed a new id (inverse: pop).
+    Pushed,
+    /// `close_scope` popped this id (inverse: push it back; the closed-flag
+    /// reset is owned by the restore's existing re-open loop).
+    Popped(ScopeId),
+    /// `apply_delta` replaced the whole chain; the pre-replace chain moves
+    /// into the trail (inverse: move it back). Recorded only when the new
+    /// content actually differs, so trail-length equality stays an exact
+    /// unchanged proof.
+    Replaced(ActiveChain),
+}
+
 impl ScopeId {
     /// The implicit global scope, allocated as arena entry 0 at construction.
     pub const ROOT: ScopeId = ScopeId(0);
@@ -1933,7 +1957,7 @@ pub struct DeferredObligation {
     pub source_position: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SemanticRuntimeCheckpoint {
     scope_len: usize,
     fact_len: usize,
@@ -1946,20 +1970,25 @@ pub struct SemanticRuntimeCheckpoint {
     /// rollback the arena truncates back to this point — nodes allocated
     /// during the speculative tx vanish.
     scope_arena_len: usize,
-    /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: snapshot of the active-scope chain at
-    /// checkpoint time. On rollback the chain is restored to exactly this
-    /// sequence — every scope that the speculative tx closed is re-opened
-    /// (its `closed` flag is reset). The chain is at most `scope_arena_len`
-    /// long. (Removing `Copy` from this struct to accommodate the Vec; all
-    /// uses of `SemanticRuntimeCheckpoint` are owned values that can clone
-    /// cheaply since the snapshot is bounded by parser nesting depth.)
-    /// RGX-0078.5.j.4 (K3b): `ActiveChain` (inline-8 SmallVec) — the chain is
-    /// never empty (`[ScopeId::ROOT]` at rest), so a `Vec` snapshot paid a
-    /// real malloc+memcpy+free on EVERY `checkpoint()` (every annotated-rule
-    /// entry + every tournament site). Inline storage covers scope depth ≤ 8
-    /// (the corpus-typical case) allocation-free; deeper chains spill to the
-    /// heap with unchanged semantics.
-    active_chain_snapshot: ActiveChain,
+    /// `RGX-0078.5.j.4` (K4a): the active-chain DEPTH at checkpoint time.
+    /// Replaces the former chain CONTENT snapshot (`ActiveChain`, the struct's
+    /// last non-`Copy` field — K3b/K3d history in git): content restoration is
+    /// now owned by the `chain_trail` unwind (`chain_trail_len` below), so the
+    /// checkpoint is 7 words, `Copy`, and free of Drop glue — the `-0148`
+    /// profile pinned the per-attempt construct/copy/drop of the old ~88-B
+    /// struct at 8.1% of the corpus-MAX cell (~20k calls/parse, every one the
+    /// unchanged fast path) plus the depth≥2 content clone at 7.5% of the
+    /// scope-open exemplar. The depth is retained for the debug asserts and
+    /// the `rollbacks_nonempty_chain` counter ("non-root chain at checkpoint",
+    /// the `-0147` pin — `chain_len > 1` preserves its meaning exactly).
+    chain_len: usize,
+    /// `RGX-0078.5.j.4` (K4a): `chain_trail.len()` at checkpoint time. The
+    /// trail is append-only within a speculation (only rollback unwinds
+    /// truncate it), so trail-length equality proves the chain is
+    /// bit-identical to its checkpoint state — an O(1) exact guard replacing
+    /// the former O(len) content compare — and the entries above this length
+    /// are exactly the mutations a rollback must undo.
+    chain_trail_len: usize,
     /// RGX-0078.5.i.5 P3c-i: the state's `write_epoch` at checkpoint time.
     /// Every delta-visible store mutation bumps the (monotone) epoch, EXCEPT
     /// a deferred-obligation enqueue (deliberately epoch-blind — it never
@@ -2264,11 +2293,11 @@ pub struct SemanticStoreCounters {
     /// delta drop for a delta that is empty by construction — the direct
     /// savings population of the empty-delta fast path.
     pub rollbacks_tournament_unchanged: u64,
-    /// RGX-0078.5.i.5 (P3c scout) — rollbacks whose checkpoint carried a
-    /// NON-empty `active_chain_snapshot` (i.e. `checkpoint()` paid a real
-    /// chain clone alloc). Proxy for the additional margin a STATIC
-    /// effect-free-site elision (which skips the checkpoint entirely) has
-    /// over the dynamic fast path.
+    /// RGX-0078.5.i.5 (P3c scout; re-pinned by `-0147` K3d, representation
+    /// updated by `-0150` K4a) — rollbacks whose checkpoint recorded a
+    /// NON-ROOT active chain (`chain_len > 1`, i.e. at least one scope open
+    /// at checkpoint time). Diagnostic: the per-cell scope-open exposure
+    /// class (`line_2880`-style cells run ~97% here; scope-free parses 0%).
     pub rollbacks_nonempty_chain: u64,
     /// MEMO-STORE-SOUNDNESS.2 — store-consulting predicate evaluations
     /// (`evaluate_predicate` entries; the content-only `content_kind_is`
@@ -2327,6 +2356,16 @@ pub struct SemanticRuntimeState {
     /// scope) so existing consumers (predicates that read scope_depth /
     /// current_scope) continue to work unchanged.
     active_chain: ActiveChain,
+    /// `RGX-0078.5.j.4` (K4a): the chain UNDO TRAIL — one entry per
+    /// `active_chain` mutation (see [`ChainTrailOp`]). Checkpoints record its
+    /// length instead of cloning chain content; rollbacks unwind the entries
+    /// above the checkpoint's length. Append-only between unwinds; cleared
+    /// only with a fresh state. Growth is bounded by the parse's net
+    /// un-unwound scope operations (regex: ~2 per lookaround) — commits
+    /// deliberately do NOT truncate it, because an outer speculation may
+    /// still unwind past committed operations (the same LIFO discipline the
+    /// former content snapshots relied on).
+    chain_trail: Vec<ChainTrailOp>,
     /// `.3.3.4.b.5.1.5.c`: composed-predicate registry, seeded at parser
     /// construction from `CompiledSemanticRuntimeAnnotations.predicate_defs`
     /// via `set_predicate_defs`. `evaluate_predicate` consults this when a
@@ -2488,6 +2527,7 @@ impl SemanticRuntimeState {
             fact_index: FactIndex::default(),
             scope_arena: vec![root_node],
             active_chain: smallvec![ScopeId::ROOT],
+            chain_trail: Vec::new(),
             predicate_defs: HashMap::new(),
             counters: SemanticStoreCounters::default(),
             write_epoch: 0,
@@ -2891,32 +2931,40 @@ impl SemanticRuntimeState {
             // it (mirrors `fact_len`).
             deferred_len: self.deferred_obligations.len(),
             scope_arena_len: self.scope_arena.len(),
-            // `RGX-0078.5.j.4` (K3d): the EMPTY snapshot is a sentinel meaning
-            // "exactly `[ROOT]`" — representable-state-free because a real
-            // chain is never empty (`close_scope` refuses at depth 1, so
-            // `len()==1 ⟺ chain==[ROOT]`). Depth 1 is ~100% of checkpoints on
-            // scope-light grammars (regex outside lookarounds), where the
-            // per-checkpoint chain copy measured 8.8% of the corpus-MAX cell;
-            // `chain_matches_snapshot` / the labeled-rollback restore decode
-            // the sentinel. Deep chains (≥2) clone exactly as before.
-            active_chain_snapshot: if self.active_chain.len() == 1 {
-                SmallVec::new()
-            } else {
-                self.active_chain.clone()
-            },
+            // `RGX-0078.5.j.4` (K4a): two lens instead of a content clone at
+            // ANY depth — the trail owns restoration (the K3d depth-1
+            // sentinel this subsumes lives in git history).
+            chain_len: self.active_chain.len(),
+            chain_trail_len: self.chain_trail.len(),
             write_epoch: self.write_epoch,
         }
     }
 
-    /// `RGX-0078.5.j.4` (K3d): does the live chain equal the checkpoint's
-    /// snapshot? Decodes the empty-snapshot sentinel ("exactly `[ROOT]`").
+    /// `RGX-0078.5.j.4` (K4a): is the live chain bit-identical to its state at
+    /// the checkpoint? Exact by the trail's append-only-between-unwinds
+    /// discipline: any mutation appends an entry, so equal length ⟺ zero
+    /// mutations since the checkpoint ⟹ identical content.
     #[inline]
-    fn chain_matches_snapshot(&self, snapshot: &ActiveChain) -> bool {
-        if snapshot.is_empty() {
-            self.active_chain.len() == 1
-        } else {
-            self.active_chain == *snapshot
+    fn chain_unchanged_since(&self, checkpoint: &SemanticRuntimeCheckpoint) -> bool {
+        self.chain_trail.len() == checkpoint.chain_trail_len
+    }
+
+    /// `RGX-0078.5.j.4` (K4a): reconstruct the chain CONTENT as it was when
+    /// `chain_trail.len()` equalled `trail_len`, by inverse-walking the trail
+    /// above that mark over a clone of the live chain. Slow-path only (the
+    /// extract `closed_scope_ids` filter); O(mutations since the checkpoint).
+    fn reconstruct_chain_at(&self, trail_len: usize) -> ActiveChain {
+        let mut chain = self.active_chain.clone();
+        for op in self.chain_trail[trail_len..].iter().rev() {
+            match op {
+                ChainTrailOp::Pushed => {
+                    chain.pop();
+                }
+                ChainTrailOp::Popped(id) => chain.push(*id),
+                ChainTrailOp::Replaced(old) => chain = old.clone(),
+            }
         }
+        chain
     }
 
     // ========================================================================
@@ -2942,6 +2990,7 @@ impl SemanticRuntimeState {
     /// Returns a delta that `apply_delta` can replay onto the state at
     /// any later point (provided the state's checkpoint matches the one
     /// used to extract this delta).
+    #[inline]
     pub fn extract_delta_since(&self, checkpoint: &SemanticRuntimeCheckpoint) -> SemanticRuntimeDelta {
         // RGX-0078.5.i.5 P3c-i — the O(1) empty fast path. The write epoch is
         // monotone and bumped by EVERY delta-visible mutation (mutation-site
@@ -2955,12 +3004,16 @@ impl SemanticRuntimeState {
         // `final_*` fields are never consumed: every `apply_delta` call site
         // (codegen + interpreter, audited) is guarded by `!delta.is_empty()`,
         // which ignores `final_*` by design.
+        // RGX-0078.5.j.4 (K4a): guard inline / slow path outlined `#[cold]`,
+        // so the dominant unchanged case costs a compare-and-construct at the
+        // call site.
         if self.write_epoch == checkpoint.write_epoch
             && self.deferred_obligations.len() == checkpoint.deferred_len
         {
             debug_assert_eq!(self.facts.len(), checkpoint.fact_len);
             debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
-            debug_assert!(self.chain_matches_snapshot(&checkpoint.active_chain_snapshot));
+            debug_assert!(self.chain_unchanged_since(checkpoint));
+            debug_assert_eq!(self.active_chain.len(), checkpoint.chain_len);
             return SemanticRuntimeDelta {
                 new_facts: Vec::new(),
                 new_scope_nodes: Vec::new(),
@@ -2970,6 +3023,17 @@ impl SemanticRuntimeState {
                 new_obligations: Vec::new(),
             };
         }
+        self.extract_delta_since_slow(checkpoint)
+    }
+
+    /// The outlined slow path of [`Self::extract_delta_since`] — something
+    /// mutated since the checkpoint, so the delta must be materialized.
+    #[cold]
+    #[inline(never)]
+    fn extract_delta_since_slow(
+        &self,
+        checkpoint: &SemanticRuntimeCheckpoint,
+    ) -> SemanticRuntimeDelta {
         let new_facts = if checkpoint.fact_len <= self.facts.len() {
             self.facts[checkpoint.fact_len..].to_vec()
         } else {
@@ -2981,10 +3045,12 @@ impl SemanticRuntimeState {
             Vec::new()
         };
         // Pre-existing scopes that were CLOSED in this transaction: those
-        // in `checkpoint.active_chain_snapshot` (open at checkpoint) but
-        // NOT in the current `active_chain` (closed since).
-        let closed_scope_ids: Vec<ScopeId> = checkpoint
-            .active_chain_snapshot
+        // open at checkpoint time but NOT in the current `active_chain`
+        // (closed since). RGX-0078.5.j.4 (K4a): the checkpoint no longer
+        // carries chain content — reconstruct it from the trail (slow path
+        // only, O(mutations since the checkpoint)).
+        let checkpoint_chain = self.reconstruct_chain_at(checkpoint.chain_trail_len);
+        let closed_scope_ids: Vec<ScopeId> = checkpoint_chain
             .iter()
             .filter(|id| !self.active_chain.contains(id))
             .copied()
@@ -3053,7 +3119,16 @@ impl SemanticRuntimeState {
         // and discarded with it, so only the winner's survive to discharge.
         self.deferred_obligations.extend(delta.new_obligations);
         // Restore active_chain + scopes to the branch's end state.
-        self.active_chain = delta.final_active_chain;
+        // RGX-0078.5.j.4 (K4a): a wholesale chain replace is a trailed
+        // mutation — the pre-replace chain MOVES into the trail (zero-copy)
+        // so an outer rollback can unwind past this apply. Trailed only when
+        // the content actually differs, so trail-length equality stays an
+        // exact unchanged proof (the common tournament winner leaves the
+        // chain untouched and must not degrade outer fast paths).
+        if self.active_chain != delta.final_active_chain {
+            let old_chain = std::mem::replace(&mut self.active_chain, delta.final_active_chain);
+            self.chain_trail.push(ChainTrailOp::Replaced(old_chain));
+        }
         self.scopes = delta.final_scopes;
         // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining delta-apply.
         // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — include rule_context_path for WHO.
@@ -3102,6 +3177,7 @@ impl SemanticRuntimeState {
     /// branch (RGX-0078.5.i.2 P0 — kills the 2×`String` per failed speculation
     /// + the per-successful-branch `format!` the `.5.i.1` census measured at
     /// ≈14.7% of the regex bench, while preserving the WHO/WHY trace contract).
+    #[inline]
     pub fn rollback_to_labeled(
         &mut self,
         checkpoint: SemanticRuntimeCheckpoint,
@@ -3110,19 +3186,25 @@ impl SemanticRuntimeState {
         // RGX-0078.5.i.5 P3c-i — the O(1) no-op fast path (same proof as the
         // `extract_delta_since` fast path: monotone epoch + the epoch-blind
         // deferred-obligation length). Nothing was mutated since the
-        // checkpoint, so the fact-index walk, the truncations, and both
-        // active-chain compares are skipped; the classification counters (an
+        // checkpoint, so the fact-index walk, the truncations, and the
+        // active-chain restore are skipped; the classification counters (an
         // oracle surface) record EXACTLY what the slow path would have — this
         // state is `rollbacks_unchanged` by construction. Measured on the
         // 8-pattern bench, 98.8% of all rollbacks take this path. No trace
         // delta: an unchanged rollback never satisfied the trace condition
         // (facts discarded / arena shrink) on the slow path either.
+        // RGX-0078.5.j.4 (K4a): the checkpoint is now a 7-word `Copy` value
+        // and this guard is `#[inline]` with the slow path outlined `#[cold]`
+        // — the `-0148` counter dump measured 100% of the corpus-MAX cell's
+        // 20,490 rollbacks taking this path, pricing the former per-call
+        // non-`Copy` construct/copy/drop at 8.1% of the cell.
         if self.write_epoch == checkpoint.write_epoch
             && self.deferred_obligations.len() == checkpoint.deferred_len
         {
             debug_assert_eq!(self.facts.len(), checkpoint.fact_len);
             debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
-            debug_assert!(self.chain_matches_snapshot(&checkpoint.active_chain_snapshot));
+            debug_assert!(self.chain_unchanged_since(&checkpoint));
+            debug_assert_eq!(self.active_chain.len(), checkpoint.chain_len);
             debug_assert_eq!(self.scopes.len(), checkpoint.scope_len);
             self.counters.rollbacks += 1;
             self.counters.rollbacks_unchanged += 1;
@@ -3130,11 +3212,23 @@ impl SemanticRuntimeState {
                 self.counters.rollbacks_tournament += 1;
                 self.counters.rollbacks_tournament_unchanged += 1;
             }
-            if !checkpoint.active_chain_snapshot.is_empty() {
+            if checkpoint.chain_len > 1 {
                 self.counters.rollbacks_nonempty_chain += 1;
             }
             return;
         }
+        self.rollback_to_labeled_slow(checkpoint, label);
+    }
+
+    /// The outlined slow path of [`Self::rollback_to_labeled`] — something
+    /// mutated since the checkpoint, so the discards/restores must run.
+    #[cold]
+    #[inline(never)]
+    fn rollback_to_labeled_slow(
+        &mut self,
+        checkpoint: SemanticRuntimeCheckpoint,
+        label: RollbackLabel<'_>,
+    ) {
         let fact_len = checkpoint.fact_len.min(self.facts.len());
         let scope_arena_len = checkpoint.scope_arena_len.max(1).min(self.scope_arena.len());
         // `.3.3.4.b.5.1.1`: extend rollback to undo the per-kind index entries
@@ -3156,7 +3250,7 @@ impl SemanticRuntimeState {
         // re-collapse the memo on store-heavy grammars).
         let store_changed = facts_being_rolled_back > 0
             || self.scope_arena.len() > scope_arena_len
-            || !self.chain_matches_snapshot(&checkpoint.active_chain_snapshot);
+            || !self.chain_unchanged_since(&checkpoint);
         if store_changed {
             self.write_epoch += 1;
         }
@@ -3177,7 +3271,7 @@ impl SemanticRuntimeState {
                 self.counters.rollbacks_tournament_unchanged += 1;
             }
         }
-        if !checkpoint.active_chain_snapshot.is_empty() {
+        if checkpoint.chain_len > 1 {
             self.counters.rollbacks_nonempty_chain += 1;
         }
         // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining rollback trace.
@@ -3251,23 +3345,35 @@ impl SemanticRuntimeState {
         // self-time (`rollback_to_named`). Parser-AGNOSTIC (every generated parser + the
         // interpreter share this method) and correctness-neutral (a no-op skip).
         let scope_state_changed = self.scope_arena.len() > scope_arena_len
-            || !self.chain_matches_snapshot(&checkpoint.active_chain_snapshot);
+            || !self.chain_unchanged_since(&checkpoint);
         if scope_state_changed {
             // `.3.3.4.b.5.1.3`: truncate the arena to checkpoint length —
             // nodes opened during the rolled-back tx are discarded.
             self.scope_arena.truncate(scope_arena_len);
-            // Restore the active chain to its checkpoint snapshot exactly.
-            // Every entry in the snapshot must reference a node that survives
-            // truncation (invariant: nodes in the active chain at checkpoint
-            // time had id < arena.len() at that time = scope_arena_len).
-            // `RGX-0078.5.j.4` (K3d): the empty sentinel means the checkpoint
-            // chain was exactly `[ROOT]` — restore by truncating to the
-            // unpoppable root (same end state as assigning `[ROOT]`).
-            if checkpoint.active_chain_snapshot.is_empty() {
-                self.active_chain.truncate(1);
-            } else {
-                self.active_chain = checkpoint.active_chain_snapshot.clone();
+            // Restore the active chain to its checkpoint state exactly.
+            // `RGX-0078.5.j.4` (K4a): unwind the trail — pop every mutation
+            // recorded after the checkpoint, applying its inverse in place
+            // (`Pushed`⇒pop, `Popped`⇒push it back, `Replaced`⇒move the old
+            // chain back). The unwind consumes the popped entries, so the
+            // trail ends exactly at the checkpoint's length. Every restored
+            // id references a node that survives the arena truncation
+            // (invariant: chain members at checkpoint time had id <
+            // scope_arena_len). The closed-flag resets stay owned by the
+            // re-open loop below.
+            while self.chain_trail.len() > checkpoint.chain_trail_len {
+                match self
+                    .chain_trail
+                    .pop()
+                    .expect("trail length checked by the loop condition")
+                {
+                    ChainTrailOp::Pushed => {
+                        self.active_chain.pop();
+                    }
+                    ChainTrailOp::Popped(id) => self.active_chain.push(id),
+                    ChainTrailOp::Replaced(old) => self.active_chain = old,
+                }
             }
+            debug_assert_eq!(self.active_chain.len(), checkpoint.chain_len);
             // Re-open every node in the restored active chain — the rolled-back
             // tx may have called `close_scope` on any subset of them. Reset
             // their `closed` flag to mirror the checkpoint state.
@@ -3416,6 +3522,8 @@ impl SemanticRuntimeState {
         };
         self.scope_arena.push(node);
         self.active_chain.push(new_id);
+        // RGX-0078.5.j.4 (K4a): trail the push so a rollback can unwind it.
+        self.chain_trail.push(ChainTrailOp::Pushed);
         self.scopes.push(SemanticScopeFrame {
             kind: spec.kind,
             name: spec.name,
@@ -3440,6 +3548,12 @@ impl SemanticRuntimeState {
             // node closed (it stays in the arena, queryable via
             // `scope_arena()` / `scope_children()`).
             let popped_id = self.active_chain.pop();
+            // RGX-0078.5.j.4 (K4a): trail the pop (with its id) so a rollback
+            // can push it back; the restore's re-open loop resets its
+            // `closed` flag.
+            if let Some(id) = popped_id {
+                self.chain_trail.push(ChainTrailOp::Popped(id));
+            }
             let popped_frame = self.scopes.pop();
             // SV-EXH-PROOF.3.3.4.b.6.2.28 — successful scope close.
             crate::pgen_trace_high!(
@@ -7929,6 +8043,38 @@ mod tests {
     }
 
     #[test]
+    fn chain_trail_unwinds_apply_delta_replacement() {
+        // RGX-0078.5.j.4 (K4a): an OUTER rollback must restore the chain past
+        // an inner tournament's `apply_delta` wholesale replacement — the
+        // `Replaced` trail arm (the one trail op with no pre-K4a analogue in
+        // the Pushed/Popped restore test above).
+        let mut state = SemanticRuntimeState::new();
+        let outer_cp = state.checkpoint();
+        // Inner tournament branch: opens a scope and leaves it open.
+        let inner_cp = state.checkpoint();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("W")),
+        });
+        let winner_scope = state.current_scope_id();
+        let delta = state.extract_delta_since(&inner_cp);
+        assert!(!delta.is_empty());
+        // C3-B branch cleanup, then the winner's delta replays — the chain is
+        // wholesale-replaced `[ROOT]` → `[ROOT, W]` (the `Replaced` append).
+        state.rollback_to(inner_cp);
+        assert_eq!(state.active_chain(), &[super::ScopeId::ROOT]);
+        state.apply_delta(delta);
+        assert_eq!(state.active_chain(), &[super::ScopeId::ROOT, winner_scope]);
+        // The outer speculation fails: the unwind must move the pre-apply
+        // chain back and the arena/scopes must return to the outer state.
+        state.rollback_to(outer_cp);
+        assert_eq!(state.active_chain(), &[super::ScopeId::ROOT]);
+        assert_eq!(state.scope_arena().len(), 1);
+        assert_eq!(state.current_scope_id(), super::ScopeId::ROOT);
+        assert_eq!(state.scopes().len(), 1);
+    }
+
+    #[test]
     fn scope_tree_emitted_fact_carries_scope_id() {
         // Emitting a fact while inside a class scope records the class's
         // scope_id on the fact record.
@@ -8778,12 +8924,12 @@ mod tests {
         let mut state = SemanticRuntimeState::new();
 
         // 1. A zero-change speculation rollback (the try_parse Err shape) is
-        //    UNCHANGED and non-tournament. `RGX-0078.5.j.4` (K3d): a depth-1
-        //    checkpoint stores the root-elided sentinel snapshot, so the
-        //    `rollbacks_nonempty_chain` counter now means "the checkpoint had
-        //    a NON-ROOT chain" — a root-only rollback no longer increments it
-        //    (pre-K3d the never-empty chain made this counter degenerate:
-        //    it incremented on every rollback).
+        //    UNCHANGED and non-tournament. `RGX-0078.5.j.4` (K3d, semantics;
+        //    K4a, representation — the checkpoint records `chain_len`, no
+        //    content): the `rollbacks_nonempty_chain` counter means "the
+        //    checkpoint had a NON-ROOT chain" (`chain_len > 1`) — a root-only
+        //    rollback does not increment it (pre-K3d the never-empty chain
+        //    made this counter degenerate: it incremented on every rollback).
         let cp = state.checkpoint();
         state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
         assert_eq!(state.counters().rollbacks, 1);
@@ -8842,9 +8988,9 @@ mod tests {
         // The obligation itself was discarded by the rollback.
         assert_eq!(state.deferred_obligation_count(), 0);
 
-        // 5. K3d positive direction: a checkpoint taken with a real (non-root)
-        //    scope open DOES count — the sentinel elision applies only to the
-        //    depth-1 case, and the rollback restores the deeper chain exactly.
+        // 5. K3d positive direction (K4a-preserved): a checkpoint taken with a
+        //    real (non-root) scope open DOES count (`chain_len == 2`), and the
+        //    rollback leaves/restores the deeper chain exactly.
         state.open_scope(SemanticScopeSpec {
             kind: super::SemanticScopeKind::Custom("class".to_string()),
             name: Some(ident("C")),
