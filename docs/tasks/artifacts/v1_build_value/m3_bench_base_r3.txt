@@ -1,0 +1,19 @@
+memory-guard: started pid=99192 pgid=99192 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=68% disk=40GB cmd: /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c96783b5-c8fa-4175-8740-fef15ac040e4/scratchpad/probe_base_e34f3229 --samples 2000 --warmup 200
+# Regex parse perf probe — PGEN-RGX-0073 baseline
+# samples=2000 warmup=200 build=release feature=generated_parsers
+
+pattern                  min (ns)       p50 (ns)      mean (ns)       p99 (ns)       max (ns)    samples
+------------------------------------------------------------------------------------------------------
+literal_simple                541            625            651            792          14166       2000
+digit_sequence               1625           1750           1811           2250          16166       2000
+character_class              8667           9083           9268          11625          63541       2000
+alternation                  1458           1542           1632           2792          27667       2000
+capture_groups               3458           3625           3713           4375          55833       2000
+url_simple                   1208           1333           1341           1667          13375       2000
+email_basic                  1542           1667           1678           1833          14167       2000
+anchor_complex               6208           6500           6609           7917          40750       2000
+
+# RGX bug-bundle reference (rgx_compile_phase_split.txt, 1000 samples, 50 warmup, Apple M4 Pro):
+# literal_simple ~407ns p50  digit_sequence ~819ns  character_class ~2.35ms  alternation ~1.02ms
+# capture_groups ~1.56ms     url_simple ~1.45ms      email_basic ~1.17ms     anchor_complex ~2.70ms
+memory-guard: completed exit=0 peak_tree_rss=0MB elapsed=5s; marker: /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c96783b5-c8fa-4175-8740-fef15ac040e4/scratchpad/m3s3_bench_base_r3.marker

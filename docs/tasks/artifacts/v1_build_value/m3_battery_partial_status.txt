@@ -1,0 +1,34 @@
+# V1 M3 emission (-0156) — battery partial status (session #160, 2026-07-19)
+# The M3 lib change: rust/src/ast_pipeline/mod.rs to_shaped_value Sequence/Quantified arm -> SmallVec<[PgenValue;8]> (the -0155 design verbatim).
+
+== STAGE 1 (COMPLETED GREEN) ==
+build_rc=0
+libtest_rc=0
+stage1_verdict=GREEN
+test result: ok. 988 passed; 0 failed; 29 ignored; 0 measured; 0 filtered out; finished in 113.88s
+memory-guard: completed exit=0 peak_tree_rss=9614MB elapsed=212s; marker: /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c96783b5-c8fa-4175-8740-fef15ac040e4/scratchpad/m3_libtest.marker
+memory-guard: completed exit=0 peak_tree_rss=6805MB elapsed=106s; marker: /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c96783b5-c8fa-4175-8740-fef15ac040e4/scratchpad/m3_build.marker
+
+== STAGE 2 (partial — killed mid-typed-diff by an external INT/TERM ~10min in) ==
+memory-guard: started pid=96195 pgid=96195 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=71% disk=42GB cmd: bash -c cd 'rust' && for s in 0 7 42; do ./target/debug/ast_pipeline ../grammars/regex.ebnf --report-certificate-coverage --entry-rule regex --count 100 --seed $s 2>&1 | grep CERTIFICATE-COVERAGE; done
+CERTIFICATE-COVERAGE: grammar='regex' entry='regex' samples=100 total=268 proof=9 witness=259 UNKNOWN=0 fully_certified=true (sample_parse_failures=1, proof_reverify_failures=0)
+CERTIFICATE-COVERAGE: grammar='regex' entry='regex' samples=100 total=268 proof=9 witness=259 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)
+CERTIFICATE-COVERAGE: grammar='regex' entry='regex' samples=100 total=268 proof=9 witness=259 UNKNOWN=0 fully_certified=true (sample_parse_failures=2, proof_reverify_failures=0)
+✅ Regex PCRE2 compile oracle gate passed.
+✅ duality-hunt gate passed.
+✅ Duality-hunt gate passed.
+✅ AST-shape contract gate passed.
+
+== KILL EVENTS + CUSTODY ==
+stage2 killed 13:05-class mid-regex_typed_differential_gate; artifact left at hooks vintage 744c1814; canonical 95fdb3c7 re-derived byte-exactly (direct RUST_GENERATOR recipe from rust/, M3-vintage dual-feature binary) — ALSO proves the M3 lib change leaves the emitter untouched.
+stage2b killed 13:19 ~4min into the SAME gate (guard log: 'guard received INT/TERM'); artifact 744c1814 again; canonical 95fdb3c7 re-derived byte-exactly a second time.
+custody now: regex 95fdb3c7 / ebnf bac7aeb6-class canonical (see below)
+95fdb3c7 generated/regex_parser.rs
+bac7ae6b generated/ebnf.rs
+
+== REMAINING LEGS (paused pending director confirm — two external INT/TERM kills, cause UNKNOWN — director confirmed NOT director-initiated; both mid-typed-diff fat-LTO build) ==
+regex_typed_differential_gate (+ hash tripwire), clippy_on_rust_change, final dual-feature rebuild, stage-3 acceptance A/B (base e34f3229 floor-validate -> cand fat-LTO build -> alternated 5x2000 + corpus + ladder -> m3_analyze)
+
+== FINAL (appended post-battery): stage 2b GREEN (typed-diff PASS, trap 14th firing caught+restored 95fdb3c7; clippy source-strict ok; custody canonical) ==
+== STAGE 3 A/B COMPLETE: floorval best-of-3 -0.46% OK; cand 1807efc6; corpus MAX +0.30% / geomean +1.11% / bench +0.47% / ladder +0.93%; ZERO verdict flips (2189+39) ==
+== VERDICT: the <-1% falsification bound FIRED => M3 REFUSED + REVERTED per the pre-adjudicated .5.d.2 rule (mechanism-adding, below bar); diff banked m3_reverted_diff.patch; base probe e34f3229 restored on disk; dual-feature binary rebuilt at HEAD ==

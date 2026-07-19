@@ -1,0 +1,19 @@
+memory-guard: started pid=99447 pgid=99447 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=68% disk=40GB cmd: /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c96783b5-c8fa-4175-8740-fef15ac040e4/scratchpad/probe_base_e34f3229 --corpus-jsonl docs/tasks/artifacts/worst_cell_rootcause/ladder.jsonl --out-jsonl docs/tasks/artifacts/v1_build_value/m3_ladder_base.jsonl --samples 300 --warmup 30
+# Regex corpus parse-time sweep — per-case stats in docs/tasks/artifacts/v1_build_value/m3_ladder_base.jsonl
+# corpus=docs/tasks/artifacts/worst_cell_rootcause/ladder.jsonl cases=39 accepts=39 rejects=0 expectation_mismatches=0
+# sampling: full=39 (samples=300 warmup=30) reduced=0 (samples=5 warmup=1, cold parse >= 100 ms) single_shot=0 (cold parse >= 2000 ms)
+# geomean(min_ns)=10832.8 max(min_ns)=162167 (164 bytes, orig_4674)
+#
+# slowest 10 cases by min_ns:
+#     min (ns)  pattern bytes id
+#       162167            164 orig_4674
+#       161875            161 nest_80
+#       161416            164 nestbr_80
+#       110584            129 nest_64
+#        88292            113 nest_56
+#        53958             84 nestbr_40
+#        53416             81 nest_40
+#        38833             65 nest_32
+#        20833             44 nestbr_20
+#        20166             41 nest_20
+memory-guard: completed exit=0 peak_tree_rss=0MB elapsed=5s; marker: /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c96783b5-c8fa-4175-8740-fef15ac040e4/scratchpad/m3s3_ladder_base.marker
