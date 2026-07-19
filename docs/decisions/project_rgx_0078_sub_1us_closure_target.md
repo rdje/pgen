@@ -139,3 +139,40 @@ and the director decides then (relax to a geomean+median bar, or accept a small 
 outlier list). Distance-to-bar snapshot at this confirmation (K3b floor, probe `2620abf8`):
 geomean 1,864.8 ns / p50 1,708 ns / 68.4% of ≤121 B cells >1µs / worst small cell 28.0 µs
 (`line_1866`) / tail 21/21 >8 ns/B / corpus MAX 886,125 ns.
+
+---
+
+**2026-07-19 — DIRECTOR AGREEMENT: MILESTONE STAGING + CAMPAIGN END-CONDITION (session #161,
+banked `PGEN-RGX-0078-0159`).** Post-`-0157`/`-0158` (K4b census + C1 design), the director asked
+two staging questions and confirmed the engineer's recommendations verbatim ("ok we agree! …
+you have done a tremendous job so far, we are close to end of this reduction campaign. Please
+continue."):
+
+1. **Next recorded MILESTONES (waypoints, not bar changes):** corpus **MAX ≤ 500 µs** (from
+   ≈735 µs; assessed doable within the named K-program, ~3–6 slices, moderately high
+   confidence) and **corpus geomean < 1 µs** (from ≈1,583 ns; assessed probable on trajectory).
+   Bench geomean sub-1 µs = DIRECTIONAL goal (needs −53%; constants measurably exhausting ⇒
+   requires structural finds; re-priced after the post-C1/K5 re-profile). The two-leg closure
+   bar (≤p99-size < 1 µs absolute + ~8 ns/B tail) STANDS unchanged — these milestones are on
+   the way to it, and the hard half remains the ≤p99 population edge (65.2% still >1 µs at the
+   K4a floor), not the distribution's middle.
+2. **The 500 ns (0.5 µs) geomean question — deferred to a PRICED go/no-go:** the engineer's
+   recorded assessment: NOT reachable with the currently-named levers (those land ~1.0–1.2 µs
+   geomean); possibly reachable via the representation road (`.5.j.1` protocol-zone
+   value-ization + a small-parse lazy-container lane + entry-count/fusion reduction — a 10 B
+   parse in ~500 ns is hand-written-parser territory, physically plausible, unproven). After
+   the K-program lands, a **fresh road-arithmetic endgame census** (the `-0123`
+   perfect-endgame method, updated) states with populations whether 500 ns is reachable and at
+   what slice cost — the director decides on data, not hope. Measurement caveat recorded: at
+   500 ns scale the ~40–60 ns timer quantum is ~10% of signal ⇒ the A/B methodology needs
+   upgrading (cycle counters / larger batches) before claims at that scale.
+3. **The campaign's END CONDITION (the director's framing: "reduce as much as possibly doable
+   before calling the whole process off"):** the falsification discipline IS the stopping
+   criterion — the campaign ends when census-backed levers stop existing (measured-exhausted
+   verdicts across ALL population classes, the V1-closure pattern), i.e. on a PROVEN floor,
+   never on fatigue. Every remaining percent that exists gets found; accuracy floor immovable
+   throughout (verdict-identity gates on every slice).
+
+Distance snapshot at this agreement (K4a-class floor, probe `e34f3229`): bench ≈2,146 ns
+(≈231×) / corpus geomean ≈1,583 ns / corpus MAX ≈735 µs / ≤p99 violations 65.2%. Next action:
+the C1 emission program (`-0160`, census STEP-A first) per `docs/tasks/artifacts/k4b_delta/step1_c1_design.md`.
