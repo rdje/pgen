@@ -1,0 +1,142 @@
+FUSIBILITY-CENSUS: grammar=ebnf rules=131 fusible=14 (token=14 lookahead=0) not_fusible=117 (shape_only=36) maximal_roots=13 static_share=10.7%
+  gate: increment-1 strict (regular + effect-free + text-folding + policy-encodable + layout-contiguous) — RGX-0078.5.h section F
+  match_regex surface: 30 regex-literal atom sites (23 distinct patterns) — the derived-DFA engine-replacement surface (self-hosting), independent of rule-level fusion
+  maximal fusible roots (future scan_* sites):
+    [root:token] regex_content
+    [root:token] regex_flags
+    [root:token] quantified_marker
+    [root:token] extraction_target
+    [root:token] spread_marker
+    [root:token] arithmetic_operator
+    [root:token] lookahead_operator
+    [root:token] case_modifier
+    [root:token] comment_content
+    [root:token] block_comment_content
+    [root:token] predicate_content
+    [root:token] action_content
+    [root:token] optimization_directive
+  disqualification histogram (rules per reason):
+      116  branch 1 return annotation is not a matched-text fold
+       76  internal layout boundary (multi-lexeme body under a layout-skipping policy)
+       29  branch 2 return annotation is not a matched-text fold
+       24  branch 3 return annotation is not a matched-text fold
+       12  branch 4 return annotation is not a matched-text fold
+        8  references non-encodable rule 'return_expression'
+        7  branch 5 return annotation is not a matched-text fold
+        7  references non-encodable rule 'rule_expression'
+        5  references non-encodable rule 'positional_reference'
+        4  references non-encodable rule 'primary_element'
+        3  branch 6 return annotation is not a matched-text fold
+        3  native builtin 'semantic_annotation' outside the increment-1 gate
+        3  references non-encodable rule 'scalar_return'
+        2  references non-encodable rule 'grammar_rule'
+        2  references non-encodable rule 'named_reference'
+        2  references non-encodable rule 'object_return'
+        2  references non-encodable rule 'return_annotation'
+        2  references non-encodable rule 'string_list'
+        1  branch 1 default fold is not matched text
+        1  branch 10 return annotation is not a matched-text fold
+        1  branch 11 return annotation is not a matched-text fold
+        1  branch 12 return annotation is not a matched-text fold
+        1  branch 7 return annotation is not a matched-text fold
+        1  branch 8 return annotation is not a matched-text fold
+        1  branch 9 return annotation is not a matched-text fold
+        1  references non-encodable rule 'alternation'
+        1  references non-encodable rule 'annotation_list'
+        1  references non-encodable rule 'arithmetic_return'
+        1  references non-encodable rule 'array_element_return'
+        1  references non-encodable rule 'array_return'
+        1  references non-encodable rule 'block_comment'
+        1  references non-encodable rule 'bounded_quantifier'
+        1  references non-encodable rule 'character_class'
+        1  references non-encodable rule 'character_class_content'
+        1  references non-encodable rule 'character_class_item'
+        1  references non-encodable rule 'character_range_item'
+        1  references non-encodable rule 'comment'
+        1  references non-encodable rule 'computed_property_return'
+        1  references non-encodable rule 'conditional_return'
+        1  references non-encodable rule 'documentation_comment'
+        1  references non-encodable rule 'error_recovery_action'
+        1  references non-encodable rule 'exception_list'
+        1  references non-encodable rule 'expression_return'
+        1  references non-encodable rule 'extraction_reference'
+        1  references non-encodable rule 'flatten_reference'
+        1  references non-encodable rule 'function_call_return'
+        1  references non-encodable rule 'grouped_expression'
+        1  references non-encodable rule 'include_directive'
+        1  references non-encodable rule 'include_directories'
+        1  references non-encodable rule 'include_files'
+        1  references non-encodable rule 'include_item_list'
+        1  references non-encodable rule 'include_short_form'
+        1  references non-encodable rule 'inline_semantic_annotation'
+        1  references non-encodable rule 'line_comment'
+        1  references non-encodable rule 'lookahead_assertion'
+        1  references non-encodable rule 'max_count'
+        1  references non-encodable rule 'member_access_return'
+        1  references non-encodable rule 'min_count'
+        1  references non-encodable rule 'object_property_return'
+        1  references non-encodable rule 'optimization_parameters'
+        1  references non-encodable rule 'optional_element'
+        1  references non-encodable rule 'parameter_list'
+        1  references non-encodable rule 'probability_quantifier'
+        1  references non-encodable rule 'property_access_suffix'
+        1  references non-encodable rule 'quantified_element'
+        1  references non-encodable rule 'quantified_reference'
+        1  references non-encodable rule 'quantifier'
+        1  references non-encodable rule 'quantifier_bounds'
+        1  references non-encodable rule 'range_count'
+        1  references non-encodable rule 'reference_base'
+        1  references non-encodable rule 'reference_property_access'
+        1  references non-encodable rule 'regex_pattern'
+        1  references non-encodable rule 'rule_definition'
+        1  references non-encodable rule 'sequence'
+        1  references non-encodable rule 'sequence_element'
+        1  references non-encodable rule 'simple_property'
+        1  references non-encodable rule 'skip_to'
+        1  references non-encodable rule 'spread_property_return'
+        1  references non-encodable rule 'spread_reference'
+        1  references non-encodable rule 'sync_to'
+        1  references non-encodable rule 'terminal'
+        1  references non-encodable rule 'type_argument_list'
+CHOICE-SITE-CENSUS: grammar=ebnf sites=38 (top_level=35) with_encodable_subset=29 all_encodable=20
+DEGENERACY-CENSUS: grammar=ebnf top_level_sites=35 degenerate_dispatch=0
+  gate: top-level + terminal-ws-sensitive + all branches first-byte-decided + pairwise-disjoint + no branch predicates/effects — RGX-0078.5.i.3 (P2)
+  degeneracy blocker histogram (top-level site occurrences):
+       48  branch not first-byte-decided
+       35  terminals skip leading layout (R2 raw-byte peek unsound)
+       14  first-byte overlap between branches
+PREFIX2-CENSUS: grammar=ebnf blocked_top_level_sites=35 prefix2_dispatchable=0 (wildcard_limited=0)
+  gate: the P2 gates minus first-byte disjointness + per shared first byte: resolved second-byte facts + non-wildcard members pairwise-disjoint on byte 2 — RGX-0078.5.i.7 (D1)
+  prefix2 blocker histogram (blocked-site occurrences):
+       48  branch not first-byte-decided
+       35  terminals skip leading layout (R2 raw-byte peek unsound)
+        9  branch second bytes unresolved
+        2  second-byte overlap between branches
+FIRSTK-CENSUS: grammar=ebnf top_level_branches=135 guarded=0 deeper_than_level1=0 with_emulation=0 truncated=0 d1_fallback=0
+  gate: level-1 admission (branch_dispatch_first_bytes) + per-path bounded trie (depth≤4, fanout≤24, ≤16 nodes) + exact furthest emulation on refutation arms — RGX-0078.5.j.4 (C1)
+  firstk level-1 refusal histogram (unguarded branches):
+      135  terminals skip leading layout (R2 raw-byte peek unsound)
+QUANT-SITE-CENSUS: grammar=ebnf quantified_sites=29 min_zero=26 guardable=0 (bare_ref=0 no_refs=0 mixed=0)
+  gate: min-0 quantifier + terminal-ws-sensitive + element first-byte-decided + predicate/effect-free reachable closure — RGX-0078.5.i.7 (Q-GUARD); the EMISSION guards bare_ref (+ exact furthest emulation) and no_refs sites only
+  quant blocker histogram (blocked min-0 site occurrences):
+       26  terminal layout skipping (R2 raw-byte peek unsound)
+        8  element not first-byte-decided
+CASCADE-CENSUS: grammar=ebnf rules=131 cascade_eligible=130 (roots=15 internal=115 internal_cyclic=20) residual=1 boundary_edges=1
+  gate: effect-free + policy-encodable ONLY — cycles/layout/lookahead/value shapes are emittable by a fused matcher (named facts, not blockers) — RGX-0078.5.i.7 (D2)
+  cascade blocker histogram (rule occurrences):
+        1  @stop_at_rule_boundary quantifier break policy
+CASCADE-PLAN: grammar=ebnf increment=A(acyclic-subregions) sub_roots=30 internal=79 effect_reaching_fused=11 (of 109 fused)
+  model: cyclic eligible rules stay protocol boundaries in this increment (no memo lane, no recursion); sub-roots keep the full protocol frame + the observability-twin dispatch; internal rules run as fused cascade_* functions on the bare-parse path; effect-reaching fused rules carry the C3-B snapshot/island obligations.
+CASCADE-PLAN-B: grammar=ebnf increment=B(cyclic-spine) sub_roots=15 internal=115 thin_memo=21 effect_reaching_fused=19 (of 130 fused)
+  model: EVERY cascade-eligible rule fused (sub-roots = the census's full-fold roots, keeping the protocol frame + twin dispatch); cycle-participating fused rules carry the epoch-stamped thin memo (⛔ the #49 bound — they never lose memo protection); effect obligations as in increment A.
+DIRECT-VALUE-PLAN: grammar=ebnf barrier=82 value_licensed=39 node_locked=9 (of 130 fused; demoted=1)
+  model (session #150 corrected): barrier rules (VALUE-PURE fold on every branch) build value-internally unconditionally; value-licensed rules (undemanded through content-position references) convert early (compositional to_shaped_value); node-locked rules keep node builds (escape root, content-position demand, or a NAMED vocabulary demotion).
+BOUNDARY-SCANNER-PLAN: grammar=ebnf rules=0 (text=0 span_transform=0 shaped_object=0; sub_roots=0 residual=0; post_predicates=0) dropped_candidates=15
+  model: per plan rule a direct-coded frameless scan_<rule> serves BARE-path call sites (protocol twin verbatim; exact furthest emulation; acyclic O(k) memo-loss) — RGX-0078.5.i.9 (D3)
+INLINE-CENSUS: grammar=ebnf rules=131 inline_eligible=108 (pass_through=4 alternation_leaf=10 shaped=94)
+  gate: acyclic (guard non-load-bearing) + directive-free frame + non-entry + no @profiles/@transform — RGX-0078.5.i.4 (P1)
+  inline blocker histogram (rule occurrences):
+       22  reference cycle (recursion guard is load-bearing)
+        1  entry rule
+INLINE-DECISIONS: grammar=ebnf decided_under_budget=84 over_budget=24 (expansion_cap=12 duplication_cap=192)
+  census JSON written to docs/tasks/artifacts/k4b_delta/stepA_firstk/census_ebnf.json

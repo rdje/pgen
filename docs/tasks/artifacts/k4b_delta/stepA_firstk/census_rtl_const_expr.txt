@@ -1,0 +1,99 @@
+FUSIBILITY-CENSUS: grammar=rtl_const_expr rules=48 fusible=1 (token=1 lookahead=0) not_fusible=47 (shape_only=0) maximal_roots=1 static_share=2.1%
+  gate: increment-1 strict (regular + effect-free + text-folding + policy-encodable + layout-contiguous) — RGX-0078.5.h section F
+  match_regex surface: 4 regex-literal atom sites (4 distinct patterns) — the derived-DFA engine-replacement surface (self-hosting), independent of rule-level fusion
+  maximal fusible roots (future scan_* sites):
+    [root:token] trivia
+  disqualification histogram (rules per reason):
+       47  internal layout boundary (multi-lexeme body under a layout-skipping policy)
+       29  branch 1 default fold is not matched text
+       18  branch 1 return annotation is not a matched-text fold
+        5  branch 2 default fold is not matched text
+        4  branch 2 return annotation is not a matched-text fold
+        3  references non-encodable rule 'conditional_expr'
+        2  branch 3 default fold is not matched text
+        2  branch 3 return annotation is not a matched-text fold
+        2  references non-encodable rule 'minus'
+        2  references non-encodable rule 'plus'
+        2  references non-encodable rule 'unary_expr'
+        1  branch 4 default fold is not matched text
+        1  branch 4 return annotation is not a matched-text fold
+        1  branch 5 return annotation is not a matched-text fold
+        1  references non-encodable rule 'additive_expr'
+        1  references non-encodable rule 'additive_op'
+        1  references non-encodable rule 'bang'
+        1  references non-encodable rule 'based_integer'
+        1  references non-encodable rule 'bit_and'
+        1  references non-encodable rule 'bit_and_expr'
+        1  references non-encodable rule 'bit_or'
+        1  references non-encodable rule 'bit_or_expr'
+        1  references non-encodable rule 'bit_xor'
+        1  references non-encodable rule 'bit_xor_expr'
+        1  references non-encodable rule 'colon'
+        1  references non-encodable rule 'decimal_integer'
+        1  references non-encodable rule 'eqeq'
+        1  references non-encodable rule 'equality_expr'
+        1  references non-encodable rule 'equality_op'
+        1  references non-encodable rule 'ge'
+        1  references non-encodable rule 'gt'
+        1  references non-encodable rule 'identifier'
+        1  references non-encodable rule 'le'
+        1  references non-encodable rule 'literal'
+        1  references non-encodable rule 'logical_and'
+        1  references non-encodable rule 'logical_and_expr'
+        1  references non-encodable rule 'logical_or'
+        1  references non-encodable rule 'logical_or_expr'
+        1  references non-encodable rule 'lparen'
+        1  references non-encodable rule 'lt'
+        1  references non-encodable rule 'multiplicative_expr'
+        1  references non-encodable rule 'multiplicative_op'
+        1  references non-encodable rule 'ne'
+        1  references non-encodable rule 'percent'
+        1  references non-encodable rule 'primary_expr'
+        1  references non-encodable rule 'question'
+        1  references non-encodable rule 'relational_expr'
+        1  references non-encodable rule 'relational_op'
+        1  references non-encodable rule 'rparen'
+        1  references non-encodable rule 'shift_expr'
+        1  references non-encodable rule 'shift_op'
+        1  references non-encodable rule 'shl'
+        1  references non-encodable rule 'shr'
+        1  references non-encodable rule 'slash'
+        1  references non-encodable rule 'star'
+        1  references non-encodable rule 'tilde'
+CHOICE-SITE-CENSUS: grammar=rtl_const_expr sites=9 (top_level=9) with_encodable_subset=0 all_encodable=0
+DEGENERACY-CENSUS: grammar=rtl_const_expr top_level_sites=9 degenerate_dispatch=0
+  gate: top-level + terminal-ws-sensitive + all branches first-byte-decided + pairwise-disjoint + no branch predicates/effects — RGX-0078.5.i.3 (P2)
+  degeneracy blocker histogram (top-level site occurrences):
+       25  branch not first-byte-decided
+        9  terminals skip leading layout (R2 raw-byte peek unsound)
+PREFIX2-CENSUS: grammar=rtl_const_expr blocked_top_level_sites=9 prefix2_dispatchable=0 (wildcard_limited=0)
+  gate: the P2 gates minus first-byte disjointness + per shared first byte: resolved second-byte facts + non-wildcard members pairwise-disjoint on byte 2 — RGX-0078.5.i.7 (D1)
+  prefix2 blocker histogram (blocked-site occurrences):
+       25  branch not first-byte-decided
+        9  terminals skip leading layout (R2 raw-byte peek unsound)
+FIRSTK-CENSUS: grammar=rtl_const_expr top_level_branches=25 guarded=0 deeper_than_level1=0 with_emulation=0 truncated=0 d1_fallback=0
+  gate: level-1 admission (branch_dispatch_first_bytes) + per-path bounded trie (depth≤4, fanout≤24, ≤16 nodes) + exact furthest emulation on refutation arms — RGX-0078.5.j.4 (C1)
+  firstk level-1 refusal histogram (unguarded branches):
+       25  terminals skip leading layout (R2 raw-byte peek unsound)
+QUANT-SITE-CENSUS: grammar=rtl_const_expr quantified_sites=10 min_zero=10 guardable=0 (bare_ref=0 no_refs=0 mixed=0)
+  gate: min-0 quantifier + terminal-ws-sensitive + element first-byte-decided + predicate/effect-free reachable closure — RGX-0078.5.i.7 (Q-GUARD); the EMISSION guards bare_ref (+ exact furthest emulation) and no_refs sites only
+  quant blocker histogram (blocked min-0 site occurrences):
+       10  element not first-byte-decided
+       10  terminal layout skipping (R2 raw-byte peek unsound)
+CASCADE-CENSUS: grammar=rtl_const_expr rules=48 cascade_eligible=48 (roots=1 internal=47 internal_cyclic=13) residual=0 boundary_edges=0
+  gate: effect-free + policy-encodable ONLY — cycles/layout/lookahead/value shapes are emittable by a fused matcher (named facts, not blockers) — RGX-0078.5.i.7 (D2)
+CASCADE-PLAN: grammar=rtl_const_expr increment=A(acyclic-subregions) sub_roots=21 internal=14 effect_reaching_fused=0 (of 35 fused)
+  model: cyclic eligible rules stay protocol boundaries in this increment (no memo lane, no recursion); sub-roots keep the full protocol frame + the observability-twin dispatch; internal rules run as fused cascade_* functions on the bare-parse path; effect-reaching fused rules carry the C3-B snapshot/island obligations.
+CASCADE-PLAN-B: grammar=rtl_const_expr increment=B(cyclic-spine) sub_roots=1 internal=47 thin_memo=13 effect_reaching_fused=0 (of 48 fused)
+  model: EVERY cascade-eligible rule fused (sub-roots = the census's full-fold roots, keeping the protocol frame + twin dispatch); cycle-participating fused rules carry the epoch-stamped thin memo (⛔ the #49 bound — they never lose memo protection); effect obligations as in increment A.
+DIRECT-VALUE-PLAN: grammar=rtl_const_expr barrier=13 value_licensed=35 node_locked=0 (of 48 fused; demoted=0)
+  model (session #150 corrected): barrier rules (VALUE-PURE fold on every branch) build value-internally unconditionally; value-licensed rules (undemanded through content-position references) convert early (compositional to_shaped_value); node-locked rules keep node builds (escape root, content-position demand, or a NAMED vocabulary demotion).
+BOUNDARY-SCANNER-PLAN: grammar=rtl_const_expr rules=0 (text=0 span_transform=0 shaped_object=0; sub_roots=0 residual=0; post_predicates=0) dropped_candidates=0
+  model: per plan rule a direct-coded frameless scan_<rule> serves BARE-path call sites (protocol twin verbatim; exact furthest emulation; acyclic O(k) memo-loss) — RGX-0078.5.i.9 (D3)
+INLINE-CENSUS: grammar=rtl_const_expr rules=48 inline_eligible=34 (pass_through=0 alternation_leaf=0 shaped=34)
+  gate: acyclic (guard non-load-bearing) + directive-free frame + non-entry + no @profiles/@transform — RGX-0078.5.i.4 (P1)
+  inline blocker histogram (rule occurrences):
+       13  reference cycle (recursion guard is load-bearing)
+        1  entry rule
+INLINE-DECISIONS: grammar=rtl_const_expr decided_under_budget=32 over_budget=2 (expansion_cap=12 duplication_cap=192)
+  census JSON written to docs/tasks/artifacts/k4b_delta/stepA_firstk/census_rtl_const_expr.json

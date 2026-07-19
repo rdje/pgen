@@ -1,0 +1,2153 @@
+{
+  "grammar_name": "builtin_return_annotation",
+  "total_rules": 32,
+  "fusible_token": 12,
+  "fusible_lookahead": 0,
+  "not_fusible": 20,
+  "shape_only": 0,
+  "regex_atom_sites": 7,
+  "distinct_regex_patterns": 7,
+  "maximal_roots": [
+    "extraction_target",
+    "spread_suffix",
+    "property_text",
+    "raw_key",
+    "dq_char",
+    "number_literal",
+    "boolean_literal",
+    "unsigned_integer",
+    "ws"
+  ],
+  "reason_histogram": [
+    [
+      "branch 1 default fold is not matched text",
+      20
+    ],
+    [
+      "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+      17
+    ],
+    [
+      "references non-encodable rule 'return_value'",
+      6
+    ],
+    [
+      "branch 2 default fold is not matched text",
+      2
+    ],
+    [
+      "branch 3 default fold is not matched text",
+      2
+    ],
+    [
+      "branch 4 default fold is not matched text",
+      2
+    ],
+    [
+      "branch 2 return annotation is not a matched-text fold",
+      1
+    ],
+    [
+      "references non-encodable rule 'array_element'",
+      1
+    ],
+    [
+      "references non-encodable rule 'array_elements'",
+      1
+    ],
+    [
+      "references non-encodable rule 'array_index_suffix'",
+      1
+    ],
+    [
+      "references non-encodable rule 'array_literal'",
+      1
+    ],
+    [
+      "references non-encodable rule 'array_spread_element'",
+      1
+    ],
+    [
+      "references non-encodable rule 'arrow_form'",
+      1
+    ],
+    [
+      "references non-encodable rule 'bare_form'",
+      1
+    ],
+    [
+      "references non-encodable rule 'extraction_suffix'",
+      1
+    ],
+    [
+      "references non-encodable rule 'object_key'",
+      1
+    ],
+    [
+      "references non-encodable rule 'object_literal'",
+      1
+    ],
+    [
+      "references non-encodable rule 'object_properties'",
+      1
+    ],
+    [
+      "references non-encodable rule 'object_property'",
+      1
+    ],
+    [
+      "references non-encodable rule 'positional_reference'",
+      1
+    ],
+    [
+      "references non-encodable rule 'positional_suffix'",
+      1
+    ],
+    [
+      "references non-encodable rule 'property_suffix'",
+      1
+    ],
+    [
+      "references non-encodable rule 'quoted_key'",
+      1
+    ],
+    [
+      "references non-encodable rule 'spread_base'",
+      1
+    ],
+    [
+      "references non-encodable rule 'string_literal'",
+      1
+    ]
+  ],
+  "rules": {
+    "array_element": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'array_spread_element'",
+        "references non-encodable rule 'return_value'",
+        "branch 1 default fold is not matched text",
+        "branch 2 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "array_elements": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'array_element'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "array_index_suffix": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'return_value'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "array_literal": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'array_elements'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "array_spread_element": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'spread_base'",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "arrow_form": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'return_value'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "bare_form": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'return_value'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "boolean_literal": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "bootstrap_return_annotation": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'arrow_form'",
+        "references non-encodable rule 'bare_form'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text",
+        "branch 2 return annotation is not a matched-text fold"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "dq_char": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "extraction_suffix": {
+      "tier": "not_fusible",
+      "reasons": [
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "extraction_target": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "non_empty_raw_key": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "number_literal": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "object_key": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'quoted_key'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "object_literal": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'object_properties'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "object_properties": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'object_property'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "object_property": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'object_key'",
+        "references non-encodable rule 'return_value'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "positional_reference": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'positional_suffix'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "positional_suffix": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'extraction_suffix'",
+        "references non-encodable rule 'property_suffix'",
+        "references non-encodable rule 'array_index_suffix'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text",
+        "branch 3 default fold is not matched text",
+        "branch 4 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "positive_integer": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "property_suffix": {
+      "tier": "not_fusible",
+      "reasons": [
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "property_text": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "quoted_key": {
+      "tier": "not_fusible",
+      "reasons": [
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "raw_key": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "return_value": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'positional_reference'",
+        "references non-encodable rule 'string_literal'",
+        "references non-encodable rule 'object_literal'",
+        "references non-encodable rule 'array_literal'",
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text",
+        "branch 2 default fold is not matched text",
+        "branch 3 default fold is not matched text",
+        "branch 4 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "rust_f64_number": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "spread_base": {
+      "tier": "not_fusible",
+      "reasons": [
+        "references non-encodable rule 'return_value'",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "spread_suffix": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "string_literal": {
+      "tier": "not_fusible",
+      "reasons": [
+        "internal layout boundary (multi-lexeme body under a layout-skipping policy)",
+        "branch 1 default fold is not matched text"
+      ],
+      "maximal_root": false,
+      "uses_lookahead": false,
+      "shape_encodable": false
+    },
+    "unsigned_integer": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    },
+    "ws": {
+      "tier": "fusible_token",
+      "reasons": [],
+      "maximal_root": true,
+      "uses_lookahead": false,
+      "shape_encodable": true
+    }
+  },
+  "entry_share": null,
+  "choice_sites": [
+    {
+      "rule": "bootstrap_return_annotation",
+      "site": "or#0",
+      "top_level": true,
+      "branches": 2,
+      "encodable_branches": 0,
+      "all_encodable": false,
+      "branch_verdicts": [
+        {
+          "index": 1,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "arrow_form"
+          ],
+          "sole_refs": [
+            "arrow_form"
+          ],
+          "first_bytes": null
+        },
+        {
+          "index": 2,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "bare_form"
+          ],
+          "sole_refs": [
+            "bare_form"
+          ],
+          "first_bytes": null
+        }
+      ],
+      "attributable_discarded": 0,
+      "degenerate_dispatch": false,
+      "degeneracy_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 1 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens",
+        "branch 2 not first-byte-decided: nullable (can match empty)"
+      ],
+      "prefix2_dispatchable": false,
+      "prefix2_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 1 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens",
+        "branch 2 not first-byte-decided: nullable (can match empty)"
+      ],
+      "prefix2_wildcard_branches": [],
+      "firstk_branches": [
+        {
+          "index": 1,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 2,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "rule": "return_value",
+      "site": "or#0",
+      "top_level": true,
+      "branches": 6,
+      "encodable_branches": 2,
+      "all_encodable": false,
+      "branch_verdicts": [
+        {
+          "index": 1,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "positional_reference"
+          ],
+          "sole_refs": [
+            "positional_reference"
+          ],
+          "first_bytes": [
+            36
+          ]
+        },
+        {
+          "index": 2,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "string_literal"
+          ],
+          "sole_refs": [
+            "string_literal"
+          ],
+          "first_bytes": [
+            34
+          ]
+        },
+        {
+          "index": 3,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "object_literal"
+          ],
+          "sole_refs": [
+            "object_literal"
+          ],
+          "first_bytes": [
+            123
+          ]
+        },
+        {
+          "index": 4,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "array_literal"
+          ],
+          "sole_refs": [
+            "array_literal"
+          ],
+          "first_bytes": [
+            91
+          ]
+        },
+        {
+          "index": 5,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [
+            "number_literal"
+          ],
+          "sole_refs": [
+            "number_literal"
+          ],
+          "first_bytes": null
+        },
+        {
+          "index": 6,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [
+            "boolean_literal"
+          ],
+          "sole_refs": [
+            "boolean_literal"
+          ],
+          "first_bytes": [
+            102,
+            116
+          ]
+        }
+      ],
+      "attributable_discarded": 0,
+      "degenerate_dispatch": false,
+      "degeneracy_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 5 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_dispatchable": false,
+      "prefix2_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 5 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_wildcard_branches": [],
+      "firstk_branches": [
+        {
+          "index": 1,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 2,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 3,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 4,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 5,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 6,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "rule": "positional_suffix",
+      "site": "or#0",
+      "top_level": true,
+      "branches": 4,
+      "encodable_branches": 1,
+      "all_encodable": false,
+      "branch_verdicts": [
+        {
+          "index": 1,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "extraction_suffix"
+          ],
+          "sole_refs": [
+            "extraction_suffix"
+          ],
+          "first_bytes": [
+            58
+          ]
+        },
+        {
+          "index": 2,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [
+            "spread_suffix"
+          ],
+          "sole_refs": [],
+          "first_bytes": [
+            42
+          ]
+        },
+        {
+          "index": 3,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "property_suffix"
+          ],
+          "sole_refs": [
+            "property_suffix"
+          ],
+          "first_bytes": [
+            46
+          ]
+        },
+        {
+          "index": 4,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "array_index_suffix"
+          ],
+          "sole_refs": [
+            "array_index_suffix"
+          ],
+          "first_bytes": [
+            91
+          ]
+        }
+      ],
+      "attributable_discarded": 0,
+      "degenerate_dispatch": false,
+      "degeneracy_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)"
+      ],
+      "prefix2_dispatchable": false,
+      "prefix2_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)"
+      ],
+      "prefix2_wildcard_branches": [],
+      "firstk_branches": [
+        {
+          "index": 1,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 2,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 3,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 4,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "rule": "extraction_target",
+      "site": "or#0",
+      "top_level": true,
+      "branches": 3,
+      "encodable_branches": 3,
+      "all_encodable": true,
+      "branch_verdicts": [
+        {
+          "index": 1,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [
+            "positive_integer"
+          ],
+          "sole_refs": [
+            "positive_integer"
+          ],
+          "first_bytes": null
+        },
+        {
+          "index": 2,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [],
+          "sole_refs": [],
+          "first_bytes": [
+            102
+          ]
+        },
+        {
+          "index": 3,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [],
+          "sole_refs": [],
+          "first_bytes": [
+            108
+          ]
+        }
+      ],
+      "attributable_discarded": 0,
+      "degenerate_dispatch": false,
+      "degeneracy_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 1 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_dispatchable": false,
+      "prefix2_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 1 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_wildcard_branches": [],
+      "firstk_branches": [
+        {
+          "index": 1,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 2,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 3,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "rule": "object_key",
+      "site": "or#0",
+      "top_level": true,
+      "branches": 2,
+      "encodable_branches": 1,
+      "all_encodable": false,
+      "branch_verdicts": [
+        {
+          "index": 1,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "quoted_key"
+          ],
+          "sole_refs": [
+            "quoted_key"
+          ],
+          "first_bytes": [
+            34
+          ]
+        },
+        {
+          "index": 2,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [
+            "raw_key"
+          ],
+          "sole_refs": [
+            "raw_key"
+          ],
+          "first_bytes": null
+        }
+      ],
+      "attributable_discarded": 0,
+      "degenerate_dispatch": false,
+      "degeneracy_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 2 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_dispatchable": false,
+      "prefix2_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 2 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_wildcard_branches": [],
+      "firstk_branches": [
+        {
+          "index": 1,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 2,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "rule": "array_element",
+      "site": "or#0",
+      "top_level": true,
+      "branches": 2,
+      "encodable_branches": 0,
+      "all_encodable": false,
+      "branch_verdicts": [
+        {
+          "index": 1,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "array_spread_element"
+          ],
+          "sole_refs": [
+            "array_spread_element"
+          ],
+          "first_bytes": null
+        },
+        {
+          "index": 2,
+          "encodable": false,
+          "text_folding": false,
+          "direct_refs": [
+            "return_value"
+          ],
+          "sole_refs": [],
+          "first_bytes": null
+        }
+      ],
+      "attributable_discarded": 0,
+      "degenerate_dispatch": false,
+      "degeneracy_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 1 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens",
+        "branch 2 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_dispatchable": false,
+      "prefix2_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)",
+        "branch 1 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens",
+        "branch 2 not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "prefix2_wildcard_branches": [],
+      "firstk_branches": [
+        {
+          "index": 1,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 2,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "rule": "boolean_literal",
+      "site": "or#0",
+      "top_level": true,
+      "branches": 2,
+      "encodable_branches": 2,
+      "all_encodable": true,
+      "branch_verdicts": [
+        {
+          "index": 1,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [],
+          "sole_refs": [],
+          "first_bytes": [
+            116
+          ]
+        },
+        {
+          "index": 2,
+          "encodable": true,
+          "text_folding": true,
+          "direct_refs": [],
+          "sole_refs": [],
+          "first_bytes": [
+            102
+          ]
+        }
+      ],
+      "attributable_discarded": 0,
+      "degenerate_dispatch": false,
+      "degeneracy_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)"
+      ],
+      "prefix2_dispatchable": false,
+      "prefix2_blockers": [
+        "terminals skip leading layout (R2 raw-byte peek unsound)"
+      ],
+      "prefix2_wildcard_branches": [],
+      "firstk_branches": [
+        {
+          "index": 1,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        },
+        {
+          "index": 2,
+          "verdict": "terminals skip leading layout (R2 raw-byte peek unsound)",
+          "max_depth": 0,
+          "level1_degenerate": false,
+          "truncated": false,
+          "d1_fallback_used": false,
+          "emulation_offsets": [],
+          "nodes": 0
+        }
+      ]
+    }
+  ],
+  "outcome_share": null,
+  "inline_rules": {
+    "array_element": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 2,
+      "body_nodes": 3,
+      "decided": false
+    },
+    "array_elements": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 10,
+      "decided": false
+    },
+    "array_index_suffix": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 4,
+      "decided": false
+    },
+    "array_literal": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 9,
+      "decided": false
+    },
+    "array_spread_element": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 3,
+      "decided": false
+    },
+    "arrow_form": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 8,
+      "decided": true
+    },
+    "bare_form": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 7,
+      "decided": true
+    },
+    "boolean_literal": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "alternation_leaf",
+      "reference_sites": 1,
+      "body_nodes": 3,
+      "decided": true
+    },
+    "bootstrap_return_annotation": {
+      "eligible": false,
+      "blockers": [
+        "entry rule"
+      ],
+      "reference_sites": 0,
+      "body_nodes": 3,
+      "decided": false
+    },
+    "dq_char": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 2,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "extraction_suffix": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 5,
+      "decided": true
+    },
+    "extraction_target": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 4,
+      "decided": true
+    },
+    "non_empty_raw_key": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "number_literal": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "pass_through",
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "object_key": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 3,
+      "decided": true
+    },
+    "object_literal": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 9,
+      "decided": false
+    },
+    "object_properties": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 10,
+      "decided": false
+    },
+    "object_property": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 2,
+      "body_nodes": 8,
+      "decided": false
+    },
+    "positional_reference": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 5,
+      "decided": false
+    },
+    "positional_suffix": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 5,
+      "decided": false
+    },
+    "positive_integer": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "property_suffix": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 3,
+      "decided": true
+    },
+    "property_text": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "quoted_key": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 5,
+      "decided": true
+    },
+    "raw_key": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "pass_through",
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "return_value": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 6,
+      "body_nodes": 7,
+      "decided": false
+    },
+    "rust_f64_number": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "spread_base": {
+      "eligible": false,
+      "blockers": [
+        "reference cycle (recursion guard is load-bearing)"
+      ],
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": false
+    },
+    "spread_suffix": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 2,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "string_literal": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 5,
+      "decided": true
+    },
+    "unsigned_integer": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 1,
+      "body_nodes": 1,
+      "decided": true
+    },
+    "ws": {
+      "eligible": true,
+      "blockers": [],
+      "wrapper_class": "shaped",
+      "reference_sites": 14,
+      "body_nodes": 1,
+      "decided": true
+    }
+  },
+  "inline_exposure": null,
+  "quant_sites": [
+    {
+      "rule": "arrow_form",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "arrow_form",
+      "site": "q#1",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "arrow_form",
+      "site": "q#2",
+      "quantifier": "?",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "return_value"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "bare_form",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "bare_form",
+      "site": "q#1",
+      "quantifier": "?",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "return_value"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "bare_form",
+      "site": "q#2",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "positional_reference",
+      "site": "q#0",
+      "quantifier": "?",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)"
+      ],
+      "first_bytes": [
+        42,
+        46,
+        58,
+        91
+      ],
+      "frontier": "bare_ref",
+      "element_refs": [
+        "positional_suffix"
+      ],
+      "sole_refs": [
+        "positional_suffix"
+      ],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "extraction_suffix",
+      "site": "q#0",
+      "quantifier": "?",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)"
+      ],
+      "first_bytes": [
+        42
+      ],
+      "frontier": "bare_ref",
+      "element_refs": [
+        "spread_suffix"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_literal",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_literal",
+      "site": "q#1",
+      "quantifier": "?",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "object_properties"
+      ],
+      "sole_refs": [
+        "object_properties"
+      ],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_literal",
+      "site": "q#2",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_properties",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "mixed",
+      "element_refs": [
+        "object_property",
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_properties",
+      "site": "q#1",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_properties",
+      "site": "q#2",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_property",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "object_property",
+      "site": "q#1",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "quoted_key",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "dq_char"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "array_literal",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "array_literal",
+      "site": "q#1",
+      "quantifier": "?",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "array_elements"
+      ],
+      "sole_refs": [
+        "array_elements"
+      ],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "array_literal",
+      "site": "q#2",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "array_elements",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "mixed",
+      "element_refs": [
+        "array_element",
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "array_elements",
+      "site": "q#1",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "array_elements",
+      "site": "q#2",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: nullable (can match empty)"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "ws"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    },
+    {
+      "rule": "string_literal",
+      "site": "q#0",
+      "quantifier": "*",
+      "min_zero": true,
+      "guardable": false,
+      "blockers": [
+        "terminal layout skipping (R2 raw-byte peek unsound)",
+        "element not first-byte-decided: regex-token-derived first bytes under layout-skipping regex tokens"
+      ],
+      "first_bytes": null,
+      "frontier": "bare_ref",
+      "element_refs": [
+        "dq_char"
+      ],
+      "sole_refs": [],
+      "sole_attributable_discarded": 0
+    }
+  ],
+  "quant_exposure": null,
+  "cascade_rules": {
+    "array_element": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "array_elements": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "array_index_suffix": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "array_literal": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "array_spread_element": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "arrow_form": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "bare_form": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "boolean_literal": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "bootstrap_return_annotation": {
+      "eligible": true,
+      "reasons": [],
+      "root": true,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "dq_char": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "extraction_suffix": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "extraction_target": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "non_empty_raw_key": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "number_literal": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "object_key": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "object_literal": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "object_properties": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "object_property": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "positional_reference": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "positional_suffix": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "positive_integer": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "property_suffix": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "property_text": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "quoted_key": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "raw_key": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "return_value": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "rust_f64_number": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "spread_base": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": true,
+      "boundary_refs": []
+    },
+    "spread_suffix": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "string_literal": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "unsigned_integer": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    },
+    "ws": {
+      "eligible": true,
+      "reasons": [],
+      "root": false,
+      "on_cycle": false,
+      "boundary_refs": []
+    }
+  },
+  "cascade_exposure": null,
+  "cascade_plan": {
+    "sub_roots": [
+      "boolean_literal",
+      "bootstrap_return_annotation",
+      "extraction_suffix",
+      "number_literal",
+      "object_key",
+      "property_suffix",
+      "spread_suffix",
+      "string_literal",
+      "unsigned_integer",
+      "ws"
+    ],
+    "internal": [
+      "arrow_form",
+      "bare_form",
+      "dq_char",
+      "extraction_target",
+      "non_empty_raw_key",
+      "positive_integer",
+      "property_text",
+      "quoted_key",
+      "raw_key",
+      "rust_f64_number"
+    ],
+    "effect_reaching": [],
+    "effect_targets": [],
+    "thin_memo": []
+  },
+  "cascade_plan_b": {
+    "sub_roots": [
+      "bootstrap_return_annotation"
+    ],
+    "internal": [
+      "array_element",
+      "array_elements",
+      "array_index_suffix",
+      "array_literal",
+      "array_spread_element",
+      "arrow_form",
+      "bare_form",
+      "boolean_literal",
+      "dq_char",
+      "extraction_suffix",
+      "extraction_target",
+      "non_empty_raw_key",
+      "number_literal",
+      "object_key",
+      "object_literal",
+      "object_properties",
+      "object_property",
+      "positional_reference",
+      "positional_suffix",
+      "positive_integer",
+      "property_suffix",
+      "property_text",
+      "quoted_key",
+      "raw_key",
+      "return_value",
+      "rust_f64_number",
+      "spread_base",
+      "spread_suffix",
+      "string_literal",
+      "unsigned_integer",
+      "ws"
+    ],
+    "effect_reaching": [],
+    "effect_targets": [],
+    "thin_memo": [
+      "array_element",
+      "array_elements",
+      "array_index_suffix",
+      "array_literal",
+      "array_spread_element",
+      "object_literal",
+      "object_properties",
+      "object_property",
+      "positional_reference",
+      "positional_suffix",
+      "return_value",
+      "spread_base"
+    ]
+  },
+  "direct_value_plan": {
+    "barrier": [],
+    "value_licensed": [],
+    "node_locked": [
+      "array_element",
+      "array_elements",
+      "array_index_suffix",
+      "array_literal",
+      "array_spread_element",
+      "arrow_form",
+      "bare_form",
+      "boolean_literal",
+      "bootstrap_return_annotation",
+      "dq_char",
+      "extraction_suffix",
+      "extraction_target",
+      "non_empty_raw_key",
+      "number_literal",
+      "object_key",
+      "object_literal",
+      "object_properties",
+      "object_property",
+      "positional_reference",
+      "positional_suffix",
+      "positive_integer",
+      "property_suffix",
+      "property_text",
+      "quoted_key",
+      "raw_key",
+      "return_value",
+      "rust_f64_number",
+      "spread_base",
+      "spread_suffix",
+      "string_literal",
+      "unsigned_integer",
+      "ws"
+    ],
+    "demoted": {}
+  },
+  "boundary_scanner_plan": {
+    "rules": {},
+    "dropped": {}
+  }
+}

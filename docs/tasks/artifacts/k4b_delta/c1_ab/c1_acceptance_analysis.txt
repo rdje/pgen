@@ -1,0 +1,39 @@
+== FLOORVAL (base best-of-3) == geomean 2,080.4 ns vs banked 2,146.3 = -3.07% (gate ±6%) -> OK
+
+== BENCH (alternated 5x2000, best-min per pattern) ==
+  alternation                 1,458 ->    1,458 ns  +0.00%
+  anchor_complex              5,708 ->    4,250 ns  -25.54%
+  capture_groups              3,459 ->    3,333 ns  -3.64%
+  character_class             8,709 ->    8,666 ns  -0.49%
+  digit_sequence              1,625 ->    1,458 ns  -10.28%
+  email_basic                 1,541 ->    1,250 ns  -18.88%
+  literal_simple                542 ->      541 ns  -0.18%
+  url_simple                  1,208 ->    1,125 ns  -6.87%
+  GEOMEAN 2,122.0 -> 1,937.4 ns  -8.70%   (~256.0x vs 496us)  guard ±2%: OK
+
+== CORPUS (2189 cells) == verdict flips: 0 []
+  MAX  722,167 (pcre2:testdata/testinput2:line_725) -> 483,583 (pcre2:testdata/testinput2:line_725)  -33.04%
+  GEOMEAN 1,582.6 -> 1,263.4 ns  -20.17%
+    pcre2:testdata/testinput2:line_725                  722,167 ->    483,583  -33.04%
+    pcre2:testdata/testinput2:line_4674                 163,000 ->    163,459  +0.28%
+    pcre2:testdata/testinput2:line_6526                 113,334 ->     99,542  -12.17%
+    pcre2:testdata/testinput2:line_2880                  92,625 ->     57,625  -37.79%
+    pcre2:testdata/testinput2:line_965                   53,458 ->     45,417  -15.04%
+    pcre2:testdata/testinput2:line_6538                  13,125 ->      8,750  -33.33%
+  byte bands (geomean delta, n):
+        0-10   B n=1122  -14.01%
+       11-30   B n=836   -25.98%
+       31-60   B n=162   -27.89%
+       61-120  B n=47    -29.34%
+      121-200  B n=14    -10.40%
+      201-400  B n=4     -3.51%
+      401-1000 B n=3     -23.38%
+     1001-4000 B n=1     -33.04%
+
+== LADDER (39 cells) == verdict flips: 0 []
+  MAX  162,792 (orig_4674) -> 161,500 (orig_4674)  -0.79%
+  GEOMEAN 10,892.1 -> 8,947.5 ns  -17.85%
+    nest_80                                             162,375 ->    160,500  -1.15%
+    nest_40                                              53,833 ->     53,666  -0.31%
+    orig_4674                                           162,792 ->    161,500  -0.79%
+    flat_160                                             13,375 ->     12,875  -3.74%

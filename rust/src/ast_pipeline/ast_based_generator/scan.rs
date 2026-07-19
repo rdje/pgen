@@ -515,6 +515,11 @@ impl AstBasedGenerator {
             String,
             super::super::first_set::SecondByteSummary,
         > = std::collections::HashMap::new();
+        // RGX-0078.5.j.4 K4b C1 — the FIRSTₖ per-rule prefix-trie cache.
+        let mut prefix_trie_cache: std::collections::HashMap<
+            String,
+            super::super::first_set::PrefixTrieNode,
+        > = std::collections::HashMap::new();
 
         if let Some(branch_byte_sets) = self.degenerate_dispatch_byte_sets(
             alternatives,
@@ -570,6 +575,7 @@ impl AstBasedGenerator {
                 emit_first_set_guard,
                 &mut first_set_cache,
                 &mut second_byte_cache,
+                &mut prefix_trie_cache,
             );
 
             // The winner-selection cascade — the protocol's exact chain over

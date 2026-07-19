@@ -299,6 +299,34 @@ pub struct ChoiceSiteCensus {
     /// Branch indices (1-based, sorted, deduped) that are byte-2 WILDCARDS inside
     /// some shared-first-byte subset.
     pub prefix2_wildcard_branches: Vec<usize>,
+    /// RGX-0078.5.j.4 K4b C1 — the per-branch FIRSTₖ (bounded prefix-trie)
+    /// guard verdicts (top-level sites only; empty for nested sites, which are
+    /// R1-blocked at every level). Driven by the SAME shared license the
+    /// emitter consumes.
+    pub firstk_branches: Vec<FirstkBranchCensus>,
+}
+
+/// RGX-0078.5.j.4 K4b C1 — one branch's FIRSTₖ prefix-trie guard census row.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct FirstkBranchCensus {
+    /// 1-based branch index at the site.
+    pub index: usize,
+    /// `"guarded"` or the NAMED level-1 refusal (the branch keeps today's
+    /// unguarded emission).
+    pub verdict: String,
+    /// Usable walk depth (1 = level-1-degenerate; 0 when refused).
+    pub max_depth: usize,
+    /// The guard refines nothing beyond level 1 (today's exact emission).
+    pub level1_degenerate: bool,
+    /// A cap (depth 4 / fanout 24 / 16 nodes) truncated the per-path analysis
+    /// somewhere along this branch's trie.
+    pub truncated: bool,
+    /// The D1 global FIRST₂ layer refined at least one depth-1 leaf.
+    pub d1_fallback_used: bool,
+    /// Distinct nonzero furthest-emulation offsets over the refutation arms.
+    pub emulation_offsets: Vec<u8>,
+    /// Finalized trie size (nodes incl. the root).
+    pub nodes: usize,
 }
 
 /// RGX-0078.5.h.1b — the measured outcome-share join (census × raw+committed counts):
@@ -667,6 +695,8 @@ struct Classifier<'a> {
     first_set_cache: HashMap<String, super::first_set::FirstSetSummary>,
     /// RGX-0078.5.i.7 (D1 STEP-0) — shared SECOND-byte cache (the FIRST₂ analysis).
     second_byte_cache: HashMap<String, super::first_set::SecondByteSummary>,
+    /// RGX-0078.5.j.4 K4b C1 — shared per-rule prefix-trie cache (the FIRSTₖ lane).
+    trie_cache: HashMap<String, super::first_set::PrefixTrieNode>,
     memo: HashMap<String, RuleOutcome>,
     visiting: HashSet<String>,
 }
@@ -715,6 +745,7 @@ impl<'a> Classifier<'a> {
             compiled,
             first_set_cache: HashMap::new(),
             second_byte_cache: HashMap::new(),
+            trie_cache: HashMap::new(),
             memo: HashMap::new(),
             visiting: HashSet::new(),
         })
@@ -762,6 +793,25 @@ impl<'a> Classifier<'a> {
             };
         }
         summary
+    }
+
+    /// RGX-0078.5.j.4 K4b C1 — the branch's FIRSTₖ prefix-trie guard through the
+    /// SHARED licensing function codegen's emission consumes (`first_set::
+    /// branch_prefix_trie_guard`) — the census verdict and the emitted guard
+    /// cannot drift. The regex-token trust flag mirrors codegen's
+    /// `layout_sensitivity().regex_tokens` exactly as the level-1/FIRST₂ lanes do.
+    fn branch_prefix_trie_guard(
+        &mut self,
+        branch: &ASTNode,
+    ) -> Result<super::first_set::PrefixTrieGuard, String> {
+        super::first_set::branch_prefix_trie_guard(
+            branch,
+            self.tree,
+            &mut self.first_set_cache,
+            &mut self.second_byte_cache,
+            &mut self.trie_cache,
+            self.layout.regex_tokens,
+        )
     }
 
     /// RGX-0078.5.i.3 (P2) — gate (e): does the rule carry any Branch-phase
@@ -2018,6 +2068,56 @@ fn walk_for_choice_sites(
                             Vec::new(),
                         )
                     };
+                // RGX-0078.5.j.4 K4b C1 — the FIRSTₖ lane: per-branch prefix-trie
+                // guard verdicts for top-level sites, under the SAME gate as
+                // codegen's `emit_first_set_guard` (rule-top-level Or +
+                // terminal-whitespace-sensitive layout).
+                let firstk_branches: Vec<FirstkBranchCensus> = if is_rule_body {
+                    alternatives
+                        .iter()
+                        .enumerate()
+                        .map(|(i, branch)| {
+                            if !classifier.layout.terminals {
+                                return FirstkBranchCensus {
+                                    index: i + 1,
+                                    verdict:
+                                        "terminals skip leading layout (R2 raw-byte peek unsound)"
+                                            .to_string(),
+                                    max_depth: 0,
+                                    level1_degenerate: false,
+                                    truncated: false,
+                                    d1_fallback_used: false,
+                                    emulation_offsets: Vec::new(),
+                                    nodes: 0,
+                                };
+                            }
+                            match classifier.branch_prefix_trie_guard(branch) {
+                                Ok(guard) => FirstkBranchCensus {
+                                    index: i + 1,
+                                    verdict: "guarded".to_string(),
+                                    max_depth: guard.max_depth,
+                                    level1_degenerate: guard.is_level1_degenerate(),
+                                    truncated: guard.truncated,
+                                    d1_fallback_used: guard.d1_fallback_used,
+                                    emulation_offsets: guard.emulation_offsets(),
+                                    nodes: guard.root.count_nodes(),
+                                },
+                                Err(reason) => FirstkBranchCensus {
+                                    index: i + 1,
+                                    verdict: reason,
+                                    max_depth: 0,
+                                    level1_degenerate: false,
+                                    truncated: false,
+                                    d1_fallback_used: false,
+                                    emulation_offsets: Vec::new(),
+                                    nodes: 0,
+                                },
+                            }
+                        })
+                        .collect()
+                } else {
+                    Vec::new()
+                };
                 sites.push(ChoiceSiteCensus {
                     rule: rule.to_string(),
                     site: format!("or#{site_index}"),
@@ -2032,6 +2132,7 @@ fn walk_for_choice_sites(
                     prefix2_dispatchable,
                     prefix2_blockers,
                     prefix2_wildcard_branches,
+                    firstk_branches,
                 });
             }
             for branch in alternatives {
@@ -4826,6 +4927,106 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
         let mut ranked: Vec<(String, usize)> = prefix2_blocker_histogram.into_iter().collect();
         ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
         println!("  prefix2 blocker histogram (blocked-site occurrences):");
+        for (reason, count) in &ranked {
+            println!("    {count:>5}  {reason}");
+        }
+    }
+    // RGX-0078.5.j.4 (K4b C1) — the FIRSTₖ bounded prefix-trie guard surface.
+    let firstk_rows: Vec<(&ChoiceSiteCensus, &FirstkBranchCensus)> = top_level_sites
+        .iter()
+        .flat_map(|s| s.firstk_branches.iter().map(move |b| (*s, b)))
+        .collect();
+    let guarded: Vec<&(&ChoiceSiteCensus, &FirstkBranchCensus)> = firstk_rows
+        .iter()
+        .filter(|(_, b)| b.verdict == "guarded")
+        .collect();
+    let mut depth_histogram: BTreeMap<usize, usize> = BTreeMap::new();
+    for (_, b) in &guarded {
+        *depth_histogram.entry(b.max_depth).or_default() += 1;
+    }
+    let deep: Vec<&(&ChoiceSiteCensus, &FirstkBranchCensus)> = guarded
+        .iter()
+        .copied()
+        .filter(|(_, b)| !b.level1_degenerate)
+        .collect();
+    let with_emulation = deep
+        .iter()
+        .filter(|(_, b)| !b.emulation_offsets.is_empty())
+        .count();
+    let truncated = guarded.iter().filter(|(_, b)| b.truncated).count();
+    let d1_fallback = guarded.iter().filter(|(_, b)| b.d1_fallback_used).count();
+    println!(
+        "FIRSTK-CENSUS: grammar={} top_level_branches={} guarded={} deeper_than_level1={} with_emulation={} truncated={} d1_fallback={}",
+        census.grammar_name,
+        firstk_rows.len(),
+        guarded.len(),
+        deep.len(),
+        with_emulation,
+        truncated,
+        d1_fallback,
+    );
+    println!(
+        "  gate: level-1 admission (branch_dispatch_first_bytes) + per-path bounded trie (depth≤4, fanout≤24, ≤16 nodes) + exact furthest emulation on refutation arms — RGX-0078.5.j.4 (C1)"
+    );
+    if !depth_histogram.is_empty() {
+        let ranked: Vec<String> = depth_histogram
+            .iter()
+            .map(|(d, n)| format!("d{d}={n}"))
+            .collect();
+        println!("  guarded-branch walk-depth histogram: {}", ranked.join(" "));
+    }
+    if !deep.is_empty() {
+        let mut names: Vec<String> = deep
+            .iter()
+            .map(|(s, b)| {
+                let mut tags = String::new();
+                if !b.emulation_offsets.is_empty() {
+                    tags.push_str(&format!(
+                        ",w{}",
+                        b.emulation_offsets
+                            .iter()
+                            .map(|w| w.to_string())
+                            .collect::<Vec<_>>()
+                            .join("/")
+                    ));
+                }
+                if b.truncated {
+                    tags.push_str(",trunc");
+                }
+                if b.d1_fallback_used {
+                    tags.push_str(",d1");
+                }
+                format!("{}#b{}(d{}{})", s.rule, b.index, b.max_depth, tags)
+            })
+            .collect();
+        names.sort();
+        let shown = names.len().min(60);
+        println!(
+            "  deep branches (rule#branch(depth[,w-offsets][,trunc][,d1])): {}{}",
+            names[..shown].join(" "),
+            if names.len() > shown {
+                format!(" … +{} more", names.len() - shown)
+            } else {
+                String::new()
+            }
+        );
+    }
+    let mut firstk_refusal_histogram: HashMap<String, usize> = HashMap::new();
+    for (_, b) in &firstk_rows {
+        if b.verdict == "guarded" {
+            continue;
+        }
+        let key = b
+            .verdict
+            .split_once(':')
+            .map(|(head, _)| head)
+            .unwrap_or(b.verdict.as_str());
+        *firstk_refusal_histogram.entry(key.to_string()).or_default() += 1;
+    }
+    if !firstk_refusal_histogram.is_empty() {
+        let mut ranked: Vec<(String, usize)> = firstk_refusal_histogram.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        println!("  firstk level-1 refusal histogram (unguarded branches):");
         for (reason, count) in &ranked {
             println!("    {count:>5}  {reason}");
         }

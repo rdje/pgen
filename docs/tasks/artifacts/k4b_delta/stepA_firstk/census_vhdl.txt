@@ -1,0 +1,272 @@
+FUSIBILITY-CENSUS: grammar=vhdl rules=216 fusible=2 (token=2 lookahead=0) not_fusible=214 (shape_only=0) maximal_roots=2 static_share=0.9%
+  gate: increment-1 strict (regular + effect-free + text-folding + policy-encodable + layout-contiguous) — RGX-0078.5.h section F
+  match_regex surface: 102 regex-literal atom sites (101 distinct patterns) — the derived-DFA engine-replacement surface (self-hosting), independent of rule-level fusion
+  maximal fusible roots (future scan_* sites):
+    [root:token] based_value
+    [root:token] line_comment
+  disqualification histogram (rules per reason):
+      214  internal layout boundary (multi-lexeme body under a layout-skipping policy)
+      112  branch 1 return annotation is not a matched-text fold
+      102  branch 1 default fold is not matched text
+      100  references non-encodable rule 'trivia'
+       56  references non-encodable rule 'semi'
+       37  branch 2 return annotation is not a matched-text fold
+       30  references non-encodable rule 'identifier'
+       25  branch 3 return annotation is not a matched-text fold
+       24  references non-encodable rule 'expression'
+       19  branch 4 return annotation is not a matched-text fold
+       18  references non-encodable rule 'kw_is'
+       17  branch 5 return annotation is not a matched-text fold
+       17  references non-encodable rule 'kw_end'
+       16  references non-encodable rule 'selected_name'
+       13  references non-encodable rule 'colon'
+       12  branch 6 return annotation is not a matched-text fold
+       12  references non-encodable rule 'lparen'
+       12  references non-encodable rule 'rparen'
+       12  references non-encodable rule 'subtype_indication'
+       10  references non-encodable rule 'comma'
+        9  branch 7 return annotation is not a matched-text fold
+        9  references non-encodable rule 'use_clause'
+        8  references non-encodable rule 'identifier_list'
+        7  branch 8 return annotation is not a matched-text fold
+        7  references non-encodable rule 'assign'
+        6  branch 9 return annotation is not a matched-text fold
+        5  references non-encodable rule 'constant_declaration'
+        5  references non-encodable rule 'file_declaration'
+        5  references non-encodable rule 'kw_in'
+        5  references non-encodable rule 'sequential_statement'
+        5  references non-encodable rule 'subprogram_body'
+        5  references non-encodable rule 'subprogram_declaration'
+        4  branch 10 return annotation is not a matched-text fold
+        4  references non-encodable rule 'actual_parameter_part'
+        4  references non-encodable rule 'arrow'
+        4  references non-encodable rule 'discrete_range'
+        4  references non-encodable rule 'kw_begin'
+        4  references non-encodable rule 'kw_for'
+        4  references non-encodable rule 'kw_of'
+        4  references non-encodable rule 'kw_package'
+        4  references non-encodable rule 'subtype_declaration'
+        4  references non-encodable rule 'target'
+        4  references non-encodable rule 'type_declaration'
+        3  branch 11 return annotation is not a matched-text fold
+        3  branch 12 return annotation is not a matched-text fold
+        3  references non-encodable rule 'alias_declaration'
+        3  references non-encodable rule 'component_declaration'
+        3  references non-encodable rule 'concurrent_statement'
+        3  references non-encodable rule 'generic_clause'
+        3  references non-encodable rule 'generic_map_aspect'
+        3  references non-encodable rule 'kw_inout'
+        3  references non-encodable rule 'kw_out'
+        3  references non-encodable rule 'kw_when'
+        3  references non-encodable rule 'range_expression'
+        3  references non-encodable rule 'signal_declaration'
+        2  branch 13 return annotation is not a matched-text fold
+        2  references non-encodable rule 'aggregate_choice_list'
+        2  references non-encodable rule 'architecture_declarative_item'
+        2  references non-encodable rule 'assert_statement'
+        2  references non-encodable rule 'association_element'
+        2  references non-encodable rule 'association_list'
+        2  references non-encodable rule 'attribute_name'
+        2  references non-encodable rule 'bar'
+        2  references non-encodable rule 'character_literal'
+        2  references non-encodable rule 'context_reference_clause'
+        2  references non-encodable rule 'decimal_literal'
+        2  references non-encodable rule 'function_specification'
+        2  references non-encodable rule 'kw_buffer'
+        2  references non-encodable rule 'kw_configuration'
+        2  references non-encodable rule 'kw_context'
+        2  references non-encodable rule 'kw_else'
+        2  references non-encodable rule 'kw_entity'
+        2  references non-encodable rule 'kw_function'
+        2  references non-encodable rule 'kw_generic'
+        2  references non-encodable rule 'kw_if'
+        2  references non-encodable rule 'kw_linkage'
+        2  references non-encodable rule 'kw_map'
+        2  references non-encodable rule 'kw_new'
+        2  references non-encodable rule 'kw_open'
+        2  references non-encodable rule 'kw_others'
+        2  references non-encodable rule 'kw_port'
+        2  references non-encodable rule 'kw_procedure'
+        2  references non-encodable rule 'kw_range'
+        2  references non-encodable rule 'kw_report'
+        2  references non-encodable rule 'kw_return'
+        2  references non-encodable rule 'kw_severity'
+        2  references non-encodable rule 'library_clause'
+        2  references non-encodable rule 'lte'
+        2  references non-encodable rule 'minus'
+        2  references non-encodable rule 'package_instantiation_declaration'
+        2  references non-encodable rule 'parameter_list'
+        2  references non-encodable rule 'plus'
+        2  references non-encodable rule 'port_clause'
+        2  references non-encodable rule 'primary'
+        2  references non-encodable rule 'procedure_specification'
+        2  references non-encodable rule 'signal_assignment_rhs'
+        2  references non-encodable rule 'string_literal'
+        2  references non-encodable rule 'tick'
+        2  references non-encodable rule 'unsigned_number'
+        2  references non-encodable rule 'variable_declaration'
+        1  references non-encodable rule 'actual_parameter_element'
+        1  references non-encodable rule 'actual_part'
+        1  references non-encodable rule 'adding_operator'
+        1  references non-encodable rule 'aggregate'
+        1  references non-encodable rule 'aggregate_choice'
+        1  references non-encodable rule 'aggregate_element_association'
+        1  references non-encodable rule 'ampersand'
+        1  references non-encodable rule 'architecture_body'
+        1  references non-encodable rule 'array_type_definition'
+        1  references non-encodable rule 'based_literal'
+        1  references non-encodable rule 'bit_string_literal'
+        1  references non-encodable rule 'block_statement'
+        1  references non-encodable rule 'box'
+        1  references non-encodable rule 'case_statement'
+        1  references non-encodable rule 'case_statement_alternative'
+        1  references non-encodable rule 'choice'
+        1  references non-encodable rule 'choices'
+        1  references non-encodable rule 'component_instantiation_statement'
+        1  references non-encodable rule 'concurrent_signal_assignment_statement'
+        1  references non-encodable rule 'configuration_declaration'
+        1  references non-encodable rule 'configuration_item'
+        1  references non-encodable rule 'constraint'
+        1  references non-encodable rule 'context_declaration'
+        1  references non-encodable rule 'context_item'
+        1  references non-encodable rule 'design_unit'
+        1  references non-encodable rule 'dot'
+        1  references non-encodable rule 'entity_declaration'
+        1  references non-encodable rule 'entity_declarative_item'
+        1  references non-encodable rule 'enumeration_type_definition'
+        1  references non-encodable rule 'equal'
+        1  references non-encodable rule 'exit_statement'
+        1  references non-encodable rule 'factor'
+        1  references non-encodable rule 'generate_statement'
+        1  references non-encodable rule 'generic_interface_element'
+        1  references non-encodable rule 'generic_interface_list'
+        1  references non-encodable rule 'gt'
+        1  references non-encodable rule 'gteq'
+        1  references non-encodable rule 'hash'
+        1  references non-encodable rule 'if_statement'
+        1  references non-encodable rule 'index_constraint'
+        1  references non-encodable rule 'instantiated_unit'
+        1  references non-encodable rule 'kw_alias'
+        1  references non-encodable rule 'kw_and'
+        1  references non-encodable rule 'kw_architecture'
+        1  references non-encodable rule 'kw_array'
+        1  references non-encodable rule 'kw_assert'
+        1  references non-encodable rule 'kw_block'
+        1  references non-encodable rule 'kw_body'
+        1  references non-encodable rule 'kw_case'
+        1  references non-encodable rule 'kw_component'
+        1  references non-encodable rule 'kw_constant'
+        1  references non-encodable rule 'kw_converse'
+        1  references non-encodable rule 'kw_downto'
+        1  references non-encodable rule 'kw_elsif'
+        1  references non-encodable rule 'kw_exit'
+        1  references non-encodable rule 'kw_file'
+        1  references non-encodable rule 'kw_generate'
+        1  references non-encodable rule 'kw_impure'
+        1  references non-encodable rule 'kw_library'
+        1  references non-encodable rule 'kw_loop'
+        1  references non-encodable rule 'kw_mod'
+        1  references non-encodable rule 'kw_nand'
+        1  references non-encodable rule 'kw_nor'
+        1  references non-encodable rule 'kw_not'
+        1  references non-encodable rule 'kw_null'
+        1  references non-encodable rule 'kw_or'
+        1  references non-encodable rule 'kw_process'
+        1  references non-encodable rule 'kw_record'
+        1  references non-encodable rule 'kw_rem'
+        1  references non-encodable rule 'kw_signal'
+        1  references non-encodable rule 'kw_subtype'
+        1  references non-encodable rule 'kw_then'
+        1  references non-encodable rule 'kw_to'
+        1  references non-encodable rule 'kw_type'
+        1  references non-encodable rule 'kw_use'
+        1  references non-encodable rule 'kw_variable'
+        1  references non-encodable rule 'kw_view'
+        1  references non-encodable rule 'kw_wait'
+        1  references non-encodable rule 'kw_while'
+        1  references non-encodable rule 'kw_xnor'
+        1  references non-encodable rule 'kw_xor'
+        1  references non-encodable rule 'literal'
+        1  references non-encodable rule 'logical_operator'
+        1  references non-encodable rule 'loop_statement'
+        1  references non-encodable rule 'lt'
+        1  references non-encodable rule 'lteq'
+        1  references non-encodable rule 'multiplying_operator'
+        1  references non-encodable rule 'null_statement'
+        1  references non-encodable rule 'package_body'
+        1  references non-encodable rule 'package_body_declarative_item'
+        1  references non-encodable rule 'package_declaration'
+        1  references non-encodable rule 'package_declarative_item'
+        1  references non-encodable rule 'package_generic_interface_element'
+        1  references non-encodable rule 'package_header'
+        1  references non-encodable rule 'parameter_interface_element'
+        1  references non-encodable rule 'parameter_mode'
+        1  references non-encodable rule 'physical_literal'
+        1  references non-encodable rule 'port_interface_element'
+        1  references non-encodable rule 'port_interface_list'
+        1  references non-encodable rule 'port_map_aspect'
+        1  references non-encodable rule 'power'
+        1  references non-encodable rule 'procedure_call_statement'
+        1  references non-encodable rule 'process_declarative_item'
+        1  references non-encodable rule 'process_label'
+        1  references non-encodable rule 'process_statement'
+        1  references non-encodable rule 'range_constraint'
+        1  references non-encodable rule 'record_element_declaration'
+        1  references non-encodable rule 'record_type_definition'
+        1  references non-encodable rule 'relation'
+        1  references non-encodable rule 'relational_operator'
+        1  references non-encodable rule 'report_statement'
+        1  references non-encodable rule 'return_statement'
+        1  references non-encodable rule 'sensitivity_clause'
+        1  references non-encodable rule 'sensitivity_list'
+        1  references non-encodable rule 'signal_assignment_statement'
+        1  references non-encodable rule 'signal_mode'
+        1  references non-encodable rule 'simple_expression'
+        1  references non-encodable rule 'slash'
+        1  references non-encodable rule 'slash_equal'
+        1  references non-encodable rule 'star'
+        1  references non-encodable rule 'subprogram_declarative_item'
+        1  references non-encodable rule 'term'
+        1  references non-encodable rule 'type_definition'
+        1  references non-encodable rule 'variable_assignment_statement'
+        1  references non-encodable rule 'view_declaration'
+        1  references non-encodable rule 'view_element'
+        1  references non-encodable rule 'view_mode'
+        1  references non-encodable rule 'wait_statement'
+CHOICE-SITE-CENSUS: grammar=vhdl sites=39 (top_level=37) with_encodable_subset=0 all_encodable=0
+DEGENERACY-CENSUS: grammar=vhdl top_level_sites=37 degenerate_dispatch=0
+  gate: top-level + terminal-ws-sensitive + all branches first-byte-decided + pairwise-disjoint + no branch predicates/effects — RGX-0078.5.i.3 (P2)
+  degeneracy blocker histogram (top-level site occurrences):
+      181  branch not first-byte-decided
+       37  terminals skip leading layout (R2 raw-byte peek unsound)
+PREFIX2-CENSUS: grammar=vhdl blocked_top_level_sites=37 prefix2_dispatchable=0 (wildcard_limited=0)
+  gate: the P2 gates minus first-byte disjointness + per shared first byte: resolved second-byte facts + non-wildcard members pairwise-disjoint on byte 2 — RGX-0078.5.i.7 (D1)
+  prefix2 blocker histogram (blocked-site occurrences):
+      181  branch not first-byte-decided
+       37  terminals skip leading layout (R2 raw-byte peek unsound)
+FIRSTK-CENSUS: grammar=vhdl top_level_branches=181 guarded=0 deeper_than_level1=0 with_emulation=0 truncated=0 d1_fallback=0
+  gate: level-1 admission (branch_dispatch_first_bytes) + per-path bounded trie (depth≤4, fanout≤24, ≤16 nodes) + exact furthest emulation on refutation arms — RGX-0078.5.j.4 (C1)
+  firstk level-1 refusal histogram (unguarded branches):
+      181  terminals skip leading layout (R2 raw-byte peek unsound)
+QUANT-SITE-CENSUS: grammar=vhdl quantified_sites=113 min_zero=109 guardable=0 (bare_ref=0 no_refs=0 mixed=0)
+  gate: min-0 quantifier + terminal-ws-sensitive + element first-byte-decided + predicate/effect-free reachable closure — RGX-0078.5.i.7 (Q-GUARD); the EMISSION guards bare_ref (+ exact furthest emulation) and no_refs sites only
+  quant blocker histogram (blocked min-0 site occurrences):
+      109  element not first-byte-decided
+      109  terminal layout skipping (R2 raw-byte peek unsound)
+CASCADE-CENSUS: grammar=vhdl rules=216 cascade_eligible=216 (roots=1 internal=215 internal_cyclic=29) residual=0 boundary_edges=0
+  gate: effect-free + policy-encodable ONLY — cycles/layout/lookahead/value shapes are emittable by a fused matcher (named facts, not blockers) — RGX-0078.5.i.7 (D2)
+CASCADE-PLAN: grammar=vhdl increment=A(acyclic-subregions) sub_roots=66 internal=121 effect_reaching_fused=0 (of 187 fused)
+  model: cyclic eligible rules stay protocol boundaries in this increment (no memo lane, no recursion); sub-roots keep the full protocol frame + the observability-twin dispatch; internal rules run as fused cascade_* functions on the bare-parse path; effect-reaching fused rules carry the C3-B snapshot/island obligations.
+CASCADE-PLAN-B: grammar=vhdl increment=B(cyclic-spine) sub_roots=1 internal=215 thin_memo=29 effect_reaching_fused=0 (of 216 fused)
+  model: EVERY cascade-eligible rule fused (sub-roots = the census's full-fold roots, keeping the protocol frame + twin dispatch); cycle-participating fused rules carry the epoch-stamped thin memo (⛔ the #49 bound — they never lose memo protection); effect obligations as in increment A.
+DIRECT-VALUE-PLAN: grammar=vhdl barrier=96 value_licensed=92 node_locked=28 (of 216 fused; demoted=16)
+  model (session #150 corrected): barrier rules (VALUE-PURE fold on every branch) build value-internally unconditionally; value-licensed rules (undemanded through content-position references) convert early (compositional to_shaped_value); node-locked rules keep node builds (escape root, content-position demand, or a NAMED vocabulary demotion).
+BOUNDARY-SCANNER-PLAN: grammar=vhdl rules=0 (text=0 span_transform=0 shaped_object=0; sub_roots=0 residual=0; post_predicates=0) dropped_candidates=0
+  model: per plan rule a direct-coded frameless scan_<rule> serves BARE-path call sites (protocol twin verbatim; exact furthest emulation; acyclic O(k) memo-loss) — RGX-0078.5.i.9 (D3)
+INLINE-CENSUS: grammar=vhdl rules=216 inline_eligible=186 (pass_through=2 alternation_leaf=0 shaped=184)
+  gate: acyclic (guard non-load-bearing) + directive-free frame + non-entry + no @profiles/@transform — RGX-0078.5.i.4 (P1)
+  inline blocker histogram (rule occurrences):
+       29  reference cycle (recursion guard is load-bearing)
+        1  entry rule
+INLINE-DECISIONS: grammar=vhdl decided_under_budget=125 over_budget=61 (expansion_cap=12 duplication_cap=192)
+  census JSON written to docs/tasks/artifacts/k4b_delta/stepA_firstk/census_vhdl.json

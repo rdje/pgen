@@ -31,7 +31,7 @@
 
 use super::{ASTNode, ASTValue, TokenValue};
 use regex::Regex;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// A sound over-approximation of a node's FIRST set.
 #[derive(Debug, Clone, Default)]
@@ -1308,6 +1308,32 @@ fn regex_hir_second(hir: &regex_syntax::hir::Hir) -> Option<SecondByteSummary> {
     }
 }
 
+/// RGX-0078.5.j.4 K4b C1 — the quantifier's MAX repetition bound (`None` =
+/// unbounded). Unparseable forms return the CONSERVATIVE direction for the
+/// trie consumer: `None` (extra repetitions are over-approximated as allowed,
+/// which only widens the admitted set and marks more boundaries accepting —
+/// never a fabricated refutation or entry claim).
+fn quantifier_max_repeat(quantifier: &str) -> Option<usize> {
+    let trimmed = quantifier.trim();
+    match trimmed {
+        "?" => Some(1),
+        "*" | "+" => None,
+        _ if trimmed.starts_with('{') && trimmed.ends_with('}') => {
+            let inner = trimmed[1..trimmed.len() - 1].trim();
+            if inner.is_empty() {
+                return None;
+            }
+            let max_part = match inner.split_once(',') {
+                None => inner.trim(),                                   // {N}
+                Some((_, max)) if max.trim().is_empty() => return None, // {N,}
+                Some((_, max)) => max.trim(),                           // {N,M} / {,M}
+            };
+            max_part.parse::<usize>().ok()
+        }
+        _ => None,
+    }
+}
+
 /// Does the quantifier's MAX bound allow a second repetition? (`?`/`{1}`/`{0,1}`
 /// forbid it; `*`/`+`/`{n,}`/`{n,m≥2}` allow it.)
 fn quantifier_max_allows_second_repeat(quantifier: &str) -> bool {
@@ -1329,6 +1355,904 @@ fn quantifier_max_allows_second_repeat(quantifier: &str) -> bool {
         }
         _ => true,
     }
+}
+
+// ============================================================================
+// RGX-0078.5.j.4 K4b C1 — bounded per-path PREFIX TRIE (FIRSTₖ, k ≤ 4).
+//
+// Generalizes the level-1 FIRST guard and the D1 global `SecondByteSummary`
+// into ONE per-path carrier (design: docs/tasks/artifacts/k4b_delta/
+// step1_c1_design.md). Per branch, a bounded trie over the input bytes at
+// offsets 0..k−1 describes every prefix a match of the branch can have; a
+// guard walks it and REFUTES the branch when the walk falls off — pure
+// CANNOT-match pruning, so language/AST/winner/verdicts are unchanged by
+// construction. The three D1 license refusals are lifted:
+//  - per-PATH admitted bytes (not global-over-first-bytes),
+//  - per-PATH `accepting` (the `len1_possible` generalization: a walk that
+//    reaches a node where some complete match ends must attempt the branch),
+//  - the `offset1_rule_entry` REFUSAL is replaced by an EXACT furthest-position
+//    EMULATION license: `entry_at_node` records where rule entries execute, and
+//    a refutation arm emits one conditional max-write (§ exactness below).
+//
+// # Furthest-parity exactness (the C1 license)
+// `furthest_position` writers are rule-entry preambles ONLY (emitter `:3903`,
+// Q-GUARD `:5151`; terminals never write it — tool-verified in `-0157`/`-0158`).
+// For a refuted walk that consumed bytes 0..j−1 and died at offset j, every
+// grammar path merged into the walked node is GENUINELY attempted by the real
+// (unpruned) branch before it fails: the tournament attempts all byte-viable
+// alternatives, ordered-Or later alternatives run because earlier ones fail,
+// nested structures are UNGUARDED (level-1/D1/C1 guards exist only on
+// rule-top-level Or branches, and a rule boundary's own entry preamble writes
+// the same offset as any same-depth internal entry), and greedy min-0
+// quantified attempts either run (entering their element) or are Q-guard-elided
+// WITH the exact emulation that writes the same offset. Hence the real
+// attempt's deepest furthest write equals `parse_start + w` where `w` is the
+// max `entry_at_node` depth along the walked path — the merged max is EXACT,
+// and the emitted refutation arm reproduces it with one conditional max-write.
+// Root refutation (j = 0) is UNIVERSALLY w = 0: every consuming path needs
+// byte 0 ∈ FIRST, an offset-0 entry rewrites the already-written `parse_start`,
+// and the only withheld-byte case (the D0 exact negative-lookahead subtraction)
+// consumes via a single-byte-decided inner whose entry is at offset 0 too.
+//
+// # Composition safety (where exactness would be lost, the node degrades)
+//  - A lookahead whose subtree contains rule references admits only its inner
+//    FIRST bytes as `unresolved` children: a byte inside them may let the inner
+//    attempt consume arbitrarily deep (writing furthest beyond any bound), so
+//    the walk must ATTEMPT there; a byte outside them makes the inner attempt
+//    fail at its char 1, whose entry behavior is the inner trie root's exact
+//    `entry_at_node`. A POSITIVE lookahead's node is non-accepting (every match
+//    needs the inner's first byte next) and closes the frontier (nothing may
+//    graft below it — deeper refutations could not bound the passed inner's
+//    writes); a NEGATIVE lookahead's node is accepting (the match can end
+//    there whenever the inner fails at char 1) and composes on. A NULLABLE or
+//    unresolved-FIRST inner degrades the node to `unresolved`.
+//  - Ref-free lookaheads are transparent (no writers; ignoring their byte
+//    constraint only over-approximates the admitted set — sound).
+//  - Anything else the analysis cannot bound (undefined references, cycles,
+//    underivable regex heads, cap overflows) degrades path-locally to
+//    `unresolved` = the shallower guard — never unsound, only less precise.
+//
+// # Caps (determinism + artifact-size control; design constants)
+// depth ≤ 4, per-node fanout ≤ 24 distinct bytes, ≤ 16 nodes per built trie.
+// Exceeding a cap truncates that subtree to `unresolved` deterministically
+// (BTreeMap byte order, fixed fold order). The D1 fallback layer (§ license)
+// deliberately bypasses the fanout cap — it reproduces today's proven D1
+// emission verbatim where the per-path analysis is weaker.
+// ============================================================================
+
+/// Depth cap: the walk inspects input bytes at offsets `0..PREFIX_TRIE_DEPTH_CAP`.
+/// Nodes AT the cap depth are attempt-terminal (accepting or unresolved).
+pub(crate) const PREFIX_TRIE_DEPTH_CAP: usize = 4;
+/// Per-node fanout cap (distinct admitted bytes). Overflow ⇒ node `unresolved`.
+pub(crate) const PREFIX_TRIE_FANOUT_CAP: usize = 24;
+/// Whole-trie node budget per build (children created; the root is free).
+pub(crate) const PREFIX_TRIE_NODE_CAP: usize = 16;
+
+/// One bounded prefix-trie node. Offsets are RELATIVE to the trie's start until
+/// the guard composition fixes the branch root at `parse_start`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct PrefixTrieNode {
+    /// Admitted next bytes ALONG THIS PATH (per-path, not global).
+    pub(crate) children: BTreeMap<u8, PrefixTrieNode>,
+    /// Some complete match ends at this depth ⇒ the walk must attempt here.
+    pub(crate) accepting: bool,
+    /// Analysis incomplete along this path ⇒ the walk must attempt here.
+    pub(crate) unresolved: bool,
+    /// A rule/builtin entry preamble executes at exactly this depth on every
+    /// merged path (exact — see the module exactness argument), so a refutation
+    /// AT OR BELOW this node must emulate a furthest write at this offset.
+    pub(crate) entry_at_node: bool,
+    /// Any byte fact in this subtree came from a `/regex/` terminal (the same
+    /// layout-trust obligation as the level-1/D1 carriers). OR-propagated to
+    /// ancestors, so the root flag covers the whole trie.
+    pub(crate) regex_token_derived: bool,
+    /// A cap (depth / fanout / node budget) truncated this subtree somewhere.
+    /// OR-propagated to ancestors (census reporting).
+    pub(crate) truncated: bool,
+    /// FINALIZE-ONLY: max `entry_at_node` depth on the path root..=this node
+    /// (0 = only furthest-neutral offset-0 entries). The refutation arm's `w`.
+    pub(crate) deepest_entry_offset: u8,
+}
+
+impl PrefixTrieNode {
+    fn unresolved_leaf() -> Self {
+        PrefixTrieNode {
+            unresolved: true,
+            ..PrefixTrieNode::default()
+        }
+    }
+
+    fn epsilon() -> Self {
+        PrefixTrieNode {
+            accepting: true,
+            ..PrefixTrieNode::default()
+        }
+    }
+
+    /// The walk stops refining here (refutation can never fire at or below).
+    pub(crate) fn attempt_terminal(&self) -> bool {
+        self.accepting || self.unresolved
+    }
+
+    /// Degrade to an attempt-terminal because a cap fired or exactness was
+    /// lost. `unresolved` is set UNCONDITIONALLY — even on an accepting node —
+    /// because truncation must be STICKY under composition: an accepting node
+    /// whose children were cap-dropped would otherwise become refutation-live
+    /// with INCOMPLETE children the moment a later sequence graft clears its
+    /// accepting flag (`keep_accepting: false`). Tool-pinned over-prune: the
+    /// `digits "." digits` shape emitted a guard demanding `.` immediately
+    /// after one digit — `(?(VERSION>=10.0)…)` refused — because the budget
+    /// truncated the `digit+` repetition children off accepting boundary nodes
+    /// and the `.`-graft then treated the remainder as exhaustive (the
+    /// `prefix_trie_truncated_repetition_stays_unrefutable` regression pin).
+    fn degrade_unresolved(&mut self) {
+        self.truncated = true;
+        self.unresolved = true;
+        self.children.clear();
+    }
+
+    pub(crate) fn count_nodes(&self) -> usize {
+        1 + self
+            .children
+            .values()
+            .map(PrefixTrieNode::count_nodes)
+            .sum::<usize>()
+    }
+
+    fn max_depth(&self) -> usize {
+        self.children
+            .values()
+            .map(|c| 1 + c.max_depth())
+            .max()
+            .unwrap_or(0)
+    }
+}
+
+/// Node budget for ONE composite accumulator (a Sequence/Or/Quantified fold or
+/// an HIR composite). Each accumulator charges only the nodes cloned/merged
+/// into ITSELF, so the finished trie at every level stays ≤ the cap while
+/// sub-builds cannot spuriously exhaust an ancestor's budget (rule-body tries
+/// stay context-free for the D0.1 cache).
+struct PrefixTrieBudget {
+    nodes_left: usize,
+}
+
+impl PrefixTrieBudget {
+    fn fresh() -> Self {
+        PrefixTrieBudget {
+            nodes_left: PREFIX_TRIE_NODE_CAP,
+        }
+    }
+}
+
+/// Clone `src` into a fresh node, honoring the remaining depth and the node
+/// budget. `None` = the budget is exhausted (the caller degrades its parent).
+fn clone_bounded(
+    src: &PrefixTrieNode,
+    depth_left: usize,
+    budget: &mut PrefixTrieBudget,
+) -> Option<PrefixTrieNode> {
+    if budget.nodes_left == 0 {
+        return None;
+    }
+    budget.nodes_left -= 1;
+    let mut node = PrefixTrieNode {
+        children: BTreeMap::new(),
+        accepting: src.accepting,
+        unresolved: src.unresolved,
+        entry_at_node: src.entry_at_node,
+        regex_token_derived: src.regex_token_derived,
+        truncated: src.truncated,
+        deepest_entry_offset: 0,
+    };
+    if node.unresolved {
+        return Some(node);
+    }
+    if depth_left == 0 {
+        if !src.children.is_empty() {
+            node.degrade_unresolved();
+        }
+        return Some(node);
+    }
+    for (byte, child) in &src.children {
+        match clone_bounded(child, depth_left - 1, budget) {
+            Some(cloned) => {
+                node.regex_token_derived |= cloned.regex_token_derived;
+                node.truncated |= cloned.truncated;
+                node.children.insert(*byte, cloned);
+            }
+            None => {
+                node.degrade_unresolved();
+                return Some(node);
+            }
+        }
+    }
+    Some(node)
+}
+
+/// Merge `src` into `dst` (language union), honoring depth and budget. An
+/// `unresolved` outcome absorbs children (the walk must attempt there anyway).
+fn merge_node(
+    dst: &mut PrefixTrieNode,
+    src: &PrefixTrieNode,
+    depth_left: usize,
+    budget: &mut PrefixTrieBudget,
+) {
+    dst.accepting |= src.accepting;
+    dst.unresolved |= src.unresolved;
+    dst.entry_at_node |= src.entry_at_node;
+    dst.regex_token_derived |= src.regex_token_derived;
+    dst.truncated |= src.truncated;
+    if dst.unresolved {
+        dst.children.clear();
+        return;
+    }
+    if depth_left == 0 {
+        if !src.children.is_empty() {
+            dst.degrade_unresolved();
+        }
+        return;
+    }
+    for (byte, src_child) in &src.children {
+        if let Some(dst_child) = dst.children.get_mut(byte) {
+            merge_node(dst_child, src_child, depth_left - 1, budget);
+        } else {
+            match clone_bounded(src_child, depth_left - 1, budget) {
+                Some(cloned) => {
+                    dst.regex_token_derived |= cloned.regex_token_derived;
+                    dst.truncated |= cloned.truncated;
+                    dst.children.insert(*byte, cloned);
+                }
+                None => {
+                    dst.degrade_unresolved();
+                    return;
+                }
+            }
+        }
+    }
+    if dst.children.len() > PREFIX_TRIE_FANOUT_CAP {
+        dst.degrade_unresolved();
+    }
+}
+
+/// Graft `element` onto every current frontier (accepting) node of `acc`:
+/// the sequence-advance step. `keep_accepting` = the frontier node remains a
+/// possible match end (quantified `min == 0` / closure boundaries); otherwise
+/// its accepting-ness is re-derived from the element root (nullable elements
+/// keep the frontier). Fixed pre-order over a pre-captured frontier so budget
+/// truncation is deterministic.
+fn graft_at_frontier(
+    acc: &mut PrefixTrieNode,
+    element: &PrefixTrieNode,
+    keep_accepting: bool,
+    budget: &mut PrefixTrieBudget,
+) {
+    fn collect_frontier(node: &PrefixTrieNode, depth: usize, path: &mut Vec<u8>, out: &mut Vec<(Vec<u8>, usize)>) {
+        if node.unresolved {
+            return;
+        }
+        if node.accepting {
+            out.push((path.clone(), depth));
+        }
+        for (byte, child) in &node.children {
+            path.push(*byte);
+            collect_frontier(child, depth + 1, path, out);
+            path.pop();
+        }
+    }
+    let mut frontier = Vec::new();
+    collect_frontier(acc, 0, &mut Vec::new(), &mut frontier);
+    'paths: for (path, depth) in frontier {
+        let mut node = &mut *acc;
+        for byte in &path {
+            // A prior graft in this pass may have degraded an ancestor to
+            // `unresolved` (dropping this path) — that is the sound direction.
+            node = match node.children.get_mut(byte) {
+                Some(next) => next,
+                None => continue 'paths,
+            };
+        }
+        if node.unresolved {
+            continue;
+        }
+        if !keep_accepting {
+            node.accepting = false;
+        }
+        merge_node(
+            node,
+            element,
+            PREFIX_TRIE_DEPTH_CAP.saturating_sub(depth),
+            budget,
+        );
+    }
+}
+
+fn has_open_frontier(node: &PrefixTrieNode) -> bool {
+    if node.unresolved {
+        return false;
+    }
+    if node.accepting {
+        return true;
+    }
+    node.children.values().any(has_open_frontier)
+}
+
+/// The bounded prefix trie of one grammar node (offsets relative to its start).
+/// The recursion mirrors [`branch_second_byte_summary`]'s skeleton with the
+/// same D0.1 cache-coherence discipline for rule references.
+fn node_prefix_trie(
+    node: &ASTNode,
+    grammar_tree: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+    trie_cache: &mut HashMap<String, PrefixTrieNode>,
+    visiting_rules: &mut RuleVisit<PrefixTrieNode>,
+    depth: usize,
+) -> PrefixTrieNode {
+    if depth > MAX_FIRST_SET_DEPTH {
+        return PrefixTrieNode::unresolved_leaf();
+    }
+    match node {
+        ASTNode::Sequence { elements } => {
+            let mut acc = PrefixTrieNode::epsilon();
+            let mut budget = PrefixTrieBudget::fresh();
+            for element in elements {
+                let element_trie = node_prefix_trie(
+                    element,
+                    grammar_tree,
+                    first_set_cache,
+                    trie_cache,
+                    visiting_rules,
+                    depth + 1,
+                );
+                graft_at_frontier(&mut acc, &element_trie, false, &mut budget);
+                if !has_open_frontier(&acc) {
+                    // Every path is attempt-terminal or closed (e.g. a positive
+                    // refs-lookahead): later elements cannot affect the walk.
+                    break;
+                }
+            }
+            acc
+        }
+        ASTNode::Or { alternatives } => {
+            let mut acc = PrefixTrieNode::default();
+            if alternatives.is_empty() {
+                acc.accepting = true;
+                return acc;
+            }
+            let mut budget = PrefixTrieBudget::fresh();
+            for alternative in alternatives {
+                let alt_trie = node_prefix_trie(
+                    alternative,
+                    grammar_tree,
+                    first_set_cache,
+                    trie_cache,
+                    visiting_rules,
+                    depth + 1,
+                );
+                merge_node(&mut acc, &alt_trie, PREFIX_TRIE_DEPTH_CAP, &mut budget);
+            }
+            acc
+        }
+        ASTNode::Quantified {
+            element,
+            quantifier,
+        } => {
+            let inner = node_prefix_trie(
+                element,
+                grammar_tree,
+                first_set_cache,
+                trie_cache,
+                visiting_rules,
+                depth + 1,
+            );
+            let min = quantifier_min_repeat(quantifier).min(PREFIX_TRIE_DEPTH_CAP + 1);
+            let extra = quantifier_max_repeat(quantifier)
+                .map(|max| max.saturating_sub(quantifier_min_repeat(quantifier)))
+                .unwrap_or(PREFIX_TRIE_DEPTH_CAP + 1)
+                .min(PREFIX_TRIE_DEPTH_CAP + 1);
+            let mut acc = PrefixTrieNode::epsilon();
+            let mut budget = PrefixTrieBudget::fresh();
+            // The mandatory repetitions advance the frontier (a boundary short
+            // of `min` is not a match end).
+            for _ in 0..min {
+                graft_at_frontier(&mut acc, &inner, false, &mut budget);
+                if !has_open_frontier(&acc) {
+                    return acc;
+                }
+            }
+            // Optional repetitions: every boundary from `min` on is a possible
+            // match end AND — while the max allows — may continue with another
+            // repetition. Greedy attempt entries at those boundaries merge in
+            // exactly (the real parse tries the element there before falling
+            // through, or the Q-guard elides it WITH the equivalent emulation
+            // write). The rep count honors the quantifier's MAX: fabricating a
+            // repetition the max forbids would claim entry writes the real
+            // attempt can never make (a furthest-parity break, not just an
+            // over-approximation — pinned by the min0-parity unit test).
+            for _ in 0..extra {
+                let before = acc.clone();
+                graft_at_frontier(&mut acc, &inner, true, &mut budget);
+                if acc == before {
+                    break;
+                }
+            }
+            acc
+        }
+        ASTNode::Lookahead {
+            element: inner,
+            positive,
+        } => {
+            if !contains_rule_reference_shallow(inner) {
+                // Ref-free: no furthest writers inside; ignoring the byte
+                // constraint over-approximates the admitted set — transparent.
+                return PrefixTrieNode::epsilon();
+            }
+            // Refs inside: the inner attempt runs at the frontier. Bytes in
+            // the inner FIRST set may let it consume (and write) unboundedly
+            // deep ⇒ they must be admitted `unresolved`; other bytes fail the
+            // inner at its char 1, whose entry behavior is the inner trie
+            // root's exact `entry_at_node`. See the module composition notes.
+            let mut fs_visiting = RuleVisit::default();
+            let inner_first = branch_first_set(
+                inner,
+                grammar_tree,
+                first_set_cache,
+                &mut fs_visiting,
+                depth + 1,
+            );
+            if inner_first.unresolved || inner_first.nullable {
+                return PrefixTrieNode::unresolved_leaf();
+            }
+            let Some(inner_bytes) = summary_all_first_bytes(&inner_first) else {
+                return PrefixTrieNode::unresolved_leaf();
+            };
+            if inner_bytes.is_empty() || inner_bytes.len() > PREFIX_TRIE_FANOUT_CAP {
+                return PrefixTrieNode::unresolved_leaf();
+            }
+            let inner_trie = node_prefix_trie(
+                inner,
+                grammar_tree,
+                first_set_cache,
+                trie_cache,
+                visiting_rules,
+                depth + 1,
+            );
+            if inner_trie.unresolved {
+                // The char-1 entry behavior is not exactly known.
+                return PrefixTrieNode::unresolved_leaf();
+            }
+            let mut node = PrefixTrieNode {
+                // NEGATIVE: the match can end here (inner fails at char 1).
+                // POSITIVE: every match needs the inner's first byte next, so
+                // the node is non-accepting and — being childless-frontier —
+                // nothing ever grafts below it (frontier closed).
+                accepting: !positive,
+                entry_at_node: inner_trie.entry_at_node,
+                regex_token_derived: inner_first.regex_token_derived
+                    | inner_trie.regex_token_derived,
+                truncated: inner_trie.truncated,
+                ..PrefixTrieNode::default()
+            };
+            for byte in inner_bytes {
+                node.children.insert(byte, PrefixTrieNode::unresolved_leaf());
+            }
+            node
+        }
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => node_prefix_trie(
+                inner,
+                grammar_tree,
+                first_set_cache,
+                trie_cache,
+                visiting_rules,
+                depth + 1,
+            ),
+            ASTValue::Token(parts) => {
+                if parts.len() < 2 {
+                    return PrefixTrieNode::unresolved_leaf();
+                }
+                let TokenValue::String(token_type) = &parts[0];
+                let TokenValue::String(token_value) = &parts[1];
+                match token_type.as_str() {
+                    "quoted_string" => literal_trie(token_value.as_bytes()),
+                    "rule_reference" => rule_prefix_trie(
+                        token_value,
+                        grammar_tree,
+                        first_set_cache,
+                        trie_cache,
+                        visiting_rules,
+                    ),
+                    "regex" => match regex_syntax::Parser::new()
+                        .parse(token_value)
+                        .ok()
+                        .and_then(|hir| regex_hir_trie(&hir))
+                    {
+                        Some(mut trie) => {
+                            trie.regex_token_derived = true;
+                            trie
+                        }
+                        None => {
+                            let mut leaf = PrefixTrieNode::unresolved_leaf();
+                            leaf.regex_token_derived = true;
+                            leaf
+                        }
+                    },
+                    _ => PrefixTrieNode::unresolved_leaf(),
+                }
+            }
+        },
+    }
+}
+
+/// Linear chain for a quoted terminal (depth-capped, so at most 5 nodes).
+fn literal_trie(bytes: &[u8]) -> PrefixTrieNode {
+    let mut node = PrefixTrieNode::default();
+    if bytes.is_empty() {
+        node.accepting = true;
+        return node;
+    }
+    if bytes.len() > PREFIX_TRIE_DEPTH_CAP {
+        // The tail beyond the walk horizon is unrepresentable: build the
+        // in-horizon chain ending in an `unresolved` node at the cap depth.
+        let mut tail = PrefixTrieNode::unresolved_leaf();
+        tail.truncated = true;
+        for byte in bytes[..PREFIX_TRIE_DEPTH_CAP].iter().rev() {
+            let mut parent = PrefixTrieNode {
+                truncated: true,
+                ..PrefixTrieNode::default()
+            };
+            parent.children.insert(*byte, tail);
+            tail = parent;
+        }
+        return tail;
+    }
+    let mut tail = PrefixTrieNode {
+        accepting: true,
+        ..PrefixTrieNode::default()
+    };
+    for byte in bytes.iter().rev() {
+        let mut parent = PrefixTrieNode::default();
+        parent.children.insert(*byte, tail);
+        tail = parent;
+    }
+    tail
+}
+
+/// A rule reference's trie: the body trie (computed under a FRESH budget so the
+/// cached value is context-free) with `entry_at_node` set at the root — the
+/// rule's own entry preamble executes at the reference offset even when the
+/// next byte refutes every continuation. D0.1 cache-coherence discipline is
+/// identical to [`rule_first_set`] / [`rule_second_byte_summary`].
+fn rule_prefix_trie(
+    rule_name: &str,
+    grammar_tree: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+    trie_cache: &mut HashMap<String, PrefixTrieNode>,
+    visiting_rules: &mut RuleVisit<PrefixTrieNode>,
+) -> PrefixTrieNode {
+    if let Some(cached) = trie_cache.get(rule_name) {
+        return cached.clone();
+    }
+    if let Some(transient) = visiting_rules.transient.get(rule_name) {
+        return transient.clone();
+    }
+    if !visiting_rules.visiting.insert(rule_name.to_string()) {
+        visiting_rules.tainted.insert(rule_name.to_string());
+        let mut leaf = PrefixTrieNode::unresolved_leaf();
+        leaf.entry_at_node = true;
+        return leaf;
+    }
+    if visiting_rules.visiting.len() > MAX_RULE_CHAIN_DEPTH {
+        visiting_rules.cap_fired = true;
+        visiting_rules.visiting.remove(rule_name);
+        let mut leaf = PrefixTrieNode::unresolved_leaf();
+        leaf.entry_at_node = true;
+        return leaf;
+    }
+
+    let mut result = if let Some(rule_ast) = grammar_tree.get(rule_name) {
+        node_prefix_trie(
+            rule_ast,
+            grammar_tree,
+            first_set_cache,
+            trie_cache,
+            visiting_rules,
+            0,
+        )
+    } else {
+        native_builtin_prefix_trie(rule_name)
+            .unwrap_or_else(PrefixTrieNode::unresolved_leaf)
+    };
+    // The reference's own entry preamble (rule method / native builtin /
+    // inlined frame — all carry it) executes at the reference offset.
+    result.entry_at_node = true;
+
+    visiting_rules.visiting.remove(rule_name);
+    visiting_rules.tainted.remove(rule_name);
+    if visiting_rules.tainted.is_empty() && !visiting_rules.cap_fired {
+        trie_cache.insert(rule_name.to_string(), result.clone());
+    }
+    visiting_rules
+        .transient
+        .insert(rule_name.to_string(), result.clone());
+    result
+}
+
+/// The native builtins' tries (mirrors `native_builtin_first_set` /
+/// `native_builtin_second_byte_summary`). Both char builtins exceed the fanout
+/// cap (128 / 243 admitted bytes) ⇒ `unresolved` — the shallower guard applies
+/// (their byte sets still reach level 1 through the S1 carrier).
+fn native_builtin_prefix_trie(rule_name: &str) -> Option<PrefixTrieNode> {
+    match rule_name {
+        "builtin_ascii_char" | "builtin_any_char" => {
+            let mut leaf = PrefixTrieNode::unresolved_leaf();
+            leaf.truncated = true;
+            Some(leaf)
+        }
+        "true" | "false" => Some(PrefixTrieNode::epsilon()),
+        _ => None,
+    }
+}
+
+/// Depth-≤4 prefix trie of a regex token's HIR (the FIRSTₖ sibling of
+/// [`regex_hir_prefix`] / [`regex_hir_second`]). `None` = underivable. No
+/// `entry_at_node` anywhere: a token matches inside its rule's frame and never
+/// writes `furthest_position`. Zero-width assertions are transparent
+/// (over-approximating the admitted set — sound, same as the level-1 walk).
+fn regex_hir_trie(hir: &regex_syntax::hir::Hir) -> Option<PrefixTrieNode> {
+    use regex_syntax::hir::{Class, HirKind};
+    match hir.kind() {
+        HirKind::Empty | HirKind::Look(_) => Some(PrefixTrieNode::epsilon()),
+        HirKind::Literal(literal) => Some(literal_trie(&literal.0)),
+        HirKind::Class(class) => {
+            let mut bytes: BTreeSet<u8> = BTreeSet::new();
+            match class {
+                Class::Unicode(ranges) => {
+                    for range in ranges.ranges() {
+                        extend_lead_bytes_for_scalar_range(
+                            &mut bytes,
+                            range.start() as u32,
+                            range.end() as u32,
+                        );
+                    }
+                }
+                Class::Bytes(ranges) => {
+                    for range in ranges.ranges() {
+                        for byte in range.start()..=range.end() {
+                            bytes.insert(byte);
+                        }
+                    }
+                }
+            }
+            if bytes.is_empty() || bytes.len() > PREFIX_TRIE_FANOUT_CAP {
+                let mut leaf = PrefixTrieNode::unresolved_leaf();
+                leaf.truncated = !bytes.is_empty();
+                return Some(leaf);
+            }
+            let mut node = PrefixTrieNode::default();
+            for byte in bytes {
+                let child = if byte < 0x80 {
+                    // A one-byte scalar completes the class match here.
+                    PrefixTrieNode {
+                        accepting: true,
+                        ..PrefixTrieNode::default()
+                    }
+                } else {
+                    // Multi-byte scalar: the continuation bytes are beyond
+                    // this carrier's precision — attempt.
+                    PrefixTrieNode::unresolved_leaf()
+                };
+                node.children.insert(byte, child);
+            }
+            Some(node)
+        }
+        HirKind::Repetition(repetition) => {
+            let inner = regex_hir_trie(&repetition.sub)?;
+            let min = (repetition.min as usize).min(PREFIX_TRIE_DEPTH_CAP + 1);
+            let extra = repetition
+                .max
+                .map(|max| (max as usize).saturating_sub(repetition.min as usize))
+                .unwrap_or(PREFIX_TRIE_DEPTH_CAP + 1)
+                .min(PREFIX_TRIE_DEPTH_CAP + 1);
+            let mut acc = PrefixTrieNode::epsilon();
+            let mut budget = PrefixTrieBudget::fresh();
+            for _ in 0..min {
+                graft_at_frontier(&mut acc, &inner, false, &mut budget);
+                if !has_open_frontier(&acc) {
+                    return Some(acc);
+                }
+            }
+            for _ in 0..extra {
+                let before = acc.clone();
+                graft_at_frontier(&mut acc, &inner, true, &mut budget);
+                if acc == before {
+                    break;
+                }
+            }
+            Some(acc)
+        }
+        HirKind::Capture(capture) => regex_hir_trie(&capture.sub),
+        HirKind::Concat(parts) => {
+            let mut acc = PrefixTrieNode::epsilon();
+            let mut budget = PrefixTrieBudget::fresh();
+            for part in parts {
+                let part_trie = regex_hir_trie(part)?;
+                graft_at_frontier(&mut acc, &part_trie, false, &mut budget);
+                if !has_open_frontier(&acc) {
+                    break;
+                }
+            }
+            Some(acc)
+        }
+        HirKind::Alternation(alternatives) => {
+            let mut acc = PrefixTrieNode::default();
+            let mut budget = PrefixTrieBudget::fresh();
+            for alternative in alternatives {
+                let alt_trie = regex_hir_trie(alternative)?;
+                merge_node(&mut acc, &alt_trie, PREFIX_TRIE_DEPTH_CAP, &mut budget);
+            }
+            Some(acc)
+        }
+    }
+}
+
+/// The licensed, walk-ready C1 guard for one branch (the SHARED result both the
+/// FIRSTₖ census lane and codegen's guard emission consume — the standing
+/// census↔emission no-drift discipline).
+#[derive(Debug, Clone)]
+pub(crate) struct PrefixTrieGuard {
+    /// Finalized root: children keyed by the LEVEL-1 byte set (so a depth-1
+    /// walk is behaviorally identical to today's level-1 guard), subtrees from
+    /// the per-path analysis, attempt-terminal collapse applied, and
+    /// `deepest_entry_offset` fixed per node. Root refutation is always w = 0.
+    pub(crate) root: PrefixTrieNode,
+    /// Usable walk depth (1 = level-1-degenerate).
+    pub(crate) max_depth: usize,
+    /// Any cap truncated the per-path analysis somewhere.
+    pub(crate) truncated: bool,
+    /// The D1 global FIRST₂ layer refined at least one unresolved depth-1 leaf.
+    pub(crate) d1_fallback_used: bool,
+}
+
+impl PrefixTrieGuard {
+    /// The guard refines nothing beyond level 1 (every root child is an
+    /// attempt-terminal leaf — unresolved OR accepting, both admit-and-stop) —
+    /// the emitter keeps today's exact level-1 expression.
+    pub(crate) fn is_level1_degenerate(&self) -> bool {
+        self.root
+            .children
+            .values()
+            .all(|c| c.attempt_terminal() && c.children.is_empty())
+    }
+
+    /// Distinct nonzero emulation offsets over all refutation arms (census).
+    pub(crate) fn emulation_offsets(&self) -> Vec<u8> {
+        fn walk(node: &PrefixTrieNode, out: &mut BTreeSet<u8>) {
+            if node.attempt_terminal() {
+                return;
+            }
+            // Refutation fires AT this node (its `_` arm) with its own w.
+            if node.deepest_entry_offset > 0 {
+                out.insert(node.deepest_entry_offset);
+            }
+            for child in node.children.values() {
+                walk(child, out);
+            }
+        }
+        let mut out = BTreeSet::new();
+        walk(&self.root, &mut out);
+        out.into_iter().collect()
+    }
+}
+
+/// FINALIZE: attempt-terminal collapse + per-node `deepest_entry_offset`
+/// (max `entry_at_node` depth on the path; depth-0 entries rewrite the
+/// already-recorded `parse_start`, so the root contributes 0).
+fn finalize_guard_node(node: &mut PrefixTrieNode, depth: usize, inherited: u8) {
+    let own = if depth > 0 && node.entry_at_node {
+        depth as u8
+    } else {
+        0
+    };
+    node.deepest_entry_offset = inherited.max(own);
+    if node.attempt_terminal() {
+        node.children.clear();
+        return;
+    }
+    for child in node.children.values_mut() {
+        finalize_guard_node(child, depth + 1, node.deepest_entry_offset);
+    }
+}
+
+/// RGX-0078.5.j.4 K4b C1 — the branch's licensed FIRSTₖ prune guard (walk-ready
+/// trie), or the NAMED level-1 reason the branch must not be byte-guarded at
+/// all. Level-1 admission gates are exactly [`branch_dispatch_first_bytes`]'s
+/// (so an `Err` here means the branch keeps today's unguarded emission), the
+/// per-path refinement degrades path-locally to `unresolved` (never an `Err`),
+/// and the D1 global FIRST₂ layer refines unresolved depth-1 leaves wherever
+/// [`branch_prefix2_guard_bytes`] licenses the branch — today's D1 guard is the
+/// degenerate rectangle case of the returned trie.
+pub(crate) fn branch_prefix_trie_guard(
+    branch: &ASTNode,
+    grammar_tree: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+    second_byte_cache: &mut HashMap<String, SecondByteSummary>,
+    trie_cache: &mut HashMap<String, PrefixTrieNode>,
+    trust_regex_token_bytes: bool,
+) -> Result<PrefixTrieGuard, String> {
+    // Level 1: identical admission to today's guard (S1 = the emitted byte set).
+    let s1 = branch_dispatch_first_bytes(
+        branch,
+        grammar_tree,
+        first_set_cache,
+        trust_regex_token_bytes,
+    )?;
+
+    // Per-path refinement (S2). A regex-derived fact without layout trust
+    // degrades S2 only — level 1 already passed its own trust gate.
+    let mut visiting = RuleVisit::default();
+    let mut s2 = node_prefix_trie(
+        branch,
+        grammar_tree,
+        first_set_cache,
+        trie_cache,
+        &mut visiting,
+        0,
+    );
+    if s2.regex_token_derived && !trust_regex_token_bytes {
+        s2 = PrefixTrieNode::unresolved_leaf();
+    }
+
+    let mut root = PrefixTrieNode::default();
+    for byte in &s1 {
+        let child = if s2.unresolved {
+            PrefixTrieNode::unresolved_leaf()
+        } else {
+            s2.children
+                .get(byte)
+                .cloned()
+                .unwrap_or_else(PrefixTrieNode::unresolved_leaf)
+        };
+        root.truncated |= child.truncated;
+        root.children.insert(*byte, child);
+    }
+    root.truncated |= s2.truncated;
+
+    // D1 fallback layer: where the per-path analysis is level-1-weak (an
+    // unresolved depth-1 leaf) but the global FIRST₂ license holds, reproduce
+    // today's D1 refinement (w = 0 by its `!offset1_rule_entry` license; no
+    // fanout cap — this is the proven existing emission).
+    let mut d1_fallback_used = false;
+    if let Ok(second_bytes) = branch_prefix2_guard_bytes(
+        branch,
+        grammar_tree,
+        first_set_cache,
+        second_byte_cache,
+        trust_regex_token_bytes,
+    ) {
+        let mut rectangle = PrefixTrieNode::default();
+        for byte in &second_bytes {
+            rectangle
+                .children
+                .insert(*byte, PrefixTrieNode::unresolved_leaf());
+        }
+        for child in root.children.values_mut() {
+            if child.unresolved && child.children.is_empty() {
+                *child = rectangle.clone();
+                d1_fallback_used = true;
+            }
+        }
+    }
+
+    finalize_guard_node(&mut root, 0, 0);
+    let max_depth = root.max_depth();
+    let truncated = root.truncated;
+    Ok(PrefixTrieGuard {
+        root,
+        max_depth,
+        truncated,
+        d1_fallback_used,
+    })
 }
 
 /// RGX-0078.5.c.2 — the first BYTE of a quoted terminal literal.
@@ -1901,5 +2825,356 @@ mod tests {
             quantified_element_frontier(&unknown_token),
             QuantFrontier::Mixed
         );
+    }
+
+    // ==================== RGX-0078.5.j.4 K4b C1 — prefix-trie guard ====================
+
+    fn trie_guard(node: &ASTNode, tree: &HashMap<String, ASTNode>) -> Result<PrefixTrieGuard, String> {
+        let mut fs_cache = HashMap::new();
+        let mut sb_cache = HashMap::new();
+        let mut trie_cache = HashMap::new();
+        branch_prefix_trie_guard(node, tree, &mut fs_cache, &mut sb_cache, &mut trie_cache, true)
+    }
+
+    /// C1 — the `\`-escape family (`backreference = "\" nonzero_digit …` shape):
+    /// the D1 `offset1_rule_entry` refusal is replaced by the EXACT emulation
+    /// license — refutation at depth 1 carries w = 1 (the offset-1 rule entry),
+    /// and the per-path children are exactly the referenced rule's FIRST bytes.
+    #[test]
+    fn prefix_trie_backslash_escape_family_gets_exact_emulation() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "nonzero_digit".to_string(),
+            ASTNode::Or {
+                alternatives: (b'1'..=b'9')
+                    .map(|b| quoted_atom(&(b as char).to_string()))
+                    .collect(),
+            },
+        );
+        let branch = ASTNode::Sequence {
+            elements: vec![quoted_atom("\\"), rule_ref("nonzero_digit")],
+        };
+        let guard = trie_guard(&branch, &tree).expect("licensed");
+        assert!(guard.max_depth >= 2, "depth {} — the escape family must reach byte 2", guard.max_depth);
+        let backslash = guard.root.children.get(&b'\\').expect("root admits backslash");
+        assert!(!backslash.attempt_terminal(), "depth-1 refutation must be live");
+        assert_eq!(
+            backslash.children.keys().copied().collect::<Vec<u8>>(),
+            (b'1'..=b'9').collect::<Vec<u8>>(),
+            "per-path byte-2 facts are the referenced rule's FIRST bytes"
+        );
+        assert_eq!(
+            backslash.deepest_entry_offset, 1,
+            "the offset-1 rule entry is emulated exactly"
+        );
+        assert_eq!(guard.emulation_offsets(), vec![1]);
+        // The refuted D1 mirror: the OLD license still refuses this shape.
+        let mut fs = HashMap::new();
+        let mut sb = HashMap::new();
+        let err = branch_prefix2_guard_bytes(&branch, &tree, &mut fs, &mut sb, true).unwrap_err();
+        assert!(err.contains("furthest-position parity"), "{err}");
+    }
+
+    /// C1 — the anchor family: 1-byte forms are accepting at depth 1 (per-path
+    /// `len1` — they cap only their OWN path), the `\`-forms discriminate at
+    /// byte 2, and no refutation needs emulation (w = 0 everywhere).
+    #[test]
+    fn prefix_trie_anchor_family_per_path_accepting() {
+        let tree = HashMap::new();
+        let branch = ASTNode::Or {
+            alternatives: vec![
+                quoted_atom("^"),
+                quoted_atom("$"),
+                quoted_atom("\\A"),
+                quoted_atom("\\z"),
+                quoted_atom("\\Z"),
+            ],
+        };
+        let guard = trie_guard(&branch, &tree).expect("licensed");
+        let caret = guard.root.children.get(&b'^').expect("admits ^");
+        assert!(caret.accepting && caret.children.is_empty());
+        let backslash = guard.root.children.get(&b'\\').expect("admits backslash");
+        assert!(!backslash.attempt_terminal());
+        assert_eq!(
+            backslash.children.keys().copied().collect::<Vec<u8>>(),
+            vec![b'A', b'Z', b'z']
+        );
+        assert!(backslash.children.values().all(|n| n.accepting));
+        assert_eq!(guard.emulation_offsets(), Vec::<u8>::new(), "anchor is w=0 everywhere");
+        // The global D1 carrier refuses this exact shape (`len1_possible`).
+        let mut fs = HashMap::new();
+        let mut sb = HashMap::new();
+        let err = branch_prefix2_guard_bytes(&branch, &tree, &mut fs, &mut sb, true).unwrap_err();
+        assert!(err.contains("1-byte match"), "{err}");
+    }
+
+    /// C1 — the `(?`-family fork: a lookbehind-style literal opener refutes at
+    /// depth 3 with w = 0 (the discriminating byte precedes any rule entry),
+    /// while the named-group branch's wide capture-name FIRST set exceeds the
+    /// fanout cap and degrades path-locally to `unresolved` (never refuted at
+    /// that depth — sound, just less precise).
+    #[test]
+    fn prefix_trie_group_fork_literal_vs_fanout_truncation() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "capture_name_head".to_string(),
+            ASTNode::Or {
+                alternatives: (b'a'..=b'z')
+                    .chain(b'A'..=b'Z')
+                    .map(|b| quoted_atom(&(b as char).to_string()))
+                    .collect(),
+            },
+        );
+        tree.insert("pattern_stub".to_string(), quoted_atom("ab"));
+        // lookbehind-style: 4-byte literal opener then a rule body.
+        let lookbehind = ASTNode::Sequence {
+            elements: vec![quoted_atom("(?<="), rule_ref("pattern_stub"), quoted_atom(")")],
+        };
+        let guard = trie_guard(&lookbehind, &tree).expect("licensed");
+        let n1 = guard.root.children.get(&b'(').expect("(");
+        let n2 = n1.children.get(&b'?').expect("?");
+        let n3 = n2.children.get(&b'<').expect("<");
+        assert!(!n3.attempt_terminal(), "the j=3 fork must be refutable");
+        assert_eq!(n3.children.keys().copied().collect::<Vec<u8>>(), vec![b'=']);
+        assert_eq!(n3.deepest_entry_offset, 0, "no entry precedes the fork byte");
+        let n4 = n3.children.get(&b'=').expect("=");
+        assert!(n4.attempt_terminal(), "the body beyond the walk horizon must attempt");
+        // named-group-style: 3-byte opener then a wide-FIRST name rule.
+        let named = ASTNode::Sequence {
+            elements: vec![quoted_atom("(?<"), rule_ref("capture_name_head"), quoted_atom(">")],
+        };
+        let guard = trie_guard(&named, &tree).expect("licensed");
+        let n3 = guard.root.children[&b'('].children[&b'?'].children
+            .get(&b'<')
+            .expect("<");
+        assert!(
+            n3.unresolved && n3.truncated,
+            "the >24-byte name head must degrade path-locally: {n3:?}"
+        );
+    }
+
+    /// C1 — a POSITIVE lookahead with rule references closes the frontier: the
+    /// guard keeps exactly today's level-1 behavior (depth-1 degenerate), never
+    /// refuting where the passed inner's furthest writes would be unbounded.
+    #[test]
+    fn prefix_trie_positive_refs_lookahead_stays_level1() {
+        let mut tree = HashMap::new();
+        tree.insert("payload".to_string(), quoted_atom("ab"));
+        let branch = ASTNode::Sequence {
+            elements: vec![
+                ASTNode::Lookahead {
+                    element: Box::new(ASTNode::Sequence {
+                        elements: vec![quoted_atom("x"), rule_ref("payload")],
+                    }),
+                    positive: true,
+                },
+                quoted_atom("yz"),
+            ],
+        };
+        let guard = trie_guard(&branch, &tree).expect("licensed");
+        assert!(guard.is_level1_degenerate(), "{:?}", guard.root);
+        assert_eq!(guard.emulation_offsets(), Vec::<u8>::new());
+    }
+
+    /// C1 — a NEGATIVE lookahead with rule references composes on: bytes in the
+    /// inner FIRST set are admitted `unresolved` (the inner may consume deep),
+    /// other bytes walk the continuation exactly.
+    #[test]
+    fn prefix_trie_negative_refs_lookahead_composes() {
+        let mut tree = HashMap::new();
+        tree.insert("payload".to_string(), quoted_atom("ab"));
+        let branch = ASTNode::Sequence {
+            elements: vec![
+                ASTNode::Lookahead {
+                    element: Box::new(ASTNode::Sequence {
+                        elements: vec![quoted_atom("x"), rule_ref("payload")],
+                    }),
+                    positive: false,
+                },
+                quoted_atom("yz"),
+            ],
+        };
+        let guard = trie_guard(&branch, &tree).expect("licensed");
+        let x = guard.root.children.get(&b'x').expect("inner FIRST admitted");
+        assert!(x.unresolved && x.children.is_empty());
+        let y = guard.root.children.get(&b'y').expect("continuation admitted");
+        assert_eq!(y.children.keys().copied().collect::<Vec<u8>>(), vec![b'z']);
+        assert!(y.children[&b'z'].accepting);
+        assert_eq!(guard.emulation_offsets(), Vec::<u8>::new());
+    }
+
+    /// C1 — greedy min-0 quantified attempt parity: a refutation at the
+    /// quantified site's offset emulates the elided/failed attempt's rule entry
+    /// exactly (the Q-GUARD equivalence, generalized per-path).
+    #[test]
+    fn prefix_trie_quantified_min0_entry_parity() {
+        let mut tree = HashMap::new();
+        tree.insert("opt_rule".to_string(), quoted_atom("q"));
+        let branch = ASTNode::Sequence {
+            elements: vec![
+                quoted_atom("a"),
+                ASTNode::Quantified {
+                    element: Box::new(rule_ref("opt_rule")),
+                    quantifier: "?".to_string(),
+                },
+                quoted_atom("bc"),
+            ],
+        };
+        let guard = trie_guard(&branch, &tree).expect("licensed");
+        let a = guard.root.children.get(&b'a').expect("a");
+        assert!(!a.attempt_terminal());
+        assert_eq!(
+            a.children.keys().copied().collect::<Vec<u8>>(),
+            vec![b'b', b'q'],
+            "both the optional element and the continuation are admitted"
+        );
+        assert_eq!(
+            a.deepest_entry_offset, 1,
+            "the greedy opt_rule attempt at offset 1 is emulated"
+        );
+        assert_eq!(guard.emulation_offsets(), vec![1]);
+    }
+
+    /// C1 — the D1 global FIRST₂ layer refines an unresolved depth-1 leaf where
+    /// the per-path analysis is fanout-capped but the old license holds — the
+    /// existing D1 guard is the degenerate rectangle case of the new carrier.
+    #[test]
+    fn prefix_trie_d1_fallback_fills_rectangle() {
+        let tree = HashMap::new();
+        // A >24-wide byte-2 class: the per-path child degrades, the global
+        // second-byte carrier licenses.
+        let branch = regex_atom(r"\\[a-zA-Z0-9]");
+        let guard = trie_guard(&branch, &tree).expect("licensed");
+        assert!(guard.d1_fallback_used, "{:?}", guard.root);
+        assert_eq!(guard.max_depth, 2);
+        let backslash = guard.root.children.get(&b'\\').expect("backslash");
+        assert!(!backslash.attempt_terminal());
+        assert_eq!(backslash.children.len(), 26 + 26 + 10);
+        assert_eq!(backslash.deepest_entry_offset, 0);
+    }
+
+    /// C1 — level-1 refusals pass through verbatim (the guard's admission gates
+    /// are exactly `branch_dispatch_first_bytes`').
+    #[test]
+    fn prefix_trie_level1_refusals_pass_through() {
+        let tree = HashMap::new();
+        let nullable = ASTNode::Quantified {
+            element: Box::new(quoted_atom("ab")),
+            quantifier: "?".to_string(),
+        };
+        let err = trie_guard(&nullable, &tree).unwrap_err();
+        assert!(err.contains("nullable"), "{err}");
+        let err = trie_guard(&rule_ref("no_such_rule"), &tree).unwrap_err();
+        assert!(err.contains("unresolved"), "{err}");
+        // Regex-derived bytes without layout trust refuse at level 1.
+        let mut fs_cache = HashMap::new();
+        let mut sb_cache = HashMap::new();
+        let mut trie_cache = HashMap::new();
+        let err = branch_prefix_trie_guard(
+            &regex_atom("[a-z]"),
+            &tree,
+            &mut fs_cache,
+            &mut sb_cache,
+            &mut trie_cache,
+            false,
+        )
+        .unwrap_err();
+        assert!(err.contains("layout-skipping"), "{err}");
+    }
+
+    /// C1 — a single-byte-terminal branch is depth-1 degenerate through the
+    /// accepting (not unresolved) leaf shape: exactly today's level-1 guard.
+    #[test]
+    fn prefix_trie_single_byte_terminal_is_level1_degenerate() {
+        let tree = HashMap::new();
+        let guard = trie_guard(&quoted_atom("^"), &tree).expect("licensed");
+        assert!(guard.is_level1_degenerate());
+        assert_eq!(guard.max_depth, 1);
+    }
+
+    /// C1 — the `digits "." digits` over-prune regression (the `-0160` lib
+    /// battery catch, `version_conditional` `(?(VERSION>=10.0)cat|dog)`):
+    /// budget truncation on the ACCEPTING `digit+` boundary nodes must stay
+    /// sticky (`unresolved`), or the later `.`-graft clears `accepting` and
+    /// leaves refutation-live nodes with INCOMPLETE children — the emitted
+    /// guard then demands `.` immediately after one digit. Every root child
+    /// must remain attempt-terminal or admit BOTH the repetition digits and
+    /// the dot.
+    #[test]
+    fn prefix_trie_truncated_repetition_stays_unrefutable() {
+        let mut tree = HashMap::new();
+        tree.insert(
+            "digit_stub".to_string(),
+            ASTNode::Or {
+                alternatives: (b'0'..=b'9')
+                    .map(|b| quoted_atom(&(b as char).to_string()))
+                    .collect(),
+            },
+        );
+        tree.insert(
+            "digits_stub".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("digit_stub")),
+                quantifier: "+".to_string(),
+            },
+        );
+        let branch = ASTNode::Sequence {
+            elements: vec![
+                rule_ref("digits_stub"),
+                quoted_atom("."),
+                rule_ref("digits_stub"),
+            ],
+        };
+        let guard = trie_guard(&branch, &tree).expect("licensed");
+        for (byte, child) in &guard.root.children {
+            let admits_more_digits =
+                (b'0'..=b'9').all(|d| child.children.contains_key(&d));
+            assert!(
+                child.attempt_terminal() || (admits_more_digits && child.children.contains_key(&b'.')),
+                "root child {byte:#04x} became refutation-live with incomplete children: {child:?}"
+            );
+        }
+    }
+
+    /// C1 — D0.1 cache coherence: the per-rule trie cache admits only
+    /// context-free values (the same discipline as the FIRST/second caches);
+    /// a query order that computes `inner` first must not poison `entry`.
+    #[test]
+    fn prefix_trie_cache_stores_only_context_free_values() {
+        let mut tree = HashMap::new();
+        tree.insert("entry".to_string(), rule_ref("inner"));
+        tree.insert(
+            "inner".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![quoted_atom("a"), rule_ref("entry")],
+                    },
+                    quoted_atom("b"),
+                ],
+            },
+        );
+        let fresh = trie_guard(&rule_ref("entry"), &tree).expect("licensed");
+        let mut fs_cache = HashMap::new();
+        let mut sb_cache = HashMap::new();
+        let mut trie_cache = HashMap::new();
+        let _ = branch_prefix_trie_guard(
+            &rule_ref("inner"),
+            &tree,
+            &mut fs_cache,
+            &mut sb_cache,
+            &mut trie_cache,
+            true,
+        );
+        let after = branch_prefix_trie_guard(
+            &rule_ref("entry"),
+            &tree,
+            &mut fs_cache,
+            &mut sb_cache,
+            &mut trie_cache,
+            true,
+        )
+        .expect("licensed");
+        assert_eq!(after.root, fresh.root, "cache order must not change the guard");
     }
 }

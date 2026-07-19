@@ -837,6 +837,11 @@ impl AstBasedGenerator {
             String,
             super::super::first_set::SecondByteSummary,
         > = std::collections::HashMap::new();
+        // RGX-0078.5.j.4 K4b C1 — the FIRSTₖ per-rule prefix-trie cache.
+        let mut prefix_trie_cache: std::collections::HashMap<
+            String,
+            super::super::first_set::PrefixTrieNode,
+        > = std::collections::HashMap::new();
 
         // The P2 DEGENERATE byte-switch — the SAME shared gate as the eager
         // emission (and as `mtb_build_or_logic`, which re-runs it on identical
@@ -904,6 +909,7 @@ impl AstBasedGenerator {
                 emit_first_set_guard,
                 &mut first_set_cache,
                 &mut second_byte_cache,
+                &mut prefix_trie_cache,
             );
 
             // The winner-selection cascade — the protocol's exact chain over

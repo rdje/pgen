@@ -397,5 +397,29 @@ segment storage that elides the per-committed-sub-derivation malloc pair — mea
 **−12.0%**, which honestly *exceeded* the census-fit HIGH ceiling of −9.5%: the first
 over-delivery of the campaign, most plausibly a super-additive alloc/cache compound the
 additive census under-priced, named for a future re-profile rather than smoothed over.
-The scoreboard now reads **496 µs → ≈4.40 µs, about 113×**. The method decides — and
+Then came the **direct-value build** (−17.6%: the fused cascade constructs committed
+`PgenValue`s directly, no dead node scaffolding), and a change of instrument: the campaign's
+steering metric widened from the 8-pattern bench to the FULL PCRE2 external corpus — every
+one of 2,189 real-world patterns timed, with the MAXIMUM observable parse the primary
+target. That reframing found the worst cells and their mechanisms one by one: the
+winner-in-place tournament commit (K1, corpus MAX −38%), a grammar left-factoring of the
+`piece` alternation (K1c, the nesting ladder −80%), memo pre-sizing, an inline
+checkpoint-chain, rule-id annotation tables, a root-elided snapshot, and a WAM-style
+undo-trail checkpoint (K4a) that made checkpoints seven `Copy` words. Two levers were
+built, measured below their falsification bands, and REVERTED whole — the discipline that
+every claimed percent is a measured percent cuts both ways.
+
+The latest structural find generalized the oldest one: the level-1 FIRST-byte guard and its
+global second-byte refinement became a **bounded per-path prefix trie** (FIRSTₖ, k ≤ 4) —
+each alternation branch carries a small byte-trie of every prefix its matches can have, the
+guard walks it, and a branch whose walk falls off is refuted without ever being attempted,
+with an exact one-write emulation preserving the parser's furthest-position diagnostics.
+That single lever cut the corpus MAXIMUM by a third in one slice (722 µs → 484 µs),
+crossing the campaign's first milestone (corpus MAX ≤ 500 µs), and took the bench floor
+below 2 µs for the first time. The full-battery oracle earned its keep once more: it caught
+a real over-prune (a version conditional the trie wrongly refused) before any measurement,
+tracing to a truncation-stickiness invariant now unit-pinned.
+
+The scoreboard now reads **496 µs → ≈1.94 µs, about 256×** on the bench geomean, with the
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.26 µs. The method decides — and
 the story continues here.

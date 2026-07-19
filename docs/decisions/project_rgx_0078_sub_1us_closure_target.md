@@ -176,3 +176,18 @@ continue."):
 Distance snapshot at this agreement (K4a-class floor, probe `e34f3229`): bench ≈2,146 ns
 (≈231×) / corpus geomean ≈1,583 ns / corpus MAX ≈735 µs / ≤p99 violations 65.2%. Next action:
 the C1 emission program (`-0160`, census STEP-A first) per `docs/tasks/artifacts/k4b_delta/step1_c1_design.md`.
+
+---
+
+## 2026-07-19 session #162 (`PGEN-RGX-0078-0160`) — ⭐ MILESTONE 1 CROSSED: corpus MAX ≤ 500 µs
+
+The C1 emission (per-first-byte bounded prefix-trie dispatch, FIRSTₖ k ≤ 4 — the `-0158`
+design) landed with corpus **MAX = 483,583 ns** (`line_725`, −33.04% in one slice) — the
+first milestone of the staging above is ACHIEVED, with zero verdict flips anywhere and the
+accuracy floor intact (ALL-11 equivalence byte-identical, cert ×3 byte-exact, PCRE2 tuple
+exact). Distance snapshot at the new floor (probe `1d3fa0ee`): bench ≈1,937 ns (≈256×, the
+first sub-2 µs bench floor) / corpus geomean ≈1,263 ns / corpus MAX ≈484 µs / ≤p99
+violations 55.8% (was 64.1%). Remaining waypoints: corpus **geomean < 1 µs** (next), then
+the two-leg closure bar itself (≤p99 absolute <1 µs + ~8 ns/B tail — 55.8% of ≤p99 cells
+still above 1 µs = the hard half, unchanged in kind). Next action: the post-C1 re-profile
+on the `1d3fa0ee` floor re-prices C2/C3/K5+K1b per populations.

@@ -1,0 +1,42 @@
+# C1 emission evidence (PGEN-RGX-0078-0160), session #162 2026-07-19
+
+## Artifact custody + fixed point
+base regen (stashed source, canonical -o from rust/): 95fdb3c7 = the banked M1 canonical, 42,987,387 bytes
+C1 regen (make chain, PRE-license-fix): 063c3503, 43,697,113 bytes — SUPERSEDED by the battery-catch fix
+C1 regen (post-fix, canonical): cb322b75, 43,693,122 bytes
+C1 re-derivation (direct canonical recipe): 063c3503 byte-identical pre-fix; post-fix fixed point proven in stage 2 (see battery evidence)
+size delta (post-fix): +705,735 bytes = +1.64% (<5% stop threshold)
+ALL other artifacts byte-identical incl. ebnf bac7ae6b (the census R2 prediction EXACT)
+
+## Emitted guard census (new artifact)
+nested byte-walk guards: 426
+emulation writes: 111
+
+## Sample — the `\`-escape family guard (w=1 exact emulation):
+                                    if (match parser.input.as_bytes().get(parse_start).copied()
+                                    {
+                                        Some(36u8 | 94u8) => true,
+                                        Some(92u8) => {
+                                            (match parser
+                                                .input
+                                                .as_bytes()
+                                                .get(parse_start + 1usize)
+                                                .copied()
+                                            {
+                                                Some(65u8 | 66u8 | 71u8 | 75u8 | 90u8 | 98u8 | 122u8) => {
+                                                    true
+                                                }
+                                                _ => false,
+                                            })
+                                        }
+                                        _ => false,
+                                    }) {
+                                        if "longest_match" == "ordered" && best_content.is_some()
+                                        {} else {
+                                            if live_semantic_branch {
+                                                best_semantic_delta = Some(
+                                                    parser
+                                                        .semantic_runtime_state
+                                                        .extract_delta_since(&tournament_semantic_checkpoint),
+                                                );
+                                                parser
