@@ -1,0 +1,49 @@
+== BENCH (alternated 5x2000, best-min per pattern) ==
+  alternation                1,416 ->    1,458 ns  +2.97%
+  anchor_complex             6,042 ->    6,000 ns  -0.70%
+  capture_groups             3,417 ->    3,458 ns  +1.20%
+  character_class            8,750 ->    8,750 ns  +0.00%
+  digit_sequence             1,625 ->    1,625 ns  +0.00%
+  email_basic                1,500 ->    1,541 ns  +2.73%
+  literal_simple               541 ->      500 ns  -7.58%
+  url_simple                 1,166 ->    1,167 ns  +0.09%
+  GEOMEAN 2,110.3 -> 2,105.9 ns  -0.21%   (~235.5x vs 496us)
+
+== CORPUS (2189 cells) == verdict flips: 0 []
+  MAX  715,250 (pcre2:testdata/testinput2:line_725) -> 721,167 (pcre2:testdata/testinput2:line_725)  +0.83%
+  GEOMEAN 1,578.2 -> 1,579.1 ns  +0.05%
+    pcre2:testdata/testinput2:line_725               715,250 ->    721,167  +0.83%
+    pcre2:testdata/testinput2:line_4674              158,542 ->    161,208  +1.68%
+    pcre2:testdata/testinput2:line_6526              113,333 ->    113,083  -0.22%
+    pcre2:testdata/testinput2:line_2880               95,375 ->     93,375  -2.10%
+    pcre2:testdata/testinput2:line_965                52,042 ->     52,375  +0.64%
+    pcre2:testdata/testinput2:line_6538               13,334 ->     13,292  -0.31%
+    pcre2:testdata/testinput2:line_7253                  958 ->        958  +0.00%
+    pcre2:testdata/testinput2:line_7258                  708 ->        750  +5.93%
+  byte bands (geomean delta, n, regressed>2% & >500ns):
+        0-10   B n=1122  +0.31%  regressed: 188
+       11-30   B n=836   -0.00%  regressed: 144
+       31-60   B n=162   -1.23%  regressed: 6
+       61-120  B n=47    -0.52%  regressed: 3
+      121-200  B n=14    -0.17%  regressed: 0
+      201-400  B n=4     -0.00%  regressed: 0
+      401-1000 B n=3     -0.33%  regressed: 0
+     1001-4000 B n=1     +0.83%  regressed: 0
+  <=p99-size 1us violations: 1386/2168 (63.9%) -> 1389/2168 (64.1%)
+  regressed cells (>2%, >500ns base): 341
+    pcre2:testdata/testinput2:line_1866             22,625 ->     24,250  +7.18% (+1,625 ns)
+    pcre2:testdata/testinput2:line_3965             12,292 ->     12,791  +4.06% (+499 ns)
+    pcre2:testdata/testinput2:line_1880              7,042 ->      7,250  +2.95% (+208 ns)
+    pcre2:testdata/testinput2:line_3313              3,583 ->      3,791  +5.81% (+208 ns)
+    pcre2:testdata/testinput2:line_3422              2,792 ->      3,000  +7.45% (+208 ns)
+    pcre2:testdata/testinput2:line_1886              7,667 ->      7,834  +2.18% (+167 ns)
+    pcre2:testdata/testinput2:line_3226              6,541 ->      6,708  +2.55% (+167 ns)
+    pcre2:testdata/testinput2:line_3240              5,375 ->      5,542  +3.11% (+167 ns)
+
+== LADDER (39 cells) == verdict flips: 0 []
+  MAX  167,459 (nest_80) -> 165,500 (nest_80)  -1.17%
+  GEOMEAN 10,796.3 -> 10,793.3 ns  -0.03%
+    nest_80                                          167,459 ->    165,500  -1.17%
+    nest_40                                           54,625 ->     53,750  -1.60%
+    lookstar_8                                        18,708 ->     18,791  +0.44%
+    flat_160                                          12,708 ->     12,666  -0.33%

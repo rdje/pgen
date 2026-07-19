@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-07-19 - PGEN-RGX-0078-0154 — `.5.j.4` **V1 M1 EMISSION: perf prediction FALSIFIED (noise-neutral A/B) — LANDED as a proven simplification, perf claim REFUSED; the mandated re-census pins the attribution: value-level `$N` clones = 1/parse on the MAX cell**
+
+**The change:** the `-0153` design exactly — the three value-level `$N` extraction forms in `ast_return_transform.rs` convert through the borrow (no owned temporary, no clone). All 11 artifacts regenerated canonically: regex `ee3a3cb6`→**`95fdb3c7`**, ebnf `5eac7237`→**`bac7ae6b`**, both fixed-point-proven.
+
+**Battery ALL GREEN:** lib 988/988 (ALL-11 differential equivalence BYTE-IDENTICAL = value-identity proven); cert ×3 `268/9/259/0 fully_certified` (spf 1/0/2 = the banked pattern); typed-diff 8/8 — the silent-restore trap fired its **13th** time and the in-chain tripwire restored `95fdb3c7` with zero round-trips; PCRE2 / shape / duality / clippy source-strict PASS.
+
+**The honest result (alternated 5×2000 + full corpus + ladder; base `fb7b20cf` custody clean; cand `e34f3229`):** corpus MAX **+0.83%**, geomean +0.05%, bench **−0.21%** — the −3…−7% prediction MISSED and the <−1.5% falsification bound FIRED ⇒ the protocol's stop+re-census executed. Zero verdict flips anywhere (2,189 corpus + 39 ladder). **Floor numbers unchanged; nothing banked.**
+
+**⭐ The re-census (the `-0152` attribution bound resolved counter-exactly):** `line_725` clones before→after M1: sequence 1,080→1,080, quantified 809→809, shaped 1,350→1,350, alternative 1,079→**1,078 (−1)**. The value-level `$N` clone population was ~ZERO all along — the 1,889 real Vec clones/parse are entirely memo-path + content-level; the `-0151` 8.1% build population = the LEGITIMATE conversion work (2,967 transient-Vec conversions + 3,241 `alloc_extend` calls).
+
+**Adjudication (recorded, surfaced):** LANDED despite the refused perf claim — unlike the `.5.d.2`/`-0134` revert (a complexity-ADDING lever), M1 REMOVES the `-0123`-named defect-class emission at its source with full byte-identity proof; future below-bar mechanism-adding levers still revert. **V1 re-priced:** M1 exhausted; M2 down-priced (population folds into the K4b/memo cluster); **M3 unparked** (the transient-Vec conversion constant). Next: M3 STEP-1 design → K4b → K5/K1b. Evidence `docs/tasks/artifacts/v1_build_value/m1_*`.
+
 ## 2026-07-19 - PGEN-RGX-0078-0153 — `.5.j.4` **V1 STEP-1 M1 DESIGN RECORDED** (docs-only pre-emission): borrow-not-clone at the three VALUE-level `$N` extraction forms; ⚠️ scope REFINED to M1 alone (M2 queued with its coupling-audit list)
 
 **The refinement (surfaced loudly, the `-0118` mid-design precedent):** recon shows M2's fused `let result = __pgen_alt_child.content;` couples two independently-emitted steps (the body wrap `ast_based_generator.rs:5377-5408` + the transform peel) and must audit every other wrapper reader (`capture_raw_for_post` carrier, memo raw shape, span readers) — a different risk class from M1's mechanical borrow rewrite. One lever per slice: M1 lands + re-censuses first; the post-M1 clone residual prices M2's exact population for its own design slice.

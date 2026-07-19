@@ -430,34 +430,45 @@ impl AstReturnTransformer {
                     // Quantified body is "the whole capture group". Multi-
                     // element Sequence wrapping (artificial codegen packaging)
                     // is still peeled.
+                    //
+                    // PGEN-RGX-0078-0154 (V1 M1): the extraction result is a
+                    // VALUE, and `to_shaped_value` takes `&self` — so each arm
+                    // converts THROUGH THE BORROW. The previous shape cloned
+                    // the picked content into an owned temporary first; for
+                    // Sequence/Quantified receivers that clone was a real Vec
+                    // malloc+memcpy per `$N` (1,889/parse on the corpus-MAX
+                    // cell), existing only because the emission routed through
+                    // `parse_content_to_shaped_value`'s owned binding.
                     if element_index == 0 {
-                        return Ok(Self::parse_content_to_shaped_value(quote! {
+                        return Ok(quote! {
                             {
                                 match &#base_expr {
                                     ParseContent::Sequence(elements) if !elements.is_empty() => {
-                                        elements[0usize].content.clone()
+                                        elements[0usize].content.to_shaped_value(parser.arena)
                                     }
-                                    ParseContent::Alternative(node) => node.content.clone(),
-                                    other => other.clone(),
+                                    ParseContent::Alternative(node) => {
+                                        node.content.to_shaped_value(parser.arena)
+                                    }
+                                    other => other.to_shaped_value(parser.arena),
                                 }
                             }
-                        }));
+                        });
                     }
-                    return Ok(Self::parse_content_to_shaped_value(quote! {
+                    return Ok(quote! {
                         {
                             match &#base_expr {
                                 ParseContent::Sequence(elements) if elements.len() > #element_index => {
-                                    elements[#element_index].content.clone()
+                                    elements[#element_index].content.to_shaped_value(parser.arena)
                                 }
-                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
+                                _ => PgenValue::Str("<invalid_sequence_access>"),
                             }
                         }
-                    }));
+                    });
                 }
 
                 if *index <= captured_vars.len() {
                     let expr = Self::parse_capture_expr(&captured_vars[index - 1]);
-                    return Ok(Self::parse_content_to_shaped_value(quote! { (#expr).clone() }));
+                    return Ok(quote! { (#expr).to_shaped_value(parser.arena) });
                 }
 
                 // The index is a codegen-time constant, so the sentinel label

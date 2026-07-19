@@ -1,0 +1,55 @@
+# Regex construction-census probe — REPRESENTATION-ROAD STEP-0 (RGX-0078.5.j.1)
+# case-file mode: docs/tasks/artifacts/v1_build_value/census_cases.jsonl (7 cases)
+# arena_* = items allocated over the parse | cons_* = unique items reachable from the committed AST
+# dead_* = arena - consumed (fold scaffolding + doomed speculation + unconsumed memo-clone copies)
+# repeat=3 (censuses asserted identical across repeats)
+# debug build: shaped-conversion/clone/alloc counters reported per case (V1 STEP-0)
+
+pattern             ok  ar_nod  co_nod  dead_n   dead%    refs  ar_val  co_val  dead_v   ar_pr   co_pr  ar_str
+--------------------------------------------------------------------------------------------------------------------------
+pcre2:testdata/testinput2:line_725   y   10526       0   10526  100.0%       1    4321    4049     272   10001    8917       0
+pcre2:testdata/testinput2:line_2880   y     862       0     862  100.0%       1     226     195      31     574     526       0
+pcre2:testdata/testinput2:line_4674   y    1126       0    1126  100.0%       1     327     325       2     651     491       0
+pcre2:testdata/testinput2:line_6526   y    1572       0    1572  100.0%       1     403     402       1    1035     777       0
+pcre2:testdata/testinput2:line_6538   y     118       0     118  100.0%       1      35      32       3     116      98       0
+flat_160             y     160       0     160  100.0%       1     323     163     160     482     482       0
+nest_80              y    1121       0    1121  100.0%       1     325     324       1     645     485       0
+--------------------------------------------------------------------------------------------------------------------------
+TOTAL                    15485       0   15485  100.0%            5960    5490     470   13504   11776       0
+
+== shaped-conversion census (V1 STEP-0): pcre2:testdata/testinput2:line_725 ==
+  to_shaped_value calls: terminal=269 transformed_parsed=1 transformed_wrapped=0 shaped=2702 alternative=1619 sequence=1618 quantified=1349 | sequence_items=3774
+  ParseContent::clone:   terminal=0 transformed=0 shaped=1350 sequence=1080 alternative=1078 quantified=809 | cloned_vec_items=3238
+  arena slice calls:     value_slices=3241 pair_slices=3514 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): pcre2:testdata/testinput2:line_2880 ==
+  to_shaped_value calls: terminal=123 transformed_parsed=0 transformed_wrapped=0 shaped=173 alternative=89 sequence=58 quantified=44 | sequence_items=172
+  ParseContent::clone:   terminal=40 transformed=0 shaped=94 sequence=81 alternative=83 quantified=29 | cloned_vec_items=362
+  arena slice calls:     value_slices=138 pair_slices=187 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): pcre2:testdata/testinput2:line_4674 ==
+  to_shaped_value calls: terminal=1 transformed_parsed=1 transformed_wrapped=0 shaped=163 alternative=161 sequence=160 quantified=160 | sequence_items=320
+  ParseContent::clone:   terminal=0 transformed=0 shaped=161 sequence=160 alternative=80 quantified=80 | cloned_vec_items=400
+  arena slice calls:     value_slices=325 pair_slices=244 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): pcre2:testdata/testinput2:line_6526 ==
+  to_shaped_value calls: terminal=0 transformed_parsed=0 transformed_wrapped=0 shaped=258 alternative=142 sequence=141 quantified=258 | sequence_items=398
+  ParseContent::clone:   terminal=0 transformed=0 shaped=259 sequence=258 alternative=128 quantified=12 | cloned_vec_items=644
+  arena slice calls:     value_slices=404 pair_slices=388 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): pcre2:testdata/testinput2:line_6538 ==
+  to_shaped_value calls: terminal=4 transformed_parsed=4 transformed_wrapped=0 shaped=28 alternative=13 sequence=10 quantified=10 | sequence_items=25
+  ParseContent::clone:   terminal=0 transformed=0 shaped=19 sequence=13 alternative=10 quantified=5 | cloned_vec_items=45
+  arena slice calls:     value_slices=33 pair_slices=39 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): flat_160 ==
+  to_shaped_value calls: terminal=160 transformed_parsed=0 transformed_wrapped=0 shaped=160 alternative=0 sequence=0 quantified=0 | sequence_items=0
+  ParseContent::clone:   terminal=0 transformed=0 shaped=1 sequence=0 alternative=0 quantified=0 | cloned_vec_items=0
+  arena slice calls:     value_slices=5 pair_slices=161 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): nest_80 ==
+  to_shaped_value calls: terminal=1 transformed_parsed=0 transformed_wrapped=0 shaped=161 alternative=160 sequence=160 quantified=160 | sequence_items=320
+  ParseContent::clone:   terminal=0 transformed=0 shaped=161 sequence=160 alternative=80 quantified=80 | cloned_vec_items=400
+  arena slice calls:     value_slices=325 pair_slices=242 rendered_strings=0
+
+# determinism: censuses identical across 3 repeats for every pattern
