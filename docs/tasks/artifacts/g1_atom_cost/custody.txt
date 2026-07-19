@@ -1,0 +1,5 @@
+# Custody
+probe: rust/target/release/regex_perf_probe
+sha256: 1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+preserved floor probe c1_1d3fa0ee sha256: 1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+generated/regex_parser.rs sha256: cb322b7559872aa557601e2adfe3eb657cb6811aa17d711b9808e360fac9fb92

@@ -1,0 +1,13 @@
+grammar                                 lit_ascii arena.alloc   bnd.push cascade_fn   spec_blk
+-------------------------------------- ---------- ---------- ---------- ---------- ----------
+ebnf                                          378        380       1249        130        302
+json_parser                                     0         23        134          9         30
+regex_parser                                 2774       1531       4957        235       2414
+return_annotation_parser                       98        106        340         32         14
+rtl_const_expr_parser                          80        148        269         48         70
+rtl_frontend_parser                           243       1228       1547        169        538
+scratch_parser                                 10          2         21          2          4
+semantic_annotation_parser                    511        290       2361        114        662
+systemverilog_parser                          513      13544      13238       1046        744
+systemverilog_preprocessor_parser              43        329        482         62        116
+vhdl_parser                                     0       1429       1755        216        596
