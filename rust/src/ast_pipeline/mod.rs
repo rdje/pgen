@@ -785,6 +785,8 @@ impl<'input> NodeArena<'input> {
     where
         I: IntoIterator<Item = PgenValue<'input>>,
     {
+        #[cfg(debug_assertions)]
+        shaped_conversion_census::record(|c| c.arena_value_slices += 1);
         self.shaped_values.alloc_extend(values)
     }
 
@@ -799,6 +801,8 @@ impl<'input> NodeArena<'input> {
     where
         I: IntoIterator<Item = (&'input str, PgenValue<'input>)>,
     {
+        #[cfg(debug_assertions)]
+        shaped_conversion_census::record(|c| c.arena_pair_slices += 1);
         self.shaped_pairs.alloc_extend(pairs)
     }
 
@@ -806,6 +810,8 @@ impl<'input> NodeArena<'input> {
     /// the borrow `PgenValue::Str` needs.
     #[inline]
     pub fn alloc_rendered_string(&self, text: String) -> &str {
+        #[cfg(debug_assertions)]
+        shaped_conversion_census::record(|c| c.arena_rendered_strings += 1);
         self.rendered_strings.alloc(text).as_str()
     }
 
@@ -846,8 +852,125 @@ impl Default for NodeArena<'_> {
     }
 }
 
+/// RGX-0078.5.j.4 V1 STEP-0 — the BUILD-VALUE census counters (debug builds
+/// ONLY: `#[cfg(debug_assertions)]` strips every counter from release
+/// binaries, so the shipped floor probes and the release hot path are
+/// byte-untouched by this instrument). Thread-local exact counts of:
+///
+/// - every [`ParseContent::to_shaped_value`] conversion by INPUT variant,
+///   plus the element population of `Sequence`/`Quantified` conversions
+///   (each such conversion materializes a transient `Vec` and an arena
+///   `alloc_extend` of that many items — the `-0151` build-value-pass
+///   traffic);
+/// - every [`ParseContent::clone`] by variant, plus the cloned
+///   `Sequence`/`Quantified` element totals (each is a real Vec
+///   malloc+memcpy; `Terminal`/`Shaped`/`Alternative` clones are
+///   pointer-copies) — the `$N`-property-access clone-artifact population
+///   the `-0151` re-steer named;
+/// - every arena shaped-slice / rendered-string allocation CALL (the item
+///   counts are already visible read-only via [`NodeArena::census`]).
+///
+/// Read by `regex_construction_census_probe` (`--case-file` corpus-cell
+/// mode); reset per censused parse.
+#[cfg(debug_assertions)]
+pub mod shaped_conversion_census {
+    use std::cell::Cell;
+
+    /// One exact-count snapshot of the debug-build conversion/clone/alloc
+    /// counters (thread-local; zeroed via [`reset`]).
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct ShapedConversionCensus {
+        /// `to_shaped_value` calls whose receiver was `Terminal` (zero-copy `Str`).
+        pub to_shaped_terminal: u64,
+        /// … `TransformedTerminal` whose text parsed as JSON (`from_serde` build).
+        pub to_shaped_transformed_parsed: u64,
+        /// … `TransformedTerminal` wrapped as an arena-interned string.
+        pub to_shaped_transformed_wrapped: u64,
+        /// … `Shaped` (a plain `Copy` — the cheap arm).
+        pub to_shaped_shaped: u64,
+        /// … `Alternative` (a recursion hop into the child's content).
+        pub to_shaped_alternative: u64,
+        /// … `Sequence` (transient `Vec` collect + `alloc_extend`).
+        pub to_shaped_sequence: u64,
+        /// … `Quantified` (same mechanics as `Sequence`).
+        pub to_shaped_quantified: u64,
+        /// Total elements converted inside `Sequence`/`Quantified` arms.
+        pub to_shaped_sequence_items: u64,
+        /// `ParseContent::clone` calls by receiver variant. `Sequence`/
+        /// `Quantified` clones are real Vec malloc+memcpy; the others are
+        /// pointer/`Copy`-cheap (`TransformedTerminal` clones its `String`).
+        pub clone_terminal: u64,
+        pub clone_transformed: u64,
+        pub clone_shaped: u64,
+        pub clone_sequence: u64,
+        pub clone_alternative: u64,
+        pub clone_quantified: u64,
+        /// Total elements across cloned `Sequence`/`Quantified` Vecs.
+        pub clone_sequence_items: u64,
+        /// `alloc_shaped_values` / `alloc_shaped_pairs` / `alloc_rendered_string`
+        /// CALLS (slice granularity; items are in `NodeArena::census`).
+        pub arena_value_slices: u64,
+        pub arena_pair_slices: u64,
+        pub arena_rendered_strings: u64,
+    }
+
+    thread_local! {
+        static CENSUS: Cell<ShapedConversionCensus> =
+            const { Cell::new(ShapedConversionCensus::new()) };
+    }
+
+    impl ShapedConversionCensus {
+        const fn new() -> Self {
+            // `const` twin of `Default::default()` for the const thread_local.
+            ShapedConversionCensus {
+                to_shaped_terminal: 0,
+                to_shaped_transformed_parsed: 0,
+                to_shaped_transformed_wrapped: 0,
+                to_shaped_shaped: 0,
+                to_shaped_alternative: 0,
+                to_shaped_sequence: 0,
+                to_shaped_quantified: 0,
+                to_shaped_sequence_items: 0,
+                clone_terminal: 0,
+                clone_transformed: 0,
+                clone_shaped: 0,
+                clone_sequence: 0,
+                clone_alternative: 0,
+                clone_quantified: 0,
+                clone_sequence_items: 0,
+                arena_value_slices: 0,
+                arena_pair_slices: 0,
+                arena_rendered_strings: 0,
+            }
+        }
+    }
+
+    /// Zero every counter on this thread.
+    pub fn reset() {
+        CENSUS.with(|c| c.set(ShapedConversionCensus::new()));
+    }
+
+    /// Read the current counters on this thread.
+    pub fn snapshot() -> ShapedConversionCensus {
+        CENSUS.with(|c| c.get())
+    }
+
+    pub(super) fn record(update: impl FnOnce(&mut ShapedConversionCensus)) {
+        CENSUS.with(|c| {
+            let mut census = c.get();
+            update(&mut census);
+            c.set(census);
+        });
+    }
+}
+
 /// Parse content types
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+///
+/// `Clone` is hand-written (below) IDENTICALLY to the former
+/// `#[derive(Clone)]` expansion so debug builds can count the clone
+/// population per variant (RGX-0078.5.j.4 V1 STEP-0 census); release builds
+/// compile to the exact derived body with the counter stripped.
+#[derive(Debug, PartialEq, serde::Serialize)]
 pub enum ParseContent<'input> {
     Terminal(&'input str),
     TransformedTerminal(String),
@@ -865,6 +988,42 @@ pub enum ParseContent<'input> {
     Sequence(Vec<&'input ParseNode<'input>>),
     Alternative(&'input ParseNode<'input>),
     Quantified(Vec<&'input ParseNode<'input>>, &'static str),
+}
+
+impl<'input> Clone for ParseContent<'input> {
+    /// Byte-for-byte the `#[derive(Clone)]` semantics: reference variants
+    /// copy the reference, `TransformedTerminal` clones its `String`,
+    /// `Sequence`/`Quantified` clone their `Vec` of arena references. The
+    /// only addition is the debug-build census counter (stripped in release).
+    fn clone(&self) -> Self {
+        #[cfg(debug_assertions)]
+        shaped_conversion_census::record(|c| match self {
+            ParseContent::Terminal(_) => c.clone_terminal += 1,
+            ParseContent::TransformedTerminal(_) => c.clone_transformed += 1,
+            ParseContent::Shaped(_) => c.clone_shaped += 1,
+            ParseContent::Sequence(nodes) => {
+                c.clone_sequence += 1;
+                c.clone_sequence_items += nodes.len() as u64;
+            }
+            ParseContent::Alternative(_) => c.clone_alternative += 1,
+            ParseContent::Quantified(nodes, _) => {
+                c.clone_quantified += 1;
+                c.clone_sequence_items += nodes.len() as u64;
+            }
+        });
+        match self {
+            ParseContent::Terminal(text) => ParseContent::Terminal(text),
+            ParseContent::TransformedTerminal(text) => {
+                ParseContent::TransformedTerminal(text.clone())
+            }
+            ParseContent::Shaped(value) => ParseContent::Shaped(*value),
+            ParseContent::Sequence(nodes) => ParseContent::Sequence(nodes.clone()),
+            ParseContent::Alternative(node) => ParseContent::Alternative(node),
+            ParseContent::Quantified(nodes, kind) => {
+                ParseContent::Quantified(nodes.clone(), kind)
+            }
+        }
+    }
 }
 
 impl<'input> ParseContent<'input> {
@@ -902,16 +1061,49 @@ impl<'input> ParseContent<'input> {
     /// `Alternative` recurses, `Shaped` is a plain copy.
     pub fn to_shaped_value(&self, arena: &'input NodeArena<'input>) -> PgenValue<'input> {
         match self {
-            ParseContent::Terminal(text) => PgenValue::Str(text),
+            ParseContent::Terminal(text) => {
+                #[cfg(debug_assertions)]
+                shaped_conversion_census::record(|c| c.to_shaped_terminal += 1);
+                PgenValue::Str(text)
+            }
             ParseContent::TransformedTerminal(text) => {
                 match serde_json::from_str::<serde_json::Value>(text) {
-                    Ok(value) => PgenValue::from_serde(&value, arena),
-                    Err(_) => PgenValue::Str(arena.alloc_rendered_string(text.clone())),
+                    Ok(value) => {
+                        #[cfg(debug_assertions)]
+                        shaped_conversion_census::record(|c| {
+                            c.to_shaped_transformed_parsed += 1;
+                        });
+                        PgenValue::from_serde(&value, arena)
+                    }
+                    Err(_) => {
+                        #[cfg(debug_assertions)]
+                        shaped_conversion_census::record(|c| {
+                            c.to_shaped_transformed_wrapped += 1;
+                        });
+                        PgenValue::Str(arena.alloc_rendered_string(text.clone()))
+                    }
                 }
             }
-            ParseContent::Shaped(value) => *value,
-            ParseContent::Alternative(node) => node.content.to_shaped_value(arena),
+            ParseContent::Shaped(value) => {
+                #[cfg(debug_assertions)]
+                shaped_conversion_census::record(|c| c.to_shaped_shaped += 1);
+                *value
+            }
+            ParseContent::Alternative(node) => {
+                #[cfg(debug_assertions)]
+                shaped_conversion_census::record(|c| c.to_shaped_alternative += 1);
+                node.content.to_shaped_value(arena)
+            }
             ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
+                #[cfg(debug_assertions)]
+                shaped_conversion_census::record(|c| {
+                    if matches!(self, ParseContent::Sequence(_)) {
+                        c.to_shaped_sequence += 1;
+                    } else {
+                        c.to_shaped_quantified += 1;
+                    }
+                    c.to_shaped_sequence_items += nodes.len() as u64;
+                });
                 // Materialize BEFORE the arena call: `alloc_extend` drains its
                 // iterator while holding the arena's internal borrow, and the
                 // per-child conversion may itself allocate from this arena.

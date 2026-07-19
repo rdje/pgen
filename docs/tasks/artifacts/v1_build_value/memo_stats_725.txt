@@ -1,0 +1,104 @@
+=== MEMO STATS: 8382 success entries (13 tainted) + 11045 cached failures (0 tainted) = 19427 total, 23757 subtree-nodes, 50 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=       5932 ok=      540 fail=        0  alternation
+  nodes=       5932 ok=      540 fail=        0  pattern
+  nodes=       3505 ok=      809 fail=        0  alternative
+  nodes=       1887 ok=      809 fail=        0  concatenation
+  nodes=       1621 ok=     1081 fail=        0  atom
+  nodes=       1350 ok=     1350 fail=      810  piece
+  nodes=        541 ok=      541 fail=        0  escape_unit
+  nodes=        540 ok=      540 fail=        0  simple_escape_tail
+  nodes=        540 ok=      540 fail=        0  simple_escape_letter_strict
+  nodes=        540 ok=      540 fail=        0  group
+  nodes=        278 ok=        1 fail=        0  entry_alternation
+  nodes=        271 ok=      271 fail=        1  piece_tail
+  nodes=        271 ok=      271 fail=      269  capture_open
+  nodes=        271 ok=      271 fail=      269  capturing_group
+  nodes=        269 ok=      269 fail=        0  noncapturing_group
+  nodes=          2 ok=        2 fail=        1  digit
+  nodes=          1 ok=        1 fail=      540  numeric_backreference
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          1 ok=        1 fail=      540  backreference_digits_single
+  nodes=          1 ok=        1 fail=      540  backreference_digits
+  nodes=          1 ok=        1 fail=        0  octal_escape
+  nodes=          1 ok=        1 fail=      540  backreference
+  nodes=          1 ok=        1 fail=        0  octal_escape_short_payload
+  nodes=          0 ok=        0 fail=      269  atomic_group
+  nodes=          0 ok=        0 fail=      269  named_group_open_angle
+  nodes=          0 ok=        0 fail=      269  returned_capture_subroutine
+  nodes=          0 ok=        0 fail=      269  lookahead_pos
+  nodes=          0 ok=        0 fail=      269  non_atomic_lookbehind_pos
+  nodes=          0 ok=        0 fail=      269  named_group
+  nodes=          0 ok=        0 fail=      269  branch_reset_group
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=     2160 ok=     1350 fail=      810 nodes=       1350  piece
+  total=     1081 ok=     1081 fail=        0 nodes=       1621  atom
+  total=      809 ok=      809 fail=        0 nodes=       3505  alternative
+  total=      809 ok=      809 fail=        0 nodes=       1887  concatenation
+  total=      541 ok=      541 fail=        0 nodes=        541  escape_unit
+  total=      541 ok=        1 fail=      540 nodes=          1  numeric_backreference
+  total=      541 ok=        1 fail=      540 nodes=          1  backreference_digits_single
+  total=      541 ok=        1 fail=      540 nodes=          1  backreference_digits
+  total=      541 ok=        1 fail=      540 nodes=          1  backreference
+  total=      541 ok=        0 fail=      541 nodes=          0  numeric_backreference_single
+  total=      540 ok=      540 fail=        0 nodes=       5932  alternation
+  total=      540 ok=      540 fail=        0 nodes=       5932  pattern
+  total=      540 ok=      540 fail=        0 nodes=        540  simple_escape_tail
+  total=      540 ok=      540 fail=        0 nodes=        540  simple_escape_letter_strict
+  total=      540 ok=      540 fail=        0 nodes=        540  group
+=== MEMO STATS: 8382 success entries (13 tainted) + 11045 cached failures (0 tainted) = 19427 total, 23757 subtree-nodes, 50 distinct rules ===
+--- top 30 rules by subtree-node-sum (memory proxy) ---
+  nodes=       5932 ok=      540 fail=        0  alternation
+  nodes=       5932 ok=      540 fail=        0  pattern
+  nodes=       3505 ok=      809 fail=        0  alternative
+  nodes=       1887 ok=      809 fail=        0  concatenation
+  nodes=       1621 ok=     1081 fail=        0  atom
+  nodes=       1350 ok=     1350 fail=      810  piece
+  nodes=        541 ok=      541 fail=        0  escape_unit
+  nodes=        540 ok=      540 fail=        0  simple_escape_letter_strict
+  nodes=        540 ok=      540 fail=        0  group
+  nodes=        540 ok=      540 fail=        0  simple_escape_tail
+  nodes=        278 ok=        1 fail=        0  entry_alternation
+  nodes=        271 ok=      271 fail=      269  capturing_group
+  nodes=        271 ok=      271 fail=        1  piece_tail
+  nodes=        271 ok=      271 fail=      269  capture_open
+  nodes=        269 ok=      269 fail=        0  noncapturing_group
+  nodes=          2 ok=        2 fail=        1  digit
+  nodes=          1 ok=        1 fail=      540  backreference_digits_single
+  nodes=          1 ok=        1 fail=        0  octal_escape
+  nodes=          1 ok=        1 fail=      540  backreference_digits
+  nodes=          1 ok=        1 fail=        0  octal_escape_short_payload
+  nodes=          1 ok=        1 fail=      540  backreference
+  nodes=          1 ok=        1 fail=      540  numeric_backreference
+  nodes=          1 ok=        1 fail=        0  regex
+  nodes=          0 ok=        0 fail=      269  code_block_lang
+  nodes=          0 ok=        0 fail=      269  lookbehind_neg_open
+  nodes=          0 ok=        0 fail=      269  lookahead_pos
+  nodes=          0 ok=        0 fail=      269  lookahead_pos_open
+  nodes=          0 ok=        0 fail=      269  python_named_group_open
+  nodes=          0 ok=        0 fail=      269  named_group
+  nodes=          0 ok=        0 fail=      269  non_atomic_lookbehind_pos_open
+--- top 15 rules by total entry-count (ok+fail) ---
+  total=     2160 ok=     1350 fail=      810 nodes=       1350  piece
+  total=     1081 ok=     1081 fail=        0 nodes=       1621  atom
+  total=      809 ok=      809 fail=        0 nodes=       3505  alternative
+  total=      809 ok=      809 fail=        0 nodes=       1887  concatenation
+  total=      541 ok=      541 fail=        0 nodes=        541  escape_unit
+  total=      541 ok=        1 fail=      540 nodes=          1  backreference_digits_single
+  total=      541 ok=        1 fail=      540 nodes=          1  backreference_digits
+  total=      541 ok=        1 fail=      540 nodes=          1  backreference
+  total=      541 ok=        1 fail=      540 nodes=          1  numeric_backreference
+  total=      541 ok=        0 fail=      541 nodes=          0  numeric_backreference_single
+  total=      540 ok=      540 fail=        0 nodes=       5932  alternation
+  total=      540 ok=      540 fail=        0 nodes=       5932  pattern
+  total=      540 ok=      540 fail=        0 nodes=        540  simple_escape_letter_strict
+  total=      540 ok=      540 fail=        0 nodes=        540  group
+  total=      540 ok=      540 fail=        0 nodes=        540  simple_escape_tail
+# Regex corpus parse-time sweep — per-case stats in /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c77a0582-f37e-4a46-8ddf-0ec934df8392/scratchpad/cell_725_out.jsonl
+# corpus=/private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/c77a0582-f37e-4a46-8ddf-0ec934df8392/scratchpad/cell_725.jsonl cases=1 accepts=1 rejects=0 expectation_mismatches=0
+# sampling: full=1 (samples=1 warmup=0) reduced=0 (samples=5 warmup=1, cold parse >= 100 ms) single_shot=0 (cold parse >= 2000 ms)
+# geomean(min_ns)=4782083.0 max(min_ns)=4782083 (3511 bytes, pcre2:testdata/testinput2:line_725)
+#
+# slowest 10 cases by min_ns:
+#     min (ns)  pattern bytes id
+#      4782083           3511 pcre2:testdata/testinput2:line_725

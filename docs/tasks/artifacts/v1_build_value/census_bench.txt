@@ -1,0 +1,60 @@
+# Regex construction-census probe — REPRESENTATION-ROAD STEP-0 (RGX-0078.5.j.1)
+# arena_* = items allocated over the parse | cons_* = unique items reachable from the committed AST
+# dead_* = arena - consumed (fold scaffolding + doomed speculation + unconsumed memo-clone copies)
+# repeat=3 (censuses asserted identical across repeats)
+# debug build: shaped-conversion/clone/alloc counters reported per case (V1 STEP-0)
+
+pattern             ok  ar_nod  co_nod  dead_n   dead%    refs  ar_val  co_val  dead_v   ar_pr   co_pr  ar_str
+--------------------------------------------------------------------------------------------------------------------------
+literal_simple       y       4       0       4  100.0%       1      11       7       4      14      14       0
+digit_sequence       y      18       0      18  100.0%       1      13       8       5      44      38       0
+character_class      y     153       0     153  100.0%       1      40      23      17      77      71       0
+alternation          y      35       0      35  100.0%       1      24      21       3      32      32       0
+capture_groups       y      60       0      60  100.0%       1      25      20       5      68      56       0
+url_simple           y       6       0       6  100.0%       1      21      12       9      44      40       0
+email_basic          y       6       0       6  100.0%       1      17      10       7      57      51       0
+anchor_complex       y      76       0      76  100.0%       1      38      31       7      99      89       0
+--------------------------------------------------------------------------------------------------------------------------
+TOTAL                      358       0     358  100.0%             189     132      57     435     391       0
+
+== shaped-conversion census (V1 STEP-0): literal_simple ==
+  to_shaped_value calls: terminal=4 transformed_parsed=0 transformed_wrapped=0 shaped=4 alternative=0 sequence=0 quantified=0 | sequence_items=0
+  ParseContent::clone:   terminal=0 transformed=0 shaped=1 sequence=0 alternative=0 quantified=0 | cloned_vec_items=0
+  arena slice calls:     value_slices=5 pair_slices=5 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): digit_sequence ==
+  to_shaped_value calls: terminal=0 transformed_parsed=3 transformed_wrapped=0 shaped=11 alternative=0 sequence=0 quantified=0 | sequence_items=0
+  ParseContent::clone:   terminal=0 transformed=0 shaped=1 sequence=0 alternative=0 quantified=0 | cloned_vec_items=0
+  arena slice calls:     value_slices=5 pair_slices=15 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): character_class ==
+  to_shaped_value calls: terminal=47 transformed_parsed=1 transformed_wrapped=0 shaped=20 alternative=0 sequence=0 quantified=0 | sequence_items=0
+  ParseContent::clone:   terminal=15 transformed=0 shaped=1 sequence=24 alternative=0 quantified=0 | cloned_vec_items=120
+  arena slice calls:     value_slices=20 pair_slices=24 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): alternation ==
+  to_shaped_value calls: terminal=10 transformed_parsed=0 transformed_wrapped=0 shaped=10 alternative=2 sequence=2 quantified=2 | sequence_items=9
+  ParseContent::clone:   terminal=0 transformed=0 shaped=8 sequence=0 alternative=7 quantified=2 | cloned_vec_items=7
+  arena slice calls:     value_slices=11 pair_slices=11 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): capture_groups ==
+  to_shaped_value calls: terminal=0 transformed_parsed=3 transformed_wrapped=0 shaped=17 alternative=6 sequence=6 quantified=6 | sequence_items=12
+  ParseContent::clone:   terminal=0 transformed=0 shaped=7 sequence=6 alternative=3 quantified=3 | cloned_vec_items=15
+  arena slice calls:     value_slices=17 pair_slices=24 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): url_simple ==
+  to_shaped_value calls: terminal=5 transformed_parsed=0 transformed_wrapped=0 shaped=12 alternative=0 sequence=0 quantified=0 | sequence_items=0
+  ParseContent::clone:   terminal=0 transformed=0 shaped=1 sequence=0 alternative=0 quantified=0 | cloned_vec_items=0
+  arena slice calls:     value_slices=5 pair_slices=15 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): email_basic ==
+  to_shaped_value calls: terminal=1 transformed_parsed=0 transformed_wrapped=0 shaped=14 alternative=0 sequence=0 quantified=0 | sequence_items=0
+  ParseContent::clone:   terminal=1 transformed=0 shaped=1 sequence=0 alternative=0 quantified=0 | cloned_vec_items=0
+  arena slice calls:     value_slices=7 pair_slices=20 rendered_strings=0
+
+== shaped-conversion census (V1 STEP-0): anchor_complex ==
+  to_shaped_value calls: terminal=8 transformed_parsed=0 transformed_wrapped=0 shaped=26 alternative=11 sequence=8 quantified=7 | sequence_items=21
+  ParseContent::clone:   terminal=0 transformed=0 shaped=11 sequence=6 alternative=12 quantified=4 | cloned_vec_items=20
+  arena slice calls:     value_slices=22 pair_slices=34 rendered_strings=0
+
+# determinism: censuses identical across 3 repeats for every pattern

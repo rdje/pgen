@@ -40,11 +40,25 @@
 //! this sibling bin reads arena populations the allocator census cannot see
 //! (arena bumps are not per-item malloc events).
 //!
+//! V1 STEP-0 EXTENSION (RGX-0078.5.j.4, `PGEN-RGX-0078-0152`): `--case-file`
+//! censuses arbitrary corpus cells (a JSONL of `{"id", "pattern"}` rows — the
+//! `regex_perf_probe` corpus-case shape) instead of the built-in 8-pattern
+//! bench, and DEBUG builds additionally report the
+//! `shaped_conversion_census` exact counters per cell: `to_shaped_value`
+//! conversions by input variant (+ `Sequence`/`Quantified` element totals),
+//! `ParseContent::clone` populations by variant (+ cloned Vec element
+//! totals), and arena slice-allocation calls — the build-value-pass
+//! population sizing the `-0151` re-steer demands before any V1 pricing.
+//!
 //! Usage:
 //!   cargo build --features generated_parsers --bin regex_construction_census_probe
-//!   ./target/debug/regex_construction_census_probe [--repeat N] [--per-rule]
+//!   ./target/debug/regex_construction_census_probe [--repeat N] [--per-rule] \
+//!       [--case-file cells.jsonl]
 
 use std::collections::BTreeMap;
+
+#[cfg(debug_assertions)]
+use pgen::ast_pipeline::shaped_conversion_census::{self, ShapedConversionCensus};
 
 /// Same corpus as `regex_perf_probe` (the campaign's 8-pattern bench).
 const PATTERNS: &[(&str, &str)] = &[
@@ -76,6 +90,11 @@ struct Census {
     consumed_pairs: usize,
     /// Per-rule committed (unique) node histogram.
     per_rule: BTreeMap<&'static str, usize>,
+    /// Debug-build conversion/clone/alloc counters over the whole parse
+    /// (exact, thread-local, reset per census; part of the determinism
+    /// assertion via `PartialEq`).
+    #[cfg(debug_assertions)]
+    conv: ShapedConversionCensus,
 }
 
 #[cfg(feature = "generated_parsers")]
@@ -157,6 +176,8 @@ fn census_one(input: &str) -> Census {
     // The exact bare-parse construction `regex_perf_probe::time_one_parse`
     // times (no diagnostic consumer is touched, so the parse stays BARE =
     // the fused cascade graph).
+    #[cfg(debug_assertions)]
+    shaped_conversion_census::reset();
     let node_arena = pgen::ast_pipeline::NodeArena::new();
     let mut parser = RegexParser::new(
         input,
@@ -164,6 +185,11 @@ fn census_one(input: &str) -> Census {
         pgen::ast_pipeline::runtime_logger_box("regex_construction_census_probe"),
     );
     let parsed = parser.parse_full_regex();
+    // Snapshot BEFORE the committed-AST walk: the walk is read-only, but
+    // keeping the window parse-exact makes the counters attributable to the
+    // parse alone by construction.
+    #[cfg(debug_assertions)]
+    let conv = shaped_conversion_census::snapshot();
     let arena = node_arena.census();
 
     let mut st = walk::WalkState::default();
@@ -191,6 +217,8 @@ fn census_one(input: &str) -> Census {
         consumed_values: st.value_items,
         consumed_pairs: st.pair_items,
         per_rule: st.per_rule,
+        #[cfg(debug_assertions)]
+        conv,
     }
 }
 
@@ -199,9 +227,10 @@ fn census_one(_input: &str) -> Census {
     panic!("regex_construction_census_probe requires --features generated_parsers");
 }
 
-fn parse_args() -> (usize, bool) {
+fn parse_args() -> (usize, bool, Option<String>) {
     let mut repeat = 3usize;
     let mut per_rule = false;
+    let mut case_file: Option<String> = None;
     let args: Vec<String> = std::env::args().collect();
     let mut i = 1;
     while i < args.len() {
@@ -211,9 +240,13 @@ fn parse_args() -> (usize, bool) {
                 repeat = args[i].parse().expect("--repeat expects integer");
             }
             "--per-rule" => per_rule = true,
+            "--case-file" => {
+                i += 1;
+                case_file = Some(args[i].clone());
+            }
             "-h" | "--help" => {
                 eprintln!(
-                    "regex_construction_census_probe — arena-population vs committed-AST census per bare\nregex parse (the RGX-0078.5.j.1 consumed-vs-doomed instrument).\n\nUsage:\n  regex_construction_census_probe [--repeat N] [--per-rule]"
+                    "regex_construction_census_probe — arena-population vs committed-AST census per bare\nregex parse (the RGX-0078.5.j.1 consumed-vs-doomed instrument; V1 STEP-0 build-value\ncounters in debug builds).\n\nUsage:\n  regex_construction_census_probe [--repeat N] [--per-rule] [--case-file cells.jsonl]\n\n--case-file replaces the built-in 8-pattern bench with the given JSONL of\n{{\"id\", \"pattern\"}} rows (the regex_perf_probe corpus-case shape)."
                 );
                 std::process::exit(0);
             }
@@ -224,22 +257,78 @@ fn parse_args() -> (usize, bool) {
         }
         i += 1;
     }
-    (repeat.max(1), per_rule)
+    (repeat.max(1), per_rule, case_file)
+}
+
+/// Load `(id, pattern)` rows from a corpus-case JSONL (`id` + `pattern`
+/// string fields per line; blank lines skipped) — the same row shape the
+/// `regex_perf_probe` corpus mode consumes.
+fn load_case_file(path: &str) -> Vec<(String, String)> {
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| {
+        eprintln!("failed to read case file '{}': {}", path, e);
+        std::process::exit(2);
+    });
+    let mut cases = Vec::new();
+    for (index, line) in text.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let row: serde_json::Value = serde_json::from_str(line).unwrap_or_else(|e| {
+            eprintln!("failed to decode case at line {}: {}", index + 1, e);
+            std::process::exit(2);
+        });
+        let id = row
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_else(|| {
+                eprintln!("case at line {} has no string 'id'", index + 1);
+                std::process::exit(2);
+            })
+            .to_string();
+        let pattern = row
+            .get("pattern")
+            .and_then(|v| v.as_str())
+            .unwrap_or_else(|| {
+                eprintln!("case at line {} has no string 'pattern'", index + 1);
+                std::process::exit(2);
+            })
+            .to_string();
+        cases.push((id, pattern));
+    }
+    if cases.is_empty() {
+        eprintln!("case file '{}' contains no cases", path);
+        std::process::exit(2);
+    }
+    cases
 }
 
 fn main() {
-    let (repeat, per_rule) = parse_args();
+    let (repeat, per_rule, case_file) = parse_args();
+    let cases: Vec<(String, String)> = match &case_file {
+        Some(path) => load_case_file(path),
+        None => PATTERNS
+            .iter()
+            .map(|(name, input)| (name.to_string(), input.to_string()))
+            .collect(),
+    };
     println!(
         "# Regex construction-census probe — REPRESENTATION-ROAD STEP-0 (RGX-0078.5.j.1)"
     );
+    if let Some(path) = &case_file {
+        println!("# case-file mode: {} ({} cases)", path, cases.len());
+    }
     println!("# arena_* = items allocated over the parse | cons_* = unique items reachable from the committed AST");
     println!("# dead_* = arena - consumed (fold scaffolding + doomed speculation + unconsumed memo-clone copies)");
     println!("# repeat={} (censuses asserted identical across repeats)", repeat);
+    #[cfg(debug_assertions)]
+    println!("# debug build: shaped-conversion/clone/alloc counters reported per case (V1 STEP-0)");
+    #[cfg(not(debug_assertions))]
+    println!("# RELEASE build: shaped-conversion counters unavailable (debug_assertions off)");
     println!();
 
     // Warmup: one full census of every pattern so lazily-initialized global
     // state (logger, caches) is paid before any reported run.
-    for (_, input) in PATTERNS {
+    for (_, input) in &cases {
         let _ = census_one(input);
     }
 
@@ -264,7 +353,7 @@ fn main() {
     let mut det_ok = true;
     let mut totals = (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     let mut per_rule_rows: Vec<(String, Census)> = Vec::new();
-    for (name, input) in PATTERNS {
+    for (name, input) in &cases {
         let first = census_one(input);
         for r in 1..repeat {
             let again = census_one(input);
@@ -333,6 +422,38 @@ fn main() {
                 println!("  {:>6}  {}", count, rule);
             }
         }
+    }
+
+    #[cfg(debug_assertions)]
+    for (name, census) in &per_rule_rows {
+        let c = &census.conv;
+        println!();
+        println!("== shaped-conversion census (V1 STEP-0): {} ==", name);
+        println!(
+            "  to_shaped_value calls: terminal={} transformed_parsed={} transformed_wrapped={} shaped={} alternative={} sequence={} quantified={} | sequence_items={}",
+            c.to_shaped_terminal,
+            c.to_shaped_transformed_parsed,
+            c.to_shaped_transformed_wrapped,
+            c.to_shaped_shaped,
+            c.to_shaped_alternative,
+            c.to_shaped_sequence,
+            c.to_shaped_quantified,
+            c.to_shaped_sequence_items,
+        );
+        println!(
+            "  ParseContent::clone:   terminal={} transformed={} shaped={} sequence={} alternative={} quantified={} | cloned_vec_items={}",
+            c.clone_terminal,
+            c.clone_transformed,
+            c.clone_shaped,
+            c.clone_sequence,
+            c.clone_alternative,
+            c.clone_quantified,
+            c.clone_sequence_items,
+        );
+        println!(
+            "  arena slice calls:     value_slices={} pair_slices={} rendered_strings={}",
+            c.arena_value_slices, c.arena_pair_slices, c.arena_rendered_strings,
+        );
     }
 
     println!();
