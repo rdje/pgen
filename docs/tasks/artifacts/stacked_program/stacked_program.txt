@@ -1,0 +1,27 @@
+need: 1263.4 -> <1000.0 ns = -20.8%
+
+lever                                    cons    opt   mass
+G1-C per-atom node/arena/tape           -4.0%  -9.0%   alloc_extend+memmove 13.3% (-0168 §3)
+G3 per-parse setup+teardown             -4.0%  -7.0%   setup ~3% + teardown ~3% (-0162 §2)
+spine dispatch self                     -2.0%  -5.0%   22-25% self, LARGEST UNPRICED (-0162 §2)
+build-value to_shaped/cascade_build     -2.0%  -5.0%   5-10% cum (-0162 §2)
+memo insert (hashbrown)                 -1.0%  -3.0%   3.6-3.8% self (-0162 §2)
+C2 fact-op constants                    -1.0%  -3.0%   3.7% ceiling (-0162 §4 refused ALONE)
+G1-B box ParseError                     -0.5%  -1.5%   drop_in_place on success path (-0168 refused)
+
+COMPOUNDED conservative: -13.7%  -> 1091 ns
+COMPOUNDED optimistic  : -29.2%  -> 894 ns   <<< CROSSES THE <1us BAR
+
+sum-of-parts (the WRONG framing -0169 used): -14.5% .. -33.5%
+
+======================================================================
+WHY THE -0168 SUB-NOISE RULE IS REFUTED BY THIS CAMPAIGN'S OWN HISTORY
+======================================================================
+   - 3.8%  construction cache   (LANDED; the old rule would have REFUSED it)
+   - 2.3%  P-env   (LANDED; the old rule would have REFUSED it)
+   - 4.3%  Q quant-guard   (LANDED; the old rule would have REFUSED it)
+   - 4.8%  terminal-literal   (LANDED; the old rule would have REFUSED it)
+   - 5.3%  P2 degenerate dispatch   (LANDED; the old rule would have REFUSED it)
+   - 5.4%  FxHash   (LANDED; the old rule would have REFUSED it)
+
+   these six SMALL levers alone compound to -23.3%  --  vs the -20.8% the whole bar needs.

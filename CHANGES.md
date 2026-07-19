@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0170 — `.5.j.4` **SELF-CORRECTION: the `-0169` call-off conclusion is WITHDRAWN and the `-0168` sub-noise rule is AMENDED — the bar is reached by STACKING, not by one lever** (docs-only)
+
+**Director pushback, and it is correct:** *"every gain, especially -12...-17%, shall be taken... you may have to apply 2, 3, 4, ... fixes."*
+
+⛔ **The error.** `-0169` priced each surviving lever INDIVIDUALLY against the FULL -20.8% bar, found none reached it alone, and escalated a call-off/re-scope question. That is sum-and-compare applied to a campaign whose entire history is **compounding** — 496 us -> ~1.94 us (~256x) came from ~27 stacked levers, almost none individually large. Compounded rather than compared, the SAME inventory gives **-13.7% (conservative) to -29.2% (optimistic) => 1,091 ns ... 894 ns — and the optimistic stack CROSSES the <1 us bar.** There was never a call-off question to ask; there was a stack to build.
+
+⛔ **The deeper defect — the `-0168` standing rule was manufacturing the pessimism.** As banked it read *"a lever whose honest ns estimate lands under the noise floor is unrunnable by construction."* Applied per-lever it discards exactly the tail that compounds, and it is **refuted by this campaign's own landed history**: six shipped levers sit at <=5.4% (cache -3.8%, P-env -2.3%, Q -4.3%, terminal-literal -4.8%, P2 -5.3%, FxHash -5.4%) and **those six alone compound to -23.3%, more than the entire remaining bar.** The rule would have refused every one of them.
+
+✅ **Amended rule.** The written per-parse ns estimate stays mandatory and nothing may be claimed as a win it cannot measure — but **being individually sub-noise is NOT grounds for refusal.** Sub-noise levers are **BATCHED** into one regen+A/B whose combined estimate clears the noise floor with margin, landed or reverted **as a unit**, with no per-lever perf claim from the batch. ⭐ A lever is refused ONLY when its **population does not exist**, never merely because it is small.
+
+✅ **Restored:** G1-B (its `drop_in_place` is on the executed success path — real population) and C2 fact-op constants (`-0162` refused it as "DEAD for the bar" on a 3.7% ceiling — the identical error, one slice earlier). ⛔ **Not restored, correctly:** C3 memo-hit, K5 `check_cycle_id`, K1b, the 6526 residual — those populations genuinely do not exist on the geomean band.
+
+⭐ **Biggest miss named:** `spine dispatch self` at **22-25% self across all three bands** is the LARGEST single population in the `-0162` profile and **no slice has ever priced it**. The `-0169` inventory was G-program-myopic.
+
+⚠️ **Re-pricing effect in the stack's favour:** per-parse fixed cost (~171-306 ns) does not shrink with per-entry levers, so as the floor falls toward 1 us it becomes **17-30% of the parse** — G3 grows in relative value as the stack lands.
+
+▶️ **Corrected program — an ORDERED STACK:** (1) G1-C -4...-9%; (2) G3 -4...-7%; (3) SPINE-DISPATCH STEP-0 (price the unpriced 22-25%); (4) build-value -2...-5%; (5) BATCH-1 = G1-B + C2 + memo-insert as one A/B (-2.5...-7.5%). Each step re-prices the remainder on the new floor.
+
+**The `-0169` call-off question is WITHDRAWN — no director decision pending; the campaign proceeds on the stack.** Docs-only: floor and custody byte-untouched; LIVE tracker unchanged. Evidence `docs/tasks/artifacts/stacked_program/`.
+
 ## 2026-07-20 - PGEN-RGX-0078-0169 — `.5.j.4` **entry-count fusion STEP-1: the lever is ALREADY SPENT, and what remains of it IS G1-C** (read-only census)
 
 Executes the `-0168` NEXT pointer — census which wrapper chains are genuinely fusible before entry-count fusion earns a heavy chain. **It does not earn one.** The lever `-0167` flagged as "never attempted" has in fact already been attempted and landed, twice.
