@@ -210,6 +210,34 @@ per-site cost to price a win. The runtime weighting comes from the independent
 
 **One lever per slice**, in that order, each with its own A/B and full battery.
 
+### 4b. ⭐ G1-A MECHANISM PRE-PROVEN in isolation (`PGEN-RGX-0078-0165`, before any regen)
+
+Run *before* committing to the multi-hour regen+A/B chain, precisely so the heavy
+chain is not spent discovering the lever does nothing (the `-0164` lesson applied
+to itself). Isolated micro-repro at `rustc -O`, bodies identical except the
+success-arm return (`micro_repro_lit.rs`, `micro_repro_asm_diff.txt`):
+
+| | success arm after the byte compare |
+|---|---|
+| **OLD** `Ok(&p.input[start..end])` | `str` position; `cbz`/`cmp`/`b.hs`; `sxtb`+`cmn w10,#64` (**is_char_boundary(start)**); `cmp`/`b.hs`; `ldrsb`+`cmn w10,#65` (**is_char_boundary(end)**); branch to `slice_index_fail`; **plus a full stack frame** (`stp x29,x30,[sp,#-16]!`, FP setup, CFI/unwind) because the function can panic |
+| **NEW** `Ok(expected)` | `str x9,[x0,#16]` (position = end); `stp x1,x2,[x8]` (return the literal's ptr+len); `ret` |
+
+⭐ **The win is larger than §2 estimated.** Removing the panic edge does not just
+delete two boundary checks and their branches — it makes the function a **leaf**:
+the stack-frame setup/teardown, frame-pointer maintenance and unwind metadata all
+disappear from the per-atom path. That is a per-matched-literal-atom saving.
+
+⚠️ It also **refutes a documented assumption already in the codebase**: the
+`-0115` (`RGX-0078.5.i.12`) comment on this very helper asserted the slice's
+"internal boundary checks fold under const propagation". They do not, and never
+did — in the shipped fat-LTO binary *and* in isolation at `-O`. The comment is
+corrected in the same change that removes the code it justified.
+
+The exact 2-line emitter change (plus the corrected comment) is banked ready to
+apply at `g1a_pending_emitter.patch`; it was reverted from the working tree only
+so the repo hands off clean, since its acceptance boxes cannot honestly be ticked
+until the full battery has run.
+
 ### Acceptance bands — G1-A (the next emission slice)
 
 - **Primary:** corpus geomean **−1 … −4%** off the 1,263.4 ns floor.

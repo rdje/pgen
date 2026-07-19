@@ -1,0 +1,90 @@
+# G1-A mechanism proof — isolated micro-repro (rustc -O, aarch64)
+# source: micro_repro_lit.rs ; identical bodies except the success-arm return.
+
+## OLD  return Ok(&p.input[start..end])   -- success arm after the byte compare
+	stp	x29, x30, [sp, #-16]!
+	mov	x29, sp
+	ldp	x9, x2, [x0, #8]
+	add	x1, x2, #1
+	cmp	x1, x9
+	b.hi	LBB1_6
+	cmn	x2, #1
+	b.eq	LBB1_12
+	mov	x10, x0
+	ldr	x0, [x0]
+	add	x11, x0, x2
+	ldrb	w12, [x11]
+	ldrb	w13, [x3]
+	cmp	w12, w13
+	b.ne	LBB1_6
+	str	x1, [x10, #16]
+	cbz	x2, LBB1_8
+	cmp	x2, x9
+	b.hs	LBB1_7
+	sxtb	w10, w12
+	cmn	w10, #64
+	b.ge	LBB1_8
+	b	LBB1_13
+LBB1_6:
+	stp	xzr, x2, [x8]
+	b	LBB1_11
+LBB1_7:
+	b.ne	LBB1_13
+LBB1_8:
+	cmp	x1, x9
+	b.hs	LBB1_10
+	ldrsb	w10, [x0, x1]
+	cmn	w10, #65
+	b.le	LBB1_13
+LBB1_10:
+	mov	w9, #1
+	stp	x11, x9, [x8]
+LBB1_11:
+	ldp	x29, x30, [sp], #16
+	ret
+LBB1_12:
+Lloh2:
+	adrp	x3, l_anon.ee3658bf425bc248c3b28e78275ea4a7.3@PAGE
+Lloh3:
+	add	x3, x3, l_anon.ee3658bf425bc248c3b28e78275ea4a7.3@PAGEOFF
+	mov	x0, #-1
+	mov	x2, x9
+	bl	__RNvNtNtCsl8K0bEFm1U0_4core5slice5index16slice_index_fail
+LBB1_13:
+Lloh4:
+	adrp	x4, l_anon.ee3658bf425bc248c3b28e78275ea4a7.2@PAGE
+Lloh5:
+	add	x4, x4, l_anon.ee3658bf425bc248c3b28e78275ea4a7.2@PAGEOFF
+	add	x3, x2, #1
+	mov	x1, x9
+	bl	__RNvNtCsl8K0bEFm1U0_4core3str16slice_error_fail
+
+## NEW  return Ok(expected)
+	ldp	x10, x11, [x0, #8]
+	add	x9, x11, #1
+	cmp	x9, x10
+	b.hi	LBB0_4
+	cmn	x11, #1
+	b.eq	LBB0_5
+	ldr	x10, [x0]
+	ldrb	w10, [x10, x11]
+	ldrb	w12, [x3]
+	cmp	w10, w12
+	b.ne	LBB0_4
+	str	x9, [x0, #16]
+	stp	x1, x2, [x8]
+	ret
+LBB0_4:
+	stp	xzr, x11, [x8]
+	ret
+LBB0_5:
+	stp	x29, x30, [sp, #-16]!
+	mov	x29, sp
+Lloh0:
+	adrp	x3, l_anon.ee3658bf425bc248c3b28e78275ea4a7.1@PAGE
+Lloh1:
+	add	x3, x3, l_anon.ee3658bf425bc248c3b28e78275ea4a7.1@PAGEOFF
+	mov	x0, #-1
+	mov	x1, x9
+	mov	x2, x10
+	bl	__RNvNtNtCsl8K0bEFm1U0_4core5slice5index16slice_index_fail
