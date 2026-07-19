@@ -1,0 +1,58 @@
+{
+ "p10_ok": {
+  "id": "pcre2:testdata/testinput2:line_4244",
+  "min_ns": 458,
+  "bytes": 3,
+  "verdict": "ok",
+  "pattern": "abc"
+ },
+ "p25_ok": {
+  "id": "pcre2:testdata/testinput2:line_4950",
+  "min_ns": 583,
+  "bytes": 4,
+  "verdict": "ok",
+  "pattern": "abcd"
+ },
+ "p50_ok": {
+  "id": "pcre2:testdata/testinput2:line_2563",
+  "min_ns": 1208,
+  "bytes": 6,
+  "verdict": "ok",
+  "pattern": "a(?!)b"
+ },
+ "p75_ok": {
+  "id": "pcre2:testdata/testinput2:line_4083",
+  "min_ns": 2291,
+  "bytes": 7,
+  "verdict": "ok",
+  "pattern": "(((a)))"
+ },
+ "p90_ok": {
+  "id": "pcre2:testdata/testinput2:line_136",
+  "min_ns": 4041,
+  "bytes": 17,
+  "verdict": "ok",
+  "pattern": "(a)(b)(c)(d)(e)\\6"
+ },
+ "p95_ok": {
+  "id": "pcre2:testdata/testinput2:line_3889",
+  "min_ns": 5834,
+  "bytes": 87,
+  "verdict": "ok",
+  "pattern": "\\S+\\D \\S+\\d \\S+\\S \\S+\\s \\S+\\W \\S+\\w \\S+. \\S+\\R \\S+\\H \\S+\\h \\S+\\V \\S+\\v \\S+\\Z \\S+\\z \\S+$"
+ },
+ "rej_1to2p5": {
+  "id": "pcre2:testdata/testinput2:line_216",
+  "min_ns": 1458,
+  "bytes": 14,
+  "verdict": "fail",
+  "pattern": "(a)(?(1)a|b|c)"
+ },
+ "rej_sub1us": {
+  "id": "pcre2:testdata/testinput2:line_58",
+  "min_ns": 500,
+  "bytes": 7,
+  "verdict": "fail",
+  "pattern": "ab\\idef"
+ }
+}

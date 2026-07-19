@@ -1,0 +1,49 @@
+{
+  "accepted": false,
+  "grammar": "regex",
+  "rule_committed_counts": {
+    "atom": 2,
+    "entry_alternation": 1,
+    "entry_alternative": 1,
+    "entry_concatenation": 1,
+    "letter": 2,
+    "literal": 2,
+    "literal_char": 2,
+    "piece": 2,
+    "regex": 1
+  },
+  "rule_entry_counts": {
+    "atom": 3,
+    "entry_alternation": 1,
+    "entry_alternative": 1,
+    "entry_concatenation": 1,
+    "escape": 1,
+    "escape_unit": 1,
+    "letter": 2,
+    "literal": 2,
+    "literal_char": 2,
+    "piece": 3,
+    "piece_tail": 1,
+    "regex": 1,
+    "simple_escape": 1,
+    "simple_escape_letter": 1,
+    "simple_escape_tail": 1,
+    "zero_width": 1
+  },
+  "rule_memo_hit_counts": {},
+  "store_counters": {
+    "facts_emitted": 0,
+    "facts_rolled_back": 0,
+    "predicate_evaluations": 0,
+    "rollbacks": 15,
+    "rollbacks_nonempty_chain": 0,
+    "rollbacks_tournament": 0,
+    "rollbacks_tournament_unchanged": 0,
+    "rollbacks_unchanged": 15,
+    "scopes_closed": 0,
+    "scopes_opened": 0
+  },
+  "total_committed": 14,
+  "total_entries": 23,
+  "total_memo_hits": 0
+}

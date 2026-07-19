@@ -1,0 +1,60 @@
+{"id": "pcre2:testdata/testinput2:line_157", "pattern": ")", "min_ns": 166}
+{"id": "pcre2:testdata/testinput2:line_7666", "pattern": "a", "min_ns": 291}
+{"id": "pcre2:testdata/testinput2:line_365", "pattern": "a[", "min_ns": 375}
+{"id": "pcre2:testdata/testinput2:line_8057", "pattern": "(?R0(1,2!", "min_ns": 375}
+{"id": "pcre2:testdata/testinput2:line_4677", "pattern": "\\80", "min_ns": 416}
+{"id": "pcre2:testdata/testinput2:line_68", "pattern": "[\\B]", "min_ns": 458}
+{"id": "pcre2:testdata/testinput2:line_1763", "pattern": "\\w*\\w", "min_ns": 458}
+{"id": "pcre2:testdata/testinput2:line_4021", "pattern": "(?<ab-cd>xx)", "min_ns": 458}
+{"id": "pcre2:testdata/testinput2:line_6066", "pattern": "abc", "min_ns": 458}
+{"id": "pcre2:testdata/testinput2:line_814", "pattern": " \\Q\\E", "min_ns": 500}
+{"id": "pcre2:testdata/testinput2:line_5535", "pattern": "^X\\H", "min_ns": 500}
+{"id": "pcre2:testdata/testinput2:line_2822", "pattern": "^a?b?", "min_ns": 541}
+{"id": "pcre2:testdata/testinput2:line_2499", "pattern": "cat[]", "min_ns": 542}
+{"id": "pcre2:testdata/testinput2:line_3121", "pattern": "A\\NB.", "min_ns": 583}
+{"id": "pcre2:testdata/testinput2:line_2009", "pattern": "abc.$", "min_ns": 625}
+{"id": "pcre2:testdata/testinput2:line_8206", "pattern": "\\w+|^$", "min_ns": 625}
+{"id": "pcre2:testdata/testinput2:line_7500", "pattern": "(?[:graph:])", "min_ns": 667}
+{"id": "pcre2:testdata/testinput2:line_7369", "pattern": "[a--b~~c]", "min_ns": 708}
+{"id": "pcre2:testdata/testinput2:line_7022", "pattern": "[a[]", "min_ns": 750}
+{"id": "pcre2:testdata/testinput2:line_4593", "pattern": "(?(?!)^)", "min_ns": 833}
+{"id": "pcre2:testdata/testinput2:line_2548", "pattern": "a[]*+b", "min_ns": 875}
+{"id": "pcre2:testdata/testinput2:line_28", "pattern": "(a)b|", "min_ns": 1000}
+{"id": "pcre2:testdata/testinput2:line_1282", "pattern": "()(?1)", "min_ns": 1041}
+{"id": "pcre2:testdata/testinput2:line_2483", "pattern": "[abc[:x\\]pqr:]]", "min_ns": 1083}
+{"id": "pcre2:testdata/testinput2:line_549", "pattern": "a(b)*", "min_ns": 1125}
+{"id": "pcre2:testdata/testinput2:line_4659", "pattern": "(abc)*", "min_ns": 1166}
+{"id": "pcre2:testdata/testinput2:line_4944", "pattern": "(abcd)", "min_ns": 1208}
+{"id": "pcre2:testdata/testinput2:line_6299", "pattern": "a(..)d", "min_ns": 1250}
+{"id": "pcre2:testdata/testinput2:line_2256", "pattern": "[^\\Q\\E]AAA", "min_ns": 1333}
+{"id": "pcre2:testdata/testinput2:line_7307", "pattern": "[z[\\d-]]", "min_ns": 1375}
+{"id": "pcre2:testdata/testinput2:line_5887", "pattern": "^(a?)b(?1)a", "min_ns": 1458}
+{"id": "pcre2:testdata/testinput2:line_6657", "pattern": "(?<=|b?).", "min_ns": 1541}
+{"id": "pcre2:testdata/testinput2:line_3338", "pattern": "^.*?(?(?=a)a(*THEN)b|c)", "min_ns": 1584}
+{"id": "pcre2:testdata/testinput2:line_1080", "pattern": "(?C0)(abc(?C1))*", "min_ns": 1666}
+{"id": "pcre2:testdata/testinput2:line_142", "pattern": "the quick brown fox", "min_ns": 1750}
+{"id": "pcre2:testdata/testinput2:line_3645", "pattern": "(..)\\1{2,}?x", "min_ns": 1791}
+{"id": "pcre2:testdata/testinput2:line_6619", "pattern": "a?(?=bc|)\\bd", "min_ns": 1833}
+{"id": "pcre2:testdata/testinput2:line_988", "pattern": "(?=abc)(?i).xyz", "min_ns": 1958}
+{"id": "pcre2:testdata/testinput2:line_3834", "pattern": "^(?!a(*THEN)b|ac)..", "min_ns": 2041}
+{"id": "pcre2:testdata/testinput2:line_565", "pattern": "a(?(1)bag|big)*(.)", "min_ns": 2166}
+{"id": "pcre2:testdata/testinput2:line_2057", "pattern": "(?&abc)X(?<abc>P)", "min_ns": 2208}
+{"id": "pcre2:testdata/testinput2:line_994", "pattern": "((?=abcda)a)", "min_ns": 2500}
+{"id": "pcre2:testdata/testinput2:line_3003", "pattern": "(\\3)(\\1)(a)", "min_ns": 2583}
+{"id": "pcre2:testdata/testinput2:line_4519", "pattern": "(?(?=0)(?=00)?00765)", "min_ns": 2666}
+{"id": "pcre2:testdata/testinput2:line_3671", "pattern": "^(..)(\\1{2,3})ab", "min_ns": 2750}
+{"id": "pcre2:testdata/testinput2:line_3446", "pattern": "^(a(*:A)(d|e(*:B))z|aeq)", "min_ns": 2875}
+{"id": "pcre2:testdata/testinput2:line_6283", "pattern": "^((\\1+)(?C)|\\d)+133X$", "min_ns": 2958}
+{"id": "pcre2:testdata/testinput2:line_2601", "pattern": "^\"((?(?=[a])[^\"])|b)*\"$", "min_ns": 3083}
+{"id": "pcre2:testdata/testinput2:line_1222", "pattern": "((.*)a|^(.*)b)z\\3", "min_ns": 3208}
+{"id": "pcre2:testdata/testinput2:line_881", "pattern": "\\(([^()]++|\\([^()]+\\))+\\)", "min_ns": 3458}
+{"id": "pcre2:testdata/testinput2:line_7205", "pattern": "(?xx:[  ^  a[  ^  b]  ])", "min_ns": 3542}
+{"id": "pcre2:testdata/testinput2:line_1138", "pattern": "^>abc>([^()]|\\((?1)*\\))*<xyz<$", "min_ns": 3750}
+{"id": "pcre2:testdata/testinput2:line_3874", "pattern": "(?|(?<n>f)|(?<n>b))", "min_ns": 3958}
+{"id": "pcre2:testdata/testinput2:line_1147", "pattern": "^(\\d+|\\((?1)([+*-])(?1)\\)|-(?1))$", "min_ns": 4208}
+{"id": "pcre2:testdata/testinput2:line_3773", "pattern": "(?>.*)(?<=(abcd)|(wxyz))", "min_ns": 4583}
+{"id": "pcre2:testdata/testinput2:line_6169", "pattern": "(?<*(.)..|(.)...)(\\1|\\2)", "min_ns": 5083}
+{"id": "pcre2:testdata/testinput2:line_6765", "pattern": "[A-Z]{3}([A-Z]++)#(*scs:(1)(?<=BC)XY)#", "min_ns": 5584}
+{"id": "pcre2:testdata/testinput2:line_3911", "pattern": " .+\\D  .+\\d  .+\\S  .+\\s  .+\\W  .+\\w  .+.  .+\\R  .+\\H  .+\\h  .+\\V  .+\\v  .+\\Z  .+\\z  .+$", "min_ns": 6084}
+{"id": "pcre2:testdata/testinput2:line_4705", "pattern": "(((?(R)){0,2}) (?'x'((?'X')((?'R')))))", "min_ns": 6916}
+{"id": "pcre2:testdata/testinput2:line_3921", "pattern": "a+(bb|cc)?#a+(?:bb|cc)??#a+(?:bb|cc)?+#a+(?:bb|cc)*#a+(bb|cc)?a#a+(?:aa)?", "min_ns": 7750}
