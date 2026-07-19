@@ -1,0 +1,268 @@
+
+==============================================================================
+BAND sub1us   (sample_band_sub1us.txt)   alloc_extend samples = 1090
+------------------------------------------------------------------------------
+  per-instantiation:
+    h88670e1bf10cf0ff         389  ( 35.7%)
+    h0f20dcea3f658c24         380  ( 34.9%)
+    h916724f9b9255e27         199  ( 18.3%)
+    hf241ce72116737e7          61  (  5.6%)
+    h611a89fc10d7af8d          47  (  4.3%)
+    h85fa14adae63667b          14  (  1.3%)
+  per immediate CALLER:
+       513 ( 47.1%)  pgen::generated_parsers::regex::RegexParser::memoized_call
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff,h916724f9b9255e27,hf241ce72116737e7]
+       290 ( 26.6%)  pgen::generated_parsers::regex::RegexParser::cascade_build_piece
+             [h0f20dcea3f658c24,h611a89fc10d7af8d,h88670e1bf10cf0ff,h916724f9b9255e27]
+        68 (  6.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_quantifier
+             [h611a89fc10d7af8d,h916724f9b9255e27]
+        60 (  5.5%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_literal
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff,h916724f9b9255e27]
+        53 (  4.9%)  pgen::generated_parsers::regex::RegexParser::parse_regex::_$u7b$$u7b$closure$u7d$$u7d$
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff,h916724f9b9255e27,hf241ce72116737e7]
+        42 (  3.9%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_escape
+             [h0f20dcea3f658c24]
+        30 (  2.8%)  pgen::generated_parsers::regex::RegexParser::cascade_build_char_class
+             [h85fa14adae63667b,h88670e1bf10cf0ff]
+         6 (  0.6%)  pgen::generated_parsers::regex::RegexParser::cascade_build_posix_class
+             [h0f20dcea3f658c24]
+         5 (  0.5%)  pgen::ast_pipeline::ParseContent::to_shaped_value
+             [h88670e1bf10cf0ff]
+         4 (  0.4%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_zero_width
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff]
+         3 (  0.3%)  pgen::generated_parsers::regex::RegexParser::cascade_build_inline_modifiers
+             [h0f20dcea3f658c24]
+         3 (  0.3%)  pgen::generated_parsers::regex::RegexParser::cascade_build_conditional
+             [h85fa14adae63667b]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_class_escape
+             [h0f20dcea3f658c24]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_modifier_spec
+             [h88670e1bf10cf0ff,h916724f9b9255e27]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_signed_digits
+             [h916724f9b9255e27]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_subroutine_target
+             [h0f20dcea3f658c24,h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::with_semantic_runtime_rule_transaction
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_counted_quantifier_range::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_hex_escape
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_modifier_seq
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_callout
+             [h0f20dcea3f658c24]
+
+==============================================================================
+BAND 1to2p5   (sample_band_1to2p5.txt)   alloc_extend samples = 1057
+------------------------------------------------------------------------------
+  per-instantiation:
+    h0f20dcea3f658c24         463  ( 43.8%)
+    h88670e1bf10cf0ff         289  ( 27.3%)
+    h916724f9b9255e27         188  ( 17.8%)
+    h611a89fc10d7af8d          58  (  5.5%)
+    h85fa14adae63667b          30  (  2.8%)
+    hf241ce72116737e7          28  (  2.6%)
+    h6ff79074481ee1ea           1  (  0.1%)
+  per immediate CALLER:
+       318 ( 30.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_piece
+             [h0f20dcea3f658c24,h611a89fc10d7af8d,h85fa14adae63667b,h88670e1bf10cf0ff,h916724f9b9255e27]
+       190 ( 18.0%)  pgen::generated_parsers::regex::RegexParser::apply_semantic_runtime_effect_directive
+             [h0f20dcea3f658c24,h611a89fc10d7af8d,h85fa14adae63667b,h88670e1bf10cf0ff,h916724f9b9255e27]
+       183 ( 17.3%)  pgen::generated_parsers::regex::RegexParser::memoized_call
+             [h0f20dcea3f658c24,h611a89fc10d7af8d,h88670e1bf10cf0ff,h916724f9b9255e27,hf241ce72116737e7]
+        89 (  8.4%)  pgen::ast_pipeline::ParseContent::to_shaped_value
+             [h88670e1bf10cf0ff]
+        65 (  6.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_quantifier
+             [h611a89fc10d7af8d,h916724f9b9255e27]
+        37 (  3.5%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_group
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff]
+        33 (  3.1%)  pgen::generated_parsers::regex::RegexParser::parse_capture_open::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+        27 (  2.6%)  pgen::generated_parsers::regex::RegexParser::cascade_build_char_class
+             [h85fa14adae63667b,h88670e1bf10cf0ff]
+        23 (  2.2%)  pgen::generated_parsers::regex::RegexParser::parse_regex::_$u7b$$u7b$closure$u7d$$u7d$
+             [h88670e1bf10cf0ff,h916724f9b9255e27,hf241ce72116737e7]
+        13 (  1.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_alternative
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff]
+        13 (  1.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_conditional_branch
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff]
+        13 (  1.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_conditional
+             [h0f20dcea3f658c24,h6ff79074481ee1ea,h85fa14adae63667b,h88670e1bf10cf0ff,hf241ce72116737e7]
+         9 (  0.9%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_escape
+             [h0f20dcea3f658c24]
+         6 (  0.6%)  pgen::generated_parsers::regex::RegexParser::parse_counted_quantifier_range::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         5 (  0.5%)  pgen::generated_parsers::regex::RegexParser::cascade_build_subroutine_call
+             [h0f20dcea3f658c24]
+         4 (  0.4%)  pgen::generated_parsers::regex::RegexParser::cascade_build_directive_verb
+             [h0f20dcea3f658c24]
+         3 (  0.3%)  pgen::generated_parsers::regex::RegexParser::with_semantic_runtime_rule_transaction
+             [h916724f9b9255e27]
+         3 (  0.3%)  pgen::generated_parsers::regex::RegexParser::parse_lookahead_pos_open::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         3 (  0.3%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_subroutine_target
+             [h0f20dcea3f658c24]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::parse_python_named_group
+             [h611a89fc10d7af8d]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_signed_digits
+             [h916724f9b9255e27]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_inline_modifiers
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_lookahead_neg_open::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_lookbehind_pos
+             [h611a89fc10d7af8d]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_keep_out::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_named_backreference::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_condition_assertion
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_class_item
+             [h88670e1bf10cf0ff]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_class_range
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_modifier_group
+             [h88670e1bf10cf0ff]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_modifier_seq
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_modifier_spec
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_atomic_group
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_backreference
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_callout
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_scoped_inline_modifiers
+             [h611a89fc10d7af8d]
+
+==============================================================================
+BAND 2p5to20   (sample_band_2p5to20.txt)   alloc_extend samples = 899
+------------------------------------------------------------------------------
+  per-instantiation:
+    h0f20dcea3f658c24         383  ( 42.6%)
+    h88670e1bf10cf0ff         333  ( 37.0%)
+    h916724f9b9255e27          91  ( 10.1%)
+    h611a89fc10d7af8d          48  (  5.3%)
+    h85fa14adae63667b          25  (  2.8%)
+    hf241ce72116737e7          17  (  1.9%)
+    h6ff79074481ee1ea           2  (  0.2%)
+  per immediate CALLER:
+       309 ( 34.4%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_group
+             [h0f20dcea3f658c24,h611a89fc10d7af8d,h85fa14adae63667b,h88670e1bf10cf0ff,h916724f9b9255e27]
+       213 ( 23.7%)  pgen::generated_parsers::regex::RegexParser::cascade_build_piece
+             [h0f20dcea3f658c24,h85fa14adae63667b,h88670e1bf10cf0ff,h916724f9b9255e27]
+       134 ( 14.9%)  pgen::ast_pipeline::ParseContent::to_shaped_value
+             [h88670e1bf10cf0ff]
+       104 ( 11.6%)  pgen::generated_parsers::regex::RegexParser::memoized_call
+             [h0f20dcea3f658c24,h611a89fc10d7af8d,h88670e1bf10cf0ff,h916724f9b9255e27,hf241ce72116737e7]
+        21 (  2.3%)  pgen::generated_parsers::regex::RegexParser::cascade_build_char_class
+             [h85fa14adae63667b,h88670e1bf10cf0ff]
+        20 (  2.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_quantifier
+             [h611a89fc10d7af8d,h916724f9b9255e27]
+        19 (  2.1%)  pgen::generated_parsers::regex::RegexParser::parse_capture_open::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+        10 (  1.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_alternative
+             [h0f20dcea3f658c24]
+        10 (  1.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_conditional_branch
+             [h0f20dcea3f658c24,h88670e1bf10cf0ff]
+        10 (  1.1%)  pgen::generated_parsers::regex::RegexParser::parse_regex::_$u7b$$u7b$closure$u7d$$u7d$
+             [h88670e1bf10cf0ff,hf241ce72116737e7]
+         8 (  0.9%)  pgen::generated_parsers::regex::RegexParser::cascade_build_subroutine_call
+             [h0f20dcea3f658c24]
+         6 (  0.7%)  pgen::generated_parsers::regex::RegexParser::cascade_build_conditional
+             [h6ff79074481ee1ea,h85fa14adae63667b,h88670e1bf10cf0ff]
+         5 (  0.6%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_subroutine_target
+             [h0f20dcea3f658c24,h6ff79074481ee1ea]
+         4 (  0.4%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_escape
+             [h0f20dcea3f658c24]
+         4 (  0.4%)  pgen::generated_parsers::regex::RegexParser::cascade_build_callout
+             [h0f20dcea3f658c24]
+         3 (  0.3%)  pgen::generated_parsers::regex::RegexParser::cascade_build_class_range
+             [h0f20dcea3f658c24]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::with_semantic_runtime_rule_transaction
+             [h916724f9b9255e27]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::parse_lookahead_pos_open::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         2 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_signed_digits
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_modifier_seq
+             [h88670e1bf10cf0ff]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_inline_modifiers
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_backreference
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_directive_payload_colon
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_named_group
+             [h611a89fc10d7af8d]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_python_named_backreference::_$u7b$$u7b$closure$u7d$$u7d$
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_named_subroutine_target::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_python_named_group
+             [h611a89fc10d7af8d]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_lookbehind_pos_open::_$u7b$$u7b$closure$u7d$$u7d$
+             [h916724f9b9255e27]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_named_backreference::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_hex_escape
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_branch_reset_group
+             [h0f20dcea3f658c24]
+         1 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_scoped_inline_modifiers
+             [h611a89fc10d7af8d]
+
+==============================================================================
+ALL BANDS POOLED -- alloc_extend samples by immediate caller
+------------------------------------------------------------------------------
+     821 ( 27.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_piece
+     800 ( 26.3%)  pgen::generated_parsers::regex::RegexParser::memoized_call
+     346 ( 11.4%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_group
+     228 (  7.5%)  pgen::ast_pipeline::ParseContent::to_shaped_value
+     190 (  6.2%)  pgen::generated_parsers::regex::RegexParser::apply_semantic_runtime_effect_directive
+     153 (  5.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_quantifier
+      86 (  2.8%)  pgen::generated_parsers::regex::RegexParser::parse_regex::_$u7b$$u7b$closure$u7d$$u7d$
+      78 (  2.6%)  pgen::generated_parsers::regex::RegexParser::cascade_build_char_class
+      60 (  2.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_literal
+      55 (  1.8%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_escape
+      52 (  1.7%)  pgen::generated_parsers::regex::RegexParser::parse_capture_open::_$u7b$$u7b$closure$u7d$$u7d$
+      23 (  0.8%)  pgen::generated_parsers::regex::RegexParser::cascade_build_alternative
+      23 (  0.8%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_conditional_branch
+      22 (  0.7%)  pgen::generated_parsers::regex::RegexParser::cascade_build_conditional
+      13 (  0.4%)  pgen::generated_parsers::regex::RegexParser::cascade_build_subroutine_call
+      10 (  0.3%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_subroutine_target
+       7 (  0.2%)  pgen::generated_parsers::regex::RegexParser::parse_counted_quantifier_range::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$
+       6 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_posix_class
+       6 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_inline_modifiers
+       6 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_signed_digits
+       6 (  0.2%)  pgen::generated_parsers::regex::RegexParser::with_semantic_runtime_rule_transaction
+       6 (  0.2%)  pgen::generated_parsers::regex::RegexParser::cascade_build_callout
+       5 (  0.2%)  pgen::generated_parsers::regex::RegexParser::parse_lookahead_pos_open::_$u7b$$u7b$closure$u7d$$u7d$
+       4 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_zero_width
+       4 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_directive_verb
+       4 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_class_range
+       3 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_modifier_spec
+       3 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_modifier_seq
+       3 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_python_named_group
+       2 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_class_escape
+       2 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_hex_escape
+       2 (  0.1%)  pgen::generated_parsers::regex::RegexParser::parse_named_backreference::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$
+       2 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_backreference
+       2 (  0.1%)  pgen::generated_parsers::regex::RegexParser::cascade_build_scoped_inline_modifiers
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::parse_lookahead_neg_open::_$u7b$$u7b$closure$u7d$$u7d$
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::parse_lookbehind_pos
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::parse_keep_out::_$u7b$$u7b$closure$u7d$$u7d$
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_condition_assertion
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_class_item
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_value_modifier_group
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_atomic_group
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_directive_payload_colon
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::parse_named_group
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::parse_python_named_backreference::_$u7b$$u7b$closure$u7d$$u7d$
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::parse_named_subroutine_target::_$u7b$$u7b$closure$u7d$$u7d$
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::parse_lookbehind_pos_open::_$u7b$$u7b$closure$u7d$$u7d$
+       1 (  0.0%)  pgen::generated_parsers::regex::RegexParser::cascade_build_branch_reset_group
+    3046 TOTAL

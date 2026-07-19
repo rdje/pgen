@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0171 — `.5.j.4` **G1-C ATTRIBUTION AUDIT: the `-0168` addressable mass is 6.3x too large and G1-C is BELOW the noise floor — the step-1 heavy chain is STOPPED pre-flight** (read-only)
+
+Executes the `-0170` NEXT pointer (G1-C emission) and stops before the chain, because the per-parse ns estimate the `-0167` standing rule demands does not survive contact with the raw profile. Read-only over banked artifacts — no build, no regen, no measurement, no gate perturbed.
+
+⛔ **Why the banked figure is wrong — an AGGREGATE ROW was read as a MECHANISM.** `-0168` priced G1-C at `typed_arena::ArenaT::alloc_extend` + `_platform_memmove` = **13.3% = 168 ns**. It was careful enough to reject the broad 27-31% alloc cluster, but never checked **whose callers those symbols have**. (a) the demangled `ArenaT` row collapses **seven distinct monomorphizations**; (b) **`alloc_extend` is not on the per-atom path at all** — exactly **two call sites repo-wide** (`rust/src/ast_pipeline/mod.rs:790,806` = `alloc_shaped_values`/`alloc_shaped_pairs`, the shaped-VALUE arenas / build pass), **zero occurrences in any generated parser**, and the node arena reaches it only through `typed_arena::Arena::alloc`'s per-chunk slow path. The call trees settle it: **not one `cascade_match_*` frame is a caller in any band** — and `cascade_match_*` is precisely and only what G1-C changes.
+
+📊 **Caller-attributed decomposition** (every sample of both symbols attributed to its immediate caller; buckets re-sum to **13.34%** vs the banked **13.3%** — same mass, partitioned not re-measured): BUILD/VALUE **5.15% = 65.1 ns** | MEMO insert **2.43% = 30.7 ns** | **G1-C 2.11% = 26.7 ns** | SEMANTIC RUNTIME **1.90% = 24.1 ns** | other/spine 1.02% | harness `parse_once_timed` **0.71% = 9.0 ns — not parser cost at all**.
+
+⛔ **G1-C re-priced 168 -> 26.7 ns (6.3x smaller).** At 30/50/70% capture = -8.0/-13.4/-18.7 ns = **0.28x/0.46x/0.65x the 28.8 ns noise floor — below it at every capture fraction.** The banked **-4.0...-9.3%** band was an artifact of the mis-attribution; the honest band is **-0.6...-1.5%**.
+
+▶️ **Not refused — re-sequenced.** Under the `-0170` amended rule a lever is refused only when its population does not exist, and G1-C's is real (`cascade_match_piece` alone = 21.2% of all `memmove` samples). What is refused is a **solo HIGH-risk heavy chain** for a sub-noise lever: G1-C drops from step 1 to a **BATCH-1 member**. As pointed, the chain would have spent a full regen + two fat-LTO probes + the complete battery on a guaranteed-unmeasurable result — the `-0166` outcome for the **third** time (paper-count -> confounded coefficient -> collapsed aggregate), and the first caught **before** the chain.
+
+⛔ **BUILD/VALUE holds the largest share and stays CLOSED.** This does not re-open V1: `-0156` closed it measured-exhausted against real A/Bs (M1 falsified, M2 folded into K4b, M3 falsified and reverted — transient-`Vec` round-trips ~free under mimalloc). Finding mass there **re-confirms V1's own conclusion**; it does not license re-running refuted mechanisms.
+
+⭐ **A genuinely new population is named: the SEMANTIC RUNTIME** (24.1 ns here, larger once non-alloc cost is counted) — `apply_semantic_runtime_effect_directive`, `with_semantic_runtime_rule_transaction`, `rule_context_path`, `FactIndex::insert`; never priced by any slice.
+
+✅ **Batching works, with numbers behind it:** memo 30.7 + G1-C 26.7 + semantic-runtime 24.1 = **81.5 ns = 6.45% = 2.8x noise** (lower bound — G1-B and C2 are unpriced by these two symbols). Three individually-sub-noise levers clear the floor as a unit.
+
+▶️ **Corrected stack:** (1) **SPINE-DISPATCH STEP-0** promoted 3 -> 1 (22-25% self, largest population, still unpriced, and every per-atom alternative is now priced sub-noise); (2) **BATCH-1 enlarged** = G1-B + C2 + G1-C + memo-insert + semantic-runtime as one A/B, land/revert as a unit; (3) **G3** re-priced on the new floor; (4) **BUILD-VALUE stays closed**.
+
+⛔ **Standing rule added:** *no profile row may be converted into a lever's addressable mass until its samples have been attributed to their CALLERS* — a symbol row is an aggregate over call sites and, for generics, over monomorphizations; a mechanism is a call site.
+
+Scope honesty: shares are of **two symbols only**, so this re-ranks levers *within* the mass `-0168` claimed for G1-C rather than costing each mechanism; BATCH-1 is a lower bound on target mass and an upper bound on capture; the structural facts (two call sites, zero in generated parsers, zero `cascade_match_*` callers) are **sample-independent and decisive alone**. Floor + custody byte-untouched (bench ~1,937.4 ns / corpus MAX 483,583 ns / geomean 1,263.4 ns; regex `e4924024`, probe `1d3fa0ee`); no floor number banked; LIVE tracker unchanged. Evidence `docs/tasks/artifacts/g1c_attribution/`.
+
 ## 2026-07-20 - PGEN-RGX-0078-0170 — `.5.j.4` **SELF-CORRECTION: the `-0169` call-off conclusion is WITHDRAWN and the `-0168` sub-noise rule is AMENDED — the bar is reached by STACKING, not by one lever** (docs-only)
 
 **Director pushback, and it is correct:** *"every gain, especially -12...-17%, shall be taken... you may have to apply 2, 3, 4, ... fixes."*

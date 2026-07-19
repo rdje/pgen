@@ -1,0 +1,71 @@
+==============================================================================
+PGEN-RGX-0078-0171  G1-C RE-PRICING (caller-attributed)
+==============================================================================
+
+--- alloc_extend : caller-bucket shares per band ---
+  [sub1us] n=1090 self=8.6%
+       47.9%  BUILD/VALUE pass                           ->  1.58% of parse
+       47.1%  MEMO insert/lookup                         ->  1.55% of parse
+        5.0%  other / spine / misc                       ->  0.16% of parse
+        0.1%  SEMANTIC RUNTIME                           ->  0.00% of parse
+  [1to2p5] n=1057 self=6.7%
+       57.7%  BUILD/VALUE pass                           ->  1.37% of parse
+       18.3%  SEMANTIC RUNTIME                           ->  0.43% of parse
+       17.3%  MEMO insert/lookup                         ->  0.41% of parse
+        6.7%  other / spine / misc                       ->  0.16% of parse
+  [2p5to20] n=899 self=5.3%
+       84.1%  BUILD/VALUE pass                           ->  1.17% of parse
+       11.6%  MEMO insert/lookup                         ->  0.16% of parse
+        4.1%  other / spine / misc                       ->  0.06% of parse
+        0.2%  SEMANTIC RUNTIME                           ->  0.00% of parse
+
+--- _platform_memmove : caller-bucket shares per band ---
+  [sub1us] n=728 self=5.3%
+       49.0%  G1-C addressable (per-atom match pass)     ->  0.99% of parse
+       25.7%  harness (parse_once_timed)                 ->  0.52% of parse
+       13.2%  BUILD/VALUE pass                           ->  0.27% of parse
+        7.6%  MEMO insert/lookup                         ->  0.15% of parse
+        2.5%  other / spine / misc                       ->  0.05% of parse
+        2.1%  SEMANTIC RUNTIME                           ->  0.04% of parse
+  [1to2p5] n=1075 self=6.5%
+       45.1%  SEMANTIC RUNTIME                           ->  1.04% of parse
+       31.5%  G1-C addressable (per-atom match pass)     ->  0.73% of parse
+       12.2%  other / spine / misc                       ->  0.28% of parse
+        7.1%  harness (parse_once_timed)                 ->  0.16% of parse
+        4.1%  MEMO insert/lookup                         ->  0.09% of parse
+  [2p5to20] n=1307 self=7.4%
+       39.7%  BUILD/VALUE pass                           ->  0.77% of parse
+       20.2%  G1-C addressable (per-atom match pass)     ->  0.39% of parse
+       19.6%  SEMANTIC RUNTIME                           ->  0.38% of parse
+       16.1%  other / spine / misc                       ->  0.31% of parse
+        3.0%  MEMO insert/lookup                         ->  0.06% of parse
+        1.5%  harness (parse_once_timed)                 ->  0.03% of parse
+
+==============================================================================
+LOG-WEIGHTED ADDRESSABLE MASS  (alloc_extend + memmove, both symbols)
+==============================================================================
+  mechanism                                       % parse  ns/parse
+  BUILD/VALUE pass                                  5.15%     65.1
+  MEMO insert/lookup                                2.43%     30.7
+  G1-C addressable (per-atom match pass)            2.11%     26.7
+  SEMANTIC RUNTIME                                  1.90%     24.1
+  other / spine / misc                              1.02%     12.9
+  harness (parse_once_timed)                        0.71%      9.0
+  TOTAL (the -0168 `13.3% = 168 ns` figure)        13.34%    168.5
+
+==============================================================================
+G1-C ADJUDICATION  vs the -0166 noise floor
+==============================================================================
+  -0168 banked addressable mass : 13.30% = 168.0 ns
+  -0171 corrected               :  2.11% =  26.7 ns   (6.3x SMALLER)
+  noise floor                   : 28.8 ns (2.28% p-p, same-binary 8 runs)
+
+     capture     saving   % geomean   vs noise
+         30%       8.0 ns       0.63%      0.28x
+         50%      13.4 ns       1.06%      0.46x
+         70%      18.7 ns       1.48%      0.65x
+
+  => G1-C is BELOW the noise floor at every capture fraction.
+     Under the -0170 AMENDED rule its population EXISTS (cascade_match_*
+     memmove is real), so it is NOT refused -- it is a BATCH candidate,
+     not the solo heavy chain the stack's step 1 assumed.
