@@ -1232,6 +1232,20 @@ pub struct CompiledSemanticRuntimeAnnotations {
     /// parse-harness interpreter; never serialized into generated parsers —
     /// `from_rule_directives` / `from_parts` seed `None`.
     profile_aliases: Option<BTreeMap<String, String>>,
+    /// `RGX-0078.5.j.4` (K3c): dense per-rule-id MIRROR of the two String-keyed
+    /// per-rule maps, installed once by [`Self::install_rule_id_index`] from the
+    /// generated parser's `RULE_NAMES` table (rule id = table index — the C1
+    /// `rule_id_stack` precedent). The `*_for_rule_id` accessors below serve the
+    /// generated hot path with O(1) indexed loads instead of a String hash per
+    /// probe (`has_rule` + up to six phase filters per annotated rule entry —
+    /// measured 5.9% cum of the RGX corpus-MAX cell). A pure derived VIEW:
+    /// every id slot is cloned from the name-keyed maps, which stay the source
+    /// of truth for the interpreter and every non-generated consumer. Empty
+    /// until installed (the compile()/interpreter path never installs it and
+    /// never calls the id accessors).
+    rule_id_has: Vec<bool>,
+    rule_id_directives: Vec<Vec<SemanticRuntimeDirective>>,
+    rule_id_branch_directives: Vec<Vec<Vec<SemanticRuntimeDirective>>>,
 }
 
 impl CompiledSemanticRuntimeAnnotations {
@@ -1254,6 +1268,9 @@ impl CompiledSemanticRuntimeAnnotations {
             layout_sensitivity: None,
             default_profile: None,
             profile_aliases: None,
+            rule_id_has: Vec::new(),
+            rule_id_directives: Vec::new(),
+            rule_id_branch_directives: Vec::new(),
         }
     }
 
@@ -1271,6 +1288,9 @@ impl CompiledSemanticRuntimeAnnotations {
             layout_sensitivity: None,
             default_profile: None,
             profile_aliases: None,
+            rule_id_has: Vec::new(),
+            rule_id_directives: Vec::new(),
+            rule_id_branch_directives: Vec::new(),
         }
     }
 
@@ -1548,6 +1568,129 @@ impl CompiledSemanticRuntimeAnnotations {
         branch_index: usize,
     ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
         self.branch_directives_for_rule_branch(rule_name, branch_index)
+            .iter()
+            .filter(|directive| directive.is_effect())
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): build the dense per-rule-id mirror from the
+    /// generated parser's `RULE_NAMES` table (rule id = index, the codegen
+    /// invariant behind the emitted `RULE_<NAME>: RuleId` constants). Called
+    /// once at generated-parser construction (inside the process-wide
+    /// `OnceLock` build); the clone is a one-time O(annotated rules) cost.
+    pub fn install_rule_id_index(&mut self, rule_names: &[&str]) {
+        self.rule_id_has = rule_names.iter().map(|name| self.has_rule(name)).collect();
+        self.rule_id_directives = rule_names
+            .iter()
+            .map(|name| self.directives_for_rule(name).to_vec())
+            .collect();
+        self.rule_id_branch_directives = rule_names
+            .iter()
+            .map(|name| self.branch_directives_for_rule(name).to_vec())
+            .collect();
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): O(1) id-indexed twin of [`Self::has_rule`].
+    /// Sound only after [`Self::install_rule_id_index`] — the generated parser
+    /// installs the index in the same artifact vintage that emits the id-keyed
+    /// call sites, so the pairing is vintage-coherent by construction (the
+    /// debug assert catches any future decoupling).
+    #[inline]
+    pub fn has_rule_id(&self, rule_id: crate::ast_pipeline::RuleId) -> bool {
+        debug_assert!(
+            self.is_empty() || !self.rule_id_has.is_empty(),
+            "has_rule_id called before install_rule_id_index on non-empty annotations"
+        );
+        self.rule_id_has
+            .get(rule_id as usize)
+            .copied()
+            .unwrap_or(false)
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): O(1) id-indexed twin of [`Self::directives_for_rule`].
+    #[inline]
+    pub fn directives_for_rule_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+    ) -> &[SemanticRuntimeDirective] {
+        self.rule_id_directives
+            .get(rule_id as usize)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): id twin of [`Self::pre_predicates_for_rule`].
+    pub fn pre_predicates_for_rule_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+    ) -> impl Iterator<Item = &SemanticRuntimeDirective> + '_ {
+        self.directives_for_rule_id(rule_id)
+            .iter()
+            .filter(|directive| directive.is_pre_predicate())
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): id twin of [`Self::effect_directives_for_rule`].
+    pub fn effect_directives_for_rule_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+    ) -> impl Iterator<Item = &SemanticRuntimeDirective> + '_ {
+        self.directives_for_rule_id(rule_id)
+            .iter()
+            .filter(|directive| directive.is_effect())
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): id twin of [`Self::post_predicates_for_rule`].
+    pub fn post_predicates_for_rule_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+    ) -> impl Iterator<Item = &SemanticRuntimeDirective> + '_ {
+        self.directives_for_rule_id(rule_id)
+            .iter()
+            .filter(|directive| directive.is_post_predicate())
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): id twin of [`Self::final_predicates_for_rule`].
+    pub fn final_predicates_for_rule_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+    ) -> impl Iterator<Item = &SemanticRuntimeDirective> + '_ {
+        self.directives_for_rule_id(rule_id)
+            .iter()
+            .filter(|directive| directive.is_final_predicate())
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): id twin of [`Self::library_imports_for_rule`].
+    pub fn library_imports_for_rule_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+    ) -> impl Iterator<Item = &SemanticRuntimeDirective> + '_ {
+        self.directives_for_rule_id(rule_id)
+            .iter()
+            .filter(|directive| directive.is_library_import())
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): id twin of [`Self::library_exports_for_rule`].
+    pub fn library_exports_for_rule_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+    ) -> impl Iterator<Item = &SemanticRuntimeDirective> + '_ {
+        self.directives_for_rule_id(rule_id)
+            .iter()
+            .filter(|directive| directive.is_library_export())
+    }
+
+    /// `RGX-0078.5.j.4` (K3c): id twin of
+    /// [`Self::branch_effect_directives_for_rule_branch`] (the INLINE-ACTIONS.2
+    /// winning-branch action view, served without the rule-name hash).
+    pub fn branch_effect_directives_for_rule_branch_id(
+        &self,
+        rule_id: crate::ast_pipeline::RuleId,
+        branch_index: usize,
+    ) -> impl Iterator<Item = &SemanticRuntimeDirective> + '_ {
+        self.rule_id_branch_directives
+            .get(rule_id as usize)
+            .and_then(|branches| branches.get(branch_index))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
             .iter()
             .filter(|directive| directive.is_effect())
     }
@@ -4513,6 +4656,12 @@ pub fn compile_semantic_runtime_annotations(
         // `PROFILE-ALIAS.2`: the grammar-level request-spelling alias map
         // (same grammar-wide-scan pattern; never enters the per-rule lists).
         profile_aliases: compile_profile_aliases(annotations)?,
+        // `RGX-0078.5.j.4` (K3c): the id mirror is installed by the generated
+        // parser only (it owns the RULE_NAMES table); the compile()/interpreter
+        // path keeps the String-keyed maps as its sole view.
+        rule_id_has: Vec::new(),
+        rule_id_directives: Vec::new(),
+        rule_id_branch_directives: Vec::new(),
     })
 }
 

@@ -1,0 +1,17 @@
+== K3c A/B (base = K3b probe 2620abf8, cand = K3c probe 01dce2ed; alternated 5x2000 + corpus samples=1000 + ladder) ==
+Session #157, 2026-07-19 (PGEN-RGX-0078-0145). Canonical artifacts: regex ee3a3cb6 / ebnf 5eac7237 (all 11 regenerated, regex+ebnf fixed-point-proven at the canonical -o spelling).
+
+BENCH geomean-of-best-mins: base 2,472.5 -> cand 2,432.7 ns = -1.61% (all 8 patterns >= 0: capture_groups -4.2% / url_simple -3.1% / digit_sequence -2.2% / anchor_complex -1.7% / character_class -1.6% / 3 flat cells 0.0%)
+  base custody: 2,472.5 vs the K3b recorded floor 2,460.9 = +0.47% (same binary, thermal-clean)
+CORPUS (2,189 cells, verdict flips = 0): geomean 1,870.4 -> 1,825.1 ns = -2.42%
+  MAX 898,875 -> 867,417 ns = -3.50% (holder line_725 unchanged; base-run custody vs banked 886,125 = +1.4% thermal)
+  worst cells: 725 -3.5% / 4674 -2.2% / 6526 -2.9% / 2880 -1.0% / 6538 -5.0% / 1224 -2.7% / 965 -0.9%
+  BYTE-BAND sweep (the systematic-regression check): EVERY band negative — 0-20B -2.18% / 20-60B -3.47% / 60-121B -2.84% / 121-200B -2.39% / 200-400B -0.38% / 400-4000B -1.60%; regressed->5% cells: 76/1727 in 0-20B = ALL sub-500ns cells one 41.6ns timer-quantum step (166->208ns class), 1/392 in 20-60B, 0 everywhere else.
+LADDER (39 rows, verdict flips = 0): orig_6538 -4.5% / orig_4674 -2.5% / nestbr_80 -2.1% / lookstar_8 -6.8% / nest_80 -0.4%;
+  flat_160 +12.1% = SYNTHETIC-CELL LAYOUT ARTIFACT, adjudicated on three facts: (1) reproducible within-session (3x repeats base 14,458-14,625 vs cand 16,000-16,083) BUT (2) the SAME base binary banked 16,125 ns in its own -0142 acceptance = the cell is bimodal ~14.5/16.1us ACROSS sessions on identical code (alignment-class sensitivity of a pure spine loop under fat-LTO layout shifts), and (3) the corpus's real 121-200B band (its class) measures -2.39% with 0/14 cells regressed >5% + bench literal_simple exactly 0.0%.
+
+ACCEPTANCE vs the -0144 instrument: PRIMARY corpus-MAX -3.50% clears the <-2% falsification bound (prediction -4..-7%: honest low-end miss, the K3a cum-share-overlap class — the 5.9% String-probe population overlapped wrapper/insert children); bench -1.61% positive-everywhere (prediction -3..-8% missed low; the +-2% non-regression guard cleared with margin); zero verdict flips anywhere.
+
+NEW FLOOR: bench geomean ~=2,432.7 ns (496us origin -> ~=203.9x); corpus MAX 867,417 ns; corpus geomean 1,825.1 ns.
+Battery: lib 987/987 (dual-feature rebuilt FIRST per the -0142 lesson); cert x3 268/9/259/0 byte-exact (spf 1/0/2 — the exact banked pattern); typed-diff PASS (silent-restore trap 10TH firing: post-gate 9ee8e241 caught, canonical ee3a3cb6 re-derived + hash-verified); PCRE2 oracle / shape / duality gates PASS; clippy source-strict PASS. Guard peaks: regen 8,502MB / battery 10,420MB / gates 10,919MB / probe build 11,927MB.
+Probes: base preserved (K3b 2620abf8), cand preserved preserved_probes/regex_perf_probe_k3c_01dce2ed per OPS-MEMSAFE.3.

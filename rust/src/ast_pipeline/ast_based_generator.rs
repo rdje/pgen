@@ -1508,7 +1508,14 @@ impl AstBasedGenerator {
                     crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
                 > = std::sync::OnceLock::new();
                 COMPILED_SEMANTIC_RUNTIME_ANNOTATIONS
-                    .get_or_init(|| #compiled_semantic_runtime_annotations)
+                    .get_or_init(|| {
+                        let mut compiled = #compiled_semantic_runtime_annotations;
+                        // `RGX-0078.5.j.4` (K3c): install the dense per-rule-id
+                        // annotation mirror (rule id = RULE_NAMES index) so the
+                        // transaction wrapper's probes are O(1) indexed loads.
+                        compiled.install_rule_id_index(Self::RULE_NAMES);
+                        compiled
+                    })
             }
 
             pub fn new(input: &'input str, arena: &'input NodeArena<'input>, logger: Box<dyn Logger>) -> Self {
@@ -2459,8 +2466,16 @@ impl AstBasedGenerator {
             // `push_rule_context_static` store it as `Cow::Borrowed` with NO
             // per-entry allocation (the measured V1 census surface, ≈−4.3% of
             // the bench).
+            // `RGX-0078.5.j.4` (K3c): the wrapper takes the emitted numeric
+            // rule id alongside the name (the C1 `rule_id_stack` precedent —
+            // every call site knows its rule at codegen time), and every
+            // annotation probe below is an O(1) id-indexed load instead of a
+            // String hash (`has_rule` + up to six phase filters per annotated
+            // entry — measured 5.9% cum of the RGX corpus-MAX cell). The name
+            // stays for the rule-context stack + transaction naming + traces.
             pub fn with_semantic_runtime_rule_transaction<F>(
                 &mut self,
+                rule_id: RuleId,
                 rule_name: &'static str,
                 f: F,
             ) -> ParseResult<ParseNode<'input>>
@@ -2480,7 +2495,7 @@ impl AstBasedGenerator {
                 // catches the unannotated rules in grammars that have
                 // some predicates elsewhere (e.g. systemverilog).
                 if self.semantic_runtime_annotations.is_empty()
-                    || !self.semantic_runtime_annotations.has_rule(rule_name)
+                    || !self.semantic_runtime_annotations.has_rule_id(rule_id)
                 {
                     // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — even the fast-path
                     // pushes/pops the rule context so any nested rule's
@@ -2566,7 +2581,7 @@ impl AstBasedGenerator {
                 // hold it, popped AFTER the err-restore below.
                 let result: ParseResult<ParseNode<'input>> = (|| -> ParseResult<ParseNode<'input>> {
                     let mut predicate_blocked = false;
-                    for directive in self.semantic_runtime_annotations.pre_predicates_for_rule(rule_name)
+                    for directive in self.semantic_runtime_annotations.pre_predicates_for_rule_id(rule_id)
                     {
                         match self
                             .semantic_runtime_state
@@ -2638,7 +2653,7 @@ impl AstBasedGenerator {
                             semantic_runtime_state.transaction_named(rule_name);
                         for directive in self
                             .semantic_runtime_annotations
-                            .effect_directives_for_rule(rule_name)
+                            .effect_directives_for_rule_id(rule_id)
                         {
                             let _ = self.apply_semantic_runtime_effect_directive(
                                 &mut semantic_runtime_transaction,
@@ -2657,7 +2672,7 @@ impl AstBasedGenerator {
                         // scope, so later sibling `has_fact` checks see them.)
                         for directive in self
                             .semantic_runtime_annotations
-                            .library_imports_for_rule(rule_name)
+                            .library_imports_for_rule_id(rule_id)
                         {
                             if let crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(spec) =
                                 directive
@@ -2673,7 +2688,7 @@ impl AstBasedGenerator {
                         let mut blocked_post_predicate: Option<String> = None;
                         for directive in self
                             .semantic_runtime_annotations
-                            .post_predicates_for_rule(rule_name)
+                            .post_predicates_for_rule_id(rule_id)
                         {
                             match directive {
                                 crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec)
@@ -2776,7 +2791,7 @@ impl AstBasedGenerator {
                             // predicate blocked (the early `return Err` skips it).
                             for directive in self
                                 .semantic_runtime_annotations
-                                .final_predicates_for_rule(rule_name)
+                                .final_predicates_for_rule_id(rule_id)
                             {
                                 if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec) =
                                     directive
@@ -2805,7 +2820,7 @@ impl AstBasedGenerator {
                             // `.3.3.3` IIFE's exception-safety invariant).
                             for directive in self
                                 .semantic_runtime_annotations
-                                .library_exports_for_rule(rule_name)
+                                .library_exports_for_rule_id(rule_id)
                             {
                                 if let crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(spec) =
                                     directive
@@ -3780,7 +3795,7 @@ impl AstBasedGenerator {
             }
         } else {
             quote! {
-                let result = self.with_semantic_runtime_rule_transaction(#rule_name, |parser| {
+                let result = self.with_semantic_runtime_rule_transaction(Self::#rule_const, #rule_name, |parser| {
                     #memoized_inner
                 });
             }
@@ -4759,12 +4774,17 @@ impl AstBasedGenerator {
             // out of the registry first so the immutable borrow on `parser` is
             // released before the `&mut self` apply call; `best_branch_index` is
             // the 0-based winner index.
+            // `RGX-0078.5.j.4` (K3c): the same `RULE_<NAME>` const the rule's
+            // own emission derives (`generate_rule_constants` invariant:
+            // rule id = RULE_NAMES index) — lets the winning-branch action
+            // lookup skip the rule-name String hash.
+            let branch_effect_rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
             let branch_start_effect_application: TokenStream =
                 if self.rule_has_branch_start_effects(rule_name) {
                     quote! {
                         let branch_start_effects: Vec<crate::ast_pipeline::SemanticRuntimeDirective> = parser
                             .semantic_runtime_annotations
-                            .branch_effect_directives_for_rule_branch(#rule_name, best_branch_index)
+                            .branch_effect_directives_for_rule_branch_id(Self::#branch_effect_rule_const, best_branch_index)
                             .cloned()
                             .collect();
                         for branch_start_effect in &branch_start_effects {
@@ -9979,7 +9999,7 @@ mod semantic_usage_tests {
             .generate_parser(&grammar_tree, &rule_order, "separator_fast_path.rs")
             .expect("parser generation should succeed");
         assert!(
-            !rendered.contains(r#"with_semantic_runtime_rule_transaction("item""#),
+            !rendered.contains(r#"with_semantic_runtime_rule_transaction(Self::RULE_ITEM"#),
             "a rule annotated ONLY with @quantified_separator must keep the fast-path emission"
         );
         assert!(
@@ -10079,7 +10099,7 @@ mod semantic_usage_tests {
             .expect("parser generation should succeed");
         for rule in ["item", "use_site"] {
             assert!(
-                !rendered.contains(&format!(r#"with_semantic_runtime_rule_transaction("{rule}""#)),
+                !rendered.contains(&format!(r#"with_semantic_runtime_rule_transaction(Self::RULE_{}"#, rule.to_uppercase())),
                 "a rule annotated ONLY with @gen_emit_fact/@gen_predicate must keep the fast-path emission ({rule})"
             );
         }
@@ -10367,8 +10387,8 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("branch_effect_directives_for_rule_branch"),
-            "the winning-branch block should look up branch-start effect directives, got: {}",
+            rendered.contains("branch_effect_directives_for_rule_branch_id"),
+            "the winning-branch block should look up branch-start effect directives (id-indexed, K3c), got: {}",
             rendered
         );
         assert!(
@@ -11352,8 +11372,8 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("pre_predicates_for_rule"),
-            "generated parser should use the explicit pre-predicate rule view, got: {}",
+            rendered.contains("pre_predicates_for_rule_id"),
+            "generated parser should use the explicit pre-predicate rule view (id-indexed, K3c), got: {}",
             rendered
         );
         assert!(
@@ -11476,8 +11496,8 @@ mod semantic_usage_tests {
         let rendered = post_runtime_rendered_parser();
 
         assert!(
-            rendered.contains("effect_directives_for_rule"),
-            "generated parser should use the explicit effect-directive rule view, got: {}",
+            rendered.contains("effect_directives_for_rule_id"),
+            "generated parser should use the explicit effect-directive rule view (id-indexed, K3c), got: {}",
             rendered
         );
         assert!(
