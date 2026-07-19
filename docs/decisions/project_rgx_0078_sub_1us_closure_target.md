@@ -122,3 +122,20 @@ everywhere and the bar stays physically meaningful; plus the catastrophic-backtr
 as blocking pre-closure leaves. The measurement deliverable: a corpus-wide per-pattern
 parse-time distribution (max/percentiles vs length) as the new closure baseline, landed after
 the in-flight `.5.j.2` STEP-2a emission (which reduces per-parse cost under any bar reading).
+
+---
+
+**2026-07-19 — DIRECTOR CONFIRMATION + REVIEW CHECKPOINT (session #156).** The director asked
+whether the goal is "geomean sub-1µs" and whether the max-form is "unrealistic"; the engineer's
+tiered answer (recorded verbatim in the session): (1) the LITERAL max incl. the 3,511 B giant
+— unrealistic, as always recorded; (2) the tail leg ≤8 ns/B — ambitious, open research risk;
+(3) the main leg (every ≤p99-size pattern < 1µs absolute) — UNPROVEN, NOT unrealistic (worst
+small cells 20–28 µs on the K3b floor, median 1.7 µs); (4) geomean sub-1µs — probable, and
+falls out of leg (3). DIRECTOR: *"Thank you for being more positive than me. Keep going then,
+go, go, go!!"* ⇒ **the two-leg bar STANDS**, with the agreed **REVIEW CHECKPOINT**: when the
+currently-named program is exhausted (K3c, K5, the `(`/`(?` dispatch peel, the protocol-zone
+wave), if the worst ≤p99-size cells have plateaued above ~2–3 µs, the engineer brings the data
+and the director decides then (relax to a geomean+median bar, or accept a small documented
+outlier list). Distance-to-bar snapshot at this confirmation (K3b floor, probe `2620abf8`):
+geomean 1,864.8 ns / p50 1,708 ns / 68.4% of ≤121 B cells >1µs / worst small cell 28.0 µs
+(`line_1866`) / tail 21/21 >8 ns/B / corpus MAX 886,125 ns.
