@@ -1,0 +1,344 @@
+FUSIBILITY-CENSUS: grammar=regex rules=275 fusible=68 (token=40 lookahead=28) not_fusible=207 (shape_only=75) maximal_roots=57 static_share=24.7%
+  gate: increment-1 strict (regular + effect-free + text-folding + policy-encodable + layout-contiguous) — RGX-0078.5.h section F
+  match_regex surface: 0 regex-literal atom sites (0 distinct patterns) — the derived-DFA engine-replacement surface (self-hosting), independent of rule-level fusion
+  maximal fusible roots (future scan_* sites):
+    [root:lookahead] literal
+    [root:token] whitespace_literal
+    [root:lookahead] quoted_literal_escape_tail
+    [root:token] dot
+    [root:lookahead] reference_name
+    [root:token] sign
+    [root:lookahead] name
+    [root:token] stray_class_end_quote
+    [root:token] class_range_nonliteral_shorthand
+    [root:lookahead] class_literal
+    [root:lookahead] class_member_literal
+    [root:lookahead] class_member_literal_nocaret
+    [root:token] class_safe_special
+    [root:token] class_range_literal_escape_letter_strict
+    [root:token] posix_name
+    [root:token] simple_escape_letter_strict
+    [root:token] hex_escape_short_payload
+    [root:token] octal_escape_short_payload
+    [root:token] short_prop_letter
+    [root:token] prop_name
+    [root:lookahead] capture_name
+    [root:lookahead] comment_text
+    [root:token] alpha_lookaround_name
+    [root:token] atomic_alpha_lookaround_name
+    [root:token] scan_substring_name
+    [root:token] script_run_name
+    [root:lookahead] callout_backtick_payload
+    [root:lookahead] callout_single_payload
+    [root:lookahead] callout_double_payload
+    [root:lookahead] callout_caret_payload
+    [root:lookahead] callout_percent_payload
+    [root:lookahead] callout_hash_payload
+    [root:lookahead] callout_dollar_payload
+    [root:lookahead] callout_brace_payload
+    [root:token] ascii_restrict_modifier
+    [root:token] modifier_char
+    [root:token] version_operator
+    [root:token] directive_payload_digits
+    [root:lookahead] directive_payload_required
+    [root:lookahead] directive_payload_simple
+    [root:token] directive_verb_name_nonaccept
+    [root:token] directive_limit_name
+    [root:token] directive_option_name
+    [root:lookahead] extended_class_regular
+    [root:token] code_lang
+    [root:lookahead] code_regular_char
+    [root:lookahead] code_not_quote_or_backslash
+    [root:lookahead] code_not_squote_or_backslash
+    [root:token] letter
+    [root:token] digit
+    [root:token] nonzero_digit
+    [root:token] whitespace
+    [root:lookahead] unicode_char
+    [root:lookahead] any_char
+    [root:token] special_char
+    [root:token] hex_digits
+    [root:token] octal_digits
+  disqualification histogram (rules per reason):
+      133  branch 1 return annotation is not a matched-text fold
+       62  branch 1 default fold is not matched text
+       31  branch 2 default fold is not matched text
+       28  branch 2 return annotation is not a matched-text fold
+       18  references non-encodable rule 'pattern'
+       17  branch 3 default fold is not matched text
+       15  branch 4 default fold is not matched text
+       12  branch 3 return annotation is not a matched-text fold
+       12  branch 5 default fold is not matched text
+       10  branch 6 default fold is not matched text
+        9  branch 4 return annotation is not a matched-text fold
+        8  runtime directive @predicate
+        7  @profiles dialect gate (guard not scanner-encoded in increment 1)
+        7  runtime directive @close_scope
+        7  runtime directive @open_scope
+        6  branch 7 default fold is not matched text
+        6  runtime directive @emit_fact
+        5  branch 8 default fold is not matched text
+        5  matched-text @transform (increment-2 candidate)
+        4  branch 5 return annotation is not a matched-text fold
+        4  branch 6 return annotation is not a matched-text fold
+        4  branch 9 default fold is not matched text
+        4  references non-encodable rule 'digits'
+        4  references non-encodable rule 'quantifier'
+        4  references non-encodable rule 'signed_digits'
+        3  references non-encodable rule 'class_escape'
+        3  references non-encodable rule 'class_item'
+        3  references non-encodable rule 'class_range'
+        3  references non-encodable rule 'code_content'
+        3  references non-encodable rule 'invalid_class_range'
+        3  references non-encodable rule 'piece'
+        3  references non-encodable rule 'unicode_escape'
+        2  branch 10 default fold is not matched text
+        2  branch 11 default fold is not matched text
+        2  branch 12 default fold is not matched text
+        2  branch 13 default fold is not matched text
+        2  branch 14 default fold is not matched text
+        2  branch 15 default fold is not matched text
+        2  branch 16 default fold is not matched text
+        2  branch 17 default fold is not matched text
+        2  branch 18 default fold is not matched text
+        2  branch 7 return annotation is not a matched-text fold
+        2  references non-encodable rule 'alternative'
+        2  references non-encodable rule 'callout_arg'
+        2  references non-encodable rule 'class_atom'
+        2  references non-encodable rule 'class_range_simple_escape'
+        2  references non-encodable rule 'condition_assertion'
+        2  references non-encodable rule 'conditional_branch'
+        2  references non-encodable rule 'escape'
+        2  references non-encodable rule 'extended_class_content'
+        2  references non-encodable rule 'quant_bound_number'
+        2  references non-encodable rule 'returned_capture_group_list'
+        2  references non-encodable rule 'subroutine_target'
+        1  branch 19 default fold is not matched text
+        1  branch 20 default fold is not matched text
+        1  branch 21 default fold is not matched text
+        1  branch 22 default fold is not matched text
+        1  branch 23 default fold is not matched text
+        1  branch 24 default fold is not matched text
+        1  branch 8 return annotation is not a matched-text fold
+        1  references non-encodable rule 'alpha_condition_assertion'
+        1  references non-encodable rule 'alpha_lookaround'
+        1  references non-encodable rule 'alpha_lookaround_open'
+        1  references non-encodable rule 'alternation'
+        1  references non-encodable rule 'anchor'
+        1  references non-encodable rule 'atom'
+        1  references non-encodable rule 'atomic_group'
+        1  references non-encodable rule 'backreference'
+        1  references non-encodable rule 'backreference_digits'
+        1  references non-encodable rule 'backreference_digits_single'
+        1  references non-encodable rule 'branch_reset_group'
+        1  references non-encodable rule 'callout'
+        1  references non-encodable rule 'callout_number'
+        1  references non-encodable rule 'capture_open'
+        1  references non-encodable rule 'capturing_group'
+        1  references non-encodable rule 'char_class'
+        1  references non-encodable rule 'class_body'
+        1  references non-encodable rule 'class_body_nonempty'
+        1  references non-encodable rule 'class_body_nonempty_nocaret'
+        1  references non-encodable rule 'class_escape_unit'
+        1  references non-encodable rule 'class_item_core'
+        1  references non-encodable rule 'class_item_visible'
+        1  references non-encodable rule 'class_item_visible_core'
+        1  references non-encodable rule 'class_item_visible_nocaret'
+        1  references non-encodable rule 'class_item_visible_nocaret_core'
+        1  references non-encodable rule 'class_range_any_char_no_orphan_quote_end'
+        1  references non-encodable rule 'class_range_decodable_atom'
+        1  references non-encodable rule 'class_range_decodable_escape'
+        1  references non-encodable rule 'class_range_endpoint'
+        1  references non-encodable rule 'class_range_escape'
+        1  references non-encodable rule 'class_range_escape_unit'
+        1  references non-encodable rule 'class_range_literal_escape_letter'
+        1  references non-encodable rule 'class_range_literal_escape_letter_relaxed'
+        1  references non-encodable rule 'class_simple_escape'
+        1  references non-encodable rule 'class_simple_escape_relaxed'
+        1  references non-encodable rule 'code_balanced_braces'
+        1  references non-encodable rule 'code_block'
+        1  references non-encodable rule 'code_block_lang'
+        1  references non-encodable rule 'code_block_plain'
+        1  references non-encodable rule 'code_element'
+        1  references non-encodable rule 'concatenation'
+        1  references non-encodable rule 'condition'
+        1  references non-encodable rule 'condition_callout'
+        1  references non-encodable rule 'condition_callout_assertion'
+        1  references non-encodable rule 'conditional'
+        1  references non-encodable rule 'counted_quantifier'
+        1  references non-encodable rule 'counted_quantifier_body'
+        1  references non-encodable rule 'counted_quantifier_range'
+        1  references non-encodable rule 'descending_class_range'
+        1  references non-encodable rule 'directive_body_quantifiable'
+        1  references non-encodable rule 'directive_name_relaxed'
+        1  references non-encodable rule 'directive_payload_suffix'
+        1  references non-encodable rule 'directive_relaxed_named'
+        1  references non-encodable rule 'directive_verb'
+        1  references non-encodable rule 'entry_alternation'
+        1  references non-encodable rule 'entry_alternative'
+        1  references non-encodable rule 'entry_concatenation'
+        1  references non-encodable rule 'escape_unit'
+        1  references non-encodable rule 'extended_class'
+        1  references non-encodable rule 'extended_class_element'
+        1  references non-encodable rule 'extended_class_nested'
+        1  references non-encodable rule 'group'
+        1  references non-encodable rule 'keep_out'
+        1  references non-encodable rule 'lookahead_neg'
+        1  references non-encodable rule 'lookahead_neg_open'
+        1  references non-encodable rule 'lookahead_pos'
+        1  references non-encodable rule 'lookahead_pos_open'
+        1  references non-encodable rule 'lookaround'
+        1  references non-encodable rule 'lookbehind_neg'
+        1  references non-encodable rule 'lookbehind_neg_open'
+        1  references non-encodable rule 'lookbehind_pos'
+        1  references non-encodable rule 'lookbehind_pos_open'
+        1  references non-encodable rule 'named_backreference'
+        1  references non-encodable rule 'named_group'
+        1  references non-encodable rule 'named_group_open_angle'
+        1  references non-encodable rule 'named_group_open_quote'
+        1  references non-encodable rule 'named_subroutine_target'
+        1  references non-encodable rule 'no_branch'
+        1  references non-encodable rule 'non_atomic_lookahead_pos'
+        1  references non-encodable rule 'non_atomic_lookahead_pos_open'
+        1  references non-encodable rule 'non_atomic_lookbehind_pos'
+        1  references non-encodable rule 'non_atomic_lookbehind_pos_open'
+        1  references non-encodable rule 'noncapturing_group'
+        1  references non-encodable rule 'numeric_backreference'
+        1  references non-encodable rule 'numeric_backreference_single'
+        1  references non-encodable rule 'piece_quoted_run_quantified'
+        1  references non-encodable rule 'piece_tail'
+        1  references non-encodable rule 'python_named_backreference'
+        1  references non-encodable rule 'python_named_group'
+        1  references non-encodable rule 'python_named_group_open'
+        1  references non-encodable rule 'quant_base'
+        1  references non-encodable rule 'recursion_condition'
+        1  references non-encodable rule 'returned_capture_group'
+        1  references non-encodable rule 'returned_capture_subroutine'
+        1  references non-encodable rule 'scan_substring_group'
+        1  references non-encodable rule 'scoped_inline_modifiers'
+        1  references non-encodable rule 'script_run_group'
+        1  references non-encodable rule 'scs_capture_name'
+        1  references non-encodable rule 'scs_capture_name_ref'
+        1  references non-encodable rule 'scs_capture_number'
+        1  references non-encodable rule 'simple_escape'
+        1  references non-encodable rule 'simple_escape_letter'
+        1  references non-encodable rule 'simple_escape_letter_relaxed'
+        1  references non-encodable rule 'simple_escape_tail'
+        1  references non-encodable rule 'start_option_piece'
+        1  references non-encodable rule 'subroutine_call'
+        1  references non-encodable rule 'version_condition'
+        1  references non-encodable rule 'version_number'
+        1  references non-encodable rule 'yes_branch'
+CHOICE-SITE-CENSUS: grammar=regex sites=149 (top_level=113) with_encodable_subset=133 all_encodable=107
+DEGENERACY-CENSUS: grammar=regex top_level_sites=113 degenerate_dispatch=61
+  gate: top-level + terminal-ws-sensitive + all branches first-byte-decided + pairwise-disjoint + no branch predicates/effects — RGX-0078.5.i.3 (P2)
+  degenerate sites (rule(branches)): piece_tail(2) quant_base(4) quant_bound_number_body(2) quant_suffix(2) literal(2) quoted_literal_char(7) quoted_literal_escape_tail(6) literal_char(23) name_ref(2) sign(2) class_literal_nocaret(5) class_safe_special_nocaret(29) quoted_class_literal_char(7) class_range_nonliteral_shorthand(10) class_bracket_token_tail(2) class_range_decodable_atom(5) class_literal(5) class_safe_special(30) class_range_any_char_no_orphan_quote_end(5) class_range_literal_escape_letter(2) class_range_literal_escape_letter_strict(21) class_range_literal_escape_letter_relaxed(6) letter_no_upper_e(51) simple_escape_tail(4) simple_escape_letter(2) simple_escape_letter_strict(34) simple_escape_letter_relaxed(6) octal_escape(2) short_prop_letter(14) returned_capture_group(2) scs_capture_name_ref(2) named_subroutine_target(2) subroutine_target(3) callout_arg(2) callout_number_body(2) callout_string(8) modifier_spec(2) ascii_restrict_modifier(5) modifier_char(7) version_operator(2) directive_body_nonquantifiable(3) directive_limit_value_body(2) directive_payload_suffix(2) extended_class_element(3) extended_class_regular(5) extended_class_special(29) code_element(5) code_string_double_char(2) code_string_single_char(2) code_regular_char(5) code_not_quote_or_backslash(8) code_not_squote_or_backslash(8) code_safe_special(27) letter(52) digit(10) nonzero_digit(9) hex_digit(22) octal_digit(8) whitespace(6) any_char(5) special_char(31)
+  degeneracy blocker histogram (top-level site occurrences):
+      962  first-byte overlap between branches
+PREFIX2-CENSUS: grammar=regex blocked_top_level_sites=52 prefix2_dispatchable=32 (wildcard_limited=25)
+  gate: the P2 gates minus first-byte disjointness + per shared first byte: resolved second-byte facts + non-wildcard members pairwise-disjoint on byte 2 — RGX-0078.5.i.7 (D1)
+  prefix2 sites (rule(branches[,wildcards])): entry_concatenation(2,w1) start_option_body(2) zero_width(2) counted_quantifier_body(4,w3) anchor(9) char_class(3,w3) class_item_visible_core(5,w3) class_item_visible_nocaret_core(5,w3) class_item_core(6,w3) class_zero_width(2) invalid_class_range(6,w5) class_range_nonliteral_atom(2,w2) class_range_decodable_escape(4,w4) class_escape_unit(6,w5) class_simple_escape(2,w2) class_atom(3,w1) class_range_escape_unit(5,w3) escape_unit(7,w6) hex_escape(2,w1) property_escape(4,w2) atomic_group(2) script_run_name(4) callout_number_core(5,w3) modifier_seq(3,w2) modifier_item(5,w3) condition(9,w5) version_number(2,w2) recursion_condition(2,w1) directive_body_quantifiable(2,w1) directive_payload_required(2,w2) directive_verb_name_nonaccept(6,w1) code_lang(6)
+  prefix2 blocker histogram (blocked-site occurrences):
+       30  second-byte overlap between branches
+FIRSTK-CENSUS: grammar=regex top_level_branches=852 guarded=852 deeper_than_level1=202 with_emulation=29 truncated=241 d1_fallback=1
+  gate: level-1 admission (branch_dispatch_first_bytes) + per-path bounded trie (depth≤4, fanout≤24, ≤16 nodes) + exact furthest emulation on refutation arms — RGX-0078.5.j.4 (C1)
+  guarded-branch walk-depth histogram: d1=650 d2=65 d3=44 d4=93
+  deep branches (rule#branch(depth[,w-offsets][,trunc][,d1])): alpha_lookaround_name#b1(d4,trunc) alpha_lookaround_name#b2(d4,trunc) anchor#b3(d2) anchor#b4(d2) anchor#b5(d2) anchor#b6(d2) anchor#b7(d2) anchor#b8(d2) anchor#b9(d2) atom#b10(d2) atom#b11(d2) atom#b12(d3) atom#b13(d3) atom#b14(d3) atom#b15(d4,w2,trunc) atom#b16(d4,trunc) atom#b17(d4,w2) atom#b18(d4,w2) atom#b19(d2) atom#b20(d3) atom#b21(d3,trunc) atom#b22(d3) atom#b23(d4) atom#b4(d2,w1,trunc) atom#b5(d2) atom#b7(d4,trunc) atom#b9(d2,trunc) atomic_alpha_lookaround_name#b1(d3) atomic_alpha_lookaround_name#b2(d4,trunc) atomic_alpha_lookaround_name#b3(d3) atomic_alpha_lookaround_name#b4(d4,trunc) atomic_alpha_lookaround_name#b5(d3) atomic_alpha_lookaround_name#b6(d4,trunc) atomic_alpha_lookaround_name#b7(d3) atomic_alpha_lookaround_name#b8(d4,trunc) atomic_group#b1(d3) atomic_group#b2(d4,trunc) backreference#b1(d2,w1,trunc) backreference#b2(d2,w1) backreference#b3(d3,trunc) backreference#b4(d4,w3) backreference#b5(d4,w3) backreference#b6(d3) backreference#b7(d3,w2) callout_number_core#b1(d3) callout_number_core#b2(d3,w2) callout_number_core#b3(d2,w1) char_class#b1(d4,w1/2/3,trunc) char_class#b2(d4,w1/3,trunc) class_atom#b1(d2) class_escape_unit#b2(d2) class_item_core#b1(d2) class_item_core#b2(d2) class_item_core#b4(d2) class_item_visible_core#b1(d2) class_item_visible_core#b3(d2) class_item_visible_nocaret_core#b1(d2) class_item_visible_nocaret_core#b3(d2) class_range_decodable_escape#b1(d2,w1,trunc) class_range_decodable_escape#b3(d2,w1,trunc) … +142 more
+QUANT-SITE-CENSUS: grammar=regex quantified_sites=140 min_zero=118 guardable=102 (bare_ref=78 no_refs=2 mixed=22)
+  gate: min-0 quantifier + terminal-ws-sensitive + element first-byte-decided + predicate/effect-free reachable closure — RGX-0078.5.i.7 (Q-GUARD); the EMISSION guards bare_ref (+ exact furthest emulation) and no_refs sites only
+  guardable sites (rule@site(quantifier)): entry_alternation@q#0(*) entry_alternative@q#0(?) entry_concatenation@q#1(*) alternation@q#0(*) alternative@q#0(?) piece@q#0(?) piece_quoted_run_quantified@q#0(*) quantifier@q#0(?) counted_quantifier@q#0(?) counted_quantifier@q#1(?) counted_quantifier_body@q#0(?) counted_quantifier_body@q#1(?) counted_quantifier_body@q#2(?) counted_quantifier_body@q#3(?) counted_quantifier_range@q#0(?) counted_quantifier_range@q#1(?) counted_quantifier_range@q#2(?) quant_bound_number_body@q#1(?) literal_open_brace@q#0(?) literal_open_brace@q#2(?) literal_open_brace@q#3(?) literal_open_brace@q#4(?) literal_open_brace@q#5(?) literal_open_brace@q#7(?) literal_open_brace@q#8(?) literal_open_brace@q#10(?) unterminated_quoted_literal@q#0(*) backreference@q#0(?) backreference@q#1(?) named_backreference@q#0(?) named_backreference@q#1(?) named_backreference@q#2(?) named_backreference@q#3(?) signed_digits@q#0(?) name@q#0(0,127) char_class@q#0(?) char_class@q#1(*) class_negated_open@q#0(*) class_negated_open@q#1(*) class_body@q#0(*) class_body_nonempty@q#0(*) class_body_nonempty@q#1(*) class_body_nonempty_nocaret@q#0(*) class_body_nonempty_nocaret@q#1(*) quoted_class_literal@q#0(*) class_range@q#0(*) class_range@q#1(*) invalid_class_range@q#0(*) invalid_class_range@q#1(*) invalid_class_range@q#2(*) invalid_class_range@q#3(*) invalid_class_range@q#4(*) invalid_class_range@q#5(*) invalid_class_range@q#6(*) invalid_class_range@q#7(*) invalid_class_range@q#8(*) invalid_class_range@q#9(*) class_bracket_token_tail@q#0(*) class_bracket_token_tail@q#1(*) descending_class_range@q#0(*) descending_class_range@q#1(*) class_member_literal@q#0(?) class_member_literal@q#1(*) class_member_literal_nocaret@q#0(?) class_member_literal_nocaret@q#1(*) posix_class@q#0(?) hex_escape@q#0(?) hex_escape@q#1(?) hex_escape_short_payload@q#0(?) octal_escape@q#0(?) octal_escape@q#1(?) octal_escape_short_payload@q#0(?) octal_escape_short_payload@q#1(?) comment_text@q#0(*) returned_capture_group_list@q#0(*) inline_modifiers@q#0(?) callout@q#0(?) callout_number_body@q#1(?) callout_backtick_payload@q#0(*) callout_single_payload@q#0(*) callout_double_payload@q#0(*) callout_caret_payload@q#0(*) callout_percent_payload@q#0(*) callout_hash_payload@q#0(*) callout_dollar_payload@q#0(*) callout_brace_payload@q#0(*) modifier_spec@q#0(?) conditional@q#0(?) conditional_branch@q#0(*) condition_callout@q#0(?) recursion_condition@q#0(?) directive_accept_named@q#0(?) directive_verb_named@q#0(?) directive_relaxed_named@q#0(?) directive_limit_value_body@q#1(?) directive_payload_simple@q#0(*) directive_name_relaxed@q#0(*) extended_class_content@q#0(*) code_block_lang@q#0(?) code_content@q#0(*) code_string_double@q#0(*) code_string_single@q#0(*)
+  quant blocker histogram (blocked min-0 site occurrences):
+       16  element not first-byte-decided
+QUANT-EXPOSURE: grammar=regex attributable_rules=19 entries=49 committed=32 discarded=17 | shared_rules=18 shared_entries=130 shared_discarded=28
+  attribution: a rule counts only when EVERY grammar-wide occurrence sits under a guardable min-0 site's element; discarded is an UPPER bound on the guard's kill (byte-1-admitted refutations survive); terminal-only guardable sites are invisible to per-rule counters
+  top attributable rules (rule: entries/committed/discarded):
+    piece_tail: 31/15/16
+    no_branch: 1/0/1
+    brace_ws: 0/0/0
+    callout_arg: 0/0/0
+    class_item: 0/0/0
+    class_zero_width: 0/0/0
+    code_element: 0/0/0
+    code_string_double_char: 0/0/0
+    code_string_single_char: 0/0/0
+    concatenation: 9/9/0
+    directive_payload_colon: 0/0/0
+    directive_payload_suffix: 0/0/0
+    entry_concatenation: 8/8/0
+    extended_class_element: 0/0/0
+    posix_negation: 0/0/0
+    quant_suffix: 0/0/0
+  shared-exposure rules: alternative, builtin_any_char, callout_number_core, class_negated_open, digit, digits, directive_limit_value_core, hex_digit, letter, modifier_seq, modifier_spec, octal_digit, piece, quant_bound_core, quoted_class_literal_char, quoted_literal_char, returned_capture_group, unicode_char
+CASCADE-CENSUS: grammar=regex rules=275 cascade_eligible=235 (roots=20 internal=215 internal_cyclic=28) residual=40 boundary_edges=32
+  gate: effect-free + policy-encodable ONLY — cycles/layout/lookahead/value shapes are emittable by a fused matcher (named facts, not blockers) — RGX-0078.5.i.7 (D2)
+  cascade blocker histogram (rule occurrences):
+        8  runtime directive @predicate
+        7  @profiles dialect gate
+        7  runtime directive @close_scope
+        7  runtime directive @open_scope
+        6  runtime directive @emit_fact
+        5  matched-text @transform
+CASCADE-PLAN: grammar=regex increment=A(acyclic-subregions) sub_roots=57 internal=149 effect_reaching_fused=60 (of 206 fused)
+  model: cyclic eligible rules stay protocol boundaries in this increment (no memo lane, no recursion); sub-roots keep the full protocol frame + the observability-twin dispatch; internal rules run as fused cascade_* functions on the bare-parse path; effect-reaching fused rules carry the C3-B snapshot/island obligations.
+CASCADE-PLAN-B: grammar=regex increment=B(cyclic-spine) sub_roots=20 internal=215 thin_memo=29 effect_reaching_fused=86 (of 235 fused)
+  model: EVERY cascade-eligible rule fused (sub-roots = the census's full-fold roots, keeping the protocol frame + twin dispatch); cycle-participating fused rules carry the epoch-stamped thin memo (⛔ the #49 bound — they never lose memo protection); effect obligations as in increment A.
+DIRECT-VALUE-PLAN: grammar=regex barrier=96 value_licensed=106 node_locked=33 (of 235 fused; demoted=0)
+  model (session #150 corrected): barrier rules (VALUE-PURE fold on every branch) build value-internally unconditionally; value-licensed rules (undemanded through content-position references) convert early (compositional to_shaped_value); node-locked rules keep node builds (escape root, content-position demand, or a NAMED vocabulary demotion).
+BOUNDARY-SCANNER-PLAN: grammar=regex rules=19 (text=13 span_transform=5 shaped_object=1; sub_roots=13 residual=6; post_predicates=1) dropped_candidates=40
+  model: per plan rule a direct-coded frameless scan_<rule> serves BARE-path call sites (protocol twin verbatim; exact furthest emulation; acyclic O(k) memo-loss) — RGX-0078.5.i.9 (D3)
+CASCADE-EXPOSURE: grammar=regex files=8 total_entries=653 | internal=592 (90.7%) committed=491 discarded=101 memo_hits=0 | roots=43 committed=37 | residual=18 committed=12 | committed_floor=49 unmatched=0
+  first-order model: internal entries (and their per-entry protocol) are eliminated by a fold; root entries become one specialized-function call each; committed_floor = the post-fold protocol-paying committed entries. Memo hits on internal rules re-execute (the emission design owns the re-probe boundedness proof).
+  top internal rules by committed (rule: entries/committed/discarded):
+    piece: 92/73/19
+    atom: 76/70/6
+    escape: 30/27/3
+    escape_unit: 30/27/3
+    simple_escape: 27/26/1
+    simple_escape_letter: 27/26/1
+    simple_escape_letter_strict: 26/26/0
+    simple_escape_tail: 27/26/1
+    literal: 20/18/2
+    literal_char: 20/18/2
+    piece_tail: 31/15/16
+    quant_base: 18/15/3
+INLINE-CENSUS: grammar=regex rules=275 inline_eligible=205 (pass_through=8 alternation_leaf=31 shaped=166)
+  gate: acyclic (guard non-load-bearing) + directive-free frame + non-entry + no @profiles/@transform — RGX-0078.5.i.4 (P1)
+  inline blocker histogram (rule occurrences):
+       38  reference cycle (recursion guard is load-bearing)
+        8  runtime directive @predicate
+        7  @profiles dialect gate
+        7  runtime directive @close_scope
+        7  runtime directive @open_scope
+        6  runtime directive @emit_fact
+        5  rule-level @transform
+        1  entry rule
+INLINE-DECISIONS: grammar=regex decided_under_budget=128 over_budget=77 (expansion_cap=12 duplication_cap=192)
+OUTCOME-SHARE: grammar=regex files=8 total_entries=653 committed=540 discarded=113 (on_encodable=30 on_structural=83) committed_on_encodable=113 unmatched=0 ceiling≈1.05x
+  model: discarded = raw − committed (failed-speculation work; committed keeps C3-B successful losers); kill surface = discarded entries on shape-encodable rules (choice/optional/iteration attempts alike); uniform per-entry cost, scan ≈ terminal match
+DEGENERACY-EXPOSURE: grammar=regex degenerate_site_entries=216 (33.1% of total) committed=179 discarded=37
+  model: entries on rules whose top-level site dispatches degenerately — each such Or-body execution sheds the tournament checkpoint/delta/rollback/replay + guard-scan protocol (memo-hit re-entries counted at full weight)
+PREFIX2-EXPOSURE: grammar=regex prefix2_site_entries=58 (8.9% of total) committed=38 discarded=20
+  model: entries on rules whose top-level site is prefix2-dispatchable (and not already P2-degenerate) — a two-level byte dispatch admits at most one non-wildcard candidate, so byte-1-admitted/byte-2-refuted branch attempts are never entered
+  top choice sites by sole-attributable discarded entries (lower bounds):
+         4  atom@or#0 (24 branches, 7 encodable)
+         2  literal@or#0 (2 branches, 2 encodable, ALL)
+INLINE-EXPOSURE: grammar=regex eligible_entries=389 (59.6% of total) committed=319 discarded=70 memo_hits_on_eligible=0 (total_memo_hits=1)
+  model: each eligible-rule entry is a collapsible wrapper frame — P1a elides guard/context/annotation-probe/call protocol with the memo preserved (counters byte-identical); P1b additionally elides the memo probes/inserts, so each memo_hits_on_eligible replay becomes a body re-execution (counters change truthfully). Hits need dumps from a `.5.i.4`+ parser generation — total_memo_hits=0 on older dumps.
+INLINE-EXPOSURE-DECIDED: grammar=regex decided_entries=216 (33.1% of total) committed=177 discarded=39 memo_hits_on_decided=0
+  model: the same sums restricted to rules the shared budget DECIDES for inlining (compute_inline_decisions — the emission plan): decided_entries = frames P1a collapses at call sites; memo_hits_on_decided = the P1b lost-hit surface at the budget (each becomes a body re-execution).
+  top inline-eligible rules by raw entries (entries/committed/memo_hits):
+        31     15      0  piece_tail
+        30     27      0  escape
+        30     27      0  escape_unit
+        27     26      0  simple_escape
+        27     26      0  simple_escape_letter
+        27     26      0  simple_escape_tail
+        26     26      0  simple_escape_letter_strict
+        20     18      0  letter
+        20     18      0  literal
+        20     18      0  literal_char
+        18     15      0  quant_base
+        18     15      0  quantifier
+        16      0      0  zero_width
+        14     14      0  whitespace
+        14     14      0  whitespace_literal

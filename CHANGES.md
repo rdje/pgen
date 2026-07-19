@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0169 — `.5.j.4` **entry-count fusion STEP-1: the lever is ALREADY SPENT, and what remains of it IS G1-C** (read-only census)
+
+Executes the `-0168` NEXT pointer — census which wrapper chains are genuinely fusible before entry-count fusion earns a heavy chain. **It does not earn one.** The lever `-0167` flagged as "never attempted" has in fact already been attempted and landed, twice.
+
+**Instrument: the authoritative one.** `ast_pipeline --report-fusibility-census` joined to the banked `-0162` outcome counts. Its `INLINE-CENSUS`/`INLINE-DECISIONS` lines come from `compute_inline_decisions` — *the same function codegen consumes* — so report and emitted parser cannot drift. Read-only, so the `-0163` instrument rule holds by construction. A first attempt used a hand-rolled EBNF classifier and was **discarded**: it had two real defects (unstripped `#` comments; a `(*...*)` regex that ate whole grammar spans, since a *regex* grammar is full of literal `(` and `*`) and it was redundant with an existing authoritative tool — an out-of-band validator, a defect by doctrine. Its intermediate "23.57% fusible" number is **not banked**; the detector over-counts, because co-entered levels carrying value-constructing annotations are not pass-throughs.
+
+⛔ **Finding 1 — the pure-wrapper population is 8 rules of 275, and all 8 are already `INLINED`.** `INLINE-CENSUS: rules=275 inline_eligible=205 (pass_through=8 alternation_leaf=31 shaped=166)`. There is no untapped pure-wrapper population.
+
+⛔ **Finding 2 — the rule frame the lever would delete is already gone.** `CASCADE-EXPOSURE: internal=592 (90.7%) ... committed_floor=49` — 90.7% of entries are internal to fused cascade regions where the per-entry protocol is already eliminated (D2-B landed); only 7.5% still pay protocol. `-0162` modelled a frame cost the architecture had already removed.
+
+⭐ **This is the same fact `-0168` found statistically, seen structurally** — the joint fit halved the per-entry coefficient (21.28 -> 10.28 ns) precisely because half the banked "cost of an entry" no longer exists per entry. Two independent instruments, one conclusion.
+
+⇒ **Finding 3 — entry-count fusion REDUCES TO G1-C.** What a wrapper entry still costs is its cascade body (speculation save + `arena.alloc` + `deriv_boundary.push`), which is G1-C's mass by definition. The `-0168` overlap warning **upgrades to an identity**: one lever, two directions — future slices cannot count them separately.
+
+**Finding 4 — the residual inline surface is a code-size trade.** 26.5% of entries sit on inline-eligible but over-budget rules (77 rules); raising the caps trades against the >5% artifact-growth bar on a 43.7 MB artifact and buys G1-C's mass anyway. Refused.
+
+▶️ **Adjudication:** entry-count fusion **SPENT**; inline-budget raise **refused**; **G1-C is the sole surviving per-entry lever** (-50...-118 ns = 1.8-4.1x noise), worth one chain with its HIGH risk intact; G1-B stays unrunnable.
+
+⛔ **Campaign-level consequence, director judgment invited:** entry-fusion spent / G1-A measured 0 / G1-B below noise / G1-C -4...-9% / G3 ~-6...-8% unpriced => best case **-12...-17% against the -20.9% needed** for geomean < 1 us. **No combination of identified levers closes the bar.** Crossing it needs a new mechanism class or a re-scoped closure criterion.
+
+Read-only: zero code/grammar/artifact/gate change, no build, no regen. Floor and custody byte-untouched; no floor number banked; LIVE tracker unchanged. Evidence `docs/tasks/artifacts/entry_fusion_step1/`.
+
 ## 2026-07-20 - PGEN-RGX-0078-0168 — `.5.j.4` **the campaign's banked `21.3 ns/entry` coefficient is CONFOUNDED and ~2x too large; "the bar is reachable via ENTRY COUNT ALONE" is REFUTED — but entry-count fusion survives re-pricing as the largest lever left** (measurement+docs only)
 
 Executes the `-0167` NEXT pointer verbatim: a cheap, nanosecond-denominated pricing step that prices **G1-C** and **entry-count fusion** side by side against the measured noise floor, *before* either earns a multi-hour regen+A/B chain. No new measurement, no build, no regen — every number derives from already-banked artifacts, and the whole thing reproduces in one stdlib-only command that re-derives the `-0162` banked fit exactly as a self-check.
