@@ -1,0 +1,19 @@
+== K3d A/B (base = K3c probe 01dce2ed, cand = K3d probe 5f954220; alternated 5x2000 + corpus samples=1000 + ladder) ==
+Session #157, 2026-07-19 (PGEN-RGX-0078-0147). Lib-only (semantic_runtime.rs root-elided checkpoint snapshot, the -0146 design); artifacts byte-UNTOUCHED (regex ee3a3cb6 / ebnf 5eac7237, custody hash-checked in-battery).
+
+BENCH geomean-of-best-mins: base 2,432.9 -> cand 2,337.3 ns = -3.93% (ALL 8 patterns faster: literal_simple -6.7% / character_class -5.3% / email_basic -4.5% / capture_groups -4.3% / url_simple -3.2% / alternation -2.7% / anchor_complex -2.4% / digit_sequence -2.2%) — IN the predicted -2..-5% band.
+  base custody: 2,432.9 vs the K3c recorded floor 2,432.7 = +0.01% (same binary — exact).
+CORPUS (2,189 cells, verdict flips = 0): geomean 1,809.2 -> 1,743.2 ns = -3.65%
+  MAX 846,542 -> 806,042 ns = -4.78% (holder line_725; IN the predicted -3..-6% band; falsification <-1.5% cleared 3x)
+  BYTE-BAND sweep ALL negative: 0-20B -3.92% / 20-60B -2.50% / 60-121B -3.20% / 121-200B -5.22% / 200-400B -1.94% / 400-4000B -1.93%.
+LADDER (39 rows, verdict flips = 0): geomean -0.28% (nest cells [ROOT]-spine-dominated, checkpoint saving offset by bounce); flat_160 -5.1% (the K3c pair's +12.1% outlier REVERSED — confirming the layout-bounce adjudication).
+
+OUTLIER ADJUDICATION (be-alert doctrine, tools-first): line_2880 +7.0% / line_6538 +5.4% / lookstar_8 +5.7% (lookaround-bearing cells) — REAL within this binary pair (4x alternated single-cell repeats, tight: 2880 base 100,833-102,000 vs cand 107,500-108,792) but adjudicated the ALIGNMENT-BOUNCE class, not a K3d mechanism, on three tool facts:
+  (1) paired 9s /usr/bin/sample profiles on 2880 (banked k3d_sample_2880_{base,cand}.txt) are SHAPE-IDENTICAL — no new population, no vanished population, the +6% spread DIFFUSELY across spine frames (rollback 347->401, piece 282->307, atom 372->384) while the K3d-targeted clone leaf DROPPED 560->501 (the remainder = the recorded out-of-scope delta-carrier clones); a real mechanism concentrates, an alignment shift diffuses;
+  (2) the depth>=2 code path differs by exactly one predicted branch (checkpoint len==1 test + is_empty in the compares) — no causal path to 6% of a 105us cell;
+  (3) the historical bounce of exactly these cells across binary pairs with irrelevant diffs: 6538 -8.0% (K3b) / -5.0% (K3c) / +5.4% (K3d); 2880 -6.3% / -1.0% / +7.0%; flat_160 +2.1% / +12.1% / -5.1%. Corpus-wide only these 2 cells >10us regress >5%.
+
+Mechanism verification: the corpus-MAX cell (line_725, zero scopes => every checkpoint sentinel-elided) -4.78% = the direct kill; 121-200B band -5.22%.
+NEW FLOOR: bench geomean ~=2,337.3 ns (496us origin -> ~=212.2x); corpus MAX 806,042 ns; corpus geomean 1,743.2 ns.
+Battery: lib 987/987 — the FIRST run failed 1 = the DESIGNED counter-semantics change caught by its own pin (rollback_classification_counters_track_protocol_exposure expected the degenerate always-increment rollbacks_nonempty_chain; pin updated to the K3d meaning "non-root chain at checkpoint" + a NEW positive-direction case: open_scope -> checkpoint -> rollback asserts the counter fires and the depth-2 chain restores exactly); ALSO the chain's `cargo test | tail` masked that failure as exit 0 = the -0137 pipe-exit trap re-firing in my own chain (fixed in-chain: RC captured explicitly before the pipe); cert x3 268/9/259/0 byte-exact (spf 1/0/2); typed-diff PASS (silent-restore trap 11TH firing, canonical ee3a3cb6 restored in-chain); PCRE2/shape/duality/clippy PASS (production code identical between gate run and land — the interim fix was test-pin-only).
+Probes: cand preserved preserved_probes/regex_perf_probe_k3d_5f954220 per OPS-MEMSAFE.3.

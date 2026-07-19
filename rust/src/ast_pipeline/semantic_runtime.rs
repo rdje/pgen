@@ -2891,8 +2891,31 @@ impl SemanticRuntimeState {
             // it (mirrors `fact_len`).
             deferred_len: self.deferred_obligations.len(),
             scope_arena_len: self.scope_arena.len(),
-            active_chain_snapshot: self.active_chain.clone(),
+            // `RGX-0078.5.j.4` (K3d): the EMPTY snapshot is a sentinel meaning
+            // "exactly `[ROOT]`" — representable-state-free because a real
+            // chain is never empty (`close_scope` refuses at depth 1, so
+            // `len()==1 ⟺ chain==[ROOT]`). Depth 1 is ~100% of checkpoints on
+            // scope-light grammars (regex outside lookarounds), where the
+            // per-checkpoint chain copy measured 8.8% of the corpus-MAX cell;
+            // `chain_matches_snapshot` / the labeled-rollback restore decode
+            // the sentinel. Deep chains (≥2) clone exactly as before.
+            active_chain_snapshot: if self.active_chain.len() == 1 {
+                SmallVec::new()
+            } else {
+                self.active_chain.clone()
+            },
             write_epoch: self.write_epoch,
+        }
+    }
+
+    /// `RGX-0078.5.j.4` (K3d): does the live chain equal the checkpoint's
+    /// snapshot? Decodes the empty-snapshot sentinel ("exactly `[ROOT]`").
+    #[inline]
+    fn chain_matches_snapshot(&self, snapshot: &ActiveChain) -> bool {
+        if snapshot.is_empty() {
+            self.active_chain.len() == 1
+        } else {
+            self.active_chain == *snapshot
         }
     }
 
@@ -2937,7 +2960,7 @@ impl SemanticRuntimeState {
         {
             debug_assert_eq!(self.facts.len(), checkpoint.fact_len);
             debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
-            debug_assert_eq!(self.active_chain, checkpoint.active_chain_snapshot);
+            debug_assert!(self.chain_matches_snapshot(&checkpoint.active_chain_snapshot));
             return SemanticRuntimeDelta {
                 new_facts: Vec::new(),
                 new_scope_nodes: Vec::new(),
@@ -3099,7 +3122,7 @@ impl SemanticRuntimeState {
         {
             debug_assert_eq!(self.facts.len(), checkpoint.fact_len);
             debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
-            debug_assert_eq!(self.active_chain, checkpoint.active_chain_snapshot);
+            debug_assert!(self.chain_matches_snapshot(&checkpoint.active_chain_snapshot));
             debug_assert_eq!(self.scopes.len(), checkpoint.scope_len);
             self.counters.rollbacks += 1;
             self.counters.rollbacks_unchanged += 1;
@@ -3133,7 +3156,7 @@ impl SemanticRuntimeState {
         // re-collapse the memo on store-heavy grammars).
         let store_changed = facts_being_rolled_back > 0
             || self.scope_arena.len() > scope_arena_len
-            || self.active_chain != checkpoint.active_chain_snapshot;
+            || !self.chain_matches_snapshot(&checkpoint.active_chain_snapshot);
         if store_changed {
             self.write_epoch += 1;
         }
@@ -3228,7 +3251,7 @@ impl SemanticRuntimeState {
         // self-time (`rollback_to_named`). Parser-AGNOSTIC (every generated parser + the
         // interpreter share this method) and correctness-neutral (a no-op skip).
         let scope_state_changed = self.scope_arena.len() > scope_arena_len
-            || self.active_chain != checkpoint.active_chain_snapshot;
+            || !self.chain_matches_snapshot(&checkpoint.active_chain_snapshot);
         if scope_state_changed {
             // `.3.3.4.b.5.1.3`: truncate the arena to checkpoint length —
             // nodes opened during the rolled-back tx are discarded.
@@ -3237,7 +3260,14 @@ impl SemanticRuntimeState {
             // Every entry in the snapshot must reference a node that survives
             // truncation (invariant: nodes in the active chain at checkpoint
             // time had id < arena.len() at that time = scope_arena_len).
-            self.active_chain = checkpoint.active_chain_snapshot.clone();
+            // `RGX-0078.5.j.4` (K3d): the empty sentinel means the checkpoint
+            // chain was exactly `[ROOT]` — restore by truncating to the
+            // unpoppable root (same end state as assigning `[ROOT]`).
+            if checkpoint.active_chain_snapshot.is_empty() {
+                self.active_chain.truncate(1);
+            } else {
+                self.active_chain = checkpoint.active_chain_snapshot.clone();
+            }
             // Re-open every node in the restored active chain — the rolled-back
             // tx may have called `close_scope` on any subset of them. Reset
             // their `closed` flag to mirror the checkpoint state.
@@ -8748,16 +8778,19 @@ mod tests {
         let mut state = SemanticRuntimeState::new();
 
         // 1. A zero-change speculation rollback (the try_parse Err shape) is
-        //    UNCHANGED, non-tournament, and — because `new()` seeds the active
-        //    chain with the root scope — its checkpoint carried a non-empty
-        //    chain snapshot.
+        //    UNCHANGED and non-tournament. `RGX-0078.5.j.4` (K3d): a depth-1
+        //    checkpoint stores the root-elided sentinel snapshot, so the
+        //    `rollbacks_nonempty_chain` counter now means "the checkpoint had
+        //    a NON-ROOT chain" — a root-only rollback no longer increments it
+        //    (pre-K3d the never-empty chain made this counter degenerate:
+        //    it incremented on every rollback).
         let cp = state.checkpoint();
         state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
         assert_eq!(state.counters().rollbacks, 1);
         assert_eq!(state.counters().rollbacks_unchanged, 1);
         assert_eq!(state.counters().rollbacks_tournament, 0);
         assert_eq!(state.counters().rollbacks_tournament_unchanged, 0);
-        assert_eq!(state.counters().rollbacks_nonempty_chain, 1);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 0);
 
         // 2. A zero-change TOURNAMENT cleanup counts in both tournament
         //    buckets (this is the empty-delta-extraction population).
@@ -8803,9 +8836,26 @@ mod tests {
         state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
         assert_eq!(state.counters().rollbacks, 4);
         assert_eq!(state.counters().rollbacks_unchanged, 2);
-        assert_eq!(state.counters().rollbacks_nonempty_chain, 4);
+        // K3d: all four checkpoints above were depth-1 (root-only) — the
+        // non-root-chain counter never moved.
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 0);
         // The obligation itself was discarded by the rollback.
         assert_eq!(state.deferred_obligation_count(), 0);
+
+        // 5. K3d positive direction: a checkpoint taken with a real (non-root)
+        //    scope open DOES count — the sentinel elision applies only to the
+        //    depth-1 case, and the rollback restores the deeper chain exactly.
+        state.open_scope(SemanticScopeSpec {
+            kind: super::SemanticScopeKind::Custom("class".to_string()),
+            name: Some(ident("C")),
+        });
+        let chain_with_scope: Vec<super::ScopeId> = state.active_chain().to_vec();
+        assert_eq!(chain_with_scope.len(), 2);
+        let cp = state.checkpoint();
+        state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.counters().rollbacks, 5);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 1);
+        assert_eq!(state.active_chain(), chain_with_scope.as_slice());
     }
 
     #[test]
