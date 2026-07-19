@@ -1,0 +1,45 @@
+==============================================================================
+  0. REGRESSION DIAGNOSTICS (n=60 stratified census cells)
+==============================================================================
+  min_ns ~ entries only :   306.0 + 21.28*entries   R2=0.7477  <- the -0162 BANKED fit, reproduced
+  min_ns ~ bytes   only :   474.6 + 99.72*bytes     R2=0.7615  <- BYTES FIT BETTER than entries
+  corr(bytes, entries)  : 0.8998   VIF = 5.3   => severe collinearity
+  aggregate entries/byte: 5.207   and 21.28 ~= 111 ns/B / 5.2 entries/B  (the two fits are the SAME fit)
+
+==============================================================================
+  A. ENTRY-COUNT FUSION  — re-priced after removing the bytes/entries confound
+==============================================================================
+  banked -0162 solo fit      : min_ns = 306.0 + 21.28*entries      (reproduced exactly)
+  corr(bytes, entries)       : 0.900   -> entries is a PROXY for input size, not independent
+  joint linear coefficient   : 10.28 ns/entry  (+/- 3.39)   <- HALF the banked 21.28
+  joint log coefficient      : 0.00796 /entry    (+/- 0.00233)
+
+   - 10% entries : banked claim -  8.5%  ->  RE-PRICED - 4.1% (linear) / - 6.1% (log)  =    52- 77 ns  [1.8-2.7x noise]
+   - 25% entries : banked claim - 21.2%  ->  RE-PRICED -10.2% (linear) / -14.6% (log)  =   129-184 ns  [4.5-6.4x noise]
+   - 40% entries : banked claim - 33.8%  ->  RE-PRICED -16.3% (linear) / -22.3% (log)  =   206-281 ns  [7.2-9.8x noise]
+   - 50% entries : banked claim - 42.3%  ->  RE-PRICED -20.4% (linear) / -27.0% (log)  =   258-341 ns  [9.0-11.8x noise]
+
+   entry cut required to reach geomean <1us (-20.9%): 51% (linear) / 37% (log) of ALL entries
+   wrapper chains are 30-50% of entries (-0162 table) => PERFECT fusion tops out near the bar, not past it
+
+==============================================================================
+  B. G1-C  — per-atom 72-B ParseNode materialization + arena copy + tape push
+==============================================================================
+  directly-attributable self-time (typed_arena::alloc_extend + _platform_memmove),
+  log-share-weighted across the three geomean bands = 13.3% of parse time = 168 ns/parse
+  (the broader 27-31% alloc cluster also contains per-parse setup/teardown G1-C does NOT touch)
+
+   capture  30% (conservative): - 50.5 ns = - 4.0%  [1.8x noise]
+   capture  50% (mid         ): - 84.2 ns = - 6.7%  [2.9x noise]
+   capture  70% (optimistic  ): -117.9 ns = - 9.3%  [4.1x noise]
+
+==============================================================================
+  C. VERDICT vs the measured noise floor  (2.28% p-p same-binary = 28.8 ns)
+==============================================================================
+   entry-count fusion @ -25% entries : -129 to -184 ns   4.5-6.4x noise   RUNNABLE
+   G1-C                              :  -50 to -118 ns   1.7-4.1x noise   runnable, smaller
+   G1-B (box ParseError)             : one drop_in_place call vs 1263 ns  << 1x noise   UNRUNNABLE
+   G1-A (landed, measured)           : +0.11%  -- panic scaffolding, never executed   CONFIRMED 0
+
+   OVERLAP WARNING: the two live levers attack the SAME mass from opposite ends
+   (fusing an entry also deletes its arena alloc) -- their savings MUST NOT be summed.

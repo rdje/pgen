@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0168 — `.5.j.4` **the campaign's banked `21.3 ns/entry` coefficient is CONFOUNDED and ~2x too large; "the bar is reachable via ENTRY COUNT ALONE" is REFUTED — but entry-count fusion survives re-pricing as the largest lever left** (measurement+docs only)
+
+Executes the `-0167` NEXT pointer verbatim: a cheap, nanosecond-denominated pricing step that prices **G1-C** and **entry-count fusion** side by side against the measured noise floor, *before* either earns a multi-hour regen+A/B chain. No new measurement, no build, no regen — every number derives from already-banked artifacts, and the whole thing reproduces in one stdlib-only command that re-derives the `-0162` banked fit exactly as a self-check.
+
+⛔ **The root-cause finding.** `-0162` banked `min_ns ~ 306 + 21.3 x entries` (R2=0.7477) and built the campaign's headline on it — entries carry ~85% of marginal cell time, so -25% entries ~ -21% geomean. What was never checked is whether `entries` is an *independent* regressor. It is not: `corr(bytes, entries) = 0.900` (VIF 5.3), `min_ns ~ bytes` alone actually fits **better** (R2=0.7615), and the banked coefficient is just the byte model re-expressed (111 ns/B / 5.2 entries/B = 21.3). In the joint fit `min_ns = 313.9 + 56.79*bytes + 10.28*entries` (R2=0.7946) the entries coefficient **collapses 21.28 -> 10.28 ns, a 52% drop** (+/- 3.39, t=3.03). Entries remain real work — but roughly half of what was attributed to "per entry" is per-byte work that **survives any wrapper fusion**: the byte is still scanned, matched and value-built whether or not a wrapper wraps it. Entries' marginal share is **~41%, not ~85%**.
+
+⭐ **This is the `-0166` lesson in a new costume, caught BEFORE the chain instead of after it** — a paper count (there removed instructions, here removed entries) that was never converted into executed-work nanoseconds.
+
+📊 **Re-priced against the `-0166` noise floor** (same binary re-run 8x spans 2.28% p-p = ~28.8 ns on a 1,263.4 ns geomean). **Entry-count fusion** at a realistic -25% entry cut: **-129...-184 ns = 4.5-6.4x noise** => RUNNABLE, and it is the one lever the program has never attempted. **G1-C** (per-atom 72-B `ParseNode` + arena copy + tape push): addressable mass is `alloc_extend` + `memmove` log-share-weighted = **13.3% = 168 ns/parse** (deliberately *not* the broad 27-31% alloc cluster, which also holds setup/teardown/memo-alloc a per-atom change cannot touch), so a 30-70% capture = **-50...-118 ns = 1.8-4.1x noise** => runnable but smaller and higher-risk. **G1-B** (box `ParseError`'s cold payload): one `drop_in_place` call against a 1,265 ns geomean => **much less than 1x noise => UNRUNNABLE BY CONSTRUCTION**, confirming the `-0167` recommendation with a number rather than a hunch.
+
+⚠️ **The two live levers overlap and must never be summed** — fusing an entry deletes that entry's arena alloc and tape push, capturing part of G1-C's 168 ns as a side effect. Any future slice reporting "fusion + G1-C = X%" by addition is wrong by construction.
+
+▶️ **Next chain re-aimed at entry-count fusion** with the **re-priced** band **-10...-15%** corpus geomean at a -25% entry cut (explicitly not the refuted -21%), falsification better than -4%.
+
+⛔ **Campaign-level consequence surfaced for director judgment: no single identified lever closes the <1us bar.** Crossing -20.9% needs 37% (log) to 51% (linear) of ALL entries removed, while wrapper chains are only 30-50% of entries — so even a *perfect* fusion lands at the bar at best, not past it.
+
+Floor and custody byte-untouched (bench ~1,937.4 ns / corpus MAX 483,583 ns / corpus geomean 1,263.4 ns; regex `e4924024`, probe `1d3fa0ee`); no floor number banked; LIVE tracker unchanged; book + contract deliberately unchanged (campaign-internal measurement). Evidence `docs/tasks/artifacts/g_lever_pricing/`.
+
 ## 2026-07-19 - PGEN-RGX-0078-0166 — `.5.j.4` **G1-A emission LANDED as a proven simplification; ⛔ PERF CLAIM REFUSED — the lever removed ~1,150 sites from the shipped binary and bought nothing (corpus geomean +0.11%, inside a 2.28% noise band)**
 
 The `-0165` NEXT pointer executed end-to-end: banked 2-line patch applied → all-11 canonical regen → 10-step battery → two-probe fat-LTO A/B off the floor probe `1d3fa0ee`.
