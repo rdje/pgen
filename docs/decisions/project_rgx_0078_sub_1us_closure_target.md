@@ -191,3 +191,28 @@ violations 55.8% (was 64.1%). Remaining waypoints: corpus **geomean < 1 µs** (n
 the two-leg closure bar itself (≤p99 absolute <1 µs + ~8 ns/B tail — 55.8% of ≤p99 cells
 still above 1 µs = the hard half, unchanged in kind). Next action: the post-C1 re-profile
 on the `1d3fa0ee` floor re-prices C2/C3/K5+K1b per populations.
+
+---
+
+## 2026-07-19 session #162 close (`PGEN-RGX-0078-0161`) — ⭐ DIRECTOR DIRECTIVE: the campaign CALL-OFF condition is now **corpus GEOMEAN < 1 µs**
+
+Director verbatim (post-`-0160` milestone review): "I am sure we can go even much much
+lower then 500us for the corpus MAX but for this parse time reduction campaign I won't ask
+more. Let's reduce geomean as much as we can < 1us, ideally =500ns, but I won't obsess on
+500ns for this campaign. < 1us will be the call to call off this campaign, then update the
+regex's book/handoff/contract for RGX to properly integrate it on its side."
+
+Binding consequences (supersedes the `-0159` end-condition where they differ):
+1. **Corpus MAX: SETTLED at the 483,583 ns floor** — the director asks no more on MAX this
+   campaign (further MAX wins may still ride geomean levers, but MAX is no longer a target).
+2. **The campaign's primary target and CALL-OFF trigger = corpus GEOMEAN < 1 µs** (now
+   1,263.4 ns ⇒ needs ≈ −21%). Reduce as much as possible on the way; 500 ns is the ideal,
+   NOT an obligation — no obsession, no heroics past the <1 µs call.
+3. **On crossing <1 µs: the campaign is CALLED OFF** and the closing wave is the RGX
+   integration documentation: the regex parser book + the downstream handoff + 
+   `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` updated so RGX can properly
+   integrate the parser (final floor numbers, the standing perf-regression gate, the
+   recommended embedding configuration).
+4. Accuracy floor immovable throughout, as always (verdict-identity gates on every slice);
+   the `-0159` measured-exhaustion discipline still governs HOW levers are adjudicated —
+   only the STOPPING TRIGGER changed.
