@@ -1,4 +1,66 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0173 — `.5.j.4` **BATCH-1 DESIGN RECORD: the batch is designed, four banked facts are corrected, a sixth member is discovered, and the band straddles the land bar** (docs + read-only evidence)
+
+Executes the `-0172` NEXT pointer verbatim: one design record naming each batch member's emission site, mechanism, combined acceptance band, falsification bound and pre-adjudicated unit revert **before** the single regen+A/B chain is spent. Instrument: text matching over the lib/emitter sources and the shipped artifact with **custody asserted in-run** (`generated/regex_parser.rs` sha256 prefix `e4924024`; the census **refuses to report** on mismatch), plus one standalone `rustc` layout probe over field types copied verbatim from `mod.rs:654-681`. No build, no regen, no parser run, no gate perturbed.
+
+### Four banked facts corrected
+
+**(1) `ParseError` measures 80 bytes, and the `-0164` fix is half wrong.** The banked mechanism was "box the cold payload => small **and trivially droppable**". Measured:
+
+| shape | `size_of` | `ParseResult<()>` | `needs_drop` |
+|---|---|---|---|
+| current, inline `ContextualError` | **80** | **80** | **true** |
+| boxed cold payload (the `-0164` proposal) | 32 | 32 | **true** |
+| index cold payload (side table) | 32 | 32 | **false** |
+| index + interned strs | **12** | **12** | **false** |
+
+Boxing narrows the carrier but **keeps drop glue**, because `Box` is itself an owner — so the `drop_in_place::<Result<(),ParseError>>` call the lever exists to remove **survives the banked fix**. Only the index shape is drop-free. **G1-B's design changes from "box it" to "index it".**
+
+**(2) The memo member is not a hash lever.** Both memos are **already** `rustc_hash::FxHashMap` (6 declarations), so `-0170`'s "memo-insert (hashbrown)" tag names a swap that is already done. What the 56 hot `thin_memo.insert` sites actually pay is **two `SmallVec::from_slice` segment copies each** (56 copies against 56 inserts — exactly one pair per site). The mechanism is **segment-copy elision**, consistent with `-0172`'s memory-traffic-dominant spine finding.
+
+**(3) The residual SipHash is in `FactIndex`, not the memo.** Three std `HashMap` declarations with `FxHashMap` imported-and-unused in the same file. The hasher swap **moves from the memo member to C2**, and it is **lib-only**.
+
+**(4) A banked claim is falsified — `rule_context_path()` is not trace-guarded.** The record banks "every `rule_context_path` consumer sits inside `pgen_trace_high!` — outcome-neutral". It is not: the macro expands to the **plain function call** `trace_log(level, file!(), line!(), module_path!(), format_args!(..))`, whose level guard is an **early return in the body** — which runs **after** Rust has evaluated every argument. So the argument is evaluated **unconditionally at every trace level including `none`**, and `rule_context_path()` **always allocates** (`join(" > ")`, else `"<anonymous>".to_string()`). Census: **10 sites, exactly 1 genuinely guarded; 9 are eager**, on the `emit_fact` path and six predicate-query paths. This is a **pure-diagnostic allocation paid on the production parse path** — the landed P-env / P0 class — and it is **lib-only**, added as **batch member 6**.
+
+### The six members
+
+| # | member | emission site | mechanism | class | risk |
+|---|---|---|---|---|---|
+| 1 | **G1-B** carrier | lib `mod.rs:655` + 10 emitted construction sites | cold payload -> side table + `u32` index (80->32 B, drop-free) | lib+emitter, **regen** | LOW-MED |
+| 2 | **C2** fact-ops | lib `semantic_runtime.rs` (3 decls, 26 alloc sites) | `FactIndex` std->`FxHashMap`; kill per-insert **and per-query** `to_ascii_lowercase()`; kill `FactNameKey` clone | **lib-only** | LOW |
+| 3 | **G1-C** per-atom | emitter `cascade.rs:1252`, `scan.rs:828` | elide per-atom `ParseNode` + 72-B arena bump-copy + tape push (**2,853** `arena.alloc`, **268** `deriv_boundary.push`) | **regen** | **HIGH** |
+| 4 | **memo-insert** | emitter `cascade.rs:690-706` (56 sites) | segment-copy elision | **regen** | MED |
+| 5 | **semantic-runtime** | **215** emitted `push_rule_context_static` vs **284** rule methods | the rule-context push/pop is emitted **unconditionally on every rule entry**, incl. zero-annotation rules | **regen** | MED |
+| 6 | **trace-eagerness** | lib, 9 eager sites | sink each call behind `trace_enabled(..)` | **lib-only** | LOW |
+
+### The band, and its honest problem
+
+Only members 3+4+5 carry attributed mass (`-0171`: 30.7 + 26.7 + 24.1 = **81.5 ns = 6.45% = 2.8x noise**). Members 1, 2 and 6 are **unpriced upside contributing zero to the band** — per the `-0172` rule (naming is not pricing), none is derived. At the campaign's standard capture fractions:
+
+| capture | ns | % of geomean | x noise floor | clears the -2.0% land bar? |
+|---|---|---|---|---|
+| 30% (LOW) | 24.5 | **-1.94%** | 0.85x | **no** |
+| 50% (MID) | 40.8 | **-3.23%** | 1.42x | yes |
+| 70% (HIGH) | 57.1 | **-4.52%** | 1.98x | yes |
+
+**Acceptance band = -1.9...-4.5%, MID -3.2%** — and the **low end misses both the 28.8 ns noise floor and the -2.0% land bar**. `-0170`'s amended rule requires a combined estimate that clears the floor **with margin**; as priced this one does not, so **the chain is not yet justified on the batch's own numbers**. Stated rather than rounded up.
+
+**Falsification bound:** worse than **-2.3%** (the `-0166` 8-run 2.28% peak-to-peak floor) means the mass model is wrong, not the capture fraction. Between -2.3% and -2.0% is inside noise and therefore not a measurement — also reverted.
+
+**Pre-adjudicated unit revert (decided now):** land or revert **as one unit**, with **no per-lever perf number ever banked from a batch A/B**; triggers = delta worse than -2.0%, any verdict flip on 2,189 corpus + 39 ladder cells, any battery item red, corpus MAX above the settled 483,583 ns, or artifact growth >5%; mechanics = `git checkout` + all-11 regen + byte-identity assertion against the banked vintages, with the `-0166` trap armed (`make focus_regex` **silently no-ops**; only the direct canonical `-o` spelling restores the vintage).
+
+### Recommendation — split the chain, price the cheap half first
+
+**A deviation from the "one regen+A/B" pointer, flagged rather than drifted into.** Members 2 and 6 are **lib-only** — no regen, no artifact-growth bar, no all-11 byte-compare. So: a **read-only pricing pre-flight first** (`--dump-rule-outcome-counts-json` reports per-parse `store_counters` including predicate evaluations and facts emitted — no build at all), then **BATCH-1a (lib-only: C2 + trace-eagerness)**, which buys the first measured number for the semantic-runtime population without spending a regen, then re-price and decide **BATCH-1b (emitter: G1-B-as-index + G1-C + memo copies + rule-context gating)**.
+
+Why the `-0163` instrument rule does not bite that pre-flight: it forbids pricing a *fused-path frame* with counters (enabling them routes the parse to the protocol graph), but **semantic-store event counts are graph-invariant** — the twin is pinned byte-identical on verdict and typed AST, which entails the same facts emitted and predicates evaluated on both graphs. Stated as an argument, not a measurement; the pre-flight should cross-check one cell on both paths.
+
+### Near-miss banked as a standing trap
+
+The first draft of this census used line-oriented `grep -c` over the rustfmt'ed artifact and read **0** thin-memo inserts (actual **56**) and **1,607** `arena.alloc` (actual **2,853**), because generated code routinely splits one call across lines. Every pattern is now matched whole-file. **Standing rule: a line-oriented count over a generated artifact is wrong until proven otherwise.**
+
+Campaign position unchanged and still short: BATCH-1 + G3 compound to roughly **-10...-13% against the -20.8%** the <1 us bar needs. This slice does not close that gap; it makes the batch's numbers honest and adds one lib-only member. Floor + custody byte-untouched (bench ~1,937.4 ns / corpus MAX 483,583 ns / geomean 1,263.4 ns; regex `e4924024`, probe `1d3fa0ee`); no floor number banked; LIVE tracker unchanged. Evidence `docs/tasks/artifacts/batch1_design/`.
+
 ## 2026-07-20 - PGEN-RGX-0078-0172 — `.5.j.4` **SPINE-DISPATCH STEP-0: the "22-25% spine dispatch" population is NOT dispatch — the lever does not exist** (read-only)
 
 Executes the `-0171` NEXT pointer (step 1 of the corrected stack). Instrument: `otool -tV` on `preserved_probes/regex_perf_probe_c1_1d3fa0ee` with **custody asserted in-run** (sha256 prefix `1d3fa0ee`; the script refuses to report on mismatch). Read-only — no build, no regen, no measurement, no gate perturbed.

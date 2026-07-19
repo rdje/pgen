@@ -1,0 +1,10 @@
+RGX-0078.5.j.4 BATCH-1 — ParseError carrier layout
+field types copied verbatim from rust/src/ast_pipeline/mod.rs:654-681
+
+A current (inline ContextualError)   size= 80  Result<(),_>= 80  needs_drop=true
+B boxed cold payload (-0164 proposal) size= 32  Result<(),_>= 32  needs_drop=true
+C index cold payload (side table)    size= 32  Result<(),_>= 32  needs_drop=false
+D index + interned strs              size= 12  Result<(),_>= 12  needs_drop=false
+
+NOTE: only (C)/(D) achieve needs_drop=false. Boxing (B) shrinks the
+carrier 80->32 but KEEPS drop glue, because Box is itself an owner.
