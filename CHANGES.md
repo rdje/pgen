@@ -1,5 +1,13 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0186 — thin-memo lookup ceiling clears arithmetically but not with honest margin
+
+Expanded every preserved-probe thin-memo entry path across its complete inlined `FxHashMap::get` mechanism. The five exact 52-instruction ranges form **260 PCs** (35 memory / 45 control / 180 other) and contribute **84 / 113 / 186** samples = **0.476863727% = 6.024696326 ns**. Hit stamp validation/replay, miss body entry, stale removal, and accepted success segment-copy/insert ranges are excluded; overlap with prior accepted ranges and the `-0185` diagnostic union is zero.
+
+Specified a concrete representation before net pricing: one generated compact `u32` position row per cyclic fused rule plus a dense entry arena. It preserves memo taint, replay, invalidation, and insertion while eliminating Fx hash construction/mixing, hashbrown control-byte probing, probe loops, and constant-rule key comparison. A deliberately optimistic replacement proxy retains only the current three table-state loads plus occupancy branch at each site (**30 / 42 / 68 samples = 2.200089596 ns**) and prices mandatory slot loads, dense-entry addressing, and row initialization at zero. The hash-exclusive upper bound is therefore **54 / 71 / 118 = 0.302723344% = 3.824606730 ns**.
+
+The held bundle becomes **96.252238730 ns**; 30% capture is **28.875671619 ns**, just **0.075671619 ns above** the 28.8 ns noise floor. That 0.26%-of-noise sliver is not honest implementation margin, especially before omitted replacement work, so the representation change remains HOLD. Parser/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: `PGEN-RGX-0078-0187`, remaining diagnostic-only semantic-runtime telemetry expansion.
+
 ## 2026-07-20 - PGEN-RGX-0078-0185 — memo-taint correction; bare diagnostics price 8.043 ns but remain HOLD
 
 Corrected a foundational semantic overreach in `-0184`: the preserved `0x250` snapshot/compare field is `predicate_evaluations`, the mutable-store taint signal that keeps store-blind thin memoization sound, not removable observation. Its **9 / 13 / 16** samples stay required; only `rollbacks_nonempty_chain` at `0x248` is diagnostic (**0 / 0 / 1**). The exact full parser-direct re-sum is unchanged, while the corrected direct removable subset is **134 / 124 / 159 = 0.552424%**, superseding provisional 0.601206%.

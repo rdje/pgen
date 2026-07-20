@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0186 — price the replacement, not only the thing replaced
+
+**A required mechanism can still contain removable representation overhead.** Thin memoization itself cannot disappear: cyclic fused rules need cached outcomes, taint validation, replay, and stale invalidation. The addressable part is the choice to hash a compile-time-constant rule ID plus position at every monomorphic site. A generated per-rule position row can remove that hash/probe work without weakening the semantic contract.
+
+**A full-region sample count is a ceiling until replacement work is paid.** The five `FxHashMap::get` regions contribute 6.024696326 ns, enough to make the held bundle look comfortably arithmetic-positive if treated as 100% removable. Retaining only four current carrier instructions per site as a minimal direct-index proxy removes 2.200089596 ns from that claim. Even this proxy is optimistic because it omits the slot load, dense-entry address computation, and initialization.
+
+**A positive number is not automatically margin.** The replacement-aware upper bound leaves 0.075671619 ns above a 28.8 ns noise floor—0.26% of the floor. Calling that “cleared” would make the decision depend on rounding and on work knowingly priced at zero. The correct verdict is HOLD and the correct next move is to find a non-overlapping contribution, not spend a regeneration chain on a mathematical sliver.
+
+**Compact indirection matters.** A `Vec<Option<ThinDerivSegMemoEntry>>` per rule/position cell would multiply a large inline-small payload across the grid and create its own initialization/memory problem. A `u32` slot row into a dense arena is the viable representation: position lookup stays compact, entry payload exists only for populated cells, and stale slots can clear without changing replay semantics.
+
 ## 2026-07-20 - PGEN-RGX-0078-0185 — similar counter shapes do not imply similar semantics
 
 The `-0184` machine partition was exact, but its final interpretation grouped preserved offsets `0x248` and `0x250` as removable observers because one increments and the other snapshots/compares. Source and emitted dataflow overturn that grouping: `predicate_evaluations` is the monotone memo-taint signal. `memoized_call` snapshots it before a body, compares it afterward, and withholds the store-blind memo stamp if any predicate consulted mutable state. Removing it without a replacement design would make memoization unsound. The durable correction splits the old 9/13/17 aggregate into diagnostic 0/0/1 and required 9/13/16, and replaces the provisional direct share with 0.552424%.

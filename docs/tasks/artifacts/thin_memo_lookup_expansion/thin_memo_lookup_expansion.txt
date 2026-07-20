@@ -1,0 +1,27 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+raw custody: sub1us=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 1to2p5=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 2p5to20=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c
+profile weights: sub1us=0.380 1to2p5=0.353 2p5to20=0.260 excluded_tail=0.007 priced_at_zero
+static sites: count=5 pcs_per_site=52 full_union=260 classes=memory:35,control:45,other:180
+static minimal_replacement_proxy: pcs=20 classes=memory:15,control:5 ownership=three_table_state_loads+occupancy_branch
+static hash_exclusive: pcs=240 classes=memory:20,control:40,other:180 accepted_success_overlap=0 bare_diagnostic_overlap=0
+site=piece.rule_piece         target=piece        range=[0x100058dfc,0x100058ecc) rule=0x08 position=x21
+site=piece.rule_atom          target=piece        range=[0x10005c140,0x10005c210) rule=0x1b position=x22
+site=atom.rule_pattern        target=atom_closure range=[0x100070534,0x100070604) rule=0xaa position=x28
+site=atom.rule_directive      target=atom_closure range=[0x100074498,0x100074568) rule=0x89 position=x22
+site=atom.rule_named_group    target=atom_closure range=[0x10007a1a0,0x10007a270) rule=0x7c position=x24
+
+DYNAMIC COUNTS
+band=sub1us   raw=22521 full= 84 proxy=30 hash_exclusive= 54 sites=piece.rule_piece:47,piece.rule_atom:25,atom.rule_pattern:0,atom.rule_directive:0,atom.rule_named_group:12
+band=1to2p5   raw=24279 full=113 proxy=42 hash_exclusive= 71 sites=piece.rule_piece:41,piece.rule_atom:47,atom.rule_pattern:4,atom.rule_directive:2,atom.rule_named_group:19
+band=2p5to20  raw=28308 full=186 proxy=68 hash_exclusive=118 sites=piece.rule_piece:79,piece.rule_atom:73,atom.rule_pattern:12,atom.rule_directive:2,atom.rule_named_group:20
+
+PRICING
+full_lookup_ceiling_share=0.476863727% full_lookup_ceiling_ns=6.024696326
+minimal_replacement_proxy_share=0.174140383% minimal_replacement_proxy_ns=2.200089596
+hash_exclusive_share=0.302723344% hash_exclusive_ns=3.824606730
+held_bundle_ns=92.427632 replacement_aware_bundle_ns=96.252238730
+capture=0.30 captured_ns=28.875671619 noise_margin_ns=0.075671619
+replacement_proxy_optimism=slot_load+dense_entry_base/address+initialization priced_at_zero
+verdict=HOLD (positive sliver is not honest margin; mandatory direct-index work remains unpriced)
+THIN-MEMO LOOKUP EXPANSION: PASS
