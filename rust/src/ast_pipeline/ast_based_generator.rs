@@ -6713,6 +6713,66 @@ impl AstBasedGenerator {
         // uses a `/.../` regex literal. A fully-literal grammar (regex) gets an empty fragment, so the
         // generated parser neither defines nor links the regex engine. `uses_match_regex` is computed
         // during codegen (after the rule methods) before this runs.
+        // RGX-0078.5.j.4 (`-0200`) — the BARE speculation wrapper, emitted only
+        // when the cascade plan is active (its only call sites are the two
+        // cascade body emissions). Differences from the protocol `try_parse`,
+        // each licensed by an invariant of the bare path:
+        //   1. recursion-guard snapshot/restore is ID-only — bare fused frames
+        //      maintain only `rule_id_stack` (`enter_id_bare`/`exit_bare`).
+        //      `parse_stack` needs no snapshot because it is BALANCED across
+        //      `f`: a cascade body's only paired pushes happen inside
+        //      out-of-plan protocol METHOD calls, and a protocol method always
+        //      restores the name stack before returning (its `exit()` runs
+        //      unconditionally on the captured result, and its own inner
+        //      speculations restore per-stack via `truncate_stacks`);
+        //   2. the rollback label maps the innermost retained `RuleId` through
+        //      `RULE_NAMES` — the same frame (hence the same label value) that
+        //      `parse_stack.last()` names in a paired parse, and the label
+        //      only materializes under trace anyway;
+        //   3. no trace branches: `bare_parse ⇒ !logger_enabled ⇒
+        //      !trace_enabled` (the documented invariant), so the protocol
+        //      wrapper's gated log calls are statically dead here.
+        // Position, coverage, and semantic checkpoint/rollback semantics are
+        // IDENTICAL to the protocol wrapper.
+        let try_parse_bare_helper = if self.cascade_plan_active() {
+            quote! {
+                fn try_parse_bare<F, T>(&mut self, f: F) -> Option<T>
+                where
+                    F: FnOnce(&mut Self) -> ParseResult<T>,
+                {
+                    let saved_pos = self.position;
+                    let saved_id_stack_len = self.recursion_guard.rule_id_stack.len();
+                    let saved_coverage_len = self.coverage_stack.len();
+                    let saved_semantic_checkpoint =
+                        self.semantic_runtime_state.checkpoint();
+                    match f(self) {
+                        Ok(result) => Some(result),
+                        Err(_) => {
+                            self.position = saved_pos;
+                            self.coverage_stack.truncate(saved_coverage_len);
+                            let try_parse_rule: Option<&'static str> = self
+                                .recursion_guard
+                                .rule_id_stack
+                                .last()
+                                .and_then(|(rid, _)| {
+                                    Self::RULE_NAMES.get(*rid as usize).copied()
+                                });
+                            self.recursion_guard
+                                .rule_id_stack
+                                .truncate(saved_id_stack_len);
+                            self.semantic_runtime_state.rollback_to_labeled(
+                                saved_semantic_checkpoint,
+                                crate::ast_pipeline::RollbackLabel::TryParseErr(try_parse_rule),
+                            );
+                            None
+                        }
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         let match_regex_helper = if self.uses_match_regex.get() {
             quote! {
             fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {
@@ -8244,7 +8304,14 @@ impl AstBasedGenerator {
                 F: FnOnce(&mut Self) -> ParseResult<T>,
             {
                 let saved_pos = self.position;
-                let saved_stack_len = self.recursion_guard.parse_stack.len();
+                // RGX-0078.5.j.4 (`-0200`) — TWO independent stack snapshots:
+                // a speculation that spans generated BARE id-only frames can
+                // leave `rule_id_stack` deeper than `parse_stack`, so each
+                // stack must be restored to its OWN saved length. In an
+                // all-paired parse the two lengths are equal and this is
+                // byte-identical to the previous single-length snapshot.
+                let saved_name_stack_len = self.recursion_guard.parse_stack.len();
+                let saved_id_stack_len = self.recursion_guard.rule_id_stack.len();
                 // GRAMMAR-WELLFORMED.G.4.6 — snapshot the transactional
                 // parse-coverage length so a failed speculation's rule-entry
                 // pushes are discarded on backtrack (mirrors position/stack/
@@ -8349,7 +8416,8 @@ impl AstBasedGenerator {
                             .parse_stack
                             .last()
                             .map(|entry| entry.0);
-                        self.recursion_guard.truncate_stack(saved_stack_len);
+                        self.recursion_guard
+                            .truncate_stacks(saved_name_stack_len, saved_id_stack_len);
                         // .b.6.2.7: also undo semantic side-effects of the
                         // failed speculation (see the block-comment above).
                         self.semantic_runtime_state.rollback_to_labeled(
@@ -8365,6 +8433,8 @@ impl AstBasedGenerator {
                     }
                 }
             }
+
+            #try_parse_bare_helper
 
             // PARSE-TERMINATION.6 (WHY+WHERE): opt-in memo footprint report.
             // Gated by env PGEN_REPORT_MEMO_STATS; zero cost otherwise.
@@ -8657,9 +8727,14 @@ impl AstBasedGenerator {
             fn create_contextual_error(&self, message: &str) -> ParseError {
                 let position = self.position;
 
-                // Gather rule stack (rule names are &'static str — pointer copy, no allocation per entry)
-                let rule_stack: Vec<&'static str> = self.recursion_guard.parse_stack.iter()
-                    .map(|(rule, _)| *rule)
+                // Gather rule stack (rule names are &'static str — pointer copy,
+                // no allocation per entry). RGX-0078.5.j.4 (`-0200`): read the
+                // COMPLETE `rule_id_stack` mapped through RULE_NAMES rather than
+                // `parse_stack` — during a bare parse only the ID stack carries
+                // every live frame (bare fused frames are id-only), and in a
+                // paired parse the bijection makes the two reads identical.
+                let rule_stack: Vec<&'static str> = self.recursion_guard.rule_id_stack.iter()
+                    .filter_map(|(rid, _)| Self::RULE_NAMES.get(*rid as usize).copied())
                     .collect();
 
                 // Get input context around the error position

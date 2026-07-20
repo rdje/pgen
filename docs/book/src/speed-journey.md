@@ -446,6 +446,21 @@ debug-build rollback. The corpus geomean dropped **−1.4%** — with the record
 that a change this size sits inside the measurement's noise span, so the strict
 same-session direction gate (not the magnitude) is what adjudicated the land.
 
-The scoreboard now reads **496 µs → ≈1.94 µs, about 256×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.19 µs. The method decides — and
+The third fix through the gate retired a whole duplicate data structure from the hot
+path. Ever since the rule-ID stack became the recursion guard's real cycle-check
+representation, the parallel **human-readable name stack** — a 24-byte frame beside every
+16-byte ID frame — was maintained purely for readers that are cold, trace-gated, or
+reconstructible: error context, rollback labels, the depth-ceiling payload. Three
+independent audits had priced its bare-path cost (ordinary push/pop traffic, the
+speculation snapshot/truncate tail, allocator growth) at a conservative ≈8 ns and each
+returned HOLD alone; fused as one representation fix, the generated bare path now pushes
+**ID-only frames** and reconstructs a name through the parser's own `RuleId`→name table
+only when an error or diagnostic actually needs one — while protocol parses keep full
+name frames verbatim, and every speculation restores each stack to its own snapshot so
+mixed-depth stacks stay sound. The corpus geomean dropped **−3.8%** with zero verdict
+flips — every bench pattern faster, and for once the magnitude sat clearly outside the
+noise span.
+
+The scoreboard now reads **496 µs → ≈1.82 µs, about 273×** on the bench geomean, with the
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.15 µs. The method decides — and
 the story continues here.

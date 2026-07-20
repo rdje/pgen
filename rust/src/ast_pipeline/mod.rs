@@ -1320,21 +1320,34 @@ pub enum CycleType {
 #[derive(Debug, Clone)]
 pub struct RecursionGuard {
     /// The active parse stack, oldest frame first: `(rule_name, position)`.
-    /// The legacy name-scan cycle check keys on this, and the three emitted
-    /// call sites that read a frame's rule name (`try_parse` rollback label,
-    /// the debug stack-path log, `create_contextual_error`) read `entry.0`
-    /// here — so its 2-tuple shape is kept byte-compatible with every on-disk
-    /// artifact (RGX-0078.5.i.14/C1: the id lives in the parallel stack below,
-    /// not by widening this frame).
+    /// The legacy name-scan cycle check keys on this, and the emitted
+    /// protocol call sites that read a frame's rule name (the protocol
+    /// `try_parse` rollback label and the debug stack-path log) read
+    /// `entry.0` here — so its 2-tuple shape is kept byte-compatible with
+    /// every on-disk artifact (RGX-0078.5.i.14/C1: the id lives in the
+    /// parallel stack below, not by widening this frame). RGX-0078.5.j.4
+    /// (`-0200`): generated BARE fused frames no longer push here — their
+    /// name readers (`create_contextual_error`, the bare rollback label)
+    /// reconstruct names from `rule_id_stack` through the parser's own
+    /// `RULE_NAMES` bijection instead.
     pub parse_stack: Vec<(&'static str, usize)>,
-    /// RGX-0078.5.i.14 (C1) — a dense parallel `(RuleId, position)` stack kept
-    /// in lockstep with `parse_stack` (same length, same order, same push/pop/
-    /// truncate points). [`Self::check_cycle_id`] scans THIS instead of the
-    /// name stack, replacing the per-frame `&'static str` content (length +
-    /// `memcmp`) compare with a single `RuleId` integer compare, and it is
+    /// RGX-0078.5.i.14 (C1) — a dense parallel `(RuleId, position)` stack.
+    /// [`Self::check_cycle_id`] scans THIS instead of the name stack,
+    /// replacing the per-frame `&'static str` content (length + `memcmp`)
+    /// compare with a single `RuleId` integer compare, and it is
     /// self-contained (position travels with the id) so the hot scan never
     /// touches the wider name frames. A legacy name-scan parser fills the id
     /// slot with a `RuleId::MAX` placeholder it never reads.
+    ///
+    /// RGX-0078.5.j.4 (`-0200`) — this is the COMPLETE representation for a
+    /// generated BARE fused frame: [`Self::enter_id_bare`]/[`Self::exit_bare`]
+    /// maintain ONLY this stack (the parser reconstructs a name through its
+    /// own `RULE_NAMES` bijection when an error/diagnostic path needs one),
+    /// so during a bare parse this stack can be DEEPER than `parse_stack`.
+    /// The paired methods (`enter`, `enter_id`, `exit`, `truncate_stack`)
+    /// keep the two stacks in lockstep wherever bare frames are not used —
+    /// i.e., in every protocol/legacy parse the lockstep invariant holds
+    /// unchanged.
     pub rule_id_stack: Vec<(RuleId, usize)>,
     pub max_depth: usize,
     pub cycle_cache: HashMap<(String, usize), CycleType>,
@@ -1374,14 +1387,24 @@ impl RecursionGuard {
 
     /// RGX-0078.5.i.14 (C1) — id-aware cycle check. Scans the dense
     /// `rule_id_stack` (`RuleId` integer compare) instead of the name stack.
-    /// Because `rule_id_stack` is kept in lockstep with `parse_stack` (same
-    /// length/order, and its position column mirrors `parse_stack`'s) and a
-    /// parser's `RuleId`↔rule-name mapping is a bijection, `*rid == rule_id`
-    /// holds for exactly the frames `*r == rule_name` would — so the
-    /// Infinite/LeftRecursive/MutualRecursive verdict, its `rules` payload
-    /// (still read from `parse_stack`), and the oldest-first total-depth walk
-    /// (including the `max_depth` ceiling) are byte-identical to
-    /// [`Self::check_cycle`].
+    /// Because a parser's `RuleId`↔rule-name mapping is a bijection,
+    /// `*rid == rule_id` holds for exactly the frames `*r == rule_name`
+    /// would — so the Infinite/LeftRecursive/MutualRecursive verdict, its
+    /// `rules` payload (still read from `parse_stack`), and the oldest-first
+    /// total-depth walk (including the `max_depth` ceiling) are
+    /// byte-identical to [`Self::check_cycle`] whenever the stacks are in
+    /// lockstep (every protocol/legacy parse).
+    ///
+    /// RGX-0078.5.j.4 (`-0200`) — the maximum-depth arm counts
+    /// `rule_id_stack.len()`: the ID stack holds EVERY live frame (paired
+    /// pushes fill both stacks; bare pushes fill only this one), so the
+    /// recursion ceiling keeps firing at the true total depth even while
+    /// generated bare frames leave `parse_stack` shallow. Byte-identical to
+    /// the previous `parse_stack.len()` count wherever bare frames do not
+    /// exist. During a bare parse the `rules` payload may name only the
+    /// paired (protocol) frames — the generated recursion-error arms bind
+    /// `depth` alone, and generated bare paths reconstruct complete names
+    /// from `rule_id_stack` through their own `RULE_NAMES` table instead.
     pub fn check_cycle_id(&mut self, rule_id: RuleId, position: usize) -> CycleType {
         for (rid, p) in self.rule_id_stack.iter() {
             if *rid == rule_id && *p == position {
@@ -1391,10 +1414,10 @@ impl RecursionGuard {
                 return CycleType::LeftRecursive;
             }
         }
-        if self.parse_stack.len() >= self.max_depth {
+        if self.rule_id_stack.len() >= self.max_depth {
             let rules: Vec<&'static str> = self.parse_stack.iter().map(|(r, _)| *r).collect();
             return CycleType::MutualRecursive {
-                depth: self.parse_stack.len(),
+                depth: self.rule_id_stack.len(),
                 rules,
             };
         }
@@ -1424,14 +1447,48 @@ impl RecursionGuard {
         self.rule_id_stack.pop();
     }
 
-    /// RGX-0078.5.i.14 (C1) — truncate BOTH stacks to `len`, the `try_parse`
-    /// rollback restore. Keeps `rule_id_stack` in lockstep with `parse_stack`
-    /// when a failed speculation left unbalanced `enter_id`/`exit` frames (the
-    /// `?`-bypass path). `len` is a prior `parse_stack.len()`, which equals
-    /// `rule_id_stack.len()` by the lockstep invariant.
+    /// RGX-0078.5.j.4 (`-0200`) — BARE id-only push for a generated fused
+    /// frame: maintains ONLY `rule_id_stack`, the complete modern recursion
+    /// representation ([`Self::check_cycle_id`] scans it and counts its
+    /// depth). The 24-byte name frame is not written; a generated error/
+    /// diagnostic path that needs a name maps the retained `RuleId` through
+    /// that parser's static `RULE_NAMES` table (rule id = table index, a
+    /// total bijection for a modern generated parser). Pair with
+    /// [`Self::exit_bare`]; protocol/legacy callers keep the paired
+    /// [`Self::enter_id`]/[`Self::exit`] path unchanged.
+    #[inline]
+    pub fn enter_id_bare(&mut self, rule_id: RuleId, position: usize) {
+        self.rule_id_stack.push((rule_id, position));
+    }
+
+    /// RGX-0078.5.j.4 (`-0200`) — BARE id-only pop, the [`Self::enter_id_bare`]
+    /// counterpart.
+    #[inline]
+    pub fn exit_bare(&mut self) {
+        self.rule_id_stack.pop();
+    }
+
+    /// RGX-0078.5.i.14 (C1) — truncate BOTH stacks to `len`, the legacy
+    /// `try_parse` rollback restore for an all-paired parse, where a prior
+    /// `parse_stack.len()` equals `rule_id_stack.len()` by the lockstep
+    /// invariant. A caller whose speculation may span BARE id-only frames
+    /// (RGX-0078.5.j.4) must use [`Self::truncate_stacks`] instead — this
+    /// single-length form would cut live deeper ID frames down to the name
+    /// depth.
     pub fn truncate_stack(&mut self, len: usize) {
         self.parse_stack.truncate(len);
         self.rule_id_stack.truncate(len);
+    }
+
+    /// RGX-0078.5.j.4 (`-0200`) — per-stack rollback restore: each stack is
+    /// truncated to its OWN saved length, which is correct both for an
+    /// all-paired parse (the two saved lengths are equal, degenerating to
+    /// [`Self::truncate_stack`]) and for a mixed-depth parse where bare
+    /// id-only frames made `rule_id_stack` deeper than `parse_stack`.
+    #[inline]
+    pub fn truncate_stacks(&mut self, name_len: usize, id_len: usize) {
+        self.parse_stack.truncate(name_len);
+        self.rule_id_stack.truncate(id_len);
     }
 }
 
@@ -4413,6 +4470,59 @@ pub(crate) fn syntax_is_single_whole_body_group(syntax_elements: &[serde_json::V
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// RGX-0078.5.j.4 (`-0200`) — the BARE id-only guard path: bare frames
+    /// maintain only `rule_id_stack`; the cycle scan sees them, the depth
+    /// ceiling counts them, per-stack truncation restores each stack to its
+    /// own snapshot, and with zero bare frames every surface degenerates to
+    /// the paired lockstep behavior.
+    #[test]
+    fn recursion_guard_bare_id_only_path_semantics() {
+        // 1. Paired degeneracy: no bare frames ⇒ lockstep intact and the
+        //    id-aware check matches the legacy name-scan verdicts.
+        let mut paired = RecursionGuard::new(4);
+        paired.enter_id(1, "alpha", 0);
+        paired.enter_id(2, "beta", 3);
+        assert_eq!(paired.parse_stack.len(), paired.rule_id_stack.len());
+        assert_eq!(paired.check_cycle_id(2, 3), CycleType::Infinite);
+        assert_eq!(paired.check_cycle_id(2, 1), CycleType::LeftRecursive);
+        assert_eq!(paired.check_cycle_id(3, 5), CycleType::None);
+
+        // 2. Bare frames participate in the cycle scan exactly like paired
+        //    frames (same-id same-position ⇒ Infinite; regressing ⇒ Left).
+        let mut guard = RecursionGuard::new(4);
+        guard.enter_id(1, "alpha", 0);
+        guard.enter_id_bare(7, 2);
+        assert_eq!(guard.parse_stack.len(), 1);
+        assert_eq!(guard.rule_id_stack.len(), 2);
+        assert_eq!(guard.check_cycle_id(7, 2), CycleType::Infinite);
+        assert_eq!(guard.check_cycle_id(7, 1), CycleType::LeftRecursive);
+
+        // 3. The depth ceiling counts the TOTAL live-frame depth (the ID
+        //    stack), not the shallow name stack.
+        guard.enter_id_bare(8, 4);
+        guard.enter_id_bare(9, 6);
+        match guard.check_cycle_id(10, 8) {
+            CycleType::MutualRecursive { depth, .. } => assert_eq!(depth, 4),
+            other => panic!("expected the depth ceiling at 4 total frames, got {other:?}"),
+        }
+
+        // 4. Per-stack truncation restores each stack to its OWN snapshot.
+        let (name_len, id_len) = (guard.parse_stack.len(), guard.rule_id_stack.len());
+        guard.enter_id(12, "extra", 9);
+        guard.enter_id_bare(11, 10);
+        guard.truncate_stacks(name_len, id_len);
+        assert_eq!(guard.parse_stack.len(), name_len);
+        assert_eq!(guard.rule_id_stack.len(), id_len);
+
+        // 5. exit_bare pops only the ID stack, restoring the pre-bare state.
+        guard.exit_bare();
+        guard.exit_bare();
+        guard.exit_bare();
+        assert_eq!(guard.parse_stack.len(), 1);
+        assert_eq!(guard.rule_id_stack.len(), 1);
+        assert_eq!(guard.check_cycle_id(1, 0), CycleType::Infinite);
+    }
 
     /// RGX-0078.5.i.1.t2 — the loud-refusal opt-in accepts EXACTLY "1"
     /// (whitespace-trimmed); everything else refuses the silent

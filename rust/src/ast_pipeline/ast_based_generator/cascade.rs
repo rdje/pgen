@@ -654,13 +654,19 @@ impl AstBasedGenerator {
                     let __pgen_thin_preds = parser.semantic_runtime_state.predicate_evaluations();
                     let __pgen_thin_ev_mark = parser.deriv_events.len();
                     let __pgen_thin_b_mark = parser.deriv_boundary.len();
-                    parser.recursion_guard.enter_id(Self::#rule_const, #rule_name, position);
+                    // RGX-0078.5.j.4 (`-0200`) — BARE id-only frame: the ID
+                    // stack is the complete cycle/depth representation
+                    // (`check_cycle_id` scans it and counts its depth), and on
+                    // the bare path every name reader is dead or reconstructs
+                    // through RULE_NAMES, so the 24-byte name frame is not
+                    // maintained here.
+                    parser.recursion_guard.enter_id_bare(Self::#rule_const, position);
                     let __pgen_thin_result: ParseResult<()> =
                         (|parser: &mut Self| -> ParseResult<()> {
                             #parse_logic
                             Ok(())
                         })(parser);
-                    parser.recursion_guard.exit();
+                    parser.recursion_guard.exit_bare();
                     // Classify the body per the taint classes: a store-MUTATING
                     // body is never cached (segment replay would skip its
                     // effects); a store-READ body is cached with the
@@ -771,7 +777,10 @@ impl AstBasedGenerator {
             quote! {
                 let __pgen_spec_ev_mark = parser.deriv_events.len();
                 let __pgen_spec_b_mark = parser.deriv_boundary.len();
-                let __pgen_attempt = parser.try_parse(|p| {
+                // RGX-0078.5.j.4 (`-0200`) — the BARE wrapper: id-only
+                // recursion-guard snapshot/restore (bare frames never touch
+                // the name stack), otherwise the protocol mirror verbatim.
+                let __pgen_attempt = parser.try_parse_bare(|p| {
                     let parser = p;
                     #body
                 });
@@ -995,7 +1004,9 @@ impl AstBasedGenerator {
                         parser.position = parse_start;
                         let __pgen_cand_ev_start = parser.deriv_events.len();
                         let __pgen_cand_b_start = parser.deriv_boundary.len();
-                        if let Some(()) = parser.try_parse(|p| {
+                        // RGX-0078.5.j.4 (`-0200`) — the BARE wrapper (id-only
+                        // guard snapshot/restore), the protocol mirror otherwise.
+                        if let Some(()) = parser.try_parse_bare(|p| {
                             let parser = p;
                             #branch_logic
                             Ok(())
@@ -2530,9 +2541,9 @@ mod tests {
                 .unwrap_or(rendered.len())];
         assert!(
             cyc_body.contains("check_cycle")
-                && cyc_body.contains("recursion_guard . enter")
-                && cyc_body.contains("recursion_guard . exit"),
-            "the cyclic match fn carries the protocol-mirror guard frame, got: {cyc_body}"
+                && cyc_body.contains("recursion_guard . enter_id_bare")
+                && cyc_body.contains("recursion_guard . exit_bare"),
+            "the cyclic match fn carries the id-only bare guard frame (`-0200`), got: {cyc_body}"
         );
         assert!(
             cyc_body.contains("thin_memo")
@@ -2906,8 +2917,8 @@ mod tests {
             match_or.contains("tournament_semantic_checkpoint")
                 && match_or.contains("C3bBranchCleanup")
                 && match_or.contains("apply_delta")
-                && match_or.contains("try_parse"),
-            "the island machinery survives on the match pass, got: {match_or}"
+                && match_or.contains("try_parse_bare"),
+            "the island machinery survives on the match pass (bare wrapper since `-0200`), got: {match_or}"
         );
         assert!(
             !match_or.contains("ParseContent") && !match_or.contains("transformed"),
