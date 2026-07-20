@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b8f6cf58.js";
+            window.path_to_searchindex_js = "searchindex-f63b2acf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -206,7 +206,7 @@ here because some integrators care that the regex parser carries no Rust-regex-e
 measured parse cost is a geomean of <strong>≈1.65µs per pattern</strong> on the 8-pattern RGX bench corpus
 (release build, fat-LTO, mimalloc-class allocator, noise-floor-minimum statistic) — down <strong>≈301×</strong>
 from ≈496µs at the campaign’s activation. On the external PCRE2 corpus the <strong>maximum</strong> observed
-parse is ≈484µs and the corpus geomean ≈1.05µs. Every speed lever lands under a
+parse is ≈405µs (guarded by a 425µs non-regression bound) and the corpus geomean ≈1.05µs. Every speed lever lands under a
 hard <strong>byte-identical constraint</strong>: the accepted language, verdicts, error codes, and the runtime
 AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
 certificate-coverage, and PCRE2-compile-oracle gates), so <strong>performance work never moves the

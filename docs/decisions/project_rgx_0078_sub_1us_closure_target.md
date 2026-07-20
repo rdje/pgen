@@ -247,6 +247,35 @@ Binding consequences (amends the #162 call-off trigger; everything else stands):
 
 ---
 
+## 2026-07-20 session #178 — ⭐ DIRECTOR AMENDMENT: the settled corpus-MAX bound RE-SETTLES with the same drift-margin logic — **425,000 ns** (was 483,583 ns)
+
+Director (reviewing the `-0203` landing's "MAX 405,084 ≤ settled 483,583 ns" line):
+*"Shouldn't the new low for max be set to … the new settled?"* — confirmed after the
+engineer's margin analysis: *"Of course re-settle if you think my comment has legs."*
+
+Binding consequences (amends the #162 clause-1 VALUE; the bound's ROLE is unchanged):
+1. **The corpus-MAX non-regression bound = 425,000 ns** — the `-0203` observed MAX
+   (405,084 ns, cell `line_725`) plus a ≈5% drift margin, the #176 logic applied to the
+   MAX. It replaces 483,583 ns in the `-0197` ratchet's MAX clause for every future
+   adjudication; banked historical evidence (the `-0197` execution contract, past
+   adjudications) stays verbatim.
+2. **Why a margin and not the raw reading (engineer's recorded rationale, accepted):**
+   the MAX is a SINGLE cell's min-of-samples and drifts more than the geomean — the
+   campaign's own history shows `-0200` → `-0201` reading 451,833 → 462,750 (+2.4%) on
+   an ACCEPTED, geomean-improving fix; a raw ratchet at the previous reading would have
+   spuriously rejected `-0201` on one-cell noise. ≈5% ≈ two observed worst-cell drift
+   spans, mirroring the 50 ns geomean margin.
+3. **What the amendment closes:** as of `-0203` the old bound tolerated ≈+19% worst-cell
+   creep (405 → 483 µs) across future fixes without any gate firing. The bound remains a
+   GUARDRAIL, not a target (#162's "I won't ask more" stands); the geomean remains the
+   sole call-off metric; MAX re-settles again only by explicit director amendment, not
+   automatically per fix.
+4. **Operational:** the next session's A/B analyzer carries
+   `SETTLED_CORPUS_MAX_NS = 425_000`; the #176 closure protocol's MAX clause reads
+   425,000 ns accordingly.
+
+---
+
 ## 2026-07-20 — strict per-fix geomean ratchet and fresh-session boundary
 
 The director made the implementation acceptance rule numerical and absolute:

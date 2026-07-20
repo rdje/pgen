@@ -514,7 +514,8 @@ measurable second-word traffic) was dwarfed by the unpriced width-and-lane bulk,
 same lesson the fifth fix taught.
 
 The scoreboard now reads **496 µs → ≈1.65 µs, about 301×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.05 µs. The campaign's call-off
+corpus maximum observed at ≈405 µs (its non-regression guardrail re-settled at 425 µs with
+the same drift-margin logic) and the corpus geomean at ≈1.05 µs. The campaign's call-off
 condition now carries that drift lesson explicitly: the corpus geomean must clear 1 µs
 **with a 50 ns margin** — `(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus
 a confirmation sweep in a later session, so the closure claim reproduces on any day rather
