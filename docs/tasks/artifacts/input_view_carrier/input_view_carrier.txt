@@ -1,0 +1,24 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+machine qualification: PASS input=bounds+byte-load recursion=two-stacks+depth checkpoint=35-full/39-sites tapes=two-vecs position=monotone trace=51-gates/{'full_trace_gate': 31, 'direct_bit_gate': 19, 'direct_cmp_gate': 1} coverage=snapshot/truncate thin_memo=5-hash-lookups rollback_diag=increment memo_taint=snapshot/compare
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+source custody: PASS rust/src/ast_pipeline/ast_based_generator.rs=b5ed80b80adfcf1a6fb5df38884e249e06eff2f32a5e78dfef8760d256f374df rust/src/ast_pipeline/ast_based_generator/cascade.rs=413fefe99dbfe8d4a03886f4eb4999d078fb03696f861ee1e7fefc23db03a100
+feasibility probe: PASS source=bf899af04d0a4775b2c5ff52d9049fcc2af4ae67375cae94028f66c82dc3b778 rustc='rustc 1.95.0 (59807616e 2026-04-14)' baseline=field-data+field-len scalar=REFUTED(full safe bounds reload remains) full_byte_slice=FEASIBLE(entry ldp; callee has no parser-input reload)
+source semantics: input=&'input str initialized once assignments=0; fused_match_templates len=3 bytes=4; build string slices excluded
+static: len_field_loads=93 data_field_loads=77 sampled_pcs=50+14 len_consumers=bounds_cmp data_consumers=byte_load accepted_held_overlap=0
+required: bounds compares + conditional branches + input byte loads + safe indexing
+replacement: orchestrator copies parser.input.as_bytes() once and forwards &'input [u8] through match-only calls; public API/build pass unchanged; no unsafe reads
+
+DYNAMIC PARSER-FIELD LOADS
+band=sub1us   raw=22521 input_len=226 input_data= 4 total=230
+band=1to2p5   raw=24279 input_len=205 input_data= 4 total=209
+band=2p5to20  raw=28308 input_len=297 input_data=11 total=308
+
+REPLACEMENT-AWARE PRICING
+gross_current_input_len_load_ceiling_ns=12.029766185
+gross_current_input_data_load_ceiling_ns=0.286389190
+gross_current_input_carrier_ceiling_ns=12.316155375
+replacement_debits=entry_ldp+fat_slice_forwarding+register_pressure+possible_spills; unmeasured and therefore strict_net_ns=0.000000000
+view=strict_net              input_ns=0.000000000 composite_ns=101.279665699 capture_0.30_ns=30.383899710 noise_margin_ns=1.583899710
+view=gross_current_ceiling   input_ns=12.316155375 composite_ns=113.595821074 capture_0.30_ns=34.078746322 noise_margin_ns=5.278746322
+verdict=HOLD (the full-view carrier is safe, but 12.316 ns is a gross current-load ceiling and its 5.279 ns accumulated margin has no measured replacement debit)
+IMMUTABLE INPUT-VIEW CARRIER PRICING: PASS

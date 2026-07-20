@@ -1,0 +1,39 @@
+rustc 1.95.0 (59807616e 2026-04-14)
+probe_source_sha256=bf899af04d0a4775b2c5ff52d9049fcc2af4ae67375cae94028f66c82dc3b778
+baseline=98 forwarded_len=98 forwarded_view=98 equal=true
+
+baseline_input_read:
+  ldp x9, x8, [x0, #0x8]        # parser input length + position
+  cmp x8, x9
+  b.hs <zero>
+  ldr x9, [x0]                  # parser input data
+  ldrb w0, [x9, x8]
+
+forwarded_len_read:
+  ldr x0, [x0, #0x10]           # parser position
+  cmp x0, x1                    # explicit forwarded-length guard
+  b.hs <zero>
+  ldr x1, [x8, #0x8]            # actual slice length RELOADED
+  cmp x0, x1                    # safe-index bounds check remains
+  b.hs <panic_bounds_check>
+  ldr x8, [x8]                  # parser input data
+  ldrb w0, [x8, x0]
+
+safe_len_orchestrator:
+  ldr x1, [x0, #0x8]
+  b forwarded_len_read
+
+forwarded_view_read:
+  ldr x8, [x0, #0x10]           # parser position only
+  cmp x8, x2                    # forwarded byte-slice length
+  b.hs <zero>
+  ldrb w0, [x1, x8]             # forwarded byte-slice data
+
+safe_view_orchestrator:
+  ldp x1, x2, [x0]              # one entry copy of data + length
+  b forwarded_view_read
+
+Result: scalar length forwarding is refuted because safe indexing reloads the
+real parser-input length. A complete shared byte slice is safe and carries the
+actual bound and data without parser-input reloads in the callee. Its entry
+load, two-register ABI traffic, register pressure, and spills remain costs.

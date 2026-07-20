@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0192 — safe indexing defeats scalar bound forwarding
+
+**A copied bound is not the slice's proof.** Passing `input_len: usize` adds an explicit comparison, but `parser.input.as_bytes()[position]` still checks against and reloads the real slice length. The compiler cannot equate an arbitrary scalar with that length. Any claim that one-word forwarding removes safe bounds traffic is false unless it also introduces unchecked access or a stronger proof carrier.
+
+**Forward the value that owns the bound.** A shared `&[u8]` carries data and its actual length. Copying it from the immutable parser input at the fused sub-root is safe alongside `&mut self` because the reference points to external `'input` storage. Match functions can use safe indexing through the view; build functions keep the original `&str` for UTF-8 string slices.
+
+**A dynamic sampled subset still needs a complete static audit.** The earlier residual partition saw 50 length and 14 data PCs because only sampled instructions entered that census. Full disassembly has 93+77 carrier loads. Auditing every one caught one-hop address formation before byte loads and proves the candidate covers the whole emitted mechanism, while pricing remains based only on observed samples.
+
+**Gross load time is not net forwarding benefit.** The full view replaces repeated field carriers but adds one entry `ldp`, a two-register argument across match calls, and possible pressure/spills in 27–77 KB fused regions. With no equivalent current instruction population for those debits, the honest strict net is zero and 12.316155375 ns remains a ceiling.
+
 ## 2026-07-20 - PGEN-RGX-0078-0191 — representation width needs a lossless escape and replacement pricing
 
 **A common-case narrowing is sound only with a full-width escape.** Four event payloads are arbitrary `usize` values or grammar indices; observed corpus maxima cannot become correctness limits. Low-bit tagging is viable because the exceptional case carries the untouched payload in a following word and all tape coordinates are redefined as word offsets.

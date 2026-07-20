@@ -1,5 +1,13 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0192 — safe input forwarding has a 12.316 ns gross ceiling, not net savings
+
+Completed the immutable input-view census over both preserved fused regions. After accepted-range subtraction there are 93 direct input-length and 77 input-data carrier loads; every length value feeds required bounds control and every data value feeds required byte/halfword access. The 50+14 sampled PCs contribute **226/205/297 + 4/4/11 = 230/209/308**, exactly reproducing the earlier residual input-view row, with zero overlap through `-0191`.
+
+A pinned safe-Rust codegen probe refutes scalar-length forwarding: explicit `position < input_len` does not eliminate the actual parser-slice length reload and second safe-index bounds check. Forwarding the complete `&'input [u8]` is feasible: a fused sub-root copies `parser.input.as_bytes()` once, then match callees use the forwarded data/length with no parser-input reload. This preserves safe bounds, lifetime, UTF-8 ownership, build-side string slicing, and the public API.
+
+Current length loads price **12.029766185 ns** and data loads **0.286389190 ns**, a **12.316155375 ns gross ceiling**. The replacement's entry `ldp`, fat-slice forwarding, register pressure, and possible spills are not measured, so strict net is zero. Adding the gross ceiling to the prior strict bundle leaves only **5.278746322 ns** above noise at 30% capture before those debits; implementation remains HOLD. Parser/runtime/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: owned `PGEN-RGX-0078-0193`, semantic-checkpoint field-equivalence and compact-carrier pricing.
+
 ## 2026-07-20 - PGEN-RGX-0078-0191 — lossless event packing prices only 0.530 ns strictly
 
 Proved that the generated parser's 16-byte `DerivEvent` tape has a lossless 8-byte common representation: five variants use low-three-bit tags and tag 6 introduces a second full-width payload word. Positions, counts, and branch indices remain arbitrary `usize` values; tape marks and ranges become word indices, so no silent cap enters the design.
