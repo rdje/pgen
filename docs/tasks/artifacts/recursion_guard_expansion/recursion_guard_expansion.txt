@@ -1,0 +1,31 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+raw custody: sub1us=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 1to2p5=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 2p5to20=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c
+profile weights: sub1us=0.380 1to2p5=0.353 2p5to20=0.260 excluded_tail=0.007 priced_at_zero
+source contract: rule_id_stack=required_complete_modern_stack parse_stack=duplicate_names+legacy/error_text
+static sites: inline_name_push=4 outlined_name_push=1 name_pop=9
+static subset: pcs=131 inline_push_pcs=72 outlined_push_pcs=23 pop_pcs=36 classes=memory:50,control:21,call:5,other:55 overlap={'accepted': 0, 'bare_0185': 0, 'thin_lookup': 0, 'telemetry_0187': 0}
+excluded: cycle_scan depth_check try_parse_snapshot/truncate last_rule_lookup contextual_error allocator_children abi_prologue_epilogue
+name-pop sites:
+site target=piece        address=0x10005c550
+site target=piece        address=0x10005cb10
+site target=atom_closure address=0x100071f0c
+site target=atom_closure address=0x100075b24
+site target=atom_closure address=0x100075e0c
+site target=atom_closure address=0x1000763d4
+site target=atom_closure address=0x1000766c4
+site target=atom_closure address=0x10007b01c
+site target=atom_closure address=0x10007c134
+
+DYNAMIC COUNTS
+band=sub1us   raw=22521 inline_push= 48 outlined_push=  5 pop= 18 total= 71 classes=memory:71,control:0,call:0,other:0
+band=1to2p5   raw=24279 inline_push= 38 outlined_push= 13 pop= 23 total= 74 classes=memory:71,control:2,call:0,other:1
+band=2p5to20  raw=28308 inline_push= 57 outlined_push= 12 pop= 23 total= 92 classes=memory:87,control:3,call:0,other:2
+
+PRICING
+guard_subset_share=0.311889302% guard_subset_target_ns=3.940409443
+pre_lookup_composite_ns=96.595388589 capture_0.30_ns=28.978616577 noise_margin_ns=0.178616577
+optimistic_lookup_composite_ns=100.419995319 capture_0.30_ns=30.125998596 noise_margin_ns=1.325998596
+scope=conservative fixed subset only; replacement name reconstruction and required ID stack are priced at zero removal
+verdict=HOLD (pre-lookup arithmetic margin is only 0.178617 ns; ID-to-name reconstruction remains unpriced and the lookup composite is optimistic)
+RECURSION GUARD EXPANSION: PASS

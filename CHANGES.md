@@ -1,5 +1,11 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0188 — duplicate recursion name-stack traffic prices 3.940 ns but still lacks margin
+
+The reader audit separates the current recursion representations: modern generated frames already carry the required complete `(RuleId, position)` stack, while the parallel 24-byte name stack remains for public legacy compatibility, maximum-depth payloads, rollback labels, contextual errors, and trace text. A compatible candidate must therefore add ID-only fused enter/exit/truncate/check operations and reconstruct names through generated `RULE_NAMES`; it cannot silently change existing public `RecursionGuard` methods or fields.
+
+The custody-pinned classifier admits only the conservative ordinary fixed subset: four inlined name pushes, the name half of one outlined `enter_id`, and nine inlined name pops. The **131-PC** union has zero overlap with every accepted/held mechanism and excludes cycle/depth work, speculative rollback/name lookup, allocator children, and ABI traffic. Dynamic **71/74/92** samples price **0.311889302% = 3.940409443 ns**. The honest pre-lookup bundle becomes **96.595388589 ns**; 30% capture is **28.978616577 ns**, only **0.178616577 ns above** the 28.8 ns noise floor. That cannot absorb unpriced ID-to-name reconstruction or model uncertainty, so implementation remains HOLD. Parser/runtime/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: `PGEN-RGX-0078-0189`, replacement-aware `try_parse` name-stack rollback expansion.
+
 ## 2026-07-20 - PGEN-RGX-0078-0187 — rollback telemetry adds 0.227 ns but exposes a public observability boundary
 
 The custody-pinned classifier expands 63 exact rollback-counter update sites in the sampled fused symbols: 39 ordinary two-counter vector updates and 24 tournament four-counter updates, **402 PCs** total with zero accepted/held overlap. Only **3/7/3** raw samples hit them, pricing **0.017994867% = 0.227347146 ns**. The pre-lookup held bundle becomes **92.654979146 ns**; 30% capture is **27.796493744 ns**, still **1.003506256 ns below** the 28.8 ns noise floor. Even the deliberately optimistic thin-index composite leaves only **0.143875763 ns** apparent margin before mandatory replacement work still priced at zero, so implementation remains HOLD.

@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0188 — a compatibility stack can be redundant only on an owned path
+
+**C1 left two representations for a reason.** `rule_id_stack` is the complete modern cycle-check key; `parse_stack` preserves legacy name scans and name-bearing diagnostics. The duplication is removable only where generated code owns both the ID-to-name table and the call path. Changing the public paired methods would turn a local optimization into an API break.
+
+**Price the exclusive half of an interleaved mechanism.** Several inlined pushes derive the ID-stack base while writing the name frame. The classifier retains those shared carrier instructions and prices only the name-specific instructions. It also refuses allocator-child time even though removing a name vector would remove some growth, because raw PCs do not retain caller ownership for those children.
+
+**Do not resurrect a refuted scan lever through a broader label.** The earlier K5 seen-set population remains absent on the geomean bands. This slice prices fixed name push/pop traffic only; cycle scans and depth checks remain required and receive zero credit.
+
+**A conservative floor can still be too close to act on.** The exclusive fixed subset is 3.940409443 ns, just enough to produce 0.178616577 ns arithmetic margin at 30% capture. Since ID-to-name reconstruction is deliberately unpriced, that sliver is a prompt to expand the adjacent rollback component, not a GO signal.
+
 ## 2026-07-20 - PGEN-RGX-0078-0187 — diagnostic-only is not the same as unobservable
 
 **Classify by semantic readers before counting instructions.** `predicate_evaluations` participates in memo soundness and stays required. The rollback quartet does not steer verdicts or state mutation, so its vectorized update sequences are a valid diagnostic mechanism—but only after this source/dataflow split.
