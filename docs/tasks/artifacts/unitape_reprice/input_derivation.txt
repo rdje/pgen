@@ -1,0 +1,4 @@
+band=sub1us range=[0,1000) count=1072 log_share=0.435780 input_sha256=7f097d1bd9d8baa2f08531ac6fb917cc7ed6888fdee4f3b8e393c97d20b51626
+band=1to2p5 range=[1000,2500) count=725 log_share=0.349170 input_sha256=10ceae178c19c78d8140fdf9470e1ae2a72a76a1989a2bb5bdca9efcc205ec10
+band=2p5to20 range=[2500,20000) count=381 log_share=0.207263 input_sha256=0503ea22acda9a771da149268a22883b7f567671776ab23b1e7db01607bf1e4c
+manifest=band_manifest.json sha256=29990f619cdb7e3900326891c5f3a6b4216277ce0f45f428744fb846cfd71939 excluded_ge_20us=11 floor_geomean_ns=1051.8818294596394
