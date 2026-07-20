@@ -1,0 +1,58 @@
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+
+=== BAND sub1us ===
+raw_sha256=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 total_samples=22521 target_samples=2986
+mechanism g1c                    58 target=  1.9424% all=  0.2575%
+  classes memory=56 control=1 call=0 other=1
+mechanism thin_memo_success     211 target=  7.0663% all=  0.9369%
+  classes memory=192 control=0 call=0 other=19
+mechanism residual             2717 target= 90.9913% all= 12.0643%
+  classes memory=2356 control=190 call=1 other=170
+overlap g1c_and_thin_memo_success=0
+resum 58+211+2717=2986 target=2986 PASS
+residual_memory_bases stack_frame=902 parser_direct=894 indirect=560 total=2356 PASS vector_subset=176
+site g1c                atom.builtin_any              1
+site g1c                atom.digit                    2
+site g1c                atom.letter                  53
+site g1c                piece.directive_name          2
+site thin_memo_success  rule_atom                   118
+site thin_memo_success  rule_piece                   93
+
+=== BAND 1to2p5 ===
+raw_sha256=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 total_samples=24279 target_samples=2987
+mechanism g1c                    62 target=  2.0757% all=  0.2554%
+  classes memory=59 control=1 call=0 other=2
+mechanism thin_memo_success     194 target=  6.4948% all=  0.7990%
+  classes memory=171 control=2 call=0 other=21
+mechanism residual             2731 target= 91.4295% all= 11.2484%
+  classes memory=2292 control=189 call=0 other=250
+overlap g1c_and_thin_memo_success=0
+resum 62+194+2731=2987 target=2987 PASS
+residual_memory_bases stack_frame=848 parser_direct=859 indirect=585 total=2292 PASS vector_subset=181
+site g1c                atom.digit                    3
+site g1c                atom.letter                  58
+site g1c                piece.directive_name          1
+site thin_memo_success  rule_atom                    98
+site thin_memo_success  rule_piece                   96
+
+=== BAND 2p5to20 ===
+raw_sha256=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c total_samples=28308 target_samples=3868
+mechanism g1c                    43 target=  1.1117% all=  0.1519%
+  classes memory=39 control=0 call=0 other=4
+mechanism thin_memo_success     221 target=  5.7135% all=  0.7807%
+  classes memory=196 control=3 call=0 other=22
+mechanism residual             3604 target= 93.1748% all= 12.7314%
+  classes memory=2920 control=241 call=3 other=440
+overlap g1c_and_thin_memo_success=0
+resum 43+221+3604=3868 target=3868 PASS
+residual_memory_bases stack_frame=987 parser_direct=1081 indirect=852 total=2920 PASS vector_subset=198
+site g1c                atom.digit                    1
+site g1c                atom.letter                  38
+site g1c                atom.named_group              3
+site g1c                piece.directive_name          1
+site thin_memo_success  rule_atom                   116
+site thin_memo_success  rule_piece                  105
+
+MECHANISM ATTRIBUTION: PASS (exact ranges; zero overlap; full target re-sum)
+SCOPE: lower-bound in-target instruction samples only; residual and out-of-target samples remain unpriced; no nanoseconds derived

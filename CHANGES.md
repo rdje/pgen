@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0182 — three raw-PC bands clear every gate; exact known mechanisms remain a lower bound
+
+The byte-derived sub-1 us / 1–2.5 us / 2.5–20 us inputs contain exactly 939 / 751 / 488 rows. Sequential `caffeinate` + memory-guard captures stored **22,521 / 24,279 / 28,308** raw PCs, including **2,986 / 2,987 / 3,868** fused-target PCs. Every band clears the 10,000-total and 1,000-target gates, drops zero samples, disassembles 100% of target PCs against the full-SHA-pinned preserved probe, and reproduces the banked accepted/rejected verdict identities exactly.
+
+The first complete attempt also found an instrument teardown race rather than hiding it: the high-band process emitted complete raw evidence and then died from a pending `SIGPROF` when v2 restored the default action before unmasking. The independently owned v3 sampler drains pending `SIGPROF` synchronously while blocked and disabled before restoring action/mask. A hard-disabled forced-boundary hook proved exactly one pending signal drained and exit zero before the accepted corpus captures; signal-handler work remains one lock-free reservation plus one fixed PC store.
+
+Exact machine-structure attribution now owns all seven G1-C arena/node/boundary sites and the successful RULE_ATOM/RULE_PIECE thin-memo segment-copy/insertion sites. The ranges have zero overlap and G1-C + thin memo + residual exactly re-sums each target. Known shares are only **9.0087% / 8.5705% / 6.8252%**; the mixed residual remains **90.9913% / 91.4295% / 93.1748%**. These are lower-bound in-target samples, not whole-mechanism time, so no generic memory share is converted to a speedup and no new nanoseconds are admitted. The held BATCH-1 + G3 bundle remains **84.385 ns / HOLD**.
+
+A guarded DWARF-twin build and a narrower LLVM-bitcode extraction were both externally terminated without a memory-guard floor event. Their markers and exact failure boundary are banked; the 5.0 GiB scratch tree is removed and no cross-vintage source-line attribution is claimed. Next is a read-only exact carrier audit of the 902 / 848 / 987 residual stack-frame-addressed samples. Floor, settled MAX, parser/emitter/generated artifact, preserved probe, product behavior, mdBook, contracts, reference architecture, and LIVE rows are unchanged.
+
 ## 2026-07-20 - PGEN-RGX-0078-0181 — no-root in-process PC sampler qualifies at 100% target retention
 
 A preload instrumentation library now answers the per-instruction question without mutating the preserved parser probe or requiring root/debugger attachment. Its `ITIMER_PROF` handler reads the arm64 PC from `ucontext_t`, reserves a fixed-buffer slot with a compile-time-required lock-free atomic, and stores one address—no signal-context allocation, locks, formatting, I/O, or symbol work. Teardown blocks/disables/restores before emitting raw PCs; all normalization and disassembly occur offline.

@@ -1,4 +1,16 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0182 — exact PCs are evidence only after mechanism ownership
+
+**Signal-safe capture still needs race-safe teardown.** Blocking and disabling `SIGPROF` prevents new timer delivery but does not erase a signal already pending. Restoring the default action before restoring the old mask made a complete measurement process die at normal teardown. Drain while blocked, then restore disposition, then mask; deterministically force the pending state before trusting a long run.
+
+**A complete per-PC distribution is not automatically a speedup model.** The raw capture fixes the information loss in macOS `sample`, but an instruction becomes addressable only after exact ownership. Seven G1-C sites and two successful thin-memo stores can be proved from machine fingerprints and non-overlapping ranges. Everything else must remain residual even when its opcode or base register looks suggestive.
+
+**In-target samples are lower bounds when the mechanism calls out.** A sampled instruction range counts inline setup/copies/control but does not count time interrupted inside arena allocation, map insertion, or other callees. Consequently the exact G1-C/thin shares cannot replace the earlier caller-attributed prices, and adding both would double-count. The honest result is a re-sum and a refusal to derive nanoseconds.
+
+**Register provenance describes storage, not cause.** Residual stack-frame memory accounts for 902 / 848 / 987 target samples by band, but this can mix unavoidable prologue/epilogue traffic, compiler spills, result/error carriers, and semantic checkpoint deltas. The next diagnostic must partition exact machine structures before it may name any of those as a removable lever.
+
+**Do not transfer addresses across optimized vintages by proximity.** G1-A changed target function instruction counts, and exact normalized alignment covers only 67.5% of `piece` and 35.3% of `atom_closure` statically. The attempted DWARF twin did not link and the narrower LLVM extraction was externally terminated. No source attribution is better than a plausible but false one.
+
 ## 2026-07-20 - PGEN-RGX-0078-0181 — injected profilers must discover the executable, not assume its index
 
 **Dyld image ordering changes under injection.** Treating image 0 as the executable yielded a plausible-looking but impossible slide and zero target PCs. Iterating Mach-O headers for `MH_EXECUTE` made normalization exact. ASLR custody needs a semantic identity check, not a positional convention.
