@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0175 — cache configuration only at the lifetime where it is actually immutable
+
+**A process-level setting is not necessarily process-immutable.** The proposed process-once trace flag looked like the earlier P-env pattern, but the decisive API fact is that `set_global_trace_verbosity(...)` is public and repeatedly called. A `OnceLock<bool>` would optimize the first configuration by making every later configuration wrong. The relevant lifetime is one balanced generated/interpreter call tree: sample once at its outermost entry, keep that decision through nested entries, then resample for the next parse.
+
+**A latch is also a symmetry device.** Sampling on every push would allow a mid-parse trace change to push only a suffix of the context chain or skip pops for frames that were already stored. Depth plus one outermost latch makes the transaction internally consistent: configuration changes become visible at the next parse boundary, not halfway through the stack protocol.
+
+**Compatibility needs its own path, not a hand-wave.** Current generated parsers and the interpreter use the borrowed-static entry point; previously generated or external callers may still use the allocating `push_rule_context(&str)` API and inspect `current_rule_context()`. The design explicitly keeps that legacy pair unconditional when no static transaction is active. The optimization therefore targets the known hot diagnostic path without redefining the older manual API.
+
+The design and falsification threshold are durable before code: implementation is isolated as `PGEN-RGX-0078-0176`, and the candidate must beat the 2.28% same-binary noise span while preserving all trace/correctness contracts and the 483,583 ns corpus MAX ceiling.
+
 ## 2026-07-20 - PGEN-RGX-0078-0174 — the cheapest slice in the campaign killed the chain the previous slice recommended
 
 **A pre-flight that only ever confirms is not a pre-flight.** One slice ago I designed BATCH-1, recommended splitting it, and named a lib-only BATCH-1a as the cheap half worth measuring first. This slice ran the read-only pre-flight that recommendation was conditioned on, and the pre-flight killed it: the two lib-only members act on **0.75 and 1.75 events per parse**, because seven of the eight bench patterns emit no facts and evaluate no predicates at all. The recommendation was mine, it was one slice old, and the honest thing was to withdraw it on its own evidence. **The value of a pre-flight is measured entirely by its willingness to contradict the plan that scheduled it.**

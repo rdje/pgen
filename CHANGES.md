@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0175 — `.5.j.4` member-5 design: safe per-parse trace latch pre-registered; process-once cache rejected before code (design-only)
+
+The member-5 reader/writer audit is now a committed design and a separately owned implementation leaf (`PGEN-RGX-0078-0176`) before any Rust change. The target remains the ≈130 generated/interpreter `push_rule_context_static` / `pop_rule_context` pairs per 8-pattern bench parse that maintain a stack whose only live consumers are High/Debug diagnostics. The allocating legacy `push_rule_context(&str)` API remains outside the optimization and keeps unconditional compatibility semantics.
+
+⛔ **The `-0174` process-once `OnceLock<bool>` idea was rejected before implementation.** PGEN exposes mutable `set_global_trace_verbosity(...)`, and pipeline construction, CLI/probes, and tests use it. Caching the first trace state for the process would therefore lose rule-context output after `None → High` or preserve hot-path stack traffic after `High → None`.
+
+The pre-registered safe mechanism is a per-outermost static transaction latch: sample `trace_enabled(High)` once at depth zero, keep push/pop behavior symmetric for that call tree, and resample on the next outermost parse. This preserves trace changes between parses and prevents mid-tree changes from unbalancing the context chain. Land/revert is fixed before measurement: all correctness/trace gates green, corpus MAX ≤483,583 ns, and alternated fat-LTO 5×2000 candidate/base ≤0.9772; otherwise revert. No generated artifact, public parser contract, live-status row, or book behavior changed in this design-only slice.
+
 ## 2026-07-20 - PGEN-RGX-0078-0174 — `.5.j.4` **BATCH-1 pricing pre-flight: two members refused on population grounds, the previous slice's own recommendation withdrawn, and a 74x larger member uncovered** (read-only)
 
 Executes the `-0173` NEXT pointer: price BATCH-1 members 2 (C2 fact-ops) and 6 (trace-eagerness) from per-parse semantic-store event counts **before** committing to the BATCH-1a chain that `-0173` recommended.
