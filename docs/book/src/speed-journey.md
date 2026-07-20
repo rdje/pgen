@@ -421,6 +421,21 @@ below 2 µs for the first time. The full-battery oracle earned its keep once mor
 a real over-prune (a version conditional the trie wrongly refused) before any measurement,
 tracing to a truncation-stickiness invariant now unit-pinned.
 
+After the trie, the campaign paused to put its own books in order: a held-carrier
+composition re-derived every queued candidate from first principles, corrected an
+accounting conflation (attributed regions and gross ceilings are not banked savings), and
+locked a stricter bar — from here, one fix per session, accepted only when the *full
+external-corpus geomean* strictly drops with identical verdicts. The first fix through
+that gate was the smallest kind of lever: the parser had been **rebuilding its semantic
+runtime state from scratch before every parse** — snapshot the facts, construct a fresh
+state, drop the old one, replay the facts, re-clone the predicate registry — a ceremony
+whose four call sites priced at a conservative ≈23 ns. Replacing it with an exact
+**in-place reset** (facts and their indices survive re-stamped to the root scope,
+everything else returns to fresh-state semantics, proven field-for-field equal to the old
+ceremony by a whole-state equality oracle) cut the corpus geomean by **−5.1%** — roughly
+2.9× the conservative pricing, the unpriced upside being the per-parse allocation traffic
+of building and dropping a populated state.
+
 The scoreboard now reads **496 µs → ≈1.94 µs, about 256×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.26 µs. The method decides — and
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.23 µs. The method decides — and
 the story continues here.

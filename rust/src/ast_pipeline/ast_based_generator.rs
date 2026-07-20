@@ -2103,27 +2103,24 @@ impl AstBasedGenerator {
                 self.negative_case_rule_hits.clear();
                 self.deterministic_partition_events.clear();
                 self.deterministic_partition_rule_hits.clear();
-                // `SV-EXH-PROOF.3.3.4.b.6.2.37.2`: preserve any facts that
-                // were pushed onto the parser BEFORE the parse is called —
-                // those are intentional preloads (e.g. the SV stdlib's
-                // `process`/`semaphore`/`mailbox` `type_name` facts loaded
-                // by `preload_systemverilog_stdlib` in parser_registry).
-                // The reset to a fresh state is intended to clear leftovers
-                // from a prior parse (or from PEG speculation that wasn't
-                // properly rolled back); preloads are stable facts that
-                // should survive that reset. We snapshot before the reset
-                // and re-push after.
-                let preloaded_facts: Vec<crate::ast_pipeline::SemanticFactRecord> =
-                    self.semantic_runtime_state.facts().to_vec();
-                self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
-                for record in preloaded_facts {
-                    self.semantic_runtime_state.push_fact_record(record);
-                }
-                // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: re-seed the composed-predicate
-                // registry after the reset (a fresh `SemanticRuntimeState`
-                // starts with an empty registry).
-                self.semantic_runtime_state
-                    .set_predicate_defs(self.semantic_runtime_annotations.clone_predicate_defs());
+                // `SV-EXH-PROOF.3.3.4.b.6.2.37.2`: facts pushed onto the
+                // parser BEFORE the parse are intentional preloads (e.g. the
+                // SV stdlib's `process`/`semaphore`/`mailbox` `type_name`
+                // facts loaded by `preload_systemverilog_stdlib` in
+                // parser_registry) and survive the per-parse reset (re-based
+                // to the root scope); everything else — leftovers from a
+                // prior parse or from PEG speculation that wasn't properly
+                // rolled back — returns to `new()` semantics, and the
+                // composed-predicate registry is re-seeded from the compiled
+                // annotations (`.3.3.4.b.5.1.5.c`).
+                // `PGEN-RGX-0078-0198`: the reset is IN PLACE — behavior-
+                // identical to the former facts().to_vec() → new() →
+                // push_fact_record replay → set_predicate_defs(clone)
+                // ceremony, without rebuilding and dropping the whole state
+                // on every parse.
+                self.semantic_runtime_state.reset_for_new_parse(
+                    self.semantic_runtime_annotations.predicate_defs_map(),
+                );
             }
 
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -11424,11 +11421,15 @@ mod semantic_usage_tests {
             "generated parser should own semantic runtime state, got: {}",
             rendered
         );
+        // `PGEN-RGX-0078-0198` — re-pinned: the per-parse reset is IN PLACE
+        // (preserving facts/fact indices and the re-seeded predicate defs)
+        // instead of the historical whole-state `SemanticRuntimeState::new()`
+        // replacement ceremony.
         assert!(
-            rendered.contains(
-                "self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();"
-            ),
-            "parse() should reset semantic runtime state, got: {}",
+            (rendered.contains("reset_for_new_parse(") || rendered.contains("reset_for_new_parse ("))
+                && (rendered.contains("predicate_defs_map()")
+                    || rendered.contains("predicate_defs_map ()")),
+            "parse() should reset semantic runtime state in place from the compiled predicate defs, got: {}",
             rendered
         );
         assert!(

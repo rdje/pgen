@@ -1354,6 +1354,14 @@ impl CompiledSemanticRuntimeAnnotations {
         self.predicate_defs.clone()
     }
 
+    /// `PGEN-RGX-0078-0198`: borrow the predicate-def registry for the
+    /// in-place per-parse reset ([`SemanticRuntimeState::reset_for_new_parse`]),
+    /// which `clone_from`s it into the state instead of the historical
+    /// per-parse fresh clone + drop.
+    pub fn predicate_defs_map(&self) -> &HashMap<String, PredicateDef> {
+        &self.predicate_defs
+    }
+
     /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: accessor for the fact-kind registry.
     /// Returns the declared `FactKindDecl` for `name`, or `None` if no
     /// `@fact_kind:` block declared this name.
@@ -2693,6 +2701,67 @@ impl SemanticRuntimeState {
     /// registry — they are handled directly by `evaluate_predicate`.
     pub fn set_predicate_defs(&mut self, defs: HashMap<String, PredicateDef>) {
         self.predicate_defs = defs;
+    }
+
+    /// `PGEN-RGX-0078-0198`: the in-place per-parse reset — the allocation-
+    /// reusing equivalent of the historical generated `prepare_parse_state`
+    /// ceremony (`facts().to_vec()` snapshot → whole
+    /// `SemanticRuntimeState::new()` replacement/drop → `push_fact_record`
+    /// replay → `set_predicate_defs` fresh clone), which priced at ≈22.6 ns of
+    /// every parse (G3, `docs/tasks/artifacts/g3_setup_teardown_pricing/`).
+    ///
+    /// Exact-equivalence contract (proven against the replayed legacy ceremony
+    /// by the `reset_for_new_parse_*` tests via the derived `PartialEq`):
+    /// after this call the state is field-for-field equal to a fresh `new()`
+    /// state that replayed every fact via `push_fact_record` and was then
+    /// seeded with `set_predicate_defs(predicate_defs.clone())`:
+    /// - facts survive in insertion order, each re-stamped to the root scope
+    ///   (`scope_depth = 0`, `scope_id = ScopeId::ROOT`) exactly as the replay
+    ///   re-bases them, with the `(kind, scope_depth, name)` index rebuilt in
+    ///   ascending-position order;
+    /// - `write_epoch` and `counters.facts_imported` equal `facts.len()` (the
+    ///   replay bumps both once per record); every other counter and state
+    ///   category — scopes, scope arena, active chain, chain trail,
+    ///   rule-context stack, deferred obligations, memo-hit counters — returns
+    ///   to `new()` semantics;
+    /// - `predicate_defs` is overwritten from the caller's table. A caller may
+    ///   have replaced the registry between parses through the public
+    ///   `semantic_runtime_state_mut()` surface, so preserving it in place
+    ///   would be a behavior change — which is also why a first-parse reset
+    ///   bypass is unsound and no such bypass exists here.
+    pub fn reset_for_new_parse(&mut self, predicate_defs: &HashMap<String, PredicateDef>) {
+        self.scopes.clear();
+        self.scopes.push(SemanticScopeFrame {
+            kind: SemanticScopeKind::Global,
+            name: None,
+        });
+        self.scope_arena.clear();
+        self.scope_arena.push(ScopeNode {
+            id: ScopeId::ROOT,
+            parent: None,
+            kind: SemanticScopeKind::Global,
+            name: None,
+            closed: false,
+            depth_when_opened: 0,
+        });
+        self.active_chain.clear();
+        self.active_chain.push(ScopeId::ROOT);
+        self.chain_trail.clear();
+        self.current_rule_context_stack.clear();
+        self.deferred_obligations.clear();
+        self.memo_hit_counts.clear();
+        self.counters = SemanticStoreCounters::default();
+        self.counters.facts_imported = self.facts.len() as u64;
+        self.write_epoch = self.facts.len() as u64;
+        let facts = &mut self.facts;
+        let fact_index = &mut self.fact_index;
+        fact_index.by_kind.clear();
+        for (position, record) in facts.iter_mut().enumerate() {
+            record.scope_depth = 0;
+            record.scope_id = ScopeId::ROOT;
+            fact_index.insert(&record.kind, 0, &record.name, position);
+        }
+        self.predicate_defs.clone_from(predicate_defs);
     }
 
     // -------------------------------------------------------------------------
@@ -9832,5 +9901,189 @@ mod tests {
             err.contains("declare it at rule level"),
             "error should direct to rule level: {err}"
         );
+    }
+
+    /// `PGEN-RGX-0078-0198`: the OLD generated `prepare_parse_state` ceremony,
+    /// replayed verbatim as the reference implementation the in-place reset
+    /// must match field-for-field.
+    fn legacy_prepare_parse_state_ceremony(
+        state: &mut SemanticRuntimeState,
+        defs: &std::collections::HashMap<String, super::PredicateDef>,
+    ) {
+        use super::SemanticFactRecord;
+        let preloaded_facts: Vec<SemanticFactRecord> = state.facts().to_vec();
+        *state = SemanticRuntimeState::new();
+        for record in preloaded_facts {
+            state.push_fact_record(record);
+        }
+        state.set_predicate_defs(defs.clone());
+    }
+
+    /// `PGEN-RGX-0078-0198`: drive every state category reachable through
+    /// PUBLIC operations into a non-`new()` value — the correctness boundary
+    /// for the reset is that generated parsers expose
+    /// `semantic_runtime_state_mut()`, so a caller may have perturbed any of
+    /// this before `parse()` runs.
+    fn mutate_every_public_state_category(state: &mut SemanticRuntimeState) {
+        use super::{PredicateDef, ScopeId, SemanticFactRecord, SemanticScopeSpec};
+        // Predicate-def drift through the public setter — the reset must
+        // OVERWRITE it from the compiled annotations, not preserve it.
+        state.set_predicate_defs(std::collections::HashMap::from([(
+            "drifted".to_string(),
+            PredicateDef {
+                name: "drifted".to_string(),
+                ..Default::default()
+            },
+        )]));
+        // A preloaded fact via the library-import path, with deliberately
+        // bogus scope stamps: `push_fact_record` re-bases both, and so must
+        // the reset when it re-stamps surviving facts.
+        state.push_fact_record(SemanticFactRecord {
+            kind: "type_name".to_string(),
+            name: SemanticRuntimeValue::Identifier("process".to_string()),
+            scope_depth: 7,
+            scope_id: ScopeId(42),
+            attributes: Vec::new(),
+        });
+        // Scope churn: an open+emit rolled back (grows counters/trail
+        // history), then an open+emit left ACTIVE across the reset boundary.
+        let checkpoint = state.checkpoint();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Package,
+            name: Some(SemanticRuntimeValue::Identifier("top_pkg".to_string())),
+        });
+        state.emit_fact(SemanticFactSpec {
+            kind: "typedef".to_string(),
+            name: SemanticRuntimeValue::Identifier("rolled_back".to_string()),
+            attributes: Vec::new(),
+        });
+        state.rollback_to(checkpoint);
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(SemanticRuntimeValue::Identifier("left_open".to_string())),
+        });
+        state.emit_fact(SemanticFactSpec {
+            kind: "member".to_string(),
+            name: SemanticRuntimeValue::Identifier("deep_fact".to_string()),
+            attributes: Vec::new(),
+        });
+        // Rule-context stack left non-empty (a mid-parse abort shape).
+        state.push_rule_context_static("outer_rule");
+        state.push_rule_context("inner_rule");
+        // Memo-hit counters, a deferred `phase: final` obligation, and a
+        // store-consulting predicate evaluation (the `Cell` counter).
+        state.record_memo_hit(3);
+        state.enqueue_deferred_obligation(
+            SemanticPredicateSpec {
+                name: "has_fact".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("rolled_back".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Final,
+                view: SemanticPredicateContentView::Raw,
+            },
+            17,
+        );
+        let _ = state.evaluate_predicate(&SemanticPredicateSpec {
+            name: "has_fact".to_string(),
+            args: vec![
+                UnifiedSemanticValue::Identifier("member".to_string()),
+                UnifiedSemanticValue::Identifier("deep_fact".to_string()),
+            ],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        });
+    }
+
+    #[test]
+    fn reset_for_new_parse_matches_legacy_ceremony_after_public_mutations() {
+        use super::{PredicateDef, ScopeId};
+        let defs = std::collections::HashMap::from([(
+            "is_declared".to_string(),
+            PredicateDef {
+                name: "is_declared".to_string(),
+                args: vec!["name".to_string()],
+                ..Default::default()
+            },
+        )]);
+        let mut legacy = SemanticRuntimeState::new();
+        let mut inplace = SemanticRuntimeState::new();
+        mutate_every_public_state_category(&mut legacy);
+        mutate_every_public_state_category(&mut inplace);
+        assert_eq!(
+            legacy, inplace,
+            "identical mutation drives must agree before reset"
+        );
+
+        legacy_prepare_parse_state_ceremony(&mut legacy, &defs);
+        inplace.reset_for_new_parse(&defs);
+        assert_eq!(legacy, inplace);
+
+        // Behavioral spot checks on the reset state: both facts survive at
+        // the root scope (the preload AND the never-rolled-back deep emit,
+        // exactly like the legacy replay), the replay bookkeeping matches,
+        // and everything else is back to `new()` semantics.
+        assert_eq!(inplace.scopes().len(), 1);
+        assert_eq!(inplace.facts().len(), 2);
+        assert!(inplace
+            .facts()
+            .iter()
+            .all(|fact| fact.scope_depth == 0 && fact.scope_id == ScopeId::ROOT));
+        assert_eq!(inplace.write_epoch(), 2);
+        assert_eq!(inplace.counters().facts_imported, 2);
+        assert_eq!(inplace.counters().facts_emitted, 0);
+        assert_eq!(inplace.deferred_obligation_count(), 0);
+        assert!(inplace.memo_hit_counts().is_empty());
+        assert_eq!(inplace.rule_context_path(), "<anonymous>");
+        assert_eq!(
+            inplace.evaluate_predicate(&SemanticPredicateSpec {
+                name: "has_fact".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("member".to_string()),
+                    UnifiedSemanticValue::Identifier("deep_fact".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn reset_for_new_parse_matches_legacy_on_empty_and_repeated_resets() {
+        use super::PredicateDef;
+        // Empty fast path: a virgin state resets to exactly a fresh state.
+        let empty_defs = std::collections::HashMap::new();
+        let mut legacy = SemanticRuntimeState::new();
+        let mut inplace = SemanticRuntimeState::new();
+        legacy_prepare_parse_state_ceremony(&mut legacy, &empty_defs);
+        inplace.reset_for_new_parse(&empty_defs);
+        assert_eq!(legacy, inplace);
+        assert_eq!(
+            inplace,
+            SemanticRuntimeState::new(),
+            "empty reset is exactly a fresh state"
+        );
+
+        // Repeated parse ceremonies with public churn in between: surviving
+        // facts accumulate (2 per round, exactly like the legacy replay) and
+        // the two implementations must stay field-for-field equal each round.
+        let defs = std::collections::HashMap::from([(
+            "again".to_string(),
+            PredicateDef {
+                name: "again".to_string(),
+                ..Default::default()
+            },
+        )]);
+        for round in 1..=3u64 {
+            mutate_every_public_state_category(&mut legacy);
+            mutate_every_public_state_category(&mut inplace);
+            legacy_prepare_parse_state_ceremony(&mut legacy, &defs);
+            inplace.reset_for_new_parse(&defs);
+            assert_eq!(legacy, inplace, "round {round}");
+            assert_eq!(inplace.facts().len(), (2 * round) as usize);
+            assert_eq!(inplace.write_epoch(), 2 * round);
+        }
     }
 }

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3cf4eb38.js";
+            window.path_to_searchindex_js = "searchindex-e6017121.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -200,11 +200,11 @@ byte-identical against the <code>pcre2test</code> oracle. Downstream consumers n
 here because some integrators care that the regex parser carries no Rust-regex-engine dependency. (Every
 <em>other</em> PGEN parser remains free to use Rust’s regex engine; only the regex parser is held to this bar.)</p>
 <h2 id="parse-time-performance-live-note-updated-2026-07-13"><a class="header" href="#parse-time-performance-live-note-updated-2026-07-13">Parse-time performance (live note, updated 2026-07-13)</a></h2>
-<p>The regex parser is under an active, tracked <strong>speed campaign</strong> (<code>RGX-0078</code>): as of 2026-07-19 the
+<p>The regex parser is under an active, tracked <strong>speed campaign</strong> (<code>RGX-0078</code>): as of 2026-07-20 the
 measured parse cost is a geomean of <strong>≈1.94µs per pattern</strong> on the 8-pattern RGX bench corpus
 (release build, fat-LTO, mimalloc-class allocator, noise-floor-minimum statistic) — down <strong>≈256×</strong>
 from ≈496µs at the campaign’s activation. On the external PCRE2 corpus the <strong>maximum</strong> observed
-parse is ≈484µs and the corpus geomean ≈1.26µs. Every speed lever lands under a
+parse is ≈484µs and the corpus geomean ≈1.23µs. Every speed lever lands under a
 hard <strong>byte-identical constraint</strong>: the accepted language, verdicts, error codes, and the runtime
 AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
 certificate-coverage, and PCRE2-compile-oracle gates), so <strong>performance work never moves the

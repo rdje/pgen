@@ -1,5 +1,17 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0198 — an exact in-place reset needs the replay's bookkeeping, not a field wipe
+
+**"Reset" is not "zero" — it is "whatever the old ceremony left behind."** The legacy per-parse ceremony did not produce a pristine state: replaying N preserved facts through `push_fact_record` left `write_epoch = N` and `counters.facts_imported = N`, re-stamped every fact to the root scope, and rebuilt the index in ascending-position order. An in-place replacement that naively zeroed the epoch or preserved fact scope stamps would have been observably different through public accessors. Deriving the exact post-state from the replay's source line by line — then locking it with a whole-state `PartialEq` oracle against the verbatim-replayed old ceremony — is what made "behavior-identical" a proof instead of a claim.
+
+**A conservative lower bound can under-price a lever ~3×.** The `-0178` pricing counted only the four cumulative call sites visible in the disassembly (22.563 ns) and explicitly named the inline state-init, field copies, and allocation traffic as unpriced. The measured land was −65.8 ns (−5.08%). The discipline of recording bounds as bounds (never "the estimate") is why this surprise was a windfall and not a broken model.
+
+**Session-to-session corpus drift justifies the same-session ratchet.** The same preserved base probe that measured 1,263.4 ns geomean in `-0176` measured 1,293.5 ns this session (+2.4%, thermal/OS vintage). Comparing a candidate to a historical floor number would have adjudicated the drift, not the fix. The `-0197` rule — both sides built and measured in one custody session — is what the numbers actually require.
+
+**A generated artifact embeds its own output path.** The ebnf fixed-point check failed spuriously because the regenerated copy was written to a different filename and the artifact embeds that path in its error-context strings (~3,056 occurrences). The honest check is byte-identity modulo the embedded own-output-path — now encoded in the committed regen-train script rather than rediscovered next time.
+
+**An emitter-contract test is part of the emission.** `generated_parser_runtime_contract_owns_semantic_runtime_fields` pinned the old ceremony's exact text and failed the instant the emission changed — exactly its job. The re-pin belongs to the same slice as the emitter change; leaving it to a follow-up would have left the battery red at the vintage that mattered.
+
 ## 2026-07-20 - PGEN-RGX-0078-0197 — current-side cost is not banked net speed
 
 **Evidence tiers cannot be summed into a net claim.** The reconstructed 102.138976561 ns combines exact instructions/work on the current side with whole caller-attributed regions. The latter contain required work that survives any replacement. Even exact removable instructions owe new instructions. The only honest net value before an implementation A/B is zero.
