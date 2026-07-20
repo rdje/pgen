@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0179 — profiler output format is part of instrument custody
+
+**A dynamic profile can still discard the dynamic fact a later question needs.** macOS `sample` retained correct self totals but condensed several top-frame instruction addresses beneath one count. Symbol-level attribution survived; per-instruction attribution did not. Checking the report's information model before another capture saved a repeat of a structurally unusable measurement.
+
+**An ellipsis is a hard data boundary, not an invitation to distribute counts.** Neither equal splitting nor static instruction frequencies can reconstruct per-PC weights. The honest result is instrument-incomplete, even when the visible residue strongly resembles the expected memory-heavy shape.
+
+**Pre-qualify the sampler on the exact downstream invariant.** The next instrument must demonstrate at least 95% one-PC coverage after ASLR normalization on a short run before it earns a full three-band capture. Tool availability or a “timeline/raw” option is only a candidate capability until the retained artifact proves it.
+
+**Do not confuse a measurement refusal with a mechanism refusal.** The fused regions remain a real 14.6% dynamic self population. This leaf says the banked format cannot partition it, not that the opportunity is absent.
+
 ## 2026-07-20 - PGEN-RGX-0078-0178 — a profiler sees work that a timer may exclude
 
 **Always locate the metric boundary in the optimized binary.** Continuous sampling correctly reported parser and arena destruction, but the benchmark's `Duration` had already been captured. A profile describes CPU work; it does not automatically describe the arithmetic inside a narrower stopwatch. The source order suggested this, and the preserved fat-LTO disassembly made it decisive.

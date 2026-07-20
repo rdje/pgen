@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0179 — banked fused-spine profiles fail the per-PC evidence requirement
+
+The custody-pinned banked profiles were audited at their raw report-format boundary before any memory-traffic target was inferred. `filtercalltree -invertCallTree -pruneCount 1` reproduces the exact `cascade_match_piece + cascade_match_atom{closure}` flat-self populations (1,740 / 1,659 / 1,673), but macOS `sample` groups several top-frame PCs under one count and prints an ellipsis rather than per-PC weights. Only 17 / 28 / 91 self samples retain one unambiguous address = **0.9770% / 1.6878% / 5.4393%** coverage.
+
+Conservatively log-weighted, the two fused regions account for **14.6044%** of full-corpus dynamic samples. Unambiguous PCs cover only **0.3598% of the corpus = 2.4637% of that target**; **14.2445%** is undistributable. The exact 136-sample residue maps to 111 memory / 7 control / 18 other instructions, but is a selected and mechanistically mixed tail. No extrapolation, G1-C/memo overlap subtraction, removable mechanism, or nanosecond price is valid.
+
+The result is therefore **INSTRUMENT-INCOMPLETE**, not “no fused-spine opportunity.” BATCH-1 + G3 remains **84.385 ns / HOLD**. The next owned leaf qualifies a raw/timeline sampler with a pre-registered **>=95% one-PC coverage** bar before any full three-band recapture. Floor, MAX, parser source, emitter, generated artifact, preserved probe, public behavior, mdBook, contracts, and LIVE rows are unchanged.
+
 ## 2026-07-20 - PGEN-RGX-0078-0178 — G3 timer-boundary audit removes teardown from the model and prices one virgin-reset mechanism
 
 The custody-pinned preserved probe settles a foundational ambiguity in the G3 profile class. `regex_perf_probe::parse_once_timed` reads its end clock at return offset +8704; normal `RegexParser` and `NodeArena` destruction follows at +8760 and +8788. Their cumulative call sites consume **8.5216%** of the weighted sample loop—equivalent to a false **107.662 ns** target if multiplied by the 1,263.4 ns floor—but cannot change the duration already captured. Teardown therefore contributes **zero** to the closure metric, superseding the earlier “setup + teardown ≈6–8%” shorthand.
