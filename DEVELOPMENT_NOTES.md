@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0181 — injected profilers must discover the executable, not assume its index
+
+**Dyld image ordering changes under injection.** Treating image 0 as the executable yielded a plausible-looking but impossible slide and zero target PCs. Iterating Mach-O headers for `MH_EXECUTE` made normalization exact. ASLR custody needs a semantic identity check, not a positional convention.
+
+**Keep the signal handler beneath the async-safety line.** One lock-free index reservation and one preallocated store are enough. Buffer emission, hashes, symbols, disassembly, and classification all belong after the timer is disabled; this makes the raw fact auditable without depending on signal-unsafe library behavior.
+
+**Nominal timer interval is not delivered interval.** A requested 250 us `ITIMER_PROF` interval arrived every 4,713 us of CPU time on this host. Statistical sufficiency must be expressed as observed total/target counts, not seconds or requested frequency.
+
+**Qualification data can validate an instrument without pricing a corpus.** The 88.4% target-memory share is useful directional evidence, but the eight-pattern mix and 147 target samples are not the PCRE2 geomean bands. The bar stays at retention/re-sum/observer effect until the proper population is captured.
+
 ## 2026-07-20 - PGEN-RGX-0078-0180 — qualify privilege as well as retention
 
 **A promising output format is irrelevant if the capture boundary is unavailable.** `spindump` advertises raw/timeline features that might preserve per-PC weights, but live capture requires root on this host. The same exit outside the sandbox distinguished a product privilege boundary from a harness restriction immediately.

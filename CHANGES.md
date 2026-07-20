@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0181 — no-root in-process PC sampler qualifies at 100% target retention
+
+A preload instrumentation library now answers the per-instruction question without mutating the preserved parser probe or requiring root/debugger attachment. Its `ITIMER_PROF` handler reads the arm64 PC from `ucontext_t`, reserves a fixed-buffer slot with a compile-time-required lock-free atomic, and stores one address—no signal-context allocation, locks, formatting, I/O, or symbol work. Teardown blocks/disables/restores before emitting raw PCs; all normalization and disassembly occur offline.
+
+Qualification captured **1,603 seen / 1,603 stored / zero dropped** and exactly re-summed piece 85 + atom closure 62 + other main text 1,294 + external/injected 162. Every target PC normalized to one exact full-SHA-pinned instruction: **147/147 = 100.0000% retention**, clearing the >=95% bar. Paired eight-pattern p50 geomean injected/base was **0.980749x**, inside the 2.28% same-binary noise span. The target residue was 88.4354% memory dynamically, directional only—this is not the PCRE2 band workload and no nanoseconds are priced.
+
+The first run caught and corrected a foundational instrument bug: assuming dyld image index 0 was the executable produced a wrong slide and zero targets because injection changes image order. The sampler now finds the loaded `MH_EXECUTE` header explicitly. A second caveat is measured: requested 250 us delivery was **4,713.171 us effective**, so full captures are governed by observed sample counts. The next leaf reconstructs and profiles all three bands sequentially, requiring >=10,000 stored and >=1,000 target PCs per band. Floor, MAX, parser/emitter/generated artifact, preserved probe, public behavior, mdBook, contracts, and LIVE rows are unchanged.
+
 ## 2026-07-20 - PGEN-RGX-0078-0180 — raw/timeline sampler candidate refused at the root boundary
 
 The first replacement for macOS `sample` was qualified before any full-band recapture. The unchanged preserved C1 probe was verified by full SHA-256 and live text-image path at PID 94599; no competing build/profile job ran, disk had 64 GiB free, and memory had zero throttled pages. A three-second `spindump` target-only timeline/raw command then returned **exit 77** twice—once sandboxed and once through the approved unsandboxed path—with the same requirement that live-system sampling run as root.

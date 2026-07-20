@@ -1,0 +1,48 @@
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+sampler dylib sha256: 7065418bc58f6c4c85c9af63e6186e3ef16ebdc9a665166e4c9f59b753f40a10
+raw: pid=2037 interval_us=250 seen=1603 stored=1603 dropped=0 slide=0x4470000
+delivery: cpu_elapsed_us=7555213 effective_interval_us=4713.171
+location re-sum:
+  piece                      85    5.3026%
+  atom_closure               62    3.8677%
+  main_text_other          1294   80.7236%
+  external_or_injected      162   10.1061%
+  TOTAL                    1603  100.0000%
+target one-PC retention: 147/147 = 100.0000% (required >= 95.0%)
+target instruction classes:
+  memory        130   88.4354%
+  control         9    6.1224%
+  call            0    0.0000%
+  other           8    5.4422%
+top target PCs:
+       4  piece        +   84  add x9, x9, #0x10
+       3  piece        + 1336  stp x15, x14, [sp, #0x158]
+       3  piece        +14420  ldr x8, [x20, #0x258]
+       3  piece        +14436  ldr x23, [sp, #0x410]
+       2  atom_closure +42952  ldr x9, [x20, #0x2f8]
+       2  atom_closure +61788  ldr x9, [x20, #0x2f8]
+       2  atom_closure +17664  ldr x1, [x20, #0x2f8]
+       2  piece        + 1208  ldr x8, [x20, #0x278]
+       2  piece        +12440  ldr x9, [x20, #0x2f8]
+       2  piece        +13344  ldr x8, [x20, #0x490]
+       2  atom_closure +34928  ldr x11, [x20, #0x2f8]
+       2  piece        +  220  ldr x8, [x20, #0x490]
+       2  piece        + 3924  ldr x9, [x20, #0x2f8]
+       2  piece        +13232  ldurh w13, [x12, #-0x8]
+       2  piece        +14404  ldr x9, [sp, #0xa0]
+       2  atom_closure +32596  ldr x9, [x20, #0x2f8]
+       2  piece        +24524  ldrb w8, [x20, #0x504]
+       2  atom_closure +72516  ldp x28, x27, [sp], #0x60
+       2  piece        +24760  ldr x23, [x20, #0x288]
+       2  atom_closure + 9784  cmp x22, x1
+observer p50 geomean ratio injected/base: 0.980749
+  literal_simple              666 ->    625 ns  0.938438x
+  digit_sequence             1583 ->   1583 ns  1.000000x
+  character_class            9000 ->   9042 ns  1.004667x
+  alternation                1625 ->   1542 ns  0.948923x
+  capture_groups             3542 ->   3500 ns  0.988142x
+  url_simple                 1291 ->   1250 ns  0.968242x
+  email_basic                1333 ->   1333 ns  1.000000x
+  anchor_complex             4458 ->   4458 ns  1.000000x
+qualification: PASS (raw PCs re-sum; target retention clears 95%)
+scope: qualification workload only; no corpus nanoseconds priced
