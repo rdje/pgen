@@ -1,0 +1,64 @@
+custody: generated/regex_parser.rs sha256 prefix 3814aea1 OK (the -0201 floor vintage)
+fused region start line: 413832 (first fn cascade_*)
+fused fns: cascade=490 scan=30
+-- ParseError constructions INSIDE the fused region:
+   ParseError::Backtrack = 1054
+   ParseError::InvalidSyntax = 56
+   ParseError::RecursionDepthExceeded = 28
+   ParseError::ContextualError = 0
+   ParseError::UnexpectedEof = 0
+   ParseError::UnexpectedToken = 0
+-- UnexpectedEof/UnexpectedToken constructions across ALL 11 artifacts:
+   generated/json_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/regex_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/return_annotation_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/rtl_const_expr_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/rtl_frontend_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/scratch_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/semantic_annotation_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/systemverilog_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/systemverilog_preprocessor_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/vhdl_parser.rs: UnexpectedEof=0 UnexpectedToken=0
+   generated/ebnf.rs: UnexpectedEof=0 UnexpectedToken=0
+-- fused-region helper-call census (the error-channel producers/edges; whole-file \s* matching per the generated-artifact rule):
+   parser.match_lit_ascii = 1076
+   parser.match_string = 42
+   parser.match_regex = 0
+   parser.try_parse_bare = 193
+   parser.scan_* = 231
+   parser.parse_* (protocol boundary call-outs) = 93
+   distinct boundary callees:
+          18 parse_builtin_any_char
+          18 parse_brace_ws
+          17 parse_class_zero_width
+          13 parse_pattern
+           3 parse_unicode_escape
+           2 parse_scs_capture_name
+           2 parse_builtin_ascii_char
+           1 parse_simple_escape_letter_relaxed
+           1 parse_python_named_group
+           1 parse_python_named_backreference
+           1 parse_non_atomic_lookbehind_pos
+           1 parse_non_atomic_lookahead_pos
+           1 parse_named_subroutine_target
+           1 parse_named_group
+           1 parse_named_backreference
+           1 parse_lookbehind_pos
+           1 parse_lookbehind_neg
+           1 parse_lookahead_pos
+           1 parse_lookahead_neg
+           1 parse_keep_out
+           1 parse_directive_relaxed_named
+           1 parse_descending_class_range
+           1 parse_counted_quantifier_range
+           1 parse_class_simple_escape_relaxed
+           1 parse_class_range_literal_escape_letter_relaxed
+           1 parse_capture_open
+           1 parse_alpha_lookaround
+-- the region's only outbound error edge (sub-root orchestrators):
+   cascade fns returning ParseResult<ParseNode> = 19
+   .cascade_match_* called from the prelude = 0 (must be 0)
+   .cascade_* twin-dispatch sites in the prelude = 108
+   .scan_* protocol-side sites in the prelude = 273
+-- rich-error reachability (inbound): create_contextual_error callers (prelude) = 13; inside region = 0
+CENSUS OK

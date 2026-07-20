@@ -462,6 +462,11 @@ impl AstBasedGenerator {
             }
         }
         Ok(quote! {
+            // RGX-0078.5.j.4 (-0202) — the drop-free internal error carrier
+            // for the fused graph (also consumed by the emitted bare terminal
+            // twins and boundary conversion helpers). Emitted only when a
+            // cascade plan is active, so no artifact carries an unused import.
+            use crate::ast_pipeline::{CascadeControlError, CascadeResult};
             /// RGX-0078.5.i.7 (D2-A + D2-B + MTB-A) — the FUSED cascade graph:
             /// compact per-rule functions for the bare-parse path (no coverage /
             /// trace / counters / memo-stats consumer). Entered exclusively
@@ -587,7 +592,7 @@ impl AstBasedGenerator {
             let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
             let recursion_guard_max_depth = super::GENERATED_RECURSION_GUARD_MAX_DEPTH;
             return Ok(quote! {
-                fn #match_fn(&mut self) -> ParseResult<()> {
+                fn #match_fn(&mut self) -> CascadeResult<()> {
                     let parser = self;
                     // The protocol method's rule-entry furthest update — the only
                     // furthest write site — mirrored one-for-one for exact parity.
@@ -597,19 +602,19 @@ impl AstBasedGenerator {
                     let position = parser.position;
                     match parser.recursion_guard.check_cycle_id(Self::#rule_const, position) {
                         CycleType::Infinite => {
-                            return Err(ParseError::InvalidSyntax {
+                            return Err(CascadeControlError::InvalidSyntax {
                                 message: "Infinite recursion detected",
                                 position,
                             });
                         }
                         CycleType::LeftRecursive => {
-                            return Err(ParseError::InvalidSyntax {
+                            return Err(CascadeControlError::InvalidSyntax {
                                 message: "Left recursion detected",
                                 position,
                             });
                         }
                         CycleType::MutualRecursive { depth, .. } if depth >= #recursion_guard_max_depth => {
-                            return Err(ParseError::RecursionDepthExceeded {
+                            return Err(CascadeControlError::RecursionDepthExceeded {
                                 position,
                                 depth,
                             });
@@ -642,7 +647,7 @@ impl AstBasedGenerator {
                                     return Ok(());
                                 }
                                 None => {
-                                    return Err(ParseError::Backtrack { position });
+                                    return Err(CascadeControlError::Backtrack { position });
                                 }
                             }
                         }
@@ -661,8 +666,8 @@ impl AstBasedGenerator {
                     // through RULE_NAMES, so the 24-byte name frame is not
                     // maintained here.
                     parser.recursion_guard.enter_id_bare(Self::#rule_const, position);
-                    let __pgen_thin_result: ParseResult<()> =
-                        (|parser: &mut Self| -> ParseResult<()> {
+                    let __pgen_thin_result: CascadeResult<()> =
+                        (|parser: &mut Self| -> CascadeResult<()> {
                             #parse_logic
                             Ok(())
                         })(parser);
@@ -728,7 +733,7 @@ impl AstBasedGenerator {
         }
 
         Ok(quote! {
-            fn #match_fn(&mut self) -> ParseResult<()> {
+            fn #match_fn(&mut self) -> CascadeResult<()> {
                 let parser = self;
                 // The protocol method's rule-entry furthest update — the only
                 // furthest write site — mirrored one-for-one for exact parity.
@@ -795,7 +800,7 @@ impl AstBasedGenerator {
                     let __pgen_spec_start = parser.position;
                     let __pgen_spec_ev_mark = parser.deriv_events.len();
                     let __pgen_spec_b_mark = parser.deriv_boundary.len();
-                    match (|parser: &mut Self| -> ParseResult<_> { #body })(parser) {
+                    match (|parser: &mut Self| -> CascadeResult<_> { #body })(parser) {
                         Ok(__pgen_speculated) => Some(__pgen_speculated),
                         Err(_) => {
                             parser.position = __pgen_spec_start;
@@ -876,7 +881,7 @@ impl AstBasedGenerator {
                     #(#byte_patterns)|* => {
                         #speculation
                         if __pgen_attempt.is_none() {
-                            return Err(ParseError::Backtrack {
+                            return Err(CascadeControlError::Backtrack {
                                 position: parse_start,
                             });
                         }
@@ -889,13 +894,13 @@ impl AstBasedGenerator {
                     match parser.input.as_bytes()[parse_start] {
                         #(#dispatch_arms,)*
                         _ => {
-                            return Err(ParseError::Backtrack {
+                            return Err(CascadeControlError::Backtrack {
                                 position: parse_start,
                             });
                         }
                     }
                 } else {
-                    return Err(ParseError::Backtrack {
+                    return Err(CascadeControlError::Backtrack {
                         position: parse_start,
                     });
                 }
@@ -1163,7 +1168,7 @@ impl AstBasedGenerator {
                 #island_winner_replay
             } else {
                 parser.deriv_events.truncate(__pgen_or_ev_mark);
-                return Err(ParseError::Backtrack {
+                return Err(CascadeControlError::Backtrack {
                     position: parse_start,
                 });
             }
@@ -1272,7 +1277,11 @@ impl AstBasedGenerator {
                 match token_type.as_str() {
                     "quoted_string" | "number" | "probability" | "include_dir" | "include_file"
                     | "rule" => {
-                        let match_call = Self::terminal_literal_match_call(token_value);
+                        // RGX-0078.5.j.4 (-0202) — fused bodies call the BARE
+                        // terminal twins, which construct the Copy
+                        // `CascadeControlError` at the source (the hottest
+                        // producer: 1,076 sites in the regex artifact).
+                        let match_call = Self::terminal_literal_match_call_bare(token_value);
                         if self.layout_sensitivity().terminals {
                             // No layout skip can precede this literal: the
                             // build cursor derives start AND end statically.
@@ -1308,17 +1317,35 @@ impl AstBasedGenerator {
                             // value rides the side vec exactly as before (the
                             // build pass is untouched).
                             let scan_target = format_ident!("scan_{}", token_value);
+                            // RGX-0078.5.j.4 (-0202) — the scanner keeps its
+                            // shared `ParseResult` signature (273 protocol-side
+                            // call sites); the fused site converts its error
+                            // into the Copy internal carrier (total: rich
+                            // variants park).
                             Ok(quote! {
-                                let __pgen_alt_child = parser.#scan_target()?;
+                                let __pgen_alt_child = match parser.#scan_target() {
+                                    Ok(__pgen_v) => __pgen_v,
+                                    Err(__pgen_e) => {
+                                        return Err(parser.cascade_error_from_parse(__pgen_e));
+                                    }
+                                };
                                 parser.deriv_boundary.push(parser.arena.alloc(__pgen_alt_child));
                             })
                         } else {
                             // A sub-root or an ineligible rule: a BOUNDARY
                             // call-out — the protocol method returns a full
                             // value, recorded on the side vec in append order.
+                            // RGX-0078.5.j.4 (-0202) — the inbound conversion
+                            // is total: the three Copy variants map 1:1, a
+                            // rich/legacy error parks in the slot.
                             let method = format_ident!("parse_{}", token_value);
                             Ok(quote! {
-                                let __pgen_alt_child = parser.#method()?;
+                                let __pgen_alt_child = match parser.#method() {
+                                    Ok(__pgen_v) => __pgen_v,
+                                    Err(__pgen_e) => {
+                                        return Err(parser.cascade_error_from_parse(__pgen_e));
+                                    }
+                                };
                                 parser.deriv_boundary.push(parser.arena.alloc(__pgen_alt_child));
                             })
                         }
@@ -1341,10 +1368,20 @@ impl AstBasedGenerator {
                         // the TokStart elision.
                         let start_dynamic =
                             skip_leading_whitespace && !self.layout_sensitivity().regex_tokens;
+                        // RGX-0078.5.j.4 (-0202) — `match_regex` keeps its
+                        // shared `ParseResult` signature (protocol callers);
+                        // the fused site converts its error into the Copy
+                        // internal carrier (total: rich variants park).
                         if start_dynamic {
                             Ok(quote! {
-                                let __pgen_matched =
-                                    parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                let __pgen_matched = match parser
+                                    .match_regex(#effective_regex_pattern, #skip_leading_whitespace)
+                                {
+                                    Ok(__pgen_v) => __pgen_v,
+                                    Err(__pgen_e) => {
+                                        return Err(parser.cascade_error_from_parse(__pgen_e));
+                                    }
+                                };
                                 parser.deriv_events.push(crate::ast_pipeline::DerivEvent::TokStart(
                                     parser.position - __pgen_matched.len(),
                                 ));
@@ -1354,7 +1391,11 @@ impl AstBasedGenerator {
                             })
                         } else {
                             Ok(quote! {
-                                parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                if let Err(__pgen_e) = parser
+                                    .match_regex(#effective_regex_pattern, #skip_leading_whitespace)
+                                {
+                                    return Err(parser.cascade_error_from_parse(__pgen_e));
+                                }
                                 parser.deriv_events.push(
                                     crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
                                 );
@@ -1404,7 +1445,7 @@ impl AstBasedGenerator {
                 quote! {
                     if iteration_count < #min_lit {
                         parser.position = quantifier_start_position;
-                        return Err(ParseError::Backtrack {
+                        return Err(CascadeControlError::Backtrack {
                             position: quantifier_start_position,
                         });
                     }
@@ -1522,7 +1563,7 @@ impl AstBasedGenerator {
             parser.deriv_events.truncate(__pgen_la_ev_mark);
             parser.deriv_boundary.truncate(__pgen_la_b_mark);
             if #failure_condition {
-                return Err(ParseError::Backtrack {
+                return Err(CascadeControlError::Backtrack {
                     position: lookahead_start,
                 });
             }
@@ -2118,7 +2159,11 @@ impl AstBasedGenerator {
                         // position-like state the error path must unwind.
                         parser.deriv_events.truncate(__pgen_orch_ev_mark);
                         parser.deriv_boundary.truncate(__pgen_orch_b_mark);
-                        Err(__pgen_err)
+                        // RGX-0078.5.j.4 (-0202) — the region's ONLY outbound
+                        // error edge: rehydrate the Copy internal carrier into
+                        // the rich public `ParseError` (bijective; `Parked`
+                        // takes the slot).
+                        Err(parser.rehydrate_cascade_error(__pgen_err))
                     }
                 }
             }

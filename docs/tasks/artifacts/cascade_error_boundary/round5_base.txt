@@ -1,0 +1,19 @@
+memory-guard: started pid=9153 pgid=9153 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=75% disk=30GB cmd: caffeinate -i /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/f1f4ceb7-a1e0-49cd-ac3b-af8846c28161/scratchpad/r0202/regex_perf_probe_base --samples 2000 --warmup 200
+# Regex parse perf probe — PGEN-RGX-0073 baseline
+# samples=2000 warmup=200 build=release feature=generated_parsers
+
+pattern                  min (ns)       p50 (ns)      mean (ns)       p99 (ns)       max (ns)    samples
+------------------------------------------------------------------------------------------------------
+literal_simple                541            625            609            667           2041       2000
+digit_sequence               1458           1542           1553           1667           2416       2000
+character_class              7583           8542           8703          10917          81834       2000
+alternation                  1375           1458           1496           1667          40334       2000
+capture_groups               3167           3333           3343           3542           9959       2000
+url_simple                   1083           1167           1173           1292           5209       2000
+email_basic                  1166           1250           1267           1417           5500       2000
+anchor_complex               4041           4250           4270           4542           7000       2000
+
+# RGX bug-bundle reference (rgx_compile_phase_split.txt, 1000 samples, 50 warmup, Apple M4 Pro):
+# literal_simple ~407ns p50  digit_sequence ~819ns  character_class ~2.35ms  alternation ~1.02ms
+# capture_groups ~1.56ms     url_simple ~1.45ms      email_basic ~1.17ms     anchor_complex ~2.70ms
+memory-guard: completed exit=0 peak_tree_rss=0MB elapsed=5s; marker: rust/target/generated_logs/memory_guard/guard.9153.marker

@@ -1314,6 +1314,19 @@ an outcome dump, trace, a counter handle — runs the protocol graph, where ever
 counter is exact; the boundary is documented on the counters accessor itself, so an
 API reader meets it exactly where they would rely on it.
 
+The fused graph's **error channel** carries the same boundary discipline. The public
+parse error deliberately stays rich — a message, the rule stack, an input excerpt — which
+makes it an 80-byte owning value; inside the fused region, where errors are ordinary
+control flow (every abandoned speculation is one), the generated code uses a 32-byte
+`Copy` **internal control error** instead, mirroring exactly the three variants fused
+code can produce. It is converted to the public form only at the region's single exit
+edge, variant-for-variant, so callers observe byte-identical error payloads; the rare
+rich error produced by a protocol method *called from inside* the region parks in a
+dedicated parser slot and crosses the region as a zero-payload marker, rehydrated intact
+at that same edge. Being `Copy`, a discarded fused speculation result now compiles to no
+drop code at all — the destructor calls that previously ran on every abandoned attempt
+are gone by construction, and the error values that remain are register-friendly.
+
 Two store-soundness rules survive into the fused code, both computed statically from the
 same census plan the report prints (one implementation, so the plan and the emission
 cannot drift). A fused speculation that could reach a fact-writing rule keeps the full

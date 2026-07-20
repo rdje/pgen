@@ -1159,6 +1159,8 @@ mod tests {
 
         // The cascade boundary seam: a fused body referencing the residual plan
         // rule `num` calls the frameless scan, value on the side vec unchanged.
+        // RGX-0078.5.j.4 (-0202): the fused site converts the scanner's shared
+        // `ParseResult` error into the Copy internal carrier.
         let cascade_rendered = strip_ws(
             &generator
                 .generate_cascade_impl(&parser_name, "scan_test.rs")
@@ -1166,9 +1168,10 @@ mod tests {
                 .to_string(),
         );
         assert!(
-            cascade_rendered.contains("parser.scan_num()?")
+            cascade_rendered.contains("matchparser.scan_num()")
+                && cascade_rendered.contains("cascade_error_from_parse")
                 && cascade_rendered.contains("deriv_boundary.push"),
-            "fused bodies dispatch boundary references to scan fns, got: {cascade_rendered}"
+            "fused bodies dispatch boundary references to scan fns through the -0202 conversion, got: {cascade_rendered}"
         );
     }
 

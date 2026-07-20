@@ -860,6 +860,12 @@ impl AstBasedGenerator {
                 // the parse) — thereby requests truthful per-rule counters
                 // and routes the parse to the protocol graph automatically.
                 counters_observed: std::cell::Cell<bool>,
+                // RGX-0078.5.j.4 (`-0202`) — the park slot behind
+                // `CascadeControlError::Parked`: a rich/legacy `ParseError`
+                // crossing INTO the fused graph waits here; the boundary
+                // rehydration takes it. Written only on the rare rich
+                // crossing — the hot Copy error channel never touches it.
+                cascade_parked_error: Option<ParseError>,
                 #thin_memo_struct_field
                 #mtb_struct_fields
             }
@@ -1404,6 +1410,7 @@ impl AstBasedGenerator {
             quote! {
                 bare_parse: false,
                 counters_observed: std::cell::Cell::new(false),
+                cascade_parked_error: None,
                 #thin_memo_init
                 #mtb_init
             }
@@ -5312,11 +5319,29 @@ impl AstBasedGenerator {
     /// `memcmp` call. Everything else keeps `match_string` verbatim,
     /// including the 8-bit-unclean and long-literal populations.
     fn terminal_literal_match_call(literal: &str) -> TokenStream {
-        if !literal.is_empty() && literal.len() <= 8 && literal.is_ascii() {
+        if Self::terminal_literal_takes_ascii_fast_path(literal) {
             let byte_lit = proc_macro2::Literal::byte_string(literal.as_bytes());
             quote! { match_lit_ascii(#literal, #byte_lit) }
         } else {
             quote! { match_string(#literal) }
+        }
+    }
+
+    /// The ONE fast-path predicate behind both terminal-literal selectors
+    /// (protocol and bare), so the two emissions cannot drift.
+    fn terminal_literal_takes_ascii_fast_path(literal: &str) -> bool {
+        !literal.is_empty() && literal.len() <= 8 && literal.is_ascii()
+    }
+
+    /// RGX-0078.5.j.4 (-0202) — the BARE twin selector for fused-body terminal
+    /// sites: the same decision, dispatched to the `_bare` twins that
+    /// construct the Copy `CascadeControlError` at the source.
+    fn terminal_literal_match_call_bare(literal: &str) -> TokenStream {
+        if Self::terminal_literal_takes_ascii_fast_path(literal) {
+            let byte_lit = proc_macro2::Literal::byte_string(literal.as_bytes());
+            quote! { match_lit_ascii_bare(#literal, #byte_lit) }
+        } else {
+            quote! { match_string_bare(#literal) }
         }
     }
 
@@ -6679,9 +6704,14 @@ impl AstBasedGenerator {
                 // region. The rollback uses the bare twin, which skips only
                 // the diagnostic-only `rollbacks_nonempty_chain`
                 // classification per the documented observed-parse boundary.
+                // RGX-0078.5.j.4 (`-0202`) — the closure's error channel is
+                // the Copy `CascadeResult` (every caller is a fused-graph
+                // speculation), so the discarded `Err(_)` compiles to no drop
+                // code — the executed `drop_in_place::<Result<(),
+                // ParseError>>` this lever removes.
                 fn try_parse_bare<F, T>(&mut self, f: F) -> Option<T>
                 where
-                    F: FnOnce(&mut Self) -> ParseResult<T>,
+                    F: FnOnce(&mut Self) -> CascadeResult<T>,
                 {
                     let saved_pos = self.position;
                     let saved_id_stack_len = self.recursion_guard.rule_id_stack.len();
@@ -6708,6 +6738,112 @@ impl AstBasedGenerator {
                             None
                         }
                     }
+                }
+                /// RGX-0078.5.j.4 (`-0202`) — TOTAL inbound conversion at
+                /// fused boundary call-outs (protocol methods, scanners,
+                /// `match_regex`): the three Copy-shaped variants map 1:1
+                /// with no slot write; a rich/legacy error is PARKED in
+                /// `cascade_parked_error` and carried as `Parked`, so the
+                /// public payload survives the Copy channel byte-identically.
+                fn cascade_error_from_parse(&mut self, e: ParseError) -> CascadeControlError {
+                    match e {
+                        ParseError::InvalidSyntax { message, position } => {
+                            CascadeControlError::InvalidSyntax { message, position }
+                        }
+                        ParseError::Backtrack { position } => {
+                            CascadeControlError::Backtrack { position }
+                        }
+                        ParseError::RecursionDepthExceeded { position, depth } => {
+                            CascadeControlError::RecursionDepthExceeded { position, depth }
+                        }
+                        rich => {
+                            self.cascade_parked_error = Some(rich);
+                            CascadeControlError::Parked
+                        }
+                    }
+                }
+                /// RGX-0078.5.j.4 (`-0202`) — outbound rehydration at the
+                /// region's only escape edge (the sub-root orchestrators'
+                /// failure arms): bijective 1:1 for the mirrors; `Parked`
+                /// takes the parked rich error. A live `Parked` without a
+                /// parked value is codegen drift, not an input error (the
+                /// MTB-A tape stance).
+                fn rehydrate_cascade_error(&mut self, e: CascadeControlError) -> ParseError {
+                    match e {
+                        CascadeControlError::InvalidSyntax { message, position } => {
+                            ParseError::InvalidSyntax { message, position }
+                        }
+                        CascadeControlError::Backtrack { position } => {
+                            ParseError::Backtrack { position }
+                        }
+                        CascadeControlError::RecursionDepthExceeded { position, depth } => {
+                            ParseError::RecursionDepthExceeded { position, depth }
+                        }
+                        CascadeControlError::Parked => self
+                            .cascade_parked_error
+                            .take()
+                            .expect(
+                                "cascade parked-error invariant: a live Parked marker always has a parked value",
+                            ),
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
+        // RGX-0078.5.j.4 (`-0202`) — the BARE terminal twins for fused-body
+        // sites: identical match semantics to `match_lit_ascii`/`match_string`
+        // with every diagnostic branch dropped (statically dead on the bare
+        // path — the emitted routing invariant `bare_parse ⇒ !logger_enabled ⇒
+        // !trace_enabled`), constructing the Copy `CascadeControlError` at the
+        // source. `match_string_bare`'s defensive UTF-8 boundary rich error is
+        // PARKED so its public payload is byte-identical when it escapes.
+        // `#[allow(dead_code)]`: a cascade plan whose fused bodies carry no
+        // terminal atoms emits the twins unused.
+        let bare_terminal_twins = if self.cascade_plan_active() {
+            quote! {
+                #[allow(dead_code)]
+                #[inline(always)]
+                fn match_lit_ascii_bare<const N: usize>(
+                    &mut self,
+                    expected: &'static str,
+                    expected_bytes: &[u8; N],
+                ) -> CascadeResult<&'input str> {
+                    if #allow_layout_skip_for_terminals {
+                        self.consume_layout_for_terminal(expected);
+                    }
+                    let start = self.position;
+                    let end = start + N;
+                    if end <= self.input.len()
+                        && self.input.as_bytes()[start..end] == *expected_bytes
+                    {
+                        self.position = end;
+                        return Ok(expected);
+                    }
+                    Err(CascadeControlError::Backtrack { position: start })
+                }
+                #[allow(dead_code)]
+                fn match_string_bare(&mut self, expected: &str) -> CascadeResult<&'input str> {
+                    if #allow_layout_skip_for_terminals {
+                        self.consume_layout_for_terminal(expected);
+                    }
+                    let start = self.position;
+                    let expected_bytes = expected.as_bytes();
+                    let end = start + expected_bytes.len();
+                    if self.bytes_match_at(start, expected_bytes) {
+                        if !self.input.is_char_boundary(start) || !self.input.is_char_boundary(end) {
+                            let __pgen_rich = self.create_contextual_error(&format!(
+                                "Internal UTF-8 boundary mismatch while matching '{}'",
+                                expected
+                            ));
+                            self.cascade_parked_error = Some(__pgen_rich);
+                            return Err(CascadeControlError::Parked);
+                        }
+                        self.position = end;
+                        return Ok(&self.input[start..end]);
+                    }
+                    Err(CascadeControlError::Backtrack { position: start })
                 }
             }
         } else {
@@ -8237,6 +8373,8 @@ impl AstBasedGenerator {
 
                 Err(ParseError::Backtrack { position: start })
             }
+
+            #bare_terminal_twins
 
             #match_regex_helper
 

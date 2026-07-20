@@ -479,8 +479,25 @@ session ran ≈2% hot (a proven-neutral rebuild of the baseline plus the very sa
 re-read moved +2% across sessions with no accepted performance change); the fix's own
 same-session comparison is what the gate adjudicates.
 
-The scoreboard now reads **496 µs → ≈1.81 µs, about 274×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.16 µs. The campaign's call-off
+The fifth fix made the fused graph's **error channel** as light as its happy path. The
+public parse error deliberately carries rich context — a message string, the rule stack,
+an input excerpt — which makes it an 80-byte value with a destructor, and *every*
+speculative attempt the fused graph abandons was constructing, moving, and dropping one.
+The measured target was tiny (the drop calls alone priced at ≈4 ns per parse), but the
+design followed the boundary the program had already written down: the public error type
+stays exactly as rich as it is, and the fused region gets a **32-byte `Copy` internal
+error** — mirroring the only three variants fused code can actually produce — converted
+to the public form at the region's single exit edge, bijectively, so callers see
+byte-identical payloads. A rare rich error crossing *into* the region parks in a slot on
+the parser and travels as a zero-payload marker. The corpus geomean dropped **−5.6%**
+with zero verdict flips — the first fix of this program to land clearly *outside* the
+noise span, and an honest lesson in pricing: the drop glue was the measurable sliver, and
+the unpriced bulk — narrowing every error construction, move, and discard on the
+speculation-heavy fused path from 80 bytes to a register-friendly `Copy` value — was
+worth ≈15× more than the sliver itself.
+
+The scoreboard now reads **496 µs → ≈1.71 µs, about 290×** on the bench geomean, with the
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.10 µs. The campaign's call-off
 condition now carries that drift lesson explicitly: the corpus geomean must clear 1 µs
 **with a 50 ns margin** — `(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus
 a confirmation sweep in a later session, so the closure claim reproduces on any day rather

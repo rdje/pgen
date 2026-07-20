@@ -650,6 +650,46 @@ use crate::generated_parsers::semantic_annotation::Semantic_annotationParser;
 /// Parse result type
 pub type ParseResult<T> = Result<T, ParseError>;
 
+/// RGX-0078.5.j.4 (`PGEN-RGX-0078-0202`) — the drop-free INTERNAL error
+/// carrier for the fused cascade graph. `ParseError` is 80 bytes with drop
+/// glue (its cold `ContextualError` variant owns heap payloads), so every
+/// `Result<_, ParseError>` discarded by fused speculation pays a
+/// `drop_in_place` call. This enum mirrors exactly the variants fused bodies
+/// construct, is `Copy` (`needs_drop = false` — pinned by test), and is
+/// converted to the rich public `ParseError` only at the region boundary
+/// (the sub-root orchestrators), so public error payloads are byte-identical
+/// by bijection and the public `ParseError` ABI is untouched.
+///
+/// Totality contract: any public error variant WITHOUT a mirror here
+/// (`ContextualError`, plus the legacy `UnexpectedEof`/`UnexpectedToken`,
+/// constructed by zero AST-based-generator artifacts) crosses the boundary by
+/// being PARKED in the generated parser's `cascade_parked_error` slot and
+/// carried as [`CascadeControlError::Parked`]. A live `Parked` marker always
+/// corresponds to the latest park (error propagation is synchronous and
+/// single-threaded; a marker discarded by speculation leaves only a stale,
+/// unread slot value that the next park overwrites), so the boundary
+/// `take()` always observes its own park.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CascadeControlError {
+    /// Mirror of [`ParseError::InvalidSyntax`].
+    InvalidSyntax {
+        message: &'static str,
+        position: usize,
+    },
+    /// Mirror of [`ParseError::Backtrack`].
+    Backtrack { position: usize },
+    /// Mirror of [`ParseError::RecursionDepthExceeded`].
+    RecursionDepthExceeded { position: usize, depth: usize },
+    /// A rich/legacy boundary error parked in the generated parser's
+    /// `cascade_parked_error` slot (see the totality contract above).
+    Parked,
+}
+
+/// Result alias for the fused cascade graph's internal error channel
+/// (RGX-0078.5.j.4 `-0202`). `CascadeResult<()>` is `Copy`, so a discarded
+/// fused speculation result compiles to no drop code at all.
+pub type CascadeResult<T> = Result<T, CascadeControlError>;
+
 /// Parse errors
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParseError {
@@ -1647,6 +1687,42 @@ mod diag_severity_tests {
         assert_eq!(Severity::Warning.as_str(), "WARN");
         assert_eq!(Severity::Error.as_str(), "ERROR");
         assert_eq!(Severity::Fatal.as_str(), "FATAL");
+    }
+}
+
+#[cfg(test)]
+mod cascade_control_error_tests {
+    use super::{CascadeControlError, CascadeResult, ParseResult};
+
+    // RGX-0078.5.j.4 (-0202): the in-tree layout pin the -0173 design record
+    // owed — the internal carrier must be Copy and drop-free (the whole point
+    // of the lever: `drop_in_place::<Result<(), ParseError>>` measured 4.422 ns
+    // on the fused-path profiles), and strictly narrower than the 80-byte
+    // public carrier.
+    #[test]
+    fn cascade_control_error_is_copy_dropfree_and_narrower_than_parse_error() {
+        fn assert_copy<T: Copy>() {}
+        assert_copy::<CascadeControlError>();
+        assert_copy::<CascadeResult<()>>();
+        assert!(
+            !std::mem::needs_drop::<CascadeControlError>(),
+            "the internal cascade carrier must be drop-free"
+        );
+        assert!(
+            !std::mem::needs_drop::<CascadeResult<()>>(),
+            "a discarded fused speculation result must compile to no drop code"
+        );
+        assert!(
+            std::mem::size_of::<CascadeControlError>() <= 32,
+            "the internal carrier must stay at/below the 32-byte -0173 shape-C width, got {}",
+            std::mem::size_of::<CascadeControlError>()
+        );
+        assert!(
+            std::mem::size_of::<CascadeResult<()>>() < std::mem::size_of::<ParseResult<()>>(),
+            "the internal result must be narrower than the public one ({} vs {})",
+            std::mem::size_of::<CascadeResult<()>>(),
+            std::mem::size_of::<ParseResult<()>>()
+        );
     }
 }
 
