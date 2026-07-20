@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0187 — diagnostic-only is not the same as unobservable
+
+**Classify by semantic readers before counting instructions.** `predicate_evaluations` participates in memo soundness and stays required. The rollback quartet does not steer verdicts or state mutation, so its vectorized update sequences are a valid diagnostic mechanism—but only after this source/dataflow split.
+
+**Public after-the-fact observation defeats an implicit fast-path latch.** Maintained outcome dumps announce observation before parsing and already select the protocol twin. `SemanticRuntimeState::counters()` has no equivalent pre-parse latch: an external caller can parse and then inspect cumulative counts. Removing bare-path updates silently would change that observable contract even though parse results remain identical.
+
+**Small independent mechanisms still need honest composition.** The 63-site mechanism contributes only 0.227347146 ns. It closes neither the honest pre-lookup bundle nor the replacement-aware uncertainty in the thin-index proposal. A 0.143875763 ns arithmetic sliver before known-but-unpriced work is evidence to keep searching, not permission to regenerate.
+
+**Vectorization makes site counts deceptive.** One ordinary six-instruction sequence updates two counters, while one tournament seven-instruction sequence updates four. Static counter-operation counts, instruction counts, and dynamic samples are different quantities; the exact PC union and raw sample re-sum are the pricing units.
+
 ## 2026-07-20 - PGEN-RGX-0078-0186 — price the replacement, not only the thing replaced
 
 **A required mechanism can still contain removable representation overhead.** Thin memoization itself cannot disappear: cyclic fused rules need cached outcomes, taint validation, replay, and stale invalidation. The addressable part is the choice to hash a compile-time-constant rule ID plus position at every monomorphic site. A generated per-rule position row can remove that hash/probe work without weakening the semantic contract.

@@ -1,0 +1,21 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+raw custody: sub1us=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 1to2p5=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 2p5to20=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c
+profile weights: sub1us=0.380 1to2p5=0.353 2p5to20=0.260 excluded_tail=0.007 priced_at_zero
+source contract: rollback quartet=diagnostic predicate_evaluations=required_memo_taint
+static sites: total=63 piece_plain2=12 piece_tournament4=4 atom_plain2=27 atom_tournament4=20
+static telemetry: pcs=402 classes=memory:126,control:0,other:276 accepted_overlap=0 bare_0185_overlap=0 thin_lookup_overlap=0
+forms: plain2=39x6pcs(rollbacks+unchanged) tournament4=24x7pcs(rollbacks+unchanged+tournament+tournament_unchanged)
+
+DYNAMIC COUNTS
+band=sub1us   raw=22521 plain2= 3 tournament4= 0 total= 3 classes=memory:3,control:0,other:0
+band=1to2p5   raw=24279 plain2= 7 tournament4= 0 total= 7 classes=memory:7,control:0,other:0
+band=2p5to20  raw=28308 plain2= 3 tournament4= 0 total= 3 classes=memory:3,control:0,other:0
+
+PRICING
+telemetry_share=0.017994867% telemetry_target_ns=0.227347146
+pre_lookup_held_bundle_ns=92.654979146 capture_0.30_ns=27.796493744 noise_margin_ns=-1.003506256
+optimistic_lookup_composite_ns=96.479585876 capture_0.30_ns=28.943875763 noise_margin_ns=0.143875763
+observability_boundary=public SemanticRuntimeState::counters() has no pre-parse observer latch; elision requires an explicit contract
+verdict=HOLD (telemetry alone remains 1.003506 ns short; optimistic lookup composite has only 0.143876 ns margin before omitted replacement work)
+SEMANTIC TELEMETRY EXPANSION: PASS

@@ -1,5 +1,11 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0187 — rollback telemetry adds 0.227 ns but exposes a public observability boundary
+
+The custody-pinned classifier expands 63 exact rollback-counter update sites in the sampled fused symbols: 39 ordinary two-counter vector updates and 24 tournament four-counter updates, **402 PCs** total with zero accepted/held overlap. Only **3/7/3** raw samples hit them, pricing **0.017994867% = 0.227347146 ns**. The pre-lookup held bundle becomes **92.654979146 ns**; 30% capture is **27.796493744 ns**, still **1.003506256 ns below** the 28.8 ns noise floor. Even the deliberately optimistic thin-index composite leaves only **0.143875763 ns** apparent margin before mandatory replacement work still priced at zero, so implementation remains HOLD.
+
+The reader audit also records an API constraint: rollback counters are verdict-neutral, but generated parsers expose public cumulative `SemanticRuntimeState::counters()` values that external callers may inspect after parsing. Silent bare-path elision would therefore change observable behavior; any future optimization needs an explicit opt-in or compatibility design. Parser/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: `PGEN-RGX-0078-0188`, exact residual recursion-guard fixed-traffic expansion.
+
 ## 2026-07-20 - PGEN-RGX-0078-0186 — thin-memo lookup ceiling clears arithmetically but not with honest margin
 
 Expanded every preserved-probe thin-memo entry path across its complete inlined `FxHashMap::get` mechanism. The five exact 52-instruction ranges form **260 PCs** (35 memory / 45 control / 180 other) and contribute **84 / 113 / 186** samples = **0.476863727% = 6.024696326 ns**. Hit stamp validation/replay, miss body entry, stale removal, and accepted success segment-copy/insert ranges are excluded; overlap with prior accepted ranges and the `-0185` diagnostic union is zero.
