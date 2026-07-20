@@ -216,3 +216,22 @@ Binding consequences (supersedes the `-0159` end-condition where they differ):
 4. Accuracy floor immovable throughout, as always (verdict-identity gates on every slice);
    the `-0159` measured-exhaustion discipline still governs HOW levers are adjudicated —
    only the STOPPING TRIGGER changed.
+
+---
+
+## 2026-07-20 — strict per-fix geomean ratchet and fresh-session boundary
+
+The director made the implementation acceptance rule numerical and absolute:
+each regex performance fix lands only when its canonical PCRE2 external-corpus
+geomean is strictly below its immediate baseline. Equal or higher means reject
+and revert the product change; bench-only or modeled improvement cannot
+substitute. Correctness identity and the settled **483583 ns** MAX bound remain
+additional gates.
+
+After one fix is fully implemented, verified, measured, and accepted or
+reverted, its durable result is committed with a clean tree and work stops. A
+brand-new session is mandatory before another implementation fix. The standing
+directive is recorded in
+`feedback_regex_fix_geomean_ratchet_and_fresh_session.md`; the complete
+measurement/execution contract is owned by `PGEN-RGX-0078-0197` at
+`docs/tasks/artifacts/held_carrier_batch/execution_contract.md`.

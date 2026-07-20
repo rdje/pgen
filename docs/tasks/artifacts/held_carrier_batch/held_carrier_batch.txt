@@ -1,0 +1,41 @@
+evidence custody: PASS classifiers=13 byte_exact=13
+HEADLINE RECONSTRUCTION (current-side targets, not measured net savings)
+term                         ns            evidence-tier       replacement boundary
+G1-B_drop_control             4.422000000 exact-current       drop-free internal control error
+G1-C_atom_carrier            26.700000000 attributed-region   carrier-core design required
+memo_segment_copy            30.700000000 attributed-region   carrier-core design required
+G3_reset_ceremony            22.563000000 exact-current       in-place semantic reset
+bare_diagnostics              8.042632000 exact-current       bare-path observability design
+public_telemetry              0.227347146 contract-blocked    public post-parse counters
+name_fixed                    3.940409443 exact-current       ID-only generated path + reconstruction
+name_rollback                 0.149032382 exact-current       ID-only generated path + reconstruction
+name_growth                   4.005065577 exact-current       ID-only generated path + reconstruction
+event_second_word             0.530179151 exact-current       packed/unified carrier decode
+checkpoint_duplicate          0.859310862 exact-current       six-word checkpoint
+headline_reconstructed_ns=102.138976561
+exact_current_including_blocked_ns=44.738976561
+exact_current_eligible_ns=44.511629415
+attributed_region_ns=57.400000000
+contract_blocked_ns=0.227347146
+eligible_headline_ns=101.911629415
+strict_net_saving_banked_before_implementation_ns=0.000000000
+
+ADDITIONAL GROSS / REPLACEMENT-PROXY VIEWS (not in headline)
+thin_lookup_proxy             3.824606730
+input_view                   12.316155375
+position_inner                0.828243916
+unified_boundary_metadata     1.452693317
+expanded_nonblocked_target_ns=120.333328753
+expanded_capture_0.30_ns=36.099998626 noise_margin_ns=7.299998626
+
+ACCOUNTING CORRECTION
+102.138976561ns is a pre-implementation current-side TARGET: 44.738976561ns exact current work + 57.400000000ns attributed regions
+0.227347146ns public telemetry is contract-blocked; every remaining candidate still owes replacement/codegen/ABI cost
+the historical label 'accumulated strict' is superseded; net is measured only by A/B
+
+DIRECTOR GEOMEAN RATCHET (binding)
+accept iff candidate_external_corpus_geomean_ns < immediate_baseline_geomean_ns
+equal_or_higher=REJECT_AND_REVERT before selecting the next fix
+correctness_identity=REQUIRED settled_MAX_ns<=483583=REQUIRED
+bench_or_model_improvement_without_corpus_geomean_reduction=REJECT
+HELD CARRIER COMPOSITION: PASS

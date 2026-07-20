@@ -1,5 +1,19 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0197 — current-side cost is not banked net speed
+
+**Evidence tiers cannot be summed into a net claim.** The reconstructed 102.138976561 ns combines exact instructions/work on the current side with whole caller-attributed regions. The latter contain required work that survives any replacement. Even exact removable instructions owe new instructions. The only honest net value before an implementation A/B is zero.
+
+**A strict numerical ratchet is simpler than a statistical land bar.** The director requires the canonical external-corpus geomean to move down for every accepted fix. Noise can make a small reduction uncertain, but cannot turn equality or a regression into acceptance. A custody-invalid run is rerun; a valid unfavorable run rejects and reverts the product change.
+
+**The immediate baseline must move with every accepted leaf.** Comparing all later candidates to the old 1263.4 ns campaign floor could hide a regression that remains below that historical number. Each one-fix leaf therefore compares against its immediate parent; only its accepted lower result becomes the next baseline.
+
+**Public mutability forbids a virgin-state shortcut.** A generated parser exposes `semantic_runtime_state_mut()`, so callers can alter semantic state before the first parse. Skipping reset merely because the parser has not parsed yet would preserve unintended scopes, counters, epochs, obligations, or context. An in-place reset must preserve exactly the documented preloads and predicate registry while restoring every other field to `new()` semantics.
+
+**Representation members have dependency edges.** G1-C, thin-memo segment copies, event packing, and tape unification all change ranges and moved bytes. Implementing or pricing them as independent rows invites double credit. They remain one carrier-core design. Checkpoint compaction and semantic reset are genuinely independent and can be measured singly.
+
+**One fix is one attention boundary.** After a fix has passed or failed the corpus ratchet, its accepted source or rejection evidence is committed with a clean tree and the session ends. This makes the next optimization start from a durable immediate baseline with no in-flight state or mixed context.
+
 ## 2026-07-20 - PGEN-RGX-0078-0196 — pointer provenance can be the tag-zero case
 
 **Parallel append logs can still have one semantic order.** The relevant proof is not that every event has a boundary partner; most do not. It is that match and build traverse the same AST preorder, each record is produced and consumed at the same site, and every rollback/compaction acts on whole suffixes or winner segments. That makes a stable merge possible without storing cross-indices.
