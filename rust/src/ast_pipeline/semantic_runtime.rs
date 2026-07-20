@@ -2124,7 +2124,9 @@ impl SemanticRuntimeCheckpoint {
 /// not O(store), matching the performance contract §3.7.
 #[derive(Debug, Clone, Default, PartialEq)]
 struct FactIndex {
-    by_kind: HashMap<String, FactKindIndex>,
+    // `RGX-0078.5.j.4` `-0207`: FxHash — fixed-seed, so index behavior is
+    // process-deterministic; keys are never iterated into any output.
+    by_kind: FxHashMap<String, FactKindIndex>,
 }
 
 /// `FACT-NAME-MATCHING.2` (2026-07-06): the normalized fact-NAME index key.
@@ -2163,7 +2165,9 @@ impl FactNameKey {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 struct FactKindIndex {
-    by_scope_and_name: HashMap<(usize, FactNameKey), Vec<usize>>,
+    // `-0207`: the sole iteration over this map (`positions_for_name`) feeds
+    // only order-independent aggregates (`count`/`any`).
+    by_scope_and_name: FxHashMap<(usize, FactNameKey), Vec<usize>>,
     total_count: usize,
 }
 
@@ -2405,7 +2409,9 @@ pub struct SemanticRuntimeState {
     /// predicate name is not a built-in — that's how a runtime
     /// `@predicate <user-defined-name>` call dispatches to its
     /// `@predicate_def:` body. Empty in a freshly-`new`'d state.
-    predicate_defs: HashMap<String, PredicateDef>,
+    /// (`-0207`: FxHash; the public `set_predicate_defs` /
+    /// `reset_for_new_parse` signatures keep std maps and convert here.)
+    predicate_defs: FxHashMap<String, PredicateDef>,
     /// `.3.3.4.b.5.1.6`: cumulative operation counters (observability).
     counters: SemanticStoreCounters,
     /// MEMO-STORE-SOUNDNESS.2 — the store WRITE epoch: a monotonic counter
@@ -2561,7 +2567,7 @@ impl SemanticRuntimeState {
             scope_arena: vec![root_node],
             active_chain: smallvec![ScopeId::ROOT],
             chain_trail: Vec::new(),
-            predicate_defs: HashMap::new(),
+            predicate_defs: FxHashMap::default(),
             counters: SemanticStoreCounters::default(),
             write_epoch: 0,
             // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — initialised empty; the
@@ -2732,7 +2738,7 @@ impl SemanticRuntimeState {
     /// `@predicate_def:` body. Built-in predicate names never reach this
     /// registry — they are handled directly by `evaluate_predicate`.
     pub fn set_predicate_defs(&mut self, defs: HashMap<String, PredicateDef>) {
-        self.predicate_defs = defs;
+        self.predicate_defs = defs.into_iter().collect();
     }
 
     /// `PGEN-RGX-0078-0198`: the in-place per-parse reset — the allocation-
@@ -2793,7 +2799,9 @@ impl SemanticRuntimeState {
             record.scope_id = ScopeId::ROOT;
             fact_index.insert(&record.kind, 0, &record.name, position);
         }
-        self.predicate_defs.clone_from(predicate_defs);
+        self.predicate_defs.clear();
+        self.predicate_defs
+            .extend(predicate_defs.iter().map(|(name, def)| (name.clone(), def.clone())));
     }
 
     // -------------------------------------------------------------------------

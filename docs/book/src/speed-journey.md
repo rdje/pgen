@@ -534,8 +534,27 @@ machinery) rather than tens of times above an instruction-row sliver: whole-mech
 pricing predicts container swaps the way traffic-class pricing predicts representation
 changes.
 
-The scoreboard now reads **496 µs → ≈1.61 µs, about 308×** on the bench geomean, with the
-corpus maximum observed at ≈392 µs (its non-regression guardrail settled at 425 µs with
+The eighth fix is the smallest of the series, and it was selected with its smallness
+stated up front. The fresh re-pricing on the new floor found the direct-index carrier
+verified in the machine code — the hash-map machinery physically gone, two nanoseconds
+of row-and-entry residue where sixty-one had stood — and *nothing* left on the floor
+whose honest price cleared the noise span. The largest surviving mechanism was the
+semantic store's last three standard-library hash maps, still paying SipHash rounds on
+every fact-index insert, rollback walk and predicate query: about 17 ns of measurable
+hashing, below the ≈24 ns noise floor even at full capture. The campaign's rule for
+this case is explicit: a sub-noise lever may proceed only with its license recorded —
+here, that it was the largest un-owned mechanism left, that the swap (to the same
+fixed-seed FxHash the per-rule tables have used since the fifth lever of the early
+campaign) changes no observable behavior while making the store *more* deterministic,
+and that the strict-decrease ratchet would revert it for free on a miss. The paired
+same-session sweep adjudicated: **−0.69%** corpus geomean, zero verdict flips, and a
+delivery of ≈7 ns — about 42% of the priced mechanism, the second consecutive fix to
+land inside its predicted capture band. When the honest price is below the noise you
+let the ratchet decide, and either answer is progress: a landing moves the floor, a
+reversion closes the lane for good.
+
+The scoreboard now reads **496 µs → ≈1.62 µs, about 306×** on the bench geomean, with the
+corpus maximum observed at ≈390 µs (its non-regression guardrail settled at 425 µs with
 the drift-margin logic) and the corpus geomean at ≈1.04 µs. The campaign's call-off
 condition now carries that drift lesson explicitly: the corpus geomean must clear 1 µs
 **with a 50 ns margin** — `(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus

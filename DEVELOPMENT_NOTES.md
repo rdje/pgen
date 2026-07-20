@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0207 — a sub-noise lever can still be adjudicated, and a lib-only unit inverts the custody check
+
+**A paired same-session sweep resolves signals the noise span says are invisible.** The sip lane priced at 0.733× the carried noise span, so a cross-session comparison could never have adjudicated it. The paired A/B — base and candidate swept back-to-back on the same machine state, min-of-samples per cell, 2,189 cells — separated a −0.69% geomean shift cleanly (delivered ≈7 ns, 42% of the priced mechanism, in-band). The carried noise span is a CROSS-session drift figure; the ratchet's same-session pairing is exactly what makes sub-noise levers adjudicable at all. That is why the contract insists the base is re-swept in-session rather than compared against its banked number.
+
+**A lib-only unit must invert the artifact-custody check.** The `-0205` land gate REFUSED if the regex artifact was unchanged (an emitter unit that didn't regenerate is a broken run). This unit is the dual: the gate REFUSES if any artifact CHANGED (a lib-only change that perturbs codegen output is a scope violation), plus a probe-vs-base byte-identity refusal to catch a candidate that silently failed to link the new lib. Custody checks are not boilerplate — they encode the unit's declared blast radius, and each unit class needs its own polarity.
+
+**"Determinism-increasing" is a real property of a hasher swap, not spin.** RandomState seeds differently every process, so std-map iteration order — and any latent order-dependence — varies run to run. FxHash is fixed-seed: after the swap the store's index behavior is process-deterministic. The pre-code audit (the sole iteration feeds only `count`/`any`) plus the empirical backstop (byte-exact gates never flaked under random order) is the two-leg proof that order was never observable; the swap then removes even the possibility.
+
 ## 2026-07-20 - PGEN-RGX-0078-0206 — a landed fix must be re-found in the next capture; and how to select honestly when nothing clears noise
 
 **The strongest verification of a landed representation change is finding it in the NEXT session's disassembly-qualified capture.** The `-0205` carrier was accepted on the corpus ratchet; this session's independent capture re-found it structurally: the old container's offsets vanished from the parser struct, the REFUSE-on-NEON-probe fingerprint check passes (the machinery is gone, not merely cheaper), and the replacement's own lanes appear at qualified offsets with ≈2.1 ns residue where ≈61 ns stood. A ratchet proves the METRIC moved; the re-derived role map proves WHY. Carrying both makes the causal story load-bearing rather than narrative.

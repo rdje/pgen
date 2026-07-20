@@ -1,0 +1,16 @@
+FLOORVAL bench geomean 1630.2 ns vs banked 1609.1 ns (+1.31%); custody OK
+BENCH (steering only) alternated 5x2000, geomean of per-pattern best minima
+  alternation                  1166 ->     1208 ns (+3.60%)
+  anchor_complex               3583 ->     3541 ns (-1.17%)
+  capture_groups               2958 ->     2833 ns (-4.23%)
+  character_class              7375 ->     7416 ns (+0.56%)
+  digit_sequence               1291 ->     1250 ns (-3.18%)
+  email_basic                   958 ->      958 ns (+0.00%)
+  literal_simple                458 ->      458 ns (+0.00%)
+  url_simple                    958 ->      958 ns (+0.00%)
+  GEOMEAN 1628.5 -> 1619.1 ns (-0.58%); ratio=0.994228
+CORPUS cells=2189 verdict_flips=0
+  GEOMEAN(unrounded) 1045.053731540213 -> 1037.804231341058 ns (-0.6937%); strict_decrease: PASS
+  BASE_MAX 390958 ns pcre2:testdata/testinput2:line_725
+  CANDIDATE_MAX 390167 ns pcre2:testdata/testinput2:line_725; settled_bound<=425000: PASS
+VERDICT: LAND
