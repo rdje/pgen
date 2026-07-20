@@ -1,0 +1,4 @@
+DerivEvent size=16 align=8 needs_drop=false
+PackedDerivWord size=8 align=8 needs_drop=false
+usize_bits=64
+ordinary_payload_max=2305843009213693951

@@ -1,5 +1,13 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0191 — lossless event packing prices only 0.530 ns strictly
+
+Proved that the generated parser's 16-byte `DerivEvent` tape has a lossless 8-byte common representation: five variants use low-three-bit tags and tag 6 introduces a second full-width payload word. Positions, counts, and branch indices remain arbitrary `usize` values; tape marks and ranges become word indices, so no silent cap enters the design.
+
+The full-SHA-pinned classifier separates events from the boundary tape and identifies 22 match-side second stores, 134 build-side second loads, 16 event-growth calls, 23 outlined copies, 15 direct memmoves, and the constructor allocation. Direct counts are **7/7/17 stores** and **0/3/0 loads**; growth has zero child samples; copy children are **47/44/41** and allocation children **22/23/24**. Exact removable load/store traffic prices **0.530179151 ns**. A linear half-byte copy ceiling reaches **2.942322856 ns**, while crediting the still-required half-size allocation's entire child time creates a deliberately impossible **5.439322139 ns** absolute ceiling.
+
+At 30% capture the accumulated strict, copy-linear, and absolute views leave only **1.583899710 / 2.307542821 / 3.056642606 ns** above the 28.8 ns noise floor, before tag masking, payload shifts, escape branching, or wide-placeholder insertion. Implementation remains HOLD. Parser/runtime/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: owned `PGEN-RGX-0078-0192`, safe immutable input-view feasibility and exact parser-field reload pricing.
+
 ## 2026-07-20 - PGEN-RGX-0078-0190 — exact name-stack growth adds 4.005 ns but still lacks practical margin
 
 Recovered the allocator/growth work deliberately excluded from the raw-PC recursion-guard estimate without using a mixed flat symbol total. The preserved binary has four exact generated inline calls and one outlined `enter_id` call to the name-stack `RawVec::grow_one` monomorphization, plus a separately verified required ID-stack control call. Their exact return-address frames in the three custody-pinned call trees own **33/43/34** child samples with zero residual, including LLVM tail-elided `finish_grow` frames; unrelated `Vec<24>` consumers are excluded.

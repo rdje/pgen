@@ -1,0 +1,35 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+source custody: PASS rust/src/ast_pipeline/mod.rs=031e8f31407c171d93dd699d5907fd025ff126a4405d8e498174a87e6d6efbd8 rust/src/ast_pipeline/ast_based_generator.rs=b5ed80b80adfcf1a6fb5df38884e249e06eff2f32a5e78dfef8760d256f374df rust/src/ast_pipeline/ast_based_generator/cascade.rs=413fefe99dbfe8d4a03886f4eb4999d078fb03696f861ee1e7fefc23db03a100 rust/src/ast_pipeline/ast_based_generator/cascade/value.rs=cd409c2068ed5e95f40ae3a19fa0da865571c35b91cefdbb4e9790a02d461f0c
+DerivEvent size=16 align=8 needs_drop=false
+PackedDerivWord size=8 align=8 needs_drop=false
+usize_bits=64
+ordinary_payload_max=2305843009213693951
+lossless carrier: low3 tags=5 ordinary variants; tag6=in-band escape; escape header carries original tag and following word carries full usize
+correctness: no input/count/branch cap; marks/cursors/segments become word indices; wide QuantCount patch may insert one word; copying remains word-safe
+static: payload_stores=22 build_payload_loads=134 event_grow_calls=16 outlined_copies=23 direct_memmoves=15 accepted_overlap=0
+excluded: deriv_boundary G1-C thin-memo segment copies teardown and all non-event fields
+
+DYNAMIC DIRECT INSTRUCTIONS
+band=sub1us   raw=22521 payload_store= 7 build_payload_load= 0
+band=1to2p5   raw=24279 payload_store= 7 build_payload_load= 3
+band=2p5to20  raw=28308 payload_store=17 build_payload_load= 0
+
+CALLER-ATTRIBUTED CHILDREN
+band       total  grow  outlined_copy  direct_memmove  event_alloc
+sub1us    11875     0              1              46           22
+1to2p5    11805     0              5              39           23
+2p5to20   10673     0              9              32           24
+
+REPLACEMENT-AWARE PRICING
+strict_payload_store_ns=0.475072244
+strict_build_payload_load_ns=0.055106907
+strict_removable_instruction_floor_ns=0.530179151
+linear_byte_copy_ceiling_ns=2.412143705 outlined=0.253158665 direct=2.158985039
+whole_event_allocation_child_absolute_ceiling_ns=2.496999283
+view=strict                  event_ns=0.530179151 composite_ns=101.279665699 capture_0.30_ns=30.383899710 noise_margin_ns=1.583899710
+view=plus_linear_copy        event_ns=2.942322856 composite_ns=103.691809404 capture_0.30_ns=31.107542821 noise_margin_ns=2.307542821
+view=plus_absolute_allocator event_ns=5.439322139 composite_ns=106.188808687 capture_0.30_ns=31.856642606 noise_margin_ns=3.056642606
+replacement_debits=tag_mask+payload_shift+escape_branch+wide_patch; unmeasured and therefore not subtracted from ceilings
+verdict=HOLD (strict contribution is 0.530 ns; even the deliberately impossible whole-allocation ceiling leaves only 3.057 ns practical margin)
+DERIVATION EVENT WIDTH PRICING: PASS

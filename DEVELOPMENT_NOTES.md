@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0191 — representation width needs a lossless escape and replacement pricing
+
+**A common-case narrowing is sound only with a full-width escape.** Four event payloads are arbitrary `usize` values or grammar indices; observed corpus maxima cannot become correctness limits. Low-bit tagging is viable because the exceptional case carries the untouched payload in a following word and all tape coordinates are redefined as word offsets.
+
+**Half the bytes is not half the time.** The strict evidence is only the second load/store word. Small copy calls retain fixed setup cost, allocation still occurs at a smaller size, and packing adds tag/shift/escape work. Linear byte scaling is therefore a ceiling, and crediting the allocation's entire child is an intentionally impossible outer bound rather than a speedup estimate.
+
+**Width ownership must follow dataflow, not neighboring vectors.** The event and boundary tapes are adjacent parser fields, but their constructor shifts (`<<4` versus `<<3`), grow bases, copy element widths, and build replay patterns distinguish them exactly. Thin-memo event segment copies are a separate mechanism and remain excluded even though a future packed tape would change their element type.
+
+**Model margin can reject an implementation even after arithmetic clears noise.** The strict view leaves only 1.584 ns and the impossible ceiling only 3.057 ns above the noise floor at 30% capture. Neither can absorb known replacement work, so packing is feasible but not presently actionable.
+
 ## 2026-07-20 - PGEN-RGX-0078-0190 — allocator children belong to return addresses, not flat symbols
 
 **A generic monomorphization is still an aggregate.** The name-stack `RawVec::grow_one` hash also appears beneath build, memo, and arena callers. Its flat total is not the name-stack cost. Exact call PCs plus their sampled return offsets reduce the mechanism to five owned callers and exclude everything else.
