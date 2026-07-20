@@ -1,4 +1,16 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0184 — a field offset is an artifact-local fact, not a name
+
+**Make offsets earn their semantics through dataflow.** `0x2f8` is an input length because it feeds bounds comparisons whose success reaches byte loads through paired `0x2f0`; `0x4e0` is a progress maximum because every sampled load feeds compare/conditional-store; `0x490` is table state because five sites enter the same hash-mixing sequence. A decimal or hexadecimal displacement alone proves none of those things.
+
+**A successful debug probe can still be negative evidence.** The current exported parser's DWARF is internally valid, but it describes G1-A artifact `e4924024`, not preserved C1 artifact `cb322b75`. Its tail offsets differ materially. That does not weaken the floor profile; it proves why cross-vintage source attribution was correctly refused in `-0182`. Default Rust layout is not a stable ABI between generated artifacts.
+
+**Complete classification and complete removability are different bars.** Nine qualified roles explain 100% of direct-parser residual samples with zero overlap. Input, recursion, checkpoint, tape, and position traffic is still required. Conversely, trace, empty coverage rollback, and observer counters are diagnostic-only, but their 0.601206% direct-memory share omits companion control. The next leaf must own the complete disabled mechanism before it can derive nanoseconds.
+
+**Correct a plausible field name as soon as the binary refutes it.** Preserved offset `0x490` initially looked like it might be `bare_parse` when compared loosely with current source concepts. The actual five machine paths load hash-table state, test occupancy, and enter hash mixing. The current DWARF mismatch removes the last basis for the guess. It is thin-memo lookup state; the fast-path boolean is elsewhere.
+
+**Preserve lower bounds as lower bounds.** The diagnostic 143/137/175 counts are valuable because they are exact, all-sample weighted, and non-overlapping with the accepted G1-C/success-copy ranges. Turning them into a nanosecond estimate before counting compare/branch regions would repeat the sampled-row-as-mechanism error. The leaf banks zero new nanoseconds and schedules the missing expansion explicitly.
+
 ## 2026-07-20 - PGEN-RGX-0078-0183 — a pre-guard spill is not necessarily caused by the guard
 
 **Use value width and lifetime before naming register pressure.** Seven contiguous words written immediately before a disabled trace gate looked like preservation for the cold formatter/logger arm. The semantic checkpoint is itself seven words and must remain live across the following speculative parser call. A complete 39-site census turned the apparent trace lever into required rollback state.

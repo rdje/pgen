@@ -1,0 +1,287 @@
+0x00001836:         DW_TAG_structure_type
+                      DW_AT_name	("RegexParser")
+                      DW_AT_byte_size	(0x0520)
+                      DW_AT_accessibility	(DW_ACCESS_public)
+                      DW_AT_alignment	(8)
+
+0x0000183f:           DW_TAG_member
+                        DW_AT_name	("input")
+                        DW_AT_type	(0x0000300b "&str")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0300)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x0000184c:           DW_TAG_member
+                        DW_AT_name	("arena")
+                        DW_AT_type	(0x00003032 "pgen::ast_pipeline::NodeArena *")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0310)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001859:           DW_TAG_member
+                        DW_AT_name	("position")
+                        DW_AT_type	(0x0000003e "usize")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x04a8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001866:           DW_TAG_member
+                        DW_AT_name	("memo")
+                        DW_AT_type	(0x0000027f "std::collections::hash::map::HashMap<(u16, usize), pgen::ast_pipeline::MemoEntry, rustc_hash::FxBuildHasher, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0318)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001873:           DW_TAG_member
+                        DW_AT_name	("memo_fail")
+                        DW_AT_type	(0x000004f8 "std::collections::hash::set::HashSet<(u16, usize), rustc_hash::FxBuildHasher, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0338)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001880:           DW_TAG_member
+                        DW_AT_name	("memo_fail_tainted")
+                        DW_AT_type	(0x000002b8 "std::collections::hash::map::HashMap<(u16, usize), u64, rustc_hash::FxBuildHasher, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0358)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x0000188d:           DW_TAG_member
+                        DW_AT_name	("recursion_guard")
+                        DW_AT_type	(0x00001635 "pgen::ast_pipeline::RecursionGuard")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x00)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001899:           DW_TAG_member
+                        DW_AT_name	("grammar_profile")
+                        DW_AT_type	(0x00002766 "core::option::Option<alloc::string::String>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x02b8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018a6:           DW_TAG_member
+                        DW_AT_name	("recovery_events")
+                        DW_AT_type	(0x000035c0 "alloc::vec::Vec<pgen::generated_parsers::regex::RecoveryEvent, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x68)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018b2:           DW_TAG_member
+                        DW_AT_name	("recovery_counts")
+                        DW_AT_type	(0x0000032a "std::collections::hash::map::HashMap<alloc::string::String, usize, std::hash::random::RandomState, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0378)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018bf:           DW_TAG_member
+                        DW_AT_name	("recovery_parse_count")
+                        DW_AT_type	(0x0000003e "usize")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x04b0)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018cc:           DW_TAG_member
+                        DW_AT_name	("recovery_global_count")
+                        DW_AT_type	(0x0000003e "usize")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x04b8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018d9:           DW_TAG_member
+                        DW_AT_name	("coverage_target_events")
+                        DW_AT_type	(0x000035f3 "alloc::vec::Vec<pgen::generated_parsers::regex::CoverageTargetEvent, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x80)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018e5:           DW_TAG_member
+                        DW_AT_name	("coverage_target_rule_hits")
+                        DW_AT_type	(0x0000032a "std::collections::hash::map::HashMap<alloc::string::String, usize, std::hash::random::RandomState, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x03a8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018f2:           DW_TAG_member
+                        DW_AT_name	("coverage_target_branch_hits")
+                        DW_AT_type	(0x0000032a "std::collections::hash::map::HashMap<alloc::string::String, usize, std::hash::random::RandomState, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x03d8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000018ff:           DW_TAG_member
+                        DW_AT_name	("negative_case_events")
+                        DW_AT_type	(0x00003626 "alloc::vec::Vec<pgen::generated_parsers::regex::NegativeCaseEvent, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x98)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x0000190b:           DW_TAG_member
+                        DW_AT_name	("negative_case_rule_hits")
+                        DW_AT_type	(0x0000032a "std::collections::hash::map::HashMap<alloc::string::String, usize, std::hash::random::RandomState, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0408)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001918:           DW_TAG_member
+                        DW_AT_name	("deterministic_partition_events")
+                        DW_AT_type	(0x00003659 "alloc::vec::Vec<pgen::generated_parsers::regex::DeterministicPartitionEvent, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0xb0)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001924:           DW_TAG_member
+                        DW_AT_name	("deterministic_partition_rule_hits")
+                        DW_AT_type	(0x0000032a "std::collections::hash::map::HashMap<alloc::string::String, usize, std::hash::random::RandomState, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0438)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001931:           DW_TAG_member
+                        DW_AT_name	("deterministic_partition_runtime_mode")
+                        DW_AT_type	(0x00001818 "pgen::generated_parsers::regex::DeterministicPartitionRuntimeMode")
+                        DW_AT_alignment	(1)
+                        DW_AT_data_member_location	(0x0517)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x0000193e:           DW_TAG_member
+                        DW_AT_name	("semantic_runtime_annotations")
+                        DW_AT_type	(0x00004d93 "pgen::ast_pipeline::semantic_runtime::CompiledSemanticRuntimeAnnotations *")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0468)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x0000194b:           DW_TAG_member
+                        DW_AT_name	("semantic_runtime_state")
+                        DW_AT_type	(0x00000cd5 "pgen::ast_pipeline::semantic_runtime::SemanticRuntimeState")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0xc8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001957:           DW_TAG_member
+                        DW_AT_name	("library_in_dir")
+                        DW_AT_type	(0x00002a1d "core::option::Option<std::path::PathBuf>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x02d0)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001964:           DW_TAG_member
+                        DW_AT_name	("library_out_dir")
+                        DW_AT_type	(0x00002a1d "core::option::Option<std::path::PathBuf>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x02e8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001971:           DW_TAG_member
+                        DW_AT_name	("logger")
+                        DW_AT_type	(0x00004efc "alloc::boxed::Box<dyn pgen::ast_pipeline::Logger, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0470)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x0000197e:           DW_TAG_member
+                        DW_AT_name	("logger_enabled")
+                        DW_AT_type	(0x0000429e "bool")
+                        DW_AT_alignment	(1)
+                        DW_AT_data_member_location	(0x0514)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x0000198b:           DW_TAG_member
+                        DW_AT_name	("trace_rules")
+                        DW_AT_type	(0x00002a85 "core::option::Option<std::collections::hash::set::HashSet<alloc::string::String, std::hash::random::RandomState, alloc::alloc::Global>>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x04c0)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001998:           DW_TAG_member
+                        DW_AT_name	("trace_active_depth")
+                        DW_AT_type	(0x00004351 "u32")
+                        DW_AT_alignment	(4)
+                        DW_AT_data_member_location	(0x0510)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000019a5:           DW_TAG_member
+                        DW_AT_name	("rule_call_counts")
+                        DW_AT_type	(0x0000421a "alloc::sync::Arc<alloc::vec::Vec<core::sync::atomic::AtomicU64, alloc::alloc::Global>, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0480)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000019b2:           DW_TAG_member
+                        DW_AT_name	("furthest_position")
+                        DW_AT_type	(0x0000003e "usize")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x04f0)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000019bf:           DW_TAG_member
+                        DW_AT_name	("coverage_stack")
+                        DW_AT_type	(0x000034f4 "alloc::vec::Vec<u32, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0270)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000019cc:           DW_TAG_member
+                        DW_AT_name	("coverage_enabled")
+                        DW_AT_type	(0x0000429e "bool")
+                        DW_AT_alignment	(1)
+                        DW_AT_data_member_location	(0x0515)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000019d9:           DW_TAG_member
+                        DW_AT_name	("bare_parse")
+                        DW_AT_type	(0x0000429e "bool")
+                        DW_AT_alignment	(1)
+                        DW_AT_data_member_location	(0x0516)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000019e6:           DW_TAG_member
+                        DW_AT_name	("counters_observed")
+                        DW_AT_type	(0x0000245f "core::cell::Cell<bool>")
+                        DW_AT_alignment	(1)
+                        DW_AT_data_member_location	(0x0518)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x000019f3:           DW_TAG_member
+                        DW_AT_name	("thin_memo")
+                        DW_AT_type	(0x000004b9 "std::collections::hash::map::HashMap<(u16, usize), pgen::ast_pipeline::ThinDerivSegMemoEntry, rustc_hash::FxBuildHasher, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0488)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001a00:           DW_TAG_member
+                        DW_AT_name	("deriv_events")
+                        DW_AT_type	(0x0000388a "alloc::vec::Vec<pgen::ast_pipeline::DerivEvent, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0288)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001a0d:           DW_TAG_member
+                        DW_AT_name	("deriv_boundary")
+                        DW_AT_type	(0x000031c4 "alloc::vec::Vec<&pgen::ast_pipeline::ParseNode, alloc::alloc::Global>")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x02a0)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001a1a:           DW_TAG_member
+                        DW_AT_name	("deriv_ev_cursor")
+                        DW_AT_type	(0x0000003e "usize")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x04f8)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001a27:           DW_TAG_member
+                        DW_AT_name	("deriv_b_cursor")
+                        DW_AT_type	(0x0000003e "usize")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0500)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001a34:           DW_TAG_member
+                        DW_AT_name	("deriv_pos")
+                        DW_AT_type	(0x0000003e "usize")
+                        DW_AT_alignment	(8)
+                        DW_AT_data_member_location	(0x0508)
+                        DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00001a41:           NULL

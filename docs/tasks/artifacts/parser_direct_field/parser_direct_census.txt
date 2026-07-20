@@ -1,0 +1,1802 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+probe_sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+bands=sub1us,1to2p5,2p5to20
+rows sorted by aggregate dynamic count
+pc target=piece        address=0x10005cb20 offset=15872 total=  69 sub1us=20 1to2p5=28 2p5to20=21 | ldr x9, [x20, #0x28]
+pc target=piece        address=0x10005c084 offset=13156 total=  63 sub1us=26 1to2p5=22 2p5to20=15 | ldr x22, [x20, #0x498]
+pc target=piece        address=0x10005c574 offset=14420 total=  56 sub1us=19 1to2p5=16 2p5to20=21 | ldr x8, [x20, #0x258]
+pc target=piece        address=0x10005c504 offset=14308 total=  48 sub1us=15 1to2p5=13 2p5to20=20 | ldr x8, [x20, #0x18]
+pc target=piece        address=0x10005c140 offset=13344 total=  47 sub1us=3 1to2p5=16 2p5to20=28 | ldr x8, [x20, #0x490]
+pc target=piece        address=0x100058dfc offset=  220 total=  46 sub1us=13 1to2p5=13 2p5to20=20 | ldr x8, [x20, #0x490]
+pc target=piece        address=0x10005bfd0 offset=12976 total=  45 sub1us=16 1to2p5=14 2p5to20=15 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006f1f4 offset=17664 total=  41 sub1us=12 1to2p5=15 2p5to20=14 | ldr x1, [x20, #0x2f8]
+pc target=atom_closure address=0x10006ae7c offset=  392 total=  38 sub1us=15 1to2p5=11 2p5to20=12 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x100059164 offset= 1092 total=  38 sub1us=17 1to2p5=7 2p5to20=14 | ldr x8, [x20]
+pc target=piece        address=0x10005cb10 offset=15856 total=  38 sub1us=13 1to2p5=11 2p5to20=14 | ldr x9, [x20, #0x10]
+pc target=piece        address=0x10005ecec offset=24524 total=  36 sub1us=9 1to2p5=14 2p5to20=13 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x100059c74 offset= 3924 total=  35 sub1us=14 1to2p5=11 2p5to20=10 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x10006e9f4 offset=15616 total=  33 sub1us=9 1to2p5=10 2p5to20=14 | ldr x1, [x20, #0x2f8]
+pc target=piece        address=0x1000591d8 offset= 1208 total=  33 sub1us=14 1to2p5=11 2p5to20=8 | ldr x8, [x20, #0x278]
+pc target=piece        address=0x10005c4bc offset=14236 total=  32 sub1us=9 1to2p5=14 2p5to20=9 | ldr x8, [x20]
+pc target=atom_closure address=0x10006ad74 offset=  128 total=  31 sub1us=10 1to2p5=6 2p5to20=15 | ldr x26, [x20, #0x150]
+pc target=piece        address=0x10005b98c offset=11372 total=  31 sub1us=9 1to2p5=8 2p5to20=14 | ldr x1, [x20, #0x2f8]
+pc target=atom_closure address=0x10006af18 offset=  548 total=  30 sub1us=11 1to2p5=15 2p5to20=4 | ldr x22, [x20, #0x498]
+pc target=atom_closure address=0x100079b94 offset=61088 total=  30 sub1us=10 1to2p5=9 2p5to20=11 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x1000724f0 offset=30716 total=  28 sub1us=12 1to2p5=3 2p5to20=13 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x10005bdb8 offset=12440 total=  28 sub1us=8 1to2p5=9 2p5to20=11 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x10005ee48 offset=24872 total=  28 sub1us=7 1to2p5=8 2p5to20=13 | ldr x9, [x20, #0x2a0]
+pc target=atom_closure address=0x1000701d8 offset=21732 total=  27 sub1us=7 1to2p5=9 2p5to20=11 | ldr x1, [x20, #0x2f8]
+pc target=atom_closure address=0x10006c454 offset= 5984 total=  26 sub1us=7 1to2p5=9 2p5to20=10 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x10006e114 offset=13344 total=  26 sub1us=7 1to2p5=9 2p5to20=10 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x100072764 offset=31344 total=  25 sub1us=7 1to2p5=11 2p5to20=7 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x10005c108 offset=13288 total=  25 sub1us=8 1to2p5=9 2p5to20=8 | ldr x9, [x20, #0x60]
+pc target=piece        address=0x10005c594 offset=14452 total=  25 sub1us=6 1to2p5=12 2p5to20=7 | ldr x8, [x20, #0x250]
+pc target=atom_closure address=0x100072f50 offset=33372 total=  24 sub1us=7 1to2p5=7 2p5to20=10 | ldr x10, [x20, #0x2f8]
+pc target=piece        address=0x10005bf88 offset=12904 total=  24 sub1us=4 1to2p5=9 2p5to20=11 | ldr x19, [x20, #0x270]
+pc target=piece        address=0x10005c660 offset=14656 total=  24 sub1us=6 1to2p5=8 2p5to20=10 | ldr x8, [x20, #0x2f8]
+pc target=atom_closure address=0x100072ebc offset=33224 total=  23 sub1us=8 1to2p5=7 2p5to20=8 | ldr x10, [x20, #0x2f8]
+pc target=atom_closure address=0x10007a1a0 offset=62636 total=  23 sub1us=5 1to2p5=8 2p5to20=10 | ldr x8, [x20, #0x490]
+pc target=piece        address=0x100058dc0 offset=  160 total=  23 sub1us=2 1to2p5=9 2p5to20=12 | ldr x9, [x20, #0x60]
+pc target=piece        address=0x100059218 offset= 1272 total=  23 sub1us=9 1to2p5=8 2p5to20=6 | ldr x14, [x20, #0x150]
+pc target=piece        address=0x1000596b0 offset= 2448 total=  23 sub1us=7 1to2p5=6 2p5to20=10 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x10005c628 offset=14600 total=  23 sub1us=6 1to2p5=8 2p5to20=9 | ldr x8, [x20, #0x278]
+pc target=piece        address=0x100059234 offset= 1300 total=  22 sub1us=13 1to2p5=7 2p5to20=2 | ldr x15, [x20, #0x258]
+pc target=piece        address=0x10005ee0c offset=24812 total=  22 sub1us=5 1to2p5=12 2p5to20=5 | ldr x9, [x20, #0x288]
+pc target=atom_closure address=0x10006b4f4 offset= 2048 total=  20 sub1us=1 1to2p5=7 2p5to20=12 | ldr x8, [x20, #0x2f8]
+pc target=atom_closure address=0x100073be0 offset=36588 total=  20 sub1us=10 1to2p5=1 2p5to20=9 | ldr x1, [x20, #0x2f8]
+pc target=piece        address=0x10005cb30 offset=15888 total=  20 sub1us=8 1to2p5=4 2p5to20=8 | ldr x9, [x20, #0x258]
+pc target=atom_closure address=0x100072c48 offset=32596 total=  19 sub1us=12 1to2p5=2 2p5to20=5 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x1000732b4 offset=34240 total=  19 sub1us=7 1to2p5=4 2p5to20=8 | ldr x10, [x20, #0x2f8]
+pc target=atom_closure address=0x10006e5bc offset=14536 total=  18 sub1us=4 1to2p5=7 2p5to20=7 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x10005cba0 offset=16000 total=  18 sub1us=13 1to2p5=3 2p5to20=2 | ldr x8, [x20, #0x288]
+pc target=atom_closure address=0x10006ee2c offset=16696 total=  17 sub1us=3 1to2p5=9 2p5to20=5 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005920c offset= 1260 total=  17 sub1us=8 1to2p5=4 2p5to20=5 | ldr x28, [x20, #0x2a0]
+pc target=piece        address=0x10005bfb0 offset=12944 total=  17 sub1us=6 1to2p5=6 2p5to20=5 | ldr x26, [x20, #0x258]
+pc target=atom_closure address=0x10006c928 offset= 7220 total=  16 sub1us=5 1to2p5=4 2p5to20=7 | ldr x11, [x20, #0x2f8]
+pc target=atom_closure address=0x10006f404 offset=18192 total=  16 sub1us=4 1to2p5=4 2p5to20=8 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x100079e50 offset=61788 total=  16 sub1us=3 1to2p5=5 2p5to20=8 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x100059160 offset= 1088 total=  16 sub1us=7 1to2p5=2 2p5to20=7 | ldr x19, [x20, #0x10]
+pc target=piece        address=0x10005c700 offset=14816 total=  16 sub1us=4 1to2p5=4 2p5to20=8 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006dcd0 offset=12252 total=  15 sub1us=6 1to2p5=5 2p5to20=4 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x10006f758 offset=19044 total=  15 sub1us=6 1to2p5=3 2p5to20=6 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x1000754bc offset=42952 total=  15 sub1us=4 1to2p5=2 2p5to20=9 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x10005a228 offset= 5384 total=  15 sub1us=6 1to2p5=3 2p5to20=6 | ldr x1, [x20, #0x2f8]
+pc target=piece        address=0x10005bf90 offset=12912 total=  15 sub1us=3 1to2p5=3 2p5to20=9 | ldr x9, [x20, #0xf0]
+pc target=piece        address=0x10005c088 offset=13160 total=  15 sub1us=5 1to2p5=7 2p5to20=3 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x100078f50 offset=57948 total=  14 sub1us=5 1to2p5=2 2p5to20=7 | ldr x9, [x20, #0x2f8]
+pc target=piece        address=0x100059154 offset= 1076 total=  14 sub1us=9 1to2p5=1 2p5to20=4 | ldr x9, [x20, #0x288]
+pc target=piece        address=0x10005c098 offset=13176 total=  14 sub1us=4 1to2p5=3 2p5to20=7 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x100075140 offset=42060 total=  13 sub1us=3 1to2p5=3 2p5to20=7 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x100079f8c offset=62104 total=  13 sub1us=3 1to2p5=4 2p5to20=6 | ldr x9, [x20, #0x258]
+pc target=atom_closure address=0x10007a04c offset=62296 total=  13 sub1us=3 1to2p5=6 2p5to20=4 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007a694 offset=63904 total=  13 sub1us=3 1to2p5=4 2p5to20=6 | ldr x19, [x20, #0x498]
+pc target=atom_closure address=0x100073564 offset=34928 total=  12 sub1us=3 1to2p5=4 2p5to20=5 | ldr x11, [x20, #0x2f8]
+pc target=piece        address=0x10005bf84 offset=12900 total=  12 sub1us=5 1to2p5=6 2p5to20=1 | ldr x28, [x20, #0x10]
+pc target=piece        address=0x10005edd8 offset=24760 total=  12 sub1us=2 1to2p5=3 2p5to20=7 | ldr x23, [x20, #0x288]
+pc target=atom_closure address=0x10006ef64 offset=17008 total=  11 sub1us=3 1to2p5=3 2p5to20=5 | ldr x1, [x20, #0x2f8]
+pc target=atom_closure address=0x10006f53c offset=18504 total=  11 sub1us=2 1to2p5=3 2p5to20=6 | ldr x23, [x20, #0x498]
+pc target=atom_closure address=0x10006ffec offset=21240 total=  11 sub1us=2 1to2p5=2 2p5to20=7 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x10007a514 offset=63520 total=  11 sub1us=2 1to2p5=5 2p5to20=4 | ldr x8, [x20, #0x278]
+pc target=atom_closure address=0x10007af58 offset=66148 total=  11 sub1us=4 1to2p5=1 2p5to20=6 | ldr x21, [x20, #0x150]
+pc target=piece        address=0x100058d5c offset=   60 total=  11 sub1us=3 1to2p5=6 2p5to20=2 | ldr x8, [x20, #0x28]
+pc target=piece        address=0x10005bf78 offset=12888 total=  11 sub1us=8 1to2p5=2 2p5to20=1 | ldr x8, [x20, #0x288]
+pc target=piece        address=0x10005cf70 offset=16976 total=  11 sub1us=4 1to2p5=4 2p5to20=3 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006af2c offset=  568 total=  10 sub1us=2 1to2p5=4 2p5to20=4 | ldr x23, [x20, #0x2f8]
+pc target=atom_closure address=0x10006deb4 offset=12736 total=  10 sub1us=5 1to2p5=2 2p5to20=3 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x1000703ec offset=22264 total=  10 sub1us=6 1to2p5=3 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x100072304 offset=30224 total=  10 sub1us=2 1to2p5=3 2p5to20=5 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x10007c134 offset=70720 total=  10 sub1us=2 1to2p5=5 2p5to20=3 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x10007c518 offset=71716 total=  10 sub1us=4 1to2p5=3 2p5to20=3 | ldr x8, [x20, #0x270]
+pc target=piece        address=0x10005c4a8 offset=14216 total=  10 sub1us=3 1to2p5=1 2p5to20=6 | ldr x19, [x20, #0x250]
+pc target=piece        address=0x10005e87c offset=23388 total=  10 sub1us=6 1to2p5=3 2p5to20=1 | ldr x28, [x20, #0x288]
+pc target=piece        address=0x10005ee68 offset=24904 total=  10 sub1us=1 1to2p5=3 2p5to20=6 | ldr x1, [x20, #0x288]
+pc target=atom_closure address=0x10007a48c offset=63384 total=   9 sub1us=2 1to2p5=3 2p5to20=4 | ldr x8, [x20]
+pc target=atom_closure address=0x10007a5a0 offset=63660 total=   9 sub1us=2 1to2p5=3 2p5to20=4 | ldr x13, [x20, #0x2f8]
+pc target=piece        address=0x10005c104 offset=13284 total=   9 sub1us=1 1to2p5=4 2p5to20=4 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005d828 offset=19208 total=   9 sub1us=7 1to2p5=0 2p5to20=2 | ldr x23, [x20, #0x288]
+pc target=atom_closure address=0x10006adb0 offset=  188 total=   8 sub1us=3 1to2p5=2 2p5to20=3 | ldr x13, [x20, #0x2f8]
+pc target=atom_closure address=0x10006af1c offset=  552 total=   8 sub1us=4 1to2p5=2 2p5to20=2 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10007062c offset=22840 total=   8 sub1us=0 1to2p5=4 2p5to20=4 | ldr x8, [x20]
+pc target=atom_closure address=0x10007c144 offset=70736 total=   8 sub1us=2 1to2p5=0 2p5to20=6 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x10007c158 offset=70756 total=   8 sub1us=3 1to2p5=2 2p5to20=3 | ldr x8, [x20, #0x258]
+pc target=piece        address=0x100058dbc offset=  156 total=   8 sub1us=0 1to2p5=1 2p5to20=7 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x1000591b0 offset= 1168 total=   8 sub1us=2 1to2p5=6 2p5to20=0 | ldr x8, [x20, #0x20]
+pc target=piece        address=0x10005c500 offset=14304 total=   8 sub1us=2 1to2p5=3 2p5to20=3 | ldr x23, [x20, #0x28]
+pc target=piece        address=0x10005c6c8 offset=14760 total=   8 sub1us=2 1to2p5=2 2p5to20=4 | ldr x9, [x20, #0xf0]
+pc target=piece        address=0x10005c7b4 offset=14996 total=   8 sub1us=4 1to2p5=1 2p5to20=3 | ldr x8, [x20, #0x2f8]
+pc target=piece        address=0x10005cbdc offset=16060 total=   8 sub1us=3 1to2p5=3 2p5to20=2 | ldr x9, [x20, #0x10]
+pc target=piece        address=0x10005ee20 offset=24832 total=   8 sub1us=1 1to2p5=2 2p5to20=5 | ldr x23, [x20, #0x2a0]
+pc target=atom_closure address=0x10006c43c offset= 5960 total=   7 sub1us=2 1to2p5=2 2p5to20=3 | ldr x8, [x20, #0x2f8]
+pc target=atom_closure address=0x10006efe0 offset=17132 total=   7 sub1us=1 1to2p5=3 2p5to20=3 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006f540 offset=18508 total=   7 sub1us=4 1to2p5=1 2p5to20=2 | ldr x8, [x20, #0x2f8]
+pc target=atom_closure address=0x100070534 offset=22592 total=   7 sub1us=0 1to2p5=0 2p5to20=7 | ldr x8, [x20, #0x490]
+pc target=atom_closure address=0x1000706ac offset=22968 total=   7 sub1us=0 1to2p5=2 2p5to20=5 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x1000591e8 offset= 1224 total=   7 sub1us=3 1to2p5=1 2p5to20=3 | ldr x8, [x20, #0x280]
+pc target=piece        address=0x100059210 offset= 1264 total=   7 sub1us=2 1to2p5=2 2p5to20=3 | ldr x8, [x20, #0xd8]
+pc target=piece        address=0x10005bfa0 offset=12928 total=   7 sub1us=4 1to2p5=1 2p5to20=2 | ldr x12, [x20, #0x178]
+pc target=piece        address=0x10005c8c4 offset=15268 total=   7 sub1us=6 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x10006b774 offset= 2688 total=   6 sub1us=0 1to2p5=1 2p5to20=5 | ldr x8, [x20, #0x498]
+pc target=atom_closure address=0x100071848 offset=27476 total=   6 sub1us=2 1to2p5=2 2p5to20=2 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x100071f0c offset=29208 total=   6 sub1us=0 1to2p5=4 2p5to20=2 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x1000742f8 offset=38404 total=   6 sub1us=3 1to2p5=1 2p5to20=2 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007a168 offset=62580 total=   6 sub1us=1 1to2p5=3 2p5to20=2 | ldr x9, [x20, #0x60]
+pc target=piece        address=0x100059214 offset= 1268 total=   6 sub1us=1 1to2p5=2 2p5to20=3 | ldr x9, [x20, #0xf0]
+pc target=piece        address=0x10005c560 offset=14400 total=   6 sub1us=1 1to2p5=0 2p5to20=5 | ldr x8, [x20, #0x28]
+pc target=piece        address=0x10005c658 offset=14648 total=   6 sub1us=3 1to2p5=2 2p5to20=1 | str x28, [x20, #0x288]
+pc target=piece        address=0x10005c7e8 offset=15048 total=   6 sub1us=0 1to2p5=2 2p5to20=4 | ldr x8, [x20, #0x4e0]
+pc target=piece        address=0x10005d740 offset=18976 total=   6 sub1us=2 1to2p5=1 2p5to20=3 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x100070020 offset=21292 total=   5 sub1us=1 1to2p5=1 2p5to20=3 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x100070d88 offset=24724 total=   5 sub1us=1 1to2p5=2 2p5to20=2 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x1000715ec offset=26872 total=   5 sub1us=1 1to2p5=1 2p5to20=3 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x100071790 offset=27292 total=   5 sub1us=2 1to2p5=2 2p5to20=1 | ldr x1, [x20, #0x2f8]
+pc target=atom_closure address=0x10007a024 offset=62256 total=   5 sub1us=1 1to2p5=2 2p5to20=2 | ldr x11, [x20, #0x120]
+pc target=atom_closure address=0x10007a164 offset=62576 total=   5 sub1us=1 1to2p5=1 2p5to20=3 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x10007a6a8 offset=63924 total=   5 sub1us=1 1to2p5=4 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x10007a734 offset=64064 total=   5 sub1us=0 1to2p5=0 2p5to20=5 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x10007b4cc offset=67544 total=   5 sub1us=4 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x28]
+pc target=piece        address=0x1000591cc offset= 1196 total=   5 sub1us=1 1to2p5=2 2p5to20=2 | str x8, [x20, #0x28]
+pc target=piece        address=0x1000591d0 offset= 1200 total=   5 sub1us=2 1to2p5=1 2p5to20=2 | ldr x19, [x20, #0x498]
+pc target=piece        address=0x1000591d4 offset= 1204 total=   5 sub1us=1 1to2p5=2 2p5to20=2 | ldr x25, [x20, #0x288]
+pc target=piece        address=0x100059208 offset= 1256 total=   5 sub1us=4 1to2p5=0 2p5to20=1 | str x9, [x20, #0x288]
+pc target=piece        address=0x10005921c offset= 1276 total=   5 sub1us=2 1to2p5=1 2p5to20=2 | ldr x10, [x20, #0x108]
+pc target=piece        address=0x100059864 offset= 2884 total=   5 sub1us=2 1to2p5=0 2p5to20=3 | ldr x8, [x20, #0x288]
+pc target=piece        address=0x1000598cc offset= 2988 total=   5 sub1us=3 1to2p5=0 2p5to20=2 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005a618 offset= 6392 total=   5 sub1us=3 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0x270]
+pc target=piece        address=0x10005ca88 offset=15720 total=   5 sub1us=4 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x2a0]
+pc target=piece        address=0x10005dbfc offset=20188 total=   5 sub1us=1 1to2p5=3 2p5to20=1 | ldr x28, [x20, #0x288]
+pc target=atom_closure address=0x10006ad54 offset=   96 total=   4 sub1us=0 1to2p5=2 2p5to20=2 | str x9, [x20, #0x288]
+pc target=atom_closure address=0x10006ad70 offset=  124 total=   4 sub1us=1 1to2p5=1 2p5to20=2 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10006ad90 offset=  156 total=   4 sub1us=4 1to2p5=0 2p5to20=0 | ldr x28, [x20, #0x258]
+pc target=atom_closure address=0x10006de68 offset=12660 total=   4 sub1us=3 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x288]
+pc target=atom_closure address=0x10006e170 offset=13436 total=   4 sub1us=3 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x10006eec4 offset=16848 total=   4 sub1us=0 1to2p5=2 2p5to20=2 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10006f3a4 offset=18096 total=   4 sub1us=1 1to2p5=1 2p5to20=2 | ldr x8, [x20, #0x288]
+pc target=atom_closure address=0x100071824 offset=27440 total=   4 sub1us=0 1to2p5=2 2p5to20=2 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x100073dec offset=37112 total=   4 sub1us=0 1to2p5=2 2p5to20=2 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007a488 offset=63380 total=   4 sub1us=1 1to2p5=1 2p5to20=2 | ldr x19, [x20, #0x10]
+pc target=atom_closure address=0x10007abb0 offset=65212 total=   4 sub1us=1 1to2p5=0 2p5to20=3 | ldr x10, [x20, #0x2f8]
+pc target=atom_closure address=0x10007adf4 offset=65792 total=   4 sub1us=1 1to2p5=0 2p5to20=3 | ldr x9, [x20, #0x60]
+pc target=atom_closure address=0x10007c398 offset=71332 total=   4 sub1us=0 1to2p5=2 2p5to20=2 | ldr x8, [x20, #0x2a0]
+pc target=atom_closure address=0x10007c570 offset=71804 total=   4 sub1us=2 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x10007c5c0 offset=71884 total=   4 sub1us=0 1to2p5=1 2p5to20=3 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x1000599a0 offset= 3200 total=   4 sub1us=1 1to2p5=2 2p5to20=1 | ldr x9, [x20, #0xf0]
+pc target=piece        address=0x10005a7b8 offset= 6808 total=   4 sub1us=2 1to2p5=1 2p5to20=1 | ldr x9, [x20, #0x288]
+pc target=piece        address=0x10005bb74 offset=11860 total=   4 sub1us=0 1to2p5=3 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005bf74 offset=12884 total=   4 sub1us=2 1to2p5=0 2p5to20=2 | str x19, [x20, #0x498]
+pc target=piece        address=0x10005bf9c offset=12924 total=   4 sub1us=0 1to2p5=1 2p5to20=3 | ldr x11, [x20, #0x198]
+pc target=piece        address=0x10005c550 offset=14384 total=   4 sub1us=2 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005c65c offset=14652 total=   4 sub1us=0 1to2p5=1 2p5to20=3 | ldr x22, [x20, #0x498]
+pc target=piece        address=0x10005eb70 offset=24144 total=   4 sub1us=0 1to2p5=2 2p5to20=2 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x10006ad78 offset=  132 total=   3 sub1us=1 1to2p5=2 2p5to20=0 | ldr x10, [x20, #0x108]
+pc target=atom_closure address=0x10006ad8c offset=  152 total=   3 sub1us=0 1to2p5=3 2p5to20=0 | ldr x11, [x20, #0x120]
+pc target=atom_closure address=0x10006e064 offset=13168 total=   3 sub1us=3 1to2p5=0 2p5to20=0 | ldr x24, [x20, #0x288]
+pc target=atom_closure address=0x10006ede0 offset=16620 total=   3 sub1us=1 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0xd8]
+pc target=atom_closure address=0x10006f06c offset=17272 total=   3 sub1us=1 1to2p5=0 2p5to20=2 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006f520 offset=18476 total=   3 sub1us=1 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x280]
+pc target=atom_closure address=0x10006f710 offset=18972 total=   3 sub1us=0 1to2p5=3 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10006fc38 offset=20292 total=   3 sub1us=0 1to2p5=2 2p5to20=1 | ldr x2, [x20, #0x2f8]
+pc target=atom_closure address=0x10006fffc offset=21256 total=   3 sub1us=1 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x100070d98 offset=24740 total=   3 sub1us=2 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x10007157c offset=26760 total=   3 sub1us=0 1to2p5=2 2p5to20=1 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x1000723b0 offset=30396 total=   3 sub1us=0 1to2p5=0 2p5to20=3 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x100072a38 offset=32068 total=   3 sub1us=0 1to2p5=2 2p5to20=1 | ldr x19, [x20, #0x498]
+pc target=atom_closure address=0x10007398c offset=35992 total=   3 sub1us=0 1to2p5=2 2p5to20=1 | ldr x9, [x20, #0x60]
+pc target=atom_closure address=0x10007a0f8 offset=62468 total=   3 sub1us=1 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x10007a47c offset=63368 total=   3 sub1us=2 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0x288]
+pc target=atom_closure address=0x10007a5d4 offset=63712 total=   3 sub1us=1 1to2p5=2 2p5to20=0 | ldr x13, [x20, #0x178]
+pc target=atom_closure address=0x10007a9d8 offset=64740 total=   3 sub1us=2 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x10007b01c offset=66344 total=   3 sub1us=1 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x10007b2fc offset=67080 total=   3 sub1us=0 1to2p5=1 2p5to20=2 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007b4e8 offset=67572 total=   3 sub1us=1 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x150]
+pc target=atom_closure address=0x10007c550 offset=71772 total=   3 sub1us=1 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=piece        address=0x100059224 offset= 1284 total=   3 sub1us=0 1to2p5=3 2p5to20=0 | ldr x11, [x20, #0x178]
+pc target=piece        address=0x100059260 offset= 1344 total=   3 sub1us=0 1to2p5=1 2p5to20=2 | ldr x1, [x20, #0x2f8]
+pc target=piece        address=0x1000599d4 offset= 3252 total=   3 sub1us=2 1to2p5=1 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x100059b40 offset= 3616 total=   3 sub1us=2 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x2a0]
+pc target=piece        address=0x10005aad4 offset= 7604 total=   3 sub1us=0 1to2p5=2 2p5to20=1 | ldr x8, [x20, #0x258]
+pc target=piece        address=0x10005caa4 offset=15748 total=   3 sub1us=2 1to2p5=0 2p5to20=1 | ldr x1, [x20, #0x288]
+pc target=piece        address=0x10005cf24 offset=16900 total=   3 sub1us=3 1to2p5=0 2p5to20=0 | ldr x24, [x20, #0x10]
+pc target=piece        address=0x10005d6e4 offset=18884 total=   3 sub1us=1 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005df44 offset=21028 total=   3 sub1us=0 1to2p5=0 2p5to20=3 | ldr x8, [x20, #0x2a0]
+pc target=piece        address=0x10005ee64 offset=24900 total=   3 sub1us=1 1to2p5=1 2p5to20=1 | str x19, [x20, #0x498]
+pc target=atom_closure address=0x10006ad5c offset=  104 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x14, [x20, #0x2a0]
+pc target=atom_closure address=0x10006ad6c offset=  120 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0xd8]
+pc target=atom_closure address=0x10006ad7c offset=  136 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x12, [x20, #0x198]
+pc target=atom_closure address=0x10006ae44 offset=  336 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | str x22, [x20, #0x498]
+pc target=atom_closure address=0x10006ae4c offset=  344 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x25, [x20, #0x10]
+pc target=atom_closure address=0x10006ae50 offset=  348 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x14, [x20, #0x270]
+pc target=atom_closure address=0x10006b500 offset= 2060 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x2f0]
+pc target=atom_closure address=0x10006b6bc offset= 2504 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x10, [x20, #0x108]
+pc target=atom_closure address=0x10006b6e8 offset= 2548 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006c104 offset= 5136 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006c6cc offset= 6616 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10006c7c0 offset= 6860 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x10, [x20, #0x2f8]
+pc target=atom_closure address=0x10006de08 offset=12564 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x258]
+pc target=atom_closure address=0x10006de88 offset=12692 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x10, [x20, #0x108]
+pc target=atom_closure address=0x10006e0a8 offset=13236 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x24, [x20, #0x2a0]
+pc target=atom_closure address=0x10006e760 offset=14956 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x24, [x20, #0x10]
+pc target=atom_closure address=0x10006e7a0 offset=15020 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006ea50 offset=15708 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x10006ede4 offset=16624 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10006ef18 offset=16932 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10006efac offset=17080 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x13, [x20, #0x270]
+pc target=atom_closure address=0x10006f0b0 offset=17340 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10006f3b4 offset=18112 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x21, [x20, #0x270]
+pc target=atom_closure address=0x10006f3c0 offset=18124 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x13, [x20, #0x150]
+pc target=atom_closure address=0x10006f4a0 offset=18348 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10006f4b0 offset=18364 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006fbd4 offset=20192 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x498]
+pc target=atom_closure address=0x1000701f0 offset=21756 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x2f0]
+pc target=atom_closure address=0x10007038c offset=22168 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0x288]
+pc target=atom_closure address=0x100070398 offset=22180 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x1000703a8 offset=22196 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x1000703c8 offset=22228 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x12, [x20, #0x258]
+pc target=atom_closure address=0x1000704f8 offset=22532 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x19, [x20, #0x10]
+pc target=atom_closure address=0x100070d28 offset=24628 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x1000715f8 offset=26884 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x150]
+pc target=atom_closure address=0x1000717e4 offset=27376 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x100071f1c offset=29224 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x100071f30 offset=29244 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x100073e90 offset=37276 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x100074498 offset=38820 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x490]
+pc target=atom_closure address=0x100074f60 offset=41580 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x100074fb8 offset=41668 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x100075e1c offset=45352 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x100076b40 offset=48716 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007a000 offset=62220 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x21, [x20, #0x270]
+pc target=atom_closure address=0x10007a028 offset=62260 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x28, [x20, #0x258]
+pc target=atom_closure address=0x10007a1dc offset=62696 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x9, [x20, #0x478]
+pc target=atom_closure address=0x10007a50c offset=63512 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x25, [x20, #0x498]
+pc target=atom_closure address=0x10007a54c offset=63576 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | str x9, [x20, #0x288]
+pc target=atom_closure address=0x10007a55c offset=63592 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x23, [x20, #0x150]
+pc target=atom_closure address=0x10007a698 offset=63908 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10007a8a0 offset=64428 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x10, [x20, #0x2f8]
+pc target=atom_closure address=0x10007aa28 offset=64820 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007b03c offset=66376 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x10007b524 offset=67632 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007c528 offset=71732 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005927c offset= 1372 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x13, [x20, #0x2f0]
+pc target=piece        address=0x10005940c offset= 1772 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldr x26, [x20, #0x498]
+pc target=piece        address=0x10005a23c offset= 5404 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0x2f0]
+pc target=piece        address=0x10005a628 offset= 6408 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005bc28 offset=12040 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005bf14 offset=12788 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x258]
+pc target=piece        address=0x10005bfac offset=12940 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x11, [x20, #0x120]
+pc target=piece        address=0x10005c0a0 offset=13184 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x20]
+pc target=piece        address=0x10005c4b0 offset=14224 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x2a0]
+pc target=piece        address=0x10005c4b8 offset=14232 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | ldr x23, [x20, #0x10]
+pc target=piece        address=0x10005c624 offset=14596 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x27, [x20, #0x288]
+pc target=piece        address=0x10005c66c offset=14668 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x2f0]
+pc target=piece        address=0x10005c6ac offset=14732 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x2a0]
+pc target=piece        address=0x10005c6c0 offset=14752 total=   2 sub1us=0 1to2p5=2 2p5to20=0 | ldr x19, [x20, #0x270]
+pc target=piece        address=0x10005c8d4 offset=15284 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005c8f8 offset=15320 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=piece        address=0x10005c918 offset=15352 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x258]
+pc target=piece        address=0x10005cf2c offset=16908 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0xd8]
+pc target=piece        address=0x10005cf50 offset=16944 total=   2 sub1us=2 1to2p5=0 2p5to20=0 | ldr x23, [x20, #0x258]
+pc target=piece        address=0x10005e948 offset=23592 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=piece        address=0x10005eb00 offset=24032 total=   2 sub1us=1 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x270]
+pc target=piece        address=0x10005eb10 offset=24048 total=   2 sub1us=0 1to2p5=0 2p5to20=2 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005ebb8 offset=24216 total=   2 sub1us=1 1to2p5=1 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005ee1c offset=24828 total=   2 sub1us=0 1to2p5=1 2p5to20=1 | str x8, [x20, #0x288]
+pc target=atom_closure address=0x10006ad80 offset=  140 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x11, [x20, #0x178]
+pc target=atom_closure address=0x10006adc4 offset=  208 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x13, [x20, #0x2f0]
+pc target=atom_closure address=0x10006b20c offset= 1304 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006bb64 offset= 3696 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x10006be94 offset= 4512 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006c034 offset= 4928 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006c09c offset= 5032 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006c5e8 offset= 6388 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | str x22, [x20, #0x498]
+pc target=atom_closure address=0x10006c5fc offset= 6408 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x25, [x20, #0x270]
+pc target=atom_closure address=0x10006c604 offset= 6416 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10006c608 offset= 6420 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x26, [x20, #0x150]
+pc target=atom_closure address=0x10006c6dc offset= 6632 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006c87c offset= 7048 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x24, [x20, #0x288]
+pc target=atom_closure address=0x10006cd58 offset= 8292 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006d058 offset= 9060 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x1, [x20, #0x2f8]
+pc target=atom_closure address=0x10006d334 offset= 9792 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x2f0]
+pc target=atom_closure address=0x10006de4c offset=12632 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x248]
+pc target=atom_closure address=0x10006de7c offset=12680 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0xd8]
+pc target=atom_closure address=0x10006de80 offset=12684 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10006de84 offset=12688 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x23, [x20, #0x150]
+pc target=atom_closure address=0x10006e1fc offset=13576 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10006e34c offset=13912 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x10, [x20, #0x2f0]
+pc target=atom_closure address=0x10006e754 offset=14944 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x288]
+pc target=atom_closure address=0x10006e948 offset=15444 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x24, [x20, #0x288]
+pc target=atom_closure address=0x10006e98c offset=15512 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x24, [x20, #0x2a0]
+pc target=atom_closure address=0x10006eaa0 offset=15788 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x150]
+pc target=atom_closure address=0x10006edc8 offset=16596 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x288]
+pc target=atom_closure address=0x10006ee00 offset=16652 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x11, [x20, #0x120]
+pc target=atom_closure address=0x10006eec0 offset=16844 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x24, [x20, #0x498]
+pc target=atom_closure address=0x10006efa4 offset=17072 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x13, [x20, #0x10]
+pc target=atom_closure address=0x10006efb4 offset=17088 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x13, [x20, #0x178]
+pc target=atom_closure address=0x10006f208 offset=17684 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x2f0]
+pc target=atom_closure address=0x10006f340 offset=17996 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x9, [x20, #0x258]
+pc target=atom_closure address=0x10006f3b0 offset=18108 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x26, [x20, #0x10]
+pc target=atom_closure address=0x10006f3b8 offset=18116 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0xd8]
+pc target=atom_closure address=0x10006f3bc offset=18120 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10006f538 offset=18500 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | str x21, [x20, #0x288]
+pc target=atom_closure address=0x10006f6f8 offset=18948 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | str x24, [x20, #0x498]
+pc target=atom_closure address=0x10006f714 offset=18976 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x13, [x20, #0x150]
+pc target=atom_closure address=0x10006f9d4 offset=19680 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0x258]
+pc target=atom_closure address=0x10006fbdc offset=20200 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x2, [x20, #0x2f8]
+pc target=atom_closure address=0x10006fd58 offset=20580 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x100070098 offset=21412 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007032c offset=22072 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x9, [x20, #0x258]
+pc target=atom_closure address=0x1000703a4 offset=22192 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0xd8]
+pc target=atom_closure address=0x10007047c offset=22408 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10007048c offset=22424 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x100070618 offset=22820 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x250]
+pc target=atom_closure address=0x100070624 offset=22832 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x2a0]
+pc target=atom_closure address=0x1000706a8 offset=22964 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | str x8, [x20, #0x28]
+pc target=atom_closure address=0x1000709c4 offset=23760 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x2f8]
+pc target=atom_closure address=0x100070b4c offset=24152 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x2f8]
+pc target=atom_closure address=0x100071074 offset=25472 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x24, [x20, #0x288]
+pc target=atom_closure address=0x1000715dc offset=26856 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x1000717f8 offset=27396 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x100071c2c offset=28472 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x2a0]
+pc target=atom_closure address=0x100072314 offset=30240 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x100072368 offset=30324 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x100072504 offset=30736 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x10, [x20, #0x2f0]
+pc target=atom_closure address=0x1000728c0 offset=31692 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x13, [x20, #0x150]
+pc target=atom_closure address=0x100072904 offset=31760 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x100072a1c offset=32040 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x280]
+pc target=atom_closure address=0x100072f38 offset=33348 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x4e0]
+pc target=atom_closure address=0x1000737fc offset=35592 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x100073bd0 offset=36572 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x10, [x20, #0x4e0]
+pc target=atom_closure address=0x100073d30 offset=36924 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x258]
+pc target=atom_closure address=0x100073d94 offset=37024 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x288]
+pc target=atom_closure address=0x100073f4c offset=37464 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x10, [x20, #0x108]
+pc target=atom_closure address=0x100073f8c offset=37528 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x9, [x20, #0x2f8]
+pc target=atom_closure address=0x1000740d0 offset=37852 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x23, [x20, #0x2f8]
+pc target=atom_closure address=0x100074168 offset=38004 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x2f8]
+pc target=atom_closure address=0x100074250 offset=38236 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x150]
+pc target=atom_closure address=0x1000742bc offset=38344 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x19, [x20, #0x150]
+pc target=atom_closure address=0x1000742c8 offset=38356 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x12, [x20, #0x178]
+pc target=atom_closure address=0x100074470 offset=38780 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x10007462c offset=39224 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x10007463c offset=39240 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x100074a70 offset=40316 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x100074f5c offset=41576 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | str x8, [x20, #0x498]
+pc target=atom_closure address=0x100074f70 offset=41596 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x100075e0c offset=45336 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x100075e2c offset=45368 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x100076098 offset=45988 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=atom_closure address=0x1000766fc offset=47624 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x100076c20 offset=48940 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x22, [x20, #0x288]
+pc target=atom_closure address=0x100077630 offset=51516 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x270]
+pc target=atom_closure address=0x100077e64 offset=53616 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x19, [x20, #0x2a0]
+pc target=atom_closure address=0x100079fe4 offset=62192 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | str x22, [x20, #0x498]
+pc target=atom_closure address=0x100079ff0 offset=62204 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x2a0]
+pc target=atom_closure address=0x100079ffc offset=62216 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x27, [x20, #0x10]
+pc target=atom_closure address=0x10007a0e8 offset=62452 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x4e0]
+pc target=atom_closure address=0x10007a474 offset=63360 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x250]
+pc target=atom_closure address=0x10007a4f0 offset=63484 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x20]
+pc target=atom_closure address=0x10007a550 offset=63580 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x22, [x20, #0x2a0]
+pc target=atom_closure address=0x10007a558 offset=63588 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10007a5b0 offset=63676 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x13, [x20, #0x2f0]
+pc target=atom_closure address=0x10007a600 offset=63756 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007a740 offset=64076 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x2f0]
+pc target=atom_closure address=0x10007a9e4 offset=64752 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=atom_closure address=0x10007afd4 offset=66272 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x21, [x20, #0x250]
+pc target=atom_closure address=0x10007afd8 offset=66276 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x22, [x20, #0x288]
+pc target=atom_closure address=0x10007afe4 offset=66288 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x2a0]
+pc target=atom_closure address=0x10007b480 offset=67468 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=atom_closure address=0x10007b4dc offset=67560 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x258]
+pc target=atom_closure address=0x10007b9bc offset=68808 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x0, [x20, #0x298]
+pc target=atom_closure address=0x10007c260 offset=71020 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=atom_closure address=0x10007c34c offset=71256 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x288]
+pc target=piece        address=0x100058df4 offset=  212 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x150]
+pc target=piece        address=0x100058e34 offset=  276 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x10, [x20, #0x480]
+pc target=piece        address=0x100059220 offset= 1280 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x12, [x20, #0x198]
+pc target=piece        address=0x10005936c offset= 1612 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x19, [x20, #0x498]
+pc target=piece        address=0x100059460 offset= 1856 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x25, [x20, #0x2a0]
+pc target=piece        address=0x100059870 offset= 2896 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x100059878 offset= 2904 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x270]
+pc target=piece        address=0x100059884 offset= 2916 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0xf0]
+pc target=piece        address=0x100059888 offset= 2920 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x13, [x20, #0x150]
+pc target=piece        address=0x100059890 offset= 2928 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x11, [x20, #0x198]
+pc target=piece        address=0x1000598a0 offset= 2944 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x11, [x20, #0x120]
+pc target=piece        address=0x100059b4c offset= 3628 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | str x19, [x20, #0x2a0]
+pc target=piece        address=0x100059b60 offset= 3648 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x100059c88 offset= 3944 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x10, [x20, #0x2f0]
+pc target=piece        address=0x10005ab18 offset= 7672 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005ac2c offset= 7948 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x288]
+pc target=piece        address=0x10005b75c offset=10812 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | str x26, [x20, #0x2a0]
+pc target=piece        address=0x10005b9a0 offset=11392 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x2f0]
+pc target=piece        address=0x10005bb34 offset=11796 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x10, [x20, #0x108]
+pc target=piece        address=0x10005bc0c offset=12012 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x19, [x20, #0x498]
+pc target=piece        address=0x10005bc10 offset=12016 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x4e0]
+pc target=piece        address=0x10005bf8c offset=12908 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0xd8]
+pc target=piece        address=0x10005bf94 offset=12916 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x25, [x20, #0x150]
+pc target=piece        address=0x10005c178 offset=13400 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x10, [x20, #0x480]
+pc target=piece        address=0x10005c4d8 offset=14264 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x8]
+pc target=piece        address=0x10005c4fc offset=14300 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | str x8, [x20, #0x10]
+pc target=piece        address=0x10005c538 offset=14360 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | str x8, [x20, #0x28]
+pc target=piece        address=0x10005c580 offset=14432 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x150]
+pc target=piece        address=0x10005c6b8 offset=14744 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005c6c4 offset=14756 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0xd8]
+pc target=piece        address=0x10005c6e8 offset=14792 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x12, [x20, #0x258]
+pc target=piece        address=0x10005c7a4 offset=14980 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x4e0]
+pc target=piece        address=0x10005c8c0 offset=15264 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | str x8, [x20, #0x498]
+pc target=piece        address=0x10005c924 offset=15364 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x150]
+pc target=piece        address=0x10005cb2c offset=15884 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | str x9, [x20, #0x28]
+pc target=piece        address=0x10005cb3c offset=15900 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x9, [x20, #0x150]
+pc target=piece        address=0x10005cf40 offset=16928 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x12, [x20, #0x178]
+pc target=piece        address=0x10005d6bc offset=18844 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x4e0]
+pc target=piece        address=0x10005d6ec offset=18892 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x270]
+pc target=piece        address=0x10005d708 offset=18920 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x12, [x20, #0x178]
+pc target=piece        address=0x10005dd30 offset=20496 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005dd90 offset=20592 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0xf0]
+pc target=piece        address=0x10005ddd0 offset=20656 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005df64 offset=21060 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005e1e4 offset=21700 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x10]
+pc target=piece        address=0x10005e230 offset=21776 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldr x8, [x20, #0x28]
+pc target=piece        address=0x10005e3a8 offset=22152 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x288]
+pc target=piece        address=0x10005e3c8 offset=22184 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | str x22, [x20, #0x2a0]
+pc target=piece        address=0x10005e40c offset=22252 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x270]
+pc target=piece        address=0x10005e64c offset=22828 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x9, [x20, #0x2a0]
+pc target=piece        address=0x10005e7ec offset=23244 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005e958 offset=23608 total=   1 sub1us=0 1to2p5=0 2p5to20=1 | ldr x8, [x20, #0x258]
+pc target=piece        address=0x10005e9a8 offset=23688 total=   1 sub1us=1 1to2p5=0 2p5to20=0 | ldrb w8, [x20, #0x504]
+pc target=piece        address=0x10005ecc4 offset=24484 total=   1 sub1us=0 1to2p5=1 2p5to20=0 | ldr x8, [x20, #0x288]
+
+parser-field offset aggregate
+field offset= 0x2f8 total= 728 pcs=50 sub1us=226 1to2p5=205 2p5to20=297
+field offset= 0x504 total= 319 pcs=51 sub1us=104 1to2p5=95 2p5to20=120
+field offset= 0x258 total= 193 pcs=32 sub1us=75 1to2p5=55 2p5to20=63
+field offset= 0x288 total= 178 pcs=37 sub1us=77 1to2p5=49 2p5to20=52
+field offset=  0x10 total= 170 pcs=40 sub1us=56 1to2p5=51 2p5to20=63
+field offset=  0x28 total= 167 pcs=26 sub1us=49 1to2p5=61 2p5to20=57
+field offset= 0x498 total= 158 pcs=22 sub1us=53 1to2p5=55 2p5to20=50
+field offset= 0x490 total= 125 pcs=5 sub1us=21 1to2p5=38 2p5to20=66
+field offset= 0x270 total=  97 pcs=23 sub1us=30 1to2p5=29 2p5to20=38
+field offset= 0x2a0 total=  88 pcs=23 sub1us=30 1to2p5=19 2p5to20=39
+field offset=   0x0 total=  87 pcs=4 sub1us=28 1to2p5=28 2p5to20=31
+field offset= 0x150 total=  87 pcs=20 sub1us=32 1to2p5=21 2p5to20=34
+field offset= 0x278 total=  67 pcs=3 sub1us=22 1to2p5=24 2p5to20=21
+field offset=  0x60 total=  61 pcs=5 sub1us=12 1to2p5=23 2p5to20=26
+field offset=  0xf0 total=  54 pcs=17 sub1us=13 1to2p5=19 2p5to20=22
+field offset= 0x4e0 total=  50 pcs=16 sub1us=13 1to2p5=18 2p5to20=19
+field offset=  0x18 total=  48 pcs=1 sub1us=15 1to2p5=13 2p5to20=20
+field offset= 0x250 total=  38 pcs=5 sub1us=9 1to2p5=13 2p5to20=16
+field offset=  0xd8 total=  19 pcs=9 sub1us=5 1to2p5=7 2p5to20=7
+field offset= 0x2f0 total=  19 pcs=14 sub1us=4 1to2p5=4 2p5to20=11
+field offset= 0x178 total=  18 pcs=8 sub1us=7 1to2p5=7 2p5to20=4
+field offset= 0x108 total=  14 pcs=6 sub1us=3 1to2p5=5 2p5to20=6
+field offset= 0x120 total=  12 pcs=5 sub1us=1 1to2p5=9 2p5to20=2
+field offset=  0x20 total=  11 pcs=3 sub1us=3 1to2p5=6 2p5to20=2
+field offset= 0x280 total=  11 pcs=3 sub1us=5 1to2p5=1 2p5to20=5
+field offset= 0x198 total=   8 pcs=4 sub1us=1 1to2p5=2 2p5to20=5
+field offset= 0x478 total=   2 pcs=1 sub1us=0 1to2p5=1 2p5to20=1
+field offset= 0x480 total=   2 pcs=2 sub1us=0 1to2p5=1 2p5to20=1
+field offset=   0x8 total=   1 pcs=1 sub1us=0 1to2p5=0 2p5to20=1
+field offset= 0x248 total=   1 pcs=1 sub1us=0 1to2p5=0 2p5to20=1
+field offset= 0x298 total=   1 pcs=1 sub1us=0 1to2p5=0 2p5to20=1
+
+context for PCs with aggregate count >= 10
+
+context target=piece address=0x10005cb20 total=69
+  0x10005cb08 mov      w8, #0x1
+  0x10005cb0c ldp      x28, x24, [sp, #0xd0]
+  0x10005cb10 ldr      x9, [x20, #0x10]
+  0x10005cb14 cbz      x9, 0x10005cb20
+  0x10005cb18 sub      x9, x9, #0x1
+  0x10005cb1c str      x9, [x20, #0x10]
+> 0x10005cb20 ldr      x9, [x20, #0x28]
+  0x10005cb24 cbz      x9, 0x10005cb30
+  0x10005cb28 sub      x9, x9, #0x1
+  0x10005cb2c str      x9, [x20, #0x28]
+  0x10005cb30 ldr      x9, [x20, #0x258]
+  0x10005cb34 cmp      x9, x24
+  0x10005cb38 b.ne     0x10005cd74
+
+context target=piece address=0x10005c084 total=63
+  0x10005c06c mov      x25, x26
+  0x10005c070 mov      x26, x28
+  0x10005c074 mov      x28, x21
+  0x10005c078 cbz      x24, 0x10005c084
+  0x10005c07c mov      x0, x23
+  0x10005c080 bl       _mi_free
+> 0x10005c084 ldr      x22, [x20, #0x498]
+  0x10005c088 ldr      x8, [x20, #0x4e0]
+  0x10005c08c cmp      x22, x8
+  0x10005c090 b.ls     0x10005c098
+  0x10005c094 str      x22, [x20, #0x4e0]
+  0x10005c098 ldr      x8, [x20, #0x28]
+  0x10005c09c cbz      x8, 0x10005c104
+
+context target=piece address=0x10005c574 total=56
+  0x10005c55c str      x8, [x20, #0x10]
+  0x10005c560 ldr      x8, [x20, #0x28]
+  0x10005c564 ldr      x9, [sp, #0xa0]
+  0x10005c568 cbz      x8, 0x10005c574
+  0x10005c56c sub      x8, x8, #0x1
+  0x10005c570 str      x8, [x20, #0x28]
+> 0x10005c574 ldr      x8, [x20, #0x258]
+  0x10005c578 cmp      x8, x9
+  0x10005c57c b.ne     0x10005c5f0
+  0x10005c580 ldr      x8, [x20, #0x150]
+  0x10005c584 ldr      x23, [sp, #0x410]
+  0x10005c588 ldr      x10, [sp, #0xe8]
+  0x10005c58c cmp      x8, x10
+
+context target=piece address=0x10005c504 total=48
+  0x10005c4ec mov      w10, #0x4
+  0x10005c4f0 stp      x9, x10, [x8]
+  0x10005c4f4 str      x22, [x8, #0x10]
+  0x10005c4f8 add      x8, x23, #0x1
+  0x10005c4fc str      x8, [x20, #0x10]
+  0x10005c500 ldr      x23, [x20, #0x28]
+> 0x10005c504 ldr      x8, [x20, #0x18]
+  0x10005c508 cmp      x23, x8
+  0x10005c50c b.ne     0x10005c520
+  0x10005c510 mov      w8, #0x1
+  0x10005c514 str      x8, [sp, #0xc8]
+  0x10005c518 ldr      x0, [sp, #0x60]
+  0x10005c51c bl       __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h84ff3e56869fffccE
+
+context target=piece address=0x10005c140 total=47
+  0x10005c128 sub      x23, x9, #0x1
+  0x10005c12c mov      x9, x22
+  0x10005c130 b        0x10005c89c
+  0x10005c134 ldr      x21, [x20, #0x258]
+  0x10005c138 ldr      x8, [x20, #0x150]
+  0x10005c13c str      x8, [sp, #0xe8]
+> 0x10005c140 ldr      x8, [x20, #0x490]
+  0x10005c144 cbz      x8, 0x10005c4a0
+  0x10005c148 mov      x12, #0x0
+  0x10005c14c mov      x9, #0xa9c5
+  0x10005c150 movk     x9, #0x2e62, lsl #16
+  0x10005c154 movk     x9, #0x7aea, lsl #32
+  0x10005c158 movk     x9, #0xf135, lsl #48
+
+context target=piece address=0x100058dfc total=46
+  0x100058de4 stp      x9, x21, [x0]
+  0x100058de8 str      x8, [x0, #0x10]
+  0x100058dec b        0x10005cd94
+  0x100058df0 ldr      x24, [x20, #0x258]
+  0x100058df4 ldr      x8, [x20, #0x150]
+  0x100058df8 str      x8, [sp, #0xe0]
+> 0x100058dfc ldr      x8, [x20, #0x490]
+  0x100058e00 cbz      x8, 0x10005914c
+  0x100058e04 mov      x12, #0x0
+  0x100058e08 mov      x9, #0xa9c5
+  0x100058e0c movk     x9, #0x2e62, lsl #16
+  0x100058e10 movk     x9, #0x7aea, lsl #32
+  0x100058e14 movk     x9, #0xf135, lsl #48
+
+context target=piece address=0x10005bfd0 total=45
+  0x10005bfb8 str      x9, [sp, #0x3b8]
+  0x10005bfbc str      x25, [sp, #0x3c0]
+  0x10005bfc0 str      x10, [sp, #0x3c8]
+  0x10005bfc4 str      x27, [sp, #0x3d0]
+  0x10005bfc8 str      x11, [sp, #0x3d8]
+  0x10005bfcc str      x26, [sp, #0x3e0]
+> 0x10005bfd0 ldrb     w8, [x20, #0x504]
+  0x10005bfd4 cmp      w8, #0x1
+  0x10005bfd8 b.ne     0x10005c084
+  0x10005bfdc ldr      x8, [x20, #0x4b0]
+  0x10005bfe0 cbz      x8, 0x10005bfec
+  0x10005bfe4 ldr      w8, [x20, #0x500]
+  0x10005bfe8 cbz      w8, 0x10005c084
+
+context target=atom_closure address=0x10006f1f4 total=41
+  0x10006f1dc cbz      x28, 0x1000714e4
+  0x10006f1e0 mov      x0, x22
+  0x10006f1e4 bl       _mi_free
+  0x10006f1e8 b        0x1000714e4
+  0x10006f1ec mov      x27, x28
+  0x10006f1f0 mov      x28, x26
+> 0x10006f1f4 ldr      x1, [x20, #0x2f8]
+  0x10006f1f8 cmp      x27, x1
+  0x10006f1fc b.hs     0x1000701d4
+  0x10006f200 cmp      x22, x1
+  0x10006f204 b.hs     0x10007cee0
+  0x10006f208 ldr      x9, [x20, #0x2f0]
+  0x10006f20c ldrb     w10, [x9, x22]
+
+context target=atom_closure address=0x10006ae7c total=38
+  0x10006ae64 str      x9, [sp, #0x568]
+  0x10006ae68 str      x26, [sp, #0x570]
+  0x10006ae6c str      x10, [sp, #0x578]
+  0x10006ae70 str      x24, [sp, #0x580]
+  0x10006ae74 str      x11, [sp, #0x588]
+  0x10006ae78 str      x28, [sp, #0x590]
+> 0x10006ae7c ldrb     w8, [x20, #0x504]
+  0x10006ae80 cmp      w8, #0x1
+  0x10006ae84 b.ne     0x10006af18
+  0x10006ae88 ldr      x8, [x20, #0x4b0]
+  0x10006ae8c cbz      x8, 0x10006ae98
+  0x10006ae90 ldr      w8, [x20, #0x500]
+  0x10006ae94 cbz      w8, 0x10006af18
+
+context target=piece address=0x100059164 total=38
+  0x10005914c ldr      x8, [x20, #0x250]
+  0x100059150 str      x8, [sp, #0x90]
+  0x100059154 ldr      x9, [x20, #0x288]
+  0x100059158 ldr      x8, [x20, #0x2a0]
+  0x10005915c stp      x8, x9, [sp, #0x68]
+  0x100059160 ldr      x19, [x20, #0x10]
+> 0x100059164 ldr      x8, [x20]
+  0x100059168 cmp      x19, x8
+  0x10005916c b.eq     0x10005a6ec
+  0x100059170 mov      x23, x20
+  0x100059174 ldr      x8, [x23, #0x18]!
+  0x100059178 ldur     x9, [x23, #-0x10]
+  0x10005917c mov      w10, #0x18
+
+context target=piece address=0x10005cb10 total=38
+  0x10005caf8 bl       __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState11apply_delta17h90ae86030de96a1cE
+  0x10005cafc mov      x8, #0x5
+  0x10005cb00 movk     x8, #0x8000, lsl #48
+  0x10005cb04 str      x8, [sp, #0x410]
+  0x10005cb08 mov      w8, #0x1
+  0x10005cb0c ldp      x28, x24, [sp, #0xd0]
+> 0x10005cb10 ldr      x9, [x20, #0x10]
+  0x10005cb14 cbz      x9, 0x10005cb20
+  0x10005cb18 sub      x9, x9, #0x1
+  0x10005cb1c str      x9, [x20, #0x10]
+  0x10005cb20 ldr      x9, [x20, #0x28]
+  0x10005cb24 cbz      x9, 0x10005cb30
+  0x10005cb28 sub      x9, x9, #0x1
+
+context target=piece address=0x10005ecec total=36
+  0x10005ecd4 ldr      x8, [x20, #0x2a0]
+  0x10005ecd8 ldr      x9, [sp, #0x80]
+  0x10005ecdc cmp      x9, x8
+  0x10005ece0 ldr      x26, [sp, #0xf0]
+  0x10005ece4 b.hi     0x10005ecec
+  0x10005ece8 str      x9, [x20, #0x2a0]
+> 0x10005ecec ldrb     w8, [x20, #0x504]
+  0x10005ecf0 cmp      w8, #0x1
+  0x10005ecf4 b.ne     0x10005ed80
+  0x10005ecf8 ldr      x8, [x20, #0x4b0]
+  0x10005ecfc cbz      x8, 0x10005ed08
+  0x10005ed00 ldr      w8, [x20, #0x500]
+  0x10005ed04 cbz      w8, 0x10005ed80
+
+context target=piece address=0x100059c74 total=35
+  0x100059c5c ldr      x26, [sp, #0x80]
+  0x100059c60 b.hi     0x100059c74
+  0x100059c64 b        0x10005ae8c
+  0x100059c68 mov      x28, #0x0
+  0x100059c6c mov      x23, x27
+  0x100059c70 mov      x8, x24
+> 0x100059c74 ldr      x9, [x20, #0x2f8]
+  0x100059c78 cmp      x19, x9
+  0x100059c7c b.hs     0x10005a224
+  0x100059c80 cmp      x26, x9
+  0x100059c84 b.hs     0x10005a224
+  0x100059c88 ldr      x10, [x20, #0x2f0]
+  0x100059c8c ldrb     w11, [x10, x19]
+
+context target=atom_closure address=0x10006e9f4 total=33
+  0x10006e9dc str      x19, [sp, #0xe0]
+  0x10006e9e0 mov      w9, #0x1
+  0x10006e9e4 str      w9, [sp, #0xf8]
+  0x10006e9e8 b.hi     0x10006ec18
+  0x10006e9ec str      x27, [x21]
+  0x10006e9f0 mov      x26, x27
+> 0x10006e9f4 ldr      x1, [x20, #0x2f8]
+  0x10006e9f8 cmp      x28, x1
+  0x10006e9fc b.hs     0x10006f1ec
+  0x10006ea00 b        0x10006ec24
+  0x10006ea04 add      x10, sp, #0x400
+  0x10006ea08 ldur     q0, [x10, #0xc8]
+  0x10006ea0c stur     q0, [x10, #0x18]
+
+context target=piece address=0x1000591d8 total=33
+  0x1000591c0 str      x21, [sp, #0x88]
+  0x1000591c4 str      x21, [x8, #0x8]
+  0x1000591c8 add      x8, x19, #0x1
+  0x1000591cc str      x8, [x20, #0x28]
+  0x1000591d0 ldr      x19, [x20, #0x498]
+  0x1000591d4 ldr      x25, [x20, #0x288]
+> 0x1000591d8 ldr      x8, [x20, #0x278]
+  0x1000591dc cmp      x25, x8
+  0x1000591e0 str      x19, [sp, #0x108]
+  0x1000591e4 b.eq     0x10005a714
+  0x1000591e8 ldr      x8, [x20, #0x280]
+  0x1000591ec add      x8, x8, x25, lsl #4
+  0x1000591f0 strb     wzr, [x8]
+
+context target=piece address=0x10005c4bc total=32
+  0x10005c4a4 mov      x24, x19
+  0x10005c4a8 ldr      x19, [x20, #0x250]
+  0x10005c4ac ldr      x21, [x20, #0x288]
+  0x10005c4b0 ldr      x8, [x20, #0x2a0]
+  0x10005c4b4 str      x8, [sp, #0x80]
+  0x10005c4b8 ldr      x23, [x20, #0x10]
+> 0x10005c4bc ldr      x8, [x20]
+  0x10005c4c0 cmp      x23, x8
+  0x10005c4c4 b.ne     0x10005c4d8
+  0x10005c4c8 mov      w8, #0x1
+  0x10005c4cc str      x8, [sp, #0xc8]
+  0x10005c4d0 mov      x0, x20
+  0x10005c4d4 bl       __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h1ea4d81f4bfacb92E
+
+context target=atom_closure address=0x10006ad74 total=31
+  0x10006ad5c ldr      x14, [x20, #0x2a0]
+  0x10006ad60 mov      x27, #0x5
+  0x10006ad64 movk     x27, #0x8000, lsl #48
+  0x10006ad68 add      x21, x20, #0x2a0
+  0x10006ad6c ldr      x8, [x20, #0xd8]
+  0x10006ad70 ldr      x9, [x20, #0xf0]
+> 0x10006ad74 ldr      x26, [x20, #0x150]
+  0x10006ad78 ldr      x10, [x20, #0x108]
+  0x10006ad7c ldr      x12, [x20, #0x198]
+  0x10006ad80 ldr      x11, [x20, #0x178]
+  0x10006ad84 cmp      x12, #0x8
+  0x10006ad88 csel     x13, x11, x12, hi
+  0x10006ad8c ldr      x11, [x20, #0x120]
+
+context target=piece address=0x10005b98c total=31
+  0x10005b974 cmp      x22, x23
+  0x10005b978 ldp      x25, x19, [sp, #0x100]
+  0x10005b97c ldr      x26, [sp, #0x80]
+  0x10005b980 b.hi     0x10005b98c
+  0x10005b984 str      x22, [x20, #0x2a0]
+  0x10005b988 mov      x23, x22
+> 0x10005b98c ldr      x1, [x20, #0x2f8]
+  0x10005b990 cmp      x26, x1
+  0x10005b994 b.hs     0x10005bdb4
+  0x10005b998 cmp      x19, x1
+  0x10005b99c b.hs     0x10005f3a0
+  0x10005b9a0 ldr      x9, [x20, #0x2f0]
+  0x10005b9a4 ldrb     w10, [x9, x19]
+
+context target=atom_closure address=0x10006af18 total=30
+  0x10006af00 add      x21, x20, #0x2a0
+  0x10006af04 mov      x14, x27
+  0x10006af08 cbz      x23, 0x10006af18
+  0x10006af0c mov      x0, x22
+  0x10006af10 bl       _mi_free
+  0x10006af14 mov      x14, x27
+> 0x10006af18 ldr      x22, [x20, #0x498]
+  0x10006af1c ldr      x8, [x20, #0x4e0]
+  0x10006af20 cmp      x22, x8
+  0x10006af24 b.ls     0x10006af2c
+  0x10006af28 str      x22, [x20, #0x4e0]
+  0x10006af2c ldr      x23, [x20, #0x2f8]
+  0x10006af30 cmp      x22, x23
+
+context target=atom_closure address=0x100079b94 total=30
+  0x100079b7c mov      w8, #0x0
+  0x100079b80 ldr      x10, [x19]
+  0x100079b84 cmp      x27, x10
+  0x100079b88 b.hi     0x100079b94
+  0x100079b8c str      x27, [x19]
+  0x100079b90 mov      x8, x9
+> 0x100079b94 ldr      x9, [x20, #0x2f8]
+  0x100079b98 cmp      x22, x9
+  0x100079b9c b.hs     0x100079e50
+  0x100079ba0 cmp      x28, x9
+  0x100079ba4 b.hs     0x100079e50
+  0x100079ba8 ldr      x10, [x20, #0x2f0]
+  0x100079bac ldrb     w11, [x10, x22]
+
+context target=atom_closure address=0x1000724f0 total=28
+  0x1000724d8 mov      w8, #0x0
+  0x1000724dc ldr      x24, [x21]
+  0x1000724e0 cmp      x26, x24
+  0x1000724e4 b.hi     0x1000724f0
+  0x1000724e8 str      x26, [x21]
+  0x1000724ec mov      x24, x26
+> 0x1000724f0 ldr      x9, [x20, #0x2f8]
+  0x1000724f4 cmp      x22, x9
+  0x1000724f8 b.hs     0x100072760
+  0x1000724fc cmp      x28, x9
+  0x100072500 b.hs     0x100072760
+  0x100072504 ldr      x10, [x20, #0x2f0]
+  0x100072508 ldrb     w11, [x10, x22]
+
+context target=piece address=0x10005bdb8 total=28
+  0x10005bda0 add      x23, x9, x11
+  0x10005bda4 ldr      x9, [x8]
+  0x10005bda8 add      x9, x9, #0x1
+  0x10005bdac str      x9, [x8]
+  0x10005bdb0 b        0x10005d5e0
+  0x10005bdb4 mov      x12, x23
+> 0x10005bdb8 ldr      x9, [x20, #0x2f8]
+  0x10005bdbc cmp      x19, x9
+  0x10005bdc0 b.hs     0x10005ca98
+  0x10005bdc4 ldr      x9, [x20, #0x2f0]
+  0x10005bdc8 ldrb     w9, [x9, x19]
+  0x10005bdcc sub      w10, w9, #0x40
+  0x10005bdd0 cmp      w10, #0x3e
+
+context target=piece address=0x10005ee48 total=28
+  0x10005ee30 b.hi     0x10005f1fc
+  0x10005ee34 ldr      x8, [x20, #0x298]
+  0x10005ee38 add      x1, x8, x26, lsl #3
+  0x10005ee3c add      x0, x8, x24, lsl #3
+  0x10005ee40 lsl      x2, x22, #3
+  0x10005ee44 bl       0x1007ced30 ; symbol stub for: _memmove
+> 0x10005ee48 ldr      x9, [x20, #0x2a0]
+  0x10005ee4c add      x8, x22, x24
+  0x10005ee50 cmp      x8, x9
+  0x10005ee54 b.hi     0x10005ee5c
+  0x10005ee58 str      x8, [x20, #0x2a0]
+  0x10005ee5c mov      w28, #0x5
+  0x10005ee60 str      x19, [sp, #0xc0]
+
+context target=atom_closure address=0x1000701d8 total=27
+  0x1000701c0 mov      w8, #0x0
+  0x1000701c4 ldr      x26, [x21]
+  0x1000701c8 cmp      x28, x26
+  0x1000701cc b.hi     0x1000701d8
+  0x1000701d0 str      x28, [x21]
+  0x1000701d4 mov      x26, x28
+> 0x1000701d8 ldr      x1, [x20, #0x2f8]
+  0x1000701dc mov      x28, x27
+  0x1000701e0 cmp      x27, x1
+  0x1000701e4 b.hs     0x1000724ec
+  0x1000701e8 cmp      x22, x1
+  0x1000701ec b.hs     0x10007ceec
+  0x1000701f0 ldr      x9, [x20, #0x2f0]
+
+context target=atom_closure address=0x10006c454 total=26
+  0x10006c43c ldr      x8, [x20, #0x2f8]
+  0x10006c440 cmp      x22, x8
+  0x10006c444 b.lo     0x10006b500
+  0x10006c448 str      xzr, [sp, #0xc0]
+  0x10006c44c ldr      x28, [sp, #0xd8]
+  0x10006c450 ldr      w8, [sp, #0xf8]
+> 0x10006c454 ldr      x9, [x20, #0x2f8]
+  0x10006c458 cmp      x22, x9
+  0x10006c45c b.hs     0x10006c924
+  0x10006c460 ldr      x9, [x20, #0x2f0]
+  0x10006c464 ldrb     w9, [x9, x22]
+  0x10006c468 cmp      w9, #0x2e
+  0x10006c46c b.ne     0x10006c924
+
+context target=atom_closure address=0x10006e114 total=26
+  0x10006e0fc mov      w9, #0x1
+  0x10006e100 str      w9, [sp, #0xf8]
+  0x10006e104 ldr      x22, [sp, #0x100]
+  0x10006e108 b.hi     0x10006e338
+  0x10006e10c str      x27, [x21]
+  0x10006e110 mov      x19, x27
+> 0x10006e114 ldr      x9, [x20, #0x2f8]
+  0x10006e118 cmp      x22, x9
+  0x10006e11c b.lo     0x10006e344
+  0x10006e120 b        0x10006e5b8
+  0x10006e124 add      x10, sp, #0x400
+  0x10006e128 ldur     q0, [x10, #0xc8]
+  0x10006e12c stur     q0, [x10, #0x18]
+
+context target=atom_closure address=0x100072764 total=25
+  0x10007274c movk     x9, #0x8000, lsl #48
+  0x100072750 sub      x21, x9, #0x3
+  0x100072754 adrp     x9, 1993 ; 0x10083b000
+  0x100072758 add      x9, x9, #0xc54
+  0x10007275c b        0x100072fc8
+  0x100072760 mov      x27, x24
+> 0x100072764 ldr      x9, [x20, #0x2f8]
+  0x100072768 cmp      x22, x9
+  0x10007276c b.hs     0x100072c40
+  0x100072770 cmp      x28, x9
+  0x100072774 b.hs     0x100072c40
+  0x100072778 ldr      x10, [x20, #0x2f0]
+  0x10007277c ldrb     w11, [x10, x22]
+
+context target=piece address=0x10005c108 total=25
+  0x10005c0f0 mov      x9, x11
+  0x10005c0f4 mov      x10, #0x5
+  0x10005c0f8 movk     x10, #0x8000, lsl #48
+  0x10005c0fc sub      x23, x10, #0x3
+  0x10005c100 b        0x10005c89c
+  0x10005c104 ldr      x8, [x20, #0x10]
+> 0x10005c108 ldr      x9, [x20, #0x60]
+  0x10005c10c cmp      x8, #0x0
+  0x10005c110 ccmp     x8, x9, #0x0, ne
+  0x10005c114 b.lo     0x10005c134
+  0x10005c118 cmp      x8, #0xfff
+  0x10005c11c b.ls     0x10005c134
+  0x10005c120 mov      x9, #0x5
+
+context target=piece address=0x10005c594 total=25
+  0x10005c57c b.ne     0x10005c5f0
+  0x10005c580 ldr      x8, [x20, #0x150]
+  0x10005c584 ldr      x23, [sp, #0x410]
+  0x10005c588 ldr      x10, [sp, #0xe8]
+  0x10005c58c cmp      x8, x10
+  0x10005c590 b.ne     0x10005c5f4
+> 0x10005c594 ldr      x8, [x20, #0x250]
+  0x10005c598 cmp      x8, x19
+  0x10005c59c cset     w10, ne
+  0x10005c5a0 mov      x8, #0x5
+  0x10005c5a4 movk     x8, #0x8000, lsl #48
+  0x10005c5a8 cmp      x23, x8
+  0x10005c5ac b.ne     0x10005c808
+
+context target=atom_closure address=0x100072f50 total=24
+  0x100072f38 ldr      x9, [x20, #0x4e0]
+  0x100072f3c cmp      x11, x9
+  0x100072f40 b.ls     0x100072f50
+  0x100072f44 str      x11, [x20, #0x4e0]
+  0x100072f48 b        0x100072f50
+  0x100072f4c add      x25, x20, #0x288
+> 0x100072f50 ldr      x10, [x20, #0x2f8]
+  0x100072f54 cmp      x22, x10
+  0x100072f58 b.hs     0x1000732b0
+  0x100072f5c cmp      x28, x10
+  0x100072f60 b.hs     0x1000732b0
+  0x100072f64 ldr      x9, [x20, #0x2f0]
+  0x100072f68 ldrb     w11, [x9, x22]
+
+context target=piece address=0x10005bf88 total=24
+  0x10005bf70 str      x12, [sp, #0xf0]
+  0x10005bf74 str      x19, [x20, #0x498]
+  0x10005bf78 ldr      x8, [x20, #0x288]
+  0x10005bf7c str      x8, [sp, #0xb8]
+  0x10005bf80 str      x19, [sp, #0x368]
+  0x10005bf84 ldr      x28, [x20, #0x10]
+> 0x10005bf88 ldr      x19, [x20, #0x270]
+  0x10005bf8c ldr      x8, [x20, #0xd8]
+  0x10005bf90 ldr      x9, [x20, #0xf0]
+  0x10005bf94 ldr      x25, [x20, #0x150]
+  0x10005bf98 ldr      x10, [x20, #0x108]
+  0x10005bf9c ldr      x11, [x20, #0x198]
+  0x10005bfa0 ldr      x12, [x20, #0x178]
+
+context target=piece address=0x10005c660 total=24
+  0x10005c648 lsl      x11, x27, #4
+  0x10005c64c mov      w9, #0x2
+  0x10005c650 strh     w9, [x8, x11]
+  0x10005c654 add      x28, x27, #0x1
+  0x10005c658 str      x28, [x20, #0x288]
+  0x10005c65c ldr      x22, [x20, #0x498]
+> 0x10005c660 ldr      x8, [x20, #0x2f8]
+  0x10005c664 cmp      x22, x8
+  0x10005c668 b.hs     0x10005c7e8
+  0x10005c66c ldr      x8, [x20, #0x2f0]
+  0x10005c670 ldrb     w8, [x8, x22]
+  0x10005c674 sub      w9, w8, #0x3f
+  0x10005c678 cmp      w9, #0x3c
+
+context target=atom_closure address=0x100072ebc total=23
+  0x100072ea4 movk     x9, #0x8000, lsl #48
+  0x100072ea8 sub      x21, x9, #0x3
+  0x100072eac adrp     x9, 1993 ; 0x10083b000
+  0x100072eb0 add      x9, x9, #0xc54
+  0x100072eb4 b        0x10007300c
+  0x100072eb8 mov      x24, x25
+> 0x100072ebc ldr      x10, [x20, #0x2f8]
+  0x100072ec0 cmp      x22, x10
+  0x100072ec4 b.hs     0x100072f4c
+  0x100072ec8 cmp      x28, x10
+  0x100072ecc add      x25, x20, #0x288
+  0x100072ed0 b.hs     0x100072f50
+  0x100072ed4 ldr      x9, [x20, #0x2f0]
+
+context target=atom_closure address=0x10007a1a0 total=23
+  0x10007a188 b.ls     0x10007a194
+  0x10007a18c mov      x25, x24
+  0x10007a190 b        0x10007c4ec
+  0x10007a194 ldr      x23, [x20, #0x258]
+  0x10007a198 ldr      x8, [x20, #0x150]
+  0x10007a19c str      x8, [sp, #0x88]
+> 0x10007a1a0 ldr      x8, [x20, #0x490]
+  0x10007a1a4 cbz      x8, 0x10007a470
+  0x10007a1a8 mov      x12, #0x0
+  0x10007a1ac mov      x9, #0xa9c5
+  0x10007a1b0 movk     x9, #0x2e62, lsl #16
+  0x10007a1b4 movk     x9, #0x7aea, lsl #32
+  0x10007a1b8 movk     x9, #0xf135, lsl #48
+
+context target=piece address=0x100058dc0 total=23
+  0x100058da8 add      x9, x9, #0xc54
+  0x100058dac sub      x8, x8, #0x3
+  0x100058db0 stp      x8, x9, [x0]
+  0x100058db4 mov      w8, #0x17
+  0x100058db8 b        0x100058ee8
+  0x100058dbc ldr      x8, [x20, #0x10]
+> 0x100058dc0 ldr      x9, [x20, #0x60]
+  0x100058dc4 cmp      x8, #0x0
+  0x100058dc8 ccmp     x8, x9, #0x0, ne
+  0x100058dcc b.lo     0x100058df0
+  0x100058dd0 cmp      x8, #0xfff
+  0x100058dd4 b.ls     0x100058df0
+  0x100058dd8 mov      x9, #0x5
+
+context target=piece address=0x100059218 total=23
+  0x100059200 add      x8, x25, #0x1
+  0x100059204 str      x8, [sp, #0x78]
+  0x100059208 str      x9, [x20, #0x288]
+  0x10005920c ldr      x28, [x20, #0x2a0]
+  0x100059210 ldr      x8, [x20, #0xd8]
+  0x100059214 ldr      x9, [x20, #0xf0]
+> 0x100059218 ldr      x14, [x20, #0x150]
+  0x10005921c ldr      x10, [x20, #0x108]
+  0x100059220 ldr      x12, [x20, #0x198]
+  0x100059224 ldr      x11, [x20, #0x178]
+  0x100059228 cmp      x12, #0x8
+  0x10005922c csel     x13, x11, x12, hi
+  0x100059230 ldr      x11, [x20, #0x120]
+
+context target=piece address=0x1000596b0 total=23
+  0x100059698 b        0x1000596a8
+  0x10005969c mov      w24, #0x0
+  0x1000596a0 mov      x8, #-0x8000000000000000
+  0x1000596a4 str      x8, [sp, #0xb0]
+  0x1000596a8 mov      x27, x28
+  0x1000596ac str      x19, [sp, #0xc0]
+> 0x1000596b0 ldr      x9, [x20, #0x2f8]
+  0x1000596b4 cmp      x19, x9
+  0x1000596b8 b.hs     0x100059c68
+  0x1000596bc ldr      x8, [x20, #0x2f0]
+  0x1000596c0 ldrb     w10, [x8, x19]
+  0x1000596c4 cmp      w10, #0x24
+  0x1000596c8 b.eq     0x100059714
+
+context target=piece address=0x10005c628 total=23
+  0x10005c610 str      q0, [sp, #0x390]
+  0x10005c614 mov      x10, #0x5
+  0x10005c618 movk     x10, #0x8000, lsl #48
+  0x10005c61c cmp      x23, x10
+  0x10005c620 b.ne     0x10005c800
+  0x10005c624 ldr      x27, [x20, #0x288]
+> 0x10005c628 ldr      x8, [x20, #0x278]
+  0x10005c62c cmp      x27, x8
+  0x10005c630 b.ne     0x10005c644
+  0x10005c634 mov      w8, #0x1
+  0x10005c638 str      x8, [sp, #0xc8]
+  0x10005c63c add      x0, x20, #0x278
+  0x10005c640 bl       __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h84ff3e56869fffccE
+
+context target=piece address=0x100059234 total=22
+  0x10005921c ldr      x10, [x20, #0x108]
+  0x100059220 ldr      x12, [x20, #0x198]
+  0x100059224 ldr      x11, [x20, #0x178]
+  0x100059228 cmp      x12, #0x8
+  0x10005922c csel     x13, x11, x12, hi
+  0x100059230 ldr      x11, [x20, #0x120]
+> 0x100059234 ldr      x15, [x20, #0x258]
+  0x100059238 stp      x8, x9, [sp, #0x128]
+  0x10005923c stp      x14, x15, [sp, #0xe8]
+  0x100059240 stp      x14, x10, [sp, #0x138]
+  0x100059244 stp      x28, x13, [sp, #0x98]
+  0x100059248 stp      x13, x11, [sp, #0x148]
+  0x10005924c mov      x14, #-0x8000000000000000
+
+context target=piece address=0x10005ee0c total=22
+  0x10005edf4 ldr      x8, [x20, #0x280]
+  0x10005edf8 add      x1, x8, x9, lsl #4
+  0x10005edfc ldr      x23, [sp, #0x78]
+  0x10005ee00 add      x0, x8, x23, lsl #4
+  0x10005ee04 lsl      x2, x22, #4
+  0x10005ee08 bl       0x1007ced30 ; symbol stub for: _memmove
+> 0x10005ee0c ldr      x9, [x20, #0x288]
+  0x10005ee10 add      x8, x22, x23
+  0x10005ee14 cmp      x8, x9
+  0x10005ee18 b.hi     0x10005ee20
+  0x10005ee1c str      x8, [x20, #0x288]
+  0x10005ee20 ldr      x23, [x20, #0x2a0]
+  0x10005ee24 subs     x22, x23, x26
+
+context target=atom_closure address=0x10006b4f4 total=20
+  0x10006b4dc b        0x10006b4f0
+  0x10006b4e0 str      wzr, [sp, #0xf8]
+  0x10006b4e4 str      x8, [x19]
+  0x10006b4e8 mov      x9, #-0x8000000000000000
+  0x10006b4ec stp      x9, x8, [sp, #0xd0]
+  0x10006b4f0 str      x22, [sp, #0xe0]
+> 0x10006b4f4 ldr      x8, [x20, #0x2f8]
+  0x10006b4f8 cmp      x22, x8
+  0x10006b4fc b.hs     0x10006c448
+  0x10006b500 ldr      x8, [x20, #0x2f0]
+  0x10006b504 ldrb     w8, [x8, x22]
+  0x10006b508 sub      w9, w8, #0x9
+  0x10006b50c cmp      w9, #0x5
+
+context target=atom_closure address=0x100073be0 total=20
+  0x100073bc8 str      x9, [sp, #0xc0]
+  0x100073bcc b        0x100076848
+  0x100073bd0 ldr      x10, [x20, #0x4e0]
+  0x100073bd4 cmp      x9, x10
+  0x100073bd8 b.ls     0x100073be0
+  0x100073bdc str      x9, [x20, #0x4e0]
+> 0x100073be0 ldr      x1, [x20, #0x2f8]
+  0x100073be4 cmp      x28, x1
+  0x100073be8 b.hs     0x100075140
+  0x100073bec cmp      x22, x1
+  0x100073bf0 b.hs     0x10007cef8
+  0x100073bf4 ldr      x9, [x20, #0x2f0]
+  0x100073bf8 ldrb     w10, [x9, x22]
+
+context target=piece address=0x10005cb30 total=20
+  0x10005cb18 sub      x9, x9, #0x1
+  0x10005cb1c str      x9, [x20, #0x10]
+  0x10005cb20 ldr      x9, [x20, #0x28]
+  0x10005cb24 cbz      x9, 0x10005cb30
+  0x10005cb28 sub      x9, x9, #0x1
+  0x10005cb2c str      x9, [x20, #0x28]
+> 0x10005cb30 ldr      x9, [x20, #0x258]
+  0x10005cb34 cmp      x9, x24
+  0x10005cb38 b.ne     0x10005cd74
+  0x10005cb3c ldr      x9, [x20, #0x150]
+  0x10005cb40 ldr      x10, [sp, #0xe0]
+  0x10005cb44 cmp      x9, x10
+  0x10005cb48 b.ne     0x10005cd74
+
+context target=atom_closure address=0x100072c48 total=19
+  0x100072c30 ldr      x8, [x20, #0x280]
+  0x100072c34 mov      w9, #0x102
+  0x100072c38 strh     w9, [x8, x21]
+  0x100072c3c b        0x100077fb4
+  0x100072c40 add      x26, x20, #0x288
+  0x100072c44 mov      x25, x27
+> 0x100072c48 ldr      x9, [x20, #0x2f8]
+  0x100072c4c cmp      x22, x9
+  0x100072c50 b.hs     0x100072eb8
+  0x100072c54 cmp      x28, x9
+  0x100072c58 b.hs     0x100072eb8
+  0x100072c5c ldr      x10, [x20, #0x2f0]
+  0x100072c60 ldrb     w11, [x10, x22]
+
+context target=atom_closure address=0x1000732b4 total=19
+  0x10007329c movk     x9, #0x8000, lsl #48
+  0x1000732a0 sub      x21, x9, #0x3
+  0x1000732a4 adrp     x9, 1992 ; 0x10083b000
+  0x1000732a8 add      x9, x9, #0xc54
+  0x1000732ac b        0x10007351c
+  0x1000732b0 mov      x26, x24
+> 0x1000732b4 ldr      x10, [x20, #0x2f8]
+  0x1000732b8 cmp      x22, x10
+  0x1000732bc b.hs     0x100073564
+  0x1000732c0 cmp      x28, x10
+  0x1000732c4 b.hs     0x100073564
+  0x1000732c8 ldr      x11, [x20, #0x2f0]
+  0x1000732cc ldrb     w9, [x11, x22]
+
+context target=atom_closure address=0x10006e5bc total=18
+  0x10006e5a4 add      x23, sp, #0x400
+  0x10006e5a8 ldr      x22, [sp, #0x100]
+  0x10006e5ac add      x25, x20, #0x288
+  0x10006e5b0 b.hi     0x10006e5bc
+  0x10006e5b4 b        0x10006fcc0
+  0x10006e5b8 mov      x27, x19
+> 0x10006e5bc ldr      x9, [x20, #0x2f8]
+  0x10006e5c0 cmp      x22, x9
+  0x10006e5c4 b.hs     0x10006e9f0
+  0x10006e5c8 ldr      x9, [x20, #0x2f0]
+  0x10006e5cc ldrb     w9, [x9, x22]
+  0x10006e5d0 cmp      w9, #0x5b
+  0x10006e5d4 b.ne     0x10006e9f0
+
+context target=piece address=0x10005cba0 total=18
+  0x10005cb88 mov      x1, x23
+  0x10005cb8c mov      x2, x22
+  0x10005cb90 bl       0x1007ced24 ; symbol stub for: _memcpy
+  0x10005cb94 mov      x19, #0x0
+  0x10005cb98 stur     x26, [x29, #-0x80]
+  0x10005cb9c b        0x10005cc5c
+> 0x10005cba0 ldr      x8, [x20, #0x288]
+  0x10005cba4 cmp      x25, x8
+  0x10005cba8 ldp      x28, x24, [sp, #0xd0]
+  0x10005cbac b.hi     0x10005cbb4
+  0x10005cbb0 str      x25, [x20, #0x288]
+  0x10005cbb4 mov      x8, #-0x7ffffffffffffffd
+  0x10005cbb8 str      x8, [sp, #0x410]
+
+context target=atom_closure address=0x10006ee2c total=17
+  0x10006ee14 str      x13, [sp, #0x240]
+  0x10006ee18 str      x10, [sp, #0x248]
+  0x10006ee1c str      x12, [sp, #0x250]
+  0x10006ee20 str      x11, [sp, #0x258]
+  0x10006ee24 str      x14, [sp, #0x98]
+  0x10006ee28 str      x14, [sp, #0x260]
+> 0x10006ee2c ldrb     w8, [x20, #0x504]
+  0x10006ee30 cmp      w8, #0x1
+  0x10006ee34 b.ne     0x10006eebc
+  0x10006ee38 ldr      x8, [x20, #0x4b0]
+  0x10006ee3c cbz      x8, 0x10006ee48
+  0x10006ee40 ldr      w8, [x20, #0x500]
+  0x10006ee44 cbz      w8, 0x10006eebc
+
+context target=piece address=0x10005920c total=17
+  0x1000591f4 add      x22, sp, #0x210
+  0x1000591f8 str      xzr, [x8, #0x8]
+  0x1000591fc add      x9, x25, #0x1
+  0x100059200 add      x8, x25, #0x1
+  0x100059204 str      x8, [sp, #0x78]
+  0x100059208 str      x9, [x20, #0x288]
+> 0x10005920c ldr      x28, [x20, #0x2a0]
+  0x100059210 ldr      x8, [x20, #0xd8]
+  0x100059214 ldr      x9, [x20, #0xf0]
+  0x100059218 ldr      x14, [x20, #0x150]
+  0x10005921c ldr      x10, [x20, #0x108]
+  0x100059220 ldr      x12, [x20, #0x198]
+  0x100059224 ldr      x11, [x20, #0x178]
+
+context target=piece address=0x10005bfb0 total=17
+  0x10005bf98 ldr      x10, [x20, #0x108]
+  0x10005bf9c ldr      x11, [x20, #0x198]
+  0x10005bfa0 ldr      x12, [x20, #0x178]
+  0x10005bfa4 cmp      x11, #0x8
+  0x10005bfa8 csel     x27, x12, x11, hi
+  0x10005bfac ldr      x11, [x20, #0x120]
+> 0x10005bfb0 ldr      x26, [x20, #0x258]
+  0x10005bfb4 str      x8, [sp, #0x3b0]
+  0x10005bfb8 str      x9, [sp, #0x3b8]
+  0x10005bfbc str      x25, [sp, #0x3c0]
+  0x10005bfc0 str      x10, [sp, #0x3c8]
+  0x10005bfc4 str      x27, [sp, #0x3d0]
+  0x10005bfc8 str      x11, [sp, #0x3d8]
+
+context target=atom_closure address=0x10006c928 total=16
+  0x10006c910 str      x19, [sp, #0xe0]
+  0x10006c914 mov      w9, #0x1
+  0x10006c918 str      w9, [sp, #0xf8]
+  0x10006c91c b.hi     0x10006cb58
+  0x10006c920 str      x28, [x21]
+  0x10006c924 mov      x26, x28
+> 0x10006c928 ldr      x11, [x20, #0x2f8]
+  0x10006c92c cmp      x22, x11
+  0x10006c930 b.hs     0x10006d318
+  0x10006c934 b        0x10006cb64
+  0x10006c938 mov      x8, #-0x7ffffffffffffffd
+  0x10006c93c b        0x10006c948
+  0x10006c940 ldr      x22, [sp, #0x4b8]
+
+context target=atom_closure address=0x10006f404 total=16
+  0x10006f3ec str      x13, [sp, #0x5b0]
+  0x10006f3f0 str      x10, [sp, #0x5b8]
+  0x10006f3f4 str      x12, [sp, #0x5c0]
+  0x10006f3f8 str      x11, [sp, #0x5c8]
+  0x10006f3fc str      x14, [sp, #0x98]
+  0x10006f400 str      x14, [sp, #0x5d0]
+> 0x10006f404 ldrb     w8, [x20, #0x504]
+  0x10006f408 cmp      w8, #0x1
+  0x10006f40c b.ne     0x10006f49c
+  0x10006f410 ldr      x8, [x20, #0x4b0]
+  0x10006f414 cbz      x8, 0x10006f420
+  0x10006f418 ldr      w8, [x20, #0x500]
+  0x10006f41c cbz      w8, 0x10006f49c
+
+context target=atom_closure address=0x100079e50 total=16
+  0x100079e38 ldr      x10, [x11]
+  0x100079e3c cmp      x19, x10
+  0x100079e40 ldr      x22, [sp, #0x100]
+  0x100079e44 b.hi     0x100079e50
+  0x100079e48 str      x19, [x11]
+  0x100079e4c mov      x8, x9
+> 0x100079e50 ldr      x9, [x20, #0x2f8]
+  0x100079e54 cmp      x22, x9
+  0x100079e58 b.hs     0x10007c6f8
+  0x100079e5c ldr      x9, [x20, #0x2f0]
+  0x100079e60 ldrb     w9, [x9, x22]
+  0x100079e64 cmp      w9, #0x28
+  0x100079e68 b.ne     0x10007c6f8
+
+context target=piece address=0x100059160 total=16
+  0x100059148 mov      x0, x23
+  0x10005914c ldr      x8, [x20, #0x250]
+  0x100059150 str      x8, [sp, #0x90]
+  0x100059154 ldr      x9, [x20, #0x288]
+  0x100059158 ldr      x8, [x20, #0x2a0]
+  0x10005915c stp      x8, x9, [sp, #0x68]
+> 0x100059160 ldr      x19, [x20, #0x10]
+  0x100059164 ldr      x8, [x20]
+  0x100059168 cmp      x19, x8
+  0x10005916c b.eq     0x10005a6ec
+  0x100059170 mov      x23, x20
+  0x100059174 ldr      x8, [x23, #0x18]!
+  0x100059178 ldur     x9, [x23, #-0x10]
+
+context target=piece address=0x10005c700 total=16
+  0x10005c6e8 ldr      x12, [x20, #0x258]
+  0x10005c6ec stp      x8, x9, [x29, #-0xc0]
+  0x10005c6f0 stp      x26, x10, [x29, #-0xb0]
+  0x10005c6f4 stp      x23, x11, [x29, #-0xa0]
+  0x10005c6f8 str      x12, [sp, #0xa0]
+  0x10005c6fc stur     x12, [x29, #-0x90]
+> 0x10005c700 ldrb     w8, [x20, #0x504]
+  0x10005c704 cmp      w8, #0x1
+  0x10005c708 b.ne     0x10005c7a0
+  0x10005c70c ldr      x8, [x20, #0x4b0]
+  0x10005c710 cbz      x8, 0x10005c71c
+  0x10005c714 ldr      w8, [x20, #0x500]
+  0x10005c718 cbz      w8, 0x10005c7a0
+
+context target=atom_closure address=0x10006dcd0 total=15
+  0x10006dcb8 mov      w8, #0x0
+  0x10006dcbc ldr      x27, [x21]
+  0x10006dcc0 cmp      x26, x27
+  0x10006dcc4 b.hi     0x10006dcd0
+  0x10006dcc8 str      x26, [x21]
+  0x10006dccc mov      x27, x26
+> 0x10006dcd0 ldr      x9, [x20, #0x2f8]
+  0x10006dcd4 cmp      x22, x9
+  0x10006dcd8 b.hs     0x10006e110
+  0x10006dcdc ldr      x9, [x20, #0x2f0]
+  0x10006dce0 ldrb     w9, [x9, x22]
+  0x10006dce4 cmp      w9, #0x5c
+  0x10006dce8 b.ne     0x10006e110
+
+context target=atom_closure address=0x10006f758 total=15
+  0x10006f740 str      x13, [sp, #0x5b0]
+  0x10006f744 str      x10, [sp, #0x5b8]
+  0x10006f748 str      x12, [sp, #0x5c0]
+  0x10006f74c str      x11, [sp, #0x5c8]
+  0x10006f750 str      x14, [sp, #0x60]
+  0x10006f754 str      x14, [sp, #0x5d0]
+> 0x10006f758 ldrb     w8, [x20, #0x504]
+  0x10006f75c cmp      w8, #0x1
+  0x10006f760 b.ne     0x10006f7e4
+  0x10006f764 ldr      x8, [x20, #0x4b0]
+  0x10006f768 cbz      x8, 0x10006f774
+  0x10006f76c ldr      w8, [x20, #0x500]
+  0x10006f770 cbz      w8, 0x10006f7e4
+
+context target=atom_closure address=0x1000754bc total=15
+  0x1000754a4 blr      x8
+  0x1000754a8 cbz      x24, 0x100078668
+  0x1000754ac mov      x0, x23
+  0x1000754b0 bl       _mi_free
+  0x1000754b4 b        0x100078668
+  0x1000754b8 add      x26, sp, #0x140
+> 0x1000754bc ldr      x9, [x20, #0x2f8]
+  0x1000754c0 cmp      x22, x9
+  0x1000754c4 b.hs     0x100078f50
+  0x1000754c8 cmp      x28, x9
+  0x1000754cc b.hs     0x100078f50
+  0x1000754d0 ldr      x10, [x20, #0x2f0]
+  0x1000754d4 ldrb     w11, [x10, x22]
+
+context target=piece address=0x10005a228 total=15
+  0x10005a210 mov      w28, #0x2
+  0x10005a214 str      x19, [sp, #0xc0]
+  0x10005a218 mov      w24, #0x1
+  0x10005a21c mov      w8, #0x1
+  0x10005a220 b        0x10005d4a8
+  0x10005a224 mov      x22, x23
+> 0x10005a228 ldr      x1, [x20, #0x2f8]
+  0x10005a22c cmp      x26, x1
+  0x10005a230 b.hs     0x10005b988
+  0x10005a234 cmp      x19, x1
+  0x10005a238 b.hs     0x10005f394
+  0x10005a23c ldr      x9, [x20, #0x2f0]
+  0x10005a240 ldrb     w10, [x9, x19]
+
+context target=piece address=0x10005bf90 total=15
+  0x10005bf78 ldr      x8, [x20, #0x288]
+  0x10005bf7c str      x8, [sp, #0xb8]
+  0x10005bf80 str      x19, [sp, #0x368]
+  0x10005bf84 ldr      x28, [x20, #0x10]
+  0x10005bf88 ldr      x19, [x20, #0x270]
+  0x10005bf8c ldr      x8, [x20, #0xd8]
+> 0x10005bf90 ldr      x9, [x20, #0xf0]
+  0x10005bf94 ldr      x25, [x20, #0x150]
+  0x10005bf98 ldr      x10, [x20, #0x108]
+  0x10005bf9c ldr      x11, [x20, #0x198]
+  0x10005bfa0 ldr      x12, [x20, #0x178]
+  0x10005bfa4 cmp      x11, #0x8
+  0x10005bfa8 csel     x27, x12, x11, hi
+
+context target=piece address=0x10005c088 total=15
+  0x10005c070 mov      x26, x28
+  0x10005c074 mov      x28, x21
+  0x10005c078 cbz      x24, 0x10005c084
+  0x10005c07c mov      x0, x23
+  0x10005c080 bl       _mi_free
+  0x10005c084 ldr      x22, [x20, #0x498]
+> 0x10005c088 ldr      x8, [x20, #0x4e0]
+  0x10005c08c cmp      x22, x8
+  0x10005c090 b.ls     0x10005c098
+  0x10005c094 str      x22, [x20, #0x4e0]
+  0x10005c098 ldr      x8, [x20, #0x28]
+  0x10005c09c cbz      x8, 0x10005c104
+  0x10005c0a0 ldr      x9, [x20, #0x20]
+
+context target=atom_closure address=0x100078f50 total=14
+  0x100078f38 add      x26, sp, #0x140
+  0x100078f3c ldr      x22, [sp, #0x100]
+  0x100078f40 ldr      x28, [sp, #0xd8]
+  0x100078f44 b.hi     0x100078f50
+  0x100078f48 str      x24, [x19]
+  0x100078f4c mov      x8, x9
+> 0x100078f50 ldr      x9, [x20, #0x2f8]
+  0x100078f54 cmp      x22, x9
+  0x100078f58 b.hs     0x100079b94
+  0x100078f5c cmp      x28, x9
+  0x100078f60 b.hs     0x100079b94
+  0x100078f64 ldr      x10, [x20, #0x2f0]
+  0x100078f68 ldrb     w11, [x10, x22]
+
+context target=piece address=0x100059154 total=14
+  0x10005913c b.lo     0x10005914c
+  0x100059140 mov      x0, x22
+  0x100059144 bl       _mi_free
+  0x100059148 mov      x0, x23
+  0x10005914c ldr      x8, [x20, #0x250]
+  0x100059150 str      x8, [sp, #0x90]
+> 0x100059154 ldr      x9, [x20, #0x288]
+  0x100059158 ldr      x8, [x20, #0x2a0]
+  0x10005915c stp      x8, x9, [sp, #0x68]
+  0x100059160 ldr      x19, [x20, #0x10]
+  0x100059164 ldr      x8, [x20]
+  0x100059168 cmp      x19, x8
+  0x10005916c b.eq     0x10005a6ec
+
+context target=piece address=0x10005c098 total=14
+  0x10005c080 bl       _mi_free
+  0x10005c084 ldr      x22, [x20, #0x498]
+  0x10005c088 ldr      x8, [x20, #0x4e0]
+  0x10005c08c cmp      x22, x8
+  0x10005c090 b.ls     0x10005c098
+  0x10005c094 str      x22, [x20, #0x4e0]
+> 0x10005c098 ldr      x8, [x20, #0x28]
+  0x10005c09c cbz      x8, 0x10005c104
+  0x10005c0a0 ldr      x9, [x20, #0x20]
+  0x10005c0a4 lsl      x10, x8, #4
+  0x10005c0a8 add      x12, x9, #0x8
+  0x10005c0ac adrp     x9, 2015 ; 0x10083b000
+  0x10005c0b0 add      x9, x9, #0xc39
+
+context target=atom_closure address=0x100075140 total=13
+  0x100075128 str      x27, [x25]
+  0x10007512c mov      w8, #0x0
+  0x100075130 ldr      x9, [x21]
+  0x100075134 cmp      x26, x9
+  0x100075138 b.hi     0x100075140
+  0x10007513c str      x26, [x21]
+> 0x100075140 ldr      x9, [x20, #0x2f8]
+  0x100075144 cmp      x22, x9
+  0x100075148 b.hs     0x1000754b8
+  0x10007514c cmp      x28, x9
+  0x100075150 add      x26, sp, #0x140
+  0x100075154 b.hs     0x1000754bc
+  0x100075158 ldr      x10, [x20, #0x2f0]
+
+context target=atom_closure address=0x100079f8c total=13
+  0x100079f74 stp      q0, q1, [x21]
+  0x100079f78 add      x8, sp, #0x29
+  0x100079f7c ldur     q0, [x8, #0xff]
+  0x100079f80 str      q0, [x21, #0x20]
+  0x100079f84 ldr      x8, [sp, #0x138]
+  0x100079f88 str      x8, [sp, #0x4e0]
+> 0x100079f8c ldr      x9, [x20, #0x258]
+  0x100079f90 cmp      x9, x8
+  0x100079f94 b.ne     0x10007bc5c
+  0x100079f98 ldr      x8, [x20, #0x150]
+  0x100079f9c ldr      x9, [sp, #0x4c0]
+  0x100079fa0 cmp      x8, x9
+  0x100079fa4 b.ne     0x10007bc5c
+
+context target=atom_closure address=0x10007a04c total=13
+  0x10007a034 stp      x12, x13, [sp, #0x98]
+  0x10007a038 str      x13, [sp, #0x240]
+  0x10007a03c str      x10, [sp, #0x248]
+  0x10007a040 str      x12, [sp, #0x250]
+  0x10007a044 str      x11, [sp, #0x258]
+  0x10007a048 str      x28, [sp, #0x260]
+> 0x10007a04c ldrb     w8, [x20, #0x504]
+  0x10007a050 cmp      w8, #0x1
+  0x10007a054 b.ne     0x10007a0e4
+  0x10007a058 ldr      x8, [x20, #0x4b0]
+  0x10007a05c cbz      x8, 0x10007a068
+  0x10007a060 ldr      w8, [x20, #0x500]
+  0x10007a064 cbz      w8, 0x10007a0e4
+
+context target=atom_closure address=0x10007a694 total=13
+  0x10007a67c mov      x3, x25
+  0x10007a680 mov      x4, x22
+  0x10007a684 blr      x8
+  0x10007a688 cbz      x19, 0x10007a694
+  0x10007a68c mov      x0, x22
+  0x10007a690 bl       _mi_free
+> 0x10007a694 ldr      x19, [x20, #0x498]
+  0x10007a698 ldr      x8, [x20, #0x4e0]
+  0x10007a69c cmp      x19, x8
+  0x10007a6a0 b.ls     0x10007a6a8
+  0x10007a6a4 str      x19, [x20, #0x4e0]
+  0x10007a6a8 ldr      x8, [x20, #0x28]
+  0x10007a6ac cbz      x8, 0x10007adf0
+
+context target=atom_closure address=0x100073564 total=12
+  0x10007354c mov      w25, #0x17
+  0x100073550 b        0x100076304
+  0x100073554 ldr      x10, [x20, #0x4e0]
+  0x100073558 cmp      x9, x10
+  0x10007355c b.ls     0x100073564
+  0x100073560 str      x9, [x20, #0x4e0]
+> 0x100073564 ldr      x11, [x20, #0x2f8]
+  0x100073568 cmp      x22, x11
+  0x10007356c b.hs     0x100073be0
+  0x100073570 cmp      x28, x11
+  0x100073574 b.hs     0x100073be0
+  0x100073578 ldr      x10, [x20, #0x2f0]
+  0x10007357c ldrb     w9, [x10, x22]
+
+context target=piece address=0x10005bf84 total=12
+  0x10005bf6c ldr      x19, [sp, #0x108]
+  0x10005bf70 str      x12, [sp, #0xf0]
+  0x10005bf74 str      x19, [x20, #0x498]
+  0x10005bf78 ldr      x8, [x20, #0x288]
+  0x10005bf7c str      x8, [sp, #0xb8]
+  0x10005bf80 str      x19, [sp, #0x368]
+> 0x10005bf84 ldr      x28, [x20, #0x10]
+  0x10005bf88 ldr      x19, [x20, #0x270]
+  0x10005bf8c ldr      x8, [x20, #0xd8]
+  0x10005bf90 ldr      x9, [x20, #0xf0]
+  0x10005bf94 ldr      x25, [x20, #0x150]
+  0x10005bf98 ldr      x10, [x20, #0x108]
+  0x10005bf9c ldr      x11, [x20, #0x198]
+
+context target=piece address=0x10005edd8 total=12
+  0x10005edc0 cmp      x8, x22
+  0x10005edc4 ldr      x24, [sp, #0x98]
+  0x10005edc8 b.eq     0x10005edd4
+  0x10005edcc add      x0, sp, #0x160
+  0x10005edd0 bl       __ZN4core3ptr79drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDelta$GT$17h6530f2e37f4b90caE
+  0x10005edd4 str      x22, [sp, #0x160]
+> 0x10005edd8 ldr      x23, [x20, #0x288]
+  0x10005eddc ldr      x9, [sp, #0xb8]
+  0x10005ede0 subs     x22, x23, x9
+  0x10005ede4 ldr      x25, [sp, #0x100]
+  0x10005ede8 b.lo     0x10005f1b0
+  0x10005edec cmp      x25, x9
+  0x10005edf0 b.hs     0x10005f1dc
+
+context target=atom_closure address=0x10006ef64 total=11
+  0x10006ef4c str      x16, [sp, #0x580]
+  0x10006ef50 str      x11, [sp, #0x588]
+  0x10006ef54 str      x23, [sp, #0x590]
+  0x10006ef58 mov      x13, #-0x8000000000000000
+  0x10006ef5c str      x13, [sp, #0x400]
+  0x10006ef60 add      x17, x24, #0x1
+> 0x10006ef64 ldr      x1, [x20, #0x2f8]
+  0x10006ef68 cmp      x17, x1
+  0x10006ef6c b.hs     0x10006f5cc
+  0x10006ef70 cmp      x24, x1
+  0x10006ef74 b.hs     0x10007cfc8
+  0x10006ef78 ldr      x13, [x20, #0x2f0]
+  0x10006ef7c ldrb     w14, [x13, x24]
+
+context target=atom_closure address=0x10006f53c total=11
+  0x10006f524 ldr      x10, [sp, #0xa0]
+  0x10006f528 lsl      x19, x10, #4
+  0x10006f52c mov      w9, #0x2
+  0x10006f530 strh     w9, [x8, x19]
+  0x10006f534 add      x21, x10, #0x1
+  0x10006f538 str      x21, [x20, #0x288]
+> 0x10006f53c ldr      x23, [x20, #0x498]
+  0x10006f540 ldr      x8, [x20, #0x2f8]
+  0x10006f544 cmp      x23, x8
+  0x10006f548 b.hs     0x10006fd44
+  0x10006f54c ldr      x8, [x20, #0x2f0]
+  0x10006f550 ldrb     w8, [x8, x23]
+  0x10006f554 sub      w9, w8, #0x4a
+
+context target=atom_closure address=0x10006ffec total=11
+  0x10006ffd4 str      x8, [sp, #0x4b0]
+  0x10006ffd8 str      x22, [sp, #0x4b8]
+  0x10006ffdc str      x10, [sp, #0x4f8]
+  0x10006ffe0 str      x9, [sp, #0x4c0]
+  0x10006ffe4 ldr      x8, [sp, #0x560]
+  0x10006ffe8 str      x8, [x20, #0x498]
+> 0x10006ffec ldr      x8, [x20, #0x270]
+  0x10006fff0 cmp      x21, x8
+  0x10006fff4 b.hi     0x10006fffc
+  0x10006fff8 str      x21, [x20, #0x270]
+  0x10006fffc ldr      x8, [x20, #0x10]
+  0x100070000 cbz      x8, 0x100070604
+  0x100070004 ldr      x9, [x20, #0x8]
+
+context target=atom_closure address=0x10007a514 total=11
+  0x10007a4fc strh     w9, [x8]
+  0x10007a500 str      x24, [x8, #0x8]
+  0x10007a504 add      x8, x19, #0x1
+  0x10007a508 str      x8, [x20, #0x28]
+  0x10007a50c ldr      x25, [x20, #0x498]
+  0x10007a510 ldr      x21, [x20, #0x288]
+> 0x10007a514 ldr      x8, [x20, #0x278]
+  0x10007a518 cmp      x21, x8
+  0x10007a51c b.ne     0x10007a530
+  0x10007a520 mov      w8, #0x1
+  0x10007a524 str      x8, [sp, #0xf0]
+  0x10007a528 add      x0, x20, #0x278
+  0x10007a52c bl       __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h84ff3e56869fffccE
+
+context target=atom_closure address=0x10007af58 total=11
+  0x10007af40 mov      x10, x28
+  0x10007af44 ldr      x28, [sp, #0x50]
+  0x10007af48 b        0x10007b43c
+  0x10007af4c bl       __ZN4core3ptr50drop_in_place$LT$pgen..ast_pipeline..CycleType$GT$17ha2d7e91a3ddc5ad8E
+  0x10007af50 ldr      x8, [x20, #0x258]
+  0x10007af54 str      x8, [sp, #0x30]
+> 0x10007af58 ldr      x21, [x20, #0x150]
+  0x10007af5c add      x0, x20, #0x478
+  0x10007af60 mov      w1, #0x7e
+  0x10007af64 mov      x2, x19
+  0x10007af68 bl       __ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$3get17h24a04a915b8cb64eE
+  0x10007af6c cbz      x0, 0x10007afd0
+  0x10007af70 mov      x22, x0
+
+context target=piece address=0x100058d5c total=11
+  0x100058d44 mov      x20, x1
+  0x100058d48 ldr      x21, [x1, #0x498]
+  0x100058d4c ldr      x8, [x1, #0x4e0]
+  0x100058d50 cmp      x21, x8
+  0x100058d54 b.ls     0x100058d5c
+  0x100058d58 str      x21, [x20, #0x4e0]
+> 0x100058d5c ldr      x8, [x20, #0x28]
+  0x100058d60 cbz      x8, 0x100058dbc
+  0x100058d64 ldr      x9, [x20, #0x20]
+  0x100058d68 lsl      x8, x8, #4
+  0x100058d6c add      x9, x9, #0x8
+  0x100058d70 b        0x100058d80
+  0x100058d74 add      x9, x9, #0x10
+
+context target=piece address=0x10005bf78 total=11
+  0x10005bf60 add      x8, x8, #0x1
+  0x10005bf64 str      x8, [x20, #0x248]
+  0x10005bf68 ldr      x12, [x20, #0x2a0]
+  0x10005bf6c ldr      x19, [sp, #0x108]
+  0x10005bf70 str      x12, [sp, #0xf0]
+  0x10005bf74 str      x19, [x20, #0x498]
+> 0x10005bf78 ldr      x8, [x20, #0x288]
+  0x10005bf7c str      x8, [sp, #0xb8]
+  0x10005bf80 str      x19, [sp, #0x368]
+  0x10005bf84 ldr      x28, [x20, #0x10]
+  0x10005bf88 ldr      x19, [x20, #0x270]
+  0x10005bf8c ldr      x8, [x20, #0xd8]
+  0x10005bf90 ldr      x9, [x20, #0xf0]
+
+context target=piece address=0x10005cf70 total=11
+  0x10005cf58 str      x9, [sp, #0x418]
+  0x10005cf5c str      x28, [sp, #0x420]
+  0x10005cf60 str      x10, [sp, #0x428]
+  0x10005cf64 str      x26, [sp, #0x430]
+  0x10005cf68 str      x11, [sp, #0x438]
+  0x10005cf6c str      x23, [sp, #0x440]
+> 0x10005cf70 ldrb     w8, [x20, #0x504]
+  0x10005cf74 cmp      w8, #0x1
+  0x10005cf78 b.ne     0x10005d010
+  0x10005cf7c ldr      x8, [x20, #0x4b0]
+  0x10005cf80 cbz      x8, 0x10005cf8c
+  0x10005cf84 ldr      w8, [x20, #0x500]
+  0x10005cf88 cbz      w8, 0x10005d010
+
+context target=atom_closure address=0x10006af2c total=10
+  0x10006af14 mov      x14, x27
+  0x10006af18 ldr      x22, [x20, #0x498]
+  0x10006af1c ldr      x8, [x20, #0x4e0]
+  0x10006af20 cmp      x22, x8
+  0x10006af24 b.ls     0x10006af2c
+  0x10006af28 str      x22, [x20, #0x4e0]
+> 0x10006af2c ldr      x23, [x20, #0x2f8]
+  0x10006af30 cmp      x22, x23
+  0x10006af34 mov      x27, #0x5
+  0x10006af38 movk     x27, #0x8000, lsl #48
+  0x10006af3c b.hs     0x10006b2e0
+  0x10006af40 ldr      x19, [x20, #0x2f0]
+  0x10006af44 ldrb     w8, [x19, x22]
+
+context target=atom_closure address=0x10006deb4 total=10
+  0x10006de9c ldr      x11, [x20, #0x120]
+  0x10006dea0 ldr      x25, [x20, #0x258]
+  0x10006dea4 stp      x8, x9, [x29, #-0xd0]
+  0x10006dea8 stp      x23, x10, [x29, #-0xc0]
+  0x10006deac stp      x21, x11, [x29, #-0xb0]
+  0x10006deb0 stur     x25, [x29, #-0xa0]
+> 0x10006deb4 ldrb     w8, [x20, #0x504]
+  0x10006deb8 cmp      w8, #0x1
+  0x10006debc b.ne     0x10006df44
+  0x10006dec0 ldr      x8, [x20, #0x4b0]
+  0x10006dec4 cbz      x8, 0x10006ded0
+  0x10006dec8 ldr      w8, [x20, #0x500]
+  0x10006decc cbz      w8, 0x10006df44
+
+context target=atom_closure address=0x1000703ec total=10
+  0x1000703d4 str      x25, [sp, #0x570]
+  0x1000703d8 str      x10, [sp, #0x578]
+  0x1000703dc str      x24, [sp, #0x580]
+  0x1000703e0 str      x11, [sp, #0x588]
+  0x1000703e4 str      x12, [sp, #0x90]
+  0x1000703e8 str      x12, [sp, #0x590]
+> 0x1000703ec ldrb     w8, [x20, #0x504]
+  0x1000703f0 cmp      w8, #0x1
+  0x1000703f4 b.ne     0x100070478
+  0x1000703f8 ldr      x8, [x20, #0x4b0]
+  0x1000703fc cbz      x8, 0x100070408
+  0x100070400 ldr      w8, [x20, #0x500]
+  0x100070404 cbz      w8, 0x100070478
+
+context target=atom_closure address=0x100072304 total=10
+  0x1000722ec str      x21, [sp, #0x4b0]
+  0x1000722f0 str      x8, [sp, #0x4b8]
+  0x1000722f4 str      x19, [sp, #0x4c0]
+  0x1000722f8 str      x28, [sp, #0x4c8]
+  0x1000722fc ldr      x8, [sp, #0x2f8]
+  0x100072300 str      x8, [x20, #0x498]
+> 0x100072304 ldr      x8, [x20, #0x270]
+  0x100072308 cmp      x27, x8
+  0x10007230c b.hi     0x100072314
+  0x100072310 str      x27, [x20, #0x270]
+  0x100072314 ldr      x8, [x20, #0x10]
+  0x100072318 ldr      x28, [sp, #0xd8]
+  0x10007231c cbz      x8, 0x1000735d8
+
+context target=atom_closure address=0x10007c134 total=10
+  0x10007c11c add      x0, sp, #0x350
+  0x10007c120 bl       __ZN4core3ptr79drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDelta$GT$17h6530f2e37f4b90caE
+  0x10007c124 mov      w9, #0x0
+  0x10007c128 ldr      x22, [sp, #0x100]
+  0x10007c12c ldr      x21, [sp, #0x80]
+  0x10007c130 ldr      x10, [sp, #0x90]
+> 0x10007c134 ldr      x8, [x20, #0x10]
+  0x10007c138 cbz      x8, 0x10007c144
+  0x10007c13c sub      x8, x8, #0x1
+  0x10007c140 str      x8, [x20, #0x10]
+  0x10007c144 ldr      x8, [x20, #0x28]
+  0x10007c148 add      x26, sp, #0x140
+  0x10007c14c cbz      x8, 0x10007c158
+
+context target=atom_closure address=0x10007c518 total=10
+  0x10007c500 str      x19, [sp, #0x4b0]
+  0x10007c504 str      x25, [sp, #0x4b8]
+  0x10007c508 str      x8, [sp, #0x4c0]
+  0x10007c50c str      x24, [sp, #0x4c8]
+  0x10007c510 ldr      x8, [sp, #0x228]
+  0x10007c514 str      x8, [x20, #0x498]
+> 0x10007c518 ldr      x8, [x20, #0x270]
+  0x10007c51c cmp      x21, x8
+  0x10007c520 b.hi     0x10007c528
+  0x10007c524 str      x21, [x20, #0x270]
+  0x10007c528 ldr      x8, [x20, #0x10]
+  0x10007c52c cbz      x8, 0x10007c840
+  0x10007c530 ldr      x9, [x20, #0x8]
+
+context target=piece address=0x10005c4a8 total=10
+  0x10005c490 mov      x19, x24
+  0x10005c494 b.lo     0x10005c4a0
+  0x10005c498 mov      x0, x23
+  0x10005c49c bl       _mi_free
+  0x10005c4a0 str      x21, [sp, #0xa0]
+  0x10005c4a4 mov      x24, x19
+> 0x10005c4a8 ldr      x19, [x20, #0x250]
+  0x10005c4ac ldr      x21, [x20, #0x288]
+  0x10005c4b0 ldr      x8, [x20, #0x2a0]
+  0x10005c4b4 str      x8, [sp, #0x80]
+  0x10005c4b8 ldr      x23, [x20, #0x10]
+  0x10005c4bc ldr      x8, [x20]
+  0x10005c4c0 cmp      x23, x8
+
+context target=piece address=0x10005e87c total=10
+  0x10005e864 mov      x3, x22
+  0x10005e868 mov      x4, x25
+  0x10005e86c blr      x8
+  0x10005e870 cbz      x24, 0x10005e87c
+  0x10005e874 mov      x0, x25
+  0x10005e878 bl       _mi_free
+> 0x10005e87c ldr      x28, [x20, #0x288]
+  0x10005e880 cmp      x27, x28
+  0x10005e884 b.hs     0x10005f43c
+  0x10005e888 ldr      x8, [x20, #0x280]
+  0x10005e88c mov      w9, #0x102
+  0x10005e890 ldr      x10, [sp, #0x60]
+  0x10005e894 strh     w9, [x8, x10]
+
+context target=piece address=0x10005ee68 total=10
+  0x10005ee50 cmp      x8, x9
+  0x10005ee54 b.hi     0x10005ee5c
+  0x10005ee58 str      x8, [x20, #0x2a0]
+  0x10005ee5c mov      w28, #0x5
+  0x10005ee60 str      x19, [sp, #0xc0]
+  0x10005ee64 str      x19, [x20, #0x498]
+> 0x10005ee68 ldr      x1, [x20, #0x288]
+  0x10005ee6c cmp      x25, x1
+  0x10005ee70 b.lo     0x10005cab0
+  0x10005ee74 adrp     x2, 2185 ; 0x1008e7000
+  0x10005ee78 add      x2, x2, #0x380
+  0x10005ee7c str      x25, [sp, #0x108]
+  0x10005ee80 b        0x10005f3a8
+
+re-sum
+band=sub1us parser_direct_residual=894
+band=1to2p5 parser_direct_residual=859
+band=2p5to20 parser_direct_residual=1081

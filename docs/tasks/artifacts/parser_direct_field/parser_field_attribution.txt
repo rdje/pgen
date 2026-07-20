@@ -1,0 +1,59 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+machine qualification: PASS input=bounds+byte-load recursion=two-stacks+depth checkpoint=35-full/39-sites tapes=two-vecs position=monotone trace=51-gates/{'full_trace_gate': 31, 'direct_bit_gate': 19, 'direct_cmp_gate': 1} coverage=snapshot/truncate thin_memo=5-hash-lookups counters=increment/snapshot
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+vintage boundary: preserved=C1/cb322b75 current=G1-A/e4924024 address_transfer=REFUSED
+
+=== BAND sub1us ===
+field_role input_view                    230 parser_direct= 25.7271%
+field_role recursion_guard               163 parser_direct= 18.2327%
+field_role semantic_checkpoint_state     137 parser_direct= 15.3244%
+field_role derivation_tapes              134 parser_direct= 14.9888%
+field_role position_progress              66 parser_direct=  7.3826%
+field_role trace_gate                    104 parser_direct= 11.6331%
+field_role coverage_rollback              30 parser_direct=  3.3557%
+field_role thin_memo_lookup               21 parser_direct=  2.3490%
+field_role semantic_observer_counters      9 parser_direct=  1.0067%
+resum 230+163+137+134+66+104+30+21+9=894 PASS
+
+=== BAND 1to2p5 ===
+field_role input_view                    209 parser_direct= 24.3306%
+field_role recursion_guard               182 parser_direct= 21.1874%
+field_role semantic_checkpoint_state     125 parser_direct= 14.5518%
+field_role derivation_tapes               93 parser_direct= 10.8265%
+field_role position_progress              73 parser_direct=  8.4983%
+field_role trace_gate                     95 parser_direct= 11.0594%
+field_role coverage_rollback              29 parser_direct=  3.3760%
+field_role thin_memo_lookup               40 parser_direct=  4.6566%
+field_role semantic_observer_counters     13 parser_direct=  1.5134%
+resum 209+182+125+93+73+95+29+40+13=859 PASS
+
+=== BAND 2p5to20 ===
+field_role input_view                    308 parser_direct= 28.4921%
+field_role recursion_guard               200 parser_direct= 18.5014%
+field_role semantic_checkpoint_state     143 parser_direct= 13.2285%
+field_role derivation_tapes              118 parser_direct= 10.9158%
+field_role position_progress              69 parser_direct=  6.3830%
+field_role trace_gate                    120 parser_direct= 11.1008%
+field_role coverage_rollback              38 parser_direct=  3.5153%
+field_role thin_memo_lookup               68 parser_direct=  6.2905%
+field_role semantic_observer_counters     17 parser_direct=  1.5726%
+resum 308+200+143+118+69+120+38+68+17=1081 PASS
+
+OFFSET MAP (qualified preserved-probe offsets; no DWARF transfer)
+offsets input_view                   0x2f0,0x2f8
+offsets recursion_guard              0x0,0x8,0x10,0x18,0x20,0x28,0x60
+offsets semantic_checkpoint_state    0xd8,0xf0,0x108,0x120,0x150,0x178,0x198,0x258
+offsets derivation_tapes             0x278,0x280,0x288,0x298,0x2a0
+offsets position_progress            0x498,0x4e0
+offsets trace_gate                   0x504
+offsets coverage_rollback            0x270
+offsets thin_memo_lookup             0x478,0x480,0x490
+offsets semantic_observer_counters   0x248,0x250
+
+ADDRESSABLE DIAGNOSTIC LOWER BOUND
+groups=trace_gate+coverage_rollback+semantic_observer_counters
+counts=sub1us:143 1to2p5:137 2p5to20:175
+weighted_all_sample_share=0.601206%
+scope=direct-load/store samples only; companion control/formatting/hash instructions remain outside this leaf
+new_nanoseconds=0.000 (mechanism expansion required before pricing)
+PARSER-DIRECT FIELD ATTRIBUTION: PASS (complete re-sum; zero overlap)

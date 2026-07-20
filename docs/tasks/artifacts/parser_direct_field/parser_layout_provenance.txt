@@ -1,0 +1,20 @@
+PGEN-RGX-0078-0184 current-vintage layout probe (negative custody evidence)
+date=2026-07-20
+host=aarch64-apple-darwin
+rustc=rustc 1.95.0 (59807616e 2026-04-14)
+llvm=22.1.2
+probe_source=docs/tasks/artifacts/parser_direct_field/parser_layout_probe.rs
+probe_source_sha256=d1c33e7820370ac9f25d1f022a39913aa9f3c5465f14212ed9ac1bcdc45c8092
+rlib=rust/target/debug/deps/libpgen-2487bd25a1b10d71.rlib
+rlib_sha256=c27a92d591a214c50fa91f61a80cd144cb88632611d8a9d0383521ff6f5f2c7e
+generated_regex_sha256=e4924024a4bf7a91a75bb8b0dfb8460c71f19ef83e08313661fbd5d4e1ad590f
+preserved_probe_sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+preserved_probe_source_artifact_sha256=cb322b75 (C1 commit 9df9d466bae23f416285efa023ef4c0a2d0ac3e0)
+current_generated_vintage=G1-A commit bb69f41830564ecd7dc00ea55441e82c194ce814
+command=rustc --edition=2021 -C debuginfo=2 -C split-debuginfo=off -C save-temps docs/tasks/artifacts/parser_direct_field/parser_layout_probe.rs -L dependency=rust/target/debug/deps --extern pgen=rust/target/debug/deps/libpgen-2487bd25a1b10d71.rlib -o /tmp/pgen-0184-parser-layout-debug
+dsym_command=dsymutil /tmp/pgen-0184-parser-layout-debug -o /tmp/pgen-0184-parser-layout-debug2.dSYM
+dwarf_command=dwarfdump --debug-info /tmp/pgen-0184-parser-layout-debug2.dSYM
+probe_output=RegexParser<'static> size=1312 align=8
+dwarf_output=docs/tasks/artifacts/parser_direct_field/current_parser_layout_dwarf.txt
+dwarf_output_sha256=136993533c44ef0108209f8657f2775843dec0339b829020000eb2ee13ea87eb
+adjudication=NEGATIVE EVIDENCE ONLY; Rust default layout is not a cross-artifact ABI and no current-vintage address is transferred to the preserved C1 probe
