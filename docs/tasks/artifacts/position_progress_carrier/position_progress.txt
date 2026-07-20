@@ -1,0 +1,12 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+dynamic entry_load static=  1 sub1us=8 1to2p5=21 2p5to20=25
+dynamic inner_load static= 39 sub1us=13 1to2p5=18 2p5to20=19
+dynamic all_load   static= 40 sub1us=21 1to2p5=39 2p5to20=44
+dynamic store      static= 43 sub1us=0 1to2p5=0 2p5to20=0
+dynamic compare    static= 43 sub1us=1 1to2p5=1 2p5to20=1
+dynamic branch     static= 43 sub1us=0 1to2p5=0 2p5to20=0
+dynamic position   static=227 sub1us=53 1to2p5=55 2p5to20=50
+summary updates=43 furthest_loads=40 inner_loads=39 stores=43 compares=43 branches=43 position_accesses=227
+pricing entry_required=0.846386763 inner_load_ceiling=0.828243916 all_load=1.674630678 stores=0.000000000 required_control=0.051290423 direct_row=3.548562496
+accumulated strict=102.138976561 capture30=30.641692968 margin=1.841692968
+accumulated gross_inner=102.967220477 capture30=30.890166143 margin=2.090166143

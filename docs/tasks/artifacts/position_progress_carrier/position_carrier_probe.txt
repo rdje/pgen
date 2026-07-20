@@ -1,0 +1,19 @@
+rustc 1.95.0 (59807616e 2026-04-14)
+baseline=7 forwarded_ref=7 value=7 equal=true
+
+_baseline_update:
+    ldp x9, x8, [x0]
+    cmp x9, x8
+    b.ls <done>
+    str x9, [x0, #0x8]
+
+_forwarded_ref_update:
+    ldr x8, [x1]
+    cmp x0, x8
+    b.ls <done>
+    str x0, [x1]
+
+_value_update:
+    cmp x1, x0
+    csel x0, x1, x0, hi
+    ret

@@ -1,5 +1,13 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0194 — furthest-position reference forwarding preserves the memory update
+
+Audited the exact `furthest_position` contract and its complete preserved fused mechanism. The field is the monotone maximum of rule-entry/emulated-entry positions, deliberately survives cursor rollback, and is publicly returned by generated parsers and compared by differential gates; final `position` is not equivalent. The machine mechanism contains 40 maximum loads—one `piece` entry load through incoming `x1` plus 39 inner `[x20,#0x4e0]` loads—and 43 structurally exact compare/unsigned-branch/conditional-store arms. The 227 current-position accesses remain required.
+
+The earlier x20-only direct row re-sums exactly as required position **53/55/50** plus inner maximum **13/18/19** = **66/73/69**. Complete maximum traffic adds the entry load's **8/21/25**; all 43 maximum stores sample zero. All maximum loads price **1.674630678 ns**, split into required entry **0.846386763 ns** and an optimistic all-inner **0.828243916 ns** ceiling.
+
+A pinned safe-Rust probe decides the replacement question: forwarding `&mut usize` emits the same load, compare, branch, and store, so strict saving is zero. Passing the maximum by value emits register-only `cmp+csel`, but requires every protocol method, fused matcher, scanner, recognizer, recursion edge, and exact-refutation path to receive and return it, plus entry load/final store. Those transitive ABI/result-width costs are absent from the current profile and cannot be priced as free. Accumulated strict remains **102.138976561 ns**, leaving **1.841692968 ns** at 30% over noise; the gross-inner fantasy reaches only **2.090166143 ns**. Implementation remains HOLD. Parser/runtime/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: owned `PGEN-RGX-0078-0195`, derivation-boundary pointer-to-index feasibility and exact pricing.
+
 ## 2026-07-20 - PGEN-RGX-0078-0193 — six-word checkpoint is lossless but prices only 0.859 ns
 
 Completed the field/read/mutation audit of `SemanticRuntimeCheckpoint`. The private runtime invariant `scopes.len() == active_chain.len()` holds from common root initialization through every open, close, delta-apply, and rollback-rebuild path, so checkpoint `scope_len` is exactly identical to existing `chain_len`. All accessors, release `commit`, and debug assertions have an equivalent `chain_len` form. The remaining five lengths and `u64` epoch stay full-width; no corpus-derived cap is introduced. Removing only the duplicate word yields a 48-byte, align-8, `Copy`, drop-free carrier from the current 56-byte carrier.

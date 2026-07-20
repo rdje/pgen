@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0194 — forwarding an address is not forwarding a value
+
+**Monotone does not mean derivable from final state.** `position` backtracks; `furthest_position` does not. Any deep failed attempt can leave the cursor shallow and the maximum deep, and callers observe that exact distinction. A local carrier must reproduce every protocol/fused/scan/refutation writer, not merely final failure.
+
+**A reference preserves aliasing and memory traffic.** The safe-Rust probe's `&mut usize` form has the same load/compare/branch/store as the parser-field form. It changes an offset into `[x1]`; it does not place the maximum in a register across calls. Only by-value propagation compiles to `cmp+csel`, and that moves the problem into every call and result ABI.
+
+**Complete mechanisms include noncanonical base registers.** The prior residual classifier deliberately admitted direct `[x20,...]` samples only. The `piece` entry reads the same field through incoming `x1`, contributing 8/21/25 samples—larger than the inner-load population in two bands. It is required by any per-function local design and must not be mispriced as removable.
+
+**Required cursor traffic is not a maximum-carrier saving.** The combined 66/73/69 row includes 53/55/50 current-position accesses. The maximum still needs a candidate value and comparison even if its storage changes. Only the 39 inner maximum loads form the gross ceiling, and their 0.828 ns cannot absorb transitive ABI/result work.
+
 ## 2026-07-20 - PGEN-RGX-0078-0193 — an anchor-qualified census is only complete for that anchor
 
 **The checkpoint can lose a word by equivalence, not narrowing.** `scope_len` and `chain_len` are born equal and every private mutation path preserves `scopes.len() == active_chain.len()`. Removing the duplicate is lossless. Narrowing the remaining lengths or epoch from observed corpus maxima would silently add a language/input cap and is refused.
