@@ -219,6 +219,34 @@ Binding consequences (supersedes the `-0159` end-condition where they differ):
 
 ---
 
+## 2026-07-20 session #176 — ⭐ DIRECTOR AMENDMENT: the call-off bar carries a DRIFT MARGIN — (geomean + 50 ns) ≤ 1 µs
+
+Director verbatim (immediately after the `-0201` cross-session-drift explanation — the
+no-perf-change probe lineage reading 1,153.5 → 1,172.1 → 1,176.96 ns, +2.0% cumulative):
+*"Which me means that geomean shall sub-1us with at least 30ns to 50ns margin. that is
+(geomean + 50ns) <= 1us, do you agree ?"* — engineer agreed and recommended binding at the
+50 ns end of the stated range.
+
+Binding consequences (amends the #162 call-off trigger; everything else stands):
+1. **The call-off trigger = unrounded canonical PCRE2 external-corpus geomean ≤ 950.0 ns**
+   on the closure session's floor-of-record reading — i.e. `(geomean + 50 ns) ≤ 1 µs`. The
+   margin makes the sub-1 µs claim REPRODUCIBLE across the observed session-drift envelope
+   rather than a lucky-session artifact.
+2. **Quantified rationale:** same-binary noise span ≈2.3% (~23 ns at the 1 µs level);
+   measured no-perf-change cross-session drift +2.0% over two session steps. 50 ns ≈ 5% ≈
+   two stacked drift spans; the 30 ns form (~3%) covers only one span and could be eaten by
+   a two-step drift exactly like the observed one — hence the 50 ns bind (the "at least
+   30 ns" floor is subsumed).
+3. **Closure protocol (engineer-owned operationalization):** the ≤950 ns same-session
+   reading + the standing correctness invariants (verdict flips 0; MAX ≤ the settled
+   483,583 ns bound) + ONE next-session confirmation sweep of the preserved closure probe
+   reading < 1 µs (the margin absorbs the drift; the cheap re-read proves reproducibility).
+   Then the #162 closing wave (regex book + handoff + integration contract) proceeds.
+4. **Distance restated at the amendment:** floor-of-record 1,163.9 ns ⇒ **−18.4% needed**
+   to the margined bar (was −14.1% under the unmargined reading).
+
+---
+
 ## 2026-07-20 — strict per-fix geomean ratchet and fresh-session boundary
 
 The director made the implementation acceptance rule numerical and absolute:

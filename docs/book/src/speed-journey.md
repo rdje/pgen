@@ -480,5 +480,8 @@ re-read moved +2% across sessions with no accepted performance change); the fix'
 same-session comparison is what the gate adjudicates.
 
 The scoreboard now reads **496 µs → ≈1.81 µs, about 274×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.16 µs. The method decides — and
-the story continues here.
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.16 µs. The campaign's call-off
+condition now carries that drift lesson explicitly: the corpus geomean must clear 1 µs
+**with a 50 ns margin** — `(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus
+a confirmation sweep in a later session, so the closure claim reproduces on any day rather
+than on a favorable one. The method decides — and the story continues here.
