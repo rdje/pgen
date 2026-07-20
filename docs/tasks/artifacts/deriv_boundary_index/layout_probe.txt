@@ -1,0 +1,4 @@
+BoundaryRef size=8 align=8 needs_drop=false
+BoundaryIndex32 size=4 align=4 needs_drop=false
+BoundaryIndexUsize size=8 align=8 needs_drop=false
+usize_bits=64

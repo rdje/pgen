@@ -1,0 +1,34 @@
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+raw custody: sub1us=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 1to2p5=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 2p5to20=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c
+profile custody: sub1us=d16e7def6f05da33ac05a664b9588b8dc29648e9ec37828f3387a95f436573ed 1to2p5=e94a57152fe1e85cd1a66d8ca14b5707536ae36e20583c2712bcef64932098e6 2p5to20=1c9643db9c342f315179ff49232575423f949f724ed22dadc39bdc218b7ea788
+source custody: PASS rust/src/ast_pipeline/mod.rs=031e8f31407c171d93dd699d5907fd025ff126a4405d8e498174a87e6d6efbd8 rust/src/ast_pipeline/ast_based_generator.rs=b5ed80b80adfcf1a6fb5df38884e249e06eff2f32a5e78dfef8760d256f374df rust/src/ast_pipeline/ast_based_generator/cascade.rs=413fefe99dbfe8d4a03886f4eb4999d078fb03696f861ee1e7fefc23db03a100 rust/Cargo.lock=a5dbc4dc0b981f756fa175df7faa132e8d1fe1fb478a3afe1c449886aa1096c6
+BoundaryRef size=8 align=8 needs_drop=false
+BoundaryIndex32 size=4 align=4 needs_drop=false
+BoundaryIndexUsize size=8 align=8 needs_drop=false
+usize_bits=64
+semantic identity: each element is one arbitrary stable arena reference; current NodeArena/typed-arena API returns only that reference
+lossless candidates: usize ordinal stays 8 bytes; u32 needs a <=2^32 cap; u32+pointer side table retains one 8-byte pointer per unique node; chunk ordinal needs a new indexed arena plus chunk lookup and wide escape
+reconstruction debit: load handle + bounds/escape control + chunk/side-table base load + final pointer load; no debit is priced at zero
+static: push_stores=7 replay_loads=138 grow_calls=7 outlined_copies=22 direct_memmoves=15 thin_memo_success_sites=2
+ownership: pushes+growth=G1-C excluded; thin-memo success copy/insert=accepted ranges excluded; tournament copies + replay + constructor accepted_held_overlap=0
+
+DYNAMIC DIRECT INSTRUCTIONS
+band=sub1us   raw=22521 owned_push= 0 replay_load= 0
+band=1to2p5   raw=24279 owned_push= 0 replay_load= 0
+band=2p5to20  raw=28308 owned_push= 0 replay_load= 0
+
+CALLER-ATTRIBUTED CHILDREN
+band       total  grow  outlined_copy  direct_memmove  boundary_alloc
+sub1us    11875     0              2              62             29
+1to2p5    11805     0              6              38             12
+2p5to20   10673     0              6              42              2
+
+REPLACEMENT-AWARE PRICING
+strict_removable_instruction_floor_ns=0.000000000
+u32_fantasy_linear_byte_copy_ceiling_ns=2.863508358 outlined=0.246096876 direct=2.617411483
+whole_boundary_allocation_child_absolute_ceiling_ns=1.687336492
+view=strict                  boundary_ns=0.000000000 composite_ns=102.138976561 capture_0.30_ns=30.641692968 noise_margin_ns=1.841692968
+view=plus_linear_copy        boundary_ns=2.863508358 composite_ns=105.002484919 capture_0.30_ns=31.500745476 noise_margin_ns=2.700745476
+view=plus_absolute_allocator boundary_ns=4.550844851 composite_ns=106.689821412 capture_0.30_ns=32.006946424 noise_margin_ns=3.206946424
+verdict=HOLD (strict zero; every compact lossless design adds identity storage or indexed-arena reconstruction absent from the gross ceilings)
+DERIVATION BOUNDARY INDEX PRICING: PASS

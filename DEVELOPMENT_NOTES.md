@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0195 — an index is compact only if its identity structure is free
+
+**One pointer word is not a fat carrier.** `deriv_boundary` contains exactly the semantic identity the build pass needs: a stable arena reference. Unlike `DerivEvent`, there is no second payload word or discriminant to remove. Replacing it with `usize` merely renames the word.
+
+**A small index moves width; it does not delete it.** A `u32` side table keeps the full pointer and adds a handle. Worse, tournament replacement can strand old-winner entries before newer live handles, so a simple tail truncate cannot always reclaim the table without renumbering. A custom indexed chunk arena avoids the duplicate pointer table but charges allocation ordinals, chunk metadata, wide escapes, and dependent reconstruction loads.
+
+**Capacity hints are not correctness bounds.** The boundary Vec starts with an input-scaled hint capped at 8,192, but remains an ordinary growing Vec. Neither that hint nor the observed corpus licenses `u32`, relative-pointer, or 4-GiB assumptions. Losslessness must cover arbitrary arena population just as the current pointer does.
+
+**Width ceilings need representation labels.** Halving every boundary-copy child's time is already optimistic for fixed-overhead small copies. Calling it a `u32` fantasy is essential because no complete lossless design receives that width reduction for free. The strict view stays zero; reconstruction costs must be measured before any implementation earns credit.
+
 ## 2026-07-20 - PGEN-RGX-0078-0194 — forwarding an address is not forwarding a value
 
 **Monotone does not mean derivable from final state.** `position` backtracks; `furthest_position` does not. Any deep failed attempt can leave the cursor shallow and the maximum deep, and callers observe that exact distinction. A local carrier must reproduce every protocol/fused/scan/refutation writer, not merely final failure.
