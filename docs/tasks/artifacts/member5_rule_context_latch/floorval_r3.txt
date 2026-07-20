@@ -1,0 +1,19 @@
+memory-guard: started pid=12021 pgid=12021 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=73% disk=24GB cmd: preserved_probes/regex_perf_probe_c1_1d3fa0ee --samples 2000 --warmup 200
+# Regex parse perf probe — PGEN-RGX-0073 baseline
+# samples=2000 warmup=200 build=release feature=generated_parsers
+
+pattern                  min (ns)       p50 (ns)      mean (ns)       p99 (ns)       max (ns)    samples
+------------------------------------------------------------------------------------------------------
+literal_simple                583            625            639            709           2042       2000
+digit_sequence               1500           1584           1605           1709           2542       2000
+character_class              8708           9084           9122           9667          34459       2000
+alternation                  1500           1584           1600           1709           2583       2000
+capture_groups               3375           3542           3559           3791          21209       2000
+url_simple                   1208           1291           1285           1375           1959       2000
+email_basic                  1208           1333           1352           1500          19666       2000
+anchor_complex               4375           4584           4606           4792          12500       2000
+
+# RGX bug-bundle reference (rgx_compile_phase_split.txt, 1000 samples, 50 warmup, Apple M4 Pro):
+# literal_simple ~407ns p50  digit_sequence ~819ns  character_class ~2.35ms  alternation ~1.02ms
+# capture_groups ~1.56ms     url_simple ~1.45ms      email_basic ~1.17ms     anchor_complex ~2.70ms
+memory-guard: completed exit=0 peak_tree_rss=0MB elapsed=5s; marker: rust/target/generated_logs/memory_guard/guard.12021.marker

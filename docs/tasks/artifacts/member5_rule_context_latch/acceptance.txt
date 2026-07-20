@@ -1,0 +1,16 @@
+FLOORVAL bench geomean 1943.2 ns vs banked 1937.4 ns (+0.30%)
+BENCH alternated 5x2000, geomean of per-pattern best minima
+  alternation                  1416 ->     1458 ns (+2.97%)
+  anchor_complex               4250 ->     4208 ns (-0.99%)
+  capture_groups               3333 ->     3250 ns (-2.49%)
+  character_class              8667 ->     8417 ns (-2.88%)
+  digit_sequence               1458 ->     1417 ns (-2.81%)
+  email_basic                  1208 ->     1208 ns (+0.00%)
+  literal_simple                542 ->      541 ns (-0.18%)
+  url_simple                   1125 ->     1125 ns (+0.00%)
+  GEOMEAN 1922.6 -> 1906.9 ns (-0.82%); ratio=0.991839; land_bound<=0.9772: FAIL
+CORPUS cells=2189 verdict_flips=0
+  GEOMEAN 1252.9 -> 1241.4 ns (-0.92%)
+  BASE_MAX 483750 ns pcre2:testdata/testinput2:line_725
+  CANDIDATE_MAX 477667 ns pcre2:testdata/testinput2:line_725; settled_bound<=483583: PASS
+VERDICT: REVERT

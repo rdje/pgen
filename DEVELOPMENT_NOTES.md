@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0176 — a large event count does not imply a measurable residual cost
+
+**Population is necessary evidence, not a cost model.** Member 5 looked unusually strong because it touches roughly 130 rule entries per bench parse, about 74x the combined population of the two members rejected immediately before it, and because an earlier optimization removed an allocation from the same structure for about 4.3%. The safe A/B now says what the count could not: removing the remaining `Vec<Cow>` push/pop traffic, after paying the depth/latch bookkeeping required for mutable trace configuration, moves the bench only 0.82% and the corpus geomean 0.92% — both inside the 2.28% noise span.
+
+**Do not inherit the value of a removed cost into its residue.** P0's 4.3% win came from eliminating a `String` allocation on every entry. The residue was two in-capacity vector operations. "Same structure" did not mean "same cost class". The earlier result justified testing the residue cheaply; it did not price the residue.
+
+**A falsified optimization can still validate the engineering protocol.** The unsafe process-once cache was rejected before code, the safe alternative preserved every trace and correctness contract, custody refused mismatched artifacts, the threshold was written before measurement, and the change was reverted when it missed. That is the desired behavior of a performance campaign: a real defect remains documented, but a sub-noise cleanup is not allowed to masquerade as movement toward the floor.
+
+**The aggregate is the only measured object.** This A/B cannot tell us whether stack elision saved 5 ns and latch bookkeeping cost 4 ns, or whether both were smaller. It measures their composition. Any future design must not subtract this result into invented per-operation coefficients; re-price the remaining batch from independent mechanisms and measure the next bundle as its own unit.
+
 ## 2026-07-20 - PGEN-RGX-0078-0175 — cache configuration only at the lifetime where it is actually immutable
 
 **A process-level setting is not necessarily process-immutable.** The proposed process-once trace flag looked like the earlier P-env pattern, but the decisive API fact is that `set_global_trace_verbosity(...)` is public and repeatedly called. A `OnceLock<bool>` would optimize the first configuration by making every later configuration wrong. The relevant lifetime is one balanced generated/interpreter call tree: sample once at its outermost entry, keep that decision through nested entries, then resample for the next parse.
