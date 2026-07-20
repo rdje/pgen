@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0189 — replacement-equivalent snapshots are not savings
+
+**Price the net representation delta, not every old instruction near it.** Generated `try_parse` currently snapshots name depth and later truncates both stacks. An ID-only path still needs an ID-depth snapshot and ID truncate. Only the parallel name compare/branch/store tail disappears; treating the snapshot as removable would double-credit replacement work.
+
+**A diagnostic lookup absent from the old binary cannot be priced as free.** Last-name capture becomes `RuleId` to `RULE_NAMES` reconstruction. The preserved machine profile contains no such lookup, so this leaf excludes it entirely. That makes 0.149032382 ns a conservative contribution and the 0.223326291 ns honest margin insufficient.
+
+**Paired dataflow is stronger than a field displacement.** Each admitted site must compare a name-stack length to the saved depth, guard a name length store, and then use the same depth for the required ID-stack store. This rejects nearby recursion/semantic/coverage rollback and independently reproduces the 39 generated speculative sites.
+
+**Child time needs caller custody.** Removing a name vector would also remove some growth calls, but raw in-target PCs cannot see time interrupted inside `RawVec::grow_one`. The next leaf uses immediate call-tree ancestry and exact call sites; a flat `Vec<24>` monomorphization total is explicitly forbidden because it mixes consumers.
+
 ## 2026-07-20 - PGEN-RGX-0078-0188 — a compatibility stack can be redundant only on an owned path
 
 **C1 left two representations for a reason.** `rule_id_stack` is the complete modern cycle-check key; `parse_stack` preserves legacy name scans and name-bearing diagnostics. The duplication is removable only where generated code owns both the ID-to-name table and the call path. Changing the public paired methods would turn a local optimization into an API break.

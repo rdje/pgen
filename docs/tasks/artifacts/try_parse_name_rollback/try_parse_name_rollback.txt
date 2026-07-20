@@ -1,0 +1,58 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+raw custody: sub1us=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 1to2p5=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 2p5to20=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c
+profile weights: sub1us=0.380 1to2p5=0.353 2p5to20=0.260 excluded_tail=0.007 priced_at_zero
+static subset: sites=39 pcs=117 classes=memory:39,control:78 overlap={'accepted': 0, 'bare_0185': 0, 'thin_lookup': 0, 'telemetry_0187': 0, 'guard_0188': 0}
+replacement contract: snapshot name_len->id_len is one-for-one; last RuleId->RULE_NAMES cost excluded; retained ID truncate follows every site
+truncate sites:
+site target=piece        load=0x10005a8b8 compare=0x10005a8d8 branch=0x10005a8dc store=0x10005a8fc
+site target=piece        load=0x10005a8b8 compare=0x10005aa9c branch=0x10005aaa0 store=0x10005aac0
+site target=piece        load=0x10005acb0 compare=0x10005accc branch=0x10005acd0 store=0x10005acd4
+site target=piece        load=0x10005af28 compare=0x10005b324 branch=0x10005b328 store=0x10005b348
+site target=piece        load=0x10005b540 compare=0x10005b560 branch=0x10005b564 store=0x10005b584
+site target=piece        load=0x10005c8d4 compare=0x10005c8ec branch=0x10005c8f0 store=0x10005c8f4
+site target=piece        load=0x10005d260 compare=0x10005d280 branch=0x10005d284 store=0x10005d2ac
+site target=piece        load=0x10005d6e4 compare=0x10005d8d8 branch=0x10005d8dc store=0x10005d8fc
+site target=piece        load=0x10005e1e4 compare=0x10005e204 branch=0x10005e208 store=0x10005e22c
+site target=piece        load=0x10005e41c compare=0x10005e45c branch=0x10005e460 store=0x10005e480
+site target=piece        load=0x10005e8f8 compare=0x10005e91c branch=0x10005e920 store=0x10005e944
+site target=piece        load=0x10005eb10 compare=0x10005eb34 branch=0x10005eb38 store=0x10005eb5c
+site target=atom_closure load=0x10006b304 compare=0x10006b31c branch=0x10006b320 store=0x10006b324
+site target=atom_closure load=0x10006b978 compare=0x10006b990 branch=0x10006b994 store=0x10006b998
+site target=atom_closure load=0x10006c990 compare=0x10006c9a8 branch=0x10006c9ac store=0x10006c9b0
+site target=atom_closure load=0x10006cff4 compare=0x10006d00c branch=0x10006d010 store=0x10006d014
+site target=atom_closure load=0x10006db00 compare=0x10006db18 branch=0x10006db1c store=0x10006db20
+site target=atom_closure load=0x10006e170 compare=0x10006e188 branch=0x10006e18c store=0x10006e190
+site target=atom_closure load=0x10006ea50 compare=0x10006ea68 branch=0x10006ea6c store=0x10006ea70
+site target=atom_closure load=0x10006fffc compare=0x100070014 branch=0x100070018 store=0x10007001c
+site target=atom_closure load=0x100070d3c compare=0x100070d5c branch=0x100070d60 store=0x100070d84
+site target=atom_closure load=0x100071590 compare=0x1000715b4 branch=0x1000715b8 store=0x1000715d8
+site target=atom_closure load=0x1000717f8 compare=0x100071818 branch=0x10007181c store=0x100071820
+site target=atom_closure load=0x1000717f8 compare=0x100071ca4 branch=0x100071ca8 store=0x100071cc8
+site target=atom_closure load=0x100072314 compare=0x100072338 branch=0x10007233c store=0x100072340
+site target=atom_closure load=0x10007463c compare=0x100074a48 branch=0x100074a4c store=0x100074a6c
+site target=atom_closure load=0x100074f70 compare=0x100074f8c branch=0x100074f90 store=0x100074f94
+site target=atom_closure load=0x100076050 compare=0x100076070 branch=0x100076074 store=0x100076094
+site target=atom_closure load=0x100076e7c compare=0x100076e94 branch=0x100076e98 store=0x100076ec4
+site target=atom_closure load=0x1000773b4 compare=0x1000773d4 branch=0x1000773d8 store=0x1000773f8
+site target=atom_closure load=0x100077640 compare=0x100077660 branch=0x100077664 store=0x100077684
+site target=atom_closure load=0x1000778ec compare=0x10007790c branch=0x100077910 store=0x100077930
+site target=atom_closure load=0x1000778ec compare=0x100077aa8 branch=0x100077aac store=0x100077acc
+site target=atom_closure load=0x100078254 compare=0x100078274 branch=0x100078278 store=0x10007829c
+site target=atom_closure load=0x100078cd0 compare=0x100078cf0 branch=0x100078cf4 store=0x100078d14
+site target=atom_closure load=0x1000799a0 compare=0x1000799c4 branch=0x1000799c8 store=0x1000799ec
+site target=atom_closure load=0x10007b480 compare=0x10007b4a4 branch=0x10007b4a8 store=0x10007b4c8
+site target=atom_closure load=0x10007b6d4 compare=0x10007ba38 branch=0x10007ba3c store=0x10007ba5c
+site target=atom_closure load=0x10007c528 compare=0x10007c544 branch=0x10007c548 store=0x10007c54c
+
+DYNAMIC COUNTS
+band=sub1us   raw=22521 compare= 3 branch= 0 store= 0 total= 3
+band=1to2p5   raw=24279 compare= 4 branch= 0 store= 0 total= 4
+band=2p5to20  raw=28308 compare= 1 branch= 0 store= 0 total= 1
+
+PRICING
+rollback_share=0.011796136% rollback_target_ns=0.149032382
+pre_lookup_composite_ns=96.744420971 capture_0.30_ns=29.023326291 noise_margin_ns=0.223326291
+optimistic_lookup_composite_ns=100.569027701 capture_0.30_ns=30.170708310 noise_margin_ns=1.370708310
+verdict=HOLD (net removable rollback subset is tiny; honest margin remains below replacement/model uncertainty)
+TRY_PARSE NAME ROLLBACK EXPANSION: PASS

@@ -1,5 +1,11 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0189 — generated name-stack rollback adds only 0.149 ns
+
+The source and machine audit closes the replacement-accounting gap around generated `try_parse`. Under the compatible ID-only fused design, the saved name depth becomes a saved ID depth one-for-one, the ID-stack truncate remains required, and error-path last-name capture maps the retained `RuleId` through generated `RULE_NAMES`. The future mapping cost is excluded rather than silently treated as free.
+
+All **39** paired-truncate sites are mechanically identified by name-depth compare/branch/store followed by the required ID truncate using the same saved depth. Only the three-PC name tail is net removable: **117 PCs** total, zero overlap with every accepted/held mechanism. Dynamic **3/4/1** samples price **0.011796136% = 0.149032382 ns**. The honest bundle becomes **96.744420971 ns**; 30% capture is **29.023326291 ns**, only **0.223326291 ns above** the 28.8 ns floor. That cannot absorb mandatory name reconstruction or model uncertainty, so implementation remains HOLD. Parser/runtime/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: owned `PGEN-RGX-0078-0190`, caller-attributed name-stack allocation-child expansion from existing profiles.
+
 ## 2026-07-20 - PGEN-RGX-0078-0188 — duplicate recursion name-stack traffic prices 3.940 ns but still lacks margin
 
 The reader audit separates the current recursion representations: modern generated frames already carry the required complete `(RuleId, position)` stack, while the parallel 24-byte name stack remains for public legacy compatibility, maximum-depth payloads, rollback labels, contextual errors, and trace text. A compatible candidate must therefore add ID-only fused enter/exit/truncate/check operations and reconstruct names through generated `RULE_NAMES`; it cannot silently change existing public `RecursionGuard` methods or fields.
