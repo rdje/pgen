@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0193 — an anchor-qualified census is only complete for that anchor
+
+**The checkpoint can lose a word by equivalence, not narrowing.** `scope_len` and `chain_len` are born equal and every private mutation path preserves `scopes.len() == active_chain.len()`. Removing the duplicate is lossless. Narrowing the remaining lengths or epoch from observed corpus maxima would silently add a language/input cap and is refused.
+
+**A trace literal cannot find a trace-less checkpoint.** The `-0183` classifier was rigorous about its 39 `Starting speculative parse` anchors, but later prose called that a complete checkpoint census. Scanning the physical first-field load instead finds a 40th seven-word materialization at `0x100073f40`: the outer C3-B tournament checkpoint, with no entry trace. The correction moves 0/1/1 samples from unmatched to required checkpoint traffic and preserves every total and price.
+
+**Whole-carrier compaction does not make every carrier instruction disappear.** Twenty-eight word-zero stores are exclusive; 12 are `stp` instructions paired with required `fact_len`. Only the exclusive instructions and all separate source loads are strict savings. Reloads, aggregate copies, ABI packing, and register-pressure changes depend on the six-word candidate binary and stay unpriced.
+
+**A feasible representation can still be too small to run.** The exact 0.859310862 ns contribution lifts accumulated 30% capture just 1.841692968 ns above the 28.8 ns noise floor before replacement costs. That is a useful addition to the held stack, not adequate implementation margin.
+
 ## 2026-07-20 - PGEN-RGX-0078-0192 — safe indexing defeats scalar bound forwarding
 
 **A copied bound is not the slice's proof.** Passing `input_len: usize` adds an explicit comparison, but `parser.input.as_bytes()[position]` still checks against and reloads the real slice length. The compiler cannot equate an arbitrary scalar with that length. Any claim that one-word forwarding removes safe bounds traffic is false unless it also introduces unchecked access or a stronger proof carrier.
@@ -90,7 +100,7 @@ Whole-mechanism attribution also exposed why “count adjacent instructions” n
 
 ## 2026-07-20 - PGEN-RGX-0078-0183 — a pre-guard spill is not necessarily caused by the guard
 
-**Use value width and lifetime before naming register pressure.** Seven contiguous words written immediately before a disabled trace gate looked like preservation for the cold formatter/logger arm. The semantic checkpoint is itself seven words and must remain live across the following speculative parser call. A complete 39-site census turned the apparent trace lever into required rollback state.
+**Use value width and lifetime before naming register pressure.** Seven contiguous words written immediately before a disabled trace gate looked like preservation for the cold formatter/logger arm. The semantic checkpoint is itself seven words and must remain live across the following speculative parser call. A complete 39-site **trace-anchored** census turned the apparent trace lever into required rollback state. `-0193` later found one additional trace-less C3-B checkpoint (40 total); this strengthens the carrier conclusion and only reclassifies 0/1/1 unmatched samples.
 
 **A source-order correlation needs a machine invariant.** “Near the trace check” was suggestive but non-causal. “Exactly one trailing 56-byte materialization before every first speculative trace guard, matching the pinned `Copy` checkpoint layout” is mechanically testable. The classifier refuses if site count, contiguity, width, guard, raw hash, or probe hash changes.
 

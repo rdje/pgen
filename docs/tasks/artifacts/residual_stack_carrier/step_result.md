@@ -46,14 +46,21 @@ result-carrier work has been found.
   `Copy`, and drop-free. Those blocks are therefore checkpoint
   materializations, not a trace-only spill population.
 
+**Later correction (`PGEN-RGX-0078-0193`, 2026-07-20):** this detector is a
+complete census of its trace anchor, not of every checkpoint. A full physical
+field-load scan found one additional trace-less C3-B tournament checkpoint at
+`0x100073f40`. Its 0/1/1 sampled required store moves the checkpoint row to
+68/67/75 and unmatched to 699/623/726; total re-sums and all prices are
+unchanged. See `../checkpoint_compaction/`.
+
 ## Fishy hypothesis resolved
 
 The initial disassembly made the seven stores before disabled trace guards
 look like unconditional preservation for cold formatting/logger calls. That
-would have suggested an out-of-line cold helper. The complete 39-site census
-falsifies it: seven words exactly match the semantic checkpoint that must
-survive the subsequent speculative parser call for rollback. Some trace code
-may still influence register allocation, but this capture proves no exclusive
+would have suggested an out-of-line cold helper. The complete trace-anchored
+39-site census falsifies it: seven words exactly match the semantic checkpoint
+that must survive the subsequent speculative parser call for rollback. Some
+trace code may still influence register allocation, but this capture proves no exclusive
 trace carrier and therefore admits no trace optimization or performance claim.
 
 ## Adjudication

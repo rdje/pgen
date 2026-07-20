@@ -1,0 +1,50 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+site target=piece        guard=0x1000592d8 source=0x100059210 store=0x1000592b8 form=exclusive       samples=0/0/0
+site target=piece        guard=0x1000598cc source=0x100059880 store=0x1000598a8 form=exclusive       samples=0/0/0
+site target=piece        guard=0x1000599d4 source=0x10005999c store=0x1000599c4 form=paired_fact_len samples=0/0/0
+site target=piece        guard=0x100059e08 source=0x100059dbc store=0x100059de4 form=exclusive       samples=0/0/0
+site target=piece        guard=0x100059f10 source=0x100059ed8 store=0x100059f00 form=paired_fact_len samples=0/0/0
+site target=piece        guard=0x10005a3f8 source=0x10005a3c0 store=0x10005a3e8 form=paired_fact_len samples=0/0/0
+site target=piece        guard=0x10005bb74 source=0x10005bb28 store=0x10005bb50 form=exclusive       samples=0/0/0
+site target=piece        guard=0x10005bfd0 source=0x10005bf8c store=0x10005bfb4 form=exclusive       samples=5/8/3
+site target=piece        guard=0x10005c700 source=0x10005c6c4 store=0x10005c6ec form=paired_fact_len samples=0/0/0
+site target=piece        guard=0x10005cf70 source=0x10005cf2c store=0x10005cf54 form=exclusive       samples=0/0/0
+site target=piece        guard=0x10005d740 source=0x10005d6f4 store=0x10005d71c form=exclusive       samples=1/0/0
+site target=piece        guard=0x10005ddd0 source=0x10005dd8c store=0x10005ddb4 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10006ae7c source=0x10006ad6c store=0x10006ae60 form=exclusive       samples=4/3/3
+site target=atom_closure guard=0x10006b6e8 source=0x10006b6b0 store=0x10006b6d8 form=paired_fact_len samples=0/0/0
+site target=atom_closure guard=0x10006c638 source=0x10006c600 store=0x10006c628 form=paired_fact_len samples=0/0/0
+site target=atom_closure guard=0x10006cd58 source=0x10006cd20 store=0x10006cd48 form=paired_fact_len samples=0/0/0
+site target=atom_closure guard=0x10006d52c source=0x10006d4e4 store=0x10006d50c form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10006deb4 source=0x10006de7c store=0x10006dea4 form=paired_fact_len samples=1/0/0
+site target=atom_closure guard=0x10006e7a0 source=0x10006e768 store=0x10006e790 form=paired_fact_len samples=0/0/0
+site target=atom_closure guard=0x10006ee2c source=0x10006ede0 store=0x10006ee08 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10006efe0 source=0x10006ef14 store=0x10006efc0 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10006f404 source=0x10006f3b8 store=0x10006f3e0 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10006f758 source=0x10006f70c store=0x10006f734 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x1000703ec source=0x1000703a4 store=0x1000703cc form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x1000707f8 source=0x1000707b4 store=0x1000707dc form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x100072688 source=0x100072640 store=0x100072668 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x100072904 source=0x1000728b8 store=0x1000728e0 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x100072ac8 source=0x100072a90 store=0x100072ab8 form=paired_fact_len samples=0/0/0
+site target=atom_closure guard=0x100072de0 source=0x100072d98 store=0x100072dc0 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x1000731d8 source=0x100073190 store=0x1000731b8 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10007383c source=0x1000737f8 store=0x100073820 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x100073dec source=0x100073da8 store=0x100073dd0 form=paired_fact_len samples=0/0/0
+site target=atom_closure guard=0x1000742f8 source=0x1000742b4 store=0x1000742dc form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x1000752d4 source=0x100075294 store=0x1000752bc form=paired_fact_len samples=0/0/0
+site target=atom_closure guard=0x100075654 source=0x100075610 store=0x100075638 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x1000790f4 source=0x1000790a8 store=0x1000790d0 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10007a04c source=0x10007a004 store=0x10007a02c form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x10007a600 source=0x10007a554 store=0x10007a5e0 form=exclusive       samples=1/2/0
+site target=atom_closure guard=0x10007aa28 source=0x10007a9e0 store=0x10007aa08 form=exclusive       samples=0/0/0
+site target=atom_closure guard=0x100073f84 source=0x100073f40 store=0x100073f68 form=exclusive       samples=0/0/0
+summary sites=40 source_loads=40 trace_sites=39 c3b_sites=1 materialization_instructions=246 exclusive_stores=28 paired_stores=12
+unmapped_source_loads=
+dynamic source          sub1us=5 1to2p5=7 2p5to20=7
+dynamic all_materialize sub1us=68 1to2p5=67 2p5to20=75
+dynamic exclusive_store sub1us=11 1to2p5=13 2p5to20=6
+dynamic paired_store    sub1us=1 1to2p5=0 2p5to20=0
+pricing source=0.316397910 exclusive_store=0.542912952 strict=0.859310862 paired_instruction_ceiling=0.021317526 optimistic=0.880628388
+accumulated strict=102.138976561 capture30=30.641692968 margin=1.841692968
+accumulated optimistic=102.160294087 capture30=30.648088226 margin=1.848088226
