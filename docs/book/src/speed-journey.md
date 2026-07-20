@@ -496,9 +496,27 @@ the unpriced bulk — narrowing every error construction, move, and discard on t
 speculation-heavy fused path from 80 bytes to a register-friendly `Copy` value — was
 worth ≈15× more than the sliver itself.
 
-The scoreboard now reads **496 µs → ≈1.71 µs, about 290×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.10 µs. The campaign's call-off
+The sixth fix — the last of the held program's ordered leaves — merged the fused graph's
+two derivation-tape lanes into **one packed word stream**. Match-then-build had always
+kept a 16-byte event record in one vector and a boundary pointer in another, which meant
+every speculative attempt bookkept *two* marks, *two* truncations, two compaction copies
+and two cursors, and every memoized sub-derivation copied two segments. A feasibility
+proof had already shown the two lanes are one lossless preorder log; the fix gave that
+log a single 8-byte tagged word — an aligned node pointer travels unchanged under tag
+zero (the only word ever dereferenced, behind a hard tag check), the small event
+vocabulary rides the other tags, and a two-word escape preserves arbitrary payloads so
+nothing is capped. Every paired bookkeeping site collapsed to one operation — about
+2,160 length reads, 2,170 truncations and half of 802 range copies left the regex
+artifact's hot region, the memo copy lanes halved, and every one of the eleven generated
+parsers got *smaller*. The corpus geomean dropped **−3.9%** with zero verdict flips —
+again clearly outside the noise span, and again the pre-priced sliver (≈0.5 ns of
+measurable second-word traffic) was dwarfed by the unpriced width-and-lane bulk, the
+same lesson the fifth fix taught.
+
+The scoreboard now reads **496 µs → ≈1.65 µs, about 301×** on the bench geomean, with the
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.05 µs. The campaign's call-off
 condition now carries that drift lesson explicitly: the corpus geomean must clear 1 µs
 **with a 50 ns margin** — `(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus
 a confirmation sweep in a later session, so the closure claim reproduces on any day rather
-than on a favorable one. The method decides — and the story continues here.
+than on a favorable one; from the current floor that bar is about −9.7% away. The method
+decides — and the story continues here.

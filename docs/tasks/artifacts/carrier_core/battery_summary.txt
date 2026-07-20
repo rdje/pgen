@@ -1,0 +1,6 @@
+libsuite: 1006 passed / 0 failed / 29 ignored (incl. ALL-11 interpreter<->generated oracle + the 5 new TapeWord pins)
+cert x3 seeds 0/7/42: byte-exact 268/9/259/0 fully_certified=true sample_parse_failures=0
+gates: ast_shape_contract_gate, duality_hunt_gate, regex_pcre2_compile_oracle_gate, clippy_on_rust_change - all exit 0
+regen train: all steps exit 0 incl. ebnf fixed point; artifact growth NEGATIVE (-0.6%..-2.1%, bar 5%)
+expected-delta review: overall=0 over all 11 (artifact_delta_review.txt)
+probe build peak_rss=12225MB; battery clippy peak_rss=11554MB (budget 16384)

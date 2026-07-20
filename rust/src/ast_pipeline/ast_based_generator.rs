@@ -809,11 +809,12 @@ impl AstBasedGenerator {
             // RGX-0078.5.i.7 (MTB-B) — the thin memo carries derivation
             // SEGMENTS, not constructed values: hits splice the cached segment
             // onto the live tape inside `cascade_match_<rule>`.
-            // RGX-0078.5.i.14 (C3) — the segment vectors are inline-small
-            // (`ThinDerivSegMemoEntry`) so the common short segment is stored
-            // without a per-success heap allocation.
+            // RGX-0078.5.j.4 (`-0203`) — the segment is ONE inline-small
+            // packed-word vector (`ThinTapeMemoEntry`): events and boundary
+            // records interleave in append order on the unified tape, so the
+            // per-success copy is a single memcpy.
             quote! {
-                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinDerivSegMemoEntry<'input>>,
+                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinTapeMemoEntry<'input>>,
             }
         } else {
             quote! {}
@@ -821,18 +822,19 @@ impl AstBasedGenerator {
         // RGX-0078.5.i.7 (MTB-A) — the DERIVATION TAPE of the match-then-build
         // split, emitted only when the plan carries ≥ 1 acyclic-increment rule
         // (a fully-cyclic grammar's artifact stays byte-identical to the D2-B
-        // emission). `deriv_events`/`deriv_boundary` are position-like state:
-        // match fns append, every speculation-failure restore point truncates
-        // to its marks, and each sub-root orchestrator nets its segment to
-        // zero — the vecs retain capacity across parses (cleared defensively
-        // at `parse()` start). The three cursors are build-walk scratch, live
-        // only inside one `cascade_build_*` walk at a time.
+        // emission). RGX-0078.5.j.4 (`-0203`) — ONE unified packed lane: the
+        // 8-byte tagged `TapeWord` carries events AND boundary records in
+        // append order, so every mark/truncate/compaction/cursor is a single
+        // word-range operation. The tape is position-like state: match fns
+        // append, every speculation-failure restore point truncates to its
+        // mark, and each sub-root orchestrator nets its segment to zero — the
+        // vec retains capacity across parses (cleared defensively at
+        // `parse()` start). The two cursors are build-walk scratch, live only
+        // inside one `cascade_build_*` walk at a time.
         let mtb_struct_fields: TokenStream = if self.cascade_mtb_active() {
             quote! {
-                deriv_events: Vec<crate::ast_pipeline::DerivEvent>,
-                deriv_boundary: Vec<&'input ParseNode<'input>>,
-                deriv_ev_cursor: usize,
-                deriv_b_cursor: usize,
+                deriv_tape: Vec<crate::ast_pipeline::TapeWord<'input>>,
+                deriv_cursor: usize,
                 deriv_pos: usize,
             }
         } else {
@@ -1386,7 +1388,7 @@ impl AstBasedGenerator {
                 quote! {}
             };
             // RGX-0078.5.i.7 (MTB-A) — derivation-tape init (see
-            // `generate_parser_struct`): constructor-fresh empty vecs +
+            // `generate_parser_struct`): a constructor-fresh empty vec +
             // zeroed build cursors.
             let mtb_init: TokenStream = if self.cascade_mtb_active() {
                 // RGX-0078.5.i.14 (C2) — small-constant pre-size for the
@@ -1394,14 +1396,13 @@ impl AstBasedGenerator {
                 // 0→4→8→… reallocations. Correctness-neutral capacity hints;
                 // the tape's contents/lifecycle are unchanged.
                 // RGX-0078.5.j.4 (K3a) — the tape grows with input size; scale
-                // the hint input-proportionally (clamped: the old 64/16 floors
-                // keep tiny inputs unchanged, the caps bound giant inputs) so a
-                // large pattern skips the doubling-memcpy chain.
+                // the hint input-proportionally so a large pattern skips the
+                // doubling-memcpy chain. (`-0203`) — ONE unified lane: the
+                // hint is the two old lanes' record population in one vec
+                // (4×len events + 1×len boundaries), clamped as before.
                 quote! {
-                    deriv_events: Vec::with_capacity(((input.len() + 1) * 4).clamp(64, 32768)),
-                    deriv_boundary: Vec::with_capacity((input.len() + 1).clamp(16, 8192)),
-                    deriv_ev_cursor: 0,
-                    deriv_b_cursor: 0,
+                    deriv_tape: Vec::with_capacity(((input.len() + 1) * 5).clamp(80, 40960)),
+                    deriv_cursor: 0,
                     deriv_pos: 0,
                 }
             } else {
@@ -1794,8 +1795,7 @@ impl AstBasedGenerator {
             // clear keeps capacity and guards against any leaked prefix).
             let mtb_tape_reset: TokenStream = if self.cascade_mtb_active() {
                 quote! {
-                    self.deriv_events.clear();
-                    self.deriv_boundary.clear();
+                    self.deriv_tape.clear();
                 }
             } else {
                 quote! {}

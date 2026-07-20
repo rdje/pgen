@@ -1170,7 +1170,7 @@ mod tests {
         assert!(
             cascade_rendered.contains("matchparser.scan_num()")
                 && cascade_rendered.contains("cascade_error_from_parse")
-                && cascade_rendered.contains("deriv_boundary.push"),
+                && cascade_rendered.contains("deriv_tape.push(TapeWord::boundary"),
             "fused bodies dispatch boundary references to scan fns through the -0202 conversion, got: {cascade_rendered}"
         );
     }

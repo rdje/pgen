@@ -45,7 +45,7 @@
 //! `cascade_<rule>` fn at all (only match/build fns reference them — the plan
 //! partition). CYCLIC internal rules keep the D2-B protocol-mirror frame
 //! inside their match fn — the recursion guard verbatim plus the thin memo
-//! with a derivation-SEGMENT payload (`ThinDerivSegMemoEntry`): a valid hit
+//! with a derivation-SEGMENT payload (`ThinTapeMemoEntry`): a valid hit
 //! splices the cached `(end, event-segment, boundary-segment)` onto the live
 //! tape and jumps the position (⛔ #49 — cycle participants never lose memo
 //! protection); cyclic SUB-ROOTS keep their guard + real-memo protection at
@@ -58,7 +58,7 @@
 //! (the plan's `thin_memo`, D2-B) keep both, in lean form: the protocol-mirror
 //! `check_cycle` + `enter`/`exit` guard frame, and the epoch-stamped THIN memo
 //! (⛔ the session-#49 bound — a cyclic fused rule never loses memo
-//! protection; see `ThinDerivSegMemoEntry` for the segment splice-replay
+//! protection; see `ThinTapeMemoEntry` for the segment splice-replay
 //! soundness argument). A cycle-participating SUB-ROOT needs neither in its cascade fn:
 //! fused bodies call sub-roots as protocol METHODS, whose full frame already
 //! carries the guard and the real memo.
@@ -412,18 +412,24 @@ impl AstBasedGenerator {
                 /// derivation-tape event (build pass only; the tape segment a
                 /// build walks is committed by construction, so an
                 /// out-of-shape read is a codegen drift, not an input error).
+                /// RGX-0078.5.j.4 (`-0203`) — the tape is ONE packed-word
+                /// lane: decode the word(s) at the unified cursor.
                 #[inline]
                 fn deriv_next_event(&mut self) -> crate::ast_pipeline::DerivEvent {
-                    let event = self.deriv_events[self.deriv_ev_cursor];
-                    self.deriv_ev_cursor += 1;
+                    let (event, consumed) =
+                        TapeWord::decode_event(&self.deriv_tape, self.deriv_cursor);
+                    self.deriv_cursor += consumed;
                     event
                 }
                 /// RGX-0078.5.i.7 (MTB-A) — consume the next boundary call-out
-                /// value (side-vec order is the implicit Boundary record).
+                /// value (tape order is the implicit Boundary record).
+                /// RGX-0078.5.j.4 (`-0203`) — the tag-0 word restores the
+                /// arena reference through the carrier's sole hard-checked
+                /// dereference.
                 #[inline]
                 fn deriv_next_boundary(&mut self) -> &'input ParseNode<'input> {
-                    let node = self.deriv_boundary[self.deriv_b_cursor];
-                    self.deriv_b_cursor += 1;
+                    let node = self.deriv_tape[self.deriv_cursor].boundary_node();
+                    self.deriv_cursor += 1;
                     node
                 }
             });
@@ -464,9 +470,10 @@ impl AstBasedGenerator {
         Ok(quote! {
             // RGX-0078.5.j.4 (-0202) — the drop-free internal error carrier
             // for the fused graph (also consumed by the emitted bare terminal
-            // twins and boundary conversion helpers). Emitted only when a
-            // cascade plan is active, so no artifact carries an unused import.
-            use crate::ast_pipeline::{CascadeControlError, CascadeResult};
+            // twins and boundary conversion helpers). (-0203) — the unified
+            // packed derivation-tape word. Emitted only when a cascade plan
+            // is active, so no artifact carries an unused import.
+            use crate::ast_pipeline::{CascadeControlError, CascadeResult, TapeWord};
             /// RGX-0078.5.i.7 (D2-A + D2-B + MTB-A) — the FUSED cascade graph:
             /// compact per-rule functions for the bare-parse path (no coverage /
             /// trace / counters / memo-stats consumer). Entered exclusively
@@ -572,18 +579,18 @@ impl AstBasedGenerator {
             // 2. SEGMENT THIN MEMO — same key, same taint classes (PURE /
             //    STORE-READ via the stamp; a store-MUTATING body is never
             //    cached), same staleness eviction; a valid HIT splices the
-            //    cached `(end, event-segment, boundary-segment)` onto the live
-            //    tape and jumps the cursor — the build pass later constructs
-            //    the value ONCE from the spliced events, so a memoized
-            //    sub-derivation on a DOOMED path is truncated un-built. Events
-            //    are tape-index-free (input positions / counts / branch
-            //    indices only — the MTB-A compaction license), so a segment is
-            //    position-independent within the tape and splicing is sound;
-            //    input positions are absolute and the memo key pins the input
-            //    position, so a hit replays at the exact recorded position.
-            //    Boundary values are arena refs (`Copy`), alive for the whole
-            //    parse — the same replay economics as the eager entry's
-            //    arena-borrow clone.
+            //    cached `(end, tape-segment)` onto the live tape and jumps
+            //    the cursor — the build pass later constructs the value ONCE
+            //    from the spliced words, so a memoized sub-derivation on a
+            //    DOOMED path is truncated un-built. Tape records are
+            //    tape-index-free (input positions / counts / branch indices /
+            //    arena pointers only — the MTB-A compaction license), so a
+            //    segment is position-independent within the tape and splicing
+            //    is sound; input positions are absolute and the memo key pins
+            //    the input position, so a hit replays at the exact recorded
+            //    position. Boundary words carry arena refs (`Copy`), alive
+            //    for the whole parse — the same replay economics as the eager
+            //    entry's arena-borrow clone.
             //
             // Failure-arm tape hygiene stays with the CALLER's speculation
             // scope (the [[feedback_question_bypasses_manual_cleanup]] rule):
@@ -637,12 +644,11 @@ impl AstBasedGenerator {
                         };
                         if __pgen_thin_valid {
                             match &__pgen_thin_entry.outcome {
-                                Some((__pgen_thin_end, __pgen_thin_ev_seg, __pgen_thin_b_seg)) => {
+                                Some((__pgen_thin_end, __pgen_thin_seg)) => {
                                     // Disjoint-field borrows: `thin_memo` is
-                                    // shared-borrowed while the tape vecs are
+                                    // shared-borrowed while the tape vec is
                                     // mutably borrowed — distinct places.
-                                    parser.deriv_events.extend_from_slice(__pgen_thin_ev_seg);
-                                    parser.deriv_boundary.extend_from_slice(__pgen_thin_b_seg);
+                                    parser.deriv_tape.extend_from_slice(__pgen_thin_seg);
                                     parser.position = *__pgen_thin_end;
                                     return Ok(());
                                 }
@@ -657,8 +663,7 @@ impl AstBasedGenerator {
                         parser.thin_memo.remove(&__pgen_thin_key);
                     }
                     let __pgen_thin_preds = parser.semantic_runtime_state.predicate_evaluations();
-                    let __pgen_thin_ev_mark = parser.deriv_events.len();
-                    let __pgen_thin_b_mark = parser.deriv_boundary.len();
+                    let __pgen_thin_mark = parser.deriv_tape.len();
                     // RGX-0078.5.j.4 (`-0200`) — BARE id-only frame: the ID
                     // stack is the complete cycle/depth representation
                     // (`check_cycle_id` scans it and counts its depth), and on
@@ -692,26 +697,23 @@ impl AstBasedGenerator {
                             };
                         match &__pgen_thin_result {
                             Ok(()) => {
-                                // RGX-0078.5.i.14 (C3) — the committed segment is
-                                // copied into inline-small `SmallVec`s (POD
-                                // `Copy` memcpy), eliding the `Vec` malloc pair
-                                // for the common short segment. The target inline
-                                // capacities are inferred from
-                                // `ThinDerivSegMemoEntry::outcome`.
-                                let __pgen_thin_ev_seg = smallvec::SmallVec::from_slice(
-                                    &parser.deriv_events[__pgen_thin_ev_mark..],
-                                );
-                                let __pgen_thin_b_seg = smallvec::SmallVec::from_slice(
-                                    &parser.deriv_boundary[__pgen_thin_b_mark..],
+                                // RGX-0078.5.i.14 (C3) — the committed segment
+                                // is copied inline-small (POD `Copy` memcpy),
+                                // eliding the `Vec` malloc for the common short
+                                // segment. RGX-0078.5.j.4 (`-0203`) — the
+                                // unified tape makes it ONE copy; the inline
+                                // capacity is inferred from
+                                // `ThinTapeMemoEntry::outcome`.
+                                let __pgen_thin_seg = smallvec::SmallVec::from_slice(
+                                    &parser.deriv_tape[__pgen_thin_mark..],
                                 );
                                 parser.thin_memo.insert(
                                     __pgen_thin_key,
-                                    crate::ast_pipeline::ThinDerivSegMemoEntry {
+                                    crate::ast_pipeline::ThinTapeMemoEntry {
                                         stamp: __pgen_thin_stamp,
                                         outcome: Some((
                                             parser.position,
-                                            __pgen_thin_ev_seg,
-                                            __pgen_thin_b_seg,
+                                            __pgen_thin_seg,
                                         )),
                                     },
                                 );
@@ -719,7 +721,7 @@ impl AstBasedGenerator {
                             Err(_) => {
                                 parser.thin_memo.insert(
                                     __pgen_thin_key,
-                                    crate::ast_pipeline::ThinDerivSegMemoEntry {
+                                    crate::ast_pipeline::ThinTapeMemoEntry {
                                         stamp: __pgen_thin_stamp,
                                         outcome: None,
                                     },
@@ -780,8 +782,7 @@ impl AstBasedGenerator {
     fn mtb_match_speculation_tokens(&self, subtree: &ASTNode, body: TokenStream) -> TokenStream {
         if self.cascade_subtree_reaches_effects(subtree) {
             quote! {
-                let __pgen_spec_ev_mark = parser.deriv_events.len();
-                let __pgen_spec_b_mark = parser.deriv_boundary.len();
+                let __pgen_spec_mark = parser.deriv_tape.len();
                 // RGX-0078.5.j.4 (`-0200`) — the BARE wrapper: id-only
                 // recursion-guard snapshot/restore (bare frames never touch
                 // the name stack), otherwise the protocol mirror verbatim.
@@ -790,22 +791,19 @@ impl AstBasedGenerator {
                     #body
                 });
                 if __pgen_attempt.is_none() {
-                    parser.deriv_events.truncate(__pgen_spec_ev_mark);
-                    parser.deriv_boundary.truncate(__pgen_spec_b_mark);
+                    parser.deriv_tape.truncate(__pgen_spec_mark);
                 }
             }
         } else {
             quote! {
                 let __pgen_attempt = {
                     let __pgen_spec_start = parser.position;
-                    let __pgen_spec_ev_mark = parser.deriv_events.len();
-                    let __pgen_spec_b_mark = parser.deriv_boundary.len();
+                    let __pgen_spec_mark = parser.deriv_tape.len();
                     match (|parser: &mut Self| -> CascadeResult<_> { #body })(parser) {
                         Ok(__pgen_speculated) => Some(__pgen_speculated),
                         Err(_) => {
                             parser.position = __pgen_spec_start;
-                            parser.deriv_events.truncate(__pgen_spec_ev_mark);
-                            parser.deriv_boundary.truncate(__pgen_spec_b_mark);
+                            parser.deriv_tape.truncate(__pgen_spec_mark);
                             None
                         }
                     }
@@ -970,15 +968,14 @@ impl AstBasedGenerator {
             // IN-TAPE winner-segment compaction: the candidate segment
             // (appended after the current best segment) memmoves down over
             // the best; when the best is empty the copy is a no-op onto
-            // itself. Events carry no absolute tape indices, so the move is
-            // safe by construction.
+            // itself. Records carry no absolute tape indices, so the move is
+            // safe by construction. RGX-0078.5.j.4 (`-0203`) — the unified
+            // lane makes the winner's interleaved segment ONE contiguous
+            // word range: one copy + one truncate.
             let take_compaction = quote! {
-                let __pgen_cand_ev_len = parser.deriv_events.len() - __pgen_cand_ev_start;
-                parser.deriv_events.copy_within(__pgen_cand_ev_start.., __pgen_or_ev_mark + 1);
-                parser.deriv_events.truncate(__pgen_or_ev_mark + 1 + __pgen_cand_ev_len);
-                let __pgen_cand_b_len = parser.deriv_boundary.len() - __pgen_cand_b_start;
-                parser.deriv_boundary.copy_within(__pgen_cand_b_start.., __pgen_or_b_mark);
-                parser.deriv_boundary.truncate(__pgen_or_b_mark + __pgen_cand_b_len);
+                let __pgen_cand_len = parser.deriv_tape.len() - __pgen_cand_start;
+                parser.deriv_tape.copy_within(__pgen_cand_start.., __pgen_or_mark + 1);
+                parser.deriv_tape.truncate(__pgen_or_mark + 1 + __pgen_cand_len);
             };
 
             let arm_inner = if island {
@@ -1009,8 +1006,7 @@ impl AstBasedGenerator {
                             __pgen_live_semantic_branch = false;
                         }
                         parser.position = parse_start;
-                        let __pgen_cand_ev_start = parser.deriv_events.len();
-                        let __pgen_cand_b_start = parser.deriv_boundary.len();
+                        let __pgen_cand_start = parser.deriv_tape.len();
                         // RGX-0078.5.j.4 (`-0200`) — the BARE wrapper (id-only
                         // guard snapshot/restore), the protocol mirror otherwise.
                         if let Some(()) = parser.try_parse_bare(|p| {
@@ -1046,14 +1042,12 @@ impl AstBasedGenerator {
                                         total: #branch_count,
                                     },
                                 );
-                                parser.deriv_events.truncate(__pgen_cand_ev_start);
-                                parser.deriv_boundary.truncate(__pgen_cand_b_start);
+                                parser.deriv_tape.truncate(__pgen_cand_start);
                             }
                         } else {
                             // Tape hygiene in the CALLER's failure arm —
                             // `try_parse` restores position/semantics only.
-                            parser.deriv_events.truncate(__pgen_cand_ev_start);
-                            parser.deriv_boundary.truncate(__pgen_cand_b_start);
+                            parser.deriv_tape.truncate(__pgen_cand_start);
                         }
                     }
                 }
@@ -1070,8 +1064,7 @@ impl AstBasedGenerator {
                         // Ordered branch policy keeps the first successful branch.
                     } else {
                         parser.position = parse_start;
-                        let __pgen_cand_ev_start = parser.deriv_events.len();
-                        let __pgen_cand_b_start = parser.deriv_boundary.len();
+                        let __pgen_cand_start = parser.deriv_tape.len();
                         #speculation
                         if let Some(()) = __pgen_attempt {
                             let candidate_end = parser.position;
@@ -1086,8 +1079,7 @@ impl AstBasedGenerator {
                                 best_branch_index = current_branch_index;
                                 __pgen_best_found = true;
                             } else {
-                                parser.deriv_events.truncate(__pgen_cand_ev_start);
-                                parser.deriv_boundary.truncate(__pgen_cand_b_start);
+                                parser.deriv_tape.truncate(__pgen_cand_start);
                             }
                         }
                     }
@@ -1154,20 +1146,23 @@ impl AstBasedGenerator {
             let mut best_end = parse_start;
             let mut best_priority: i64 = i64::MIN;
             let mut best_branch_index: usize = 0usize;
-            let __pgen_or_ev_mark = parser.deriv_events.len();
-            parser.deriv_events.push(crate::ast_pipeline::DerivEvent::OrWinner(0));
-            let __pgen_or_b_mark = parser.deriv_boundary.len();
+            let __pgen_or_mark = parser.deriv_tape.len();
+            parser.deriv_tape.push(TapeWord::narrow_event(
+                crate::ast_pipeline::DerivEvent::OrWinner(0),
+            ));
             #island_prologue
             // Branches evaluate in declaration order (partition rotation is
             // statically excluded by the shared cascade gate).
             #(#branch_attempt_blocks)*
             if __pgen_best_found {
                 parser.position = best_end;
-                parser.deriv_events[__pgen_or_ev_mark] =
-                    crate::ast_pipeline::DerivEvent::OrWinner(best_branch_index);
+                // The patch is total: a branch index is narrow by construction.
+                parser.deriv_tape[__pgen_or_mark] = TapeWord::narrow_event(
+                    crate::ast_pipeline::DerivEvent::OrWinner(best_branch_index),
+                );
                 #island_winner_replay
             } else {
-                parser.deriv_events.truncate(__pgen_or_ev_mark);
+                parser.deriv_tape.truncate(__pgen_or_mark);
                 return Err(CascadeControlError::Backtrack {
                     position: parse_start,
                 });
@@ -1218,8 +1213,9 @@ impl AstBasedGenerator {
                 let attempt = quote! {
                     #speculation
                     if __pgen_attempt.is_some() {
-                        parser.deriv_events[__pgen_opt_ev_mark] =
-                            crate::ast_pipeline::DerivEvent::OptPresent(true);
+                        parser.deriv_tape[__pgen_opt_mark] = TapeWord::narrow_event(
+                            crate::ast_pipeline::DerivEvent::OptPresent(true),
+                        );
                     }
                 };
                 let attempt_with_guard = match self.quantified_prune_guard_for_element(inner) {
@@ -1242,8 +1238,10 @@ impl AstBasedGenerator {
                 };
                 Ok(quote! {
                     {
-                        let __pgen_opt_ev_mark = parser.deriv_events.len();
-                        parser.deriv_events.push(crate::ast_pipeline::DerivEvent::OptPresent(false));
+                        let __pgen_opt_mark = parser.deriv_tape.len();
+                        parser.deriv_tape.push(TapeWord::narrow_event(
+                            crate::ast_pipeline::DerivEvent::OptPresent(false),
+                        ));
                         #attempt_with_guard
                     }
                 })
@@ -1293,7 +1291,8 @@ impl AstBasedGenerator {
                             // the dynamic end (start = end − literal length).
                             Ok(quote! {
                                 parser.#match_call?;
-                                parser.deriv_events.push(
+                                TapeWord::push_event(
+                                    &mut parser.deriv_tape,
                                     crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
                                 );
                             })
@@ -1329,7 +1328,9 @@ impl AstBasedGenerator {
                                         return Err(parser.cascade_error_from_parse(__pgen_e));
                                     }
                                 };
-                                parser.deriv_boundary.push(parser.arena.alloc(__pgen_alt_child));
+                                parser.deriv_tape.push(TapeWord::boundary(
+                                    parser.arena.alloc(__pgen_alt_child),
+                                ));
                             })
                         } else {
                             // A sub-root or an ineligible rule: a BOUNDARY
@@ -1346,7 +1347,9 @@ impl AstBasedGenerator {
                                         return Err(parser.cascade_error_from_parse(__pgen_e));
                                     }
                                 };
-                                parser.deriv_boundary.push(parser.arena.alloc(__pgen_alt_child));
+                                parser.deriv_tape.push(TapeWord::boundary(
+                                    parser.arena.alloc(__pgen_alt_child),
+                                ));
                             })
                         }
                     }
@@ -1382,10 +1385,14 @@ impl AstBasedGenerator {
                                         return Err(parser.cascade_error_from_parse(__pgen_e));
                                     }
                                 };
-                                parser.deriv_events.push(crate::ast_pipeline::DerivEvent::TokStart(
-                                    parser.position - __pgen_matched.len(),
-                                ));
-                                parser.deriv_events.push(
+                                TapeWord::push_event(
+                                    &mut parser.deriv_tape,
+                                    crate::ast_pipeline::DerivEvent::TokStart(
+                                        parser.position - __pgen_matched.len(),
+                                    ),
+                                );
+                                TapeWord::push_event(
+                                    &mut parser.deriv_tape,
                                     crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
                                 );
                             })
@@ -1396,7 +1403,8 @@ impl AstBasedGenerator {
                                 {
                                     return Err(parser.cascade_error_from_parse(__pgen_e));
                                 }
-                                parser.deriv_events.push(
+                                TapeWord::push_event(
+                                    &mut parser.deriv_tape,
                                     crate::ast_pipeline::DerivEvent::TokEnd(parser.position),
                                 );
                             })
@@ -1487,8 +1495,10 @@ impl AstBasedGenerator {
 
         Ok(quote! {
             #quantifier_start_position_bind
-            let __pgen_quant_ev_mark = parser.deriv_events.len();
-            parser.deriv_events.push(crate::ast_pipeline::DerivEvent::QuantCount(0));
+            let __pgen_quant_mark = parser.deriv_tape.len();
+            parser.deriv_tape.push(TapeWord::narrow_event(
+                crate::ast_pipeline::DerivEvent::QuantCount(0),
+            ));
             let mut last_position = parser.position;
             let mut iteration_count: usize = 0;
             const SAFETY_LIMIT: usize = 10_000;
@@ -1501,8 +1511,7 @@ impl AstBasedGenerator {
                 #max_check_tokens
                 #quant_guard_tokens
 
-                let __pgen_iter_ev_mark = parser.deriv_events.len();
-                let __pgen_iter_b_mark = parser.deriv_boundary.len();
+                let __pgen_iter_mark = parser.deriv_tape.len();
                 #speculation
                 if let Some(()) = __pgen_attempt {
                     let current_position = parser.position;
@@ -1511,8 +1520,7 @@ impl AstBasedGenerator {
                     // the zero-length value (break without push): discard its
                     // tape segment identically.
                     if current_position == last_position {
-                        parser.deriv_events.truncate(__pgen_iter_ev_mark);
-                        parser.deriv_boundary.truncate(__pgen_iter_b_mark);
+                        parser.deriv_tape.truncate(__pgen_iter_mark);
                         break;
                     }
                     last_position = current_position;
@@ -1524,8 +1532,10 @@ impl AstBasedGenerator {
 
             #min_check_tokens
 
-            parser.deriv_events[__pgen_quant_ev_mark] =
-                crate::ast_pipeline::DerivEvent::QuantCount(iteration_count);
+            // The patch is total: the count is bounded by SAFETY_LIMIT.
+            parser.deriv_tape[__pgen_quant_mark] = TapeWord::narrow_event(
+                crate::ast_pipeline::DerivEvent::QuantCount(iteration_count),
+            );
         })
     }
 
@@ -1556,12 +1566,10 @@ impl AstBasedGenerator {
         };
         Ok(quote! {
             let lookahead_start = parser.position;
-            let __pgen_la_ev_mark = parser.deriv_events.len();
-            let __pgen_la_b_mark = parser.deriv_boundary.len();
+            let __pgen_la_mark = parser.deriv_tape.len();
             #speculation
             parser.position = lookahead_start;
-            parser.deriv_events.truncate(__pgen_la_ev_mark);
-            parser.deriv_boundary.truncate(__pgen_la_b_mark);
+            parser.deriv_tape.truncate(__pgen_la_mark);
             if #failure_condition {
                 return Err(CascadeControlError::Backtrack {
                     position: lookahead_start,
@@ -2103,8 +2111,8 @@ impl AstBasedGenerator {
     /// twin dispatch, every fused reference, and every cyclic-spine call seam
     /// are untouched. Nesting (a sub-root called mid-match as a boundary
     /// call-out) is a clean stack discipline on the single tape: the inner
-    /// orchestrator truncates back to its own marks before returning, and
-    /// build never suspends into match, so the three build cursors are only
+    /// orchestrator truncates back to its own mark before returning, and
+    /// build never suspends into match, so the two build cursors are only
     /// live within one build walk at a time.
     fn generate_mtb_orchestrator_fn(&self, rule_name: &str) -> TokenStream {
         let cascade_fn = format_ident!("cascade_{}", rule_name);
@@ -2113,14 +2121,12 @@ impl AstBasedGenerator {
         quote! {
             fn #cascade_fn(&mut self) -> ParseResult<ParseNode<'input>> {
                 let parser = self;
-                let __pgen_orch_ev_mark = parser.deriv_events.len();
-                let __pgen_orch_b_mark = parser.deriv_boundary.len();
+                let __pgen_orch_mark = parser.deriv_tape.len();
                 let __pgen_orch_start = parser.position;
                 match parser.#match_fn() {
                     Ok(()) => {
                         let __pgen_match_end = parser.position;
-                        parser.deriv_ev_cursor = __pgen_orch_ev_mark;
-                        parser.deriv_b_cursor = __pgen_orch_b_mark;
+                        parser.deriv_cursor = __pgen_orch_mark;
                         parser.deriv_pos = __pgen_orch_start;
                         let __pgen_node = parser.#build_fn();
                         // The end-parity drift tripwires: the built winner must
@@ -2133,19 +2139,12 @@ impl AstBasedGenerator {
                             #rule_name,
                         );
                         debug_assert_eq!(
-                            parser.deriv_ev_cursor,
-                            parser.deriv_events.len(),
-                            "derivation-tape drift in rule '{}': unconsumed tape events",
+                            parser.deriv_cursor,
+                            parser.deriv_tape.len(),
+                            "derivation-tape drift in rule '{}': unconsumed tape words",
                             #rule_name,
                         );
-                        debug_assert_eq!(
-                            parser.deriv_b_cursor,
-                            parser.deriv_boundary.len(),
-                            "derivation-tape drift in rule '{}': unconsumed boundary nodes",
-                            #rule_name,
-                        );
-                        parser.deriv_events.truncate(__pgen_orch_ev_mark);
-                        parser.deriv_boundary.truncate(__pgen_orch_b_mark);
+                        parser.deriv_tape.truncate(__pgen_orch_mark);
                         // The `-0101` $text fix — a build-side transform may
                         // have synced `position` to its own site's cursor;
                         // restore the recorded match end so every enclosing
@@ -2157,8 +2156,7 @@ impl AstBasedGenerator {
                     Err(__pgen_err) => {
                         // Tape hygiene in the failure arm — the tape is
                         // position-like state the error path must unwind.
-                        parser.deriv_events.truncate(__pgen_orch_ev_mark);
-                        parser.deriv_boundary.truncate(__pgen_orch_b_mark);
+                        parser.deriv_tape.truncate(__pgen_orch_mark);
                         // RGX-0078.5.j.4 (-0202) — the region's ONLY outbound
                         // error edge: rehydrate the Copy internal carrier into
                         // the rich public `ParseError` (bijective; `Parked`
@@ -2319,10 +2317,10 @@ mod tests {
         // The orchestrator shape: marks, match→build, the end-parity drift
         // tripwires, truncation on both arms.
         assert!(
-            rendered.contains("__pgen_orch_ev_mark")
-                && rendered.contains("deriv_ev_cursor")
+            rendered.contains("__pgen_orch_mark")
+                && rendered.contains("deriv_cursor")
                 && rendered.contains("debug_assert_eq !")
-                && rendered.contains("deriv_events . truncate"),
+                && rendered.contains("deriv_tape . truncate"),
             "the orchestrator marks, builds over the segment, asserts parity, and truncates, got: {rendered}"
         );
 
@@ -2493,7 +2491,7 @@ mod tests {
     /// fuses under the CyclicSpine increment as a match/build pair: its MATCH
     /// fn recurses through direct match calls and carries the recursion-guard
     /// frame + the epoch-stamped thin memo with a derivation-SEGMENT payload
-    /// (`ThinDerivSegMemoEntry` — hits splice, inserts capture the segment); an
+    /// (`ThinTapeMemoEntry` — hits splice, inserts capture the segment); an
     /// acyclic rule in the same plan keeps the frame-free match/build shape.
     #[test]
     fn cascade_cyclic_internal_rule_gets_guard_frame_and_thin_memo() {
@@ -2550,7 +2548,7 @@ mod tests {
         // pairs with no eager `cascade_<rule>` fn; the sub-root `entry` gets
         // the orchestrator plus its own pair. The cyclic internal rule's
         // MATCH fn carries the protocol-mirror frame (guard + thin memo) with
-        // the memo payload now a derivation SEGMENT (`ThinDerivSegMemoEntry`).
+        // the memo payload now a derivation SEGMENT (`ThinTapeMemoEntry`).
         assert!(
             generator.cascade_mtb_active()
                 && generator.mtb_sub_root("entry")
@@ -2572,7 +2570,7 @@ mod tests {
                 .unwrap_or(rendered.len())];
         assert!(
             entry_match_body.contains("cascade_match_cyc ()")
-                && !entry_match_body.contains("deriv_boundary . push"),
+                && !entry_match_body.contains("TapeWord :: boundary"),
             "a match-fn reference to a cyclic INTERNAL rule is a direct match call (no boundary call-out), got: {entry_match_body}"
         );
         let cyc_fn_start = rendered
@@ -2596,7 +2594,7 @@ mod tests {
             cyc_body.contains("thin_memo")
                 && cyc_body.contains("write_epoch")
                 && cyc_body.contains("deferred_obligation_count")
-                && cyc_body.contains("ThinDerivSegMemoEntry"),
+                && cyc_body.contains("ThinTapeMemoEntry"),
             "the cyclic match fn carries the epoch-stamped SEGMENT thin memo, got: {cyc_body}"
         );
         assert!(
@@ -2604,7 +2602,7 @@ mod tests {
             "a thin-memo hit splices the cached segment onto the live tape, got: {cyc_body}"
         );
         assert!(
-            cyc_body.contains("__pgen_thin_ev_mark") && cyc_body.contains("from_slice"),
+            cyc_body.contains("__pgen_thin_mark") && cyc_body.contains("from_slice"),
             "a thin-memo insert captures the body's tape segment (RGX-0078.5.i.14/C3: inline-small SmallVec), got: {cyc_body}"
         );
         assert!(
@@ -2973,8 +2971,8 @@ mod tests {
         );
         assert!(
             match_or.contains("parse_fact_writer")
-                && match_or.contains("deriv_boundary . push"),
-            "the boundary call-out stays a protocol method whose value joins the side vec, got: {match_or}"
+                && match_or.contains("TapeWord :: boundary"),
+            "the boundary call-out stays a protocol method whose value joins the unified tape, got: {match_or}"
         );
     }
 

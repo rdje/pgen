@@ -1,0 +1,50 @@
+custody: generated/regex_parser.rs sha256=c3d919599e6589ac702420dfb062b3de4b84a44a5548f77941cc75e04bc87b6a OK (-0202 vintage)
+
+== regex artifact: match-pass tape WRITE sites ==
+deriv_events.push(  (all)                                     204
+  OrWinner pushes (placeholder)                                83
+  QuantCount pushes (placeholder)                              69
+  OptPresent pushes (placeholder)                              52
+  TokStart pushes                                               0
+  TokEnd pushes                                                 0
+deriv_events[..] = (patch sites)                              204
+deriv_boundary.push(                                          268
+
+== regex artifact: tape RANGE bookkeeping (the second-lane cost) ==
+deriv_events.len() reads (marks)                             2221
+deriv_boundary.len() reads (marks)                           2100
+deriv_events.truncate(                                       2213
+deriv_boundary.truncate(                                     2130
+deriv_events.copy_within(                                     401
+deriv_boundary.copy_within(                                   401
+deriv_events.extend_from_slice (memo hit)                      28
+deriv_boundary.extend_from_slice (memo hit)                    28
+SmallVec::from_slice (memo insert copies)                      56
+thin_memo.insert(                                              56
+ThinDerivSegMemoEntry uses                                     57
+
+== regex artifact: build-pass READ sites ==
+deriv_next_event() calls                                      188
+deriv_next_boundary() calls                                   256
+deriv_ev_cursor mentions                                       44
+deriv_b_cursor mentions                                        44
+deriv_pos mentions                                           2828
+
+== regex artifact: region shape ==
+cascade_match_* fns                                           235
+cascade_build_* fns                                           235
+scan_* fns                                                     30
+sub-root orchestrator fns (cascade_<r>, ParseResult)           19
+
+== all-11 artifacts: carrier-surface presence (DerivEvent / boundary / thin memo / terminal events) ==
+json_parser.rs                           ev_push=   33 tok_ev=   56 b_push=    0 thin_memo_uses= 13
+regex_parser.rs                          ev_push=  204 tok_ev=    0 b_push=  268 thin_memo_uses= 57
+return_annotation_parser.rs              ev_push=   61 tok_ev=   84 b_push=    4 thin_memo_uses= 31
+rtl_const_expr_parser.rs                 ev_push=   51 tok_ev=   64 b_push=    0 thin_memo_uses= 27
+rtl_frontend_parser.rs                   ev_push=  249 tok_ev=  258 b_push=    0 thin_memo_uses= 61
+scratch_parser.rs                        ev_push=    5 tok_ev=    8 b_push=    0 thin_memo_uses=  0
+semantic_annotation_parser.rs            ev_push=  640 tok_ev= 1106 b_push=    0 thin_memo_uses= 87
+systemverilog_parser.rs                  ev_push= 1643 tok_ev= 1432 b_push= 2479 thin_memo_uses=219
+systemverilog_preprocessor_parser.rs     ev_push=   65 tok_ev=   56 b_push=   37 thin_memo_uses= 17
+vhdl_parser.rs                           ev_push=  356 tok_ev=  408 b_push=    0 thin_memo_uses= 59
+ebnf.rs                                  ev_push=  274 tok_ev=  416 b_push=    5 thin_memo_uses= 41

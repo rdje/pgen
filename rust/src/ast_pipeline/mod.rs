@@ -1229,77 +1229,6 @@ pub struct MemoEntry<'input> {
     pub coverage_delta: Option<Vec<u32>>,
 }
 
-/// RGX-0078.5.i.7 (D2-B + MTB-B) / RGX-0078.5.i.14 (C3) — one entry of the fused
-/// cascade graph's THIN memo: the ⛔ session-#49 bound's carrier for
-/// CYCLE-PARTICIPATING fused rules (`CascadeEmissionPlan::thin_memo`), which must
-/// never lose memo protection. The payload is a committed derivation SEGMENT (the
-/// MTB-B form — `PGEN-RGX-0078-0101`; the eager value-carrying `ThinMemoEntry`
-/// was retired with it, then the `Vec`-backed `ThinDerivMemoEntry` was retired by
-/// C3 in favor of this inline-small form — each an additive transient migration
-/// completed once no regenerated artifact referenced the old type): a valid HIT
-/// splices the cached `(end, event-segment, boundary-segment)` onto the live tape
-/// and jumps the position; the build pass constructs the value ONCE from the
-/// spliced events — so a memoized sub-derivation on a DOOMED path is truncated
-/// un-built. Events are tape-index-free (`DerivEvent` carries input positions /
-/// counts / branch indices only), so a segment is position-independent within the
-/// tape; the memo key pins the input position, so the absolute input positions
-/// inside the segment replay exactly. Boundary values are arena refs (`Copy`),
-/// alive for the whole parse — the eager entry's shallow-replay economics.
-///
-/// Unlike [`MemoEntry`], a thin entry carries NO semantic/coverage delta —
-/// replay is `position = end` plus the tape splice (or the cached failure) and
-/// nothing else, so an entry is cached ONLY when splice-replay is provably
-/// equivalent to re-execution. The entry's `stamp` carries the protocol memo's
-/// own taint classes, measured across the body with three engine counters (the
-/// store write epoch — monotone, bumped by EVERY delta-visible mutation — the
-/// deferred-obligation count — the one deliberately epoch-blind mutation — and
-/// the predicate-evaluation counter, the store's only read path into parsing):
-///
-/// - **PURE** (`stamp: None`) — the body neither read a predicate nor mutated
-///   the store: its outcome is a function of (input, position) alone, and a
-///   replay skips nothing, so it is valid at ANY later store state — exactly
-///   the protocol's untainted-entry license. (The first thin-memo emission
-///   validated every entry against the global "store unchanged since insert"
-///   pair instead; measured on the 8-pattern bench that evicted the whole
-///   spine's entries on every capture fact write and REGRESSED the two
-///   fact-writing patterns +3.4/+15.4% — the per-entry class is the fix.)
-/// - **STORE-READ** (`stamp: Some((write_epoch, deferred_len))`) — the body
-///   evaluated ≥1 predicate but mutated nothing: replayable only while both
-///   stamps are unchanged (predicates are pure functions of position + store,
-///   the MEMO-STORE-SOUNDNESS.2 license); evicted and re-executed otherwise.
-/// - **STORE-MUTATING** — the body changed the epoch or enqueued an
-///   obligation: NOT cached at all. A splice-only replay would skip the
-///   mutation the protocol memo re-applies from its stored delta, so every
-///   re-probe honestly re-executes (deterministic ⇒ same outcome + same
-///   effects).
-///
-/// RGX-0078.5.i.14 (C3) — INLINE-SMALL SEGMENTS: the two committed-segment
-/// vectors are `SmallVec`s with an inline capacity, so the common short segment
-/// (an `OrWinner` plus 0–2 tok events, and 0–1 boundary refs — the STEP-0 census
-/// shape) is stored inline and the per-success `Vec` malloc PAIR (and its later
-/// free) is elided. `DerivEvent` is `Copy` POD and a `&'input ParseNode` is a
-/// `Copy` arena borrow, so `SmallVec::from_slice` is a plain memcpy, and a hit
-/// still splices the segment onto the live tape via `extend_from_slice`
-/// (`SmallVec` derefs to a slice, exactly like the `Vec` form). Inline caps 4
-/// (events) / 2 (boundary) cover the overwhelming majority of committed segments;
-/// a longer segment spills to the heap exactly as the `Vec` form did — same worst
-/// case, cheaper common case.
-#[derive(Debug, Clone)]
-pub struct ThinDerivSegMemoEntry<'input> {
-    /// `None` = PURE (valid forever); `Some((write_epoch, deferred_len))` =
-    /// STORE-READ, both captured at body entry and validated at replay.
-    pub stamp: Option<(u64, usize)>,
-    /// `Some((end_pos, event_segment, boundary_segment))` for a successful
-    /// match; `None` for a cached failure, replayed as
-    /// `ParseError::Backtrack` at the probe key's position.
-    #[allow(clippy::type_complexity)]
-    pub outcome: Option<(
-        usize,
-        smallvec::SmallVec<[DerivEvent; 4]>,
-        smallvec::SmallVec<[&'input ParseNode<'input>; 2]>,
-    )>,
-}
-
 /// RGX-0078.5.i.7 (MTB-A) — one committed-derivation TAPE event of the fused
 /// graph's match-then-build split (`docs/tasks/RGX-0078.md`, the `-0093`
 /// design). `cascade_match_*` functions run today's fused control flow minus
@@ -1320,8 +1249,10 @@ pub struct ThinDerivSegMemoEntry<'input> {
 ///   grammar's static literals need NO terminal events at all;
 /// - `OptPresent` is mandatory at `?` fast-path sites (a static-literal inner
 ///   produces zero events yet advances the cursor);
-/// - boundary call-out VALUES live in the parser's `deriv_boundary` side vec
-///   in append order (implicit — no event).
+/// - boundary call-out VALUES ride the unified tape as tag-0 [`TapeWord`]
+///   records in append order (RGX-0078.5.j.4 `-0203`; this enum is the
+///   DECODE-result vocabulary the build pass matches on — the tape itself
+///   stores packed words).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DerivEvent {
     /// The committed winner's branch index at a multi-branch tournament site
@@ -1342,6 +1273,274 @@ pub enum DerivEvent {
     /// is not a static literal length, or where a layout skip made the start
     /// dynamic — the literal start is then `end − literal_len`).
     TokEnd(usize),
+}
+
+/// RGX-0078.5.j.4 (`-0203` carrier core) — one word of the UNIFIED PACKED
+/// derivation tape: the single 8-byte tagged-address carrier that replaces
+/// the two-lane `Vec<DerivEvent>` (16 B/event) + `Vec<&ParseNode>` tape.
+/// The `-0196` feasibility proof established the losslessness license: both
+/// lanes are append-only preorder logs produced and consumed at the same AST
+/// sites, so their merge preserves patching, speculation/lookahead suffix
+/// truncation, tournament winner compaction, thin-memo segments, and nested
+/// orchestrator stack discipline — each as ONE word-range operation instead
+/// of two.
+///
+/// Encoding (the three low bits of the word are the tag; `ParseNode`'s
+/// alignment is ≥ 8, so a live node pointer always has them zero):
+/// - tag `0b000` — a BOUNDARY record: the aligned `&'input ParseNode`
+///   pointer stored unchanged (provenance intact; the only word class that
+///   is ever dereferenced, exclusively through [`TapeWord::boundary_node`]'s
+///   hard tag check).
+/// - tags `1..=6` — the [`DerivEvent`] variants: `OrWinner` / `QuantCount` /
+///   `TokStart` / `TokEnd` carry their payload as `value << 3 | tag`
+///   (narrow limit `usize::MAX >> 3`); `OptPresent` uses two payload-free
+///   tags. Event words are built with `ptr::without_provenance` and are
+///   never dereferenced.
+/// - tag `0b111` — the WIDE escape: the header word's payload names the
+///   variant and ONE following raw `usize` word carries the full payload,
+///   so arbitrary `usize` values (including `usize::MAX`) round-trip and
+///   the carrier imposes no input/count/index cap.
+///
+/// PATCHED placeholders (`OrWinner`/`QuantCount`/`OptPresent`) are narrow by
+/// construction — a branch index is bounded by its site's branch count, an
+/// iteration count by the emitted `SAFETY_LIMIT` (10,000), and `OptPresent`
+/// is payload-free — so in-place patching (`tape[mark] = word`) is total and
+/// never needs the wide escape; only appended `TokStart`/`TokEnd` positions
+/// can be wide, and an append chooses 1 or 2 words at push time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TapeWord<'input> {
+    word: *const ParseNode<'input>,
+    _lifetime: std::marker::PhantomData<&'input ParseNode<'input>>,
+}
+
+// SAFETY: a `TapeWord` is semantically either an integer event word (built
+// without provenance and never dereferenced) or exactly the
+// `&'input ParseNode<'input>` the bound names; its thread-safety is
+// therefore exactly that reference's, and these conditional impls preserve
+// the parser struct's pre-`-0203` auto-trait surface bit for bit.
+unsafe impl<'input> Send for TapeWord<'input> where &'input ParseNode<'input>: Send {}
+unsafe impl<'input> Sync for TapeWord<'input> where &'input ParseNode<'input>: Sync {}
+
+impl<'input> TapeWord<'input> {
+    const TAG_MASK: usize = 0b111;
+    const TAG_BOUNDARY: usize = 0b000;
+    const TAG_OR_WINNER: usize = 1;
+    const TAG_QUANT_COUNT: usize = 2;
+    const TAG_TOK_START: usize = 3;
+    const TAG_TOK_END: usize = 4;
+    const TAG_OPT_ABSENT: usize = 5;
+    const TAG_OPT_PRESENT: usize = 6;
+    const TAG_WIDE: usize = 0b111;
+    /// The largest payload a single narrow word carries.
+    pub const NARROW_LIMIT: usize = usize::MAX >> 3;
+    const WIDE_OR_WINNER: usize = 0;
+    const WIDE_QUANT_COUNT: usize = 1;
+    const WIDE_TOK_START: usize = 2;
+    const WIDE_TOK_END: usize = 3;
+
+    #[inline]
+    fn from_bits(bits: usize) -> Self {
+        TapeWord {
+            word: std::ptr::without_provenance(bits),
+            _lifetime: std::marker::PhantomData,
+        }
+    }
+
+    #[inline]
+    fn bits(self) -> usize {
+        self.word.addr()
+    }
+
+    /// A BOUNDARY word: the aligned arena reference stored unchanged.
+    #[inline]
+    pub fn boundary(node: &'input ParseNode<'input>) -> Self {
+        let word: *const ParseNode<'input> = node;
+        debug_assert_eq!(
+            word.addr() & Self::TAG_MASK,
+            Self::TAG_BOUNDARY,
+            "ParseNode alignment no longer clears the tape tag bits"
+        );
+        TapeWord {
+            word,
+            _lifetime: std::marker::PhantomData,
+        }
+    }
+
+    /// The boundary accessor — the carrier's SOLE dereference, hard-gated on
+    /// the boundary tag so an event word can never be minted into a
+    /// reference (an out-of-shape read is codegen drift, never an input
+    /// error).
+    #[inline]
+    pub fn boundary_node(self) -> &'input ParseNode<'input> {
+        assert_eq!(
+            self.bits() & Self::TAG_MASK,
+            Self::TAG_BOUNDARY,
+            "derivation-tape drift: event word read as a boundary record"
+        );
+        // SAFETY: tag-0 words are constructed exclusively by
+        // `TapeWord::boundary` from a live `&'input ParseNode<'input>` whose
+        // provenance the stored pointer preserves (event words carry no
+        // provenance and are excluded by the tag check above), and the node
+        // arena outlives `'input`.
+        unsafe { &*self.word }
+    }
+
+    #[inline]
+    fn narrow_payload(tag: usize, value: usize) -> Self {
+        debug_assert!(
+            value <= Self::NARROW_LIMIT,
+            "derivation-tape drift: patched placeholder payload {value} exceeds the narrow limit"
+        );
+        Self::from_bits((value << 3) | tag)
+    }
+
+    /// Encode a STATICALLY-NARROW event as one word — the placeholder
+    /// push/patch form (branch indices, iteration counts, and `OptPresent`
+    /// are narrow by construction; see the type doc).
+    #[inline]
+    pub fn narrow_event(event: DerivEvent) -> Self {
+        match event {
+            DerivEvent::OrWinner(value) => Self::narrow_payload(Self::TAG_OR_WINNER, value),
+            DerivEvent::QuantCount(value) => Self::narrow_payload(Self::TAG_QUANT_COUNT, value),
+            DerivEvent::TokStart(value) => Self::narrow_payload(Self::TAG_TOK_START, value),
+            DerivEvent::TokEnd(value) => Self::narrow_payload(Self::TAG_TOK_END, value),
+            DerivEvent::OptPresent(false) => Self::from_bits(Self::TAG_OPT_ABSENT),
+            DerivEvent::OptPresent(true) => Self::from_bits(Self::TAG_OPT_PRESENT),
+        }
+    }
+
+    #[inline]
+    fn push_payload(tape: &mut Vec<TapeWord<'input>>, tag: usize, wide_variant: usize, value: usize) {
+        if value <= Self::NARROW_LIMIT {
+            tape.push(Self::from_bits((value << 3) | tag));
+        } else {
+            tape.push(Self::from_bits((wide_variant << 3) | Self::TAG_WIDE));
+            tape.push(Self::from_bits(value));
+        }
+    }
+
+    /// Append an event of ARBITRARY payload — one narrow word, or the wide
+    /// header + raw payload word (the lossless escape).
+    #[inline]
+    pub fn push_event(tape: &mut Vec<TapeWord<'input>>, event: DerivEvent) {
+        match event {
+            DerivEvent::OrWinner(value) => {
+                Self::push_payload(tape, Self::TAG_OR_WINNER, Self::WIDE_OR_WINNER, value)
+            }
+            DerivEvent::QuantCount(value) => {
+                Self::push_payload(tape, Self::TAG_QUANT_COUNT, Self::WIDE_QUANT_COUNT, value)
+            }
+            DerivEvent::TokStart(value) => {
+                Self::push_payload(tape, Self::TAG_TOK_START, Self::WIDE_TOK_START, value)
+            }
+            DerivEvent::TokEnd(value) => {
+                Self::push_payload(tape, Self::TAG_TOK_END, Self::WIDE_TOK_END, value)
+            }
+            DerivEvent::OptPresent(present) => tape.push(Self::from_bits(if present {
+                Self::TAG_OPT_PRESENT
+            } else {
+                Self::TAG_OPT_ABSENT
+            })),
+        }
+    }
+
+    /// Decode the event starting at `tape[index]`, returning it with the
+    /// number of words consumed (1, or 2 for a wide escape). Reading a
+    /// boundary word here is codegen drift — loud, never silent.
+    #[inline]
+    pub fn decode_event(tape: &[TapeWord<'input>], index: usize) -> (DerivEvent, usize) {
+        let bits = tape[index].bits();
+        let payload = bits >> 3;
+        match bits & Self::TAG_MASK {
+            Self::TAG_OR_WINNER => (DerivEvent::OrWinner(payload), 1),
+            Self::TAG_QUANT_COUNT => (DerivEvent::QuantCount(payload), 1),
+            Self::TAG_TOK_START => (DerivEvent::TokStart(payload), 1),
+            Self::TAG_TOK_END => (DerivEvent::TokEnd(payload), 1),
+            Self::TAG_OPT_ABSENT => (DerivEvent::OptPresent(false), 1),
+            Self::TAG_OPT_PRESENT => (DerivEvent::OptPresent(true), 1),
+            Self::TAG_WIDE => {
+                let value = tape[index + 1].bits();
+                let event = match payload {
+                    Self::WIDE_OR_WINNER => DerivEvent::OrWinner(value),
+                    Self::WIDE_QUANT_COUNT => DerivEvent::QuantCount(value),
+                    Self::WIDE_TOK_START => DerivEvent::TokStart(value),
+                    Self::WIDE_TOK_END => DerivEvent::TokEnd(value),
+                    other => unreachable!(
+                        "derivation-tape drift: unknown wide event variant {other}"
+                    ),
+                };
+                (event, 2)
+            }
+            _ => unreachable!("derivation-tape drift: boundary word read as an event"),
+        }
+    }
+}
+
+/// RGX-0078.5.i.7 (D2-B + MTB-B) / RGX-0078.5.i.14 (C3) / RGX-0078.5.j.4
+/// (`-0203` carrier core) — one entry of the fused cascade graph's THIN memo:
+/// the ⛔ session-#49 bound's carrier for CYCLE-PARTICIPATING fused rules
+/// (`CascadeEmissionPlan::thin_memo`), which must never lose memo protection.
+/// The payload is a committed derivation SEGMENT over the UNIFIED packed tape
+/// — ONE contiguous [`TapeWord`] slice (events and boundary records
+/// interleaved in append order). Lineage (each step an additive transient
+/// migration completed once no regenerated artifact referenced the old type):
+/// the eager value-carrying `ThinMemoEntry` → the `Vec`-backed
+/// `ThinDerivMemoEntry` (retired by C3) → the two-segment inline-small
+/// `ThinDerivSegMemoEntry` (retired by `-0203` when the two tape lanes merged).
+///
+/// A valid HIT splices the cached `(end, tape-segment)` onto the live tape
+/// with one `extend_from_slice` and jumps the position; the build pass
+/// constructs the value ONCE from the spliced words — so a memoized
+/// sub-derivation on a DOOMED path is truncated un-built. Tape records are
+/// tape-index-free (input positions / counts / branch indices / arena
+/// pointers only), so a segment is position-independent within the tape; the
+/// memo key pins the input position, so the absolute input positions inside
+/// the segment replay exactly. Boundary words carry arena refs (`Copy`),
+/// alive for the whole parse — the eager entry's shallow-replay economics.
+///
+/// Unlike [`MemoEntry`], a thin entry carries NO semantic/coverage delta —
+/// replay is `position = end` plus the tape splice (or the cached failure)
+/// and nothing else, so an entry is cached ONLY when splice-replay is
+/// provably equivalent to re-execution. The entry's `stamp` carries the
+/// protocol memo's own taint classes, measured across the body with three
+/// engine counters (the store write epoch — monotone, bumped by EVERY
+/// delta-visible mutation — the deferred-obligation count — the one
+/// deliberately epoch-blind mutation — and the predicate-evaluation counter,
+/// the store's only read path into parsing):
+///
+/// - **PURE** (`stamp: None`) — the body neither read a predicate nor mutated
+///   the store: its outcome is a function of (input, position) alone, and a
+///   replay skips nothing, so it is valid at ANY later store state — exactly
+///   the protocol's untainted-entry license. (The first thin-memo emission
+///   validated every entry against the global "store unchanged since insert"
+///   pair instead; measured on the 8-pattern bench that evicted the whole
+///   spine's entries on every capture fact write and REGRESSED the two
+///   fact-writing patterns +3.4/+15.4% — the per-entry class is the fix.)
+/// - **STORE-READ** (`stamp: Some((write_epoch, deferred_len))`) — the body
+///   evaluated ≥1 predicate but mutated nothing: replayable only while both
+///   stamps are unchanged (predicates are pure functions of position + store,
+///   the MEMO-STORE-SOUNDNESS.2 license); evicted and re-executed otherwise.
+/// - **STORE-MUTATING** — the body changed the epoch or enqueued an
+///   obligation: NOT cached at all. A splice-only replay would skip the
+///   mutation the protocol memo re-applies from its stored delta, so every
+///   re-probe honestly re-executes (deterministic ⇒ same outcome + same
+///   effects).
+///
+/// INLINE-SMALL SEGMENT (the C3 economics carried over): the inline capacity
+/// of 6 words (48 B) covers the census common segment (one placeholder +
+/// 0–2 events + 0–1 boundary); a longer segment spills to the heap exactly
+/// as before — same worst case, cheaper common case — and the per-success
+/// copy is ONE `SmallVec::from_slice` memcpy instead of the two-lane form's
+/// two ([`TapeWord`] is `Copy` POD, so the copy is a plain memcpy and a hit
+/// still splices via `extend_from_slice`).
+#[derive(Debug, Clone)]
+pub struct ThinTapeMemoEntry<'input> {
+    /// `None` = PURE (valid forever); `Some((write_epoch, deferred_len))` =
+    /// STORE-READ, both captured at body entry and validated at replay.
+    pub stamp: Option<(u64, usize)>,
+    /// `Some((end_pos, tape_segment))` for a successful match; `None` for a
+    /// cached failure, replayed as a backtrack at the probe key's position.
+    pub outcome: Option<(usize, smallvec::SmallVec<[TapeWord<'input>; 6]>)>,
 }
 
 /// Rule ID type for memoization
@@ -1723,6 +1922,114 @@ mod cascade_control_error_tests {
             std::mem::size_of::<CascadeResult<()>>(),
             std::mem::size_of::<ParseResult<()>>()
         );
+    }
+}
+
+#[cfg(test)]
+mod tape_word_tests {
+    use super::{DerivEvent, NodeArena, ParseContent, ParseNode, TapeWord};
+
+    // RGX-0078.5.j.4 (-0203): the carrier-core layout pin — the unified tape
+    // word must be exactly one 8-byte Copy drop-free word (the whole point of
+    // the representation: halve the 16-byte event element and let boundary
+    // records share the lane), and every event payload must round-trip
+    // losslessly through the narrow form and the wide escape.
+    #[test]
+    fn tape_word_is_one_copy_dropfree_word() {
+        fn assert_copy<T: Copy>() {}
+        assert_copy::<TapeWord<'static>>();
+        assert_eq!(
+            std::mem::size_of::<TapeWord<'static>>(),
+            8,
+            "the unified tape word must be exactly one 8-byte word"
+        );
+        assert!(
+            !std::mem::needs_drop::<TapeWord<'static>>(),
+            "the unified tape word must be drop-free"
+        );
+        assert!(
+            std::mem::size_of::<TapeWord<'static>>() < std::mem::size_of::<DerivEvent>(),
+            "the packed word must be narrower than the two-lane DerivEvent element ({} vs {})",
+            std::mem::size_of::<TapeWord<'static>>(),
+            std::mem::size_of::<DerivEvent>()
+        );
+    }
+
+    #[test]
+    fn every_event_payload_round_trips_narrow_and_wide() {
+        let payload_events: &[fn(usize) -> DerivEvent] = &[
+            DerivEvent::OrWinner,
+            DerivEvent::QuantCount,
+            DerivEvent::TokStart,
+            DerivEvent::TokEnd,
+        ];
+        let boundary_payloads = [
+            0usize,
+            1,
+            4096,
+            TapeWord::NARROW_LIMIT,
+            TapeWord::NARROW_LIMIT + 1,
+            usize::MAX,
+        ];
+        for make in payload_events {
+            for &value in &boundary_payloads {
+                let mut tape: Vec<TapeWord<'static>> = Vec::new();
+                TapeWord::push_event(&mut tape, make(value));
+                let expected_words = if value <= TapeWord::NARROW_LIMIT { 1 } else { 2 };
+                assert_eq!(tape.len(), expected_words, "wrong word count for {value}");
+                let (event, consumed) = TapeWord::decode_event(&tape, 0);
+                assert_eq!(event, make(value));
+                assert_eq!(consumed, expected_words);
+            }
+        }
+        for present in [false, true] {
+            let mut tape: Vec<TapeWord<'static>> = Vec::new();
+            TapeWord::push_event(&mut tape, DerivEvent::OptPresent(present));
+            assert_eq!(tape.len(), 1);
+            assert_eq!(
+                TapeWord::decode_event(&tape, 0),
+                (DerivEvent::OptPresent(present), 1)
+            );
+        }
+    }
+
+    #[test]
+    fn narrow_event_patch_form_round_trips_placeholder_values() {
+        // The patch population: branch indices (bounded by branch counts),
+        // iteration counts (bounded by the emitted SAFETY_LIMIT), OptPresent.
+        for event in [
+            DerivEvent::OrWinner(0),
+            DerivEvent::OrWinner(23),
+            DerivEvent::QuantCount(0),
+            DerivEvent::QuantCount(10_000),
+            DerivEvent::OptPresent(false),
+            DerivEvent::OptPresent(true),
+        ] {
+            let tape = [TapeWord::narrow_event(event)];
+            assert_eq!(TapeWord::decode_event(&tape, 0), (event, 1));
+        }
+    }
+
+    #[test]
+    fn boundary_pointer_round_trips_through_the_tagged_word() {
+        let arena = NodeArena::new();
+        let node: &ParseNode<'_> = arena.alloc(ParseNode {
+            rule_name: "tape_word_pin",
+            content: ParseContent::Terminal("x"),
+            span: 0..1,
+        });
+        let word = TapeWord::boundary(node);
+        let restored = word.boundary_node();
+        assert!(std::ptr::eq(node, restored), "boundary identity must survive the tag");
+        assert_eq!(restored.rule_name, "tape_word_pin");
+        assert_eq!(restored.span, 0..1);
+    }
+
+    #[test]
+    #[should_panic(expected = "derivation-tape drift")]
+    fn an_event_word_can_never_be_minted_into_a_reference() {
+        let word = TapeWord::narrow_event(DerivEvent::OrWinner(3));
+        let _ = word.boundary_node();
     }
 }
 
