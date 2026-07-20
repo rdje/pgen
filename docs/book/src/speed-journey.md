@@ -436,6 +436,16 @@ ceremony by a whole-state equality oracle) cut the corpus geomean by **−5.1%**
 2.9× the conservative pricing, the unpriced upside being the per-parse allocation traffic
 of building and dropping a populated state.
 
+The second fix through the gate was smaller still: the rollback checkpoint — the K4a-era
+seven-word `Copy` value constructed at every speculation — carried **two words that were
+provably always equal** (the legacy scope-stack depth and the active-chain depth, kept in
+lockstep by every mutation site in the runtime). Deleting the duplicate made the
+checkpoint six words, with the public accessor preserved over the surviving twin and the
+debug asserts retargeted so the lockstep invariant is now re-proven mechanically on every
+debug-build rollback. The corpus geomean dropped **−1.4%** — with the recorded caveat
+that a change this size sits inside the measurement's noise span, so the strict
+same-session direction gate (not the magnitude) is what adjudicated the land.
+
 The scoreboard now reads **496 µs → ≈1.94 µs, about 256×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.23 µs. The method decides — and
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.19 µs. The method decides — and
 the story continues here.

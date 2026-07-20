@@ -1967,7 +1967,6 @@ pub struct DeferredObligation {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SemanticRuntimeCheckpoint {
-    scope_len: usize,
     fact_len: usize,
     /// FINAL-PHASE-PREDICATE.2: number of deferred obligations enqueued at
     /// checkpoint time. On rollback the obligation worklist truncates back to
@@ -1982,13 +1981,21 @@ pub struct SemanticRuntimeCheckpoint {
     /// Replaces the former chain CONTENT snapshot (`ActiveChain`, the struct's
     /// last non-`Copy` field — K3b/K3d history in git): content restoration is
     /// now owned by the `chain_trail` unwind (`chain_trail_len` below), so the
-    /// checkpoint is 7 words, `Copy`, and free of Drop glue — the `-0148`
+    /// checkpoint is 6 words, `Copy`, and free of Drop glue — the `-0148`
     /// profile pinned the per-attempt construct/copy/drop of the old ~88-B
     /// struct at 8.1% of the corpus-MAX cell (~20k calls/parse, every one the
     /// unchanged fast path) plus the depth≥2 content clone at 7.5% of the
     /// scope-open exemplar. The depth is retained for the debug asserts and
     /// the `rollbacks_nonempty_chain` counter ("non-root chain at checkpoint",
     /// the `-0147` pin — `chain_len > 1` preserves its meaning exactly).
+    /// `PGEN-RGX-0078-0199`: the former companion word `scope_len`
+    /// (`scopes.len()` at checkpoint time) was removed as a provable
+    /// duplicate — `scopes` and `active_chain` are maintained in lockstep at
+    /// every mutation site (`new()`/reset, `open_scope`, `close_scope`, the
+    /// rollback rebuild, `apply_delta`), so it always equalled this field.
+    /// The public [`SemanticRuntimeCheckpoint::scope_len`] accessor now
+    /// answers from here, and the `scopes`-side debug asserts compare
+    /// against this field, doubling as the lockstep tripwire.
     chain_len: usize,
     /// `RGX-0078.5.j.4` (K4a): `chain_trail.len()` at checkpoint time. The
     /// trail is append-only within a speculation (only rollback unwinds
@@ -2071,8 +2078,13 @@ impl SemanticRuntimeCheckpoint {
     /// `SV-EXH-PROOF.3.3.4.a` MVP-0 companion accessor for scope depth at
     /// checkpoint. Not used by the import/export path today but mirrors
     /// `fact_len` for completeness and future use.
+    /// `PGEN-RGX-0078-0199`: answers from `chain_len` — `scopes` and
+    /// `active_chain` are maintained in lockstep at every mutation site, so
+    /// the dedicated `scope_len` word was a provable duplicate and was
+    /// removed. The returned value is unchanged: `scopes.len()` at
+    /// checkpoint time.
     pub fn scope_len(&self) -> usize {
-        self.scope_len
+        self.chain_len
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: arena length at checkpoint time.
@@ -2993,7 +3005,6 @@ impl SemanticRuntimeState {
 
     pub fn checkpoint(&self) -> SemanticRuntimeCheckpoint {
         SemanticRuntimeCheckpoint {
-            scope_len: self.scopes.len(),
             fact_len: self.facts.len(),
             // FINAL-PHASE-PREDICATE.2: record the obligation worklist length so
             // a rollback to this checkpoint discards obligations enqueued after
@@ -3262,7 +3273,8 @@ impl SemanticRuntimeState {
         // 8-pattern bench, 98.8% of all rollbacks take this path. No trace
         // delta: an unchanged rollback never satisfied the trace condition
         // (facts discarded / arena shrink) on the slow path either.
-        // RGX-0078.5.j.4 (K4a): the checkpoint is now a 7-word `Copy` value
+        // RGX-0078.5.j.4 (K4a): the checkpoint is now a 6-word `Copy` value
+        // (7 at K4a; the duplicate scope word left with `-0199`)
         // and this guard is `#[inline]` with the slow path outlined `#[cold]`
         // — the `-0148` counter dump measured 100% of the corpus-MAX cell's
         // 20,490 rollbacks taking this path, pricing the former per-call
@@ -3274,7 +3286,10 @@ impl SemanticRuntimeState {
             debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
             debug_assert!(self.chain_unchanged_since(&checkpoint));
             debug_assert_eq!(self.active_chain.len(), checkpoint.chain_len);
-            debug_assert_eq!(self.scopes.len(), checkpoint.scope_len);
+            // `-0199`: the `scopes` side compares against `chain_len` too —
+            // the checkpoint's dedicated scope word was a provable duplicate.
+            // This assert is the mechanical lockstep tripwire.
+            debug_assert_eq!(self.scopes.len(), checkpoint.chain_len);
             self.counters.rollbacks += 1;
             self.counters.rollbacks_unchanged += 1;
             if matches!(label, RollbackLabel::C3bBranchCleanup { .. }) {
@@ -3465,11 +3480,12 @@ impl SemanticRuntimeState {
                 })
                 .collect();
         }
-        debug_assert_eq!(self.scopes.len(), checkpoint.scope_len);
+        // `-0199`: `chain_len` is the one scope-depth word (lockstep tripwire).
+        debug_assert_eq!(self.scopes.len(), checkpoint.chain_len);
     }
 
     pub fn commit(&self, checkpoint: SemanticRuntimeCheckpoint) -> bool {
-        checkpoint.scope_len <= self.scopes.len()
+        checkpoint.chain_len <= self.scopes.len()
             && checkpoint.fact_len <= self.facts.len()
             && checkpoint.scope_arena_len <= self.scope_arena.len()
     }
@@ -10085,5 +10101,45 @@ mod tests {
             assert_eq!(inplace.facts().len(), (2 * round) as usize);
             assert_eq!(inplace.write_epoch(), 2 * round);
         }
+    }
+
+    #[test]
+    fn checkpoint_scope_len_stays_lockstep_with_chain_depth() {
+        // `PGEN-RGX-0078-0199`: the checkpoint's dedicated `scope_len` word
+        // was removed as a provable duplicate — the public `scope_len()`
+        // accessor now answers from `chain_len`. This pins the contract that
+        // makes the removal sound: `scopes` and `active_chain` are maintained
+        // in lockstep, so the accessor keeps returning `scopes.len()` at
+        // checkpoint time, exactly as before, across open/close/rollback.
+        let mut state = SemanticRuntimeState::new();
+        let root = state.checkpoint();
+        assert_eq!(root.scope_len(), 1);
+        assert_eq!(root.scope_len(), state.scopes().len());
+
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Package,
+            name: Some(SemanticRuntimeValue::Identifier("pkg".to_string())),
+        });
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(SemanticRuntimeValue::Identifier("cls".to_string())),
+        });
+        let two_deep = state.checkpoint();
+        assert_eq!(two_deep.scope_len(), 3);
+        assert_eq!(two_deep.scope_len(), state.scopes().len());
+        assert_ne!(root.scope_len(), two_deep.scope_len());
+
+        // A close inside a speculation moves the live depth but not the
+        // checkpoint's answer; the rollback restores the agreement.
+        assert!(state.close_scope(&SemanticCloseScopeSpec {
+            kind: Some(SemanticScopeKind::Class),
+            name: None,
+        }));
+        assert_eq!(state.scopes().len(), 2);
+        assert_eq!(two_deep.scope_len(), 3);
+        state.rollback_to(two_deep);
+        assert_eq!(state.scopes().len(), 3);
+        assert_eq!(two_deep.scope_len(), state.scopes().len());
+        assert!(state.commit(two_deep));
     }
 }

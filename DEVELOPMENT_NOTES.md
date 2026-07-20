@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0199 — a duplicate word is removed by proving an invariant, not by trusting a name
+
+**"Duplicates X" is a claim about every mutation site, so the audit is the fix's real substance.** The held-carrier classifier said `scope_len` duplicates `chain_len`; landing that required walking every site that touches `scopes` or `active_chain` (init/reset, open, close, rollback rebuild, delta apply) and showing each one moves both collections together. The audit table is banked in the pre-registration, and the retargeted debug asserts now re-prove the invariant mechanically on every fast-path rollback in every debug test run — the invariant can no longer rot silently.
+
+**Preserving a public accessor over a removed field costs nothing when an invariant carries the value.** `scope_len()` had zero external callers but is public surface; re-expressing it over `chain_len` keeps the API and the returned value bit-identical while still deleting the word. Additive-API discipline and representation shrinkage are not in tension when the equality is proven rather than assumed.
+
+**A sub-noise lever is landable only because the ratchet is same-session and directional.** The classifier priced 0.859 ns (−0.07%) — far below the ≈2.3% noise span. The measured −1.45% passed the strict same-session compare, but the magnitude carries bounded confidence and is recorded with that caveat rather than claimed at face value. The direction gate (strict decrease, identical verdicts, MAX bound) is exactly what makes such a fix adjudicable at all; a historical-floor compare would have measured drift, not the fix.
+
+**A lib-only lever skips the regen train but not the vintage rules.** With the emitter untouched, both probes embed the same generated artifact — custody asserts that identity instead of a regen delta — yet the debug tools still get rebuilt at the changed-lib vintage before the battery, and the typed-differential gate still gets its post-run artifact hash-check (the silent-restore trap; it did not fire this time, and the check is what makes that a fact rather than an assumption).
+
 ## 2026-07-20 - PGEN-RGX-0078-0198 — an exact in-place reset needs the replay's bookkeeping, not a field wipe
 
 **"Reset" is not "zero" — it is "whatever the old ceremony left behind."** The legacy per-parse ceremony did not produce a pristine state: replaying N preserved facts through `push_fact_record` left `write_epoch = N` and `counters.facts_imported = N`, re-stamped every fact to the root scope, and rebuilt the index in ascending-position order. An in-place replacement that naively zeroed the epoch or preserved fact scope stamps would have been observably different through public accessors. Deriving the exact post-state from the replay's source line by line — then locking it with a whole-state `PartialEq` oracle against the verbatim-replayed old ceremony — is what made "behavior-identical" a proof instead of a claim.
