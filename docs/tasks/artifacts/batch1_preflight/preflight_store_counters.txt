@@ -1,0 +1,38 @@
+RGX-0078.5.j.4 BATCH-1 PRE-FLIGHT — semantic-store event counts
+root: /Users/richarddje/Documents/github/pgen
+
+custody: artifact generated/regex_parser.rs sha256[0:8]=e4924024 (OK — banked floor vintage)
+custody: probe    rust/target/debug/parseability_probe is newer than the artifact (OK — built from it)
+  probe    mtime: 2026-07-20 01:56:03.678665566 +0200
+  artifact mtime: 2026-07-19 23:36:49.037240500 +0200
+
+pattern             bytes    entries      facts predicates
+---------------- -------- ---------- ---------- ----------
+literal_simple          4         25          0          0
+digit_sequence         17         98          0          0
+character_class        46        445          0          8
+alternation            12         61          0          0
+capture_groups         23        124          3          0
+url_simple             12         58          0          0
+email_basic            16         67          0          0
+anchor_complex         37        159          3          0
+
+per-parse ARITHMETIC MEAN over the 8 bench patterns:
+  facts_emitted            0.75 / parse
+  predicate_evaluations    1.00 / parse
+
+POPULATION EACH LEVER REMOVES (allocations per parse):
+  member 6 trace-eagerness : emit_fact site + 6 predicate-query sites
+                             upper bound = facts + predicates = 1.75 String allocs/parse
+  member 2 C2 fact-ops     : FactIndex insert path = facts = 0.75 lowercased-String allocs/parse
+                             (+ one per has_fact/count query on the same kind path)
+
+⚠️  NO ns FIGURE IS DERIVED HERE. Converting an allocation COUNT into
+    nanoseconds requires a measured per-allocation cost under mimalloc,
+    which this slice does not have and does not invent (the -0166/-0172
+    lesson). The count is the deliverable; the A/B supplies the ns.
+
+⚠️  DOUBLE-COUNTING GUARD: members 5 and 6 BOTH act on the semantic-runtime
+    population that -0171 attributed at 24.1 ns. They are NOT additive with
+    each other, and member 6 is NOT additional upside on top of that row —
+    it is a MECHANISM for part of it.

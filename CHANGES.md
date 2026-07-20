@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0174 — `.5.j.4` **BATCH-1 pricing pre-flight: two members refused on population grounds, the previous slice's own recommendation withdrawn, and a 74x larger member uncovered** (read-only)
+
+Executes the `-0173` NEXT pointer: price BATCH-1 members 2 (C2 fact-ops) and 6 (trace-eagerness) from per-parse semantic-store event counts **before** committing to the BATCH-1a chain that `-0173` recommended.
+
+⛔ **Instrument custody caught a stale probe.** The on-disk debug `parseability_probe` predated `generated/regex_parser.rs` by 28 minutes and embedded a **different regex vintage** — every count it produced would have described the wrong parser. It was rebuilt under the memory guard (`--budget-mb 16384`, exit 0, peak RSS 10,793 MB, 216 s) before any number was taken, and the pre-flight now asserts **two** hard gates in-run (artifact sha `e4924024` **and** probe-newer-than-artifact), refusing on either. **A measurement instrument needs custody just as much as a measured artifact does.**
+
+### Measured — the 8-pattern geomean bench population
+
+| pattern | bytes | entries | facts_emitted | predicate_evaluations |
+|---|---:|---:|---:|---:|
+| `literal_simple` | 4 | 25 | 0 | 0 |
+| `digit_sequence` | 17 | 98 | 0 | 0 |
+| `character_class` | 46 | 445 | 0 | **8** |
+| `alternation` | 12 | 61 | 0 | 0 |
+| `capture_groups` | 23 | 124 | **3** | 0 |
+| `url_simple` | 12 | 58 | 0 | 0 |
+| `email_basic` | 16 | 67 | 0 | 0 |
+| `anchor_complex` | 37 | 159 | **3** | 0 |
+| **mean / parse** | | **129.6** | **0.75** | **1.00** |
+
+**Seven of eight bench patterns emit zero facts, and seven of eight evaluate zero predicates.** On the geomean steering band the semantic store is very nearly idle.
+
+### Adjudication — members 2 and 6 refused
+
+Member 2 (C2 FactIndex inserts) acts on **0.75 events per parse**; member 6 (trace-eagerness String allocations) on **1.75 per parse**. This is the **valid** refusal ground under the `-0170` amended rule — *"refused only when its POPULATION does not exist, never merely because it is small."* At these counts the populations are not small, they are **almost absent**, and no capture fraction of them is measurable against a 28.8 ns floor on a 1,263.4 ns parse.
+
+⛔ **The `-0173` BATCH-1a recommendation is withdrawn** — a lib-only chain around exactly these two members was proposed one slice ago, and the pre-flight `-0173` itself specified has now killed it, **for the cost of one guarded rebuild and eight parses instead of a regen, two fat-LTO probes and a full battery**. Second consecutive chain stopped before being spent.
+
+⚠️ **The trace-eagerness defect remains real** (9 of 10 `rule_context_path()` sites allocate unconditionally at trace level `none`). It is simply **not a speed lever on this band** — it lands separately as an instrumentation-correctness fix with **no perf claim attached**. On a fact-heavy grammar (SystemVerilog) its population is orders of magnitude larger.
+
+### What the pre-flight uncovered instead — member 5 re-scoped and promoted
+
+The counters that are near-zero are the *semantic* ones. The structure that is not is the one member 5 targets: `push_rule_context_static` is emitted at **215 sites** against **284** rule methods and runs on **every rule entry** — bench mean **~130 push/pop pairs per parse, roughly 74x the combined population of members 2 and 6**.
+
+And the decisive structural fact, verified repo-wide: `current_rule_context_stack` is referenced **only inside `semantic_runtime.rs`** (lines 2410-2599); its only reader `rule_context_path()` has **zero callers outside that file** (all 10 are trace sites); and `current_rule_context()` — documented "used by the state-store trace events" — has **zero callers anywhere in the repo and zero occurrences in any generated parser**. **The entire rule-context stack is a diagnostic-only structure maintained unconditionally on the hot path.**
+
+**Precedent that it pays:** `semantic_runtime.rs:2564-2569` records that `.5.i.2` (P0) already harvested this exact structure once — removing a `to_string()` per rule entry was **"~-4.3% of the regex bench"**. That slice took out the allocation and left the `Vec<Cow>` push/pop. **What remains is the residue of a lever that already paid -4.3%.**
+
+**Proposed mechanism — the P-env (`-0099`) pattern, lib-only:** gate `push_rule_context_static` / `pop_rule_context` on a **process-once cached trace-enabled flag**. Trace level is process-level and cannot change mid-parse, so the gate is sound; under fat-LTO the check collapses to a predictable branch on a cached bool and the `Vec` traffic disappears.
+
+⚠️ **No band is derived and none may be.** This slice counts a **population** and establishes the structure is diagnostic-only; it does not measure the per-push cost. An inlined `Vec` push does no allocation and is therefore **invisible to the allocation-traffic decomposition that produced the `-0171` figures**. The honest claim: unlike members 2 and 6, this population is **not sub-noise by inspection**, and being lib-only it is the **cheapest possible A/B that could settle it**. It is plausibly part of the 39.9-40.4% memory traffic `-0172` named and explicitly declined to price — this **names a candidate mechanism, it does not price it**.
+
+### BATCH-1 after the pre-flight
+
+| member | status |
+|---|---|
+| 1 G1-B carrier (index, not box) | unchanged; emitter, unpriced upside |
+| 2 C2 fact-ops | **removed — population absent (0.75/parse)** |
+| 3 G1-C per-atom | unchanged; 26.7 ns attributed, HIGH risk |
+| 4 memo segment-copies | unchanged; 30.7 ns attributed |
+| 5 semantic-runtime | **re-scoped + promoted** — diagnostic-only stack, ~130/parse, lib-only |
+| 6 trace-eagerness | **removed from the batch** — real defect, no perf claim, land separately |
+
+Owed: a one-cell both-paths cross-check of the graph-invariance argument (a semantic-store *event* count is graph-invariant because the twin is byte-identical on verdict and typed AST — an argument, not a measurement). Campaign position unchanged: attributed inventory still ~-10...-13% against the -20.8% the <1 us bar needs. Floor + custody byte-untouched (bench ~1,937.4 ns / corpus MAX 483,583 ns / geomean 1,263.4 ns; the preserved floor probe `1d3fa0ee` is byte-untouched — only the diagnostic probe was rebuilt); no floor number banked; LIVE tracker unchanged. Evidence `docs/tasks/artifacts/batch1_preflight/`.
+
 ## 2026-07-20 - PGEN-RGX-0078-0173 — `.5.j.4` **BATCH-1 DESIGN RECORD: the batch is designed, four banked facts are corrected, a sixth member is discovered, and the band straddles the land bar** (docs + read-only evidence)
 
 Executes the `-0172` NEXT pointer verbatim: one design record naming each batch member's emission site, mechanism, combined acceptance band, falsification bound and pre-adjudicated unit revert **before** the single regen+A/B chain is spent. Instrument: text matching over the lib/emitter sources and the shipped artifact with **custody asserted in-run** (`generated/regex_parser.rs` sha256 prefix `e4924024`; the census **refuses to report** on mismatch), plus one standalone `rustc` layout probe over field types copied verbatim from `mod.rs:654-681`. No build, no regen, no parser run, no gate perturbed.
