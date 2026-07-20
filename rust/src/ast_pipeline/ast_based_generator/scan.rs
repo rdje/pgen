@@ -1061,8 +1061,6 @@ mod tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),

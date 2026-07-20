@@ -85,7 +85,6 @@ AST_PIPELINE_SOURCES = $(wildcard $(RUST_DIR)/src/*.rs) \
                       $(wildcard $(RUST_DIR)/src/ast_pipeline/ast_based_generator/*.rs) \
                       $(wildcard $(RUST_DIR)/src/ast_pipeline/ast_based_generator/cascade/*.rs) \
                       $(wildcard $(RUST_DIR)/src/bin/*.rs) \
-                      $(wildcard $(RUST_DIR)/src/parser_hooks/*.rs) \
                       $(wildcard $(RUST_DIR)/src/test_runner/*.rs) \
                       $(RUST_DIR)/build.rs \
                       $(RUST_DIR)/Cargo.toml
@@ -831,90 +830,13 @@ regex_parser_bootstrap:
 	$(MAKE) regex_parser
 	@echo "✅ Bootstrap complete. generated/regex_parser.rs is ready for --features generated_parsers builds."
 
-# Slice 3 / M2 differential validation gate. Proves the regex parser
-# hook's typed entry methods produce byte-equivalent JSON to the
-# legacy + `ParseContent::to_json_value()` reference path across the
-# PGEN-RGX-0073 8-pattern bug corpus. By construction the slice-2
-# passthrough hook body passes; this gate is the regression-lock that
-# future shape-typed-emit optimization slices must keep green.
-#
-# Procedure:
-# 1. Regenerate `generated/regex_parser.rs` with `--enable-parser-hooks`
-#    so the regex hook fires and emits per-rule typed methods. (We do
-#    NOT pass `--emit-typed-entry-skeleton` because the gate doesn't
-#    depend on M1's pipeline-internal skeleton; see the flag-split
-#    rationale in the parser-hooks mdbook chapter.)
-# 2. Build and run the differential gate binary (gated by the
-#    `regex_typed_differential_gate` Cargo feature so default cargo
-#    builds don't try to reference `parse_<rule>_typed`).
-# 3. Restore tracked `generated/regex_parser.rs` to legacy emit so the
-#    working tree returns to its baseline regardless of pass/fail.
-#
-# Exit non-zero on shape divergence, parse failure on either path,
-# or feature-gating misconfiguration. The restore step always runs.
-.PHONY: regex_typed_differential_gate
-regex_typed_differential_gate: $(REGEX_JSON) $(RUST_AST_PIPELINE)
-	@echo "🔬 Slice 3 / M2 regex_typed_differential_gate"
-	@echo "   Step 1/3: regenerating regex parser with --enable-parser-hooks"
-	$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --enable-parser-hooks $(REGEX_JSON) -o $(REGEX_PARSER)
-	@echo "   Step 2/3: building and running differential gate"
-	@cd $(RUST_DIR) && \
-	    cargo build --release \
-	        --features generated_parsers,regex_typed_differential_gate \
-	        --bin regex_typed_differential_gate \
-	    && ./target/release/regex_typed_differential_gate; \
-	    DIFF_RESULT=$$?; \
-	    cd ..; \
-	    echo "   Step 3/3: regenerating regex_parser.rs to default emit (no hooks)"; \
-	    $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion $(REGEX_JSON) -o $(REGEX_PARSER) 2>/dev/null || true; \
-	    if [ $$DIFF_RESULT -eq 0 ]; then \
-	        echo "✅ regex_typed_differential_gate completed (typed == reference)"; \
-	    else \
-	        echo "❌ regex_typed_differential_gate FAILED (exit $$DIFF_RESULT)"; \
-	        exit $$DIFF_RESULT; \
-	    fi
-
-# Slice 4 typed-path perf probe. Mirrors `regex_perf_probe` but
-# measures `parser.parse_regex_typed()` instead of
-# `parser.parse_full_regex()`, so subsequent shape-typed-emit
-# optimization slices land with apples-to-apples numbers showing the
-# JSON-producing path's progression. Today's slice-2 passthrough hook
-# body delegates to legacy + `to_json_value()`, so this probe's
-# numbers will start strictly higher than the legacy probe — that is
-# the gap to close.
-#
-# Procedure mirrors the differential gate target:
-# 1. Regenerate `generated/regex_parser.rs` with `--enable-parser-hooks`
-#    so the regex hook fires and emits `parse_regex_typed`. (We do
-#    NOT pass `--emit-typed-entry-skeleton` — that's M1's pipeline-
-#    internal skeleton emit, an independent concern; see the flag-
-#    split rationale in the parser-hooks mdbook chapter.)
-# 2. Build and run the typed perf probe binary (gated by the
-#    `regex_typed_perf_probe` Cargo feature so default cargo builds
-#    don't try to reference `parse_regex_typed`).
-# 3. Restore tracked `generated/regex_parser.rs` to legacy emit so the
-#    working tree returns to its baseline regardless of run outcome.
-.PHONY: regex_typed_perf_probe
-regex_typed_perf_probe: $(REGEX_JSON) $(RUST_AST_PIPELINE)
-	@echo "📊 Slice 4+13 regex_typed_perf_probe (typed-path baseline, mimalloc)"
-	@echo "   Step 1/3: regenerating regex parser with --enable-parser-hooks"
-	$(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion --enable-parser-hooks $(REGEX_JSON) -o $(REGEX_PARSER)
-	@echo "   Step 2/3: building and running typed perf probe (with mimalloc)"
-	@cd $(RUST_DIR) && \
-	    cargo build --release \
-	        --features generated_parsers,regex_typed_perf_probe,mimalloc_perf \
-	        --bin regex_typed_perf_probe \
-	    && ./target/release/regex_typed_perf_probe; \
-	    PROBE_RESULT=$$?; \
-	    cd ..; \
-	    echo "   Step 3/3: regenerating regex_parser.rs to default emit (no hooks)"; \
-	    $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion $(REGEX_JSON) -o $(REGEX_PARSER) 2>/dev/null || true; \
-	    if [ $$PROBE_RESULT -eq 0 ]; then \
-	        echo "✅ regex_typed_perf_probe completed"; \
-	    else \
-	        echo "❌ regex_typed_perf_probe FAILED (exit $$PROBE_RESULT)"; \
-	        exit $$PROBE_RESULT; \
-	    fi
+# PARSER-NEUTRALITY.1 (director ruling 2026-07-20): the former
+# `regex_typed_differential_gate` and `regex_typed_perf_probe` targets — and
+# the `--enable-parser-hooks` per-grammar hook mechanism they exercised — are
+# REMOVED. The AST pipeline takes no per-parser inputs beyond the grammar
+# itself; typed-output equivalence remains covered by the differential-
+# equivalence, AST-shape, duality, and PCRE2 compile-oracle gates.
+# See docs/decisions/feedback_no_parser_hooks_full_neutrality.md.
 
 # Convenience aliases for easier typing
 .PHONY: return_parser

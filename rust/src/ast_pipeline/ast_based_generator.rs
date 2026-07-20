@@ -4,8 +4,7 @@
 
 use super::Logger;
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, LayoutSensitivity, ParserHookRegistry,
-    ParserImplContext,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, LayoutSensitivity,
     SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy, SemanticRuntimeDirective,
     SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
     TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
@@ -98,37 +97,11 @@ pub struct AstBasedGenerator {
     /// it does NOT inline anything per-rule and does NOT enable annotation support
     /// (which is always-on regardless of this flag — `@predicate`, `@emit_fact`,
     /// `@semantic_value`, and `-> {...}` return annotations all fire whether this
-    /// flag is set or not). The "inline shape-emit per return annotation" idea that
-    /// originally motivated the field's old name (`inline_annotations`) is now what
-    /// parser hooks deliver per-grammar in `rust/src/parser_hooks/`, OUTSIDE the
-    /// pipeline. Default false: generator emit is unchanged from prior behavior.
+    /// flag is set or not). Default false: generator emit is unchanged from
+    /// prior behavior. (PARSER-NEUTRALITY.1: the per-grammar "parser hook"
+    /// mechanism that once accompanied this flag is REMOVED by director
+    /// ruling — the pipeline has no per-parser extension points.)
     pub emit_typed_entry_skeleton: bool,
-    /// Optional registry of parser-specific hook handlers. The pipeline
-    /// queries this registry by EBNF grammar name at extension points
-    /// (currently: after the legacy parser impl block is emitted, the
-    /// pipeline asks the registry whether anyone wants to append
-    /// additional impl items). When `None` or when no handler is
-    /// registered for the lookup key, the pipeline falls through to
-    /// its default emit and the generated parser is byte-identical to
-    /// the pre-registry baseline.
-    ///
-    /// **The registry contract is parser-agnostic.** This field's name,
-    /// type, and value MUST NOT carry any reasoning about which
-    /// grammars are "safe" or "unsafe" to extend; the registry is just
-    /// an opaque dispatch table. Parser-specific code lives outside
-    /// `rust/src/ast_pipeline/`.
-    pub parser_hook_registry: Option<ParserHookRegistry>,
-    /// Canonical EBNF grammar name (snake_case stem of the source
-    /// `*.ebnf` file) used as the lookup key for
-    /// `parser_hook_registry`. The existing `grammar_name` field is
-    /// the input to the parser-type-name derivation
-    /// (`{Pascal(grammar_name)}Parser`) and may be PascalCase or
-    /// snake_case depending on caller convention; that's not a
-    /// reliable lookup key. Setting `ebnf_grammar_name` to the
-    /// canonical stem (e.g. `"regex"` for `regex.ebnf`) is the
-    /// caller's responsibility at the binary boundary; when `None`
-    /// the registry lookup falls through to no-op.
-    pub ebnf_grammar_name: Option<String>,
     /// REGEX-SELF-HOSTING.6a: set true during codegen iff any generated rule method emits a
     /// `match_regex` call (i.e. the grammar has ≥1 `/.../` regex literal). When false, the
     /// `match_regex` helper + `use regex::Regex` import are ELIDED so a fully-literal grammar (regex)
@@ -523,8 +496,6 @@ impl AstBasedGenerator {
             branch_return_annotations: HashMap::new(),
             enable_debug: true,
             emit_typed_entry_skeleton: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -729,41 +700,6 @@ impl AstBasedGenerator {
             TokenStream::new()
         };
 
-        // Parser-agnostic extension point: ask the parser-hook registry
-        // (if any) whether a handler is registered for this grammar
-        // and wants to append additional impl items. The pipeline
-        // never names a specific grammar; it only forwards the
-        // canonical EBNF grammar name (`ebnf_grammar_name`, set by
-        // the binary boundary) to the registry's lookup. When no
-        // registry is configured, or no `ebnf_grammar_name` is set,
-        // or no handler is registered for the name, `extension_impl`
-        // is empty and the emitted parser is byte-identical to the
-        // pre-registry baseline. See
-        // [`crate::ast_pipeline::parser_hooks`] for the contract.
-        let extension_impl = match (
-            &self.parser_hook_registry,
-            self.ebnf_grammar_name.as_deref(),
-        ) {
-            (Some(registry), Some(ebnf_name)) => {
-                if let Some(hooks) = registry.get(ebnf_name) {
-                    let ctx = ParserImplContext {
-                        grammar_name: ebnf_name,
-                        parser_name: &parser_name,
-                        grammar_tree,
-                        rule_order,
-                        entry_rule: entry_rule.as_str(),
-                        annotations: self.annotations.as_ref(),
-                        filename,
-                    };
-                    hooks
-                        .extend_parser_impl(&ctx)
-                        .unwrap_or_else(TokenStream::new)
-                } else {
-                    TokenStream::new()
-                }
-            }
-            _ => TokenStream::new(),
-        };
 
         // Combine everything
         let result = quote! {
@@ -774,7 +710,6 @@ impl AstBasedGenerator {
             #cascade_impl
             #scan_impl
             #typed_parser_impl
-            #extension_impl
             #tests
         };
 
@@ -10018,8 +9953,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10056,8 +9989,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10112,8 +10043,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10170,8 +10099,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10262,8 +10189,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10379,8 +10304,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10450,8 +10373,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10526,8 +10447,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10623,8 +10542,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -10918,8 +10835,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12101,8 +12016,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12139,8 +12052,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12174,8 +12085,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12244,8 +12153,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12324,8 +12231,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12388,8 +12293,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12421,8 +12324,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12455,8 +12356,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12514,8 +12413,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12728,8 +12625,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12791,8 +12686,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12817,8 +12710,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12887,8 +12778,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12935,8 +12824,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -12997,8 +12884,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13023,8 +12908,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13088,8 +12971,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13133,8 +13014,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13189,8 +13068,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13215,8 +13092,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13295,8 +13170,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13339,8 +13212,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13414,8 +13285,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13460,8 +13329,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13510,8 +13377,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13557,8 +13422,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13604,8 +13467,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13667,8 +13528,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13721,8 +13580,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13779,8 +13636,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13831,8 +13686,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13889,8 +13742,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13939,8 +13790,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
@@ -13980,8 +13829,6 @@ mod semantic_usage_tests {
             branch_return_annotations: HashMap::new(),
             emit_typed_entry_skeleton: false,
             enable_debug: false,
-            parser_hook_registry: None,
-            ebnf_grammar_name: None,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
             analysis_runtime_annotations: std::cell::OnceCell::new(),

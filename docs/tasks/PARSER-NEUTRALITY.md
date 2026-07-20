@@ -62,27 +62,111 @@ configuration:
 
 ## Leaves
 
-### `PARSER-NEUTRALITY.1` — hook-mechanism + typed-surface removal (status: `queued`; owns items 1–5, 7)
-- One slice in a FRESH session: lib + emitter + CLI removal, all-11 regen
-  train (expected delta: the typed surface disappears from the regex
-  artifact; all other artifacts byte-identical — review-proven), full
-  battery minus the retired gate, floor-probe byte-identity re-proof
-  (fat-LTO probe rebuilt against the default-emit artifact must reproduce
-  the 1,153.5 ns floor within custody bounds), doctrine enforcer, books.
-- Acceptance: `grep -r "parser_hooks\|enable-parser-hooks\|_typed(" `
-  over `rust/src/` + `generated/` returns zero product hits; battery
-  green; floor unchanged within noise; all-11 custody clean.
+### `PARSER-NEUTRALITY.1` — hook-mechanism + typed-surface removal (status: `done`, session #175 — director ordered same-session execution; owns items 1–5, 7)
+- Executed same-session on the director's direct order ("simply remove
+  them"), which supersedes the fresh-session default for this non-perf
+  removal. Scope delivered exactly as specced; evidence
+  `docs/tasks/artifacts/parser_neutrality/removal_verification.md`.
+- `--emit-typed-entry-skeleton` deliberately NOT touched (pipeline-internal,
+  grammar-agnostic, no per-parser anything) — queued as `.3` below instead
+  of silently widening this slice.
 
-### `PARSER-NEUTRALITY.2` — contract amendment + ledger + books (status: `queued`; owns items 6, 8; director signs the published text)
-- Contract version bump dropping `parse_regex_typed()`; released-parser
-  bug-ledger/maintenance note; migration note; book/doc sweep.
+##### Acceptance Checklist (enforced) — hook-mechanism + typed-surface removal (`PGEN-PARSER-NEUTRALITY-0002`, leaf PARSER-NEUTRALITY.1)
+- [x] **REPRODUCE / ISSUE** — the director ruling of 2026-07-20 (recorded
+  verbatim-intent in `docs/decisions/feedback_no_parser_hooks_full_neutrality.md`):
+  the `--enable-parser-hooks` mechanism surfaced by the `-0200` custody
+  finding constitutes a per-parser side surface (one registered handler,
+  `rust/src/parser_hooks/regex.rs`; the hooks-form canonical regex
+  artifact diverging from all other parsers' default emit) — forbidden
+  regardless of the pipeline's own internal neutrality.
+- [x] **ROOT CAUSE (WHY + WHERE)** — tool-backed assessment
+  (`docs/decisions/project_parser_hooks_neutrality_assessment.md`): the
+  pipeline itself names no grammar and the handler hardcodes zero rule
+  names, but the mechanism's EXISTENCE creates per-grammar modules and a
+  per-parser build-configuration fork — the exact unmanageable trajectory
+  the project intent forbids. WHERE, tool-pinned: the artifact-form fork
+  was exposed by the `-0200` regen train's expected-delta review (the
+  hooks emit = 769 `parse_*_typed` occurrences vs 0 in the `focus_regex`
+  emit) and re-proven here by the emission byte-compares; the behavioral
+  ground truth is re-certified on the hook-free vintage via
+  `--report-certificate-coverage` (seeds 0/7/42, byte-exact
+  `CERTIFICATE-COVERAGE: 268/9/259/0 fully_certified=true`,
+  `sample_parse_failures=0`) and the `regex_perf_probe` full-corpus sweep
+  (0/2,189 verdict flips vs the banked `-0200` per-cell JSONL). Consumers audited: in-repo only the two
+  typed verification binaries; the contract's `parse_regex_typed()`
+  mentions are all historical release notes (zero live normative
+  promise, verified by line-range grep).
+- [x] **FIX / ADJUDICATION** — full removal, no compromise (the ruling's
+  reinforcement): trait/registry/context, the handler tree, the CLI flag
+  and binary-boundary registration, the generator threading
+  (`parser_hook_registry` + `ebnf_grammar_name` + `extend_parser_impl` +
+  splice + the `_with_hooks` variant), both typed binaries with their
+  Cargo/Makefile surface (tombstone note left in the Makefile). The
+  canonical regex artifact returns to the DEFAULT emit — identical build
+  configuration for all 11 parsers.
+- [x] **ADDRESSED (verified)** — `grep -r "parser_hooks|ParserHook|
+  enable-parser-hooks|regex_typed_"` over `rust/src` + `Makefile` +
+  `Cargo.toml` returns only the tombstone/doc-comment mentions; the regex
+  artifact carries 0 `parse_*_typed` occurrences and its hook-free regen
+  is byte-identical (`1a5f7018…`) to the hook-capable tool's no-flag emit;
+  `json`/`ebnf` control regens byte-identical modulo own-path strings —
+  the removal changed nothing but the extension point itself.
+- [x] **NO REGRESSION** — per-file compiler-warning counts IDENTICAL
+  (stash-based before/after; the only delta is the deleted handler's own
+  warning). Performance neutrality proven empirically (the `#140`
+  probe-byte-identity precedent does NOT transfer — the lib changed — so
+  measured instead): bench floorval **+1.21%** vs the banked 1,818.3 ns
+  and full-corpus sweep **+1.61%** vs the `-0200` candidate — both inside
+  the ≈2.3% noise span — with verdict flips **0/2,189** and MAX 474,792 ≤
+  settled 483,583 ns; the ACCEPTED floor (1,153.5 ns) unchanged. Battery
+  green at the changed vintage minus the retired gate: dual-feature lib
+  suite (incl. the ALL-11 interpreter↔generated oracle), cert ×3 seeds,
+  shape, duality, PCRE2 compile oracle, clippy source-strict — see
+  `docs/tasks/artifacts/parser_neutrality/battery_summary.txt`.
+- [x] **LOCKSTEP** — this tree + evidence dir + decision records (already
+  committed `fddecb41`/`06f08e36`) + MEMORY/CHANGES/DEVELOPMENT_NOTES/
+  LIVE + the contract amendment + both books swept in the paired
+  `PARSER-NEUTRALITY.2` commit (same session, minutes apart — one
+  ruling's two halves). Post-removal probe preserved
+  `preserved_probes/regex_perf_probe_neutrality_948cbd63` (the next
+  campaign session's immediate-parent baseline).
+
+### `PARSER-NEUTRALITY.2` — contract amendment + books (status: `done`, session #175; owns items 6, 8)
+- Contract → `1.1.107` / release → `1.1.105` (schema stays `1`): a new
+  2026-07-20 maintenance update declares the removal (surface-changing;
+  wire-format unchanged; "action for RGX: none expected" — the typed entry
+  was opt-in, never in the default build; equivalent output =
+  `parse_full_regex()?.content.to_json_value()`, byte-identical). No live
+  normative API line existed to delete; historical release notes stay
+  verbatim (history is not rewritten).
+- Books: top-level Parser Hooks chapter DELETED (+ SUMMARY +
+  developer-architecture reference); regex book swept with explicit
+  removal notes (public-api, build-recipe, quickstart, glossary ×2,
+  migration, parse-content-variants, schema-versioning incl. the Tier-1
+  table row and the CI snapshot example re-pointed to the equivalent
+  call); HTML rebuilt; both book gates green.
+
+### `PARSER-NEUTRALITY.3` — `--emit-typed-entry-skeleton` dead-scaffolding adjudication (status: `queued`)
+- The flag is pipeline-internal and grammar-agnostic (no neutrality
+  violation) but appears unused by any maintained target (Makefile
+  references are comments only). Adjudicate remove-vs-keep with the
+  director; if removed, it is a small mechanical slice (one emission
+  branch + a contract test + fixture initializers).
 
 ## Verification log
 
-- (pending)
+- 2026-07-20 `.1`: emission identity (regex `1a5f7018` hook-free ==
+  no-flag hook-capable emit; json/ebnf control regens byte-identical
+  modulo own-path strings); warning-count parity; neutrality custody
+  (bench +1.21%, corpus +1.61%, flips 0/2,189, MAX ≤ settled); battery
+  green minus the retired gate. Evidence:
+  `docs/tasks/artifacts/parser_neutrality/`.
 
 ## Commit log
 
 - 2026-07-20 `PGEN-PARSER-NEUTRALITY-0001` (docs-only): tree opened; ruling +
-  assessment decision records committed (`fddecb41` + this commit); no code
-  touched — removal executes in a fresh session per the session discipline.
+  assessment decision records committed (`fddecb41`, `06f08e36`).
+- 2026-07-20 `PGEN-PARSER-NEUTRALITY-0002` (leaf `.1`): the code removal +
+  evidence + this tree's checklists.
+- 2026-07-20 `PGEN-PARSER-NEUTRALITY-0003` (leaf `.2`): contract amendment +
+  book sweep + continuity docs.

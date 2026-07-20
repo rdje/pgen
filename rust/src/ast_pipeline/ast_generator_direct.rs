@@ -56,10 +56,10 @@ impl AstGeneratorIntegration {
 /// generator additionally emits a passthrough skeleton `parse_full_<entry>_typed`
 /// returning `ParseResult<serde_json::Value>` (parse + `serde_json::to_value`).
 /// The flag does NOT control annotation support — `@predicate`, `@emit_fact`,
-/// `@semantic_value`, and `-> {...}` return annotations always fire. The
-/// per-rule "shape-typed emit" originally promised by the old `inline_annotations`
-/// name is now delivered by parser hooks per-grammar (see
-/// `rust/src/parser_hooks/`), outside the pipeline.
+/// `@semantic_value`, and `-> {...}` return annotations always fire.
+/// (PARSER-NEUTRALITY.1: the per-grammar "parser hook" registry variant of
+/// this entry point is REMOVED by director ruling — generation takes no
+/// per-parser inputs beyond the grammar itself.)
 pub fn generate_parser_ast_based(
     grammar_name: &str,
     grammar: &HashMap<String, ASTNode>,
@@ -67,33 +67,6 @@ pub fn generate_parser_ast_based(
     annotations: Option<&Annotations>,
     filename: &str,
     emit_typed_entry_skeleton: bool,
-) -> Result<String> {
-    generate_parser_ast_based_with_hooks(
-        grammar_name,
-        grammar,
-        rule_order,
-        annotations,
-        filename,
-        emit_typed_entry_skeleton,
-        None,
-    )
-}
-
-/// Like [`generate_parser_ast_based`] but lets the caller supply a
-/// parser-hook registry. Hooks are looked up by EBNF grammar name; for
-/// grammars without a registered handler the pipeline emits the same
-/// output as `generate_parser_ast_based` (i.e. as if `registry` were
-/// `None`). This signature is what the binary boundary calls when it
-/// wants to register parser-specific hooks (which themselves live
-/// outside `rust/src/ast_pipeline/`).
-pub fn generate_parser_ast_based_with_hooks(
-    grammar_name: &str,
-    grammar: &HashMap<String, ASTNode>,
-    rule_order: &[String],
-    annotations: Option<&Annotations>,
-    filename: &str,
-    emit_typed_entry_skeleton: bool,
-    registry: Option<crate::ast_pipeline::ParserHookRegistry>,
 ) -> Result<String> {
     // The existing `AstBasedGenerator::new` interprets its argument
     // as the input to the parser-type-name derivation
@@ -109,14 +82,6 @@ pub fn generate_parser_ast_based_with_hooks(
     let parser_name = snake_to_pascal(grammar_name);
     let mut generator = AstBasedGenerator::new(parser_name);
     generator.emit_typed_entry_skeleton = emit_typed_entry_skeleton;
-    // The pipeline's parser-hook registry is keyed on the canonical
-    // EBNF grammar name (the snake_case stem). The generator's
-    // `grammar_name` field carries the parser-type-name input above
-    // (PascalCase or snake_case depending on caller convention) and
-    // is unsuitable for registry lookup, so we record the EBNF stem
-    // separately on the generator.
-    generator.ebnf_grammar_name = Some(grammar_name.to_string());
-    generator.parser_hook_registry = registry;
 
     // Transfer annotations if provided
     if let Some(annotations) = annotations {

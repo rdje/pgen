@@ -38,16 +38,6 @@ pub mod parse_harness_combinator_suite;
 /// against the compile-and-run oracle (`.3`) on small isolating grammars. See the module docs.
 #[cfg(feature = "ebnf_dual_run")]
 pub mod parse_harness_semantic_suite;
-/// Parser-specific hook implementations. Each module here implements
-/// the [`ast_pipeline::ParserHooks`] contract for one grammar's
-/// codegen-time extensibility needs. Code in this module is
-/// PARSER-SPECIFIC by design — the pipeline itself stays parser-
-/// agnostic; per-grammar behavior lives here and registers itself
-/// with the pipeline through the public hook surface. New grammars
-/// only need to add a sibling module if they have a real reason to
-/// extend pipeline codegen; until then the pipeline's default emit
-/// path runs unchanged for them.
-pub mod parser_hooks;
 pub mod regex_compile_validation;
 pub mod sv_preprocessor;
 pub mod test_registry;

@@ -1,0 +1,23 @@
+# PARSER-NEUTRALITY.1 battery (2026-07-20, hook-free vintage; the retired typed gate is deliberately absent)
+=== dualbuild: START 15:28:38 ===
+=== dualbuild: done exit=0 15:30:59 ===
+=== probe_rebuild: START 15:30:59 ===
+=== probe_rebuild: done exit=0 15:33:30 ===
+=== libsuite: START 15:33:30 ===
+=== libsuite: done exit=0 15:39:18 ===
+=== cert: START 15:39:18 ===
+=== cert: done exit=0 15:39:23 ===
+=== ast_shape_contract_gate: START 15:39:23 ===
+=== ast_shape_contract_gate: done exit=0 15:41:29 ===
+=== duality_hunt_gate: START 15:41:29 ===
+=== duality_hunt_gate: done exit=0 15:41:54 ===
+=== regex_pcre2_compile_oracle_gate: START 15:41:54 ===
+=== regex_pcre2_compile_oracle_gate: done exit=0 15:41:59 ===
+=== clippy: START 15:41:59 ===
+=== clippy: done exit=0 15:45:15 ===
+NEUTRALITY BATTERY COMPLETE overall=0
+libsuite: test result: ok. 999 passed; 0 failed; 29 ignored; 0 measured; 0 filtered out; finished in 143.60s
+  (999 = the -0200 battery's 1003 minus the 4 deleted hook-registry tests; ALL-11 oracle included)
+      3 CERTIFICATE-COVERAGE: grammar='regex' entry='regex' samples=40 total=268 proof=9 witness=259 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)
+      1 memory-guard: started pid=92156 pgid=92156 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=73% disk=23GB cmd: caffeinate -i bash -c cd rust && for s in 0 7 42; do ./target/debug/ast_pipeline ../grammars/regex.ebnf --report-certificate-coverage --entry-rule regex --count 40 --seed $s 2>&1 | grep -E 'CERTIFICATE-COVERAGE|single_path_fallback'; done
+clippy: source-strict PASS (exit 0); generated-stage debt at the tracked 290
