@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -274,15 +274,15 @@ diff /tmp/sha1 /tmp/sha2   # must be empty
 </code></pre>
 <p>If two consecutive runs produce different SHAs, <strong>that’s a non-determinism bug</strong> — file it; do NOT ship the unstable parser.</p>
 <p>The SHA itself shifts whenever the grammar source or the PGEN pipeline source legitimately changes. The contract is determinism, not a fixed SHA.</p>
-<h2 id="optional-typed-entry-point-fast-path"><a class="header" href="#optional-typed-entry-point-fast-path">Optional: typed-entry-point fast path</a></h2>
-<p>To get the opt-in <code>parse_regex_typed()</code> typed entry point (returns <code>serde_json::Value</code> directly, bypassing <code>ParseNode</code> allocation):</p>
-<pre><code class="language-bash"># Replace the regex-parser regen step with --enable-parser-hooks:
-subs/pgen/rust/target/debug/ast_pipeline \
-    --generate-parser --debug --trace --eliminate-left-recursion \
-    --enable-parser-hooks \
-    subs/pgen/generated/regex.json -o subs/pgen/generated/regex_parser.rs
-</code></pre>
-<p>Default <code>make regex_parser</code> does NOT register the hook → the default emit doesn’t carry the typed methods. The legacy <code>parse_regex()</code> API is unchanged either way.</p>
+<h2 id="removed-the-typed-entry-point-regeneration-mode"><a class="header" href="#removed-the-typed-entry-point-regeneration-mode">Removed: the typed-entry-point regeneration mode</a></h2>
+<blockquote>
+<p><strong>Removed (2026-07-20, PARSER-NEUTRALITY.1):</strong> the former opt-in
+<code>--enable-parser-hooks</code> regeneration mode and the <code>parse_regex_typed()</code>
+entry it emitted are removed by director ruling — the AST pipeline carries
+no per-parser extension mechanism, and the default emit is the ONLY emit.
+For plain JSON output use <code>parse_full_regex()?.content.to_json_value()</code>
+(byte-identical to what the typed entry returned).</p>
+</blockquote>
 <h2 id="what-can-go-wrong"><a class="header" href="#what-can-go-wrong">What can go wrong</a></h2>
 <div class="table-wrapper">
 <table>

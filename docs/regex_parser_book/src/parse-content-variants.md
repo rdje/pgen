@@ -189,7 +189,7 @@ Consumers should be aware of three interactions between variants:
 | `Alternative(node)` | `node.content.to_json_value()` (transparent unwrap) |
 | `Quantified(nodes, _)` | `Value::Array(<each node's content.to_json_value()>)` |
 
-This is what the byte-equivalence guarantee between `parse_full_regex().content.to_json_value()` and `parse_regex_typed()` is built on.
+This is what the byte-equivalence guarantee for `parse_full_regex().content.to_json_value()` output is built on (the removed `parse_regex_typed()` entry returned this same value).
 
 ### 2. Alternative is transparent in JSON output
 

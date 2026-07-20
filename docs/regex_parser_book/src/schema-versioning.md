@@ -36,15 +36,22 @@ For any input the parser accepts, this equality holds:
 
 ```rust
 parse_full_regex(input).unwrap().content.to_json_value()
-    == parse_regex_typed(input).unwrap()
 ```
 
-That is — walking the typed `Json` content via `to_json_value()` produces the same `serde_json::Value` as the typed parser entry point produces directly. This is a stability invariant we maintain across **all** future shape changes.
+That is — walking the typed `Json` content via `to_json_value()` produces a
+stable `serde_json::Value` for the same input. This is a stability invariant
+we maintain across **all** future shape changes. (Until 2026-07-20 the
+invariant was stated as equality against the opt-in `parse_regex_typed()`
+entry, which returned this identical value; that entry — and the
+`--enable-parser-hooks` mechanism behind it — is removed per
+PARSER-NEUTRALITY.1, with no change to the value itself.)
 
 In practice this means:
 
-- Consumers can use either entry point (`parse_full_regex` for envelope-with-spans, `parse_regex_typed` for plain `serde_json::Value`).
-- Consumers writing JSON snapshots from one entry point can later switch to the other without re-baselining.
+- Consumers get plain `serde_json::Value` output via
+  `parse_full_regex(...)?.content.to_json_value()`.
+- JSON snapshots written against the former typed entry stay valid — the
+  value is byte-identical.
 
 If you ever encounter a case where the equality fails, that's a parser bug — please report.
 
@@ -57,7 +64,6 @@ The regex parser's behavior is divided into three tiers by stability guarantee:
 | Item | Stability |
 |---|---|
 | `crate::parse_full_regex(input) -> Result<ParseNode<'_>, ParseError>` | Stable signature. Function does not move or rename. |
-| `crate::parse_regex_typed(input) -> Result<serde_json::Value, ParseError>` | Stable signature. |
 | `ParseNode { rule_name, content, span }` field set | Stable. New fields may be added (additive); existing fields not removed. |
 | `ParseContent` six-variant set | Stable. Variants not removed without major version bump and migration window. |
 | Schema version field in CHANGES.md | Always present per release. |
@@ -108,7 +114,10 @@ fn ast_snapshot_for_canonical_inputs() {
         r"a", r"a*", r"\d+", r"[a-z]", r"\Qab\E{3}", /* ... */
     ];
     for input in inputs {
-        let actual = parseability::parse_regex_typed(input).unwrap();
+        let actual = parseability::parse_full_regex(input)
+            .unwrap()
+            .content
+            .to_json_value();
         let expected = read_snapshot(input);
         assert_eq!(actual, expected, "AST shape changed for input: {input}");
     }

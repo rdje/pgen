@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -195,7 +195,11 @@
 <h2 id="builtin-return-annotation-parser"><a class="header" href="#builtin-return-annotation-parser">Builtin return annotation parser</a></h2>
 <p>A hand-written parser in <code>rust/src/ast_pipeline/builtin_return_annotation_parser.rs</code> that handles the subset of the return-annotation language sufficient to bootstrap. Its accepted grammar is documented in <code>grammars/builtin_return_annotation.ebnf</code>. The full annotation language is parsed by the generated parser (built from <code>grammars/return_annotation.ebnf</code>) once available.</p>
 <h2 id="byte-equivalence"><a class="header" href="#byte-equivalence">Byte-equivalence</a></h2>
-<p>The invariant that <code>parse_full_regex(input).content.to_json_value() == parse_regex_typed(input)</code>. Maintained across every PGEN release. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
+<p>The invariant that the typed JSON value obtained through
+<code>parse_full_regex(input).content.to_json_value()</code> is stable across releases
+for the same input (historically stated against the removed
+<code>parse_regex_typed()</code> entry, which returned the identical value). See
+<a href="schema-versioning.html">Schema Versioning</a>.</p>
 <h2 id="char-class--character-class"><a class="header" href="#char-class--character-class">Char class / character class</a></h2>
 <p>Both terms refer to <code>[abc]</code>-style regex syntax. The book uses “character class” in prose. The grammar rule is <code>char_class</code>. Inside character classes, sub-rules are prefixed with <code>class_</code> (e.g. <code>class_literal</code>, <code>class_range</code>).</p>
 <h2 id="class-item"><a class="header" href="#class-item">Class item</a></h2>
@@ -260,8 +264,11 @@
 <p>The <code>*</code> operator in the return annotation language: <code>[$1, $2*]</code> means “include $1, then spread $2’s contents into the array.” Distinct from <code>**</code> (flatten-spread) which unwraps an extra layer.</p>
 <h2 id="tier-1--2--3-stability"><a class="header" href="#tier-1--2--3-stability">Tier 1 / 2 / 3 stability</a></h2>
 <p>The three-tier classification of stability guarantees. Tier 1 = stable surface API; Tier 2 = annotated rule shapes; Tier 3 = unannotated rule shapes. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
-<h2 id="typed-parser-entry"><a class="header" href="#typed-parser-entry">Typed parser entry</a></h2>
-<p><code>crate::parse_regex_typed(input) -&gt; Result&lt;serde_json::Value, ParseError&gt;</code>. Returns the typed JSON value directly, skipping the <code>ParseNode</code> envelope. Equivalent to <code>parse_full_regex(input).content.to_json_value()</code> but more direct.</p>
+<h2 id="typed-parser-entry-removed"><a class="header" href="#typed-parser-entry-removed">Typed parser entry (removed)</a></h2>
+<p>The former opt-in <code>parse_regex_typed()</code> entry point, removed 2026-07-20
+(PARSER-NEUTRALITY.1 — no per-parser extension mechanism). For the same
+typed JSON value call <code>parse_full_regex(input)?.content.to_json_value()</code>
+(byte-identical output).</p>
 <h2 id="un-annotated-chain"><a class="header" href="#un-annotated-chain">Un-annotated chain</a></h2>
 <p>A descent through multiple rules that all use implicit <code>-&gt; $1</code> (single-positional pass-through). Produces nested Alternative-wrapped layers in the AST, e.g. <code>escape_unit → simple_escape → any_char → /char/</code> chains four wrappers around one terminal. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array.</p>
 <h2 id="unifiedreturnast"><a class="header" href="#unifiedreturnast">UnifiedReturnAST</a></h2>

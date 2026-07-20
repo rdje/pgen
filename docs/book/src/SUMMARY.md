@@ -29,7 +29,6 @@
 - [The Parse Harness](parse-harness.md)
 - [Lexical Annotations — the 4th Pillar](lexical-annotations.md)
 - [Academic Foundations](academic-foundations.md)
-- [Parser Hooks](parser-hooks.md)
 - [Quality and Closure Model](quality-and-closure-model.md)
 - [Operations and Governance](operations-and-governance.md)
 - [Source Map](source-map.md)

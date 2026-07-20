@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -300,7 +300,7 @@ cat /tmp/sample_ast.json
 </code></pre>
 <h2 id="what-youve-just-built"><a class="header" href="#what-youve-just-built">What you’ve just built</a></h2>
 <p><code>generated/regex_parser.rs</code> is a single ~9 MB Rust source file that compiles into your library or binary as a module. It exposes <code>RegexParser::new(input, logger).parse_full_regex()</code>, which returns a <code>ParseResult&lt;ParseNode&lt;'input&gt;&gt;</code>. That <code>ParseNode</code> is the <strong>AST envelope</strong> documented in the next chapter.</p>
-<p>For the typed-Json fast path (opt-in, regenerates with <code>--enable-parser-hooks</code>), see <a href="#public-api-surface">Public API Surface</a>.</p>
+<p>For plain typed-JSON output use <code>parse_full_regex()?.content.to_json_value()</code> — see <a href="#public-api-surface">Public API Surface</a>. (The former opt-in <code>parse_regex_typed()</code> fast path was removed 2026-07-20; that call returns byte-identical output.)</p>
 <h2 id="pulling-new-pgen"><a class="header" href="#pulling-new-pgen">Pulling new PGEN</a></h2>
 <p>When you bump the PGEN submodule pin to a newer commit, just rerun:</p>
 <pre><code class="language-bash">make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap
@@ -406,15 +406,15 @@ diff /tmp/sha1 /tmp/sha2   # must be empty
 </code></pre>
 <p>If two consecutive runs produce different SHAs, <strong>that’s a non-determinism bug</strong> — file it; do NOT ship the unstable parser.</p>
 <p>The SHA itself shifts whenever the grammar source or the PGEN pipeline source legitimately changes. The contract is determinism, not a fixed SHA.</p>
-<h2 id="optional-typed-entry-point-fast-path"><a class="header" href="#optional-typed-entry-point-fast-path">Optional: typed-entry-point fast path</a></h2>
-<p>To get the opt-in <code>parse_regex_typed()</code> typed entry point (returns <code>serde_json::Value</code> directly, bypassing <code>ParseNode</code> allocation):</p>
-<pre><code class="language-bash"># Replace the regex-parser regen step with --enable-parser-hooks:
-subs/pgen/rust/target/debug/ast_pipeline \
-    --generate-parser --debug --trace --eliminate-left-recursion \
-    --enable-parser-hooks \
-    subs/pgen/generated/regex.json -o subs/pgen/generated/regex_parser.rs
-</code></pre>
-<p>Default <code>make regex_parser</code> does NOT register the hook → the default emit doesn’t carry the typed methods. The legacy <code>parse_regex()</code> API is unchanged either way.</p>
+<h2 id="removed-the-typed-entry-point-regeneration-mode"><a class="header" href="#removed-the-typed-entry-point-regeneration-mode">Removed: the typed-entry-point regeneration mode</a></h2>
+<blockquote>
+<p><strong>Removed (2026-07-20, PARSER-NEUTRALITY.1):</strong> the former opt-in
+<code>--enable-parser-hooks</code> regeneration mode and the <code>parse_regex_typed()</code>
+entry it emitted are removed by director ruling — the AST pipeline carries
+no per-parser extension mechanism, and the default emit is the ONLY emit.
+For plain JSON output use <code>parse_full_regex()?.content.to_json_value()</code>
+(byte-identical to what the typed entry returned).</p>
+</blockquote>
 <h2 id="what-can-go-wrong"><a class="header" href="#what-can-go-wrong">What can go wrong</a></h2>
 <div class="table-wrapper">
 <table>
@@ -448,7 +448,6 @@ subs/pgen/rust/target/debug/ast_pipeline \
 <tr><td>Module path</td><td><code>pgen::generated_parsers::regex</code></td></tr>
 <tr><td>Parser type</td><td><code>RegexParser&lt;'input&gt;</code></td></tr>
 <tr><td>Entry method (default emit)</td><td><code>parse_full_regex()</code></td></tr>
-<tr><td>Entry method (typed fast path, opt-in)</td><td><code>parse_regex_typed()</code></td></tr>
 <tr><td>Schema version</td><td><code>2</code> (typed-Json carrier era — see <a href="#schema-versioning">Schema Versioning</a>)</td></tr>
 </tbody>
 </table>
@@ -471,15 +470,17 @@ impl&lt;'input&gt; RegexParser&lt;'input&gt; {
 
     /// Standard parse entry. Returns the full `regex` rule's AST envelope.
     pub fn parse_full_regex(&amp;mut self) -&gt; ParseResult&lt;ParseNode&lt;'input&gt;&gt;;
-
-    /// Optional typed fast-path entry. Bypasses `ParseNode` allocation
-    /// and returns `serde_json::Value` directly. Available only when
-    /// the parser was generated with `--enable-parser-hooks` (see Build
-    /// Recipe). Output is byte-equivalent to
-    /// `parse_full_regex()?.content.to_json_value()`.
-    pub fn parse_regex_typed(&amp;mut self) -&gt; ParseResult&lt;serde_json::Value&gt;;
 }
 <span class="boring">}</span></code></pre>
+<blockquote>
+<p><strong>Removed (2026-07-20, PARSER-NEUTRALITY.1):</strong> the former opt-in
+<code>parse_regex_typed()</code> typed fast path — and the <code>--enable-parser-hooks</code>
+regeneration mode that emitted it — are removed by director ruling (the
+AST pipeline carries no per-parser extension mechanism). The equivalent
+output is <code>parse_full_regex()?.content.to_json_value()</code>, byte-identical
+to what the typed entry returned. See the integration contract’s
+2026-07-20 maintenance update.</p>
+</blockquote>
 <h2 id="parsenode-envelope"><a class="header" href="#parsenode-envelope">ParseNode envelope</a></h2>
 <p>Every node the parser produces is wrapped in this envelope:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -592,22 +593,15 @@ let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
 <span class="boring">}</span></code></pre>
 <p>The full embedding-API surface is documented separately in <code>rust/docs/EMBEDDING_API_CONTRACT.md</code>.</p>
-<h2 id="legacy-vs-typed-entry-points"><a class="header" href="#legacy-vs-typed-entry-points">Legacy vs typed entry points</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Feature</th><th><code>parse_full_regex()</code></th><th><code>parse_regex_typed()</code></th></tr>
-</thead>
-<tbody>
-<tr><td>Return type</td><td><code>ParseResult&lt;ParseNode&lt;'input&gt;&gt;</code></td><td><code>ParseResult&lt;serde_json::Value&gt;</code></td></tr>
-<tr><td>Allocation</td><td>Allocates ParseNode tree</td><td>Bypasses ParseNode allocation for annotated rules</td></tr>
-<tr><td>Output equivalence</td><td><code>node.content.to_json_value() == typed_value</code> (byte-equivalent)</td><td>same</td></tr>
-<tr><td>Default emit availability</td><td>YES — default <code>make regex_parser</code> builds it</td><td>NO — requires <code>--enable-parser-hooks</code> regen</td></tr>
-<tr><td>Use case</td><td>Standard consumers; need source spans / <code>rule_name</code> access</td><td>JSON-direct fast path; serialization-only consumers</td></tr>
-</tbody>
-</table>
-</div>
-<p>For consumers like RGX that walk the AST to build a richer downstream representation, <code>parse_full_regex()</code> is usually the right call because the ParseNode tree carries source spans (useful for error reporting back to the regex source author). The typed entry point is most useful when the consumer just wants the JSON.</p>
+<h2 id="getting-plain-json-output"><a class="header" href="#getting-plain-json-output">Getting plain JSON output</a></h2>
+<p><code>parse_full_regex()</code> is the single parse entry point. For consumers like RGX
+that walk the AST to build a richer downstream representation it is the right
+call because the ParseNode tree carries source spans (useful for error
+reporting back to the regex source author). A consumer that just wants the
+typed JSON value calls <code>parse_full_regex()?.content.to_json_value()</code> — this
+returns exactly the <code>serde_json::Value</code> the removed opt-in
+<code>parse_regex_typed()</code> entry used to return (byte-identical output; see the
+removal note above).</p>
 <h2 id="stability-guarantees"><a class="header" href="#stability-guarantees">Stability guarantees</a></h2>
 <div class="table-wrapper">
 <table>
@@ -862,7 +856,7 @@ match &amp;node.content {
 </tbody>
 </table>
 </div>
-<p>This is what the byte-equivalence guarantee between <code>parse_full_regex().content.to_json_value()</code> and <code>parse_regex_typed()</code> is built on.</p>
+<p>This is what the byte-equivalence guarantee for <code>parse_full_regex().content.to_json_value()</code> output is built on (the removed <code>parse_regex_typed()</code> entry returned this same value).</p>
 <h3 id="2-alternative-is-transparent-in-json-output"><a class="header" href="#2-alternative-is-transparent-in-json-output">2. Alternative is transparent in JSON output</a></h3>
 <p>Because <code>Alternative.to_json_value()</code> unwraps, the JSON output never has <code>{"Alternative": ...}</code> keys at the JSON-serialisation level for <code>to_json_value()</code> paths. The <code>Alternative</code> variant is visible only when consumers walk the <code>ParseNode</code> tree directly, not when they <code>to_json_value()</code> it.</p>
 <p>In <code>parse-dump-ast-pretty</code> output (the raw envelope-level dump), <code>Alternative</code> variants ARE visible because that path uses <code>serde::Serialize</code> on the <code>ParseContent</code> enum.</p>
@@ -5527,7 +5521,7 @@ match &amp;node.content {
 <p>Each task #40 slice that annotates additional rules will reduce the amount of recursive-envelope handling consumers need. The contract document lists each slice’s effect on the AST shape. We commit to:</p>
 <ul>
 <li><strong>No silent shape changes</strong> — every annotation slice gets a contract-version bump and a row in the changelog.</li>
-<li><strong>Byte-equivalence preservation</strong> — <code>parse_full_regex().content.to_json_value()</code> always equals <code>parse_regex_typed()</code> for the same input. (See <a href="#schema-versioning">Schema Versioning</a>.)</li>
+<li><strong>Byte-equivalence preservation</strong> — <code>parse_full_regex().content.to_json_value()</code> is stable for the same input across releases (and was byte-identical to the removed <code>parse_regex_typed()</code> entry while that existed). (See <a href="#schema-versioning">Schema Versioning</a>.)</li>
 <li><strong>No annotation rollbacks</strong> — once a rule is annotated, the typed shape is part of the schema. Reverting requires consumer-coordinated migration, not a silent change.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -5561,13 +5555,20 @@ match &amp;node.content {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>parse_full_regex(input).unwrap().content.to_json_value()
-    == parse_regex_typed(input).unwrap()
 <span class="boring">}</span></code></pre>
-<p>That is — walking the typed <code>Json</code> content via <code>to_json_value()</code> produces the same <code>serde_json::Value</code> as the typed parser entry point produces directly. This is a stability invariant we maintain across <strong>all</strong> future shape changes.</p>
+<p>That is — walking the typed <code>Json</code> content via <code>to_json_value()</code> produces a
+stable <code>serde_json::Value</code> for the same input. This is a stability invariant
+we maintain across <strong>all</strong> future shape changes. (Until 2026-07-20 the
+invariant was stated as equality against the opt-in <code>parse_regex_typed()</code>
+entry, which returned this identical value; that entry — and the
+<code>--enable-parser-hooks</code> mechanism behind it — is removed per
+PARSER-NEUTRALITY.1, with no change to the value itself.)</p>
 <p>In practice this means:</p>
 <ul>
-<li>Consumers can use either entry point (<code>parse_full_regex</code> for envelope-with-spans, <code>parse_regex_typed</code> for plain <code>serde_json::Value</code>).</li>
-<li>Consumers writing JSON snapshots from one entry point can later switch to the other without re-baselining.</li>
+<li>Consumers get plain <code>serde_json::Value</code> output via
+<code>parse_full_regex(...)?.content.to_json_value()</code>.</li>
+<li>JSON snapshots written against the former typed entry stay valid — the
+value is byte-identical.</li>
 </ul>
 <p>If you ever encounter a case where the equality fails, that’s a parser bug — please report.</p>
 <h2 id="stability-tiers"><a class="header" href="#stability-tiers">Stability tiers</a></h2>
@@ -5580,7 +5581,6 @@ match &amp;node.content {
 </thead>
 <tbody>
 <tr><td><code>crate::parse_full_regex(input) -&gt; Result&lt;ParseNode&lt;'_&gt;, ParseError&gt;</code></td><td>Stable signature. Function does not move or rename.</td></tr>
-<tr><td><code>crate::parse_regex_typed(input) -&gt; Result&lt;serde_json::Value, ParseError&gt;</code></td><td>Stable signature.</td></tr>
 <tr><td><code>ParseNode { rule_name, content, span }</code> field set</td><td>Stable. New fields may be added (additive); existing fields not removed.</td></tr>
 <tr><td><code>ParseContent</code> six-variant set</td><td>Stable. Variants not removed without major version bump and migration window.</td></tr>
 <tr><td>Schema version field in CHANGES.md</td><td>Always present per release.</td></tr>
@@ -5621,7 +5621,10 @@ fn ast_snapshot_for_canonical_inputs() {
         r"a", r"a*", r"\d+", r"[a-z]", r"\Qab\E{3}", /* ... */
     ];
     for input in inputs {
-        let actual = parseability::parse_regex_typed(input).unwrap();
+        let actual = parseability::parse_full_regex(input)
+            .unwrap()
+            .content
+            .to_json_value();
         let expected = read_snapshot(input);
         assert_eq!(actual, expected, "AST shape changed for input: {input}");
     }
@@ -5942,7 +5945,11 @@ when, and the version each migration shipped in.</li>
 <h2 id="builtin-return-annotation-parser"><a class="header" href="#builtin-return-annotation-parser">Builtin return annotation parser</a></h2>
 <p>A hand-written parser in <code>rust/src/ast_pipeline/builtin_return_annotation_parser.rs</code> that handles the subset of the return-annotation language sufficient to bootstrap. Its accepted grammar is documented in <code>grammars/builtin_return_annotation.ebnf</code>. The full annotation language is parsed by the generated parser (built from <code>grammars/return_annotation.ebnf</code>) once available.</p>
 <h2 id="byte-equivalence"><a class="header" href="#byte-equivalence">Byte-equivalence</a></h2>
-<p>The invariant that <code>parse_full_regex(input).content.to_json_value() == parse_regex_typed(input)</code>. Maintained across every PGEN release. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>The invariant that the typed JSON value obtained through
+<code>parse_full_regex(input).content.to_json_value()</code> is stable across releases
+for the same input (historically stated against the removed
+<code>parse_regex_typed()</code> entry, which returned the identical value). See
+<a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="char-class--character-class"><a class="header" href="#char-class--character-class">Char class / character class</a></h2>
 <p>Both terms refer to <code>[abc]</code>-style regex syntax. The book uses “character class” in prose. The grammar rule is <code>char_class</code>. Inside character classes, sub-rules are prefixed with <code>class_</code> (e.g. <code>class_literal</code>, <code>class_range</code>).</p>
 <h2 id="class-item"><a class="header" href="#class-item">Class item</a></h2>
@@ -6007,8 +6014,11 @@ when, and the version each migration shipped in.</li>
 <p>The <code>*</code> operator in the return annotation language: <code>[$1, $2*]</code> means “include $1, then spread $2’s contents into the array.” Distinct from <code>**</code> (flatten-spread) which unwraps an extra layer.</p>
 <h2 id="tier-1--2--3-stability"><a class="header" href="#tier-1--2--3-stability">Tier 1 / 2 / 3 stability</a></h2>
 <p>The three-tier classification of stability guarantees. Tier 1 = stable surface API; Tier 2 = annotated rule shapes; Tier 3 = unannotated rule shapes. See <a href="#schema-versioning">Schema Versioning</a>.</p>
-<h2 id="typed-parser-entry"><a class="header" href="#typed-parser-entry">Typed parser entry</a></h2>
-<p><code>crate::parse_regex_typed(input) -&gt; Result&lt;serde_json::Value, ParseError&gt;</code>. Returns the typed JSON value directly, skipping the <code>ParseNode</code> envelope. Equivalent to <code>parse_full_regex(input).content.to_json_value()</code> but more direct.</p>
+<h2 id="typed-parser-entry-removed"><a class="header" href="#typed-parser-entry-removed">Typed parser entry (removed)</a></h2>
+<p>The former opt-in <code>parse_regex_typed()</code> entry point, removed 2026-07-20
+(PARSER-NEUTRALITY.1 — no per-parser extension mechanism). For the same
+typed JSON value call <code>parse_full_regex(input)?.content.to_json_value()</code>
+(byte-identical output).</p>
 <h2 id="un-annotated-chain"><a class="header" href="#un-annotated-chain">Un-annotated chain</a></h2>
 <p>A descent through multiple rules that all use implicit <code>-&gt; $1</code> (single-positional pass-through). Produces nested Alternative-wrapped layers in the AST, e.g. <code>escape_unit → simple_escape → any_char → /char/</code> chains four wrappers around one terminal. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array.</p>
 <h2 id="unifiedreturnast"><a class="header" href="#unifiedreturnast">UnifiedReturnAST</a></h2>

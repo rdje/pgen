@@ -66,7 +66,7 @@ Generated artifacts are tracked on purpose. That makes clean-checkout validation
 
 For that reproducibility to hold, **code generation is deterministic**: regenerating a parser
 from the same grammar source (to the same output path) produces byte-identical output, so the
-"regenerate twice, compare SHAs" check (see [Parser Hooks](parser-hooks.md)) is meaningful. This
+"regenerate twice, compare SHAs" check is meaningful. This
 requires the generator to emit every *derived* collection in a **canonical order** rather than in
 `HashMap` iteration order, which is randomized per process. The per-rule semantic-directive
 registries the generated parser builds (`directives_by_rule`, `branch_directives_by_rule`,

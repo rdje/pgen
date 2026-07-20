@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -210,13 +210,20 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>parse_full_regex(input).unwrap().content.to_json_value()
-    == parse_regex_typed(input).unwrap()
 <span class="boring">}</span></code></pre>
-<p>That is — walking the typed <code>Json</code> content via <code>to_json_value()</code> produces the same <code>serde_json::Value</code> as the typed parser entry point produces directly. This is a stability invariant we maintain across <strong>all</strong> future shape changes.</p>
+<p>That is — walking the typed <code>Json</code> content via <code>to_json_value()</code> produces a
+stable <code>serde_json::Value</code> for the same input. This is a stability invariant
+we maintain across <strong>all</strong> future shape changes. (Until 2026-07-20 the
+invariant was stated as equality against the opt-in <code>parse_regex_typed()</code>
+entry, which returned this identical value; that entry — and the
+<code>--enable-parser-hooks</code> mechanism behind it — is removed per
+PARSER-NEUTRALITY.1, with no change to the value itself.)</p>
 <p>In practice this means:</p>
 <ul>
-<li>Consumers can use either entry point (<code>parse_full_regex</code> for envelope-with-spans, <code>parse_regex_typed</code> for plain <code>serde_json::Value</code>).</li>
-<li>Consumers writing JSON snapshots from one entry point can later switch to the other without re-baselining.</li>
+<li>Consumers get plain <code>serde_json::Value</code> output via
+<code>parse_full_regex(...)?.content.to_json_value()</code>.</li>
+<li>JSON snapshots written against the former typed entry stay valid — the
+value is byte-identical.</li>
 </ul>
 <p>If you ever encounter a case where the equality fails, that’s a parser bug — please report.</p>
 <h2 id="stability-tiers"><a class="header" href="#stability-tiers">Stability tiers</a></h2>
@@ -229,7 +236,6 @@
 </thead>
 <tbody>
 <tr><td><code>crate::parse_full_regex(input) -&gt; Result&lt;ParseNode&lt;'_&gt;, ParseError&gt;</code></td><td>Stable signature. Function does not move or rename.</td></tr>
-<tr><td><code>crate::parse_regex_typed(input) -&gt; Result&lt;serde_json::Value, ParseError&gt;</code></td><td>Stable signature.</td></tr>
 <tr><td><code>ParseNode { rule_name, content, span }</code> field set</td><td>Stable. New fields may be added (additive); existing fields not removed.</td></tr>
 <tr><td><code>ParseContent</code> six-variant set</td><td>Stable. Variants not removed without major version bump and migration window.</td></tr>
 <tr><td>Schema version field in CHANGES.md</td><td>Always present per release.</td></tr>
@@ -270,7 +276,10 @@ fn ast_snapshot_for_canonical_inputs() {
         r"a", r"a*", r"\d+", r"[a-z]", r"\Qab\E{3}", /* ... */
     ];
     for input in inputs {
-        let actual = parseability::parse_regex_typed(input).unwrap();
+        let actual = parseability::parse_full_regex(input)
+            .unwrap()
+            .content
+            .to_json_value();
         let expected = read_snapshot(input);
         assert_eq!(actual, expected, "AST shape changed for input: {input}");
     }

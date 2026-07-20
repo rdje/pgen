@@ -53,7 +53,7 @@ cat /tmp/sample_ast.json
 
 `generated/regex_parser.rs` is a single ~9 MB Rust source file that compiles into your library or binary as a module. It exposes `RegexParser::new(input, logger).parse_full_regex()`, which returns a `ParseResult<ParseNode<'input>>`. That `ParseNode` is the **AST envelope** documented in the next chapter.
 
-For the typed-Json fast path (opt-in, regenerates with `--enable-parser-hooks`), see [Public API Surface](public-api.md).
+For plain typed-JSON output use `parse_full_regex()?.content.to_json_value()` — see [Public API Surface](public-api.md). (The former opt-in `parse_regex_typed()` fast path was removed 2026-07-20; that call returns byte-identical output.)
 
 ## Pulling new PGEN
 

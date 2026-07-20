@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -194,7 +194,6 @@
 <tr><td>Module path</td><td><code>pgen::generated_parsers::regex</code></td></tr>
 <tr><td>Parser type</td><td><code>RegexParser&lt;'input&gt;</code></td></tr>
 <tr><td>Entry method (default emit)</td><td><code>parse_full_regex()</code></td></tr>
-<tr><td>Entry method (typed fast path, opt-in)</td><td><code>parse_regex_typed()</code></td></tr>
 <tr><td>Schema version</td><td><code>2</code> (typed-Json carrier era — see <a href="schema-versioning.html">Schema Versioning</a>)</td></tr>
 </tbody>
 </table>
@@ -217,15 +216,17 @@ impl&lt;'input&gt; RegexParser&lt;'input&gt; {
 
     /// Standard parse entry. Returns the full `regex` rule's AST envelope.
     pub fn parse_full_regex(&amp;mut self) -&gt; ParseResult&lt;ParseNode&lt;'input&gt;&gt;;
-
-    /// Optional typed fast-path entry. Bypasses `ParseNode` allocation
-    /// and returns `serde_json::Value` directly. Available only when
-    /// the parser was generated with `--enable-parser-hooks` (see Build
-    /// Recipe). Output is byte-equivalent to
-    /// `parse_full_regex()?.content.to_json_value()`.
-    pub fn parse_regex_typed(&amp;mut self) -&gt; ParseResult&lt;serde_json::Value&gt;;
 }
 <span class="boring">}</span></code></pre>
+<blockquote>
+<p><strong>Removed (2026-07-20, PARSER-NEUTRALITY.1):</strong> the former opt-in
+<code>parse_regex_typed()</code> typed fast path — and the <code>--enable-parser-hooks</code>
+regeneration mode that emitted it — are removed by director ruling (the
+AST pipeline carries no per-parser extension mechanism). The equivalent
+output is <code>parse_full_regex()?.content.to_json_value()</code>, byte-identical
+to what the typed entry returned. See the integration contract’s
+2026-07-20 maintenance update.</p>
+</blockquote>
 <h2 id="parsenode-envelope"><a class="header" href="#parsenode-envelope">ParseNode envelope</a></h2>
 <p>Every node the parser produces is wrapped in this envelope:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -338,22 +339,15 @@ let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
 <span class="boring">}</span></code></pre>
 <p>The full embedding-API surface is documented separately in <code>rust/docs/EMBEDDING_API_CONTRACT.md</code>.</p>
-<h2 id="legacy-vs-typed-entry-points"><a class="header" href="#legacy-vs-typed-entry-points">Legacy vs typed entry points</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Feature</th><th><code>parse_full_regex()</code></th><th><code>parse_regex_typed()</code></th></tr>
-</thead>
-<tbody>
-<tr><td>Return type</td><td><code>ParseResult&lt;ParseNode&lt;'input&gt;&gt;</code></td><td><code>ParseResult&lt;serde_json::Value&gt;</code></td></tr>
-<tr><td>Allocation</td><td>Allocates ParseNode tree</td><td>Bypasses ParseNode allocation for annotated rules</td></tr>
-<tr><td>Output equivalence</td><td><code>node.content.to_json_value() == typed_value</code> (byte-equivalent)</td><td>same</td></tr>
-<tr><td>Default emit availability</td><td>YES — default <code>make regex_parser</code> builds it</td><td>NO — requires <code>--enable-parser-hooks</code> regen</td></tr>
-<tr><td>Use case</td><td>Standard consumers; need source spans / <code>rule_name</code> access</td><td>JSON-direct fast path; serialization-only consumers</td></tr>
-</tbody>
-</table>
-</div>
-<p>For consumers like RGX that walk the AST to build a richer downstream representation, <code>parse_full_regex()</code> is usually the right call because the ParseNode tree carries source spans (useful for error reporting back to the regex source author). The typed entry point is most useful when the consumer just wants the JSON.</p>
+<h2 id="getting-plain-json-output"><a class="header" href="#getting-plain-json-output">Getting plain JSON output</a></h2>
+<p><code>parse_full_regex()</code> is the single parse entry point. For consumers like RGX
+that walk the AST to build a richer downstream representation it is the right
+call because the ParseNode tree carries source spans (useful for error
+reporting back to the regex source author). A consumer that just wants the
+typed JSON value calls <code>parse_full_regex()?.content.to_json_value()</code> — this
+returns exactly the <code>serde_json::Value</code> the removed opt-in
+<code>parse_regex_typed()</code> entry used to return (byte-identical output; see the
+removal note above).</p>
 <h2 id="stability-guarantees"><a class="header" href="#stability-guarantees">Stability guarantees</a></h2>
 <div class="table-wrapper">
 <table>

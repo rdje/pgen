@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.106`
+  - `1.1.107`
 - Parser release version:
-  - `1.1.104`
+  - `1.1.105`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-07-11`
+  - `2026-07-20`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -33,6 +33,37 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Maintenance Update 2026-07-20 — PARSER-NEUTRALITY.1: the opt-in `parse_regex_typed()` typed entry points are REMOVED with the parser-hook mechanism (Rust-embedding SURFACE-CHANGING; WIRE-FORMAT UNCHANGED; Release `1.1.105` / Contract `1.1.107`; schema stays `1`)
+
+- By direct director ruling (2026-07-20, recorded in
+  `docs/decisions/feedback_no_parser_hooks_full_neutrality.md`), the AST
+  pipeline carries **no per-parser extension mechanism**: the
+  `--enable-parser-hooks` regeneration mode, the `ParserHooks`/
+  `ParserHookRegistry` surface, and the per-rule `parse_<rule>_typed`
+  entry points that mode emitted (including `parse_regex_typed()`) are
+  removed. The default emit is now the ONLY emit, identical in kind for
+  every PGEN parser family.
+- **Action for downstream (RGX): none expected.** The typed entry was
+  opt-in (never present in the default `make regex_parser` build) and its
+  output is byte-identical to
+  `parse_full_regex()?.content.to_json_value()` — call that instead if you
+  had adopted the opt-in mode. JSON snapshots written against the typed
+  entry stay valid (same value, byte-for-byte).
+- The wire format, the AST envelope, `parse_full_regex()` /
+  `parse_regex()` / `parse_regex_default_ast_dump_named()`, `ParseNode`,
+  `ParseContent`, error shapes, verdicts, and the AST-dump schema (`1`)
+  are all UNCHANGED. Typed-output stability remains proven by the
+  differential-equivalence (interpreter↔generated, all parsers), AST
+  shape-contract, duality, and PCRE2 compile-oracle gates; the former
+  `regex_typed_differential_gate` (which existed to compare the hook path
+  against the reference path) is retired with the hook path itself.
+- Performance floors are unaffected: the typed methods were dead code on
+  the measured parse path, and the landing proof is empirical — the
+  hook-free rebuild reproduces the accepted floors inside the observed
+  noise span (bench floor-validation +1.21%, full 2,189-cell corpus sweep
+  +1.61% with ZERO verdict flips and MAX under the settled bound). The
+  accepted campaign floor (corpus geomean 1,153.5 ns) is unchanged.
 
 ## Maintenance Update 2026-07-17 — REGEX-PCRE2-FIDELITY.DOCSYNC.1: the CURRENT PCRE2-conformance snapshot (DOCS-ONLY; release/contract/schema versions UNCHANGED)
 

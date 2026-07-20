@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -223,7 +223,7 @@ cat /tmp/sample_ast.json
 </code></pre>
 <h2 id="what-youve-just-built"><a class="header" href="#what-youve-just-built">What you’ve just built</a></h2>
 <p><code>generated/regex_parser.rs</code> is a single ~9 MB Rust source file that compiles into your library or binary as a module. It exposes <code>RegexParser::new(input, logger).parse_full_regex()</code>, which returns a <code>ParseResult&lt;ParseNode&lt;'input&gt;&gt;</code>. That <code>ParseNode</code> is the <strong>AST envelope</strong> documented in the next chapter.</p>
-<p>For the typed-Json fast path (opt-in, regenerates with <code>--enable-parser-hooks</code>), see <a href="public-api.html">Public API Surface</a>.</p>
+<p>For plain typed-JSON output use <code>parse_full_regex()?.content.to_json_value()</code> — see <a href="public-api.html">Public API Surface</a>. (The former opt-in <code>parse_regex_typed()</code> fast path was removed 2026-07-20; that call returns byte-identical output.)</p>
 <h2 id="pulling-new-pgen"><a class="header" href="#pulling-new-pgen">Pulling new PGEN</a></h2>
 <p>When you bump the PGEN submodule pin to a newer commit, just rerun:</p>
 <pre><code class="language-bash">make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap

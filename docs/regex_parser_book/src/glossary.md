@@ -28,7 +28,11 @@ A hand-written parser in `rust/src/ast_pipeline/builtin_return_annotation_parser
 
 ## Byte-equivalence
 
-The invariant that `parse_full_regex(input).content.to_json_value() == parse_regex_typed(input)`. Maintained across every PGEN release. See [Schema Versioning](schema-versioning.md).
+The invariant that the typed JSON value obtained through
+`parse_full_regex(input).content.to_json_value()` is stable across releases
+for the same input (historically stated against the removed
+`parse_regex_typed()` entry, which returned the identical value). See
+[Schema Versioning](schema-versioning.md).
 
 ## Char class / character class
 
@@ -158,9 +162,12 @@ The `*` operator in the return annotation language: `[$1, $2*]` means "include $
 
 The three-tier classification of stability guarantees. Tier 1 = stable surface API; Tier 2 = annotated rule shapes; Tier 3 = unannotated rule shapes. See [Schema Versioning](schema-versioning.md).
 
-## Typed parser entry
+## Typed parser entry (removed)
 
-`crate::parse_regex_typed(input) -> Result<serde_json::Value, ParseError>`. Returns the typed JSON value directly, skipping the `ParseNode` envelope. Equivalent to `parse_full_regex(input).content.to_json_value()` but more direct.
+The former opt-in `parse_regex_typed()` entry point, removed 2026-07-20
+(PARSER-NEUTRALITY.1 — no per-parser extension mechanism). For the same
+typed JSON value call `parse_full_regex(input)?.content.to_json_value()`
+(byte-identical output).
 
 ## Un-annotated chain
 

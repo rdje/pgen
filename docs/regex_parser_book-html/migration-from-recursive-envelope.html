@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -337,7 +337,7 @@ match &amp;node.content {
 <p>Each task #40 slice that annotates additional rules will reduce the amount of recursive-envelope handling consumers need. The contract document lists each slice’s effect on the AST shape. We commit to:</p>
 <ul>
 <li><strong>No silent shape changes</strong> — every annotation slice gets a contract-version bump and a row in the changelog.</li>
-<li><strong>Byte-equivalence preservation</strong> — <code>parse_full_regex().content.to_json_value()</code> always equals <code>parse_regex_typed()</code> for the same input. (See <a href="schema-versioning.html">Schema Versioning</a>.)</li>
+<li><strong>Byte-equivalence preservation</strong> — <code>parse_full_regex().content.to_json_value()</code> is stable for the same input across releases (and was byte-identical to the removed <code>parse_regex_typed()</code> entry while that existed). (See <a href="schema-versioning.html">Schema Versioning</a>.)</li>
 <li><strong>No annotation rollbacks</strong> — once a rule is annotated, the typed shape is part of the schema. Reverting requires consumer-coordinated migration, not a silent change.</li>
 </ul>
 

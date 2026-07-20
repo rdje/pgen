@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a27d069.js";
+            window.path_to_searchindex_js = "searchindex-43b70c98.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -324,7 +324,7 @@ match &amp;node.content {
 </tbody>
 </table>
 </div>
-<p>This is what the byte-equivalence guarantee between <code>parse_full_regex().content.to_json_value()</code> and <code>parse_regex_typed()</code> is built on.</p>
+<p>This is what the byte-equivalence guarantee for <code>parse_full_regex().content.to_json_value()</code> output is built on (the removed <code>parse_regex_typed()</code> entry returned this same value).</p>
 <h3 id="2-alternative-is-transparent-in-json-output"><a class="header" href="#2-alternative-is-transparent-in-json-output">2. Alternative is transparent in JSON output</a></h3>
 <p>Because <code>Alternative.to_json_value()</code> unwraps, the JSON output never has <code>{"Alternative": ...}</code> keys at the JSON-serialisation level for <code>to_json_value()</code> paths. The <code>Alternative</code> variant is visible only when consumers walk the <code>ParseNode</code> tree directly, not when they <code>to_json_value()</code> it.</p>
 <p>In <code>parse-dump-ast-pretty</code> output (the raw envelope-level dump), <code>Alternative</code> variants ARE visible because that path uses <code>serde::Serialize</code> on the <code>ParseContent</code> enum.</p>

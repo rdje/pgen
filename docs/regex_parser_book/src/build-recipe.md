@@ -117,19 +117,14 @@ If two consecutive runs produce different SHAs, **that's a non-determinism bug**
 
 The SHA itself shifts whenever the grammar source or the PGEN pipeline source legitimately changes. The contract is determinism, not a fixed SHA.
 
-## Optional: typed-entry-point fast path
+## Removed: the typed-entry-point regeneration mode
 
-To get the opt-in `parse_regex_typed()` typed entry point (returns `serde_json::Value` directly, bypassing `ParseNode` allocation):
-
-```bash
-# Replace the regex-parser regen step with --enable-parser-hooks:
-subs/pgen/rust/target/debug/ast_pipeline \
-    --generate-parser --debug --trace --eliminate-left-recursion \
-    --enable-parser-hooks \
-    subs/pgen/generated/regex.json -o subs/pgen/generated/regex_parser.rs
-```
-
-Default `make regex_parser` does NOT register the hook → the default emit doesn't carry the typed methods. The legacy `parse_regex()` API is unchanged either way.
+> **Removed (2026-07-20, PARSER-NEUTRALITY.1):** the former opt-in
+> `--enable-parser-hooks` regeneration mode and the `parse_regex_typed()`
+> entry it emitted are removed by director ruling — the AST pipeline carries
+> no per-parser extension mechanism, and the default emit is the ONLY emit.
+> For plain JSON output use `parse_full_regex()?.content.to_json_value()`
+> (byte-identical to what the typed entry returned).
 
 ## What can go wrong
 

@@ -11,7 +11,6 @@ The regex parser exposes a small, stable Rust API. This chapter is the canonical
 | Module path | `pgen::generated_parsers::regex` |
 | Parser type | `RegexParser<'input>` |
 | Entry method (default emit) | `parse_full_regex()` |
-| Entry method (typed fast path, opt-in) | `parse_regex_typed()` |
 | Schema version | `2` (typed-Json carrier era — see [Schema Versioning](schema-versioning.md)) |
 
 ## Top-level types
@@ -32,15 +31,16 @@ impl<'input> RegexParser<'input> {
 
     /// Standard parse entry. Returns the full `regex` rule's AST envelope.
     pub fn parse_full_regex(&mut self) -> ParseResult<ParseNode<'input>>;
-
-    /// Optional typed fast-path entry. Bypasses `ParseNode` allocation
-    /// and returns `serde_json::Value` directly. Available only when
-    /// the parser was generated with `--enable-parser-hooks` (see Build
-    /// Recipe). Output is byte-equivalent to
-    /// `parse_full_regex()?.content.to_json_value()`.
-    pub fn parse_regex_typed(&mut self) -> ParseResult<serde_json::Value>;
 }
 ```
+
+> **Removed (2026-07-20, PARSER-NEUTRALITY.1):** the former opt-in
+> `parse_regex_typed()` typed fast path — and the `--enable-parser-hooks`
+> regeneration mode that emitted it — are removed by director ruling (the
+> AST pipeline carries no per-parser extension mechanism). The equivalent
+> output is `parse_full_regex()?.content.to_json_value()`, byte-identical
+> to what the typed entry returned. See the integration contract's
+> 2026-07-20 maintenance update.
 
 ## ParseNode envelope
 
@@ -163,17 +163,16 @@ assert!(contract.supports_regex_generated_backend);
 
 The full embedding-API surface is documented separately in `rust/docs/EMBEDDING_API_CONTRACT.md`.
 
-## Legacy vs typed entry points
+## Getting plain JSON output
 
-| Feature | `parse_full_regex()` | `parse_regex_typed()` |
-|---|---|---|
-| Return type | `ParseResult<ParseNode<'input>>` | `ParseResult<serde_json::Value>` |
-| Allocation | Allocates ParseNode tree | Bypasses ParseNode allocation for annotated rules |
-| Output equivalence | `node.content.to_json_value() == typed_value` (byte-equivalent) | same |
-| Default emit availability | YES — default `make regex_parser` builds it | NO — requires `--enable-parser-hooks` regen |
-| Use case | Standard consumers; need source spans / `rule_name` access | JSON-direct fast path; serialization-only consumers |
-
-For consumers like RGX that walk the AST to build a richer downstream representation, `parse_full_regex()` is usually the right call because the ParseNode tree carries source spans (useful for error reporting back to the regex source author). The typed entry point is most useful when the consumer just wants the JSON.
+`parse_full_regex()` is the single parse entry point. For consumers like RGX
+that walk the AST to build a richer downstream representation it is the right
+call because the ParseNode tree carries source spans (useful for error
+reporting back to the regex source author). A consumer that just wants the
+typed JSON value calls `parse_full_regex()?.content.to_json_value()` — this
+returns exactly the `serde_json::Value` the removed opt-in
+`parse_regex_typed()` entry used to return (byte-identical output; see the
+removal note above).
 
 ## Stability guarantees
 

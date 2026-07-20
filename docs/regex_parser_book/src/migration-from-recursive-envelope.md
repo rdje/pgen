@@ -180,5 +180,5 @@ The amount of consumer code that goes away is substantial — most pre-1.1.30 re
 Each task #40 slice that annotates additional rules will reduce the amount of recursive-envelope handling consumers need. The contract document lists each slice's effect on the AST shape. We commit to:
 
 - **No silent shape changes** — every annotation slice gets a contract-version bump and a row in the changelog.
-- **Byte-equivalence preservation** — `parse_full_regex().content.to_json_value()` always equals `parse_regex_typed()` for the same input. (See [Schema Versioning](schema-versioning.md).)
+- **Byte-equivalence preservation** — `parse_full_regex().content.to_json_value()` is stable for the same input across releases (and was byte-identical to the removed `parse_regex_typed()` entry while that existed). (See [Schema Versioning](schema-versioning.md).)
 - **No annotation rollbacks** — once a rule is annotated, the typed shape is part of the schema. Reverting requires consumer-coordinated migration, not a silent change.
