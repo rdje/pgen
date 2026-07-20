@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0190 — allocator children belong to return addresses, not flat symbols
+
+**A generic monomorphization is still an aggregate.** The name-stack `RawVec::grow_one` hash also appears beneath build, memo, and arena callers. Its flat total is not the name-stack cost. Exact call PCs plus their sampled return offsets reduce the mechanism to five owned callers and exclude everything else.
+
+**Tail-call optimization changes the visible child, not its caller ownership.** A few samples show `RawVecInner::finish_grow` directly beneath the exact name-grow return address because the outer frame was tail-elided. Refusing those would undercount known child work; admitting them only under the qualified parent preserves custody. Any foreign immediate child remains a hard refusal.
+
+**Callee attribution closes the raw-PC blind spot without overlap.** `-0188` counted instructions in the parser/guard ranges and explicitly excluded samples delivered inside callees. This leaf counts only those child subtrees. The two populations are disjoint by construction, so 4.005065577 ns is additive rather than a second view of the same samples.
+
+**Barely clearing noise is still not practical margin.** The honest 30% case now clears 28.8 ns by 1.424845964 ns, but the candidate still owes ID-to-name reconstruction and a full emitter/runtime representation change. A sliver smaller than known replacement/model uncertainty does not license an all-11 chain.
+
 ## 2026-07-20 - PGEN-RGX-0078-0189 — replacement-equivalent snapshots are not savings
 
 **Price the net representation delta, not every old instruction near it.** Generated `try_parse` currently snapshots name depth and later truncates both stacks. An ID-only path still needs an ID-depth snapshot and ID truncate. Only the parallel name compare/branch/store tail disappears; treating the snapshot as removable would double-credit replacement work.

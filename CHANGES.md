@@ -1,5 +1,11 @@
 # CHANGES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0190 — exact name-stack growth adds 4.005 ns but still lacks practical margin
+
+Recovered the allocator/growth work deliberately excluded from the raw-PC recursion-guard estimate without using a mixed flat symbol total. The preserved binary has four exact generated inline calls and one outlined `enter_id` call to the name-stack `RawVec::grow_one` monomorphization, plus a separately verified required ID-stack control call. Their exact return-address frames in the three custody-pinned call trees own **33/43/34** child samples with zero residual, including LLVM tail-elided `finish_grow` frames; unrelated `Vec<24>` consumers are excluded.
+
+Inline calls contribute **0.672504411 ns** and the outlined arm contributes **3.332561166 ns**. With the excluded corpus tail priced at zero, the conservative total is **0.317006932% = 4.005065577 ns**. The honest full name-stack bundle becomes **100.749486548 ns**; 30% capture is **30.224845964 ns**, only **1.424845964 ns above** the 28.8 ns noise floor and still before mandatory name reconstruction/model uncertainty. Implementation therefore remains HOLD. Parser/runtime/emitter/generated artifact, behavior, accepted floor/MAX, mdBook, contracts, reference architecture, and LIVE rows are unchanged. Next: owned `PGEN-RGX-0078-0191`, lossless compact `DerivEvent` feasibility and exact pricing.
+
 ## 2026-07-20 - PGEN-RGX-0078-0189 — generated name-stack rollback adds only 0.149 ns
 
 The source and machine audit closes the replacement-accounting gap around generated `try_parse`. Under the compatible ID-only fused design, the saved name depth becomes a saved ID depth one-for-one, the ID-stack truncate remains required, and error-path last-name capture maps the retained `RuleId` through generated `RULE_NAMES`. The future mapping cost is excluded rather than silently treated as free.

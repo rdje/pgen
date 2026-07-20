@@ -1,0 +1,20 @@
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+profile custody: PASS sub1us=d16e7def6f05da33ac05a664b9588b8dc29648e9ec37828f3387a95f436573ed 1to2p5=e94a57152fe1e85cd1a66d8ca14b5707536ae36e20583c2712bcef64932098e6 2p5to20=1c9643db9c342f315179ff49232575423f949f724ed22dadc39bdc218b7ea788
+static callsites: name_inline=4 name_outlined=1 required_id_control=1 all_exact_bl_targets=PASS
+scope: exact name-call child subtrees (including tail-elided finish_grow); aggregate h1ea rows, required h84ff ID growth, and other Vec<24> consumers excluded
+
+CALLER-ATTRIBUTED COUNTS
+band       total  inline_child  outlined_child  name_child  parent_residual
+sub1us    11875             3              30          33                0
+1to2p5    11805             4              39          43                0
+2p5to20   10673            13              21          34                0
+
+PRICING
+inline_share=0.053229730% inline_target_ns=0.672504411
+outlined_share=0.263777202% outlined_target_ns=3.332561166
+full_corpus_conservative_share=0.317006932% target_ns=4.005065577 excluded_tail=priced_at_zero
+covered_band_normalized_share=0.319241623% target_ns=4.033298668
+pre_lookup_composite_ns=100.749486548 capture_0.30_ns=30.224845964 noise_margin_ns=1.424845964
+optimistic_lookup_composite_ns=104.574093278 capture_0.30_ns=31.372227983 noise_margin_ns=2.572227983
+verdict=HOLD (honest 1.425 ns margin remains too small for mandatory name reconstruction and model uncertainty)
+RECURSION NAME GROWTH EXPANSION: PASS
