@@ -1,0 +1,50 @@
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+raw custody: sub1us=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 1to2p5=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 2p5to20=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c
+source custody: PASS rust/src/ast_pipeline/mod.rs=031e8f31407c171d93dd699d5907fd025ff126a4405d8e498174a87e6d6efbd8 rust/src/ast_pipeline/ast_based_generator.rs=b5ed80b80adfcf1a6fb5df38884e249e06eff2f32a5e78dfef8760d256f374df rust/src/ast_pipeline/ast_based_generator/cascade.rs=413fefe99dbfe8d4a03886f4eb4999d078fb03696f861ee1e7fefc23db03a100
+prior event/boundary classifiers: byte-exact reproduction PASS
+DerivEvent size=16 align=8 needs_drop=false
+ParseNodeStandIn size=48 align=8 needs_drop=false
+BoundaryRef size=8 align=8 needs_drop=false
+TaggedCurrent size=16 align=8 needs_drop=false
+TaggedPacked size=16 align=8 needs_drop=false
+UntaggedWord size=8 align=8 needs_drop=false
+TaggedAddressWord size=8 align=8 needs_drop=false
+WideEventRecord size=16 align=8 needs_drop=false
+usize_bits=64
+narrow_payload_max=2305843009213693951
+codec_roundtrip=PASS
+
+SOURCE ORDER / LIFETIME
+match order: event and boundary appends follow AST execution order; Or/Quant/Opt placeholders precede their nested segments
+patching: placeholders carry no absolute tape indices; a wide escape may insert its payload immediately after final compaction/iteration
+build order: the same AST walk consumes event or boundary records at the corresponding site; lookahead discards all records
+memo/orchestrator: one contiguous word slice preserves segment replay, nesting, mark/truncate stack discipline, and arena-reference lifetime
+lossless carrier: tag0=unaltered aligned boundary pointer; tags1..6=event variants; tag7=wide-event escape + raw usize payload word
+safety: tag checked before the sole encapsulated boundary dereference; event words are provenance-free raw pointers and are never dereferenced
+
+SOURCE OPERATION CENSUS
+cascade deriv_events.len()=13 deriv_boundary.len()=11 deriv_events.truncate=11 deriv_boundary.truncate=10 deriv_events.copy_within=1 deriv_boundary.copy_within=1 deriv_events.push=7 deriv_boundary.push=2 deriv_events.extend_from_slice=1 deriv_boundary.extend_from_slice=1 deriv_ev_cursor=5 deriv_b_cursor=4 deriv_next_event()=6 deriv_next_boundary()=1
+generator deriv_events:=2 deriv_boundary:=2 deriv_ev_cursor=2 deriv_b_cursor=2 deriv_events.clear()=1 deriv_boundary.clear()=1
+
+MACHINE PAIRING
+outlined boundary=22 paired=22 event_unpaired=1 diff_range=0x30..0x50
+direct boundary=15 paired=15 event_unpaired=0 diff_range=0x3c..0x44
+direct metadata static event=291 boundary=215 boundary_nearest_event_max_bytes=84 overlap=0
+
+DYNAMIC DIRECT METADATA
+band=sub1us   raw=22521 event=104 boundary= 30 resum=134
+band=1to2p5   raw=24279 event= 74 boundary= 19 resum= 93
+band=2p5to20  raw=28308 event= 78 boundary= 40 resum=118
+
+REPLACEMENT-AWARE PRICING
+strict_new_removable_ns=0.000000000
+boundary_direct_metadata_gross_ceiling_ns=1.452693317
+paired_boundary_copy_whole_child_impossible_ceiling_ns=5.727016718
+one_allocator_whole_child_absolute_ceiling_ns=1.687336492
+view=strict                   unified_ns=0.000000000 composite_ns=102.138976561 capture_0.30_ns=30.641692968 noise_margin_ns=1.841692968
+view=plus_direct_gross        unified_ns=1.452693317 composite_ns=103.591669878 capture_0.30_ns=31.077500963 noise_margin_ns=2.277500963
+view=plus_allocator_absolute  unified_ns=3.140029809 composite_ns=105.279006370 capture_0.30_ns=31.583701911 noise_margin_ns=2.783701911
+view=plus_impossible_copy     unified_ns=8.867046527 composite_ns=111.006023088 capture_0.30_ns=33.301806926 noise_margin_ns=4.501806926
+overlap: event one-word byte saving=-0191 excluded; G1-C pushes/growth excluded; thin-memo success segments=accepted ranges excluded; boundary copy bytes and one surviving allocation remain required
+verdict=FEASIBLE-HOLD (the safe 8-byte carrier is lossless, but its boundary tag check/mask and variable-width decode debit are unpriced; no strict floor-clearing contribution may be banked without an A/B)
+UNIFIED DERIVATION TAPE PRICING: PASS

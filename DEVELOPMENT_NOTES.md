@@ -1,5 +1,17 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-20 - PGEN-RGX-0078-0196 — pointer provenance can be the tag-zero case
+
+**Parallel append logs can still have one semantic order.** The relevant proof is not that every event has a boundary partner; most do not. It is that match and build traverse the same AST preorder, each record is produced and consumed at the same site, and every rollback/compaction acts on whole suffixes or winner segments. That makes a stable merge possible without storing cross-indices.
+
+**A safe enum is not the only safe tagged representation.** Rust's ordinary enum layout needs 16 bytes for `usize | &ParseNode`, but an encapsulated address word can keep the actual boundary pointer unchanged at tag zero and use provenance-free nonzero addresses for events. The decoder checks the tag before the only unsafe dereference. This avoids the untagged-union failure mode, where codegen drift can reinterpret an event as an invalid reference.
+
+**Low-bit packing needs an arbitrary-width escape even when practical values are tiny.** Input positions cannot be capped at the observed corpus. A tag-seven header plus untouched payload word preserves the entire `usize` domain. Placeholder expansion is valid only after its inner tournament/loop marks are dead; documenting that temporal invariant is part of the representation, not an implementation detail.
+
+**Deleting a lane does not delete its bytes.** Once events are independently one word, separate and unified tournament representations both move `8*events + 8*boundaries` bytes. Unification can remove a Vec/cursor and one call/setup lane, but pricing the entire boundary `memmove` child as saved is false. Likewise, one allocation disappears only by enlarging the survivor.
+
+**Gross metadata time needs the decoder debit.** The preserved profile can count the 215 boundary Vec-field PCs, but it cannot count instructions introduced by a future tag test, escape check, and pointer decode. The 1.452693317 ns lane is therefore a feasibility ceiling; strict stays zero until a later owned A/B measures the complete replacement.
+
 ## 2026-07-20 - PGEN-RGX-0078-0195 — an index is compact only if its identity structure is free
 
 **One pointer word is not a fat carrier.** `deriv_boundary` contains exactly the semantic identity the build pass needs: a stable arena reference. Unlike `DerivEvent`, there is no second payload word or discriminant to remove. Replacing it with `usize` merely renames the word.

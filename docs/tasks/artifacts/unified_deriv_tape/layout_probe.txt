@@ -1,0 +1,11 @@
+DerivEvent size=16 align=8 needs_drop=false
+ParseNodeStandIn size=48 align=8 needs_drop=false
+BoundaryRef size=8 align=8 needs_drop=false
+TaggedCurrent size=16 align=8 needs_drop=false
+TaggedPacked size=16 align=8 needs_drop=false
+UntaggedWord size=8 align=8 needs_drop=false
+TaggedAddressWord size=8 align=8 needs_drop=false
+WideEventRecord size=16 align=8 needs_drop=false
+usize_bits=64
+narrow_payload_max=2305843009213693951
+codec_roundtrip=PASS
