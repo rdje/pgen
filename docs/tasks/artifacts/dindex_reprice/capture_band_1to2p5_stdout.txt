@@ -1,0 +1,17 @@
+# Regex corpus parse-time sweep — per-case stats in docs/tasks/artifacts/dindex_reprice/capture_band_1to2p5_times.jsonl
+# corpus=/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T//pgen-dindex-reprice-0206.74A2UK/band_1to2p5.jsonl cases=720 accepts=678 rejects=42 expectation_mismatches=86
+# sampling: full=720 (samples=90000 warmup=50) reduced=0 (samples=5 warmup=1, cold parse >= 100 ms) single_shot=0 (cold parse >= 2000 ms)
+# geomean(min_ns)=1480.4 max(min_ns)=2416 (23 bytes, pcre2:testdata/testinput2:line_7133)
+#
+# slowest 10 cases by min_ns:
+#     min (ns)  pattern bytes id
+#         2416             23 pcre2:testdata/testinput2:line_7133
+#         2375             25 pcre2:testdata/testinput2:line_6777
+#         2375             16 pcre2:testdata/testinput2:line_1276
+#         2375             18 pcre2:testdata/testinput2:line_2807
+#         2375             20 pcre2:testdata/testinput2:line_4650
+#         2375             25 pcre2:testdata/testinput2:line_6247
+#         2375             17 pcre2:testdata/testinput2:line_6254
+#         2375             26 pcre2:testdata/testinput2:line_6771
+#         2375             26 pcre2:testdata/testinput2:line_6774
+#         2334             15 pcre2:testdata/testinput2:line_6113
