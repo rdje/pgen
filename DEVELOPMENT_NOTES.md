@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0178 — a profiler sees work that a timer may exclude
+
+**Always locate the metric boundary in the optimized binary.** Continuous sampling correctly reported parser and arena destruction, but the benchmark's `Duration` had already been captured. A profile describes CPU work; it does not automatically describe the arithmetic inside a narrower stopwatch. The source order suggested this, and the preserved fat-LTO disassembly made it decisive.
+
+**Cumulative call-site samples are the right unit for an ownership mechanism.** Flat `SemanticRuntimeState::new` self samples omit its allocator children; broad allocator rows mix unrelated callers. The four `parse_once_timed` return offsets count the complete facts-snapshot/new/drop/clone calls while keeping their callers exact. This is the mechanism-sized middle ground between undercounting a leaf and overclaiming an aggregate class.
+
+**Fresh construction followed by reusable reset is a cold-path duplication smell.** The parser API is reusable, so `prepare_parse_state` must clear leftovers after a parse. But `new()` already establishes precisely the state the first parse needs, including preloads and predicate definitions. Treating the virgin instance as reused immediately buys a concrete setup candidate without weakening reuse semantics.
+
+**Keep the lower bound lower.** The bypass would also remove inline clears of empty diagnostic maps, state copies, and assignment instructions, but the profile script counts only four exact out-of-line calls. That deliberate omission is why the 22.563 ns target is usable in batch arithmetic; the A/B—not static instruction counting—will decide the full composition if the batch earns a GO.
+
 ## 2026-07-20 - PGEN-RGX-0078-0177 — price what a representation change actually removes
 
 **A type layout is a mechanism clue, not a timing result.** G1-B had an exact structural proof—80 bytes and `needs_drop=true` today, 32 bytes and `needs_drop=false` with an index carrier—but no nanosecond price. The direct monomorphic drop symbol closes only that gap. It does not license pricing narrower moves, fewer spills, or better register allocation; those remain upside until a candidate A/B measures the whole composition.

@@ -1,0 +1,28 @@
+custody: PASS (probe disassembly + 3/3 profile hashes/totals/offsets)
+timer boundary: elapsed @ +8704; parser drop @ +8760; arena drop @ +8788
+G3 return offsets: to_vec=3184 new=3192 old-drop=3200 clone=3420
+
+band                         total  G3_samples  G3_share  teardown_out  teardown_share
+sample_band_sub1us.txt       11875         378    3.1832%          1061        8.9347%
+sample_band_1to2p5.txt       11805         152    1.2876%           982        8.3185%
+sample_band_2p5to20.txt      10673          50    0.4685%           899        8.4231%
+
+covered log weight:                          99.3%
+G3 share, covered-band normalized:        1.7985%
+G3 target, covered-band estimate:          22.722 ns
+G3 share, full-corpus conservative:        1.7859%
+G3 target used in bundle:                  22.563 ns
+teardown profile share excluded:           8.5216%
+false target if teardown were admitted:    107.662 ns
+prior residual BATCH-1 target:              61.822 ns
+BATCH-1 + G3 target:                        84.385 ns
+enlarged target / floor:                    6.6792%
+
+capture  saving_ns  geomean_delta  noise_multiple
+    30%     25.316       -2.0038%         0.8790x
+    50%     42.193       -3.3396%         1.4650x
+    70%     59.070       -4.6755%         2.0510x
+
+low-case shortfall below noise:              3.484 ns
+midpoint margin above noise:                13.393 ns
+decision: HOLD (low capture still misses noise; price fused-spine memory next)

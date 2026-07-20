@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0178 — G3 timer-boundary audit removes teardown from the model and prices one virgin-reset mechanism
+
+The custody-pinned preserved probe settles a foundational ambiguity in the G3 profile class. `regex_perf_probe::parse_once_timed` reads its end clock at return offset +8704; normal `RegexParser` and `NodeArena` destruction follows at +8760 and +8788. Their cumulative call sites consume **8.5216%** of the weighted sample loop—equivalent to a false **107.662 ns** target if multiplied by the 1,263.4 ns floor—but cannot change the duration already captured. Teardown therefore contributes **zero** to the closure metric, superseding the earlier “setup + teardown ≈6–8%” shorthand.
+
+One in-metric G3 mechanism survives caller attribution. `RegexParser::new` constructs and seeds a virgin `SemanticRuntimeState`; the immediately following first `parse()` runs `prepare_parse_state` as though the parser were being reused: facts snapshot at +3184, replacement state construction at +3192, virgin-state destruction at +3200, and a second predicate-def clone at +3420. The cumulative call-site counts are 378/11,875, 152/11,805, and 50/10,673 across the three bands. Conservatively projecting the covered 99.3% log weight onto the full corpus prices **1.7859% = 22.563 ns**; inline empty-clear checks, copies, and assignments remain unpriced upside.
+
+Residual BATCH-1 plus G3 now targets **84.385 ns = 6.6792%**. Standard 30/50/70% capture is **25.316/42.193/59.070 ns = -2.004/-3.340/-4.675% = 0.879x/1.465x/2.051x** the 28.8 ns noise span. The midpoint has real margin, but the conservative low case remains **3.484 ns below noise**, so the all-11 implementation chain remains on HOLD under the same rule that governed `-0173`. Every real population stays queued.
+
+The next committed frontier is read-only `PGEN-RGX-0078-0179`: dynamic, time-weighted sampled-IP attribution inside the fused spine's memory instructions, with G1-C and memo-copy overlap explicitly subtracted. Floor, MAX, artifacts, probes, public behavior, mdBook, contracts, and LIVE rows are unchanged.
+
 ## 2026-07-20 - PGEN-RGX-0078-0177 — residual BATCH-1 re-priced from executed mechanisms; HOLD before regeneration
 
 The residual emitter batch has been re-priced without touching source, generated artifacts, or probe binaries. A reproducible script asserts the full SHA-256, main-thread sample total, and exact flat row in each of the three banked fused-path profiles before extracting the concrete `drop_in_place<Result<(), ParseError>>` self population: 43/11,875 samples below 1 µs, 36/11,805 at 1–2.5 µs, and 43/10,673 at 2.5–20 µs. Their covered-band normalized target is **0.3525% = 4.453 ns**; the bundle uses a conservative **0.3500% = 4.422 ns** by assigning zero to the excluded tail.
