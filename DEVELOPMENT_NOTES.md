@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0177 — price what a representation change actually removes
+
+**A type layout is a mechanism clue, not a timing result.** G1-B had an exact structural proof—80 bytes and `needs_drop=true` today, 32 bytes and `needs_drop=false` with an index carrier—but no nanosecond price. The direct monomorphic drop symbol closes only that gap. It does not license pricing narrower moves, fewer spills, or better register allocation; those remain upside until a candidate A/B measures the whole composition.
+
+**Use the conservative projection when profile coverage is deliberately incomplete.** The three profiles cover 99.3% of rounded corpus log weight. Their normalized estimate is 4.453 ns, but the batch arithmetic uses 4.422 ns by assigning the excluded tail zero rather than silently treating the covered cells as the whole corpus. The difference is small; the habit matters.
+
+**Barely crossing noise is not margin.** The residual batch's 50% capture is 30.911 ns against a 28.8 ns same-binary span. A 2.111 ns gap cannot justify an all-11 regeneration and two fat-LTO builds as an independently measurable experiment. Holding the chain does not reject its real populations; it means the next independently attributed mechanism must join the batch before the measurement can adjudicate it honestly.
+
+**A fixed intercept is not one removable thing.** G3 is next because setup and teardown are real recurring populations, not because the roughly 171 ns intercept can be summed wholesale. The audit must split constructors, annotation clones, map/arena/parser drops, and harness contamination by caller and ownership. Only the portions tied to a concrete removable mechanism may enlarge the batch.
+
 ## 2026-07-20 - PGEN-RGX-0078-0176 — a large event count does not imply a measurable residual cost
 
 **Population is necessary evidence, not a cost model.** Member 5 looked unusually strong because it touches roughly 130 rule entries per bench parse, about 74x the combined population of the two members rejected immediately before it, and because an earlier optimization removed an allocation from the same structure for about 4.3%. The safe A/B now says what the count could not: removing the remaining `Vec<Cow>` push/pop traffic, after paying the depth/latch bookkeeping required for mutable trace configuration, moves the bench only 0.82% and the corpus geomean 0.92% — both inside the 2.28% noise span.

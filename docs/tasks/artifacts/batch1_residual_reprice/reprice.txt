@@ -1,0 +1,23 @@
+custody: PASS (3/3 full sha256, sample totals, and flat rows)
+band                         total  drop  self_share  log_weight
+sample_band_sub1us.txt       11875    43     0.3621%      38.0%
+sample_band_1to2p5.txt       11805    36     0.3050%      35.3%
+sample_band_2p5to20.txt      10673    43     0.4029%      26.0%
+
+covered log weight:                 99.3%
+drop share, covered-band normalized:   0.3525%
+drop target, covered-band estimate:     4.453 ns
+drop share, full-corpus conservative: 0.3500% (excluded tail priced at zero)
+drop target used in bundle:             4.422 ns
+G1-C attributed target:                26.700 ns
+memo segment-copy target:              30.700 ns
+residual BATCH-1 target:                61.822 ns
+residual target / floor:               4.8933%
+
+capture  saving_ns  geomean_delta  noise_multiple
+    30%     18.547       -1.4680%         0.6440x
+    50%     30.911       -2.4466%         1.0733x
+    70%     43.275       -3.4253%         1.5026x
+
+midpoint margin above noise:            2.111 ns
+decision: HOLD (midpoint has no practical margin; price G3 next)

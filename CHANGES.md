@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0177 — residual BATCH-1 re-priced from executed mechanisms; HOLD before regeneration
+
+The residual emitter batch has been re-priced without touching source, generated artifacts, or probe binaries. A reproducible script asserts the full SHA-256, main-thread sample total, and exact flat row in each of the three banked fused-path profiles before extracting the concrete `drop_in_place<Result<(), ParseError>>` self population: 43/11,875 samples below 1 µs, 36/11,805 at 1–2.5 µs, and 43/10,673 at 2.5–20 µs. Their covered-band normalized target is **0.3525% = 4.453 ns**; the bundle uses a conservative **0.3500% = 4.422 ns** by assigning zero to the excluded tail.
+
+This is a mechanism-valid G1-B target: the row is one exact monomorphization inside the generated fused match call trees, and the `-0173` type-layout probe proves the index-side-table carrier is the only tested design that changes the current 80-byte `needs_drop=true` result into a 32-byte `needs_drop=false` result. Possible gains from the narrower carrier—moves, spills, and register pressure—remain explicitly unpriced upside.
+
+Adding caller-attributed G1-C **26.7 ns** and memo segment copies **30.7 ns** yields a residual target of **61.822 ns = 4.893%**. At 30/50/70% capture the band is **18.547/30.911/43.275 ns = -1.468/-2.447/-3.425% = 0.644x/1.073x/1.503x** the 28.8 ns same-binary noise span. The midpoint clears noise by only **2.111 ns**, so the all-11 regeneration chain is on **HOLD** under the standing requirement to clear noise with margin. The populations are not refused; they remain queued for a larger measurable batch.
+
+The next owned leaf is read-only `PGEN-RGX-0078-0178`: attribute G3 fixed setup/teardown samples to concrete constructor, clone, drop, and ownership mechanisms. Neither the roughly 171 ns fixed intercept nor the whole 6–8% profile class is admitted as a lever without that audit. Campaign floor, settled MAX, regex artifact, probes, public behavior, mdBook, contracts, and LIVE rows are unchanged.
+
 ## 2026-07-20 - PGEN-RGX-0078-0176 — `.5.j.4` member-5 trace-off rule-context latch measured-falsified and reverted
 
 The safe per-outermost static transaction latch from `-0175` was implemented exactly as designed, including focused tests for trace-off stack elision, the exact nested diagnostic chain, mid-tree latch symmetry, between-tree trace resampling, and legacy allocating push/pop behavior. It passed the complete correctness battery before pricing: focused context tests 4/4; dual-feature lib 1,002 passed / 0 failed / 29 ignored (including all-11 byte equivalence, combinator, and semantic gates); cert seeds 0/7/42 each `268/9/259/0 fully_certified`; PCRE2 exact `2189/1879/262/48`; shape 4/0; all nine duality lanes plus repeat; strict source Clippy green. The generated regex artifact remained byte-identical at `e4924024`.
