@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0180 — qualify privilege as well as retention
+
+**A promising output format is irrelevant if the capture boundary is unavailable.** `spindump` advertises raw/timeline features that might preserve per-PC weights, but live capture requires root on this host. The same exit outside the sandbox distinguished a product privilege boundary from a harness restriction immediately.
+
+**Do not broaden authority to rescue an instrument candidate.** The measurement question can be answered inside the process: a preload library can receive profiling signals and extract the interrupted PC without debugger attachment. Root is unnecessary scope expansion, not a blocker to the campaign.
+
+**A failed qualification should leave no measurement-shaped debris.** No output was produced; the partial workload was stopped; process absence was verified; the empty temporary directory was removed. Consequently no accidental “0 samples” or partial report can be mistaken for a performance result later.
+
 ## 2026-07-20 - PGEN-RGX-0078-0179 — profiler output format is part of instrument custody
 
 **A dynamic profile can still discard the dynamic fact a later question needs.** macOS `sample` retained correct self totals but condensed several top-frame instruction addresses beneath one count. Symbol-level attribution survived; per-instruction attribution did not. Checking the report's information model before another capture saved a repeat of a structurally unusable measurement.

@@ -1,0 +1,42 @@
+PGEN-RGX-0078-0180 raw/timeline sampler qualification
+date: 2026-07-20
+candidate: macOS spindump target-only timeline/raw capture
+
+preflight
+  repository: clean at 27382719e8d26ea5ff70cc1b3a38cb6e6cd0865c
+  competing heavy/profile jobs: none
+  disk available: 64 GiB
+  memory: 643166 free 16-KiB pages; zero throttled pages
+  probe: preserved_probes/regex_perf_probe_c1_1d3fa0ee
+  probe sha256: 1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+
+live workload
+  command: caffeinate -ims preserved_probes/regex_perf_probe_c1_1d3fa0ee --samples 4000000 --warmup 200
+  pid: 94599
+  ps comm: preserved_probes
+  lsof txt (repo-relative): preserved_probes/regex_perf_probe_c1_1d3fa0ee
+  rss at identity check: 38640 KiB
+
+candidate command
+  spindump 94599 3 500u -onlyTarget -timeline -timestampsInCallTrees machabs -noProcessingWhileSampling -noSymbolicate -o <temporary-directory>
+
+attempt 1: sandboxed
+  exit: 77
+  stderr: spindump must be run as root when sampling the live system
+
+attempt 2: unsandboxed approval path
+  exit: 77
+  stderr: spindump must be run as root when sampling the live system
+
+cleanup
+  output files: none
+  workload: interrupted after candidate refusal; exit 130
+  partial completed rows: literal_simple and digit_sequence
+  lingering regex_perf_probe/spindump processes: none
+  empty temporary directory: removed
+
+qualification
+  one-PC coverage: not measurable (capture refused before sampling)
+  required coverage: >=95%
+  verdict: REFUSE SPINDUMP ON THIS HOST (root-only live capture)
+  next: separately owned in-process SIGPROF/ucontext PC sampler qualification

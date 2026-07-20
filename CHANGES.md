@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0180 — raw/timeline sampler candidate refused at the root boundary
+
+The first replacement for macOS `sample` was qualified before any full-band recapture. The unchanged preserved C1 probe was verified by full SHA-256 and live text-image path at PID 94599; no competing build/profile job ran, disk had 64 GiB free, and memory had zero throttled pages. A three-second `spindump` target-only timeline/raw command then returned **exit 77** twice—once sandboxed and once through the approved unsandboxed path—with the same requirement that live-system sampling run as root.
+
+No capture file was created, so the pre-registered **>=95% one-PC retention** bar is unmet and no evidence is inferred. The workload was interrupted after the candidate refusal; probe and sampler were confirmed absent; the empty temporary directory was safely removed. `spindump` is refused on this host without asking for broader root authority.
+
+The next owned leaf qualifies a no-root, in-process preload profiler: `ITIMER_PROF`/`SIGPROF` records arm64 PCs from `ucontext_t` into a preallocated buffer and emits raw addresses plus ASLR slide only at normal teardown. BATCH-1 + G3 remains **84.385 ns / HOLD**. Floor, MAX, parser/emitter/generated artifact, preserved probe, public behavior, mdBook, contracts, and LIVE rows are unchanged.
+
 ## 2026-07-20 - PGEN-RGX-0078-0179 — banked fused-spine profiles fail the per-PC evidence requirement
 
 The custody-pinned banked profiles were audited at their raw report-format boundary before any memory-traffic target was inferred. `filtercalltree -invertCallTree -pruneCount 1` reproduces the exact `cascade_match_piece + cascade_match_atom{closure}` flat-self populations (1,740 / 1,659 / 1,673), but macOS `sample` groups several top-frame PCs under one count and prints an ellipsis rather than per-PC weights. Only 17 / 28 / 91 self samples retain one unambiguous address = **0.9770% / 1.6878% / 5.4393%** coverage.
