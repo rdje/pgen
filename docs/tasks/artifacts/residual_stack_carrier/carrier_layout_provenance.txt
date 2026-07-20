@@ -1,0 +1,8 @@
+probe_source=carrier_layout_probe.rs
+probe_source_sha256=6b1287dae0c67ddc3ee56967343fe2c1d8e80b795ba9263421d7566b9e789bf5
+rlib=rust/target/debug/deps/libpgen-2487bd25a1b10d71.rlib
+rlib_sha256=c27a92d591a214c50fa91f61a80cd144cb88632611d8a9d0383521ff6f5f2c7e
+rustc=rustc 1.95.0 (59807616e 2026-04-14)
+host=aarch64-apple-darwin
+llvm=22.1.2
+command=rustc --edition=2021 docs/tasks/artifacts/residual_stack_carrier/carrier_layout_probe.rs -L dependency=rust/target/debug/deps --extern pgen=rust/target/debug/deps/libpgen-2487bd25a1b10d71.rlib -o /tmp/pgen-0183-carrier-layout

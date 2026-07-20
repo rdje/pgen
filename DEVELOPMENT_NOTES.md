@@ -1,4 +1,16 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-20 - PGEN-RGX-0078-0183 — a pre-guard spill is not necessarily caused by the guard
+
+**Use value width and lifetime before naming register pressure.** Seven contiguous words written immediately before a disabled trace gate looked like preservation for the cold formatter/logger arm. The semantic checkpoint is itself seven words and must remain live across the following speculative parser call. A complete 39-site census turned the apparent trace lever into required rollback state.
+
+**A source-order correlation needs a machine invariant.** “Near the trace check” was suggestive but non-causal. “Exactly one trailing 56-byte materialization before every first speculative trace guard, matching the pinned `Copy` checkpoint layout” is mechanically testable. The classifier refuses if site count, contiguity, width, guard, raw hash, or probe hash changes.
+
+**Separate carrier identity from removability.** ABI frame traffic, semantic checkpoint traffic, and delta apply gates are exact carriers, but current semantics require them. Classification improves the map without creating a speedup. Only the ParseResult width tail is structurally removable, and it is already part of G1-B rather than a new batch member.
+
+**Keep the unmatched bucket large when proof is narrow.** Exact categories explain only 22.5–26.4% of the stack population; 73.6–77.5% remains unmatched. That is preferable to folding generic spills and stack-slot reuse into whichever type happens to be nearby in source.
+
+**Representation-width samples can cross-check but not replace A/B pricing.** The exact 48-byte result tail contributes 0.022823% of weighted raw samples. It validates the direction of indexed-error G1-B, but it sees only in-target instructions and excludes downstream/register-allocation effects. The held caller-attributed G1-B estimate remains the price; adding this share would double-count.
+
 ## 2026-07-20 - PGEN-RGX-0078-0182 — exact PCs are evidence only after mechanism ownership
 
 **Signal-safe capture still needs race-safe teardown.** Blocking and disabling `SIGPROF` prevents new timer delivery but does not erase a signal already pending. Restoring the default action before restoring the old mask made a complete measurement process die at normal teardown. Drain while blocked, then restore disposition, then mask; deterministically force the pending state before trusting a long run.

@@ -1,0 +1,78 @@
+range qualification: PASS g1c_sites=7 thin_memo_success_sites=2 instruction_overlap=0
+probe custody: PASS sha256=1d3fa0eebb4de19ff003ace38721d80d71bd94653f8ea3801c0f29ca9581f9b8
+raw custody: sub1us=88623effc4b4897029d5fa16453f22d377bb777778f586c074040e24db2bb7d2 1to2p5=459adfbca1b05dd1e2a7b60119de4d6120f4fcb5aac70d3c4d1d90ccefed9c12 2p5to20=901b03b95caa9b47e4340876e305794c9fa219f0cc4ce5c753df54800698903c
+layout custody: PASS ParseResult=80B checkpoint=56B/Copy delta=168B
+machine qualification: PASS checkpoint_sites=39 abi_regions=4 delta_regions=5 result_stack_loads=5 overlap=0
+trace-spill hypothesis: REFUTED for the observed seven-word blocks — every Starting-speculation site is preceded by exactly one contiguous 7-word checkpoint materialization
+checkpoint sites (target guard literal base slot_start):
+site piece        0x1000592d8 0x10005931c sp  0x410
+site piece        0x1000598cc 0x100059910 sp  0x3b0
+site piece        0x1000599d4 0x100059a1c x29 -0xc0
+site piece        0x100059e08 0x100059e4c sp  0x3b0
+site piece        0x100059f10 0x100059f58 x29 -0xc0
+site piece        0x10005a3f8 0x10005a440 x29 -0xc0
+site piece        0x10005bb74 0x10005bbbc sp  0x370
+site piece        0x10005bfd0 0x10005c028 sp  0x3b0
+site piece        0x10005c700 0x10005c74c x29 -0xc0
+site piece        0x10005cf70 0x10005cfbc sp  0x410
+site piece        0x10005d740 0x10005d784 sp  0x410
+site piece        0x10005ddd0 0x10005de18 sp  0x410
+site atom_closure 0x10006ae7c 0x10006aec4 sp  0x560
+site atom_closure 0x10006b6e8 0x10006b72c x29 -0xd0
+site atom_closure 0x10006c638 0x10006c680 x29 -0xd0
+site atom_closure 0x10006cd58 0x10006cda0 x29 -0xd0
+site atom_closure 0x10006d52c 0x10006d574 sp  0x5a0
+site atom_closure 0x10006deb4 0x10006defc x29 -0xd0
+site atom_closure 0x10006e7a0 0x10006e7e8 x29 -0xd0
+site atom_closure 0x10006ee2c 0x10006ee70 sp  0x230
+site atom_closure 0x10006efe0 0x10006f024 sp  0x2a0
+site atom_closure 0x10006f404 0x10006f44c sp  0x5a0
+site atom_closure 0x10006f758 0x10006f79c sp  0x5a0
+site atom_closure 0x1000703ec 0x100070430 sp  0x560
+site atom_closure 0x1000707f8 0x100070840 sp  0x2a0
+site atom_closure 0x100072688 0x1000726cc sp  0x2a0
+site atom_closure 0x100072904 0x10007294c sp  0x2a0
+site atom_closure 0x100072ac8 0x100072b10 x29 -0xd0
+site atom_closure 0x100072de0 0x100072e24 sp  0x2a0
+site atom_closure 0x1000731d8 0x10007321c sp  0x2a0
+site atom_closure 0x10007383c 0x100073898 sp  0x2a0
+site atom_closure 0x100073dec 0x100073e38 sp  0x1f0
+site atom_closure 0x1000742f8 0x100074338 sp  0x2a0
+site atom_closure 0x1000752d4 0x10007531c x29 -0xd0
+site atom_closure 0x100075654 0x100075698 sp  0x5a0
+site atom_closure 0x1000790f4 0x10007913c sp  0x5a0
+site atom_closure 0x10007a04c 0x10007a094 sp  0x230
+site atom_closure 0x10007a600 0x10007a64c sp  0x560
+site atom_closure 0x10007aa28 0x10007aa70 sp  0x5a0
+
+=== BAND sub1us ===
+carrier abi_frame                    81 stack=  8.9800%
+carrier semantic_checkpoint          68 stack=  7.5388%
+carrier semantic_delta               36 stack=  3.9911%
+carrier parse_result_prefix          13 stack=  1.4412%
+carrier parse_result_width_tail       5 stack=  0.5543%
+carrier unmatched                   699 stack= 77.4945%
+resum 81+68+36+13+5+699=902 PASS
+
+=== BAND 1to2p5 ===
+carrier abi_frame                    85 stack= 10.0236%
+carrier semantic_checkpoint          66 stack=  7.7830%
+carrier semantic_delta               48 stack=  5.6604%
+carrier parse_result_prefix          17 stack=  2.0047%
+carrier parse_result_width_tail       8 stack=  0.9434%
+carrier unmatched                   624 stack= 73.5849%
+resum 85+66+48+17+8+624=848 PASS
+
+=== BAND 2p5to20 ===
+carrier abi_frame                   114 stack= 11.5502%
+carrier semantic_checkpoint          74 stack=  7.4975%
+carrier semantic_delta               50 stack=  5.0659%
+carrier parse_result_prefix          19 stack=  1.9250%
+carrier parse_result_width_tail       3 stack=  0.3040%
+carrier unmatched                   727 stack= 73.6575%
+resum 114+74+50+19+3+727=987 PASS
+
+PROFILE CROSS-CHECK
+parse_result_width_tail weighted_all_sample_share=0.022823% (exact G1-B overlap; not additive)
+NEW NANOSECONDS: 0.000 ns — no new non-overlapping removable population
+STACK CARRIER ATTRIBUTION: PASS (exact lower bounds; zero overlap; full re-sum)

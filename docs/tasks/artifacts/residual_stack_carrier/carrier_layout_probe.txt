@@ -1,0 +1,5 @@
+ParseError                       size= 80 align= 8 needs_drop=true
+ParseResult<()> (Result ABI)     size= 80 align= 8 needs_drop=true
+SemanticRuntimeCheckpoint        size= 56 align= 8 needs_drop=false
+SemanticRuntimeDelta             size=168 align= 8 needs_drop=true
+Option<SemanticRuntimeDelta>     size=168 align= 8 needs_drop=true

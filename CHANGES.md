@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-07-20 - PGEN-RGX-0078-0183 — residual stack carriers re-sum exactly; no new removable population
+
+The custody-pinned `-0182` residual stack-memory population is now partitioned with zero-overlap machine signatures. All **902 / 848 / 987** samples re-sum into ABI frame save/restore **81 / 85 / 114**, semantic checkpoint materialization **68 / 66 / 74**, semantic delta gate/movement/apply **36 / 48 / 50**, ParseResult 32-byte prefix **13 / 17 / 19**, ParseResult 48-byte width tail **5 / 8 / 3**, and explicit unmatched **699 / 624 / 727**.
+
+The type-layout probe fixes `SemanticRuntimeCheckpoint` at 56 bytes, `Copy`, and drop-free; `SemanticRuntimeDelta` and its `Option` are 168 bytes; `ParseResult<()>` remains 80 bytes. The preserved binary has 39 inlined “Starting speculative parse” sites, and every one has exactly one trailing contiguous seven-word materialization before its trace guard. The initially suspicious seven-store pattern is therefore the checkpoint that must survive the speculative call for rollback, not a trace-only register-preservation population. No cold-trace optimization is admitted from it.
+
+The final `cascade_match_piece` sret copy proves a five-load ParseResult carrier: two loads cover the 32-byte prefix and three cover the 48-byte tail that an 80→32-byte indexed-error representation would remove. That exact tail has only **0.022823%** weighted all-sample share and is already inside held G1-B, so it is not additive. No new nanoseconds are derived; BATCH-1 + G3 stays **84.385 ns / HOLD**. Next is exact direct-parser-field attribution of the remaining 894 / 859 / 1,081 residual samples. Floor, settled MAX, parser/emitter/generated artifact, product behavior, mdBook, contracts, reference architecture, and LIVE rows are unchanged.
+
 ## 2026-07-20 - PGEN-RGX-0078-0182 — three raw-PC bands clear every gate; exact known mechanisms remain a lower bound
 
 The byte-derived sub-1 us / 1–2.5 us / 2.5–20 us inputs contain exactly 939 / 751 / 488 rows. Sequential `caffeinate` + memory-guard captures stored **22,521 / 24,279 / 28,308** raw PCs, including **2,986 / 2,987 / 3,868** fused-target PCs. Every band clears the 10,000-total and 1,000-target gates, drops zero samples, disassembles 100% of target PCs against the full-SHA-pinned preserved probe, and reproduces the banked accepted/rejected verdict identities exactly.
