@@ -991,7 +991,9 @@ impl AstBasedGenerator {
                                     .semantic_runtime_state
                                     .extract_delta_since(&tournament_semantic_checkpoint),
                             );
-                            parser.semantic_runtime_state.rollback_to_labeled(
+                            // RGX-0078.5.j.4 (`-0201`): bare-graph-only site —
+                            // the bare rollback twin (observed-parse boundary).
+                            parser.semantic_runtime_state.rollback_to_labeled_bare(
                                 tournament_semantic_checkpoint.clone(),
                                 crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
                                     rule: #rule_name,
@@ -1029,7 +1031,9 @@ impl AstBasedGenerator {
                                 best_branch_index = current_branch_index;
                                 __pgen_best_found = true;
                             } else {
-                                parser.semantic_runtime_state.rollback_to_labeled(
+                                // RGX-0078.5.j.4 (`-0201`): bare-graph-only
+                                // site — the bare rollback twin.
+                                parser.semantic_runtime_state.rollback_to_labeled_bare(
                                     tournament_semantic_checkpoint.clone(),
                                     crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
                                         rule: #rule_name,

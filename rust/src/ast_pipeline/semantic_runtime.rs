@@ -2318,6 +2318,19 @@ pub struct SemanticStoreCounters {
     /// NON-ROOT active chain (`chain_len > 1`, i.e. at least one scope open
     /// at checkpoint time). Diagnostic: the per-cell scope-open exposure
     /// class (`line_2880`-style cells run ~97% here; scope-free parses 0%).
+    ///
+    /// RGX-0078.5.j.4 (`-0201`) — OBSERVED-PARSE boundary: this
+    /// classification is diagnostic-only (it steers no parse decision), so it
+    /// is exact on OBSERVED parses — any parse with a diagnostic consumer
+    /// active before parsing (transactional coverage / outcome dumps, trace,
+    /// rule-counter observation, memo-stats), each of which routes the parse
+    /// to the generated protocol graph. A BARE parse (no consumer) may skip
+    /// its maintenance via [`SemanticRuntimeState::rollback_to_labeled_bare`]
+    /// — the same documented boundary the per-rule entry counters already
+    /// have (a bare parse ticks no rule counters). Every other counter here,
+    /// including the rollback telemetry quartet and the REQUIRED
+    /// `predicate_evaluations` memo-taint signal, is maintained identically
+    /// on bare and observed parses.
     pub rollbacks_nonempty_chain: u64,
     /// MEMO-STORE-SOUNDNESS.2 — store-consulting predicate evaluations
     /// (`evaluate_predicate` entries; the content-only `content_kind_is`
@@ -2625,6 +2638,13 @@ impl SemanticRuntimeState {
     // -------------------------------------------------------------------------
 
     /// Snapshot of the cumulative operation counters.
+    ///
+    /// RGX-0078.5.j.4 (`-0201`) — observability boundary: the diagnostic-only
+    /// `rollbacks_nonempty_chain` classification is exact on OBSERVED parses
+    /// (any parse with a diagnostic consumer opted in before parsing — see
+    /// the field doc); a bare parse may skip it. All required semantic
+    /// counters (`predicate_evaluations` memo taint) and the rollback
+    /// telemetry quartet are exact on every parse.
     pub fn counters(&self) -> &SemanticStoreCounters {
         &self.counters
     }
@@ -3301,17 +3321,59 @@ impl SemanticRuntimeState {
             }
             return;
         }
-        self.rollback_to_labeled_slow(checkpoint, label);
+        self.rollback_to_labeled_slow(checkpoint, label, true);
     }
 
-    /// The outlined slow path of [`Self::rollback_to_labeled`] — something
-    /// mutated since the checkpoint, so the discards/restores must run.
+    /// RGX-0078.5.j.4 (`-0201`) — the BARE-parse twin of
+    /// [`Self::rollback_to_labeled`]: identical rollback semantics and
+    /// telemetry EXCEPT the diagnostic-only `rollbacks_nonempty_chain`
+    /// classification, which the documented OBSERVED-PARSE boundary (see
+    /// [`SemanticStoreCounters::rollbacks_nonempty_chain`]) licenses a bare
+    /// parse — one with no diagnostic consumer active — to skip. Generated
+    /// parsers call this ONLY from bare fused-graph sites (`try_parse_bare`,
+    /// the island C3-B tournament cleanups); every protocol/observed path
+    /// keeps calling [`Self::rollback_to_labeled`]. Required memo-taint
+    /// state (`predicate_evaluations`, `write_epoch`) and the rollback
+    /// telemetry quartet are maintained identically on both variants.
+    #[inline]
+    pub fn rollback_to_labeled_bare(
+        &mut self,
+        checkpoint: SemanticRuntimeCheckpoint,
+        label: RollbackLabel<'_>,
+    ) {
+        if self.write_epoch == checkpoint.write_epoch
+            && self.deferred_obligations.len() == checkpoint.deferred_len
+        {
+            debug_assert_eq!(self.facts.len(), checkpoint.fact_len);
+            debug_assert_eq!(self.scope_arena.len(), checkpoint.scope_arena_len);
+            debug_assert!(self.chain_unchanged_since(&checkpoint));
+            debug_assert_eq!(self.active_chain.len(), checkpoint.chain_len);
+            debug_assert_eq!(self.scopes.len(), checkpoint.chain_len);
+            self.counters.rollbacks += 1;
+            self.counters.rollbacks_unchanged += 1;
+            if matches!(label, RollbackLabel::C3bBranchCleanup { .. }) {
+                self.counters.rollbacks_tournament += 1;
+                self.counters.rollbacks_tournament_unchanged += 1;
+            }
+            return;
+        }
+        self.rollback_to_labeled_slow(checkpoint, label, false);
+    }
+
+    /// The outlined slow path of [`Self::rollback_to_labeled`] /
+    /// [`Self::rollback_to_labeled_bare`] — something mutated since the
+    /// checkpoint, so the discards/restores must run. `maintain_chain_diag`
+    /// is `true` for every observed/protocol entry point and `false` only for
+    /// the bare twin (RGX-0078.5.j.4 `-0201`: the diagnostic-only
+    /// `rollbacks_nonempty_chain` classification is skipped on bare parses;
+    /// everything else is identical).
     #[cold]
     #[inline(never)]
     fn rollback_to_labeled_slow(
         &mut self,
         checkpoint: SemanticRuntimeCheckpoint,
         label: RollbackLabel<'_>,
+        maintain_chain_diag: bool,
     ) {
         let fact_len = checkpoint.fact_len.min(self.facts.len());
         let scope_arena_len = checkpoint.scope_arena_len.max(1).min(self.scope_arena.len());
@@ -3355,7 +3417,7 @@ impl SemanticRuntimeState {
                 self.counters.rollbacks_tournament_unchanged += 1;
             }
         }
-        if checkpoint.chain_len > 1 {
+        if maintain_chain_diag && checkpoint.chain_len > 1 {
             self.counters.rollbacks_nonempty_chain += 1;
         }
         // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining rollback trace.
@@ -9086,6 +9148,70 @@ mod tests {
         state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
         assert_eq!(state.counters().rollbacks, 5);
         assert_eq!(state.counters().rollbacks_nonempty_chain, 1);
+        assert_eq!(state.active_chain(), chain_with_scope.as_slice());
+    }
+
+    #[test]
+    fn bare_rollback_skips_only_the_chain_diagnostic_on_both_paths() {
+        // RGX-0078.5.j.4 (`-0201`) — the bare twin's ONLY delta vs
+        // `rollback_to_labeled` is the diagnostic-only
+        // `rollbacks_nonempty_chain` classification (the documented
+        // observed-parse boundary). Rollback semantics, the telemetry
+        // quartet, and required memo-taint state are identical.
+        use super::RollbackLabel;
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: super::SemanticScopeKind::Custom("class".to_string()),
+            name: Some(ident("C")),
+        });
+        let chain_with_scope: Vec<super::ScopeId> = state.active_chain().to_vec();
+        assert_eq!(chain_with_scope.len(), 2);
+
+        // 1. FAST path (unchanged store, non-root chain): the bare twin
+        //    counts the rollback + unchanged telemetry but NOT the chain
+        //    diagnostic; the observed variant counts all three.
+        let cp = state.checkpoint();
+        state.rollback_to_labeled_bare(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.counters().rollbacks, 1);
+        assert_eq!(state.counters().rollbacks_unchanged, 1);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 0);
+        let cp = state.checkpoint();
+        state.rollback_to_labeled(cp, RollbackLabel::TryParseErr(Some("r")));
+        assert_eq!(state.counters().rollbacks, 2);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 1);
+
+        // 2. SLOW path (a discarded fact forces the outlined path): identical
+        //    rollback effects; the chain diagnostic moves only for the
+        //    observed variant. Tournament telemetry ticks on BOTH variants.
+        let cp = state.checkpoint();
+        state.emit_fact(SemanticFactSpec {
+            kind: "k".to_string(),
+            name: ident("bare"),
+            attributes: vec![],
+        });
+        state.rollback_to_labeled_bare(
+            cp,
+            RollbackLabel::C3bBranchCleanup { rule: "r", branch: 1, total: 2 },
+        );
+        assert_eq!(state.facts().len(), 0);
+        assert_eq!(state.counters().rollbacks, 3);
+        assert_eq!(state.counters().rollbacks_tournament, 1);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 1);
+        assert_eq!(state.active_chain(), chain_with_scope.as_slice());
+        let cp = state.checkpoint();
+        state.emit_fact(SemanticFactSpec {
+            kind: "k".to_string(),
+            name: ident("observed"),
+            attributes: vec![],
+        });
+        state.rollback_to_labeled(
+            cp,
+            RollbackLabel::C3bBranchCleanup { rule: "r", branch: 2, total: 2 },
+        );
+        assert_eq!(state.facts().len(), 0);
+        assert_eq!(state.counters().rollbacks, 4);
+        assert_eq!(state.counters().rollbacks_tournament, 2);
+        assert_eq!(state.counters().rollbacks_nonempty_chain, 2);
         assert_eq!(state.active_chain(), chain_with_scope.as_slice());
     }
 

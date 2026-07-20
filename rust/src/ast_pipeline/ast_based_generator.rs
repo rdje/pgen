@@ -6671,20 +6671,26 @@ impl AstBasedGenerator {
         // IDENTICAL to the protocol wrapper.
         let try_parse_bare_helper = if self.cascade_plan_active() {
             quote! {
+                // RGX-0078.5.j.4 (`-0201`) — the bare wrapper carries NO
+                // coverage snapshot/truncate: it runs only under `bare_parse`
+                // (⇒ `!coverage_enabled`), every `coverage_stack.push` is
+                // `coverage_enabled`-gated, and the fused graph emits no
+                // pushes, so the stack length is invariant across the bare
+                // region. The rollback uses the bare twin, which skips only
+                // the diagnostic-only `rollbacks_nonempty_chain`
+                // classification per the documented observed-parse boundary.
                 fn try_parse_bare<F, T>(&mut self, f: F) -> Option<T>
                 where
                     F: FnOnce(&mut Self) -> ParseResult<T>,
                 {
                     let saved_pos = self.position;
                     let saved_id_stack_len = self.recursion_guard.rule_id_stack.len();
-                    let saved_coverage_len = self.coverage_stack.len();
                     let saved_semantic_checkpoint =
                         self.semantic_runtime_state.checkpoint();
                     match f(self) {
                         Ok(result) => Some(result),
                         Err(_) => {
                             self.position = saved_pos;
-                            self.coverage_stack.truncate(saved_coverage_len);
                             let try_parse_rule: Option<&'static str> = self
                                 .recursion_guard
                                 .rule_id_stack
@@ -6695,7 +6701,7 @@ impl AstBasedGenerator {
                             self.recursion_guard
                                 .rule_id_stack
                                 .truncate(saved_id_stack_len);
-                            self.semantic_runtime_state.rollback_to_labeled(
+                            self.semantic_runtime_state.rollback_to_labeled_bare(
                                 saved_semantic_checkpoint,
                                 crate::ast_pipeline::RollbackLabel::TryParseErr(try_parse_rule),
                             );

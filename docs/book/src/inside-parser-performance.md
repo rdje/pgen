@@ -1300,6 +1300,20 @@ ask) — the parse runs the protocol graph, and every counter, witness record, a
 line is the exact machinery it always was, not an emulation. That is why every
 diagnostic pin in this chapter survives the landing byte-exact.
 
+One deliberately documented boundary completes the picture: the semantic store's
+cumulative operation counters follow the same **observed-parse rule** the per-rule
+entry counters already follow. A bare parse maintains every counter that steers the
+parse or protects a soundness invariant — above all the memo-taint signal — and the
+rollback telemetry quartet, but it skips the one classification that exists purely as
+a diagnostic label (the "checkpoint had a non-root scope chain" class), exactly as it
+skips the per-rule entry ticks. It also drops the transactional-coverage length
+snapshot from its speculation wrapper, which is provably dead there: every coverage
+push is gated on the coverage opt-in, and a covered parse never runs the fused graph
+in the first place. Any parse that opts into observation before it starts — coverage,
+an outcome dump, trace, a counter handle — runs the protocol graph, where every
+counter is exact; the boundary is documented on the counters accessor itself, so an
+API reader meets it exactly where they would rely on it.
+
 Two store-soundness rules survive into the fused code, both computed statically from the
 same census plan the report prints (one implementation, so the plan and the emission
 cannot drift). A fused speculation that could reach a fact-writing rule keeps the full

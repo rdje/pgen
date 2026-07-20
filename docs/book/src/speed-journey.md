@@ -461,6 +461,24 @@ mixed-depth stacks stay sound. The corpus geomean dropped **−3.8%** with zero 
 flips — every bench pattern faster, and for once the magnitude sat clearly outside the
 noise span.
 
-The scoreboard now reads **496 µs → ≈1.82 µs, about 273×** on the bench geomean, with the
-corpus maximum at ≈484 µs and the corpus geomean at ≈1.15 µs. The method decides — and
+The fourth fix closed the bare path's last dead diagnostic work — behind a design
+decision rather than a code trick. The generated speculation wrapper still snapshotted
+the transactional-coverage stack length on every bare attempt (provably a no-op there:
+every coverage push is gated on the coverage opt-in, and a covered parse never runs the
+fused graph), and the hot rollback still maintained one purely-diagnostic
+classification counter. Removing the counter touched a public surface — the store's
+cumulative counters are readable after any parse — so the fix first wrote the
+**observed-parse boundary** down as a documented rule (diagnostic classifications are
+exact on observed parses; a bare parse may skip them; soundness-bearing counters are
+exact always — the same rule the per-rule entry counters already follow), then landed
+the elision under it. The corpus geomean dropped **−1.1%** with zero verdict flips —
+inside the noise span, accepted by the same strict same-session rule that adjudicated
+the second fix, and in line with its own sub-noise pre-registered pricing. An honest bookkeeping
+note travels with it: the recorded floor number *rose* slightly because the measurement
+session ran ≈2% hot (a proven-neutral rebuild of the baseline plus the very same binary
+re-read moved +2% across sessions with no accepted performance change); the fix's own
+same-session comparison is what the gate adjudicates.
+
+The scoreboard now reads **496 µs → ≈1.81 µs, about 274×** on the bench geomean, with the
+corpus maximum at ≈484 µs and the corpus geomean at ≈1.16 µs. The method decides — and
 the story continues here.
