@@ -52,8 +52,12 @@ GROUP_OFFSETS = {
     "coverage_rollback": frozenset({0x270}),
     # Hashbrown table state used by the thin-memo lookup paths.
     "thin_memo_lookup": frozenset({0x478, 0x480, 0x490}),
-    # Semantic observability counters: rollback-nonempty and predicate-eval.
-    "semantic_observer_counters": frozenset({0x248, 0x250}),
+    # Diagnostic-only count of rollbacks whose checkpoint had a non-root
+    # semantic chain.  It cannot affect a parse verdict.
+    "rollback_diagnostic_counter": frozenset({0x248}),
+    # Memo soundness signal: a changed predicate-evaluation count means the
+    # body consulted mutable store and cannot use a store-blind memo entry.
+    "memo_taint_signal": frozenset({0x250}),
 }
 
 EXPECTED_PC_COUNTS = {
@@ -261,23 +265,28 @@ def qualify_machine_roles(
                     f"REFUSE: thin-memo table-field fingerprint differs at {address:#x}"
                 )
 
-    # 0x248 is incremented in place; 0x250 is snapshotted and compared across
-    # speculative execution.  They are observability counters, not state that
-    # affects the parse result.
-    counter_text = "\n".join(
-        text_window(code, address, 8, 16)
-        for offset in (0x248, 0x250)
-        for address in by_offset[offset]
+    # 0x248 is incremented in place behind a chain-depth test and is purely an
+    # outcome-dump diagnostic.  In contrast, 0x250 is snapshotted and compared
+    # across rule execution to decide whether a thin-memo result is sound to
+    # cache under a store-blind key.  Their similar counter shapes do not give
+    # them the same semantic role.
+    rollback_counter_text = "\n".join(
+        text_window(code, address, 8, 16) for address in by_offset[0x248]
     )
-    if "add" not in counter_text or "cmp" not in counter_text:
-        raise SystemExit("REFUSE: semantic observer-counter fingerprint differs")
+    memo_taint_text = "\n".join(
+        text_window(code, address, 8, 16) for address in by_offset[0x250]
+    )
+    if "add" not in rollback_counter_text:
+        raise SystemExit("REFUSE: rollback diagnostic-counter fingerprint differs")
+    if "cmp" not in memo_taint_text:
+        raise SystemExit("REFUSE: memo-taint snapshot/compare fingerprint differs")
 
     print(
         "machine qualification: PASS "
         "input=bounds+byte-load recursion=two-stacks+depth "
         "checkpoint=35-full/39-sites tapes=two-vecs "
         f"position=monotone trace=51-gates/{dict(trace_forms)} coverage=snapshot/truncate "
-        "thin_memo=5-hash-lookups counters=increment/snapshot"
+        "thin_memo=5-hash-lookups rollback_diag=increment memo_taint=snapshot/compare"
     )
 
 
@@ -355,7 +364,7 @@ def main() -> None:
     diagnostic_groups = (
         "trace_gate",
         "coverage_rollback",
-        "semantic_observer_counters",
+        "rollback_diagnostic_counter",
     )
     diagnostic_counts = {
         band: sum(category_counts[band][group] for group in diagnostic_groups)

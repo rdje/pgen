@@ -41,7 +41,9 @@ each candidate offset by binary behavior:
   trace gates, 19 direct bit gates, one direct compare gate);
 - coverage is a length-only speculation snapshot/conditional-truncate field;
 - five table-occupancy loads enter the same thin-memo hash-mixing sequence;
-- semantic observer fields show an increment or snapshot/compare counter shape.
+- the rollback diagnostic field shows an increment shape, while the separately
+  required memo-taint field shows the snapshot/compare that protects thin-memo
+  soundness.
 
 The exact per-band result is:
 
@@ -55,7 +57,8 @@ The exact per-band result is:
 | trace gate | 104 | 95 | 120 |
 | coverage rollback | 30 | 29 | 38 |
 | thin-memo lookup | 21 | 40 | 68 |
-| semantic observer counters | 9 | 13 | 17 |
+| rollback diagnostic counter | 0 | 0 | 1 |
+| required memo-taint signal | 9 | 13 | 16 |
 | **re-sum** | **894** | **859** | **1,081** |
 
 There is no overlap and no unmatched remainder. `parser_direct_census.txt`
@@ -65,10 +68,16 @@ compact executable proof and re-sum.
 ## Adjudication
 
 Three role groups are diagnostic-only on the ordinary bare parse:
-`trace_gate + coverage_rollback + semantic_observer_counters` contribute
-**143 / 137 / 175** direct memory samples, a geomean-profile-weighted
-**0.601206% of all captured PCs**. This is a strict lower bound: the companion
+`trace_gate + coverage_rollback + rollback_diagnostic_counter` contribute
+**134 / 124 / 159** direct memory samples, a geomean-profile-weighted
+**0.552424% of all captured PCs**. This is a strict lower bound: the companion
 compare/branch/control instructions are outside the direct-memory population.
+
+`PGEN-RGX-0078-0185` corrected the provisional `-0184` interpretation after a
+source/dataflow audit: `predicate_evaluations` is the required memo-taint
+soundness signal, not a removable observer. The exact complete re-sum was
+always valid; the two-offset aggregate is now split into diagnostic **0/0/1**
+and required **9/13/16** rows. See `../bare_diagnostic_expansion/`.
 
 No nanoseconds are derived here. A sampled instruction group is not yet a
 complete removable mechanism, and the held BATCH-1/G3 bundle must not absorb a
