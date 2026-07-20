@@ -813,8 +813,17 @@ impl AstBasedGenerator {
             // packed-word vector (`ThinTapeMemoEntry`): events and boundary
             // records interleave in append order on the unified tape, so the
             // per-success copy is a single memcpy.
+            // RGX-0078.5.j.4 (`-0205`) — the DIRECT-INDEX carrier: the
+            // FxHashMap container is replaced by a TLS-recycled
+            // generation-stamped row table (`thin_scratch`, slot =
+            // `THIN_ROW_<RULE> * thin_stride + position`) over a per-parser
+            // dense entry vec (`thin_entries`). The entry type and its
+            // stamp/taint doctrine are unchanged; only hashing/probing/
+            // growth/bucket-walk-drop machinery is removed.
             quote! {
-                thin_memo: rustc_hash::FxHashMap<(RuleId, usize), crate::ast_pipeline::ThinTapeMemoEntry<'input>>,
+                thin_scratch: crate::ast_pipeline::ThinMemoScratchLease,
+                thin_entries: Vec<crate::ast_pipeline::ThinTapeMemoEntry<'input>>,
+                thin_stride: usize,
             }
         } else {
             quote! {}
@@ -1125,6 +1134,32 @@ impl AstBasedGenerator {
             })
             .collect();
 
+        // RGX-0078.5.j.4 (`-0205`) — the thin memo's direct-index row
+        // numbers: one row per thin-memoized fused rule, assigned in SORTED
+        // rule order (the plan's set is a HashSet — sorting keeps the
+        // artifact regen-deterministic). A rule's slot in the scratch table
+        // is `THIN_ROW_<RULE> * thin_stride + position`.
+        let thin_rows = self.cascade_thin_memo_rows();
+        let thin_row_count = thin_rows.len();
+        let thin_constants: TokenStream = if thin_row_count > 0 {
+            let thin_row_consts: Vec<TokenStream> = thin_rows
+                .iter()
+                .enumerate()
+                .map(|(row, name)| {
+                    let const_name = format_ident!("THIN_ROW_{}", name.to_uppercase());
+                    quote! {
+                        const #const_name: usize = #row;
+                    }
+                })
+                .collect();
+            quote! {
+                #(#thin_row_consts)*
+                const THIN_RULE_COUNT: usize = #thin_row_count;
+            }
+        } else {
+            quote! {}
+        };
+
         quote! {
             #(#constants)*
             const RULE_COUNT: usize = #rule_count;
@@ -1132,6 +1167,7 @@ impl AstBasedGenerator {
             // required for constants holding references inside an
             // `impl` block (E0491 otherwise).
             const RULE_NAMES: &'static [&'static str] = &[ #(#rule_name_literals),* ];
+            #thin_constants
         }
     }
 
@@ -1378,11 +1414,21 @@ impl AstBasedGenerator {
                 // censused cell) with a 32K-element cap bounding construction
                 // memory on giant inputs. Correctness-neutral capacity hint;
                 // the thin memo's contents are unchanged.
+                // RGX-0078.5.j.4 (`-0205`) — direct-index carrier init: take
+                // the thread's recycled row table (one generation bump
+                // invalidates every prior parse's slots — no per-parse
+                // clear), size it to this parse's rows × (len+1) need, and
+                // pre-size the dense entry vec with the SAME K3a formula the
+                // map capacity used (per-byte bound K=6, 32K cap).
                 quote! {
-                    thin_memo: rustc_hash::FxHashMap::with_capacity_and_hasher(
-                        ((input.len() + 1) * 6).min(32768),
-                        Default::default(),
-                    ),
+                    thin_scratch: {
+                        let mut __pgen_thin_lease =
+                            crate::ast_pipeline::ThinMemoScratchLease::take();
+                        __pgen_thin_lease.begin(Self::THIN_RULE_COUNT * (input.len() + 1));
+                        __pgen_thin_lease
+                    },
+                    thin_entries: Vec::with_capacity(((input.len() + 1) * 6).min(32768)),
+                    thin_stride: input.len() + 1,
                 }
             } else {
                 quote! {}

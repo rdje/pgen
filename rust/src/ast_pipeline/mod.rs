@@ -1543,6 +1543,123 @@ pub struct ThinTapeMemoEntry<'input> {
     pub outcome: Option<(usize, smallvec::SmallVec<[TapeWord<'input>; 6]>)>,
 }
 
+/// (`-0205` direct-index carrier) — the thin memo's ROW TABLE: a
+/// generation-stamped `(thin_rule_row × position)` slot array replacing the
+/// `FxHashMap<(RuleId, usize), ThinTapeMemoEntry>` CONTAINER (the entry type
+/// and its stamp/taint doctrine are untouched; entries live in a per-parser
+/// dense `Vec` and a slot holds the entry's index).
+///
+/// Slot word encoding: `(gen as u64) << 32 | (idx + 1)` — `0` = never
+/// written. A slot is live only when its high word equals the CURRENT
+/// generation, so [`Self::begin`] invalidates every previous parse's slots
+/// with ONE counter bump instead of an `O(rules × positions)` clear — the
+/// design fork's naive per-parse zeroed array was refused precisely because
+/// its alloc+memset is an ADDED fixed cost on the sub-1 µs corpus band.
+/// On u32 generation wrap (once per 2³² parses per thread) the table is
+/// hard-cleared and the generation restarts at 1.
+///
+/// The table itself is POSITION-KEYED PER PARSE but its STORAGE is recycled
+/// across parses through a thread-local (see [`ThinMemoScratchLease`]);
+/// `begin` grows it to the current parse's `rows × (input_len + 1)` need
+/// (`resize` zeroes only the new tail — old slots die by generation
+/// mismatch).
+#[derive(Debug, Default)]
+pub struct ThinMemoScratch {
+    slots: Vec<u64>,
+    generation: u32,
+}
+
+impl ThinMemoScratch {
+    /// Open a new parse: invalidate every prior slot (generation bump) and
+    /// ensure capacity for `need = thin_rule_count * (input_len + 1)` slots.
+    pub fn begin(&mut self, need: usize) {
+        self.generation = self.generation.wrapping_add(1);
+        if self.generation == 0 {
+            // u32 generation wrap: hard-clear once, restart at 1 so the
+            // never-written encoding (0) stays unambiguous.
+            self.slots.iter_mut().for_each(|slot| *slot = 0);
+            self.generation = 1;
+        }
+        if self.slots.len() < need {
+            self.slots.resize(need, 0);
+        }
+    }
+
+    /// Current-generation entry index at `slot`, if one was stored this parse.
+    #[inline]
+    pub fn lookup(&self, slot: usize) -> Option<u32> {
+        let word = self.slots[slot];
+        if (word >> 32) as u32 == self.generation {
+            Some((word as u32) - 1)
+        } else {
+            None
+        }
+    }
+
+    /// Store `idx` at `slot` for the current generation.
+    #[inline]
+    pub fn store(&mut self, slot: usize, idx: u32) {
+        self.slots[slot] = (u64::from(self.generation) << 32) | u64::from(idx + 1);
+    }
+
+    /// Evict a stale entry's slot (the `remove` analogue; the dense entry
+    /// itself stays as bounded garbage, superseded on re-insert).
+    #[inline]
+    pub fn clear(&mut self, slot: usize) {
+        self.slots[slot] = 0;
+    }
+}
+
+std::thread_local! {
+    /// The per-thread recycled thin-memo row table (see
+    /// [`ThinMemoScratchLease`]). `Cell<Option<…>>` so take/put are plain
+    /// moves with no borrow-state.
+    static THIN_MEMO_SCRATCH: std::cell::Cell<Option<ThinMemoScratch>> =
+        const { std::cell::Cell::new(None) };
+}
+
+/// RAII lease on the thread's recycled [`ThinMemoScratch`]. Generated
+/// parsers hold one as a FIELD: taking the lease at construction and
+/// returning the scratch when the parser drops (any exit path — success,
+/// error, unwind) without an `impl Drop` on the parser struct itself. If two
+/// parsers are alive on one thread the second simply takes a fresh scratch
+/// (correct, merely unshared); on return, last-drop wins the thread slot —
+/// the steady state is one warm table per thread either way.
+#[derive(Debug, Default)]
+pub struct ThinMemoScratchLease {
+    inner: ThinMemoScratch,
+}
+
+impl ThinMemoScratchLease {
+    /// Take the thread's scratch (or a fresh default on the cold path).
+    pub fn take() -> Self {
+        Self {
+            inner: THIN_MEMO_SCRATCH.with(|cell| cell.take()).unwrap_or_default(),
+        }
+    }
+}
+
+impl Drop for ThinMemoScratchLease {
+    fn drop(&mut self) {
+        THIN_MEMO_SCRATCH.with(|cell| {
+            cell.set(Some(std::mem::take(&mut self.inner)));
+        });
+    }
+}
+
+impl std::ops::Deref for ThinMemoScratchLease {
+    type Target = ThinMemoScratch;
+    fn deref(&self) -> &ThinMemoScratch {
+        &self.inner
+    }
+}
+
+impl std::ops::DerefMut for ThinMemoScratchLease {
+    fn deref_mut(&mut self) -> &mut ThinMemoScratch {
+        &mut self.inner
+    }
+}
+
 /// Rule ID type for memoization
 pub type RuleId = u16;
 

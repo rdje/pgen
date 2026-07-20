@@ -1,0 +1,23 @@
+=== BATTERY dualbuild: START 21:35:33 ===
+=== BATTERY dualbuild: done exit=0 21:39:04 ===
+=== BATTERY probe_rebuild: START 21:39:04 ===
+=== BATTERY probe_rebuild: done exit=0 21:42:26 ===
+=== BATTERY libsuite: START 21:42:26 ===
+=== BATTERY libsuite: done exit=0 21:48:33 ===
+=== BATTERY cert: START 21:48:33 ===
+=== BATTERY cert: done exit=0 21:48:38 ===
+=== BATTERY ast_shape_contract_gate: START 21:48:38 ===
+=== BATTERY ast_shape_contract_gate: done exit=0 21:52:10 ===
+=== BATTERY duality_hunt_gate: START 21:52:10 ===
+=== BATTERY duality_hunt_gate: done exit=0 21:52:40 ===
+=== BATTERY regex_pcre2_compile_oracle_gate: START 21:52:40 ===
+=== BATTERY regex_pcre2_compile_oracle_gate: done exit=0 21:52:45 ===
+=== BATTERY clippy_on_rust_change: START 21:52:45 ===
+=== BATTERY clippy_on_rust_change: done exit=0 21:56:11 ===
+BATTERY COMPLETE overall=0
+
+test result: ok. 1006 passed; 0 failed; 29 ignored; 0 measured; 0 filtered out; finished in 148.81s
+memory-guard: started pid=77208 pgid=77208 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=73% disk=55GB cmd: caffeinate -i bash -c cd rust && for s in 0 7 42; do ./target/debug/ast_pipeline ../grammars/regex.ebnf --report-certificate-coverage --entry-rule regex --count 40 --seed $s 2>&1 | grep -E 'CERTIFICATE-COVERAGE|single_path_fallback'; done
+CERTIFICATE-COVERAGE: grammar='regex' entry='regex' samples=40 total=268 proof=9 witness=259 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)
+CERTIFICATE-COVERAGE: grammar='regex' entry='regex' samples=40 total=268 proof=9 witness=259 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)
+CERTIFICATE-COVERAGE: grammar='regex' entry='regex' samples=40 total=268 proof=9 witness=259 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)

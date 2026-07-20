@@ -513,11 +513,32 @@ again clearly outside the noise span, and again the pre-priced sliver (≈0.5 ns
 measurable second-word traffic) was dwarfed by the unpriced width-and-lane bulk, the
 same lesson the fifth fix taught.
 
-The scoreboard now reads **496 µs → ≈1.65 µs, about 301×** on the bench geomean, with the
-corpus maximum observed at ≈405 µs (its non-regression guardrail re-settled at 425 µs with
-the same drift-margin logic) and the corpus geomean at ≈1.05 µs. The campaign's call-off
+The seventh fix came out of a discipline rather than a hunch: with the held program
+exhausted, a fresh instruction-level re-pricing on the newly-landed representation showed
+that every previously-suspected lever had become individually unmeasurable — the input
+view's ≈12 ns, notably, had not moved across six fixes, because fetching bytes and
+checking bounds *is* the irreducible transport of parsing — while the single largest
+identifiable mechanism was now the thin memo's **container**: hashing, group-probing,
+bucket writes, growth amortization and a bucket-walking teardown, ≈61 ns of machinery
+serving 28 cycle-participating rules whose entries need none of it. The fix replaced the
+hash map with a direct index — one row number per memoized rule times the input position,
+over a dense entry vector — with one subtlety that mattered: a naive per-parse row array
+would have *added* a fixed allocation-and-clear cost to exactly the sub-microsecond cells
+that carry most of the geomean's weight, so the landed table is recycled across parses on
+the thread and invalidated by a single generation-counter bump instead of a clear. A probe
+is now one load and one compare; an insert is a push and a store; the memo's caching
+semantics — taint classes, splice replay, copy lanes — are byte-for-byte untouched. The
+corpus geomean dropped **−2.8%** with zero verdict flips, and for the first time in the
+series the delivery landed *inside* its priced capture band (≈49% of the measured
+machinery) rather than tens of times above an instruction-row sliver: whole-mechanism
+pricing predicts container swaps the way traffic-class pricing predicts representation
+changes.
+
+The scoreboard now reads **496 µs → ≈1.61 µs, about 308×** on the bench geomean, with the
+corpus maximum observed at ≈392 µs (its non-regression guardrail settled at 425 µs with
+the drift-margin logic) and the corpus geomean at ≈1.04 µs. The campaign's call-off
 condition now carries that drift lesson explicitly: the corpus geomean must clear 1 µs
 **with a 50 ns margin** — `(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus
 a confirmation sweep in a later session, so the closure claim reproduces on any day rather
-than on a favorable one; from the current floor that bar is about −9.7% away. The method
+than on a favorable one; from the current floor that bar is about −8.5% away. The method
 decides — and the story continues here.

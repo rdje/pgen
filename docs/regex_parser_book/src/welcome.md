@@ -25,13 +25,13 @@ byte-identical against the `pcre2test` oracle. Downstream consumers need not cha
 here because some integrators care that the regex parser carries no Rust-regex-engine dependency. (Every
 *other* PGEN parser remains free to use Rust's regex engine; only the regex parser is held to this bar.)
 
-## Parse-time performance (live note, updated 2026-07-13)
+## Parse-time performance (live note, updated 2026-07-20)
 
 The regex parser is under an active, tracked **speed campaign** (`RGX-0078`): as of 2026-07-20 the
-measured parse cost is a geomean of **≈1.65µs per pattern** on the 8-pattern RGX bench corpus
-(release build, fat-LTO, mimalloc-class allocator, noise-floor-minimum statistic) — down **≈301×**
+measured parse cost is a geomean of **≈1.61µs per pattern** on the 8-pattern RGX bench corpus
+(release build, fat-LTO, mimalloc-class allocator, noise-floor-minimum statistic) — down **≈308×**
 from ≈496µs at the campaign's activation. On the external PCRE2 corpus the **maximum** observed
-parse is ≈405µs (guarded by a 425µs non-regression bound) and the corpus geomean ≈1.05µs. Every speed lever lands under a
+parse is ≈392µs (guarded by a 425µs non-regression bound) and the corpus geomean ≈1.04µs. Every speed lever lands under a
 hard **byte-identical constraint**: the accepted language, verdicts, error codes, and the runtime
 AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
 certificate-coverage, and PCRE2-compile-oracle gates), so **performance work never moves the

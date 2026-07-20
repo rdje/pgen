@@ -274,12 +274,27 @@ impl AstBasedGenerator {
     }
 
     /// RGX-0078.5.i.7 (D2-B) — does this generation carry ≥ 1 thin-memo rule
-    /// (gates the `thin_memo` parser-struct field + its constructor init, so a
+    /// (gates the thin-memo parser-struct fields — `-0205`: `thin_scratch` /
+    /// `thin_entries` / `thin_stride` — + their constructor init, so a
     /// fully-acyclic grammar's artifact stays byte-identical to the D2-A
     /// emission)?
     pub(super) fn cascade_thin_memo_active(&self) -> bool {
         self.cascade_plan()
             .is_some_and(|plan| !plan.thin_memo_internal.is_empty())
+    }
+
+    /// RGX-0078.5.j.4 (`-0205`) — the thin-memo rules in SORTED order: the
+    /// direct-index carrier assigns each rule a `THIN_ROW_<RULE>` row number,
+    /// and the plan's set is a `HashSet`, so sorting here is what keeps the
+    /// emitted constants (and therefore the whole artifact)
+    /// regen-deterministic.
+    pub(super) fn cascade_thin_memo_rows(&self) -> Vec<String> {
+        let mut rows: Vec<String> = self
+            .cascade_plan()
+            .map(|plan| plan.thin_memo_internal.iter().cloned().collect())
+            .unwrap_or_default();
+        rows.sort();
+        rows
     }
 
     /// RGX-0078.5.i.7 (MTB-B) — is the match-then-build split active? Under
@@ -597,6 +612,7 @@ impl AstBasedGenerator {
             // a failed body's pushes are truncated by the enclosing scope's
             // marks, and a cached FAILURE carries no segment.
             let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
+            let thin_row_const = format_ident!("THIN_ROW_{}", rule_name.to_uppercase());
             let recursion_guard_max_depth = super::GENERATED_RECURSION_GUARD_MAX_DEPTH;
             return Ok(quote! {
                 fn #match_fn(&mut self) -> CascadeResult<()> {
@@ -628,11 +644,17 @@ impl AstBasedGenerator {
                         }
                         _ => {}
                     }
-                    let __pgen_thin_key = (Self::#rule_const, position);
+                    // RGX-0078.5.j.4 (`-0205`) — direct-index probe: one
+                    // mul/add + one slot load + one generation compare
+                    // replaces the map's hash + group probe; the stamp/taint
+                    // classes and the splice replay are UNCHANGED.
+                    let __pgen_thin_slot =
+                        Self::#thin_row_const * parser.thin_stride + position;
                     let __pgen_thin_epoch = parser.semantic_runtime_state.write_epoch();
                     let __pgen_thin_deferred = parser.semantic_runtime_state.deferred_obligation_count();
                     let mut __pgen_thin_stale = false;
-                    if let Some(__pgen_thin_entry) = parser.thin_memo.get(&__pgen_thin_key) {
+                    if let Some(__pgen_thin_idx) = parser.thin_scratch.lookup(__pgen_thin_slot) {
+                        let __pgen_thin_entry = &parser.thin_entries[__pgen_thin_idx as usize];
                         let __pgen_thin_valid = match __pgen_thin_entry.stamp {
                             // PURE — neither read nor mutated: valid at any store state.
                             None => true,
@@ -645,8 +667,8 @@ impl AstBasedGenerator {
                         if __pgen_thin_valid {
                             match &__pgen_thin_entry.outcome {
                                 Some((__pgen_thin_end, __pgen_thin_seg)) => {
-                                    // Disjoint-field borrows: `thin_memo` is
-                                    // shared-borrowed while the tape vec is
+                                    // Disjoint-field borrows: `thin_entries`
+                                    // is shared-borrowed while the tape vec is
                                     // mutably borrowed — distinct places.
                                     parser.deriv_tape.extend_from_slice(__pgen_thin_seg);
                                     parser.position = *__pgen_thin_end;
@@ -660,7 +682,10 @@ impl AstBasedGenerator {
                         __pgen_thin_stale = true;
                     }
                     if __pgen_thin_stale {
-                        parser.thin_memo.remove(&__pgen_thin_key);
+                        // Stale eviction = slot clear; the superseded dense
+                        // entry stays as bounded garbage (bounded by the same
+                        // store-epoch churn that bounded the map's remove).
+                        parser.thin_scratch.clear(__pgen_thin_slot);
                     }
                     let __pgen_thin_preds = parser.semantic_runtime_state.predicate_evaluations();
                     let __pgen_thin_mark = parser.deriv_tape.len();
@@ -695,38 +720,46 @@ impl AstBasedGenerator {
                             } else {
                                 Some((__pgen_thin_epoch, __pgen_thin_deferred))
                             };
-                        match &__pgen_thin_result {
-                            Ok(()) => {
-                                // RGX-0078.5.i.14 (C3) — the committed segment
-                                // is copied inline-small (POD `Copy` memcpy),
-                                // eliding the `Vec` malloc for the common short
-                                // segment. RGX-0078.5.j.4 (`-0203`) — the
-                                // unified tape makes it ONE copy; the inline
-                                // capacity is inferred from
-                                // `ThinTapeMemoEntry::outcome`.
-                                let __pgen_thin_seg = smallvec::SmallVec::from_slice(
-                                    &parser.deriv_tape[__pgen_thin_mark..],
-                                );
-                                parser.thin_memo.insert(
-                                    __pgen_thin_key,
-                                    crate::ast_pipeline::ThinTapeMemoEntry {
-                                        stamp: __pgen_thin_stamp,
-                                        outcome: Some((
-                                            parser.position,
-                                            __pgen_thin_seg,
-                                        )),
-                                    },
-                                );
+                        // RGX-0078.5.j.4 (`-0205`) — direct-index insert:
+                        // `Vec::push` + one slot store replace the map's
+                        // hash + probe + ctrl/bucket write + growth
+                        // amortization. The u32-index guard SKIPS caching
+                        // past 2³²−1 entries (a memo skip is always sound;
+                        // the +1 slot encoding needs idx+1 to fit u32).
+                        if parser.thin_entries.len() < u32::MAX as usize {
+                            let __pgen_thin_idx = parser.thin_entries.len() as u32;
+                            match &__pgen_thin_result {
+                                Ok(()) => {
+                                    // RGX-0078.5.i.14 (C3) — the committed segment
+                                    // is copied inline-small (POD `Copy` memcpy),
+                                    // eliding the `Vec` malloc for the common short
+                                    // segment. RGX-0078.5.j.4 (`-0203`) — the
+                                    // unified tape makes it ONE copy; the inline
+                                    // capacity is inferred from
+                                    // `ThinTapeMemoEntry::outcome`.
+                                    let __pgen_thin_seg = smallvec::SmallVec::from_slice(
+                                        &parser.deriv_tape[__pgen_thin_mark..],
+                                    );
+                                    parser.thin_entries.push(
+                                        crate::ast_pipeline::ThinTapeMemoEntry {
+                                            stamp: __pgen_thin_stamp,
+                                            outcome: Some((
+                                                parser.position,
+                                                __pgen_thin_seg,
+                                            )),
+                                        },
+                                    );
+                                }
+                                Err(_) => {
+                                    parser.thin_entries.push(
+                                        crate::ast_pipeline::ThinTapeMemoEntry {
+                                            stamp: __pgen_thin_stamp,
+                                            outcome: None,
+                                        },
+                                    );
+                                }
                             }
-                            Err(_) => {
-                                parser.thin_memo.insert(
-                                    __pgen_thin_key,
-                                    crate::ast_pipeline::ThinTapeMemoEntry {
-                                        stamp: __pgen_thin_stamp,
-                                        outcome: None,
-                                    },
-                                );
-                            }
+                            parser.thin_scratch.store(__pgen_thin_slot, __pgen_thin_idx);
                         }
                     }
                     __pgen_thin_result
@@ -2591,11 +2624,13 @@ mod tests {
             "the cyclic match fn carries the id-only bare guard frame (`-0200`), got: {cyc_body}"
         );
         assert!(
-            cyc_body.contains("thin_memo")
+            cyc_body.contains("thin_scratch")
+                && cyc_body.contains("thin_entries")
+                && cyc_body.contains("THIN_ROW_CYC")
                 && cyc_body.contains("write_epoch")
                 && cyc_body.contains("deferred_obligation_count")
                 && cyc_body.contains("ThinTapeMemoEntry"),
-            "the cyclic match fn carries the epoch-stamped SEGMENT thin memo, got: {cyc_body}"
+            "the cyclic match fn carries the epoch-stamped direct-index SEGMENT thin memo (`-0205`), got: {cyc_body}"
         );
         assert!(
             cyc_body.contains("extend_from_slice"),
@@ -2619,7 +2654,7 @@ mod tests {
                 .map(|off| cyc_build_start + 1 + off)
                 .unwrap_or(rendered.len())];
         assert!(
-            !cyc_build_body.contains("recursion_guard") && !cyc_build_body.contains("thin_memo"),
+            !cyc_build_body.contains("recursion_guard") && !cyc_build_body.contains("thin_scratch"),
             "the build fn walks the committed tape with no guard/memo, got: {cyc_build_body}"
         );
         // The acyclic match fn keeps the frame-free shape.
@@ -2629,7 +2664,7 @@ mod tests {
                 .map(|off| leaf_fn_start + 1 + off)
                 .unwrap_or(rendered.len())];
         assert!(
-            !leaf_body.contains("recursion_guard") && !leaf_body.contains("thin_memo"),
+            !leaf_body.contains("recursion_guard") && !leaf_body.contains("thin_scratch"),
             "an acyclic fused rule carries neither guard nor memo, got: {leaf_body}"
         );
     }
@@ -2691,7 +2726,7 @@ mod tests {
             "the cyclic sub-root gets the orchestrator + its match/build pair, got: {rendered}"
         );
         assert!(
-            !rendered.contains("recursion_guard") && !rendered.contains("thin_memo"),
+            !rendered.contains("recursion_guard") && !rendered.contains("thin_scratch"),
             "the cyclic sub-root's fused fns carry neither guard nor thin memo (its protocol frame protects every bare-path entry), got: {rendered}"
         );
         assert!(
