@@ -1,0 +1,45 @@
+# STRUCTURED-WITNESS-SYNTH.1 — union gate re-run evidence (session #189, 2026-07-21)
+# command: scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 5400 -- make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate
+# guard: completed exit=0 peak_tree_rss=7695MB elapsed=655s
+
+SV Recognized Certificate-Coverage Union Gate Summary
+gate: sv_cert_recognized_union_gate
+version: 1
+state_dir: rust/target/sv_cert_recognized_union_gate
+generated_at_utc: 2026-07-21T20:24:59Z
+summary_json: rust/target/sv_cert_recognized_union_gate/summary.json
+contract_file: rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json
+status_rule_done: SV is recognized fully_certified when the multi-config certificate-coverage union UNKNOWN reaches 0. Until then the recognized fully_certified-accounting basis is the sound multi-config union (expected_union_unknown), whose residual rule set must equal expected_union_residual_rules exactly (order-insensitive) and be deterministic (byte-identical) across all declared seeds, with sample_parse_failures=0; the canonical single-config accounting (expected_canonical_unknown) is recorded alongside. The union is sound by construction: a rule is credited only when some config POSITIVELY covers it (a proof or a witness — including the VERILOG-2005-PROFILE.6.7 per-profile ProfileEntryUnreachable/ProfileUnproducibleGate proofs, each independently re-derived), never merely because a profile leaves the rule out of its universe.
+base_entry: systemverilog_file
+base_profile: sv_2017
+samples: 40
+seeds: [0,7,42]
+union_configs: ["systemverilog_file:sv_2023","sv_multi_entry_root:sv_2017","library_text:sv_2017","systemverilog_parseable_file:sv_2017"]
+recognized_basis_green: true
+fully_certified_via_union: false
+canonical_unknown: 12
+union_unknown: 1
+union_witness: 1332
+union_residual_rules: ["context_member_method_call"]
+expected_canonical_unknown: 12
+expected_union_unknown: 1
+expected_union_witness: 1332
+expected_union_residual_rules: ["context_member_method_call"]
+unmet_criteria_count: 0
+primary_unmet_criterion: <none>
+unmet_criteria_json: []
+
+# marker file content:
+status=completed
+reason=none
+exit=0
+budget_mb=16384
+floor_pct=10
+disk_floor_gb=8
+timeout_s=5400
+peak_rss_mb=7695
+last_free_pct=80
+last_disk_free_gb=70
+elapsed_s=655
+cmd=make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate
+ended_at=2026-07-21T22:25:01+0200

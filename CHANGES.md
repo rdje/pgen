@@ -1,5 +1,17 @@
 # CHANGES.md
 
+## 2026-07-21 - PGEN-STRUCTURED-WITNESS-SYNTH-0002 (tree STRUCTURED-WITNESS-SYNTH, leaf .1) — the SV cert endgame re-baselined at the current vintage: the last-UNKNOWN obstacle map is SIMPLER than recorded (read-only investigation)
+
+Session #189. The post-RGX PNT frontier is the locked program's last gap: `context_member_method_call`, the sole residual between SystemVerilog and recognized `fully_certified` (tree created `PGEN-STRUCTURED-WITNESS-SYNTH-0001`, commit `9e9cc57d`).
+
+**Baseline re-confirmed byte-exact** (guarded `sv_cert_recognized_union_gate` re-run, exit 0): canonical `UNKNOWN=12` / union `UNKNOWN=1` / residual exactly `["context_member_method_call"]`, deterministic seeds 0/7/42, `spf=0`. The canonical SOLO run reads `total=1343 proof=21 witness=1321 UNKNOWN=1` (single-entry universe ⇒ the 11 entry-relative rules are ProfileEntryUnreachable proofs).
+
+**Protocol-A probes (seed 0, DEBUG_PROBES + REACH_PATH_DUMP):** `parsed=true witnessed_target=false` across all five probe families; the name-prelude never arms at baseline (the `.4b.19` (b1) producer admission is reverted), and no forced sample renders the parenthesised chain tail.
+
+**⭐ The A–F parse matrix supersedes obstacles 4/6/8 of the 2026-06-30 map** (`parseability_probe --parse-dump-ast-pretty`, SV parser sha `27d7c67f`): the natural BFS attribute carrier `(*x=foo.bar.baz()*)bind b c d();` WITNESSES the rule once a typed declaration exists in a PRECEDING top-level unit — the minimal prelude is bare `int foo;` (cell E; no module wrapper, no same-scope requirement, no carrier re-routing). Without the declaration the post `has_fact(variable_binding,$head)` gate rejects (cell B); a localparam prelude parses but does NOT witness (cell F — the wrong producer, no `variable_binding` emit): the measured explanation of why `.4b.19`'s armed prelude stayed inert. The `.2` design target is therefore a composition of the proven reverted parts ((b1) producer admission, (b2) typed-branch forcing, (c) head name-pin) + producer-hosted top-level decl prelude + ONE new forcing (the `call_with_args` tail branch) on the EXISTING carrier — generator-only, parser-agnostic, capability-gated.
+
+Evidence: `docs/tasks/artifacts/structured_witness_synth/` (`union_gate_rerun.txt`, `probe_seed0_extract.txt`, `ab_matrix_current_vintage.txt`). Read-only slice: no code/grammar/generated/release change; live tracker unchanged (SV stays `Mostly Done`).
+
 ## 2026-07-21 - PGEN-RGX-0089-0001 (tree RGX-0089) — REJECTS-VALID REGRESSION FIXED: `\b` inside the extended class `(?[...])` accepts again (release 1.1.106 / contract 1.1.109 / ledger REGEX-0115); all three director-directed RGX adoption blockers now addressed
 
 Session #188, third of the three director-directed RGX adoption-blocker reports (0091 ✓ → 0090 ✓ → **0089** ✓).

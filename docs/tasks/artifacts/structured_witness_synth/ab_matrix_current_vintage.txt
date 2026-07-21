@@ -1,0 +1,37 @@
+# STRUCTURED-WITNESS-SYNTH.1 — the decisive A/B matrix at the CURRENT vintage
+# (session #189, 2026-07-21; SV release 1.0.167 / schema 16;
+#  generated/systemverilog_parser.rs sha256 27d7c67f…, regenerated this session by
+#  sv_cert_recognized_union_gate's ensure step via focus_systemverilog;
+#  tool: rust/target/debug/parseability_probe --parse-dump-ast-pretty systemverilog <in> <out.json> --profile sv_2017;
+#  verdict = grep -c "context_member_method" on the pretty AST dump)
+#
+# Target rule (grammars/systemverilog.ebnf:3132):
+#   context_member_method_call := identifier ( dot identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
+#   gated @predicate has_fact(variable_binding, $head) phase:post (:3118)
+#   sole producer: variable_decl_assignment @emit_fact {kind: variable_binding, name: $name.body} (:5917)
+#   consumer: call_primary alt-0 under @branch_policy priority_first (:3184)
+#   disambiguating tail: callable_method_call_body (:3026, priority_first) — alt-1 = method_identifier attribute_instance* lparen list_of_arguments rparen
+
+CELL A  input: module m;int foo;initial begin case(foo.bar.baz())default:;endcase end endmodule
+        parse: PASS   context_member_method nodes: 1   (same-scope typed decl + case-expr context + `()` ⇒ WITNESS)
+
+CELL B  input: module m;initial begin case(foo.bar.baz())default:;endcase end endmodule
+        parse: PASS   context_member_method nodes: 0   (NO decl ⇒ post has_fact gate rejects; sibling absorbs — the gate IS the discriminator)
+
+CELL C  input: module a;int foo;endmodule (*x=foo.bar.baz()*)bind b c d();
+        parse: PASS   context_member_method nodes: 1   (decl in a PRECEDING UNIT satisfies the gate in the EXISTING BFS attribute carrier ⇒ no same-scope requirement, no carrier re-route needed)
+
+CELL D  input: module m;int foo;initial begin if(foo.bar.baz());end endmodule
+        parse: PASS   context_member_method nodes: 1   (if-statement context also witnesses)
+
+CELL E  input: int foo;(*x=foo.bar.baz()*)bind b c d();
+        parse: PASS   context_member_method nodes: 1   (the MINIMAL prelude: a bare top-level typed data declaration — no module wrapper needed)
+
+CELL F  input: localparam int foo=1;(*x=foo.bar.baz()*)bind b c d();
+        parse: PASS   context_member_method nodes: 0   (a localparam prelude does NOT emit variable_binding — the WRONG producer; this is the measured explanation of why the .4b.19 armed prelude [localparam struct{bit\foo ;}\foo_0 ;…] stayed inert)
+
+# CONCLUSION (the re-verified WHY+WHERE the .2 design builds on):
+# - The witness template is E: [typed decl through variable_decl_assignment] ++ [existing carrier with the chain head PINNED to the declared name and the tail on callable_method_call_body's parenthesised call_with_args branch].
+# - Obstacles 4/6/8 of the 2026-06-30 map (decl-hosting carrier bias / fragile reach re-routing / same-scope decl) are SUPERSEDED at the current vintage: the natural BFS carrier witnesses once the prelude+pin+() are present (cells C/E).
+# - The remaining composition = (b1) producer admission (re-land) + producer HOSTING at a top-level data-declaration position (NOT localparam — F-refuted) + (b2) typed-branch forcing + (c) head-leaf name-pin + NEW: forced call_with_args branch on the target's own tail.
+# - Baseline probes (probe_seed0_extract.txt): parsed=true witnessed_target=false across all 5 probe families; NO probe sample carries a prior declaration (the name-prelude never arms at baseline — (b1) is reverted) and none renders `()` on the chain tail (except one embedded-attr target-own render that still lacked the fact).

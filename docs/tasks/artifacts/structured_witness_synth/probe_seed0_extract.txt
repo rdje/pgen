@@ -1,0 +1,33 @@
+CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1343 proof=21 witness=1321 UNKNOWN=1 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+
+## all probe-family lines for rule='context_member_method_call' (dedup, counts):
+      8   [store-free-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo .\\foo *)bind\\foo \\foo \\foo ();"
+      8   [plannable-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo .\\foo *)bind\\foo \\foo \\foo ();"
+      6   [target-own-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo .\\foo .\\foo *)bind\\foo \\foo \\foo ();"
+      4   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="module\\foo (\\foo =\\foo .\\foo .\\foo );endmodule"
+      4   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="module m; endmodule"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="program p(input logic a);case(\\foo .\\foo .\\foo )default;endcase endprogram"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="program p(input logic a);case(\\foo .\\foo .\\foo )\\foo .\\foo .\\foo :;endcase endprogram"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="program p(input logic a);case(\\foo .\\foo .\\foo )\\foo .\\foo .\\foo ,\\foo .\\foo .\\foo :;endcase endprogram"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="package\\foo ;class\\foo ;const bit\\foo_0 =\\foo_0 .\\foo_0 .\\foo_0 ;endclass endpackage"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="module\\foo (.\\foo (\\foo .\\foo .\\foo ));endmodule"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="module m(input logic a);specparam\\foo =\\foo .\\foo .\\foo ;endmodule"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =+\\foo .\\foo .\\foo *)bind\\foo \\foo \\foo ();"
+      2   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo .\\foo +\\foo .\\foo .\\foo *)bind\\foo \\foo \\foo ();"
+      1   [target-own-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*pA=B.vpNmJ.pRKn.xKGn*)bind hCw LD9T0 jU();"
+      1   [target-own-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*KLlmc=_.jtH.FY9.eiD*)bind JVWY8 mGObl uWpI();"
+      1   [target-own-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo [3766.434e3__14].\\foo .\\foo *)bind\\foo \\foo \\foo ();"
+      1   [target-own-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo [2309.334__E841].\\foo .\\foo *)bind\\foo \\foo \\foo ();"
+      1   [target-own-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo .\\foo (*\\foo =95.983e82314*)().\\foo *)bind\\foo \\foo \\foo ();"
+      1   [target-own-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="(*\\foo =\\foo .\\foo .\\foo (*\\foo =252.43e+2*)().\\foo *)bind\\foo \\foo \\foo ();"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="program p(input logic a);cover sequence(##\\foo .\\foo .\\foo 688.97585);endprogram"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="program p(input logic a);cover sequence(##\\foo .\\foo .\\foo 09.02_1E6016);endprogram"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="program p(input logic a);cover sequence(\\foo [*$zW]);endprogram"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="program p(input logic a);cover sequence(\\foo [*$UH]);endprogram"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="module m(input logic a);specify if(\\foo .\\foo .\\foo )(\\foo =>\\foo )=9.95357e+0;endspecify endmodule"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="module m(input logic a);specify if(\\foo .\\foo .\\foo )(\\foo =>\\foo )=6_.86;endspecify endmodule"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="bind\\foo [\\foo .\\foo [69110.487_9E+2].\\foo ]\\foo \\foo ();"
+      1   [carrier-div-probe] rule='context_member_method_call' parsed=true witnessed_target=false sample="bind\\foo [\\foo .\\foo [049.08165].\\foo ]\\foo \\foo ();"
+
+## reach-path lines targeting the rule:
+  [reach-path] target='context_member_method_call' hops=[("systemverilog_file", "root/s1"), ("source_text", "root/q"), ("source_text_item", "root/o0"), ("description", "root/o6/s0/q"), ("attribute_instance", "root/s1"), ("attr_spec", "root/s1/q/s1"), ("constant_expression", "root/s0"), ("constant_expression_operand", "root/o1"), ("constant_primary", "root/o0"), ("constant_primary_sv_2017", "root/o8"), ("constant_function_call", "root/o0"), ("call_primary", "root/o0")]

@@ -108,18 +108,53 @@ re-derives the WHY+WHERE live before any design.
 
 ### `.1` — Live re-baseline + obstacle-map re-verification (tools-first, read-only)
 
-- Re-run the regression-locked oracle `make -C rust SHELL=/bin/bash
-  sv_cert_recognized_union_gate` (under the memory guard) — green + pins exact,
-  or STOP and re-adjudicate the baseline first.
-- Protocol A on the residual at the CURRENT vintage: canonical seed-0 run with
-  `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` (+ `PGEN_REACH_PATH_DUMP=1`) → the
-  `[plannable-probe]` verdict + reach hops + the actual forced samples for
-  `context_member_method_call`.
-- Re-verify each of obstacles 1–8 (or amend the map with tool output); re-pin
-  the current line numbers / carrier shapes; bank evidence under
-  `docs/tasks/artifacts/structured_witness_synth/`.
-- Acceptance: a verified, current WHY+WHERE the `.2` design can cite line-by-line.
-  Read-only ⇒ docs-only commit.
+- **Status: `done`** (`PGEN-STRUCTURED-WITNESS-SYNTH-0002`, session #189,
+  2026-07-21; READ-ONLY — zero code/grammar/generated change).
+- **Baseline re-confirmed byte-exact** (guarded `sv_cert_recognized_union_gate`
+  re-run, exit 0, peak 7,695 MB, 655 s): canonical `UNKNOWN=12` / union
+  `UNKNOWN=1` / residual exactly `["context_member_method_call"]`,
+  deterministic seeds 0/7/42, `spf=0`, `recognized_basis_green=true`. The
+  canonical SOLO run (no union configs) reads `total=1343 proof=21
+  witness=1321 UNKNOWN=1` — with the single-entry universe the 11
+  entry-relative rules are ProfileEntryUnreachable proofs, so the residual is
+  THE single UNKNOWN even solo. Evidence: `union_gate_rerun.txt`.
+- **Protocol-A probe run** (seed 0, `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` +
+  `PGEN_REACH_PATH_DUMP=1`, guarded): verdict `parsed=true
+  witnessed_target=false` across ALL FIVE probe families
+  (plannable/store-free/target-own/carrier-div ×N); NO probe sample carries a
+  prior declaration (the name-prelude never arms at baseline — (b1) is
+  reverted) and none renders `()` on the chain tail; carrier-div at this
+  vintage tries a RICHER carrier set than the 2026-06-30 map recorded (ANSI
+  port default, program-case, package-class-const, named-port, specparam,
+  specify-if, bind bit-select, cover-sequence) plus the `module m; endmodule`
+  empty fallbacks. BFS reach path: `… attribute_instance → attr_spec →
+  constant_expression → … → constant_function_call → call_primary(root/o0) →
+  context_member_method_call`. Evidence: `probe_seed0_extract.txt`.
+- ⭐ **The A/B matrix SUPERSEDES obstacles 4/6/8** (cells A–F,
+  `ab_matrix_current_vintage.txt`, SV parser sha `27d7c67f`): the natural BFS
+  attribute carrier WITNESSES the rule once three things are present — (C/E)
+  a typed declaration in a PRECEDING top-level unit (minimal form: bare
+  `int foo;` — no module wrapper, no same-scope requirement, no carrier
+  re-route), the head pinned to the declared name, and the parenthesised
+  `call_with_args` tail. (B) no-decl ⇒ gate rejects (the discriminator);
+  (F) a localparam prelude parses but does NOT witness — the WRONG producer
+  (no `variable_binding` emit): the measured explanation of the `.4b.19`
+  armed-but-inert prelude.
+- **The `.2` design target (verified):** compose (b1) producer admission
+  (re-land) + producer HOSTING at a top-level data-declaration position
+  (F-refuted: never localparam) + (b2) typed-branch forcing + (c) head-leaf
+  name-pin + NEW forced `call_with_args` branch on the target's own
+  `callable_method_call_body` tail — on the EXISTING carrier.
+- Acceptance checklist (investigation slice):
+  - [x] REPRODUCE — gate green byte-exact + solo-canonical `1343/21/1321/1`;
+    probe verdict current.
+  - [x] ROOT CAUSE (WHY+WHERE) — the A–F matrix + probe extract, all
+    tool-backed at the current vintage (pins `:3118`/`:3132`/`:3184`/`:3026`/`:5917`).
+  - [x] ADDRESSED — N/A (read-only slice; the design target above is the output).
+  - [x] NO REGRESSION — read-only; no artifact/source touched (the gate's own
+    `focus_systemverilog` regen is its maintained recipe; parser sha banked).
+  - [x] LOCKSTEP — this leaf + frontier + `docs/TASK_TREE.md` row + MEMORY +
+    CHANGES; no book/contract change (no user-facing behavior change).
 
 ### `.2` — DESIGN: the structured-witness synthesizer (PURE-DOCS)
 
@@ -183,8 +218,8 @@ re-derives the WHY+WHERE live before any design.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `STRUCTURED-WITNESS-SYNTH.1` (live re-baseline + obstacle re-verification) | `in progress` (session #189) | TOOLBOX-FIRST: the design must build on the CURRENT vintage (SV `1.0.167`, post-`.6.7` accounting), not the 2026-06-30 obstacle map. |
-| 2 | `STRUCTURED-WITNESS-SYNTH.2` (DESIGN) | `pending` | Blocked on `.1`'s verified WHY+WHERE. |
+| 1 | `STRUCTURED-WITNESS-SYNTH.2` (DESIGN) | `next` | `.1` verified the witness template (cell E) and SUPERSEDED the fragile parts of the old map — the design is now a composition of proven parts + one new tail-branch forcing, on the existing carrier. |
+| — | `STRUCTURED-WITNESS-SYNTH.1` (live re-baseline + obstacle re-verification) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0002`, read-only) | Baseline byte-exact (canonical 12 / union 1 / residual = the rule); A–F matrix superseded obstacles 4/6/8; the `.2` design target verified. |
 | 3 | `STRUCTURED-WITNESS-SYNTH.3` (IMPLEMENT) | `pending` | Blocked on `.2`. |
 | 4 | `STRUCTURED-WITNESS-SYNTH.4` (VERIFY + lockstep) | `pending` | Blocked on `.3`. |
 
@@ -195,3 +230,12 @@ re-derives the WHY+WHERE live before any design.
   SV cert chosen: the locked program's last gap, director-committed, with a
   twice-tool-proven concrete blocker). Union-gate re-baseline run launched
   (guarded) as `.1`'s first evidence.
+- `2026-07-21` (session #189, `.1` CLOSED `PGEN-STRUCTURED-WITNESS-SYNTH-0002`):
+  baseline re-confirmed byte-exact; Protocol-A probe run banked; ⭐ the A–F
+  parse matrix (cells A/B/C/D/E/F) SUPERSEDED obstacles 4/6/8 — the natural
+  BFS attribute carrier witnesses with a minimal PRECEDING-UNIT typed-decl
+  prelude (`int foo;`), a pinned head, and the parenthesised tail; the
+  localparam prelude is F-REFUTED (wrong producer — the measured explanation
+  of the `.4b.19` inertness). Evidence: `union_gate_rerun.txt` +
+  `probe_seed0_extract.txt` + `ab_matrix_current_vintage.txt` under
+  `docs/tasks/artifacts/structured_witness_synth/`.
