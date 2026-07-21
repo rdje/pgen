@@ -1,0 +1,14 @@
+bench floorval geomean 1600.7 ns vs banked 1579.7 = +1.33%  PASS (+-6%)
+bench steering: base 1589.6 -> cand 1573.6 ns = -1.01%
+verdict flips across all four sweeps: 0/2189  PASS
+custody base1 1004.8820262965545 ns (+0.05% vs floor 1004.3665721515218)  PASS (+-3%)
+custody base2 999.9396830652871 ns (-0.44% vs floor 1004.3665721515218)  PASS (+-3%)
+custody base1 vs base2 +0.49%  PASS (+-2.5%)
+pooled base 993.546534319724 -> pooled cand 994.8162954911055 ns = +0.1278%  NO DECREASE: REFUSE
+MAX pooled base 374,125 / pooled cand 378,458 <= 425,000  PASS
+per-band pooled ratios: <1us 1.0009 (n=1135) | 1-2.5us 1.0009 (n=697) | 2.5-20us 1.0033 (n=346) | >=20us 1.0056 (n=11)
+single-sweep geomean cand1: 1001.0783026754
+single-sweep geomean cand2: 1007.0866031037015
+single-sweep-comparable candidate floor (geomean of sweep geomeans): 1004.0779587672401
+
+VERDICT: REFUSE (revert per the -0197 ratchet)

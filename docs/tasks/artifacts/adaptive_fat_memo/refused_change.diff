@@ -1,0 +1,30 @@
+diff --git a/rust/src/ast_pipeline/ast_based_generator.rs b/rust/src/ast_pipeline/ast_based_generator.rs
+index e8665595..caf9b8b3 100644
+--- a/rust/src/ast_pipeline/ast_based_generator.rs
++++ b/rust/src/ast_pipeline/ast_based_generator.rs
+@@ -1527,12 +1527,19 @@ impl AstBasedGenerator {
+                     // RGX-0078.5.d.4.i — the per-parse node arena (candidate B).
+                     arena,
+                     position: 0,
+-                    // Optim #7: pre-size memo to skip the 4-→8-→16-→...-→256 rehash
+-                    // chain during parse. Even small regex patterns produce ~50-200
+-                    // memo entries; large ones produce more. 256 covers the common
+-                    // case without growth; FxHashMap doubles past that. The cost is
+-                    // a one-time allocation at parser construction (cheap).
+-                    memo: rustc_hash::FxHashMap::with_capacity_and_hasher(256, Default::default()),
++                    // RGX-0078.5.j.4 (`-0214`) — ADAPTIVE protocol-memo pre-size.
++                    // The old fixed 256 ("Optim #7") predates the thin-memo
++                    // architecture: the hot thin rules bypass this map now, and a
++                    // 256-capacity table of fat `MemoEntry` buckets is a ~160 KB
++                    // alloc+free EVERY parse (machine-pinned by `-0213`) — the C2
++                    // tiny-input hazard. Adaptive `min(len+1, 256)` keeps the
++                    // capacity (and the no-growth guarantee) BYTE-IDENTICAL for
++                    // inputs ≥ 255 B (the K3a "SV-hot" residual note) and sizes
++                    // tiny inputs proportionally; the map still grows on demand.
++                    memo: rustc_hash::FxHashMap::with_capacity_and_hasher(
++                        (input.len() + 1).min(256),
++                        Default::default(),
++                    ),
+                     // RGX-0078.5.i.14 (C2) — adaptive pre-size for the failure
+                     // sets (the #15 census attributed `reserve_rehash` cost to
+                     // their default-sized growth on the bench).

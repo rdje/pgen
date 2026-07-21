@@ -1,0 +1,57 @@
+PGEN-RGX-0078-0214 — the ADAPTIVE FAT-MEMO PRE-SIZE unit — RATCHET ADJUDICATION
+Session #185, 2026-07-21. Base probe carrier48_8d392176 (SHA-asserted in-run);
+candidate probe sha256 96b45c18dff8679483ad562dd8f6011330d42bda4e16969f5871e57cda044264
+(built from the -0214 emitter change + the all-11 regen train; regex artifact
+d4f2acae..., expected-delta review 2 lines x 11 artifacts, nothing else).
+
+PROTOCOL: the -0212 hardened interleaved land gate as primary (pre-registered
+in design_prereg.md BEFORE code): floorval x3 -> 5 alternating bench rounds ->
+base1 -> cand1 -> base2 -> cand2 corpus sweeps with per-sweep load snapshots.
+
+CUSTODY (the cleanest of the campaign):
+  bench floorval 1600.7 ns vs banked 1579.7 = +1.33%          PASS +-6%
+  base1 1004.8820262965545 ns  (+0.05% vs floor 1004.3665721515218)  PASS +-3%
+  base2  999.9396830652871 ns  (-0.44% vs floor)                     PASS +-3%
+  base1 vs base2 +0.49%                                              PASS +-2.5%
+  load snapshots: no foreign process >50% CPU in any sweep window
+  verdict flips across all four sweeps: 0/2,189                      PASS
+  MAX pooled base 374,125 / pooled cand 378,458 <= 425,000           PASS
+
+ADJUDICATION (pooled per-cell minima, pooled-vs-pooled):
+  pooled base 993.546534319724 ns -> pooled cand 994.8162954911055 ns
+  = +0.1278%  NO STRICT DECREASE  =>  REFUSE
+  per-band pooled ratios: <1us 1.0009 | 1-2.5us 1.0009 |
+  2.5-20us 1.0033 | >=20us 1.0056 — NO band improves.
+  bench steering: 1589.6 -> 1573.6 ns = -1.01% (the contract's
+  bench-only-improvement reversion case, realized again — the -0210 shape).
+  single-sweep candidate geomeans 1001.08 / 1007.09 (comparable floor
+  1004.08 — indistinguishable from the base floor 1004.37).
+
+VERDICT: REFUSE — unconditional product reversion per the -0197 ratchet.
+  The -1.0..-5.0% prediction band is REFUTED: eliding a 160,264-byte
+  alloc+free pair per parse priced at ZERO on the corpus geomean.
+
+WHY THE MECHANISM PRICED AT ZERO (the honest root cause of the refusal):
+  mimalloc serves a REPEATED SAME-SIZE alloc+free pair from its thread-local
+  segment cache at near-zero cost — the per-parse 160 KB table was already
+  effectively pooled BY THE ALLOCATOR, and the only content work the fixed
+  capacity forces is the 520-byte hashbrown ctrl memset (trivial). The
+  allocator population's fixed-per-parse band gradient (13.7->11.9->9.9%)
+  is the allocator FAST-PATH ceremony across all the per-parse allocations,
+  not a removable large-object cost. The C2 "tiny-input hazard" framing is
+  real only under allocators with expensive large-object paths — not under
+  the mimalloc closure-bench config.
+
+REVERT (executed + verified same-session):
+  - refused_change.diff banked; rust/src git-restored (git status clean);
+  - ALL 11 artifacts byte-restored from the SHA-verified pre-regen copies
+    (post-restore shasum diff vs artifacts_pre_regen.sha256: clean);
+  - tools + release probe rebuilt at the reverted vintage; cert x3 seeds
+    0/7/42 re-verified green (postrevert_verify.log + probe rebuild log);
+  - the rebuilt release probe reproduces the preserved base BYTE-IDENTICALLY
+    (sha256 8d392176b8456ac66ddaa62b989ad78204029a2c360caef19c4d811a40c1f75c)
+    — the deterministic-rebuild revert proof.
+
+FLOOR OF RECORD: UNCHANGED — corpus 1,004.4 ns (single-sweep-comparable) /
+bench ~1,579.7 ns; base probe carrier48_8d392176 remains the next session's
+immediate-parent A/B base.
