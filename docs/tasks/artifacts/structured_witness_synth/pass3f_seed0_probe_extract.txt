@@ -1,0 +1,5 @@
+# PASS 3f seed-0 witness run — decisive extract (full log was gitignored *.log; command + verdict + probe lines)
+# command: guarded env PGEN_CERT_COVERAGE_DEBUG_PROBES=1 ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0
+  [structured-witness-probe] rule='context_member_method_call' parsed=true witnessed_target=true sample="(*\\foo =type(struct{bit\\foo ;})*)(*\\foo_0 =\\foo .\\foo_0 .\\foo_0 .\\foo_0 *)bind\\foo_0 \\foo_0 \\foo_0 ();"
+  (structured-witness reach pass: 1 residual UNKNOWN rules targeted; 1 witnessed by composing declare-then-use prelude + head-leaf pin + target-own structure)
+CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1343 proof=21 witness=1322 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)

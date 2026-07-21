@@ -1291,6 +1291,40 @@ declaration-hosting carrier). Because the affected calls now emit `class_scoped_
 schema unchanged) — released as `1.0.151`, ledger `SV-0013`. SystemVerilog is now a single rule from a
 fully-certified multi-config union.
 
+### Closing the last reach-gap: the structured-witness composition pass
+
+The final rule, `context_member_method_call`, had resisted two implement-and-revert attempts and the
+entire five-pass witness apparatus — and the reason turned out to be *structural*, not a missing
+mechanism. The rule is store-gated (`has_fact(variable_binding, <head>)`): a witness must
+simultaneously (1) contain a *prior typed declaration* that routes through the grammar's one
+`variable_binding`-emitting producer, (2) render the chain *head* as exactly the declared name, and
+(3) render the target's own distinguishing chain structure. The generator already owned machinery
+for **each** condition — the declare-then-use name prelude, the gated-consumer name replay, and
+target-own structure forcing — but each lived in a *different* witness pass, so no single generated
+sample ever satisfied all three at once. A fresh parse matrix (hand-fed variants through the real
+parser) confirmed the coupling empirically: the natural attribute carrier witnesses the rule the
+moment a typed declaration precedes it and the head matches; an untyped or wrong-producer
+(`localparam`) prelude parses but never witnesses.
+
+The close is therefore a **composition pass**, `generate_structured_witnesses` — a final
+residual-only pass that assembles the proven pieces into ONE reach plan: the name prelude is armed
+with a pass-scoped *producer admission* extension (the producer's `@emit_fact` names a dotted
+sub-payload rather than its whole render, so the emitted name is resolved to the producer's leading
+rendered token — kept **with its lexical terminator**, because replaying a trimmed escaped
+identifier immediately before `.` would fuse the two into one token, which was precisely the one
+failure the first probe run exhibited); the prelude's sub-derivation *forces the typed branch* of
+any ordered choice that has a render-empty escape (`data_type_or_implicit`), so the declaration is
+fact-emitting (`int foo;`-typed, never `foo;`-untyped); the gated consumer, being multi-token, pins
+only its **head leaf** to the declared name (single-token consumers keep the existing whole-render
+replay unchanged); and the target-own structure directives ride in the same plan. The real parser
+remains the sole witness judge. Everything new is scoped to the pass itself, which runs only over
+rules still unwitnessed after every earlier pass — so a fully-certified grammar (empty residual)
+never executes it, and every earlier pass keeps a byte-identical stream; the six certified
+cert-lane grammars were additionally proven byte-inert by a baseline↔candidate byte-compare of
+their full cert reports. The witness landed on the first composed probe: canonical
+`witness 1321 → 1322`, canonical `UNKNOWN 12 → 11`, union `UNKNOWN 1 → 0`, deterministic at seeds
+0/7/42 with `spf=0` — **the SystemVerilog multi-config union has no `UNKNOWN` left**.
+
 ### The recognized SV certificate-coverage accounting basis
 
 Because that union is sound and deterministic, it is SystemVerilog's **recognized
@@ -1301,8 +1335,8 @@ is not left as prose: it is locked by a re-runnable, deterministic gate,
 `--report-certificate-coverage` + 4-config `--cert-union-config` invocation *for each* of seeds
 0/7/42 and asserts, against a tracked contract
 (`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`), the canonical
-accounting (`total=1343 proof=10 witness=1321 UNKNOWN=12`), the union accounting
-(`witness=1332 UNKNOWN=1`), the exact union residual rule set (`["context_member_method_call"]`,
+accounting (`total=1343 proof=10 witness=1322 UNKNOWN=11`), the union accounting
+(`witness=1333 UNKNOWN=0`), the exact union residual rule set (`[]` — empty,
 compared order-insensitively), `sample_parse_failures=0`, and that all three seeds agree
 byte-for-byte. (The count pins have been re-baselined as accounted rules were added, each time
 preserving the load-bearing UNION invariant — union `UNKNOWN=1`, the same single residual rule:
@@ -1315,12 +1349,20 @@ then `VERILOG-2005-PROFILE.6.7` (2026-07-05, the per-profile `proof` promotion) 
 `proof 2→10` and canonical `UNKNOWN 20→12` — the 8 `sv_2017`-profile-entry-unreachable
 SystemVerilog-only rules are now PROVED, not UNKNOWN — while the union stays invariant (proof gathering
 is canonical-only, so `union_proof == canonical_proof == 10`; the 8 rules are proof-under-`sv_2017` +
-witness-under-`sv_2023`, so union witness `1338→1332` and union `UNKNOWN` stays `1`).) So the recognized figure cannot silently drift, and the final union `1 → 0` flip —
-when the last reach-gap `context_member_method_call` closes — is itself gated (the contract is
-re-baselined to `expected_union_unknown=0` in that same slice). SystemVerilog remains **Mostly Done**
-until then: the union `UNKNOWN` is `1`, not `0`, and the gate says so plainly. (The gate adds a proof
-surface only — it changes no grammar, parser, generator, or generated artifact; the cert numbers are
-read-only measurements.)
+witness-under-`sv_2023`, so union witness `1338→1332` and union `UNKNOWN` stays `1`); and finally
+`STRUCTURED-WITNESS-SYNTH.3/.4` (2026-07-22, the structured-witness composition pass above) closed
+the last reach-gap — canonical witness `1321→1322` / `UNKNOWN 12→11`, union witness `1332→1333` /
+`UNKNOWN 1→0`, residual `[]`.) So the recognized figure cannot silently drift, and the final union
+`1 → 0` flip was itself gated exactly as promised: the contract is re-baselined to
+`expected_union_unknown=0` in the same wave as the capability landing, and the gate re-derives it
+across seeds 0/7/42. **The `done_rule` has fired: SystemVerilog is recognized `fully_certified` on
+the sound multi-config union basis** — every one of the 1,343 accounted rules is either PROVED
+(profile-entry-unreachable under the canonical profile, independently re-derived) or WITNESSED
+through the real parser in at least one declared configuration. The canonical single-config
+accounting (`UNKNOWN=11`: the 11 entry-relative library/include/parseable-fragment rules, each
+union-covered under its own entry) is recorded alongside, as always. (The gate adds a proof
+surface only — it changes no grammar, parser, generator, or generated artifact; the cert numbers
+are read-only measurements.)
 
 ## The decidability boundary (an honest limit)
 

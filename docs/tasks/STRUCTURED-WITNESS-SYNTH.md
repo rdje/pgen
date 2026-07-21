@@ -3,9 +3,13 @@
 ## Metadata
 
 - Tree ID: `STRUCTURED-WITNESS-SYNTH`
-- Status: `active` (created 2026-07-21, session #189 — the post-RGX-campaign PNT
-  frontier selection: the locked program's last gap, chosen over the parked
-  deferred backlog and the horizon capability audit)
+- Status: **`done`** (2026-07-22, session #189 — ALL FOUR leaves closed
+  `-0002`/`-0003`/`-0004`/`-0005`; the tree's single deliverable EARNED: union
+  `UNKNOWN 1→0`, residual `[]`, `fully_certified_via_union: true` ⇒
+  **SystemVerilog recognized `fully_certified`** — the locked program's
+  certificate axis completes. Created 2026-07-21, session #189 — the
+  post-RGX-campaign PNT frontier selection: the locked program's last gap,
+  chosen over the parked deferred backlog and the horizon capability audit)
 - Roadmap lane: the **locked program** (director 2026-06-08: all parsers → `Done`,
   `UNKNOWN=0`) + the **director-committed SV endgame** (2026-06-25,
   [[project_sv_full_certification_via_multi_entry]]: "`UNKNOWN=0` IS achievable and
@@ -242,15 +246,36 @@ re-derives the WHY+WHERE live before any design.
 
 ### `.4` — VERIFY + recognition lockstep
 
-- Re-baseline `systemverilog_recognized_cert_union_contract.json`
-  (`expected_union_unknown 1→0`, `expected_union_witness 1332→1333`,
-  `expected_union_residual_rules []`, `expected_canonical_unknown 12→11`,
-  `expected_canonical_witness 1321→1322`) + `sv_cert_recognized_union_gate`
-  green; `docs/book/src/grammar-wellformedness.md` recognized-basis section →
-  `UNKNOWN=0` / SV recognized `fully_certified`; `LIVE_ACHIEVEMENT_STATUS.md`;
-  the SV integration contract honest-trust figure; MEMORY / CHANGES /
-  DEVELOPMENT_NOTES; `GRAMMAR-WELLFORMED.H.12.8.3.2` row → `done`;
-  `STORE-AWARE-GEN` deferral note annotated (capability delivered here).
+- **Status: `done`** (`PGEN-STRUCTURED-WITNESS-SYNTH-0005`, session #189,
+  2026-07-22).
+- **`sv_cert_recognized_union_gate` GREEN at the re-baselined contract** —
+  `systemverilog_recognized_cert_union_contract.json` re-baselined exactly as
+  predicted (`expected_canonical_witness 1321→1322`, `expected_canonical_unknown
+  12→11`, `expected_union_witness 1332→1333`, `expected_union_unknown 1→0`,
+  `expected_union_residual_rules []`, new `rebaseline_note`); the guarded gate
+  re-run reads `recognized_basis_green: true`, **`fully_certified_via_union:
+  true`**, canonical `1343/10/1322/11`, union `witness=1333 UNKNOWN=0`, residual
+  `[]`, `unmet_criteria_count: 0`, deterministic seeds 0/7/42 (peak 9,722 MB,
+  749 s). Evidence: `union_gate_rebaselined_green.txt` +
+  `pass3f_seed0_probe_extract.txt` (the committable witness-probe extract; the
+  full `.log` is gitignored by pattern).
+- **Recognition lockstep landed:** `docs/book/src/grammar-wellformedness.md` —
+  new "Closing the last reach-gap: the structured-witness composition pass"
+  narrative section + the recognized-basis section flipped to the re-baselined
+  pins and "the `done_rule` has fired: SV recognized `fully_certified`";
+  `LIVE_ACHIEVEMENT_STATUS.md` — 2026-07-22 tracker note (the SV main-parser
+  ROW stays `Mostly Done`: the machine-computed family-status axis is gated on
+  `focused_replay_target_debt_zero`, a different criterion than the certificate
+  axis this tree closed); SV integration contract — the recognized-basis trust
+  figure updated to the flip (internal trust statement; NO release/schema
+  bump); `GRAMMAR-WELLFORMED.H.12.8.3.2` row → `done` (delivered here);
+  `STORE-AWARE-GEN` deferral note annotated RESOLVED; MEMORY / CHANGES /
+  `docs/TASK_TREE.md` updated.
+- Acceptance checklist (verify slice): REPRODUCE = the `.3` landing; ROOT
+  CAUSE = N/A (no defect — verification + lockstep); ADDRESSED = the gate
+  green at the re-baselined contract (the tree's `done_rule`); NO REGRESSION =
+  the gate's own determinism + strict pins across seeds 0/7/42 (byte-identical),
+  `spf=0`; LOCKSTEP = this leaf + all surfaces above.
 
 ## Acceptance Criteria (tree)
 
@@ -271,7 +296,7 @@ re-derives the WHY+WHERE live before any design.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `STRUCTURED-WITNESS-SYNTH.4` (VERIFY + recognition lockstep) | `next` | `.3` witnessed the rule (solo `UNKNOWN=0` ×3 seeds); re-baseline the union contract (union `1→0`, residual `[]`), run `sv_cert_recognized_union_gate` green, and land the recognition lockstep (book / LIVE / SV contract / `H.12.8.3.2` row / STORE-AWARE-GEN annotation). |
+| — | `STRUCTURED-WITNESS-SYNTH.4` (VERIFY + recognition lockstep) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0005`) | Union contract re-baselined + `sv_cert_recognized_union_gate` GREEN (`fully_certified_via_union: true`, union `0`, residual `[]`, seeds 0/7/42); full recognition lockstep landed. **TREE COMPLETE — no open leaves.** |
 | — | `STRUCTURED-WITNESS-SYNTH.1` (live re-baseline + obstacle re-verification) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0002`, read-only) | Baseline byte-exact (canonical 12 / union 1 / residual = the rule); A–F matrix superseded obstacles 4/6/8; the `.2` design target verified. |
 | — | `STRUCTURED-WITNESS-SYNTH.2` (DESIGN) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0003`, PURE-DOCS) | PASS 3f composition architecture, code-grounded; predicted union `1→0`. |
 | — | `STRUCTURED-WITNESS-SYNTH.3` (IMPLEMENT PASS 3f) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0004`) | THE RULE IS WITNESSED — solo canonical `1343/21/1322/0 fully_certified` seeds 0/7/42; roster byte-inert (A/B); lib 1013/0/29; clippy + stimuli gates green. |
@@ -310,3 +335,14 @@ re-derives the WHY+WHERE live before any design.
   spf=0`; roster A/B byte-identical ×6; lib 1013/0/29; clippy + both stimuli
   gates green. Frontier → `.4` (union-contract re-baseline + recognition
   lockstep, same wave).
+- `2026-07-22` (session #189 continuation, `.4` CLOSED
+  `PGEN-STRUCTURED-WITNESS-SYNTH-0005`): ⭐⭐ **TREE COMPLETE — SystemVerilog is
+  recognized `fully_certified`.** Union contract re-baselined; the guarded
+  `sv_cert_recognized_union_gate` GREEN (`fully_certified_via_union: true`,
+  canonical `1343/10/1322/11`, union `1333/0`, residual `[]`,
+  `unmet_criteria_count: 0`, seeds 0/7/42, 749 s / 9,722 MB); recognition
+  lockstep landed (book narrative + recognized-basis flip, LIVE tracker note,
+  SV contract trust figure, `H.12.8.3.2` → done, STORE-AWARE-GEN deferral
+  RESOLVED). The locked program's certificate axis is complete: every shipped
+  cert-lane grammar is `fully_certified` (six canonically + SV on the sound
+  recognized union basis).

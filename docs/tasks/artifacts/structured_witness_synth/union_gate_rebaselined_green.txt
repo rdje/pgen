@@ -1,0 +1,26 @@
+SV Recognized Certificate-Coverage Union Gate Summary
+gate: sv_cert_recognized_union_gate
+version: 1
+state_dir: rust/target/sv_cert_recognized_union_gate
+generated_at_utc: 2026-07-21T22:31:15Z
+summary_json: rust/target/sv_cert_recognized_union_gate/summary.json
+contract_file: rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json
+status_rule_done: SV is recognized fully_certified when the multi-config certificate-coverage union UNKNOWN reaches 0. Until then the recognized fully_certified-accounting basis is the sound multi-config union (expected_union_unknown), whose residual rule set must equal expected_union_residual_rules exactly (order-insensitive) and be deterministic (byte-identical) across all declared seeds, with sample_parse_failures=0; the canonical single-config accounting (expected_canonical_unknown) is recorded alongside. The union is sound by construction: a rule is credited only when some config POSITIVELY covers it (a proof or a witness — including the VERILOG-2005-PROFILE.6.7 per-profile ProfileEntryUnreachable/ProfileUnproducibleGate proofs, each independently re-derived), never merely because a profile leaves the rule out of its universe.
+base_entry: systemverilog_file
+base_profile: sv_2017
+samples: 40
+seeds: [0,7,42]
+union_configs: ["systemverilog_file:sv_2023","sv_multi_entry_root:sv_2017","library_text:sv_2017","systemverilog_parseable_file:sv_2017"]
+recognized_basis_green: true
+fully_certified_via_union: true
+canonical_unknown: 11
+union_unknown: 0
+union_witness: 1333
+union_residual_rules: []
+expected_canonical_unknown: 11
+expected_union_unknown: 0
+expected_union_witness: 1333
+expected_union_residual_rules: []
+unmet_criteria_count: 0
+primary_unmet_criterion: <none>
+unmet_criteria_json: []
