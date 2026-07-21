@@ -1,5 +1,9 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-21 - PGEN-RGX-0091-0001 — a drift gate is only as strong as its oracle's coverage of the bump classes
+
+**The 0086 gate didn't break — its spec silently expired.** It asserted `constants == max(bug-ledger "Fixed in")`, which encodes the assumption "every release/contract bump is a bug row". The release process outgrew that assumption (feature removals, maintenance contract bumps), and the gate went stale-green because its expectation drifted WITH the defect. The general lesson for every lockstep gate in this repo: pick the oracle that is authoritative for ALL mutation classes of the guarded value (here, the contract document's Contract Identity block), and demote any narrower source to an inequality (ledger-max ≤ identity), never an equality. A red-before/green-after demonstration against the live defect is the cheapest proof a re-specified gate actually binds.
+
 ## 2026-07-21 - PGEN-RGX-0078-0219 — audit the book against the artifact, not the changelog; a reference chapter rots differently than an example; close a report with the other side's own instrument
 
 **Documentation truth is established against the artifact, not against the docs' own history.** The decisive audit method was mechanical: extract every documented example, parse its pattern with the released parser, and byte-compare canonical JSON. That found in minutes what changelog-reading never would — chapters whose entries were each individually plausible but collectively stale. The corollary discipline: every corrected shape in the book now traces to a banked live dump, so the next audit can re-run the same checker instead of re-arguing prose.

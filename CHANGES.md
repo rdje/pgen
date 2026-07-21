@@ -1,5 +1,15 @@
 # CHANGES.md
 
+## 2026-07-21 - PGEN-RGX-0091-0001 (tree RGX-0091) — the embedding-API regex version constants re-synced (1.1.104/1.1.106 → 1.1.105/1.1.108) + the version drift gate RE-SPECIFIED to the contract-identity oracle
+
+Session #188, first of the three director-directed RGX adoption-blocker reports (0091 → 0090 → 0089).
+
+**The defect (downstream `PGEN-RGX-0091`, ledger row `REGEX-0114`; an `PGEN-RGX-0086`-class recurrence).** At pin `960dddaa` the contract document's Contract Identity block declared release `1.1.105` / contract `1.1.108`, but the three machine surfaces — `embedding_api.rs` `REGEX_PARSER_RELEASE_VERSION`/`REGEX_PARSER_INTEGRATION_CONTRACT_VERSION` and the `regex_parser_integration_contract_v1.json` mirror — still reported `1.1.104`/`1.1.106`. `parser_embedding_api_contract()` (the canonical downstream handoff) contradicted the contract document at the same commit.
+
+**Root cause of the gate miss (tool-backed).** The 0086 drift gate's oracle was mis-specified: it derived its expectation as the max bug-ledger "Fixed in" cell — blind to feature/maintenance bumps that carry no ledger row. Both missed bumps were exactly that class (PARSER-NEUTRALITY.1 release bump 2026-07-20; `PGEN-RGX-0078-0212` contract bump 2026-07-21), so the gate stayed stale-green while the constants drifted.
+
+**The fix (`rust/src/embedding_api.rs` + the JSON mirror).** (1) All three surfaces synced to `1.1.105`/`1.1.108`. (2) A NEW drift gate `regex_parser_pgen_rgx_0091_embedding_version_consts_match_contract_identity` parses the contract document's Contract Identity block (the authoritative declaration) and asserts both constants equal it — binding for EVERY bump class; demonstrated RED against the pre-fix constants (assertion recorded), GREEN after the sync. (3) The 0086 gate re-specified to the relation that IS ledger-invariant: `regex_parser_pgen_rgx_0086_ledger_fixed_in_never_ahead_of_contract_identity` (a bug row's "Fixed in" may never run AHEAD of the identity block). Verified: `embedding_api` module 37/0 (default features); `make -C rust regex_parser_integration_contract_gate` ✅ both stages (generated stage under the memory guard, peak 9,697 MB). No parse-behavior change; schema stays `1`; no release bump (the labels were corrected to reflect the tree's already-declared identity).
+
 ## 2026-07-21 - PGEN-RGX-0078-0219 — the PGEN-RGX-0078 report-closure RELEASE: the regex book's AST reference audited against the live parser and re-synced; the RGX perf gate vendored + run; the ledger row closed; the ordered push
 
 Session #187, on the director's release order ("ensure the regex mdbook + handoff/contract contain everything RGX needs; the return AST precisely documented; then push", "the push shall be about closing PGEN-RGX-0078", "do not touch any file in RGX").

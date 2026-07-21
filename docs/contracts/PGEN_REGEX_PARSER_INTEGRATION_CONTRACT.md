@@ -34,6 +34,24 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-21 — PGEN-RGX-0091: the embedding-API version constants RE-SYNCED to this Contract Identity block + the version drift gate RE-SPECIFIED (METADATA-ONLY; release/contract/schema versions UNCHANGED)
+
+- Downstream report `PGEN-RGX-0091` (ledger row `REGEX-0114`): at pin `960dddaa`,
+  `parser_embedding_api_contract()` reported release `1.1.104` / contract `1.1.106`
+  while this document's Contract Identity block declared `1.1.105` / `1.1.108` —
+  the machine constants (and the `regex_parser_integration_contract_v1.json`
+  mirror) had missed the 2026-07-20/21 PARSER-NEUTRALITY.1 + `PGEN-RGX-0078-0212`
+  bumps, and the `PGEN-RGX-0086`-era drift gate (whose oracle was the max
+  bug-ledger "Fixed in" cell) is blind to feature/maintenance bumps that carry no
+  ledger row.
+- FIXED (`PGEN-RGX-0091-0001`): all three machine surfaces synced to
+  `1.1.105`/`1.1.108`; a NEW drift gate asserts constants == this document's
+  Contract Identity block (the authoritative declaration, binding for EVERY bump
+  class), and the 0086 gate is re-specified to the ledger-invariant relation
+  (ledger "Fixed in" may never run AHEAD of the identity block).
+- Downstream guidance: `parser_embedding_api_contract()` and this identity block
+  now agree at every commit; verify the pin via either surface.
+
 ## Maintenance Update 2026-07-21 — PGEN-RGX-0078 REPORT CLOSURE + the regex book's AST reference RE-SYNCED to the typed-shape reality (DOCS + BENCH-ONLY; release/contract/schema versions UNCHANGED)
 
 **What downstream consumers must do: nothing.** Two related updates shipped together for the `PGEN-RGX-0078` closure release:

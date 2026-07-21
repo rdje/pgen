@@ -44,10 +44,10 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // integration contract 1.1.79.
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.106";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.108";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.104";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.105";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -4642,28 +4642,98 @@ mod tests {
         }
     }
 
+    /// Shared version-tuple ordering for the RGX-0086/RGX-0091 drift gates.
+    fn version_tuple(s: &str) -> (u32, u32, u32) {
+        let mut it = s.split('.').map(|x| x.trim().parse::<u32>().unwrap_or(0));
+        (
+            it.next().unwrap_or(0),
+            it.next().unwrap_or(0),
+            it.next().unwrap_or(0),
+        )
+    }
+
+    /// PGEN-RGX-0091: parse the Contract Identity block of the regex
+    /// integration contract document — the AUTHORITATIVE declaration of the
+    /// (release, contract) versions downstream reads first. Spec-derived
+    /// oracle shared by the two drift gates below; no hardcoded literals.
+    /// Returns `(release_version, contract_version)`.
+    fn regex_contract_identity_versions() -> (String, String) {
+        let doc = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md"
+        ));
+        fn backticked_after<'a>(lines: &mut impl Iterator<Item = &'a str>) -> Option<String> {
+            let value_line = lines.next()?;
+            let start = value_line.find('`')? + 1;
+            let end = start + value_line[start..].find('`')?;
+            Some(value_line[start..end].trim().to_string())
+        }
+        let mut release: Option<String> = None;
+        let mut contract: Option<String> = None;
+        let mut lines = doc.lines();
+        while let Some(line) = lines.next() {
+            match line.trim() {
+                "- Contract version:" => contract = backticked_after(&mut lines),
+                "- Parser release version:" => release = backticked_after(&mut lines),
+                _ => {}
+            }
+            if release.is_some() && contract.is_some() {
+                break;
+            }
+        }
+        (
+            release.expect(
+                "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md must declare `- Parser release \
+                 version:` followed by a backticked version in its Contract Identity block",
+            ),
+            contract.expect(
+                "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md must declare `- Contract version:` \
+                 followed by a backticked version in its Contract Identity block",
+            ),
+        )
+    }
+
     #[test]
-    fn regex_parser_pgen_rgx_0086_embedding_version_consts_match_ledger() {
-        // PGEN-RGX-0086 drift gate: the embedding-API regex version
-        // constants (the canonical downstream handoff the reporting
-        // protocol says to copy verbatim) MUST equal the LATEST regex
-        // "Fixed in" labels in PGEN_RELEASED_PARSER_BUG_LEDGER.md.
-        // Spec-derived oracle: parse the ledger, take the max-by-release
-        // over its table-row "Fixed in" cells — NOT a hardcoded literal
-        // (so a future ledger row that forgets the const bump fails
-        // here deterministically).
+    fn regex_parser_pgen_rgx_0091_embedding_version_consts_match_contract_identity() {
+        // PGEN-RGX-0091 drift gate: the embedding-API regex version constants
+        // (the canonical downstream handoff `parser_embedding_api_contract()`
+        // reports and the reporting protocol says to copy verbatim) MUST equal
+        // the contract document's Contract Identity block at the same commit.
+        // This binds the constants to EVERY bump class (bug-fix, feature,
+        // maintenance) — the RGX-0086 ledger-max oracle was blind to
+        // feature/maintenance bumps that carry no bug-ledger row (the two
+        // 2026-07-20/21 bumps PGEN-RGX-0091 reported).
+        let (identity_release, identity_contract) = regex_contract_identity_versions();
+        assert_eq!(
+            REGEX_PARSER_RELEASE_VERSION, identity_release,
+            "PGEN-RGX-0091 drift gate: REGEX_PARSER_RELEASE_VERSION (`{}`) must equal the \
+             contract document's Contract Identity `Parser release version` (`{}`). Bump the \
+             const in lockstep with every identity-block change.",
+            REGEX_PARSER_RELEASE_VERSION, identity_release
+        );
+        assert_eq!(
+            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, identity_contract,
+            "PGEN-RGX-0091 drift gate: REGEX_PARSER_INTEGRATION_CONTRACT_VERSION (`{}`) must \
+             equal the contract document's Contract Identity `Contract version` (`{}`).",
+            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, identity_contract
+        );
+    }
+
+    #[test]
+    fn regex_parser_pgen_rgx_0086_ledger_fixed_in_never_ahead_of_contract_identity() {
+        // PGEN-RGX-0086 drift gate, RE-SPECIFIED by PGEN-RGX-0091: the original
+        // assertion (constants == max ledger "Fixed in") was a mis-specified
+        // oracle — feature/maintenance bumps legitimately advance the contract
+        // identity WITHOUT a bug-ledger row, so equality goes stale-green (the
+        // exact PGEN-RGX-0091 incident). The relation that IS ledger-invariant:
+        // the ledger's max regex "Fixed in" release/contract may never run
+        // AHEAD of the contract identity (a bug row's fix release must already
+        // be declared). Constants ↔ identity equality is owned by the RGX-0091
+        // gate above.
         let ledger = include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md"
         ));
-        fn ver_tuple(s: &str) -> (u32, u32, u32) {
-            let mut it = s.split('.').map(|x| x.trim().parse::<u32>().unwrap_or(0));
-            (
-                it.next().unwrap_or(0),
-                it.next().unwrap_or(0),
-                it.next().unwrap_or(0),
-            )
-        }
         fn leading_version(s: &str) -> String {
             s.chars()
                 .take_while(|c| c.is_ascii_digit() || *c == '.')
@@ -4688,7 +4758,7 @@ mod tests {
                 if con.is_empty() {
                     continue;
                 }
-                let v = ver_tuple(&rel);
+                let v = version_tuple(&rel);
                 if best.as_ref().map_or(true, |(bv, _, _)| v > *bv) {
                     best = Some((v, rel, con));
                 }
@@ -4697,18 +4767,21 @@ mod tests {
         let (_, latest_rel, latest_con) = best.expect(
             "ledger must contain at least one `regex parser release X; regex integration contract Y` Fixed-in cell",
         );
-        assert_eq!(
-            REGEX_PARSER_RELEASE_VERSION, latest_rel,
-            "PGEN-RGX-0086 drift gate: REGEX_PARSER_RELEASE_VERSION (`{}`) must equal the \
-             ledger's latest regex 'Fixed in' release (`{}`). Bump the const in lockstep \
-             with every PGEN_RELEASED_PARSER_BUG_LEDGER.md regex row.",
-            REGEX_PARSER_RELEASE_VERSION, latest_rel
+        let (identity_release, identity_contract) = regex_contract_identity_versions();
+        assert!(
+            version_tuple(&latest_rel) <= version_tuple(&identity_release),
+            "PGEN-RGX-0086 drift gate (re-specified by PGEN-RGX-0091): the ledger's latest \
+             regex 'Fixed in' release (`{}`) must not run AHEAD of the contract identity's \
+             Parser release version (`{}`). A new ledger row must bump the contract identity \
+             (and the constants, per the RGX-0091 gate) in the same commit.",
+            latest_rel, identity_release
         );
-        assert_eq!(
-            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, latest_con,
-            "PGEN-RGX-0086 drift gate: REGEX_PARSER_INTEGRATION_CONTRACT_VERSION (`{}`) must \
-             equal the ledger's latest regex 'Fixed in' contract (`{}`).",
-            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, latest_con
+        assert!(
+            version_tuple(&latest_con) <= version_tuple(&identity_contract),
+            "PGEN-RGX-0086 drift gate (re-specified by PGEN-RGX-0091): the ledger's latest \
+             regex 'Fixed in' contract (`{}`) must not run AHEAD of the contract identity's \
+             Contract version (`{}`).",
+            latest_con, identity_contract
         );
     }
 
