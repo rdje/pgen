@@ -158,22 +158,36 @@ re-derives the WHY+WHERE live before any design.
 
 ### `.2` — DESIGN: the structured-witness synthesizer (PURE-DOCS)
 
-- Re-adjudicate the fix-hierarchy level first ([[feedback_no_workarounds_fix_hierarchy]]):
-  (1) annotation tier (re-check the `.4b.18` code-refutation), (2) existing
-  store, (3) new annotation, (4) new store capability, (5) engine — the
-  expected landing level is a Level-3+ parser-agnostic generator capability,
-  but the adjudication must be re-earned at the current vintage.
-- Architecture: ONE coherent synthesizer pass composing the five requirements
-  (decl-hosting carrier selection + same-scope sibling prelude + typed-decl
-  forcing + reach-forcing into the target's parent alt + mandatory-branch
-  forcing for the disambiguating `()` + head name-pin), generalizing the
-  proven (a)/(b1)/(b2)/(c) parts — **parser-agnostic** (no rule-name/sigil
-  hardcoding; capability-gated so every other grammar is byte-inert),
-  the `.4b.19` lesson honored: parts in isolation are inert, land + measure
-  as ONE capability.
-- Deliverable: code-grounded design note (current sources cited), predicted
-  before→after (union `1→0`, canonical `12→11`, witness `+1`), inertness plan,
-  bisection order if it does not close.
+- **Status: `done`** (`PGEN-STRUCTURED-WITNESS-SYNTH-0003`, session #189,
+  2026-07-21). Design note:
+  [STRUCTURED-WITNESS-SYNTH-2-design.md](STRUCTURED-WITNESS-SYNTH-2-design.md).
+- **Root cause of the standing miss (code-grounded):** the generator already
+  owns machinery for EACH of the three witness conditions — prelude arming
+  (`compute_name_prelude` `:3286` + the `.6.3.2` integrity check `:10953`,
+  NEWER than the `.4b.19` attempt), use-site name replay
+  (`reach_prelude_replay_text` `:3957` / `store_name_for_gate` `:3650`), and
+  target-own structure forcing (`generate_target_own_structure_witnesses`
+  `:4507` + `mandatory_child_rules` `:7221`) — but in SEPARATE passes that
+  never compose into one sample; and the prelude never arms for this gate
+  because `emit_name_is_whole_render` (`:3405`) rejects the producer's DOTTED
+  `$name.body` emit.
+- **Architecture: PASS 3f `generate_structured_witnesses`** — residual-only,
+  runs LAST, composes (f1) the (b1) producer-admission relaxation (scoped to
+  3f) + (f2) prelude with (b2) typed-branch forcing + (f3) the (c) head-leaf
+  pin for multi-token consumers + (f4) the `-0090`/`-0093` target-own
+  directives merged into the SAME plan + (f5) the parser as sole witness
+  judge. Parser-agnostic (gates/producers/shape all grammar-derived),
+  capability-gated (structural no-op when `gen_name_gate` empty / nothing
+  residual), bounded by the existing witness budgets.
+- Fix-hierarchy re-adjudicated at this vintage: annotation tier still
+  code-refuted (names must coordinate across two generation-time statements);
+  store side complete (cells B/E/F behave exactly per the gate/producer);
+  landing level = Level-3+ parser-agnostic generator capability; NO grammar
+  change ⇒ no release/schema/ledger bump.
+- Predicted before→after (the `.3` bar): solo `UNKNOWN 1→0`; gate accounting
+  canonical `12→11` witness `1321→1322`, union `1→0` witness `1332→1333`,
+  residual `[]` ⇒ SV recognized `fully_certified`. Bisection order with a
+  LOUD tool signal per step recorded in the design note.
 
 ### `.3` — IMPLEMENT (generator-only, measured GLOBALLY, keep only on improvement)
 
@@ -218,9 +232,9 @@ re-derives the WHY+WHERE live before any design.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `STRUCTURED-WITNESS-SYNTH.2` (DESIGN) | `next` | `.1` verified the witness template (cell E) and SUPERSEDED the fragile parts of the old map — the design is now a composition of proven parts + one new tail-branch forcing, on the existing carrier. |
+| 1 | `STRUCTURED-WITNESS-SYNTH.3` (IMPLEMENT PASS 3f) | `next` | The `.2` design is turnkey: (f1)–(f5) with per-step loud signals; land TOGETHER, measure GLOBALLY, keep only on improvement. A code slice ⇒ fresh focused session recommended (heavy cert battery). |
 | — | `STRUCTURED-WITNESS-SYNTH.1` (live re-baseline + obstacle re-verification) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0002`, read-only) | Baseline byte-exact (canonical 12 / union 1 / residual = the rule); A–F matrix superseded obstacles 4/6/8; the `.2` design target verified. |
-| 3 | `STRUCTURED-WITNESS-SYNTH.3` (IMPLEMENT) | `pending` | Blocked on `.2`. |
+| — | `STRUCTURED-WITNESS-SYNTH.2` (DESIGN) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0003`, PURE-DOCS) | PASS 3f composition architecture, code-grounded; predicted union `1→0`. |
 | 4 | `STRUCTURED-WITNESS-SYNTH.4` (VERIFY + lockstep) | `pending` | Blocked on `.3`. |
 
 ## Log
@@ -239,3 +253,11 @@ re-derives the WHY+WHERE live before any design.
   of the `.4b.19` inertness). Evidence: `union_gate_rerun.txt` +
   `probe_seed0_extract.txt` + `ab_matrix_current_vintage.txt` under
   `docs/tasks/artifacts/structured_witness_synth/`.
+- `2026-07-21` (session #189, `.2` CLOSED `PGEN-STRUCTURED-WITNESS-SYNTH-0003`,
+  PURE-DOCS): the PASS 3f composition design written code-grounded
+  ([STRUCTURED-WITNESS-SYNTH-2-design.md](STRUCTURED-WITNESS-SYNTH-2-design.md)) —
+  root cause of the standing miss = the three witness conditions live in
+  SEPARATE passes that never compose, and the prelude never arms because
+  `emit_name_is_whole_render` rejects the dotted producer emit. Frontier →
+  `.3` IMPLEMENT (fresh focused session recommended — code slice + heavy
+  cert battery).
