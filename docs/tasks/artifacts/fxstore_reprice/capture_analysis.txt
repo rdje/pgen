@@ -1,0 +1,2944 @@
+probe custody: PASS sha256=a406779314b971305da58b6eb7688be233342efd78348c3c62a456dda24b5ee4
+sampler source custody: PASS sha256=9bb51a53c4ecd5e4708925ae78f90c503f8e6511c8b46a51612c373db3c3bf85
+band manifest custody: sha256=72d471ac765aafeeaa6c27d131f0da15e5a53b9bf227c41ba9ca52253ccc1e20
+
+=== BAND sub1us ===
+verdicts: rows=1073 accepts=764 rejects=309 expectation_mismatches=194 identity=PASS (vs the -0207 floor sweep)
+raw sha256=2f5fbbbddce708ecf63a87670677686b873be8a6c2a596c6d536e3c0e20dd578
+raw: pid=23690 stored=56959 dropped=0 pending_sigprof_drained=0 cpu_elapsed_us=120293395 effective_interval_us=2111.930
+location piece                    3512    6.1658%
+location atom_closure             2987    5.2441%
+location main_text_other         42713   74.9890%
+location external_or_injected     7747   13.6010%
+target: 6499/56959 = 11.4100%
+class memory       5625   86.5518%
+class control       329    5.0623%
+class call            6    0.0923%
+class other         539    8.2936%
+target PCs (all nonzero, descending count):
+pc    157 atom_closure + 1752 0x1000636e0 ldr w8, [sp, #0xbc]
+pc    126 piece        +   44 0x100037fbc ldr x22, [x1, #0x4c8]
+pc    110 piece        +13652 0x10003b4e4 ldr x8, [x19, #0x238]
+pc     82 piece        +14484 0x10003b824 ldr x9, [x19, #0x238]
+pc     78 piece        +14752 0x10003b930 ldp x29, x30, [sp, #0x50]
+pc     78 piece        +12916 0x10003b204 ldr x8, [x19, #0x510]
+pc     77 atom_closure +43896 0x10006db80 add sp, sp, #0x5f0
+pc     77 piece        +  976 0x100038360 str x21, [sp, #0x90]
+pc     67 piece        +14368 0x10003b7b0 mov w8, #0x1
+pc     65 atom_closure +  160 0x1000630a8 ldr x12, [x20, #0x348]
+pc     63 piece        +   48 0x100037fc0 ldr x8, [x1, #0x510]
+pc     57 atom_closure +  508 0x100063204 ldr x9, [x0, #0x18]
+pc     57 piece        +  944 0x100038340 stp x14, x24, [sp, #0x80]
+pc     55 piece        +  112 0x100038000 ldurh w10, [x9, #-0x8]
+pc     53 piece        +14356 0x10003b7a4 str x20, [x19, #0x4c8]
+pc     49 piece        + 2192 0x100038820 ldr x9, [x19, #0x348]
+pc     46 piece        +14772 0x10003b944 ldp x28, x27, [sp], #0x60
+pc     46 piece        + 1444 0x100038534 ldr x9, [x19, #0x348]
+pc     45 piece        +12976 0x10003b240 ldurh w10, [x9, #-0x8]
+pc     40 piece        +   12 0x100037f9c stp x22, x21, [sp, #0x30]
+pc     40 piece        +  800 0x1000382b0 ldr x20, [x28, #0x10]
+pc     40 atom_closure +43636 0x10006da7c ldr x8, [sp, #0xf0]
+pc     36 atom_closure +43616 0x10006da68 mov w8, #0x1
+pc     36 piece        +  960 0x100038350 ldr x2, [x19, #0x348]
+pc     36 atom_closure +11700 0x100065dbc ldr x9, [x20, #0x348]
+pc     36 piece        +13788 0x10003b56c ldr x9, [sp, #0xa0]
+pc     36 piece        +13780 0x10003b564 ldp q0, q1, [sp, #0x2d0]
+pc     36 piece        +  936 0x100038338 stp x9, x12, [sp, #0xd0]
+pc     35 piece        +    0 0x100037f90 stp x28, x27, [sp, #-0x60]!
+pc     33 atom_closure + 1072 0x100063438 ldr x8, [sp, #0xf0]
+pc     33 atom_closure +   52 0x10006303c ldr x8, [x1, #0x290]
+pc     32 piece        +13720 0x10003b528 str x10, [sp, #0xa0]
+pc     32 piece        +  952 0x100038348 str x12, [sp, #0xf0]
+pc     32 piece        +13980 0x10003b62c ldur x8, [x29, #-0xb0]
+pc     32 piece        +    8 0x100037f98 stp x24, x23, [sp, #0x20]
+pc     31 piece        +12964 0x10003b234 add x9, x9, #0x10
+pc     30 piece        +14388 0x10003b7c4 ldr x8, [sp, #0xf0]
+pc     29 piece        +  932 0x100038334 stp x25, x13, [sp, #0x98]
+pc     28 piece        +  888 0x100038308 str x9, [x19, #0x2a0]
+pc     28 atom_closure +13468 0x1000664a4 ldr x1, [x20, #0x348]
+pc     27 piece        +  792 0x1000382a8 ldr x9, [x28, #0x288]
+pc     27 piece        +15196 0x10003baec ldr x28, [x19, #0x2a0]
+pc     26 atom_closure +32064 0x10006ad48 ldr x9, [x20, #0x348]
+pc     26 piece        +   32 0x100037fb0 str xzr, [sp]
+pc     26 atom_closure +28320 0x100069ea8 ldr x11, [x20, #0x348]
+pc     26 atom_closure +   12 0x100063014 stp x22, x21, [sp, #0x30]
+pc     26 atom_closure +  212 0x1000630dc str x14, [sp, #0xa0]
+pc     26 piece        +   20 0x100037fa4 stp x29, x30, [sp, #0x50]
+pc     25 atom_closure +16924 0x100067224 ldr x1, [x20, #0x348]
+pc     25 piece        +  836 0x1000382d4 str x8, [x19, #0x28]
+pc     25 piece        + 3516 0x100038d4c ldr x2, [x19, #0x348]
+pc     25 piece        +13728 0x10003b530 ldr x9, [sp, #0xa8]
+pc     24 atom_closure +15368 0x100066c10 ldr x8, [x20, #0x238]
+pc     24 piece        +14640 0x10003b8c0 ldr x8, [sp, #0xf0]
+pc     23 atom_closure +19700 0x100067cfc ldr x9, [x20, #0x348]
+pc     23 piece        +   16 0x100037fa0 stp x20, x19, [sp, #0x40]
+pc     22 atom_closure +    8 0x100063010 stp x24, x23, [sp, #0x20]
+pc     22 atom_closure +15288 0x100066bc0 ldr x1, [x20, #0x348]
+pc     22 piece        +  940 0x10003833c stp x10, x14, [sp, #0xe0]
+pc     22 atom_closure +   44 0x100063034 ldr x21, [x1, #0x4c8]
+pc     22 piece        +14524 0x10003b84c ldr x20, [x19, #0x288]
+pc     21 atom_closure +  336 0x100063158 ldr x8, [x20, #0x510]
+pc     21 piece        +14596 0x10003b894 str x8, [sp, #0x370]
+pc     21 piece        +  892 0x10003830c ldr x8, [x19, #0xf0]
+pc     21 piece        +  100 0x100037ff4 add x9, x9, #0x10
+pc     21 piece        +13704 0x10003b518 ldur x8, [x29, #-0xb0]
+pc     20 atom_closure +25988 0x10006958c ldr x10, [x20, #0x348]
+pc     20 piece        +  884 0x100038304 str x8, [sp, #0x58]
+pc     20 piece        +12852 0x10003b1c4 ldr x22, [x19, #0x28]
+pc     20 atom_closure +34128 0x10006b558 ldr x9, [x20, #0x348]
+pc     20 piece        +  828 0x1000382cc str x22, [x8, #0x8]
+pc     20 atom_closure +   16 0x100063018 stp x20, x19, [sp, #0x40]
+pc     20 atom_closure +21296 0x100068338 ldr x10, [x20, #0x348]
+pc     20 atom_closure +43920 0x10006db98 ldp x28, x27, [sp], #0x60
+pc     19 piece        +  840 0x1000382d8 ldr x23, [x19, #0x4c8]
+pc     19 piece        +12424 0x10003b018 ldr x9, [x19, #0x348]
+pc     19 atom_closure +43872 0x10006db68 ldr x8, [sp, #0xf0]
+pc     19 atom_closure +19724 0x100067d14 ldrb w11, [x10, x21]
+pc     19 piece        +14592 0x10003b890 str x22, [sp, #0x368]
+pc     19 piece        +  984 0x100038368 cmp x23, x2
+pc     19 atom_closure +11008 0x100065b08 ldr x9, [x20, #0x348]
+pc     19 atom_closure +  140 0x100063094 stp x10, x22, [sp, #0xe0]
+pc     19 piece        + 1440 0x100038530 str x23, [sp, #0x78]
+pc     18 atom_closure +16844 0x1000671d4 ldr x8, [x20, #0x238]
+pc     18 atom_closure +43588 0x10006da4c ldr w8, [sp, #0xbc]
+pc     18 atom_closure +  572 0x100063244 ldr q0, [x23]
+pc     18 atom_closure +  112 0x100063078 ldr x10, [x20, #0x178]
+pc     17 atom_closure + 1100 0x100063454 ldr x23, [x28]
+pc     17 atom_closure +   96 0x100063068 ldr x8, [x20, #0xf0]
+pc     17 atom_closure +27800 0x100069ca0 ldr x10, [x20, #0x348]
+pc     17 piece        +12848 0x10003b1c0 str x23, [x19, #0x4c8]
+pc     17 piece        +14788 0x10003b954 ldr x26, [sp, #0x48]
+pc     17 piece        +14052 0x10003b674 str x22, [x19, #0x2a0]
+pc     17 atom_closure +  556 0x100063234 ldr q0, [x23, #0x30]
+pc     17 atom_closure +11820 0x100065e34 cmp x26, x9
+pc     17 piece        + 2832 0x100038aa0 ldr x2, [x19, #0x348]
+pc     17 atom_closure + 3848 0x100063f10 ldr x1, [x20, #0x348]
+pc     17 atom_closure +28888 0x10006a0e0 ldr x1, [x20, #0x348]
+pc     17 atom_closure + 1124 0x10006346c ldr x8, [x20, #0x348]
+pc     16 atom_closure +   32 0x100063028 str xzr, [sp]
+pc     16 atom_closure +  152 0x1000630a0 stp x12, x25, [sp, #0xa0]
+pc     16 atom_closure +    4 0x10006300c stp x26, x25, [sp, #0x10]
+pc     16 piece        +14464 0x10003b810 ldr x24, [sp, #0x88]
+pc     16 atom_closure + 2828 0x100063b14 ldr x10, [x20, #0x348]
+pc     16 piece        +12844 0x10003b1bc str x2, [sp, #0xa8]
+pc     16 piece        +13560 0x10003b488 ldr x8, [x19, #0x18]
+pc     16 piece        +13372 0x10003b3cc mov x8, #-0x7ffffffffffffffd
+pc     16 piece        +  848 0x1000382e0 ldr x8, [x19, #0x290]
+pc     16 atom_closure +  176 0x1000630b8 ldrb w13, [x12, x21]
+pc     15 piece        +  144 0x100038020 ldr x8, [x19, #0x60]
+pc     15 atom_closure +  156 0x1000630a4 str x13, [sp, #0xf0]
+pc     15 atom_closure +20160 0x100067ec8 ldrb w11, [x10, x21]
+pc     15 piece        +14700 0x10003b8fc add x0, x19, #0x278
+pc     15 atom_closure + 1968 0x1000637b8 ldrb w9, [x9, x21]
+pc     15 piece        +13604 0x10003b4b4 str x23, [x8, #0x8]
+pc     14 atom_closure +15284 0x100066bbc mov x23, x25
+pc     14 piece        +15060 0x10003ba64 ldr x8, [x19, #0x238]
+pc     14 atom_closure + 1068 0x100063434 str x21, [x8]
+pc     14 piece        +  612 0x1000381f4 mov x8, #-0x7ffffffffffffffd
+pc     14 piece        +13808 0x10003b580 str x24, [sp, #0x368]
+pc     14 atom_closure +  588 0x100063254 ldr x8, [x0, #0x10]
+pc     14 atom_closure +  548 0x10006322c ldr q0, [x23, #0x20]
+pc     14 piece        +14056 0x10003b678 ldr x25, [x19, #0x4c8]
+pc     14 piece        +15132 0x10003baac ldr x8, [sp, #0x78]
+pc     14 atom_closure +16948 0x10006723c ldrb w10, [x9, x21]
+pc     14 piece        +13440 0x10003b410 ldr w11, [x19, #0x270]
+pc     14 piece        +    4 0x100037f94 stp x26, x25, [sp, #0x10]
+pc     14 piece        +13796 0x10003b574 str x20, [sp, #0x360]
+pc     13 piece        +15208 0x10003baf8 ldr x23, [sp, #0x58]
+pc     13 piece        +13804 0x10003b57c str w9, [sp, #0x60]
+pc     13 piece        +13612 0x10003b4bc str x8, [x19, #0x28]
+pc     13 atom_closure + 1120 0x100063468 str w8, [sp, #0xbc]
+pc     13 piece        +12872 0x10003b1d8 ldr x11, [x19, #0x178]
+pc     13 atom_closure +21320 0x100068350 ldrb w11, [x9, x21]
+pc     13 atom_closure +13588 0x10006651c cmp x21, x1
+pc     13 piece        +13620 0x10003b4c4 str w8, [sp, #0x60]
+pc     13 piece        +13812 0x10003b584 str x8, [sp, #0x370]
+pc     13 atom_closure +15452 0x100066c64 cmp x21, x1
+pc     13 piece        +14588 0x10003b88c str x24, [sp, #0x360]
+pc     13 atom_closure + 3832 0x100063f00 ldr x10, [x20, #0x348]
+pc     13 atom_closure +   88 0x100063060 str x9, [x20, #0x2a0]
+pc     13 atom_closure +20884 0x10006819c ldrb w11, [x10, x21]
+pc     13 piece        +15244 0x10003bb1c ldr x2, [x24]
+pc     13 piece        +12896 0x10003b1f0 str x21, [sp, #0x208]
+pc     13 piece        +13276 0x10003b36c and x8, x24, #0x3
+pc     13 atom_closure +31244 0x10006aa14 ldr x9, [x20, #0x348]
+pc     13 atom_closure +12784 0x1000661f8 ldr x9, [x20, #0x348]
+pc     13 atom_closure +13504 0x1000664c8 ldr x8, [x20, #0x238]
+pc     13 piece        +13688 0x10003b508 ldr x9, [x19, #0x288]
+pc     12 piece        +15140 0x10003bab4 ldr w8, [sp, #0x70]
+pc     12 atom_closure +   40 0x100063030 str x0, [sp, #0x98]
+pc     12 piece        +13724 0x10003b52c ldr x28, [x26]
+pc     12 piece        +14076 0x10003b68c ldrb w8, [x8, x25]
+pc     12 atom_closure +39632 0x10006cad8 ldr x8, [x20, #0x238]
+pc     12 atom_closure +  384 0x100063188 ldrh w11, [x9, x8, lsl #1]
+pc     12 piece        +12932 0x10003b214 cbz x22, 0x10003b260
+pc     12 atom_closure +   20 0x10006301c stp x29, x30, [sp, #0x50]
+pc     12 piece        +14612 0x10003b8a4 ldp x24, x22, [sp, #0x88]
+pc     12 piece        +13316 0x10003b394 cbz x8, 0x10003b3cc
+pc     12 atom_closure +  136 0x100063090 stp x9, x12, [sp, #0xd0]
+pc     12 atom_closure + 1140 0x10006347c ldrb w8, [x8, x21]
+pc     12 atom_closure +27824 0x100069cb8 ldrb w9, [x11, x21]
+pc     11 piece        +15168 0x10003bad0 ldr x8, [sp, #0xf0]
+pc     11 atom_closure +  564 0x10006323c ldr x11, [x23, #0x40]
+pc     11 piece        +12904 0x10003b1f8 str x10, [sp, #0x218]
+pc     11 piece        +12908 0x10003b1fc str x11, [sp, #0x220]
+pc     11 atom_closure +43720 0x10006dad0 ldr x8, [sp, #0x410]
+pc     11 piece        +13008 0x10003b260 ldr x8, [x19, #0x60]
+pc     11 atom_closure +34152 0x10006b570 ldrb w11, [x10, x21]
+pc     11 atom_closure +  568 0x100063240 str x11, [x8, #0x40]
+pc     11 atom_closure +    0 0x100063008 stp x28, x27, [sp, #-0x60]!
+pc     11 piece        +  908 0x10003831c ldr x10, [x19, #0x178]
+pc     11 atom_closure +  420 0x1000631ac ldrb w11, [x9, x8]
+pc     11 piece        +14764 0x10003b93c ldp x24, x23, [sp, #0x20]
+pc     11 piece        + 1408 0x100038510 mov x8, #-0x8000000000000000
+pc     11 atom_closure +15476 0x100066c7c ldrb w9, [x9, x26]
+pc     11 atom_closure +36596 0x10006befc ldr x9, [x20, #0x20]
+pc     11 atom_closure +11832 0x100065e40 ldrb w11, [x10, x21]
+pc     10 piece        +14196 0x10003b704 ldr x13, [x19, #0x510]
+pc     10 piece        +  172 0x10003803c cbz x8, 0x1000381f4
+pc     10 piece        +12912 0x10003b200 str x25, [sp, #0x228]
+pc     10 atom_closure +  304 0x100063138 str x21, [x20, #0x4c8]
+pc     10 piece        +14268 0x10003b74c ldr x8, [x19, #0x238]
+pc     10 atom_closure +37040 0x10006c0b8 ldr x12, [x20, #0x150]
+pc     10 piece        +12440 0x10003b028 ldrb w9, [x9, x23]
+pc     10 atom_closure +13600 0x100066528 ldrb w10, [x9, x21]
+pc     10 atom_closure + 1740 0x1000636d4 cmp w8, #0x20
+pc     10 atom_closure +36100 0x10006bd0c ldr x9, [x20, #0x348]
+pc     10 piece        + 2856 0x100038ab8 ldrb w10, [x9, x23]
+pc     10 atom_closure +  788 0x10006331c ldr x19, [x12]
+pc     10 atom_closure +  228 0x1000630ec add x23, x25, #0x1
+pc     10 piece        +15468 0x10003bbfc ldr x27, [x19, #0x2a0]
+pc     10 piece        +12532 0x10003b084 str w21, [sp, #0x70]
+pc      9 piece        +14632 0x10003b8b8 ldr x9, [sp, #0x98]
+pc      9 piece        +   64 0x100037fd0 ldr x24, [x19, #0x28]
+pc      9 atom_closure +36116 0x10006bd1c ldrb w9, [x9, x21]
+pc      9 atom_closure +  328 0x100063150 stp x9, x11, [sp, #0x1b0]
+pc      9 atom_closure +15464 0x100066c70 ldrb w10, [x9, x21]
+pc      9 atom_closure +20860 0x100068184 ldr x9, [x20, #0x348]
+pc      9 piece        + 1840 0x1000386c0 ldr x8, [x19, #0x510]
+pc      9 piece        +14716 0x10003b90c ldr x0, [sp, #0x40]
+pc      9 piece        +12900 0x10003b1f4 str x9, [sp, #0x210]
+pc      9 piece        + 3540 0x100038d64 ldrb w10, [x9, x23]
+pc      9 piece        +  904 0x100038318 ldr x11, [x19, #0x198]
+pc      9 piece        +15124 0x10003baa4 ldr x20, [x19, #0x4c8]
+pc      9 piece        +12868 0x10003b1d4 ldr x10, [x19, #0x198]
+pc      9 atom_closure +43916 0x10006db94 ldp x26, x25, [sp, #0x10]
+pc      8 piece        + 3528 0x100038d58 cmp x23, x2
+pc      8 atom_closure +12800 0x100066208 ldrb w9, [x9, x21]
+pc      8 piece        +14344 0x10003b798 tbz w21, #0x0, 0x10003b89c
+pc      8 piece        +13944 0x10003b608 ldr x1, [x19, #0x268]
+pc      8 atom_closure +28344 0x100069ec0 ldrb w9, [x10, x21]
+pc      8 piece        +  676 0x100038234 ldr w11, [x19, #0x270]
+pc      8 atom_closure +11024 0x100065b18 ldrb w9, [x9, x21]
+pc      8 atom_closure +37608 0x10006c2f0 ldr x9, [x20, #0x348]
+pc      8 atom_closure +32076 0x10006ad54 cmp x26, x9
+pc      8 atom_closure +35528 0x10006bad0 ldrb w11, [x10, x21]
+pc      8 piece        +12508 0x10003b06c mov w11, #0x1
+pc      8 piece        + 2204 0x10003882c cmp x24, x9
+pc      8 atom_closure +43832 0x10006db40 mov w8, #0x4
+pc      8 atom_closure + 1052 0x100063424 ldr x25, [sp, #0xa8]
+pc      8 atom_closure +35504 0x10006bab8 ldr x9, [x20, #0x348]
+pc      8 piece        +15288 0x10003bb48 str x9, [sp, #0x68]
+pc      8 atom_closure +16484 0x10006706c ldr x8, [x20, #0x238]
+pc      8 piece        +  644 0x100038214 ldr x1, [x19, #0x268]
+pc      8 piece        + 2216 0x100038838 ldrb w11, [x10, x23]
+pc      8 atom_closure +   84 0x10006305c str x8, [sp, #0x88]
+pc      8 piece        +14692 0x10003b8f4 str x22, [sp, #0x368]
+pc      8 piece        +12668 0x10003b10c ldp q0, q1, [x9, #0x40]
+pc      7 piece        +   40 0x100037fb8 mov x25, x0
+pc      7 piece        +  668 0x10003822c ldr x9, [x8, x12, lsl #3]
+pc      7 atom_closure +  456 0x1000631d0 ldr x9, [sp, #0x4b0]
+pc      7 piece        +  996 0x100038374 ldrb w13, [x12, x23]
+pc      7 piece        +14604 0x10003b89c cmp x22, x2
+pc      7 atom_closure +17408 0x100067408 ldr x8, [x20, #0x510]
+pc      7 atom_closure + 3872 0x100063f28 ldrb w10, [x9, x21]
+pc      7 atom_closure +36504 0x10006bea0 ldr x23, [x20, #0x2a0]
+pc      7 piece        +14120 0x10003b6b8 sub w9, w8, #0x2a
+pc      7 atom_closure +31256 0x10006aa20 cmp x26, x9
+pc      7 atom_closure +  332 0x100063154 stp x10, x22, [sp, #0x1c0]
+pc      7 piece        +13396 0x10003b3e4 ldr x8, [x19, #0x518]
+pc      7 piece        + 1976 0x100038748 ldr x1, [x19, #0x348]
+pc      7 piece        + 1436 0x10003852c add x13, x22, #0x1
+pc      7 piece        +14060 0x10003b67c ldr x8, [x19, #0x348]
+pc      7 piece        + 1476 0x100038554 cmp w10, #0x5e
+pc      7 atom_closure + 3844 0x100063f0c add x26, x21, #0x1
+pc      7 atom_closure +19196 0x100067b04 ldr x26, [x20, #0x288]
+pc      7 atom_closure +20136 0x100067eb0 ldr x9, [x20, #0x348]
+pc      7 atom_closure +26012 0x1000695a4 ldrb w11, [x9, x21]
+pc      7 atom_closure +  512 0x100063208 ldr x11, [x0, #0x8]
+pc      7 atom_closure +16372 0x100066ffc ldr x8, [x20, #0x28]
+pc      7 atom_closure +39168 0x10006c908 ldr x8, [sp, #0x250]
+pc      7 atom_closure +13276 0x1000663e4 ldr x8, [sp, #0x400]
+pc      6 atom_closure +16388 0x10006700c ldr x8, [x20, #0x238]
+pc      6 atom_closure + 2844 0x100063b24 ldrb w11, [x9, x21]
+pc      6 atom_closure +  796 0x100063324 ldr x8, [x8]
+pc      6 atom_closure +34140 0x10006b564 cmp x26, x9
+pc      6 piece        + 1464 0x100038548 ldrb w10, [x8, x23]
+pc      6 atom_closure +  400 0x100063198 cmp w8, #0xd3
+pc      6 piece        +14180 0x10003b6f4 str x9, [sp, #0x2c0]
+pc      6 atom_closure +24912 0x100069158 ldr x27, [x20, #0x288]
+pc      6 atom_closure +  308 0x10006313c ldr x24, [x20, #0x28]
+pc      6 piece        +13432 0x10003b408 ldr x9, [x8, x27, lsl #3]
+pc      6 atom_closure +12796 0x100066204 ldr x9, [x20, #0x340]
+pc      6 piece        +12676 0x10003b114 ldp q1, q0, [x9, #0x60]
+pc      6 piece        +   56 0x100037fc8 b.ls 0x100037fd0
+pc      6 atom_closure + 1756 0x1000636e4 ldr x9, [x20, #0x348]
+pc      6 piece        +13404 0x10003b3ec ldr x1, [x19, #0x268]
+pc      6 piece        +14684 0x10003b8ec str x24, [sp, #0x360]
+pc      6 atom_closure +  584 0x100063250 str x8, [x0, #0x18]
+pc      6 atom_closure +  480 0x1000631e8 ldr x9, [x0]
+pc      6 atom_closure +35516 0x10006bac4 cmp x26, x9
+pc      6 atom_closure +43580 0x10006da44 ldr x1, [x28]
+pc      6 atom_closure +14196 0x10006677c str x19, [sp, #0x80]
+pc      6 atom_closure +11696 0x100065db8 mov x23, x19
+pc      6 piece        +15680 0x10003bcd0 ldr x8, [x19, #0x238]
+pc      6 atom_closure +28332 0x100069eb4 cmp x26, x11
+pc      6 piece        +14008 0x10003b648 ldr x8, [x8]
+pc      6 atom_closure +37400 0x10006c220 str x10, [sp, #0x340]
+pc      6 atom_closure +36572 0x10006bee4 ldr x8, [x20, #0x510]
+pc      6 piece        + 9696 0x10003a570 ldr x8, [sp, #0x200]
+pc      6 atom_closure +43508 0x10006d9fc ldr x8, [x20, #0x238]
+pc      6 piece        + 1484 0x10003855c cmp w10, #0x5c
+pc      6 atom_closure +37416 0x10006c230 ldr x12, [x20, #0x348]
+pc      5 atom_closure +31268 0x10006aa2c ldrb w11, [x10, x21]
+pc      5 atom_closure +39696 0x10006cb18 ldr x8, [sp, #0x250]
+pc      5 piece        + 1960 0x100038738 stp x11, x12, [sp, #0x1f0]
+pc      5 piece        +13712 0x10003b520 str x9, [sp, #0xb8]
+pc      5 atom_closure + 2504 0x1000639d0 cmp x22, x23
+pc      5 atom_closure +  108 0x100063074 ldr x11, [x20, #0x198]
+pc      5 atom_closure +39272 0x10006c970 str x1, [sp, #0x18]
+pc      5 atom_closure +36552 0x10006bed0 str x27, [sp, #0x2a8]
+pc      5 atom_closure +37244 0x10006c184 ldr x19, [x27, #0x10]
+pc      5 piece        +  872 0x1000382f8 add x20, x28, #0x288
+pc      5 atom_closure +14204 0x100066784 cmp x21, x1
+pc      5 atom_closure +36624 0x10006bf18 add x9, x9, #0x10
+pc      5 atom_closure +  828 0x100063344 str x8, [x20, #0x2a0]
+pc      5 atom_closure +32088 0x10006ad60 ldrb w11, [x10, x21]
+pc      5 piece        +13904 0x10003b5e0 str x10, [sp, #0x358]
+pc      5 piece        +  788 0x1000382a4 str x9, [sp, #0x50]
+pc      5 atom_closure +21308 0x100068344 cmp x26, x10
+pc      5 piece        +15392 0x10003bbb0 str x10, [sp, #0x378]
+pc      5 piece        +10364 0x10003a80c ldr x28, [sp, #0xb8]
+pc      5 atom_closure +14080 0x100066708 ldr x8, [x8]
+pc      5 piece        +14328 0x10003b788 ldr w21, [sp, #0x70]
+pc      5 piece        +14696 0x10003b8f8 str x8, [sp, #0x378]
+pc      5 atom_closure +11420 0x100065ca4 ldr x23, [x20, #0x28]
+pc      5 piece        +14864 0x10003b9a0 str x15, [sp, #0x380]
+pc      5 piece        +14176 0x10003b6f0 str x14, [sp, #0x2b8]
+pc      5 atom_closure +37480 0x10006c270 stp x10, x22, [x29, #-0xc0]
+pc      5 atom_closure +16900 0x10006720c ldr x25, [x28]
+pc      5 atom_closure +11584 0x100065d48 ldr x25, [sp, #0xa8]
+pc      5 atom_closure +  276 0x10006311c mov w15, #0x1
+pc      5 piece        +13824 0x10003b590 bl __ZN5alloc3vec16Vec$LT$T$C$A$GT$8push_mut17h2d2239d8f4ba2a41E
+pc      5 atom_closure +43136 0x10006d888 ldr x24, [x20, #0x288]
+pc      5 piece        +  896 0x100038310 ldr x13, [x19, #0x150]
+pc      5 piece        +  844 0x1000382dc ldr x22, [x19, #0x2a0]
+pc      5 piece        + 1788 0x10003868c ldr x8, [x19, #0xf0]
+pc      5 piece        + 9768 0x10003a5b8 ldr x20, [x19, #0x2a0]
+pc      5 atom_closure +20856 0x100068180 mov x24, x23
+pc      5 atom_closure +15916 0x100066e34 str x19, [sp, #0x4b8]
+pc      4 atom_closure +37284 0x10006c1ac str x21, [x8, #0x8]
+pc      4 atom_closure +43492 0x10006d9ec ldr x8, [x20, #0x28]
+pc      4 atom_closure +43604 0x10006da5c str x9, [x8]
+pc      4 piece        +13636 0x10003b4d4 ldr x8, [x19, #0x28]
+pc      4 piece        + 2000 0x100038760 ldr x22, [sp, #0xb8]
+pc      4 atom_closure +37228 0x10006c174 ldr x8, [x27, #0x18]!
+pc      4 atom_closure +20896 0x1000681a8 ldrb w11, [x10, x26]
+pc      4 atom_closure +18028 0x100067674 ldr x8, [x0, #0x18]!
+pc      4 atom_closure +14008 0x1000666c0 ldr x19, [x20, #0x28]
+pc      4 piece        +12704 0x10003b130 ldr x9, [sp, #0xf0]
+pc      4 atom_closure +43032 0x10006d820 ldr x8, [sp, #0x350]
+pc      4 atom_closure +37460 0x10006c25c ldr x12, [x20, #0x178]
+pc      4 piece        + 9824 0x10003a5f0 str x10, [sp, #0x370]
+pc      4 atom_closure +11472 0x100065cd8 str x10, [sp, #0x4c8]
+pc      4 piece        +14848 0x10003b990 str x9, [sp, #0x368]
+pc      4 atom_closure +20164 0x100067ecc cmp w11, #0x28
+pc      4 piece        +13828 0x10003b594 b 0x10003b608
+pc      4 piece        +14920 0x10003b9d8 ldr x1, [x24]
+pc      4 atom_closure +19684 0x100067cec mov x24, x25
+pc      4 piece        + 1776 0x100038680 str x23, [x19, #0x4c8]
+pc      4 piece        +  156 0x10003802c mov x23, #-0x8000000000000000
+pc      4 atom_closure +17456 0x100067438 add x9, x9, #0x10
+pc      4 atom_closure +26000 0x100069598 cmp x26, x10
+pc      4 atom_closure +11604 0x100065d5c ldr x23, [x20, #0x2a0]
+pc      4 atom_closure +14300 0x1000667e4 ldrh w9, [x12, x21]
+pc      4 atom_closure +37304 0x10006c1c0 ldr x8, [x20, #0x290]
+pc      4 piece        +10088 0x10003a6f8 ldr x8, [x19, #0x28]
+pc      4 atom_closure +11692 0x100065db4 str x19, [x28]
+pc      4 atom_closure +11480 0x100065ce0 str x11, [sp, #0x4d0]
+pc      4 atom_closure +11464 0x100065cd0 str x22, [sp, #0x4b8]
+pc      4 atom_closure +11684 0x100065dac str w9, [sp, #0xbc]
+pc      4 atom_closure + 2364 0x100063944 ldr x8, [x20, #0x510]
+pc      4 piece        + 1964 0x10003873c str x12, [sp, #0x60]
+pc      4 atom_closure +12780 0x1000661f4 mov x22, x23
+pc      4 atom_closure +37484 0x10006c274 ldr x8, [x20, #0x510]
+pc      4 atom_closure +20872 0x100068190 cmp x26, x9
+pc      4 piece        + 1972 0x100038744 str x9, [sp, #0x200]
+pc      4 piece        +10156 0x10003a73c str x22, [x19, #0x4c8]
+pc      4 atom_closure +37452 0x10006c254 ldr x12, [x20, #0x28]
+pc      4 piece        +10168 0x10003a748 str x20, [x21]
+pc      4 atom_closure +14128 0x100066738 ldr x8, [x20, #0xf0]
+pc      3 atom_closure +13480 0x1000664b0 b 0x10006651c
+pc      3 atom_closure +39404 0x10006c9f4 ldr x8, [x20, #0x150]
+pc      3 atom_closure +15424 0x100066c48 ldr x23, [x28]
+pc      3 atom_closure + 1144 0x100063480 sub w9, w8, #0x9
+pc      3 atom_closure +28912 0x10006a0f8 ldrb w10, [x9, x21]
+pc      3 atom_closure +16920 0x100067220 mov x25, x23
+pc      3 piece        +14844 0x10003b98c str x14, [sp, #0x360]
+pc      3 atom_closure +20184 0x100067ee0 add x11, x21, #0x2
+pc      3 piece        + 3396 0x100038cd4 add x24, x23, #0x1
+pc      3 atom_closure +  916 0x10006339c ldr x9, [x0, #0x18]
+pc      3 atom_closure +21332 0x10006835c ldrb w11, [x9, x26]
+pc      3 atom_closure +17176 0x100067320 ldr x9, [sp, #0xf0]
+pc      3 atom_closure +11004 0x100065b04 mov x19, x23
+pc      3 atom_closure +15396 0x100066c2c ldr q0, [x9]
+pc      3 atom_closure +17400 0x100067400 stp x9, x10, [x29, #-0xd0]
+pc      3 piece        +14372 0x10003b7b4 ldr x9, [sp, #0x68]
+pc      3 piece        +14252 0x10003b73c ldr x8, [x19, #0x28]
+pc      3 piece        +  656 0x100038220 ldr x24, [x19, #0x238]
+pc      3 atom_closure +37476 0x10006c26c stp x9, x11, [x29, #-0xd0]
+pc      3 piece        +12588 0x10003b0bc str xzr, [sp, #0x368]
+pc      3 atom_closure +  172 0x1000630b4 ldr x12, [x20, #0x340]
+pc      3 piece        +14184 0x10003b6f8 str x13, [sp, #0x2c8]
+pc      3 atom_closure +21292 0x100068334 mov x25, x24
+pc      3 atom_closure +39584 0x10006caa8 str x26, [x8, #0x8]
+pc      3 piece        +12468 0x10003b044 cmp w9, #0x3e
+pc      3 atom_closure +13260 0x1000663d4 str x24, [sp, #0x4d8]
+pc      3 atom_closure +20156 0x100067ec4 ldr x10, [x20, #0x340]
+pc      3 piece        + 7120 0x100039b60 ldrb w10, [x9, x23]
+pc      3 atom_closure +14052 0x1000666ec stp x9, x10, [x29, #-0xd0]
+pc      3 piece        +10176 0x10003a750 str x23, [x19, #0x4c8]
+pc      3 piece        + 3536 0x100038d60 ldr x9, [x19, #0x340]
+pc      3 atom_closure +19712 0x100067d08 cmp x26, x9
+pc      3 atom_closure +39452 0x10006ca24 ldr x28, [x9]
+pc      3 piece        +12476 0x10003b04c mov w10, #0x1
+pc      3 piece        +14280 0x10003b758 ldr x8, [x19, #0x150]
+pc      3 piece        +14012 0x10003b64c cmp x21, x8
+pc      3 atom_closure +16064 0x100066ec8 ldr x8, [x20, #0x340]
+pc      3 piece        +12748 0x10003b15c ldp q1, q0, [sp, #0x310]
+pc      3 piece        +15404 0x10003bbbc ldr x8, [x19, #0x290]
+pc      3 atom_closure + 2868 0x100063b3c ldrb w9, [x9, x27]
+pc      3 piece        +  780 0x10003829c ldr x8, [x28, #0x18]!
+pc      3 atom_closure +20148 0x100067ebc cmp x26, x9
+pc      3 piece        +14092 0x10003b69c mov w10, #0x1
+pc      3 piece        + 2032 0x100038780 str x28, [x20]
+pc      3 piece        +14448 0x10003b800 mov w8, #0x4
+pc      3 piece        + 2188 0x10003881c str x14, [sp, #0x68]
+pc      3 piece        + 4784 0x100039240 cmp x24, x1
+pc      3 atom_closure +37392 0x10006c218 str x9, [sp, #0x330]
+pc      3 piece        +14720 0x10003b910 cmp x0, x1
+pc      3 atom_closure +  260 0x10006310c ldr x8, [x20, #0x348]
+pc      3 atom_closure +29456 0x10006a318 add x8, x20, #0x290
+pc      3 atom_closure +37220 0x10006c16c stp x27, x8, [sp, #0x68]
+pc      3 atom_closure +43908 0x10006db8c ldp x22, x21, [sp, #0x30]
+pc      3 atom_closure +20132 0x100067eac mov x23, x24
+pc      3 atom_closure +  192 0x1000630c8 sub w14, w13, #0xc2
+pc      3 atom_closure +27812 0x100069cac cmp x26, x10
+pc      3 atom_closure +39600 0x10006cab8 str w8, [sp, #0x44]
+pc      3 atom_closure +16052 0x100066ebc str x26, [x20, #0x2a0]
+pc      3 piece        +  108 0x100037ffc b.eq 0x100038020
+pc      3 piece        +13984 0x10003b630 cmp x8, #0x4
+pc      3 piece        +12740 0x10003b154 ldp q0, q1, [sp, #0x2f0]
+pc      3 piece        +16116 0x10003be84 ldr x0, [x19, #0x298]
+pc      3 atom_closure +39592 0x10006cab0 str x8, [x20, #0x28]
+pc      3 atom_closure +36420 0x10006be4c ldp q1, q0, [sp, #0xd0]
+pc      3 atom_closure +37344 0x10006c1e8 str x8, [x20, #0x2a0]
+pc      3 piece        +   72 0x100037fd8 ldr x9, [x19, #0x20]
+pc      3 atom_closure +41004 0x10006d034 str w8, [sp, #0x44]
+pc      3 atom_closure +31168 0x10006a9c8 ldr x8, [x20, #0x238]
+pc      3 piece        +12076 0x10003aebc ldr x8, [sp, #0x358]
+pc      3 atom_closure +14912 0x100066a48 ldr x12, [sp, #0x78]
+pc      3 atom_closure +11532 0x100065d14 ldr w8, [sp, #0xbc]
+pc      3 atom_closure +14480 0x100066898 add x24, x25, #0x1
+pc      3 atom_closure +36668 0x10006bf44 ldr x8, [x20, #0x60]
+pc      3 atom_closure +11828 0x100065e3c ldr x10, [x20, #0x340]
+pc      3 atom_closure +   64 0x100063048 ldr x8, [x20, #0x298]
+pc      3 atom_closure +14852 0x100066a0c ldr x9, [x20, #0x348]
+pc      3 atom_closure +36556 0x10006bed4 str x9, [sp, #0x2b0]
+pc      3 piece        + 3820 0x100038e7c str x25, [sp, #0x228]
+pc      3 atom_closure +   48 0x100063038 ldr x25, [x1, #0x2a0]
+pc      3 atom_closure +31224 0x10006aa00 ldr x9, [x28]
+pc      3 atom_closure +14172 0x100066764 stp x10, x28, [sp, #0x1c0]
+pc      2 piece        +12420 0x10003b014 mov x2, x27
+pc      2 atom_closure +14168 0x100066760 stp x9, x12, [sp, #0x1b0]
+pc      2 atom_closure +13244 0x1000663c4 str x9, [sp, #0x4c0]
+pc      2 atom_closure + 3860 0x100063f1c cmp x21, x1
+pc      2 atom_closure +37956 0x10006c44c ldr x10, [x20, #0x348]
+pc      2 atom_closure +40980 0x10006d01c ldp x9, x8, [sp, #0x20]
+pc      2 atom_closure +16400 0x100067018 ldr x8, [x20, #0x150]
+pc      2 atom_closure +17500 0x100067464 ldr x8, [x20, #0x60]
+pc      2 piece        +12456 0x10003b038 sub w10, w9, #0xc2
+pc      2 atom_closure +37404 0x10006c224 str x22, [sp, #0x348]
+pc      2 atom_closure +19368 0x100067bb0 str x8, [sp, #0x4d0]
+pc      2 piece        +14856 0x10003b998 str x10, [sp, #0x378]
+pc      2 atom_closure +14836 0x1000669fc str x10, [sp, #0x4c8]
+pc      2 atom_closure +17832 0x1000675b0 mov x8, #-0x7ffffffffffffffd
+pc      2 atom_closure +17864 0x1000675d0 ldr x26, [x20, #0x268]
+pc      2 atom_closure +18100 0x1000676bc ldr x9, [x20, #0x4c8]
+pc      2 atom_closure +43016 0x10006d810 cmp x24, x1
+pc      2 atom_closure +36988 0x10006c084 mov x8, #-0x7ffffffffffffffd
+pc      2 atom_closure +21244 0x100068304 ldr x8, [x20, #0x510]
+pc      2 piece        +12592 0x10003b0c0 str x8, [sp, #0x378]
+pc      2 piece        +12756 0x10003b164 ldp q0, q1, [sp, #0x2b0]
+pc      2 piece        +15460 0x10003bbf4 str x8, [x19, #0x2a0]
+pc      2 piece        +12772 0x10003b174 ldr x8, [x19, #0x238]
+pc      2 atom_closure + 3800 0x100063ee0 str x9, [x28]
+pc      2 atom_closure +  372 0x10006317c adrp x9, 1887 ; 0x1007c2000
+pc      2 atom_closure +   28 0x100063024 sub sp, sp, #0x5f0
+pc      2 atom_closure +37532 0x10006c2a4 ldr x0, [sp, #0x4b0]
+pc      2 piece        +15076 0x10003ba74 ldr x8, [x19, #0x150]
+pc      2 atom_closure +13596 0x100066524 ldr x9, [x20, #0x340]
+pc      2 atom_closure + 3776 0x100063ec8 ldr x1, [x20, #0x348]
+pc      2 piece        + 1800 0x100038698 ldr x10, [x19, #0x198]
+pc      2 piece        + 9840 0x10003a600 str x27, [sp, #0x380]
+pc      2 piece        + 8280 0x100039fe8 ldrb w10, [x9, x23]
+pc      2 piece        + 1864 0x1000386d8 str x13, [sp, #0xa8]
+pc      2 piece        + 7096 0x100039b48 ldr x1, [x19, #0x348]
+pc      2 piece        +10324 0x10003a7e4 ldr x8, [sp, #0xb0]
+pc      2 piece        +14468 0x10003b814 ldr x9, [x19, #0x28]
+pc      2 atom_closure +13452 0x100066494 str w9, [sp, #0xbc]
+pc      2 piece        +10104 0x10003a708 ldr x8, [x19, #0x238]
+pc      2 piece        + 9648 0x10003a540 mov x1, x27
+pc      2 piece        + 9848 0x10003a608 mov x1, x19
+pc      2 piece        + 2180 0x100038814 mov x27, x13
+pc      2 atom_closure +36308 0x10006bddc str q1, [sp, #0x410]
+pc      2 atom_closure +39568 0x10006ca98 ldr x8, [x20, #0x20]
+pc      2 piece        + 2860 0x100038abc cmp w10, #0x5c
+pc      2 piece        +14348 0x10003b79c mov x25, x20
+pc      2 piece        +12864 0x10003b1d0 ldr x9, [x19, #0x108]
+pc      2 piece        +  632 0x100038208 ldr x8, [x19, #0x518]
+pc      2 atom_closure +36564 0x10006bedc str x11, [sp, #0x2c0]
+pc      2 atom_closure +37376 0x10006c208 ldr x10, [x20, #0x120]
+pc      2 atom_closure +16908 0x100067214 add x26, x21, #0x1
+pc      2 piece        + 3512 0x100038d48 mov x27, x26
+pc      2 atom_closure +39372 0x10006c9d4 ldr x8, [x20, #0x28]
+pc      2 piece        +12436 0x10003b024 ldr x9, [x19, #0x340]
+pc      2 atom_closure +13196 0x100066394 ldr x23, [x20, #0x28]
+pc      2 piece        +14172 0x10003b6ec str x11, [sp, #0x2b0]
+pc      2 atom_closure +11524 0x100065d0c ldr x8, [sp, #0xb0]
+pc      2 atom_closure +38548 0x10006c69c ldrb w11, [x9, x26]
+pc      2 atom_closure +36560 0x10006bed8 str x10, [sp, #0x2b8]
+pc      2 atom_closure +14276 0x1000667cc str x11, [sp, #0x4c8]
+pc      2 piece        +13916 0x10003b5ec str x24, [sp, #0x368]
+pc      2 atom_closure +19664 0x100067cd8 ldr x24, [x28]
+pc      2 atom_closure +40240 0x10006cd38 ldr x8, [x20, #0x4c8]
+pc      2 atom_closure +36384 0x10006be28 ldr q0, [sp, #0x470]
+pc      2 atom_closure +36232 0x10006bd90 str x8, [sp, #0x518]
+pc      2 atom_closure +15120 0x100066b18 ldr x8, [sp, #0xb0]
+pc      2 piece        +14188 0x10003b6fc str x10, [sp, #0x2d0]
+pc      2 piece        +13664 0x10003b4f0 ldr x8, [x19, #0x150]
+pc      2 piece        + 9816 0x10003a5e8 str x24, [sp, #0x360]
+pc      2 atom_closure + 3828 0x100063efc str w9, [sp, #0xbc]
+pc      2 piece        +15092 0x10003ba84 ldr q0, [x9]
+pc      2 piece        +14220 0x10003b71c sub w13, w8, #0x2a
+pc      2 piece        +15556 0x10003bc54 ldr x1, [x19, #0x2a0]
+pc      2 atom_closure + 5792 0x1000646a8 ldr x19, [x12]
+pc      2 atom_closure +  124 0x100063084 ldr x10, [x20, #0x120]
+pc      2 atom_closure +  208 0x1000630d8 mov x14, #-0x8000000000000000
+pc      2 atom_closure + 3756 0x100063eb4 ldr x9, [x20, #0x510]
+pc      2 atom_closure +11484 0x100065ce4 str x24, [sp, #0x4d8]
+pc      2 piece        +13756 0x10003b54c add x0, sp, #0x2b0
+pc      2 atom_closure +36444 0x10006be64 ldr x9, [sp, #0x4d8]
+pc      2 atom_closure +43628 0x10006da74 ldr x9, [x20, #0x298]
+pc      2 piece        + 1792 0x100038690 ldr x12, [x19, #0x150]
+pc      2 piece        +12884 0x10003b1e4 ldr x11, [x19, #0x120]
+pc      2 piece        + 1836 0x1000386bc stp x11, x14, [sp, #0x1c0]
+pc      2 atom_closure +17252 0x10006736c ldr q0, [sp, #0x430]
+pc      2 atom_closure +17120 0x1000672e8 str q1, [sp, #0x450]
+pc      2 atom_closure + 3464 0x100063d90 str x22, [sp, #0x2c8]
+pc      2 piece        + 3564 0x100038d7c mov x26, x21
+pc      2 atom_closure +27860 0x100069cdc ldrb w12, [x11, x9]
+pc      2 atom_closure +31120 0x10006a998 ldr x8, [sp, #0x400]
+pc      2 piece        +14132 0x10003b6c4 ldr x26, [x19, #0x28]
+pc      2 atom_closure + 3468 0x100063d94 mov x28, #-0x8000000000000000
+pc      2 atom_closure +29376 0x10006a2c8 str x22, [sp, #0x278]
+pc      2 atom_closure +43088 0x10006d858 ldr x8, [x20, #0x238]
+pc      2 piece        + 2036 0x100038784 ldrb w8, [x10, x23]
+pc      2 piece        +15044 0x10003ba54 ldr x8, [x19, #0x28]
+pc      2 piece        +12392 0x10003aff8 ldp x22, x28, [sp, #0xb0]
+pc      2 atom_closure +37388 0x10006c214 str x28, [sp, #0x328]
+pc      2 atom_closure +34164 0x10006b57c ldrb w11, [x10, x26]
+pc      2 atom_closure +36264 0x10006bdb0 ldr q0, [sp, #0x4f0]
+pc      2 atom_closure +10804 0x100065a3c ldr x8, [x20, #0x28]
+pc      2 atom_closure +43912 0x10006db90 ldp x24, x23, [sp, #0x20]
+pc      2 piece        +   36 0x100037fb4 mov x19, x1
+pc      2 piece        + 4120 0x100038fa8 ldr x8, [x0, #0x10]
+pc      2 piece        +15040 0x10003ba50 str x25, [x19, #0x4c8]
+pc      2 piece        +15400 0x10003bbb8 str x15, [sp, #0x380]
+pc      2 atom_closure +27820 0x100069cb4 ldr x11, [x20, #0x340]
+pc      2 atom_closure +29572 0x10006a38c ldr x9, [x20, #0x348]
+pc      2 atom_closure +31152 0x10006a9b8 ldr x8, [x20, #0x28]
+pc      2 atom_closure +19720 0x100067d10 ldr x10, [x20, #0x340]
+pc      2 atom_closure +43332 0x10006d94c ldp x28, x27, [sp, #0x60]
+pc      2 atom_closure +36636 0x10006bf24 ldurh w10, [x9, #-0x8]
+pc      2 atom_closure +37560 0x10006c2c0 cbz x9, 0x10006c944
+pc      2 atom_closure +  540 0x100063224 ldr q0, [x23, #0x10]
+pc      2 piece        + 1932 0x10003871c ldr x11, [x19, #0x178]
+pc      2 piece        +14668 0x10003b8dc ldr x9, [x19, #0x28]
+pc      2 atom_closure +11736 0x100065de0 ldr x8, [x20, #0x238]
+pc      2 piece        + 2016 0x100038770 ldrb w8, [x10, x23]
+pc      2 atom_closure +37348 0x10006c1ec ldr x8, [x20, #0xf0]
+pc      2 atom_closure +41044 0x10006d05c b 0x10006c908
+pc      2 piece        +15960 0x10003bde8 ldr x8, [x19, #0x150]
+pc      2 atom_closure +15924 0x100066e3c str x10, [sp, #0x4c8]
+pc      2 atom_closure +43744 0x10006dae8 ldr x8, [sp, #0x470]
+pc      2 piece        + 2176 0x100038810 mov x14, #0x0
+pc      2 piece        +14712 0x10003b908 ldr x1, [x19, #0x268]
+pc      2 piece        + 1780 0x100038684 ldr x8, [x19, #0x28]
+pc      2 piece        + 1816 0x1000386a8 ldr x11, [x19, #0x120]
+pc      2 atom_closure +37972 0x10006c45c ldrb w11, [x9, x26]
+pc      2 atom_closure + 1060 0x10006342c ldr x9, [x8]
+pc      2 atom_closure +17468 0x100067444 ldurh w10, [x9, #-0x8]
+pc      2 atom_closure +14916 0x100066a4c b.ne 0x100067058
+pc      2 atom_closure +14844 0x100066a04 str x23, [sp, #0x4d8]
+pc      2 atom_closure +19164 0x100067ae4 ldr x8, [x20, #0x150]
+pc      2 atom_closure +21480 0x1000683f0 add x9, x9, #0x10
+pc      2 atom_closure +12812 0x100066214 tbz w8, #0x0, 0x100066390
+pc      2 piece        +13020 0x10003b26c mov x24, #-0x8000000000000000
+pc      2 piece        +12856 0x10003b1c8 ldr x8, [x19, #0xf0]
+pc      2 atom_closure +37996 0x10006c474 ldrb w11, [x9, x11]
+pc      2 piece        + 2828 0x100038a9c mov x26, x27
+pc      2 piece        +13628 0x10003b4cc mov x1, x19
+pc      2 atom_closure +  232 0x1000630f0 str x21, [sp, #0xb0]
+pc      2 piece        +12988 0x10003b24c ldr x10, [x9]
+pc      2 atom_closure +43560 0x10006da30 ldr x8, [x28]
+pc      2 atom_closure +21536 0x100068428 ldrb w11, [x9, x11]
+pc      2 atom_closure +  252 0x100063104 add x23, x25, #0x1
+pc      2 piece        + 9836 0x10003a5fc str x11, [sp, #0x378]
+pc      2 atom_closure +43564 0x10006da34 ldr x9, [sp, #0x80]
+pc      2 atom_closure +11720 0x100065dd0 ldr x8, [x20, #0x28]
+pc      2 atom_closure +25980 0x100069584 add x26, x21, #0x1
+pc      2 piece        +  776 0x100038298 mov x28, x19
+pc      2 atom_closure +11792 0x100065e18 ldr x23, [x28]
+pc      2 atom_closure +18044 0x100067684 ldr x19, [x0, #0x10]
+pc      2 piece        +12936 0x10003b218 ldr x9, [x19, #0x20]
+pc      2 piece        +12584 0x10003b0b8 str xzr, [sp, #0x370]
+pc      2 piece        +12692 0x10003b124 ldp q1, q0, [x9, #0x20]
+pc      2 atom_closure +29560 0x10006a380 str x27, [sp, #0x2c8]
+pc      2 atom_closure +43704 0x10006dac0 str q1, [sp, #0x410]
+pc      2 atom_closure +34852 0x10006b82c ldr x8, [x0, #0x10]
+pc      2 atom_closure +31304 0x10006aa50 ldrb w9, [x10, x11]
+pc      2 atom_closure +43288 0x10006d920 str x8, [sp, #0x4d0]
+pc      2 atom_closure +43712 0x10006dac8 str q0, [sp, #0x430]
+pc      2 piece        +10412 0x10003a83c ldr x22, [sp, #0xb0]
+pc      2 atom_closure +11712 0x100065dc8 b 0x100065e34
+pc      2 atom_closure +39440 0x10006ca18 mov w8, #0x0
+pc      2 atom_closure +24868 0x10006912c ldr x8, [x20, #0x238]
+pc      2 atom_closure +36280 0x10006bdc0 ldr q0, [sp, #0x520]
+pc      2 piece        +14748 0x10003b92c add sp, sp, #0x460
+pc      2 atom_closure +39680 0x10006cb08 ldr x27, [x20, #0x288]
+pc      2 piece        + 9644 0x10003a53c str x27, [x20]
+pc      2 atom_closure +  236 0x1000630f4 cmp w13, #0x1d
+pc      2 atom_closure +36332 0x10006bdf4 ldr x9, [sp, #0xf0]
+pc      2 atom_closure +14828 0x1000669f4 str x28, [sp, #0x4b8]
+pc      2 atom_closure +36440 0x10006be60 ldr x8, [x20, #0x238]
+pc      2 atom_closure +14532 0x1000668cc ldrb w8, [x8, x9]
+pc      2 atom_closure +43324 0x10006d944 add x8, x20, #0x4c8
+pc      1 piece        +  928 0x100038330 stp x8, x13, [sp, #0xc0]
+pc      1 atom_closure +15304 0x100066bd0 cmp x25, x1
+pc      1 piece        +14964 0x10003ba04 ldr x8, [x19, #0x238]
+pc      1 piece        +  104 0x100037ff8 subs x8, x8, #0x10
+pc      1 atom_closure +16828 0x1000671c4 ldr x8, [x20, #0x28]
+pc      1 atom_closure +16888 0x100067200 str q0, [x9]
+pc      1 atom_closure +15356 0x100066c04 cmp x19, x8
+pc      1 piece        + 2852 0x100038ab4 ldr x9, [x19, #0x340]
+pc      1 atom_closure + 1056 0x100063428 add x8, x20, #0x4c8
+pc      1 atom_closure +17100 0x1000672d4 ldr x8, [sp, #0x550]
+pc      1 piece        +14872 0x10003b9a8 str w8, [sp, #0x60]
+pc      1 piece        +  860 0x1000382ec ldr x8, [x19, #0x298]
+pc      1 atom_closure +14488 0x1000668a0 ldr x1, [x20, #0x348]
+pc      1 piece        +14548 0x10003b864 ldr x0, [sp, #0x38]
+pc      1 atom_closure +  928 0x1000633a8 b.hs 0x100064660
+pc      1 atom_closure +37296 0x10006c1b8 ldr x26, [x20, #0x4c8]
+pc      1 atom_closure +19364 0x100067bac str x13, [sp, #0x4c0]
+pc      1 atom_closure +14156 0x100066754 ldr x10, [x20, #0x120]
+pc      1 atom_closure +27572 0x100069bbc str x8, [sp, #0x4c8]
+pc      1 atom_closure +27772 0x100069c84 str w8, [sp, #0xbc]
+pc      1 atom_closure + 3476 0x100063d9c ldr x13, [x20, #0x348]
+pc      1 atom_closure + 4952 0x100064360 str x27, [x20, #0x4c8]
+pc      1 atom_closure +14056 0x1000666f0 stp x11, x26, [x29, #-0xc0]
+pc      1 atom_closure +33376 0x10006b268 add x28, x20, #0x2a0
+pc      1 atom_closure +37432 0x10006c240 ldrb w12, [x12, x26]
+pc      1 atom_closure +  544 0x100063228 str q0, [x8, #0x10]
+pc      1 atom_closure +11456 0x100065cc8 ldr x24, [x20, #0x238]
+pc      1 piece        +11304 0x10003abb8 stp xzr, x10, [sp, #0x10]
+pc      1 atom_closure +20880 0x100068198 ldr x10, [x20, #0x340]
+pc      1 piece        +10152 0x10003a738 ldr x28, [x19, #0x2a0]
+pc      1 piece        + 1796 0x100038694 ldr x9, [x19, #0x108]
+pc      1 piece        +14804 0x10003b964 cmp w8, #0x5c
+pc      1 piece        + 1460 0x100038544 ldr x8, [x19, #0x340]
+pc      1 atom_closure +26008 0x1000695a0 ldr x9, [x20, #0x340]
+pc      1 piece        +15116 0x10003ba9c b.hs 0x10003baa4
+pc      1 piece        + 7688 0x100039d98 cmp x23, x1
+pc      1 atom_closure +13372 0x100066444 ldr x23, [x20, #0x2a0]
+pc      1 atom_closure +13352 0x100066430 ldr x25, [sp, #0xa8]
+pc      1 piece        +10292 0x10003a7c4 ldr x25, [sp, #0xa8]
+pc      1 piece        +10164 0x10003a744 b.hi 0x10003a750
+pc      1 piece        +10180 0x10003a754 ldr x8, [sp, #0x78]
+pc      1 atom_closure +13420 0x100066474 ldr x25, [x28]
+pc      1 piece        + 1832 0x1000386b8 stp x9, x10, [sp, #0x1b0]
+pc      1 atom_closure +13256 0x1000663d0 str x11, [sp, #0x4d0]
+pc      1 atom_closure +13232 0x1000663b8 ldr x24, [x20, #0x238]
+pc      1 piece        + 9764 0x10003a5b4 ldr x22, [x19, #0x4c8]
+pc      1 atom_closure +14060 0x1000666f4 ldr x8, [x20, #0x510]
+pc      1 atom_closure +17112 0x1000672e0 ldr q1, [sp, #0x500]
+pc      1 piece        + 3552 0x100038d70 ldrb w9, [x9, x24]
+pc      1 atom_closure +21616 0x100068478 cmp w11, #0x3d
+pc      1 piece        + 3144 0x100038bd8 ldr x8, [x19, #0x290]
+pc      1 piece        + 3056 0x100038b80 ldr x28, [sp, #0xb8]
+pc      1 atom_closure + 4336 0x1000640f8 str x11, [sp, #0x4d0]
+pc      1 piece        + 2992 0x100038b40 ldr x8, [sp, #0x350]
+pc      1 piece        +15380 0x10003bba4 str x14, [sp, #0x360]
+pc      1 piece        + 3000 0x100038b48 ldp q0, q1, [sp, #0x2f0]
+pc      1 piece        + 1072 0x1000383c0 ldr x8, [x19, #0x510]
+pc      1 atom_closure + 5308 0x1000644c4 ldr x26, [x8]
+pc      1 piece        + 9336 0x10003a408 ldr x8, [sp, #0x78]
+pc      1 piece        + 2844 0x100038aac cmp x23, x2
+pc      1 atom_closure +16680 0x100067130 ldr w8, [sp, #0xbc]
+pc      1 atom_closure +16536 0x1000670a0 ldr x1, [x8]
+pc      1 atom_closure +17292 0x100067394 cmp x8, x9
+pc      1 atom_closure +13560 0x100066500 ldr x25, [x28]
+pc      1 atom_closure +37020 0x10006c0a4 ldr x26, [x20, #0x268]
+pc      1 atom_closure +43412 0x10006d99c ldr x23, [x20, #0x2a0]
+pc      1 piece        +15216 0x10003bb00 cmp x22, x9
+pc      1 atom_closure +  964 0x1000633cc ldr q0, [x23, #0x30]
+pc      1 atom_closure +17216 0x100067348 ldr q0, [sp, #0x440]
+pc      1 atom_closure +36380 0x10006be24 stp q0, q1, [sp, #0x130]
+pc      1 atom_closure +39636 0x10006cadc ldr x9, [sp, #0x28]
+pc      1 atom_closure +37412 0x10006c22c str x13, [sp, #0x350]
+pc      1 atom_closure +20524 0x100068034 str x11, [sp, #0x420]
+pc      1 atom_closure +40216 0x10006cd20 cmp w8, #0x7b
+pc      1 atom_closure +36544 0x10006bec8 ldr x28, [x20, #0x238]
+pc      1 atom_closure +36500 0x10006be9c str x21, [x20, #0x4c8]
+pc      1 atom_closure +15956 0x100066e5c ldr x8, [x20, #0x348]
+pc      1 atom_closure +15180 0x100066b54 ldr x23, [x20, #0x2a0]
+pc      1 atom_closure +15792 0x100066db8 str q0, [sp, #0x4b0]
+pc      1 atom_closure +  144 0x100063098 mov x13, #-0x8000000000000000
+pc      1 piece        + 4804 0x100039254 ldrb w11, [x10, x23]
+pc      1 atom_closure +11616 0x100065d68 cmp x25, x19
+pc      1 piece        +14192 0x10003b700 str x15, [sp, #0x2d8]
+pc      1 piece        +  616 0x1000381f8 cmp x23, x8
+pc      1 piece        + 2232 0x100038848 cmp w11, #0x45
+pc      1 piece        + 2228 0x100038844 ldrb w11, [x10, x24]
+pc      1 atom_closure +11844 0x100065e4c ldrb w11, [x10, x26]
+pc      1 piece        +14396 0x10003b7cc cmp x8, x9
+pc      1 atom_closure +14888 0x100066a30 str x8, [x20, #0x4c8]
+pc      1 atom_closure +37056 0x10006c0c8 ldr w11, [x20, #0x270]
+pc      1 atom_closure +24028 0x100068de4 cmp x8, #0x1
+pc      1 atom_closure +36508 0x10006bea4 ldr x25, [x20, #0x28]
+pc      1 piece        +10116 0x10003a714 ldr x8, [x19, #0x150]
+pc      1 piece        + 5948 0x1000396cc cmp x23, x1
+pc      1 atom_closure +  524 0x100063214 ldr x8, [x0, #0x10]
+pc      1 atom_closure +43596 0x10006da54 add x8, x20, #0x4c8
+pc      1 atom_closure +34148 0x10006b56c ldr x10, [x20, #0x340]
+pc      1 piece        +   84 0x100037fe4 movk x10, #0x8000, lsl #48
+pc      1 atom_closure +16128 0x100066f08 ldr x8, [sp, #0x400]
+pc      1 atom_closure +17228 0x100067354 ldr q0, [sp, #0x470]
+pc      1 atom_closure +17152 0x100067308 str q1, [sp, #0x410]
+pc      1 piece        + 1984 0x100038750 b.hs 0x100038cb4
+pc      1 piece        + 1520 0x100038580 mov w9, #0x1
+pc      1 atom_closure +17084 0x1000672c4 ldr q0, [sp, #0x530]
+pc      1 atom_closure +14268 0x1000667c4 str x23, [sp, #0x4b8]
+pc      1 atom_closure +15272 0x100066bb0 str w9, [sp, #0xbc]
+pc      1 atom_closure +15744 0x100066d88 ldr q0, [sp, #0x470]
+pc      1 atom_closure +15044 0x100066acc ldr x8, [sp, #0x400]
+pc      1 atom_closure +16624 0x1000670f8 add x26, x25, #0x1
+pc      1 atom_closure +16628 0x1000670fc ldr x2, [x20, #0x348]
+pc      1 atom_closure +36428 0x10006be54 ldr q0, [sp, #0xc0]
+pc      1 atom_closure +36196 0x10006bd6c str xzr, [sp, #0x4e0]
+pc      1 atom_closure + 8088 0x100064fa0 ldrb w11, [x10, x21]
+pc      1 atom_closure +  216 0x1000630e0 sub w13, w13, #0x5f
+pc      1 atom_closure +   72 0x100063050 str x9, [x8, x25, lsl #3]
+pc      1 piece        +12832 0x10003b1b0 ldr x28, [sp, #0xb8]
+pc      1 atom_closure +30204 0x10006a604 str w8, [sp, #0x58]
+pc      1 atom_closure +16960 0x100067248 ldrb w9, [x9, x26]
+pc      1 atom_closure +21356 0x100068374 cmp x11, x10
+pc      1 atom_closure +29876 0x10006a4bc mov w9, #0x1
+pc      1 piece        + 3912 0x100038ed8 ldrb w10, [x8, x10]
+pc      1 atom_closure +29380 0x10006a2cc ldr x8, [x20, #0x510]
+pc      1 piece        +12684 0x10003b11c ldp q0, q1, [x9]
+pc      1 atom_closure +30780 0x10006a844 ldr x19, [sp, #0x80]
+pc      1 atom_closure +31180 0x10006a9d4 ldr x8, [x20, #0x150]
+pc      1 piece        +12316 0x10003afac str x27, [x20]
+pc      1 atom_closure + 6456 0x100064940 ldrb w9, [x10, x11]
+pc      1 piece        +15752 0x10003bd18 ldr x15, [sp, #0x80]
+pc      1 piece        + 1432 0x100038528 str x8, [sp, #0x48]
+pc      1 atom_closure +36528 0x10006beb8 ldr x11, [x20, #0x178]
+pc      1 atom_closure +29516 0x10006a354 ldr x10, [x20, #0x198]
+pc      1 piece        +12416 0x10003b010 str x27, [x20]
+pc      1 atom_closure +28380 0x100069ee4 ldrb w12, [x10, x9]
+pc      1 piece        +12352 0x10003afd0 ldr x8, [x19, #0x150]
+pc      1 piece        +12332 0x10003afbc b.hi 0x10003afc4
+pc      1 piece        + 3796 0x100038e64 ldr x25, [x19, #0x238]
+pc      1 atom_closure +43684 0x10006daac ldp q1, q0, [sp, #0x150]
+pc      1 atom_closure +15920 0x100066e38 str x9, [sp, #0x4c0]
+pc      1 atom_closure +25008 0x1000691b8 str q1, [sp, #0x500]
+pc      1 atom_closure +36200 0x10006bd70 str x9, [sp, #0x4e8]
+pc      1 atom_closure +36176 0x10006bd58 str xzr, [sp, #0x4c8]
+pc      1 atom_closure + 9876 0x10006569c cmp x27, x9
+pc      1 atom_closure + 3412 0x100063d5c ldr x26, [x20, #0x150]
+pc      1 atom_closure +35844 0x10006bc0c ldr x23, [x20, #0x2a0]
+pc      1 atom_closure +13248 0x1000663c8 str x10, [sp, #0x4c8]
+pc      1 piece        +  972 0x10003835c stp x22, x28, [sp, #0xb0]
+pc      1 atom_closure +21416 0x1000683b0 ldr x9, [x20, #0x510]
+pc      1 piece        + 5380 0x100039494 ldrb w10, [x9, x23]
+pc      1 piece        +13908 0x10003b5e4 str x20, [sp, #0x360]
+pc      1 piece        +12644 0x10003b0f4 str xzr, [sp, #0x3c8]
+pc      1 piece        + 9668 0x10003a554 str x20, [x19, #0x4c8]
+pc      1 piece        +12560 0x10003b0a0 ldr x9, [sp, #0xa0]
+pc      1 piece        +  652 0x10003821c b.hs 0x10003c4d4
+pc      1 atom_closure +26048 0x1000695c8 cmp x11, x10
+pc      1 piece        +12652 0x10003b0fc ldp q0, q1, [x9, #0x80]
+pc      1 atom_closure +31196 0x10006a9e4 ldr q0, [x9]
+pc      1 atom_closure +11020 0x100065b14 ldr x9, [x20, #0x340]
+pc      1 atom_closure +15460 0x100066c6c ldr x9, [x20, #0x340]
+pc      1 piece        +12924 0x10003b20c b.ls 0x10003b214
+pc      1 piece        +15396 0x10003bbb4 str x15, [sp, #0x80]
+pc      1 atom_closure +11652 0x100065d8c ldr x23, [x28]
+pc      1 piece        + 7540 0x100039d04 ldr x8, [sp, #0x200]
+pc      1 atom_closure +15952 0x100066e58 add x25, x21, #0x2
+pc      1 atom_closure +26108 0x100069604 ldrb w9, [x9, x11]
+pc      1 atom_closure +43460 0x10006d9cc ldr x1, [x24]
+pc      1 atom_closure +41136 0x10006d0b8 ldr x27, [x8]
+pc      1 atom_closure +37292 0x10006c1b4 str x8, [x20, #0x28]
+pc      1 atom_closure +29332 0x10006a29c ldr x10, [x20, #0x198]
+pc      1 atom_closure +29768 0x10006a450 ldr x8, [x8]
+pc      1 atom_closure +21376 0x100068388 cmp w12, #0x70
+pc      1 piece        +15120 0x10003baa0 str x22, [x24]
+pc      1 piece        +16032 0x10003be30 str x23, [x19, #0x4c8]
+pc      1 atom_closure + 3820 0x100063ef4 str x9, [sp, #0xb0]
+pc      1 piece        +12596 0x10003b0c4 str xzr, [sp, #0x380]
+pc      1 piece        +12152 0x10003af08 ldr x8, [x19, #0x28]
+pc      1 piece        +12760 0x10003b168 stp q0, q1, [sp, #0xf0]
+pc      1 atom_closure +29548 0x10006a374 str x9, [sp, #0x2b0]
+pc      1 piece        +16308 0x10003bf44 mov w21, #0x1
+pc      1 piece        +12640 0x10003b0f0 str x8, [sp, #0x3c0]
+pc      1 piece        + 4040 0x100038f58 ldr x9, [x0, #0x18]
+pc      1 piece        +14168 0x10003b6e8 ldr x15, [x19, #0x238]
+pc      1 atom_closure +27392 0x100069b08 ldr x8, [x20, #0x28]
+pc      1 piece        + 1928 0x100038718 ldr x10, [x19, #0x198]
+pc      1 atom_closure +26956 0x100069954 ldur x8, [x29, #-0xe0]
+pc      1 piece        +13768 0x10003b558 ldp q0, q1, [sp, #0x2b0]
+pc      1 piece        +14852 0x10003b994 str x8, [sp, #0x370]
+pc      1 piece        + 9680 0x10003a560 mov w8, #0x1
+pc      1 piece        +14916 0x10003b9d4 bl __ZN4pgen12ast_pipeline8TapeWord12narrow_event17hd0b129ffe8a7ef28E
+pc      1 atom_closure +28900 0x10006a0ec cmp x21, x1
+pc      1 atom_closure +43924 0x10006db9c ret
+pc      1 atom_closure +14904 0x100066a40 ldr x8, [sp, #0x2a0]
+pc      1 atom_closure +16084 0x100066edc mov w10, #0x1
+pc      1 atom_closure +15488 0x100066c88 tbz w8, #0x0, 0x100066e04
+pc      1 atom_closure +11764 0x100065dfc ldr q0, [x9]
+pc      1 atom_closure +10844 0x100065a64 ldr x9, [sp, #0x68]
+pc      1 atom_closure + 3316 0x100063cfc str x12, [sp, #0x68]
+pc      1 atom_closure + 3472 0x100063d98 str x28, [sp, #0x1a0]
+pc      1 atom_closure + 8744 0x100065230 add x11, x21, #0x2
+pc      1 atom_closure +21184 0x1000682c8 str x21, [x20, #0x4c8]
+pc      1 atom_closure +21232 0x1000682f8 str x12, [sp, #0x70]
+pc      1 atom_closure +24372 0x100068f3c ldr x8, [x20, #0x28]
+pc      1 atom_closure +43864 0x10006db60 ldr x9, [sp, #0x98]
+pc      1 atom_closure +12180 0x100065f9c ldr x19, [x8]
+pc      1 piece        + 1492 0x100038564 cmp x24, x9
+pc      1 atom_closure +11280 0x100065c18 ldr q0, [sp, #0x440]
+pc      1 atom_closure + 9892 0x1000656ac ldrb w11, [x10, x21]
+pc      1 atom_closure +11204 0x100065bcc ldr q0, [sp, #0x4b0]
+pc      1 atom_closure +  352 0x100063168 ldrb w8, [x12, x21]
+pc      1 atom_closure +11240 0x100065bf0 ldr x9, [sp, #0xf0]
+pc      1 atom_closure + 5088 0x1000643e8 str x11, [x8, #0x40]
+pc      1 atom_closure + 3456 0x100063d88 str x12, [sp, #0x2b8]
+pc      1 atom_closure + 4984 0x100064380 ldr x9, [sp, #0x4b0]
+pc      1 piece        +  948 0x100038344 mov x12, #-0x8000000000000000
+pc      1 atom_closure +29364 0x10006a2bc str x9, [sp, #0x260]
+pc      1 piece        +12860 0x10003b1cc ldr x21, [x19, #0x150]
+pc      1 atom_closure +19736 0x100067d20 ldrb w11, [x10, x26]
+pc      1 piece        +13764 0x10003b554 ldr x8, [x19, #0x4c8]
+pc      1 piece        + 3816 0x100038e78 str x11, [sp, #0x220]
+pc      1 piece        +  812 0x1000382bc ldr x8, [x19, #0x20]
+pc      1 atom_closure +  972 0x1000633d4 ldr x11, [x23, #0x40]
+pc      1 atom_closure +24796 0x1000690e4 ldr x27, [x0, #0x10]
+pc      1 piece        + 6540 0x10003991c ldrb w10, [x9, x23]
+pc      1 atom_closure +23092 0x100068a3c ldr x8, [x20, #0x238]
+pc      1 piece        + 1904 0x100038700 str x9, [x8, x25, lsl #3]
+pc      1 atom_closure +22172 0x1000686a4 add x9, x9, #0x10
+pc      1 piece        +  136 0x100038018 b.ls 0x100037ff4
+pc      1 atom_closure +14180 0x10006676c str x12, [sp, #0x400]
+pc      1 piece        + 8268 0x100039fdc cmp x23, x1
+pc      1 piece        + 1452 0x10003853c add x24, x23, #0x1
+pc      1 atom_closure +11288 0x100065c20 stp q0, q1, [sp, #0x130]
+pc      1 atom_closure +43708 0x10006dac4 ldp q1, q0, [sp, #0x110]
+pc      1 atom_closure +13048 0x100066300 ldr x8, [sp, #0x4a0]
+pc      1 atom_closure +36236 0x10006bd94 str xzr, [sp, #0x520]
+pc      1 atom_closure +38044 0x10006c4a4 str w14, [sp, #0x30]
+pc      1 atom_closure +36228 0x10006bd8c str xzr, [sp, #0x510]
+pc      1 atom_closure +15972 0x100066e6c ldrh w9, [x9, x21]
+pc      1 piece        +13556 0x10003b484 ldr x28, [x19, #0x230]
+pc      1 atom_closure +15300 0x100066bcc b 0x100066c64
+pc      1 atom_closure +16972 0x100067254 tbz w8, #0x0, 0x1000673d0
+pc      1 atom_closure +28936 0x10006a110 tbz w8, #0x0, 0x10006a284
+pc      1 atom_closure +43488 0x10006d9e8 str x21, [x20, #0x4c8]
+pc      1 atom_closure +35540 0x10006badc ldrb w11, [x10, x26]
+pc      1 atom_closure +28304 0x100069e98 ldr x10, [x20, #0x510]
+pc      1 piece        +12132 0x10003aef4 cmp w8, #0x29
+pc      1 atom_closure + 1964 0x1000637b4 ldr x9, [x20, #0x340]
+pc      1 piece        + 1784 0x100038688 str x8, [sp, #0x30]
+pc      1 atom_closure + 1064 0x100063430 str x9, [sp, #0xb0]
+pc      1 atom_closure +14800 0x1000669d8 ldr x10, [x20, #0x198]
+pc      1 atom_closure +35292 0x10006b9e4 ldr x24, [x20, #0x2a0]
+pc      1 atom_closure +14184 0x100066770 ldr x1, [x20, #0x348]
+pc      1 atom_closure +34708 0x10006b79c ldrb w8, [x8, x28]
+pc      1 atom_closure +17168 0x100067318 str q1, [sp, #0x420]
+pc      1 piece        +11072 0x10003aad0 ldr x8, [sp, #0x358]
+pc      1 atom_closure +13228 0x1000663b4 ldr x11, [x20, #0x120]
+pc      1 atom_closure + 5704 0x100064650 ldr x9, [x20, #0x348]
+pc      1 atom_closure + 9916 0x1000656c4 add x19, x21, #0x2
+pc      1 atom_closure + 6776 0x100064a80 stp x9, x10, [x29, #-0xd0]
+pc      1 atom_closure +43520 0x10006da08 ldr x8, [x20, #0x150]
+pc      1 atom_closure +21260 0x100068314 cbz x25, 0x100068460
+pc      1 atom_closure + 2460 0x1000639a4 ldr x8, [sp, #0xf0]
+pc      1 atom_closure +35564 0x10006baf4 ldrb w11, [x10, x11]
+pc      1 atom_closure +36568 0x10006bee0 str x28, [sp, #0x2c8]
+pc      1 atom_closure + 1076 0x10006343c mov x19, #-0x8000000000000000
+pc      1 atom_closure +36408 0x10006be40 ldr q0, [sp, #0x430]
+pc      1 piece        + 3792 0x100038e60 ldr x11, [x19, #0x120]
+pc      1 atom_closure +11036 0x100065b24 tbz w8, #0x0, 0x100065ca0
+pc      1 piece        + 5368 0x100039488 cmp x23, x1
+pc      1 atom_closure +  360 0x100063170 add x23, x25, #0x1
+pc      1 piece        +15108 0x10003ba94 str q0, [x9]
+pc      1 piece        + 4792 0x100039248 cmp x23, x1
+pc      1 piece        +15172 0x10003bad4 mov x21, #-0x8000000000000000
+pc      1 piece        +14336 0x10003b790 str x8, [x20]
+pc      1 piece        + 5936 0x1000396c0 ldr x1, [x19, #0x348]
+pc      1 piece        +12400 0x10003b000 ldr x2, [x20]
+pc      1 piece        + 1900 0x1000386fc ldr x25, [sp, #0xa8]
+pc      1 atom_closure + 1104 0x100063458 cmp x25, x23
+pc      1 atom_closure + 2536 0x1000639f0 ldr x23, [x28]
+pc      1 piece        +15384 0x10003bba8 str x9, [sp, #0x368]
+pc      1 piece        +15376 0x10003bba0 str x14, [sp, #0xb8]
+pc      1 piece        +12384 0x10003aff0 str q0, [x9]
+pc      1 atom_closure +30428 0x10006a6e4 ldr x8, [x20, #0x238]
+pc      1 atom_closure +39536 0x10006ca78 ldr x19, [x20, #0x28]
+pc      1 atom_closure +40996 0x10006d02c str x8, [sp, #0x4d0]
+pc      1 atom_closure +29500 0x10006a344 str x8, [x20, #0x2a0]
+pc      1 atom_closure +40324 0x10006cd8c ldr x8, [sp, #0xf0]
+pc      1 atom_closure +29400 0x10006a2e0 add x23, x21, #0x2
+pc      1 piece        + 3848 0x100038e98 ldr x2, [x19, #0x348]
+pc      1 atom_closure +14020 0x1000666cc ldr x9, [x20, #0x108]
+pc      1 atom_closure +25048 0x1000691e0 b 0x10006b2f0
+pc      1 atom_closure +31280 0x10006aa38 ldrb w11, [x10, x26]
+pc      1 atom_closure +40992 0x10006d028 str x9, [sp, #0x4c0]
+pc      1 atom_closure +36272 0x10006bdb8 str q0, [sp, #0x440]
+pc      1 atom_closure + 1760 0x1000636e8 cmp x21, x9
+pc      1 atom_closure +43280 0x10006d918 ldr x9, [sp, #0x58]
+pc      1 atom_closure +21236 0x1000682fc stp x9, x10, [sp, #0x1b0]
+pc      1 atom_closure +24840 0x100069110 sub x0, x29, #0xe0
+pc      1 piece        +12144 0x10003af00 ldr x8, [x19, #0x2a0]
+pc      1 atom_closure +29360 0x10006a2b8 str x25, [sp, #0x258]
+pc      1 atom_closure +30096 0x10006a598 ldr x8, [x20, #0x150]
+pc      1 piece        + 1424 0x100038520 mov w21, #0x0
+pc      1 atom_closure +29908 0x10006a4dc ldr x8, [x20, #0x238]
+pc      1 atom_closure +30008 0x10006a540 str xzr, [sp, #0x520]
+pc      1 piece        +12324 0x10003afb4 ldr x8, [x19, #0x28]
+pc      1 atom_closure +29552 0x10006a378 str x10, [sp, #0x2b8]
+pc      1 piece        +14316 0x10003b77c ldr x2, [x20]
+pc      1 piece        +13420 0x10003b3fc ldr x20, [x19, #0x238]
+pc      1 piece        +15276 0x10003bb3c mov x25, x24
+pc      1 piece        +15148 0x10003babc tbz w8, #0x0, 0x10003bad0
+pc      1 piece        + 1828 0x1000386b4 stp x12, x14, [sp, #0x20]
+pc      1 piece        + 4324 0x100039074 str x23, [sp, #0x68]
+pc      1 piece        + 1892 0x1000386f4 ldr x8, [x19, #0x298]
+pc      1 atom_closure + 3740 0x100063ea4 cmp w9, #0x67
+pc      1 atom_closure +28908 0x10006a0f4 ldr x9, [x20, #0x340]
+pc      1 piece        +15736 0x10003bd08 ldr x13, [x26]
+pc      1 atom_closure + 1744 0x1000636d8 b.eq 0x10006348c
+pc      1 atom_closure +43672 0x10006daa0 ldp q0, q1, [sp, #0x130]
+pc      1 atom_closure +28872 0x10006a0d0 ldr x10, [x20, #0x510]
+pc      1 atom_closure +31096 0x10006a980 str w9, [sp, #0xbc]
+pc      1 atom_closure +30044 0x10006a564 str q3, [sp, #0x450]
+pc      1 atom_closure +19148 0x100067ad4 ldr x8, [x20, #0x238]
+pc      1 atom_closure +17772 0x100067574 sub x9, x8, #0x1
+pc      1 atom_closure +17356 0x1000673d4 ldr x24, [x20, #0x28]
+pc      1 atom_closure +17404 0x100067404 stp x11, x22, [x29, #-0xc0]
+pc      1 atom_closure +43664 0x10006da98 ldr x8, [sp, #0x190]
+pc      1 piece        + 1060 0x1000383b4 str x10, [sp, #0x378]
+pc      1 atom_closure +20920 0x1000681c0 ldrb w9, [x10, x11]
+pc      1 piece        + 3768 0x100038e48 ldr x21, [x19, #0x150]
+pc      1 atom_closure +30184 0x10006a5f0 ldr x11, [x20, #0x120]
+pc      1 atom_closure +43716 0x10006dacc str q1, [sp, #0x420]
+pc      1 atom_closure +38560 0x10006c6a8 add x11, x26, #0x1
+pc      1 atom_closure +21344 0x100068368 cmp w11, #0x2a
+pc      1 atom_closure +39392 0x10006c9e8 ldr x8, [x20, #0x238]
+pc      1 atom_closure +39540 0x10006ca7c ldr x8, [x20, #0x18]
+pc      1 atom_closure + 3268 0x100063ccc ldr x8, [x20, #0x28]
+pc      1 atom_closure +10824 0x100065a50 ldr x8, [x20, #0x238]
+pc      1 atom_closure + 7680 0x100064e08 add x8, x20, #0x2a0
+pc      1 atom_closure + 4900 0x10006432c stp x12, x26, [x29, #-0xc0]
+pc      1 atom_closure + 3452 0x100063d84 str x9, [sp, #0x2b0]
+pc      1 piece        +  824 0x1000382c8 strh w9, [x8]
+pc      1 atom_closure +11092 0x100065b5c str x8, [sp, #0x4d0]
+pc      1 atom_closure +11316 0x100065c3c ldr q0, [sp, #0x430]
+pc      1 atom_closure +16940 0x100067234 b.hs 0x10006e3c0
+pc      1 atom_closure +37364 0x10006c1fc ldr x10, [x20, #0x178]
+pc      1 atom_closure +36424 0x10006be50 str q0, [sp, #0x4d0]
+pc      1 atom_closure +36316 0x10006bde4 ldr q1, [sp, #0x4d0]
+pc      1 atom_closure +13488 0x1000664b8 ldr x8, [x20, #0x28]
+pc      1 atom_closure +13516 0x1000664d4 ldr x8, [x20, #0x150]
+pc      1 piece        +13600 0x10003b4b0 strh w9, [x8]
+pc      1 atom_closure +43688 0x10006dab0 str q0, [sp, #0x470]
+pc      1 atom_closure +17900 0x1000675f4 ldr w11, [x20, #0x270]
+pc      1 atom_closure +15352 0x100066c00 ldr x8, [x20, #0x28]
+pc      1 atom_closure +43072 0x10006d848 ldr x8, [x20, #0x28]
+pc      1 atom_closure +31608 0x10006ab80 str x19, [sp, #0x4b8]
+pc      1 atom_closure +36220 0x10006bd84 str x8, [sp, #0x500]
+pc      1 piece        +  164 0x100038034 cmp x8, #0x1
+pc      1 atom_closure +41032 0x10006d050 ldr x1, [sp, #0x18]
+pc      1 atom_closure +31980 0x10006acf4 ldr x8, [x20, #0x238]
+pc      1 atom_closure +36180 0x10006bd5c str xzr, [sp, #0x4c0]
+pc      1 atom_closure +14280 0x1000667d0 str x10, [sp, #0x4d0]
+pc      1 atom_closure +36372 0x10006be1c ldr q0, [sp, #0x440]
+pc      1 atom_closure +14248 0x1000667b0 ldr x19, [x20, #0x28]
+pc      1 atom_closure +36204 0x10006bd74 str wzr, [sp, #0x528]
+pc      1 atom_closure +43092 0x10006d85c ldr x10, [sp, #0x78]
+pc      1 piece        +  660 0x100038224 ldr x21, [x19, #0x150]
+pc      1 atom_closure +36516 0x10006beac ldr x27, [x20, #0x150]
+pc      1 atom_closure +37212 0x10006c164 stp x12, x28, [sp, #0x58]
+pc      1 atom_closure +31560 0x10006ab50 ldr x24, [x20, #0x2a0]
+pc      1 atom_closure +31936 0x10006acc8 str w8, [sp, #0xbc]
+pc      1 atom_closure +43696 0x10006dab8 ldp q0, q1, [sp, #0xf0]
+pc      1 atom_closure +18088 0x1000676b0 str x21, [x8, #0x8]
+pc      1 atom_closure +26016 0x1000695a8 cmp w11, #0x28
+pc      1 atom_closure +11880 0x100065e70 add x11, x21, #0x3
+pc      1 atom_closure +43848 0x10006db50 cmp x22, x1
+pc      1 atom_closure +13384 0x100066450 cmp x25, x22
+pc      1 atom_closure +  128 0x100063088 ldr x22, [x20, #0x238]
+pc      1 atom_closure +  204 0x1000630d4 str wzr, [sp, #0xbc]
+pc      1 atom_closure +37044 0x10006c0bc ldr x8, [x20, #0x260]
+pc      1 piece        + 1472 0x100038550 b.eq 0x10003859c
+pc      1 atom_closure +18172 0x100067704 mov x13, x19
+pc      1 atom_closure +37360 0x10006c1f8 ldr x11, [x20, #0x198]
+pc      1 atom_closure +26024 0x1000695b0 ldrb w11, [x9, x26]
+pc      1 atom_closure +17472 0x100067448 cmp w10, #0xaa
+pc      1 atom_closure +15012 0x100066aac tbz w19, #0x0, 0x100066bd0
+pc      1 atom_closure +32124 0x10006ad84 ldrb w9, [x10, x19]
+pc      1 atom_closure +31264 0x10006aa28 ldr x10, [x20, #0x340]
+pc      1 atom_closure +11436 0x100065cb4 ldr x10, [x20, #0x198]
+pc      1 piece        + 2868 0x100038ac4 ldrb w9, [x9, x24]
+pc      1 atom_closure +36436 0x10006be5c str q1, [sp, #0x4c0]
+pc      1 atom_closure +20772 0x10006812c str x12, [sp, #0x70]
+
+=== BAND 1to2p5 ===
+verdicts: rows=731 accepts=690 rejects=41 expectation_mismatches=88 identity=PASS (vs the -0207 floor sweep)
+raw sha256=caaf0eec846ff8bce2419f7d8c26ace163b9bd1006db9b845762e9148f1c6c63
+raw: pid=24402 stored=54119 dropped=0 pending_sigprof_drained=0 cpu_elapsed_us=122202651 effective_interval_us=2258.036
+location piece                    3448    6.3711%
+location atom_closure             2960    5.4694%
+location main_text_other         42314   78.1870%
+location external_or_injected     5397    9.9725%
+target: 6408/54119 = 11.8406%
+class memory       5439   84.8783%
+class control       359    5.6024%
+class call            6    0.0936%
+class other         604    9.4257%
+target PCs (all nonzero, descending count):
+pc    262 piece        +  112 0x100038000 ldurh w10, [x9, #-0x8]
+pc    133 piece        +   44 0x100037fbc ldr x22, [x1, #0x4c8]
+pc    131 atom_closure + 1752 0x1000636e0 ldr w8, [sp, #0xbc]
+pc    123 piece        +  100 0x100037ff4 add x9, x9, #0x10
+pc    120 piece        +12976 0x10003b240 ldurh w10, [x9, #-0x8]
+pc     95 piece        +12916 0x10003b204 ldr x8, [x19, #0x510]
+pc     88 piece        +14484 0x10003b824 ldr x9, [x19, #0x238]
+pc     70 piece        +13652 0x10003b4e4 ldr x8, [x19, #0x238]
+pc     68 piece        +  976 0x100038360 str x21, [sp, #0x90]
+pc     65 piece        +12964 0x10003b234 add x9, x9, #0x10
+pc     61 piece        +14752 0x10003b930 ldp x29, x30, [sp, #0x50]
+pc     55 atom_closure +43896 0x10006db80 add sp, sp, #0x5f0
+pc     51 piece        +  800 0x1000382b0 ldr x20, [x28, #0x10]
+pc     49 piece        + 2192 0x100038820 ldr x9, [x19, #0x348]
+pc     46 piece        +   48 0x100037fc0 ldr x8, [x1, #0x510]
+pc     44 piece        +14368 0x10003b7b0 mov w8, #0x1
+pc     42 piece        +  848 0x1000382e0 ldr x8, [x19, #0x290]
+pc     40 piece        +  144 0x100038020 ldr x8, [x19, #0x60]
+pc     40 atom_closure +  508 0x100063204 ldr x9, [x0, #0x18]
+pc     39 piece        +14356 0x10003b7a4 str x20, [x19, #0x4c8]
+pc     39 piece        +13432 0x10003b408 ldr x9, [x8, x27, lsl #3]
+pc     35 atom_closure +  160 0x1000630a8 ldr x12, [x20, #0x348]
+pc     35 piece        + 1444 0x100038534 ldr x9, [x19, #0x348]
+pc     35 piece        +    0 0x100037f90 stp x28, x27, [sp, #-0x60]!
+pc     34 piece        +13780 0x10003b564 ldp q0, q1, [sp, #0x2d0]
+pc     32 piece        +13980 0x10003b62c ldur x8, [x29, #-0xb0]
+pc     31 piece        +14388 0x10003b7c4 ldr x8, [sp, #0xf0]
+pc     31 piece        +15196 0x10003baec ldr x28, [x19, #0x2a0]
+pc     31 piece        +  960 0x100038350 ldr x2, [x19, #0x348]
+pc     30 piece        +13316 0x10003b394 cbz x8, 0x10003b3cc
+pc     29 atom_closure + 1072 0x100063438 ldr x8, [sp, #0xf0]
+pc     29 piece        +13720 0x10003b528 str x10, [sp, #0xa0]
+pc     28 atom_closure +43920 0x10006db98 ldp x28, x27, [sp], #0x60
+pc     27 piece        +14056 0x10003b678 ldr x25, [x19, #0x4c8]
+pc     27 atom_closure +19700 0x100067cfc ldr x9, [x20, #0x348]
+pc     27 piece        +14772 0x10003b944 ldp x28, x27, [sp], #0x60
+pc     27 atom_closure +43636 0x10006da7c ldr x8, [sp, #0xf0]
+pc     27 atom_closure +43616 0x10006da68 mov w8, #0x1
+pc     26 atom_closure + 3848 0x100063f10 ldr x1, [x20, #0x348]
+pc     25 piece        +14060 0x10003b67c ldr x8, [x19, #0x348]
+pc     25 atom_closure +11700 0x100065dbc ldr x9, [x20, #0x348]
+pc     24 atom_closure +19724 0x100067d14 ldrb w11, [x10, x21]
+pc     24 piece        +  836 0x1000382d4 str x8, [x19, #0x28]
+pc     24 atom_closure +37048 0x10006c0c0 ldr x9, [x8, x23, lsl #3]
+pc     24 piece        +  792 0x1000382a8 ldr x9, [x28, #0x288]
+pc     23 piece        +  668 0x10003822c ldr x9, [x8, x12, lsl #3]
+pc     23 atom_closure +36596 0x10006befc ldr x9, [x20, #0x20]
+pc     22 piece        +  888 0x100038308 str x9, [x19, #0x2a0]
+pc     22 piece        +   16 0x100037fa0 stp x20, x19, [sp, #0x40]
+pc     22 piece        +  940 0x10003833c stp x10, x14, [sp, #0xe0]
+pc     22 piece        +13788 0x10003b56c ldr x9, [sp, #0xa0]
+pc     22 piece        +13440 0x10003b410 ldr w11, [x19, #0x270]
+pc     21 atom_closure + 1124 0x10006346c ldr x8, [x20, #0x348]
+pc     21 piece        +13008 0x10003b260 ldr x8, [x19, #0x60]
+pc     21 atom_closure +20160 0x100067ec8 ldrb w11, [x10, x21]
+pc     20 atom_closure +15452 0x100066c64 cmp x21, x1
+pc     20 piece        +  676 0x100038234 ldr w11, [x19, #0x270]
+pc     20 piece        +  944 0x100038340 stp x14, x24, [sp, #0x80]
+pc     20 piece        +  828 0x1000382cc str x22, [x8, #0x8]
+pc     20 atom_closure +15368 0x100066c10 ldr x8, [x20, #0x238]
+pc     20 atom_closure +37040 0x10006c0b8 ldr x12, [x20, #0x150]
+pc     20 atom_closure +   52 0x10006303c ldr x8, [x1, #0x290]
+pc     19 atom_closure +15288 0x100066bc0 ldr x1, [x20, #0x348]
+pc     19 piece        +  840 0x1000382d8 ldr x23, [x19, #0x4c8]
+pc     19 piece        +  952 0x100038348 str x12, [sp, #0xf0]
+pc     19 piece        +14524 0x10003b84c ldr x20, [x19, #0x288]
+pc     19 piece        +13276 0x10003b36c and x8, x24, #0x3
+pc     19 piece        + 2856 0x100038ab8 ldrb w10, [x9, x23]
+pc     19 atom_closure +   12 0x100063014 stp x22, x21, [sp, #0x30]
+pc     19 piece        +13688 0x10003b508 ldr x9, [x19, #0x288]
+pc     18 piece        +  932 0x100038334 stp x25, x13, [sp, #0x98]
+pc     18 piece        +   12 0x100037f9c stp x22, x21, [sp, #0x30]
+pc     18 piece        +15132 0x10003baac ldr x8, [sp, #0x78]
+pc     18 atom_closure +  336 0x100063158 ldr x8, [x20, #0x510]
+pc     18 piece        + 1464 0x100038548 ldrb w10, [x8, x23]
+pc     18 atom_closure +12784 0x1000661f8 ldr x9, [x20, #0x348]
+pc     18 atom_closure +16844 0x1000671d4 ldr x8, [x20, #0x238]
+pc     17 piece        +13704 0x10003b518 ldur x8, [x29, #-0xb0]
+pc     17 piece        +13372 0x10003b3cc mov x8, #-0x7ffffffffffffffd
+pc     17 piece        +  908 0x10003831c ldr x10, [x19, #0x178]
+pc     17 atom_closure +20884 0x10006819c ldrb w11, [x10, x21]
+pc     17 atom_closure +11832 0x100065e40 ldrb w11, [x10, x21]
+pc     17 piece        +  644 0x100038214 ldr x1, [x19, #0x268]
+pc     17 piece        +  612 0x1000381f4 mov x8, #-0x7ffffffffffffffd
+pc     17 atom_closure +39632 0x10006cad8 ldr x8, [x20, #0x238]
+pc     16 piece        +14632 0x10003b8b8 ldr x9, [sp, #0x98]
+pc     16 atom_closure +  796 0x100063324 ldr x8, [x8]
+pc     16 atom_closure +16924 0x100067224 ldr x1, [x20, #0x348]
+pc     16 piece        + 2832 0x100038aa0 ldr x2, [x19, #0x348]
+pc     16 atom_closure +   32 0x100063028 str xzr, [sp]
+pc     16 piece        +15208 0x10003baf8 ldr x23, [sp, #0x58]
+pc     16 atom_closure + 2828 0x100063b14 ldr x10, [x20, #0x348]
+pc     16 piece        +  632 0x100038208 ldr x8, [x19, #0x518]
+pc     16 atom_closure +28888 0x10006a0e0 ldr x1, [x20, #0x348]
+pc     15 piece        +  172 0x10003803c cbz x8, 0x1000381f4
+pc     15 atom_closure +   44 0x100063034 ldr x21, [x1, #0x4c8]
+pc     15 atom_closure +37416 0x10006c230 ldr x12, [x20, #0x348]
+pc     15 piece        +12908 0x10003b1fc str x11, [sp, #0x220]
+pc     15 atom_closure +25988 0x10006958c ldr x10, [x20, #0x348]
+pc     15 atom_closure +  556 0x100063234 ldr q0, [x23, #0x30]
+pc     15 piece        +    8 0x100037f98 stp x24, x23, [sp, #0x20]
+pc     15 atom_closure +36624 0x10006bf18 add x9, x9, #0x10
+pc     15 piece        +  984 0x100038368 cmp x23, x2
+pc     15 atom_closure +  156 0x1000630a4 str x13, [sp, #0xf0]
+pc     14 atom_closure +13468 0x1000664a4 ldr x1, [x20, #0x348]
+pc     14 atom_closure +  140 0x100063094 stp x10, x22, [sp, #0xe0]
+pc     14 piece        +   20 0x100037fa4 stp x29, x30, [sp, #0x50]
+pc     14 atom_closure +28344 0x100069ec0 ldrb w9, [x10, x21]
+pc     14 atom_closure +   16 0x100063018 stp x20, x19, [sp, #0x40]
+pc     14 piece        +14700 0x10003b8fc add x0, x19, #0x278
+pc     14 atom_closure +13600 0x100066528 ldrb w10, [x9, x21]
+pc     14 piece        +    4 0x100037f94 stp x26, x25, [sp, #0x10]
+pc     14 piece        +14612 0x10003b8a4 ldp x24, x22, [sp, #0x88]
+pc     14 piece        +12476 0x10003b04c mov w10, #0x1
+pc     14 atom_closure +  112 0x100063078 ldr x10, [x20, #0x178]
+pc     13 piece        +14052 0x10003b674 str x22, [x19, #0x2a0]
+pc     13 atom_closure +  212 0x1000630dc str x14, [sp, #0xa0]
+pc     13 piece        +  884 0x100038304 str x8, [sp, #0x58]
+pc     13 atom_closure +  568 0x100063240 str x11, [x8, #0x40]
+pc     13 piece        +12912 0x10003b200 str x25, [sp, #0x228]
+pc     13 piece        +  936 0x100038338 stp x9, x12, [sp, #0xd0]
+pc     13 atom_closure +13588 0x10006651c cmp x21, x1
+pc     13 piece        + 1440 0x100038530 str x23, [sp, #0x78]
+pc     13 piece        +15244 0x10003bb1c ldr x2, [x24]
+pc     13 piece        +15140 0x10003bab4 ldr w8, [sp, #0x70]
+pc     13 atom_closure +43720 0x10006dad0 ldr x8, [sp, #0x410]
+pc     13 atom_closure + 3872 0x100063f28 ldrb w10, [x9, x21]
+pc     13 piece        +14640 0x10003b8c0 ldr x8, [sp, #0xf0]
+pc     12 atom_closure +21320 0x100068350 ldrb w11, [x9, x21]
+pc     12 atom_closure +  152 0x1000630a0 stp x12, x25, [sp, #0xa0]
+pc     12 atom_closure +  136 0x100063090 stp x9, x12, [sp, #0xd0]
+pc     12 atom_closure +26012 0x1000695a4 ldrb w11, [x9, x21]
+pc     12 atom_closure +37484 0x10006c274 ldr x8, [x20, #0x510]
+pc     12 atom_closure +37244 0x10006c184 ldr x19, [x27, #0x10]
+pc     12 piece        +12852 0x10003b1c4 ldr x22, [x19, #0x28]
+pc     12 atom_closure +   96 0x100063068 ldr x8, [x20, #0xf0]
+pc     12 atom_closure +39584 0x10006caa8 str x26, [x8, #0x8]
+pc     12 atom_closure +43916 0x10006db94 ldp x26, x25, [sp, #0x10]
+pc     12 atom_closure + 1052 0x100063424 ldr x25, [sp, #0xa8]
+pc     12 piece        +   32 0x100037fb0 str xzr, [sp]
+pc     12 piece        +12844 0x10003b1bc str x2, [sp, #0xa8]
+pc     12 atom_closure +   88 0x100063060 str x9, [x20, #0x2a0]
+pc     12 piece        + 3516 0x100038d4c ldr x2, [x19, #0x348]
+pc     12 piece        +13620 0x10003b4c4 str w8, [sp, #0x60]
+pc     12 piece        +13604 0x10003b4b4 str x23, [x8, #0x8]
+pc     11 atom_closure +31268 0x10006aa2c ldrb w11, [x10, x21]
+pc     11 piece        +  996 0x100038374 ldrb w13, [x12, x23]
+pc     11 piece        +12900 0x10003b1f4 str x9, [sp, #0x210]
+pc     11 piece        +12904 0x10003b1f8 str x10, [sp, #0x218]
+pc     11 atom_closure +   40 0x100063030 str x0, [sp, #0x98]
+pc     11 piece        +13612 0x10003b4bc str x8, [x19, #0x28]
+pc     11 atom_closure +  572 0x100063244 ldr q0, [x23]
+pc     11 piece        +14788 0x10003b954 ldr x26, [sp, #0x48]
+pc     11 piece        +13728 0x10003b530 ldr x9, [sp, #0xa8]
+pc     11 atom_closure +20860 0x100068184 ldr x9, [x20, #0x348]
+pc     11 piece        +14764 0x10003b93c ldp x24, x23, [sp, #0x20]
+pc     11 piece        +  892 0x10003830c ldr x8, [x19, #0xf0]
+pc     11 atom_closure +11008 0x100065b08 ldr x9, [x20, #0x348]
+pc     11 atom_closure + 1068 0x100063434 str x21, [x8]
+pc     11 atom_closure +28320 0x100069ea8 ldr x11, [x20, #0x348]
+pc     11 atom_closure +27824 0x100069cb8 ldrb w9, [x11, x21]
+pc     11 atom_closure + 1100 0x100063454 ldr x23, [x28]
+pc     10 piece        +13796 0x10003b574 str x20, [sp, #0x360]
+pc     10 atom_closure +11024 0x100065b18 ldrb w9, [x9, x21]
+pc     10 atom_closure +  308 0x10006313c ldr x24, [x20, #0x28]
+pc     10 atom_closure +34152 0x10006b570 ldrb w11, [x10, x21]
+pc     10 atom_closure +35528 0x10006bad0 ldrb w11, [x10, x21]
+pc     10 atom_closure +20136 0x100067eb0 ldr x9, [x20, #0x348]
+pc     10 atom_closure +11820 0x100065e34 cmp x26, x9
+pc     10 atom_closure +  276 0x10006311c mov w15, #0x1
+pc     10 atom_closure + 1968 0x1000637b8 ldrb w9, [x9, x21]
+pc     10 piece        +13560 0x10003b488 ldr x8, [x19, #0x18]
+pc     10 piece        +12424 0x10003b018 ldr x9, [x19, #0x348]
+pc     10 atom_closure + 1740 0x1000636d4 cmp w8, #0x20
+pc     10 piece        +15124 0x10003baa4 ldr x20, [x19, #0x4c8]
+pc     10 atom_closure +19712 0x100067d08 cmp x26, x9
+pc     10 atom_closure +27800 0x100069ca0 ldr x10, [x20, #0x348]
+pc     10 atom_closure +19736 0x100067d20 ldrb w11, [x10, x26]
+pc      9 atom_closure +34128 0x10006b558 ldr x9, [x20, #0x348]
+pc      9 atom_closure +17884 0x1000675e4 ldr x13, [x20, #0x150]
+pc      9 atom_closure +39536 0x10006ca78 ldr x19, [x20, #0x28]
+pc      9 piece        +15168 0x10003bad0 ldr x8, [sp, #0xf0]
+pc      9 piece        +13808 0x10003b580 str x24, [sp, #0x368]
+pc      9 atom_closure +  192 0x1000630c8 sub w14, w13, #0xc2
+pc      9 piece        +   64 0x100037fd0 ldr x24, [x19, #0x28]
+pc      9 atom_closure +    4 0x10006300c stp x26, x25, [sp, #0x10]
+pc      9 atom_closure +  420 0x1000631ac ldrb w11, [x9, x8]
+pc      9 atom_closure +39272 0x10006c970 str x1, [sp, #0x18]
+pc      9 piece        + 3540 0x100038d64 ldrb w10, [x9, x23]
+pc      9 piece        +12440 0x10003b028 ldrb w9, [x9, x23]
+pc      9 atom_closure +43588 0x10006da4c ldr w8, [sp, #0xbc]
+pc      9 atom_closure +  564 0x10006323c ldr x11, [x23, #0x40]
+pc      9 piece        +14588 0x10003b88c str x24, [sp, #0x360]
+pc      9 piece        +12508 0x10003b06c mov w11, #0x1
+pc      9 atom_closure +18028 0x100067674 ldr x8, [x0, #0x18]!
+pc      8 piece        +13944 0x10003b608 ldr x1, [x19, #0x268]
+pc      8 atom_closure +    0 0x100063008 stp x28, x27, [sp, #-0x60]!
+pc      8 piece        +14596 0x10003b894 str x8, [sp, #0x370]
+pc      8 piece        +15288 0x10003bb48 str x9, [sp, #0x68]
+pc      8 atom_closure +36572 0x10006bee4 ldr x8, [x20, #0x510]
+pc      8 atom_closure +27812 0x100069cac cmp x26, x10
+pc      8 piece        +14076 0x10003b68c ldrb w8, [x8, x25]
+pc      8 atom_closure +36504 0x10006bea0 ldr x23, [x20, #0x2a0]
+pc      8 piece        +14196 0x10003b704 ldr x13, [x19, #0x510]
+pc      8 atom_closure +39168 0x10006c908 ldr x8, [sp, #0x250]
+pc      8 atom_closure +43412 0x10006d99c ldr x23, [x20, #0x2a0]
+pc      8 atom_closure +  108 0x100063074 ldr x11, [x20, #0x198]
+pc      8 atom_closure +20872 0x100068190 cmp x26, x9
+pc      8 atom_closure +36636 0x10006bf24 ldurh w10, [x9, #-0x8]
+pc      8 atom_closure +36668 0x10006bf44 ldr x8, [x20, #0x60]
+pc      8 piece        +12872 0x10003b1d8 ldr x11, [x19, #0x178]
+pc      8 atom_closure +28912 0x10006a0f8 ldrb w10, [x9, x21]
+pc      8 atom_closure +31244 0x10006aa14 ldr x9, [x20, #0x348]
+pc      7 atom_closure +  480 0x1000631e8 ldr x9, [x0]
+pc      7 piece        +14592 0x10003b890 str x22, [sp, #0x368]
+pc      7 atom_closure +43952 0x10006dbb8 str x19, [x8]
+pc      7 piece        +  124 0x10003800c ldr x10, [x9]
+pc      7 atom_closure + 1120 0x100063468 str w8, [sp, #0xbc]
+pc      7 atom_closure +  304 0x100063138 str x21, [x20, #0x4c8]
+pc      7 atom_closure +25984 0x100069588 ldp x13, x14, [sp, #0x78]
+pc      7 piece        +13404 0x10003b3ec ldr x1, [x19, #0x268]
+pc      7 piece        +14344 0x10003b798 tbz w21, #0x0, 0x10003b89c
+pc      7 piece        +13804 0x10003b57c str w9, [sp, #0x60]
+pc      7 piece        +12848 0x10003b1c0 str x23, [x19, #0x4c8]
+pc      7 atom_closure +  588 0x100063254 ldr x8, [x0, #0x10]
+pc      7 piece        +12988 0x10003b24c ldr x10, [x9]
+pc      7 atom_closure +16948 0x10006723c ldrb w10, [x9, x21]
+pc      7 piece        + 1484 0x10003855c cmp w10, #0x5c
+pc      7 atom_closure +32076 0x10006ad54 cmp x26, x9
+pc      7 atom_closure +   84 0x10006305c str x8, [sp, #0x88]
+pc      7 piece        +12456 0x10003b038 sub w10, w9, #0xc2
+pc      7 atom_closure + 2844 0x100063b24 ldrb w11, [x9, x21]
+pc      7 piece        +13828 0x10003b594 b 0x10003b608
+pc      7 atom_closure +35504 0x10006bab8 ldr x9, [x20, #0x348]
+pc      7 piece        +14120 0x10003b6b8 sub w9, w8, #0x2a
+pc      7 atom_closure +  232 0x1000630f0 str x21, [sp, #0xb0]
+pc      7 piece        +14008 0x10003b648 ldr x8, [x8]
+pc      7 atom_closure +21296 0x100068338 ldr x10, [x20, #0x348]
+pc      7 piece        +14464 0x10003b810 ldr x24, [sp, #0x88]
+pc      7 atom_closure +20172 0x100067ed4 ldrb w11, [x10, x26]
+pc      7 atom_closure +28332 0x100069eb4 cmp x26, x11
+pc      7 piece        +15060 0x10003ba64 ldr x8, [x19, #0x238]
+pc      7 piece        + 2204 0x10003882c cmp x24, x9
+pc      7 atom_closure +16484 0x10006706c ldr x8, [x20, #0x238]
+pc      7 atom_closure +16388 0x10006700c ldr x8, [x20, #0x238]
+pc      7 piece        +12932 0x10003b214 cbz x22, 0x10003b260
+pc      7 piece        +13812 0x10003b584 str x8, [sp, #0x370]
+pc      7 atom_closure +   20 0x10006301c stp x29, x30, [sp, #0x50]
+pc      6 atom_closure +  328 0x100063150 stp x9, x11, [sp, #0x1b0]
+pc      6 piece        +12896 0x10003b1f0 str x21, [sp, #0x208]
+pc      6 piece        +14012 0x10003b64c cmp x21, x8
+pc      6 atom_closure +32088 0x10006ad60 ldrb w11, [x10, x21]
+pc      6 piece        +15468 0x10003bbfc ldr x27, [x19, #0x2a0]
+pc      6 atom_closure +37608 0x10006c2f0 ldr x9, [x20, #0x348]
+pc      6 atom_closure +16936 0x100067230 cmp x21, x1
+pc      6 atom_closure +  332 0x100063154 stp x10, x22, [sp, #0x1c0]
+pc      6 piece        +  852 0x1000382e4 cmp x22, x8
+pc      6 atom_closure +17408 0x100067408 ldr x8, [x20, #0x510]
+pc      6 atom_closure +43564 0x10006da34 ldr x9, [sp, #0x80]
+pc      6 atom_closure + 1140 0x10006347c ldrb w8, [x8, x21]
+pc      6 atom_closure +    8 0x100063010 stp x24, x23, [sp, #0x20]
+pc      6 piece        +12532 0x10003b084 str w21, [sp, #0x70]
+pc      6 atom_closure +  228 0x1000630ec add x23, x25, #0x1
+pc      6 piece        +13824 0x10003b590 bl __ZN5alloc3vec16Vec$LT$T$C$A$GT$8push_mut17h2d2239d8f4ba2a41E
+pc      6 atom_closure +16052 0x100066ebc str x26, [x20, #0x2a0]
+pc      6 atom_closure +19592 0x100067c90 ldr x8, [x20, #0x28]
+pc      6 atom_closure +43032 0x10006d820 ldr x8, [sp, #0x350]
+pc      6 atom_closure +26000 0x100069598 cmp x26, x10
+pc      6 atom_closure +39636 0x10006cadc ldr x9, [sp, #0x28]
+pc      6 atom_closure +43088 0x10006d858 ldr x8, [x20, #0x238]
+pc      6 atom_closure +36332 0x10006bdf4 ldr x9, [sp, #0xf0]
+pc      6 atom_closure +  252 0x100063104 add x23, x25, #0x1
+pc      6 atom_closure +37376 0x10006c208 ldr x10, [x20, #0x120]
+pc      6 piece        + 1476 0x100038554 cmp w10, #0x5e
+pc      5 atom_closure +  260 0x10006310c ldr x8, [x20, #0x348]
+pc      5 atom_closure +43832 0x10006db40 mov w8, #0x4
+pc      5 atom_closure +15284 0x100066bbc mov x23, x25
+pc      5 atom_closure +16920 0x100067220 mov x25, x23
+pc      5 atom_closure +37392 0x10006c218 str x9, [sp, #0x330]
+pc      5 atom_closure +36100 0x10006bd0c ldr x9, [x20, #0x348]
+pc      5 atom_closure +17176 0x100067320 ldr x9, [sp, #0xf0]
+pc      5 piece        +14716 0x10003b90c ldr x0, [sp, #0x40]
+pc      5 atom_closure + 2504 0x1000639d0 cmp x22, x23
+pc      5 atom_closure +11696 0x100065db8 mov x23, x19
+pc      5 atom_closure +17892 0x1000675ec ldr x9, [x8, x23, lsl #3]
+pc      5 piece        + 1436 0x10003852c add x13, x22, #0x1
+pc      5 atom_closure +  384 0x100063188 ldrh w11, [x9, x8, lsl #1]
+pc      5 piece        + 2216 0x100038838 ldrb w11, [x10, x23]
+pc      5 atom_closure +27836 0x100069cc4 ldrb w9, [x11, x26]
+pc      5 atom_closure +35516 0x10006bac4 cmp x26, x9
+pc      5 atom_closure +42896 0x10006d798 mov x1, x28
+pc      5 atom_closure +39600 0x10006cab8 str w8, [sp, #0x44]
+pc      5 atom_closure +17456 0x100067438 add x9, x9, #0x10
+pc      5 atom_closure +39452 0x10006ca24 ldr x28, [x9]
+pc      5 atom_closure +37412 0x10006c22c str x13, [sp, #0x350]
+pc      5 piece        +15216 0x10003bb00 cmp x22, x9
+pc      5 atom_closure +43684 0x10006daac ldp q1, q0, [sp, #0x150]
+pc      5 atom_closure +  584 0x100063250 str x8, [x0, #0x18]
+pc      5 atom_closure +36364 0x10006be14 ldr x8, [sp, #0x4a0]
+pc      5 atom_closure +37476 0x10006c26c stp x9, x11, [x29, #-0xd0]
+pc      5 atom_closure +14480 0x100066898 add x24, x25, #0x1
+pc      5 atom_closure +37460 0x10006c25c ldr x12, [x20, #0x178]
+pc      5 atom_closure +39568 0x10006ca98 ldr x8, [x20, #0x20]
+pc      5 piece        +12868 0x10003b1d4 ldr x10, [x19, #0x198]
+pc      5 piece        +13396 0x10003b3e4 ldr x8, [x19, #0x518]
+pc      5 atom_closure +14284 0x1000667d4 str x28, [sp, #0x4d8]
+pc      5 piece        +14692 0x10003b8f4 str x22, [sp, #0x368]
+pc      5 atom_closure +39592 0x10006cab0 str x8, [x20, #0x28]
+pc      5 atom_closure +19664 0x100067cd8 ldr x24, [x28]
+pc      5 atom_closure +14128 0x100066738 ldr x8, [x20, #0xf0]
+pc      5 atom_closure +32064 0x10006ad48 ldr x9, [x20, #0x348]
+pc      5 atom_closure +14156 0x100066754 ldr x10, [x20, #0x120]
+pc      5 atom_closure +21308 0x100068344 cmp x26, x10
+pc      5 atom_closure +36444 0x10006be64 ldr x9, [sp, #0x4d8]
+pc      4 piece        +13712 0x10003b520 str x9, [sp, #0xb8]
+pc      4 piece        +13724 0x10003b52c ldr x28, [x26]
+pc      4 atom_closure +37344 0x10006c1e8 str x8, [x20, #0x2a0]
+pc      4 atom_closure + 1756 0x1000636e4 ldr x9, [x20, #0x348]
+pc      4 atom_closure +   76 0x100063054 add x9, x25, #0x1
+pc      4 atom_closure +14912 0x100066a48 ldr x12, [sp, #0x78]
+pc      4 atom_closure +   48 0x100063038 ldr x25, [x1, #0x2a0]
+pc      4 piece        +  136 0x100038018 b.ls 0x100037ff4
+pc      4 atom_closure +  512 0x100063208 ldr x11, [x0, #0x8]
+pc      4 atom_closure +13612 0x100066534 ldrb w9, [x9, x26]
+pc      4 piece        +12936 0x10003b218 ldr x9, [x19, #0x20]
+pc      4 atom_closure +43672 0x10006daa0 ldp q0, q1, [sp, #0x130]
+pc      4 piece        +14252 0x10003b73c ldr x8, [x19, #0x28]
+pc      4 piece        +14780 0x10003b94c ldr x8, [x19, #0x510]
+pc      4 atom_closure +43072 0x10006d848 ldr x8, [x20, #0x28]
+pc      4 atom_closure +37056 0x10006c0c8 ldr w11, [x20, #0x270]
+pc      4 atom_closure +37388 0x10006c214 str x28, [sp, #0x328]
+pc      4 atom_closure +  456 0x1000631d0 ldr x9, [sp, #0x4b0]
+pc      4 atom_closure +36556 0x10006bed4 str x9, [sp, #0x2b0]
+pc      4 atom_closure +14320 0x1000667f8 ldr x9, [x20, #0x510]
+pc      4 piece        +14684 0x10003b8ec str x24, [sp, #0x360]
+pc      4 atom_closure +37304 0x10006c1c0 ldr x8, [x20, #0x290]
+pc      4 atom_closure +14300 0x1000667e4 ldrh w9, [x12, x21]
+pc      4 atom_closure +36560 0x10006bed8 str x10, [sp, #0x2b8]
+pc      4 atom_closure +16372 0x100066ffc ldr x8, [x20, #0x28]
+pc      4 atom_closure +37292 0x10006c1b4 str x8, [x20, #0x28]
+pc      4 atom_closure +  820 0x10006333c str x24, [x8, x19, lsl #3]
+pc      4 atom_closure +43704 0x10006dac0 str q1, [sp, #0x410]
+pc      4 atom_closure +21332 0x10006835c ldrb w11, [x9, x26]
+pc      4 piece        +14920 0x10003b9d8 ldr x1, [x24]
+pc      4 atom_closure +15692 0x100066d54 ldr x9, [sp, #0xf0]
+pc      4 atom_closure +15932 0x100066e44 str x24, [sp, #0x4d8]
+pc      4 piece        +14548 0x10003b864 ldr x0, [sp, #0x38]
+pc      4 atom_closure +31280 0x10006aa38 ldrb w11, [x10, x26]
+pc      4 atom_closure +16628 0x1000670fc ldr x2, [x20, #0x348]
+pc      4 atom_closure +39540 0x10006ca7c ldr x8, [x20, #0x18]
+pc      4 atom_closure +43392 0x10006d988 ldr x22, [sp, #0xa8]
+pc      4 atom_closure +14168 0x100066760 stp x9, x12, [sp, #0x1b0]
+pc      4 atom_closure +41004 0x10006d034 str w8, [sp, #0x44]
+pc      4 piece        + 2036 0x100038784 ldrb w8, [x10, x23]
+pc      4 atom_closure +43092 0x10006d85c ldr x10, [sp, #0x78]
+pc      4 atom_closure +15464 0x100066c70 ldrb w10, [x9, x21]
+pc      4 atom_closure +12800 0x100066208 ldrb w9, [x9, x21]
+pc      4 atom_closure +  548 0x10006322c ldr q0, [x23, #0x20]
+pc      4 atom_closure +43136 0x10006d888 ldr x24, [x20, #0x288]
+pc      4 atom_closure +36200 0x10006bd70 str x9, [sp, #0x4e8]
+pc      4 piece        +13784 0x10003b568 stp q0, q1, [x9, #0x40]
+pc      4 atom_closure +39680 0x10006cb08 ldr x27, [x20, #0x288]
+pc      4 atom_closure +18044 0x100067684 ldr x19, [x0, #0x10]
+pc      4 atom_closure +20132 0x100067eac mov x23, x24
+pc      4 atom_closure +37404 0x10006c224 str x22, [sp, #0x348]
+pc      4 atom_closure +39616 0x10006cac8 ldr x8, [x20, #0x28]
+pc      4 atom_closure +19132 0x100067ac4 ldr x8, [x20, #0x28]
+pc      4 atom_closure +16000 0x100066e88 ldr x9, [x9]
+pc      4 atom_closure +15180 0x100066b54 ldr x23, [x20, #0x2a0]
+pc      4 atom_closure +31168 0x10006a9c8 ldr x8, [x20, #0x238]
+pc      4 atom_closure +  828 0x100063344 str x8, [x20, #0x2a0]
+pc      4 atom_closure +29380 0x10006a2cc ldr x8, [x20, #0x510]
+pc      4 atom_closure +14276 0x1000667cc str x11, [sp, #0x4c8]
+pc      4 atom_closure +11524 0x100065d0c ldr x8, [sp, #0xb0]
+pc      3 piece        +14184 0x10003b6f8 str x13, [sp, #0x2c8]
+pc      3 atom_closure +12796 0x100066204 ldr x9, [x20, #0x340]
+pc      3 atom_closure +36384 0x10006be28 ldr q0, [sp, #0x470]
+pc      3 atom_closure +22172 0x1000686a4 add x9, x9, #0x10
+pc      3 piece        + 1864 0x1000386d8 str x13, [sp, #0xa8]
+pc      3 piece        + 1408 0x100038510 mov x8, #-0x8000000000000000
+pc      3 piece        + 3552 0x100038d70 ldrb w9, [x9, x24]
+pc      3 piece        + 3528 0x100038d58 cmp x23, x2
+pc      3 atom_closure +39372 0x10006c9d4 ldr x8, [x20, #0x28]
+pc      3 atom_closure +16960 0x100067248 ldrb w9, [x9, x26]
+pc      3 piece        +  904 0x100038318 ldr x11, [x19, #0x198]
+pc      3 atom_closure +37020 0x10006c0a4 ldr x26, [x20, #0x268]
+pc      3 atom_closure +42932 0x10006d7bc ldr x8, [sp, #0x350]
+pc      3 atom_closure +20856 0x100068180 mov x24, x23
+pc      3 atom_closure +20148 0x100067ebc cmp x26, x9
+pc      3 atom_closure +34164 0x10006b57c ldrb w11, [x10, x26]
+pc      3 atom_closure +37348 0x10006c1ec ldr x8, [x20, #0xf0]
+pc      3 atom_closure + 3476 0x100063d9c ldr x13, [x20, #0x348]
+pc      3 atom_closure +11188 0x100065bbc ldr q0, [sp, #0x520]
+pc      3 atom_closure +   36 0x10006302c mov x20, x1
+pc      3 atom_closure +37956 0x10006c44c ldr x10, [x20, #0x348]
+pc      3 atom_closure +37280 0x10006c1a8 strh w9, [x8]
+pc      3 atom_closure +14488 0x1000668a0 ldr x1, [x20, #0x348]
+pc      3 atom_closure +37560 0x10006c2c0 cbz x9, 0x10006c944
+pc      3 atom_closure +39696 0x10006cb18 ldr x8, [sp, #0x250]
+pc      3 atom_closure +37396 0x10006c21c str x12, [sp, #0x338]
+pc      3 atom_closure +37228 0x10006c174 ldr x8, [x27, #0x18]!
+pc      3 atom_closure +32100 0x10006ad6c ldrb w11, [x10, x26]
+pc      3 atom_closure +26024 0x1000695b0 ldrb w11, [x9, x26]
+pc      3 piece        +12468 0x10003b044 cmp w9, #0x3e
+pc      3 atom_closure + 3832 0x100063f00 ldr x10, [x20, #0x348]
+pc      3 atom_closure +15012 0x100066aac tbz w19, #0x0, 0x100066bd0
+pc      3 atom_closure +39440 0x10006ca18 mov w8, #0x0
+pc      3 atom_closure +15936 0x100066e48 ldr x8, [x20, #0x510]
+pc      3 atom_closure +36420 0x10006be4c ldp q1, q0, [sp, #0xd0]
+pc      3 atom_closure +14008 0x1000666c0 ldr x19, [x20, #0x28]
+pc      3 piece        +  824 0x1000382c8 strh w9, [x8]
+pc      3 atom_closure +37452 0x10006c254 ldr x12, [x20, #0x28]
+pc      3 atom_closure +15908 0x100066e2c ldr x24, [x20, #0x238]
+pc      3 atom_closure +37220 0x10006c16c stp x27, x8, [sp, #0x68]
+pc      3 piece        +14540 0x10003b85c tbz w8, #0x0, 0x10003b8e8
+pc      3 piece        +10412 0x10003a83c ldr x22, [sp, #0xb0]
+pc      3 piece        + 9696 0x10003a570 ldr x8, [sp, #0x200]
+pc      3 atom_closure +43664 0x10006da98 ldr x8, [sp, #0x190]
+pc      3 atom_closure + 2868 0x100063b3c ldrb w9, [x9, x27]
+pc      3 atom_closure +18108 0x1000676c4 ldr x2, [x20, #0x348]
+pc      3 atom_closure +43508 0x10006d9fc ldr x8, [x20, #0x238]
+pc      3 atom_closure +14852 0x100066a0c ldr x9, [x20, #0x348]
+pc      3 atom_closure +43560 0x10006da30 ldr x8, [x28]
+pc      3 atom_closure +24912 0x100069158 ldr x27, [x20, #0x288]
+pc      3 atom_closure +17400 0x100067400 stp x9, x10, [x29, #-0xd0]
+pc      3 atom_closure +11064 0x100065b40 cmp x8, x9
+pc      3 atom_closure +14904 0x100066a40 ldr x8, [sp, #0x2a0]
+pc      3 atom_closure +  176 0x1000630b8 ldrb w13, [x12, x21]
+pc      3 atom_closure +43628 0x10006da74 ldr x9, [x20, #0x298]
+pc      3 piece        +14180 0x10003b6f4 str x9, [sp, #0x2c0]
+pc      3 atom_closure +15424 0x100066c48 ldr x23, [x28]
+pc      3 atom_closure +39196 0x10006c924 ldr x1, [x8]
+pc      3 atom_closure +36568 0x10006bee0 str x28, [sp, #0x2c8]
+pc      3 atom_closure +37400 0x10006c220 str x10, [sp, #0x340]
+pc      3 atom_closure +37996 0x10006c474 ldrb w11, [x9, x11]
+pc      3 piece        +12884 0x10003b1e4 ldr x11, [x19, #0x120]
+pc      3 atom_closure +36540 0x10006bec4 ldr x11, [x20, #0x120]
+pc      3 piece        +14220 0x10003b71c sub w13, w8, #0x2a
+pc      3 atom_closure +31256 0x10006aa20 cmp x26, x9
+pc      3 atom_closure +36588 0x10006bef4 str x23, [sp, #0x80]
+pc      3 atom_closure +14348 0x100066814 ldr x8, [sp, #0x2a0]
+pc      3 atom_closure +37624 0x10006c300 ldrb w10, [x8, x26]
+pc      3 piece        +12740 0x10003b154 ldp q0, q1, [sp, #0x2f0]
+pc      3 atom_closure +36500 0x10006be9c str x21, [x20, #0x4c8]
+pc      3 atom_closure +21548 0x100068434 cmp w11, #0x21
+pc      3 piece        +  108 0x100037ffc b.eq 0x100038020
+pc      3 atom_closure +15476 0x100066c7c ldrb w9, [x9, x26]
+pc      3 atom_closure +40992 0x10006d028 str x9, [sp, #0x4c0]
+pc      3 atom_closure +14836 0x1000669fc str x10, [sp, #0x4c8]
+pc      3 atom_closure +14248 0x1000667b0 ldr x19, [x20, #0x28]
+pc      3 piece        +14092 0x10003b69c mov w10, #0x1
+pc      3 atom_closure + 3860 0x100063f1c cmp x21, x1
+pc      2 piece        +  156 0x10003802c mov x23, #-0x8000000000000000
+pc      2 atom_closure + 2816 0x100063b08 ldr x9, [x20, #0x348]
+pc      2 piece        +14468 0x10003b814 ldr x9, [x19, #0x28]
+pc      2 atom_closure +  428 0x1000631b4 br x10
+pc      2 piece        + 1488 0x100038560 b.ne 0x100038810
+pc      2 piece        + 9836 0x10003a5fc str x11, [sp, #0x378]
+pc      2 atom_closure +39392 0x10006c9e8 ldr x8, [x20, #0x238]
+pc      2 piece        +15380 0x10003bba4 str x14, [sp, #0x360]
+pc      2 atom_closure +43680 0x10006daa8 str q1, [sp, #0x450]
+pc      2 atom_closure +43348 0x10006d95c ldr x8, [sp, #0xb0]
+pc      2 atom_closure +40996 0x10006d02c str x8, [sp, #0x4d0]
+pc      2 atom_closure +16064 0x100066ec8 ldr x8, [x20, #0x340]
+pc      2 atom_closure +14196 0x10006677c str x19, [sp, #0x80]
+pc      2 atom_closure +43492 0x10006d9ec ldr x8, [x20, #0x28]
+pc      2 piece        +10104 0x10003a708 ldr x8, [x19, #0x238]
+pc      2 atom_closure + 3344 0x100063d18 ldr x8, [x20, #0x510]
+pc      2 atom_closure +28924 0x10006a104 ldrb w9, [x9, x26]
+pc      2 atom_closure +15956 0x100066e5c ldr x8, [x20, #0x348]
+pc      2 atom_closure +43908 0x10006db8c ldp x22, x21, [sp, #0x30]
+pc      2 atom_closure +20164 0x100067ecc cmp w11, #0x28
+pc      2 atom_closure +  788 0x10006331c ldr x19, [x12]
+pc      2 atom_closure +11004 0x100065b04 mov x19, x23
+pc      2 atom_closure +43944 0x10006dbb0 str x19, [sp, #0xb0]
+pc      2 atom_closure +15904 0x100066e28 ldr x11, [x20, #0x120]
+pc      2 atom_closure +43332 0x10006d94c ldp x28, x27, [sp, #0x60]
+pc      2 atom_closure +42904 0x10006d7a0 str x19, [x12]
+pc      2 atom_closure +13372 0x100066444 ldr x23, [x20, #0x2a0]
+pc      2 atom_closure + 3776 0x100063ec8 ldr x1, [x20, #0x348]
+pc      2 piece        +15568 0x10003bc60 cmp x27, x1
+pc      2 atom_closure +24144 0x100068e58 ldr x8, [sp, #0xb0]
+pc      2 atom_closure +25024 0x1000691c8 ldr x9, [sp, #0x68]
+pc      2 atom_closure +36988 0x10006c084 mov x8, #-0x7ffffffffffffffd
+pc      2 atom_closure +43912 0x10006db90 ldp x24, x23, [sp, #0x20]
+pc      2 atom_closure +11692 0x100065db4 str x19, [x28]
+pc      2 atom_closure +15120 0x100066b18 ldr x8, [sp, #0xb0]
+pc      2 atom_closure +15596 0x100066cf4 str xzr, [sp, #0x520]
+pc      2 atom_closure +26096 0x1000695f8 add x11, x21, #0x2
+pc      2 atom_closure + 8048 0x100064f78 ldr x9, [x20, #0x348]
+pc      2 atom_closure +21492 0x1000683fc ldurh w10, [x9, #-0x8]
+pc      2 piece        +15076 0x10003ba74 ldr x8, [x19, #0x150]
+pc      2 piece        +14720 0x10003b910 cmp x0, x1
+pc      2 atom_closure +18096 0x1000676b8 str x8, [x20, #0x28]
+pc      2 atom_closure +15304 0x100066bd0 cmp x25, x1
+pc      2 atom_closure +18088 0x1000676b0 str x21, [x8, #0x8]
+pc      2 atom_closure +14040 0x1000666e0 ldr x11, [x20, #0x120]
+pc      2 atom_closure +36116 0x10006bd1c ldrb w9, [x9, x21]
+pc      2 atom_closure +15924 0x100066e3c str x10, [sp, #0x4c8]
+pc      2 atom_closure +36552 0x10006bed0 str x27, [sp, #0x2a8]
+pc      2 piece        +14072 0x10003b688 ldr x8, [x19, #0x340]
+pc      2 atom_closure +14844 0x100066a04 str x23, [sp, #0x4d8]
+pc      2 atom_closure +43460 0x10006d9cc ldr x1, [x24]
+pc      2 atom_closure +34140 0x10006b564 cmp x26, x9
+pc      2 piece        + 1892 0x1000386f4 ldr x8, [x19, #0x298]
+pc      2 atom_closure +16640 0x100067108 cmn x25, #0x1
+pc      2 atom_closure +14060 0x1000666f4 ldr x8, [x20, #0x510]
+pc      2 atom_closure +15188 0x100066b5c ldr x8, [sp, #0xa8]
+pc      2 atom_closure +11480 0x100065ce0 str x11, [sp, #0x4d0]
+pc      2 piece        +   40 0x100037fb8 mov x25, x0
+pc      2 atom_closure +36204 0x10006bd74 str wzr, [sp, #0x528]
+pc      2 atom_closure +25576 0x1000693f0 str x19, [sp, #0xb0]
+pc      2 piece        + 2016 0x100038770 ldrb w8, [x10, x23]
+pc      2 atom_closure +43384 0x10006d980 mov x21, #-0x8000000000000000
+pc      2 atom_closure +36372 0x10006be1c ldr q0, [sp, #0x440]
+pc      2 atom_closure +38548 0x10006c69c ldrb w11, [x9, x26]
+pc      2 atom_closure +18132 0x1000676dc ldrh w9, [x10, x9]
+pc      2 atom_closure +21316 0x10006834c ldr x9, [x20, #0x340]
+pc      2 piece        +15404 0x10003bbbc ldr x8, [x19, #0x290]
+pc      2 atom_closure +19608 0x100067ca0 ldr x8, [x20, #0x238]
+pc      2 atom_closure +38368 0x10006c5e8 str x28, [sp, #0x428]
+pc      2 atom_closure +17500 0x100067464 ldr x8, [x20, #0x60]
+pc      2 piece        +13420 0x10003b3fc ldr x20, [x19, #0x238]
+pc      2 atom_closure +16440 0x100067040 ldr x24, [x8]
+pc      2 piece        +14064 0x10003b680 cmp x25, x8
+pc      2 piece        + 2176 0x100038810 mov x14, #0x0
+pc      2 atom_closure +27820 0x100069cb4 ldr x11, [x20, #0x340]
+pc      2 piece        + 3536 0x100038d60 ldr x9, [x19, #0x340]
+pc      2 atom_closure +11292 0x100065c24 ldr q0, [sp, #0x470]
+pc      2 atom_closure +19720 0x100067d10 ldr x10, [x20, #0x340]
+pc      2 atom_closure + 7968 0x100064f28 ldr x25, [x24]
+pc      2 atom_closure +17468 0x100067444 ldurh w10, [x9, #-0x8]
+pc      2 piece        +15044 0x10003ba54 ldr x8, [x19, #0x28]
+pc      2 atom_closure +15396 0x100066c2c ldr q0, [x9]
+pc      2 piece        +14696 0x10003b8f8 str x8, [sp, #0x378]
+pc      2 atom_closure +12356 0x10006604c ldr x8, [x20, #0x238]
+pc      2 piece        +14176 0x10003b6f0 str x14, [sp, #0x2b8]
+pc      2 piece        +  656 0x100038220 ldr x24, [x19, #0x238]
+pc      2 atom_closure +11304 0x100065c30 ldr q0, [sp, #0x400]
+pc      2 atom_closure + 5084 0x1000643e4 ldur x11, [x22, #0x48]
+pc      2 atom_closure + 5028 0x1000643ac ldr x9, [x0, #0x18]
+pc      2 atom_closure +20196 0x100067eec ldrb w9, [x10, x11]
+pc      2 atom_closure +20920 0x1000681c0 ldrb w9, [x10, x11]
+pc      2 piece        +12732 0x10003b14c ldr x8, [sp, #0x350]
+pc      2 atom_closure +29456 0x10006a318 add x8, x20, #0x290
+pc      2 atom_closure +36188 0x10006bd64 str xzr, [sp, #0x4d8]
+pc      2 atom_closure +  916 0x10006339c ldr x9, [x0, #0x18]
+pc      2 atom_closure +39264 0x10006c968 str w8, [sp, #0x44]
+pc      2 atom_closure +38532 0x10006c68c ldr x10, [x20, #0x348]
+pc      2 atom_closure +19760 0x100067d38 ldrb w9, [x10, x11]
+pc      2 piece        +14768 0x10003b940 ldp x26, x25, [sp, #0x10]
+pc      2 atom_closure +16900 0x10006720c ldr x25, [x28]
+pc      2 atom_closure +16536 0x1000670a0 ldr x1, [x8]
+pc      2 piece        +12704 0x10003b130 ldr x9, [sp, #0xf0]
+pc      2 piece        +13916 0x10003b5ec str x24, [sp, #0x368]
+pc      2 piece        +12204 0x10003af3c str x9, [sp, #0x368]
+pc      2 atom_closure +29572 0x10006a38c ldr x9, [x20, #0x348]
+pc      2 atom_closure +20184 0x100067ee0 add x11, x21, #0x2
+pc      2 piece        + 2828 0x100038a9c mov x26, x27
+pc      2 piece        +14680 0x10003b8e8 str x21, [sp, #0x358]
+pc      2 atom_closure +19148 0x100067ad4 ldr x8, [x20, #0x238]
+pc      2 atom_closure +36396 0x10006be34 ldr q0, [sp, #0x400]
+pc      2 atom_closure +38560 0x10006c6a8 add x11, x26, #0x1
+pc      2 atom_closure +38584 0x10006c6c0 add x11, x26, #0x2
+pc      2 piece        + 3896 0x100038ec8 str x10, [x19, #0x510]
+pc      2 atom_closure +43580 0x10006da44 ldr x1, [x28]
+pc      2 atom_closure +28380 0x100069ee4 ldrb w12, [x10, x9]
+pc      2 atom_closure + 2492 0x1000639c4 str x19, [sp, #0xf0]
+pc      2 piece        +14496 0x10003b830 ldr x9, [x19, #0x150]
+pc      2 atom_closure +38352 0x10006c5d8 str x10, [sp, #0x418]
+pc      2 atom_closure +15328 0x100066be8 ldr x19, [sp, #0x80]
+pc      2 piece        +14268 0x10003b74c ldr x8, [x19, #0x238]
+pc      2 piece        +12676 0x10003b114 ldp q1, q0, [x9, #0x60]
+pc      2 atom_closure +36424 0x10006be50 str q0, [sp, #0x4d0]
+pc      2 piece        +13984 0x10003b630 cmp x8, #0x4
+pc      2 atom_closure +29460 0x10006a31c ldr x8, [x8]
+pc      2 atom_closure +30144 0x10006a5c8 str x1, [sp, #0x70]
+pc      2 piece        +  780 0x10003829c ldr x8, [x28, #0x18]!
+pc      2 atom_closure +25996 0x100069594 b.hs 0x100069ca0
+pc      2 piece        +  972 0x10003835c stp x22, x28, [sp, #0xb0]
+pc      2 piece        +13000 0x10003b258 b.ls 0x10003b234
+pc      2 atom_closure +40980 0x10006d01c ldp x9, x8, [sp, #0x20]
+pc      2 atom_closure +13480 0x1000664b0 b 0x10006651c
+pc      2 piece        +14396 0x10003b7cc cmp x8, x9
+pc      2 atom_closure +17864 0x1000675d0 ldr x26, [x20, #0x268]
+pc      2 atom_closure +21616 0x100068478 cmp w11, #0x3d
+pc      2 atom_closure +43416 0x10006d9a0 ldr x0, [sp, #0x80]
+pc      2 atom_closure +21208 0x1000682e0 ldr x11, [x20, #0x178]
+pc      2 atom_closure +20880 0x100068198 ldr x10, [x20, #0x340]
+pc      2 atom_closure +43016 0x10006d810 cmp x24, x1
+pc      2 atom_closure +13444 0x10006648c str x19, [sp, #0xb0]
+pc      2 atom_closure +19196 0x100067b04 ldr x26, [x20, #0x288]
+pc      2 atom_closure +43280 0x10006d918 ldr x9, [sp, #0x58]
+pc      2 piece        +   36 0x100037fb4 mov x19, x1
+pc      2 atom_closure +22124 0x100068674 ldr x8, [x20, #0x510]
+pc      2 atom_closure +43816 0x10006db30 str q1, [sp, #0x4d0]
+pc      2 atom_closure +  964 0x1000633cc ldr q0, [x23, #0x30]
+pc      2 atom_closure +30196 0x10006a5fc stp x9, x10, [x29, #-0xd0]
+pc      2 atom_closure +31120 0x10006a998 ldr x8, [sp, #0x400]
+pc      2 piece        +  812 0x1000382bc ldr x8, [x19, #0x20]
+pc      1 atom_closure +  824 0x100063340 add x8, x19, #0x1
+pc      1 atom_closure +34188 0x10006b594 ldrb w9, [x10, x11]
+pc      1 piece        +  776 0x100038298 mov x28, x19
+pc      1 atom_closure +16732 0x100067164 ldr x2, [x20, #0x2a0]
+pc      1 piece        + 1972 0x100038744 str x9, [sp, #0x200]
+pc      1 piece        + 9824 0x10003a5f0 str x10, [sp, #0x370]
+pc      1 atom_closure +39552 0x10006ca88 mov w8, #0x1
+pc      1 atom_closure +16084 0x100066edc mov w10, #0x1
+pc      1 atom_closure +15352 0x100066c00 ldr x8, [x20, #0x28]
+pc      1 atom_closure +17216 0x100067348 ldr q0, [sp, #0x440]
+pc      1 atom_closure +11088 0x100065b58 str xzr, [sp, #0x4c0]
+pc      1 atom_closure +17072 0x1000672b8 str xzr, [sp, #0x510]
+pc      1 atom_closure +39444 0x10006ca1c mov w14, #0x0
+pc      1 atom_closure +35564 0x10006baf4 ldrb w11, [x10, x11]
+pc      1 atom_closure + 1744 0x1000636d8 b.eq 0x10006348c
+pc      1 piece        +  784 0x1000382a0 ldr x9, [x28, #0x218]
+pc      1 atom_closure + 2856 0x100063b30 add x27, x21, #0x1
+pc      1 piece        + 1960 0x100038738 stp x11, x12, [sp, #0x1f0]
+pc      1 atom_closure +11468 0x100065cd4 str x9, [sp, #0x4c0]
+pc      1 piece        +15680 0x10003bcd0 ldr x8, [x19, #0x238]
+pc      1 piece        +14132 0x10003b6c4 ldr x26, [x19, #0x28]
+pc      1 atom_closure +12344 0x100066040 ldr q0, [sp, #0xc0]
+pc      1 atom_closure + 7692 0x100064e14 ldr x8, [x8]
+pc      1 atom_closure + 8720 0x100065218 ldrb w11, [x10, x21]
+pc      1 atom_closure +26036 0x1000695bc cmp w11, #0x2a
+pc      1 atom_closure + 2680 0x100063a80 str x21, [x20, #0x4c8]
+pc      1 piece        + 1964 0x10003873c str x12, [sp, #0x60]
+pc      1 atom_closure +19032 0x100067a60 ldr x27, [x12]
+pc      1 atom_closure + 3828 0x100063efc str w9, [sp, #0xbc]
+pc      1 atom_closure +36408 0x10006be40 ldr q0, [sp, #0x430]
+pc      1 atom_closure +17900 0x1000675f4 ldr w11, [x20, #0x270]
+pc      1 atom_closure +21480 0x1000683f0 add x9, x9, #0x10
+pc      1 atom_closure +25540 0x1000693cc str xzr, [sp, #0xa0]
+pc      1 atom_closure +37488 0x10006c278 cmp x26, x8
+pc      1 atom_closure +36576 0x10006bee8 cmp x21, x8
+pc      1 piece        + 1432 0x100038528 str x8, [sp, #0x48]
+pc      1 atom_closure +37972 0x10006c45c ldrb w11, [x9, x26]
+pc      1 atom_closure +36212 0x10006bd7c str xzr, [sp, #0x4f8]
+pc      1 atom_closure +17044 0x10006729c str x9, [sp, #0x4e8]
+pc      1 piece        + 5356 0x10003947c ldr x1, [x19, #0x348]
+pc      1 atom_closure + 1148 0x100063484 cmp w9, #0x5
+pc      1 piece        + 1992 0x100038758 ldrb w11, [x10, x23]
+pc      1 piece        + 5368 0x100039488 cmp x23, x1
+pc      1 piece        +14448 0x10003b800 mov w8, #0x4
+pc      1 piece        +14212 0x10003b714 cmp w8, #0x5b
+pc      1 atom_closure +  236 0x1000630f4 cmp w13, #0x1d
+pc      1 piece        + 8256 0x100039fd0 ldr x1, [x19, #0x348]
+pc      1 atom_closure +13212 0x1000663a4 ldr x10, [x20, #0x198]
+pc      1 atom_closure +37432 0x10006c240 ldrb w12, [x12, x26]
+pc      1 piece        +14988 0x10003ba1c add x9, x19, #0x208
+pc      1 atom_closure +19684 0x100067cec mov x24, x25
+pc      1 atom_closure + 6096 0x1000647d8 ldr x8, [x20, #0x238]
+pc      1 atom_closure + 3336 0x100063d10 str x13, [sp, #0x78]
+pc      1 piece        +15752 0x10003bd18 ldr x15, [sp, #0x80]
+pc      1 atom_closure +11452 0x100065cc4 ldr x11, [x20, #0x120]
+pc      1 atom_closure + 6424 0x100064920 ldrb w11, [x10, x27]
+pc      1 atom_closure +15916 0x100066e34 str x19, [sp, #0x4b8]
+pc      1 atom_closure +25020 0x1000691c4 str x19, [sp, #0x4b8]
+pc      1 atom_closure +24992 0x1000691a8 str q1, [sp, #0x4e0]
+pc      1 atom_closure +17096 0x1000672d0 str q1, [sp, #0x490]
+pc      1 atom_closure +40348 0x10006cda4 str x19, [sp, #0xf0]
+pc      1 atom_closure +40248 0x10006cd40 ldr x2, [x20, #0x348]
+pc      1 atom_closure +  388 0x10006318c add x10, x10, x11, lsl #2
+pc      1 atom_closure +43744 0x10006dae8 ldr x8, [sp, #0x470]
+pc      1 atom_closure +14268 0x1000667c4 str x23, [sp, #0x4b8]
+pc      1 atom_closure +36184 0x10006bd60 str x8, [sp, #0x4d0]
+pc      1 atom_closure +20896 0x1000681a8 ldrb w11, [x10, x26]
+pc      1 atom_closure +14272 0x1000667c8 str x9, [sp, #0x4c0]
+pc      1 atom_closure +  256 0x100063108 str x21, [sp, #0xb0]
+pc      1 atom_closure +36440 0x10006be60 ldr x8, [x20, #0x238]
+pc      1 atom_closure +16944 0x100067238 ldr x9, [x20, #0x340]
+pc      1 atom_closure +15744 0x100066d88 ldr q0, [sp, #0x470]
+pc      1 atom_closure +14944 0x100066a68 b.eq 0x10006e37c
+pc      1 piece        + 1780 0x100038684 ldr x8, [x19, #0x28]
+pc      1 piece        + 1776 0x100038680 str x23, [x19, #0x4c8]
+pc      1 piece        + 1860 0x1000386d4 ldr x8, [x8]
+pc      1 atom_closure +43288 0x10006d920 str x8, [sp, #0x4d0]
+pc      1 atom_closure +16540 0x1000670a4 cmp x24, x1
+pc      1 atom_closure + 1064 0x100063430 str x9, [sp, #0xb0]
+pc      1 atom_closure +16828 0x1000671c4 ldr x8, [x20, #0x28]
+pc      1 atom_closure +43324 0x10006d944 add x8, x20, #0x4c8
+pc      1 atom_closure +15788 0x100066db4 ldr q0, [sp, #0xc0]
+pc      1 atom_closure +19748 0x100067d2c add x11, x21, #0x2
+pc      1 atom_closure +20724 0x1000680fc ldr x8, [x20, #0x28]
+pc      1 piece        +14992 0x10003ba20 ldr q0, [x9]
+pc      1 piece        +14964 0x10003ba04 ldr x8, [x19, #0x238]
+pc      1 atom_closure +20156 0x100067ec4 ldr x10, [x20, #0x340]
+pc      1 piece        +14856 0x10003b998 str x10, [sp, #0x378]
+pc      1 atom_closure + 2840 0x100063b20 ldr x9, [x20, #0x340]
+pc      1 atom_closure +19364 0x100067bac str x13, [sp, #0x4c0]
+pc      1 atom_closure +17888 0x1000675e8 ldr x8, [x20, #0x260]
+pc      1 piece        +15556 0x10003bc54 ldr x1, [x19, #0x2a0]
+pc      1 piece        +  900 0x100038314 ldr x9, [x19, #0x108]
+pc      1 atom_closure +17040 0x100067298 str xzr, [sp, #0x4e0]
+pc      1 atom_closure +16908 0x100067214 add x26, x21, #0x1
+pc      1 atom_closure +14020 0x1000666cc ldr x9, [x20, #0x108]
+pc      1 atom_closure +41312 0x10006d168 ldr x8, [sp, #0x400]
+pc      1 atom_closure +14928 0x100066a58 ldr x2, [x20, #0x348]
+pc      1 atom_closure +37532 0x10006c2a4 ldr x0, [sp, #0x4b0]
+pc      1 atom_closure +11472 0x100065cd8 str x10, [sp, #0x4c8]
+pc      1 atom_closure +  132 0x10006308c stp x8, x19, [sp, #0xc0]
+pc      1 atom_closure +41044 0x10006d05c b 0x10006c908
+pc      1 atom_closure +14056 0x1000666f0 stp x11, x26, [x29, #-0xc0]
+pc      1 atom_closure +17392 0x1000673f8 ldr x22, [x20, #0x238]
+pc      1 atom_closure +36564 0x10006bedc str x11, [sp, #0x2c0]
+pc      1 piece        + 8268 0x100039fdc cmp x23, x1
+pc      1 atom_closure +38896 0x10006c7f8 str w8, [sp, #0x44]
+pc      1 atom_closure +36700 0x10006bf64 cbz x8, 0x10006c084
+pc      1 atom_closure +18436 0x10006780c ldr x9, [x0, #0x18]
+pc      1 atom_closure +36312 0x10006bde0 ldr q0, [sp, #0x4e0]
+pc      1 piece        +14636 0x10003b8bc stp x8, x23, [x9]
+pc      1 atom_closure +38608 0x10006c6d8 add x11, x26, #0x3
+pc      1 atom_closure +15928 0x100066e40 str x11, [sp, #0x4d0]
+pc      1 atom_closure +43676 0x10006daa4 str q0, [sp, #0x440]
+pc      1 piece        + 1900 0x1000386fc ldr x25, [sp, #0xa8]
+pc      1 atom_closure +11272 0x100065c10 ldr x8, [sp, #0x4a0]
+pc      1 atom_closure +41136 0x10006d0b8 ldr x27, [x8]
+pc      1 atom_closure +12360 0x100066050 ldr x9, [sp, #0x4d8]
+pc      1 atom_closure + 3468 0x100063d94 mov x28, #-0x8000000000000000
+pc      1 piece        + 7096 0x100039b48 ldr x1, [x19, #0x348]
+pc      1 atom_closure +15804 0x100066dc4 ldr x9, [sp, #0x4d8]
+pc      1 atom_closure +26108 0x100069604 ldrb w9, [x9, x11]
+pc      1 atom_closure +24928 0x100069168 ldur x8, [x29, #-0xe0]
+pc      1 piece        +  660 0x100038224 ldr x21, [x19, #0x150]
+pc      1 atom_closure + 1772 0x1000636f4 ldr x8, [sp, #0xf0]
+pc      1 piece        + 2188 0x10003881c str x14, [sp, #0x68]
+pc      1 atom_closure +15780 0x100066dac ldp q1, q0, [sp, #0xd0]
+pc      1 atom_closure +15868 0x100066e04 str x21, [x20, #0x4c8]
+pc      1 atom_closure +15264 0x100066ba8 str x19, [sp, #0xb0]
+pc      1 atom_closure +43716 0x10006dacc str q1, [sp, #0x420]
+pc      1 atom_closure +16816 0x1000671b8 str w9, [sp, #0xbc]
+pc      1 atom_closure + 3268 0x100063ccc ldr x8, [x20, #0x28]
+pc      1 atom_closure +43424 0x10006d9a8 b.lo 0x10006ddc0
+pc      1 atom_closure +15820 0x100066dd4 ldr x9, [sp, #0x4b8]
+pc      1 atom_closure +41356 0x10006d194 cmp x25, x24
+pc      1 atom_closure +15668 0x100066d3c str q1, [sp, #0x410]
+pc      1 piece        +10324 0x10003a7e4 ldr x8, [sp, #0xb0]
+pc      1 piece        + 8280 0x100039fe8 ldrb w10, [x9, x23]
+pc      1 atom_closure +39216 0x10006c938 mov x13, #0x0
+pc      1 piece        +  856 0x1000382e8 b.eq 0x100038fcc
+pc      1 atom_closure +15556 0x100066ccc str xzr, [sp, #0x4e0]
+pc      1 atom_closure +41308 0x10006d164 mov x27, x10
+pc      1 atom_closure +43872 0x10006db68 ldr x8, [sp, #0xf0]
+pc      1 atom_closure +11652 0x100065d8c ldr x23, [x28]
+pc      1 atom_closure +18176 0x100067708 ldr x8, [sp, #0x4b0]
+pc      1 atom_closure +15240 0x100066b90 ldr x23, [x28]
+pc      1 atom_closure +40892 0x10006cfc4 ldr x0, [x20, #0x298]
+pc      1 atom_closure +10528 0x100065928 ldr x8, [sp, #0x1a0]
+pc      1 atom_closure +11440 0x100065cb8 ldr x11, [x20, #0x178]
+pc      1 atom_closure +11232 0x100065be8 str q1, [sp, #0x420]
+pc      1 atom_closure +15220 0x100066b7c ldr x24, [sp, #0x88]
+pc      1 atom_closure +16044 0x100066eb4 str x10, [x9, x23, lsl #3]
+pc      1 atom_closure +15684 0x100066d4c str q1, [sp, #0x420]
+pc      1 atom_closure +43520 0x10006da08 ldr x8, [x20, #0x150]
+pc      1 atom_closure +36292 0x10006bdcc str q1, [sp, #0x460]
+pc      1 piece        +   84 0x100037fe4 movk x10, #0x8000, lsl #48
+pc      1 piece        +12420 0x10003b014 mov x2, x27
+pc      1 atom_closure + 3856 0x100063f18 b.hs 0x100065b04
+pc      1 piece        +15068 0x10003ba6c ldr x26, [sp, #0x48]
+pc      1 piece        +14192 0x10003b700 str x15, [sp, #0x2d8]
+pc      1 piece        +12528 0x10003b080 b.eq 0x10003b038
+pc      1 piece        +13580 0x10003b49c ldr x0, [sp, #0xb8]
+pc      1 atom_closure + 3320 0x100063d00 str x12, [sp, #0x258]
+pc      1 atom_closure +10976 0x100065ae8 str x19, [sp, #0xb0]
+pc      1 atom_closure +43736 0x10006dae0 ldr x8, [sp, #0x440]
+pc      1 atom_closure + 4584 0x1000641f0 ldrb w10, [x8, x21]
+pc      1 piece        +13424 0x10003b400 ldr x24, [x19, #0x150]
+pc      1 atom_closure +11316 0x100065c3c ldr q0, [sp, #0x430]
+pc      1 atom_closure +11368 0x100065c70 ldr x9, [sp, #0x4b8]
+pc      1 atom_closure +11336 0x100065c50 ldr q0, [sp, #0xc0]
+pc      1 atom_closure + 7068 0x100064ba4 ldr x26, [x10]
+pc      1 piece        +  788 0x1000382a4 str x9, [sp, #0x50]
+pc      1 atom_closure + 7220 0x100064c3c ldr x9, [sp, #0x58]
+pc      1 atom_closure +17356 0x1000673d4 ldr x24, [x20, #0x28]
+pc      1 atom_closure +39968 0x10006cc28 ldr x28, [x10]
+pc      1 atom_closure + 3504 0x100063db8 cmp x27, x13
+pc      1 atom_closure +21624 0x100068480 cmp w11, #0x3c
+pc      1 atom_closure + 6148 0x10006480c ldr x25, [x8]
+pc      1 atom_closure +14372 0x10006682c ldr x8, [sp, #0x2a0]
+pc      1 atom_closure +11220 0x100065bdc ldr q0, [sp, #0x4e0]
+pc      1 atom_closure +11044 0x100065b2c ldr x9, [sp, #0xe8]
+pc      1 atom_closure +12352 0x100066048 str q1, [sp, #0x4c0]
+pc      1 atom_closure + 5988 0x10006476c ldr x8, [sp, #0x280]
+pc      1 atom_closure + 3324 0x100063d04 str x9, [sp, #0x260]
+pc      1 atom_closure + 3448 0x100063d80 str x26, [sp, #0x2a8]
+pc      1 atom_closure +11200 0x100065bc8 str q1, [sp, #0x460]
+pc      1 atom_closure +11092 0x100065b5c str x8, [sp, #0x4d0]
+pc      1 atom_closure +17348 0x1000673cc ldr x25, [x8]
+pc      1 atom_closure +17140 0x1000672fc ldr q0, [sp, #0x4b0]
+pc      1 atom_closure +17472 0x100067448 cmp w10, #0xaa
+pc      1 atom_closure +43708 0x10006dac4 ldp q1, q0, [sp, #0x110]
+pc      1 atom_closure +16748 0x100067174 cmp x8, x23
+pc      1 piece        +14712 0x10003b908 ldr x1, [x19, #0x268]
+pc      1 atom_closure +15964 0x100066e64 b.hi 0x1000671c0
+pc      1 atom_closure +16808 0x1000671b0 str x26, [sp, #0xb0]
+pc      1 atom_closure +17284 0x10006738c ldr x8, [x20, #0x238]
+pc      1 piece        + 4016 0x100038f40 ldr x9, [x0]
+pc      1 piece        +12692 0x10003b124 ldp q1, q0, [x9, #0x20]
+pc      1 piece        +14328 0x10003b788 ldr w21, [sp, #0x70]
+pc      1 atom_closure +30008 0x10006a540 str xzr, [sp, #0x520]
+pc      1 atom_closure + 1980 0x1000637c4 tbz w8, #0x0, 0x100063940
+pc      1 atom_closure +30204 0x10006a604 str w8, [sp, #0x58]
+pc      1 atom_closure +43792 0x10006db18 str q1, [sp, #0x510]
+pc      1 atom_closure + 7680 0x100064e08 add x8, x20, #0x2a0
+pc      1 atom_closure +11240 0x100065bf0 ldr x9, [sp, #0xf0]
+pc      1 atom_closure +41240 0x10006d120 ldr x15, [sp, #0x28]
+pc      1 piece        +12968 0x10003b238 subs x8, x8, #0x10
+pc      1 atom_closure + 3808 0x100063ee8 str x10, [sp, #0x90]
+pc      1 piece        +10116 0x10003a714 ldr x8, [x19, #0x150]
+pc      1 atom_closure +39908 0x10006cbec ldr x8, [x20, #0x238]
+pc      1 piece        +14844 0x10003b98c str x14, [sp, #0x360]
+pc      1 piece        + 6528 0x100039910 cmp x23, x1
+pc      1 atom_closure +41032 0x10006d050 ldr x1, [sp, #0x18]
+pc      1 piece        +14152 0x10003b6d8 ldr x10, [x19, #0x178]
+pc      1 atom_closure +43156 0x10006d89c ldr x2, [x9]
+pc      1 piece        +   24 0x100037fa8 add x29, sp, #0x50
+pc      1 atom_closure +21680 0x1000684b8 stp x13, x14, [sp, #0x78]
+pc      1 atom_closure +16468 0x10006705c ldr x8, [x20, #0x28]
+pc      1 atom_closure +12448 0x1000660a8 b 0x100065db4
+pc      1 atom_closure +29960 0x10006a510 str xzr, [sp, #0x4d8]
+pc      1 atom_closure +17772 0x100067574 sub x9, x8, #0x1
+pc      1 piece        +12392 0x10003aff8 ldp x22, x28, [sp, #0xb0]
+pc      1 atom_closure +14224 0x100066798 b.ne 0x100066894
+pc      1 piece        +13664 0x10003b4f0 ldr x8, [x19, #0x150]
+pc      1 atom_closure +29700 0x10006a40c mov x27, x0
+pc      1 atom_closure +14504 0x1000668b0 cmp x21, x1
+pc      1 atom_closure +29912 0x10006a4e0 ldp x10, x9, [sp, #0x60]
+pc      1 piece        + 3796 0x100038e64 ldr x25, [x19, #0x238]
+pc      1 piece        +11560 0x10003acb8 ldr x8, [x19, #0x348]
+pc      1 atom_closure +39404 0x10006c9f4 ldr x8, [x20, #0x150]
+pc      1 piece        + 9832 0x10003a5f8 str w8, [sp, #0x60]
+pc      1 atom_closure +37480 0x10006c270 stp x10, x22, [x29, #-0xc0]
+pc      1 atom_closure + 2380 0x100063954 ldr x8, [x20, #0x348]
+pc      1 piece        + 3512 0x100038d48 mov x27, x26
+pc      1 piece        +12696 0x10003b128 stp q1, q0, [sp, #0x2d0]
+pc      1 piece        +12616 0x10003b0d8 str xzr, [sp, #0x3f8]
+pc      1 piece        +12220 0x10003af4c str x11, [sp, #0x378]
+pc      1 piece        +12640 0x10003b0f0 str x8, [sp, #0x3c0]
+pc      1 atom_closure +43784 0x10006db10 ldp q1, q0, [sp, #0x150]
+pc      1 atom_closure +29368 0x10006a2c0 str x10, [sp, #0x268]
+pc      1 atom_closure +35540 0x10006badc ldrb w11, [x10, x26]
+pc      1 atom_closure +  324 0x10006314c stp x8, x19, [sp, #0x1a0]
+pc      1 piece        +15220 0x10003bb04 b.hs 0x10003c10c
+pc      1 atom_closure +43800 0x10006db20 str q0, [sp, #0x4b0]
+pc      1 atom_closure +22184 0x1000686b0 ldurh w10, [x9, #-0x8]
+pc      1 atom_closure +14816 0x1000669e8 ldr x11, [x20, #0x120]
+pc      1 atom_closure +15768 0x100066da0 ldr q0, [sp, #0x430]
+pc      1 atom_closure +15496 0x100066c90 ldr x9, [sp, #0xe8]
+pc      1 atom_closure +22068 0x10006863c ldr x24, [x20, #0x28]
+pc      1 atom_closure +43864 0x10006db60 ldr x9, [sp, #0x98]
+pc      1 piece        +  844 0x1000382dc ldr x22, [x19, #0x2a0]
+pc      1 piece        + 9680 0x10003a560 mov w8, #0x1
+pc      1 piece        +13568 0x10003b490 b.ne 0x10003b4a4
+pc      1 piece        +15668 0x10003bcc4 ldr x9, [sp, #0xb8]
+pc      1 atom_closure + 4960 0x100064368 str w8, [sp, #0x60]
+pc      1 atom_closure +10992 0x100065af8 ldr x1, [x20, #0x348]
+pc      1 atom_closure + 3328 0x100063d08 str x10, [sp, #0x268]
+pc      1 atom_closure +38932 0x10006c81c tbz w8, #0x0, 0x10006c830
+pc      1 atom_closure +  716 0x1000632d4 str xzr, [x0]
+pc      1 atom_closure +11216 0x100065bd8 str q1, [sp, #0x410]
+pc      1 atom_closure +32084 0x10006ad5c ldr x10, [x20, #0x340]
+pc      1 piece        +14808 0x10003b968 b.eq 0x10003bb88
+pc      1 piece        +16036 0x10003be34 ldr x8, [sp, #0x78]
+pc      1 atom_closure +29332 0x10006a29c ldr x10, [x20, #0x198]
+pc      1 piece        +12608 0x10003b0d0 str x9, [sp, #0x390]
+pc      1 piece        +16116 0x10003be84 ldr x0, [x19, #0x298]
+pc      1 piece        +12644 0x10003b0f4 str xzr, [sp, #0x3c8]
+pc      1 atom_closure +43936 0x10006dba8 str x9, [sp, #0x90]
+pc      1 atom_closure +  172 0x1000630b4 ldr x12, [x20, #0x340]
+pc      1 piece        +16004 0x10003be14 ldr x9, [sp, #0xa8]
+pc      1 atom_closure +36180 0x10006bd5c str xzr, [sp, #0x4c0]
+pc      1 atom_closure +19620 0x100067cac ldr x8, [x20, #0x150]
+pc      1 atom_closure +11552 0x100065d28 ldr x8, [sp, #0xa0]
+pc      1 atom_closure +12432 0x100066098 str w9, [sp, #0xbc]
+pc      1 atom_closure + 4904 0x100064330 ldr x9, [x20, #0x510]
+pc      1 atom_closure + 3460 0x100063d8c str x10, [sp, #0x2c0]
+pc      1 atom_closure +10672 0x1000659b8 ldr x2, [x20, #0x2a0]
+pc      1 atom_closure +17404 0x100067404 stp x11, x22, [x29, #-0xc0]
+pc      1 atom_closure +22064 0x100068638 str x21, [x20, #0x4c8]
+pc      1 atom_closure +26524 0x1000697a4 ldr x8, [x20, #0x60]
+pc      1 atom_closure +29896 0x10006a4d0 str x19, [sp, #0x80]
+pc      1 piece        +12224 0x10003af50 str x20, [sp, #0x380]
+pc      1 piece        + 1800 0x100038698 ldr x10, [x19, #0x198]
+pc      1 piece        + 4104 0x100038f98 ldur q0, [x20, #0x8]
+pc      1 atom_closure +31224 0x10006aa00 ldr x9, [x28]
+pc      1 piece        +12764 0x10003b16c ldp q1, q0, [sp, #0x2d0]
+pc      1 piece        +12668 0x10003b10c ldp q0, q1, [x9, #0x40]
+pc      1 piece        + 4044 0x100038f5c ldr x11, [x0, #0x8]
+pc      1 piece        +12660 0x10003b104 ldr x8, [sp, #0x3f8]
+pc      1 piece        + 4080 0x100038f80 ldur q0, [x20, #0x28]
+pc      1 piece        +12432 0x10003b020 b.hs 0x10003b798
+pc      1 atom_closure +25916 0x100069544 ldr x8, [x28]
+pc      1 piece        + 1804 0x10003869c ldr x11, [x19, #0x178]
+pc      1 atom_closure +36528 0x10006beb8 ldr x11, [x20, #0x178]
+pc      1 atom_closure + 3884 0x100063f34 ldrb w9, [x9, x26]
+pc      1 piece        + 9768 0x10003a5b8 ldr x20, [x19, #0x2a0]
+pc      1 atom_closure +21220 0x1000682ec ldr x11, [x20, #0x120]
+pc      1 atom_closure +36228 0x10006bd8c str xzr, [sp, #0x510]
+pc      1 atom_closure +25612 0x100069414 mov x25, x24
+pc      1 atom_closure +36264 0x10006bdb0 ldr q0, [sp, #0x4f0]
+pc      1 piece        +14936 0x10003b9e8 str x0, [x8, x21, lsl #3]
+pc      1 piece        +   72 0x100037fd8 ldr x9, [x19, #0x20]
+pc      1 piece        + 3524 0x100038d54 b.hs 0x10003b014
+pc      1 piece        +  992 0x100038370 ldr x12, [x19, #0x340]
+pc      1 atom_closure +37296 0x10006c1b8 ldr x26, [x20, #0x4c8]
+pc      1 atom_closure +21524 0x10006841c add x11, x21, #0x2
+pc      1 atom_closure +38344 0x10006c5d0 str x19, [sp, #0x408]
+pc      1 atom_closure +15564 0x100066cd4 str wzr, [sp, #0x528]
+pc      1 atom_closure +11172 0x100065bac ldr q0, [sp, #0x4f0]
+pc      1 piece        +12980 0x10003b244 cmp w10, #0x1b
+pc      1 atom_closure +38008 0x10006c480 add x11, x26, #0x2
+pc      1 atom_closure +20776 0x100068130 str x12, [sp, #0x4b8]
+pc      1 piece        + 1832 0x1000386b8 stp x9, x10, [sp, #0x1b0]
+pc      1 piece        + 2032 0x100038780 str x28, [x20]
+pc      1 atom_closure +36136 0x10006bd30 ldr x9, [sp, #0xe8]
+pc      1 atom_closure +40432 0x10006cdf8 str w8, [sp, #0xbc]
+pc      1 atom_closure +43712 0x10006dac8 str q0, [sp, #0x430]
+pc      1 atom_closure +20676 0x1000680cc ldr x8, [x20, #0x340]
+pc      1 atom_closure +36220 0x10006bd84 str x8, [sp, #0x500]
+pc      1 atom_closure +43108 0x10006d86c ldr x10, [sp, #0x58]
+pc      1 piece        + 7676 0x100039d8c ldr x1, [x19, #0x348]
+pc      1 piece        +13768 0x10003b558 ldp q0, q1, [sp, #0x2b0]
+pc      1 atom_closure +28900 0x10006a0ec cmp x21, x1
+pc      1 piece        +10168 0x10003a748 str x20, [x21]
+pc      1 piece        + 1520 0x100038580 mov w9, #0x1
+pc      1 atom_closure +37660 0x10006c324 add x10, x26, #0x2
+pc      1 atom_closure + 7740 0x100064e44 ldr x22, [x20, #0x4c8]
+pc      1 atom_closure +11120 0x100065b78 str xzr, [sp, #0x4f8]
+pc      1 atom_closure +37284 0x10006c1ac str x21, [x8, #0x8]
+pc      1 atom_closure +15872 0x100066e08 ldr x22, [x20, #0x28]
+pc      1 atom_closure +14204 0x100066784 cmp x21, x1
+pc      1 piece        +15960 0x10003bde8 ldr x8, [x19, #0x150]
+pc      1 atom_closure +36324 0x10006bdec str q1, [sp, #0x420]
+pc      1 atom_closure + 5948 0x100064744 ldr x8, [sp, #0x4b0]
+pc      1 piece        +12628 0x10003b0e4 str x8, [sp, #0x3a8]
+pc      1 atom_closure +30208 0x10006a608 stp x11, x19, [x29, #-0xc0]
+pc      1 piece        +12144 0x10003af00 ldr x8, [x19, #0x2a0]
+pc      1 piece        +12792 0x10003b188 ldr x9, [sp, #0xa0]
+pc      1 atom_closure +14280 0x1000667d0 str x10, [sp, #0x4d0]
+pc      1 atom_closure +23020 0x1000689f4 ldr x27, [x0, #0x10]
+pc      1 atom_closure +39624 0x10006cad0 sub x8, x8, #0x1
+pc      1 piece        +  948 0x100038344 mov x12, #-0x8000000000000000
+pc      1 atom_closure +43844 0x10006db4c b 0x10006db80
+pc      1 atom_closure +11828 0x100065e3c ldr x10, [x20, #0x340]
+pc      1 atom_closure +34176 0x10006b588 add x11, x21, #0x2
+pc      1 atom_closure +25820 0x1000694e4 ldr x9, [x28]
+pc      1 piece        +13764 0x10003b554 ldr x8, [x19, #0x4c8]
+pc      1 atom_closure +11260 0x100065c04 ldr q0, [sp, #0x480]
+pc      1 atom_closure +43140 0x10006d88c mov w8, #-0x2
+pc      1 piece        + 4144 0x100038fc0 mov x0, x28
+pc      1 atom_closure +36128 0x10006bd28 tbz w8, #0x0, 0x10006be9c
+pc      1 atom_closure +24532 0x100068fdc str x21, [x8, #0x8]
+pc      1 atom_closure +40880 0x10006cfb8 ldr x28, [x20, #0x2a0]
+pc      1 atom_closure +38596 0x10006c6cc ldrb w11, [x9, x11]
+pc      1 atom_closure +15892 0x100066e1c ldr x11, [x20, #0x178]
+pc      1 atom_closure +21292 0x100068334 mov x25, x24
+pc      1 piece        + 2852 0x100038ab4 ldr x9, [x19, #0x340]
+pc      1 atom_closure +40240 0x10006cd38 ldr x8, [x20, #0x4c8]
+pc      1 piece        + 2212 0x100038834 ldr x10, [x19, #0x340]
+pc      1 piece        +   68 0x100037fd4 cbz x24, 0x100038020
+pc      1 piece        +14760 0x10003b938 ldp x22, x21, [sp, #0x30]
+pc      1 atom_closure +22612 0x10006885c cmp x8, #0x1
+pc      1 atom_closure +15640 0x100066d20 ldr q0, [sp, #0x520]
+pc      1 atom_closure +11464 0x100065cd0 str x22, [sp, #0x4b8]
+pc      1 piece        +12480 0x10003b050 lsl x9, x10, x9
+pc      1 atom_closure +  956 0x1000633c4 ldr q0, [x23, #0x20]
+pc      1 piece        + 2868 0x100038ac4 ldrb w9, [x9, x24]
+pc      1 atom_closure + 6468 0x10006494c cmp w9, #0x7b
+pc      1 atom_closure +29908 0x10006a4dc ldr x8, [x20, #0x238]
+pc      1 piece        +12152 0x10003af08 ldr x8, [x19, #0x28]
+pc      1 piece        + 1976 0x100038748 ldr x1, [x19, #0x348]
+pc      1 piece        + 3396 0x100038cd4 add x24, x23, #0x1
+pc      1 atom_closure +37672 0x10006c330 ldrb w8, [x8, x10]
+pc      1 atom_closure +36172 0x10006bd54 str x8, [sp, #0x4b8]
+pc      1 piece        +11508 0x10003ac84 str x20, [x19, #0x2a0]
+pc      1 atom_closure +14532 0x1000668cc ldrb w8, [x8, x9]
+pc      1 atom_closure +13624 0x100066540 tbz w8, #0x0, 0x1000666bc
+pc      1 atom_closure +41344 0x10006d188 ldr x2, [x20, #0x2a0]
+pc      1 atom_closure +11020 0x100065b14 ldr x9, [x20, #0x340]
+pc      1 atom_closure +43760 0x10006daf8 str q1, [sp, #0x540]
+pc      1 piece        + 9820 0x10003a5ec str x9, [sp, #0x368]
+pc      1 piece        +14888 0x10003b9b8 ldur x8, [x29, #-0xb0]
+pc      1 atom_closure +25548 0x1000693d4 ldr x9, [sp, #0x88]
+pc      1 piece        + 4808 0x100039258 cmp w11, #0x5c
+pc      1 atom_closure +37008 0x10006c098 ldr x8, [x20, #0x518]
+pc      1 atom_closure +20888 0x1000681a0 cmp w11, #0x28
+pc      1 piece        +14384 0x10003b7c0 str x8, [x9, x22, lsl #3]
+pc      1 piece        +12924 0x10003b20c b.ls 0x10003b214
+pc      1 atom_closure +11532 0x100065d14 ldr w8, [sp, #0xbc]
+pc      1 atom_closure +31096 0x10006a980 str w9, [sp, #0xbc]
+pc      1 atom_closure +42916 0x10006d7ac mov w19, #0x1
+pc      1 atom_closure +15460 0x100066c6c ldr x9, [x20, #0x340]
+pc      1 atom_closure +29576 0x10006a390 cmp x23, x9
+pc      1 atom_closure +30004 0x10006a53c str x8, [sp, #0x518]
+pc      1 atom_closure +43688 0x10006dab0 str q0, [sp, #0x470]
+pc      1 atom_closure +29232 0x10006a238 str q0, [sp, #0x4d0]
+pc      1 atom_closure +29180 0x10006a204 ldr q0, [sp, #0x440]
+pc      1 atom_closure +22216 0x1000686d0 ldr x8, [x20, #0x60]
+pc      1 atom_closure +29552 0x10006a378 str x10, [sp, #0x2b8]
+pc      1 atom_closure +29312 0x10006a288 ldr x24, [x20, #0x2a0]
+pc      1 piece        +14848 0x10003b990 str x9, [sp, #0x368]
+pc      1 piece        + 3912 0x100038ed8 ldrb w10, [x8, x10]
+pc      1 atom_closure +12780 0x1000661f4 mov x22, x23
+pc      1 atom_closure +37648 0x10006c318 ldrb w10, [x8, x10]
+pc      1 piece        +12560 0x10003b0a0 ldr x9, [sp, #0xa0]
+pc      1 piece        +12744 0x10003b158 stp q0, q1, [sp, #0x130]
+pc      1 piece        +12776 0x10003b178 ldr x9, [sp, #0x80]
+pc      1 piece        + 6516 0x100039904 ldr x1, [x19, #0x348]
+pc      1 atom_closure +38572 0x10006c6b4 ldrb w11, [x9, x11]
+pc      1 atom_closure +37984 0x10006c468 add x11, x26, #0x1
+pc      1 atom_closure +   72 0x100063050 str x9, [x8, x25, lsl #3]
+pc      1 atom_closure +15756 0x100066d94 ldr q0, [sp, #0x400]
+pc      1 atom_closure +43604 0x10006da5c str x9, [x8]
+pc      1 atom_closure +28644 0x100069fec ldr q0, [sp, #0x400]
+pc      1 atom_closure +43812 0x10006db2c str q0, [sp, #0x4e0]
+pc      1 atom_closure +30780 0x10006a844 ldr x19, [sp, #0x80]
+pc      1 piece        + 3848 0x100038e98 ldr x2, [x19, #0x348]
+pc      1 piece        +14172 0x10003b6ec str x11, [sp, #0x2b0]
+pc      1 piece        +14864 0x10003b9a0 str x15, [sp, #0x380]
+pc      1 piece        +12880 0x10003b1e0 csel x10, x11, x10, hi
+pc      1 atom_closure +29316 0x10006a28c ldr x26, [x20, #0x28]
+pc      1 atom_closure +28656 0x100069ff8 ldr q0, [sp, #0x430]
+pc      1 piece        +12460 0x10003b03c cmp w10, #0x33
+pc      1 atom_closure + 1056 0x100063428 add x8, x20, #0x4c8
+pc      1 atom_closure +28504 0x100069f60 ldr x8, [sp, #0x550]
+pc      1 piece        +14188 0x10003b6fc str x10, [sp, #0x2d0]
+pc      1 piece        + 7712 0x100039db0 ldrb w9, [x9, x24]
+pc      1 atom_closure +11620 0x100065d6c b.hs 0x10006d734
+pc      1 atom_closure +43692 0x10006dab4 str q1, [sp, #0x460]
+pc      1 atom_closure +29504 0x10006a348 ldr x8, [x20, #0xf0]
+pc      1 atom_closure +28632 0x100069fe0 ldr q0, [sp, #0x470]
+pc      1 atom_closure +29560 0x10006a380 str x27, [sp, #0x2c8]
+pc      1 atom_closure +28668 0x10006a004 ldp q0, q1, [sp, #0xc0]
+pc      1 atom_closure +29996 0x10006a534 str xzr, [sp, #0x508]
+pc      1 piece        +15576 0x10003bc68 str x27, [x26]
+pc      1 atom_closure + 2884 0x100063b4c tbz w8, #0x0, 0x100063cc8
+pc      1 atom_closure +10824 0x100065a50 ldr x8, [x20, #0x238]
+pc      1 piece        +15388 0x10003bbac str x8, [sp, #0x370]
+pc      1 atom_closure + 1060 0x10006342c ldr x9, [x8]
+pc      1 atom_closure +11844 0x100065e4c ldrb w11, [x10, x26]
+pc      1 atom_closure +13260 0x1000663d4 str x24, [sp, #0x4d8]
+pc      1 atom_closure +13256 0x1000663d0 str x11, [sp, #0x4d0]
+pc      1 atom_closure +   28 0x100063024 sub sp, sp, #0x5f0
+pc      1 atom_closure +13232 0x1000663b8 ldr x24, [x20, #0x238]
+pc      1 atom_closure +11160 0x100065ba0 str q1, [sp, #0x490]
+pc      1 atom_closure +11136 0x100065b88 str xzr, [sp, #0x510]
+pc      1 atom_closure +13452 0x100066494 str w9, [sp, #0xbc]
+pc      1 atom_closure +  128 0x100063088 ldr x22, [x20, #0x238]
+pc      1 piece        +12428 0x10003b01c cmp x23, x9
+pc      1 atom_closure +13276 0x1000663e4 ldr x8, [sp, #0x400]
+pc      1 atom_closure +14828 0x1000669f4 str x28, [sp, #0x4b8]
+
+=== BAND 2p5to20 ===
+verdicts: rows=374 accepts=369 rejects=5 expectation_mismatches=39 identity=PASS (vs the -0207 floor sweep)
+raw sha256=1ba5cb337a69a12957d47f9ff00649b36fd7e2f9d69b20836e6c5d2b172a9ecc
+raw: pid=25136 stored=29545 dropped=0 pending_sigprof_drained=0 cpu_elapsed_us=97839953 effective_interval_us=3311.557
+location piece                    2308    7.8118%
+location atom_closure             1766    5.9773%
+location main_text_other         22638   76.6221%
+location external_or_injected     2833    9.5888%
+target: 4074/29545 = 13.7891%
+class memory       3386   83.1124%
+class control       212    5.2037%
+class call            1    0.0245%
+class other         475   11.6593%
+target PCs (all nonzero, descending count):
+pc    288 piece        +  112 0x100038000 ldurh w10, [x9, #-0x8]
+pc    142 piece        +12976 0x10003b240 ldurh w10, [x9, #-0x8]
+pc    103 piece        +  100 0x100037ff4 add x9, x9, #0x10
+pc     77 piece        +12964 0x10003b234 add x9, x9, #0x10
+pc     69 piece        +   44 0x100037fbc ldr x22, [x1, #0x4c8]
+pc     60 atom_closure + 1752 0x1000636e0 ldr w8, [sp, #0xbc]
+pc     50 piece        + 2192 0x100038820 ldr x9, [x19, #0x348]
+pc     48 piece        +12916 0x10003b204 ldr x8, [x19, #0x510]
+pc     46 piece        +  976 0x100038360 str x21, [sp, #0x90]
+pc     45 piece        +14484 0x10003b824 ldr x9, [x19, #0x238]
+pc     43 piece        +  144 0x100038020 ldr x8, [x19, #0x60]
+pc     36 piece        +13652 0x10003b4e4 ldr x8, [x19, #0x238]
+pc     35 atom_closure +  160 0x1000630a8 ldr x12, [x20, #0x348]
+pc     32 piece        +   48 0x100037fc0 ldr x8, [x1, #0x510]
+pc     31 atom_closure +43896 0x10006db80 add sp, sp, #0x5f0
+pc     28 piece        +13432 0x10003b408 ldr x9, [x8, x27, lsl #3]
+pc     26 piece        +14388 0x10003b7c4 ldr x8, [sp, #0xf0]
+pc     26 piece        +14356 0x10003b7a4 str x20, [x19, #0x4c8]
+pc     25 piece        +14772 0x10003b944 ldp x28, x27, [sp], #0x60
+pc     25 piece        +13008 0x10003b260 ldr x8, [x19, #0x60]
+pc     25 atom_closure +36596 0x10006befc ldr x9, [x20, #0x20]
+pc     24 piece        +14056 0x10003b678 ldr x25, [x19, #0x4c8]
+pc     24 piece        +  800 0x1000382b0 ldr x20, [x28, #0x10]
+pc     22 piece        +  848 0x1000382e0 ldr x8, [x19, #0x290]
+pc     22 piece        +13980 0x10003b62c ldur x8, [x29, #-0xb0]
+pc     21 piece        +14752 0x10003b930 ldp x29, x30, [sp, #0x50]
+pc     21 atom_closure +36636 0x10006bf24 ldurh w10, [x9, #-0x8]
+pc     20 atom_closure +36624 0x10006bf18 add x9, x9, #0x10
+pc     20 atom_closure +37040 0x10006c0b8 ldr x12, [x20, #0x150]
+pc     20 piece        +15196 0x10003baec ldr x28, [x19, #0x2a0]
+pc     20 atom_closure +   52 0x10006303c ldr x8, [x1, #0x290]
+pc     18 piece        +13788 0x10003b56c ldr x9, [sp, #0xa0]
+pc     18 piece        + 1444 0x100038534 ldr x9, [x19, #0x348]
+pc     17 atom_closure +43616 0x10006da68 mov w8, #0x1
+pc     17 piece        +  792 0x1000382a8 ldr x9, [x28, #0x288]
+pc     16 atom_closure +43636 0x10006da7c ldr x8, [sp, #0xf0]
+pc     16 atom_closure +11700 0x100065dbc ldr x9, [x20, #0x348]
+pc     16 atom_closure +17456 0x100067438 add x9, x9, #0x10
+pc     15 piece        +  908 0x10003831c ldr x10, [x19, #0x178]
+pc     15 atom_closure + 1072 0x100063438 ldr x8, [sp, #0xf0]
+pc     15 atom_closure +16924 0x100067224 ldr x1, [x20, #0x348]
+pc     15 piece        +14780 0x10003b94c ldr x8, [x19, #0x510]
+pc     14 atom_closure +43920 0x10006db98 ldp x28, x27, [sp], #0x60
+pc     14 piece        +    0 0x100037f90 stp x28, x27, [sp, #-0x60]!
+pc     14 piece        +  612 0x1000381f4 mov x8, #-0x7ffffffffffffffd
+pc     14 piece        +15132 0x10003baac ldr x8, [sp, #0x78]
+pc     14 piece        +  632 0x100038208 ldr x8, [x19, #0x518]
+pc     14 atom_closure +20884 0x10006819c ldrb w11, [x10, x21]
+pc     14 piece        +  676 0x100038234 ldr w11, [x19, #0x270]
+pc     14 atom_closure +13468 0x1000664a4 ldr x1, [x20, #0x348]
+pc     14 piece        +14368 0x10003b7b0 mov w8, #0x1
+pc     13 piece        +  668 0x10003822c ldr x9, [x8, x12, lsl #3]
+pc     13 piece        +13276 0x10003b36c and x8, x24, #0x3
+pc     13 atom_closure +20160 0x100067ec8 ldrb w11, [x10, x21]
+pc     13 atom_closure +   12 0x100063014 stp x22, x21, [sp, #0x30]
+pc     13 atom_closure + 2816 0x100063b08 ldr x9, [x20, #0x348]
+pc     13 piece        +13316 0x10003b394 cbz x8, 0x10003b3cc
+pc     13 atom_closure +19700 0x100067cfc ldr x9, [x20, #0x348]
+pc     12 atom_closure +43720 0x10006dad0 ldr x8, [sp, #0x410]
+pc     12 atom_closure +15288 0x100066bc0 ldr x1, [x20, #0x348]
+pc     12 piece        +  940 0x10003833c stp x10, x14, [sp, #0xe0]
+pc     12 piece        +14788 0x10003b954 ldr x26, [sp, #0x48]
+pc     12 piece        +   32 0x100037fb0 str xzr, [sp]
+pc     12 piece        +13372 0x10003b3cc mov x8, #-0x7ffffffffffffffd
+pc     12 piece        +    8 0x100037f98 stp x24, x23, [sp, #0x20]
+pc     12 piece        +13688 0x10003b508 ldr x9, [x19, #0x288]
+pc     11 atom_closure +37048 0x10006c0c0 ldr x9, [x8, x23, lsl #3]
+pc     11 piece        +  644 0x100038214 ldr x1, [x19, #0x268]
+pc     11 atom_closure + 2828 0x100063b14 ldr x10, [x20, #0x348]
+pc     11 atom_closure +16948 0x10006723c ldrb w10, [x9, x21]
+pc     11 piece        +13560 0x10003b488 ldr x8, [x19, #0x18]
+pc     11 piece        +13780 0x10003b564 ldp q0, q1, [sp, #0x2d0]
+pc     11 piece        +  952 0x100038348 str x12, [sp, #0xf0]
+pc     11 atom_closure +16844 0x1000671d4 ldr x8, [x20, #0x238]
+pc     11 atom_closure +39272 0x10006c970 str x1, [sp, #0x18]
+pc     11 piece        +  124 0x10003800c ldr x10, [x9]
+pc     11 piece        + 3516 0x100038d4c ldr x2, [x19, #0x348]
+pc     11 piece        +15168 0x10003bad0 ldr x8, [sp, #0xf0]
+pc     11 piece        +   12 0x100037f9c stp x22, x21, [sp, #0x30]
+pc     11 piece        +   16 0x100037fa0 stp x20, x19, [sp, #0x40]
+pc     11 piece        +14060 0x10003b67c ldr x8, [x19, #0x348]
+pc     11 atom_closure +13588 0x10006651c cmp x21, x1
+pc     10 atom_closure +36668 0x10006bf44 ldr x8, [x20, #0x60]
+pc     10 atom_closure +27824 0x100069cb8 ldrb w9, [x11, x21]
+pc     10 piece        +15244 0x10003bb1c ldr x2, [x24]
+pc     10 piece        +  944 0x100038340 stp x14, x24, [sp, #0x80]
+pc     10 piece        +13704 0x10003b518 ldur x8, [x29, #-0xb0]
+pc     10 atom_closure +   40 0x100063030 str x0, [sp, #0x98]
+pc     10 piece        +12424 0x10003b018 ldr x9, [x19, #0x348]
+pc     10 atom_closure +17468 0x100067444 ldurh w10, [x9, #-0x8]
+pc     10 piece        +12988 0x10003b24c ldr x10, [x9]
+pc     10 piece        + 1464 0x100038548 ldrb w10, [x8, x23]
+pc     10 atom_closure + 1100 0x100063454 ldr x23, [x28]
+pc     10 piece        +14464 0x10003b810 ldr x24, [sp, #0x88]
+pc     10 piece        +  960 0x100038350 ldr x2, [x19, #0x348]
+pc      9 piece        + 2832 0x100038aa0 ldr x2, [x19, #0x348]
+pc      9 atom_closure +37244 0x10006c184 ldr x19, [x27, #0x10]
+pc      9 atom_closure +28320 0x100069ea8 ldr x11, [x20, #0x348]
+pc      9 atom_closure +28344 0x100069ec0 ldrb w9, [x10, x21]
+pc      9 atom_closure +  508 0x100063204 ldr x9, [x0, #0x18]
+pc      9 piece        +14120 0x10003b6b8 sub w9, w8, #0x2a
+pc      9 atom_closure +15368 0x100066c10 ldr x8, [x20, #0x238]
+pc      9 atom_closure +  212 0x1000630dc str x14, [sp, #0xa0]
+pc      9 piece        +   20 0x100037fa4 stp x29, x30, [sp, #0x50]
+pc      9 piece        +14524 0x10003b84c ldr x20, [x19, #0x288]
+pc      9 piece        +  888 0x100038308 str x9, [x19, #0x2a0]
+pc      9 piece        +  932 0x100038334 stp x25, x13, [sp, #0x98]
+pc      9 atom_closure +35504 0x10006bab8 ldr x9, [x20, #0x348]
+pc      9 piece        +    4 0x100037f94 stp x26, x25, [sp, #0x10]
+pc      8 piece        +13728 0x10003b530 ldr x9, [sp, #0xa8]
+pc      8 piece        +12912 0x10003b200 str x25, [sp, #0x228]
+pc      8 atom_closure +19736 0x100067d20 ldrb w11, [x10, x26]
+pc      8 piece        +  984 0x100038368 cmp x23, x2
+pc      8 piece        +  828 0x1000382cc str x22, [x8, #0x8]
+pc      8 atom_closure + 1968 0x1000637b8 ldrb w9, [x9, x21]
+pc      8 piece        +14076 0x10003b68c ldrb w8, [x8, x25]
+pc      8 piece        +13796 0x10003b574 str x20, [sp, #0x360]
+pc      8 atom_closure +19724 0x100067d14 ldrb w11, [x10, x21]
+pc      8 piece        +14640 0x10003b8c0 ldr x8, [sp, #0xf0]
+pc      8 atom_closure +34152 0x10006b570 ldrb w11, [x10, x21]
+pc      8 atom_closure +26012 0x1000695a4 ldrb w11, [x9, x21]
+pc      8 piece        +13612 0x10003b4bc str x8, [x19, #0x28]
+pc      8 piece        +  840 0x1000382d8 ldr x23, [x19, #0x4c8]
+pc      8 atom_closure +  384 0x100063188 ldrh w11, [x9, x8, lsl #1]
+pc      8 piece        + 1440 0x100038530 str x23, [sp, #0x78]
+pc      8 atom_closure +12784 0x1000661f8 ldr x9, [x20, #0x348]
+pc      8 atom_closure +28912 0x10006a0f8 ldrb w10, [x9, x21]
+pc      8 atom_closure +   44 0x100063034 ldr x21, [x1, #0x4c8]
+pc      7 atom_closure +  260 0x10006310c ldr x8, [x20, #0x348]
+pc      7 atom_closure +21320 0x100068350 ldrb w11, [x9, x21]
+pc      7 atom_closure +11820 0x100065e34 cmp x26, x9
+pc      7 atom_closure + 3848 0x100063f10 ldr x1, [x20, #0x348]
+pc      7 atom_closure +12800 0x100066208 ldrb w9, [x9, x21]
+pc      7 piece        +13720 0x10003b528 str x10, [sp, #0xa0]
+pc      7 atom_closure +18044 0x100067684 ldr x19, [x0, #0x10]
+pc      7 atom_closure +43580 0x10006da44 ldr x1, [x28]
+pc      7 atom_closure +  140 0x100063094 stp x10, x22, [sp, #0xe0]
+pc      7 piece        +12852 0x10003b1c4 ldr x22, [x19, #0x28]
+pc      7 atom_closure +   88 0x100063060 str x9, [x20, #0x2a0]
+pc      7 atom_closure +11832 0x100065e40 ldrb w11, [x10, x21]
+pc      7 atom_closure +17408 0x100067408 ldr x8, [x20, #0x510]
+pc      7 piece        + 3552 0x100038d70 ldrb w9, [x9, x24]
+pc      7 piece        + 2204 0x10003882c cmp x24, x9
+pc      7 piece        +13440 0x10003b410 ldr w11, [x19, #0x270]
+pc      7 piece        +13604 0x10003b4b4 str x23, [x8, #0x8]
+pc      7 piece        +15208 0x10003baf8 ldr x23, [sp, #0x58]
+pc      7 atom_closure +15452 0x100066c64 cmp x21, x1
+pc      7 piece        +15216 0x10003bb00 cmp x22, x9
+pc      7 piece        +   56 0x100037fc8 b.ls 0x100037fd0
+pc      6 atom_closure + 1052 0x100063424 ldr x25, [sp, #0xa8]
+pc      6 atom_closure +15284 0x100066bbc mov x23, x25
+pc      6 atom_closure +  276 0x10006311c mov w15, #0x1
+pc      6 piece        +14344 0x10003b798 tbz w21, #0x0, 0x10003b89c
+pc      6 atom_closure +  156 0x1000630a4 str x13, [sp, #0xf0]
+pc      6 atom_closure + 2844 0x100063b24 ldrb w11, [x9, x21]
+pc      6 piece        +14596 0x10003b894 str x8, [sp, #0x370]
+pc      6 atom_closure +  308 0x10006313c ldr x24, [x20, #0x28]
+pc      6 atom_closure +  136 0x100063090 stp x9, x12, [sp, #0xd0]
+pc      6 piece        +  836 0x1000382d4 str x8, [x19, #0x28]
+pc      6 atom_closure +   20 0x10006301c stp x29, x30, [sp, #0x50]
+pc      6 atom_closure +21296 0x100068338 ldr x10, [x20, #0x348]
+pc      6 atom_closure +25988 0x10006958c ldr x10, [x20, #0x348]
+pc      6 atom_closure +36100 0x10006bd0c ldr x9, [x20, #0x348]
+pc      6 atom_closure +36988 0x10006c084 mov x8, #-0x7ffffffffffffffd
+pc      6 atom_closure +17884 0x1000675e4 ldr x13, [x20, #0x150]
+pc      6 atom_closure +28888 0x10006a0e0 ldr x1, [x20, #0x348]
+pc      6 atom_closure +13600 0x100066528 ldrb w10, [x9, x21]
+pc      6 piece        +14920 0x10003b9d8 ldr x1, [x24]
+pc      6 piece        +14764 0x10003b93c ldp x24, x23, [sp, #0x20]
+pc      6 piece        +14700 0x10003b8fc add x0, x19, #0x278
+pc      6 atom_closure +37416 0x10006c230 ldr x12, [x20, #0x348]
+pc      6 piece        +14092 0x10003b69c mov w10, #0x1
+pc      6 atom_closure +17500 0x100067464 ldr x8, [x20, #0x60]
+pc      6 atom_closure +39540 0x10006ca7c ldr x8, [x20, #0x18]
+pc      6 piece        + 3540 0x100038d64 ldrb w10, [x9, x23]
+pc      5 atom_closure + 1068 0x100063434 str x21, [x8]
+pc      5 piece        +15060 0x10003ba64 ldr x8, [x19, #0x238]
+pc      5 atom_closure + 1124 0x10006346c ldr x8, [x20, #0x348]
+pc      5 atom_closure +21308 0x100068344 cmp x26, x10
+pc      5 piece        +15124 0x10003baa4 ldr x20, [x19, #0x4c8]
+pc      5 piece        +12900 0x10003b1f4 str x9, [sp, #0x210]
+pc      5 atom_closure + 1544 0x100063610 ldr x8, [x20, #0x510]
+pc      5 piece        +13724 0x10003b52c ldr x28, [x26]
+pc      5 atom_closure +   96 0x100063068 ldr x8, [x20, #0xf0]
+pc      5 atom_closure +   32 0x100063028 str xzr, [sp]
+pc      5 piece        + 2856 0x100038ab8 ldrb w10, [x9, x23]
+pc      5 atom_closure +14060 0x1000666f4 ldr x8, [x20, #0x510]
+pc      5 atom_closure +20860 0x100068184 ldr x9, [x20, #0x348]
+pc      5 piece        +12456 0x10003b038 sub w10, w9, #0xc2
+pc      5 atom_closure +27812 0x100069cac cmp x26, x10
+pc      5 piece        +12848 0x10003b1c0 str x23, [x19, #0x4c8]
+pc      5 atom_closure +39600 0x10006cab8 str w8, [sp, #0x44]
+pc      5 atom_closure +  192 0x1000630c8 sub w14, w13, #0xc2
+pc      5 atom_closure +31268 0x10006aa2c ldrb w11, [x10, x21]
+pc      5 piece        +   64 0x100037fd0 ldr x24, [x19, #0x28]
+pc      5 atom_closure +  228 0x1000630ec add x23, x25, #0x1
+pc      5 atom_closure +  108 0x100063074 ldr x11, [x20, #0x198]
+pc      5 atom_closure +20136 0x100067eb0 ldr x9, [x20, #0x348]
+pc      5 piece        +12440 0x10003b028 ldrb w9, [x9, x23]
+pc      5 piece        +  852 0x1000382e4 cmp x22, x8
+pc      5 atom_closure +   16 0x100063018 stp x20, x19, [sp, #0x40]
+pc      5 piece        + 3528 0x100038d58 cmp x23, x2
+pc      5 piece        +15468 0x10003bbfc ldr x27, [x19, #0x2a0]
+pc      5 atom_closure +27800 0x100069ca0 ldr x10, [x20, #0x348]
+pc      5 atom_closure +11024 0x100065b18 ldrb w9, [x9, x21]
+pc      5 atom_closure +14196 0x10006677c str x19, [sp, #0x80]
+pc      5 piece        +  936 0x100038338 stp x9, x12, [sp, #0xd0]
+pc      5 atom_closure +19592 0x100067c90 ldr x8, [x20, #0x28]
+pc      5 piece        +15200 0x10003baf0 ldp x9, x22, [sp, #0xa8]
+pc      5 atom_closure +18108 0x1000676c4 ldr x2, [x20, #0x348]
+pc      5 piece        +  892 0x10003830c ldr x8, [x19, #0xf0]
+pc      5 atom_closure +37560 0x10006c2c0 cbz x9, 0x10006c944
+pc      4 atom_closure +37996 0x10006c474 ldrb w11, [x9, x11]
+pc      4 atom_closure +34128 0x10006b558 ldr x9, [x20, #0x348]
+pc      4 atom_closure +32064 0x10006ad48 ldr x9, [x20, #0x348]
+pc      4 piece        +12508 0x10003b06c mov w11, #0x1
+pc      4 piece        +13804 0x10003b57c str w9, [sp, #0x60]
+pc      4 atom_closure +  564 0x10006323c ldr x11, [x23, #0x40]
+pc      4 atom_closure + 3872 0x100063f28 ldrb w10, [x9, x21]
+pc      4 atom_closure +11008 0x100065b08 ldr x9, [x20, #0x348]
+pc      4 atom_closure +    4 0x10006300c stp x26, x25, [sp, #0x10]
+pc      4 piece        +13944 0x10003b608 ldr x1, [x19, #0x268]
+pc      4 piece        +13396 0x10003b3e4 ldr x8, [x19, #0x518]
+pc      4 piece        +14684 0x10003b8ec str x24, [sp, #0x360]
+pc      4 atom_closure +36332 0x10006bdf4 ldr x9, [sp, #0xf0]
+pc      4 piece        +14008 0x10003b648 ldr x8, [x8]
+pc      4 atom_closure +35528 0x10006bad0 ldrb w11, [x10, x21]
+pc      4 atom_closure +  112 0x100063078 ldr x10, [x20, #0x178]
+pc      4 piece        +12844 0x10003b1bc str x2, [sp, #0xa8]
+pc      4 atom_closure +31244 0x10006aa14 ldr x9, [x20, #0x348]
+pc      4 piece        +13636 0x10003b4d4 ldr x8, [x19, #0x28]
+pc      4 piece        + 2216 0x100038838 ldrb w11, [x10, x23]
+pc      4 piece        +14588 0x10003b88c str x24, [sp, #0x360]
+pc      4 atom_closure +31256 0x10006aa20 cmp x26, x9
+pc      4 atom_closure + 3776 0x100063ec8 ldr x1, [x20, #0x348]
+pc      4 atom_closure +  588 0x100063254 ldr x8, [x0, #0x10]
+pc      4 atom_closure +43460 0x10006d9cc ldr x1, [x24]
+pc      4 atom_closure +    8 0x100063010 stp x24, x23, [sp, #0x20]
+pc      4 piece        +12532 0x10003b084 str w21, [sp, #0x70]
+pc      4 piece        +12904 0x10003b1f8 str x10, [sp, #0x218]
+pc      4 atom_closure +37484 0x10006c274 ldr x8, [x20, #0x510]
+pc      4 atom_closure +39632 0x10006cad8 ldr x8, [x20, #0x238]
+pc      4 piece        +  136 0x100038018 b.ls 0x100037ff4
+pc      4 atom_closure +  820 0x10006333c str x24, [x8, x19, lsl #3]
+pc      4 atom_closure +43944 0x10006dbb0 str x19, [sp, #0xb0]
+pc      4 atom_closure +37020 0x10006c0a4 ldr x26, [x20, #0x268]
+pc      4 atom_closure +16936 0x100067230 cmp x21, x1
+pc      4 atom_closure +  456 0x1000631d0 ldr x9, [sp, #0x4b0]
+pc      4 atom_closure +38008 0x10006c480 add x11, x26, #0x2
+pc      4 atom_closure +39392 0x10006c9e8 ldr x8, [x20, #0x238]
+pc      4 atom_closure +38532 0x10006c68c ldr x10, [x20, #0x348]
+pc      4 atom_closure +43588 0x10006da4c ldr w8, [sp, #0xbc]
+pc      4 atom_closure +21492 0x1000683fc ldurh w10, [x9, #-0x8]
+pc      4 atom_closure +43508 0x10006d9fc ldr x8, [x20, #0x238]
+pc      4 atom_closure +15692 0x100066d54 ldr x9, [sp, #0xf0]
+pc      4 atom_closure +16052 0x100066ebc str x26, [x20, #0x2a0]
+pc      4 atom_closure +43088 0x10006d858 ldr x8, [x20, #0x238]
+pc      4 atom_closure +15012 0x100066aac tbz w19, #0x0, 0x100066bd0
+pc      4 atom_closure +36528 0x10006beb8 ldr x11, [x20, #0x178]
+pc      4 atom_closure +43916 0x10006db94 ldp x26, x25, [sp, #0x10]
+pc      4 piece        +13404 0x10003b3ec ldr x1, [x19, #0x268]
+pc      4 atom_closure +  336 0x100063158 ldr x8, [x20, #0x510]
+pc      4 atom_closure +36372 0x10006be1c ldr q0, [sp, #0x440]
+pc      3 piece        +15288 0x10003bb48 str x9, [sp, #0x68]
+pc      3 atom_closure +  304 0x100063138 str x21, [x20, #0x4c8]
+pc      3 atom_closure +20156 0x100067ec4 ldr x10, [x20, #0x340]
+pc      3 piece        + 1484 0x10003855c cmp w10, #0x5c
+pc      3 atom_closure + 3844 0x100063f0c add x26, x21, #0x1
+pc      3 atom_closure +  548 0x10006322c ldr q0, [x23, #0x20]
+pc      3 atom_closure +  152 0x1000630a0 stp x12, x25, [sp, #0xa0]
+pc      3 atom_closure +28332 0x100069eb4 cmp x26, x11
+pc      3 atom_closure +37480 0x10006c270 stp x10, x22, [x29, #-0xc0]
+pc      3 atom_closure +17900 0x1000675f4 ldr w11, [x20, #0x270]
+pc      3 atom_closure +15932 0x100066e44 str x24, [sp, #0x4d8]
+pc      3 atom_closure +34164 0x10006b57c ldrb w11, [x10, x26]
+pc      3 atom_closure +21316 0x10006834c ldr x9, [x20, #0x340]
+pc      3 atom_closure +11420 0x100065ca4 ldr x23, [x20, #0x28]
+pc      3 piece        +14712 0x10003b908 ldr x1, [x19, #0x268]
+pc      3 piece        +14592 0x10003b890 str x22, [sp, #0x368]
+pc      3 atom_closure +42932 0x10006d7bc ldr x8, [sp, #0x350]
+pc      3 atom_closure + 1740 0x1000636d4 cmp w8, #0x20
+pc      3 atom_closure +36560 0x10006bed8 str x10, [sp, #0x2b8]
+pc      3 atom_closure +27836 0x100069cc4 ldrb w9, [x11, x26]
+pc      3 atom_closure +   84 0x10006305c str x8, [sp, #0x88]
+pc      3 piece        +14052 0x10003b674 str x22, [x19, #0x2a0]
+pc      3 atom_closure +43332 0x10006d94c ldp x28, x27, [sp, #0x60]
+pc      3 piece        +14720 0x10003b910 cmp x0, x1
+pc      3 piece        +13620 0x10003b4c4 str w8, [sp, #0x60]
+pc      3 atom_closure +17892 0x1000675ec ldr x9, [x8, x23, lsl #3]
+pc      3 atom_closure +15464 0x100066c70 ldrb w10, [x9, x21]
+pc      3 atom_closure +14348 0x100066814 ldr x8, [sp, #0x2a0]
+pc      3 atom_closure +43712 0x10006dac8 str q0, [sp, #0x430]
+pc      3 atom_closure +37660 0x10006c324 add x10, x26, #0x2
+pc      3 piece        + 1436 0x10003852c add x13, x22, #0x1
+pc      3 atom_closure +43412 0x10006d99c ldr x23, [x20, #0x2a0]
+pc      3 atom_closure +19664 0x100067cd8 ldr x24, [x28]
+pc      3 atom_closure +21536 0x100068428 ldrb w11, [x9, x11]
+pc      3 atom_closure +39636 0x10006cadc ldr x9, [sp, #0x28]
+pc      3 atom_closure +37396 0x10006c21c str x12, [sp, #0x338]
+pc      3 atom_closure +11524 0x100065d0c ldr x8, [sp, #0xb0]
+pc      3 piece        +12896 0x10003b1f0 str x21, [sp, #0x208]
+pc      3 atom_closure +39552 0x10006ca88 mov w8, #0x1
+pc      3 atom_closure +37608 0x10006c2f0 ldr x9, [x20, #0x348]
+pc      3 atom_closure +35516 0x10006bac4 cmp x26, x9
+pc      3 atom_closure +37376 0x10006c208 ldr x10, [x20, #0x120]
+pc      3 piece        + 2828 0x100038a9c mov x26, x27
+pc      3 atom_closure +37292 0x10006c1b4 str x8, [x20, #0x28]
+pc      3 atom_closure +  512 0x100063208 ldr x11, [x0, #0x8]
+pc      3 atom_closure +19164 0x100067ae4 ldr x8, [x20, #0x150]
+pc      3 piece        +  884 0x100038304 str x8, [sp, #0x58]
+pc      3 atom_closure +    0 0x100063008 stp x28, x27, [sp, #-0x60]!
+pc      3 piece        +12932 0x10003b214 cbz x22, 0x10003b260
+pc      3 atom_closure +37476 0x10006c26c stp x9, x11, [x29, #-0xd0]
+pc      3 piece        +14196 0x10003b704 ldr x13, [x19, #0x510]
+pc      3 atom_closure +14128 0x100066738 ldr x8, [x20, #0xf0]
+pc      3 atom_closure +  176 0x1000630b8 ldrb w13, [x12, x21]
+pc      3 atom_closure + 1120 0x100063468 str w8, [sp, #0xbc]
+pc      3 atom_closure +36504 0x10006bea0 ldr x23, [x20, #0x2a0]
+pc      3 atom_closure +14320 0x1000667f8 ldr x9, [x20, #0x510]
+pc      3 piece        +14612 0x10003b8a4 ldp x24, x22, [sp, #0x88]
+pc      3 atom_closure + 2364 0x100063944 ldr x8, [x20, #0x510]
+pc      3 atom_closure +18028 0x100067674 ldr x8, [x0, #0x18]!
+pc      3 atom_closure +43564 0x10006da34 ldr x9, [sp, #0x80]
+pc      3 atom_closure +14276 0x1000667cc str x11, [sp, #0x4c8]
+pc      3 atom_closure +28924 0x10006a104 ldrb w9, [x9, x26]
+pc      3 atom_closure +16388 0x10006700c ldr x8, [x20, #0x238]
+pc      3 atom_closure +37984 0x10006c468 add x11, x26, #0x1
+pc      3 piece        +14692 0x10003b8f4 str x22, [sp, #0x368]
+pc      3 atom_closure +37624 0x10006c300 ldrb w10, [x8, x26]
+pc      3 piece        +12468 0x10003b044 cmp w9, #0x3e
+pc      3 atom_closure +  420 0x1000631ac ldrb w11, [x9, x8]
+pc      3 atom_closure +32088 0x10006ad60 ldrb w11, [x10, x21]
+pc      3 atom_closure +17772 0x100067574 sub x9, x8, #0x1
+pc      3 piece        + 1548 0x10003859c tbz w21, #0x0, 0x10003867c
+pc      3 piece        +14168 0x10003b6e8 ldr x15, [x19, #0x238]
+pc      3 atom_closure +13612 0x100066534 ldrb w9, [x9, x26]
+pc      3 piece        +12676 0x10003b114 ldp q1, q0, [x9, #0x60]
+pc      3 atom_closure +37956 0x10006c44c ldr x10, [x20, #0x348]
+pc      2 piece        +15384 0x10003bba8 str x9, [sp, #0x368]
+pc      2 piece        +   28 0x100037fac sub sp, sp, #0x460
+pc      2 atom_closure +16960 0x100067248 ldrb w9, [x9, x26]
+pc      2 atom_closure +15924 0x100066e3c str x10, [sp, #0x4c8]
+pc      2 atom_closure +39536 0x10006ca78 ldr x19, [x20, #0x28]
+pc      2 atom_closure +16368 0x100066ff8 str x21, [x20, #0x4c8]
+pc      2 atom_closure +11004 0x100065b04 mov x19, x23
+pc      2 atom_closure + 1832 0x100063730 ldr x8, [x20, #0x298]
+pc      2 atom_closure +17240 0x100067360 ldr q0, [sp, #0x400]
+pc      2 atom_closure +22124 0x100068674 ldr x8, [x20, #0x510]
+pc      2 atom_closure +  568 0x100063240 str x11, [x8, #0x40]
+pc      2 atom_closure +37228 0x10006c174 ldr x8, [x27, #0x18]!
+pc      2 atom_closure +15768 0x100066da0 ldr q0, [sp, #0x430]
+pc      2 atom_closure + 1604 0x10006364c ldr w9, [sp, #0xbc]
+pc      2 atom_closure +16600 0x1000670e0 cmp w8, #0x2d
+pc      2 piece        +14556 0x10003b86c b.lo 0x10003c118
+pc      2 atom_closure +36196 0x10006bd6c str xzr, [sp, #0x4e0]
+pc      2 piece        +12420 0x10003b014 mov x2, x27
+pc      2 atom_closure +11676 0x100065da4 str x22, [sp, #0xb0]
+pc      2 atom_closure +26024 0x1000695b0 ldrb w11, [x9, x26]
+pc      2 atom_closure +36556 0x10006bed4 str x9, [sp, #0x2b0]
+pc      2 atom_closure +43676 0x10006daa4 str q0, [sp, #0x440]
+pc      2 atom_closure +19608 0x100067ca0 ldr x8, [x20, #0x238]
+pc      2 atom_closure + 4500 0x10006419c ldr x8, [x8]
+pc      2 piece        + 1224 0x100038458 ldrb w8, [x8, x24]
+pc      2 piece        +10364 0x10003a80c ldr x28, [sp, #0xb8]
+pc      2 atom_closure +13452 0x100066494 str w9, [sp, #0xbc]
+pc      2 piece        + 1008 0x100038380 ldrb w13, [x12, x14]
+pc      2 piece        +12908 0x10003b1fc str x11, [sp, #0x220]
+pc      2 atom_closure +31304 0x10006aa50 ldrb w9, [x10, x11]
+pc      2 atom_closure +43032 0x10006d820 ldr x8, [sp, #0x350]
+pc      2 atom_closure +15904 0x100066e28 ldr x11, [x20, #0x120]
+pc      2 atom_closure +22184 0x1000686b0 ldurh w10, [x9, #-0x8]
+pc      2 atom_closure +  800 0x100063328 cmp x19, x8
+pc      2 atom_closure +15120 0x100066b18 ldr x8, [sp, #0xb0]
+pc      2 atom_closure +15624 0x100066d10 ldr q0, [sp, #0x4f0]
+pc      2 atom_closure +42916 0x10006d7ac mov w19, #0x1
+pc      2 atom_closure +43936 0x10006dba8 str x9, [sp, #0x90]
+pc      2 atom_closure +16000 0x100066e88 ldr x9, [x9]
+pc      2 atom_closure +16484 0x10006706c ldr x8, [x20, #0x238]
+pc      2 atom_closure +19684 0x100067cec mov x24, x25
+pc      2 atom_closure +  824 0x100063340 add x8, x19, #0x1
+pc      2 atom_closure +14284 0x1000667d4 str x28, [sp, #0x4d8]
+pc      2 atom_closure +16468 0x10006705c ldr x8, [x20, #0x28]
+pc      2 atom_closure +43356 0x10006d964 ldr w8, [sp, #0xbc]
+pc      2 piece        +12476 0x10003b04c mov w10, #0x1
+pc      2 atom_closure +14544 0x1000668d8 tbz w19, #0x0, 0x1000669c4
+pc      2 atom_closure +36296 0x10006bdd0 ldr q0, [sp, #0x4b0]
+pc      2 atom_closure +36520 0x10006beb0 ldr x9, [x20, #0x108]
+pc      2 atom_closure +11684 0x100065dac str w9, [sp, #0xbc]
+pc      2 atom_closure +15928 0x100066e40 str x11, [sp, #0x4d0]
+pc      2 atom_closure +20920 0x1000681c0 ldrb w9, [x10, x11]
+pc      2 piece        + 5356 0x10003947c ldr x1, [x19, #0x348]
+pc      2 atom_closure +39168 0x10006c908 ldr x8, [sp, #0x250]
+pc      2 atom_closure +36324 0x10006bdec str q1, [sp, #0x420]
+pc      2 atom_closure +37432 0x10006c240 ldrb w12, [x12, x26]
+pc      2 atom_closure +26096 0x1000695f8 add x11, x21, #0x2
+pc      2 atom_closure +14008 0x1000666c0 ldr x19, [x20, #0x28]
+pc      2 atom_closure +37304 0x10006c1c0 ldr x8, [x20, #0x290]
+pc      2 atom_closure +39680 0x10006cb08 ldr x27, [x20, #0x288]
+pc      2 atom_closure +15352 0x100066c00 ldr x8, [x20, #0x28]
+pc      2 atom_closure +21480 0x1000683f0 add x9, x9, #0x10
+pc      2 atom_closure +  916 0x10006339c ldr x9, [x0, #0x18]
+pc      2 atom_closure +37388 0x10006c214 str x28, [sp, #0x328]
+pc      2 atom_closure +  252 0x100063104 add x23, x25, #0x1
+pc      2 atom_closure +36380 0x10006be24 stp q0, q1, [sp, #0x130]
+pc      2 atom_closure +  572 0x100063244 ldr q0, [x23]
+pc      2 piece        + 1476 0x100038554 cmp w10, #0x5e
+pc      2 atom_closure +  828 0x100063344 str x8, [x20, #0x2a0]
+pc      2 atom_closure +14168 0x100066760 stp x9, x12, [sp, #0x1b0]
+pc      2 piece        +12692 0x10003b124 ldp q1, q0, [x9, #0x20]
+pc      2 piece        +12668 0x10003b10c ldp q0, q1, [x9, #0x40]
+pc      2 piece        +12872 0x10003b1d8 ldr x11, [x19, #0x178]
+pc      2 atom_closure +39196 0x10006c924 ldr x1, [x8]
+pc      2 atom_closure +14300 0x1000667e4 ldrh w9, [x12, x21]
+pc      2 atom_closure +17832 0x1000675b0 mov x8, #-0x7ffffffffffffffd
+pc      2 atom_closure +37220 0x10006c16c stp x27, x8, [sp, #0x68]
+pc      2 atom_closure +36564 0x10006bedc str x11, [sp, #0x2c0]
+pc      2 piece        + 4144 0x100038fc0 mov x0, x28
+pc      2 piece        + 2844 0x100038aac cmp x23, x2
+pc      2 piece        +14132 0x10003b6c4 ldr x26, [x19, #0x28]
+pc      2 piece        + 2196 0x100038824 cmp x23, x9
+pc      2 atom_closure +43680 0x10006daa8 str q1, [sp, #0x450]
+pc      2 piece        +15140 0x10003bab4 ldr w8, [sp, #0x70]
+pc      2 atom_closure +21352 0x100068370 add x11, x21, #0x2
+pc      2 atom_closure +14852 0x100066a0c ldr x9, [x20, #0x348]
+pc      2 piece        +14108 0x10003b6ac movk x10, #0x1000, lsl #48
+pc      2 atom_closure +11696 0x100065db8 mov x23, x19
+pc      2 piece        +  156 0x10003802c mov x23, #-0x8000000000000000
+pc      2 piece        +12884 0x10003b1e4 ldr x11, [x19, #0x120]
+pc      2 atom_closure + 1856 0x100063748 ldr x23, [x28]
+pc      2 piece        +  856 0x1000382e8 b.eq 0x100038fcc
+pc      2 atom_closure + 3832 0x100063f00 ldr x10, [x20, #0x348]
+pc      2 piece        +14192 0x10003b700 str x15, [sp, #0x2d8]
+pc      2 piece        +15680 0x10003bcd0 ldr x8, [x19, #0x238]
+pc      2 atom_closure +20148 0x100067ebc cmp x26, x9
+pc      2 atom_closure +36648 0x10006bf30 ldr x10, [x9]
+pc      2 atom_closure +15632 0x100066d18 str q0, [sp, #0x440]
+pc      2 atom_closure +40968 0x10006d010 b.hi 0x10006c68c
+pc      2 atom_closure + 1140 0x10006347c ldrb w8, [x8, x21]
+pc      2 atom_closure +12356 0x10006604c ldr x8, [x20, #0x238]
+pc      2 piece        +13000 0x10003b258 b.ls 0x10003b234
+pc      2 atom_closure +43848 0x10006db50 cmp x22, x1
+pc      2 piece        +14872 0x10003b9a8 str w8, [sp, #0x60]
+pc      2 atom_closure +34140 0x10006b564 cmp x26, x9
+pc      2 atom_closure +19148 0x100067ad4 ldr x8, [x20, #0x238]
+pc      2 atom_closure +20872 0x100068190 cmp x26, x9
+pc      2 piece        +14012 0x10003b64c cmp x21, x8
+pc      2 atom_closure +36572 0x10006bee4 ldr x8, [x20, #0x510]
+pc      2 atom_closure +43684 0x10006daac ldp q1, q0, [sp, #0x150]
+pc      2 atom_closure + 1060 0x10006342c ldr x9, [x8]
+pc      1 atom_closure +39280 0x10006c978 tbz w0, #0x0, 0x10006ca6c
+pc      1 atom_closure + 5076 0x1000643dc ldur q0, [x22, #0x38]
+pc      1 atom_closure +11116 0x100065b74 str xzr, [sp, #0x550]
+pc      1 atom_closure + 7940 0x100064f0c ldr x8, [x20, #0x298]
+pc      1 atom_closure +11464 0x100065cd0 str x22, [sp, #0x4b8]
+pc      1 piece        + 1776 0x100038680 str x23, [x19, #0x4c8]
+pc      1 atom_closure +38296 0x10006c5a0 str x26, [x20, #0x4c8]
+pc      1 piece        +13768 0x10003b558 ldp q0, q1, [sp, #0x2b0]
+pc      1 piece        +13648 0x10003b4e0 str x8, [x19, #0x28]
+pc      1 atom_closure +11020 0x100065b14 ldr x9, [x20, #0x340]
+pc      1 atom_closure +25984 0x100069588 ldp x13, x14, [sp, #0x78]
+pc      1 atom_closure +15412 0x100066c3c str q0, [x9]
+pc      1 atom_closure +14836 0x1000669fc str x10, [sp, #0x4c8]
+pc      1 atom_closure +23076 0x100068a2c ldr x8, [x20, #0x28]
+pc      1 atom_closure +14272 0x1000667c8 str x9, [sp, #0x4c0]
+pc      1 atom_closure +15684 0x100066d4c str q1, [sp, #0x420]
+pc      1 atom_closure +18120 0x1000676d0 cmn x9, #0x3
+pc      1 atom_closure +27452 0x100069b44 ldr x27, [x20, #0x288]
+pc      1 piece        +  904 0x100038318 ldr x11, [x19, #0x198]
+pc      1 atom_closure +38572 0x10006c6b4 ldrb w11, [x9, x11]
+pc      1 atom_closure +43672 0x10006daa0 ldp q0, q1, [sp, #0x130]
+pc      1 atom_closure +26424 0x100069740 stp x9, x10, [sp, #0x1b0]
+pc      1 atom_closure +36256 0x10006bda8 ldr x8, [sp, #0x550]
+pc      1 piece        +14744 0x10003b928 str x9, [x8, x0, lsl #3]
+pc      1 atom_closure +43628 0x10006da74 ldr x9, [x20, #0x298]
+pc      1 piece        +15044 0x10003ba54 ldr x8, [x19, #0x28]
+pc      1 atom_closure + 1156 0x10006348c ldr w8, [sp, #0xbc]
+pc      1 atom_closure +41344 0x10006d188 ldr x2, [x20, #0x2a0]
+pc      1 piece        +15444 0x10003bbe4 ldr x8, [x19, #0x298]
+pc      1 atom_closure +15780 0x100066dac ldp q1, q0, [sp, #0xd0]
+pc      1 atom_closure +43908 0x10006db8c ldp x22, x21, [sp, #0x30]
+pc      1 atom_closure +36444 0x10006be64 ldr x9, [sp, #0x4d8]
+pc      1 atom_closure + 2800 0x100063af8 str x8, [sp, #0x90]
+pc      1 atom_closure + 1816 0x100063720 cmp x22, x23
+pc      1 atom_closure +27536 0x100069b98 ldr q0, [sp, #0x420]
+pc      1 atom_closure +43832 0x10006db40 mov w8, #0x4
+pc      1 atom_closure +15152 0x100066b38 ldr x8, [sp, #0xf0]
+pc      1 piece        +14864 0x10003b9a0 str x15, [sp, #0x380]
+pc      1 piece        +14552 0x10003b868 subs x2, x1, x0
+pc      1 piece        + 1780 0x100038684 ldr x8, [x19, #0x28]
+pc      1 atom_closure +20172 0x100067ed4 ldrb w11, [x10, x26]
+pc      1 piece        +12432 0x10003b020 b.hs 0x10003b798
+pc      1 piece        + 1280 0x100038490 ldr x8, [sp, #0x2b0]
+pc      1 piece        + 1352 0x1000384d8 add x20, x20, #0x1
+pc      1 piece        + 3292 0x100038c6c add x20, x20, #0x1
+pc      1 atom_closure +16628 0x1000670fc ldr x2, [x20, #0x348]
+pc      1 piece        +12936 0x10003b218 ldr x9, [x19, #0x20]
+pc      1 atom_closure +28920 0x10006a100 b.ne 0x10006aa14
+pc      1 atom_closure +36264 0x10006bdb0 ldr q0, [sp, #0x4f0]
+pc      1 atom_closure +14840 0x100066a00 str x11, [sp, #0x4d0]
+pc      1 atom_closure +15872 0x100066e08 ldr x22, [x20, #0x28]
+pc      1 atom_closure +36576 0x10006bee8 cmp x21, x8
+pc      1 piece        +14696 0x10003b8f8 str x8, [sp, #0x378]
+pc      1 atom_closure +43664 0x10006da98 ldr x8, [sp, #0x190]
+pc      1 atom_closure +20880 0x100068198 ldr x10, [x20, #0x340]
+pc      1 atom_closure +21556 0x10006843c cmp w11, #0x2a
+pc      1 piece        +14632 0x10003b8b8 ldr x9, [sp, #0x98]
+pc      1 atom_closure +15668 0x100066d3c str q1, [sp, #0x410]
+pc      1 atom_closure +19712 0x100067d08 cmp x26, x9
+pc      1 atom_closure +16828 0x1000671c4 ldr x8, [x20, #0x28]
+pc      1 piece        + 2852 0x100038ab4 ldr x9, [x19, #0x340]
+pc      1 piece        +15392 0x10003bbb0 str x10, [sp, #0x378]
+pc      1 piece        +15380 0x10003bba4 str x14, [sp, #0x360]
+pc      1 atom_closure + 2360 0x100063940 str x21, [x20, #0x4c8]
+pc      1 atom_closure +19364 0x100067bac str x13, [sp, #0x4c0]
+pc      1 piece        +14804 0x10003b964 cmp w8, #0x5c
+pc      1 piece        +13812 0x10003b584 str x8, [sp, #0x370]
+pc      1 atom_closure + 2492 0x1000639c4 str x19, [sp, #0xf0]
+pc      1 atom_closure +15936 0x100066e48 ldr x8, [x20, #0x510]
+pc      1 atom_closure +37348 0x10006c1ec ldr x8, [x20, #0xf0]
+pc      1 atom_closure +15460 0x100066c6c ldr x9, [x20, #0x340]
+pc      1 atom_closure +  796 0x100063324 ldr x8, [x8]
+pc      1 atom_closure +39264 0x10006c968 str w8, [sp, #0x44]
+pc      1 atom_closure + 2504 0x1000639d0 cmp x22, x23
+pc      1 piece        +13828 0x10003b594 b 0x10003b608
+pc      1 atom_closure +19404 0x100067bd4 add x28, x20, #0x2a0
+pc      1 atom_closure +20856 0x100068180 mov x24, x23
+pc      1 atom_closure +38044 0x10006c4a4 str w14, [sp, #0x30]
+pc      1 atom_closure +39668 0x10006cafc ldr x9, [sp, #0x10]
+pc      1 atom_closure +28908 0x10006a0f4 ldr x9, [x20, #0x340]
+pc      1 piece        + 5960 0x1000396d8 ldrb w10, [x9, x23]
+pc      1 atom_closure +  584 0x100063250 str x8, [x0, #0x18]
+pc      1 atom_closure +37420 0x10006c234 cmp x26, x12
+pc      1 piece        +  868 0x1000382f4 str x9, [x8, x22, lsl #3]
+pc      1 piece        + 8280 0x100039fe8 ldrb w10, [x9, x23]
+pc      1 piece        +  844 0x1000382dc ldr x22, [x19, #0x2a0]
+pc      1 piece        +14668 0x10003b8dc ldr x9, [x19, #0x28]
+pc      1 atom_closure +11828 0x100065e3c ldr x10, [x20, #0x340]
+pc      1 atom_closure +14800 0x1000669d8 ldr x10, [x20, #0x198]
+pc      1 atom_closure +38980 0x10006c84c ldr x26, [x20, #0x2a0]
+pc      1 atom_closure +24152 0x100068e60 ldr w8, [sp, #0xbc]
+pc      1 atom_closure +25520 0x1000693b8 ldr x8, [sp, #0xa8]
+pc      1 atom_closure +14280 0x1000667d0 str x10, [sp, #0x4d0]
+pc      1 piece        +14852 0x10003b994 str x8, [sp, #0x370]
+pc      1 atom_closure +13480 0x1000664b0 b 0x10006651c
+pc      1 atom_closure +37284 0x10006c1ac str x21, [x8, #0x8]
+pc      1 piece        +14636 0x10003b8bc stp x8, x23, [x9]
+pc      1 atom_closure +14224 0x100066798 b.ne 0x100066894
+pc      1 piece        + 1864 0x1000386d8 str x13, [sp, #0xa8]
+pc      1 atom_closure +36460 0x10006be74 ldr x9, [sp, #0x4b8]
+pc      1 piece        + 6528 0x100039910 cmp x23, x1
+pc      1 atom_closure +28900 0x10006a0ec cmp x21, x1
+pc      1 atom_closure +40832 0x10006cf88 ldr x10, [sp, #0x38]
+pc      1 atom_closure +18112 0x1000676c8 cmp x8, x2
+pc      1 atom_closure + 3276 0x100063cd4 ldr x8, [x20, #0xf0]
+pc      1 atom_closure + 2856 0x100063b30 add x27, x21, #0x1
+pc      1 atom_closure +38040 0x10006c4a0 str x15, [sp, #0x28]
+pc      1 atom_closure + 8064 0x100064f88 ldr x9, [x20, #0x348]
+pc      1 piece        +12480 0x10003b050 lsl x9, x10, x9
+pc      1 atom_closure +11720 0x100065dd0 ldr x8, [x20, #0x28]
+pc      1 atom_closure +40996 0x10006d02c str x8, [sp, #0x4d0]
+pc      1 atom_closure +14844 0x100066a04 str x23, [sp, #0x4d8]
+pc      1 atom_closure +40748 0x10006cf34 add x8, x20, #0x2a0
+pc      1 atom_closure +15160 0x100066b40 cmp x8, x22
+pc      1 atom_closure +14268 0x1000667c4 str x23, [sp, #0x4b8]
+pc      1 atom_closure +14912 0x100066a48 ldr x12, [sp, #0x78]
+pc      1 atom_closure +15396 0x100066c2c ldr q0, [x9]
+pc      1 atom_closure +15536 0x100066cb8 str xzr, [sp, #0x4c8]
+pc      1 piece        +14544 0x10003b860 ldr x1, [x25]
+pc      1 atom_closure +39584 0x10006caa8 str x26, [x8, #0x8]
+pc      1 atom_closure +24912 0x100069158 ldr x27, [x20, #0x288]
+pc      1 atom_closure +24984 0x1000691a0 ldr q1, [sp, #0x410]
+pc      1 atom_closure +16452 0x10006704c mov w19, #0x0
+pc      1 atom_closure +  764 0x100063304 ldr x8, [sp, #0x4f8]
+pc      1 atom_closure +14784 0x1000669c8 ldr x12, [x20, #0x28]
+pc      1 atom_closure +38348 0x10006c5d4 str x9, [sp, #0x410]
+pc      1 atom_closure +43416 0x10006d9a0 ldr x0, [sp, #0x80]
+pc      1 atom_closure +37460 0x10006c25c ldr x12, [x20, #0x178]
+pc      1 piece        +  812 0x1000382bc ldr x8, [x19, #0x20]
+pc      1 atom_closure +  556 0x100063234 ldr q0, [x23, #0x30]
+pc      1 atom_closure +19152 0x100067ad8 ldr x9, [sp, #0x80]
+pc      1 atom_closure +37452 0x10006c254 ldr x12, [x20, #0x28]
+pc      1 piece        +   40 0x100037fb8 mov x25, x0
+pc      1 piece        +14468 0x10003b814 ldr x9, [x19, #0x28]
+pc      1 atom_closure +   64 0x100063048 ldr x8, [x20, #0x298]
+pc      1 atom_closure +  132 0x10006308c stp x8, x19, [sp, #0xc0]
+pc      1 atom_closure +15788 0x100066db4 ldr q0, [sp, #0xc0]
+pc      1 atom_closure +38052 0x10006c4ac str x19, [sp, #0x70]
+pc      1 atom_closure +40980 0x10006d01c ldp x9, x8, [sp, #0x20]
+pc      1 atom_closure +19196 0x100067b04 ldr x26, [x20, #0x288]
+pc      1 atom_closure +15640 0x100066d20 ldr q0, [sp, #0x520]
+pc      1 atom_closure +43632 0x10006da78 str x8, [x9, x22, lsl #3]
+pc      1 atom_closure +36236 0x10006bd94 str xzr, [sp, #0x520]
+pc      1 piece        +  920 0x100038328 ldr x10, [x19, #0x120]
+pc      1 atom_closure +22172 0x1000686a4 add x9, x9, #0x10
+pc      1 atom_closure +38392 0x10006c600 ldur x9, [x29, #-0xb0]
+pc      1 atom_closure +43736 0x10006dae0 ldr x8, [sp, #0x440]
+pc      1 atom_closure +10672 0x1000659b8 ldr x2, [x20, #0x2a0]
+pc      1 atom_closure +25412 0x10006934c mov x23, x24
+pc      1 atom_closure +39592 0x10006cab0 str x8, [x20, #0x28]
+pc      1 atom_closure +20132 0x100067eac mov x23, x24
+pc      1 atom_closure +15740 0x100066d84 stp q0, q1, [sp, #0x130]
+pc      1 atom_closure +  232 0x1000630f0 str x21, [sp, #0xb0]
+pc      1 atom_closure + 1144 0x100063480 sub w9, w8, #0x9
+pc      1 atom_closure +21332 0x10006835c ldrb w11, [x9, x26]
+pc      1 atom_closure +13300 0x1000663fc ldr x8, [sp, #0xb0]
+pc      1 piece        +15656 0x10003bcb8 ldr x8, [x19, #0x28]
+pc      1 atom_closure +37832 0x10006c3d0 str w8, [sp, #0x44]
+pc      1 atom_closure +37844 0x10006c3dc cbz w0, 0x10006cc44
+pc      1 atom_closure +36568 0x10006bee0 str x28, [sp, #0x2c8]
+pc      1 atom_closure +41136 0x10006d0b8 ldr x27, [x8]
+pc      1 atom_closure +43392 0x10006d988 ldr x22, [sp, #0xa8]
+pc      1 atom_closure +36500 0x10006be9c str x21, [x20, #0x4c8]
+pc      1 piece        +12868 0x10003b1d4 ldr x10, [x19, #0x198]
+pc      1 atom_closure +37296 0x10006c1b8 ldr x26, [x20, #0x4c8]
+pc      1 atom_closure +43792 0x10006db18 str q1, [sp, #0x510]
+pc      1 piece        +15224 0x10003bb08 ldr x8, [x19, #0x298]
+pc      1 atom_closure +39372 0x10006c9d4 ldr x8, [x20, #0x28]
+pc      1 atom_closure +43728 0x10006dad8 ldr x8, [sp, #0x428]
+pc      1 atom_closure +15952 0x100066e58 add x25, x21, #0x2
+pc      1 piece        +10372 0x10003a814 ldr x27, [x8]
+pc      1 atom_closure +43660 0x10006da94 str q1, [sp, #0x490]
+pc      1 atom_closure +14052 0x1000666ec stp x9, x10, [x29, #-0xd0]
+pc      1 atom_closure +21232 0x1000682f8 str x12, [sp, #0x70]
+pc      1 atom_closure +21632 0x100068488 add x11, x21, #0x3
+pc      1 atom_closure +15888 0x100066e18 ldr x10, [x20, #0x198]
+pc      1 atom_closure + 3860 0x100063f1c cmp x21, x1
+pc      1 atom_closure +39036 0x10006c884 ldr x1, [x9]
+pc      1 atom_closure +20196 0x100067eec ldrb w9, [x10, x11]
+pc      1 piece        +  648 0x100038218 cmp x12, x1
+pc      1 piece        + 5936 0x1000396c0 ldr x1, [x19, #0x348]
+pc      1 atom_closure +15672 0x100066d40 ldr q0, [sp, #0x4e0]
+pc      1 atom_closure +16064 0x100066ec8 ldr x8, [x20, #0x340]
+pc      1 atom_closure +15756 0x100066d94 ldr q0, [sp, #0x400]
+pc      1 atom_closure + 1076 0x10006343c mov x19, #-0x8000000000000000
+pc      1 piece        +13984 0x10003b630 cmp x8, #0x4
+pc      1 atom_closure +   28 0x100063024 sub sp, sp, #0x5f0
+pc      1 piece        +13824 0x10003b590 bl __ZN5alloc3vec16Vec$LT$T$C$A$GT$8push_mut17h2d2239d8f4ba2a41E
+pc      1 piece        +14176 0x10003b6f0 str x14, [sp, #0x2b8]
+pc      1 piece        +15556 0x10003bc54 ldr x1, [x19, #0x2a0]
+pc      1 piece        +12748 0x10003b15c ldp q1, q0, [sp, #0x310]
+pc      1 atom_closure +15596 0x100066cf4 str xzr, [sp, #0x520]
+pc      1 atom_closure +36408 0x10006be40 ldr q0, [sp, #0x430]
+pc      1 atom_closure +36592 0x10006bef8 cbz x25, 0x10006bf44
+pc      1 atom_closure +29360 0x10006a2b8 str x25, [sp, #0x258]
+pc      1 atom_closure + 2420 0x10006397c ldr w8, [sp, #0xbc]
+pc      1 atom_closure + 7684 0x100064e0c ldr x22, [x8]
+pc      1 atom_closure + 3828 0x100063efc str w9, [sp, #0xbc]
+pc      1 piece        + 1460 0x100038544 ldr x8, [x19, #0x340]
+pc      1 atom_closure +36404 0x10006be3c stp q0, q1, [sp, #0xf0]
+pc      1 atom_closure +14156 0x100066754 ldr x10, [x20, #0x120]
+pc      1 atom_closure +20184 0x100067ee0 add x11, x21, #0x2
+pc      1 atom_closure +27408 0x100069b18 ldr x8, [x20, #0x238]
+pc      1 piece        +11628 0x10003acfc ldr x1, [x8]
+pc      1 atom_closure +14508 0x1000668b4 b.hs 0x10006e55c
+pc      1 atom_closure + 1804 0x100063714 str x19, [sp, #0xf0]
+pc      1 piece        +12776 0x10003b178 ldr x9, [sp, #0x80]
+pc      1 piece        +10188 0x10003a75c ldr w8, [sp, #0x70]
+pc      1 atom_closure + 1912 0x100063780 cmp w9, #0x20
+pc      1 piece        + 1520 0x100038580 mov w9, #0x1
+pc      1 atom_closure +15300 0x100066bcc b 0x100066c64
+pc      1 piece        + 2240 0x100038850 cmp w11, #0x51
+pc      1 atom_closure +11456 0x100065cc8 ldr x24, [x20, #0x238]
+pc      1 piece        + 2228 0x100038844 ldrb w11, [x10, x24]
+pc      1 atom_closure + 1560 0x100063620 ldr x8, [x20, #0x348]
+pc      1 piece        + 1504 0x100038570 ldrb w8, [x8, x24]
+pc      1 piece        +15404 0x10003bbbc ldr x8, [x19, #0x290]
+pc      1 atom_closure + 2460 0x1000639a4 ldr x8, [sp, #0xf0]
+pc      1 piece        +13020 0x10003b26c mov x24, #-0x8000000000000000
+pc      1 piece        +15388 0x10003bbac str x8, [sp, #0x370]
+pc      1 piece        + 6516 0x100039904 ldr x1, [x19, #0x348]
+pc      1 atom_closure + 2812 0x100063b04 str w9, [sp, #0xbc]
+pc      1 piece        + 1840 0x1000386c0 ldr x8, [x19, #0x510]
+pc      1 piece        +  900 0x100038314 ldr x9, [x19, #0x108]
+pc      1 atom_closure +26956 0x100069954 ldur x8, [x29, #-0xe0]
+pc      1 atom_closure +16500 0x10006707c cmp x8, x28
+pc      1 atom_closure +36176 0x10006bd58 str xzr, [sp, #0x4c8]
+pc      1 atom_closure +14816 0x1000669e8 ldr x11, [x20, #0x120]
+pc      1 piece        +14220 0x10003b71c sub w13, w8, #0x2a
+pc      1 atom_closure +37440 0x10006c248 b.ne 0x10006c2e0
+pc      1 piece        + 1432 0x100038528 str x8, [sp, #0x48]
+pc      1 atom_closure +10488 0x100065900 mov x1, x25
+pc      1 atom_closure + 7288 0x100064c80 ldr x0, [x20, #0x298]
+pc      1 atom_closure +41032 0x10006d050 ldr x1, [sp, #0x18]
+pc      1 atom_closure +21364 0x10006837c ldrb w12, [x9, x11]
+pc      1 piece        +12644 0x10003b0f4 str xzr, [sp, #0x3c8]
+pc      1 atom_closure +  328 0x100063150 stp x9, x11, [sp, #0x1b0]
+pc      1 piece        + 8256 0x100039fd0 ldr x1, [x19, #0x348]
+pc      1 atom_closure +39204 0x10006c92c str x8, [sp, #0x350]
+pc      1 atom_closure +41360 0x10006d198 add x22, x20, #0x4c8
+pc      1 atom_closure +37344 0x10006c1e8 str x8, [x20, #0x2a0]
+pc      1 atom_closure +13464 0x1000664a0 mov x25, x22
+pc      1 atom_closure +11272 0x100065c10 ldr x8, [sp, #0x4a0]
+pc      1 atom_closure + 5988 0x10006476c ldr x8, [sp, #0x280]
+pc      1 atom_closure +17440 0x100067428 movk x10, #0x8000, lsl #48
+pc      1 atom_closure +19352 0x100067ba0 ldr x8, [sp, #0x80]
+pc      1 piece        +14072 0x10003b688 ldr x8, [x19, #0x340]
+pc      1 atom_closure +15380 0x100066c1c ldr x8, [x20, #0x150]
+pc      1 atom_closure +43348 0x10006d95c ldr x8, [sp, #0xb0]
+pc      1 atom_closure +11480 0x100065ce0 str x11, [sp, #0x4d0]
+pc      1 atom_closure +39616 0x10006cac8 ldr x8, [x20, #0x28]
+pc      1 atom_closure +17252 0x10006736c ldr q0, [sp, #0x430]
+pc      1 atom_closure +11340 0x100065c54 str q0, [sp, #0x4b0]
+pc      1 atom_closure +23436 0x100068b94 cmp x8, #0x1
+pc      1 atom_closure +15916 0x100066e34 str x19, [sp, #0x4b8]
+pc      1 atom_closure +20908 0x1000681b4 add x11, x21, #0x2
+pc      1 atom_closure +21616 0x100068478 cmp w11, #0x3d
+pc      1 atom_closure +17864 0x1000675d0 ldr x26, [x20, #0x268]
+pc      1 piece        +14768 0x10003b940 ldp x26, x25, [sp, #0x10]
+pc      1 atom_closure +10528 0x100065928 ldr x8, [sp, #0x1a0]
+pc      1 piece        +14548 0x10003b864 ldr x0, [sp, #0x38]
+pc      1 atom_closure +  104 0x100063070 ldr x9, [x20, #0x108]
+pc      1 atom_closure +29420 0x10006a2f4 ldrh w9, [x9, x21]
+pc      1 piece        +10912 0x10003aa30 cbz w10, 0x10003ae94
+pc      1 piece        +11012 0x10003aa94 str x28, [x19, #0x510]
+pc      1 atom_closure +11036 0x100065b24 tbz w8, #0x0, 0x100065ca0
+pc      1 atom_closure +31108 0x10006a98c cmp x24, x1
+pc      1 atom_closure +11144 0x100065b90 str xzr, [sp, #0x520]
+pc      1 atom_closure +36316 0x10006bde4 ldr q1, [sp, #0x4d0]
+pc      1 atom_closure + 5704 0x100064650 ldr x9, [x20, #0x348]
+pc      1 atom_closure +15908 0x100066e2c ldr x24, [x20, #0x238]
+pc      1 atom_closure +14832 0x1000669f8 str x9, [sp, #0x4c0]
+pc      1 atom_closure +17084 0x1000672c4 ldr q0, [sp, #0x530]
+pc      1 atom_closure +38560 0x10006c6a8 add x11, x26, #0x1
+pc      1 piece        +13992 0x10003b638 b.ne 0x10003b738
+pc      1 piece        + 1964 0x10003873c str x12, [sp, #0x60]
+pc      1 piece        +   36 0x100037fb4 mov x19, x1
+pc      1 atom_closure +16400 0x100067018 ldr x8, [x20, #0x150]
+pc      1 atom_closure +14056 0x1000666f0 stp x11, x26, [x29, #-0xc0]
+pc      1 piece        +14748 0x10003b92c add sp, sp, #0x460
+pc      1 atom_closure +14488 0x1000668a0 ldr x1, [x20, #0x348]
+pc      1 atom_closure +11336 0x100065c50 ldr q0, [sp, #0xc0]
+pc      1 atom_closure + 5092 0x1000643ec ldur q0, [x22, #0x8]
+pc      1 atom_closure + 6108 0x1000647e4 ldr x8, [x20, #0x150]
+pc      1 atom_closure +28356 0x100069ecc ldrb w9, [x10, x26]
+pc      1 piece        +15092 0x10003ba84 ldr q0, [x9]
+pc      1 atom_closure +11328 0x100065c48 ldp q1, q0, [sp, #0xd0]
+pc      1 atom_closure + 8720 0x100065218 ldrb w11, [x10, x21]
+pc      1 atom_closure +11180 0x100065bb4 str q0, [sp, #0x440]
+pc      1 atom_closure +37056 0x10006c0c8 ldr w11, [x20, #0x270]
+pc      1 atom_closure +40240 0x10006cd38 ldr x8, [x20, #0x4c8]
+pc      1 piece        + 1408 0x100038510 mov x8, #-0x8000000000000000
+pc      1 piece        + 8748 0x10003a1bc ldr x9, [x0, #0x18]
+pc      1 atom_closure +14532 0x1000668cc ldrb w8, [x8, x9]
+pc      1 atom_closure +36268 0x10006bdb4 ldr q1, [sp, #0x500]
+pc      1 atom_closure +43824 0x10006db38 add x1, sp, #0x4b0
+pc      1 piece        + 2000 0x100038760 ldr x22, [sp, #0xb8]
+pc      1 atom_closure +14040 0x1000666e0 ldr x11, [x20, #0x120]
+pc      1 piece        +12860 0x10003b1cc ldr x21, [x19, #0x150]
+pc      1 atom_closure + 2380 0x100063954 ldr x8, [x20, #0x348]
+pc      1 atom_closure +43092 0x10006d85c ldr x10, [sp, #0x78]
+pc      1 atom_closure +21656 0x1000684a0 mov w10, #0x1
+pc      1 atom_closure +16372 0x100066ffc ldr x8, [x20, #0x28]
+pc      1 atom_closure +15956 0x100066e5c ldr x8, [x20, #0x348]
+pc      1 atom_closure +11240 0x100065bf0 ldr x9, [sp, #0xf0]
+pc      1 atom_closure +43952 0x10006dbb8 str x19, [x8]
+pc      1 atom_closure +39608 0x10006cac0 mov x1, x20
+pc      1 atom_closure + 9324 0x100065474 ldr x9, [x20, #0x348]
+pc      1 atom_closure + 6080 0x1000647c8 ldr x8, [x20, #0x28]
+pc      1 atom_closure +29860 0x10006a4ac ldrb w8, [x8, x23]
+pc      1 atom_closure +43324 0x10006d944 add x8, x20, #0x4c8
+pc      1 atom_closure +37404 0x10006c224 str x22, [sp, #0x348]
+pc      1 atom_closure +28560 0x100069f98 ldr q0, [sp, #0x4e0]
+pc      1 atom_closure +34188 0x10006b594 ldrb w9, [x10, x11]
+pc      1 atom_closure +35540 0x10006badc ldrb w11, [x10, x26]
+pc      1 atom_closure +26036 0x1000695bc cmp w11, #0x2a
+pc      1 piece        +12684 0x10003b11c ldp q0, q1, [x9]
+pc      1 atom_closure +16920 0x100067220 mov x25, x23
+pc      1 atom_closure +28644 0x100069fec ldr q0, [sp, #0x400]
+pc      1 piece        + 3812 0x100038e74 str x10, [sp, #0x218]
+pc      1 atom_closure +29504 0x10006a348 ldr x8, [x20, #0xf0]
+pc      1 piece        +11560 0x10003acb8 ldr x8, [x19, #0x348]
+pc      1 atom_closure +29544 0x10006a370 str x12, [sp, #0x2a8]
+pc      1 atom_closure + 1756 0x1000636e4 ldr x9, [x20, #0x348]
+pc      1 piece        +12704 0x10003b130 ldr x9, [sp, #0xf0]
+pc      1 atom_closure +36580 0x10006beec b.ls 0x10006bef4
+pc      1 atom_closure +29456 0x10006a318 add x8, x20, #0x290
+pc      1 piece        +12340 0x10003afc4 ldr x8, [x19, #0x238]
+pc      1 atom_closure +29368 0x10006a2c0 str x10, [sp, #0x268]
+pc      1 atom_closure +14940 0x100066a64 cmn x8, #0x1
+pc      1 atom_closure +14180 0x10006676c str x12, [sp, #0x400]
+pc      1 atom_closure +15180 0x100066b54 ldr x23, [x20, #0x2a0]
+pc      1 atom_closure +   48 0x100063038 ldr x25, [x1, #0x2a0]
+pc      1 atom_closure +41308 0x10006d164 mov x27, x10
+pc      1 atom_closure +11220 0x100065bdc ldr q0, [sp, #0x4e0]
+pc      1 piece        +10180 0x10003a754 ldr x8, [sp, #0x78]
+pc      1 piece        + 4784 0x100039240 cmp x24, x1
+pc      1 atom_closure +26048 0x1000695c8 cmp x11, x10
+pc      1 atom_closure +  540 0x100063224 ldr q0, [x23, #0x10]
+pc      1 atom_closure +31192 0x10006a9e0 add x9, x20, #0x208
+pc      1 atom_closure +28284 0x100069e84 ldr x9, [x28]
+pc      1 atom_closure +39568 0x10006ca98 ldr x8, [x20, #0x20]
+pc      1 atom_closure +43428 0x10006d9ac cmp x22, x0
+pc      1 atom_closure +29332 0x10006a29c ldr x10, [x20, #0x198]
+pc      1 atom_closure +  492 0x1000631f4 ldr x10, [sp, #0x4b8]
+pc      1 piece        + 1804 0x10003869c ldr x11, [x19, #0x178]
+pc      1 piece        +11656 0x10003ad18 ldr x8, [x19, #0x510]
+pc      1 atom_closure +39404 0x10006c9f4 ldr x8, [x20, #0x150]
+pc      1 atom_closure +36116 0x10006bd1c ldrb w9, [x9, x21]
+pc      1 atom_closure +37556 0x10006c2bc b.gt 0x10006c898
+pc      1 piece        +14396 0x10003b7cc cmp x8, x9
+pc      1 piece        +13808 0x10003b580 str x24, [sp, #0x368]
+pc      1 atom_closure +38300 0x10006c5a4 ldr x22, [x20, #0x28]
+pc      1 piece        +13712 0x10003b520 str x9, [sp, #0xb8]
+pc      1 atom_closure +40892 0x10006cfc4 ldr x0, [x20, #0x298]
+pc      1 piece        +15376 0x10003bba0 str x14, [sp, #0xb8]
+pc      1 atom_closure +13292 0x1000663f4 ldr x19, [x8]
+pc      1 atom_closure +11844 0x100065e4c ldrb w11, [x10, x26]
+pc      1 atom_closure +  360 0x100063170 add x23, x25, #0x1
+pc      1 atom_closure + 1056 0x100063428 add x8, x20, #0x4c8
+pc      1 atom_closure +13260 0x1000663d4 str x24, [sp, #0x4d8]
+pc      1 piece        +  664 0x100038228 ldr x8, [x19, #0x260]
+pc      1 atom_closure +37972 0x10006c45c ldrb w11, [x9, x26]
+pc      1 atom_closure +15508 0x100066c9c ldr x8, [x20, #0x150]
+pc      1 piece        +10156 0x10003a73c str x22, [x19, #0x4c8]
+pc      1 atom_closure +15636 0x100066d1c str q1, [sp, #0x450]
+pc      1 atom_closure +15580 0x100066ce4 str x8, [sp, #0x500]
+pc      1 piece        + 1972 0x100038744 str x9, [sp, #0x200]
+pc      1 piece        +12504 0x10003b068 b 0x10003b798
+pc      1 atom_closure + 5104 0x1000643f8 str x8, [x0, #0x18]
+pc      1 atom_closure +43708 0x10006dac4 ldp q1, q0, [sp, #0x110]
+pc      1 atom_closure +15024 0x100066ab8 str x27, [x22]
+pc      1 atom_closure +24868 0x10006912c ldr x8, [x20, #0x238]
+pc      1 atom_closure +36320 0x10006bde8 str q0, [sp, #0x430]
+pc      1 atom_closure +43744 0x10006dae8 ldr x8, [sp, #0x470]
+pc      1 atom_closure +13232 0x1000663b8 ldr x24, [x20, #0x238]
+pc      1 piece        + 4776 0x100039238 str x10, [sp, #0x68]
+pc      1 atom_closure +19376 0x100067bb8 add x0, x20, #0x278
+pc      1 atom_closure +14004 0x1000666bc str x21, [x20, #0x4c8]
+pc      1 atom_closure +43604 0x10006da5c str x9, [x8]
+pc      1 atom_closure +25600 0x100069408 ldp x13, x14, [sp, #0x78]
+pc      1 atom_closure + 4840 0x1000642f0 str x21, [x20, #0x4c8]
+pc      1 piece        +15752 0x10003bd18 ldr x15, [sp, #0x80]
+pc      1 atom_closure +15568 0x100066cd8 str xzr, [sp, #0x550]
+pc      1 atom_closure + 4960 0x100064368 str w8, [sp, #0x60]
+pc      1 atom_closure +14904 0x100066a40 ldr x8, [sp, #0x2a0]
+
+CAPTURE QUALIFICATION: PASS (counts, zero-drop, disassembly, verdict identity)
+SCOPE: dynamic PC evidence only; role/mechanism partition is classify_and_reprice.py

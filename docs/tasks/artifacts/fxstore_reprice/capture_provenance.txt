@@ -1,0 +1,9 @@
+probe_sha256=a406779314b971305da58b6eb7688be233342efd78348c3c62a456dda24b5ee4
+sampler_source_sha256=9bb51a53c4ecd5e4708925ae78f90c503f8e6511c8b46a51612c373db3c3bf85
+sampler_dylib_sha256=ebbc4985c5fa9eb36b91448b405c3fae143efaaeab440b2f12f2e6335d4b0fc7
+interval_us=250
+warmup=50
+sub1us_samples=170000
+1to2p5_samples=90000
+2p5to20_samples=55000
+clang=Apple clang version 21.0.0 (clang-2100.1.1.101)
