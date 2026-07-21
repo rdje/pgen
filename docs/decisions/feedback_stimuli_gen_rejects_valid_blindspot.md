@@ -53,5 +53,14 @@ accepts-invalid generator over-approximation leaf — the OTHER direction),
 ## Status
 
 - Recorded 2026-07-21. **NO work opened** — explicit director instruction:
-  observation now, action later. When the director opens the activity, start
-  from this note.
+  observation now, action later.
+- **UPDATE (same day, session #188): the full charter now lives in the PARKED
+  task tree [`docs/tasks/REJECTS-VALID-DEFENSE.md`](../tasks/REJECTS-VALID-DEFENSE.md)**
+  — the outcome of the director's follow-up exchange ("why did we miss it?
+  grammar? stimuli? how to prevent this?"), with the priority-ordered plan:
+  `.1` the grammar-edit differential gate (edit-time, catches regressions
+  deterministically via base-vintage generation + oracle-adjudicated flip
+  ledger), `.2` the context-dual token×context grid, `.3` the corpus-enrichment
+  ratchet, `.4` the mutation-differential lane (the from-birth-gap instrument),
+  `.5` optional spec-claims traceability. When the director opens the activity,
+  start from THAT TREE (this note remains the original observation record).
