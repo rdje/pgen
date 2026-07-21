@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-093a112f.js";
+            window.path_to_searchindex_js = "searchindex-c21359e3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -486,18 +486,31 @@ to what the typed entry returned. See the integration contract’s
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct ParseNode&lt;'input&gt; {
-    /// The grammar rule that produced this node. Static string,
-    /// matches a rule name from grammars/regex.ebnf.
-    pub rule_name: &amp;'static str,
+    /// The grammar rule that produced this node — a THIN static
+    /// reference (one deref, `*node.rule_name`, yields the rule-name
+    /// `&amp;'static str`, matching a rule name from grammars/regex.ebnf).
+    /// Serializes as the plain rule-name string, unchanged.
+    pub rule_name: &amp;'static &amp;'static str,
 
     /// The node's content. See ParseContent variants below.
     pub content: ParseContent&lt;'input&gt;,
 
     /// Source-byte span: [start, end) inclusive of start, exclusive
-    /// of end. Indexes into the original input string.
-    pub span: std::ops::Range&lt;usize&gt;,
+    /// of end. Indexes into the original input string. `span.range()`
+    /// returns the `Range&lt;usize&gt;` view; serializes as the same
+    /// `{"start", "end"}` object as before.
+    pub span: Span, // Copy: { start: u32, end: u32 }
 }
 <span class="boring">}</span></code></pre>
+<blockquote>
+<p><strong>Since contract <code>1.1.108</code> (the <code>-0212</code> result-carrier slimming):</strong>
+<code>ParseNode</code> shrank 72 → 48 bytes for parse speed. The three Rust-level
+field-type changes above are surface-visible ONLY to Rust embedders that
+pattern-match fields directly; the serialized JSON is byte-identical
+(machine-verified). Inputs longer than 4 GiB (<code>u32::MAX</code> bytes) are now
+refused at parse entry with an explicit error — an honest bound, since
+such inputs were never practically parseable.</p>
+</blockquote>
 <p>The span is always populated for the OUTERMOST node. Inner nodes synthesised by the codegen (e.g. <code>element_0</code>, <code>element_1</code> synthetic-element wrappers, <code>quantified</code> synthetic wrappers) sometimes carry <code>0..0</code> spans because they were not materialised from a specific source range.</p>
 <h2 id="parsecontent-variants"><a class="header" href="#parsecontent-variants">ParseContent variants</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -532,10 +545,12 @@ to what the typed entry returned. See the integration contract’s
     /// shape rules unwrap it.
     Alternative(Box&lt;ParseNode&lt;'input&gt;&gt;),
 
-    /// A repetition group — produced by `*` / `+` / `?` quantifiers
-    /// in the grammar body. Carries the iteration count's marker
-    /// string ("*", "+", "?") and the matched repetitions.
-    Quantified(Vec&lt;ParseNode&lt;'input&gt;&gt;, &amp;'static str),
+    /// A repetition group — produced by `*` / `+` / `?` / bounded
+    /// quantifiers in the grammar body. Carries the matched
+    /// repetitions and a THIN reference to the quantifier-kind marker
+    /// string ("*", "+", "?", or a bounded form like "0,127") — one
+    /// deref yields the former `&amp;'static str`. Serializes unchanged.
+    Quantified(Vec&lt;&amp;'input ParseNode&lt;'input&gt;&gt;, &amp;'static &amp;'static str),
 }
 
 impl&lt;'input&gt; ParseContent&lt;'input&gt; {

@@ -357,9 +357,9 @@ impl AstBasedGenerator {
                 #predicate_tail
                 let end_pos = parser.position;
                 Ok(ParseNode {
-                    rule_name: #rule_name,
+                    rule_name: &#rule_name,
                     content: result,
-                    span: start_pos..end_pos,
+                    span: Span::new(start_pos, end_pos),
                 })
             }
         })
@@ -882,9 +882,9 @@ impl AstBasedGenerator {
                     let element_end = parser.position;
                     sequence_elements.push(
                         parser.arena.alloc(ParseNode {
-                            rule_name: #element_name,
+                            rule_name: &#element_name,
                             content: element_content,
-                            span: element_start..element_end,
+                            span: Span::new(element_start, element_end),
                         }),
                     );
                 }

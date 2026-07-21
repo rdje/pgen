@@ -7,7 +7,7 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.107`
+  - `1.1.108`
 - Parser release version:
   - `1.1.105`
 - Embedding API contract baseline:
@@ -15,7 +15,7 @@ This is the document downstream projects such as RGX should read first when deci
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-07-20`
+  - `2026-07-21`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -33,6 +33,37 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Maintenance Update 2026-07-21 — RESULT-CARRIER SLIMMING (`PGEN-RGX-0078-0212`): Rust-level `ParseNode` field types slimmed 72→48 B (Rust-embedding SURFACE-CHANGING; WIRE-FORMAT UNCHANGED byte-for-byte; Contract `1.1.108`; schema stays `1`) + an honest input-length bound
+
+- The shared committed-result carrier was slimmed for the speed campaign
+  (the ninth accepted fix of the `RGX-0078.5.j.4` ratchet program;
+  corpus-geomean −2.36%, every timing band improved). Rust-embedding
+  consumers that pattern-match `ParseNode`/`ParseContent` fields directly
+  see three FIELD-TYPE changes:
+  - `ParseNode.rule_name`: `&'static str` → **`&'static &'static str`**
+    (deref once — `*node.rule_name` — to obtain the former value; equality
+    against `&str` needs the explicit deref).
+  - `ParseNode.span`: `std::ops::Range<usize>` → **`pgen::ast_pipeline::Span
+    { start: u32, end: u32 }`** (`Copy`; `span.range()` returns the former
+    `Range<usize>` view; `Debug` still prints `start..end`).
+  - `ParseContent::Quantified(Vec<&ParseNode>, &'static str)` → the label is
+    now **`&'static &'static str`** (same one-deref rule).
+- **The JSON wire format is UNCHANGED, byte-for-byte** — machine-verified by
+  the `-0212` wire oracle (44/44 base-vs-candidate typed-AST dumps
+  byte-identical; identical reject sets) plus the standing AST-shape,
+  duality, differential-equivalence, and PCRE2 compile-oracle gates. The
+  AST-dump schema stays `1`: `rule_name` still serializes as the same
+  string, `span` as the same `{"start", "end"}` integer object, `Quantified`
+  as the same `[nodes, label]` encoding. JSON-consuming integrations (the
+  recommended surface) need NO change.
+- **New honest input bound:** the generated parse entries now REFUSE inputs
+  longer than `u32::MAX` bytes (4 GiB) up front with an explicit
+  `InvalidSyntax` error ("input exceeds the 4 GiB span bound of the
+  generated parser") instead of implying unbounded support. Inputs at that
+  scale were never practically parseable (the packrat memo alone is
+  memory-infeasible); the bound is now stated and enforced rather than
+  silent. This applies to every PGEN generated parser, not regex alone.
 
 ## Maintenance Update 2026-07-20 — PARSER-NEUTRALITY.1: the opt-in `parse_regex_typed()` typed entry points are REMOVED with the parser-hook mechanism (Rust-embedding SURFACE-CHANGING; WIRE-FORMAT UNCHANGED; Release `1.1.105` / Contract `1.1.107`; schema stays `1`)
 

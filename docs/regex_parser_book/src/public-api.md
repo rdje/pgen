@@ -48,18 +48,30 @@ Every node the parser produces is wrapped in this envelope:
 
 ```rust
 pub struct ParseNode<'input> {
-    /// The grammar rule that produced this node. Static string,
-    /// matches a rule name from grammars/regex.ebnf.
-    pub rule_name: &'static str,
+    /// The grammar rule that produced this node — a THIN static
+    /// reference (one deref, `*node.rule_name`, yields the rule-name
+    /// `&'static str`, matching a rule name from grammars/regex.ebnf).
+    /// Serializes as the plain rule-name string, unchanged.
+    pub rule_name: &'static &'static str,
 
     /// The node's content. See ParseContent variants below.
     pub content: ParseContent<'input>,
 
     /// Source-byte span: [start, end) inclusive of start, exclusive
-    /// of end. Indexes into the original input string.
-    pub span: std::ops::Range<usize>,
+    /// of end. Indexes into the original input string. `span.range()`
+    /// returns the `Range<usize>` view; serializes as the same
+    /// `{"start", "end"}` object as before.
+    pub span: Span, // Copy: { start: u32, end: u32 }
 }
 ```
+
+> **Since contract `1.1.108` (the `-0212` result-carrier slimming):**
+> `ParseNode` shrank 72 → 48 bytes for parse speed. The three Rust-level
+> field-type changes above are surface-visible ONLY to Rust embedders that
+> pattern-match fields directly; the serialized JSON is byte-identical
+> (machine-verified). Inputs longer than 4 GiB (`u32::MAX` bytes) are now
+> refused at parse entry with an explicit error — an honest bound, since
+> such inputs were never practically parseable.
 
 The span is always populated for the OUTERMOST node. Inner nodes synthesised by the codegen (e.g. `element_0`, `element_1` synthetic-element wrappers, `quantified` synthetic wrappers) sometimes carry `0..0` spans because they were not materialised from a specific source range.
 
@@ -96,10 +108,12 @@ pub enum ParseContent<'input> {
     /// shape rules unwrap it.
     Alternative(Box<ParseNode<'input>>),
 
-    /// A repetition group — produced by `*` / `+` / `?` quantifiers
-    /// in the grammar body. Carries the iteration count's marker
-    /// string ("*", "+", "?") and the matched repetitions.
-    Quantified(Vec<ParseNode<'input>>, &'static str),
+    /// A repetition group — produced by `*` / `+` / `?` / bounded
+    /// quantifiers in the grammar body. Carries the matched
+    /// repetitions and a THIN reference to the quantifier-kind marker
+    /// string ("*", "+", "?", or a bounded form like "0,127") — one
+    /// deref yields the former `&'static str`. Serializes unchanged.
+    Quantified(Vec<&'input ParseNode<'input>>, &'static &'static str),
 }
 
 impl<'input> ParseContent<'input> {

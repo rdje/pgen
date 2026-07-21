@@ -1,4 +1,4 @@
-# The Speed Journey: 496 µs → ≈1.94 µs
+# The Speed Journey: 496 µs → ≈1.58 µs
 
 > **Part II · Inside PGEN.** This chapter is the companion to
 > [Inside the Parser: Termination & Performance](inside-parser-performance.md). That
@@ -553,11 +553,40 @@ land inside its predicted capture band. When the honest price is below the noise
 let the ratchet decide, and either answer is progress: a landing moves the floor, a
 reversion closes the lane for good.
 
-The scoreboard now reads **496 µs → ≈1.62 µs, about 306×** on the bench geomean, with the
-corpus maximum observed at ≈390 µs (its non-regression guardrail settled at 425 µs with
-the drift-margin logic) and the corpus geomean at ≈1.04 µs. The campaign's call-off
-condition now carries that drift lesson explicitly: the corpus geomean must clear 1 µs
-**with a 50 ns margin** — `(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus
-a confirmation sweep in a later session, so the closure claim reproduces on any day rather
-than on a favorable one; from the current floor that bar is about −8.5% away. The method
-decides — and the story continues here.
+Two read-only sessions then closed out the pooling idea for good (two recycling designs
+measured-refused: an eager-clear form at +13.7% — hashbrown's `clear()` is O(capacity),
+so a recycled container taxes every small parse with its high-water history — and a
+stamp-validated redesign at +0.67%, where the fixed lease-and-reset ceremony itself
+outweighed the construction it saved against mimalloc's small-alloc path), and a
+decomposition of the last big unowned population named the real mechanism hiding in
+plain sight: **the committed-result carrier itself**. `ParseNode` — rule name, content,
+span — travelled by value as a 72-byte payload through an out-pointer at *every* rule
+boundary: built in the callee frame, written out, copied to a local, copied again into
+an argument slot, a `Vec` element, or an arena slot, with the parser's big frames sized
+around those temporaries. No single function was hot; 83% of the population was pure
+memory traffic. The mechanism, not a hotspot, was the residual.
+
+The ninth fix slimmed that carrier 72 → 48 bytes with three moves that add **zero**
+machinery: the rule name and the quantifier label became *thin* double references
+(`&'static &'static str` — one more `&` at every emitted literal, which Rust's static
+promotion supplies for free, and serde's reference-delegation keeps the JSON
+byte-identical), and the span became a `Copy` pair of `u32`s that serializes exactly
+like the `Range` it replaced — with one honest new rule: inputs beyond 4 GiB are now
+refused up front instead of being silently impossible. Compile-time size assertions pin
+the 48-byte layout so it can never quietly regress. The measurement session also taught
+a custody lesson the protocol now carries: the first A/B pair was invalidated live — a
+*foreign* workload was pinning a core during the sweeps, inflating the base +15.6%
+against its own last-session reading — so the rerun interleaved the sides, gated each
+base sweep against the floor-of-record, and only then adjudicated: **−2.36%** corpus
+geomean, zero verdict flips, every timing band faster, the third consecutive fix inside
+its predicted band.
+
+The scoreboard now reads **496 µs → ≈1.58 µs, about 314×** on the bench geomean, with the
+corpus maximum observed at ≈373 µs (its non-regression guardrail settled at 425 µs with
+the drift-margin logic) and the corpus geomean at ≈1.00 µs — the campaign's first
+sub-microsecond raw readings. The call-off condition carries the drift lesson
+explicitly: the corpus geomean must clear 1 µs **with a 50 ns margin** — `(geomean +
+50 ns) ≤ 1 µs`, about two observed drift spans — plus a confirmation sweep in a later
+session, so the closure claim reproduces on any day rather than on a favorable one;
+from the current floor that bar is about −5.4% away. The method decides — and the
+story continues here.

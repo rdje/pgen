@@ -1,0 +1,8 @@
+base_sha=a406779314b971305da58b6eb7688be233342efd78348c3c62a456dda24b5ee4
+candidate_sha=8d392176b8456ac66ddaa62b989ad78204029a2c360caef19c4d811a40c1f75c
+candidate_regex_artifact_sha=1b5bdcf06ffbef0e4c2fe4adc240ce5953904ab04b24f6e5bcfd9a80c30c9ad5
+base_regex_artifact_sha=438bb93146b5eeec8868d2d7d523f7ec7b657a3d7f357b82f53328dcdc8e26fb
+started_at=2026-07-21T10:07:01+02:00
+completed_at=2026-07-21T10:08:27+02:00
+rerun_started_at=2026-07-21T10:12:37+02:00
+rerun_completed_at=2026-07-21T10:13:08+02:00

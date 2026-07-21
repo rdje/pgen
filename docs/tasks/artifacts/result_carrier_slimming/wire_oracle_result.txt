@@ -1,0 +1,5 @@
+PGEN-RGX-0078-0212 wire-format byte-identity oracle — 2026-07-21T09:39:35+02:00
+base probe: rust/target/debug/parseability_probe @ 08:15 (base-artifact vintage, pre-change; embeds the 438bb931/47266fb0 artifact set)
+cand probe: same path rebuilt 09:38 at the candidate vintage (embeds the post-regen set)
+inputs: 50 diverse canonical-corpus regex cells (every 8th ≤60B) + 1 json sample
+result: 43 regex accepts + 1 json — ALL 44 typed-AST JSON dumps BYTE-IDENTICAL; the 7 rejected cells identical on both sides

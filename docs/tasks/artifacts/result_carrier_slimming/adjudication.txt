@@ -1,0 +1,54 @@
+PGEN-RGX-0078-0212 — the RESULT-CARRIER SLIMMING unit — RATCHET ADJUDICATION
+Session #184, 2026-07-21. Base probe fxstore_a4067793 (SHA-asserted every run);
+candidate probe sha256 8d392176b8456ac66ddaa62b989ad78204029a2c360caef19c4d811a40c1f75c
+(preserved: preserved_probes/regex_perf_probe_carrier48_8d392176).
+
+RUN 1 (the original run_ab.sh pair) — INVALIDATED FOR ADJUDICATION (custody):
+  base corpus geomean 1184.08 ns = +15.62% vs the SAME binary's -0210-session
+  sweep, uniform per band (+17.2/+16.0/+10.6/+3.7%) — ~6x outside the recorded
+  cross-session drift family. Root cause tool-pinned live: a foreign harness's
+  test binary (/private/tmp/linkedspec-semantic-rust-audit-target/.../
+  repeated_action_result_contract) at 101% CPU during the sweeps. The pair's
+  custody-valid facts stand: verdict flips 0/2,189; MAX 395,000 <= 425,000.
+  Files: corpus_base.jsonl / corpus_candidate.jsonl. Bench floorval (early,
+  uncontaminated): 1606.6 ns vs banked 1619.1 = -0.77% custody OK. Bench A/B
+  (steering): 1599.7 -> 1579.7 ns = -1.25%.
+
+RUN 2 (the pre-registered hardened interleaved rerun; rerun_sweeps.sh):
+  base1 -> cand1 -> base2 -> cand2, ps foreign-load snapshots banked around
+  every sweep (rerun_load_snapshots.txt).
+  CUSTODY:
+    base1 1027.4942120939818 ns  (-0.99% vs floor 1037.804231341058)  PASS +-3%
+    base2 1028.3063069960997 ns  (-0.92% vs floor)                    PASS +-3%
+    base1 vs base2 -0.08%                                             PASS +-2.5%
+  CUSTODY NOTE (recorded conflict): the snapshot leg fired — a DIFFERENT
+  foreign test binary (rule_local_cursor_execution, ~100% of one core) ran
+  continuously through ALL FOUR sweeps. The direct legs above prove this
+  uniform one-core load non-distorting (base within 1% of floor; the -0210
+  law of the snapshot leg was a proxy for exactly this distortion, which the
+  direct legs measure). Both sides shared identical conditions by
+  interleaving. Adjudicated on the direct legs; deviation recorded here.
+  ADJUDICATION (per the addendum protocol: per-cell min across each side's
+  two sweeps, pooled-vs-pooled):
+    pooled base 1018.404087075073 ns -> pooled cand 994.3638657282925 ns
+    = -2.3606%  STRICT DECREASE: PASS
+    verdict flips across all four sweeps: 0/2,189                     PASS
+    MAX pooled base 390,250 / pooled cand 372,542 <= 425,000          PASS
+    per-band pooled ratios: <1us 0.9847 | 1-2.5us 0.9680 |
+    2.5-20us 0.9685 | >=20us 0.9722 — every band improves; the clean
+    proportional carrier signature (NO flat add).
+  single-sweep geomeans (for floor-of-record continuity):
+    cand1 1005.4293443662827 / cand2 1003.3049233222944
+    -> single-sweep-comparable floor of record 1004.3665721515218 ns
+    (geomean of the two candidate sweep geomeans; the pooled 994.36 is the
+    adjudication reading — pooled-min is not comparable to future single
+    sweeps and is recorded as such).
+
+VERDICT: LAND — the NINTH fix through the -0197 ratchet.
+  Delivered -24.0 ns pooled (-2.36%) vs the priced prediction -10..-35 ns
+  (-1.0..-3.4%): the THIRD consecutive fix landing INSIDE its priced band.
+  New floor of record: corpus geomean 1,004.4 ns (single-sweep-comparable) /
+  bench ~1,579.7 ns (~314x). First sub-1 us RAW corpus geomean readings in
+  campaign history (both pooled 994.4 and both single candidate sweeps read
+  above/below: 1005.4 / 1003.3 — the margined call-off bar of <=950.0
+  unrounded + confirmation sweep still needs -5.4%).

@@ -1,0 +1,19 @@
+memory-guard: started pid=40901 pgid=40901 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=7200s free=84% disk=90GB cmd: caffeinate -i /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/7cde1e40-ab25-41d4-a5b6-559e204915b1/scratchpad/regex_perf_probe_base --corpus-jsonl regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl --out-jsonl docs/tasks/artifacts/result_carrier_slimming/corpus_base.jsonl
+# Regex corpus parse-time sweep — per-case stats in docs/tasks/artifacts/result_carrier_slimming/corpus_base.jsonl
+# corpus=regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl cases=2189 accepts=1834 rejects=355 expectation_mismatches=321
+# sampling: full=2189 (samples=1000 warmup=50) reduced=0 (samples=5 warmup=1, cold parse >= 100 ms) single_shot=0 (cold parse >= 2000 ms)
+# geomean(min_ns)=1184.1 max(min_ns)=388000 (3511 bytes, pcre2:testdata/testinput2:line_725)
+#
+# slowest 10 cases by min_ns:
+#     min (ns)  pattern bytes id
+#       388000           3511 pcre2:testdata/testinput2:line_725
+#       172917            164 pcre2:testdata/testinput2:line_4674
+#        92500            261 pcre2:testdata/testinput2:line_6526
+#        51250            450 pcre2:testdata/testinput2:line_2880
+#        35792            531 pcre2:testdata/testinput2:line_965
+#        35542            526 pcre2:testdata/testinput2:line_967
+#        26000            225 pcre2:testdata/testinput2:line_2921
+#        25375            163 pcre2:testdata/testinput2:line_1228
+#        24417            158 pcre2:testdata/testinput2:line_1226
+#        23917            155 pcre2:testdata/testinput2:line_1224
+memory-guard: completed exit=0 peak_tree_rss=16MB elapsed=11s; marker: rust/target/generated_logs/memory_guard/guard.40901.marker

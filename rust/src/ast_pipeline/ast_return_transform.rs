@@ -214,9 +214,9 @@ impl AstReturnTransformer {
                             other => {
                                 // RGX-0078.5.d.4.i — arena-alloc the wrapper node.
                                 array_elements.push(parser.arena.alloc(ParseNode {
-                                    rule_name: "spread_element",
+                                    rule_name: &"spread_element",
                                     content: other,
-                                    span: 0..0,
+                                    span: Span::new(0, 0),
                                 }));
                             }
                         }
@@ -278,7 +278,7 @@ impl AstReturnTransformer {
                         match #base_code {
                             ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
                                 for node in nodes {
-                                    let span_for_inherit = node.span.clone();
+                                    let span_for_inherit = node.span;
                                     let rule_name_for_inherit = node.rule_name;
                                     // RGX-0078.5.d.4.i — clone content out of the arena ref.
                                     let peeled = __pgen_peel_alternative(node.content.clone());
@@ -301,7 +301,7 @@ impl AstReturnTransformer {
                                                 array_elements.push(parser.arena.alloc(ParseNode {
                                                     rule_name: rule_name_for_inherit,
                                                     content: ParseContent::Shaped(*value),
-                                                    span: span_for_inherit.clone(),
+                                                    span: span_for_inherit,
                                                 }));
                                             }
                                         }
@@ -319,9 +319,9 @@ impl AstReturnTransformer {
                             other => {
                                 // RGX-0078.5.d.4.i — arena-alloc.
                                 array_elements.push(parser.arena.alloc(ParseNode {
-                                    rule_name: "flatten_spread_element",
+                                    rule_name: &"flatten_spread_element",
                                     content: other,
-                                    span: 0..0,
+                                    span: Span::new(0, 0),
                                 }));
                             }
                         }
@@ -333,9 +333,9 @@ impl AstReturnTransformer {
                     element_codes.push(quote! {
                         // RGX-0078.5.d.4.i — arena-alloc the array element.
                         array_elements.push(parser.arena.alloc(ParseNode {
-                            rule_name: #elem_name,
+                            rule_name: &#elem_name,
                             content: #elem_code,
-                            span: 0..0,
+                            span: Span::new(0, 0),
                         }));
                     });
                 }
@@ -530,9 +530,9 @@ impl AstReturnTransformer {
                 ParseContent::Quantified(elements, q) => ParseContent::Quantified(elements, q),
                 // RGX-0078.5.d.4.i — arena-alloc the degenerate single wrapper.
                 other => ParseContent::Sequence(vec![parser.arena.alloc(ParseNode {
-                    rule_name: "spread_base",
+                    rule_name: &"spread_base",
                     content: other,
-                    span: 0..0,
+                    span: Span::new(0, 0),
                 })]),
             }
         })
@@ -907,9 +907,9 @@ mod tests {
         // RGX-0078.5.d.4.i — children are arena `&'input` refs.
         let arena = crate::ast_pipeline::NodeArena::new();
         let seq = ParseContent::Sequence(vec![arena.alloc(ParseNode {
-            rule_name: "x",
+            rule_name: &"x",
             content: ParseContent::Terminal("a"),
-            span: 0..1,
+            span: crate::ast_pipeline::Span::new(0, 1),
         })]);
         assert_eq!(
             seq.to_json_value(),
@@ -926,9 +926,9 @@ mod tests {
 
         let arena = NodeArena::new();
         let inner = arena.alloc(ParseNode {
-            rule_name: "x",
+            rule_name: &"x",
             content: ParseContent::Terminal("a"),
-            span: 0..1,
+            span: crate::ast_pipeline::Span::new(0, 1),
         });
         let shaped_items = arena.alloc_shaped_values([PgenValue::Int(1), PgenValue::Str("s")]);
         let contents: Vec<ParseContent> = vec![

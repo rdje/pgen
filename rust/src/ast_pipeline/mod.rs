@@ -1027,7 +1027,15 @@ pub enum ParseContent<'input> {
     Shaped(PgenValue<'input>),
     Sequence(Vec<&'input ParseNode<'input>>),
     Alternative(&'input ParseNode<'input>),
-    Quantified(Vec<&'input ParseNode<'input>>, &'static str),
+    /// The quantifier-kind label is a THIN `&'static &'static str`
+    /// (RGX-0078.5.j.4 `-0212` RESULT-CARRIER SLIMMING): the double reference
+    /// halves the variant's label footprint (16 → 8 B), which is what shrinks
+    /// `ParseContent` 40 → 32 B (this variant is the size-dominant one). A
+    /// `u8`/enum kind was refuted — the kind set is OPEN (bounded forms such
+    /// as `"0,127"` are emitted as grammar-static literals). serde's blanket
+    /// `&T` impl delegates, so the serialized wire bytes are unchanged; the
+    /// emitted spelling is the static-promoted literal `&"*"`.
+    Quantified(Vec<&'input ParseNode<'input>>, &'static &'static str),
 }
 
 impl<'input> Clone for ParseContent<'input> {
@@ -1157,13 +1165,73 @@ impl<'input> ParseContent<'input> {
     }
 }
 
-/// Parse node
+/// The committed-result span — a `Copy` 8-byte `{start, end}` byte-offset
+/// pair (RGX-0078.5.j.4 `-0212` RESULT-CARRIER SLIMMING; was `Range<usize>`,
+/// 16 B). Serializes exactly like serde's `Range` impl (a `{"start","end"}`
+/// struct — declaration order IS the wire order) and `Debug`-prints as
+/// `start..end`, so neither the typed-AST JSON carrier nor trace output can
+/// drift. Offsets are `u32`: the generated parse entry refuses inputs longer
+/// than `u32::MAX` bytes up front (one branch per PARSE), so every
+/// construction-site cast is provably lossless.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
+pub struct Span {
+    pub start: u32,
+    pub end: u32,
+}
+
+impl Span {
+    #[inline(always)]
+    pub fn new(start: usize, end: usize) -> Self {
+        debug_assert!(
+            start <= u32::MAX as usize && end <= u32::MAX as usize,
+            "Span offsets exceed u32 — the parse-entry input-length guard was bypassed"
+        );
+        Span {
+            start: start as u32,
+            end: end as u32,
+        }
+    }
+
+    /// The span as a `Range<usize>` — the slicing/consumer view.
+    #[inline(always)]
+    pub fn range(&self) -> std::ops::Range<usize> {
+        self.start as usize..self.end as usize
+    }
+}
+
+impl std::fmt::Debug for Span {
+    /// `Range`'s `Debug` shape (`start..end`) so trace/debug output is
+    /// byte-identical to the pre-`-0212` carrier.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.start, self.end)
+    }
+}
+
+/// Parse node — the by-value committed-result carrier at every rule boundary.
+///
+/// RGX-0078.5.j.4 `-0212` RESULT-CARRIER SLIMMING: 72 → 48 B. `rule_name` is a
+/// THIN `&'static &'static str` (8 B; the emitted spelling is the
+/// static-promoted literal `&"name"`, the interpreter interns). Chosen over a
+/// `u16` id + table: both land at exactly 48 B by alignment, and the thin ref
+/// needs no table, no id→name resolution in shared serde/consumer code, and no
+/// new state — serde's blanket `&T` impl and `&&str`'s `PartialEq`/`Debug`
+/// delegation keep every derived behavior observably identical.
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct ParseNode<'input> {
-    pub rule_name: &'static str,
+    pub rule_name: &'static &'static str,
     pub content: ParseContent<'input>,
-    pub span: std::ops::Range<usize>,
+    pub span: Span,
 }
+
+// RGX-0078.5.j.4 `-0212` — the slimmed carrier layout is load-bearing for the
+// measured floor; a regression to a fatter layout must fail the BUILD, not a
+// bench run. (Sizes are pointer-width-dependent; pinned on 64-bit targets.)
+#[cfg(target_pointer_width = "64")]
+const _: () = {
+    assert!(std::mem::size_of::<Span>() == 8);
+    assert!(std::mem::size_of::<ParseContent<'static>>() == 32);
+    assert!(std::mem::size_of::<ParseNode<'static>>() == 48);
+};
 
 /// Memoization entry for a SUCCESSFUL parse.
 ///
@@ -2131,15 +2199,15 @@ mod tape_word_tests {
     fn boundary_pointer_round_trips_through_the_tagged_word() {
         let arena = NodeArena::new();
         let node: &ParseNode<'_> = arena.alloc(ParseNode {
-            rule_name: "tape_word_pin",
+            rule_name: &"tape_word_pin",
             content: ParseContent::Terminal("x"),
-            span: 0..1,
+            span: crate::ast_pipeline::Span::new(0, 1),
         });
         let word = TapeWord::boundary(node);
         let restored = word.boundary_node();
         assert!(std::ptr::eq(node, restored), "boundary identity must survive the tag");
-        assert_eq!(restored.rule_name, "tape_word_pin");
-        assert_eq!(restored.span, 0..1);
+        assert_eq!(*restored.rule_name, "tape_word_pin");
+        assert_eq!(restored.span, crate::ast_pipeline::Span::new(0, 1));
     }
 
     #[test]

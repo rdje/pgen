@@ -77,7 +77,7 @@ use crate::ast_pipeline::{
     ParseContent, ParseError, ParseNode, ParseResult, PgenValue, SemanticAnnotation, SemanticCloseScopeSpec,
     SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
     SemanticRuntimeDelta, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeTransaction,
-    SemanticRuntimeValue, SemanticScopeSpec, TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty,
+    SemanticRuntimeValue, SemanticScopeSpec, Span, TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty,
     UnifiedSemanticValue, compile_semantic_runtime_annotations, parse_canonical_transform_expression,
     parse_quantifier_bounds, parse_semantic_string_list,
 };
@@ -494,6 +494,24 @@ fn intern(s: &str) -> &'static str {
     leaked
 }
 
+/// Intern a grammar-derived string to the THIN `&'static &'static str` the
+/// slimmed carrier fields hold (RGX-0078.5.j.4 `-0212`): a second-level
+/// dedup+leak atop [`intern`], so each distinct string costs exactly one
+/// leaked `String` plus one leaked 8-byte reference slot, ever. A generated
+/// parser gets this level for free via static promotion of `&"literal"`; the
+/// interpreter mirrors it here.
+fn intern_ref(s: &str) -> &'static &'static str {
+    static INTERN_REF: OnceLock<Mutex<HashMap<String, &'static &'static str>>> = OnceLock::new();
+    let map = INTERN_REF.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = map.lock().expect("intern_ref mutex poisoned");
+    if let Some(&existing) = guard.get(s) {
+        return existing;
+    }
+    let leaked: &'static &'static str = Box::leak(Box::new(intern(s)));
+    guard.insert(s.to_string(), leaked);
+    leaked
+}
+
 /// A grammar's layout/whitespace-skipping policy — whether the parser skips leading layout
 /// (whitespace + comments) before matching terminals / regex-tokens, and trailing layout at the end
 /// of a full parse. Most grammars are whitespace-INSENSITIVE (all three `true`, layout is skipped),
@@ -883,7 +901,8 @@ impl<'g, 'i> Interp<'g, 'i> {
         // TRANSACTION (pre gates → body → effects → imports → post gates → exports → commit) WRAPS the
         // memo, so a rule's own gates/effects are re-evaluated fresh on every memo hit; the memo caches
         // only the BODY's `(node, raw, semantic_delta)`.
-        let interned_rule = intern(rule_name);
+        let interned_rule_ref = intern_ref(rule_name);
+        let interned_rule = *interned_rule_ref;
         self.with_rule_transaction(interned_rule, |s| {
             s.memoized_call(interned_rule, |s| {
                 // FINAL-PHASE-PREDICATE.2: a raw-view `phase: final` predicate
@@ -913,9 +932,9 @@ impl<'g, 'i> Interp<'g, 'i> {
                 let end_pos = s.position;
                 Ok((
                     ParseNode {
-                        rule_name: interned_rule,
+                        rule_name: interned_rule_ref,
                         content,
-                        span: start_pos..end_pos,
+                        span: Span::new(start_pos, end_pos),
                     },
                     semantic_raw_content,
                 ))
@@ -1017,7 +1036,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 if post_predicate_blocked {
                     return Err(ParseError::Backtrack {
-                        position: node.span.start,
+                        position: node.span.start as usize,
                     });
                 }
                 // FINAL-PHASE-PREDICATE.2: enqueue this rule's `phase: final`
@@ -1035,7 +1054,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                             &node.content,
                         )?;
                         txn.state_mut()
-                            .enqueue_deferred_obligation(resolved_spec, node.span.start);
+                            .enqueue_deferred_obligation(resolved_spec, node.span.start as usize);
                     }
                 }
                 for directive in s.compiled_sem.library_exports_for_rule(rule_name) {
@@ -1125,7 +1144,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                     InterpMemoEntry {
                         node: node.clone(),
                         raw_semantic_content: raw_semantic_content.clone(),
-                        end_pos: node.span.end,
+                        end_pos: node.span.end as usize,
                         semantic_delta: Some(semantic_delta),
                         tainted_at_epoch: if memo_store_tainted {
                             Some(self.semantic_state.write_epoch())
@@ -1836,7 +1855,7 @@ impl<'g, 'i> Interp<'g, 'i> {
         match content {
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                 for node in elements {
-                    if node.rule_name == target_name {
+                    if *node.rule_name == target_name {
                         return Some(*node);
                     }
                     if let Some(found) =
@@ -1848,7 +1867,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                 None
             }
             ParseContent::Alternative(node) => {
-                if node.rule_name == target_name {
+                if *node.rule_name == target_name {
                     Some(*node)
                 } else {
                     Self::find_semantic_named_descendant(&node.content, target_name)
@@ -2128,18 +2147,19 @@ impl<'g, 'i> Interp<'g, 'i> {
         rule_name: &str,
         start_pos: usize,
     ) -> ParseResult<ParseNode<'i>> {
-        let interned = intern(rule_name);
+        let interned_ref = intern_ref(rule_name);
+        let interned = *interned_ref;
         match rule_name {
             // Zero-width literal markers (span start..start) — ast_based_generator.rs:837-856.
             "true" => Ok(ParseNode {
-                rule_name: interned,
+                rule_name: interned_ref,
                 content: ParseContent::Terminal("true"),
-                span: start_pos..start_pos,
+                span: Span::new(start_pos, start_pos),
             }),
             "false" => Ok(ParseNode {
-                rule_name: interned,
+                rule_name: interned_ref,
                 content: ParseContent::Terminal("false"),
-                span: start_pos..start_pos,
+                span: Span::new(start_pos, start_pos),
             }),
             // `@…`-to-end-of-line matcher. Codegen skips leading layout UNCONDITIONALLY here
             // (`consume_optional_whitespace`, not layout-policy-gated) — ast_based_generator.rs:857-885.
@@ -2160,9 +2180,9 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 let end_pos = self.position;
                 Ok(ParseNode {
-                    rule_name: interned,
+                    rule_name: interned_ref,
                     content: ParseContent::Terminal(&self.input[at_pos..end_pos]),
-                    span: at_pos..end_pos,
+                    span: Span::new(at_pos, end_pos),
                 })
             }
             // Native any-single-Unicode-scalar matcher (no layout skip) — ast_based_generator.rs:894-912.
@@ -2174,9 +2194,9 @@ impl<'g, 'i> Interp<'g, 'i> {
                 let end_pos = start_pos + matched_char.len_utf8();
                 self.position = end_pos;
                 Ok(ParseNode {
-                    rule_name: interned,
+                    rule_name: interned_ref,
                     content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
-                    span: start_pos..end_pos,
+                    span: Span::new(start_pos, end_pos),
                 })
             }
             // Native single-ASCII-scalar matcher; Backtracks on a non-ASCII char or EOF — the negation
@@ -2189,9 +2209,9 @@ impl<'g, 'i> Interp<'g, 'i> {
                 let end_pos = start_pos + matched_char.len_utf8();
                 self.position = end_pos;
                 Ok(ParseNode {
-                    rule_name: interned,
+                    rule_name: interned_ref,
                     content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
-                    span: start_pos..end_pos,
+                    span: Span::new(start_pos, end_pos),
                 })
             }
             // Default: the Backtrack stub for a genuinely unknown reference — ast_based_generator.rs:939-944.
@@ -2540,9 +2560,9 @@ impl<'g, 'i> Interp<'g, 'i> {
             };
             let element_end = self.position;
             sequence_elements.push(self.arena.alloc(ParseNode {
-                rule_name: intern(&format!("element_{idx}")),
+                rule_name: intern_ref(&format!("element_{idx}")),
                 content: element_content,
-                span: element_start..element_end,
+                span: Span::new(element_start, element_end),
             }));
         }
         Ok(ParseContent::Sequence(sequence_elements))
@@ -2589,9 +2609,9 @@ impl<'g, 'i> Interp<'g, 'i> {
                     // The generated per-iteration node is rule_name "quantified", span 0..0 (a fixed
                     // synthetic wrapper — the real spans live on the element's own sub-nodes).
                     results.push(self.arena.alloc(ParseNode {
-                        rule_name: intern("quantified"),
+                        rule_name: &"quantified",
                         content,
-                        span: 0..0,
+                        span: Span::new(0, 0),
                     }));
                     last_position = current_position;
                     iteration_count += 1;
@@ -2604,7 +2624,7 @@ impl<'g, 'i> Interp<'g, 'i> {
             self.position = quantifier_start;
             return Err(ParseError::Backtrack { position: quantifier_start });
         }
-        Ok(ParseContent::Quantified(results, intern(quantifier)))
+        Ok(ParseContent::Quantified(results, intern_ref(quantifier)))
     }
 
     // ── Lookahead ────────────────────────────────────────────────────────────────────────────────────
@@ -3167,9 +3187,9 @@ impl<'g, 'i> Interp<'g, 'i> {
                     ParseContent::Sequence(elems) => ParseContent::Sequence(elems),
                     ParseContent::Quantified(elems, q) => ParseContent::Quantified(elems, q),
                     other => ParseContent::Sequence(vec![self.arena.alloc(ParseNode {
-                        rule_name: intern("spread_base"),
+                        rule_name: &"spread_base",
                         content: other,
-                        span: 0..0,
+                        span: Span::new(0, 0),
                     })]),
                 }
             }
@@ -3275,9 +3295,9 @@ impl<'g, 'i> Interp<'g, 'i> {
                             }
                         }
                         other => array_elements.push(self.arena.alloc(ParseNode {
-                            rule_name: intern("spread_element"),
+                            rule_name: &"spread_element",
                             content: other,
-                            span: 0..0,
+                            span: Span::new(0, 0),
                         })),
                     }
                 }
@@ -3285,7 +3305,7 @@ impl<'g, 'i> Interp<'g, 'i> {
                     match self.fold_return(inner, base, start_pos) {
                         ParseContent::Sequence(nodes) | ParseContent::Quantified(nodes, _) => {
                             for node in nodes {
-                                let span_for_inherit = node.span.clone();
+                                let span_for_inherit = node.span;
                                 let rule_name_for_inherit = node.rule_name;
                                 let peeled = peel_alternative(node.content.clone());
                                 match peeled {
@@ -3300,29 +3320,29 @@ impl<'g, 'i> Interp<'g, 'i> {
                                             array_elements.push(self.arena.alloc(ParseNode {
                                                 rule_name: rule_name_for_inherit,
                                                 content: ParseContent::Shaped(*value),
-                                                span: span_for_inherit.clone(),
+                                                span: span_for_inherit,
                                             }));
                                         }
                                     }
                                     other_content => array_elements.push(self.arena.alloc(ParseNode {
                                         rule_name: rule_name_for_inherit,
                                         content: other_content,
-                                        span: span_for_inherit.clone(),
+                                        span: span_for_inherit,
                                     })),
                                 }
                             }
                         }
                         other => array_elements.push(self.arena.alloc(ParseNode {
-                            rule_name: intern("flatten_spread_element"),
+                            rule_name: &"flatten_spread_element",
                             content: other,
-                            span: 0..0,
+                            span: Span::new(0, 0),
                         })),
                     }
                 }
                 _ => array_elements.push(self.arena.alloc(ParseNode {
-                    rule_name: intern(&format!("element_{idx}")),
+                    rule_name: intern_ref(&format!("element_{idx}")),
                     content: self.fold_return(element, base, start_pos),
-                    span: 0..0,
+                    span: Span::new(0, 0),
                 })),
             }
         }
@@ -3532,7 +3552,7 @@ mod tests {
     #[test]
     fn peel_alternative_unwraps_to_the_core_content() {
         let inner = ParseContent::Terminal("core");
-        let node = ParseNode { rule_name: "r", content: inner, span: 0..4 };
+        let node = ParseNode { rule_name: &"r", content: inner, span: Span::new(0, 4) };
         let wrapped = ParseContent::Alternative(&node);
         assert_eq!(peel_alternative(wrapped), ParseContent::Terminal("core"));
     }

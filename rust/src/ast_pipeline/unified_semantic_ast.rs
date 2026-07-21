@@ -8,7 +8,7 @@
 //!
 //! This eliminates the need for multiple parallel AST representations and parsers.
 
-use super::{Logger, ParseContent, ParseNode};
+use super::{Logger, ParseContent, ParseNode, Span};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -102,7 +102,7 @@ impl UnifiedSemanticAST {
         parse_tree: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<(String, Self), String> {
-        let root = if parse_tree.rule_name == "semantic_annotation" {
+        let root = if *parse_tree.rule_name == "semantic_annotation" {
             parse_tree
         } else if let Some(node) = Self::find_first_rule_node(parse_tree, "semantic_annotation") {
             node
@@ -189,7 +189,7 @@ impl UnifiedSemanticAST {
             let name_raw = name_raw_owned.as_str();
             let name_text = name_raw.trim().to_ascii_lowercase();
 
-            let span_text = Self::slice_span(input, &root.span).ok_or_else(|| {
+            let span_text = Self::slice_span(input, root.span).ok_or_else(|| {
                 format!(
                     "semantic_annotation root span {}..{} out of bounds for input len {}",
                     root.span.start,
@@ -243,7 +243,7 @@ impl UnifiedSemanticAST {
         let value_node = Self::find_first_rule_node(root, "annotation_value")
             .ok_or_else(|| "Generated semantic parse tree missing annotation_value".to_string())?;
 
-        let name_text = Self::slice_span(input, &name_node.span)
+        let name_text = Self::slice_span(input, name_node.span)
             .ok_or_else(|| {
                 format!(
                     "annotation_name span {}..{} out of bounds for input len {}",
@@ -254,7 +254,7 @@ impl UnifiedSemanticAST {
             })?
             .trim()
             .to_ascii_lowercase();
-        let value_text = Self::slice_span(input, &value_node.span)
+        let value_text = Self::slice_span(input, value_node.span)
             .ok_or_else(|| {
                 format!(
                     "annotation_value span {}..{} out of bounds for input len {}",
@@ -345,7 +345,7 @@ impl UnifiedSemanticAST {
         node: &'a ParseNode<'input>,
         rule_name: &str,
     ) -> Option<&'a ParseNode<'input>> {
-        if node.rule_name == rule_name {
+        if *node.rule_name == rule_name {
             return Some(node);
         }
 
@@ -369,12 +369,9 @@ impl UnifiedSemanticAST {
         None
     }
 
-    fn slice_span<'input>(
-        input: &'input str,
-        span: &std::ops::Range<usize>,
-    ) -> Option<&'input str> {
-        if span.start <= span.end && span.end <= input.len() {
-            input.get(span.start..span.end)
+    fn slice_span<'input>(input: &'input str, span: Span) -> Option<&'input str> {
+        if span.start <= span.end && (span.end as usize) <= input.len() {
+            input.get(span.range())
         } else {
             None
         }

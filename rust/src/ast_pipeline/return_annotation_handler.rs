@@ -352,7 +352,7 @@ impl ReturnAnnotationHandler {
                                 &format!("{}    ", indent),
                             )?;
                             // Create a ParseNode wrapping the content
-                            code.push_str(&format!("{}    ParseNode {{ rule_name: \"element\", content: {}, span: 0..0 }},\n", indent, elem_code));
+                            code.push_str(&format!("{}    ParseNode {{ rule_name: &\"element\", content: {}, span: Span::new(0, 0) }},\n", indent, elem_code));
                         }
                         ArrayElement::Spread(ann) => {
                             // For spread elements, unpack if it's a sequence

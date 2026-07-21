@@ -736,7 +736,7 @@ impl AstBasedGenerator {
             use std::ops::Range;
             #regex_import
             use crate::ast_pipeline::{
-                Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, NodeArena, PgenValue, RuleId, CycleType, RecursionGuard
+                Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, NodeArena, PgenValue, RuleId, CycleType, RecursionGuard, Span
             };
         }
     }
@@ -1284,9 +1284,9 @@ impl AstBasedGenerator {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                     let start_pos = self.position;
                     Ok(ParseNode {
-                        rule_name: #rule_name,
+                        rule_name: &#rule_name,
                         content: ParseContent::Terminal("true"),
-                        span: start_pos..start_pos,
+                        span: Span::new(start_pos, start_pos),
                     })
                 }
             },
@@ -1294,9 +1294,9 @@ impl AstBasedGenerator {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                     let start_pos = self.position;
                     Ok(ParseNode {
-                        rule_name: #rule_name,
+                        rule_name: &#rule_name,
                         content: ParseContent::Terminal("false"),
-                        span: start_pos..start_pos,
+                        span: Span::new(start_pos, start_pos),
                     })
                 }
             },
@@ -1323,9 +1323,9 @@ impl AstBasedGenerator {
                     let end_pos = self.position;
                     let matched = &self.input[start_pos..end_pos];
                     Ok(ParseNode {
-                        rule_name: #rule_name,
+                        rule_name: &#rule_name,
                         content: ParseContent::Terminal(matched),
-                        span: start_pos..end_pos,
+                        span: Span::new(start_pos, end_pos),
                     })
                 }
             },
@@ -1351,9 +1351,9 @@ impl AstBasedGenerator {
                     let end_pos = start_pos + matched_char.len_utf8();
                     self.position = end_pos;
                     Ok(ParseNode {
-                        rule_name: #rule_name,
+                        rule_name: &#rule_name,
                         content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
-                        span: start_pos..end_pos,
+                        span: Span::new(start_pos, end_pos),
                     })
                 }
             },
@@ -1376,9 +1376,9 @@ impl AstBasedGenerator {
                     let end_pos = start_pos + matched_char.len_utf8();
                     self.position = end_pos;
                     Ok(ParseNode {
-                        rule_name: #rule_name,
+                        rule_name: &#rule_name,
                         content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
-                        span: start_pos..end_pos,
+                        span: Span::new(start_pos, end_pos),
                     })
                 }
             },
@@ -2112,6 +2112,18 @@ impl AstBasedGenerator {
             }
 
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
+                // RGX-0078.5.j.4 `-0212`: the slimmed carrier stores u32 span
+                // offsets; refuse over-length inputs up front (one branch per
+                // PARSE) so every span cast below is provably lossless. Such
+                // inputs were never practically parseable (a packrat memo over
+                // a 4 GiB input is memory-infeasible) — this makes the bound
+                // honest instead of silent.
+                if self.input.len() > u32::MAX as usize {
+                    return Err(ParseError::InvalidSyntax {
+                        message: "input exceeds the 4 GiB span bound of the generated parser",
+                        position: 0,
+                    });
+                }
                 self.prepare_parse_state();
                 #bare_parse_compute
                 let parse_outcome = self.#parse_method();
@@ -2129,6 +2141,18 @@ impl AstBasedGenerator {
             /// unknown/unsupported `entry` falls back to the canonical entry, so this is
             /// behavior-identical to `parse()` for single-entry grammars.
             pub fn parse_from(&mut self, entry: &str) -> ParseResult<ParseNode<'input>> {
+                // RGX-0078.5.j.4 `-0212`: the slimmed carrier stores u32 span
+                // offsets; refuse over-length inputs up front (one branch per
+                // PARSE) so every span cast below is provably lossless. Such
+                // inputs were never practically parseable (a packrat memo over
+                // a 4 GiB input is memory-infeasible) — this makes the bound
+                // honest instead of silent.
+                if self.input.len() > u32::MAX as usize {
+                    return Err(ParseError::InvalidSyntax {
+                        message: "input exceeds the 4 GiB span bound of the generated parser",
+                        position: 0,
+                    });
+                }
                 self.prepare_parse_state();
                 #bare_parse_clear
                 let parse_outcome = match entry {
@@ -2757,7 +2781,7 @@ impl AstBasedGenerator {
                                 }
                             }
                             return Err(ParseError::Backtrack {
-                                position: node.span.start,
+                                position: node.span.start as usize,
                             });
                         }
                             // FINAL-PHASE-PREDICATE.2: enqueue this rule's
@@ -2791,7 +2815,7 @@ impl AstBasedGenerator {
                                         .state_mut()
                                         .enqueue_deferred_obligation(
                                             resolved_spec,
-                                            node.span.start,
+                                            node.span.start as usize,
                                         );
                                 }
                             }
@@ -3623,9 +3647,9 @@ impl AstBasedGenerator {
 
             Ok((
                 ParseNode {
-                    rule_name: #rule_name,
+                    rule_name: &#rule_name,
                     content: result,
-                    span: start_pos..end_pos,
+                    span: Span::new(start_pos, end_pos),
                 },
                 semantic_raw_content,
             ))
@@ -3928,9 +3952,9 @@ impl AstBasedGenerator {
                 match &result {
                     Ok(node) => {
                         if self.trace_enabled() {
-                            let consumed = node.span.end - start_pos;
+                            let consumed = node.span.end as usize - start_pos;
                             if consumed > 0 {
-                                let consumed_preview = self.byte_window_lossy(start_pos, node.span.end);
+                                let consumed_preview = self.byte_window_lossy(start_pos, node.span.end as usize);
                                 self.logger.log_success(#filename, self.position as u32, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')", #rule_name, start_pos, node.span.end, consumed, consumed_preview));
                             } else {
                                 self.logger.log_warning(#filename, self.position as u32, &format!("⚠️ Rule '{}' matched with zero length at position {}", #rule_name, start_pos));
@@ -5347,9 +5371,9 @@ impl AstBasedGenerator {
                 // RGX-0078.5.d.4.i — arena-alloc the child element and store the
                 // `&'input` borrow (the `ParseContent::Sequence` Vec holds refs).
                 sequence_elements.push(parser.arena.alloc(ParseNode {
-                    rule_name: #element_name,
+                    rule_name: &#element_name,
                     content: element_content,
-                    span: element_start..element_end,
+                    span: Span::new(element_start, element_end),
                 }));
             }
         })
@@ -5831,9 +5855,9 @@ impl AstBasedGenerator {
                     let parser = p;
                     #element_logic;
                     Ok(ParseNode {
-                        rule_name: "quantified",
+                        rule_name: &"quantified",
                         content: result,
-                        span: 0..0,
+                        span: Span::new(0, 0),
                     })
                 }) {
                     let current_position = parser.position;
@@ -5872,7 +5896,7 @@ impl AstBasedGenerator {
             // to avoid the always-false `iteration_count < 0` comparison.
             #min_check_tokens
 
-            let result = ParseContent::Quantified(results, #quantifier_label);
+            let result = ParseContent::Quantified(results, &#quantifier_label);
         })
     }
 
@@ -6416,9 +6440,9 @@ impl AstBasedGenerator {
                     match &result {
                         Ok(node) => {
                             if self.trace_enabled() {
-                                let consumed = node.span.end - start_pos;
+                                let consumed = node.span.end as usize - start_pos;
                                 if consumed > 0 {
-                                    let consumed_preview = self.byte_window_lossy(start_pos, node.span.end);
+                                    let consumed_preview = self.byte_window_lossy(start_pos, node.span.end as usize);
                                     self.logger.log_success(#filename, self.position as u32, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')", rule_name, start_pos, node.span.end, consumed, consumed_preview));
                                 } else {
                                     self.logger.log_warning(#filename, self.position as u32, &format!("⚠️ Rule '{}' matched with zero length at position {}", rule_name, start_pos));
@@ -7868,7 +7892,7 @@ impl AstBasedGenerator {
                 match content {
                     ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                         for node in elements {
-                            if node.rule_name == target_name {
+                            if *node.rule_name == target_name {
                                 // RGX-0078.5.d.4.i — deref `&&ParseNode` to `&ParseNode`.
                                 return Some(*node);
                             }
@@ -7881,7 +7905,7 @@ impl AstBasedGenerator {
                         None
                     }
                     ParseContent::Alternative(node) => {
-                        if node.rule_name == target_name {
+                        if *node.rule_name == target_name {
                             // RGX-0078.5.d.4.i — deref `&&ParseNode` to `&ParseNode`.
                             Some(*node)
                         } else {
@@ -8815,7 +8839,7 @@ impl AstBasedGenerator {
                         MemoEntry {
                             result: Some(node.clone()),
                             raw_semantic_content: raw_semantic_content.clone(),
-                            end_pos: node.span.end,
+                            end_pos: node.span.end as usize,
                             semantic_delta: Some(semantic_delta),
                             coverage_delta,
                             tainted_at_epoch: if memo_store_tainted {

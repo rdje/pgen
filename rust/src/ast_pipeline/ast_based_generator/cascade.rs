@@ -1665,9 +1665,9 @@ impl AstBasedGenerator {
                         let result = #inplace;
                         let end_pos = parser.deriv_pos;
                         ParseNode {
-                            rule_name: #rule_name,
+                            rule_name: &#rule_name,
                             content: result,
-                            span: start_pos..end_pos,
+                            span: Span::new(start_pos, end_pos),
                         }
                     }
                 });
@@ -1719,9 +1719,9 @@ impl AstBasedGenerator {
                 #post_parse_transform_tokens
                 let end_pos = parser.deriv_pos;
                 ParseNode {
-                    rule_name: #rule_name,
+                    rule_name: &#rule_name,
                     content: result,
-                    span: start_pos..end_pos,
+                    span: Span::new(start_pos, end_pos),
                 }
             }
         })
@@ -1973,9 +1973,9 @@ impl AstBasedGenerator {
                 let element_content = #element_logic;
                 let element_end = parser.deriv_pos;
                 sequence_elements.push(parser.arena.alloc(ParseNode {
-                    rule_name: #element_name,
+                    rule_name: &#element_name,
                     content: element_content,
-                    span: element_start..element_end,
+                    span: Span::new(element_start, element_end),
                 }));
             }
         })
@@ -2044,7 +2044,7 @@ impl AstBasedGenerator {
                         } else {
                             Ok(quote! {
                                 let __pgen_alt_node = parser.deriv_next_boundary();
-                                parser.deriv_pos = __pgen_alt_node.span.end;
+                                parser.deriv_pos = __pgen_alt_node.span.end as usize;
                                 let result = ParseContent::Alternative(__pgen_alt_node);
                             })
                         }
@@ -2130,12 +2130,12 @@ impl AstBasedGenerator {
             for _ in 0..__pgen_quant_n {
                 #element_logic
                 results.push(parser.arena.alloc(ParseNode {
-                    rule_name: "quantified",
+                    rule_name: &"quantified",
                     content: result,
-                    span: 0..0,
+                    span: Span::new(0, 0),
                 }));
             }
-            let result = ParseContent::Quantified(results, #quantifier_label);
+            let result = ParseContent::Quantified(results, &#quantifier_label);
         })
     }
 
@@ -2166,7 +2166,7 @@ impl AstBasedGenerator {
                         // land exactly on the recorded match end with the tape
                         // segment fully consumed.
                         debug_assert_eq!(
-                            __pgen_node.span.end,
+                            __pgen_node.span.end as usize,
                             __pgen_match_end,
                             "derivation-tape drift in rule '{}': build end != match end",
                             #rule_name,

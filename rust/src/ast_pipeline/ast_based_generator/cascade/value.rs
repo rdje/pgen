@@ -861,7 +861,7 @@ impl AstBasedGenerator {
                             Ok(quote! {
                                 {
                                     let __pgen_alt_node = parser.deriv_next_boundary();
-                                    parser.deriv_pos = __pgen_alt_node.span.end;
+                                    parser.deriv_pos = __pgen_alt_node.span.end as usize;
                                     __pgen_alt_node.content.to_shaped_value(parser.arena)
                                 }
                             })
@@ -1096,7 +1096,7 @@ impl AstBasedGenerator {
                             Ok(quote! {
                                 {
                                     let __pgen_alt_node = parser.deriv_next_boundary();
-                                    parser.deriv_pos = __pgen_alt_node.span.end;
+                                    parser.deriv_pos = __pgen_alt_node.span.end as usize;
                                 }
                             })
                         }

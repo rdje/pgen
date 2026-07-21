@@ -7050,9 +7050,9 @@ mod tests {
     fn post_predicates_can_inspect_raw_or_shaped_content_kind() {
         let state = SemanticRuntimeState::new();
         let inner_node = ParseNode {
-            rule_name: "inner",
+            rule_name: &"inner",
             content: ParseContent::Terminal("pkg"),
-            span: 0..3,
+            span: crate::ast_pipeline::Span::new(0, 3),
         };
         let raw_content = ParseContent::Sequence(vec![&inner_node]);
         let shaped_content = ParseContent::TransformedTerminal("pkg".to_string());

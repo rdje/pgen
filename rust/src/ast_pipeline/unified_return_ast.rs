@@ -801,7 +801,7 @@ impl UnifiedReturnAST {
         if let ParseContent::Shaped(shaped) = &parse_tree.content {
             return Self::parse_typed_return_value(&shaped.to_serde_value());
         }
-        let root = if parse_tree.rule_name == "return_annotation" {
+        let root = if *parse_tree.rule_name == "return_annotation" {
             parse_tree
         } else if let Some(node) = Self::find_first_rule_node(parse_tree, "return_annotation") {
             node
@@ -1718,7 +1718,7 @@ impl UnifiedReturnAST {
                                 "{}        ParseContent::Sequence(nodes) => nodes,\n",
                                 indent
                             ));
-                            code.push_str(&format!("{}        other => vec![ParseNode {{ rule_name: \"spread_element\", content: other, span: 0..0 }}],\n", indent));
+                            code.push_str(&format!("{}        other => vec![ParseNode {{ rule_name: &\"spread_element\", content: other, span: Span::new(0, 0) }}],\n", indent));
                             code.push_str(&format!("{}    }}),", indent));
                         }
                         _ => {
@@ -1734,7 +1734,7 @@ impl UnifiedReturnAST {
                                 &format!("{}    ", indent),
                                 logger,
                             )?;
-                            code.push_str(&format!("{}    ParseNode {{ rule_name: \"element_{}\", content: {}, span: 0..0 }}", 
+                            code.push_str(&format!("{}    ParseNode {{ rule_name: &\"element_{}\", content: {}, span: Span::new(0, 0) }}", 
                                 indent, i, elem_code));
                         }
                     }
@@ -2010,7 +2010,7 @@ impl UnifiedReturnAST {
         node: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
-        if node.rule_name != "return_annotation" {
+        if *node.rule_name != "return_annotation" {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
@@ -2018,7 +2018,7 @@ impl UnifiedReturnAST {
                 Self::parse_generated_value_node(input, node, logger)
             }
             ParseContent::Alternative(inner) => {
-                if inner.rule_name == "arrow" {
+                if *inner.rule_name == "arrow" {
                     Ok(UnifiedReturnAST::Passthrough)
                 } else {
                     Self::parse_generated_value_node(input, inner, logger)
@@ -2055,7 +2055,7 @@ impl UnifiedReturnAST {
             // annotation-grammar self-parse boundary, not the hot parse path.
             return Self::parse_typed_return_value(&value.to_serde_value());
         }
-        match node.rule_name {
+        match *node.rule_name {
             "return_annotation" => {
                 Self::parse_generated_return_annotation_node(input, node, logger)
             }
@@ -2127,7 +2127,7 @@ impl UnifiedReturnAST {
         node: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
-        if node.rule_name != "expression" {
+        if *node.rule_name != "expression" {
             return Self::parse_generated_value_node(input, node, logger);
         }
         let selected = Self::alternative_child(node)
@@ -2140,7 +2140,7 @@ impl UnifiedReturnAST {
         node: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
-        if node.rule_name != "primary_expression" {
+        if *node.rule_name != "primary_expression" {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
@@ -2179,7 +2179,7 @@ impl UnifiedReturnAST {
         node: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
-        if node.rule_name != "spreadable_expression" {
+        if *node.rule_name != "spreadable_expression" {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
@@ -2233,7 +2233,7 @@ impl UnifiedReturnAST {
         input: &'input str,
         node: &ParseNode<'input>,
     ) -> Result<ExtractionTarget, String> {
-        match node.rule_name {
+        match *node.rule_name {
             "extraction_target" => match &node.content {
                 ParseContent::Alternative(inner) => {
                     Self::parse_generated_extraction_target_node(input, inner)
@@ -2365,7 +2365,7 @@ impl UnifiedReturnAST {
         node: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
-        if node.rule_name != "accessor_base_lr_base" {
+        if *node.rule_name != "accessor_base_lr_base" {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
@@ -2501,7 +2501,7 @@ impl UnifiedReturnAST {
         input: &'input str,
         node: &ParseNode<'input>,
     ) -> Result<UnifiedReturnAST, String> {
-        let value = if node.rule_name == "string_literal" {
+        let value = if *node.rule_name == "string_literal" {
             match &node.content {
                 ParseContent::Alternative(inner) => {
                     let inner_elements = Self::sequence_elements(inner, "string_literal_inner")?;
@@ -2537,7 +2537,7 @@ impl UnifiedReturnAST {
         input: &'input str,
         node: &ParseNode<'input>,
     ) -> Result<UnifiedReturnAST, String> {
-        let numeric_node = if node.rule_name == "number_literal" {
+        let numeric_node = if *node.rule_name == "number_literal" {
             Self::alternative_child(node)
                 .ok_or_else(|| "number_literal missing selected branch".to_string())?
         } else {
@@ -2650,7 +2650,7 @@ impl UnifiedReturnAST {
         input: &'input str,
         node: &ParseNode<'input>,
     ) -> Result<String, String> {
-        if node.rule_name != "property_key" {
+        if *node.rule_name != "property_key" {
             return Err(format!(
                 "Expected property_key node, found '{}'",
                 node.rule_name
@@ -2658,7 +2658,7 @@ impl UnifiedReturnAST {
         }
         let selected = Self::alternative_child(node)
             .ok_or_else(|| "property_key missing selected branch".to_string())?;
-        match selected.rule_name {
+        match *selected.rule_name {
             "identifier" => Ok(Self::node_text(input, selected)?.trim().to_string()),
             "string_literal" => match Self::parse_generated_string_literal_node(input, selected)? {
                 UnifiedReturnAST::StringLiteral { value } => Ok(value),
@@ -2731,7 +2731,7 @@ impl UnifiedReturnAST {
         node: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
-        if node.rule_name != "array_element" {
+        if *node.rule_name != "array_element" {
             return Self::parse_generated_value_node(input, node, logger);
         }
         let expr_node = Self::alternative_child(node)
@@ -2776,7 +2776,7 @@ impl UnifiedReturnAST {
         node: &'a ParseNode<'input>,
         target_rule: &str,
     ) -> Option<&'a ParseNode<'input>> {
-        if node.rule_name == target_rule {
+        if *node.rule_name == target_rule {
             return Some(node);
         }
         match &node.content {
@@ -2813,11 +2813,11 @@ impl UnifiedReturnAST {
         target_rule: &str,
     ) -> Option<&'a ParseNode<'input>> {
         for element in elements {
-            if element.rule_name == target_rule {
+            if *element.rule_name == target_rule {
                 return Some(element);
             }
             if let ParseContent::Alternative(inner) = &element.content {
-                if inner.rule_name == target_rule {
+                if *inner.rule_name == target_rule {
                     return Some(inner);
                 }
             }
@@ -2858,13 +2858,13 @@ impl UnifiedReturnAST {
         input: &'input str,
         node: &ParseNode<'input>,
     ) -> Result<&'input str, String> {
-        if node.span.start > node.span.end || node.span.end > input.len() {
+        if node.span.start > node.span.end || node.span.end as usize > input.len() {
             return Err(format!(
                 "Invalid span {}..{} for rule '{}'",
                 node.span.start, node.span.end, node.rule_name
             ));
         }
-        Ok(&input[node.span.clone()])
+        Ok(&input[node.span.range()])
     }
 }
 
