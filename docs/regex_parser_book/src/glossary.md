@@ -140,7 +140,12 @@ A downstream consumer of the PGEN regex parser. RGX uses the regex parser's AST 
 
 ## Schema version
 
-A version number tracking the AST output shape, distinct from the parser release version. Bumped on shape-affecting changes. See [Schema Versioning](schema-versioning.md).
+A version number tracking an output shape, distinct from the parser release version. The bare
+label is overloaded across surfaces — it may mean the **regex AST-dump schema version**
+(`regex_ast_dump_schema_version`, currently `1` — what per-release changelog "Schema version"
+rows track), the **embedding-API schema version** (`EmbeddingApiContract.schema_version`,
+currently `2`), or the contract's `0.x` **shape-milestone labels**. See
+[Schema Versioning](schema-versioning.md) for the disambiguation table.
 
 ## Semantic annotation
 

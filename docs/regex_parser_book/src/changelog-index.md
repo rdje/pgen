@@ -11,6 +11,11 @@ This chapter is an index — pointers into other docs that carry the full change
 | `CHANGES.md` (root) | Per-release | Human-readable summary of all changes. |
 | Git tags + commit log | Commit-by-commit | The most granular source. |
 
+> **Reading "Schema version" rows below:** a per-release "Schema version" row (e.g. "stays at
+> `1`") tracks the **regex AST-dump schema version** (`regex_ast_dump_schema_version`, currently
+> `1`) — *not* the embedding-API `schema_version` (currently `2`), which is a separate
+> host-surface field. See [Schema Versioning](schema-versioning.md) for the disambiguation.
+
 When investigating "what changed and why," start with the contract document, drop down to the ledger for specific bugs, fall back to git for diffs.
 
 ## Releases relevant to this book

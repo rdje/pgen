@@ -13,6 +13,23 @@ A single parser release can carry the same schema version as the previous releas
 
 The contract document `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` is the authoritative source for both numbers per release.
 
+## "Schema version" appears with different values — disambiguation
+
+Across PGEN's surfaces the bare label "Schema version" has been used for **three different
+numbers**, plus the release version above. They move independently, so two surfaces quoting
+different values are almost never contradicting each other — they are naming different fields.
+Check the value against this table before planning a migration:
+
+| Number | Current value | Machine source | What it tracks |
+|---|---|---|---|
+| **Regex AST-dump schema version** | `1` | `REGEX_AST_DUMP_SCHEMA_VERSION` (`rust/src/embedding_api.rs`); surfaced as `regex_ast_dump_schema_version` in `parser_embedding_api_contract()` and as "Regex AST-dump schema version" in the contract's identity block | The machine-pinnable integer for the regex AST-dump wire shape. **This is the number the per-release changelog/ledger "Schema version" rows track** (e.g. "Schema version: stays at `1`"). |
+| **Embedding-API schema version** | `2` | `EMBEDDING_API_SCHEMA_VERSION` (`rust/src/embedding_api.rs`); surfaced as `EmbeddingApiContract.schema_version` | The schema of the *embedding-API host surface* itself (the typed-Json carrier era was its `1 → 2` bump). A host-surface number — independent of the regex AST-dump schema. |
+| **Contract shape-milestone labels** | e.g. `0.16.0` | This chapter's timeline + the per-release contract sections | Fine-grained, human-readable milestones of the AST output shape as the annotation slices landed. Labels, not a runtime field — use them to navigate the changelog, never to pin an integration. |
+
+Practical rule: **pin your integration against the two machine integers** read from
+`parser_embedding_api_contract()` (`regex_ast_dump_schema_version = 1`,
+`schema_version = 2`); read the `0.x` milestone labels only as changelog navigation.
+
 ## What "shape change" means
 
 Any of these triggers a schema version bump:

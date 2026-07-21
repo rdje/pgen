@@ -11,7 +11,12 @@ The regex parser exposes a small, stable Rust API. This chapter is the canonical
 | Module path | `pgen::generated_parsers::regex` |
 | Parser type | `RegexParser<'input>` |
 | Entry method (default emit) | `parse_full_regex()` |
-| Schema version | `2` (typed-Json carrier era — see [Schema Versioning](schema-versioning.md)) |
+| Embedding-API schema version (`EmbeddingApiContract.schema_version`) | `2` (typed-Json carrier era) |
+| Regex AST-dump schema version (`regex_ast_dump_schema_version`) | `1` (the number per-release changelog "Schema version" rows track) |
+
+These are **two different machine fields** that both get called "schema version" in shorthand —
+see [Schema Versioning](schema-versioning.md) for the full disambiguation (including the
+contract's `0.x` shape-milestone labels, a third axis).
 
 ## Top-level types
 
@@ -198,4 +203,4 @@ removal note above).
 | `ParseContent` variants | **NOT** stable in the strictest sense — new variants may be added (e.g. `Json` was added in 1.1.x). Consumers should pattern-match exhaustively or with a `_` arm to remain forward-compatible. |
 | `rule_name` values | Tied to rule names in `grammars/regex.ebnf`. Renames or rule additions may happen across releases — see the per-release changelog. |
 | AST shape per rule | Documented per release in the integration contract; this book is the cumulative-state view. |
-| Schema version (1 → 2) | Published in the contract. Consumers should check the version when bumping PGEN. |
+| Embedding-API schema version (its `1 → 2` bump = the typed-Json carrier era) | Published in the contract as `EmbeddingApiContract.schema_version`. The regex AST-dump schema version (`regex_ast_dump_schema_version`) is a separate field, currently `1`. Consumers should check both when bumping PGEN — see [Schema Versioning](schema-versioning.md). |
