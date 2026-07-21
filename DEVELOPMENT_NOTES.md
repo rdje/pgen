@@ -1,5 +1,32 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-21 - PGEN-STRUCTURED-WITNESS-SYNTH-0004 — a replayed name is a LEXICAL SURFACE, not a string: carry the terminator; and a twice-refuted gap can be a composition, not a missing mechanism
+
+**The composition lesson.** `context_member_method_call` resisted two implement-and-revert
+attempts (`.4b.13.1`, `.4b.19`) and a five-pass witness apparatus — yet the close needed ZERO
+new mechanism families: every ingredient (prelude arming, name replay, structure forcing)
+already existed, each proven in isolation in a DIFFERENT pass. The durable pattern: when a
+residual survives N single-mechanism passes whose probes each satisfy a DIFFERENT necessary
+condition, stop designing new mechanisms and build the composition pass that puts the proven
+pieces into ONE plan (with each piece's scope-gate keeping the original passes byte-identical).
+The `.1` A–F parse matrix was what licensed this: it separated the necessary conditions
+empirically (cells B/E/F) before any code moved.
+
+**The terminator lesson (the one measured bisection iteration).** The head-leaf pin rendered
+the stored name `\foo` directly and the sample lexed WRONG: an escaped identifier's trailing
+space is part of its rendered lexical surface (the LEXICAL-ANNOTATIONS.3c follow terminator),
+and `split_whitespace()` had silently stripped it, fusing `\foo.member` into one token. When a
+generator replays captured render text at a NEW position, the unit of replay is the rendered
+lexical surface (token + its terminator layout), never the trimmed string — trimming re-opens
+exactly the token-fusion class the follow-restriction machinery exists to close. The fix
+(`leading_rendered_token_with_terminator`) keeps the producer render's ONE terminating
+whitespace char with the token.
+
+**Debug-probe render inspection beat trace-level bisection.** The fused head was visible
+directly in the `[structured-witness-probe]` sample dump (`\foo.\foo_0` vs the members'
+`\foo_0 .`) — reading the RENDERED BYTES against the expected token boundaries pinpointed
+WHY+WHERE in one probe run, with no `--trace-rules` pass needed.
+
 ## 2026-07-21 - PGEN-RGX-0089-0001 — a context-dual token needs a derivation PER CONTEXT; "behavior-invisible" claims are only as wide as the contexts you checked
 
 **The `.3.13` lesson, sharpened.** When `.3.13` dropped the escape-anchor letters from `simple_escape`'s positive set, its comment reasoned "anchor won the tie-break anyway, so dropping them is behavior-invisible". That reasoning quantified over ONE context — the pattern body, where `anchor` is reachable. `\b` is context-DUAL (assertion in the body, backspace in a class), and the extended class reaches escapes through the same generic `escape` rule with NO anchor alternative — so the drop deleted the only derivation of `(?[\b])`. The discipline going forward: before narrowing a shared rule's accept set, enumerate every REFERENCING context (grep the rule's callers transitively) and re-verify the claim in each; a tie-break argument made in one context proves nothing about a context where the winning rule doesn't exist.

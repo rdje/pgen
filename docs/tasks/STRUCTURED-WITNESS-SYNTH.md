@@ -191,15 +191,54 @@ re-derives the WHY+WHERE live before any design.
 
 ### `.3` — IMPLEMENT (generator-only, measured GLOBALLY, keep only on improvement)
 
-- Land the synthesizer per `.2`; measure the GLOBAL cert (canonical + union,
-  seeds 0/7/42); keep ONLY on improvement ([[project_cert_coverage_tournament_loser_leak]]);
-  ZERO newly-UNKNOWN; `spf=0`; fully-certified roster byte-identical/inert;
-  `cargo test --lib` green (+ new lock tests); clippy source-clean;
-  `sv_stimuli_quality_gate` + `stimuli_cross_family_platform_gate` PASS.
-- Generator-only ⇒ NO release/schema/ledger bump (no parser accepted-language
-  change). If the metric does not move: root-cause with the toolbox, bank the
-  finding, revert, and extend the obstacle map honestly — the director-committed
-  goal stands, so the next design iteration starts from the enriched map.
+- **Status: `done`** (`PGEN-STRUCTURED-WITNESS-SYNTH-0004`, session #189, 2026-07-21;
+  generator-only code slice — `rust/src/ast_pipeline/stimuli_generator.rs` +
+  the PASS 3f driver block in `rust/src/main.rs`; NO grammar/parser/release/
+  schema/ledger change).
+- **THE RULE IS WITNESSED — solo canonical `UNKNOWN 1→0`.** PASS 3f
+  `generate_structured_witnesses` landed exactly per the `.2` architecture:
+  (f1) pass-scoped dotted-emit producer admission (`structured_producer_admitted`
+  + emit-time resolution `leading_rendered_token_with_terminator`) → (f2)
+  typed-branch forcing on the prelude sub-path
+  (`typed_branch_directives_along_subpath`) → (f3) head-leaf pin for MULTI-token
+  gated consumers (`NameGateArm.whole_render` discriminator +
+  `pending_head_pin`, consumed before the literal-hint route so collide-aware
+  renaming cannot move the head off the declared name) → (f4) target-own
+  root-Or/quantifier/mandatory-child directives merged into the SAME plan →
+  (f5) parser = sole judge. Everything scoped behind `structured_witness_mode`
+  (true only inside the pass).
+- **One measured iteration on the bisection ladder (step 5, attribution):** the
+  first probe run armed+injected+pinned but rendered the pinned head as `\foo.`
+  — `split_whitespace()` had STRIPPED the escaped identifier's mandatory
+  trailing-space terminator, fusing head+dot+member into ONE token, so the gate
+  rejected. Fix: the resolved emit name keeps the producer render's ONE
+  terminating whitespace char. Second run WITNESSED on the first 3f probe.
+- Acceptance checklist:
+  - [x] REPRODUCE — the `.1` baseline: solo `1343/21/1321/1`, residual exactly
+    `context_member_method_call`, all five prior probe families
+    `parsed=true witnessed_target=false`.
+  - [x] ROOT CAUSE (WHY+WHERE) — the `.2` composition root cause, plus the
+    measured iteration-1 fused-head token (probe log, WHY = stripped lexical
+    terminator, WHERE = the (f1) emit-time name resolution).
+  - [x] ADDRESSED — seeds 0/7/42 canonical solo ALL read
+    `total=1343 proof=21 witness=1322 UNKNOWN=0 fully_certified=true spf=0`
+    (pass line: 1 targeted / 1 witnessed, every seed). Witness sample:
+    `(*\foo =type(struct{bit\foo ;})*)(*\foo_0 =\foo .\foo_0 .\foo_0 .\foo_0 *)bind\foo_0 \foo_0 \foo_0 ();`
+  - [x] NO REGRESSION — ZERO newly-UNKNOWN (solo UNKNOWN=0; proof unchanged);
+    fully-certified roster BYTE-COMPARED baseline↔candidate via git-stash A/B
+    (json/regex/vhdl/svpp/rtl_frontend/rtl_const_expr cert reports ALL
+    BYTE-IDENTICAL); full dual-feature `cargo test --lib` **1013/0/29** green
+    (+5 new lock tests: producer admission scoped to the pass, terminator-keeping
+    leading token, typed-branch first-typed-only forcing, single-leading-token
+    classification, head-pin single-shot + plan-scoped clearing); clippy flow
+    green (source-strict; generated-stage stays the tracked non-strict 290);
+    `sv_stimuli_quality_gate` + `stimuli_cross_family_platform_gate` PASS.
+  - [x] LOCKSTEP — this leaf + frontier + `docs/TASK_TREE.md` + MEMORY +
+    CHANGES + DEVELOPMENT_NOTES; evidence
+    `docs/tasks/artifacts/structured_witness_synth/pass3f_seed0_witness.log` +
+    `pass3f_verification_summary.txt`. Union-gate contract re-baseline + book/
+    LIVE/contract recognition = `.4` (the immediately-following commit of the
+    same wave).
 
 ### `.4` — VERIFY + recognition lockstep
 
@@ -232,10 +271,10 @@ re-derives the WHY+WHERE live before any design.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `STRUCTURED-WITNESS-SYNTH.3` (IMPLEMENT PASS 3f) | `next` | The `.2` design is turnkey: (f1)–(f5) with per-step loud signals; land TOGETHER, measure GLOBALLY, keep only on improvement. A code slice ⇒ fresh focused session recommended (heavy cert battery). |
+| 1 | `STRUCTURED-WITNESS-SYNTH.4` (VERIFY + recognition lockstep) | `next` | `.3` witnessed the rule (solo `UNKNOWN=0` ×3 seeds); re-baseline the union contract (union `1→0`, residual `[]`), run `sv_cert_recognized_union_gate` green, and land the recognition lockstep (book / LIVE / SV contract / `H.12.8.3.2` row / STORE-AWARE-GEN annotation). |
 | — | `STRUCTURED-WITNESS-SYNTH.1` (live re-baseline + obstacle re-verification) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0002`, read-only) | Baseline byte-exact (canonical 12 / union 1 / residual = the rule); A–F matrix superseded obstacles 4/6/8; the `.2` design target verified. |
 | — | `STRUCTURED-WITNESS-SYNTH.2` (DESIGN) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0003`, PURE-DOCS) | PASS 3f composition architecture, code-grounded; predicted union `1→0`. |
-| 4 | `STRUCTURED-WITNESS-SYNTH.4` (VERIFY + lockstep) | `pending` | Blocked on `.3`. |
+| — | `STRUCTURED-WITNESS-SYNTH.3` (IMPLEMENT PASS 3f) | `done` (`PGEN-STRUCTURED-WITNESS-SYNTH-0004`) | THE RULE IS WITNESSED — solo canonical `1343/21/1322/0 fully_certified` seeds 0/7/42; roster byte-inert (A/B); lib 1013/0/29; clippy + stimuli gates green. |
 
 ## Log
 
@@ -261,3 +300,13 @@ re-derives the WHY+WHERE live before any design.
   `emit_name_is_whole_render` rejects the dotted producer emit. Frontier →
   `.3` IMPLEMENT (fresh focused session recommended — code slice + heavy
   cert battery).
+- `2026-07-21` (session #189 continuation, `.3` CLOSED
+  `PGEN-STRUCTURED-WITNESS-SYNTH-0004`): ⭐ **`context_member_method_call` IS
+  WITNESSED — the LAST SV generation gap closes.** PASS 3f landed per design;
+  ONE measured bisection iteration (the fused-head token: the emit-time name
+  resolution had stripped the escaped identifier's lexical terminator; fixed by
+  `leading_rendered_token_with_terminator`); second run witnessed on the FIRST
+  3f probe. Solo canonical seeds 0/7/42 ALL `1343/21/1322/0 fully_certified
+  spf=0`; roster A/B byte-identical ×6; lib 1013/0/29; clippy + both stimuli
+  gates green. Frontier → `.4` (union-contract re-baseline + recognition
+  lockstep, same wave).

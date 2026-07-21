@@ -3382,6 +3382,63 @@ fn gather_cert_covered_sets(
                     );
                 }
             }
+
+            // PASS 3f — STRUCTURED-WITNESS-SYNTH.3: the structured-witness COMPOSITION pass. Run
+            // LAST, over ONLY the rules still UNKNOWN after every prior pass (diverse / plannable /
+            // target-own / store-free / carrier-diversification), so every prior pass keeps its
+            // exact RNG stream and witness landscape and this pass can only UNION new witnesses. A
+            // store-gated structured target can need THREE conditions SIMULTANEOUSLY — a
+            // fact-emitting typed declaration prelude, the gated consumer's head pinned to the
+            // declared name, and the target's own distinguishing structure (the SV
+            // declare→chain→method-call shape) — which the earlier passes each provide only in
+            // isolation. This pass composes the name-coordinated prelude (with the pass-scoped
+            // dotted-emit producer admission + typed-branch forcing on the prelude sub-path), the
+            // head-leaf name pin, and the target-own structure directives into ONE reach plan per
+            // residual target. Truly inert when the grammar has no name-matching store gate or the
+            // residual is empty (the fully-certified roster). Like passes 2/3/3c/3d/3e it only
+            // UNIONS witnesses from probes that re-parse, so the certification
+            // `sample_parse_failures` stays byte-identical.
+            let post_carrier_div =
+                certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+            if !post_carrier_div.unknown.is_empty() {
+                let structured_witnessed = plannable_generator.generate_structured_witnesses(
+                    entry_rule.as_str(),
+                    &post_carrier_div.unknown,
+                    PLANNABLE_REACH_ATTEMPT_TIMEOUT_MS,
+                    PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
+                    |rule, sample| {
+                        let Some((parsed, covered)) =
+                            pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile, Some(entry_rule.as_str()))
+                        else {
+                            return PlannableProbeVerdict::NotParsed;
+                        };
+                        let witnessed = parsed && covered.contains(rule);
+                        if debug_probes {
+                            println!(
+                                "  [structured-witness-probe] rule='{}' parsed={} witnessed_target={} sample={:?}",
+                                rule, parsed, witnessed, sample
+                            );
+                        }
+                        if parsed {
+                            witness_covered.extend(covered);
+                            if witnessed {
+                                PlannableProbeVerdict::Witnessed
+                            } else {
+                                PlannableProbeVerdict::ParsedNotWitnessed
+                            }
+                        } else {
+                            PlannableProbeVerdict::NotParsed
+                        }
+                    },
+                );
+                if emit_diagnostics {
+                    println!(
+                        "  (structured-witness reach pass: {} residual UNKNOWN rules targeted; {} witnessed by composing declare-then-use prelude + head-leaf pin + target-own structure)",
+                        post_carrier_div.unknown.len(),
+                        structured_witnessed
+                    );
+                }
+            }
         }
     }
 

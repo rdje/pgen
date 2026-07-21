@@ -1,0 +1,85 @@
+# STRUCTURED-WITNESS-SYNTH.3 — PASS 3f verification evidence (session #189, 2026-07-21)
+
+## The landing (generator-only; rust/src/ast_pipeline/stimuli_generator.rs + rust/src/main.rs)
+
+PASS 3f `generate_structured_witnesses` — the composition pass per the `.2` design
+(STRUCTURED-WITNESS-SYNTH-2-design.md): (f1) pass-scoped dotted-emit producer admission
+(`structured_producer_admitted` + emit-time resolution to the producer's leading rendered
+token WITH its one lexical terminator char) → (f2) typed-branch forcing on the prelude
+sub-path (`typed_branch_directives_along_subpath`) → (f3) head-leaf pin for multi-token
+gated consumers (`NameGateArm.whole_render` + `pending_head_pin`) → (f4) target-own
+root-Or/quantifier/mandatory-child directives merged into the SAME plan → (f5) parser =
+sole witness judge. All scoped behind `structured_witness_mode` (true only inside the
+pass) ⇒ every earlier pass byte-identical by construction AND by measurement (below).
+
+## Iteration 1 (bisection ladder step 5 — attribution): FUSED HEAD TOKEN
+
+First probe run: prelude ARMED + injected + head pinned, but the pinned head rendered
+`\foo.` with NO whitespace terminator — an escaped identifier followed by `.` fuses into
+ONE token (`\foo.\foo_0`), head ≠ declared name, gate rejects, sibling absorbs.
+Root cause: `split_whitespace().next()` stripped the producer render's lexical terminator.
+Fix: `leading_rendered_token_with_terminator` — the leading token keeps its ONE rendered
+terminator char. (Log: pass3f_seed0_witness.log's predecessor run; probes showed
+`\foo.\foo_0 .\foo_0 .\foo_0` fused heads, parsed=true witnessed_target=false.)
+
+## Iteration 2: WITNESSED (pass3f_seed0_witness.log)
+
+  CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40
+    total=1343 proof=21 witness=1322 UNKNOWN=0 fully_certified=true
+    (sample_parse_failures=0, proof_reverify_failures=0)
+  [structured-witness-probe] rule='context_member_method_call' parsed=true
+    witnessed_target=true sample=
+    "(*\foo =type(struct{bit\foo ;})*)(*\foo_0 =\foo .\foo_0 .\foo_0 .\foo_0 *)bind\foo_0 \foo_0 \foo_0 ();"
+
+The witness composes: a PRECEDING attribute unit hosting the prelude declaration
+`bit \foo ;` routed through the real producer `variable_decl_assignment` (a struct-member
+declaration — the parser derives the same `variable_binding` fact on re-parse because
+struct members route through list_of_variable_decl_assignments → variable_decl_assignment,
+the same grammar), the use-site chain head pinned to the declared `\foo ` (terminator
+intact), members diversified (`\foo_0` — the collide-aware renaming keeps them off the
+declared name), the parser entering context_member_method_call.
+
+## Canonical solo cert, seeds 0/7/42 (dual-feature debug ast_pipeline, guarded)
+
+  seed 0 : total=1343 proof=21 witness=1322 UNKNOWN=0 fully_certified=true spf=0
+  seed 7 : total=1343 proof=21 witness=1322 UNKNOWN=0 fully_certified=true spf=0
+  seed 42: total=1343 proof=21 witness=1322 UNKNOWN=0 fully_certified=true spf=0
+  (per-seed pass line: "structured-witness reach pass: 1 residual UNKNOWN rules
+   targeted; 1 witnessed" — deterministic across all three seeds)
+
+Before (the `.1` re-baseline): solo 1343/21/1321/1, residual = context_member_method_call.
+After: witness 1321→1322, UNKNOWN 1→0. ZERO newly-UNKNOWN (UNKNOWN=0 total; proof
+unchanged 21).
+
+## Fully-certified roster: baseline↔candidate BYTE-COMPARE (decisive A/B)
+
+Method: `git stash` ONLY the change → rebuild dual-feature debug ast_pipeline → run each
+roster cert report → `git stash pop` → rebuild → identical invocations → `cmp`.
+Invocations: `--report-certificate-coverage --count 40 --seed 0` (default entry/profile);
+rtl_const_expr adds its canonical `--max-depth 32`.
+
+  json                        BYTE-IDENTICAL (9/0/9/0 fully_certified)
+  regex                       BYTE-IDENTICAL (269/9/260/0 fully_certified)
+  vhdl                        BYTE-IDENTICAL (216/0/216/0 fully_certified)
+  systemverilog_preprocessor  BYTE-IDENTICAL (74/0/74/0 fully_certified)
+  rtl_frontend                BYTE-IDENTICAL (169/1/168/0 fully_certified)
+  rtl_const_expr              BYTE-IDENTICAL (48/0/48/0 fully_certified)
+
+(return_annotation / semantic_annotation / ebnf have no parse_and_cover registration —
+no cert lane exists for them; their generation behavior is covered by the annotation/ebnf
+stimuli quality gates.)
+
+## Lock tests (cargo test --lib, all green)
+
+  structured_producer_admission_scoped_to_pass_mode
+  leading_rendered_token_keeps_one_terminator_char
+  typed_branch_directives_force_first_typed_alternative_only
+  single_leading_token_render_classification
+  pending_head_pin_consumed_only_by_head_rule_and_cleared_with_plan
+
+## Remaining battery (recorded in the leaf as completed once green)
+
+  full dual-feature `cargo test --lib`; clippy source-strict;
+  sv_stimuli_quality_gate; stimuli_cross_family_platform_gate;
+  `.4`: union-contract re-baseline (union 1→0) + sv_cert_recognized_union_gate green +
+  book/LIVE/contract recognition lockstep.

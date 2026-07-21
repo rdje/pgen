@@ -1185,6 +1185,13 @@ struct NameGate {
 struct NameGateArm {
     kind: String,
     family: Option<String>,
+    /// STRUCTURED-WITNESS-SYNTH.3 (f3): `true` = the gated consumer's WHOLE render is replaced by
+    /// the stored name (`reach_prelude_replay_text` — the proven single-token replay, and the ONLY
+    /// behavior outside the structured-witness pass). `false` (structured-witness pass only, for a
+    /// MULTI-token consumer whose mandatory tail a whole-render replay cannot express) = pin ONLY
+    /// the consumer's leading head leaf to the stored name (`head_pin_spec_for_rule`) and generate
+    /// the rest of the body normally.
+    whole_render: bool,
 }
 
 /// STIMULI-SIGNOFF.13.4: the render-time VALUE DRAW a `@gen_predicate:` directive compiles to —
@@ -1610,6 +1617,17 @@ pub struct StimuliGenerator<'a> {
     store_aware_gen: bool,
     // STORE-AWARE-GEN.3: rule → its `@emit_fact` specs (literal-resolved), emitted on rule success.
     gen_emit_facts: HashMap<String, Vec<SemanticFactSpec>>,
+    // STRUCTURED-WITNESS-SYNTH.3: `true` ONLY while `generate_structured_witnesses` (PASS 3f) runs.
+    // Scopes the pass's three composition capabilities — the (b1) dotted-emit producer admission,
+    // the (b2) typed-branch forcing on the prelude sub-path, and the (c) head-leaf name pin — so
+    // every earlier pass (and ordinary generation) is byte-identical by construction.
+    structured_witness_mode: bool,
+    // STRUCTURED-WITNESS-SYNTH.3 (f3): the pending head-leaf pin `(head_rule, stored_name)` armed
+    // when the gated MULTI-token consumer of a name-coordinated prelude begins its body; consumed
+    // (cleared) by the FIRST `head_rule` render inside that body, which renders `stored_name`
+    // verbatim so the re-parsed head matches the prelude's declaration. Only ever armed while
+    // `structured_witness_mode` (whole_render=false arms exist only there); cleared with the plan.
+    pending_head_pin: Option<(String, String)>,
     // STORE-AWARE-GEN.3: rule → the fact-kinds K of its `fact_count_at_least(K,$ref)` post-predicates.
     // The generation-time necessary condition `count(K) >= 1` is checked before the rule generates; on
     // failure the rule is unsatisfiable (no positive `$ref` can match an empty fact set) → backtrack.
@@ -1866,6 +1884,8 @@ impl<'a> StimuliGenerator<'a> {
             gen_semantic_state: SemanticRuntimeState::new(),
             store_aware_gen,
             gen_emit_facts,
+            structured_witness_mode: false,
+            pending_head_pin: None,
             gen_count_kinds,
             gen_count_literal_thresholds,
             gen_value_draws,
@@ -2967,6 +2987,9 @@ impl<'a> StimuliGenerator<'a> {
     #[allow(dead_code)]
     pub fn clear_reach_plan(&mut self) {
         self.reach_plan = None;
+        // STRUCTURED-WITNESS-SYNTH.3 (f3): a head pin is plan-scoped state — an armed-but-unconsumed
+        // pin must never leak into the next attempt's render.
+        self.pending_head_pin = None;
     }
 
     /// GRAMMAR-WELLFORMED.H.7.2: install a reach plan whose target is a RULE (witness an
@@ -3321,14 +3344,22 @@ impl<'a> StimuliGenerator<'a> {
             // reach path. Tried last, so every already-armed target is byte-identical.
             .or_else(|| self.name_gate_via_offpath_sibling(hops))?;
         let kind = gate.kind.as_str();
+        // STRUCTURED-WITNESS-SYNTH.3 (f1): the (b1) producer-admission relaxation, SCOPED to the
+        // structured-witness pass (`structured_witness_mode`). The strict filter admits only a
+        // whole-render `$ref` emit; a producer whose emit name is a DOTTED sub-ref (the SV
+        // `variable_decl_assignment` `name: $name.body` shape) is ALSO admissible there when every
+        // alternative of its body leads with a rule-reference token — the emitted name then resolves
+        // to the producer's LEADING rendered token (`gen_emit_facts_for_rule` mirrors this at emit
+        // time). Outside the pass the filter is byte-identical to the proven `.4b.2` behavior.
         let mut producers: Vec<&str> = self
             .gen_emit_facts
             .iter()
-            .filter(|(_, specs)| {
+            .filter(|(rule, specs)| {
                 specs.iter().any(|spec| {
                     spec.kind == kind
-                        && Self::emit_name_is_whole_render(&spec.name)
                         && Self::producer_family_satisfies_gate(spec, gate)
+                        && (Self::emit_name_is_whole_render(&spec.name)
+                            || self.structured_producer_admitted(rule, spec))
                 })
             })
             .map(|(rule, _)| rule.as_str())
@@ -3370,6 +3401,23 @@ impl<'a> StimuliGenerator<'a> {
                     for site in sub_quantifier_sites {
                         sub_plan.forced_quantifier_min.insert(site, 1);
                     }
+                    // STRUCTURED-WITNESS-SYNTH.3 (f2): typed-branch forcing on the prelude
+                    // sub-path, scoped to the structured-witness pass. A declaration path whose
+                    // ordered choice has a minimal-EMPTY escape (`data_type_or_implicit :=
+                    // data_type | implicit_data_type`) renders the escape under minimal
+                    // generation, so the prelude parses as an UNTYPED shape that never routes
+                    // through the fact-emitting producer (`foo;` instead of `int foo;` — the
+                    // `.4b.13.1` count=0 finding, F/E-discriminated by the `.1` matrix). Force
+                    // the first TYPED alternative of every such choice on the sub-path's
+                    // mandatory closure. `or_insert` — an existing steering directive of the
+                    // sub-path always wins.
+                    if self.structured_witness_mode {
+                        for (site_key, branch) in
+                            self.typed_branch_directives_along_subpath(&sub_hops)
+                        {
+                            sub_plan.directives.entry(site_key).or_insert(branch);
+                        }
+                    }
                     self.trace(
                         TraceLevel::Debug,
                         format_args!(
@@ -3386,6 +3434,13 @@ impl<'a> StimuliGenerator<'a> {
                         name_gate: Some(NameGateArm {
                             kind: kind.to_string(),
                             family: gate.family.clone(),
+                            // STRUCTURED-WITNESS-SYNTH.3 (f3): outside the structured-witness
+                            // pass ALWAYS whole-render (byte-identical proven replay). Inside it,
+                            // a MULTI-token consumer (mandatory tail after the head — the
+                            // declare→chain→method-call shape) switches to the head-leaf pin;
+                            // single-token consumers keep the whole-render replay there too.
+                            whole_render: !self.structured_witness_mode
+                                || self.rule_render_is_single_leading_token(&gated_rule),
                         }),
                         sub_hops: sub_hops.clone(),
                     });
@@ -3408,6 +3463,243 @@ impl<'a> StimuliGenerator<'a> {
             SemanticRuntimeValue::RuleReference(reference)
                 if !reference.contains('.') && !reference.starts_with('$')
         )
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f1): does a producer's `@emit_fact` name refer to a DOTTED
+    /// sub-render (`name: $name.body` — a named `$ref` with a payload projection)? Such a name is
+    /// NOT the whole render, but for a producer that leads with a rule reference it resolves to the
+    /// producer's LEADING rendered token. Positional refs (compiled literal keeps the `$` sigil)
+    /// stay excluded exactly as in `emit_name_is_whole_render`.
+    fn emit_name_is_dotted_ref(name: &SemanticRuntimeValue) -> bool {
+        matches!(
+            name,
+            SemanticRuntimeValue::RuleReference(reference)
+                if reference.contains('.') && !reference.starts_with('$')
+        )
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f1): the producer render's LEADING token, keeping its ONE
+    /// terminating whitespace character when the render has one. The terminator is part of the
+    /// leaf's rendered lexical surface (an escaped identifier's mandatory trailing space — the
+    /// LEXICAL-ANNOTATIONS.3c follow terminator): the head-leaf pin replays these bytes verbatim,
+    /// so keeping it preserves token separation at the pinned use site. `None` for an all-blank
+    /// render. Purely textual; a mis-split (a fused no-whitespace render) can only fail the parser
+    /// re-check, never false-witness.
+    fn leading_rendered_token_with_terminator(render: &str) -> Option<String> {
+        let leading_trimmed = render.trim_start();
+        if leading_trimmed.is_empty() {
+            return None;
+        }
+        let token_end = leading_trimmed
+            .find(char::is_whitespace)
+            .unwrap_or(leading_trimmed.len());
+        let terminator_len = leading_trimmed[token_end..]
+            .chars()
+            .next()
+            .filter(|c| c.is_whitespace())
+            .map_or(0, char::len_utf8);
+        Some(leading_trimmed[..token_end + terminator_len].to_string())
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f1): the (b1) admission test, scoped to the structured-witness
+    /// pass — a dotted-emit producer is admissible iff EVERY alternative of its body leads with a
+    /// rule-reference token, so the emitted name deterministically resolves to the producer's
+    /// leading rendered token (the `.4b.19`-proven relaxation; `rule_render_is_single_leading_token`
+    /// was the pinned-wrong producer test — branch 2 of the SV producer has a mandatory tail).
+    /// Structurally FALSE outside the pass, keeping every earlier pass byte-identical.
+    fn structured_producer_admitted(&self, producer: &str, spec: &SemanticFactSpec) -> bool {
+        self.structured_witness_mode
+            && Self::emit_name_is_dotted_ref(&spec.name)
+            && self.rule_leads_with_rule_reference(producer)
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f1): does EVERY alternative of `rule`'s body lead with a
+    /// rule-reference token (unwrapping grouping shells, descending a leading nested `Sequence`)?
+    /// A leading quantifier/lookahead/terminal fails — the leading rendered token would not be the
+    /// referenced rule's render there. PURE structural read; parser-agnostic.
+    fn rule_leads_with_rule_reference(&self, rule: &str) -> bool {
+        let Some(node) = self.grammar_tree.get(rule) else {
+            return false;
+        };
+        self.node_leads_with_rule_reference(node)
+    }
+
+    fn node_leads_with_rule_reference(&self, node: &ASTNode) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .all(|alternative| self.node_leads_with_rule_reference(alternative)),
+            ASTNode::Sequence { elements } => elements
+                .first()
+                .is_some_and(|element| self.node_leads_with_rule_reference(element)),
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => self.node_leads_with_rule_reference(inner),
+                ASTValue::Token(parts) => matches!(
+                    Self::extract_token_pair(parts),
+                    Some(("rule_reference", name)) if self.grammar_tree.contains_key(name)
+                ),
+            },
+            ASTNode::Quantified { .. } | ASTNode::Lookahead { .. } => false,
+        }
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f3): is `rule`'s render exactly ONE leading token — a bare
+    /// token/reference body, or a `Sequence` whose head is single-leading and whose ENTIRE tail has
+    /// minimal terminal length 0 (lookaheads, `?`/`*` optionals)? A `true` consumer keeps the
+    /// proven whole-render replay; a `false` (multi-token) consumer — a mandatory tail after the
+    /// head, the declare→chain→method-call shape — takes the head-leaf pin instead. Uses the
+    /// witness pass's min-terminal-length table when installed (always, in the structured pass).
+    fn rule_render_is_single_leading_token(&self, rule: &str) -> bool {
+        let Some(node) = self.grammar_tree.get(rule) else {
+            return false;
+        };
+        let computed;
+        let min_len = match self.witness_min_terminal_lengths.as_ref() {
+            Some(table) => table,
+            None => {
+                computed = self.compute_min_terminal_lengths();
+                &computed
+            }
+        };
+        Self::node_is_single_leading_token(node, min_len)
+    }
+
+    fn node_is_single_leading_token(node: &ASTNode, min_len: &HashMap<String, usize>) -> bool {
+        match node {
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => Self::node_is_single_leading_token(inner, min_len),
+                ASTValue::Token(_) => true,
+            },
+            ASTNode::Sequence { elements } => {
+                let Some((head, tail)) = elements.split_first() else {
+                    return false;
+                };
+                Self::node_is_single_leading_token(head, min_len)
+                    && tail
+                        .iter()
+                        .all(|element| Self::min_terminal_length_of_node(element, min_len) == Some(0))
+            }
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .all(|alternative| Self::node_is_single_leading_token(alternative, min_len)),
+            ASTNode::Quantified { .. } | ASTNode::Lookahead { .. } => false,
+        }
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f2): the typed-branch directives for a name-prelude sub-path —
+    /// for every rule on the body→producer hop chain PLUS its bounded MANDATORY-child closure, every
+    /// ordered choice whose FIRST alternative renders ≥1 terminal while a LATER alternative renders
+    /// EMPTY (`Some(0)` — the `data_type_or_implicit := data_type | implicit_data_type` escape
+    /// shape) is forced to the first typed alternative, so the prelude's declaration routes through
+    /// the fact-emitting typed form instead of the minimal untyped escape. Deterministic (hop order,
+    /// order-preserving child collection); bounded (closure depth + one finite walk per rule); PURE
+    /// analysis. Only ever applied to the prelude's `sub_plan` in the structured-witness pass — the
+    /// carrier/use-site rendering is untouched.
+    fn typed_branch_directives_along_subpath(
+        &self,
+        sub_hops: &[(String, String)],
+    ) -> Vec<((String, String), usize)> {
+        const TYPED_BRANCH_CLOSURE_DEPTH: usize = 4;
+        let computed;
+        let min_len = match self.witness_min_terminal_lengths.as_ref() {
+            Some(table) => table,
+            None => {
+                computed = self.compute_min_terminal_lengths();
+                &computed
+            }
+        };
+        let mut rules: Vec<String> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        for (hop_rule, _) in sub_hops {
+            if seen.insert(hop_rule.clone()) {
+                rules.push(hop_rule.clone());
+            }
+        }
+        let mut frontier: Vec<String> = rules.clone();
+        for _ in 0..TYPED_BRANCH_CLOSURE_DEPTH {
+            let mut next: Vec<String> = Vec::new();
+            for rule in &frontier {
+                for child in self.mandatory_child_rules(rule) {
+                    if seen.insert(child.clone()) {
+                        rules.push(child.clone());
+                        next.push(child);
+                    }
+                }
+            }
+            if next.is_empty() {
+                break;
+            }
+            frontier = next;
+        }
+        let mut out: Vec<((String, String), usize)> = Vec::new();
+        for rule in &rules {
+            let Some(node) = self.grammar_tree.get(rule.as_str()) else {
+                continue;
+            };
+            Self::collect_typed_branch_or_sites(node, "root", rule, min_len, &mut out);
+        }
+        out
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f2): the walker behind `typed_branch_directives_along_subpath` —
+    /// same `o{i}`/`s{i}`/`q`/`a` path encoding as `collect_optional_quantifier_paths`, so each
+    /// emitted `(rule, path)` key matches what `generate_or` receives.
+    fn collect_typed_branch_or_sites(
+        node: &ASTNode,
+        path: &str,
+        rule: &str,
+        min_len: &HashMap<String, usize>,
+        out: &mut Vec<((String, String), usize)>,
+    ) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                let first_typed = alternatives
+                    .first()
+                    .and_then(|alternative| Self::min_terminal_length_of_node(alternative, min_len))
+                    .is_some_and(|len| len > 0);
+                let later_empty_escape = alternatives.iter().skip(1).any(|alternative| {
+                    Self::min_terminal_length_of_node(alternative, min_len) == Some(0)
+                });
+                if first_typed && later_empty_escape {
+                    out.push(((rule.to_string(), path.to_string()), 0));
+                }
+                for (i, alternative) in alternatives.iter().enumerate() {
+                    Self::collect_typed_branch_or_sites(
+                        alternative,
+                        &format!("{}/o{}", path, i),
+                        rule,
+                        min_len,
+                        out,
+                    );
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for (i, element) in elements.iter().enumerate() {
+                    Self::collect_typed_branch_or_sites(
+                        element,
+                        &format!("{}/s{}", path, i),
+                        rule,
+                        min_len,
+                        out,
+                    );
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                Self::collect_typed_branch_or_sites(
+                    element,
+                    &format!("{}/q", path),
+                    rule,
+                    min_len,
+                    out,
+                );
+            }
+            ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } => {
+                Self::collect_typed_branch_or_sites(inner, &format!("{}/a", path), rule, min_len, out);
+            }
+            ASTNode::Atom { .. } | ASTNode::Lookahead { .. } => {}
+        }
     }
 
     /// STORE-AWARE-GEN.4b.2: the `declaration_family` attribute value a producer `@emit_fact` carries
@@ -3963,6 +4255,13 @@ impl<'a> StimuliGenerator<'a> {
         // to the store name the upstream producer iteration just declared (declare-then-use). Read
         // it from the live store so the rendered identifier equals the declared one by construction.
         if let Some(arm) = &prelude.name_gate {
+            // STRUCTURED-WITNESS-SYNTH.3 (f3): a MULTI-token gated consumer (whole_render=false —
+            // structured-witness pass only) cannot express its mandatory chain tail through a
+            // whole-render replay; the head-leaf pin (`head_pin_spec_for_rule`, armed by
+            // `generate_rule`) renders the stored name at the consumer's leading leaf instead.
+            if !arm.whole_render {
+                return None;
+            }
             return self.store_name_for_gate(&arm.kind, arm.family.as_deref());
         }
         // The C2.2 count prelude replays the phase-1-captured render (so the `$ref` value equals the
@@ -3985,6 +4284,41 @@ impl<'a> StimuliGenerator<'a> {
             return None;
         }
         Some((prelude.iterations, prelude.sub_plan.clone()))
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f3): when `rule_name` is the gated MULTI-token consumer of an
+    /// ARMED name-coordinated prelude (`whole_render=false` — set only by the structured-witness
+    /// pass), the `(head_rule, stored_name)` pin `generate_rule` installs before generating the
+    /// consumer's body: `head_rule` is the consumer's MANDATORY-leading rule reference (the head
+    /// leaf), `stored_name` the name the prelude's producer just declared into the live store.
+    /// `None` everywhere else — every other flow is byte-identical.
+    fn head_pin_spec_for_rule(&self, rule_name: &str) -> Option<(String, String)> {
+        let prelude = self.reach_plan.as_ref()?.prelude.as_ref()?;
+        if prelude.iterations == 0 || prelude.gated_rule != rule_name {
+            return None;
+        }
+        let arm = prelude.name_gate.as_ref()?;
+        if arm.whole_render {
+            return None;
+        }
+        let head_rule = self.mandatory_leading_rule_reference(rule_name)?;
+        let stored_name = self.store_name_for_gate(&arm.kind, arm.family.as_deref())?;
+        Some((head_rule, stored_name))
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3 (f3): consume the pending head-leaf pin when `rule_name` is the
+    /// pinned head rule. First match wins and CLEARS the pin, so only the gated consumer's leading
+    /// head leaf (generation is depth-first, and the pin is armed at the consumer's body entry)
+    /// renders the stored name; later same-rule renders in the chain stay free.
+    fn take_pending_head_pin(&mut self, rule_name: &str) -> Option<String> {
+        if self
+            .pending_head_pin
+            .as_ref()
+            .is_some_and(|(head_rule, _)| head_rule == rule_name)
+        {
+            return self.pending_head_pin.take().map(|(_, name)| name);
+        }
+        None
     }
 
     /// GRAMMAR-WELLFORMED.C2.2: phase-1 capture — record the gated rule's render plus
@@ -4288,6 +4622,246 @@ impl<'a> StimuliGenerator<'a> {
 
         self.witness_min_terminal_lengths = previous_table;
         self.witness_mode = previous_witness_mode;
+        self.config.max_depth = original_max_depth;
+        self.config.max_rule_visits = original_max_rule_visits;
+        witnessed_total
+    }
+
+    /// STRUCTURED-WITNESS-SYNTH.3: PASS 3f — the structured-witness COMPOSITION pass, the FINAL
+    /// residual pass. The generator already owns machinery for each of the three witness conditions
+    /// of a store-gated structured target IN ISOLATION — the name-coordinated declare-then-use
+    /// prelude (`compute_name_prelude`), the gated consumer's name replay
+    /// (`reach_prelude_replay_text`), and target-own distinguishing-structure forcing
+    /// (`generate_target_own_structure_witnesses`) — but in SEPARATE passes that never compose into
+    /// one sample. This pass composes them into ONE plan per residual target:
+    ///   (f1) prelude discovery with the pass-scoped (b1) DOTTED-emit producer admission
+    ///        (`structured_producer_admitted`) — the SV `variable_decl_assignment` producer's
+    ///        `name: $name.body` emit becomes admissible, so the prelude ARMS;
+    ///   (f2) typed-branch forcing on the prelude sub-path
+    ///        (`typed_branch_directives_along_subpath`) — the declaration takes the fact-EMITTING
+    ///        typed form (`int foo;`), not the minimal untyped escape (`foo;`);
+    ///   (f3) the head-leaf pin for a MULTI-token gated consumer (`head_pin_spec_for_rule`) — the
+    ///        chain head renders the DECLARED name while the mandatory tail renders normally;
+    ///   (f4) the target-own distinguishing-structure directives (root-`Or` branch + min-0
+    ///        quantifier + mandatory-child forcing — the `-0090`/`-0093` mechanisms) merged into
+    ///        the SAME plan, so the distinguishing tail (e.g. the parenthesised
+    ///        `callable_method_call_body` branch) renders IN the prelude-armed sample;
+    ///   (f5) the caller's `witness_check` (the REAL parser) stays the SOLE witness judge.
+    /// CAPABILITY-GATED: structurally inert when the grammar has no name-matching store gate
+    /// (`gen_name_gate` empty) or the residual is empty (the fully-certified roster), and each
+    /// target is skipped unless its OWN plan arms a name prelude — earlier passes already exhausted
+    /// every uncoupled mechanism. STRICTLY ADDITIVE: like every reach pass it only ever UNIONS
+    /// witnesses from probes that re-parse. Bounded by the existing per-rule witness budgets.
+    /// Returns the number of residual rules witnessed. GENERAL/parser-agnostic — gates, producers,
+    /// typed branches and structure are all grammar-derived; no rule/grammar name appears.
+    pub fn generate_structured_witnesses(
+        &mut self,
+        entry_rule: &str,
+        residual_rules: &[String],
+        per_attempt_timeout_ms: u64,
+        max_attempts_per_rule: usize,
+        mut witness_check: impl FnMut(&str, &str) -> PlannableProbeVerdict,
+    ) -> usize {
+        if residual_rules.is_empty() || self.gen_name_gate.is_empty() {
+            return 0;
+        }
+        let original_max_depth = self.config.max_depth;
+        let original_max_rule_visits = self.config.max_rule_visits;
+        self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
+        let min_derivation_depths = self.compute_min_full_derivation_depths();
+        let reach_prefix_budget = original_max_depth.saturating_mul(2);
+        let previous_witness_mode = self.witness_mode;
+        self.witness_mode = true;
+        let previous_table = self.witness_min_terminal_lengths.take();
+        self.witness_min_terminal_lengths = Some(self.compute_min_terminal_lengths());
+        let previous_structured_mode = self.structured_witness_mode;
+        self.structured_witness_mode = true;
+        let timeout =
+            Self::timeout_budget_from_ms(per_attempt_timeout_ms, TARGET_TIMEOUT_ERROR_PREFIX);
+
+        let mut witnessed_total = 0usize;
+        for rule in residual_rules {
+            let (root_or, inner_quantifier_paths) = self.target_own_reach_sites(rule);
+            // The `-0093` mandatory-child forcings — the distinguishing structure may live in a
+            // mandatory CHILD rule the R-own walker cannot reach (a rule reference is a leaf).
+            let child_forcings: Vec<(String, Option<(String, usize)>, Vec<String>)> = self
+                .mandatory_child_rules(rule)
+                .into_iter()
+                .map(|child| {
+                    let (child_root_or, child_inner_qs) = self.target_own_reach_sites(&child);
+                    (child, child_root_or, child_inner_qs)
+                })
+                .filter(|(_, child_root_or, child_inner_qs)| {
+                    child_root_or.is_some() || !child_inner_qs.is_empty()
+                })
+                .collect();
+            let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
+            let budget = reach_prefix_budget.saturating_add(target_subtree_depth);
+            self.config.max_depth = budget;
+            let bypass_fuel = budget.saturating_add(1) as u32;
+
+            // The composition REQUIRES an armed name-coordinated prelude — without one this pass
+            // can only replay probe shapes the earlier passes already tried. Probe-install once to
+            // check; a target with no gate on its path (or no admissible producer) is skipped.
+            if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                continue;
+            }
+            let prelude_armed = self
+                .reach_plan
+                .as_ref()
+                .and_then(|plan| plan.prelude.as_ref())
+                .and_then(|prelude| prelude.name_gate.as_ref())
+                .is_some();
+            self.clear_reach_plan();
+            if !prelude_armed {
+                continue;
+            }
+
+            let mut witnessed = false;
+
+            // Arm 1 — R-own structure candidates (the `-0090` shape) with the prelude+pin composed
+            // in by the plan install itself: each non-degenerate root-`Or` branch first, then the
+            // degenerate `o0` (or one quantifier-only pass), with R's min-0 quantifiers forced ≥1.
+            let branch_candidates: Vec<Option<usize>> = match &root_or {
+                Some((_, alt_count)) => (1..*alt_count)
+                    .map(Some)
+                    .chain(std::iter::once(Some(0)))
+                    .collect(),
+                None => vec![None],
+            };
+            let mut probe_budget = max_attempts_per_rule.max(1);
+            'branches: for branch in branch_candidates {
+                if probe_budget == 0 {
+                    break;
+                }
+                if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                    break;
+                }
+                if let Some(plan) = self.reach_plan.as_mut() {
+                    if let (Some((or_path, _)), Some(branch_index)) = (&root_or, branch) {
+                        plan.directives
+                            .insert((rule.clone(), or_path.clone()), branch_index);
+                    }
+                    for q_path in &inner_quantifier_paths {
+                        plan.forced_quantifier_min
+                            .insert((rule.clone(), q_path.clone()), 1);
+                    }
+                }
+                let per_branch = 2usize.min(probe_budget);
+                for _ in 0..per_branch {
+                    probe_budget -= 1;
+                    self.construct_mode = true;
+                    let probe = self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                    self.construct_mode = false;
+                    match probe {
+                        Ok(sample) => {
+                            if matches!(
+                                witness_check(rule, &sample),
+                                PlannableProbeVerdict::Witnessed
+                            ) {
+                                witnessed = true;
+                                self.clear_reach_plan();
+                                break 'branches;
+                            }
+                        }
+                        Err(e) => {
+                            // A per-attempt timeout reproduces under the identical budget — stop
+                            // this rule's arm (same rule as every other reach pass).
+                            if Self::is_target_timeout_error(&e) {
+                                self.clear_reach_plan();
+                                break 'branches;
+                            }
+                        }
+                    }
+                }
+                self.clear_reach_plan();
+            }
+
+            // Arm 2 — mandatory-child structure forcing (the `-0093` shape) with the prelude+pin:
+            // R's own body rendered fully (min-0 quantifiers ≥1, first non-degenerate branch when
+            // R has a root choice) plus the CHILD's distinguishing root-`Or` branch/quantifiers.
+            // Purely additive: runs only when Arm 1 did not witness.
+            if !witnessed && !child_forcings.is_empty() {
+                let per_child_cap = max_attempts_per_rule.max(1);
+                let mut total_child_budget = per_child_cap.saturating_mul(4);
+                'children: for (child, child_root_or, child_inner_qs) in &child_forcings {
+                    if total_child_budget == 0 {
+                        break 'children;
+                    }
+                    let mut child_budget = per_child_cap.min(total_child_budget);
+                    let child_branches: Vec<Option<usize>> = match child_root_or {
+                        Some((_, alt_count)) => (1..*alt_count)
+                            .map(Some)
+                            .chain(std::iter::once(Some(0)))
+                            .collect(),
+                        None => vec![None],
+                    };
+                    for child_branch in child_branches {
+                        if child_budget == 0 {
+                            break;
+                        }
+                        if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                            break 'children;
+                        }
+                        if let Some(plan) = self.reach_plan.as_mut() {
+                            for q_path in &inner_quantifier_paths {
+                                plan.forced_quantifier_min
+                                    .insert((rule.clone(), q_path.clone()), 1);
+                            }
+                            if let Some((or_path, alt_count)) = &root_or {
+                                let j = if *alt_count > 1 { 1 } else { 0 };
+                                plan.directives.insert((rule.clone(), or_path.clone()), j);
+                            }
+                            if let (Some((child_or_path, _)), Some(branch_index)) =
+                                (child_root_or, child_branch)
+                            {
+                                plan.directives
+                                    .insert((child.clone(), child_or_path.clone()), branch_index);
+                            }
+                            for child_q in child_inner_qs {
+                                plan.forced_quantifier_min
+                                    .insert((child.clone(), child_q.clone()), 1);
+                            }
+                        }
+                        let per_branch = 2usize.min(child_budget);
+                        for _ in 0..per_branch {
+                            child_budget -= 1;
+                            total_child_budget -= 1;
+                            self.construct_mode = true;
+                            let probe = self
+                                .generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                            self.construct_mode = false;
+                            match probe {
+                                Ok(sample) => {
+                                    if matches!(
+                                        witness_check(rule, &sample),
+                                        PlannableProbeVerdict::Witnessed
+                                    ) {
+                                        witnessed = true;
+                                        self.clear_reach_plan();
+                                        break 'children;
+                                    }
+                                }
+                                Err(e) => {
+                                    if Self::is_target_timeout_error(&e) {
+                                        self.clear_reach_plan();
+                                        break 'children;
+                                    }
+                                }
+                            }
+                        }
+                        self.clear_reach_plan();
+                    }
+                }
+            }
+            if witnessed {
+                witnessed_total += 1;
+            }
+        }
+
+        self.witness_min_terminal_lengths = previous_table;
+        self.witness_mode = previous_witness_mode;
+        self.structured_witness_mode = previous_structured_mode;
         self.config.max_depth = original_max_depth;
         self.config.max_rule_visits = original_max_rule_visits;
         witnessed_total
@@ -8846,6 +9420,28 @@ impl<'a> StimuliGenerator<'a> {
         // return paths to drive intra-rule join suppression + the cross-rule cohesion signal.
         let is_atomic = self.rule_is_lexically_atomic(rule_name);
 
+        // STRUCTURED-WITNESS-SYNTH.3 (f3): consume a pending head-leaf pin — the gated consumer's
+        // LEADING head leaf renders the store name the prelude's producer just declared, so the
+        // re-parsed head satisfies the consumer's name gate. Placed BEFORE the literal-hint route:
+        // the canonical hint (and its collide-aware diversification, which would rename this very
+        // leaf AWAY from the declared name — the `.4b.13` consumer obstacle) must not pre-empt the
+        // pin. Only ever armed by the structured-witness pass, so every other flow is
+        // byte-identical. Same bookkeeping as the C2 replay route below.
+        if let Some(pinned_name) = self.take_pending_head_pin(rule_name) {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "STRUCTURED-WITNESS-SYNTH head-leaf pin: rule='{}' depth={} render='{}'",
+                    rule_name, depth, pinned_name
+                ),
+            );
+            self.coverage.record_rule_success(rule_name);
+            self.last_terminal_from_atomic_rule = is_atomic;
+            let rendered = self.apply_lexical_follow_restriction(rule_name, pinned_name);
+            self.last_terminal_word_shaped = Self::tail_word_shaped(&rendered);
+            return Ok(rendered);
+        }
+
         if Self::node_supports_rule_literal_override(rule_node) {
             // GRAMMAR-WELLFORMED.H.12.5.5.2.2: when the active reach plan must descend
             // THROUGH this rule's body (it forces an OR-branch or quantifier inside it to
@@ -8919,6 +9515,23 @@ impl<'a> StimuliGenerator<'a> {
             let rendered = self.apply_lexical_follow_restriction(rule_name, captured_text);
             self.last_terminal_word_shaped = Self::tail_word_shaped(&rendered);
             return Ok(rendered);
+        }
+
+        // STRUCTURED-WITNESS-SYNTH.3 (f3): the gated MULTI-token consumer of an armed
+        // name-coordinated prelude (whole_render=false — the replay above returned `None` by
+        // design) ARMS the head-leaf pin and generates its body NORMALLY: the pin fires on the
+        // body's first head-rule render (depth-first, so that IS the chain head), and the
+        // mandatory tail — the structure a whole-render replay cannot express — renders under the
+        // plan's own forcing. Structured-witness pass only; no-op everywhere else.
+        if let Some(pin) = self.head_pin_spec_for_rule(rule_name) {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "STRUCTURED-WITNESS-SYNTH head pin ARMED: rule='{}' head_rule='{}' name='{}'",
+                    rule_name, pin.0, pin.1
+                ),
+            );
+            self.pending_head_pin = Some(pin);
         }
 
         // STORE-AWARE-GEN.3: a rule gated by `fact_count_at_least(K, $ref)` is UNSATISFIABLE when no
@@ -12378,6 +12991,24 @@ impl<'a> StimuliGenerator<'a> {
             // non-cohort emit stay byte-identical.
             if Self::emit_name_is_whole_render(&spec.name) {
                 spec.name = SemanticRuntimeValue::Identifier(render.to_string());
+            } else if self.structured_witness_mode
+                && Self::emit_name_is_dotted_ref(&spec.name)
+                && self.rule_leads_with_rule_reference(rule_name)
+            {
+                // STRUCTURED-WITNESS-SYNTH.3 (f1): the emit-time mirror of the (b1) producer
+                // admission — a DOTTED sub-ref name (`$name.body`) on a producer that leads with a
+                // rule reference resolves to the producer's LEADING rendered token (the declared
+                // identifier), so the generation store registers the REAL name the head-leaf pin
+                // reads back. The token keeps its ONE rendered terminator character (the leaf's
+                // lexical-follow terminator — an escaped identifier's mandatory trailing space):
+                // the pin replays these bytes at the consumer's head leaf, and a stripped
+                // terminator would fuse the head with the following lexeme into one token
+                // (`\foo.member` = ONE escaped identifier — the measured first-probe failure).
+                // Scoped to the structured-witness pass; a mis-resolution can only fail the parser
+                // re-check, never false-witness.
+                if let Some(leading_token) = Self::leading_rendered_token_with_terminator(render) {
+                    spec.name = SemanticRuntimeValue::Identifier(leading_token);
+                }
             }
             self.gen_semantic_state.emit_fact(spec);
         }
@@ -24661,6 +25292,210 @@ mod tests {
             "a carrier-diversified candidate must re-route `mid` through parent `b` and keep the \
              tail (mid → target alt 1); candidates={:?}",
             candidates
+        );
+    }
+
+    // ---- STRUCTURED-WITNESS-SYNTH.3: PASS 3f composition-capability locks ----
+
+    #[test]
+    fn structured_producer_admission_scoped_to_pass_mode() {
+        // (f1) lock: a DOTTED-emit producer is admitted ONLY inside the structured-witness pass
+        // (`structured_witness_mode`), and only when EVERY alternative of its body leads with a
+        // rule-reference token. Outside the pass the strict `.4b.2` whole-render filter is
+        // byte-identical (the mode flag is the sole difference).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "producer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("lead"), token("string", "=")],
+            },
+        );
+        grammar_tree.insert(
+            "kw_first".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "k"), rule_ref("lead")],
+            },
+        );
+        grammar_tree.insert("lead".to_string(), token("string", "v"));
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 0);
+        let dotted_spec = SemanticFactSpec {
+            kind: "binding".to_string(),
+            name: SemanticRuntimeValue::RuleReference("lead.body".to_string()),
+            attributes: vec![],
+        };
+        assert!(
+            !generator.structured_producer_admitted("producer", &dotted_spec),
+            "outside the structured-witness pass the dotted-emit producer must stay REJECTED \
+             (the earlier passes keep the strict whole-render filter)"
+        );
+        generator.structured_witness_mode = true;
+        assert!(
+            generator.structured_producer_admitted("producer", &dotted_spec),
+            "inside the pass a dotted-emit producer whose body leads with a rule reference \
+             must be admitted (the (b1) relaxation)"
+        );
+        assert!(
+            !generator.structured_producer_admitted("kw_first", &dotted_spec),
+            "a producer leading with a terminal must stay rejected even inside the pass — the \
+             emitted name cannot resolve to a leading reference render there"
+        );
+        let whole_render_spec = SemanticFactSpec {
+            kind: "binding".to_string(),
+            name: SemanticRuntimeValue::RuleReference("body".to_string()),
+            attributes: vec![],
+        };
+        assert!(
+            !generator.structured_producer_admitted("producer", &whole_render_spec),
+            "an undotted whole-render emit is the STRICT filter's territory, never the relaxation's"
+        );
+    }
+
+    #[test]
+    fn leading_rendered_token_keeps_one_terminator_char() {
+        // (f1) lock: the resolved emit name is the producer render's LEADING token WITH its one
+        // rendered terminator (an escaped identifier's mandatory trailing space) — a stripped
+        // terminator would fuse the pinned head with the following lexeme into one token.
+        assert_eq!(
+            StimuliGenerator::leading_rendered_token_with_terminator("\\foo = 3"),
+            Some("\\foo ".to_string()),
+            "the leading token keeps exactly ONE terminating whitespace char"
+        );
+        assert_eq!(
+            StimuliGenerator::leading_rendered_token_with_terminator("foo"),
+            Some("foo".to_string()),
+            "a terminator-less render resolves to the bare token"
+        );
+        assert_eq!(
+            StimuliGenerator::leading_rendered_token_with_terminator("   "),
+            None,
+            "an all-blank render resolves to nothing"
+        );
+    }
+
+    #[test]
+    fn typed_branch_directives_force_first_typed_alternative_only() {
+        // (f2) lock: on the prelude sub-path's mandatory closure, an ordered choice whose FIRST
+        // alternative renders >=1 terminal while a LATER alternative renders EMPTY (the
+        // `data_type_or_implicit := data_type | implicit_data_type` escape shape) is forced to
+        // branch 0; a choice whose FIRST alternative is itself the empty escape is NOT forced.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "host".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("choice"), rule_ref("esc_first"), rule_ref("lead")],
+            },
+        );
+        grammar_tree.insert(
+            "choice".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("string", "int"),
+                    ASTNode::Sequence { elements: vec![] },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "esc_first".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence { elements: vec![] },
+                    token("string", "int"),
+                ],
+            },
+        );
+        grammar_tree.insert("lead".to_string(), token("string", "v"));
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 0);
+        let sub_hops = vec![("host".to_string(), "root/s2".to_string())];
+        let directives = generator.typed_branch_directives_along_subpath(&sub_hops);
+        assert!(
+            directives.contains(&(("choice".to_string(), "root".to_string()), 0)),
+            "the typed-first/empty-escape choice must be forced to its first typed alternative; \
+             directives={:?}",
+            directives
+        );
+        assert!(
+            !directives
+                .iter()
+                .any(|((rule, _), _)| rule == "esc_first"),
+            "a choice whose FIRST alternative is the empty escape must NOT be forced (there is \
+             no typed-first alternative to force); directives={:?}",
+            directives
+        );
+    }
+
+    #[test]
+    fn single_leading_token_render_classification() {
+        // (f3) lock: the whole-render-vs-head-pin discriminator. A bare-token body and a body
+        // whose tail is entirely min-0 (optional quantifiers) stay SINGLE-leading-token (the
+        // proven whole-render replay); a mandatory tail after the head makes the consumer
+        // MULTI-token (the head-leaf pin territory).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("lead".to_string(), token("string", "v"));
+        grammar_tree.insert(
+            "single_opt_tail".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("lead"),
+                    ASTNode::Quantified {
+                        element: Box::new(token("string", ".")),
+                        quantifier: "?".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "multi_mandatory_tail".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("lead"), token("string", ".")],
+            },
+        );
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 0);
+        assert!(
+            generator.rule_render_is_single_leading_token("lead"),
+            "a bare-token body is single-leading-token"
+        );
+        assert!(
+            generator.rule_render_is_single_leading_token("single_opt_tail"),
+            "an all-optional tail keeps the consumer single-leading-token (whole-render replay)"
+        );
+        assert!(
+            !generator.rule_render_is_single_leading_token("multi_mandatory_tail"),
+            "a mandatory tail after the head makes the consumer multi-token (head-leaf pin)"
+        );
+    }
+
+    #[test]
+    fn pending_head_pin_consumed_only_by_head_rule_and_cleared_with_plan() {
+        // (f3) lock: the pin fires ONLY for the pinned head rule (first match wins and clears),
+        // and `clear_reach_plan` drops an armed-but-unconsumed pin (plan-scoped state).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("lead".to_string(), token("string", "v"));
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 0);
+        generator.pending_head_pin = Some(("identifier".to_string(), "\\foo".to_string()));
+        assert_eq!(
+            generator.take_pending_head_pin("other_rule"),
+            None,
+            "a non-head rule must not consume the pin"
+        );
+        assert_eq!(
+            generator.take_pending_head_pin("identifier"),
+            Some("\\foo".to_string()),
+            "the head rule consumes the pinned store name"
+        );
+        assert_eq!(
+            generator.take_pending_head_pin("identifier"),
+            None,
+            "the pin is single-shot — later same-rule renders stay free"
+        );
+        generator.pending_head_pin = Some(("identifier".to_string(), "\\foo".to_string()));
+        generator.clear_reach_plan();
+        assert_eq!(
+            generator.pending_head_pin, None,
+            "clear_reach_plan must drop an armed-but-unconsumed pin (never leaks across attempts)"
         );
     }
 
