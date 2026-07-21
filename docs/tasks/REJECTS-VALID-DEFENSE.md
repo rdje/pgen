@@ -152,8 +152,15 @@ approval. No cross-family leaf is opened while this tree is parked.
 > external official and recognized SV corpus") activates the SV lane — owned by
 > tree **`SV-CORPUS-GRAD`** ([[project_sv_done_requires_external_corpus_graduation]]),
 > building on the ALREADY-vendored `stimuli/sv/subs/` suites
-> (`EXTERNAL-CORPUS.3.1`, 2026-06-17). The VHDL / JSON / cross-family clauses
-> above remain parked here awaiting their own GO.
+> (`EXTERNAL-CORPUS.3.1`, 2026-06-17). **FURTHER (same-day): the WHOLE
+> cross-family corpus clause is SUPERSEDED-BY-GO** — the director generalized
+> the bar to ALL parsers ("exersized against their external and official and
+> recognized test corpus before claiming they are done" + the exhaustive
+> per-family pinning mandate), owned by umbrella tree **`CORPUS-GRAD-ALL`**
+> ([[project_all_parsers_done_requires_corpus_graduation]]). Only this tree's
+> NON-corpus instruments (`.1` grammar-edit differential / `.2` context-dual
+> grid / `.4` mutation-differential / `.5` spec traceability) remain parked
+> awaiting their own GO.
 
 ## Non-Goals (while parked)
 
