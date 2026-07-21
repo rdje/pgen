@@ -1,0 +1,52 @@
+## profile_2023 replay-gap breakdown (run1, 2026-07-22 00:06)
+### by target_type
+branch: 60
+rule: 1
+### by reason
+selected_but_failed: 41
+never_selected: 19
+never_hit: 1
+### by rule_name
+prop_primary_sv_2023: 24
+concurrent_assertion_statement: 4
+method_call_receiver_sv_2023: 4
+nonrange_variable_lvalue: 3
+ps_or_hierarchical_array_identifier: 3
+class_declaration_sv_2023: 2
+constraint_primary_sv_2023: 2
+hierarchical_btf_identifier: 2
+randomize_call: 2
+assertion_item_declaration: 1
+checker_or_generate_item_declaration: 1
+clocking_item: 1
+concurrent_assertion_item: 1
+event_expression: 1
+net_declaration_sv_2023: 1
+package_or_generate_item_declaration_sv_2023: 1
+procedural_assertion_statement: 1
+prop_iff_sv_2023: 1
+property_actual_arg: 1
+property_case_item: 1
+ps_type_identifier_sv_2023: 1
+split_hierarchical_callable_receiver: 1
+statement_item_sv_2023: 1
+wildcard_escape_nettype_identifier: 1
+### summary
+{
+  "required_successes_per_target": 1,
+  "sample_attempts": 5923,
+  "sample_successes": 5843,
+  "sample_errors": 80,
+  "total_rules": 1362,
+  "reachable_rules": 1347,
+  "unreachable_rules": 15,
+  "covered_rules": 1346,
+  "covered_reachable_rules": 1346,
+  "reachable_rules_at_threshold": 1346,
+  "total_branches": 1562,
+  "reachable_branches": 60,
+  "unreachable_branches": 1502,
+  "covered_branches": 1417,
+  "covered_reachable_branches": 0,
+  "reachable_branches_at_threshold": 0
+}

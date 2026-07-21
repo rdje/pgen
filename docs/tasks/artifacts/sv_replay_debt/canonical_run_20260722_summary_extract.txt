@@ -1,0 +1,17 @@
+# Canonical sv_stimuli_quality_gate run — 2026-07-22 00:06 (session #189 .3 battery; code vintage = HEAD c847254c code / f48a60b2 docs)
+# state_dir: rust/target/sv_stimuli_quality_gate (run span 23:39–00:06)
+
+profile_count: 2
+run_profiles: 2017 2023
+closed_loop_target_max_attempts: 5000
+closed_loop_target_max_attempts_source: contract
+closed_loop_target_generation_timeout_ms: 5
+closed_loop_target_helper_timeout_ms: 1000
+closed_loop_profiles_passed: 2/2
+closed_loop_initial_targets_total: 5394
+closed_loop_replay_targets_total: 120
+
+profile_2017_replay_gap: targets=59
+profile_2023_replay_gap: targets=61
+profile_2017_initial_gap: targets=2659
+profile_2023_initial_gap: targets=2735
