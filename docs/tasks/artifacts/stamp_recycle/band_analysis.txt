@@ -1,0 +1,24 @@
+PGEN-RGX-0078-0210 per-band decomposition (banked either way per the prereg)
+bands over the BASE sweep's own timing population; geomean per band:
+  sub1us   cells= 1090 base=     481.7 cand=     490.7 delta=  +1.87%
+  1to2p5   cells=  721 base=    1526.4 cand=    1519.2 delta=  -0.47%
+  2p5to20  cells=  368 base=    3936.1 cand=    3914.2 delta=  -0.56%
+  ge20us   cells=   10 base=   50540.5 cand=   49902.6 delta=  -1.26%
+worst per-cell ratios:
+  pcre2:testdata/testinput2:line_7428                              208 ->     291 1.40x
+  pcre2:testdata/testinput2:line_365                               250 ->     333 1.33x
+  pcre2:testdata/testinput2:line_367                               125 ->     166 1.33x
+  pcre2:testdata/testinput2:line_4839                              584 ->     708 1.21x
+  pcre2:testdata/testinput2:line_4109                              208 ->     250 1.20x
+  pcre2:testdata/testinput2:line_7567                              208 ->     250 1.20x
+  pcre2:testdata/testinput2:line_8251                              500 ->     583 1.17x
+  pcre2:testdata/testinput2:line_488                               250 ->     291 1.16x
+best per-cell ratios:
+  pcre2:testdata/testinput2:line_2613                              917 ->     792 0.86x
+  pcre2:testdata/testinput2:line_4029                              291 ->     250 0.86x
+  pcre2:testdata/testinput2:line_8057                              291 ->     250 0.86x
+  pcre2:testdata/testinput2:line_5387                              833 ->     708 0.85x
+  pcre2:testdata/testinput2:line_915                               250 ->     208 0.83x
+  pcre2:testdata/testinput2:line_917                               250 ->     208 0.83x
+  pcre2:testdata/testinput2:line_3540                              250 ->     208 0.83x
+  pcre2:testdata/testinput2:line_3546                              250 ->     208 0.83x
