@@ -1,0 +1,4 @@
+PgenValue=24
+ContentOld=40 NodeOld=72 Result<NodeOld,PE>=72
+ContentNew=32 NodeNew=48 Result<NodeNew,PE>=48
+promoted=letter deref_eq=true
