@@ -1,0 +1,2700 @@
+probe custody: PASS sha256=8d392176b8456ac66ddaa62b989ad78204029a2c360caef19c4d811a40c1f75c
+weights: sub1us=0.460693 1to2p5=0.340171 2p5to20=0.191331 | floor=1003.3049233222944 ns | noise=22.871 ns
+
+=== VIEW 1 [build_value]: per-symbol (complete; 61 symbols; total 72.6611 ns vs -0213 bucket 72.6611 ns) ===
+re-sum: PASS
+  22.1383ns   1466   1331   1051  cascade_build_piece#17hfb0ec3ee9166da15
+  21.7088ns   1140   1507   1264  pgen::ParseContent15to_shaped_value#17h5271c1e592526ba2
+  10.8286ns    190   1044    881  cascade_build_alternative#17h4945a7ec3063a270
+   4.8691ns    369    254    204  cascade_build_quantifier#17h67e55cba23cf5962
+   4.2045ns    343    212    145  cascade_build_value_literal#17hdbc325d2c207f6f6
+   1.4199ns     28    128    122  cascade_build_value_group#17h135854476619a347
+   1.3141ns     93     77     55  cascade_build_char_class#17h02d6c17f35ff24d2
+   1.2098ns    108     26     72  cascade_build_value_escape#17hd8975d250d4154f5
+   0.3696ns     23     23     19  cascade_build_class_safe_special#17h1966a867a68e2737
+   0.3594ns     18     26     21  cascade_build_value_class_literal#17h5da55d6b20b85108
+   0.3040ns      9     29     19  cascade_build_value_subroutine_target#17h8ef9a85659caf2d9
+   0.2747ns      6     26     21  cascade_build_signed_digits#17hef868c6021a3cd55
+   0.2723ns     11     23     16  cascade_build_conditional#17hfc04d14c24984ad2
+   0.2704ns     10     27     12  cascade_build_value_conditional_branch#17h72bc4d6c28e2ba08
+   0.2487ns     19      7     18  cascade_build_value_directive_payload_required#17hbfc545c0f4359490
+   0.2245ns     22     11      2  cascade_build_value_modifier_group#17he6c2bf7bddadc881
+   0.2002ns     20      0     14  cascade_build_value_extended_class_content#17h79efeffe9b43f4ff
+   0.1910ns      6      4     30  cascade_build_whitespace#17haccb9e72e3d23393
+   0.1685ns      1     17     16  cascade_build_value_backreference#17h1cc3082a395ae6d5
+   0.1453ns      7     12      7  cascade_build_value_class_item#17ha9f9acd8358cfeca
+   0.1322ns      1     15     10  cascade_build_value_lookaround#17h12d59b33348ba019
+   0.1301ns      6      9      9  cascade_build_subroutine_call#17h615d680835daa345
+   0.1268ns      7     14      0  cascade_build_value_callout_arg#17h0747e6edd2dc8634
+   0.0923ns      3      6      9  cascade_build_scan_substring_group#17h2bcf9a55e79fae4f
+   0.0922ns      5      8      3  cascade_build_modifier_seq#17hea197e738a4d7d29
+   0.0892ns      1      8      9  cascade_build_value_returned_capture_group_list#17hc3dd12c610bc1ae7
+   0.0853ns      6      7      1  cascade_build_inline_modifiers#17h1947b3c9b363e01d
+   0.0844ns      0      0     20  cascade_build_quoted_literal_char#17h69353af17e674e42
+   0.0754ns      0      6     10  cascade_build_class_range#17h72e95d5febd97d6a
+   0.0685ns      0      4     11  cascade_build_value_returned_capture_group#17ha1efd0447533ca05
+   0.0646ns      4      2      6  cascade_build_value_class_negated_open#17h00da54133222ced4
+   0.0643ns      4      5      2  cascade_build_callout#17h66e7676b4a182c82
+   0.0619ns      5      1      5  cascade_build_value_dot#17h733129420c816644
+   0.0565ns      8      0      0  cascade_build_value_class_range_decodable_escape#17h26f33214fde612de
+   0.0544ns      2      5      3  cascade_build_hex_escape#17hc118830075ac6d6e
+   0.0490ns      4      3      1  cascade_build_directive_verb#17hedd7b6a2d5b8c512
+   0.0463ns      5      2      0  cascade_build_value_class_escape#17hfcc668cb0718ac24
+   0.0463ns      5      2      0  cascade_build_posix_class#17h32ff0cd904a1984c
+   0.0434ns      1      2      6  cascade_build_value_class_atom#17hdc927a13d31c7b9f
+   0.0423ns      6      0      0  cascade_build_comment_group#17haf912cbd697f7331
+   0.0407ns      2      1      5  cascade_build_atomic_group#17hfde132f3d9d53482
+   0.0322ns      3      2      0  cascade_build_octal_escape#17h47f17a8c9741df92
+   0.0292ns      1      4      0  cascade_build_value_condition_assertion#17he956c9547a3301e9
+   0.0282ns      4      0      0  cascade_build_value_zero_width#17h36529deafca42e56
+   0.0279ns      1      3      1  cascade_build_directive_payload_colon#17h73170dc554a5ae42
+   0.0279ns      1      3      1  cascade_build_modifier_spec#17h53d891243918f2e8
+   0.0267ns      3      1      0  cascade_build_value_class_range_simple_escape#17h5ea1aaaadef2acf6
+   0.0236ns      1      3      0  cascade_build_value_octal_digit#17h1fa94383a902952c
+   0.0236ns      1      3      0  cascade_build_value_hex_digit#17h893468061444376a
+   0.0224ns      0      1      4  cascade_build_special_char#17h6a78b30182df9b76
+   0.0212ns      3      0      0  cascade_build_posix_word_boundary_alias#17h8676f46cd4e00f8b
+   0.0212ns      3      0      0  cascade_build_extended_class#17h4a7b49590e058e8c
+   0.0211ns      0      0      5  cascade_build_value_whitespace_literal#17hfe55679317a356e9
+   0.0141ns      2      0      0  cascade_build_value_code_content#17hb0799f1ea0616b6f
+   0.0141ns      2      0      0  cascade_build_quoted_literal#17h15f2702aaa6a59d2
+   0.0126ns      1      1      0  cascade_build_value_literal_open_brace#17h7ecde6d4a017bf95
+   0.0111ns      0      2      0  cascade_build_value_quoted_class_literal_char#17h0c2f769a8f219784
+   0.0111ns      0      2      0  cascade_build_scoped_inline_modifiers#17hf392ec0ec69a3046
+   0.0111ns      0      2      0  cascade_build_branch_reset_group#17hc2ba9c7d935d81a1
+   0.0071ns      1      0      0  cascade_build_value_directive_limit_value_core#17h6e2f32a8431c0ff0
+   0.0071ns      1      0      0  cascade_build_quoted_class_literal_nonempty#17h8432465b5736b79f
+
+=== VIEW 1 [arena_alloc]: per-symbol (complete; 11 symbols; total 69.4154 ns vs -0213 bucket 69.4154 ns) ===
+re-sum: PASS
+  26.4423ns   2026   1532    871  typed_arena::Arena$LT$T$GT$12alloc_extend#17h88670e1bf10cf0ff
+  23.9083ns   1620   1392   1133  typed_arena::Arena$LT$T$GT$12alloc_extend#17h0f20dcea3f658c24
+   9.9109ns    783    565    299  typed_arena::Arena$LT$T$GT$12alloc_extend#17h916724f9b9255e27
+   3.2967ns    327    143     47  typed_arena::Arena$LT$T$GT$12alloc_extend#17hf241ce72116737e7
+   3.2431ns    189    208    180  typed_arena::Arena$LT$T$GT$12alloc_extend#17h611a89fc10d7af8d
+   1.6325ns     99    101     89  typed_arena::Arena$LT$T$GT$12alloc_extend#17h85fa14adae63667b
+   0.7329ns      6     86     51  typed_arena::Arena$LT$T$GT$15alloc_slow_path#17h57ba2180f4cd3412
+   0.1533ns      1     15     15  typed_arena::Arena$LT$T$GT$12alloc_extend#17h099e504431552992
+   0.0366ns      1      0      7  typed_arena::Arena$LT$T$GT$12alloc_extend#17he990f18ac749bca6
+   0.0336ns      2      2      2  typed_arena::Arena$LT$T$GT$12alloc_extend#17h6ff79074481ee1ea
+   0.0252ns      2      2      0  pgen::NodeArena5alloc#17h310f816830067ce3
+
+=== VIEW 1 [semantic_runtime]: per-symbol (complete; 45 symbols; total 49.3605 ns vs -0213 bucket 49.3605 ns) ===
+re-sum: PASS
+   7.1606ns     90    618    737  pgen::semantic_runtime9FactIndex6insert#17hc72d5defb7fe3932
+   6.7615ns    216    620    429  with_semantic_runtime_rule_transaction#17h5c56f0dd6f3286ac
+   6.1572ns    446    362    239  pgen::semantic_runtime20SemanticRuntimeState3new#17hfc8d801073298164
+   3.6289ns     47    395    264  pgen::semantic_runtime20SemanticRuntimeState24extract_delta_since_slow#17hb418d149dd9e234a
+   3.4089ns     56    346    261  apply_semantic_runtime_effect_directive#17hcbf95367d8e7a875
+   3.2484ns    226    193    139  pgen::semantic_runtime34CompiledSemanticRuntimeAnnotations19directives_for_rule#17h31f6e8468ec9103f
+   3.1318ns    243    167    117  with_semantic_runtime_rule_transaction#17h9bc3d58057e8cdaa
+   2.8182ns     58    203    305  pgen::semantic_runtime20SemanticRuntimeState24rollback_to_labeled_slow#17h075e3612142ab16c
+   2.3931ns     53    192    227  pgen::semantic_runtime20SemanticRuntimeState17rule_context_path#17hddf839e31732b572
+   2.0114ns     35    207    147  pgen::semantic_runtime20SemanticRuntimeState15apply_directive#17hf9dffb915c78c369
+   1.0905ns     13    112     90  __ZN93_$LT$pgen..ast_pipeline..semantic_runtime..SemanticFactSpec$u20$as$u20$core..clone..Clone$GT$5
+   1.0018ns     23     87     85  __ZN106_$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeTransaction$u20$as$u20$core..ops..d
+   0.8351ns     58     61     21  with_semantic_runtime_rule_transaction#17hb43f871761884a0c
+   0.6636ns     11     48     76  with_semantic_runtime_rule_transaction#17h4ddff46a95b13227
+   0.6481ns     48     30     34  pgen::semantic_runtime20SemanticRuntimeState18evaluate_predicate#17hf81375379dbe9747
+   0.5255ns      4     35     72  pgen::semantic_runtime20SemanticRuntimeState11apply_delta#17h90ae86030de96a1c
+   0.4829ns      3     53     40  resolve_semantic_runtime_value_against_content#17hfb75ebd34a2e8de9
+   0.4730ns     13     27     55  with_semantic_runtime_rule_transaction#17h522efba5382502cf
+   0.3651ns     30     14     18  pgen::semantic_runtime20SemanticRuntimeState32evaluate_content_aware_predicate#17hd0345f52b3b38633
+   0.3358ns      3     47     13  with_semantic_runtime_rule_transaction#17hc853385077ad75e8
+   0.3110ns      2     27     35  with_semantic_runtime_rule_transaction#17h7d47951675044689
+   0.2696ns      5     34     11  with_semantic_runtime_rule_transaction#17h17df4b71b642ff52
+   0.2063ns      4     20     16  with_semantic_runtime_rule_transaction#17h348959084c0ef0b6
+   0.1991ns     15     10      9  with_semantic_runtime_rule_transaction#17h22c3018839189a27
+   0.1685ns      5     18      8  __ZN94_$LT$pgen..ast_pipeline..semantic_runtime..SemanticScopeSpec$u20$as$u20$core..clone..Clone$GT$
+   0.1215ns      0      9     17  pgen::semantic_runtime9FactIndex13any_with_name#17h0fb93ce1e3574bb6
+   0.1205ns      8      7      6  with_semantic_runtime_rule_transaction#17h7df610a325463c55
+   0.1188ns      1      8     16  with_semantic_runtime_rule_transaction#17hc749b5e555355f2b
+   0.1122ns      2      4     18  with_semantic_runtime_rule_transaction#17hcf56c299071f48b8
+   0.0922ns      5      8      3  __ZN97_$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDelta$u20$as$u20$core..clone..Clone$
+   0.0763ns      1     11      2  with_semantic_runtime_rule_transaction#17h52e5781479059a5f
+   0.0753ns      1      7      7  pgen::semantic_runtime20SemanticRuntimeState27enqueue_deferred_obligation#17h999ae73d1f07ea9e
+   0.0585ns      0      6      6  with_semantic_runtime_rule_transaction#17ha655e0eae04a55ae
+   0.0462ns      3      3      2  pgen::semantic_runtime17SemanticScopeKind5parse#17hd1250d2b22304aaf
+   0.0449ns      3      2      3  pgen::semantic_runtime32decode_char_literal_to_codepoint#17h499c665ca7bcc9b1
+   0.0432ns      0      4      5  with_semantic_runtime_rule_transaction#17h3f0da13b0549e44c
+   0.0432ns      0      4      5  pgen::semantic_runtime20SemanticRuntimeValue19from_semantic_value#17ha1f99a1bae6eb69b
+   0.0252ns      2      2      0  pgen::semantic_runtime20SemanticRuntimeState27active_scope_chain_has_kind#17h28cc623f64748763
+   0.0239ns      2      1      1  pgen::semantic_runtime20SemanticRuntimeState19extract_delta_since#17h8c6106886e1ed410
+   0.0181ns      1      2      0  pgen::semantic_runtime14compare_values#17hc844172c9d131528
+   0.0153ns      0      2      1  pgen::semantic_runtime18compare_codepoints#17hf7cb633e3feff5b2
+   0.0140ns      0      1      2  pgen::semantic_runtime20SemanticRuntimeState24rollback_to_labeled_bare#17h9d4f6b257525a276
+   0.0071ns      1      0      0  pgen::semantic_runtime9FactIndex14count_for_kind#17hc8816eb5664e2171
+   0.0042ns      0      0      1  with_semantic_runtime_rule_transaction#17h98168f274cbc9f71
+   0.0042ns      0      0      1  pgen::semantic_runtime34CompiledSemanticRuntimeAnnotations26branch_directives_for_rule#17h49e0b88e28
+
+=== VIEW 1 [vec_growth]: per-symbol (complete; 17 symbols; total 28.6025 ns vs -0213 bucket 28.6025 ns) ===
+re-sum: PASS
+  16.5139ns   1239   1001    530  alloc::raw_vec20RawVecInner$LT$A$GT$11finish_grow#17h0ad14a629d25f3f4
+   5.5906ns    545    243     95  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h1ea4d81f4bfacb92
+   2.3963ns    208    129     51  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h84ff3e56869fffcc
+   1.4737ns     23    151    113  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h1f5402799ab88b1e
+   0.4637ns      7     49     34  typed_arena::ChunkList$LT$T$GT$7reserve#17hfb73d5428f5cfdf1
+   0.4538ns      5     49     35  alloc::raw_vec20RawVecInner$LT$A$GT$11finish_grow#17h0d5ac147e1236610
+   0.4124ns      6     41     34  typed_arena::ChunkList$LT$T$GT$7reserve#17h25f89527e4425a24
+   0.4100ns      8     38     34  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17hda1c469b025f0ed8
+   0.2253ns      6     27      8  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h13bf3f2fad2ee1fd
+   0.1667ns      2      7     27  __RINvNvMs2_NtCs1OjIl8oxbrv_5alloc7raw_vecINtB8_11RawVecInnerpE7reserve21do_reserve_and_handleNtNtBa
+   0.1385ns      2      8     19  __RNvMs4_NtCs1OjIl8oxbrv_5alloc7raw_vecNtB5_11RawVecInner11finish_growB7_
+   0.1205ns     11      7      1  alloc::raw_vec20RawVecInner$LT$A$GT$7reserve21do_reserve_and_handle#17h23d02702c4dd1b64
+   0.1084ns      1     13      7  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h374b4f03509ad3ca
+   0.0599ns      2      6      3  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h3f062b24a6cab0e5
+   0.0378ns      3      3      0  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h19b041e40147c856
+   0.0211ns      0      0      5  typed_arena::ChunkList$LT$T$GT$7reserve#17h2f0c61b4474e0969
+   0.0097ns      0      1      1  alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17he27b754c10e9b1fe
+
+=== VIEW 2: within-symbol clusters (symbols >= 3.0 ns; gap <= 16 B; top 10 clusters each) ===
+
+--- [build_value] cascade_build_piece#17hfb0ec3ee9166da15 [22.1383 ns] ---
+  cluster +0x25dc..+0x26b0   9.8943 ns  bands[665 602 444]
+           +0x25d4 ldr x0, [x9, x8]
+           +0x25d8 bl _mi_free
+       66* +0x25dc ldr x8, [x22, #0x350]
+       49* +0x25e0 ldr q0, [x27, #0x30]
+           +0x25e4 str q0, [x19, #0x10]
+       85* +0x25e8 ldr x9, [sp, #0x140]
+           +0x25ec add x10, sp, #0x49
+      105* +0x25f0 ldur q0, [x10, #0xff]
+           +0x25f4 stur q0, [x19, #0x38]
+       45* +0x25f8 ldr x10, [sp, #0x158]
+           +0x25fc adrp x11, 1901 ; 0x1007b0000
+           +0x2600 add x11, x11, #0xd50
+           +0x2604 mov w12, #0x4
+        2* +0x2608 stp x11, x12, [x29, #-0xe0]
+           +0x260c adrp x11, 1891 ; 0x1007a6000
+        1* +0x2610 add x11, x11, #0xc5a
+       68* +0x2614 stp x9, x11, [x29, #-0xc0]
+           +0x2618 mov w9, #0xa
+       66* +0x261c stur x9, [x29, #-0xb0]
+           +0x2620 adrp x9, 1901 ; 0x1007b0000
+           +0x2624 add x9, x9, #0xd54
+       80* +0x2628 stp x10, x9, [x29, #-0x98]
+       32* +0x262c stur x12, [x29, #-0x88]
+           +0x2630 mov w9, #0x5
+       40* +0x2634 sturb w9, [x29, #-0x80]
+        3* +0x2638 adrp x10, 1892 ; 0x1007a7000
+           +0x263c add x10, x10, #0x793
+       68* +0x2640 stp x10, x9, [x29, #-0x78]
+           +0x2644 add x0, x8, #0x70
+        6* +0x2648 sub x1, x29, #0xe0
+           +0x264c bl __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17h0f20dcea3f658c24E
+        1* +0x2650 mov w8, #0x7
+           +0x2654 strb w8, [sp, #0x288]
+       46* +0x2658 str x0, [sp, #0x290]
+       45* +0x265c str x1, [sp, #0x298]
+           +0x2660 mov x8, #0x2
+           +0x2664 movk x8, #0x8000, lsl #48
+       32* +0x2668 str x8, [sp, #0x280]
+      174* +0x266c ldr x10, [sp, #0x30]
+        1* +0x2670 ldr x8, [x22, #0x528]
+      159* +0x2674 ldur q0, [x26, #0x78]
+      124* +0x2678 ldur q1, [x26, #0x88]
+        3* +0x267c stp q0, q1, [x28]
+           +0x2680 adrp x9, 2063 ; 0x100852000
+           +0x2684 add x9, x9, #0x598
+       77* +0x2688 str x9, [x28, #0x20]
+       41* +0x268c stp w10, w8, [x28, #0x28]
+           +0x2690 add sp, sp, #0x340
+      105* +0x2694 ldp x29, x30, [sp, #0x50]
+        8* +0x2698 ldp x20, x19, [sp, #0x40]
+        2* +0x269c ldp x22, x21, [sp, #0x30]
+       10* +0x26a0 ldp x24, x23, [sp, #0x20]
+       20* +0x26a4 ldp x26, x25, [sp, #0x10]
+      139* +0x26a8 ldp x28, x27, [sp], #0x60
+           +0x26ac ret
+        8* +0x26b0 add x0, sp, #0x130
+           +0x26b4 mov x1, x22
+           +0x26b8 bl __ZN4pgen17generated_parsers5regex11RegexParser25cascade_build_value_group17h135854476619a347E
+  cluster +0x0000..+0x0080   4.4930 ns  bands[297 284 196]
+           +-0x008 str x8, [x19]
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+        1* +0x0000 stp x28, x27, [sp, #-0x60]!
+       44* +0x0004 stp x26, x25, [sp, #0x10]
+       37* +0x0008 stp x24, x23, [sp, #0x20]
+       48* +0x000c stp x22, x21, [sp, #0x30]
+       41* +0x0010 stp x20, x19, [sp, #0x40]
+       48* +0x0014 stp x29, x30, [sp, #0x50]
+        2* +0x0018 add x29, sp, #0x50
+        4* +0x001c sub sp, sp, #0x340
+        2* +0x0020 mov x22, x1
+           +0x0024 mov x28, x0
+           +0x0028 add x26, sp, #0x208
+        2* +0x002c add x27, sp, #0x100
+       35* +0x0030 ldr x8, [x1, #0x528]
+       17* +0x0034 str x8, [sp, #0x30]
+       56* +0x0038 ldr x1, [x1, #0x298]
+        2* +0x003c ldr x2, [x22, #0x2a0]
+       20* +0x0040 ldr x21, [x22, #0x520]
+        1* +0x0044 sub x0, x29, #0xe0
+           +0x0048 mov x3, x21
+       11* +0x004c bl __ZN4pgen12ast_pipeline8TapeWord12decode_event17hd8085e27d36fb34aE
+        6* +0x0050 ldurb w9, [x29, #-0xe0]
+           +0x0054 ldur w8, [x26, #0xa9]
+        1* +0x0058 str w8, [sp, #0x1d8]
+       38* +0x005c ldur w8, [x29, #-0xdc]
+        3* +0x0060 stur w8, [x27, #0xdb]
+      223* +0x0064 ldp x8, x10, [x29, #-0xd8]
+           +0x0068 add x23, x10, x21
+       47* +0x006c str x23, [x22, #0x520]
+           +0x0070 cbnz w9, 0x100043f6c
+       26* +0x0074 cmp x8, #0x2
+       51* +0x0078 str x22, [sp, #0x50]
+        2* +0x007c b.gt 0x100041960
+        9* +0x0080 cbz x8, 0x100041bdc
+           +0x0084 cmp x8, #0x1
+           +0x0088 b.eq 0x1000419e4
+  cluster +0x0120..+0x0138   3.7473 ns  bands[241 229 185]
+           +0x0118 ldur w8, [x19, #0x1]
+           +0x011c str w8, [sp, #0x1d8]
+       19* +0x0120 ldur w8, [x29, #-0xdc]
+        6* +0x0124 stur w8, [x27, #0xdb]
+      315* +0x0128 ldp x8, x10, [x29, #-0xd8]
+           +0x012c add x10, x10, x23
+       46* +0x0130 str x10, [x22, #0x520]
+           +0x0134 cbnz w9, 0x100044028
+      269* +0x0138 cmp x8, #0x17
+           +0x013c b.hi 0x1000442c8
+           +0x0140 adrp x9, 1882 ; 0x10079b000
+  cluster +0x2408..+0x2464   1.7644 ns  bands[110 107 94]
+           +0x2400 ldr x1, [x22, #0x298]
+           +0x2404 ldr x2, [x22, #0x2a0]
+        5* +0x2408 ldr x21, [x22, #0x520]
+           +0x240c sub x0, x29, #0xe0
+        1* +0x2410 mov x3, x21
+           +0x2414 bl __ZN4pgen12ast_pipeline8TapeWord12decode_event17hd8085e27d36fb34aE
+        2* +0x2418 ldurb w9, [x29, #-0xe0]
+        2* +0x241c ldurb w8, [x29, #-0xdf]
+        1* +0x2420 ldur x10, [x19, #0x2]
+        3* +0x2424 str x10, [sp, #0x1d8]
+      117* +0x2428 ldp x10, x11, [x29, #-0xd8]
+           +0x242c stur x10, [x27, #0xde]
+           +0x2430 add x21, x11, x21
+      117* +0x2434 str x21, [x22, #0x520]
+        1* +0x2438 cmp w9, #0x2
+        5* +0x243c b.ne 0x1000440fc
+       47* +0x2440 tbz w8, #0x0, 0x100043d48
+           +0x2444 ldr x1, [x22, #0x348]
+        4* +0x2448 ldr x0, [x22, #0x528]
+           +0x244c cmp x0, x1
+           +0x2450 b.hs 0x100044348
+           +0x2454 ldr x8, [x22, #0x340]
+        5* +0x2458 ldrb w8, [x8, x0]
+           +0x245c cmp w8, #0x5b
+           +0x2460 b.gt 0x100043d5c
+        1* +0x2464 sub w9, w8, #0x2a
+           +0x2468 cmp w9, #0x2
+           +0x246c b.lo 0x100043cf4
+  cluster +0x00e0..+0x00f8   0.5269 ns  bands[33 28 33]
+           +0x00d8 mov w8, #0xa
+           +0x00dc stur x10, [x29, #-0xb8]
+        1* +0x00e0 b 0x100043354
+       64* +0x00e4 sub x19, x29, #0xe0
+           +0x00e8 cmp x8, #0x3
+           +0x00ec b.eq 0x100041c30
+       11* +0x00f0 cmp x8, #0x4
+           +0x00f4 b.eq 0x100041a8c
+       18* +0x00f8 cmp x8, #0x5
+           +0x00fc b.ne 0x100043fbc
+           +0x0100 ldr x1, [x22, #0x298]
+  cluster +0x014c..+0x0158   0.2115 ns  bands[10 11 19]
+           +0x0144 add x9, x9, #0xd5c
+           +0x0148 adr x10, #16
+       12* +0x014c ldrh w11, [x9, x8, lsl #1]
+           +0x0150 add x10, x10, x11, lsl #2
+           +0x0154 br x10
+       28* +0x0158 add x0, sp, #0x130
+           +0x015c mov x1, x22
+           +0x0160 bl __ZN4pgen17generated_parsers5regex11RegexParser27cascade_build_value_literal17hdbc325d2c207f6f6E
+  cluster +0x0194..+0x01b4   0.1999 ns  bands[20 3 10]
+           +0x018c ldur w8, [x26, #0xa9]
+           +0x0190 str w8, [sp, #0x1d8]
+        2* +0x0194 ldur w8, [x29, #-0xdc]
+           +0x0198 stur w8, [x27, #0xdb]
+       22* +0x019c ldp x8, x10, [x29, #-0xd8]
+           +0x01a0 add x0, x10, x23
+        3* +0x01a4 str x0, [x19, #0x520]
+           +0x01a8 cbnz w9, 0x100043fe8
+        5* +0x01ac cmp x8, #0x3
+           +0x01b0 b.le 0x100041d70
+        1* +0x01b4 cmp x8, #0x5
+           +0x01b8 b.le 0x10004309c
+           +0x01bc cmp x8, #0x6
+  cluster +0x1abc..+0x1b04   0.1992 ns  bands[18 10 4]
+           +0x1ab4 mov w9, #0x4
+           +0x1ab8 stp x8, x9, [x29, #-0xe0]
+        3* +0x1abc ldur q0, [sp, #0x88]
+           +0x1ac0 stur q0, [x26, #0xb8]
+        9* +0x1ac4 ldr x8, [sp, #0x98]
+           +0x1ac8 adrp x10, 1891 ; 0x1007a6000
+           +0x1acc add x10, x10, #0xc5a
+        1* +0x1ad0 stp x8, x10, [x29, #-0xc0]
+           +0x1ad4 mov w8, #0xa
+        2* +0x1ad8 stur x8, [x29, #-0xb0]
+           +0x1adc mov w8, #0x6
+        1* +0x1ae0 sturb w8, [x29, #-0xa8]
+        9* +0x1ae4 stp x0, x1, [x29, #-0xa0]
+           +0x1ae8 adrp x8, 1901 ; 0x1007b0000
+           +0x1aec add x8, x8, #0xd54
+        1* +0x1af0 stp x8, x9, [x29, #-0x90]
+           +0x1af4 mov w8, #0x5
+        3* +0x1af8 sturb w8, [x29, #-0x80]
+           +0x1afc adrp x9, 1892 ; 0x1007a7000
+           +0x1b00 add x9, x9, #0x793
+        3* +0x1b04 stp x9, x8, [x29, #-0x78]
+           +0x1b08 add x0, x19, #0x70
+           +0x1b0c b 0x100043ec4
+  cluster +0x24d8..+0x24d8   0.1901 ns  bands[11 15 7]
+           +0x24d0 stp x8, xzr, [sp, #0x150]
+           +0x24d4 mov w8, #0x6
+       33* +0x24d8 strb w8, [sp, #0x148]
+           +0x24dc b 0x100043e58
+           +0x24e0 cmp w8, #0x5c
+  cluster +0x2248..+0x2258   0.1006 ns  bands[5 8 5]
+           +0x2240 bl __ZN4pgen12ast_pipeline12ParseContent15to_shaped_value17h5271c1e592526ba2E
+           +0x2244 b 0x100043c74
+        7* +0x2248 add x0, sp, #0x130
+           +0x224c mov x1, x22
+           +0x2250 bl __ZN4pgen17generated_parsers5regex11RegexParser23cascade_build_value_dot17h733129420c816644E
+        9* +0x2254 b 0x100043c7c
+        2* +0x2258 sub x0, x29, #0xe0
+           +0x225c mov x1, x22
+           +0x2260 bl __ZN4pgen17generated_parsers5regex11RegexParser26cascade_build_atomic_group17hfde132f3d9d53482E
+
+--- [build_value] pgen::ParseContent15to_shaped_value#17h5271c1e592526ba2 [21.7088 ns] ---
+  cluster +0x0000..+0x00b8  14.5300 ns  bands[796 978 831]
+           +-0x008 mov x0, x19
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+       26* +0x0000 sub sp, sp, #0xc0
+        7* +0x0004 stp x26, x25, [sp, #0x70]
+      170* +0x0008 stp x24, x23, [sp, #0x80]
+      155* +0x000c stp x22, x21, [sp, #0x90]
+      173* +0x0010 stp x20, x19, [sp, #0xa0]
+      119* +0x0014 stp x29, x30, [sp, #0xb0]
+       19* +0x0018 add x29, sp, #0xb0
+       14* +0x001c mov x19, x2
+       11* +0x0020 mov w9, #0x5
+     1212* +0x0024 ldr x8, [x1]
+       10* +0x0028 eor x10, x8, #0x8000000000000000
+        3* +0x002c cmp x8, #0x0
+        2* +0x0030 csel x8, x10, x9, mi
+       19* +0x0034 cmp x8, #0x4
+        3* +0x0038 b.ne 0x10002f528
+        6* +0x003c ldr x1, [x1, #0x8]
+       66* +0x0040 ldr x8, [x1]
+           +0x0044 eor x10, x8, #0x8000000000000000
+           +0x0048 cmp x8, #0x0
+           +0x004c csel x8, x10, x9, mi
+        2* +0x0050 cmp x8, #0x4
+           +0x0054 b.eq 0x10002f50c
+       84* +0x0058 cmp x8, #0x1
+        7* +0x005c b.le 0x10002f55c
+       69* +0x0060 cmp x8, #0x2
+        2* +0x0064 b.eq 0x10002f574
+        7* +0x0068 add x9, x1, #0x8
+           +0x006c cmp x8, #0x3
+        1* +0x0070 csel x8, x9, x1, eq
+      107* +0x0074 ldr x23, [x8, #0x10]
+        1* +0x0078 mov x9, #0x5555555555555555
+           +0x007c movk x9, #0x555, lsl #48
+        2* +0x0080 cmp x23, x9
+           +0x0084 b.ls 0x10002f5e8
+           +0x0088 bl __RNvNtCs1OjIl8oxbrv_5alloc7raw_vec17capacity_overflow
+       48* +0x008c cbnz x8, 0x10002f588
+        5* +0x0090 ldp x8, x9, [x1, #0x8]
+           +0x0094 stp x8, x9, [x0, #0x8]
+           +0x0098 mov w8, #0x5
+       15* +0x009c strb w8, [x0]
+        2* +0x00a0 b 0x10002f6c8
+      128* +0x00a4 ldur q0, [x1, #0x8]
+           +0x00a8 str q0, [x0]
+      105* +0x00ac ldr x8, [x1, #0x18]
+           +0x00b0 str x8, [x0, #0x10]
+        4* +0x00b4 b 0x10002f6c8
+        1* +0x00b8 mov x20, x0
+           +0x00bc ldp x8, x9, [x1, #0x10]
+           +0x00c0 mov x21, x1
+  cluster +0x01f8..+0x0210   5.4697 ns  bands[317 368 284]
+           +0x01f0 add x0, sp, #0x8
+           +0x01f4 bl __ZN4core3ptr100drop_in_place$LT$core..result..Result$LT$serde_json..value..Value$C$serde_json..error..Error$GT$$GT$17hd41b906c99f679eeE
+      500* +0x01f8 ldp x29, x30, [sp, #0xb0]
+       29* +0x01fc ldp x20, x19, [sp, #0xa0]
+       45* +0x0200 ldp x22, x21, [sp, #0x90]
+       64* +0x0204 ldp x24, x23, [sp, #0x80]
+      303* +0x0208 ldp x26, x25, [sp, #0x70]
+       24* +0x020c add sp, sp, #0xc0
+        4* +0x0210 ret
+           +0x0214 mov w0, #0x8
+           +0x0218 mov x1, x21
+  cluster +0x017c..+0x01c4   1.3499 ns  bands[22 123 122]
+           +0x0174 mov x21, x20
+           +0x0178 mov x26, x23
+       21* +0x017c ldr x1, [x24], #0x8
+           +0x0180 add x0, sp, #0x58
+           +0x0184 mov x2, x19
+           +0x0188 bl __ZN4pgen12ast_pipeline12ParseContent15to_shaped_value17h5271c1e592526ba2E
+       54* +0x018c ldur q0, [sp, #0x58]
+           +0x0190 str q0, [x21]
+       76* +0x0194 ldr x8, [sp, #0x68]
+       15* +0x0198 str x8, [x21, #0x10]
+        1* +0x019c add x21, x21, #0x18
+        6* +0x01a0 subs x26, x26, #0x1
+        1* +0x01a4 b.ne 0x10002f64c
+       36* +0x01a8 stp x25, x20, [sp, #0x28]
+       28* +0x01ac str x23, [sp, #0x38]
+           +0x01b0 add x0, x19, #0x38
+           +0x01b4 add x1, sp, #0x28
+           +0x01b8 bl __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17h88670e1bf10cf0ffE
+        2* +0x01bc stp x0, x1, [x22, #0x8]
+        1* +0x01c0 mov w8, #0x6
+       26* +0x01c4 strb w8, [x22]
+           +0x01c8 b 0x10002f6c8
+           +0x01cc mov w22, #0x1
+  cluster +0x0118..+0x0138   0.3227 ns  bands[3 37 23]
+           +0x0110 bl 0x10073e1d0 ; symbol stub for: _memcpy
+           +0x0114 b 0x10002f6a0
+        3* +0x0118 mov x22, x0
+       39* +0x011c ldr x24, [x8, #0x8]
+           +0x0120 add x8, x23, x23, lsl #1
+           +0x0124 lsl x21, x8, #3
+           +0x0128 cbz x21, 0x10002f638
+        4* +0x012c mov x0, x21
+           +0x0130 mov w1, #0x8
+           +0x0134 bl _mi_malloc_aligned
+       17* +0x0138 mov x20, x0
+           +0x013c mov x25, x23
+           +0x0140 cbz x0, 0x10002f6e4
+  cluster +0x00d8..+0x00d8   0.0183 ns  bands[2 0 1]
+           +0x00d0 add x1, sp, #0x40
+           +0x00d4 bl __ZN10serde_json2de10from_trait17hb27d4b28cd253f51E
+        3* +0x00d8 ldrb w8, [sp, #0x8]
+           +0x00dc cmp w8, #0x6
+           +0x00e0 b.ne 0x10002f61c
+  cluster +0x0168..+0x0168   0.0182 ns  bands[0 1 3]
+           +0x0160 bl __ZN4core3ptr45drop_in_place$LT$serde_json..value..Value$GT$17hcabd585530ad6565E
+           +0x0164 b 0x10002f6c8
+        4* +0x0168 mov x25, #0x0
+           +0x016c mov w20, #0x8
+           +0x0170 cbz x23, 0x10002f678
+
+--- [build_value] cascade_build_alternative#17h4945a7ec3063a270 [10.8286 ns] ---
+  cluster +0x0208..+0x0254   1.5208 ns  bands[26 145 127]
+           +0x0200 bl __ZN11typed_arena14Arena$LT$T$GT$15alloc_slow_path17h57ba2180f4cd3412E
+           +0x0204 mov x8, x0
+       49* +0x0208 ldr x0, [x27, #0x350]
+       83* +0x020c ldr x9, [x0]
+        2* +0x0210 cbnz x9, 0x100045468
+           +0x0214 mov x9, #-0x1
+        1* +0x0218 str x9, [x0]
+      106* +0x021c ldr x9, [x0, #0x18]
+        3* +0x0220 ldr x10, [x0, #0x8]
+           +0x0224 cmp x9, x10
+           +0x0228 b.hs 0x100044998
+        3* +0x022c ldr x10, [x0, #0x10]
+           +0x0230 add x11, x9, x9, lsl #1
+           +0x0234 lsl x11, x11, #4
+           +0x0238 add x10, x10, x11
+        1* +0x023c stp x24, x8, [x10]
+           +0x0240 adrp x8, 2060 ; 0x100850000
+           +0x0244 add x8, x8, #0xfa8
+       15* +0x0248 stp x8, xzr, [x10, #0x20]
+           +0x024c add x8, x9, #0x1
+       11* +0x0250 str x8, [x0, #0x18]
+       24* +0x0254 ldr x8, [x0, #0x10]
+           +0x0258 ldr x9, [x0]
+           +0x025c add x9, x9, #0x1
+  cluster +0x00ac..+0x018c   1.4874 ns  bands[27 127 141]
+           +0x00a4 sub x26, x29, #0x90
+           +0x00a8 orr x8, x26, #0x1
+        9* +0x00ac stp x23, x8, [sp, #0x28]
+           +0x00b0 mov w28, #0x5
+       11* +0x00b4 str x27, [sp, #0x68]
+           +0x00b8 b 0x100044800
+        1* +0x00bc add x0, sp, #0x90
+           +0x00c0 bl __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h1f5402799ab88b1eE
+           +0x00c4 add x25, x25, #0x1
+        1* +0x00c8 ldr x8, [sp, #0x98]
+           +0x00cc str x21, [x8, x19, lsl #3]
+           +0x00d0 add x8, x19, #0x1
+       11* +0x00d4 str x8, [sp, #0xa0]
+           +0x00d8 cmp x25, x23
+           +0x00dc b.eq 0x1000453f4
+       12* +0x00e0 ldr x8, [x27, #0x528]
+        8* +0x00e4 str x8, [sp, #0x48]
+       14* +0x00e8 ldr x1, [x27, #0x298]
+           +0x00ec ldr x2, [x27, #0x2a0]
+       14* +0x00f0 ldr x21, [x27, #0x520]
+           +0x00f4 sub x0, x29, #0x90
+           +0x00f8 mov x3, x21
+           +0x00fc bl __ZN4pgen12ast_pipeline8TapeWord12decode_event17hd8085e27d36fb34aE
+        1* +0x0100 ldurb w8, [x29, #-0x90]
+        1* +0x0104 ldr x10, [sp, #0x30]
+        1* +0x0108 ldr w9, [x10]
+        3* +0x010c stur w9, [x29, #-0xe0]
+        5* +0x0110 ldur w9, [x10, #0x3]
+           +0x0114 stur w9, [x22, #0x1b]
+       22* +0x0118 ldp x19, x9, [x29, #-0x88]
+           +0x011c add x9, x9, x21
+       13* +0x0120 str x9, [x27, #0x520]
+        1* +0x0124 cmp w8, #0x1
+           +0x0128 b.ne 0x10004548c
+        9* +0x012c mov w8, #0x8
+           +0x0130 stp xzr, x8, [sp, #0xd8]
+        8* +0x0134 str xzr, [sp, #0xe8]
+           +0x0138 cbz x19, 0x1000449c8
+        2* +0x013c mov x20, #0x0
+           +0x0140 mov w22, #0x8
+           +0x0144 b 0x100044888
+        1* +0x0148 add x0, sp, #0xd8
+           +0x014c bl __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h1f5402799ab88b1eE
+       22* +0x0150 ldr x22, [sp, #0xe0]
+           +0x0154 str x21, [x22, x20, lsl #3]
+           +0x0158 add x20, x20, #0x1
+       20* +0x015c str x20, [sp, #0xe8]
+        1* +0x0160 cmp x19, x20
+           +0x0164 b.eq 0x1000449c8
+        7* +0x0168 add x0, sp, #0xf0
+           +0x016c mov x1, x27
+           +0x0170 bl __ZN4pgen17generated_parsers5regex11RegexParser19cascade_build_piece17hfb0ec3ee9166da15E
+           +0x0174 ldr x0, [x27, #0x350]
+        4* +0x0178 ldr x8, [x0]
+           +0x017c cbnz x8, 0x100045458
+           +0x0180 mov x8, #-0x1
+           +0x0184 str x8, [x0]
+       83* +0x0188 ldr x8, [x0, #0x18]
+       10* +0x018c ldr x9, [x0, #0x8]
+           +0x0190 cmp x8, x9
+           +0x0194 b.hs 0x1000448f8
+  cluster +0x037c..+0x03b8   0.9215 ns  bands[17 87 76]
+           +0x0374 str x8, [sp, #0x50]
+           +0x0378 b 0x100044ac0
+        6* +0x037c ldur x11, [x29, #-0xf0]
+           +0x0380 str x22, [x11, x21, lsl #3]
+           +0x0384 add x21, x21, #0x1
+       12* +0x0388 stur x21, [x29, #-0xe8]
+           +0x038c mov w28, #0x5
+       22* +0x0390 ldr x10, [sp, #0x70]
+        5* +0x0394 ldr x8, [sp, #0x50]
+           +0x0398 cmp x10, x8
+           +0x039c b.eq 0x1000450d4
+       93* +0x03a0 ldr x19, [x10], #0x8
+           +0x03a4 ldp w9, w8, [x19, #0x28]
+           +0x03a8 stp w9, w8, [sp, #0x88]
+       16* +0x03ac ldr x8, [x19, #0x20]
+        1* +0x03b0 str x8, [sp, #0x80]
+       24* +0x03b4 ldr x23, [x19]
+        1* +0x03b8 eor x8, x23, #0x8000000000000000
+           +0x03bc cmp x23, #0x0
+           +0x03c0 csel x8, x8, x28, mi
+  cluster +0x0000..+0x0098   0.8663 ns  bands[20 77 71]
+           +-0x008 mov x0, x19
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+        6* +0x0000 stp x28, x27, [sp, #-0x60]!
+       13* +0x0004 stp x26, x25, [sp, #0x10]
+        7* +0x0008 stp x24, x23, [sp, #0x20]
+        7* +0x000c stp x22, x21, [sp, #0x30]
+        7* +0x0010 stp x20, x19, [sp, #0x40]
+       19* +0x0014 stp x29, x30, [sp, #0x50]
+           +0x0018 add x29, sp, #0x50
+        1* +0x001c sub sp, sp, #0x1f0
+        1* +0x0020 mov x27, x1
+           +0x0024 mov x19, x0
+        1* +0x0028 sub x22, x29, #0xf8
+        8* +0x002c ldr x20, [x1, #0x528]
+           +0x0030 ldr x1, [x1, #0x298]
+           +0x0034 ldr x2, [x27, #0x2a0]
+        1* +0x0038 ldr x21, [x27, #0x520]
+           +0x003c sub x0, x29, #0x90
+           +0x0040 mov x3, x21
+           +0x0044 bl __ZN4pgen12ast_pipeline8TapeWord12decode_event17hd8085e27d36fb34aE
+        4* +0x0048 ldurb w8, [x29, #-0x90]
+           +0x004c ldur w9, [x22, #0x69]
+           +0x0050 str w9, [sp, #0xf0]
+       12* +0x0054 ldur w9, [x29, #-0x8c]
+           +0x0058 stur w9, [sp, #0xf3]
+       36* +0x005c ldp x23, x9, [x29, #-0x88]
+           +0x0060 add x9, x9, x21
+       15* +0x0064 str x9, [x27, #0x520]
+           +0x0068 cmp w8, #0x1
+           +0x006c b.ne 0x100045500
+       10* +0x0070 mov w8, #0x8
+           +0x0074 stp xzr, x8, [sp, #0x90]
+        7* +0x0078 str xzr, [sp, #0xa0]
+           +0x007c mov x8, x20
+           +0x0080 cbz x23, 0x1000453fc
+        8* +0x0084 stp x20, x19, [sp, #0x8]
+           +0x0088 mov x25, #0x0
+           +0x008c sub x8, x29, #0xe0
+           +0x0090 add x9, x8, #0x10
+        1* +0x0094 add x8, x8, #0x18
+        4* +0x0098 stp x8, x9, [sp, #0x18]
+           +0x009c mov x24, #0x4
+           +0x00a0 movk x24, #0x8000, lsl #48
+  cluster +0x0414..+0x0458   0.6946 ns  bands[12 76 45]
+           +0x040c mov x23, #-0x7fffffffffffffff
+           +0x0410 b 0x100044c68
+       36* +0x0414 cmp x8, #0x3
+           +0x0418 b.eq 0x100044c34
+        1* +0x041c cmp x8, #0x4
+           +0x0420 b.ne 0x100044c74
+           +0x0424 ldp x22, x20, [x19, #0x8]
+           +0x0428 ldr x11, [x19, #0x18]
+        4* +0x042c stur x22, [x29, #-0x88]
+           +0x0430 cmp x23, x24
+           +0x0434 b.ne 0x100044de8
+       72* +0x0438 mov x19, x20
+           +0x043c ldur x20, [x29, #-0x88]
+           +0x0440 b 0x100044b78
+           +0x0444 ldp x20, x19, [x22, #0x8]
+        2* +0x0448 ldr x11, [x22, #0x18]
+           +0x044c mov x22, x20
+           +0x0450 cmp x23, x24
+           +0x0454 b.ne 0x100044ddc
+       18* +0x0458 ldr x23, [x22]
+           +0x045c eor x8, x23, #0x8000000000000000
+           +0x0460 cmp x23, #0x0
+  cluster +0x0c04..+0x0c2c   0.5236 ns  bands[16 43 41]
+           +0x0bfc bl __ZN11typed_arena14Arena$LT$T$GT$15alloc_slow_path17h57ba2180f4cd3412E
+           +0x0c00 mov x8, x0
+        3* +0x0c04 ldr x0, [x27, #0x350]
+           +0x0c08 adrp x9, 2059 ; 0x100850000
+           +0x0c0c add x9, x9, #0xfa8
+        1* +0x0c10 stp x9, xzr, [x29, #-0xa0]
+        7* +0x0c14 stp x24, x8, [x29, #-0xc0]
+       49* +0x0c18 ldr x9, [x0]
+        2* +0x0c1c cbnz x9, 0x1000454e0
+           +0x0c20 mov x9, #-0x1
+           +0x0c24 str x9, [x0]
+       34* +0x0c28 ldr x9, [x0, #0x18]
+        4* +0x0c2c ldr x10, [x0, #0x8]
+           +0x0c30 cmp x9, x10
+           +0x0c34 b.hs 0x1000453b0
+  cluster +0x0908..+0x092c   0.5006 ns  bands[8 46 45]
+           +0x0900 add x9, x9, x10
+           +0x0904 stp x23, x22, [x9]
+       20* +0x0908 stp x28, x11, [x9, #0x10]
+       22* +0x090c ldr x11, [sp, #0x80]
+           +0x0910 str x11, [x9, #0x20]
+       16* +0x0914 ldr w11, [sp, #0x88]
+           +0x0918 str w11, [x9, #0x28]
+        7* +0x091c ldr w11, [sp, #0x8c]
+        7* +0x0920 str w11, [x9, #0x2c]
+           +0x0924 add x8, x8, #0x1
+       14* +0x0928 str x8, [x0, #0x18]
+       13* +0x092c ldr x8, [x0, #0x10]
+           +0x0930 add x22, x8, x10
+           +0x0934 ldr x8, [x0]
+  cluster +0x01a8..+0x01d0   0.4875 ns  bands[6 50 40]
+           +0x01a0 lsl x10, x10, #4
+           +0x01a4 add x9, x9, x10
+        3* +0x01a8 ldp q0, q1, [sp, #0xf0]
+           +0x01ac stp q0, q1, [x9]
+       41* +0x01b0 ldr q0, [sp, #0x110]
+           +0x01b4 str q0, [x9, #0x20]
+           +0x01b8 add x8, x8, #0x1
+       16* +0x01bc str x8, [x0, #0x18]
+       27* +0x01c0 ldr x8, [x0, #0x10]
+           +0x01c4 add x8, x8, x10
+        8* +0x01c8 ldr x9, [x0]
+           +0x01cc add x9, x9, #0x1
+        1* +0x01d0 str x9, [x0]
+           +0x01d4 b 0x100044928
+           +0x01d8 ldp x9, x8, [sp, #0xf0]
+  cluster +0x02c4..+0x02e4   0.4526 ns  bands[8 48 31]
+           +0x02bc stp x9, x8, [sp, #0x130]
+           +0x02c0 mov w8, #0x8
+       12* +0x02c4 stp xzr, x8, [x29, #-0xf8]
+        2* +0x02c8 stur xzr, [x29, #-0xe8]
+       63* +0x02cc ldr x8, [sp, #0x120]
+        6* +0x02d0 eor x9, x8, #0x8000000000000000
+        1* +0x02d4 cmp x8, #0x0
+           +0x02d8 csel x8, x9, x28, mi
+           +0x02dc cmp x8, #0x3
+           +0x02e0 b.eq 0x100044a14
+        3* +0x02e4 cmp x8, #0x4
+           +0x02e8 b.ne 0x100044a20
+           +0x02ec ldr x1, [sp, #0x128]
+  cluster +0x0af4..+0x0b38   0.4390 ns  bands[10 43 31]
+           +0x0aec add x9, sp, #0xa8
+           +0x0af0 stur q0, [x9, #0x8]
+       10* +0x0af4 ldur x8, [x29, #-0xe8]
+           +0x0af8 stur x8, [x9, #0x18]
+        4* +0x0afc ldr x8, [x27, #0x528]
+           +0x0b00 adrp x9, 2060 ; 0x100851000
+           +0x0b04 add x9, x9, #0x180
+        2* +0x0b08 str x9, [sp, #0xc8]
+           +0x0b0c mov x9, #-0x7ffffffffffffffd
+        8* +0x0b10 str x9, [sp, #0xa8]
+        9* +0x0b14 stp w19, w8, [sp, #0xd0]
+       45* +0x0b18 ldr x8, [sp, #0x120]
+           +0x0b1c eor x9, x8, #0x8000000000000000
+        1* +0x0b20 cmp x8, #0x0
+           +0x0b24 csel x9, x9, x28, mi
+        1* +0x0b28 cmp x9, #0x1
+           +0x0b2c b.le 0x10004526c
+           +0x0b30 cmp x9, #0x2
+           +0x0b34 b.eq 0x100045294
+        4* +0x0b38 cmp x9, #0x3
+           +0x0b3c b.eq 0x100045278
+           +0x0b40 cmp x9, #0x4
+
+--- [build_value] cascade_build_quantifier#17h67e55cba23cf5962 [4.8691 ns] ---
+  cluster +0x07d0..+0x07e8   0.8323 ns  bands[74 37 25]
+           +0x07c8 ldrb w8, [x19, #0x10]
+           +0x07cc str w8, [sp, #0xc]
+        6* +0x07d0 ldur q0, [x19, #0x11]
+           +0x07d4 stur q0, [x29, #-0xd0]
+        8* +0x07d8 ldr x8, [x19, #0x20]
+       12* +0x07dc stur x8, [x9, #0xaf]
+        1* +0x07e0 cmp x23, #0x1
+           +0x07e4 b.eq 0x1000464f0
+      109* +0x07e8 mov x24, #0x0
+           +0x07ec mov w28, #0x28
+           +0x07f0 mov w19, #0x3
+  cluster +0x0684..+0x06a4   0.5584 ns  bands[45 26 23]
+           +0x067c stp x8, xzr, [sp, #0x50]
+           +0x0680 mov w8, #0x6
+        5* +0x0684 strb w8, [sp, #0x48]
+        6* +0x0688 ldrb w8, [sp, #0x30]
+           +0x068c cmp w8, #0x7
+           +0x0690 b.ne 0x100046548
+        4* +0x0694 ldr x8, [sp, #0x40]
+        1* +0x0698 cbz x8, 0x100046554
+           +0x069c stp x28, x19, [sp, #0x10]
+        9* +0x06a0 stp x20, x8, [sp, #0x20]
+       69* +0x06a4 ldr x26, [sp, #0x38]
+           +0x06a8 cmp x8, #0x1
+           +0x06ac mov x24, #0x0
+  cluster +0x0700..+0x0710   0.4646 ns  bands[25 30 29]
+           +0x06f8 csel x24, x24, x20, gt
+           +0x06fc sub x19, x19, x23
+        7* +0x0700 cmp x19, #0x1
+           +0x0704 b.hi 0x10004646c
+       30* +0x0708 mov w8, #0x28
+           +0x070c madd x19, x24, x8, x26
+       47* +0x0710 ldp x0, x8, [x19]
+           +0x0714 subs x23, x8, #0x3
+           +0x0718 mov w9, #0x3
+  cluster +0x08dc..+0x0914   0.4542 ns  bands[32 23 24]
+           +0x08d4 add x9, x9, #0x9b6
+           +0x08d8 mov w10, #0xa
+        8* +0x08dc stp x9, x10, [sp, #0x60]
+        4* +0x08e0 ldur q0, [sp, #0x48]
+           +0x08e4 str q0, [sp, #0x70]
+        8* +0x08e8 ldr x9, [sp, #0x58]
+           +0x08ec stp x9, x27, [sp, #0x80]
+           +0x08f0 mov w9, #0x3
+        6* +0x08f4 str x9, [sp, #0x90]
+        5* +0x08f8 strb w11, [sp, #0x98]
+        6* +0x08fc ldur q0, [x29, #-0xd0]
+           +0x0900 stur q0, [sp, #0x99]
+       11* +0x0904 ldur x11, [x22, #0xaf]
+           +0x0908 stp x11, x26, [sp, #0xa8]
+        8* +0x090c str x9, [sp, #0xb8]
+        9* +0x0910 strb w8, [sp, #0xc0]
+       14* +0x0914 ldur q0, [x29, #-0xb0]
+           +0x0918 adrp x8, 1898 ; 0x1007b0000
+           +0x091c add x8, x8, #0xd54
+  cluster +0x0834..+0x0844   0.3200 ns  bands[15 25 18]
+           +0x082c csel x24, x24, x22, gt
+           +0x0830 sub x23, x23, x20
+       11* +0x0834 cmp x23, #0x1
+           +0x0838 b.hi 0x1000465a0
+       22* +0x083c mov w8, #0x28
+           +0x0840 madd x19, x24, x8, x26
+       25* +0x0844 ldp x0, x8, [x19]
+           +0x0848 subs x20, x8, #0x3
+           +0x084c mov w9, #0x3
+  cluster +0x0000..+0x0028   0.3055 ns  bands[20 16 18]
+           +-0x008 mov x0, x19
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+        2* +0x0000 sub sp, sp, #0x1e0
+           +0x0004 stp x28, x27, [sp, #0x180]
+        9* +0x0008 stp x26, x25, [sp, #0x190]
+        5* +0x000c stp x24, x23, [sp, #0x1a0]
+        6* +0x0010 stp x22, x21, [sp, #0x1b0]
+        4* +0x0014 stp x20, x19, [sp, #0x1c0]
+       15* +0x0018 stp x29, x30, [sp, #0x1d0]
+           +0x001c add x29, sp, #0x1d0
+           +0x0020 mov x21, x1
+        8* +0x0024 ldr x19, [x1, #0x528]
+        5* +0x0028 ldr x1, [x1, #0x348]
+           +0x002c cmp x19, x1
+           +0x0030 b.hs 0x1000469e8
+  cluster +0x096c..+0x0994   0.2498 ns  bands[22 11 8]
+           +0x0964 mov x9, #0x2
+           +0x0968 movk x9, #0x8000, lsl #48
+        4* +0x096c str x9, [x20]
+           +0x0970 mov w9, #0x7
+        5* +0x0974 strb w9, [x20, #0x8]
+        3* +0x0978 str x0, [x20, #0x10]
+        7* +0x097c stp w19, w8, [x20, #0x28]
+        5* +0x0980 ldp x29, x30, [sp, #0x1d0]
+        2* +0x0984 ldp x20, x19, [sp, #0x1c0]
+        2* +0x0988 ldp x22, x21, [sp, #0x1b0]
+           +0x098c ldp x24, x23, [sp, #0x1a0]
+        1* +0x0990 ldp x26, x25, [sp, #0x190]
+       12* +0x0994 ldp x28, x27, [sp, #0x180]
+           +0x0998 add sp, sp, #0x1e0
+           +0x099c ret
+  cluster +0x0928..+0x0944   0.2423 ns  bands[19 15 6]
+           +0x0920 ldur x9, [x22, #0xcf]
+           +0x0924 stp x9, x8, [sp, #0xd0]
+       18* +0x0928 stur q0, [x22, #0x61]
+           +0x092c mov w8, #0x4
+        4* +0x0930 str x8, [sp, #0xe0]
+           +0x0934 mov w8, #0x5
+       12* +0x0938 strb w8, [sp, #0xe8]
+           +0x093c adrp x8, 1888 ; 0x1007a6000
+           +0x0940 add x8, x8, #0xc5a
+        6* +0x0944 stp x8, x10, [sp, #0xf0]
+           +0x0948 add x0, x28, #0x70
+           +0x094c add x1, sp, #0x60
+  cluster +0x06c0..+0x06d4   0.2216 ns  bands[18 11 8]
+           +0x06b8 mov w28, #0x3
+           +0x06bc mov x19, x8
+        1* +0x06c0 adrp x25, 1889 ; 0x1007a7000
+           +0x06c4 add x25, x25, #0x5c7
+           +0x06c8 lsr x23, x19, #1
+           +0x06cc add x20, x23, x24
+        2* +0x06d0 madd x8, x20, x27, x26
+       34* +0x06d4 ldp x0, x8, [x8]
+           +0x06d8 subs x22, x8, #0x3
+           +0x06dc csel x2, x8, x28, lo
+  cluster +0x0628..+0x0640   0.2163 ns  bands[19 8 9]
+           +0x0620 ldur x10, [sp, #0x62]
+           +0x0624 stur x10, [x29, #-0x70]
+       17* +0x0628 ldp x10, x11, [sp, #0x68]
+           +0x062c stur x10, [x23, #0x6]
+           +0x0630 add x10, x11, x25
+       13* +0x0634 str x10, [x21, #0x520]
+           +0x0638 cmp w9, #0x2
+           +0x063c b.ne 0x100046744
+        6* +0x0640 tbz w8, #0x0, 0x10004641c
+           +0x0644 ldr x1, [sp, #0x28]
+           +0x0648 cmp x24, x1
+
+--- [build_value] cascade_build_value_literal#17hdbc325d2c207f6f6 [4.2045 ns] ---
+  cluster +0x0000..+0x002c   2.6363 ns  bands[218 136 82]
+           +-0x008 mov x1, x21
+           +-0x004 bl __RNvNtCsl8K0bEFm1U0_4core9panicking18panic_bounds_check
+        2* +0x0000 sub sp, sp, #0x80
+           +0x0004 stp x24, x23, [sp, #0x40]
+       38* +0x0008 stp x22, x21, [sp, #0x50]
+        9* +0x000c stp x20, x19, [sp, #0x60]
+       39* +0x0010 stp x29, x30, [sp, #0x70]
+           +0x0014 add x29, sp, #0x70
+      278* +0x0018 ldr x20, [x1, #0x348]
+       38* +0x001c ldr x19, [x1, #0x528]
+           +0x0020 cmp x19, x20
+        1* +0x0024 b.hs 0x100047a8c
+           +0x0028 ldr x21, [x1, #0x340]
+       31* +0x002c ldrb w8, [x21, x19]
+           +0x0030 sub w9, w8, #0x21
+           +0x0034 cmp w9, #0xd3
+  cluster +0x0090..+0x00bc   0.9005 ns  bands[74 44 32]
+           +0x0088 ldr x9, [x9, x8, lsl #3]
+           +0x008c ands x10, x9, #0x7
+       16* +0x0090 str x10, [sp, #0x8]
+           +0x0094 b.ne 0x1000479f8
+        5* +0x0098 add x8, x8, #0x1
+           +0x009c str x8, [x1, #0x520]
+      101* +0x00a0 ldr w8, [x9, #0x2c]
+        6* +0x00a4 str x8, [x1, #0x528]
+        5* +0x00a8 ldr x2, [x1, #0x350]
+           +0x00ac mov x1, x9
+        4* +0x00b0 ldp x29, x30, [sp, #0x70]
+           +0x00b4 ldp x20, x19, [sp, #0x60]
+        1* +0x00b8 ldp x22, x21, [sp, #0x50]
+       12* +0x00bc ldp x24, x23, [sp, #0x40]
+           +0x00c0 add sp, sp, #0x80
+           +0x00c4 b __ZN4pgen12ast_pipeline12ParseContent15to_shaped_value17h5271c1e592526ba2E
+  cluster +0x0040..+0x007c   0.5933 ns  bands[47 29 24]
+           +0x0038 b.hi 0x100047a60
+           +0x003c adrp x10, 1876 ; 0x10079b000
+        1* +0x0040 add x10, x10, #0xf64
+           +0x0044 adr x11, #16
+       15* +0x0048 ldrh w12, [x10, x9, lsl #1]
+           +0x004c add x11, x11, x12, lsl #2
+        5* +0x0050 br x11
+       12* +0x0054 cmp w9, #0xd3
+           +0x0058 b.hi 0x100047a34
+        1* +0x005c adrp x10, 1877 ; 0x10079c000
+           +0x0060 add x10, x10, #0x10c
+           +0x0064 adr x11, #16
+       23* +0x0068 ldrh w12, [x10, x9, lsl #1]
+           +0x006c add x11, x11, x12, lsl #2
+           +0x0070 br x11
+       37* +0x0074 ldr x8, [x1, #0x520]
+        4* +0x0078 ldr x9, [x1, #0x2a0]
+        2* +0x007c cmp x8, x9
+           +0x0080 b.hs 0x100047aa0
+           +0x0084 ldr x9, [x1, #0x298]
+  cluster +0x062c..+0x063c   0.0351 ns  bands[3 1 2]
+           +0x0624 stp x0, x1, [x23, #0x8]
+           +0x0628 mov w8, #0x5
+        1* +0x062c strb w8, [x23]
+        1* +0x0630 ldp x29, x30, [sp, #0x70]
+           +0x0634 ldp x20, x19, [sp, #0x60]
+           +0x0638 ldp x22, x21, [sp, #0x50]
+        4* +0x063c ldp x24, x23, [sp, #0x40]
+           +0x0640 add sp, sp, #0x80
+           +0x0644 ret
+  cluster +0x0380..+0x0380   0.0169 ns  bands[0 0 4]
+           +0x0378 mov x3, x22
+           +0x037c bl __RNvNtCsl8K0bEFm1U0_4core3str16slice_error_fail
+        4* +0x0380 mov x23, x0
+           +0x0384 add x22, x19, #0x1
+           +0x0388 str x22, [x1, #0x528]
+  cluster +0x05a0..+0x05a0   0.0071 ns  bands[1 0 0]
+           +0x0598 mov x3, x20
+           +0x059c bl __RNvXs5_NtNtCsl8K0bEFm1U0_4core3str6traitsINtNtNtB9_3ops5range5RangejEINtNtNtB9_5slice5index10SliceIndexeE3get
+        1* +0x05a0 cbnz x0, 0x1000479d4
+           +0x05a4 adrp x4, 2066 ; 0x100859000
+           +0x05a8 add x4, x4, #0x38
+  cluster +0x0240..+0x0240   0.0055 ns  bands[0 1 0]
+           +0x0238 mov x3, x22
+           +0x023c bl __RNvNtCsl8K0bEFm1U0_4core3str16slice_error_fail
+        1* +0x0240 mov x23, x0
+           +0x0244 add x22, x19, #0x1
+           +0x0248 str x22, [x1, #0x528]
+  cluster +0x01e0..+0x01e0   0.0055 ns  bands[0 1 0]
+           +0x01d8 mov x3, x20
+           +0x01dc bl __RNvXs5_NtNtCsl8K0bEFm1U0_4core3str6traitsINtNtNtB9_3ops5range5RangejEINtNtNtB9_5slice5index10SliceIndexeE3get
+        1* +0x01e0 cbnz x0, 0x1000479d4
+           +0x01e4 adrp x4, 2066 ; 0x100859000
+           +0x01e8 add x4, x4, #0x20
+  cluster +0x0440..+0x0440   0.0042 ns  bands[0 0 1]
+           +0x0438 mov x3, x22
+           +0x043c bl __RNvNtCsl8K0bEFm1U0_4core3str16slice_error_fail
+        1* +0x0440 mov x23, x0
+           +0x0444 add x22, x19, #0x1
+           +0x0448 str x22, [x1, #0x528]
+
+--- [arena_alloc] typed_arena::Arena$LT$T$GT$12alloc_extend#17h88670e1bf10cf0ff [26.4423 ns] ---
+  cluster +0x0078..+0x014c  17.0297 ns  bands[1304 993 554]
+           +0x0070 add x25, x20, #0x18
+           +0x0074 mov x26, x24
+       36* +0x0078 mov x10, x25
+      327* +0x007c ldrb w27, [x10, #-0x18]!
+       10* +0x0080 cmp w27, #0x8
+        2* +0x0084 b.eq 0x10003212c
+       32* +0x0088 ldur q0, [x10, #0x1]
+        2* +0x008c str q0, [sp, #0x20]
+      156* +0x0090 ldr x11, [x10, #0x10]
+        1* +0x0094 stur x11, [sp, #0x2f]
+      303* +0x0098 ldr x11, [x21]
+           +0x009c cmp x26, x11
+        1* +0x00a0 b.eq 0x10003218c
+        4* +0x00a4 add x25, x10, #0x30
+        4* +0x00a8 ldur q0, [x10, #0x1]
+           +0x00ac str q0, [sp, #0x80]
+      160* +0x00b0 ldr x11, [x10, #0x10]
+        5* +0x00b4 stur x11, [x8, #0xf]
+      120* +0x00b8 ldr x11, [x19, #0x10]
+           +0x00bc add x11, x11, x9
+        3* +0x00c0 strb w27, [x11]
+      625* +0x00c4 ldr q0, [sp, #0x80]
+       92* +0x00c8 stur q0, [x11, #0x1]
+      152* +0x00cc ldur x12, [x8, #0xf]
+       11* +0x00d0 str x12, [x11, #0x10]
+           +0x00d4 add x26, x26, #0x1
+      322* +0x00d8 str x26, [x19, #0x18]
+        1* +0x00dc add x28, x28, #0x1
+       24* +0x00e0 add x9, x9, #0x18
+        1* +0x00e4 add x10, x10, #0x18
+        1* +0x00e8 cmp x10, x23
+        1* +0x00ec b.ne 0x1000320b4
+       23* +0x00f0 ldr x8, [x19]
+           +0x00f4 add x8, x8, #0x1
+           +0x00f8 ldr x21, [x19, #0x10]
+       33* +0x00fc str x8, [x19]
+           +0x0100 cbnz x22, 0x100032158
+           +0x0104 b 0x100032160
+        3* +0x0108 mov x8, #0x0
+           +0x010c mov x26, x24
+           +0x0110 ldr x21, [x19, #0x10]
+       31* +0x0114 str x8, [x19]
+        1* +0x0118 cbz x22, 0x100032160
+       97* +0x011c mov x0, x20
+           +0x0120 bl _mi_free
+       47* +0x0124 mov w8, #0x18
+           +0x0128 madd x0, x24, x8, x21
+           +0x012c sub x1, x26, x24
+       10* +0x0130 ldp x29, x30, [sp, #0x100]
+       14* +0x0134 ldp x20, x19, [sp, #0xf0]
+       26* +0x0138 ldp x22, x21, [sp, #0xe0]
+       16* +0x013c ldp x24, x23, [sp, #0xd0]
+       13* +0x0140 ldp x26, x25, [sp, #0xc0]
+      140* +0x0144 ldp x28, x27, [sp, #0xb0]
+           +0x0148 add sp, sp, #0x110
+        1* +0x014c ret
+           +0x0150 add x1, x28, #0x1
+           +0x0154 mov x0, x21
+  cluster +0x0000..+0x0030   6.2561 ns  bands[470 363 221]
+           +-0x008 mov x0, x22
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+       39* +0x0000 sub sp, sp, #0x110
+        5* +0x0004 stp x28, x27, [sp, #0xb0]
+       99* +0x0008 stp x26, x25, [sp, #0xc0]
+      107* +0x000c stp x24, x23, [sp, #0xd0]
+      105* +0x0010 stp x22, x21, [sp, #0xe0]
+       98* +0x0014 stp x20, x19, [sp, #0xf0]
+      111* +0x0018 stp x29, x30, [sp, #0x100]
+        3* +0x001c add x29, sp, #0x100
+      239* +0x0020 ldp x22, x20, [x1]
+      172* +0x0024 ldr x8, [x0]
+        1* +0x0028 cbnz x8, 0x100032254
+        1* +0x002c mov x19, x0
+       74* +0x0030 ldr x1, [x1, #0x10]
+           +0x0034 mov w8, #0x18
+           +0x0038 madd x23, x1, x8, x20
+  cluster +0x0044..+0x0060   3.1523 ns  bands[252 176 95]
+           +0x003c mov x8, #-0x1
+           +0x0040 str x8, [x0]
+        4* +0x0044 mov x21, x0
+      372* +0x0048 ldr x8, [x21, #0x8]!
+      126* +0x004c ldr x24, [x0, #0x18]
+        1* +0x0050 sub x8, x8, x24
+        2* +0x0054 cmp x1, x8
+           +0x0058 b.hi 0x100032264
+       15* +0x005c cbz x1, 0x100032144
+        3* +0x0060 mov x28, #0x0
+           +0x0064 add x8, sp, #0x80
+           +0x0068 add x9, x24, x24, lsl #1
+  cluster +0x0228..+0x0228   0.0042 ns  bands[0 0 1]
+           +0x0220 bl __RNvNtCsl8K0bEFm1U0_4core4cell22panic_already_borrowed
+           +0x0224 b 0x1000322a4
+        1* +0x0228 mov x0, x21
+           +0x022c bl __ZN11typed_arena18ChunkList$LT$T$GT$7reserve17h2f0c61b4474e0969E
+           +0x0230 stp x20, x20, [sp]
+
+--- [arena_alloc] typed_arena::Arena$LT$T$GT$12alloc_extend#17h0f20dcea3f658c24 [23.9083 ns] ---
+  cluster +0x0000..+0x0078  10.1805 ns  bands[681 599 489]
+           +-0x008 str x8, [x19]
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+       56* +0x0000 sub sp, sp, #0xf0
+        8* +0x0004 stp x24, x23, [sp, #0xb0]
+       51* +0x0008 stp x22, x21, [sp, #0xc0]
+       68* +0x000c stp x20, x19, [sp, #0xd0]
+       63* +0x0010 stp x29, x30, [sp, #0xe0]
+           +0x0014 add x29, sp, #0xe0
+        1* +0x0018 adrp x8, 1882 ; 0x10079b000
+      129* +0x001c ldr q0, [x8, #0x6e0]
+      163* +0x0020 ldp q1, q2, [x1, #0x40]
+       92* +0x0024 ldr q3, [x1, #0x60]
+        4* +0x0028 stp q2, q3, [sp, #0x60]
+      108* +0x002c ldp q2, q3, [x1]
+       14* +0x0030 stp q0, q2, [sp]
+      127* +0x0034 ldp q0, q2, [x1, #0x20]
+       31* +0x0038 stp q3, q0, [sp, #0x20]
+      156* +0x003c ldr x8, [x1, #0x70]
+       13* +0x0040 str x8, [sp, #0x80]
+       76* +0x0044 stp q2, q1, [sp, #0x40]
+      308* +0x0048 ldr x8, [x0]
+           +0x004c cbnz x8, 0x100041720
+        1* +0x0050 mov x19, x0
+           +0x0054 mov x8, #-0x1
+           +0x0058 str x8, [x0]
+           +0x005c mov x20, x0
+      210* +0x0060 ldr x9, [x20, #0x8]!
+       68* +0x0064 ldr x8, [x0, #0x18]
+           +0x0068 sub x9, x9, x8
+           +0x006c cmp x9, #0x3
+           +0x0070 b.lo 0x10004172c
+       20* +0x0074 ldrb w21, [sp, #0x20]
+        2* +0x0078 cmp w21, #0x8
+           +0x007c b.ne 0x1000415f8
+           +0x0080 mov x9, x8
+  cluster +0x015c..+0x01bc   4.9607 ns  bands[311 308 252]
+           +0x0154 madd x9, x9, x11, x10
+           +0x0158 ldr q0, [x23]
+        1* +0x015c str q0, [x9]
+       70* +0x0160 strb w21, [x9, #0x10]
+       67* +0x0164 ldr q0, [x22]
+        4* +0x0168 stur q0, [x9, #0x11]
+       97* +0x016c ldur x10, [x22, #0xf]
+        2* +0x0170 str x10, [x9, #0x20]
+       14* +0x0174 add x9, x8, #0x3
+       74* +0x0178 str x9, [x19, #0x18]
+       51* +0x017c ldr x10, [x19, #0x10]
+        5* +0x0180 ldr x11, [x19]
+        2* +0x0184 add x11, x11, #0x1
+       25* +0x0188 str x11, [x19]
+           +0x018c mov w11, #0x28
+           +0x0190 madd x0, x8, x11, x10
+        2* +0x0194 sub x1, x9, x8
+      115* +0x0198 ldp x29, x30, [sp, #0xe0]
+       53* +0x019c ldp x20, x19, [sp, #0xd0]
+       71* +0x01a0 ldp x22, x21, [sp, #0xc0]
+      189* +0x01a4 ldp x24, x23, [sp, #0xb0]
+        2* +0x01a8 add sp, sp, #0xf0
+       24* +0x01ac ret
+           +0x01b0 adrp x0, 2063 ; 0x100850000
+           +0x01b4 add x0, x0, #0xb00
+           +0x01b8 bl __RNvNtCsl8K0bEFm1U0_4core4cell22panic_already_borrowed
+        3* +0x01bc mov x0, x20
+           +0x01c0 mov w1, #0x3
+           +0x01c4 bl __ZN11typed_arena18ChunkList$LT$T$GT$7reserve17h25f89527e4425a24E
+  cluster +0x00b0..+0x00d8   4.9147 ns  bands[363 260 217]
+           +0x00a8 mov w10, #0x28
+           +0x00ac madd x9, x8, x10, x9
+       34* +0x00b0 ldr q0, [x23]
+        2* +0x00b4 str q0, [x9]
+      102* +0x00b8 strb w21, [x9, #0x10]
+      267* +0x00bc ldr q0, [x22]
+           +0x00c0 stur q0, [x9, #0x11]
+      101* +0x00c4 ldur x10, [x22, #0xf]
+        5* +0x00c8 str x10, [x9, #0x20]
+           +0x00cc add x9, x8, #0x1
+      111* +0x00d0 str x9, [x19, #0x18]
+      208* +0x00d4 ldrb w21, [sp, #0x48]
+       10* +0x00d8 cmp w21, #0x8
+           +0x00dc b.eq 0x1000416ec
+           +0x00e0 mov x10, sp
+  cluster +0x00ec..+0x0140   3.5348 ns  bands[245 203 162]
+           +0x00e4 add x23, x10, #0x38
+           +0x00e8 add x22, x10, #0x49
+       24* +0x00ec ldr x10, [x20]
+           +0x00f0 cmp x9, x10
+        5* +0x00f4 b.eq 0x100041754
+           +0x00f8 ldr x10, [x19, #0x10]
+           +0x00fc mov w11, #0x28
+           +0x0100 madd x9, x9, x11, x10
+       14* +0x0104 ldr q0, [x23]
+        1* +0x0108 str q0, [x9]
+       53* +0x010c strb w21, [x9, #0x10]
+      111* +0x0110 ldr q0, [x22]
+        6* +0x0114 stur q0, [x9, #0x11]
+      120* +0x0118 ldur x10, [x22, #0xf]
+        2* +0x011c str x10, [x9, #0x20]
+        1* +0x0120 add x9, x8, #0x2
+       80* +0x0124 str x9, [x19, #0x18]
+      163* +0x0128 ldrb w21, [sp, #0x70]
+           +0x012c cmp w21, #0x8
+           +0x0130 b.eq 0x1000416ec
+        1* +0x0134 mov x10, sp
+           +0x0138 add x23, x10, #0x60
+           +0x013c add x22, x10, #0x71
+       29* +0x0140 ldr x10, [x20]
+           +0x0144 cmp x9, x10
+           +0x0148 b.eq 0x100041760
+  cluster +0x0098..+0x0098   0.3121 ns  bands[20 21 13]
+           +0x0090 mov x9, sp
+           +0x0094 add x22, x9, #0x21
+       54* +0x0098 ldr x9, [x20]
+           +0x009c cmp x8, x9
+           +0x00a0 b.eq 0x100041748
+  cluster +0x02b0..+0x02b0   0.0055 ns  bands[0 1 0]
+           +0x02a8 bl __ZN97_$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$alloc..vec..spec_extend..SpecExtend$LT$T$C$I$GT$$GT$11spec_extend17h59ea202402ab98b3E
+           +0x02ac mov x8, #0x0
+        1* +0x02b0 ldr x9, [x19, #0x18]
+           +0x02b4 b 0x1000416ec
+           +0x02b8 adrp x0, 2063 ; 0x100850000
+
+--- [arena_alloc] typed_arena::Arena$LT$T$GT$12alloc_extend#17h916724f9b9255e27 [9.9109 ns] ---
+  cluster +0x0000..+0x0038   3.6717 ns  bands[289 209 113]
+           +-0x008 mov x0, x19
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+       26* +0x0000 sub sp, sp, #0xd0
+           +0x0004 stp x24, x23, [sp, #0x90]
+       17* +0x0008 stp x22, x21, [sp, #0xa0]
+       31* +0x000c stp x20, x19, [sp, #0xb0]
+       23* +0x0010 stp x29, x30, [sp, #0xc0]
+        2* +0x0014 add x29, sp, #0xc0
+      175* +0x0018 ldp q0, q1, [x1, #0x20]
+       36* +0x001c ldp q3, q2, [x1]
+       15* +0x0020 stp q2, q0, [sp, #0x20]
+      102* +0x0024 ldr q0, [x1, #0x40]
+        2* +0x0028 stp q1, q0, [sp, #0x40]
+           +0x002c adrp x8, 1900 ; 0x10079b000
+       79* +0x0030 ldr q0, [x8, #0x6c0]
+        4* +0x0034 stp q0, q3, [sp]
+       99* +0x0038 ldr x8, [x0]
+           +0x003c cbnz x8, 0x10002f884
+           +0x0040 mov x19, x0
+  cluster +0x0088..+0x00dc   2.9682 ns  bands[226 182 87]
+           +0x0080 mov x9, sp
+           +0x0084 add x22, x9, #0x21
+       32* +0x0088 ldr x9, [x20]
+        2* +0x008c cmp x8, x9
+        1* +0x0090 b.eq 0x10002f8ac
+           +0x0094 ldr x9, [x19, #0x10]
+           +0x0098 mov w10, #0x28
+           +0x009c madd x9, x8, x10, x9
+      103* +0x00a0 ldr q0, [x23]
+           +0x00a4 str q0, [x9]
+       29* +0x00a8 strb w21, [x9, #0x10]
+       97* +0x00ac ldr q0, [x22]
+        1* +0x00b0 stur q0, [x9, #0x11]
+       47* +0x00b4 ldur x10, [x22, #0xf]
+        1* +0x00b8 str x10, [x9, #0x20]
+           +0x00bc add x9, x8, #0x1
+       57* +0x00c0 str x9, [x19, #0x18]
+      104* +0x00c4 ldrb w21, [sp, #0x48]
+           +0x00c8 cmp w21, #0x8
+           +0x00cc b.eq 0x10002f850
+        1* +0x00d0 mov x10, sp
+           +0x00d4 add x23, x10, #0x38
+           +0x00d8 add x22, x10, #0x49
+       20* +0x00dc ldr x10, [x20]
+           +0x00e0 cmp x9, x10
+           +0x00e4 b.eq 0x10002f8b8
+  cluster +0x00f4..+0x0140   2.2911 ns  bands[192 122 62]
+           +0x00ec mov w11, #0x28
+           +0x00f0 madd x9, x9, x11, x10
+        8* +0x00f4 ldr q0, [x23]
+           +0x00f8 str q0, [x9]
+       23* +0x00fc strb w21, [x9, #0x10]
+       48* +0x0100 ldr q0, [x22]
+        4* +0x0104 stur q0, [x9, #0x11]
+       39* +0x0108 ldur x10, [x22, #0xf]
+        1* +0x010c str x10, [x9, #0x20]
+           +0x0110 add x9, x8, #0x2
+       43* +0x0114 str x9, [x19, #0x18]
+       27* +0x0118 ldr x10, [x19, #0x10]
+        8* +0x011c ldr x11, [x19]
+           +0x0120 add x11, x11, #0x1
+        4* +0x0124 str x11, [x19]
+           +0x0128 mov w11, #0x28
+        1* +0x012c madd x0, x8, x11, x10
+           +0x0130 sub x1, x9, x8
+       58* +0x0134 ldp x29, x30, [sp, #0xc0]
+       18* +0x0138 ldp x20, x19, [sp, #0xb0]
+       16* +0x013c ldp x22, x21, [sp, #0xa0]
+       78* +0x0140 ldp x24, x23, [sp, #0x90]
+           +0x0144 add sp, sp, #0xd0
+           +0x0148 ret
+  cluster +0x0050..+0x006c   0.9799 ns  bands[76 52 37]
+           +0x0048 str x8, [x0]
+           +0x004c mov x20, x0
+      129* +0x0050 ldr x9, [x20, #0x8]!
+       24* +0x0054 ldr x8, [x0, #0x18]
+           +0x0058 sub x9, x9, x8
+           +0x005c cmp x9, #0x2
+           +0x0060 b.lo 0x10002f890
+       11* +0x0064 ldrb w21, [sp, #0x20]
+           +0x0068 cmp w21, #0x8
+        1* +0x006c b.ne 0x10002f7b0
+           +0x0070 mov x9, x8
+           +0x0074 b 0x10002f850
+
+--- [arena_alloc] typed_arena::Arena$LT$T$GT$12alloc_extend#17hf241ce72116737e7 [3.2967 ns] ---
+  cluster +0x0000..+0x0034   1.1442 ns  bands[111 50 20]
+           +-0x008 mov x0, x25
+           +-0x004 bl __RNvNtCsl8K0bEFm1U0_4core9panicking18panic_bounds_check
+       11* +0x0000 sub sp, sp, #0xb0
+        4* +0x0004 stp x24, x23, [sp, #0x70]
+       31* +0x0008 stp x22, x21, [sp, #0x80]
+       10* +0x000c stp x20, x19, [sp, #0x90]
+        5* +0x0010 stp x29, x30, [sp, #0xa0]
+        1* +0x0014 add x29, sp, #0xa0
+           +0x0018 adrp x8, 1882 ; 0x10079b000
+       15* +0x001c ldr q0, [x8, #0x6c0]
+        9* +0x0020 ldp q1, q2, [x1]
+        4* +0x0024 stp q0, q1, [sp]
+       41* +0x0028 ldr q0, [x1, #0x20]
+        7* +0x002c stp q2, q0, [sp, #0x20]
+       42* +0x0030 ldr x8, [x0]
+        1* +0x0034 cbnz x8, 0x100041424
+           +0x0038 mov x19, x0
+           +0x003c mov x8, #-0x1
+  cluster +0x00dc..+0x0124   0.8839 ns  bands[83 44 13]
+           +0x00d4 madd x9, x9, x11, x10
+           +0x00d8 strb w21, [x9]
+       21* +0x00dc ldr q0, [x22]
+        1* +0x00e0 stur q0, [x9, #0x1]
+       11* +0x00e4 ldur x10, [x22, #0xf]
+           +0x00e8 str x10, [x9, #0x10]
+           +0x00ec add x9, x8, #0x2
+       15* +0x00f0 str x9, [x19, #0x18]
+       15* +0x00f4 ldr x10, [x19, #0x10]
+       11* +0x00f8 ldr x11, [x19]
+           +0x00fc add x11, x11, #0x1
+        2* +0x0100 str x11, [x19]
+           +0x0104 mov w11, #0x18
+           +0x0108 madd x0, x8, x11, x10
+           +0x010c sub x1, x9, x8
+       13* +0x0110 ldp x29, x30, [sp, #0xa0]
+        7* +0x0114 ldp x20, x19, [sp, #0x90]
+        5* +0x0118 ldp x22, x21, [sp, #0x80]
+       37* +0x011c ldp x24, x23, [sp, #0x70]
+        1* +0x0120 add sp, sp, #0xb0
+        1* +0x0124 ret
+           +0x0128 adrp x0, 2063 ; 0x100850000
+           +0x012c add x0, x0, #0xb00
+  cluster +0x0090..+0x00ac   0.6771 ns  bands[69 26 11]
+           +0x0088 mov w10, #0x18
+           +0x008c madd x9, x8, x10, x9
+        1* +0x0090 strb w21, [x9]
+       48* +0x0094 ldr q0, [x22]
+           +0x0098 stur q0, [x9, #0x1]
+       18* +0x009c ldur x10, [x22, #0xf]
+        3* +0x00a0 str x10, [x9, #0x10]
+           +0x00a4 add x9, x8, #0x1
+       16* +0x00a8 str x9, [x19, #0x18]
+       20* +0x00ac ldrb w21, [sp, #0x28]
+           +0x00b0 cmp w21, #0x8
+           +0x00b4 b.eq 0x1000413f0
+  cluster +0x0048..+0x005c   0.4820 ns  bands[53 18 2]
+           +0x0040 str x8, [x0]
+           +0x0044 mov x20, x0
+       56* +0x0048 ldr x9, [x20, #0x8]!
+       11* +0x004c ldr x8, [x0, #0x18]
+           +0x0050 sub x9, x9, x8
+           +0x0054 cmp x9, #0x2
+           +0x0058 b.lo 0x100041430
+        6* +0x005c ldrb w21, [sp, #0x10]
+           +0x0060 cmp w21, #0x8
+           +0x0064 b.ne 0x10004136c
+  cluster +0x00c0..+0x00c0   0.0788 ns  bands[9 2 1]
+           +0x00b8 mov x10, sp
+           +0x00bc add x22, x10, #0x29
+       12* +0x00c0 ldr x10, [x20]
+           +0x00c4 cmp x9, x10
+           +0x00c8 b.eq 0x100041458
+  cluster +0x0078..+0x0078   0.0307 ns  bands[2 3 0]
+           +0x0070 mov x9, sp
+           +0x0074 add x22, x9, #0x11
+        5* +0x0078 ldr x9, [x20]
+           +0x007c cmp x8, x9
+           +0x0080 b.eq 0x10004144c
+
+--- [arena_alloc] typed_arena::Arena$LT$T$GT$12alloc_extend#17h611a89fc10d7af8d [3.2431 ns] ---
+  cluster +0x0000..+0x0050   1.2952 ns  bands[72 92 66]
+           +-0x008 mov x0, x19
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+       10* +0x0000 sub sp, sp, #0x130
+           +0x0004 stp x28, x27, [sp, #0xe0]
+        7* +0x0008 stp x24, x23, [sp, #0xf0]
+       12* +0x000c stp x22, x21, [sp, #0x100]
+        9* +0x0010 stp x20, x19, [sp, #0x110]
+       10* +0x0014 stp x29, x30, [sp, #0x120]
+           +0x0018 add x29, sp, #0x120
+       41* +0x001c ldp q0, q1, [x1, #0x60]
+       29* +0x0020 ldp q2, q3, [x1, #0x80]
+        1* +0x0024 stp q1, q2, [sp, #0x80]
+       19* +0x0028 str q3, [sp, #0xa0]
+        4* +0x002c ldp q1, q2, [x1, #0x20]
+        2* +0x0030 ldp q3, q4, [x1, #0x40]
+        6* +0x0034 stp q2, q3, [sp, #0x40]
+           +0x0038 adrp x8, 1868 ; 0x10079b000
+       14* +0x003c ldr q2, [x8, #0x6f0]
+           +0x0040 stp q4, q0, [sp, #0x60]
+       13* +0x0044 ldp q0, q3, [x1]
+        1* +0x0048 stp q2, q0, [sp]
+        8* +0x004c stp q3, q1, [sp, #0x20]
+       44* +0x0050 ldr x8, [x0]
+           +0x0054 cbnz x8, 0x100050064
+           +0x0058 mov x19, x0
+  cluster +0x0168..+0x0204   0.8808 ns  bands[58 54 41]
+           +0x0160 ldr q0, [x23]
+           +0x0164 str q0, [x9]
+        9* +0x0168 strb w21, [x9, #0x10]
+       13* +0x016c ldr q0, [x22]
+           +0x0170 stur q0, [x9, #0x11]
+        4* +0x0174 ldur x10, [x22, #0xf]
+           +0x0178 str x10, [x9, #0x20]
+           +0x017c add x9, x8, #0x3
+        8* +0x0180 str x9, [x19, #0x18]
+       11* +0x0184 ldrb w21, [sp, #0x98]
+           +0x0188 cmp w21, #0x8
+        4* +0x018c b.eq 0x10005002c
+           +0x0190 mov x10, sp
+           +0x0194 add x23, x10, #0x88
+           +0x0198 add x22, x10, #0x99
+        3* +0x019c ldr x10, [x20]
+           +0x01a0 cmp x9, x10
+           +0x01a4 b.eq 0x1000500b0
+        1* +0x01a8 ldr x10, [x19, #0x10]
+        1* +0x01ac mov w11, #0x28
+           +0x01b0 madd x9, x9, x11, x10
+           +0x01b4 ldr q0, [x23]
+        1* +0x01b8 str q0, [x9]
+       10* +0x01bc strb w21, [x9, #0x10]
+       12* +0x01c0 ldr q0, [x22]
+        1* +0x01c4 stur q0, [x9, #0x11]
+        8* +0x01c8 ldur x10, [x22, #0xf]
+           +0x01cc str x10, [x9, #0x20]
+           +0x01d0 add x9, x8, #0x4
+       11* +0x01d4 str x9, [x19, #0x18]
+        3* +0x01d8 ldr x10, [x19, #0x10]
+           +0x01dc ldr x11, [x19]
+           +0x01e0 add x11, x11, #0x1
+        2* +0x01e4 str x11, [x19]
+           +0x01e8 mov w11, #0x28
+           +0x01ec madd x0, x8, x11, x10
+           +0x01f0 sub x1, x9, x8
+       18* +0x01f4 ldp x29, x30, [sp, #0x120]
+        5* +0x01f8 ldp x20, x19, [sp, #0x110]
+        5* +0x01fc ldp x22, x21, [sp, #0x100]
+        4* +0x0200 ldp x24, x23, [sp, #0xf0]
+       19* +0x0204 ldp x28, x27, [sp, #0xe0]
+           +0x0208 add sp, sp, #0x130
+           +0x020c ret
+  cluster +0x00b8..+0x00dc   0.4161 ns  bands[22 22 33]
+           +0x00b0 mov w10, #0x28
+           +0x00b4 madd x9, x8, x10, x9
+       11* +0x00b8 ldr q0, [x23]
+           +0x00bc str q0, [x9]
+        8* +0x00c0 strb w21, [x9, #0x10]
+       18* +0x00c4 ldr q0, [x22]
+           +0x00c8 stur q0, [x9, #0x11]
+       10* +0x00cc ldur x10, [x22, #0xf]
+           +0x00d0 str x10, [x9, #0x20]
+           +0x00d4 add x9, x8, #0x1
+       12* +0x00d8 str x9, [x19, #0x18]
+       18* +0x00dc ldrb w21, [sp, #0x48]
+           +0x00e0 cmp w21, #0x8
+           +0x00e4 b.eq 0x10005002c
+  cluster +0x0068..+0x0084   0.2641 ns  bands[12 21 15]
+           +0x0060 str x8, [x0]
+           +0x0064 mov x20, x0
+       37* +0x0068 ldr x9, [x20, #0x8]!
+        9* +0x006c ldr x8, [x0, #0x18]
+           +0x0070 sub x9, x9, x8
+           +0x0074 cmp x9, #0x4
+           +0x0078 b.lo 0x100050070
+        1* +0x007c ldrb w21, [sp, #0x20]
+           +0x0080 cmp w21, #0x8
+        1* +0x0084 b.ne 0x10004fee4
+           +0x0088 mov x9, x8
+           +0x008c b 0x10005002c
+  cluster +0x010c..+0x0130   0.2562 ns  bands[16 16 13]
+           +0x0104 mov w11, #0x28
+           +0x0108 madd x9, x9, x11, x10
+        1* +0x010c ldr q0, [x23]
+           +0x0110 str q0, [x9]
+        6* +0x0114 strb w21, [x9, #0x10]
+       11* +0x0118 ldr q0, [x22]
+           +0x011c stur q0, [x9, #0x11]
+       10* +0x0120 ldur x10, [x22, #0xf]
+        1* +0x0124 str x10, [x9, #0x20]
+           +0x0128 add x9, x8, #0x2
+        7* +0x012c str x9, [x19, #0x18]
+        9* +0x0130 ldrb w21, [sp, #0x70]
+           +0x0134 cmp w21, #0x8
+           +0x0138 b.eq 0x10005002c
+  cluster +0x00a0..+0x00a0   0.0533 ns  bands[3 2 5]
+           +0x0098 mov x9, sp
+           +0x009c add x22, x9, #0x21
+       10* +0x00a0 ldr x9, [x20]
+           +0x00a4 cmp x8, x9
+           +0x00a8 b.eq 0x10005008c
+  cluster +0x0148..+0x0150   0.0367 ns  bands[4 0 2]
+           +0x0140 add x23, x10, #0x60
+           +0x0144 add x22, x10, #0x71
+        5* +0x0148 ldr x10, [x20]
+           +0x014c cmp x9, x10
+        1* +0x0150 b.eq 0x1000500a4
+           +0x0154 ldr x10, [x19, #0x10]
+           +0x0158 mov w11, #0x28
+  cluster +0x00f4..+0x00f4   0.0281 ns  bands[2 1 2]
+           +0x00ec add x23, x10, #0x38
+           +0x00f0 add x22, x10, #0x49
+        5* +0x00f4 ldr x10, [x20]
+           +0x00f8 cmp x9, x10
+           +0x00fc b.eq 0x100050098
+  cluster +0x021c..+0x021c   0.0127 ns  bands[0 0 3]
+           +0x0214 add x0, x0, #0xb00
+           +0x0218 bl __RNvNtCsl8K0bEFm1U0_4core4cell22panic_already_borrowed
+        3* +0x021c mov x0, x20
+           +0x0220 mov w1, #0x4
+           +0x0224 bl __ZN11typed_arena18ChunkList$LT$T$GT$7reserve17h25f89527e4425a24E
+
+--- [semantic_runtime] pgen::semantic_runtime9FactIndex6insert#17hc72d5defb7fe3932 [7.1606 ns] ---
+  cluster +0x0230..+0x0274   1.0429 ns  bands[14 96 98]
+           +0x0228 movk x9, #0xbb2d, lsl #32
+           +0x022c movk x9, #0x1427, lsl #48
+       30* +0x0230 mov x10, #0x1b3b
+           +0x0234 movk x10, #0x3447, lsl #16
+           +0x0238 movk x10, #0x6f44, lsl #32
+        4* +0x023c movk x10, #0x4445, lsl #48
+       21* +0x0240 madd x8, x8, x9, x10
+        1* +0x0244 ror x19, x8, #0x26
+        8* +0x0248 lsr x26, x19, #57
+           +0x024c ldp x28, x27, [x22]
+           +0x0250 mov x21, x22
+       70* +0x0254 dup.8b v8, w26
+           +0x0258 movi.2d v1, #0xffffffffffffffff
+           +0x025c and x22, x19, x27
+       24* +0x0260 ldr d9, [x28, x22]
+           +0x0264 cmeq.8b v0, v9, v8
+       33* +0x0268 fmov x8, d0
+           +0x026c ands x24, x8, #0x8080808080808080
+           +0x0270 b.eq 0x10008f21c
+       17* +0x0274 str x11, [sp, #0x10]
+           +0x0278 rbit x8, x24
+           +0x027c clz x8, x8
+  cluster +0x018c..+0x0194   0.7088 ns  bands[8 60 76]
+           +0x0184 orr w11, w12, w11
+           +0x0188 strb w11, [x8], #0x1
+      132* +0x018c subs x9, x9, #0x1
+           +0x0190 b.ne 0x10008f0d0
+       12* +0x0194 cmp x23, #0x10
+           +0x0198 b.hi 0x10008f114
+           +0x019c cmp x23, #0x7
+  cluster +0x0604..+0x0638   0.6143 ns  bands[9 63 48]
+           +0x05fc ldp x26, x25, [sp, #0x70]
+           +0x0600 ldp x28, x27, [sp, #0x60]
+        6* +0x0604 ldp d9, d8, [sp, #0x50]
+           +0x0608 add sp, sp, #0xc0
+           +0x060c ret
+       51* +0x0610 ldp x8, x9, [x25, #-0x28]
+           +0x0614 and x10, x9, x19
+       13* +0x0618 ldr d0, [x8, x10]
+           +0x061c cmlt.8b v0, v0, #0
+       27* +0x0620 fmov x12, d0
+           +0x0624 cbz x12, 0x10008f664
+       14* +0x0628 rbit x11, x12
+           +0x062c clz x11, x11
+           +0x0630 add x10, x10, x11, lsr #3
+           +0x0634 and x11, x10, x9
+        9* +0x0638 ldrsb w10, [x8, x11]
+           +0x063c tbz w10, #0x1f, 0x10008f6ac
+           +0x0640 sub x12, x11, #0x8
+  cluster +0x0650..+0x06a0   0.6003 ns  bands[9 62 46]
+           +0x0648 strb w21, [x8, x11]
+           +0x064c add x9, x8, x9
+        8* +0x0650 strb w21, [x9, #0x8]
+           +0x0654 mov w9, #0x38
+           +0x0658 mneg x9, x11, x9
+        3* +0x065c add x21, x8, x9
+           +0x0660 and x8, x10, #0x1
+        2* +0x0664 ldr x9, [sp, #0x28]
+           +0x0668 stp x9, x23, [x21, #-0x38]
+        6* +0x066c stp x26, x23, [x21, #-0x28]
+           +0x0670 mov w9, #0x8
+        8* +0x0674 stp xzr, x9, [x21, #-0x18]
+        5* +0x0678 stur xzr, [x21, #-0x8]
+       55* +0x067c ldur q0, [x25, #-0x18]
+           +0x0680 movi.2d v1, #0xffffffffffffffff
+        2* +0x0684 mov.d v1[0], x8
+           +0x0688 sub.2d v0, v0, v1
+        1* +0x068c stur q0, [x25, #-0x18]
+       15* +0x0690 ldur x19, [x21, #-0x8]
+       11* +0x0694 ldur x8, [x21, #-0x18]
+           +0x0698 cmp x19, x8
+           +0x069c b.ne 0x10008f528
+        1* +0x06a0 sub x0, x21, #0x18
+           +0x06a4 bl __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17hda1c469b025f0ed8E
+           +0x06a8 b 0x10008f528
+  cluster +0x03e0..+0x0408   0.4471 ns  bands[11 47 26]
+           +0x03d8 adrp x9, 1985 ; 0x100850000
+           +0x03dc add x9, x9, #0xac8
+        7* +0x03e0 stur x23, [x25, #-0x30]
+        4* +0x03e4 ldp q0, q1, [x9]
+           +0x03e8 stur q0, [x25, #-0x28]
+       11* +0x03ec stur q1, [x25, #-0x18]
+        3* +0x03f0 stur xzr, [x25, #-0x8]
+       41* +0x03f4 ldr q0, [x21, #0x10]
+           +0x03f8 movi.2d v1, #0xffffffffffffffff
+           +0x03fc mov.d v1[0], x8
+           +0x0400 sub.2d v0, v0, v1
+        5* +0x0404 str q0, [x21, #0x10]
+       13* +0x0408 ldrb w8, [x13]
+           +0x040c cmp w8, #0x4
+           +0x0410 b.lo 0x10008f2ac
+  cluster +0x028c..+0x02a8   0.4072 ns  bands[0 21 69]
+           +0x0284 and x8, x8, x27
+           +0x0288 sub x25, x28, x8, lsl #6
+       87* +0x028c ldur x8, [x25, #-0x30]
+           +0x0290 cmp x8, x23
+           +0x0294 b.ne 0x10008f208
+        2* +0x0298 ldur x0, [x25, #-0x38]
+           +0x029c mov x1, x20
+           +0x02a0 mov x2, x23
+           +0x02a4 bl 0x10073e1c4 ; symbol stub for: _memcmp
+        1* +0x02a8 cbz w0, 0x10008f250
+           +0x02ac sub x8, x24, #0x1
+           +0x02b0 ands x24, x8, x24
+  cluster +0x0000..+0x002c   0.2782 ns  bands[5 18 34]
+           +-0x008 b _mi_free
+           +-0x004 ret
+        1* +0x0000 sub sp, sp, #0xc0
+           +0x0004 stp d9, d8, [sp, #0x50]
+        7* +0x0008 stp x28, x27, [sp, #0x60]
+        8* +0x000c stp x26, x25, [sp, #0x70]
+        8* +0x0010 stp x24, x23, [sp, #0x80]
+        9* +0x0014 stp x22, x21, [sp, #0x90]
+        6* +0x0018 stp x20, x19, [sp, #0xa0]
+        6* +0x001c stp x29, x30, [sp, #0xb0]
+           +0x0020 add x29, sp, #0xb0
+       11* +0x0024 stp x4, x3, [sp, #0x20]
+           +0x0028 mov x23, x2
+        1* +0x002c mov x22, x0
+           +0x0030 mov x27, #0x8d3
+           +0x0034 movk x27, #0x85a3, lsl #16
+  cluster +0x02c0..+0x02c8   0.2751 ns  bands[0 20 39]
+           +0x02b8 movi.2d v1, #0xffffffffffffffff
+           +0x02bc b.ne 0x10008f1d4
+       56* +0x02c0 cmeq.8b v0, v9, v1
+           +0x02c4 umaxv.8b b0, v0
+        3* +0x02c8 fmov w8, s0
+           +0x02cc tbnz w8, #0x0, 0x10008f270
+           +0x02d0 add x11, x11, #0x8
+  cluster +0x0428..+0x0454   0.2715 ns  bands[5 29 18]
+           +0x0420 b 0x10008f384
+           +0x0424 mov x23, #-0x7fffffffffffffff
+        2* +0x0428 ldr x8, [sp, #0x28]
+           +0x042c stp x8, x23, [sp, #0x30]
+           +0x0430 sub x8, x25, #0x8
+        6* +0x0434 str x8, [sp, #0x20]
+        4* +0x0438 stp x26, x23, [sp, #0x40]
+           +0x043c add x0, sp, #0x30
+           +0x0440 bl __ZN4core4hash11BuildHasher8hash_one17hfd6d598fd825f60bE
+        9* +0x0444 mov x19, x0
+           +0x0448 mov x10, #0x0
+           +0x044c lsr x21, x0, #57
+        6* +0x0450 ldp x22, x13, [x25, #-0x28]
+       25* +0x0454 dup.8b v8, w21
+           +0x0458 mov x11, #-0x7fffffffffffffff
+           +0x045c add x8, x23, x11
+  cluster +0x04a4..+0x04c8   0.2621 ns  bands[0 23 32]
+           +0x049c mneg x8, x8, x16
+           +0x04a0 add x21, x22, x8
+       46* +0x04a4 ldur x8, [x21, #-0x38]
+        3* +0x04a8 ldr x9, [sp, #0x28]
+           +0x04ac cmp x8, x9
+           +0x04b0 b.ne 0x10008f494
+        3* +0x04b4 ldur x8, [x21, #-0x30]
+           +0x04b8 add x9, x8, x11
+           +0x04bc and x8, x9, x8, asr #63
+           +0x04c0 cmp x8, x24
+        1* +0x04c4 b.ne 0x10008f494
+        2* +0x04c8 cbz x24, 0x10008f440
+           +0x04cc cmp x24, #0x1
+           +0x04d0 b.ne 0x10008f4d8
+
+--- [semantic_runtime] with_semantic_runtime_rule_transaction#17h5c56f0dd6f3286ac [6.7615 ns] ---
+  cluster +0x0218..+0x0290   1.2781 ns  bands[62 91 80]
+           +0x0210 mov x2, x20
+           +0x0214 bl __ZN4pgen17generated_parsers5regex11RegexParser18parse_capture_open28_$u7b$$u7b$closure$u7d$$u7d$17hf2b8bdb707e0425cE
+       20* +0x0218 ldr w8, [sp, #0x290]
+        3* +0x021c ldur q0, [x21, #0x68]
+        1* +0x0220 ldur q1, [x21, #0x78]
+        1* +0x0224 ldur q2, [x21, #0x88]
+           +0x0228 stp q1, q2, [sp, #0xe0]
+       26* +0x022c ldur q1, [x21, #0x98]
+           +0x0230 str q1, [sp, #0x100]
+       16* +0x0234 ldur q1, [x21, #0x58]
+        2* +0x0238 stp q1, q0, [sp, #0xc0]
+       18* +0x023c tbz w8, #0x0, 0x1000db18c
+       43* +0x0240 ldp q0, q1, [sp, #0xc0]
+        1* +0x0244 stp q0, q1, [sp, #0x290]
+       14* +0x0248 ldp q0, q1, [sp, #0xe0]
+           +0x024c stp q0, q1, [sp, #0x2b0]
+       18* +0x0250 ldr q0, [sp, #0x100]
+           +0x0254 str q0, [sp, #0x2d0]
+       19* +0x0258 ldr x8, [sp, #0x290]
+           +0x025c cmp x8, x22
+       17* +0x0260 ldr x23, [sp, #0x58]
+           +0x0264 b.eq 0x1000db9d0
+           +0x0268 stp x23, x27, [sp, #0xc0]
+        5* +0x026c ldp x9, x8, [sp, #0x48]
+           +0x0270 stp x8, x28, [sp, #0xd0]
+        5* +0x0274 ldr x8, [sp, #0x40]
+           +0x0278 stp x8, x9, [sp, #0xe0]
+       21* +0x027c ldr x8, [x20, #0x238]
+           +0x0280 cmp x8, x9
+        2* +0x0284 b.ne 0x1000dbca4
+           +0x0288 ldr x8, [x20, #0x150]
+           +0x028c cmp x8, x27
+        1* +0x0290 b.ne 0x1000dbca4
+           +0x0294 add x8, x20, #0x208
+           +0x0298 ldr q0, [x8]
+  cluster +0x0bdc..+0x0c10   0.7001 ns  bands[23 66 41]
+           +0x0bd4 ldr x0, [x8, #0x8]
+           +0x0bd8 bl _mi_free
+        3* +0x0bdc ldp q0, q1, [sp, #0x2b0]
+           +0x0be0 stp q0, q1, [x19, #0x20]
+       25* +0x0be4 ldr q0, [sp, #0x2d0]
+           +0x0be8 str q0, [x19, #0x40]
+       25* +0x0bec ldp q1, q0, [sp, #0x290]
+       10* +0x0bf0 stp q1, q0, [x19]
+           +0x0bf4 add sp, sp, #0x4f0
+       31* +0x0bf8 ldp x29, x30, [sp, #0x50]
+        1* +0x0bfc ldp x20, x19, [sp, #0x40]
+           +0x0c00 ldp x22, x21, [sp, #0x30]
+           +0x0c04 ldp x24, x23, [sp, #0x20]
+        5* +0x0c08 ldp x26, x25, [sp, #0x10]
+       23* +0x0c0c ldp x28, x27, [sp], #0x60
+        7* +0x0c10 ret
+           +0x0c14 cbz x21, 0x1000dba58
+           +0x0c18 mov w8, #0x8
+  cluster +0x0000..+0x0020   0.5147 ns  bands[25 36 33]
+           +-0x008 mov x0, x19
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+       10* +0x0000 stp x28, x27, [sp, #-0x60]!
+       14* +0x0004 stp x26, x25, [sp, #0x10]
+       10* +0x0008 stp x24, x23, [sp, #0x20]
+       18* +0x000c stp x22, x21, [sp, #0x30]
+       12* +0x0010 stp x20, x19, [sp, #0x40]
+       20* +0x0014 stp x29, x30, [sp, #0x50]
+           +0x0018 add x29, sp, #0x50
+           +0x001c sub sp, sp, #0x4f0
+       10* +0x0020 str xzr, [sp]
+           +0x0024 mov x20, x1
+           +0x0028 mov x19, x0
+  cluster +0x0ba0..+0x0bbc   0.4873 ns  bands[9 53 31]
+           +0x0b98 ldr x0, [x9, x8]
+           +0x0b9c bl _mi_free
+       13* +0x0ba0 ldr x8, [x20, #0x138]
+           +0x0ba4 cbz x8, 0x1000dba0c
+        1* +0x0ba8 sub x8, x8, #0x1
+           +0x0bac str x8, [x20, #0x138]
+       66* +0x0bb0 ldr x9, [x20, #0x130]
+           +0x0bb4 mov w10, #0x18
+           +0x0bb8 madd x8, x8, x10, x9
+       13* +0x0bbc ldr x9, [x8]
+           +0x0bc0 mov x10, #0x2
+           +0x0bc4 movk x10, #0x8000, lsl #48
+  cluster +0x035c..+0x0374   0.4486 ns  bands[9 46 31]
+           +0x0354 mov x0, x8
+           +0x0358 b 0x1000db234
+       43* +0x035c ldp q0, q1, [sp, #0xc0]
+           +0x0360 stp q0, q1, [sp, #0x70]
+        9* +0x0364 ldp q0, q1, [sp, #0xe0]
+           +0x0368 stp q0, q1, [sp, #0x90]
+        6* +0x036c ldr q0, [sp, #0x100]
+           +0x0370 str q0, [sp, #0xb0]
+       28* +0x0374 ldr x10, [sp, #0xa0]
+           +0x0378 add x8, sp, #0xa0
+           +0x037c add x9, sp, #0x70
+  cluster +0x0628..+0x0650   0.4280 ns  bands[4 54 24]
+           +0x0620 add x9, x9, #0x18
+           +0x0624 str x9, [sp, #0x10]
+        3* +0x0628 ldr x9, [sp, #0x70]
+           +0x062c str x9, [sp, #0x20]
+           +0x0630 mov x10, #-0x7ffffffffffffffd
+           +0x0634 b 0x1000db474
+        7* +0x0638 mov x8, x21
+           +0x063c cmp x21, x25
+           +0x0640 b.eq 0x1000db580
+       38* +0x0644 mov x21, x8
+       33* +0x0648 ldr x9, [x21], #0xc8
+           +0x064c cmp x9, x10
+        1* +0x0650 b.ne 0x1000db468
+           +0x0654 ldrb w9, [x8, #0x39]
+           +0x0658 cmp w9, #0x2
+  cluster +0x0448..+0x04b0   0.4113 ns  bands[11 39 28]
+           +0x0440 mov w1, #0x1
+           +0x0444 bl _mi_malloc_aligned
+        3* +0x0448 cbz x0, 0x1000db20c
+           +0x044c mov x23, x0
+       12* +0x0450 ldr x1, [sp, #0x8]
+           +0x0454 mov x2, x22
+           +0x0458 bl 0x10073e1d0 ; symbol stub for: _memcpy
+        7* +0x045c mov x26, x22
+        9* +0x0460 ldp x10, x9, [sp, #0x10]
+           +0x0464 b 0x1000db29c
+           +0x0468 mov w23, #0x1
+        9* +0x046c add x8, sp, #0xc0
+           +0x0470 str x24, [sp, #0x428]
+        1* +0x0474 str x28, [sp, #0x430]
+        1* +0x0478 str x27, [sp, #0x438]
+        2* +0x047c str x21, [sp, #0x440]
+        3* +0x0480 str x9, [sp, #0x448]
+        3* +0x0484 str x10, [sp, #0x450]
+        4* +0x0488 strb wzr, [sp, #0x458]
+        1* +0x048c str x26, [sp, #0x408]
+        8* +0x0490 str x23, [sp, #0x410]
+           +0x0494 str x8, [sp, #0x420]
+        2* +0x0498 str x26, [sp, #0x418]
+        2* +0x049c ldr x8, [x20, #0x4a8]
+           +0x04a0 ldr x9, [x8, #0x48]
+           +0x04a4 cmp x9, #0x7e
+        6* +0x04a8 str x23, [sp, #0x18]
+           +0x04ac b.lo 0x1000db2f0
+        5* +0x04b0 ldr x8, [x8, #0x40]
+           +0x04b4 ldr x3, [x8, #0xbc0]
+           +0x04b8 ldr x8, [x8, #0xbc8]
+  cluster +0x0034..+0x004c   0.4015 ns  bands[23 28 20]
+           +0x002c adrp x21, 1741 ; 0x1007a7000
+           +0x0030 add x21, x21, #0xf55
+        2* +0x0034 mov w8, #0xc
+       14* +0x0038 stp x21, x8, [sp, #0x60]
+       34* +0x003c ldr x8, [x1, #0x4a8]
+           +0x0040 ldr x9, [x8, #0x98]
+       20* +0x0044 ldr x10, [x8, #0xb8]
+           +0x0048 orr x9, x9, x10
+        1* +0x004c cbz x9, 0x1000daf30
+           +0x0050 ldr x9, [x8, #0x30]
+           +0x0054 cmp x9, #0x7e
+  cluster +0x0090..+0x00ac   0.3538 ns  bands[18 25 21]
+           +0x0088 stp x9, x21, [x8]
+           +0x008c mov w9, #0xc
+       13* +0x0090 str x9, [x8, #0x10]
+           +0x0094 add x8, x22, #0x1
+        8* +0x0098 str x8, [x20, #0x138]
+       15* +0x009c ldr x9, [x20, #0xf0]
+        2* +0x00a0 ldr x27, [x20, #0x150]
+       11* +0x00a4 ldr x8, [x20, #0x108]
+           +0x00a8 stp x8, x9, [sp, #0x50]
+       15* +0x00ac ldr x8, [x20, #0x198]
+           +0x00b0 ldr x9, [x20, #0x178]
+           +0x00b4 cmp x8, #0x8
+  cluster +0x00c8..+0x00dc   0.3001 ns  bands[12 26 17]
+           +0x00c0 ldr x8, [x20, #0x238]
+           +0x00c4 stp x9, x8, [sp, #0x40]
+       19* +0x00c8 ldr x8, [x20, #0x4a8]
+       32* +0x00cc ldr x9, [x8, #0x48]
+           +0x00d0 cmp x9, #0x7e
+           +0x00d4 b.lo 0x1000db02c
+           +0x00d8 ldr x9, [x8, #0x40]
+        4* +0x00dc ldr x8, [x9, #0xbc8]
+           +0x00e0 cbz x8, 0x1000db02c
+           +0x00e4 ldr x21, [x9, #0xbc0]
+
+--- [semantic_runtime] pgen::semantic_runtime20SemanticRuntimeState3new#17hfc8d801073298164 [6.1572 ns] ---
+  cluster +0x0000..+0x0130   6.1572 ns  bands[446 362 239]
+           +-0x008 bl 0x10073dfc0 ; symbol stub for: __Unwind_DeleteException
+           +-0x004 bl __RNvCsfLfy6EI15iL_7___rustc24___rust_foreign_exception
+        4* +0x0000 sub sp, sp, #0xb0
+        5* +0x0004 stp x22, x21, [sp, #0x80]
+       25* +0x0008 stp x20, x19, [sp, #0x90]
+       12* +0x000c stp x29, x30, [sp, #0xa0]
+           +0x0010 add x29, sp, #0xa0
+           +0x0014 mov x19, x0
+       23* +0x0018 str wzr, [sp, #0x48]
+       18* +0x001c str wzr, [sp, #0x18]
+           +0x0020 mov x20, #-0x8000000000000000
+       30* +0x0024 str x20, [sp]
+           +0x0028 mov w21, #0x6
+       25* +0x002c strb w21, [sp, #0x20]
+       24* +0x0030 strb wzr, [sp, #0x4c]
+       23* +0x0034 str xzr, [sp, #0x40]
+           +0x0038 mov w0, #0x38
+           +0x003c mov w1, #0x8
+        4* +0x0040 bl _mi_malloc_aligned
+        2* +0x0044 cbz x0, 0x100018dd0
+        2* +0x0048 str x20, [x0]
+       22* +0x004c strb w21, [x0, #0x18]
+           +0x0050 mov w8, #0x1
+        9* +0x0054 stp x8, x0, [sp, #0x50]
+       26* +0x0058 str x8, [sp, #0x60]
+           +0x005c mov w8, #0x8
+       13* +0x0060 stp xzr, x8, [x29, #-0x38]
+       24* +0x0064 stur xzr, [x29, #-0x28]
+           +0x0068 mov w0, #0x50
+           +0x006c mov w1, #0x8
+           +0x0070 bl _mi_malloc_aligned
+       11* +0x0074 cbz x0, 0x100018de0
+           +0x0078 ldp q0, q1, [sp, #0x20]
+           +0x007c stp q0, q1, [x0, #0x20]
+       47* +0x0080 ldr q0, [sp, #0x40]
+           +0x0084 str q0, [x0, #0x40]
+       23* +0x0088 ldp q1, q0, [sp]
+       19* +0x008c stp q1, q0, [x0]
+       34* +0x0090 ldr q0, [sp, #0x50]
+        1* +0x0094 str q0, [x19]
+       14* +0x0098 ldr x8, [sp, #0x60]
+        1* +0x009c str x8, [x19, #0x10]
+       22* +0x00a0 ldur x8, [x29, #-0x28]
+        1* +0x00a4 ldur q0, [x29, #-0x38]
+       11* +0x00a8 stur q0, [x19, #0x18]
+        2* +0x00ac adrp x9, 2104 ; 0x100850000
+        1* +0x00b0 add x9, x9, #0xac8
+       28* +0x00b4 ldp q1, q0, [x9]
+           +0x00b8 stur q0, [x19, #0xe8]
+       27* +0x00bc stur q1, [x19, #0xd8]
+           +0x00c0 mov w9, #0x1
+       33* +0x00c4 stp x8, x9, [x19, #0x28]
+       23* +0x00c8 str x0, [x19, #0x38]
+        9* +0x00cc str xzr, [x19, #0xa8]
+       27* +0x00d0 str x9, [x19, #0xd0]
+           +0x00d4 adrp x8, 1923 ; 0x10079b000
+       28* +0x00d8 ldr q2, [x8, #0x650]
+        9* +0x00dc str q2, [x19, #0x40]
+           +0x00e0 mov w8, #0x8
+       13* +0x00e4 str x8, [x19, #0x50]
+           +0x00e8 add x9, x19, #0xf8
+       14* +0x00ec str q0, [x9, #0x10]
+       20* +0x00f0 stur q1, [x19, #0xf8]
+           +0x00f4 add x9, x19, #0x118
+           +0x00f8 movi.2d v0, #0000000000000000
+       34* +0x00fc stur q0, [x19, #0x58]
+       35* +0x0100 stp q0, q0, [x9]
+       38* +0x0104 stp q0, q0, [x9, #0x20]
+       28* +0x0108 stp q0, q0, [x9, #0x40]
+       42* +0x010c str x8, [x19, #0x68]
+       17* +0x0110 str q0, [x19, #0x70]
+       31* +0x0114 str x8, [x19, #0x80]
+       21* +0x0118 stur q0, [x19, #0x88]
+       19* +0x011c stp x8, xzr, [x19, #0x98]
+       10* +0x0120 ldp x29, x30, [sp, #0xa0]
+        2* +0x0124 ldp x20, x19, [sp, #0x90]
+       58* +0x0128 ldp x22, x21, [sp, #0x80]
+        2* +0x012c add sp, sp, #0xb0
+        1* +0x0130 ret
+           +0x0134 mov w0, #0x8
+           +0x0138 mov w1, #0x38
+
+--- [semantic_runtime] pgen::semantic_runtime20SemanticRuntimeState24extract_delta_since_slow#17hb418d149dd9e234a [3.6289 ns] ---
+  cluster +0x03d4..+0x0428   1.4617 ns  bands[20 158 106]
+           +0x03cc ldur q0, [sp, #0x68]
+           +0x03d0 str q0, [x19, #0x60]
+        6* +0x03d4 ldr x8, [sp, #0x78]
+           +0x03d8 str x8, [x19, #0x70]
+        6* +0x03dc ldr q0, [sp]
+        2* +0x03e0 str q0, [x19]
+        7* +0x03e4 ldr x8, [sp, #0x10]
+           +0x03e8 str x8, [x19, #0x10]
+       16* +0x03ec ldur q0, [sp, #0x18]
+           +0x03f0 stur q0, [x19, #0x18]
+       18* +0x03f4 ldr x8, [sp, #0x28]
+        3* +0x03f8 stp x8, x26, [x19, #0x28]
+       20* +0x03fc stp x23, x22, [x19, #0x38]
+       15* +0x0400 ldur q0, [x29, #-0x88]
+           +0x0404 ldur q1, [x29, #-0x78]
+           +0x0408 ldur q2, [x29, #-0x68]
+           +0x040c stur q2, [x19, #0x98]
+        7* +0x0410 stur q1, [x19, #0x88]
+       12* +0x0414 stur q0, [x19, #0x78]
+       68* +0x0418 ldr x8, [sp, #0x90]
+        4* +0x041c str x8, [x19, #0x58]
+       63* +0x0420 ldr q0, [sp, #0x80]
+           +0x0424 stur q0, [x19, #0x48]
+       37* +0x0428 ldr x8, [sp, #0x58]
+           +0x042c cmp x8, #0x9
+           +0x0430 b.lo 0x1007334d8
+  cluster +0x00b0..+0x00d4   1.1612 ns  bands[15 123 89]
+           +0x00a8 add x1, x20, #0xa8
+           +0x00ac bl __ZN66_$LT$smallvec..SmallVec$LT$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h78b7420a86434252E
+        8* +0x00b0 ldr x1, [x20, #0x58]
+           +0x00b4 cmp x23, x1
+           +0x00b8 b.hi 0x1007334f8
+           +0x00bc b.ne 0x1007331dc
+       35* +0x00c0 ldp q0, q1, [sp, #0x90]
+        3* +0x00c4 stp q0, q1, [sp, #0x40]
+       36* +0x00c8 ldr q1, [sp, #0x80]
+           +0x00cc str q1, [sp, #0x30]
+      136* +0x00d0 ldr x8, [sp, #0x58]
+        9* +0x00d4 ldp x10, x9, [sp, #0x38]
+           +0x00d8 add x11, sp, #0x30
+           +0x00dc orr x11, x11, #0x4
+  cluster +0x0188..+0x0194   0.2639 ns  bands[0 34 18]
+           +0x0180 ldur q0, [x29, #-0x68]
+           +0x0184 str q0, [sp, #0xa0]
+       46* +0x0188 sub x22, x22, #0x30
+           +0x018c adds x23, x23, #0x30
+           +0x0190 b.eq 0x10073315c
+        6* +0x0194 ldr w8, [x22]
+           +0x0198 subs w8, w8, #0x2
+           +0x019c csel w8, w25, w8, lo
+  cluster +0x0000..+0x0018   0.2616 ns  bands[3 29 19]
+           +-0x008 ldp x0, x1, [sp, #0x10]
+           +-0x004 bl __RNvNtCs1OjIl8oxbrv_5alloc7raw_vec12handle_error
+        2* +0x0000 sub sp, sp, #0x150
+        1* +0x0004 stp x28, x27, [sp, #0xf0]
+       11* +0x0008 stp x26, x25, [sp, #0x100]
+        5* +0x000c stp x24, x23, [sp, #0x110]
+        6* +0x0010 stp x22, x21, [sp, #0x120]
+       17* +0x0014 stp x20, x19, [sp, #0x130]
+        9* +0x0018 stp x29, x30, [sp, #0x140]
+           +0x001c add x29, sp, #0x140
+           +0x0020 mov x21, x2
+  cluster +0x01c8..+0x01c8   0.1154 ns  bands[3 14 4]
+           +0x01c0 b 0x1007332b8
+           +0x01c4 ldr x8, [sp, #0xa8]
+       21* +0x01c8 ldr x9, [sp, #0x88]
+           +0x01cc cmp x8, #0x8
+           +0x01d0 csel x8, x9, x8, hi
+  cluster +0x002c..+0x0030   0.0908 ns  bands[2 7 9]
+           +0x0024 mov x20, x1
+           +0x0028 mov x19, x0
+        6* +0x002c ldr x8, [x2]
+       12* +0x0030 ldr x9, [x1, #0x28]
+           +0x0034 subs x2, x9, x8
+           +0x0038 b.hs 0x10073310c
+  cluster +0x0450..+0x0450   0.0572 ns  bands[3 5 2]
+           +0x0448 ldp x24, x23, [sp, #0x110]
+           +0x044c ldp x26, x25, [sp, #0x100]
+       10* +0x0450 ldp x28, x27, [sp, #0xf0]
+           +0x0454 add sp, sp, #0x150
+           +0x0458 ret
+  cluster +0x0260..+0x0284   0.0513 ns  bands[0 7 3]
+           +0x0258 mov w23, #0x4
+           +0x025c b 0x100733420
+        1* +0x0260 lsl x8, x8, #2
+           +0x0264 mov w23, #0x4
+        1* +0x0268 ldr w22, [x24], #0x4
+           +0x026c mov x9, x8
+           +0x0270 add x10, x20, #0xac
+           +0x0274 cbz x9, 0x100733338
+        7* +0x0278 ldr w11, [x10], #0x4
+           +0x027c sub x9, x9, #0x4
+           +0x0280 cmp w11, w22
+        1* +0x0284 b.ne 0x100733310
+           +0x0288 mov x22, #0x0
+           +0x028c mov x26, #0x0
+  cluster +0x0388..+0x038c   0.0447 ns  bands[1 3 5]
+           +0x0380 ldp x26, x23, [x29, #-0x88]
+           +0x0384 ldr x8, [x21, #0x8]
+        8* +0x0388 ldr x9, [x20, #0x88]
+        1* +0x038c subs x2, x9, x8
+           +0x0390 b.hs 0x100733440
+           +0x0394 mov w8, #0x8
+  cluster +0x0088..+0x0088   0.0416 ns  bands[0 6 2]
+           +0x0080 bl __ZN87_$LT$T$u20$as$u20$alloc..slice..$LT$impl$u20$$u5b$T$u5d$$GT$..to_vec_in..ConvertVec$GT$6to_vec17h5ca3a38c6117867cE
+           +0x0084 ldr x8, [x21, #0x10]
+        8* +0x0088 ldr x9, [x20, #0x40]
+           +0x008c subs x2, x9, x8
+           +0x0090 b.hs 0x1007330f4
+
+--- [semantic_runtime] apply_semantic_runtime_effect_directive#17hcbf95367d8e7a875 [3.4089 ns] ---
+  cluster +0x0300..+0x032c   2.3309 ns  bands[33 233 192]
+           +0x02f8 mov x24, #0x5
+           +0x02fc movk x24, #0x8000, lsl #48
+       95* +0x0300 ldur q0, [x23, #0x60]
+           +0x0304 stur q0, [x29, #-0x70]
+      158* +0x0308 ldr x8, [sp, #0xe8]
+       60* +0x030c ldr x9, [sp, #0x100]
+       17* +0x0310 stur x9, [x29, #-0x60]
+           +0x0314 cmp x8, x24
+           +0x0318 b.ne 0x10008b5f4
+       58* +0x031c ldur q0, [x29, #-0x70]
+           +0x0320 str q0, [sp, #0xd0]
+       44* +0x0324 ldur x8, [x29, #-0x60]
+           +0x0328 str x8, [sp, #0xe0]
+       26* +0x032c ldr x20, [x21, #0x18]
+           +0x0330 cbz x20, 0x10008b670
+           +0x0334 ldr x22, [x21, #0x10]
+  cluster +0x0558..+0x0584   0.3854 ns  bands[7 44 22]
+           +0x0550 mov w21, #0x1
+           +0x0554 stp x21, x20, [sp, #0xf8]
+       32* +0x0558 ldr q0, [sp, #0xd0]
+           +0x055c stur q0, [x23, #0x78]
+        7* +0x0560 ldr x8, [sp, #0xe0]
+           +0x0564 str x8, [sp, #0x118]
+       13* +0x0568 ldp q0, q1, [sp, #0x70]
+        4* +0x056c stp q0, q1, [x23, #0x90]
+           +0x0570 sub x8, x24, #0x3
+       11* +0x0574 stp x8, x20, [sp, #0xe8]
+           +0x0578 add x1, sp, #0xe8
+           +0x057c bl __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState15apply_directive17hf9dffb915c78c369E
+           +0x0580 strb w0, [x19, #0x8]
+        6* +0x0584 str x24, [x19]
+           +0x0588 b 0x10008b73c
+           +0x058c sub x8, x20, #0x1
+  cluster +0x0000..+0x0048   0.2996 ns  bands[7 30 20]
+           +-0x008 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+           +-0x004 bl __RNvNtCsl8K0bEFm1U0_4core9panicking16panic_in_cleanup
+        2* +0x0000 stp x26, x25, [sp, #-0x50]!
+        8* +0x0004 stp x24, x23, [sp, #0x10]
+        9* +0x0008 stp x22, x21, [sp, #0x20]
+        6* +0x000c stp x20, x19, [sp, #0x30]
+        2* +0x0010 stp x29, x30, [sp, #0x40]
+           +0x0014 add x29, sp, #0x40
+           +0x0018 sub sp, sp, #0x1e0
+           +0x001c mov x19, x0
+       16* +0x0020 ldr x8, [x3]
+           +0x0024 eor x9, x8, #0x8000000000000000
+        3* +0x0028 mov w10, #0x7
+           +0x002c cmp x8, #0x0
+           +0x0030 csel x8, x9, x10, mi
+        1* +0x0034 cmp x8, #0x2
+           +0x0038 b.gt 0x10008b18c
+        9* +0x003c sub x21, x29, #0x70
+           +0x0040 add x23, sp, #0x90
+           +0x0044 cbz x8, 0x10008b1b4
+        1* +0x0048 cmp x8, #0x1
+           +0x004c b.ne 0x10008b1cc
+           +0x0050 mov x8, x3
+  cluster +0x03a4..+0x03c0   0.0767 ns  bands[4 8 1]
+           +0x039c movk x20, #0x8000, lsl #48
+           +0x03a0 ldr q0, [sp, #0x30]
+        1* +0x03a4 str q0, [sp, #0x10]
+           +0x03a8 ldur q0, [sp, #0x3f]
+           +0x03ac stur q0, [sp, #0x1f]
+        8* +0x03b0 ldr q0, [sp, #0x10]
+           +0x03b4 stur q0, [x23, #0x21]
+        3* +0x03b8 ldur q0, [sp, #0x1f]
+           +0x03bc str q0, [sp, #0xc0]
+        1* +0x03c0 strb w8, [sp, #0xb0]
+           +0x03c4 ldr x8, [x3, #0x8]
+           +0x03c8 eor x9, x8, #0x8000000000000000
+  cluster +0x0618..+0x0634   0.0741 ns  bands[3 5 6]
+           +0x0610 strb w0, [x19, #0x8]
+           +0x0614 str x20, [x19]
+        5* +0x0618 add x0, sp, #0xe8
+           +0x061c bl __ZN4core3ptr83drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDirective$GT$17hb879ff6c865c06aeE
+           +0x0620 add sp, sp, #0x1e0
+           +0x0624 ldp x29, x30, [sp, #0x40]
+        2* +0x0628 ldp x20, x19, [sp, #0x30]
+           +0x062c ldp x22, x21, [sp, #0x20]
+           +0x0630 ldp x24, x23, [sp, #0x10]
+        7* +0x0634 ldp x26, x25, [sp], #0x50
+           +0x0638 ret
+           +0x063c sub x8, x20, #0x1
+  cluster +0x00c4..+0x00c8   0.0616 ns  bands[1 3 9]
+           +0x00bc mov x22, x4
+           +0x00c0 mov x2, x4
+        2* +0x00c4 bl __ZN4pgen17generated_parsers5regex11RegexParser46resolve_semantic_runtime_value_against_content17hfb75ebd34a2e8de9E
+       11* +0x00c8 ldurb w8, [x29, #-0x70]
+           +0x00cc cmp w8, #0x6
+           +0x00d0 b.ne 0x10008b3fc
+  cluster +0x05e8..+0x0600   0.0582 ns  bands[0 9 2]
+           +0x05e0 b 0x10008b70c
+           +0x05e4 add x8, x20, #0x3
+        2* +0x05e8 ldp q0, q1, [sp, #0xb0]
+           +0x05ec stur q0, [x23, #0x78]
+        1* +0x05f0 stur q1, [x23, #0x88]
+        5* +0x05f4 ldr q0, [sp]
+        2* +0x05f8 stur q0, [x23, #0x68]
+           +0x05fc mov x9, #-0x8000000000000000
+        1* +0x0600 stp x9, x8, [sp, #0xe8]
+           +0x0604 add x1, sp, #0xe8
+           +0x0608 mov x0, x2
+  cluster +0x0344..+0x0344   0.0319 ns  bands[0 5 1]
+           +0x033c mov w1, #0x1
+           +0x0340 bl _mi_malloc_aligned
+        6* +0x0344 cbz x0, 0x10008b7e4
+           +0x0348 mov x21, x0
+           +0x034c mov x1, x22
+  cluster +0x0478..+0x0480   0.0223 ns  bands[1 2 1]
+           +0x0470 ldp q0, q1, [sp, #0xb0]
+           +0x0474 stur q0, [x23, #0x78]
+        1* +0x0478 stur q1, [x23, #0x88]
+        2* +0x047c ldur q0, [x29, #-0x50]
+        1* +0x0480 stur q0, [x23, #0x68]
+           +0x0484 mov x9, #-0x7fffffffffffffff
+           +0x0488 stp x9, x8, [sp, #0xe8]
+  cluster +0x044c..+0x0460   0.0182 ns  bands[0 1 3]
+           +0x0444 ldur q0, [sp, #0x3f]
+           +0x0448 stur q0, [sp, #0x1f]
+        1* +0x044c ldr q0, [sp, #0x10]
+           +0x0450 stur q0, [x23, #0x21]
+        1* +0x0454 ldur q0, [sp, #0x1f]
+           +0x0458 str q0, [sp, #0xc0]
+        1* +0x045c strb w8, [sp, #0xb0]
+        1* +0x0460 ldr x9, [x3, #0x8]
+           +0x0464 add x8, x20, #0x4
+           +0x0468 cmp x9, x8
+
+--- [semantic_runtime] pgen::semantic_runtime34CompiledSemanticRuntimeAnnotations19directives_for_rule#17h31f6e8468ec9103f [3.2484 ns] ---
+  cluster +0x0170..+0x0184   1.1851 ns  bands[81 69 55]
+           +0x0168 mov w24, #0x30
+           +0x016c and x25, x8, x22
+       36* +0x0170 ldr d9, [x23, x25]
+           +0x0174 cmeq.8b v0, v9, v8
+       75* +0x0178 fmov x8, d0
+           +0x017c ands x26, x8, #0x8080808080808080
+           +0x0180 b.eq 0x1000aaeac
+       94* +0x0184 rbit x8, x26
+           +0x0188 clz x8, x8
+           +0x018c add x8, x25, x8, lsr #3
+  cluster +0x019c..+0x01b8   0.6220 ns  bands[42 36 30]
+           +0x0194 mneg x8, x8, x24
+           +0x0198 add x27, x23, x8
+       98* +0x019c ldur x8, [x27, #-0x20]
+           +0x01a0 cmp x19, x8
+           +0x01a4 b.ne 0x1000aae98
+        9* +0x01a8 ldur x1, [x27, #-0x28]
+           +0x01ac mov x0, x20
+           +0x01b0 mov x2, x19
+           +0x01b4 bl 0x10073e1c4 ; symbol stub for: _memcmp
+        1* +0x01b8 cbz w0, 0x1000aaee0
+           +0x01bc sub x8, x26, #0x1
+           +0x01c0 ands x26, x8, x26
+  cluster +0x0000..+0x0028   0.4304 ns  bands[34 23 15]
+           +-0x008 mov x0, x19
+           +-0x004 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+       26* +0x0000 ldr x8, [x0, #0x98]
+           +0x0004 cbz x8, 0x1000aad50
+           +0x0008 stp d9, d8, [sp, #-0x70]!
+        8* +0x000c stp x28, x27, [sp, #0x10]
+        5* +0x0010 stp x26, x25, [sp, #0x20]
+        6* +0x0014 stp x24, x23, [sp, #0x30]
+        7* +0x0018 stp x22, x21, [sp, #0x40]
+        9* +0x001c stp x20, x19, [sp, #0x50]
+        4* +0x0020 stp x29, x30, [sp, #0x60]
+           +0x0024 add x29, sp, #0x60
+        7* +0x0028 mov x19, x2
+           +0x002c mov x20, x1
+           +0x0030 mov x9, #0x8d3
+  cluster +0x003c..+0x004c   0.3956 ns  bands[38 20 4]
+           +0x0034 movk x9, #0x85a3, lsl #16
+           +0x0038 movk x9, #0x6a88, lsl #32
+       61* +0x003c movk x9, #0x243f, lsl #48
+           +0x0040 mov x8, #0x7344
+           +0x0044 movk x8, #0x370, lsl #16
+           +0x0048 movk x8, #0x8a2e, lsl #32
+        1* +0x004c movk x8, #0x1319, lsl #48
+           +0x0050 cmp x2, #0x10
+           +0x0054 b.hi 0x1000aad5c
+  cluster +0x0158..+0x015c   0.3396 ns  bands[18 27 15]
+           +0x0150 ror x8, x8, #0x26
+           +0x0154 lsr x9, x8, #57
+       14* +0x0158 ldp x23, x22, [x0, #0x80]
+       46* +0x015c dup.8b v8, w9
+           +0x0160 movi.2d v1, #0xffffffffffffffff
+           +0x0164 mov w0, #0x8
+  cluster +0x0204..+0x022c   0.1651 ns  bands[7 11 13]
+           +0x01fc b.ne 0x1000aae60
+           +0x0200 b 0x1000aaeac
+        2* +0x0204 ldp x0, x1, [x27, #-0x10]
+           +0x0208 b 0x1000aaeec
+           +0x020c mov x1, #0x0
+        1* +0x0210 ldp x29, x30, [sp, #0x60]
+        1* +0x0214 ldp x20, x19, [sp, #0x50]
+        2* +0x0218 ldp x22, x21, [sp, #0x40]
+        1* +0x021c ldp x24, x23, [sp, #0x30]
+        4* +0x0220 ldp x26, x25, [sp, #0x20]
+        9* +0x0224 ldp x28, x27, [sp, #0x10]
+        4* +0x0228 ldp d9, d8, [sp], #0x70
+        7* +0x022c ret
+           +0x0230 ldr x8, [x0, #0xb8]
+           +0x0234 cbz x8, 0x1000aaf80
+  cluster +0x00b4..+0x00c4   0.0799 ns  bands[4 4 7]
+           +0x00ac mul x14, x9, x8
+           +0x00b0 umulh x8, x9, x8
+        9* +0x00b4 eor x8, x8, x14
+        3* +0x00b8 mov x9, x12
+        2* +0x00bc cmp x10, #0xf
+           +0x00c0 b.hi 0x1000aad74
+        1* +0x00c4 add x9, x20, x19
+           +0x00c8 ldp x10, x11, [x9, #-0x10]
+           +0x00cc eor x9, x10, x12
+  cluster +0x0134..+0x0134   0.0126 ns  bands[1 1 0]
+           +0x012c mov x9, #0xb199
+           +0x0130 movk x9, #0x3769, lsl #16
+        2* +0x0134 movk x9, #0xbb2d, lsl #32
+           +0x0138 movk x9, #0x1427, lsl #48
+           +0x013c mov x10, #0x1b3b
+  cluster +0x009c..+0x009c   0.0071 ns  bands[1 0 0]
+           +0x0094 mov x13, x20
+           +0x0098 mov x12, x8
+        1* +0x009c sub x10, x10, #0x10
+           +0x00a0 ldp x8, x14, [x13], #0x10
+           +0x00a4 eor x8, x8, x9
+  cluster +0x0118..+0x0118   0.0055 ns  bands[0 1 0]
+           +0x0110 orr x10, x10, x12, lsl #8
+           +0x0114 eor x8, x10, x8
+        1* +0x0118 mov x21, #0x0
+           +0x011c mul x10, x9, x8
+           +0x0120 umulh x8, x9, x8
+
+--- [semantic_runtime] with_semantic_runtime_rule_transaction#17h9bc3d58057e8cdaa [3.1318 ns] ---
+  cluster +0x0218..+0x027c   0.9512 ns  bands[71 57 32]
+           +0x0210 mov x2, x20
+           +0x0214 bl __ZN4pgen17generated_parsers5regex11RegexParser28parse_descending_class_range28_$u7b$$u7b$closure$u7d$$u7d$17h12dc08251f754ee8E
+        3* +0x0218 ldr w8, [sp, #0x290]
+        1* +0x021c ldur q0, [x21, #0x68]
+           +0x0220 ldur q1, [x21, #0x78]
+           +0x0224 ldur q2, [x21, #0x88]
+           +0x0228 stp q1, q2, [sp, #0xe0]
+       10* +0x022c ldur q1, [x21, #0x98]
+           +0x0230 str q1, [sp, #0x100]
+       15* +0x0234 ldur q1, [x21, #0x58]
+        1* +0x0238 stp q1, q0, [sp, #0xc0]
+        4* +0x023c tbz w8, #0x0, 0x1005261e8
+       50* +0x0240 ldp q0, q1, [sp, #0xc0]
+           +0x0244 stp q0, q1, [sp, #0x290]
+       11* +0x0248 ldp q0, q1, [sp, #0xe0]
+           +0x024c stp q0, q1, [sp, #0x2b0]
+       13* +0x0250 ldr q0, [sp, #0x100]
+        1* +0x0254 str q0, [sp, #0x2d0]
+       18* +0x0258 ldr x8, [sp, #0x290]
+           +0x025c cmp x8, x22
+        4* +0x0260 ldr x23, [sp, #0x58]
+           +0x0264 b.eq 0x100526a2c
+           +0x0268 stp x23, x27, [sp, #0xc0]
+        7* +0x026c ldp x9, x8, [sp, #0x48]
+           +0x0270 stp x8, x28, [sp, #0xd0]
+        5* +0x0274 ldr x8, [sp, #0x40]
+           +0x0278 stp x8, x9, [sp, #0xe0]
+       17* +0x027c ldr x8, [x20, #0x238]
+           +0x0280 cmp x8, x9
+           +0x0284 b.ne 0x100526d00
+  cluster +0x0be4..+0x0c10   0.4778 ns  bands[38 28 13]
+           +0x0bdc ldp q0, q1, [sp, #0x2b0]
+           +0x0be0 stp q0, q1, [x19, #0x20]
+       22* +0x0be4 ldr q0, [sp, #0x2d0]
+           +0x0be8 str q0, [x19, #0x40]
+       11* +0x0bec ldp q1, q0, [sp, #0x290]
+        6* +0x0bf0 stp q1, q0, [x19]
+        1* +0x0bf4 add sp, sp, #0x4f0
+       13* +0x0bf8 ldp x29, x30, [sp, #0x50]
+           +0x0bfc ldp x20, x19, [sp, #0x40]
+           +0x0c00 ldp x22, x21, [sp, #0x30]
+           +0x0c04 ldp x24, x23, [sp, #0x20]
+        7* +0x0c08 ldp x26, x25, [sp, #0x10]
+       18* +0x0c0c ldp x28, x27, [sp], #0x60
+        1* +0x0c10 ret
+           +0x0c14 cbz x21, 0x100526ab4
+           +0x0c18 mov w8, #0x8
+  cluster +0x0000..+0x0020   0.2706 ns  bands[23 15 6]
+           +-0x008 bl 0x10073e020 ; symbol stub for: __Unwind_Resume
+           +-0x004 bl __RNvNtCsl8K0bEFm1U0_4core9panicking16panic_in_cleanup
+        6* +0x0000 stp x28, x27, [sp, #-0x60]!
+        5* +0x0004 stp x26, x25, [sp, #0x10]
+        3* +0x0008 stp x24, x23, [sp, #0x20]
+       11* +0x000c stp x22, x21, [sp, #0x30]
+       11* +0x0010 stp x20, x19, [sp, #0x40]
+        5* +0x0014 stp x29, x30, [sp, #0x50]
+           +0x0018 add x29, sp, #0x50
+           +0x001c sub sp, sp, #0x4f0
+        3* +0x0020 str xzr, [sp]
+           +0x0024 mov x20, x1
+           +0x0028 mov x19, x0
+  cluster +0x00c8..+0x00dc   0.1977 ns  bands[13 10 12]
+           +0x00c0 ldr x8, [x20, #0x238]
+           +0x00c4 stp x9, x8, [sp, #0x40]
+        9* +0x00c8 ldr x8, [x20, #0x4a8]
+       20* +0x00cc ldr x9, [x8, #0x48]
+        4* +0x00d0 cmp x9, #0x52
+           +0x00d4 b.lo 0x100526088
+           +0x00d8 ldr x9, [x8, #0x40]
+        2* +0x00dc ldr x8, [x9, #0x7a8]
+           +0x00e0 cbz x8, 0x100526088
+           +0x00e4 ldr x21, [x9, #0x7a0]
+  cluster +0x0090..+0x00ac   0.1924 ns  bands[18 8 5]
+           +0x0088 stp x9, x21, [x8]
+           +0x008c mov w9, #0x16
+        4* +0x0090 str x9, [x8, #0x10]
+           +0x0094 add x8, x22, #0x1
+        5* +0x0098 str x8, [x20, #0x138]
+        6* +0x009c ldr x9, [x20, #0xf0]
+           +0x00a0 ldr x27, [x20, #0x150]
+        7* +0x00a4 ldr x8, [x20, #0x108]
+           +0x00a8 stp x8, x9, [sp, #0x50]
+        9* +0x00ac ldr x8, [x20, #0x198]
+           +0x00b0 ldr x9, [x20, #0x178]
+           +0x00b4 cmp x8, #0x8
+  cluster +0x0034..+0x0044   0.1908 ns  bands[17 9 5]
+           +0x002c adrp x21, 642 ; 0x1007a7000
+           +0x0030 add x21, x21, #0xbfc
+        5* +0x0034 mov w8, #0x16
+        9* +0x0038 stp x21, x8, [sp, #0x60]
+        3* +0x003c ldr x8, [x1, #0x4a8]
+           +0x0040 ldr x9, [x8, #0x98]
+       14* +0x0044 ldr x10, [x8, #0xb8]
+           +0x0048 orr x9, x9, x10
+           +0x004c cbz x9, 0x100525f8c
+  cluster +0x0ba0..+0x0bbc   0.1798 ns  bands[17 7 5]
+           +0x0b98 ldr x0, [x9, x8]
+           +0x0b9c bl _mi_free
+        5* +0x0ba0 ldr x8, [x20, #0x138]
+           +0x0ba4 cbz x8, 0x100526a68
+           +0x0ba8 sub x8, x8, #0x1
+           +0x0bac str x8, [x20, #0x138]
+       18* +0x0bb0 ldr x9, [x20, #0x130]
+           +0x0bb4 mov w10, #0x18
+           +0x0bb8 madd x8, x8, x10, x9
+        6* +0x0bbc ldr x9, [x8]
+           +0x0bc0 mov x10, #0x2
+           +0x0bc4 movk x10, #0x8000, lsl #48
+  cluster +0x035c..+0x0374   0.0936 ns  bands[3 7 8]
+           +0x0354 mov x0, x8
+           +0x0358 b 0x100526290
+        7* +0x035c ldp q0, q1, [sp, #0xc0]
+           +0x0360 stp q0, q1, [sp, #0x70]
+        3* +0x0364 ldp q0, q1, [sp, #0xe0]
+           +0x0368 stp q0, q1, [sp, #0x90]
+        3* +0x036c ldr q0, [sp, #0x100]
+           +0x0370 str q0, [sp, #0xb0]
+        5* +0x0374 ldr x10, [sp, #0xa0]
+           +0x0378 add x8, sp, #0xa0
+           +0x037c add x9, sp, #0x70
+  cluster +0x0478..+0x04ac   0.0704 ns  bands[8 1 2]
+           +0x0470 str x24, [sp, #0x428]
+           +0x0474 str x28, [sp, #0x430]
+        1* +0x0478 str x27, [sp, #0x438]
+           +0x047c str x21, [sp, #0x440]
+           +0x0480 str x9, [sp, #0x448]
+        4* +0x0484 str x10, [sp, #0x450]
+           +0x0488 strb wzr, [sp, #0x458]
+        1* +0x048c str x26, [sp, #0x408]
+           +0x0490 str x23, [sp, #0x410]
+        2* +0x0494 str x8, [sp, #0x420]
+        1* +0x0498 str x26, [sp, #0x418]
+           +0x049c ldr x8, [x20, #0x4a8]
+           +0x04a0 ldr x9, [x8, #0x48]
+           +0x04a4 cmp x9, #0x52
+        1* +0x04a8 str x23, [sp, #0x18]
+        1* +0x04ac b.lo 0x10052634c
+           +0x04b0 ldr x8, [x8, #0x40]
+           +0x04b4 ldr x3, [x8, #0x7a0]
+  cluster +0x01b8..+0x01c4   0.0685 ns  bands[4 5 3]
+           +0x01b0 stp x8, x10, [x19, #0x40]
+           +0x01b4 b 0x100526a80
+        4* +0x01b8 cbz x22, 0x100526088
+           +0x01bc sub x22, x22, #0xc8
+           +0x01c0 mov x21, x24
+        8* +0x01c4 ldr x8, [x24], #0xc8
+           +0x01c8 cmp x8, x23
+           +0x01cc b.ne 0x100526044
+
+--- [vec_growth] alloc::raw_vec20RawVecInner$LT$A$GT$11finish_grow#17h0ad14a629d25f3f4 [16.5139 ns] ---
+  cluster +0x0000..+0x0044   9.3542 ns  bands[673 591 317]
+           +-0x008 ldp x0, x1, [sp, #0x10]
+           +-0x004 bl __RNvNtCs1OjIl8oxbrv_5alloc7raw_vec12handle_error
+       23* +0x0000 stp x22, x21, [sp, #-0x30]!
+      192* +0x0004 stp x20, x19, [sp, #0x10]
+      186* +0x0008 stp x29, x30, [sp, #0x20]
+       41* +0x000c add x29, sp, #0x20
+       10* +0x0010 mov x19, x0
+       30* +0x0014 mov x9, #0x0
+       13* +0x0018 umulh x11, x5, x3
+        7* +0x001c mov w8, #0x1
+       16* +0x0020 mov w10, #0x8
+      947* +0x0024 cmp xzr, x11
+        6* +0x0028 b.ne 0x10073266c
+       59* +0x002c mul x20, x5, x3
+           +0x0030 mov x11, #-0x8000000000000000
+       10* +0x0034 sub x11, x11, x4
+        4* +0x0038 cmp x20, x11
+           +0x003c b.hi 0x10073266c
+       34* +0x0040 cbz x1, 0x100732634
+        3* +0x0044 mov x0, x2
+           +0x0048 mov x1, x20
+           +0x004c mov x21, x4
+  cluster +0x0088..+0x00a8   6.2535 ns  bands[483 365 196]
+           +0x0080 b 0x100732664
+           +0x0084 mov x0, x4
+        1* +0x0088 mov x8, #0x0
+        1* +0x008c str x0, [x19, #0x8]
+           +0x0090 mov w10, #0x10
+           +0x0094 mov x9, x20
+      139* +0x0098 str x9, [x19, x10]
+      118* +0x009c str x8, [x19]
+      447* +0x00a0 ldp x29, x30, [sp, #0x20]
+       75* +0x00a4 ldp x20, x19, [sp, #0x10]
+      263* +0x00a8 ldp x22, x21, [sp], #0x30
+           +0x00ac ret
+           +0x00b0 stp x24, x23, [sp, #-0x40]!
+  cluster +0x0058..+0x0074   0.9063 ns  bands[83 45 17]
+           +0x0050 mov x2, x4
+           +0x0054 bl _mi_realloc_aligned
+        1* +0x0058 cbnz x0, 0x10073265c
+           +0x005c b 0x10073264c
+       57* +0x0060 cbz x20, 0x100732658
+        5* +0x0064 mov x0, x20
+           +0x0068 mov x21, x4
+           +0x006c mov x1, x4
+           +0x0070 bl _mi_malloc_aligned
+       82* +0x0074 cbnz x0, 0x10073265c
+           +0x0078 str x21, [x19, #0x8]
+           +0x007c mov w8, #0x1
+
+--- [vec_growth] alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h1ea4d81f4bfacb92 [5.5906 ns] ---
+  cluster +0x002c..+0x005c   4.4910 ns  bands[448 187 70]
+           +0x0024 csel x20, x8, x9, hi
+           +0x0028 add x0, sp, #0x8
+        2* +0x002c mov x3, x20
+           +0x0030 mov w4, #0x8
+           +0x0034 mov w5, #0x18
+        2* +0x0038 bl __ZN5alloc7raw_vec20RawVecInner$LT$A$GT$11finish_grow17h0ad14a629d25f3f4E
+       44* +0x003c ldr x8, [sp, #0x8]
+        1* +0x0040 cmp x8, #0x1
+           +0x0044 b.eq 0x100733094
+        9* +0x0048 ldr x8, [sp, #0x10]
+        1* +0x004c stp x20, x8, [x19]
+      579* +0x0050 ldp x29, x30, [sp, #0x30]
+       66* +0x0054 ldp x20, x19, [sp, #0x20]
+           +0x0058 add sp, sp, #0x40
+        1* +0x005c ret
+           +0x0060 ldp x0, x1, [sp, #0x10]
+           +0x0064 bl __RNvNtCs1OjIl8oxbrv_5alloc7raw_vec12handle_error
+  cluster +0x0000..+0x0014   1.0996 ns  bands[97 56 25]
+           +-0x008 ldp x0, x1, [sp, #0x10]
+           +-0x004 bl __RNvNtCs1OjIl8oxbrv_5alloc7raw_vec12handle_error
+        5* +0x0000 sub sp, sp, #0x40
+        3* +0x0004 stp x20, x19, [sp, #0x20]
+       63* +0x0008 stp x29, x30, [sp, #0x30]
+           +0x000c add x29, sp, #0x30
+           +0x0010 mov x19, x0
+      107* +0x0014 ldp x1, x2, [x0]
+           +0x0018 lsl x8, x1, #1
+           +0x001c mov w9, #0x4
+
+=== VIEW 3: TRANSPORT tally per bucket (mechanical; re-sum gated) ===
+
+-- build_value --
+  33.2474ns  x_frame_spill (sp/fp)
+  24.3234ns  x_scalar_state_or_elem
+   5.6037ns  control
+   4.5639ns  other_alu
+   3.6333ns  q_payload_copy (heap/arena)
+   1.1670ns  q_payload_copy (sp)
+   0.1223ns  call
+  72.6611ns  TOTAL (bucket price)
+
+-- arena_alloc --
+  32.7833ns  x_scalar_state_or_elem
+  14.4858ns  x_frame_spill (sp/fp)
+  14.1144ns  q_payload_copy (heap/arena)
+   5.0460ns  q_payload_copy (sp)
+   2.4955ns  other_alu
+   0.4904ns  control
+  69.4154ns  TOTAL (bucket price)
+
+-- semantic_runtime --
+  14.8631ns  x_frame_spill (sp/fp)
+  14.2746ns  x_scalar_state_or_elem
+   8.3644ns  other_alu
+   5.0166ns  q_payload_copy (sp)
+   4.6978ns  q_payload_copy (heap/arena)
+   2.1076ns  control
+   0.0363ns  call
+  49.3605ns  TOTAL (bucket price)
+
+-- vec_growth --
+  16.9036ns  x_frame_spill (sp/fp)
+   7.0639ns  control
+   3.1172ns  x_scalar_state_or_elem
+   1.4995ns  other_alu
+   0.0183ns  call
+  28.6025ns  TOTAL (bucket price)
+
+=== VIEW 4: static bl-site caller census for the hot callees ===
+-- bl-sites for *alloc_extend17h88670e1bf10cf0ff*:
+     10 cascade_build_char_class#17h02d6c17f35ff24d2
+      9 cascade_regex#17h41707c63ba1d4230
+      6 cascade_build_piece#17hfb0ec3ee9166da15
+      3 cascade_build_value_code_content#17hb0799f1ea0616b6f
+      2 cascade_build_value_conditional_branch#17h72bc4d6c28e2ba08
+      2 cascade_build_modifier_seq#17hea197e738a4d7d29
+      2 cascade_build_value_modifier_group#17he6c2bf7bddadc881
+      1 pgen::ParseContent15to_shaped_value#17h5271c1e592526ba2
+      1 pgen::pgen_value9PgenValue10from_serde#17hb88bc7469940d38b
+      1 cascade_build_value_zero_width#17h36529deafca42e56
+      1 cascade_build_quoted_literal#17h15f2702aaa6a59d2
+      1 cascade_build_value_code_block#17h9528650f66e4429d
+-- bl-sites for *alloc_extend17h0f20dcea3f658c24*:
+      9 cascade_build_piece#17hfb0ec3ee9166da15
+      7 parse_piece::{closure}::{closure}#17h1386811b01e94d70
+      7 parse_atom::{closure}::{closure}#17h0cad787af416faef
+      6 parse_named_backreference::{closure}::{closure}#17hdd4e8b99749f35d7
+      5 parse_condition_assertion::{closure}::{closure}#17hf6d91599461f6a1d
+      4 cascade_regex#17h41707c63ba1d4230
+      4 parse_backreference::{closure}::{closure}#17hdea940bbced9aa60
+      2 cascade_build_value_zero_width#17h36529deafca42e56
+      2 cascade_build_value_backreference#17h1cc3082a395ae6d5
+      2 cascade_build_conditional#17hfc04d14c24984ad2
+      2 cascade_build_directive_verb#17hedd7b6a2d5b8c512
+      2 cascade_build_value_group#17h135854476619a347
+-- bl-sites for *alloc_extend17h916724f9b9255e27*:
+      8 cascade_build_value_callout_arg#17h0747e6edd2dc8634
+      8 parse_piece::{closure}::{closure}::{closure}::{closure}#17hd657e138d069214c
+      8 parse_callout_string::{closure}::{closure}#17h7d9b12d35628864a
+      4 cascade_build_conditional#17hfc04d14c24984ad2
+      3 cascade_build_piece#17hfb0ec3ee9166da15
+      3 cascade_build_quantifier#17h67e55cba23cf5962
+      3 parse_piece::{closure}::{closure}::{closure}::{closure}::{closure}#17h2d21f97ec33b0440
+      3 parse_piece::{closure}::{closure}::{closure}::{closure}::{closure}#17h05377fe242bfcfc8
+      3 parse_piece::{closure}::{closure}::{closure}::{closure}::{closure}#17hc51cad5beb28e593
+      3 parse_piece_tail::{closure}::{closure}::{closure}::{closure}#17hc80e55ba569a6ea3
+      3 parse_piece_tail::{closure}::{closure}::{closure}::{closure}#17h483e63a7b5e7cfc5
+      3 parse_counted_quantifier_body::{closure}::{closure}#17h5cba4cee2fddc216
+-- bl-sites for *to_shaped_value*:
+     90 cascade_build_value_directive_limit_value_core#17h6e2f32a8431c0ff0
+     31 cascade_build_piece#17hfb0ec3ee9166da15
+     16 cascade_build_value_callout_arg#17h0747e6edd2dc8634
+     14 cascade_build_conditional#17hfc04d14c24984ad2
+     12 cascade_build_char_class#17h02d6c17f35ff24d2
+     12 parse_piece::{closure}::{closure}#17h1386811b01e94d70
+     12 parse_atom::{closure}::{closure}#17h0cad787af416faef
+     11 cascade_regex#17h41707c63ba1d4230
+     10 cascade_build_value_escape#17hd8975d250d4154f5
+     10 cascade_build_value_code_content#17hb0799f1ea0616b6f
+      9 parse_returned_capture_subroutine::{closure}::{closure}#17h871099934139d413
+      9 parse_char_class::{closure}::{closure}#17hc044b23b0a04bb20
+-- bl-sites for *cascade_build_piece*:
+      2 cascade_regex#17h41707c63ba1d4230
+      1 cascade_build_alternative#17h4945a7ec3063a270
+      1 cascade_build_value_conditional_branch#17h72bc4d6c28e2ba08
+-- bl-sites for *cascade_build_alternative*:
+      2 parse_pattern#17hf82705f652c8728a
+      1 cascade_regex#17h41707c63ba1d4230
+-- bl-sites for *cascade_build_quantifier*:
+      3 cascade_build_piece#17hfb0ec3ee9166da15
+-- bl-sites for *FactIndex6insert*:
+      1 __ZN16regex_perf_probe16parse_once_timed#17h297949940cc4fc4d
+      1 pgen::semantic_runtime20SemanticRuntimeState11apply_delta#17h90ae86030de96a1c
+      1 apply_semantic_runtime_library_import_directive#17hce655d08f2e375ac
+      1 pgen::semantic_runtime20SemanticRuntimeState15apply_directive#17hf9dffb915c78c369
+-- bl-sites for *SemanticRuntimeState3new*:
+      1 __ZN16regex_perf_probe16parse_once_timed#17h297949940cc4fc4d
+      1 parse_named_group#17h1a5d8a4e54bd58e1
+      1 parse_python_named_group#17h94294238c198d1f8
+      1 with_semantic_runtime_rule_transaction#17h7d47951675044689
+      1 with_semantic_runtime_rule_transaction#17hc749b5e555355f2b
+      1 with_semantic_runtime_rule_transaction#17h4ddff46a95b13227
+      1 with_semantic_runtime_rule_transaction#17h5c56f0dd6f3286ac
+      1 with_semantic_runtime_rule_transaction#17ha655e0eae04a55ae
+      1 with_semantic_runtime_rule_transaction#17hb55c24909cf77297
+      1 with_semantic_runtime_rule_transaction#17h692f7facd6d7192b
+      1 with_semantic_runtime_rule_transaction#17hd4ea1c32dcf6d114
+      1 parse_alpha_lookaround#17h582ee8405873edeb
+-- bl-sites for *with_semantic_runtime_rule_transaction*:
+      4 memoized_call#17h5971cf7b8e635467
+      4 parse_directive_relaxed_named::{closure}#17h8e62fcbf5d10e88a
+      4 parse_char_class::{closure}::{closure}#17hc044b23b0a04bb20
+      2 parse_keep_out#17h84b51fd9bd0db541
+      2 parse_named_backreference#17hf7e4ed34b440643c
+      2 parse_directive_relaxed_named#17h11c8465b2ccdfd4d
+      2 memoized_call#17h53e8593e16834479
+      2 parse_capture_open#17h197d36a0bbed34ef
+      2 parse_python_named_backreference#17he934f1679a07a817
+      2 memoized_call#17h66b58b6b8eba81b4
+      2 memoized_call#17h2148897e99eced2e
+      2 memoized_call#17h9286600e49e4ea8d
+-- bl-sites for *extract_delta_since_slow*:
+     24 parse_atom::{closure}::{closure}#17h0cad787af416faef
+     19 parse_directive_limit_value_core::{closure}::{closure}#17h3bbfb665b1959cec
+     15 cascade_match_atom::{closure}#17hd69dd0d3f64581df
+     14 parse_posix_name::{closure}::{closure}#17h6581c5e0544d86f0
+     10 cascade_match_char_class#17h8b7c63d4b261bad8
+     10 parse_condition::{closure}::{closure}#17h5424f082edf33285
+      9 cascade_match_piece#17h6aaef5c8c2bb0faf
+      9 parse_piece::{closure}::{closure}::{closure}::{closure}#17hd657e138d069214c
+      9 parse_quant_bound_core::{closure}::{closure}#17hc683f822e757e236
+      9 parse_prop_name::{closure}::{closure}::{closure}#17hf3fe3c4cc6dbe8d6
+      9 parse_directive_limit_value_core::{closure}::{closure}::{closure}#17h8fb76de1e80ed0a2
+      9 parse_directive_limit_value_core::{closure}::{closure}::{closure}#17he9cf2ad75a273b3e
+-- bl-sites for *decode_event*:
+     16 cascade_build_value_callout_arg#17h0747e6edd2dc8634
+     10 cascade_build_value_directive_limit_value_core#17h6e2f32a8431c0ff0
+     10 cascade_build_char_class#17h02d6c17f35ff24d2
+      8 cascade_regex#17h41707c63ba1d4230
+      8 cascade_build_piece#17hfb0ec3ee9166da15
+      8 cascade_build_quantifier#17h67e55cba23cf5962
+      6 cascade_build_conditional#17hfc04d14c24984ad2
+      6 cascade_build_quant_bound_core#17h717a2e97f04c3931
+      5 cascade_build_octal_escape#17h47f17a8c9741df92
+      4 cascade_build_value_directive_payload_required#17hbfc545c0f4359490
+      4 cascade_build_value_code_block#17h9528650f66e4429d
+      4 cascade_build_hex_escape#17hc118830075ac6d6e
+-- bl-sites for *finish_grow*:
+      2 apply_semantic_runtime_library_import_directive#17hce655d08f2e375ac
+      1 __RNvMs_NtNtCs1OjIl8oxbrv_5alloc3ffi5c_strNtB4_7CString19__from_vec_unchecked
+      1 __RNvMs4_NtCs1OjIl8oxbrv_5alloc7raw_vecNtB5_11RawVecInner14grow_amortizedCscUtGwbhD4WH_5gimli
+      1 alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17hece8c38d1085c165
+      1 alloc::raw_vec20RawVecInner$LT$A$GT$7reserve21do_reserve_and_handle#17h5babf5d089b20895
+      1 alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17hec63395541b3a45a
+      1 __RINvNvMs2_NtCs1OjIl8oxbrv_5alloc7raw_vecINtB8_11RawVecInnerpE7reserve21do_reserve_and_handleNtNtBa_5all
+      1 __RNvMs3_NtCs1OjIl8oxbrv_5alloc7raw_vecINtB5_6RawVechE8grow_oneB7_
+      1 alloc::raw_vec20RawVecInner$LT$A$GT$7reserve21do_reserve_and_handle#17h23d02702c4dd1b64
+      1 alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h0ee59b45b6da5b13
+      1 alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h84ff3e56869fffcc
+      1 alloc::raw_vec19RawVec$LT$T$C$A$GT$8grow_one#17h1ea4d81f4bfacb92
+-- bl-sites for *grow_one*:
+     65 cascade_match_directive_limit_value_core#17h0cb82d690f80a300
+     57 parse_atom::{closure}::{closure}#17h0cad787af416faef
+     40 parse_callout_string::{closure}::{closure}#17h7d9b12d35628864a
+     27 cascade_match_atom::{closure}#17hd69dd0d3f64581df
+     25 cascade_match_callout_arg#17ha89b2fa9f3e787fb
+     23 parse_class_simple_escape_strict::{closure}::{closure}#17h4f40e93362d8e3c0
+     23 cascade_match_invalid_class_range#17hd015614059a304bb
+     21 cascade_match_literal::{closure}#17h560e542f813f3aac
+     21 parse_piece::{closure}::{closure}#17h1386811b01e94d70
+     20 cascade_match_quant_bound_core#17h8406816c29717253
+     19 cascade_regex#17h41707c63ba1d4230
+     19 parse_entry_alternation::{closure}::{closure}::{closure}::{closure}::{closure}#17hc8544e778fb0d233
+
+noise floor: 22.871 ns — a solo mechanism must clear this with margin; the adjudication (step_result.md + the tree leaf) names the mechanisms from the annotated windows above.
