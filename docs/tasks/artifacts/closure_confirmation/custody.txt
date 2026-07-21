@@ -1,0 +1,3 @@
+sweep_started_at=2026-07-21T16:27:00+02:00
+guard_exit=0
+sweep_completed_at=2026-07-21T16:27:05+02:00

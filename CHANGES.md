@@ -1,5 +1,13 @@
 # CHANGES.md
 
+## 2026-07-21 - PGEN-RGX-0078-0217 — the #162 closing wave, part 1 (measurement-only): ⭐ the closure CONFIRMATION SWEEP is GREEN — raw sub-1 µs confirmed on a fresh independent sweep (991.67 ns; flips 0/2,189; MAX PASS)
+
+Session #187, continuing the call-off per the `-0216` NO-GO. The preserved closure probe `preserved_probes/regex_perf_probe_carrier48_8d392176` was run DIRECTLY over the full 2,189-cell canonical PCRE2 corpus (warmup 50 / 1000 samples per cell) under the memory guard with banked load snapshots (clean both sides). Before any fresh number was read, the analyzer's self-check reproduced the banked `-0212` floor-sweep geomean `1003.3049233222944` EXACTLY — proving the metric convention.
+
+The reading: **unrounded corpus geomean 991.6693567682667 ns — RAW SUB-1 µs CONFIRMED on an independent sweep** (−1.27% vs the 1,004.4 ns floor of record, inside the observed cross-session drift family); corpus MAX 355,750 ns (`line_725`) ≤ the settled 425,000 guardrail; **verdict identity vs the banked floor sweep: flips 0/2,189**; the 321 expected-vs-actual divergences are byte-identical to the banked sweep — the standing tracked PCRE2-divergence population (the oracle-tuple class), not a regression. The #162/#176 confirmation requirement is MET on the raw form; the margined ≤950.0 form is recorded NOT MET (out of designed reach per the completed exhaustion record).
+
+Evidence: `docs/tasks/artifacts/closure_confirmation/` (self-checking analyzer, sweep JSONL/stdout, probe SHA, custody, load snapshots, step_result). NEXT = `-0218`, the wave's part 2: the regex book + handoff + integration-contract re-baseline; then the campaign is closed.
+
 ## 2026-07-21 - PGEN-RGX-0078-0216 — the `.5.j.1` last-attempt GO/NO-GO paper gate (read-only): NO-GO — the last road is priced and cannot pay the bar; exhaustion complete INCLUDING the last road; per the director's ruling the call-off proceeds
 
 Session #187 executed the director's `-0216` ruling block exactly as pre-registered, without touching any code: (a) the `-0123` census/design record, the `-0126` corrected partition (the 33 node_locked protocol-facing rules), and the `-0171` caller-attribution facts re-read; (b) the eliminate-vs-keep mechanism table assembled from the banked `-0215` cluster decomposition + the `-0213` role re-price, with the gate criterion fixed BEFORE the table was filled: PASS ⇔ honest eliminable ≥ 54.4 ns (the 1,004.4 → ≤950.0 margined-bar gap) ÷ 0.70 (the delivered-fraction ceiling the ruling made the adjudicator; observed deliveries 42–49%) ≈ **77.7 ns**.

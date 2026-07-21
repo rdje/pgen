@@ -1,0 +1,10 @@
+cells                 = 2189
+geomean_ns (unrounded)= 991.6693567682667
+corpus MAX (min_ns)   = 355750  [pcre2:testdata/testinput2:line_725]
+MAX guardrail 425000  = PASS
+parse ok/err          = 1834/355
+expected-vs-actual flips = 321
+vs floor-of-record 1,004.4        : -1.2675%
+vs banked selfcheck 1003.3049...  : -1.1597%
+raw sub-1us this sweep            : YES
+margined bar (<=950.0)            : NOT MET (recorded: out of designed reach)

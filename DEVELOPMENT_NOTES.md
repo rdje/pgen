@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-21 - PGEN-RGX-0078-0217 — prove the analyzer before the number; adjudicate surprises against the banked twin; a preserved probe is the confirmation instrument
+
+**Prove the metric before reading the metric.** The confirmation analyzer ran a self-check first: it had to reproduce the banked floor sweep's geomean to the last bit (`1003.3049233222944`) from the banked JSONL before it was allowed to emit a fresh number. That one REFUSE gate converts "the new reading agrees" from an assumption into a proof that both readings are the same computation — the difference between confirming a floor and confirming a script.
+
+**A surprising count is adjudicated against the banked twin, not explained away.** The sweep reported 321 expected-vs-actual divergences — alarming next to the campaign's "flips 0/2,189" language. One comparison settled it: the banked floor sweep contains the IDENTICAL 321 (the standing tracked PCRE2-divergence population), and per-cell verdict identity between the sweeps is exactly 0/2,189. The lesson generalizes: "flips" (candidate-vs-base identity) and "divergences" (actual-vs-oracle) are different metrics that must never be conflated in either direction — and the banked twin is what lets a five-minute check distinguish them.
+
+**Preserved probes make closure claims cheap to re-prove.** The whole confirmation cost one guarded 5-second sweep plus offline analysis, because the closure probe was preserved as a binary with a banked SHA at land time. A campaign that preserves its floor binaries can re-assert its headline claim in any later session at near-zero cost — which is precisely what a "confirmation sweep" requirement is for.
+
 ## 2026-07-21 - PGEN-RGX-0078-0216 — a delivery gate is an arithmetic question when the record is complete; fix the criterion before the table; and "untried" ends at "priced"
 
 **A GO/NO-GO on a licensed road can be pure paper when the banked record is rich enough.** The `.5.j.1` value-ization road was adjudicated NO-GO without one build, sweep, or code edit: every mass it could claim was already priced by earlier slices (`-0215` clusters, `-0213` roles, `-0171` attribution, `-0123` census), so the only new work was routing each cluster into an eliminate-vs-keep column with a named keep-reason. The general lesson: when a campaign has decomposed its floor to cluster level with custody-gated re-sums, ANY new mechanism proposal — including a director-licensed last attempt — reduces to a table lookup plus honest fractions. That is what "ensure it will deliver before implementing" can mean concretely.
