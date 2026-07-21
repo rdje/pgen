@@ -131,6 +131,22 @@ context (DEVELOPMENT_NOTES `PGEN-RGX-0089-0001`; `.1(b)` mechanizes the cone).
 | `.4` mutation-differential | Yes, near-certainly | **Yes** | The one new instrument |
 | Current cert / duality / spf | No — structurally | No | — |
 
+## Cross-family generalization (captured 2026-07-22, session #189 — director question "at which point do you plan to exercise all the parsers with official and aggressive external test corpus?")
+
+The charter above is REGEX-scoped (pcre2test oracle, pcre2pattern spec, the PCRE2
+external corpus). The director's 2026-07-22 question makes the CROSS-FAMILY form
+explicit, and it is CAPTURED HERE as this tree's generalization clause: on the
+director's GO, each lane generalizes per family with that family's official
+oracle/suite — SystemVerilog: an official/aggressive external suite beyond the
+standing 14-design real-world corpus (candidate: the CHIPS-Alliance `sv-tests`
+suite; the LRM stays the spec authority); VHDL: an official suite beyond the
+realistic corpus (candidates: VESTs / the GHDL test suite); JSON: the
+spec-derived gate owned by the parked `JSON-RFC8259.4` (+ the JSONTestSuite
+class of aggressive corpora as the external complement). External suite
+ACQUISITION (downloads/licenses) is a real-world side effect and stays
+director-owned — each family's suite is provisioned on explicit director
+approval. No cross-family leaf is opened while this tree is parked.
+
 ## Non-Goals (while parked)
 
 - NO implementation, NO gate changes, NO corpus changes until the director's GO.
