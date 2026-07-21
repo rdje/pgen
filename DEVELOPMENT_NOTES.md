@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-21 - PGEN-RGX-0078-0218 — close a campaign the way it ran; a closure claim is a config, numbers, and guardrails; the books end the story where the tree ends it
+
+**A campaign closes the way it ran, or its record rots.** The closing wave was executed with the same discipline as any lever: a tree leaf owning each slice, every public number traced to a banked artifact (no recollections), the contract entry using the recorded PERFORMANCE-ONLY/SURFACE-NEUTRAL precedent so versions stay honest, and the mdBook gates run on exactly the changed books. The alternative — a quick "we're done" note — would have left four public surfaces telling three different stories within a week.
+
+**A closure claim is three things: a configuration, numbers, and guardrails.** "1,004.4 ns ≈494×, confirmed 991.7 raw sub-1 µs" is meaningless to a downstream consumer without (a) the measurement configuration that produces it (release fat-LTO + a mimalloc-class allocator, noise-floor-minimum statistic), (b) the distinction between the raw claim (met, independently reproduced) and the margined claim (recorded out of designed reach — stated, not hidden), and (c) what keeps the claim true tomorrow (the MAX guardrail + the geomean ratchet binding future changes). The contract entry carries all three; a speed number without its custody is marketing, not a contract.
+
+**End the narrative where the adjudication ended.** The speed-journey chapter's job changed with the closure: from "running scoreboard with an open ending" to "permanent record with a true ending". The closure section tells the end exactly as the tree adjudicated it — refusals, the exhaustion table, the paper-gate NO-GO, the confirmation — because the campaign's most re-usable asset is not the 494×; it is the demonstrated method for proving, honestly and cheaply, that a performance floor is real.
+
 ## 2026-07-21 - PGEN-RGX-0078-0217 — prove the analyzer before the number; adjudicate surprises against the banked twin; a preserved probe is the confirmation instrument
 
 **Prove the metric before reading the metric.** The confirmation analyzer ran a self-check first: it had to reproduce the banked floor sweep's geomean to the last bit (`1003.3049233222944`) from the banked JSONL before it was allowed to emit a fresh number. That one REFUSE gate converts "the new reading agrees" from an assumption into a proof that both readings are the same computation — the difference between confirming a floor and confirming a script.

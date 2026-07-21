@@ -34,6 +34,15 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-21 — RGX-0078 SPEED CAMPAIGN CLOSED at the honest floor (PERFORMANCE-ONLY; SURFACE-NEUTRAL; release/contract/schema versions UNCHANGED)
+
+**What downstream consumers must do: nothing.** The tracked speed campaign (`RGX-0078`) is closed; this entry re-baselines the contract's performance statement.
+
+- **Final performance statement (2026-07-21):** on the full 2,189-cell external PCRE2 corpus, the parse-time geomean floor of record is **1,004.4 ns** (≈494× from the ≈496 µs campaign start), **confirmed raw sub-1 µs (991.7 ns)** by an independent closing sweep of the preserved floor probe (`preserved_probes/regex_perf_probe_carrier48_8d392176`); the corpus **maximum** observed parse is ≈356 µs; the 8-pattern bench geomean is ≈1.58 µs (≈314×). Measurement configuration = release fat-LTO with a mimalloc-class allocator (the `mimalloc_perf` feature is the standard closure-bench configuration; the library never imposes a global allocator on consumers).
+- **The margined closure bar** (`(corpus geomean + 50 ns) ≤ 1 µs`) is recorded as **out of designed reach**: the campaign ends on a complete exhaustion record (every remaining ≥noise mechanism on the floor measured and closed/refused/priced; the final candidate road priced NO-GO on a pre-registered paper gate without a code change), not on an unexplored frontier.
+- **Standing guarantees going forward:** the corpus-MAX **≤425,000 ns non-regression guardrail** and the strict same-session corpus-geomean ratchet apply to any future change that could affect parse time; the correctness battery (differential-equivalence, certificate-coverage, PCRE2-compile-oracle, shape/duality gates) remains the hard gate — the campaign closed with **zero verdict flips across every accepted fix** (2,189/2,189 corpus verdict identity throughout).
+- Versions: release `1.1.105` / contract `1.1.108` / schema `1` all UNCHANGED (the schema-versioning "pure performance optimizations" carve-out applies; no API or wire change).
+
 ## Maintenance Update 2026-07-21 — RESULT-CARRIER SLIMMING (`PGEN-RGX-0078-0212`): Rust-level `ParseNode` field types slimmed 72→48 B (Rust-embedding SURFACE-CHANGING; WIRE-FORMAT UNCHANGED byte-for-byte; Contract `1.1.108`; schema stays `1`) + an honest input-length bound
 
 - The shared committed-result carrier was slimmed for the speed campaign

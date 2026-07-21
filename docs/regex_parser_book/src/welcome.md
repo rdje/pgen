@@ -25,18 +25,25 @@ byte-identical against the `pcre2test` oracle. Downstream consumers need not cha
 here because some integrators care that the regex parser carries no Rust-regex-engine dependency. (Every
 *other* PGEN parser remains free to use Rust's regex engine; only the regex parser is held to this bar.)
 
-## Parse-time performance (live note, updated 2026-07-20)
+## Parse-time performance (live note, updated 2026-07-21 — the speed campaign is CLOSED)
 
-The regex parser is under an active, tracked **speed campaign** (`RGX-0078`): as of 2026-07-20 the
-measured parse cost is a geomean of **≈1.58µs per pattern** on the 8-pattern RGX bench corpus
-(release build, fat-LTO, mimalloc-class allocator, noise-floor-minimum statistic) — down **≈314×**
-from ≈496µs at the campaign's activation. On the external PCRE2 corpus the **maximum** observed
-parse is ≈373µs (guarded by a 425µs non-regression bound) and the corpus geomean ≈1.00µs. Every speed lever lands under a
-hard **byte-identical constraint**: the accepted language, verdicts, error codes, and the runtime
-AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
-certificate-coverage, and PCRE2-compile-oracle gates), so **performance work never moves the
-AST-dump schema** — exactly the "pure performance optimizations" carve-out in the
-schema-versioning chapter.
+The regex parser's tracked **speed campaign** (`RGX-0078`) is **CLOSED** (2026-07-21) at its
+honest floor. Final numbers: on the full 2,189-cell external PCRE2 corpus the parse-time geomean's
+floor of record is **1,004.4 ns** — **confirmed raw sub-1 µs (991.7 ns) by an independent closing
+sweep** of the preserved floor probe — down **≈494×** from ≈496 µs at the campaign's activation;
+the **maximum** observed corpus parse is ≈356 µs (guarded by a standing 425 µs non-regression
+bound); the 8-pattern RGX bench geomean is **≈1.58 µs per pattern** (release build, fat-LTO,
+mimalloc-class allocator, noise-floor-minimum statistic; ≈314×). The margined drift-proof form of
+the closure bar (`(geomean + 50 ns) ≤ 1 µs`) is recorded as **out of designed reach** after a
+complete exhaustion audit: every remaining mechanism on the floor was measured, priced, and closed
+(the last candidate road was priced NO-GO on paper without touching the code). Every speed lever
+landed under a hard **byte-identical constraint**: the accepted language, verdicts, error codes,
+and the runtime AST are bit-for-bit unchanged (proven per lever by the differential-equivalence,
+certificate-coverage, and PCRE2-compile-oracle gates — zero verdict flips across the whole
+campaign), so **performance work never moves the AST-dump schema** — exactly the "pure performance
+optimizations" carve-out in the schema-versioning chapter. Post-closure, parse time stays
+**monitored**: the corpus-MAX guardrail and the strict corpus-geomean ratchet apply to any future
+change that could touch performance.
 
 Integration guidance for consumers:
 

@@ -1,4 +1,4 @@
-# The Speed Journey: 496 µs → ≈1.58 µs
+# The Speed Journey: 496 µs → sub-1 µs
 
 > **Part II · Inside PGEN.** This chapter is the companion to
 > [Inside the Parser: Termination & Performance](inside-parser-performance.md). That
@@ -8,15 +8,18 @@
 > have names. Every number here is pinned to its primary record in the task tree
 > (`docs/tasks/RGX-0078.md`) and `CHANGES.md`; nothing below is a recollection.
 
-Between sessions #90 and #166 — nine calendar days — PGEN's regex parser went from a
-**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈1.94 µs** with a
-mimalloc-class global allocator: about **256× faster**, with every single landing proven
-**byte-identical** on its full oracle battery before its speed number was believed.
-On the external PCRE2 corpus the same work put the **maximum** observed parse at ≈484 µs
-and the corpus geomean at ≈1.26 µs.
-Thirty-odd levers landed. More than a dozen others were refuted, rejected, or reverted —
-most of them for the price of a document rather than a build. This chapter is the story of
-both lists, because the refusals are as much the method as the landings.
+Between sessions #90 and #187 — eleven calendar days — PGEN's regex parser went from a
+**496 µs** geometric-mean parse over its eight-pattern benchmark to **≈1.58 µs** with a
+mimalloc-class global allocator (about **314×**), and on the external PCRE2 corpus from
+the same start to a **sub-microsecond corpus geomean**: floor of record **1,004.4 ns**
+(≈494×), confirmed by an independent closing sweep at **991.7 ns**, with the **maximum**
+observed parse at ≈356 µs. Every single landing was proven **byte-identical** on its full
+oracle battery before its speed number was believed.
+Forty-odd levers landed. More than twenty others were refuted, rejected, or reverted —
+many for the price of a document rather than a build. This chapter is the story of both
+lists, because the refusals are as much the method as the landings — and of how the
+campaign ended: not at its margined bar, but at a complete, measured proof that the
+bar's last margin was out of designed reach.
 
 ## Why the journey happened
 
@@ -581,12 +584,62 @@ base sweep against the floor-of-record, and only then adjudicated: **−2.36%** 
 geomean, zero verdict flips, every timing band faster, the third consecutive fix inside
 its predicted band.
 
-The scoreboard now reads **496 µs → ≈1.58 µs, about 314×** on the bench geomean, with the
-corpus maximum observed at ≈373 µs (its non-regression guardrail settled at 425 µs with
-the drift-margin logic) and the corpus geomean at ≈1.00 µs — the campaign's first
-sub-microsecond raw readings. The call-off condition carries the drift lesson
-explicitly: the corpus geomean must clear 1 µs **with a 50 ns margin** — `(geomean +
-50 ns) ≤ 1 µs`, about two observed drift spans — plus a confirmation sweep in a later
-session, so the closure claim reproduces on any day rather than on a favorable one;
-from the current floor that bar is about −5.4% away. The method decides — and the
-story continues here.
+The scoreboard after the ninth fix read **496 µs → ≈1.58 µs, about 314×** on the bench
+geomean, with the corpus maximum observed at ≈373 µs (its non-regression guardrail
+settled at 425 µs with the drift-margin logic) and the corpus geomean at ≈1.00 µs — the
+campaign's first sub-microsecond raw readings. The call-off condition carried the drift
+lesson explicitly: the corpus geomean had to clear 1 µs **with a 50 ns margin** —
+`(geomean + 50 ns) ≤ 1 µs`, about two observed drift spans — plus a confirmation sweep
+in a later session, so the closure claim would reproduce on any day rather than on a
+favorable one. From that floor the margined bar was about −5.4% away. The method
+decided — and this is how.
+
+## How it ended
+
+The endgame was three refusals and a decomposition. The strict ratchet had already
+refused pooling twice — an eager-clear recycler at +13.7% (hashbrown's `clear()` is
+O(capacity), so a recycled container taxes every small parse with its high-water
+history) and its stamp-validated redesign at +0.67%, where the fixed lease-and-reset
+ceremony outweighed the construction it saved — and it now refused the last
+construction-elision idea too: an adaptive pre-size that stopped a 160 KB
+alloc-and-free on *every parse* measured **+0.13%**, because the allocation was
+already effectively free in mimalloc's same-size segment cache. Three faces of one
+law the campaign now carries by name: **an allocation-size/count census is not a
+price under mimalloc** — only removing real content work moves the geomean.
+
+What remained was to prove a negative honestly. A read-only decomposition of the four
+last above-noise populations — computed from the SHA-banked capture, every view
+refuse-gated to re-sum exactly to its banked price — gave every mass ≥14 ns on the
+floor a verdict backed by a named record: closed measured-refuted, refuted by law,
+un-ownable, required content, or sub-noise. The entire surviving sub-noise inventory,
+≈38–40 ns even at an impossible 100% delivery, could not close the ≈54 ns gap to the
+margined bar. Exhaustion stopped being a mood and became a table.
+
+One licensed road was still formally untried — value-izing the protocol zone, the
+campaign's oldest deferred idea — and the director licensed it as the last attempt
+with a hard gate: *ensure it will deliver before touching the code*. The gate was a
+paper one, its criterion fixed before the table was filled: the road's honest
+eliminable mass had to reach the bar gap divided by the best delivery fraction ever
+observed (54.4 ÷ 0.70 ≈ 78 ns). The eliminate-vs-keep table, drawn entirely from
+banked measurements, priced the road at ≈52 ns — short of the gap even at an
+impossible 100% delivery, and short of the gate under every single generous granting.
+NO-GO, with zero code written: the road went from "untried" to "priced, and the price
+cannot pay."
+
+The call-off then followed the ruling's own arm. A fresh confirmation sweep of the
+preserved closure probe — its analyzer first proving itself by reproducing the banked
+floor geomean to the last bit — read **991.7 ns**: raw sub-microsecond, independently
+reproduced, with verdicts identical to the floor sweep on all 2,189 corpus cells and
+the corpus maximum at 356 µs, well under its 425 µs guardrail.
+
+The final scoreboard: **496 µs → a 1,004.4 ns floor-of-record corpus geomean (≈494×),
+confirmed raw sub-1 µs at 991.7 ns; bench ≈1.58 µs (≈314×); corpus MAX ≈356 µs guarded
+at 425 µs** — and byte-for-byte correctness held through every landing and every
+refusal: zero verdict flips, ever. The margined form of the bar is recorded as out of
+designed reach, and that recording is itself the campaign's product — a complete
+exhaustion record in which every remaining nanosecond on the floor carries a measured
+verdict and a name. What stands after closure: the corpus-MAX ≤425 µs non-regression
+guardrail, the strict same-session geomean ratchet for any future perf-touching
+change, and the preserved floor probe that lets any later session re-prove the
+sub-microsecond claim with one five-second sweep. The method was the protagonist of
+this story; the method is also what knew when to stop.

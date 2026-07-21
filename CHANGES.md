@@ -1,5 +1,17 @@
 # CHANGES.md
 
+## 2026-07-21 - PGEN-RGX-0078-0218 — the #162 closing wave, part 2 (docs-only): ⭐ THE RGX-0078 SPEED CAMPAIGN IS CLOSED — the public surfaces re-baselined to the final honest floor
+
+Session #187 completed the #162 closing wave. The public record now states the campaign's end everywhere it states its numbers:
+
+- **`docs/book/src/speed-journey.md`** — re-titled **"The Speed Journey: 496 µs → sub-1 µs"** (SUMMARY.md in lockstep), the stale mid-era intro corrected to the final numbers, and a closure section added ("How it ended"): the three allocation-law refusals, the exhaustion decomposition that turned "nothing is left" into a verdict-per-mass table, the director-licensed last road priced NO-GO on a pre-registered paper gate with zero code written, and the 991.7 ns confirmation sweep. The chapter now ends as the campaign's permanent narrative record.
+- **`docs/book/src/inside-parser-performance.md`** — the scoreboard gains its terminal **CAMPAIGN CLOSE** row (final floor 1,004.4 ns ≈494× / confirmation 991.7 raw sub-1 µs / flips 0/2,189; the standing guardrails named); the stale cross-link title fixed.
+- **`docs/regex_parser_book/src/welcome.md`** — the live perf note re-baselined to the campaign-closed form (final numbers, the out-of-designed-reach recording of the margined bar, and the post-closure monitoring statement).
+- **`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`** — a PERFORMANCE-ONLY, SURFACE-NEUTRAL maintenance entry: the final performance statement (corpus geomean floor **1,004.4 ns** ≈494×, confirmed **991.7 ns** raw sub-1 µs; MAX ≈356 µs under the standing 425,000 ns guardrail; bench ≈1.58 µs ≈314×; `mimalloc_perf` = the closure-bench configuration), the margined bar recorded out of designed reach on the completed exhaustion record, the standing guarantees (MAX guardrail + strict geomean ratchet + the byte-identical battery; zero verdict flips across the whole campaign), and "what downstream consumers must do: nothing". Versions UNCHANGED (release `1.1.105` / contract `1.1.108` / schema `1`).
+- **`LIVE_ACHIEVEMENT_STATUS.md`** — the session-#187 closure tracker note (the `-0216` NO-GO + `-0217` confirmation + `-0218` re-baseline in one record); status rows unchanged (regex stays `Done`/fully-certified).
+
+Post-closure standing state: parse time remains monitored per the universalized "milk on fire" north star — the corpus-MAX ≤425,000 ns non-regression guardrail and the strict same-session corpus-geomean ratchet bind any future perf-touching change; the preserved floor probe is the one-command re-proof instrument; the RGX apparatus stands as the per-family speed-campaign template. mdBook gates run on the changed books.
+
 ## 2026-07-21 - PGEN-RGX-0078-0217 — the #162 closing wave, part 1 (measurement-only): ⭐ the closure CONFIRMATION SWEEP is GREEN — raw sub-1 µs confirmed on a fresh independent sweep (991.67 ns; flips 0/2,189; MAX PASS)
 
 Session #187, continuing the call-off per the `-0216` NO-GO. The preserved closure probe `preserved_probes/regex_perf_probe_carrier48_8d392176` was run DIRECTLY over the full 2,189-cell canonical PCRE2 corpus (warmup 50 / 1000 samples per cell) under the memory guard with banked load snapshots (clean both sides). Before any fresh number was read, the analyzer's self-check reproduced the banked `-0212` floor-sweep geomean `1003.3049233222944` EXACTLY — proving the metric convention.
