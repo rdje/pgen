@@ -147,6 +147,14 @@ ACQUISITION (downloads/licenses) is a real-world side effect and stays
 director-owned — each family's suite is provisioned on explicit director
 approval. No cross-family leaf is opened while this tree is parked.
 
+> ⭐ **SV clause SUPERSEDED-BY-GO (2026-07-22, session #190):** the director's
+> bar-amending directive ("No Done with the SV parser graduating from those
+> external official and recognized SV corpus") activates the SV lane — owned by
+> tree **`SV-CORPUS-GRAD`** ([[project_sv_done_requires_external_corpus_graduation]]),
+> building on the ALREADY-vendored `stimuli/sv/subs/` suites
+> (`EXTERNAL-CORPUS.3.1`, 2026-06-17). The VHDL / JSON / cross-family clauses
+> above remain parked here awaiting their own GO.
+
 ## Non-Goals (while parked)
 
 - NO implementation, NO gate changes, NO corpus changes until the director's GO.

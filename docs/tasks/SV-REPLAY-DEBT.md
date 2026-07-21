@@ -29,10 +29,19 @@
 
 `sv_parser_family_status_gate` reports `focused_replay_target_debt_zero: true`
 (`focused_replay_target_count = 0`, read from the canonical closed-loop replay's
-`profile_2017_replay_gap.json` target list) — flipping the SV family status
-`Mostly Done → Done` — **or** an honest, tool-proven classification of a named
-irreducible remainder (rigorously proven out of the coverable universe, never
-gamed, per [[feedback_corpus_expected_from_spec_not_fix]]).
+`profile_2017_replay_gap.json` target list) — **or** an honest, tool-proven
+classification of a named irreducible remainder (rigorously proven out of the
+coverable universe, never gamed, per
+[[feedback_corpus_expected_from_spec_not_fix]]).
+
+⭐ BAR AMENDED same-day (director 2026-07-22,
+[[project_sv_done_requires_external_corpus_graduation]]): this tree is **axis 1
+of TWO** — the SV family row flips `Done` only when BOTH this criterion AND the
+external-corpus graduation (sibling tree `SV-CORPUS-GRAD`) are green. Note the
+convergence: this tree's dominant residual cluster (`prop_primary_*` /
+assertion / sequence rules) and the corpus campaign's known
+`GRAMMAR-WELLFORMED.H.12.5.8` infix property/sequence parse bug live in the
+SAME grammar region.
 
 ## The mechanical criterion chain (pinned 2026-07-22)
 
