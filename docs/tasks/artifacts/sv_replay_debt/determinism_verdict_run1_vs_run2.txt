@@ -1,0 +1,13 @@
+# SV-REPLAY-DEBT.1 determinism verdict — 2026-07-22 (PGEN-SV-REPLAY-DEBT-0002)
+# run1: rust/target/sv_stimuli_quality_gate (session #189 .3 battery, 2026-07-22 00:06)
+# run2: rust/target/sv_stimuli_quality_gate_rebaseline (guarded canonical re-run, this session; budget 16384 MB)
+# Both runs: make -C rust sv_stimuli_quality_gate, contract config (max_attempts=5000, drive budget 5 ms), HEAD code vintage.
+
+profile_2017_initial_replay_gap.json: run1_targets=2659 run2_targets=2659 verdict=BYTE-IDENTICAL (sha256 run1=d4ec5e225af2 run2=d4ec5e225af2)
+profile_2017_replay_gap.json: run1_targets=59 run2_targets=59 verdict=BYTE-IDENTICAL (sha256 run1=77b9de8419ae run2=77b9de8419ae)
+profile_2023_initial_replay_gap.json: run1_targets=2735 run2_targets=2735 verdict=BYTE-IDENTICAL (sha256 run1=3949d27068dc run2=3949d27068dc)
+profile_2023_replay_gap.json: run1_targets=61 run2_targets=61 verdict=BYTE-IDENTICAL (sha256 run1=66a920b2ed32 run2=66a920b2ed32)
+
+CONCLUSION: the GRAMMAR-WELLFORMED.B1 step-counter determinism HOLDS at today's vintage end-to-end.
+focused_replay_target_count (profile 2017, the family-status criterion) = 59 DETERMINISTIC.
+closed_loop_replay_targets_total (both profiles) = 120 DETERMINISTIC.

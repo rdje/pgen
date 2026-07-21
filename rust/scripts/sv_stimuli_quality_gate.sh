@@ -2583,7 +2583,12 @@ if [[ "$declared_shadow_enabled" -eq 1 && "$declared_shadow_strict" -eq 1 && "$d
     exit 1
 fi
 
-realistic_cases_json='[]'
+# The aggregate cases array is passed to the summary jq via --slurpfile (a FILE,
+# never argv): at 730 cases the serialized array is ~1.0 MB — within 5% of the
+# kernel ARG_MAX (1,048,576 on macOS), so an --argjson command-line argument
+# fails E2BIG on any growth (longer state-dir path, more cases).
+realistic_cases_aggregate_json="${realistic_cases_jsonl%.jsonl}.aggregate.json"
+printf '[]\n' >"$realistic_cases_aggregate_json"
 if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
     : >"$realistic_cases_jsonl"
     mapfile -t realistic_case_rows < <(jq -c '.cases[]?' "$realistic_corpus_path")
@@ -2758,7 +2763,7 @@ if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
 fi
 
 if [[ -s "$realistic_cases_jsonl" ]]; then
-    realistic_cases_json="$(jq -s '.' "$realistic_cases_jsonl")"
+    jq -s '.' "$realistic_cases_jsonl" >"$realistic_cases_aggregate_json"
 fi
 
 jq -n \
@@ -2790,7 +2795,7 @@ jq -n \
     --argjson max_sample_bytes "$realistic_max_sample_bytes" \
     --argjson max_preprocessed_bytes "$realistic_max_preprocessed_bytes" \
     --argjson require_no_preprocess_errors "$realistic_require_no_preprocess_errors" \
-    --argjson cases "$realistic_cases_json" \
+    --slurpfile cases_slurp "$realistic_cases_aggregate_json" \
     '{
         grammar_name: $grammar_name,
         requested_mode: $requested_mode,
@@ -2824,7 +2829,7 @@ jq -n \
             sample_bytes_max: $sample_bytes_max,
             preprocessed_bytes_max: $preprocessed_bytes_max
         },
-        cases: $cases
+        cases: $cases_slurp[0]
     }' >"$realistic_report_json"
 
 if [[ "$realistic_corpus_enabled" -eq 1 && "$realistic_cases_executed" -eq 0 ]]; then

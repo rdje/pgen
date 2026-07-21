@@ -1,0 +1,21 @@
+# SV-REPLAY-DEBT.1b — gate-script ARG_MAX fix: standalone verification (2026-07-22, PGEN-SV-REPLAY-DEBT-0002)
+
+## The production failure (run 2, guard marker: exit=2, elapsed 1845s)
+./scripts/sv_stimuli_quality_gate.sh: line 2764: /usr/bin/jq: Argument list too long
+make: *** [sv_stimuli_quality_gate] Error 126
+
+## Arithmetic (macOS ARG_MAX = 1,048,576)
+run1 cases JSON (default state dir):      1,002,686 B  -> passed with <46 KB headroom
+run2 cases JSON (custom state dir, +11ch): 1,034,802 B  -> argv+env > ARG_MAX -> E2BIG
+
+## REPRODUCE (standalone, run-2's exact jsonl, OLD --argjson shape)
+jq -n --argjson cases "$(jq -s . run2.jsonl)" ... -> exit 126: /usr/bin/jq: Argument list too long
+
+## ADDRESSED part A (fixed --slurpfile shape, SAME input)
+jq -n --slurpfile cases_slurp run2.aggregate.json '{cases: $cases_slurp[0]}' -> exit 0, 1,096,872 B emitted
+
+## Byte-identity oracle (run-1 data, where the old form still works)
+old --argjson output vs new --slurpfile output: BYTE-IDENTICAL (1,064,756 B)
+
+## End-to-end confirmation (in flight at commit time)
+full guarded gate re-run, fixed script, LONGER state dir rust/target/sv_stimuli_quality_gate_rebaseline_argmax_fix_verification -> expect exit 0 + gap artifacts byte-identical to the deterministic baseline
