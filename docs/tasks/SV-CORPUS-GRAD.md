@@ -7,8 +7,10 @@
   bar-amending directive — verbatim: "AS part of th SV Done campaign we should
   include the external official and recognized SV test corpus (verible, slang,
   ...). The SV parser shall cleanly pass all of them with flying colors. No Done
-  with the SV parser graduating from those external official and recognized SV
-  corpus." — [[project_sv_done_requires_external_corpus_graduation]])
+  WITHOUT the SV parser graduating from those external official and recognized SV
+  corpus." — wording clarified by the director same-day: "Before claiming SV is
+  Done it should have passed all the external and official test corpus";
+  [[project_sv_done_requires_external_corpus_graduation]])
 - Roadmap lane: the **Nexsim delivery directive**
   ([[project_nexsim_sv_signoff_delivery_focus]]) + the locked program. Sibling of
   `SV-REPLAY-DEBT` (axis 1: the family-status gate's last criterion); this tree

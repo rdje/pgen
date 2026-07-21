@@ -10,7 +10,12 @@ Director directive (2026-07-22, verbatim): **"AS part of th SV Done campaign we
 should include the external official and recognized SV test corpus (verible,
 slang, ...). The SV parser shall cleanly pass all of them with flying colors. No
 Done with the SV parser graduating from those external official and recognized
-SV corpus."**
+SV corpus."** — **CLARIFIED by the director same-day (verbatim): "I meant 'No
+Done WITHOUT the SV parser graduating from those external official and
+recognized SV corpus'. Without. I meant Before claiming SV is Done it should
+have passed all the external and official test corpus."** (The recorded
+semantics were already this reading — graduation is a hard PRECONDITION for
+`Done`.)
 
 Until now the SV `Done` bar was the machine-computed 7-criterion
 `sv_parser_family_status_gate` (last unmet: `focused_replay_target_debt_zero`,
