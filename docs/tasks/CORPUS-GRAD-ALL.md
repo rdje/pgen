@@ -49,18 +49,38 @@ exist. Never gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
 
 ### `.1` — EXHAUSTIVE per-family corpus discovery + pinning + `Done`-claim audit (research + read-only)
 
-- **Status: `todo`** (the director-mandated exhaustive search). For EACH family:
-  research-grounded discovery ([[feedback_research_grounded_sota_no_trial_and_revert]]:
-  primary sources, citations) of ALL applicable official/recognized suites —
-  standards-body suites, reference-implementation regression corpora,
-  community conformance aggregations — each candidate pinned (upstream repo/URL,
-  license, size, answer-key/metadata form) and adjudicated for applicability
-  against the family's contract (e.g. regex is PCRE2-faithful by contract —
-  other-engine suites apply only where dialect-compatible,
-  [[project_regex_pcre2_faithful_by_default]]). Output per family: the FROZEN
-  graduation roster + the honest audit of the current LIVE row against it
-  (graduated / campaign-needed / N/A-with-cause). Evidence in
-  `docs/tasks/artifacts/corpus_grad_all/`.
+- **Status: `done`** (`PGEN-CORPUS-GRAD-ALL-0002`, session #190, 2026-07-22;
+  read-only — research + banked evidence, zero code change).
+- **Executed as four parallel research-grounded web sweeps** (primary sources,
+  ~166 searches/fetches total, counts API-verified) + the repo-side vendored
+  audit. Banked: `regex_corpus_discovery.md` (18 candidates),
+  `sv_svpp_corpus_discovery.md` (33), `vhdl_corpus_discovery.md` (28),
+  `json_corpus_discovery.md` (24), synthesized into
+  **`frozen_rosters_v1.md`** — the per-family FROZEN graduation rosters
+  (vendored tier / ADD v1 tier / rejects-with-cause / N/A-with-cause) + the
+  honest `Done`-claim audits. All under `docs/tasks/artifacts/corpus_grad_all/`.
+- **Headline discoveries:** ispras/sv-tests (LRM-clause-keyed
+  POSITIVE/NEGATIVE suite — the "LRM extraction" instrument) + ivtest's keyed
+  CE/gold regressions (and `regress-vlg.list` = THE verilog_2005 corpus);
+  JSONTestSuite's un-vendored `test_transform` half + the JSON_checker
+  license trap; VESTS has no live upstream (ghdl's copy is canonical, 2 files
+  ahead) and NO public IEEE LRM-examples project exists (VASG Packages = the
+  legal analogue); UTS#18 ships no conformance corpus; the only new
+  VHDL negative-case corpus is vhdl-linter's; no large open preprocessor
+  torture suite exists beyond the Verilator lineage (hdlConvertor's
+  LRM-page-keyed sv_pp + verilog-perl's goldens are the adds).
+- **Audit verdicts:** regex `Done` = corpus-backed today (formal graduation
+  statement pending); svpp `Done` = backed via vendored preprocessor cases
+  (explicit slice pending); vhdl `Done` = NOT corpus-backed (campaign `.2`);
+  internal DSLs (annotation/ebnf/rtl_*) = N/A-with-cause (director may
+  override).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — the director's exhaustive-search mandate; baseline = only 4 families had any corpus mapping.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — N/A (research leaf; the "why" is the doctrine record).
+  - [x] **FIX** — N/A (read-only).
+  - [x] **ADDRESSED (verified)** — four discovery reports with primary-source citations + API-verified counts banked; rosters frozen v1 with every candidate adjudicated (ADD / reject-with-cause / N/A-with-cause).
+  - [x] **NO REGRESSION** — read-only; zero code/grammar/generated change.
+  - [x] **LOCKSTEP** — tree + MEMORY + CHANGES this commit; LIVE tracker note already carries the audit flags.
 
 ### `.2` — VHDL graduation campaign opening (the second family campaign)
 
