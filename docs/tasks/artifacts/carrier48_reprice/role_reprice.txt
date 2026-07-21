@@ -1,0 +1,374 @@
+machine qualification: PASS input=bounds+byte-load arena=borrow+capacity tape=one-vec-8B thin_memo_rows=slot-load+gen-compare+row-stride(no-NEON-probe) thin_memo_entries=96B-stride(unchanged-by-design-check) position=monotone checkpoint=7-sources-co-captured(41 sites) taint=snapshot/compare guard=16B-stack+ceiling; no unknown offsets
+weights (band log-shares of the corpus geomean): sub1us=0.460693 1to2p5=0.340171 2p5to20=0.191331 | floor=1003.3049233222944 ns | noise=22.871 ns (the banked 28.8 ns span carried over: 28.8/1263.4 x floor)
+
+band sub1us: stored=65488 target=7346 tier1=2517 tier2=66 unattributed=4763 {'control': 383, 'other': 586, 'memory': 3781, 'call': 13}
+
+band 1to2p5: stored=61746 target=7177 tier1=2248 tier2=46 unattributed=4883 {'memory': 3870, 'other': 633, 'control': 369, 'call': 11}
+
+band 2p5to20: stored=45499 target=6140 tier1=1941 tier2=35 unattributed=4164 {'memory': 3237, 'other': 623, 'control': 294, 'call': 10}
+
+=== TIER-1 parser-direct role prices (exact offsets) ===
+role                          sub1us  1to2p5  2p5to20  w-share%         ns      30%      50%      70%
+recursion_guard                  258     260      265    0.4362     4.3761    1.313    2.188    3.063
+semantic_checkpoint_state        647     590      419    0.9564     9.5955    2.879    4.798    6.717
+memo_taint_signal                  1       0        0    0.0007     0.0071    0.002    0.004    0.005
+thin_memo_rows                   106      95       82    0.1614     1.6192    0.486    0.810    1.133
+thin_memo_entries                 61      62       39    0.0935     0.9378    0.281    0.469    0.656
+unified_tape                     194     187      165    0.3089     3.0990    0.930    1.550    2.169
+input_view                       912     694      647    1.2960    13.0027    3.901    6.501    9.102
+arena_node_g1c                     0       0        0    0.0000     0.0000    0.000    0.000    0.000
+position_progress                338     360      324    0.5724     5.7425    1.723    2.871    4.020
+
+=== TIER-1+2 role prices (direct + window-qualified derived) ===
+recursion_guard                  258     260      265    0.4362     4.3761    1.313    2.188    3.063
+semantic_checkpoint_state        647     590      419    0.9564     9.5955    2.879    4.798    6.717
+memo_taint_signal                  1       0        0    0.0007     0.0071    0.002    0.004    0.005
+thin_memo_rows                   106      95       82    0.1614     1.6192    0.486    0.810    1.133
+thin_memo_entries                 61      62       39    0.0935     0.9378    0.281    0.469    0.656
+unified_tape                     194     187      165    0.3089     3.0990    0.930    1.550    2.169
+input_view                       912     694      647    1.2960    13.0027    3.901    6.501    9.102
+arena_node_g1c                    66      46       35    0.0865     0.8678    0.260    0.434    0.607
+position_progress                338     360      324    0.5724     5.7425    1.723    2.871    4.020
+
+=== Out-of-target population buckets (per-band share of stored) ===
+allocator                 8947    7329     4485   12.2177%   122.5809 ns
+arena_alloc               5056    4046     2694    6.9187%    69.4154 ns
+build_value               3992    4911     4110    7.2422%    72.6611 ns
+external_or_injected      9040    5899     4020   11.2998%   113.3713 ns
+harness                   5206    1938      686    5.0185%    50.3504 ns
+hashbrown_map              780    1075      721    1.4441%    14.4892 ns
+other_text                3830    6157     5208    8.2764%    83.0373 ns
+semantic_runtime          1737    4007     3544    4.9198%    49.3605 ns
+spine_other              12139   11588     8738   18.5980%   186.5951 ns
+tape_helpers              1356    1311      826    2.0235%    20.3020 ns
+teardown_drop             2803    3631     2626    5.0765%    50.9329 ns
+thin_entry_push           1188     904      704    1.6298%    16.3519 ns
+vec_growth                2068    1773      997    2.8508%    28.6025 ns
+
+=== Out-of-target symbols with >=20 samples in any band ===
+     4642   1659    559   44.2917ns [harness] __ZN16regex_perf_probe16parse_once_timed17h297949940cc4fc4dE
+     2205   2339   1689   35.6175ns [allocator] _mi_free
+     2026   1532    871   26.4423ns [arena_alloc] __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17h88670e1bf10cf0ffE
+     1620   1392   1133   23.9083ns [arena_alloc] __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17h0f20dcea3f658c24E
+     2710    961    363   25.9706ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13cascade_regex17h41707c63ba1d4230E
+     1140   1507   1264   21.7088ns [build_value] __ZN4pgen12ast_pipeline12ParseContent15to_shaped_value17h5271c1e592526ba2E
+     1466   1331   1051   22.1383ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser19cascade_build_piece17hfb0ec3ee9166da15E
+     1978   1077    492   21.9896ns [allocator] __mi_malloc_generic
+      734   1499   1204   18.5459ns [other_text] _OUTLINED_FUNCTION_18
+     1160   1234    883   18.7336ns [allocator] _mi_malloc_aligned
+     1296   1161    736   18.6697ns [tape_helpers] __ZN4pgen12ast_pipeline8TapeWord12decode_event17hd8085e27d36fb34aE
+      263   1571   1300   16.0246ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13parse_pattern17hf82705f652c8728aE
+     1188    904    704   16.3519ns [thin_entry_push] __ZN5alloc3vec16Vec$LT$T$C$A$GT$8push_mut17h2d2239d8f4ba2a41E
+     1239   1001    530   16.5139ns [vec_growth] __ZN5alloc7raw_vec20RawVecInner$LT$A$GT$11finish_grow17h0ad14a629d25f3f4E
+      774    997    665   13.7794ns [teardown_drop] __ZN4core3ptr64drop_in_place$LT$pgen..generated_parsers..regex..RegexParser$GT$17hedd26a1165354006E
+      996    723    476   13.0344ns [allocator] _mi_theap_malloc_zero_aligned_at_generic
+      190   1044    881   10.8286ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_build_alternative17h4945a7ec3063a270E
+      175    989    858   10.3217ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_match_alternative17hcfc807e6263f9a67E
+     1297    453    145   12.2699ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser11parse_regex28_$u7b$$u7b$closure$u7d$$u7d$17hf2b0cf0
+      568    729    582   10.4939ns [teardown_drop] __ZN4core3ptr50drop_in_place$LT$pgen..ast_pipeline..NodeArena$GT$17hc87878280723d026E
+      757    656    461   10.9139ns [other_text] __ZN8smallvec17SmallVec$LT$A$GT$10from_slice17he4eda9488d153f03E
+     1032    598    244   11.6187ns [allocator] __mi_page_retire
+      376    875    543    9.7812ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser18parse_capture_open28_$u7b$$u7b$closure$u7d$$u7d$17h
+      647    640    478   10.1208ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser11scan_letter17h937c1c7d027c9549E
+      891    608    261   10.7505ns [allocator] _mi_theap_malloc_zero_aligned_at_overalloc
+      783    565    299    9.9109ns [arena_alloc] __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17h916724f9b9255e27E
+      683    570    320    9.3213ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_match_class_atom17heb7224b9951d070cE
+      498    653    421    8.9005ns [hashbrown_map] __ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h50f472a538f20890E
+      427    563    464    8.0833ns [other_text] __ZN71_$LT$pgen..ast_pipeline..ParseContent$u20$as$u20$core..clone..Clone$GT$5clone17h3110cb096945de
+       90    618    737    7.1606ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime9FactIndex6insert17hc72d5defb7fe3932E
+      216    620    429    6.7615ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17h5c56f0dd6f
+      251    550    460    6.7524ns [other_text] _OUTLINED_FUNCTION_58
+      577    404    221    7.2380ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser33cascade_match_invalid_class_range17hd015614059a304b
+      368    492    327    6.6965ns [other_text] _OUTLINED_FUNCTION_41
+      446    362    239    6.1572ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState3new17hfc8d801073298164E
+      201    431    284    4.9992ns [allocator] __mi_theap_realloc_zero
+      440    299    170    5.4755ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser28parse_descending_class_range28_$u7b$$u7b$closure$u7
+      464    239    191    5.4018ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_match_char_class17h8b7c63d4b261bad8E
+      545    243     95    5.5906ns [vec_growth] __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h1ea4d81f4bfacb92E
+      369    254    204    4.8691ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_build_quantifier17h67e55cba23cf5962E
+      405    267    126    4.8659ns [allocator] _mi_bin
+      340    257    164    4.5122ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser27cascade_match_class_literal17hbfa54985bdf5bcdbE
+      216    292    236    4.1342ns [other_text] _OUTLINED_FUNCTION_32
+       47    395    264    3.6289ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState24extract_delta_since_slow17hb418d149
+      343    212    145    4.2045ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser27cascade_build_value_literal17hdbc325d2c207f6f6E
+      250    266    171    3.9563ns [hashbrown_map] __ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17hccf7033f85f6247aE
+      203    224    251    3.7299ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser10scan_digit17h2a86353cd479c2e6E
+       56    346    261    3.4089ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser39apply_semantic_runtime_effect_directive17hcbf95367d
+      148    306    188    3.5292ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser18parse_capture_open17h197d36a0bbed34efE
+      317    104    190    3.6139ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser20cascade_match_escape17h49e3b14435b7d17dE
+      189    208    180    3.2431ns [arena_alloc] __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17h611a89fc10d7af8dE
+       58    203    305    2.8182ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState24rollback_to_labeled_slow17h075e3612
+      226    193    139    3.2484ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime34CompiledSemanticRuntimeAnnotations19directives_for_rule17
+      219    206    118    3.1822ns [teardown_drop] __ZN4core3ptr90drop_in_place$LT$core..result..Result$LT$$LP$$RP$$C$pgen..ast_pipeline..ParseError$GT
+       27    230    283    2.6559ns [other_text] __ZN87_$LT$T$u20$as$u20$alloc..slice..$LT$impl$u20$$u5b$T$u5d$$GT$..to_vec_in..ConvertVec$GT$6to_vec
+      228    199    104    3.1480ns [harness] __ZN16regex_perf_probe4main17hea34227d7d2eb2ffE
+      200    205    126    3.0763ns [teardown_drop] __ZN4core3ptr100drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..semantic_runtime..SemanticSc
+      243    167    117    3.1318ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17h9bc3d58057
+      327    143     47    3.2967ns [arena_alloc] __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17hf241ce72116737e7E
+      256    144     91    2.9867ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_match_quantifier17hd4211dcb07eeced9E
+       53    192    227    2.3931ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState17rule_context_path17hddf839e31732b57
+      139    161    138    2.4532ns [teardown_drop] __ZN4core3ptr100drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..semantic_runtime..SemanticFa
+      205    155     78    2.6327ns [teardown_drop] __ZN4core3ptr91drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..semantic_runtime..ScopeNode$G
+       48    276    108    2.3200ns [teardown_drop] __ZN4core3ptr68drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..FactIndex$GT$17h98c8c878d9e1a6
+      175    137     90    2.3721ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser18scan_nonzero_digit17hf0f5006121b3df98E
+       35    207    147    2.0114ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState15apply_directive17hf9dffb915c78c369E
+      208    129     51    2.3963ns [vec_growth] __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h84ff3e56869fffccE
+       22    198    167    1.9543ns [other_text] __ZN87_$LT$T$u20$as$u20$alloc..slice..$LT$impl$u20$$u5b$T$u5d$$GT$..to_vec_in..ConvertVec$GT$6to_vec
+       82    139    146    1.9631ns [teardown_drop] __ZN4core3ptr100drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..semantic_runtime..DeferredOb
+       22    116    219    1.7204ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13memoized_call17h5971cf7b8e635467E
+      119    164     67    2.0291ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_match_class_item17hdde414af40ef0584E
+      123    103    123    1.9564ns [other_text] __ZN4core3str21_$LT$impl$u20$str$GT$12trim_matches17h92e7537657f85238E
+       30    176    140    1.7752ns [other_text] __ZN66_$LT$smallvec..SmallVec$LT$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h78b7420a86434252E
+      154    103     73    1.9642ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_error_from_parse17hca97d6f57366bbabE
+       63    118    147    1.7171ns [other_text] __ZN4pgen12ast_pipeline14RecursionGuard14check_cycle_id17h0bea6b03af3ff9f6E
+      110    100    115    1.8143ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser31cascade_match_subroutine_target17h9f4d429efe822b5eE
+       28    165    131    1.6623ns [other_text] __ZN67_$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h25533879f98441c2E
+      154     97     57    1.8636ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser28parse_descending_class_range17h5aee815b37add384E
+       60    148     89    1.6170ns [tape_helpers] __ZN4pgen12ast_pipeline8TapeWord12narrow_event17h022a54a8fcf52bf3E
+       30    144    120    1.5140ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser29cascade_match_capturing_group28_$u7b$$u7b$closure$u
+       99    101     89    1.6325ns [arena_alloc] __ZN11typed_arena14Arena$LT$T$GT$12alloc_extend17h85fa14adae63667bE
+       23    151    113    1.4737ns [vec_growth] __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h1f5402799ab88b1eE
+       10    124    150    1.3888ns [other_text] __ZN67_$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hc4bb1793a7b9c2edE
+      224     45     15    1.8930ns [harness] __RNvMNtNtNtNtCsg55jX0GwzBC_3std3sys3pal4unix4timeNtB2_8Timespec12sub_timespec
+       28    128    122    1.4199ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_build_value_group17h135854476619a347E
+      120     98     56    1.6249ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser28parse_descending_class_range28_$u7b$$u7b$closure$u7
+       26    110    128    1.3316ns [other_text] __ZN4pgen12ast_pipeline15ThinMemoScratch6lookup17hf329bea1bf0ceb44E
+      114     88     53    1.5146ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser28cascade_class_range_endpoint17h9bef23848d379bfdE
+       20     78    146    1.1883ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser17parse_named_group17h1a5d8a4e54bd58e1E
+       49    111     84    1.3138ns [teardown_drop] __ZN4core3ptr100drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..semantic_runtime..SemanticSc
+       47     91    103    1.2693ns [teardown_drop] __ZN4core3ptr91drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..semantic_runtime..ScopeNode$G
+      164     56     15    1.5303ns [teardown_drop] __ZN4core3ptr165drop_in_place$LT$std..collections..hash..map..HashMap$LT$alloc..string..String$C$pge
+      149     72     12    1.5002ns [other_text] __ZN5alloc4sync16Arc$LT$T$C$A$GT$9drop_slow17hb6df37883c9ddac5E
+       11    123     96    1.1625ns [other_text] __ZN4core4hash11BuildHasher8hash_one17hfd6d598fd825f60bE
+       93     77     55    1.3141ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_build_char_class17h02d6c17f35ff24d2E
+      123      0     94    1.2647ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser36cascade_match_extended_class_content17hc8b488b9ae9a
+       31     76    109    1.0988ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser32resolve_named_semantic_reference17hd606204b16e0f32b
+       13    112     90    1.0905ns [semantic_runtime] __ZN93_$LT$pgen..ast_pipeline..semantic_runtime..SemanticFactSpec$u20$as$u20$core..clone..Clone$GT$5
+       82     82     48    1.2345ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser23scan_quant_bound_number17h6e408335ead1de97E
+       14     86    111    1.0425ns [teardown_drop] __ZN4core3ptr109drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..unified_semantic_ast..Unifie
+       96     74     38    1.2469ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_match_class_range17h5453759e928dbc05E
+      108     26     72    1.2098ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser26cascade_build_value_escape17hd8975d250d4154f5E
+       19     69    108    0.9712ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser9scan_name17h2c38b705510c7767E
+       23     87     85    1.0018ns [semantic_runtime] __ZN106_$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeTransaction$u20$as$u20$core..ops..d
+      135     47     13    1.2675ns [other_text] __ZN4core5slice4sort8unstable9quicksort9quicksort17h3d91cea9ab66cc02E
+       93     63     31    1.1354ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser30parse_counted_quantifier_range28_$u7b$$u7b$closure$
+       35     81     70    0.9901ns [teardown_drop] __ZN4core3ptr87drop_in_place$LT$$u5b$pgen..ast_pipeline..semantic_runtime..SemanticFactRecord$u5d$$G
+       99     52     24    1.0874ns [other_text] _OUTLINED_FUNCTION_27
+       33     88     50    0.9303ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser11scan_digits17hba1c5d2cbf2679adE
+       38     75     54    0.9106ns [other_text] __ZN10serde_json5value2de77_$LT$impl$u20$serde..de..Deserialize$u20$for$u20$serde_json..value..Value
+       95     58     10    1.0333ns [teardown_drop] __ZN4core3ptr79drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeState$GT$17h1ef
+       20     83     60    0.8531ns [hashbrown_map] __ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hd60b8c283480274eE
+       12     92     53    0.8168ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13memoized_call17hf95f97e48a351736E
+      112     35      8    1.0177ns [harness] __RNvMNtNtNtNtCsg55jX0GwzBC_3std3sys3pal4unix4timeNtB2_8Timespec3now
+       13     65     75    0.7675ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24parse_builtin_ascii_char17h3d6c1bb46cd923a7E
+       55     36     61    0.8445ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser46resolve_unified_semantic_value_against_content17h28
+       10     49     85    0.7000ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser28parse_named_group_open_angle28_$u7b$$u7b$closure$u7
+        6     86     51    0.7329ns [arena_alloc] __ZN11typed_arena14Arena$LT$T$GT$15alloc_slow_path17h57ba2180f4cd3412E
+       19     48     74    0.7116ns [other_text] __RNvXsZ_NtCs1OjIl8oxbrv_5alloc6stringNtB5_6StringNtNtCsl8K0bEFm1U0_4core3fmt5Write9write_str
+       58     61     21    0.8351ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17hb43f871761
+       54     52     30    0.7951ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser25scan_rec_quant_bound_core17hec9c855996f50dd4E
+       11     48     76    0.6636ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17h4ddff46a95
+       41     38     54    0.7272ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser26resolve_semantic_reference17h34ebf88dea76fb75E
+        9     75     46    0.6722ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser51resolve_unified_semantic_properties_against_content
+       13     58     57    0.6528ns [teardown_drop] __ZN4core3ptr79drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeState$GT$17h486
+       32     58     36    0.6983ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_match_conditional28_$u7b$$u7b$closure$u7d$$
+       12     52     60    0.6253ns [other_text] __ZN87_$LT$T$u20$as$u20$alloc..slice..$LT$impl$u20$$u5b$T$u5d$$GT$..to_vec_in..ConvertVec$GT$6to_vec
+       29     35     59    0.6471ns [other_text] __RNvXs2_NtNtCsl8K0bEFm1U0_4core3num7dec2fltdNtNtNtB9_3str6traits7FromStr8from_str
+       77     38      5    0.7746ns [teardown_drop] __ZN4core3ptr134drop_in_place$LT$std..collections..hash..map..HashMap$LT$$LP$alloc..string..String$C
+        9     50     56    0.5762ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser21scan_rec_unicode_char17h9ff8a18240d5360cE
+       10     64     39    0.5889ns [hashbrown_map] __ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hce5a4611fbc6ffaaE
+        9     56     47    0.5714ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser20parse_lookbehind_pos17hbf9b9dae1145c8d0E
+       48     30     34    0.6481ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState18evaluate_predicate17hf81375379dbe97
+       13     63     36    0.5919ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser32cascade_match_conditional_branch17hba4e8537f16f72d2
+        4     35     72    0.5255ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState11apply_delta17h90ae86030de96a1cE
+       33     40     37    0.6101ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser23cascade_match_condition28_$u7b$$u7b$closure$u7d$$u7
+       80     26      3    0.7210ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser22parse_class_zero_width28_$u7b$$u7b$closure$u7d$$u7d
+       29     40     34    0.5692ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser27cascade_match_modifier_spec17h620929e136970a2aE
+        7     42     52    0.5009ns [teardown_drop] __ZN4core3ptr109drop_in_place$LT$alloc..vec..Vec$LT$pgen..ast_pipeline..unified_semantic_ast..Unifie
+        6     76     19    0.5426ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13memoized_call17hde1b61bfe8a2529dE
+       29     39     33    0.5595ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser47resolve_semantic_predicate_spec_against_content17h7
+       60     21     19    0.6197ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_match_zero_width17h9b138085e32590dcE
+       14     33     53    0.5048ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13memoized_call17h0743879e85df9e6fE
+        3     53     40    0.4829ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser46resolve_semantic_runtime_value_against_content17hfb
+        4     56     36    0.4897ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser19parse_lookahead_pos17h8df509518f30f4abE
+       35     42     19    0.5593ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser34cascade_match_class_member_literal17h9b1a64fd28244b
+       24      3     68    0.4729ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser33cascade_match_quoted_literal_char17h28391d702d251e8
+       67     27      1    0.6263ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser26cascade_match_class_escape17h24eee15844e34a28E
+       40     38     17    0.5641ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser30parse_counted_quantifier_range28_$u7b$$u7b$closure$
+       13     27     55    0.4730ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17h522efba538
+        0     45     46    0.4428ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13memoized_call17h53e8593e16834479E
+        7     49     34    0.4637ns [vec_growth] __ZN11typed_arena18ChunkList$LT$T$GT$7reserve17hfb73d5428f5cfdf1E
+        2     49     39    0.4495ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24parse_python_named_group17h94294238c198d1f8E
+        5     49     35    0.4538ns [vec_growth] __ZN5alloc7raw_vec20RawVecInner$LT$A$GT$11finish_grow17h0d5ac147e1236610E
+        5     44     40    0.4473ns [teardown_drop] __ZN4core3ptr83drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDirective$GT$17
+       69     13      3    0.5715ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser22parse_class_zero_width17h0d4a9e89b75de65eE
+       52     13     19    0.5190ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser22parse_builtin_any_char17h787f1021f68089c3E
+       52     14     15    0.5077ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser38cascade_match_class_bracket_token_tail17h10e59dcdd1
+       38     28     15    0.4863ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser30parse_counted_quantifier_range17hda9c0a4fe018decdE
+        6     41     34    0.4124ns [vec_growth] __ZN11typed_arena18ChunkList$LT$T$GT$7reserve17h25f89527e4425a24E
+       27     27     27    0.4537ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser38lex_semantic_reference_segments_suffix17h686da77300
+        8     38     34    0.4100ns [vec_growth] __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17hda1c469b025f0ed8E
+        7     44     26    0.4023ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17h171f8f432c56e582E
+       44      9     23    0.4573ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser40cascade_match_directive_payload_required17hb0537cef
+       63      6      5    0.4989ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_match_posix_class17h9c910e7420a20a21E
+       11     28     33    0.3716ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser29parse_named_subroutine_target17hac47c7073ae2eab0E
+       61     10      1    0.4900ns [other_text] _OUTLINED_FUNCTION_56
+        0     29     37    0.3164ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser29parse_python_named_group_open28_$u7b$$u7b$closure$u
+       23     23     19    0.3696ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser32cascade_build_class_safe_special17h1966a867a68e2737
+       18     26     21    0.3594ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser33cascade_build_value_class_literal17h5da55d6b20b8510
+        2     27     35    0.3110ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17h7d47951675
+       12     24     27    0.3313ns [other_text] __ZN10serde_json2de10from_trait17hb27d4b28cd253f51E
+       17     20     26    0.3402ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser27cascade_match_signed_digits17h47c40565cec27394E
+       60      3      0    0.4401ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17h9dfa73969f3e886bE
+        3     47     13    0.3358ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17hc853385077
+       30     14     18    0.3651ns [semantic_runtime] __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState32evaluate_content_aware_predicate17h
+        9     29     19    0.3040ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser37cascade_build_value_subroutine_target17h8ef9a85659c
+       20     23     13    0.3231ns [other_text] _OUTLINED_FUNCTION_4
+       17     10     29    0.2976ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser30coerce_unified_semantic_scalar17h2de0ab7c0e164a55E
+       23     26      5    0.3271ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser28cascade_match_modifier_group17h614557f06222432dE
+        3     32     19    0.2782ns [other_text] __ZN97_$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$alloc..vec..spec_extend..SpecExtend$LT$T$C$I$GT$$
+       16     21     16    0.2965ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser32cascade_match_class_safe_special17hc0aa80bbcb38eb68
+        6     26     21    0.2747ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser27cascade_build_signed_digits17hef868c6021a3cd55E
+        8     13     32    0.2633ns [other_text] __RNvNvNtCs1OjIl8oxbrv_5alloc3fmt6format12format_inner
+        4     31     18    0.2755ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser25parse_lookbehind_pos_open28_$u7b$$u7b$closure$u7d$$
+       35     12      5    0.3345ns [allocator] _mi_zalloc_aligned
+       15     23     13    0.2878ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_match_lookaround28_$u7b$$u7b$closure$u7d$$u
+        5     34     11    0.2696ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17h17df4b71b6
+       11     23     16    0.2723ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_build_conditional17hfc04d14c24984ad2E
+        9     22     19    0.2653ns [teardown_drop] __ZN4core3ptr68drop_in_place$LT$pgen..ast_pipeline..semantic_runtime..FactIndex$GT$17h858428bad01f95
+       10     27     12    0.2704ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser38cascade_build_value_conditional_branch17h72bc4d6c28
+        7     22     20    0.2554ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser26scan_numeric_backreference17h7aa9e897c07684b8E
+       25      5     16    0.2716ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser20semantic_node_scalar17heeecba4bc74a9bacE
+       10     27      9    0.2578ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser13memoized_call17h9374b8464cfa01f3E
+        4     17     25    0.2277ns [other_text] _OUTLINED_FUNCTION_45
+       23     14      8    0.2735ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser34scan_directive_verb_name_nonaccept17h55c53fabd17269
+        4     23     17    0.2271ns [other_text] __ZN97_$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$alloc..vec..spec_extend..SpecExtend$LT$T$C$I$GT$$
+       15     23      5    0.2541ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser26cascade_match_modifier_seq17h86ef47de33f95bb0E
+       28     14      1    0.2792ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser25cascade_match_callout_arg17ha89b2fa9f3e787fbE
+        0     14     28    0.1955ns [other_text] __ZN67_$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h0850a996186d9502E
+        4     13     24    0.2013ns [other_text] __RNvXsZ_NtCs1OjIl8oxbrv_5alloc6stringNtB5_6StringNtNtCsl8K0bEFm1U0_4core3fmt5Write10write_char
+        4     10     27    0.1974ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser41cascade_match_returned_capture_group_list17h0522cee
+        6     27      8    0.2253ns [vec_growth] __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h13bf3f2fad2ee1fdE
+        0      9     32    0.1848ns [other_text] __ZN101_$LT$pgen..ast_pipeline..unified_semantic_ast..UnifiedSemanticValue$u20$as$u20$core..clone..C
+        6     14     21    0.2083ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser17scan_capture_name17hc08c7a1175cdcd9cE
+       10     20     11    0.2275ns [allocator] _mi_realloc_aligned
+        6      4     30    0.1910ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_build_whitespace17haccb9e72e3d23393E
+        4     20     16    0.2063ns [semantic_runtime] __ZN4pgen17generated_parsers5regex11RegexParser38with_semantic_runtime_rule_transaction17h348959084c
+        1     12     26    0.1831ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser28parse_named_group_open_quote28_$u7b$$u7b$closure$u7
+        0      9     30    0.1763ns [hashbrown_map] __ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$3get17hedb8d3130a4fe29dE
+        2      7     27    0.1667ns [vec_growth] __RINvNvMs2_NtCs1OjIl8oxbrv_5alloc7raw_vecINtB8_11RawVecInnerpE7reserve21do_reserve_and_handleNtNtBa
+        4      4     28    0.1685ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17h6530777349f9b29fE
+       31      4      1    0.2451ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser39cascade_match_class_range_simple_escape17hcb6227a7f
+        3     23     10    0.1905ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24parse_lookahead_pos_open28_$u7b$$u7b$closure$u7d$$u
+       22     11      2    0.2245ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser34cascade_build_value_modifier_group17he6c2bf7bddadc8
+       20      0     14    0.2002ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser42cascade_build_value_extended_class_content17h79efef
+       24      2      0    0.1804ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser26scan_directive_option_name17h9f63fe5da98364e8E
+       21      3      0    0.1648ns [spine_other] __ZN4pgen17generated_parsers5regex11RegexParser24cascade_class_zero_width17h9669a77f3150248dE
+        0      0     20    0.0844ns [build_value] __ZN4pgen17generated_parsers5regex11RegexParser33cascade_build_quoted_literal_char17h69353af17e674e4
+
+=== Static caller census for hot out-of-target callees ===
+-- bl-sites for *FactIndex6insert*:
+      1 __ZN16regex_perf_probe16parse_once_timed17h297949940cc4fc4dE
+      1 __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState11apply_delta17h90ae86030de96a1cE
+      1 __ZN4pgen17generated_parsers5regex11RegexParser47apply_semantic_runtime_library_import_directive17hce655d
+      1 __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState15apply_directive17hf9dffb915c78c369E
+-- bl-sites for *push_mut17h8de2426e1e2d4e41*:
+      1 __ZN11typed_arena14Arena$LT$T$GT$15alloc_slow_path17h57ba2180f4cd3412E
+-- bl-sites for *push_mut17h2d2239d8f4ba2a41*:
+     14 __ZN4pgen17generated_parsers5regex11RegexParser18cascade_match_atom28_$u7b$$u7b$closure$u7d$$u7d$17hd69dd
+      3 __ZN4pgen17generated_parsers5regex11RegexParser19cascade_match_piece17h6aaef5c8c2bb0fafE
+      3 __ZN4pgen17generated_parsers5regex11RegexParser25cascade_match_conditional28_$u7b$$u7b$closure$u7d$$u7d$1
+      2 __ZN4pgen17generated_parsers5regex11RegexParser13parse_pattern17hf82705f652c8728aE
+      2 __ZN4pgen17generated_parsers5regex11RegexParser23cascade_match_condition28_$u7b$$u7b$closure$u7d$$u7d$17h
+      1 __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17h6530777349f9b29fE
+      1 __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17h6af9ba496c48c4baE
+      1 __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17h171f8f432c56e582E
+      1 __ZN4pgen17generated_parsers5regex11RegexParser26cascade_match_code_element28_$u7b$$u7b$closure$u7d$$u7d$
+      1 __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17hd08a23d739634d3eE
+      1 __ZN4pgen17generated_parsers5regex11RegexParser33cascade_match_condition_assertion17hbbd71185d2465990E
+      1 __ZN4pgen17generated_parsers5regex11RegexParser14try_parse_bare17hfbb3c7427901c801E
+-- bl-sites for *push_mut17hf85e42c9decaa41f*:
+      1 __ZN4pgen17generated_parsers5regex11RegexParser47apply_semantic_runtime_library_import_directive17hce655d
+-- bl-sites for *hash_one*:
+      9 __ZN4pgen17generated_parsers5regex11RegexParser10parse_atom28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$clo
+      4 __ZN16regex_perf_probe16parse_once_timed17h297949940cc4fc4dE
+      3 __ZN4pgen17generated_parsers5regex11RegexParser11parse_piece28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+      3 __ZN4pgen17generated_parsers5regex11RegexParser11parse_piece28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+      2 __ZN4pgen17generated_parsers5regex11RegexParser13memoized_call17h5971cf7b8e635467E
+      2 __ZN4pgen17generated_parsers5regex11RegexParser29parse_directive_relaxed_named28_$u7b$$u7b$closure$u7d$$u
+      2 __ZN4pgen17generated_parsers5regex11RegexParser11parse_group28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+      2 __ZN4pgen17generated_parsers5regex11RegexParser18parse_code_element17hf2fd79eddb5ed3c6E
+      2 __ZN4pgen17generated_parsers5regex11RegexParser28parse_extended_class_element17h50be45717566af4dE
+      2 __ZN4pgen17generated_parsers5regex11RegexParser15parse_condition28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7
+      2 __ZN4pgen17generated_parsers5regex11RegexParser16parse_char_class28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u
+      2 __ZN4pgen17generated_parsers5regex11RegexParser19parse_backreference28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b
+-- bl-sites for *sip6Hasher*:
+-- bl-sites for *alloc_extend*:
+     18 __ZN4pgen17generated_parsers5regex11RegexParser13cascade_regex17h41707c63ba1d4230E
+     18 __ZN4pgen17generated_parsers5regex11RegexParser19cascade_build_piece17hfb0ec3ee9166da15E
+     11 __ZN4pgen17generated_parsers5regex11RegexParser24cascade_build_char_class17h02d6c17f35ff24d2E
+     10 __ZN4pgen17generated_parsers5regex11RegexParser46cascade_build_value_directive_limit_value_core17h6e2f32a
+     10 __ZN4pgen17generated_parsers5regex11RegexParser10parse_atom28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$clo
+      9 __ZN4pgen17generated_parsers5regex11RegexParser25cascade_build_conditional17hfc04d14c24984ad2E
+      8 __ZN4pgen17generated_parsers5regex11RegexParser31cascade_build_value_callout_arg17h0747e6edd2dc8634E
+      8 __ZN4pgen17generated_parsers5regex11RegexParser11parse_piece28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+      8 __ZN4pgen17generated_parsers5regex11RegexParser20parse_callout_string28_$u7b$$u7b$closure$u7d$$u7d$28_$u7
+      7 __ZN4pgen17generated_parsers5regex11RegexParser32cascade_build_value_code_content17hb0799f1ea0616b6fE
+      7 __ZN4pgen17generated_parsers5regex11RegexParser11parse_piece28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+      6 __ZN4pgen17generated_parsers5regex11RegexParser25parse_named_backreference28_$u7b$$u7b$closure$u7d$$u7d$2
+-- bl-sites for *grow_one*:
+     65 __ZN4pgen17generated_parsers5regex11RegexParser40cascade_match_directive_limit_value_core17h0cb82d690f80a
+     57 __ZN4pgen17generated_parsers5regex11RegexParser10parse_atom28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$clo
+     40 __ZN4pgen17generated_parsers5regex11RegexParser20parse_callout_string28_$u7b$$u7b$closure$u7d$$u7d$28_$u7
+     27 __ZN4pgen17generated_parsers5regex11RegexParser18cascade_match_atom28_$u7b$$u7b$closure$u7d$$u7d$17hd69dd
+     25 __ZN4pgen17generated_parsers5regex11RegexParser25cascade_match_callout_arg17ha89b2fa9f3e787fbE
+     23 __ZN4pgen17generated_parsers5regex11RegexParser32parse_class_simple_escape_strict28_$u7b$$u7b$closure$u7d
+     23 __ZN4pgen17generated_parsers5regex11RegexParser33cascade_match_invalid_class_range17hd015614059a304bbE
+     21 __ZN4pgen17generated_parsers5regex11RegexParser21cascade_match_literal28_$u7b$$u7b$closure$u7d$$u7d$17h56
+     21 __ZN4pgen17generated_parsers5regex11RegexParser11parse_piece28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+     20 __ZN4pgen17generated_parsers5regex11RegexParser30cascade_match_quant_bound_core17h8406816c29717253E
+     19 __ZN4pgen17generated_parsers5regex11RegexParser13cascade_regex17h41707c63ba1d4230E
+     19 __ZN4pgen17generated_parsers5regex11RegexParser23parse_entry_alternation28_$u7b$$u7b$closure$u7d$$u7d$28_
+-- bl-sites for *finish_grow*:
+      2 __ZN4pgen17generated_parsers5regex11RegexParser47apply_semantic_runtime_library_import_directive17hce655d
+      1 __RNvMs_NtNtCs1OjIl8oxbrv_5alloc3ffi5c_strNtB4_7CString19__from_vec_unchecked
+      1 __RNvMs4_NtCs1OjIl8oxbrv_5alloc7raw_vecNtB5_11RawVecInner14grow_amortizedCscUtGwbhD4WH_5gimli
+      1 __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17hece8c38d1085c165E
+      1 __ZN5alloc7raw_vec20RawVecInner$LT$A$GT$7reserve21do_reserve_and_handle17h5babf5d089b20895E
+      1 __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17hec63395541b3a45aE
+      1 __RINvNvMs2_NtCs1OjIl8oxbrv_5alloc7raw_vecINtB8_11RawVecInnerpE7reserve21do_reserve_and_handleNtNtBa_5all
+      1 __RNvMs3_NtCs1OjIl8oxbrv_5alloc7raw_vecINtB5_6RawVechE8grow_oneB7_
+      1 __ZN5alloc7raw_vec20RawVecInner$LT$A$GT$7reserve21do_reserve_and_handle17h23d02702c4dd1b64E
+      1 __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h0ee59b45b6da5b13E
+      1 __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h84ff3e56869fffccE
+      1 __ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17h1ea4d81f4bfacb92E
+-- bl-sites for *_mi_malloc*:
+    121 __ZN4pgen17generated_parsers5regex11RegexParser35shared_semantic_runtime_annotations28_$u7b$$u7b$closure$
+     39 __ZN4pgen12ast_pipeline7library14write_artifact17had5281277d899315E
+     24 __ZN4pgen12ast_pipeline7library22semantic_value_to_json17h003d2fc7e97610d5E
+     21 __ZN4pgen17generated_parsers5regex11RegexParser10parse_atom28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$clo
+     20 __ZN16regex_perf_probe16parse_once_timed17h297949940cc4fc4dE
+     12 __ZN16regex_perf_probe4main17hea34227d7d2eb2ffE
+     11 __ZN101_$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDirective$u20$as$u20$core..clone..Clone$
+     10 __ZN4pgen17generated_parsers5regex11RegexParser32parse_directive_limit_value_core28_$u7b$$u7b$closure$u7d
+      9 __ZN4pgen17generated_parsers5regex11RegexParser11parse_piece28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+      8 __ZN4pgen12ast_pipeline16semantic_runtime20SemanticRuntimeState12resolve_path17h2f88c534e4fb3ef5E
+      8 __ZN4pgen17generated_parsers5regex11RegexParser30cascade_build_quant_bound_core17h717a2e97f04c3931E
+      8 __ZN4pgen17generated_parsers5regex11RegexParser15parse_condition28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7
+-- bl-sites for *to_shaped_value*:
+     90 __ZN4pgen17generated_parsers5regex11RegexParser46cascade_build_value_directive_limit_value_core17h6e2f32a
+     31 __ZN4pgen17generated_parsers5regex11RegexParser19cascade_build_piece17hfb0ec3ee9166da15E
+     16 __ZN4pgen17generated_parsers5regex11RegexParser31cascade_build_value_callout_arg17h0747e6edd2dc8634E
+     14 __ZN4pgen17generated_parsers5regex11RegexParser25cascade_build_conditional17hfc04d14c24984ad2E
+     12 __ZN4pgen17generated_parsers5regex11RegexParser24cascade_build_char_class17h02d6c17f35ff24d2E
+     12 __ZN4pgen17generated_parsers5regex11RegexParser11parse_piece28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$cl
+     12 __ZN4pgen17generated_parsers5regex11RegexParser10parse_atom28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$clo
+     11 __ZN4pgen17generated_parsers5regex11RegexParser13cascade_regex17h41707c63ba1d4230E
+     10 __ZN4pgen17generated_parsers5regex11RegexParser26cascade_build_value_escape17hd8975d250d4154f5E
+     10 __ZN4pgen17generated_parsers5regex11RegexParser32cascade_build_value_code_content17hb0799f1ea0616b6fE
+      9 __ZN4pgen17generated_parsers5regex11RegexParser33parse_returned_capture_subroutine28_$u7b$$u7b$closure$u7
+      9 __ZN4pgen17generated_parsers5regex11RegexParser16parse_char_class28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u
+
+noise floor on this floor: 22.871 ns; a solo lever needs its
+honest capture fraction to clear that with margin; sub-noise levers
+may only proceed BATCHED per the -0170 amended rule.

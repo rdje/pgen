@@ -1,0 +1,48 @@
+=== before band=sub1us at 2026-07-21T09:40:35Z ===
+{ 1.38 1.52 1.59 }
+ 21.0 32201 /System/Library/PrivateFrameworks/XprotectFramework.framework/Versions/A/XPCServices/XprotectService.xpc/Contents/MacOS/XprotectService
+  9.3 30386 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+  4.4   410 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.7 45526 /Applications/Stats.app/Contents/MacOS/Stats
+  3.2 59641 claude
+  3.0   616 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+=== after band=sub1us at 2026-07-21T09:42:45Z ===
+{ 1.84 1.65 1.62 }
+ 22.4 30386 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 10.9 45526 /Applications/Stats.app/Contents/MacOS/Stats
+  7.7 77571 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+  7.1 59641 claude
+  5.5   410 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.9 50681 codex
+=== before band=1to2p5 at 2026-07-21T09:42:45Z ===
+{ 1.84 1.65 1.62 }
+ 22.4 30386 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 10.9 45526 /Applications/Stats.app/Contents/MacOS/Stats
+  7.7 77571 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+  7.1 59641 claude
+  5.5   410 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.9 50681 codex
+=== after band=1to2p5 at 2026-07-21T09:44:46Z ===
+{ 2.19 1.84 1.70 }
+  7.7 30386 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+  5.9   410 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  5.6 59641 claude
+  3.4   616 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+  1.2 45526 /Applications/Stats.app/Contents/MacOS/Stats
+  1.1 98236 /Applications/Microsoft Edge.app/Contents/Frameworks/Microsoft Edge Framework.framework/Versions/150.0.4078.83/Helpers/Microsoft Edge Helper (Renderer).app/Contents/MacOS/Microsoft Edge Helper (Renderer)
+=== before band=2p5to20 at 2026-07-21T09:44:46Z ===
+{ 2.19 1.84 1.70 }
+ 10.7 30386 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+  8.6 59641 claude
+  5.0   410 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.1   616 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+  1.1 50681 codex
+  0.8 76963 bash
+=== after band=2p5to20 at 2026-07-21T09:46:22Z ===
+{ 1.89 1.83 1.71 }
+ 18.5 30386 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 14.1 59641 claude
+  5.7   410 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  5.3 45526 /Applications/Stats.app/Contents/MacOS/Stats
+  4.2 50681 codex
+  3.2   616 /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager

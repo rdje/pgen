@@ -1,0 +1,17 @@
+# Regex corpus parse-time sweep — per-case stats in docs/tasks/artifacts/carrier48_reprice/capture_band_1to2p5_times.jsonl
+# corpus=/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T//pgen-carrier48-reprice-0213.FDokCh/band_1to2p5.jsonl cases=701 accepts=665 rejects=36 expectation_mismatches=74
+# sampling: full=701 (samples=90000 warmup=50) reduced=0 (samples=5 warmup=1, cold parse >= 100 ms) single_shot=0 (cold parse >= 2000 ms)
+# geomean(min_ns)=1360.1 max(min_ns)=2250 (17 bytes, pcre2:testdata/testinput2:line_287)
+#
+# slowest 10 cases by min_ns:
+#     min (ns)  pattern bytes id
+#         2250             17 pcre2:testdata/testinput2:line_287
+#         2208             14 pcre2:testdata/testinput2:line_118
+#         2208             17 pcre2:testdata/testinput2:line_1102
+#         2208             21 pcre2:testdata/testinput2:line_3609
+#         2208             16 pcre2:testdata/testinput2:line_5443
+#         2166             14 pcre2:testdata/testinput2:line_317
+#         2166             14 pcre2:testdata/testinput2:line_751
+#         2166             21 pcre2:testdata/testinput2:line_878
+#         2166             17 pcre2:testdata/testinput2:line_2889
+#         2166             26 pcre2:testdata/testinput2:line_4699
