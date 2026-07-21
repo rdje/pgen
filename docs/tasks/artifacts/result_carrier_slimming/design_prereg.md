@@ -159,3 +159,33 @@ job under `scripts/run_with_memory_guard.sh --budget-mb 16384`, ONE at a time.
 | R6 | a non-literal `'static` name origin in an emitted helper | thread `&'static &'static str` end-to-end; origins = promoted literals or the interner |
 | R7 | downstream Rust-API surface change | contract + book lockstep; JSON wire byte-identity oracle |
 | R8 | serde field-order drift on Span | declaration order `start, end` mirrors serde's Range impl; the byte-identity oracle re-proves |
+
+## DATED ADDENDUM (2026-07-21, pre-registered BEFORE the rerun numbers) — corpus-sweep custody breach + the hardened rerun protocol
+
+The first pre-registered A/B pair is **INVALIDATED for adjudication, not
+adjudicated** (the analyzer's own custody principle, extended to the corpus
+side): the SAME base binary (`a4067793`, SHA-asserted) read corpus geomean
+**1184.08 ns = +15.62% vs its own `-0210`-session sweep** (same cells),
+roughly uniform per band (+17.2/+16.0/+10.6/+3.7%) — ~6× outside the recorded
+cross-session drift family (+0.64%, +1.31%, ≈2.3% span). Root cause
+tool-pinned live: a FOREIGN compute job (`repeated_action_result_contract`,
+a test binary under `/private/tmp/linkedspec-semantic-rust-audit-target/`,
+another harness's workload on this host) held 101% of a core during the
+sweeps; bench floorval EARLY in the run read −0.77% (clean), the corpus
+sweeps ran LAST. The contaminated pair is preserved as
+`corpus_base.jsonl`/`corpus_candidate.jsonl` (its paired verdict — REVERT at
++7.71% — is recorded but NOT adjudicated; its verdict-flip result 0/2,189 and
+MAX 395,000 ≤ 425,000 remain valid custody facts).
+
+**Hardened rerun protocol (binding for the rerun):**
+1. Four interleaved sweeps: base₁ → cand₁ → base₂ → cand₂ (same guard, same
+   corpus, `ps` foreign-load snapshots banked before/after each sweep).
+2. Corpus custody gate (must PASS before any adjudication): each base sweep
+   within ±3% of the floor-of-record 1037.804231341058 ns AND base₁ vs base₂
+   within ±2.5%; a foreign ≥50%-CPU process in a sweep's snapshots marks that
+   sweep contaminated → that sweep is re-run. Custody failure ⇒ the rerun is
+   again recorded as invalid (no adjudication) and the session stops with the
+   unit HELD, tree reverted to clean.
+3. Adjudication on the custody-clean rerun: per-cell min across each side's
+   two sweeps; the `-0197` ratchet unchanged (strict unrounded decrease vs
+   the pooled base, flips 0 across all four sweeps, MAX ≤ 425,000 ns).
