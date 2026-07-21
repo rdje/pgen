@@ -1,0 +1,533 @@
+diff --git a/rust/src/ast_pipeline/ast_based_generator.rs b/rust/src/ast_pipeline/ast_based_generator.rs
+index 41391682..da9922fd 100644
+--- a/rust/src/ast_pipeline/ast_based_generator.rs
++++ b/rust/src/ast_pipeline/ast_based_generator.rs
+@@ -908,14 +908,20 @@ impl AstBasedGenerator {
+                 // PARSE-TERMINATION.6 — failed `(rule, position)` probes (the
+                 // majority) live here with no per-entry value/allocation; the
+                 // backtrack position is the key itself.
+-                memo_fail: rustc_hash::FxHashSet<(RuleId, usize)>,
++                // `PGEN-RGX-0078-0209` — the fail sets, the guard, and the
++                // semantic state are THREAD-RECYCLED across parses through
++                // `ParseScratchLease` fields (the `-0205` lease-as-field
++                // discipline: take at construction, return on any-exit drop,
++                // `Deref` keeps every access site unchanged; the `'input`-
++                // parameterized containers stay per-parse by design).
++                memo_fail: crate::ast_pipeline::ParseScratchLease<rustc_hash::FxHashSet<(RuleId, usize)>>,
+                 // MEMO-STORE-SOUNDNESS.2 — STORE-TAINTED failures live apart,
+                 // stamped with the store write epoch at insert; they are
+                 // replayable only while that epoch is unchanged and are
+                 // evicted (then re-parsed) once the store has moved. The lean
+                 // pure-structural set above stays payload-free.
+-                memo_fail_tainted: rustc_hash::FxHashMap<(RuleId, usize), u64>,
+-                recursion_guard: RecursionGuard,
++                memo_fail_tainted: crate::ast_pipeline::ParseScratchLease<rustc_hash::FxHashMap<(RuleId, usize), u64>>,
++                recursion_guard: crate::ast_pipeline::ParseScratchLease<RecursionGuard>,
+                 grammar_profile: Option<String>,
+                 recovery_events: Vec<RecoveryEvent>,
+                 recovery_counts: HashMap<String, usize>,
+@@ -938,7 +944,11 @@ impl AstBasedGenerator {
+                 // inserts + a std→Fx re-hash of every key + ~92 short-string
+                 // allocs + the full table drop).
+                 semantic_runtime_annotations: &'static crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
+-                semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
++                // `PGEN-RGX-0078-0209` — thread-recycled (see the lease
++                // fields above). The lease's `Default` leftover keeps the
++                // SV-EXH-PROOF.3.3.3 mem::take doctrine intact: it derefs to
++                // a valid `new()`-equivalent state and drops plainly.
++                semantic_runtime_state: crate::ast_pipeline::ParseScratchLease<crate::ast_pipeline::SemanticRuntimeState>,
+                 // `SV-EXH-PROOF.3.3.4.a` MVP-0: parser-agnostic library plumbing.
+                 // `library_in_dir`  — root for `@import_from_library`
+                 //                     (artifacts read at `<dir>/<kind>/<name>.facts.json`).
+@@ -1519,7 +1529,13 @@ impl AstBasedGenerator {
+                 // `RGX-0078.5.g`: the table is the process-wide shared one.
+                 let semantic_runtime_annotations: &'static crate::ast_pipeline::CompiledSemanticRuntimeAnnotations =
+                     Self::shared_semantic_runtime_annotations();
+-                let mut semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
++                // `PGEN-RGX-0078-0209` — take the thread-recycled state (the
++                // lease re-establishes the `new()` postcondition, facts
++                // included) instead of constructing and later tearing down a
++                // fresh one per parse.
++                let mut semantic_runtime_state: crate::ast_pipeline::ParseScratchLease<
++                    crate::ast_pipeline::SemanticRuntimeState,
++                > = crate::ast_pipeline::ParseScratchLease::take();
+                 semantic_runtime_state
+                     .set_predicate_defs(semantic_runtime_annotations.clone_predicate_defs());
+                 Self {
+@@ -1544,15 +1560,31 @@ impl AstBasedGenerator {
+                     // the 256 cap: tainted populations measured ≤ 54 entries
+                     // across the worst-cell census — scaling it would buy
+                     // nothing and waste the pre-allocation.
+-                    memo_fail: rustc_hash::FxHashSet::with_capacity_and_hasher(
+-                        ((input.len() + 1) * 6).min(32768),
+-                        Default::default(),
+-                    ),
+-                    memo_fail_tainted: rustc_hash::FxHashMap::with_capacity_and_hasher(
+-                        (input.len() + 1).min(256),
+-                        Default::default(),
+-                    ),
+-                    recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
++                    // `PGEN-RGX-0078-0209` — thread-recycled: take + reserve
++                    // preserves the with_capacity invariant (empty, capacity
++                    // >= the K3a/C2 sizing) while keeping a prior parse's
++                    // grown allocation warm.
++                    memo_fail: {
++                        let mut __pgen_lease: crate::ast_pipeline::ParseScratchLease<
++                            rustc_hash::FxHashSet<(RuleId, usize)>,
++                        > = crate::ast_pipeline::ParseScratchLease::take();
++                        __pgen_lease.reserve(((input.len() + 1) * 6).min(32768));
++                        __pgen_lease
++                    },
++                    memo_fail_tainted: {
++                        let mut __pgen_lease: crate::ast_pipeline::ParseScratchLease<
++                            rustc_hash::FxHashMap<(RuleId, usize), u64>,
++                        > = crate::ast_pipeline::ParseScratchLease::take();
++                        __pgen_lease.reserve((input.len() + 1).min(256));
++                        __pgen_lease
++                    },
++                    recursion_guard: {
++                        let mut __pgen_lease: crate::ast_pipeline::ParseScratchLease<
++                            RecursionGuard,
++                        > = crate::ast_pipeline::ParseScratchLease::take();
++                        __pgen_lease.set_max_depth(#recursion_guard_max_depth);
++                        __pgen_lease
++                    },
+                     #grammar_profile_init
+                     recovery_events: Vec::new(),
+                     recovery_counts: HashMap::new(),
+@@ -11360,9 +11392,13 @@ mod semantic_usage_tests {
+             ),
+             "memoized_call must compare the predicate-evaluation counter after the rule body"
+         );
++        // (`-0209`: wrap-tolerant anchor — prettyplease breaks the lease
++        // generic across lines, leaving a trailing comma before the close.)
+         assert!(
+-            nospace.contains("memo_fail_tainted:rustc_hash::FxHashMap<(RuleId,usize),u64>"),
+-            "the parser must carry the epoch-stamped tainted-failure map beside the lean pure set"
++            nospace.contains(
++                "memo_fail_tainted:crate::ast_pipeline::ParseScratchLease<rustc_hash::FxHashMap<(RuleId,usize),u64>"
++            ),
++            "the parser must carry the epoch-stamped tainted-failure map (thread-recycled, `-0209`) beside the lean pure set"
+         );
+         assert!(
+             nospace.contains("tainted_at_epoch:ifmemo_store_tainted{"),
+@@ -11596,9 +11632,17 @@ mod semantic_usage_tests {
+             "generated parser should reference the shared compiled semantic runtime annotations table (RGX-0078.5.g), got: {}",
+             rendered
+         );
++        // `PGEN-RGX-0078-0209` — re-pinned: the state is a thread-recycled
++        // lease field (constructor postcondition re-established on take).
++        // Wrap-tolerant: prettyplease breaks the lease generic across lines,
++        // so anchor the field head and the inner type separately.
+         assert!(
+-            rendered.contains("semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState"),
+-            "generated parser should own semantic runtime state, got: {}",
++            (rendered.contains("semantic_runtime_state: crate::ast_pipeline::ParseScratchLease<")
++                && rendered.contains("crate::ast_pipeline::SemanticRuntimeState,"))
++                || rendered.contains(
++                    "semantic_runtime_state : crate :: ast_pipeline :: ParseScratchLease < crate :: ast_pipeline :: SemanticRuntimeState >"
++                ),
++            "generated parser should own the thread-recycled semantic runtime state lease, got: {}",
+             rendered
+         );
+         // `PGEN-RGX-0078-0198` — re-pinned: the per-parse reset is IN PLACE
+@@ -11618,10 +11662,14 @@ mod semantic_usage_tests {
+             "generated parser should memoize rich entries instead of bare shaped nodes, got: {}",
+             rendered
+         );
+-        // PARSE-TERMINATION.6 — the SPLIT memo: failures live in a lean set.
++        // PARSE-TERMINATION.6 — the SPLIT memo: failures live in a lean set
++        // (`-0209`: thread-recycled behind a lease; wrap-tolerant anchors).
+         assert!(
+-            rendered.contains("memo_fail: rustc_hash :: FxHashSet < (RuleId, usize) >")
+-                || rendered.contains("memo_fail: rustc_hash::FxHashSet<(RuleId, usize)>"),
++            (rendered.contains("memo_fail: crate::ast_pipeline::ParseScratchLease<")
++                && rendered.contains("rustc_hash::FxHashSet<(RuleId, usize)>,"))
++                || rendered.contains(
++                    "memo_fail : crate :: ast_pipeline :: ParseScratchLease < rustc_hash :: FxHashSet < (RuleId, usize) > >"
++                ),
+             "generated parser should carry the lean memo_fail set for cached failures, got: {}",
+             rendered
+         );
+diff --git a/rust/src/ast_pipeline/mod.rs b/rust/src/ast_pipeline/mod.rs
+index 2b6cb9c6..bbef6a8d 100644
+--- a/rust/src/ast_pipeline/mod.rs
++++ b/rust/src/ast_pipeline/mod.rs
+@@ -1660,6 +1660,173 @@ impl std::ops::DerefMut for ThinMemoScratchLease {
+     }
+ }
+ 
++/// `PGEN-RGX-0078-0209` — a parser component whose STORAGE is recycled across
++/// parses through a per-type thread-local slot (the [`ThinMemoScratchLease`]
++/// pattern generalized). Implementors are LIFETIME-FREE by requirement: a
++/// thread-local outlives any single parse, so `'input`-parameterized
++/// containers (the rich memo, the thin-entry vec, the derivation tape) are
++/// deliberately NOT eligible — the `'static` supertrait makes that design
++/// predicate compiler-enforced.
++pub trait ParseScratchRecyclable: Default + 'static {
++    /// The per-type thread slot this component recycles through.
++    fn scratch_slot() -> &'static std::thread::LocalKey<std::cell::Cell<Option<Self>>>;
++    /// Re-establish the CONSTRUCTOR's postcondition on a recycled instance,
++    /// keeping its allocations warm. Runs on every [`ParseScratchLease::take`]
++    /// — a pooled object's reset must match `new()`/`default()` semantics,
++    /// not an intra-instance reset's (e.g. `reset_for_new_parse` PRESERVES
++    /// facts by contract; a recycled state must NOT).
++    fn reset_recycled(&mut self);
++    /// An alloc-free placeholder swapped into a returning lease so the
++    /// return path constructs nothing. Never used as a live component —
++    /// it is dropped by the lease's own drop glue immediately after the
++    /// swap.
++    fn empty_shell() -> Self;
++}
++
++/// RAII lease on a thread-recycled parser component (see
++/// [`ParseScratchRecyclable`]). Generated parsers hold one as a FIELD —
++/// taking the component at construction and returning it when the parser
++/// drops on ANY exit path, without an `impl Drop` on the parser struct
++/// itself (the `-0205` lease-as-field discipline). `Deref`/`DerefMut` keep
++/// every component access site source-identical.
++///
++/// ⛔ The `Default` impl is LOAD-BEARING, not a convenience: the emitted
++/// semantic-transaction wrapper `std::mem::take`s the state FIELD per
++/// annotation-bearing rule entry and restores it by assignment
++/// (SV-EXH-PROOF.3.3.3). That leftover must (a) deref to a VALID component
++/// (`T::default()` — for the state, `default() == new()`, the documented
++/// panic-robustness doctrine) and (b) cost exactly what the pre-lease
++/// leftover cost. A `Default` lease is therefore INACTIVE: it drops plainly,
++/// with no thread-slot traffic — only construction-time `take()` leases
++/// recycle.
++#[derive(Debug)]
++pub struct ParseScratchLease<T: ParseScratchRecyclable> {
++    inner: T,
++    /// True only for `take()` leases — the parser-boundary holders that
++    /// return their component to the thread slot on drop.
++    active: bool,
++}
++
++impl<T: ParseScratchRecyclable> ParseScratchLease<T> {
++    /// Take the thread's recycled component (or a fresh default on the cold
++    /// path) and re-establish the constructor postcondition on it.
++    pub fn take() -> Self {
++        let mut inner = T::scratch_slot().with(|cell| cell.take()).unwrap_or_default();
++        inner.reset_recycled();
++        Self { inner, active: true }
++    }
++}
++
++impl<T: ParseScratchRecyclable> Default for ParseScratchLease<T> {
++    /// The `mem::take` leftover: a plain, NON-recycling holder of a valid
++    /// default component — byte-cost-identical to the pre-lease leftover.
++    fn default() -> Self {
++        Self {
++            inner: T::default(),
++            active: false,
++        }
++    }
++}
++
++impl<T: ParseScratchRecyclable> Drop for ParseScratchLease<T> {
++    fn drop(&mut self) {
++        if self.active {
++            // Swap in the alloc-free shell (freed as nothing by the drop
++            // glue) and store the real component. `Cell::set` drops any
++            // previously stored component — last return wins the slot, the
++            // `-0205` two-parsers-one-thread semantics.
++            let component = std::mem::replace(&mut self.inner, T::empty_shell());
++            T::scratch_slot().with(|cell| cell.set(Some(component)));
++        }
++    }
++}
++
++impl<T: ParseScratchRecyclable> std::ops::Deref for ParseScratchLease<T> {
++    type Target = T;
++    fn deref(&self) -> &T {
++        &self.inner
++    }
++}
++
++impl<T: ParseScratchRecyclable> std::ops::DerefMut for ParseScratchLease<T> {
++    fn deref_mut(&mut self) -> &mut T {
++        &mut self.inner
++    }
++}
++
++impl ParseScratchRecyclable for rustc_hash::FxHashSet<(RuleId, usize)> {
++    fn scratch_slot() -> &'static std::thread::LocalKey<std::cell::Cell<Option<Self>>> {
++        std::thread_local! {
++            static MEMO_FAIL_SCRATCH:
++                std::cell::Cell<Option<rustc_hash::FxHashSet<(RuleId, usize)>>> =
++                    const { std::cell::Cell::new(None) };
++        }
++        &MEMO_FAIL_SCRATCH
++    }
++    fn reset_recycled(&mut self) {
++        self.clear();
++    }
++    fn empty_shell() -> Self {
++        Self::default()
++    }
++}
++
++impl ParseScratchRecyclable for rustc_hash::FxHashMap<(RuleId, usize), u64> {
++    fn scratch_slot() -> &'static std::thread::LocalKey<std::cell::Cell<Option<Self>>> {
++        std::thread_local! {
++            static MEMO_FAIL_TAINTED_SCRATCH:
++                std::cell::Cell<Option<rustc_hash::FxHashMap<(RuleId, usize), u64>>> =
++                    const { std::cell::Cell::new(None) };
++        }
++        &MEMO_FAIL_TAINTED_SCRATCH
++    }
++    fn reset_recycled(&mut self) {
++        self.clear();
++    }
++    fn empty_shell() -> Self {
++        Self::default()
++    }
++}
++
++impl ParseScratchRecyclable for RecursionGuard {
++    fn scratch_slot() -> &'static std::thread::LocalKey<std::cell::Cell<Option<Self>>> {
++        std::thread_local! {
++            static RECURSION_GUARD_SCRATCH:
++                std::cell::Cell<Option<RecursionGuard>> =
++                    const { std::cell::Cell::new(None) };
++        }
++        &RECURSION_GUARD_SCRATCH
++    }
++    fn reset_recycled(&mut self) {
++        self.parse_stack.clear();
++        self.rule_id_stack.clear();
++        self.cycle_cache.clear();
++        // `max_depth` is a construction parameter — the emitted `new()`
++        // applies it via `set_max_depth` right after `take()`.
++        self.max_depth = 0;
++    }
++    fn empty_shell() -> Self {
++        Self::default()
++    }
++}
++
++impl ParseScratchRecyclable for semantic_runtime::SemanticRuntimeState {
++    fn scratch_slot() -> &'static std::thread::LocalKey<std::cell::Cell<Option<Self>>> {
++        std::thread_local! {
++            static SEMANTIC_STATE_SCRATCH:
++                std::cell::Cell<Option<semantic_runtime::SemanticRuntimeState>> =
++                    const { std::cell::Cell::new(None) };
++        }
++        &SEMANTIC_STATE_SCRATCH
++    }
++    fn reset_recycled(&mut self) {
++        self.recycle_reset();
++    }
++    fn empty_shell() -> Self {
++        Self::recycle_shell()
++    }
++}
++
+ /// Rule ID type for memoization
+ pub type RuleId = u16;
+ 
+@@ -1709,6 +1876,15 @@ pub struct RecursionGuard {
+     pub cycle_cache: HashMap<(String, usize), CycleType>,
+ }
+ 
++/// `PGEN-RGX-0078-0209` — the recycling shell/placeholder shape (empty
++/// stacks, no depth ceiling). Real construction goes through [`Self::new`];
++/// a recycled lease re-applies the ceiling via [`Self::set_max_depth`].
++impl Default for RecursionGuard {
++    fn default() -> Self {
++        Self::new(0)
++    }
++}
++
+ impl RecursionGuard {
+     pub fn new(max_depth: usize) -> Self {
+         Self {
+@@ -1719,6 +1895,12 @@ impl RecursionGuard {
+         }
+     }
+ 
++    /// `PGEN-RGX-0078-0209` — (re-)apply the depth ceiling on a recycled
++    /// guard (the construction parameter [`Self::new`] takes).
++    pub fn set_max_depth(&mut self, max_depth: usize) {
++        self.max_depth = max_depth;
++    }
++
+     /// Legacy NAME-scan cycle check — byte-for-byte the pre-C1 behavior, used
+     /// by the bootstrap (`ast_code_generator`) emitter and any caller without a
+     /// `RuleId`.
+@@ -4971,6 +5153,72 @@ mod tests {
+     use super::*;
+     use serde_json::json;
+ 
++    /// `PGEN-RGX-0078-0209` — the parser-scratch lease contract: a `take()`
++    /// lease recycles its component through the thread slot with the
++    /// constructor postcondition re-established; a `Default` lease (the
++    /// emitted `mem::take` leftover) holds a valid component and does NOT
++    /// touch the slot; last return wins the slot.
++    #[test]
++    fn parse_scratch_lease_recycles_and_default_leftover_is_inert() {
++        type FailSet = rustc_hash::FxHashSet<(RuleId, usize)>;
++
++        // Drain any component a sibling test left in this thread's slot.
++        FailSet::scratch_slot().with(|cell| cell.take());
++
++        // Round 1: grow a component, then drop the lease — the storage must
++        // come back on the next take with contents reset but capacity warm.
++        let mut first = ParseScratchLease::<FailSet>::take();
++        for position in 0..512usize {
++            first.insert((7, position));
++        }
++        let grown_capacity = first.capacity();
++        drop(first);
++        let second = ParseScratchLease::<FailSet>::take();
++        assert!(second.is_empty(), "take() must re-establish the constructor postcondition");
++        assert!(
++            second.capacity() >= grown_capacity,
++            "recycling must keep the grown allocation warm"
++        );
++
++        // A Default lease is the mem::take leftover: valid, empty, and INERT —
++        // dropping it must not clobber the thread slot.
++        let leftover = ParseScratchLease::<FailSet>::default();
++        assert!(leftover.is_empty());
++        drop(second); // returns the warm component to the slot
++        drop(leftover); // must NOT replace it with the empty leftover
++        let third = ParseScratchLease::<FailSet>::take();
++        assert!(
++            third.capacity() >= grown_capacity,
++            "an inactive Default lease must not steal the slot on drop"
++        );
++
++        // Two live leases on one thread: the second takes a fresh component;
++        // last return wins the slot (the -0205 semantics).
++        let fourth = ParseScratchLease::<FailSet>::take();
++        assert!(fourth.capacity() < grown_capacity || fourth.is_empty());
++        drop(third);
++        drop(fourth); // fourth returns last and owns the slot now
++        FailSet::scratch_slot().with(|cell| cell.take());
++
++        // The state impl: a dirty recycled state must come back
++        // `new()`-equivalent (the fact-leak hazard pinned at the lease level;
++        // the store-level pin is `recycle_reset_matches_new`).
++        SemanticRuntimeState::scratch_slot().with(|cell| cell.take());
++        let mut state_lease = ParseScratchLease::<SemanticRuntimeState>::take();
++        state_lease.push_fact_record(semantic_runtime::SemanticFactRecord {
++            kind: "type_name".to_string(),
++            name: semantic_runtime::SemanticRuntimeValue::Identifier("leak".to_string()),
++            scope_depth: 3,
++            scope_id: semantic_runtime::ScopeId(9),
++            attributes: Vec::new(),
++        });
++        drop(state_lease);
++        let recycled_state = ParseScratchLease::<SemanticRuntimeState>::take();
++        assert_eq!(*recycled_state, SemanticRuntimeState::new());
++        drop(recycled_state);
++        SemanticRuntimeState::scratch_slot().with(|cell| cell.take());
++    }
++
+     /// RGX-0078.5.j.4 (`-0200`) — the BARE id-only guard path: bare frames
+     /// maintain only `rule_id_stack`; the cycle scan sees them, the depth
+     /// ceiling counts them, per-stack truncation restores each stack to its
+diff --git a/rust/src/ast_pipeline/semantic_runtime.rs b/rust/src/ast_pipeline/semantic_runtime.rs
+index b69dc403..0fa0f8fc 100644
+--- a/rust/src/ast_pipeline/semantic_runtime.rs
++++ b/rust/src/ast_pipeline/semantic_runtime.rs
+@@ -2804,6 +2804,45 @@ impl SemanticRuntimeState {
+             .extend(predicate_defs.iter().map(|(name, def)| (name.clone(), def.clone())));
+     }
+ 
++    /// `PGEN-RGX-0078-0209` — re-establish the [`Self::new`] postcondition on
++    /// a THREAD-RECYCLED state, keeping its allocations warm. This is the
++    /// pooled-object reset, distinct from [`Self::reset_for_new_parse`] by
++    /// exactly one contract clause: `reset_for_new_parse` PRESERVES facts
++    /// (the library-import flow — correct within one parser instance), while
++    /// a state recycled ACROSS parser instances must not carry an unrelated
++    /// parse's facts. Clearing `facts` first makes the reset's replay loop
++    /// empty, so the result is field-for-field `new()`-equivalent
++    /// (`facts_imported`/`write_epoch` 0, root scope/arena/chain, empty
++    /// `predicate_defs`) — pinned by the `recycle_reset_matches_new` test
++    /// through the same derived `PartialEq` the `-0198` equivalence proof
++    /// used. (`HashMap::new()` does not allocate.)
++    pub fn recycle_reset(&mut self) {
++        self.facts.clear();
++        self.reset_for_new_parse(&HashMap::new());
++    }
++
++    /// `PGEN-RGX-0078-0209` — the alloc-free lease-return placeholder (see
++    /// `ParseScratchRecyclable::empty_shell`): every container empty, NO root
++    /// scope pushes. Never used as a live state — a taking lease runs
++    /// [`Self::recycle_reset`] before handing it out, which re-establishes
++    /// the root frames.
++    pub(crate) fn recycle_shell() -> Self {
++        Self {
++            scopes: Vec::new(),
++            facts: Vec::new(),
++            fact_index: FactIndex::default(),
++            scope_arena: Vec::new(),
++            active_chain: ActiveChain::new(),
++            chain_trail: Vec::new(),
++            predicate_defs: FxHashMap::default(),
++            counters: SemanticStoreCounters::default(),
++            write_epoch: 0,
++            current_rule_context_stack: Vec::new(),
++            deferred_obligations: Vec::new(),
++            memo_hit_counts: Vec::new(),
++        }
++    }
++
+     // -------------------------------------------------------------------------
+     // `.3.3.4.b.5.1.3` scope-tree accessors
+     // -------------------------------------------------------------------------
+@@ -10237,6 +10276,51 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn recycle_reset_matches_new() {
++        // `PGEN-RGX-0078-0209`: the POOLED-object reset. Unlike
++        // `reset_for_new_parse` (which preserves facts — the library-import
++        // contract), a state recycled ACROSS parser instances must come back
++        // field-for-field equal to `SemanticRuntimeState::new()` — no fact,
++        // predicate-def, counter, or scope survives, whatever churn (including
++        // imported facts and a mid-parse abort shape) the prior instance left
++        // behind. Same derived-`PartialEq` proof shape as the `-0198`
++        // equivalence tests.
++        use super::PredicateDef;
++        let defs = std::collections::HashMap::from([(
++            "leak_probe".to_string(),
++            PredicateDef {
++                name: "leak_probe".to_string(),
++                ..Default::default()
++            },
++        )]);
++        let mut recycled = SemanticRuntimeState::new();
++        recycled.set_predicate_defs(defs.clone());
++        mutate_every_public_state_category(&mut recycled);
++        // The library-import shape: a reset-for-new-parse in between leaves
++        // imported facts alive — exactly what recycling must NOT carry over.
++        recycled.reset_for_new_parse(&defs);
++        assert!(!recycled.facts().is_empty(), "precondition: facts survive an in-place reset");
++        mutate_every_public_state_category(&mut recycled);
++
++        recycled.recycle_reset();
++        assert_eq!(recycled, SemanticRuntimeState::new());
++        assert!(recycled.facts().is_empty());
++        assert_eq!(recycled.write_epoch(), 0);
++
++        // Repeated recycling stays at the fixed point.
++        mutate_every_public_state_category(&mut recycled);
++        recycled.recycle_reset();
++        assert_eq!(recycled, SemanticRuntimeState::new());
++
++        // The shell placeholder never escapes a lease, but its reset must
++        // also land exactly on `new()` (the cold-path `unwrap_or_default`
++        // uses `Default == new()`; the shell is covered for completeness).
++        let mut shell = SemanticRuntimeState::recycle_shell();
++        shell.recycle_reset();
++        assert_eq!(shell, SemanticRuntimeState::new());
++    }
++
+     #[test]
+     fn checkpoint_scope_len_stays_lockstep_with_chain_depth() {
+         // `PGEN-RGX-0078-0199`: the checkpoint's dedicated `scope_len` word

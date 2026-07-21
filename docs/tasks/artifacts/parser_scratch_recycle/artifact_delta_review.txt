@@ -1,0 +1,16 @@
+# Captured 2026-07-21 (session #181) with the CANDIDATE artifacts on disk,
+# BEFORE the ratchet-mandated revert restored the base vintage. A post-revert
+# re-run correctly refuses every artifact as unchanged vs the pre-regen bank —
+# that refusal is the RESTORE proof, not this review. Output verbatim:
+EXPECTED-ONLY DELTA: ebnf.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: json_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: regex_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: return_annotation_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: rtl_const_expr_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: rtl_frontend_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: scratch_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: semantic_annotation_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: systemverilog_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: systemverilog_preprocessor_parser.rs (48 changed lines, all in the -0209 surfaces)
+EXPECTED-ONLY DELTA: vhdl_parser.rs (48 changed lines, all in the -0209 surfaces)
+REVIEW COMPLETE overall=0

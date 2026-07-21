@@ -1,0 +1,19 @@
+PGEN-RGX-0078-0209 per-band regression decomposition (the refusal root cause)
+bands over the BASE sweep's own timing population; geomean per band:
+  sub1us   cells= 1098 base=    479.0 cand=    575.7 delta= +20.18%
+  1to2p5   cells=  715 base=   1532.1 cand=   1675.6 delta=  +9.36%
+  2p5to20  cells=  365 base=   3911.5 cand=   4088.1 delta=  +4.52%
+  ge20us   cells=   11 base=  46415.4 cand=  45741.2 delta=  -1.45%
+worst per-cell ratios (all tiny cells, ~+290 ns flat add — the O(capacity)
+hashbrown clear() of the recycled fail-memo carrying the largest capacity
+any prior parse grew; the monotone band gradient + the >=20us IMPROVEMENT
+(-1.45%, warm allocations win once the clear amortizes) is the flat-add
+signature the -0205 generation-stamp design exists to avoid):
+  pcre2:testdata/testinput2:line_4027                              250 ->     541 2.16x
+  pcre2:testdata/testinput2:line_2443                              291 ->     583 2.00x
+  pcre2:testdata/testinput2:line_4045                              291 ->     583 2.00x
+  pcre2:testdata/testinput2:line_4047                              291 ->     583 2.00x
+  pcre2:testdata/testinput2:line_7448                              291 ->     583 2.00x
+  pcre2:testdata/testinput2:line_7450                              291 ->     583 2.00x
+  pcre2:testdata/testinput2:line_7452                              291 ->     583 2.00x
+  pcre2:testdata/testinput2:line_7454                              291 ->     583 2.00x
