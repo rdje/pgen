@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ef0c104e.js";
+            window.path_to_searchindex_js = "searchindex-22e5ba99.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -196,6 +196,12 @@
 </tbody>
 </table>
 </div>
+<blockquote>
+<p><strong>Reading “Schema version” rows below:</strong> a per-release “Schema version” row (e.g. “stays at
+<code>1</code>”) tracks the <strong>regex AST-dump schema version</strong> (<code>regex_ast_dump_schema_version</code>, currently
+<code>1</code>) — <em>not</em> the embedding-API <code>schema_version</code> (currently <code>2</code>), which is a separate
+host-surface field. See <a href="schema-versioning.html">Schema Versioning</a> for the disambiguation.</p>
+</blockquote>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the ledger for specific bugs, fall back to git for diffs.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
 <p>This book is <strong>live</strong> and tracks current main HEAD. Versioning summary:</p>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ef0c104e.js";
+            window.path_to_searchindex_js = "searchindex-22e5ba99.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -194,10 +194,14 @@
 <tr><td>Module path</td><td><code>pgen::generated_parsers::regex</code></td></tr>
 <tr><td>Parser type</td><td><code>RegexParser&lt;'input&gt;</code></td></tr>
 <tr><td>Entry method (default emit)</td><td><code>parse_full_regex()</code></td></tr>
-<tr><td>Schema version</td><td><code>2</code> (typed-Json carrier era — see <a href="schema-versioning.html">Schema Versioning</a>)</td></tr>
+<tr><td>Embedding-API schema version (<code>EmbeddingApiContract.schema_version</code>)</td><td><code>2</code> (typed-Json carrier era)</td></tr>
+<tr><td>Regex AST-dump schema version (<code>regex_ast_dump_schema_version</code>)</td><td><code>1</code> (the number per-release changelog “Schema version” rows track)</td></tr>
 </tbody>
 </table>
 </div>
+<p>These are <strong>two different machine fields</strong> that both get called “schema version” in shorthand —
+see <a href="schema-versioning.html">Schema Versioning</a> for the full disambiguation (including the
+contract’s <code>0.x</code> shape-milestone labels, a third axis).</p>
 <h2 id="top-level-types"><a class="header" href="#top-level-types">Top-level types</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -376,7 +380,7 @@ removal note above).</p>
 <tr><td><code>ParseContent</code> variants</td><td><strong>NOT</strong> stable in the strictest sense — new variants may be added (e.g. <code>Json</code> was added in 1.1.x). Consumers should pattern-match exhaustively or with a <code>_</code> arm to remain forward-compatible.</td></tr>
 <tr><td><code>rule_name</code> values</td><td>Tied to rule names in <code>grammars/regex.ebnf</code>. Renames or rule additions may happen across releases — see the per-release changelog.</td></tr>
 <tr><td>AST shape per rule</td><td>Documented per release in the integration contract; this book is the cumulative-state view.</td></tr>
-<tr><td>Schema version (1 → 2)</td><td>Published in the contract. Consumers should check the version when bumping PGEN.</td></tr>
+<tr><td>Embedding-API schema version (its <code>1 → 2</code> bump = the typed-Json carrier era)</td><td>Published in the contract as <code>EmbeddingApiContract.schema_version</code>. The regex AST-dump schema version (<code>regex_ast_dump_schema_version</code>) is a separate field, currently <code>1</code>. Consumers should check both when bumping PGEN — see <a href="schema-versioning.html">Schema Versioning</a>.</td></tr>
 </tbody>
 </table>
 </div>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ef0c104e.js";
+            window.path_to_searchindex_js = "searchindex-22e5ba99.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -253,7 +253,12 @@ for the same input (historically stated against the removed
 <h2 id="rgx"><a class="header" href="#rgx">RGX</a></h2>
 <p>A downstream consumer of the PGEN regex parser. RGX uses the regex parser’s AST as its source-of-truth representation for compiling/evaluating regex patterns. This book’s primary audience.</p>
 <h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
-<p>A version number tracking the AST output shape, distinct from the parser release version. Bumped on shape-affecting changes. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
+<p>A version number tracking an output shape, distinct from the parser release version. The bare
+label is overloaded across surfaces — it may mean the <strong>regex AST-dump schema version</strong>
+(<code>regex_ast_dump_schema_version</code>, currently <code>1</code> — what per-release changelog “Schema version”
+rows track), the <strong>embedding-API schema version</strong> (<code>EmbeddingApiContract.schema_version</code>,
+currently <code>2</code>), or the contract’s <code>0.x</code> <strong>shape-milestone labels</strong>. See
+<a href="schema-versioning.html">Schema Versioning</a> for the disambiguation table.</p>
 <h2 id="semantic-annotation"><a class="header" href="#semantic-annotation">Semantic annotation</a></h2>
 <p>The <code>@xxx: ...</code> clause attached to an EBNF rule. Specifies semantic transforms (e.g. <code>@transform: str::parse::&lt;usize&gt;().unwrap_or(0)</code>) or runtime-validation predicates. Distinct from return annotations.</p>
 <h2 id="slice"><a class="header" href="#slice">Slice</a></h2>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ef0c104e.js";
+            window.path_to_searchindex_js = "searchindex-22e5ba99.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -190,6 +190,26 @@
 </ol>
 <p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.</p>
 <p>The contract document <code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for both numbers per release.</p>
+<h2 id="schema-version-appears-with-different-values--disambiguation"><a class="header" href="#schema-version-appears-with-different-values--disambiguation">“Schema version” appears with different values — disambiguation</a></h2>
+<p>Across PGEN’s surfaces the bare label “Schema version” has been used for <strong>three different
+numbers</strong>, plus the release version above. They move independently, so two surfaces quoting
+different values are almost never contradicting each other — they are naming different fields.
+Check the value against this table before planning a migration:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Number</th><th>Current value</th><th>Machine source</th><th>What it tracks</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Regex AST-dump schema version</strong></td><td><code>1</code></td><td><code>REGEX_AST_DUMP_SCHEMA_VERSION</code> (<code>rust/src/embedding_api.rs</code>); surfaced as <code>regex_ast_dump_schema_version</code> in <code>parser_embedding_api_contract()</code> and as “Regex AST-dump schema version” in the contract’s identity block</td><td>The machine-pinnable integer for the regex AST-dump wire shape. <strong>This is the number the per-release changelog/ledger “Schema version” rows track</strong> (e.g. “Schema version: stays at <code>1</code>”).</td></tr>
+<tr><td><strong>Embedding-API schema version</strong></td><td><code>2</code></td><td><code>EMBEDDING_API_SCHEMA_VERSION</code> (<code>rust/src/embedding_api.rs</code>); surfaced as <code>EmbeddingApiContract.schema_version</code></td><td>The schema of the <em>embedding-API host surface</em> itself (the typed-Json carrier era was its <code>1 → 2</code> bump). A host-surface number — independent of the regex AST-dump schema.</td></tr>
+<tr><td><strong>Contract shape-milestone labels</strong></td><td>e.g. <code>0.16.0</code></td><td>This chapter’s timeline + the per-release contract sections</td><td>Fine-grained, human-readable milestones of the AST output shape as the annotation slices landed. Labels, not a runtime field — use them to navigate the changelog, never to pin an integration.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Practical rule: <strong>pin your integration against the two machine integers</strong> read from
+<code>parser_embedding_api_contract()</code> (<code>regex_ast_dump_schema_version = 1</code>,
+<code>schema_version = 2</code>); read the <code>0.x</code> milestone labels only as changelog navigation.</p>
 <h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
 <p>Any of these triggers a schema version bump:</p>
 <ul>
