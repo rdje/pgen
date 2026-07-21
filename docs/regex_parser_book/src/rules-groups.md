@@ -1,6 +1,6 @@
 # Group Family
 
-PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. None are currently annotated in `regex.ebnf`. All emit raw envelope shapes.
+PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. **The whole family is annotated** (the atom-subtree typed-shape campaign): every group construct emits a typed `{type: "atom", kind: ..., ...}` object with the inner pattern (where there is one) in a `body` field. Names and numeric references are folded into clean string / typed-object fields — consumers never walk raw name/`signed_digits` sequences.
 
 ## Parenthesis nesting limit (since release 1.1.77, PGEN-RGX-0085)
 
@@ -51,13 +51,22 @@ Prior to 1.1.77 the over-limit case overflowed the thread stack and
 aborted the host process (`SIGABRT`) — see bug ledger `REGEX-0084`
 (downstream `PGEN-RGX-0085`).
 
+## The `body` field — the inner pattern carrier
+
+Every group construct that embeds a pattern carries it in `body`, using the standard
+`pattern` carrier `[<first-alternative>, <("|" alternative)* tail>]` — walk it exactly
+like the top-level pattern (see [Walking the AST](walking-the-ast.md) and
+[Examples: Groups and Alternations](examples-groups-alt.md)). An empty body
+(`()`, `(?:)`) is the empty alternation `[[], []]`.
+
 ## `group`
 
 ```ebnf
 group = capturing_group | noncapturing_group | named_group | python_named_group
 ```
 
-4-way Or. Each branch's content varies.
+4-way Or; each branch emits its own typed carrier, so the `group` rule itself adds
+nothing — consumers dispatch on the atom's `kind`.
 
 ## `capturing_group`
 
@@ -65,19 +74,16 @@ group = capturing_group | noncapturing_group | named_group | python_named_group
 capturing_group = "(" pattern? ")"
 ```
 
-Plain capturing group. 3-element Sequence: `["(", <pattern?>, ")"]`.
-
-For `(abc)`:
+For `(abc)` (exact probe output, `body` abbreviated):
 
 ```json
-[
-  "(",
-  [<pattern array for abc>],
-  ")"
-]
+{ "type": "atom", "kind": "capturing_group",
+  "body": [[[
+    { "atom": "a", "quantifier": [], "type": "piece" },
+    { "atom": "b", "quantifier": [], "type": "piece" },
+    { "atom": "c", "quantifier": [], "type": "piece" }
+  ]], []] }
 ```
-
-`pattern?` is wrapped in a Quantified-`?`, so the actual pattern content is at `[1][0]` when matched.
 
 ## `noncapturing_group`
 
@@ -85,16 +91,10 @@ For `(abc)`:
 noncapturing_group = "(?:" pattern? ")"
 ```
 
-3-element Sequence starting with `"(?:"`.
-
-For `(?:abc)`:
+Same carrier with `kind: "noncapturing_group"`:
 
 ```json
-[
-  "(?:",
-  [<pattern array for abc>],
-  ")"
-]
+{ "type": "atom", "kind": "noncapturing_group", "body": <pattern> }
 ```
 
 ## `named_group`
@@ -104,21 +104,15 @@ named_group = "(?<" name ">" pattern? ")"
             | "(?'" name "'" pattern? ")"
 ```
 
-2 branches — angle-bracket form and apostrophe form. 5-element Sequence.
-
-For `(?<name>abc)`:
+Both spellings (angle-bracket and apostrophe) collapse to ONE kind with the name as a
+clean string:
 
 ```json
-[
-  "(?<",
-  <name shape>,
-  ">",
-  [<pattern array for abc>],
-  ")"
-]
+{ "type": "atom", "kind": "named_group", "name": "n", "body": <pattern> }
 ```
 
-The `name` shape is the per-rule output (see `name` below).
+`(?<n>a)` and `(?'n'a)` emit identical shapes — the syntactic spelling is not
+preserved (match on `kind` + `name`).
 
 ## `python_named_group`
 
@@ -126,7 +120,14 @@ The `name` shape is the per-rule output (see `name` below).
 python_named_group = "(?P<" name ">" pattern? ")"
 ```
 
-Python-style named group. 5-element Sequence starting `"(?P<"`.
+```json
+{ "type": "atom", "kind": "python_named_group", "name": "name", "body": <pattern> }
+```
+
+A distinct `kind` from `named_group`, paralleling `python_named_backreference` —
+PCRE2 treats `(?P<n>...)` as equivalent to `(?<n>...)`, but tooling that reproduces
+the source wants the syntactic origin. Consumers normalizing all name-based groups:
+`kind in {"named_group", "python_named_group"}`; `name` carries the name in both.
 
 ## `atomic_group`
 
@@ -134,11 +135,11 @@ Python-style named group. 5-element Sequence starting `"(?P<"`.
 atomic_group = "(?>" pattern? ")" | "(*atomic:" pattern? ")"
 ```
 
-2-way Or. Both forms produce 3-element Sequences.
+Both spellings collapse to one kind:
 
-For `(?>foo)`: `["(?>", [<pattern>], ")"]`.
-
-For `(*atomic:foo)`: `["(*atomic:", [<pattern>], ")"]`.
+```json
+{ "type": "atom", "kind": "atomic_group", "body": <pattern> }
+```
 
 ## `branch_reset_group`
 
@@ -146,7 +147,12 @@ For `(*atomic:foo)`: `["(*atomic:", [<pattern>], ")"]`.
 branch_reset_group = "(?|" pattern? ")"
 ```
 
-3-element Sequence: `["(?|", <pattern?>, ")"]`.
+```json
+{ "type": "atom", "kind": "branch_reset_group", "body": <pattern> }
+```
+
+The alternation the construct exists for lives inside `body` (its tail carries the
+`("|" alternative)*` pairs).
 
 ## `lookaround`
 
@@ -155,19 +161,22 @@ lookaround = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg
            | non_atomic_lookahead_pos | non_atomic_lookbehind_pos | alpha_lookaround
 ```
 
-7-way Or. Each branch is a 3-element Sequence with a different opening prefix.
+The seven syntactic branches collapse to FOUR kinds with a `positive` boolean (plus
+the alpha spelling, which keeps its name):
 
-| Branch | Form | Shape |
-|---|---|---|
-| 0 (`lookahead_pos`) | `(?=...)` | `["(?=", <pattern>, ")"]` |
-| 1 (`lookahead_neg`) | `(?!...)` | `["(?!", <pattern>, ")"]` |
-| 2 (`lookbehind_pos`) | `(?<=...)` | `["(?<=", <pattern>, ")"]` |
-| 3 (`lookbehind_neg`) | `(?<!...)` | `["(?<!", <pattern>, ")"]` |
-| 4 (`non_atomic_lookahead_pos`) | `(?*...)` | `["(?*", <pattern>, ")"]` |
-| 5 (`non_atomic_lookbehind_pos`) | `(?<*...)` | `["(?<*", <pattern>, ")"]` |
-| 6 (`alpha_lookaround`) | `(*pla:...)`, `(*nla:...)`, `(*plb:...)`, `(*nlb:...)`, `(*napla:...)`, `(*naplb:...)` and full names | `["(*", <name>, ":", <pattern?>, ")"]` |
+| Form | Emitted atom |
+|---|---|
+| `(?=...)` | `{"type":"atom","kind":"lookahead","positive":true,"body":<pattern>}` |
+| `(?!...)` | `{"type":"atom","kind":"lookahead","positive":false,"body":<pattern>}` |
+| `(?<=...)` | `{"type":"atom","kind":"lookbehind","positive":true,"body":<pattern>}` |
+| `(?<!...)` | `{"type":"atom","kind":"lookbehind","positive":false,"body":<pattern>}` |
+| `(?*...)` | `{"type":"atom","kind":"non_atomic_lookahead","positive":true,"body":<pattern>}` |
+| `(?<*...)` | `{"type":"atom","kind":"non_atomic_lookbehind","positive":true,"body":<pattern>}` |
+| `(*pla:...)`, `(*nla:...)`, `(*plb:...)`, `(*nlb:...)`, `(*napla:...)`, `(*naplb:...)` + full names | `{"type":"atom","kind":"alpha_lookaround","name":"<alpha-name>","body":<pattern>}` |
 
-`alpha_lookaround_name` is itself a 2-way Or between atomic and non-atomic alpha forms — see the rules in `regex.ebnf`.
+PCRE2 only supports positive non-atomic lookarounds; their `positive:true` is emitted
+for consumer-code uniformity. The alpha form's `name` is the exact source spelling
+(`"nla"`, `"negative_lookahead"`, …) — consumers map it to the semantic equivalent.
 
 **`\K` is rejected inside a lookaround (release `1.1.101`, `REGEX-PCRE2-FIDELITY.4.10`).** As of `1.1.101`, each of the seven lookaround branches consumes its opener through a small **open-marker** rule (`lookahead_pos_open = "(?="`, …, `alpha_lookaround_open = "(*" alpha_lookaround_name ":"`) that opens a `lookaround` semantic scope, and closes it after the body. That scope lets the `keep_out` anchor (`\K`) reject when it is anywhere inside a lookaround body (PCRE2 error 199) — see [the anchors chapter](./examples-anchors.md#k-is-rejected-inside-a-lookaround-release-111101-regex-pcre2-fidelity410). The refactor is **AST-shape-neutral**: the marker's own output is discarded by the parent's `-> {…, body: $2}`, so every accepted lookaround AST is byte-identical to before (the alpha form's `name`/`body` still carry the alpha name and inner pattern).
 
@@ -178,15 +187,30 @@ subroutine_call = "(?" returned_capture_subroutine ")"
                 | "(?" subroutine_target ")"
 ```
 
-2-way Or. The matched form's body is the returned-capture or subroutine target wrapped in `("(?", <body>, ")")`.
+```json
+{ "type": "atom", "kind": "subroutine_call", "target": <target> }
+```
 
-`subroutine_target` is itself a 4-way Or:
-- `&name` — named subroutine.
-- `P>name` — Python-style.
-- `R` — recursion.
-- `<signed_digits>` — numeric reference.
+The `target` object discriminates on its own `kind`:
 
-> **Known deferred divergence (`REGEX-PCRE2-FIDELITY.3.22`, ledger `REGEX-0098`).** A named subroutine call to an UNKNOWN group name — `(?&zzz)`, `(?P>zzz)`, `\g<zzz>`, `\g'zzz'` (no group `zzz` defined) — is currently **accepted**, where `pcre2test` 10.47 rejects with error 115 "reference to non-existent subpattern". The grammar has no group-name inventory (references are ungated). The fix is deferred to the capstone `REGEX-PCRE2-FIDELITY.4` because it is inherently whole-pattern two-pass (forward references such as `(?&a)(?<a>x)` are LEGAL). See the [Known deferred divergences](changelog-index.md#known-deferred-divergences-accepts-invalid-not-yet-fixed) table.
+| Source | `target` |
+|---|---|
+| `(?&name)` | `{"kind":"named","name":"name"}` |
+| `(?P>name)` | `{"kind":"python_named","name":"name"}` |
+| `(?R)` | `{"kind":"recursion"}` |
+| `(?1)` | `{"kind":"numeric","sign":[],"value":1}` |
+| `(?+1)` | `{"kind":"numeric","sign":"+","value":1}` |
+| `(?-1)` | `{"kind":"numeric","sign":"-","value":1}` |
+
+`sign` is `[]` (absolute), `"+"`, or `"-"` (relative); `value` is the typed integer.
+
+> **Named-reference resolution (`REGEX-PCRE2-FIDELITY.4.11`, ledger `REGEX-0098` — CLOSED).**
+> Since release `1.1.103`, a named subroutine call (or named backreference) whose name is
+> not defined by any group in the pattern REJECTS at parse completion (PCRE2 err 115) —
+> `(?&zzz)`, `(?P>zzz)`, `\g<zzz>`, `\g'zzz'`, `(?P=zzz)` with no group `zzz` all reject.
+> Forward references (`(?&a)(?<a>x)`) remain LEGAL: the check is a whole-input
+> `phase: final` deferred obligation against the complete capture-name inventory, so it
+> is order-independent. The accepted AST shape is unchanged by the gate.
 
 ## `scan_substring_group`
 
@@ -194,14 +218,27 @@ subroutine_call = "(?" returned_capture_subroutine ")"
 scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
 ```
 
-5-element Sequence starting `(*scs:` or `(*scan_substring:`.
+```json
+{ "type": "atom", "kind": "scan_substring_group", "name": "scs",
+  "captures": ["(", {"sign": [], "value": 1}, [], ")"],
+  "body": <pattern> }
+```
 
-A **NAMED** capture reference in the list (`(*scs:(<name>))` / `(*scs:('name')`) must reference a capture
-name defined SOMEWHERE in the pattern — a forward reference (defined later) is legal, an undefined name
-REJECTs at parse completion (PCRE2 err 115). This is grammar-owned since `REGEX-PCRE2-FIDELITY.4.7.a` via a
-whole-input `phase: final` `has_fact(regex_defined_capture_name, $name)` gate (the second consumer of the
-deferred-obligation primitive after the `.4.11` named backreferences). NUMERIC references (`(*scs:(N))`)
-remain validator-owned pending `.4.7.b`/`.4.7.c`. The accepted AST shape is unchanged by the gate.
+- `name` is the source spelling (`"scs"` or `"scan_substring"`).
+- `captures` is the capture-reference list in its raw list carrier (delimiters
+  preserved): each referenced capture appears either as a typed signed-number object
+  (`{"sign":[],"value":1}` for `(1)`) or as a clean name string (`"n"` for `(<n>)` /
+  `('n')`).
+- `body` is the scanned pattern.
+
+A **NAMED** capture reference in the list must reference a capture name defined
+SOMEWHERE in the pattern — a forward reference (defined later) is legal, an undefined
+name REJECTs at parse completion (PCRE2 err 115). This is grammar-owned since
+`REGEX-PCRE2-FIDELITY.4.7.a` via a whole-input `phase: final`
+`has_fact(regex_defined_capture_name, $name)` gate (the second consumer of the
+deferred-obligation primitive after the `.4.11` named backreferences). NUMERIC
+references (`(*scs:(N))`) remain validator-owned pending `.4.7.b`/`.4.7.c`. The
+accepted AST shape is unchanged by the gate.
 
 ## `script_run_group`
 
@@ -209,7 +246,12 @@ remain validator-owned pending `.4.7.b`/`.4.7.c`. The accepted AST shape is unch
 script_run_group = "(*" script_run_name ":" pattern? ")"
 ```
 
-5-element Sequence starting `(*sr:`, `(*script_run:`, `(*asr:`, or `(*atomic_script_run:`.
+```json
+{ "type": "atom", "kind": "script_run_group", "name": "sr", "body": <pattern> }
+```
+
+`name` is the source spelling: `"sr"`, `"script_run"`, `"asr"`, or
+`"atomic_script_run"`.
 
 ## `conditional`
 
@@ -217,9 +259,32 @@ script_run_group = "(*" script_run_name ":" pattern? ")"
 conditional = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
 ```
 
-The PCRE2 conditional group. Up to 6 elements: `["(?(", <condition>, ")", <yes_branch>, <no_branch?>, ")"]`.
+```json
+{ "type": "atom", "kind": "conditional",
+  "condition": <condition>,
+  "yes_branch": [<pieces>],
+  "no_branch": ["|", [<pieces>]] }
+```
 
-`condition` is a 9-way Or covering DEFINE, VERSION, callout-prefixed assertion, regular assertion, name reference, recursion condition, name, signed digits, plain digits.
+- `yes_branch` is the piece array of the yes-concatenation.
+- `no_branch` is the optional `("|" no_branch)?` slot: the 2-element
+  `["|", [<pieces>]]` pair when present, `[]` when absent (`(?(1)y)`).
+- `condition` is a typed value discriminated by its own shape — see the condition
+  table in [Anchors, Backreferences, and Misc](rules-misc.md#condition). Summary of
+  the forms (all live-verified):
+
+| Source | `condition` |
+|---|---|
+| `(?(1)…)` | `{"sign":[],"value":1}` (signed-number object; `sign` `"+"`/`"-"` for relative) |
+| `(?(<n>)…)` / `(?('n')…)` | `"n"` (clean name string) |
+| `(?(name)…)` | `"name"` (bare-name form — same clean string) |
+| `(?(R)…)` | `{"kind":"recursion","group":[]}` |
+| `(?(R2)…)` | `{"kind":"recursion","group":2}` |
+| `(?(R&n)…)` | `{"kind":"recursion_named","name":"n"}` |
+| `(?(DEFINE)…)` | `{"kind":"define"}` |
+| `(?(VERSION>=10.4)…)` | `{"kind":"version","operator":">=","number":{"major":10,"minor":4}}` |
+| `(?(?=x)…)` (assertion) | the assertion's own typed lookaround object, e.g. `{"kind":"lookahead","positive":true,"body":<pattern>}` |
+| `(?(?C1)(?=x)…)` (callout-prefixed assertion) | `{"kind":"callout_assertion","callout":{"kind":"callout","arg":1},"assertion":<lookaround object>}` |
 
 ## `python_named_backreference`
 
@@ -227,103 +292,62 @@ The PCRE2 conditional group. Up to 6 elements: `["(?(", <condition>, ")", <yes_b
 python_named_backreference = "(?P=" name ")"
 ```
 
-3-element Sequence `["(?P=", <name>, ")"]`.
-
-> **Known deferred divergence (`REGEX-PCRE2-FIDELITY.3.22`, ledger `REGEX-0098`).** `(?P=zzz)` for an UNKNOWN group name is currently **accepted**, where `pcre2test` 10.47 rejects with error 115. Same root cause and deferral as the named backreference / subroutine family — see the [Known deferred divergences](changelog-index.md#known-deferred-divergences-accepts-invalid-not-yet-fixed) table.
-
-## Auxiliary rules
-
-### `name`
-
-```ebnf
-name = name_start name_continue*
+```json
+{ "type": "backreference", "kind": "python_named", "ref": "name" }
 ```
 
-A 2-element Sequence `[<first-char>, <Quantified of remaining chars>]`. Each char is a Terminal.
+Note the `type` is `"backreference"` (not `"atom"`) — it joins the `\k...`/`\g...`
+backreference family documented in [Atom Subtree](rules-atom.md#backreference).
+`(?P=zzz)` for an UNKNOWN group name REJECTS since `1.1.103` (the `.4.11` gate above).
 
-Consumer extraction: concatenate all chars to form the name string.
+## Auxiliary rules — folded away
 
-### `name_ref`
-
-```ebnf
-name_ref = "<" name ">" | "'" name "'"
-```
-
-2-way Or. 3-element Sequence with delimiters.
-
-### `braced_name_ref`
-
-```ebnf
-braced_name_ref = "{" brace_ws? name brace_ws? "}"
-```
-
-5-element Sequence `["{", <ws?>, <name>, <ws?>, "}"]`.
-
-### `subroutine_ref`
-
-```ebnf
-subroutine_ref = braced_subroutine_ref
-              | "<" signed_digits_or_name ">"
-              | "'" signed_digits_or_name "'"
-              | signed_digits
-```
-
-4-way Or. The matched form's content varies.
-
-### `signed_digits`
-
-```ebnf
-signed_digits = sign? digits
-```
-
-2-element Sequence `[<sign?>, <digits>]`. Recall that `digits` is annotated to emit a typed integer; the `sign` is `+`, `-`, or empty.
-
-### `signed_digits_or_name`, `name_start`, `name_continue`, `brace_ws`, `sign`
-
-Inner sub-rules. Each emits its raw Terminal/Sequence shape per the grammar form.
+The lexical helper rules (`name`, `name_ref`, `braced_name_ref`, `subroutine_ref`,
+`signed_digits`, `signed_digits_or_name`, `name_start`, `name_continue`, `brace_ws`,
+`sign`) never surface raw in the typed output: every group construct folds them into
+the clean fields above (`name: "foo"`, `target: {...}`, `condition: ...`). A name is
+always a plain joined string; a signed number is always `{"sign", "value"}` with a
+typed integer `value`.
 
 ## Walking a `(?P<foo>bar)` example
 
-For input `(?P<foo>bar)`:
+Exact probe output for `(?P<foo>bar)` (the piece around the atom shown too):
 
 ```json
-"atom": [
-  "(?P<",
-  [<name shape — chars: ["f", "o", "o"]>],
-  ">",
-  [<pattern array for "bar">],
-  ")"
-]
-```
-
-A consumer extracting the name:
-
-```rust
-fn extract_name(name_value: &Value) -> String {
-    // name = name_start name_continue*
-    // → 2-element array: [<first-char>, <Quantified of remaining>]
-    let arr = name_value.as_array().unwrap();
-    let first = arr[0].as_str().unwrap_or("");
-    let rest_arr = arr[1].as_array().map(|v| v.as_slice()).unwrap_or(&[]);
-    let mut s = String::new();
-    s.push_str(first);
-    for c in rest_arr {
-        if let Some(ch) = c.as_str() {
-            s.push_str(ch);
-        }
-    }
-    s
+{
+  "atom": {
+    "type": "atom", "kind": "python_named_group", "name": "foo",
+    "body": [[[
+      { "atom": "b", "quantifier": [], "type": "piece" },
+      { "atom": "a", "quantifier": [], "type": "piece" },
+      { "atom": "r", "quantifier": [], "type": "piece" }
+    ]], []]
+  },
+  "quantifier": [],
+  "type": "piece"
 }
 ```
 
-## Future direction
+Consumer extraction is two field reads:
 
-The group-family rules will eventually be annotated as part of task #40's atom-subtree slice. Expected target shapes:
+```rust
+fn extract_named_group(atom: &Value) -> Option<(&str, &Value)> {
+    let obj = atom.as_object()?;
+    match obj.get("kind")?.as_str()? {
+        "named_group" | "python_named_group" => {
+            Some((obj.get("name")?.as_str()?, obj.get("body")?))
+        }
+        _ => None,
+    }
+}
+```
 
-- `capturing_group` → `{type: "group", kind: "capturing", body: <pattern>}`.
-- `named_group` → `{type: "group", kind: "named", name: <str>, body: <pattern>}`.
-- `lookaround` → `{type: "lookaround", direction: "ahead"|"behind", polarity: "positive"|"negative", body: <pattern>}`.
-- `conditional` → `{type: "conditional", condition: <typed-cond>, yes: <pattern>, no: <pattern?>}`.
-- etc.
+## Historical note
 
-Until those annotations land, consumers walk the current Sequence shapes per the per-rule shape table above.
+Before the atom-subtree campaign (groups/lookarounds typed at slice 23, post-1.1.53;
+conditionals, subroutine targets, scan-substring and script-run in follow-up slices)
+this family emitted raw delimiter sequences (`["(", <pattern?>, ")"]`,
+`["(?<", <name>, ">", <pattern?>, ")"]`, …) and consumers extracted names by walking
+`name_start name_continue*` char arrays. Those shapes no longer exist in any released
+artifact — migrate to the `kind` dispatch + field reads above. (Release-by-release
+record: [Changelog Index](changelog-index.md).)

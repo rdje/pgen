@@ -63,6 +63,8 @@ For each item, classify by structural signature (per the [Atom Subtree](rules-at
   "atom": {
     "type": "atom",
     "kind": "char_class",
+    "negated": [],
+    "initial_close": [],
     "body": [
       {"type": "class_range", "start": "a", "end": "z"},
       {"type": "class_range", "start": "0", "end": "9"},
@@ -82,6 +84,8 @@ Three `class_item`s: two typed ranges and one bare literal. The body's order mat
   "atom": {
     "type": "atom",
     "kind": "char_class",
+    "negated": [],
+    "initial_close": [],
     "body": [{
       "type": "class_range",
       "start": {"type": "escape", "kind": "hex", "digits": "A"},
@@ -162,82 +166,63 @@ Before slice 8, the `posix_class` annotation `-> $1` extracted only the literal 
 
 ## Quoted class literal — `[\Qa-z\E]`
 
-The PCRE2 class-quote form. The `class_item` matches `quoted_class_literal`:
+The PCRE2 class-quote form. The `class_item` matches `quoted_class_literal`, which
+emits a typed body item (exact probe output):
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        // class_item branch 3 → quoted_class_literal
-        // = "\\Q" quoted_class_literal_char* "\\E"
-        [
-          "\\Q",
-          [<chars: a, -, z>],
-          "\\E"
-        ]
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
+      { "type": "class_quoted_literal", "body": ["a", "-", "z"] }
+    ]
+  },
   ...
 }
 ```
 
-3-element Sequence `["\\Q", <chars-Quantified>, "\\E"]`.
+Everything between `\Q` and `\E` is literal — the `-` here is a plain member char, not
+a range. The item's `body` is the per-char array. (The empty in-body quote `[a\Q\E]`
+emits `{"type":"class_quoted_literal","body":[]}` — see the class-open model section
+below.)
 
 ## Class with escape — `[\d]`
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        // class_item branch 5 → class_escape
-        // class_escape = escape
-        [
-          "\\",
-          [[[[[ "d" ]]]]]    // un-annotated escape_unit chain
-        ]
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
+      { "type": "escape", "kind": "shorthand", "char": "d" }
+    ]
+  },
   ...
 }
 ```
 
-`class_escape` wraps `escape`'s 2-element Sequence.
+`class_escape` is transparent — the typed escape object (same shape as in atom
+position; see [Escape Subtree](rules-escape.md)) appears directly as the body item.
+Typed escapes also nest inside `class_range` endpoints (`[\xA-\xFF]` above).
 
-## Stray `\E` inside class — `[\E]`
+## Stray `\E` inside class — `[a\E]`
 
-PCRE2 zero-width marker:
+A stray `\E` (no matching `\Q`) in NON-initial body position is a zero-width no-op
+that is PRESERVED as a bare `"\E"` string member:
 
 ```json
 {
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        // class_item branch 1 → stray_class_end_quote
-        "\\E"
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": ["a", "\\E"]
+  },
   ...
 }
 ```
 
-`stray_class_end_quote = "\\E"` emits the bare terminal `"\\E"`.
+At class-OPENING position a stray `\E` is instead consumed as an invisible (see the
+`1.1.84` class-open model below — `[\E]x]` accepts with the `]` as an
+`initial_close` literal, while `[\E]` alone REJECTS: invisibles never count toward
+non-emptiness).
 
 ## The PCRE2 class-open model — release `1.1.84` (`REGEX-PCRE2-FIDELITY.3.15`)
 

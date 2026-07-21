@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="group-family"><a class="header" href="#group-family">Group Family</a></h1>
-<p>PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. None are currently annotated in <code>regex.ebnf</code>. All emit raw envelope shapes.</p>
+<p>PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. <strong>The whole family is annotated</strong> (the atom-subtree typed-shape campaign): every group construct emits a typed <code>{type: "atom", kind: ..., ...}</code> object with the inner pattern (where there is one) in a <code>body</code> field. Names and numeric references are folded into clean string / typed-object fields — consumers never walk raw name/<code>signed_digits</code> sequences.</p>
 <h2 id="parenthesis-nesting-limit-since-release-1177-pgen-rgx-0085"><a class="header" href="#parenthesis-nesting-limit-since-release-1177-pgen-rgx-0085">Parenthesis nesting limit (since release 1.1.77, PGEN-RGX-0085)</a></h2>
 <p>Every <code>(</code> form drives one recursive-descent frame-chain
 (<code>parse_group → parse_capturing_group → parse_pattern → …</code>), so the
@@ -226,192 +226,240 @@ error; it changes no successful parse.</li>
 <p>Prior to 1.1.77 the over-limit case overflowed the thread stack and
 aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0084</code>
 (downstream <code>PGEN-RGX-0085</code>).</p>
+<h2 id="the-body-field--the-inner-pattern-carrier"><a class="header" href="#the-body-field--the-inner-pattern-carrier">The <code>body</code> field — the inner pattern carrier</a></h2>
+<p>Every group construct that embeds a pattern carries it in <code>body</code>, using the standard
+<code>pattern</code> carrier <code>[&lt;first-alternative&gt;, &lt;("|" alternative)* tail&gt;]</code> — walk it exactly
+like the top-level pattern (see <a href="walking-the-ast.html">Walking the AST</a> and
+<a href="examples-groups-alt.html">Examples: Groups and Alternations</a>). An empty body
+(<code>()</code>, <code>(?:)</code>) is the empty alternation <code>[[], []]</code>.</p>
 <h2 id="group"><a class="header" href="#group"><code>group</code></a></h2>
 <pre><code class="language-ebnf">group = capturing_group | noncapturing_group | named_group | python_named_group
 </code></pre>
-<p>4-way Or. Each branch’s content varies.</p>
+<p>4-way Or; each branch emits its own typed carrier, so the <code>group</code> rule itself adds
+nothing — consumers dispatch on the atom’s <code>kind</code>.</p>
 <h2 id="capturing_group"><a class="header" href="#capturing_group"><code>capturing_group</code></a></h2>
 <pre><code class="language-ebnf">capturing_group = "(" pattern? ")"
 </code></pre>
-<p>Plain capturing group. 3-element Sequence: <code>["(", &lt;pattern?&gt;, ")"]</code>.</p>
-<p>For <code>(abc)</code>:</p>
-<pre><code class="language-json">[
-  "(",
-  [&lt;pattern array for abc&gt;],
-  ")"
-]
+<p>For <code>(abc)</code> (exact probe output, <code>body</code> abbreviated):</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "capturing_group",
+  "body": [[[
+    { "atom": "a", "quantifier": [], "type": "piece" },
+    { "atom": "b", "quantifier": [], "type": "piece" },
+    { "atom": "c", "quantifier": [], "type": "piece" }
+  ]], []] }
 </code></pre>
-<p><code>pattern?</code> is wrapped in a Quantified-<code>?</code>, so the actual pattern content is at <code>[1][0]</code> when matched.</p>
 <h2 id="noncapturing_group"><a class="header" href="#noncapturing_group"><code>noncapturing_group</code></a></h2>
 <pre><code class="language-ebnf">noncapturing_group = "(?:" pattern? ")"
 </code></pre>
-<p>3-element Sequence starting with <code>"(?:"</code>.</p>
-<p>For <code>(?:abc)</code>:</p>
-<pre><code class="language-json">[
-  "(?:",
-  [&lt;pattern array for abc&gt;],
-  ")"
-]
+<p>Same carrier with <code>kind: "noncapturing_group"</code>:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "noncapturing_group", "body": &lt;pattern&gt; }
 </code></pre>
 <h2 id="named_group"><a class="header" href="#named_group"><code>named_group</code></a></h2>
 <pre><code class="language-ebnf">named_group = "(?&lt;" name "&gt;" pattern? ")"
             | "(?'" name "'" pattern? ")"
 </code></pre>
-<p>2 branches — angle-bracket form and apostrophe form. 5-element Sequence.</p>
-<p>For <code>(?&lt;name&gt;abc)</code>:</p>
-<pre><code class="language-json">[
-  "(?&lt;",
-  &lt;name shape&gt;,
-  "&gt;",
-  [&lt;pattern array for abc&gt;],
-  ")"
-]
+<p>Both spellings (angle-bracket and apostrophe) collapse to ONE kind with the name as a
+clean string:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "named_group", "name": "n", "body": &lt;pattern&gt; }
 </code></pre>
-<p>The <code>name</code> shape is the per-rule output (see <code>name</code> below).</p>
+<p><code>(?&lt;n&gt;a)</code> and <code>(?'n'a)</code> emit identical shapes — the syntactic spelling is not
+preserved (match on <code>kind</code> + <code>name</code>).</p>
 <h2 id="python_named_group"><a class="header" href="#python_named_group"><code>python_named_group</code></a></h2>
 <pre><code class="language-ebnf">python_named_group = "(?P&lt;" name "&gt;" pattern? ")"
 </code></pre>
-<p>Python-style named group. 5-element Sequence starting <code>"(?P&lt;"</code>.</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "python_named_group", "name": "name", "body": &lt;pattern&gt; }
+</code></pre>
+<p>A distinct <code>kind</code> from <code>named_group</code>, paralleling <code>python_named_backreference</code> —
+PCRE2 treats <code>(?P&lt;n&gt;...)</code> as equivalent to <code>(?&lt;n&gt;...)</code>, but tooling that reproduces
+the source wants the syntactic origin. Consumers normalizing all name-based groups:
+<code>kind in {"named_group", "python_named_group"}</code>; <code>name</code> carries the name in both.</p>
 <h2 id="atomic_group"><a class="header" href="#atomic_group"><code>atomic_group</code></a></h2>
 <pre><code class="language-ebnf">atomic_group = "(?&gt;" pattern? ")" | "(*atomic:" pattern? ")"
 </code></pre>
-<p>2-way Or. Both forms produce 3-element Sequences.</p>
-<p>For <code>(?&gt;foo)</code>: <code>["(?&gt;", [&lt;pattern&gt;], ")"]</code>.</p>
-<p>For <code>(*atomic:foo)</code>: <code>["(*atomic:", [&lt;pattern&gt;], ")"]</code>.</p>
+<p>Both spellings collapse to one kind:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "atomic_group", "body": &lt;pattern&gt; }
+</code></pre>
 <h2 id="branch_reset_group"><a class="header" href="#branch_reset_group"><code>branch_reset_group</code></a></h2>
 <pre><code class="language-ebnf">branch_reset_group = "(?|" pattern? ")"
 </code></pre>
-<p>3-element Sequence: <code>["(?|", &lt;pattern?&gt;, ")"]</code>.</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "branch_reset_group", "body": &lt;pattern&gt; }
+</code></pre>
+<p>The alternation the construct exists for lives inside <code>body</code> (its tail carries the
+<code>("|" alternative)*</code> pairs).</p>
 <h2 id="lookaround"><a class="header" href="#lookaround"><code>lookaround</code></a></h2>
 <pre><code class="language-ebnf">lookaround = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg
            | non_atomic_lookahead_pos | non_atomic_lookbehind_pos | alpha_lookaround
 </code></pre>
-<p>7-way Or. Each branch is a 3-element Sequence with a different opening prefix.</p>
+<p>The seven syntactic branches collapse to FOUR kinds with a <code>positive</code> boolean (plus
+the alpha spelling, which keeps its name):</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Branch</th><th>Form</th><th>Shape</th></tr>
+<tr><th>Form</th><th>Emitted atom</th></tr>
 </thead>
 <tbody>
-<tr><td>0 (<code>lookahead_pos</code>)</td><td><code>(?=...)</code></td><td><code>["(?=", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td>1 (<code>lookahead_neg</code>)</td><td><code>(?!...)</code></td><td><code>["(?!", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td>2 (<code>lookbehind_pos</code>)</td><td><code>(?&lt;=...)</code></td><td><code>["(?&lt;=", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td>3 (<code>lookbehind_neg</code>)</td><td><code>(?&lt;!...)</code></td><td><code>["(?&lt;!", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td>4 (<code>non_atomic_lookahead_pos</code>)</td><td><code>(?*...)</code></td><td><code>["(?*", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td>5 (<code>non_atomic_lookbehind_pos</code>)</td><td><code>(?&lt;*...)</code></td><td><code>["(?&lt;*", &lt;pattern&gt;, ")"]</code></td></tr>
-<tr><td>6 (<code>alpha_lookaround</code>)</td><td><code>(*pla:...)</code>, <code>(*nla:...)</code>, <code>(*plb:...)</code>, <code>(*nlb:...)</code>, <code>(*napla:...)</code>, <code>(*naplb:...)</code> and full names</td><td><code>["(*", &lt;name&gt;, ":", &lt;pattern?&gt;, ")"]</code></td></tr>
+<tr><td><code>(?=...)</code></td><td><code>{"type":"atom","kind":"lookahead","positive":true,"body":&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?!...)</code></td><td><code>{"type":"atom","kind":"lookahead","positive":false,"body":&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;=...)</code></td><td><code>{"type":"atom","kind":"lookbehind","positive":true,"body":&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;!...)</code></td><td><code>{"type":"atom","kind":"lookbehind","positive":false,"body":&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?*...)</code></td><td><code>{"type":"atom","kind":"non_atomic_lookahead","positive":true,"body":&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?&lt;*...)</code></td><td><code>{"type":"atom","kind":"non_atomic_lookbehind","positive":true,"body":&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(*pla:...)</code>, <code>(*nla:...)</code>, <code>(*plb:...)</code>, <code>(*nlb:...)</code>, <code>(*napla:...)</code>, <code>(*naplb:...)</code> + full names</td><td><code>{"type":"atom","kind":"alpha_lookaround","name":"&lt;alpha-name&gt;","body":&lt;pattern&gt;}</code></td></tr>
 </tbody>
 </table>
 </div>
-<p><code>alpha_lookaround_name</code> is itself a 2-way Or between atomic and non-atomic alpha forms — see the rules in <code>regex.ebnf</code>.</p>
+<p>PCRE2 only supports positive non-atomic lookarounds; their <code>positive:true</code> is emitted
+for consumer-code uniformity. The alpha form’s <code>name</code> is the exact source spelling
+(<code>"nla"</code>, <code>"negative_lookahead"</code>, …) — consumers map it to the semantic equivalent.</p>
 <p><strong><code>\K</code> is rejected inside a lookaround (release <code>1.1.101</code>, <code>REGEX-PCRE2-FIDELITY.4.10</code>).</strong> As of <code>1.1.101</code>, each of the seven lookaround branches consumes its opener through a small <strong>open-marker</strong> rule (<code>lookahead_pos_open = "(?="</code>, …, <code>alpha_lookaround_open = "(*" alpha_lookaround_name ":"</code>) that opens a <code>lookaround</code> semantic scope, and closes it after the body. That scope lets the <code>keep_out</code> anchor (<code>\K</code>) reject when it is anywhere inside a lookaround body (PCRE2 error 199) — see <a href="./examples-anchors.html#k-is-rejected-inside-a-lookaround-release-111101-regex-pcre2-fidelity410">the anchors chapter</a>. The refactor is <strong>AST-shape-neutral</strong>: the marker’s own output is discarded by the parent’s <code>-&gt; {…, body: $2}</code>, so every accepted lookaround AST is byte-identical to before (the alpha form’s <code>name</code>/<code>body</code> still carry the alpha name and inner pattern).</p>
 <h2 id="subroutine_call"><a class="header" href="#subroutine_call"><code>subroutine_call</code></a></h2>
 <pre><code class="language-ebnf">subroutine_call = "(?" returned_capture_subroutine ")"
                 | "(?" subroutine_target ")"
 </code></pre>
-<p>2-way Or. The matched form’s body is the returned-capture or subroutine target wrapped in <code>("(?", &lt;body&gt;, ")")</code>.</p>
-<p><code>subroutine_target</code> is itself a 4-way Or:</p>
-<ul>
-<li><code>&amp;name</code> — named subroutine.</li>
-<li><code>P&gt;name</code> — Python-style.</li>
-<li><code>R</code> — recursion.</li>
-<li><code>&lt;signed_digits&gt;</code> — numeric reference.</li>
-</ul>
+<pre><code class="language-json">{ "type": "atom", "kind": "subroutine_call", "target": &lt;target&gt; }
+</code></pre>
+<p>The <code>target</code> object discriminates on its own <code>kind</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th><code>target</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?&amp;name)</code></td><td><code>{"kind":"named","name":"name"}</code></td></tr>
+<tr><td><code>(?P&gt;name)</code></td><td><code>{"kind":"python_named","name":"name"}</code></td></tr>
+<tr><td><code>(?R)</code></td><td><code>{"kind":"recursion"}</code></td></tr>
+<tr><td><code>(?1)</code></td><td><code>{"kind":"numeric","sign":[],"value":1}</code></td></tr>
+<tr><td><code>(?+1)</code></td><td><code>{"kind":"numeric","sign":"+","value":1}</code></td></tr>
+<tr><td><code>(?-1)</code></td><td><code>{"kind":"numeric","sign":"-","value":1}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>sign</code> is <code>[]</code> (absolute), <code>"+"</code>, or <code>"-"</code> (relative); <code>value</code> is the typed integer.</p>
 <blockquote>
-<p><strong>Known deferred divergence (<code>REGEX-PCRE2-FIDELITY.3.22</code>, ledger <code>REGEX-0098</code>).</strong> A named subroutine call to an UNKNOWN group name — <code>(?&amp;zzz)</code>, <code>(?P&gt;zzz)</code>, <code>\g&lt;zzz&gt;</code>, <code>\g'zzz'</code> (no group <code>zzz</code> defined) — is currently <strong>accepted</strong>, where <code>pcre2test</code> 10.47 rejects with error 115 “reference to non-existent subpattern”. The grammar has no group-name inventory (references are ungated). The fix is deferred to the capstone <code>REGEX-PCRE2-FIDELITY.4</code> because it is inherently whole-pattern two-pass (forward references such as <code>(?&amp;a)(?&lt;a&gt;x)</code> are LEGAL). See the <a href="changelog-index.html#known-deferred-divergences-accepts-invalid-not-yet-fixed">Known deferred divergences</a> table.</p>
+<p><strong>Named-reference resolution (<code>REGEX-PCRE2-FIDELITY.4.11</code>, ledger <code>REGEX-0098</code> — CLOSED).</strong>
+Since release <code>1.1.103</code>, a named subroutine call (or named backreference) whose name is
+not defined by any group in the pattern REJECTS at parse completion (PCRE2 err 115) —
+<code>(?&amp;zzz)</code>, <code>(?P&gt;zzz)</code>, <code>\g&lt;zzz&gt;</code>, <code>\g'zzz'</code>, <code>(?P=zzz)</code> with no group <code>zzz</code> all reject.
+Forward references (<code>(?&amp;a)(?&lt;a&gt;x)</code>) remain LEGAL: the check is a whole-input
+<code>phase: final</code> deferred obligation against the complete capture-name inventory, so it
+is order-independent. The accepted AST shape is unchanged by the gate.</p>
 </blockquote>
 <h2 id="scan_substring_group"><a class="header" href="#scan_substring_group"><code>scan_substring_group</code></a></h2>
 <pre><code class="language-ebnf">scan_substring_group = "(*" scan_substring_name ":" returned_capture_group_list pattern? ")"
 </code></pre>
-<p>5-element Sequence starting <code>(*scs:</code> or <code>(*scan_substring:</code>.</p>
-<p>A <strong>NAMED</strong> capture reference in the list (<code>(*scs:(&lt;name&gt;))</code> / <code>(*scs:('name')</code>) must reference a capture
-name defined SOMEWHERE in the pattern — a forward reference (defined later) is legal, an undefined name
-REJECTs at parse completion (PCRE2 err 115). This is grammar-owned since <code>REGEX-PCRE2-FIDELITY.4.7.a</code> via a
-whole-input <code>phase: final</code> <code>has_fact(regex_defined_capture_name, $name)</code> gate (the second consumer of the
-deferred-obligation primitive after the <code>.4.11</code> named backreferences). NUMERIC references (<code>(*scs:(N))</code>)
-remain validator-owned pending <code>.4.7.b</code>/<code>.4.7.c</code>. The accepted AST shape is unchanged by the gate.</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "scan_substring_group", "name": "scs",
+  "captures": ["(", {"sign": [], "value": 1}, [], ")"],
+  "body": &lt;pattern&gt; }
+</code></pre>
+<ul>
+<li><code>name</code> is the source spelling (<code>"scs"</code> or <code>"scan_substring"</code>).</li>
+<li><code>captures</code> is the capture-reference list in its raw list carrier (delimiters
+preserved): each referenced capture appears either as a typed signed-number object
+(<code>{"sign":[],"value":1}</code> for <code>(1)</code>) or as a clean name string (<code>"n"</code> for <code>(&lt;n&gt;)</code> /
+<code>('n')</code>).</li>
+<li><code>body</code> is the scanned pattern.</li>
+</ul>
+<p>A <strong>NAMED</strong> capture reference in the list must reference a capture name defined
+SOMEWHERE in the pattern — a forward reference (defined later) is legal, an undefined
+name REJECTs at parse completion (PCRE2 err 115). This is grammar-owned since
+<code>REGEX-PCRE2-FIDELITY.4.7.a</code> via a whole-input <code>phase: final</code>
+<code>has_fact(regex_defined_capture_name, $name)</code> gate (the second consumer of the
+deferred-obligation primitive after the <code>.4.11</code> named backreferences). NUMERIC
+references (<code>(*scs:(N))</code>) remain validator-owned pending <code>.4.7.b</code>/<code>.4.7.c</code>. The
+accepted AST shape is unchanged by the gate.</p>
 <h2 id="script_run_group"><a class="header" href="#script_run_group"><code>script_run_group</code></a></h2>
 <pre><code class="language-ebnf">script_run_group = "(*" script_run_name ":" pattern? ")"
 </code></pre>
-<p>5-element Sequence starting <code>(*sr:</code>, <code>(*script_run:</code>, <code>(*asr:</code>, or <code>(*atomic_script_run:</code>.</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "script_run_group", "name": "sr", "body": &lt;pattern&gt; }
+</code></pre>
+<p><code>name</code> is the source spelling: <code>"sr"</code>, <code>"script_run"</code>, <code>"asr"</code>, or
+<code>"atomic_script_run"</code>.</p>
 <h2 id="conditional"><a class="header" href="#conditional"><code>conditional</code></a></h2>
 <pre><code class="language-ebnf">conditional = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
 </code></pre>
-<p>The PCRE2 conditional group. Up to 6 elements: <code>["(?(", &lt;condition&gt;, ")", &lt;yes_branch&gt;, &lt;no_branch?&gt;, ")"]</code>.</p>
-<p><code>condition</code> is a 9-way Or covering DEFINE, VERSION, callout-prefixed assertion, regular assertion, name reference, recursion condition, name, signed digits, plain digits.</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "conditional",
+  "condition": &lt;condition&gt;,
+  "yes_branch": [&lt;pieces&gt;],
+  "no_branch": ["|", [&lt;pieces&gt;]] }
+</code></pre>
+<ul>
+<li><code>yes_branch</code> is the piece array of the yes-concatenation.</li>
+<li><code>no_branch</code> is the optional <code>("|" no_branch)?</code> slot: the 2-element
+<code>["|", [&lt;pieces&gt;]]</code> pair when present, <code>[]</code> when absent (<code>(?(1)y)</code>).</li>
+<li><code>condition</code> is a typed value discriminated by its own shape — see the condition
+table in <a href="rules-misc.html#condition">Anchors, Backreferences, and Misc</a>. Summary of
+the forms (all live-verified):</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th><code>condition</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?(1)…)</code></td><td><code>{"sign":[],"value":1}</code> (signed-number object; <code>sign</code> <code>"+"</code>/<code>"-"</code> for relative)</td></tr>
+<tr><td><code>(?(&lt;n&gt;)…)</code> / <code>(?('n')…)</code></td><td><code>"n"</code> (clean name string)</td></tr>
+<tr><td><code>(?(name)…)</code></td><td><code>"name"</code> (bare-name form — same clean string)</td></tr>
+<tr><td><code>(?(R)…)</code></td><td><code>{"kind":"recursion","group":[]}</code></td></tr>
+<tr><td><code>(?(R2)…)</code></td><td><code>{"kind":"recursion","group":2}</code></td></tr>
+<tr><td><code>(?(R&amp;n)…)</code></td><td><code>{"kind":"recursion_named","name":"n"}</code></td></tr>
+<tr><td><code>(?(DEFINE)…)</code></td><td><code>{"kind":"define"}</code></td></tr>
+<tr><td><code>(?(VERSION&gt;=10.4)…)</code></td><td><code>{"kind":"version","operator":"&gt;=","number":{"major":10,"minor":4}}</code></td></tr>
+<tr><td><code>(?(?=x)…)</code> (assertion)</td><td>the assertion’s own typed lookaround object, e.g. <code>{"kind":"lookahead","positive":true,"body":&lt;pattern&gt;}</code></td></tr>
+<tr><td><code>(?(?C1)(?=x)…)</code> (callout-prefixed assertion)</td><td><code>{"kind":"callout_assertion","callout":{"kind":"callout","arg":1},"assertion":&lt;lookaround object&gt;}</code></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="python_named_backreference"><a class="header" href="#python_named_backreference"><code>python_named_backreference</code></a></h2>
 <pre><code class="language-ebnf">python_named_backreference = "(?P=" name ")"
 </code></pre>
-<p>3-element Sequence <code>["(?P=", &lt;name&gt;, ")"]</code>.</p>
-<blockquote>
-<p><strong>Known deferred divergence (<code>REGEX-PCRE2-FIDELITY.3.22</code>, ledger <code>REGEX-0098</code>).</strong> <code>(?P=zzz)</code> for an UNKNOWN group name is currently <strong>accepted</strong>, where <code>pcre2test</code> 10.47 rejects with error 115. Same root cause and deferral as the named backreference / subroutine family — see the <a href="changelog-index.html#known-deferred-divergences-accepts-invalid-not-yet-fixed">Known deferred divergences</a> table.</p>
-</blockquote>
-<h2 id="auxiliary-rules"><a class="header" href="#auxiliary-rules">Auxiliary rules</a></h2>
-<h3 id="name"><a class="header" href="#name"><code>name</code></a></h3>
-<pre><code class="language-ebnf">name = name_start name_continue*
+<pre><code class="language-json">{ "type": "backreference", "kind": "python_named", "ref": "name" }
 </code></pre>
-<p>A 2-element Sequence <code>[&lt;first-char&gt;, &lt;Quantified of remaining chars&gt;]</code>. Each char is a Terminal.</p>
-<p>Consumer extraction: concatenate all chars to form the name string.</p>
-<h3 id="name_ref"><a class="header" href="#name_ref"><code>name_ref</code></a></h3>
-<pre><code class="language-ebnf">name_ref = "&lt;" name "&gt;" | "'" name "'"
-</code></pre>
-<p>2-way Or. 3-element Sequence with delimiters.</p>
-<h3 id="braced_name_ref"><a class="header" href="#braced_name_ref"><code>braced_name_ref</code></a></h3>
-<pre><code class="language-ebnf">braced_name_ref = "{" brace_ws? name brace_ws? "}"
-</code></pre>
-<p>5-element Sequence <code>["{", &lt;ws?&gt;, &lt;name&gt;, &lt;ws?&gt;, "}"]</code>.</p>
-<h3 id="subroutine_ref"><a class="header" href="#subroutine_ref"><code>subroutine_ref</code></a></h3>
-<pre><code class="language-ebnf">subroutine_ref = braced_subroutine_ref
-              | "&lt;" signed_digits_or_name "&gt;"
-              | "'" signed_digits_or_name "'"
-              | signed_digits
-</code></pre>
-<p>4-way Or. The matched form’s content varies.</p>
-<h3 id="signed_digits"><a class="header" href="#signed_digits"><code>signed_digits</code></a></h3>
-<pre><code class="language-ebnf">signed_digits = sign? digits
-</code></pre>
-<p>2-element Sequence <code>[&lt;sign?&gt;, &lt;digits&gt;]</code>. Recall that <code>digits</code> is annotated to emit a typed integer; the <code>sign</code> is <code>+</code>, <code>-</code>, or empty.</p>
-<h3 id="signed_digits_or_name-name_start-name_continue-brace_ws-sign"><a class="header" href="#signed_digits_or_name-name_start-name_continue-brace_ws-sign"><code>signed_digits_or_name</code>, <code>name_start</code>, <code>name_continue</code>, <code>brace_ws</code>, <code>sign</code></a></h3>
-<p>Inner sub-rules. Each emits its raw Terminal/Sequence shape per the grammar form.</p>
+<p>Note the <code>type</code> is <code>"backreference"</code> (not <code>"atom"</code>) — it joins the <code>\k...</code>/<code>\g...</code>
+backreference family documented in <a href="rules-atom.html#backreference">Atom Subtree</a>.
+<code>(?P=zzz)</code> for an UNKNOWN group name REJECTS since <code>1.1.103</code> (the <code>.4.11</code> gate above).</p>
+<h2 id="auxiliary-rules--folded-away"><a class="header" href="#auxiliary-rules--folded-away">Auxiliary rules — folded away</a></h2>
+<p>The lexical helper rules (<code>name</code>, <code>name_ref</code>, <code>braced_name_ref</code>, <code>subroutine_ref</code>,
+<code>signed_digits</code>, <code>signed_digits_or_name</code>, <code>name_start</code>, <code>name_continue</code>, <code>brace_ws</code>,
+<code>sign</code>) never surface raw in the typed output: every group construct folds them into
+the clean fields above (<code>name: "foo"</code>, <code>target: {...}</code>, <code>condition: ...</code>). A name is
+always a plain joined string; a signed number is always <code>{"sign", "value"}</code> with a
+typed integer <code>value</code>.</p>
 <h2 id="walking-a-pfoobar-example"><a class="header" href="#walking-a-pfoobar-example">Walking a <code>(?P&lt;foo&gt;bar)</code> example</a></h2>
-<p>For input <code>(?P&lt;foo&gt;bar)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(?P&lt;",
-  [&lt;name shape — chars: ["f", "o", "o"]&gt;],
-  "&gt;",
-  [&lt;pattern array for "bar"&gt;],
-  ")"
-]
+<p>Exact probe output for <code>(?P&lt;foo&gt;bar)</code> (the piece around the atom shown too):</p>
+<pre><code class="language-json">{
+  "atom": {
+    "type": "atom", "kind": "python_named_group", "name": "foo",
+    "body": [[[
+      { "atom": "b", "quantifier": [], "type": "piece" },
+      { "atom": "a", "quantifier": [], "type": "piece" },
+      { "atom": "r", "quantifier": [], "type": "piece" }
+    ]], []]
+  },
+  "quantifier": [],
+  "type": "piece"
+}
 </code></pre>
-<p>A consumer extracting the name:</p>
+<p>Consumer extraction is two field reads:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn extract_name(name_value: &amp;Value) -&gt; String {
-    // name = name_start name_continue*
-    // → 2-element array: [&lt;first-char&gt;, &lt;Quantified of remaining&gt;]
-    let arr = name_value.as_array().unwrap();
-    let first = arr[0].as_str().unwrap_or("");
-    let rest_arr = arr[1].as_array().map(|v| v.as_slice()).unwrap_or(&amp;[]);
-    let mut s = String::new();
-    s.push_str(first);
-    for c in rest_arr {
-        if let Some(ch) = c.as_str() {
-            s.push_str(ch);
+</span>fn extract_named_group(atom: &amp;Value) -&gt; Option&lt;(&amp;str, &amp;Value)&gt; {
+    let obj = atom.as_object()?;
+    match obj.get("kind")?.as_str()? {
+        "named_group" | "python_named_group" =&gt; {
+            Some((obj.get("name")?.as_str()?, obj.get("body")?))
         }
+        _ =&gt; None,
     }
-    s
 }
 <span class="boring">}</span></code></pre>
-<h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>The group-family rules will eventually be annotated as part of task #40’s atom-subtree slice. Expected target shapes:</p>
-<ul>
-<li><code>capturing_group</code> → <code>{type: "group", kind: "capturing", body: &lt;pattern&gt;}</code>.</li>
-<li><code>named_group</code> → <code>{type: "group", kind: "named", name: &lt;str&gt;, body: &lt;pattern&gt;}</code>.</li>
-<li><code>lookaround</code> → <code>{type: "lookaround", direction: "ahead"|"behind", polarity: "positive"|"negative", body: &lt;pattern&gt;}</code>.</li>
-<li><code>conditional</code> → <code>{type: "conditional", condition: &lt;typed-cond&gt;, yes: &lt;pattern&gt;, no: &lt;pattern?&gt;}</code>.</li>
-<li>etc.</li>
-</ul>
-<p>Until those annotations land, consumers walk the current Sequence shapes per the per-rule shape table above.</p>
+<h2 id="historical-note"><a class="header" href="#historical-note">Historical note</a></h2>
+<p>Before the atom-subtree campaign (groups/lookarounds typed at slice 23, post-1.1.53;
+conditionals, subroutine targets, scan-substring and script-run in follow-up slices)
+this family emitted raw delimiter sequences (<code>["(", &lt;pattern?&gt;, ")"]</code>,
+<code>["(?&lt;", &lt;name&gt;, "&gt;", &lt;pattern?&gt;, ")"]</code>, …) and consumers extracted names by walking
+<code>name_start name_continue*</code> char arrays. Those shapes no longer exist in any released
+artifact — migrate to the <code>kind</code> dispatch + field reads above. (Release-by-release
+record: <a href="changelog-index.html">Changelog Index</a>.)</p>
 
                     </main>
 

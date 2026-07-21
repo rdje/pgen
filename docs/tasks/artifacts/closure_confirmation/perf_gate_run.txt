@@ -1,0 +1,37 @@
+# PGEN-RGX-0078-0219 — the vendored RGX perf gate, release-day run (as-provided config:
+# `cargo run --release --features generated_parsers --example pgen_pcre2_compile_ratio`,
+# memory-guarded). Full build log (83,900 compiler warnings from the generated parsers)
+# trimmed to the run provenance + the gate output; absolute checkout paths stripped
+# (docpath doctrine). C-baseline cross-check numbers are in the -0219 CHANGES entry.
+
+memory-guard: started pid=83986 pgid=83986 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=3600s free=83% disk=92GB cmd: caffeinate -i cargo run --release --features generated_parsers --example pgen_pcre2_compile_ratio
+    Finished `release` profile [optimized] target(s) in 16m 59s
+     Running `target/release/examples/pgen_pcre2_compile_ratio`
+# PGEN regex parse vs PCRE2 full compile — 5000 samples / 200 warmup
+# Run on `cargo run --release --features generated_parsers --example pgen_pcre2_compile_ratio`.
+pattern                PGEN parse p50 (ns) PCRE2 compile p50 (ns)      ratio
+----------------------------------------------------------------------
+literal_simple                   1084            250       4.3x
+digit_sequence                   2125            375       5.7x
+character_class                 10416            667      15.6x
+alternation                      2042            375       5.4x
+capture_groups                   4709            500       9.4x
+url_simple                       1666            333       5.0x
+email_basic                      1625            334       4.9x
+anchor_complex                   5500            708       7.8x
+# Geomean PGEN/PCRE2 ratio: 6.6x
+# RGX ROADMAP closure target: < 5x
+# Closure status:
+# ❌ Closure target NOT met (geomean is 6.6x; needs to be < 5x).
+memory-guard: completed exit=0 peak_tree_rss=11320MB elapsed=1022s; marker: rust/target/generated_logs/memory_guard/guard.83986.marker
+
+# C-baseline cross-check (same host, same session; make regex_pcre2_compile_perf_gate_cross_check;
+# batch-MEAN of 10,000 compiles per the RGX harness's own methodology):
+# === PCRE2 compile (no JIT) ===
+# literal_simple 134 ns | digit_sequence 268 | character_class 601 | alternation 302
+# capture_groups 428 | url_simple 265 | email_basic 283 | anchor_complex 602
+# === PCRE2 compile + JIT ===
+# literal_simple 1453 | digit_sequence 2022 | character_class 2619 | alternation 1872
+# capture_groups 2617 | url_simple 1998 | email_basic 2359 | anchor_complex 2912
+# (crate-p50 vs C-mean agree within the expected margin; the crate numbers are the
+#  canonical instrument per the vendored README.)

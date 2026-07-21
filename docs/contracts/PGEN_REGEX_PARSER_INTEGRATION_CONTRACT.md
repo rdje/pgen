@@ -34,6 +34,15 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-21 — PGEN-RGX-0078 REPORT CLOSURE + the regex book's AST reference RE-SYNCED to the typed-shape reality (DOCS + BENCH-ONLY; release/contract/schema versions UNCHANGED)
+
+**What downstream consumers must do: nothing.** Two related updates shipped together for the `PGEN-RGX-0078` closure release:
+
+- **The regex parser mdBook — the canonical AST reference — was audited example-by-example against the live parser and re-synced.** The typed-shape campaign (the `{type, kind, ...}` objects for escapes, groups, lookarounds, conditionals, modifiers, callouts, code blocks, comments, directives, extended classes, and the character class) is now precisely and uniformly documented: the per-rule chapters (`rules-groups`, `rules-modifiers`, `rules-misc`, `rules-atom`, `rules-escape`) and the worked examples no longer show any pre-typed-era raw shapes as current; the atom **identification table** (`rules-atom.md`) is a complete, live-verified signature table for every construct, and every documented example was verified byte-for-byte against the released parser's `--parse-dump-ast-pretty` output. RGX can rely on the book for exact consumer-side dispatch (`bare string ⇒ literal text; object ⇒ type + kind`). No parser change — the book was brought to the parser, not the reverse; wire format untouched (schema `1`).
+- **The RGX-provided `PGEN-RGX-0078` iteration flow is now VENDORED and runnable inside PGEN** (per the bundle's own README): `rust/perf/` (C PCRE2 baselines + frozen 8-pattern corpus + driver) + `rust/examples/pgen_pcre2_compile_ratio.rs` (the canonical PGEN-parse-vs-PCRE2-compile ratio microbench) + the `make -C rust regex_pcre2_compile_perf_gate` target. Build-surface note: this adds a **dev-dependency** `pcre2 = "0.2"` (bench-only; production code unaffected; build hosts running the gate need system `libpcre2-8`). The `PGEN-RGX-0078` bug-ledger row records the closure adjudication and the gate's release-day numbers (see `PGEN_RELEASED_PARSER_BUG_LEDGER.md`).
+
+Versions: release `1.1.105` / contract `1.1.108` / schema `1` all UNCHANGED (docs + bench tooling only).
+
 ## Maintenance Update 2026-07-21 — RGX-0078 SPEED CAMPAIGN CLOSED at the honest floor (PERFORMANCE-ONLY; SURFACE-NEUTRAL; release/contract/schema versions UNCHANGED)
 
 **What downstream consumers must do: nothing.** The tracked speed campaign (`RGX-0078`) is closed; this entry re-baselines the contract's performance statement.

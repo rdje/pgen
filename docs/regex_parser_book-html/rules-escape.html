@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -181,12 +181,12 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="escape-subtree"><a class="header" href="#escape-subtree">Escape Subtree</a></h1>
-<p>PCRE2 escape sequences (<code>\d</code>, <code>\w</code>, <code>\xFF</code>, <code>\u{1F}</code>, <code>\o{777}</code>, <code>\cA</code>, <code>\p{Lu}</code>, etc.). None currently annotated. All emit raw envelope shapes.</p>
+<p>PCRE2 escape sequences (<code>\d</code>, <code>\w</code>, <code>\xFF</code>, <code>\u{1F}</code>, <code>\o{777}</code>, <code>\cA</code>, <code>\p{Lu}</code>, etc.). <strong>The whole subtree is annotated</strong> (slices 14–17): every escape form emits a flat typed <code>{type: "escape", kind: ..., ...}</code> object — one field read per payload, no chain walking.</p>
 <h2 id="escape"><a class="header" href="#escape"><code>escape</code></a></h2>
 <pre><code class="language-ebnf">@type: "context_sensitive_escape_sequence"
 escape = "\\" escape_unit
 </code></pre>
-<p>2-element Sequence: <code>["\\", &lt;escape_unit shape&gt;]</code>. The <code>@type</code>/<code>@description</code>/<code>@effect</code>/etc. are semantic annotations, not return annotations.</p>
+<p><strong>Transparent</strong> (<code>-&gt; $2</code>): the matched <code>escape_unit</code> branch’s typed object IS the output — the wrapper adds nothing. (The <code>@type</code>/<code>@description</code>/<code>@effect</code>/etc. are semantic annotations, not return annotations.)</p>
 <h2 id="escape_unit"><a class="header" href="#escape_unit"><code>escape_unit</code></a></h2>
 <pre><code class="language-ebnf">escape_unit = single_byte_escape
             | hex_escape
@@ -196,21 +196,21 @@ escape = "\\" escape_unit
             | property_escape
             | simple_escape
 </code></pre>
-<p>7-way Or, <strong>un-annotated</strong>.</p>
-<h3 id="branches-and-shapes"><a class="header" href="#branches-and-shapes">Branches and shapes</a></h3>
+<p>7-way Or; the Or itself carries no annotation — each branch emits its own typed object.</p>
+<h3 id="branches-and-shapes-all-live-verified"><a class="header" href="#branches-and-shapes-all-live-verified">Branches and shapes (all live-verified)</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Branch</th><th>Form</th><th>Example</th><th>Shape</th></tr>
+<tr><th>Branch</th><th>Form</th><th>Example</th><th>Emitted object</th></tr>
 </thead>
 <tbody>
-<tr><td>0 (<code>single_byte_escape</code>)</td><td><code>\C</code></td><td><code>\C</code></td><td><code>Terminal("C")</code> (just the unit; outer <code>escape</code> adds the <code>\\</code>)</td></tr>
-<tr><td>1 (<code>hex_escape</code>)</td><td><code>\xFF</code>, <code>\x{FFFF}</code></td><td><code>\xFF</code></td><td>nested hex_escape Sequence</td></tr>
-<tr><td>2 (<code>unicode_escape</code>)</td><td><code>\u{FFFF}</code></td><td><code>\u{1F}</code></td><td>nested unicode_escape Sequence</td></tr>
-<tr><td>3 (<code>octal_escape</code>)</td><td><code>\o{777}</code>, <code>\377</code></td><td><code>\o{777}</code></td><td>nested octal_escape Sequence</td></tr>
-<tr><td>4 (<code>control_escape</code>)</td><td><code>\cA</code></td><td><code>\cA</code></td><td>nested control_escape Sequence</td></tr>
-<tr><td>5 (<code>property_escape</code>)</td><td><code>\p{Lu}</code>, <code>\P{Lu}</code>, <code>\pL</code>, <code>\PL</code></td><td><code>\pL</code></td><td>nested property_escape Sequence</td></tr>
-<tr><td>6 (<code>simple_escape</code>)</td><td><code>\&lt;any-char&gt;</code> (catch-all)</td><td><code>\d</code>, <code>\.</code>, <code>\\</code></td><td><code>Terminal(&lt;char&gt;)</code> (single char after backslash)</td></tr>
+<tr><td>0 (<code>single_byte_escape</code>)</td><td><code>\C</code></td><td><code>\C</code></td><td><code>{"type":"escape","kind":"single_byte"}</code></td></tr>
+<tr><td>1 (<code>hex_escape</code>)</td><td><code>\xFF</code>, <code>\x{FFFF}</code></td><td><code>\xFF</code></td><td><code>{"type":"escape","kind":"hex","digits":"FF"}</code></td></tr>
+<tr><td>2 (<code>unicode_escape</code>, <code>relaxed</code> only)</td><td><code>\u{FFFF}</code></td><td><code>\u{1F}</code></td><td><code>{"type":"escape","kind":"unicode","digits":"1F"}</code></td></tr>
+<tr><td>3 (<code>octal_escape</code>)</td><td><code>\o{777}</code>, <code>\377</code></td><td><code>\o{101}</code></td><td><code>{"type":"escape","kind":"octal","digits":"101"}</code></td></tr>
+<tr><td>4 (<code>control_escape</code>)</td><td><code>\cA</code></td><td><code>\cA</code></td><td><code>{"type":"escape","kind":"control","char":"A"}</code></td></tr>
+<tr><td>5 (<code>property_escape</code>)</td><td><code>\p{Lu}</code>, <code>\P{Lu}</code>, <code>\pL</code>, <code>\PL</code></td><td><code>\pL</code></td><td><code>{"type":"escape","kind":"property","name":"L","negated":false}</code></td></tr>
+<tr><td>6 (<code>simple_escape</code>)</td><td><code>\&lt;char&gt;</code> (catch-all)</td><td><code>\d</code>, <code>\.</code>, <code>\\</code></td><td><code>{"type":"escape","kind":"shorthand","char":"d"}</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -291,31 +291,14 @@ grammar-declared rather than engine-hard-coded, per the EBNF-single-source-of-tr
 <pre><code class="language-ebnf">hex_escape = "x" hex_digit hex_digit?
            | "x{" brace_ws? hex_digits brace_ws? "}"
 </code></pre>
-<p>2 branches. Hex escapes have two PCRE2 forms.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Form</th><th>Shape</th></tr>
-</thead>
-<tbody>
-<tr><td><code>\xFF</code> (1-2 digit)</td><td>3-element Sequence <code>["x", &lt;hex_digit&gt;, &lt;hex_digit?&gt;]</code></td></tr>
-<tr><td><code>\x{...}</code> (braced, any-length)</td><td>5-element Sequence <code>["x{", &lt;ws?&gt;, &lt;hex_digits&gt;, &lt;ws?&gt;, "}"]</code></td></tr>
-</tbody>
-</table>
-</div>
-<p>For <code>\x{1F}</code>:</p>
-<pre><code class="language-json">[
-  "\\",
-  [
-    "x{",
-    [],
-    [&lt;hex_digits: ["1", "F"]&gt;],
-    [],
-    "}"
-  ]
-]
+<p>2 branches (the two PCRE2 syntactic forms) — both emit the SAME typed object with the
+digit string joined:</p>
+<pre><code class="language-json">{ "type": "escape", "kind": "hex", "digits": &lt;hex-digit-string&gt; }
 </code></pre>
-<p><code>hex_digits</code> is itself a Quantified-<code>+</code> of <code>hex_digit</code> terminals. Consumers concatenate to get the hex string, then parse to int.</p>
+<p>Live-verified: <code>\xF</code> → <code>digits:"F"</code>; <code>\xFF</code> → <code>digits:"FF"</code>; <code>\x{1F}</code> →
+<code>digits:"1F"</code> (the braced form’s whitespace and delimiters are folded away).
+Consumers parse <code>digits</code> as a hex integer; the source spelling (short vs braced) is
+not preserved.</p>
 <h2 id="unicode_escape"><a class="header" href="#unicode_escape"><code>unicode_escape</code></a></h2>
 <pre><code class="language-ebnf">@profiles: ["relaxed"]
 unicode_escape = "u{" hex_digits "}"
@@ -326,47 +309,32 @@ unicode_escape = "u{" hex_digits "}"
 <pre><code class="language-ebnf">octal_escape = "o{" brace_ws? octal_digits brace_ws? "}"
              | octal_digit octal_digit? octal_digit?
 </code></pre>
-<p>2 branches:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Form</th><th>Shape</th></tr>
-</thead>
-<tbody>
-<tr><td><code>\o{...}</code> braced</td><td>5-element Sequence <code>["o{", &lt;ws?&gt;, &lt;octal_digits&gt;, &lt;ws?&gt;, "}"]</code></td></tr>
-<tr><td><code>\NNN</code> 1-3 digit</td><td>3-element Sequence <code>[&lt;octal_digit&gt;, &lt;octal_digit?&gt;, &lt;octal_digit?&gt;]</code></td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="octal_digits"><a class="header" href="#octal_digits"><code>octal_digits</code></a></h2>
-<pre><code class="language-ebnf">octal_digits = octal_digit+
+<p>2 branches (braced and bare 1-3-digit) — both emit the SAME typed object with the
+digit string joined and leading zeros preserved:</p>
+<pre><code class="language-json">{ "type": "escape", "kind": "octal", "digits": &lt;octal-digit-string&gt; }
 </code></pre>
-<p>Quantified-<code>+</code> of octal_digit terminals. Currently un-annotated; see <a href="rules-quantifier.html">Quantifier Subtree</a> for <code>digits</code>-style typing roadmap.</p>
+<p>Live-verified: <code>\o{101}</code> → <code>digits:"101"</code>; <code>\0</code> → <code>digits:"0"</code>. (The <code>octal_digits</code>
+helper folds into the joined <code>digits</code> string — no per-char walking.)</p>
 <h2 id="control_escape"><a class="header" href="#control_escape"><code>control_escape</code></a></h2>
 <pre><code class="language-ebnf">control_escape = "c" any_char
 </code></pre>
-<p>2-element Sequence: <code>["c", &lt;any_char&gt;]</code>.</p>
-<p>For <code>\cA</code>: <code>["c", "A"]</code> (under the outer <code>escape</code>).</p>
+<p>Typed object:</p>
+<pre><code class="language-json">{ "type": "escape", "kind": "control", "char": &lt;char&gt; }
+</code></pre>
+<p>Live-verified: <code>\cA</code> → <code>{"type":"escape","kind":"control","char":"A"}</code>.</p>
 <h2 id="property_escape"><a class="header" href="#property_escape"><code>property_escape</code></a></h2>
 <pre><code class="language-ebnf">property_escape = "p{" prop_name "}"
                 | "P{" prop_name "}"
                 | "p" short_prop_letter
                 | "P" short_prop_letter
 </code></pre>
-<p>4 branches, distinguishing braced vs short-form and lower vs upper <code>p</code>.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Form</th><th>Shape</th></tr>
-</thead>
-<tbody>
-<tr><td><code>\p{Lu}</code></td><td>3-element Sequence <code>["p{", &lt;prop_name&gt;, "}"]</code></td></tr>
-<tr><td><code>\P{Lu}</code></td><td>3-element Sequence <code>["P{", &lt;prop_name&gt;, "}"]</code></td></tr>
-<tr><td><code>\pL</code> (short)</td><td>2-element Sequence <code>["p", &lt;short_prop_letter&gt;]</code></td></tr>
-<tr><td><code>\PL</code> (short)</td><td>2-element Sequence <code>["P", &lt;short_prop_letter&gt;]</code></td></tr>
-</tbody>
-</table>
-</div>
+<p>4 branches (braced vs short-form × lower vs upper <code>p</code>) — all four emit the SAME typed
+object; the upper-case <code>P</code> surfaces as <code>negated: true</code>:</p>
+<pre><code class="language-json">{ "type": "escape", "kind": "property", "name": &lt;string&gt;, "negated": &lt;bool&gt; }
+</code></pre>
+<p>Live-verified: <code>\p{Lu}</code> → <code>{"kind":"property","name":"Lu","negated":false}</code>; <code>\pL</code> →
+<code>name:"L"</code>; <code>\PN</code> → <code>{"name":"N","negated":true}</code>. <code>name</code> is the clean joined
+property name (braced) or the single category letter (short form).</p>
 <p><strong>Bare short-form validity (REGEX-PCRE2-FIDELITY.4.1, release 1.1.90).</strong> In PCRE2 a bare (un-braced) <code>\p</code>/<code>\P</code> MUST be one of the 14 one-letter general categories in <a href="#short_prop_letter"><code>short_prop_letter</code></a>. <code>\p</code>/<code>\P</code> are ALWAYS property introducers — they are excluded from <code>simple_escape</code> (dropped from <code>simple_escape_letter_strict</code>; the <code>!"p"</code>/<code>!"P"</code> whole-letter lookaheads on <code>simple_escape</code> / <code>class_simple_escape</code>), so a bad-letter (<code>\pA</code>, <code>\P_</code>), at-EOF (<code>\p</code>, <code>\P</code>), or class-context (<code>[\pA]</code>) form has <strong>no fully-consuming parse and hard-REJECTS</strong> rather than decomposing into <code>\p</code> + a literal. This is grammar-owned (the acceptance rule migrated out of the out-of-band <code>regex_compile_validation.rs::find_invalid_property_escape</code> — the EBNF is now the single source of truth). Behavior-neutral for downstream: these forms were rejected by the validator before and by the grammar now.</p>
 <h2 id="short_prop_letter"><a class="header" href="#short_prop_letter"><code>short_prop_letter</code></a></h2>
 <pre><code class="language-ebnf">short_prop_letter = 'C' | 'L' | 'M' | 'N' | 'P' | 'S' | 'Z'
@@ -382,95 +350,40 @@ unicode_escape = "u{" hex_digits "}"
 </code></pre>
 <p>9-way Or, each emitting a Terminal of the matched char.</p>
 <h2 id="walking-a-d-example"><a class="header" href="#walking-a-d-example">Walking a <code>\d+</code> example</a></h2>
-<p>For input <code>\d+</code>:</p>
+<p>Exact probe output for <code>\d+</code>:</p>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      [
-        [
-          [
-            [
-              "d"
-            ]
-          ]
-        ]
-      ]
-    ]
-  ],
-  "quantifier": {"type": "quantifier", "min": 1, "max": null, "greediness": []},
+  "atom": { "type": "escape", "kind": "shorthand", "char": "d" },
+  "quantifier": { "type": "quantifier", "min": 1, "max": null, "greediness": [] },
   "type": "piece"
 }
 </code></pre>
-<p>The deeply-nested array on the right of <code>"\\"</code> is the un-annotated chain <code>escape_unit -&gt; simple_escape -&gt; any_char -&gt; letter</code>, with each layer adding an Alternative wrapping that doesn’t unwrap when serialised raw.</p>
-<p>A consumer extracting the escape character:</p>
+<p>Extraction is a single field read:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn extract_simple_escape_char(escape_atom: &amp;Value) -&gt; Option&lt;&amp;str&gt; {
-    // escape_atom = ["\\", &lt;escape_unit shape&gt;]
-    let arr = escape_atom.as_array()?;
-    let unit = arr.get(1)?;
-    // simple_escape branch: descend until we find a string
-    let mut cur = unit;
-    loop {
-        match cur {
-            Value::String(s) =&gt; return Some(s),
-            Value::Array(a) if a.len() == 1 =&gt; cur = &amp;a[0],
-            _ =&gt; return None,
-        }
-    }
+</span>fn extract_shorthand_escape_char(atom: &amp;Value) -&gt; Option&lt;&amp;str&gt; {
+    let obj = atom.as_object()?;
+    if obj.get("type")?.as_str()? != "escape" { return None; }
+    if obj.get("kind")?.as_str()? != "shorthand" { return None; }
+    obj.get("char")?.as_str()
 }
 <span class="boring">}</span></code></pre>
-<p>(That’s the un-annotated walk; once <code>escape_unit</code> is annotated, the walk collapses to a single field lookup.)</p>
 <h2 id="walking-a-x1f-example"><a class="header" href="#walking-a-x1f-example">Walking a <code>\x{1F}</code> example</a></h2>
+<p>Exact probe output:</p>
 <pre><code class="language-json">{
-  "atom": [
-    "\\",
-    [
-      "x{",
-      [],
-      [["1"], ["F"]],
-      [],
-      "}"
-    ]
-  ],
+  "atom": { "type": "escape", "kind": "hex", "digits": "1F" },
   "quantifier": [],
   "type": "piece"
 }
 </code></pre>
-<p>The hex digits are a Quantified-<code>+</code> of single-char Terminals (each digit wrapped in an Alternative). To extract the hex string:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn extract_hex_digits(seq: &amp;Value) -&gt; String {
-    // seq is a Quantified array; each element wraps a single hex digit
-    let mut s = String::new();
-    if let Some(arr) = seq.as_array() {
-        for elem in arr {
-            // each elem may be an Alternative-wrapped or bare-string digit
-            let mut cur = elem;
-            loop {
-                match cur {
-                    Value::String(c) =&gt; { s.push_str(c); break; }
-                    Value::Array(a) if a.len() == 1 =&gt; cur = &amp;a[0],
-                    _ =&gt; break,
-                }
-            }
-        }
-    }
-    s
-}
-<span class="boring">}</span></code></pre>
-<h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>Future task #40 escape-subtree slice will likely produce shapes like:</p>
-<ul>
-<li><code>simple_escape</code> → <code>{type: "escape", kind: "simple", char: &lt;char&gt;}</code>.</li>
-<li><code>hex_escape</code> → <code>{type: "escape", kind: "hex", value: &lt;int&gt;}</code>.</li>
-<li><code>unicode_escape</code> → <code>{type: "escape", kind: "unicode", codepoint: &lt;int&gt;}</code>.</li>
-<li><code>octal_escape</code> → <code>{type: "escape", kind: "octal", value: &lt;int&gt;}</code>.</li>
-<li><code>control_escape</code> → <code>{type: "escape", kind: "control", char: &lt;char&gt;}</code>.</li>
-<li><code>property_escape</code> → <code>{type: "escape", kind: "property", name: &lt;str&gt;, negated: &lt;bool&gt;}</code>.</li>
-</ul>
-<p>These are not yet implemented; consumers walk the raw shapes today.</p>
+<p><code>digits</code> is the clean joined hex string — <code>u32::from_str_radix(digits, 16)</code> recovers
+the code point. The same one-object read applies to every escape kind (<code>octal</code>
+digits, <code>control</code> char, <code>property</code> name/negated, <code>unicode</code> digits under <code>relaxed</code>).</p>
+<h2 id="historical-note"><a class="header" href="#historical-note">Historical note</a></h2>
+<p>In the pre-slice-14 era the escape subtree emitted raw shapes — the 2-element
+<code>["\\", &lt;escape_unit chain&gt;]</code> with deeply-nested un-annotated wrappers that consumers
+descended level by level. Those shapes no longer exist in any released artifact; every
+escape form now emits the flat typed <code>{type: "escape", kind, ...}</code> objects documented
+above (see the <a href="changelog-index.html">Changelog Index</a> for the slice-by-slice record).</p>
 
                     </main>
 

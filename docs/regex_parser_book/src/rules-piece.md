@@ -203,13 +203,15 @@ The `**` flatten-spread on `concatenation` is what unwraps the Sequence-shape ca
 
 ## What `atom` looks like inside a piece
 
-The `atom` field's shape depends on which `atom` alternative matched. Currently `atom` is un-annotated, so the atom alternative's raw envelope appears directly. Common shapes:
+The `atom` field's shape depends on which `atom` alternative matched — the `atom` Or
+itself is un-annotated, so the matched alternative's OWN (typed) shape appears
+directly. In practice that is a **bare string** for literal text or a **typed object**
+for everything else:
 
-- For a `literal`: a string like `"a"`.
-- For a `dot`: `"."`.
-- For a `quoted_literal` (e.g. inside a single-char `\Qx\E`): `["\\Q", [<char>], "\\E"]`.
-- For an `escape`: a 2-element `["\\", <escape_unit>]` shape — see [Escape Subtree](rules-escape.md).
-- For a `char_class`: nested structure — see [Character Class Subtree](rules-char-class.md).
-- For a `group`: nested `(...)` content — see [Group Family](rules-groups.md).
+- For a `literal`: a string like `"a"`; for a `dot`: `"."`.
+- For a `quoted_literal` (e.g. `\Qx\E`): `{"type":"atom","kind":"quoted_literal","body":["x"]}`.
+- For an `escape`: `{"type":"escape","kind":...,...}` — see [Escape Subtree](rules-escape.md).
+- For a `char_class`: `{"type":"atom","kind":"char_class",...}` — see [Character Class Subtree](rules-char-class.md).
+- For a `group`: `{"type":"atom","kind":"capturing_group"|...,"body":<pattern>}` — see [Group Family](rules-groups.md).
 
-The [Atom Subtree](rules-atom.md) chapter documents each alternative.
+The [Atom Subtree](rules-atom.md) chapter's identification table lists every shape.

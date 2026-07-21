@@ -289,13 +289,11 @@ regex
         └── ("|" alternative)*  (the rest)
 ```
 
-Today the alternation/alternative layers visibly nest because they're un-annotated. Once those rules carry their own typed annotations (planned in task #40), the `pattern` shape will collapse to something like:
-
-```json
-"pattern": { "type": "alternation", "alternatives": [
-  { "type": "concatenation", "pieces": [...] },
-  ...
-]}
-```
-
-— a single alternation object whose children are the alternative-concatenations directly. Until then, consumers walk the current 2-deep `[<concat-array>, <rest-array>]` pattern field.
+The alternation/alternative layers visibly nest because they're un-annotated — and
+this is now **by design**: the atom-subtree typed-shape campaign is complete, and the
+outer `pattern` carrier deliberately keeps its raw 2-deep
+`[<concat-array>, <rest-array>]` form (it is the one structural shape every consumer
+already walks, and re-shaping it would be a breaking schema migration for zero new
+information). Any future flattening (e.g. a
+`{"type":"alternation","alternatives":[...]}` object) would be a contract-versioned
+migration, not a silent change — see [Schema Versioning](schema-versioning.md).

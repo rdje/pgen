@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -269,10 +269,12 @@ match &amp;node.content {
 </code></pre>
 <p><strong>When it appears:</strong></p>
 <ul>
-<li>Multi-element sequence rule bodies WITHOUT a return annotation: e.g. <code>(?:</code> <code>pattern?</code> <code>)</code> becomes a 3-element Sequence at the <code>noncapturing_group</code> level today.</li>
+<li>Multi-element sequence rule bodies WITHOUT a return annotation: e.g. the
+grammar-internal <code>extended_class_nested = "[" extended_class_content "]"</code> emits a
+3-element Sequence (most consumer-facing rules carry annotations and emit typed
+shapes instead — see the per-rule chapters).</li>
 <li>Annotation-produced flat arrays: <code>concatenation = piece+ -&gt; [$1**]</code> produces a flat <code>Sequence</code> of piece nodes (the <code>**</code> flatten-spread unwraps any nested Sequences/Quantifieds one level).</li>
 </ul>
-<p>Example — <code>[a-z]</code>’s class_body is a Sequence of class_item nodes, not yet annotated.</p>
 <h2 id="variant-alternativeboxparsenodeinput"><a class="header" href="#variant-alternativeboxparsenodeinput">Variant: <code>Alternative(Box&lt;ParseNode&lt;'input&gt;&gt;)</code></a></h2>
 <p>A boxed inner node, used when wrapping a single chosen alternative from an Or rule. Mostly an internal codegen artifact.</p>
 <p><strong>JSON form:</strong></p>

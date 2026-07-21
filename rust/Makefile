@@ -1712,3 +1712,37 @@ bootstrap-status:
 	@echo -n "Final regex parser: "; [ -f $(REGEX_PARSER) ] && echo "✓ EXISTS" || echo "✗ MISSING"
 	@echo ""
 	@echo "To test bootstrap mode: make bootstrap-test"
+
+# ---------------------------------------------------------------------------
+# PGEN-RGX-0078 vendored compile-time perf gate (rust/perf/ — see VENDORED.md):
+# PGEN regex parse p50 vs PCRE2 full-compile p50 on the frozen 8-pattern
+# corpus; closure criterion = geomean ratio < 5x (the RGX ROADMAP target).
+# Requires system libpcre2-8 (brew install pcre2) for the pcre2 crate + the
+# optional C cross-check baselines.
+# ---------------------------------------------------------------------------
+PCRE2_PREFIX ?= $(shell brew --prefix pcre2 2>/dev/null || echo /usr/local)
+
+.PHONY: regex_pcre2_compile_perf_gate
+regex_pcre2_compile_perf_gate:
+	@echo "🧱 Running regex compile-time perf gate (PGEN parse vs PCRE2 compile)..."
+	cd $(RUST_DIR) && cargo run --release \
+	    --features generated_parsers \
+	    --example pgen_pcre2_compile_ratio
+	@echo "✅ regex compile-time perf gate completed."
+
+.PHONY: regex_pcre2_compile_perf_gate_cross_check
+regex_pcre2_compile_perf_gate_cross_check:
+	@echo "🧪 Building + running C-side PCRE2 baselines (cross-check)..."
+	cc -O2 -I$(PCRE2_PREFIX)/include -L$(PCRE2_PREFIX)/lib \
+	    -o $(RUST_DIR)/target/pcre2_compile_baseline \
+	    $(RUST_DIR)/perf/pcre2_compile_baseline.c -lpcre2-8
+	cc -O2 -I$(PCRE2_PREFIX)/include -L$(PCRE2_PREFIX)/lib \
+	    -o $(RUST_DIR)/target/pcre2_compile_jit_baseline \
+	    $(RUST_DIR)/perf/pcre2_compile_jit_baseline.c -lpcre2-8
+	@echo "=== PCRE2 compile (no JIT) ==="
+	@$(RUST_DIR)/target/pcre2_compile_baseline
+	@echo "=== PCRE2 compile + JIT ==="
+	@$(RUST_DIR)/target/pcre2_compile_jit_baseline
+
+.PHONY: regex_pcre2_compile_perf_gate_full
+regex_pcre2_compile_perf_gate_full: regex_pcre2_compile_perf_gate regex_pcre2_compile_perf_gate_cross_check

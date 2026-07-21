@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -262,10 +262,7 @@
         [[
           { "atom": "a", "quantifier": [], "type": "piece" },
           {
-            "atom": [
-              "\\",
-              [[[[[ "." ]]]]]
-            ],
+            "atom": { "char": ".", "kind": "shorthand", "type": "escape" },
             "quantifier": [],
             "type": "piece"
           }
@@ -279,7 +276,7 @@
   "span": { "start": 0, "end": 3 }
 }
 </code></pre>
-<p>The <code>\.</code> produces an escape atom — a 2-element array <code>["\\", &lt;escape_unit&gt;]</code>. The deeply-nested <code>[[[[[ "." ]]]]]</code> is the un-annotated chain <code>escape_unit → simple_escape → any_char → ...</code>. Once those rules are annotated, this nesting collapses.</p>
+<p>The <code>\.</code> produces a typed escape atom — the flat <code>{type:"escape", kind:"shorthand", char:"."}</code> object (the escape subtree is fully typed; see <a href="rules-escape.html">Escape Subtree</a> and <a href="examples-escapes.html">Examples: Escapes</a>). The escaped metacharacter is just <code>char: "."</code> — semantic interpretation is downstream.</p>
 <h2 id="single-non-ascii-literal--é"><a class="header" href="#single-non-ascii-literal--é">Single non-ASCII literal — <code>é</code></a></h2>
 <pre><code class="language-json">{
   "content": {

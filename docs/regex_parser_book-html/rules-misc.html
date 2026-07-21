@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -185,11 +185,16 @@
 <h2 id="callout"><a class="header" href="#callout"><code>callout</code></a></h2>
 <pre><code class="language-ebnf">callout = "(?C" callout_arg? ")"
 </code></pre>
-<p>The PCRE2 callout construct <code>(?C...)</code>. 4-element Sequence: <code>["(?C", &lt;callout_arg?&gt;, ")"]</code>.</p>
+<p>The PCRE2 callout construct <code>(?C...)</code>. <strong>Typed</strong> — the atom is:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "callout", "arg": &lt;arg&gt; }
+</code></pre>
+<p>where <code>arg</code> is <code>[]</code> for the bare <code>(?C)</code>, a typed integer for the numeric form, or a
+<code>{"payload", "quote"}</code> object for the string forms (table below).</p>
 <h3 id="callout_arg"><a class="header" href="#callout_arg"><code>callout_arg</code></a></h3>
 <pre><code class="language-ebnf">callout_arg = callout_number | callout_string
 </code></pre>
-<p>2-way Or. <code>callout_number</code> is the typed integer (annotated). <code>callout_string</code> is one of 8 string-delimited forms.</p>
+<p>2-way Or, folded into the parent’s <code>arg</code> field. <code>callout_number</code> is the typed integer
+(annotated). <code>callout_string</code> is one of 8 string-delimited forms.</p>
 <h3 id="callout_number--the-numeric-argument-value-bounded-to-0-255"><a class="header" href="#callout_number--the-numeric-argument-value-bounded-to-0-255"><code>callout_number</code> — the numeric argument, value-bounded to [0, 255]</a></h3>
 <pre><code class="language-ebnf">@transform: str::parse::&lt;usize&gt;().unwrap_or(0)
 callout_number      = callout_number_body
@@ -225,34 +230,37 @@ forms share <code>callout_arg</code>. String callout-args are not value-bounded 
                | callout_brace_string
 </code></pre>
 <p>8-way Or. Each variant uses a different delimiter pair: backtick, single quote, double quote, caret, percent, hash, dollar, brace.</p>
-<p>Each callout_*_string rule is <code>[&lt;delim&gt;, &lt;payload-Quantified&gt;, &lt;delim&gt;]</code> (or <code>&lt;open&gt;, &lt;payload&gt;, &lt;close&gt;</code> for the brace form).</p>
-<p>For <code>(?C12)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(?C",
-  12,             // typed integer from digits
-  ")"
-]
-</code></pre>
-<p>For <code>(?C"comment")</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(?C",
-  ["\"", [&lt;chars&gt;], "\""],
-  ")"
-]
-</code></pre>
+<p>Each string form emits <code>{"payload": &lt;string&gt;, "quote": &lt;delimiter-name&gt;}</code> — the
+payload is the clean joined string, the quote names the delimiter. Live-verified:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Emitted atom</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?C)</code></td><td><code>{"type":"atom","kind":"callout","arg":[]}</code></td></tr>
+<tr><td><code>(?C12)</code></td><td><code>{"type":"atom","kind":"callout","arg":12}</code></td></tr>
+<tr><td><code>(?C0255)</code></td><td><code>{"type":"atom","kind":"callout","arg":255}</code> (leading zeros fold into the typed value)</td></tr>
+<tr><td><code>(?C"str")</code></td><td><code>{"type":"atom","kind":"callout","arg":{"payload":"str","quote":"double"}}</code></td></tr>
+<tr><td><code>(?C'x')</code></td><td><code>{"type":"atom","kind":"callout","arg":{"payload":"x","quote":"single"}}</code></td></tr>
+<tr><td><code>(?C`bt`)</code></td><td><code>{"type":"atom","kind":"callout","arg":{"payload":"bt","quote":"backtick"}}</code></td></tr>
+<tr><td><code>(?C^c^)</code></td><td><code>{"quote":"caret"}</code> · <code>(?C%p%)</code> → <code>"percent"</code> · <code>(?C#h#)</code> → <code>"hash"</code> · <code>(?C$d$)</code> → <code>"dollar"</code> · <code>(?C{br})</code> → <code>"brace"</code></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="conditional"><a class="header" href="#conditional"><code>conditional</code></a></h2>
 <pre><code class="language-ebnf">conditional = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
 </code></pre>
-<p>PCRE2 conditional pattern. 5-or-6-element Sequence:</p>
-<pre><code class="language-json">[
-  "(?(",
-  &lt;condition shape&gt;,
-  ")",
-  &lt;yes_branch shape&gt;,
-  &lt;optional ["|", &lt;no_branch&gt;] pair&gt;,
-  ")"
-]
+<p>PCRE2 conditional pattern. <strong>Typed</strong> — the atom is:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "conditional",
+  "condition": &lt;condition&gt;,
+  "yes_branch": [&lt;pieces&gt;],
+  "no_branch": ["|", [&lt;pieces&gt;]] }
 </code></pre>
+<p><code>yes_branch</code> is the yes-concatenation’s piece array; <code>no_branch</code> is the optional
+<code>("|" no_branch)?</code> slot — the 2-element <code>["|", [&lt;pieces&gt;]]</code> pair when present, <code>[]</code>
+when absent. The <code>condition</code> value is typed per branch (table under each sub-rule
+below; the one-look summary lives in <a href="rules-groups.html#conditional">Group Family</a>).</p>
 <h3 id="condition"><a class="header" href="#condition"><code>condition</code></a></h3>
 <pre><code class="language-ebnf">condition = define_condition
           | version_condition
@@ -264,48 +272,63 @@ forms share <code>callout_arg</code>. String callout-args are not value-bounded 
           | signed_digits
           | digits
 </code></pre>
-<p>9-way Or. The branches cover the various PCRE2 condition forms. Most consumers identify the kind by inspecting the first element of the matched alternative’s content.</p>
+<p>9-way Or covering the PCRE2 condition forms. Every branch folds to a typed value in
+the parent’s <code>condition</code> field — consumers dispatch on the value’s SHAPE: a
+signed-number object, a plain name string, or an object with its own <code>kind</code>. The
+complete live-verified table:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th><code>condition</code> value</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(?(1)…)</code> / <code>(?(+1)…)</code> / <code>(?(-1)…)</code></td><td><code>{"sign":[],"value":1}</code> / <code>{"sign":"+","value":1}</code> / <code>{"sign":"-","value":1}</code></td></tr>
+<tr><td><code>(?(&lt;n&gt;)…)</code> / <code>(?('n')…)</code> / <code>(?(n)…)</code></td><td><code>"n"</code> (clean name string — all three spellings)</td></tr>
+<tr><td><code>(?(R)…)</code></td><td><code>{"kind":"recursion","group":[]}</code></td></tr>
+<tr><td><code>(?(R2)…)</code></td><td><code>{"kind":"recursion","group":2}</code></td></tr>
+<tr><td><code>(?(R&amp;n)…)</code></td><td><code>{"kind":"recursion_named","name":"n"}</code></td></tr>
+<tr><td><code>(?(DEFINE)…)</code></td><td><code>{"kind":"define"}</code></td></tr>
+<tr><td><code>(?(VERSION&gt;=10.4)…)</code></td><td><code>{"kind":"version","operator":"&gt;=","number":{"major":10,"minor":4}}</code></td></tr>
+<tr><td><code>(?(?=x)…)</code> etc.</td><td>the assertion’s own typed lookaround object (<code>{"kind":"lookahead","positive":true,"body":&lt;pattern&gt;}</code>, …)</td></tr>
+<tr><td><code>(?(?C1)(?=x)…)</code></td><td><code>{"kind":"callout_assertion","callout":{"kind":"callout","arg":1},"assertion":&lt;lookaround object&gt;}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The sub-rules behind those branches (grammar reference):</p>
 <h3 id="define_condition"><a class="header" href="#define_condition"><code>define_condition</code></a></h3>
 <pre><code class="language-ebnf">define_condition = "DEFINE"
 </code></pre>
-<p><code>Terminal("DEFINE")</code>.</p>
+<p>Emits <code>{"kind": "define"}</code>.</p>
 <h3 id="version_condition"><a class="header" href="#version_condition"><code>version_condition</code></a></h3>
 <pre><code class="language-ebnf">version_condition = "VERSION" version_operator version_number
+version_operator  = "&gt;=" | "="
+version_number    = digits ("." digits)?
 </code></pre>
-<p>3-element Sequence: <code>["VERSION", &lt;op&gt;, &lt;version-num&gt;]</code>.</p>
-<h3 id="version_operator"><a class="header" href="#version_operator"><code>version_operator</code></a></h3>
-<pre><code class="language-ebnf">version_operator = "&gt;=" | "="
-</code></pre>
-<p><code>Terminal("&gt;=")</code> or <code>Terminal("=")</code>.</p>
-<h3 id="version_number"><a class="header" href="#version_number"><code>version_number</code></a></h3>
-<pre><code class="language-ebnf">version_number = digits ("." digits)?
-</code></pre>
-<p>2-element Sequence: <code>[&lt;digits&gt;, &lt;optional [".", &lt;digits&gt;] pair&gt;]</code>. Both digits are typed integers.</p>
+<p>Emits <code>{"kind": "version", "operator": &lt;op&gt;, "number": {"major": &lt;int&gt;, "minor": &lt;int&gt;}}</code>
+(a version without a <code>.minor</code> part carries only the parsed components the source had).</p>
 <h3 id="condition_callout_assertion"><a class="header" href="#condition_callout_assertion"><code>condition_callout_assertion</code></a></h3>
 <pre><code class="language-ebnf">condition_callout_assertion = condition_callout "(" condition_assertion
+condition_callout           = "?C" callout_arg? ")"
 </code></pre>
-<p>3-element Sequence with a callout-prefixed assertion.</p>
-<h3 id="condition_callout"><a class="header" href="#condition_callout"><code>condition_callout</code></a></h3>
-<pre><code class="language-ebnf">condition_callout = "?C" callout_arg? ")"
-</code></pre>
-<p>4-element Sequence (note: includes the trailing <code>)</code> because this rule appears inside the larger <code>(?(?C...)...)</code> pattern).</p>
+<p>Emits <code>{"kind": "callout_assertion", "callout": {"kind":"callout","arg":&lt;arg&gt;}, "assertion": &lt;lookaround object&gt;}</code> — the callout’s <code>arg</code> uses the same typed forms as
+the standalone <a href="#callout"><code>callout</code></a> (the value bound to [0, 255] applies here too).</p>
 <h3 id="condition_assertion"><a class="header" href="#condition_assertion"><code>condition_assertion</code></a></h3>
 <pre><code class="language-ebnf">condition_assertion = "?=" pattern
                     | "?!" pattern
                     | "?&lt;=" pattern
                     | "?&lt;!" pattern
                     | alpha_condition_assertion
+alpha_condition_assertion = "*" atomic_alpha_lookaround_name ":" pattern?
 </code></pre>
-<p>5-way Or for the various assertion forms.</p>
-<h3 id="alpha_condition_assertion"><a class="header" href="#alpha_condition_assertion"><code>alpha_condition_assertion</code></a></h3>
-<pre><code class="language-ebnf">alpha_condition_assertion = "*" atomic_alpha_lookaround_name ":" pattern?
-</code></pre>
-<p>The PCRE2 <code>(*pla:...)</code>-style assertion in condition position.</p>
+<p>Emits the same typed lookaround objects as atom-position lookarounds
+(<code>kind: "lookahead"</code> / <code>"lookbehind"</code> with <code>positive</code>, or <code>kind: "alpha_lookaround"</code>
+with <code>name</code>) — one shape family for both positions.</p>
 <h3 id="recursion_condition"><a class="header" href="#recursion_condition"><code>recursion_condition</code></a></h3>
 <pre><code class="language-ebnf">recursion_condition = "R" digits?
                     | "R&amp;" name
 </code></pre>
-<p>2-way Or — recursion-by-number or recursion-by-name.</p>
+<p>Emits <code>{"kind": "recursion", "group": &lt;int or []&gt;}</code> or
+<code>{"kind": "recursion_named", "name": &lt;string&gt;}</code>.</p>
 <h2 id="directive_verb"><a class="header" href="#directive_verb"><code>directive_verb</code></a></h2>
 <pre><code class="language-ebnf">directive_verb          = "(*" directive_body_quantifiable ")"
 directive_verb_nonquant = "(*" directive_body_nonquantifiable ")"
@@ -399,11 +422,12 @@ caps the value at <code>429496728*10 + 9 = 4294967289</code> (<code>0xFFFFFFF9</
 (<code>(*LIMIT_HEAP=00000000004294967289)</code> ACCEPT, <code>…4294967290</code> REJECT; all-zeros = value 0). <code>value</code>
 stays the raw digit string (leading zeros preserved). This closed a latent accepts-invalid hole —
 no validator ever bounded the LIMIT value.</p>
-<p>Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
-start-option <strong>position</strong> rule (<code>a(*UTF)</code> and <code>a(*LIMIT_HEAP=500)</code> reject — the <code>=</code>-form position
-hole was fixed in release 1.1.83, ledger <strong>REGEX-0090</strong>). The quantified-verb rule (release 1.1.87,
-above) and the LIMIT value range (release 1.1.88, above) are now grammar-owned, no longer
-validator-owned.</p>
+<p>Ownership status: the start-option <strong>position</strong> rule is GRAMMAR-owned since release
+<code>1.1.102</code> (<code>REGEX-PCRE2-FIDELITY.4.8</code> — the <code>entry_concatenation</code> structural encoding
+described above; the standalone validator walk was DELETED). The quantified-verb rule
+(release 1.1.87) and the LIMIT value range (release 1.1.88) are grammar-owned too.
+(Historically the position rule lived in the out-of-band validator; the <code>=</code>-form
+position hole was fixed in release 1.1.83, ledger <strong>REGEX-0090</strong>.)</p>
 <h3 id="directive_mark_shorthand"><a class="header" href="#directive_mark_shorthand"><code>directive_mark_shorthand</code></a></h3>
 <pre><code class="language-ebnf">directive_mark_shorthand = ":" directive_payload_required
 </code></pre>
@@ -440,7 +464,16 @@ same <code>@profiles: ["relaxed"]</code> gate.</p>
 <h2 id="extended_class"><a class="header" href="#extended_class"><code>extended_class</code></a></h2>
 <pre><code class="language-ebnf">extended_class = "(?[" extended_class_content "])"
 </code></pre>
-<p>PCRE2 <code>(?[ ... ])</code> extended class. 3-element Sequence: <code>["(?[", &lt;content&gt;, "])"]</code>.</p>
+<p>PCRE2 <code>(?[ ... ])</code> extended class. <strong>Typed</strong> at the atom level:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "extended_class", "body": [&lt;elements&gt;] }
+</code></pre>
+<p><code>body</code> is the element array. Each element is the matched <code>extended_class_element</code>
+shape: a typed escape object where the element is an escape (<code>(?[\p{L}])</code> →
+<code>body: [{"type":"escape","kind":"property","name":"L","negated":false}]</code>), a bare
+char string for regular chars, or — for a NESTED <code>[...]</code> — the nested bracket triple
+in its raw form (<code>(?[[a][b]])</code> → <code>body: [["[",["a"],"]"], ["[",["b"],"]"]]</code>; the
+nested content list holds the inner elements). The inner element rules are otherwise
+un-annotated (their raw shapes appear inside the nested triples).</p>
 <h3 id="extended_class_content"><a class="header" href="#extended_class_content"><code>extended_class_content</code></a></h3>
 <pre><code class="language-ebnf">extended_class_content = extended_class_element*
 </code></pre>
@@ -465,30 +498,36 @@ extended_class_special = '!' | '"' | '#' | '$' | '%' | '&amp;' | '\'' | '(' | ')
 <h2 id="code_block"><a class="header" href="#code_block"><code>code_block</code></a></h2>
 <pre><code class="language-ebnf">code_block = code_block_lang | code_block_plain
 </code></pre>
-<p>2-way Or.</p>
-<h3 id="code_block_plain"><a class="header" href="#code_block_plain"><code>code_block_plain</code></a></h3>
+<p>2-way Or; both branches emit the same <strong>typed</strong> carrier:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "code_block", "lang": &lt;lang&gt;, "content": [&lt;chars&gt;] }
+</code></pre>
+<ul>
+<li><code>lang</code> is <code>null</code> for the plain Perl-style <code>(?{ ... })</code> form, or the language name
+string (<code>"lua"</code>, <code>"js"</code>, <code>"javascript"</code>, <code>"rhai"</code>, <code>"native"</code>, <code>"wasm"</code>) for the
+<code>(?{lang: ...})</code> form.</li>
+<li><code>content</code> is the per-char array of the code body (concatenate to recover the code
+string). <code>(?{ ab })</code> → <code>{"lang": null, "content": [" ","a","b"," "]}</code>;
+<code>(?{lua: print(1)})</code> → <code>{"lang": "lua", "content": [" ","p","r","i","n","t","(","1",")"]}</code>.</li>
+</ul>
+<p>See <a href="examples-groups-alt.html#code-block--lua-print1-typed">Examples: Groups and Alternations</a>
+for the worked extraction (including the PGEN-RGX-0082 <code>content</code> fix note).</p>
+<h3 id="code_block_plain--code_block_lang--code_lang"><a class="header" href="#code_block_plain--code_block_lang--code_lang"><code>code_block_plain</code> / <code>code_block_lang</code> / <code>code_lang</code></a></h3>
 <pre><code class="language-ebnf">code_block_plain = "(?{" code_content "})"
+code_block_lang  = "(?{" code_lang ":" ws? code_content "})"
+code_lang        = "lua" | "js" | "javascript" | "rhai" | "native" | "wasm"
 </code></pre>
-<p>3-element Sequence: <code>["(?{", &lt;content&gt;, "})"]</code>.</p>
-<h3 id="code_block_lang"><a class="header" href="#code_block_lang"><code>code_block_lang</code></a></h3>
-<pre><code class="language-ebnf">code_block_lang = "(?{" code_lang ":" ws? code_content "})"
-</code></pre>
-<p>5-element Sequence: <code>["(?{", &lt;lang&gt;, ":", &lt;ws?&gt;, &lt;content&gt;, "})"]</code>.</p>
-<h3 id="code_lang"><a class="header" href="#code_lang"><code>code_lang</code></a></h3>
-<pre><code class="language-ebnf">code_lang = "lua" | "js" | "javascript" | "rhai" | "native" | "wasm"
-</code></pre>
-<p>6-way Or. <code>Terminal(&lt;lang-name&gt;)</code>.</p>
+<p>The two syntactic forms behind the one carrier above.</p>
 <h3 id="code_content-code_element-code_string_-code_balanced_braces-code_escaped_char-code_regular_char-code_safe_special-code_not_quote_or_backslash-code_not_squote_or_backslash"><a class="header" href="#code_content-code_element-code_string_-code_balanced_braces-code_escaped_char-code_regular_char-code_safe_special-code_not_quote_or_backslash-code_not_squote_or_backslash"><code>code_content</code>, <code>code_element</code>, <code>code_string_*</code>, <code>code_balanced_braces</code>, <code>code_escaped_char</code>, <code>code_regular_char</code>, <code>code_safe_special</code>, <code>code_not_quote_or_backslash</code>, <code>code_not_squote_or_backslash</code></a></h3>
 <p>The internal grammar for parsing balanced-brace code-block bodies. All un-annotated. Consumers extracting code-block payloads typically just want the raw text between <code>(?{</code> and <code>})</code>, which can be obtained from the <code>span</code> field of the code_block atom (the original input slice).</p>
 <h2 id="comment_group"><a class="header" href="#comment_group"><code>comment_group</code></a></h2>
 <pre><code class="language-ebnf">comment_group = "(?#" comment_text? ")"
 </code></pre>
-<p>3-element Sequence: <code>["(?#", &lt;text?&gt;, ")"]</code>.</p>
-<h3 id="comment_text-and-comment_char"><a class="header" href="#comment_text-and-comment_char"><code>comment_text</code> and <code>comment_char</code></a></h3>
-<pre><code class="language-ebnf">comment_text = comment_char*
-comment_char = letter | digit | whitespace | comment_special | unicode_char
+<p><strong>Typed</strong> — the comment text arrives as one clean string:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "comment", "text": "note" }
 </code></pre>
-<p>Quantified-<code>*</code> of chars. Concatenate to recover the comment text.</p>
+<p><code>(?#note)</code> → <code>text: "note"</code>; the empty comment <code>(?#)</code> → <code>text: ""</code>. (The
+<code>comment_text</code>/<code>comment_char</code> sub-rules are folded into the joined <code>text</code> string —
+no per-char walking.)</p>
 <h2 id="auxiliary-lexical-helpers"><a class="header" href="#auxiliary-lexical-helpers">Auxiliary lexical helpers</a></h2>
 <div class="table-wrapper">
 <table>
@@ -513,16 +552,21 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 </tbody>
 </table>
 </div>
-<p><code>digits</code> is the lone annotated leaf. The rest are un-annotated and emit raw Terminal/Quantified shapes.</p>
-<h2 id="whats-missing--tbd-slices"><a class="header" href="#whats-missing--tbd-slices">What’s missing — TBD slices</a></h2>
-<p>The following constructs are syntactically supported by the grammar but their AST shape will be cleaned up in future task #40 slices:</p>
-<ul>
-<li>Most <code>atom</code> alternatives (<code>literal</code>, <code>escape</code>, <code>dot</code>, <code>backreference</code>, <code>quoted_literal</code>, <code>posix_word_boundary_alias</code>, <code>char_class</code>, the group family) — eventually each gets a typed <code>{type: "...", ...}</code> shape. The <code>anchor</code> alternative landed typed in slice 7 (post-1.1.35) — see <a href="examples-anchors.html">Examples: Anchors and Boundaries</a>.</li>
-<li><code>pattern</code>, <code>alternation</code>, <code>alternative</code> — eventually a clean <code>{type: "alternation", alternatives: [...]}</code> flat shape replaces the current 4-deep raw nesting.</li>
-<li>The full character-class subtree — eventually <code>{type: "char_class", negated: &lt;bool&gt;, items: [...]}</code> with each item itself a typed shape.</li>
-</ul>
-<p>The <code>quantifier</code> subtree (<code>digits</code>, <code>quant_suffix</code>, <code>counted_quantifier_body</code>, <code>counted_quantifier</code>, <code>quant_base</code>, <code>quantifier</code>) is fully typed as of slice 6 (post-1.1.34). See <a href="rules-quantifier.html">Quantifier Subtree</a>.</p>
-<p>Until the remaining slices land, the per-rule shapes documented above are the operative reference.</p>
+<p><code>digits</code> is the annotated leaf (typed integer). The other lexical helpers emit raw
+Terminal/Quantified shapes — but consumers rarely meet them: every typed parent above
+folds its helpers into clean string/integer fields.</p>
+<h2 id="typing-status--the-campaign-is-complete"><a class="header" href="#typing-status--the-campaign-is-complete">Typing status — the campaign is complete</a></h2>
+<p>Every consumer-facing construct family is typed: the atom alternatives (literals as
+bare strings; everything else as <code>{type, kind, ...}</code> objects — see the
+<a href="rules-atom.html#identification-table--what-kind-of-atom-is-this">atom identification table</a>),
+the quantifier subtree (slice 6, post-1.1.34), anchors (slice 7), the escape subtree
+(slices 14–17), the group/lookaround family (slice 23), the character class (slice 26)
+and its items, and the callout/conditional/directive/code-block/comment/extended-class
+constructs documented in this chapter.</p>
+<p>The <code>pattern</code> / <code>alternation</code> / <code>alternative</code> OUTER carrier keeps its raw
+<code>[&lt;head&gt;, &lt;tail&gt;]</code> nesting by design (it is the one structural shape every consumer
+already walks — see <a href="walking-the-ast.html">Walking the AST</a>); the shapes documented in
+this book are the operative reference for it.</p>
 
                     </main>
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -227,6 +227,8 @@
   "atom": {
     "type": "atom",
     "kind": "char_class",
+    "negated": [],
+    "initial_close": [],
     "body": [
       {"type": "class_range", "start": "a", "end": "z"},
       {"type": "class_range", "start": "0", "end": "9"},
@@ -242,6 +244,8 @@
   "atom": {
     "type": "atom",
     "kind": "char_class",
+    "negated": [],
+    "initial_close": [],
     "body": [{
       "type": "class_range",
       "start": {"type": "escape", "kind": "hex", "digits": "A"},
@@ -300,70 +304,51 @@
 <h3 id="migration-from-pre-1137-slice-8"><a class="header" href="#migration-from-pre-1137-slice-8">Migration from pre-1.1.37 (slice 8)</a></h3>
 <p>Before slice 8, the <code>posix_class</code> annotation <code>-&gt; $1</code> extracted only the literal <code>"[:"</code> opener — the typed shape was just the bare string <code>"[:"</code>, which collapsed every POSIX class name (<code>alpha</code>/<code>digit</code>/<code>xdigit</code>/etc.) to the same value. Consumers who relied on a source-span fallback can drop that path; the typed shape now preserves the name and negation directly.</p>
 <h2 id="quoted-class-literal--qa-ze"><a class="header" href="#quoted-class-literal--qa-ze">Quoted class literal — <code>[\Qa-z\E]</code></a></h2>
-<p>The PCRE2 class-quote form. The <code>class_item</code> matches <code>quoted_class_literal</code>:</p>
+<p>The PCRE2 class-quote form. The <code>class_item</code> matches <code>quoted_class_literal</code>, which
+emits a typed body item (exact probe output):</p>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        // class_item branch 3 → quoted_class_literal
-        // = "\\Q" quoted_class_literal_char* "\\E"
-        [
-          "\\Q",
-          [&lt;chars: a, -, z&gt;],
-          "\\E"
-        ]
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
+      { "type": "class_quoted_literal", "body": ["a", "-", "z"] }
+    ]
+  },
   ...
 }
 </code></pre>
-<p>3-element Sequence <code>["\\Q", &lt;chars-Quantified&gt;, "\\E"]</code>.</p>
+<p>Everything between <code>\Q</code> and <code>\E</code> is literal — the <code>-</code> here is a plain member char, not
+a range. The item’s <code>body</code> is the per-char array. (The empty in-body quote <code>[a\Q\E]</code>
+emits <code>{"type":"class_quoted_literal","body":[]}</code> — see the class-open model section
+below.)</p>
 <h2 id="class-with-escape--d"><a class="header" href="#class-with-escape--d">Class with escape — <code>[\d]</code></a></h2>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        // class_item branch 5 → class_escape
-        // class_escape = escape
-        [
-          "\\",
-          [[[[[ "d" ]]]]]    // un-annotated escape_unit chain
-        ]
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": [
+      { "type": "escape", "kind": "shorthand", "char": "d" }
+    ]
+  },
   ...
 }
 </code></pre>
-<p><code>class_escape</code> wraps <code>escape</code>’s 2-element Sequence.</p>
-<h2 id="stray-e-inside-class--e"><a class="header" href="#stray-e-inside-class--e">Stray <code>\E</code> inside class — <code>[\E]</code></a></h2>
-<p>PCRE2 zero-width marker:</p>
+<p><code>class_escape</code> is transparent — the typed escape object (same shape as in atom
+position; see <a href="rules-escape.html">Escape Subtree</a>) appears directly as the body item.
+Typed escapes also nest inside <code>class_range</code> endpoints (<code>[\xA-\xFF]</code> above).</p>
+<h2 id="stray-e-inside-class--ae"><a class="header" href="#stray-e-inside-class--ae">Stray <code>\E</code> inside class — <code>[a\E]</code></a></h2>
+<p>A stray <code>\E</code> (no matching <code>\Q</code>) in NON-initial body position is a zero-width no-op
+that is PRESERVED as a bare <code>"\E"</code> string member:</p>
 <pre><code class="language-json">{
-  "atom": [
-    "[",
-    [],
-    [],
-    [
-      [
-        // class_item branch 1 → stray_class_end_quote
-        "\\E"
-      ]
-    ],
-    "]"
-  ],
+  "atom": {
+    "type": "atom", "kind": "char_class", "negated": [], "initial_close": [],
+    "body": ["a", "\\E"]
+  },
   ...
 }
 </code></pre>
-<p><code>stray_class_end_quote = "\\E"</code> emits the bare terminal <code>"\\E"</code>.</p>
+<p>At class-OPENING position a stray <code>\E</code> is instead consumed as an invisible (see the
+<code>1.1.84</code> class-open model below — <code>[\E]x]</code> accepts with the <code>]</code> as an
+<code>initial_close</code> literal, while <code>[\E]</code> alone REJECTS: invisibles never count toward
+non-emptiness).</p>
 <h2 id="the-pcre2-class-open-model--release-1184-regex-pcre2-fidelity315"><a class="header" href="#the-pcre2-class-open-model--release-1184-regex-pcre2-fidelity315">The PCRE2 class-open model — release <code>1.1.84</code> (<code>REGEX-PCRE2-FIDELITY.3.15</code>)</a></h2>
 <p>Member VISIBILITY, negation-through-invisibles, and the initial-<code>]</code>-literal rule are
 grammar-encoded and oracle-verified (<code>pcre2test</code> 10.47). Worked verdicts + shapes:</p>

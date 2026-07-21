@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -270,7 +270,7 @@ for the same input (historically stated against the removed
 typed JSON value call <code>parse_full_regex(input)?.content.to_json_value()</code>
 (byte-identical output).</p>
 <h2 id="un-annotated-chain"><a class="header" href="#un-annotated-chain">Un-annotated chain</a></h2>
-<p>A descent through multiple rules that all use implicit <code>-&gt; $1</code> (single-positional pass-through). Produces nested Alternative-wrapped layers in the AST, e.g. <code>escape_unit → simple_escape → any_char → /char/</code> chains four wrappers around one terminal. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array.</p>
+<p>A descent through multiple rules that all use implicit <code>-&gt; $1</code> (single-positional pass-through), producing nested Alternative-wrapped layers in the AST. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array. <strong>Largely historical for regex consumers</strong>: the typed-shape campaign eliminated the consumer-facing chains (the classic example — <code>escape_unit → simple_escape → any_char → /char/</code>, four wrappers around one terminal — is now the flat <code>{type:"escape",kind:"shorthand",char}</code> object); the term survives for the deliberately-raw outer <code>pattern</code> carrier and grammar-internal shapes.</p>
 <h2 id="unifiedreturnast"><a class="header" href="#unifiedreturnast">UnifiedReturnAST</a></h2>
 <p>The Rust enum representing parsed return-annotation expressions, defined in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>. Variants: PositionalRef, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral, Object, Array, Spread, FlattenSpread, PropertyAccess, ArrayAccess, QuantifiedExtraction, Identifier, Passthrough.</p>
 

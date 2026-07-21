@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -398,13 +398,14 @@ to the shared <code>concatenation</code>.</p>
         │       └── piece+ (the actual piece objects)
         └── ("|" alternative)*  (the rest)
 </code></pre>
-<p>Today the alternation/alternative layers visibly nest because they’re un-annotated. Once those rules carry their own typed annotations (planned in task #40), the <code>pattern</code> shape will collapse to something like:</p>
-<pre><code class="language-json">"pattern": { "type": "alternation", "alternatives": [
-  { "type": "concatenation", "pieces": [...] },
-  ...
-]}
-</code></pre>
-<p>— a single alternation object whose children are the alternative-concatenations directly. Until then, consumers walk the current 2-deep <code>[&lt;concat-array&gt;, &lt;rest-array&gt;]</code> pattern field.</p>
+<p>The alternation/alternative layers visibly nest because they’re un-annotated — and
+this is now <strong>by design</strong>: the atom-subtree typed-shape campaign is complete, and the
+outer <code>pattern</code> carrier deliberately keeps its raw 2-deep
+<code>[&lt;concat-array&gt;, &lt;rest-array&gt;]</code> form (it is the one structural shape every consumer
+already walks, and re-shaping it would be a breaking schema migration for zero new
+information). Any future flattening (e.g. a
+<code>{"type":"alternation","alternatives":[...]}</code> object) would be a contract-versioned
+migration, not a silent change — see <a href="schema-versioning.html">Schema Versioning</a>.</p>
 
                     </main>
 

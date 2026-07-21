@@ -148,6 +148,15 @@ never_free_arena_perf = []
 lto = "fat"
 codegen-units = 1
 
+[[example]]
+name = "pgen_pcre2_compile_ratio"
+path = "examples/pgen_pcre2_compile_ratio.rs"
+required-features = ["generated_parsers"]
+
 [dev-dependencies]
 serde_json = "1.0"
 tempfile = "3"
+# libpcre2-8 Rust binding for the vendored PGEN-RGX-0078 compile-ratio perf
+# gate (rust/perf/ + examples/pgen_pcre2_compile_ratio.rs). Bench-only;
+# production code is unaffected. Needs system libpcre2-8 (brew install pcre2).
+pcre2 = "0.2"

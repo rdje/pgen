@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -386,13 +386,12 @@ fn lower(value: &amp;Value) -&gt; Option&lt;MyRegexNode&gt; {
 <li>Navigate <code>pattern[0][0]</code> to reach the array of pieces (one piece in this case).</li>
 <li>For each piece, dispatch on <code>type: "piece"</code>:
 <ul>
-<li><code>atom</code>: <code>"a"</code> (a leaf string — for now; eventually atom will have its own typed shape).</li>
-<li><code>quantifier</code>: 2-element array <code>["*", "lazy"]</code>:
-<ul>
-<li>Element 0: <code>quant_base</code> is <code>"*"</code>.</li>
-<li>Element 1: <code>quant_suffix</code> is <code>"lazy"</code>.</li>
-</ul>
-</li>
+<li><code>atom</code>: <code>"a"</code> — a bare string means literal text; a typed object means a
+structural construct, dispatched on <code>type</code> + <code>kind</code> (see the
+<a href="rules-atom.html#identification-table--what-kind-of-atom-is-this">atom identification table</a>).</li>
+<li><code>quantifier</code>: the typed object <code>{"type":"quantifier","min":0,"max":null,"greediness":"lazy"}</code>
+— <code>min</code>/<code>max</code> are the normalized bounds (<code>max: null</code> = unbounded) and
+<code>greediness</code> is <code>"lazy"</code>, <code>"possessive"</code>, or <code>[]</code> (greedy default).</li>
 </ul>
 </li>
 </ol>

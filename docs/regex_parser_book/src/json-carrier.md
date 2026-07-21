@@ -86,7 +86,7 @@ The codegen emits `ParseContent::Shaped(...)` (serialized as `"Json"`) whenever 
 | `subroutine_ref` (branch 3, signed_digits) | `-> $1` | Whatever `signed_digits` produced (typed `{sign, value}` object) |
 | `braced_subroutine_ref` | `-> $3` | Whatever `signed_digits_or_name` produced |
 | `signed_digits` | `-> {sign: $1, value: $2}` | Object `{sign:<"+"|"-"|[]>, value:<int>}` |
-| `escape` | `-> $2` | Whatever `escape_unit` produced (typed object for annotated branches; raw shape for hex/unicode/octal/property pending) |
+| `escape` | `-> $2` | Whatever `escape_unit` produced — always a typed `{type:"escape", kind, ...}` object (every branch is annotated; the per-branch rows follow) |
 | `simple_escape` | `-> {type:"escape", kind:"shorthand", char:$5}` | Object `{type:"escape", kind:"shorthand", char:<char>}`. Rule has negative-lookahead prefix `!"o{" !"x{" !"p{" !"P{"` (PGEN-RGX-0079 fix) blocking the brace-form fallback; `char:$5` because `any_char` is at position 5 after the 4 lookahead slots. |
 | `single_byte_escape` | `-> {type:"escape", kind:"single_byte"}` | Object `{type:"escape", kind:"single_byte"}` |
 | `control_escape` | `-> {type:"escape", kind:"control", char:$2}` | Object `{type:"escape", kind:"control", char:<char>}` |

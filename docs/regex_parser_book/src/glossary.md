@@ -171,7 +171,7 @@ typed JSON value call `parse_full_regex(input)?.content.to_json_value()`
 
 ## Un-annotated chain
 
-A descent through multiple rules that all use implicit `-> $1` (single-positional pass-through). Produces nested Alternative-wrapped layers in the AST, e.g. `escape_unit → simple_escape → any_char → /char/` chains four wrappers around one terminal. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array.
+A descent through multiple rules that all use implicit `-> $1` (single-positional pass-through), producing nested Alternative-wrapped layers in the AST. Consumer descent recipe: keep unwrapping one-element arrays until reaching a non-array. **Largely historical for regex consumers**: the typed-shape campaign eliminated the consumer-facing chains (the classic example — `escape_unit → simple_escape → any_char → /char/`, four wrappers around one terminal — is now the flat `{type:"escape",kind:"shorthand",char}` object); the term survives for the deliberately-raw outer `pattern` carrier and grammar-internal shapes.
 
 ## UnifiedReturnAST
 

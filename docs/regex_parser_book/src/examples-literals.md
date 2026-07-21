@@ -101,10 +101,7 @@ Empty `pattern?` slot. The `Quantified-?` carrier with no match becomes `[]` aft
         [[
           { "atom": "a", "quantifier": [], "type": "piece" },
           {
-            "atom": [
-              "\\",
-              [[[[[ "." ]]]]]
-            ],
+            "atom": { "char": ".", "kind": "shorthand", "type": "escape" },
             "quantifier": [],
             "type": "piece"
           }
@@ -119,7 +116,7 @@ Empty `pattern?` slot. The `Quantified-?` carrier with no match becomes `[]` aft
 }
 ```
 
-The `\.` produces an escape atom — a 2-element array `["\\", <escape_unit>]`. The deeply-nested `[[[[[ "." ]]]]]` is the un-annotated chain `escape_unit → simple_escape → any_char → ...`. Once those rules are annotated, this nesting collapses.
+The `\.` produces a typed escape atom — the flat `{type:"escape", kind:"shorthand", char:"."}` object (the escape subtree is fully typed; see [Escape Subtree](rules-escape.md) and [Examples: Escapes](examples-escapes.md)). The escaped metacharacter is just `char: "."` — semantic interpretation is downstream.
 
 ## Single non-ASCII literal — `é`
 

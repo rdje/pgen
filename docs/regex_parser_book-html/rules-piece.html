@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -342,16 +342,18 @@ parent context (alternative, alternation, regex)  →  pieces visible at pattern
 </code></pre>
 <p>The <code>**</code> flatten-spread on <code>concatenation</code> is what unwraps the Sequence-shape carried by branch-0 pieces and merges them with branch-1 pieces (which carry Json content). Without <code>**</code>, consumers would see nested arrays for quoted-run-quantified inputs.</p>
 <h2 id="what-atom-looks-like-inside-a-piece"><a class="header" href="#what-atom-looks-like-inside-a-piece">What <code>atom</code> looks like inside a piece</a></h2>
-<p>The <code>atom</code> field’s shape depends on which <code>atom</code> alternative matched. Currently <code>atom</code> is un-annotated, so the atom alternative’s raw envelope appears directly. Common shapes:</p>
+<p>The <code>atom</code> field’s shape depends on which <code>atom</code> alternative matched — the <code>atom</code> Or
+itself is un-annotated, so the matched alternative’s OWN (typed) shape appears
+directly. In practice that is a <strong>bare string</strong> for literal text or a <strong>typed object</strong>
+for everything else:</p>
 <ul>
-<li>For a <code>literal</code>: a string like <code>"a"</code>.</li>
-<li>For a <code>dot</code>: <code>"."</code>.</li>
-<li>For a <code>quoted_literal</code> (e.g. inside a single-char <code>\Qx\E</code>): <code>["\\Q", [&lt;char&gt;], "\\E"]</code>.</li>
-<li>For an <code>escape</code>: a 2-element <code>["\\", &lt;escape_unit&gt;]</code> shape — see <a href="rules-escape.html">Escape Subtree</a>.</li>
-<li>For a <code>char_class</code>: nested structure — see <a href="rules-char-class.html">Character Class Subtree</a>.</li>
-<li>For a <code>group</code>: nested <code>(...)</code> content — see <a href="rules-groups.html">Group Family</a>.</li>
+<li>For a <code>literal</code>: a string like <code>"a"</code>; for a <code>dot</code>: <code>"."</code>.</li>
+<li>For a <code>quoted_literal</code> (e.g. <code>\Qx\E</code>): <code>{"type":"atom","kind":"quoted_literal","body":["x"]}</code>.</li>
+<li>For an <code>escape</code>: <code>{"type":"escape","kind":...,...}</code> — see <a href="rules-escape.html">Escape Subtree</a>.</li>
+<li>For a <code>char_class</code>: <code>{"type":"atom","kind":"char_class",...}</code> — see <a href="rules-char-class.html">Character Class Subtree</a>.</li>
+<li>For a <code>group</code>: <code>{"type":"atom","kind":"capturing_group"|...,"body":&lt;pattern&gt;}</code> — see <a href="rules-groups.html">Group Family</a>.</li>
 </ul>
-<p>The <a href="rules-atom.html">Atom Subtree</a> chapter documents each alternative.</p>
+<p>The <a href="rules-atom.html">Atom Subtree</a> chapter’s identification table lists every shape.</p>
 
                     </main>
 

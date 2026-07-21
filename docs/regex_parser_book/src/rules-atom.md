@@ -31,25 +31,23 @@ atom = literal
      | group
 ```
 
-24-way Or rule. Currently **un-annotated**. Each branch's content varies by alternative.
+24-way Or rule. The `atom` rule itself carries no annotation — the matched
+alternative's shape passes through directly — but **every alternative except the
+plain-text ones is itself typed**, so in practice a piece's `atom` field is always
+one of exactly two things:
+
+- a **bare string** — a literal char, the dot `"."`, or a whitespace literal; or
+- a **typed object** carrying its own discriminator: `{"type": "atom", "kind": ...}`
+  for the structural constructs, `{"type": "escape", "kind": ...}` for the escape
+  subtree, or `{"type": "backreference", "kind": ...}` for the backreference family.
+
+There is no extra `atom`-level wrapper: `to_json_value()` unwraps the internal
+`Alternative` envelope transparently, so the atom field simply IS the matched
+alternative's typed shape. Consumer dispatch is therefore: string ⇒ literal text;
+object ⇒ read `type` + `kind` (the [identification table](#identification-table--what-kind-of-atom-is-this)
+below lists every shape).
 
 Since release `1.1.82` (`REGEX-PCRE2-FIDELITY.3.13`), `anchor` is **not** an `atom` alternative — anchors are non-quantifiable in PCRE2, so they form their own `piece` branch (see [piece](rules-piece.md)). The anchor's typed `{type:"anchor", kind}` shape inside a piece is unchanged.
-
-### Current shape
-
-The matched alternative's content appears as the atom's content directly — wrapped in an `Alternative` envelope at the ParseNode level, but `to_json_value()` unwraps it transparently.
-
-So when walking the JSON output, the atom field of a piece simply IS the matched alternative's shape. There's no `{type: "atom", kind: "literal", ...}` wrapper.
-
-### Future shape
-
-When `atom` is annotated (planned in task #40), a target shape might be:
-
-```json
-{ "type": "atom", "kind": "<alternative-name>", "value": <alternative-content> }
-```
-
-— a discriminator on which alternative matched. Until then, consumers identify the atom kind by walking the `rule_name` of the ParseNode tree (when going through the legacy path) or by structurally pattern-matching the JSON shape (when going through the typed path).
 
 ## `literal`
 
@@ -307,37 +305,36 @@ For `\Q)` (unterminated, `)` literal):
 escape = "\\" escape_unit
 ```
 
-The PCRE2 escape sequence wrapper. **Un-annotated**.
+The PCRE2 escape sequence wrapper. **Transparent** (`-> $2`, slice 17): the wrapper
+contributes nothing to the output — the typed `escape_unit` object IS the atom.
 
 ### Shape
 
-2-element Sequence: `["\\", <escape_unit-shape>]`.
+The typed escape object emitted by the matched `escape_unit` branch:
 
-The `escape_unit` rule branches into the various escape forms; see [Escape Subtree](rules-escape.md).
+```json
+{ "type": "escape", "kind": <form>, ... }
+```
+
+with `kind` ∈ `shorthand` / `control` / `hex` / `octal` / `unicode` / `property`
+(payload fields per kind — see [Escape Subtree](rules-escape.md)).
 
 ### Example
 
-For `\d`:
+For `\d` (exact probe output):
 
 ```json
 {
-  "atom": [
-    "\\",
-    [
-      [
-        [
-          [
-            "d"
-          ]
-        ]
-      ]
-    ]
-  ],
-  ...
+  "atom": { "type": "escape", "kind": "shorthand", "char": "d" },
+  "quantifier": [],
+  "type": "piece"
 }
 ```
 
-The deeply-nested array structure on the right of `"\\"` is the un-annotated `escape_unit -> simple_escape -> any_char -> letter` chain. Each layer of un-annotated wrapping adds an array level. Once `escape_unit` is annotated, the nesting will collapse.
+The same single-object shape appears in every escape position — as an atom, inside a
+character class body, and inside `class_range` endpoints. (In the pre-slice-14 era
+this emitted the 2-element `["\\", <nested chain>]` sequence; that shape no longer
+exists in any released artifact.)
 
 ## `posix_word_boundary_alias`
 
@@ -363,11 +360,15 @@ Treated as atomic units at the parser level — NOT character classes despite th
 char_class = "[" negation? class_initial_close? class_body "]"
 ```
 
-The full character class atom. **Un-annotated**. See [Character Class Subtree](rules-char-class.md) for the per-rule walk.
+The full character class atom. **Typed** (slice 26, post-1.1.56):
 
-### Shape
+```json
+{ "type": "atom", "kind": "char_class", "negated": <bool or []>,
+  "initial_close": <bool or []>, "body": [<class items>] }
+```
 
-4-element Sequence: `["[", <negation?>, <class_initial_close?>, <class_body>, "]"]`.
+See [Character Class Subtree](rules-char-class.md) and
+[Examples: Character Classes](examples-char-class.md) for the item shapes.
 
 ## `group`
 
@@ -375,11 +376,13 @@ The full character class atom. **Un-annotated**. See [Character Class Subtree](r
 group = capturing_group | noncapturing_group | named_group | python_named_group
 ```
 
-Standard group forms. **Un-annotated**. See [Group Family](rules-groups.md).
+Standard group forms. The `group` Or itself carries no annotation — each branch emits
+its own typed `{type:"atom", kind:...}` carrier. See [Group Family](rules-groups.md).
 
 ## `subroutine_call`, `inline_modifiers`, `scoped_inline_modifiers`, `branch_reset_group`, `callout`, `conditional`, `lookaround`, `atomic_group`, `scan_substring_group`, `script_run_group`, `directive_verb`, `extended_class`, `code_block`, `comment_group`, `python_named_backreference`
 
-All **un-annotated** atom alternatives. Each emits the raw matched shape per its sub-rule structure. Detailed per-rule shapes are documented in:
+All **typed** atom alternatives — each emits its own `{type, kind, ...}` object (the
+identification table below lists every shape). Detailed per-rule documentation:
 
 - [Group Family](rules-groups.md) — `subroutine_call`, `branch_reset_group`, `atomic_group`, `scan_substring_group`, `script_run_group`, `lookaround`, `conditional`, `python_named_backreference`.
 - [Modifier Subtree](rules-modifiers.md) — `inline_modifiers`, `scoped_inline_modifiers`.
@@ -387,53 +390,66 @@ All **un-annotated** atom alternatives. Each emits the raw matched shape per its
 
 ## Identification table — what kind of atom is this?
 
-When walking a piece's `atom` field, here's the structural signature for each kind (today's un-annotated state):
+When walking a piece's `atom` field, dispatch is: **bare string ⇒ literal text;
+object ⇒ read `type` then `kind`.** The complete live-verified signature table:
 
-| Atom kind | Signature in JSON | Notes |
+| Construct | Signature in JSON | Example source |
 |---|---|---|
-| `literal` | bare string, single ASCII non-special char or non-ASCII | `"a"`, `"x"` |
+| `literal` | bare string (single char; `"a"`, `"x"`, non-ASCII) | `a` |
 | `whitespace_literal` | bare string, single whitespace char | `" "`, `"\t"` |
-| `dot` | bare string `"."` | exactly the `.` char |
-| `anchor` | typed object `{"type":"anchor","kind":"<name>"}` | annotated in slice 7; dispatch on `obj.type == "anchor"` then read `obj.kind` |
-| `backreference` | typed object `{"type":"backreference","kind":<form>,...}` | annotated in slice 10; expanded by PGEN-RGX-0081 fix (post-1.1.75). Dispatch on `obj.kind` (`numeric` / `named` / `named_braced` / `subroutine_named` / `subroutine_numeric` / `numeric_backreference`) |
-| `quoted_literal` | 3-element array `["\\Q", <chars>, "\\E"]` | full quoted literal |
-| `escape` | 2-element array starting with `"\\"` and not matching backreference form | `["\\", <escape_unit>]` |
-| `posix_word_boundary_alias` | typed object `{"type":"anchor","kind":"posix_word_start"|"posix_word_end"}` | annotated in slice 9; same dispatch shape as `anchor` |
-| `char_class` | 4-element array starting with `"["`, ending with `"]"` | square-bracket class |
-| `group` | array starting with `"("` | various `(...)` forms |
-| `lookaround` | array starting with `"(?="`, `"(?!"`, `"(?<="`, `"(?<!"` | etc. |
-| `atomic_group` | array starting with `"(?>"` or `"(*atomic:"` | atomic group |
-| `inline_modifiers` | array starting with `"(?"` followed by modifier_spec | `(?i)` |
-| `scoped_inline_modifiers` | array starting with `"(?"` followed by modifier_spec then `:` then pattern | `(?i:foo)` |
-| `branch_reset_group` | array starting with `"(?\|"` | `(?|...)` |
-| `callout` | array starting with `"(?C"` | `(?C12)` |
-| `conditional` | array starting with `"(?("` | `(?(1)yes\|no)` |
-| `subroutine_call` | array starting with `"(?"` followed by subroutine_target | `(?P>name)`, `(?R)` |
-| `code_block` | array starting with `"(?{"` | `(?{lua: ...})` |
-| `comment_group` | array starting with `"(?#"` | `(?#comment)` |
-| `python_named_backreference` | array starting with `"(?P="` | `(?P=name)` |
-| `directive_verb` | array starting with `"(*"` (and not lookahead/lookbehind/atomic) | `(*UTF8)`, `(*ACCEPT)` |
-| `extended_class` | array starting with `"(?["` | `(?[ ... ])` |
-| `scan_substring_group` | array starting with `"(*scs:"` or `"(*scan_substring:"` | scan-substring |
-| `script_run_group` | array starting with `"(*sr:"` or `"(*script_run:"` etc. | script run |
+| `dot` | bare string `"."` | `.` |
+| `anchor` (piece-level since `1.1.82`) | `{"type":"anchor","kind":"<name>"}` (`start_of_line`, `end_of_line`, `word_boundary`, `non_word_boundary`, …) | `^`, `$`, `\b`, `\B` |
+| `posix_word_boundary_alias` | `{"type":"anchor","kind":"posix_word_start"\|"posix_word_end"}` | `[[:<:]]`, `[[:>:]]` |
+| `escape` | `{"type":"escape","kind":"shorthand"\|"control"\|"hex"\|"octal"\|"unicode"\|"property"\|"single_byte", ...}` | `\d`, `\cA`, `\x41`, `\o{101}`, `\p{Lu}`, `\C` |
+| `backreference` | `{"type":"backreference","kind":"numeric"\|"named"\|"named_braced"\|"numeric_backreference"\|"subroutine_named"\|"python_named", "ref"\|"index": ...}` | `\1`, `\k<n>`, `\k{n}`, `\g{2}`, `\g<n>`, `(?P=n)` |
+| `quoted_literal` | `{"type":"atom","kind":"quoted_literal","body":[<chars>]}` | `\Qab\E`, unterminated `\Q…`, empty `\Q\E` |
+| `char_class` | `{"type":"atom","kind":"char_class","negated":…,"initial_close":…,"body":[…]}` | `[a-z]`, `[^\d]` |
+| `capturing_group` | `{"type":"atom","kind":"capturing_group","body":<pattern>}` | `(abc)` |
+| `noncapturing_group` | `{"type":"atom","kind":"noncapturing_group","body":<pattern>}` | `(?:abc)` |
+| `named_group` | `{"type":"atom","kind":"named_group","name":<str>,"body":<pattern>}` | `(?<n>a)`, `(?'n'a)` |
+| `python_named_group` | `{"type":"atom","kind":"python_named_group","name":<str>,"body":<pattern>}` | `(?P<n>a)` |
+| `atomic_group` | `{"type":"atom","kind":"atomic_group","body":<pattern>}` | `(?>ab)`, `(*atomic:ab)` |
+| `branch_reset_group` | `{"type":"atom","kind":"branch_reset_group","body":<pattern>}` | `(?\|a\|b)` |
+| `lookaround` | `{"type":"atom","kind":"lookahead"\|"lookbehind"\|"non_atomic_lookahead"\|"non_atomic_lookbehind","positive":<bool>,"body":<pattern>}` or `{"kind":"alpha_lookaround","name":<str>,"body":<pattern>}` | `(?=x)`, `(?<!x)`, `(?*x)`, `(*nla:x)` |
+| `inline_modifiers` | `{"type":"atom","kind":"inline_modifiers","spec":<spec>}` | `(?i)`, `(?^x)` |
+| `scoped_inline_modifiers` | `{"type":"atom","kind":"scoped_inline_modifiers","spec":<spec>,"body":<pattern>}` | `(?i-mx:foo)` |
+| `callout` | `{"type":"atom","kind":"callout","arg":<[] \| int \| {payload,quote}>}` | `(?C12)`, `(?C"str")` |
+| `conditional` | `{"type":"atom","kind":"conditional","condition":…,"yes_branch":…,"no_branch":…}` | `(?(1)y\|n)` |
+| `subroutine_call` | `{"type":"atom","kind":"subroutine_call","target":{…}}` | `(?R)`, `(?&n)`, `(?1)` |
+| `code_block` | `{"type":"atom","kind":"code_block","lang":<str\|null>,"content":[<chars>]}` | `(?{lua: …})` |
+| `comment_group` | `{"type":"atom","kind":"comment","text":<str>}` | `(?#comment)` |
+| `directive_verb` | `{"type":"atom","kind":"directive_verb","body":{…}}` | `(*ACCEPT)`, `(*UTF8)` |
+| `extended_class` | `{"type":"atom","kind":"extended_class","body":[…]}` | `(?[ … ])` |
+| `scan_substring_group` | `{"type":"atom","kind":"scan_substring_group","name":<str>,"captures":[…],"body":<pattern>}` | `(*scs:(1)ab)` |
+| `script_run_group` | `{"type":"atom","kind":"script_run_group","name":<str>,"body":<pattern>}` | `(*sr:ab)` |
 
-A robust consumer-side discriminator function:
+A robust consumer-side discriminator is now a `kind` lookup:
 
 ```rust
 fn classify_atom(atom: &Value) -> AtomKind {
     match atom {
+        // Bare string = literal text (a literal char, the dot, or whitespace).
         Value::String(s) if s == "." => AtomKind::Dot,
-        Value::String(s) if s == "[[:<:]]" || s == "[[:>:]]" => AtomKind::PosixWordBoundary,
-        Value::String(s) if matches!(s.as_str(), "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G" | "\\K") => AtomKind::Anchor,
-        Value::String(s) if s.len() == 1 || (!s.starts_with('\\') && !s.starts_with('(') && !s.starts_with('[')) => AtomKind::Literal,
-        Value::Array(arr) => {
-            // Inspect arr[0] for the discriminating prefix
-            match arr.first().and_then(|v| v.as_str()) {
-                Some("\\Q") => AtomKind::QuotedLiteral,
-                Some("\\") => /* backreference or escape — distinguish by arr[1] */,
-                Some("[") => AtomKind::CharClass,
-                Some(s) if s.starts_with("(") => /* group family — distinguish by full prefix */,
-                Some(s) if s.starts_with("(*") => /* directive_verb / atomic_group / scan_substring */,
+        Value::String(_) => AtomKind::Literal,
+        Value::Object(obj) => {
+            match obj.get("type").and_then(|v| v.as_str()) {
+                Some("anchor") => AtomKind::Anchor,           // read obj["kind"]
+                Some("escape") => AtomKind::Escape,           // read obj["kind"] + payload
+                Some("backreference") => AtomKind::Backreference,
+                Some("atom") => {
+                    // the structural constructs — dispatch on kind
+                    match obj.get("kind").and_then(|v| v.as_str()) {
+                        Some("char_class") => AtomKind::CharClass,
+                        Some("quoted_literal") => AtomKind::QuotedLiteral,
+                        Some("capturing_group") | Some("noncapturing_group")
+                        | Some("named_group") | Some("python_named_group") => AtomKind::Group,
+                        Some("lookahead") | Some("lookbehind")
+                        | Some("non_atomic_lookahead") | Some("non_atomic_lookbehind")
+                        | Some("alpha_lookaround") => AtomKind::Lookaround,
+                        Some(k) => AtomKind::Other(k.to_string()),
+                        None => AtomKind::Unknown,
+                    }
+                }
                 _ => AtomKind::Unknown,
             }
         }
@@ -442,4 +458,7 @@ fn classify_atom(atom: &Value) -> AtomKind {
 }
 ```
 
-Once `atom` is annotated, the discriminator becomes a clean `kind` field lookup. Until then, the structural-prefix dispatch above is the way.
+> **Migration note.** Pre-typed-era consumers dispatched on structural prefixes
+> (`arr[0] == "\\Q"`, `"("`-prefix walks, 2-element `["\\", …]` escapes). Those raw
+> shapes no longer exist in any released artifact; the string-vs-object + `type`/`kind`
+> dispatch above fully replaces them.

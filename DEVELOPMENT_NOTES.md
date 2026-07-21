@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-21 - PGEN-RGX-0078-0219 — audit the book against the artifact, not the changelog; a reference chapter rots differently than an example; close a report with the other side's own instrument
+
+**Documentation truth is established against the artifact, not against the docs' own history.** The decisive audit method was mechanical: extract every documented example, parse its pattern with the released parser, and byte-compare canonical JSON. That found in minutes what changelog-reading never would — chapters whose entries were each individually plausible but collectively stale. The corollary discipline: every corrected shape in the book now traces to a banked live dump, so the next audit can re-run the same checker instead of re-arguing prose.
+
+**Reference chapters rot differently than example chapters.** The typed-shape campaign updated the chapters its slices touched (worked examples, the changelog) but the per-rule REFERENCE chapters — the ones a consumer actually dispatches from, like the atom identification table — kept describing the pre-campaign world. Lockstep enforcement that keys off "what changed this slice" misses the surfaces whose job is to describe EVERYTHING; those need periodic whole-surface audits against the artifact (this release's checker is now the reusable instrument for it).
+
+**Close a downstream report with the reporter's own instrument, and record its verdict un-softened.** The vendored RGX gate read 6.6× — over the report's original 5× line — and that number went into the ledger verbatim, next to the decomposition (embedding path + p50 + system allocator vs the direct path's ≈3.9×) and the director's superseding absolute-bar ruling that actually governs closure. A closure that hides the unfavorable instrument reading invites the reporter to re-run it and lose trust in everything else; a closure that leads with it and explains the decomposition is durable. The vendored gate staying runnable (`make regex_pcre2_compile_perf_gate`) is what makes the explanation checkable rather than rhetorical.
+
 ## 2026-07-21 - PGEN-RGX-0078-0218 — close a campaign the way it ran; a closure claim is a config, numbers, and guardrails; the books end the story where the tree ends it
 
 **A campaign closes the way it ran, or its record rots.** The closing wave was executed with the same discipline as any lever: a tree leaf owning each slice, every public number traced to a banked artifact (no recollections), the contract entry using the recorded PERFORMANCE-ONLY/SURFACE-NEUTRAL precedent so versions stay honest, and the mdBook gates run on exactly the changed books. The alternative — a quick "we're done" note — would have left four public surfaces telling three different stories within a week.

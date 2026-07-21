@@ -8,7 +8,14 @@ This chapter covers the remaining rule families that don't fit cleanly into the 
 callout = "(?C" callout_arg? ")"
 ```
 
-The PCRE2 callout construct `(?C...)`. 4-element Sequence: `["(?C", <callout_arg?>, ")"]`.
+The PCRE2 callout construct `(?C...)`. **Typed** — the atom is:
+
+```json
+{ "type": "atom", "kind": "callout", "arg": <arg> }
+```
+
+where `arg` is `[]` for the bare `(?C)`, a typed integer for the numeric form, or a
+`{"payload", "quote"}` object for the string forms (table below).
 
 ### `callout_arg`
 
@@ -16,7 +23,8 @@ The PCRE2 callout construct `(?C...)`. 4-element Sequence: `["(?C", <callout_arg
 callout_arg = callout_number | callout_string
 ```
 
-2-way Or. `callout_number` is the typed integer (annotated). `callout_string` is one of 8 string-delimited forms.
+2-way Or, folded into the parent's `arg` field. `callout_number` is the typed integer
+(annotated). `callout_string` is one of 8 string-delimited forms.
 
 ### `callout_number` — the numeric argument, value-bounded to [0, 255]
 
@@ -65,27 +73,18 @@ callout_string = callout_backtick_string
 
 8-way Or. Each variant uses a different delimiter pair: backtick, single quote, double quote, caret, percent, hash, dollar, brace.
 
-Each callout_*_string rule is `[<delim>, <payload-Quantified>, <delim>]` (or `<open>, <payload>, <close>` for the brace form).
+Each string form emits `{"payload": <string>, "quote": <delimiter-name>}` — the
+payload is the clean joined string, the quote names the delimiter. Live-verified:
 
-For `(?C12)`:
-
-```json
-"atom": [
-  "(?C",
-  12,             // typed integer from digits
-  ")"
-]
-```
-
-For `(?C"comment")`:
-
-```json
-"atom": [
-  "(?C",
-  ["\"", [<chars>], "\""],
-  ")"
-]
-```
+| Source | Emitted atom |
+|---|---|
+| `(?C)` | `{"type":"atom","kind":"callout","arg":[]}` |
+| `(?C12)` | `{"type":"atom","kind":"callout","arg":12}` |
+| `(?C0255)` | `{"type":"atom","kind":"callout","arg":255}` (leading zeros fold into the typed value) |
+| `(?C"str")` | `{"type":"atom","kind":"callout","arg":{"payload":"str","quote":"double"}}` |
+| `(?C'x')` | `{"type":"atom","kind":"callout","arg":{"payload":"x","quote":"single"}}` |
+| `` (?C`bt`) `` | `{"type":"atom","kind":"callout","arg":{"payload":"bt","quote":"backtick"}}` |
+| `(?C^c^)` | `{"quote":"caret"}` · `(?C%p%)` → `"percent"` · `(?C#h#)` → `"hash"` · `(?C$d$)` → `"dollar"` · `(?C{br})` → `"brace"` |
 
 ## `conditional`
 
@@ -93,18 +92,19 @@ For `(?C"comment")`:
 conditional = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
 ```
 
-PCRE2 conditional pattern. 5-or-6-element Sequence:
+PCRE2 conditional pattern. **Typed** — the atom is:
 
 ```json
-[
-  "(?(",
-  <condition shape>,
-  ")",
-  <yes_branch shape>,
-  <optional ["|", <no_branch>] pair>,
-  ")"
-]
+{ "type": "atom", "kind": "conditional",
+  "condition": <condition>,
+  "yes_branch": [<pieces>],
+  "no_branch": ["|", [<pieces>]] }
 ```
+
+`yes_branch` is the yes-concatenation's piece array; `no_branch` is the optional
+`("|" no_branch)?` slot — the 2-element `["|", [<pieces>]]` pair when present, `[]`
+when absent. The `condition` value is typed per branch (table under each sub-rule
+below; the one-look summary lives in [Group Family](rules-groups.md#conditional)).
 
 ### `condition`
 
@@ -120,7 +120,24 @@ condition = define_condition
           | digits
 ```
 
-9-way Or. The branches cover the various PCRE2 condition forms. Most consumers identify the kind by inspecting the first element of the matched alternative's content.
+9-way Or covering the PCRE2 condition forms. Every branch folds to a typed value in
+the parent's `condition` field — consumers dispatch on the value's SHAPE: a
+signed-number object, a plain name string, or an object with its own `kind`. The
+complete live-verified table:
+
+| Source | `condition` value |
+|---|---|
+| `(?(1)…)` / `(?(+1)…)` / `(?(-1)…)` | `{"sign":[],"value":1}` / `{"sign":"+","value":1}` / `{"sign":"-","value":1}` |
+| `(?(<n>)…)` / `(?('n')…)` / `(?(n)…)` | `"n"` (clean name string — all three spellings) |
+| `(?(R)…)` | `{"kind":"recursion","group":[]}` |
+| `(?(R2)…)` | `{"kind":"recursion","group":2}` |
+| `(?(R&n)…)` | `{"kind":"recursion_named","name":"n"}` |
+| `(?(DEFINE)…)` | `{"kind":"define"}` |
+| `(?(VERSION>=10.4)…)` | `{"kind":"version","operator":">=","number":{"major":10,"minor":4}}` |
+| `(?(?=x)…)` etc. | the assertion's own typed lookaround object (`{"kind":"lookahead","positive":true,"body":<pattern>}`, …) |
+| `(?(?C1)(?=x)…)` | `{"kind":"callout_assertion","callout":{"kind":"callout","arg":1},"assertion":<lookaround object>}` |
+
+The sub-rules behind those branches (grammar reference):
 
 ### `define_condition`
 
@@ -128,47 +145,29 @@ condition = define_condition
 define_condition = "DEFINE"
 ```
 
-`Terminal("DEFINE")`.
+Emits `{"kind": "define"}`.
 
 ### `version_condition`
 
 ```ebnf
 version_condition = "VERSION" version_operator version_number
+version_operator  = ">=" | "="
+version_number    = digits ("." digits)?
 ```
 
-3-element Sequence: `["VERSION", <op>, <version-num>]`.
-
-### `version_operator`
-
-```ebnf
-version_operator = ">=" | "="
-```
-
-`Terminal(">=")` or `Terminal("=")`.
-
-### `version_number`
-
-```ebnf
-version_number = digits ("." digits)?
-```
-
-2-element Sequence: `[<digits>, <optional [".", <digits>] pair>]`. Both digits are typed integers.
+Emits `{"kind": "version", "operator": <op>, "number": {"major": <int>, "minor": <int>}}`
+(a version without a `.minor` part carries only the parsed components the source had).
 
 ### `condition_callout_assertion`
 
 ```ebnf
 condition_callout_assertion = condition_callout "(" condition_assertion
+condition_callout           = "?C" callout_arg? ")"
 ```
 
-3-element Sequence with a callout-prefixed assertion.
-
-### `condition_callout`
-
-```ebnf
-condition_callout = "?C" callout_arg? ")"
-```
-
-4-element Sequence (note: includes the trailing `)` because this rule appears inside the larger `(?(?C...)...)` pattern).
+Emits `{"kind": "callout_assertion", "callout": {"kind":"callout","arg":<arg>},
+"assertion": <lookaround object>}` — the callout's `arg` uses the same typed forms as
+the standalone [`callout`](#callout) (the value bound to [0, 255] applies here too).
 
 ### `condition_assertion`
 
@@ -178,17 +177,12 @@ condition_assertion = "?=" pattern
                     | "?<=" pattern
                     | "?<!" pattern
                     | alpha_condition_assertion
-```
-
-5-way Or for the various assertion forms.
-
-### `alpha_condition_assertion`
-
-```ebnf
 alpha_condition_assertion = "*" atomic_alpha_lookaround_name ":" pattern?
 ```
 
-The PCRE2 `(*pla:...)`-style assertion in condition position.
+Emits the same typed lookaround objects as atom-position lookarounds
+(`kind: "lookahead"` / `"lookbehind"` with `positive`, or `kind: "alpha_lookaround"`
+with `name`) — one shape family for both positions.
 
 ### `recursion_condition`
 
@@ -197,7 +191,8 @@ recursion_condition = "R" digits?
                     | "R&" name
 ```
 
-2-way Or — recursion-by-number or recursion-by-name.
+Emits `{"kind": "recursion", "group": <int or []>}` or
+`{"kind": "recursion_named", "name": <string>}`.
 
 ## `directive_verb`
 
@@ -298,11 +293,12 @@ caps the value at `429496728*10 + 9 = 4294967289` (`0xFFFFFFF9`), **not** u32 ma
 stays the raw digit string (leading zeros preserved). This closed a latent accepts-invalid hole —
 no validator ever bounded the LIMIT value.
 
-Still validator-owned (both profiles) until the capstone deletes the compile-contract: the
-start-option **position** rule (`a(*UTF)` and `a(*LIMIT_HEAP=500)` reject — the `=`-form position
-hole was fixed in release 1.1.83, ledger **REGEX-0090**). The quantified-verb rule (release 1.1.87,
-above) and the LIMIT value range (release 1.1.88, above) are now grammar-owned, no longer
-validator-owned.
+Ownership status: the start-option **position** rule is GRAMMAR-owned since release
+`1.1.102` (`REGEX-PCRE2-FIDELITY.4.8` — the `entry_concatenation` structural encoding
+described above; the standalone validator walk was DELETED). The quantified-verb rule
+(release 1.1.87) and the LIMIT value range (release 1.1.88) are grammar-owned too.
+(Historically the position rule lived in the out-of-band validator; the `=`-form
+position hole was fixed in release 1.1.83, ledger **REGEX-0090**.)
 
 ### `directive_mark_shorthand`
 
@@ -358,7 +354,19 @@ For `(*LIMIT_HEAP=500)` the payload is `{"separator": "=", "value": "500"}`; for
 extended_class = "(?[" extended_class_content "])"
 ```
 
-PCRE2 `(?[ ... ])` extended class. 3-element Sequence: `["(?[", <content>, "])"]`.
+PCRE2 `(?[ ... ])` extended class. **Typed** at the atom level:
+
+```json
+{ "type": "atom", "kind": "extended_class", "body": [<elements>] }
+```
+
+`body` is the element array. Each element is the matched `extended_class_element`
+shape: a typed escape object where the element is an escape (`(?[\p{L}])` →
+`body: [{"type":"escape","kind":"property","name":"L","negated":false}]`), a bare
+char string for regular chars, or — for a NESTED `[...]` — the nested bracket triple
+in its raw form (`(?[[a][b]])` → `body: [["[",["a"],"]"], ["[",["b"],"]"]]`; the
+nested content list holds the inner elements). The inner element rules are otherwise
+un-annotated (their raw shapes appear inside the nested triples).
 
 ### `extended_class_content`
 
@@ -403,31 +411,31 @@ extended_class_special = '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | 
 code_block = code_block_lang | code_block_plain
 ```
 
-2-way Or.
+2-way Or; both branches emit the same **typed** carrier:
 
-### `code_block_plain`
+```json
+{ "type": "atom", "kind": "code_block", "lang": <lang>, "content": [<chars>] }
+```
+
+- `lang` is `null` for the plain Perl-style `(?{ ... })` form, or the language name
+  string (`"lua"`, `"js"`, `"javascript"`, `"rhai"`, `"native"`, `"wasm"`) for the
+  `(?{lang: ...})` form.
+- `content` is the per-char array of the code body (concatenate to recover the code
+  string). `(?{ ab })` → `{"lang": null, "content": [" ","a","b"," "]}`;
+  `(?{lua: print(1)})` → `{"lang": "lua", "content": [" ","p","r","i","n","t","(","1",")"]}`.
+
+See [Examples: Groups and Alternations](examples-groups-alt.md#code-block--lua-print1-typed)
+for the worked extraction (including the PGEN-RGX-0082 `content` fix note).
+
+### `code_block_plain` / `code_block_lang` / `code_lang`
 
 ```ebnf
 code_block_plain = "(?{" code_content "})"
+code_block_lang  = "(?{" code_lang ":" ws? code_content "})"
+code_lang        = "lua" | "js" | "javascript" | "rhai" | "native" | "wasm"
 ```
 
-3-element Sequence: `["(?{", <content>, "})"]`.
-
-### `code_block_lang`
-
-```ebnf
-code_block_lang = "(?{" code_lang ":" ws? code_content "})"
-```
-
-5-element Sequence: `["(?{", <lang>, ":", <ws?>, <content>, "})"]`.
-
-### `code_lang`
-
-```ebnf
-code_lang = "lua" | "js" | "javascript" | "rhai" | "native" | "wasm"
-```
-
-6-way Or. `Terminal(<lang-name>)`.
+The two syntactic forms behind the one carrier above.
 
 ### `code_content`, `code_element`, `code_string_*`, `code_balanced_braces`, `code_escaped_char`, `code_regular_char`, `code_safe_special`, `code_not_quote_or_backslash`, `code_not_squote_or_backslash`
 
@@ -439,16 +447,15 @@ The internal grammar for parsing balanced-brace code-block bodies. All un-annota
 comment_group = "(?#" comment_text? ")"
 ```
 
-3-element Sequence: `["(?#", <text?>, ")"]`.
+**Typed** — the comment text arrives as one clean string:
 
-### `comment_text` and `comment_char`
-
-```ebnf
-comment_text = comment_char*
-comment_char = letter | digit | whitespace | comment_special | unicode_char
+```json
+{ "type": "atom", "kind": "comment", "text": "note" }
 ```
 
-Quantified-`*` of chars. Concatenate to recover the comment text.
+`(?#note)` → `text: "note"`; the empty comment `(?#)` → `text: ""`. (The
+`comment_text`/`comment_char` sub-rules are folded into the joined `text` string —
+no per-char walking.)
 
 ## Auxiliary lexical helpers
 
@@ -469,16 +476,21 @@ Quantified-`*` of chars. Concatenate to recover the comment text.
 | `ws` | `whitespace+` | Quantified of `Terminal(<char>)` |
 | `brace_ws` | `(' ' \| '\t')+` | Quantified of `Terminal(<char>)` |
 
-`digits` is the lone annotated leaf. The rest are un-annotated and emit raw Terminal/Quantified shapes.
+`digits` is the annotated leaf (typed integer). The other lexical helpers emit raw
+Terminal/Quantified shapes — but consumers rarely meet them: every typed parent above
+folds its helpers into clean string/integer fields.
 
-## What's missing — TBD slices
+## Typing status — the campaign is complete
 
-The following constructs are syntactically supported by the grammar but their AST shape will be cleaned up in future task #40 slices:
+Every consumer-facing construct family is typed: the atom alternatives (literals as
+bare strings; everything else as `{type, kind, ...}` objects — see the
+[atom identification table](rules-atom.md#identification-table--what-kind-of-atom-is-this)),
+the quantifier subtree (slice 6, post-1.1.34), anchors (slice 7), the escape subtree
+(slices 14–17), the group/lookaround family (slice 23), the character class (slice 26)
+and its items, and the callout/conditional/directive/code-block/comment/extended-class
+constructs documented in this chapter.
 
-- Most `atom` alternatives (`literal`, `escape`, `dot`, `backreference`, `quoted_literal`, `posix_word_boundary_alias`, `char_class`, the group family) — eventually each gets a typed `{type: "...", ...}` shape. The `anchor` alternative landed typed in slice 7 (post-1.1.35) — see [Examples: Anchors and Boundaries](examples-anchors.md).
-- `pattern`, `alternation`, `alternative` — eventually a clean `{type: "alternation", alternatives: [...]}` flat shape replaces the current 4-deep raw nesting.
-- The full character-class subtree — eventually `{type: "char_class", negated: <bool>, items: [...]}` with each item itself a typed shape.
-
-The `quantifier` subtree (`digits`, `quant_suffix`, `counted_quantifier_body`, `counted_quantifier`, `quant_base`, `quantifier`) is fully typed as of slice 6 (post-1.1.34). See [Quantifier Subtree](rules-quantifier.md).
-
-Until the remaining slices land, the per-rule shapes documented above are the operative reference.
+The `pattern` / `alternation` / `alternative` OUTER carrier keeps its raw
+`[<head>, <tail>]` nesting by design (it is the one structural shape every consumer
+already walks — see [Walking the AST](walking-the-ast.md)); the shapes documented in
+this book are the operative reference for it.

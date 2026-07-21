@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -201,7 +201,6 @@
 <p>For <code>\.</code>:</p>
 <pre><code class="language-json">{
   "atom": {"type": "escape", "kind": "shorthand", "char": "."},
-  ],
   ...
 }
 </code></pre>
@@ -557,8 +556,13 @@ owns <code>\o{...}</code>.</p>
 }
 <span class="boring">}</span></code></pre>
 <p>For property escapes, the consumer reads <code>obj.name</code> (string) and <code>obj.negated</code> (bool) directly. For hex/unicode/octal, <code>obj.digits</code> (string) is parsed via <code>usize::from_str_radix(digits, &lt;base&gt;)</code>. For control / simple, <code>obj.char</code> (string) carries the matched character.</p>
-<h2 id="future-direction"><a class="header" href="#future-direction">Future direction</a></h2>
-<p>Escape subtree campaign <strong>closed</strong> — all 7 <code>escape_unit</code> branches typed. The next atom-subtree slice picks one of the still-untyped atom alternatives (literal, whitespace_literal, dot, quoted_literal, char_class outer, group/conditional/lookaround/etc.).</p>
+<h2 id="typing-status"><a class="header" href="#typing-status">Typing status</a></h2>
+<p>Escape subtree campaign <strong>closed</strong> — all 7 <code>escape_unit</code> branches typed. The wider
+atom-subtree campaign is complete too: <code>quoted_literal</code>, <code>char_class</code>, the group /
+lookaround / conditional family, modifiers, callouts, code blocks, comments,
+directives and extended classes all emit typed <code>{type, kind, ...}</code> objects (see the
+<a href="rules-atom.html#identification-table--what-kind-of-atom-is-this">atom identification table</a>).
+Plain literals, the dot, and whitespace literals remain bare strings by design.</p>
 
                     </main>
 

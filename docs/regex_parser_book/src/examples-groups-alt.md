@@ -1,6 +1,6 @@
 # Examples: Groups and Alternations
 
-Concrete probe outputs for grouping and alternation constructs. As of slice 23 (post-1.1.53), **all 6 group sub-rules** AND **all 7 lookaround sub-rules** are typed. Group typing is end-to-end. Lookaround family typing is end-to-end. Conditionals, scan_substring, and script_run still emit raw envelope shapes pending follow-up slices.
+Concrete probe outputs for grouping and alternation constructs. **The whole family is typed**: all 6 group sub-rules and all 7 lookaround sub-rules (slice 23, post-1.1.53), plus conditionals, subroutine calls, scan-substring and script-run groups in the follow-up slices — every construct emits a `{type:"atom", kind:..., ...}` object (see [Group Family](rules-groups.md) for the per-rule reference).
 
 ## Capturing group — `(abc)`
 
@@ -201,37 +201,35 @@ PCRE2 only supports positive variants of non-atomic lookarounds. The `positive:t
 
 ## Conditional — `(?(cond)yes|no)`
 
+Typed (exact probe output for `(?(1)y|n)`, condition abbreviated in the table below):
+
 ```json
-"atom": [
-  "(?(",
-  <condition shape>,
-  ")",
-  <yes_branch shape>,
-  [
-    "|",
-    <no_branch shape>
-  ],
-  ")"
-]
+"atom": {
+  "type": "atom", "kind": "conditional",
+  "condition": { "sign": [], "value": 1 },
+  "yes_branch": [ { "atom": "y", "quantifier": [], "type": "piece" } ],
+  "no_branch": [ "|", [ { "atom": "n", "quantifier": [], "type": "piece" } ] ]
+}
 ```
 
-`condition` has 9 sub-forms — see [Anchors, Backreferences, and Misc](rules-misc.md). For `(?(1)yes|no)`:
-
-- `condition` is just `1` (the digits form, typed integer).
-- `yes_branch` is the inner pattern for `yes`.
-- `no_branch` (in the optional `("|" no_branch)?` slot) is the pattern for `no`.
+- `condition` is a typed value with 9 source forms (numeric object, name string,
+  recursion/define/version objects, assertion objects) — the complete table is in
+  [Anchors, Backreferences, and Misc](rules-misc.md#condition).
+- `yes_branch` is the yes-concatenation's piece array.
+- `no_branch` is `["|", [<pieces>]]` when present, `[]` when absent (`(?(1)y)`).
 
 ## Subroutine call — `(?P>name)`, `(?R)`, `(?1)`
 
+Typed:
+
 ```json
-"atom": [
-  "(?",
-  <subroutine_target shape>,
-  ")"
-]
+"atom": { "type": "atom", "kind": "subroutine_call", "target": <target> }
 ```
 
-The subroutine_target distinguishes: `&name`, `P>name`, `R`, or signed digits. See [Group Family](rules-groups.md).
+`target` discriminates on its own `kind`: `{"kind":"named","name":"n"}` for `(?&n)`,
+`{"kind":"python_named","name":"n"}` for `(?P>n)`, `{"kind":"recursion"}` for `(?R)`,
+`{"kind":"numeric","sign":[],"value":1}` for `(?1)` (`sign` `"+"`/`"-"` for the
+relative `(?+1)`/`(?-1)` forms). See [Group Family](rules-groups.md#subroutine_call).
 
 ## Code block — `(?{lua: print(1)})` (typed)
 

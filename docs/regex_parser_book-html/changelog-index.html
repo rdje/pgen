@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -213,10 +213,20 @@
 <tr><th>Divergence</th><th>Examples (all PGEN-ACCEPT / PCRE2-REJECT)</th><th>Why deferred</th><th>Ledger / leaf</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Named reference to an UNKNOWN group name</strong> — err 115 “reference to non-existent subpattern”</td><td><code>\k&lt;zzz&gt;</code> <code>\k'zzz'</code> <code>\k{zzz}</code> <code>(?P=zzz)</code> <code>\g{zzz}</code> <code>(?&amp;zzz)</code> <code>(?P&gt;zzz)</code> <code>\g&lt;zzz&gt;</code> <code>\g'zzz'</code> (no group <code>zzz</code> defined)</td><td>Named-reference resolution is inherently <strong>whole-pattern two-pass</strong> — forward references are LEGAL (<code>\k&lt;aa&gt;(?'aa'x)</code> is accepted by both), so a single left-to-right check would wrongly reject the legal forward form. Owned by the capstone.</td><td><code>REGEX-0098</code> / <code>.3.22</code> (fix in <code>.4</code>)</td></tr>
+<tr><td><strong>Standalone collating / equivalence class members</strong> — err 113</td><td><code>[[.a.]]</code> <code>[[=a=]]</code> as class members</td><td>Surfaced by the <code>REGEX-0105</code> range work; a narrow bracket-token family, queued behind the deferred class-range endpoint migration.</td><td><code>.4.12</code></td></tr>
+<tr><td><strong>Numeric scan-substring capture references</strong> — err 115 for out-of-range <code>(*scs:(N))</code></td><td><code>(*scs:(9)x)</code> with &lt;9 groups</td><td>The numeric half of the scs reference gate (the NAMED half is grammar-owned since <code>.4.7.a</code>); stays validator-owned pending the numeric-fact design.</td><td><code>.4.7.b</code>/<code>.4.7.c</code></td></tr>
 </tbody>
 </table>
 </div>
+<p>The corpus-level remainder of the accepts-invalid surface is the <strong>262 false-accepts</strong>
+in the oracle tuple <code>2189/1879/262/48</code> (see
+<a href="compile-contract-validator.html">The Compile-Contract Validator</a>) — the burn-down
+continues under the <code>REGEX-PCRE2-FIDELITY</code> capstone.</p>
+<p><strong>CLOSED (2026-07-11, release <code>1.1.103</code>): the named-reference UNKNOWN-name family</strong> —
+<code>\k&lt;zzz&gt;</code> <code>\k'zzz'</code> <code>\k{zzz}</code> <code>(?P=zzz)</code> <code>\g{zzz}</code> <code>(?&amp;zzz)</code> <code>(?P&gt;zzz)</code> <code>\g&lt;zzz&gt;</code>
+<code>\g'zzz'</code> (no group <code>zzz</code> defined) now all REJECT PCRE2-faithfully (err 115) via the
+<code>phase: final</code> deferred-obligation gate (<code>.4.11</code>, ledger <code>REGEX-0098</code>); forward
+references stay legal.</p>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
 <h3 id="representation-migration-no-releasecontract-bump--pgen-rgx-0078-0105-the-typed-carrier-is-now-parsecontentshapedpgenvalue-serialized-output-byte-identical-parse-32"><a class="header" href="#representation-migration-no-releasecontract-bump--pgen-rgx-0078-0105-the-typed-carrier-is-now-parsecontentshapedpgenvalue-serialized-output-byte-identical-parse-32">Representation migration (no release/contract bump) — PGEN-RGX-0078-0105: the typed carrier is now <code>ParseContent::Shaped(PgenValue)</code>; serialized output byte-identical; parse −32%</a></h3>
 <blockquote>

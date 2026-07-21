@@ -121,10 +121,11 @@ A flat sequence of child nodes. Used when a grammar rule's body is a multi-eleme
 
 **When it appears:**
 
-- Multi-element sequence rule bodies WITHOUT a return annotation: e.g. `(?:` `pattern?` `)` becomes a 3-element Sequence at the `noncapturing_group` level today.
+- Multi-element sequence rule bodies WITHOUT a return annotation: e.g. the
+  grammar-internal `extended_class_nested = "[" extended_class_content "]"` emits a
+  3-element Sequence (most consumer-facing rules carry annotations and emit typed
+  shapes instead — see the per-rule chapters).
 - Annotation-produced flat arrays: `concatenation = piece+ -> [$1**]` produces a flat `Sequence` of piece nodes (the `**` flatten-spread unwraps any nested Sequences/Quantifieds one level).
-
-Example — `[a-z]`'s class_body is a Sequence of class_item nodes, not yet annotated.
 
 ## Variant: `Alternative(Box<ParseNode<'input>>)`
 

@@ -58,8 +58,9 @@ match/mismatch split — so the gate stays green while the real tuple *improves*
 fidelity fixes land. The real tuple (cells / oracle **matches** / **false-accepts** /
 **false-rejects**; mismatches = false-accepts + false-rejects) has evolved
 `2189/1858/285/46` → `2189/1867/274/48` → `2189/1871/270/48` →
-**`2189/1879/262/48`** (current as of release `1.1.104`; the last step is the
-named-reference acceptance fix, ledger `REGEX-0098`). The 48 false-rejects are the
+**`2189/1879/262/48`** (current as of release `1.1.105`; the last tuple-moving step is the
+named-reference acceptance fix, ledger `REGEX-0098` — the `1.1.105` parser-neutrality
+release changed no verdicts). The 48 false-rejects are the
 ratcheted, documented strict-default divergence classes (patterns the strict default
 deliberately rejects); the 262 false-accepts are the remaining accepts-invalid surface
 this migration campaign continues to burn down. The per-release notes further down
@@ -69,7 +70,7 @@ accuracy, not drift; only the value in this paragraph is maintained as current
 
 ## The remaining check families
 
-As of regex release `1.1.104`, the validator dispatches these families (each row is a
+As of regex release `1.1.105`, the validator dispatches these families (each row is a
 `find_*` check in `regex_compile_validation.rs`, and each maps to the
 `REGEX-PCRE2-FIDELITY` leaf that will migrate it into the grammar):
 

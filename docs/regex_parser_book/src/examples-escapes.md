@@ -35,7 +35,6 @@ For `\.`:
 ```json
 {
   "atom": {"type": "escape", "kind": "shorthand", "char": "."},
-  ],
   ...
 }
 ```
@@ -437,6 +436,11 @@ fn classify_escape(escape_atom: &Value) -> Option<EscapeKind> {
 
 For property escapes, the consumer reads `obj.name` (string) and `obj.negated` (bool) directly. For hex/unicode/octal, `obj.digits` (string) is parsed via `usize::from_str_radix(digits, <base>)`. For control / simple, `obj.char` (string) carries the matched character.
 
-## Future direction
+## Typing status
 
-Escape subtree campaign **closed** — all 7 `escape_unit` branches typed. The next atom-subtree slice picks one of the still-untyped atom alternatives (literal, whitespace_literal, dot, quoted_literal, char_class outer, group/conditional/lookaround/etc.).
+Escape subtree campaign **closed** — all 7 `escape_unit` branches typed. The wider
+atom-subtree campaign is complete too: `quoted_literal`, `char_class`, the group /
+lookaround / conditional family, modifiers, callouts, code blocks, comments,
+directives and extended classes all emit typed `{type, kind, ...}` objects (see the
+[atom identification table](rules-atom.md#identification-table--what-kind-of-atom-is-this)).
+Plain literals, the dot, and whitespace literals remain bare strings by design.

@@ -29,7 +29,19 @@ These are PCRE2-differential cases the RELEASED parser currently ACCEPTS but PCR
 
 | Divergence | Examples (all PGEN-ACCEPT / PCRE2-REJECT) | Why deferred | Ledger / leaf |
 |---|---|---|---|
-| **Named reference to an UNKNOWN group name** — err 115 "reference to non-existent subpattern" | `\k<zzz>` `\k'zzz'` `\k{zzz}` `(?P=zzz)` `\g{zzz}` `(?&zzz)` `(?P>zzz)` `\g<zzz>` `\g'zzz'` (no group `zzz` defined) | Named-reference resolution is inherently **whole-pattern two-pass** — forward references are LEGAL (`\k<aa>(?'aa'x)` is accepted by both), so a single left-to-right check would wrongly reject the legal forward form. Owned by the capstone. | `REGEX-0098` / `.3.22` (fix in `.4`) |
+| **Standalone collating / equivalence class members** — err 113 | `[[.a.]]` `[[=a=]]` as class members | Surfaced by the `REGEX-0105` range work; a narrow bracket-token family, queued behind the deferred class-range endpoint migration. | `.4.12` |
+| **Numeric scan-substring capture references** — err 115 for out-of-range `(*scs:(N))` | `(*scs:(9)x)` with <9 groups | The numeric half of the scs reference gate (the NAMED half is grammar-owned since `.4.7.a`); stays validator-owned pending the numeric-fact design. | `.4.7.b`/`.4.7.c` |
+
+The corpus-level remainder of the accepts-invalid surface is the **262 false-accepts**
+in the oracle tuple `2189/1879/262/48` (see
+[The Compile-Contract Validator](compile-contract-validator.md)) — the burn-down
+continues under the `REGEX-PCRE2-FIDELITY` capstone.
+
+**CLOSED (2026-07-11, release `1.1.103`): the named-reference UNKNOWN-name family** —
+`\k<zzz>` `\k'zzz'` `\k{zzz}` `(?P=zzz)` `\g{zzz}` `(?&zzz)` `(?P>zzz)` `\g<zzz>`
+`\g'zzz'` (no group `zzz` defined) now all REJECT PCRE2-faithfully (err 115) via the
+`phase: final` deferred-obligation gate (`.4.11`, ledger `REGEX-0098`); forward
+references stay legal.
 
 **Not on this list (distinct, pre-existing):** the NUMERIC single-digit `\1`…`\9` / `\g1` N<10 Non-Goal (`numeric_backreference_single` is ungated by design — REGEX-0083/0086). PCRE2 rejects `\g1`@0-groups err 115, but that is the numeric family, not the named-reference family above.
 

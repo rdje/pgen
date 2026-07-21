@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -181,115 +181,122 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="modifier-and-inline-modifier-subtree"><a class="header" href="#modifier-and-inline-modifier-subtree">Modifier and Inline-Modifier Subtree</a></h1>
-<p>PCRE2 inline modifiers like <code>(?i)</code>, <code>(?-mx)</code>, <code>(?^x:...)</code> etc. None currently annotated. All emit raw envelope shapes.</p>
+<p>PCRE2 inline modifiers like <code>(?i)</code>, <code>(?-mx)</code>, <code>(?^x:...)</code> etc. <strong>Both atom-level rules
+are annotated</strong> (the atom-subtree typed-shape campaign): consumers receive typed
+<code>{type: "atom", kind: ...}</code> objects with a structured <code>spec</code> — no raw sequence walking
+is needed anywhere in this subtree.</p>
 <h2 id="inline_modifiers"><a class="header" href="#inline_modifiers"><code>inline_modifiers</code></a></h2>
 <pre><code class="language-ebnf">inline_modifiers = "(?" modifier_spec? ")"
 </code></pre>
-<p>3-element Sequence: <code>["(?", &lt;modifier_spec?&gt;, ")"]</code>. Modifier-spec absent means a bare <code>(?)</code>.</p>
-<p>For <code>(?i)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(?",
-  [&lt;modifier_spec for "i"&gt;],
-  ")"
-]
+<p>The setting-only form — applies from this point in the enclosing group. Typed shape:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "inline_modifiers", "spec": &lt;spec&gt; }
 </code></pre>
-<h2 id="scoped_inline_modifiers"><a class="header" href="#scoped_inline_modifiers"><code>scoped_inline_modifiers</code></a></h2>
-<pre><code class="language-ebnf">scoped_inline_modifiers = "(?" modifier_spec ":" pattern? ")"
-</code></pre>
-<p>5-element Sequence. The <code>:</code> separates the modifier from the scoped pattern.</p>
-<p>For <code>(?i:foo)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(?",
-  &lt;modifier_spec for "i"&gt;,
-  ":",
-  [&lt;pattern for "foo"&gt;],
-  ")"
-]
-</code></pre>
-<h2 id="modifier_spec"><a class="header" href="#modifier_spec"><code>modifier_spec</code></a></h2>
-<pre><code class="language-ebnf">modifier_spec = "^" modifier_seq?
-              | modifier_seq
-</code></pre>
-<p>2-way Or. The <code>^</code> form resets all modifiers; the bare form modifies in-place.</p>
+<p>Live examples (exact probe output):</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Branch</th><th>Form</th><th>Shape</th></tr>
+<tr><th>Pattern</th><th>Emitted atom</th></tr>
 </thead>
 <tbody>
-<tr><td>0</td><td><code>^[seq]?</code></td><td>2-element Sequence <code>["^", &lt;modifier_seq?&gt;]</code></td></tr>
-<tr><td>1</td><td><code>[seq]</code></td><td>the <code>modifier_seq</code> directly</td></tr>
+<tr><td><code>(?i)</code></td><td><code>{"type":"atom","kind":"inline_modifiers","spec":{"reset":false,"seq":{"set":["i"],"unset":[]}}}</code></td></tr>
+<tr><td><code>(?imsx)</code></td><td><code>{"type":"atom","kind":"inline_modifiers","spec":{"reset":false,"seq":{"set":["i","m","s","x"],"unset":[]}}}</code></td></tr>
+<tr><td><code>(?-i)</code></td><td><code>{"type":"atom","kind":"inline_modifiers","spec":{"reset":false,"seq":{"set":[],"unset":["i"]}}}</code></td></tr>
+<tr><td><code>(?^)</code></td><td><code>{"type":"atom","kind":"inline_modifiers","spec":{"reset":true,"seq":[]}}</code></td></tr>
+<tr><td><code>(?^i)</code></td><td><code>{"type":"atom","kind":"inline_modifiers","spec":{"reset":true,"seq":{"set":["i"],"unset":[]}}}</code></td></tr>
+<tr><td><code>(?)</code></td><td><code>{"type":"atom","kind":"inline_modifiers","spec":[]}</code> (absent optional spec — consumer maps <code>[]</code> to “no-op”)</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="modifier_seq"><a class="header" href="#modifier_seq"><code>modifier_seq</code></a></h2>
-<pre><code class="language-ebnf">modifier_seq = modifier_group ("-" modifier_group)?
-             | "-" modifier_group
+<h2 id="scoped_inline_modifiers"><a class="header" href="#scoped_inline_modifiers"><code>scoped_inline_modifiers</code></a></h2>
+<pre><code class="language-ebnf">scoped_inline_modifiers = "(?" modifier_spec ":" pattern? ")"
 </code></pre>
-<p>2 branches:</p>
+<p>The scoped form — the modifiers apply only to the embedded pattern. Typed shape:</p>
+<pre><code class="language-json">{ "type": "atom", "kind": "scoped_inline_modifiers", "spec": &lt;spec&gt;, "body": &lt;pattern&gt; }
+</code></pre>
+<p>For <code>(?i-mx:foo)</code>:</p>
+<pre><code class="language-json">{
+  "type": "atom",
+  "kind": "scoped_inline_modifiers",
+  "spec": { "reset": false, "seq": { "set": ["i"], "unset": ["m", "x"] } },
+  "body": [[[
+    { "atom": "f", "quantifier": [], "type": "piece" },
+    { "atom": "o", "quantifier": [], "type": "piece" },
+    { "atom": "o", "quantifier": [], "type": "piece" }
+  ]], []]
+}
+</code></pre>
+<p><code>body</code> is the standard inner <code>pattern</code> carrier (walk it exactly like the top-level
+pattern — see <a href="walking-the-ast.html">Walking the AST</a>).</p>
+<h2 id="the-spec-object"><a class="header" href="#the-spec-object">The <code>spec</code> object</a></h2>
+<p>Produced by <code>modifier_spec</code> and folded into the parent atom — consumers never see the
+<code>modifier_spec</code>/<code>modifier_seq</code>/<code>modifier_group</code>/<code>modifier_item</code> sub-rules raw:</p>
+<pre><code class="language-ebnf">modifier_spec = "^" modifier_seq?
+              | modifier_seq
+modifier_seq  = modifier_group ("-" modifier_group)?
+              | "-" modifier_group
+modifier_group = modifier_item+
+modifier_item  = "a" ascii_restrict_modifier?
+               | "x" "x"?
+               | modifier_char
+ascii_restrict_modifier = "D" | "S" | "W" | "P" | "T"
+modifier_char = "i" | "m" | "s" | "U" | "J" | "n" | "r"
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>reset</code></td><td><code>true</code> / <code>false</code></td><td><code>true</code> iff the <code>^</code> reset form was used (<code>(?^...)</code> — PCRE2 “unset everything, then set”)</td></tr>
+<tr><td><code>seq</code></td><td><code>{set, unset}</code> object, or <code>[]</code></td><td>the modifier items; <code>[]</code> when the reset form has no trailing seq (<code>(?^)</code>)</td></tr>
+<tr><td><code>seq.set</code></td><td>array of items</td><td>items before the <code>-</code></td></tr>
+<tr><td><code>seq.unset</code></td><td>array of items</td><td>items after the <code>-</code> (empty when there is no <code>-</code> part)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Each item in <code>set</code> / <code>unset</code> is one of:</p>
 <ul>
-<li>Branch 0: positive modifiers, optionally followed by <code>-</code> and negative modifiers.</li>
-<li>Branch 1: just <code>-</code> and negative modifiers (no leading positives).</li>
+<li>a <strong>plain string</strong> — a single modifier letter (<code>"i"</code>, <code>"m"</code>, <code>"s"</code>, <code>"U"</code>, <code>"J"</code>,
+<code>"n"</code>, <code>"r"</code>, <code>"x"</code>) or the doubled <code>"xx"</code> (PCRE2 extended-more mode);</li>
+<li>an <strong>ASCII-restrict object</strong> <code>{"char": "a", "restrict": &lt;letter&gt;}</code> for the
+<code>a</code>-with-restriction forms (<code>(?aD)</code> → <code>{"char":"a","restrict":"D"}</code>; restrict ∈
+<code>D S W P T</code>). A bare <code>a</code> (no restriction letter) emits with <code>"restrict": []</code>.</li>
 </ul>
-<h2 id="modifier_group"><a class="header" href="#modifier_group"><code>modifier_group</code></a></h2>
-<pre><code class="language-ebnf">modifier_group = modifier_item+
+<p>Mixed example — <code>(?aDx-imr)</code>:</p>
+<pre><code class="language-json">{ "reset": false,
+  "seq": { "set": [ {"char": "a", "restrict": "D"}, "x" ],
+           "unset": [ "i", "m", "r" ] } }
 </code></pre>
-<p>Quantified-<code>+</code> of modifier items. Emits an array of <code>modifier_item</code>s.</p>
-<h2 id="modifier_item"><a class="header" href="#modifier_item"><code>modifier_item</code></a></h2>
-<pre><code class="language-ebnf">modifier_item = "a" ascii_restrict_modifier?
-              | "x" "x"?
-              | modifier_char
-</code></pre>
-<p>3-way Or:</p>
-<ul>
-<li>Branch 0: <code>a</code> followed by optional ASCII-restrict modifier (<code>D</code>, <code>S</code>, <code>W</code>, <code>P</code>, <code>T</code>).</li>
-<li>Branch 1: <code>x</code> or <code>xx</code>.</li>
-<li>Branch 2: a single <code>modifier_char</code> (one of <code>i</code>, <code>m</code>, <code>s</code>, <code>U</code>, <code>J</code>, <code>n</code>, <code>r</code>).</li>
-</ul>
-<h2 id="ascii_restrict_modifier"><a class="header" href="#ascii_restrict_modifier"><code>ascii_restrict_modifier</code></a></h2>
-<pre><code class="language-ebnf">ascii_restrict_modifier = "D" | "S" | "W" | "P" | "T"
-</code></pre>
-<p>5-way Or, emits <code>Terminal(&lt;letter&gt;)</code>.</p>
-<h2 id="modifier_char"><a class="header" href="#modifier_char"><code>modifier_char</code></a></h2>
-<pre><code class="language-ebnf">modifier_char = "i" | "m" | "s" | "U" | "J" | "n" | "r"
-</code></pre>
-<p>7-way Or, emits <code>Terminal(&lt;letter&gt;)</code>.</p>
-<h2 id="walking-a-im-example"><a class="header" href="#walking-a-im-example">Walking a <code>(?im)</code> example</a></h2>
-<p>For input <code>(?im)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(?",
-  [
-    [
-      [&lt;modifier_item for "i"&gt;],
-      [&lt;modifier_item for "m"&gt;]
-    ]
-  ],
-  ")"
-]
-</code></pre>
-<p>Each modifier_item is a 1-element Sequence wrapping its modifier_char terminal. Concatenate to recover the modifier string.</p>
-<h2 id="walking-a-i-mxfoo-example"><a class="header" href="#walking-a-i-mxfoo-example">Walking a <code>(?i-mx:foo)</code> example</a></h2>
-<p>For input <code>(?i-mx:foo)</code>:</p>
-<pre><code class="language-json">"atom": [
-  "(?",
-  [
-    [&lt;modifier_group for "i"&gt;],
-    "-",
-    [&lt;modifier_group for "mx"&gt;]
-  ],
-  ":",
-  [&lt;pattern for "foo"&gt;],
-  ")"
-]
-</code></pre>
-<h2 id="future-shape"><a class="header" href="#future-shape">Future shape</a></h2>
-<p>Eventually <code>inline_modifiers</code> and <code>scoped_inline_modifiers</code> will be annotated to produce shapes like:</p>
-<pre><code class="language-json">{ "type": "modifiers", "set": ["i"], "unset": ["m", "x"] }
-</code></pre>
-<p>and</p>
-<pre><code class="language-json">{ "type": "scoped_modifiers", "set": [...], "unset": [...], "body": &lt;pattern&gt; }
-</code></pre>
-<p>Until then, consumers walk the per-rule Sequence shapes documented above.</p>
+<p>Unknown letters reject at parse time, so a consumer can trust every item in
+<code>set</code>/<code>unset</code> to be a recognized modifier form.</p>
+<p>Consumer extraction:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_modifiers(atom: &amp;Value) -&gt; Option&lt;(bool, Vec&lt;Value&gt;, Vec&lt;Value&gt;)&gt; {
+    let obj = atom.as_object()?;
+    let kind = obj.get("kind")?.as_str()?;
+    if kind != "inline_modifiers" &amp;&amp; kind != "scoped_inline_modifiers" {
+        return None;
+    }
+    let spec = obj.get("spec")?;
+    // absent spec (`(?)`) serializes as []
+    let Some(spec_obj) = spec.as_object() else { return Some((false, vec![], vec![])) };
+    let reset = spec_obj.get("reset").and_then(|v| v.as_bool()).unwrap_or(false);
+    let (mut set, mut unset) = (vec![], vec![]);
+    if let Some(seq) = spec_obj.get("seq").and_then(|v| v.as_object()) {
+        if let Some(arr) = seq.get("set").and_then(|v| v.as_array()) { set = arr.clone(); }
+        if let Some(arr) = seq.get("unset").and_then(|v| v.as_array()) { unset = arr.clone(); }
+    }
+    Some((reset, set, unset))
+}
+<span class="boring">}</span></code></pre>
+<h2 id="historical-note"><a class="header" href="#historical-note">Historical note</a></h2>
+<p>Before the atom-subtree campaign typed this family, both rules emitted raw sequences
+(<code>["(?", &lt;modifier_spec?&gt;, ")"]</code> and the 5-element scoped form) and consumers walked
+the nested <code>modifier_seq</code>/<code>modifier_group</code> arrays by position. If you maintain code
+from that era, migrate to the <code>kind</code>/<code>spec</code> field reads above — the raw shapes no
+longer exist in any released artifact. (See the <a href="changelog-index.html">Changelog Index</a>
+for the release-by-release record.)</p>
 
                     </main>
 

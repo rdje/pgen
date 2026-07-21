@@ -1,6 +1,9 @@
 # Modifier and Inline-Modifier Subtree
 
-PCRE2 inline modifiers like `(?i)`, `(?-mx)`, `(?^x:...)` etc. None currently annotated. All emit raw envelope shapes.
+PCRE2 inline modifiers like `(?i)`, `(?-mx)`, `(?^x:...)` etc. **Both atom-level rules
+are annotated** (the atom-subtree typed-shape campaign): consumers receive typed
+`{type: "atom", kind: ...}` objects with a structured `spec` — no raw sequence walking
+is needed anywhere in this subtree.
 
 ## `inline_modifiers`
 
@@ -8,17 +11,22 @@ PCRE2 inline modifiers like `(?i)`, `(?-mx)`, `(?^x:...)` etc. None currently an
 inline_modifiers = "(?" modifier_spec? ")"
 ```
 
-3-element Sequence: `["(?", <modifier_spec?>, ")"]`. Modifier-spec absent means a bare `(?)`.
-
-For `(?i)`:
+The setting-only form — applies from this point in the enclosing group. Typed shape:
 
 ```json
-"atom": [
-  "(?",
-  [<modifier_spec for "i">],
-  ")"
-]
+{ "type": "atom", "kind": "inline_modifiers", "spec": <spec> }
 ```
+
+Live examples (exact probe output):
+
+| Pattern | Emitted atom |
+|---|---|
+| `(?i)` | `{"type":"atom","kind":"inline_modifiers","spec":{"reset":false,"seq":{"set":["i"],"unset":[]}}}` |
+| `(?imsx)` | `{"type":"atom","kind":"inline_modifiers","spec":{"reset":false,"seq":{"set":["i","m","s","x"],"unset":[]}}}` |
+| `(?-i)` | `{"type":"atom","kind":"inline_modifiers","spec":{"reset":false,"seq":{"set":[],"unset":["i"]}}}` |
+| `(?^)` | `{"type":"atom","kind":"inline_modifiers","spec":{"reset":true,"seq":[]}}` |
+| `(?^i)` | `{"type":"atom","kind":"inline_modifiers","spec":{"reset":true,"seq":{"set":["i"],"unset":[]}}}` |
+| `(?)` | `{"type":"atom","kind":"inline_modifiers","spec":[]}` (absent optional spec — consumer maps `[]` to "no-op") |
 
 ## `scoped_inline_modifiers`
 
@@ -26,133 +34,101 @@ For `(?i)`:
 scoped_inline_modifiers = "(?" modifier_spec ":" pattern? ")"
 ```
 
-5-element Sequence. The `:` separates the modifier from the scoped pattern.
-
-For `(?i:foo)`:
+The scoped form — the modifiers apply only to the embedded pattern. Typed shape:
 
 ```json
-"atom": [
-  "(?",
-  <modifier_spec for "i">,
-  ":",
-  [<pattern for "foo">],
-  ")"
-]
+{ "type": "atom", "kind": "scoped_inline_modifiers", "spec": <spec>, "body": <pattern> }
 ```
 
-## `modifier_spec`
+For `(?i-mx:foo)`:
+
+```json
+{
+  "type": "atom",
+  "kind": "scoped_inline_modifiers",
+  "spec": { "reset": false, "seq": { "set": ["i"], "unset": ["m", "x"] } },
+  "body": [[[
+    { "atom": "f", "quantifier": [], "type": "piece" },
+    { "atom": "o", "quantifier": [], "type": "piece" },
+    { "atom": "o", "quantifier": [], "type": "piece" }
+  ]], []]
+}
+```
+
+`body` is the standard inner `pattern` carrier (walk it exactly like the top-level
+pattern — see [Walking the AST](walking-the-ast.md)).
+
+## The `spec` object
+
+Produced by `modifier_spec` and folded into the parent atom — consumers never see the
+`modifier_spec`/`modifier_seq`/`modifier_group`/`modifier_item` sub-rules raw:
 
 ```ebnf
 modifier_spec = "^" modifier_seq?
               | modifier_seq
-```
-
-2-way Or. The `^` form resets all modifiers; the bare form modifies in-place.
-
-| Branch | Form | Shape |
-|---|---|---|
-| 0 | `^[seq]?` | 2-element Sequence `["^", <modifier_seq?>]` |
-| 1 | `[seq]` | the `modifier_seq` directly |
-
-## `modifier_seq`
-
-```ebnf
-modifier_seq = modifier_group ("-" modifier_group)?
-             | "-" modifier_group
-```
-
-2 branches:
-
-- Branch 0: positive modifiers, optionally followed by `-` and negative modifiers.
-- Branch 1: just `-` and negative modifiers (no leading positives).
-
-## `modifier_group`
-
-```ebnf
+modifier_seq  = modifier_group ("-" modifier_group)?
+              | "-" modifier_group
 modifier_group = modifier_item+
-```
-
-Quantified-`+` of modifier items. Emits an array of `modifier_item`s.
-
-## `modifier_item`
-
-```ebnf
-modifier_item = "a" ascii_restrict_modifier?
-              | "x" "x"?
-              | modifier_char
-```
-
-3-way Or:
-
-- Branch 0: `a` followed by optional ASCII-restrict modifier (`D`, `S`, `W`, `P`, `T`).
-- Branch 1: `x` or `xx`.
-- Branch 2: a single `modifier_char` (one of `i`, `m`, `s`, `U`, `J`, `n`, `r`).
-
-## `ascii_restrict_modifier`
-
-```ebnf
+modifier_item  = "a" ascii_restrict_modifier?
+               | "x" "x"?
+               | modifier_char
 ascii_restrict_modifier = "D" | "S" | "W" | "P" | "T"
-```
-
-5-way Or, emits `Terminal(<letter>)`.
-
-## `modifier_char`
-
-```ebnf
 modifier_char = "i" | "m" | "s" | "U" | "J" | "n" | "r"
 ```
 
-7-way Or, emits `Terminal(<letter>)`.
+| Field | Value | Meaning |
+|---|---|---|
+| `reset` | `true` / `false` | `true` iff the `^` reset form was used (`(?^...)` — PCRE2 "unset everything, then set") |
+| `seq` | `{set, unset}` object, or `[]` | the modifier items; `[]` when the reset form has no trailing seq (`(?^)`) |
+| `seq.set` | array of items | items before the `-` |
+| `seq.unset` | array of items | items after the `-` (empty when there is no `-` part) |
 
-## Walking a `(?im)` example
+Each item in `set` / `unset` is one of:
 
-For input `(?im)`:
+- a **plain string** — a single modifier letter (`"i"`, `"m"`, `"s"`, `"U"`, `"J"`,
+  `"n"`, `"r"`, `"x"`) or the doubled `"xx"` (PCRE2 extended-more mode);
+- an **ASCII-restrict object** `{"char": "a", "restrict": <letter>}` for the
+  `a`-with-restriction forms (`(?aD)` → `{"char":"a","restrict":"D"}`; restrict ∈
+  `D S W P T`). A bare `a` (no restriction letter) emits with `"restrict": []`.
 
-```json
-"atom": [
-  "(?",
-  [
-    [
-      [<modifier_item for "i">],
-      [<modifier_item for "m">]
-    ]
-  ],
-  ")"
-]
-```
-
-Each modifier_item is a 1-element Sequence wrapping its modifier_char terminal. Concatenate to recover the modifier string.
-
-## Walking a `(?i-mx:foo)` example
-
-For input `(?i-mx:foo)`:
+Mixed example — `(?aDx-imr)`:
 
 ```json
-"atom": [
-  "(?",
-  [
-    [<modifier_group for "i">],
-    "-",
-    [<modifier_group for "mx">]
-  ],
-  ":",
-  [<pattern for "foo">],
-  ")"
-]
+{ "reset": false,
+  "seq": { "set": [ {"char": "a", "restrict": "D"}, "x" ],
+           "unset": [ "i", "m", "r" ] } }
 ```
 
-## Future shape
+Unknown letters reject at parse time, so a consumer can trust every item in
+`set`/`unset` to be a recognized modifier form.
 
-Eventually `inline_modifiers` and `scoped_inline_modifiers` will be annotated to produce shapes like:
+Consumer extraction:
 
-```json
-{ "type": "modifiers", "set": ["i"], "unset": ["m", "x"] }
+```rust
+fn extract_modifiers(atom: &Value) -> Option<(bool, Vec<Value>, Vec<Value>)> {
+    let obj = atom.as_object()?;
+    let kind = obj.get("kind")?.as_str()?;
+    if kind != "inline_modifiers" && kind != "scoped_inline_modifiers" {
+        return None;
+    }
+    let spec = obj.get("spec")?;
+    // absent spec (`(?)`) serializes as []
+    let Some(spec_obj) = spec.as_object() else { return Some((false, vec![], vec![])) };
+    let reset = spec_obj.get("reset").and_then(|v| v.as_bool()).unwrap_or(false);
+    let (mut set, mut unset) = (vec![], vec![]);
+    if let Some(seq) = spec_obj.get("seq").and_then(|v| v.as_object()) {
+        if let Some(arr) = seq.get("set").and_then(|v| v.as_array()) { set = arr.clone(); }
+        if let Some(arr) = seq.get("unset").and_then(|v| v.as_array()) { unset = arr.clone(); }
+    }
+    Some((reset, set, unset))
+}
 ```
 
-and
+## Historical note
 
-```json
-{ "type": "scoped_modifiers", "set": [...], "unset": [...], "body": <pattern> }
-```
-
-Until then, consumers walk the per-rule Sequence shapes documented above.
+Before the atom-subtree campaign typed this family, both rules emitted raw sequences
+(`["(?", <modifier_spec?>, ")"]` and the 5-element scoped form) and consumers walked
+the nested `modifier_seq`/`modifier_group` arrays by position. If you maintain code
+from that era, migrate to the `kind`/`spec` field reads above — the raw shapes no
+longer exist in any released artifact. (See the [Changelog Index](changelog-index.md)
+for the release-by-release record.)

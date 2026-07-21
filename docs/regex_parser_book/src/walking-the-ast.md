@@ -227,10 +227,12 @@ A consumer walks this by:
 1. Top-level `regex`: extract `pattern`.
 2. Navigate `pattern[0][0]` to reach the array of pieces (one piece in this case).
 3. For each piece, dispatch on `type: "piece"`:
-   - `atom`: `"a"` (a leaf string — for now; eventually atom will have its own typed shape).
-   - `quantifier`: 2-element array `["*", "lazy"]`:
-     - Element 0: `quant_base` is `"*"`.
-     - Element 1: `quant_suffix` is `"lazy"`.
+   - `atom`: `"a"` — a bare string means literal text; a typed object means a
+     structural construct, dispatched on `type` + `kind` (see the
+     [atom identification table](rules-atom.md#identification-table--what-kind-of-atom-is-this)).
+   - `quantifier`: the typed object `{"type":"quantifier","min":0,"max":null,"greediness":"lazy"}`
+     — `min`/`max` are the normalized bounds (`max: null` = unbounded) and
+     `greediness` is `"lazy"`, `"possessive"`, or `[]` (greedy default).
 
 This produces consumer-side: `Piece(atom="a", quantifier=Star, greediness=Lazy)`.
 

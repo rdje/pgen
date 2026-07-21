@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fccacb01.js";
+            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="examples-groups-and-alternations"><a class="header" href="#examples-groups-and-alternations">Examples: Groups and Alternations</a></h1>
-<p>Concrete probe outputs for grouping and alternation constructs. As of slice 23 (post-1.1.53), <strong>all 6 group sub-rules</strong> AND <strong>all 7 lookaround sub-rules</strong> are typed. Group typing is end-to-end. Lookaround family typing is end-to-end. Conditionals, scan_substring, and script_run still emit raw envelope shapes pending follow-up slices.</p>
+<p>Concrete probe outputs for grouping and alternation constructs. <strong>The whole family is typed</strong>: all 6 group sub-rules and all 7 lookaround sub-rules (slice 23, post-1.1.53), plus conditionals, subroutine calls, scan-substring and script-run groups in the follow-up slices — every construct emits a <code>{type:"atom", kind:..., ...}</code> object (see <a href="rules-groups.html">Group Family</a> for the per-rule reference).</p>
 <h2 id="capturing-group--abc"><a class="header" href="#capturing-group--abc">Capturing group — <code>(abc)</code></a></h2>
 <pre><code class="language-json">{
   "atom": {"type": "atom", "kind": "capturing_group", "body": &lt;pattern&gt;},
@@ -331,32 +331,29 @@
 </code></pre>
 <p><code>name</code> carries the alpha_lookaround_name (one of <code>"pla"</code>, <code>"positive_lookahead"</code>, <code>"nla"</code>, <code>"negative_lookahead"</code>, <code>"plb"</code>, <code>"positive_lookbehind"</code>, <code>"nlb"</code>, <code>"negative_lookbehind"</code>, <code>"napla"</code>, <code>"non_atomic_positive_lookahead"</code>, <code>"naplb"</code>, <code>"non_atomic_positive_lookbehind"</code>). Consumers map by name to dispatch on the semantic equivalent.</p>
 <h2 id="conditional--condyesno"><a class="header" href="#conditional--condyesno">Conditional — <code>(?(cond)yes|no)</code></a></h2>
-<pre><code class="language-json">"atom": [
-  "(?(",
-  &lt;condition shape&gt;,
-  ")",
-  &lt;yes_branch shape&gt;,
-  [
-    "|",
-    &lt;no_branch shape&gt;
-  ],
-  ")"
-]
+<p>Typed (exact probe output for <code>(?(1)y|n)</code>, condition abbreviated in the table below):</p>
+<pre><code class="language-json">"atom": {
+  "type": "atom", "kind": "conditional",
+  "condition": { "sign": [], "value": 1 },
+  "yes_branch": [ { "atom": "y", "quantifier": [], "type": "piece" } ],
+  "no_branch": [ "|", [ { "atom": "n", "quantifier": [], "type": "piece" } ] ]
+}
 </code></pre>
-<p><code>condition</code> has 9 sub-forms — see <a href="rules-misc.html">Anchors, Backreferences, and Misc</a>. For <code>(?(1)yes|no)</code>:</p>
 <ul>
-<li><code>condition</code> is just <code>1</code> (the digits form, typed integer).</li>
-<li><code>yes_branch</code> is the inner pattern for <code>yes</code>.</li>
-<li><code>no_branch</code> (in the optional <code>("|" no_branch)?</code> slot) is the pattern for <code>no</code>.</li>
+<li><code>condition</code> is a typed value with 9 source forms (numeric object, name string,
+recursion/define/version objects, assertion objects) — the complete table is in
+<a href="rules-misc.html#condition">Anchors, Backreferences, and Misc</a>.</li>
+<li><code>yes_branch</code> is the yes-concatenation’s piece array.</li>
+<li><code>no_branch</code> is <code>["|", [&lt;pieces&gt;]]</code> when present, <code>[]</code> when absent (<code>(?(1)y)</code>).</li>
 </ul>
 <h2 id="subroutine-call--pname-r-1"><a class="header" href="#subroutine-call--pname-r-1">Subroutine call — <code>(?P&gt;name)</code>, <code>(?R)</code>, <code>(?1)</code></a></h2>
-<pre><code class="language-json">"atom": [
-  "(?",
-  &lt;subroutine_target shape&gt;,
-  ")"
-]
+<p>Typed:</p>
+<pre><code class="language-json">"atom": { "type": "atom", "kind": "subroutine_call", "target": &lt;target&gt; }
 </code></pre>
-<p>The subroutine_target distinguishes: <code>&amp;name</code>, <code>P&gt;name</code>, <code>R</code>, or signed digits. See <a href="rules-groups.html">Group Family</a>.</p>
+<p><code>target</code> discriminates on its own <code>kind</code>: <code>{"kind":"named","name":"n"}</code> for <code>(?&amp;n)</code>,
+<code>{"kind":"python_named","name":"n"}</code> for <code>(?P&gt;n)</code>, <code>{"kind":"recursion"}</code> for <code>(?R)</code>,
+<code>{"kind":"numeric","sign":[],"value":1}</code> for <code>(?1)</code> (<code>sign</code> <code>"+"</code>/<code>"-"</code> for the
+relative <code>(?+1)</code>/<code>(?-1)</code> forms). See <a href="rules-groups.html#subroutine_call">Group Family</a>.</p>
 <h2 id="code-block--lua-print1-typed"><a class="header" href="#code-block--lua-print1-typed">Code block — <code>(?{lua: print(1)})</code> (typed)</a></h2>
 <pre><code class="language-json">"atom": {
   "type": "atom",
