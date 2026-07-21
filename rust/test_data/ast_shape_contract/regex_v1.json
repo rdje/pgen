@@ -739,6 +739,12 @@
         "normalized_text": "{type: \"atom\", kind: \"extended_class\", body: $2}"
       },
       {
+        "rule": "extended_class_backspace_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: \"b\"}"
+      },
+      {
         "rule": "hex_digits",
         "branch_index": 0,
         "annotation_type": "return_scalar",

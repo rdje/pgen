@@ -2139,8 +2139,24 @@ extended_class = "(?[" extended_class_content "])"                  -> {type: "a
 extended_class_content = extended_class_element*
 extended_class_element = extended_class_nested
                        | escape
+                       | extended_class_backspace_escape
                        | extended_class_regular
 extended_class_nested = "[" extended_class_content "]"
+# PGEN-RGX-0089 (ledger REGEX-0115): `\b` is the classic dual-meaning escape —
+# a word-boundary ASSERTION in the pattern body (owned by `anchor`; dropped
+# from `simple_escape_letter_strict` by `.3.13` exactly so `\b*` rejects
+# err 109), but BACKSPACE (U+0008) in CLASS context. Ordinary classes keep the
+# class meaning via `class_simple_escape`'s letter set; the extended class
+# `(?[...])` routes escapes through the generic `escape` rule, where the
+# `.3.13` drop left `\b` with NO derivation — a rejects-valid regression
+# (release 1.1.82). This dedicated branch restores the class-context meaning
+# for extended classes ONLY (body-level `\b` stays an anchor). Oracle
+# `pcre2test` 10.47: `(?[\b])`/`(?[[\b]])` ACCEPT and match \x08;
+# `(?[\B])`/`(?[\A])` stay REJECT err 107 (not admitted here). The shape
+# matches what `escape`→`simple_escape` produced before 1.1.82 and what
+# `[\b]` produces in ordinary classes. Positive spelling (no lookahead) per
+# the `.3.13` generation-faithfulness law, so the branch is witnessable.
+extended_class_backspace_escape = "\\b" -> {type: "escape", kind: "shorthand", char: "b"}
 extended_class_regular = letter | digit | whitespace | extended_class_special | unicode_char
 extended_class_special = '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '^' | '_' | '`' | '{' | '|' | '}' | '~'
 

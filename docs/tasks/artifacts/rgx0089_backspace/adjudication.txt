@@ -1,0 +1,16 @@
+base1_geomean = 1002.0884452423132
+base2_geomean = 1001.6371920931746
+cand1_geomean = 1004.7473827974084
+cand2_geomean = 1002.8776361514358
+base1_vs_floor_pct = -0.2301428472408107
+base2_vs_floor_pct = -0.2750704805680404
+base1_vs_base2_pct = -0.045031269573170274
+custody = 'GREEN'
+pooled_base_geomean = 991.7786856607904
+pooled_cand_geomean = 993.5769296497809
+pooled_delta_pct = 0.1813150468940039
+verdict_flips = 0
+flip_ids = []
+cand_corpus_max_ns = 367000
+max_guardrail = 'PASS'
+ADJUDICATION: GREEN

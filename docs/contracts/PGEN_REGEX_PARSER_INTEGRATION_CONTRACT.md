@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.108`
+  - `1.1.109`
 - Parser release version:
-  - `1.1.105`
+  - `1.1.106`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -301,6 +301,24 @@ cache is on the campaign roadmap (`RGX-0078.7`). Campaign methodology + scoreboa
 **Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 **Also in 2026-06-07 — REGEX-PCRE2-FIDELITY.3.2 (`PGEN-REGEX-PCRE2-0008`): `(*verb)` NAME acceptance migrated into the grammar (also SURFACE-NEUTRAL; versions unchanged).** `directive_name` now accepts, in the default (`pcre2`) profile, only the recognized PCRE2 verb names (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and the 26 start-option names — by grammar (`directive_name_strict`), case-sensitively. Unrecognized verb names (`(*FOO)`, `(*MARKX)`, wrong-case `(*accept)`) reject in default exactly as before (the host validator rejected them previously; `regex_pcre2_compile_oracle_gate` false-reject set byte-identical). The validator's unrecognized-name reject was removed; its **structural** verb checks stay and apply in both profiles: **MARK requires a non-empty argument** (`(*MARK)` → reject), **start-options must appear at the pattern start** (`a(*UTF)` → reject), `=value` must be numeric, and only `ACCEPT` may be quantified. AST shape unchanged. A `relaxed` profile re-admits arbitrary verb names (CLI-only; not exposed via the embedding API). **Action for downstream (RGX):** unchanged — default verb acceptance is identical; continue matching on the diagnostic **code** (`E_PARSE_FAILURE`), not message text. *(The "structural verb checks stay in the validator" note above is historical — release `1.1.83` migrated the argument-shape checks into the grammar; see the Release 1.1.83 Highlights.)*
+
+## Release 1.1.106 / Contract 1.1.109 Highlights — REGEX-0115: the backspace escape `\b` inside the Perl extended class `(?[...])` ACCEPTS again (a rejects-valid REGRESSION fix — behavior-CHANGING; grammar-owned; downstream report `PGEN-RGX-0089`)
+
+The **backspace escape `\b` inside a Perl extended character class `(?[...])`** — bare (`(?[\b])`) or in a nested ordinary bracket (`(?[[\b]])`) — now **ACCEPTS** again and produces the class-context escape node `{"char":"b","kind":"shorthand","type":"escape"}` in the extended-class `body`, exactly the pre-`1.1.82` shape and byte-parity with what ordinary-class `[\b]` produces. PCRE2 10.47 accepts both forms and matches U+0008.
+
+**The regression** (downstream `PGEN-RGX-0089`; present `1.1.82` → `1.1.105`): release `1.1.82` (`REGEX-PCRE2-FIDELITY.3.13`) re-spelled `simple_escape`'s letter component as a positive enumeration that deliberately drops the escape-anchor letters (`A B G K Z b z`) — sound at pattern-body level, where those spellings are anchors owned by the `anchor` rule (and where it fixed quantified-anchor rejection, err 109). But `extended_class_element` routes escapes through the generic body `escape` rule, where `anchor` is unreachable — so `\b` inside `(?[...])` lost its only derivation. `\b` was the SOLE regressed escape in the extended-class family (RGX probed the family exhaustively; confirmed upstream).
+
+| Pattern | Verdict (before → `1.1.106`) = PCRE2 10.47 |
+| --- | --- |
+| `(?[\b])` | REJECT → **ACCEPT** (matches `\x08`) |
+| `(?[[\b]])` | REJECT → **ACCEPT** (matches `\x08`) |
+| `(?[\a \| \b \| \e \| \f])+` (the shipped RGX fixture body) | REJECT → **ACCEPT** |
+| `(?[\b])*` | REJECT → **ACCEPT** |
+| Control: `(?[\B])` `(?[\A])` | REJECT == REJECT (unchanged; PCRE2 err 107 "escape sequence is invalid in character class") |
+| Control: `[\b]` (ordinary class) / `x\b` (body anchor) | ACCEPT == ACCEPT (AST byte-identical) |
+| Control: `\b*` (quantified body anchor) | REJECT == REJECT (unchanged; err 109 — the `1.1.82` fix this release does NOT regress) |
+
+**The fix (grammar tier).** A dedicated positive branch `extended_class_backspace_escape = "\\b" -> {type: "escape", kind: "shorthand", char: "b"}` on `extended_class_element` restores the PCRE2 class-context dual meaning of `\b` for extended classes ONLY (body-level `\b` stays an anchor). Positive spelling per the `.3.13` generation-faithfulness law, so the branch is generated and witnessed: cert coverage grows `268→269` rules, `UNKNOWN=0 fully_certified=true spf=0` at seeds 0/7/42. **Conformance:** local `pcre2test` 10.47 oracle matrix (9 cells, table above); `regex_pcre2_compile_oracle_gate` tuple byte-identical `2189/1879/262/48` (the fixed corpus has no extended-class-`\b` cell — this regression is exactly the class the grammar-derived stimuli apparatus cannot surface, see the rejects-valid blind-spot note in the PGEN repo); every still-accepted AST byte-identical; **AST-dump schema stays `1`**. Regression-lock test `regex_parser_pgen_rgx_0089_extended_class_backspace_escape_accepts` (rust/src/embedding_api.rs) pins the full matrix. **Action for downstream (RGX):** re-pin and re-enable the two extended-class fixture surfaces; no walker change needed (the node shape is the pre-`1.1.82` one your fixtures were written against).
 
 ## Release 1.1.104 / Contract 1.1.106 Highlights — REGEX-0113: relative-zero scan-substring capture reference now REJECTS (a genuine accepts-invalid correction — behavior-CHANGING; validator-owned)
 

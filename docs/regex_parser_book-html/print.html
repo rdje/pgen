@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-84825c26.js";
+            window.path_to_searchindex_js = "searchindex-ef0c104e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -3866,9 +3866,27 @@ un-annotated (their raw shapes appear inside the nested triples).</p>
 <h3 id="extended_class_element"><a class="header" href="#extended_class_element"><code>extended_class_element</code></a></h3>
 <pre><code class="language-ebnf">extended_class_element = extended_class_nested
                        | escape
+                       | extended_class_backspace_escape
                        | extended_class_regular
 </code></pre>
-<p>3-way Or. The matched alternative’s shape appears.</p>
+<p>4-way Or. The matched alternative’s shape appears.</p>
+<h3 id="extended_class_backspace_escape"><a class="header" href="#extended_class_backspace_escape"><code>extended_class_backspace_escape</code></a></h3>
+<pre><code class="language-ebnf">extended_class_backspace_escape = "\\b" -&gt; {type: "escape", kind: "shorthand", char: "b"}
+</code></pre>
+<p>The class-context meaning of the dual-meaning escape <code>\b</code> (release <code>1.1.106</code>,
+<code>PGEN-RGX-0089</code> / ledger <code>REGEX-0115</code>): in the pattern BODY <code>\b</code> is a
+word-boundary <strong>anchor</strong> (and <code>\b*</code> rejects, PCRE2 err 109), but inside a
+character class it means <strong>backspace</strong> (U+0008). Ordinary classes get that
+meaning from the class escape family; the extended class routes other escapes
+through the generic <code>escape</code> rule (whose shorthand set deliberately excludes
+the anchor letters), so this dedicated branch carries the backspace meaning
+for <code>(?[...])</code> — bare or nested:</p>
+<pre><code class="language-text">(?[\b])    → body: [{"char":"b","kind":"shorthand","type":"escape"}]
+(?[[\b]])  → body: [["[",[{"char":"b","kind":"shorthand","type":"escape"}],"]"]]
+</code></pre>
+<p>The node shape is byte-identical to ordinary-class <code>[\b]</code>’s member and to the
+pre-<code>1.1.82</code> extended-class shape. <code>(?[\B])</code> / <code>(?[\A])</code> stay <strong>rejected</strong>
+(PCRE2 err 107 — not admitted by this branch). Oracle: <code>pcre2test</code> 10.47.</p>
 <h3 id="extended_class_nested"><a class="header" href="#extended_class_nested"><code>extended_class_nested</code></a></h3>
 <pre><code class="language-ebnf">extended_class_nested = "[" extended_class_content "]"
 </code></pre>
@@ -5800,9 +5818,10 @@ match/mismatch split — so the gate stays green while the real tuple <em>improv
 fidelity fixes land. The real tuple (cells / oracle <strong>matches</strong> / <strong>false-accepts</strong> /
 <strong>false-rejects</strong>; mismatches = false-accepts + false-rejects) has evolved
 <code>2189/1858/285/46</code> → <code>2189/1867/274/48</code> → <code>2189/1871/270/48</code> →
-<strong><code>2189/1879/262/48</code></strong> (current as of release <code>1.1.105</code>; the last tuple-moving step is the
+<strong><code>2189/1879/262/48</code></strong> (current as of release <code>1.1.106</code>; the last tuple-moving step is the
 named-reference acceptance fix, ledger <code>REGEX-0098</code> — the <code>1.1.105</code> parser-neutrality
-release changed no verdicts). The 48 false-rejects are the
+release changed no verdicts, and the <code>1.1.106</code> extended-class-<code>\b</code> regression fix
+(ledger <code>REGEX-0115</code>) is corpus-invisible: the frozen corpus has no <code>(?[\b])</code> cell). The 48 false-rejects are the
 ratcheted, documented strict-default divergence classes (patterns the strict default
 deliberately rejects); the 262 false-accepts are the remaining accepts-invalid surface
 this migration campaign continues to burn down. The per-release notes further down
@@ -5810,7 +5829,7 @@ this chapter cite the tuple <strong>at their own era</strong> — that is delibe
 accuracy, not drift; only the value in this paragraph is maintained as current
 (<code>REGEX-PCRE2-FIDELITY.DOCSYNC.1</code>, 2026-07-17).</p>
 <h2 id="the-remaining-check-families"><a class="header" href="#the-remaining-check-families">The remaining check families</a></h2>
-<p>As of regex release <code>1.1.105</code>, the validator dispatches these families (each row is a
+<p>As of regex release <code>1.1.106</code>, the validator dispatches these families (each row is a
 <code>find_*</code> check in <code>regex_compile_validation.rs</code>, and each maps to the
 <code>REGEX-PCRE2-FIDELITY</code> leaf that will migrate it into the grammar):</p>
 <div class="table-wrapper">
@@ -6126,6 +6145,10 @@ continues under the <code>REGEX-PCRE2-FIDELITY</code> capstone.</p>
 <code>phase: final</code> deferred-obligation gate (<code>.4.11</code>, ledger <code>REGEX-0098</code>); forward
 references stay legal.</p>
 <p><strong>Not on this list (distinct, pre-existing):</strong> the NUMERIC single-digit <code>\1</code>…<code>\9</code> / <code>\g1</code> N&lt;10 Non-Goal (<code>numeric_backreference_single</code> is ungated by design — REGEX-0083/0086). PCRE2 rejects <code>\g1</code>@0-groups err 115, but that is the numeric family, not the named-reference family above.</p>
+<h3 id="11106--contract-11109--regex-0115-b-inside-the-extended-class--accepts-again-a-rejects-valid-regression-fix-grammar-owned-downstream-pgen-rgx-0089"><a class="header" href="#11106--contract-11109--regex-0115-b-inside-the-extended-class--accepts-again-a-rejects-valid-regression-fix-grammar-owned-downstream-pgen-rgx-0089">1.1.106 / Contract 1.1.109 — REGEX-0115: <code>\b</code> inside the extended class <code>(?[...])</code> ACCEPTS again; a rejects-valid REGRESSION fix (grammar-owned; downstream PGEN-RGX-0089)</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: a BEHAVIOR-CHANGING rejects-valid REGRESSION fix (release bump 1.1.105→1.1.106 / contract 1.1.108→1.1.109; <strong>schema stays <code>1</code></strong>), PCRE2-convergent (oracle <code>pcre2test</code> 10.47). The backspace escape <code>\b</code> inside a Perl extended character class — bare <code>(?[\b])</code> or nested <code>(?[[\b]])</code> — <strong>ACCEPTS again</strong> and its body carries <code>{"char":"b","kind":"shorthand","type":"escape"}</code>, byte-parity with ordinary-class <code>[\b]</code> and with the pre-<code>1.1.82</code> shape your fixtures were written against. The regression: release <code>1.1.82</code> (<code>.3.13</code>) dropped the anchor letters from <code>simple_escape</code>’s positive set — sound at body level (where <code>anchor</code> owns <code>\b</code> and <code>\b*</code> correctly rejects err 109) but collateral inside <code>(?[...])</code>, whose escape branch routes through the generic <code>escape</code> rule where <code>anchor</code> is unreachable; <code>\b</code> was the SOLE regressed escape in the extended-class family. Fixed with a dedicated grammar branch (<code>extended_class_backspace_escape</code>) — extended classes only; body-level <code>\b</code> stays an anchor; <code>(?[\B])</code>/<code>(?[\A])</code> stay rejected (err 107); <code>\b*</code> stays rejected (err 109). <strong>Action for downstream (RGX):</strong> re-pin and re-enable the two extended-class fixture surfaces (<code>parser_contract_algebraic_extended_char_class_executes_on_default_path</code>, <code>parser_extended_char_class_algebraic_cases_execute_on_default_path</code>); no walker change needed. <strong>Conformance</strong>: 9-cell oracle matrix pinned by <code>regex_parser_pgen_rgx_0089_extended_class_backspace_escape_accepts</code>; cert <code>269/269 UNKNOWN=0 fully_certified=true spf=0</code> seeds 0/7/42 (+1 rule); PCRE2-oracle-gate tuple byte-identical <code>2189/1879/262/48</code> (the corpus has no <code>(?[\b])</code> cell — found by the downstream suite, see the rejects-valid blind-spot note). Bug ledger: <code>REGEX-0115</code>. <strong>Contract section:</strong> “Release 1.1.106 / Contract 1.1.109 Highlights”. Rules detail: <code>rules-misc.md</code> § <code>extended_class_backspace_escape</code>.</p>
+</blockquote>
 <h3 id="representation-migration-no-releasecontract-bump--pgen-rgx-0078-0105-the-typed-carrier-is-now-parsecontentshapedpgenvalue-serialized-output-byte-identical-parse-32"><a class="header" href="#representation-migration-no-releasecontract-bump--pgen-rgx-0078-0105-the-typed-carrier-is-now-parsecontentshapedpgenvalue-serialized-output-byte-identical-parse-32">Representation migration (no release/contract bump) — PGEN-RGX-0078-0105: the typed carrier is now <code>ParseContent::Shaped(PgenValue)</code>; serialized output byte-identical; parse −32%</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: a Rust-embedding-level representation change with <strong>zero wire-format change</strong> — no release bump, no contract bump, <strong>schema stays <code>1</code></strong>. Annotated rules now carry their typed shape as the arena-<code>Copy</code> <code>ParseContent::Shaped(PgenValue)</code> instead of eagerly building <code>ParseContent::Json(serde_json::Value)</code> (the profile-dominant <code>serde_json::Map</code>/key-<code>String</code>/double-deep-clone machinery is gone from the parse — measured <strong>−32.0%</strong> on the fat-LTO 5×2000 geomean-of-mins bench, every round and every pattern faster; floor ≈8.90µs → ≈6.11µs). <code>Shaped</code> serializes under the same <code>"Json"</code> wire tag with byte-identical bytes (byte-identity oracle suite + the all-grammar differential-equivalence gate + a 16/16 dump tripwire vs the prior vintage). <strong>Action for downstream (RGX):</strong> none if you consume the serialized typed-AST JSON. Native-Rust embedders matching <code>ParseContent::Json(value)</code> switch to <code>ParseContent::Shaped(value)</code> (or call <code>content.to_json_value()</code> at their boundary for the same owned <code>Value</code>). See <a href="#the-json-carrier">The Json Carrier</a> for the full note. <strong>Conformance</strong>: lib suite 970/970 incl. equivalence all-11; cert seeds 0/7/42 <code>267/9/258/0 fully_certified=true</code>; shape/duality/PCRE2-oracle/typed-hook gates green.</p>

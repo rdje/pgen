@@ -44,10 +44,10 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // integration contract 1.1.79.
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.108";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.109";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.105";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.106";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -3708,6 +3708,74 @@ mod tests {
                     );
                 }
             }
+        }
+    }
+
+    /// PGEN-RGX-0089 (ledger REGEX-0115): the backspace escape `\b` inside the
+    /// Perl extended class `(?[...])` lost its derivation at release 1.1.82 —
+    /// `.3.13` dropped `b` from `simple_escape_letter_strict` (sound at body
+    /// level where `anchor` owns `\b`), but `extended_class_element` routes
+    /// escapes through the generic `escape` rule, where `\b` then had NO
+    /// derivation. Fix: the dedicated `extended_class_backspace_escape`
+    /// grammar branch restores the PCRE2 class-context meaning (backspace,
+    /// U+0008) for extended classes only. Oracle: pcre2test 10.47.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0089_extended_class_backspace_escape_accepts() {
+        const BACKSPACE_ESCAPE_NODE: &str = r#"{"char":"b","kind":"shorthand","type":"escape"}"#;
+        // (pattern, expected node substring) — all PCRE2-ACCEPT.
+        let accept_cases: &[(&str, &str)] = &[
+            ("(?[\\b])", BACKSPACE_ESCAPE_NODE),
+            ("(?[[\\b]])", BACKSPACE_ESCAPE_NODE),
+            // The shipped RGX control-literal fixture body (green on 1.1.81).
+            ("(?[\\a | \\b | \\e | \\f])+", BACKSPACE_ESCAPE_NODE),
+            ("(?[\\b])*", BACKSPACE_ESCAPE_NODE),
+            // Ordinary class + body anchor: unaffected surfaces stay accepted.
+            ("[\\b]", BACKSPACE_ESCAPE_NODE),
+            ("x\\b", r#""kind":"word_boundary""#),
+        ];
+        for (pattern, expected_substr) in accept_cases {
+            let outcome = parse_grammar_profile_ast_dump_named(
+                "regex",
+                "regex_default",
+                pattern,
+                &AstDumpOptions::default(),
+            );
+            assert!(
+                matches!(outcome.status, ParseStatus::Success),
+                "PGEN-RGX-0089: pattern {:?} must ACCEPT (PCRE2 10.47 accepts) but failed: {:?}",
+                pattern,
+                outcome.diagnostic
+            );
+            let dump = outcome
+                .ast_dump
+                .as_ref()
+                .expect("ast_dump on Success outcome");
+            assert!(
+                dump.dump_json.contains(expected_substr),
+                "PGEN-RGX-0089: pattern {:?} expected {:?} in dump but got: {}",
+                pattern,
+                expected_substr,
+                dump.dump_json
+            );
+        }
+        // PCRE2-REJECT invariants: the fix must NOT widen beyond `\b`.
+        // `(?[\B])` / `(?[\A])` = pcre2 err 107 (escape invalid in class);
+        // `\b*` = err 109 (quantifier on a non-repeatable item — the `.3.13`
+        // body-level fix this slice must not regress).
+        let reject_cases: &[&str] = &["(?[\\B])", "(?[\\A])", "\\b*"];
+        for pattern in reject_cases {
+            let outcome = parse_grammar_profile_ast_dump_named(
+                "regex",
+                "regex_default",
+                pattern,
+                &AstDumpOptions::default(),
+            );
+            assert!(
+                matches!(outcome.status, ParseStatus::Failure),
+                "PGEN-RGX-0089: pattern {:?} must stay REJECTED (PCRE2 10.47 rejects) but parsed",
+                pattern
+            );
         }
     }
 

@@ -381,10 +381,35 @@ Quantified-`*`.
 ```ebnf
 extended_class_element = extended_class_nested
                        | escape
+                       | extended_class_backspace_escape
                        | extended_class_regular
 ```
 
-3-way Or. The matched alternative's shape appears.
+4-way Or. The matched alternative's shape appears.
+
+### `extended_class_backspace_escape`
+
+```ebnf
+extended_class_backspace_escape = "\\b" -> {type: "escape", kind: "shorthand", char: "b"}
+```
+
+The class-context meaning of the dual-meaning escape `\b` (release `1.1.106`,
+`PGEN-RGX-0089` / ledger `REGEX-0115`): in the pattern BODY `\b` is a
+word-boundary **anchor** (and `\b*` rejects, PCRE2 err 109), but inside a
+character class it means **backspace** (U+0008). Ordinary classes get that
+meaning from the class escape family; the extended class routes other escapes
+through the generic `escape` rule (whose shorthand set deliberately excludes
+the anchor letters), so this dedicated branch carries the backspace meaning
+for `(?[...])` — bare or nested:
+
+```text
+(?[\b])    → body: [{"char":"b","kind":"shorthand","type":"escape"}]
+(?[[\b]])  → body: [["[",[{"char":"b","kind":"shorthand","type":"escape"}],"]"]]
+```
+
+The node shape is byte-identical to ordinary-class `[\b]`'s member and to the
+pre-`1.1.82` extended-class shape. `(?[\B])` / `(?[\A])` stay **rejected**
+(PCRE2 err 107 — not admitted by this branch). Oracle: `pcre2test` 10.47.
 
 ### `extended_class_nested`
 
