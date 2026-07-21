@@ -811,20 +811,34 @@ regex_parser_fresh:
 regex_parser_bootstrap:
 	@echo "🚀 Bootstrap regex parser from cold clone..."
 	@mkdir -p $(GENERATED_DIR)
-	@if [ ! -f $(GENERATED_DIR)/ebnf.rs ]; then \
+	@set -e; if [ ! -f $(GENERATED_DIR)/ebnf.rs ]; then \
 		echo "🌱 Seeding generated/ebnf.rs (one-time bootstrap, Rust frontend)..."; \
 		echo "  Step A: build ast_pipeline (compiles without generated/ebnf.rs"; \
 		echo "          because the cross-check is gated on has_generated_ebnf_parser)..."; \
 		cd $(RUST_DIR) && cargo build --features ebnf_dual_run --bin ast_pipeline; \
 		echo "  Step B: Rust EBNF frontend (grammars/ebnf.ebnf -> generated/ebnf.json)"; \
 		$(RUST_AST_PIPELINE) $(GRAMMARS_DIR)/ebnf.ebnf --emit-raw-ast-json $(GENERATED_DIR)/ebnf.json; \
-		echo "  Step C: ast_pipeline JSON -> generated/ebnf.rs"; \
-		$(RUST_AST_PIPELINE) --generate-parser --debug --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
+		echo "  Step C: ast_pipeline JSON -> generated/ebnf.rs (bootstrap-mode seed:"; \
+		echo "          the annotation pair does not exist yet, so annotations route"; \
+		echo "          through the hand-rolled bootstrap surface BY DESIGN here —"; \
+		echo "          without the flag the RGX-0078.5.i.1.t2 guard refuses, see PGEN-RGX-0090)"; \
+		$(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
 		echo "🌱 generated/ebnf.rs seeded."; \
 		echo "  Rebuilding ast_pipeline now that has_generated_ebnf_parser is set..."; \
 		cd $(RUST_DIR) && cargo build --features ebnf_dual_run --bin ast_pipeline; \
 	else \
 		echo "✓ generated/ebnf.rs already present — skipping seed step."; \
+		echo "  (verifying it still compiles against these sources...)"; \
+		( cd $(RUST_DIR) && cargo build --features ebnf_dual_run --bin ast_pipeline ) || { \
+			echo ""; \
+			echo "⚠️  generated/ebnf.rs exists but no longer compiles against the current sources."; \
+			echo "    This is the STALE-ARTIFACT trap (PGEN-RGX-0090): the artifact was generated"; \
+			echo "    by an OLDER pin and the Rust runtime types have since changed."; \
+			echo "    Fix: remove the stale artifact and re-run the bootstrap to reseed:"; \
+			echo "      rm $(GENERATED_DIR)/ebnf.rs   # (or: rm -rf $(GENERATED_DIR))"; \
+			echo "      make -C rust regex_parser_bootstrap"; \
+			exit 1; \
+		}; \
 	fi
 	@echo "🔁 Step D: standard regex_parser chain..."
 	$(MAKE) regex_parser

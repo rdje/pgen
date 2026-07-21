@@ -34,6 +34,25 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Maintenance Update 2026-07-21 — PGEN-RGX-0090: the cold-clone bootstrap recipe REPAIRED (BUILD-FLOW ONLY; release/contract/schema versions UNCHANGED)
+
+- Downstream report `PGEN-RGX-0090`: on a cold clone, `make -C rust
+  regex_parser_bootstrap` could not complete — the seed step (JSON →
+  `generated/ebnf.rs`) was REFUSED by the annotation-backend guard (the recipe
+  predates the guard and passed no `--bootstrap-mode`), and the Makefile's
+  `;`-chained seed compound swallowed the nonzero exit, so the recipe died
+  later with a misleading `No rule to make target '../generated/ebnf.rs'`.
+- FIXED (`PGEN-RGX-0090-0001`): the seed step now runs with `--bootstrap-mode`
+  (the designed chicken-and-egg spelling — annotation parsing routes through
+  the bootstrap surface ONLY for the seed; the produced artifacts were verified
+  byte-identical to the canonical regen), the seed compound is fail-fast
+  (`set -e` — any failing step aborts the recipe nonzero at the real error),
+  and a stale-`generated/ebnf.rs` (older-pin) state is now diagnosed with an
+  actionable reseed message instead of a wall of rustc errors. The manual
+  decomposition below and the regex book's Build Recipe chapter carry the same
+  correction. The binary itself always exited nonzero on the refusal — the
+  swallow was recipe-level.
+
 ## Maintenance Update 2026-07-21 — PGEN-RGX-0091: the embedding-API version constants RE-SYNCED to this Contract Identity block + the version drift gate RE-SPECIFIED (METADATA-ONLY; release/contract/schema versions UNCHANGED)
 
 - Downstream report `PGEN-RGX-0091` (ledger row `REGEX-0114`): at pin `960dddaa`,
@@ -2430,9 +2449,15 @@ cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_p
 mkdir -p generated
 rust/target/debug/ast_pipeline grammars/ebnf.ebnf --emit-raw-ast-json generated/ebnf.json
 
-# Step C — JSON -> generated/ebnf.rs.
+# Step C — JSON -> generated/ebnf.rs (BOOTSTRAP-MODE seed).
+# --bootstrap-mode is REQUIRED here (PGEN-RGX-0090): the generated annotation
+# backend does not exist yet at this point in a cold clone, so annotation
+# parsing routes through the hand-rolled bootstrap surface BY DESIGN for the
+# seed. Without the flag, the annotation-backend guard REFUSES with
+# "Error: REFUSED: return annotation ... needs the generated annotation
+# backend ..." and exits nonzero.
 rust/target/debug/ast_pipeline \
-    --generate-parser --debug --eliminate-left-recursion \
+    --generate-parser --bootstrap-mode --debug --eliminate-left-recursion \
     generated/ebnf.json -o generated/ebnf.rs
 
 # Step D — rebuild ast_pipeline. Now has_generated_ebnf_parser is set;

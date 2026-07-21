@@ -53,13 +53,17 @@ make -C subs/pgen/rust SHELL=/bin/bash semantic_annotation_parser
 # Step C — full ast_pipeline binary (compiles with or without generated/ebnf.rs)
 ( cd subs/pgen/rust && cargo build --features ebnf_dual_run --bin ast_pipeline )
 
-# Step D — if generated/ebnf.rs is missing, seed it via the Rust frontend
+# Step D — if generated/ebnf.rs is missing, seed it via the Rust frontend.
+# NOTE (PGEN-RGX-0090): the seed MUST pass --bootstrap-mode — the generated
+# annotation backend does not exist yet at this point, so annotations route
+# through the hand-rolled bootstrap surface BY DESIGN here. Without the flag,
+# the annotation-backend guard REFUSES the seed (loud error, nonzero exit).
 if [ ! -f subs/pgen/generated/ebnf.rs ]; then
     subs/pgen/rust/target/debug/ast_pipeline \
         subs/pgen/grammars/ebnf.ebnf \
         --emit-raw-ast-json subs/pgen/generated/ebnf.json
     subs/pgen/rust/target/debug/ast_pipeline \
-        --generate-parser --debug --eliminate-left-recursion \
+        --generate-parser --bootstrap-mode --debug --eliminate-left-recursion \
         subs/pgen/generated/ebnf.json -o subs/pgen/generated/ebnf.rs
     # Rebuild ast_pipeline now that has_generated_ebnf_parser is set
     ( cd subs/pgen/rust && cargo build --features ebnf_dual_run --bin ast_pipeline )
@@ -133,6 +137,8 @@ The SHA itself shifts whenever the grammar source or the PGEN pipeline source le
 | `cargo build --features generated_parsers` errors `file not found: generated/regex_parser.rs` | bootstrap target not run yet on a fresh clone | `make regex_parser_bootstrap` |
 | `make regex_parser` errors at the EBNF→JSON step (`ast_pipeline: not found`) | the bin hasn't been built yet | use `make regex_parser_bootstrap` instead — it builds `ast_pipeline` first |
 | `regex_parser_bootstrap` fails at the seed step with a Rust compile error mentioning `ebnf_generated_parser` or `EbnfParser` | outdated PGEN checkout where the cfg gating wasn't in place yet | pull PGEN to a commit at or after the contract `1.1.35` cold-clone fix |
+| Seed step prints `Error: REFUSED: return annotation … needs the generated annotation backend … not running in --bootstrap-mode` | the seed invocation is missing `--bootstrap-mode` (a recipe older than the `PGEN-RGX-0090` fix, or a hand-typed seed without the flag) | pull PGEN to a pin at or after the `PGEN-RGX-0090` fix, or add `--bootstrap-mode` to the `--generate-parser` seed command |
+| `regex_parser_bootstrap` reports `generated/ebnf.rs exists but no longer compiles against the current sources` (or a mass of rustc errors in `ebnf.rs` on older pins) | a STALE `generated/ebnf.rs` left over from an older submodule pin — the Rust runtime types have changed underneath it | `rm subs/pgen/generated/ebnf.rs` (or `rm -rf subs/pgen/generated`) and re-run `make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap` to reseed |
 | Two consecutive `make regex_parser_bootstrap` produce different `generated/regex_parser.rs` SHAs | non-determinism bug | report; do NOT ship the unstable parser |
 | Grammar parse error during EBNF→JSON | a stale `grammars/regex.ebnf` from a partial pull, or hand-edit drift | `git -C subs/pgen checkout grammars/regex.ebnf`; rerun bootstrap |
 | `make: *** No rule to make target ...` | called from the wrong directory | use `make -C subs/pgen/rust ...` (or `cd subs/pgen && make -C rust ...`) |

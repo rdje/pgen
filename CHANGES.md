@@ -1,5 +1,17 @@
 # CHANGES.md
 
+## 2026-07-21 - PGEN-RGX-0090-0001 (tree RGX-0090) — the downstream cold-clone bootstrap recipe REPAIRED: fail-fast seed + `--bootstrap-mode` + stale-artifact diagnosis; end-to-end proof with byte-identical artifacts
+
+Session #188, second of the three director-directed RGX adoption-blocker reports (0091 ✓ → **0090** → 0089).
+
+**The defect (downstream `PGEN-RGX-0090`).** On a cold clone (empty `generated/`), the documented downstream path `make -C rust regex_parser_bootstrap` could not complete: seed step C (JSON → `generated/ebnf.rs`) was REFUSED by the `RGX-0078.5.i.1.t2` annotation-backend guard (the recipe predates the guard and passed no `--bootstrap-mode`), and the recipe then died at step D with the misleading `No rule to make target '../generated/ebnf.rs'`.
+
+**Root cause (tool-backed, reproduced in a scratch CARGO_TARGET_DIR).** Two layers: (1) the seed lacks `--bootstrap-mode` — with the flag the same step exits 0 and writes ebnf.rs (a pipeline audit confirms `bootstrap_mode` switches are annotation-routing ONLY, no codegen-shape change); (2) the report's "ast_pipeline exits 0 on the refused path" is MIS-ATTRIBUTED — the binary exits **1** (the `Err` propagates to `main() -> Result<()>`); the real swallow is the Makefile's `;`-chained `@if` seed compound, whose exit status is the last command's (the succeeding rebuild), so make continued past the dead seed. The same flag-less seed commands were documented in the regex book's build-recipe chapter and the integration contract's cold-bootstrap section — all three surfaces predate the guard.
+
+**The fix (`rust/Makefile` + docs; no Rust change).** The seed compound is now `set -e` fail-fast (any failing step aborts the recipe nonzero at the real error); seed step C runs with `--bootstrap-mode` (the target's own design-comment spelling); a stale-`generated/ebnf.rs` state (older-pin artifact) is diagnosed with an actionable reseed message instead of ~1,500 rustc errors. Book + contract seed documentation corrected in lockstep (+ a contract maintenance entry; versions unchanged).
+
+**End-to-end proof.** Canonical `generated/` moved aside → cold `make -C rust SHELL=/bin/bash regex_parser_bootstrap` completed **exit 0** (guard peak 4,142MB, 70s) and ALL FOUR produced artifacts are **byte-identical to canonical** (regex_parser.rs `1b5bdcf0…`, ebnf.rs `d4c257cf…`, both annotation parsers) — the bootstrap-annotation seed is at FIXED POINT for ebnf.ebnf, so the downstream recipe emits the canonical artifacts. Injected-failure probe (`RUST_AST_PIPELINE=/nonexistent…` override): the recipe aborts make-Error-1 at step B with zero misleading step-D messages. State restored SHA-verified; dual-feature `ast_pipeline` rebuilt; both mdBook gates green.
+
 ## 2026-07-21 - PGEN-RGX-0091-0001 (tree RGX-0091) — the embedding-API regex version constants re-synced (1.1.104/1.1.106 → 1.1.105/1.1.108) + the version drift gate RE-SPECIFIED to the contract-identity oracle
 
 Session #188, first of the three director-directed RGX adoption-blocker reports (0091 → 0090 → 0089).

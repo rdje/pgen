@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-88cf86eb.js";
+            window.path_to_searchindex_js = "searchindex-84825c26.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -227,13 +227,17 @@ make -C subs/pgen/rust SHELL=/bin/bash semantic_annotation_parser
 # Step C — full ast_pipeline binary (compiles with or without generated/ebnf.rs)
 ( cd subs/pgen/rust &amp;&amp; cargo build --features ebnf_dual_run --bin ast_pipeline )
 
-# Step D — if generated/ebnf.rs is missing, seed it via the Rust frontend
+# Step D — if generated/ebnf.rs is missing, seed it via the Rust frontend.
+# NOTE (PGEN-RGX-0090): the seed MUST pass --bootstrap-mode — the generated
+# annotation backend does not exist yet at this point, so annotations route
+# through the hand-rolled bootstrap surface BY DESIGN here. Without the flag,
+# the annotation-backend guard REFUSES the seed (loud error, nonzero exit).
 if [ ! -f subs/pgen/generated/ebnf.rs ]; then
     subs/pgen/rust/target/debug/ast_pipeline \
         subs/pgen/grammars/ebnf.ebnf \
         --emit-raw-ast-json subs/pgen/generated/ebnf.json
     subs/pgen/rust/target/debug/ast_pipeline \
-        --generate-parser --debug --eliminate-left-recursion \
+        --generate-parser --bootstrap-mode --debug --eliminate-left-recursion \
         subs/pgen/generated/ebnf.json -o subs/pgen/generated/ebnf.rs
     # Rebuild ast_pipeline now that has_generated_ebnf_parser is set
     ( cd subs/pgen/rust &amp;&amp; cargo build --features ebnf_dual_run --bin ast_pipeline )
@@ -293,6 +297,8 @@ For plain JSON output use <code>parse_full_regex()?.content.to_json_value()</cod
 <tr><td><code>cargo build --features generated_parsers</code> errors <code>file not found: generated/regex_parser.rs</code></td><td>bootstrap target not run yet on a fresh clone</td><td><code>make regex_parser_bootstrap</code></td></tr>
 <tr><td><code>make regex_parser</code> errors at the EBNF→JSON step (<code>ast_pipeline: not found</code>)</td><td>the bin hasn’t been built yet</td><td>use <code>make regex_parser_bootstrap</code> instead — it builds <code>ast_pipeline</code> first</td></tr>
 <tr><td><code>regex_parser_bootstrap</code> fails at the seed step with a Rust compile error mentioning <code>ebnf_generated_parser</code> or <code>EbnfParser</code></td><td>outdated PGEN checkout where the cfg gating wasn’t in place yet</td><td>pull PGEN to a commit at or after the contract <code>1.1.35</code> cold-clone fix</td></tr>
+<tr><td>Seed step prints <code>Error: REFUSED: return annotation … needs the generated annotation backend … not running in --bootstrap-mode</code></td><td>the seed invocation is missing <code>--bootstrap-mode</code> (a recipe older than the <code>PGEN-RGX-0090</code> fix, or a hand-typed seed without the flag)</td><td>pull PGEN to a pin at or after the <code>PGEN-RGX-0090</code> fix, or add <code>--bootstrap-mode</code> to the <code>--generate-parser</code> seed command</td></tr>
+<tr><td><code>regex_parser_bootstrap</code> reports <code>generated/ebnf.rs exists but no longer compiles against the current sources</code> (or a mass of rustc errors in <code>ebnf.rs</code> on older pins)</td><td>a STALE <code>generated/ebnf.rs</code> left over from an older submodule pin — the Rust runtime types have changed underneath it</td><td><code>rm subs/pgen/generated/ebnf.rs</code> (or <code>rm -rf subs/pgen/generated</code>) and re-run <code>make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap</code> to reseed</td></tr>
 <tr><td>Two consecutive <code>make regex_parser_bootstrap</code> produce different <code>generated/regex_parser.rs</code> SHAs</td><td>non-determinism bug</td><td>report; do NOT ship the unstable parser</td></tr>
 <tr><td>Grammar parse error during EBNF→JSON</td><td>a stale <code>grammars/regex.ebnf</code> from a partial pull, or hand-edit drift</td><td><code>git -C subs/pgen checkout grammars/regex.ebnf</code>; rerun bootstrap</td></tr>
 <tr><td><code>make: *** No rule to make target ...</code></td><td>called from the wrong directory</td><td>use <code>make -C subs/pgen/rust ...</code> (or <code>cd subs/pgen &amp;&amp; make -C rust ...</code>)</td></tr>

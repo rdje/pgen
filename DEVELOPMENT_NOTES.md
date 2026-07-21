@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-21 - PGEN-RGX-0090-0001 — a guard is only as loud as every layer above it; verify the reporter's attribution before fixing the named component
+
+**Exit-code truth is per-layer.** The annotation-backend refusal guard did everything right — loud message, nonzero exit — and the failure still presented downstream as a silent skip, because ONE layer up, a `;`-chained Makefile compound reported only its last command's status. When a report says "X exits 0", reproduce at X's own layer before touching X: here the binary was innocent (exit 1 verified in a scratch target dir) and the fix belonged entirely to the recipe. The general recipe discipline adopted: multi-step `@if …; then …; fi` shell compounds in Makefiles start with `set -e`.
+
+**A guard added later must sweep the recipes that predate it.** The `.5.i.1.t2` refusal was landed against interactive misuse, but three documented cold-clone surfaces (Makefile target, book chapter, contract section) still carried the now-refused seed invocation. When adding a refusal guard, grep the repo for every documented invocation of the guarded path and re-sync them in the same slice — otherwise the guard converts working documentation into a broken-by-design flow the next consumer hits cold.
+
+**Byte-compare turned a plausible risk into a non-issue.** The seed routes annotations through the bootstrap surface (the exact drift class the guard exists for), so the fix was gated on comparing the bootstrap-seeded artifacts against the canonical regen: all four byte-identical — the bootstrap surface is at fixed point for ebnf.ebnf's annotation subset, and the downstream recipe provably emits canonical artifacts.
+
 ## 2026-07-21 - PGEN-RGX-0091-0001 — a drift gate is only as strong as its oracle's coverage of the bump classes
 
 **The 0086 gate didn't break — its spec silently expired.** It asserted `constants == max(bug-ledger "Fixed in")`, which encodes the assumption "every release/contract bump is a bug row". The release process outgrew that assumption (feature removals, maintenance contract bumps), and the gate went stale-green because its expectation drifted WITH the defect. The general lesson for every lockstep gate in this repo: pick the oracle that is authoritative for ALL mutation classes of the guarded value (here, the contract document's Contract Identity block), and demote any narrower source to an inequality (ledger-max ≤ identity), never an equality. A red-before/green-after demonstration against the live defect is the cheapest proof a re-specified gate actually binds.
