@@ -49,3 +49,21 @@
 [submodule "stimuli/vhdl/subs/UVVM"]
 	path = stimuli/vhdl/subs/UVVM
 	url = https://github.com/UVVM/UVVM
+[submodule "stimuli/sv/subs/ispras-sv-tests"]
+	path = stimuli/sv/subs/ispras-sv-tests
+	url = https://github.com/ispras/sv-tests
+[submodule "stimuli/sv/subs/iverilog"]
+	path = stimuli/sv/subs/iverilog
+	url = https://github.com/steveicarus/iverilog
+[submodule "stimuli/sv/subs/sv2v"]
+	path = stimuli/sv/subs/sv2v
+	url = https://github.com/zachjs/sv2v
+[submodule "stimuli/sv/subs/Surelog"]
+	path = stimuli/sv/subs/Surelog
+	url = https://github.com/chipsalliance/Surelog
+[submodule "stimuli/sv/subs/black-parrot"]
+	path = stimuli/sv/subs/black-parrot
+	url = https://github.com/black-parrot/black-parrot
+[submodule "stimuli/sv/subs/opentitan"]
+	path = stimuli/sv/subs/opentitan
+	url = https://github.com/lowRISC/opentitan

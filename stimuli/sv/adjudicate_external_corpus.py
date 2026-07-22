@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""SV external-corpus adjudication manifest builder (SV-CORPUS-GRAD.2).
+"""SV external-corpus adjudication manifest builder (SV-CORPUS-GRAD.2 + .8).
 
 Turns the raw parse outcomes of stimuli/run_external_corpus.sh sv
 (stimuli/sv/characterization/results.tsv) into the expected-vs-actual
 adjudication manifest the graduation campaign burns down from
-(docs/tasks/SV-CORPUS-GRAD.md leaf .2).
+(docs/tasks/SV-CORPUS-GRAD.md leaf .2; ADD-v1 suites + uvm-core fold = leaf .8).
 
 Doctrine (corpus-expected-from-SPEC, never from the fix):
   Every expected verdict is derived ONLY from suite metadata / upstream driver
@@ -17,7 +17,11 @@ Expected-verdict taxonomy (leaf .1 design):
   must_accept              valid SV at parse level (post-parse should-fails included)
   must_reject              parse/lexical-level intentional invalidity
   chained_only             adjudicable only with include/library chaining (leaf .4)
-  out_of_scope_with_cause  owned by another lane (cause named, e.g. svpp)
+  out_of_scope_with_cause  owned by another lane (cause named, e.g. svpp).
+                           May carry a deferral slug suffix after ':'
+                           (e.g. out_of_scope_with_cause:v2005_profile_lane) —
+                           the slug names the owning lane in the verdict class;
+                           the bare form keeps the historical svpp_owned label.
 
 Adjudication classes:
   match                                  observed == expected
@@ -250,7 +254,159 @@ def expect_verible(relpath: str, text: str):
     return ("must_accept", "verible: fixture (positive-dominant default)")
 
 
-DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1"}
+# --- SV-CORPUS-GRAD.8 ADD-v1 suites -----------------------------------------
+
+ISPRAS_TYPE_RE = re.compile(r"^\s*//\s*!\s*TYPE:\s*([A-Z]+)", re.MULTILINE)
+
+
+def expect_ispras(relpath: str, text: str):
+    """ispras/sv-tests: per-file `// ! TYPE: POSITIVE|NEGATIVE|VARYING` keys;
+    filenames encode the LRM clause. The ieee-1364-2005/ half is keyed for the
+    verilog_2005 profile, not this sv_2017 bulk run."""
+    p = relpath.replace("\\", "/")
+    m = ISPRAS_TYPE_RE.search(text)
+    ttype = m.group(1) if m else ""
+    if p.startswith("ieee-1364-2005/"):
+        return ("out_of_scope_with_cause:v2005_profile_lane",
+                f"ispras: IEEE 1364-2005 half (TYPE: {ttype or 'none'}) - keyed "
+                "for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS "
+                "list), not the sv_2017 bulk run")
+    if ttype == "POSITIVE":
+        return ("must_accept",
+                "ispras: '// ! TYPE: POSITIVE' clause-keyed valid example")
+    if ttype == "NEGATIVE":
+        return ("out_of_scope_with_cause:negative_stage_triage",
+                "ispras: TYPE NEGATIVE - invalid per the cited clause but the "
+                "failure STAGE (parse vs elaboration) is not encoded; per-file "
+                "stage triage = leaf .8b")
+    if ttype == "VARYING":
+        return ("out_of_scope_with_cause:impl_varying",
+                "ispras: TYPE VARYING - implementation-dependent verdict by "
+                "suite contract (profile-boundary probe)")
+    return ("out_of_scope_with_cause:no_sv_key",
+            "ispras: no '// ! TYPE:' key found in the file header")
+
+
+IVTEST_TYPES = {"normal", "CE", "CO", "EF", "RE", "NI"}
+
+
+class IvtestIndex:
+    """Answer key from ivtest regress-sv.list / regress-vlg.list entries
+    (SV-CORPUS-GRAD.8). Logical entry (backslash-continued physical lines
+    joined first): `<name> <type>[,<flags>...] <dir> [gold=<file>]`.
+    The CE parse-vs-elaboration stage split mirrors the verilator convention:
+    a golden output reporting a syntax error = parse-level invalid; a golden
+    output with only post-parse errors = syntax itself valid."""
+
+    def __init__(self, ivtest_dir: Path):
+        self.sv_entries = {}   # (dir, name) -> (type, gold-or-None)
+        self.vlg_keys = set()  # (dir, name)
+        self.gold_dir = ivtest_dir / "gold"
+        self._load(ivtest_dir / "regress-sv.list", sv=True)
+        self._load(ivtest_dir / "regress-vlg.list", sv=False)
+
+    def _load(self, list_path: Path, sv: bool):
+        text = read_text(list_path)
+        if not text:
+            return
+        logical, buf = [], ""
+        for line in text.splitlines():
+            if line.rstrip().endswith("\\"):
+                buf += line.rstrip()[:-1] + " "
+                continue
+            logical.append(buf + line)
+            buf = ""
+        if buf:
+            logical.append(buf)
+        for line in logical:
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            fields = line.split()
+            if len(fields) < 3:
+                continue
+            ttype = fields[1].split(",")[0]
+            if ttype not in IVTEST_TYPES:
+                continue
+            name, gold, dir_field = fields[0], None, None
+            for f in fields[2:]:
+                if f.startswith("gold="):
+                    gold = f[len("gold="):]
+                elif f.startswith(("./", "-")):
+                    continue  # continuation source path / stray flag
+                elif dir_field is None:
+                    dir_field = f
+            if dir_field is None:
+                continue
+            if sv:
+                self.sv_entries[(dir_field, name)] = (ttype, gold)
+            else:
+                self.vlg_keys.add((dir_field, name))
+
+    def expect(self, relpath: str):
+        p = Path(relpath.replace("\\", "/"))
+        if len(p.parts) < 3 or p.parts[0] != "ivtest":
+            return ("out_of_scope_with_cause:no_sv_key",
+                    "ivtest: outside the ivtest test tree")
+        key = (p.parts[1], p.stem)
+        if key in self.sv_entries:
+            ttype, gold = self.sv_entries[key]
+            if ttype != "CE":
+                # normal/CO require compilation to succeed; EF/RE fail only at
+                # run time; all imply parse-level validity.
+                return ("must_accept",
+                        f"ivtest: regress-sv.list type {ttype} - compiles under "
+                        "the iverilog SV dialect, parse-level valid")
+            if gold:
+                gtext = read_text(self.gold_dir / gold)
+                if SYNTAX_ERR_RE.search(gtext):
+                    return ("must_reject",
+                            f"ivtest: CE with golden {gold} reporting a syntax "
+                            "error - parse-level invalid")
+                return ("must_accept",
+                        f"ivtest: CE but golden {gold} shows only post-parse "
+                        "errors - syntax itself valid")
+            return ("out_of_scope_with_cause:negative_stage_triage",
+                    "ivtest: CE without golden output - failure stage (parse vs "
+                    "elaboration) unresolved; per-file stage triage = leaf .8b")
+        if key in self.vlg_keys:
+            return ("out_of_scope_with_cause:v2005_profile_lane",
+                    "ivtest: regress-vlg.list entry - keyed for the "
+                    "verilog_2005 profile lane, not the sv_2017 bulk run")
+        return ("out_of_scope_with_cause:no_sv_key",
+                "ivtest: no regress-sv.list entry (other-target list / "
+                "multi-file companion / unlisted)")
+
+
+def expect_sv2v(relpath: str):
+    """sv2v test suite: `.sv` files are conversion INPUTS (valid SV by suite
+    contract); `.v` files are conversion GOLDENS (Verilog-2005 by contract);
+    error/ negatives need conversion-error-vs-parse-error pre-triage."""
+    p = relpath.replace("\\", "/")
+    if p.endswith(".v"):
+        return ("out_of_scope_with_cause:v2005_profile_lane",
+                "sv2v: golden Verilog-2005 conversion output - keyed for the "
+                "verilog_2005 profile lane")
+    if p.startswith("test/error/"):
+        return ("out_of_scope_with_cause:error_pretriage",
+                "sv2v: error/ negative - conversion-error vs parse-error "
+                "pre-triage = leaf .8b")
+    return ("must_accept",
+            "sv2v: conversion-input .sv (valid SV by suite contract)")
+
+
+def expect_surelog(relpath: str):
+    """Surelog tests are directory-level multi-file units driven by per-test
+    goldens; the accept/error key extraction is leaf .8b."""
+    return ("chained_only",
+            "Surelog: dir-level multi-file test unit; accept/error key "
+            "extraction from drivers/golden logs = leaf .8b")
+
+
+# opentitan / black-parrot / uvm-core join the design-corpus lane: real-design
+# trees whose files need include/define chaining to adjudicate honestly.
+DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1",
+                 "opentitan", "black-parrot", "uvm-core"}
 
 
 def adjudicate(expected, observed, dep_flag):
@@ -260,7 +416,11 @@ def adjudicate(expected, observed, dep_flag):
         return "divergence:explained_timeout"
     if expected == "chained_only":
         return "deferred:chained_only"
-    if expected == "out_of_scope_with_cause":
+    if expected.startswith("out_of_scope_with_cause"):
+        # A ':<slug>' suffix names the owning lane (SV-CORPUS-GRAD.8); the
+        # bare form keeps the historical svpp_owned label byte-stable.
+        if ":" in expected:
+            return "deferred:" + expected.split(":", 1)[1]
         return "deferred:svpp_owned"
     if expected == "must_accept":
         if observed == "pass":
@@ -294,15 +454,25 @@ def main():
         if not line.strip():
             continue
         suite, observed, path = line.split("\t")
-        rel = path.split(f"/subs/{suite}/", 1)[1]
+        if f"/subs/{suite}/" in path:
+            rel = path.split(f"/subs/{suite}/", 1)[1]
+        elif "/stimuli/sv/uvm/" in path:
+            # the uvm-core fold (leaf .8): plain tracked files, not a submodule
+            rel = path.split("/stimuli/sv/uvm/", 1)[1]
+        else:
+            raise SystemExit(f"unrecognized results path shape: {path!r}")
         rows.append((suite, rel, observed))
     rows.sort()
 
     vidx = VerilatorIndex(args.subs_root / "verilator/test_regress/t")
+    ividx = IvtestIndex(args.subs_root / "iverilog/ivtest")
 
     manifest = []
     for suite, rel, observed in rows:
-        fpath = args.subs_root / suite / rel
+        if suite == "uvm-core":
+            fpath = args.subs_root.parent / "uvm" / rel
+        else:
+            fpath = args.subs_root / suite / rel
         text = read_text(fpath)
         if (suite, rel) in EXTRA_PINNED:
             expected, basis = EXTRA_PINNED[(suite, rel)]
@@ -323,6 +493,14 @@ def main():
             expected, basis = expect_slang(rel)
         elif suite == "verible":
             expected, basis = expect_verible(rel, text)
+        elif suite == "ispras-sv-tests":
+            expected, basis = expect_ispras(rel, text)
+        elif suite == "iverilog":
+            expected, basis = ividx.expect(rel)
+        elif suite == "sv2v":
+            expected, basis = expect_sv2v(rel)
+        elif suite == "Surelog":
+            expected, basis = expect_surelog(rel)
         else:
             raise SystemExit(f"unknown suite {suite!r} in results.tsv")
         dep_flag = ""

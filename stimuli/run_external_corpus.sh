@@ -30,11 +30,16 @@ MAX_FILES="${4:-0}"   # 0 = no cap
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROBE="${PGEN_PARSE_PROBE_BIN:-$ROOT/rust/target/debug/parseability_probe}"
 
+ROOT_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 case "$FAM" in
   sv)   GRAMMAR=systemverilog; export PROFILE_ARGS="--profile sv_2017";
-        FIND_EXTS=( -name '*.sv' -o -name '*.svh' -o -name '*.v' );;
+        FIND_EXTS=( -name '*.sv' -o -name '*.svh' -o -name '*.v' );
+        # SV-CORPUS-GRAD.8: fold the pre-submodule-vintage uvm-core vendoring
+        # (plain tracked files) into the bulk universe as sub-corpus `uvm-core`.
+        EXTRA_DIRS=( "$ROOT_EARLY/stimuli/sv/uvm" );;
   vhdl) GRAMMAR=vhdl;          export PROFILE_ARGS="";
-        FIND_EXTS=( -name '*.vhd' -o -name '*.vhdl' );;
+        FIND_EXTS=( -name '*.vhd' -o -name '*.vhdl' );
+        EXTRA_DIRS=();;
   *) echo "unknown family '$FAM' (expected sv|vhdl)" >&2; exit 2;;
 esac
 
@@ -52,7 +57,7 @@ export PROBE GRAMMAR TIMEOUT_S
 # Parse a single file; emit "<subcorpus>\t<status>\t<path>".
 parse_one() {
   local f="$1" sub rc status
-  sub="$(printf '%s' "$f" | sed -E 's#.*/subs/([^/]+)/.*#\1#')"
+  sub="$(printf '%s' "$f" | sed -E 's#.*/subs/([^/]+)/.*#\1#; s#.*/stimuli/sv/uvm/.*#uvm-core#')"
   # shellcheck disable=SC2086
   timeout "$TIMEOUT_S" "$PROBE" --parse "$GRAMMAR" "$f" $PROFILE_ARGS >/dev/null 2>&1
   rc=$?
@@ -64,7 +69,7 @@ parse_one() {
 export -f parse_one
 
 echo "external-corpus[$FAM]: collecting files under $SUBS ..." >&2
-mapfile -t FILES < <(find "$SUBS" -type f \( "${FIND_EXTS[@]}" \) 2>/dev/null | sort)
+mapfile -t FILES < <(find "$SUBS" ${EXTRA_DIRS[@]+"${EXTRA_DIRS[@]}"} -type f \( "${FIND_EXTS[@]}" \) 2>/dev/null | sort)
 TOTAL_FOUND=${#FILES[@]}
 if [ "$MAX_FILES" -gt 0 ] && [ "$TOTAL_FOUND" -gt "$MAX_FILES" ]; then
   FILES=( "${FILES[@]:0:$MAX_FILES}" )

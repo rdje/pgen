@@ -208,9 +208,13 @@ coverage.
 ### `.3` — Defect burn-down (umbrella; one leaf per defect class)
 
 - **Status (umbrella): `in_progress`** — worklist after `.3.1`: **279
-  unexplained divergences** (273 rejects-valid + 6 accepts-invalid; the
-  manifest is the per-row worklist, the `.3.0` family table the leaf-cutting
-  map — F1 CLEARED by `.3.1`). Suite split: verilator 220, sv-tests 39
+  unexplained divergences** — **RE-BASED to 445 by `.8a`'s ADD-v1
+  acquisition** (the old-suite 279 reproduced EXACTLY + 166 newly measured:
+  ispras-1800 114 / sv2v 31 / ivtest 21 — see `.8a`; new families join the
+  leaf-cutting map as burn-down proceeds). Pre-`.8a` detail (273
+  rejects-valid + 6 accepts-invalid; the manifest is the per-row worklist,
+  the `.3.0` family table the leaf-cutting map — F1 CLEARED by `.3.1`).
+  Suite split: verilator 220, sv-tests 39
   (generic 11, chapter-5/lexical 9 — incl. the probe-verified
   underscore/spaced-literal gap — chapter-7 4, chapter-6 4, chapter-16/SVA 4,
   chapter-18 3, chapter-11 2, chapter-8 1, chapter-12 1), verible 13,
@@ -395,17 +399,102 @@ coverage.
 
 ### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
 
-- **Status: `todo`** — vendor the frozen-roster ADD-v1 tier (pinned sparse
-  submodules per the `EXTERNAL-CORPUS.3.1` pattern; licenses flagged in
-  PROVENANCE): **ispras/sv-tests** (~904 LRM-clause-keyed POS/NEG/VARYING),
-  **ivtest `regress-sv.list`** (922 keyed CE/EF/gold — the keyed-negatives
-  axis), **sv2v** (paired goldens + `error/`), **Surelog** tests,
-  **OpenTitan + black-parrot** (UVM-scale + macro stress); fold the
-  already-vendored **uvm-core** into the bulk runner universe. Extend the
-  adjudicator with each suite's answer key. Roster-v2 candidate logged:
-  **slang embedded-unittest extraction** (thousands of SV snippets inside
-  slang's C++ unit tests — the sharpest open conformance oracle; extraction
-  tool + fragment entry-point mapping required).
+- **Status: `in_progress`** — `.8a` (vendoring + runner fold + answer keys +
+  fresh baseline) **done**; `.8b` (deep key extraction) + `.8c` (v2005-profile
+  lane run) remain. Roster-v2 candidate logged: **slang embedded-unittest
+  extraction** (thousands of SV snippets inside slang's C++ unit tests — the
+  sharpest open conformance oracle; extraction tool + fragment entry-point
+  mapping required).
+
+#### `.8a` — Vendor the six ADD-v1 corpora + uvm-core fold + adjudicated re-baseline
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0007`, session #192, 2026-07-22).
+- **Vendored (pinned sparse shallow submodules, blob-filtered partial clones —
+  `git clone --depth 1 --filter=blob:none --sparse` + `sparse-checkout set` +
+  `submodule add` + `absorbgitdirs`; licenses + roles in PROVENANCE.md):**
+  | submodule | pin | sparse | SV files | key |
+  |---|---|---|---|---|
+  | `ispras-sv-tests` | `f9062e68` | `ieee-1364-2005/`+`ieee-1800-2012/` | 1,266 | `// ! TYPE: POSITIVE\|NEGATIVE\|VARYING` (1,124/23/117) |
+  | `iverilog` (ivtest) | `a4989d02` | `ivtest/` | 3,799 | `regress-sv.list` 992 entries (normal/CE/CO × gold) |
+  | `sv2v` | `6662fa5d` | `test/` | 953 | dir semantics (`error/` negatives, `.v` goldens) |
+  | `Surelog` | `d21c1c70` | `tests/` | 828 | dir-level units + golden logs (extraction = `.8b`) |
+  | `black-parrot` | `f91010f6` | `bp_*` | 205 | design corpus (macro-heavy; `external/` NOT initialized — dedupe-by-true-upstream + basejump license) |
+  | `opentitan` | `720d7242` | `hw/` | 3,983 | design corpus (UVM-scale; 237 MB via blob-filter) |
+  - **uvm-core** (`stimuli/sv/uvm/`, plain tracked files, pre-submodule
+    vintage) folded into the bulk universe as sub-corpus `uvm-core` (runner
+    `EXTRA_DIRS` + label mapping — 174 files), per the director's order.
+- **Fresh guarded characterization at HEAD (16,336 files, exit 0):**
+  9,361 pass / 6,966 fail / 9 timeout (57.3%). The four June suites +
+  designs are **byte-coherent with the `.3.1` numbers** (sv-tests 832 /
+  verilator 2,011 / verible 121 / slang 71 / VeeR 18 / scr1 7 / friscv 31 —
+  zero regression, same probe vintage). New keyed suites: ispras 78.7% /
+  ivtest 83.2% / Surelog 80.8% / sv2v 75.1%; design corpora read low pending
+  chaining (opentitan 17.3% / black-parrot 7.8% / uvm-core 11.5%). The 9
+  timeouts are named in the manifest (8 opentitan autogen xbar/pinmux giants
+  + the tracked verilator `t_math_synmul_mul.v`).
+- **Adjudicator extended (answer keys spec/metadata-only, per doctrine):**
+  ispras `// ! TYPE:` header keys (POSITIVE → must_accept; NEGATIVE → stage
+  triage `.8b` — the sampled NEGATIVE is SEMANTIC invalidity, so no blanket
+  must_reject; VARYING → impl-varying lane; `ieee-1364-2005/` → the
+  verilog_2005 profile lane); ivtest `regress-sv.list`/`regress-vlg.list`
+  logical-entry parser (backslash-continuations joined; CE stage split
+  mirrors the verilator convention — golden `syntax error` = must_reject,
+  golden post-parse-only = must_accept, no golden = stage triage `.8b`);
+  sv2v dir semantics (`.sv` inputs must_accept by suite contract, `.v`
+  goldens → v2005 lane, `error/` → conversion-vs-parse pre-triage `.8b`);
+  Surelog → chained dir-level units (key extraction `.8b`); opentitan /
+  black-parrot / uvm-core → DESIGN_SUITES chained lane. Deferral-slug
+  mechanism added (`out_of_scope_with_cause:<slug>` → `deferred:<slug>`);
+  historical labels byte-stable.
+- **⭐ THE RE-BASED HONEST BASELINE: 445 unexplained divergences = 439
+  rejects-valid + the same 6 named accepts-invalid.** Old-suite continuity
+  EXACT: sv-tests 39 / verilator 226 / verible 13 / slang 1 = **279 — the
+  `.3.1` baseline reproduced byte-for-byte** by the extended adjudicator.
+  ADD-v1 keyed suites contribute **+166 newly measured defect signal**:
+  ispras-1800 **114** (clause-keyed POSITIVE rejects — the sharpest new
+  worklist, clauses 4/5/6/8/… per the manifest), sv2v **31**, ivtest **21**.
+  Full picture: 4,419 match / 1,308 explained-with-cause (svpp macro 952 /
+  conditional 207 / include 140 / timeout 9) / 10,164 deferred
+  (chained_only 5,896; v2005_profile_lane 2,458; no_sv_key 1,130;
+  negative_stage_triage 201; error_pretriage 234; impl_varying 90;
+  svpp_owned 155). Manifest determinism proven (two runs byte-identical);
+  representative new rows probe-verified live (ispras `04.05_01.sv` /
+  `05.07.01_04.sv` — TYPE POSITIVE, exit 1 at HEAD).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — the director's acquisition order
+    ([[project_sv_corpus_100pct_lrm_coverage_mandate]]): the corpus lacked
+    the frozen-roster ADD-v1 tier; the negative/clause-keyed axes were the
+    thinnest (banked corpus-sufficiency assessment).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — N/A (acquisition/measurement leaf);
+    every new expected verdict carries its per-row `basis` provenance.
+  - [x] **FIX** — N/A (no parser change; corpus + tooling only).
+  - [x] **ADDRESSED (verified)** — six pinned submodules on disk + fresh
+    16,336-file guarded characterization (exit 0) + extended adjudicator
+    manifest (determinism cmp ×2; probe spot-verification of new rows).
+  - [x] **NO REGRESSION** — zero parser surface touched; the four June
+    suites' pass counts byte-identical to `.3.1`; the old-suite unexplained
+    population reproduces EXACTLY (279); historical adjudication labels
+    byte-stable.
+  - [x] **LOCKSTEP** — PROVENANCE + tree + TASK_TREE index +
+    MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
+
+#### `.8b` — Deep answer-key extraction (todo)
+
+- **Status: `todo`** — (1) Surelog per-test accept/error key extraction from
+  drivers/golden logs (828 rows now chained-deferred); (2) sv2v `error/`
+  conversion-error vs parse-error pre-triage (234 rows); (3) ispras NEGATIVE
+  per-file stage triage (23 files — sampled member is semantic-stage);
+  (4) ivtest CE-without-gold stage triage (~180 rows); (5) the ivtest
+  `no_sv_key` population sweep (vvp_tests JSON descriptors as a secondary
+  key source where SV-dialect).
+
+#### `.8c` — The verilog_2005 profile lane (todo)
+
+- **Status: `todo`** — the 2,458 `deferred:v2005_profile_lane` rows (ispras
+  `ieee-1364-2005/` 360 + ivtest `regress-vlg.list` + sv2v goldens) are the
+  frozen-roster v2005 corpus: a `--profile verilog_2005` bulk-runner mode +
+  profile-aware adjudication (mind ispras `KNOWN_TEXT_BUGS`), feeding the
+  v2005 arm of `.5`/`.7`.
 
 ### `.9` — Gap-driven acquisition/crafting loop to 100%
 

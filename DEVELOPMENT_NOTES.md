@@ -1,5 +1,22 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0007 — vendoring heavy corpora cheaply: blob-filtered sparse submodules; and answer keys that must never over-claim
+
+**Partial-clone vendoring.** `git submodule add` cannot express `--depth 1 --filter=blob:none
+--sparse`, so the `.8a` recipe clones first with those flags, sets the cone sparse-checkout
+(fetching only the test-dir blobs on demand), THEN runs `submodule add` on the existing repo +
+`submodule absorbgitdirs`. Result: OpenTitan (a multi-GB repo) vendors at 237 MB with only
+`hw/` materialized, yet is a fully pinned, re-acquirable submodule like every other suite.
+
+**Answer keys must encode the failure STAGE, not just the verdict.** Three suites repeated the
+same lesson the verilator keys taught in `.2`: a suite-level "this test fails" key (ispras
+`TYPE: NEGATIVE`, ivtest `CE`) covers parse-level AND elaboration-level invalidity, and the
+sampled ispras NEGATIVE is pure semantics (use-before-declaration — parses fine). Blanket
+must_reject would have manufactured false accepts-invalid signal. The honest pattern: derive
+must_reject ONLY where the stage is provable from suite metadata (golden output saying
+`syntax error`), and route the stage-ambiguous rest to a NAMED deferral lane
+(`negative_stage_triage`) for per-file triage — never guess, never game.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0006 — a new defect CLASS: profile-mis-gated constructs (present in the grammar, unreachable under the profile that owns them)
 
 **The mechanism.** `interface_class_declaration` existed, was correct, and even had its
