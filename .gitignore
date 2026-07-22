@@ -408,6 +408,7 @@ universal_test_runner_*.log
 
 # External-corpus bulk characterization raw dumps (regenerable; track characterization.md only)
 stimuli/*/characterization/results.tsv
+stimuli/*/characterization/results_v2005.tsv
 
 # IEEE LRM reference PDFs — vendored locally next to their MD workspaces for LRM
 # cross-checks (page-level citations); NOT tracked (large binaries + licensing). The
