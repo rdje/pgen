@@ -387,10 +387,13 @@ coverage.
 
 ### `.7` — The LRM-coverage instrument (measured corpus sufficiency)
 
-- **Status: `in_progress`** (mandated by
+- **Status: `done`** (mandated by
   [[project_sv_corpus_100pct_lrm_coverage_mandate]]) — `.7a` (the rule-coverage
-  instrument + the FIRST measured number) **done**; `.7b` (clause matrix from
-  the keyed suites + negatives-density report) todo.
+  instrument + the FIRST measured number, 91.1% / 120 gaps) **done**; `.7b`
+  (clause matrix from the keyed suites + negatives-density report) **done**
+  (`PGEN-SV-CORPUS-GRAD-0016`, session #197). Both coverage lenses now stand:
+  the authoritative rule-participation % (`.7a`) and the LRM-structure clause
+  matrix + negatives density (`.7b`). The measured worklists feed `.9`.
 
 #### `.7a` — The rule-coverage instrument: measured coverage = 91.1% (120 gaps)
 
@@ -457,13 +460,66 @@ coverage.
   - [x] **LOCKSTEP** — TOOLBOX §5.4 + routing row, grammar-wellformedness
     book section, tree/TASK_TREE/MEMORY/CHANGES/LIVE this commit.
 
-#### `.7b` — Clause matrix + negatives density (todo)
+#### `.7b` — Clause matrix + negatives density (done)
 
-- **Status: `todo`** — the clause matrix from the keyed suites (sv-tests
-  `:tags:`, ispras clause-encoded filenames, ivtest keys) + a
-  negatives-density report (keyed `must_reject` per LRM chapter — the
-  thinnest axis per the sufficiency assessment), joined with `.7a`'s
-  rule-level view.
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0016`, session #197, 2026-07-23;
+  READ-ONLY measurement — zero parser/grammar/generated/codegen change).
+- **The instrument (one parser-agnostic surface, deterministic, no parser
+  run):** `stimuli/sv/corpus_clause_coverage.py` reads the committed
+  adjudication manifests + static suite metadata and maps the KEYED corpus
+  onto the LRM's own chapter/clause structure — the structural companion to
+  `.7a`'s rule lens. Three keyed inputs carry clause metadata: sv-tests
+  `:tags:` (edition 1800-2017), ispras `ieee-1800-2012/` dotted filenames,
+  ispras `ieee-1364-2005/` `test_*` filenames (Verilog). ivtest is NOT
+  clause-keyed (its `.list` `CE` rows are negatives but carry no clause) — so
+  it feeds the negatives axis only, honestly noted. Editions are kept
+  distinct (clause NUMBERS are not comparable across the 1364/1800 boundary);
+  the 1364-2005 lane's verdicts are taken from the `verilog_2005` manifest
+  (`adjudication_manifest_v2005.tsv`) where those files are adjudicated (in
+  the main manifest they are deferred to that lane).
+- **⭐ THE MEASURED CLAUSE PICTURE** (`clause_coverage.md` + per-clause
+  `.tsv`, tracked): **2,529 keyed cases** over **852 1800-family + 184
+  1364-2005 distinct clauses**; **0 parse-bearing chapter gaps** — every LRM
+  chapter 5–35 has ≥1 keyed case (so there is NO chapter-level positive gap;
+  the positive gaps are the rule-level 120 from `.7a`). Non-parse-bearing
+  chapters (1–4, 36–41) are N/A-with-cause.
+- **⭐ THE NEGATIVE AXIS IS MEASURED-THIN (the sufficiency assessment's
+  prediction, now quantified):** only **5 of 31** parse-bearing chapters
+  carry ANY clause-keyed `must_reject` (5 Lexical=4, 11 Operators=1, 13
+  Tasks/functions=1, 16 Assertions=1, 22 Compiler-directives=2 → **9 keyed
+  1800-family negatives total**); the 1364-2005 negative axis is **entirely
+  UNKEYED** (0 clause-keyed). The bulk of the corpus's negatives are unkeyed
+  and un-attributable to a clause without per-file adjudication: sv_2017 lane
+  **149** (sv2v 72 / iverilog 41 / verilator 32 / verible 2 / sv-tests 1 /
+  slang 1), verilog_2005 lane **33** (iverilog CE). → the negative axis per
+  chapter is the sharpest structural gap for `.9`.
+- **Join with `.7a`:** `.7a` is the authoritative parseable-surface % (rule
+  participation, 91.1% / 120 gaps for sv_2017); `.7b` is the LRM-structure
+  lens surfacing two gaps `.7a` cannot express (a parse-bearing chapter with
+  no keyed case; a chapter with no keyed negative). `.9` closes gaps from
+  both — the report's final section states exactly how.
+- **Acceptance Checklist (enforced — instrument leaf, mirrors `.7a`)**
+  - [x] **REPRODUCE / ISSUE** — the mandate's coverage axis had only the
+    rule lens (`.7a`); the LRM-structure/clause view and the per-chapter
+    negatives-density were unmeasured (the `.7b` charter).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — instrument leaf; the keyed-vs-unkeyed
+    split is tool-derived from the manifests (only 3 suites carry clause
+    metadata → ~14% keyed; ivtest CE rows are unkeyed negatives), and the
+    edition boundary (1364 vs 1800 clause numbering) is respected, not merged.
+  - [x] **FIX** — one Python surface (`corpus_clause_coverage.py`); no
+    parser/codegen/grammar behavior change (reads committed metadata only).
+  - [x] **ADDRESSED (verified)** — the measured clause matrix + negatives
+    density over the full keyed universe; internal-consistency self-checks
+    reproduce: keyed(9)+unkeyed(149)=158 = the manifest's total sv_2017
+    `must_reject`; the 1364-2005 lane positives sum to 327 = the v2005
+    manifest's ispras `must_accept`.
+  - [x] **NO REGRESSION** — read-only: zero code/grammar/generated/codegen
+    change; the two report artifacts are BYTE-IDENTICAL across two independent
+    runs (determinism proven, `cmp` clean on both `.tsv` and `.md`); no
+    tracked parser surface touched; `python3 -m py_compile` clean.
+  - [x] **LOCKSTEP** — TOOLBOX §5.4 companion + index row, grammar-
+    wellformedness book companion paragraph, tree + TASK_TREE index +
+    MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
 ### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
 

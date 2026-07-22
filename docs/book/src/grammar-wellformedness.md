@@ -1388,6 +1388,22 @@ it, both deterministic and diffable:
   stack is >100× slower than a plain parse on pathological-backtracking inputs, so such files are
   timeout-excluded *by name*, never silently).
 
+A **structural companion** lens (`SV-CORPUS-GRAD.7b`, `stimuli/sv/corpus_clause_coverage.py`) maps
+the *keyed* corpus onto the LRM's own clause/chapter structure instead of onto grammar rules. Only
+three inputs carry clause metadata — sv-tests `:tags:` (edition 1800-2017), ispras `ieee-1800-2012/`
+dotted filenames, and ispras `ieee-1364-2005/` `test_*` filenames (Verilog) — so it speaks for a
+~14% keyed slice of the vendored universe and is deliberately **not** a competing coverage
+percentage. It reads only the committed adjudication manifests (no parser run) and answers two
+questions the rule lens cannot: *which LRM chapters does the keyed corpus deliberately target* (every
+parse-bearing chapter 5–35 currently has ≥1 keyed case — no chapter-level gap), and *how dense is the
+negative axis per chapter* (the thinnest surface in the whole corpus — only 5 of 31 parse-bearing
+chapters carry any clause-keyed `must_reject`; the bulk of the corpus's negatives are unkeyed ivtest
+`CE` rows and sv2v bad-goldens that cannot be attributed to a clause without per-file adjudication).
+Editions are kept distinct (clause *numbers* are not comparable across the 1364/1800 boundary); the
+1364-2005 lane's verdicts are taken from the `verilog_2005` manifest where those files are
+adjudicated. The two lenses are complementary — a rule can be covered while its chapter has no keyed
+negative, and vice versa — so `.9` closes gaps surfaced by both.
+
 Graduation (`SV-CORPUS-GRAD.5`) requires **both** zero unexplained divergences *and* 100% measured
 coverage of the parseable surface (uncovered rules driven to a corpus case or an N/A-with-cause).
 

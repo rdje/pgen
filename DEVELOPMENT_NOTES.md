@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-23 - PGEN-SV-CORPUS-GRAD-0016 — the clause lens is a *structural* view, not a second coverage number
+
+**Two engineering decisions define this leaf's honesty.**
+
+**(1) No fabricated denominator.** The tempting move is to enumerate every LRM sub-clause and report
+"clause coverage = exercised / total". That number would be junk: the LRM's sub-clause universe is
+semantic-heavy (huge tracts define elaboration and scheduling, not parse syntax), so a denominator
+built from it would be dominated by clauses with no parse surface, and any percentage against it would
+be meaningless — worse, it would *compete* with `.7a`'s authoritative rule-participation %, inviting a
+"which number is real?" confusion. So `.7b` reports NO all-clauses percentage. Its honest gaps are at
+two coarse, well-defined granularities: a **parse-bearing chapter (5–35) with zero keyed cases**
+(there are none today) and a **chapter with zero keyed negatives** (there are many). The rule lens
+stays the sole parseable-surface denominator; the clause lens is a structural cross-reference.
+
+**(2) The edition boundary is not merged.** Clause numbers are edition-specific: ispras files under
+`ieee-1364-2005/` use Verilog numbering, sv-tests `:tags:` and ispras `ieee-1800-2012/` use the SV
+numbering. Top-level *chapters* are broadly stable within the 1800 family (2012→2017), so the 1800
+lane aggregates sv-tests-2017 and ispras-2012 at chapter granularity — but the 1364-2005 lane is a
+separate section with its own chapter numbers and no invented titles, and clause-level detail in the
+TSV is always tagged with its edition. Merging the two would silently claim cross-edition equivalence
+the numbers do not support.
+
+**Why read two manifests.** The same ispras `ieee-1364-2005/test_*.v` files appear in both the main
+(`sv_2017`) and the `verilog_2005` manifests — but in the main manifest they are
+`out_of_scope_with_cause:v2005_profile_lane` (deferred), so reading only the main manifest reported
+the whole Verilog lane as positive=0/negative=0, which is a false all-zero. The authoritative
+accept/reject verdict for those files exists only in the v2005 manifest, so the instrument routes each
+edition's verdict from the manifest that actually adjudicates it, skipping the 1364-2005 rows in the
+main manifest to avoid double-counting. The 1364-2005 lane positives then sum to exactly 327 = the
+v2005 manifest's ispras `must_accept` — the self-check that proves the routing is right.
+
+**The finding that matters.** The negatives density is not a nice-to-have: it *quantifies* the
+session-#191 sufficiency assessment's "the parse-level negative axis is the thinnest surface". Only 5
+of 31 parse-bearing chapters carry a clause-keyed `must_reject`, and the 1364-2005 negative axis is
+entirely unkeyed. The 149 (sv_2017) + 33 (v2005) unkeyed negatives are real reject cases — ivtest CE
+rows, sv2v bad-goldens — but they cannot be attributed to an LRM chapter without per-file
+adjudication, so they cannot fill a *targeted* negative gap. That is the `.9` worklist's sharpest
+structural item alongside `.7a`'s 120 uncovered rules.
+
 ## 2026-07-23 - PGEN-BIN-BUILD-INTEGRITY-0007 — the standing gate: prove the census, then check it
 
 **The gate has two halves, and the order matters.** The obvious design is "loop over some

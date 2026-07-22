@@ -109,6 +109,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
 | "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
+| "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
 
 ---
 
@@ -408,6 +409,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHEN:** the external-corpus rule-coverage instrument's denominator ("which rules can a corpus run under profile P ever exercise?" — see `stimuli/sv/corpus_rule_coverage.py`); adjudicating whether an unfired/unwitnessed rule is a corpus gap vs N/A-for-profile; auditing a profile-gating edit's satisfiability effect (the `.3.1` interface-class class).
 - **HOW:** `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --dump-rule-profiles /tmp/rule_profiles.json`
 - **OUTPUT:** `{"grammar", "profiles", "rule_count", "rules": {rule: {"declared_profiles": [...]|null, "satisfiable_under": [...]}}}` — for systemverilog: 1,466 rules; satisfiable_under sv_2017=1,343 / sv_2023=1,362 / verilog_2005=1,115 (the sv_2017/v2005 counts equal the cert-coverage canonical totals — the two instruments cross-confirm).
+- **COMPANION — the LRM-structure lens (SV-CORPUS-GRAD.7b):** `stimuli/sv/corpus_clause_coverage.py` maps the *keyed* corpus (sv-tests `:tags:`, ispras clause-encoded filenames) onto the LRM's own chapter/clause structure — the complement to the rule lens. Reads only the committed adjudication manifests (main + v2005; **no parser run**), deterministic. Answers "which LRM chapters/clauses does the keyed corpus target, and where is the negative-axis gap?" — surfaces parse-bearing chapters with no keyed case and chapters with no keyed `must_reject` (the thinnest axis). NOT a competing coverage % (only ~14% of the universe is clause-keyed; `.7a` owns the authoritative parseable-surface denominator). Output: `stimuli/sv/characterization/clause_coverage.md` + per-clause `.tsv`.
 
 ---
 
