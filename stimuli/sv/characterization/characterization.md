@@ -27,3 +27,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | verilator | 3263 | 1996 | 1266 | 1 | 61.2% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv`._
+
+## Adjudication (leaf SV-CORPUS-GRAD.2, 2026-07-22)
+
+The raw outcomes above are adjudicated expected-vs-actual in
+`adjudication_manifest.tsv` (generator: `stimuli/sv/adjudicate_external_corpus.py`,
+deterministic; summary: `adjudication_summary.md`). Headline: **330 unexplained
+divergences** (324 rejects-valid + 6 accepts-invalid) out of 5,128 rows —
+the SV-CORPUS-GRAD burn-down baseline. 1,102 divergences are explained with a
+named cause (svpp expansion/include/conditional dependency, 1 timeout); 854
+rows are deferred to their owning lanes (704 chained-only incl. the three
+design corpora, 150 svpp-owned test targets).

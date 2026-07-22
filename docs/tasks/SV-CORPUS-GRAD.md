@@ -137,21 +137,74 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
 
 ### `.2` — The adjudication manifest + the honest divergence baseline
 
-- **Status: `todo`** — build the expected-vs-actual manifest over every vendored
-  case per `.1`'s design; the output number (unexplained divergences, by defect
-  class) is the campaign's burn-down baseline. Suite metadata is the answer key;
-  LRM grounding where metadata is absent.
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0004`, session #190, 2026-07-22).
+- **Deliverables** (all tracked): `stimuli/sv/adjudicate_external_corpus.py`
+  (deterministic stdlib-only generator; byte-identical across re-runs, proven
+  by cmp ×3), `stimuli/sv/characterization/adjudication_manifest.tsv` (5,128
+  per-file rows: suite / relpath / observed / expected / adjudication / basis),
+  `stimuli/sv/characterization/adjudication_summary.md`.
+- **⭐ THE HONEST BURN-DOWN BASELINE: 330 unexplained divergences** —
+  **324 rejects-valid** (sv-tests 66, verilator 235, verible 20, slang 3) +
+  **6 accepts-invalid** (all verilator, named in the manifest:
+  `t_class_super_bad3` / `t_concat_link_bad` / `t_flag_wpedantic_bad` /
+  `t_timescale_parse_bad` / `t_unconnected_bad` / `t_wire_trireg_unsup`).
+  Full picture: 2,842 match / 330 unexplained / 1,102 explained-with-cause
+  (svpp macro_use 786, conditional 191, include 124, timeout 1) / 854 deferred
+  (chained_only 704 — the design corpora + fragments, leaf `.4`; svpp_owned 150).
+- **Expected-verdict derivation (per `.1`'s design, spec/metadata-only — never
+  fix-adjacent):** sv-tests `:type:`-stage × `:should_fail_because:` logic
+  (post-parse should-fails = parse-level `must_accept`; only `parsing`-stage
+  should-fails = `must_reject`; `preprocessing`-typed → svpp-owned) + 7 pinned
+  LRM-grounded rulings for header-less should-fails (6 lexical/grammar-level
+  `must_reject`, 1 semantic `must_accept` — recorded in-script with reasons);
+  verilator driver conventions (`fails=True|test.vlt_all` × golden-`.out`
+  "syntax error" split; `t_pp_*`/`t_preproc_*` = preprocessor-target → svpp;
+  driverless files = fragments → chained; `include-dependent rejects demoted to
+  chain-level); slang/verible per-dir fixture semantics (strict-mode errors are
+  semantic; kythe include/multi-file dirs chained).
+- **Hardening iterations (all landed before banking):** comment/string
+  stripping before the svpp-dependency scan (a macro named in a comment must
+  not explain away a real defect — moved 2 rows to unexplained); timeout
+  precedence over deferral (the 1 pathological row surfaces regardless of
+  lane); preprocessor-target and include-demotion refinements (collapsed the
+  accepts-invalid population 11 → 6 by metadata-grounded rules, mirrored from
+  the sv-tests preprocessing rule).
+- **Tool verification:** representative rejects-valid row
+  `tests/chapter-5/5.7.1--integers-underscores.sv` re-verified live —
+  unambiguously valid LRM 5.7.1 SV (underscore literals, spaced based literal
+  `32 'h 12ab_f001`), `parseability_probe --parse systemverilog --profile
+  sv_2017` exit 1 at HEAD, matching the manifest row. Cluster shape is
+  coherent with known history: chapter-16 property rows sit in the same
+  grammar region as the `SV-REPLAY-DEBT` prop_primary cluster.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 2,078 raw fails carried no defect signal until
+    expected-vs-actual adjudication separated intended-fails and harness
+    dependencies from parser-owned divergences.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — N/A (measurement leaf); every expected
+    verdict carries its per-row `basis` provenance in the manifest.
+  - [x] **FIX** — N/A (no parser change; additive analysis tooling only).
+  - [x] **ADDRESSED (verified)** — manifest built over all 5,128 rows;
+    determinism proven byte-identical across re-runs; probe spot-verification
+    of the observed column; accepts-invalid rows individually named.
+  - [x] **NO REGRESSION** — no parser/grammar/codegen surface touched.
+  - [x] **LOCKSTEP** — characterization report pointer, tree, TASK_TREE index,
+    MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE tracker this commit.
 
 ### `.3` — Defect burn-down (umbrella; one leaf per defect class)
 
-- **Status: `todo`** — scoped from `.2`'s taxonomy. **First known member:
-  `GRAMMAR-WELLFORMED.H.12.5.8`** (the infix property/sequence binary-operator
-  parse bug — `a ##1 b` / `a or b` / `a and b` / `until`-family / `intersect` /
-  `within` ALL reject; WHY+WHERE done, fix-design pending; stays owned by its
-  tree, cross-linked here as a graduation blocker). NOTE the convergence: the
-  `SV-REPLAY-DEBT` dominant residual cluster (`prop_primary_*` /
-  `concurrent_assertion_*` / sequence rules) lives in the SAME grammar region —
-  fixing the infix lane likely moves BOTH axes.
+- **Status: `todo`** — NOW SCOPED from `.2`'s baseline: **330 unexplained
+  divergences** to burn down (324 rejects-valid + 6 accepts-invalid; the
+  manifest is the per-row worklist). Cluster map for leaf selection:
+  verilator 235, sv-tests 66 (by chapter: generic 21, chapter-8/classes 18,
+  chapter-5/lexical 9 — incl. the probe-verified underscore/spaced-literal
+  gap — chapter-7 4, chapter-6 4, chapter-16/SVA 4, chapter-18 3,
+  chapter-11 2, chapter-12 1), verible 20, slang 3, + the 6 named
+  accepts-invalid rows (verilator-strictness adjudication candidates).
+  ~~First known member `GRAMMAR-WELLFORMED.H.12.5.8`~~ — RESOLVED before this
+  tree reached it: fixed by releases 1.0.148/1.0.149 (re-verified 12/12 at
+  HEAD, see `.1`). NOTE the standing convergence: the chapter-16 property rows
+  live in the same grammar region as the `SV-REPLAY-DEBT` `prop_primary_*`
+  residual cluster — one lane may move both axes.
 
 ### `.4` — Full-design corpora chaining
 

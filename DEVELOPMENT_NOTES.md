@@ -1,6 +1,29 @@
 # DEVELOPMENT_NOTES.md
 
-## 2026-07-21 - PGEN-STRUCTURED-WITNESS-SYNTH-0004 — a replayed name is a LEXICAL SURFACE, not a string: carry the terminator; and a twice-refuted gap can be a composition, not a missing mechanism
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0004 — adjudication method notes: the answer key must model the STAGE of the intended failure, and dependency scans must see what the lexer sees
+
+**Stage-modeling is the whole game.** A raw corpus pass-rate carries no defect signal because
+"expected to fail" is stage-relative: 78 of sv-tests' 79 `:should_fail_because:` cases fail at
+post-parse stages (elaboration/simulation/preprocessing — their syntax is VALID, so a parse
+REJECT would be the bug), and only 44 of verilator's 1,427 golden `.out` files describe genuine
+syntax errors (659 are `%Error-UNSUPPORTED` = valid SV verilator itself can't parse — PGEN
+accepting those is CORRECT). Deriving expecteds without the stage split would have inverted a
+large fraction of the answer key. Same lesson at the preprocessor boundary: a "syntax error"
+golden produced by a `t_pp_*`/`t_preproc_*` test is a PREPROCESSOR-stage error — svpp-owned,
+not a parse-level must-reject.
+
+**Dependency scans must see the lexer's view.** The svpp-dependency scan (does this file need
+`include/macro expansion to be self-contained?) initially read raw text — a macro named inside
+a comment or string would wrongly "explain" a real defect (the explained class silently eats
+the unexplained one, the dangerous direction for honesty). Stripping comments/strings first
+moved 2 rows back to unexplained. Symmetrically, an `include-dependent must-reject is only
+meaningful at chain level: the intended-bad content may live in the included file the isolation
+parse never sees — demote to chained_only rather than crediting a coincidental reject.
+
+**Verification pattern for measurement tooling:** determinism = byte-identical re-runs (cmp
+×3); ground truth = re-run the probe on a manifest row and match the observed column; honesty
+= name every member of small suspicious classes individually (the 6 accepts-invalid rows are
+listed by name in the tree, not summarized). — a replayed name is a LEXICAL SURFACE, not a string: carry the terminator; and a twice-refuted gap can be a composition, not a missing mechanism
 
 **The composition lesson.** `context_member_method_call` resisted two implement-and-revert
 attempts (`.4b.13.1`, `.4b.19`) and a five-pass witness apparatus — yet the close needed ZERO
