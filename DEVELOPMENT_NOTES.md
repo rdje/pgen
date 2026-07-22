@@ -1,5 +1,24 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0008 — instrument reuse beats instrument building; and the coverage stack's pathological-input tax
+
+**Reuse first.** The rule-coverage instrument needed a numerator and a denominator; BOTH already
+existed as proven machinery: the numerator is the probe's `--dump-rule-outcome-counts-json`
+committed counts (built for the RGX perf census — transactional testimony, sound under
+backtracking), the denominator is the profile-orphan lint's `derive_rule_profiles` (exposed via a
+~55-line `--dump-rule-profiles` handler with ZERO new analysis code). Toolbox-first applies to
+instrument BUILDING too: sweep the existing surfaces before writing an analyzer. Bonus: reused
+machinery arrives pre-validated — the denominator's sv_2017/v2005 counts (1,343/1,115) equal the
+cert-coverage canonical totals, cross-confirming both instruments.
+
+**The coverage-stack tax.** Enabling the transactional coverage stack turned a 0.28 s parse of
+Surelog's `ExponTimeIfElseGen` into >30 s (>100×): the per-entry bookkeeping defeats the memo's
+protection exactly on pathological-backtracking shapes. Instrumented sweeps therefore need their
+own per-file timeout + a NAMED exclusion lane (never silent drops), and instrument-observed
+outcomes must never be conflated with plain-parse outcomes (the driver treats "results.tsv said
+pass, instrumented run disagreed" as a loud separate lane). Deep root-cause of the blowup is a
+tracked follow-up in `SV-CORPUS-GRAD`.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0007 — vendoring heavy corpora cheaply: blob-filtered sparse submodules; and answer keys that must never over-claim
 
 **Partial-clone vendoring.** `git submodule add` cannot express `--depth 1 --filter=blob:none

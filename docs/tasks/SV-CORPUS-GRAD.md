@@ -386,16 +386,83 @@ coverage.
 
 ### `.7` — The LRM-coverage instrument (measured corpus sufficiency)
 
-- **Status: `todo`** (mandated by
-  [[project_sv_corpus_100pct_lrm_coverage_mandate]]) — parse the ENTIRE
-  vendored corpus with per-rule participation recording (the generated
-  parser's transactional coverage testimony), union fired-rule sets per
-  profile, diff against the grammar's full rule inventory → the
-  uncovered-rule report = the measured corpus gap list (the grammar is the
-  faithful image of LRM Annex A, so rule coverage IS clause coverage on the
-  syntax surface). Plus the clause matrix from the keyed suites (sv-tests
-  `:tags:`, ispras dirs, ivtest keys) and a negatives-density report.
-  Deterministic, diffable, standing.
+- **Status: `in_progress`** (mandated by
+  [[project_sv_corpus_100pct_lrm_coverage_mandate]]) — `.7a` (the rule-coverage
+  instrument + the FIRST measured number) **done**; `.7b` (clause matrix from
+  the keyed suites + negatives-density report) todo.
+
+#### `.7a` — The rule-coverage instrument: measured coverage = 91.1% (120 gaps)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0008`, session #192, 2026-07-22).
+- **The instrument (two parser-agnostic surfaces, both deterministic):**
+  1. `ast_pipeline <g>.ebnf --dump-rule-profiles OUT.json` (NEW flag,
+     `rust/src/main.rs` — ~55-line read-only handler reusing the lint's own
+     `derive_rule_profiles`/`extract_profile_context`, zero new analysis
+     code, no codegen change): the DENOMINATOR — full rule inventory with
+     declared `@profiles` + DERIVED per-profile satisfiability.
+     ⭐ Cross-instrument confirmation: satisfiable_under sv_2017 = **1,343**
+     and verilog_2005 = **1,115** EQUAL the cert-coverage canonical totals;
+     sv_2023 = 1,362; orphans 0; `interface_class_declaration` reads
+     dual-profile post-`.3.1`. TOOLBOX §5.4 + book section added.
+  2. `stimuli/sv/corpus_rule_coverage.py` (NEW driver/reporter): the
+     NUMERATOR — per accepted corpus file, the generated parser's
+     transactional coverage testimony (`--dump-rule-outcome-counts-json`
+     `rule_committed_counts` — the existing `RGX-0078.5.h.1b` flag; sound
+     under PEG backtracking; failed parses contribute NOTHING), unioned and
+     diffed against the inventory → per-rule status
+     covered / **GAP** / na_profile, thin-coverage watchlist, per-suite
+     contribution, named exclusions.
+- **⭐ THE FIRST MEASURED COVERAGE NUMBER (profile sv_2017, the full 16,336-file
+  vendored universe): 1,223/1,343 = 91.1% — 120 UNCOVERED rules = the
+  measured `.9` worklist** (`rule_coverage_sv_2017.md` + per-rule `.tsv`,
+  tracked). Gap shape (coherent with the banked corpus-sufficiency
+  assessment): 55 `kw_*` terminal-cohort rules (PATHPULSE$, specify edge
+  specifiers B/F/N/P/R/Z, `binsof`, …) + covergroup bins/cross machinery +
+  assignment-pattern net-lvalues + dist weights + drive strengths + library
+  map constructs. Testimony soundness spot-proven: 253/308 `kw_*` rules DO
+  commit (the 55 are real gaps, not a testimony blind spot); na_profile 123;
+  fired∩na_profile = ∅ (no inventory-vs-reality contradiction);
+  9,360/9,361 accepted files contributed.
+- **Named exclusion + engine finding (excluded-with-cause, loud):** Surelog
+  `ExponTimeIfElseGen/dut.sv` — plain parse 0.28 s exit 0, but with the
+  transactional coverage stack enabled the SAME parse blows up >100×
+  (measured >30 s) and does not contribute testimony (the driver's timeout
+  lane names such files in the report; this run: the file surfaced via the
+  disagreement lane instead). WHY (first-order): the coverage bookkeeping
+  defeats the memo's protection on pathological-backtracking shapes.
+  Deep root-cause + any engine-side fix = a follow-up owned by this tree
+  (instrument tolerates named exclusions; graduation math unaffected).
+- **Verification:** driver determinism proven (two 300-file runs, TSV + md
+  BYTE-IDENTICAL); full run guarded (exit 0, peak 14,486 MB / 137 s);
+  `clippy_on_rust_change` source-strict PASS (generated-stage non-strict
+  tracked count now 291 — all in `generated/*` parsers, 0 in `src/`, the
+  +1 vs 290 pre-dates this slice at the `.3.1` regen);
+  `mdbook_docs_gate` PASS; dual-feature `ast_pipeline` rebuilt (guarded,
+  peak 10,086 MB).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — the mandate's coverage axis had NO
+    instrument: corpus sufficiency was unmeasurable (the `.7` charter).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — instrument leaf; the one anomalous
+    row (ExponTimeIfElseGen) tool-diagnosed to the coverage-stack blowup
+    (plain-vs-instrumented A/B, measured >100×), lane-named in the report.
+  - [x] **FIX** — the two surfaces above (flag + driver); no parser/codegen
+    behavior change (flag is opt-in read-only; probe untouched).
+  - [x] **ADDRESSED (verified)** — the measured 91.1%/120-gap report over
+    the full universe; denominator cross-confirmed against the cert totals
+    (1,343/1,115 equality); testimony soundness spot-proven.
+  - [x] **NO REGRESSION** — clippy source-strict pass; generated parsers
+    untouched; mdbook gate pass; determinism byte-proven; no tracked
+    surface behavior changed.
+  - [x] **LOCKSTEP** — TOOLBOX §5.4 + routing row, grammar-wellformedness
+    book section, tree/TASK_TREE/MEMORY/CHANGES/LIVE this commit.
+
+#### `.7b` — Clause matrix + negatives density (todo)
+
+- **Status: `todo`** — the clause matrix from the keyed suites (sv-tests
+  `:tags:`, ispras clause-encoded filenames, ivtest keys) + a
+  negatives-density report (keyed `must_reject` per LRM chapter — the
+  thinnest axis per the sufficiency assessment), joined with `.7a`'s
+  rule-level view.
 
 ### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
 

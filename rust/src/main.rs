@@ -91,6 +91,17 @@ struct Args {
     #[arg(long)]
     lint_grammar: bool,
 
+    /// SV-CORPUS-GRAD.7 (parser-agnostic corpus rule-coverage instrument): serialize the
+    /// loaded grammar's FULL rule inventory with, per rule, the declared `@profiles` set
+    /// (absent = universal) and the DERIVED per-profile satisfiability (the same transitive
+    /// `derive_rule_profiles` computation the profile-orphan lint gates on) as deterministic
+    /// JSON to this path, then exit. The external-corpus coverage reporter diffs its
+    /// per-profile fired-rule unions against this inventory: an uncovered rule is either a
+    /// corpus GAP (satisfiable under the profile, never fired) or N/A-for-profile (not
+    /// satisfiable under it — its home profiles listed). Read-only; no codegen change.
+    #[arg(long)]
+    dump_rule_profiles: Option<String>,
+
     /// RGX-0078.5.h.1 (STEP-0 fusibility census): opt-in read-only FUSIBILITY-CENSUS report for
     /// the DERIVED-SCANNER rung. Classifies every rule against the increment-1 capability gate
     /// (regular + effect-free + text-folding + policy-encodable + layout-contiguous) over the
@@ -1028,6 +1039,18 @@ fn main() -> Result<()> {
             args.grammar_profile.as_deref(),
         )?;
         return run_grammar_lint(&grammar, &unfiltered_grammar);
+    }
+
+    // SV-CORPUS-GRAD.7: machine-readable per-profile rule-inventory dump (the corpus
+    // rule-coverage instrument's denominator). Runs on the UNFILTERED bundle — the full view
+    // codegen compiles (profile selection is a runtime guard).
+    if let Some(out_path) = args.dump_rule_profiles.clone() {
+        let unfiltered_grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
+        return run_dump_rule_profiles(&unfiltered_grammar, &out_path);
     }
 
     // RGX-0078.5.h.1: opt-in read-only fusibility census (the derived-scanner STEP-0 gate).
@@ -3823,6 +3846,65 @@ fn run_fusibility_census_report(
             .map_err(|e| anyhow::anyhow!("cannot write fusibility census JSON '{path}': {e}"))?;
         println!("  census JSON written to {path}");
     }
+    Ok(())
+}
+
+/// SV-CORPUS-GRAD.7 (parser-agnostic): the corpus rule-coverage instrument's DENOMINATOR dump —
+/// the grammar's full rule inventory with, per rule, the declared `@profiles` set (absent =
+/// universal) and the DERIVED per-profile satisfiability (`derive_rule_profiles`, the same
+/// transitive computation the profile-orphan lint gates on). Deterministic output (BTreeMap
+/// ordering + sorted profile lists) so coverage reports diff cleanly across sessions.
+fn run_dump_rule_profiles(unfiltered_grammar: &LoadedGrammar, out_path: &str) -> Result<()> {
+    use pgen::ast_pipeline::grammar_wellformedness::{
+        derive_rule_profiles, extract_profile_context,
+    };
+    use std::collections::BTreeMap;
+
+    let (declared, all_profiles) = match unfiltered_grammar.annotations.as_ref() {
+        Some(ann) => extract_profile_context(ann),
+        None => (HashMap::new(), Vec::new()),
+    };
+    let satisfiable = derive_rule_profiles(
+        &unfiltered_grammar.grammar_tree,
+        &unfiltered_grammar.rule_order,
+        &declared,
+        &all_profiles,
+    );
+    let mut rules: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+    for rule in &unfiltered_grammar.rule_order {
+        if !unfiltered_grammar.grammar_tree.contains_key(rule) {
+            continue;
+        }
+        let declared_json = declared.get(rule).map(|v| {
+            let mut sorted = v.clone();
+            sorted.sort();
+            sorted
+        });
+        let mut sat = satisfiable.get(rule).cloned().unwrap_or_default();
+        sat.sort();
+        rules.insert(
+            rule.clone(),
+            serde_json::json!({
+                "declared_profiles": declared_json,
+                "satisfiable_under": sat,
+            }),
+        );
+    }
+    let payload = serde_json::json!({
+        "grammar": unfiltered_grammar.grammar_name,
+        "profiles": all_profiles,
+        "rule_count": rules.len(),
+        "rules": rules,
+    });
+    std::fs::write(out_path, serde_json::to_string_pretty(&payload)?)
+        .with_context(|| format!("failed to write --dump-rule-profiles output '{out_path}'"))?;
+    println!(
+        "rule-profiles dump: '{}' — {} rules, {} profiles -> {}",
+        unfiltered_grammar.grammar_name,
+        rules.len(),
+        all_profiles.len(),
+        out_path
+    );
     Ok(())
 }
 

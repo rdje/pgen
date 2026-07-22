@@ -1364,6 +1364,33 @@ union-covered under its own entry) is recorded alongside, as always. (The gate a
 surface only — it changes no grammar, parser, generator, or generated artifact; the cert numbers
 are read-only measurements.)
 
+### The corpus rule-coverage instrument (the external mirror of the certificate axis)
+
+The certificate answers "can the *generator* reach and witness every rule?". The corpus mandate
+(`SV-CORPUS-GRAD.7`) asks the mirror question from the outside: **does the vendored external
+corpus actually *exercise* every rule the profile can reach?** Two parser-agnostic surfaces answer
+it, both deterministic and diffable:
+
+- `ast_pipeline <grammar>.ebnf --dump-rule-profiles out.json` — the **denominator**: the full rule
+  inventory with, per rule, its declared `@profiles` set and its *derived* per-profile
+  satisfiability (the same transitive computation the profile-orphan lint gates on). For
+  systemverilog: 1,466 rules — satisfiable under `sv_2017` = 1,343, `sv_2023` = 1,362,
+  `verilog_2005` = 1,115. The `sv_2017`/`verilog_2005` figures equal the certificate-coverage
+  canonical totals — the two instruments cross-confirm each other's universe.
+- `stimuli/sv/corpus_rule_coverage.py` — the **numerator**: for every external-corpus file the
+  parser *accepts*, the generated parser's transactional coverage testimony (committed rules only —
+  sound under PEG backtracking; failed parses contribute nothing) is unioned per profile and
+  diffed against the inventory. Every rule lands in exactly one class: `covered`, **`GAP`**
+  (satisfiable under the profile, fired by zero corpus files — the acquisition/crafting worklist),
+  or `na_profile` (measured under its own profile's run instead). The tracked report
+  (`stimuli/sv/characterization/rule_coverage_<profile>.md` + per-rule TSV) also names
+  thin-coverage rules (≤3 files) and any file excluded with cause (the transactional coverage
+  stack is >100× slower than a plain parse on pathological-backtracking inputs, so such files are
+  timeout-excluded *by name*, never silently).
+
+Graduation (`SV-CORPUS-GRAD.5`) requires **both** zero unexplained divergences *and* 100% measured
+coverage of the parseable surface (uncovered rules driven to a corpus case or an N/A-with-cause).
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the
