@@ -87,7 +87,13 @@ unchecked() { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]]
 # tight so they cannot match unrelated text (e.g. `self-time`/`call-graph`/`flamegraph` never appear
 # inside `sample_parse_failures`). Rationale + the case that motivated it (RGX-0078.3):
 # docs/decisions/project_speed_phase_profiler_root_cause_signature.md.
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph'
+# The third group is the BUILD-INTEGRITY diagnosis toolbox (BIN-BUILD-INTEGRITY.1, 2026-07-22): a
+# target that no longer COMPILES is root-caused by the COMPILER - its error code and the exact
+# file:line it names ARE the WHY+WHERE - not by a correctness tool (there is no parse to trace) and
+# not by a profiler (there is no run to sample). Tokens are verbatim rustc output, so they cannot
+# match unrelated prose; quoting them means a real compiler diagnostic was actually read. Rationale:
+# docs/decisions/project_build_integrity_compiler_root_cause_signature.md.
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|error\[E[0-9]{4}\]|could not compile'
 NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
 
 fails=()
