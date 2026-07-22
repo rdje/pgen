@@ -669,6 +669,21 @@ fn command_parse(
 }
 
 fn main() -> Result<()> {
+    // `SV-CORPUS-GRAD.8c.3` — run the ENTIRE probe body on a dedicated
+    // 256 MiB-stack thread so the generated parsers' 4096-frame recursion
+    // ceiling provably fires (clean parse-failure diagnostic, exit 1) before
+    // the OS guard page can SIGABRT the process (rc 134). Measured: the
+    // ceiling needs ≈8 MB of real stack in release and ≈70 MB in debug for
+    // SV, vs the 8 MB default main stack. Wrapping the whole body (not just
+    // the parse call) keeps the thread-local trace/dump configuration and
+    // the parse on the same thread.
+    pgen::dedicated_parse_stack::run_cli_main_on_dedicated_parse_stack(
+        "pgen-parseability-probe",
+        probe_main,
+    )
+}
+
+fn probe_main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 3 {
         eprintln!("{}", usage());

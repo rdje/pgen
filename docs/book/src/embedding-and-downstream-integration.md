@@ -26,7 +26,7 @@ This matters especially for:
 
 ### Current API surface
 
-The embedding API version is **`1.3.0`**. The supported grammar families and their selectable
+The embedding API version is **`1.3.1`**. The supported grammar families and their selectable
 profile strings are:
 
 - **SystemVerilog** — `sv_2017`, `sv_2023`, and the strict **`verilog_2005`** (IEEE 1364-2005 Verilog
@@ -46,6 +46,22 @@ case-insensitive resolution inside `set_grammar_profile`), so the artifact itsel
 every entry point. The embedding API's typed `GrammarProfile` enum keeps its own spellings as part
 of the typed contract, and a drift-gate test asserts they resolve every grammar-declared alias to
 the declared canonical profile — the two surfaces cannot silently diverge.
+
+### Stack robustness at the embedding boundary (`1.3.1`)
+
+A host process embedding a recursive-descent parser must never be aborted by that parser's
+recursion. The generated parsers carry a 4096-frame recursion ceiling, but a ceiling only
+protects the host when the calling thread has enough real stack for 4096 frames — measured for
+SystemVerilog that is ≈8 MB in release and ≈70 MB in debug, more than the 8 MB default main
+stack (a ~400-deep parenthesized expression, ≈4 KB of text, was enough to SIGABRT a release
+embedder). Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse
+runs its parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily
+committed; one short-lived thread per call, so concurrent host threads never serialize), which
+guarantees the ceiling fires as a clean `E_PARSE_FAILURE` diagnostic before the OS guard page
+can kill the process — in both build modes. The regex family keeps its own earlier defense
+(the RGX-0085 dedicated worker plus a PCRE2-parity nesting pre-check), unchanged. The same
+256 MiB guarantee wraps the `parseability_probe` and `ast_pipeline` instrument drivers, so a
+pathologically deep input is a reproducible clean rejection everywhere rather than a crash.
 
 ## Linter-Oriented Downstream Surfaces
 

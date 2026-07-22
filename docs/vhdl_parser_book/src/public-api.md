@@ -160,6 +160,18 @@ pub struct ParserEmbeddingApiContract {
 
 Embedders should check this at startup and refuse to operate (or fall back gracefully) if the VHDL backend is unavailable.
 
+## Stack robustness (embedding API `1.3.1`)
+
+Every VHDL embedding parse runs its generated-parser work on a dedicated **256 MiB-stack**
+thread (one short-lived thread per call — concurrent host threads never serialize on a shared
+worker). This guarantees the engine's 4096-frame recursion ceiling fires as a clean
+`E_PARSE_FAILURE` diagnostic before the OS guard page can abort the host process — over-deep
+nesting is a structured rejection, never a stack-overflow SIGABRT of the embedder, in both
+build modes (`SV-CORPUS-GRAD.8c.3`, 2026-07-22; the class was measured on the SystemVerilog
+family and the fix is parser-agnostic at the embedding boundary). A parser-worker panic
+likewise surfaces as `E_PARSE_FAILURE`, never a host abort. Host code needs no change; the
+guarantee holds on any caller thread, including small worker-pool stacks.
+
 ## Source pointer
 
 The authoritative source for the public API is `rust/src/embedding_api.rs`. The contract document `rust/docs/EMBEDDING_API_CONTRACT.md` describes the stability policy in full.

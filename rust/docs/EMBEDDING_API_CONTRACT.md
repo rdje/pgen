@@ -53,7 +53,15 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.3.0"`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.3.1"`
+  - `1.3.1` (2026-07-22, `SV-CORPUS-GRAD.8c.3`): backward-compatible stack-robustness fix —
+    SystemVerilog and VHDL grammar-family parses now run on a dedicated 256 MiB-stack thread,
+    so over-deep recursion surfaces as a clean `E_PARSE_FAILURE` diagnostic (the engine's
+    4096-frame recursion ceiling) instead of a host-process stack-overflow SIGABRT (measured:
+    a ~400-deep parenthesized SV expression — ≈4 KB of text — hard-aborted a release embedder
+    at the default 8 MB main stack). See the Stack-Robustness Contract section below. The regex
+    path is unchanged (it keeps its own RGX-0085 dedicated worker + nesting pre-check). Schema
+    version unchanged at `2`; struct shapes unchanged.
   - `1.3.0` (2026-07-02, `VERILOG-2005-PROFILE.2`): backward-compatible addition of the
     `verilog_2005` SystemVerilog profile to `GrammarProfile` / `supported_profiles` / `profile_matrix`
     (schema version unchanged at `2`; struct shape unchanged). The profile is registered and
@@ -145,6 +153,23 @@ Grammar parser API:
 - `parse_grammar_profile(...)` uses the same default bounded input behavior.
 - Embedders can override the bound per call via `parse_grammar_profile_with_limits(...)`.
 - The bound is measured in raw input bytes.
+
+## Stack-Robustness Contract (`SV-CORPUS-GRAD.8c.3`)
+- The generated parsers carry a 4096-frame mutual-recursion ceiling; a ceiling only protects
+  the host if the thread it runs on has enough real stack for 4096 frames (measured for
+  SystemVerilog: ≈2 KB/frame release, ≈17 KB/frame debug ⇒ ≈8 MB / ≈70 MB of stack needed —
+  more than the 8 MB default main stack, far more than typical host worker threads).
+- Therefore every SystemVerilog and VHDL grammar-family parse (`parse_grammar_profile*`,
+  the convenience/`_result`/`_ast_dump` wrappers) runs its generated-parser work on a
+  dedicated thread with a **256 MiB stack** (virtual reservation, lazily committed;
+  spawn-per-call, so concurrent host threads never serialize on a shared worker).
+- Guarantee: pathologically deep input (e.g. a ~400-level-nested expression) yields a clean
+  `E_PARSE_FAILURE` diagnostic — the host process is **never** aborted by a parser stack
+  overflow, in either build mode. A worker panic likewise maps to `E_PARSE_FAILURE`
+  (`generated <family> parser worker panicked while processing input`).
+- The regex family keeps its own, earlier-established defense (the RGX-0085 dedicated
+  64 MiB worker + `REGEX_MAX_NESTING_DEPTH` pre-parse ceiling) — unchanged by this contract
+  addition, preserving the regex performance floor.
 
 ## AST Dump Contract
 - AST dump options are provided by `AstDumpOptions`.

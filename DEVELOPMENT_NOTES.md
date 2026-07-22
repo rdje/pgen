@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0015 — a recursion ceiling is only as real as the stack under it: fix the BOUNDARY, not the loop
+
+**The lesson generalized from RGX-0085 held for the whole platform.** A clean in-engine
+recursion ceiling (4096 frames) is DECORATIVE unless every thread that runs a parse has real
+stack for 4096 frames — and the default 8 MB main stack doesn't (SV needs ≈8 MB release /
+≈70 MB debug). The fix locus that costs nothing is the ENTRY BOUNDARY: a dedicated 256 MiB
+thread (virtual reservation — RSS only grows with real use) at the embedding entries and a
+whole-main wrap for the CLI instruments. Zero code inside any parse loop, so the regex floor
+law is structurally out of reach of this change. Three implementation choices worth
+remembering: (1) **spawn-per-call beats a shared long-lived worker when parses are ms-scale**
+— thread setup (~50–100 µs) is noise, and a shared worker would SERIALIZE concurrent host
+threads (the regex family kept its long-lived worker because its parses are µs-scale — same
+law, opposite conclusion); (2) **wrap the whole CLI main, not per-parse call sites** — one
+spawn per process, every driver covered, and thread-local config (trace rules, dump paths)
+stays coherent because setup and parses share the one thread; (3) **a re-entrant-inline flag**
+(thread-local "already on a dedicated stack") makes nesting free and deadlock-impossible.
+Verification laws that paid off: the raw parallel runner output is completion-ORDERED (two
+runs differ at the row level) — determinism must be asserted on the SORTED verdict set / the
+adjudicator's sorted manifests, which came out byte-identical ×2; and a gitignored raw dump
+can be reconstructed losslessly from its tracked derived manifest, with the adjudicator
+re-deriving that manifest byte-exact as the soundness self-check (no 16k-file re-run needed).
+Honest residual: the ceiling's error is swallowed by backtracking — the surfaced message is
+the generic furthest-position rejection; naming the ceiling in the final diagnostic is engine
+error-priority work, a possible future polish slice. Also found while compiling (SEPARATE
+follow-up commit): `ebnf_dual_run_diff` no longer builds — the `-0212` `Span{u32,u32}`
+migration missed its `span_start/span_end: usize` report fields (the bin only compiles under
+`ebnf_dual_run` + `--bins`, so no battery caught it — its consumer gate evidently hasn't run
+since `-0212`).
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0014 — measure the crash class before fixing it: "debug-only" was wrong by a build mode
 
 **Re-measure the class boundary before designing the fix.** The `.8c.1` finding read as

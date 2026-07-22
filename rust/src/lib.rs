@@ -6,6 +6,11 @@
 pub mod ast_pipeline;
 pub mod ast_shape_contract;
 pub mod auto_return_annotation_shape_gate;
+/// `SV-CORPUS-GRAD.8c.3` — dedicated 256 MiB-stack execution for generated-parser entry
+/// boundaries, so the engine's 4096-frame recursion ceiling provably fires before the OS guard
+/// page in BOTH build modes (the PGEN-RGX-0085 "ceiling must bound the REAL stack" law,
+/// generalized parser-agnostically). See the module docs for the measured constants.
+pub mod dedicated_parse_stack;
 #[cfg(feature = "ebnf_dual_run")]
 pub mod ebnf_frontend;
 pub mod embedding_api;

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fdf99fa6.js";
+            window.path_to_searchindex_js = "searchindex-54bc6674.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -309,6 +309,16 @@ pub struct ParserEmbeddingApiContract {
 }
 <span class="boring">}</span></code></pre>
 <p>Embedders should check this at startup and refuse to operate (or fall back gracefully) if the SV backend is unavailable.</p>
+<h2 id="stack-robustness-embedding-api-131"><a class="header" href="#stack-robustness-embedding-api-131">Stack robustness (embedding API <code>1.3.1</code>)</a></h2>
+<p>Every SystemVerilog embedding parse runs its generated-parser work on a dedicated
+<strong>256 MiB-stack</strong> thread (one short-lived thread per call — concurrent host threads never
+serialize on a shared worker). This guarantees the engine’s 4096-frame recursion ceiling fires
+as a clean <code>E_PARSE_FAILURE</code> diagnostic before the OS guard page can abort the host process:
+measured pre-fix (<code>SV-CORPUS-GRAD.8c.3</code>, 2026-07-22), a ~400-deep parenthesized expression —
+≈4 KB of text — was enough to SIGABRT a release embedder at the default 8 MB main stack,
+because the ceiling needs ≈8 MB of real stack in release (≈70 MB in debug) to be reachable.
+A parser-worker panic likewise surfaces as <code>E_PARSE_FAILURE</code>, never a host abort. Host code
+needs no change; the guarantee holds on any caller thread, including small worker-pool stacks.</p>
 <h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
 <p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
 

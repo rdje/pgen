@@ -1,0 +1,18 @@
+PASS [debug/sv_2017] deep_parens_380 (observed) rc=1
+PASS [debug/sv_2017] deep_parens_500 (observed) rc=1
+PASS [debug/sv_2017] deep_parens_2000 (I2 ceiling reject) rc=1
+PASS [debug/sv_2017] br_gh330 (I3 real-corpus accept) rc=0
+PASS [debug/verilog_2005] deep_parens_380 (observed) rc=0
+PASS [debug/verilog_2005] deep_parens_500 (observed) rc=0
+PASS [debug/verilog_2005] deep_parens_2000 (I2 ceiling reject) rc=1
+PASS [debug/verilog_2005] br_gh330 (I3 real-corpus accept) rc=0
+PASS [release/sv_2017] deep_parens_380 (observed) rc=1
+PASS [release/sv_2017] deep_parens_500 (observed) rc=1
+PASS [release/sv_2017] deep_parens_2000 (I2 ceiling reject) rc=1
+PASS [release/sv_2017] br_gh330 (I3 real-corpus accept) rc=0
+PASS [release/verilog_2005] deep_parens_380 (observed) rc=0
+PASS [release/verilog_2005] deep_parens_500 (observed) rc=0
+PASS [release/verilog_2005] deep_parens_2000 (I2 ceiling reject) rc=1
+PASS [release/verilog_2005] br_gh330 (I3 real-corpus accept) rc=0
+---
+ORACLE: ALL PASS

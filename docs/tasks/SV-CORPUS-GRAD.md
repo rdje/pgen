@@ -467,7 +467,7 @@ coverage.
 
 ### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
 
-- **Status: `in_progress`** — `.8a` (vendoring + runner fold + answer keys +
+- **Status: `done`** — `.8a` (vendoring + runner fold + answer keys +
   fresh baseline) **done**; `.8b` (deep answer-key extraction: `.8b.1`
   mechanical lanes + `.8b.2` 42 named-residue pins + `.8b.3` 283 clustered
   CE stage pins) **done** — the sv_2017-lane answer keys are COMPLETE (all
@@ -476,7 +476,9 @@ coverage.
   **done**; `.8c.2` (176 vlg-CE stage pins + the 17 KNOWN_TEXT_BUGS
   re-adjudications ⇒ v2005 baseline honestly re-based 135 → 150, triage
   DRAINED 176 → 0 — the v2005-lane answer keys are COMPLETE) **done**;
-  `.8c.3` (the br_gh330 debug-stack engine follow-up) remains.
+  `.8c.3` (the recursion-ceiling-must-bound-the-real-stack engine fix:
+  the dedicated 256 MiB parse stack at the three integration/instrument
+  boundaries; the v2005 crash row → match, 150 → 149) **done**.
   Roster-v2 candidate logged: **slang embedded-unittest
   extraction** (thousands of SV snippets inside slang's C++ unit tests — the
   sharpest open conformance oracle; extraction tool + fragment entry-point
@@ -934,13 +936,82 @@ coverage.
   - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
     DEVELOPMENT_NOTES/LIVE this commit.
 
-##### `.8c.3` — the recursion ceiling must bound the REAL stack (measured; implementation todo)
+##### `.8c.3` — the recursion ceiling must bound the REAL stack (DONE)
 
-- **Status: `in_progress`** — measurement + design DONE
-  (`PGEN-SV-CORPUS-GRAD-0014`, session #195, read-only; evidence
+- **Status: `done`** — measurement + design (`PGEN-SV-CORPUS-GRAD-0014`,
+  session #195, read-only; evidence
   `docs/tasks/artifacts/sv_corpus_grad/8c3_stack_ceiling_measurement.md`);
-  the implementation is the next slice (fresh focused session — code +
-  probe rebuilds + crash-row re-adjudication + battery).
+  **implementation LANDED (`PGEN-SV-CORPUS-GRAD-0015`, session #196;
+  evidence `docs/tasks/artifacts/sv_corpus_grad/8c3_implementation_verification.md`
+  + `8c3_oracle_run.txt`)**.
+- **What landed (the banked design, executed exactly):** new shared module
+  `rust/src/dedicated_parse_stack.rs` (`DEDICATED_PARSE_STACK_BYTES =
+  256 MiB`; `run_on_dedicated_parse_stack` spawn-per-call + panic-capture +
+  re-entrant-inline; `run_cli_main_on_dedicated_parse_stack` CLI wrapper;
+  5 unit tests incl. a 32 MiB-deep recursion proof). Routed at exactly the
+  three designed boundaries: (1) embedding-API SV/VHDL family entries
+  (`embedding_api.rs` — worker panic → `E_PARSE_FAILURE`; spawn-per-call
+  preserves host parallelism, ~50–100 µs noise vs ms-scale HDL parses;
+  `EMBEDDING_API_VERSION` `1.3.0` → `1.3.1`); (2) `parseability_probe`
+  whole-main wrap; (3) `ast_pipeline` whole-main wrap (both binary
+  configs). **The regex path is byte-untouched** (keeps its RGX-0085
+  worker + nesting pre-check — zero perf-floor risk; no parse-loop code
+  changed anywhere; the shared 4096 ceiling constant untouched). +2
+  embedding regression-lock tests (deep-parens SV ×2 profiles, deep VHDL)
+  that run on 2 MiB libtest threads — they pass only if the routing is
+  real.
+- **ACCEPTANCE CHECKLIST (task-acceptance procedure):**
+  - [x] **ROOT CAUSE (WHY + WHERE)** — tool-pinned in the `-0014`
+    measurement slice (ulimit × build-mode × depth bisect matrix,
+    `8c3_stack_ceiling_measurement.md`): the 4096-frame ceiling
+    (`GENERATED_RECURSION_GUARD_MAX_DEPTH`,
+    `ast_based_generator.rs:31`) needs ≈8 MB (release, ≈2 KB/frame) /
+    ≈70 MB (debug, ≈17 KB/frame) of REAL stack for SV — more than the
+    8 MB default main stack — so the OS guard page fired first (rc 134
+    SIGABRT): deep-parens N=2000 crashed BOTH build modes; br_gh330.v
+    (real corpus) crashed debug = the v2005 lane's 1 `crash` row.
+  - [x] **ADDRESSED (verified, before → after on the symptom)** — the
+    16-cell oracle (`8c3_oracle_run.txt`, both modes × both profiles ×
+    {N=380, N=500, N=2000, br_gh330}): **ALL PASS — zero signal deaths**
+    (pre-fix rc 134 across the matrix); deep-parens N=2000 → clean rc 1
+    ceiling rejection in all 4 mode×profile cells (the rejection's
+    `furthest_position=702` ≈ 681 parens × ~6 frames/paren ≈ 4096 = the
+    ceiling's arithmetic signature; sv_2017 ≈11 frames/paren so its
+    boundary sits lower — profile-dependent BY DESIGN); **br_gh330.v
+    ACCEPTS rc 0 in all 4 cells** (pre-fix: debug crashed, so debug and
+    release now also AGREE cell-by-cell); embedding locks pass on 2 MiB
+    libtest threads. **The v2005 crash row re-adjudicated on measurement:
+    `crash`/`divergence:unexplained_crash` → `pass`/`match` — v2005
+    baseline 150 → 149 unexplained (135 rejects-valid / 14
+    accepts-invalid / 0 crash); characterization 2107 pass / 352 fail /
+    0 crash.**
+  - [x] **NO REGRESSION** — (a) the v2005 lane re-run ×2 + adjudication
+    ×2: `results_v2005` verdict-sets sorted-identical across runs, both
+    manifests BYTE-IDENTICAL across runs; exactly ONE row changed vs HEAD
+    (zero collateral). (b) The MAIN sv_2017 manifest + summary + lane
+    list re-derived BYTE-IDENTICAL (totals `5566/564/1435/8771`
+    unchanged; the gitignored `results.tsv` raw dump was reconstructed
+    losslessly from the tracked manifest, and the adjudicator re-running
+    the FULL key derivation over it reproducing the manifest byte-exact
+    is the soundness self-check). (c) Full guarded lib battery green
+    (1,020 passed / 0 failed / 29 ignored — the prior 1,013 + the 7 new
+    locks) + clippy source-strict PASS. (d) Zero hot-path/parse-loop code
+    touched; the regex family's code paths unmodified byte-for-byte
+    (routing helper is SV/VHDL-cfg-gated).
+  - [x] **LOCKSTEP** — embedding contract (`1.3.1` history + new
+    Stack-Robustness Contract section), SV + VHDL integration contracts,
+    platform book (embedding chapter §Stack robustness), SV + VHDL parser
+    books (public-api §Stack robustness), `RUST_CODEBASE_ANALYSIS.md`
+    architecture note, tree + TASK_TREE index + MEMORY/CHANGES/
+    DEVELOPMENT_NOTES this commit.
+- **Honest note (recorded, not hidden):** the over-deep rejection surfaces
+  as the generic `Parser did not consume full input …
+  furthest_position=…` message — `RecursionDepthExceeded` participates in
+  backtracking like any branch failure, so the FINAL surfaced error is
+  positional. The class fix is complete (bounded graceful rejection, never
+  a process abort); making the ceiling error surface preferentially is
+  engine error-priority work — possible future polish, deliberately out of
+  this boundary-locus slice.
 - **⭐⭐ MEASURED ESCALATION — the `.8c.1` "debug-build robustness" framing
   UNDERSTATED the class: the RELEASE build ALSO hard-aborts.** A ~400-deep
   parenthesized expression (≈4 KB of text) stack-overflows the release

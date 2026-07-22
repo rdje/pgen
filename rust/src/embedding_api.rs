@@ -26,7 +26,14 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// Compatibility policy:
 /// - major version changes signal breaking API/behavioral contract changes
 /// - minor/patch changes are backward compatible for existing callers
-pub const EMBEDDING_API_VERSION: &str = "1.3.0";
+///
+/// `1.3.1` (`SV-CORPUS-GRAD.8c.3`): SystemVerilog/VHDL grammar-family parses
+/// run on a dedicated 256 MiB-stack thread so over-deep recursion surfaces as
+/// a clean `E_PARSE_FAILURE` diagnostic (the engine's 4096-frame ceiling)
+/// instead of a host-process stack-overflow SIGABRT. Backward compatible; the
+/// regex path is unchanged (it keeps its own RGX-0085 worker + nesting
+/// pre-check).
+pub const EMBEDDING_API_VERSION: &str = "1.3.1";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
@@ -1415,6 +1422,45 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
     }
 }
 
+// `SV-CORPUS-GRAD.8c.3` — every SystemVerilog/VHDL embedding entry runs its
+// generated-parser work on a dedicated 256 MiB-stack thread
+// (`crate::dedicated_parse_stack`), so the engine's 4096-frame recursion
+// ceiling fires as a clean `E_PARSE_FAILURE` diagnostic before the OS guard
+// page can SIGABRT the HOST process (measured: a ~400-deep parenthesized SV
+// expression — ≈4 KB of text — hard-aborted a release embedder at the default
+// 8 MB main stack; the ceiling needs ≈8 MB release / ≈70 MB debug of real
+// stack). Spawn-per-call (~50–100 µs) is noise against ms-scale HDL file
+// parses and preserves host-side parallelism. A worker panic maps to a
+// structured diagnostic — an embedding boundary must never abort the host
+// (the same contract the regex RGX-0085 worker established; the regex path
+// keeps its own worker + nesting pre-check, untouched).
+#[cfg(all(
+    feature = "generated_parsers",
+    any(has_generated_systemverilog_parser, has_generated_vhdl_parser)
+))]
+fn run_generated_family_on_dedicated_stack<T, F>(
+    family_label: &'static str,
+    f: F,
+) -> Result<T, ParseDiagnostic>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, ParseDiagnostic> + Send + 'static,
+{
+    use crate::dedicated_parse_stack::{DedicatedParseStackError, run_on_dedicated_parse_stack};
+    let thread_name = format!("pgen-generated-{}", family_label);
+    match run_on_dedicated_parse_stack(&thread_name, f) {
+        Ok(result) => result,
+        Err(DedicatedParseStackError::Panic(_)) => Err(parse_failure_diagnostic(format!(
+            "generated {} parser worker panicked while processing input",
+            family_label
+        ))),
+        Err(DedicatedParseStackError::Spawn(err)) => Err(parse_failure_diagnostic(format!(
+            "failed to spawn generated {} parser worker thread: {}",
+            family_label, err
+        ))),
+    }
+}
+
 fn parse_generated_systemverilog(
     input: &str,
     grammar_profile: Option<&str>,
@@ -1422,17 +1468,23 @@ fn parse_generated_systemverilog(
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     {
         use crate::generated_parsers::systemverilog::SystemverilogParser;
-        let node_arena = crate::ast_pipeline::NodeArena::new();
-        let mut parser = SystemverilogParser::new(
-            input,
-            &node_arena,
-            crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
-        );
-        parser.set_grammar_profile(grammar_profile);
-        return parser
-            .parse_full_systemverilog_file()
-            .map(|_| ())
-            .map_err(|err| generated_parse_failure_diagnostic("systemverilog", input, err));
+        let owned_input = input.to_string();
+        let owned_profile = grammar_profile.map(|p| p.to_string());
+        return run_generated_family_on_dedicated_stack("systemverilog", move || {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = SystemverilogParser::new(
+                &owned_input,
+                &node_arena,
+                crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
+            );
+            parser.set_grammar_profile(owned_profile.as_deref());
+            parser
+                .parse_full_systemverilog_file()
+                .map(|_| ())
+                .map_err(|err| {
+                    generated_parse_failure_diagnostic("systemverilog", &owned_input, err)
+                })
+        });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     {
@@ -1450,21 +1502,25 @@ fn parse_generated_systemverilog_ast_json(
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     {
         use crate::generated_parsers::systemverilog::SystemverilogParser;
-        let node_arena = crate::ast_pipeline::NodeArena::new();
-        let mut parser = SystemverilogParser::new(
-            input,
-            &node_arena,
-            crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
-        );
-        parser.set_grammar_profile(grammar_profile);
-        let parsed = parser
-            .parse_full_systemverilog_file()
-            .map_err(|err| generated_parse_failure_diagnostic("systemverilog", input, err))?;
-        return serde_json::to_value(parsed).map_err(|err| {
-            parse_failure_diagnostic(format!(
-                "generated systemverilog AST serialization failed: {}",
-                err
-            ))
+        let owned_input = input.to_string();
+        let owned_profile = grammar_profile.map(|p| p.to_string());
+        return run_generated_family_on_dedicated_stack("systemverilog", move || {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = SystemverilogParser::new(
+                &owned_input,
+                &node_arena,
+                crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
+            );
+            parser.set_grammar_profile(owned_profile.as_deref());
+            let parsed = parser.parse_full_systemverilog_file().map_err(|err| {
+                generated_parse_failure_diagnostic("systemverilog", &owned_input, err)
+            })?;
+            serde_json::to_value(parsed).map_err(|err| {
+                parse_failure_diagnostic(format!(
+                    "generated systemverilog AST serialization failed: {}",
+                    err
+                ))
+            })
         });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
@@ -1480,16 +1536,19 @@ fn parse_generated_vhdl(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     {
         use crate::generated_parsers::vhdl::VhdlParser;
-        let node_arena = crate::ast_pipeline::NodeArena::new();
-        let mut parser = VhdlParser::new(
-            input,
-            &node_arena,
-            crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
-        );
-        return parser
-            .parse_full_vhdl_file()
-            .map(|_| ())
-            .map_err(|err| generated_parse_failure_diagnostic("vhdl", input, err));
+        let owned_input = input.to_string();
+        return run_generated_family_on_dedicated_stack("vhdl", move || {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = VhdlParser::new(
+                &owned_input,
+                &node_arena,
+                crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
+            );
+            parser
+                .parse_full_vhdl_file()
+                .map(|_| ())
+                .map_err(|err| generated_parse_failure_diagnostic("vhdl", &owned_input, err))
+        });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
     {
@@ -1504,17 +1563,20 @@ fn parse_generated_vhdl_ast_json(input: &str) -> Result<JsonValue, ParseDiagnost
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     {
         use crate::generated_parsers::vhdl::VhdlParser;
-        let node_arena = crate::ast_pipeline::NodeArena::new();
-        let mut parser = VhdlParser::new(
-            input,
-            &node_arena,
-            crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
-        );
-        let parsed = parser
-            .parse_full_vhdl_file()
-            .map_err(|err| generated_parse_failure_diagnostic("vhdl", input, err))?;
-        return serde_json::to_value(parsed).map_err(|err| {
-            parse_failure_diagnostic(format!("generated vhdl AST serialization failed: {}", err))
+        let owned_input = input.to_string();
+        return run_generated_family_on_dedicated_stack("vhdl", move || {
+            let node_arena = crate::ast_pipeline::NodeArena::new();
+            let mut parser = VhdlParser::new(
+                &owned_input,
+                &node_arena,
+                crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
+            );
+            let parsed = parser
+                .parse_full_vhdl_file()
+                .map_err(|err| generated_parse_failure_diagnostic("vhdl", &owned_input, err))?;
+            serde_json::to_value(parsed).map_err(|err| {
+                parse_failure_diagnostic(format!("generated vhdl AST serialization failed: {}", err))
+            })
         });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
@@ -3234,6 +3296,68 @@ mod tests {
         );
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
+    }
+
+    // `SV-CORPUS-GRAD.8c.3` regression locks — the recursion ceiling must
+    // bound the REAL stack. These run on a libtest worker thread (2 MiB
+    // stack, far below the ≈70 MB the debug-mode ceiling needs), so they
+    // pass ONLY if the embedding entry really routes the parse to the
+    // dedicated 256 MiB-stack thread: over-deep input must come back as a
+    // clean E_PARSE_FAILURE diagnostic — never a stack-overflow SIGABRT of
+    // the host process. Pre-fix, the measured synthetic below hard-aborted
+    // even a RELEASE process at the default 8 MB main stack.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn parser_embedding_systemverilog_deep_nesting_yields_clean_diagnostic_not_process_abort() {
+        // The `.8c.3` measured worst case: N nested parens each re-enter the
+        // full expression cascade (~10–11 logical frames per level), so
+        // N=2000 crosses the 4096-frame ceiling with certainty in both
+        // build modes.
+        let deep_expr = format!(
+            "module m; assign x = {}1{}; endmodule",
+            "(".repeat(2000),
+            ")".repeat(2000)
+        );
+        for profile in [GrammarProfile::Sv2017, GrammarProfile::Verilog2005] {
+            let outcome =
+                parse_grammar_profile(GrammarFamily::SystemVerilog, profile, &deep_expr);
+            assert_eq!(
+                outcome.status,
+                ParseStatus::Failure,
+                "over-deep nesting must be rejected, not accepted ({:?})",
+                profile
+            );
+            let diagnostic = outcome
+                .diagnostic
+                .expect("over-deep nesting must carry a diagnostic");
+            assert_eq!(
+                diagnostic.code, "E_PARSE_FAILURE",
+                "over-deep nesting must surface as a clean parse failure ({:?}): {}",
+                profile, diagnostic.message
+            );
+        }
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
+    #[test]
+    fn parser_embedding_vhdl_deep_nesting_yields_clean_diagnostic_not_process_abort() {
+        let deep_expr = format!(
+            "entity e is end entity; architecture a of e is begin s <= {}1{}; end architecture;",
+            "(".repeat(2000),
+            ")".repeat(2000)
+        );
+        let outcome =
+            parse_grammar_profile(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, &deep_expr);
+        if let Some(diagnostic) = outcome.diagnostic.as_ref() {
+            assert_eq!(
+                diagnostic.code, "E_PARSE_FAILURE",
+                "over-deep nesting must surface as a clean parse failure: {}",
+                diagnostic.message
+            );
+        }
+        // Reaching here at all is the real lock: the parse ran to a
+        // structured verdict on a 2 MiB test thread instead of aborting the
+        // process with a stack-overflow SIGABRT.
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]

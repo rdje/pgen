@@ -822,6 +822,21 @@ struct FuzzCorpusCandidate {
 }
 
 fn main() -> Result<()> {
+    // `SV-CORPUS-GRAD.8c.3` — run the ENTIRE pipeline body on a dedicated
+    // 256 MiB-stack thread so every driver (parse, AST dump, cert coverage,
+    // stimuli replay) gives the generated parsers' 4096-frame recursion
+    // ceiling enough real stack to fire (clean diagnostic) before the OS
+    // guard page can SIGABRT the process. Measured: the ceiling needs ≈8 MB
+    // release / ≈70 MB debug for SV, vs the 8 MB default main stack.
+    // Wrapping the whole body keeps thread-local trace/dump configuration
+    // and the parses on the same thread.
+    pgen::dedicated_parse_stack::run_cli_main_on_dedicated_parse_stack(
+        "pgen-ast-pipeline",
+        pipeline_main,
+    )
+}
+
+fn pipeline_main() -> Result<()> {
     // PARSE-HARNESS.10 feature-surface tripwire: report the compile-time feature surface and exit.
     // Handled BEFORE clap so the probe needs no input file and answers identically in EVERY feature
     // configuration — a binary that cannot answer it is, by definition, a pre-tripwire vintage. The

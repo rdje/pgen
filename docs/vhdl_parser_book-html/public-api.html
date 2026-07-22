@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-39c90b88.js";
+            window.path_to_searchindex_js = "searchindex-6d41594d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -325,6 +325,16 @@ pub struct ParserEmbeddingApiContract {
 }
 <span class="boring">}</span></code></pre>
 <p>Embedders should check this at startup and refuse to operate (or fall back gracefully) if the VHDL backend is unavailable.</p>
+<h2 id="stack-robustness-embedding-api-131"><a class="header" href="#stack-robustness-embedding-api-131">Stack robustness (embedding API <code>1.3.1</code>)</a></h2>
+<p>Every VHDL embedding parse runs its generated-parser work on a dedicated <strong>256 MiB-stack</strong>
+thread (one short-lived thread per call — concurrent host threads never serialize on a shared
+worker). This guarantees the engine’s 4096-frame recursion ceiling fires as a clean
+<code>E_PARSE_FAILURE</code> diagnostic before the OS guard page can abort the host process — over-deep
+nesting is a structured rejection, never a stack-overflow SIGABRT of the embedder, in both
+build modes (<code>SV-CORPUS-GRAD.8c.3</code>, 2026-07-22; the class was measured on the SystemVerilog
+family and the fix is parser-agnostic at the embedding boundary). A parser-worker panic
+likewise surfaces as <code>E_PARSE_FAILURE</code>, never a host abort. Host code needs no change; the
+guarantee holds on any caller thread, including small worker-pool stacks.</p>
 <h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
 <p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
 

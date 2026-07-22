@@ -1,6 +1,24 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-07-15
+Last updated: 2026-07-22
+
+## Recent Architecture Change Note (2026-07-22) — the dedicated 256 MiB parse stack (`SV-CORPUS-GRAD.8c.3`)
+
+**New module `rust/src/dedicated_parse_stack.rs` — big-stack execution for generated-parser
+entry boundaries.** The generated parsers' 4096-frame recursion ceiling only protects the
+process when the calling thread has real stack for 4096 frames (measured for SV: ≈2 KB/frame
+release / ≈17 KB/frame debug ⇒ ≈8 MB / ≈70 MB needed, vs the 8 MB default main stack — a
+~400-deep parenthesized SV expression SIGABRTed a release process pre-fix). The module offers
+`run_on_dedicated_parse_stack` (spawn-per-call, panic captured, re-entrant calls run inline
+via a thread-local flag) and the CLI wrapper `run_cli_main_on_dedicated_parse_stack`
+(panic `resume_unwind`). Three boundary loci route through it: the embedding-API SV/VHDL
+family entries in `embedding_api.rs` (worker panic → `E_PARSE_FAILURE`; embedding API
+`1.3.0` → `1.3.1`), and the whole `main` bodies of `parseability_probe` and `ast_pipeline`
+(thread-local trace/dump config stays coherent because setup + parses share the one thread).
+Integration seams to know: the REGEX embedding path is deliberately untouched (it keeps its
+own RGX-0085 64 MiB worker + nesting pre-check — the perf-floor law); nothing inside any
+parse loop changed; the shared ceiling constant is untouched; new engine-level code is
+thread-plumbing only.
 
 ## Recent Architecture Change Note (2026-07-15, second)
 

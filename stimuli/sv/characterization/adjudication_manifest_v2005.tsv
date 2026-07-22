@@ -611,7 +611,7 @@ iverilog	ivtest/ivltests/br_gh316a.v	pass	must_accept	match	ivtest: regress-vlg.
 iverilog	ivtest/ivltests/br_gh316b.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh316c.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh33.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/br_gh330.v	crash	must_accept	divergence:unexplained_crash	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/br_gh330.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh345.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh356a.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh356b.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005

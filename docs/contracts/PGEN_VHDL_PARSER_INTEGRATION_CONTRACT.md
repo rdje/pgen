@@ -12,6 +12,7 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
   - `1.0.4`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
+  - `1.3.1` (`SV-CORPUS-GRAD.8c.3`, 2026-07-22, backward-compatible stack-robustness fix): every VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic (the engine's 4096-frame recursion ceiling) instead of aborting the host process with a stack-overflow SIGABRT. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.
 - VHDL AST-dump schema version:
   - `3` (unchanged by release `1.0.4` — acceptance widening only; the last shape change is the `1.0.3` AST-Shape Corrections batch)
 - Last updated:

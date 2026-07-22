@@ -141,6 +141,18 @@ pub struct ParserEmbeddingApiContract {
 
 Embedders should check this at startup and refuse to operate (or fall back gracefully) if the SV backend is unavailable.
 
+## Stack robustness (embedding API `1.3.1`)
+
+Every SystemVerilog embedding parse runs its generated-parser work on a dedicated
+**256 MiB-stack** thread (one short-lived thread per call — concurrent host threads never
+serialize on a shared worker). This guarantees the engine's 4096-frame recursion ceiling fires
+as a clean `E_PARSE_FAILURE` diagnostic before the OS guard page can abort the host process:
+measured pre-fix (`SV-CORPUS-GRAD.8c.3`, 2026-07-22), a ~400-deep parenthesized expression —
+≈4 KB of text — was enough to SIGABRT a release embedder at the default 8 MB main stack,
+because the ceiling needs ≈8 MB of real stack in release (≈70 MB in debug) to be reachable.
+A parser-worker panic likewise surfaces as `E_PARSE_FAILURE`, never a host abort. Host code
+needs no change; the guarantee holds on any caller thread, including small worker-pool stacks.
+
 ## Source pointer
 
 The authoritative source for the public API is `rust/src/embedding_api.rs`. The contract document `rust/docs/EMBEDDING_API_CONTRACT.md` describes the stability policy in full.
