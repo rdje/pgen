@@ -71,6 +71,19 @@ deterministic **graduation gate** wired into the SV family-status `Done`
 computation as its 8th criterion. Exclusions named, justified, tracked; never
 gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
 
+**⛔ AMENDED (director 2026-07-22 session #191, ×2 escalating —
+[[project_sv_corpus_100pct_lrm_coverage_mandate]]): the bar gains a COVERAGE
+axis.** The corpus itself must be proven **top of class**: it must exercise
+**100% of the SV LRMs' parseable surface** (1800-2017/2023 + 1364-2005 for
+`verilog_2005`), MEASURED — per-profile grammar-rule participation union over
+the whole corpus (uncovered rule = corpus gap) + the clause matrix from the
+keyed suites + keyed NEGATIVES where the LRM defines illegality;
+N/A-with-cause only for clauses with no parse surface (the ratified
+principle). Acquisition of the required corpora is a FIRST-CLASS immediate
+leaf (the director's order overrides the earlier burn-down-first sequencing).
+Graduation (`.5`) = zero unexplained divergences **AND** 100% measured
+coverage.
+
 ## Ground rules
 
 - **Characterize FIRST, fix SECOND**: measurement passes never masquerade as
@@ -194,6 +207,19 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
 
 ### `.3` — Defect burn-down (umbrella; one leaf per defect class)
 
+- **Status (umbrella): `in_progress`** — worklist after `.3.1`: **279
+  unexplained divergences** (273 rejects-valid + 6 accepts-invalid; the
+  manifest is the per-row worklist, the `.3.0` family table the leaf-cutting
+  map — F1 CLEARED by `.3.1`). Suite split: verilator 220, sv-tests 39
+  (generic 11, chapter-5/lexical 9 — incl. the probe-verified
+  underscore/spaced-literal gap — chapter-7 4, chapter-6 4, chapter-16/SVA 4,
+  chapter-18 3, chapter-11 2, chapter-8 1, chapter-12 1), verible 13,
+  slang 1, + the 6 named accepts-invalid rows (verilator-strictness
+  adjudication candidates). Next family candidates: F2 SVA tails / F3
+  constraint-randomize / F5 in-scope directives — but corpus ACQUISITION
+  (`.8`) outranks further burn-down per the director's 2026-07-22 order
+  ([[project_sv_corpus_100pct_lrm_coverage_mandate]]).
+
 #### `.3.0` — Stuck-point clustering over the rejects-valid population (read-only diagnosis)
 
 - **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0005`, session #191, 2026-07-22).
@@ -249,7 +275,78 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
   - [x] **LOCKSTEP** — tree/TASK_TREE/MEMORY/CHANGES/LIVE updated to 321 this
     commit.
 
-- **Status (umbrella): `todo`** — SCOPED: **321 unexplained divergences** to
+#### `.3.1` — F1: `interface class` unreachable under `sv_2017` (LRM 8.26 profile-gating defect)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0006`, session #191, 2026-07-22;
+  release `1.0.167` → **`1.0.168`**, schema `16` unchanged, ledger
+  **`SV-0038`**).
+- **REPRODUCE:** minimal `interface class Bar;\nendclass` rejects at
+  `--profile sv_2017` (furthest_position 9 = at `class`); the same input
+  parses **exit 0** at `--profile sv_2023`.
+- **ROOT CAUSE (WHY+WHERE, tool-backed):** the three
+  `interface_class_declaration` consumer wirings live ONLY in the sv_2023
+  variant rules — `class_item_sv_2023`, `anonymous_program_item_sv_2023`,
+  `package_or_generate_item_declaration_sv_2023` — while the `_sv_2017`
+  twins omit the branch (`grammars/systemverilog.ebnf` ~:1049 / ~:552 /
+  :3841). Scoped `--trace-rules interface_class_declaration` shows the rule
+  is NEVER ENTERED under sv_2017 (no call-tree lines). But interface classes
+  are IEEE **1800-2017** §8.26 (`interface_class_declaration ::=` present in
+  `docs/systemverilog/2017/md/section-8-classes.md`); the declaration rule
+  itself (:2634) and the `implements` clause in `class_declaration_sv_2017`
+  (:1027) were already profile-correct — only the consumer wirings were
+  mis-gated 2023-only (the 2017 `grammar_clean.ebnf` extraction lacks the
+  production, the likely mis-gating origin).
+- **FIX (hierarchy level 1 — pure grammar, LANDED):** the
+  `interface_class_declaration` branch mirrored from each sv_2023 twin into
+  the three sv_2017 variants (`grammars/systemverilog.ebnf` :554/:1054/:3853);
+  canonical regen `make -C rust focus_systemverilog` (65 s, guarded, parser
+  mtime > grammar mtime asserted). Zero new rules — census 1,466 unchanged.
+- **VERIFIED (measured GLOBALLY, full battery green):**
+  - Repro matrix: minimal + sv-tests `class_test_28` REJECT→ACCEPT under
+    `sv_2017`; both still ACCEPT under `sv_2023`; sanity module unchanged.
+  - **Full external corpus 5,128: pass 3,049 → 3,091 (+42, 59.5% → 60.3%),
+    ZERO per-suite regressions** (sv-tests 805→832, verilator 1,996→2,011;
+    VeeR/friscv/scr1/slang/verible byte-identical). Adjudication baseline
+    **321 → 279 unexplained** (rejects-valid 315→273; sv-tests chapter-8
+    18→1). Residual adjacent rows deliberately NOT claimed (named in `.3.0`
+    artifacts): illegal interface-class contents `_bad` tests + the
+    store-gated `implements <type_parameter>` head.
+  - `sv_stimuli_quality_gate` PASS (exit 0, peak 11,967 MB / 1,760 s guarded;
+    `closed_loop_replay_targets_total` **120 UNCHANGED** — no replay-debt
+    growth from the new branches).
+  - `sv_cert_recognized_union_gate` GREEN on an evidence-grounded
+    re-baseline: the fix converts **4 unreachability proofs → genuine
+    witnesses** (canonical `1343/10/1322/11` → `1343/6/1326/11`; union
+    witness `1333→1337`; UNKNOWN unchanged 11/0; residual `[]`;
+    count-conserving ±4; deterministic seeds 0/7/42; spf=0; solo-canonical
+    agrees `1343/17/1326/0`). Contract re-baselined same-slice with a full
+    rebaseline_note (`systemverilog_recognized_cert_union_contract.json`).
+  - `verilog_2005_conformance_gate` GREEN byte-inert (orphans 0, matrix
+    240/0, cert `1115/328/773/14` byte-identical seeds 0/7/42) — the
+    `@profiles`-gated edit provably does not touch the v2005 profile.
+  - `ast_shape_contract_gate` PASS; `sv_external_corpus_triage_gate` PASS;
+    `--lint-grammar` clean (1,466 rules, all error classes 0,
+    profile_orphans 0).
+  - `clippy_on_rust_change` completed (grammar-only change — no Rust source
+    delta; the regenerated parser is the untracked emit); dual-feature lib
+    tests **1013 passed / 0 failed / 29 ignored** — byte-equal to the banked
+    #189 baseline count.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — minimal 2-line repro + the F1 cluster (~47
+    corpus rows) rejected under `sv_2017`, furthest_position at `class`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — tool-backed (scoped `--trace-rules`:
+    rule never entered; sv_2023 exit-0 control; LRM §8.26 grounding): the
+    three consumer wirings were profile-gated `sv_2023`-only; WHERE =
+    `grammars/systemverilog.ebnf` sv_2017 variant rules.
+  - [x] **FIX** — hierarchy level 1 (pure grammar), three mirrored branches.
+  - [x] **ADDRESSED (verified)** — before→after measured globally: corpus
+    +42 / baseline 321→279 / repro matrix flips; full gate battery green.
+  - [x] **NO REGRESSION** — zero per-suite corpus regressions; sv_2023 and
+    verilog_2005 byte-inert; replay-debt total unchanged; UNKNOWN counts
+    unchanged; quality/shape/triage/conformance gates green.
+  - [x] **LOCKSTEP** — ledger `SV-0038` + contract `1.0.168` highlights +
+    identity + SV book changelog-index + tree/TASK_TREE/MEMORY/CHANGES/LIVE
+    this commit.
   burn down (315 rejects-valid + 6 accepts-invalid; the manifest is the
   per-row worklist, the `.3.0` family table above is the leaf-cutting map:
   F1 interface-class ~47 first). Suite split: verilator 235, sv-tests 66
@@ -283,6 +380,55 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
   top-level book corpus chapter; the SV row flips `Done` ONLY when axis 1
   (`SV-REPLAY-DEBT`) and axis 2 (this tree) are both green.
 
+### `.7` — The LRM-coverage instrument (measured corpus sufficiency)
+
+- **Status: `todo`** (mandated by
+  [[project_sv_corpus_100pct_lrm_coverage_mandate]]) — parse the ENTIRE
+  vendored corpus with per-rule participation recording (the generated
+  parser's transactional coverage testimony), union fired-rule sets per
+  profile, diff against the grammar's full rule inventory → the
+  uncovered-rule report = the measured corpus gap list (the grammar is the
+  faithful image of LRM Annex A, so rule coverage IS clause coverage on the
+  syntax surface). Plus the clause matrix from the keyed suites (sv-tests
+  `:tags:`, ispras dirs, ivtest keys) and a negatives-density report.
+  Deterministic, diffable, standing.
+
+### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
+
+- **Status: `todo`** — vendor the frozen-roster ADD-v1 tier (pinned sparse
+  submodules per the `EXTERNAL-CORPUS.3.1` pattern; licenses flagged in
+  PROVENANCE): **ispras/sv-tests** (~904 LRM-clause-keyed POS/NEG/VARYING),
+  **ivtest `regress-sv.list`** (922 keyed CE/EF/gold — the keyed-negatives
+  axis), **sv2v** (paired goldens + `error/`), **Surelog** tests,
+  **OpenTitan + black-parrot** (UVM-scale + macro stress); fold the
+  already-vendored **uvm-core** into the bulk runner universe. Extend the
+  adjudicator with each suite's answer key. Roster-v2 candidate logged:
+  **slang embedded-unittest extraction** (thousands of SV snippets inside
+  slang's C++ unit tests — the sharpest open conformance oracle; extraction
+  tool + fragment entry-point mapping required).
+
+### `.9` — Gap-driven acquisition/crafting loop to 100%
+
+- **Status: `todo`** — every `.7`-reported uncovered rule/clause gets a
+  corpus case: sourced from the ADD tiers, or crafted directly from the
+  in-repo LRM markdown (`docs/systemverilog/2017`/`2023`) with the clause
+  cited (externally-grounded, never generator-derived — external means
+  externally authored). Loop until 100% of the parseable surface is
+  exercised or N/A-with-cause. Feeds `.5`'s widened criterion.
+
+## Corpus-sufficiency assessment (banked 2026-07-22, session #191 — the no-BS baseline behind the mandate)
+
+- Stressed well today: LRM-clause breadth (sv-tests), 30 years of real-world
+  regression mess (verilator).
+- Measured gaps: (1) no verification-class (UVM-scale) code in the bulk run
+  (uvm-core vendored but outside `subs/`); (2) parse-level `must_reject`
+  population ≈50 rows, accepts-invalid candidates just 6 — the negative axis
+  is the thinnest; (3) ~38% of the vendored corpus (1,102 explained + 866
+  deferred rows) exercises nothing until `.4` chaining + svpp expansion land
+  — the biggest untapped stress reserve is already on disk; (4) slang/verible
+  vendored slices are crumbs of their real (embedded) test surfaces; (5) no
+  very-large-file / fuzzer-shaped population (1 timeout case total).
+
 ## Acceptance Criteria (tree)
 
 1. Fresh characterization at HEAD vintage + a complete adjudication manifest:
@@ -293,3 +439,8 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
    wired into the SV family-status `Done` computation.
 4. Full lockstep (books/LIVE/contract) and every landing leaf through the
    TOOLBOX acceptance checklist.
+5. **(Amended 2026-07-22)** The corpus itself is proven **top of class**:
+   the `.7` instrument reports **100% measured coverage of the parseable
+   grammar surface per profile** (uncovered rules/clauses = 0 or
+   N/A-with-cause), with keyed negatives present wherever the LRM defines
+   parse-level illegality — the ADD-v1 suites vendored and adjudicated.

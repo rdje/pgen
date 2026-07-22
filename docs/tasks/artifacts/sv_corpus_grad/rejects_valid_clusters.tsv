@@ -27,35 +27,8 @@ sv-tests	tests/chapter-7/queues/delete_assign.sv	388	538	] ; /	q = q[1:$]; // q.
 sv-tests	tests/chapter-7/queues/insert_assign.sv	388	474	] } ;	q = { q[0:1], 10, q[2:$] }; // q.insert(2, 10)
 sv-tests	tests/chapter-7/queues/pop_back_assing.sv	392	479	- NUM ]	q = q[0:$-1]; // void'(q.pop_back()) or q.delete(q.size-1)
 sv-tests	tests/chapter-7/queues/pop_front_assign.sv	394	514	] ; ID	q = q[1:$];
-sv-tests	tests/chapter-8/8.26.2--implements.sv	335	371	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.2--implements_extends.sv	357	393	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.2--implements_multiple.sv	359	395	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.3--type_access_extends.sv	346	382	ID ; typedef	interface class ihello;
-sv-tests	tests/chapter-8/8.26.3--type_access_implements.sv	420	456	ID ; typedef	interface class ihello;
-sv-tests	tests/chapter-8/8.26.3--type_access_implements_invalid.sv	469	505	ID ; typedef	interface class ihello;
-sv-tests	tests/chapter-8/8.26.4--illegal_forward_def_implements.sv	511	724	ID ; typedef	interface class ihello;
-sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	529	565	ID ; typedef	interface class ihello;
-sv-tests	tests/chapter-8/8.26.5--cast_between_interface_classes.sv	399	435	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.5--implemented_class_handle.sv	414	450	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.5--invalid_interface_instantiation.sv	442	478	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.6.1--name_conflict_resolved.sv	409	445	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.6.1--name_conflict_unresolved.sv	475	511	ID ; pure	interface class ihello;
-sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict.sv	373	409	ID # (	interface class ic1#(type T = logic);
-sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict_unresolved.sv	503	539	ID # (	interface class ic1#(type T = logic);
-sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship.sv	385	421	ID ; pure	interface class ibase;
-sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship_parametrized.sv	552	588	ID # (	interface class ibase#(type T = logic);
-sv-tests	tests/chapter-8/8.26.7--partial_implementation.sv	380	416	ID ; pure	interface class ihello;
-sv-tests	tests/generic/class/class_test_25.sv	301	317	interface class ID	package Package;
-sv-tests	tests/generic/class/class_test_26.sv	301	310	class ID #	interface class Bar #(parameter N); endclass
-sv-tests	tests/generic/class/class_test_27.sv	302	318	interface class ID	package Package;
-sv-tests	tests/generic/class/class_test_28.sv	323	332	class ID ;	interface class Bar; endclass
-sv-tests	tests/generic/class/class_test_29.sv	302	314	interface class ID	package Pkg;
+sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	529	697	; virtual function	class Hello #(type T = ihello) implements T;
 sv-tests	tests/generic/class/class_test_48.sv	301	324	` ID ID	class pp_as_class_item;
-sv-tests	tests/generic/iface/iface_class_test_0.sv	306	315	class ID ;	interface class base_ic;
-sv-tests	tests/generic/iface/iface_class_test_1.sv	306	315	class ID ;	interface class base_ic;
-sv-tests	tests/generic/iface/iface_class_test_10.sv	307	316	class ID ;	interface class base_ic;
-sv-tests	tests/generic/iface/iface_class_test_2.sv	306	315	class ID #	interface class base_ic #(int N = 8, type T = string);
-sv-tests	tests/generic/iface/iface_class_test_9.sv	329	338	class ID ;	interface class base_ic;
 sv-tests	tests/generic/number/number_test_11.sv	311	332	' ID ID	parameter int foo = 1 'b x;
 sv-tests	tests/generic/number/number_test_25.sv	311	332	ID NUM ;	parameter int foo = 'd 0;
 sv-tests	tests/generic/number/number_test_28.sv	311	333	' ID NUM	parameter int foo = 32 'd 1;
@@ -84,7 +57,6 @@ verilator	test_regress/t/t_assert_clock_event_unsup.v	202	428	> ID ==	@(posedge 
 verilator	test_regress/t/t_assert_consec_rep_bad.v	200	323	| -> NUM	assert property (@(posedge clk) a [*n] |-> 1);
 verilator	test_regress/t/t_assert_consec_rep_unroll_limit_bad.v	200	436	| -> ID	assert property (@(posedge clk) a [* 25700000] |-> b);
 verilator	test_regress/t/t_assert_consec_rep_unsup.v	200	372	| -> ID	assert property (@(posedge clk) (a ##1 b) [* 2] |-> a);
-verilator	test_regress/t/t_assert_ctl_immediate.v	2370	2379	class ID ;	interface class IAssertCtl;
 verilator	test_regress/t/t_assert_disable_bad.v	202	451	> ID ==	@(posedge clk) disable iff (cyc == 0) cyc % 2 == cyc_mod_2 |=> val == expected;
 verilator	test_regress/t/t_assert_imm_nz_bad.v	202	242	; ID :	input clk;
 verilator	test_regress/t/t_assert_past.v	202	544	> ID (	assert property (@(posedge clk) cyc % 2 == 0 |=> $past(val) == 0)
@@ -97,19 +69,14 @@ verilator	test_regress/t/t_assert_rep_range_zero_min_unsup.v	456	547	> ID [	@(po
 verilator	test_regress/t/t_assign_automatic_bad.v	616	2126	. ID <=	].s_dyn <= '1;  // OK: direct nonblocking assignment to dynamically-sized array
 verilator	test_regress/t/t_case_inside_bad.v	203	252	default : ID	casex (1'bx) inside
 verilator	test_regress/t/t_cast.v	332	585	{ ID =	typedef enum [15:0] {
-verilator	test_regress/t/t_class_diamond.v	203	238	ID ; pure	interface class Ibase;
 verilator	test_regress/t/t_class_extends_bad.v	249	272	, ID ;	class Cls extends Base1, Base2;
-verilator	test_regress/t/t_class_extends_colon.v	203	212	class ID ;	interface class Icempty;
 verilator	test_regress/t/t_class_extends_default.v	295	327	) ; /	class Cls1 extends Base1(default);
 verilator	test_regress/t/t_class_extends_nf_bad.v	278	306	; / /	class Cls extends IsNotFound;  // BAD: not found
 verilator	test_regress/t/t_class_extends_pkg_bad.v	227	413	; endclass ID	class bar extends pkg;
 verilator	test_regress/t/t_class_extern.v	203	358	( ID )	extern function ext_f_imp(in);
-verilator	test_regress/t/t_class_imp2.v	203	231	ID ; pure	interface class Courier;
 verilator	test_regress/t/t_class_new_default.v	204	249	default ) ;	function new(default);
-verilator	test_regress/t/t_class_new_this.v	200	209	class ID ;	interface class ICls;
 verilator	test_regress/t/t_class_override.v	395	978	: initial int	function :initial int get_i; return 1; endfunction
 verilator	test_regress/t/t_class_override_bad.v	418	819	: extends int	function :extends int get_e; return 1; endfunction  // Bad
-verilator	test_regress/t/t_class_param_override_local_bad.v	296	305	class ID ;	interface class Icls1;
 verilator	test_regress/t/t_class_static_member_sel.v	904	1229	= NUM ;	baz.get_bar().f.x = 4;
 verilator	test_regress/t/t_clk_concat5.v	1174	1397	; logic [	input clk;
 verilator	test_regress/t/t_clk_concat6.v	1331	1581	; logic [	input clk;
@@ -156,19 +123,10 @@ verilator	test_regress/t/t_gen_if.v	411	635	begin : ID	end
 verilator	test_regress/t/t_gen_local.v	203	339	: ID for	begin : topgen
 verilator	test_regress/t/t_gen_self_return.v	201	1083	: ID for	begin : ram_dataout_gen
 verilator	test_regress/t/t_iface_self_ref_typedef.v	456	522	ID ; ID	typedef my_iface#(T) self_t;
-verilator	test_regress/t/t_implements.v	203	212	class ID ;	interface class Icempty;
-verilator	test_regress/t/t_implements_collision.v	203	212	class ID ;	interface class Icls1;
-verilator	test_regress/t/t_implements_collision_bad.v	203	212	class ID ;	interface class Icls1;
-verilator	test_regress/t/t_implements_contents_bad.v	203	212	class ID ;	interface class Icls;
-verilator	test_regress/t/t_implements_missing_bad.v	203	212	class ID ;	interface class Icls1;
-verilator	test_regress/t/t_implements_nested.v	202	301	interface class ID	interface class good_can_nest;
-verilator	test_regress/t/t_implements_nested_bad.v	203	213	interface class ID	class Cls;
-verilator	test_regress/t/t_implements_new_bad.v	203	212	class ID ;	interface class Icls;
-verilator	test_regress/t/t_implements_noinherit_bad.v	203	212	class ID ;	interface class Icls;
+verilator	test_regress/t/t_implements_contents_bad.v	203	224	int ID ;	interface class Icls;
+verilator	test_regress/t/t_implements_nested_bad.v	203	237	interface class ID	interface class inte;
 verilator	test_regress/t/t_implements_noninterface_bad.v	228	260	; endclass interface	class ClsBad1 implements NotIcls;
-verilator	test_regress/t/t_implements_not_nested.v	203	250	interface class ID	typedef interface class iclass;
 verilator	test_regress/t/t_implements_notfound_bad.v	203	234	; endclass module	class ClsI implements Inotfound;
-verilator	test_regress/t/t_implements_typed.v	203	212	class ID ;	interface class Icls;
 verilator	test_regress/t/t_inside_unpacked_param.v	203	346	inside { ID	localparam HIT_INSIDE = HIT_LP inside {CHECKLIST_P};
 verilator	test_regress/t/t_inst_2star_bad.v	203	275	. * )	sub sub (foo, .*);
 verilator	test_regress/t/t_inst_noname_bad.v	204	218	) ; ID	m();
@@ -224,7 +182,7 @@ verilator	test_regress/t/t_param_no_parentheses.v	299	379	) ; ID	m1 #PAR m1();
 verilator	test_regress/t/t_param_type_bad.v	203	275	NUM ; /	localparam type bad2 = 2;  // Bad
 verilator	test_regress/t/t_param_type_bad3.v	203	264	; / /	localparam type P_T = PI;  // Bad
 verilator	test_regress/t/t_param_type_from_iface_struct.v	2039	2160	. ID ID	typedef ports[0].inner.req_t local_req_t;
-verilator	test_regress/t/t_param_type_fwd.v	318	327	class ID ;	interface class ic_t;
+verilator	test_regress/t/t_param_type_fwd.v	350	378	enum ID ;	parameter type enum E_t;
 verilator	test_regress/t/t_param_type_fwd_bad.v	223	251	enum ID ;	parameter type enum E_t;
 verilator	test_regress/t/t_param_type_id_bad.v	211	250	) ; endclass	parameter type P_T = i
 verilator	test_regress/t/t_paramgraph_bits_iface_typedef.v	642	882	ID , input	modport initiator(output tdata, tvalid, input tready);

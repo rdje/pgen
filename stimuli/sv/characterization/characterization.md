@@ -12,7 +12,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | files parsed | pass | fail | timeout | pass-rate |
 |---|---|---|---|---|
-| 5128 | 3049 | 2078 | 1 | 59.5% |
+| 5128 | 3091 | 2036 | 1 | 60.3% |
 
 ## Per sub-corpus
 
@@ -22,23 +22,8 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | friscv | 441 | 31 | 410 | 0 | 7.0% |
 | scr1 | 50 | 7 | 43 | 0 | 14.0% |
 | slang | 92 | 71 | 21 | 0 | 77.2% |
-| sv-tests | 1028 | 805 | 223 | 0 | 78.3% |
+| sv-tests | 1028 | 832 | 196 | 0 | 80.9% |
 | verible | 152 | 121 | 31 | 0 | 79.6% |
-| verilator | 3263 | 1996 | 1266 | 1 | 61.2% |
+| verilator | 3263 | 2011 | 1251 | 1 | 61.6% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv`._
-
-## Adjudication (leaf SV-CORPUS-GRAD.2, 2026-07-22)
-
-The raw outcomes above are adjudicated expected-vs-actual in
-`adjudication_manifest.tsv` (generator: `stimuli/sv/adjudicate_external_corpus.py`,
-deterministic; summary: `adjudication_summary.md`). Headline: **321 unexplained
-divergences** (315 rejects-valid + 6 accepts-invalid) out of 5,128 rows —
-the SV-CORPUS-GRAD burn-down baseline (first measured 330, refined to 321 by
-the leaf-.3.0 answer-key triage: verible excerpt-mode fragments, 3 pinned
-intentionally-invalid fixtures, the generic `.svh`-payload rule). 1,102
-divergences are explained with a named cause (svpp
-expansion/include/conditional dependency, 1 timeout); 866 rows are deferred to
-their owning lanes (chained-only incl. the three design corpora, svpp-owned
-test targets). Stuck-point clusters for the burn-down:
-`docs/tasks/artifacts/sv_corpus_grad/rejects_valid_clusters.md`.

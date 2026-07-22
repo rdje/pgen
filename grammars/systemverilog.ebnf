@@ -551,6 +551,7 @@ anonymous_program := kw_program_81d9aeea semi anonymous_program_item* kw_endprog
 anonymous_program_item_sv_2017 := task_declaration              -> {kind: "task",                body: $1}
                                 | function_declaration          -> {kind: "function",            body: $1}
                                 | class_declaration             -> {kind: "class",               body: $1}
+                                | interface_class_declaration   -> {kind: "interface_class",     body: $1}
                                 | covergroup_declaration        -> {kind: "covergroup",          body: $1}
                                 | class_constructor_declaration -> {kind: "class_constructor",   body: $1}
                                 | semi                          -> {kind: "semi"}
@@ -1050,6 +1051,7 @@ class_item_sv_2017 := attribute_instance* class_property              -> {kind: 
                     | attribute_instance* class_method                -> {kind: "method",           attributes: $1, body: $2}
                     | attribute_instance* class_constraint            -> {kind: "constraint",       attributes: $1, body: $2}
                     | attribute_instance* class_declaration           -> {kind: "class",            attributes: $1, body: $2}
+                    | attribute_instance* interface_class_declaration -> {kind: "interface_class",  attributes: $1, body: $2}
                     | attribute_instance* covergroup_declaration      -> {kind: "covergroup",       attributes: $1, body: $2}
                     | local_parameter_declaration semi                -> {kind: "local_parameter",  body: $1}
                     | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
@@ -3848,6 +3850,7 @@ package_or_generate_item_declaration_sv_2017 := local_parameter_declaration semi
                                               | checker_declaration               -> {kind: "checker_declaration",          body: $1}
                                               | extern_constraint_declaration     -> {kind: "extern_constraint_declaration", body: $1}
                                               | class_declaration                 -> {kind: "class_declaration",            body: $1}
+                                              | interface_class_declaration       -> {kind: "interface_class_declaration",  body: $1}
                                               | class_constructor_declaration     -> {kind: "class_constructor_declaration", body: $1}
                                               | covergroup_declaration            -> {kind: "covergroup_declaration",       body: $1}
                                               | assertion_item_declaration        -> {kind: "assertion_item_declaration",   body: $1}

@@ -1438,24 +1438,24 @@ sv-tests	tests/chapter-8/8.24--out_of_block_methods.sv	pass	must_accept	match	sv
 sv-tests	tests/chapter-8/8.25--parametrized_class_extend.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-8/8.25.1--parametrized_class_invalid_scope_resolution.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
 sv-tests	tests/chapter-8/8.25.1--parametrized_class_scope_resolution.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.2--implements.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.2--implements_extends.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.2--implements_multiple.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.3--type_access_extends.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.3--type_access_implements.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.3--type_access_implements_invalid.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
-sv-tests	tests/chapter-8/8.26.4--illegal_forward_def_implements.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
+sv-tests	tests/chapter-8/8.26.2--implements.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.2--implements_extends.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.2--implements_multiple.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.3--type_access_extends.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.3--type_access_implements.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.3--type_access_implements_invalid.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
+sv-tests	tests/chapter-8/8.26.4--illegal_forward_def_implements.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
 sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
-sv-tests	tests/chapter-8/8.26.5--cast_between_interface_classes.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.5--implemented_class_handle.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.5--invalid_interface_instantiation.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
-sv-tests	tests/chapter-8/8.26.6.1--name_conflict_resolved.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.6.1--name_conflict_unresolved.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
-sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict_unresolved.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
-sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship_parametrized.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
-sv-tests	tests/chapter-8/8.26.7--partial_implementation.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.5--cast_between_interface_classes.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.5--implemented_class_handle.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.5--invalid_interface_instantiation.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
+sv-tests	tests/chapter-8/8.26.6.1--name_conflict_resolved.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.6.1--name_conflict_unresolved.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
+sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict_unresolved.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
+sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship_parametrized.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
+sv-tests	tests/chapter-8/8.26.7--partial_implementation.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-8/8.27--forward_declaration.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-8/8.4--instantiation.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-8/8.5--parameters.sv	pass	must_accept	match	sv-tests: positive test
@@ -1523,11 +1523,11 @@ sv-tests	tests/generic/class/class_test_17.sv	pass	must_accept	match	sv-tests: p
 sv-tests	tests/generic/class/class_test_18.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_19.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_21.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/class/class_test_25.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/class/class_test_26.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/class/class_test_27.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/class/class_test_28.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/class/class_test_29.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/class/class_test_25.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/class/class_test_26.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/class/class_test_27.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/class/class_test_28.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/class/class_test_29.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_30.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_4.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_48.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
@@ -1576,11 +1576,11 @@ sv-tests	tests/generic/empty/empty_test_2.sv	pass	out_of_scope_with_cause	deferr
 sv-tests	tests/generic/empty/empty_test_3.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/generic/empty/empty_test_4.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/generic/empty/empty_test_5.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
-sv-tests	tests/generic/iface/iface_class_test_0.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/iface/iface_class_test_1.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/iface/iface_class_test_10.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/iface/iface_class_test_2.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/generic/iface/iface_class_test_9.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/iface/iface_class_test_0.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/iface/iface_class_test_1.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/iface/iface_class_test_10.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/iface/iface_class_test_2.sv	pass	must_accept	match	sv-tests: positive test
+sv-tests	tests/generic/iface/iface_class_test_9.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/member/class_member_test_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/member/class_member_test_10.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/member/class_member_test_11.sv	pass	must_accept	match	sv-tests: positive test
@@ -1940,7 +1940,7 @@ verilator	test_regress/t/t_assert_cover.v	fail	must_accept	divergence:explained_
 verilator	test_regress/t/t_assert_ctl_arg.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_ctl_arg.py expects success
 verilator	test_regress/t/t_assert_ctl_arg_unsup.v	pass	must_accept	match	verilator: driver t_assert_ctl_arg_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_ctl_concurrent.v	pass	must_accept	match	verilator: driver t_assert_ctl_concurrent.py expects success
-verilator	test_regress/t/t_assert_ctl_immediate.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_ctl_immediate.py expects success
+verilator	test_regress/t/t_assert_ctl_immediate.v	pass	must_accept	match	verilator: driver t_assert_ctl_immediate.py expects success
 verilator	test_regress/t/t_assert_ctl_type_bad.v	pass	must_accept	match	verilator: driver t_assert_ctl_type_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_ctl_unsup.v	pass	must_accept	match	verilator: driver t_assert_ctl_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_disable_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_disable_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -2105,7 +2105,7 @@ verilator	test_regress/t/t_class_dead_varscope_uaf.v	pass	must_accept	match	veri
 verilator	test_regress/t/t_class_default_type_param.v	pass	must_accept	match	verilator: driver t_class_default_type_param.py expects success
 verilator	test_regress/t/t_class_defaultparam_import.v	pass	must_accept	match	verilator: driver t_class_defaultparam_import.py expects success
 verilator	test_regress/t/t_class_defaultparams.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_defaultparams.py expects success
-verilator	test_regress/t/t_class_diamond.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_class_diamond.py expects success
+verilator	test_regress/t/t_class_diamond.v	pass	must_accept	match	verilator: driver t_class_diamond.py expects success
 verilator	test_regress/t/t_class_dict.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_dict.py expects success
 verilator	test_regress/t/t_class_dyn_cast_empty_if.v	pass	must_accept	match	verilator: driver t_class_dyn_cast_empty_if.py expects success
 verilator	test_regress/t/t_class_enum.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_enum.py expects success
@@ -2118,7 +2118,7 @@ verilator	test_regress/t/t_class_extends_aliased_real_bad.v	pass	must_accept	mat
 verilator	test_regress/t/t_class_extends_arg.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_extends_arg.py expects success
 verilator	test_regress/t/t_class_extends_arg_super_bad.v	pass	must_accept	match	verilator: driver t_class_extends_arg_super_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_extends_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_class_extends_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_class_extends_colon.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_class_extends_colon.py expects success
+verilator	test_regress/t/t_class_extends_colon.v	pass	must_accept	match	verilator: driver t_class_extends_colon.py expects success
 verilator	test_regress/t/t_class_extends_default.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_class_extends_default.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_extends_dot.v	pass	must_accept	match	verilator: driver t_class_extends_dot.py expects success
 verilator	test_regress/t/t_class_extends_int_param_bad.v	pass	must_accept	match	verilator: driver t_class_extends_int_param_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -2146,7 +2146,7 @@ verilator	test_regress/t/t_class_func_static_bad.v	pass	must_accept	match	verila
 verilator	test_regress/t/t_class_fwd_cc.v	pass	must_accept	match	verilator: driver t_class_fwd_cc.py expects success
 verilator	test_regress/t/t_class_hier_construction.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_hier_construction.py expects success
 verilator	test_regress/t/t_class_if_assign.v	pass	must_accept	match	verilator: driver t_class_if_assign.py expects success
-verilator	test_regress/t/t_class_imp2.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_class_imp2.py expects success
+verilator	test_regress/t/t_class_imp2.v	pass	must_accept	match	verilator: driver t_class_imp2.py expects success
 verilator	test_regress/t/t_class_inc.v	pass	must_accept	match	verilator: driver t_class_inc.py expects success
 verilator	test_regress/t/t_class_init_order.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_init_order.py expects success
 verilator	test_regress/t/t_class_link_delay.v	pass	must_accept	match	verilator: driver t_class_link_delay.py expects success
@@ -2188,7 +2188,7 @@ verilator	test_regress/t/t_class_new_return.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_class_new_scoped.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_new_scoped.py expects success
 verilator	test_regress/t/t_class_new_scoped_bad.v	pass	must_accept	match	verilator: driver t_class_new_scoped_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_new_supernfirst_bad.v	pass	must_accept	match	verilator: driver t_class_new_supernfirst_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_class_new_this.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_class_new_this.py expects success
+verilator	test_regress/t/t_class_new_this.v	pass	must_accept	match	verilator: driver t_class_new_this.py expects success
 verilator	test_regress/t/t_class_new_typed.v	pass	must_accept	match	verilator: driver t_class_new_typed.py expects success
 verilator	test_regress/t/t_class_null_bad.v	pass	must_accept	match	verilator: driver t_class_null_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_null_struct.v	pass	must_accept	match	verilator: driver t_class_null_struct.py expects success
@@ -2221,7 +2221,7 @@ verilator	test_regress/t/t_class_param_nested_bad.v	pass	must_accept	match	veril
 verilator	test_regress/t/t_class_param_nested_typedef.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_param_nested_typedef.py expects success
 verilator	test_regress/t/t_class_param_noinit.v	pass	must_accept	match	verilator: driver t_class_param_noinit.py expects success
 verilator	test_regress/t/t_class_param_noinit_bad.v	pass	must_accept	match	verilator: driver t_class_param_noinit_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_class_param_override_local_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_class_param_override_local_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_class_param_override_local_bad.v	pass	must_accept	match	verilator: driver t_class_param_override_local_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_param_pkg.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_param_pkg.py expects success
 verilator	test_regress/t/t_class_param_rewrite.v	pass	must_accept	match	verilator: driver t_class_param_rewrite.py expects success
 verilator	test_regress/t/t_class_param_static.v	pass	must_accept	match	verilator: driver t_class_param_static.py expects success
@@ -3179,19 +3179,19 @@ verilator	test_regress/t/t_iface_self_ref_typedef.v	fail	must_accept	divergence:
 verilator	test_regress/t/t_iface_typedef_struct_member.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_iface_typedef_struct_member.py expects success
 verilator	test_regress/t/t_iface_typedef_wrong_clone.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_iface_typedef_wrong_clone.py expects success
 verilator	test_regress/t/t_iff.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_iff.py expects success
-verilator	test_regress/t/t_implements.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements.py expects success
-verilator	test_regress/t/t_implements_collision.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_collision.py expects success
-verilator	test_regress/t/t_implements_collision_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_collision_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_implements.v	pass	must_accept	match	verilator: driver t_implements.py expects success
+verilator	test_regress/t/t_implements_collision.v	pass	must_accept	match	verilator: driver t_implements_collision.py expects success
+verilator	test_regress/t/t_implements_collision_bad.v	pass	must_accept	match	verilator: driver t_implements_collision_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_implements_contents_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_contents_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_implements_missing_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_missing_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_implements_nested.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_nested.py expects success
+verilator	test_regress/t/t_implements_missing_bad.v	pass	must_accept	match	verilator: driver t_implements_missing_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_implements_nested.v	pass	must_accept	match	verilator: driver t_implements_nested.py expects success
 verilator	test_regress/t/t_implements_nested_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_nested_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_implements_new_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_new_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_implements_noinherit_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_noinherit_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_implements_new_bad.v	pass	must_accept	match	verilator: driver t_implements_new_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_implements_noinherit_bad.v	pass	must_accept	match	verilator: driver t_implements_noinherit_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_implements_noninterface_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_noninterface_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_implements_not_nested.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_not_nested.py expects success
+verilator	test_regress/t/t_implements_not_nested.v	pass	must_accept	match	verilator: driver t_implements_not_nested.py expects success
 verilator	test_regress/t/t_implements_notfound_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_notfound_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_implements_typed.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_implements_typed.py expects success
+verilator	test_regress/t/t_implements_typed.v	pass	must_accept	match	verilator: driver t_implements_typed.py expects success
 verilator	test_regress/t/t_impure_cond_empty_if.v	pass	must_accept	match	verilator: driver t_impure_cond_empty_if.py expects success
 verilator	test_regress/t/t_inc_relink.v	pass	must_accept	match	verilator: driver t_inc_relink.py expects success
 verilator	test_regress/t/t_incorrect_multi_driven.v	pass	must_accept	match	verilator: driver t_incorrect_multi_driven.py expects success

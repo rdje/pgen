@@ -18,9 +18,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.167`
+  - `1.0.168`
 - Parser release version:
-  - `1.0.167`
+  - `1.0.168`
 - Embedding API contract baseline:
   - `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
@@ -91,6 +91,41 @@ This is the document downstream projects such as Nexsim should read first when d
 ### Support boundary
 - Bug reports against the `verilog_2005` profile follow the standard protocol (`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`); classify "SV-only construct wrongly accepted under `verilog_2005`" as a **profile-leak** defect and include the construct's IEEE 1364-2005 Annex A / IEEE 1800 Annex A adjudication in the report.
 - The profile shares the family's release/versioning stream (release `1.0.166`, schema `15`); a future profile-affecting grammar change bumps the family release exactly like any other SV change and must keep `verilog_2005_conformance_gate` green (or re-baseline its contract in the same commit with justification).
+
+## Release 1.0.168 / Contract 1.0.168 Highlights — SV-CORPUS-GRAD.3.1: `interface class` restored under `sv_2017` (IEEE 1800-2017 §8.26; ledger `SV-0038`); schema 16 unchanged
+
+- **What changed (grammar-only, strictly more permissive):** the three
+  `interface_class_declaration` consumer wirings existed only in the
+  `*_sv_2023` variant rules; the `_sv_2017` twins omitted the branch, so
+  `interface class Foo; … endclass` — an IEEE 1800-**2017** §8.26 construct —
+  had NO derivation path under the `sv_2017` profile (rejected at the `class`
+  keyword). Release `1.0.168` mirrors the branch into
+  `anonymous_program_item_sv_2017`, `class_item_sv_2017`, and
+  `package_or_generate_item_declaration_sv_2017`. Zero new rules (census
+  `1466`).
+- **What consumers see:** `interface class` declarations (plain,
+  parameterized, `extends`-chained, `pure virtual` prototypes) flip
+  **REJECT → ACCEPT under `sv_2017`** at compilation-unit scope, inside
+  classes, and in anonymous programs. `sv_2023` behavior is byte-identical
+  (it always parsed these). `verilog_2005` still rejects (SV-only construct).
+  **Schema stays `16`** — the `interface_class_declaration` carrier and the
+  `{kind:"interface_class"}` item shapes already existed via the `sv_2023`
+  wiring; only previously-rejected input gains parses.
+- **Surfaced by:** the external-corpus graduation campaign
+  (`SV-CORPUS-GRAD.2`/`.3.0` adjudication + stuck-point clustering — the F1
+  cluster, ~47 rejects-valid rows). First defect caught and closed end-to-end
+  by that pipeline: full external corpus pass 3,049 → 3,091 of 5,128 (+42,
+  zero per-suite regressions); adjudication baseline 321 → 279 unexplained.
+- **Proof battery (all green):** `sv_stimuli_quality_gate` PASS
+  (`closed_loop_replay_targets_total` 120 unchanged);
+  `sv_cert_recognized_union_gate` GREEN on an evidence-grounded re-baseline —
+  4 unreachability proofs convert to genuine witnesses (canonical
+  `1343/6/1326/11`, union witness `1337`, UNKNOWN unchanged `11`/`0`,
+  residual `[]`, deterministic seeds 0/7/42, spf=0);
+  `verilog_2005_conformance_gate` GREEN byte-inert (orphans 0, matrix 240/0,
+  cert `1115/328/773/14` byte-identical); `ast_shape_contract_gate` PASS;
+  `sv_external_corpus_triage_gate` PASS; `--lint-grammar` clean (1,466 rules,
+  all error classes 0). Full detail: ledger row `SV-0038`.
 
 ## Release 1.0.167 / Contract 1.0.167 Highlights — SV-OVER-REJECTION-FIDELITY.3: event-trigger `->>`/delay/array LRM complex restored (ledger `SV-0023` closed); schema 15 → 16
 

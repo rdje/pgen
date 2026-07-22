@@ -1,5 +1,26 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0006 — a new defect CLASS: profile-mis-gated constructs (present in the grammar, unreachable under the profile that owns them)
+
+**The mechanism.** `interface_class_declaration` existed, was correct, and even had its
+`implements` consumer wired for `sv_2017` — but its three ITEM-position consumer wirings were
+profile-gated `sv_2023`-only, so under `sv_2017` the construct was unreachable from every entry.
+The likely origin: the profiled synthesis followed the 2017 `grammar_clean.ebnf` extraction,
+which LACKS the `interface_class_declaration ::=` production (an extraction gap — the LRM
+markdown itself has it in section-8-classes.md). Lesson: when a construct "isn't supported",
+check REACHABILITY PER PROFILE before assuming absence — grep the declaration AND every
+consumer's `@profiles` gate. The tell in cert terms: the rule cohort was credited by
+ProfileEntryUnreachable-style PROOFS instead of witnesses; the fix converted proofs → witnesses
+(±4 conserved, UNKNOWN untouched) — a signature worth recognizing: proofs-of-unreachability on
+constructs the LRM DOES define for that profile are potential mis-gating defects, and the
+extraction diff (`grammar_clean.ebnf` vs LRM md) is the cheap audit instrument.
+
+**Corpus-as-oracle validated end-to-end.** Adjudication manifest (`.2`) → stuck-point
+clustering (`.3.0`) → F1 family (~47 rows) → one 3-line grammar fix → +42 corpus files,
+baseline 321→279, zero regressions, replay debt unchanged. The pipeline's honesty layers all
+earned their keep: the F1 estimate (47) vs delivered (42) difference decomposed into named
+adjacent-defect residuals rather than disappearing into noise.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0004 — adjudication method notes: the answer key must model the STAGE of the intended failure, and dependency scans must see what the lexer sees
 
 **Stage-modeling is the whole game.** A raw corpus pass-rate carries no defect signal because
