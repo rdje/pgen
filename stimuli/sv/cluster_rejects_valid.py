@@ -25,6 +25,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
 POS_RE = re.compile(
     r"position (\d+)(?: \[furthest_position=(\d+)[^\]]*\])?")
 WORD_RE = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
@@ -117,7 +119,10 @@ def probe_one(task):
             capture_output=True, text=True, timeout=30)
     except subprocess.TimeoutExpired:
         return (suite, rel, -1, -1, "<TIMEOUT>", "")
-    out = cp.stdout + cp.stderr
+    # Strip the absolute checkout prefix so captured probe text (e.g. a
+    # read-error echoing the file path) stays repo-root-relative in tracked
+    # artifacts (the DOCPATH doctrine forbids absolute repo paths in docs).
+    out = (cp.stdout + cp.stderr).replace(str(_REPO_ROOT) + "/", "")
     if cp.returncode == 0:
         return (suite, rel, -2, -2, "<NOW-PASSES>", "")
     m = POS_RE.search(out)

@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-23 - PGEN-SV-CORPUS-GRAD-0017 — how a "basic assertion" corpus row unearthed a decade-shaped grammar hole
+
+**The path from symptom to root cause is the point of this note.** The `.3` worklist is 543 rejects-valid
+rows; a flat list cannot be cut into fix leaves. The refresh mechanized the split two ways: the existing
+`cluster_rejects_valid.py` (stuck-token signatures) plus a new `classify_rejects_valid_families.py`
+(structural bucketing of the stuck source line into 13 SV construct families). SVA came out #1 at 101 rows —
+expected, since chapter-16 property rows had already been flagged as a convergence with `SV-REPLAY-DEBT`.
+
+**What was NOT expected:** probing the *simplest* SVA row (`ispras 16.12.01_01`, a textbook `a1: assert
+property (@(posedge clk) a |-> p3);`) showed the parser stalling at `p3`. The first hypothesis — a
+store-gated named-property-reference gap, the known-hard `prop_primary` territory — was **refuted by a
+three-case A/B/C probe**: `a |-> b` (plain-signal RHS) fails, `a |-> p3` (named-property RHS) fails, but
+`p3` alone (no implication) PASSES. So the RHS is fine; the **`|->` operator itself** is the gap. A token
+scan then found the SV grammar defines `implies` (`->`), `or_assign` (`|=`), `sequence_implies` (`=>`),
+`nonblocking_implies` (`->>`) — and **no `|->`, no `|=>` anywhere**. `git log -S '|->'` on the grammar is
+empty: they have never been present.
+
+**Root cause (why a decade-core operator was never in the grammar):** `|->` and `|=>` begin with `|`, which
+is the EBNF alternation metacharacter. The LRM-markdown→EBNF extraction split the operators on that `|`,
+leaving damaged remnants in `prop_primary`: `implies property_expr` (a bare `->`), `sequence_expr or_assign
+property_expr` (`|=`, the `>` dropped), and `property_expr implies property_expr`. The LRM-*extracted*
+grammar (`systemverilog_2017_lrm_extracted.ebnf`) exhibits the same loss, which localizes the damage to the
+extractor, not the flattening. And the reason a whole SV campaign never caught it: the H.12.5.8 "infix
+property/sequence" fix (1.0.148/1.0.149) and its 12/12 re-verification matrix exercised only the *word*
+operators (`until`/`or`/`and`/`intersect`/`within`/`##`) — `|->`/`|=>` were simply never in the test set.
+
+**Method note for the campaign:** the corpus (543 rows classified, SVA ranked #1) pointed at the region, but
+the *minimal three-case probe* is what turned "chapter-16 is broken" into "one specific pair of operators is
+absent." That precision is what makes the fix leaf (`.3.3`) a faithful additive A.2.10 grammar change rather
+than a speculative dive into the store-gated property machinery. This leaf is read-only (two deterministic
+diagnosis tools + artifacts); no parser/grammar/generated/codegen surface was touched.
+
 ## 2026-07-23 - PGEN-SV-CORPUS-GRAD-0016 — the clause lens is a *structural* view, not a second coverage number
 
 **Two engineering decisions define this leaf's honesty.**

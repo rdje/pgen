@@ -220,10 +220,15 @@ coverage.
   underscore/spaced-literal gap — chapter-7 4, chapter-6 4, chapter-16/SVA 4,
   chapter-18 3, chapter-11 2, chapter-8 1, chapter-12 1), verible 13,
   slang 1, + the 6 named accepts-invalid rows (verilator-strictness
-  adjudication candidates). Next family candidates: F2 SVA tails / F3
-  constraint-randomize / F5 in-scope directives — but corpus ACQUISITION
-  (`.8`) outranks further burn-down per the director's 2026-07-22 order
-  ([[project_sv_corpus_100pct_lrm_coverage_mandate]]).
+  adjudication candidates).
+- ⭐ **REFRESHED leaf-cutting map (`.3.2`, session #198):** the 543-row
+  population is now re-clustered at the ADD-v1 vintage into 13 construct
+  families (`rejects_valid_families_v2.md`). Ranked #1 = **SVA
+  implication/property (ch16), 101 rows** (ispras 53 / verilator 31 / Surelog 8
+  / sv-tests 4) — root cause tool-pinned: the `|->`/`|=>` operators are ABSENT
+  from the grammar (see `.3.2`). NEXT burn-down = **`.3.3`** (add `|->`/`|=>`);
+  then interface/modport (50), constraint/randomize (23), directives (22),
+  spaced literals (22), drive strength (21), … cut from the same map.
 
 #### `.3.0` — Stuck-point clustering over the rejects-valid population (read-only diagnosis)
 
@@ -365,6 +370,100 @@ coverage.
   HEAD, see `.1`). NOTE the standing convergence: the chapter-16 property rows
   live in the same grammar region as the `SV-REPLAY-DEBT` `prop_primary_*`
   residual cluster — one lane may move both axes.
+
+#### `.3.2` — Refreshed family map over the current 543-row population + the foundational SVA finding (read-only diagnosis)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0017`, session #198, 2026-07-23;
+  READ-ONLY — no parser/grammar/generated/codegen change).
+- **Why:** `.3.0`'s family map was built over the pre-ADD-v1 315-row
+  population. The current `.3`-worklist is **543 rejects-valid** (post-`.8b.3`
+  / `.8c.*`), of which only the clause-keyed ispras rows carried a structural
+  key. This leaf refreshes the leaf-cutting map over the whole current
+  population and pins the sharpest family's root cause.
+- **The instruments (both deterministic, both re-runnable at any vintage):**
+  1. Re-ran the tracked `stimuli/sv/cluster_rejects_valid.py` over the current
+     manifest → `docs/tasks/artifacts/sv_corpus_grad/rejects_valid_clusters_v2.tsv`
+     + `.md` (543 rows probed, 247 distinct 3-token stuck signatures; guarded,
+     10 s, peak 210 MB). The `.3.0` artifacts (`rejects_valid_clusters.{tsv,md}`)
+     are PRESERVED unmodified. (One-line hardening to the tool: captured probe
+     text is now stripped to a repo-relative path so an unreadable-file error —
+     `sv2v/test/lex/latin1.sv`, latin1-encoded — cannot leak an absolute
+     checkout path into a tracked artifact; the DOCPATH doctrine flagged the
+     first draft, which is the gate working.)
+  2. NEW `stimuli/sv/classify_rejects_valid_families.py` (priority-ordered
+     structural bucketer over the stuck source line) →
+     `rejects_valid_families_v2.{tsv,md}`. Determinism byte-proven (cmp ×2 on
+     both outputs); `py_compile` clean.
+- **⭐ THE REFRESHED FAMILY MAP (543 rows → 13 families, ranked by cross-suite
+  yield):**
+  | # | family | rows | dominant suites |
+  |---|---|---|---|
+  | 1 | **SVA implication/property (ch16)** | **101** | ispras 53, verilator 31, Surelog 8, sv-tests 4 |
+  | 2 | interface/modport (ch25) | 50 | verilator 24, ispras 18 |
+  | 3 | constraint/randomize (ch18) | 23 | verilator 19 |
+  | 4 | compiler directives (ch22) | 22 | iverilog 18 |
+  | 5 | number literal spaced-based (ch5) | 22 | sv-tests 13, Surelog 5 |
+  | 6 | drive/charge strength (ch28) | 21 | verilator 10, ispras 5 |
+  | 7 | named block/label (ch9/27) | 20 | verilator 8, Surelog 6 |
+  | 8 | size/type cast `N'(...)` (ch6/11) | 13 | Surelog 5, sv2v 4 |
+  | 9 | enum base range (ch6) | 9 | verilator 8 |
+  | 10 | foreach/array (ch7) | 9 | verilator 5 |
+  | 11 | unique0 (ch12) | 6 | verilator 3 |
+  | 12 | coverage bins/cross (ch19) | 4 | ispras |
+  | — | OTHER (per-row triage tail) | 243 | broad |
+- **⭐⭐ THE FOUNDATIONAL SVA FINDING (tool-pinned WHY+WHERE — the #1 family's
+  root cause):** the SV grammar is **missing the two core SVA sequence-
+  implication operators `|->` (overlapped) and `|=>` (non-overlapped)** — no
+  tokens, no `prop_primary` branches, and (git `-S`) they have **never** been
+  present. Confirmed four independent ways:
+  1. A **basic** concurrent assertion is rejected: `assert property
+     (@(posedge clk) a |-> b)` fails (furthest at the `|->`); `assert property
+     (@(posedge clk) p3)` (no implication) **passes** — the gap is the
+     implication operator itself, not the RHS.
+  2. Token scan: the only `>`/`|` operator tokens are `implies` (`->`),
+     `or_assign` (`|=`), `sequence_implies` (`=>`), `nonblocking_implies`
+     (`->>`) — **no `|->`, no `|=>`** (grammar-wide grep + `--dump`).
+  3. Scoped `--trace-rules prop_primary_sv_2017`: after the antecedent
+     `sequence_expr` returns, no branch consumes `|->`; `bitwise_or` matches
+     `|` then fails needing an RHS expression → backtrack.
+  4. IEEE 1800-2017 defines them pervasively (§17/§23 examples;
+     `vpiOverlapImplyOp`/`vpiNonOverlapImplyOp`, §83). The mangled
+     `prop_primary` branches `implies property_expr` (`->`), `sequence_expr
+     or_assign property_expr` (`|=`), and `property_expr implies property_expr`
+     are the extraction's damaged remnants — the LRM-markdown→EBNF extractor
+     split the `|`-prefixed operators on `|` (the EBNF alternation metachar),
+     which is why the LRM-*extracted* grammar also lacks them.
+  - **Reconciliation with H.12.5.8** ("infix property/sequence bug fixed",
+    1.0.148/1.0.149): its 12/12 matrix tested only the *word* operators
+    (`until`/`or`/`and`/`intersect`/`within`/`##`) — **never `|->`/`|=>`**. This
+    gap is orthogonal and open.
+- **Impact / recommendation:** the `|->`/`|=>` gap explains the bulk of the
+  101-row SVA family (every `s |-> p` / `s |=> p`), spans ispras (clause-keyed),
+  verilator, and Surelog, and **converges with `SV-REPLAY-DEBT`** (the
+  `prop_primary_*` cluster) — one fix moves both SV `Done` axes. **Recommended
+  first burn-down leaf `.3.3`:** add the two operators (tokens + `prop_primary`
+  branches, both profiles), faithful to A.2.10, additive/low-risk. Remaining
+  families (interface/modport 50, constraint/randomize 23, …) are subsequent
+  `.3.x` leaves cut from this map.
+- **Artifacts:** `docs/tasks/artifacts/sv_corpus_grad/rejects_valid_clusters_v2.{tsv,md}`,
+  `rejects_valid_families_v2.{tsv,md}`; tools
+  `stimuli/sv/cluster_rejects_valid.py` (re-run) +
+  `stimuli/sv/classify_rejects_valid_families.py` (new).
+- **Acceptance Checklist (enforced — diagnosis leaf)**
+  - [x] **REPRODUCE / ISSUE** — the `.3` worklist grew 315 → 543 across the
+    ADD-v1 acquisition with no refreshed structural map; the sharpest family
+    (SVA) had no pinned root cause.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the `|->`/`|=>` absence tool-pinned four
+    ways (minimal repro, token scan, `--trace-rules`, LRM grounding); WHERE =
+    `grammars/systemverilog.ebnf` token section + `prop_primary_sv_2017/2023`.
+  - [x] **FIX** — N/A (read-only; additive diagnosis tooling only — no
+    parser/grammar/codegen surface touched).
+  - [x] **ADDRESSED (verified)** — the refreshed 543-row family map over the
+    whole population; determinism byte-proven (cluster re-run + classifier ×2).
+  - [x] **NO REGRESSION** — no parser/grammar/generated surface touched; the
+    `.3.0` artifacts preserved unmodified; `results.tsv` untouched.
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
+    DEVELOPMENT_NOTES this commit.
 
 ### `.4` — Full-design corpora chaining
 
