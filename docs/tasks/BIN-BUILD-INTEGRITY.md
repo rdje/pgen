@@ -1,7 +1,8 @@
 # BIN-BUILD-INTEGRITY — every tracked binary must still COMPILE
 
-- **Status:** `active` (created 2026-07-22, session #196, from a
-  `SV-CORPUS-GRAD.8c.3` compile-time discovery)
+- **Status:** `done` (created 2026-07-22, session #196, from a
+  `SV-CORPUS-GRAD.8c.3` compile-time discovery; all five leaves closed
+  2026-07-23, session #197)
 - **Family:** platform build/ops integrity (parser-agnostic)
 - **Why this tree exists:** a tracked `[[bin]]` target
   (`ebnf_dual_run_diff`) has not compiled since the `-0212` result-carrier
@@ -89,23 +90,89 @@ that no gate covered. Any `required-features` binary can rot in it.
 
 ### `.2` — Close the build-coverage hole (a gate that builds EVERY binary)
 
-- **Status: `todo`** — the systemic fix, deliberately split from `.1`
-  (one commit = one defect).
-- **Intent:** add an all-targets build check to the maintained gate
-  surface so `required-features` binaries cannot rot silently again —
-  `cargo check --workspace --all-targets` per feature combination that any
-  tracked `[[bin]]` declares (today: default, `generated_parsers`,
-  `ebnf_dual_run`, `bootstrap`, `normal`, and the dual-feature build),
-  wired into `ci_workflow_local_gate` (which already audits doc/allowlist
-  drift, so binary-build drift is its natural sibling).
-- **Design notes to honor:** it must be a CHECK (not a full build) to stay
-  cheap; it must be honest about feature combinations rather than testing
-  only the union (a bin excluded by `required-features` in the union build
-  is exactly the case that rotted); and the memory-guard directive applies
-  (a multi-combination check is a heavy job).
-- **Open question for the frontier:** whether the same hole exists for
-  `#[cfg(feature = ...)]` TEST modules (a test that never compiles under
-  any run configuration is the same silent-loss class).
+- **Status: `done`** (`PGEN-BIN-BUILD-INTEGRITY-0007`, session #197,
+  2026-07-23) — the systemic fix; the whole tree's raison d'être.
+- **What landed:** a new maintained gate
+  `rust/scripts/bin_build_integrity_gate.sh` +
+  `make -C rust bin_build_integrity_gate`, doing two mechanical things:
+  1. **A coverage PROOF, first, before any build time is spent.** The
+     binary census is derived from `cargo metadata --no-deps` (NOT a
+     hand-list — that is what stops the census silently drifting out from
+     under the gate), and the gate asserts every declared binary's
+     `required-features` are satisfied by at least one planned
+     configuration. A new binary nobody planned for FAILS the gate by name,
+     with the exact remedy printed.
+  2. **`cargo check --all-targets` per configuration** — bins + lib +
+     tests + benches + examples, so a feature-gated test module (the `.5`
+     class) is swept by the same pass as a `required-features` bin (the
+     `.1` class).
+- **The configuration plan (5, each one the repo genuinely builds):**
+  `default` (feature `normal`); `bootstrap`
+  (`--no-default-features --features bootstrap`, the Makefile's
+  `ast_pipeline_bootstrap`); `generated_parsers` (the `focus_*` regen
+  path); `ebnf_dual_run` (the `.ebnf` frontend path); and
+  `generated_parsers ebnf_dual_run` (the documented dual-feature toolbox
+  binary). The plan lives in the script's `CONFIG_*` arrays with a
+  per-configuration "why the repo builds this" comment, so a configuration
+  that ceases to exist is removed rather than left to rot.
+- **Why a SET of configurations, not one union build (decided, not
+  defaulted):** `--all-features` is INVALID here (`mimalloc_perf` and
+  `never_free_arena_perf` both install a `#[global_allocator]`), and a
+  union build hides exactly the failure mode that rotted — code reachable
+  only under ONE feature. `.5` proved this twice: a cfg-gated test
+  appears/disappears with the feature set, so a union check can run 9/10
+  and report ok. The plan checks configurations the repo actually issues,
+  so each MUST compile.
+- **Not wired into `ci_workflow_local_gate` after all (the `.1` charter's
+  guess, corrected on cost evidence):** the full 5-configuration check
+  measured **~2 min for the dual configuration ALONE** and distinct
+  feature sets share no build artifacts, so folding it into that
+  frequently-run parity gate would make the common gate heavy. It is a
+  standalone maintained gate run under the memory guard instead — the
+  honest home for a heavy job.
+- **⭐ The gate's open question is now ANSWERED and CLOSED by `.5`:** yes,
+  cfg-gated TEST modules rot in the same hole; the `--all-targets` sweep
+  covers them, and `.5` is the worked instance.
+- **ACCEPTANCE CHECKLIST:**
+  - [x] **REPRODUCE / ISSUE** — the hole is demonstrated by its three
+    victims (`.1`/`.3`/`.5`), each a target that stopped compiling/running
+    with every battery still green; before this leaf, no maintained gate
+    built `--bins` or `--all-targets` under the non-default feature
+    combinations.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the systemic root cause stated in
+    this tree's header: `--lib`/`--tests` × default features is a strict
+    subset of the shipped surface (bins excluded always; `required-features`
+    bins and `#![cfg(feature)]` tests excluded under default features).
+  - [x] **FIX** — the gate above; a CHECK not a build (cheap-as-possible
+    for a heavy job), honest about feature combinations rather than the
+    union, run under the memory guard.
+  - [x] **ADDRESSED (verified, guarded)** — `make -C rust
+    bin_build_integrity_gate` exits 0: coverage proof green (**19 binaries,
+    `uncovered_bins: []`** — every declared binary, including the `.1`
+    victim `ebnf_dual_run_diff`, covered by ≥1 configuration), and all **5
+    configurations pass** (`default`, `bootstrap`, `generated_parsers`,
+    `ebnf_dual_run`, `generated_parsers+ebnf_dual_run`). ⭐ Earning this box
+    caught a real bug in the gate's OWN first draft: the dual configuration's
+    feature flags were space-separated in the plan string, which word-splits
+    to `--features generated_parsers ebnf_dual_run` and makes cargo read
+    `ebnf_dual_run` as a stray positional (`error: unexpected argument
+    'ebnf_dual_run' found`) — the gate correctly reported that configuration
+    as failing-to-compile; fixed by comma-joining the feature set
+    (`generated_parsers,ebnf_dual_run`, one argv token), re-run green. That
+    the gate flagged its own misconfiguration as a compile failure is the
+    strongest evidence it does what it claims.
+  - [x] **NO REGRESSION** — the gate is purely additive (a new script + a
+    new `make` target + a help line); it touches no Rust, grammar,
+    generated, or contract surface, so no parser, release, schema, or ledger
+    can move. Determinism: the coverage proof is a pure function of `cargo
+    metadata` (sorted output), and `cargo check` is deterministic on a fixed
+    tree. Cost (honest): fast on a warm tree (`cargo check`), heavy on a cold
+    one — the dual configuration alone measured ~2 min cold, and the five
+    feature sets share no build artifacts; run under the memory guard, not
+    in pre-commit.
+  - [x] **LOCKSTEP** — new gate documented in the book (operations &
+    governance → Build Integrity), Makefile help line, tree + TASK_TREE +
+    CHANGES / DEVELOPMENT_NOTES / MEMORY this commit.
 
 ### `.3` — `ebnf_frontend_dual_run_gate` has been RED since 2026-07-15 (second instance of the same silence)
 
@@ -429,6 +496,22 @@ would add compile cost for nothing.
 ## Acceptance Criteria (tree)
 
 1. Every tracked `[[bin]]` compiles under the feature combination it
-   declares (`.1` proves the current census; `.2` makes it standing).
+   declares (`.1` proved the census; `.2` makes it standing). ✅
 2. The proof is mechanical and part of a maintained gate, not a manual
-   `cargo check` someone happens to run (`.2`).
+   `cargo check` someone happens to run (`.2` — the gate derives the census
+   from `cargo metadata` and checks `--all-targets` per configuration). ✅
+3. **(Learned in-flight)** The same coverage extends to feature-gated TEST
+   modules, not just binaries — `.2`'s `--all-targets` sweep covers them and
+   `.5` is the worked instance; and every maintained GATE still RUNS (`.3`
+   restored `ebnf_frontend_dual_run_gate`; `.4` made its failures legible). ✅
+
+## Tree status
+
+All five leaves are `done` (`.1` binary repair, `.2` the standing gate,
+`.3` the RED gate's design call, `.4` the dead-diagnostics fix, `.5` the
+rotted integration test). The tree found and closed **three** independently
+rotted surfaces in one blind spot and left a maintained gate that makes the
+whole class un-rottable going forward. The gate is intentionally NOT in the
+pre-commit path (it is heavy); re-enabling it as an auto CI job is the E4
+"no matter what" backstop for this doctrine, tracked as a future ops slice
+alongside the other CI re-enablement work.

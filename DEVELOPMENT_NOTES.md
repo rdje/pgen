@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-23 - PGEN-BIN-BUILD-INTEGRITY-0007 — the standing gate: prove the census, then check it
+
+**The gate has two halves, and the order matters.** The obvious design is "loop over some
+feature sets and `cargo check --all-targets`". That is the second half. The first half is the
+one that makes the gate durable: **derive the binary census from `cargo metadata` and PROVE
+every declared binary is covered by at least one planned configuration, before spending a
+second of build time.** Without that proof, the gate rots the same way its victims did — someone
+adds a `required-features = ["something_new"]` binary, no configuration builds it, and the gate
+stays green while the binary never compiles. With the proof, that binary fails the gate BY NAME
+in the metadata step, with the fix printed. The census is the thing that must not be
+hand-maintained; everything else can be.
+
+**Why configurations, not `--all-features`.** Two reasons, both hard. `--all-features` is
+literally invalid in this crate — `mimalloc_perf` and `never_free_arena_perf` each install a
+`#[global_allocator]`, and you cannot have two. And even if you could, a union build defeats the
+purpose: the failure mode is code reachable only under ONE feature, which a union compiles right
+past. So the gate checks a fixed plan of five configurations, each annotated in the script with
+the concrete reason the repo builds it (default, bootstrap, focus regen, `.ebnf` frontend, dual
+toolbox). A configuration that stops existing should be deleted from the plan, not left to drift.
+
+**Where it does NOT go, and why that reversed the charter.** `.1` had guessed this belongs in
+`ci_workflow_local_gate` (the doc/allowlist parity gate) as a natural sibling. The cost
+measurement killed that: the dual configuration alone is ~2 minutes and the feature sets share
+no build artifacts, so five of them back-to-back is a genuinely heavy job. Folding that into a
+gate people run often would tax the common path to catch a rare rot. It is a standalone gate
+under the memory guard instead. The general lesson: "natural sibling" is a code-organization
+instinct; let measured cost, not tidiness, decide whether two checks share a home.
+
+**The honest limit, stated in the tree.** Like every gate here, its un-bypassable leg is CI
+(E4), and CI is currently manual. So this gate makes the rot *cheap to find on demand* and
+*impossible to reintroduce silently once someone runs it*, but the "no matter what" guarantee
+only lands when it is an auto CI job. That is recorded as the follow-up, not hidden.
+
 ## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0006 — the gate paid for itself before it landed
 
 **Three surfaces, one hole, one week apart.** A `required-features` binary (`.1`), a

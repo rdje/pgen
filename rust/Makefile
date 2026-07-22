@@ -486,6 +486,7 @@ help:
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
 	@echo "  branch_protection_contract_gate - Validate tracked branch-protection required-check contract vs workflows"
 	@echo "  ci_workflow_local_gate - Run tracked GitHub workflow gate commands from a tracked-only local export"
+	@echo "  bin_build_integrity_gate - Prove every declared binary compiles in every configuration this repo builds (heavy; run under the memory guard)"
 	@echo "  mdbook_docs_gate - Build the live mdBook documentation surface"
 	@echo "  regex_parser_book_gate - Build the standalone regex parser mdBook (RGX integration reference)"
 	@echo "  systemverilog_parser_book_gate - Build the standalone SystemVerilog parser mdBook (Nexsim integration reference)"
@@ -890,6 +891,15 @@ ci_workflow_local_gate:
 	@echo "🧪 Running local GitHub workflow parity gate..."
 	cd $(RUST_DIR) && ./scripts/ci_workflow_local_gate.sh
 	@echo "✅ Local GitHub workflow parity gate passed."
+
+# BIN-BUILD-INTEGRITY.2 — every declared binary must still COMPILE, in every
+# configuration this repository actually builds. HEAVY (one cargo check per
+# configuration): run it under the memory guard per the host-RAM directive.
+.PHONY: bin_build_integrity_gate
+bin_build_integrity_gate:
+	@echo "🔩 Running binary build-integrity gate (every bin, every configuration)..."
+	cd $(RUST_DIR) && ./scripts/bin_build_integrity_gate.sh
+	@echo "✅ Binary build-integrity gate passed."
 
 .PHONY: mdbook_docs_gate
 mdbook_docs_gate:

@@ -60,6 +60,54 @@ Two design rules from its verification history are worth teaching:
 - severity is never gated by verbosity: breach and warning lines always print;
   verbosity only governs informational sampling output.
 
+## Build Integrity (what the batteries compile is not what the repo ships)
+
+PGEN's test batteries build `--lib` and `--tests` under the *default* feature
+set. That is a strict subset of what the repository actually ships, in three
+independent ways:
+
+- a `[[bin]]` target is not built by `--lib` at all,
+- a binary that declares `required-features` is excluded from every
+  default-feature build,
+- a test file behind `#![cfg(feature = "…")]` compiles to an empty crate
+  unless that feature is on.
+
+Each exclusion is individually reasonable. Their intersection is a hole in
+which a target can stop compiling without any gate turning red — the failure
+is not an error, it is a *silence*, and it surfaces days later as "that tool
+is gone" rather than "a migration missed a call site". Three surfaces were
+found rotted in exactly this hole in July 2026: a feature-gated binary, a
+maintained gate script, and a ten-grammar integration test.
+
+The standing proof lane is:
+
+```bash
+scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 5400 -- \
+  make -C rust SHELL=/bin/bash bin_build_integrity_gate
+```
+
+It proves two things mechanically. First **coverage**: the binary census is
+derived from `cargo metadata`, never from a hand-maintained list, and every
+declared binary must be included in at least one checked configuration — a new
+binary whose feature requirements nothing satisfies fails the gate *by name*.
+Second **compilation**: each configuration is checked with `--all-targets`, so
+bins, tests, benches, and examples are all built.
+
+It checks a *set of configurations* rather than one union build, deliberately.
+A union is not expressible here (two allocator features are mutually
+exclusive), and more importantly it would hide the very failure mode that
+rotted: code reachable only under one feature. Each configuration in the plan
+is one this repository genuinely builds — the default build, the bootstrap
+path, the `focus_*` regen path, the `.ebnf` frontend path, and the documented
+dual-feature toolbox binary — so each has to compile. The plan is also what
+makes *execution* honest: a cfg-gated test can appear or disappear with the
+feature set, so a single configuration can run 9 of 10 tests and still report
+success.
+
+This is a heavy gate (one `cargo check` per configuration, and distinct
+feature sets share no build artifacts). It is a maintained gate, not a
+pre-commit hook.
+
 ## Documentation Governance
 
 The intended split is:
