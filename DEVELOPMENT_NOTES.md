@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0006 — the gate paid for itself before it landed
+
+**Three surfaces, one hole, one week apart.** A `required-features` binary (`.1`), a
+maintained gate script (`.3`), and now a feature-gated integration test (`.5`) all rotted in
+the same blind spot, and all three were invisible to a battery that reported green. The
+pattern is worth naming precisely, because it is not "we forgot to run something": it is that
+**the set of things the batteries compile is a strict subset of the things the repo ships**.
+`--lib` skips bins. `--lib` skips `tests/`. Default features skip everything behind
+`required-features` and `#![cfg(feature = ...)]`. Each exclusion is individually reasonable;
+the intersection of all of them is a hole you can drive a week of silence through.
+
+**How this one was found is the point.** It was not found by reading code. The `.2` gate's
+first configuration check — `cargo check --all-targets` under the dual feature set, run purely
+to MEASURE how long the gate would take — failed on its first invocation. An instrument built
+to close a hole discovered a third instance of the hole while being calibrated. That is the
+strongest possible argument for landing it, and it is why the measurement step came before the
+design was finalized rather than after.
+
+**The tenth call site taught the design something.** Nine of the ten repaired sites run under
+`--features generated_parsers`; the tenth (`auto_gate_ebnf_inventory_wide_shape`) is
+additionally `#[cfg(feature = "ebnf_dual_run")]`, so a single-feature run silently exercises
+9/10 and reports "ok". Verification therefore ran twice, and `.2`'s configuration plan is
+justified twice over: a union build is not merely unfaithful to how the repo builds, it is not
+even sufficient to EXECUTE everything, because cfg-gated tests appear and disappear with the
+feature set. Any future "just check one big configuration" simplification of that gate should
+be refused on this evidence.
+
+**Fix discipline.** The repair is the same tier as `.1` — migrate the call sites, change
+nothing else. Two temptations were declined: reformatting the file (rustfmt would have churned
+50 lines; the file was never fmt-clean and the repo has no fmt gate, so that churn would have
+buried a 10-line fix), and shortening a logger channel name to fit a line under 100 columns
+(that renames an observability channel to serve cosmetics — wrap the call instead).
+
 ## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0005 — how to decide a design call when both arms "work"
 
 **The trap in this leaf was that BOTH options produced a green gate.** (a) build the pipeline

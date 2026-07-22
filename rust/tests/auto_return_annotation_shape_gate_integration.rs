@@ -83,7 +83,9 @@ fn auto_gate_regex_inventory_wide_shape() {
         "(a|b)*c".into(), // nested groups + quantifier
     ];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
-        let mut parser = RegexParser::new(input, runtime_logger_box("auto_gate.regex"));
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
+        let mut parser =
+            RegexParser::new(input, &node_arena, runtime_logger_box("auto_gate.regex"));
         let parsed = parser
             .parse_full_regex()
             .map_err(|err| err.to_string())?;
@@ -118,8 +120,10 @@ fn auto_gate_return_annotation_inventory_wide_shape() {
         "\"hello\"".into(),
     ];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
         let mut parser = Return_annotationParser::new(
             input,
+            &node_arena,
             runtime_logger_box("auto_gate.return_annotation"),
         );
         let parsed = parser
@@ -146,8 +150,10 @@ fn auto_gate_semantic_annotation_inventory_wide_shape() {
         "@throws: error_type".into(),
     ];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
         let mut parser = Semantic_annotationParser::new(
             input,
+            &node_arena,
             runtime_logger_box("auto_gate.semantic_annotation"),
         );
         let parsed = parser
@@ -169,8 +175,13 @@ fn auto_gate_rtl_const_expr_inventory_wide_shape() {
     .expect("rtl_const_expr inventory");
     let samples: Vec<String> = vec!["1".into(), "1+2".into(), "1*(2+3)".into(), "a&b".into()];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
         let mut parser =
-            RtlConstExprParser::new(input, runtime_logger_box("auto_gate.rtl_const_expr"));
+            RtlConstExprParser::new(
+                input,
+                &node_arena,
+                runtime_logger_box("auto_gate.rtl_const_expr"),
+            );
         let parsed = parser
             .parse_full_rtl_const_expr()
             .map_err(|err| err.to_string())?;
@@ -190,8 +201,13 @@ fn auto_gate_rtl_frontend_inventory_wide_shape() {
     .expect("rtl_frontend inventory");
     let samples: Vec<String> = vec!["module m; endmodule\n".into()];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
         let mut parser =
-            RtlFrontendParser::new(input, runtime_logger_box("auto_gate.rtl_frontend"));
+            RtlFrontendParser::new(
+                input,
+                &node_arena,
+                runtime_logger_box("auto_gate.rtl_frontend"),
+            );
         let parsed = parser
             .parse_full_rtl_frontend_file()
             .map_err(|err| err.to_string())?;
@@ -219,7 +235,8 @@ fn auto_gate_json_inventory_wide_shape() {
         "{\"a\": [1, 2, {\"b\": null}]}".into(),
     ];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
-        let mut parser = JsonParser::new(input, runtime_logger_box("auto_gate.json"));
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
+        let mut parser = JsonParser::new(input, &node_arena, runtime_logger_box("auto_gate.json"));
         let parsed = parser
             .parse_full_json()
             .map_err(|err| err.to_string())?;
@@ -238,7 +255,8 @@ fn auto_gate_vhdl_inventory_wide_shape() {
             .expect("vhdl inventory");
     let samples: Vec<String> = vec!["entity e is end e;\n".into()];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
-        let mut parser = VhdlParser::new(input, runtime_logger_box("auto_gate.vhdl"));
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
+        let mut parser = VhdlParser::new(input, &node_arena, runtime_logger_box("auto_gate.vhdl"));
         let parsed = parser
             .parse_full_vhdl_file()
             .map_err(|err| err.to_string())?;
@@ -258,8 +276,10 @@ fn auto_gate_systemverilog_preprocessor_inventory_wide_shape() {
     .expect("systemverilog_preprocessor inventory");
     let samples: Vec<String> = vec!["`define FOO 1\n".into()];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
         let mut parser = SystemverilogPreprocessorParser::new(
             input,
+            &node_arena,
             runtime_logger_box("auto_gate.systemverilog_preprocessor"),
         );
         let parsed = parser
@@ -287,7 +307,13 @@ fn auto_gate_systemverilog_inventory_wide_shape() {
     // the wrapping goes — that's exactly what it was designed for.
     let samples: Vec<String> = vec!["module m; endmodule\n".into()];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
-        let mut parser = SystemverilogParser::new(input, runtime_logger_box("auto_gate.systemverilog"));
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
+        let mut parser =
+            SystemverilogParser::new(
+                input,
+                &node_arena,
+                runtime_logger_box("auto_gate.systemverilog"),
+            );
         let parsed = parser
             .parse_full_systemverilog_file()
             .map_err(|err| err.to_string())?;
@@ -315,7 +341,8 @@ fn auto_gate_ebnf_inventory_wide_shape() {
         "rule_d := 'x'+ .\n".into(),
     ];
     let report = run_inventory_wide_auto_gate(&inv, &samples, |input| {
-        let mut parser = EbnfParser::new(input, runtime_logger_box("auto_gate.ebnf"));
+        let node_arena = pgen::ast_pipeline::NodeArena::new();
+        let mut parser = EbnfParser::new(input, &node_arena, runtime_logger_box("auto_gate.ebnf"));
         let parsed = parser
             .parse_full_grammar_file()
             .map_err(|err| err.to_string())?;

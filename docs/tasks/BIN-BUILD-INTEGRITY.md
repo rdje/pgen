@@ -350,6 +350,82 @@ would add compile cost for nothing.
     gate's command, contract, and verdicts are unchanged — only its
     stderr on failure.
 
+### `.5` — A `generated_parsers`-only INTEGRATION TEST has not compiled since 2026-07-12
+
+- **Status: `in_progress`** (opened 2026-07-22, session #197) — found by
+  `.2`'s own instrument before that gate had even landed, which is the
+  strongest possible argument for the gate.
+- **This ANSWERS `.2`'s open question** ("whether the same hole exists for
+  `#[cfg(feature = ...)]` TEST modules") — **yes, measured, with an
+  instance**: `rust/tests/auto_return_annotation_shape_gate_integration.rs`
+  carries `#![cfg(feature = "generated_parsers")]` (`:26`), so it compiles
+  to an empty crate under the default features that plain `cargo test`
+  uses, while every battery that DOES enable `generated_parsers` builds
+  `--lib` and never `--tests`. The intersection is empty: nothing in the
+  repository compiles this file.
+- **ROOT CAUSE (WHY + WHERE):** commit `961b1781` (2026-07-12,
+  `PGEN-RGX-0078-0031`, the node-arena landing that bought regex −21.9%)
+  gave every generated parser's constructor a second parameter —
+  `pub fn new(input: &'input str, arena: &'input NodeArena<'input>, logger:
+  Box<dyn Logger>)` (e.g. `generated/regex_parser.rs:1065`). In-tree
+  callers were migrated to the house idiom (`parser_registry.rs:522`+:
+  `let node_arena = crate::ast_pipeline::NodeArena::new();` then
+  `&node_arena`), but this test file — last touched 2026-04-27 — was not.
+  Compiler-pinned: **10 × `error[E0061]: this function takes 3 arguments
+  but 2 arguments were supplied`, "argument #2 of type `&NodeArena<'_>` is
+  missing"**, at `:86`, `:121`, `:149`, `:173`, `:194`, `:222`, `:241`,
+  `:261`, `:290`, `:318` — one per grammar the gate covers.
+- **Why this one matters more than a stale test:** the file is the
+  per-grammar integration proof for the auto-generated return-annotation
+  shape gate across TEN grammars (regex, return_annotation,
+  semantic_annotation, rtl_const_expr, rtl_frontend, json, vhdl,
+  systemverilog_preprocessor, systemverilog, ebnf). Ten days of "green"
+  batteries never ran it once.
+- **FIX (level: source call-site, the same narrowest level as `.1`):** apply
+  the house idiom at each of the 10 sites — `let node_arena =
+  pgen::ast_pipeline::NodeArena::new();` then pass `&node_arena` as
+  argument 2, mirroring `parser_registry.rs:522`+ verbatim. The arena is
+  constructed INSIDE each parse closure, so it outlives the parser and is
+  dropped per sample; `to_json_value()` returns an owned value before the
+  borrow ends. No test logic, sample, assertion, or logger channel changed —
+  the diff is 10 arena constructions, 10 argument insertions, and the line
+  wraps they force.
+- **⭐ The tenth site needs BOTH features:** `auto_gate_ebnf_inventory_wide_shape`
+  is additionally `#[cfg(feature = "ebnf_dual_run")]` (`:325`), so a
+  `generated_parsers`-only run compiles and runs only 9 of the 10. That is
+  a second, independent argument for `.2` checking CONFIGURATIONS rather
+  than one union build — and it is why the verification below was run
+  twice.
+- **ACCEPTANCE CHECKLIST:**
+  - [x] **REPRODUCE / ISSUE** — `cargo check --all-targets --features
+    "generated_parsers ebnf_dual_run"` fails:
+    `error: could not compile pgen (test
+    "auto_return_annotation_shape_gate_integration") due to 10 previous
+    errors` (guarded run, 126 s, peak 12,096 MB).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — compiler-pinned above: 10 ×
+    `error[E0061] … argument #2 of type &NodeArena<'_> is missing`, each
+    line named, against the constructor signature `961b1781` introduced on
+    2026-07-12 (`generated/regex_parser.rs:1065`); the file's own
+    `#![cfg(feature = "generated_parsers")]` (`:26`) plus the batteries'
+    `--lib`-only habit is the exact reason nothing surfaced it.
+  - [x] **ADDRESSED (verified, before → after)** — before: 10 compile
+    errors, test never built. After, run TWICE: under
+    `--features generated_parsers`, **9 passed / 0 failed** (the ebnf case
+    correctly excluded by its own cfg); under
+    `--features "generated_parsers ebnf_dual_run"`, **10 passed / 0
+    failed** — every repaired call site executed, not merely compiled.
+    Guarded (207 s / 10,839 MB and 216 s / 11,520 MB).
+  - [x] **NO REGRESSION** — `clippy_on_rust_change` source-strict PASS
+    (generated-stage tracked debt unchanged at 291, still entirely under
+    `generated/`); no library, grammar, generated artifact, or contract
+    surface touched — the change lives entirely inside one integration
+    test, so no parser, release, schema, or ledger can move; the tests
+    themselves are the oracle and they pass on real generated parsers
+    across all ten grammars.
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + CHANGES /
+    DEVELOPMENT_NOTES / MEMORY this commit. No book/contract surface: a
+    test regained its ability to compile; no documented behavior changed.
+
 ## Acceptance Criteria (tree)
 
 1. Every tracked `[[bin]]` compiles under the feature combination it
