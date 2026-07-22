@@ -19,3 +19,12 @@ old --argjson output vs new --slurpfile output: BYTE-IDENTICAL (1,064,756 B)
 
 ## End-to-end confirmation (in flight at commit time)
 full guarded gate re-run, fixed script, LONGER state dir rust/target/sv_stimuli_quality_gate_rebaseline_argmax_fix_verification -> expect exit 0 + gap artifacts byte-identical to the deterministic baseline
+
+## END-TO-END CONFIRMATION (run 3, fixed script) — 2026-07-22 02:08
+guard marker: status=completed exit=0, elapsed 1,922 s, peak 12,647 MB (budget 16384), state dir = ..._argmax_fix_verification (LONGER than the failing run's)
+all four gap artifacts BYTE-IDENTICAL to the deterministic baseline (third independent run): 2659/59/2735/61
+summary totals identical to run-1: closed_loop_initial_targets_total=5394, closed_loop_replay_targets_total=120, profiles 2/2 PASS
+
+## Corrected log observation (hardening input)
+the ~35 GB/run parseability-shadow trace logs are written UNCONDITIONALLY (success path keeps them too — this green run held 37 GB until manual pruning);
+prior sessions' small default state dir was manual hygiene, not gate cleanup. Log gating/rotation joins the sibling-hardening follow-up.

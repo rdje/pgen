@@ -137,7 +137,15 @@ GONE from today's list; the population has genuinely shifted.
 
 ### `.1b` — Gate-script ARG_MAX robustness fix (code; found by `.1` run 2)
 
-- **Status: `in_progress`** (`PGEN-SV-REPLAY-DEBT-0002`, session #190).
+- **Status: `done`** (`PGEN-SV-REPLAY-DEBT-0002` fix / `-0003` end-to-end close,
+  session #190). **END-TO-END CONFIRMED: the fixed gate ran GREEN (exit 0,
+  1,922 s, peak 12,647 MB) at a state dir LONGER than the failing run's; all
+  four gap artifacts BYTE-IDENTICAL to the deterministic baseline (a THIRD
+  independent reproduction — determinism triple-confirmed); summary totals
+  identical to run-1 (5394 / 120, profiles 2/2).** Corrected observation
+  banked: the ~35 GB/run shadow trace logs are written UNCONDITIONALLY (the
+  success path keeps them too) — log gating/rotation joins the
+  sibling-hardening follow-up alongside the 10-site `--argjson` census.
 - **The defect:** `rust/scripts/sv_stimuli_quality_gate.sh` passes the ENTIRE
   realistic-corpus per-case JSON array as ONE `jq --argjson` command-line
   argument (`:2793`, program at `:2764`). Measured: macOS `ARG_MAX=1,048,576`;
@@ -166,8 +174,8 @@ GONE from today's list; the population has genuinely shifted.
   - [x] **REPRODUCE / ISSUE** — the run-2 production failure (`jq: Argument list too long`, make Error 126, guard exit=2 at 1,845 s) + standalone repro on run-2's exact jsonl: the old `--argjson` shape exits 126 with the identical message (`argmax_fix_standalone_verification.txt`).
   - [x] **ROOT CAUSE (WHY + WHERE)** — `--argjson cases "$realistic_cases_json"` (`sv_stimuli_quality_gate.sh:2793`, program `:2764`) puts the ~1 MB cases array on execve argv: measured 1,034,802 B (run 2) vs `ARG_MAX=1,048,576` with env ⇒ E2BIG; run 1's 1,002,686 B passed with <46 KB headroom by luck.
   - [x] **FIX** — script-only, minimal: materialize `jq -s` into `<jsonl>.aggregate.json` (with the `[]` empty-guard) and pass via `--slurpfile cases_slurp` + `cases: $cases_slurp[0]`; `bash -n` clean.
-  - [x] **ADDRESSED (verified)** — before→after on the symptom: old shape exit 126 on run-2's jsonl → fixed shape exit 0 on the SAME input (1,096,872 B emitted). End-to-end confirmation: the full guarded gate re-run at the LONGER state dir `..._argmax_fix_verification` (in flight at commit time; its exit-0 + artifact byte-compare recorded here on completion).
-  - [x] **NO REGRESSION** — byte-identity oracle: on run-1's data (old form still works there) the old and new mechanisms emit BYTE-IDENTICAL JSON (1,064,756 B, `cmp` clean); the in-flight re-run additionally byte-compares gap artifacts vs the deterministic baseline.
+  - [x] **ADDRESSED (verified)** — before→after on the symptom: old shape exit 126 on run-2's jsonl → fixed shape exit 0 on the SAME input (1,096,872 B emitted). END-TO-END EARNED: the full guarded gate re-run at the LONGER state dir exited 0 (marker `status=completed exit=0`, 1,922 s).
+  - [x] **NO REGRESSION** — byte-identity oracle: on run-1's data the old and new mechanisms emit BYTE-IDENTICAL JSON (1,064,756 B, `cmp` clean); AND the green re-run's four gap artifacts are BYTE-IDENTICAL to the deterministic baseline with summary totals matching run-1 (5394/120, 2/2).
   - [x] **LOCKSTEP** — CHANGES.md entry; no user-facing surface/book change (internal gate-script robustness).
 
 ### `.2` — Burn-down scoping from the VERIFIED baseline (design, pure-docs)
