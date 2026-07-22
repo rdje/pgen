@@ -934,16 +934,42 @@ coverage.
   - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
     DEVELOPMENT_NOTES/LIVE this commit.
 
-##### `.8c.3` — br_gh330 debug-stack engine follow-up (todo)
+##### `.8c.3` — the recursion ceiling must bound the REAL stack (measured; implementation todo)
 
-- **Status: `todo`** (split from `.8c.2`(c) for one-commit-one-defect) —
-  `ivtest/ivltests/br_gh330.v` (~600-line chained ternary) KILLS the
-  debug-build probe with a REAL stack overflow (rc 134, BOTH profiles)
-  while release exits 0 — the
-  [[feedback_recursion_ceiling_must_bound_real_stack]] class: make the
-  recursion ceiling bound the REAL stack (prefer an O(n) boundary
-  pre-check) so debug builds refuse gracefully; the manifest's
-  `divergence:unexplained_crash` row then re-adjudicates on measurement.
+- **Status: `in_progress`** — measurement + design DONE
+  (`PGEN-SV-CORPUS-GRAD-0014`, session #195, read-only; evidence
+  `docs/tasks/artifacts/sv_corpus_grad/8c3_stack_ceiling_measurement.md`);
+  the implementation is the next slice (fresh focused session — code +
+  probe rebuilds + crash-row re-adjudication + battery).
+- **⭐⭐ MEASURED ESCALATION — the `.8c.1` "debug-build robustness" framing
+  UNDERSTATED the class: the RELEASE build ALSO hard-aborts.** A ~400-deep
+  parenthesized expression (≈4 KB of text) stack-overflows the release
+  probe at the default 8 MB main stack (rc 134, uncatchable SIGABRT); the
+  `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096` clean ceiling NEVER fires
+  for SV in EITHER build mode (release accepted N=380 parens without
+  firing; guard page kills at N≈390 — crash-before-ceiling, the exact
+  [[feedback_recursion_ceiling_must_bound_real_stack]] scenario, proven
+  for the flagship family in the shipping build mode; a process-abort
+  class at the Nexsim embedding boundary).
+- **Measured constants (ulimit-controlled, both modes):** per paren level
+  release ≈21 KB / debug ≈180 KB (≈10–11 logical frames/level ⇒ ≈2 KB vs
+  ≈17 KB per frame); ceiling-real stack need ≈8 MB release / ≈70 MB
+  debug. br_gh330 (600 ternaries): debug CRASH at 8 MB → **ACCEPT rc 0 at
+  16 MB** (matches release) ⇒ the crash row converts to a match on
+  measurement once the fix lands (v2005 150 → 149).
+- **Design (banked):** generalize the PGEN-RGX-0085 `GeneratedRegexWorker`
+  model — run generated-parser parses at the integration/instrument
+  boundaries (`parseability_probe`, `ast_pipeline` CLI drivers,
+  embedding-API family entries) on a dedicated **256 MiB-stack** worker
+  thread so the EXISTING 4096 ceiling provably fires before the guard
+  page in BOTH modes with ≥2× margin. Zero hot-path cost (nothing inside
+  the parse loop changes ⇒ zero regex-floor risk); parser-agnostic
+  boundary locus; the shared ceiling constant untouched. Rejected: SV
+  O(n) nesting pre-check (no sound bracket proxy for ternary chains);
+  in-loop remaining-stack check (hot-path cost every family); lowering
+  the ceiling (br_gh330 is REAL corpus needing ~1000+ frames).
+  Regression oracle: the deep-parens synthetic must yield a graceful
+  recursion diagnostic, never rc 134, at every boundary in both modes.
 
 ### `.9` — Gap-driven acquisition/crafting loop to 100%
 

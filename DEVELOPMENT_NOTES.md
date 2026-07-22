@@ -1,5 +1,26 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0014 — measure the crash class before fixing it: "debug-only" was wrong by a build mode
+
+**Re-measure the class boundary before designing the fix.** The `.8c.1` finding read as
+"debug-build robustness" because the one corpus witness (br_gh330, 600 chained ternaries) crashed
+debug and passed release. Ternaries turn out to be the CHEAP construct (~2–3 KB release /
+~27 KB debug per level); nested parentheses re-enter the full expression cascade and cost ~10×
+more per level (~21 KB release / ~180 KB debug) — so a 400-paren, 4 KB input aborts the RELEASE
+process too. One corpus file is a sample, not the class boundary: bisect the construct space
+(ulimit × build-mode × depth) before framing severity. The 4096-frame ceiling never fires for SV
+in either mode — for the ceiling to be real it needs ≈8 MB (release) / ≈70 MB (debug) of stack,
+and the default main thread has 8 MB.
+
+**The fix locus is the boundary, not the loop.** Three candidate shapes were priced against the
+standing laws: an SV O(n) nesting pre-check fails (ternary chains nest bracket-free — no sound
+scan proxy, unlike regex parens); an in-recursion remaining-stack check touches every family's
+hot path (regex floor guardrail risk); lowering the shared ceiling rejects real corpus (br_gh330
+needs ~1000+ frames legitimately). The surviving shape is PGEN-RGX-0085's own model generalized:
+a dedicated big-stack worker thread at each integration/instrument boundary, sized so the
+EXISTING ceiling provably fires first (256 MiB ≥ 2× the measured debug need). Virtual
+reservation costs nothing until committed; the parse loop is untouched.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0013 — the BNF-as-written outranks the suite's own errata; and 1364's "exactly one statement" task body
 
 **The errata's author is not the adjudicator.** The ispras `KNOWN_TEXT_BUGS` file flags
