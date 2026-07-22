@@ -1,5 +1,30 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0001 — what the batteries build is not what the repo ships
+
+**The blind spot, stated precisely: `--lib`/`--tests` × default features is not the shipped
+surface.** A `[[bin]]` with `required-features` is invisible to every default build, so a type
+migration can land, pass the full battery, pass clippy, pass CI — and leave that binary
+uncompilable for a week. That is what `-0212` did to `ebnf_dual_run_diff` (its `span_start`/
+`span_end: Option<usize>` report fields kept taking `node.span.start`, which became `u32`).
+The tell is worth remembering: the compiler error was trivial, but NOTHING surfaced it — a
+build-coverage hole is not a hard failure, it is a silence. Two lessons landed here. **First,
+when you find one instance, look for the second** — verifying the repair immediately exposed
+that `ebnf_frontend_dual_run_gate` has ALSO been red since 2026-07-15 (the gate builds an
+`ebnf_dual_run`-only `ast_pipeline` and then asks it to generate a parser for an
+annotation-bearing grammar, which `200cae5b` had just made a hard refusal; the gate script had
+not been edited since April, so it never learned). Same blind spot, different surface: nobody
+runs it. That pair is why the systemic leaf is scoped to *every maintained gate still runs*,
+not just *every binary still compiles*. **Second, prove the innocence of your in-flight change
+before blaming the environment or excusing the failure.** The gate failed inside a session that
+had just wrapped `ast_pipeline`'s `main` in a dedicated thread — the tempting story was "my
+change broke it." The decisive, cheap disproof was to run the failing step directly: it emitted
+an application-level refusal about annotation backends and feature flags, and the SAME binary
+completed it at exit 0 under the documented override. A threading defect is not cured by an env
+var about annotation backends. Also recorded: running that gate REPLACES `target/debug/
+ast_pipeline` with an `ebnf_dual_run`-only build, so the dual-feature binary the harness
+requires must be rebuilt afterwards — the standing trap in MEMORY, hit again.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0015 — a recursion ceiling is only as real as the stack under it: fix the BOUNDARY, not the loop
 
 **The lesson generalized from RGX-0085 held for the whole platform.** A clean in-engine
