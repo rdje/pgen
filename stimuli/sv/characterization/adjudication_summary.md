@@ -9,7 +9,7 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
 | ispras-sv-tests | 1266 | 687 | 117 | 16 | 446 |
-| iverilog | 3799 | 739 | 38 | 208 | 2814 |
+| iverilog | 3799 | 1015 | 45 | 208 | 2531 |
 | opentitan | 3983 | 0 | 0 | 8 | 3975 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
@@ -18,7 +18,7 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 111 | 13 | 6 | 22 |
 | verilator | 3263 | 1948 | 226 | 961 | 128 |
-| **total** | **16336** | **5290** | **557** | **1435** | **9054** |
+| **total** | **16336** | **5566** | **564** | **1435** | **8771** |
 
 ## Verdict-class detail
 
@@ -26,7 +26,6 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 |---|---|
 | deferred:chained_only | 5267 |
 | deferred:impl_varying | 90 |
-| deferred:negative_stage_triage | 283 |
 | deferred:ni_unimplemented | 6 |
 | deferred:no_sv_key | 743 |
 | deferred:svpp_owned | 186 |
@@ -36,9 +35,9 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_svpp_include | 142 |
 | divergence:explained_svpp_macro_use | 1074 |
 | divergence:explained_timeout | 9 |
-| divergence:unexplained_accepts_invalid | 17 |
-| divergence:unexplained_rejects_valid | 540 |
-| match | 5290 |
+| divergence:unexplained_accepts_invalid | 21 |
+| divergence:unexplained_rejects_valid | 543 |
+| match | 5566 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**557**: rejects-valid 540, accepts-invalid 17). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**564**: rejects-valid 543, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

@@ -7,7 +7,8 @@ adjudication manifest the graduation campaign burns down from
 (docs/tasks/SV-CORPUS-GRAD.md leaf .2; ADD-v1 suites + uvm-core fold = leaf .8;
 deep answer-key extraction - Surelog golden logs, sv2v error-pattern stage
 classification, ivtest vvp_tests JSON descriptors = leaf .8b.1; per-file
-pinned stage adjudication of the ispras NEGATIVE + sv2v residue = leaf .8b.2).
+pinned stage adjudication of the ispras NEGATIVE + sv2v residue = leaf .8b.2;
+clustered stage pins for the ivtest CE-without-gold population = leaf .8b.3).
 
 Doctrine (corpus-expected-from-SPEC, never from the fix):
   Every expected verdict is derived ONLY from suite metadata / upstream driver
@@ -381,6 +382,392 @@ def expect_ispras(relpath: str, text: str):
 
 IVTEST_TYPES = {"normal", "CE", "CO", "EF", "RE", "NI"}
 
+# ivtest CE-without-gold stage pins (leaf .8b.3): the 283 CE rows whose upstream
+# key (regress-sv.list entry or vvp_tests descriptor) encodes the compile-error
+# INTENT but not its stage. Every file was read and adjudicated against the
+# IEEE 1800-2017 LRM's BNF-vs-prose split (in-repo docs/systemverilog/2017/md,
+# Annex A dump in section-41-data-read-api.md, incl. the normative Annex A
+# footnotes per the banked .8b.2 footnote law). must_accept = the committed
+# text is BNF-parseable and the intended invalidity is a prose "shall"
+# (semantic/elaboration stage, or an iverilog-specific check); must_reject =
+# the text violates the Annex A BNF, a normative footnote, or (edition law)
+# uses 1800-2023-only syntax judged in this sv_2017 lane. Clusters keep the
+# shared LRM ground in one place; the flatten below audits count + duplicates.
+IVTEST_CE_STAGE_CLUSTERS = [
+    # --- parse-level rejects (Annex A BNF / normative footnotes) -------------
+    ("must_reject",
+     "single-expression / '$' / unsized packed dimensions - A.2.5 "
+     "packed_dimension ::= [constant_range] | unsized_dimension; a lone "
+     "expression is not a constant_range, '$' is not a constant_primary "
+     "(A.8.4), and footnote 20 permits unsized '[]' only as the sole packed "
+     "dimension of a DPI import declaration",
+     ["br_ml20181012a", "br_ml20181012b", "br_ml20181012c",
+      "packed_dims_invalid_class", "packed_dims_invalid_module",
+      "enum_dims_invalid"]),
+    ("must_reject",
+     "enum base type outside A.2.2.1 enum_base_type - 'real'/'string' "
+     "keywords match no alternative, and integer_vector_type admits at most "
+     "ONE optional packed_dimension (two-dimension base has no production)",
+     ["enum_base_fail_real1", "enum_base_fail_string1",
+      "enum_base_fail_range3"]),
+    ("must_reject",
+     "declaration in a structurally illegal context - the A.4.2 "
+     "generate_item -> module_or_generate_item -> module_common_item chain "
+     "and A.1.11 package_or_generate_item_declaration admit neither "
+     "module_declaration nor timeunits_declaration inside generate blocks; "
+     "A.1.7 non_port_program_item admits neither module_declaration nor "
+     "always_construct inside program blocks",
+     ["generate_module", "generate_timeunit", "program5a", "program_hello2"]),
+    ("must_reject",
+     "net declaration dimensions - A.2.4 net_decl_assignment admits only "
+     "unpacked_dimension ([constant_range] | [constant_expression]); '[]' is "
+     "unsized_dimension (not admitted) and '$' is not a constant_primary, so "
+     "'wire x[];' / 'wire x[$];' match no production",
+     ["net_darray_fail", "net_queue_fail"]),
+    ("must_reject",
+     "normative Annex A footnote violations (the .8b.2 footnote law) - "
+     "fn 10: 'automatic' is illegal in a data_declaration outside a "
+     "procedural context, and omitting the explicit data_type before a "
+     "list_of_variable_decl_assignments is illegal unless 'var' is used; "
+     "fn 18: a defaultless parameter is legal only within a "
+     "parameter_port_list",
+     ["parameter_no_default_fail2", "sv_package_implicit_var1",
+      "sv_package_implicit_var2", "sv_package_lifetime_fail"]),
+    ("must_reject",
+     "positional argument after a named argument - A.8.2 list_of_arguments: "
+     "once a '. identifier ( ... )' member appears, only further named "
+     "members may follow (the positional-then-named order IS legal, the "
+     "reverse is not)",
+     ["sv_named_arg_base_fail4", "sv_named_arg_chained_fail4",
+      "sv_named_arg_func_fail4", "sv_named_arg_new_fail4",
+      "sv_named_arg_task_fail4"]),
+    ("must_reject",
+     "1800-2023-only syntax judged in the sv_2017 lane (edition law, the "
+     "opposite face of the .8b.1 1364->1800 rule) - 2017 A.2.2.1 "
+     "struct_union ::= struct | union [tagged] (no 'soft'), and 2017 "
+     "parameter_declaration admits 'parameter type list_of_type_assignments' "
+     "with no enum/struct/union/class restriction keyword",
+     ["sv_soft_packed_union_fail1",
+      "sv_type_param_restrict_class_fail1", "sv_type_param_restrict_class_fail2",
+      "sv_type_param_restrict_enum_fail1", "sv_type_param_restrict_enum_fail2",
+      "sv_type_param_restrict_struct_fail1", "sv_type_param_restrict_struct_fail2",
+      "sv_type_param_restrict_union_fail1", "sv_type_param_restrict_union_fail2"]),
+    ("must_reject",
+     "assorted single-production BNF violations - 'real [1:0]' (A.2.2.1 "
+     "data_type gives non_integer_type NO packed_dimension); non-ANSI "
+     "'input x;' inside 'function new' (A.1.9 class_constructor_declaration "
+     "body admits only block_item_declaration, no tf_port_declaration); a "
+     "block_item_declaration after a null statement (A.6.3 seq_block puts "
+     "all declarations before statements); 'defparam m.T = real;' (A.2.4 "
+     "defparam_assignment RHS is a constant_mintypmax_expression - the "
+     "keyword 'real' matches no expression production); 'for (var [7:0] i "
+     "= 0;...)' (A.6.8 for_variable_declaration requires an explicit "
+     "data_type); '#( inout var x )' (A.1.3 parameter_port_declaration "
+     "admits no port direction); non-ANSI 'inout var x;' (A.2.1.2 "
+     "inout_declaration takes a net_port_type, which has no var form)",
+     ["sv_array_cassign_fail5", "sv_class_constructor_fail",
+      "sv_declaration_after_null_statement_fail", "sv_type_param_fail2",
+      "sv_var_for_fail", "sv_var_module_inout1", "sv_var_module_inout2"]),
+    # --- parse-level accepts (prose "shall" rules / semantics / tool checks) -
+    ("must_accept",
+     "always_comb/always_ff/always_latch content and sensitivity rules - "
+     "A.6.2 always_construct ::= always_keyword statement; the bans on "
+     "blocking timing controls, event controls, fork/join and the "
+     "exactly-one-event-control requirement are 9.2.2.2-9.2.2.4 prose",
+     ["always_comb_fail", "always_comb_fail3", "always_comb_fail4",
+      "always_ff_fail", "always_ff_fail2", "always_ff_fail3",
+      "always_ff_fail4", "always_ff_no_sens", "always_latch_fail",
+      "always_latch_fail3", "always_latch_fail4", "always_latch_no_sens"]),
+    ("must_accept",
+     "'always fork ... join_any/join_none' zero-time loop - ordinary A.6.2/"
+     "A.6.3 statement BNF; the CE is iverilog's always-does-not-advance-time "
+     "diagnostic (tool/semantic stage)",
+     ["always4A", "always4B"]),
+    ("must_accept",
+     "assignments touching automatic-lifetime variables (NBA to automatic "
+     "struct field / class handle, procedural assign/force referencing an "
+     "automatic) - 6.21/10.6.1 prose; the statements are ordinary BNF",
+     ["automatic_error14", "automatic_error15", "automatic_error16",
+      "automatic_error17", "automatic_error18",
+      "sv_assign_pattern_auto_force_fail"]),
+    ("must_accept",
+     "intended elaboration-time $fatal - A.1.4 module_common_item admits "
+     "elaboration_system_task; the compile error IS the intended semantics",
+     ["br_gh1029"]),
+    ("must_accept",
+     "enum value/compatibility semantics (implicit casts to enum, duplicate "
+     "or X/size-mismatched enum constants, $time as an enum value) - 6.19.x "
+     "prose value rules; declarations and assignments are ordinary BNF",
+     ["br_gh130a", "br_gh386c", "enum_compatibility_fail1",
+      "enum_compatibility_fail2", "enum_compatibility_fail3",
+      "enum_compatibility_fail4", "enum_compatibility_fail5",
+      "enum_compatibility_fail6", "enum_compatibility_fail7",
+      "enum_compatibility_fail8", "enum_test3", "enum_test5", "enum_test6",
+      "enum_test7", "pr3366217g"]),
+    ("must_accept",
+     "super.new not the first constructor statement - 8.15 prose ordering "
+     "rule; every statement is ordinary BNF",
+     ["br_gh390a"]),
+    ("must_accept",
+     "name/function resolution semantics (undefined function in a constant "
+     "expression, hierarchical access to imported identifiers, "
+     "package-scoped lookup crossing the package boundary, calling a "
+     "variable/task as a function, ambiguous wildcard imports) - 26.3/26.4 "
+     "and 13.x resolution rules, all post-parse",
+     ["br_gh699", "sv_import_hier_fail1", "sv_import_hier_fail2",
+      "sv_import_hier_fail3", "sv_ps_function_fail1", "sv_ps_function_fail2",
+      "sv_ps_function_fail3", "sv_ps_hier_fail1", "sv_ps_hier_fail2",
+      "sv_wildcard_import5"]),
+    ("must_accept",
+     "member select on a type without that member - member resolution "
+     "semantics; hierarchical/member lvalues are A.8.5 BNF",
+     ["br_gh823a", "br_gh823b", "sv_bad_member_lval_proc_fail"]),
+    ("must_accept",
+     "generate-loop index out of the target's declared range - elaboration "
+     "arithmetic; the loop generate construct is A.4.2 BNF",
+     ["br_gh840a", "br_gh840b"]),
+    ("must_accept",
+     "assignment type-compatibility semantics (string to bit-vector, scalar "
+     "to array, element-type / dimension-count / size mismatches across "
+     "unpacked array, dynamic array and queue assignments) - 6.22/7.6/10.7 "
+     "prose compatibility rules; every assignment is ordinary BNF",
+     ["br_ml20180227", "sv_array_assign_fail1", "sv_array_assign_fail2",
+      "sv_array_assign_single_fail1", "sv_array_cassign_fail1",
+      "sv_array_cassign_fail2", "sv_array_cassign_fail3",
+      "sv_array_cassign_fail4", "sv_array_cassign_fail6",
+      "sv_array_cassign_fail7", "sv_array_cassign_fail8",
+      "sv_array_cassign_fail9", "sv_array_cassign_fail10",
+      "sv_array_cassign_fail11", "sv_array_cassign_single_fail1",
+      "sv_darray_assign_fail1", "sv_darray_assign_fail2",
+      "sv_darray_assign_fail3", "sv_darray_assign_fail4",
+      "sv_darray_assign_fail5", "sv_darray_assign_fail6",
+      "sv_queue_assign_fail1", "sv_queue_assign_fail2",
+      "sv_queue_assign_fail3", "sv_queue_assign_fail4",
+      "sv_queue_assign_fail5", "sv_queue_assign_fail6"]),
+    ("must_accept",
+     "'reg illegal[0];' - A.2.5 unpacked_dimension admits a single "
+     "[constant_expression]; a zero-size array is a semantic error",
+     ["br_ml20181012d"]),
+    ("must_accept",
+     "cast operand/size-value semantics (string/array/queue/darray to real, "
+     "zero/negative/undefined size casts, void'() operand rules) - 6.24.1/"
+     "13.4.1 prose; casting_type and the cast forms are A.8.4 BNF",
+     ["cast_real_invalid1", "cast_real_invalid2", "cast_real_invalid3",
+      "cast_real_invalid4", "size_cast_fail1", "size_cast_fail2",
+      "size_cast_fail3", "sv_void_cast_fail1", "sv_void_cast_fail2",
+      "sv_void_cast_fail3"]),
+    ("must_accept",
+     "enum base type via type_identifier - A.2.2.1 enum_base_type admits "
+     "type_identifier [packed_dimension]; footnote 15's legality condition "
+     "depends on what the type_identifier DENOTES (integer atom/vector vs "
+     "array/enum/real/string/struct), i.e. resolution-dependent = semantic "
+     "stage",
+     ["enum_base_fail_array", "enum_base_fail_darray", "enum_base_fail_enum",
+      "enum_base_fail_queue", "enum_base_fail_real2",
+      "enum_base_fail_string2", "enum_base_fail_struct",
+      "enum_base_fail_range1", "enum_base_fail_range2"]),
+    ("must_accept",
+     "enum member name colliding with another class-scope symbol - scope "
+     "population semantics",
+     ["enum_in_class_name_coll"]),
+    ("must_accept",
+     "final-block content restrictions (task enable, non-blocking "
+     "assignment) - 9.2.3 prose gives final blocks function-like statement "
+     "restrictions; A.6.2 final_construct ::= final function_statement and "
+     "A.2.6 function_statement ::= statement",
+     ["final_nested_block_task_fail", "program3b"]),
+    ("must_accept",
+     "tf argument-binding semantics (too many/empty arguments, nonexistent "
+     "or duplicate named arguments, name+positional double binding, empty "
+     "actual without a default, built-in queue/string method arity) - "
+     "13.5.3/13.5.4 prose; A.8.2 list_of_arguments admits empty slots, "
+     "all-named calls and the positional-then-named order",
+     ["func_empty_arg_fail1", "func_empty_arg_fail2", "func_empty_arg_fail3",
+      "func_empty_arg_fail4",
+      "sv_named_arg_base_fail1", "sv_named_arg_base_fail2",
+      "sv_named_arg_base_fail3", "sv_named_arg_base_fail5",
+      "sv_named_arg_chained_fail1", "sv_named_arg_chained_fail2",
+      "sv_named_arg_chained_fail3", "sv_named_arg_chained_fail5",
+      "sv_named_arg_func_fail1", "sv_named_arg_func_fail2",
+      "sv_named_arg_func_fail3", "sv_named_arg_func_fail5",
+      "sv_named_arg_new_fail1", "sv_named_arg_new_fail2",
+      "sv_named_arg_new_fail3", "sv_named_arg_new_fail5",
+      "sv_named_arg_task_fail1", "sv_named_arg_task_fail2",
+      "sv_named_arg_task_fail3", "sv_named_arg_task_fail5",
+      "sv_queue_method_insert_too_few_arg_fail",
+      "sv_queue_method_insert_too_many_arg_fail",
+      "sv_queue_method_push_back_too_few_arg_fail",
+      "sv_queue_method_push_back_too_many_arg_fail",
+      "sv_queue_method_push_front_too_few_arg_fail",
+      "sv_queue_method_push_front_too_many_arg_fail",
+      "sv_string_method_substr_too_few_arg_fail"]),
+    ("must_accept",
+     "void function/task in an expression, return-with-value in a void "
+     "function - 13.3/13.4.1 prose; calls and jump_statement are ordinary "
+     "BNF",
+     ["func_void_in_expr_fail", "function11", "sv_class_task_expr_fail"]),
+    ("must_accept",
+     "port-connection resolution/assignability semantics (implicit named "
+     "connection to a nonexistent signal or port, non-assignable output "
+     "actuals) - 23.3.2/23.3.3 elaboration rules; connections are A.4.1.1 "
+     "BNF",
+     ["implicit-port2", "implicit-port3", "implicit-port6",
+      "module_port_array_fail1", "sv_byte_array_string_fail3"]),
+    ("must_accept",
+     "parameter/localparam override semantics (overriding a localparam by "
+     "name or defparam, defparam into a generate block, defaultless "
+     "port-list parameter left unoverridden - fn 18 makes the port-list "
+     "omission itself legal) - 6.20.4/23.10.x elaboration rules",
+     ["localparam_implicit2", "localparam_implicit3",
+      "parameter_override_invalid7", "parameter_override_invalid8",
+      "parameter_in_generate2", "parameter_no_default_fail1"]),
+    ("must_accept",
+     "non-ANSI port / tf-port redeclaration coherence (implicit packed "
+     "dimensions later redeclared as atom2/enum/packed-array/real/struct "
+     "typed variables) - 23.2.2.2/13.3 prose completeness rules; each "
+     "declaration is ordinary BNF",
+     ["module_nonansi_atom2_fail", "module_nonansi_enum_fail",
+      "module_nonansi_parray_fail", "module_nonansi_real_fail",
+      "module_nonansi_struct_fail", "task_nonansi_atom2_fail",
+      "task_nonansi_enum_fail", "task_nonansi_parray_fail",
+      "task_nonansi_struct_fail"]),
+    ("must_accept",
+     "block/fork end-label mismatch - the A.6.3 end label is any "
+     "block_identifier; the must-match rule is 9.3.4 prose (the .8b.1 "
+     "end-label law)",
+     ["named_begin_fail", "named_fork_fail"]),
+    ("must_accept",
+     "statement label combined with a block name - statement ::= "
+     "[block_identifier :] statement_item and the seq/par block's own "
+     "[: block_identifier] are independent BNF optionals; the "
+     "one-or-the-other rule is 9.3.5 prose",
+     ["sv_block_prefix_name_diff_fail", "sv_block_prefix_name_same_fail",
+      "sv_fork_prefix_name_diff_fail", "sv_fork_prefix_name_same_fail"]),
+    ("must_accept",
+     "'@(edge e)' on a named event - A.6.5 event_expression admits "
+     "[edge_identifier] expression; the named-event restriction is prose",
+     ["named_event_edge_fail"]),
+    ("must_accept",
+     "net of class/string type - A.2.1.3 net_declaration admits any "
+     "data_type; the 4-state-integral-only net rule is 6.7.1 prose (the "
+     ".8b.2 ispras 06.07.01_02 mirror)",
+     ["net_class_fail", "net_string_fail"]),
+    ("must_accept",
+     "module instantiation inside a program block - BNF-parseable as an "
+     "A.6.10 checker_instantiation (concurrent_assertion_item is a "
+     "non_port_program_item); whether the name denotes a module or a "
+     "checker is resolution semantics (the generic-production escape-hatch "
+     "law)",
+     ["program5b"]),
+    ("must_accept",
+     "packed struct/union member restrictions (dynamic array / queue / "
+     "unpacked array members, member default values) - 7.2.x/7.3.x prose; "
+     "A.2.2.1 struct_union_member admits variable_dimensions and "
+     "initializers",
+     ["struct_packed_darray_fail", "struct_packed_queue_fail",
+      "struct_packed_uarray_fail", "struct_packed_member_def",
+      "union_packed_darray_fail", "union_packed_queue_fail",
+      "union_packed_uarray_fail"]),
+    ("must_accept",
+     "assignment-pattern arity/shape semantics (too few/many elements, "
+     "pattern on a scalar) - 10.9 prose; assignment_pattern_expression is "
+     "A.8.4 BNF",
+     ["sv_ap_parray_fail1", "sv_ap_parray_fail2", "sv_ap_parray_fail3",
+      "sv_ap_struct_fail1", "sv_ap_struct_fail2", "sv_ap_uarray_fail1",
+      "sv_ap_uarray_fail2"]),
+    ("must_accept",
+     "string literal assigned to unpacked arrays (4-state/narrow/wide "
+     "element types, multi-dimensional targets) - assignment compatibility "
+     "prose; the initializers are ordinary BNF",
+     ["sv_byte_array_string_fail1", "sv_byte_array_string_fail2",
+      "sv_byte_array_string_fail4", "sv_byte_array_string_fail5"]),
+    ("must_accept",
+     "class typing/hierarchy semantics (unrelated/base-to-derived "
+     "assignment, new on a non-class variable, typed constructor "
+     "relatedness, instantiating a virtual class, super without a parent) - "
+     "8.x prose; 'x = new'/'x = T::new' are A.2.4 class_new BNF",
+     ["sv_class_compat_fail1", "sv_class_compat_fail2",
+      "sv_class_compat_fail3", "sv_class_new_fail1", "sv_class_new_fail2",
+      "sv_class_new_typed_fail1", "sv_class_new_typed_fail2",
+      "sv_class_new_typed_fail3", "sv_class_new_typed_fail4",
+      "sv_class_virt_new_fail", "sv_super_member_fail"]),
+    ("must_accept",
+     "class method declared with static lifetime - A.1.9 class_method -> "
+     "task/function_declaration admits [lifetime]; the automatic-only rule "
+     "is 8.6 prose",
+     ["sv_class_method_lt_static1", "sv_class_method_lt_static2"]),
+    ("must_accept",
+     "writes to a const variable (continuous/blocking/non-blocking/force/"
+     "procedural-assign, output/inout port binding) - 6.20.6 prose; every "
+     "form is ordinary BNF",
+     ["sv_const_fail1", "sv_const_fail2", "sv_const_fail3", "sv_const_fail4",
+      "sv_const_fail5", "sv_const_fail6", "sv_const_fail7", "sv_const_fail8",
+      "sv_const_fail9"]),
+    ("must_accept",
+     "package export eligibility (not-imported, wildcard-conflict, "
+     "declared-outside-package) - 26.6 prose; export declarations are "
+     "A.1.11 BNF (the .8b.2 export-pin mirror)",
+     ["sv_export_fail1", "sv_export_fail2", "sv_export_fail3",
+      "sv_export_fail4", "sv_export_fail5", "sv_export_fail6"]),
+    ("must_accept",
+     "foreach loop-variable count exceeding the array dimensions - 12.7.3 "
+     "semantics; foreach is ordinary BNF",
+     ["sv_foreach_fail1"]),
+    ("must_accept",
+     "class/dynamic-array/queue/string/unpacked-array operands inside "
+     "lvalue concatenations - A.8.5 variable_lvalue admits the concat of "
+     "variable_lvalues; the integral-only member rule is 10.10/11.4.12 "
+     "prose",
+     ["sv_lval_concat_class_fail1", "sv_lval_concat_class_fail2",
+      "sv_lval_concat_class_fail3", "sv_lval_concat_class_fail4",
+      "sv_lval_concat_darray_fail1", "sv_lval_concat_darray_fail2",
+      "sv_lval_concat_darray_fail3", "sv_lval_concat_darray_fail4",
+      "sv_lval_concat_queue_fail1", "sv_lval_concat_queue_fail2",
+      "sv_lval_concat_queue_fail3", "sv_lval_concat_queue_fail4",
+      "sv_lval_concat_string_fail1", "sv_lval_concat_string_fail2",
+      "sv_lval_concat_string_fail3", "sv_lval_concat_string_fail4",
+      "sv_lval_concat_uarray_fail1", "sv_lval_concat_uarray_fail2",
+      "sv_lval_concat_uarray_fail3", "sv_lval_concat_uarray_fail4"]),
+    ("must_accept",
+     "tf port default-value semantics (non-constant default used in a "
+     "constant context; defaults on output ports) - 13.5.3 rules and tool "
+     "support; A.2.7 tf_port_item's [= expression] is direction-agnostic "
+     "BNF",
+     ["sv_port_default13", "sv_port_default14"]),
+    ("must_accept",
+     "value override of a type parameter - A.4.1.1 "
+     "named_parameter_assignment's param_expression admits plain "
+     "expressions; the kind check is 6.20.3 elaboration",
+     ["sv_type_param_fail1"]),
+    ("must_accept",
+     "forward-typedef circularity / self-reference (circular chains, enum/"
+     "struct/union using the forwarded name inside its own definition) - "
+     "6.18 resolution semantics; forward typedefs and type_identifier uses "
+     "are ordinary BNF",
+     ["sv_typedef_circular1", "sv_typedef_circular2",
+      "sv_typedef_fwd_enum_fail", "sv_typedef_fwd_struct_fail",
+      "sv_typedef_fwd_union_fail"]),
+    ("must_accept",
+     "return-with-value in a task / return inside fork..join - A.6.4 "
+     "jump_statement 'return [expression];' is an ordinary statement; the "
+     "task-value and parallel-block placement bans are 13.3/9.3.2 prose "
+     "(the .8b.2 ispras 09.03.02_03 mirror)",
+     ["task_return_fail1", "task_return_fail2"]),
+]
+
+IVTEST_CE_STAGE_PINNED = {}
+for _cls, _basis, _names in IVTEST_CE_STAGE_CLUSTERS:
+    for _n in _names:
+        _key = f"ivltests/{_n}.v"
+        if _key in IVTEST_CE_STAGE_PINNED:
+            raise SystemExit(f"duplicate .8b.3 stage pin: {_key}")
+        IVTEST_CE_STAGE_PINNED[_key] = (
+            _cls, "ivtest CE pinned .8b.3: " + _basis)
+if len(IVTEST_CE_STAGE_PINNED) != 283:
+    raise SystemExit(
+        f".8b.3 stage-pin table holds {len(IVTEST_CE_STAGE_PINNED)} entries, "
+        "expected exactly the 283-row CE-without-gold population")
+
 
 class IvtestIndex:
     """Answer key from ivtest regress-sv.list / regress-vlg.list entries
@@ -507,9 +894,13 @@ class IvtestIndex:
                 return ("must_accept",
                         f"ivtest: CE but golden {gold} shows only post-parse "
                         "errors - syntax itself valid")
+            pinned = IVTEST_CE_STAGE_PINNED.get("/".join(p.parts[1:]))
+            if pinned:
+                return pinned
             return ("out_of_scope_with_cause:negative_stage_triage",
                     "ivtest: CE without golden output - failure stage (parse vs "
-                    "elaboration) unresolved; per-file stage triage = leaf .8b")
+                    "elaboration) unresolved and outside the .8b.3 pinned "
+                    "population (added upstream after the vendored pin?)")
         if key in self.vlg_keys:
             return ("out_of_scope_with_cause:v2005_profile_lane",
                     "ivtest: regress-vlg.list entry - keyed for the "
@@ -554,10 +945,14 @@ class IvtestIndex:
                         "golden iverilog output reporting a syntax error, "
                         "parse-level invalid")
             if implied == {"triage"}:
+                pinned = IVTEST_CE_STAGE_PINNED.get("/".join(p.parts[1:]))
+                if pinned:
+                    return pinned
                 return ("out_of_scope_with_cause:negative_stage_triage",
                         f"ivtest: vvp_tests descriptor(s) {names} - CE "
-                        "without usable golden output; per-file stage "
-                        "triage = leaf .8b")
+                        "without usable golden output and outside the .8b.3 "
+                        "pinned population (added upstream after the "
+                        "vendored pin?)")
             if implied == {"ni"}:
                 return ("out_of_scope_with_cause:ni_unimplemented",
                         f"ivtest: vvp_tests descriptor(s) {names} - type NI "

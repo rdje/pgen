@@ -209,9 +209,10 @@ coverage.
 
 - **Status (umbrella): `in_progress`** — worklist after `.3.1`: **279
   unexplained divergences** — **RE-BASED to 445 by `.8a`'s ADD-v1
-  acquisition** (the old-suite 279 reproduced EXACTLY + 166 newly measured:
-  ispras-1800 114 / sv2v 31 / ivtest 21 — see `.8a`; new families join the
-  leaf-cutting map as burn-down proceeds). Pre-`.8a` detail (273
+  acquisition, 550 by `.8b.1`, 557 by `.8b.2`, and 564 by `.8b.3`** (543
+  rejects-valid + 21 accepts-invalid; the sv_2017-lane answer keys are now
+  COMPLETE — every remaining number is measured defect signal, not
+  deferral; new families join the leaf-cutting map as burn-down proceeds). Pre-`.8a` detail (273
   rejects-valid + 6 accepts-invalid; the manifest is the per-row worklist,
   the `.3.0` family table the leaf-cutting map — F1 CLEARED by `.3.1`).
   Suite split: verilator 220, sv-tests 39
@@ -467,12 +468,11 @@ coverage.
 ### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
 
 - **Status: `in_progress`** — `.8a` (vendoring + runner fold + answer keys +
-  fresh baseline) **done**; `.8b.1` (the three mechanical deep-key lanes:
-  Surelog golden logs, sv2v error-pattern stage classification, ivtest
-  vvp_tests descriptors) **done**; `.8b.2` (per-file pinned stage
-  adjudication: ispras NEGATIVE 21 + sv2v residue 21) **done**;
-  `.8b.3` (CE-without-gold population, 283 ivtest rows) + `.8c`
-  (v2005-profile lane run) remain. Roster-v2 candidate logged: **slang embedded-unittest
+  fresh baseline) **done**; `.8b` (deep answer-key extraction: `.8b.1`
+  mechanical lanes + `.8b.2` 42 named-residue pins + `.8b.3` 283 clustered
+  CE stage pins) **done** — the sv_2017-lane answer keys are COMPLETE (all
+  `.8a` deferred key populations drained); `.8c` (v2005-profile lane run)
+  remains. Roster-v2 candidate logged: **slang embedded-unittest
   extraction** (thousands of SV snippets inside slang's C++ unit tests — the
   sharpest open conformance oracle; extraction tool + fragment entry-point
   mapping required).
@@ -549,13 +549,15 @@ coverage.
   - [x] **LOCKSTEP** — PROVENANCE + tree + TASK_TREE index +
     MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
-#### `.8b` — Deep answer-key extraction (umbrella; `.8b.1` + `.8b.2` done)
+#### `.8b` — Deep answer-key extraction (umbrella; COMPLETE)
 
-- **Status: `in_progress`** — the five populations from `.8a`, split:
+- **Status: `done`** — the five populations from `.8a`, split:
   `.8b.1` (mechanical metadata lanes 1/2/5) **done**; `.8b.2` (per-file
   pinned stage adjudication: ispras NEGATIVE 21 + the sv2v named-ambiguous
   residue 21) **done**; `.8b.3` (the CE-without-gold stage-triage
-  population, 283 ivtest rows) remains.
+  population, 283 ivtest rows, clustered stage pins) **done** — every
+  deferred answer-key population from `.8a` is now drained
+  (`error_pretriage` 0, `negative_stage_triage` 0).
 
 ##### `.8b.1` — Mechanical deep keys: Surelog goldens + sv2v patterns + ivtest vvp_tests (done)
 
@@ -692,12 +694,81 @@ coverage.
   - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
     DEVELOPMENT_NOTES/LIVE this commit.
 
-##### `.8b.3` — CE-without-gold stage triage (todo)
+##### `.8b.3` — CE-without-gold stage triage (done)
 
-- **Status: `todo`** — the `deferred:negative_stage_triage` population,
-  now **283 rows, all ivtest** (list-CE-without-gold 180 + vvp_tests-CE
-  without usable golden 103). Needs a per-file (or clustered)
-  parse-vs-elaboration adjudication method with spec-side grounds only.
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0011`, session #194, 2026-07-22).
+- **Method (clustered spec-side, per the leaf charter):** all 283 files
+  read in full (avg 15 lines; full-text digest banked in-session), clustered
+  by the construct under test, and every cluster adjudicated against the
+  IEEE 1800-2017 Annex A BNF + its normative footnotes (in-repo
+  `docs/systemverilog/2017/md/section-41-data-read-api.md` — the Annex A
+  dump; ~14 load-bearing productions/footnotes re-verified verbatim before
+  pinning: A.2.5 dimensions, A.2.2.1 data_type/struct_union/enum_base_type,
+  A.8.2 list_of_arguments, A.1.9 class_constructor_declaration, A.1.7
+  program items, A.4.2/A.1.11 generate chain, A.6.8
+  for_variable_declaration, A.2.1.2 inout_declaration, A.1.3
+  parameter_port_declaration, A.2.4 defparam/net_decl_assignment,
+  constant_primary's missing `$` alternative, footnotes 10/15/18/20).
+- **What landed:** `IVTEST_CE_STAGE_CLUSTERS` in the adjudicator — 46
+  clusters (8 reject / 38 accept) flattened to the per-file
+  `IVTEST_CE_STAGE_PINNED` table (import-time audits: exactly 283 unique
+  keys, duplicate refusal), consulted at BOTH triage sites (regress-list
+  CE-without-gold and vvp_tests CE-without-usable-golden); residual
+  fall-through basis re-worded for upstream-added rows.
+  **Verdict split: 243 must_accept / 40 must_reject.** Key rulings:
+  - **fn 20 is normative syntax** (the `.8b.2` footnote law extended):
+    unsized `[]` packed dimension is legal ONLY as a DPI import's sole
+    packed dimension ⇒ `reg [] x;` parse-level reject.
+  - **fn 10 both halves**: `automatic` in a non-procedural
+    data_declaration + implicit-type declarations without `var` ⇒
+    package `automatic int x;` / `x;` / `[3:0] x;` parse-level reject.
+  - **A.8.2 order law**: positional-then-named argument order IS BNF-legal
+    (only the 5 named-then-positional `*_fail4` rows reject) — the tf-call
+    mirror of the `.8b.1` A.4.1.1 module-connection mixing ruling.
+  - **fn 15 ruled denotation-dependent** ⇒ semantic stage: type_identifier
+    enum bases (9 rows) stay parse-accepts even where fn 15 makes them
+    illegal, because legality turns on what the identifier denotes.
+  - **Edition law (opposite face of `.8b.1`'s 1364→1800 rule):** 2023-only
+    syntax judged in the sv_2017 lane ⇒ `union soft` + the 8
+    `parameter type class/enum/struct/union` rows reject.
+  - **Escape-hatch law reaffirmed:** module instantiation inside a program
+    parses as A.6.10 checker_instantiation (program5b must_accept).
+- **Measured (before → after, committed manifest vs regenerated):**
+  16,336 rows both; **baseline 557 → 564 unexplained (543 rejects-valid +
+  21 accepts-invalid)**; match 5,290 → 5,566 (+276);
+  `negative_stage_triage` **283 → 0 — every `.8a` deferred answer-key
+  population is now drained**. Row-by-row transition audit: **exactly the
+  283 triage rows moved, zero collateral** (276 → match, 4 → new
+  accepts-invalid, 3 → new rejects-valid). The +7 new signal, all named:
+  accepts-invalid `br_ml20181012b` (`reg [];` accepted — fn 20),
+  `parameter_no_default_fail2` (defaultless body `parameter` accepted —
+  fn 18, joins the `.8b.2` defaultless-localparam over-acceptance family),
+  `sv_class_constructor_fail` (non-ANSI `input x;` inside `function new`
+  accepted), `sv_package_lifetime_fail` (package `automatic` accepted —
+  fn 10; over-acceptance worklist 17 → 21); rejects-valid `program5b`
+  (checker-instantiation form rejected), `sv_class_new_typed_fail4`
+  (`T::new` scope rejected), `sv_void_cast_fail3` (`void'(1+2)` rejected).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 283 CE rows carried intent but no stage
+    (the `.8a`/`.8b.1` deferral slugs); the graduation bar cannot count
+    them without spec-side verdicts.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — N/A defect-wise (key-extraction
+    leaf); every pin's basis names its Annex A production or normative
+    footnote, re-verified verbatim from the in-repo LRM md before pinning.
+  - [x] **FIX** — N/A (adjudicator pin tables only; no parser surface).
+  - [x] **ADDRESSED (verified)** — import-time table audits (283 keys,
+    duplicate refusal) + on-disk staleness audit (all 283 pinned files
+    exist) + key-set equality against the manifest population; determinism
+    cmp ×2 byte-identical; full transition audit (exactly-283, zero
+    collateral); probes ×6 confirm representative rows live
+    (`br_ml20181012b` exit 0, `program5b` exit 1, `sv_void_cast_fail3`
+    exit 1, `generate_module` exit 1, `sv_const_fail1` exit 0,
+    `sv_named_arg_task_fail4` exit 1 — all matching the manifest).
+  - [x] **NO REGRESSION** — zero parser surface touched; `results.tsv`
+    unchanged (same probe vintage); all non-triage populations byte-stable
+    (audited row-by-row).
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
+    DEVELOPMENT_NOTES/LIVE this commit.
 
 #### `.8c` — The verilog_2005 profile lane (todo)
 

@@ -1,5 +1,32 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0011 — footnote-law boundaries: context-syntactic footnotes bind the parse, denotation-dependent ones do not
+
+**Two kinds of normative Annex-A footnote.** The `.8b.2` law ("footnotes are normative syntax")
+gained a necessary refinement while pinning the 283 ivtest CE rows. Footnotes 10/18/20 condition
+legality on the SYNTACTIC CONTEXT alone (is this declaration procedural? inside a
+parameter_port_list? a DPI import?) — a parser can enforce them with zero name resolution, so they
+bind at parse level (`reg [];`, package `automatic`, implicit-type-without-`var`, defaultless body
+parameter = parse-level rejects). Footnote 15 instead conditions legality on what a type_identifier
+DENOTES (integer atom vs vector vs array/real/string) — enforcement requires resolving the name, so
+its violations are semantic-stage and the enum-base rows it covers stay parse-level accepts. The
+dividing question is mechanical: "could a resolver-less parser decide this?" — sweep it before
+citing any footnote as a reject basis.
+
+**The A.8.2 argument-order asymmetry.** `f(1, .a(2))` is BNF-legal (the first list_of_arguments
+alternative allows a positional head with a named tail); `f(.a(2), 1)` is not (after the first
+named member, only named members may follow). ivtest's five `*_fail4` tests target exactly the
+illegal direction, the `*_fail3` tests the legal one — a corpus family that cleanly separates the
+two faces. Module port connections differ: A.4.1.1 forbids BOTH mixings (the `.8b.1` ruling); do
+not transplant the tf-call rule onto instantiations or vice versa.
+
+**Edition law cuts both ways within one suite.** The same ivtest population contains rows whose
+invalidity vanished in a later edition (none here) and rows VALID only in a later edition
+(`union soft`, `parameter type enum/struct/union/class` — 1800-2023). A lane's expected verdict is
+per-profile: these reject under the sv_2017 lane and would flip to semantic-stage questions in a
+future sv_2023 lane. The pin bases name the edition so the `.8c`-style lane splits re-adjudicate
+mechanically.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0010 — committed-text-over-intent; and the syntax annex's footnotes are BNF
 
 **Committed text outranks upstream intent.** ispras `16.09.04_01` INTENDS a semantic negative
