@@ -63,8 +63,15 @@ run_logged_or_dump() {
     local log_path="$2"
     shift 2
 
-    "$@" >"$log_path" 2>&1
-    local status=$?
+    # `set -e` is active for this script, so an UNGUARDED `"$@" >log 2>&1`
+    # aborts the whole script AT the failing command: every line below it —
+    # including the failure excerpt the 2026-04-06 CI-observability fix added —
+    # would never run, and a failing bootstrap step would surface as a bare
+    # `make ... Error 1` with the real stderr still hidden in the log file.
+    # Capturing the status with `|| status=$?` keeps errexit from firing here;
+    # the real exit code is still returned, so the caller still fails fast.
+    local status=0
+    "$@" >"$log_path" 2>&1 || status=$?
     if [[ "$status" -eq 0 ]]; then
         return 0
     fi

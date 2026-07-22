@@ -144,6 +144,86 @@ that no gate covered. Any `required-features` binary can rot in it.
   therefore cover "every maintained gate still RUNS", not merely "every
   binary still COMPILES".
 
+### `.4` — The gate's own failure diagnostics are DEAD under `set -e`
+
+- **Status: `done`** (`PGEN-BIN-BUILD-INTEGRITY-0004`, session #197,
+  2026-07-22) — opened while reproducing `.3`; a THIRD instance of the same
+  theme: a maintained surface that silently does not do what it claims.
+- **Why it is its own leaf:** it is a different defect from `.3` (that one
+  is *why* the gate fails; this one is *why nobody can see why*), and it is
+  verifiable RIGHT NOW against the still-RED gate — so it lands first, and
+  `.3`'s own evidence gets better because of it.
+- **What was CLAIMED:** the 2026-04-06 CI-observability fix (recorded in
+  `LIVE_ACHIEVEMENT_STATUS.md`, tracker note of that date) states the script
+  "now prints the hidden log path and bounded head/tail excerpts whenever
+  either bootstrap step fails, so future GitHub repros should expose the
+  real underlying stderr directly in the primary job log". That capability
+  has never once fired.
+- **ROOT CAUSE (WHY + WHERE):** `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+  runs under `set -euo pipefail` (`:2`). Inside the helper
+  `run_logged_or_dump` (`:61`) the work was invoked UNGUARDED —
+  `"$@" >"$log_path" 2>&1` followed by `local status=$?` (`:66`–`:67`).
+  Under `errexit` a failing command in a function body whose CALL is not in
+  a tested context aborts the shell AT that command, so `local status=$?`,
+  `print_log_excerpt_on_failure`, and `return "$status"` are all
+  unreachable: the diagnostic block is dead code.
+  - Tool-pinned two ways. (1) The live RED gate (`.3`) printed only
+    `==> Regenerating EBNF frontend artifacts for dual-run harness` then
+    `make: *** [ebnf_frontend_dual_run_gate] Error 1`, while the real cause
+    sat unread in `logs/bootstrap_generate_ebnf_parser.log`.
+    (2) A minimal isolating probe of the exact shape (`set -euo pipefail` +
+    the same helper + `false`) exits 1 without printing its `REPORT-RAN`
+    marker — errexit, not a logic bug in the excerpt printer.
+- **FIX (level: script, narrowest that works):** capture the status without
+  arming errexit — `local status=0; "$@" >"$log_path" 2>&1 || status=$?` —
+  and leave every other line untouched. The helper still RETURNS the real
+  exit code, so the caller (an unguarded call under `set -e`) still fails
+  fast at the same step with the same code; the only behavior change is
+  that the already-written excerpt now reaches stderr.
+- **SIBLING CENSUS (this is a lone defect, not a class):** every other
+  `<var>=$?` capture across the gate surface is correctly guarded —
+  `set +e`/`set -e` brackets (`regex_embedded_code_block_contract_gate.sh`
+  `:154`/`:204`, `sv_preprocessor_reference_runner.sh` `:197`/`:200`),
+  `if/else` arms (`sv_preprocessor_quality_gate.sh` `:876`/`:883`,
+  `sv_preprocessor_curated_differential_gate.sh` `:168`,
+  `sv_preprocessor_template_differential_gate.sh` `:371`,
+  `sv_stimuli_quality_gate.sh` `:2910`/`:2917`,
+  `sv_declared_shadow_promotion_gate.sh` `:269`,
+  `sv_parse_full_ratio_promotion_gate.sh` `:271`,
+  `vhdl_strict_promotion_gate.sh` `:255`), EXIT-trap handlers where `$?` is
+  the trap's own status (`ci_workflow_local_gate.sh` `:47`,
+  `vhdl_stimuli_quality_gate.sh` `:205`), an explicit `|| rc=$?`
+  (`verilog_2005_conformance_gate.sh` `:193`), or a script that does not set
+  `errexit` at all (`stimuli/run_external_corpus.sh` `:78`). 13 sibling
+  sites inspected, 0 further defects.
+- **ACCEPTANCE CHECKLIST:**
+  - [x] **REPRODUCE / ISSUE** — `make -C rust SHELL=/bin/bash
+    ebnf_frontend_dual_run_gate` (guarded) exits 1 printing NO cause: the
+    `error: … failed with exit code …` line, the `log:` path, and the
+    `--- begin … log ---` excerpt are all absent from the run output.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `set -e` + unguarded
+    `"$@" >"$log_path" 2>&1` at `ebnf_frontend_dual_run_diff_gate.sh:66`
+    makes `:67`–`:73` unreachable; isolating bash probe reproduces the
+    shape standalone (marker line never printed, exit 1).
+  - [x] **ADDRESSED (verified, before → after)** — same command, same RED
+    gate, same exit code 1, but the run now prints
+    `error: bootstrap EBNF parser generation failed with exit code 1`, the
+    `log:` path, and the full excerpt carrying the verbatim
+    `Error: REFUSED: return annotation '{type: "grammar_file", elements:
+    [$1*]}' needs the generated annotation backend …` line. The failure is
+    self-explaining for the first time since the capability was claimed
+    (2026-04-06).
+  - [x] **NO REGRESSION** — `bash -n` clean; fail-fast preserved (the gate
+    still stops at the same step with exit code 1, propagated through the
+    helper's `return "$status"`); the pass path is untouched
+    (`status` stays 0 ⇒ early `return 0`); no Rust/grammar/generated
+    surface touched, so no parser, gate contract, or artifact can move.
+    Sibling census above found no second instance to regress.
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + CHANGES /
+    DEVELOPMENT_NOTES / MEMORY this commit. No book/contract surface: the
+    gate's command, contract, and verdicts are unchanged — only its
+    stderr on failure.
+
 ## Acceptance Criteria (tree)
 
 1. Every tracked `[[bin]]` compiles under the feature combination it

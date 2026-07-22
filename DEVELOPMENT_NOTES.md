@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0004 — a diagnostic that never fired, and the `set -e` rule that killed it
+
+**The shape to remember: under `set -e`, error-handling code that runs AFTER an unguarded
+command is not error handling — it is dead code.** `run_logged_or_dump` read like a careful
+helper: run the step into a log, capture the status, and on failure print the log path plus a
+bounded head/tail excerpt. Every line of that was unreachable. `errexit` aborts the shell at
+the failing command itself, so control never reaches the `local status=$?` on the next line,
+let alone the printer. The helper's careful `max_head_lines`/`max_tail_lines` truncation logic
+had never executed once.
+
+**Why it survived 3.5 months of "working":** the dead path only matters when the gate FAILS,
+and the gate passed. It went red on 2026-07-15 (`.3`), and even then the silence read as
+"make failed" rather than "the diagnostic is broken" — the defect hides inside the report of
+another defect. The general lesson for this tree: **a failure-reporting path needs its own
+proof, because the only run that exercises it is a run nobody wanted.** The cheap proof is an
+injected failure; here the still-red `.3` supplied a real one, which is why `.4` was landed
+FIRST — it turned `.3`'s reproduction from a bare exit code into a self-explaining log.
+
+**The fix is one token of intent:** `"$@" >"$log_path" 2>&1 || status=$?`. The `||` is what
+tells `errexit` "this failure is handled here"; the `return "$status"` at the end still hands
+the real code to the caller, whose own unguarded call re-arms fail-fast. Behaviorally the pass
+path is byte-identical (status 0 ⇒ early return) and the failing exit code is unchanged — the
+only delta is that stderr now carries the cause.
+
+**Census discipline applied (the `.1` lesson, "when you find one instance, look for the
+second"):** every `<var>=$?` in the shell gate surface was inspected — 13 sibling sites, all
+correctly guarded by `set +e` brackets, `if/else` arms, EXIT traps (where `$?` is the trap's
+own status), an explicit `|| rc=$?`, or the absence of `errexit`. This one was unique. Worth
+noting that the correct idioms in this repo are already varied and all sound; the defect was
+not a missing convention but a single site that skipped it.
+
 ## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0001 — what the batteries build is not what the repo ships
 
 **The blind spot, stated precisely: `--lib`/`--tests` × default features is not the shipped
