@@ -469,9 +469,10 @@ coverage.
 - **Status: `in_progress`** — `.8a` (vendoring + runner fold + answer keys +
   fresh baseline) **done**; `.8b.1` (the three mechanical deep-key lanes:
   Surelog golden logs, sv2v error-pattern stage classification, ivtest
-  vvp_tests descriptors) **done**; `.8b.2` (per-file pinned stage triage) +
-  `.8b.3` (CE-without-gold population) + `.8c` (v2005-profile lane run)
-  remain. Roster-v2 candidate logged: **slang embedded-unittest
+  vvp_tests descriptors) **done**; `.8b.2` (per-file pinned stage
+  adjudication: ispras NEGATIVE 21 + sv2v residue 21) **done**;
+  `.8b.3` (CE-without-gold population, 283 ivtest rows) + `.8c`
+  (v2005-profile lane run) remain. Roster-v2 candidate logged: **slang embedded-unittest
   extraction** (thousands of SV snippets inside slang's C++ unit tests — the
   sharpest open conformance oracle; extraction tool + fragment entry-point
   mapping required).
@@ -548,13 +549,13 @@ coverage.
   - [x] **LOCKSTEP** — PROVENANCE + tree + TASK_TREE index +
     MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
-#### `.8b` — Deep answer-key extraction (umbrella; `.8b.1` done)
+#### `.8b` — Deep answer-key extraction (umbrella; `.8b.1` + `.8b.2` done)
 
 - **Status: `in_progress`** — the five populations from `.8a`, split:
   `.8b.1` (mechanical metadata lanes 1/2/5) **done**; `.8b.2` (per-file
   pinned stage adjudication: ispras NEGATIVE 21 + the sv2v named-ambiguous
-  residue 21) + `.8b.3` (the CE-without-gold stage-triage population, now
-  304 rows incl. the 103 vvp_tests CE) remain.
+  residue 21) **done**; `.8b.3` (the CE-without-gold stage-triage
+  population, 283 ivtest rows) remains.
 
 ##### `.8b.1` — Mechanical deep keys: Surelog goldens + sv2v patterns + ivtest vvp_tests (done)
 
@@ -632,21 +633,71 @@ coverage.
   - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
     DEVELOPMENT_NOTES/LIVE this commit.
 
-##### `.8b.2` — Per-file pinned stage adjudication (todo)
+##### `.8b.2` — Per-file pinned stage adjudication (done)
 
-- **Status: `todo`** — (1) ispras NEGATIVE per-file stage triage (21 rows;
-  sampled member is semantic-stage); (2) the sv2v named-ambiguous residue
-  (21 rows above) — each needs an LRM-grounded pinned ruling (BNF footnote
-  questions: A.10 fn-18 omitted param defaults, const-init prose, lvalue
-  BNF strictness, export placement, severity-task args).
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0010`, session #193, 2026-07-22).
+- **What landed**: all 42 rows read and pinned with LRM-grounded rulings
+  (`ISPRAS_NEGATIVE_PINNED` 21 + `SV2V_PINNED` 21 in the adjudicator; every
+  basis cites its Annex-A production or prose clause):
+  - **ispras NEGATIVE (21)**: 17 semantic-stage → must_accept (reg-on-net
+    6.7.1 prose, 6.21 lifetime-keyword prose, casts/traversal/alias/config/
+    checker/defparam/covergroup/name-conflict semantics, duplicate named
+    connections 23.3.2.2, return-in-fork placement prose); 4 parse-level →
+    must_reject: `13.05.02_02` (`ref input` — A.2.7 single
+    tf_port_direction), `16.09.04_01` (⭐ the committed text itself has an
+    unclosed parenthesis — upstream typo; committed-text-over-intent),
+    `22.14.01_02` (`logic` reserved under BOTH the `begin_keywords
+    1800-2005 set and bare sv_2017), `22.14.01_04` (under 1364-2005
+    keywords the items match no production — the F5 directive family's
+    reject side).
+  - **sv2v residue (21)**: 7 must_reject (naked module-level statement
+    A.1.4/A.6.1; `(1 = x)` — operator_assignment needs a variable_lvalue;
+    type_assignment `= 1` A.2.4; `localparam X;`/`localparam type X;` —
+    **A.10 footnote 18**: omission legal only within a parameter_port_list
+    and never for localparam; `$fatal x;`; module-scope `export` —
+    package_export_declaration is a package_item ONLY per A.1.11), 9
+    must_accept (const-without-init — 6.20.6 is prose-only; streaming/
+    pattern LHS — A.8.5 variable_lvalue admits streaming_concatenation via
+    A.6.1's variable alternative, inner lvalue-ness 11.4.14 prose; iface
+    arity/direction/lvalue semantics; `$fatal(.x(...))` — parseable as a
+    generic A.8.2 system_tf_call, the 20.10 shape is semantic-only;
+    top-level `export` — a legal A.1.2 $unit package_item, prose
+    restriction), 5 preproc → svpp (`include quoting 22.5, `line argument
+    validity 22.12).
+- **Measured (before → after)**: baseline **550 → 557 unexplained (540
+  rejects-valid + 17 accepts-invalid)**; match 5,260 → 5,290 (+30);
+  `error_pretriage` drained 21 → **0**; `negative_stage_triage` 304 → 283
+  (pure ivtest now). The +7 new signal: ispras `22.14.01_04`
+  accepts-invalid (directive-unaware nested-interface acceptance — the F5
+  family's first measured accepts-invalid side) + `06.07.01_02`/
+  `08.26.04_01` rejects-valid (parser stricter than BNF on reg-as-net-type
+  and forward-typedef implements) + sv2v `dangling_stmt` +
+  `localparam_no_default` ×2 accepts-invalid (⭐ naked module-level
+  statement and defaultless localparam ACCEPTED — over-acceptance
+  worklist grows to 17) + `severity_task_arg` rejects-valid.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 42 rows deferred with named ambiguity by
+    `.8b.1`/`.8a` (no upstream stage encoding).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — N/A defect-wise; every pin's basis
+    names its LRM production/clause (BNF-vs-prose split re-derived from
+    `docs/systemverilog/2017/md`, incl. A.10 fn-18 read verbatim).
+  - [x] **FIX** — N/A (adjudicator pin tables only).
+  - [x] **ADDRESSED (verified)** — determinism cmp ×2; pin-table
+    staleness audit (all pinned files exist; sv2v table exhaustive
+    234/234); transition audit: exactly the 42 rows moved, zero
+    collateral, zero basis-only drift; probes ×3 confirm
+    (`dangling_stmt` exit 0, `06.07.01_02` exit 1, `22.14.01_04` exit 0).
+  - [x] **NO REGRESSION** — zero parser surface touched; `results.tsv`
+    unchanged; all other populations byte-stable.
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
+    DEVELOPMENT_NOTES/LIVE this commit.
 
 ##### `.8b.3` — CE-without-gold stage triage (todo)
 
-- **Status: `todo`** — the `deferred:negative_stage_triage` population, now
-  304 rows (ivtest list-CE 180 + ivtest vvp_tests-CE 103 + ispras-adjacent
-  21 counted under `.8b.2`; exact split per the manifest). Needs a
-  per-file (or clustered) parse-vs-elaboration adjudication method with
-  spec-side grounds only.
+- **Status: `todo`** — the `deferred:negative_stage_triage` population,
+  now **283 rows, all ivtest** (list-CE-without-gold 180 + vvp_tests-CE
+  without usable golden 103). Needs a per-file (or clustered)
+  parse-vs-elaboration adjudication method with spec-side grounds only.
 
 #### `.8c` — The verilog_2005 profile lane (todo)
 

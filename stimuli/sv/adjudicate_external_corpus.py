@@ -6,7 +6,8 @@ Turns the raw parse outcomes of stimuli/run_external_corpus.sh sv
 adjudication manifest the graduation campaign burns down from
 (docs/tasks/SV-CORPUS-GRAD.md leaf .2; ADD-v1 suites + uvm-core fold = leaf .8;
 deep answer-key extraction - Surelog golden logs, sv2v error-pattern stage
-classification, ivtest vvp_tests JSON descriptors = leaf .8b.1).
+classification, ivtest vvp_tests JSON descriptors = leaf .8b.1; per-file
+pinned stage adjudication of the ispras NEGATIVE + sv2v residue = leaf .8b.2).
 
 Doctrine (corpus-expected-from-SPEC, never from the fix):
   Every expected verdict is derived ONLY from suite metadata / upstream driver
@@ -261,6 +262,91 @@ def expect_verible(relpath: str, text: str):
 
 ISPRAS_TYPE_RE = re.compile(r"^\s*//\s*!\s*TYPE:\s*([A-Z]+)", re.MULTILINE)
 
+# ispras TYPE:NEGATIVE per-file stage pins (leaf .8b.2): each file read and
+# adjudicated against the IEEE 1800 LRM's BNF-vs-prose split (in-repo
+# docs/systemverilog/2017/md), clause per the file's own header. must_accept
+# = the text is BNF-parseable and the cited invalidity is a prose "shall"
+# (semantic/elaboration stage); must_reject = the text violates the Annex A
+# BNF (or, where noted, is syntactically broken as committed).
+ISPRAS_NEGATIVE_PINNED = {
+    "ieee-1800-2012/03/03.12.01_02.sv": ("must_accept",
+        "pinned .8b.2: use-before-declaration + $unit:: forward reference "
+        "(3.12.1) - name resolution, semantic stage"),
+    "ieee-1800-2012/06/06.07.01_02.sv": ("must_accept",
+        "pinned .8b.2: 'tri reg r;'/'inout wire reg p;' - A.2.1.3 "
+        "net_declaration admits any data_type; the reg-on-net ban is prose "
+        "(6.7.1)"),
+    "ieee-1800-2012/06/06.21_03.sv": ("must_accept",
+        "pinned .8b.2: block-local initializer without explicit "
+        "static/automatic (6.21) - a lifetime prose rule; the BNF admits "
+        "the declaration"),
+    "ieee-1800-2012/06/06.24.03_01.sv": ("must_accept",
+        "pinned .8b.2: bit-stream cast size mismatches (6.24.3) - "
+        "type/width semantics"),
+    "ieee-1800-2012/07/07.09.08_01.sv": ("must_accept",
+        "pinned .8b.2: associative-array traversal argument narrowing "
+        "(7.9.8) - argument typing semantics"),
+    "ieee-1800-2012/08/08.24_02.sv": ("must_accept",
+        "pinned .8b.2: out-of-block declaration type-name re-resolution "
+        "(8.24) - semantic stage"),
+    "ieee-1800-2012/08/08.26.04_01.sv": ("must_accept",
+        "pinned .8b.2: 'implements' of a forward-typedef'd interface class "
+        "(8.26.4) - declaration-ordering semantics"),
+    "ieee-1800-2012/08/08.26.06.01_02.sv": ("must_accept",
+        "pinned .8b.2: interface-class method name conflict (8.26.6.1) - "
+        "semantic stage"),
+    "ieee-1800-2012/09/09.03.02_03.sv": ("must_accept",
+        "pinned .8b.2: 'return' inside fork..join_none (9.3.2/12.8-family "
+        "placement prose) - jump_statement is an ordinary statement "
+        "production"),
+    "ieee-1800-2012/10/10.11_05.sv": ("must_accept",
+        "pinned .8b.2: overlapping alias operands (10.11) - alias "
+        "coherence semantics"),
+    "ieee-1800-2012/10/10.11_06.sv": ("must_accept",
+        "pinned .8b.2: self-alias (10.11) - semantic; A.6.1 net_alias BNF "
+        "admits the multi-'=' form"),
+    "ieee-1800-2012/13/13.05.02_02.sv": ("must_reject",
+        "pinned .8b.2: 'ref input int a' - A.2.7 tf_port_item admits a "
+        "single tf_port_direction; a second direction keyword cannot start "
+        "data_type_or_implicit (parse level)"),
+    "ieee-1800-2012/16/16.09.04_01.sv": ("must_reject",
+        "pinned .8b.2: the committed text is syntactically broken - the a1 "
+        "assert property's opening parenthesis is never closed (upstream "
+        "typo); parse-level regardless of the intended 16.9.4 "
+        "nested-gclk-function semantic rule"),
+    "ieee-1800-2012/17/17.07.01_01.sv": ("must_accept",
+        "pinned .8b.2: assigning a checker variable from outside (17.7.1) "
+        "- semantic stage"),
+    "ieee-1800-2012/19/19.08.01_02.sv": ("must_accept",
+        "pinned .8b.2: covergroup port list + sample-method override "
+        "(19.8.1) - both are independent BNF optionals (A.2.11); the "
+        "conflict and option.* rules are prose"),
+    "ieee-1800-2012/22/22.14.01_02.sv": ("must_reject",
+        "pinned .8b.2: 'reg [63:0] logic;' - 'logic' is reserved both "
+        "under the `begin_keywords \"1800-2005\" set (22.14) and under "
+        "bare sv_2017 lexing; parse level either way"),
+    "ieee-1800-2012/22/22.14.01_04.sv": ("must_reject",
+        "pinned .8b.2: under `begin_keywords \"1364-2005\" (22.14) "
+        "'interface'/'endinterface' are ordinary identifiers and the items "
+        "match no IEEE 1364-2005 production (an instantiation requires "
+        "parentheses) - parse level under the directive-aware reading (the "
+        "F5 in-scope-directives family)"),
+    "ieee-1800-2012/23/23.03.02.02_02.sv": ("must_accept",
+        "pinned .8b.2: duplicate named port connections (23.3.2.2) - the "
+        "BNF repeats named_port_connection freely; uniqueness is prose"),
+    "ieee-1800-2012/23/23.10.01_01.sv": ("must_accept",
+        "pinned .8b.2: defparam into another generate-loop instance "
+        "(23.10.1) - elaboration semantics; the hierarchical name is "
+        "BNF-parseable"),
+    "ieee-1800-2012/30/30.04.04.03_04.sv": ("must_accept",
+        "pinned .8b.2: overlapping edge-sensitive state-dependent paths "
+        "(30.4.4.3) - path coherence semantics; each specify item is "
+        "BNF-parseable"),
+    "ieee-1800-2012/33/33.04.02_01.sv": ("must_accept",
+        "pinned .8b.2: config liblist override through a config'd instance "
+        "(33.4.2) - configuration resolution semantics"),
+}
+
 
 def expect_ispras(relpath: str, text: str):
     """ispras/sv-tests: per-file `// ! TYPE: POSITIVE|NEGATIVE|VARYING` keys;
@@ -278,6 +364,9 @@ def expect_ispras(relpath: str, text: str):
         return ("must_accept",
                 "ispras: '// ! TYPE: POSITIVE' clause-keyed valid example")
     if ttype == "NEGATIVE":
+        pinned = ISPRAS_NEGATIVE_PINNED.get(p)
+        if pinned:
+            return pinned
         return ("out_of_scope_with_cause:negative_stage_triage",
                 "ispras: TYPE NEGATIVE - invalid per the cited clause but the "
                 "failure STAGE (parse vs elaboration) is not encoded; per-file "
@@ -656,6 +745,89 @@ SV2V_PREPROC = {
     "double_backtick", "stray_escaped_vendor_comment",
     "string_literal_backtick_eof", "default_nettype_invalid",
 }
+# The .8b.1 named-ambiguous residue, per-file pinned (leaf .8b.2): each file
+# read and adjudicated against the LRM BNF-vs-prose split.
+SV2V_PINNED = {
+    "dangling_stmt": ("must_reject",
+        "pinned .8b.2: a bare statement 'y = 1;' at module level - no A.1.4 "
+        "module-item production admits a naked assignment (continuous "
+        "assignment requires the assign keyword, A.6.1)"),
+    "asgn_expr_non_lhs": ("must_reject",
+        "pinned .8b.2: 'x = (1 = x);' - A.8.3 admits '( operator_assignment "
+        ")' as an expression but operator_assignment requires a "
+        "variable_lvalue and the literal 1 is not one (11.3.6 family)"),
+    "parameter_list_not_type": ("must_reject",
+        "pinned .8b.2: '#(parameter type X = 1)' - A.2.4 type_assignment "
+        "requires a data_type after '='; an integer literal matches no "
+        "data_type production"),
+    "localparam_no_default": ("must_reject",
+        "pinned .8b.2: 'localparam X;' in a module body - A.10 footnote 18: "
+        "omitting the constant_param_expression is legal ONLY within a "
+        "parameter_port_list (and never for localparam)"),
+    "localparam_type_no_default": ("must_reject",
+        "pinned .8b.2: 'localparam type X;' - A.10 footnote 18: omitting "
+        "the data_type from a type_assignment is legal ONLY within a "
+        "parameter_port_list (and never for localparam)"),
+    "severity_task_token": ("must_reject",
+        "pinned .8b.2: '$fatal x;' - no production admits an identifier "
+        "between a system-tf call and ';' (A.6.9/A.8.2)"),
+    "export_outside_package_2": ("must_reject",
+        "pinned .8b.2: 'export Pkg::Foo;' INSIDE a module - "
+        "package_export_declaration is a package_item only (A.1.11); no "
+        "A.1.4 module-context production admits it"),
+    "decl_const_var_uninit": ("must_accept",
+        "pinned .8b.2: 'const var x;' - A.2.1.3 [const][var] with A.2.4's "
+        "optional '= expression' is BNF-parseable; 6.20.6 only says what a "
+        "const CAN be set to (no parse-level initializer requirement)"),
+    "interface_excess_ports": ("must_accept",
+        "pinned .8b.2: 3 actuals for a 2-port interface - connection arity "
+        "is elaboration semantics (23.3.3)"),
+    "interface_missing_direction": ("must_accept",
+        "pinned .8b.2: a listed non-ANSI port lacking a direction "
+        "declaration in the body - a 23.2.2.1 prose completeness rule"),
+    "interface_non_lhs": ("must_accept",
+        "pinned .8b.2: expression actual 'b + 1' on an output port - "
+        "list_of_port_connections actuals are plain expressions in the BNF; "
+        "output-actual lvalue-ness is semantic (23.3.3)"),
+    "lhs_expr": ("must_accept",
+        "pinned .8b.2: streaming concatenation as continuous-assign LHS - "
+        "parses via A.6.1's 'assign list_of_variable_assignments' whose "
+        "variable_lvalue admits streaming_concatenation (A.8.5); the "
+        "literal-inside-stream-lvalue ban is 11.4.14 prose"),
+    "lhs_pattern": ("must_accept",
+        "pinned .8b.2: assignment pattern inside a stream LHS - "
+        "stream_expression is a plain expression and "
+        "assignment_pattern_expression is a primary (A.8.4); inner "
+        "lvalue-ness is 11.4.14 prose"),
+    "severity_task_arg": ("must_accept",
+        "pinned .8b.2: '$fatal(.x(\"x\"));' - BNF-parseable as an A.8.2 "
+        "system_tf_call with a named list_of_arguments member; the 20.10 "
+        "severity-task argument shape is enforceable only semantically"),
+    "export_outside_package_1": ("must_accept",
+        "pinned .8b.2: top-level 'export Pkg::Foo;' - "
+        "package_export_declaration is a package_item (A.1.11) and A.1.2 "
+        "description admits package_item at $unit level; the "
+        "outside-package restriction is prose (26.6)"),
+    "export_outside_package_3": ("must_accept",
+        "pinned .8b.2: top-level 'export *::*;' - same A.1.2/A.1.11 route "
+        "as export_outside_package_1; prose restriction only"),
+    "include_apos": ("preproc",
+        "pinned .8b.2: `include with apostrophe-quoted filename - 22.5 "
+        "requires \"...\" or <...>; preprocessing-stage invalidity"),
+    "line_char1": ("preproc",
+        "pinned .8b.2: `line with a non-numeric level argument - 22.12 "
+        "directive-argument validity, preprocessing stage"),
+    "line_char2": ("preproc",
+        "pinned .8b.2: `line with a malformed level argument '1B' - 22.12 "
+        "directive-argument validity, preprocessing stage"),
+    "line_eof": ("preproc",
+        "pinned .8b.2: bare `line at EOF missing all arguments - 22.12 "
+        "directive-argument validity, preprocessing stage"),
+    "line_level": ("preproc",
+        "pinned .8b.2: `line level 3 (valid levels 0/1/2) - 22.12 "
+        "directive-argument validity, preprocessing stage"),
+}
+
 SV2V_ERROR_KEY = {}
 for _names, _basis in SV2V_REJECT_GROUPS:
     for _n in _names:
@@ -669,6 +841,11 @@ for _n in SV2V_PREPROC:
         "sv2v error-suite key: the intended failure is at the preprocessing "
         "stage (`include/`ifdef/macro machinery, stray backtick, directive "
         "arguments) - svpp-owned conformance")
+for _n, (_cls, _basis) in SV2V_PINNED.items():
+    if _cls == "preproc":
+        SV2V_ERROR_KEY[_n] = ("out_of_scope_with_cause", "sv2v error-suite " + _basis)
+    else:
+        SV2V_ERROR_KEY[_n] = (_cls, "sv2v error-suite " + _basis)
 
 
 def expect_sv2v(relpath: str):
@@ -687,9 +864,9 @@ def expect_sv2v(relpath: str):
         if key:
             return key
         return ("out_of_scope_with_cause:error_pretriage",
-                "sv2v: error/ negative outside the .8b.1 stage-classified "
-                "population (no '// pattern:' key or named-ambiguous stage) "
-                "- per-file pinned adjudication = leaf .8b.2")
+                "sv2v: error/ negative outside the .8b.1/.8b.2 classified "
+                "population (added upstream after the vendored pin?) - "
+                "needs a stage classification before it can key")
     return ("must_accept",
             "sv2v: conversion-input .sv (valid SV by suite contract)")
 

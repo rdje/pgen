@@ -1,5 +1,25 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0010 — committed-text-over-intent; and the syntax annex's footnotes are BNF
+
+**Committed text outranks upstream intent.** ispras `16.09.04_01` INTENDS a semantic negative
+(nested global-clocking sampled-value functions, 16.9.4) but the committed file's assert-property
+parenthesis is never closed — an upstream typo. The honest parse-level expected verdict follows the
+TEXT (must_reject), not the intent; anything else keys a verdict onto a file that doesn't exist.
+The basis records both, so a future upstream fix re-adjudicates cleanly.
+
+**Annex-A footnotes are normative syntax, not prose.** A.10 footnote 18 ("It shall be legal to omit
+the constant_param_expression … only within a parameter_port_list. However, it shall not be legal to
+omit them from localparam declarations…") is part of the formal syntax definition — so `localparam X;`
+is parse-level invalid even though the bare BNF production shape admits it. When stage-classifying,
+sweep the A.10 footnotes attached to every production involved, not just the production body.
+
+**The generic-system-tf escape hatch.** `$fatal(.x("x"))` violates the 20.10 severity-task shape,
+but A.8.2's `system_tf_call` admits ANY `$`-identifier with any `list_of_arguments` — so at pure
+BNF level the text parses, and severity-task argument-shape rules are enforceable only semantically.
+Corollary: a parser that hard-wires the severity productions (as PGEN does) will read stricter than
+the BNF here; the divergence row is the adjudication forum, not a pre-decided defect.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0009 — the LRM *edition* matters for stage adjudication; a tool's own "Parse error" is not the LRM's
 
 **BNF vs prose is edition-sensitive.** Two sv2v "Parse error" negatives (`charge_strength_non_trireg`,

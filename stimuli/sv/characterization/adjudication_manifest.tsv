@@ -1937,7 +1937,7 @@ ispras-sv-tests	ieee-1800-2012/03/03.05_01.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/03/03.09_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/03/03.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/03/03.12.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/03/03.12.01_02.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/03/03.12.01_02.sv	pass	must_accept	match	pinned .8b.2: use-before-declaration + $unit:: forward reference (3.12.1) - name resolution, semantic stage
 ispras-sv-tests	ieee-1800-2012/03/03.14.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/03/03.14.02.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/04/04.05_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -1976,7 +1976,7 @@ ispras-sv-tests	ieee-1800-2012/06/06.06.08_02-cmp.sv	pass	must_accept	match	ispr
 ispras-sv-tests	ieee-1800-2012/06/06.06.08_02-driver.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.06.08_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.07.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/06/06.07.01_02.sv	fail	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/06/06.07.01_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	pinned .8b.2: 'tri reg r;'/'inout wire reg p;' - A.2.1.3 net_declaration admits any data_type; the reg-on-net ban is prose (6.7.1)
 ispras-sv-tests	ieee-1800-2012/06/06.07.01_03.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/06/06.07.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.08_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2017,7 +2017,7 @@ ispras-sv-tests	ieee-1800-2012/06/06.20.05_02.sv	fail	out_of_scope_with_cause:im
 ispras-sv-tests	ieee-1800-2012/06/06.20_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.21_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.21_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/06/06.21_03.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/06/06.21_03.sv	pass	must_accept	match	pinned .8b.2: block-local initializer without explicit static/automatic (6.21) - a lifetime prose rule; the BNF admits the declaration
 ispras-sv-tests	ieee-1800-2012/06/06.21_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.22.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.22.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2034,7 +2034,7 @@ ispras-sv-tests	ieee-1800-2012/06/06.23_02.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/06/06.23_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.24.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/06/06.24.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/06/06.24.03_01.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/06/06.24.03_01.sv	pass	must_accept	match	pinned .8b.2: bit-stream cast size mismatches (6.24.3) - type/width semantics
 ispras-sv-tests	ieee-1800-2012/06/06.24.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.24.03_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.25_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2080,7 +2080,7 @@ ispras-sv-tests	ieee-1800-2012/07/07.09.04_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/07/07.09.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.09.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.09.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/07/07.09.08_01.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/07/07.09.08_01.sv	pass	must_accept	match	pinned .8b.2: associative-array traversal argument narrowing (7.9.8) - argument typing semantics
 ispras-sv-tests	ieee-1800-2012/07/07.09.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.10.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.10.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2117,7 +2117,7 @@ ispras-sv-tests	ieee-1800-2012/08/08.23_01.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/08/08.23_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/08/08.23_03.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/08/08.24_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/08/08.24_02.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/08/08.24_02.sv	pass	must_accept	match	pinned .8b.2: out-of-block declaration type-name re-resolution (8.24) - semantic stage
 ispras-sv-tests	ieee-1800-2012/08/08.25.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/08/08.25.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/08/08.25_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2127,9 +2127,9 @@ ispras-sv-tests	ieee-1800-2012/08/08.26.02_02.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/08/08.26.02_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/08/08.26.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/08/08.26.03_02.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	fail	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	pinned .8b.2: 'implements' of a forward-typedef'd interface class (8.26.4) - declaration-ordering semantics
 ispras-sv-tests	ieee-1800-2012/08/08.26.06.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/08/08.26.06.01_02.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/08/08.26.06.01_02.sv	pass	must_accept	match	pinned .8b.2: interface-class method name conflict (8.26.6.1) - semantic stage
 ispras-sv-tests	ieee-1800-2012/08/08.26.06.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/08/08.26.06.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/08/08.26.06.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2149,7 +2149,7 @@ ispras-sv-tests	ieee-1800-2012/09/09.03.01_02.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/09/09.03.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/09/09.03.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/09/09.03.02_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/09/09.03.02_03.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/09/09.03.02_03.sv	pass	must_accept	match	pinned .8b.2: 'return' inside fork..join_none (9.3.2/12.8-family placement prose) - jump_statement is an ordinary statement production
 ispras-sv-tests	ieee-1800-2012/09/09.03.02_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/09/09.03.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/09/09.03.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2212,8 +2212,8 @@ ispras-sv-tests	ieee-1800-2012/10/10.11_01.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/10/10.11_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/10/10.11_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/10/10.11_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/10/10.11_05.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
-ispras-sv-tests	ieee-1800-2012/10/10.11_06.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/10/10.11_05.sv	pass	must_accept	match	pinned .8b.2: overlapping alias operands (10.11) - alias coherence semantics
+ispras-sv-tests	ieee-1800-2012/10/10.11_06.sv	pass	must_accept	match	pinned .8b.2: self-alias (10.11) - semantic; A.6.1 net_alias BNF admits the multi-'=' form
 ispras-sv-tests	ieee-1800-2012/10/10.11_07.sv	fail	must_accept	divergence:explained_svpp_macro_use	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.03.03_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.03.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2293,7 +2293,7 @@ ispras-sv-tests	ieee-1800-2012/13/13.04.04_01.sv	fail	out_of_scope_with_cause:im
 ispras-sv-tests	ieee-1800-2012/13/13.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/13/13.05.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/13/13.05.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/13/13.05.02_02.sv	fail	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/13/13.05.02_02.sv	fail	must_reject	match	pinned .8b.2: 'ref input int a' - A.2.7 tf_port_item admits a single tf_port_direction; a second direction keyword cannot start data_type_or_implicit (parse level)
 ispras-sv-tests	ieee-1800-2012/13/13.05.02_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/13/13.05.03_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/13/13.05.03_02.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
@@ -2368,7 +2368,7 @@ ispras-sv-tests	ieee-1800-2012/16/16.08_05.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/16/16.08_06.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.09.02_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.09.03_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/16/16.09.04_01.sv	fail	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/16/16.09.04_01.sv	fail	must_reject	match	pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level regardless of the intended 16.9.4 nested-gclk-function semantic rule
 ispras-sv-tests	ieee-1800-2012/16/16.09.04_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.09.04_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.09.04_04.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2475,7 +2475,7 @@ ispras-sv-tests	ieee-1800-2012/17/17.05_02.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/17/17.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.06_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.06_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/17/17.07.01_01.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/17/17.07.01_01.sv	pass	must_accept	match	pinned .8b.2: assigning a checker variable from outside (17.7.1) - semantic stage
 ispras-sv-tests	ieee-1800-2012/17/17.07.01_02.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/17/17.07.01_03.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/17/17.07.01_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2578,7 +2578,7 @@ ispras-sv-tests	ieee-1800-2012/19/19.07.01_02.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/19/19.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.07_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.08.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/19/19.08.01_02.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/19/19.08.01_02.sv	pass	must_accept	match	pinned .8b.2: covergroup port list + sample-method override (19.8.1) - both are independent BNF optionals (A.2.11); the conflict and option.* rules are prose
 ispras-sv-tests	ieee-1800-2012/19/19.08_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.11.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.11.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2640,9 +2640,9 @@ ispras-sv-tests	ieee-1800-2012/22/22.06_03.sv	fail	must_accept	divergence:explai
 ispras-sv-tests	ieee-1800-2012/22/22.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/22/22.13_01.sv	fail	must_accept	divergence:explained_svpp_conditional	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/22/22.14.01_02.sv	fail	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/22/22.14.01_02.sv	fail	must_reject	match	pinned .8b.2: 'reg [63:0] logic;' - 'logic' is reserved both under the `begin_keywords "1800-2005" set (22.14) and under bare sv_2017 lexing; parse level either way
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/22/22.14.01_04.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/22/22.14.01_04.sv	pass	must_reject	divergence:unexplained_accepts_invalid	pinned .8b.2: under `begin_keywords "1364-2005" (22.14) 'interface'/'endinterface' are ordinary identifiers and the items match no IEEE 1364-2005 production (an instantiation requires parentheses) - parse level under the directive-aware reading (the F5 in-scope-directives family)
 ispras-sv-tests	ieee-1800-2012/23/23.02.02.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/23/23.02.02.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.02.02.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2662,7 +2662,7 @@ ispras-sv-tests	ieee-1800-2012/23/23.02.03_02.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/23/23.02.03_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.03.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.03.02.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/23/23.03.02.02_02.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/23/23.03.02.02_02.sv	pass	must_accept	match	pinned .8b.2: duplicate named port connections (23.3.2.2) - the BNF repeats named_port_connection freely; uniqueness is prose
 ispras-sv-tests	ieee-1800-2012/23/23.03.02.03_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/23/23.03.02.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.03.02.04_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2680,7 +2680,7 @@ ispras-sv-tests	ieee-1800-2012/23/23.08.01_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/23/23.08.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.08_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.09_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/23/23.10.01_01.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/23/23.10.01_01.sv	pass	must_accept	match	pinned .8b.2: defparam into another generate-loop instance (23.10.1) - elaboration semantics; the hierarchical name is BNF-parseable
 ispras-sv-tests	ieee-1800-2012/23/23.10.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.10.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.10.02.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2781,7 +2781,7 @@ ispras-sv-tests	ieee-1800-2012/30/30.04.04.02_02.sv	pass	must_accept	match	ispra
 ispras-sv-tests	ieee-1800-2012/30/30.04.04.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.04.04.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.04.04.03_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/30/30.04.04.03_04.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/30/30.04.04.03_04.sv	pass	must_accept	match	pinned .8b.2: overlapping edge-sensitive state-dependent paths (30.4.4.3) - path coherence semantics; each specify item is BNF-parseable
 ispras-sv-tests	ieee-1800-2012/30/30.04.04.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.04.04.04_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.04.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2825,7 +2825,7 @@ ispras-sv-tests	ieee-1800-2012/32/32.04.02_03.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/32/32.04.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.02_01.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.02_01_adder.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/33/33.04.02_01.sv	pass	out_of_scope_with_cause:negative_stage_triage	deferred:negative_stage_triage	ispras: TYPE NEGATIVE - invalid per the cited clause but the failure STAGE (parse vs elaboration) is not encoded; per-file stage triage = leaf .8b
+ispras-sv-tests	ieee-1800-2012/33/33.04.02_01.sv	pass	must_accept	match	pinned .8b.2: config liblist override through a config'd instance (33.4.2) - configuration resolution semantics
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -12386,7 +12386,7 @@ sv2v	test/core/wire_reg.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferr
 sv2v	test/define/main.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/define/main.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/dump/example.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
-sv2v	test/error/asgn_expr_non_lhs.sv	fail	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/asgn_expr_non_lhs.sv	fail	must_reject	match	sv2v error-suite pinned .8b.2: 'x = (1 = x);' - A.8.3 admits '( operator_assignment )' as an expression but operator_assignment requires a variable_lvalue and the literal 1 is not one (11.3.6 family)
 sv2v	test/error/assert_deferred_nonzero.sv	fail	must_reject	match	sv2v error-suite key: IEEE 1800-2017 A.6.10: a deferred immediate assertion takes the literal '#0' ('#1' has no production)
 sv2v	test/error/auto_dim_int.sv	pass	must_reject	divergence:unexplained_accepts_invalid	sv2v error-suite key: declaration grammar violation - no IEEE 1800-2017 Annex A data/net-declaration production admits this form (sv2v keys it at its parse stage)
 sv2v	test/error/binding_mix_param.sv	fail	must_reject	match	sv2v error-suite key: IEEE 1800-2017 A.4.1.1 list_of_port_connections / list_of_parameter_assignments: all-ordered or all-named - mixing has no production
@@ -12420,11 +12420,11 @@ sv2v	test/error/class_parameter_not_type.sv	pass	must_accept	match	sv2v error-su
 sv2v	test/error/const_const.sv	fail	must_reject	match	sv2v error-suite key: declaration grammar violation - no IEEE 1800-2017 Annex A data/net-declaration production admits this form (sv2v keys it at its parse stage)
 sv2v	test/error/continue_inside_fork.sv	pass	must_accept	match	sv2v error-suite key: jump-statement placement and return typing are prose rules (IEEE 1800-2017 12.8/13.4.1) - jump_statement is an ordinary statement production
 sv2v	test/error/continue_outside_loop.sv	pass	must_accept	match	sv2v error-suite key: jump-statement placement and return typing are prose rules (IEEE 1800-2017 12.8/13.4.1) - jump_statement is an ordinary statement production
-sv2v	test/error/dangling_stmt.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/dangling_stmt.sv	pass	must_reject	divergence:unexplained_accepts_invalid	sv2v error-suite pinned .8b.2: a bare statement 'y = 1;' at module level - no A.1.4 module-item production admits a naked assignment (continuous assignment requires the assign keyword, A.6.1)
 sv2v	test/error/decl_after_stmt.sv	pass	must_reject	divergence:unexplained_accepts_invalid	sv2v error-suite key: IEEE 1800-2017 A.6.3 seq_block: { block_item_declaration } strictly precedes { statement_or_null } - a declaration after a statement has no production
 sv2v	test/error/decl_bare.sv	pass	must_reject	divergence:unexplained_accepts_invalid	sv2v error-suite key: declaration grammar violation - no IEEE 1800-2017 Annex A data/net-declaration production admits this form (sv2v keys it at its parse stage)
 sv2v	test/error/decl_binop_asgn.sv	fail	must_reject	match	sv2v error-suite key: declaration grammar violation - no IEEE 1800-2017 Annex A data/net-declaration production admits this form (sv2v keys it at its parse stage)
-sv2v	test/error/decl_const_var_uninit.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/decl_const_var_uninit.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: 'const var x;' - A.2.1.3 [const][var] with A.2.4's optional '= expression' is BNF-parseable; 6.20.6 only says what a const CAN be set to (no parse-level initializer requirement)
 sv2v	test/error/decl_const_wire.sv	fail	must_reject	match	sv2v error-suite key: declaration grammar violation - no IEEE 1800-2017 Annex A data/net-declaration production admits this form (sv2v keys it at its parse stage)
 sv2v	test/error/decl_delay_asgn.sv	fail	must_reject	match	sv2v error-suite key: declaration grammar violation - no IEEE 1800-2017 Annex A data/net-declaration production admits this form (sv2v keys it at its parse stage)
 sv2v	test/error/decl_delay_asgn_init.sv	fail	must_reject	match	sv2v error-suite key: declaration grammar violation - no IEEE 1800-2017 Annex A data/net-declaration production admits this form (sv2v keys it at its parse stage)
@@ -12458,9 +12458,9 @@ sv2v	test/error/enum_post_signed.sv	fail	must_reject	match	sv2v error-suite key:
 sv2v	test/error/enum_range_neg.sv	pass	must_accept	match	sv2v error-suite key: constant-value legality (cast width / enum range values) - semantic (IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable
 sv2v	test/error/enum_range_x.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v error-suite key: constant-value legality (cast width / enum range values) - semantic (IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable
 sv2v	test/error/enum_range_zero.sv	pass	must_accept	match	sv2v error-suite key: constant-value legality (cast width / enum range values) - semantic (IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable
-sv2v	test/error/export_outside_package_1.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/export_outside_package_2.sv	fail	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/export_outside_package_3.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/export_outside_package_1.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: top-level 'export Pkg::Foo;' - package_export_declaration is a package_item (A.1.11) and A.1.2 description admits package_item at $unit level; the outside-package restriction is prose (26.6)
+sv2v	test/error/export_outside_package_2.sv	fail	must_reject	match	sv2v error-suite pinned .8b.2: 'export Pkg::Foo;' INSIDE a module - package_export_declaration is a package_item only (A.1.11); no A.1.4 module-context production admits it
+sv2v	test/error/export_outside_package_3.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: top-level 'export *::*;' - same A.1.2/A.1.11 route as export_outside_package_1; prose restriction only
 sv2v	test/error/for_loop_decl_no_init.sv	fail	must_reject	match	sv2v error-suite key: IEEE 1800-2017 A.6.8 for_initialization/for_variable_declaration requires '= expression' and admits no timing/non-blocking form
 sv2v	test/error/for_loop_init_bare.sv	fail	must_reject	match	sv2v error-suite key: IEEE 1800-2017 A.6.8 for_initialization/for_variable_declaration requires '= expression' and admits no timing/non-blocking form
 sv2v	test/error/for_loop_init_delay.sv	fail	must_reject	match	sv2v error-suite key: IEEE 1800-2017 A.6.8 for_initialization/for_variable_declaration requires '= expression' and admits no timing/non-blocking form
@@ -12468,7 +12468,7 @@ sv2v	test/error/for_loop_init_nblk.sv	fail	must_reject	match	sv2v error-suite ke
 sv2v	test/error/for_loop_init_stray.sv	fail	must_reject	match	sv2v error-suite key: IEEE 1800-2017 A.6.8 for_initialization/for_variable_declaration requires '= expression' and admits no timing/non-blocking form
 sv2v	test/error/generate_case_multiple_defaults.sv	pass	must_accept	match	sv2v error-suite key: IEEE 1800-2017 12.5 'use of multiple default statements in one case statement shall be illegal' is prose - the BNF admits repeated default case_items
 sv2v	test/error/highz0_highz1.sv	fail	must_reject	match	sv2v error-suite key: IEEE 1800-2017 A.2.2.2 drive_strength pairs a 0-strength with a 1-strength - (highz0, highz1) has no production
-sv2v	test/error/include_apos.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/include_apos.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite pinned .8b.2: `include with apostrophe-quoted filename - 22.5 requires "..." or <...>; preprocessing-stage invalidity
 sv2v	test/error/include_filename_eof.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
 sv2v	test/error/include_loop_1.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
 sv2v	test/error/include_loop_2.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
@@ -12483,7 +12483,7 @@ sv2v	test/error/interface_bad_expr.sv	pass	must_accept	match	sv2v error-suite ke
 sv2v	test/error/interface_bad_expr_arr.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_bad_expr_genvar.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_bad_expr_module.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
-sv2v	test/error/interface_excess_ports.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/interface_excess_ports.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: 3 actuals for a 2-port interface - connection arity is elaboration semantics (23.3.3)
 sv2v	test/error/interface_mismatch.svh	pass	chained_only	deferred:chained_only	sv2v: .svh include payload, not a standalone unit
 sv2v	test/error/interface_mismatch_1.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_mismatch_2.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
@@ -12491,25 +12491,25 @@ sv2v	test/error/interface_mismatch_3.sv	pass	must_accept	match	sv2v error-suite 
 sv2v	test/error/interface_mismatch_4.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_mismatch_5.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_mismatch_6.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
-sv2v	test/error/interface_missing_direction.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/interface_missing_direction.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: a listed non-ANSI port lacking a direction declaration in the body - a 23.2.2.1 prose completeness rule
 sv2v	test/error/interface_modport_missing.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_modport_unlisted.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_name_func.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_name_var.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
-sv2v	test/error/interface_non_lhs.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/interface_non_lhs.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: expression actual 'b + 1' on an output port - list_of_port_connections actuals are plain expressions in the BNF; output-actual lvalue-ness is semantic (23.3.3)
 sv2v	test/error/interface_param_mismatch_expr.sv	pass	must_accept	match	sv2v error-suite key: instantiation binding/parameter resolution - elaboration semantics (IEEE 1800-2017 23.10/23.3.2 prose); the text is BNF-parseable
 sv2v	test/error/interface_param_mismatch_type.sv	pass	must_accept	match	sv2v error-suite key: instantiation binding/parameter resolution - elaboration semantics (IEEE 1800-2017 23.10/23.3.2 prose); the text is BNF-parseable
 sv2v	test/error/interface_unbound_modport.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_unbound_modports.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
 sv2v	test/error/interface_unknown.sv	pass	must_accept	match	sv2v error-suite key: interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); the text is BNF-parseable
-sv2v	test/error/lhs_expr.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/lhs_pattern.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/line_char1.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/line_char2.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/line_eof.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/line_level.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/localparam_no_default.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/localparam_type_no_default.sv	pass	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/lhs_expr.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: streaming concatenation as continuous-assign LHS - parses via A.6.1's 'assign list_of_variable_assignments' whose variable_lvalue admits streaming_concatenation (A.8.5); the literal-inside-stream-lvalue ban is 11.4.14 prose
+sv2v	test/error/lhs_pattern.sv	pass	must_accept	match	sv2v error-suite pinned .8b.2: assignment pattern inside a stream LHS - stream_expression is a plain expression and assignment_pattern_expression is a primary (A.8.4); inner lvalue-ness is 11.4.14 prose
+sv2v	test/error/line_char1.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite pinned .8b.2: `line with a non-numeric level argument - 22.12 directive-argument validity, preprocessing stage
+sv2v	test/error/line_char2.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite pinned .8b.2: `line with a malformed level argument '1B' - 22.12 directive-argument validity, preprocessing stage
+sv2v	test/error/line_eof.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite pinned .8b.2: bare `line at EOF missing all arguments - 22.12 directive-argument validity, preprocessing stage
+sv2v	test/error/line_level.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite pinned .8b.2: `line level 3 (valid levels 0/1/2) - 22.12 directive-argument validity, preprocessing stage
+sv2v	test/error/localparam_no_default.sv	pass	must_reject	divergence:unexplained_accepts_invalid	sv2v error-suite pinned .8b.2: 'localparam X;' in a module body - A.10 footnote 18: omitting the constant_param_expression is legal ONLY within a parameter_port_list (and never for localparam)
+sv2v	test/error/localparam_type_no_default.sv	pass	must_reject	divergence:unexplained_accepts_invalid	sv2v error-suite pinned .8b.2: 'localparam type X;' - A.10 footnote 18: omitting the data_type from a type_assignment is legal ONLY within a parameter_port_list (and never for localparam)
 sv2v	test/error/macro_arg_bad_eq.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
 sv2v	test/error/macro_arg_bad_name.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
 sv2v	test/error/macro_args_empty.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
@@ -12555,7 +12555,7 @@ sv2v	test/error/package_self_export.sv	pass	must_accept	match	sv2v error-suite k
 sv2v	test/error/package_self_import.sv	pass	must_accept	match	sv2v error-suite key: name/package/class/type resolution failure - post-parse semantics (IEEE 1800-2017 clauses 6/8/26 prose); the text is BNF-parseable
 sv2v	test/error/package_self_reference_early.sv	pass	must_accept	match	sv2v error-suite key: name/package/class/type resolution failure - post-parse semantics (IEEE 1800-2017 clauses 6/8/26 prose); the text is BNF-parseable
 sv2v	test/error/package_self_reference_loop.sv	pass	must_accept	match	sv2v error-suite key: name/package/class/type resolution failure - post-parse semantics (IEEE 1800-2017 clauses 6/8/26 prose); the text is BNF-parseable
-sv2v	test/error/parameter_list_not_type.sv	fail	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/parameter_list_not_type.sv	fail	must_reject	match	sv2v error-suite pinned .8b.2: '#(parameter type X = 1)' - A.2.4 type_assignment requires a data_type after '='; an integer literal matches no data_type production
 sv2v	test/error/parameter_no_default_1.sv	pass	must_accept	match	sv2v error-suite key: instantiation binding/parameter resolution - elaboration semantics (IEEE 1800-2017 23.10/23.3.2 prose); the text is BNF-parseable
 sv2v	test/error/parameter_no_default_2.sv	pass	must_accept	match	sv2v error-suite key: instantiation binding/parameter resolution - elaboration semantics (IEEE 1800-2017 23.10/23.3.2 prose); the text is BNF-parseable
 sv2v	test/error/parameter_no_default_3.sv	pass	must_accept	match	sv2v error-suite key: instantiation binding/parameter resolution - elaboration semantics (IEEE 1800-2017 23.10/23.3.2 prose); the text is BNF-parseable
@@ -12574,8 +12574,8 @@ sv2v	test/error/return_void_func.sv	pass	must_accept	match	sv2v error-suite key:
 sv2v	test/error/run_on_decl_item.sv	fail	must_reject	match	sv2v error-suite key: statement/item grammar violation - no IEEE 1800-2017 Annex A production admits this token sequence (sv2v keys it at its parse stage)
 sv2v	test/error/run_on_decl_package.sv	fail	must_reject	match	sv2v error-suite key: statement/item grammar violation - no IEEE 1800-2017 Annex A production admits this token sequence (sv2v keys it at its parse stage)
 sv2v	test/error/run_on_decl_stmt.sv	fail	must_reject	match	sv2v error-suite key: statement/item grammar violation - no IEEE 1800-2017 Annex A production admits this token sequence (sv2v keys it at its parse stage)
-sv2v	test/error/severity_task_arg.sv	fail	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
-sv2v	test/error/severity_task_token.sv	fail	out_of_scope_with_cause:error_pretriage	deferred:error_pretriage	sv2v: error/ negative outside the .8b.1 stage-classified population (no '// pattern:' key or named-ambiguous stage) - per-file pinned adjudication = leaf .8b.2
+sv2v	test/error/severity_task_arg.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v error-suite pinned .8b.2: '$fatal(.x("x"));' - BNF-parseable as an A.8.2 system_tf_call with a named list_of_arguments member; the 20.10 severity-task argument shape is enforceable only semantically
+sv2v	test/error/severity_task_token.sv	fail	must_reject	match	sv2v error-suite pinned .8b.2: '$fatal x;' - no production admits an identifier between a system-tf call and ';' (A.6.9/A.8.2)
 sv2v	test/error/size_cast_neg_lit_1.sv	pass	must_accept	match	sv2v error-suite key: constant-value legality (cast width / enum range values) - semantic (IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable
 sv2v	test/error/size_cast_neg_lit_2.sv	pass	must_accept	match	sv2v error-suite key: constant-value legality (cast width / enum range values) - semantic (IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable
 sv2v	test/error/size_cast_neg_var_1.sv	pass	must_accept	match	sv2v error-suite key: constant-value legality (cast width / enum range values) - semantic (IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable
