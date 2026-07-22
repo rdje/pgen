@@ -4,7 +4,9 @@
 Turns the raw parse outcomes of stimuli/run_external_corpus.sh sv
 (stimuli/sv/characterization/results.tsv) into the expected-vs-actual
 adjudication manifest the graduation campaign burns down from
-(docs/tasks/SV-CORPUS-GRAD.md leaf .2; ADD-v1 suites + uvm-core fold = leaf .8).
+(docs/tasks/SV-CORPUS-GRAD.md leaf .2; ADD-v1 suites + uvm-core fold = leaf .8;
+deep answer-key extraction - Surelog golden logs, sv2v error-pattern stage
+classification, ivtest vvp_tests JSON descriptors = leaf .8b.1).
 
 Doctrine (corpus-expected-from-SPEC, never from the fix):
   Every expected verdict is derived ONLY from suite metadata / upstream driver
@@ -44,6 +46,7 @@ Usage:
 """
 
 import argparse
+import json
 import re
 import sys
 from collections import Counter, defaultdict
@@ -292,18 +295,67 @@ IVTEST_TYPES = {"normal", "CE", "CO", "EF", "RE", "NI"}
 
 class IvtestIndex:
     """Answer key from ivtest regress-sv.list / regress-vlg.list entries
-    (SV-CORPUS-GRAD.8). Logical entry (backslash-continued physical lines
-    joined first): `<name> <type>[,<flags>...] <dir> [gold=<file>]`.
+    (SV-CORPUS-GRAD.8) + the vvp_tests/*.json per-test descriptors as the
+    secondary key source for unlisted files (leaf .8b.1). Logical list entry
+    (backslash-continued physical lines joined first):
+    `<name> <type>[,<flags>...] <dir> [gold=<file>]`.
     The CE parse-vs-elaboration stage split mirrors the verilator convention:
     a golden output reporting a syntax error = parse-level invalid; a golden
-    output with only post-parse errors = syntax itself valid."""
+    output with only post-parse errors = syntax itself valid.
+    vvp_tests descriptors (consumed by upstream vvp_reg.py) carry
+    `type` / `source` (always under ivltests/) / `iverilog-args` (the dialect
+    generation) / `gold` (a stem resolved as gold/<gold>-iverilog-<chan>.gold);
+    only descriptors with an EXPLICIT SystemVerilog generation flag key the
+    sv_2017 bulk lane."""
+
+    SV_GENS = ("-g2005-sv", "-g2009", "-g2012", "-g2017", "-g2023")
+    V2005_GENS = ("-g1995", "-g2001", "-g2001-noconfig", "-g2005")
 
     def __init__(self, ivtest_dir: Path):
         self.sv_entries = {}   # (dir, name) -> (type, gold-or-None)
         self.vlg_keys = set()  # (dir, name)
         self.gold_dir = ivtest_dir / "gold"
+        self.vvp_desc = defaultdict(list)  # source stem -> [descriptor dict]
         self._load(ivtest_dir / "regress-sv.list", sv=True)
         self._load(ivtest_dir / "regress-vlg.list", sv=False)
+        self._load_vvp(ivtest_dir / "vvp_tests")
+
+    def _load_vvp(self, vvp_dir: Path):
+        if not vvp_dir.is_dir():
+            return
+        for jf in sorted(vvp_dir.glob("*.json")):
+            try:
+                desc = json.loads(read_text(jf))
+            except ValueError:
+                continue
+            src = desc.get("source")
+            ttype = desc.get("type")
+            if not src or not ttype:
+                continue
+            desc["_key"] = jf.stem
+            self.vvp_desc[Path(src).stem].append(desc)
+
+    def _gold_has_syntax_error(self, gold_stem: str) -> bool:
+        text = ""
+        for chan in ("iverilog-stderr", "iverilog-stdout"):
+            text += read_text(self.gold_dir / f"{gold_stem}-{chan}.gold")
+        return bool(SYNTAX_ERR_RE.search(text))
+
+    def _vvp_implied(self, desc):
+        """Map one SV-dialect descriptor to an implied parse-level verdict
+        tag: 'accept' / 'reject' / 'triage' (CE without usable golden) /
+        'ni' (Not Implemented - upstream runner skips, no testimony)."""
+        ttype = desc.get("type")
+        if ttype == "NI":
+            return "ni"
+        if ttype != "CE":
+            # normal/EF (and any run-to-completion type): iverilog compiles
+            # the file under the declared SV generation - parse-level valid.
+            return "accept"
+        gold = desc.get("gold")
+        if gold:
+            return "reject" if self._gold_has_syntax_error(gold) else "accept"
+        return "triage"
 
     def _load(self, list_path: Path, sv: bool):
         text = read_text(list_path)
@@ -373,34 +425,357 @@ class IvtestIndex:
             return ("out_of_scope_with_cause:v2005_profile_lane",
                     "ivtest: regress-vlg.list entry - keyed for the "
                     "verilog_2005 profile lane, not the sv_2017 bulk run")
+        vvp = self._expect_vvp(p)
+        if vvp is not None:
+            return vvp
         return ("out_of_scope_with_cause:no_sv_key",
                 "ivtest: no regress-sv.list entry (other-target list / "
                 "multi-file companion / unlisted)")
+
+    def _expect_vvp(self, p: Path):
+        """Secondary key: vvp_tests JSON descriptors (leaf .8b.1). Sources
+        live under ivltests/ by upstream convention (vvp_reg.py). Multiple
+        descriptors may share one source (dialect variants) - keyable only
+        when every SV-dialect descriptor implies the same verdict."""
+        if p.parts[1] != "ivltests":
+            return None
+        descs = self.vvp_desc.get(p.stem)
+        if not descs:
+            return None
+        sv_descs, v2005 = [], False
+        for d in descs:
+            args = d.get("iverilog-args", [])
+            if any("verilog-ams" in a for a in args):
+                continue  # AMS-flavored run - never an SV/plain-Verilog key
+            if any(a in self.SV_GENS for a in args):
+                sv_descs.append(d)
+            elif any(a in self.V2005_GENS for a in args):
+                v2005 = True
+        if sv_descs:
+            implied = {self._vvp_implied(d) for d in sv_descs}
+            names = ", ".join(d["_key"] + ".json" for d in sv_descs)
+            if implied == {"accept"}:
+                return ("must_accept",
+                        f"ivtest: vvp_tests descriptor(s) {names} - runs "
+                        "under an explicit SV generation with no "
+                        "syntax-error golden, parse-level valid")
+            if implied == {"reject"}:
+                return ("must_reject",
+                        f"ivtest: vvp_tests descriptor(s) {names} - CE with "
+                        "golden iverilog output reporting a syntax error, "
+                        "parse-level invalid")
+            if implied == {"triage"}:
+                return ("out_of_scope_with_cause:negative_stage_triage",
+                        f"ivtest: vvp_tests descriptor(s) {names} - CE "
+                        "without usable golden output; per-file stage "
+                        "triage = leaf .8b")
+            if implied == {"ni"}:
+                return ("out_of_scope_with_cause:ni_unimplemented",
+                        f"ivtest: vvp_tests descriptor(s) {names} - type NI "
+                        "(Not Implemented): the upstream runner skips the "
+                        "test, so it carries no validity testimony")
+            return ("out_of_scope_with_cause:descriptor_conflict",
+                    f"ivtest: vvp_tests descriptors {names} imply "
+                    f"conflicting verdicts ({', '.join(sorted(implied))}) - "
+                    "unkeyable without per-file adjudication")
+        if any("verilog-ams" in a for d in descs
+               for a in d.get("iverilog-args", [])):
+            return ("out_of_scope_with_cause:verilog_ams_lane",
+                    "ivtest: vvp_tests descriptor runs under -gverilog-ams - "
+                    "Verilog-AMS surface, outside the IEEE 1800 scope "
+                    "(VERILOG-AMS tree parked)")
+        if v2005:
+            return ("out_of_scope_with_cause:v2005_profile_lane",
+                    "ivtest: vvp_tests descriptor runs under an explicit "
+                    "plain-Verilog generation - keyed for the verilog_2005 "
+                    "profile lane")
+        return ("out_of_scope_with_cause:no_sv_key",
+                "ivtest: vvp_tests descriptor(s) without an explicit "
+                "generation flag - dialect unresolved (the upstream default "
+                "generation is not encoded in the descriptor)")
+
+
+# sv2v test/error/ stage classification (leaf .8b.1). Every error/ file is an
+# INTENDED sv2v failure whose `// pattern:` header keys the upstream message;
+# the STAGE of the invalidity is adjudicated per the IEEE 1800-2017 LRM
+# (in-repo docs/systemverilog/2017/md), never per what any parser does:
+#   reject  - the text violates the Annex A BNF itself (parse/lexical level)
+#   accept  - the text is BNF-parseable; the invalidity is a prose "shall"
+#             (semantic/elaboration stage), so parse-level valid
+#   preproc - the intended failure is at the preprocessing stage (svpp lane)
+# Filenames absent from the table (incl. the 9 files with no `// pattern:`
+# key and the named ambiguous families) stay in the error_pretriage residue
+# for per-file pinned adjudication (leaf .8b.2).
+SV2V_REJECT_GROUPS = [
+    ({"assert_deferred_nonzero"},
+     "IEEE 1800-2017 A.6.10: a deferred immediate assertion takes the "
+     "literal '#0' ('#1' has no production)"),
+    ({"auto_dim_int", "const_const", "var_var", "decl_bare", "decl_const_wire",
+      "decl_binop_asgn", "decl_missing_comma", "decl_non_blocking_asgn",
+      "decl_ranged_implicit", "decl_signed_implicit", "decl_trailing_comma",
+      "decl_wire_var", "decl_delay_asgn", "decl_delay_asgn_init",
+      "decl_delay_asgn_package", "decl_delay_asgn_port"},
+     "declaration grammar violation - no IEEE 1800-2017 Annex A "
+     "data/net-declaration production admits this form (sv2v keys it at its "
+     "parse stage)"),
+    ({"block_start_1", "block_start_2", "block_start_3", "block_start_4",
+      "run_on_decl_item", "run_on_decl_package", "run_on_decl_stmt",
+      "port_list_incomplete", "elab_task_stray_after_args",
+      "elab_task_stray_before_args", "elab_task_stray_no_args"},
+     "statement/item grammar violation - no IEEE 1800-2017 Annex A "
+     "production admits this token sequence (sv2v keys it at its parse "
+     "stage)"),
+    ({"for_loop_decl_no_init", "for_loop_init_bare", "for_loop_init_delay",
+      "for_loop_init_nblk", "for_loop_init_stray"},
+     "IEEE 1800-2017 A.6.8 for_initialization/for_variable_declaration "
+     "requires '= expression' and admits no timing/non-blocking form"),
+    ({"instantiation_extra_comma", "instantiation_missing_ports",
+      "instantiation_no_label", "instantiation_no_module",
+      "instantiation_not_ports", "instantiation_not_range",
+      "instantiation_trailing_comma"},
+     "IEEE 1800-2017 A.4.1.1 module_instantiation grammar violation"),
+    ({"missing_end", "missing_endfunction", "missing_endgenerate",
+      "missing_endinterface_1", "missing_endinterface_2",
+      "missing_endmodule_1", "missing_endmodule_2", "missing_endpackage",
+      "missing_endtask", "missing_join"},
+     "EOF truncation - the construct's mandatory closing keyword production "
+     "is unsatisfied (parse level)"),
+    ({"block_comment_eof", "string_literal_eof"},
+     "lexical level - unterminated block comment / string literal"),
+    ({"highz0_highz1"},
+     "IEEE 1800-2017 A.2.2.2 drive_strength pairs a 0-strength with a "
+     "1-strength - (highz0, highz1) has no production"),
+    ({"casex_inside", "casez_inside"},
+     "IEEE 1800-2017 A.6.7: the 'inside' case variant is the literal 'case' "
+     "keyword only - casex/casez ... inside has no production"),
+    ({"decl_after_stmt"},
+     "IEEE 1800-2017 A.6.3 seq_block: { block_item_declaration } strictly "
+     "precedes { statement_or_null } - a declaration after a statement has "
+     "no production"),
+    ({"string_packed", "string_signed", "byte_packed", "enum_post_signed",
+      "typeof_packed", "typeof_signed"},
+     "IEEE 1800-2017 A.2.2.1 data_type: string/type_reference admit no "
+     "signing or packed dimension; integer_atom_type admits no packed "
+     "dimension; enum admits only trailing packed dimensions"),
+    ({"binding_mix_param", "binding_mix_port", "binding_mix_port_trail"},
+     "IEEE 1800-2017 A.4.1.1 list_of_port_connections / "
+     "list_of_parameter_assignments: all-ordered or all-named - mixing has "
+     "no production"),
+]
+SV2V_ACCEPT_GROUPS = [
+    ({"end_label_block_only", "end_label_block_wrong", "end_label_class_wrong",
+      "end_label_function_wrong", "end_label_gen_block_only",
+      "end_label_gen_block_wrong", "end_label_interface_wrong",
+      "end_label_module_wrong", "end_label_package_wrong",
+      "end_label_task_wrong"},
+     "end-label matching is prose (IEEE 1800-2017 9.3.4/23.2.1 'shall be an "
+     "error if the name at the end is different') - the BNF end label is an "
+     "unconstrained identifier"),
+    ({"class_missing_item", "class_not_specialized",
+      "class_parameter_missing_1", "class_parameter_missing_2",
+      "class_parameter_not_expr", "class_parameter_not_type", "missing_class",
+      "module_import_missing_package", "module_import_missing_package_item",
+      "package_export_export_1", "package_export_export_2",
+      "package_export_missing", "package_export_wrong_1",
+      "package_export_wrong_2", "package_import_missing_package",
+      "package_import_missing_package_item", "package_loop_1",
+      "package_loop_2", "package_scope_conflict_1", "package_scope_conflict_2",
+      "package_scope_conflict_3", "package_scope_conflict_4",
+      "package_scope_conflict_5", "package_scope_conflict_6",
+      "package_scope_conflict_7", "package_scope_conflict_8",
+      "package_self_export", "package_self_import",
+      "package_self_reference_early", "package_self_reference_loop",
+      "typedef_missing", "typedef_not_type_localparam", "typedef_not_type_net",
+      "typedef_not_type_var", "typedef_ref_not_type"},
+     "name/package/class/type resolution failure - post-parse semantics "
+     "(IEEE 1800-2017 clauses 6/8/26 prose); the text is BNF-parseable"),
+    ({"binding_not_found_class", "binding_not_found_overflow",
+      "binding_not_found_param", "binding_not_found_port",
+      "binding_overflow_class", "binding_overflow_param",
+      "binding_overflow_port", "module_param_mismatch_expr",
+      "module_param_mismatch_type", "parameter_no_default_1",
+      "parameter_no_default_2", "parameter_no_default_3",
+      "interface_param_mismatch_expr", "interface_param_mismatch_type"},
+     "instantiation binding/parameter resolution - elaboration semantics "
+     "(IEEE 1800-2017 23.10/23.3.2 prose); the text is BNF-parseable"),
+    ({"interface_bad_expr", "interface_bad_expr_arr",
+      "interface_bad_expr_genvar", "interface_bad_expr_module",
+      "interface_mismatch_1", "interface_mismatch_2", "interface_mismatch_3",
+      "interface_mismatch_4", "interface_mismatch_5", "interface_mismatch_6",
+      "interface_modport_missing", "interface_modport_unlisted",
+      "interface_name_func", "interface_name_var", "interface_unbound_modport",
+      "interface_unbound_modports", "interface_unknown"},
+     "interface/modport binding semantics (IEEE 1800-2017 clause 25 prose); "
+     "the text is BNF-parseable"),
+    ({"struct_extra_named_field", "struct_extra_unnamed_field",
+      "struct_invalid_key", "struct_logic_bit", "struct_logic_part_range",
+      "struct_logic_part_select", "struct_missing_field", "struct_non_integer",
+      "struct_out_of_bounds", "struct_out_of_bounds_neg",
+      "struct_unknown_field", "typeof_atom_bit", "typeof_atom_range"},
+     "assignment-pattern/type-index semantics (IEEE 1800-2017 10.9/7.2 "
+     "prose); the text is BNF-parseable"),
+    ({"size_cast_neg_lit_1", "size_cast_neg_lit_2", "size_cast_neg_var_1",
+      "size_cast_neg_var_2", "size_cast_x_lit", "size_cast_x_var",
+      "size_cast_xpr_lit", "size_cast_xpr_var", "size_cast_zero_lit",
+      "size_cast_zero_var", "enum_range_neg", "enum_range_x",
+      "enum_range_zero", "enum_conflict"},
+     "constant-value legality (cast width / enum range values) - semantic "
+     "(IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable"),
+    ({"break_inside_fork", "break_outside_loop", "continue_inside_fork",
+      "continue_outside_loop", "return_inside_fork", "return_outside_tf",
+      "return_task", "return_void_func"},
+     "jump-statement placement and return typing are prose rules (IEEE "
+     "1800-2017 12.8/13.4.1) - jump_statement is an ordinary statement "
+     "production"),
+    ({"case_multiple_defaults", "generate_case_multiple_defaults"},
+     "IEEE 1800-2017 12.5 'use of multiple default statements in one case "
+     "statement shall be illegal' is prose - the BNF admits repeated "
+     "default case_items"),
+    ({"port_init_early", "port_not_in_header", "port_packed_first",
+      "port_packed_second", "port_redeclare", "port_unpacked_first",
+      "port_unpacked_second"},
+     "port/declaration coherence rules (IEEE 1800-2017 23.2.2 prose); each "
+     "declaration is BNF-parseable"),
+    ({"default_nettype_none"},
+     "implicit-net legality under `default_nettype none is semantic (IEEE "
+     "1800-2017 6.10/22.8); the text is BNF-parseable"),
+    ({"charge_strength_non_trireg", "drive_strength_uninit"},
+     "IEEE 1800-2017 A.2.1.3 net_declaration admits [drive_strength | "
+     "charge_strength] on any net_type and net_decl_assignment's "
+     "'= expression' is optional - the trireg-only/initializer restrictions "
+     "of 1364 became prose in 1800"),
+]
+SV2V_PREPROC = {
+    "include_loop_1", "include_loop_2", "missing_include",
+    "include_filename_eof", "unmatched_else", "unmatched_else_end",
+    "unmatched_elsif", "unmatched_elsif_end", "unmatched_endif",
+    "unmatched_ifdef", "unmatched_ifndef", "undefined_macro",
+    "macro_overapplied", "macro_underapplied", "macro_unapplied",
+    "macro_unapplied_eof", "macro_args_empty", "macro_arg_bad_eq",
+    "macro_arg_bad_name", "macro_illegal_name", "string_directive",
+    "double_backtick", "stray_escaped_vendor_comment",
+    "string_literal_backtick_eof", "default_nettype_invalid",
+}
+SV2V_ERROR_KEY = {}
+for _names, _basis in SV2V_REJECT_GROUPS:
+    for _n in _names:
+        SV2V_ERROR_KEY[_n] = ("must_reject", "sv2v error-suite key: " + _basis)
+for _names, _basis in SV2V_ACCEPT_GROUPS:
+    for _n in _names:
+        SV2V_ERROR_KEY[_n] = ("must_accept", "sv2v error-suite key: " + _basis)
+for _n in SV2V_PREPROC:
+    SV2V_ERROR_KEY[_n] = (
+        "out_of_scope_with_cause",
+        "sv2v error-suite key: the intended failure is at the preprocessing "
+        "stage (`include/`ifdef/macro machinery, stray backtick, directive "
+        "arguments) - svpp-owned conformance")
 
 
 def expect_sv2v(relpath: str):
     """sv2v test suite: `.sv` files are conversion INPUTS (valid SV by suite
     contract); `.v` files are conversion GOLDENS (Verilog-2005 by contract);
-    error/ negatives need conversion-error-vs-parse-error pre-triage."""
+    error/ negatives are stage-classified from their `// pattern:` upstream
+    keys against the LRM BNF (leaf .8b.1); the ambiguous residue stays in
+    error_pretriage for per-file pinning (leaf .8b.2)."""
     p = relpath.replace("\\", "/")
     if p.endswith(".v"):
         return ("out_of_scope_with_cause:v2005_profile_lane",
                 "sv2v: golden Verilog-2005 conversion output - keyed for the "
                 "verilog_2005 profile lane")
     if p.startswith("test/error/"):
+        key = SV2V_ERROR_KEY.get(Path(p).stem)
+        if key:
+            return key
         return ("out_of_scope_with_cause:error_pretriage",
-                "sv2v: error/ negative - conversion-error vs parse-error "
-                "pre-triage = leaf .8b")
+                "sv2v: error/ negative outside the .8b.1 stage-classified "
+                "population (no '// pattern:' key or named-ambiguous stage) "
+                "- per-file pinned adjudication = leaf .8b.2")
     return ("must_accept",
             "sv2v: conversion-input .sv (valid SV by suite contract)")
 
 
-def expect_surelog(relpath: str):
-    """Surelog tests are directory-level multi-file units driven by per-test
-    goldens; the accept/error key extraction is leaf .8b."""
-    return ("chained_only",
-            "Surelog: dir-level multi-file test unit; accept/error key "
-            "extraction from drivers/golden logs = leaf .8b")
+class SurelogIndex:
+    """Answer key from Surelog per-test drivers + committed golden logs
+    (leaf .8b.1). A test unit = a directory under tests/ directly containing
+    >= 1 `.sl` driver. A unit is keyable only when it is single-source
+    (exactly one .sv/.v/.svh under the unit dir, recursively) AND no driver
+    references out-of-unit sources/libraries/file-lists; then the committed
+    golden log(s) carry the upstream parse testimony:
+      [SNT:...] syntax-error codes -> parse-level reject intent;
+      a completed log with no [SNT:]/[FTL:] -> the exact file text parses
+      under Surelog's IEEE 1800-2017 grammar (accept);
+      [FTL:...] fatal -> the run aborted, no usable testimony."""
+
+    UNKEYABLE_FLAGS = {"-y", "-v", "-f", "-map", "-cfg", "-batch"}
+    SRC_SUFFIXES = (".sv", ".v", ".svh")
+
+    def __init__(self, tests_root: Path):
+        self.tests_root = tests_root
+        self.units = {}  # dir path relative to tests_root -> unit record
+        if not tests_root.is_dir():
+            return
+        for sl in sorted(tests_root.rglob("*.sl")):
+            rel_dir = sl.parent.relative_to(tests_root)
+            if rel_dir in self.units:
+                continue
+            srcs = sorted(p for p in sl.parent.rglob("*")
+                          if p.suffix in self.SRC_SUFFIXES)
+            logs = sorted(sl.parent.glob("*.log"))
+            external = False
+            for drv in sorted(sl.parent.glob("*.sl")):
+                for tok in read_text(drv).split():
+                    if tok in self.UNKEYABLE_FLAGS or ".." in tok:
+                        external = True
+            log_text = "".join(read_text(l) for l in logs)
+            self.units[rel_dir] = {
+                "n_srcs": len(srcs),
+                "external": external,
+                "log_names": ", ".join(l.name for l in logs),
+                "has_logs": bool(logs),
+                "snt": "[SNT:" in log_text,
+                "ftl": "[FTL:" in log_text,
+            }
+
+    def expect(self, relpath: str):
+        p = Path(relpath.replace("\\", "/"))
+        unit = None
+        if p.parts and p.parts[0] == "tests":
+            anc = p.parent
+            while len(anc.parts) > 1:
+                unit = self.units.get(Path(*anc.parts[1:]))
+                if unit is not None:
+                    break
+                anc = anc.parent
+        if unit is None:
+            return ("chained_only",
+                    "Surelog: no per-test .sl driver unit owns this file's "
+                    "directory - unkeyed (chain-level only)")
+        if unit["n_srcs"] != 1:
+            return ("chained_only",
+                    f"Surelog: multi-file test unit ({unit['n_srcs']} "
+                    "sources) - dir-level chained adjudication (leaf .4)")
+        if unit["external"]:
+            return ("chained_only",
+                    "Surelog: driver references out-of-unit sources/"
+                    "libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or "
+                    "../ paths) - chain-level only")
+        if not unit["has_logs"]:
+            return ("chained_only",
+                    "Surelog: no committed golden log for the unit - no "
+                    "upstream parse testimony")
+        if unit["ftl"]:
+            return ("chained_only",
+                    f"Surelog: golden log {unit['log_names']} aborted with "
+                    "[FTL:] - no usable parse testimony")
+        if unit["snt"]:
+            return ("must_reject",
+                    f"Surelog: golden log {unit['log_names']} reports "
+                    "[SNT:] syntax errors - upstream keys this single-source "
+                    "unit parse-level invalid")
+        return ("must_accept",
+                f"Surelog: golden log {unit['log_names']} completes with no "
+                "[SNT:]/[FTL:] - upstream testimony that the unit's single "
+                "source parses under Surelog's IEEE 1800-2017 grammar")
 
 
 # opentitan / black-parrot / uvm-core join the design-corpus lane: real-design
@@ -466,6 +841,7 @@ def main():
 
     vidx = VerilatorIndex(args.subs_root / "verilator/test_regress/t")
     ividx = IvtestIndex(args.subs_root / "iverilog/ivtest")
+    sidx = SurelogIndex(args.subs_root / "Surelog/tests")
 
     manifest = []
     for suite, rel, observed in rows:
@@ -500,7 +876,7 @@ def main():
         elif suite == "sv2v":
             expected, basis = expect_sv2v(rel)
         elif suite == "Surelog":
-            expected, basis = expect_surelog(rel)
+            expected, basis = sidx.expect(rel)
         else:
             raise SystemExit(f"unknown suite {suite!r} in results.tsv")
         dep_flag = ""
@@ -512,6 +888,16 @@ def main():
             # meaningful at chain level (leaf .4).
             expected = "chained_only"
             basis += " - but `include-dependent: reject expectation is chain-level"
+        elif expected == "must_reject" and dep_flag in ("macro_use", "conditional"):
+            # Mirror of the include rule (leaf .8b.1): the intended syntax
+            # error may only materialize after macro expansion / conditional
+            # resolution, which isolation parse of the raw text never
+            # performs - a raw-text reject would testify for the wrong
+            # reason, so the reject expectation is svpp-lane.
+            expected = "out_of_scope_with_cause"
+            basis += (" - but macro/conditional-dependent: the reject "
+                      "expectation is only meaningful post-preprocessing "
+                      "(svpp lane)")
         if expected != "must_accept":
             dep_flag = ""
         verdict = adjudicate(expected, observed, dep_flag)

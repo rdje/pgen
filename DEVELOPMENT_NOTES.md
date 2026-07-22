@@ -1,5 +1,25 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0009 — the LRM *edition* matters for stage adjudication; a tool's own "Parse error" is not the LRM's
+
+**BNF vs prose is edition-sensitive.** Two sv2v "Parse error" negatives (`charge_strength_non_trireg`,
+`drive_strength_uninit`) are parse-level invalid in IEEE 1364-2005 — where the BNF itself splits
+`trireg [charge_strength]` from the other net types and `net_decl_assignment` requires `= expression` —
+but IEEE 1800-2017 A.2.1.3 collapsed both into `net_type [drive_strength | charge_strength] …` with an
+optional initializer, moving the restrictions to prose. Under an sv_2017 lane they are therefore
+must_accept. Corollary for `.8c`: the SAME files get the OPPOSITE expected verdict in the
+verilog_2005 lane. **And in both directions, an upstream tool's failure stage is not the LRM's**:
+sv2v reports post-parse errors for BNF violations its lenient parser tolerates (`decl_after_stmt` —
+A.6.3 orders declarations strictly before statements; ordered/named connection mixing — A.4.1.1) and
+"Parse error" for text the 1800 BNF admits. Stage classification must always re-derive from the LRM
+BNF/prose split, using the upstream message only to locate the intent — exactly the
+corpus-expected-from-SPEC doctrine.
+
+**Golden logs are parse testimony.** Surelog's committed per-test `.log` files assert, file-exactly,
+what its IEEE 1800-2017 parser accepted — a free 628-unit answer key, but ONLY once the unit is proven
+single-source and self-contained (driver-token screen for `-y/-v/-f/-map/-cfg/-batch` and `..` paths);
+anything weaker keys another file's testimony onto this one.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0008 — instrument reuse beats instrument building; and the coverage stack's pathological-input tax
 
 **Reuse first.** The rule-coverage instrument needed a numerator and a denominator; BOTH already

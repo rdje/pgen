@@ -467,8 +467,11 @@ coverage.
 ### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
 
 - **Status: `in_progress`** — `.8a` (vendoring + runner fold + answer keys +
-  fresh baseline) **done**; `.8b` (deep key extraction) + `.8c` (v2005-profile
-  lane run) remain. Roster-v2 candidate logged: **slang embedded-unittest
+  fresh baseline) **done**; `.8b.1` (the three mechanical deep-key lanes:
+  Surelog golden logs, sv2v error-pattern stage classification, ivtest
+  vvp_tests descriptors) **done**; `.8b.2` (per-file pinned stage triage) +
+  `.8b.3` (CE-without-gold population) + `.8c` (v2005-profile lane run)
+  remain. Roster-v2 candidate logged: **slang embedded-unittest
   extraction** (thousands of SV snippets inside slang's C++ unit tests — the
   sharpest open conformance oracle; extraction tool + fragment entry-point
   mapping required).
@@ -545,15 +548,105 @@ coverage.
   - [x] **LOCKSTEP** — PROVENANCE + tree + TASK_TREE index +
     MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
-#### `.8b` — Deep answer-key extraction (todo)
+#### `.8b` — Deep answer-key extraction (umbrella; `.8b.1` done)
 
-- **Status: `todo`** — (1) Surelog per-test accept/error key extraction from
-  drivers/golden logs (828 rows now chained-deferred); (2) sv2v `error/`
-  conversion-error vs parse-error pre-triage (234 rows); (3) ispras NEGATIVE
-  per-file stage triage (23 files — sampled member is semantic-stage);
-  (4) ivtest CE-without-gold stage triage (~180 rows); (5) the ivtest
-  `no_sv_key` population sweep (vvp_tests JSON descriptors as a secondary
-  key source where SV-dialect).
+- **Status: `in_progress`** — the five populations from `.8a`, split:
+  `.8b.1` (mechanical metadata lanes 1/2/5) **done**; `.8b.2` (per-file
+  pinned stage adjudication: ispras NEGATIVE 21 + the sv2v named-ambiguous
+  residue 21) + `.8b.3` (the CE-without-gold stage-triage population, now
+  304 rows incl. the 103 vvp_tests CE) remain.
+
+##### `.8b.1` — Mechanical deep keys: Surelog goldens + sv2v patterns + ivtest vvp_tests (done)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0009`, session #193, 2026-07-22).
+- **What landed** (all in `stimuli/sv/adjudicate_external_corpus.py`,
+  spec/metadata-only per doctrine; no parser surface touched):
+  - **`SurelogIndex`** — unit = a `tests/` dir directly holding `.sl`
+    drivers; keyable iff single-source (recursive), no out-of-unit refs
+    (`-y/-v/-f/-map/-cfg/-batch`, `..` paths), and committed golden log(s)
+    present: `[SNT:]` → must_reject intent, clean completed log →
+    must_accept (upstream 1800-2017 parse testimony), `[FTL:]`/no-log/multi
+    → chained with named sub-cause. Yield: 628 keyable units of 700.
+  - **sv2v `test/error/` stage classification** — the `// pattern:` upstream
+    keys stage-classified per the IEEE 1800-2017 LRM (in-repo md, BNF vs
+    prose): 64 `must_reject` (BNF violations — cites per group: A.6.10 `#0`,
+    A.6.3 seq_block ordering, A.6.7 case-inside literal `case`, A.2.2.1
+    data_type modifiers, A.2.2.2 strength pairs, A.4.1.1 ordered/named
+    mixing, EOF truncations, lexical), 123 `must_accept` (prose-"shall"
+    semantics — end-labels 9.3.4/23.2.1, resolution/bindings, value rules,
+    jump placement 12.8, multiple case defaults 12.5; incl. the two
+    1364→1800 BNF relaxations `charge_strength_non_trireg` +
+    `drive_strength_uninit`), 25 preproc-stage → svpp lane; 21 named
+    residue (no `// pattern:` key or stage-ambiguous: `lhs_*`,
+    `export_outside_package_*`, `localparam*_no_default`,
+    `decl_const_var_uninit`, `parameter_list_not_type`, `severity_task_*`,
+    `line_*`, `interface_excess_ports`/`_non_lhs`/`_missing_direction`,
+    `dangling_stmt`, `include_apos`) → `.8b.2`. Table exhaustiveness
+    machine-audited (212 classified + 22→21 residue = 234, zero stale).
+  - **ivtest vvp_tests JSON secondary keys** — descriptors (the upstream
+    `vvp_reg.py` system: `type`/`source` under `ivltests/`/`iverilog-args`/
+    `gold` as `gold/<g>-iverilog-<chan>.gold`) key ONLY rows with an
+    explicit SV generation flag; multi-descriptor sources keyed only on
+    verdict agreement; AMS runs → `verilog_ams_lane`; explicit plain-Verilog
+    generations → v2005 lane; no-generation descriptors stay `no_sv_key`
+    honestly (upstream default generation not encoded).
+  - **Generic demotion** (mirror of the `include rule): a `must_reject` on a
+    macro/conditional-dependent file demotes to svpp-owned — a raw-text
+    reject would testify for the wrong reason (fired exactly once:
+    `Surelog/tests/PreProcMacro`, a macro-torture SNT unit).
+- **Measured globally (before → after, committed manifest vs regenerated):**
+  16,336 rows both; **baseline 445 → 550 unexplained (+105 newly measured:
+  Surelog 70 / ivtest +17 / sv2v +18 = 537 rejects-valid + 13
+  accepts-invalid)**; match 4,419 → 5,260 (+841); deferred 10,164 → 9,091.
+  **Full row-by-row transition audit: every class change ∈ the intended
+  transition set** (Surelog chained→{536 match, 70 rejects-valid, 22
+  svpp-explained, 1 svpp-owned}; ivtest no_sv_key→{135 match, 17
+  rejects-valid, 104+1 svpp-explained, 103 CE-triage, 20 AMS, 6 NI, 1
+  v2005}; sv2v error_pretriage→{170 match, 11 rejects-valid, 7
+  accepts-invalid, 25 svpp}); ZERO collateral movement in any other suite
+  (old-suite 279-baseline populations byte-stable). ⭐ The 7 sv2v
+  accepts-invalid rows are a NEW over-acceptance worklist (parser accepts
+  BNF-invalid text: `decl_after_stmt`, `decl_bare`, `decl_ranged_implicit`,
+  `decl_signed_implicit`, `block_start_3`, `auto_dim_int`,
+  `block_comment_eof` — the last = unterminated block comment accepted,
+  a lexer-tolerance candidate for `.3.x`).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 828 Surelog + 234 sv2v-error + 1,130 ivtest
+    no_sv_key rows carried no expected verdicts (`.8a` deferral slugs).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — N/A defect-wise (key-extraction
+    leaf); every new verdict carries per-row `basis` provenance naming its
+    upstream key (golden log name, LRM cite, descriptor JSON).
+  - [x] **FIX** — N/A (no parser change; adjudicator tooling only).
+  - [x] **ADDRESSED (verified)** — determinism cmp ×2 byte-identical;
+    table-exhaustiveness audit; full transition audit (above); live probe
+    spot-verification of representative new rows (`Surelog/tests/1364_2005/
+    dut.v` exit 1, `ivtest/ivltests/br_gh1321.v` exit 1,
+    `sv2v test/error/auto_dim_int.sv` exit 0 = accepts-invalid,
+    `drive_strength_uninit.sv` exit 1 = rejects-valid — all four match the
+    manifest).
+  - [x] **NO REGRESSION** — zero parser surface touched; `results.tsv`
+    unchanged (same probe vintage); old-suite unexplained populations
+    reproduce EXACTLY (verilator 226 / sv-tests 39 / verible 13 / slang 1 /
+    ispras 114); historical labels byte-stable outside the three intended
+    populations.
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
+    DEVELOPMENT_NOTES/LIVE this commit.
+
+##### `.8b.2` — Per-file pinned stage adjudication (todo)
+
+- **Status: `todo`** — (1) ispras NEGATIVE per-file stage triage (21 rows;
+  sampled member is semantic-stage); (2) the sv2v named-ambiguous residue
+  (21 rows above) — each needs an LRM-grounded pinned ruling (BNF footnote
+  questions: A.10 fn-18 omitted param defaults, const-init prose, lvalue
+  BNF strictness, export placement, severity-task args).
+
+##### `.8b.3` — CE-without-gold stage triage (todo)
+
+- **Status: `todo`** — the `deferred:negative_stage_triage` population, now
+  304 rows (ivtest list-CE 180 + ivtest vvp_tests-CE 103 + ispras-adjacent
+  21 counted under `.8b.2`; exact split per the manifest). Needs a
+  per-file (or clustered) parse-vs-elaboration adjudication method with
+  spec-side grounds only.
 
 #### `.8c` — The verilog_2005 profile lane (todo)
 
