@@ -12,18 +12,18 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | files parsed | pass | fail | timeout | pass-rate |
 |---|---|---|---|---|
-| 5128 | 2975 | 2151 | 2 | 58.0% |
+| 5128 | 3049 | 2078 | 1 | 59.5% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | pass-rate |
 |---|---|---|---|---|---|
-| Cores-VeeR-EL2 | 102 | 17 | 85 | 0 | 16.7% |
+| Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 17.6% |
 | friscv | 441 | 31 | 410 | 0 | 7.0% |
 | scr1 | 50 | 7 | 43 | 0 | 14.0% |
 | slang | 92 | 71 | 21 | 0 | 77.2% |
-| sv-tests | 1028 | 791 | 237 | 0 | 76.9% |
-| verible | 152 | 120 | 32 | 0 | 78.9% |
-| verilator | 3263 | 1938 | 1323 | 2 | 59.4% |
+| sv-tests | 1028 | 805 | 223 | 0 | 78.3% |
+| verible | 152 | 121 | 31 | 0 | 79.6% |
+| verilator | 3263 | 1996 | 1266 | 1 | 61.2% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv`._

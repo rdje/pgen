@@ -1,0 +1,12 @@
+# H.12.5.8 infix matrix re-verification at HEAD (2026-07-22, session #190) — 12/12 PASS
+# probe: rust/target/debug/parseability_probe (01:42 vintage) --profile sv_2017
+SEQ: a ##1 b / a ##1 b [*2] / a or b / a and b / a intersect b / a within b — ALL PASS
+PROP: a until b / a until_with b / a s_until b / a s_until_with b / a or b / a and b — ALL PASS
+
+ATTRIBUTION (changelog): sequence cascade = release 1.0.148 (GRAMMAR-WELLFORMED.H.12.5.8.3.1.1, ledger SV-0010, 2026-06-25);
+property cascade = release 1.0.149 (H.12.5.8.3.2, ledger SV-0011, same day) — 'This completes the H.12.5.8 SVA infix left-recursion class.'
+
+CONSEQUENCE for SV-REPLAY-DEBT.2: the infix-bug convergence hypothesis is REFUTED — better: the 1.0.148/1.0.149 cascades
+CREATED prop_primary_sv_* (+5 rules/profile) and the seq_* layers (+11), i.e. the replay-debt prop_primary cluster IS the
+cascades' NEW branch universe not yet covered by closed-loop replay — a coverage-generation target, not a parse bug;
+this also mechanistically explains the 84 (2026-06-05) -> 120 (2026-07-22) debt growth.

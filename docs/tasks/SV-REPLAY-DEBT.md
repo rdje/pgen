@@ -184,12 +184,15 @@ GONE from today's list; the population has genuinely shifted.
   down cluster by cluster, each with a toolbox-first WHY+WHERE leaf before any
   fix:
   - the `prop_primary_*` `selected_but_failed` cluster (24×2 root-level
-    branches — the dominant mass; first question: WHY does a driven branch's
-    witness fail to parse — per-branch probe via the `.7.4.6.4`
-    timeout/unresolved sampling tooling; ⭐ check the `H.12.5.8` infix
-    property/sequence parse-bug convergence FIRST — if those branches' witnesses
-    hit the known infix-reject, the lane-2 grammar fix is the unblocking move
-    and serves BOTH Done axes);
+    branches — the dominant mass). ⭐ CONVERGENCE RESOLVED (session #190,
+    `h1258_matrix_at_head.txt`): the `H.12.5.8` infix parse bug is ALREADY
+    FIXED (releases 1.0.148/1.0.149, 2026-06-25; 12/12 REJECT→PASS re-verified
+    at HEAD) — and those cascade releases CREATED `prop_primary_*`/`seq_*`
+    (+16 branches/profile), so this cluster IS the cascades' new branch
+    universe not yet covered by replay: a GENERATION-COVERAGE target (why does
+    the driven branch's witness fail to parse — per-branch probe via the
+    `.7.4.6.4` timeout/unresolved sampling tooling), which also explains the
+    84→120 debt growth mechanistically;
   - the assertion/statement cluster (`concurrent_assertion_statement` 4,
     `method_call_receiver_*` 4, `ps_or_hierarchical_array_identifier` 3, …);
   - the `never_selected` cluster (17/19 — reach-forcing question, cf.

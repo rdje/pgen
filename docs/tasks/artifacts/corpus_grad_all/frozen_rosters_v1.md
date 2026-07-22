@@ -71,6 +71,12 @@ verdicts always derive from each suite's own answer key / the governing spec.
 
 ## Sequencing (per the Nexsim delivery directive)
 
+> Correction (same session, post-synthesis): the "known burn-down member
+> `H.12.5.8`" referenced in the discovery extracts is ALREADY FIXED (releases
+> 1.0.148/1.0.149, 2026-06-25; 12/12 matrix re-verified at HEAD — see
+> `../sv_replay_debt/h1258_matrix_at_head.txt`); the SV burn-down baseline is
+> the `.2` adjudication manifest, not that bug.
+
 1. SV campaign (`SV-CORPUS-GRAD.1` re-characterization + adjudication) — ACTIVE next.
 2. VHDL campaign opening (`CORPUS-GRAD-ALL.2`) — the material `Done`-at-risk row + Nexsim's second language.
 3. regex formal graduation statement (small); svpp explicit slice (small).

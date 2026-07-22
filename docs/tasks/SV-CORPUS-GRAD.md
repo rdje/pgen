@@ -94,17 +94,46 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
 
 ### `.1` — Re-characterize at TODAY's vintage + adjudication design (read-only + docs)
 
-- **Status: `todo`** — the 2026-06-17 baseline is ~25 SV releases stale
-  (LRM-bracket/`$`-anchor/covergroup/bind restorations, `verilog_2005` gating,
-  the `.37.x` uvm arc all landed since). Re-run
-  `stimuli/run_external_corpus.sh sv` guarded at HEAD vintage → the fresh
-  per-suite pass/fail baseline. DESIGN the adjudication: per-suite expected-
-  verdict derivation (sv-tests `:should_fail_because:`/`:tags:`; verilator
-  `test_regress` expected-fail conventions; slang/verible fixture semantics),
-  the verdict taxonomy, and the manifest format. Adjudicate whether the roster
-  needs additions (the directive's "…") — candidates from the reference record
-  (ivtest, yosys tests, UHDM samples) — additions are their own acquisition
-  leaf if adopted.
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0003`, session #190, 2026-07-22).
+- **Fresh baseline at HEAD** (guarded `stimuli/run_external_corpus.sh sv`,
+  exit 0, 61 s, probe vintage-asserted newer than the artifact): **5,128
+  files — 3,049 pass (59.5%) / 2,078 fail / 1 timeout** vs the 2026-06-17
+  baseline 2,975 (58.0%) / 2,151 / 2. Per-suite: sv-tests 76.9→**78.3**,
+  verible 78.9→**79.6**, verilator 59.4→**61.2**, VeeR 16.7→17.6;
+  slang/friscv/scr1 unchanged — the gains sit exactly where the ~25
+  intervening releases fixed (SVA cascades, LRM restorations, bind).
+  Report committed (`stimuli/sv/characterization/characterization.md`).
+- ⭐ **The "known burn-down member" is ALREADY FIXED:** the `H.12.5.8` infix
+  property/sequence class was closed by releases **1.0.148** (sequence
+  cascade, `SV-0010`) + **1.0.149** (property cascade, `SV-0011`), both
+  2026-06-25 — independently re-verified at HEAD by a 12/12 REJECT→PASS
+  matrix (`docs/tasks/artifacts/sv_replay_debt/h1258_matrix_at_head.txt`).
+  Better: those cascades CREATED the `prop_primary_*`/`seq_*` rule layers —
+  the `SV-REPLAY-DEBT` residual cluster IS the cascades' new branch universe
+  (a generation-coverage target, not a parse bug), which also mechanistically
+  explains the 84→120 debt growth.
+- **Adjudication design (feeds `.2`):** per-suite expected-verdict derivation —
+  sv-tests: `:should_fail_because:`/`:tags:` headers (must-fail vs must-pass);
+  verilator: `test_regress` expected-fail naming/driver conventions (`*_bad*`,
+  per-test `.out`/`.pl` drivers); slang/verible: fixture semantics are
+  positive-dominant — classify per-dir; full designs (VeeR/scr1/friscv):
+  chained-unit adjudication via the triage-manifest `bootstrap_files`
+  convention (isolation fails ≠ defects). Verdict taxonomy:
+  `must_accept` / `must_reject` / `chained_only` / `out_of_scope_with_cause`
+  (preprocessor-expansion-required → `SVPP-EXPANSION`; tool-specific
+  extension; non-LRM). Manifest = per-file rows (suite, path, expected,
+  observed, divergence-class), deterministic and diffable.
+- Roster additions: adjudicated + FROZEN v1 by `CORPUS-GRAD-ALL.1`
+  (ispras/sv-tests, ivtest, sv2v, Surelog, OpenTitan, black-parrot — see
+  `docs/tasks/artifacts/corpus_grad_all/frozen_rosters_v1.md`); vendoring =
+  its own leaf when the campaign reaches them.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — the stale 2026-06-17 baseline (58.0%) vs the amended Done bar.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — N/A (measurement leaf); the H.12.5.8 attribution documented (1.0.148/1.0.149 changelog + the 12/12 matrix).
+  - [x] **FIX** — N/A (read-only).
+  - [x] **ADDRESSED (verified)** — the fresh guarded run (exit 0, marker banked) with per-suite deltas coherent with the intervening fix history.
+  - [x] **NO REGRESSION** — no code change; every per-suite pass-rate ≥ the June baseline (none regressed).
+  - [x] **LOCKSTEP** — characterization report committed; tree/MEMORY/CHANGES this commit.
 
 ### `.2` — The adjudication manifest + the honest divergence baseline
 
