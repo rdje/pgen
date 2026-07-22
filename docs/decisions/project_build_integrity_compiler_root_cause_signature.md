@@ -44,8 +44,11 @@ and in every build recipe), which would have been the easy but gate-weakening ch
 ideally plus a functional run) and the NO REGRESSION box (unchanged correctness global-gate
 signatures) are untouched. `scripts/*` is outside the enforcer's own `code_changed` trigger set
 (`grammars/*.ebnf | rust/src/* | generated/* | ast_shape_contract/*.json`), so this edit did not itself
-require an acceptance checklist. **Surfaced to the director as a doctrine evolution — open to veto or
-refinement**, exactly as the profiler extension was.
+require an acceptance checklist. Surfaced to the director as a doctrine evolution, exactly as the
+profiler extension was — and **RATIFIED by the director on 2026-07-22 (verbatim: "Ok for what you did
+for (2)")**. The third signature group is therefore settled doctrine, not a provisional extension: a
+build-integrity defect is root-caused by the compiler, and a leaf quoting a verbatim rustc diagnostic
+satisfies the ROOT CAUSE box on the same footing as a cert/probe/trace or a profiler attribution.
 
 **Watch item.** The enforcer's `NOREGRESS_SIG` includes the bare token `clippy`, which matched
 INCIDENTAL PROSE elsewhere in the `BIN-BUILD-INTEGRITY` leaf rather than the NO REGRESSION box itself
