@@ -31,6 +31,14 @@ framing that "other-grammar external corpora are not blocking all-parsers-Done"
    subset grammars), the family's corpus surface is adjudicated
    **N/A-with-cause** in the tracked mapping — named, justified, and
    director-visible, never silently assumed.
+   **RATIFIED by the director (2026-07-22, verbatim): "If we can't find
+   external, recognized test corpus for a parser, fine. But the idea to be as
+   sure as one can be that the parser is really good, that is why I require
+   the use of external test corpus to test the parser. If there is none, fine,
+   we will live with it."** — the mandate's PURPOSE is maximal justified
+   confidence; an honest exhaustive search that finds nothing satisfies it.
+   The v1 N/A-with-cause adjudications (annotation DSLs / ebnf / rtl_*) stand
+   as ruled; no mapped-subset workarounds required.
 3. **EXHAUSTIVE per-family corpus DISCOVERY first** (director's follow-up): for
    EACH family, an exhaustive, research-grounded search
    ([[feedback_research_grounded_sota_no_trial_and_revert]]: citations + worked

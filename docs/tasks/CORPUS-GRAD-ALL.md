@@ -72,8 +72,10 @@ exist. Never gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
 - **Audit verdicts:** regex `Done` = corpus-backed today (formal graduation
   statement pending); svpp `Done` = backed via vendored preprocessor cases
   (explicit slice pending); vhdl `Done` = NOT corpus-backed (campaign `.2`);
-  internal DSLs (annotation/ebnf/rtl_*) = N/A-with-cause (director may
-  override).
+  internal DSLs (annotation/ebnf/rtl_*) = N/A-with-cause — **RATIFIED by the
+  director 2026-07-22 ("If there is none, fine, we will live with it"):** the
+  mandate's purpose is maximal justified confidence; an honest exhaustive
+  search that finds nothing satisfies it. These N/A rulings are final for v1.
 - **Acceptance Checklist (enforced)**
   - [x] **REPRODUCE / ISSUE** — the director's exhaustive-search mandate; baseline = only 4 families had any corpus mapping.
   - [x] **ROOT CAUSE (WHY + WHERE)** — N/A (research leaf; the "why" is the doctrine record).
