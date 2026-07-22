@@ -380,6 +380,74 @@ def expect_ispras(relpath: str, text: str):
             "ispras: no '// ! TYPE:' key found in the file header")
 
 
+# --- SV-CORPUS-GRAD.8c: the verilog_2005 profile lane -----------------------
+#
+# The v2005-lane rows (ispras ieee-1364-2005/, ivtest regress-vlg.list +
+# explicit plain-Verilog vvp generations, sv2v .v conversion goldens) are
+# re-parsed under `--profile verilog_2005` by the runner's sv2005 mode and
+# adjudicated here against IEEE 1364-2005 answer keys. Edition law: verdicts
+# in this lane follow the 1364-2005 BNF, which differs from 1800 (e.g. the
+# charge/drive-strength placement rules ARE grammar there — the .8b.1
+# 1364->1800 relaxations read in the opposite direction).
+
+# ispras ieee-1364-2005/ TYPE:NEGATIVE per-file stage pins (leaf .8c.1): only
+# two exist; both files read and adjudicated against the 1364-2005 BNF.
+ISPRAS_1364_NEGATIVE_PINNED = {
+    "ieee-1364-2005/test_12_03_03_2.v": ("must_accept",
+        "pinned .8c.1: 12.3.3 port/net signedness-inheritance and "
+        "concat/part-select/named header ports - every module header form "
+        "is 1364-2005 A.1.4 port/port_expression/port_reference BNF and the "
+        "redeclaration pairs are legal declaration sequences; the cited "
+        "invalidities (signedness coherence, named-connection usability) "
+        "are semantic stage"),
+    "ieee-1364-2005/test_12_08_02_1.v": ("must_accept",
+        "pinned .8c.1: 12.8.2 early defparam hierarchical-name resolution "
+        "ambiguity - pure elaboration semantics; defparam and the generate "
+        "block are ordinary 1364-2005 BNF"),
+}
+
+
+def expect_ispras_v2005(relpath: str, text: str):
+    """ispras ieee-1364-2005/ half under the verilog_2005 profile."""
+    p = relpath.replace("\\", "/")
+    m = ISPRAS_TYPE_RE.search(text)
+    ttype = m.group(1) if m else ""
+    if ttype == "POSITIVE":
+        return ("must_accept",
+                "ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid "
+                "example (a failing residue re-adjudicates against the "
+                "suite's KNOWN_TEXT_BUGS errata in leaf .8c.2 - "
+                "committed-text-over-intent)")
+    if ttype == "NEGATIVE":
+        pinned = ISPRAS_1364_NEGATIVE_PINNED.get(p)
+        if pinned:
+            return pinned
+        return ("out_of_scope_with_cause:negative_stage_triage_v2005",
+                "ispras-1364: TYPE NEGATIVE outside the .8c.1 pinned pair "
+                "(added upstream after the vendored pin?)")
+    if ttype == "VARYING":
+        return ("out_of_scope_with_cause:impl_varying_v2005",
+                "ispras-1364: TYPE VARYING - implementation-dependent "
+                "verdict by suite contract")
+    return ("chained_only",
+            "ispras-1364: no '// ! TYPE:' key (multi-file companion under "
+            "parts/) - not a standalone keyed unit")
+
+
+def expect_v2005(suite: str, rel: str, text: str, ividx):
+    """Expected verdict for one v2005-lane row (leaf .8c.1) - suite metadata
+    / upstream driver conventions only, judged against IEEE 1364-2005."""
+    if suite == "ispras-sv-tests":
+        return expect_ispras_v2005(rel, text)
+    if suite == "sv2v":
+        return ("must_accept",
+                "sv2v: committed conversion GOLDEN - valid Verilog-2005 "
+                "output by suite contract (the tool's own emitted text)")
+    if suite == "iverilog":
+        return ividx.expect_v2005(rel)
+    raise ValueError(f"suite {suite!r} has no v2005-lane key source")
+
+
 IVTEST_TYPES = {"normal", "CE", "CO", "EF", "RE", "NI"}
 
 # ivtest CE-without-gold stage pins (leaf .8b.3): the 283 CE rows whose upstream
@@ -789,7 +857,7 @@ class IvtestIndex:
 
     def __init__(self, ivtest_dir: Path):
         self.sv_entries = {}   # (dir, name) -> (type, gold-or-None)
-        self.vlg_keys = set()  # (dir, name)
+        self.vlg_entries = {}  # (dir, name) -> (type, gold-or-None)
         self.gold_dir = ivtest_dir / "gold"
         self.vvp_desc = defaultdict(list)  # source stem -> [descriptor dict]
         self._load(ivtest_dir / "regress-sv.list", sv=True)
@@ -869,7 +937,7 @@ class IvtestIndex:
             if sv:
                 self.sv_entries[(dir_field, name)] = (ttype, gold)
             else:
-                self.vlg_keys.add((dir_field, name))
+                self.vlg_entries[(dir_field, name)] = (ttype, gold)
 
     def expect(self, relpath: str):
         p = Path(relpath.replace("\\", "/"))
@@ -901,7 +969,7 @@ class IvtestIndex:
                     "ivtest: CE without golden output - failure stage (parse vs "
                     "elaboration) unresolved and outside the .8b.3 pinned "
                     "population (added upstream after the vendored pin?)")
-        if key in self.vlg_keys:
+        if key in self.vlg_entries:
             return ("out_of_scope_with_cause:v2005_profile_lane",
                     "ivtest: regress-vlg.list entry - keyed for the "
                     "verilog_2005 profile lane, not the sv_2017 bulk run")
@@ -977,6 +1045,71 @@ class IvtestIndex:
                 "ivtest: vvp_tests descriptor(s) without an explicit "
                 "generation flag - dialect unresolved (the upstream default "
                 "generation is not encoded in the descriptor)")
+
+    def expect_v2005(self, relpath: str):
+        """v2005-lane key for one ivtest row (leaf .8c.1): regress-vlg.list
+        entries first (the .8a CE stage split mirrored: golden `syntax
+        error` = parse-level invalid under the iverilog plain-Verilog
+        dialect), then explicit plain-Verilog vvp_tests generations."""
+        p = Path(relpath.replace("\\", "/"))
+        key = (p.parts[1], p.stem) if len(p.parts) >= 3 else None
+        if key in self.vlg_entries:
+            ttype, gold = self.vlg_entries[key]
+            if ttype != "CE":
+                return ("must_accept",
+                        f"ivtest: regress-vlg.list type {ttype} - compiles "
+                        "under the iverilog plain-Verilog dialect, "
+                        "parse-level valid 1364-2005")
+            if gold:
+                gtext = read_text(self.gold_dir / gold)
+                if SYNTAX_ERR_RE.search(gtext):
+                    return ("must_reject",
+                            f"ivtest: vlg CE with golden {gold} reporting a "
+                            "syntax error - parse-level invalid 1364-2005")
+                return ("must_accept",
+                        f"ivtest: vlg CE but golden {gold} shows only "
+                        "post-parse errors - syntax itself valid")
+            return ("out_of_scope_with_cause:negative_stage_triage_v2005",
+                    "ivtest: vlg CE without golden output - failure stage "
+                    "(parse vs elaboration) unresolved; clustered stage "
+                    "pinning = leaf .8c.2")
+        if len(p.parts) >= 3 and p.parts[1] == "ivltests":
+            descs = self.vvp_desc.get(p.stem, [])
+            v_descs = [d for d in descs
+                       if not any("verilog-ams" in a
+                                  for a in d.get("iverilog-args", []))
+                       and any(a in self.V2005_GENS
+                               for a in d.get("iverilog-args", []))]
+            if v_descs:
+                implied = {self._vvp_implied(d) for d in v_descs}
+                names = ", ".join(d["_key"] + ".json" for d in v_descs)
+                if implied == {"accept"}:
+                    return ("must_accept",
+                            f"ivtest: vvp_tests descriptor(s) {names} - "
+                            "runs under an explicit plain-Verilog "
+                            "generation with no syntax-error golden")
+                if implied == {"reject"}:
+                    return ("must_reject",
+                            f"ivtest: vvp_tests descriptor(s) {names} - CE "
+                            "with golden iverilog output reporting a "
+                            "syntax error")
+                if implied == {"triage"}:
+                    return (
+                        "out_of_scope_with_cause:negative_stage_triage_v2005",
+                        f"ivtest: vvp_tests descriptor(s) {names} - CE "
+                        "without usable golden output; clustered stage "
+                        "pinning = leaf .8c.2")
+                if implied == {"ni"}:
+                    return ("out_of_scope_with_cause:ni_unimplemented",
+                            f"ivtest: vvp_tests descriptor(s) {names} - "
+                            "type NI (upstream runner skips, no testimony)")
+                return ("out_of_scope_with_cause:descriptor_conflict",
+                        f"ivtest: vvp_tests descriptors {names} imply "
+                        f"conflicting verdicts "
+                        f"({', '.join(sorted(implied))})")
+        return ("out_of_scope_with_cause:no_v2005_key",
+                "ivtest: v2005-lane row without a usable vlg-list or "
+                "vvp_tests key")
 
 
 # sv2v test/error/ stage classification (leaf .8b.1). Every error/ file is an
@@ -1357,6 +1490,11 @@ DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1",
 
 
 def adjudicate(expected, observed, dep_flag):
+    if observed == "crash":
+        # Probe signal-death (e.g. debug-build stack overflow) is a defect
+        # REGARDLESS of the expected verdict - never a graceful reject and
+        # never explained away (leaf .8c.1 finding: br_gh330.v).
+        return "divergence:unexplained_crash"
     if observed == "timeout":
         # Known-pathological tracking outranks deferral: a hang is surfaced
         # no matter which lane owns the file.
@@ -1393,6 +1531,22 @@ def main():
                     type=Path)
     ap.add_argument("--out-summary",
                     default=root / "stimuli/sv/characterization/adjudication_summary.md",
+                    type=Path)
+    # --- the verilog_2005 profile lane (leaf .8c) ---
+    ap.add_argument("--out-lane-list",
+                    default=root / "stimuli/sv/characterization/v2005_lane_files.tsv",
+                    type=Path,
+                    help="emitted list of v2005-lane files (runner sv2005 input)")
+    ap.add_argument("--results-v2005",
+                    default=root / "stimuli/sv/characterization/results_v2005.tsv",
+                    type=Path,
+                    help="raw outcomes of the runner's sv2005 mode; the v2005 "
+                         "manifest is built only when this file exists")
+    ap.add_argument("--out-manifest-v2005",
+                    default=root / "stimuli/sv/characterization/adjudication_manifest_v2005.tsv",
+                    type=Path)
+    ap.add_argument("--out-summary-v2005",
+                    default=root / "stimuli/sv/characterization/adjudication_summary_v2005.md",
                     type=Path)
     args = ap.parse_args()
 
@@ -1534,6 +1688,115 @@ def main():
     print(f"summary:  {args.out_summary}")
     m, u, e, d = bucket(total)
     print(f"match={m} unexplained={u} explained={e} deferred={d}")
+
+    # --- the verilog_2005 profile lane (leaf .8c) ------------------------
+    lane = [(suite, rel) for suite, rel, _obs, _exp, verdict, _basis in manifest
+            if verdict == "deferred:v2005_profile_lane"]
+    with args.out_lane_list.open("w", encoding="utf-8") as fh:
+        fh.write("suite\trelpath\trepo_path\n")
+        for suite, rel in lane:
+            fh.write(f"{suite}\t{rel}\tstimuli/sv/subs/{suite}/{rel}\n")
+    print(f"v2005 lane list: {args.out_lane_list} ({len(lane)} rows)")
+
+    if not args.results_v2005.is_file():
+        print("v2005 results absent - run `stimuli/run_external_corpus.sh "
+              "sv2005` to produce them; v2005 manifest skipped")
+        return 0
+
+    lane_set = set(lane)
+    v_rows = []
+    for line in args.results_v2005.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        suite, observed, path = line.split("\t")
+        if f"/subs/{suite}/" not in path:
+            raise SystemExit(f"unrecognized v2005 results path: {path!r}")
+        rel = path.split(f"/subs/{suite}/", 1)[1]
+        if (suite, rel) not in lane_set:
+            raise SystemExit(
+                f"v2005 results row ({suite}, {rel}) is not a lane member - "
+                "stale results_v2005.tsv vs the current lane derivation")
+        v_rows.append((suite, rel, observed))
+    v_rows.sort()
+    missing = lane_set - {(s, r) for s, r, _o in v_rows}
+    if missing:
+        raise SystemExit(
+            f"{len(missing)} lane rows missing from results_v2005.tsv "
+            f"(stale/partial sv2005 run), e.g. {sorted(missing)[:3]}")
+
+    v_manifest = []
+    for suite, rel, observed in v_rows:
+        text = read_text(args.subs_root / suite / rel)
+        expected, basis = expect_v2005(suite, rel, text, ividx)
+        dep_flag = ""
+        if expected in ("must_accept", "must_reject"):
+            dep_flag = preproc_dependency(text)
+        if expected == "must_reject" and dep_flag == "include":
+            expected = "chained_only"
+            basis += " - but `include-dependent: reject expectation is chain-level"
+        elif expected == "must_reject" and dep_flag in ("macro_use", "conditional"):
+            expected = "out_of_scope_with_cause"
+            basis += (" - but macro/conditional-dependent: the reject "
+                      "expectation is only meaningful post-preprocessing "
+                      "(svpp lane)")
+        if expected != "must_accept":
+            dep_flag = ""
+        verdict = adjudicate(expected, observed, dep_flag)
+        v_manifest.append((suite, rel, observed, expected, verdict, basis))
+
+    with args.out_manifest_v2005.open("w", encoding="utf-8") as fh:
+        fh.write("suite\trelpath\tobserved\texpected\tadjudication\tbasis\n")
+        for row in v_manifest:
+            fh.write("\t".join(row) + "\n")
+
+    v_per_suite = defaultdict(Counter)
+    v_total = Counter()
+    for suite, _rel, _obs, _exp, verdict, _basis in v_manifest:
+        v_per_suite[suite][verdict] += 1
+        v_total[verdict] += 1
+    lines = []
+    lines.append("# SV external-corpus adjudication - the verilog_2005 "
+                 "profile lane (leaf SV-CORPUS-GRAD.8c)")
+    lines.append("")
+    lines.append(f"Input: `results_v2005.tsv` ({len(v_manifest)} rows parsed "
+                 "under `--profile verilog_2005`); expected verdicts per "
+                 "IEEE 1364-2005 answer keys (ispras TYPE headers + "
+                 "KNOWN_TEXT_BUGS deferral note, ivtest regress-vlg.list / "
+                 "plain-Verilog vvp_tests descriptors with the CE golden "
+                 "syntax-error split, sv2v conversion-golden contract).")
+    lines.append("")
+    lines.append("| suite | rows | match | UNEXPLAINED div | explained div | deferred |")
+    lines.append("|---|---|---|---|---|---|")
+    for suite in sorted(v_per_suite):
+        c = v_per_suite[suite]
+        m2, u2, e2, d2 = bucket(c)
+        lines.append(f"| {suite} | {sum(c.values())} | {m2} | {u2} | {e2} | {d2} |")
+    m2, u2, e2, d2 = bucket(v_total)
+    lines.append(f"| **total** | **{len(v_manifest)}** | **{m2}** | **{u2}** "
+                 f"| **{e2}** | **{d2}** |")
+    lines.append("")
+    lines.append("## Verdict-class detail")
+    lines.append("")
+    lines.append("| class | count |")
+    lines.append("|---|---|")
+    for cls in sorted(v_total):
+        lines.append(f"| {cls} | {v_total[cls]} |")
+    lines.append("")
+    lines.append("**The v2005 arm's burn-down baseline = the UNEXPLAINED "
+                 f"divergence count ({u2}: rejects-valid "
+                 f"{v_total.get('divergence:unexplained_rejects_valid', 0)}, "
+                 f"accepts-invalid "
+                 f"{v_total.get('divergence:unexplained_accepts_invalid', 0)}, "
+                 f"crash "
+                 f"{v_total.get('divergence:unexplained_crash', 0)})** "
+                 "- a separate arm from the sv_2017 baseline; the `.5` "
+                 "graduation gate asserts both.")
+    lines.append("")
+    args.out_summary_v2005.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    print(f"v2005 manifest: {args.out_manifest_v2005} ({len(v_manifest)} rows)")
+    print(f"v2005 summary:  {args.out_summary_v2005}")
+    print(f"v2005: match={m2} unexplained={u2} explained={e2} deferred={d2}")
     return 0
 
 

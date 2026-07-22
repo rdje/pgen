@@ -22,7 +22,7 @@
 #   stimuli/run_external_corpus.sh sv 20 8 500   # cap at 500 files (smoke)
 set -uo pipefail
 
-FAM="${1:?usage: run_external_corpus.sh <sv|vhdl> [timeout_s] [jobs] [max_files]}"
+FAM="${1:?usage: run_external_corpus.sh <sv|sv2005|vhdl> [timeout_s] [jobs] [max_files]}"
 TIMEOUT_S="${2:-20}"
 JOBS="${3:-8}"
 MAX_FILES="${4:-0}"   # 0 = no cap
@@ -37,19 +37,34 @@ case "$FAM" in
         # SV-CORPUS-GRAD.8: fold the pre-submodule-vintage uvm-core vendoring
         # (plain tracked files) into the bulk universe as sub-corpus `uvm-core`.
         EXTRA_DIRS=( "$ROOT_EARLY/stimuli/sv/uvm" );;
+  # SV-CORPUS-GRAD.8c: the verilog_2005 profile lane — re-parses ONLY the
+  # adjudicator-derived lane files (single source of lane membership:
+  # `v2005_lane_files.tsv`, emitted by adjudicate_external_corpus.py) under
+  # the strict verilog_2005 profile.
+  sv2005) GRAMMAR=systemverilog; export PROFILE_ARGS="--profile verilog_2005";
+        FIND_EXTS=( -name '*.v' );  # unused (list-driven)
+        EXTRA_DIRS=();
+        LANE_LIST="$ROOT_EARLY/stimuli/sv/characterization/v2005_lane_files.tsv";;
   vhdl) GRAMMAR=vhdl;          export PROFILE_ARGS="";
         FIND_EXTS=( -name '*.vhd' -o -name '*.vhdl' );
         EXTRA_DIRS=();;
-  *) echo "unknown family '$FAM' (expected sv|vhdl)" >&2; exit 2;;
+  *) echo "unknown family '$FAM' (expected sv|sv2005|vhdl)" >&2; exit 2;;
 esac
 
 [ -x "$PROBE" ] || { echo "parseability_probe not found/executable at $PROBE" >&2; exit 3; }
 
-SUBS="$ROOT/stimuli/$FAM/subs"
-OUTDIR="$ROOT/stimuli/$FAM/characterization"
+if [ "$FAM" = sv2005 ]; then
+  SUBS="$ROOT/stimuli/sv/subs"
+  OUTDIR="$ROOT/stimuli/sv/characterization"
+  RESULTS="$OUTDIR/results_v2005.tsv"
+  REPORT="$OUTDIR/characterization_v2005.md"
+else
+  SUBS="$ROOT/stimuli/$FAM/subs"
+  OUTDIR="$ROOT/stimuli/$FAM/characterization"
+  RESULTS="$OUTDIR/results.tsv"
+  REPORT="$OUTDIR/characterization.md"
+fi
 mkdir -p "$OUTDIR"
-RESULTS="$OUTDIR/results.tsv"
-REPORT="$OUTDIR/characterization.md"
 : > "$RESULTS"
 
 export PROBE GRAMMAR TIMEOUT_S
@@ -63,13 +78,22 @@ parse_one() {
   rc=$?
   if [ "$rc" -eq 0 ]; then status=pass
   elif [ "$rc" -eq 124 ]; then status=timeout
+  elif [ "$rc" -ge 128 ]; then status=crash   # signal death (e.g. stack
+                                              # overflow abort) is NOT a
+                                              # graceful reject - own status
   else status=fail; fi
   printf '%s\t%s\t%s\n' "$sub" "$status" "$f"
 }
 export -f parse_one
 
-echo "external-corpus[$FAM]: collecting files under $SUBS ..." >&2
-mapfile -t FILES < <(find "$SUBS" ${EXTRA_DIRS[@]+"${EXTRA_DIRS[@]}"} -type f \( "${FIND_EXTS[@]}" \) 2>/dev/null | sort)
+if [ "$FAM" = sv2005 ]; then
+  [ -f "$LANE_LIST" ] || { echo "lane list not found: $LANE_LIST (run the adjudicator first)" >&2; exit 4; }
+  echo "external-corpus[$FAM]: reading lane files from $LANE_LIST ..." >&2
+  mapfile -t FILES < <(tail -n +2 "$LANE_LIST" | cut -f3 | sed "s#^#$ROOT/#" | sort)
+else
+  echo "external-corpus[$FAM]: collecting files under $SUBS ..." >&2
+  mapfile -t FILES < <(find "$SUBS" ${EXTRA_DIRS[@]+"${EXTRA_DIRS[@]}"} -type f \( "${FIND_EXTS[@]}" \) 2>/dev/null | sort)
+fi
 TOTAL_FOUND=${#FILES[@]}
 if [ "$MAX_FILES" -gt 0 ] && [ "$TOTAL_FOUND" -gt "$MAX_FILES" ]; then
   FILES=( "${FILES[@]:0:$MAX_FILES}" )
@@ -84,6 +108,7 @@ TOTAL=$(wc -l < "$RESULTS" | tr -d ' ')
 PASS=$(awk -F'\t' '$2=="pass"' "$RESULTS" | wc -l | tr -d ' ')
 FAIL=$(awk -F'\t' '$2=="fail"' "$RESULTS" | wc -l | tr -d ' ')
 TMO=$(awk -F'\t' '$2=="timeout"' "$RESULTS" | wc -l | tr -d ' ')
+CRASH=$(awk -F'\t' '$2=="crash"' "$RESULTS" | wc -l | tr -d ' ')
 PCT=$(awk -v p="$PASS" -v t="$TOTAL" 'BEGIN{ if(t>0) printf "%.1f", 100*p/t; else print "0.0" }')
 
 {
@@ -99,23 +124,23 @@ PCT=$(awk -v p="$PASS" -v t="$TOTAL" 'BEGIN{ if(t>0) printf "%.1f", 100*p/t; els
   echo
   echo "## Totals"
   echo
-  echo "| files parsed | pass | fail | timeout | pass-rate |"
-  echo "|---|---|---|---|---|"
-  echo "| $TOTAL | $PASS | $FAIL | $TMO | ${PCT}% |"
+  echo "| files parsed | pass | fail | timeout | crash | pass-rate |"
+  echo "|---|---|---|---|---|---|"
+  echo "| $TOTAL | $PASS | $FAIL | $TMO | $CRASH | ${PCT}% |"
   echo
   echo "## Per sub-corpus"
   echo
-  echo "| sub-corpus | files | pass | fail | timeout | pass-rate |"
-  echo "|---|---|---|---|---|---|"
+  echo "| sub-corpus | files | pass | fail | timeout | crash | pass-rate |"
+  echo "|---|---|---|---|---|---|---|"
   awk -F'\t' '
-    { tot[$1]++; if($2=="pass")p[$1]++; else if($2=="timeout")to[$1]++; else f[$1]++ }
+    { tot[$1]++; if($2=="pass")p[$1]++; else if($2=="timeout")to[$1]++; else if($2=="crash")c[$1]++; else f[$1]++ }
     END { for (s in tot) {
             r = (tot[s]>0)? 100*p[s]/tot[s] : 0;
-            printf "| %s | %d | %d | %d | %d | %.1f%% |\n", s, tot[s], p[s]+0, f[s]+0, to[s]+0, r
+            printf "| %s | %d | %d | %d | %d | %d | %.1f%% |\n", s, tot[s], p[s]+0, f[s]+0, to[s]+0, c[s]+0, r
           } }
   ' "$RESULTS" | sort
   echo
-  echo "_Raw per-file results: \`stimuli/$FAM/characterization/results.tsv\`._"
+  echo "_Raw per-file results: \`${RESULTS#"$ROOT/"}\`._"
 } > "$REPORT"
 
-echo "external-corpus[$FAM]: $TOTAL parsed — pass=$PASS fail=$FAIL timeout=$TMO (${PCT}% pass). Report: $REPORT" >&2
+echo "external-corpus[$FAM]: $TOTAL parsed — pass=$PASS fail=$FAIL timeout=$TMO crash=$CRASH (${PCT}% pass). Report: $REPORT" >&2

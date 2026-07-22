@@ -471,8 +471,10 @@ coverage.
   fresh baseline) **done**; `.8b` (deep answer-key extraction: `.8b.1`
   mechanical lanes + `.8b.2` 42 named-residue pins + `.8b.3` 283 clustered
   CE stage pins) **done** — the sv_2017-lane answer keys are COMPLETE (all
-  `.8a` deferred key populations drained); `.8c` (v2005-profile lane run)
-  remains. Roster-v2 candidate logged: **slang embedded-unittest
+  `.8a` deferred key populations drained); `.8c.1` (v2005 lane runner +
+  mechanical keys + the first measured v2005 baseline: 135 unexplained)
+  **done**; `.8c.2` (v2005 CE pins + KNOWN_TEXT_BUGS + the crash
+  follow-up) remains. Roster-v2 candidate logged: **slang embedded-unittest
   extraction** (thousands of SV snippets inside slang's C++ unit tests — the
   sharpest open conformance oracle; extraction tool + fragment entry-point
   mapping required).
@@ -770,13 +772,83 @@ coverage.
   - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
     DEVELOPMENT_NOTES/LIVE this commit.
 
-#### `.8c` — The verilog_2005 profile lane (todo)
+#### `.8c` — The verilog_2005 profile lane (`.8c.1` done; `.8c.2` todo)
 
-- **Status: `todo`** — the 2,458 `deferred:v2005_profile_lane` rows (ispras
-  `ieee-1364-2005/` 360 + ivtest `regress-vlg.list` + sv2v goldens) are the
-  frozen-roster v2005 corpus: a `--profile verilog_2005` bulk-runner mode +
-  profile-aware adjudication (mind ispras `KNOWN_TEXT_BUGS`), feeding the
-  v2005 arm of `.5`/`.7`.
+- **Status: `in_progress`** — the 2,459 `deferred:v2005_profile_lane` rows
+  (ispras `ieee-1364-2005/` 356 + ivtest `regress-vlg.list`/plain-Verilog
+  vvp descriptors 1,762 + sv2v goldens 341) are the frozen-roster v2005
+  corpus, feeding the v2005 arm of `.5`/`.7`.
+
+##### `.8c.1` — Lane runner + mechanical v2005 keys + the first measured v2005 baseline (done)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0012`, session #194, 2026-07-22).
+- **What landed:**
+  - Runner `sv2005` mode (`stimuli/run_external_corpus.sh`): re-parses ONLY
+    the adjudicator-emitted lane list (`v2005_lane_files.tsv` — single
+    source of lane membership, no duplicated derivation) under
+    `--profile verilog_2005` → `results_v2005.tsv` +
+    `characterization_v2005.md`.
+  - **Instrument fix (found live): probe signal-death is now its own
+    `crash` status** (rc ≥ 128; previously silently folded into `fail`) and
+    `divergence:unexplained_crash` — a defect class that is NEVER explained
+    away regardless of the expected verdict.
+  - Adjudicator v2005 arm: lane-list emission + `--results-v2005` intake
+    (subset/completeness audits against the lane derivation, stale-run
+    refusal) + IEEE 1364-2005 answer keys: ispras TYPE headers (POSITIVE →
+    must_accept with the KNOWN_TEXT_BUGS residue reserved to `.8c.2`; the
+    only 2 NEGATIVE files read + pinned — both semantic-stage 12.3.3 port
+    signedness / 12.8.2 defparam-resolution → must_accept; VARYING →
+    impl-varying lane), ivtest `regress-vlg.list` types with the CE golden
+    syntax-error split + plain-Verilog vvp descriptors (agreement-gated),
+    sv2v `.v` conversion-golden contract → separate
+    `adjudication_manifest_v2005.tsv` + `adjudication_summary_v2005.md`
+    (the main sv_2017 manifest stays BYTE-IDENTICAL — proven).
+- **⭐ THE FIRST MEASURED V2005 BASELINE: 2,459 rows — 1,947 match /
+  135 UNEXPLAINED (133 rejects-valid: ivtest 106 / ispras-1364 17 / sv2v
+  11 (per-suite: ivtest 107 incl. the crash) + 1 accepts-invalid + 1
+  crash) / 172 svpp-explained / 205 deferred (176 vlg-CE-without-gold →
+  `.8c.2`; 27 impl-varying; 2 chained).** 85.6% raw pass under the strict
+  verilog_2005 profile.
+- **⭐ NAMED ENGINE FINDING (tool-pinned, tracked follow-up):**
+  `ivtest/ivltests/br_gh330.v` (a ~600-line chained-ternary torture file,
+  vlg-type `normal`) KILLS the debug-build probe with a REAL stack
+  overflow (`thread 'main' has overflowed its stack`, abort rc 134) under
+  BOTH profiles, while the release probe parses it exit-0 — the
+  [[feedback_recursion_ceiling_must_bound_real_stack]] class: the
+  recursion ceiling is not bounding the real stack in debug builds. The
+  committed sv_2017 `results.tsv` recorded this same crash as a plain
+  `fail` (lane-deferred there, so the 564 baseline is uncontaminated); the
+  runner now separates the classes going forward. Engine-side graceful
+  refusal = a follow-up leaf owned by this tree.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 2,459 lane rows had no v2005-profile
+    observations or verdicts; the `.5` gate's v2005 arm was unmeasured.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the crash row tool-pinned (debug
+    stack overflow, both profiles, release exit-0; stderr banked in-tree);
+    key rows carry per-row basis provenance.
+  - [x] **FIX** — instrument-level only (runner crash status + adjudicator
+    crash class + v2005 arm); zero parser surface.
+  - [x] **ADDRESSED (verified)** — guarded run (exit 0, 20 s, peak 550 MB);
+    determinism cmp ×2 on manifest + summary; main-manifest byte-identity
+    proven (git diff empty); lane-list/results subset+completeness audits;
+    probes ×3 under `--profile verilog_2005` match the manifest
+    (`test_03_05_01_2.v` exit 1, `test/lex/line.v` exit 1, `br_gh1174a.v`
+    exit 1) + the crash matrix (debug 134 / release 0).
+  - [x] **NO REGRESSION** — the sv_2017 manifest/summary byte-identical;
+    `results.tsv` untouched; runner sv/vhdl paths unchanged apart from the
+    additive crash status (no existing row class changes until the next
+    full re-characterization).
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
+    DEVELOPMENT_NOTES/LIVE this commit.
+
+##### `.8c.2` — v2005 CE-without-gold stage pins + KNOWN_TEXT_BUGS re-adjudication (todo)
+
+- **Status: `todo`** — (a) the 176 `negative_stage_triage_v2005` rows
+  (vlg-list CE without golden) need the `.8b.3`-style clustered stage
+  pinning against the IEEE 1364-2005 BNF (`docs/verilog/2005` workspace);
+  (b) the 17 ispras-1364 POSITIVE rejects re-adjudicate against the
+  suite's `KNOWN_TEXT_BUGS` errata (committed-text-over-intent); (c) the
+  br_gh330 debug-stack engine follow-up.
 
 ### `.9` — Gap-driven acquisition/crafting loop to 100%
 

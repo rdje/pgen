@@ -1,5 +1,23 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0012 — a crash is not a reject; and lane membership must have exactly one deriver
+
+**Signal-death vs graceful rejection.** The bulk runner mapped every non-zero, non-124 probe exit
+to `fail` — which silently counted a rc-134 abort (debug-build stack overflow on `br_gh330.v`'s
+~600-line chained ternary) as an ordinary parse-reject for over a month of characterizations. A
+crash testifies about the PARSER's robustness, not the input's validity, so it can never satisfy a
+`must_reject` expectation nor be svpp-explained: it is now its own `crash` status and an
+always-unexplained `divergence:unexplained_crash` class. Corollary for debugging: the same input
+exits 0 under the release probe — when a corpus row's verdict looks profile- or build-dependent,
+check rc ≥ 128 before reasoning about grammar coverage.
+
+**One deriver for lane membership.** The `sv2005` runner mode deliberately consumes the
+adjudicator-EMITTED lane list instead of re-deriving "which files are v2005" from suite metadata a
+second time in bash. Duplicated derivations drift (the derived-drift-gate law); the emitted list +
+the adjudicator's subset/completeness audits (a results row that is not a lane member, or a lane
+member missing from the results, both refuse loudly) make stale-run states mechanically
+undeniable.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0011 — footnote-law boundaries: context-syntactic footnotes bind the parse, denotation-dependent ones do not
 
 **Two kinds of normative Annex-A footnote.** The `.8b.2` law ("footnotes are normative syntax")
