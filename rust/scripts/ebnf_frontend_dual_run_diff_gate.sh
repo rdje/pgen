@@ -80,8 +80,23 @@ run_logged_or_dump() {
     return "$status"
 }
 
-echo "==> Building ast_pipeline (ebnf_dual_run path)"
-(cd "$RUST_DIR" && cargo build --features ebnf_dual_run --bin ast_pipeline >/dev/null)
+# BIN-BUILD-INTEGRITY.3 — the CANONICAL annotation backend, deliberately.
+# This binary does two jobs below: it generates a parser from the Perl
+# frontend's JSON (which parses `ebnf.ebnf`'s return annotations), and it
+# exports the Rust frontend's raw AST. Since commit 200cae5b an
+# `ebnf_dual_run`-ONLY binary hard-REFUSES the first job, because without
+# `generated_parsers` annotation parsing would silently fall back to the
+# hand-rolled bootstrap subset. Building with BOTH features is the right
+# answer rather than opting into that fallback: this is a differential
+# harness, so the ONE thing it may vary is Perl-frontend vs Rust-frontend —
+# a degradable annotation backend on the Rust arm would be a second,
+# uncontrolled variable, and the fallback's own license only covers
+# artifacts that are re-derived canonically before being trusted, which a
+# standing gate cannot do. It is also the feature set TOOLBOX.md documents
+# for this shared binary path, so running this gate no longer replaces the
+# toolbox's dual-feature `ast_pipeline` with a single-feature one.
+echo "==> Building ast_pipeline (generated_parsers + ebnf_dual_run path)"
+(cd "$RUST_DIR" && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline >/dev/null)
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary missing at '$AST_PIPELINE_BIN'" >&2

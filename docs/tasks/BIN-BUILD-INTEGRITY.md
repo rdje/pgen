@@ -109,9 +109,9 @@ that no gate covered. Any `required-features` binary can rot in it.
 
 ### `.3` — `ebnf_frontend_dual_run_gate` has been RED since 2026-07-15 (second instance of the same silence)
 
-- **Status: `todo`** — discovered while verifying `.1` (session #196);
-  tool-pinned, not yet fixed (one commit = one defect, and this one needs
-  a design call the fix for `.1` must not smuggle in).
+- **Status: `done`** (`PGEN-BIN-BUILD-INTEGRITY-0005`, session #197,
+  2026-07-22) — discovered while verifying `.1` (session #196); the design
+  call it owned is adjudicated below **on measurement, not preference**.
 - **Symptom:** `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
   exits 1 at `==> Regenerating EBNF frontend artifacts for dual-run
   harness`, before the dual-run comparison ever runs.
@@ -143,6 +143,132 @@ that no gate covered. Any `required-features` binary can rot in it.
   drives it) both rotted silently in the SAME blind spot. `.2` should
   therefore cover "every maintained gate still RUNS", not merely "every
   binary still COMPILES".
+
+#### The adjudication — **(a) build with `generated_parsers`**, decided on measurement
+
+The `.3` charter above leaned toward (b) ("the likely-correct reading of
+the gate's INTENT") but required it be adjudicated against the `200cae5b`
+reasoning rather than chosen for convenience. Adjudicated: **(a)**.
+
+**First, the measurement that removes "which output is right?" from the
+question.** The same Perl-frontend JSON was fed to `--generate-parser`
+twice — once through the canonical backend (the dual-feature binary), once
+through the opted-in bootstrap fallback (`ebnf_dual_run`-only +
+`PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1`) — writing to the SAME output
+path both times, so the ~3k path-embedded diagnostic strings are
+controlled. Result: **BYTE-IDENTICAL, sha256
+`56cf0763c13bbbd4bfe3c02a52fe3fb9e342a3650bcb61307afbf6d13e3638c0`, both
+12,445,288 B.** So (a) costs nothing measurable today; the choice is purely
+about which one is SOUND to depend on tomorrow.
+
+Four grounds, all checkable:
+
+1. **A differential must vary exactly one thing.** This harness exists to
+   compare the Perl frontend against the Rust frontend. A degradable
+   annotation backend on the Rust arm is a SECOND, uncontrolled variable —
+   a future divergence could then be the backend, not the frontend, and the
+   gate could not tell you which.
+2. **The fallback's own license does not cover a standing gate.** The
+   refusal text licenses NON-CANONICAL artifacts "that MUST be re-derived
+   canonically and pass `make -C rust parse_harness_equivalence_gate`
+   before being trusted". A gate that runs unattended cannot satisfy that
+   precondition on each run, so opting in inside the gate would breach the
+   license's own terms while appearing to honor them.
+3. **It restores the `200cae5b` record's stated invariant instead of
+   carving an exception into it.** That decision record
+   (`docs/decisions/project_bootstrap_annotation_fallback_loud_refusal.md`)
+   justifies the refusal partly on "the `ebnf_dual_run`-only frontend
+   binary performs only standalone raw-AST export (no annotation
+   parsing)". That sentence is false for exactly ONE call site in the
+   repository — this gate's `--generate-parser` step. (a) makes the
+   sentence true again; (b) would make it permanently false.
+4. **⭐ It also removes a documented recurring trap.** `TOOLBOX.md` defines
+   `rust/target/debug/ast_pipeline` as the DUAL-feature binary, but the
+   gate was overwriting that shared path with a single-feature build — the
+   trap `MEMORY.md` records being re-hit as recently as `-0015`. Verified
+   after this change: the shared binary reports
+   `AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true`
+   once the gate finishes, so running the gate no longer degrades the
+   toolbox.
+
+Not a cold-clone hazard: `rust/build.rs` presence-gates EVERY generated
+parser include behind its own `has_generated_*` cfg (`:90`–`:168`), so
+`--features generated_parsers` compiles whether or not the artifacts exist.
+Honest bound: in a PARTIALLY-populated mid-bootstrap tree the dual-feature
+combination can still fail (`active_grammar_profile` is cfg-gated on
+regex/SV presence, `parser_registry.rs:435`) — the documented cold-bootstrap
+ordering trap, which the standard toolbox binary already shares, and not a
+state in which a Perl-vs-Rust differential is meaningful.
+
+Scope kept minimal: only the `ast_pipeline` build line changes. The
+`ebnf_dual_run_diff` build stays single-feature deliberately — that binary
+only PARSES grammar files (it never calls the pipeline's annotation
+extraction), so it cannot reach the refusal, and widening its features
+would add compile cost for nothing.
+
+- **ACCEPTANCE CHECKLIST:**
+  - [x] **REPRODUCE / ISSUE** — `make -C rust SHELL=/bin/bash
+    ebnf_frontend_dual_run_gate` (guarded) exits 1 at
+    `==> Regenerating EBNF frontend artifacts for dual-run harness`; with
+    `.4` landed, the run now names the cause verbatim:
+    `Error: REFUSED: return annotation '{type: "grammar_file", elements:
+    [$1*]}' needs the generated annotation backend, but this binary was
+    built WITHOUT `--features generated_parsers` …`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `ebnf_frontend_dual_run_diff_gate.sh`
+    built its `ast_pipeline` with `--features ebnf_dual_run` only, then
+    asked that binary to `--generate-parser` from the annotation-bearing
+    `grammars/ebnf.ebnf` (`:92`); `200cae5b` (2026-07-15) made exactly that
+    combination a hard refusal at
+    `rust/src/ast_pipeline/mod.rs:3925` (`require_bootstrap_annotation_fallback_license`).
+    The gate script had been untouched since 2026-04-06, so it never
+    learned about the new refusal.
+  - [x] **FIX** — build that binary with
+    `--features "generated_parsers ebnf_dual_run"` (the canonical
+    annotation backend, and the feature set `TOOLBOX.md` documents for this
+    path), with the adjudication recorded in-script as a comment. One line
+    of behavior; no Rust, grammar, or generated surface touched.
+  - [x] **ADDRESSED (verified, before → after)** — before: exit 1 at the
+    bootstrap step, no grammar ever compared. After: **exit 0, STRICT mode
+    (`PGEN_EBNF_DUAL_RUN_STRICT=1`), all three tracked grammars pass** —
+    `ebnf` 131/131 raw_ast parity, 23787/23788 bytes (100.00%);
+    `json` 19/19 parity, 1013/1014 (99.90%); `regex` full parse parity,
+    157306/157306 (100.00%); `✅ EBNF dual-run differential passed for all
+    tracked grammars`. Those per-grammar numbers REPRODUCE the last
+    known-green baseline recorded on 2026-06-25 (`ebnf` 131/131 parity,
+    `json` 99.90%, `regex` 100%), i.e. the measurement itself is unchanged
+    by the feature switch — the gate was restored, not redefined.
+  - [x] **NO REGRESSION** — the gate is deterministic across two
+    independent guarded runs: `summary.csv` and the generated
+    `bootstrap_ebnf.rs` (12.4 MB) both **BYTE-IDENTICAL** run-1 vs run-2;
+    the canonical-vs-fallback artifact A/B above is byte-identical, so the
+    backend switch provably changes no emitted parser; the shared
+    `ast_pipeline` is left DUAL-feature (trap removed, feature surface
+    asserted); `bash -n` clean; no Rust/grammar/generated file touched ⇒ no
+    parser, release, schema, or ledger can move. Guarded peak 1,434 MB /
+    25 s.
+  - [x] **LOCKSTEP** — `LIVE_ACHIEVEMENT_STATUS.md` KNOWN-RED tracker note
+    resolved (the gate is a green proof surface again); tree + TASK_TREE
+    index + CHANGES / DEVELOPMENT_NOTES / MEMORY this commit. No book
+    change: `docs/book/src/grammar-wellformedness.md` describes what the
+    gate proves (self-hosting over ebnf/json/regex), which is unchanged —
+    only how its binary is built.
+
+- **⭐ FINDING recorded while verifying (not a defect of this fix; no
+  action taken):** the `regex` row passes as `perl_under_reports 25` — the
+  PERL reference arm reports 251 unique rules where the Rust arm reports
+  276. Root-caused rather than waved through: the 25 are a fixed
+  construct-class blind spot of the legacy Perl frontend (long
+  single-character alternation lists — `letter`/`digit`/`hex_digit`/
+  `octal_digit`/`whitespace`/`special_char`; the embedded `code_*`
+  code-block cohort; and `unicode_char`, the `!builtin_ascii_char`
+  negative-lookahead rule), NOT truncation and NOT grammar growth: running
+  the same Perl frontend over the 2026-06-25 vintage of `regex.ebnf`
+  (202 rule definitions vs 275 today, 28 commits apart) yields the
+  **identical 25 missing names**. The gate treats `perl_under_reports` as a
+  PASS by design — the Rust frontend is a superset and is the sole
+  direction of travel — but it means the differential's raw_ast leg is a
+  weaker check for `regex` than the word "parity" suggests. Worth knowing
+  before anyone leans on this gate as evidence for a regex-frontend claim.
 
 ### `.4` — The gate's own failure diagnostics are DEAD under `set -e`
 

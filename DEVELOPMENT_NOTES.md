@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0005 — how to decide a design call when both arms "work"
+
+**The trap in this leaf was that BOTH options produced a green gate.** (a) build the pipeline
+with the canonical annotation backend, or (b) opt into the documented bootstrap fallback — each
+makes the refusal go away. The charter had leaned toward (b) on an intent argument ("it's a
+differential harness, its artifacts are compared and thrown away"). Intent arguments are how
+you talk yourself into the convenient arm, so the first move was to make the question
+measurable: generate the parser BOTH ways from the same input, to the SAME output path (the
+path is embedded in ~3k diagnostic strings — control it or the diff is noise). Byte-identical.
+
+That measurement is what makes the decision honest, and note WHICH way it cuts: because the
+outputs are identical, (a) has zero cost today, so there is no trade-off left to argue about —
+only the question of which arm stays correct when the inputs change. Three reasons it is (a):
+a differential may vary exactly one thing, and (b) adds a second variable to the arm under
+test; the fallback's license explicitly covers only artifacts re-derived canonically *before
+being trusted*, which no unattended gate can promise; and the refusal's own decision record
+justifies itself with "the `ebnf_dual_run`-only frontend binary performs only standalone
+raw-AST export" — a sentence this one call site falsified. Restoring an invariant beats
+carving an exception into it.
+
+**The bonus that argues for itself:** `TOOLBOX.md` declares
+`rust/target/debug/ast_pipeline` to be the dual-feature binary, and this gate was quietly
+replacing it with a single-feature build every run — a trap re-hit as recently as `-0015`.
+Building the gate's binary with the documented feature set makes running the gate idempotent
+with respect to the shared toolbox path. A fix that deletes a recurring trap as a side effect
+is usually the one that was structurally right.
+
+**On "restored, not redefined".** Any time you change HOW a proof surface is built, the
+obligation is to show the proof itself did not move. Here the three per-grammar rows reproduce
+the last known-green baseline from 2026-06-25 (`ebnf` 131/131 parity, `json` 99.90%, `regex`
+100%) — same measurement, different build. Determinism was then proven the usual way: two
+independent guarded runs, `summary.csv` and the 12.4 MB generated parser byte-identical.
+
+**And the finding that came from not waving a row through.** `regex` passes as
+`perl_under_reports 25`, which is a PASS state by design. It would have been easy to leave it
+at that. Chasing it: the 25 are not new rules and not truncation — they are a fixed
+construct-class blind spot of the legacy Perl frontend (long single-character alternation
+lists, the `code_*` cohort, the `!builtin_ascii_char` lookahead rule), and re-running that
+frontend over the 2026-06-25 grammar (73 rule definitions smaller, 28 commits back) returns the
+IDENTICAL 25 names. So the Perl arm is not decaying with grammar growth — it has a stable hole.
+The consequence worth carrying: for `regex`, this gate's raw_ast leg checks less than the word
+"parity" implies, and nobody should cite it as evidence for a regex-frontend claim.
+
 ## 2026-07-22 - PGEN-BIN-BUILD-INTEGRITY-0004 — a diagnostic that never fired, and the `set -e` rule that killed it
 
 **The shape to remember: under `set -e`, error-handling code that runs AFTER an unguarded
