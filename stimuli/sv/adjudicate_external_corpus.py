@@ -406,6 +406,83 @@ ISPRAS_1364_NEGATIVE_PINNED = {
         "block are ordinary 1364-2005 BNF"),
 }
 
+# ispras ieee-1364-2005/ TYPE:POSITIVE per-file re-adjudication (leaf .8c.2):
+# every POSITIVE row failing at the .8c.1 baseline was read and re-adjudicated
+# against the suite's KNOWN_TEXT_BUGS errata (committed-text-over-intent) and
+# the IEEE 1364-2005 text (in-repo docs/verilog/2005/md: Annex A + clause
+# prose). Outcome: ZERO errata flips - no committed text embodies an LRM typo
+# that renders it BNF-invalid (the one errata candidate, 'PATHPULSE$ = 3', is
+# parseable via the specparam_identifier alternative: Annex B does not reserve
+# PATHPULSE$ and simple_identifier admits '$'), so all 17 stay must_accept =
+# measured v2005 defect signal. Clusters keep the shared LRM ground in one
+# place; the flatten below audits count + duplicates.
+ISPRAS_1364_POSITIVE_CLUSTERS = [
+    ("3.5.1/5.1 spaced + signed based literals - 3.5.1 verbatim: the size, "
+     "base and value are separate tokens (A.8.7), white space is allowed "
+     "between size and base, and the unsigned number token 'shall "
+     "immediately follow the base format, optionally preceded by white "
+     "space'; the s designator and unary minus on based primaries are "
+     "ordinary A.8.3/A.8.6 syntax; KNOWN_TEXT_BUGS covers only Example 3 "
+     "(16'sd?) - none of these texts",
+     ["test_03_05_01_2", "test_03_05_01_4", "test_03_05_01_5",
+      "test_05_01_03_1", "test_05_01_05_2"]),
+    ("parenthesized mintypmax as a parameter value - A.2.4 param_assignment "
+     "RHS is constant_mintypmax_expression and A.8.4 constant_primary "
+     "admits ( constant_mintypmax_expression )",
+     ["test_05_03_00_1"]),
+    ("1364 strength grammar (the .8b.1 1364->1800 edition law's origin - "
+     "these placements ARE grammar in 1364-2005): A.2.1.3 net_declaration "
+     "[ drive_strength ] with a decl assignment, A.6.1 continuous_assign "
+     "[ drive_strength ], A.3.1 gate [ drive_strength ] with A.2.2.2 "
+     "( highz1 , strength0 ) a listed alternative, A.3.2 pullup_strength "
+     "( strength1 )",
+     ["test_06_01_01_1", "test_06_01_02_1", "test_07_01_02_1",
+      "test_07_08_00_1"]),
+    ("scalared/vectored net declaration - A.2.1.3 net_declaration "
+     "'net_type [ vectored | scalared ] [ signed ] range' alternative",
+     ["test_04_03_02_1"]),
+    ("UDP bodies and instances - A.5.3 edge_indicator '( level level )' and "
+     "edge_symbol '*' inside edge_input_list, level_symbol 'b', next_state "
+     "'-'; A.5.4 udp_instantiation [ delay2 ] with '# identifier' a legal "
+     "delay_value (and the instance is module-instantiation-shaped either "
+     "way)",
+     ["test_08_04_00_1", "test_08_06_00_1", "test_08_07_00_1"]),
+    ("PATHPULSE$ - the KNOWN_TEXT_BUGS candidate ruled STILL PARSEABLE: "
+     "'PATHPULSE$ = 3;' matches A.2.4 specparam_assignment's "
+     "'specparam_identifier = constant_mintypmax_expression' alternative "
+     "because A.9.3 simple_identifier admits '$' and Annex B does not "
+     "reserve PATHPULSE$ (the identifier escape-hatch law, the A.8.2 "
+     "system_tf_call mirror); the (2,9) rows match pulse_control_specparam; "
+     "(clr, pre *> q) is an A.7.2 full_path_description",
+     ["test_14_06_01_1"]),
+    ("timing checks - A.7.5.1 $width ( controlled_reference_event , "
+     "timing_check_limit ) with threshold/notifier optional; A.7.5.3 "
+     "edge_control_specifier 'edge [ 01 , 0x , x1 ]' via edge_descriptor "
+     "01 | z_or_x zero_or_one | zero_or_one z_or_x",
+     ["test_15_04_00_1"]),
+    ("`begin_keywords \"1364-2001\" - 19.11 selects the 1364-2001 keyword "
+     "set so 'uwire' is an ordinary identifier in scope; section 19: "
+     "directives may appear anywhere in the source description (the "
+     "sv-lane 22.14 begin_keywords mirror - directive-aware keyword "
+     "selection is parser duty)",
+     ["test_19_11_00_1"]),
+]
+
+ISPRAS_1364_POSITIVE_PINNED = {}
+for _basis, _names in ISPRAS_1364_POSITIVE_CLUSTERS:
+    for _n in _names:
+        _key = f"ieee-1364-2005/{_n}.v"
+        if _key in ISPRAS_1364_POSITIVE_PINNED:
+            raise SystemExit(f"duplicate .8c.2 ispras POSITIVE pin: {_key}")
+        ISPRAS_1364_POSITIVE_PINNED[_key] = (
+            "must_accept", "ispras-1364 POSITIVE pinned .8c.2 "
+            "(KNOWN_TEXT_BUGS re-adjudicated, no errata flip): " + _basis)
+if len(ISPRAS_1364_POSITIVE_PINNED) != 17:
+    raise SystemExit(
+        f".8c.2 ispras POSITIVE pin table holds "
+        f"{len(ISPRAS_1364_POSITIVE_PINNED)} entries, expected exactly the "
+        "17-row failing-POSITIVE population")
+
 
 def expect_ispras_v2005(relpath: str, text: str):
     """ispras ieee-1364-2005/ half under the verilog_2005 profile."""
@@ -413,6 +490,9 @@ def expect_ispras_v2005(relpath: str, text: str):
     m = ISPRAS_TYPE_RE.search(text)
     ttype = m.group(1) if m else ""
     if ttype == "POSITIVE":
+        pinned = ISPRAS_1364_POSITIVE_PINNED.get(p)
+        if pinned:
+            return pinned
         return ("must_accept",
                 "ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid "
                 "example (a failing residue re-adjudicates against the "
@@ -446,6 +526,304 @@ def expect_v2005(suite: str, rel: str, text: str, ividx):
     if suite == "iverilog":
         return ividx.expect_v2005(rel)
     raise ValueError(f"suite {suite!r} has no v2005-lane key source")
+
+
+# ivtest vlg CE-without-gold stage pins (leaf .8c.2): the 176 v2005-lane rows
+# whose upstream key (regress-vlg.list CE entry or vvp_tests descriptor)
+# encodes the compile-error INTENT but not its stage. Every file was read and
+# adjudicated against the IEEE 1364-2005 Annex A BNF (in-repo
+# docs/verilog/2005/md, the full Annex A dump re-verified verbatim before
+# pinning) plus the section 19 directive rules. must_accept = the committed
+# text is BNF-parseable and the intended invalidity is a prose "shall"
+# (semantic/elaboration stage, or an iverilog-specific check); must_reject =
+# the text violates the 1364-2005 BNF (several are the edition law's v2005
+# face: 1800-only syntax judged in this verilog_2005 lane); the
+# out_of_scope_with_cause:svpp_owned_v2005 pair are DIRECTIVE-stage
+# invalidities (section 19 preprocessor grammar/value rules - the
+# preprocessor lane owns them, not the Annex A parser). Clusters keep the
+# shared LRM ground in one place; the flatten below audits count+duplicates.
+IVTEST_VLG_CE_STAGE_CLUSTERS = [
+    # --- parse-level rejects (Annex A BNF; edition-law faces named) --------
+    ("must_reject",
+     "empty tf-call parentheses - A.8.2 function_call and A.6.9 task_enable "
+     "both require '( expression { , expression } )' with at least one "
+     "expression when parentheses are present (1800's empty "
+     "list_of_arguments is the edition contrast); task_in_expr_fail also "
+     "declares 'int x;' in an unnamed begin (no 1364 production)",
+     ["function4", "task_nonansi_fail5", "task_nonansi_fail8",
+      "task_in_expr_fail"]),
+    ("must_reject",
+     "declarations in an unnamed block - A.6.3 seq_block/par_block admit "
+     "block_item_declarations only after ': block_identifier' "
+     "(begin [ : block_identifier { block_item_declaration } ] "
+     "{ statement } end; 1800 unnamed-block declarations are the edition "
+     "contrast)",
+     ["unnamed_block_var_decl", "unnamed_fork_var_decl"]),
+    ("must_reject",
+     "more than one statement in a task body - A.2.7 task_declaration is "
+     "'{ task_item_declaration } statement_or_null endtask' (exactly one "
+     "statement; 1800's { statement_or_null } body is the edition "
+     "contrast): 'y = x; $display(...);' needs a begin/end",
+     ["task_port_range_mismatch"]),
+    ("must_reject",
+     "default values in an input/inout ANSI port list - A.2.1.2 input/inout "
+     "declarations end in A.2.3 list_of_port_identifiers (bare identifiers, "
+     "no '= constant_expression'; only list_of_variable_port_identifiers "
+     "under 'output reg'/output_variable_type has defaults - and port "
+     "defaults per se are 1800-2009+ syntax)",
+     ["module_input_port_list_def", "module_inout_port_list_def"]),
+    ("must_reject",
+     "variable-typed input/inout module ports - A.2.1.2 input_declaration/"
+     "inout_declaration admit only '[ net_type ] [ signed ] [ range ]' "
+     "(reg/time/integer match no alternative; the 1800 variable-port form "
+     "is the edition contrast)",
+     ["module_input_port_type", "module_inout_port_type"]),
+    ("must_reject",
+     "port_declaration inside a portless module - A.1.2 module_declaration: "
+     "the only form whose body admits port_declaration (module_item) "
+     "requires a parenthesized list_of_ports; 'module test;' takes the "
+     "second form whose body is { non_port_module_item }",
+     ["module_port_range_mismatch"]),
+    ("must_reject",
+     "non-generate items inside a generate block - A.4.2 generate_block "
+     "holds { module_or_generate_item } and A.1.4 places "
+     "parameter_declaration, specparam_declaration and specify_block in "
+     "non_port_module_item ONLY (localparam is the admitted generate-scope "
+     "form; 1800's generate-scope parameter is the edition contrast)",
+     ["generate_specify", "generate_specparam", "parameter_in_generate1"]),
+    ("must_reject",
+     "gate-instance terminal arity/emptiness - A.3.1 "
+     "n_output_gate_instance requires '( output_terminal { , "
+     "output_terminal } , input_terminal )' (>= 2 terminals for buf/not) "
+     "and A.3.3 terminals are net_lvalues/expressions which are never "
+     "empty; br_gh152 additionally has an unclosed instance parenthesis "
+     "with a keyword in terminal position",
+     ["pr2395378a", "pr2395378b", "pr2395378c", "pr1763333", "br_gh152"]),
+    ("must_reject",
+     "malformed tf port declarations - A.2.7/A.2.6 tf_input_declaration "
+     "ends in list_of_port_identifiers (bare identifiers): 'input "
+     "make_me_crash i;' juxtaposes two identifiers with no comma and "
+     "'input bit_array[3:0]' carries a per-identifier dimension no 1364 "
+     "production admits; br1015a additionally uses '^=' which exists in "
+     "neither A.6.2 blocking_assignment nor A.8.6 (1800 compound "
+     "assignment - edition contrast)",
+     ["br_gh163", "br1015a"]),
+    ("must_reject",
+     "source-level task/function declarations - A.1.2 description ::= "
+     "module_declaration | udp_declaration | config_declaration (the 1800 "
+     "$unit compilation-unit scope is the edition contrast; the files "
+     "state the 1364-2005 CE intent verbatim)",
+     ["br_gh25a", "br_gh25b"]),
+    ("must_reject",
+     "zero-sized literal - A.8.7 size ::= non_zero_unsigned_number, so "
+     "'0'b0' cannot lex as one sized literal and the token split "
+     "'0' + ''b0' juxtaposes two primaries with no operator (no "
+     "production)",
+     ["br_gh60a"]),
+    ("must_reject",
+     "hierarchical name in a constant context - A.8.4 constant_primary has "
+     "no hierarchical alternative (parameter_identifier ::= identifier, "
+     "one undotted name), so 'parameter WIDTH = dut.WIDTH;' matches no "
+     "production",
+     ["pr2792883"]),
+    ("must_reject",
+     "'reg real [1:0] a;' - A.2.1.3 reg_declaration is 'reg [ signed ] "
+     "[ range ] list_of_variable_identifiers' and 'real' is a keyword, "
+     "not a variable_identifier",
+     ["pr3112073a"]),
+    ("must_reject",
+     "mixed ordered and named port connections - A.4.1 "
+     "list_of_port_connections is homogeneous (all ordered_port_connection "
+     "or all named_port_connection; the tf mirror of the .8b.3 A.8.2 rule)",
+     ["pr2051975"]),
+    # --- directive-stage invalidities (section 19 - preprocessor lane) -----
+    ("out_of_scope_with_cause:svpp_owned_v2005",
+     "malformed conditional directives - 19.4 Syntax 19-4 requires "
+     "`ifdef/`ifndef/`elsif to carry a text_macro_identifier; the bare "
+     "forms violate the DIRECTIVE grammar, a preprocessor-stage error the "
+     "svpp lane owns (Annex A has no directive productions)",
+     ["ifdef_fail"]),
+    ("out_of_scope_with_cause:svpp_owned_v2005",
+     "directive value rule - 19.8: 'The time_precision argument shall be "
+     "at least as precise as the time_unit argument'; '`timescale 1ns/"
+     "10ns' violates a DIRECTIVE-value shall, a preprocessor-stage error "
+     "the svpp lane owns",
+     ["timescale3"]),
+    # --- parse-level accepts (BNF-parseable; invalidity is prose/semantic
+    #     stage or an iverilog-specific check) ------------------------------
+    ("must_accept",
+     "procedural assignment/timing forms - A.6.2 blocking/nonblocking "
+     "assignment with [ delay_or_event_control ] (A.6.5 '# delay_value', "
+     "'# ( mintypmax_expression )', '@ hierarchical_event_identifier', "
+     "'@ ( event_expression )'), A.6.2 procedural_continuous_assignments "
+     "(assign/force on variable_assignment/net_assignment, deassign/"
+     "release on lvalues), A.6.5 disable_statement and event_trigger; the "
+     "iverilog CE is its always-without-delay/infinite-loop or "
+     "unsupported-construct check, not a 1364 parse rule (always3.1.2I's "
+     "spaced '5'h 0' is 3.5.1-legal - the ispras 3.5.1 mirror)",
+     ["always3.1.10A", "always3.1.1A", "always3.1.1B", "always3.1.2A",
+      "always3.1.2B", "always3.1.2C", "always3.1.2D", "always3.1.2E",
+      "always3.1.2F", "always3.1.2G", "always3.1.2H", "always3.1.2I",
+      "always3.1.3A", "always3.1.3B", "always3.1.3C", "always3.1.3D",
+      "always3.1.3E", "always3.1.3F", "always3.1.3G", "always3.1.3H",
+      "always3.1.3J", "always3.1.9A", "always3.1.9B"]),
+    ("must_accept",
+     "event arrays and array-word assignment targets - A.2.3 "
+     "list_of_event_identifiers carries { dimension }, A.6.5 event_trigger "
+     "is '-> hierarchical_event_identifier { [ expression ] } ;' and "
+     "A.8.5 variable_lvalue admits '{ [ expression ] }' word selects with "
+     "intra-assignment delay",
+     ["event_array", "pr2597278b"]),
+    ("must_accept",
+     "denotation-dependent constancy (the .8b.3 fn-15 mirror) - "
+     "constant_expression/genvar contexts reach A.8.4 constant_primary's "
+     "parameter_identifier ::= identifier, which is denotation-blind: "
+     "whether the name denotes a variable, an undeclared symbol, a "
+     "self/circular parameter or a genvar is semantic/elaboration stage "
+     "(A.4.2 genvar_initialization/iteration and A.9.1 attr_spec "
+     "likewise)",
+     ["check_constant_1", "check_constant_2", "check_constant_3",
+      "check_constant_4", "check_constant_5", "check_constant_6",
+      "check_constant_7", "check_constant_8", "check_constant_9",
+      "check_constant_10", "check_constant_11", "check_constant_12",
+      "check_constant_13", "check_constant_14", "check_constant_15",
+      "check_constant_16", "check_constant_17", "check_constant_18",
+      "check_constant_19", "check_constant_20", "br_gh142", "pr2039632",
+      "pr3061015a", "pr3061015b", "pr3061015c"]),
+    ("must_accept",
+     "replication/width value rules are prose - A.8.1 "
+     "multiple_concatenation ::= { constant_expression concatenation } is "
+     "width-value-blind; zero or x replication constants and zero-width "
+     "indexed part-selects (A.8.3 range_expression '+:' form) are 5.1.14/"
+     "value-rule semantics",
+     ["concat_zero_wid_fail", "repl_zero_wid_fail", "zero_repl_fail",
+      "pr1925363a", "pr1925363b", "pr1971662a", "pr1971662b",
+      "pr3549328"]),
+    ("must_accept",
+     "identifier-resolution/arity semantics - undeclared names, missing "
+     "functions/modules, wrong task/function argument counts and "
+     "upward-scope misses are elaboration stage; every call carries >= 1 "
+     "expression so A.8.2/A.6.9 are satisfied",
+     ["br924", "br961a", "br982", "br982a", "br982b", "br_gh26",
+      "br_ml20150321", "hier_ref_error", "pr2051694", "pr2528915",
+      "pr3270320", "scope2b"]),
+    ("must_accept",
+     "duplicate-name/link semantics - duplicate identifiers in one "
+     "declaration list, duplicate module definitions, duplicate scope "
+     "names and port-vs-variable redeclaration pairs are each BNF-valid "
+     "declaration sequences; the clash is semantic",
+     ["redef_net_error", "redef_reg_error", "pr1938138", "pr1833754",
+      "pr1704013"]),
+    ("must_accept",
+     "specify path width coherence is prose - the parallel-connection "
+     "width rule is a semantic check; '(in => out) = 2;' is an A.7.2 "
+     "parallel_path_description",
+     ["par_mismatch"]),
+    ("must_accept",
+     "lvalue-select stage rules (the .8c.1 12.3.3 semantic-stage mirror) - "
+     "A.8.5 variable_lvalue/net_lvalue admit bit/word/part selects "
+     "(range_expression msb:lsb and +:/-: forms; identifiers in "
+     "constant_expression slots are denotation-blind), and A.8.4 primary "
+     "admits 'identifier [ range_expression ]'; the procedural-continuous/"
+     "force lvalue-class and memory-select bans are 9.3 prose",
+     ["array5", "array_lval_select3b", "array_lval_select4b",
+      "undef_lval_select3b", "undef_lval_select3c", "undef_lval_select4b",
+      "undef_lval_select4c", "sv_lval_idx_part_invalid_base_down_fail",
+      "pr1735724", "readmemh5"]),
+    ("must_accept",
+     "module non-ANSI port/variable redeclaration coherence - each "
+     "declaration is individually A.2.1.2/A.2.1.3 BNF; duplicate or "
+     "type/range-conflicting redeclaration of a port signal is 12.3.3 "
+     "semantics (the ispras test_12_03_03_2 .8c.1 mirror)",
+     ["module_nonansi_fail1", "module_nonansi_fail2", "module_nonansi_fail3",
+      "module_nonansi_fail4", "module_nonansi_fail5", "module_nonansi_fail6",
+      "module_nonansi_fail7", "module_nonansi_fail8", "module_nonansi_fail9",
+      "module_nonansi_fail10", "module_nonansi_fail11",
+      "module_nonansi_fail12", "module_nonansi_fail13",
+      "module_nonansi_integer_fail", "module_nonansi_time_fail",
+      "module_nonansi_vec_fail1", "module_nonansi_vec_fail2",
+      "module_nonansi_vec_fail3"]),
+    ("must_accept",
+     "trailing null port + direction semantics - A.1.3 port ::= "
+     "[ port_expression ] may be EMPTY, so '(a, b, )' is a legal "
+     "list_of_ports ending in a null port; duplicate port declarations "
+     "and wrong directions are semantic",
+     ["port-test3", "port-test4a", "port-test4b"]),
+    ("must_accept",
+     "task non-ANSI port/variable redeclaration coherence - each "
+     "task_item_declaration is A.2.7 BNF (single trailing statement "
+     "each); duplicate/conflicting port-variable redeclaration inside a "
+     "task is semantics (the module_nonansi mirror)",
+     ["task_nonansi_fail1", "task_nonansi_fail2", "task_nonansi_fail3",
+      "task_nonansi_fail4", "task_nonansi_fail6", "task_nonansi_fail7",
+      "task_nonansi_fail9", "task_nonansi_fail10", "task_nonansi_fail11",
+      "task_nonansi_integer_fail", "task_nonansi_real_fail",
+      "task_nonansi_time_fail", "task_nonansi_vec_fail1",
+      "task_nonansi_vec_fail2", "task_nonansi_vec_fail3"]),
+    ("must_accept",
+     "null-statement/empty-connection forms - A.6.4 statement_or_null "
+     "admits ';' as an if-body and A.4.1 named_port_connection is "
+     "'. port_identifier ( [ expression ] )' with the expression "
+     "omissible",
+     ["no_if_statement", "contrib8.3"]),
+    ("must_accept",
+     "real operands in a concatenation are a value rule - A.8.1 "
+     "concatenation admits any expression (real_number is an A.8.4 "
+     "primary); the real-operand ban is 5.1.14 prose",
+     ["real_concat_invalid2"]),
+    ("must_accept",
+     "automatic-task access rules are prose - hierarchical references "
+     "into automatic tasks, nonblocking/procedural-continuous "
+     "assignments on automatic variables (9.2.2/10.2.2 'shall not') are "
+     "semantic; every construct is A.2.7/A.6.2 BNF (automatic_error3's "
+     "`begin_keywords \"1364-2005\" is a legal 19.11 directive)",
+     ["automatic_error1", "automatic_error2", "automatic_error3",
+      "automatic_error5", "automatic_error6", "automatic_error7",
+      "automatic_error8", "automatic_error9", "automatic_error10"]),
+    ("must_accept",
+     "generate parse-valid forms - A.4.2 loop_generate_construct nests as "
+     "its own generate_block and A.1.4 admits initial_construct in "
+     "generate scope (genvar reuse in nested loops is 12.4 semantics); "
+     "A.9.3 hierarchical_identifier admits '[ constant_expression ]' on "
+     "path segments (generate-scope indexed references)",
+     ["br_gh533", "pr1988302b"]),
+    ("must_accept",
+     "parameter-override resolution semantics - overriding a nonexistent/"
+     "local/body parameter via #(.) or defparam parses (A.4.1 "
+     "named_parameter_assignment, A.2.4 defparam_assignment); the "
+     "override legality is elaboration",
+     ["parameter_override_invalid1", "parameter_override_invalid2",
+      "parameter_override_invalid3", "parameter_override_invalid4",
+      "parameter_override_invalid5", "parameter_override_invalid6"]),
+    ("must_accept",
+     "link-stage instance discrimination - '#(10, 20, 30)' after an "
+     "identifier parses as A.4.1 parameter_value_assignment (the BNF "
+     "cannot know mux2 names a UDP - the udp-vs-module split is link "
+     "stage), and recursive module instantiation depth is elaboration; "
+     "$clog2 in a parameter is A.8.4 constant_system_function_call "
+     "(1364-2005-added)",
+     ["udp_delay_fail", "pr2728812b", "pr2728812c"]),
+    ("must_accept",
+     "directive placement is unrestricted - section 19: 'These directives "
+     "may appear anywhere in the source description'; 19.8 defines "
+     "`timescale meaning for the modules that follow and states NO "
+     "placement shall, so an in-module-body `timescale is not a 1364 "
+     "error (iverilog strictness) - the parser must tolerate it",
+     ["no_timescale_in_module"]),
+]
+
+IVTEST_VLG_CE_STAGE_PINNED = {}
+for _cls, _basis, _names in IVTEST_VLG_CE_STAGE_CLUSTERS:
+    for _n in _names:
+        _key = f"ivltests/{_n}.v"
+        if _key in IVTEST_VLG_CE_STAGE_PINNED:
+            raise SystemExit(f"duplicate .8c.2 vlg stage pin: {_key}")
+        IVTEST_VLG_CE_STAGE_PINNED[_key] = (
+            _cls, "ivtest vlg CE pinned .8c.2: " + _basis)
+if len(IVTEST_VLG_CE_STAGE_PINNED) != 176:
+    raise SystemExit(
+        f".8c.2 vlg stage-pin table holds {len(IVTEST_VLG_CE_STAGE_PINNED)} "
+        "entries, expected exactly the 176-row CE-without-gold population")
 
 
 IVTEST_TYPES = {"normal", "CE", "CO", "EF", "RE", "NI"}
@@ -1069,10 +1447,14 @@ class IvtestIndex:
                 return ("must_accept",
                         f"ivtest: vlg CE but golden {gold} shows only "
                         "post-parse errors - syntax itself valid")
+            pinned = IVTEST_VLG_CE_STAGE_PINNED.get("/".join(p.parts[1:]))
+            if pinned:
+                return pinned
             return ("out_of_scope_with_cause:negative_stage_triage_v2005",
                     "ivtest: vlg CE without golden output - failure stage "
-                    "(parse vs elaboration) unresolved; clustered stage "
-                    "pinning = leaf .8c.2")
+                    "(parse vs elaboration) unresolved and outside the "
+                    ".8c.2 pinned population (added upstream after the "
+                    "vendored pin?)")
         if len(p.parts) >= 3 and p.parts[1] == "ivltests":
             descs = self.vvp_desc.get(p.stem, [])
             v_descs = [d for d in descs
@@ -1094,11 +1476,16 @@ class IvtestIndex:
                             "with golden iverilog output reporting a "
                             "syntax error")
                 if implied == {"triage"}:
+                    pinned = IVTEST_VLG_CE_STAGE_PINNED.get(
+                        "/".join(p.parts[1:]))
+                    if pinned:
+                        return pinned
                     return (
                         "out_of_scope_with_cause:negative_stage_triage_v2005",
                         f"ivtest: vvp_tests descriptor(s) {names} - CE "
-                        "without usable golden output; clustered stage "
-                        "pinning = leaf .8c.2")
+                        "without usable golden output and outside the "
+                        ".8c.2 pinned population (added upstream after "
+                        "the vendored pin?)")
                 if implied == {"ni"}:
                     return ("out_of_scope_with_cause:ni_unimplemented",
                             f"ivtest: vvp_tests descriptor(s) {names} - "

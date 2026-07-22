@@ -473,8 +473,11 @@ coverage.
   CE stage pins) **done** — the sv_2017-lane answer keys are COMPLETE (all
   `.8a` deferred key populations drained); `.8c.1` (v2005 lane runner +
   mechanical keys + the first measured v2005 baseline: 135 unexplained)
-  **done**; `.8c.2` (v2005 CE pins + KNOWN_TEXT_BUGS + the crash
-  follow-up) remains. Roster-v2 candidate logged: **slang embedded-unittest
+  **done**; `.8c.2` (176 vlg-CE stage pins + the 17 KNOWN_TEXT_BUGS
+  re-adjudications ⇒ v2005 baseline honestly re-based 135 → 150, triage
+  DRAINED 176 → 0 — the v2005-lane answer keys are COMPLETE) **done**;
+  `.8c.3` (the br_gh330 debug-stack engine follow-up) remains.
+  Roster-v2 candidate logged: **slang embedded-unittest
   extraction** (thousands of SV snippets inside slang's C++ unit tests — the
   sharpest open conformance oracle; extraction tool + fragment entry-point
   mapping required).
@@ -841,14 +844,106 @@ coverage.
   - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
     DEVELOPMENT_NOTES/LIVE this commit.
 
-##### `.8c.2` — v2005 CE-without-gold stage pins + KNOWN_TEXT_BUGS re-adjudication (todo)
+##### `.8c.2` — v2005 CE-without-gold stage pins + KNOWN_TEXT_BUGS re-adjudication (done)
 
-- **Status: `todo`** — (a) the 176 `negative_stage_triage_v2005` rows
-  (vlg-list CE without golden) need the `.8b.3`-style clustered stage
-  pinning against the IEEE 1364-2005 BNF (`docs/verilog/2005` workspace);
-  (b) the 17 ispras-1364 POSITIVE rejects re-adjudicate against the
-  suite's `KNOWN_TEXT_BUGS` errata (committed-text-over-intent); (c) the
-  br_gh330 debug-stack engine follow-up.
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0013`, session #195, 2026-07-22).
+  The engine follow-up (c) is split out as leaf `.8c.3` (one commit = one
+  defect); this leaf = the answer-key work (a)+(b).
+- **What landed (adjudicator keys only — zero parser surface):**
+  - **(a) `IVTEST_VLG_CE_STAGE_CLUSTERS`** — all 176
+    `negative_stage_triage_v2005` rows (175 vlg-list CE-without-gold + 1
+    vvp-descriptor triage row) read per-file and stage-pinned against the
+    IEEE 1364-2005 Annex A BNF, re-verified VERBATIM from the in-repo
+    `docs/verilog/2005/md` full Annex A dump before pinning (+ the
+    section 19 directive rules for the svpp pair). 30 clusters:
+    **146 must_accept / 28 must_reject / 2 svpp-owned (directive-stage)**;
+    flatten audits count (exactly 176) + duplicates; consulted at BOTH
+    triage points (vlg CE-without-gold + vvp `triage` descriptors), never
+    overriding a golden-backed key.
+  - **(b) `ISPRAS_1364_POSITIVE_PINNED`** — the 17 failing ispras-1364
+    POSITIVE rows re-adjudicated against the suite's `KNOWN_TEXT_BUGS`
+    errata: **ZERO errata flips** — no committed text embodies an LRM typo
+    that renders it BNF-invalid. ⭐ The one errata candidate
+    (`PATHPULSE$ = 3;`, 14.6.1) is ruled STILL PARSEABLE: A.2.4
+    `specparam_assignment` keeps the plain
+    `specparam_identifier = constant_mintypmax_expression` alternative,
+    A.9.3 `simple_identifier` admits `$`, and **Annex B does NOT reserve
+    `PATHPULSE$`** — the identifier escape-hatch law (the A.8.2
+    system_tf_call mirror). All 17 stay must_accept = measured v2005
+    defect signal (per-file pinned bases: 3.5.1 spaced/signed literals ×5,
+    1364 strength grammar ×4, UDP bodies ×3, scalared/vectored net,
+    mintypmax parameter, PATHPULSE$, $width/edge-control,
+    `begin_keywords).
+  - **Key 1364-vs-1800 laws pinned (the edition law's v2005 face):**
+    empty tf-call parens illegal (A.8.2/A.6.9 require >= 1 expression);
+    unnamed-block declarations illegal (A.6.3); a task body holds exactly
+    ONE statement_or_null (A.2.7); ANSI input/inout ports take neither
+    defaults (A.2.3) nor variable types (A.2.1.2); port_declaration
+    illegal in a portless module (A.1.2 second form); parameter/specparam/
+    specify illegal in generate scope (A.1.4/A.4.2); gate terminals are
+    never empty and buf/not need >= 2 (A.3.1/A.3.3); `size ::=
+    non_zero_unsigned_number` (A.8.7); constant contexts admit NO
+    hierarchical names (A.8.4); mixed ordered/named connections illegal
+    (A.4.1). Accept-side mirrors: trailing null port legal (A.1.3 `port`
+    may be empty); `#(...)` after an identifier is denotation-blind
+    module-shaped instantiation (UDP-vs-module = link stage); `$clog2` in
+    parameters = A.8.4 constant_system_function_call (1364-2005-added);
+    directive placement unrestricted (section 19 "may appear anywhere" —
+    `no_timescale_in_module` is iverilog strictness, NOT a 1364 error).
+- **⭐ MEASURED RESULT — the v2005 baseline is HONESTLY RE-BASED 135 → 150
+  unexplained (135 rejects-valid / 14 accepts-invalid / 1 crash);
+  `negative_stage_triage_v2005` DRAINED 176 → 0 — the v2005-lane answer
+  keys are COMPLETE** (match 1,947 → 2,105; deferred 205 → 32 = 27
+  impl-varying + 2 chained + 3 svpp-owned incl. the generic macro
+  demotion on `module_input_port_list_def`). The +15 signal is fully
+  named: **2 rejects-valid** (`always3.1.2I` — the spaced `5'h 0` 3.5.1
+  literal, the ispras chapter-3.5.1 cluster's ivtest face;
+  `no_timescale_in_module` — in-module-body directive tolerance, the F5
+  directive family's v2005 face) + **13 accepts-invalid — the FIRST
+  measured v2005 over-acceptance worklist** (`^=` compound assignment
+  accepted (br1015a), `0'b0` zero-size literal (br_gh60a), empty tf-call
+  parens ×3 (function4, task_nonansi_fail5/8), ANSI port defaults
+  (module_inout_port_list_def), variable-typed input/inout ports ×2,
+  parameter-in-generate, `dut.WIDTH` in a constant (pr2792883),
+  two-statement task body (task_port_range_mismatch), unnamed-block/fork
+  declarations ×2).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 176 rows deferred
+    (`negative_stage_triage_v2005`) + 17 ispras POSITIVE rejects carried
+    only the generic re-adjudication note; the v2005 answer keys were
+    incomplete.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — every pin carries its Annex A
+    production / section-19 rule / errata citation, re-verified verbatim
+    from the in-repo 1364-2005 md before pinning (the full Annex A dump
+    read end-to-end this session).
+  - [x] **FIX** — answer-key tables + two guarded lookup sites in
+    `stimuli/sv/adjudicate_external_corpus.py`; zero parser surface.
+  - [x] **ADDRESSED (verified)** — mechanical set-equality: pin table ==
+    the 176-row population EXACTLY (missing=[], extra=[]); row-by-row
+    transition audit: changed == triage ∪ ispras-rejects == 193 rows,
+    ZERO collateral (158→match / 13→accepts-invalid / 2→rejects-valid /
+    3→svpp-deferred / 17 basis-only); determinism cmp ×2 on manifest +
+    summary; probes ×6 under `--profile verilog_2005` confirm both sides
+    (always3.1.2I exit 1, no_timescale_in_module exit 1, br1015a exit 0,
+    unnamed_block_var_decl exit 0, task_nonansi_fail5 exit 0, br_gh60a
+    exit 0).
+  - [x] **NO REGRESSION** — the main sv_2017 manifest + summary
+    BYTE-IDENTICAL (cmp + empty git diff; totals 5566/564/1435/8771
+    unchanged); v2005 svpp-explained 172 and impl-varying 27 byte-stable;
+    the 308 passing ispras POSITIVE rows keep their basis byte-stable.
+  - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
+    DEVELOPMENT_NOTES/LIVE this commit.
+
+##### `.8c.3` — br_gh330 debug-stack engine follow-up (todo)
+
+- **Status: `todo`** (split from `.8c.2`(c) for one-commit-one-defect) —
+  `ivtest/ivltests/br_gh330.v` (~600-line chained ternary) KILLS the
+  debug-build probe with a REAL stack overflow (rc 134, BOTH profiles)
+  while release exits 0 — the
+  [[feedback_recursion_ceiling_must_bound_real_stack]] class: make the
+  recursion ceiling bound the REAL stack (prefer an O(n) boundary
+  pre-check) so debug builds refuse gracefully; the manifest's
+  `divergence:unexplained_crash` row then re-adjudicates on measurement.
 
 ### `.9` — Gap-driven acquisition/crafting loop to 100%
 

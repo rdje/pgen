@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0013 — the BNF-as-written outranks the suite's own errata; and 1364's "exactly one statement" task body
+
+**The errata's author is not the adjudicator.** The ispras `KNOWN_TEXT_BUGS` file flags
+`PATHPULSE$ = 3;` (14.6.1) as an LRM text bug — "according to the grammar, there should be (3)" —
+because the authors read only the `pulse_control_specparam` production. But A.2.4
+`specparam_assignment` keeps a FIRST alternative (`specparam_identifier =
+constant_mintypmax_expression`), A.9.3 `simple_identifier` admits `$` in non-initial position, and
+Annex B does not list `PATHPULSE$` as a keyword — so the committed text parses via the plain
+identifier route and the POSITIVE key stands. Lesson: when re-adjudicating against an upstream
+errata, re-derive each claim from the BNF-as-written rather than inheriting the errata's own
+grammar reading (the same committed-text-over-intent discipline, applied against the errata
+itself). The escape-hatch family now has three members: A.8.2 system_tf_call (`$fatal(.x())`),
+A.6.10 checker_instantiation (program-block module instantiation), and the PATHPULSE$
+specparam_identifier route.
+
+**1364-2005 task bodies hold exactly one statement.** A.2.7 `task_declaration` is
+`{ task_item_declaration } statement_or_null endtask` — TWO consecutive statements without a
+begin/end match no production (1800's `{ statement_or_null }` body is the relaxation). This is
+easy to miss when scanning "obviously semantic" redeclaration tests: `task_port_range_mismatch`
+pins must_reject on this ground alone while its 15 sibling files (single trailing statement each)
+pin must_accept. The whole-file discipline — read every line of every file before classifying by
+family resemblance — is what caught it; the same scan flipped `module_port_range_mismatch`
+(A.1.2's port-declaration-admitting form REQUIRES a parenthesized port list, so a portless
+`module test;` body cannot carry `input [1:0] x;`).
+
+**Directive-stage vs parse-stage invalidity.** §19 grants directives placement "anywhere in the
+source description", so an in-module `timescale is NOT a 1364 error (iverilog strictness →
+must_accept → a real rejects-valid defect at HEAD), while a bare `ifdef (Syntax 19-4 requires a
+text_macro_identifier) and `timescale 1ns/10ns (19.8's precision-shall) violate DIRECTIVE
+grammar/value rules — preprocessor-stage errors the svpp lane owns, never parser must_rejects.
+Annex A has no directive productions; the stage split keeps the parser's answer key honest.
+
 ## 2026-07-22 - PGEN-SV-CORPUS-GRAD-0012 — a crash is not a reject; and lane membership must have exactly one deriver
 
 **Signal-death vs graceful rejection.** The bulk runner mapped every non-zero, non-124 probe exit
