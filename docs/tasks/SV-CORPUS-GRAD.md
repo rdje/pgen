@@ -151,6 +151,8 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
   Full picture: 2,842 match / 330 unexplained / 1,102 explained-with-cause
   (svpp macro_use 786, conditional 191, include 124, timeout 1) / 854 deferred
   (chained_only 704 — the design corpora + fragments, leaf `.4`; svpp_owned 150).
+  *(Baseline REFINED 330 → 321 same-day by `.3.0`'s answer-key triage — 12
+  rows re-adjudicated on upstream in-file grounds; see `.3.0`.)*
 - **Expected-verdict derivation (per `.1`'s design, spec/metadata-only — never
   fix-adjacent):** sv-tests `:type:`-stage × `:should_fail_because:` logic
   (post-parse should-fails = parse-level `must_accept`; only `parsing`-stage
@@ -192,14 +194,70 @@ gamed ([[feedback_corpus_expected_from_spec_not_fix]]).
 
 ### `.3` — Defect burn-down (umbrella; one leaf per defect class)
 
-- **Status: `todo`** — NOW SCOPED from `.2`'s baseline: **330 unexplained
-  divergences** to burn down (324 rejects-valid + 6 accepts-invalid; the
-  manifest is the per-row worklist). Cluster map for leaf selection:
-  verilator 235, sv-tests 66 (by chapter: generic 21, chapter-8/classes 18,
-  chapter-5/lexical 9 — incl. the probe-verified underscore/spaced-literal
-  gap — chapter-7 4, chapter-6 4, chapter-16/SVA 4, chapter-18 3,
-  chapter-11 2, chapter-12 1), verible 20, slang 3, + the 6 named
-  accepts-invalid rows (verilator-strictness adjudication candidates).
+#### `.3.0` — Stuck-point clustering over the rejects-valid population (read-only diagnosis)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0005`, session #191, 2026-07-22).
+- Every `divergence:unexplained_rejects_valid` row probed;
+  `furthest_position` extracted; clustered by a normalized 3-token stuck
+  signature (`stimuli/sv/cluster_rejects_valid.py`, 1.7 s / 324 probes).
+  Artifacts: `docs/tasks/artifacts/sv_corpus_grad/rejects_valid_clusters.tsv`
+  (per-row: positions, signature, stuck line) + `rejects_valid_clusters.md`
+  (ranked table).
+- **⭐ Triage feedback into the answer key (baseline 330 → 321):** the
+  clustering surfaced 12 mis-adjudicated rows, fixed in the adjudicator on
+  upstream in-file/metadata grounds (never fix-adjacent): (a) verible
+  `// verilog_syntax:` excerpt-mode fixtures = tool-mode fragments →
+  out-of-scope-with-cause (5 rows); (b) three pinned intentionally-invalid
+  fixtures → `must_reject` (verible `bad-id-lex.sv` "lexer should reject",
+  verible `module_begin_block.sv` "LRM-invalid syntax", slang
+  `cross-ident-in-binsof.sv` "LRM disallows … bins_expression"); (c) the
+  sv-tests `.svh`-include-payload rule promoted generic (slang `local.svh` is
+  a bare string literal). Refined manifest re-proven deterministic (cmp ×2).
+  **Refined baseline: 321 unexplained = 315 rejects-valid (verilator 235 /
+  sv-tests 66 / verible 13 / slang 1) + 6 accepts-invalid.**
+- **The consolidated defect-family worklist (analyst merge of the 171 raw
+  signatures; counts ≈ from signature groups, exact rows in the TSV):**
+  | family | ≈rows | representative |
+  |---|---|---|
+  | F1 `interface class` (LRM 8.26 — construct absent) | ~47 | `interface class Bar; endclass` stuck at `class` |
+  | F2 SVA property/sequence tails (LRM 16: `disable iff`, `\|->`/`\|=>` RHS, `[*N]`/`[->N]` reps, match items) | ~23 | `disable iff (a) b \|-> c` |
+  | F3 constraint/randomize (LRM 18: `dist {[a:b] :/ w}`, `randomize() with {…}`, `rand_mode`) | ~23 | `dist { [0:1], [2:5] :/ 2 }` |
+  | F5 compiler directives in-scope (LRM 22: `` `begin_keywords`` semantics, `` `pragma``, `` `__FILE__`` ) | ~17 | `` `begin_keywords "1364-2001" `` then `reg logic;` |
+  | F4 modport direction-lists (LRM 25.5) | ~15 | `modport modp(input clk, rst);` |
+  | F6 number-literal lexicals (LRM 5.7: spaced based literals `32 'd 1`, `-8'd 6`, size-cast `32'(…)`) | ~13 | probe-verified in `.2` |
+  | F8 interface member type refs (`if0.rq_t` as type, virtual-interface members) | ~10 | `localparam type p0_t = if0.rq_t;` |
+  | F9 drive-strength/charge/`scalared`-`vectored` decl forms + UDP | ~9 | `assign (supply0, weak1) #(1:0:1,…)` |
+  | F7 enum base/range forms (`enum [15:0] {…}`) | ~8 | `typedef enum [15:0] {` |
+  | F11 legacy generate/label forms | ~7 | `begin : topgen` under `generate` |
+  | F10 `unique0` on if/case (LRM 12.4.2) | 4 | `unique0 if (a == 0)` — smallest well-defined class |
+  | long tail (singleton signatures, per-row triage as burn-down proceeds) | ~150 | — |
+- **Recommended first burn-down leaf: F1 `interface class`** — the largest
+  single well-defined construct family; one grammar-addition wave probably
+  clears ~15% of the entire baseline. Each `.3.x` fix leaf owes its own
+  TOOLBOX WHY+WHERE + the full heavy battery per the ground rules.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 324 rejects-valid rows had no defect-class
+    structure; burn-down leaves cannot be cut from a flat list.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — per-row stuck positions + signatures
+    banked in the TSV (tool: parseability_probe furthest_position, 324 runs).
+  - [x] **FIX** — N/A code-wise; the 12-row answer-key refinement is the
+    leaf's corrective output, grounds cited per row in-script.
+  - [x] **ADDRESSED (verified)** — refined manifest deterministic (cmp ×2);
+    cluster artifacts banked; family worklist + first-leaf recommendation.
+  - [x] **NO REGRESSION** — no parser surface touched; adjudicator refinement
+    strictly metadata-grounded.
+  - [x] **LOCKSTEP** — tree/TASK_TREE/MEMORY/CHANGES/LIVE updated to 321 this
+    commit.
+
+- **Status (umbrella): `todo`** — SCOPED: **321 unexplained divergences** to
+  burn down (315 rejects-valid + 6 accepts-invalid; the manifest is the
+  per-row worklist, the `.3.0` family table above is the leaf-cutting map:
+  F1 interface-class ~47 first). Suite split: verilator 235, sv-tests 66
+  (by chapter: generic 21, chapter-8/classes 18, chapter-5/lexical 9 — incl.
+  the probe-verified underscore/spaced-literal gap — chapter-7 4, chapter-6 4,
+  chapter-16/SVA 4, chapter-18 3, chapter-11 2, chapter-12 1), verible 13,
+  slang 1, + the 6 named accepts-invalid rows (verilator-strictness
+  adjudication candidates).
   ~~First known member `GRAMMAR-WELLFORMED.H.12.5.8`~~ — RESOLVED before this
   tree reached it: fixed by releases 1.0.148/1.0.149 (re-verified 12/12 at
   HEAD, see `.1`). NOTE the standing convergence: the chapter-16 property rows

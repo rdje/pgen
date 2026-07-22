@@ -32,9 +32,13 @@ _Raw per-file results: `stimuli/sv/characterization/results.tsv`._
 
 The raw outcomes above are adjudicated expected-vs-actual in
 `adjudication_manifest.tsv` (generator: `stimuli/sv/adjudicate_external_corpus.py`,
-deterministic; summary: `adjudication_summary.md`). Headline: **330 unexplained
-divergences** (324 rejects-valid + 6 accepts-invalid) out of 5,128 rows —
-the SV-CORPUS-GRAD burn-down baseline. 1,102 divergences are explained with a
-named cause (svpp expansion/include/conditional dependency, 1 timeout); 854
-rows are deferred to their owning lanes (704 chained-only incl. the three
-design corpora, 150 svpp-owned test targets).
+deterministic; summary: `adjudication_summary.md`). Headline: **321 unexplained
+divergences** (315 rejects-valid + 6 accepts-invalid) out of 5,128 rows —
+the SV-CORPUS-GRAD burn-down baseline (first measured 330, refined to 321 by
+the leaf-.3.0 answer-key triage: verible excerpt-mode fragments, 3 pinned
+intentionally-invalid fixtures, the generic `.svh`-payload rule). 1,102
+divergences are explained with a named cause (svpp
+expansion/include/conditional dependency, 1 timeout); 866 rows are deferred to
+their owning lanes (chained-only incl. the three design corpora, svpp-owned
+test targets). Stuck-point clusters for the burn-down:
+`docs/tasks/artifacts/sv_corpus_grad/rejects_valid_clusters.md`.

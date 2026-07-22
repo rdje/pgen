@@ -597,7 +597,7 @@ slang	tests/regression/driver/cannot-index-scalar.sv	pass	must_accept	match	slan
 slang	tests/regression/driver/clockvar-target-assign.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/command-files.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/compat-mode-all.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
-slang	tests/regression/driver/cross-ident-in-binsof.sv	fail	must_accept	divergence:unexplained_rejects_valid	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
+slang	tests/regression/driver/cross-ident-in-binsof.sv	fail	must_reject	match	pinned: in-file comment 'The LRM disallows cross_identifier as a bins_expression' - a grammar-level restriction, and the driver CHECKs for an error
 slang	tests/regression/driver/custom-task-arg-checking.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/define-system-task.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/dep-file-trim.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
@@ -647,15 +647,15 @@ slang	tests/regression/driver/waive-dup-pkg.sv	pass	must_accept	match	slang: reg
 slang	tests/unittests/data/another_systemverilog.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
 slang	tests/unittests/data/dirprefix/dir_a/simple.sv	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
 slang	tests/unittests/data/dup_pkg.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/file_defn.svh	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
+slang	tests/unittests/data/file_defn.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
 slang	tests/unittests/data/file_uses_define_in_file_with_no_eol.sv	fail	must_accept	divergence:explained_svpp_macro_use	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/file_uses_defn.svh	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
+slang	tests/unittests/data/file_uses_defn.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
 slang	tests/unittests/data/file_with_no_eol.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
 slang	tests/unittests/data/incdir_first_test.sv	fail	must_accept	divergence:explained_svpp_include	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/incdir_shadow.svh	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/include.svh	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/include_once.svh	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/infinite_chain.svh	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
+slang	tests/unittests/data/incdir_shadow.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
+slang	tests/unittests/data/include.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
+slang	tests/unittests/data/include_once.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
+slang	tests/unittests/data/infinite_chain.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
 slang	tests/unittests/data/library/other.sv	fail	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
 slang	tests/unittests/data/library/pkg.sv	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
 slang	tests/unittests/data/libsplit_lib.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
@@ -663,15 +663,15 @@ slang	tests/unittests/data/libsplit_top.sv	pass	must_accept	match	slang: unittes
 slang	tests/unittests/data/libtest/mod1.sv	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
 slang	tests/unittests/data/libtest/mod2.sv	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
 slang	tests/unittests/data/libtest/top.sv	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
-slang	tests/unittests/data/local.svh	fail	must_accept	divergence:unexplained_rejects_valid	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/nested/file.svh	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
-slang	tests/unittests/data/nested/incdir_shadow.svh	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
-slang	tests/unittests/data/nested/macro.svh	pass	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
-slang	tests/unittests/data/nested/nested_local.svh	fail	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
+slang	tests/unittests/data/local.svh	fail	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
+slang	tests/unittests/data/nested/file.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
+slang	tests/unittests/data/nested/incdir_shadow.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
+slang	tests/unittests/data/nested/macro.svh	pass	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
+slang	tests/unittests/data/nested/nested_local.svh	fail	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
 slang	tests/unittests/data/redef_module.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
 slang	tests/unittests/data/redef_primitive.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
 slang	tests/unittests/data/redef_top.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
-slang	tests/unittests/data/system/system.svh	fail	chained_only	deferred:chained_only	slang: unittest library/multi-file fixture directory
+slang	tests/unittests/data/system/system.svh	fail	chained_only	deferred:chained_only	slang: .svh include payload, not a standalone unit
 slang	tests/unittests/data/test.sv	fail	must_accept	divergence:explained_svpp_include	slang: unittest data fixture (positive-dominant)
 slang	tests/unittests/data/test2.sv	fail	must_accept	divergence:explained_svpp_macro_use	slang: unittest data fixture (positive-dominant)
 slang	tests/unittests/data/test3.sv	pass	must_accept	match	slang: unittest data fixture (positive-dominant)
@@ -1662,7 +1662,7 @@ sv-tests	tests/generic/number/number_test_8.sv	fail	must_accept	divergence:unexp
 sv-tests	tests/generic/number/number_test_9.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/preproc/preproc_test_0.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/generic/preproc/preproc_test_2.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
-sv-tests	tests/generic/preproc/preproc_test_2.svh	pass	chained_only	deferred:chained_only	sv-tests: .svh include payload, not a standalone test
+sv-tests	tests/generic/preproc/preproc_test_2.svh	pass	chained_only	deferred:chained_only	sv-tests: .svh include payload, not a standalone unit
 sv-tests	tests/generic/preproc/preproc_test_4.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/generic/preproc/preproc_test_5.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/generic/preproc/preproc_test_6.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
@@ -1740,17 +1740,17 @@ verible	verible/verilog/tools/kythe/testdata/function_port_dimensions.sv	fail	mu
 verible	verible/verilog/tools/kythe/testdata/function_scoping.sv	pass	must_accept	match	verible: kythe single-file indexing fixture
 verible	verible/verilog/tools/kythe/testdata/function_user_defined_port.sv	pass	must_accept	match	verible: kythe single-file indexing fixture
 verible	verible/verilog/tools/kythe/testdata/if_condition.sv	pass	must_accept	match	verible: kythe single-file indexing fixture
-verible	verible/verilog/tools/kythe/testdata/include_file_test/A.svh	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
-verible	verible/verilog/tools/kythe/testdata/include_file_test/B.svh	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
+verible	verible/verilog/tools/kythe/testdata/include_file_test/A.svh	pass	chained_only	deferred:chained_only	verible: .svh include payload, not a standalone unit
+verible	verible/verilog/tools/kythe/testdata/include_file_test/B.svh	pass	chained_only	deferred:chained_only	verible: .svh include payload, not a standalone unit
 verible	verible/verilog/tools/kythe/testdata/include_file_test/C.sv	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
-verible	verible/verilog/tools/kythe/testdata/include_file_test/included-file-1.svh	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
-verible	verible/verilog/tools/kythe/testdata/include_file_test/included-file-2.svh	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
+verible	verible/verilog/tools/kythe/testdata/include_file_test/included-file-1.svh	pass	chained_only	deferred:chained_only	verible: .svh include payload, not a standalone unit
+verible	verible/verilog/tools/kythe/testdata/include_file_test/included-file-2.svh	pass	chained_only	deferred:chained_only	verible: .svh include payload, not a standalone unit
 verible	verible/verilog/tools/kythe/testdata/include_file_test/module.sv	fail	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
 verible	verible/verilog/tools/kythe/testdata/include_file_test/module2.sv	fail	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
 verible	verible/verilog/tools/kythe/testdata/include_file_test/package_with_include.sv	fail	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
-verible	verible/verilog/tools/kythe/testdata/include_file_test/package_with_include_class.svh	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
+verible	verible/verilog/tools/kythe/testdata/include_file_test/package_with_include_class.svh	pass	chained_only	deferred:chained_only	verible: .svh include payload, not a standalone unit
 verible	verible/verilog/tools/kythe/testdata/include_with_dir_test/E.sv	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
-verible	verible/verilog/tools/kythe/testdata/include_with_dir_test/include_dir/D.svh	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
+verible	verible/verilog/tools/kythe/testdata/include_with_dir_test/include_dir/D.svh	pass	chained_only	deferred:chained_only	verible: .svh include payload, not a standalone unit
 verible	verible/verilog/tools/kythe/testdata/include_with_dir_test/module3.sv	fail	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
 verible	verible/verilog/tools/kythe/testdata/include_with_dir_test/module4.sv	fail	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
 verible	verible/verilog/tools/kythe/testdata/initial_block.sv	pass	must_accept	match	verible: kythe single-file indexing fixture
@@ -1794,7 +1794,7 @@ verible	verible/verilog/tools/kythe/testdata/while_loop.sv	pass	must_accept	matc
 verible	verible/verilog/tools/lint/testdata/always_comb_blocking.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/always_comb_module.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/always_ff_non_blocking.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/bad-id-lex.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
+verible	verible/verilog/tools/lint/testdata/bad-id-lex.sv	fail	must_reject	match	pinned: in-file comment 'lexer should reject invalid identifier' (module 654foo)
 verible	verible/verilog/tools/lint/testdata/banned_declared_name_patterns.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/case_missing_default.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/constraint_name_style.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
@@ -1812,17 +1812,17 @@ verible	verible/verilog/tools/lint/testdata/explicit_task_parameter_type.sv	pass
 verible	verible/verilog/tools/lint/testdata/forbid_consecutive_null_statements.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/forbid_negative_array_dim.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/generate-label-module-body.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
+verible	verible/verilog/tools/lint/testdata/generate-label-module-body.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
 verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/generate_label_module.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/generate_label_prefix.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/instance-ports-module-body.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
+verible	verible/verilog/tools/lint/testdata/instance-ports-module-body.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
 verible	verible/verilog/tools/lint/testdata/instance_parameters.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/instance_ports.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/interface_type_name_style.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/legacy_generate_region.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/legacy_genvar_declaration.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/line-length-in-module-body.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
+verible	verible/verilog/tools/lint/testdata/legacy_generate_region.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
+verible	verible/verilog/tools/lint/testdata/legacy_genvar_declaration.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
+verible	verible/verilog/tools/lint/testdata/line-length-in-module-body.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
 verible	verible/verilog/tools/lint/testdata/localparam_name_style.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/localparam_name_style_all_caps.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/localparam_name_style_camel_case.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
@@ -1831,7 +1831,7 @@ verible	verible/verilog/tools/lint/testdata/long_line.sv	pass	must_accept	match	
 verible	verible/verilog/tools/lint/testdata/macro_name_style.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/macro_string_concatenation.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/mismatched_labels.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/module_begin_block.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
+verible	verible/verilog/tools/lint/testdata/module_begin_block.sv	fail	must_reject	match	pinned: in-file comment marks the bare begin block 'LRM-invalid syntax'
 verible	verible/verilog/tools/lint/testdata/module_filename.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/numeric_format_string_style.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/object_creation_name.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
@@ -5114,16 +5114,16 @@ verilator	test_regress/t/t_x_rand_scoped_is_random.v	fail	must_accept	divergence
 verilator	test_regress/t/t_x_rand_stability.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_x_rand_stability.py expects success
 verilator	test_regress/t/tsub/t_flag_f_tsub.v	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
 verilator	test_regress/t/tsub/t_flag_f_tsub_inc.v	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	fail	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	fail	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_dpi.svh	fail	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_nodpi.svh	fail	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_dpi.svh	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_hdl.svh	fail	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_regex.svh	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_svcmd_dpi.svh	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_dpi.svh	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_hdl.svh	fail	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_polling_dpi.svh	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_regex.svh	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
-verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_svcmd_dpi.svh	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
+verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	fail	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	fail	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_dpi.svh	fail	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_nodpi.svh	fail	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_dpi.svh	pass	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_hdl.svh	fail	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_regex.svh	pass	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_svcmd_dpi.svh	pass	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_dpi.svh	pass	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_hdl.svh	fail	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_polling_dpi.svh	pass	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_regex.svh	pass	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit
+verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_svcmd_dpi.svh	pass	chained_only	deferred:chained_only	verilator: .svh include payload, not a standalone unit

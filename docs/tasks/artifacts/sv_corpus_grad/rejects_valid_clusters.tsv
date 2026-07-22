@@ -1,0 +1,316 @@
+suite	relpath	surface_pos	furthest_pos	signature	stuck_line
+slang	tests/regression/all.sv	804	1018	, weak1 )	assign (supply0, weak1) #(1:0:1, 2:1:0) w = 2;
+sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr-sim.sv	399	530	ID ( "	$display(":assert: (%d == %d)", b, (e+c+2));
+sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr.sv	345	476	module	endmodule
+sv-tests	tests/chapter-12/12.4.2--unique0_if.sv	329	409	if ( ID	unique0 if(a == 0) b = 1;
+sv-tests	tests/chapter-16/16.10--property-local-var-fail.sv	1063	1407	| -> ##	@(posedge clk) (valid, x = in) |-> ##4 (out == x + 3);
+sv-tests	tests/chapter-16/16.10--property-local-var.sv	976	1320	| -> ##	@(posedge clk) (valid, x = in) |-> ##4 (out == x + 4);
+sv-tests	tests/chapter-16/16.12--property-disable-iff.sv	343	450	> ID )	assert property ( @(posedge clk) disable iff (a) b |-> c );
+sv-tests	tests/chapter-16/16.12--property-prec.sv	330	412	> ID )	assert property ( @(posedge clk) a |-> b);
+sv-tests	tests/chapter-18/18.12.1--adding-constraints-to-scope-variables_0.sv	391	518	return ID ;	return success;
+sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	314	367	: = NUM	constraint c { b dist {3 := 1, 10 := 2}; }
+sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	419	473	: = NUM	constraint c { b dist {3 := 0, 10 := 5}; }
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	387	413	; / /	reg logic; // OK: "logic" is not a keyword in 1364-2001
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug-line.sv	321	341	` ID NUM	module directives();
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	327	382	` ID ,	initial $display("At %s @ %d\n", `__FILE__, `__LINE__);
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-pragma.sv	317	329	` ID ID	module ts();
+sv-tests	tests/chapter-5/5.7.1--integers-left-padding.sv	352	443	ID ID ;	a = 'h x;   // yields xxx
+sv-tests	tests/chapter-5/5.7.1--integers-signed.sv	321	435	ID NUM ;	a = -8'd 6;  // this defines the two's-complement of 6,
+sv-tests	tests/chapter-5/5.7.1--integers-underscores.sv	365	580	ID NUM ;	c = 32 'h 12ab_f001;         // 32-bit hexadecimal number
+sv-tests	tests/chapter-5/5.7.1--integers-unsized.sv	323	422	ID NUM ;	a = 'h 837FF; // is a hexadecimal number
+sv-tests	tests/chapter-5/5.9-string-broken-line.sv	329	373	" ID \	$display("broken \
+sv-tests	tests/chapter-6/6.23--type_op_compare.sv	316	412	) type (	case (type(T))
+sv-tests	tests/chapter-6/6.9.2--vector_scalared.sv	317	352	ID = NUM	tri1 scalared [15:0] a = 0;
+sv-tests	tests/chapter-6/6.9.2--vector_vectored.sv	317	352	ID ; endmodule	tri1 vectored [15:0] a;
+sv-tests	tests/chapter-6/6.9.2--vector_vectored_inv.sv	412	448	ID = NUM	logic vectored [15:0] a = 0;
+sv-tests	tests/chapter-7/queues/delete_assign.sv	388	538	] ; /	q = q[1:$]; // q.delete(0)
+sv-tests	tests/chapter-7/queues/insert_assign.sv	388	474	] } ;	q = { q[0:1], 10, q[2:$] }; // q.insert(2, 10)
+sv-tests	tests/chapter-7/queues/pop_back_assing.sv	392	479	- NUM ]	q = q[0:$-1]; // void'(q.pop_back()) or q.delete(q.size-1)
+sv-tests	tests/chapter-7/queues/pop_front_assign.sv	394	514	] ; ID	q = q[1:$];
+sv-tests	tests/chapter-8/8.26.2--implements.sv	335	371	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.2--implements_extends.sv	357	393	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.2--implements_multiple.sv	359	395	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.3--type_access_extends.sv	346	382	ID ; typedef	interface class ihello;
+sv-tests	tests/chapter-8/8.26.3--type_access_implements.sv	420	456	ID ; typedef	interface class ihello;
+sv-tests	tests/chapter-8/8.26.3--type_access_implements_invalid.sv	469	505	ID ; typedef	interface class ihello;
+sv-tests	tests/chapter-8/8.26.4--illegal_forward_def_implements.sv	511	724	ID ; typedef	interface class ihello;
+sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	529	565	ID ; typedef	interface class ihello;
+sv-tests	tests/chapter-8/8.26.5--cast_between_interface_classes.sv	399	435	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.5--implemented_class_handle.sv	414	450	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.5--invalid_interface_instantiation.sv	442	478	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.6.1--name_conflict_resolved.sv	409	445	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.6.1--name_conflict_unresolved.sv	475	511	ID ; pure	interface class ihello;
+sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict.sv	373	409	ID # (	interface class ic1#(type T = logic);
+sv-tests	tests/chapter-8/8.26.6.2--parameter_type_conflict_unresolved.sv	503	539	ID # (	interface class ic1#(type T = logic);
+sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship.sv	385	421	ID ; pure	interface class ibase;
+sv-tests	tests/chapter-8/8.26.6.3--diamond_relationship_parametrized.sv	552	588	ID # (	interface class ibase#(type T = logic);
+sv-tests	tests/chapter-8/8.26.7--partial_implementation.sv	380	416	ID ; pure	interface class ihello;
+sv-tests	tests/generic/class/class_test_25.sv	301	317	interface class ID	package Package;
+sv-tests	tests/generic/class/class_test_26.sv	301	310	class ID #	interface class Bar #(parameter N); endclass
+sv-tests	tests/generic/class/class_test_27.sv	302	318	interface class ID	package Package;
+sv-tests	tests/generic/class/class_test_28.sv	323	332	class ID ;	interface class Bar; endclass
+sv-tests	tests/generic/class/class_test_29.sv	302	314	interface class ID	package Pkg;
+sv-tests	tests/generic/class/class_test_48.sv	301	324	` ID ID	class pp_as_class_item;
+sv-tests	tests/generic/iface/iface_class_test_0.sv	306	315	class ID ;	interface class base_ic;
+sv-tests	tests/generic/iface/iface_class_test_1.sv	306	315	class ID ;	interface class base_ic;
+sv-tests	tests/generic/iface/iface_class_test_10.sv	307	316	class ID ;	interface class base_ic;
+sv-tests	tests/generic/iface/iface_class_test_2.sv	306	315	class ID #	interface class base_ic #(int N = 8, type T = string);
+sv-tests	tests/generic/iface/iface_class_test_9.sv	329	338	class ID ;	interface class base_ic;
+sv-tests	tests/generic/number/number_test_11.sv	311	332	' ID ID	parameter int foo = 1 'b x;
+sv-tests	tests/generic/number/number_test_25.sv	311	332	ID NUM ;	parameter int foo = 'd 0;
+sv-tests	tests/generic/number/number_test_28.sv	311	333	' ID NUM	parameter int foo = 32 'd 1;
+sv-tests	tests/generic/number/number_test_43.sv	311	332	ID NUM ;	parameter int foo = 'o 0;
+sv-tests	tests/generic/number/number_test_47.sv	311	333	' ID NUM	parameter int foo = 32 'o 7;
+sv-tests	tests/generic/number/number_test_5.sv	310	331	ID NUM ;	parameter int foo = 'b 0;
+sv-tests	tests/generic/number/number_test_60.sv	311	332	ID NUM ;	parameter int foo = 'h 0;
+sv-tests	tests/generic/number/number_test_66.sv	311	333	' ID NUM	parameter int foo = 32 'h 7;
+sv-tests	tests/generic/number/number_test_8.sv	310	331	' ID NUM	parameter int foo = 1 'b 0;
+sv-tests	tests/generic/typedef/typedef_test_8__bad.sv	429	452	ID ; module	typedef some_other_type myalias;
+verible	verible/verilog/tools/kythe/testdata/event_control.sv	51	154	; endtask	@x[y];
+verible	verible/verilog/tools/kythe/testdata/foreach.sv	26	181	) begin /	foreach (y) begin
+verible	verible/verilog/tools/kythe/testdata/function_port_dimensions.sv	340	355	[ ID :	function f4(int [var1:var2] t1 [var3:var4]);
+verible	verible/verilog/tools/kythe/testdata/interface_with_module.sv	253	274	; / /	x y;
+verible	verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv	161	1196	; endmodule	input n1;
+verible	verible/verilog/tools/kythe/testdata/nested_member_access.sv	1897	3116	( ) )	initial $display(nested_class0::handle1::handle2.nested_function());
+verible	verible/verilog/tools/kythe/testdata/primitive_type_with_dimensions.sv	283	622	[ ID ::	int [foo_pkg::DATA_WIDTH-1:foo_pkg::DATA_LENGTH] var5 [foo_pkg::DATA_WIDTH-1:foo_pkg::DATA_LENGTH];
+verible	verible/verilog/tools/kythe/testdata/program.sv	226	357	ID ; initial	environment env;
+verible	verible/verilog/tools/kythe/testdata/reversed_definition.sv	60	443	ID = new	static class2 instance1 = new();
+verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	0	55	" ID ID	string bad_literal = "Humpty Dumpty sat on a wall. \
+verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	0	98	: ID always	begin : gen_block1
+verible	verible/verilog/tools/lint/testdata/generate_label_module.sv	0	115	; end endgenerate	baz bam;
+verible	verible/verilog/tools/lint/testdata/instance_parameters.sv	0	45	; endmodule	bar #(4, 8) baz;
+verilator	test_regress/t/t_array_event.v	203	393	; endtask function	->write_events[index];
+verilator	test_regress/t/t_assert_clock_event_unsup.v	202	428	> ID ==	@(posedge clk) cyc % 2 == cyc_mod_2 |=> val == expected;
+verilator	test_regress/t/t_assert_consec_rep_bad.v	200	323	| -> NUM	assert property (@(posedge clk) a [*n] |-> 1);
+verilator	test_regress/t/t_assert_consec_rep_unroll_limit_bad.v	200	436	| -> ID	assert property (@(posedge clk) a [* 25700000] |-> b);
+verilator	test_regress/t/t_assert_consec_rep_unsup.v	200	372	| -> ID	assert property (@(posedge clk) (a ##1 b) [* 2] |-> a);
+verilator	test_regress/t/t_assert_ctl_immediate.v	2370	2379	class ID ;	interface class IAssertCtl;
+verilator	test_regress/t/t_assert_disable_bad.v	202	451	> ID ==	@(posedge clk) disable iff (cyc == 0) cyc % 2 == cyc_mod_2 |=> val == expected;
+verilator	test_regress/t/t_assert_imm_nz_bad.v	202	242	; ID :	input clk;
+verilator	test_regress/t/t_assert_past.v	202	544	> ID (	assert property (@(posedge clk) cyc % 2 == 0 |=> $past(val) == 0)
+verilator	test_regress/t/t_assert_preponed_nba.v	203	396	> ( ID	assert property (@(posedge clk) fire |-> (cnt == 0))
+verilator	test_regress/t/t_assert_property_stop_bad.v	203	385	> ## NUM	@(posedge clk) (valid) |-> ##2 (out == in + 3);
+verilator	test_regress/t/t_assert_rep_bad_count.v	200	365	| -> ID	assert property (@(posedge clk) a[->n] |-> b)
+verilator	test_regress/t/t_assert_rep_range_bad.v	200	334	> ID [	@(posedge clk) a |-> b [-> 1: n];
+verilator	test_regress/t/t_assert_rep_range_unsup.v	200	286	> ID [	@(posedge clk) a |-> b [= 1: 2];
+verilator	test_regress/t/t_assert_rep_range_zero_min_unsup.v	456	547	> ID [	@(posedge clk) a |-> b [-> 0: 2];
+verilator	test_regress/t/t_assign_automatic_bad.v	616	2126	. ID <=	].s_dyn <= '1;  // OK: direct nonblocking assignment to dynamically-sized array
+verilator	test_regress/t/t_case_inside_bad.v	203	252	default : ID	casex (1'bx) inside
+verilator	test_regress/t/t_cast.v	332	585	{ ID =	typedef enum [15:0] {
+verilator	test_regress/t/t_class_diamond.v	203	238	ID ; pure	interface class Ibase;
+verilator	test_regress/t/t_class_extends_bad.v	249	272	, ID ;	class Cls extends Base1, Base2;
+verilator	test_regress/t/t_class_extends_colon.v	203	212	class ID ;	interface class Icempty;
+verilator	test_regress/t/t_class_extends_default.v	295	327	) ; /	class Cls1 extends Base1(default);
+verilator	test_regress/t/t_class_extends_nf_bad.v	278	306	; / /	class Cls extends IsNotFound;  // BAD: not found
+verilator	test_regress/t/t_class_extends_pkg_bad.v	227	413	; endclass ID	class bar extends pkg;
+verilator	test_regress/t/t_class_extern.v	203	358	( ID )	extern function ext_f_imp(in);
+verilator	test_regress/t/t_class_imp2.v	203	231	ID ; pure	interface class Courier;
+verilator	test_regress/t/t_class_new_default.v	204	249	default ) ;	function new(default);
+verilator	test_regress/t/t_class_new_this.v	200	209	class ID ;	interface class ICls;
+verilator	test_regress/t/t_class_override.v	395	978	: initial int	function :initial int get_i; return 1; endfunction
+verilator	test_regress/t/t_class_override_bad.v	418	819	: extends int	function :extends int get_e; return 1; endfunction  // Bad
+verilator	test_regress/t/t_class_param_override_local_bad.v	296	305	class ID ;	interface class Icls1;
+verilator	test_regress/t/t_class_static_member_sel.v	904	1229	= NUM ;	baz.get_bar().f.x = 4;
+verilator	test_regress/t/t_clk_concat5.v	1174	1397	; logic [	input clk;
+verilator	test_regress/t/t_clk_concat6.v	1331	1581	; logic [	input clk;
+verilator	test_regress/t/t_comb_do_not_convert_to.v	199	371	; reg ID	input clk;
+verilator	test_regress/t/t_config_param.v	470	686	# ( .	instance t.u_1a use #(.P1(), .P2("override.u_a.p2"));
+verilator	test_regress/t/t_config_rules.v	448	1014	# ( )	instance t.m32 use #();
+verilator	test_regress/t/t_constraint_dist_randc_bad.v	203	263	: = NUM	constraint c_bad { rc dist {3 := 0, 10 := 5}; }  // Bad, no dist on randc
+verilator	test_regress/t/t_constraint_json_only.v	203	547	[ NUM :	length dist { [0:1], [2:5] :/ 2, 6 := 6, 7 := 10, 1};
+verilator	test_regress/t/t_constraint_operators.v	203	1423	~ ID ==	constraint unary { !(-~c == 'h22); }
+verilator	test_regress/t/t_constraint_unsat.v	200	495	) begin /	if (!randomize() with { addr == a; data == d; }) begin
+verilator	test_regress/t/t_cover_expr.v	238	2526	' ( ID	if ((cyc[3+32'(t1&&t2)+:2] == cyc[5+32'(t3||t4)+:2]) || cyc[31]) $write("");
+verilator	test_regress/t/t_cover_fsm_sel_assign.v	197	634	ID ; begin	logic [D-1:0][W-1:0] s;
+verilator	test_regress/t/t_cover_sequence_unsup.v	200	594	[ NUM :	cover sequence ((a ##[1:3] b) or 1'b0);
+verilator	test_regress/t/t_covergroup_autobins_bad.v	306	471	; } endgroup	bins auto[size_var];
+verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	260	511	} ID :	}
+verilator	test_regress/t/t_covergroup_with_function_foo_bad.v	197	240	ID ( int	covergroup cg_bad with function foo(int x);
+verilator	test_regress/t/t_debug_emitv.v	954	1083	{ ID ,	typedef enum [2:0] {
+verilator	test_regress/t/t_default_disable_iff_gen_multi_bad.v	198	285	: ID default	begin : g
+verilator	test_regress/t/t_delay.v	227	549	. ID ID	assign #sub.delay dly4 = dly1 + 1;
+verilator	test_regress/t/t_display_qqq.v	203	245	" ID "	$display("""First "quoted"\nsecond\
+verilator	test_regress/t/t_dpi_string.v	352	450	: ID string	begin : DSM
+verilator	test_regress/t/t_dpi_type_bad.v	352	371	" ID -	import "DPI-BAD" task dpix_twice;
+verilator	test_regress/t/t_enum.v	300	648	{ ID =	typedef enum [2:0] { ONES=~0 } three_t;
+verilator	test_regress/t/t_enum_bad_value.v	203	366	{ ID =	typedef enum [2:0] { VALUE_BAD1 = 8 } enum_t;
+verilator	test_regress/t/t_enum_bad_wrap.v	203	234	{ ID =	typedef enum [1:0] {
+verilator	test_regress/t/t_enum_base_bad.v	203	503	{ / /	enum logic [1:0][1:0] {  // BAD enum type
+verilator	test_regress/t/t_enum_const_methods.v	204	235	{ ID ,	typedef enum [1:0] {E0, E1, E2} enm_t;
+verilator	test_regress/t/t_enum_type_methods_bad.v	203	318	{ ID =	typedef enum [3:0] {
+verilator	test_regress/t/t_enum_type_nomethod_bad.v	203	233	{ ID =	typedef enum [3:0] {
+verilator	test_regress/t/t_event_control_pass.v	363	427	( ) ;	->b.get_event();
+verilator	test_regress/t/t_export_packed_struct.v	230	248	packed { ID	typedef union soft packed {
+verilator	test_regress/t/t_export_packed_struct2.v	227	267	packed { logic	typedef union soft packed {
+verilator	test_regress/t/t_flag_language.v	203	258	; initial bit	integer bit; initial bit = 1;
+verilator	test_regress/t/t_foreach_array.v	200	2532	) ID ++	foreach (queue[i]) foreach (queue[i][j]) exp_count_que++;
+verilator	test_regress/t/t_foreach_bad.v	203	290	) ; /	foreach (array);  // no index
+verilator	test_regress/t/t_foreach_nested.v	234	348	) this .	foreach(this.foo.x[i][j])
+verilator	test_regress/t/t_foreach_nindex_bad.v	203	287	; / /	foreach (array[i, j, badk, badl]);  // bad
+verilator	test_regress/t/t_foreach_type_bad.v	224	303	; / /	foreach (c[i]);  // bad type
+verilator	test_regress/t/t_fuzz_genintf_bad.v	349	398	. ID (	j.e(0),
+verilator	test_regress/t/t_gate_fdup.v	206	310	; supply1 ID	supply0       gnd;
+verilator	test_regress/t/t_gate_strength.v	203	331	, supply1 )	assign (highz0, supply1) nt00 = a[0];
+verilator	test_regress/t/t_gen_duplicated_blocks_bad.v	197	233	: ID end	begin : block
+verilator	test_regress/t/t_gen_if.v	411	635	begin : ID	end
+verilator	test_regress/t/t_gen_local.v	203	339	: ID for	begin : topgen
+verilator	test_regress/t/t_gen_self_return.v	201	1083	: ID for	begin : ram_dataout_gen
+verilator	test_regress/t/t_iface_self_ref_typedef.v	456	522	ID ; ID	typedef my_iface#(T) self_t;
+verilator	test_regress/t/t_implements.v	203	212	class ID ;	interface class Icempty;
+verilator	test_regress/t/t_implements_collision.v	203	212	class ID ;	interface class Icls1;
+verilator	test_regress/t/t_implements_collision_bad.v	203	212	class ID ;	interface class Icls1;
+verilator	test_regress/t/t_implements_contents_bad.v	203	212	class ID ;	interface class Icls;
+verilator	test_regress/t/t_implements_missing_bad.v	203	212	class ID ;	interface class Icls1;
+verilator	test_regress/t/t_implements_nested.v	202	301	interface class ID	interface class good_can_nest;
+verilator	test_regress/t/t_implements_nested_bad.v	203	213	interface class ID	class Cls;
+verilator	test_regress/t/t_implements_new_bad.v	203	212	class ID ;	interface class Icls;
+verilator	test_regress/t/t_implements_noinherit_bad.v	203	212	class ID ;	interface class Icls;
+verilator	test_regress/t/t_implements_noninterface_bad.v	228	260	; endclass interface	class ClsBad1 implements NotIcls;
+verilator	test_regress/t/t_implements_not_nested.v	203	250	interface class ID	typedef interface class iclass;
+verilator	test_regress/t/t_implements_notfound_bad.v	203	234	; endclass module	class ClsI implements Inotfound;
+verilator	test_regress/t/t_implements_typed.v	203	212	class ID ;	interface class Icls;
+verilator	test_regress/t/t_inside_unpacked_param.v	203	346	inside { ID	localparam HIT_INSIDE = HIT_LP inside {CHECKLIST_P};
+verilator	test_regress/t/t_inst_2star_bad.v	203	275	. * )	sub sub (foo, .*);
+verilator	test_regress/t/t_inst_noname_bad.v	204	218	) ; ID	m();
+verilator	test_regress/t/t_inst_paren_bad.v	226	250	; / /	sub sub_inst;  // No ()
+verilator	test_regress/t/t_inst_port_complex_unsup.v	245	319	. ID (	output wire .ao_rename(ao),  .bo_rename(bo)
+verilator	test_regress/t/t_inst_sv.v	203	276	[ NUM :	supply0 [1:0] low;
+verilator	test_regress/t/t_interface_and_struct_pattern.v	320	464	ID , output	modport source(input clk, rst, output data);
+verilator	test_regress/t/t_interface_array_parameter_access.v	221	336	ID ) ;	modport modp(input clk, rst);
+verilator	test_regress/t/t_interface_array_parameter_aggregate.v	315	468	ID ) ;	modport modp(input clk, rst);
+verilator	test_regress/t/t_interface_gen10.v	446	476	: ID ID	begin : TestIf
+verilator	test_regress/t/t_interface_gen11.v	446	514	ID ( .	t1 t (.mod_intf(mod_intfs[0]));
+verilator	test_regress/t/t_interface_gen13.v	214	363	ID = NUM	initial p2 = 1;
+verilator	test_regress/t/t_interface_gen5.v	447	477	: ID ID	begin : TestIf
+verilator	test_regress/t/t_interface_gen6.v	289	539	NUM ) begin	if (1) begin
+verilator	test_regress/t/t_interface_gen7.v	523	615	: ID for	begin : ia
+verilator	test_regress/t/t_interface_import_param.v	394	621	ID , ID	modport slave(input req, addr, clk, output gnt, input data);
+verilator	test_regress/t/t_interface_modport_dir_bad.v	201	322	ID , ID	modport sink(input data, valid, clk, rst);
+verilator	test_regress/t/t_interface_modport_export.v	259	329	( input logic	extern function myfunc (input logic val);
+verilator	test_regress/t/t_interface_modportlist.v	490	567	ID ) ;	modport my_port(input a, output b, c);
+verilator	test_regress/t/t_interface_nested_port_array.v	1045	1128	ID , output	l0_if#(W) l0,
+verilator	test_regress/t/t_interface_notpublic.v	201	290	ID ) ;	modport intf_modp(input clk, rst);
+verilator	test_regress/t/t_interface_param2.v	440	647	ID , ID	modport slave(input req, addr, clk, output gnt, input data);
+verilator	test_regress/t/t_interface_paren_missing_bad.v	280	303	; initial ID	intf intf_i;
+verilator	test_regress/t/t_langext_2.v	770	1042	case ( ID	unique0 case (i)
+verilator	test_regress/t/t_langext_order.v	303	317	do ) ;	module t(input do);
+verilator	test_regress/t/t_lint_caseincomplete_bad.v	212	347	case ( ID	unique0 case (i)  // No warning
+verilator	test_regress/t/t_lint_colonplus_bad.v	203	289	= ID [	output [2:1] z = r[2 :+ 1];
+verilator	test_regress/t/t_lint_ifdepth_bad.v	203	705	if ( ID	unique0 if (value==1) begin end
+verilator	test_regress/t/t_lint_implicit_def_bad.v	203	340	` ID ID	assign imp_ok = 1'b1;
+verilator	test_regress/t/t_lint_implicit_func_bad.v	203	263	` ID wire	endfunction
+verilator	test_regress/t/t_lint_implicit_type_bad.v	237	320	` ID wire	localparam type imp_PARAM_conflict;
+verilator	test_regress/t/t_lint_notredop_bad.v	196	278	| ID ;	assign y[0] = !|v;
+verilator	test_regress/t/t_lint_pragma_protected.v	255	286	` ID ID	module t_lint_pragma_protected;
+verilator	test_regress/t/t_lint_pragma_protected_bad.v	203	278	` ID ID	
+verilator	test_regress/t/t_lint_vcmarker_bad.v	203	212	<< << <<	module t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef2.v	333	407	. ID ;	localparam type p0_t = if0.rq_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef4.v	333	407	. ID [	localparam type p0_t = if0.rq_t[1:0];
+verilator	test_regress/t/t_lparam_assign_iface_typedef_bad.v	543	694	; / /	p0_rq_t rq;  // Should fail: p0_rq_t is not a data type
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested.v	699	803	. ID .	localparam type p0_rq2_t = if0.y_if0.rq2_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested6.v	680	769	. ID .	localparam type rq_t = if0.x_if0.rq_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mod1.v	453	521	. ID ;	localparam type bus_rq_t = bus_io.rq_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg4.v	574	789	. ID ;	localparam type cc_index_t = tb_io.cc_index_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg5.v	574	754	. ID ;	localparam type cc_index_t = tb_io.cc_index_t;
+verilator	test_regress/t/t_math_const.v	203	2738	ID NUM )	if ((32'hffff0000 >> w32) != 32'h 000ffff0) $stop;
+verilator	test_regress/t/t_math_pow6.v	203	556	= NUM '	output [3:0] i65 = 65'd3 ** a; // IWI
+verilator	test_regress/t/t_mem_multi_ref_bad.v	203	513	[ NUM ]	dim2[0+:1][1] = 0;  // Bad: Range on non-bits
+verilator	test_regress/t/t_mem_slice_bad.v	203	979	= ( ID	assign active_command3[1:0][2:0][3:0] = (use_AnB) ?  command_A3[1:0][2:0][3:0] : command_B3[1:0][1:0][3:0];
+verilator	test_regress/t/t_mod_interface_clocking.v	197	363	ID , ID	modport md1(clocking cb, inout clk, rlast, rvalid);
+verilator	test_regress/t/t_opt_merge_cond_blowup.v	199	1301	` ID ,	$write("%%Error: %s:%0d: cyc=%0d i=%0d a[i]='h%x b[i]='h%x\n", `__FILE__, `__LINE__, cyc,
+verilator	test_regress/t/t_param.v	203	337	) ; integer	mreal #1.2 mr ();
+verilator	test_regress/t/t_param_implicit_bad.v	283	297	[ NUM :	module sub1 #([7:0] PAR1 = 1);  // <--- Error: requires 'parameter'
+verilator	test_regress/t/t_param_no_parentheses.v	299	379	) ; ID	m1 #PAR m1();
+verilator	test_regress/t/t_param_type_bad.v	203	275	NUM ; /	localparam type bad2 = 2;  // Bad
+verilator	test_regress/t/t_param_type_bad3.v	203	264	; / /	localparam type P_T = PI;  // Bad
+verilator	test_regress/t/t_param_type_from_iface_struct.v	2039	2160	. ID ID	typedef ports[0].inner.req_t local_req_t;
+verilator	test_regress/t/t_param_type_fwd.v	318	327	class ID ;	interface class ic_t;
+verilator	test_regress/t/t_param_type_fwd_bad.v	223	251	enum ID ;	parameter type enum E_t;
+verilator	test_regress/t/t_param_type_id_bad.v	211	250	) ; endclass	parameter type P_T = i
+verilator	test_regress/t/t_paramgraph_bits_iface_typedef.v	642	882	ID , input	modport initiator(output tdata, tvalid, input tready);
+verilator	test_regress/t/t_parse_eof_attr_bad.v	203	210	<EOF>	(* attr
+verilator	test_regress/t/t_parse_eof_qqq_bad.v	203	202	" " "	
+verilator	test_regress/t/t_parse_sync_bad2.v	202	247	ID ; typedef	typedef unknown defu;
+verilator	test_regress/t/t_past_unsup.v	203	435	@ ( posedge	if ($past(d, 1, 1, @(posedge clk))) $stop;  // Unsup
+verilator	test_regress/t/t_priority_case.v	338	693	ID ? NUM	2'b ?1: out0 = 3'd0;
+verilator	test_regress/t/t_prop_always_bad.v	200	466	ID ) ;	assert property (s_always a);
+verilator	test_regress/t/t_prop_always_unsup.v	200	464	> ID )	assert property (@(posedge clk) always [0:3] (a |-> b));
+verilator	test_regress/t/t_property_arg_type.v	317	415	> ID )	@(posedge clk) (prop_arg |-> prop_arg);
+verilator	test_regress/t/t_property_case_bad.v	198	368	endproperty endmodule	endcase
+verilator	test_regress/t/t_property_local_var_delay.v	200	507	| -> (	) |-> (snap == cyc);
+verilator	test_regress/t/t_property_local_var_range_unsup.v	200	515	| -> ##	) |-> ##[1:3] (cyc > prev);
+verilator	test_regress/t/t_property_named.v	202	454	> ID ==	cyc % 2 == cyc_mod_2 |=> val == expected;
+verilator	test_regress/t/t_property_s_eventually2.v	255	250	ID ( "	`define PROPERTY_CHECK(msg) \
+verilator	test_regress/t/t_property_sexpr_bad.v	198	402	ID ) ;	assert property (@(posedge clk) ##1 not val);
+verilator	test_regress/t/t_property_sexpr_range_delay_bad.v	200	391	> ## [	a1: assert property (@(posedge clk) a |-> ##[1:cyc] b);
+verilator	test_regress/t/t_property_unsup.v	2197	2452	ID eventually [	assert property (counter == 1 implies eventually[1: 2] counter == 3);
+verilator	test_regress/t/t_property_untyped.v	202	432	> ID ==	@(posedge clk) cyc % 2 == cyc_mod_2 |=> val == expected;
+verilator	test_regress/t/t_property_untyped_unsup.v	202	462	> ID ==	@(posedge clk) cyc % 2 == cyc_mod_2 |=> val == expected;
+verilator	test_regress/t/t_property_var_unsup.v	203	320	> ( ID	(valid, prevcyc = cyc) |=> (cyc == prevcyc + 1);
+verilator	test_regress/t/t_queue_back.v	203	493	- NUM ]	q = q[0:$-1];  // void'(q.pop_back()) or q.delete(q.size-1)
+verilator	test_regress/t/t_queue_empty_bad.v	203	250	} + NUM	i = {} + 1;
+verilator	test_regress/t/t_queue_empty_pin.v	202	234	} ) ;	task tsk(int q[] = {});
+verilator	test_regress/t/t_randomize.v	203	506	[ NUM :	length dist { [0:1], [2:5] :/ 2, 6 := 6, 7 := 10, 1};
+verilator	test_regress/t/t_randomize_arraysel_membersel.v	434	677	with { ID	if (std::randomize(example.member[1]) with {example.member[1] inside {[0 : 3]};} == 0) $stop;
+verilator	test_regress/t/t_randomize_complex_arrays.v	597	810	with { ID	if (cl_inst[1].sc_inst.sc_inst1.sc_inst2[1].randomize() with {field inside {1, 2, 3};} == 0) begin
+verilator	test_regress/t/t_randomize_complex_associative_arrays.v	598	827	with { ID	if (cl_inst["val1"].sc_inst.sc_inst1.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_complex_dynamic_arrays.v	618	849	with { ID	if (cl_inst[1].sc_inst.sc_inst1.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_complex_member_bad.v	596	738	with { ID	if (cl_inst[1].sc_inst.sc_inst2.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_complex_queue.v	621	905	with { ID	if (cl_inst[0].sc_inst.sc_inst1.sc_inst2[0].randomize() with {
+verilator	test_regress/t/t_randomize_complex_typedef.v	718	914	with { ID	if (cl_inst[1].sc_inst.sc_inst1.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_inside_cond.v	203	367	== NUM )	assert((std::randomize(x) with {x inside {10, 20}; }) == 1)
+verilator	test_regress/t/t_randomize_method_constraints.v	288	380	|| ID inside	constraint B { w == 5; x inside {1,2} || x inside {4,5}; }
+verilator	test_regress/t/t_randomize_rand_mode_bad.v	354	460	; ID (	p.m_pack[0].rand_mode(0);
+verilator	test_regress/t/t_randomize_rand_mode_unsup.v	304	391	; ID .	p.m_dyn_arr[0].rand_mode(0);
+verilator	test_regress/t/t_randomize_with_idlist_method_bad.v	200	322	{ ID >	total = q.sum() with (item) { item > 0; };
+verilator	test_regress/t/t_randomize_within_func.v	226	361	; ID (	a = randomize(m_2) with {m_2 > 2 && m_2 < 5;};
+verilator	test_regress/t/t_recursive_typedef_bad.v	383	422	, parameter type	parameter type A = B,
+verilator	test_regress/t/t_resize_lvalue.v	1213	1721	; if (	m_env.r_reg_model.p_s[p].n_doorbell.read(status, rdata, 0);
+verilator	test_regress/t/t_sequence_first_match_unsup.v	1974	2220	| -> ID	initial p0 : assert property ((##1 1) or(##2 1) |-> x == 1);
+verilator	test_regress/t/t_sequence_intersect_range_unsup.v	200	341	[ NUM :	(a ##[1:5] b) intersect (c ##2 d));
+verilator	test_regress/t/t_sequence_local_var.v	200	472	> ( ID	(valid, prev = cyc) |=> (cyc == prev + 1);
+verilator	test_regress/t/t_sequence_ref.v	200	581	> ID )	assert property (@(posedge clk) seq_ab |-> c);
+verilator	test_regress/t/t_sequence_sexpr_unsup.v	203	1048	[ NUM :	## [1:2] b;
+verilator	test_regress/t/t_sequence_within_range_unsup.v	200	555	[ NUM :	(a ##[1:3] b) within (c ##5 d));
+verilator	test_regress/t/t_setuphold.v	197	1237	: NUM :	$setuphold (posedge clk, negedge d, 0:0:0, 0:0:0);
+verilator	test_regress/t/t_simulate_array.v	313	351	ID = ID	localparam something = fun();
+verilator	test_regress/t/t_split_var_3_wreal.v	237	370	; ID ID	wreal vout[0:1]  /*verilator split_var*/;
+verilator	test_regress/t/t_std_randomize_static_member.v	563	1019	== NUM )	} == 0)
+verilator	test_regress/t/t_std_randomize_unsup_unq_arr.v	197	287	) || ID	if (!bit'(std::randomize(x) with {unique {x};}) || x[0] == x[1]) $stop;
+verilator	test_regress/t/t_std_randomize_with.v	381	646	!= NUM )	} != 1)
+verilator	test_regress/t/t_stop_winos_bad.v	260	300	` ID ;	localparam string FILENAME = `__FILE__;
+verilator	test_regress/t/t_stream_queue_interface.sv	1021	1382	ID ) ;	input sop_pulse, eop_pulse
+verilator	test_regress/t/t_strength_2_uneq_assign.v	202	262	, strong1 )	assign (weak0, strong1) a = clk ? 'z : '0;
+verilator	test_regress/t/t_strength_assignments_constants.v	202	237	, weak1 )	assign (weak0, weak1) a = 1;
+verilator	test_regress/t/t_strength_equal_strength.v	202	294	weak0 , weak1	wire (weak0, weak1) [W-1:0] b = '1;
+verilator	test_regress/t/t_strength_highz.v	202	225	, highz1 )	wire (weak0, highz1) a = 1;
+verilator	test_regress/t/t_strength_strongest_constant.v	202	296	, weak1 )	nor (pull0, weak1) n1 (a, 0, 0);
+verilator	test_regress/t/t_strength_strongest_non_tristate.v	202	277	, weak1 )	wire (weak0, weak1) a = 0;
+verilator	test_regress/t/t_string_sel.v	380	651	[ NUM ]	if (get_str()[1] != "a") $stop;
+verilator	test_regress/t/t_struct_type_bad.v	203	266	ID ; /	i badi;  // Bad
+verilator	test_regress/t/t_timescale_udp.v	510	605	? ; ID	?     :  ?;
+verilator	test_regress/t/t_tri_clocking.v	203	245	tri0 ID ;	wire rst;
+verilator	test_regress/t/t_tri_gen.v	653	676	tri1 ID )	inout tri1 z
+verilator	test_regress/t/t_tri_pull_unsup.v	203	297	) ID (	pullup (supply1) pu1 (a);
+verilator	test_regress/t/t_tri_unconn.v	203	453	` ID )	t_tri0 tri0a (.line(`__LINE__), .expval(1'b0)); // Pin missing
+verilator	test_regress/t/t_type_compare.v	266	830	== type (	if (type(real) == type(logic[12:0])) $stop;
+verilator	test_regress/t/t_type_compare_bad.v	203	325	) NUM :	case (type(real))
+verilator	test_regress/t/t_type_expression_compare.v	217	338	!= type (	if (type(value1) != type(value2)) $stop;
+verilator	test_regress/t/t_typedef_id_bad.v	211	250	) ; endclass	parameter type P_T = i
+verilator	test_regress/t/t_typedef_package.v	259	293	:: ID {	typedef enum pkg1::uint8_t {
+verilator	test_regress/t/t_udp_bad.v	257	291	tri ID ;	primitive udp_x (a_bad, b, c_bad);
+verilator	test_regress/t/t_udp_bad_comb_trigger.v	203	312	( NUM )	0 ? 1  :   1;
+verilator	test_regress/t/t_udp_bad_illegal_output.v	203	378	* ; ID	1 1 ?  :  ?: *;
+verilator	test_regress/t/t_udp_bad_multi_output.v	203	258	, ID ;	output dout1, dout2;
+verilator	test_regress/t/t_udp_nonsequential.v	923	1197	\ : NUM	0   0  x \
+verilator	test_regress/t/t_udp_sequential.v	200	400	NUM ) NUM	(10) 1 : ? : 1 ;
+verilator	test_regress/t/t_udp_sequential_x.v	757	827	NUM ) :	(01) : ? : 0;
+verilator	test_regress/t/t_udp_tableeof_bad.v	203	237	tri ID ;	primitive udp_x (a_bad, b, c_bad);
+verilator	test_regress/t/t_union_soft.v	203	226	{ bit [	union soft {
+verilator	test_regress/t/t_vams_basic.v	231	483	; assign ID	wreal wr;
+verilator	test_regress/t/t_var_dotted_dup_bad.v	203	248	ID ( .	eh2_ram dccm_bank (.*);
+verilator	test_regress/t/t_var_dup_bad.v	728	794	; endmodule module	output bad_reout_port;
+verilator	test_regress/t/t_var_ref_static.v	277	357	ID ) ;	function void crs(const ref static i);
+verilator	test_regress/t/t_varref_scope_in_interface.v	203	324	ID , import	modport Tx(output sop, data, import unpack);
+verilator	test_regress/t/t_vpi_public_depthn.v	203	381	ID , ID	modport master(input aclk, output tdata, tuser, tvalid, input tready);
+verilator	test_regress/t/t_wide_temp_while_cond.v	260	542	' ( ID	while (|((val[ 7'(one >> identity(32)) +: 96] << n) >> n)) begin

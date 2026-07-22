@@ -69,6 +69,22 @@ SVTESTS_PINNED = {
         "must_reject", "pinned: LRM 5.7.1 - \"8'd-6\" illegal negative literal syntax"),
 }
 
+# Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
+EXTRA_PINNED = {
+    ("verible", "verible/verilog/tools/lint/testdata/bad-id-lex.sv"): (
+        "must_reject", "pinned: in-file comment 'lexer should reject invalid "
+        "identifier' (module 654foo)"),
+    ("verible", "verible/verilog/tools/lint/testdata/module_begin_block.sv"): (
+        "must_reject", "pinned: in-file comment marks the bare begin block "
+        "'LRM-invalid syntax'"),
+    ("slang", "tests/regression/driver/cross-ident-in-binsof.sv"): (
+        "must_reject", "pinned: in-file comment 'The LRM disallows "
+        "cross_identifier as a bins_expression' - a grammar-level restriction, "
+        "and the driver CHECKs for an error"),
+}
+
+VERIBLE_SYNTAX_MODE_RE = re.compile(r"//\s*verilog_syntax\s*:")
+
 # Standard preprocessor/compiler directives that are NOT user-macro expansion.
 KNOWN_DIRECTIVES = {
     "define", "include", "ifdef", "ifndef", "else", "elsif", "endif", "undef",
@@ -128,8 +144,6 @@ def preproc_dependency(raw_text: str):
 def expect_sv_tests(relpath: str, text: str):
     if relpath in SVTESTS_PINNED:
         return SVTESTS_PINNED[relpath]
-    if relpath.endswith(".svh"):
-        return ("chained_only", "sv-tests: .svh include payload, not a standalone test")
     fields = sv_tests_metadata(text)
     if not fields:
         return ("must_accept", "sv-tests: no metadata header (positive-dominant default)")
@@ -220,8 +234,12 @@ def expect_slang(relpath: str):
     return ("must_accept", "slang: fixture (positive-dominant default)")
 
 
-def expect_verible(relpath: str):
+def expect_verible(relpath: str, text: str):
     p = relpath.replace("\\", "/")
+    if VERIBLE_SYNTAX_MODE_RE.search(text):
+        return ("out_of_scope_with_cause",
+                "verible: '// verilog_syntax:' excerpt-mode fixture - a fragment "
+                "parsed under a tool-specific mode, never a standalone unit")
     if "/kythe/testdata/" in p:
         tail = p.split("/kythe/testdata/", 1)[1]
         if "/" in tail:
@@ -286,7 +304,14 @@ def main():
     for suite, rel, observed in rows:
         fpath = args.subs_root / suite / rel
         text = read_text(fpath)
-        if suite in DESIGN_SUITES:
+        if (suite, rel) in EXTRA_PINNED:
+            expected, basis = EXTRA_PINNED[(suite, rel)]
+        elif rel.endswith(".svh") and suite not in DESIGN_SUITES:
+            # Generic across the test suites: .svh files are `include payloads,
+            # not standalone compilation units (may be bare fragments).
+            expected, basis = ("chained_only",
+                               f"{suite}: .svh include payload, not a standalone unit")
+        elif suite in DESIGN_SUITES:
             expected, basis = ("chained_only",
                                "design corpus parsed in isolation - honest adjudication "
                                "needs include/define chaining (leaf .4)")
@@ -297,7 +322,7 @@ def main():
         elif suite == "slang":
             expected, basis = expect_slang(rel)
         elif suite == "verible":
-            expected, basis = expect_verible(rel)
+            expected, basis = expect_verible(rel, text)
         else:
             raise SystemExit(f"unknown suite {suite!r} in results.tsv")
         dep_flag = ""
