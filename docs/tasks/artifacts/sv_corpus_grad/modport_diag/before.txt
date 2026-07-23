@@ -1,0 +1,25 @@
+# SV-CORPUS-GRAD.3.4 diagnosis — modport shared-direction port list (LRM A.2.9)
+
+## Repros
+### control (single port per direction) — ACCEPT
+interface I;
+  logic a, b, c, d;
+  modport master(input a, output c);
+endinterface
+$ parseability_probe --parse systemverilog one.sv --profile sv_2017
+parse_full passed for grammar 'systemverilog' on '/private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/aa929b3b-b80c-4aec-88f8-c5b9a4a71d35/scratchpad/mp/one.sv'
+
+### defect (comma-shared direction list) — REJECT (before fix)
+interface I;
+  logic a, b, c, d;
+  modport master(input a, b, output c, d);
+endinterface
+$ parseability_probe --parse systemverilog many.sv --profile sv_2017
+Error: parse_full rejected sample for grammar 'systemverilog' on '/private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/aa929b3b-b80c-4aec-88f8-c5b9a4a71d35/scratchpad/mp/many.sv': Parser did not consume full input at position 0 [furthest_position=58, +58 bytes deeper than surface position]
+
+## WHERE: grammars/systemverilog.ebnf:526
+modport_simple_ports_declaration := port_direction modport_simple_port
+                                 -> {direction: $1, port: $2}
+
+## WHY: missing LRM A.2.9 { , modport_simple_port } repetition.
+rule_stack at furthest (58): modport_declaration -> modport_ports_declaration -> (attribute_instance|port_direction fail on 'b') -> rparen expected.

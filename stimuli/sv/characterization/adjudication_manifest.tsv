@@ -479,8 +479,8 @@ Surelog	tests/InterfTypeBad/dut.sv	fail	must_accept	divergence:unexplained_rejec
 Surelog	tests/InterfaceBinding/dut.sv	pass	must_accept	match	Surelog: golden log InterfaceBinding.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/InterfaceElab/dut.sv	pass	must_accept	match	Surelog: golden log InterfaceElab.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/InterfaceFuncCall/dut.sv	pass	must_accept	match	Surelog: golden log InterfaceFuncCall.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/InterfaceModExp/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log InterfaceModExp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/InterfaceModPort/top.v	fail	chained_only	deferred:chained_only	Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only
+Surelog	tests/InterfaceModExp/dut.sv	pass	must_accept	match	Surelog: golden log InterfaceModExp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/InterfaceModPort/top.v	pass	chained_only	deferred:chained_only	Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only
 Surelog	tests/InterfaceParamOverrideProp/dut.sv	pass	must_accept	match	Surelog: golden log InterfaceParamOverrideProp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/InterfaceProcess/dut.sv	pass	must_accept	match	Surelog: golden log InterfaceProcess.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/InterfaceStructMemberPort/dut.sv	pass	must_accept	match	Surelog: golden log InterfaceStructMemberPort.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -2704,21 +2704,21 @@ ispras-sv-tests	ieee-1800-2012/25/25.03.02_02.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/25/25.03.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.03.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.05.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.05.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.05.03_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.05.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.05.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.05.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.05.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.05.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.05.04_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.05.05_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.05_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.05_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.05_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.05_03.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/25/25.06_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.07.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.07.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.07.03_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.07.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/25/25.08_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.07.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.07.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.07.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/25/25.08_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.09.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.09.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/25/25.09_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -3015,7 +3015,7 @@ iverilog	ivtest/ivltests/always_latch_warn.v	pass	must_accept	match	ivtest: regr
 iverilog	ivtest/ivltests/always_star_array_lval.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/analog1.v	fail	out_of_scope_with_cause:verilog_ams_lane	deferred:verilog_ams_lane	ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked)
 iverilog	ivtest/ivltests/analog2.v	fail	out_of_scope_with_cause:verilog_ams_lane	deferred:verilog_ams_lane	ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked)
-iverilog	ivtest/ivltests/andnot1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/andnot1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/arith-unknown.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/array4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/array5.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4480,7 +4480,7 @@ iverilog	ivtest/ivltests/pr1735836.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/pr1740476b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1741212.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/pr1742910.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr1745005.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr1745005.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1746401.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1746848.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1750870.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -6200,7 +6200,7 @@ iverilog	ivtest/ivltests/tern3.v	pass	out_of_scope_with_cause:no_sv_key	deferred
 iverilog	ivtest/ivltests/tern4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/tern5.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/tern6.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/tern7.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/tern7.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/tern8.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/tern9.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/test_bufif0.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -9166,7 +9166,7 @@ opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_lpg_ctrl.
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_ping_timer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_wrap.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/cov/clkmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_csrs_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10615,7 +10615,7 @@ opentitan	hw/vendor/pulp_riscv_dbg/tb/SimJTAG.sv	pass	chained_only	deferred:chai
 opentitan	hw/vendor/pulp_riscv_dbg/tb/boot_rom.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/dm_tb_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/dp_ram.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/tb/jtag_dmi/jtag_intf.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/tb/jtag_dmi/jtag_intf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/jtag_dmi/jtag_test.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/jtag_dmi/tb_jtag_dmi.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/mm_ram.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -12032,7 +12032,7 @@ sv2v	test/core/interface_infer.sv	pass	must_accept	match	sv2v: conversion-input 
 sv2v	test/core/interface_infer.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/interface_input_type.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/interface_input_type.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/interface_modport.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/interface_modport.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/interface_modport.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/interface_modport_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/interface_module.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
@@ -12710,7 +12710,7 @@ sv2v	test/relong/module_struct_tb.v	pass	out_of_scope_with_cause:v2005_profile_l
 sv2v	test/relong/port_connections.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/relong/port_connections.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/relong/port_connections_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/relong/simple_interface.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/relong/simple_interface.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/relong/simple_interface.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/relong/simple_interface_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/relong/split_ports.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
@@ -14490,7 +14490,7 @@ verilator	test_regress/t/t_interface.v	pass	must_accept	match	verilator: driver 
 verilator	test_regress/t/t_interface1.v	pass	must_accept	match	verilator: driver t_interface1.py expects success
 verilator	test_regress/t/t_interface1_modport.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_interface1_modport.py expects success
 verilator	test_regress/t/t_interface2.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_interface2.py expects success
-verilator	test_regress/t/t_interface_and_struct_pattern.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_and_struct_pattern.py expects success
+verilator	test_regress/t/t_interface_and_struct_pattern.v	pass	must_accept	match	verilator: driver t_interface_and_struct_pattern.py expects success
 verilator	test_regress/t/t_interface_ar2a.v	pass	must_accept	match	verilator: driver t_interface_ar2a.py expects success
 verilator	test_regress/t/t_interface_ar2b.v	pass	must_accept	match	verilator: driver t_interface_ar2b.py expects success
 verilator	test_regress/t/t_interface_ar3.v	pass	must_accept	match	verilator: driver t_interface_ar3.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14505,8 +14505,8 @@ verilator	test_regress/t/t_interface_array_loop_bad.v	pass	must_accept	match	ver
 verilator	test_regress/t/t_interface_array_modport.v	pass	must_accept	match	verilator: driver t_interface_array_modport.py expects success
 verilator	test_regress/t/t_interface_array_nocolon.v	pass	must_accept	match	verilator: driver t_interface_array_nocolon.py expects success
 verilator	test_regress/t/t_interface_array_nocolon_bad.v	pass	must_accept	match	verilator: driver t_interface_array_nocolon_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_interface_array_parameter_access.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_array_parameter_access.py expects success
-verilator	test_regress/t/t_interface_array_parameter_aggregate.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_array_parameter_aggregate.py expects success
+verilator	test_regress/t/t_interface_array_parameter_access.v	pass	must_accept	match	verilator: driver t_interface_array_parameter_access.py expects success
+verilator	test_regress/t/t_interface_array_parameter_aggregate.v	pass	must_accept	match	verilator: driver t_interface_array_parameter_aggregate.py expects success
 verilator	test_regress/t/t_interface_arraymux.v	pass	must_accept	match	verilator: driver t_interface_arraymux.py expects success
 verilator	test_regress/t/t_interface_asvar_bad.v	pass	must_accept	match	verilator: driver t_interface_asvar_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_bind_public.v	pass	must_accept	match	verilator: driver t_interface_bind_public.py expects success
@@ -14567,7 +14567,7 @@ verilator	test_regress/t/t_interface_generic_task2.v	pass	must_accept	match	veri
 verilator	test_regress/t/t_interface_generic_task_bad.v	pass	must_accept	match	verilator: driver t_interface_generic_task_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_hidden.v	pass	must_accept	match	verilator: driver t_interface_hidden.py expects success
 verilator	test_regress/t/t_interface_hierparam_bits.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_interface_hierparam_bits.py expects success
-verilator	test_regress/t/t_interface_import_param.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_import_param.py expects success
+verilator	test_regress/t/t_interface_import_param.v	pass	must_accept	match	verilator: driver t_interface_import_param.py expects success
 verilator	test_regress/t/t_interface_initial.v	pass	must_accept	match	verilator: driver t_interface_initial.py expects success
 verilator	test_regress/t/t_interface_input_port_assign.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_interface_input_port_assign.py expects success
 verilator	test_regress/t/t_interface_input_port_assign_bad.v	pass	must_accept	match	verilator: driver t_interface_input_port_assign_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14576,7 +14576,7 @@ verilator	test_regress/t/t_interface_mismodport_bad.v	pass	must_accept	match	ver
 verilator	test_regress/t/t_interface_missing_bad.v	pass	must_accept	match	verilator: driver t_interface_missing_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_modport.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_interface_modport.py expects success
 verilator	test_regress/t/t_interface_modport_bad.v	pass	must_accept	match	verilator: driver t_interface_modport_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_interface_modport_dir_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_modport_dir_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_interface_modport_dir_bad.v	pass	must_accept	match	verilator: driver t_interface_modport_dir_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_modport_export.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_modport_export.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_modport_expr.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_interface_modport_expr.py expects success
 verilator	test_regress/t/t_interface_modport_expr_array.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_interface_modport_expr_array.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14588,7 +14588,7 @@ verilator	test_regress/t/t_interface_modport_hier.v	pass	must_accept	match	veril
 verilator	test_regress/t/t_interface_modport_import.v	pass	must_accept	match	verilator: driver t_interface_modport_import.py expects success
 verilator	test_regress/t/t_interface_modport_import_export_list.v	pass	must_accept	match	verilator: driver t_interface_modport_import_export_list.py expects success
 verilator	test_regress/t/t_interface_modport_param.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_interface_modport_param.py expects success
-verilator	test_regress/t/t_interface_modportlist.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_modportlist.py expects success
+verilator	test_regress/t/t_interface_modportlist.v	pass	must_accept	match	verilator: driver t_interface_modportlist.py expects success
 verilator	test_regress/t/t_interface_mp_func.v	pass	must_accept	match	verilator: driver t_interface_mp_func.py expects success
 verilator	test_regress/t/t_interface_nansi.v	pass	must_accept	match	verilator: driver t_interface_nansi.py expects success
 verilator	test_regress/t/t_interface_ndup_member.v	pass	must_accept	match	verilator: driver t_interface_ndup_member.py expects success
@@ -14597,9 +14597,9 @@ verilator	test_regress/t/t_interface_nested_port.v	pass	must_accept	match	verila
 verilator	test_regress/t/t_interface_nested_port_array.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_nested_port_array.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_nested_port_type.v	pass	must_accept	match	verilator: driver t_interface_nested_port_type.py expects success
 verilator	test_regress/t/t_interface_nested_struct_param.v	pass	must_accept	match	verilator: driver t_interface_nested_struct_param.py expects success
-verilator	test_regress/t/t_interface_notpublic.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_notpublic.py expects success
+verilator	test_regress/t/t_interface_notpublic.v	pass	must_accept	match	verilator: driver t_interface_notpublic.py expects success
 verilator	test_regress/t/t_interface_param1.v	pass	must_accept	match	verilator: driver t_interface_param1.py expects success
-verilator	test_regress/t/t_interface_param2.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_param2.py expects success
+verilator	test_regress/t/t_interface_param2.v	pass	must_accept	match	verilator: driver t_interface_param2.py expects success
 verilator	test_regress/t/t_interface_param_another_bad.v	pass	must_accept	match	verilator: driver t_interface_param_another_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_param_class_bits.v	pass	must_accept	match	verilator: driver t_interface_param_class_bits.py expects success
 verilator	test_regress/t/t_interface_param_dependency.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_interface_param_dependency.py expects success
@@ -14993,7 +14993,7 @@ verilator	test_regress/t/t_mod_interface_array3.v	pass	must_accept	match	verilat
 verilator	test_regress/t/t_mod_interface_array4.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_mod_interface_array4.py expects success
 verilator	test_regress/t/t_mod_interface_array5.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_mod_interface_array5.py expects success
 verilator	test_regress/t/t_mod_interface_array6.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_mod_interface_array6.py expects success
-verilator	test_regress/t/t_mod_interface_clocking.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_mod_interface_clocking.py expects success
+verilator	test_regress/t/t_mod_interface_clocking.v	pass	must_accept	match	verilator: driver t_mod_interface_clocking.py expects success
 verilator	test_regress/t/t_mod_interface_clocking_bad.v	pass	must_accept	match	verilator: driver t_mod_interface_clocking_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_mod_longname.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_mod_longname.py expects success
 verilator	test_regress/t/t_mod_macromodule.v	pass	must_accept	match	verilator: driver t_mod_macromodule.py expects success
@@ -15247,7 +15247,7 @@ verilator	test_regress/t/t_param_x_unique.v	pass	must_accept	match	verilator: dr
 verilator	test_regress/t/t_paramgraph_ascrange_prelim_cfg.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_paramgraph_ascrange_prelim_cfg.py expects success
 verilator	test_regress/t/t_paramgraph_bisect1.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_paramgraph_bisect1.py expects success
 verilator	test_regress/t/t_paramgraph_bits_corruption.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_paramgraph_bits_corruption.py expects success
-verilator	test_regress/t/t_paramgraph_bits_iface_typedef.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_paramgraph_bits_iface_typedef.py expects success
+verilator	test_regress/t/t_paramgraph_bits_iface_typedef.v	pass	must_accept	match	verilator: driver t_paramgraph_bits_iface_typedef.py expects success
 verilator	test_regress/t/t_paramgraph_cloned_refdtype.v	pass	must_accept	match	verilator: driver t_paramgraph_cloned_refdtype.py expects success
 verilator	test_regress/t/t_paramgraph_comined_iface.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_paramgraph_comined_iface.py expects success
 verilator	test_regress/t/t_paramgraph_iface_array_ports.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_paramgraph_iface_array_ports.py expects success
@@ -15739,7 +15739,7 @@ verilator	test_regress/t/t_stream_crc_example.v	fail	must_accept	divergence:expl
 verilator	test_regress/t/t_stream_dynamic.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stream_dynamic.py expects success
 verilator	test_regress/t/t_stream_integer_type.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_stream_integer_type.py expects success
 verilator	test_regress/t/t_stream_queue.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stream_queue.py expects success
-verilator	test_regress/t/t_stream_queue_interface.sv	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_stream_queue_interface.py expects success
+verilator	test_regress/t/t_stream_queue_interface.sv	pass	must_accept	match	verilator: driver t_stream_queue_interface.py expects success
 verilator	test_regress/t/t_stream_string_array.v	pass	must_accept	match	verilator: driver t_stream_string_array.py expects success
 verilator	test_regress/t/t_stream_struct.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stream_struct.py expects success
 verilator	test_regress/t/t_stream_trace.v	pass	must_accept	match	verilator: driver t_stream_trace.py expects success
@@ -16227,7 +16227,7 @@ verilator	test_regress/t/t_var_types_bad.v	fail	must_accept	divergence:explained
 verilator	test_regress/t/t_var_vec_sel.v	pass	must_accept	match	verilator: driver t_var_vec_sel.py expects success
 verilator	test_regress/t/t_var_xref_bad.v	pass	must_accept	match	verilator: driver t_var_xref_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_var_xref_gen.v	pass	must_accept	match	verilator: driver t_var_xref_gen.py expects success
-verilator	test_regress/t/t_varref_scope_in_interface.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_varref_scope_in_interface.py expects success
+verilator	test_regress/t/t_varref_scope_in_interface.v	pass	must_accept	match	verilator: driver t_varref_scope_in_interface.py expects success
 verilator	test_regress/t/t_verilated_all.v	pass	must_accept	match	verilator: driver t_verilated_all.py expects success
 verilator	test_regress/t/t_verilated_debug.v	pass	must_accept	match	verilator: driver t_verilated_debug.py expects success
 verilator	test_regress/t/t_verilated_header.v	fail	must_accept	divergence:explained_svpp_include	verilator: driver t_verilated_header.py expects success
@@ -16277,7 +16277,7 @@ verilator	test_regress/t/t_vpi_onetime_cbs.v	pass	must_accept	match	verilator: d
 verilator	test_regress/t/t_vpi_package.v	pass	must_accept	match	verilator: driver t_vpi_package.py expects success
 verilator	test_regress/t/t_vpi_param.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_vpi_param.py expects success
 verilator	test_regress/t/t_vpi_public_depth.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_vpi_public_depth.py expects success
-verilator	test_regress/t/t_vpi_public_depthn.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_vpi_public_depthn_1.py expects success
+verilator	test_regress/t/t_vpi_public_depthn.v	pass	must_accept	match	verilator: driver t_vpi_public_depthn_1.py expects success
 verilator	test_regress/t/t_vpi_public_params.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_vpi_public_params.py expects success
 verilator	test_regress/t/t_vpi_put_value_array.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_vpi_put_value_array.py expects success
 verilator	test_regress/t/t_vpi_release_dup_bad.v	pass	must_accept	match	verilator: driver t_vpi_release_dup_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

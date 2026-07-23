@@ -578,6 +578,110 @@ coverage.
     changelog-index + tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this
     commit.
 
+#### `.3.4` — modport shared-direction port list absent (IEEE 1800-2017 A.2.9 — the #3 rejects-valid family, interface/modport)
+
+- **Status: `in_progress`** (`PGEN-SV-CORPUS-GRAD-0019`, session #199,
+  2026-07-23). The second fix cut from the `.3.2`/v2 refreshed family map:
+  after `.3.3` drained the #1 SVA family, **interface/modport (ch25), 50 rows**
+  is the next single-construct family (verilator 24 / ispras 18 / sv-tests 3 /
+  sv2v 3 / Surelog 1 / verible 1). Filtered to the current (post-`.3.3`, 481)
+  rejects-valid manifest: all 50 still stuck. The dominant coherent sub-defect
+  (~22 rows) is the **comma-shared-direction modport port list**
+  (`modport master(input a, b, output c, d)`); the remainder of the family is
+  the modport-expression `.P(expr)` form (helped by the same fix where a
+  shared-direction list follows) plus ~15 method-call/queue-slice rows the
+  coarse `\.\w+\s*\(` bucketer mis-filed into this family (they belong to OTHER,
+  routed on their own).
+- **ROOT CAUSE (WHY + WHERE), tool-pinned three ways:**
+  - **WHERE:** `grammars/systemverilog.ebnf:526`
+    `modport_simple_ports_declaration := port_direction modport_simple_port`.
+  - **WHY:** the rule is **missing the LRM A.2.9
+    `{ , modport_simple_port }` repetition** — it admits exactly ONE port per
+    direction group. IEEE 1800-2017 §25 / A.2.9 (verified verbatim from the
+    in-repo LRM md `docs/systemverilog/2017/md/section-25-interfaces.md:139`):
+    `modport_simple_ports_declaration ::= port_direction modport_simple_port { , modport_simple_port }`.
+  - **Probe (before):** control `modport master(input a, output c)` ACCEPTS;
+    defect `modport master(input a, b, output c, d)` REJECTS at
+    `furthest_position=58` (the shared-direction port `b`). Scoped
+    `--trace-rules modport_item,modport_ports_declaration,modport_simple_ports_declaration`
+    rule_stack at the furthest position: after `input a`, the outer
+    `modport_item ( comma modport_ports_declaration )*` cannot start a new
+    `modport_ports_declaration` at `b` (not a `port_direction`/attribute/
+    import-export/clocking), so `rparen` is expected but `,` is found. Evidence
+    `docs/tasks/artifacts/sv_corpus_grad/modport_diag/before.txt`.
+- **FIX (grammar-only, hierarchy level 1) — TWO coupled parts:**
+  1. Add the LRM repetition to the one rule —
+     `modport_simple_ports_declaration := port_direction modport_simple_port ( comma modport_simple_port )*`
+     with the family's proven `[$first, $rep::2*]` extraction-spread idiom
+     (`-> {direction: $1, ports: [$2, $3::2*]}`). The emitted shape changes
+     `port: $2` → `ports: [$2, $3::2*]` (a wire-format change).
+  2. **Complete the SV reserved-keyword list with `ref`
+     (`reserved_non_keyword_identifier_sv:402`).** A mid-measurement
+     regression surfaced this REQUIRED, coupled second part: two verilator
+     files that were PASSING (`t_interface_virtual.v` / `t_interface_virtual_bad.v`,
+     `modport phy(input addr, ref data)`) started FAILING because the new
+     greedy `( comma modport_simple_port )*` gobbled `ref` as a
+     `port_identifier`. Root cause (tool-pinned): `ref` is a genuine SV
+     port_direction (`port_direction_sv_only := kw_ref`) but was
+     **erroneously omitted** from `reserved_non_keyword_identifier_sv` (which
+     already lists `input`/`output`/`inout`); the engine's `*` does not
+     backtrack across the rule boundary, so `ref` must fail `port_identifier`
+     for the repetition to stop at a new direction group. Adding `ref` to the
+     SV reserved list (`!reserved_non_keyword_identifier` negative guard) is
+     the LRM-faithful completion (IEEE 1800 Table B.1 reserves `ref`) and makes
+     part 1 sound — with `ref` reserved, both `input a, b, output c, d` (stops
+     at `output`) and `input addr, ref data` (stops at `ref`) parse correctly.
+     v2005 keeps its own list (`_v2005:405`, no `ref`), so verilog_2005 stays
+     byte-inert.
+  - No new rule/token (census unchanged 1468); modport is SV-only
+    (`modport_declaration` is `@profiles:["sv_2017","sv_2023"]`). Wire-format
+    change ⇒ schema `17`→`18`, release `1.0.169`→`1.0.170`, ledger `SV-0040`.
+- **MEASURED GLOBALLY (main sv_2017 lane, guarded re-characterization + adjudication):**
+  - **Full external corpus 16,336: pass 9,433 → 9,459 (+26 net raw);**
+    29 gains (verilator 13 / ispras-sv-tests 11 / Surelog 2 / sv2v 2 /
+    opentitan 1) − 3 raw pass→fail (three `deferred:v2005_profile_lane` ivtest
+    `.v` files — `andnot1.v` / `pr1745005.v` / `tern7.v` — that declare
+    `reg ref;`: under `sv_2017` `ref` is now correctly reserved, so they reject
+    there; they stay v2005-lane-deferred and still ACCEPT under `verilog_2005`
+    where `ref` is a legal identifier). timeout 9 → 10 (one opentitan file at
+    the 20 s boundary; already failing at baseline — a perf blip, not a
+    correctness regression).
+  - **Adjudication (graduation) baseline: rejects-valid 481 → 454 (−27)**
+    — verilator −13 / ispras-sv-tests −11 / sv2v −2 / Surelog −1;
+    **accepts-invalid 21 → 21 (IDENTICAL set — no over-acceptance)**;
+    **0 new rejects-valid** (no graduation regression, `comm` verified);
+    unexplained 502 → 475.
+  - **v2005 byte-inert:** `adjudication_manifest_v2005.tsv` BYTE-IDENTICAL to
+    HEAD, `results_v2005.tsv` sorted-identical, `verilog_2005_conformance_gate`
+    GREEN (lint orphans 0, corpus 240/0, cert deterministic seeds 0/7/42).
+  - **Regression root-caused mid-measurement (the `ref` coupled fix):** the
+    modport-only regen first broke `t_interface_virtual.v` /
+    `t_interface_virtual_bad.v` (`modport phy(input addr, ref data)`,
+    pass→fail); tool-pinned to the missing `ref` reservation; part 2 recovered
+    both AND fixed additional `modport(...,ref x)` files (why the drop is −27,
+    beyond modport-only's −18).
+  - Evidence `docs/tasks/artifacts/sv_corpus_grad/modport_diag/`.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — control accepts / defect rejects
+    (`furthest_position=58`); 50-row family, ~22 the coherent shared-direction
+    sub-defect.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — tool-pinned three ways (grammar `:526` +
+    probe control/defect + scoped trace) and LRM-verified verbatim; the coupled
+    `ref` root cause tool-pinned from the mid-measurement regression.
+  - [x] **FIX** — the one-rule LRM repetition + the coupled `ref` reserved-word
+    completion (`:402`); both grammar-only, hierarchy level 1.
+  - [x] **ADDRESSED (verified)** — before→after measured globally: corpus +26,
+    rejects-valid 481→454 (−27), repro matrix + `ref`-modport + the 2 formerly
+    regressed files all ACCEPT, correct `ports` array AST.
+  - [x] **NO REGRESSION** — 0 new rejects-valid; accepts-invalid set identical;
+    v2005 byte-inert (manifest + conformance gate); shape/book gate GREEN; the
+    3 raw pass→fail are v2005-lane-deferred + parse under v2005;
+    `sv_stimuli_quality_gate` + `sv_cert_recognized_union_gate` confirmed GREEN
+    before commit (see the leaf's measured-globally note for the numbers).
+  - [x] **LOCKSTEP** — ledger `SV-0040` + contract `1.0.170`/schema 18 + SV book
+    changelog-index + tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this
+    commit.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

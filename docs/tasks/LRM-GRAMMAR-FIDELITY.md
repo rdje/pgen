@@ -39,6 +39,23 @@ collide with `| ( ) * ? [ ] { }`: `|->`, `|=>`, `[*N]`, `[->N]`, `[=N]`, `(* …
 these **reactively** — O(defects), one corpus family at a time. A proactive
 audit + a standing guardrail is **O(1)** for the whole class.
 
+### Second confirmed instance — the `ref` reserved-word omission (`SV-CORPUS-GRAD.3.4`, `SV-0040`, 2026-07-23)
+
+A wider face of the same LRM-fidelity gap surfaced during `SV-CORPUS-GRAD.3.4`:
+`ref` — a genuine SV `port_direction` (`port_direction_sv_only := kw_ref`) and
+an **IEEE 1800 Table B.1 reserved keyword** — was absent from
+`reserved_non_keyword_identifier_sv`, so it wrongly matched `port_identifier`.
+It fell through the `SV-0036` net (which appended only the
+`verilog_2005`-reserved delta to the SV list; `ref` is SV-*only*-reserved, so it
+was never in that delta). This is the same class — an LRM-mandated terminal
+(here a reserved keyword) missing from the shipped grammar — surfacing
+**reactively** only because a modport fix happened to expose it. The `.1`
+coverage audit's scope should therefore include not just Annex A **productions**
+but the **reserved-keyword table (Annex B)** cross-checked against the
+grammar's `reserved_non_keyword_identifier_sv`/`_v2005` lists, per profile — a
+bounded, high-yield check that would have named `ref` (and any siblings)
+proactively.
+
 ## The sharpening caveat (the honest architecture note)
 
 The extractor is **no longer on the live regeneration path.** The shipped
