@@ -1,0 +1,24 @@
+# .3.5 spaced-based number literal — before→after summary (PGEN-SV-CORPUS-GRAD-0020)
+
+Grammar fix (grammars/systemverilog.ebnf:439, one terminal):
+  BEFORE: integral_number := /([0-9][0-9_]*)?'[sS]?[dDhHoObB][0-9a-fA-FxXzZ?_]+/
+  AFTER : integral_number := /([0-9][0-9_]*[ \t]*)?'[sS]?[dDhHoObB][ \t]*[0-9a-fA-FxXzZ?_]+/
+
+Repro matrix: control 32'h0000_0001 PASS (both); 32'h 0000_0001 / 32 'h 0000_0001 / v2005 5'h 0 REJECT->ACCEPT; LRM-illegal 8'd -6 REJECT (both).
+Family #6 rows: 22/22 flipped REJECT->PASS (after_family_rows.txt).
+
+MAIN sv_2017 lane (16,336 files):
+  pass 9459 -> 9585 (+126: opentitan 83 / iverilog 14 / sv-tests 13 / ispras-sv-tests 8 / Surelog 6 / verilator 2), timeout 10 -> 9
+  adjudication rejects-valid 454 -> 432 (-22 = whole #6 family; comm-verified exactly the 22 keyed rows; NEW=0)
+  adjudication accepts-invalid 21 -> 21 (BYTE-IDENTICAL set)
+  per-FILE pass-set comm diff: pass->fail = 0 (main_pass_to_fail.txt empty), fail->pass = 126
+
+V2005 lane (2,459 files) -- CROSS-PROFILE:
+  pass 2107 -> 2126 (+19)
+  adjudication rejects-valid 135 -> 116 (-19; NEW=0)
+  adjudication accepts-invalid 14 -> 14 (BYTE-IDENTICAL set)
+  per-FILE pass-set comm diff: pass->fail = 0 (v2005_pass_to_fail.txt empty), fail->pass = 19
+
+Gates: ast_shape 18/0; verilog_2005_conformance 240/0 cert deterministic 0/7/42;
+  sv_external_corpus_triage 14/14; sv_stimuli_quality PASS (closed_loop_replay_targets_total 126 -> 125, -1: one sv_2017 replay-debt gap CLOSED, feeds SV-REPLAY-DEBT);
+  sv_cert_recognized_union byte-inert (canonical UNKNOWN=11, union UNKNOWN=0, union witness 1339, residual []); book PASS.

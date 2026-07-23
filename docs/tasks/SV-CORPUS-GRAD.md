@@ -226,9 +226,11 @@ coverage.
   families (`rejects_valid_families_v2.md`). Ranked #1 = **SVA
   implication/property (ch16), 101 rows** (ispras 53 / verilator 31 / Surelog 8
   / sv-tests 4) — root cause tool-pinned: the `|->`/`|=>` operators are ABSENT
-  from the grammar (see `.3.2`). NEXT burn-down = **`.3.3`** (add `|->`/`|=>`);
-  then interface/modport (50), constraint/randomize (23), directives (22),
-  spaced literals (22), drive strength (21), … cut from the same map.
+  from the grammar (see `.3.2`). Burn-down cut from this map: **`.3.3`**
+  (`|->`/`|=>`, SVA #1, done) → **`.3.4`** (modport shared-direction list, #3,
+  done) → **`.3.5`** (spaced-based number literals §5.7.1, #6, in progress);
+  remaining: constraint/randomize (23), directives (22), drive strength (21),
+  named block (20), size-cast (13), … cut from the same map.
 
 #### `.3.0` — Stuck-point clustering over the rejects-valid population (read-only diagnosis)
 
@@ -681,6 +683,104 @@ coverage.
   - [x] **LOCKSTEP** — ledger `SV-0040` + contract `1.0.170`/schema 18 + SV book
     changelog-index + tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this
     commit.
+
+#### `.3.5` — spaced-based number literals absent (IEEE 1800-2017 §5.7.1 — the #6 rejects-valid family, chapter-5 lexical; CROSS-PROFILE)
+
+- **Status: `in_progress`** (`PGEN-SV-CORPUS-GRAD-0020`, session #200,
+  2026-07-23). The third fix cut from the `.3.2`/v2 refreshed family map: after
+  `.3.3` (SVA #1) and `.3.4` (modport #3), **number literal spaced-based (ch5),
+  22 rows** is the next single-construct family (sv-tests 13 / Surelog 5 /
+  ispras-sv-tests 2 / verilator 2). ⭐ Unlike `.3.3`/`.3.4` (SV-only), the fix is
+  **cross-profile** — `integral_number` is NOT profile-split, so it heals the
+  same lexical gap in the `verilog_2005` lane too (IEEE 1364-2005 §3.5.1 has the
+  identical rule; the v2005 rejects-valid baseline includes `always3.1.2I` `5'h 0`).
+- **ROOT CAUSE (WHY + WHERE), tool-pinned:**
+  - **WHERE:** `grammars/systemverilog.ebnf:439`
+    `integral_number := /([0-9][0-9_]*)?'[sS]?[dDhHoObB][0-9a-fA-FxXzZ?_]+/`.
+  - **WHY:** `integral_number` is a **single regex terminal**. The layout skipper
+    auto-consumes whitespace *before* each terminal but NOT *inside* one match,
+    so the terminal cannot span the whitespace the LRM permits **between the size
+    and the `'`** and **between the base format and the value**. IEEE 1800-2017
+    §5.7.1 (verified verbatim, in-repo LRM md
+    `section-1024-…-error-shall-be-reported.md:207-209`): *"The apostrophe
+    character and the base format character shall not be separated by any white
+    space. … The unsigned number token shall immediately follow the base format,
+    optionally preceded by white space."* So whitespace is legal size↔`'` (the
+    `.2`-verified valid example `32 'h 12ab_f001`) and base↔value, but NOT within
+    the base specifier (`' h` stays illegal).
+  - **Probe (before):** control `32'h0000_0001` ACCEPTS; defects `32'h 0000_0001`
+    and `32 'h 0000_0001` REJECT at `furthest_position=41` (the base↔value
+    space); all 22 family rows + a v2005 `5'h 0` repro REJECT at HEAD. Evidence
+    `docs/tasks/artifacts/sv_corpus_grad/spaced_literal_diag/before.txt`.
+- **FIX (grammar-only, hierarchy level 1) — one terminal, LRM-faithful:**
+  - `integral_number := /([0-9][0-9_]*[ \t]*)?'[sS]?[dDhHoObB][ \t]*[0-9a-fA-FxXzZ?_]+/`
+    — add horizontal-whitespace `[ \t]*` at exactly the two LRM-legal seams
+    (inside the optional size group after the digits, and before the value); the
+    `'[sS]?[dDhHoObB]` base specifier stays contiguous (LRM forbids interior
+    white space); the value charset is UNCHANGED so `-` between base and value
+    (LRM: illegal) still rejects, and interior whitespace inside the value is
+    still rejected (value is one token).
+  - No new rule/token (**census UNCHANGED**); the terminal's `body: $1` shape is
+    unchanged (whole matched string, now optionally including the interior
+    spaces — additive: spaced literals were 100% unparseable before, so no
+    retained-text lock or wire-format contract is broken). ⇒ **AST-dump schema
+    UNCHANGED** (no structural change); release `1.0.170`→`1.0.171` (parse-behavior
+    change), ledger `SV-0041`.
+  - The Rust `regex` engine matches terminals linearly (no backtracking), so
+    `[ \t]*` introduces **zero** catastrophic-backtracking risk; precedent
+    `timeunit_separator_trivia:5538` already embeds `[ \t\r\n]` in a terminal.
+  - **Deliberate scope (conservative, documented):** `[ \t]` (horizontal
+    whitespace) covers 100% of the observed corpus (all single-line). A literal
+    spanning a newline/comment between base and value (LRM §5.3 white space
+    includes newlines) is out of this leaf's scope — handling it cleanly needs
+    the composite-rule restructure (size/base/value as sub-terminals with
+    `trivia` between), a schema-affecting change deferred to avoid a terminal
+    that spans lines (which could mask real end-of-line errors).
+- **MEASURED GLOBALLY (guarded re-characterization + adjudication, both lanes; 257 s peak 6,054 MB):**
+  - **Repro + family:** control `32'h0000_0001` still ACCEPTS; `32'h 0000_0001`
+    / `32 'h 0000_0001` / a v2005 `5'h 0` REJECT→ACCEPT; the LRM-illegal
+    `8'd -6` (minus between base and value) still correctly REJECTS; **all 22
+    family rows flipped REJECT→PASS** (`after_family_rows.txt`).
+  - **MAIN sv_2017 lane — full external corpus 16,336: pass 9,459 → 9,585
+    (+126** opentitan 83 / iverilog 14 / sv-tests 13 / ispras-sv-tests 8 /
+    Surelog 6 / verilator 2**), timeout 10 → 9.** Adjudication: **rejects-valid
+    454 → 432 (−22 = the whole #6 family, `comm`-verified as exactly the 22
+    keyed spaced-literal rows, ZERO new)**; **accepts-invalid 21 → 21 (BYTE-
+    IDENTICAL set — no over-acceptance)**; unexplained 475 → 453; match
+    5,655 → 5,677.
+  - **V2005 lane (CROSS-PROFILE bonus) — 2,459: pass 2,107 → 2,126 (+19),**
+    rejects-valid **135 → 116 (−19, 0 new, `comm`-verified)**, accepts-invalid
+    **14 → 14 (IDENTICAL set)**, unexplained 149 → 130.
+  - **NO-REGRESSION (the `.3.4` LAW — per-FILE pass-set `comm` diff, not net):
+    0 pass→fail in BOTH lanes** (126 + 19 gains, strictly additive — a
+    more-permissive terminal cannot break a prior successful parse).
+  - Gates: `ast_shape_contract_gate` GREEN (shape inert — `body:$1` unchanged);
+    `verilog_2005_conformance_gate` GREEN (curated matrix 240/0 has no
+    spaced-literal case; cert byte-inert); `sv_external_corpus_triage_gate`
+    14/14; `sv_stimuli_quality_gate` PASS (`closed_loop_replay_targets_total`
+    126 → **125**, −1: one `sv_2017` closed-loop replay target is newly
+    WITNESSED — a replay-debt gap CLOSED by the fix, feeding `SV-REPLAY-DEBT`; a
+    decrease is an improvement, and no target can regress under a strictly-
+    more-permissive change; the exact target not pinned — the net −1 is
+    conservative);
+    `sv_cert_recognized_union_gate` GREEN BYTE-INERT (no rule/token added ⇒
+    census 1345 unchanged, canonical `1343/…`, union residual `[]`,
+    `fully_certified_via_union`); `systemverilog_parser_book_gate` GREEN.
+  - Evidence `docs/tasks/artifacts/sv_corpus_grad/spaced_literal_diag/`.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — control accepts; all 22 family rows + v2005 repro
+    REJECT at HEAD (`before.txt`); `furthest_position=41`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — grammar `:439` single terminal cannot span
+    LRM-legal interior whitespace; LRM §5.7.1 verified verbatim; probe + trace.
+  - [x] **FIX** — the one-terminal `[ \t]*` seams (size↔`'`, base↔value; `'`+base
+    contiguous; value charset unchanged), grammar-only, hierarchy level 1.
+  - [x] **ADDRESSED (verified)** — before→after measured globally both lanes:
+    main corpus +126 / rejects-valid −22; v2005 +19 / rejects-valid −19.
+  - [x] **NO REGRESSION** — 0 pass→fail per-file both lanes; 0 new rejects-valid;
+    accepts-invalid sets byte-identical (21 / 14); cert-union / quality / v2005-
+    conformance / shape / book GREEN.
+  - [x] **LOCKSTEP** — ledger `SV-0041` + contract `1.0.171` + SV book +
+    tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
 ### `.4` — Full-design corpora chaining
 

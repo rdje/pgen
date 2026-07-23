@@ -144,7 +144,7 @@ Surelog	tests/BinarySize/dut.sv	pass	must_accept	match	Surelog: golden log Binar
 Surelog	tests/BindHierPath/dut.sv	pass	must_accept	match	Surelog: golden log BindHierPath.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BindMethod/dut.sv	pass	must_accept	match	Surelog: golden log BindMethod.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BindStmt/dut.sv	pass	must_accept	match	Surelog: golden log BindStmt.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/BindStmt2/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BindStmt2.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/BindStmt2/dut.sv	pass	must_accept	match	Surelog: golden log BindStmt2.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BindVarsAndEnum/dut.sv	pass	must_accept	match	Surelog: golden log BindVarsAndEnum.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BindingPort/dut.sv	pass	must_accept	match	Surelog: golden log BindingPort.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/Bindings/dut.sv	pass	must_accept	match	Surelog: golden log Bindings.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -168,7 +168,7 @@ Surelog	tests/BlackConst/dut.sv	fail	must_accept	divergence:explained_svpp_macro
 Surelog	tests/BlackParrotComplex/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotComplex.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotConf/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotConf.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotExpon/dut.sv	pass	chained_only	deferred:chained_only	Surelog: no per-test .sl driver unit owns this file's directory - unkeyed (chain-level only)
-Surelog	tests/BlackParrotMuteErrors/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotMuteErrors.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/BlackParrotMuteErrors/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotMuteErrors.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotParam/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotSkipParam/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotSkipParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotStructParam/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotStructParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -491,10 +491,10 @@ Surelog	tests/Inverter/dut.sv	pass	must_accept	match	Surelog: golden log Inverte
 Surelog	tests/JKFlipflop/dut.sv	pass	must_accept	match	Surelog: golden log JKFlipflop.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/Kmac/kmac.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/Kmac/kmac_core.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
-Surelog	tests/Kmac/sha3_pkg.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
+Surelog	tests/Kmac/sha3_pkg.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/LargeConst/dut.sv	pass	must_accept	match	Surelog: golden log LargeConst.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LargeHex/dut.sv	pass	must_accept	match	Surelog: golden log LargeHex.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/LargeHexCast/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log LargeHexCast.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/LargeHexCast/dut.sv	pass	must_accept	match	Surelog: golden log LargeHexCast.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LargeHexString/dut.sv	pass	must_accept	match	Surelog: golden log LargeHexString.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LargeValue2Struct/dut.sv	pass	must_accept	match	Surelog: golden log LargeValue2Struct.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LateBindingFuncArg/dut.sv	pass	must_accept	match	Surelog: golden log LateBindingFuncArg.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -604,7 +604,7 @@ Surelog	tests/PackFunc/dut.sv	pass	must_accept	match	Surelog: golden log PackFun
 Surelog	tests/PackFuncParent/dut.sv	pass	must_accept	match	Surelog: golden log PackFuncParent.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PackImport/dut.sv	pass	must_accept	match	Surelog: golden log PackImport.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PackStructField/dut.sv	pass	must_accept	match	Surelog: golden log PackStructField.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/PackStructVar/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log PackStructVar.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/PackStructVar/dut.sv	pass	must_accept	match	Surelog: golden log PackStructVar.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PackageBind/dut.sv	pass	must_accept	match	Surelog: golden log PackageBind.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PackageConst/dut.sv	pass	must_accept	match	Surelog: golden log PackageConst.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PackageDpi/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log PackageDpi.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -855,7 +855,7 @@ Surelog	tests/Udp/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	S
 Surelog	tests/UhdmCoverage/dut.sv	pass	must_accept	match	Surelog: golden log UhdmCoverage.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/UnaryPlus/dut.sv	pass	must_accept	match	Surelog: golden log UnaryPlus.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/UnboundForLoop/dut.sv	pass	must_accept	match	Surelog: golden log UnboundForLoop.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/UndersVal/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log UndersVal.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/UndersVal/dut.sv	pass	must_accept	match	Surelog: golden log UndersVal.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/UnelabPack/dut.sv	pass	must_accept	match	Surelog: golden log UnelabPack.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/UnionCast/dut.sv	pass	must_accept	match	Surelog: golden log UnionCast.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/UnitClass/Configuration.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (8 sources) - dir-level chained adjudication (leaf .4)
@@ -1577,10 +1577,10 @@ friscv	test/wba_testsuite/tests/rv64ui-v-test8.v	fail	chained_only	deferred:chai
 friscv	test/wba_testsuite/tests/rv64ui-v-test9.v	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 ispras-sv-tests	ieee-1364-2005/parts/count.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: none) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_03_05_01_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_03_05_01_2.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_03_05_01_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_03_05_01_3.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_03_05_01_4.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_03_05_01_5.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_03_05_01_4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_03_05_01_5.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_03_05_02_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_03_06_01_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_03_06_02_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
@@ -1611,10 +1611,10 @@ ispras-sv-tests	ieee-1364-2005/test_04_09_03_1_3.v	pass	out_of_scope_with_cause:
 ispras-sv-tests	ieee-1364-2005/test_04_10_01_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_04_10_03_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_04_10_03_2.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_05_01_03_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_05_01_03_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_01_04_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_01_05_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_05_01_05_2.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_05_01_05_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_01_06_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_01_07_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_01_07_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
@@ -1637,7 +1637,7 @@ ispras-sv-tests	ieee-1364-2005/test_05_02_02_1.v	pass	out_of_scope_with_cause:v2
 ispras-sv-tests	ieee-1364-2005/test_05_02_02_2.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_02_03_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_02_03_2_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_05_03_00_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_05_03_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_04_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_04_02_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_04_02_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
@@ -1950,7 +1950,7 @@ ispras-sv-tests	ieee-1800-2012/05/05.06_01.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/05/05.07.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/05/05.07.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.07.01_03.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/05/05.07.01_04.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/05/05.07.01_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.07.01_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.07.01_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.07.02_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
@@ -2215,7 +2215,7 @@ ispras-sv-tests	ieee-1800-2012/10/10.11_04.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/10/10.11_05.sv	pass	must_accept	match	pinned .8b.2: overlapping alias operands (10.11) - alias coherence semantics
 ispras-sv-tests	ieee-1800-2012/10/10.11_06.sv	pass	must_accept	match	pinned .8b.2: self-alias (10.11) - semantic; A.6.1 net_alias BNF admits the multi-'=' form
 ispras-sv-tests	ieee-1800-2012/10/10.11_07.sv	fail	must_accept	divergence:explained_svpp_macro_use	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/11/11.03.03_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/11/11.03.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.03.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.03.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.03.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2933,8 +2933,8 @@ iverilog	ivtest/ivltests/always3.1.1E.v	pass	out_of_scope_with_cause:v2005_profi
 iverilog	ivtest/ivltests/always3.1.1F.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.1G.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.1H.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/always3.1.1I.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/always3.1.1J.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/always3.1.1I.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/always3.1.1J.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.1K.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.2A.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.2B.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -2944,7 +2944,7 @@ iverilog	ivtest/ivltests/always3.1.2E.v	pass	out_of_scope_with_cause:v2005_profi
 iverilog	ivtest/ivltests/always3.1.2F.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.2G.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.2H.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/always3.1.2I.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/always3.1.2I.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.3A.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.3B.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/always3.1.3B2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -3671,7 +3671,7 @@ iverilog	ivtest/ivltests/conditsynth3.v	pass	out_of_scope_with_cause:no_sv_key	d
 iverilog	ivtest/ivltests/const.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/const2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/const3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/const4.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/const4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/constadd.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/constadd2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/constadd3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -3907,7 +3907,7 @@ iverilog	ivtest/ivltests/fork3.19B.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/fork_join_any.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/fork_join_dis.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/fork_join_none.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/format.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/format.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/fr47.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/fr49.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/fread-error.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
@@ -4055,9 +4055,9 @@ iverilog	ivtest/ivltests/land4.v	pass	out_of_scope_with_cause:v2005_profile_lane
 iverilog	ivtest/ivltests/land5.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/landor1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/lcatsynth.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
-iverilog	ivtest/ivltests/ldelay1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/ldelay1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/ldelay2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/ldelay3.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/ldelay3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/ldelay4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/ldelay5.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/lh_catadd.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4094,7 +4094,7 @@ iverilog	ivtest/ivltests/macro_with_args.v	fail	out_of_scope_with_cause:no_sv_ke
 iverilog	ivtest/ivltests/macsub.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/mangle.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/mangle_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/many_drivers.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/many_drivers.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/mcl1.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/mcl2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/mem1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4267,7 +4267,7 @@ iverilog	ivtest/ivltests/param_test3.v	pass	out_of_scope_with_cause:no_sv_key	de
 iverilog	ivtest/ivltests/param_test4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/param_times.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/param_vec.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
-iverilog	ivtest/ivltests/param_vec2.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
+iverilog	ivtest/ivltests/param_vec2.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/parameter_1bit.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/parameter_in_generate1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/parameter_in_generate2.v	pass	must_accept	match	ivtest CE pinned .8b.3: parameter/localparam override semantics (overriding a localparam by name or defparam, defparam into a generate block, defaultless port-list parameter left unoverridden - fn 18 makes the port-list omission itself legal) - 6.20.4/23.10.x elaboration rules
@@ -4922,7 +4922,7 @@ iverilog	ivtest/ivltests/pr3197917.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/pr3270320.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3270320_ams.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/pr3284821.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr3292735.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr3292735.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3296466a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3296466b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3296466c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -5048,7 +5048,7 @@ iverilog	ivtest/ivltests/pr729.v	pass	out_of_scope_with_cause:v2005_profile_lane
 iverilog	ivtest/ivltests/pr734.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr735.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr748.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr751.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr751.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr757.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr772.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr809.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -5212,7 +5212,7 @@ iverilog	ivtest/ivltests/rise_fall_delay3.v	pass	out_of_scope_with_cause:v2005_p
 iverilog	ivtest/ivltests/rl_pow.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/rnpmos.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/rnpmos2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/rop.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/rop.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/rptconcat.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/rptconcat2.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/rtran.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -6184,7 +6184,7 @@ iverilog	ivtest/ivltests/task_omemw.v	pass	out_of_scope_with_cause:no_sv_key	def
 iverilog	ivtest/ivltests/task_omemw2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/task_omemw3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/task_port_range_mismatch.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/task_port_size.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/task_port_size.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/task_port_types1.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/task_port_types2.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/task_return1.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) task_return1.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
@@ -6352,7 +6352,7 @@ iverilog	ivtest/ivltests/varlshft1.v	pass	out_of_scope_with_cause:no_sv_key	defe
 iverilog	ivtest/ivltests/varrshft.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/varrshft1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/varrshft2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/vcd-dup.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/vcd-dup.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/vcd1.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/vector.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/verify_two_var_delays.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -7036,7 +7036,7 @@ opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_core.sv	fail	chained_only	deferred:chained
 opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_intr.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aes/dv/aes_model_dpi/aes_model_dpi_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aes/dv/cov/aes_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7148,7 +7148,7 @@ opentitan	hw/ip/aes/rtl/aes_pkg.sv	pass	chained_only	deferred:chained_only	desig
 opentitan	hw/ip/aes/rtl/aes_prng_clearing.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aes/rtl/aes_prng_masking.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aes/rtl/aes_reduced_round.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/aes/rtl/aes_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/aes/rtl/aes_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aes/rtl/aes_reg_status.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aes/rtl/aes_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aes/rtl/aes_sbox.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7188,7 +7188,7 @@ opentitan	hw/ip/aon_timer/dv/tests/aon_timer_base_test.sv	fail	chained_only	defe
 opentitan	hw/ip/aon_timer/dv/tests/aon_timer_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aon_timer/rtl/aon_timer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aon_timer/rtl/aon_timer_core.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/aon_timer/rtl/aon_timer_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/aon_timer/rtl/aon_timer_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/aon_timer/rtl/aon_timer_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/ascon/pre_dv/ascon_tb/rtl/ascon_sim.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/ascon/pre_dv/ascon_tb/rtl/ascon_tl_ul_stim.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7196,12 +7196,12 @@ opentitan	hw/ip/ascon/pre_dv/ascon_tb/rtl/ascon_tl_ul_stim_pkg.sv	fail	chained_o
 opentitan	hw/ip/ascon/rtl/ascon.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/ascon/rtl/ascon_core.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/ascon/rtl/ascon_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/ascon/rtl/ascon_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/ascon/rtl/ascon_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/ascon/rtl/ascon_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader_regs_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/csrng/dv/cov/csrng_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/csrng/dv/cov/csrng_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7241,7 +7241,7 @@ opentitan	hw/ip/csrng/rtl/csrng_core.sv	fail	chained_only	deferred:chained_only	
 opentitan	hw/ip/csrng/rtl/csrng_ctr_drbg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/csrng/rtl/csrng_main_sm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/csrng/rtl/csrng_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/csrng/rtl/csrng_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/csrng/rtl/csrng_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/csrng/rtl/csrng_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/csrng/rtl/csrng_state_db.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/dma/dv/cov/dma_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7282,7 +7282,7 @@ opentitan	hw/ip/dma/dv/tests/dma_base_test.sv	fail	chained_only	deferred:chained
 opentitan	hw/ip/dma/dv/tests/dma_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/dma/rtl/dma.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/dma/rtl/dma_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/dma/rtl/dma_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/dma/rtl/dma_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/dma/rtl/dma_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/edn/dv/cov/edn_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/edn/dv/cov/edn_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7324,7 +7324,7 @@ opentitan	hw/ip/edn/rtl/edn_core.sv	fail	chained_only	deferred:chained_only	desi
 opentitan	hw/ip/edn/rtl/edn_field_en.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/edn/rtl/edn_main_sm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/edn/rtl/edn_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/edn/rtl/edn_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/edn/rtl/edn_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/edn/rtl/edn_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/entropy_src/dv/cov/entropy_src_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/entropy_src/dv/cov/entropy_src_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7377,7 +7377,7 @@ opentitan	hw/ip/entropy_src/rtl/entropy_src_main_sm.sv	fail	chained_only	deferre
 opentitan	hw/ip/entropy_src/rtl/entropy_src_main_sm_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/entropy_src/rtl/entropy_src_markov_ht.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/entropy_src/rtl/entropy_src_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/entropy_src/rtl/entropy_src_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/entropy_src/rtl/entropy_src_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/entropy_src/rtl/entropy_src_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/entropy_src/rtl/entropy_src_repcnt_ht.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/entropy_src/rtl/entropy_src_repcnts_ht.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7411,7 +7411,7 @@ opentitan	hw/ip/hmac/dv/tests/hmac_base_test.sv	fail	chained_only	deferred:chain
 opentitan	hw/ip/hmac/dv/tests/hmac_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/hmac/rtl/hmac.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/hmac/rtl/hmac_core.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/hmac/rtl/hmac_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/hmac/rtl/hmac_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/hmac/rtl/hmac_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/i2c/dv/env/i2c_env.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/i2c/dv/env/i2c_env_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7475,7 +7475,7 @@ opentitan	hw/ip/i2c/rtl/i2c_core.sv	fail	chained_only	deferred:chained_only	desi
 opentitan	hw/ip/i2c/rtl/i2c_fifo_sync_sram_adapter.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/i2c/rtl/i2c_fifos.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/i2c/rtl/i2c_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/i2c/rtl/i2c_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/i2c/rtl/i2c_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/i2c/rtl/i2c_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/i2c/rtl/i2c_target_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/i3c/rtl/i3c_dat.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7519,7 +7519,7 @@ opentitan	hw/ip/keymgr/rtl/keymgr_input_checks.sv	fail	chained_only	deferred:cha
 opentitan	hw/ip/keymgr/rtl/keymgr_kmac_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr/rtl/keymgr_op_state_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr/rtl/keymgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/keymgr/rtl/keymgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/keymgr/rtl/keymgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr/rtl/keymgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr/rtl/keymgr_reseed_ctrl.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr/rtl/keymgr_sideload_key.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7544,7 +7544,7 @@ opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe.sv	fail	chained_only	deferred:chained_
 opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_op_state_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/dv/cov/kmac_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/dv/cov/kmac_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7598,9 +7598,9 @@ opentitan	hw/ip/kmac/rtl/kmac_core.sv	fail	chained_only	deferred:chained_only	de
 opentitan	hw/ip/kmac/rtl/kmac_entropy.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/kmac_errchk.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/kmac_msgfifo.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/kmac/rtl/kmac_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/kmac/rtl/kmac_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/kmac_reduced.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/kmac/rtl/kmac_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/kmac/rtl/kmac_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/kmac_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/kmac_staterd.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/sha3.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7646,7 +7646,7 @@ opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_dmi_reg_top.sv	pass	chained_only	deferred:ch
 opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_kmac_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_regs_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_signal_decode.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_state_decode.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7679,7 +7679,7 @@ opentitan	hw/ip/mbx/rtl/mbx_fsm.sv	pass	chained_only	deferred:chained_only	desig
 opentitan	hw/ip/mbx/rtl/mbx_hostif.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/mbx/rtl/mbx_imbx.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/mbx/rtl/mbx_ombx.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/mbx/rtl/mbx_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/mbx/rtl/mbx_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/mbx/rtl/mbx_soc_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/mbx/rtl/mbx_sramrwarb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/mbx/rtl/mbx_sysif.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7778,7 +7778,7 @@ opentitan	hw/ip/otbn/rtl/otbn_mask_accelerator.sv	fail	chained_only	deferred:cha
 opentitan	hw/ip/otbn/rtl/otbn_mod_result_selector.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/otbn/rtl/otbn_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/otbn/rtl/otbn_predecode.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/otbn/rtl/otbn_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/otbn/rtl/otbn_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/otbn/rtl/otbn_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/otbn/rtl/otbn_rf_base.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/otbn/rtl/otbn_rf_base_ff.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7800,7 +7800,7 @@ opentitan	hw/ip/otp_ctrl/rtl/otp_ctrl_pkg.sv	fail	chained_only	deferred:chained_
 opentitan	hw/ip/otp_macro/rtl/otp_macro.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/otp_macro/rtl/otp_macro_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/otp_macro/rtl/otp_macro_prim_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/otp_macro/rtl/otp_macro_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/otp_macro/rtl/otp_macro_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/pattgen/dv/cov/pattgen_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/pattgen/dv/cov/pattgen_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/pattgen/dv/env/pattgen_channel_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7828,7 +7828,7 @@ opentitan	hw/ip/pattgen/rtl/pattgen.sv	fail	chained_only	deferred:chained_only	d
 opentitan	hw/ip/pattgen/rtl/pattgen_chan.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/pattgen/rtl/pattgen_core.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/pattgen/rtl/pattgen_ctrl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/pattgen/rtl/pattgen_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/pattgen/rtl/pattgen_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/pattgen/rtl/pattgen_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/dv/prim_alert/tb/prim_alert_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/dv/prim_ascon/ascon_model_dpi/ascon_model_dpi_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7956,7 +7956,7 @@ opentitan	hw/ip/prim/rtl/prim_diff_encode.sv	pass	chained_only	deferred:chained_
 opentitan	hw/ip/prim/rtl/prim_diff_to_alert.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_dom_and_2share.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_double_lfsr.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/prim/rtl/prim_edge_detector.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/prim/rtl/prim_edge_detector.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_edn_req.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_esc_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_esc_receiver.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8079,7 +8079,7 @@ opentitan	hw/ip/prim/rtl/prim_secded_pkg.sv	pass	chained_only	deferred:chained_o
 opentitan	hw/ip/prim/rtl/prim_sha2.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_sha2_32.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_sha2_pad.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/prim/rtl/prim_sha2_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/prim/rtl/prim_sha2_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_slicer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_sparse_fsm_flop.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/rtl/prim_sram_arbiter.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8141,7 +8141,7 @@ opentitan	hw/ip/prim_generic/rtl/prim_ram_2p.sv	fail	chained_only	deferred:chain
 opentitan	hw/ip/prim_generic/rtl/prim_ram_2p_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim_generic/rtl/prim_rom.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim_generic/rtl/prim_rom_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/prim_generic/rtl/prim_rst_sync.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/prim_generic/rtl/prim_rst_sync.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim_generic/rtl/prim_usb_diff_rx.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim_generic/rtl/prim_xnor2.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim_generic/rtl/prim_xor2.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8229,7 +8229,7 @@ opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_counter.sv	fail	chained_only	deferred:chai
 opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_mux.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_regs_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_rom_reg_top.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rom_ctrl/rtl/rom_ctrl_scrambled_rom.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8241,7 +8241,7 @@ opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_mp.sv	fail	chained_only	deferred:chained
 opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_mp_region_sel.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_rd.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_region_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_ctrl/rtl/rram_ctrl_wr.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_ctrl/rtl/rram_phy.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8253,7 +8253,7 @@ opentitan	hw/ip/rram_ctrl/rtl/rram_scramble.sv	fail	chained_only	deferred:chaine
 opentitan	hw/ip/rram_macro/pre_dv/tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_macro/rtl/rram_macro.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_macro/rtl/rram_macro_prim_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/rram_macro/rtl/rram_macro_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/rram_macro/rtl/rram_macro_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_core_ibex/rtl/rv_core_ibex_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_dm/dv/env/rv_dm_env.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_dm/dv/env/rv_dm_env_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8306,7 +8306,7 @@ opentitan	hw/ip/rv_dm/rtl/rv_dm_dbg_reg_top.sv	pass	chained_only	deferred:chaine
 opentitan	hw/ip/rv_dm/rtl/rv_dm_dmi_gate.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_dm/rtl/rv_dm_mem_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_dm/rtl/rv_dm_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/rv_dm/rtl/rv_dm_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/rv_dm/rtl/rv_dm_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_dm/rtl/rv_dm_regs_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_timer/dv/env/rv_timer_env.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_timer/dv/env/rv_timer_env_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8331,7 +8331,7 @@ opentitan	hw/ip/rv_timer/fpv/tb/rv_timer_bind_fpv.sv	pass	chained_only	deferred:
 opentitan	hw/ip/rv_timer/fpv/vip/rv_timer_core_assert_fpv.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_timer/fpv/vip/rv_timer_interrupts_assert_fpv.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_timer/rtl/rv_timer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/rv_timer/rtl/rv_timer_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/rv_timer/rtl/rv_timer_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_timer/rtl/rv_timer_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rv_timer/rtl/timer_core.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/soc_dbg_ctrl/dv/env/seq_lib/soc_dbg_ctrl_base_vseq.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8354,7 +8354,7 @@ opentitan	hw/ip/soc_dbg_ctrl/rtl/soc_dbg_ctrl_core_reg_top.sv	fail	chained_only	
 opentitan	hw/ip/soc_dbg_ctrl/rtl/soc_dbg_ctrl_decode.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/soc_dbg_ctrl/rtl/soc_dbg_ctrl_jtag_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/soc_dbg_ctrl/rtl/soc_dbg_ctrl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/soc_dbg_ctrl/rtl/soc_dbg_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/soc_dbg_ctrl/rtl/soc_dbg_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/dv/env/seq_lib/spi_device_base_vseq.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/dv/env/seq_lib/spi_device_cfg_cmd_vseq.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/dv/env/seq_lib/spi_device_common_vseq.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8393,24 +8393,24 @@ opentitan	hw/ip/spi_device/dv/tests/spi_device_test_pkg.sv	fail	chained_only	def
 opentitan	hw/ip/spi_device/pre_dv/program/prog_passthrough_host.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/pre_dv/program/prog_passthrough_sw.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/pre_dv/program/spiflash.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/spi_device/pre_dv/tb/spi_tpm_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/spi_device/pre_dv/tb/spi_tpm_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/pre_dv/tb/spid_common.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/spi_device/pre_dv/tb/spid_passthrough_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/spi_device/pre_dv/tb/spid_passthrough_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/pre_dv/tb/spid_readcmd_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/pre_dv/tb/spid_status_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_cmdparse.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_device.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_device_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/spi_device/rtl/spi_device_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/spi_device/rtl/spi_device_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_device_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_p2s.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_passthrough.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_readcmd.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_s2p.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spi_tpm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/spi_device/rtl/spid_addr_4b.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/spi_device/rtl/spid_addr_4b.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spid_csb_sync.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spid_dpram.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_device/rtl/spid_fifo2sram_adapter.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8463,7 +8463,7 @@ opentitan	hw/ip/spi_host/rtl/spi_host_command_queue.sv	pass	chained_only	deferre
 opentitan	hw/ip/spi_host/rtl/spi_host_core.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/rtl/spi_host_data_fifos.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/rtl/spi_host_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/spi_host/rtl/spi_host_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/spi_host/rtl/spi_host_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/rtl/spi_host_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/rtl/spi_host_shift_register.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/rtl/spi_host_window.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8505,7 +8505,7 @@ opentitan	hw/ip/sram_ctrl/dv/tests/sram_ctrl_test_pkg.sv	fail	chained_only	defer
 opentitan	hw/ip/sram_ctrl/rtl/sram_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sram_ctrl/rtl/sram_ctrl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sram_ctrl/rtl/sram_ctrl_ram_reg_top.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/sram_ctrl/rtl/sram_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/sram_ctrl/rtl/sram_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sram_ctrl/rtl/sram_ctrl_regs_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sysrst_ctrl/dv/cov/sysrst_ctrl_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sysrst_ctrl/dv/cov/sysrst_ctrl_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8547,7 +8547,7 @@ opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_intr.sv	fail	chained_only	deferred:c
 opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_keyintr.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_pin.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_ulp.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/tlul/generic_dv/env/seq_lib/xbar_access_same_device_vseq.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8593,7 +8593,7 @@ opentitan	hw/ip/tlul/rtl/tlul_fifo_async.sv	pass	chained_only	deferred:chained_o
 opentitan	hw/ip/tlul/rtl/tlul_fifo_sync.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/tlul/rtl/tlul_jtag_dtm.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/tlul/rtl/tlul_lc_gate.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/tlul/rtl/tlul_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/tlul/rtl/tlul_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/tlul/rtl/tlul_request_loopback.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/tlul/rtl/tlul_rsp_intg_chk.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/tlul/rtl/tlul_rsp_intg_gen.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8631,7 +8631,7 @@ opentitan	hw/ip/uart/dv/tests/uart_base_test.sv	fail	chained_only	deferred:chain
 opentitan	hw/ip/uart/dv/tests/uart_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/uart/rtl/uart.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/uart/rtl/uart_core.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/uart/rtl/uart_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/uart/rtl/uart_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/uart/rtl/uart_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/uart/rtl/uart_rx.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/uart/rtl/uart_tx.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8733,7 +8733,7 @@ opentitan	hw/ip/usbdev/rtl/usbdev_counter.sv	pass	chained_only	deferred:chained_
 opentitan	hw/ip/usbdev/rtl/usbdev_iomux.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/usbdev/rtl/usbdev_linkstate.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/usbdev/rtl/usbdev_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/usbdev/rtl/usbdev_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/usbdev/rtl/usbdev_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/usbdev/rtl/usbdev_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/usbdev/rtl/usbdev_usbif.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip_templates/ac_range_check/dv/env/ac_range_check_dut_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9058,7 +9058,7 @@ opentitan	hw/top_darjeeling/ip/ast/rtl/ast_dft.sv	pass	chained_only	deferred:cha
 opentitan	hw/top_darjeeling/ip/ast/rtl/ast_entropy.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/ast/rtl/ast_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/ast/rtl/ast_pulse_sync.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip/ast/rtl/ast_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip/ast/rtl/ast_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/ast/rtl/ast_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/ast/rtl/dev_entropy.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/ast/rtl/gfr_clk_mux2.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9077,26 +9077,26 @@ opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy.sv	fail	chained_only	defe
 opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy_core_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy_ctn_reg_top.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_dbg/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_dbg/dv/autogen/xbar_dbg_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_dbg/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip/xbar_dbg/rtl/autogen/tl_dbg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip/xbar_dbg/rtl/autogen/tl_dbg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_dbg/rtl/autogen/xbar_dbg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_main/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_main/dv/autogen/xbar_main_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip/xbar_main/rtl/autogen/tl_main_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip/xbar_main/rtl/autogen/tl_main_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_main/rtl/autogen/xbar_main.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_mbx/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_mbx/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_mbx/dv/autogen/xbar_mbx_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip/xbar_mbx/rtl/autogen/tl_mbx_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip/xbar_mbx/rtl/autogen/tl_mbx_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_mbx/rtl/autogen/xbar_mbx.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_peri/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_peri/dv/autogen/xbar_peri_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip/xbar_peri/rtl/autogen/tl_peri_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip/xbar_peri/rtl/autogen/tl_peri_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip/xbar_peri/rtl/autogen/xbar_peri.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/dv/env/ac_range_check_dut_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/dv/env/ac_range_check_env.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9122,7 +9122,7 @@ opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/dv/tb/tb.sv	fail	chained_o
 opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/dv/tests/ac_range_check_base_test.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/dv/tests/ac_range_check_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/rtl/ac_range_check.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/rtl/ac_range_check_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/rtl/ac_range_check_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/rtl/ac_range_check_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/cov/alert_handler_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/alert_handler_env.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9165,8 +9165,8 @@ opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_esc_timer
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_lpg_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_ping_timer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_wrap.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/cov/clkmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_csrs_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9207,7 +9207,7 @@ opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_byp.sv	fail	chained_onl
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_clk_status.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_meas_chk.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_root_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/rtl/clkmgr_trans.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9238,7 +9238,7 @@ opentitan	hw/top_darjeeling/ip_autogen/gpio/dv/tests/gpio_base_test.sv	fail	chai
 opentitan	hw/top_darjeeling/ip_autogen/gpio/dv/tests/gpio_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/gpio/rtl/gpio.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/gpio/rtl/gpio_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/gpio/rtl/gpio_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/gpio/rtl/gpio_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/gpio/rtl/gpio_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9288,7 +9288,7 @@ opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_macro_pkg.sv	pass	c
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_part_buf.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_part_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_part_unbuf.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_scrmbl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_token_const.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_top_specific_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9300,7 +9300,7 @@ opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux.sv	fail	chained_only	de
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_jtag_breakout.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_jtag_buf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_strap_sampling.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_wkup.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9346,7 +9346,7 @@ opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_cdc.sv	fail	chained_onl
 opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_cdc_pulse.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_slow_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/rtl/pwrmgr_wake_info.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9355,7 +9355,7 @@ opentitan	hw/top_darjeeling/ip_autogen/racl_ctrl/dv/racl_ctrl_env_pkg.sv	fail	ch
 opentitan	hw/top_darjeeling/ip_autogen/racl_ctrl/dv/sva/racl_ctrl_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/racl_ctrl/dv/tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/racl_ctrl/rtl/racl_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/racl_ctrl/rtl/racl_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/racl_ctrl/rtl/racl_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/racl_ctrl/rtl/racl_ctrl_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rstmgr/dv/cov/rstmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rstmgr/dv/env/rstmgr_env.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9393,27 +9393,27 @@ opentitan	hw/top_darjeeling/ip_autogen/rstmgr/rtl/rstmgr_ctrl.sv	pass	chained_on
 opentitan	hw/top_darjeeling/ip_autogen/rstmgr/rtl/rstmgr_leaf_rst.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rstmgr/rtl/rstmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rstmgr/rtl/rstmgr_por.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/rstmgr/rtl/rstmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/rstmgr/rtl/rstmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rstmgr/rtl/rstmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_core_ibex/dv/sva/rv_core_ibex_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_addr_trans.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_cfg_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_peri.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_plic/fpv/tb/rv_plic_bind_fpv.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_plic/fpv/tb/rv_plic_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_plic/fpv/vip/rv_plic_assert_fpv.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_gateway.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_target.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/chip_darjeeling_asic.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/chip_darjeeling_verilator.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/testing/lc_ctrl_token_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling_pd_aon.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling_racl_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9578,7 +9578,7 @@ opentitan	hw/top_earlgrey/ip/ast/rtl/ast_entropy.sv	pass	chained_only	deferred:c
 opentitan	hw/top_earlgrey/ip/ast/rtl/ast_main.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/ast/rtl/ast_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/ast/rtl/ast_pulse_sync.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip/ast/rtl/ast_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip/ast/rtl/ast_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/ast/rtl/ast_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/ast/rtl/dev_entropy.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/ast/rtl/gfr_clk_mux2.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9596,17 +9596,17 @@ opentitan	hw/top_earlgrey/ip/ast/rtl/vcmain_pgd.sv	fail	chained_only	deferred:ch
 opentitan	hw/top_earlgrey/ip/ast/rtl/vio_pgd.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_main/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_main/dv/autogen/xbar_main_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip/xbar_main/rtl/autogen/tl_main_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip/xbar_main/rtl/autogen/tl_main_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_main/rtl/autogen/xbar_main.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_peri/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_peri/dv/autogen/xbar_peri_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip/xbar_peri/rtl/autogen/tl_peri_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip/xbar_peri/rtl/autogen/tl_peri_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip/xbar_peri/rtl/autogen/xbar_peri.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/cov/alert_handler_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/alert_handler_env.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9649,7 +9649,7 @@ opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_esc_timer.s
 opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_lpg_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_ping_timer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_reg_wrap.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/cov/clkmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9691,7 +9691,7 @@ opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_byp.sv	fail	chained_only	
 opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_clk_status.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_meas_chk.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_root_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_trans.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9794,7 +9794,7 @@ opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_lcmgr.sv	fail	cha
 opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_prim_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_prog.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_rd.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_region_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_top_specific_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_mp.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9835,7 +9835,7 @@ opentitan	hw/top_earlgrey/ip_autogen/gpio/dv/tests/gpio_base_test.sv	fail	chaine
 opentitan	hw/top_earlgrey/ip_autogen/gpio/dv/tests/gpio_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/gpio/rtl/gpio.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/gpio/rtl/gpio_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/gpio/rtl/gpio_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/gpio/rtl/gpio_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/gpio/rtl/gpio_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9885,7 +9885,7 @@ opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_macro_pkg.sv	pass	cha
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_part_buf.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_part_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_part_unbuf.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_scrmbl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_token_const.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_top_specific_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9897,7 +9897,7 @@ opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux.sv	fail	chained_only	defe
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_jtag_breakout.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_jtag_buf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_strap_sampling.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_wkup.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9943,7 +9943,7 @@ opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_cdc.sv	fail	chained_only	
 opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_cdc_pulse.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_slow_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr_wake_info.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9983,20 +9983,20 @@ opentitan	hw/top_earlgrey/ip_autogen/rstmgr/rtl/rstmgr_ctrl.sv	pass	chained_only
 opentitan	hw/top_earlgrey/ip_autogen/rstmgr/rtl/rstmgr_leaf_rst.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rstmgr/rtl/rstmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rstmgr/rtl/rstmgr_por.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/rstmgr/rtl/rstmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/rstmgr/rtl/rstmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rstmgr/rtl/rstmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_core_ibex/dv/sva/rv_core_ibex_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_core_ibex/rtl/rv_core_ibex.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_addr_trans.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_cfg_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_peri.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_plic/fpv/tb/rv_plic_bind_fpv.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_plic/fpv/tb/rv_plic_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_plic/fpv/vip/rv_plic_assert_fpv.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_plic/rtl/rv_plic.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_plic/rtl/rv_plic_gateway.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/rv_plic/rtl/rv_plic_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/rv_plic/rtl/rv_plic_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/rv_plic/rtl/rv_plic_target.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_asic.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10004,7 +10004,7 @@ opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_cw340.sv	fail	chained_only	d
 opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_verilator.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/testing/lc_ctrl_token_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey_pd_aon.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey_racl_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10025,17 +10025,17 @@ opentitan	hw/top_englishbreakfast/dv/autogen/tb__xbar_connect.sv	fail	chained_on
 opentitan	hw/top_englishbreakfast/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/dv/env/autogen/chip_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/dv/verilator/chip_sim_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip/ast/rtl/ast_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip/ast/rtl/ast_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/ast/rtl/ast_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/autogen/xbar_main_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip/xbar_main/rtl/autogen/tl_main_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip/xbar_main/rtl/autogen/tl_main_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_main/rtl/autogen/xbar_main.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/xbar_env_pkg__params.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/xbar_peri_bind.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip/xbar_peri/rtl/autogen/tl_peri_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip/xbar_peri/rtl/autogen/tl_peri_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip/xbar_peri/rtl/autogen/xbar_peri.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/cov/clkmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_csrs_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10076,7 +10076,7 @@ opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_byp.sv	fail	chain
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_clk_status.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_meas_chk.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_root_ctrl.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_trans.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10179,7 +10179,7 @@ opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_lcmgr.sv	
 opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_prim_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_prog.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_rd.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_region_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_top_specific_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_mp.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10220,7 +10220,7 @@ opentitan	hw/top_englishbreakfast/ip_autogen/gpio/dv/tests/gpio_base_test.sv	fai
 opentitan	hw/top_englishbreakfast/ip_autogen/gpio/dv/tests/gpio_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/gpio/rtl/gpio.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/gpio/rtl/gpio_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/gpio/rtl/gpio_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/gpio/rtl/gpio_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/gpio/rtl/gpio_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/fpv/tb/pinmux_bind_fpv.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/fpv/tb/pinmux_chip_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10230,7 +10230,7 @@ opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux.sv	fail	chained_o
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_jtag_breakout.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_jtag_buf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_strap_sampling.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_wkup.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10276,7 +10276,7 @@ opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_cdc.sv	fail	chain
 opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_cdc_pulse.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_slow_fsm.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_wake_info.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10316,20 +10316,20 @@ opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_ctrl.sv	pass	chai
 opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_leaf_rst.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_por.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_core_ibex/dv/sva/rv_core_ibex_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_core_ibex/rtl/rv_core_ibex.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_addr_trans.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_cfg_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_peri.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/fpv/tb/rv_plic_bind_fpv.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/fpv/tb/rv_plic_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/fpv/vip/rv_plic_assert_fpv.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_gateway.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_reg_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_target.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/rtl/autogen/chip_englishbreakfast_cw305.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -11292,14 +11292,14 @@ sv-tests	tests/chapter-5/5.6.4--compiler-directives-resetall.sv	pass	must_accept
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-timescale.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-unconnected-drive.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/chapter-5/5.7.1--integers-left-padding-bit.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-5/5.7.1--integers-left-padding.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-5/5.7.1--integers-left-padding.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.7.1--integers-signed-illegal.sv	fail	must_reject	match	pinned: LRM 5.7.1 - "8'd-6" illegal negative literal syntax
-sv-tests	tests/chapter-5/5.7.1--integers-signed.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-5/5.7.1--integers-signed.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.7.1--integers-sized.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.7.1--integers-token.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-5/5.7.1--integers-underscores.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-5/5.7.1--integers-underscores.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.7.1--integers-unsized-illegal.sv	fail	must_reject	match	pinned: LRM 5.7.1 lexical rule - '4af' needs 'h
-sv-tests	tests/chapter-5/5.7.1--integers-unsized.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-5/5.7.1--integers-unsized.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.7.2-real-constants-illegal.sv	fail	must_reject	match	pinned: LRM 5.7.2 lexical rule - real literals need a digit on each side of the decimal point ('.12', '9.', '4.E3')
 sv-tests	tests/chapter-5/5.7.2-real-constants.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.7.2-real-token.sv	pass	must_accept	match	sv-tests: positive test
@@ -11689,7 +11689,7 @@ sv-tests	tests/generic/member/class_member_test_9.sv	pass	must_accept	match	sv-t
 sv-tests	tests/generic/number/number_test_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_1.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_10.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_11.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_11.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_12.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_13.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_14.sv	pass	must_accept	match	sv-tests: positive test
@@ -11697,10 +11697,10 @@ sv-tests	tests/generic/number/number_test_15.sv	pass	must_accept	match	sv-tests:
 sv-tests	tests/generic/number/number_test_16.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_2.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_24.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_25.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_25.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_26.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_27.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_28.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_28.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_29.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_3.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_30.sv	pass	must_accept	match	sv-tests: positive test
@@ -11712,26 +11712,26 @@ sv-tests	tests/generic/number/number_test_35.sv	pass	must_accept	match	sv-tests:
 sv-tests	tests/generic/number/number_test_36.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_4.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_42.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_43.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_43.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_44.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_45.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_46.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_47.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_47.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_48.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_49.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_5.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_5.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_50.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_51.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_52.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_53.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_59.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_6.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_60.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_60.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_61.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_62.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_64.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_65.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_66.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_66.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_67.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_68.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_69.sv	pass	must_accept	match	sv-tests: positive test
@@ -11739,7 +11739,7 @@ sv-tests	tests/generic/number/number_test_7.sv	pass	must_accept	match	sv-tests: 
 sv-tests	tests/generic/number/number_test_70.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_71.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_72.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/number/number_test_8.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/number/number_test_8.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/number/number_test_9.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/preproc/preproc_test_0.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/generic/preproc/preproc_test_2.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
@@ -14871,7 +14871,7 @@ verilator	test_regress/t/t_math_concat64.v	fail	must_accept	divergence:explained
 verilator	test_regress/t/t_math_cond_clean.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_cond_clean.py expects success
 verilator	test_regress/t/t_math_cond_huge.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_cond_huge.py expects success
 verilator	test_regress/t/t_math_cond_short_circuit.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_cond_short_circuit.py expects success
-verilator	test_regress/t/t_math_const.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_math_const.py expects success
+verilator	test_regress/t/t_math_const.v	pass	must_accept	match	verilator: driver t_math_const.py expects success
 verilator	test_regress/t/t_math_countbits.v	pass	must_accept	match	verilator: driver t_math_countbits.py expects success
 verilator	test_regress/t/t_math_countbits2_bad.v	pass	must_accept	match	verilator: driver t_math_countbits2_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_math_countbits_bad.v	pass	must_accept	match	verilator: driver t_math_countbits_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -15347,7 +15347,7 @@ verilator	test_regress/t/t_preproc_strify_join.v	pass	out_of_scope_with_cause	de
 verilator	test_regress/t/t_preproc_stringend_bad.v	fail	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
 verilator	test_regress/t/t_preproc_ttempty.v	pass	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
 verilator	test_regress/t/t_preproc_undefineall.v	fail	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
-verilator	test_regress/t/t_priority_case.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_priority_case.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_priority_case.v	pass	must_accept	match	verilator: driver t_priority_case.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_probdist.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_probdist.py expects success
 verilator	test_regress/t/t_probdist_bad.v	pass	must_accept	match	verilator: driver t_probdist_bad.py expects success
 verilator	test_regress/t/t_process.v	pass	must_accept	match	verilator: driver t_process.py expects success

@@ -1,0 +1,35 @@
+# .3.5 spaced-based number literal — BEFORE (HEAD, release 1.0.170)
+## grammar WHERE
+439:integral_number := /([0-9][0-9_]*)?'[sS]?[dDhHoObB][0-9a-fA-FxXzZ?_]+/
+
+## repro matrix (sv_2017)
+nospace     : PASS
+spaced      : REJECT
+spaced_all  : REJECT
+
+## v2005 spaced repro (5'h 0 in a module, verilog_2005)
+v2005 spaced : REJECT
+
+## family #6 rows (22) — parse verdict at HEAD
+Surelog  tests/BindStmt2/dut.sv                                  REJECT
+Surelog  tests/BlackParrotMuteErrors/dut.sv                      REJECT
+Surelog  tests/LargeHexCast/dut.sv                               REJECT
+Surelog  tests/PackStructVar/dut.sv                              REJECT
+Surelog  tests/UndersVal/dut.sv                                  REJECT
+ispras-sv-tests ieee-1800-2012/05/05.07.01_04.sv                        REJECT
+ispras-sv-tests ieee-1800-2012/11/11.03.03_01.sv                        REJECT
+sv-tests tests/chapter-5/5.7.1--integers-left-padding.sv         REJECT
+sv-tests tests/chapter-5/5.7.1--integers-signed.sv               REJECT
+sv-tests tests/chapter-5/5.7.1--integers-underscores.sv          REJECT
+sv-tests tests/chapter-5/5.7.1--integers-unsized.sv              REJECT
+sv-tests tests/generic/number/number_test_11.sv                  REJECT
+sv-tests tests/generic/number/number_test_25.sv                  REJECT
+sv-tests tests/generic/number/number_test_28.sv                  REJECT
+sv-tests tests/generic/number/number_test_43.sv                  REJECT
+sv-tests tests/generic/number/number_test_47.sv                  REJECT
+sv-tests tests/generic/number/number_test_5.sv                   REJECT
+sv-tests tests/generic/number/number_test_60.sv                  REJECT
+sv-tests tests/generic/number/number_test_66.sv                  REJECT
+sv-tests tests/generic/number/number_test_8.sv                   REJECT
+verilator test_regress/t/t_math_const.v                           REJECT
+verilator test_regress/t/t_priority_case.v                        REJECT

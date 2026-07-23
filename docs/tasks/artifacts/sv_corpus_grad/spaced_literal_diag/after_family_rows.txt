@@ -1,0 +1,23 @@
+## family #6 rows (22) — parse verdict AFTER fix (sv_2017)
+Surelog  tests/BindStmt2/dut.sv                                  PASS
+Surelog  tests/BlackParrotMuteErrors/dut.sv                      PASS
+Surelog  tests/LargeHexCast/dut.sv                               PASS
+Surelog  tests/PackStructVar/dut.sv                              PASS
+Surelog  tests/UndersVal/dut.sv                                  PASS
+ispras-sv-tests ieee-1800-2012/05/05.07.01_04.sv                        PASS
+ispras-sv-tests ieee-1800-2012/11/11.03.03_01.sv                        PASS
+sv-tests tests/chapter-5/5.7.1--integers-left-padding.sv         PASS
+sv-tests tests/chapter-5/5.7.1--integers-signed.sv               PASS
+sv-tests tests/chapter-5/5.7.1--integers-underscores.sv          PASS
+sv-tests tests/chapter-5/5.7.1--integers-unsized.sv              PASS
+sv-tests tests/generic/number/number_test_11.sv                  PASS
+sv-tests tests/generic/number/number_test_25.sv                  PASS
+sv-tests tests/generic/number/number_test_28.sv                  PASS
+sv-tests tests/generic/number/number_test_43.sv                  PASS
+sv-tests tests/generic/number/number_test_47.sv                  PASS
+sv-tests tests/generic/number/number_test_5.sv                   PASS
+sv-tests tests/generic/number/number_test_60.sv                  PASS
+sv-tests tests/generic/number/number_test_66.sv                  PASS
+sv-tests tests/generic/number/number_test_8.sv                   PASS
+verilator test_regress/t/t_math_const.v                           PASS
+verilator test_regress/t/t_priority_case.v                        PASS

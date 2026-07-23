@@ -436,7 +436,20 @@ number := real_number     -> {kind: "real",     body: $1}
 # clean Terminals so `$1` = the matched number string ⇒ a clean flat
 # `{kind, body:"<number>"}` (the prior nested decomposed shapes never
 # emitted — numbers were 100% unparseable — so no working consumer).
-integral_number := /([0-9][0-9_]*)?'[sS]?[dDhHoObB][0-9a-fA-FxXzZ?_]+/
+#
+# PGEN-SV-CORPUS-GRAD-0020 (.3.5, the #6 rejects-valid family): the two
+# `[ \t]*` seams admit LRM-legal white space in a based literal. IEEE
+# 1800-2017 section 5.7.1 (1364-2005 section 3.5.1 identical): white space is
+# legal between the size and the `'` and between the base format and the
+# value, but NOT between the `'` and the base character (`'[sS]?[dDhHoObB]`
+# stays contiguous). The value charset is unchanged, so a `-` between base and
+# value (LRM: illegal) and interior white space inside the value both still
+# reject. Terminal-internal, so cross-profile (heals sv_2017/sv_2023 AND
+# verilog_2005); no new rule/token (census unchanged); `body:$1` shape
+# unchanged (spaced literals were 100% unparseable ==> additive, no lock
+# broken). `[ \t]` (horizontal) covers the whole observed corpus; a literal
+# spanning a newline needs the composite-rule form (deferred).
+integral_number := /([0-9][0-9_]*[ \t]*)?'[sS]?[dDhHoObB][ \t]*[0-9a-fA-FxXzZ?_]+/
                  | /[0-9][0-9_]*/
 
 real_number := /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
