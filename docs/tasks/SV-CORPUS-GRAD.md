@@ -465,6 +465,119 @@ coverage.
   - [x] **LOCKSTEP** — tree + TASK_TREE index + MEMORY/CHANGES/
     DEVELOPMENT_NOTES this commit.
 
+#### `.3.3` — SVA implication operators `|->`/`|=>` absent (IEEE 1800-2017 A.2.10 — the #1 rejects-valid family)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0018`, session #198,
+  2026-07-23; release `1.0.168` → **`1.0.169`**, schema `16` → **`17`**, ledger
+  **`SV-0039`**).
+- **REPRODUCE:** `assert property (@(posedge clk) a |-> b)` and `… a |=> b`
+  reject at HEAD (`--profile sv_2017`, furthest at the `|->`/`|=>`); the
+  implication-free `assert property (@(posedge clk) p3)` **passes**. The #1
+  refreshed rejects-valid family (`.3.2`: SVA implication/property, 101 rows,
+  ispras 53 / verilator 31 / Surelog 8).
+- **ROOT CAUSE (WHY + WHERE, tool-pinned in `.3.2`, four ways):** the two core
+  SVA sequence-implication operators are entirely absent from
+  `grammars/systemverilog.ebnf` — no `|->` (overlapped) / `|=>` (non-overlapped)
+  token, and no `prop_primary` branch consumes them (`git -S` proves they were
+  never present). The only `>`/`|` operator tokens are `implies` (`->`),
+  `or_assign` (`|=`), `sequence_implies` (`=>`), `nonblocking_implies` (`->>`).
+  IEEE 1800-2017 A.2.10 defines `property_expr ::= … | sequence_expr |->
+  property_expr | sequence_expr |=> property_expr …` (used pervasively — §17,
+  §23; `vpiOverlapImplyOp`/`vpiNonOverlapImplyOp` §83). The mangled
+  `prop_primary` branches `implies property_expr` / `sequence_expr or_assign
+  property_expr` / `property_expr implies property_expr` are the LRM-markdown→
+  EBNF extractor's damaged remnants (the `|`-prefixed operators were split on
+  `|`, the EBNF alternation metachar; the LRM-extracted grammar lacks them too).
+- **FIX (hierarchy level 1 — pure grammar, additive):** add two tokens
+  (`overlapped_implication := "|->"`, `non_overlapped_implication := "|=>"`,
+  **profile-gated `["sv_2017","sv_2023"]`** — SVA is SystemVerilog-only, absent
+  from IEEE 1364-2005, so the operators are gated exactly like
+  `nonblocking_implies`/`SV-0023`) and mirror the two A.2.10 branches
+  `sequence_expr <op> property_expr` into BOTH `prop_primary_sv_2017` and
+  `prop_primary_sv_2023`. The pre-existing mangled branches are LEFT in place
+  (removing them = a separate accepts-invalid leaf; under the longest-match
+  tournament the correct operator wins for real `|->`/`|=>` input). Scope kept
+  tight per one-commit/one-defect.
+  - ⭐ **Gating decision (recorded):** the first regen left the tokens UNGATED,
+    and `verilog_2005_conformance_gate` correctly went RED — not a parse
+    regression (`profile_orphans=0`, corpus matrix 0 mismatches) but a census
+    shift (ungated tokens count in EVERY profile's inventory: v2005 cert
+    total 1115→1117 as +2 unreachability proofs). The LRM-faithful fix is to
+    GATE the tokens `sv_2017/sv_2023` (they are not 1364-2005 constructs) — the
+    gate telling us "you added something visible to v2005" is the gate working.
+    Gating keeps v2005 GENUINELY byte-inert (cert stays 1115, no re-baseline)
+    while the sv_2017/sv_2023 union cert still witnesses them (1345). Chose
+    faithfulness over the cheaper re-baseline (quality > speed).
+- **VERIFIED (measured GLOBALLY):**
+  - **Repro matrix (regen'd parser, guarded 307 s / 11 GB):** `a |-> b`,
+    `a |=> b`, `a |-> p3` (named prop), `a |=> ##1 b` (delayed seq), and the
+    exact ispras `16.12.01_01` all REJECT→ACCEPT under `sv_2017`; `sv_2023`
+    accepts too; a sanity module unchanged. AST shapes correct:
+    `{kind:"overlapped_implication"}` / `{kind:"non_overlapped_implication"}`.
+  - **Full external corpus (16,336 files, guarded re-char): pass
+    9,361 → 9,433 (+72), timeout 9 → 9 (unchanged), ZERO per-suite
+    regressions** — ispras 996→1,030 (+34), verilator 2,011→2,032 (+21,
+    all `t_assert_*` SVA files), Surelog 669→675 (+6), opentitan 691→695 (+4),
+    sv-tests 832→836 (+4), iverilog 3,162→3,165 (+3), all others byte-flat;
+    0 crash; overall 57.7%. (The gained files are all SVA-assertion cases;
+    the tracked ~20 s-boundary verilator `t_math_synmul_mul.v` is a timeout in
+    both the pre-fix and post-fix runs — its `observed` jitters pass↔timeout
+    with machine load, unrelated to the fix and outside the baseline as a
+    `chained_only` deferral.)
+  - **Adjudication baseline: rejects-valid 543 → 481 (−62), accepts-invalid
+    21 → 21 (IDENTICAL set — no over-acceptance introduced), unexplained
+    564 → 502.** The 62 moved rows all provably contain `|->`/`|=>` (spot-
+    verified across chapters 6/11/14/16); zero new rejects-valid (no valid file
+    newly rejected). Manifest deterministic (cmp ×2), path-clean.
+  - **`sv_cert_recognized_union_gate` GREEN on an evidence-grounded re-baseline:**
+    the 2 new operator tokens are each POSITIVELY WITNESSED — total 1,343→1,345
+    (+2), canonical witness 1,326→1,328 (+2), union witness 1,337→1,339 (+2);
+    proof 6, UNKNOWN 11/0, residual `[]` all unchanged; **still
+    `fully_certified_via_union=true`**, deterministic seeds 0/7/42, spf=0.
+    Contract JSON re-baselined same-slice with a full rebaseline_note.
+  - **v2005 adjudication manifest BYTE-IDENTICAL** (SVA is not in
+    `verilog_2005`; the gated tokens are referenced only by
+    `prop_primary_sv_2017`/`_sv_2023`) — 149 unexplained unchanged; git-diff
+    empty. **`verilog_2005_conformance_gate` GREEN byte-inert** on the GATED
+    build: cert `1115/328/773/14` byte-identical, corpus matrix 240/0,
+    profile-orphans 0 (no re-baseline of the conformance contract needed).
+  - **`sv_stimuli_quality_gate` PASS** — `closed_loop_replay_targets_total`
+    120 → **126** (⚠️ **+6**: the 4 new `prop_primary` branches + 2 token rules
+    are new closed-loop GENERATION-coverage targets — the same generation-target
+    growth pattern the H.12.5.8 property cascades produced; **this feeds
+    `SV-REPLAY-DEBT`** (the sibling axis) rather than reducing it; NOT a
+    regression — the gate is green, the targets are new surface to witness).
+    `ast_shape_contract_gate` 18/0; `sv_external_corpus_triage_gate` 14/14.
+  - **Gating re-verification (the second regen, gated tokens):** the repro
+    matrix re-passes under `sv_2017`/`sv_2023` and `verilog_2005` correctly
+    REJECTS `|->`; the full corpus re-char + re-adjudication produces a manifest
+    **BYTE-IDENTICAL** to the pre-gating one (proving the gating tweak changed
+    no parse outcome), and `sv_cert_recognized_union_gate` re-confirms
+    `1345/1339` green + `verilog_2005_conformance_gate` re-confirms `1115`.
+  - **`--lint-grammar` GREEN: 1,468 rules** (census 1,466 → 1,468, +2 token
+    rules), **profile_orphans 0**, all error classes 0 (non_terminating /
+    unreachable_rules / undefined_references / unbound_fact_kinds /
+    ordered_choice_shadowing = 0). **`clippy_on_rust_change` PASS** ("no
+    Rust/generated Rust changes detected" — grammar-only, the generated parser
+    is the untracked emit). **Dual-feature lib tests 1,020 passed / 0 failed /
+    29 ignored** (byte-equal to the post-`.8c.3` baseline — no lib test added).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — minimal `a |-> b` / `a |=> b` reject; the F-SVA
+    cluster (101 rows) is the #1 refreshed family (`.3.2`).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — tool-pinned four ways (`.3.2`); WHERE =
+    token section + `prop_primary_sv_2017`/`_sv_2023`.
+  - [x] **FIX** — hierarchy level 1 (pure grammar): 2 profile-gated tokens +
+    4 branches; LRM-faithful gating (v2005 byte-inert).
+  - [x] **ADDRESSED (verified)** — before→after measured globally: corpus +72
+    (zero regressions), baseline 564→502, repro matrix flips, correct AST kinds.
+  - [x] **NO REGRESSION** — zero per-suite corpus regressions; accepts-invalid
+    identical; v2005 byte-inert (manifest + cert 1115); cert green (re-baselined,
+    still fully-certified); quality/shape/triage green; gating manifest
+    byte-identical.
+  - [x] **LOCKSTEP** — ledger `SV-0039` + contract `1.0.169`/schema 17 + SV book
+    changelog-index + tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this
+    commit.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

@@ -116,11 +116,11 @@ Surelog	tests/ArrayMethodIterator/dut.sv	pass	must_accept	match	Surelog: golden 
 Surelog	tests/ArrayNet/dut.sv	pass	must_accept	match	Surelog: golden log ArrayNet.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ArrayTypespec/dut.sv	pass	must_accept	match	Surelog: golden log ArrayTypespec.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ArrayVarName/dut.sv	pass	must_accept	match	Surelog: golden log ArrayVarName.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/Assert/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log Assert.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/Assert/dut.sv	pass	must_accept	match	Surelog: golden log Assert.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/AssertDelayError/left_rotate.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
-Surelog	tests/AssertDelayError/left_rotate_assertions.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
+Surelog	tests/AssertDelayError/left_rotate_assertions.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/AssertDelayError/tb_left_rotate.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
-Surelog	tests/AssertTempError/design.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
+Surelog	tests/AssertTempError/design.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/AssertTempError/testbench.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/Assertions/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log Assertions.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/AssignPattern/dut.sv	pass	must_accept	match	Surelog: golden log AssignPattern.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -570,7 +570,7 @@ Surelog	tests/OneAnd/yosys_techlibs_common_simcells.v	pass	chained_only	deferred
 Surelog	tests/OneClock/tb.v	pass	must_accept	match	Surelog: golden log OneClock.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/OneDivider/dut.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/OneDivider/syn_tb.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
-Surelog	tests/OneDivider/tb.v	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
+Surelog	tests/OneDivider/tb.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/OneFF/dut.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/OneFF/syn_tb.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/OneFF/tb.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
@@ -712,7 +712,7 @@ Surelog	tests/PreprocUhdmCov/dut.sv	fail	chained_only	deferred:chained_only	Sure
 Surelog	tests/PreprocUhdmCov/prim_assert.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/PrimTermExpr/dut.sv	pass	must_accept	match	Surelog: golden log PrimTermExpr.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ProcForLoop/dut.sv	pass	must_accept	match	Surelog: golden log ProcForLoop.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/PropBinding/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log PropBinding.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/PropBinding/dut.sv	pass	must_accept	match	Surelog: golden log PropBinding.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/RangeInf/dut.sv	pass	must_accept	match	Surelog: golden log RangeInf.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/RangeSelect/dut.sv	pass	must_accept	match	Surelog: golden log RangeSelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ReorderPatt/dut.sv	pass	must_accept	match	Surelog: golden log ReorderPatt.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -725,7 +725,7 @@ Surelog	tests/ScratchPad.sv	pass	chained_only	deferred:chained_only	Surelog: no 
 Surelog	tests/SelectHierPath/dut.sv	pass	must_accept	match	Surelog: golden log SelectHierPath.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/SelectSelect/dut.sv	pass	must_accept	match	Surelog: golden log SelectSelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/Selects/dut.sv	pass	must_accept	match	Surelog: golden log Selects.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/SeqUseNonTemp/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log SeqUseNonTemp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/SeqUseNonTemp/dut.sv	pass	must_accept	match	Surelog: golden log SeqUseNonTemp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/SequenceInst/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log SequenceInst.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ShiftX/dut.sv	pass	must_accept	match	Surelog: golden log ShiftX.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/SignedBin/dut.sv	pass	must_accept	match	Surelog: golden log SignedBin.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -2008,8 +2008,8 @@ ispras-sv-tests	ieee-1800-2012/06/06.20.01_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/06/06.20.01_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.20.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.20.02.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/06/06.20.02.01_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/06/06.20.02.01_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/06/06.20.02.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/06/06.20.02.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.20.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.20.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.20.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2250,7 +2250,7 @@ ispras-sv-tests	ieee-1800-2012/11/11.13_03.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/11/11.13_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_06.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/11/11.13_07.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/11/11.13_07.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_08.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.04.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.04.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2313,7 +2313,7 @@ ispras-sv-tests	ieee-1800-2012/14/14.12_02.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/14/14.13_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/14/14.14_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/14/14.14_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/14/14.14_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/14/14.14_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/14/14.14_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/14/14.14_05.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/14/14.15_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2369,9 +2369,9 @@ ispras-sv-tests	ieee-1800-2012/16/16.08_06.sv	fail	out_of_scope_with_cause:impl_
 ispras-sv-tests	ieee-1800-2012/16/16.09.02_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.09.03_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.09.04_01.sv	fail	must_reject	match	pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level regardless of the intended 16.9.4 nested-gclk-function semantic rule
-ispras-sv-tests	ieee-1800-2012/16/16.09.04_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.09.04_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.09.04_04.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.09.04_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.09.04_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.09.04_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.09.04_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.09.04_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.09.05_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2388,13 +2388,13 @@ ispras-sv-tests	ieee-1800-2012/16/16.09.11_04.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/16/16.09.11_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.10_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.10_02.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/16/16.10_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.10_04.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.10_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.10_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.10_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.10_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.10_07.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.12.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.12.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.06_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.06_02.sv	fail	must_accept	divergence:explained_svpp_macro_use	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2404,39 +2404,39 @@ ispras-sv-tests	ieee-1800-2012/16/16.12.10_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/16/16.12.11_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.12.12_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.13_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/16/16.12.14_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.12.14_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.12.14_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.12.14_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.12.14_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.12.14_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.14_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.14_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.14_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.14_07.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.16_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/16/16.12.17_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.12.17_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.17_02.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.12.17_03.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/16/16.12.17_04.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.12.17_05.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.12.17_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.12.17_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.20_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.22_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.12.22_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.13.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.13.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.13.03_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.13.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.13.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.13.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.13.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.13.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.13.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.13.06_02.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/16/16.13.07_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.13.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.14.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.14.05_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.14.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.14.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_04.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_06.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.14.06.01_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.06.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.06.02_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.14.06.02_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2448,11 +2448,11 @@ ispras-sv-tests	ieee-1800-2012/16/16.14.06_02.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/16/16.14.06_03.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.14.06_04.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.14.07_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.14.07_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.14.07_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.15_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.15_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.15_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/16/16.15_04.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.15_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/16/16.15_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.16.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/16/16.16_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/16/16.16_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2481,13 +2481,13 @@ ispras-sv-tests	ieee-1800-2012/17/17.07.01_03.sv	fail	out_of_scope_with_cause:im
 ispras-sv-tests	ieee-1800-2012/17/17.07.01_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.07.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.07.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/17/17.07_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/17/17.07_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/17/17.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/17/17.07_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.07_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.07_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.07_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/17/17.07_06.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/17/17.07_07.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/17/17.07_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/17/17.07_07.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.09_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/17/17.09_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2595,8 +2595,8 @@ ispras-sv-tests	ieee-1800-2012/20/20.08.01_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/20/20.09_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/20/20.09_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/20/20.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/20/20.11_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/20/20.12_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/20/20.11_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/20/20.12_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/20/20.17.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/20/20.17.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/20/20.17.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2691,7 +2691,7 @@ ispras-sv-tests	ieee-1800-2012/23/23.10.03_02.sv	fail	must_accept	divergence:une
 ispras-sv-tests	ieee-1800-2012/23/23.10.04.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.10_01.sv	fail	must_accept	divergence:explained_svpp_macro_use	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/23/23.10_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/23/23.11_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/23/23.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/24/24.03.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/24/24.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/24/24.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -3400,7 +3400,7 @@ iverilog	ivtest/ivltests/br_gh316a.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/br_gh316b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh316c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh33.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br_gh330.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br_gh330.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh337.v	fail	must_accept	divergence:explained_svpp_conditional	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br_gh345.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh356a.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -3647,8 +3647,8 @@ iverilog	ivtest/ivltests/cmdline_parm1.v	pass	out_of_scope_with_cause:no_sv_key	
 iverilog	ivtest/ivltests/cmos.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/cmpi.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/comment1.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
-iverilog	ivtest/ivltests/comp1000.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/comp1001.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/comp1000.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/comp1001.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/comp1001_fail3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/comp1001_fail4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/comp1001_fail5.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -8451,7 +8451,7 @@ opentitan	hw/ip/spi_host/dv/env/spi_segment_item.sv	fail	chained_only	deferred:c
 opentitan	hw/ip/spi_host/dv/env/spi_transaction_item.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/dv/spi_host_fsm_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/dv/sva/spi_host_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/spi_host/dv/sva/spi_host_data_stable_sva.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/spi_host/dv/sva/spi_host_data_stable_sva.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/dv/tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/dv/tests/spi_host_base_test.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/spi_host/dv/tests/spi_host_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10608,9 +10608,9 @@ opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_intf.sv	fail	chained_only	deferred:ch
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_jtag.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_jtag_tap.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_test.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/sva/dm_csrs_sva.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/sva/dm_sba_sva.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/sva/dm_top_sva.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/sva/dm_csrs_sva.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/sva/dm_sba_sva.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/sva/dm_top_sva.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/SimJTAG.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/boot_rom.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/dm_tb_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10915,20 +10915,20 @@ sv-tests	tests/chapter-15/15.4--mailbox-non-blocking.sv	pass	must_accept	match	s
 sv-tests	tests/chapter-15/15.5.1--named-event-trigger-blocking.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-15/15.5.1--named-event-trigger-non-blocking.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-15/15.5.2--named-event-wait.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-16/16.10--property-local-var-fail.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (simulation) - syntax itself is valid
+sv-tests	tests/chapter-16/16.10--property-local-var-fail.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (simulation) - syntax itself is valid
 sv-tests	tests/chapter-16/16.10--property-local-var-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
-sv-tests	tests/chapter-16/16.10--property-local-var.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-16/16.10--property-local-var.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-16/16.10--sequence-local-var-fail.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (simulation) - syntax itself is valid
 sv-tests	tests/chapter-16/16.10--sequence-local-var-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
 sv-tests	tests/chapter-16/16.10--sequence-local-var.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-16/16.11--sequence-subroutine-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
-sv-tests	tests/chapter-16/16.12--property-disable-iff.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-16/16.12--property-disable-iff.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-16/16.12--property-disj.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-16/16.12--property-iff.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-16/16.12--property-interface-prec-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
 sv-tests	tests/chapter-16/16.12--property-interface-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
 sv-tests	tests/chapter-16/16.12--property-prec-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
-sv-tests	tests/chapter-16/16.12--property-prec.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-16/16.12--property-prec.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-16/16.12--property-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
 sv-tests	tests/chapter-16/16.12--property.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-16/16.13--sequence-multiclock-uvm.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
@@ -13136,14 +13136,14 @@ verilator	test_regress/t/t_assert_assert.v	fail	must_accept	divergence:explained
 verilator	test_regress/t/t_assert_bang_in_seq.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_bang_in_seq.py expects success
 verilator	test_regress/t/t_assert_basic.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_assert_basic.py expects success
 verilator	test_regress/t/t_assert_casez.v	pass	must_accept	match	verilator: driver t_assert_casez.py expects success
-verilator	test_regress/t/t_assert_clock_event_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_clock_event_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_clock_event_unsup.v	pass	must_accept	match	verilator: driver t_assert_clock_event_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_comp.v	pass	must_accept	match	verilator: driver t_assert_comp.py expects success
 verilator	test_regress/t/t_assert_comp_bad.v	pass	must_accept	match	verilator: driver t_assert_comp_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_consec_rep.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_consec_rep.py expects success
-verilator	test_regress/t/t_assert_consec_rep_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_consec_rep_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_consec_rep_bad.v	pass	must_accept	match	verilator: driver t_assert_consec_rep_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_consec_rep_large.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_consec_rep_large.py expects success
-verilator	test_regress/t/t_assert_consec_rep_unroll_limit_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_consec_rep_unroll_limit_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_assert_consec_rep_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_consec_rep_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_consec_rep_unroll_limit_bad.v	pass	must_accept	match	verilator: driver t_assert_consec_rep_unroll_limit_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_consec_rep_unsup.v	pass	must_accept	match	verilator: driver t_assert_consec_rep_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_cover.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_cover.py expects success
 verilator	test_regress/t/t_assert_ctl_arg.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_ctl_arg.py expects success
 verilator	test_regress/t/t_assert_ctl_arg_unsup.v	pass	must_accept	match	verilator: driver t_assert_ctl_arg_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -13151,7 +13151,7 @@ verilator	test_regress/t/t_assert_ctl_concurrent.v	pass	must_accept	match	verila
 verilator	test_regress/t/t_assert_ctl_immediate.v	pass	must_accept	match	verilator: driver t_assert_ctl_immediate.py expects success
 verilator	test_regress/t/t_assert_ctl_type_bad.v	pass	must_accept	match	verilator: driver t_assert_ctl_type_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_ctl_unsup.v	pass	must_accept	match	verilator: driver t_assert_ctl_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_assert_disable_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_disable_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_disable_bad.v	pass	must_accept	match	verilator: driver t_assert_disable_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_disable_count.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_disable_count.py expects success
 verilator	test_regress/t/t_assert_disable_iff.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_assert_disable_iff.py expects success
 verilator	test_regress/t/t_assert_dup_bad.v	pass	must_accept	match	verilator: driver t_assert_dup_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -13170,19 +13170,19 @@ verilator	test_regress/t/t_assert_inside_cond.v	fail	must_accept	divergence:expl
 verilator	test_regress/t/t_assert_nonconsec_rep.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_nonconsec_rep.py expects success
 verilator	test_regress/t/t_assert_on.v	pass	must_accept	match	verilator: driver t_assert_disabled.py expects success
 verilator	test_regress/t/t_assert_opt_check.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_opt_check.py expects success
-verilator	test_regress/t/t_assert_past.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_past.py expects success
+verilator	test_regress/t/t_assert_past.v	pass	must_accept	match	verilator: driver t_assert_past.py expects success
 verilator	test_regress/t/t_assert_pre.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_pre.py expects success
-verilator	test_regress/t/t_assert_preponed_nba.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_preponed_nba.py expects success
+verilator	test_regress/t/t_assert_preponed_nba.v	pass	must_accept	match	verilator: driver t_assert_preponed_nba.py expects success
 verilator	test_regress/t/t_assert_procedural.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_procedural.py expects success
 verilator	test_regress/t/t_assert_procedural_clk_bad.v	pass	must_accept	match	verilator: driver t_assert_procedural_clk_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_procedural_gated.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_procedural_gated.py expects success
-verilator	test_regress/t/t_assert_property_stop_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_property_stop_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_property_stop_bad.v	pass	must_accept	match	verilator: driver t_assert_property_stop_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_property_unsized.v	pass	must_accept	match	verilator: driver t_assert_property_unsized.py expects success
 verilator	test_regress/t/t_assert_question.v	pass	must_accept	match	verilator: driver t_assert_question.py expects success
-verilator	test_regress/t/t_assert_rep_bad_count.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_rep_bad_count.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_assert_rep_range_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_rep_range_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_assert_rep_range_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_rep_range_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_assert_rep_range_zero_min_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_assert_rep_range_zero_min_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_rep_bad_count.v	pass	must_accept	match	verilator: driver t_assert_rep_bad_count.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_rep_range_bad.v	pass	must_accept	match	verilator: driver t_assert_rep_range_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_rep_range_unsup.v	pass	must_accept	match	verilator: driver t_assert_rep_range_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_assert_rep_range_zero_min_unsup.v	pass	must_accept	match	verilator: driver t_assert_rep_range_zero_min_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_assert_sampled.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_sampled.py expects success
 verilator	test_regress/t/t_assert_synth.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_assert_synth.py expects success
 verilator	test_regress/t/t_assert_unique_case_bad.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_assert_unique_case_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -15372,13 +15372,13 @@ verilator	test_regress/t/t_program_anonymous.v	pass	must_accept	match	verilator:
 verilator	test_regress/t/t_program_extern.v	pass	must_accept	match	verilator: driver t_program_extern.py expects success
 verilator	test_regress/t/t_prop_always.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_prop_always.py expects success
 verilator	test_regress/t/t_prop_always_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_prop_always_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_prop_always_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_prop_always_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_prop_always_unsup.v	pass	must_accept	match	verilator: driver t_prop_always_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_prop_always_wide.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_prop_always_wide.py expects success
 verilator	test_regress/t/t_prop_followed_by.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_prop_followed_by.py expects success
 verilator	test_regress/t/t_prop_followed_by_bad.v	pass	must_accept	match	verilator: driver t_prop_followed_by_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_property.py expects success
 verilator	test_regress/t/t_property_accept_reject_on.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_accept_reject_on.py expects success
-verilator	test_regress/t/t_property_arg_type.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_arg_type.py expects success
+verilator	test_regress/t/t_property_arg_type.v	pass	must_accept	match	verilator: driver t_property_arg_type.py expects success
 verilator	test_regress/t/t_property_case.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_case.py expects success
 verilator	test_regress/t/t_property_case_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_case_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_clock_collision_unsup.v	pass	must_accept	match	verilator: driver t_property_clock_collision_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -15387,7 +15387,7 @@ verilator	test_regress/t/t_property_disable_iff_midreset.v	fail	must_accept	dive
 verilator	test_regress/t/t_property_disable_iff_unsup.v	pass	must_accept	match	verilator: driver t_property_disable_iff_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_if_else.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_if_else.py expects success
 verilator	test_regress/t/t_property_imply_delay.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_imply_delay.py expects success
-verilator	test_regress/t/t_property_local_var_delay.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_local_var_delay.py expects success
+verilator	test_regress/t/t_property_local_var_delay.v	pass	must_accept	match	verilator: driver t_property_local_var_delay.py expects success
 verilator	test_regress/t/t_property_local_var_range_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_local_var_range_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_named.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_named.py expects success
 verilator	test_regress/t/t_property_negated.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_negated.py expects success
@@ -15412,9 +15412,9 @@ verilator	test_regress/t/t_property_sexpr_unsup.v	fail	must_accept	divergence:ex
 verilator	test_regress/t/t_property_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_until.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_until.py expects success
 verilator	test_regress/t/t_property_until_implication.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_until_implication.py expects success
-verilator	test_regress/t/t_property_untyped.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_untyped.py expects success
-verilator	test_regress/t/t_property_untyped_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_untyped_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_property_var_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_var_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_property_untyped.v	pass	must_accept	match	verilator: driver t_property_untyped.py expects success
+verilator	test_regress/t/t_property_untyped_unsup.v	pass	must_accept	match	verilator: driver t_property_untyped_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_property_var_unsup.v	pass	must_accept	match	verilator: driver t_property_var_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_protect_ids.v	pass	must_accept	match	verilator: driver t_protect_ids.py expects success
 verilator	test_regress/t/t_protect_ids_bad.v	pass	must_accept	match	verilator: driver t_protect_ids_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_public_clk.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_public_clk.py expects success
@@ -15668,13 +15668,13 @@ verilator	test_regress/t/t_semaphore_fair.v	pass	must_accept	match	verilator: dr
 verilator	test_regress/t/t_semaphore_fifo_block.v	pass	must_accept	match	verilator: driver t_semaphore_fifo_block.py expects success
 verilator	test_regress/t/t_sequence_bool_ops.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_sequence_bool_ops.py expects success
 verilator	test_regress/t/t_sequence_first_match.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_sequence_first_match.py expects success
-verilator	test_regress/t/t_sequence_first_match_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_sequence_first_match_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_sequence_first_match_unsup.v	pass	must_accept	match	verilator: driver t_sequence_first_match_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_sequence_intersect.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_sequence_intersect.py expects success
 verilator	test_regress/t/t_sequence_intersect_len_warn.v	pass	must_accept	match	verilator: driver t_sequence_intersect_len_warn.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_sequence_intersect_range_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_sequence_intersect_range_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_sequence_local_var.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_sequence_local_var.py expects success
+verilator	test_regress/t/t_sequence_local_var.v	pass	must_accept	match	verilator: driver t_sequence_local_var.py expects success
 verilator	test_regress/t/t_sequence_nonconst_delay_unsup.v	pass	must_accept	match	verilator: driver t_sequence_nonconst_delay_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_sequence_ref.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_sequence_ref.py expects success
+verilator	test_regress/t/t_sequence_ref.v	pass	must_accept	match	verilator: driver t_sequence_ref.py expects success
 verilator	test_regress/t/t_sequence_ref_unsup.v	pass	must_accept	match	verilator: driver t_sequence_ref_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_sequence_sexpr_throughout.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_sequence_sexpr_throughout.py expects success
 verilator	test_regress/t/t_sequence_sexpr_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_sequence_sexpr_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

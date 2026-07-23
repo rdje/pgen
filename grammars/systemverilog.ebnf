@@ -4403,6 +4403,10 @@ prop_primary_sv_2017 := sequence_expr
                               -> {kind: "implies_unary",       body: $2}
                        | sequence_expr or_assign property_expr
                               -> {kind: "sequence_or_assign",  lhs: $1, rhs: $3}
+                       | sequence_expr overlapped_implication property_expr
+                              -> {kind: "overlapped_implication",     lhs: $1, rhs: $3}
+                       | sequence_expr non_overlapped_implication property_expr
+                              -> {kind: "non_overlapped_implication", lhs: $1, rhs: $3}
                        | kw_if_958f57f5 lparen expression_or_dist rparen property_expr ( kw_else_ae050f5b property_expr )?
                               -> {kind: "if",                  condition: $3, then_body: $5, else_body: $6}
                        | kw_case_6406510c lparen expression_or_dist rparen property_case_item property_case_item* kw_endcase_a27a6786
@@ -4490,6 +4494,10 @@ prop_primary_sv_2023 := sequence_expr
                               -> {kind: "implies_unary",       body: $2}
                        | sequence_expr or_assign property_expr
                               -> {kind: "sequence_or_assign",  lhs: $1, rhs: $3}
+                       | sequence_expr overlapped_implication property_expr
+                              -> {kind: "overlapped_implication",     lhs: $1, rhs: $3}
+                       | sequence_expr non_overlapped_implication property_expr
+                              -> {kind: "non_overlapped_implication", lhs: $1, rhs: $3}
                        | kw_if_958f57f5 lparen expression_or_dist rparen property_expr ( kw_else_ae050f5b property_expr )?
                               -> {kind: "if",                  condition: $3, then_body: $5, else_body: $6}
                        | kw_case_6406510c lparen expression_or_dist rparen property_case_item property_case_item* kw_endcase_a27a6786
@@ -6691,8 +6699,14 @@ lparen := trivia "("                         -> {kind: "lparen"}
 minus := trivia "-"                          -> {kind: "minus"}
 minus_assign := trivia "-="                   -> {kind: "minus_assign"}
 minus_minus := trivia "--"                    -> {kind: "minus_minus"}
+# SVA sequence-implication operators (IEEE 1800-2017 A.2.10) — SystemVerilog-only,
+# absent from IEEE 1364-2005, so profile-gated like nonblocking_implies (`->>`, SV-0023).
+@profiles: ["sv_2017", "sv_2023"]
+non_overlapped_implication := trivia "|=>"    -> {kind: "non_overlapped_implication"}
 not_equal := trivia "!="                      -> {kind: "not_equal"}
 or_assign := trivia "|="                      -> {kind: "or_assign"}
+@profiles: ["sv_2017", "sv_2023"]
+overlapped_implication := trivia "|->"        -> {kind: "overlapped_implication"}
 percent := trivia "%"                        -> {kind: "percent"}
 percent_assign := trivia "%="                 -> {kind: "percent_assign"}
 plus := trivia "+"                           -> {kind: "plus"}

@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-23 - PGEN-SV-CORPUS-GRAD-0018 — three engineering decisions in a "simple" two-operator grammar add
+
+The fix itself is small (two tokens, four branches). Three decisions made it signoff-grade.
+
+**(1) Faithful to A.2.10, minimal in scope.** IEEE 1800-2017 A.2.10 defines `property_expr ::= …
+| sequence_expr |-> property_expr | sequence_expr |=> property_expr`. The fix adds exactly those two
+branches (return shapes `{kind:"overlapped_implication"|"non_overlapped_implication", lhs, rhs}`,
+mirrored into both `prop_primary_sv_2017` and `_sv_2023`) and the two missing tokens. The pre-existing
+mangled branches (`implies property_expr`, `sequence_expr or_assign property_expr`) are LEFT untouched —
+they are a *separate* over-acceptance concern, and under PGEN's longest-match tournament the correct
+operator wins for real `|->`/`|=>` input (`or_assign` can only consume the `|=` prefix, then fails needing
+a `property_expr` at `>`). One commit, one defect.
+
+**(2) The v2005 conformance gate caught an inventory leak — and the right fix was to be MORE faithful,
+not to re-baseline.** The first regen left the two tokens ungated. `verilog_2005_conformance_gate` went RED.
+It was NOT a parse regression: `profile_orphans=0`, the accept/reject corpus matrix had 0 mismatches, and
+the v2005 adjudication manifest was byte-identical — v2005 *parsing* was untouched. What shifted was the
+v2005 certificate **census**: an ungated token is counted in every profile's rule inventory, so under v2005
+the two operators showed up as +2 `ProfileEntryUnreachable` proofs (total 1115→1117). Two honest options:
+re-baseline the v2005 cert (accept the +2), or gate the tokens `["sv_2017","sv_2023"]` so they leave the
+v2005 inventory entirely. We gated them — `|->`/`|=>` are genuinely not IEEE 1364-2005 constructs, exactly
+like `nonblocking_implies` (`->>`) which SV-0023 gated for the same reason. Gating keeps v2005 **genuinely
+byte-inert** (cert stays 1115, no re-baseline) while the sv_2017/sv_2023 union cert still witnesses the two
+operators (1345). The gate telling us "you made something visible to v2005 that shouldn't be" is the gate
+doing its job; the faithful response is to fix the grammar, not to move the baseline. Quality over the
+cheaper path.
+
+**(3) Two certs move in opposite, self-consistent directions — and one number GROWS by design.** Adding
+two grammar rules shifts both certificate baselines, and the direction is the tell that the change is sound:
+under sv_2017/sv_2023 the operators are *reachable and generated*, so they land as +2 **witnesses**
+(union total 1343→1345, witness 1337→1339, UNKNOWN unchanged 0, residual `[]`, still
+`fully_certified_via_union`); under v2005 they are gated out, so the v2005 cert is byte-inert. Separately,
+`sv_stimuli_quality_gate`'s `closed_loop_replay_targets_total` grew **120 → 126**: the four new
+`prop_primary` branches plus two token rules are new closed-loop *generation* targets. That is the exact
+pattern the tree already documented for the H.12.5.8 property cascades ("the cascades CREATED the new
+`prop_primary_*` branch universe, a generation-coverage target"). It is not a regression — it is +6 units of
+new SVA surface that `SV-REPLAY-DEBT` (the sibling `Done` axis) must now witness. Recorded so the replay-debt
+scope is honestly +6, not silently grown.
+
+**Measurement-custody footnote.** The corpus pass total is a *noisy* secondary metric: `t_math_synmul_mul.v`
+(a verilator ~20 s-boundary case) jitters pass↔timeout with machine load, so the raw pass count reads
+9,433–9,434 across runs. The deterministic, fix-attributable measure is the **adjudication baseline**
+(rejects-valid 543 → 481), which was byte-identical across the ungated and gated runs. Lead with the
+deterministic number.
+
 ## 2026-07-23 - PGEN-SV-CORPUS-GRAD-0017 — how a "basic assertion" corpus row unearthed a decade-shaped grammar hole
 
 **The path from symptom to root cause is the point of this note.** The `.3` worklist is 543 rejects-valid
