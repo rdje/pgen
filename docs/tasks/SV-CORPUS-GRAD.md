@@ -232,8 +232,13 @@ coverage.
   **`.3.6`** (`unique0` if/case qualifier §12.4.2/§12.5.3, in progress);
   remaining: constraint/randomize (23), directives (22), drive strength (21),
   named block (20), size-cast (13), enum-base-range (9), … cut from the same
-  map. **Current rejects-valid baseline after `.3.5`: 432** (accepts-invalid
-  21).
+  map. Burn-down continued: **`.3.6`** (`unique0` if/case §12.4.2, #11, done,
+  432→426) → **`.3.7`** (drive/charge strength keywords §28.11/A.8.6, in
+  progress; the family map REFRESHED to v3 over the current 426-row population
+  that leaf — see `.3.7`). Burn-down continued: **`.3.7`** (drive/charge strength
+  keywords §28.11/A.8.6, done, 426→406, CROSS-PROFILE + the largest v2005 heal
+  116→62). **Current rejects-valid baseline after `.3.7`: 406** (accepts-invalid
+  21; v2005 62).
 
 #### `.3.0` — Stuck-point clustering over the rejects-valid population (read-only diagnosis)
 
@@ -585,8 +590,12 @@ coverage.
 
 #### `.3.4` — modport shared-direction port list absent (IEEE 1800-2017 A.2.9 — the #3 rejects-valid family, interface/modport)
 
-- **Status: `in_progress`** (`PGEN-SV-CORPUS-GRAD-0019`, session #199,
-  2026-07-23). The second fix cut from the `.3.2`/v2 refreshed family map:
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0019`, session #199, 2026-07-23;
+  release `1.0.169` → **`1.0.170`**, schema `17` → **`18`**, ledger **`SV-0040`**;
+  the `in_progress` header was a lockstep-drift never flipped at landing — the
+  body's acceptance checklist, the release/ledger bump, and the commit subject
+  all record DONE; corrected in `.3.7`, `PGEN-SV-CORPUS-GRAD-0022`).
+  The second fix cut from the `.3.2`/v2 refreshed family map:
   after `.3.3` drained the #1 SVA family, **interface/modport (ch25), 50 rows**
   is the next single-construct family (verilator 24 / ispras 18 / sv-tests 3 /
   sv2v 3 / Surelog 1 / verible 1). Filtered to the current (post-`.3.3`, 481)
@@ -880,6 +889,163 @@ coverage.
     cert-union re-baselined GREEN (still `fully_certified_via_union`);
     v2005-conformance / shape / triage / quality GREEN.
   - [x] **LOCKSTEP** — ledger `SV-0042` + contract `1.0.172` + SV book +
+    tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
+
+#### `.3.7` — drive/charge strength keywords absent (IEEE 1800-2017 §28.11 / A.8.6 — the drive/charge strength family, ch28; CROSS-PROFILE, same word-boundary bug class as `.3.6`/`.3.3`)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0022`, session #202,
+  2026-07-24; release `1.0.172` → **`1.0.173`**, schema `18` UNCHANGED, ledger
+  **`SV-0043`**). The fifth fix cut from the refreshed family map. **Map refreshed
+  to the v3 vintage this leaf** (the `.3.2`/v2 map was over the pre-burn-down
+  543-row population; the current baseline is **426**): re-ran the tracked
+  `stimuli/sv/cluster_rejects_valid.py` + `classify_rejects_valid_families.py`
+  over the HEAD manifest → `rejects_valid_clusters_v3.{tsv,md}` +
+  `rejects_valid_families_v3.{tsv,md}` (426 rows, 222 signatures, 11 families;
+  determinism byte-proven cmp ×2; guarded, 5 s, peak 0 MB; the `.3.2`/v2
+  artifacts PRESERVED unmodified). The refreshed ranking: OTHER 245, SVA
+  (ch16) 35 (drained 101→35 by `.3.3`), interface/modport 25 (drained 50→25 by
+  `.3.4`), constraint/randomize 23, compiler directives 22, **drive/charge
+  strength 21**, named block/label 20, size/type cast 13, enum base range 9,
+  foreach/array 9, coverage bins/cross 4. Of the untouched families,
+  **drive/charge strength (21 rows)** is the pick: the only large family that is
+  BOTH homogeneous (nearly all rows are `(strengthN, strengthM)` on net decls /
+  continuous assigns / gate instances / pullup-pulldown) AND 100% LRM-legal with
+  ZERO adjudication ambiguity — the constraint family is heterogeneous (only 6
+  of 23 are `dist`; the rest are `randomize()...with{}` on method chains, `union
+  soft`, `x inside{}||`), compiler directives are `` `__FILE__``/`` `__LINE__``
+  preprocessor macros (route to `SVPP-EXPANSION`, not a grammar fix), and both
+  named-block-in-`generate` and bare-range `enum [N:0]` are LRM-QUESTIONABLE
+  (adjudication candidates, not clean grammar gaps — probed and set aside).
+- **REPRODUCE (tool-pinned, `drive_strength_diag/before.txt`):** all three
+  drive-strength sites REJECT under `--profile sv_2017` while a strength-free
+  control accepts —
+  `wire (strong1, pull0) n = 1;` (furthest 23),
+  `assign (highz0, weak1) n = 1;` (furthest 32),
+  `nor (highz1, strong0) g(o,a,b);` (furthest 33),
+  `pullup (supply1) pu1(a);` (furthest 33),
+  and the coupled supply-net forms `supply0 gnd;` (furthest 21) /
+  `wire (supply0, supply1) x;` (furthest 23). All 21 keyed family rows reject at
+  HEAD.
+- **ROOT CAUSE (WHY + WHERE) — the SAME word-boundary/metachar bug class as
+  `unique0` (`.3.6`) and `|->`/`|=>` (`.3.3`):**
+  - **WHERE:** `grammars/systemverilog.ebnf` `strength:5267`
+    (`strength := kw_supply | kw_strong | kw_pull | kw_weak`, tokens
+    `/supply\b/`, `/strong\b/`, `/pull\b/`, `/weak\b/`), `drive_strength:2045`
+    (`kw_highz`, `/highz\b/`), and `net_type:3549` (`kw_supply -> {kind:"supply"}`).
+  - **WHY:** every real SV/Verilog strength keyword is **digit-suffixed** —
+    `supply0`/`supply1`, `strong0`/`strong1`, `pull0`/`pull1`, `weak0`/`weak1`,
+    `highz0`/`highz1` (IEEE 1800-2017 A.8.6: `strength0 ::= supply0 | strong0 |
+    pull0 | weak0`; `strength1 ::= supply1 | strong1 | pull1 | weak1`) — but
+    the grammar's strength tokens are **bare** (`/supply\b/` etc.), and there is
+    NO word boundary between a letter and a trailing digit, so `/supply\b/`
+    cannot match `supply0`. Grammar-wide grep confirms **no digit-suffixed
+    strength token exists** (`supply0|supply1|strong0|…` appear ONLY inside the
+    `reserved_non_keyword_identifier` regexes :402/:405, never as usable
+    tokens). ⇒ the leaf `strength` rule can never match a real strength keyword,
+    so the `drive_strength` / `net_strength` / `pulldown_strength` /
+    `pullup_strength` wiring (all present: `continuous_assign:1577`,
+    gate-inst `:2372-2399`, `net_declaration:3479`) is **entirely DEAD**.
+  - **Probe/trace:** `--trace-rules strength,drive_strength,continuous_assign`
+    shows `drive_strength` IS entered but its `strength`/`lparen strength …`
+    branch fails to consume `strong1`/`highz0`; the bare `kw_strong`/`kw_weak`
+    tokens still legitimately serve the SVA `strong(seq)`/`weak(seq)` property
+    operators (`:4414`/`:4416`) — so the fix must ADD digit-suffixed tokens,
+    NOT repurpose the bare ones. Evidence
+    `docs/tasks/artifacts/sv_corpus_grad/drive_strength_diag/`.
+- **FIX (hierarchy level 1 — pure grammar, additive; UNGATED = cross-profile,
+  the `.3.5` cross-profile precedent — drive strength & supply nets are IEEE
+  1364-2005 constructs too):**
+  1. Add 10 digit-suffixed strength tokens (convention per `.3.6`'s
+     `kw_unique0`): `kw_supply0 := trivia /supply0\b/`, `kw_supply1`,
+     `kw_strong0`, `kw_strong1`, `kw_pull0`, `kw_pull1`, `kw_weak0`, `kw_weak1`,
+     `kw_highz0`, `kw_highz1`. Ungated (available in every profile — Verilog-2005
+     included), because the consumers (`drive_strength`/`net_type`/…) are ungated.
+  2. Model `strength0` / `strength1` as SEPARATE rules per IEEE 1800-2017 A.8.6
+     (`strength0 ::= supply0 | strong0 | pull0 | weak0`;
+     `strength1 ::= supply1 | strong1 | pull1 | weak1`) and rewrite
+     `drive_strength` to the LRM's exact SIX opposite-digit combos
+     (`(strength0,strength1)` / `(strength1,strength0)` / `(strength0,highz1)` /
+     `(strength1,highz0)` / `(highz0,strength1)` / `(highz1,strength0)`,
+     `kw_highz0`/`kw_highz1` referenced directly). Likewise
+     `pulldown_strength` (single = `strength0`) and `pullup_strength`
+     (single = `strength1`) per A.8.6.
+     - ⭐ **Why STRICT, not a single permissive `strength`** (measured, not
+       assumed — the BE-ALERT gate working): a first pass used one combined
+       `strength` accepting any two strength keywords symmetrically. The guarded
+       re-adjudication then showed **accepts-invalid 21 → 22 (+1)**: verilator's
+       intentional negative `t_strength_strong1_strong1_bad.v`
+       (`wire (strong1, strong1) a = 1;`, a same-digit pair that IEEE 1800-2017
+       A.8.6 does NOT permit — verilator emits `syntax error, unexpected
+       strong1`) was wrongly accepted. Per
+       [[feedback_corpus_expected_from_spec_not_fix]] the spec says reject, so the
+       model was tightened to the LRM's opposite-digit `strength0`/`strength1`
+       grammar. The strict accept-set is a strict SUBSET of the permissive one, so
+       it keeps 0 pass→fail vs baseline while restoring accepts-invalid to 21.
+  3. `net_type`: replace the dead `kw_supply -> {kind:"supply"}` branch with
+     `kw_supply0 -> {kind:"supply0"} | kw_supply1 -> {kind:"supply1"}` (supply
+     nets).
+  4. Remove the now-orphaned bare tokens `kw_supply` / `kw_pull` / `kw_highz`
+     (no remaining reference after 1–3; keeps `--lint-grammar` orphans 0). The
+     bare `kw_strong` / `kw_weak` stay (SVA). Census `1469 → 1477` (net +8 =
+     +10 tokens +1 `highz` rule −3 orphaned tokens).
+  - Additive: drive strength / supply nets were previously 100% unparseable and
+    no shape-contract sample exercises `strength`/`drive_strength`/`net_type`-supply
+    (the only `net_type` sample is the unrelated `nettype` construct) ⇒ no
+    witnessed wire shape changes ⇒ **schema `18` UNCHANGED** (the `.3.5`/`.3.6`
+    reasoning). Release `1.0.172 → 1.0.173`, ledger `SV-0043`.
+- **VERIFIED (measured GLOBALLY, guarded re-characterization + adjudication, both lanes):**
+  - **Strict-model repro matrix (regen'd parser):** same-digit `(strong1, strong1)`
+    / `(strong0, strong0)` / mixed-same-digit `(highz0, weak0)` correctly REJECT;
+    opposite-digit `(weak0, weak1)` / `(strong0, strong1)` / reversed
+    `(supply1, supply0)` / `(highz0, weak1)` / gate `nor (highz1, strong0)` /
+    single `pullup (supply1)` / net `supply0 gnd;` all ACCEPT; SVA
+    `strong(a ##1 b)` / `weak(...)` still parse (bare `kw_strong`/`kw_weak`
+    retained). 10/10 as expected.
+  - **MAIN sv_2017 lane — full external corpus 16,336: pass 9,591 → 9,669
+    (+78).** Adjudication: **rejects-valid 426 → 406 (−20** = verilator 10 /
+    ispras-sv-tests 5 / sv2v 2 / iverilog 2 / Surelog 1, `comm`-verified ZERO
+    new**), accepts-invalid 21 → 21 (BYTE-IDENTICAL set** — the
+    `t_strength_strong1_strong1_bad` negative correctly rejects under the strict
+    model**)**, match 5,683 → 5,703. timeout 9 UNCHANGED, crash 0.
+  - **NO REGRESSION (the `.3.4` LAW — per-FILE pass-set `comm`): 0 pass→fail**
+    (strict accepts are a subset of the permissive first pass; strictly additive
+    vs baseline); the 78 `fail→pass` include the 20 keyed drive-strength family
+    rows plus larger files whose sole blocker was a drive-strength / supply-net
+    form.
+  - **V2005 lane — CROSS-PROFILE HEAL (drive strength & supply nets are IEEE
+    1364-2005 constructs): corpus 2,459: pass 2,126 → 2,180 (+54);
+    rejects-valid 116 → 62 (−54** = iverilog 50 / ispras-sv-tests 4, ZERO new**),
+    accepts-invalid 14 → 14 (BYTE-IDENTICAL), 0 pass→fail.** The single largest
+    v2005-lane burn-down to date (the `.3.5` cross-profile precedent, ×3 the
+    magnitude).
+  - Evidence `docs/tasks/artifacts/sv_corpus_grad/drive_strength_diag/`.
+  - **Gates (all GREEN, seeds 0/7/42):** `sv_syntax_closure_gate`
+    (defined_rule_count 1469→**1477**, unreachable_rules 0), `ast_shape_contract_gate`
+    18/0 (no strength/drive_strength/net_type sample), `sv_external_corpus_triage_gate`
+    PASS, `systemverilog_parser_book_gate` PASS; `sv_cert_recognized_union_gate`
+    re-baselined GREEN (+8 positively witnessed — total 1346→1354, canonical witness
+    1329→1337, union witness 1340→1348; UNKNOWN 11/0, residual `[]`, still
+    `fully_certified_via_union`); `verilog_2005_conformance_gate` re-baselined GREEN
+    (NOT byte-inert — CROSS-PROFILE; cert `1115/328/773/14` → **`1123/330/779/14`**,
+    +8 positively accounted, UNKNOWN 14 identical, corpus matrix 240/0, profile_orphans
+    0 — per the drift policy, contract `verilog_2005_conformance_contract_v0.json`
+    re-baselined + note appended same-slice); `sv_stimuli_quality_gate` PASS (`closed_loop_replay_targets_total` 125→126, +1: the new `strength0`/`strength1` + `drive_strength` branches are a new closed-loop generation-coverage target — feeds `SV-REPLAY-DEBT`, not a regression).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — 6 representative forms reject (furthest
+    23/32/33/33/21/23); 21-row homogeneous family (`before.txt`).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `strength:5267`/`net_type:3549`/
+    `drive_strength:2045` reference bare tokens that can't match the digit-suffixed
+    strength keywords; no digit-suffixed token exists; LRM A.8.6 verified.
+  - [x] **FIX** — hierarchy level 1 (pure grammar): 10 digit-suffixed tokens +
+    LRM-faithful `strength0`/`strength1` + 6-combo `drive_strength` + `net_type`
+    supply0/supply1 + pull*_strength − 3 orphaned tokens; ungated cross-profile.
+  - [x] **ADDRESSED (verified)** — before→after measured globally: main +78 /
+    rejects-valid −20; v2005 +54 / rejects-valid −54; strict repro matrix 10/10;
+    correct `strength0`/`strength1`/`net_type` AST.
+  - [x] **NO REGRESSION** — per-FILE pass-set `comm` 0 pass→fail BOTH lanes; 0
+    new rejects-valid both lanes; accepts-invalid sets BYTE-IDENTICAL (21/14);
+    v2005 CROSS-PROFILE heal measured; gates green (appended at landing).
+  - [x] **LOCKSTEP** — ledger `SV-0043` + contract `1.0.173` + SV book +
     tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
 ### `.4` — Full-design corpora chaining

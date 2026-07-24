@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-24 - PGEN-SV-CORPUS-GRAD-0022 — the digit-suffix word-boundary bug is a RECURRING class, and a corpus `_bad` negative forced the spec-faithful model
+
+Two lessons worth banking from the drive/charge-strength fix (`.3.7`).
+
+**(1) "Keyword with a trailing digit/metachar, tokenised as `/word\b/`" is now a THREE-TIME defect class.** `unique0` (`.3.6`: `/unique\b/` can't match `unique0`), `|->`/`|=>` (`.3.3`: split on the `|` alternation metachar), and now the strength keywords (`.3.7`: `/supply\b/` can't match `supply0` — no word boundary between a letter and a trailing digit) are the same class: the LRM keyword carries a character the bare-token regex's `\b`/metachar cannot span, so the token silently never matches and the whole construct family is DEAD despite fully-wired consumer rules. The tell is always "the rule is present and reachable but never witnessed." This is exactly what the `LRM-GRAMMAR-FIDELITY` audit (a standing Annex-A ⟷ shipped-grammar coverage gate) would catch proactively — the strength case is a third motivating instance; the fix here also removed 3 now-orphaned bare tokens, so the grammar is left tighter, not just wider.
+
+**(2) A `_bad` corpus negative is what turns "accepts more valid input" into "correctly rejects invalid input" — and it fires late.** The first pass modelled a single permissive `strength` (accept any two strength keywords symmetrically), which passed every *positive* check. Only the guarded re-**adjudication** surfaced it: accepts-invalid 21→22, the new row being verilator's intentional `t_strength_strong1_strong1_bad.v` (`(strong1, strong1)` — a same-digit pair IEEE 1800-2017 A.8.6 does not permit; verilator emits `syntax error`). The permissive model was over-accepting a genuine grammar violation. The fix was to model the SPEC grammar faithfully — separate `strength0`/`strength1` rules and the exact six opposite-digit `drive_strength` combos — rather than the convenient symmetric shorthand. Reinforces two standing doctrines: **corpus-expected-from-SPEC** (the LRM says reject, so reject) and **the accepts-invalid axis needs keyed NEGATIVES** — no amount of valid-input generation would have caught this (the rejects-valid blind spot's mirror image). The strict accept-set being a strict subset of the permissive one is also the clean no-regression argument: it cannot break any baseline-passing parse.
+
+**Cross-profile note:** because drive strength and supply nets are IEEE 1364-2005 constructs, the tokens are UNGATED, so this healed `verilog_2005` too — 54 rejects-valid rows cleared (116→62), the largest single v2005-lane burn-down so far, on top of the main-lane +78.
+
 ## 2026-07-24 - PGEN-SV-CORPUS-GRAD-0021 — the cleanest kind of burn-down leaf (sibling-mirroring a missing keyword), and a build-fingerprint trap worth remembering
 
 The `.3.6` `unique0` fix is the textbook single-construct burn-down: two lines (one gated token, one `unique_priority` branch), 6 corpus rows, zero regressions, zero adjudication ambiguity. Two points worth banking.

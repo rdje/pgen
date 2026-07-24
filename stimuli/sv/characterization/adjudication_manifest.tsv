@@ -539,7 +539,7 @@ Surelog	tests/ModPortParam/dut.sv	pass	must_accept	match	Surelog: golden log Mod
 Surelog	tests/ModPortRange/dut.sv	pass	must_accept	match	Surelog: golden log ModPortRange.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ModPortTest/top.v	fail	chained_only	deferred:chained_only	Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only
 Surelog	tests/Moves/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log Moves.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/MultContAssign/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log MultContAssign.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/MultContAssign/dut.sv	pass	must_accept	match	Surelog: golden log MultContAssign.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/MultiConcat/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log MultiConcat.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/MultiConcatValueSize/dut.sv	pass	must_accept	match	Surelog: golden log MultiConcatValueSize.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/MultiIndexBind/dut.sv	pass	must_accept	match	Surelog: golden log MultiIndexBind.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -1647,8 +1647,8 @@ ispras-sv-tests	ieee-1364-2005/test_05_05_01_1.v	pass	out_of_scope_with_cause:v2
 ispras-sv-tests	ieee-1364-2005/test_05_06_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_06_00_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_05_06_00_3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_06_01_01_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_06_01_02_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_06_01_01_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_06_01_02_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_06_01_02_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_06_01_02_3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_06_01_03_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
@@ -1657,7 +1657,7 @@ ispras-sv-tests	ieee-1364-2005/test_06_02_01_2.v	fail	out_of_scope_with_cause:v2
 ispras-sv-tests	ieee-1364-2005/test_06_02_01_3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_06_02_01_4.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_06_02_01_5.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_07_01_02_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_07_01_02_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_01_05_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_01_06_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_01_06_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
@@ -1669,7 +1669,7 @@ ispras-sv-tests	ieee-1364-2005/test_07_04_00_1.v	pass	out_of_scope_with_cause:v2
 ispras-sv-tests	ieee-1364-2005/test_07_05_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_06_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_07_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_07_08_00_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_07_08_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_14_00_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_14_00_2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_07_14_01_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
@@ -2179,8 +2179,8 @@ ispras-sv-tests	ieee-1800-2012/09/09.06.02_06.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/09/09.06.02_07.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/09/09.06.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/09/09.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/10/10.03.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/10/10.03.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/10/10.03.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/10/10.03.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/10/10.03.02_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/10/10.03.02_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/10/10.04.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2743,7 +2743,7 @@ ispras-sv-tests	ieee-1800-2012/27/27.05_02.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/27/27.05_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/27/27.05_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/27/27.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/28/28.03.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/28/28.03.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/28/28.03.05_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/28/28.03.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/28/28.03.06_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2755,8 +2755,8 @@ ispras-sv-tests	ieee-1800-2012/28/28.06_01.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/28/28.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/28/28.08_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/28/28.09_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/28/28.10_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/28/28.12.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/28/28.10_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/28/28.12.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/28/28.16.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/28/28.16.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/28/28.16.02.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -3188,10 +3188,10 @@ iverilog	ivtest/ivltests/br917a.v	pass	must_accept	match	ivtest: regress-sv.list
 iverilog	ivtest/ivltests/br917b.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br917c.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br917d.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/br918a.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br918b.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br918c.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br918d.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br918a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br918b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br918c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br918d.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br919.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br921.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br924.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -3267,7 +3267,7 @@ iverilog	ivtest/ivltests/br_gh11.v	pass	out_of_scope_with_cause:v2005_profile_la
 iverilog	ivtest/ivltests/br_gh1104_src1.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/br_gh1104_src2.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/br_gh1117.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br_gh1122.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
+iverilog	ivtest/ivltests/br_gh1122.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/br_gh112a.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br_gh112b.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br_gh112c.v	fail	must_accept	divergence:explained_svpp_conditional	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
@@ -3299,7 +3299,7 @@ iverilog	ivtest/ivltests/br_gh1181.v	pass	out_of_scope_with_cause:no_sv_key	defe
 iverilog	ivtest/ivltests/br_gh1182.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh1184.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/br_gh12.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br_gh1222.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: CE but golden br_gh1222.gold shows only post-parse errors - syntax itself valid
+iverilog	ivtest/ivltests/br_gh1222.v	pass	must_accept	match	ivtest: CE but golden br_gh1222.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/br_gh1223a.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br_gh1223b.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br_gh1223c.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
@@ -3530,9 +3530,9 @@ iverilog	ivtest/ivltests/br_gh99o.v	pass	out_of_scope_with_cause:v2005_profile_l
 iverilog	ivtest/ivltests/br_gh99p.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh99q.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh99r.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br_gh99s.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br_gh99t.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/br_gh99u.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br_gh99s.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br_gh99t.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/br_gh99u.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh99v.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/br_gh99w.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/br_gh99x.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -3676,7 +3676,7 @@ iverilog	ivtest/ivltests/constadd.v	pass	out_of_scope_with_cause:v2005_profile_l
 iverilog	ivtest/ivltests/constadd2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/constadd3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/constconcat1.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
-iverilog	ivtest/ivltests/constconcat2.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
+iverilog	ivtest/ivltests/constconcat2.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/constfunc1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/constfunc10.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/constfunc11.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -3773,7 +3773,7 @@ iverilog	ivtest/ivltests/disp_part.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/display_bug.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/dotinid.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/drive_strength.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/drive_strength1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/drive_strength1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/drive_strength2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/drive_strength3.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/drive_strength4.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
@@ -3899,7 +3899,7 @@ iverilog	ivtest/ivltests/force3.17B.v	pass	out_of_scope_with_cause:v2005_profile
 iverilog	ivtest/ivltests/force3.17C.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/force_lval_part.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/force_release_reg_pv.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/force_release_wire8_pv.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/force_release_wire8_pv.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/force_release_wire_pv.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/fork1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/fork3.19A.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4191,7 +4191,7 @@ iverilog	ivtest/ivltests/monitor4.v	pass	out_of_scope_with_cause:no_sv_key	defer
 iverilog	ivtest/ivltests/mult1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/mult16.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/mult2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/multi_bit_strength.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/multi_bit_strength.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/multi_driver_delay.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/multiply_large.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/multireg.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -4462,7 +4462,7 @@ iverilog	ivtest/ivltests/pr1701890.v	pass	out_of_scope_with_cause:no_sv_key	defe
 iverilog	ivtest/ivltests/pr1701921.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1702593.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1703120.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr1703346.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr1703346.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1703959.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1704013.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1704726a.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4493,7 +4493,7 @@ iverilog	ivtest/ivltests/pr1758122.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/pr1758135.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1763333.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1765789.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
-iverilog	ivtest/ivltests/pr1770199.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr1770199.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1771903.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/pr1776485.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1777103.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4765,7 +4765,7 @@ iverilog	ivtest/ivltests/pr2509349a.v	pass	out_of_scope_with_cause:no_sv_key	def
 iverilog	ivtest/ivltests/pr2509349b.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/pr2528915.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2533175.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2579479.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2579479.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2580730.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2590274a.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/pr2590274b.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -4778,8 +4778,8 @@ iverilog	ivtest/ivltests/pr2673846.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/pr2688910.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2709097.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2715547.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2715558.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2715558b.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2715558.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2715558b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2715748.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/pr2721213.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2722330a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4787,9 +4787,9 @@ iverilog	ivtest/ivltests/pr2722330b.v	pass	out_of_scope_with_cause:v2005_profile
 iverilog	ivtest/ivltests/pr2722339a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2722339b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2723712.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2725700a.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2725700b.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2725700c.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2725700a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2725700b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2725700c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2728032.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2728547.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2728812a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4797,7 +4797,7 @@ iverilog	ivtest/ivltests/pr2728812b.v	pass	out_of_scope_with_cause:v2005_profile
 iverilog	ivtest/ivltests/pr2728812c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr273.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2745281.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2781595.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2781595.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2785294.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2788686.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2790236.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4821,7 +4821,7 @@ iverilog	ivtest/ivltests/pr2823711.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/pr2824189.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2829776.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2829776b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2832234.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2832234.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2834340.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2834340b.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2835632a.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4856,10 +4856,10 @@ iverilog	ivtest/ivltests/pr2922063b.v	pass	out_of_scope_with_cause:v2005_profile
 iverilog	ivtest/ivltests/pr2924354.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2929913.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2930506.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2937417.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2937417b.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2937417c.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr2941939.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2937417.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2937417b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2937417c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr2941939.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2943394.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2951657.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr2969724.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4951,11 +4951,11 @@ iverilog	ivtest/ivltests/pr3437290b.v	pass	out_of_scope_with_cause:v2005_profile
 iverilog	ivtest/ivltests/pr3437290c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3441576.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3445452.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr3452808.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr3452808.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3462145.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/pr3465541.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr3465541.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3477107.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr3499807.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr3499807.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3515542.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: CE but golden pr3515542.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/pr3522653.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr3527022.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4983,7 +4983,7 @@ iverilog	ivtest/ivltests/pr498a.v	pass	out_of_scope_with_cause:no_sv_key	deferre
 iverilog	ivtest/ivltests/pr498b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr508.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr509.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr509b.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr509b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr511.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr513.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr519.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -5008,7 +5008,7 @@ iverilog	ivtest/ivltests/pr540b.v	pass	out_of_scope_with_cause:v2005_profile_lan
 iverilog	ivtest/ivltests/pr540c.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr541.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr542.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr544.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr544.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr547.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr556.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr564.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -5108,7 +5108,7 @@ iverilog	ivtest/ivltests/ptest010.v	pass	out_of_scope_with_cause:v2005_profile_l
 iverilog	ivtest/ivltests/ptest011.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pull371.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/pull371b.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/pullupdown.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pullupdown.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pullupdown2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pullupdown3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pv_undef_sig_sel.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -5215,9 +5215,9 @@ iverilog	ivtest/ivltests/rnpmos2.v	pass	out_of_scope_with_cause:v2005_profile_la
 iverilog	ivtest/ivltests/rop.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/rptconcat.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/rptconcat2.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
-iverilog	ivtest/ivltests/rtran.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/rtranif0.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/rtranif1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/rtran.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/rtranif0.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/rtranif1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/sbyte_test.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/scalar_vector.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/scaled_real.v	fail	out_of_scope_with_cause:verilog_ams_lane	deferred:verilog_ams_lane	ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked)
@@ -5298,7 +5298,7 @@ iverilog	ivtest/ivltests/sf_onehot.v	pass	must_accept	match	ivtest: regress-sv.l
 iverilog	ivtest/ivltests/sf_onehot0.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sf_onehot0_fail.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sf_onehot0_fail.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sf_onehot_fail.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sf_onehot_fail.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sformatf.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sformatf.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/shellho1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/shift1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/shift2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -5407,8 +5407,8 @@ iverilog	ivtest/ivltests/struct_packed_value_list.v	pass	out_of_scope_with_cause
 iverilog	ivtest/ivltests/struct_packed_write_read.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) struct_packed_write_read.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/struct_packed_write_read2.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) struct_packed_write_read2.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/struct_signed.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/supply1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/supply2.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/supply1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/supply2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/sv-2val-nets.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/sv-constants.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_2state_array_init_prop.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_2state_array_init_prop.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
@@ -6203,8 +6203,8 @@ iverilog	ivtest/ivltests/tern6.v	pass	out_of_scope_with_cause:v2005_profile_lane
 iverilog	ivtest/ivltests/tern7.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/tern8.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/tern9.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/test_bufif0.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/test_bufif1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_bufif0.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_bufif1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/test_dec2to4.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/test_disphob.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/test_dispwided.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -6213,14 +6213,14 @@ iverilog	ivtest/ivltests/test_extended.v	pass	out_of_scope_with_cause:v2005_prof
 iverilog	ivtest/ivltests/test_forgen.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/test_gxor.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/test_inc_dec.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/test_mos_strength_reduction.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_mos_strength_reduction.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/test_mux2to1.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
-iverilog	ivtest/ivltests/test_nmos.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/test_notif0.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/test_notif1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/test_pmos.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/test_rnmos.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/test_rpmos.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_nmos.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_notif0.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_notif1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_pmos.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_rnmos.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/test_rpmos.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/test_signal_init_assign.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/test_system.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/test_timebase.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -6249,10 +6249,10 @@ iverilog	ivtest/ivltests/timescale2.v	pass	out_of_scope_with_cause:v2005_profile
 iverilog	ivtest/ivltests/timescale3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/timing_check_delayed_signals.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/timing_check_syntax.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
-iverilog	ivtest/ivltests/tran-keeper.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/tran.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/tranif0.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/tranif1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/tran-keeper.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/tran.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/tranif0.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/tranif1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/tri0.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/tri0b.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/tri1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -6476,7 +6476,7 @@ iverilog	ivtest/ivltests/vhdl_xorg_bit.v	pass	out_of_scope_with_cause:no_sv_key	
 iverilog	ivtest/ivltests/vhdl_xorg_stdlogic.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/vvp_quiet_mode.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/vvp_recv_vec4_pv.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/vvp_scalar_value.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/vvp_scalar_value.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/wait1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/wait2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/wait3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -6992,11 +6992,11 @@ opentitan	hw/dv/sv/usb20_agent/usb20_agent.sv	fail	chained_only	deferred:chained
 opentitan	hw/dv/sv/usb20_agent/usb20_agent_cfg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_agent_cov.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_agent_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/dv/sv/usb20_agent/usb20_block_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/dv/sv/usb20_agent/usb20_block_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_device_driver.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_driver.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_host_driver.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/dv/sv/usb20_agent/usb20_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/dv/sv/usb20_agent/usb20_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_item.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_monitor.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/usb20_agent/usb20_usbdpi.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -8250,7 +8250,7 @@ opentitan	hw/ip/rram_ctrl/rtl/rram_phy_rd_buf_dep.sv	fail	chained_only	deferred:
 opentitan	hw/ip/rram_ctrl/rtl/rram_phy_rd_buffer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_ctrl/rtl/rram_phy_wr.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_ctrl/rtl/rram_scramble.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/rram_macro/pre_dv/tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/rram_macro/pre_dv/tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_macro/rtl/rram_macro.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_macro/rtl/rram_macro_prim_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/rram_macro/rtl/rram_macro_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -12439,7 +12439,7 @@ sv2v	test/error/decl_wire_var.sv	fail	must_reject	match	sv2v error-suite key: de
 sv2v	test/error/default_nettype_invalid.sv	pass	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
 sv2v	test/error/default_nettype_none.sv	pass	must_accept	match	sv2v error-suite key: implicit-net legality under `default_nettype none is semantic (IEEE 1800-2017 6.10/22.8); the text is BNF-parseable
 sv2v	test/error/double_backtick.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, directive arguments) - svpp-owned conformance
-sv2v	test/error/drive_strength_uninit.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v error-suite key: IEEE 1800-2017 A.2.1.3 net_declaration admits [drive_strength | charge_strength] on any net_type and net_decl_assignment's '= expression' is optional - the trireg-only/initializer restrictions of 1364 became prose in 1800
+sv2v	test/error/drive_strength_uninit.sv	pass	must_accept	match	sv2v error-suite key: IEEE 1800-2017 A.2.1.3 net_declaration admits [drive_strength | charge_strength] on any net_type and net_decl_assignment's '= expression' is optional - the trireg-only/initializer restrictions of 1364 became prose in 1800
 sv2v	test/error/elab_task_stray_after_args.sv	fail	must_reject	match	sv2v error-suite key: statement/item grammar violation - no IEEE 1800-2017 Annex A production admits this token sequence (sv2v keys it at its parse stage)
 sv2v	test/error/elab_task_stray_before_args.sv	fail	must_reject	match	sv2v error-suite key: statement/item grammar violation - no IEEE 1800-2017 Annex A production admits this token sequence (sv2v keys it at its parse stage)
 sv2v	test/error/elab_task_stray_no_args.sv	fail	must_reject	match	sv2v error-suite key: statement/item grammar violation - no IEEE 1800-2017 Annex A production admits this token sequence (sv2v keys it at its parse stage)
@@ -12660,7 +12660,7 @@ sv2v	test/lib/empty.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v
 sv2v	test/lib/tb_dumper.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/nosim/assert.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/nosim/dpi.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
-sv2v	test/nosim/drive_strength.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/nosim/drive_strength.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/nosim/extern.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/nosim/final.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/nosim/func_output.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
@@ -14280,7 +14280,7 @@ verilator	test_regress/t/t_gate_basic.v	fail	must_accept	divergence:explained_sv
 verilator	test_regress/t/t_gate_delref.v	pass	must_accept	match	verilator: driver t_gate_delref.py expects success
 verilator	test_regress/t/t_gate_elim.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_gate_elim.py expects success
 verilator	test_regress/t/t_gate_elim_cycle.v	pass	must_accept	match	verilator: driver t_gate_elim_cycle.py expects success
-verilator	test_regress/t/t_gate_fdup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_gate_fdup.py expects success
+verilator	test_regress/t/t_gate_fdup.v	pass	must_accept	match	verilator: driver t_gate_fdup.py expects success
 verilator	test_regress/t/t_gate_implicit.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gate_implicit.py expects success
 verilator	test_regress/t/t_gate_inline_wide_exclude_multiple.v	pass	must_accept	match	verilator: driver t_gate_inline_wide_exclude_multiple.py expects success
 verilator	test_regress/t/t_gate_inline_wide_noexclude_arraysel.v	pass	must_accept	match	verilator: driver t_gate_inline_wide_noexclude_arraysel.py expects success
@@ -14292,7 +14292,7 @@ verilator	test_regress/t/t_gate_lvalue_const.v	pass	must_accept	match	verilator:
 verilator	test_regress/t/t_gate_opt.v	pass	must_accept	match	verilator: driver t_gate_opt.py expects success
 verilator	test_regress/t/t_gate_ormux.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gate_ormux.py expects success
 verilator	test_regress/t/t_gate_primitives_implicit_net.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gate_primitives_implicit_net.py expects success
-verilator	test_regress/t/t_gate_strength.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_gate_strength.py expects success
+verilator	test_regress/t/t_gate_strength.v	pass	must_accept	match	verilator: driver t_gate_strength.py expects success
 verilator	test_regress/t/t_gate_unsup.v	pass	must_accept	match	verilator: driver t_gate_unsup.py expects success
 verilator	test_regress/t/t_gate_width_bad.v	pass	must_accept	match	verilator: driver t_gate_width_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_gen_alw.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gen_alw.py expects success
@@ -14480,7 +14480,7 @@ verilator	test_regress/t/t_inst_signed.v	fail	must_accept	divergence:explained_s
 verilator	test_regress/t/t_inst_signed1.v	pass	must_accept	match	verilator: driver t_inst_signed1.py expects success
 verilator	test_regress/t/t_inst_slice.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_inst_slice.py expects success
 verilator	test_regress/t/t_inst_slice_part_select.v	pass	must_accept	match	verilator: driver t_inst_slice_part_select.py expects success
-verilator	test_regress/t/t_inst_sv.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_inst_sv.py expects success
+verilator	test_regress/t/t_inst_sv.v	pass	must_accept	match	verilator: driver t_inst_sv.py expects success
 verilator	test_regress/t/t_inst_tree.v	pass	must_accept	match	verilator: driver t_inst_tree_inl0_pub0.py expects success
 verilator	test_regress/t/t_inst_v2k.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_inst_v2k.py expects success
 verilator	test_regress/t/t_inst_wideconst.v	pass	must_accept	match	verilator: driver t_inst_wideconst.py expects success
@@ -15750,14 +15750,14 @@ verilator	test_regress/t/t_stream_unpack_narrower.v	pass	must_accept	match	veril
 verilator	test_regress/t/t_stream_unpack_wider.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stream_unpack_wider.py expects success
 verilator	test_regress/t/t_stream_unpacked_struct.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stream_unpacked_struct.py expects success
 verilator	test_regress/t/t_stream_unpacked_struct_bad.v	pass	must_accept	match	verilator: driver t_stream_unpacked_struct_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_strength_2_uneq_assign.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_strength_2_uneq_assign.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_strength_assignments_constants.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_strength_assignments_constants.py expects success
+verilator	test_regress/t/t_strength_2_uneq_assign.v	pass	must_accept	match	verilator: driver t_strength_2_uneq_assign.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_strength_assignments_constants.v	pass	must_accept	match	verilator: driver t_strength_assignments_constants.py expects success
 verilator	test_regress/t/t_strength_buf_not.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_strength_buf_not.py expects success
-verilator	test_regress/t/t_strength_equal_strength.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_strength_equal_strength.py expects success
-verilator	test_regress/t/t_strength_highz.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_strength_highz.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_strength_equal_strength.v	pass	must_accept	match	verilator: driver t_strength_equal_strength.py expects success
+verilator	test_regress/t/t_strength_highz.v	pass	must_accept	match	verilator: driver t_strength_highz.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_strength_strong1_strong1_bad.v	fail	must_reject	match	verilator: driver t_strength_strong1_strong1_bad.py fails=True and golden .out reports a syntax error
-verilator	test_regress/t/t_strength_strongest_constant.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_strength_strongest_constant.py expects success
-verilator	test_regress/t/t_strength_strongest_non_tristate.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_strength_strongest_non_tristate.py expects success
+verilator	test_regress/t/t_strength_strongest_constant.v	pass	must_accept	match	verilator: driver t_strength_strongest_constant.py expects success
+verilator	test_regress/t/t_strength_strongest_non_tristate.v	pass	must_accept	match	verilator: driver t_strength_strongest_non_tristate.py expects success
 verilator	test_regress/t/t_string.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_string.py expects success
 verilator	test_regress/t/t_string_add_bad.v	pass	must_accept	match	verilator: driver t_string_add_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_string_byte.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_string_byte.py expects success
@@ -16044,7 +16044,7 @@ verilator	test_regress/t/t_tri_pull01.v	fail	must_accept	divergence:explained_sv
 verilator	test_regress/t/t_tri_pull2_bad.v	pass	must_accept	match	verilator: driver t_tri_pull2_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_tri_pull_bad.v	pass	must_accept	match	verilator: driver t_tri_pull_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_tri_pull_implicit.v	pass	must_accept	match	verilator: driver t_tri_pull_implicit.py expects success
-verilator	test_regress/t/t_tri_pull_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_tri_pull_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_tri_pull_unsup.v	pass	must_accept	match	verilator: driver t_tri_pull_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_tri_pullup.v	pass	must_accept	match	verilator: driver t_tri_pullup.py expects success
 verilator	test_regress/t/t_tri_pullup_bus.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_tri_pullup_bus.py expects success
 verilator	test_regress/t/t_tri_pullvec_bad.v	pass	must_accept	match	verilator: driver t_tri_pullvec_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

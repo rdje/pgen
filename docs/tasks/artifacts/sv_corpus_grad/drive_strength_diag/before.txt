@@ -1,0 +1,12 @@
+# SV-CORPUS-GRAD.3.7 — drive/charge strength family: BEFORE state (HEAD 1.0.172)
+# Root cause: strength keywords are digit-suffixed (supply0/1, strong0/1, pull0/1,
+#   weak0/1, highz0/1) but the grammar's strength tokens are bare (/supply\b/, /strong\b/,
+#   /pull\b/, /weak\b/, /highz\b/) which cannot match them (no \b between letter and digit).
+#   grammars/systemverilog.ebnf strength:5267, net_type:3549, drive_strength:2045-2047.
+
+  [sv_2017] net-decl-strength -> REJECT furthest_position=23
+  [sv_2017] cont-assign-strength -> REJECT furthest_position=32
+  [sv_2017] gate-inst-strength -> REJECT furthest_position=33
+  [sv_2017] pullup-single    -> REJECT furthest_position=33
+  [sv_2017] supply-net-decl  -> REJECT furthest_position=21
+  [sv_2017] net-decl-supply-pair -> REJECT furthest_position=23

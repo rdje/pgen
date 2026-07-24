@@ -12,14 +12,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2459 | 2126 | 333 | 0 | 0 | 86.5% |
+| 2459 | 2180 | 279 | 0 | 0 | 88.7% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
-| ispras-sv-tests | 356 | 312 | 44 | 0 | 0 | 87.6% |
-| iverilog | 1762 | 1533 | 229 | 0 | 0 | 87.0% |
+| ispras-sv-tests | 356 | 316 | 40 | 0 | 0 | 88.8% |
+| iverilog | 1762 | 1583 | 179 | 0 | 0 | 89.8% |
 | sv2v | 341 | 281 | 60 | 0 | 0 | 82.4% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv`._

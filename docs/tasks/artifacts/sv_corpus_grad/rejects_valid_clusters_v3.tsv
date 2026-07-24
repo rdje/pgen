@@ -1,0 +1,430 @@
+suite	relpath	surface_pos	furthest_pos	signature	stuck_line
+Surelog	tests/1364_2005/dut.v	29	100	, ID ,	reg	     bit, rst, clk;
+Surelog	tests/Assertions/dut.sv	369	445	@ ( posedge	let p2(x) = $past(x,,,@(posedge clock));
+Surelog	tests/Assignments/dut.sv	0	89	( ref bit	function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);
+Surelog	tests/AssumeProp/dut.sv	0	191	" ID ID	$fatal(1, "slv_aw_select_i is %d: AW has selected a slave that is not defined.\
+Surelog	tests/BadScope/dut.sv	105	217	ID ; logic	priv_lvl_e mpp;
+Surelog	tests/BitSelectHier/dut.sv	0	769	ID ( ID	extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);
+Surelog	tests/BlackBePipeInt/dut.sv	5582	27558	' ( '	localparam host_base_addr_gp         = (dev_id_width_gp+dev_addr_width_gp)'('h0010_0000);
+Surelog	tests/BlackParrotComplex/dut.sv	2	1755	+ ( (	localparam output_dirs_sparse_lp = (($bits(routing_matrix_p[0][i]) < 65) ? 1'b0 : ('X)) + ((((routing_matrix_p[0][i])>>(
+Surelog	tests/BlackParrotConf/dut.sv	1	16114	; parameter ID	parameter bp_page_offset_width_gp = ( ((bp_page_size_in_bytes_gp)==1) ? 1 : $clog2((bp_page_size_in_bytes_gp)));
+Surelog	tests/BlackParrotParam/dut.sv	1	16114	; parameter ID	parameter bp_page_offset_width_gp = ( ((bp_page_size_in_bytes_gp)==1) ? 1 : $clog2((bp_page_size_in_bytes_gp)));
+Surelog	tests/BlackParrotSkipParam/dut.sv	1	108	, parameter ID	, parameter lg_max_val_lp=($clog2(max_val_p+1))
+Surelog	tests/CastShift/dut.sv	0	277	| ( NUM	| (32'(RV32E)        <<  4)
+Surelog	tests/Checker/dut.sv	0	354	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
+Surelog	tests/CheckerInst/dut.sv	0	303	@ ( ID	p2(a, b, c),
+Surelog	tests/ClassExtendParam/dut.sv	0	71	, type ID	virtual class uvm_sequence #(type REQ = uvm_sequence_item,
+Surelog	tests/ClassMemberFunc/dut.sv	0	183	( ) ;	function void uvm_sequencer_base::start_phase_sequence();
+Surelog	tests/ClassTypeParamAlias/dut.sv	2	145	, ID =	parameter type CT1 = Ctype1, CT2 = Ctype2;
+Surelog	tests/ClogCast/dut.sv	4	1130	' ( ID	if (addr_q < $clog2(RomSize)'(RomSize)) begin
+Surelog	tests/ConcatOrder/dut.sv	0	123	; typedef struct	localparam lg_max_cfgs = ( ((max_cfgs)==1) ? 1 : $clog2((max_cfgs)));
+Surelog	tests/ContAssign/dut.sv	0	26	ID [ NUM	wire intf intf2  [2];
+Surelog	tests/Covergroup/dut.sv	0	414	} endgroup covergroup	option.weight = c;
+Surelog	tests/CrossFunc/dut.sv	0	112	function ID ID	{
+Surelog	tests/CrossItem/dut.sv	0	366	[ NUM :	bins c1 = ! binsof(a) intersect {[100:200]};// 4 cross products
+Surelog	tests/DefParamIndex/dut.sv	26	69	: ID ID	generate begin:foo
+Surelog	tests/DoWhile/dut.sv	0	56	( ) ;	function void uvm_default_factory::print ();
+Surelog	tests/EnumParenType/dut.sv	65	196	( ID )	states_t state;
+Surelog	tests/ExtendClassMember/dut.sv	0	137	) extends ID	class uvm_sequencer_analysis_fifo #(type RSP = uvm_sequence_item) extends uvm_tlm_fifo #(RSP);
+Surelog	tests/ForeachClassParent/dut.sv	0	49	ID [ ID	protected uvm_phase m_type_overrides[$];
+Surelog	tests/ForeachSquare/dut.sv	0	112	) ID [	foreach(array[i][j])
+Surelog	tests/GenerateBlock/dut.sv	0	86	: ID wire	begin : A
+Surelog	tests/GenerateRegion/dut.sv	800	886	: ID wire	begin : A
+Surelog	tests/HierBitSlice/dut.sv	142	178	ID ; /	scalar_t pc;
+Surelog	tests/HierPathModule/dut.sv	52	58	medium ( )	module medium();
+Surelog	tests/ImplicitGenBlock/dut.sv	463	649	: ID wire	begin : foo
+Surelog	tests/IndexPartSelectBind/dut.sv	0	48	ID ; }	uvm_reg_data_t data;
+Surelog	tests/IndexedSelect/dut.sv	0	183	ID ( "	for (i = 0; i < FOO_REPL[0+:32]; i=i+1) begin : genfoo
+Surelog	tests/InsideOp/dut.sv	179	286	inside { ID	if (GetWhat inside {Get0, GetDefault}) begin : gen_zero
+Surelog	tests/InterfImport/dut.sv	81	168	ID = ID	parameter tnoc_packet_config  PACKET_CONFIG  = TNOC_DEFAULT_PACKET_CONFIG
+Surelog	tests/InterfTypeBad/dut.sv	140	177	; ID ID	tnoc_types#(2) i_types;
+Surelog	tests/LetExpr/dut.sv	1	82	@ ( posedge	let p2(x) = $past(x,,,@(posedge clock));
+Surelog	tests/LetInlined/dut.sv	1	82	@ ( posedge	let p2(x) = $past(x,,,@(posedge clock));
+Surelog	tests/MultContAssign/dut.sv	2	42	, weak1 )	assign (highz0, weak1)    inout_i1 = pu;
+Surelog	tests/NamedEventHierPath/dut.sv	0	119	ID ) ;	virtual function void do_copy (uvm_object rhs);
+Surelog	tests/NegParam/dut.sv	0	101	ID = '{	localparam bp_proc_param_s bp_default_cfg_p =
+Surelog	tests/NetType/dut.sv	170	193	ID ; typedef	typedef some_other_type myalias;
+Surelog	tests/PackageDpi/dut.sv	0	268	ID [ ID	uvm_object_wrapper uvm_deferred_init[$];
+Surelog	tests/PackedArrayHierPath/dut.sv	0	463	ID ) ;	function automatic int unsigned fp_width(fp_format_e fmt);
+Surelog	tests/ParamArraySelect/dut.sv	838	1179	' ( ID	localparam logic [OtpByteAddrWidth:0] PartEnd = (OtpByteAddrWidth+1)'(PartInfo[k].offset) +
+Surelog	tests/ParamOverload3/dut.sv	0	743	ID = '{	localparam fpu_features_t RV64D_Xsflt = '{
+Surelog	tests/ParamTypespec/dut.sv	0	70	' ( {	parameter logic [2:0] PartInvDefault = 3'({
+Surelog	tests/PkgImportPkg/dut.sv	204	312	ID ) ;	input  otp_ast_rsp_t otp_ast_pwr_seq_h_i
+Surelog	tests/PoundDelay/dut.sv	0	53	[ ID :	@(posedge clk) a ##[r1:r2] b ##2 1'b1 |=> d;
+Surelog	tests/SequenceInst/dut.sv	0	239	= ID )	rst = $inferred_disable);
+Surelog	tests/SynthForeach/dut.sv	0	142	) ID [	foreach(data[i][j])
+Surelog	tests/SystemCall/dut.sv	0	65	@ ( posedge	assign a = $past(x,,,@(posedge clock));
+Surelog	tests/TNocBadType/dut.sv	74	106	; typedef ID	tnoc_types  types;
+Surelog	tests/TranslateOff/dut.sv	70	166	ID = ID	assign c = d;
+Surelog	tests/TypeDefScope/dut.sv	0	161	ID ) ;	bits_t value);
+Surelog	tests/Udp/dut.sv	465	620	NUM ) NUM	(01)         0   :   ?   :   0   ;
+Surelog	tests/UnitSVA/dut.sv	0	165	[ NUM :	assert property (up ##[1:$] up |=> cnt == $past(cnt, 2) + 8'd 2);
+Surelog	tests/UnitThisNew/dut.sv	0	99	ID ) ;	function automatic bit uvm_string_to_action (string action_str, output uvm_action action);
+ispras-sv-tests	ieee-1800-2012/04/04.05_01.sv	3442	3640	; ID .	sim.queues[Active].push_back('{is_update: 1});
+ispras-sv-tests	ieee-1800-2012/05/05.09_01.sv	98	139	" ID ID	$display("Humpty Dumpty sat on a wall. \
+ispras-sv-tests	ieee-1800-2012/06/06.07.01_02.sv	144	181	reg ID ;	inout wire reg p;
+ispras-sv-tests	ieee-1800-2012/06/06.09.02_01.sv	131	165	ID ; /	tri1 scalared [63:0] bus64; // a 'bus' that will be expanded
+ispras-sv-tests	ieee-1800-2012/06/06.20.01_02.sv	127	178	ID = NUM	module top #(int N = 5, M = N * 16, type T = int, T x = 0) ();
+ispras-sv-tests	ieee-1800-2012/06/06.20.02.01_01.sv	155	259	[ ID :	@(posedge clk) a ##[r1:r2] b ##1 c |=> d;
+ispras-sv-tests	ieee-1800-2012/06/06.24.03_03.sv	115	692	] ; /	channel = channel[size:$]; // update the stream so it now lacks that packet
+ispras-sv-tests	ieee-1800-2012/07/07.10.04_01.sv	169	559	] ; /	q = q[1:$];                      // void'(q.pop_front()) or q.delete(0)
+ispras-sv-tests	ieee-1800-2012/07/07.10.04_02.sv	169	236	] ; /	q = q[2:$]; // a new queue lacking the first two items
+ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	127	274	: ID /	endclass : ClassB
+ispras-sv-tests	ieee-1800-2012/09/09.04.04_01.sv	146	295	[ NUM :	@(negedge clk) d ##[2:5] e;
+ispras-sv-tests	ieee-1800-2012/10/10.03.01_01.sv	154	196	, pull0 )	wire (strong1, pull0) mynet = enable;
+ispras-sv-tests	ieee-1800-2012/10/10.03.02_01.sv	159	218	, pull0 )	assign (strong1, pull0) mynet = enable;
+ispras-sv-tests	ieee-1800-2012/11/11.04.02_01.sv	160	230	= ID -	j = i++ + (i = i - 1);
+ispras-sv-tests	ieee-1800-2012/11/11.04.14.04_01.sv	212	1042	] ; /	stream = stream[$bits(p_recv) / 8 : $]; // remove packet
+ispras-sv-tests	ieee-1800-2012/11/11.13_02.sv	105	167	' ( ID	let mult(x, y) = ($bits(x) + $bits(y))'(x * y);
+ispras-sv-tests	ieee-1800-2012/11/11.13_08.sv	105	185	@ ( posedge	let p2(x) = $past(x, , , @(posedge clock));
+ispras-sv-tests	ieee-1800-2012/12/12.06.01_05.sv	188	606	. ID )	tagged Jmp (tagged JmpU .a) : pc = pc + a;
+ispras-sv-tests	ieee-1800-2012/12/12.06.01_06.sv	188	628	. ID )	tagged Jmp (tagged JmpU .a) : pc = pc + a;
+ispras-sv-tests	ieee-1800-2012/12/12.06.02_01.sv	186	454	. ID ,	if (e matches (tagged Jmp (tagged JmpC '{cc:.c, addr:.a}))) begin
+ispras-sv-tests	ieee-1800-2012/12/12.06.02_02.sv	186	433	. ID )	if (e matches (tagged Jmp .j) &&&
+ispras-sv-tests	ieee-1800-2012/12/12.06.02_03.sv	186	456	. ID ,	if (e matches (tagged Jmp (tagged JmpC '{cc:.c, addr:.a})) &&&
+ispras-sv-tests	ieee-1800-2012/14/14.14_05.sv	97	399	@ ( ID	p2(a, b, c),
+ispras-sv-tests	ieee-1800-2012/16/16.06_01.sv	95	267	[ NUM :	($rose(a), l_b = b) |-> ##[3:10] q[l_b];
+ispras-sv-tests	ieee-1800-2012/16/16.08.01_01.sv	157	224	[ NUM :	w ##1 x ##[2:10] y;
+ispras-sv-tests	ieee-1800-2012/16/16.08.02_01.sv	166	409	= ID ,	d = d_d, // local input logic inferred, default actual
+ispras-sv-tests	ieee-1800-2012/16/16.08_04.sv	95	303	## NUM ID	trans ##1 start_trans ##1 s ##1 end_trans;
+ispras-sv-tests	ieee-1800-2012/16/16.09.05_01.sv	123	273	[ NUM :	(te1 ##[1:5] te2) and (te3 ##2 te4 ##2 te5);
+ispras-sv-tests	ieee-1800-2012/16/16.09.06_01.sv	152	225	[ NUM :	(te1 ##[1:5] te2) intersect (te3 ##2 te4 ##2 te5);
+ispras-sv-tests	ieee-1800-2012/16/16.09.07_01.sv	122	271	[ NUM :	(te1 ##[1:5] te2) or (te3 ##2 te4 ##2 te5);
+ispras-sv-tests	ieee-1800-2012/16/16.09.08_01.sv	131	186	[ NUM :	te1 ## [2:5] te2;
+ispras-sv-tests	ieee-1800-2012/16/16.09.08_02.sv	131	187	[ NUM :	(a ##[2:3] b) or (c ##[1:2] d);
+ispras-sv-tests	ieee-1800-2012/16/16.09.11_01.sv	156	364	## NUM ID	trans ##1 start_trans ##1 s ##1 end_trans;
+ispras-sv-tests	ieee-1800-2012/16/16.12.06_01.sv	124	275	[ NUM :	$rose(data_phase) |-> ##[1:5] ((irdy == 0) && ($fell(trdy) || $fell(stop)));
+ispras-sv-tests	ieee-1800-2012/16/16.12.06_03.sv	124	377	[ NUM :	##[3:8] write_en && !data_valid &&(write_address[0:4] == addr);
+ispras-sv-tests	ieee-1800-2012/16/16.12.09_01.sv	133	184	[ NUM :	##[0:5] done #-# always !rst;
+ispras-sv-tests	ieee-1800-2012/16/16.12.20_01.sv	131	413	[ NUM :	@(posedge clk) a[*2] |-> ((##[1:3] c) or (d |=> e));
+ispras-sv-tests	ieee-1800-2012/16/16.14.07_01.sv	138	387	= ID )	rst = $inferred_disable);
+ispras-sv-tests	ieee-1800-2012/16/16.17_01.sv	93	374	[ NUM :	expect(@(posedge clk) ##[1:10] data == value) success = 1;
+ispras-sv-tests	ieee-1800-2012/17/17.09_01.sv	97	571	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
+ispras-sv-tests	ieee-1800-2012/17/17.09_02.sv	97	601	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
+ispras-sv-tests	ieee-1800-2012/18/18.05.04_01.sv	145	288	: = NUM	x dist {100 := 1, 200 := 2, 300 := 5};
+ispras-sv-tests	ieee-1800-2012/18/18.12.01_01.sv	230	363	ID = std	success = std::randomize(a, b) with {b - a > length;};
+ispras-sv-tests	ieee-1800-2012/19/19.06.01.01_01.sv	230	655	[ NUM :	bins c1 = !binsof(a) intersect {[100:200]}; // 4 cross products
+ispras-sv-tests	ieee-1800-2012/19/19.06.01.02_01.sv	206	546	with ( ID	bins apple = X with (a + b < 257) matches 127;
+ispras-sv-tests	ieee-1800-2012/19/19.06.01.04_01.sv	193	402	} endgroup endmodule	bins one = '{'{1, 2}, '{3, 4}, '{5, 6}};
+ispras-sv-tests	ieee-1800-2012/19/19.06.01.04_02.sv	193	318	function ID ID	{
+ispras-sv-tests	ieee-1800-2012/19/19.06.01_01.sv	151	356	} endgroup endmodule	bins i_zero = binsof(i) intersect {0};
+ispras-sv-tests	ieee-1800-2012/19/19.06.02_01.sv	147	266	[ NUM :	ignore_bins ignore = binsof(a) intersect {5, [1:3]};
+ispras-sv-tests	ieee-1800-2012/19/19.06.03_01.sv	156	290	} endgroup endmodule	illegal_bins illegal = binsof(y) intersect {bad};
+ispras-sv-tests	ieee-1800-2012/22/22.14.01_01.sv	211	235	logic ; /	reg [63:0] logic; // OK: 'logic' is not a keyword in 1364-2001
+ispras-sv-tests	ieee-1800-2012/23/23.10.03_02.sv	171	197	ID = NUM	module top #(type T = C, T p = 4,
+ispras-sv-tests	ieee-1800-2012/25/25.05.05_01.sv	127	312	[ NUM :	property p1; data ##[1:3] gnt; endproperty
+ispras-sv-tests	ieee-1800-2012/25/25.09.02_01.sv	155	339	[ NUM :	property p1; data ##[1:3] gnt; endproperty
+ispras-sv-tests	ieee-1800-2012/28/28.03.02_01.sv	183	237	, strong0 )	nor (highz1, strong0) n1(out1, in1, in2);
+ispras-sv-tests	ieee-1800-2012/28/28.10_01.sv	130	177	) ID (	pullup (strong1) p1 (neta), p2 (netb);
+ispras-sv-tests	ieee-1800-2012/28/28.12.02_01.sv	204	254	, highz0 )	and (strong1, highz0) N1(a, b);
+ispras-sv-tests	ieee-1800-2012/29/29.06_01.sv	119	288	NUM ) NUM	(01) 0 : ? : 0 ;
+ispras-sv-tests	ieee-1800-2012/29/29.08_01.sv	102	271	NUM ) NUM	(01) 0 : ? : 0 ;
+ispras-sv-tests	ieee-1800-2012/29/29.09_01.sv	143	322	NUM : ?	? ?? 01 : ? : 1 ; // preset logic
+ispras-sv-tests	ieee-1800-2012/30/30.07.01_01.sv	182	343	, NUM )	specparam PATHPULSE$clk$q = (2, 9), PATHPULSE$clr$q = (0, 4),
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_02.sv	337	389	# ( .	instance top use #(.WIDTH(32));
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_03.sv	451	527	# ( .	instance top.a1 use #(.W(top.S));
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_05.sv	419	474	# ( .	instance top.a1 use #(.W()); // set only parameter 'W' back to its default
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	337	392	# ( )	instance top.a1 use #(); // set all parameters in instance 'a1'
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	411	466	# ( .	instance top.a1 use #(.WIDTH(48));
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	497	551	# ( .	instance top.t use #(.WIDTH(48));
+ispras-sv-tests	ieee-1800-2012/34/34.03.01_01.sv	140	180	` ID ID	output b;
+iverilog	ivtest/ivltests/br_gh1222.v	0	170	, weak0 )	assign (weak1, weak0) {rout_ca1, rout_ca2} = in; // Non-default strength so invalid
+iverilog	ivtest/ivltests/br_gh1321.v	0	193	` ID ,	$display("FAILED(%0d). Expected 1, got %b", `__LINE__, a);
+iverilog	ivtest/ivltests/br_gh553.v	37	62	; integer ID	dut inst[4];
+iverilog	ivtest/ivltests/br_gh782b.v	64	63	NUM / *	/* comment */ 1          /* comment */ // comment
+iverilog	ivtest/ivltests/display_bug.v	0	110	] ID ;	word [2] array;      // word[0:1] exposes the bug as well
+iverilog	ivtest/ivltests/fileline.v	123	170	` ID )	$display(`__FILE__);
+iverilog	ivtest/ivltests/module_output_port_sv_var2.v	211	235	ID ; output	output reg a;
+iverilog	ivtest/ivltests/pr3366217d.v	0	465	- NUM ]	enum {ndef[-1]} ndef1;
+iverilog	ivtest/ivltests/pr3515542.v	0	53	NUM ; ID	a = 15'1;
+iverilog	ivtest/ivltests/program5b.v	108	210	ID ( ID	test dut(foo);
+iverilog	ivtest/ivltests/sf1289.v	188	270	; end endmodule	foreach (a[i]) ;
+iverilog	ivtest/ivltests/sformatf.v	856	910	, strong0 )	assign (pull1, strong0) test_net = 1'b1;
+iverilog	ivtest/ivltests/sv_block_prefix_label.v	52	384	` ID )	$display("FAILED(%0d). Block prefix label did not create a named scope",
+iverilog	ivtest/ivltests/sv_class_new_typed_fail4.v	116	207	new ; /	c = T::new; // This should fail, T is not a class
+iverilog	ivtest/ivltests/sv_fork_prefix_label.v	60	560	` ID )	$display("FAILED(%0d). Fork prefix labels did not execute all blocks",
+iverilog	ivtest/ivltests/sv_queue3.v	873	1027	} ; if	words = {};
+iverilog	ivtest/ivltests/sv_queue_parray.v	0	946	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_queue_parray_bounded.v	0	859	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_queue_real.v	0	908	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_queue_real_bounded.v	0	819	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_queue_string.v	0	924	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_queue_string_bounded.v	0	835	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_queue_vec.v	0	914	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_queue_vec_bounded.v	0	814	` ID ,	check_size(0, `__FILE__, `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_attribute_target.v	207	205	ID ( ID	typedef int ATTR_TYPE;
+iverilog	ivtest/ivltests/sv_type_identifier_block_label_name.v	81	318	` ID )	$display("FAILED(%0d). block labels did not hide typedefs", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_block_prefix_label_name.v	91	333	` ID )	$display("FAILED(%0d). Block prefix label did not hide typedef",
+iverilog	ivtest/ivltests/sv_type_identifier_event_name.v	80	293	` ID )	$display("FAILED(%0d). Event T was not triggered", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_for_name.v	87	482	` ID )	$display("FAILED(%0d). for loop variable did not hide typedef", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_foreach_name.v	106	433	` ID )	$display("FAILED(%0d). foreach indices did not hide typedefs", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_fork_label_name.v	86	321	` ID )	$display("FAILED(%0d). fork label did not hide typedef", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_fork_prefix_label_name.v	79	320	` ID )	$display("FAILED(%0d). Fork prefix label did not hide typedef",
+iverilog	ivtest/ivltests/sv_type_identifier_generate_label_name.v	89	310	` ID )	$display("FAILED(%0d). generate labels did not hide typedefs", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_genvar_name.v	83	406	` ID )	$display("FAILED(%0d). genvar name did not hide typedef", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_package_item.v	243	477	` ID )	$display("FAILED(%0d). Imported type mismatch", `__LINE__);
+iverilog	ivtest/ivltests/sv_type_identifier_package_name.v	171	247	ID != =	if (T::VALUE !== 23) begin
+iverilog	ivtest/ivltests/sv_type_identifier_udp_ansi_name.v	187	245	NUM : NUM	table
+iverilog	ivtest/ivltests/sv_type_identifier_udp_name.v	183	267	NUM : ?	table
+iverilog	ivtest/ivltests/sv_void_cast_fail3.v	62	103	+ NUM )	void'(1+2);
+iverilog	ivtest/ivltests/sv_wildcard_import2.v	246	426	:: ID ;	#1 ->my_package::e;
+iverilog	ivtest/ivltests/sv_wildcard_import3.v	226	385	:: ID ;	#1 ->my_package::e;
+slang	tests/regression/all.sv	804	1018	, weak1 )	assign (supply0, weak1) #(1:0:1, 2:1:0) w = 2;
+sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr-sim.sv	399	530	ID ( "	$display(":assert: (%d == %d)", b, (e+c+2));
+sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr.sv	345	476	module	endmodule
+sv-tests	tests/chapter-18/18.12.1--adding-constraints-to-scope-variables_0.sv	391	518	return ID ;	return success;
+sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	314	367	: = NUM	constraint c { b dist {3 := 1, 10 := 2}; }
+sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	419	473	: = NUM	constraint c { b dist {3 := 0, 10 := 5}; }
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	387	413	; / /	reg logic; // OK: "logic" is not a keyword in 1364-2001
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug-line.sv	321	341	` ID NUM	module directives();
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	327	382	` ID ,	initial $display("At %s @ %d\n", `__FILE__, `__LINE__);
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-pragma.sv	317	329	` ID ID	module ts();
+sv-tests	tests/chapter-5/5.9-string-broken-line.sv	329	373	" ID \	$display("broken \
+sv-tests	tests/chapter-6/6.23--type_op_compare.sv	316	412	) type (	case (type(T))
+sv-tests	tests/chapter-6/6.9.2--vector_scalared.sv	317	352	ID = NUM	tri1 scalared [15:0] a = 0;
+sv-tests	tests/chapter-6/6.9.2--vector_vectored.sv	317	352	ID ; endmodule	tri1 vectored [15:0] a;
+sv-tests	tests/chapter-6/6.9.2--vector_vectored_inv.sv	412	448	ID = NUM	logic vectored [15:0] a = 0;
+sv-tests	tests/chapter-7/queues/delete_assign.sv	388	538	] ; /	q = q[1:$]; // q.delete(0)
+sv-tests	tests/chapter-7/queues/insert_assign.sv	388	474	] } ;	q = { q[0:1], 10, q[2:$] }; // q.insert(2, 10)
+sv-tests	tests/chapter-7/queues/pop_back_assing.sv	392	479	- NUM ]	q = q[0:$-1]; // void'(q.pop_back()) or q.delete(q.size-1)
+sv-tests	tests/chapter-7/queues/pop_front_assign.sv	394	514	] ; ID	q = q[1:$];
+sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	529	697	; virtual function	class Hello #(type T = ihello) implements T;
+sv-tests	tests/generic/class/class_test_48.sv	301	324	` ID ID	class pp_as_class_item;
+sv-tests	tests/generic/typedef/typedef_test_8__bad.sv	429	452	ID ; module	typedef some_other_type myalias;
+sv2v	test/core/array.sv	97	711	: ID logic	begin : A
+sv2v	test/core/cast.sv	0	65	: ID int	begin : A
+sv2v	test/core/decl_scope.sv	0	145	: ID logic	begin : X
+sv2v	test/core/delay.sv	0	24	] ID ,	logic [4] a, b;
+sv2v	test/core/enum_scope.sv	0	1053	{ ID =	typedef enum [5:0] {
+sv2v	test/core/for_loop_inits.sv	0	96	+ = NUM	for (x += 1; x < y; x++)
+sv2v	test/core/inside_expr.sv	0	872	: ID localparam	begin : patterns
+sv2v	test/core/interface_array.sv	2548	2985	. ID )	ModuleASet #(1, 1, 0) xs(intfX[2:0].ModportB);
+sv2v	test/core/interface_generate.sv	0	173	( ID [	modport client_mp (output .client_req(req[i]));
+sv2v	test/core/interface_input_type.sv	92	118	ID , input	input intf i,
+sv2v	test/core/jump.sv	0	110	` ID )	$display("UNREACHABLE ", `__LINE__);
+sv2v	test/core/logic_tf.sv	0	308	: ID logic	begin : A
+sv2v	test/core/multipack_struct_cast.sv	0	56	] [ NUM	logic [2][3] x;
+sv2v	test/core/nest_order.sv	18	34	' ( ID	localparam Y = 5'(Z);
+sv2v	test/core/package_function_cast.sv	0	186	' ( NUM	r[p+:2] = $bits(r[p+:2])'(1'sb1);
+sv2v	test/core/part_select_bits.sv	0	286	' ( ID	arr[i * B +: B] = $bits(arr[i * B +: B])'(i);
+sv2v	test/core/port_default.sv	0	185	= ID (	input wire integer x = F(P); // defining a default here is non-standard
+sv2v	test/core/size_cast.sv	0	266	' ( '	bar = $bits(bar)'('1);
+sv2v	test/core/struct_param.sv	449	522	] ID ;	logic [2] b;
+sv2v	test/core/struct_unit_array.sv	0	175	] ID =	S [WIDTH] s = '{
+sv2v	test/core/time.sv	57	70	` ID NUM	module top_1;
+sv2v	test/core/trailing_commas.sv	0	21	) ( ID	module ModuleA #(P=1,) (inp,);
+sv2v	test/core/unbased_unsized_default.sv	0	33	] [ NUM	input [4][5] inp;
+sv2v	test/error/drive_strength_uninit.sv	119	148	, supply1 )	wire (supply0, supply1) x;
+sv2v	test/error/enum_range_x.sv	54	87	' ID ]	A['x]
+sv2v	test/error/interface_modport_unlisted.sv	189	219	; endmodule	Interface i;
+sv2v	test/error/interface_name_func.sv	121	165	ID , ID	task t(I dst, I src);
+sv2v	test/error/interface_name_var.sv	163	191	ID ; endmodule	if (1) var I i;
+sv2v	test/error/missing_class.sv	37	77	) ; endmodule	initial $display(C#()::X);
+sv2v	test/error/port_init_early.sv	121	148	= NUM ;	output a = 1;
+sv2v	test/error/severity_task_arg.sv	79	102	. ID (	$fatal(.x("x"));
+sv2v	test/error/typedef_missing.sv	78	97	; endmodule	T x;
+sv2v	test/error/typedef_not_type_localparam.sv	115	156	; endmodule	L x;
+sv2v	test/error/typedef_not_type_net.sv	101	132	; endmodule	w x;
+sv2v	test/error/typedef_not_type_var.sv	101	131	; endmodule	v x;
+sv2v	test/lex/begin_keywords.sv	28	49	automatic = NUM	integer automatic = 2;
+sv2v	test/lex/latin1.sv	-3	-3	<NO-POSITION>	Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'
+
+Caused by:
+    stream did not contain valid 
+sv2v	test/lex/number_literal_whitespace.sv	0	115	ID / *	'b
+sv2v	test/nosim/assert.sv	0	401	NUM ( NUM	assert #0_0 (1);
+sv2v	test/nosim/drive_strength.sv	0	29	, supply1 )	wire (supply0, supply1) a = 1;
+verible	verible/verilog/tools/kythe/testdata/event_control.sv	51	154	; endtask	@x[y];
+verible	verible/verilog/tools/kythe/testdata/foreach.sv	26	181	) begin /	foreach (y) begin
+verible	verible/verilog/tools/kythe/testdata/function_port_dimensions.sv	340	355	[ ID :	function f4(int [var1:var2] t1 [var3:var4]);
+verible	verible/verilog/tools/kythe/testdata/interface_with_module.sv	253	274	; / /	x y;
+verible	verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv	161	1196	; endmodule	input n1;
+verible	verible/verilog/tools/kythe/testdata/nested_member_access.sv	1897	3116	( ) )	initial $display(nested_class0::handle1::handle2.nested_function());
+verible	verible/verilog/tools/kythe/testdata/primitive_type_with_dimensions.sv	283	622	[ ID ::	int [foo_pkg::DATA_WIDTH-1:foo_pkg::DATA_LENGTH] var5 [foo_pkg::DATA_WIDTH-1:foo_pkg::DATA_LENGTH];
+verible	verible/verilog/tools/kythe/testdata/program.sv	226	357	ID ; initial	environment env;
+verible	verible/verilog/tools/kythe/testdata/reversed_definition.sv	60	443	ID = new	static class2 instance1 = new();
+verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	0	55	" ID ID	string bad_literal = "Humpty Dumpty sat on a wall. \
+verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	0	98	: ID always	begin : gen_block1
+verible	verible/verilog/tools/lint/testdata/generate_label_module.sv	0	115	; end endgenerate	baz bam;
+verible	verible/verilog/tools/lint/testdata/instance_parameters.sv	0	45	; endmodule	bar #(4, 8) baz;
+verilator	test_regress/t/t_array_event.v	203	393	; endtask function	->write_events[index];
+verilator	test_regress/t/t_assert_imm_nz_bad.v	202	242	; ID :	input clk;
+verilator	test_regress/t/t_assign_automatic_bad.v	616	2126	. ID <=	].s_dyn <= '1;  // OK: direct nonblocking assignment to dynamically-sized array
+verilator	test_regress/t/t_case_inside_bad.v	203	252	default : ID	casex (1'bx) inside
+verilator	test_regress/t/t_cast.v	332	585	{ ID =	typedef enum [15:0] {
+verilator	test_regress/t/t_class_extends_bad.v	249	272	, ID ;	class Cls extends Base1, Base2;
+verilator	test_regress/t/t_class_extends_default.v	295	327	) ; /	class Cls1 extends Base1(default);
+verilator	test_regress/t/t_class_extends_nf_bad.v	278	306	; / /	class Cls extends IsNotFound;  // BAD: not found
+verilator	test_regress/t/t_class_extends_pkg_bad.v	227	413	; endclass ID	class bar extends pkg;
+verilator	test_regress/t/t_class_extern.v	203	358	( ID )	extern function ext_f_imp(in);
+verilator	test_regress/t/t_class_new_default.v	204	249	default ) ;	function new(default);
+verilator	test_regress/t/t_class_override.v	395	978	: initial int	function :initial int get_i; return 1; endfunction
+verilator	test_regress/t/t_class_override_bad.v	418	819	: extends int	function :extends int get_e; return 1; endfunction  // Bad
+verilator	test_regress/t/t_class_static_member_sel.v	904	1229	= NUM ;	baz.get_bar().f.x = 4;
+verilator	test_regress/t/t_clk_concat5.v	1174	1397	; logic [	input clk;
+verilator	test_regress/t/t_clk_concat6.v	1331	1581	; logic [	input clk;
+verilator	test_regress/t/t_comb_do_not_convert_to.v	199	371	; reg ID	input clk;
+verilator	test_regress/t/t_config_param.v	470	686	# ( .	instance t.u_1a use #(.P1(), .P2("override.u_a.p2"));
+verilator	test_regress/t/t_config_rules.v	448	1014	# ( )	instance t.m32 use #();
+verilator	test_regress/t/t_constraint_dist_randc_bad.v	203	263	: = NUM	constraint c_bad { rc dist {3 := 0, 10 := 5}; }  // Bad, no dist on randc
+verilator	test_regress/t/t_constraint_json_only.v	203	547	[ NUM :	length dist { [0:1], [2:5] :/ 2, 6 := 6, 7 := 10, 1};
+verilator	test_regress/t/t_constraint_operators.v	203	1423	~ ID ==	constraint unary { !(-~c == 'h22); }
+verilator	test_regress/t/t_constraint_unsat.v	200	495	) begin /	if (!randomize() with { addr == a; data == d; }) begin
+verilator	test_regress/t/t_cover_expr.v	238	2526	' ( ID	if ((cyc[3+32'(t1&&t2)+:2] == cyc[5+32'(t3||t4)+:2]) || cyc[31]) $write("");
+verilator	test_regress/t/t_cover_fsm_sel_assign.v	197	634	ID ; begin	logic [D-1:0][W-1:0] s;
+verilator	test_regress/t/t_cover_sequence_unsup.v	200	594	[ NUM :	cover sequence ((a ##[1:3] b) or 1'b0);
+verilator	test_regress/t/t_covergroup_autobins_bad.v	306	471	; } endgroup	bins auto[size_var];
+verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	260	511	} ID :	}
+verilator	test_regress/t/t_covergroup_with_function_foo_bad.v	197	240	ID ( int	covergroup cg_bad with function foo(int x);
+verilator	test_regress/t/t_debug_emitv.v	954	1083	{ ID ,	typedef enum [2:0] {
+verilator	test_regress/t/t_default_disable_iff_gen_multi_bad.v	198	285	: ID default	begin : g
+verilator	test_regress/t/t_delay.v	227	549	. ID ID	assign #sub.delay dly4 = dly1 + 1;
+verilator	test_regress/t/t_display_qqq.v	203	245	" ID "	$display("""First "quoted"\nsecond\
+verilator	test_regress/t/t_dpi_string.v	352	450	: ID string	begin : DSM
+verilator	test_regress/t/t_dpi_type_bad.v	352	371	" ID -	import "DPI-BAD" task dpix_twice;
+verilator	test_regress/t/t_enum.v	300	648	{ ID =	typedef enum [2:0] { ONES=~0 } three_t;
+verilator	test_regress/t/t_enum_bad_value.v	203	366	{ ID =	typedef enum [2:0] { VALUE_BAD1 = 8 } enum_t;
+verilator	test_regress/t/t_enum_bad_wrap.v	203	234	{ ID =	typedef enum [1:0] {
+verilator	test_regress/t/t_enum_base_bad.v	203	503	{ / /	enum logic [1:0][1:0] {  // BAD enum type
+verilator	test_regress/t/t_enum_const_methods.v	204	235	{ ID ,	typedef enum [1:0] {E0, E1, E2} enm_t;
+verilator	test_regress/t/t_enum_type_methods_bad.v	203	318	{ ID =	typedef enum [3:0] {
+verilator	test_regress/t/t_enum_type_nomethod_bad.v	203	233	{ ID =	typedef enum [3:0] {
+verilator	test_regress/t/t_event_control_pass.v	363	427	( ) ;	->b.get_event();
+verilator	test_regress/t/t_export_packed_struct.v	230	248	packed { ID	typedef union soft packed {
+verilator	test_regress/t/t_export_packed_struct2.v	227	267	packed { logic	typedef union soft packed {
+verilator	test_regress/t/t_flag_language.v	203	258	; initial bit	integer bit; initial bit = 1;
+verilator	test_regress/t/t_foreach_array.v	200	2532	) ID ++	foreach (queue[i]) foreach (queue[i][j]) exp_count_que++;
+verilator	test_regress/t/t_foreach_bad.v	203	290	) ; /	foreach (array);  // no index
+verilator	test_regress/t/t_foreach_nested.v	234	348	) this .	foreach(this.foo.x[i][j])
+verilator	test_regress/t/t_foreach_nindex_bad.v	203	287	; / /	foreach (array[i, j, badk, badl]);  // bad
+verilator	test_regress/t/t_foreach_type_bad.v	224	303	; / /	foreach (c[i]);  // bad type
+verilator	test_regress/t/t_fuzz_genintf_bad.v	349	398	. ID (	j.e(0),
+verilator	test_regress/t/t_gate_fdup.v	206	310	; supply1 ID	supply0       gnd;
+verilator	test_regress/t/t_gate_strength.v	203	331	, supply1 )	assign (highz0, supply1) nt00 = a[0];
+verilator	test_regress/t/t_gen_duplicated_blocks_bad.v	197	233	: ID end	begin : block
+verilator	test_regress/t/t_gen_if.v	411	635	begin : ID	end
+verilator	test_regress/t/t_gen_local.v	203	339	: ID for	begin : topgen
+verilator	test_regress/t/t_gen_self_return.v	201	1083	: ID for	begin : ram_dataout_gen
+verilator	test_regress/t/t_iface_self_ref_typedef.v	456	522	ID ; ID	typedef my_iface#(T) self_t;
+verilator	test_regress/t/t_implements_contents_bad.v	203	224	int ID ;	interface class Icls;
+verilator	test_regress/t/t_implements_nested_bad.v	203	237	interface class ID	interface class inte;
+verilator	test_regress/t/t_implements_noninterface_bad.v	228	260	; endclass interface	class ClsBad1 implements NotIcls;
+verilator	test_regress/t/t_implements_notfound_bad.v	203	234	; endclass module	class ClsI implements Inotfound;
+verilator	test_regress/t/t_inside_unpacked_param.v	203	346	inside { ID	localparam HIT_INSIDE = HIT_LP inside {CHECKLIST_P};
+verilator	test_regress/t/t_inst_2star_bad.v	203	275	. * )	sub sub (foo, .*);
+verilator	test_regress/t/t_inst_noname_bad.v	204	218	) ; ID	m();
+verilator	test_regress/t/t_inst_paren_bad.v	226	250	; / /	sub sub_inst;  // No ()
+verilator	test_regress/t/t_inst_port_complex_unsup.v	245	319	. ID (	output wire .ao_rename(ao),  .bo_rename(bo)
+verilator	test_regress/t/t_inst_sv.v	203	276	[ NUM :	supply0 [1:0] low;
+verilator	test_regress/t/t_interface_gen10.v	446	476	: ID ID	begin : TestIf
+verilator	test_regress/t/t_interface_gen11.v	446	514	ID ( .	t1 t (.mod_intf(mod_intfs[0]));
+verilator	test_regress/t/t_interface_gen13.v	214	363	ID = NUM	initial p2 = 1;
+verilator	test_regress/t/t_interface_gen5.v	447	477	: ID ID	begin : TestIf
+verilator	test_regress/t/t_interface_gen6.v	289	539	NUM ) begin	if (1) begin
+verilator	test_regress/t/t_interface_gen7.v	523	615	: ID for	begin : ia
+verilator	test_regress/t/t_interface_modport_export.v	259	329	( input logic	extern function myfunc (input logic val);
+verilator	test_regress/t/t_interface_nested_port_array.v	1045	1128	ID , output	l0_if#(W) l0,
+verilator	test_regress/t/t_interface_paren_missing_bad.v	280	303	; initial ID	intf intf_i;
+verilator	test_regress/t/t_langext_order.v	303	317	do ) ;	module t(input do);
+verilator	test_regress/t/t_lint_colonplus_bad.v	203	289	= ID [	output [2:1] z = r[2 :+ 1];
+verilator	test_regress/t/t_lint_implicit_def_bad.v	203	340	` ID ID	assign imp_ok = 1'b1;
+verilator	test_regress/t/t_lint_implicit_func_bad.v	203	263	` ID wire	endfunction
+verilator	test_regress/t/t_lint_implicit_type_bad.v	237	320	` ID wire	localparam type imp_PARAM_conflict;
+verilator	test_regress/t/t_lint_notredop_bad.v	196	278	| ID ;	assign y[0] = !|v;
+verilator	test_regress/t/t_lint_pragma_protected.v	255	286	` ID ID	module t_lint_pragma_protected;
+verilator	test_regress/t/t_lint_pragma_protected_bad.v	203	278	` ID ID	
+verilator	test_regress/t/t_lint_vcmarker_bad.v	203	212	<< << <<	module t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef2.v	333	407	. ID ;	localparam type p0_t = if0.rq_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef4.v	333	407	. ID [	localparam type p0_t = if0.rq_t[1:0];
+verilator	test_regress/t/t_lparam_assign_iface_typedef_bad.v	543	694	; / /	p0_rq_t rq;  // Should fail: p0_rq_t is not a data type
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested.v	699	803	. ID .	localparam type p0_rq2_t = if0.y_if0.rq2_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested6.v	680	769	. ID .	localparam type rq_t = if0.x_if0.rq_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mod1.v	453	521	. ID ;	localparam type bus_rq_t = bus_io.rq_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg4.v	574	789	. ID ;	localparam type cc_index_t = tb_io.cc_index_t;
+verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg5.v	574	754	. ID ;	localparam type cc_index_t = tb_io.cc_index_t;
+verilator	test_regress/t/t_math_pow6.v	203	556	= NUM '	output [3:0] i65 = 65'd3 ** a; // IWI
+verilator	test_regress/t/t_mem_multi_ref_bad.v	203	513	[ NUM ]	dim2[0+:1][1] = 0;  // Bad: Range on non-bits
+verilator	test_regress/t/t_mem_slice_bad.v	203	979	= ( ID	assign active_command3[1:0][2:0][3:0] = (use_AnB) ?  command_A3[1:0][2:0][3:0] : command_B3[1:0][1:0][3:0];
+verilator	test_regress/t/t_opt_merge_cond_blowup.v	199	1301	` ID ,	$write("%%Error: %s:%0d: cyc=%0d i=%0d a[i]='h%x b[i]='h%x\n", `__FILE__, `__LINE__, cyc,
+verilator	test_regress/t/t_param.v	203	337	) ; integer	mreal #1.2 mr ();
+verilator	test_regress/t/t_param_implicit_bad.v	283	297	[ NUM :	module sub1 #([7:0] PAR1 = 1);  // <--- Error: requires 'parameter'
+verilator	test_regress/t/t_param_no_parentheses.v	299	379	) ; ID	m1 #PAR m1();
+verilator	test_regress/t/t_param_type_bad.v	203	275	NUM ; /	localparam type bad2 = 2;  // Bad
+verilator	test_regress/t/t_param_type_bad3.v	203	264	; / /	localparam type P_T = PI;  // Bad
+verilator	test_regress/t/t_param_type_from_iface_struct.v	2039	2160	. ID ID	typedef ports[0].inner.req_t local_req_t;
+verilator	test_regress/t/t_param_type_fwd.v	350	378	enum ID ;	parameter type enum E_t;
+verilator	test_regress/t/t_param_type_fwd_bad.v	223	251	enum ID ;	parameter type enum E_t;
+verilator	test_regress/t/t_param_type_id_bad.v	211	250	) ; endclass	parameter type P_T = i
+verilator	test_regress/t/t_parse_eof_attr_bad.v	203	210	<EOF>	(* attr
+verilator	test_regress/t/t_parse_eof_qqq_bad.v	203	202	" " "	
+verilator	test_regress/t/t_parse_sync_bad2.v	202	247	ID ; typedef	typedef unknown defu;
+verilator	test_regress/t/t_past_unsup.v	203	435	@ ( posedge	if ($past(d, 1, 1, @(posedge clk))) $stop;  // Unsup
+verilator	test_regress/t/t_prop_always_bad.v	200	466	ID ) ;	assert property (s_always a);
+verilator	test_regress/t/t_property_case_bad.v	198	368	endproperty endmodule	endcase
+verilator	test_regress/t/t_property_local_var_range_unsup.v	200	522	[ NUM :	) |-> ##[1:3] (cyc > prev);
+verilator	test_regress/t/t_property_named.v	202	553	int ID )	property check_if_1(var int cyc_mod_2);
+verilator	test_regress/t/t_property_s_eventually2.v	255	250	ID ( "	`define PROPERTY_CHECK(msg) \
+verilator	test_regress/t/t_property_sexpr_bad.v	198	402	ID ) ;	assert property (@(posedge clk) ##1 not val);
+verilator	test_regress/t/t_property_sexpr_range_delay_bad.v	200	395	[ NUM :	a1: assert property (@(posedge clk) a |-> ##[1:cyc] b);
+verilator	test_regress/t/t_property_unsup.v	2197	2452	ID eventually [	assert property (counter == 1 implies eventually[1: 2] counter == 3);
+verilator	test_regress/t/t_queue_back.v	203	493	- NUM ]	q = q[0:$-1];  // void'(q.pop_back()) or q.delete(q.size-1)
+verilator	test_regress/t/t_queue_empty_bad.v	203	250	} + NUM	i = {} + 1;
+verilator	test_regress/t/t_queue_empty_pin.v	202	234	} ) ;	task tsk(int q[] = {});
+verilator	test_regress/t/t_randomize.v	203	506	[ NUM :	length dist { [0:1], [2:5] :/ 2, 6 := 6, 7 := 10, 1};
+verilator	test_regress/t/t_randomize_arraysel_membersel.v	434	677	with { ID	if (std::randomize(example.member[1]) with {example.member[1] inside {[0 : 3]};} == 0) $stop;
+verilator	test_regress/t/t_randomize_complex_arrays.v	597	810	with { ID	if (cl_inst[1].sc_inst.sc_inst1.sc_inst2[1].randomize() with {field inside {1, 2, 3};} == 0) begin
+verilator	test_regress/t/t_randomize_complex_associative_arrays.v	598	827	with { ID	if (cl_inst["val1"].sc_inst.sc_inst1.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_complex_dynamic_arrays.v	618	849	with { ID	if (cl_inst[1].sc_inst.sc_inst1.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_complex_member_bad.v	596	738	with { ID	if (cl_inst[1].sc_inst.sc_inst2.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_complex_queue.v	621	905	with { ID	if (cl_inst[0].sc_inst.sc_inst1.sc_inst2[0].randomize() with {
+verilator	test_regress/t/t_randomize_complex_typedef.v	718	914	with { ID	if (cl_inst[1].sc_inst.sc_inst1.sc_inst2[1].randomize() with {
+verilator	test_regress/t/t_randomize_inside_cond.v	203	367	== NUM )	assert((std::randomize(x) with {x inside {10, 20}; }) == 1)
+verilator	test_regress/t/t_randomize_method_constraints.v	288	380	|| ID inside	constraint B { w == 5; x inside {1,2} || x inside {4,5}; }
+verilator	test_regress/t/t_randomize_rand_mode_bad.v	354	460	; ID (	p.m_pack[0].rand_mode(0);
+verilator	test_regress/t/t_randomize_rand_mode_unsup.v	304	391	; ID .	p.m_dyn_arr[0].rand_mode(0);
+verilator	test_regress/t/t_randomize_with_idlist_method_bad.v	200	322	{ ID >	total = q.sum() with (item) { item > 0; };
+verilator	test_regress/t/t_randomize_within_func.v	226	361	; ID (	a = randomize(m_2) with {m_2 > 2 && m_2 < 5;};
+verilator	test_regress/t/t_recursive_typedef_bad.v	383	422	, parameter type	parameter type A = B,
+verilator	test_regress/t/t_resize_lvalue.v	1213	1721	; if (	m_env.r_reg_model.p_s[p].n_doorbell.read(status, rdata, 0);
+verilator	test_regress/t/t_sequence_intersect_range_unsup.v	200	341	[ NUM :	(a ##[1:5] b) intersect (c ##2 d));
+verilator	test_regress/t/t_sequence_sexpr_unsup.v	203	1048	[ NUM :	## [1:2] b;
+verilator	test_regress/t/t_sequence_within_range_unsup.v	200	555	[ NUM :	(a ##[1:3] b) within (c ##5 d));
+verilator	test_regress/t/t_setuphold.v	197	1237	: NUM :	$setuphold (posedge clk, negedge d, 0:0:0, 0:0:0);
+verilator	test_regress/t/t_simulate_array.v	313	351	ID = ID	localparam something = fun();
+verilator	test_regress/t/t_split_var_3_wreal.v	237	370	; ID ID	wreal vout[0:1]  /*verilator split_var*/;
+verilator	test_regress/t/t_std_randomize_static_member.v	563	1019	== NUM )	} == 0)
+verilator	test_regress/t/t_std_randomize_unsup_unq_arr.v	197	287	) || ID	if (!bit'(std::randomize(x) with {unique {x};}) || x[0] == x[1]) $stop;
+verilator	test_regress/t/t_std_randomize_with.v	381	646	!= NUM )	} != 1)
+verilator	test_regress/t/t_stop_winos_bad.v	260	300	` ID ;	localparam string FILENAME = `__FILE__;
+verilator	test_regress/t/t_strength_2_uneq_assign.v	202	262	, strong1 )	assign (weak0, strong1) a = clk ? 'z : '0;
+verilator	test_regress/t/t_strength_assignments_constants.v	202	237	, weak1 )	assign (weak0, weak1) a = 1;
+verilator	test_regress/t/t_strength_equal_strength.v	202	294	weak0 , weak1	wire (weak0, weak1) [W-1:0] b = '1;
+verilator	test_regress/t/t_strength_highz.v	202	225	, highz1 )	wire (weak0, highz1) a = 1;
+verilator	test_regress/t/t_strength_strongest_constant.v	202	296	, weak1 )	nor (pull0, weak1) n1 (a, 0, 0);
+verilator	test_regress/t/t_strength_strongest_non_tristate.v	202	277	, weak1 )	wire (weak0, weak1) a = 0;
+verilator	test_regress/t/t_string_sel.v	380	651	[ NUM ]	if (get_str()[1] != "a") $stop;
+verilator	test_regress/t/t_struct_type_bad.v	203	266	ID ; /	i badi;  // Bad
+verilator	test_regress/t/t_timescale_udp.v	510	605	? ; ID	?     :  ?;
+verilator	test_regress/t/t_tri_clocking.v	203	245	tri0 ID ;	wire rst;
+verilator	test_regress/t/t_tri_gen.v	653	676	tri1 ID )	inout tri1 z
+verilator	test_regress/t/t_tri_pull_unsup.v	203	297	) ID (	pullup (supply1) pu1 (a);
+verilator	test_regress/t/t_tri_unconn.v	203	453	` ID )	t_tri0 tri0a (.line(`__LINE__), .expval(1'b0)); // Pin missing
+verilator	test_regress/t/t_type_compare.v	266	830	== type (	if (type(real) == type(logic[12:0])) $stop;
+verilator	test_regress/t/t_type_compare_bad.v	203	325	) NUM :	case (type(real))
+verilator	test_regress/t/t_type_expression_compare.v	217	338	!= type (	if (type(value1) != type(value2)) $stop;
+verilator	test_regress/t/t_typedef_id_bad.v	211	250	) ; endclass	parameter type P_T = i
+verilator	test_regress/t/t_typedef_package.v	259	293	:: ID {	typedef enum pkg1::uint8_t {
+verilator	test_regress/t/t_udp_bad.v	257	291	tri ID ;	primitive udp_x (a_bad, b, c_bad);
+verilator	test_regress/t/t_udp_bad_comb_trigger.v	203	312	( NUM )	0 ? 1  :   1;
+verilator	test_regress/t/t_udp_bad_illegal_output.v	203	378	* ; ID	1 1 ?  :  ?: *;
+verilator	test_regress/t/t_udp_bad_multi_output.v	203	258	, ID ;	output dout1, dout2;
+verilator	test_regress/t/t_udp_nonsequential.v	923	1197	\ : NUM	0   0  x \
+verilator	test_regress/t/t_udp_sequential.v	200	400	NUM ) NUM	(10) 1 : ? : 1 ;
+verilator	test_regress/t/t_udp_sequential_x.v	757	827	NUM ) :	(01) : ? : 0;
+verilator	test_regress/t/t_udp_tableeof_bad.v	203	237	tri ID ;	primitive udp_x (a_bad, b, c_bad);
+verilator	test_regress/t/t_union_soft.v	203	226	{ bit [	union soft {
+verilator	test_regress/t/t_vams_basic.v	231	483	; assign ID	wreal wr;
+verilator	test_regress/t/t_var_dotted_dup_bad.v	203	248	ID ( .	eh2_ram dccm_bank (.*);
+verilator	test_regress/t/t_var_dup_bad.v	728	794	; endmodule module	output bad_reout_port;
+verilator	test_regress/t/t_var_ref_static.v	277	357	ID ) ;	function void crs(const ref static i);
+verilator	test_regress/t/t_wide_temp_while_cond.v	260	542	' ( ID	while (|((val[ 7'(one >> identity(32)) +: 96] << n) >> n)) begin
