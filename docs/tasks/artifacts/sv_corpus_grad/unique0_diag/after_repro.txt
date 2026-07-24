@@ -1,0 +1,20 @@
+# .3.6 unique0 — AFTER repro (release probe, HEAD parser WITH unique0 fix)
+# probe built: 2026-07-24 02:44:22.740337984 +0200  (mtime > regenerated parser)
+
+## repro matrix
+-- unique0 if     (sv_2017): passed
+-- unique0 case   (sv_2017): passed
+-- unique0 if     (verilog_2005, expect rejected — SV-only): rejected
+-- [ctrl] unique if   (sv_2017): passed
+-- [ctrl] priority if (sv_2017): passed
+-- [ctrl] unique case (sv_2017): passed
+
+## AST kind for 'unique0 if': "kind": "unique0"
+
+## 6 keyed family rows — verdict at HEAD (sv_2017):
+  passed    ispras-sv-tests ieee-1800-2012/12/12.05.03_01.sv
+  passed    sv-tests  tests/chapter-12/12.4.2--unique0_if.sv
+  passed    sv2v      test/core/case_violation_checks.sv
+  passed    verilator test_regress/t/t_langext_2.v
+  passed    verilator test_regress/t/t_lint_caseincomplete_bad.v
+  passed    verilator test_regress/t/t_lint_ifdepth_bad.v

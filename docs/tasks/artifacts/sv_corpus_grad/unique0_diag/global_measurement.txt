@@ -1,0 +1,40 @@
+debug probe mtime=1784854195 parser mtime=1784852568
+debug probe fresh; unique0 quick check:
+parse_full passed for grammar 'systemverilog' on '/tmp/qu.sv'
+memory-guard: started pid=44438 pgid=44438 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=3000s free=67% disk=111GB cmd: bash /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/fe2cff38-e768-4f9e-ba21-cd7a2330bff6/scratchpad/measure_unique0.sh
+############ probe used ############
+2026-07-24 02:49:55.037022979 +0200 185229712 rust/target/debug/parseability_probe
+############ [1/4] main sv lane (16,336 files) ############
+  results.tsv rows: 16336
+############ [2/4] v2005 lane (2,459 files) ############
+  results_v2005.tsv rows: 2459
+############ [3/4] re-adjudicate ############
+  adjudication OK
+############ [4/4] deltas ############
+--- MAIN lane adjudication value counts (NEW) ---
+   5683 match
+    426 divergence:unexplained_rejects_valid
+     21 divergence:unexplained_accepts_invalid
+  rejects-valid NEW: 426 (baseline 432)
+  accepts-invalid NEW: 21 (baseline 21)
+--- accepts-invalid SET identity (must be byte-identical) ---
+  accepts-invalid set: BYTE-IDENTICAL ✓
+--- MAIN lane per-file pass-set comm diff (NO-REGRESSION: 0 pass->fail) ---
+  baseline pass: 9585 ; new pass: 9591
+  pass->fail (in baseline, NOT in new) [expect 0]:
+  --- count pass->fail: 0
+  fail->pass (new gains) [expect ~unique0 rows + timeout jitter]:
+    ispras-sv-tests/ieee-1800-2012/12/12.05.03_01.sv
+    sv-tests/tests/chapter-12/12.4.2--unique0_if.sv
+    sv2v/test/core/case_violation_checks.sv
+    verilator/test_regress/t/t_langext_2.v
+    verilator/test_regress/t/t_lint_caseincomplete_bad.v
+    verilator/test_regress/t/t_lint_ifdepth_bad.v
+  --- count fail->pass: 6
+--- V2005 lane byte-inertness ---
+  results_v2005.tsv: 
+  v2005 manifest: BYTE-IDENTICAL to baseline ✓
+  v2005 rejects-valid: 116 (baseline 116)
+DONE.
+memory-guard: completed exit=0 peak_tree_rss=5707MB elapsed=268s; marker: /private/tmp/claude-501/-Users-richarddje-Documents-github-pgen/fe2cff38-e768-4f9e-ba21-cd7a2330bff6/scratchpad/measure.marker
+=== measurement guard exit: 0 ===

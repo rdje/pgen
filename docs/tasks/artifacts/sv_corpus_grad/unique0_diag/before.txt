@@ -1,0 +1,22 @@
+# .3.6 unique0 — BEFORE state (probe vintage: release 1.0.171 / .3.5)
+# probe: ./rust/target/release/parseability_probe (built 2026-07-23 15:53:45.847788806 +0200)
+
+## REPRO: unique0 if/case REJECT; unique/priority if + unique case ACCEPT (controls)
+-- unique0 if     :
+Error: parse_full rejected sample for grammar 'systemverilog' on '/tmp/u_if.sv': Parser did not consume full input at position 0 [furthest_position=36, +36 bytes deeper than surface position]
+-- unique0 case   :
+Error: parse_full rejected sample for grammar 'systemverilog' on '/tmp/u_case.sv': Parser did not consume full input at position 0 [furthest_position=49, +49 bytes deeper than surface position]
+-- [ctrl] unique if  :
+parse_full passed for grammar 'systemverilog' on '/tmp/c_uif.sv'
+-- [ctrl] priority if:
+parse_full passed for grammar 'systemverilog' on '/tmp/c_pif.sv'
+-- [ctrl] unique case:
+parse_full passed for grammar 'systemverilog' on '/tmp/c_ucase.sv'
+
+## unique0 family rows (6) in current rejects-valid manifest — probe verdict at HEAD:
+  rejected  ispras-sv-tests ieee-1800-2012/12/12.05.03_01.sv
+  rejected  sv-tests  tests/chapter-12/12.4.2--unique0_if.sv
+  rejected  sv2v      test/core/case_violation_checks.sv
+  rejected  verilator test_regress/t/t_langext_2.v
+  rejected  verilator test_regress/t/t_lint_caseincomplete_bad.v
+  rejected  verilator test_regress/t/t_lint_ifdepth_bad.v

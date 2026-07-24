@@ -5860,6 +5860,7 @@ unary_operator := plus                  -> {kind: "plus"}
 @profiles: ["sv_2017", "sv_2023"]
 unique_priority := kw_unique_58037c00   -> {kind: "unique"}
                 | kw_priority_3345867e -> {kind: "priority"}
+                | kw_unique0           -> {kind: "unique0"}
 
 @profiles: ["sv_2017"]
 uniqueness_constraint_sv_2017 := kw_unique_58037c00 open_range_list*
@@ -6645,6 +6646,9 @@ kw_typedef_6dc2082b := trivia /typedef\b/
 kw_union_67ad5a07 := trivia /union\b/
 
 kw_unique_58037c00 := trivia /unique\b/
+
+@profiles: ["sv_2017", "sv_2023"]
+kw_unique0 := trivia /unique0\b/
 
 kw_unsigned_9861ca25 := trivia /unsigned\b/
 

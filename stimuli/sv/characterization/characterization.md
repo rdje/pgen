@@ -12,7 +12,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9585 | 6742 | 9 | 0 | 58.7% |
+| 16336 | 9591 | 6736 | 9 | 0 | 58.7% |
 
 ## Per sub-corpus
 
@@ -21,16 +21,16 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | black-parrot | 205 | 16 | 189 | 0 | 0 | 7.8% |
 | Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 0 | 17.6% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
-| ispras-sv-tests | 1266 | 1049 | 217 | 0 | 0 | 82.9% |
+| ispras-sv-tests | 1266 | 1050 | 216 | 0 | 0 | 82.9% |
 | iverilog | 3799 | 3176 | 623 | 0 | 0 | 83.6% |
 | opentitan | 3983 | 779 | 3196 | 8 | 0 | 19.6% |
 | scr1 | 50 | 7 | 43 | 0 | 0 | 14.0% |
 | slang | 92 | 71 | 21 | 0 | 0 | 77.2% |
 | Surelog | 828 | 683 | 145 | 0 | 0 | 82.5% |
-| sv-tests | 1028 | 849 | 179 | 0 | 0 | 82.6% |
-| sv2v | 953 | 718 | 235 | 0 | 0 | 75.3% |
+| sv-tests | 1028 | 850 | 178 | 0 | 0 | 82.7% |
+| sv2v | 953 | 719 | 234 | 0 | 0 | 75.4% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
-| verilator | 3263 | 2047 | 1215 | 1 | 0 | 62.7% |
+| verilator | 3263 | 2050 | 1212 | 1 | 0 | 62.8% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv`._

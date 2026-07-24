@@ -228,9 +228,12 @@ coverage.
   / sv-tests 4) — root cause tool-pinned: the `|->`/`|=>` operators are ABSENT
   from the grammar (see `.3.2`). Burn-down cut from this map: **`.3.3`**
   (`|->`/`|=>`, SVA #1, done) → **`.3.4`** (modport shared-direction list, #3,
-  done) → **`.3.5`** (spaced-based number literals §5.7.1, #6, in progress);
+  done) → **`.3.5`** (spaced-based number literals §5.7.1, #6, done) →
+  **`.3.6`** (`unique0` if/case qualifier §12.4.2/§12.5.3, in progress);
   remaining: constraint/randomize (23), directives (22), drive strength (21),
-  named block (20), size-cast (13), … cut from the same map.
+  named block (20), size-cast (13), enum-base-range (9), … cut from the same
+  map. **Current rejects-valid baseline after `.3.5`: 432** (accepts-invalid
+  21).
 
 #### `.3.0` — Stuck-point clustering over the rejects-valid population (read-only diagnosis)
 
@@ -686,8 +689,9 @@ coverage.
 
 #### `.3.5` — spaced-based number literals absent (IEEE 1800-2017 §5.7.1 — the #6 rejects-valid family, chapter-5 lexical; CROSS-PROFILE)
 
-- **Status: `in_progress`** (`PGEN-SV-CORPUS-GRAD-0020`, session #200,
-  2026-07-23). The third fix cut from the `.3.2`/v2 refreshed family map: after
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0020`, session #200,
+  2026-07-23; release `1.0.170` → **`1.0.171`**, schema `18` UNCHANGED, ledger
+  **`SV-0041`**; committed `d332a7f8`). The third fix cut from the `.3.2`/v2 refreshed family map: after
   `.3.3` (SVA #1) and `.3.4` (modport #3), **number literal spaced-based (ch5),
   22 rows** is the next single-construct family (sv-tests 13 / Surelog 5 /
   ispras-sv-tests 2 / verilator 2). ⭐ Unlike `.3.3`/`.3.4` (SV-only), the fix is
@@ -780,6 +784,102 @@ coverage.
     accepts-invalid sets byte-identical (21 / 14); cert-union / quality / v2005-
     conformance / shape / book GREEN.
   - [x] **LOCKSTEP** — ledger `SV-0041` + contract `1.0.171` + SV book +
+    tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
+
+#### `.3.6` — `unique0` if/case qualifier absent (IEEE 1800-2017 §12.4.2 / §12.5.3, A.6.6 `unique_priority` — the #11 rejects-valid family, ch12)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0021`, session #201,
+  2026-07-24; release `1.0.171` → **`1.0.172`**, schema `18` UNCHANGED, ledger
+  **`SV-0042`**). The fourth fix cut from the `.3.2`/v2 refreshed family map: after
+  `.3.3` (SVA #1), `.3.4` (modport #3), `.3.5` (spaced literals #6), the
+  **`unique0` (ch12)** family is the cleanest remaining single-construct gap —
+  6 keyed rejects-valid rows (ispras 1 / sv-tests 1 / sv2v 1 / verilator 3),
+  100% LRM-legal with **zero adjudication ambiguity** (`unique0` is a defined
+  keyword, not a tool extension). SV-only (added in IEEE 1800-2009), absent from
+  IEEE 1364-2005 — so `verilog_2005` correctly rejects it.
+- **REPRODUCE (tool-pinned):** `unique0 if (a == 0) b = 1;` REJECTs at
+  `furthest_position=36` and `unique0 case (i) …` REJECTs at
+  `furthest_position=49` under `--profile sv_2017`, while the sibling
+  qualifiers **`unique if`**, **`priority if`**, and **`unique case`** all
+  PASS — the grammar handles `unique`/`priority` but not `unique0`. All 6
+  keyed family rows reject at HEAD. Evidence
+  `docs/tasks/artifacts/sv_corpus_grad/unique0_diag/before.txt`. (`t_lint_*_bad.v`
+  are `_bad` **lint** cases — syntactically valid, correctly rejects-valid.)
+- **ROOT CAUSE (WHY + WHERE):**
+  - **WHERE:** `grammars/systemverilog.ebnf:5861`
+    `unique_priority := kw_unique_58037c00 -> {kind:"unique"} | kw_priority_3345867e -> {kind:"priority"}`
+    (already `@profiles: ["sv_2017","sv_2023"]`, :5860).
+  - **WHY:** the rule has **only** the `unique` and `priority` branches — **no
+    `unique0`** — and no `unique0` token exists (the only qualifier tokens are
+    `kw_unique_58037c00 := /unique\b/` :6647 and `kw_priority_3345867e :=
+    /priority\b/` :6430). Since `/unique\b/` cannot match `unique0` (no word
+    boundary between `e` and `0`), `unique0` is entirely unrecognized. IEEE
+    1800-2017 A.6.6 / §12 (verified verbatim, in-repo LRM md
+    `section-12-procedural-programming-statements.md:123`):
+    `unique_priority ::= unique | unique0 | priority`; §12.4.2 (":227") "The
+    keywords unique, unique0, and priority can be used before an if"; §12.5.3
+    (":559") the case/casez/casex qualifiers; examples `unique0 if (…)` (:240)
+    and `unique0 case(a)` (:595). Line :607's `kw_unique` is the `.unique()`
+    **array method** (`array_method_name`) — correctly untouched (`unique0` is
+    not an array method). Evidence
+    `docs/tasks/artifacts/sv_corpus_grad/unique0_diag/`.
+- **FIX (hierarchy level 1 — pure grammar, additive; mirrors `.3.3`'s idiom):**
+  add one profile-gated token `@profiles: ["sv_2017","sv_2023"]`
+  `kw_unique0 := trivia /unique0\b/` and one branch to `unique_priority`
+  (`| kw_unique0 -> {kind:"unique0"}`). Gated exactly like the SVA operators
+  (`.3.3`) so `verilog_2005` stays byte-inert (the token is unreachable there;
+  gating avoids the census-shift RED that an ungated token triggers). The
+  `unique_priority` node shape is unchanged (still `{kind:<string>}`, a new
+  enum value only) and `unique0 if`/`case` were previously 100% unparseable ⇒
+  **schema `18` UNCHANGED** (additive; the `.3.5` reasoning). Census
+  `1468 → 1469` (+1 token), release `1.0.171 → 1.0.172`, ledger `SV-0042`.
+- **VERIFIED (measured GLOBALLY, guarded re-characterization + adjudication, both lanes):**
+  - **Repro matrix (regen'd parser, fresh probe):** `unique0 if` / `unique0 case`
+    REJECT→ACCEPT under `sv_2017` (and `sv_2023`); `verilog_2005` correctly
+    REJECTS (`unique0` SV-only); the sibling `unique if` / `priority if` /
+    `unique case` all still ACCEPT; AST carries `unique_priority: {kind:"unique0"}`.
+    All 6 keyed family rows flip REJECT→PASS. Evidence
+    `docs/tasks/artifacts/sv_corpus_grad/unique0_diag/{before.txt,after_repro.txt}`.
+  - **MAIN sv_2017 lane — full external corpus 16,336: pass 9,585 → 9,591 (+6).**
+    Adjudication: **rejects-valid 432 → 426 (−6** = the whole #11 family,
+    `comm`-verified as EXACTLY the 6 keyed unique0 rows, ZERO new**),
+    accepts-invalid 21 → 21 (BYTE-IDENTICAL set** — no over-acceptance**)**,
+    match 5,677 → 5,683.
+  - **NO REGRESSION (the `.3.4` LAW — per-FILE pass-set `comm` diff, not net):
+    0 pass→fail** (strictly additive — an added qualifier alternative cannot
+    break a prior successful parse); the 6 `fail→pass` are EXACTLY the 6 keyed
+    rows (no timeout jitter, debug probe matched the baseline probe type).
+    Evidence `docs/tasks/artifacts/sv_corpus_grad/unique0_diag/global_measurement.txt`.
+  - **V2005 lane BYTE-INERT:** `adjudication_manifest_v2005.tsv` BYTE-IDENTICAL to
+    baseline (the gated token is unreachable under `verilog_2005`); rejects-valid
+    116 unchanged.
+  - **`sv_cert_recognized_union_gate` GREEN on an evidence-grounded re-baseline:**
+    the new `kw_unique0` token is POSITIVELY WITNESSED — total 1,345→1,346 (+1),
+    canonical witness 1,328→1,329 (+1), union witness 1,339→1,340 (+1); proof 6,
+    canonical UNKNOWN 11, union UNKNOWN 0, residual `[]` all unchanged; **still
+    `fully_certified_via_union=true`**, deterministic seeds 0/7/42,
+    `unmet_criteria_count=0`. Contract JSON re-baselined same-slice.
+  - **`verilog_2005_conformance_gate` GREEN byte-inert** (lint orphans 0, corpus
+    matrix 240/0, cert `1115/328/773/14` deterministic seeds 0/7/42).
+  - **`ast_shape_contract_gate` 18/0**; **`sv_external_corpus_triage_gate`
+    PASS** (no parse failures); **`--lint-grammar` GREEN 1,469 rules, orphans 0**.
+  - **`sv_stimuli_quality_gate` PASS** (`closed_loop_replay_targets_total` 125 UNCHANGED (no new closed-loop generation target — the new qualifier is immediately witnessed)).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `unique0 if`/`case` reject (furthest 36/49);
+    controls `unique`/`priority` if + `unique` case pass; 6 keyed family rows
+    (`before.txt`).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `unique_priority:5861` lacks the
+    `unique0` branch/token (`/unique\b/` can't match `unique0`); LRM
+    A.6.6/§12.4.2/§12.5.3 verified verbatim.
+  - [x] **FIX** — hierarchy level 1 (pure grammar): 1 profile-gated token
+    (`kw_unique0`) + 1 branch; LRM-faithful gating (v2005 byte-inert).
+  - [x] **ADDRESSED (verified)** — before→after measured globally: corpus +6,
+    rejects-valid 432→426, repro matrix flips, correct `{kind:"unique0"}` AST.
+  - [x] **NO REGRESSION** — 0 pass→fail per-FILE; 0 new rejects-valid;
+    accepts-invalid set BYTE-IDENTICAL; v2005 manifest byte-identical;
+    cert-union re-baselined GREEN (still `fully_certified_via_union`);
+    v2005-conformance / shape / triage / quality GREEN.
+  - [x] **LOCKSTEP** — ledger `SV-0042` + contract `1.0.172` + SV book +
     tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
 ### `.4` — Full-design corpora chaining

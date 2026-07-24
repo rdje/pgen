@@ -2261,7 +2261,7 @@ ispras-sv-tests	ieee-1800-2012/12/12.05.01_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/12/12.05.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.05.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.05.03.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/12/12.05.03_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/12/12.05.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.05.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.05_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -10867,7 +10867,7 @@ sv-tests	tests/chapter-12/12.4--if.sv	pass	must_accept	match	sv-tests: positive 
 sv-tests	tests/chapter-12/12.4--if_else.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-12/12.4.1--if_else_if.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-12/12.4.2--priority_if.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-12/12.4.2--unique0_if.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-12/12.4.2--unique0_if.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-12/12.4.2--unique_if.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-12/12.5--case.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-12/12.5.1--casex.sv	pass	must_accept	match	sv-tests: positive test
@@ -11877,7 +11877,7 @@ sv2v	test/core/bits_scope.sv	pass	must_accept	match	sv2v: conversion-input .sv (
 sv2v	test/core/bits_scope.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/case_inside_cast.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/case_inside_cast.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/case_violation_checks.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/case_violation_checks.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/case_violation_checks.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/case_violation_checks_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/cast.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
@@ -14659,7 +14659,7 @@ verilator	test_regress/t/t_json_only_primary_io.v	pass	must_accept	match	verilat
 verilator	test_regress/t/t_json_only_tag.v	pass	must_accept	match	verilator: driver t_json_only_tag.py expects success
 verilator	test_regress/t/t_jumps_uninit_destructor_call.v	pass	must_accept	match	verilator: driver t_jumps_uninit_destructor_call.py expects success
 verilator	test_regress/t/t_langext_1.v	pass	must_accept	match	verilator: driver t_langext_1.py expects success
-verilator	test_regress/t/t_langext_2.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_langext_2.py expects success
+verilator	test_regress/t/t_langext_2.v	pass	must_accept	match	verilator: driver t_langext_2.py expects success
 verilator	test_regress/t/t_langext_3.v	pass	must_accept	match	verilator: driver t_langext_3.py expects success
 verilator	test_regress/t/t_langext_order.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_langext_order.py expects success
 verilator	test_regress/t/t_langext_order_sub.v	fail	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
@@ -14689,7 +14689,7 @@ verilator	test_regress/t/t_lint_blkseq_loop.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_lint_blkseq_noedge.v	pass	must_accept	match	verilator: driver t_lint_blkseq_noedge.py expects success
 verilator	test_regress/t/t_lint_block_redecl_bad.v	pass	must_accept	match	verilator: driver t_lint_block_redecl_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_bsspace_bad.v	fail	must_reject	match	verilator: driver t_lint_bsspace_bad.py fails=True and golden .out reports a syntax error
-verilator	test_regress/t/t_lint_caseincomplete_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_caseincomplete_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_lint_caseincomplete_bad.v	pass	must_accept	match	verilator: driver t_lint_caseincomplete_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_cmpconst_bad.v	pass	must_accept	match	verilator: driver t_lint_cmpconst_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_colonplus_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_colonplus_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_comb_bad.v	pass	must_accept	match	verilator: driver t_lint_comb_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14717,7 +14717,7 @@ verilator	test_regress/t/t_lint_iface_topmodule1.v	pass	must_accept	match	verila
 verilator	test_regress/t/t_lint_iface_topmodule2.v	pass	must_accept	match	verilator: driver t_lint_iface_topmodule2.py expects success
 verilator	test_regress/t/t_lint_iface_topmodule3.v	pass	must_accept	match	verilator: driver t_lint_iface_topmodule3.py expects success
 verilator	test_regress/t/t_lint_iface_topmodule_bad.v	pass	must_accept	match	verilator: driver t_lint_iface_topmodule_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_lint_ifdepth_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_ifdepth_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_lint_ifdepth_bad.v	pass	must_accept	match	verilator: driver t_lint_ifdepth_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_implicit.v	pass	must_accept	match	verilator: driver t_lint_implicit.py expects success
 verilator	test_regress/t/t_lint_implicit_def_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_implicit_def_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_implicit_func_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_implicit_func_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
