@@ -178,6 +178,75 @@ GONE from today's list; the population has genuinely shifted.
   - [x] **NO REGRESSION** — byte-identity oracle: on run-1's data the old and new mechanisms emit BYTE-IDENTICAL JSON (1,064,756 B, `cmp` clean); AND the green re-run's four gap artifacts are BYTE-IDENTICAL to the deterministic baseline with summary totals matching run-1 (5394/120, 2/2).
   - [x] **LOCKSTEP** — CHANGES.md entry; no user-facing surface/book change (internal gate-script robustness).
 
+### `.1c` — ⚠️ Is `closed_loop_replay_targets_total` SEMANTICALLY attributable? (measurement-integrity; opened by `SV-CORPUS-GRAD.3.10`, session #206, 2026-07-25)
+
+- **Status: `todo`** — opened from a MEASURED anomaly, not speculation. This leaf
+  does not burn debt down; it asks whether the number the burn-down is scored
+  against means what six consecutive leaves have said it means.
+- **THE OBSERVATION (`SV-CORPUS-GRAD.3.10`, release `1.0.176`).** That leaf
+  changed **12 regex token BODIES** and nothing else — no rules or tokens added or
+  retired, census `1475` unchanged, and the per-rule profile map byte-identical
+  across all 1475 rules. It predicted (in writing, before running the gates) that
+  every certificate surface would be inert, and both cert gates confirmed it.
+  But `closed_loop_replay_targets_total` moved **124 → 127 (+3)**.
+- **WHAT IS MEASURED (hard fact).** `.3.10` ENUMERATED all 127 targets (62
+  `sv_2017` + 65 `sv_2023`) and intersected them with the changed surface — the 12
+  edited tokens plus the full consumer chain (`init_val`, `scalar_constant`,
+  `scalar_timing_check_condition`, `sequential_body`, `udp_declaration_*`,
+  `specify_block`). **Intersection EMPTY in both profiles**, by `rule_name`, by
+  `node_path`, by `branch_id`, and by raw substring search of the target records.
+  All 23/24 distinct target rules are constraint / assertion / class / property /
+  net-declaration surfaces (`prop_primary_*`, `constraint_primary_*`,
+  `class_declaration_sv_2023`, `randomize_call`, …).
+- **WHAT IS RULED OUT.** Not run-to-run sampling noise: `.1` verified determinism
+  directly — two independent canonical runs at one vintage produced BYTE-IDENTICAL
+  gap artifacts (sha256, all four JSONs). Not timeout pressure either:
+  `.3.10`'s run measured `closed_loop_parseability_shadow_target_timeout_errors_total 0`
+  and `helper_timeout_errors_total 0`, so the 5 ms per-target budget never fired.
+- **HYPOTHESIS TO TEST (labelled as inference, which is the point of this leaf).**
+  The closed-loop generator is seeded and deterministic *for a fixed grammar*, but
+  widening a regex ENLARGES its generatable language and so shifts the generator's
+  consumption of the random stream; which unrelated branches get witnessed within
+  the 5,000-attempt budget then reshuffles. If true, the metric is **causally**
+  sensitive to any grammar edit while being **semantically** unrelated to it.
+- **⛔ WHY THIS MATTERS ENOUGH TO TRACK.** `focused_replay_target_debt_zero` is the
+  **LAST unmet SV family-status criterion** — the gate that stands between the SV
+  row and `Done` (`sv_parser_family_status_gate.sh:443`). Six leaves have narrated
+  this metric causally without ever checking relatedness:
+  - `.3.5` 126→125 "one replay target newly WITNESSED — a replay-debt gap CLOSED";
+  - `.3.6` 125 unchanged "no new closed-loop generation target";
+  - `.3.7` 125→126 "+1: the new `strength0`/`strength1` branches are a new target";
+  - `.3.8` 126→127 "+1 — the bracketed alternative is a NEW generation target";
+  - `.3.9` 127→124 "**−3 = three replay-debt gaps CLOSED**, moving TOWARD
+    `focused_replay_target_debt_zero`";
+  - `.3.10` 124→127 (+3) — **the first to enumerate the targets, and the movement
+    is provably unrelated to the change.**
+  ⭐ Note the shape: `.3.9` REMOVED two symbols and went −3; `.3.10` removed
+  nothing and went +3, landing back exactly on 127. A criterion that a `Done`
+  claim depends on should not oscillate for reasons nobody has verified.
+- **PLANNED WORK (read-only first, no code):**
+  1. **Cheap decisive test** — re-run `sv_stimuli_quality_gate` on an UNCHANGED
+     grammar and confirm 127 reproduces (isolates vintage-change from run noise);
+     then on a grammar with a *semantically irrelevant* edit (e.g. widen one
+     unrelated regex, or reorder a comment) and see whether the count moves. That
+     directly tests the stream-perturbation hypothesis.
+  2. **Target-set diff, not count diff** — bank the sorted target-id list per
+     release (`.1` already banked run-1 lists) so future leaves compare SETS. A
+     count delta of 0 can still hide a 3-in/3-out churn, which is exactly the
+     failure mode the count cannot show.
+  3. **Decide the criterion's soundness** — if the target set churns under
+     unrelated edits, `focused_replay_target_debt_zero` is measuring generator luck
+     as much as coverage, and either the budget must be raised until the set is
+     stable, or the criterion must be restated over a stable quantity.
+  4. **Correct the record** — whatever the verdict, amend the five prior leaves'
+     replay-target attributions in this tree's history rather than leaving five
+     unverified causal claims standing.
+- **STANDING RULE ADOPTED IMMEDIATELY (cheap, and `.3.10` already followed it):**
+  no leaf may narrate a `closed_loop_replay_targets_total` movement causally
+  without enumerating `targets[]` and intersecting with the rules it changed. If
+  the intersection is empty, the correct statement is "not attributable", not
+  "gaps closed".
+
 ### `.2` — Burn-down scoping from the VERIFIED baseline (design, pure-docs)
 
 - **Status: `todo`** — NEXT. The deterministic target list (banked, 59+61) burns

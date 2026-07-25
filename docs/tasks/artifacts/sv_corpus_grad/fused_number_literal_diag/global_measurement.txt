@@ -1,0 +1,132 @@
+# SV-CORPUS-GRAD.3.10 — GLOBAL MEASUREMENT (both lanes)
+# runner:  stimuli/run_external_corpus.sh sv     20 8   (jobs=8 — IDENTICAL to the
+#          baseline invocation, deliberately NOT tuned, so the run stays comparable)
+#          stimuli/run_external_corpus.sh sv2005 20 8
+# probe:   rust/target/debug/parseability_probe (DEBUG — matches the baseline probe
+#          type, the .3.6 requirement; built 19:06, mtime-asserted NEWER than the
+#          18:44 generated/systemverilog_parser.rs)
+# guard:   main lane  exit 0, peak_tree_rss 5,697 MB, elapsed 232 s
+#          v2005 lane exit 0, peak_tree_rss   624 MB, elapsed  25 s
+
+⭐ THE YIELD OF THIS LEAF IS +0 CORPUS ROWS, AND THAT WAS STATED BEFORE MEASURING.
+The keyed population was mechanically derived up front and was EXACTLY 0 (see
+"keyed population" below). This is an LRM-fidelity / correctness fix, not a
+graduation-yield fix, and it must not be presented as one. What it removes is a
+CLASS of wrongly-rejected legal spellings plus a silent AST-shape degradation.
+
+================================================================================
+KEYED TARGET POPULATION = 0 rows (derived BEFORE the fix, not after)
+================================================================================
+The 12 edited tokens are referenced by EXACTLY two rules (grammar-wide grep):
+`init_val:2554` (UDP-only) and `scalar_constant:4935` (timing-check-only). So a
+corpus row can only be affected if it contains a `primitive`...`endprimitive` UDP
+with a spaced initial value, or a `specify` timing check with a spaced scalar
+constant. Measured over all 16,336 files:
+  files matching a spaced size seam   `[01][ \t]+'`      :   5
+  files matching a spaced value seam  `'[bB][ \t]+[01xX]`: 145
+  ... of those, files ALSO containing `primitive` or `specify`:  3
+  ... of those 3, files whose failure is actually an init_val/scalar_constant one: 0
+      deposit.v    furthest 1055 -> dies on `ifdef  (preprocessor, not init_val)
+      udp_jkff.v   furthest 2574 -> dies on `ifdef  (preprocessor, not init_val)
+      udp_lfsr.v   furthest 3175 -> dies in the UDP TABLE edge symbols, not init_val
+  All 145/5 hits are ordinary expression-position numbers, which route through
+  `integral_number` and have parsed since `.3.5`/SV-0041.
+=> ceiling stated up front: +0 pass. Measured outcome: +0 pass. They agree.
+
+================================================================================
+MAIN sv_2017 LANE — corpus totals (16,336 files)
+================================================================================
+                     BEFORE (.3.9)     AFTER (.3.10)    delta
+  pass                     9,694           9,693          -1   <- jitter, proven below
+  fail                     6,634           6,634           0
+  timeout                      8               9          +1   <- the same row
+  crash                        0               0           0
+  pass-rate                 59.3%           59.3%
+
+================================================================================
+Per-FILE transition analysis (the .3.4 LAW — pass-set diff, NOT net counts)
+================================================================================
+  key sets identical : True (16,336 / 16,336)
+  ALL transitions    : 1
+      pass -> timeout   verilator/test_regress/t/t_math_synmul_mul.v
+
+⛔ THAT ROW IS PROVEN CONTENTION JITTER — NOT A REGRESSION, AND NOT ASSUMED SO.
+`.3.8` and `.3.9` each argued their jitter rows away with a TEXT argument ("the
+file contains zero `##`, so the rule is never reached"). That is an inference
+about reachability. This leaf proves the same claim DIRECTLY, with the trace
+instrument, and with a positive control so the instrument is shown to be live:
+
+  1. STRUCTURAL — the file contains `primitive` 0 times and `specify` 0 times.
+     `init_val` and `scalar_constant`, the ONLY consumers of the 12 edited
+     tokens, are therefore unreachable in it. (Its 7 `1'b` occurrences are
+     ordinary expression-position numbers handled by `integral_number`.)
+  2. ⭐ INSTRUMENTED — `PGEN_TRACE_VERBOSITY=debug … --trace-rules init_val,scalar_constant`
+     on that exact file emits **0** lines mentioning either rule. The SAME probe
+     with the SAME flags emits **10** on the UDP repro, so the instrument is live
+     and the zero is a real zero, not a silent no-op.
+     => the edited regexes are never EXECUTED on this file. The change cannot
+        have altered either its verdict or its parse time.
+  3. EMPIRICAL — run SOLO (no 8-way contention) it takes 17.94 / 17.97 / 17.89 s
+     against the 20 s corpus wall and exits 0 = **pass**, i.e. its true verdict is
+     unchanged; it only misses the wall when sharing the machine.
+  4. HISTORICAL — `.3.9` recorded this SAME file flipping in the OPPOSITE
+     direction (timeout -> pass). A row that oscillates both ways across
+     consecutive leaves is a wall-clock artifact, not a parser change.
+
+  ⚠️ NOTE ON THE 15 s vs 17.9 s SOLO READING: `.3.9` timed this file at 15 s and
+  this session times it at ~17.9 s. That +19% was NOT waved away — it is exactly
+  the shape a silent speed regression would take (a borderline file pushed over
+  the wall), and the north star makes speed a co-equal, never-regressed
+  deliverable. Point 2 above is what settles it: a rule that is entered zero
+  times cannot cost time. The delta is cross-session variance (different debug
+  binary build, different ambient load), not this change.
+
+  ✅ REGRESSIONS (pass -> fail / timeout / crash) attributable to this leaf: 0
+  ✅ HEALS: 0 (expected — keyed population was 0)
+
+================================================================================
+ADJUDICATION — main lane (set-level diff, not just counts)
+================================================================================
+  class                                    BEFORE   AFTER   set-diff
+  match                                     5,727   5,727   IDENTICAL
+  divergence:unexplained_rejects_valid        382     382   IDENTICAL  <- the graduation number
+  divergence:unexplained_accepts_invalid       21      21   IDENTICAL
+  divergence:explained_svpp_macro_use       1,074   1,074   IDENTICAL
+  divergence:explained_svpp_conditional       210     210   IDENTICAL
+  divergence:explained_svpp_include           142     142   IDENTICAL
+  divergence:explained_timeout                  8       9   +1 (the jitter row)
+  deferred:chained_only                     5,268   5,267   -1 (the same row)
+  deferred:v2005_profile_lane               2,459   2,459   IDENTICAL
+  deferred:no_sv_key                          743     743   IDENTICAL
+  deferred:svpp_owned                         186     186   IDENTICAL
+  deferred:impl_varying                        90      90   IDENTICAL
+  deferred:verilog_ams_lane                    20      20   IDENTICAL
+  deferred:ni_unimplemented                     6       6   IDENTICAL
+
+  => EVERY class is SET-IDENTICAL except the one jitter row, which merely
+     re-classifies between two non-defect buckets. The whole manifest differs by
+     exactly ONE line (`diff` of the sorted manifests: 1 row).
+  => rejects-valid graduation baseline REMAINS 382. accepts-invalid REMAINS 21.
+
+================================================================================
+verilog_2005 LANE — RE-RUN, not inferred (this fix IS cross-profile)
+================================================================================
+`.3.8`/`.3.9` were SVA-only and therefore v2005-inert by construction. This one is
+NOT: the repro matrix shows all 8 spellings healing under `verilog_2005` too
+(IEEE 1364-2005 §3.5.1 carries the same allowance, and these tokens carry no
+@profiles gate). So the lane had to be re-measured.
+
+  2,459 files      BEFORE   AFTER
+  pass              2,180   2,180
+  fail                279     279
+  timeout/crash         0       0
+  per-FILE transitions: 0
+
+  results_v2005.tsv          : CONTENT-IDENTICAL (sorted diff = 0 lines; the raw
+                               byte diff is parallel-job emission ORDER only)
+  adjudication_manifest_v2005.tsv : BYTE-IDENTICAL
+  v2005 unexplained stays 76 (62 rejects-valid + 14 accepts-invalid)
+
+  Correct by construction AND verified: the lane's 2,459 `.v` files contain no UDP
+  with a spaced initial value, so a cross-profile capability gain lands with zero
+  row movement. Capability widened, behaviour on this corpus unchanged.

@@ -1,0 +1,86 @@
+# .3.10 — PER-PROFILE CENSUS EFFECT of adding the two §5.7.1 seams
+# tool: ast_pipeline --lint-grammar + --dump-rule-profiles <OUT.json> (TOOLBOX 5.1 / 5.4),
+#       pre-fix grammar from `git show HEAD:grammars/systemverilog.ebnf`
+#
+# The `.3.9` LAW says a census effect must be MEASURED per profile, never inferred
+# from a sibling leaf ("which column moves is profile-dependent"). Measured here —
+# and this leaf's answer is the clean one.
+
+⚠️ TOOL-USAGE CORRECTION, recorded because the first pass got it wrong:
+   `--dump-rule-profiles` takes an OUTPUT FILE PATH, not a profile name. The first
+   attempt passed `sv_2017` / `sv_2023` / `verilog_2005` as the argument, which
+   silently wrote three 248 KB JSON dumps into the REPO ROOT (named after the
+   profiles) while printing only the one-line summary to stdout. The line counts
+   read off that stdout were therefore meaningless. The strays were deleted and
+   the measurement redone against real output paths; the numbers below are from
+   the corrected run. (The conclusion never depended on the bad reading — the
+   rule-set set-diff below is an independent and stronger proof — but a wrong
+   measurement does not get to sit in the record unremarked.)
+
+================================================================================
+MEASURED — the corrected `--dump-rule-profiles` run, before vs after
+================================================================================
+  rule_count                        1475 -> 1475   (+0)
+  satisfiable_under sv_2017         1352 -> 1352   (+0)
+  satisfiable_under sv_2023         1371 -> 1371   (+0)
+  satisfiable_under verilog_2005    1121 -> 1121   (+0)
+
+  ⭐ per-RULE profile-map differences across all 1475 rules: **0**
+     Not just the totals — the entire {declared_profiles, satisfiable_under} map
+     is identical rule-for-rule. Nothing moved anywhere.
+
+  rules ADDED   : (none)
+  rules REMOVED : (none)
+  RULE-NAME SET : sorted rule-name lists of the pre- and post-fix grammars are
+                  BYTE-IDENTICAL (1475 / 1475, `diff` empty).
+
+  This leaf changes 12 token BODIES and adds comments. It adds and retires
+  NOTHING, so the profile filter runs over an identical universe.
+
+⭐ The three satisfiable counts are EXACTLY the two contract pins
+  (`systemverilog_recognized_cert_union_contract.json` expected_total 1352;
+  `verilog_2005_conformance_contract_v0.json` cert.expected_total 1121),
+  which is precisely why both gates come back byte-inert below.
+
+================================================================================
+THE 12 EDITED TOKENS carry NO @profiles gate — all three profiles, before & after
+================================================================================
+  kw_n_1_tick_{B0,B1,BX,Bx,b0,b1,bX,bx}  -> [sv_2017, sv_2023, verilog_2005]
+  kw_tick_{B0,B1,b0,b1}                  -> [sv_2017, sv_2023, verilog_2005]
+
+  This is the mechanical reason the fix is CROSS-PROFILE (the repro matrix shows
+  all 8 spellings healing under `verilog_2005` too), matching IEEE 1364-2005
+  §3.5.1, which carries the same white-space allowance as IEEE 1800-2017 §5.7.1.
+  Same shape as `.3.5`/SV-0041. Contrast `.3.8`/`.3.9`, which were SVA-gated.
+
+================================================================================
+--lint-grammar after the edit: CLEAN
+================================================================================
+  1475 rules, left_recursive=32 (informational), non_terminating=0,
+  ordered_choice_shadowing=0, always_succeeds_alternatives=6 (pre-existing note),
+  unreachable_rules=0, undefined_references=0, unbound_fact_kinds=0,
+  nullable_repetition=0, profile_orphans=0
+  (profiles=["sv_2017","sv_2023","verilog_2005"])
+
+================================================================================
+PREDICTION vs OUTCOME (the prediction was written BEFORE running the gates)
+================================================================================
+  predicted: systemverilog_recognized_cert_union_contract.json  BYTE-INERT
+  OUTCOME  : ✅ PASS, no re-baseline — union_witness 1346 == expected,
+             canonical UNKNOWN 11, union UNKNOWN 0, union_residual_rules [],
+             fully_certified_via_union=true, deterministic at seeds 0/7/42,
+             unmet_criteria_count 0.
+  predicted: verilog_2005_conformance_contract_v0.json          BYTE-INERT
+  OUTCOME  : (see the gate section of the leaf)
+  i.e. the `.3.8` posture, NOT the `.3.9` posture.
+
+⚠️ THE ONE NON-OBVIOUS RISK, recorded BEFORE running the gates rather than
+   discovered by a red one: a census-inert change is not automatically a
+   CERTIFICATE-inert change. These 12 tokens are REGEX terminals, and the stimuli
+   generator synthesizes witnesses FROM the regex, so a widened body can change
+   the GENERATED witness text (e.g. a `1\t'b\t0` sample where the old body could
+   only yield `1'b0`) — visible to the witness column and to closed-loop replay
+   even though no rule was added or removed. That risk is why both cert gates and
+   `sv_stimuli_quality_gate` were run rather than argued away.
+   MEASURED OUTCOME: the union gate's witness column did NOT move (1346, as
+   pinned), so the widened alternation did not disturb witness classification.

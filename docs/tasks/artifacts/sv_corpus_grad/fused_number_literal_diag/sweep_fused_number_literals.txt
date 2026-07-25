@@ -1,0 +1,115 @@
+# SV-CORPUS-GRAD.3.10 — EXHAUSTIVE SWEEP of the fused NUMBER-literal class
+#
+# `.3.9` set the precedent: do not fix the one site the corpus tripped over and
+# leave its siblings for a later reactive discovery. `.3.9` swept the fused
+# DELIMITER literals (§5.3, "one lexical token or several?"). This leaf owes the
+# same pass over the class ITS law defines.
+#
+# THE TEST, stated before running it — IEEE 1800-2017 §5.7.1 governs the INTERIOR
+# of ONE based literal, and names exactly which seams are open:
+#     size <-> apostrophe        OPEN   (three separate tokens; §5.3 applies)
+#     apostrophe <-> base char   CLOSED ("shall not be separated by any white space")
+#     base_format <-> value      OPEN   ("optionally preceded by white space")
+# So for every grammar token that embeds an apostrophe, the question is: does it
+# span a §5.7.1-OPEN seam? If yes it must admit `[ \t]*` there; if no it is
+# correct as fused and MUST NOT be touched.
+
+================================================================================
+SWEEP 1 — every token definition whose body embeds an apostrophe (COMPLETE)
+================================================================================
+# grep -nE "^[a-zA-Z_][a-zA-Z0-9_]* := trivia ([\"/]).*'" grammars/systemverilog.ebnf
+# 14 hits, 100% adjudicated below. No sampling.
+
+  :6406-:6420  kw_n_1_tick_{B0,B1,BX,Bx,b0,b1,bX,bx}   8  = THIS DEFECT -> FIXED
+  :6667-:6673  kw_tick_{B0,B1,b0,b1}                   4  = THIS DEFECT -> FIXED
+  :6843        tick := trivia "'"                      1  CORRECT — a ONE-character
+                                                          token has no interior, so
+                                                          it cannot span a seam.
+  :493         unbased_unsized_literal                 1  ⭐ CORRECT AS FUSED, with a
+               := trivia /'(0|1|x|X|z|Z)/                 NAMED LRM CAUSE — see below.
+                                                     ----
+                                                       14  (8 + 4 + 1 + 1)
+
+⭐ `unbased_unsized_literal` — ADJUDICATED CORRECT AS FUSED, NOT CHANGED.
+   This is the trap of this sweep: `'0` / `'1` / `'x` / `'z` LOOK exactly like the
+   unsized `'b0` twins that ARE defective, and a mechanical "add the seams
+   everywhere an apostrophe appears" pass would have widened it. The LRM forbids
+   that, in its own Annex A footnote, verbatim:
+       "48) The apostrophe ( ' ) in unbased_unsized_literal shall not be followed
+            by white_space."
+   Note this is a DIFFERENT prohibition from the `'`<->base-char one: there is no
+   base-format token here at all, so the value follows the apostrophe DIRECTLY and
+   the only candidate seam is explicitly closed. => NO CHANGE. Widening it would
+   have changed acceptance with the LRM pointing the other way.
+   (Same shape as `.3.9`'s `attr_open "(*"` / `attr_close "*)"` adjudication: the
+   sweep's job is to decide every member, and "correct as fused, here is the cite"
+   is a real verdict, not a skipped one.)
+
+================================================================================
+SWEEP 2 — the neighbouring closed-literal-set rules (the OTHER face of the class)
+================================================================================
+# The root cause is not "apostrophes". It is: a rule enumerating an LRM CLOSED set
+# carries its OWN literal tokens, so it silently misses the lexical allowances the
+# general rule (`integral_number`) already has. That shape can exist without any
+# apostrophe, so the closed-set rules were swept too.
+
+  edge_descriptor:2075   `01` / `10` are single unsigned_number tokens (no interior
+                         seam); the other two alternatives are ALREADY structural
+                         two-token sequences (`z_or_x zero_or_one`), which is how
+                         A.7.4 spells them, so §5.3 whitespace already works.  OK
+  level_symbol:2831      all alternatives are ONE-character tokens (0 1 x X ? b B). OK
+  output_symbol:3773     one-character tokens (0 1 x X).                          OK
+  zero_or_one:6050       one-character tokens (0 1).                              OK
+  z_or_x:6045            one-character tokens (x X z Z).                          OK
+  finish_number:2284     one-character tokens (0 1 2).                            OK
+  kw_n_1step:6422        `1step` is ONE reserved lexical token in A.8.7's
+                         `delay_value ::= … | 1step`. MEASURED: `1step` and
+                         `1 step` BOTH reject in timeunit position (correct — it is
+                         not a time_literal), and nothing claims a seam here.      OK
+
+=> 0 further members of this leaf's defect class. The fused NUMBER-literal face is
+   EXHAUSTIVELY CLOSED for this grammar.
+
+================================================================================
+⚠️ SWEEP 3 — A NEW MEASURED DEFECT, OPPOSITE DIRECTION -> ROUTED TO ITS OWN LEAF
+================================================================================
+While checking the adjacent A.8.7 footnotes for §5.7.1's neighbours, footnote 44
+turned out to be VIOLATED — in the other direction. Verbatim:
+
+    "44) The unsigned number or fixed-point number in time_literal shall not be
+         followed by a white_space."
+
+But `time_literal:495` is spelled `number time_unit` — TWO rules in sequence, and
+PGEN's `trivia` skipper runs before every terminal, so the seam the LRM CLOSES is
+wide open. MEASURED on the pre-`.3.10` parser (`rust/target/debug/parseability_probe`,
+`--profile sv_2017`), `timeunit <lit>;`:
+
+  | spelling  | verdict | LRM         |
+  |-----------|---------|-------------|
+  | `10ns`    | ACCEPT  | legal       |
+  | `10 ns`   | ACCEPT  | **ILLEGAL** (footnote 44) |
+  | `10<TAB>ns`| ACCEPT | **ILLEGAL** (footnote 44) |
+
+⛔ NOT FOLDED INTO THIS LEAF, and the reason is not convenience:
+  1. OPPOSITE DIRECTION — this leaf is REJECTS-VALID (under-permissive); that is
+     ACCEPTS-INVALID (over-permissive). They are measured by different corpus
+     columns and carry different regression risk. A fix that TIGHTENS acceptance
+     can break currently-passing corpus files; this leaf's cannot.
+  2. DIFFERENT MECHANISM — nothing here is a fused literal. The defect is that a
+     seam is STRUCTURAL (two rules) where the LRM requires it be LEXICAL (one
+     token), i.e. the exact INVERSE of this leaf's defect.
+  3. DIFFERENT LAW — Annex A footnote 44, not §5.7.1's three-token decomposition.
+  4. It needs its own adjudication: real-world SV writes `10 ns` constantly, and a
+     dialect-tolerance judgement (does PGEN reject what every simulator accepts?)
+     is a director-visible scope question, not an implementation detail.
+Nothing regresses by deferring: today's over-permissiveness is unchanged.
+
+⭐ CLASS-EVIDENCE, banked: this makes FOUR independent LRM-fidelity defect faces
+found reactively in nine days — `.3.8` (brackets read as metasyntax), `.3.9`
+(brackets fused into an atom), `.3.10` (a closed set missing a lexical allowance),
+and now this (a lexical prohibition rendered structurally). Every one was found
+because a corpus row or a sweep happened to touch it. That is the argument for the
+director-gated `LRM-GRAMMAR-FIDELITY` exhaustive Annex-A pass, now with the Annex A
+FOOTNOTES named as first-class sweep input — they are normative, they are short,
+they are enumerable, and footnote 48 is precisely what stopped this sweep from
+introducing a regression.

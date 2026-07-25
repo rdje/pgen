@@ -1,0 +1,64 @@
+# SV-CORPUS-GRAD.3.10 — §5.7.1 spaced number-literal repro matrix
+# probe: /Volumes/SSD/Documents/github/pgen/rust/target/release/parseability_probe
+# probe mtime : 2026-07-25 19:03:50
+# parser mtime: 2026-07-25 18:44:53
+# grammar sha : 018bcc42e6b3810b
+
+IEEE 1800-2017 §5.7.1, verbatim:
+  "The apostrophe character and the base format character shall not be
+   separated by any white space."                     <- seam CLOSED
+  "The unsigned number token shall immediately follow the base format,
+   optionally preceded by white space."               <- seam OPEN
+  a based literal "shall be composed of up to three tokens" (size /
+  base_format / value) => §5.3 free-form separation applies to the
+  size<->apostrophe seam.                             <- seam OPEN
+
+================================================================================
+MUST ACCEPT — the LRM-legal spellings (A2..A11 are the defect: REJECT before)
+================================================================================
+  id     consumer       spelling         sv_2017 v2005    note
+  A1     udp            1\'b1            ACCEPT  ACCEPT   control — tight, ACCEPTs at baseline
+  A2     udp            1\ \'b\ 1        ACCEPT  ACCEPT   DEFECT — both seams spaced
+  A3     udp            1\ \'b1          ACCEPT  ACCEPT   DEFECT — size seam only
+  A4     udp            1\'b\ 1          ACCEPT  ACCEPT   DEFECT — value seam only
+  A5     udp            $'1\t\'b\t0'     ACCEPT  ACCEPT   DEFECT — tabs at both seams
+  A6     udp            1\ \'B\ 1        ACCEPT  ACCEPT   DEFECT — uppercase base
+  A7     udp            1\ \'b\ x        ACCEPT  ACCEPT   DEFECT — x value (string-literal token)
+  A8     udp            1\ \'b\ X        ACCEPT  ACCEPT   DEFECT — X value (string-literal token)
+  A9     udp            1\ \ \'b\ \ 0    ACCEPT  ACCEPT   DEFECT — multi-space
+  A10    udp            1                ACCEPT  ACCEPT   control — bare 1, LRM alt 9
+  A11    udp            0                ACCEPT  ACCEPT   control — bare 0, LRM alt 10
+  A12    spec           1\'b1            ACCEPT  ACCEPT   control — tight scalar_constant
+  A13    spec           1\ \'b\ 1        ACCEPT  ACCEPT   DEFECT (shape) — accepts, but typed shape lost
+  A14    spec           \'b1             ACCEPT  ACCEPT   control — unsized tight
+  A15    spec           \'b\ 1           ACCEPT  ACCEPT   DEFECT (shape) — unsized, value seam
+  A16    spec           \'B\ 0           ACCEPT  ACCEPT   DEFECT (shape) — unsized uppercase
+
+================================================================================
+MUST REJECT — the closed set must STAY closed (over-permissiveness guard)
+================================================================================
+  id     consumer       spelling         sv_2017 v2005    note
+  R1     udp            2\'b1            REJECT  REJECT   size != 1 — NOT in the LRM closed set
+  R2     udp            1\'\ b\ 1        REJECT  REJECT   §5.7.1 PROHIBITS ws between ' and base char
+  R3     udp            1\ \'\ b\ 1      REJECT  REJECT   same prohibited seam, both sides spaced
+  R4     udp            1\'b2            REJECT  REJECT   value 2 — not a binary digit
+  R5     udp            1\'bz            REJECT  REJECT   z — NOT in init_val's closed set
+  R6     udp            1\'b             REJECT  REJECT   digit-less (the SV-0030 defect must stay fixed)
+  R7     udp            1\ \'b           REJECT  REJECT   digit-less + spaced
+  R8     udp            1\'b\ 11         REJECT  REJECT   2-bit value — not the closed 1-bit set
+  R9     udp            \'b1             REJECT  REJECT   unsized — NOT an init_val alternative (scalar_constant only)
+
+================================================================================
+TYPED-SHAPE PROOF — scalar_timing_check_condition kind as EMITTED
+================================================================================
+# 'eq/rhs={"kind":"1'b1"}' = the typed compare shape reached scalar_constant.
+# 'expression'              = scalar_constant FAILED and the flat fallback won.
+  1\'b1            -> eq/rhs={"kind":"1'b1"}
+  1\ \'b\ 1        -> eq/rhs={"kind":"1'b1"}
+  \'b1             -> eq/rhs={"kind":"'b1"}
+  \'b\ 1           -> eq/rhs={"kind":"'b1"}
+
+================================================================================
+KNOWN DEFERRED GAP (inherited from .3.5 / SV-0041, deliberately NOT closed here)
+================================================================================
+  D1     udp            $'1\n\'b 1'      REJECT  REJECT   newline at the size seam — §5.3-legal, deferred

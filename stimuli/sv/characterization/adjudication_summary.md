@@ -17,14 +17,14 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | sv2v | 953 | 452 | 48 | 79 | 374 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 111 | 13 | 6 | 22 |
-| verilator | 3263 | 2003 | 171 | 960 | 129 |
-| **total** | **16336** | **5727** | **403** | **1434** | **8772** |
+| verilator | 3263 | 2003 | 171 | 961 | 128 |
+| **total** | **16336** | **5727** | **403** | **1435** | **8771** |
 
 ## Verdict-class detail
 
 | class | count |
 |---|---|
-| deferred:chained_only | 5268 |
+| deferred:chained_only | 5267 |
 | deferred:impl_varying | 90 |
 | deferred:ni_unimplemented | 6 |
 | deferred:no_sv_key | 743 |
@@ -34,7 +34,7 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_svpp_conditional | 210 |
 | divergence:explained_svpp_include | 142 |
 | divergence:explained_svpp_macro_use | 1074 |
-| divergence:explained_timeout | 8 |
+| divergence:explained_timeout | 9 |
 | divergence:unexplained_accepts_invalid | 21 |
 | divergence:unexplained_rejects_valid | 382 |
 | match | 5727 |

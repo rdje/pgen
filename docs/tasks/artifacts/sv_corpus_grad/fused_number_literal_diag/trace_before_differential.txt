@@ -1,0 +1,77 @@
+# SV-CORPUS-GRAD.3.10 — DIFFERENTIAL TRACE (pre-fix parser), the WHY+WHERE
+#
+# tool: PGEN_TRACE_VERBOSITY=debug rust/target/release/parseability_probe \
+#         --parse systemverilog <repro> --profile sv_2017 --trace-rules init_val
+#       (TOOLBOX step 3 — scoped --trace-rules, not a full trace)
+# The `.3.9` standard is a DIFFERENTIAL trace: showing "the branch failed" proves
+# nothing on its own. The pair below varies EXACTLY ONE THING — the white space —
+# so whitespace is isolated as the sole cause.
+
+================================================================================
+DEFECT INPUT — repro/r1_init_val_spaced.sv    `initial q = 1 'b 1;`
+================================================================================
+🚪 Entering branch 1/10 for rule 'init_val' at position 264
+❌ Regex '1'b0\b' no match at position 265 (next: '1 'b 1;
+🚪 Entering branch 2/10 for rule 'init_val' at position 264
+❌ Regex '1'b1\b' no match at position 265 (next: '1 'b 1;
+🚪 Entering branch 3/10 for rule 'init_val' at position 264
+🚪 Entering branch 4/10 for rule 'init_val' at position 264
+🚪 Entering branch 5/10 for rule 'init_val' at position 264
+❌ Regex '1'B0\b' no match at position 265 (next: '1 'b 1;
+🚪 Entering branch 6/10 for rule 'init_val' at position 264
+❌ Regex '1'B1\b' no match at position 265 (next: '1 'b 1;
+🚪 Entering branch 7/10 for rule 'init_val' at position 264
+🚪 Entering branch 8/10 for rule 'init_val' at position 264
+🚪 Entering branch 9/10 for rule 'init_val' at position 264
+✅ Regex '1\b' matched at position 265 (len 1)
+✅ Leaving branch 9/10 for rule 'init_val' at position 266 (success)
+🚪 Entering branch 10/10 for rule 'init_val' at position 264
+🏁 Rule 'init_val' selected branch 9/10 consuming 2 chars (priority=0, associativity=left, branch_policy=longest_match)
+
+READ IT: branches 1/2/5/6 (the `\b`-guarded regex tokens) FAIL at position 265 —
+the regex is contiguous, so it dies on the space before the `'`. Branches 3/4/7/8
+(the `1'bx`/`1'bX`/`1'Bx`/`1'BX` string literals) fail silently for the same
+reason. Then branch 9 — the LRM's BARE `1` alternative — MATCHES.
+
+⭐ THE SHARP PART, which the leaf's original framing did not have: this is NOT a
+clean rejection at init_val. `longest_match` selects branch 9/10 consuming 2
+chars, so `init_val` SUCCEEDS having eaten only the `1`, leaving ` 'b 1;` behind.
+The parse then dies DOWNSTREAM in `sequential_body` (surface position 189,
+furthest 266). A mis-parse that reports its failure somewhere else entirely — the
+exact shape that makes this class expensive to find by eyeballing an error
+position, and the reason the toolbox is mandatory here.
+
+================================================================================
+CONTROL INPUT — repro/c1_init_val_tight.sv    `initial q = 1'b1;`
+================================================================================
+🚪 Entering branch 1/10 for rule 'init_val' at position 166
+❌ Regex '1'b0\b' no match at position 167 (next: '1'b1;
+🚪 Entering branch 2/10 for rule 'init_val' at position 166
+✅ Regex '1'b1\b' matched at position 167 (len 4)
+✅ Leaving branch 2/10 for rule 'init_val' at position 171 (success)
+🚪 Entering branch 3/10 for rule 'init_val' at position 166
+🚪 Entering branch 4/10 for rule 'init_val' at position 166
+🚪 Entering branch 5/10 for rule 'init_val' at position 166
+❌ Regex '1'B0\b' no match at position 167 (next: '1'b1;
+🚪 Entering branch 6/10 for rule 'init_val' at position 166
+❌ Regex '1'B1\b' no match at position 167 (next: '1'b1;
+🚪 Entering branch 7/10 for rule 'init_val' at position 166
+🚪 Entering branch 8/10 for rule 'init_val' at position 166
+🚪 Entering branch 9/10 for rule 'init_val' at position 166
+✅ Regex '1\b' matched at position 167 (len 1)
+✅ Leaving branch 9/10 for rule 'init_val' at position 168 (success)
+🚪 Entering branch 10/10 for rule 'init_val' at position 166
+🏁 Rule 'init_val' selected branch 2/10 consuming 5 chars (priority=0, associativity=left, branch_policy=longest_match)
+
+READ IT: the SAME branch 2 that failed above now MATCHES (len 4), and
+longest_match correctly prefers it (5 chars) over the bare-`1` branch 9 (2 chars).
+=> the ONLY variable between the two runs is the white space.
+
+WHERE (line numbers on the pre-fix grammar):
+  init_val:2554         alternatives 1-8, the 8 sized fused tokens
+  scalar_constant:4935  alternatives 1-8, 4 sized + 4 unsized fused tokens
+  :6382-:6396           kw_n_1_tick_{B0,B1,BX,Bx,b0,b1,bX,bx}
+  :6635-:6641           kw_tick_{B0,B1,b0,b1}
+Engine property: `trivia` (the layout skipper) runs only BEFORE a terminal, never
+INSIDE one match — the same property `.3.5`/SV-0041 root-caused for
+`integral_number`, and `.3.9`/SV-0045 for the fused `##[*]` delimiter literals.

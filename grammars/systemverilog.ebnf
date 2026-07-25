@@ -6379,21 +6379,45 @@ kw_n_1_356a192b := trivia /1\b/
 # ACCEPTED. The four digit-carrying tokens below restore the IEEE alternatives
 # (regex \b so 1'b01 / 1'b0x are NOT prefix-stolen); the digit-less tokens were
 # removed with their last referencing sites (init_val, scalar_constant).
-kw_n_1_tick_B0_720c4a9c := trivia /1'B0\b/
+#
+# PGEN-SV-CORPUS-GRAD-0025 (.3.10, ledger SV-0046): the two `[ \t]*` seams admit
+# LRM-legal white space INSIDE these literals. IEEE 1800-2017 section 5.7.1 (1364-2005
+# section 3.5.1 identical) says a based literal "shall be composed of up to three
+# tokens" — size / base_format / value — and then fixes exactly which of the two
+# interior seams are open:
+#   * size <-> apostrophe : OPEN. They are separate lexical tokens, so section 5.3
+#     free-form separation applies and nothing carves it out.
+#   * apostrophe <-> base char : CLOSED. "The apostrophe character and the base
+#     format character shall not be separated by any white space." So `'B` / `'b`
+#     stays contiguous below and `1' b 1` still REJECTS.
+#   * base_format <-> value : OPEN, explicitly. "The unsigned number token shall
+#     immediately follow the base format, optionally preceded by white space."
+# This is the SAME law and the SAME `[ \t]*` idiom leaf .3.5 (ledger SV-0041) applied
+# to integral_number:439 — but init_val / scalar_constant enumerate the LRM's CLOSED
+# literal set, so they never route through integral_number and never inherited that
+# fix. Keeping them as their own tokens (rather than swapping in integral_number)
+# is what keeps the closed set closed: the leading `1` is hard-coded, so `2'b11`
+# still cannot be an init_val. Additive — only previously-REJECTED spellings gain
+# parses, and every emitted {kind:"1'b0"} ... {kind:"1'BX"} name is unchanged, so
+# the locked ast_shape_contract samples (init_val_lrm_digits /
+# scalar_constant_lrm_digits) hold and the AST schema does not move.
+# `[ \t]` (horizontal) matches .3.5 deliberately; a literal spanning a NEWLINE is
+# the same deferred composite-rule case there and here.
+kw_n_1_tick_B0_720c4a9c := trivia /1[ \t]*'B[ \t]*0\b/
 
-kw_n_1_tick_B1_afad66cc := trivia /1'B1\b/
+kw_n_1_tick_B1_afad66cc := trivia /1[ \t]*'B[ \t]*1\b/
 
-kw_n_1_tick_BX_874bf116 := trivia "1'BX"
+kw_n_1_tick_BX_874bf116 := trivia /1[ \t]*'B[ \t]*X/
 
-kw_n_1_tick_Bx_0a99de19 := trivia "1'Bx"
+kw_n_1_tick_Bx_0a99de19 := trivia /1[ \t]*'B[ \t]*x/
 
-kw_n_1_tick_b0_cc597d72 := trivia /1'b0\b/
+kw_n_1_tick_b0_cc597d72 := trivia /1[ \t]*'b[ \t]*0\b/
 
-kw_n_1_tick_b1_a5c2b78e := trivia /1'b1\b/
+kw_n_1_tick_b1_a5c2b78e := trivia /1[ \t]*'b[ \t]*1\b/
 
-kw_n_1_tick_bX_70a6d618 := trivia "1'bX"
+kw_n_1_tick_bX_70a6d618 := trivia /1[ \t]*'b[ \t]*X/
 
-kw_n_1_tick_bx_ab9cb068 := trivia "1'bx"
+kw_n_1_tick_bx_ab9cb068 := trivia /1[ \t]*'b[ \t]*x/
 
 kw_n_1step_e6d37e7c := trivia /1step\b/
 
@@ -6632,13 +6656,21 @@ kw_task_7fbb727d := trivia /task\b/
 # (SV-0030 fix, SV-DOLLAR-LRM-FIDELITY.3): the unsized IEEE scalar_constant
 # alternatives 'b0 / 'b1 / 'B0 / 'B1 (previously realized digit-less as
 # `tick kw_b` / `tick kw_B`, accepting bare 'b / 'B).
-kw_tick_B0_f33e35dd := trivia /'B0\b/
+#
+# PGEN-SV-CORPUS-GRAD-0025 (.3.10, ledger SV-0046): the single `[ \t]*` seam is the
+# IEEE 1800-2017 section 5.7.1 base_format <-> value allowance ("The unsigned number
+# token shall immediately follow the base format, optionally preceded by white
+# space"). These four are UNSIZED, so they have only ONE interior seam — there is no
+# size token, hence no size<->apostrophe seam, and the apostrophe<->base-char seam is
+# the one section 5.7.1 explicitly CLOSES. See the sized twins near kw_n_1_tick_B0
+# for the full derivation.
+kw_tick_B0_f33e35dd := trivia /'B[ \t]*0\b/
 
-kw_tick_B1_230dd583 := trivia /'B1\b/
+kw_tick_B1_230dd583 := trivia /'B[ \t]*1\b/
 
-kw_tick_b0_624cb09b := trivia /'b0\b/
+kw_tick_b0_624cb09b := trivia /'b[ \t]*0\b/
 
-kw_tick_b1_1c5be368 := trivia /'b1\b/
+kw_tick_b1_1c5be368 := trivia /'b[ \t]*1\b/
 
 kw_this_c2543fff := trivia /this\b/
 

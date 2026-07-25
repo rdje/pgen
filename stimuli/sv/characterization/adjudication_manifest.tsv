@@ -14937,7 +14937,7 @@ verilator	test_regress/t/t_math_svl.v	pass	must_accept	match	verilator: driver t
 verilator	test_regress/t/t_math_svl2.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_math_svl2.py expects success
 verilator	test_regress/t/t_math_swap.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_swap.py expects success
 verilator	test_regress/t/t_math_synmul.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_synmul.py expects success
-verilator	test_regress/t/t_math_synmul_mul.v	pass	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
+verilator	test_regress/t/t_math_synmul_mul.v	timeout	chained_only	divergence:explained_timeout	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_math_tri.v	pass	must_accept	match	verilator: driver t_math_tri.py expects success
 verilator	test_regress/t/t_math_trig.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_math_trig.py expects success
 verilator	test_regress/t/t_math_vgen.v	pass	must_accept	match	verilator: driver t_math_vgen.py expects success

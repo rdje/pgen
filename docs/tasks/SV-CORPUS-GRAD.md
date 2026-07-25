@@ -1651,10 +1651,11 @@ coverage.
 
 #### `.3.10` — the spaced UDP/timing-check NUMBER literals (`1 'b 1`) reject (IEEE 1800-2017 §5.7.1 — fused number literals in `init_val` / `scalar_constant`; the sibling `.3.9`'s widened sweep surfaced)
 
-- **Status: `todo`** — opened by `.3.9` (session #205, 2026-07-25) from a MEASURED
-  reject, not from speculation. Same discipline `.3.8` applied when it opened
-  `.3.9`: a different-law/different-mechanism finding gets its own leaf instead of
-  being folded in silently.
+- **Status: `done`** (session #206, 2026-07-25) — opened by `.3.9` (session #205)
+  from a MEASURED reject, not from speculation. Same discipline `.3.8` applied
+  when it opened `.3.9`: a different-law/different-mechanism finding gets its own
+  leaf instead of being folded in silently. The charter below is the leaf as
+  OPENED; the closure record follows it.
 - **EVIDENCE ALREADY BANKED**
   (`artifacts/sv_corpus_grad/fused_bracket_literal_diag/sweep_fused_delimiter_literals.txt`,
   CLASS C). Minimal repro on the post-`.3.8` parser (`--profile sv_2017`), a UDP
@@ -1704,6 +1705,352 @@ coverage.
 - **SCOPE:** measure the corpus population first (`init_val` is UDP-only, so it
   may be 0 rows — in which case this is a correctness/LRM-fidelity fix with no
   graduation delta, and should be sequenced accordingly rather than oversold).
+
+---
+
+**⭐ CLOSED — session #206, 2026-07-25, `PGEN-SV-CORPUS-GRAD-0025`, release
+`1.0.175`→`1.0.176`, schema `19` UNCHANGED, ledger `SV-0046`.**
+Evidence bundle: `docs/tasks/artifacts/sv_corpus_grad/fused_number_literal_diag/`
+(`before.txt`, `after.txt`, `transitions.txt`, `trace_before_differential.txt`,
+`sweep_fused_number_literals.txt`, `census_effect.txt`, `global_measurement.txt`,
+plus the re-runnable driver `run_matrix.sh` and the analyser
+`analyze_corpus_delta.py`).
+
+- **REPRODUCED (`before.txt`, 26-row matrix over BOTH consumer rules).** The leaf
+  inherited a 2-row repro; it was widened to a full class matrix before any edit.
+  8 LRM-legal `init_val` spellings REJECTED (`1 'b 1`, `1 'b1`, `1'b 1`, tab
+  forms, `1 'B 1`, `1 'b x`, `1 'b X`, `1  'b  0`), all 9 near-miss negatives
+  already rejected, and the same 8 rejected under `verilog_2005` too.
+- **⭐ A SECOND FACE THE LEAF DID NOT KNOW ABOUT — `scalar_constant` does not
+  REJECT, it SILENTLY DEGRADES THE AST.** `scalar_timing_check_condition:4967`
+  carries a fallback `expression` branch, so a failing `scalar_constant` never
+  fails the file — it just loses the typed shape. AST-dump differential:
+
+  | input (in a `specify` timing check) | BEFORE | AFTER |
+  |---|---|---|
+  | `cond == 1'b1` | `{kind:"eq", rhs:{kind:"1'b1"}}` | unchanged (control) |
+  | `cond == 1 'b 1` | **`{kind:"expression"}`** | `{kind:"eq", rhs:{kind:"1'b1"}}` |
+  | `cond == 'b 1` | **`{kind:"expression"}`** | `{kind:"eq", rhs:{kind:"'b1"}}` |
+
+  ⇒ this face is invisible to the corpus pass/fail columns entirely. It would
+  never have been found by another rejects-valid sweep, only by asking what the
+  AST actually contains. Banked as a general lesson: **a rule with an
+  expression-shaped fallback branch converts an acceptance defect into a shape
+  defect, so "the corpus still passes" is not evidence that a construct works.**
+- **ROOT CAUSE (WHY + WHERE), trace-proven DIFFERENTIALLY**
+  (`trace_before_differential.txt`; `--trace-rules init_val`, TOOLBOX step 3):
+  on the SPACED input, branches 1/2/5/6 fail on their contiguous regexes at the
+  space before the `'` and branches 3/4/7/8 (string literals) fail likewise —
+  then **branch 9, the LRM's BARE `1` alternative, MATCHES**, and `longest_match`
+  selects `9/10 consuming 2 chars`. On the TIGHT input the SAME branch 2 matches
+  and wins with 5 chars. Only the whitespace differs.
+  ⭐ **The sharp part, which the leaf's original framing did not have: this is not
+  a clean rejection at `init_val`. The rule SUCCEEDS having eaten only the `1`,
+  and the parse dies downstream in `sequential_body` (surface 189, furthest
+  266).** A mis-parse that reports its failure somewhere else is exactly why
+  eyeballing the error position would have sent an investigator to the wrong
+  rule — the case for TOOLBOX-first, not a formality.
+  WHERE: `init_val:2554` alts 1-8, `scalar_constant:4935` alts 1-8; tokens
+  `:6382`-`:6396` (8 sized) and `:6635`-`:6641` (4 unsized). Engine property:
+  `trivia` skips only BEFORE a terminal, never inside one match — the same
+  property `.3.5`/`SV-0041` and `.3.9`/`SV-0045` each root-caused.
+- **GOVERNING LAW — IEEE 1800-2017 §5.7.1, read from the LRM workspace, verbatim
+  (not paraphrased from the sibling leaf):** a based literal "shall be composed of
+  up to three tokens" (size / `'`+base / value); "The apostrophe character and the
+  base format character shall **not** be separated by any white space" (the ONE
+  closed seam); "The unsigned number token shall immediately follow the base
+  format, **optionally preceded by white space**" (explicitly open). The
+  size↔apostrophe seam is open by §5.3 (separate lexical tokens) with no carve-out.
+- **FIX (fix-hierarchy tier 2 = grammar; 12 token bodies, nothing else):**
+  `[ \t]*` at exactly the two open seams —
+  `/1[ \t]*'b[ \t]*0\b/` … `/1[ \t]*'B[ \t]*X/` for the 8 sized tokens and
+  `/'b[ \t]*0\b/` … `/'B[ \t]*1\b/` for the 4 unsized ones (unsized have only ONE
+  interior seam — no size token exists). The 4 string-literal tokens
+  (`"1'bx"`/`"1'bX"`/`"1'Bx"`/`"1'BX"`) became regexes **without** adding a `\b`
+  they never had, so their prefix-matching semantics are preserved exactly.
+  ⭐ **Keeping them as their own tokens — rather than swapping in
+  `integral_number` — is what keeps the LRM's CLOSED set closed**: the leading `1`
+  stays hard-coded, so `2'b11` still cannot be an `init_val` (the naive-swap trap
+  the leaf charter warned about, discharged by construction and proven by R1).
+  `[ \t]` (horizontal only) matches `.3.5` deliberately; a literal spanning a
+  NEWLINE is the same deferred composite-rule case there and here (row D1).
+  **No new rules or tokens — census `1475` UNCHANGED.**
+- **VERIFIED — `after.txt` / `transitions.txt`** (release probe relinked 19:03,
+  mtime-asserted NEWER than the 18:44 parser; same `run_matrix.sh` driver re-run,
+  not re-typed):
+  - **8 rows REJECT→ACCEPT, and identically under `verilog_2005`** — a
+    CROSS-PROFILE heal (IEEE 1364-2005 §3.5.1 carries the same allowance; these
+    tokens carry no `@profiles` gate). Same shape as `.3.5`; contrast the
+    SVA-gated `.3.8`/`.3.9`.
+  - **must-ACCEPT 16/16 under both profiles; must-REJECT 9/9 still reject under
+    both.** The over-permissiveness guard is measured, not argued: `2'b1`,
+    `1'b2`, `1'bz`, `1'b 11`, bare `'b1`-as-`init_val`, the `SV-0030`
+    digit-less regression guards `1'b`/`1 'b`, and — the LRM-critical pair —
+    `1' b 1` and `1 ' b 1`, which §5.7.1 PROHIBITS and which still reject.
+  - **⭐ AST kinds are BYTE-IDENTICAL tight vs spaced** (`--entry-rule init_val`):
+    4 tight/spaced pairs, 4/4 emitting the same `kind` with only `span_end`
+    differing. That is the direct proof the correct LRM alternative now wins
+    (not the bare-`1` fallback) AND that no kind is renamed.
+  - Regex-level pre-check (before any rebuild): all legal spacings match, all
+    prohibited/out-of-set spellings reject, and "size must be exactly 1" holds
+    for all 12 patterns.
+- **⭐ THE MANDATED SWEEP RAN AND IS EXHAUSTIVE**
+  (`sweep_fused_number_literals.txt`). `.3.9` set the precedent — do not fix the
+  one site the corpus tripped over. All **14** token definitions embedding an
+  apostrophe were adjudicated (grammar-wide grep, no sampling): 12 = this defect;
+  `tick := "'"` is one character so it has no interior; and
+  **`unbased_unsized_literal:493` (`'0`/`'1`/`'x`/`'z`) ADJUDICATED CORRECT AS
+  FUSED with a named LRM cause** — Annex A footnote **48**: *"The apostrophe ( ' )
+  in unbased_unsized_literal shall not be followed by white_space."* ⭐ **This is
+  the sweep's most valuable outcome: that token looks IDENTICAL in shape to the
+  defective unsized `'b0` twins, and a mechanical "add seams wherever there is an
+  apostrophe" pass would have widened acceptance against the standard.** Same
+  adjudication shape as `.3.9`'s `attr_open`/`attr_close`. The 7 neighbouring
+  closed-literal-set rules (`edge_descriptor`, `level_symbol`, `output_symbol`,
+  `zero_or_one`, `z_or_x`, `finish_number`, `1step`) were swept too: all are
+  one-character tokens or already-structural multi-token sequences ⇒ no interior
+  seam. **0 further members. The fused NUMBER-literal face is CLOSED.**
+- **⚠️ THE SWEEP SURFACED A NEW MEASURED DEFECT IN THE OPPOSITE DIRECTION → new
+  leaf `.3.11`** (see below): Annex A footnote **44** forbids white space between
+  a `time_literal`'s number and its unit, but `time_literal:495` is spelled
+  `number time_unit` (two rules), so `timeunit 10 ns;` **ACCEPTS** and should not.
+  Over-acceptance, not under-acceptance — deliberately NOT folded in.
+- **CENSUS — BYTE-INERT, measured per profile** (`census_effect.txt`):
+  rule_count `1475`→`1475`; satisfiable_under `sv_2017` 1352→1352, `sv_2023`
+  1371→1371, `verilog_2005` 1121→1121; and the strongest form — **the per-rule
+  profile map is identical across all 1475 rules (0 differences)**, with the
+  sorted rule-name lists byte-identical. Those three counts are exactly the two
+  contract pins, which is why both cert gates came back byte-inert.
+  ⚠️ **Tool-usage correction recorded in the artifact:** the first
+  `--dump-rule-profiles` pass passed profile NAMES where the flag wants an OUTPUT
+  PATH, silently writing three stray JSON dumps into the repo root and yielding a
+  meaningless reading. Strays deleted, measurement redone. The conclusion never
+  depended on the bad reading (the rule-set set-diff is independent and stronger),
+  but a wrong measurement does not get to sit in the record unremarked.
+- **`--lint-grammar`: CLEAN** — 1475 rules, `non_terminating`/
+  `ordered_choice_shadowing`/`unreachable_rules`/`undefined_references`/
+  `unbound_fact_kinds`/`nullable_repetition`/**`profile_orphans`** all 0.
+  Regen green (`focus_systemverilog`, guard exit 0, peak 2,255 MB / 71 s;
+  return-annotation inventory 2,280 entries).
+- **⭐ KEYED CORPUS POPULATION = 0 ROWS, DERIVED AND STATED BEFORE MEASURING.**
+  The 12 tokens have exactly two consumers, both context-restricted (`init_val`
+  is UDP-only, `scalar_constant` timing-check-only). Of 16,336 files, 5 carry a
+  spaced size seam and 145 a spaced value seam, but only 3 also contain
+  `primitive`/`specify` — and probing all 3 shows each dies elsewhere
+  (`` `ifdef `` ×2, UDP-table edge symbols ×1). Every other hit is an
+  expression-position number routed through `integral_number`, healed since
+  `.3.5`. ⇒ **ceiling +0 pass, stated up front; measured outcome +0 pass.**
+  This is an LRM-fidelity/correctness leaf and must not be sold as a graduation
+  leaf.
+- **GLOBAL MEASUREMENT** (`global_measurement.txt`; DEBUG probe per the `.3.6`
+  requirement, mtime-asserted newer than the parser; guard exit 0):
+  - **Main `sv_2017` lane (16,336 files, 232 s, peak 5,697 MB):** pass 9,694 →
+    9,693, fail 6,634 → 6,634, timeout 8 → 9. **Exactly ONE per-FILE transition:**
+    `pass→timeout` on `verilator/test_regress/t/t_math_synmul_mul.v`.
+  - **⛔ THAT ROW IS PROVEN CONTENTION JITTER, AND PROVEN — NOT ARGUED.**
+    `.3.8`/`.3.9` each dismissed their jitter rows with a TEXT argument ("the file
+    contains no `##`, so the rule is never reached"), which is an *inference*
+    about reachability. This leaf proves it directly with the instrument, plus a
+    positive control so the zero is shown to be a real zero:
+    1. **Structural** — the file contains `primitive` 0× and `specify` 0×, so
+       both consumer rules are unreachable in it (its 7 `1'b` hits are ordinary
+       expression-position numbers).
+    2. ⭐ **Instrumented** — `--trace-rules init_val,scalar_constant` on that exact
+       file emits **0** lines naming either rule; the SAME probe with the SAME
+       flags emits **10** on the UDP repro. ⇒ the edited regexes are never
+       EXECUTED there, so the change can affect neither its verdict nor its time.
+    3. **Empirical** — run solo it takes 17.94 / 17.97 / 17.89 s against the 20 s
+       wall and exits 0 = **pass**; its true verdict is unchanged.
+    4. **Historical** — `.3.9` recorded this SAME file flipping the OPPOSITE way
+       (`timeout→pass`). A row that oscillates both ways across consecutive leaves
+       is a wall-clock artifact.
+    ⚠️ **The 15 s (`.3.9`) vs 17.9 s (here) solo reading was NOT waved away** — that
+    is precisely the shape a silent speed regression would take, and the north
+    star makes speed co-equal and never-regressed. Point 2 settles it: a rule
+    entered zero times cannot cost time; the delta is cross-session variance
+    (different debug build, different ambient load).
+  - **ADJUDICATION — set-level, not just counts:** `match` 5,727 → 5,727 SET
+    IDENTICAL; **`unexplained_rejects_valid` 382 → 382 SET IDENTICAL (zero new,
+    zero healed)**; `unexplained_accepts_invalid` 21 → 21 SET IDENTICAL; all 5
+    `explained_svpp_*` and all 6 `deferred:*` classes SET IDENTICAL except the one
+    jitter row moving `deferred:chained_only` → `divergence:explained_timeout`.
+    The entire 16,336-row manifest differs by **exactly one line**.
+  - **NO REGRESSION (the `.3.4` LAW — per-FILE pass-set diff, not net counts):
+    0 pass→fail, 0 pass→timeout, 0 pass→crash attributable to this leaf.**
+  - **`verilog_2005` lane RE-RUN, not inferred** — and here it HAD to be, because
+    unlike `.3.8`/`.3.9` this fix genuinely reaches `verilog_2005`: 2,459 files,
+    2,180/279/0, **ZERO per-FILE transitions**; `results_v2005.tsv`
+    CONTENT-IDENTICAL (sorted diff 0 lines; the raw byte diff is parallel-job
+    emission ORDER only) and `adjudication_manifest_v2005.tsv` BYTE-IDENTICAL;
+    v2005 unexplained stays 76 (62 rejects-valid + 14 accepts-invalid).
+    **Capability widened cross-profile, behaviour on this corpus unchanged.**
+- **GATES — all 7 GREEN, seeds 0/7/42, and BOTH cert contracts UNTOUCHED**
+  (the `.3.8` posture, predicted in writing in `census_effect.txt` BEFORE the
+  gates ran):
+  - `sv_syntax_closure_gate` — PASS, `defined_rule_count` **1475** (unchanged, as
+    designed), `unreachable_rules: 0`, `unresolved_rule_reference_count: 0`.
+    (`unreachable_branches: 2` is the pre-existing tracked cap, contract untouched.)
+  - `ast_shape_contract_gate` — PASS **18/18**. ⭐ This is the decisive
+    no-schema-bump proof: the three locked samples `init_val_lrm_digits`,
+    `scalar_constant_lrm_digits` and `scalar_timing_check_condition_eq` pin
+    exactly the kinds this leaf touches, and pass unchanged.
+  - `sv_cert_recognized_union_gate` — PASS **with NO re-baseline**: union_witness
+    **1346** == expected, canonical UNKNOWN **11**, union UNKNOWN **0**,
+    `union_residual_rules []`, `fully_certified_via_union: true`,
+    `sample_parse_failures 0`, `unmet_criteria_count 0`, deterministic at seeds
+    0/7/42. ⭐ The recorded risk that a widened REGEX terminal could still move
+    the witness column (the generator synthesizes witnesses FROM the regex) is
+    exactly why this was run rather than argued away; measured outcome: it did not.
+  - `verilog_2005_conformance_gate` — PASS **byte-inert**: cert
+    `1121/328/779/14` exactly as pinned, corpus matrix **240 checks / 0
+    mismatches**, alias checks 2, `profile_orphans 0`, lint exit 0, deterministic
+    at seeds 0/7/42, `unmet_criteria_count 0`.
+  - `sv_external_corpus_triage_gate` — PASS (no preprocess / parse / blocked
+    failure cases).
+  - `systemverilog_parser_book_gate` — PASS (mdbook build + tracked-HTML check);
+    the rendered `docs/systemverilog_parser_book-html/changelog-index.html` was
+    VERIFIED to carry the new `1.0.176` entry rather than trusting the gate's
+    "HTML present" check.
+  - `sv_stimuli_quality_gate` — PASS (guard exit 0, peak 11,967 MB / 1,993 s):
+    `closed_loop_profiles_passed 2/2`,
+    `closed_loop_initial_replay_determinism_passes 2/2`, preprocess warnings 0 /
+    errors 0, total_warnings 0 / total_errors 0, all 16 sample rows `pass` at
+    100% parseability acceptance.
+  - **clippy** — source-strict PASS; generated stage **291** errors = EXACTLY the
+    tracked baseline (session #192 `.7a`) ⇒ zero new generated debt.
+    ⚠️ Required `PGEN_CLIPPY_FORCE=1`: `.3.9`'s finding that
+    `make clippy_on_rust_change` silently self-exempts on grammar-only leaves
+    (`generated/` is gitignored, so the regenerated parser is invisible to its
+    git-diff trigger) is RECONFIRMED by direct observation — now two consecutive
+    slices. Still routed to `BIN-BUILD-INTEGRITY`, still unopened.
+  - `--lint-grammar` — clean: 1475 rules, `non_terminating` /
+    `ordered_choice_shadowing` / `unreachable_rules` / `undefined_references` /
+    `unbound_fact_kinds` / `nullable_repetition` / **`profile_orphans`** all 0.
+
+- **⚠️⚠️ `closed_loop_replay_targets_total` 124 → 127 (+3) — NOT SEMANTICALLY
+  ATTRIBUTABLE TO THIS LEAF, and running that check down surfaced a
+  MEASUREMENT-INTEGRITY problem in how the whole `.3.x` series has been reading
+  this metric.** The gate PASSES either way; this is about what the number means.
+  - **MEASURED (hard fact, not inference):** the 127 targets were ENUMERATED
+    (62 under `sv_2017` + 65 under `sv_2023`) and **ZERO of them relate to this
+    leaf's edit** — not by `rule_name`, not by `node_path`, not by `branch_id`,
+    not anywhere in the target records. Checked against both the 12 edited tokens
+    and the full consumer chain (`init_val`, `scalar_constant`,
+    `scalar_timing_check_condition`, `sequential_body`, `udp_declaration_*`,
+    `specify_block`): **intersection EMPTY in both profiles.** The 23/24 distinct
+    target rules are all constraint / assertion / class / property /
+    net-declaration surfaces (`prop_primary_*`, `constraint_primary_*`,
+    `class_declaration_sv_2023`, `randomize_call`, …).
+  - **NOT run-to-run noise, and I checked before claiming it was:** the first
+    hypothesis was sampling wobble over the 5,000-attempt budget. `SV-REPLAY-DEBT.1`
+    REFUTES that — it verified determinism directly, with two independent canonical
+    runs at one vintage producing **byte-identical** gap artifacts (sha256-verified,
+    all four JSONs). Also measured here: `closed_loop_parseability_shadow_target_timeout_errors_total 0`
+    and `helper_timeout_errors_total 0`, so the 5 ms per-target budget never fired.
+  - **INFERENCE (labelled as such — the mechanism, consistent with BOTH facts):**
+    the closed-loop generator is seeded and deterministic *for a fixed grammar*,
+    but widening 12 regex bodies ENLARGES their generatable language and therefore
+    shifts the generator's consumption of the random stream. Which unrelated
+    branches happen to be witnessed within the attempt budget reshuffles. So the
+    +3 is *caused by* the edit and *not semantically about* it — the debt sits in
+    rules the edit provably cannot reach.
+  - ⛔ **THE FINDING: prior leaves attributed this metric SEMANTICALLY without
+    performing the relatedness check.** `.3.9` recorded "127→124 (−3) = three
+    replay-debt gaps CLOSED … moves TOWARD `focused_replay_target_debt_zero`";
+    `.3.8` recorded "126→127 (+1) — the bracketed alternative is a NEW closed-loop
+    generation target". Neither enumerated the targets to see whether they were in
+    or downstream of the changed rules. Note the series shape: `.3.9` REMOVED two
+    symbols and went −3; this leaf removes nothing and goes +3, landing back
+    exactly on 127. ⭐ **Because `focused_replay_target_debt_zero` is the LAST
+    unmet SV family-status criterion, a Done-gate is being read off a number that
+    moves for reasons unrelated to the work.** The check that settles it is cheap —
+    enumerate `targets[]` and intersect with the changed rules, which is what this
+    leaf did and what no prior leaf did.
+  - ⇒ **Routed to `SV-REPLAY-DEBT.1c`** (opened this session), which owns the
+    burn-down and the criterion. **This leaf claims NO replay-debt movement.**
+
+- **Rejects-valid graduation baseline REMAINS 382; accepts-invalid REMAINS 21.**
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `before.txt`: 8 LRM-legal `init_val` spellings
+    REJECT under BOTH `sv_2017` and `verilog_2005` (`1 'b 1`, `1 'b1`, `1'b 1`,
+    tab forms, `1 'B 1`, `1 'b x`, `1 'b X`, `1  'b  0`) while the tight `1'b1`
+    accepts; and — the face the charter did not know about — `scalar_constant`
+    never rejects but silently degrades its AST from
+    `{kind:"eq", rhs:{kind:"1'b1"}}` to a flat `{kind:"expression"}`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `init_val:2554` alts 1-8 and
+    `scalar_constant:4935` alts 1-8 reference 12 FUSED number-literal tokens
+    (`:6382`-`:6396` sized, `:6635`-`:6641` unsized) that bypass `integral_number`
+    and so never inherited `.3.5`/`SV-0041`'s §5.7.1 seam fix; `trivia` skips only
+    BEFORE a terminal, never inside one match. Trace-proven DIFFERENTIALLY
+    (`trace_before_differential.txt`): on the spaced input branches 1-8 fail and
+    the bare-`1` branch 9 MATCHES (`selected branch 9/10 consuming 2 chars`), so
+    `init_val` SUCCEEDS on one character and the parse dies downstream in
+    `sequential_body`; on the tight input the SAME branch 2 wins with 5 chars.
+    Governing law IEEE 1800-2017 §5.7.1, quoted verbatim from the LRM workspace.
+  - [x] **FIX** — fix-hierarchy tier 2 (grammar): `[ \t]*` at exactly the two
+    §5.7.1-open seams in 12 token BODIES; the closed set stays closed because the
+    leading `1` remains hard-coded. No new rules or tokens; census **1475
+    UNCHANGED**; per-rule profile map identical across all 1475 rules.
+  - [x] **ADDRESSED (verified)** — `after.txt` / `transitions.txt`: 8 rows
+    REJECT→ACCEPT identically under both profiles; must-ACCEPT **16/16**;
+    the shape face repaired (`1 'b 1` and `'b 1` both now emit the typed
+    `eq`/`rhs` shape); AST kinds BYTE-IDENTICAL tight vs spaced (4/4 pairs),
+    proving the correct LRM alternative wins and no kind is renamed.
+  - [x] **NO REGRESSION** — must-REJECT **9/9** still reject under both profiles
+    (incl. the §5.7.1-PROHIBITED `1' b 1` / `1 ' b 1`, `2'b1`, `1'b2`, `1'bz`,
+    `1'b 11`, digit-less `1'b`); per-FILE pass-set diff **0 pass→fail, 0
+    pass→timeout, 0 pass→crash attributable** (the single `pass→timeout` proven
+    unreachable by `--trace-rules`, 0 hits vs 10 on a positive control);
+    rejects-valid 382 SET-IDENTICAL, accepts-invalid 21 SET-IDENTICAL; v2005 lane
+    **0 transitions** with a byte-identical manifest; both cert gates green with
+    NO re-baseline; `ast_shape_contract_gate` 18/18; lint `profile_orphans=0`;
+    clippy generated 291 = tracked baseline.
+  - [x] **LOCKSTEP** — ledger `SV-0046` + contract identity `1.0.176` (with the
+    schema-`19`-stays rationale and the shape-repair note for downstream) + SV
+    book changelog-index (rendered HTML verified to carry `1.0.176`) +
+    tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit. Both cert
+    contract JSONs deliberately UNTOUCHED (measured byte-inert, not assumed).
+
+#### `.3.11` — `time_literal` admits white space the LRM forbids (`timeunit 10 ns;` wrongly ACCEPTS — IEEE 1800-2017 Annex A footnote 44; surfaced by `.3.10`'s sweep)
+
+- **Status: `todo`** — opened by `.3.10` (session #206, 2026-07-25) from a
+  MEASURED over-acceptance, not speculation. Same discipline `.3.8`→`.3.9`→`.3.10`
+  applied: a different-direction/different-mechanism finding gets its own leaf.
+- **EVIDENCE ALREADY BANKED**
+  (`artifacts/sv_corpus_grad/fused_number_literal_diag/sweep_fused_number_literals.txt`,
+  SWEEP 3). Measured on the pre-`.3.10` parser (`--profile sv_2017`), `timeunit <lit>;`:
+
+  | form | verdict | LRM |
+  |---|---|---|
+  | `10ns` | ACCEPT | legal |
+  | `10 ns` | **ACCEPT** | **ILLEGAL** (footnote 44) |
+  | `10<TAB>ns` | **ACCEPT** | **ILLEGAL** (footnote 44) |
+
+- **ROOT CAUSE (WHY + WHERE, already pinned):** IEEE 1800-2017 Annex A footnote
+  44, verbatim — *"The unsigned number or fixed-point number in time_literal shall
+  not be followed by a white_space."* But `time_literal:495` is spelled
+  `number time_unit` — TWO rules in sequence — and PGEN's `trivia` skipper runs
+  before every terminal, so the seam the LRM CLOSES is wide open. This is the
+  exact INVERSE of `.3.10`: there a lexical allowance was missing from a fused
+  token; here a lexical PROHIBITION is rendered structurally.
+- **⛔ WHY IT IS NOT A `.3.10` FOLD-IN:** (1) opposite direction —
+  accepts-invalid, not rejects-valid, so it is measured by a different corpus
+  column and, unlike `.3.10`, a fix that TIGHTENS acceptance **can break
+  currently-passing corpus files**; (2) different mechanism (structural-vs-lexical
+  seam, no fused literal anywhere); (3) different law (footnote 44, not §5.7.1's
+  three-token decomposition).
+- **⚠️ CARRIES A DIRECTOR-VISIBLE SCOPE QUESTION, so do not just implement it:**
+  real-world SV writes `10 ns` constantly and mainstream simulators accept it.
+  Enforcing footnote 44 makes PGEN reject text the ecosystem treats as fine. The
+  leaf must first adjudicate **strict-LRM vs dialect-tolerant** (and whether that
+  belongs behind a profile/strictness switch) before touching the grammar. Measure
+  the corpus population of `<number><ws><unit>` first — the answer changes the
+  cost of strictness.
+- **FIX (candidate, pending that adjudication):** make `time_literal` lexical (a
+  single terminal spanning number+unit with no interior white space), or add a
+  no-white-space guard between the two rules. Check `time_unit:5555`'s other
+  consumers before choosing.
 
 ### `.4` — Full-design corpora chaining
 
