@@ -58,6 +58,60 @@ own leaf under the code-change doctrine.
   release affected — an internal dead-scaffold removal). Tracker + this leaf +
   `docs/TASK_TREE.md` row updated.
 
+### `REPO-HYGIENE.2` — §8 artifact sweep of UNTRACKED stray artifacts (director-ordered, session #203)
+
+- **Status:** `done` (`PGEN-REPO-HYGIENE-0002`, session #203, 2026-07-25)
+- **Goal:** execute the standing §8 artifact-cleanup mandate
+  (`docs/decisions/feedback_disk_hygiene_proactive.md`) on the director's
+  explicit end-of-ramp-up order ("delete all the artifacts"), deleting only
+  artifacts proven **untracked/ignored, PGEN-owned, and unreferenced**.
+- **Charter note:** leaf `.1` removed *tracked* vestigial files; this leaf
+  extends the same evidence-first discipline to *untracked* stray artifacts, so
+  a routine sweep is tree-owned rather than ad hoc.
+
+#### Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — repo at 3.2 GB; sweep found 12 editor swap files
+  (`.swp`/`.swo`) in PGEN-owned dirs (`tools/generators/`, `fx/perl/`,
+  `perl/AST/`; largest `fx/perl/.mipicsi2_laned_clog.log.swp` 4.8 MB), 3
+  `.DS_Store`, 4 stale `test_logs/**` logs (2025-10-03), and 6 legacy generated
+  `stability_test_results/*_parser.pm` outputs (2025-08-30).
+- [x] **ROOT CAUSE (WHY + WHERE)** — accumulated editor/session residue and
+  legacy pre-Rust-era run outputs; all confirmed **untracked** via
+  `git ls-files --error-unmatch` per file (the `stability_test_results/*.ebnf`
+  inputs and `stability_test_report.txt` ARE tracked and were left untouched),
+  and unreferenced by any gate/script/doc.
+- [x] **ADDRESSED (verified)** — `du -sk .` before→after **3,326,404 → 3,321,120
+  KB = 5,284 KB (5.28 MB) reclaimed**; post-sweep `find` for `*.swp`/`*.swo`/
+  `.DS_Store` outside `.git/` and submodules returns **empty**; `df -h /` 44 %
+  used / 259 GB free (no disk pressure — the large reclaim already happened in
+  session #194).
+- [x] **NO REGRESSION** — `git status --porcelain` = **0 lines before AND after**
+  (nothing tracked was touched; the tree stayed handoff-ready throughout);
+  `git submodule status` unchanged — the 835 `*.log` + 1 `*.bin` under
+  `stimuli/**/subs/**` are **upstream-tracked submodule content** (verified
+  `git ls-files --error-unmatch` inside `stimuli/sv/subs/Surelog`) and were
+  DELIBERATELY not touched, as were `docs/tasks/artifacts/**/*.log` (task-leaf
+  evidence) and `regex_corpus_bundle/.cache/downloads` (24 MB pinned upstream
+  snapshots — deletion would force a network re-fetch, failing the "100 % safe"
+  criterion).
+- [x] **DELIBERATELY RETAINED (with cause)** — `preserved_probes/` (185 MB, 18
+  probes) = the PERMANENT perf-guardrail re-proof custody per the standing
+  director law; `generated/` (244 MB, 33 artifacts = all 11 parsers at HEAD
+  vintage) = active working state whose deletion would force a multi-hour cold
+  bootstrap, i.e. NOT "no longer needed"; `conversation.txt` (58 MB,
+  user-created Feb 2026 capture) = re-affirms the session-#194 ruling recorded
+  in `CHANGES.md`/`DEVELOPMENT_NOTES.md` — user-created content is
+  director-owned, surfaced for an explicit call rather than swept.
+- [x] **LOCKSTEP** — ⭐ the sweep surfaced a live **continuity drift**:
+  `rust/target/` is **entirely absent** (no build tree at all), so `MEMORY.md`'s
+  ON-DISK block still claiming a built `target/release/regex_perf_probe`
+  `8d392176` + debug `parseability_probe` + dual-feature `ast_pipeline` was
+  STALE and would have misled the next session's first toolbox command. Layer A
+  corrected same-commit (rebuild-required note + the intact
+  `preserved_probes/`/`generated/` facts, so a rebuild is a compile, not a cold
+  bootstrap). `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `docs/TASK_TREE.md` row
+  updated; no code, book, contract, or release surface touched.
+
 ## Acceptance Criteria (tree)
 - Each leaf removes only artifacts proven unreferenced by CI, scripts, hooks,
   workspace config, and live docs; the real build + gates are verified
