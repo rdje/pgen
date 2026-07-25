@@ -1,0 +1,56 @@
+SV-CORPUS-GRAD.3.11 — DIFFERENTIAL TRACE (TOOLBOX step 3): the fn-44 seam
+================================================================================
+# probe (BEFORE parser): ./rust/target/release/parseability_probe
+# probe  mtime : 2026-07-25 19:56:39  <- predates the .3.11 regen
+
+(1) THE SEAM ITSELF — 'timeunit 10 ns;' vs 'timeunit 10ns;'
+--------------------------------------------------------------------------------
+Same file shape, same byte offsets up to the seam; ONLY the white space differs.
+  --- spaced ---
+      Regex 'ns\b' matched at position 24 (len 2)
+      Rule 'kw_ns_7320d5b7' successfully parsed from 23 to 26 (consumed 3 bytes: ' ns')
+      Rule 'time_unit' selected branch 4/6 consuming 3 chars
+  --- tight ---
+      Regex 'ns\b' matched at position 23 (len 2)
+      Rule 'kw_ns_7320d5b7' successfully parsed from 23 to 25 (consumed 2 bytes: 'ns')
+      Rule 'time_unit' selected branch 4/6 consuming 2 chars
+
+  => VERDICT. The SAME branch wins in both runs. On the TIGHT input the token's
+     regex matches at the cursor and the rule spans 2 bytes ('ns'). On the SPACED
+     input the regex matches ONE BYTE LATER, yet the RULE still spans 3 bytes and
+     the consumed text is literally ' ns' — the terminal's layout skip swallowed
+     the white space footnote 44 forbids. Whitespace is isolated as the SOLE cause.
+     Engine property (identical to .3.5/SV-0041, .3.9/SV-0045, .3.10/SV-0046):
+     layout is skipped only BEFORE a terminal, never inside one match.
+
+(2) THE THEFT — the rejects-valid face, on LEGAL code
+--------------------------------------------------------------------------------
+  --- '#2 s = ~s;'  (Surelog tests/FSMBsp13/top.v:63 shape) ---
+      verdict: REJECT, furthest_position=51
+      input[45:56] = '  #2 s = ~s'   (furthest 51 == just past the stolen " s")
+      Rule 'kw_s_a0f1490a' successfully parsed from 49 to 51 (consumed 2 bytes: ' s')
+      Rule 'time_literal' successfully parsed from 48 to 51 (consumed 3 bytes: '2 s')
+
+  --- 'a ##1 s ##1 b'  (ispras ieee-1800-2012/16/16.08_04.sv:19 shape) ---
+      verdict: REJECT, furthest_position=61
+      Rule 'constant_primary_sv_2017' successfully parsed from 58 to 61 (consumed 3 bytes: '1 s')
+      Rule 'constant_primary' successfully parsed from 58 to 61 (consumed 3 bytes: '1 s')
+      Rule 'primary_literal_sv_only' successfully parsed from 58 to 61 (consumed 3 bytes: '1 s')
+      Rule 'time_literal' successfully parsed from 58 to 61 (consumed 3 bytes: '1 s')
+
+  => VERDICT. In BOTH shapes `time_literal` SUCCEEDS by eating the delay's number
+     PLUS the following signal name, then the statement/sequence that owned that
+     name has nothing left to parse and the whole FILE is rejected. This is the
+     exact lexical ambiguity footnote 44 exists to prevent, and it is why the
+     over-acceptance is not a harmless nicety: it destroys legal input.
+
+(3) ⚠️ TOOL-USAGE FINDING — `--trace-rules R` traces R's DYNAMIC EXTENT, not R
+--------------------------------------------------------------------------------
+Naming the SUSPECT LEAF alone produced ZERO lines even though the leaf provably
+succeeds; naming its PARENT surfaced it. Measured on 'a ##1 s ##1 b':
+      --trace-rules time_literal                     -> "Rule 'time_literal' successfully parsed" lines: 0
+      --trace-rules cycle_delay_range                -> "Rule 'time_literal' successfully parsed" lines: 1
+      --trace-rules time_literal,cycle_delay_range   -> "Rule 'time_literal' successfully parsed" lines: 1
+  => An investigator who traced only the suspected rule would have concluded it
+     was never reached and gone looking in the wrong place. TRACE THE PARENT.
+     Routed to TOOLBOX.md section 2.2 as a documented caveat.

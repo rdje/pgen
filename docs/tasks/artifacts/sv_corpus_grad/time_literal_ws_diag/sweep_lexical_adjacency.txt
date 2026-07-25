@@ -1,0 +1,83 @@
+SV-CORPUS-GRAD.3.11 — THE MANDATED EXHAUSTIVE SWEEP
+================================================================================
+`.3.9`/`.3.10` set the precedent: do NOT fix only the site the corpus tripped
+over — enumerate the DEFECT CLASS from the LRM and adjudicate every member.
+This leaf has TWO faces, so the sweep has two axes. Both are closed below.
+
+AXIS 1 — "an Annex-A LEXICAL adjacency constraint rendered as a STRUCTURAL
+          sequence in the PGEN grammar"
+--------------------------------------------------------------------------------
+Enumeration is over the LRM footnote set itself, not a sample. All FIFTY Annex-A
+footnotes were extracted from the LRM workspace (docs/systemverilog/2017/txt/)
+and read; exactly FOUR impose a lexical white-space / adjacency constraint:
+
+  33) "Embedded spaces are illegal."                       (the number sub-tokens)
+  44) "The unsigned number or fixed-point number in time_literal shall not be
+       followed by a white_space."                                    <- THIS LEAF
+  48) "The apostrophe ( ' ) in unbased_unsized_literal shall not be followed by
+       white_space."
+  50) "The $ character in a system_tf_identifier shall not be followed by
+       white_space."
+  (49 is adjacent but is a CHARACTER-CLASS rule, not an adjacency rule:
+   "A simple_identifier or c_identifier shall start with an alpha or underscore".)
+
+  ⚠️ Footnote 47 does not appear in the flat footnote extraction (the converter
+  line-wrapped it). It was located and read in full — "A streaming_concatenation
+  expression shall not be nested within another streaming_concatenation
+  expression" — a STRUCTURAL rule, not lexical. All 50 are therefore accounted
+  for; the sweep is exhaustive, not merely large.
+
+MEASURED, not argued (BEFORE parser; these constructs are untouched by the fix):
+  fn       construct                        verdict  expected
+  fn48     assign y = '0;                   ACCEPT   ACCEPT — tight, legal
+  fn48     assign y = ' 0;                  REJECT   REJECT — fn48 forbids
+  fn48     assign y = ' x;                  REJECT   REJECT — fn48 forbids
+  fn50     initial $display("x");           ACCEPT   ACCEPT — tight, legal
+  fn50     initial $ display("x");          REJECT   REJECT — fn50 forbids
+  fn50     t = $ time;                      REJECT   REJECT — fn50 forbids
+  fn49     logic a_b1;                      ACCEPT   ACCEPT — legal identifier
+  fn49     logic a b;                       REJECT   REJECT — split identifier
+  fn33     p = 4'b1010;                     ACCEPT   ACCEPT — tight, legal
+  fn33     p = 4'b10 10;                    REJECT   REJECT — value interior split
+  fn33     p = 1 0'b1010;                   REJECT   REJECT — size interior split
+  fn33     p = 4' b1010;                    REJECT   REJECT — 5.7.1 CLOSED seam
+  5.7.1    p = 4 'b 1010;                   ACCEPT   ACCEPT — 5.7.1 OPEN seams (.3.5)
+  fn33     p = 1.5e3;                       ACCEPT   ACCEPT — real, tight
+  fn33     p = 1.5 e3;                      REJECT   REJECT — real interior split
+
+  => 15/15 rows already correct. fn48 is fused (`unbased_unsized_literal:493`,
+     adjudicated by .3.10's sweep); fn50 is fused
+     (`system_tf_identifier := trivia /\$[a-zA-Z0-9_$]+/`); fn49 is a single
+     identifier regex; fn33's interiors are contiguous character classes inside
+     ONE regex, and the two `[ \t]*` seams .3.5/SV-0041 added sit BETWEEN the
+     three §5.7.1 tokens, never inside one — so footnote 33 is not weakened.
+  => `time_literal` was the ONLY member of this class still rendered
+     structurally. AXIS 1 IS CLOSED — 0 further members.
+
+AXIS 2 — "PGEN references a LOOSER nonterminal than the LRM production names"
+--------------------------------------------------------------------------------
+This is the leaf's second face: the LRM writes
+  time_literal ::= unsigned_number time_unit | fixed_point_number time_unit
+but PGEN wrote `number time_unit`, and `number` is the full A.8.7 alternation
+(based literals + exponent reals included). Enumeration over the grammar (grep,
+no sampling) finds exactly THREE references to the general `number` rule:
+
+  525:time_literal := &/[0-9][0-9_]*(\.[0-9][0-9_]*)?(s|ms|us|ns|ps|fs)\b/ number time_unit
+  3425:module_path_primary := number                                          -> {kind: "number",            body: $1}
+  4297:primary_literal := number                  -> {kind: "number",                body: $1}
+
+Adjudicated against the LRM (read verbatim from the workspace):
+  time_literal:525        LRM: `unsigned_number | fixed_point_number` -> DEFECT, fixed here
+  module_path_primary:3425 LRM: "module_path_primary ::= number | identifier | ..." -> CORRECT
+  primary_literal:4297     LRM: "primary_literal ::= number | time_literal | ..."   -> CORRECT
+
+  => `time_literal` was the ONLY site where PGEN loosened the LRM's nonterminal.
+     AXIS 2 IS CLOSED — 0 further members.
+
+RESIDUAL, STATED HONESTLY
+--------------------------------------------------------------------------------
+Axis 2's enumeration is scoped to the general `number` rule — the nonterminal
+this leaf's defect actually involved. A grammar-WIDE "is every PGEN nonterminal
+reference as tight as its LRM production" audit is a different, much larger job
+and is already owned by `LRM-GRAMMAR-FIDELITY`'s Annex-A sweep. This leaf makes
+no claim beyond the two axes enumerated above.

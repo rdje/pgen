@@ -2082,6 +2082,119 @@ plus the re-runnable driver `run_matrix.sh` and the analyser
   no-white-space guard between the two rules. Check `time_unit:5555`'s other
   consumers before choosing.
 
+---
+
+**⏳ SESSION #207 (2026-07-26) — DIAGNOSIS COMPLETE AND FIX WRITTEN AND VERIFIED,
+BUT DELIBERATELY NOT LANDED. Status stays `todo`; it is now BLOCKED on a missing
+PGEN primitive, and the block is MEASURED, not asserted.** Evidence bundle:
+`docs/tasks/artifacts/sv_corpus_grad/time_literal_ws_diag/` (`before.txt`,
+`after.txt`, `transitions.txt`, `trace_before_differential.txt`,
+`sweep_lexical_adjacency.txt`, `keyed_population.txt`, `census_effect.txt`,
+`global_measurement.txt`, `design_adjudication.txt`, `generator_shape_probe.txt`,
+plus the re-runnable drivers `run_matrix.sh`, `run_generator_probes.sh`,
+`analyze_transitions.py`, `analyze_corpus_delta.py`, `analyze_manifest_delta.py`,
+`scan_population_raw.py`, `scan_population_stripped.py`).
+
+- **⭐⭐ THE CHARTER UNDERSTATED THE DEFECT BY A WHOLE DIRECTION. It is not only an
+  accepts-invalid nicety with "zero measured conflict" — it is ALSO a
+  rejects-valid defect that BREAKS LEGAL REAL-WORLD CODE, and it owns 2 of the
+  382 tracked `unexplained_rejects_valid` rows.** Because `s`/`ms`/`us`/`ns`/`ps`/
+  `fs` are ordinary identifier spellings, the over-permissive `time_literal`
+  STEALS the ubiquitous `<number> <white space> <signal>` pair:
+
+  | real corpus shape | verdict today |
+  |---|---|
+  | `#1 ps[idx] = 1'b1;` (iverilog `ivltests/pr2785294.v:22`, `ps` = a reg array) | **REJECT** |
+  | `#2 s = ~s;` (Surelog `tests/FSMBsp13/top.v:63`, `s` = a reg) | **REJECT** |
+  | `trans ##1 start_trans ##1 s ##1 end_trans;` (ispras `16.08_04.sv:19`, ×2 files) | **REJECT** |
+  | the SAME shapes with a non-unit identifier (`qs`, `t`, `zz`) — control | ACCEPT |
+
+  Trace-proven: `Rule 'time_literal' successfully parsed from 48 to 51 (consumed
+  3 bytes: '2 s')`. ⭐ That is exactly the lexical ambiguity footnote 44 exists to
+  prevent — which is also why simulators lex a time literal as one token. The
+  `.3.10` sweep had dismissed all four of these as "FALSE POSITIVES"; they are
+  false positives *as time literals* and that is precisely the point — PGEN
+  parses them as time literals anyway.
+- **A SECOND, INDEPENDENT FACE THE CHARTER DID NOT HAVE — the NUMBER CLASS.**
+  Annex A A.8.4 is `time_literal ::= unsigned_number time_unit |
+  fixed_point_number time_unit`, but `time_literal:495` referenced the full A.8.7
+  `number`, so `timeunit 1e3ns;`, `1.5e3ns`, `4'd10ns`, `4'b10ns` and `'d10ns`
+  all wrongly ACCEPT. Different law from footnote 44, same rule, same direction.
+- **ROOT CAUSE (WHY + WHERE), trace-proven DIFFERENTIALLY**
+  (`trace_before_differential.txt`): on `timeunit 10 ns;` vs `timeunit 10ns;` the
+  SAME branch wins — `Rule 'kw_ns_7320d5b7' successfully parsed from 23 to 26
+  (consumed 3 bytes: ' ns')` versus `from 23 to 25 (consumed 2 bytes: 'ns')`. The
+  token's own regex matches one byte later, but the RULE still spans the space:
+  the terminal's layout skip swallowed it. WHERE: `time_literal:495`, spelled
+  `number time_unit` — two rules, so PGEN's unconditional pre-terminal layout
+  skip opens the seam the LRM closes. Same engine property as `.3.5`/`SV-0041`,
+  `.3.9`/`SV-0045`, `.3.10`/`SV-0046`.
+- **⭐ THE FIX WAS WRITTEN AND IS FULLY PARSER-VERIFIED** — a positive lookahead
+  on the fused lexeme, `time_literal := &/[0-9][0-9_]*(\.[0-9][0-9_]*)?(s|ms|us|ns|ps|fs)\b/
+  number time_unit -> {value: $2, unit: $3}`. Measured on a regenerated parser:
+  all **38** matrix rows exactly as designed (13/13 legal spellings still ACCEPT,
+  7/7 footnote-44 rows ACCEPT→REJECT, 7/7 A.8.4 rows ACCEPT→REJECT, 5/5
+  over-tightening guards still REJECT, 4/4 real-world shapes REJECT→ACCEPT,
+  `1step` untouched); `{value, unit}` preserved BYTE-IDENTICALLY; census
+  BYTE-INERT (1475→1475, per-rule profile map identical across all 1475 rules);
+  **main corpus pass 9,693→9,698 with 0 pass→fail, rejects-valid 382→380 (both
+  healed rows the keyed files, ZERO new), accepts-invalid 21 SET-IDENTICAL**;
+  v2005 lane 0 transitions, manifest BYTE-IDENTICAL; `sv_syntax_closure_gate`
+  PASS; `ast_shape_contract_gate` PASS 18/18.
+- **⛔ AND THEN IT WAS REVERTED, because `sv_cert_recognized_union_gate` went RED
+  on a GEN↔PARSE DUALITY BREAK: `sample_parse_failures` 22 / 16 / 17 at seeds
+  0 / 7 / 42 (expected 0).** The certificate accounting itself stayed perfect
+  (union UNKNOWN 0, witness 1346, residual `[]`); the generator simply emits
+  samples the strict parser rejects — verbatim `timeprecision 0//x\n//x\nps;`
+  and `timeunit 8 'O   z//x\n//x\ns`.
+- **⭐ THE DECIDING MEASUREMENT (`generator_shape_probe.txt`) — three grammar
+  shapes, one generator run:** `num unit` with `trivia`-prefixed unit tokens
+  emits `A 7904 ns`; the SAME structure with the `trivia` prefix REMOVED still
+  emits `B 8918 s` — **the generator inserts a separator between EVERY pair of
+  sequence elements, independently of `trivia`** — while a single fused terminal
+  emits `C 6358s` / `C 19.20808ns`, tight every time. ⇒ **PGEN cannot express "no
+  layout between these two elements"; an LRM lexical-adjacency constraint must be
+  ONE terminal.** That is exactly what the other three Annex-A adjacency
+  footnotes already are (fn 33 / 48 / 50 — all single regexes, all 15/15 rows
+  measured correct in `sweep_lexical_adjacency.txt`). `time_literal` was the only
+  one written structurally, and the structural form is the one that cannot be
+  made strict.
+- **ALL FOUR ROUTES MEASURED AND EACH BLOCKED** (`design_adjudication.txt`):
+  1. structural + lookahead — parser-perfect, **generator breaks** (the red gate).
+  2. fused terminal — duality-complete, but orphans `time_unit:5555` **and its 6
+     `kw_*` tokens** (grammar-wide grep: `time_literal` is its ONLY consumer).
+     `time_unit ::= s | ms | us | ns | ps | fs` is a genuine Annex-A production ⇒
+     `feedback_no_rule_deletion_without_lrm_proof` forbids removing it and the
+     lint/closure gates forbid leaving it unreferenced. It would ALSO flatten
+     `{value, unit}` (a regex terminal binds exactly one value — no capture-group
+     → `$N` mapping exists in codegen), i.e. a schema break on a rule NEXSIM reads.
+  3. `@sample: "10ns"` generator pin (annotation tier, the highest fix tier) —
+     MEASURED to pin the text correctly, but when the pinned rule is the SOLE
+     path to `time_unit` (the SV situation) generator coverage COLLAPSES to
+     **rules 3/13, branches 0/6**, stranding `time_unit` + 6 tokens toward cert
+     UNKNOWN and breaking `fully_certified_via_union`.
+  4. a no-layout boundary primitive — **does not exist**, on either side:
+     all 1,798 `match_regex` call sites pass `skip_leading_whitespace = true`
+     with no opt-out, and the generator's separator insertion is unconditional.
+- **⛔ NOTHING WAS DEGRADED TO MAKE A GATE PASS.** No LRM rule deleted, no cert
+  contract re-baselined to absorb a duality break, no schema broken, no gate
+  re-specified. Grammar, `ast_shape_contract.rs` and the corpus characterization
+  outputs are all restored to HEAD behaviour and the parser regenerated from the
+  restored grammar.
+- **⇒ BLOCKED ON `LEX-ADJACENCY`** (new tree, opened this session): a NO-LAYOUT
+  LEXICAL BOUNDARY that BOTH the parser and the stimuli generator honour. Once it
+  lands, route 1 applies unchanged — the grammar edit is written verbatim above
+  and this leaf's matrix + corpus lanes are the ready-to-re-run acceptance
+  evidence.
+- **BY-PRODUCT ALREADY LANDED (independent of the block):** `TOOLBOX.md` §2.2 now
+  documents that `--trace-rules R` traces R's **dynamic extent**, so naming a
+  suspect leaf rule alone can print NOTHING while that rule succeeds — measured
+  here (`time_literal` alone → 0 lines; its caller `cycle_delay_range` → the line
+  that is the whole root cause). ⚠️ This also retro-weakens one leg of `.3.10`'s
+  jitter argument, which used trace-emptiness as proof of non-entry; recorded in
+  `global_measurement.txt`, where `--dump-rule-entry-counts-json` shows
+  `time_literal` entered **28,643** times on the very file `.3.10` reasoned about.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

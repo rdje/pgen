@@ -1,0 +1,88 @@
+SV-CORPUS-GRAD.3.11 — GATE BATTERY (session #207, 2026-07-26)
+================================================================================
+Gates were run against the CANDIDATE parser (the lookahead fix, regenerated
+2026-07-26 00:02). The candidate was subsequently REVERTED — see
+design_adjudication.txt — so these readings are the EVIDENCE FOR THE REVERT, not
+a green landing record. Everything below is verbatim from the gate output.
+
+--------------------------------------------------------------------------------
+GREEN on the candidate
+--------------------------------------------------------------------------------
+sv_syntax_closure_gate                    PASS   (guard exit 0, peak 9,741 MB, 257 s)
+    defined/reachable_rules      1475      (unchanged — the fix adds no rule)
+    unreachable_rules               0
+    unresolved_rule_reference_count 0
+    rule_reference_count         6602
+    unreachable_branches            2      (the pre-existing tracked cap)
+
+ast_shape_contract_gate                   PASS   18/18  (guard exit 0, peak 6,698 MB, 51 s)
+    ⚠️ FIRST RUN WAS RED — 17 passed / 1 failed:
+       ast_shape_contract::tests::systemverilog_hash_token_is_not_stolen_by_comment_arms_during_speculation
+       "SV parser rejected grammar-valid `#`/comment sample:
+        interface i #  (  ) ;timeunit 09 ns//>Mg\n//QF.\n/633 s;endinterface"
+    ROOT CAUSE: that H.11.5 regression lock was bisected from a GENERATED seed-0
+    sample, so its four fixtures carried the SPACED literals `09 ns` / `633 s` —
+    spellings IEEE 1800-2017 footnote 44 forbids. The test was locking a spelling
+    the standard prohibits; the parser was right to reject it.
+    REPAIR: closed ONLY the two footnote-44 seams (`09 ns`->`09ns`,
+    `633 s`->`633s`) in all four samples; every other byte unchanged, so the
+    `#  (  )` ANSI header, the doubled `//` comments and the timeunit ratio `/`
+    — the entire H.11.5 mechanism the test locks — are preserved exactly.
+    Verified all four repaired samples parse, then 18/18.
+    A repo-wide sweep for other fixtures carrying now-illegal time literals found
+    exactly this one family (79 SV-owned fixture files scanned; the only other
+    hits were prose in a comment and `2000 ms` in an unrelated main.rs sentence).
+
+systemverilog_parser_book_gate            PASS   (mdbook_build + tracked_html_check)
+    rendered changelog-index.html VERIFIED to carry the corrected .3.11 note
+    rather than trusting the gate's "HTML present" check.
+
+--------------------------------------------------------------------------------
+⛔ RED on the candidate — THE FINDING
+--------------------------------------------------------------------------------
+sv_cert_recognized_union_gate             FAIL   (guard exit 2, peak 6,751 MB, 644 s)
+    The certificate ACCOUNTING was perfect and matched every pin:
+        canonical_unknown        11   == expected_canonical_unknown
+        union_unknown             0   == expected_union_unknown
+        union_witness          1346   == expected_union_witness
+        union_residual_rules     []   == expected_union_residual_rules
+        fully_certified_via_union: true
+    What failed is GEN<->PARSE DUALITY:
+        unmet_criteria_count      5
+        seed=0  canonical sample_parse_failures = 22   (expected 0)
+        seed=7  canonical sample_parse_failures = 16   (expected 0)
+        seed=42 canonical sample_parse_failures = 17   (expected 0)
+        + 2 signature-drift rows (the seed-dependence of the above)
+    Verbatim failing samples (each a GENERATED sample the real parser rejects):
+        timeprecision 0//x\n//x\nps;
+        timeunit 01070E31790//x\n//x\n//x\nms
+        timeunit 8 'O   z//x\n//x\ns
+    i.e. the generator emits `number`, then layout, then the unit — and in the
+    third, a BASED number, which A.8.4 forbids in a time literal.
+
+    ⛔ THIS GATE WAS NOT RE-BASELINED. Absorbing 22 sample-parse failures into the
+    contract would have blessed a duality break to make a red gate green. The
+    candidate was reverted instead.
+
+--------------------------------------------------------------------------------
+NOT RUN, and why (stated rather than silently omitted)
+--------------------------------------------------------------------------------
+verilog_2005_conformance_gate, sv_external_corpus_triage_gate,
+sv_stimuli_quality_gate, clippy_on_rust_change, cargo test --lib:
+    the candidate was already refused by sv_cert_recognized_union_gate on grounds
+    that no downstream gate could overturn, so running them would have cost
+    ~40+ minutes of heavy jobs to characterize a parser that was about to be
+    deleted. The v2005 CORPUS lane WAS run in full (0 transitions, manifest
+    byte-identical — see global_measurement.txt), which is the measurement that
+    actually mattered for that profile.
+
+--------------------------------------------------------------------------------
+POST-REVERT verification (the state actually committed)
+--------------------------------------------------------------------------------
+scripts/check_doctrines.sh                8/8 PASS
+systemverilog_parser_book_gate            PASS (re-run after the doc corrections)
+grammar sha256                            018bcc42e6b3810b == HEAD
+behavioural spot-check, BOTH probes rebuilt against the restored parser:
+    `timeunit 10 ns;`  ACCEPT   (the defect is back — revert is complete)
+    `#2 s = ~s;`       REJECT   (the theft is back — revert is complete)
+    `timeunit 10ns;`   ACCEPT   (control)

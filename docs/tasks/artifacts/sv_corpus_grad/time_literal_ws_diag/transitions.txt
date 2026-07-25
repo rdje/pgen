@@ -1,0 +1,91 @@
+SV-CORPUS-GRAD.3.11 — BEFORE -> AFTER TRANSITIONS
+================================================================================
+Both columns produced by the SAME driver (run_matrix.sh), re-run rather than
+re-typed. BEFORE probe 2026-07-25 19:56 (pre-regen); AFTER probe 2026-07-26 00:20.
+
+--------------------------------------------------------------------------------
+A — MUST ACCEPT (LRM-legal)   (expected ACCEPT -> ACCEPT)
+--------------------------------------------------------------------------------
+  A1    tu    10ns             ACCEPT -> ACCEPT  (unchanged)
+  A2    tu    1.5ns            ACCEPT -> ACCEPT  (unchanged)
+  A3    tu    10_0ns           ACCEPT -> ACCEPT  (unchanged)
+  A4    tu    1s               ACCEPT -> ACCEPT  (unchanged)
+  A5    tu    1ms              ACCEPT -> ACCEPT  (unchanged)
+  A6    tu    1us              ACCEPT -> ACCEPT  (unchanged)
+  A7    tu    1ps              ACCEPT -> ACCEPT  (unchanged)
+  A8    tu    1fs              ACCEPT -> ACCEPT  (unchanged)
+  A9    tu    1_0.5_5ns        ACCEPT -> ACCEPT  (unchanged)
+  A10   dly   10ns             ACCEPT -> ACCEPT  (unchanged)
+  A11   dly   1.5ps            ACCEPT -> ACCEPT  (unchanged)
+  A12   exp   10ns             ACCEPT -> ACCEPT  (unchanged)
+  A13   exp   1.5fs            ACCEPT -> ACCEPT  (unchanged)
+
+--------------------------------------------------------------------------------
+B — MUST REJECT (footnote 44)   (expected ACCEPT -> REJECT)
+--------------------------------------------------------------------------------
+  B1    tu    10\ ns           ACCEPT -> REJECT  <== TRANSITION
+  B2    tu    $'10\tns'        ACCEPT -> REJECT  <== TRANSITION
+  B3    tu    1.5\ ns          ACCEPT -> REJECT  <== TRANSITION
+  B4    tu    10\ \ ns         ACCEPT -> REJECT  <== TRANSITION
+  B5    dly   10\ ns           ACCEPT -> REJECT  <== TRANSITION
+  B6    exp   10\ ns           ACCEPT -> REJECT  <== TRANSITION
+  B7    src   <multi-line source> ACCEPT -> REJECT  <== TRANSITION
+
+--------------------------------------------------------------------------------
+C — MUST REJECT (A.8.4 number class)   (expected ACCEPT -> REJECT)
+--------------------------------------------------------------------------------
+  C1    tu    1e3ns            ACCEPT -> REJECT  <== TRANSITION
+  C2    tu    1.5e3ns          ACCEPT -> REJECT  <== TRANSITION
+  C3    tu    4\'d10ns         ACCEPT -> REJECT  <== TRANSITION
+  C4    tu    4\'b10ns         ACCEPT -> REJECT  <== TRANSITION
+  C5    tu    \'d10ns          ACCEPT -> REJECT  <== TRANSITION
+  C6    dly   1e3ns            ACCEPT -> REJECT  <== TRANSITION
+  C7    tu    4\'d10\ ns       ACCEPT -> REJECT  <== TRANSITION
+
+--------------------------------------------------------------------------------
+D — MUST STAY REJECTED (guard)   (expected REJECT -> REJECT)
+--------------------------------------------------------------------------------
+  D1    tu    10\ n\ s         REJECT -> REJECT  (unchanged)
+  D2    tu    10zs             REJECT -> REJECT  (unchanged)
+  D3    tu    .5ns             REJECT -> REJECT  (unchanged)
+  D4    tu    10               REJECT -> REJECT  (unchanged)
+  D5    tu    ns               REJECT -> REJECT  (unchanged)
+
+--------------------------------------------------------------------------------
+E — REAL-WORLD LEGAL CODE   (expected REJECT -> ACCEPT)
+--------------------------------------------------------------------------------
+  E1    src   <multi-line source> REJECT -> ACCEPT  <== TRANSITION
+  E2    src   <multi-line source> REJECT -> ACCEPT  <== TRANSITION
+  E3    src   <multi-line source> REJECT -> ACCEPT  <== TRANSITION
+  E4    src   <multi-line source> REJECT -> ACCEPT  <== TRANSITION
+  E5    src   <multi-line source> ACCEPT -> ACCEPT  (unchanged)
+
+--------------------------------------------------------------------------------
+F — NEIGHBOUR (1step)   (expected ACCEPT -> ACCEPT)
+--------------------------------------------------------------------------------
+  F1    src   <multi-line source> ACCEPT -> ACCEPT  (unchanged)
+
+================================================================================
+TALLY — computed from the parsed table, never hand-written
+================================================================================
+  group A (13 rows): ACCEPT -> ACCEPT x13
+  group B ( 7 rows): ACCEPT -> REJECT x7
+  group C ( 7 rows): ACCEPT -> REJECT x7
+  group D ( 5 rows): REJECT -> REJECT x5
+  group E ( 5 rows): ACCEPT -> ACCEPT x1, REJECT -> ACCEPT x4
+  group F ( 1 rows): ACCEPT -> ACCEPT x1
+
+  rows parsed   : 38   (driver emits 38)
+  rows changed  : 18
+  rows unchanged: 20
+
+================================================================================
+VERDICT: ALL ROWS AS DESIGNED
+================================================================================
+  * 13/13 MUST-ACCEPT rows untouched            -> no legal spelling lost
+  *  7/7  footnote-44 rows ACCEPT -> REJECT     -> the seam is closed
+  *  7/7  A.8.4 rows      ACCEPT -> REJECT      -> the number class is pinned
+  *  5/5  guard rows still REJECT               -> not over-tightened
+  *  4/4  real-world legal shapes REJECT -> ACCEPT -> the theft is gone
+  *  E5 (same shapes, NON-unit identifier) ACCEPT in both -> flip is unit-specific
+  *  F1 1step unaffected                        -> no collateral damage

@@ -1,0 +1,31 @@
+SV-CORPUS-GRAD.3.11 — CENSUS / PROFILE EFFECT of the time_literal lexical guard
+================================================================================
+Measured with rust/target/debug/ast_pipeline --dump-rule-profiles over the
+BASE grammar (git show HEAD:grammars/systemverilog.ebnf) and the CANDIDATE.
+
+PREDICTION MADE BEFORE ANY GATE RAN (the .3.8/.3.10 posture):
+  the fix adds an INLINE regex lookahead to ONE existing rule body — no new
+  rule, no new token, no @profiles change — so the census must be byte-inert
+  and BOTH cert contracts (which pin exactly these counts) must stay untouched.
+
+--- ast_pipeline --lint-grammar (candidate) ---
+grammar lint: 'systemverilog' (1475 rules) — left_recursive=32 (informational, handled by PGEN), non_terminating=0 (error), ordered_choice_shadowing=0 (error), always_succeeds_alternatives=6 (note), unreachable_rules=0 (error), undefined_references=0 (error), unbound_fact_kinds=0 (error), nullable_repetition=0 (warning), profile_orphans=0 (error; profiles=["sv_2017", "sv_2023", "verilog_2005"])
+
+--- rule inventory / profile map diff ---
+  rule_count                    : base=1475 cand=1475  (delta +0)
+  added rules                   : []
+  removed rules                 : []
+  per-rule records DIFFERING    : 0  []
+  sorted rule-name lists equal  : True
+  time_literal record (both)    : {"declared_profiles": null, "satisfiable_under": ["sv_2017", "sv_2023", "verilog_2005"]}
+  satisfiable_under sv_2017      : base=1352  cand=1352  delta +0
+  satisfiable_under sv_2023      : base=1371  cand=1371  delta +0
+  satisfiable_under verilog_2005 : base=1121  cand=1121  delta +0
+
+=> BYTE-INERT. rule_count 1475 -> 1475; the per-rule profile map is identical
+   across ALL 1475 rules (0 differing records); the three contract-pinned
+   satisfiability counts (1352 / 1371 / 1121) are unchanged.
+
+NOTE on tool usage (the .3.10 correction, applied): --dump-rule-profiles takes
+an OUTPUT PATH, not profile names. Both dumps above were written to explicit
+paths under the session scratchpad; no stray JSON was written into the repo.

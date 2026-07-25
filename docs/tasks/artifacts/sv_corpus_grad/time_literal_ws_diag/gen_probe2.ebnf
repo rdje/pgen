@@ -1,0 +1,26 @@
+scratch := variant_a | variant_b
+
+# A: structural number+unit WITHOUT a @sample override (the control)
+variant_a := "A" tl_plain
+# B: the SAME structure WITH a rule-level @sample override
+variant_b := "B" tl_pinned
+
+tl_plain  := num unit -> {value: $1, unit: $2}
+
+@sample: "10ns"
+tl_pinned := num unit -> {value: $1, unit: $2}
+
+num := /[0-9][0-9_]*/
+
+trivia := (line_comment)*
+line_comment := /\/\/[^\n]*/
+
+unit := kw_s -> {kind: "s"} | kw_ms -> {kind: "ms"} | kw_us -> {kind: "us"}
+      | kw_ns -> {kind: "ns"} | kw_ps -> {kind: "ps"} | kw_fs -> {kind: "fs"}
+
+kw_s  := trivia /s\b/
+kw_ms := trivia /ms\b/
+kw_us := trivia /us\b/
+kw_ns := trivia /ns\b/
+kw_ps := trivia /ps\b/
+kw_fs := trivia /fs\b/

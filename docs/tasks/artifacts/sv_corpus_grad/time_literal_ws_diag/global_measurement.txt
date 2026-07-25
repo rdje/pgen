@@ -1,0 +1,164 @@
+# SV-CORPUS-GRAD.3.11 — GLOBAL MEASUREMENT (both lanes)
+# runner:  stimuli/run_external_corpus.sh sv     20 8   (jobs=8 — IDENTICAL to the
+#          baseline invocation, deliberately NOT tuned, so the run stays comparable)
+#          stimuli/run_external_corpus.sh sv2005 20 8
+# probe:   rust/target/debug/parseability_probe (DEBUG — matches the baseline probe
+#          type, the .3.6 requirement; built 2026-07-26 00:24, mtime-asserted NEWER
+#          than the 00:02 generated/systemverilog_parser.rs)
+# guard:   main lane  exit 0, peak_tree_rss 6,188 MB, elapsed 227 s
+#          v2005 lane exit 0, peak_tree_rss   576 MB, elapsed  21 s
+
+⭐ THE CEILING WAS STATED BEFORE MEASURING (keyed_population.txt): at most 4
+fail->pass, of which at most 2 in `unexplained_rejects_valid`, and 0 pass->fail.
+MEASURED: exactly those 4 files healed, rejects-valid moved exactly 382 -> 380,
+and 0 pass->fail. Prediction and outcome agree row for row.
+
+================================================================================
+MAIN sv_2017 LANE (16,336 files) — per-FILE transition analysis (the .3.4 LAW: pass-set diff, NOT net counts)
+================================================================================
+  key sets identical : True (16336 / 16336)
+  joined rows        : 16336
+
+  totals:
+    verdict      BEFORE    AFTER   delta
+    fail          6,634    6,630      -4
+    pass          9,693    9,698      +5
+    timeout           9        8      -1
+    TOTAL        16,336   16,336
+    pass-rate  59.3% -> 59.4%
+
+  ALL per-FILE transitions: 5
+       fail -> pass        4
+    timeout -> pass        1
+
+  ⛔ REGRESSIONS (pass -> anything else): 0
+
+  ✅ HEALS (anything -> pass): 5
+          fail -> pass   stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/16/16.08_04.sv
+          fail -> pass   stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/16/16.09.11_01.sv
+          fail -> pass   stimuli/sv/subs/Surelog/tests/FSMBsp13/top.v
+          fail -> pass   stimuli/sv/subs/iverilog/ivtest/ivltests/pr2785294.v
+       timeout -> pass   stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v
+
+  VERDICT: NO REGRESSION (0 pass->fail, 0 pass->timeout, 0 pass->crash)
+
+================================================================================
+MAIN sv_2017 LANE — adjudication-class SET diff (not just counts)
+================================================================================
+  class                                     BEFORE   AFTER  delta  set-identical
+  deferred:chained_only                      5,267   5,268     +1  False
+  deferred:impl_varying                         90      90     +0  True
+  deferred:ni_unimplemented                      6       6     +0  True
+  deferred:no_sv_key                           743     743     +0  True
+  deferred:svpp_owned                          186     186     +0  True
+  deferred:v2005_profile_lane                2,459   2,459     +0  True
+  deferred:verilog_ams_lane                     20      20     +0  True
+  divergence:explained_svpp_conditional        210     210     +0  True
+  divergence:explained_svpp_include            142     142     +0  True
+  divergence:explained_svpp_macro_use        1,074   1,074     +0  True
+  divergence:explained_timeout                   9       8     -1  False
+  divergence:unexplained_accepts_invalid        21      21     +0  True
+  divergence:unexplained_rejects_valid         382     380     -2  False
+  match                                      5,727   5,729     +2  False
+
+  rows that CHANGED adjudication class: 3
+    divergence:unexplained_rejects_valid  ->  match
+        ispras-sv-tests/ieee-1800-2012/16/16.08_04.sv
+    divergence:unexplained_rejects_valid  ->  match
+        ispras-sv-tests/ieee-1800-2012/16/16.09.11_01.sv
+    divergence:explained_timeout  ->  deferred:chained_only
+        verilator/test_regress/t/t_math_synmul_mul.v
+
+  divergence:unexplained_rejects_valid: 382 -> 380
+      HEALED (left the class):  ispras-sv-tests/ieee-1800-2012/16/16.08_04.sv
+      HEALED (left the class):  ispras-sv-tests/ieee-1800-2012/16/16.09.11_01.sv
+  divergence:unexplained_accepts_invalid: 21 -> 21
+
+================================================================================
+THE FIFTH HEAL — `verilator/test_regress/t/t_math_synmul_mul.v` (timeout -> pass)
+================================================================================
+⚠️ NOT CLAIMED AS THIS LEAF'S YIELD, and — unlike the previous three leaves —
+NOT dismissed as "the rule is never reached", because that reading is FALSE here
+and the instrument says so.
+
+This is the file `.3.8`, `.3.9` and `.3.10` each recorded flipping across the
+20 s wall, in BOTH directions. Measured now:
+
+  (1) STRUCTURAL — it contains no time literal at all:
+        timeunit / timeprecision occurrences : 0
+        delay + unit-spelled token           : 0
+        any number+unit adjacency            : 0
+
+  (2) ⚠️ INSTRUMENTED — and this is where the previous leaves' method BREAKS.
+      `--dump-rule-entry-counts-json` (TOOLBOX 3.4, call-site independent):
+
+        t_math_synmul_mul.v      : time_literal entries = 28,643   time_unit entries = 0
+        positive control          : time_literal entries =      6   time_unit entries = 2
+        (control = `module m; timeunit 10ns; initial #5ns $display("x"); endmodule`)
+
+      So `time_literal` IS entered — 28,643 times — and the edited rule body runs
+      on every one of them. What the fix changed is HOW it fails: the lookahead
+      rejects on ONE anchored regex, so `number` and `time_unit` are never
+      entered at all (`time_unit entries = 0`, versus 2 on the control, which
+      shows the counter is live). The edit therefore makes this file's parse do
+      strictly LESS work, never more.
+
+      ⛔ FINDING, recorded against the record rather than quietly: `.3.10` proved
+      its own version of this row "unreachable" partly by observing that
+      `--trace-rules init_val,scalar_constant` emitted 0 lines on this file. This
+      leaf's own tool measurement (trace_before_differential.txt §3) shows an
+      EMPTY SCOPED TRACE IS NOT EVIDENCE OF NON-ENTRY — `--trace-rules R` traces
+      R's dynamic extent, and naming a leaf rule alone can print nothing while
+      that rule succeeds 1× or 28,643×. `.3.10`'s CONCLUSION still stands (its
+      structural and solo-run legs are independent and sound), but that one leg
+      of its argument was an unsound instrument, and the same reasoning must not
+      be reused. TOOLBOX.md 2.2 now carries the caveat.
+
+  (3) EMPIRICAL — run solo, its true verdict is `pass`, comfortably:
+        run 1: exit 0 (= pass), real 18.29 s against the 20 s wall
+        run 2: exit 0 (= pass), real 17.77 s against the 20 s wall
+        run 3: exit 0 (= pass), real 17.75 s against the 20 s wall
+        (.3.10 measured 17.94 / 17.97 / 17.89 s for the same file at its vintage.)
+
+  ⇒ ADJUDICATION: a ~17.5 s parse against a 20 s wall under 8-way parallelism is
+    a boundary case whose observed verdict depends on ambient load. Its TRUE
+    verdict is `pass` before and after. The leaf claims 4 heals, not 5, and does
+    not claim a speed improvement either — proving one would need an A/B against
+    a rebuilt BEFORE parser, which was not run.
+
+================================================================================
+verilog_2005 LANE — RE-RUN, NOT INFERRED
+================================================================================
+================================================================================
+verilog_2005 LANE (2,459 files) — per-FILE transition analysis (the .3.4 LAW: pass-set diff, NOT net counts)
+================================================================================
+  key sets identical : True (2459 / 2459)
+  joined rows        : 2459
+
+  totals:
+    verdict      BEFORE    AFTER   delta
+    fail            279      279      +0
+    pass          2,180    2,180      +0
+    TOTAL         2,459    2,459
+    pass-rate  88.7% -> 88.7%
+
+  ALL per-FILE transitions: 0
+
+  ⛔ REGRESSIONS (pass -> anything else): 0
+
+  ✅ HEALS (anything -> pass): 0
+
+  VERDICT: NO REGRESSION (0 pass->fail, 0 pass->timeout, 0 pass->crash)
+
+  adjudication_manifest_v2005.tsv : BYTE-IDENTICAL
+  results_v2005.tsv               : CONTENT-IDENTICAL (sorted)
+  v2005 unexplained stays 76 (62 rejects-valid + 14 accepts-invalid).
+
+  ⇒ EXPECTED AND CONFIRMED BY MEASUREMENT, not by argument: `time_literal` is
+    reachable only through `delay_value_sv_only:1961` and
+    `primary_literal_sv_only:4264` — both SystemVerilog-only — and IEEE 1364-2005
+    has no `time_literal` production at all. Contrast `.3.5`/`.3.10`, whose token
+    edits WERE cross-profile. Independently cross-checked before the run: the
+    `#1 ps[idx] = 1'b1;` shape ALREADY parsed under `verilog_2005` while failing
+    under `sv_2017` — the profile split is the cleanest possible control on the
+    root cause.

@@ -249,6 +249,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
     --parse systemverilog f.sv --profile sv_2017 --trace-rules known_unscoped_covergroup_type_identifier
   ```
 - **OUTPUT:** trace lines only within those rules' subtrees. Add `--trace-log-file dbg.log` to capture; strip ANSI with `sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g'`.
+- **⚠️ TRACE THE PARENT, NOT ONLY THE SUSPECT (`SV-CORPUS-GRAD.3.11`, measured).** The filter selects a
+  rule's **call-tree**, so a rule's own outcome line is emitted in the frame that CALLED it — naming a
+  leaf rule alone can print **nothing at all even while that rule is succeeding**. Measured on
+  `module m; logic clk,a,s,b; sequence r; @(posedge clk) a ##1 s ##1 b; endsequence endmodule`:
+  `--trace-rules time_literal` → **0** `Rule 'time_literal' successfully parsed` lines;
+  `--trace-rules cycle_delay_range` (its caller) → **1**, and that line is the whole root cause.
+  ⇒ an empty trace is **NOT** evidence a rule is unreached. Always add the suspected caller(s) —
+  or confirm reach first with `--dump-rule-entry-counts-json` (3.4), which is call-site-independent.
 
 ### 2.3 `--trace-log-file [FILE]`
 - **WHAT:** route trace to a file (default `trace.log`). **WHEN:** large traces you want to grep. **HOW:** append `--trace-log-file dbg.log` to any `--trace`/`--trace-rules` run.

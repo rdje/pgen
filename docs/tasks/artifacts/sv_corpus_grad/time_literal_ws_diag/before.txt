@@ -1,0 +1,106 @@
+# SV-CORPUS-GRAD.3.11 — IEEE 1800-2017 Annex-A time_literal repro matrix
+# probe        : /Volumes/SSD/Documents/github/pgen/rust/target/release/parseability_probe
+# probe  mtime : 2026-07-25 19:56:39
+# parser mtime : 2026-07-25 19:36:47
+# grammar sha  : 018bcc42e6b3810b
+
+GOVERNING LAW — IEEE 1800-2017 Annex A (A.8.4 + footnote 44), verbatim:
+  time_literal44 ::= unsigned_number time_unit | fixed_point_number time_unit
+  time_unit      ::= s | ms | us | ns | ps | fs
+  44) "The unsigned number or fixed-point number in time_literal shall
+       not be followed by a white_space."
+  unsigned_number33    ::= decimal_digit { _ | decimal_digit }
+  fixed_point_number33 ::= unsigned_number . unsigned_number
+  33) "Embedded spaces are illegal."
+
+  => TWO independent constraints, both violated by :
+     (A) no white space at the number<->unit seam           [footnote 44]
+     (B) the number is unsigned_number OR fixed_point_number
+         -- NOT the full  (no based literals, no exponent reals) [A.8.4]
+
+================================================================================
+MUST ACCEPT — the LRM-legal spellings (regression guard for the fix)
+================================================================================
+  id    ctx   spelling       sv_2017 note
+  A1    tu    10ns           ACCEPT  unsigned_number + unit
+  A2    tu    1.5ns          ACCEPT  fixed_point_number + unit
+  A3    tu    10_0ns         ACCEPT  underscore separator (LRM unsigned_number)
+  A4    tu    1s             ACCEPT  unit s
+  A5    tu    1ms            ACCEPT  unit ms
+  A6    tu    1us            ACCEPT  unit us
+  A7    tu    1ps            ACCEPT  unit ps
+  A8    tu    1fs            ACCEPT  unit fs
+  A9    tu    1_0.5_5ns      ACCEPT  underscores both sides of the point
+  A10   dly   10ns           ACCEPT  delay_value context
+  A11   dly   1.5ps          ACCEPT  delay_value context, fixed point
+  A12   exp   10ns           ACCEPT  expression context
+  A13   exp   1.5fs          ACCEPT  expression context, fixed point
+
+================================================================================
+MUST REJECT (A) — footnote 44: white space at the number<->unit seam
+================================================================================
+  id    ctx   spelling       sv_2017 note
+  B1    tu    10\ ns         ACCEPT  DEFECT — space
+  B2    tu    $'10\tns'      ACCEPT  DEFECT — tab
+  B3    tu    1.5\ ns        ACCEPT  DEFECT — fixed point + space
+  B4    tu    10\ \ ns       ACCEPT  DEFECT — multi-space
+  B5    dly   10\ ns         ACCEPT  DEFECT — delay context
+  B6    exp   10\ ns         ACCEPT  DEFECT — expression context
+  B7    ACCEPT  DEFECT — newline at the seam (fn 44 says white_space, not just blanks)
+
+================================================================================
+MUST REJECT (B) — A.8.4: the number is unsigned_number | fixed_point_number ONLY
+================================================================================
+  id    ctx   spelling       sv_2017 note
+  C1    tu    1e3ns          ACCEPT  DEFECT — exponent real_number is NOT fixed_point_number
+  C2    tu    1.5e3ns        ACCEPT  DEFECT — exponent real_number
+  C3    tu    4\'d10ns       ACCEPT  DEFECT — based (decimal) integral_number
+  C4    tu    4\'b10ns       ACCEPT  DEFECT — based (binary) integral_number
+  C5    tu    \'d10ns        ACCEPT  DEFECT — unsized based integral_number
+  C6    dly   1e3ns          ACCEPT  DEFECT — delay context
+  C7    tu    4\'d10\ ns     ACCEPT  DEFECT — based AND spaced (both constraints)
+
+================================================================================
+MUST STAY REJECTED — over-tightening guard (already correct today)
+================================================================================
+  id    ctx   spelling       sv_2017 note
+  D1    tu    10\ n\ s       REJECT  unit itself split — never legal
+  D2    tu    10zs           REJECT  zs is not an LRM time_unit
+  D3    tu    .5ns           REJECT  no leading digit — not unsigned_number
+  D4    tu    10             REJECT  no unit at all
+  D5    tu    ns             REJECT  no number at all
+
+================================================================================
+REAL-WORLD LEGAL CODE — the REJECTS-VALID face of the SAME defect
+================================================================================
+# Each shape below is verbatim-legal SV taken from the vendored corpus. It is
+# REJECTED today because time_literal STEALS <number> <ws> <unit-spelled-id>.
+# Expected AFTER the fix: ACCEPT.
+  E1    REJECT  iverilog ivltests/pr2785294.v:22 shape — '#1 ps[idx] = ...' (ps = a reg array)
+  E2    REJECT  Surelog tests/FSMBsp13/top.v:63 shape — '#2 s = ~s;' (s = a reg)
+  E3    REJECT  ispras 16.08_04.sv:19 shape — 'a ##1 s ##1 b' (s = a sequence operand)
+  E4    REJECT  the same SVA shape for EVERY time-unit spelling (ms/us/ns/ps/fs)
+  E5    ACCEPT  CONTROL — the same shapes with a NON-unit identifier (accept before AND after)
+
+================================================================================
+TIME-LITERAL AST SHAPE — --entry-rule time_literal, the {value, unit} contract
+================================================================================
+# The fix must NOT flatten or renumber this object (SV-Slice-60 typed it
+# {value, unit}; delay_value_sv_only:1961 + primary_literal_sv_only:4264 wrap it).
+  10ns       -> {"unit":{"kind":"ns"},"value":{"body":"10","kind":"integral"}}
+  1.5ns      -> {"unit":{"kind":"ns"},"value":{"body":"1.5","kind":"real"}}
+  1ps        -> {"unit":{"kind":"ps"},"value":{"body":"1","kind":"integral"}}
+  10\ ns     -> {"unit":{"kind":"ns"},"value":{"body":"10","kind":"integral"}}
+
+================================================================================
+NEIGHBOURING CONSTRUCT — 1step must not be collateral damage
+================================================================================
+  F1    ACCEPT  delay_value 'step' alternative — 1step (NOT a time_literal)
+
+================================================================================
+THE FOUR REAL CORPUS FILES keyed to this defect
+================================================================================
+  REJECT  stimuli/sv/subs/iverilog/ivtest/ivltests/pr2785294.v
+  REJECT  stimuli/sv/subs/Surelog/tests/FSMBsp13/top.v
+  REJECT  stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/16/16.08_04.sv
+  REJECT  stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/16/16.09.11_01.sv

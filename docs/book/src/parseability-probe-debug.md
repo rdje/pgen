@@ -171,6 +171,30 @@ parseability_probe --parse systemverilog file.sv \
 
 **Empirical volume reduction:** small SV probe with full `--trace` produced 145,199 lines; the same probe with `--trace-rules class_scope_type` produced 6,876 lines — **21× reduction** on a tiny input. On uvm_pkg-scale inputs, 100-1000× is realistic.
 
+### ⚠️ Trace the PARENT, not only the suspect — an empty trace is NOT "unreached"
+
+Because the scope is a rule's **call-tree**, a rule's own outcome line is emitted in the frame
+that *called* it. Naming a leaf rule on its own can therefore print **nothing at all while that
+rule is succeeding**.
+
+Measured (`SV-CORPUS-GRAD.3.11`) on
+`module m; logic clk,a,s,b; sequence r; @(posedge clk) a ##1 s ##1 b; endsequence endmodule`:
+
+| invocation | `Rule 'time_literal' successfully parsed` lines |
+|---|---|
+| `--trace-rules time_literal` (the suspect alone) | **0** |
+| `--trace-rules cycle_delay_range` (its caller) | **1** — and that line is the entire root cause |
+
+An investigator who ran only the first command would conclude the rule is never reached and go
+looking somewhere else entirely. Two rules follow from this:
+
+1. **Always add the suspected caller(s)** to the rule list, not just the suspect.
+2. **To answer "is this rule reached at all?", use
+   [`--dump-rule-entry-counts-json`](#machine-readable-entry-counts---dump-rule-entry-counts-json)
+   instead** — it counts every rule-method entry regardless of call site, so it cannot be fooled
+   this way. In the same investigation it showed `time_literal` entered **28,643** times on a file
+   whose scoped trace was silent.
+
 ### Picking the rule list
 
 The [call-count dashboard](#per-rule-call-count-dashboard---dump-rule-call-counts) is the natural way to identify which rules to scope on:

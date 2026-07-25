@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-SV-CORPUS-GRAD-0028 — when the right fix is "don't land the fix": three lessons from a red gate
+
+Session #207 (leaf `SV-CORPUS-GRAD.3.11`). The grammar change was ONE rule body. It was
+written, regenerated, measured perfect against the parser and the whole 16,336-file corpus —
+and then reverted. The reverting is the engineering.
+
+**1. ⭐ A charter's "measured, zero conflict" can still be measuring the wrong direction.**
+`.3.11` was opened with a MEASURED claim — 0 of 16,336 corpus files write a spaced time
+literal, 273 write it tight — and concluded "the strict fix costs nothing, keyed population
+is 0 rows". Both halves were true and the conclusion was still wrong, because the search
+only looked for text the fix would newly REJECT. It never asked what the over-acceptance was
+already rejecting. Since `s`/`ms`/`ns`/… are ordinary identifier spellings, the answer was
+`#1 ps[idx] = 1'b1;`, `#2 s = ~s;`, `a ##1 s ##1 b` — legal code in four corpus files, two of
+them tracked `unexplained_rejects_valid` rows. The charter had even LISTED those four files,
+as "FALSE POSITIVES". They are false positives *as time literals* — which is exactly why the
+parser mis-eating them is the bug. **When measuring an over-acceptance, measure both
+directions: what the fix newly rejects AND what the defect is already stealing.**
+
+**2. ⛔ An empty scoped trace is NOT evidence a rule is unreached — and we had been treating
+it as such.** `--trace-rules R` activates tracing inside R's **dynamic extent**, so a rule's
+outcome line is emitted by the frame that CALLED it. Measured on `a ##1 s ##1 b`:
+`--trace-rules time_literal` → **0** lines; `--trace-rules cycle_delay_range` (its caller) →
+**1** line, and that line is the entire root cause. An investigator trusting the first run
+concludes the suspect is never reached and goes looking somewhere else. Worse, `.3.10` used
+exactly that inference as the "instrumented" leg of its jitter argument — and
+`--dump-rule-entry-counts-json` (call-site independent) now shows `time_literal` entered
+**28,643** times on that very file. `.3.10`'s conclusion survives on its other two legs, but
+the method does not. `TOOLBOX.md` §2.2 carries the caveat; prefer entry counts for reach.
+
+**3. ⭐⭐ The real blocker was a missing PRIMITIVE, and only a generate-side A/B could show
+it.** The parser-side fix was flawless. The cert gate went red with `sample_parse_failures`
+22/16/17 — the generator emitting `timeprecision 0//x\n//x\nps;`. The instinct is to blame
+the `trivia` prefix on the unit tokens. A three-shape probe refuted that in one run:
+`num unit` with `trivia` → `A 7904 ns`; **without** `trivia` → `B 8918 s` (still spaced); one
+fused terminal → `C 19.20808ns` (tight, always). The separator is unconditional and
+independent of `trivia`. So an LRM lexical-adjacency constraint can ONLY be expressed by
+collapsing the construct into one terminal — which for `time_literal` means deleting the
+Annex-A `time_unit` production. Three locked properties (strictness, LRM structure,
+gen↔parse duality) are mutually unsatisfiable under today's primitives. **That is a
+capability gap, not a grammar-authoring problem, and it deserved a tree (`LEX-ADJACENCY`)
+rather than a workaround.**
+
+**What was deliberately NOT done, and why it matters:** the tempting exits were all
+available — re-baseline the cert contract to absorb 22 sample-parse failures, delete
+`time_unit` "since nothing else uses it", or pin `@sample` and accept the coverage
+collapse. Each would have turned a green gate into a slightly-less-green one to make a
+different gate pass, and each would have been discovered later as unexplained drift. The
+grammar is back at HEAD, the fix and its full acceptance evidence are banked verbatim in the
+leaf, and the blocked capability is tracked. Diagnosis without a landing is a complete unit
+of work when the landing is what is unsound.
+
 ## 2026-07-25 - PGEN-SV-CORPUS-GRAD-0025 — a defect that never failed a test, a jitter row proven instead of argued, and a measurement of my own I had to throw away
 
 Session #206 (leaf `SV-CORPUS-GRAD.3.10`). The grammar change was twelve regex bodies. What made the slice worth its time was one defect face nobody had looked for, one dismissal I refused to inherit, and one measurement I got wrong and had to redo. Recording the last one in particular, because a note that only lists what went right teaches nothing.

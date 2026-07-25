@@ -1,0 +1,165 @@
+SV-CORPUS-GRAD.3.11 — DESIGN ADJUDICATION: WHY THE STRICT FIX DID NOT LAND
+================================================================================
+Session #207, 2026-07-26. Every row below is MEASURED, not argued. The defect is
+fully root-caused and the fix was fully implemented and verified against the
+parser — and then REVERTED, because the only forms of it that PGEN can express
+today each break something the project has already locked down. That collision
+is the finding.
+
+--------------------------------------------------------------------------------
+THE THREE CONSTRAINTS THAT COLLIDE
+--------------------------------------------------------------------------------
+  (i)   STRICTNESS. IEEE 1800-2017 Annex A footnote 44 forbids white space
+        between a time literal's number and its unit; A.8.4 restricts the number
+        to `unsigned_number` / `fixed_point_number`. Both must be enforced.
+  (ii)  LRM STRUCTURE. `time_unit ::= s | ms | us | ns | ps | fs` is a genuine
+        Annex-A production. `feedback_no_rule_deletion_without_lrm_proof`
+        (director, standing, emphatic): "If the LRM defines it, it belongs —
+        stop." And `--lint-grammar unreachable_rules` / `sv_syntax_closure_gate`
+        both hard-fail on an unreferenced rule, so it cannot even be left
+        defined-but-orphaned.
+  (iii) GEN<->PARSE DUALITY. The stimuli generator must be able to emit a sample
+        the real parser accepts; `sv_cert_recognized_union_gate` requires
+        `sample_parse_failures = 0` at seeds 0/7/42.
+
+--------------------------------------------------------------------------------
+ROUTE 1 — STRUCTURAL + LOOKAHEAD GUARD  (implemented, parser-verified, REVERTED)
+--------------------------------------------------------------------------------
+    time_literal := &/[0-9][0-9_]*(\.[0-9][0-9_]*)?(s|ms|us|ns|ps|fs)\b/
+                    number time_unit          -> {value: $2, unit: $3}
+
+  PARSER SIDE: fully correct, and this is worth recording because it is the
+  design that would be right if the generator could express it.
+    * transitions.txt — all 38 matrix rows exactly as designed: 13/13 legal
+      spellings still ACCEPT, 7/7 footnote-44 rows ACCEPT->REJECT, 7/7 A.8.4
+      rows ACCEPT->REJECT, 5/5 over-tightening guards still REJECT, 4/4
+      real-world legal shapes REJECT->ACCEPT, `1step` untouched.
+    * the `{value, unit}` AST object is preserved BYTE-IDENTICALLY
+      (`{"unit":{"kind":"ns"},"value":{"body":"10","kind":"integral"}}`), so the
+      `&`-lookahead's positional slot ($1) shifts the annotation correctly.
+    * census BYTE-INERT: 1475 -> 1475 rules, per-rule profile map identical
+      across all 1475 rules, satisfiable_under 1352 / 1371 / 1121 unchanged.
+    * main corpus lane: pass 9,693 -> 9,698, **0 pass->fail**, rejects-valid
+      382 -> 380 (both healed rows the keyed ispras files, ZERO new),
+      accepts-invalid 21 SET-IDENTICAL. v2005 lane: 0 transitions, manifest
+      BYTE-IDENTICAL.
+    * `sv_syntax_closure_gate` PASS (1475 rules, 0 unreachable);
+      `ast_shape_contract_gate` PASS 18/18 after a 4-sample fixture repair.
+
+  ⛔ GENERATOR SIDE: BREAKS. `sv_cert_recognized_union_gate` RED —
+      sample_parse_failures = 22 / 16 / 17 at seeds 0 / 7 / 42 (expected 0),
+      with the seed-dependence surfacing as signature drift. The certificate
+      accounting itself stayed perfect (union_unknown 0, union_witness 1346,
+      canonical_unknown 11, residual [], fully_certified_via_union true) — it is
+      purely that generated samples no longer parse. Verbatim failures:
+          timeprecision 0//x\n//x\nps;
+          timeunit 01070E31790//x\n//x\n//x\nms
+          timeunit 8 'O   z//x\n//x\ns
+      i.e. the generator emits `number`, then layout, then the unit — and for
+      the third, a BASED number, which A.8.4 forbids in a time literal.
+
+--------------------------------------------------------------------------------
+⭐ THE MEASUREMENT THAT DECIDES IT — the generator ALWAYS separates two elements
+--------------------------------------------------------------------------------
+Probe grammar (scratchpad `gen_probe.ebnf`), three shapes, one generator run,
+`--generate-stimuli --count 60 --seed 0`:
+
+  variant A   `num unit_trivia`   (unit tokens keep the `trivia` prefix — today)
+                emitted: 'A 7904 ns'   'A 1//5Uo3'   'A 14979//'
+                => layout AND comments land between number and unit.
+
+  variant B   `num unit_bare`     (unit tokens WITHOUT the `trivia` prefix)
+                emitted: 'B 8918 s'    'B 08057 ns'  'B 41 ns'
+                => ⭐ STILL A SPACE. Removing `trivia` is NOT sufficient; the
+                   generator inserts a separator between EVERY pair of sequence
+                   elements, independently of `trivia`.
+
+  variant C   one fused terminal `/[0-9][0-9_]*(\.[0-9][0-9_]*)?(s|ms|ns)\b/`
+                emitted: 'C 6358s'  'C 19.20808ns'  'C 934.3_924ms'  'C 981.16s'
+                => TIGHT every time, and every sample is exactly LRM-legal.
+
+  ⇒ GENERAL LAW, measured: **PGEN cannot express "no layout between these two
+    elements". Any LRM lexical-adjacency constraint must be modelled as ONE
+    terminal.** That is precisely what the other three Annex-A adjacency
+    footnotes already do — fn 33 (number sub-tokens), fn 48
+    (`unbased_unsized_literal`) and fn 50 (`system_tf_identifier`) are all single
+    regexes (see sweep_lexical_adjacency.txt, 15/15 rows correct). `time_literal`
+    was the only one written structurally, and the structural form is exactly the
+    one that cannot be made strict.
+
+--------------------------------------------------------------------------------
+ROUTE 2 — FUSED TERMINAL (six unit-keyed alternatives)   ⛔ BLOCKED BY DOCTRINE
+--------------------------------------------------------------------------------
+    time_literal := /[0-9][0-9_]*(\.[0-9][0-9_]*)?ms\b/ -> {value:$1, unit:{kind:"ms"}}
+                  | ... us | ns | ps | fs | s
+
+  * duality-COMPLETE (variant C above proves the generator emits tight, legal
+    text), and it enforces both (i) constraints by construction.
+  * ⛔ but it orphans `time_unit` AND its six `kw_*` tokens — 7 rules — because
+    `time_unit:5555` has exactly ONE consumer (grammar-wide grep: `time_literal`
+    only). `time_unit` is an IEEE 1800-2017 Annex A production, so
+    `feedback_no_rule_deletion_without_lrm_proof` forbids removing it, and the
+    lint/closure gates forbid leaving it unreferenced. Constraint (ii) fails.
+  * ⚠️ it would ALSO flatten the AST: a regex terminal binds exactly one value
+    (codegen emits `ParseContent::Terminal(matched_str)`; there is no
+    capture-group -> `$N` mapping — verified in `ast_based_generator.rs`), so
+    `value` would become the whole lexeme `"10ms"` instead of
+    `{kind:"integral", body:"10"}`. That is a schema break on a rule a simulator
+    consumer (NEXSIM) reads.
+
+--------------------------------------------------------------------------------
+ROUTE 3 — `@sample` GENERATOR PIN (annotation tier — the highest fix tier)
+                                                          ⛔ BLOCKED BY COVERAGE
+--------------------------------------------------------------------------------
+    @sample: "10ns"
+    time_literal := &/.../ number time_unit -> {value: $2, unit: $3}
+
+  * MEASURED to work as a pin: probe grammar `gen_probe2.ebnf` emits `B 10ns`
+    for every one of the 19 samples that reach it, versus `A 08 s` /
+    `A 4_2//Msr` for the unpinned control. So it WOULD close the duality break
+    while keeping both the LRM structure and the `{value, unit}` shape.
+  * ⛔ but when the pinned rule is the SOLE path to `time_unit` — which is
+    exactly the SV situation — generator coverage COLLAPSES. Probe
+    `gen_probe3.ebnf` (variant A removed, so `unit` is reachable only through
+    the pinned rule):
+        Stimuli coverage: rules 3/13 (23.08%), branches 0/6 (0.00%)
+    The six unit branches and all six `kw_*` tokens are never generated at all.
+    In the real grammar that strands `time_unit` + 6 tokens toward cert UNKNOWN,
+    which would break `union_unknown: 0` / `fully_certified_via_union: true` —
+    the `STRUCTURED-WITNESS-SYNTH` achievement. Constraint (iii) fails from the
+    other side.
+
+--------------------------------------------------------------------------------
+ROUTE 4 — a generator-side "no layout here" primitive          ⛔ DOES NOT EXIST
+--------------------------------------------------------------------------------
+  No EBNF surface expresses it. Confirmed on both sides of the engine:
+    * PARSE side — `match_regex(pattern, skip_leading_whitespace)`: all 1,798
+      call sites in the generated SV parser pass `true`; there is no per-token
+      opt-out (`grep -c "match_regex(.*false)"` = 0).
+    * GENERATE side — the separator insertion measured above (variant B) is
+      unconditional.
+  `rtl_frontend.ebnf:375` already recorded the parse half of this gap in 2026
+  ("A separate `!/[A-Za-z0-9_$]/` lookahead rule cannot work here: generated
+  regex terminals always consume leading layout first … Closing that needs a
+  precise no-layout lexical boundary assertion … a future parser-agnostic
+  capability, out of scope here"). This leaf is the second independent grammar
+  family to hit the SAME missing primitive, now with the GENERATE half measured
+  too.
+
+--------------------------------------------------------------------------------
+VERDICT
+--------------------------------------------------------------------------------
+  The defect is REAL, root-caused, and costly (4 corpus files, 2 of them tracked
+  `unexplained_rejects_valid` rows — see keyed_population.txt / global_measurement.txt).
+  The fix is NOT a grammar-tier one-liner: every expressible form trades one
+  locked-down property for another. The blocker is a missing PGEN primitive, not
+  a missing insight about SystemVerilog.
+
+  ⇒ `.3.11` STAYS OPEN, now with its design space fully measured and priced.
+  ⇒ The enabling capability is routed as its own leaf (a NO-LAYOUT LEXICAL
+    BOUNDARY that BOTH the parser and the generator honour). Once it exists,
+    Route 1 lands unchanged — it is already written, and this leaf's before/after
+    matrix and corpus lanes are the acceptance evidence, ready to re-run.
+  ⇒ NOTHING was degraded to make a gate pass: no LRM rule deleted, no cert
+    contract re-baselined to absorb a duality break, no schema broken. The tree
+    is back at HEAD parser behaviour.

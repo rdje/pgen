@@ -1,0 +1,21 @@
+scratch := variant_a | variant_b | variant_c
+
+# A: today's shape — unit tokens carry an explicit `trivia` prefix
+variant_a := "A" num unit_trivia
+# B: unit tokens WITHOUT the trivia prefix
+variant_b := "B" num unit_bare
+# C: fully fused single terminal
+variant_c := "C" /[0-9][0-9_]*(\.[0-9][0-9_]*)?(s|ms|ns)\b/
+
+num := /[0-9][0-9_]*/
+
+trivia := (line_comment)*
+line_comment := /\/\/[^\n]*/
+
+unit_trivia := kw_s_t -> {kind: "s"} | kw_ns_t -> {kind: "ns"}
+unit_bare   := kw_s_b -> {kind: "s"} | kw_ns_b -> {kind: "ns"}
+
+kw_s_t  := trivia /s\b/
+kw_ns_t := trivia /ns\b/
+kw_s_b  := /s\b/
+kw_ns_b := /ns\b/

@@ -1,5 +1,72 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-SV-CORPUS-GRAD-0028 (docs-only; leaf SV-CORPUS-GRAD.3.11 DIAGNOSED + fix WRITTEN and PARSER-VERIFIED but DELIBERATELY NOT LANDED; new tree LEX-ADJACENCY) — the `time_literal` defect is TWICE what the charter said, and its fix is blocked by a MISSING PGEN PRIMITIVE, measured on both sides of the engine
+
+**No release, schema or ledger bump: the grammar is back at HEAD.** This slice ships
+diagnosis, a fully verified (and then reverted) fix, a measured design adjudication, a new
+capability tree, and one toolbox correction.
+
+**⭐ The charter understated the defect by a whole direction.** `time_literal := number
+time_unit` (`:495`) was chartered as an accepts-invalid nicety with "zero measured
+conflict". It is also a **rejects-valid defect that breaks legal real-world code**: because
+`s`/`ms`/`us`/`ns`/`ps`/`fs` are ordinary identifier spellings, the over-permissive rule
+STEALS the ubiquitous `<number> <white space> <signal>` pair. `#1 ps[idx] = 1'b1;`
+(iverilog), `#2 s = ~s;` (Surelog) and `a ##1 s ##1 b` (ispras ×2) all REJECT today, and two
+of those four files are tracked `divergence:unexplained_rejects_valid` rows. Trace-proven:
+`Rule 'time_literal' successfully parsed from 48 to 51 (consumed 3 bytes: '2 s')`. A second
+independent face was found too: IEEE 1800-2017 A.8.4 restricts the number to
+`unsigned_number`/`fixed_point_number`, but the rule referenced the full A.8.7 `number`, so
+`timeunit 1e3ns;`, `1.5e3ns`, `4'd10ns` and `'d10ns` all wrongly ACCEPT.
+
+**The fix was written and measured PERFECT on the parser** — a positive lookahead on the
+fused lexeme, keeping `number time_unit` structural. All **38** matrix rows exactly as
+designed; the `{value, unit}` AST object byte-identical; census byte-inert (1475→1475,
+per-rule profile map identical across all 1475 rules); main corpus **pass 9,693 → 9,698 with
+0 pass→fail**, **rejects-valid 382 → 380** (both healed rows the keyed files, zero new),
+accepts-invalid 21 set-identical; `verilog_2005` lane 0 transitions with a byte-identical
+manifest; `sv_syntax_closure_gate` PASS; `ast_shape_contract_gate` PASS 18/18.
+
+**⛔ And then it was reverted, because `sv_cert_recognized_union_gate` went RED on a
+GEN↔PARSE DUALITY BREAK** — `sample_parse_failures` 22/16/17 at seeds 0/7/42 (expected 0).
+The certificate accounting stayed perfect; the generator simply emits samples the strict
+parser rejects (`timeprecision 0//x\n//x\nps;`).
+
+**⭐ The deciding measurement — three grammar shapes, one generator run.** `num unit` with
+`trivia`-prefixed unit tokens emits `A 7904 ns`; the SAME structure with `trivia` REMOVED
+still emits `B 8918 s`; only a single fused terminal emits the tight `C 19.20808ns`. ⇒ **the
+generator inserts a separator between EVERY pair of sequence elements, and PGEN cannot
+express "no layout between these two elements".** IEEE 1800-2017 Annex A footnotes 33/48/50
+are satisfied today only because their constructs happen to collapse into one token
+(measured 15/15 correct); footnote 44 is the one that cannot, because the LRM also names
+`time_unit ::= s | ms | us | ns | ps | fs`.
+
+**All four routes measured, each blocked:** (1) lookahead — generator breaks; (2) fused
+terminal — duality-complete but orphans `time_unit` **and its 6 `kw_*` tokens**, an Annex-A
+production that `feedback_no_rule_deletion_without_lrm_proof` forbids deleting and the
+lint/closure gates forbid leaving unreferenced, and it flattens `{value, unit}` (a regex
+terminal binds exactly one value — codegen has no capture-group → `$N` mapping); (3)
+`@sample: "10ns"` generator pin — measured to pin correctly, but as the sole path to
+`time_unit` it collapses generator coverage to **rules 3/13, branches 0/6**; (4) a no-layout
+primitive — does not exist (all 1,798 `match_regex` call sites pass
+`skip_leading_whitespace = true`).
+
+**⛔ Nothing was degraded to make a gate pass.** No LRM rule deleted, no cert contract
+re-baselined to absorb a duality break, no schema broken, no gate re-specified. Grammar,
+`ast_shape_contract.rs` and the corpus characterization outputs are all restored to HEAD, the
+parser regenerated from the restored grammar, and all three binaries rebuilt against it.
+
+**New tree `LEX-ADJACENCY`** owns the enabling primitive: a NO-LAYOUT lexical boundary that
+BOTH the parser and the stimuli generator honour. Two independent families now need it —
+this leaf, and the `rtl_frontend.ebnf:375` note that recorded the parse half in 2026 and
+called it "a future parser-agnostic capability".
+
+**Toolbox correction landed (independent of the block).** `TOOLBOX.md` §2.2: `--trace-rules R`
+traces R's **dynamic extent**, so naming a suspect leaf rule alone can print NOTHING while
+that rule succeeds — measured (`time_literal` alone → 0 lines; its caller `cycle_delay_range`
+→ the line that is the whole root cause). ⚠️ This retro-weakens one leg of `.3.10`'s jitter
+argument, which used trace-emptiness as proof of non-entry: `--dump-rule-entry-counts-json`
+shows `time_literal` entered **28,643** times on the very file `.3.10` reasoned about.
+
 ## 2026-07-25 - PGEN-SV-CORPUS-GRAD-0025 (leaf SV-CORPUS-GRAD.3.10 DONE, release 1.0.175->1.0.176, schema 19 UNCHANGED, ledger SV-0046) — the SPACED UDP / timing-check NUMBER literals (`1 'b 1`) were ABSENT, and the spaced timing-check constant silently DEGRADED its AST shape; both restored + the fused number-literal class swept EXHAUSTIVELY
 
 Session #206. Opened by `.3.9`'s WIDENED sweep, not by a corpus row — and that origin is the point: the corpus never tripped this defect, and still does not. This is the first leaf in the `.3.x` series whose entire value is LRM fidelity rather than graduation yield, and it is presented as such rather than dressed up.

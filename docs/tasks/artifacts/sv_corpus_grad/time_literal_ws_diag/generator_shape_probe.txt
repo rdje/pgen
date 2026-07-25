@@ -1,0 +1,41 @@
+=== gen_probe.ebnf ===
+  Stimuli coverage: rules 13/13 (100.00%), branches 7/7 (100.00%), sample_successes=60/60
+    variant A (28 samples):
+      A 0 ns
+      A 040//qcf
+      A 06_5//W3
+      A 1//5Uo3
+      A 1//I2/
+      A 14979//
+    variant B (20 samples):
+      B 0 ns
+      B 08057 ns
+      B 19 s
+      B 27_ ns
+      B 295 ns
+      B 2954 ns
+    variant C (12 samples):
+      C 0_59.1036ns
+      C 0.445ns
+      C 19.20808ns
+      C 3369s
+      C 46321ns
+      C 5_71.8555ms
+
+=== gen_probe2.ebnf ===
+  Stimuli coverage: rules 15/15 (100.00%), branches 8/8 (100.00%), sample_successes=60/60
+    variant A (41 samples):
+      A 063//aRIL
+      A 08 s
+      A 08057//+
+      A 19//
+      A 202//|G
+      A 26051//:FfV
+    variant B (19 samples):
+      B 10ns
+
+=== gen_probe3.ebnf ===
+  Stimuli coverage: rules 3/13 (23.08%), branches 0/6 (0.00%), sample_successes=60/60
+    variant B (60 samples):
+      B 10ns
+
