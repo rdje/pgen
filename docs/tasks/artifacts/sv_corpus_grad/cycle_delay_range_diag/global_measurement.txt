@@ -1,0 +1,63 @@
+# SV-CORPUS-GRAD.3.8 — GLOBAL MEASUREMENT (main sv_2017 lane)
+# runner:  stimuli/run_external_corpus.sh sv 20 8   (jobs=8 — IDENTICAL to the baseline
+#          invocation, deliberately NOT tuned, so the run stays methodologically comparable)
+# probe:   rust/target/debug/parseability_probe (debug — MATCHES the baseline probe type,
+#          the .3.6 requirement; rebuilt after `touch rust/src/lib.rs`, mtime asserted
+#          NEWER than generated/systemverilog_parser.rs)
+# guard:   exit 0, peak_tree_rss 5944MB, elapsed 243s
+
+## Corpus totals (16,336 files)
+                     BEFORE (.3.7)      AFTER (.3.8)     delta
+  pass                     9,669            9,692        +23
+  fail                     6,658            6,634        -24
+  timeout                      9               10         +1   (jitter — see below)
+  crash                        0                0          0
+
+## Per-FILE transition analysis (the .3.4 LAW — pass-set diff, NOT net counts)
+# NOTE: baseline results.tsv rows carry absolute paths under
+#   the pre-move home-directory checkout location   (pre-SSD-move vintage)
+# while this run emits the current SSD checkout location. Paths are normalized to the
+# /pgen/-relative form before diffing. A naive diff would report ALL 16,336 rows changed.
+  key sets identical : True (16,336 / 16,336)
+  fail -> pass       : 23
+  fail -> timeout    : 1
+  pass -> fail       : 0     <-- the LAW
+  pass -> timeout    : 0     <-- the LAW
+
+## The fail->timeout row is PROVEN JITTER, not a regression
+  file: stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/alert_handler/
+        rtl/alert_handler_reg_top.sv   (671,534 bytes / 22,322 lines, autogen reg file)
+  - contains ZERO occurrences of '##'  => cycle_delay_range is NEVER reached for it;
+    the grammar change cannot affect its parse.
+  - re-run ALONE (no 8-way contention), timeout 180s: rc=1, elapsed 15s, verdict FAIL
+    — i.e. its TRUE verdict is unchanged (fail before, fail after); it merely crossed
+    the 20s wall under parallel contention (15s solo vs a 20s limit).
+  - 9 of the 10 timeout rows are opentitan autogen files (the known .8a population);
+    the 10th is the tracked verilator t_math_synmul_mul.v.
+
+## Targeting: the 23 flips are EXACTLY keyed rows — zero collateral heal
+  flipped ∩ keyed(##[)  : 23
+  flipped NOT keyed     : 0     <-- strictly targeted, no unrelated file changed verdict
+  keyed NOT flipped     : 1     <-- explained below, root-caused, NOT hand-waved
+
+## The 1 keyed row that did NOT flip — a SIBLING DEFECT, newly surfaced
+  file: stimuli/sv/subs/verilator/test_regress/t/t_sequence_sexpr_unsup.v
+  The fix DID work here: the file now parses PAST its old stuck point and dies later,
+  at furthest_position=1112, which is exactly:
+        sequence s_uni_cycdelay_star;
+          ## [*] b;              <-- SPACED '## [*]'
+  Minimal repro (post-fix parser, --profile sv_2017):
+        ##[*]     ACCEPT        ## [*]    REJECT
+        ##[+]     ACCEPT        ## [+]    REJECT
+        ##[1:2]   ACCEPT        ## [1:2]  ACCEPT   <-- this leaf's fix admits BOTH spacings
+  ROOT CAUSE (distinct from this leaf's): cycle_delay_range alternatives 3/4 are FUSED
+  literal tokens
+        kw_token_71b8cf7e := trivia "##[*]"
+        kw_token_9768502a := trivia "##[+]"
+  so they cannot admit the whitespace SystemVerilog's free-form lexing permits between
+  '##' and '['. This leaf's STRUCTURED alternative (lbrack ... rbrack) admits both
+  spacings — which is independent evidence the structured form is the correct model.
+  => Routed to a NEW leaf .3.9 (NOT silently folded in): it is a different mechanism,
+     nothing regresses by deferring it, and retiring the fused tokens changes AST kinds
+     ({kind:"token_71b8cf7e"} -> {kind:"star"}), which is a shape/schema decision of
+     its own.

@@ -1702,8 +1702,8 @@ cycle_delay_const_range_expression := constant_expression colon constant_express
 
 cycle_delay_range := kw_token_93ac8946 constant_primary
                             -> {kind: "primary",      body: $2}
-                  | kw_token_93ac8946 ( cycle_delay_const_range_expression )?
-                            -> {kind: "paren_range",  body: $2}
+                  | kw_token_93ac8946 lbrack cycle_delay_const_range_expression rbrack
+                            -> {kind: "range",        body: $3}
                   | kw_token_71b8cf7e
                             -> {kind: "token_71b8cf7e"}
                   | kw_token_9768502a

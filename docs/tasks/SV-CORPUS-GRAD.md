@@ -1048,6 +1048,339 @@ coverage.
   - [x] **LOCKSTEP** — ledger `SV-0043` + contract `1.0.173` + SV book +
     tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
 
+#### `.3.8` — the SVA cycle-delay RANGE `##[m:n]` / `##[m:$]` is ABSENT (IEEE 1800-2017 A.2.10 — the ch16 family's largest remaining cluster; ⭐ the SIXTH+ instance of the ledger's ALREADY-DOCUMENTED "dropped-delimiter class": LITERAL `[ ]` read as EBNF optional-grouping)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0023`, session #204, 2026-07-25;
+  release `1.0.173` → **`1.0.174`**, schema `18` UNCHANGED, ledger **`SV-0044`**).
+  The sixth fix cut from the `.3` family map.
+- **PICK (measured, not guessed).** The map was re-derived at the current
+  **406**-row baseline by filtering the tracked `.3.7`/v3 cluster TSV to the
+  HEAD manifest's `divergence:unexplained_rejects_valid` set (406/406 rows
+  carried over; the 20 drive-strength rows `.3.7` drained are gone, leaving the
+  family at 1) and re-running the tracked
+  `classify_rejects_valid_families.py` over it. Refreshed ranking: OTHER 245,
+  **SVA implication/property (ch16) 35**, interface/modport 25,
+  constraint/randomize 23, compiler directives 22, named block/label 20,
+  size/type cast 13, enum base range 9, foreach/array 9, coverage bins/cross 4,
+  drive/charge strength 1. Ranking by *normalized stuck signature* (the
+  homogeneity lens, sharper than the coarse family bucket) puts **`[ NUM :` at
+  the top with 28 rows across 3 suites** — and **24 of those 28 have `##[` in
+  the stuck line** (ispras-sv-tests 16 / verilator 6 / Surelog 2). That is the
+  largest homogeneous, 100%-LRM-legal, zero-adjudication-ambiguity, pure-grammar
+  gap left — the `.3.6`/`.3.7` selection criteria applied unchanged. Rejected
+  alternatives, with cause: compiler directives 22 are `` `__FILE__ ``/`` `__LINE__ ``
+  preprocessor macros (route to `SVPP-EXPANSION`, not a grammar fix); named
+  block/label 20 and enum base range 9 are LRM-QUESTIONABLE (adjudication
+  candidates — `.3.7` probed and set them aside); constraint/randomize 23 is
+  heterogeneous (`dist` value-ranges ≈4 rows, the rest `randomize()...with{}`
+  method chains); the residual 4 rows of the `[ NUM :` cluster are covergroup
+  `binsof … intersect {[100:200]}` / `dist { [0:1], [2:5] :/ 2 }` value-range
+  forms whose `value_range` rule ALREADY carries the literal-bracket
+  alternatives (`value_range_sv_2017:5946`) ⇒ a DIFFERENT root cause, correctly
+  out of this leaf's scope.
+- **LRM GROUND TRUTH (verified verbatim in the in-repo LRM text BEFORE any
+  edit — `docs/systemverilog/2017/txt/section-15-interprocess-synchronization-and-communication.txt:1263`):**
+
+  ```
+  cycle_delay_range ::=
+  ## constant_primary
+  | ## [ cycle_delay_const_range_expression ]
+  | ##[*]
+  | ##[+]
+  ```
+
+  ⭐ **The `[ ]` in alternative 2 are LITERAL SystemVerilog brackets, not BNF
+  optional-markers** — and the LRM proves it in its own normative prose, which
+  is why this is adjudicable rather than a judgement call:
+  - `:1360` — "`##[*]` is used as an equivalent representation of `##[0:$]`."
+  - `:1362` — "`##[+]` is used as an equivalent representation of `##[1:$]`."
+
+  Alternatives 3/4 (`##[*]`, `##[+]`) are *unambiguously* literal-bracket
+  tokens, and the LRM equates them to `##[0:$]` / `##[1:$]` — forms that are
+  only writable if alternative 2's brackets are literal too. Corroborated by
+  ~15 source examples across the LRM: `@(negedge clk) d ##[2:5] e;` (§9:896),
+  `req ##[4:32] gnt` / `req ##[4:$] gnt` (:1435/:1439), `w ##1 x ##[2:10] y;`
+  (:1673), `(te1 ##[1:5] te2) and (te3 ##2 te4 ##2 te5)` (:2524).
+- **⭐ WHY THE EXTRACTOR GOT IT WRONG (the NEW metachar class — motivating
+  evidence for `LRM-GRAMMAR-FIDELITY`).** The LRM's BNF meta-notation uses
+  `[ ]` for BOTH literal brackets AND optional items (compare
+  `sequence_instance ::= ps_or_hierarchical_sequence_identifier [ ( [
+  sequence_list_of_arguments ] ) ]` at :1273, where every bracket IS an
+  optional-marker). In the published PDF the two are distinguished
+  typographically (literal terminals are set in a different face); the
+  PDF→text conversion **destroys that signal**, leaving the two uses
+  character-identical. The extractor resolved alternative 2 the wrong way.
+  ⛔ **CORRECTION OF RECORD (made during this leaf, before landing): this is NOT
+  a new class.** The bug ledger already NAMES it — "the documented
+  dropped-delimiter class" — with at least FIVE prior instances:
+  `stream_concatenation`'s literal `{ }` + `[ ]` (`SV-0002`), the covergroup
+  `trans_range_list` repeat forms, the `boolean_abbrev` sequence-repetition
+  family, the six covergroup-adjacent SVA bounded-property operators, and
+  `value_range` (whose in-grammar comment reads "Same fix for sv_2023 across
+  all 4 bracketed range variants"). `cycle_delay_range` is the **sixth+**.
+  ⭐⭐ **The damning detail: `boolean_abbrev` lives in A.2.10 — the SAME Annex A
+  subclause as `cycle_delay_range`.** A fix landed in that very subclause and
+  did not sweep its immediate neighbours, leaving this one broken for another
+  month until a corpus row happened to hit it. Every instance to date has been
+  found REACTIVELY, one construct at a time, by whatever the corpus tripped
+  over. That is the actionable finding: the class does not need more
+  motivating evidence, it needs an **exhaustive Annex-A bracket/brace sweep**
+  — which is precisely what the director-gated `LRM-GRAMMAR-FIDELITY` tree
+  should own. The PDF→text point below explains WHY the class exists; it does
+  not make the class new.
+- **ROOT CAUSE (WHY + WHERE) — grammar source, `grammars/systemverilog.ebnf`:**
+  - **WHERE:** `cycle_delay_range:1703`.
+
+    ```
+    cycle_delay_range := kw_token_93ac8946 constant_primary
+                                -> {kind: "primary",      body: $2}
+                      | kw_token_93ac8946 ( cycle_delay_const_range_expression )?
+                                -> {kind: "paren_range",  body: $2}
+                      | kw_token_71b8cf7e   -> {kind: "token_71b8cf7e"}   # "##[*]"
+                      | kw_token_9768502a   -> {kind: "token_9768502a"}   # "##[+]"
+    ```
+
+  - **WHY:** alternative 2 renders the LRM's literal `[ … ]` as PGEN's
+    `( … )?` **optional-group metasyntax**, so the rule matches `##` followed by
+    an *optional, bracket-less* `constant_expression : constant_expression`.
+    No alternative can consume the `[` of a real `##[1:3]`: alt 1 needs a
+    `constant_primary` (cannot start with `[`), alt 2 takes the empty option and
+    leaves `[1:3]` to `seq_unary`, alts 3/4 require the exact literal `##[*]` /
+    `##[+]`. ⇒ **`##[m:n]` and `##[m:$]` are entirely unparseable in every
+    profile** — the bracketed cycle-delay range is DEAD, while unbracketed
+    `##1` / `##2` (`cycle_delay:1696`) parse fine, which is exactly the observed
+    corpus split (`te3 ##2 te4` passes inside files that fail at `##[1:5]`).
+    The `{kind: "paren_range"}` annotation name is itself a tell that the
+    synthesis read the brackets as a grouping. Note
+    `cycle_delay_const_range_expression:1700-1701` is INTACT and already carries
+    both the `expr : expr` and `expr : $` forms — only the bracket wrapper is
+    wrong, so the fix is confined to one rule.
+- **REPRODUCE (tool-pinned, `cycle_delay_range_diag/before.txt`)** — 7 minimal
+  LRM-sourced cases under `--profile sv_2017`, `rc` = the probe's own exit code.
+  **All 4 bracketed forms REJECT; all 3 controls ACCEPT:**
+
+  | case | construct | LRM source | rc | furthest |
+  |---|---|---|---|---|
+  | `r1_range_basic.sv` | `data ##[1:3] gnt` | §16 / :1673 | 1 | 121 |
+  | `r2_range_seq.sv` | `d ##[2:5] e` | §9 :896 | 1 | 122 |
+  | `r3_range_dollar_hi.sv` | `req ##[4:$] gnt` | :1439 | 1 | 113 |
+  | `r4_range_spaced.sv` | `te1 ## [2:5] te2` | ispras 16.09.08_01 | 1 | 133 |
+  | `c1_control_unbracketed.sv` | `te3 ##2 te4` (alt 1) | — | **0** | — |
+  | `c2_control_star.sv` | `a ##[*] b` (alt 3) | :1360 | **0** | — |
+  | `c3_control_plus.sv` | `a ##[+] b` (alt 4) | :1362 | **0** | — |
+
+  The controls are the regression tripwire: `##[*]`/`##[+]` are literal tokens
+  reachable ONLY by backtracking past alternative 2, so they must still accept
+  after the edit.
+- **TRACE (the WHY, `cycle_delay_range_diag/trace_r1_before.txt`)** —
+  `PGEN_TRACE_VERBOSITY=debug … --trace-rules cycle_delay_range,cycle_delay_const_range_expression`
+  on `r1`. Position **121 is exactly the `[`** (the `##` spans 119..121), which
+  is precisely the reported `furthest_position=121`. Branch by branch:
+
+  ```
+  🚪 Entering branch 1/4 for rule 'cycle_delay_range' at position 118
+  ✅ Rule 'kw_token_93ac8946' successfully parsed from 118 to 121 (consumed 3 bytes: ' ##')
+  🔙 Speculative parse failed … rule_stack: [… "seq_delay_expr", "cycle_delay_range",
+       "constant_primary", "constant_primary_sv_2017", "primary_literal"]
+       input_context: "posedge clk) data ##[1:3] gnt; endproper"
+  🚪 Entering branch 2/4 for rule 'cycle_delay_range' at position 118
+  ✅ Leaving branch 2/4 for rule 'cycle_delay_range' at position 121 (success)
+  ```
+
+  ⭐ **That `✅ Leaving branch 2/4 … at position 121 (success)` line is the
+  misreading caught in the act** — and it is EMPIRICAL, not inferred: branch 2
+  *succeeds* having consumed only `##` (118→121) **with the optional group
+  matched EMPTY**, leaving the literal `[1:3]` to `seq_unary`, which cannot
+  start on `[`. Branch 1 consumes `##` then dies in `constant_primary` at 121
+  (a `[` is not a primary); branches 3/4 are terminal mismatches (`##[*]` /
+  `##[+]` vs the input `##[1`). ⇒ **no branch can consume a literal `[` after
+  `##`**, so `##[m:n]` / `##[m:$]` are unparseable.
+- **FIX (planned — hierarchy level 1, pure grammar, additive; UNGATED):**
+  replace alternative 2's optional-group with the LRM's literal brackets —
+  `kw_token_93ac8946 lbrack cycle_delay_const_range_expression rbrack`
+  (annotation `{kind: "range", body: $3}`; the `paren_range` name retires with
+  the misreading). `lbrack`/`rbrack` are existing tokens (used by
+  `value_range_sv_2017:5946`, the same-class precedent). No new rule, no new
+  token ⇒ census UNCHANGED. Ungated because `cycle_delay_range`'s consumers
+  (`seq_delay_expr:5055`) are SVA-side and already profile-scoped, and the LRM
+  form is identical in 1800-2017 and 1800-2023. Expected: additive (the
+  bracketed form is currently 100% unparseable ⇒ no witnessed wire shape can
+  change ⇒ **schema `18` expected UNCHANGED**, the `.3.5`/`.3.6`/`.3.7`
+  reasoning). Release `1.0.173 → 1.0.174`, ledger `SV-0044` — both to be
+  confirmed at landing.
+- **VERIFIED (measured GLOBALLY, guarded, both lanes; evidence
+  `cycle_delay_range_diag/{before,after,global_measurement}.txt`):**
+  - **Repro matrix flips (`after.txt`):** all 4 bracketed forms REJECT→ACCEPT;
+    **all 3 controls still ACCEPT** — including `##[*]`/`##[+]`, which are
+    reachable ONLY by backtracking PAST the edited alternative and were
+    therefore the real tripwire. Under `--profile verilog_2005` the SVA forms
+    correctly still reject. AST is LRM-faithful: `##[1:3]` →
+    `{kind:"range", lo:1, hi:3}`, `##[4:$]` → `{kind:"dollar_hi", lo:4}`.
+  - **MAIN sv_2017 lane — full external corpus 16,336: pass 9,669 → 9,692
+    (+23)**, fail 6,658 → 6,634. Adjudication: **rejects-valid 406 → 383
+    (−23, ZERO new — verified by set difference, not by net count)**,
+    **accepts-invalid 21 → 21 BYTE-IDENTICAL set** (no over-acceptance),
+    unexplained 427 → 404, match 5,703 → 5,726.
+  - **NO REGRESSION (the `.3.4` LAW — per-FILE pass-set diff): 0 pass→fail and
+    0 pass→timeout**, key sets identical (16,336/16,336). Only two adjudication
+    transitions exist in the whole manifest: 23 ×
+    `unexplained_rejects_valid → match` and 1 × `deferred:chained_only →
+    divergence:explained_timeout` (the jitter row below — an EXPLAINED bucket,
+    so the honest baseline is untouched).
+  - **TARGETING — strictly surgical:** the 23 flips are EXACTLY keyed `##[`
+    rows; **flipped-but-not-keyed = 0** (no unrelated file changed verdict).
+  - ⚠️ **The 1 fail→timeout row is PROVEN JITTER, not a regression**
+    (`alert_handler_reg_top.sv`, 671 KB / 22,322 lines, opentitan autogen):
+    it contains **ZERO** occurrences of `##`, so `cycle_delay_range` is never
+    reached for it; re-run ALONE without 8-way contention it completes in
+    **15 s with verdict FAIL** — its TRUE verdict is unchanged, it merely
+    crossed the 20 s wall under parallel load. `jobs=8` was deliberately NOT
+    tuned down, so the run stays methodologically identical to the baseline.
+  - **V2005 lane BYTE-INERT:** 2,459 files, pass 2,180 / fail 279 / timeout 0 —
+    ZERO per-file transitions, and `adjudication_manifest_v2005.tsv` is
+    **BYTE-IDENTICAL** to baseline (`cmp` clean). SVA is unreachable under
+    `verilog_2005`.
+  - ⚠️ **Path-normalization requirement (new, banked):** the baseline
+    `results.tsv` rows carry absolute paths under
+    the pre-move home-directory checkout location because they predate the
+    director's move of all GitHub projects to a 4 TB SSD
+    (`/Volumes/SSD/…`, confirmed 2026-07-25). The per-file diff normalizes to
+    the `/pgen/`-relative form; **a naive diff reports all 16,336 rows as
+    changed**, which would read as total regression or total heal. Since the
+    `.3.4` LAW makes this diff the binding no-regression proof for every `.3.x`
+    leaf, the requirement is recorded in `DEVELOPMENT_NOTES.md` too.
+- **⭐ SIBLING DEFECT SURFACED (routed to `.3.9`, deliberately NOT folded in):**
+  1 of the 24 keyed rows did not flip —
+  `verilator/test_regress/t/t_sequence_sexpr_unsup.v`. The fix DID work there:
+  the file now parses PAST its old stuck point and dies later at
+  `furthest_position=1112`, which is exactly `## [*] b;` — a **SPACED**
+  `## [*]`. Minimal repro on the post-fix parser: `##[*]` ACCEPT / `## [*]`
+  REJECT; `##[+]` ACCEPT / `## [+]` REJECT; `##[1:2]` and `## [1:2]` BOTH
+  ACCEPT. Root cause is a DIFFERENT mechanism in the same rule: alternatives
+  3/4 are FUSED literal tokens (`kw_token_71b8cf7e := trivia "##[*]"`,
+  `kw_token_9768502a := trivia "##[+]"`) which cannot admit the whitespace
+  SystemVerilog's free-form lexing permits between `##` and `[`. ⭐ That this
+  leaf's STRUCTURED alternative accepts BOTH spacings is independent evidence
+  the structured model is correct. Deferred because nothing regresses by
+  deferring, and retiring the fused tokens changes AST kinds
+  (`{kind:"token_71b8cf7e"}` → `{kind:"star"}`) — a shape/schema decision that
+  deserves its own leaf.
+- **GATES (all GREEN, seeds 0/7/42):**
+  - `sv_syntax_closure_gate` — `defined_rule_count` **1477 UNCHANGED**
+    (zero new rules/tokens, as designed), `unreachable_rules: 0`.
+  - `ast_shape_contract_gate` — PASS, **schema `18` holds** (no locked sample
+    referenced the retired `paren_range` kind).
+  - `sv_cert_recognized_union_gate` — GREEN **with NO re-baseline needed**:
+    `union_witness 1348` == `expected_union_witness`, `union_residual_rules []`
+    == expected, canonical UNKNOWN=11 / union UNKNOWN=0, still
+    `fully_certified_via_union: true`, `unmet_criteria_count: 0`, deterministic
+    across seeds. ⇒ `systemverilog_recognized_cert_union_contract.json`
+    UNTOUCHED.
+  - `verilog_2005_conformance_gate` — GREEN **BYTE-INERT**: cert
+    `1123/330/779/14` IDENTICAL to baseline, matrix 240/0, `profile_orphans 0`
+    ⇒ `verilog_2005_conformance_contract_v0.json` UNTOUCHED. (Contrast `.3.7`,
+    which was cross-profile and had to re-baseline BOTH contract JSONs; this
+    fix is SVA-only so neither moves.)
+  - `sv_external_corpus_triage_gate` — PASS.
+  - `systemverilog_parser_book_gate` — PASS.
+  - `sv_stimuli_quality_gate` — PASS (peak 12,425 MB / 1,878 s).
+    ⚠️ `closed_loop_replay_targets_total` **126 → 127 (+1)** — honest and
+    expected: the bracketed alternative is a NEW closed-loop generation target
+    (the generator must now emit `##[m:n]` to witness it, whereas the old
+    optional-group branch was satisfied trivially by a bare `##`). Same
+    accounting as `.3.7`'s +1; it feeds `SV-REPLAY-DEBT`, and a new
+    generation-coverage target is not a regression.
+- **Acceptance Checklist (enforced — to be completed at landing)**
+  - [x] **REPRODUCE / ISSUE** — 4 LRM-sourced bracketed forms reject
+    (furthest 121/122/113/133) while all 3 controls (`##2`, `##[*]`, `##[+]`)
+    accept; 24 keyed corpus rows (`before.txt`).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `cycle_delay_range:1703` alt 2 renders
+    the LRM's LITERAL `[ … ]` as PGEN optional-group `( … )?`; LRM A.2.10 +
+    the :1360/:1362 `##[*]`≡`##[0:$]` prose + ~15 source examples verified
+    verbatim; trace shows branch 2 SUCCEEDING on `##` alone with the group
+    matched empty at the exact `furthest_position=121` (`trace_r1_before.txt`).
+  - [x] **FIX** — alt 2 → `kw_token_93ac8946 lbrack
+    cycle_delay_const_range_expression rbrack -> {kind: "range", body: $3}`
+    (`grammars/systemverilog.ebnf:1705`); existing tokens only, zero new
+    rules/tokens, census UNCHANGED; LRM branch order preserved.
+  - [x] **ADDRESSED (verified)** — before→after measured globally, both lanes:
+    repro matrix 4 REJECT→ACCEPT + 3 controls held; main corpus pass
+    9,669→9,692 (+23); rejects-valid 406→383 (−23); correct `{kind:"range"}` /
+    `{kind:"dollar_hi"}` AST.
+  - [x] **NO REGRESSION** — per-FILE pass-set diff: **0 pass→fail, 0
+    pass→timeout**; **0 new** rejects-valid (set difference, not net count);
+    accepts-invalid set BYTE-IDENTICAL (21); v2005 manifest BYTE-IDENTICAL;
+    the single fail→timeout row proven jitter (zero `##` in the file; 15 s solo,
+    verdict unchanged); all 7 gates green with BOTH contract JSONs untouched.
+  - [x] **LOCKSTEP** — ledger `SV-0044` + contract `1.0.174` (identity + the
+    schema-18 KEEP note) + SV book changelog-index +
+    tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
+
+#### `.3.9` — the SPACED `## [*]` / `## [+]` cycle-delay abbreviations reject (IEEE 1800-2017 A.2.10 alts 3/4 — fused literal tokens vs SV's free-form lexing; the sibling `.3.8` surfaced)
+
+- **Status: `todo`** — opened by `.3.8` (session #204, 2026-07-25) from a
+  MEASURED non-flip, not from speculation. Deliberately NOT folded into `.3.8`:
+  different mechanism, nothing regresses by deferring, and the fix changes AST
+  kinds (a shape/schema decision of its own).
+- **EVIDENCE ALREADY BANKED (`cycle_delay_range_diag/global_measurement.txt`).**
+  `.3.8` healed 23 of its 24 keyed rows; the 24th,
+  `verilator/test_regress/t/t_sequence_sexpr_unsup.v`, now parses PAST its old
+  stuck point and dies at `furthest_position=1112` = `## [*] b;`. Minimal repro
+  on the post-`.3.8` parser (`--profile sv_2017`):
+
+  | form | verdict |
+  |---|---|
+  | `##[*]` | ACCEPT |
+  | `## [*]` | **REJECT** |
+  | `##[+]` | ACCEPT |
+  | `## [+]` | **REJECT** |
+  | `##[1:2]` | ACCEPT |
+  | `## [1:2]` | ACCEPT ← `.3.8`'s structured alternative admits BOTH spacings |
+
+- **ROOT CAUSE (WHY + WHERE, already pinned):** `cycle_delay_range:1707/:1709`
+  alternatives 3/4 reference FUSED literal tokens
+  `kw_token_71b8cf7e := trivia "##[*]"` (`:6655`) and
+  `kw_token_9768502a := trivia "##[+]"` (`:6659`). A fused multi-character
+  literal cannot admit interior whitespace, but SystemVerilog is free-form and
+  `##`, `[`, `*`, `]` are separate lexical tokens — so any spacing the author
+  chooses is legal. ⭐ Same *family* as `.3.8` (the extractor mishandling
+  A.2.10's literal brackets) but the opposite failure mode: `.3.8` was brackets
+  wrongly treated as METASYNTAX, this is brackets wrongly FUSED into an atom.
+- **FIX (planned — pure grammar, mirrors `.3.8`):** replace both fused tokens
+  with structured alternatives using the existing `star` / `plus` tokens, which
+  `consecutive_repetition:~5050` already uses in exactly this
+  `lbrack star rbrack` / `lbrack plus rbrack` shape:
+
+  ```
+  | kw_token_93ac8946 lbrack star rbrack  -> {kind: "star"}
+  | kw_token_93ac8946 lbrack plus rbrack  -> {kind: "plus"}
+  ```
+
+  Then retire the two now-orphaned fused tokens (keeps `--lint-grammar`
+  orphans 0; census 1477 → 1475).
+- **⚠️ OPEN DECISION the leaf must adjudicate first (why it is not a drive-by):**
+  this RENAMES the emitted AST kinds `{kind:"token_71b8cf7e"}` →
+  `{kind:"star"}` and `{kind:"token_9768502a"}` → `{kind:"plus"}`. Unlike
+  `.3.8`'s `paren_range` (which was unreachable in practice, hence additive),
+  **these two kinds ARE currently produced** — `##[*]` / `##[+]` parse today, so
+  any consumer keyed on them would break. That is a genuine wire-shape change ⇒
+  expect a **schema bump 18 → 19** and a contract/book entry, unless the leaf
+  measures that no shape-contract sample and no downstream contract references
+  them. Resolve on measurement, per `.3.7`'s strict-vs-permissive precedent.
+  (Retiring the opaque `token_<hash>` kind names is itself a readability win —
+  they are extractor artifacts, not LRM vocabulary.)
+- **SCOPE:** ≥1 corpus row (`t_sequence_sexpr_unsup.v`); a grammar-wide sweep
+  for OTHER fused `kw_token_<hash> := trivia "<multi-char containing brackets>"`
+  literals MUST run in the same leaf — a one-site fix here would repeat exactly
+  the mistake `.3.8` documented. ⛔ Per `.3.8`'s correction of record, the
+  delimiter class is ALREADY DOCUMENTED in the bug ledger and has recurred
+  SIX+ times, always found reactively one construct at a time — and the
+  `boolean_abbrev` fix landed in **A.2.10, the same subclause as
+  `cycle_delay_range`**, without sweeping its neighbours. This leaf is the
+  fused-literal FACE of that class; the bracket-as-metasyntax face was `.3.8`.
+  Both argue the same conclusion: `LRM-GRAMMAR-FIDELITY` needs an EXHAUSTIVE
+  Annex-A delimiter sweep, not another isolated repair.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

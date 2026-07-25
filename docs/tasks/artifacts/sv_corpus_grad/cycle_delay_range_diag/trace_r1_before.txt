@@ -1,0 +1,29 @@
+# SV-CORPUS-GRAD.3.8 — TRACE (baseline, pre-fix): WHY cycle_delay_range cannot consume '['
+# input:   repro/r1_range_basic.sv  ->  '@(posedge clk) data ##[1:3] gnt;'
+# command: PGEN_TRACE_VERBOSITY=debug parseability_probe --parse systemverilog <f> \
+#            --profile sv_2017 --trace-rules cycle_delay_range,cycle_delay_const_range_expression
+# Rejection (see before.txt): 'did not consume full input at position 50 [furthest_position=121]'.
+# Position 121 is EXACTLY the '[' of '##[1:3]'  (## spans 119..121).
+
+## Decisive lines (condensed; full trace is ~MBs of backtracking noise)
+
+🚪 Entering branch 1/4 for rule 'cycle_delay_range' at position 113
+🚪 Entering branch 2/4 for rule 'cycle_delay_range' at position 113
+🚪 Entering branch 3/4 for rule 'cycle_delay_range' at position 113
+🚪 Entering branch 4/4 for rule 'cycle_delay_range' at position 113
+🚪 Entering branch 1/4 for rule 'cycle_delay_range' at position 118
+✅ Rule 'kw_token_93ac8946' successfully parsed from 118 to 121 (consumed 3 bytes: ' ##')
+🚪 Entering branch 2/4 for rule 'cycle_delay_range' at position 118
+✅ Leaving branch 2/4 for rule 'cycle_delay_range' at position 121 (success)
+🚪 Entering branch 3/4 for rule 'cycle_delay_range' at position 118
+🚪 Entering branch 4/4 for rule 'cycle_delay_range' at position 118
+
+## Verdict
+  branch 1/4  '## constant_primary'   -> '##' consumed 118..121, then constant_primary FAILS at 121
+                                          (rule_stack ends ... cycle_delay_range > constant_primary >
+                                           constant_primary_sv_2017 > primary_literal; '[' is not a primary)
+  branch 2/4  '## ( range )?'         -> matches '##' with the OPTIONAL GROUP EMPTY, leaving '[1:3]'
+                                          to seq_unary, which cannot start with '[' either
+  branch 3/4  literal '##[*]'         -> Terminal mismatch (input is '##[1')
+  branch 4/4  literal '##[+]'         -> Terminal mismatch (input is '##[1')
+  => NO branch can consume a literal '[' after '##'  ==>  ##[m:n] / ##[m:$] are UNPARSEABLE.

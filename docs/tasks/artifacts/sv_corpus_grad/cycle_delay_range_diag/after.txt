@@ -1,0 +1,17 @@
+# SV-CORPUS-GRAD.3.8 — AFTER (post-fix, grammars/systemverilog.ebnf:1705)
+# probe:   rust/target/debug/parseability_probe (181271120 bytes, mtime 2026-07-25 11:28:40)
+# parser:  generated/systemverilog_parser.rs mtime 2026-07-25 11:25:37  (probe IS newer - asserted)
+# rc is the PROBE's own exit code (0 = fully-consuming parse, non-zero = rejection).
+
+c1_control_unbracketed.sv      rc=0  parse_full passed for grammar 'systemverilog' on 'c1_control_unbracketed.sv'
+c2_control_star.sv             rc=0  parse_full passed for grammar 'systemverilog' on 'c2_control_star.sv'
+c3_control_plus.sv             rc=0  parse_full passed for grammar 'systemverilog' on 'c3_control_plus.sv'
+r1_range_basic.sv              rc=0  parse_full passed for grammar 'systemverilog' on 'r1_range_basic.sv'
+r2_range_seq.sv                rc=0  parse_full passed for grammar 'systemverilog' on 'r2_range_seq.sv'
+r3_range_dollar_hi.sv          rc=0  parse_full passed for grammar 'systemverilog' on 'r3_range_dollar_hi.sv'
+r4_range_spaced.sv             rc=0  parse_full passed for grammar 'systemverilog' on 'r4_range_spaced.sv'
+
+# v2005 cross-check: the SAME bracketed form under --profile verilog_2005
+# (IEEE 1364-2005 has NO SVA, so these must still REJECT there)
+r1_range_basic.sv              rc=1  Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_
+c1_control_unbracketed.sv      rc=1  Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_

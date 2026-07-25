@@ -1,0 +1,13 @@
+# SV-CORPUS-GRAD.3.8 — BEFORE (baseline, pre-fix)
+# probe:   rust/target/debug/parseability_probe (181289456 bytes, mtime 2026-07-25 11:20:15)
+# grammar: grammars/systemverilog.ebnf @ HEAD 7ed29dd4 (clean)
+# command: parseability_probe --parse systemverilog <file> --profile sv_2017
+# rc is the PROBE's own exit code (0 = fully-consuming parse, non-zero = rejection).
+
+c1_control_unbracketed.sv      rc=0  parse_full passed for grammar 'systemverilog' on 'c1_control_unbracketed.sv'
+c2_control_star.sv             rc=0  parse_full passed for grammar 'systemverilog' on 'c2_control_star.sv'
+c3_control_plus.sv             rc=0  parse_full passed for grammar 'systemverilog' on 'c3_control_plus.sv'
+r1_range_basic.sv              rc=1  Error: parse_full rejected sample for grammar 'systemverilog' on 'r1_range_basic.sv': Parser did not consume full input at position 50 [furthest_position=121, +71 bytes deeper than surface position]
+r2_range_seq.sv                rc=1  Error: parse_full rejected sample for grammar 'systemverilog' on 'r2_range_seq.sv': Parser did not consume full input at position 59 [furthest_position=122, +63 bytes deeper than surface position]
+r3_range_dollar_hi.sv          rc=1  Error: parse_full rejected sample for grammar 'systemverilog' on 'r3_range_dollar_hi.sv': Parser did not consume full input at position 44 [furthest_position=113, +69 bytes deeper than surface position]
+r4_range_spaced.sv             rc=1  Error: parse_full rejected sample for grammar 'systemverilog' on 'r4_range_spaced.sv': Parser did not consume full input at position 64 [furthest_position=133, +69 bytes deeper than surface position]
