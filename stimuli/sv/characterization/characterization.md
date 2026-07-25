@@ -12,7 +12,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9692 | 6634 | 10 | 0 | 59.3% |
+| 16336 | 9694 | 6634 | 8 | 0 | 59.3% |
 
 ## Per sub-corpus
 
@@ -23,7 +23,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
 | ispras-sv-tests | 1266 | 1075 | 191 | 0 | 0 | 84.9% |
 | iverilog | 3799 | 3229 | 570 | 0 | 0 | 85.0% |
-| opentitan | 3983 | 782 | 3192 | 9 | 0 | 19.6% |
+| opentitan | 3983 | 782 | 3193 | 8 | 0 | 19.6% |
 | scr1 | 50 | 7 | 43 | 0 | 0 | 14.0% |
 | slang | 92 | 71 | 21 | 0 | 0 | 77.2% |
 | Surelog | 828 | 686 | 142 | 0 | 0 | 82.9% |
@@ -31,6 +31,6 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | sv2v | 953 | 721 | 232 | 0 | 0 | 75.7% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
-| verilator | 3263 | 2065 | 1197 | 1 | 0 | 63.3% |
+| verilator | 3263 | 2067 | 1196 | 0 | 0 | 63.3% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv`._

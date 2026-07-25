@@ -1,0 +1,59 @@
+# .3.9 AFTER repro matrix — grammar fix applied (census 1477->1475, schema 18->19 planned)
+# probe: rust/target/release/parseability_probe (relinked 15:46:15, mtime-asserted NEWER than the 15:24:20 parser)
+
+=== c1_star_tight.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c1_star_tight.sv'
+rc=0
+
+=== c2_plus_tight.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c2_plus_tight.sv'
+rc=0
+
+=== c3_range_tight.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c3_range_tight.sv'
+rc=0
+
+=== c4_range_spaced.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c4_range_spaced.sv'
+rc=0
+
+=== r1_star_spaced.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/r1_star_spaced.sv'
+rc=0
+
+=== r2_plus_spaced.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/r2_plus_spaced.sv'
+rc=0
+
+=== v2005 MUST still reject the SV-only SVA forms ===
+r1_star_spaced.sv (verilog_2005): REJECT (correct)
+c1_star_tight.sv (verilog_2005): REJECT (correct)
+
+=== AST SHAPE: the renamed kinds ===
+  c1_star_tight      -> {kind:"star"} x1   | old token_* kinds present: 0
+  c2_plus_tight      -> {kind:"plus"} x1   | old token_* kinds present: 0
+  r1_star_spaced     -> {kind:"star"} x1   | old token_* kinds present: 0
+  r2_plus_spaced     -> {kind:"plus"} x1   | old token_* kinds present: 0
+
+=== THE CLASS IS CLOSED: every legal spacing variant (§5.3) ===
+  ##[*]            : ACCEPT
+  ## [*]           : ACCEPT
+  ##[ *]           : ACCEPT
+  ##[* ]           : ACCEPT
+  ##  [  *  ]      : ACCEPT
+  ##[+]            : ACCEPT
+  ## [+]           : ACCEPT
+  ##[ + ]          : ACCEPT
+  ##	[*]           : ACCEPT
+
+=== NEGATIVE controls: must STILL reject (not over-permissive) ===
+  ##[]         : REJECT (correct)
+  ##[*         : REJECT (correct)
+  ##[**]       : REJECT (correct)
+  ##[+*]       : REJECT (correct)
+  ##[1:2:3]    : REJECT (correct)
+
+=== THE KEYED CORPUS ROW (the only one) ===
+  stimuli/sv/subs/verilator/test_regress/t/t_sequence_sexpr_unsup.v
+  BEFORE: rejected at furthest_position=1112 (the `## [*]` on line 59)
+  AFTER : ACCEPT (rc=0) — the whole file now parses

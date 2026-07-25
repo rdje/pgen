@@ -10,21 +10,21 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | friscv | 441 | 0 | 0 | 0 | 441 |
 | ispras-sv-tests | 1266 | 756 | 48 | 16 | 446 |
 | iverilog | 3799 | 1017 | 43 | 208 | 2531 |
-| opentitan | 3983 | 0 | 0 | 9 | 3974 |
+| opentitan | 3983 | 0 | 0 | 8 | 3975 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
 | sv-tests | 1028 | 786 | 21 | 120 | 101 |
 | sv2v | 953 | 452 | 48 | 79 | 374 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 111 | 13 | 6 | 22 |
-| verilator | 3263 | 2002 | 172 | 961 | 128 |
-| **total** | **16336** | **5726** | **404** | **1436** | **8770** |
+| verilator | 3263 | 2003 | 171 | 960 | 129 |
+| **total** | **16336** | **5727** | **403** | **1434** | **8772** |
 
 ## Verdict-class detail
 
 | class | count |
 |---|---|
-| deferred:chained_only | 5266 |
+| deferred:chained_only | 5268 |
 | deferred:impl_varying | 90 |
 | deferred:ni_unimplemented | 6 |
 | deferred:no_sv_key | 743 |
@@ -34,10 +34,10 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_svpp_conditional | 210 |
 | divergence:explained_svpp_include | 142 |
 | divergence:explained_svpp_macro_use | 1074 |
-| divergence:explained_timeout | 10 |
+| divergence:explained_timeout | 8 |
 | divergence:unexplained_accepts_invalid | 21 |
-| divergence:unexplained_rejects_valid | 383 |
-| match | 5726 |
+| divergence:unexplained_rejects_valid | 382 |
+| match | 5727 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**404**: rejects-valid 383, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**403**: rejects-valid 382, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

@@ -1,0 +1,27 @@
+# .3.9 BASELINE repro matrix — HEAD d0d2152f (post-.3.8, release 1.0.174, schema 18)
+# probe: rust/target/release/parseability_probe --parse systemverilog --profile sv_2017
+
+=== c1_star_tight.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c1_star_tight.sv'
+rc=0
+
+=== c2_plus_tight.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c2_plus_tight.sv'
+rc=0
+
+=== c3_range_tight.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c3_range_tight.sv'
+rc=0
+
+=== c4_range_spaced.sv ===
+parse_full passed for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/c4_range_spaced.sv'
+rc=0
+
+=== r1_star_spaced.sv ===
+Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/r1_star_spaced.sv': Parser did not consume full input at position 149 [furthest_position=214, +65 bytes deeper than surface position]
+rc=1
+
+=== r2_plus_spaced.sv ===
+Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/r2_plus_spaced.sv': Parser did not consume full input at position 80 [furthest_position=146, +66 bytes deeper than surface position]
+rc=1
+

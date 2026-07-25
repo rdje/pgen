@@ -1,0 +1,128 @@
+# SV-CORPUS-GRAD.3.9 — GLOBAL MEASUREMENT (both lanes)
+# runner:  stimuli/run_external_corpus.sh sv 20 8      (jobs=8 — IDENTICAL to the
+#          baseline invocation, deliberately NOT tuned, so the run stays comparable)
+#          stimuli/run_external_corpus.sh sv2005 20 8
+# probe:   rust/target/debug/parseability_probe (DEBUG — matches the baseline probe
+#          type, the .3.6 requirement; built after `touch rust/src/lib.rs`, mtime
+#          asserted NEWER than generated/systemverilog_parser.rs)
+# guard:   main lane  exit 0, peak_tree_rss 5,700 MB, elapsed 217 s
+#          v2005 lane exit 0, peak_tree_rss   642 MB, elapsed  21 s
+
+================================================================================
+MAIN sv_2017 LANE — corpus totals (16,336 files)
+================================================================================
+                     BEFORE (.3.8)     AFTER (.3.9)     delta
+  pass                     9,692           9,694          +2
+  fail                     6,634           6,634           0
+  timeout                     10               8          -2
+  crash                        0               0           0
+  pass-rate                 59.3%           59.3%
+
+⭐ HONEST ATTRIBUTION — the fix's own effect is +1, NOT +2.
+Of the two new passes, exactly ONE is attributable to this leaf. The other, and
+the fail +1, are contention-jitter corrections on files the change cannot reach.
+Proven below rather than asserted. Do not cite "+2" as this fix's yield.
+
+================================================================================
+Per-FILE transition analysis (the .3.4 LAW — pass-set diff, NOT net counts)
+================================================================================
+# Baseline results.tsv rows carry absolute paths under the PRE-SSD-move checkout
+# location; this run emits the current /Volumes/SSD location. Paths normalized to
+# the /pgen/-relative form before diffing (the .3.8 requirement — a naive diff
+# reports ALL 16,336 rows changed, which reads as total regression or total heal).
+  key sets identical : True (16,336 / 16,336)
+  joined rows        : 16,336
+
+  ALL transitions (only three, every one accounted for):
+    fail    -> pass     verilator/test_regress/t/t_sequence_sexpr_unsup.v
+    timeout -> pass     verilator/test_regress/t/t_math_synmul_mul.v
+    timeout -> fail     opentitan/.../alert_handler/rtl/alert_handler_reg_top.sv
+
+  THE LAW:
+    pass -> fail    : 0     <-- the LAW
+    pass -> timeout : 0     <-- the LAW
+    pass -> crash   : 0
+
+================================================================================
+Transition 1 of 3 — THE ATTRIBUTABLE HEAL (this leaf's entire corpus yield)
+================================================================================
+  verilator/test_regress/t/t_sequence_sexpr_unsup.v   fail -> pass
+  BEFORE: rejected, furthest_position=1112 = the `## [*]` on line 59.
+  AFTER : rc=0, the WHOLE file parses.
+  ⭐ An ideal targeted oracle: this one file exercises all ten spaced cycle-delay
+  forms — `## DELAY`, `## ( DELAY )`, `## [1:2]`, `## [*]`, `## [+]`, each also
+  with a leading `a` operand (lines 50-78). It was the ONLY keyed row (see
+  targeting below), so a +1 ceiling was stated up front, not discovered after.
+
+================================================================================
+Transitions 2 and 3 — PROVEN CONTENTION JITTER (not regressions, not heals)
+================================================================================
+Both files contain ZERO occurrences of `##`, so `cycle_delay_range` is NEVER
+reached for either and the grammar change CANNOT affect their parse. Both were
+mis-reported at the 20 s wall under 8-way parallelism; both moved TOWARD their
+true solo verdict, so measurement fidelity improved.
+
+  t_math_synmul_mul.v                timeout -> pass
+    330,162 B / 3,005 lines; '##' occurrences: 0; spaced '## [': 0
+    SOLO re-run (no contention, timeout 180 s): rc=0 verdict=PASS elapsed=17 s
+    => its TRUE verdict is pass; 17 s solo against a 20 s wall is why it
+       intermittently timed out. This is the tracked verilator timeout row.
+
+  alert_handler_reg_top.sv           timeout -> fail
+    671,534 B / 22,322 lines (opentitan autogen); '##': 0; spaced '## [': 0
+    SOLO re-run (no contention, timeout 180 s): rc=1 verdict=FAIL elapsed=15 s
+    => its TRUE verdict is fail. ⭐ This is the SAME file .3.8 already proved was
+       jitter, in the OPPOSITE direction (.3.8 saw fail->timeout and re-ran it
+       solo to 15 s / fail). The jitter has now REVERTED to the true verdict, so
+       the two leaves' observations are consistent, not contradictory.
+
+  Timeout population after this run: 8 — all 8 are opentitan autogen files (the
+  known .8a population); the verilator row has left it.
+
+================================================================================
+TARGETING — strictly surgical
+================================================================================
+  keyed population (rejects-valid rows whose file contains '##'+ws+'[') : 1
+  flipped and keyed                                                     : 1
+  flipped but NOT keyed                                                 : 0
+  keyed but NOT flipped                                                 : 0
+⇒ zero collateral, and zero unexplained residue. Contrast .3.8, which had 24
+  keyed rows and left 1 unflipped — that leftover is exactly what opened THIS leaf.
+
+================================================================================
+ADJUDICATION — main lane (16,336 rows)
+================================================================================
+                                          BEFORE    AFTER    delta
+  match                                     5,726    5,727      +1
+  divergence:unexplained_rejects_valid        383      382      -1
+  divergence:unexplained_accepts_invalid       21       21       0
+  divergence:explained_timeout                 10        8      -2
+  deferred:chained_only                     5,266    5,268      +2
+  (all 9 other classes byte-identical: impl_varying 90, ni_unimplemented 6,
+   no_sv_key 743, svpp_owned 186, v2005_profile_lane 2,459, verilog_ams_lane 20,
+   explained_svpp_conditional 210, explained_svpp_include 142,
+   explained_svpp_macro_use 1,074)
+  TOTAL unexplained                           404      403      -1
+
+  SET differences (not net counts — the .3.4 discipline):
+    rejects-valid HEALED : 1  = verilator/.../t_sequence_sexpr_unsup.v
+    rejects-valid NEW    : 0     <-- zero new defects introduced
+    accepts-invalid      : SET BYTE-IDENTICAL (21 rows) — zero new over-acceptance
+
+  The explained_timeout -2 / chained_only +2 pair is just the two jitter rows
+  re-classifying once they stopped timing out; no adjudication logic changed.
+
+  ⇒ REJECTS-VALID GRADUATION BASELINE IS NOW 382.
+
+================================================================================
+verilog_2005 LANE — PROVEN INERT (re-run, not inferred)
+================================================================================
+The two retired tokens WERE in the v2005 rule universe (census_effect.txt), so
+inertness was NOT assumed — the lane was re-run end to end:
+  2,459 files: pass 2,180 / fail 279 / timeout 0 / crash 0 (88.7%)
+  results_v2005.tsv           : BYTE-IDENTICAL to the pre-fix run (path-normalized)
+  adjudication_manifest_v2005 : BYTE-IDENTICAL
+  v2005 unexplained stays 76  = 62 rejects-valid + 14 accepts-invalid
+Correct by construction: `cycle_delay_range` is reachable only through SVA, which
+is SV-gated, so removing its tokens changes the v2005 CENSUS but not v2005 PARSE
+behavior. The census effect is what forces the conformance-contract re-baseline.

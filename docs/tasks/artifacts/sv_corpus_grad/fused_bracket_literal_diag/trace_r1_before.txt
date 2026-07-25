@@ -1,0 +1,69 @@
+# .3.9 ROOT-CAUSE trace — BEFORE (HEAD d0d2152f), rule cycle_delay_range on r1_star_spaced.sv (`## [*]`)
+# cmd: PGEN_TRACE_VERBOSITY=debug parseability_probe --parse systemverilog r1_star_spaced.sv --profile sv_2017 --trace-rules cycle_delay_range
+# input bytes 192.. = ' @(posedge c'
+
+🚪 Entering branch 1/4 for rule 'cycle_delay_range' at position 192
+❌ Branch 1/4 for rule 'cycle_delay_range' failed at position 192
+🚪 Entering branch 2/4 for rule 'cycle_delay_range' at position 192
+❌ Branch 2/4 for rule 'cycle_delay_range' failed at position 192
+🚪 Entering branch 3/4 for rule 'cycle_delay_range' at position 192
+❌ Branch 3/4 for rule 'cycle_delay_range' failed at position 192
+🚪 Entering branch 4/4 for rule 'cycle_delay_range' at position 192
+❌ Branch 4/4 for rule 'cycle_delay_range' failed at position 192
+🚪 Entering branch 1/4 for rule 'cycle_delay_range' at position 207
+❌ Branch 1/4 for rule 'cycle_delay_range' failed at position 207
+🚪 Entering branch 2/4 for rule 'cycle_delay_range' at position 207
+❌ Branch 2/4 for rule 'cycle_delay_range' failed at position 207
+🚪 Entering branch 3/4 for rule 'cycle_delay_range' at position 207
+❌ Branch 3/4 for rule 'cycle_delay_range' failed at position 207
+🚪 Entering branch 4/4 for rule 'cycle_delay_range' at position 207
+❌ Branch 4/4 for rule 'cycle_delay_range' failed at position 207
+🚪 Entering branch 1/4 for rule 'cycle_delay_range' at position 209
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 212
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 212
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 212
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 212
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 212
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 212
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 212
+🚫 Rule 'system_tf_call' satisfied negative lookahead at position 212
+🚫 Rule 'system_tf_call' satisfied negative lookahead at position 212
+🚫 Rule 'rooted_tf_call_sv_only' satisfied negative lookahead at position 212
+❌ Branch 1/4 for rule 'cycle_delay_range' failed at position 209
+🚪 Entering branch 2/4 for rule 'cycle_delay_range' at position 209
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 214
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 214
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 214
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 214
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 214
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 214
+🚫 Rule 'non_keyword_identifier' satisfied negative lookahead at position 214
+🚫 Rule 'system_tf_call' satisfied negative lookahead at position 214
+🚫 Rule 'system_tf_call' satisfied negative lookahead at position 214
+🚫 Rule 'rooted_tf_call_sv_only' satisfied negative lookahead at position 214
+❌ Branch 2/4 for rule 'cycle_delay_range' failed at position 209
+🚪 Entering branch 3/4 for rule 'cycle_delay_range' at position 209
+❌ Branch 3/4 for rule 'cycle_delay_range' failed at position 209
+🚪 Entering branch 4/4 for rule 'cycle_delay_range' at position 209
+❌ Branch 4/4 for rule 'cycle_delay_range' failed at position 209
+
+--- final verdict ---
+Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/fused_bracket_literal_diag/repro/r1_star_spaced.sv': Parser did not consume full input at position 149 [furthest_position=214, +65 bytes deeper than surface position]
+
+=== byte-locus confirmation (r1_star_spaced.sv) ===
+bytes 209..216 = ' ## [*] '
+bytes 212..216 = ' [*] '  <- furthest_position=214 lands on the '*'
+
+=== DIFFERENTIAL CONTROL: the SAME rule on the TIGHT '##[*]' (c1_star_tight.sv) ===
+🚪 Entering branch 3/4 for rule 'cycle_delay_range' at position 128
+🚪 Entering branch 4/4 for rule 'cycle_delay_range' at position 128
+❌ Branch 4/4 for rule 'cycle_delay_range' failed at position 128
+🏁 Rule 'cycle_delay_range' selected branch 3/4 consuming 6 chars
+🚪 Entering branch 1/4 for rule 'cycle_delay_range' at position 136
+❌ Branch 1/4 for rule 'cycle_delay_range' failed at position 136
+🚪 Entering branch 2/4 for rule 'cycle_delay_range' at position 136
+❌ Branch 2/4 for rule 'cycle_delay_range' failed at position 136
+🚪 Entering branch 3/4 for rule 'cycle_delay_range' at position 136
+❌ Branch 3/4 for rule 'cycle_delay_range' failed at position 136
+🚪 Entering branch 4/4 for rule 'cycle_delay_range' at position 136
+❌ Branch 4/4 for rule 'cycle_delay_range' failed at position 136

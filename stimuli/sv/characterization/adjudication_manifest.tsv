@@ -9166,7 +9166,7 @@ opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_lpg_ctrl.
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_ping_timer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_wrap.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/cov/clkmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_csrs_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -14937,7 +14937,7 @@ verilator	test_regress/t/t_math_svl.v	pass	must_accept	match	verilator: driver t
 verilator	test_regress/t/t_math_svl2.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_math_svl2.py expects success
 verilator	test_regress/t/t_math_swap.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_swap.py expects success
 verilator	test_regress/t/t_math_synmul.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_synmul.py expects success
-verilator	test_regress/t/t_math_synmul_mul.v	timeout	chained_only	divergence:explained_timeout	verilator: no same-stem driver and never a top_filename - include/companion fragment
+verilator	test_regress/t/t_math_synmul_mul.v	pass	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_math_tri.v	pass	must_accept	match	verilator: driver t_math_tri.py expects success
 verilator	test_regress/t/t_math_trig.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_math_trig.py expects success
 verilator	test_regress/t/t_math_vgen.v	pass	must_accept	match	verilator: driver t_math_vgen.py expects success
@@ -15677,7 +15677,7 @@ verilator	test_regress/t/t_sequence_nonconst_delay_unsup.v	pass	must_accept	matc
 verilator	test_regress/t/t_sequence_ref.v	pass	must_accept	match	verilator: driver t_sequence_ref.py expects success
 verilator	test_regress/t/t_sequence_ref_unsup.v	pass	must_accept	match	verilator: driver t_sequence_ref_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_sequence_sexpr_throughout.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_sequence_sexpr_throughout.py expects success
-verilator	test_regress/t/t_sequence_sexpr_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_sequence_sexpr_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_sequence_sexpr_unsup.v	pass	must_accept	match	verilator: driver t_sequence_sexpr_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_sequence_unused.v	pass	must_accept	match	verilator: driver t_sequence_unused.py expects success
 verilator	test_regress/t/t_sequence_within.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_sequence_within.py expects success
 verilator	test_regress/t/t_sequence_within_bad.v	pass	must_accept	match	verilator: driver t_sequence_within_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

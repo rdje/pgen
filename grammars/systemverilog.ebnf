@@ -1704,10 +1704,10 @@ cycle_delay_range := kw_token_93ac8946 constant_primary
                             -> {kind: "primary",      body: $2}
                   | kw_token_93ac8946 lbrack cycle_delay_const_range_expression rbrack
                             -> {kind: "range",        body: $3}
-                  | kw_token_71b8cf7e
-                            -> {kind: "token_71b8cf7e"}
-                  | kw_token_9768502a
-                            -> {kind: "token_9768502a"}
+                  | kw_token_93ac8946 lbrack star rbrack
+                            -> {kind: "star"}
+                  | kw_token_93ac8946 lbrack plus rbrack
+                            -> {kind: "plus"}
 
 @profiles: ["sv_2017", "verilog_2005"]
 data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
@@ -6652,11 +6652,17 @@ kw_timeunit_57f78b2f := trivia /timeunit\b/
 
 // kw_token_08534f33 := trivia /\\\b/
 
-kw_token_71b8cf7e := trivia "##[*]"
-
+# (SV-CORPUS-GRAD.3.9 fix, ledger SV-0045): the fused literals
+# `kw_token_71b8cf7e := trivia "##[*]"` and `kw_token_9768502a := trivia "##[+]"`
+# were RETIRED here. Each fused FOUR distinct SystemVerilog lexical tokens
+# (`##` + `[` + `*`/`+` + `]`) into one atom, and a fused multi-character literal
+# cannot admit interior white space — but IEEE 1800-2017 §5.3 ignores white space
+# "except when [it serves] to separate other lexical tokens", so every spaced
+# spelling (`## [*]`, `##[ * ]`, ...) is legal SystemVerilog and ALL of them
+# rejected. `cycle_delay_range` now spells both alternatives structurally out of
+# the existing `kw_token_93ac8946` / `lbrack` / `star` / `plus` / `rbrack` tokens,
+# exactly as `consecutive_repetition` (:1377) already does.
 kw_token_93ac8946 := trivia "##"
-
-kw_token_9768502a := trivia "##[+]"
 
 kw_tran_8cc27d13 := trivia /tran\b/
 

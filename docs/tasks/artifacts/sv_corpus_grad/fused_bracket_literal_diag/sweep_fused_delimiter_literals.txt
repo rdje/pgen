@@ -1,0 +1,142 @@
+# SV-CORPUS-GRAD.3.9 — THE MANDATED GRAMMAR-WIDE FUSED-LITERAL SWEEP
+# grammar: grammars/systemverilog.ebnf @ HEAD d0d2152f (release 1.0.174, schema 18)
+#
+# The charter requires this sweep in the SAME leaf: "a one-site fix here would repeat
+# exactly the mistake .3.8 documented".  Scope was WIDENED beyond the charter's
+# bracket-only filter to EVERY multi-character literal token definition, because the
+# governing law is not about brackets:
+#
+#   IEEE 1800-2017 §5.3 (White space, verbatim):
+#     "White space shall contain the characters for spaces, tabs, newlines, and
+#      formfeeds. These characters shall be ignored except when they serve to
+#      separate other lexical tokens."
+#
+# => the decision procedure for a fused literal "XY" is exactly one question:
+#      is "XY" ONE lexical token, or SEVERAL?
+#   Several  => whitespace between them is ignored => every spaced spelling is legal
+#              => a fused literal makes them ALL unparseable  = DEFECT.
+#   One      => whitespace inside it is not "separating tokens" => fusing is CORRECT
+#              (unless §5.7.1 grants that one token internal seams — see class C).
+#
+# Denominator: 52 multi-character literal token definitions (extracted mechanically;
+# both the `name := trivia "lit"` and `name := "lit"` forms).
+
+================================================================================
+CLASS A — CORRECT AS FUSED: single-token operator glyphs (46 of 52)
+================================================================================
+All are single operator/punctuation tokens per IEEE 1800-2017 Table 11-1 + Annex A.
+`< <` is not `<<`; no whitespace is legal inside an operator. NO ACTION.
+
+  len 2 (29):  !=  ##  %=  &&  &=  **  *=  *>  ++  +=  --  -=  ->  .*  /=  ::
+               <<  <=  ==  =>  >=  >>  ^=  ^~  |=  ||  ~&  ~^  ~|
+  len 3 (13):  !==  !=?  &&&  ->>  <->  <<<  <<=  ===  ==?  >>=  >>>  |->  |=>
+  len 4  (2):  <<<=  >>>=
+
+  (`|->` :6770 and `|=>` :6766 are the tokens .3.3/SV-0039 added — correctly fused:
+   the LRM defines each as ONE implication operator.)
+
+================================================================================
+CLASS B — ADJUDICATED CORRECT AS FUSED, with named cause (2 of 52)
+================================================================================
+  :6063  attr_open  := trivia "(*"
+  :6062  attr_close := trivia "*)"
+
+The attribute-instance delimiters of IEEE 1800-2017 §5.12 / A.9.1
+(`attribute_instance ::= (* attr_spec { , attr_spec } *)`).  Ruled TWO-CHARACTER
+DELIMITERS, i.e. one lexical token each — NOT `(` followed by `*`.  Three grounds:
+
+  1. §5.4 sets the LRM's own precedent for two-character delimiters in the very
+     same lexical clause: "A block comment shall start with /* and end with */."
+     `/*` is a lexical unit, not `/` then `*`; `(*` / `*)` are introduced the
+     same way.
+  2. MEASURED over the tracked LRM markdown: 36 attribute examples, ALL written
+     tight; ZERO LRM example spaces the delimiters (searched for `( * ident` and
+     `ident * )` outside `@`/`**` contexts — no hits).
+  3. Un-fusing would COLLIDE with a production the LRM itself lists separately:
+     `event_control ::= ... | @* | @ (*)` (§9.4.2.2, section-9-processes.md:657).
+     If `(` `*` could open an attribute, `@ (*)` stops being unambiguous.
+
+=> NO CHANGE. Un-fusing here would change acceptance and is not LRM-supported.
+
+================================================================================
+CLASS C — NEW MEASURED DEFECT, DIFFERENT LAW -> ROUTED TO ITS OWN LEAF `.3.10`
+================================================================================
+Found only because the sweep was widened past the bracket filter.  4 appear in the
+multi-char *string*-literal census; the full family is 12 tokens once the `/.../\b`
+regex twins are included:
+
+  :6386 kw_n_1_tick_BX_874bf116 := trivia "1'BX"      :6382 ...B0 := trivia /1'B0\b/
+  :6388 kw_n_1_tick_Bx_0a99de19 := trivia "1'Bx"      :6384 ...B1 := trivia /1'B1\b/
+  :6394 kw_n_1_tick_bX_70a6d618 := trivia "1'bX"      :6390 ...b0 := trivia /1'b0\b/
+  :6396 kw_n_1_tick_bx_ab9cb068 := trivia "1'bx"      :6392 ...b1 := trivia /1'b1\b/
+  + kw_tick_b0/b1/B0/B1 (the unsized twins used by scalar_constant)
+
+Consumers: `init_val:2554` (IEEE A.5.2 / §29, 10 alternatives) and
+`scalar_constant:4935` (10 alternatives).
+
+MEASURED (not speculated) — UDP with a §5.7.1-spaced init value:
+    initial q = 1'b1;     -> ACCEPT
+    initial q = 1 'b 1;   -> REJECT  (furthest_position=81)
+
+WHY it is a defect: IEEE 1800-2017 §5.7.1 permits white space between the SIZE and
+the `'`, and between the base format and the VALUE (not between `'` and the base
+char).  That is the EXACT law leaf `.3.5` applied to `integral_number:439`
+(`[ \t]*` at the two legal seams, ledger SV-0041) — but `init_val` /
+`scalar_constant` do not go through `integral_number`; the LRM restricts them to a
+closed literal set, so they carry their own fused copies and never got `.3.5`'s fix.
+
+WHY NOT FOLDED INTO `.3.9` — the same four reasons `.3.8` gave for deferring `.3.9`,
+which is the precedent this leaf is built on:
+  1. DIFFERENT LAW — §5.7.1 internal-seam allowance for ONE token, not §5.3
+     separation of SEVERAL tokens.  A single fix cannot be justified by one cite.
+  2. DIFFERENT MECHANISM — `##[*]` fuses 4 distinct tokens; `1'b1` is one token
+     whose interior the standard opens at two named seams.
+  3. DIFFERENT + LARGER SURFACE — 12 tokens across 2 consumer rules, and it must
+     first decide reuse-`integral_number`-seams vs restructure.
+  4. IT CARRIES ITS OWN SHAPE QUESTION — `{kind:"1'b0"}` ... `{kind:"1'BX"}` are
+     CURRENTLY PRODUCED kinds, so it has its own contract/schema adjudication,
+     exactly like `.3.9`'s `{kind:"token_71b8cf7e"}`.
+Nothing regresses by deferring: today's tight spellings keep parsing.
+
+CLASS-EVIDENCE NOTE: `SV-0030` (SV-DOLLAR-LRM-FIDELITY.3) already fixed a
+DIFFERENT bug in these very tokens (digit-less `1'b` / `1'B` prefix-merging) — see
+the comment block at :6376.  So this family has now been repaired reactively TWICE
+without either pass noticing the remaining lexical-fidelity hole.  That is one more
+independent argument for the EXHAUSTIVE `LRM-GRAMMAR-FIDELITY` Annex-A sweep both
+`.3.8` and `.3.9` call for, rather than a further isolated repair.
+
+================================================================================
+CLASS D — THE `.3.9` DEFECT ITSELF (2 of 52)
+================================================================================
+  :6655  kw_token_71b8cf7e := trivia "##[*]"
+  :6659  kw_token_9768502a := trivia "##[+]"
+
+FOUR lexical tokens fused into one atom: `##` (:6657 `kw_token_93ac8946`), `[`
+(:6743 `lbrack`), `*` (:6803 `star`) / `+` (:6773 `plus`), `]` (:6779 `rbrack`) —
+every one of them already exists standalone in this grammar and is used standalone
+elsewhere.  By §5.3 the whitespace between them is ignored, so every spaced
+spelling is legal SystemVerilog and today ALL of them reject.  -> FIXED BY THIS LEAF.
+
+================================================================================
+INLINE-LITERAL LEG (rule bodies, not token definitions)
+================================================================================
+Also swept: every multi-character string literal appearing inside a rule body that
+contains a delimiter — 48 hits, and ALL 48 are NON-GRAMMAR text:
+  · `@sample:` / `@probe_sample:` generation-hint payloads (e.g. :897
+    "case (a) default: ; endcase", :3310 "module m(.*); endmodule"),
+  · `@fact_kind:` description strings (:1747, :1755),
+  · `#`-comments and commented-out legacy token defs (:78, :468, :6750, :6754),
+  · regex-terminal bodies (:491 `string_literal := trivia /"([^"\\]|\\.)*"/`).
+ZERO fused grammar literals outside the token-definition section.
+
+================================================================================
+VERDICT
+================================================================================
+  52 multi-char literal tokens swept + 48 inline-literal hits triaged.
+  · 46 correct as fused (single operator tokens)               — no action
+  ·  2 adjudicated correct as fused with LRM cause (`(*`,`*)`) — no action
+  ·  2 = THIS LEAF's defect (`##[*]`, `##[+]`)                 — fixed here
+  · 12 = a NEW measured defect under a DIFFERENT law           — leaf `.3.10`
+  ·  0 fused grammar literals hiding in rule bodies
+The bracket/brace face of the fused-literal class is now EXHAUSTIVELY closed for
+this grammar; the number-literal face is measured, named, and tracked.

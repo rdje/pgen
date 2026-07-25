@@ -1,0 +1,20 @@
+# .3.9 — PER-PROFILE CENSUS EFFECT of retiring the 2 fused tokens
+# tool: ast_pipeline --dump-rule-profiles (TOOLBOX 5.4), pre-fix grammar from `git show HEAD:`
+
+rule_count           1477 -> 1475  (-2)
+satisfiable_under:
+  sv_2017            1354 -> 1352  (-2)
+  sv_2023            1373 -> 1371  (-2)
+  verilog_2005       1123 -> 1121  (-2)
+
+rules REMOVED: kw_token_71b8cf7e, kw_token_9768502a
+rules ADDED  : (none — the fix reuses existing tokens)
+
+Both retired tokens were satisfiable under ALL THREE profiles, including
+verilog_2005 — a TOKEN carries no @profiles gate of its own, only its
+consumers do, so the v2005 rule universe counted them even though SVA is
+unreachable there. => UNLIKE .3.8 (which added nothing and was v2005
+BYTE-INERT), this leaf MUST re-baseline BOTH contract JSONs:
+  systemverilog_recognized_cert_union_contract.json : expected_total 1354 -> 1352
+  verilog_2005_conformance_contract_v0.json         : cert total 1123 -> 1121
+The witness/proof split is MEASURED by the gates below, not predicted here.

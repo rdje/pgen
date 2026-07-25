@@ -1318,10 +1318,11 @@ coverage.
 
 #### `.3.9` — the SPACED `## [*]` / `## [+]` cycle-delay abbreviations reject (IEEE 1800-2017 A.2.10 alts 3/4 — fused literal tokens vs SV's free-form lexing; the sibling `.3.8` surfaced)
 
-- **Status: `todo`** — opened by `.3.8` (session #204, 2026-07-25) from a
-  MEASURED non-flip, not from speculation. Deliberately NOT folded into `.3.8`:
-  different mechanism, nothing regresses by deferring, and the fix changes AST
-  kinds (a shape/schema decision of its own).
+- **Status: `active`** (session #205, 2026-07-25 — `PGEN-SV-CORPUS-GRAD-0024`).
+  Opened by `.3.8` (session #204, 2026-07-25) from a MEASURED non-flip, not from
+  speculation. Deliberately NOT folded into `.3.8`: different mechanism, nothing
+  regresses by deferring, and the fix changes AST kinds (a shape/schema decision
+  of its own).
 - **EVIDENCE ALREADY BANKED (`cycle_delay_range_diag/global_measurement.txt`).**
   `.3.8` healed 23 of its 24 keyed rows; the 24th,
   `verilator/test_regress/t/t_sequence_sexpr_unsup.v`, now parses PAST its old
@@ -1380,6 +1381,329 @@ coverage.
   fused-literal FACE of that class; the bracket-as-metasyntax face was `.3.8`.
   Both argue the same conclusion: `LRM-GRAMMAR-FIDELITY` needs an EXHAUSTIVE
   Annex-A delimiter sweep, not another isolated repair.
+
+##### `.3.9` EXECUTION LOG (session #205, 2026-07-25, `PGEN-SV-CORPUS-GRAD-0024`)
+
+- **REPRODUCED at HEAD `d0d2152f`** (release probe, `--profile sv_2017`;
+  `artifacts/sv_corpus_grad/fused_bracket_literal_diag/before.txt`) — the charter's
+  6-row matrix confirmed EXACTLY as predicted:
+  `##[*]` ACCEPT · `## [*]` **REJECT** (`furthest_position=214`) ·
+  `##[+]` ACCEPT · `## [+]` **REJECT** (`furthest_position=146`) ·
+  `##[1:2]` ACCEPT · `## [1:2]` ACCEPT.
+  (The two spaced-range ACCEPTs also re-confirm the probe is post-`.3.8` vintage.)
+- **ROOT CAUSE (WHY + WHERE) tool-pinned with a DIFFERENTIAL** — not just "the
+  branch fails", but *the same branch succeeding on the tight spelling*
+  (`trace_r1_before.txt`, `--trace-rules cycle_delay_range` at `debug`):
+  - on the SPACED input, ALL FOUR branches fail at the `##` position:
+    `❌ Branch 3/4 for rule 'cycle_delay_range' failed at position 209`
+    (bytes 209.. = `' ## [*] '`; branch 2 reaches the `*` = the reported
+    `furthest_position=214`);
+  - on the TIGHT input, the SAME branch WINS:
+    `🏁 Rule 'cycle_delay_range' selected branch 3/4 consuming 6 chars`.
+  ⇒ the mechanism is the fused literal, isolated to whitespace alone.
+  WHERE: `kw_token_71b8cf7e := trivia "##[*]"` (`:6655`) and
+  `kw_token_9768502a := trivia "##[+]"` (`:6659`) — each fusing FOUR distinct
+  lexical tokens. The layout skipper (`trivia`) runs only BEFORE a terminal,
+  never inside one match — the SAME engine property `.3.5` root-caused for
+  spaced-based number literals.
+- **⭐ THE MANDATED SWEEP RAN, and was WIDENED past the charter's bracket filter**
+  (`sweep_fused_delimiter_literals.txt`). The governing law is not about brackets;
+  it is IEEE 1800-2017 **§5.3** verbatim: white space is "ignored except when
+  [it serves] to separate other lexical tokens" ⇒ the only question per fused
+  literal is *one lexical token, or several?* So ALL **52** multi-character
+  literal token definitions were adjudicated (plus 48 inline-literal hits):
+  - **46 correct as fused** — single operator glyphs (`!=`, `<<<=`, `|->`, …).
+  - **2 adjudicated correct as fused WITH a named LRM cause** — `attr_open "(*"`
+    (`:6063`) / `attr_close "*)"` (`:6062`): two-character delimiters on the
+    §5.4 `/*`-block-comment precedent, **36/36 LRM attribute examples written
+    tight, zero spaced**, and un-fusing would collide with the LRM's own separate
+    `event_control ::= … | @ (*)` production. **NO CHANGE** — a speculative
+    un-fusing here would have changed acceptance with no LRM support.
+  - **2 = this leaf's defect** (`##[*]`, `##[+]`) — fixed.
+  - **0 fused grammar literals hiding in rule bodies** — all 48 inline hits are
+    `@sample:`/`@probe_sample:` payloads, `@fact_kind:` descriptions, comments,
+    or regex-terminal bodies.
+  ⇒ the bracket/brace face of the class is now **EXHAUSTIVELY closed** for this
+  grammar — the charter's "do not repeat `.3.8`'s one-site mistake" requirement
+  is discharged by measurement, not by assertion.
+- **⭐⭐ THE SWEEP SURFACED A NEW MEASURED DEFECT UNDER A DIFFERENT LAW → new leaf
+  `.3.10`** (see below). Found *only* because the filter was widened.
+- **OPEN DECISION RESOLVED ON MEASUREMENT — schema `18` → `19`.** The charter
+  required this be adjudicated first, not assumed:
+  - **Locked shape-contract samples: ZERO references.** Machine-checked all 31
+    `samples` in `rust/test_data/ast_shape_contract/systemverilog_v1.json` for
+    `token_71b8cf7e` / `token_9768502a` / `##[` — no hit. The two grep hits in
+    that file are both in `calibration_history` **prose**, not assertions.
+  - **Downstream contract: no LIVE normative table references them.** The two
+    hits (`PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md:1373`, book
+    `changelog-index.md:22`) sit inside **era-dated release-highlights blocks**
+    (Release 1.0.77 / 1.0.54). ⭐ Those correctly keep saying `paren_range` and
+    `token_*`: at 1.0.77 the kinds genuinely WERE those, and the project's
+    convention (and `PGEN-RGX-SCHEMA-DOCSYNC-0001`'s ruling) is *era-dated rows
+    untouched*. **This is NOT a `.3.8` lockstep gap** — verified against
+    `git show d0d2152f`.
+  - **BUT the kinds ARE reachable and CURRENTLY EMITTED** — proven by AST dump,
+    not inferred: `##[*]` → `{"kind": "token_71b8cf7e"}`, `##[+]` →
+    `{"kind": "token_9768502a"}` (1 occurrence each, under
+    `sequence_expr…delay`). This is the decisive difference from `.3.8`, whose
+    retired `paren_range` was *unreachable in practice* (it needed a bare `##`).
+  ⇒ renaming a **reachable, emitted** kind is a real wire-shape change for a
+  downstream consumer (Nexsim), which is exactly what the schema version exists
+  to signal. Under-signalling a breaking rename to save a version number would be
+  the wrong trade. **BUMP 18 → 19.**
+- **FIX (grammar-only, fix-hierarchy tier 2 = grammar, mirrors an in-grammar
+  precedent):** `cycle_delay_range:1707/:1709` alternatives 3/4 rewritten
+  structurally, and the two fused tokens RETIRED (`:6655`/`:6659`, replaced by an
+  explanatory comment block):
+
+  ```
+  | kw_token_93ac8946 lbrack star rbrack  -> {kind: "star"}
+  | kw_token_93ac8946 lbrack plus rbrack  -> {kind: "plus"}
+  ```
+
+  ⭐ This is not a novel shape: `consecutive_repetition:1377` already spells
+  `lbrack star rbrack -> {kind: "star"}` / `lbrack plus rbrack -> {kind: "plus"}`
+  verbatim — so the fix reuses existing tokens AND an existing house idiom, and
+  the resulting kind names (`star`/`plus`) are already this grammar's vocabulary
+  rather than extractor hash artifacts. LRM branch order preserved. No new rules
+  or tokens; census **1477 → 1475** (the 2 retired tokens).
+  Tournament safety checked: on `##[1:2]` alt 2 still wins (alt 3/4 need a bare
+  `*`/`+`); on `##[*]` alt 2 fails inside `cycle_delay_const_range_expression`
+  and alt 3 wins — no new ambiguity.
+- **`--lint-grammar` after the edit: CLEAN** — `1475 rules`, `non_terminating=0`,
+  `ordered_choice_shadowing=0`, `unreachable_rules=0`, `undefined_references=0`,
+  `unbound_fact_kinds=0`, **`profile_orphans=0`** (so retiring the tokens stranded
+  nothing). Regen green (`focus_systemverilog`, guard exit 0, peak 2,288 MB / 71 s;
+  return-annotation inventory 2,280 entries).
+- **BASELINE PINNED for the before→after** (post-`.3.8`, measured from the tracked
+  manifests): corpus 16,336 files — pass **9,692** / fail 6,634 / timeout 10 /
+  crash 0 (59.3%); adjudication match **5,726**, `unexplained_rejects_valid`
+  **383**, `unexplained_accepts_invalid` **21** (total unexplained 404).
+- **KEYED TARGET POPULATION = exactly 1 row** (mechanically derived: the
+  rejects-valid rows whose file contains `##`+whitespace+`[`) —
+  `verilator/test_regress/t/t_sequence_sexpr_unsup.v`, the very file `.3.8`
+  surfaced. ⭐ It is an ideal targeted oracle: it exercises all ten spaced
+  cycle-delay forms in one file (`## DELAY`, `## ( DELAY )`, `## [1:2]`,
+  `## [*]`, `## [+]`, each also with a leading `a`), and today dies at
+  `furthest_position=1112` = the `## [*]` on line 59. **Honest scope statement,
+  stated up front rather than discovered later: the corpus delta from this leaf is
+  at most +1 pass.** Its value is the CLASS it removes (every legal spaced
+  spelling), not the row count — and the exhaustive sweep above is the larger
+  deliverable.
+- **VERIFIED — repro matrix AFTER** (`after.txt`, release probe relinked 15:46:15,
+  mtime-asserted NEWER than the 15:24:20 parser): all 6 rows ACCEPT (`## [*]` and
+  `## [+]` REJECT→ACCEPT, the 4 controls held); `verilog_2005` still REJECTS both.
+- **⭐ THE CLASS IS CLOSED, not just the two charted forms** — 9 spacing variants
+  ALL ACCEPT: `##[*]`, `## [*]`, `##[ *]`, `##[* ]`, `##  [  *  ]`, `##<TAB>[*]`,
+  `##[+]`, `## [+]`, `##[ + ]`.
+- **⭐ NOT over-permissive** — 5 near-miss negatives ALL still REJECT: `##[]`,
+  `##[*`, `##[**]`, `##[+*]`, `##[1:2:3]`. (A more-permissive terminal change
+  must be shown not to have opened the door too far; measured, not argued.)
+- **AST shape** — `{kind:"star"}` / `{kind:"plus"}` emitted for both spacings,
+  with **zero** residual `token_71b8cf7e` / `token_9768502a` occurrences.
+- **GLOBAL MEASUREMENT** (`global_measurement.txt`; DEBUG probe, matching the
+  baseline probe type per the `.3.6` requirement; guard exit 0, 5,700 MB / 217 s):
+  main corpus 16,336 — pass 9,692 → **9,694**, fail 6,634 → 6,634, timeout 10 → 8.
+  ⭐ **HONEST ATTRIBUTION: the yield is +1, not +2**, exactly the ceiling stated
+  above before measuring. The per-FILE diff shows only THREE transitions:
+  `fail→pass` on the keyed row (mine), plus `timeout→pass` and `timeout→fail` on
+  two files containing **zero** `##` occurrences — so `cycle_delay_range` is never
+  reached and the change provably cannot affect them. Both re-run SOLO (15 s /
+  17 s against the 20 s wall) and each moved TOWARD its true verdict; one is the
+  SAME opentitan file `.3.8` proved was jitter in the OPPOSITE direction, so the
+  two leaves are consistent, not contradictory. The artifact records "do not cite
+  +2 as this fix's yield".
+- **ADJUDICATION**: match 5,726 → 5,727; `unexplained_rejects_valid` 383 → **382**
+  (SET difference: 1 healed = the keyed row, **0 NEW**);
+  `unexplained_accepts_invalid` 21 → 21 with the **SET BYTE-IDENTICAL**;
+  `explained_timeout` 10 → 8 and `deferred:chained_only` 5,266 → 5,268 (the two
+  jitter rows re-classifying); **all 9 other classes byte-identical**.
+  ⇒ **rejects-valid graduation baseline is now 382.**
+- **NO REGRESSION (the `.3.4` LAW — per-FILE pass-set diff, not net counts;
+  paths normalized per `.3.8`): 0 pass→fail, 0 pass→timeout, 0 pass→crash.**
+- **`verilog_2005` lane RE-RUN, not inferred** (it had to be: the retired tokens
+  WERE in the v2005 rule universe): 2,459 files 2,180/279/0;
+  `results_v2005.tsv` **BYTE-IDENTICAL** (path-normalized) and
+  `adjudication_manifest_v2005.tsv` **BYTE-IDENTICAL**; v2005 unexplained stays 76
+  (62 rejects-valid + 14 accepts-invalid). Correct by construction — the rule is
+  reachable only through SV-gated SVA, so the census moves but parsing does not.
+- **GATES**
+  - `sv_syntax_closure_gate` — PASS, `defined_rule_count` **1475** (the −2, as
+    designed), `unreachable_rules: 0`. (`unreachable_branches: 2` is at its
+    tracked cap of 2 — verified PRE-EXISTING: the contract
+    `systemverilog_syntax_closure_contract.json` is untouched by this leaf.)
+  - `ast_shape_contract_gate` — PASS **18/18**.
+  - `sv_cert_recognized_union_gate` — first run RED on contract drift **exactly as
+    predicted**, then GREEN on an evidence-grounded re-baseline. Measured
+    identically at seeds 0/7/42: canonical total **1352** / proof **6** / witness
+    **1335** / UNKNOWN **11** / `sample_parse_failures 0`; union total 1352 /
+    proof 6 / witness **1346** / UNKNOWN **0** / `union_residual_rules []`;
+    `fully_certified_via_union: true`. Both retired tokens were WITNESSED, so the
+    −2 lands ENTIRELY in the witness columns — **proof, both UNKNOWN counts and
+    the residual set are ALL UNCHANGED**. The grammar lost two symbols and kept
+    every certificate. Contract re-baselined to `expected_total 1352` /
+    `expected_canonical_witness 1335` / `expected_union_witness 1346` + a new
+    `rebaseline_note`; verified by JSON diff that ONLY those 4 fields changed and
+    `done_rule` is byte-identical.
+  - `verilog_2005_conformance_gate` — first run RED on the predicted −2 census
+    drift, then GREEN on re-baseline. Measured `1121/328/779/14` (was
+    `1123/330/779/14`) identically at seeds 0/7/42, `sample_parse_failures 0`,
+    `proof_reverify_failures 0`; **behaviour unaffected and verified, not
+    inferred** — corpus matrix **240 checks / 0 mismatches**, alias checks 2,
+    `profile_orphans 0`, lint exit 0. Contract re-baselined to
+    `expected_total 1121` / `expected_proof 328` (witness 779 and UNKNOWN 14
+    untouched); JSON-diff-verified that ONLY those 2 pins changed and the
+    `baseline_note` was strictly APPENDED, preserving the full provenance chain.
+    ⭐ `.3.8`'s "v2005 byte-inert" precedent did **NOT** carry over, and assuming
+    it would have made this gate look like a regression: a TOKEN carries no
+    `@profiles` gate of its own — only its consumers do — so
+    `--dump-rule-profiles` on the pre-fix grammar (`git show HEAD:`) measured both
+    retired tokens satisfiable under ALL THREE profiles
+    (`census_effect.txt`: sv_2017 1354→1352, sv_2023 1373→1371,
+    verilog_2005 1123→1121). **LAW BANKED: profile-inertness of BEHAVIOUR does
+    not imply profile-inertness of the CENSUS.**
+  - ⭐⭐ **THE SHARPEST FINDING OF THE GATE PASS — the same two retired tokens were
+    classified DIFFERENTLY per profile, and both classifications are correct:**
+    under `sv_2017` they were **WITNESSES** (reachable and positively exercised),
+    so the sibling union contract re-baselined *witness* 1337→1335 / 1348→1346
+    with **proof 6 unchanged**; under `verilog_2005` they were **PROOFS** (the
+    `VERILOG-2005-PROFILE.6.7` `ProfileEntryUnreachable` class — SVA is
+    profile-unreachable there), so this contract re-baselined *proof* 330→328 with
+    **witness 779 byte-identical**. In BOTH profiles the −2 is fully positively
+    accounted and **UNKNOWN is untouched** (11/0 and 14) — the grammar lost two
+    symbols and surrendered no certificate anywhere. This is not a contradiction
+    to reconcile but the profile machinery working exactly as designed, and it is
+    the reason a single "expected census delta" cannot be applied blindly to both
+    contracts: WHICH column moves is profile-dependent.
+  - `sv_external_corpus_triage_gate` — PASS (no preprocess / parse / blocked
+    failure cases).
+  - `systemverilog_parser_book_gate` — PASS (mdbook build + tracked-HTML check);
+    the tracked `docs/systemverilog_parser_book-html/` was regenerated and the
+    rendered `changelog-index.html` VERIFIED to carry the new `1.0.175` entry
+    rather than trusting the gate's "HTML present" check (18 HTML files touched,
+    incl. the usual `searchindex-*.js` hash rename).
+  - `sv_stimuli_quality_gate` — PASS (guard exit 0, peak 11,188 MB / 2,471 s;
+    `closed_loop_initial_replay_determinism_passes 2/2`,
+    `closed_loop_replay_preprocess_warnings_total 0` / `errors_total 0`).
+    ⭐ `closed_loop_replay_targets_total` **127 → 124 (−3)** — a DECREASE, i.e.
+    three closed-loop replay-debt gaps CLOSED. A decrease cannot be a regression
+    here: the criterion `focused_replay_target_debt_zero` (the LAST unmet SV
+    family-status criterion, owned by `SV-REPLAY-DEBT`) is satisfied at **0**
+    targets, so this moves TOWARD the `Done` bar. Note the direction contrast with
+    the immediately preceding leaves, and that it is coherent: `.3.8` went 126→127
+    (+1) because its new bracketed alternative became a NEW generation target the
+    generator had yet to witness, whereas this leaf RETIRES two symbols and its
+    two new branches are witnessed immediately (the same "immediately witnessed"
+    pattern `.3.6` recorded when its count held). Same accounting family as
+    `.3.5`'s 126→125. Feeds `SV-REPLAY-DEBT`, which owns the burn-down.
+  - **clippy** — source-strict PASS; generated stage reports **291** errors, which
+    is EXACTLY the tracked baseline (session #192 `.7a`) ⇒ **zero new generated
+    clippy debt** from this leaf.
+    ⚠️ **BUT `make clippy_on_rust_change` FIRST REPORTED SUCCESS BY SKIPPING** —
+    "No Rust/generated Rust changes detected; skipping clippy flow." Its detection
+    (`clippy_on_rust_change.sh:46`) matches git-reported changed paths against
+    `rust/*.rs` / `generated/*.rs`, but `generated/` is **gitignored by repo
+    policy**, so a regenerated parser is INVISIBLE to it. A grammar-only leaf
+    therefore changes only the tracked `.ebnf`, and the step that exists to lint
+    the regenerated parser cannot see the regenerated parser — it passes green
+    while doing nothing. The real lint above was obtained with
+    `PGEN_CLIPPY_FORCE=1`. ⇒ **`COMMIT.md` step 2 has been silently
+    self-exempting for every grammar-only leaf, which is most of the `.3.x`
+    series.** Same shape as the `BIN-BUILD-INTEGRITY` findings (a check whose
+    covered set is narrower than it looks); NOT fixed here — routed as a
+    surfaced finding + candidate leaf for that tree (see `DEVELOPMENT_NOTES.md`
+    item 7 for this session).
+  - `--lint-grammar` — clean: 1475 rules, `non_terminating`/
+    `ordered_choice_shadowing`/`unreachable_rules`/`undefined_references`/
+    `unbound_fact_kinds`/**`profile_orphans`** all 0.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `## [*]` / `## [+]` REJECT at
+    `furthest_position=214`/`146` while the tight `##[*]`/`##[+]` and both
+    `##[1:2]` spacings ACCEPT (`before.txt`); 1 keyed corpus row
+    (`t_sequence_sexpr_unsup.v`) rejecting at `furthest_position=1112`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `cycle_delay_range:1707/:1709` reference
+    FUSED literals `kw_token_71b8cf7e := trivia "##[*]"` (`:6655`) /
+    `kw_token_9768502a := trivia "##[+]"` (`:6659`), each fusing FOUR lexical
+    tokens; `trivia` skips only BEFORE a terminal, never inside one match.
+    Trace-proven DIFFERENTIALLY (`trace_r1_before.txt`): spaced input →
+    `❌ Branch 3/4 for rule 'cycle_delay_range' failed at position 209`
+    (bytes 209.. = `' ## [*] '`); tight input → the SAME branch wins,
+    `🏁 Rule 'cycle_delay_range' selected branch 3/4 consuming 6 chars`.
+    Governing law: IEEE 1800-2017 §5.3, quoted verbatim.
+  - [x] **FIX** — fix-hierarchy tier 2 (grammar): two structural alternatives from
+    existing tokens + retire the two fused tokens; reuses the in-grammar
+    `consecutive_repetition:1377` idiom; census 1477 → 1475.
+  - [x] **ADDRESSED (verified)** — 6/6 repro rows REJECT→ACCEPT or held; 9 spacing
+    variants ACCEPT; AST `{kind:"star"}`/`{kind:"plus"}`; main corpus pass
+    9,692→9,694 (+1 attributable, +1 proven jitter); rejects-valid 383→382.
+  - [x] **NO REGRESSION** — per-FILE pass-set diff **0 pass→fail / 0 pass→timeout /
+    0 pass→crash**; **0 new** rejects-valid (set difference); accepts-invalid set
+    BYTE-IDENTICAL (21); 5 near-miss negatives still REJECT; v2005 lane
+    byte-identical (results + manifest); cert union GREEN at seeds 0/7/42 with
+    `spf=0`, UNKNOWN 11/0 and residual `[]` unchanged,
+    `fully_certified_via_union: true`; shape contract 18/18; lint
+    `profile_orphans=0`.
+  - [x] **LOCKSTEP** — ledger `SV-0045` + contract identity `1.0.175` / schema
+    `18`→`19` (with the breaking-rename rationale for downstream) + SV book
+    changelog-index + BOTH cert contract JSONs re-baselined +
+    tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
+
+#### `.3.10` — the spaced UDP/timing-check NUMBER literals (`1 'b 1`) reject (IEEE 1800-2017 §5.7.1 — fused number literals in `init_val` / `scalar_constant`; the sibling `.3.9`'s widened sweep surfaced)
+
+- **Status: `todo`** — opened by `.3.9` (session #205, 2026-07-25) from a MEASURED
+  reject, not from speculation. Same discipline `.3.8` applied when it opened
+  `.3.9`: a different-law/different-mechanism finding gets its own leaf instead of
+  being folded in silently.
+- **EVIDENCE ALREADY BANKED**
+  (`artifacts/sv_corpus_grad/fused_bracket_literal_diag/sweep_fused_delimiter_literals.txt`,
+  CLASS C). Minimal repro on the post-`.3.8` parser (`--profile sv_2017`), a UDP
+  with a §5.7.1-spaced initial value:
+
+  | form | verdict |
+  |---|---|
+  | `initial q = 1'b1;` | ACCEPT |
+  | `initial q = 1 'b 1;` | **REJECT** (`furthest_position=81`) |
+
+- **ROOT CAUSE (WHY + WHERE, already pinned):** `init_val:2554` (IEEE 1800-2017
+  A.5.2 / §29, `init_val ::= 1'b0 | 1'b1 | 1'bx | 1'bX | 1'B0 | 1'B1 | 1'Bx |
+  1'BX | 1 | 0`) and `scalar_constant:4935` enumerate a CLOSED literal set, so
+  they do not route through `integral_number` — they reference 12 of their own
+  fused number-literal tokens (`:6382`–`:6396` `1'b0`/`1'b1`/`1'bx`/`1'bX`/
+  `1'B0`/`1'B1`/`1'Bx`/`1'BX`, half as `trivia "…"` and half as `/…\b/`, plus the
+  unsized `'b0`/`'b1`/`'B0`/`'B1` twins). IEEE 1800-2017 **§5.7.1** permits white
+  space between the SIZE and the `'` and between the base format and the VALUE
+  (not between `'` and the base char) — the EXACT law leaf `.3.5` applied to
+  `integral_number:439` (ledger `SV-0041`). These copies never got that fix.
+- **⛔ CLASS EVIDENCE (why this is not a one-off):** `SV-0030`
+  (`SV-DOLLAR-LRM-FIDELITY.3`) already repaired a DIFFERENT bug in these very
+  tokens — digit-less `1'b`/`1'B` prefix-merging — see the comment block at
+  `:6376`. So this family has now been patched reactively TWICE without either
+  pass noticing the remaining lexical-fidelity hole. Together with `.3.8`'s
+  bracket-as-metasyntax face and `.3.9`'s bracket-as-fused-atom face, that is a
+  THIRD independent argument for the exhaustive `LRM-GRAMMAR-FIDELITY` Annex-A
+  sweep rather than a fourth isolated repair.
+- **FIX (planned):** adjudicate reuse-`integral_number`-seams vs per-token
+  `[ \t]*` seams (12 tokens, 2 consumer rules); prefer whichever keeps the LRM's
+  closed set enforced (a naive `integral_number` swap would wrongly admit
+  `2'b11` as an `init_val`).
+- **SHAPE QUESTION — ALREADY MEASURED AND ANSWERED (session #205, so the leaf does
+  not have to rediscover it): NO schema bump is expected, and the kind names are
+  LOCKED and must NOT change.** ⭐ Unlike `.3.9`, BOTH consumer rules carry locked
+  `ast_shape_contract` samples — `rust/test_data/ast_shape_contract/systemverilog_v1.json`
+  has `scalar_constant_lrm_digits` and `init_val_lrm_digits`, each
+  `input: "1'b0"`, `rule_under_test` the respective rule, and
+  `expected_json_object_string_values: {"kind": "1'b0"}` (both `drift_status:
+  aligned`, both landed by `SV-0030` / `SV-DOLLAR-LRM-FIDELITY.3`). ⇒ the correct
+  fix admits white space at the two §5.7.1 seams while KEEPING every
+  `{kind:"1'b0"}` … `{kind:"1'BX"}` name, making the change **purely additive**
+  (only previously-REJECTED spellings gain parses, no emitted kind changes) —
+  so schema `19` should hold. A fix that renamed these kinds would break two
+  locked samples AND a published contract row; that is the design constraint,
+  established by measurement up front rather than discovered by a red gate.
+- **SCOPE:** measure the corpus population first (`init_val` is UDP-only, so it
+  may be 0 rows — in which case this is a correctness/LRM-fidelity fix with no
+  graduation delta, and should be sequenced accordingly rather than oversold).
 
 ### `.4` — Full-design corpora chaining
 
