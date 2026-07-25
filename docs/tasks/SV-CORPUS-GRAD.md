@@ -2860,6 +2860,14 @@ Raised by the director while reviewing `.3.11`: *"I want the SV parser to be
 flexible, strict-LRM compliance would mean hardcode, let's give us the possibility
 to accept strictness and dialect-tolerance, so I would go for a switch."*
 
+**⭐ SETTLED SAME SESSION, after the `.3.11` measurement was shown to the director:**
+*"So, we will stick to strict-LRM compliance then, good I prefer that."* ⇒ the SV
+parser is **STRICT-LRM BY DEFAULT** and the switch is **DEFERRED, not rejected**.
+Banked as decision record
+`docs/decisions/feedback_sv_strict_lrm_compliance_default.md` (layer C), which
+carries the policy, the ⚠️ scope limit, the re-open trigger and the mechanism
+constraints. The three constraints below stand as the design brief IF it re-opens.
+
 **ACCEPTED as a direction, with three engineering constraints recorded so the
 design does not start on the wrong foot.** No leaf opened yet — the design leaf
 belongs to `LRM-GRAMMAR-FIDELITY` (which already owns cross-family fidelity
