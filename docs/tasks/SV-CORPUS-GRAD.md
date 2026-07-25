@@ -2040,13 +2040,43 @@ plus the re-runnable driver `run_matrix.sh` and the analyser
   currently-passing corpus files**; (2) different mechanism (structural-vs-lexical
   seam, no fused literal anywhere); (3) different law (footnote 44, not §5.7.1's
   three-token decomposition).
-- **⚠️ CARRIES A DIRECTOR-VISIBLE SCOPE QUESTION, so do not just implement it:**
-  real-world SV writes `10 ns` constantly and mainstream simulators accept it.
-  Enforcing footnote 44 makes PGEN reject text the ecosystem treats as fine. The
-  leaf must first adjudicate **strict-LRM vs dialect-tolerant** (and whether that
-  belongs behind a profile/strictness switch) before touching the grammar. Measure
-  the corpus population of `<number><ws><unit>` first — the answer changes the
-  cost of strictness.
+- **⛔ CORRECTION OF RECORD (director review, same session #206): the "dialect
+  tension" this leaf was opened with DOES NOT EXIST — it was my unverified claim,
+  and measuring it dissolved the dilemma.** The leaf originally said "real-world SV
+  writes `10 ns` constantly and mainstream simulators accept it, so enforcing
+  footnote 44 makes PGEN reject text the ecosystem treats as fine." **That was
+  asserted from general knowledge, not measured, and it is wrong.** Measured over
+  all 16,336 corpus files (verilator, opentitan, black-parrot, iverilog, ispras,
+  Surelog, sv2v, sv-tests, uvm-core — i.e. real designs, not toys):
+
+  | pattern | files |
+  |---|---|
+  | `timeunit`/`timeprecision` + **spaced** unit | **0** |
+  | `#<num>` + **spaced** unit | 4 → **all 4 FALSE POSITIVES** (`#1 ps[idx]`, `#2 s = ~s`, `##1 s ##1` — delays followed by *signals* named `ps`/`s`) |
+  | `timeunit`/`timeprecision` + tight unit (control) | 54 |
+  | `` `timescale `` + tight unit (control) | 219 |
+
+  ⇒ **the ecosystem writes time literals TIGHT, universally: 273 control hits, 0
+  genuine spaced ones.** ⭐ And footnote 44 has a real lexical reason rather than
+  being pedantry: if white space were legal there, `#10 ns` would be ambiguous
+  with delay `10` followed by an identifier `ns` — which is exactly the shape of
+  all four false positives above. That is almost certainly why simulators lex a
+  time literal as one token, i.e. why they reject the spaced form too.
+- **⇒ ADJUDICATED: fix STRICTLY, and NO switch is needed for this leaf.** The
+  strict fix costs nothing measurable — keyed corpus population is **0 rows**, so
+  it cannot break a currently-passing file. Enforcing footnote 44 is a pure
+  accepts-invalid repair with no dialect trade-off to make. **This leaf must NOT
+  be used as the motivating case for a strictness switch** (see the note below):
+  designing a general mechanism around a case with zero measured conflict is
+  designing against a hypothesis.
+- **FIX (candidate, now unblocked):** make `time_literal` lexical (a single
+  terminal spanning number+unit with no interior white space), or add a
+  no-white-space guard between the two rules. Check `time_unit:5555`'s other
+  consumers before choosing. Expected: accepts-invalid population drops by however
+  many of the tracked 21+14 rows are this defect; verify with a keyed set-diff.
+  ⚠️ It is still an accepts-invalid (TIGHTENING) fix, so the per-FILE pass-set diff
+  matters more here than in any `.3.x` leaf so far — a tightening change is the one
+  shape that CAN turn passing files into failing ones.
 - **FIX (candidate, pending that adjudication):** make `time_literal` lexical (a
   single terminal spanning number+unit with no interior white space), or add a
   no-white-space guard between the two rules. Check `time_unit:5555`'s other
@@ -2821,3 +2851,48 @@ plus the re-runnable driver `run_matrix.sh` and the analyser
    grammar surface per profile** (uncovered rules/clauses = 0 or
    N/A-with-cause), with keyed negatives present wherever the LRM defines
    parse-level illegality — the ADD-v1 suites vendored and adjudicated.
+
+---
+
+## ⭐ DIRECTOR DIRECTIVE (2026-07-25, session #206) — a STRICTNESS AXIS for the SV parser
+
+Raised by the director while reviewing `.3.11`: *"I want the SV parser to be
+flexible, strict-LRM compliance would mean hardcode, let's give us the possibility
+to accept strictness and dialect-tolerance, so I would go for a switch."*
+
+**ACCEPTED as a direction, with three engineering constraints recorded so the
+design does not start on the wrong foot.** No leaf opened yet — the design leaf
+belongs to `LRM-GRAMMAR-FIDELITY` (which already owns cross-family fidelity
+infrastructure) rather than to this corpus-graduation tree.
+
+1. **⛔ Do NOT bootstrap the design from `.3.11`.** That case was measured to have
+   **zero** real-world conflict (0 of 16,336 files write a spaced time literal;
+   273 write it tight), so it needs no switch — it is a plain accepts-invalid bug.
+   A general mechanism designed around a single non-contentious instance will be
+   the wrong mechanism.
+2. **⭐ The evidence base already exists and is measured: the accepts-invalid
+   population — 21 rows (`sv_2017` lane) + 14 rows (`verilog_2005` lane) = 35.**
+   Those are, by construction, every place PGEN currently accepts what the standard
+   forbids. Sorting those 35 into *(a) genuine dialect tolerance the ecosystem
+   relies on* vs *(b) plain over-acceptance bugs* is the real input to a strictness
+   policy: bucket (a) is what a switch is FOR, bucket (b) should simply be fixed.
+   That triage is a read-only leaf and should come first.
+3. **⛔ TWO HARD CONSTRAINTS ON THE MECHANISM:**
+   - **It must be EBNF-NATIVE.** `EBNF-SOURCE-OF-TRUTH` is a *mechanically
+     enforced* doctrine (`scripts/check_doctrines.sh`: "no new out-of-band
+     acceptance validator wired outside the EBNF"). A strictness switch bolted on
+     as a runtime parser flag would fail that gate on the pre-commit hook. The
+     existing `@profiles` annotation is the proof that an EBNF-native switch is
+     achievable.
+   - **It must be ORTHOGONAL to `@profiles`, not folded into it.** Profiles answer
+     *which standard* (`sv_2017` / `sv_2023` / `verilog_2005`); strictness answers
+     *how pedantically to enforce it*. Folding the second into the first gives a
+     combinatorial explosion (`sv_2017_strict`, `sv_2017_lax`, … ×3) and would
+     muddle a mechanism that is currently clean, gate-verified
+     (`profile_orphans=0`) and load-bearing for two cert contracts.
+
+**Recommended sequencing:** triage the 35 accepts-invalid rows into
+dialect-tolerance vs bug (read-only) → design the orthogonal EBNF-native strictness
+annotation against bucket (a) → implement → wire a gate that proves both settings
+behave as declared. Fix `.3.11` strictly in the meantime; it is independent of all
+of the above.
