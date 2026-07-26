@@ -4,7 +4,10 @@
 
 - Tree ID: `LEX-ADJACENCY`
 - Status: `active` (opened 2026-07-26, session #207) — **design-first; no code
-  until the design leaf `.1` is adjudicated.**
+  until the design leaf `.1` is adjudicated.** ⭐ **`.1` DONE**
+  (`PGEN-LEX-ADJACENCY-0001`, session #208, 2026-07-26) — the design is
+  adjudicated and recorded in
+  [`LEX-ADJACENCY-design.md`](LEX-ADJACENCY-design.md); frontier is now `.2`.
 - Family / slice-id prefix: `PGEN-LEX-ADJACENCY-<NNNN>`
 - Roadmap lane: cross-cutting parser capability — a MISSING PGEN PRIMITIVE,
   surfaced independently by TWO grammar families and measured on BOTH sides of
@@ -16,6 +19,26 @@
   a general EBNF/engine primitive, NOT a SystemVerilog special case.
 
 ## The gap, stated exactly
+
+⛔ **CORRECTED by `.1` (session #208) — read this before the original text below.**
+The gap is **not** that the capability is absent. Both halves exist and both ship;
+what is absent is any way for a **grammar** to ask for them. See
+[`LEX-ADJACENCY-design.md`](LEX-ADJACENCY-design.md) §0–§1 for the tool output.
+
+| side | the capability that EXISTS | how it is requested today | why `time_literal` cannot use it |
+|---|---|---|---|
+| PARSE | `match_regex(pattern, /*skip_leading_whitespace=*/ false)` — **live**: `generated/return_annotation_parser.rs` emits it at **10 of 20** sites | a hard-coded rule-NAME allowlist in codegen (`ast_based_generator.rs:5551` + 5 mirrors + the census constant) naming exactly `string_content_double` / `string_content_single` | those two names belong to `return_annotation.ebnf`; no grammar can add itself to an engine `matches!` arm |
+| GENERATE | interior separator suppression (`atomic_token_depth`, `stimuli_generator.rs:9638`) | **INFERRED** from the return shape — `-> $text`/`$0` on every branch, or `@transform` (`rule_is_lexically_atomic`, `:13023`) | requesting it costs the `{value, unit}` AST object, AND it also fuses the rule's LEFT-exterior boundary |
+
+⇒ The honest statement of the gap: **a grammar cannot DECLARE "this production is
+one lexical token".** The engine can already do it; the EBNF cannot ask.
+
+⇒ Consequently `.2` is *decouple and scope two existing mechanisms*, not *invent a
+primitive* — and it retires an `EBNF-SOURCE-OF-TRUTH` breach (an acceptance-affecting
+rule-NAME literal inside the engine) as a by-product.
+
+<details>
+<summary>Original (session #207) framing — superseded on the PARSE row, kept for the record</summary>
 
 PGEN today has **two unconditional, opposite layout behaviours**:
 
@@ -30,6 +53,14 @@ into ONE terminal — which destroys the LRM's nonterminal structure and flatten
 the AST (a regex terminal binds exactly one value; codegen emits
 `ParseContent::Terminal(matched_str)` and there is no capture-group → `$N`
 mapping).
+
+**Where it went wrong:** the SV `0` count is correct, but the inference from it
+("there is no per-token opt-out") did not check whether any OTHER grammar emits
+the `false` arm — `return_annotation` does. The generate row is correct as
+measured; what it missed is that a THIRD trigger (`-> $text` / `@transform`)
+suppresses the separator, and was never probed.
+
+</details>
 
 ## Why this is a real capability gap and not a grammar-authoring nit
 
@@ -75,7 +106,90 @@ on this primitive.
 
 ### `.1` — Design: what the primitive IS (read-only + design doc)
 
-- **Status: `todo`.** Adjudicate the surface AND both engine halves together —
+- **Status: `done`** (`PGEN-LEX-ADJACENCY-0001`, session #208, 2026-07-26).
+  **Read-only** — no code, grammar, or generated artifact touched.
+- **The design record:** [`LEX-ADJACENCY-design.md`](LEX-ADJACENCY-design.md).
+  Evidence bundle: `docs/tasks/artifacts/lex_adjacency/`.
+- **The decision, in one line:** add a rule-level **`@lexical_token: true`**
+  semantic annotation meaning *"this rule denotes ONE lexical token"* — **deep**
+  (transitive over the rule's derivation) and **interior-only** (the rule's own
+  outer boundaries keep separating normally). Parse half emitted **statically**
+  (specialized no-layout twins over the rule's closure), so a bare parse pays
+  nothing.
+- **⭐ The finding that reframed the tree:** the primitive is not missing, it is
+  **un-declarable**. Both halves already ship — the parse half is live in
+  `generated/return_annotation_parser.rs` (10 of 20 `match_regex` sites pass
+  `false`), gated by a hard-coded rule-NAME `matches!` arm; the generate half is
+  live as `atomic_token_depth`, inferred from the return shape. `.3.11`'s
+  "ROUTE 4 … DOES NOT EXIST" is corrected.
+- **The measured gap (the whole design in one table)** — `run_probes.sh`, seed 0:
+
+  | setting | interior seam | exterior seam | emitted | verdict |
+  |---|---|---|---|---|
+  | ordinary object return (today) | open ✗ | separated ✓ | `<A>timeunit 0 ns;` | the `.3.11` defect |
+  | `-> $text` (inferred atomic) | closed ✓ | fused ✗ | `<D>timeunit02s;` | breaks a different boundary |
+  | `@transform` (inferred atomic) | closed ✓ | fused ✗ | `E0105fs` | same + coerces the AST |
+  | **what the LRM requires** | closed ✓ | separated ✓ | `timeunit 10ns;` | **unreachable today** |
+
+  Unreachable because `stimuli_generator.rs:9421` drives BOTH effects from one
+  `is_atomic` bool — while `append_generated_segment` already consumes them as two
+  independent conditions. That asymmetry is why `.2` is small.
+- **⭐ Why this route succeeds where `.3.11`'s `@sample` route failed** (the tree's
+  acceptance condition 3, measured): `@sample` collapsed generator coverage to
+  **rules 3/13, branches 0/6**; the atomic route holds **rules 11/11, branches
+  5/5** — every unit branch still generated, so nothing is stranded toward cert
+  `UNKNOWN`.
+- **Static emission is affordable — measured, not assumed** (`closure_probe.py`):
+  `time_literal`'s transitive closure is **14 of 1,475 rules (<1%)**, so
+  specialization costs ~13 extra rule methods and **zero** runtime cost. A runtime
+  depth counter was **rejected on the ⭐ speed north star** (it would tax all 1,798
+  terminal sites for a primitive used by two rules).
+- **⚠️ Two traps handed forward, both named before implementation:**
+  1. the parse half must ALSO drop **explicit** layout elements — SV writes
+     `kw_ns_7320d5b7 := trivia /ns\b/` (`systemverilog.ebnf:6458`), so flipping
+     `skip_leading_whitespace` alone would still accept `10 ns`;
+  2. "deep" closes seams some LRM rules deliberately leave **open** (§5.7.1
+     based-literal seams, the `.3.10` law) — the footnote 33/48/50 re-sweep in `.3`
+     must re-check per rule, never apply the directive mechanically.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `bash docs/tasks/artifacts/lex_adjacency/run_probes.sh`:
+    the control variant emits `<A>timeunit 0 ns;` (interior seam open — the
+    footnote-44 over-acceptance `.3.11` root-caused), and no setting of the engine
+    produces the required `timeunit 10ns;`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — both halves located and named:
+    PARSE `ast_based_generator.rs:5551` `!matches!(rule_name, "string_content_double" | "string_content_single")`
+    + 5 mirrors (`cascade.rs:1397`, `cascade.rs:2060`, `cascade/value.rs:878`,
+    `cascade/value.rs:1107`, `scan.rs:468`) + `fusibility_census.rs:60`;
+    GENERATE `stimuli_generator.rs:13023 rule_is_lexically_atomic`, coupled at
+    `:9421` into `:9638` (interior) and `:9650` (exterior). Live-emission proof:
+    `return_annotation_parser.rs` no-skip=10/20 vs `systemverilog_parser.rs`
+    no-skip=0/1798.
+  - [x] **FIX** — N/A code-wise (design leaf). The design's fix-hierarchy tier is
+    **declarative (annotation)** — the highest tier — with the engine change
+    confined to honouring it.
+  - [x] **ADDRESSED (verified)** — the design is decided and falsifiable, not a
+    menu: each rejected candidate carries a measurement (per-element annotations
+    are not generator-visible; `@sample` coverage 3/13 vs 11/11; closure 14/1475).
+    Probe outputs are deterministic — `run_probes.sh` and `closure_probe.py` both
+    re-run **byte-identical** (`cmp` clean).
+  - [x] **NO REGRESSION** — nothing executable changed: no `grammars/`, `rust/`,
+    codegen, generated artifact, or contract manifest touched
+    (`git status` shows only `docs/`). Probes ran against a fresh scratchpad
+    grammar and the read-only `--dump-gen-ast` IR; no stray artifact landed in the
+    repo (checked — the `.3.10` stray-JSON incident).
+  - [x] **LOCKSTEP** — tree framing table corrected in place, design doc added,
+    `docs/TASK_TREE.md` frontier updated, `MEMORY.md` / `CHANGES.md` /
+    `DEVELOPMENT_NOTES.md` updated, and the `SV-CORPUS-GRAD.3.11` blocker note
+    re-pointed at the corrected finding. The book chapter
+    (`docs/book/src/lexical-annotations.md`) documents the **inferred** form today
+    and is a declared `.2` lockstep obligation — deferred deliberately, because
+    publishing an annotation the engine does not yet accept would be book drift.
+
+<details>
+<summary>Original charter for this leaf (session #207) — satisfied above</summary>
+
+- Adjudicate the surface AND both engine halves together —
   a parse-only or generate-only answer is what produced the current gap.
 - **Candidate surfaces to price (not a menu to hand the director — pick one and
   justify it):**
@@ -101,12 +215,38 @@ on this primitive.
   `.3.11`'s `generator_shape_probe.txt` is the ready-made A/B harness for the
   generate half.
 
+</details>
+
 ### `.2` — Implement + gate
 
-- **Status: `todo`**, blocked on `.1`. Engine tier, so it needs the design record
-  first per the fix hierarchy (annotations > store > grammar > engine).
+- **Status: `todo`** — **UNBLOCKED** by `.1`; this is the **current frontier**.
+  Engine tier, so the design record (`LEX-ADJACENCY-design.md`) had to come first
+  per the fix hierarchy (annotations > store > grammar > engine). The directive
+  itself is annotation-tier; only its *honouring* is engine-tier.
+- **Scope, as decided by `.1`** — decouple + scope two mechanisms that already
+  work, do not invent one:
+  1. **declare** — accept rule-level `@lexical_token: true` (validator + lint);
+  2. **generate** — set the INTERIOR suppression (`atomic_token_depth`) without
+     the EXTERIOR cohesion flag (`last_terminal_from_atomic_rule`) — the third
+     state in the design's §4 table;
+  3. **parse** — emit specialized no-layout twins over the annotated rule's
+     transitive closure, dropping BOTH implicit layout skipping AND explicit
+     layout elements (`trivia`), and **retire** the
+     `string_content_double`/`string_content_single` name-gate at all 6 sites +
+     the census constant, converting `return_annotation.ebnf` to the directive;
+  4. **lint** — hard-error a `@lexical_token` rule whose closure is unbounded or
+     re-enters a non-lexical rule (keeps the emission static, keeps the primitive
+     honest).
+- **⚠️ `return_annotation.ebnf` is the migration's own regression test** — it is
+  the one grammar with a known-good before/after (`no-skip=10 of 20`). Convert it
+  first; a byte-identical generated parser is the proof the new path reproduces
+  the old gate exactly.
 - Wire a gate that proves BOTH settings behave as declared, on a synthetic
-  grammar (the `.1` probe) *and* on a real one.
+  grammar (the `.1` probes are ready to reuse) *and* on a real one. The full
+  acceptance list is `LEX-ADJACENCY-design.md` §6.
+- **Inertness is a hard requirement:** a grammar without the directive must be
+  byte-identical (the `@quantified_separator` precedent — an empty policy map
+  makes the path inert).
 
 ### `.3` — Land the blocked consumers
 
@@ -134,6 +274,25 @@ on this primitive.
 
 ## Evidence
 
+**`.1` (session #208) — the design leaf.** Re-runnable, deterministic
+(`cmp`-clean across re-runs), read-only:
+
+| artifact | proves |
+|---|---|
+| [`LEX-ADJACENCY-design.md`](LEX-ADJACENCY-design.md) | the adjudicated design |
+| `artifacts/lex_adjacency/run_probes.sh` | driver for the (interior × exterior) matrix + the 7 engine sites |
+| `artifacts/lex_adjacency/design_measurements.txt` | its captured output |
+| `artifacts/lex_adjacency/probe_atomic_triggers.ebnf` | `-> $text` and `@transform` both close the interior seam |
+| `artifacts/lex_adjacency/probe_exterior_boundary.ebnf` | …and both fuse the exterior seam against a keyword (`<D>timeunit02s;`) |
+| `artifacts/lex_adjacency/closure_probe.py` | closure sizer over the `--dump-gen-ast` IR |
+| `artifacts/lex_adjacency/closure_measurement.txt` | `time_literal` closure = **14 / 1,475** ⇒ static emission is affordable |
+
+**`.3.11` (session #207) — the upstream diagnosis this tree was opened from.**
 `docs/tasks/artifacts/sv_corpus_grad/time_literal_ws_diag/design_adjudication.txt`
 (the four routes, each measured and each blocked) and
 `.../generator_shape_probe.txt` (the three-shape generator A/B/C run).
+⛔ Its "ROUTE 4 … DOES NOT EXIST" verdict is **superseded by `.1`** — the routes it
+measured were each genuinely blocked, but a fifth (the inferred-atomicity trigger)
+was never probed, and the parse-half claim did not check grammars other than SV.
+The artifact is retained verbatim as measured evidence; the correction lives here
+and in the design doc, not by rewriting it.

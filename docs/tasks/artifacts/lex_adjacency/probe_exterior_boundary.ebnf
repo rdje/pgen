@@ -1,0 +1,19 @@
+# Does an atomic-token rule FUSE with a preceding KEYWORD? (the real SV shape:
+# `timeunit 10ns;` — the keyword must stay separated, the literal must stay tight)
+scratch := stmt_a | stmt_d
+
+stmt_a := "<A>" kw_timeunit tl_plain ";"
+stmt_d := "<D>" kw_timeunit tl_text ";"
+
+kw_timeunit := /timeunit\b/
+
+tl_plain := num unit -> {value: $1, unit: $2}
+tl_text  := num unit -> $text
+
+num := /[0-9][0-9_]*/
+
+unit := kw_s -> {kind: "s"} | kw_ns -> {kind: "ns"} | kw_ps -> {kind: "ps"}
+
+kw_s  := /s\b/
+kw_ns := /ns\b/
+kw_ps := /ps\b/

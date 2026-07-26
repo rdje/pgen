@@ -1,0 +1,27 @@
+scratch := variant_a | variant_d | variant_e
+
+# A: the CONTROL — today's structural shape, ordinary object return
+variant_a := "A" tl_plain
+# D: the SAME structure, but the wrapping rule returns $text (atomic per LEXICAL-ANNOTATIONS.6)
+variant_d := "D" tl_text
+# E: the SAME structure, but the wrapping rule carries @transform (the other atomic trigger)
+variant_e := "E" tl_transform
+
+tl_plain := num unit -> {value: $1, unit: $2}
+
+tl_text  := num unit -> $text
+
+@transform: str::parse::<f64>().unwrap_or(0.0)
+tl_transform := num unit
+
+num := /[0-9][0-9_]*/
+
+unit := kw_s -> {kind: "s"} | kw_ms -> {kind: "ms"} | kw_us -> {kind: "us"}
+      | kw_ns -> {kind: "ns"} | kw_ps -> {kind: "ps"} | kw_fs -> {kind: "fs"}
+
+kw_s  := /s\b/
+kw_ms := /ms\b/
+kw_us := /us\b/
+kw_ns := /ns\b/
+kw_ps := /ps\b/
+kw_fs := /fs\b/

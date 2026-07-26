@@ -1,5 +1,88 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LEX-ADJACENCY-0001 (docs-only, read-only design leaf `LEX-ADJACENCY.1`) — the "missing" no-layout primitive is not missing: it ships on BOTH halves and no grammar can ask for it
+
+**No code, grammar, generated artifact, contract or schema touched** — the leaf is read-only
+plus a design record. It closes the design leaf the previous slice opened, and it **corrects
+one of that slice's findings**.
+
+**⭐ The finding.** `SV-CORPUS-GRAD.3.11` concluded "ROUTE 4 — a generator-side 'no layout
+here' primitive ⛔ DOES NOT EXIST". Measured this session, on both sides of the engine, that
+is wrong — the capability exists and ships; what is absent is any way for a **grammar** to
+request it:
+
+- **PARSE.** `match_regex(pattern, /*skip_leading_whitespace=*/ false)` is live and emitted:
+  `generated/return_annotation_parser.rs` uses it at **10 of its 20** `match_regex` sites. It
+  is gated by a hard-coded rule-NAME `matches!` arm naming exactly `string_content_double` /
+  `string_content_single` (`ast_based_generator.rs:5551`, five mirrors in
+  `cascade.rs`/`cascade/value.rs`/`scan.rs`, plus the census constant
+  `fusibility_census.rs:60`). SystemVerilog's `0 of 1,798` — the number `.3.11` measured
+  correctly — is simply because no SV rule carries one of those two names. ⚠️ That name-gate
+  is itself an `EBNF-SOURCE-OF-TRUTH` breach (an acceptance-affecting rule-name literal
+  inside the engine), so retiring it is a doctrine win independent of the SV defect.
+- **GENERATE.** Interior separator suppression is live as `atomic_token_depth`, but it is
+  **inferred** from the return shape (`rule_is_lexically_atomic`, `stimuli_generator.rs:13023`:
+  a `-> $text`/`$0` return on every branch, or a `@transform` directive) — never something a
+  grammar states on purpose.
+
+**⭐ The gap, measured as a 2×2 rather than an absence.** Probes at seed 0
+(`docs/tasks/artifacts/lex_adjacency/run_probes.sh`):
+
+| setting | interior seam | exterior seam | emitted |
+|---|---|---|---|
+| ordinary object return (today's `time_literal`) | open ✗ | separated ✓ | `<A>timeunit 0 ns;` |
+| `-> $text` (inferred atomic) | closed ✓ | fused ✗ | `<D>timeunit02s;` |
+| `@transform` (inferred atomic) | closed ✓ | fused ✗ | `E0105fs` |
+| **what IEEE 1800-2017 fn 44 requires** | closed ✓ | separated ✓ | `timeunit 10ns;` |
+
+The fourth row is unreachable because `stimuli_generator.rs:9421` derives both effects from a
+single `is_atomic` bool — **while `append_generated_segment` already consumes them as two
+independent conditions**. The fused row is not merely ugly: `/timeunit\b/` cannot be followed
+by a digit, so `<D>timeunit02s;` does not re-parse; it would trade one duality break for
+another.
+
+**The decision.** A rule-level **`@lexical_token: true`** semantic annotation — *"this rule
+denotes one lexical token"* — **deep** (transitive over the rule's derivation) and
+**interior-only** (the rule's own outer boundaries keep separating normally). The inferred
+`$text`/`@transform` atomicity keeps its exterior-fusing behaviour, which is correct for the
+token **fragments** it was built for (`"R"` + `digits` → `R12`), so the two use-cases stay
+distinguishable and regex/VHDL carry no regression risk.
+
+Rejected on measurement, not taste:
+
+- a **sequence-level** adjacency operator (`a . b`) — per-element annotations are not
+  generator-visible today, so it needs a whole new annotation-visibility tier for no
+  expressive gain on any known consumer;
+- a **runtime** depth counter for the parse half — it would tax all 1,798 terminal sites for
+  a primitive used by two rules, which the ⭐ speed north star forbids. The parse half is
+  therefore emitted **statically** (specialized no-layout twins over the annotated rule's
+  closure), and its affordability was measured rather than assumed: `time_literal`'s
+  transitive closure is **14 of 1,475 rules (<1%)**, via the new `closure_probe.py` reading
+  the `--dump-gen-ast` IR that codegen itself consumes.
+
+**⭐ The tree's certificate condition is discharged in advance.** `.3.11`'s `@sample` route
+died because pinning the only path to `time_unit` collapsed generator coverage to **rules
+3/13, branches 0/6**, stranding seven rules toward cert `UNKNOWN`. The atomic route holds
+**rules 11/11, branches 5/5** — every unit branch still generated. That contrast is what makes
+this route viable where the previous one was not.
+
+**⚠️ Two traps named before implementation, not discovered after.** (1) The parse half must
+also drop **explicit** layout: SV writes `kw_ns_7320d5b7 := trivia /ns\b/`
+(`systemverilog.ebnf:6458`), so flipping `skip_leading_whitespace` alone would still accept
+`10 ns`. (2) "Deep" closes seams some LRM productions deliberately leave **open** — IEEE
+1800-2017 §5.7.1, the law `SV-CORPUS-GRAD.3.10` established, permits white space at a based
+literal's size↔apostrophe and base↔value seams; `time_literal` is safe only because A.8.4
+restricts its number to `unsigned_number`/`fixed_point_number`, so the footnote 33/48/50
+re-sweep must be per-rule, never mechanical.
+
+**Evidence** (`docs/tasks/artifacts/lex_adjacency/`): two probe grammars, two re-runnable
+drivers, two captured outputs — both drivers `cmp`-clean on re-run. Design record:
+`docs/tasks/LEX-ADJACENCY-design.md`. Frontier moves to `LEX-ADJACENCY.2`, which should
+convert `return_annotation.ebnf` first — its `no-skip=10 of 20` is the migration's own
+regression test. The book chapter `docs/book/src/lexical-annotations.md` documents the
+inferred form today and is a declared `.2` obligation, deliberately deferred: publishing an
+annotation the engine does not yet accept would be book drift.
+
 ## 2026-07-26 - PGEN-SV-CORPUS-GRAD-0028 (docs-only; leaf SV-CORPUS-GRAD.3.11 DIAGNOSED + fix WRITTEN and PARSER-VERIFIED but DELIBERATELY NOT LANDED; new tree LEX-ADJACENCY) — the `time_literal` defect is TWICE what the charter said, and its fix is blocked by a MISSING PGEN PRIMITIVE, measured on both sides of the engine
 
 **No release, schema or ledger bump: the grammar is back at HEAD.** This slice ships

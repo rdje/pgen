@@ -1,0 +1,9 @@
+grammar rules: 1475
+time_literal     closure size =    14
+                 members: block_comment, integral_number, kw_fs_3f4bb586, kw_ms_26cc3217, kw_ns_7320d5b7, kw_ps_c67f1ee1, kw_s_a0f1490a, kw_us_da2b1288, line_comment, number, real_number, time_literal, time_unit, trivia
+number           closure size =     3
+                 members: integral_number, number, real_number
+time_unit        closure size =    10
+                 members: block_comment, kw_fs_3f4bb586, kw_ms_26cc3217, kw_ns_7320d5b7, kw_ps_c67f1ee1, kw_s_a0f1490a, kw_us_da2b1288, line_comment, time_unit, trivia
+trivia           closure size =     3
+                 members: block_comment, line_comment, trivia

@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LEX-ADJACENCY-0001 — "the capability does not exist" is a claim about the SEARCH, not about the engine
+
+Session #208 (leaf `LEX-ADJACENCY.1`, read-only). The previous slice ended by opening a tree
+for a missing PGEN primitive. The primitive was not missing. Three lessons.
+
+**1. ⭐ A negative capability claim must be quantified over the whole repo, not over one
+grammar.** `.3.11` measured `grep -c "match_regex(.*false)"` = **0** in the SystemVerilog
+parser and concluded "there is no per-token opt-out". The measurement was right; the
+generalization was not. Run the same grep over `generated/return_annotation_parser.rs` and it
+is **10 of 20**. The `false` arm ships — it is gated on a hard-coded rule-NAME `matches!`
+naming two rules that happen to live in a different grammar. One grammar's zero is evidence
+about *that grammar*; a claim of the form "PGEN cannot X" needs the search widened to every
+grammar that could exhibit X. The cheap generalizer here would have been to grep all eleven
+generated parsers instead of one.
+
+**2. ⭐ When a mechanism is INFERRED from something else, it is easy to miss while looking
+straight at it.** The generate-half suppression is real, landed (`LEXICAL-ANNOTATIONS.6`),
+and documented in the live book — but it is triggered by a rule's *return shape*
+(`-> $text`/`$0`, or `@transform`), so a search for "how do I turn off separator insertion"
+finds nothing: there is no switch, only a side effect. `.3.11` probed four routes and none of
+them was "change the return annotation", because the return annotation is not where anyone
+looks for a layout behaviour. The general form: **a capability reachable only as a side
+effect of an unrelated declaration is, for search purposes, invisible** — which is precisely
+the argument for making it declarable, and is the design this leaf adopted.
+
+**3. ⭐ Two effects driven by one flag look like one feature until you probe both boundaries.**
+The inferred atomicity suppresses separators *inside* a rule AND fuses the rule's *left
+exterior* against a preceding token. Probing only the interior (`num unit` → `D00411us`) says
+"solved". Probing the real shape (`timeunit` + the rule → `<D>timeunit02s;`) says "solved one
+boundary, broke another" — and the broken one does not re-parse, because `/timeunit\b/`
+cannot be followed by a digit. The tell was already in the source: `append_generated_segment`
+consumes `atomic_token_depth` and `segment_from_atomic_rule` as **two independent
+conditions**, while `generate_rule` sets both from **one** bool. A single flag feeding two
+independent consumers is a design smell worth probing on sight; here it is also what makes
+the fix small, since the missing state is already representable.
+
+**Method note.** The design's two load-bearing quantitative claims were both measured rather
+than argued: generator coverage under the candidate route (**rules 11/11, branches 5/5**, vs
+**3/13 / 0/6** for the route that failed), and the closure size that decides static-vs-runtime
+emission (**14 of 1,475 rules**). The second one is the reason the parse half can be static
+and therefore free — a claim that would have been pure speculation without
+`--dump-gen-ast` + a twenty-line closure walk.
+
 ## 2026-07-26 - PGEN-SV-CORPUS-GRAD-0028 — when the right fix is "don't land the fix": three lessons from a red gate
 
 Session #207 (leaf `SV-CORPUS-GRAD.3.11`). The grammar change was ONE rule body. It was

@@ -1,0 +1,64 @@
+feature surface: AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
+
+=== probe_atomic_triggers.ebnf (A control / D '-> $text' / E '@transform') ===
+  Stimuli coverage: rules 15/15 (100.00%), branches 9/9 (100.00%), sample_successes=80/80
+  variant A (31 samples):
+     A 0 us
+     A 0168 us
+     A 0862 ms
+     A 1 s
+     A 10817 ns
+     A 11533 ms
+  variant D (30 samples):
+     D00411us
+     D01070s
+     D04fs
+     D0ms
+     D10us
+     D15157s
+  variant E (19 samples):
+     E0105fs
+     E0455s
+     E1_66s
+     E22537us
+     E26051ps
+     E2ms
+
+=== probe_exterior_boundary.ebnf (<A> control / <D> atomic, both after the keyword) ===
+  Stimuli coverage: rules 11/11 (100.00%), branches 5/5 (100.00%), sample_successes=60/60
+  variant <A> (46 samples):
+     <A>timeunit 0 ns;
+     <A>timeunit 0 ps;
+     <A>timeunit 0 s;
+     <A>timeunit 0_59 s;
+     <A>timeunit 040 ns;
+     <A>timeunit 1136 s;
+  variant <D> (14 samples):
+     <D>timeunit02s;
+     <D>timeunit08s;
+     <D>timeunit134s;
+     <D>timeunit197ns;
+     <D>timeunit2ps;
+     <D>timeunit2s;
+
+=== the two engine sites the design targets (source greps) ===
+  PARSE  half — hard-coded no-skip rule-NAME allowlist:
+     rust/src/ast_pipeline/ast_based_generator.rs:5551:                            !matches!(rule_name, "string_content_double" | "string_content_single");
+     rust/src/ast_pipeline/ast_based_generator/cascade.rs:1397:                            "string_content_double" | "string_content_single"
+     rust/src/ast_pipeline/ast_based_generator/cascade.rs:2060:                            "string_content_double" | "string_content_single"
+     rust/src/ast_pipeline/ast_based_generator/cascade/value.rs:878:                            "string_content_double" | "string_content_single"
+     rust/src/ast_pipeline/ast_based_generator/cascade/value.rs:1107:                            "string_content_double" | "string_content_single"
+     rust/src/ast_pipeline/ast_based_generator/scan.rs:468:                            "string_content_double" | "string_content_single"
+  PARSE  half — the allowlist is LIVE (return_annotation emits the false arm):
+     generated/return_annotation_parser.rs: match_regex(...) total=20 no-skip=10
+     generated/systemverilog_parser.rs: match_regex(...) total=1798 no-skip=0
+  GENERATE half — atomicity INFERRED from the return shape:
+     rust/src/ast_pipeline/stimuli_generator.rs:13023:    fn rule_is_lexically_atomic(&self, rule_name: &str) -> bool {
+  GENERATE half — interior + exterior flags driven by ONE bool:
+     rust/src/ast_pipeline/stimuli_generator.rs:9421:        let is_atomic = self.rule_is_lexically_atomic(rule_name);
+     rust/src/ast_pipeline/stimuli_generator.rs:9638:            self.atomic_token_depth += 1;
+     rust/src/ast_pipeline/stimuli_generator.rs:9439:            self.last_terminal_from_atomic_rule = is_atomic;
+     rust/src/ast_pipeline/stimuli_generator.rs:9483:                self.last_terminal_from_atomic_rule = is_atomic;
+     rust/src/ast_pipeline/stimuli_generator.rs:9514:            self.last_terminal_from_atomic_rule = is_atomic;
+     rust/src/ast_pipeline/stimuli_generator.rs:9618:                self.last_terminal_from_atomic_rule = is_atomic;
+     rust/src/ast_pipeline/stimuli_generator.rs:9650:            self.last_terminal_from_atomic_rule = is_atomic;

@@ -2186,6 +2186,26 @@ plus the re-runnable drivers `run_matrix.sh`, `run_generator_probes.sh`,
   lands, route 1 applies unchanged — the grammar edit is written verbatim above
   and this leaf's matrix + corpus lanes are the ready-to-re-run acceptance
   evidence.
+- ⭐ **UPDATE (session #208, `LEX-ADJACENCY.1` — `PGEN-LEX-ADJACENCY-0001`): the
+  blocker is SMALLER than this leaf concluded, and one of its findings is
+  CORRECTED.** `LEX-ADJACENCY.1` measured that the no-layout capability is **not
+  missing** — it ships on both halves, and is merely **un-declarable**: the parse
+  half is LIVE in `generated/return_annotation_parser.rs` (**10 of 20**
+  `match_regex` sites pass `false`) behind a hard-coded rule-NAME `matches!` arm,
+  and the generate half is LIVE as `atomic_token_depth` but INFERRED from the
+  return shape. ⇒ **this leaf's "ROUTE 4 … DOES NOT EXIST" is superseded.** The
+  four routes it priced were each genuinely blocked and that work stands; what it
+  missed is a FIFTH trigger (`-> $text` / `@transform`) that was never probed, and
+  a parse-half claim generalized from SV alone (`0 of 1,798`) without checking
+  another grammar. The corrected design (rule-level `@lexical_token`, deep +
+  interior-only, statically emitted) is
+  [`LEX-ADJACENCY-design.md`](LEX-ADJACENCY-design.md); this leaf stays `todo`,
+  still blocked, but now on a **scoped, unblocked `.2`** rather than on an
+  unpriced capability. ⚠️ It also inherits a NAMED trap: `@lexical_token` is deep,
+  and §5.7.1 (the `.3.10` law) leaves some based-literal seams deliberately OPEN —
+  `time_literal` is safe only because A.8.4 restricts its number to
+  `unsigned_number`/`fixed_point_number`, which must be re-verified when the fix
+  is re-applied, not assumed.
 - **BY-PRODUCT ALREADY LANDED (independent of the block):** `TOOLBOX.md` §2.2 now
   documents that `--trace-rules R` traces R's **dynamic extent**, so naming a
   suspect leaf rule alone can print NOTHING while that rule succeeds — measured
